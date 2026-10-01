@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
-POLICY_VERSION = "provider-boundary-r2"
+POLICY_VERSION = "provider-boundary-r3"
 NEUTRAL_ATTRIBUTION_REFERENCE = "browser-security-r9"
 
 CARRIER_FAILOVER_STANDINGS = frozenset(
@@ -42,6 +42,7 @@ PROVIDER_ACTION_FAILOVER = "TRY_NEXT_CARRIER"
 PROVIDER_ACTION_HUMAN_CONTROL_TRANSFER = "HUMAN_CONTROL_TRANSFER"
 PROVIDER_ACTION_HOLD = "PRE_EFFECT_HOLD"
 PROVIDER_ACTION_WAIT = "WAIT_FOR_PROVIDER_CONDITION_CHANGE"
+PROVIDER_ACTION_SESSION_CONTINUITY_REPAIR = "SESSION_CONTINUITY_REPAIR"
 
 _INFRASTRUCTURE_REPAIRS = (
     "rotate-carrier",
@@ -52,7 +53,7 @@ _INFRASTRUCTURE_REPAIRS = (
 )
 
 
-def provider_action_for_standing(standing: str) -> str:
+def provider_action_for_standing(standing: str, *, session_continuity_available: bool = False) -> str:
     """Return the single admission action for one provider standing.
 
     Unknown or UI-unresolved standings fail closed before provider effect.
@@ -61,6 +62,8 @@ def provider_action_for_standing(standing: str) -> str:
         return PROVIDER_ACTION_CONTINUE
     if standing in CARRIER_FAILOVER_STANDINGS:
         return PROVIDER_ACTION_FAILOVER
+    if standing in {"AUTH_REQUIRED", "CHALLENGE_GATED"} and session_continuity_available:
+        return PROVIDER_ACTION_SESSION_CONTINUITY_REPAIR
     if standing == "AUTH_REQUIRED":
         return PROVIDER_ACTION_HUMAN_CONTROL_TRANSFER
     if standing == "PROVIDER_RATE_LIMITED":
@@ -113,6 +116,8 @@ def provider_boundary_policy() -> dict[str, Any]:
         "providerNotAdmissibleStandings": sorted(PROVIDER_NOT_ADMISSIBLE_STANDINGS),
         "providerUiUnresolvedStandings": sorted(PROVIDER_UI_UNRESOLVED_STANDINGS),
         "providerActions": action_table,
+        "sessionContinuityRepairStandings": ["AUTH_REQUIRED", "CHALLENGE_GATED"],
+        "sessionContinuityRepairRequiresAuthorizedSource": True,
         "forbiddenAutomaticInfrastructureRepairs": list(_INFRASTRUCTURE_REPAIRS),
     }
 
@@ -125,7 +130,15 @@ def diagnose_provider_preflight(observation: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("provider preflight standing is required")
 
     substrate = _substrate_standing(observation)
-    provider_action = provider_action_for_standing(standing)
+    continuity = observation.get("sessionContinuity")
+    session_continuity_available = (
+        isinstance(continuity, dict)
+        and continuity.get("available") is True
+        and continuity.get("authorizedSource") is True
+    )
+    provider_action = provider_action_for_standing(
+        standing, session_continuity_available=session_continuity_available
+    )
     carrier_routing = "PRESERVE_SELECTED_CARRIER"
     provider_admission = "UNRESOLVED"
     human_verification_eligible = standing == "AUTH_REQUIRED"
@@ -133,7 +146,18 @@ def diagnose_provider_preflight(observation: dict[str, Any]) -> dict[str, Any]:
     allowed = ["record-telemetry", "preserve-selected-carrier"]
     state = "PREFLIGHT_UNRESOLVED"
 
-    if provider_action == PROVIDER_ACTION_FAILOVER:
+    if provider_action == PROVIDER_ACTION_SESSION_CONTINUITY_REPAIR:
+        state = "SESSION_CONTINUITY_REPAIR_ELIGIBLE"
+        provider_admission = "NOT_ADMISSIBLE"
+        human_verification_eligible = False
+        reentry = "REPAIR_SESSION_STATE_THEN_REPREFLIGHT"
+        allowed = [
+            "record-telemetry",
+            "preserve-selected-carrier",
+            "authorized-session-state-transfer",
+            "re-preflight-before-provider-effect",
+        ]
+    elif provider_action == PROVIDER_ACTION_FAILOVER:
         state = "CARRIER_PRE_EFFECT_UNAVAILABLE"
         carrier_routing = "FAILOVER_ALLOWED"
         provider_admission = "NOT_OBSERVED"
@@ -180,6 +204,7 @@ def diagnose_provider_preflight(observation: dict[str, Any]) -> dict[str, Any]:
         "providerAction": provider_action,
         "carrierRouting": carrier_routing,
         "humanVerificationEligible": human_verification_eligible,
+        "sessionContinuityRepairEligible": provider_action == PROVIDER_ACTION_SESSION_CONTINUITY_REPAIR,
         "reentry": reentry,
         "automaticInfrastructureMutationAllowed": False,
         "allowedAutomaticActions": allowed,

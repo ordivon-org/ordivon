@@ -24,6 +24,7 @@ NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=read-only
 ReadWritePaths=/root/.local/state/ordivon-workstation/agent-automation
+ReadWritePaths=/mnt/c/ProgramData/Ordivon/chat-ingress/session-continuity
 ProtectKernelTunables=true
 ProtectKernelModules=true
 RestrictSUIDSGID=true

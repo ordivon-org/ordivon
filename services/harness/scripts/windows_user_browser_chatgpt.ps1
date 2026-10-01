@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory=$true)][ValidateSet('classify','materialize','reconcile','observe','release')][string]$Mode,
+    [Parameter(Mandatory=$true)][ValidateSet('classify','materialize','reconcile','observe','release','session-export')][string]$Mode,
     [string]$EffectId,
     [string]$RequestDigest,
     [string]$PromptPath,
@@ -8,6 +8,7 @@ param(
     [string]$AttachmentManifestPath,
     [string]$AttachmentManifestDigest,
     [string]$StageRoot,
+    [string]$SessionBundlePath,
     [string]$TargetResource,
     [string]$OutputBeginMarker='ORDIVON_AGENT_OUTPUT_BEGIN',
     [string]$OutputEndMarker='ORDIVON_AGENT_OUTPUT_END',
@@ -56,6 +57,163 @@ function Emit-Classification([string]$Standing,[string]$Detail) {
         detail=$Detail
         providerEffectAttempted=$false
     } | ConvertTo-Json -Compress
+}
+
+function Emit-SessionExport([string]$Standing,[string]$BundleDigest,[int]$CookieCount,[string]$DetailCode) {
+    [ordered]@{
+        schemaVersion=1
+        kind='ordivon.windows-user-browser-session-export'
+        standing=$Standing
+        bundleDigest=if($BundleDigest){$BundleDigest}else{$null}
+        cookieCount=$CookieCount
+        detailCode=$DetailCode
+        rawCredentialProjected=$false
+        providerEffectAttempted=$false
+        sendAttempted=$false
+    } | ConvertTo-Json -Compress
+}
+
+function Read-CdpMessage([System.Net.WebSockets.ClientWebSocket]$Socket,[Threading.CancellationToken]$Token) {
+    $stream=[IO.MemoryStream]::new()
+    try {
+        do {
+            $buffer=New-Object byte[] 65536
+            $segment=[ArraySegment[byte]]::new($buffer)
+            $result=$Socket.ReceiveAsync($segment,$Token).GetAwaiter().GetResult()
+            if($result.MessageType -eq [System.Net.WebSockets.WebSocketMessageType]::Close){throw 'CDP socket closed'}
+            if($result.Count -gt 0){$stream.Write($buffer,0,$result.Count)}
+        } while(-not $result.EndOfMessage)
+        return [Text.Encoding]::UTF8.GetString($stream.ToArray())
+    } finally {$stream.Dispose()}
+}
+
+function Invoke-CdpCommand([string]$WebSocketUrl,[string]$Method) {
+    $socket=[System.Net.WebSockets.ClientWebSocket]::new()
+    $token=[Threading.CancellationToken]::None
+    try {
+        $socket.ConnectAsync([Uri]$WebSocketUrl,$token).GetAwaiter().GetResult()
+        $request=[ordered]@{id=1;method=$Method;params=@{}} | ConvertTo-Json -Compress -Depth 8
+        $bytes=[Text.Encoding]::UTF8.GetBytes($request)
+        $segment=[ArraySegment[byte]]::new($bytes)
+        $socket.SendAsync($segment,[System.Net.WebSockets.WebSocketMessageType]::Text,$true,$token).GetAwaiter().GetResult()
+        for($i=0;$i -lt 50;$i++){
+            $raw=Read-CdpMessage $socket $token
+            $value=$raw | ConvertFrom-Json
+            if($value.id -eq 1){
+                if($null -ne $value.error){throw ('CDP command failed: '+[string]$value.error.code)}
+                return $value.result
+            }
+        }
+        throw 'CDP response deadline exceeded'
+    } finally {
+        try{$socket.Dispose()}catch{}
+    }
+}
+
+function Copy-ProfileFile([string]$Source,[string]$Destination) {
+    if(-not (Test-Path -LiteralPath $Source -PathType Leaf)){return}
+    $parent=Split-Path -Parent $Destination
+    New-Item -ItemType Directory -Force -Path $parent | Out-Null
+    Copy-Item -LiteralPath $Source -Destination $Destination -Force
+}
+
+function Export-PrivateChatSession([string]$ChromeExecutable,[string]$BundlePath,[string]$IngressRoot) {
+    if([string]::IsNullOrWhiteSpace($BundlePath) -or [string]::IsNullOrWhiteSpace($IngressRoot)){
+        Emit-SessionExport 'EXPORT_FAILED' $null 0 'missing-target'; return
+    }
+    $rootFull=[IO.Path]::GetFullPath($IngressRoot).TrimEnd('\')
+    $bundleFull=[IO.Path]::GetFullPath($BundlePath)
+    $sessionRoot=[IO.Path]::GetFullPath((Join-Path $rootFull 'session-continuity')).TrimEnd('\')
+    if(-not $bundleFull.StartsWith($sessionRoot+'\',[StringComparison]::OrdinalIgnoreCase)){
+        Emit-SessionExport 'EXPORT_FAILED' $null 0 'target-outside-session-root'; return
+    }
+    if(-not (Test-Path -LiteralPath $ChromeExecutable -PathType Leaf)){
+        Emit-SessionExport 'SOURCE_UNAVAILABLE' $null 0 'chrome-unavailable'; return
+    }
+    $sourceRoot=Join-Path $env:LOCALAPPDATA 'Google\Chrome\User Data'
+    $localState=Join-Path $sourceRoot 'Local State'
+    if(-not (Test-Path -LiteralPath $localState -PathType Leaf)){
+        Emit-SessionExport 'SOURCE_UNAVAILABLE' $null 0 'profile-state-unavailable'; return
+    }
+    $scratch=Join-Path $env:TEMP ('Ordivon\SessionContinuity\'+[Guid]::NewGuid().ToString('N'))
+    $clone=Join-Path $scratch 'UserData'
+    $browser=$null
+    try {
+        New-Item -ItemType Directory -Force -Path $clone | Out-Null
+        Copy-ProfileFile $localState (Join-Path $clone 'Local State')
+        $state=Get-Content -LiteralPath $localState -Raw -Encoding UTF8 | ConvertFrom-Json
+        $profile=[string]$state.profile.last_used
+        if([string]::IsNullOrWhiteSpace($profile)){$profile='Default'}
+        if($profile -match '[\\/]' -or $profile -eq '.' -or $profile -eq '..'){
+            Emit-SessionExport 'SOURCE_UNAVAILABLE' $null 0 'profile-identity-invalid'; return
+        }
+        $sourceProfile=Join-Path $sourceRoot $profile
+        $cloneProfile=Join-Path $clone $profile
+        foreach($relative in @('Preferences','Secure Preferences','Network\Cookies','Network\Cookies-wal','Network\Cookies-shm')){
+            Copy-ProfileFile (Join-Path $sourceProfile $relative) (Join-Path $cloneProfile $relative)
+        }
+        if(-not (Test-Path -LiteralPath (Join-Path $cloneProfile 'Network\Cookies') -PathType Leaf)){
+            Emit-SessionExport 'NO_SESSION_STATE' $null 0 'cookie-store-unavailable'; return
+        }
+        $args=@(
+            '--headless=new',
+            '--disable-gpu',
+            '--no-first-run',
+            '--no-default-browser-check',
+            '--disable-background-networking',
+            '--remote-debugging-address=127.0.0.1',
+            '--remote-debugging-port=0',
+            ('--user-data-dir='+$clone),
+            ('--profile-directory='+$profile),
+            'about:blank'
+        )
+        $browser=Start-Process -FilePath $ChromeExecutable -ArgumentList $args -PassThru -WindowStyle Hidden
+        $activePort=Join-Path $clone 'DevToolsActivePort'
+        $deadline=(Get-Date).AddSeconds(20)
+        while((Get-Date) -lt $deadline -and -not (Test-Path -LiteralPath $activePort -PathType Leaf)){Start-Sleep -Milliseconds 200}
+        if(-not (Test-Path -LiteralPath $activePort -PathType Leaf)){
+            Emit-SessionExport 'EXPORT_FAILED' $null 0 'cdp-unavailable'; return
+        }
+        $portLine=@(Get-Content -LiteralPath $activePort -Encoding ASCII)[0]
+        $port=0
+        if(-not [int]::TryParse([string]$portLine,[ref]$port) -or $port -lt 1){
+            Emit-SessionExport 'EXPORT_FAILED' $null 0 'cdp-port-invalid'; return
+        }
+        try {
+            $targets=@(Invoke-RestMethod -Uri ('http://127.0.0.1:'+$port+'/json/list') -TimeoutSec 5)
+        } catch {
+            Emit-SessionExport 'EXPORT_FAILED' $null 0 'cdp-target-list-failed'; return
+        }
+        $target=$targets | Where-Object {$_.type -eq 'page' -and $_.webSocketDebuggerUrl} | Select-Object -First 1
+        if($null -eq $target){Emit-SessionExport 'EXPORT_FAILED' $null 0 'cdp-page-unavailable'; return}
+        $cookies=$null
+        try {
+            $cookies=@((Invoke-CdpCommand ([string]$target.webSocketDebuggerUrl) 'Storage.getCookies').cookies)
+        } catch {
+            try {
+                $cookies=@((Invoke-CdpCommand ([string]$target.webSocketDebuggerUrl) 'Network.getAllCookies').cookies)
+            } catch {
+                Emit-SessionExport 'EXPORT_FAILED' $null 0 'cdp-cookie-read-failed'; return
+            }
+        }
+        $eligible=@($cookies | Where-Object {
+            $d=([string]$_.domain).TrimStart('.').ToLowerInvariant()
+            $d -eq 'chatgpt.com' -or $d.EndsWith('.chatgpt.com') -or $d -eq 'openai.com' -or $d.EndsWith('.openai.com')
+        })
+        if($eligible.Count -eq 0){Emit-SessionExport 'NO_SESSION_STATE' $null 0 'no-eligible-state'; return}
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $bundleFull) | Out-Null
+        $payload=[ordered]@{schemaVersion=1;kind='ordivon.private-browser-session-state';cookies=$eligible}
+        $json=$payload | ConvertTo-Json -Compress -Depth 12
+        [IO.File]::WriteAllText($bundleFull,$json,[Text.UTF8Encoding]::new($false))
+        $digest='sha256:'+(Get-FileHash -LiteralPath $bundleFull -Algorithm SHA256).Hash.ToLowerInvariant()
+        Emit-SessionExport 'EXPORTED' $digest $eligible.Count 'ok'
+    } catch {
+        Emit-SessionExport 'EXPORT_FAILED' $null 0 $_.Exception.GetType().Name
+    } finally {
+        if($null -ne $browser){try{Stop-Process -Id $browser.Id -Force -ErrorAction SilentlyContinue}catch{}}
+        Start-Sleep -Milliseconds 300
+        try{Remove-Item -LiteralPath $scratch -Recurse -Force -ErrorAction SilentlyContinue}catch{}
+    }
 }
 
 function Emit-OutputObservation([string]$Standing,[string]$ProviderResource,[string]$Detail,[string]$AssistantOutput) {
@@ -116,6 +274,18 @@ function Get-ElementKey($Element) {
     try{return (@($Element.GetRuntimeId()) -join '.')}catch{return $null}
 }
 
+function Normalize-ComposerText([string]$Value) {
+    if($null -eq $Value){return $null}
+    $crlf=([string][char]13)+([string][char]10)
+    return $Value.Replace($crlf,[string][char]10).Replace([string][char]13,[string][char]10)
+}
+
+function Get-ComposerText($Element) {
+    $pattern=$null
+    if(-not $Element.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern,[ref]$pattern)){return $null}
+    try{return [string]([System.Windows.Automation.ValuePattern]$pattern).Current.Value}catch{return $null}
+}
+
 function Get-Composer($Root) {
     $legacy=Get-EditById $Root 'prompt-textarea'
     if($null -ne $legacy -and $legacy.Current.IsEnabled -and $legacy.Current.IsKeyboardFocusable){return $legacy}
@@ -133,6 +303,41 @@ function Get-Composer($Root) {
     }
     if($usable.Count -eq 1){return $usable[0]}
     return $null
+}
+
+function Set-ComposerTextFresh($Browser,[string]$Value,[string]$Purpose,[int]$MaxAttempts=12) {
+    $errors=New-Object System.Collections.Generic.List[string]
+    for($attempt=1;$attempt -le $MaxAttempts;$attempt++){
+        $element=$null
+        try {
+            $root=Get-Root $Browser
+            $element=Get-Composer $root
+        } catch {
+            $errors.Add(('reacquire-'+$attempt+':'+$_.Exception.GetType().Name))
+        }
+        if($null -eq $element){
+            if($attempt -lt $MaxAttempts){Start-Sleep -Milliseconds 200}
+            continue
+        }
+        try {
+            $pattern=$null
+            if(-not $element.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern,[ref]$pattern)){
+                $errors.Add(('attempt-'+$attempt+':ValuePattern-unsupported'))
+            } else {
+                ([System.Windows.Automation.ValuePattern]$pattern).SetValue($Value)
+                Start-Sleep -Milliseconds 100
+                $observed=[string]([System.Windows.Automation.ValuePattern]$pattern).Current.Value
+                if((Normalize-ComposerText $observed) -eq (Normalize-ComposerText $Value)){
+                    return $element
+                }
+                $errors.Add(('attempt-'+$attempt+':readback-mismatch'))
+            }
+        } catch {
+            $errors.Add(('attempt-'+$attempt+':'+$_.Exception.GetType().Name+':'+$_.Exception.Message))
+        }
+        if($attempt -lt $MaxAttempts){Start-Sleep -Milliseconds 200}
+    }
+    throw ($Purpose+' failed after fresh-element retries: '+(($errors.ToArray()) -join ' | '))
 }
 
 function Test-AccountChooser($Root) {
@@ -381,11 +586,17 @@ function Get-CanonicalChatResource([string]$Address) {
     return $null
 }
 
+if($Mode -eq 'session-export'){
+    Export-PrivateChatSession $ChromePath $SessionBundlePath $StageRoot
+    exit 0
+}
+
 if($Mode -eq 'observe' -or $Mode -eq 'release'){
     if([string]::IsNullOrWhiteSpace($EffectId) -or [string]::IsNullOrWhiteSpace($TargetResource)){
         throw 'EffectId and TargetResource are required for observe/release'
     }
-    if(-not (Test-Path -LiteralPath $ChromePath -PathType Leaf)){
+
+if(-not (Test-Path -LiteralPath $ChromePath -PathType Leaf)){
         if($Mode -eq 'observe'){Emit-OutputObservation 'CARRIER_UNAVAILABLE' $null 'normal Chrome executable unavailable' $null}
         else{Emit-ReleaseReceipt 'CARRIER_UNAVAILABLE' $null 'normal Chrome executable unavailable'}
         exit 0
@@ -466,7 +677,7 @@ if(-not (Test-Path -LiteralPath $ChromePath -PathType Leaf)){
     }
     exit 0
 }
-if($Mode -ne 'classify' -and ([string]::IsNullOrWhiteSpace($EffectId) -or [string]::IsNullOrWhiteSpace($RequestDigest))){
+if($Mode -notin @('classify','session-export') -and ([string]::IsNullOrWhiteSpace($EffectId) -or [string]::IsNullOrWhiteSpace($RequestDigest))){
     throw 'EffectId and RequestDigest are required outside classify mode'
 }
 if($Mode -eq 'classify'){
@@ -643,12 +854,18 @@ try {
         }
     }
     $prompt=[IO.File]::ReadAllText($PromptPath,[Text.Encoding]::UTF8)
-    $composer.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).SetValue($prompt)
+    $composer=Set-ComposerTextFresh $browser $prompt 'composer prompt'
     Start-Sleep -Milliseconds 700
     $root=Get-Root $browser
+    $composer=Get-Composer $root
+    if($null -eq $composer){
+        $null=Set-ComposerTextFresh $browser $prompt 'composer refresh before send'
+        $root=Get-Root $browser
+        $composer=Get-Composer $root
+    }
     $send=Get-SendControl $root $composer
     if($null -eq $send){
-        $composer.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).SetValue('')
+        $null=Set-ComposerTextFresh $browser '' 'composer clear'
         Emit-Receipt 'pre-effect-failed' $null 'user-browser:send-control-unavailable' $false 'send-unavailable'
         exit 0
     }

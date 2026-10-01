@@ -38,6 +38,45 @@ class ProviderBoundaryDiagnosisTests(unittest.TestCase):
         ):
             self.assertIn(action, value["forbiddenAutomaticInfrastructureRepairs"])
 
+
+    def test_challenge_gated_prefers_authorized_session_continuity_repair(self) -> None:
+        value = diagnose_provider_preflight(
+            {
+                "standing": "CHALLENGE_GATED",
+                "substrateHealth": {"healthy": True},
+                "sessionContinuity": {"available": True, "authorizedSource": True},
+            }
+        )
+        self.assertEqual(value["state"], "SESSION_CONTINUITY_REPAIR_ELIGIBLE")
+        self.assertEqual(value["providerAction"], "SESSION_CONTINUITY_REPAIR")
+        self.assertTrue(value["sessionContinuityRepairEligible"])
+        self.assertEqual(value["reentry"], "REPAIR_SESSION_STATE_THEN_REPREFLIGHT")
+        self.assertIn("authorized-session-state-transfer", value["allowedAutomaticActions"])
+        self.assertFalse(value["humanVerificationEligible"])
+
+    def test_auth_required_prefers_authorized_session_continuity_before_human(self) -> None:
+        value = diagnose_provider_preflight(
+            {
+                "standing": "AUTH_REQUIRED",
+                "substrateHealth": {"healthy": True},
+                "sessionContinuity": {"available": True, "authorizedSource": True},
+            }
+        )
+        self.assertEqual(value["providerAction"], "SESSION_CONTINUITY_REPAIR")
+        self.assertTrue(value["sessionContinuityRepairEligible"])
+        self.assertFalse(value["humanVerificationEligible"])
+
+    def test_untrusted_session_source_never_unlocks_continuity_repair(self) -> None:
+        value = diagnose_provider_preflight(
+            {
+                "standing": "CHALLENGE_GATED",
+                "substrateHealth": {"healthy": True},
+                "sessionContinuity": {"available": True, "authorizedSource": False},
+            }
+        )
+        self.assertEqual(value["providerAction"], "PRE_EFFECT_HOLD")
+        self.assertFalse(value["sessionContinuityRepairEligible"])
+
     def test_transport_standing_projects_explicit_failover_action(self) -> None:
         for standing in sorted(CARRIER_FAILOVER_STANDINGS):
             with self.subTest(standing=standing):
@@ -89,7 +128,7 @@ class ProviderBoundaryDiagnosisTests(unittest.TestCase):
 
     def test_policy_projects_single_action_table_and_r9_reference(self) -> None:
         value = provider_boundary_policy()
-        self.assertEqual(value["policyVersion"], "provider-boundary-r2")
+        self.assertEqual(value["policyVersion"], "provider-boundary-r3")
         self.assertEqual(
             value["neutralAttributionReference"],
             {
@@ -101,6 +140,8 @@ class ProviderBoundaryDiagnosisTests(unittest.TestCase):
         self.assertEqual(value["providerActions"]["AUTH_REQUIRED"], "HUMAN_CONTROL_TRANSFER")
         self.assertEqual(value["providerActions"]["CHALLENGE_GATED"], "PRE_EFFECT_HOLD")
         self.assertEqual(value["providerActions"]["READY"], "CONTINUE_MATERIALIZATION")
+        self.assertEqual(value["sessionContinuityRepairStandings"], ["AUTH_REQUIRED", "CHALLENGE_GATED"])
+        self.assertTrue(value["sessionContinuityRepairRequiresAuthorizedSource"])
 
 
 if __name__ == "__main__":

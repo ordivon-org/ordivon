@@ -272,6 +272,78 @@ class ReleaseTests(unittest.TestCase):
             self.assertEqual(value["standing"], "HOLD")
             self.assertEqual(value["classificationStanding"], "GLOBAL_DRIFT")
 
+    def test_browser_security_release_qualification_allows_only_explicit_environmental_cf06_drift(self):
+        with tempfile.TemporaryDirectory() as td:
+            release = Path(td)
+            (release / "scripts").mkdir()
+            (release / "scripts/browser_security_pool_runner.py").write_text("# runner\n")
+            (release / "scripts/browser_security_witness_source.py").write_text("# witness\n")
+            commit = "9" * 40
+            per_carrier = {}
+            for carrier in ("chatgpt-carrier-11", "chatgpt-carrier-12", "chatgpt-carrier-13"):
+                per_carrier[carrier] = {
+                    "challengeStandingChanged": False,
+                    "detectorDrift": [],
+                    "invalidObservationDetectors": [],
+                    "infrastructureChanges": {"browserBinary": False, "controlLayer": False, "networkAuthority": False},
+                    "publicObservationChanges": [{
+                        "detectorId": "cf06-cross-layer-consistency",
+                        "changedPaths": ["$.network.colo", "$.network.loc"],
+                    }],
+                }
+            pool = {
+                "kind": "ordivon.browser-security-pool-run",
+                "poolId": "browserless-prod-r2-20260918",
+                "poolIndexSha256": "sha256:" + "e" * 64,
+                "harnessRevision": commit,
+                "securityRevision": "f" * 40,
+                "carrierEvidence": [{}, {}, {}],
+                "classification": {
+                    "standing": "GLOBAL_DRIFT",
+                    "rootCauseEstablished": False,
+                    "sharedChangedFamilies": ["CF06"],
+                    "carrierLocalChangedFamilies": {},
+                    "sharedInfrastructureChanges": [],
+                    "carrierLocalInfrastructureChanges": {},
+                    "detectorDriftCarriers": [],
+                    "observationInvalidCarriers": {},
+                    "challengeStandingChangedCarriers": [],
+                    "perCarrier": per_carrier,
+                },
+                "providerChallengeVisited": False,
+                "providerSendAttempted": False,
+            }
+            completed = subprocess.CompletedProcess([], 0, stdout=json.dumps(pool), stderr="")
+            with patch.object(r, "run", return_value=completed):
+                value = REAL_REQUIRE_BROWSER_SECURITY_RELEASE_QUALIFICATION(release, commit)
+            self.assertEqual(value["standing"], "PASS")
+            self.assertEqual(value["classificationStanding"], "GLOBAL_DRIFT")
+            self.assertEqual(value["bridgeBasis"], "ENVIRONMENTAL_PUBLIC_OBSERVATION_DRIFT_EXCLUDED")
+
+    def test_browser_security_release_qualification_rejects_non_allowlisted_cf06_path(self):
+        classification = {
+            "standing": "GLOBAL_DRIFT",
+            "sharedChangedFamilies": ["CF06"],
+            "carrierLocalChangedFamilies": {},
+            "sharedInfrastructureChanges": [],
+            "carrierLocalInfrastructureChanges": {},
+            "detectorDriftCarriers": [],
+            "observationInvalidCarriers": {},
+            "challengeStandingChangedCarriers": [],
+            "perCarrier": {
+                "chatgpt-carrier-11": {
+                    "challengeStandingChanged": False,
+                    "detectorDrift": [],
+                    "invalidObservationDetectors": [],
+                    "infrastructureChanges": {"browserBinary": False, "controlLayer": False, "networkAuthority": False},
+                    "publicObservationChanges": [{"detectorId": "cf06-cross-layer-consistency", "changedPaths": ["$.network.tlsFingerprint"]}],
+                }
+            },
+        }
+        allowed, basis = r._browser_security_release_relevance(classification)
+        self.assertFalse(allowed)
+        self.assertEqual(basis, "GLOBAL_DRIFT_OUTSIDE_ENVIRONMENT_ALLOWLIST")
+
     def test_browser_security_release_qualification_runner_failure_holds(self):
         with tempfile.TemporaryDirectory() as td:
             release = Path(td)

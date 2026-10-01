@@ -240,12 +240,41 @@ class BrowserlessActivities:
                         if diagnosis["carrierRouting"] == "FAILOVER_ALLOWED":
                             rejected.append(f"{endpoint_id}:{observation.get('standing')}")
                             continue
-                        return self._effects(current).materialize(
+                        repair = None
+                        if diagnosis.get("providerAction") == "SESSION_CONTINUITY_REPAIR":
+                            repair = current_context._session_continuity_repair_under_carrier_lease(
+                                endpoint_id, initial_preflight=observation
+                            )
+                            if repair.get("standing") != "READY":
+                                return {
+                                    "schemaVersion": 1,
+                                    "kind": "ordivon.browserless-materialization",
+                                    "action": "session-continuity-repair-not-ready",
+                                    "agentId": value.agent_id,
+                                    "effectId": value.effect_id,
+                                    "endpointId": endpoint_id,
+                                    "providerPreflight": observation,
+                                    "providerBoundaryDiagnosis": diagnosis,
+                                    "sessionContinuityRepair": repair,
+                                    "providerEffectAttempted": False,
+                                    "sendAttempted": False,
+                                }
+                            observation = repair.get("after")
+                            if not isinstance(observation, dict):
+                                raise RuntimeError("READY session continuity repair lacks final preflight")
+                            diagnosis = diagnose_provider_preflight(observation)
+                            if diagnosis.get("providerAction") != "CONTINUE_MATERIALIZATION":
+                                raise RuntimeError("session continuity repair claimed READY without admissible final preflight")
+                        result = self._effects(current).materialize(
                             Path(value.spec_path),
                             value.agent_id,
                             endpoint_id=endpoint_id,
                             provider_preflight=observation,
                         )
+                        if repair is not None and isinstance(result, dict):
+                            result = dict(result)
+                            result["sessionContinuityRepair"] = repair
+                        return result
             if saw_current_candidate:
                 raise BrowserlessAutomationHold(
                     "provider materialization HOLD: every candidate carrier was unavailable/busy before SEND: "

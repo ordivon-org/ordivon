@@ -1506,7 +1506,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 "UNMANAGED_OBSERVED",
             )
             policy = result["providerBoundaryPolicy"]
-            self.assertEqual(policy["policyVersion"], "provider-boundary-r2")
+            self.assertEqual(policy["policyVersion"], "provider-boundary-r3")
             self.assertEqual(
                 policy["neutralAttributionReference"],
                 {
