@@ -896,6 +896,64 @@ def _persist_browser_security_qualification(commit: str, value: dict) -> None:
     )
 
 
+_RELEASE_IRRELEVANT_ENVIRONMENT_PATHS = frozenset({"$.network.colo", "$.network.loc"})
+
+
+def _browser_security_release_relevance(classification: dict) -> tuple[bool, str]:
+    """Bridge Browser Security observation to this release's preservation obligation.
+
+    Browser Security still owns detection/classification. This release gate may exclude only
+    the explicitly enumerated dynamic public network-location observations below, and only
+    when every infrastructure/detector/challenge/currentness guard remains unchanged.
+    """
+    standing = classification.get("standing")
+    if standing == "NO_OBSERVED_DRIFT":
+        return True, "NO_OBSERVED_DRIFT"
+    if standing != "GLOBAL_DRIFT":
+        return False, str(standing or "UNKNOWN")
+    if classification.get("sharedChangedFamilies") != ["CF06"]:
+        return False, "GLOBAL_DRIFT_OUTSIDE_RELEASE_BRIDGE"
+    if classification.get("carrierLocalChangedFamilies") not in ({}, None):
+        return False, "CARRIER_LOCAL_DRIFT"
+    if classification.get("sharedInfrastructureChanges") not in ([], None):
+        return False, "INFRASTRUCTURE_DRIFT"
+    if classification.get("carrierLocalInfrastructureChanges") not in ({}, None):
+        return False, "CARRIER_LOCAL_INFRASTRUCTURE_DRIFT"
+    if classification.get("detectorDriftCarriers") not in ([], None):
+        return False, "DETECTOR_DRIFT"
+    if classification.get("observationInvalidCarriers") not in ({}, None):
+        return False, "OBSERVATION_INVALID"
+    if classification.get("challengeStandingChangedCarriers") not in ([], None):
+        return False, "CHALLENGE_STANDING_CHANGED"
+    per_carrier = classification.get("perCarrier")
+    if not isinstance(per_carrier, dict) or not per_carrier:
+        return False, "GLOBAL_DRIFT_MISSING_PER_CARRIER_EVIDENCE"
+    for row in per_carrier.values():
+        if not isinstance(row, dict):
+            return False, "GLOBAL_DRIFT_INVALID_PER_CARRIER_EVIDENCE"
+        if row.get("challengeStandingChanged") is not False:
+            return False, "CHALLENGE_STANDING_CHANGED"
+        if row.get("detectorDrift") not in ([], None):
+            return False, "DETECTOR_DRIFT"
+        if row.get("invalidObservationDetectors") not in ([], None):
+            return False, "OBSERVATION_INVALID"
+        infra = row.get("infrastructureChanges") or {}
+        if not isinstance(infra, dict) or any(value is True for value in infra.values()):
+            return False, "INFRASTRUCTURE_DRIFT"
+        changes = row.get("publicObservationChanges")
+        if not isinstance(changes, list) or not changes:
+            return False, "GLOBAL_DRIFT_MISSING_PUBLIC_OBSERVATION_CHANGE"
+        for change in changes:
+            if not isinstance(change, dict) or change.get("detectorId") != "cf06-cross-layer-consistency":
+                return False, "GLOBAL_DRIFT_OUTSIDE_CF06"
+            paths = change.get("changedPaths")
+            if not isinstance(paths, list) or not paths:
+                return False, "GLOBAL_DRIFT_MISSING_CHANGED_PATHS"
+            if any(path not in _RELEASE_IRRELEVANT_ENVIRONMENT_PATHS for path in paths):
+                return False, "GLOBAL_DRIFT_OUTSIDE_ENVIRONMENT_ALLOWLIST"
+    return True, "ENVIRONMENTAL_PUBLIC_OBSERVATION_DRIFT_EXCLUDED"
+
+
 def require_browser_security_release_qualification(release: Path, commit: str) -> dict:
     runner = release / "scripts" / "browser_security_pool_runner.py"
     witness = release / "scripts" / "browser_security_witness_source.py"
@@ -991,10 +1049,11 @@ def require_browser_security_release_qualification(release: Path, commit: str) -
 
         drift = classification["standing"]
         probe_standings.append(drift)
+        bridge_pass, bridge_basis = _browser_security_release_relevance(classification)
         value = {
             "schemaVersion": 1,
             "kind": "ordivon.agent-automation-browser-security-qualification",
-            "standing": "PASS" if drift == "NO_OBSERVED_DRIFT" else "HOLD",
+            "standing": "PASS" if bridge_pass else "HOLD",
             "candidateCommit": commit,
             "securityRevision": pool["securityRevision"],
             "poolId": pool.get("poolId"),
@@ -1004,14 +1063,16 @@ def require_browser_security_release_qualification(release: Path, commit: str) -
             "providerChallengeVisited": False,
             "providerSendAttempted": False,
             "rootCauseEstablished": False,
+            "verifierTarget": "candidate-preservation-under-browser-security-observation",
+            "bridgeBasis": bridge_basis,
             "probeAttempts": attempt,
             "probeStandings": list(probe_standings),
         }
         _persist_browser_security_qualification(commit, value)
-        if drift == "NO_OBSERVED_DRIFT":
+        if bridge_pass:
             return value
         if drift != "OBSERVATION_INVALID":
-            raise ReleaseError(f"Browser Security qualification HOLD: {drift}")
+            raise ReleaseError(f"Browser Security qualification HOLD: {drift} ({bridge_basis})")
 
     raise ReleaseError("Browser Security qualification HOLD: OBSERVATION_INVALID")
 
