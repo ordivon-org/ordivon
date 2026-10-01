@@ -167,6 +167,15 @@ def test_release_paths_close_recursive_local_python_import_graph() -> None:
     assert missing == []
 
 
+def test_browser_fabric_runtime_surfaces_are_carried_by_immutable_release() -> None:
+    required = {
+        "config/browser-capability-routes.json",
+        "scripts/browser_capability_router.py",
+        "scripts/browser_harness_windows_real_chrome.py",
+    }
+    assert required <= set(release.RELEASE_PATHS)
+
+
 def test_modern_conversation_modules_are_carried_by_immutable_release() -> None:
     required = {
         "scripts/chatgpt_conversation_discovery.py",
