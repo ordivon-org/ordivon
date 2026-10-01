@@ -1,0 +1,176 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.security.dw04-historical-attack-flow-replay",
+  "truthRole": "historical-behavior-structure-only-not-live-exploitability-or-execution",
+  "attackFlowVersion": "4.0",
+  "cases": [
+    {
+      "id": "exchange-proxylogon-2021",
+      "vulnerabilityRefs": [
+        "CVE-2021-26855",
+        "CVE-2021-26857",
+        "CVE-2021-26858",
+        "CVE-2021-27065"
+      ],
+      "actions": [
+        {
+          "actionRef": "proxylogon:initial-access",
+          "techniqueRef": "attack:T1190",
+          "name": "Exploit Public-Facing Application",
+          "sourceRefs": [
+            "historical:Microsoft-HAFNIUM-2021-03-02",
+            "reference:MITRE-ATTACK-T1190"
+          ],
+          "evidenceRefs": [
+            "fixture:dw02:exchange-proxylogon-2021"
+          ]
+        },
+        {
+          "actionRef": "proxylogon:web-shell-persistence",
+          "techniqueRef": "attack:T1505.003",
+          "name": "Server Software Component: Web Shell",
+          "sourceRefs": [
+            "historical:Microsoft-HAFNIUM-2021-03-02",
+            "reference:MITRE-ATTACK-T1505.003"
+          ],
+          "evidenceRefs": [
+            "fixture:dw02:exchange-proxylogon-2021"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "fromActionRef": "proxylogon:initial-access",
+          "toActionRef": "proxylogon:web-shell-persistence",
+          "relation": "precedes-in-historical-behavior-abstraction"
+        }
+      ],
+      "entryActionRefs": [
+        "proxylogon:initial-access"
+      ],
+      "objectiveActionRefs": [
+        "proxylogon:web-shell-persistence"
+      ],
+      "mappedDefenses": [
+        {
+          "controlRef": "mapping:update-software",
+          "mappedActionRefs": [
+            "proxylogon:initial-access"
+          ],
+          "attackMitigationRefs": [
+            "attack:M1051"
+          ],
+          "d3fendRefs": [
+            "d3fend:D3-SU"
+          ],
+          "mappingEvidenceRefs": [
+            "reference:MITRE-ATTACK-T1190-M1051",
+            "reference:MITRE-D3FEND-M1051-D3-SU"
+          ],
+          "boundary": "External mapping only; no local patch deployment or effectiveness claim."
+        },
+        {
+          "controlRef": "mapping:web-shell-detection",
+          "mappedActionRefs": [
+            "proxylogon:web-shell-persistence"
+          ],
+          "attackMitigationRefs": [],
+          "d3fendRefs": [],
+          "detectionStrategyRefs": [
+            "attack:DET0394"
+          ],
+          "mappingEvidenceRefs": [
+            "reference:MITRE-ATTACK-DET0394"
+          ],
+          "boundary": "Detection strategy mapping only; no local detector coverage or observation claim."
+        }
+      ]
+    },
+    {
+      "id": "exchange-proxyshell-2021",
+      "vulnerabilityRefs": [
+        "CVE-2021-34473",
+        "CVE-2021-34523",
+        "CVE-2021-31207"
+      ],
+      "actions": [
+        {
+          "actionRef": "proxyshell:initial-access",
+          "techniqueRef": "attack:T1190",
+          "name": "Exploit Public-Facing Application",
+          "sourceRefs": [
+            "historical:Microsoft-ProxyShell-2021",
+            "reference:MITRE-ATTACK-T1190"
+          ],
+          "evidenceRefs": [
+            "fixture:dw02:exchange-proxyshell-2021"
+          ]
+        },
+        {
+          "actionRef": "proxyshell:web-shell-persistence",
+          "techniqueRef": "attack:T1505.003",
+          "name": "Server Software Component: Web Shell",
+          "sourceRefs": [
+            "historical:Microsoft-ProxyShell-2021",
+            "reference:MITRE-ATTACK-T1505.003"
+          ],
+          "evidenceRefs": [
+            "fixture:dw02:exchange-proxyshell-2021"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "fromActionRef": "proxyshell:initial-access",
+          "toActionRef": "proxyshell:web-shell-persistence",
+          "relation": "precedes-in-historical-behavior-abstraction"
+        }
+      ],
+      "entryActionRefs": [
+        "proxyshell:initial-access"
+      ],
+      "objectiveActionRefs": [
+        "proxyshell:web-shell-persistence"
+      ],
+      "mappedDefenses": [
+        {
+          "controlRef": "mapping:update-software",
+          "mappedActionRefs": [
+            "proxyshell:initial-access"
+          ],
+          "attackMitigationRefs": [
+            "attack:M1051"
+          ],
+          "d3fendRefs": [
+            "d3fend:D3-SU"
+          ],
+          "mappingEvidenceRefs": [
+            "reference:MITRE-ATTACK-T1190-M1051",
+            "reference:MITRE-D3FEND-M1051-D3-SU"
+          ],
+          "boundary": "External mapping only; no local patch deployment or effectiveness claim."
+        },
+        {
+          "controlRef": "mapping:web-shell-detection",
+          "mappedActionRefs": [
+            "proxyshell:web-shell-persistence"
+          ],
+          "attackMitigationRefs": [],
+          "d3fendRefs": [],
+          "detectionStrategyRefs": [
+            "attack:DET0394"
+          ],
+          "mappingEvidenceRefs": [
+            "reference:MITRE-ATTACK-DET0394"
+          ],
+          "boundary": "Detection strategy mapping only; no local detector coverage or observation claim."
+        }
+      ]
+    }
+  ],
+  "nonClaims": [
+    "No exploit payloads, exploit instructions, or vulnerability-triggering steps are encoded.",
+    "Historical sequence abstraction does not establish present exploitability or local compromise.",
+    "External defensive mappings do not establish local implementation, observation, or effectiveness."
+  ]
+}

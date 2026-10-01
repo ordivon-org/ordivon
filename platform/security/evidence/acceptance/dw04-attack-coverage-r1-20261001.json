@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.security.dw04-attack-coverage-r1-acceptance",
+  "observedAt": "2026-10-01T14:10:00+08:00",
+  "workRef": "work:security:dwc-r21:dw04-attackflow-coverage:20261001",
+  "standing": "DW04_IMPLEMENTED_AND_QUALIFIED",
+  "baseRevision": "ba339f80c0c3730b9770f092e0566fae24e71488",
+  "implementation": {
+    "module": "platform/security/src/ordivon_security_v2/attack_coverage.py",
+    "tests": "platform/security/tests/test_attack_coverage.py",
+    "historicalFixture": "platform/security/fixtures/dw04/exchange-attack-flow-replay-r1.json",
+    "replayScript": "platform/security/scripts/build_attack_coverage_replay.py",
+    "design": "platform/security/docs/DW04-ATTACK-FLOW-COVERAGE-R1.md"
+  },
+  "invariants": [
+    "MAPPED != IMPLEMENTED != OBSERVED != VERIFIED_EFFECTIVE != VERIFIED_PROTECTED.",
+    "External ATT&CK/Attack Flow/D3FEND references remain external vocabularies; DW04 stores exact refs and local evidence states only.",
+    "Exact DW01 and DW02 subject binding is mandatory.",
+    "Attack-flow action graph must be acyclic and bounded.",
+    "Non-UNKNOWN implementation/observation/effectiveness standings require owner evidence.",
+    "VERIFIED_EFFECTIVE/VERIFIED_INEFFECTIVE requires IMPLEMENTED.",
+    "Structural cut analysis is descriptive only and has no ranking/effect authority.",
+    "DW05 candidate generation requires IMPLEMENTED + effectiveness UNKNOWN on a structural cut.",
+    "Mapping-only historical replay never triggers DW05 or verified protection."
+  ],
+  "qualification": [
+    {
+      "jobId": "job-01a0f619-bb9b-7ad1-a89e-5356687811e1",
+      "result": "Ruff mechanical repair followed by full Security owner suite 99/99 PASS and Ruff PASS."
+    },
+    {
+      "jobId": "job-01a0f61a-9d9b-7b32-b8c0-a2713b3deabb",
+      "result": "ProxyLogon/ProxyShell DW01->DW02->DW04 historical semantic replay PASS; Security 99/99, Ruff and compileall PASS."
+    }
+  ],
+  "historicalReplay": {
+    "fixtureDigest": "sha256:affc9b02838d3d34668ac0dd7a3f6c7fbddbf7a247c5a35fa972c768d9cad433",
+    "cases": [
+      {
+        "caseRef": "case:dw04:exchange-proxylogon-2021",
+        "vulnerabilityRef": "CVE-2021-26855",
+        "actionRefs": [
+          "proxylogon:initial-access",
+          "proxylogon:web-shell-persistence"
+        ],
+        "techniqueRefs": [
+          "attack:T1190",
+          "attack:T1505.003"
+        ],
+        "validationStanding": "NOT_TRIGGERED_BY_DW04",
+        "verifiedProtectionEstablished": false
+      },
+      {
+        "caseRef": "case:dw04:exchange-proxyshell-2021",
+        "vulnerabilityRef": "CVE-2021-34473",
+        "actionRefs": [
+          "proxyshell:initial-access",
+          "proxyshell:web-shell-persistence"
+        ],
+        "techniqueRefs": [
+          "attack:T1190",
+          "attack:T1505.003"
+        ],
+        "validationStanding": "NOT_TRIGGERED_BY_DW04",
+        "verifiedProtectionEstablished": false
+      }
+    ]
+  },
+  "externalAnchors": [
+    "reference:CTID-Attack-Flow-v4.0",
+    "reference:MITRE-ATTACK-T1190",
+    "reference:MITRE-ATTACK-T1505.003",
+    "reference:MITRE-ATTACK-DET0394",
+    "reference:MITRE-D3FEND-1.6.0",
+    "reference:MITRE-D3FEND-M1051-D3-SU"
+  ],
+  "nonClaims": [
+    "No exploit execution or exploit recipe is present.",
+    "No local control implementation is inferred from external mappings.",
+    "No verified protection, compromise absence, eradication or recovery is established.",
+    "No DW05 experiment authority is granted."
+  ]
+}

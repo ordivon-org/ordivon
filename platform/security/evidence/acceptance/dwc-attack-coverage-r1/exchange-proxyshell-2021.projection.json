@@ -1,0 +1,166 @@
+{
+  "actions": [
+    {
+      "actionRef": "proxyshell:initial-access",
+      "evidenceRefs": [
+        "fixture:dw02:exchange-proxyshell-2021"
+      ],
+      "name": "Exploit Public-Facing Application",
+      "sourceRefs": [
+        "historical:Microsoft-ProxyShell-2021",
+        "reference:MITRE-ATTACK-T1190"
+      ],
+      "techniqueRef": "attack:T1190"
+    },
+    {
+      "actionRef": "proxyshell:web-shell-persistence",
+      "evidenceRefs": [
+        "fixture:dw02:exchange-proxyshell-2021"
+      ],
+      "name": "Server Software Component: Web Shell",
+      "sourceRefs": [
+        "historical:Microsoft-ProxyShell-2021",
+        "reference:MITRE-ATTACK-T1505.003"
+      ],
+      "techniqueRef": "attack:T1505.003"
+    }
+  ],
+  "applicabilityClaim": "AFFECTED",
+  "authorityGranted": false,
+  "authorizedValidationCandidateControlRefs": [],
+  "caseRef": "case:dw04:exchange-proxyshell-2021",
+  "controls": [
+    {
+      "attackMitigationRefs": [
+        "attack:M1051"
+      ],
+      "controlRef": "mapping:update-software",
+      "d3fendRefs": [
+        "d3fend:D3-SU"
+      ],
+      "detectionStrategyRefs": [],
+      "effectivenessEvidenceRefs": [],
+      "effectivenessStanding": "UNKNOWN",
+      "implementationEvidenceRefs": [],
+      "implementationStanding": "UNKNOWN",
+      "mappedActionRefs": [
+        "proxyshell:initial-access"
+      ],
+      "mappingEvidenceRefs": [
+        "reference:MITRE-ATTACK-T1190-M1051",
+        "reference:MITRE-D3FEND-M1051-D3-SU"
+      ],
+      "observationEvidenceRefs": [],
+      "observationStanding": "UNKNOWN",
+      "ownerRef": "external-mapping-owner"
+    },
+    {
+      "attackMitigationRefs": [],
+      "controlRef": "mapping:web-shell-detection",
+      "d3fendRefs": [],
+      "detectionStrategyRefs": [
+        "attack:DET0394"
+      ],
+      "effectivenessEvidenceRefs": [],
+      "effectivenessStanding": "UNKNOWN",
+      "implementationEvidenceRefs": [],
+      "implementationStanding": "UNKNOWN",
+      "mappedActionRefs": [
+        "proxyshell:web-shell-persistence"
+      ],
+      "mappingEvidenceRefs": [
+        "reference:MITRE-ATTACK-DET0394"
+      ],
+      "observationEvidenceRefs": [],
+      "observationStanding": "UNKNOWN",
+      "ownerRef": "external-mapping-owner"
+    }
+  ],
+  "coverageByAction": {
+    "proxyshell:initial-access": {
+      "implementedControlRefs": [],
+      "mappedControlRefs": [
+        "mapping:update-software"
+      ],
+      "observedControlRefs": [],
+      "verifiedEffectiveControlRefs": [],
+      "verifiedIneffectiveControlRefs": []
+    },
+    "proxyshell:web-shell-persistence": {
+      "implementedControlRefs": [],
+      "mappedControlRefs": [
+        "mapping:web-shell-detection"
+      ],
+      "observedControlRefs": [],
+      "verifiedEffectiveControlRefs": [],
+      "verifiedIneffectiveControlRefs": []
+    }
+  },
+  "domainAcceptanceEstablished": false,
+  "edges": [
+    {
+      "fromActionRef": "proxyshell:initial-access",
+      "relation": "precedes-in-historical-behavior-abstraction",
+      "toActionRef": "proxyshell:web-shell-persistence"
+    }
+  ],
+  "effectExecuted": false,
+  "epochRef": "epoch:dw04:exchange-proxyshell-2021:historical-replay",
+  "flow": {
+    "attackFlowVersion": "4.0",
+    "entryActionRefs": [
+      "proxyshell:initial-access"
+    ],
+    "flowRef": "attack-flow:exchange-proxyshell-2021:historical-r1",
+    "objectiveActionRefs": [
+      "proxyshell:web-shell-persistence"
+    ],
+    "sourceDigest": "sha256:affc9b02838d3d34668ac0dd7a3f6c7fbddbf7a247c5a35fa972c768d9cad433",
+    "sourceRef": "fixture:dw04:exchange-attack-flow-replay-r1"
+  },
+  "gaps": {
+    "implementedButEffectivenessUnknownActionRefs": [],
+    "implementedButUnobservedActionRefs": [],
+    "mappedButNotImplementedActionRefs": [
+      "proxyshell:initial-access",
+      "proxyshell:web-shell-persistence"
+    ],
+    "unmappedActionRefs": []
+  },
+  "kind": "ordivon.security.dwc-attack-coverage-projection",
+  "paths": [
+    {
+      "actionRefs": [
+        "proxyshell:initial-access",
+        "proxyshell:web-shell-persistence"
+      ],
+      "implementedControlRefs": [],
+      "mappedControlRefs": [
+        "mapping:update-software",
+        "mapping:web-shell-detection"
+      ],
+      "observedControlRefs": [],
+      "pathRef": "path:1",
+      "verifiedEffectiveControlPresent": false,
+      "verifiedEffectiveControlRefs": [],
+      "verifiedIneffectiveControlRefs": []
+    }
+  ],
+  "schemaVersion": 1,
+  "structuralCutActionRefs": [
+    "proxyshell:initial-access",
+    "proxyshell:web-shell-persistence"
+  ],
+  "subject": {
+    "caseRef": "case:dw04:exchange-proxyshell-2021",
+    "epochRef": "epoch:dw04:exchange-proxyshell-2021:historical-replay",
+    "evidenceRef": "dwc-subject-exposure:sha256:37090d6d07d98e5eca923c4698512dbb3fe170b7e48273e098b3202bf28e15de",
+    "snapshotDigest": "sha256:37090d6d07d98e5eca923c4698512dbb3fe170b7e48273e098b3202bf28e15de",
+    "subjectRef": "historical-subject:exchange-proxyshell-2021"
+  },
+  "truthBoundary": "DW04 is a task-local structural and evidence-state projection. Attack Flow, ATT&CK, and D3FEND remain external vocabularies. A mapped control is not proof of local implementation; implementation is not observation; observation is not verified effectiveness; verified effectiveness at one action is not a global protection verdict. Structural cuts are graph properties, not recommendations or effect authority. DW05 validation is only a candidate when additional authorized isolated evidence could change downstream planning.",
+  "validationStanding": "NOT_TRIGGERED_BY_DW04",
+  "verifiedEffectiveAtStructuralCutActionRefs": [],
+  "verifiedProtectionEstablished": false,
+  "vulnerabilityRef": "CVE-2021-34473"
+}

@@ -1,0 +1,36 @@
+{
+  "cases": [
+    {
+      "applicabilityClaim": "AFFECTED",
+      "authorityGranted": false,
+      "caseRef": "case:dw04:exchange-proxylogon-2021",
+      "implementedButEffectivenessUnknownActionRefs": [],
+      "structuralCutActionRefs": [
+        "proxylogon:initial-access",
+        "proxylogon:web-shell-persistence"
+      ],
+      "unmappedActionRefs": [],
+      "validationStanding": "NOT_TRIGGERED_BY_DW04",
+      "verifiedProtectionEstablished": false,
+      "vulnerabilityRef": "CVE-2021-26855"
+    },
+    {
+      "applicabilityClaim": "AFFECTED",
+      "authorityGranted": false,
+      "caseRef": "case:dw04:exchange-proxyshell-2021",
+      "implementedButEffectivenessUnknownActionRefs": [],
+      "structuralCutActionRefs": [
+        "proxyshell:initial-access",
+        "proxyshell:web-shell-persistence"
+      ],
+      "unmappedActionRefs": [],
+      "validationStanding": "NOT_TRIGGERED_BY_DW04",
+      "verifiedProtectionEstablished": false,
+      "vulnerabilityRef": "CVE-2021-34473"
+    }
+  ],
+  "claimBoundary": "Historical semantic replay only. External mappings remain mapping evidence; local implementation, observation and effectiveness are UNKNOWN. No exploit execution, effect authority, verified protection, compromise absence or recovery standing is established.",
+  "fixtureDigest": "sha256:affc9b02838d3d34668ac0dd7a3f6c7fbddbf7a247c5a35fa972c768d9cad433",
+  "kind": "ordivon.security.dw04-historical-replay-result",
+  "schemaVersion": 1
+}
