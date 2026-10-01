@@ -64,17 +64,22 @@ if(Test-Path $browserHarness){
 def _workstation_status(command: Path = DEFAULT_WORKSTATION_STATUS) -> dict[str, Any] | None:
     if not command.is_file():
         return None
-    proc = subprocess.run(
-        [str(command), "status"],
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        capture_output=True,
-        timeout=20,
-        check=False,
-    )
+    try:
+        proc = subprocess.run(
+            [str(command), "status"],
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            capture_output=True,
+            timeout=12,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        return {"healthy": False, "standing": "WORKSTATION_STATUS_TIMEOUT"}
+    except OSError:
+        return {"healthy": False, "standing": "WORKSTATION_STATUS_UNAVAILABLE"}
     if proc.returncode != 0:
-        return None
+        return {"healthy": False, "standing": "WORKSTATION_STATUS_FAILED"}
     try:
         value = json.loads(proc.stdout)
     except json.JSONDecodeError:
@@ -109,10 +114,15 @@ def _probe() -> dict[str, Any]:
     managed = _managed_browser_harness_windows(status or {})
     if managed is None:
         packages = status.get("packages") if isinstance(status, dict) else None
+        owner_standing = (
+            status.get("standing")
+            if isinstance(status, dict) and isinstance(status.get("standing"), str)
+            else "WORKSTATION_PROVIDER_UNHEALTHY"
+        )
         return {
             **base,
             "ready": False,
-            "standing": "WORKSTATION_PROVIDER_UNHEALTHY",
+            "standing": owner_standing,
             "browserHarnessVersion": (
                 packages.get("browserHarnessVersion")
                 if isinstance(packages, dict)

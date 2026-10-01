@@ -108,6 +108,29 @@ def test_stale_devtools_active_port_is_not_ready():
     assert got["cdpEndpointReady"] is False
 
 
+def test_workstation_status_timeout_is_typed_hold():
+    command = mock.Mock()
+    command.is_file.return_value = True
+    with mock.patch.object(
+        W.subprocess,
+        "run",
+        side_effect=W.subprocess.TimeoutExpired(["status"], 12),
+    ):
+        status = W._workstation_status(command)
+    assert status == {"healthy": False, "standing": "WORKSTATION_STATUS_TIMEOUT"}
+
+
+def test_probe_preserves_workstation_timeout_standing():
+    with mock.patch.object(
+        W,
+        "_workstation_status",
+        return_value={"healthy": False, "standing": "WORKSTATION_STATUS_TIMEOUT"},
+    ):
+        got = W._probe()
+    assert got["ready"] is False
+    assert got["standing"] == "WORKSTATION_STATUS_TIMEOUT"
+
+
 def test_workstation_owner_must_be_exact():
     bad = _owner_status()
     bad["packages"]["exact"] = False
