@@ -39,6 +39,10 @@ WORKER_UNIT = "ordivon-agent-temporal-worker.service"
 SYSTEMD = Path("/etc/systemd/system")
 CONFIG = Path("/etc/ordivon/agent-automation-browserless.json")
 OPERATOR_CLI = Path("/root/tools/bin/agent-automation")
+WINDOWS_USER_BROWSER_DRIVER = Path(
+    "/mnt/c/ProgramData/Ordivon/chat-ingress/windows_user_browser_chatgpt.ps1"
+)
+WINDOWS_USER_BROWSER_RELEASE_DRIVER = Path("scripts/windows_user_browser_chatgpt.ps1")
 MARKER = ".ordivon-agent-automation-release.json"
 PROVIDER_POLICY_REL = Path("scripts/provider_boundary_diagnosis.py")
 ADMISSION_ROOT = Path("/root/.local/state/ordivon-workstation/agent-automation/state")
@@ -700,6 +704,33 @@ def materialize(repo: Path, commit: str, release_root: Path = RELEASE_ROOT) -> d
         "commit": commit,
         "archiveDigest": ad,
         "disposition": "materialized",
+    }
+
+
+def sync_windows_user_browser_driver(
+    release: Path, stage_path: Path = WINDOWS_USER_BROWSER_DRIVER
+) -> dict:
+    """Project the exact immutable release driver into the Windows active-user staging root."""
+    source = Path(release) / WINDOWS_USER_BROWSER_RELEASE_DRIVER
+    stage_path = Path(stage_path)
+    if not source.is_file():
+        raise ReleaseError(f"candidate lacks Windows user-browser driver: {source}")
+    raw = source.read_bytes()
+    source_digest = sha(raw)
+    previous_digest = sha(stage_path.read_bytes()) if stage_path.is_file() else None
+    stage_path.parent.mkdir(parents=True, exist_ok=True)
+    write_atomic(stage_path, raw, 0o600)
+    observed = sha(stage_path.read_bytes())
+    if observed != source_digest:
+        raise ReleaseError("Windows user-browser staged driver differs from active release")
+    return {
+        "schemaVersion": 1,
+        "standing": "CURRENT",
+        "sourcePath": str(source),
+        "stagePath": str(stage_path),
+        "sourceDigest": source_digest,
+        "stageDigest": observed,
+        "previousStageDigest": previous_digest,
     }
 
 
@@ -1370,6 +1401,11 @@ def activate(repo: Path, revision: str) -> dict:
         except OSError:
             old_current = None
         old_config = CONFIG.read_bytes() if CONFIG.is_file() else None
+        old_user_browser_driver = (
+            WINDOWS_USER_BROWSER_DRIVER.read_bytes()
+            if WINDOWS_USER_BROWSER_DRIVER.is_file()
+            else None
+        )
         old_worker = (
             (SYSTEMD / WORKER_UNIT).read_bytes() if (SYSTEMD / WORKER_UNIT).is_file() else None
         )
@@ -1401,6 +1437,7 @@ def activate(repo: Path, revision: str) -> dict:
             atomic_link(release, CURRENT)
             switched = True
             provider_policy_postswitch = require_current_provider_policy_source_current(repo, commit)
+            user_browser_driver = sync_windows_user_browser_driver(release)
             worker_source = release / "systemd" / WORKER_UNIT
             if not worker_source.is_file():
                 raise ReleaseError("candidate lacks production worker unit")
@@ -1442,6 +1479,7 @@ def activate(repo: Path, revision: str) -> dict:
                 "browserSecurityQualification": browser_security_qualification,
                 "providerPolicyPrecheck": provider_policy_precheck,
                 "providerPolicyCurrentness": provider_policy_postswitch,
+                "windowsUserBrowserDriverCurrentness": user_browser_driver,
                 "materializationLedgerMigration": ledger_migration,
                 "materializationStateMigration": state_migration,
                 "cliAdmissionClosed": False,
@@ -1459,6 +1497,9 @@ def activate(repo: Path, revision: str) -> dict:
                 else:
                     atomic_link(old_current, CURRENT)
             restore_optional_file(CONFIG, old_config, 0o600)
+            restore_optional_file(
+                WINDOWS_USER_BROWSER_DRIVER, old_user_browser_driver, 0o600
+            )
             restore_optional_file(SYSTEMD / WORKER_UNIT, old_worker, 0o644)
             restore_optional_file(SYSTEMD / MCP_UNIT, old_mcp, 0o644)
             run(["/usr/bin/systemctl", "daemon-reload"], check=False, timeout=20)

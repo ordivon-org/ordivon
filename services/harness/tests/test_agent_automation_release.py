@@ -591,6 +591,7 @@ class ReleaseTests(unittest.TestCase):
             (candidate / "scripts").mkdir()
             (candidate / "systemd" / r.WORKER_UNIT).write_bytes(b"new-worker")
             (candidate / "scripts" / "agent_automation_mcp_deploy.py").write_text("x")
+            (candidate / "scripts" / "windows_user_browser_chatgpt.ps1").write_text("driver")
             calls = []
 
             def fake_run(argv, **kwargs):
@@ -646,6 +647,7 @@ class ReleaseTests(unittest.TestCase):
             (candidate / "scripts").mkdir()
             (candidate / "systemd" / r.WORKER_UNIT).write_bytes(b"new-worker")
             (candidate / "scripts" / "agent_automation_mcp_deploy.py").write_text("x")
+            (candidate / "scripts" / "windows_user_browser_chatgpt.ps1").write_text("driver")
 
             def fake_run(argv, **kwargs):
                 if any("agent_automation_mcp_deploy.py" in str(x) for x in argv):
@@ -711,6 +713,7 @@ class ReleaseTests(unittest.TestCase):
                 (candidate / "scripts").mkdir()
                 (candidate / "systemd" / r.WORKER_UNIT).write_bytes(b"new-worker")
                 (candidate / "scripts" / "agent_automation_mcp_deploy.py").write_text("x")
+                (candidate / "scripts" / "windows_user_browser_chatgpt.ps1").write_text("driver")
                 calls = []
                 workflow_calls = 0
                 active_calls = 0
@@ -993,6 +996,41 @@ class ReleaseTests(unittest.TestCase):
         self.assertIn("HOLD_DRAINING", source)
         self.assertNotIn("ordivon-browserless-netns-reconcile", source)
         self.assertIn("Network v2", source)
+
+
+    def test_windows_user_browser_driver_sync_is_byte_exact(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            release = root / "release"
+            source = release / r.WINDOWS_USER_BROWSER_RELEASE_DRIVER
+            source.parent.mkdir(parents=True)
+            source.write_bytes(b"new-driver")
+            stage = root / "windows" / "windows_user_browser_chatgpt.ps1"
+            stage.parent.mkdir(parents=True)
+            stage.write_bytes(b"old-driver")
+            row = r.sync_windows_user_browser_driver(release, stage)
+            self.assertEqual(stage.read_bytes(), b"new-driver")
+            self.assertEqual(row["standing"], "CURRENT")
+            self.assertEqual(row["sourceDigest"], row["stageDigest"])
+            self.assertNotEqual(row["previousStageDigest"], row["stageDigest"])
+
+    def test_activation_syncs_windows_driver_after_release_switch_and_before_worker_start(self):
+        source = (ROOT / "scripts/agent_automation_release.py").read_text()
+        tree = ast.parse(source)
+        fn = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == "activate")
+        calls = [node for node in ast.walk(fn) if isinstance(node, ast.Call)]
+        switch = next(node.lineno for node in calls if isinstance(node.func, ast.Name) and node.func.id == "atomic_link")
+        sync = next(node.lineno for node in calls if isinstance(node.func, ast.Name) and node.func.id == "sync_windows_user_browser_driver")
+        worker_start = next(
+            node.lineno for node in calls
+            if isinstance(node.func, ast.Name) and node.func.id == "run"
+            and node.args and isinstance(node.args[0], ast.List)
+            and any(isinstance(elt, ast.Constant) and elt.value == "start" for elt in node.args[0].elts)
+            and any(isinstance(elt, ast.Name) and elt.id == "WORKER_UNIT" for elt in node.args[0].elts)
+        )
+        self.assertLess(switch, sync)
+        self.assertLess(sync, worker_start)
+        self.assertIn("restore_optional_file(\n                WINDOWS_USER_BROWSER_DRIVER", source)
 
 
 if __name__ == "__main__":

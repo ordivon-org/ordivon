@@ -284,6 +284,35 @@ def test_reconcile_classifies_exact_prior_attachment_parameter_binding_failure_a
     assert port.requests == []
 
 
+def test_reconcile_classifies_exact_prior_existing_browser_policy_binding_failure_as_pre_effect():
+    prior = GatewayExecutionResult(
+        operation_ref='ordivon-exec:v1:runtime.windows:job-old-policy',
+        native_id='job-old-policy', state='failed', exit_code=1,
+        artifact_ids=('attempt-old.stdout', 'attempt-old.stderr'), recovery_required=False,
+    )
+    stderr = (
+        r'C:\\ProgramData\\Ordivon\\chat-ingress\\windows_user_browser_chatgpt.ps1 : '
+        + 'ExistingBrowserPolicy\n'
+        + 'FullyQualifiedErrorId : NamedParameterNotFound,windows_user_browser_chatgpt.ps1\n'
+    )
+    port = FakePort({}, resolved_result=prior, resolved_stdout='', resolved_stderr=stderr)
+    controller = UserBrowserGatewayController(port, config())
+    result = controller.reconcile(
+        effect_id='effect-policy', request_digest='sha256:' + '1' * 64,
+        prompt_path='/mnt/c/ProgramData/Ordivon/chat-ingress/prompts/p.txt',
+        prompt_digest='sha256:' + '3' * 64,
+        attachment_manifest_path='/mnt/c/ProgramData/Ordivon/chat-ingress/user-browser/attachment-manifests/m.json',
+        attachment_manifest_digest='sha256:' + '4' * 64,
+        attempt_generation=2,
+    )
+    assert result['standing'] == 'pre-effect-failed'
+    assert result['providerEffectAttempted'] is False
+    assert result['providerResource'] is None
+    assert 'existing-browser-policy' in result['detail']
+    assert len(port.resolved_requests) == 1
+    assert port.requests == []
+
+
 def test_reconcile_does_not_downgrade_unrecognized_failed_execution_to_pre_effect():
     prior = GatewayExecutionResult(
         operation_ref='ordivon-exec:v1:runtime.windows:job-old',

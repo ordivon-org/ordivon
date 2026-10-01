@@ -229,13 +229,18 @@ class UserBrowserGatewayController:
         return self._parse_payload(self.port.read_stdout(result), effect_id=effect_id)
 
     @staticmethod
-    def _is_attachment_parameter_binding_failure(*, stdout: str, stderr: str) -> bool:
+    def _pre_driver_parameter_binding_classifier(
+        *, stdout: str, stderr: str
+    ) -> str | None:
         if stdout.strip():
-            return False
-        return (
-            'NamedParameterNotFound,windows_user_browser_chatgpt.ps1' in stderr
-            and 'AttachmentManifestPath' in stderr
-        )
+            return None
+        if 'NamedParameterNotFound,windows_user_browser_chatgpt.ps1' not in stderr:
+            return None
+        if 'AttachmentManifestPath' in stderr:
+            return 'powershell-attachment-parameter-binding-before-driver-entry'
+        if 'ExistingBrowserPolicy' in stderr:
+            return 'powershell-existing-browser-policy-parameter-binding-before-driver-entry'
+        return None
 
     def _reconcile_prior_materialize_result(
         self,
@@ -269,10 +274,11 @@ class UserBrowserGatewayController:
         stdout = self.port.read_stdout(result)
         if result.exit_code == 0:
             return self._parse_payload(stdout, effect_id=effect_id)
-        if attachment_manifest_path is None or attachment_manifest_digest is None:
-            return None
         stderr = self.port.read_stderr(result)
-        if not self._is_attachment_parameter_binding_failure(stdout=stdout, stderr=stderr):
+        classifier = self._pre_driver_parameter_binding_classifier(
+            stdout=stdout, stderr=stderr
+        )
+        if classifier is None:
             return None
         evidence_value = {
             'schemaVersion': 1,
@@ -280,14 +286,19 @@ class UserBrowserGatewayController:
             'requestId': request.request_id, 'operationRef': result.operation_ref,
             'nativeId': result.native_id, 'exitCode': result.exit_code,
             'stdoutDigest': _digest_text(stdout), 'stderrDigest': _digest_text(stderr),
-            'classifier': 'powershell-attachment-parameter-binding-before-driver-entry',
+            'classifier': classifier,
         }
         evidence = _digest_text(json.dumps(evidence_value, sort_keys=True, separators=(',', ':')))
+        detail_suffix = (
+            'attachment-parameter-binding-failed-before-driver-entry'
+            if classifier == 'powershell-attachment-parameter-binding-before-driver-entry'
+            else 'existing-browser-policy-parameter-binding-failed-before-driver-entry'
+        )
         return {
             'schemaVersion': 1, 'kind': 'ordivon.windows-user-browser-attempt',
             'effectId': effect_id, 'standing': 'pre-effect-failed',
             'providerResource': None, 'evidenceDigest': evidence,
-            'detail': 'user-browser:prior-materialize-attachment-parameter-binding-failed-before-driver-entry',
+            'detail': f'user-browser:prior-materialize-{detail_suffix}',
             'providerEffectAttempted': False,
         }
 
