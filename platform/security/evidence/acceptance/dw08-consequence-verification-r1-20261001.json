@@ -1,0 +1,163 @@
+{
+  "authoritativeObservation": {
+    "caseRef": "case:dw07:reversible-acceptance",
+    "currentnessStanding": "POINT_IN_TIME_OBSERVED",
+    "facts": {
+      "configurationDigest": "sha256:30e50379633aad16fd8b87d1baa72fbb5e20275cbedd01ccc5b59ac77a3bc78e",
+      "fixtureValue": "on"
+    },
+    "kind": "ordivon.security.dwc-authoritative-observation-r1",
+    "observedAt": "2026-10-01T15:25:00+08:00",
+    "ownerRef": "observer:dw08-independent-memory-fixture",
+    "plane": "world-truth",
+    "requestDigest": "sha256:338f4c3cd7ec4f74f821dcbb46e7b9b2eee340cdb74ca5e2336a0a00909000b1",
+    "requestId": "effect-request:dw07-normal",
+    "schemaVersion": 1,
+    "sourceDigest": "sha256:7d54e1592c41aef8209284379144dde3d6c2842b78ca5e597e31f7f8bfec735f",
+    "sourceRef": "evidence:dw08:independent-memory-observation",
+    "stateDigest": "sha256:30e50379633aad16fd8b87d1baa72fbb5e20275cbedd01ccc5b59ac77a3bc78e",
+    "subjectRef": "fixture:in-memory-flag",
+    "subjectSnapshotDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+  },
+  "baseRevision": "6549bca0a90676784bb9fe43e29c76b395782ba7",
+  "binding": {
+    "bindingRef": "verifier-binding:dw08:reversible-acceptance:configuration",
+    "caseRef": "case:dw07:reversible-acceptance",
+    "compositionGate": {
+      "circuitId": "circuit:dw08:reversible-acceptance",
+      "gateId": "gate:dw07-dw08-effect-receipt",
+      "manifestDigest": "sha256:dc2fb73bbd1298f77f4c5b4c17d933a6896559264c7f152d9fe020b867411f64",
+      "supportScope": "DW07->DW08 exact receipt/consequence-input seam only",
+      "verifierOwnerId": "security.dw08"
+    },
+    "kind": "ordivon.security.dwc-consequence-verifier-binding-r1",
+    "predicate": {
+      "class": "configuration",
+      "expectedConfigurationDigest": "sha256:30e50379633aad16fd8b87d1baa72fbb5e20275cbedd01ccc5b59ac77a3bc78e"
+    },
+    "protectionClaimRef": "protection:fixture-flag:on",
+    "schemaVersion": 1,
+    "subjectRef": "fixture:in-memory-flag",
+    "subjectSnapshotDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "supportScope": "DW07->DW08 exact receipt/consequence-input seam only",
+    "verifierClass": "configuration"
+  },
+  "compositionGateResult": {
+    "circuitId": "circuit:dw08:reversible-acceptance",
+    "evidenceRefs": [
+      "evidence:dw08:independent-memory-observation",
+      "observation-digest:sha256:2a06b9cb959b8f245c528781676ddaf47507aa22afcc8dfbc8d8f945a04f4447"
+    ],
+    "gateId": "gate:dw07-dw08-effect-receipt",
+    "kind": "ordivon.composition-gate-result",
+    "manifestDigest": "sha256:dc2fb73bbd1298f77f4c5b4c17d933a6896559264c7f152d9fe020b867411f64",
+    "nonClaims": [
+      "This gate result discharges only the named DW07->DW08 task-local composition obligation.",
+      "SATISFIED does not establish compromise absence, eradication, recovery, or domain acceptance."
+    ],
+    "schemaVersion": 1,
+    "standing": "SATISFIED",
+    "supportScope": "DW07->DW08 exact receipt/consequence-input seam only",
+    "verifierOwnerId": "security.dw08"
+  },
+  "consequencePolicyDecision": {
+    "admissionRequestId": "effect-request:dw07-normal",
+    "consequenceMatches": true,
+    "executionBound": true,
+    "executionReceiptValid": true,
+    "observationAuthoritative": true,
+    "standing": "VERIFIED_CONSEQUENCE",
+    "verifiedConsequence": {
+      "facts": {
+        "configurationDigest": "sha256:30e50379633aad16fd8b87d1baa72fbb5e20275cbedd01ccc5b59ac77a3bc78e",
+        "fixtureValue": "on"
+      },
+      "stateDigest": "sha256:30e50379633aad16fd8b87d1baa72fbb5e20275cbedd01ccc5b59ac77a3bc78e"
+    }
+  },
+  "evidenceDigest": "sha256:afbd38f5659bea2821fdcc798cec3455b4c9d6938014ac0da8cdbba2e136cecd",
+  "implementation": {
+    "acceptanceScript": "platform/security/scripts/run_dw08_consequence_acceptance.py",
+    "design": "platform/security/docs/DW08-CONSEQUENCE-VERIFICATION-R1.md",
+    "module": "platform/security/src/ordivon_security_v2/consequence_binding.py",
+    "policy": "platform/security/policies/consequence_verification.rego",
+    "tests": "platform/security/tests/test_consequence_binding.py"
+  },
+  "invalidationKeys": [
+    "subjectSnapshotDigest:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "bindingDigest:sha256:73b1263793a1babafacde19fbb9ecc2f87cb822d0ea7cac7c0177fac629d71b9",
+    "observationSourceDigest:sha256:7d54e1592c41aef8209284379144dde3d6c2842b78ca5e597e31f7f8bfec735f"
+  ],
+  "kind": "ordivon.security.dw08-consequence-verification-r1-acceptance",
+  "negativeControls": {
+    "receiptOnly": {
+      "policyStanding": "EXECUTED_UNVERIFIED",
+      "verificationStanding": "UNKNOWN",
+      "verifiedProtectionEstablished": false
+    },
+    "staleObservation": {
+      "policyStanding": "VERIFIED_CONSEQUENCE",
+      "verificationStanding": "UNKNOWN",
+      "verifiedProtectionEstablished": false
+    }
+  },
+  "nonClaims": [
+    "The authoritative observation is an independent read of the harmless in-memory fixture, not a production system observation.",
+    "The synthetic qualification circuit exists only to keep the DW07 acceptance case and DW08 gate case identical; it does not discharge the historical DW06 ProxyLogon circuit.",
+    "A SATISFIED DW08 result establishes only the explicit bounded protection predicate in supportScope.",
+    "Verified protection does not establish compromise absence, eradication, recovery, or domain acceptance.",
+    "No OS, network, Runtime service, Security configuration or external system is mutated by this acceptance."
+  ],
+  "observedAt": "2026-10-01T15:25:00+08:00",
+  "opaImage": "docker.io/openpolicyagent/opa@sha256:9c5770a0023d56a11224b0514fec2e4e0247357db4392b955c1270fd49cb1f0f",
+  "schemaVersion": 1,
+  "sourceEvidence": {
+    "dw07AcceptanceDigest": "sha256:dddc20e488b5e37bec410befde058a8da6e4c2d2d526c80bd296894de32c33e8",
+    "dw07AcceptancePath": "platform/security/evidence/acceptance/dw07-reversible-effect-r1-20261001.json",
+    "dw07RequestDigest": "sha256:338f4c3cd7ec4f74f821dcbb46e7b9b2eee340cdb74ca5e2336a0a00909000b1",
+    "dw07RequestId": "effect-request:dw07-normal",
+    "providerReceiptWorldEffectVerified": false
+  },
+  "standing": "DW08_CONSEQUENCE_BINDING_AND_HARMLESS_ACCEPTANCE_QUALIFIED",
+  "supportedVerifierClasses": [
+    "version",
+    "configuration",
+    "exposure",
+    "attack-negative"
+  ],
+  "verificationResult": {
+    "bindingDigest": "sha256:73b1263793a1babafacde19fbb9ecc2f87cb822d0ea7cac7c0177fac629d71b9",
+    "bindingRef": "verifier-binding:dw08:reversible-acceptance:configuration",
+    "boundedProtectionVerified": true,
+    "caseRef": "case:dw07:reversible-acceptance",
+    "compromiseAbsenceEstablished": false,
+    "consequencePolicyStanding": "VERIFIED_CONSEQUENCE",
+    "domainAcceptanceEstablished": false,
+    "eradicationEstablished": false,
+    "evidenceRefs": [
+      "evidence:dw08:independent-memory-observation",
+      "observation-digest:sha256:2a06b9cb959b8f245c528781676ddaf47507aa22afcc8dfbc8d8f945a04f4447"
+    ],
+    "invalidationKeys": [
+      "subjectSnapshotDigest:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "bindingDigest:sha256:73b1263793a1babafacde19fbb9ecc2f87cb822d0ea7cac7c0177fac629d71b9",
+      "observationSourceDigest:sha256:7d54e1592c41aef8209284379144dde3d6c2842b78ca5e597e31f7f8bfec735f"
+    ],
+    "kind": "ordivon.security.dwc-consequence-verification-result-r1",
+    "protectionClaimRef": "protection:fixture-flag:on",
+    "reasons": [],
+    "recoveryEstablished": false,
+    "requestDigest": "sha256:338f4c3cd7ec4f74f821dcbb46e7b9b2eee340cdb74ca5e2336a0a00909000b1",
+    "requestId": "effect-request:dw07-normal",
+    "resultDigest": "sha256:7f67c14c1df39fc4ea010d662425abd2be068cb635e7d121047e663ba8233ce5",
+    "schemaVersion": 1,
+    "standing": "SATISFIED",
+    "subjectRef": "fixture:in-memory-flag",
+    "subjectSnapshotDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "supportScope": "DW07->DW08 exact receipt/consequence-input seam only",
+    "truthBoundary": "DW08 verifies only the explicit bounded protection predicate in supportScope from an authoritative post-effect observation plus the existing consequence policy. Verified protection does not establish absence of compromise, eradication, recovery, or domain acceptance.",
+    "verifiedProtectionEstablished": true,
+    "verifierClass": "configuration"
+  },
+  "workRef": "work:security:dwc-r21:dw08-consequence-verification:20261001"
+}
