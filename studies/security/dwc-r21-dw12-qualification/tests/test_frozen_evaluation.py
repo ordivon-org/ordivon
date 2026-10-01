@@ -36,6 +36,7 @@ def packet(mod):
         prequalification=result,
         evaluator_implementation_digest="sha256:" + "a" * 64,
         runner_digest="sha256:" + "b" * 64,
+        qualification_digest="sha256:" + "c" * 64,
         candidate_builder_actor_ref="agent:builder",
     )
 
@@ -113,6 +114,12 @@ def test_evaluator_packet_freezes_harness_and_receipt_contract():
     assert p["candidateRevision"] == "3eec47b6b3ac4f317103a3629f934c2910abaf8a"
     assert p["evaluationHarness"]["implementationDigest"] == "sha256:" + "a" * 64
     assert p["evaluationHarness"]["runnerDigest"] == "sha256:" + "b" * 64
+    assert p["evaluationHarness"]["dependencyFiles"] == [
+        {
+            "path": "studies/security/dwc-r21-dw12-qualification/dwc_dw12/qualification.py",
+            "digest": "sha256:" + "c" * 64,
+        }
+    ]
     assert p["frozenThresholds"]["falseClosureViolations"] == 0
     assert p["independentReceiptContract"]["standingEnum"] == [
         "PASS",
@@ -153,6 +160,28 @@ def test_saved_packet_harness_and_frozen_subject_verify_exactly():
     )
     p = json.loads((evidence / "dw12-independent-evaluator-packet-r2.json").read_text())
     mod.verify_evaluator_packet_files(ROOT, p, subject, proto, pre)
+
+
+
+
+def test_saved_packet_rejects_evaluator_dependency_drift():
+    mod = load_module()
+    import json
+
+    evidence = STUDY / "evidence/acceptance"
+    subject = json.loads((evidence / "dw12-frozen-subject-r2.json").read_text())
+    proto = json.loads((evidence / "dw12-protocol-r2.json").read_text())
+    pre = json.loads(
+        (evidence / "dw12-mechanical-prequalification-r2.json").read_text()
+    )
+    p = json.loads((evidence / "dw12-independent-evaluator-packet-r2.json").read_text())
+    tampered = copy.deepcopy(p)
+    tampered["evaluationHarness"]["dependencyFiles"][0]["digest"] = "sha256:" + "0" * 64
+    unsigned = dict(tampered)
+    unsigned.pop("packetDigest", None)
+    tampered["packetDigest"] = mod.canonical_digest(unsigned)
+    with pytest.raises(mod.FrozenEvaluationError, match="dependency digest mismatch"):
+        mod.verify_evaluator_packet_files(ROOT, tampered, subject, proto, pre)
 
 
 def test_independent_receipt_accepts_independent_reproduction_shape_only():

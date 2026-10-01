@@ -7,7 +7,8 @@ The evaluator must:
 
 1. materialize the exact candidateRevision named by the packet;
 2. verify packetDigest, subjectDigest, every allowed evidence file digest, evaluator
-   implementation digest, and runner digest before evaluation;
+   implementation digest, runner digest, and the complete declared local evaluator dependency
+   closure before evaluation;
 3. use the frozen thresholds and missing-metric semantics exactly as written;
 4. recompute the mechanical qualification without reading or adopting the candidate author's
    narrative conclusion as authority;

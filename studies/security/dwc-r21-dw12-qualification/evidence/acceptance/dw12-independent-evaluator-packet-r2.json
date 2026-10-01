@@ -108,9 +108,15 @@
   "candidateRevision": "3eec47b6b3ac4f317103a3629f934c2910abaf8a",
   "evaluationBoundaryRef": "meta/next/evidence/acceptance/evaluation-boundary-rw6-profile.json",
   "evaluationHarness": {
-    "implementationDigest": "sha256:76f3845ab12c9de937281ead3811dabb697a0e4b819d68bb794d0ea3f3cb937d",
+    "dependencyFiles": [
+      {
+        "digest": "sha256:e94f280818888adafa1ed2482cd83824dc0a8a016edabb811807c86dcaaa9334",
+        "path": "studies/security/dwc-r21-dw12-qualification/dwc_dw12/qualification.py"
+      }
+    ],
+    "implementationDigest": "sha256:0bee0e19c8f1c7040c8b1f4f926f08f212d64c28e139c80571a7afa1c232a936",
     "implementationPath": "studies/security/dwc-r21-dw12-qualification/dwc_dw12/frozen_evaluation.py",
-    "runnerDigest": "sha256:a64954db471661f3a4ce29a440aa827acadd6a1f641094275f7b828c88be1263",
+    "runnerDigest": "sha256:e9932154cfe5c095fe4a6a668b96fa960c628c6e9200155a7f6c82747ecad4fc",
     "runnerPath": "studies/security/dwc-r21-dw12-qualification/scripts/run_frozen_evaluation_r2.py"
   },
   "frozenThresholds": {
@@ -161,7 +167,7 @@
     "Null production timing and human-attention metrics remain UNKNOWN, not zero.",
     "DW10 shared-Composition promotion remains outside this packet unless later evidence satisfies the frozen promotion rule."
   ],
-  "packetDigest": "sha256:545aa94d68e77aa0e68248b6c5fc0ca396a2c3cdaa87e70cae1b108fb73d85a5",
+  "packetDigest": "sha256:3d7f11f361de3a78e2908a1f01095705b79197fc7471f275362d43d0d9504fcc",
   "protocolDigest": "sha256:197dab9b83c1bc1016bb3a039b2f681cef61ac6956d1adc7378cc120bf5410a1",
   "schemaVersion": 2,
   "subjectDigest": "sha256:3f29abfd9ac6eb400dbe678db56e2d81281ef81fb81d75ad4b383079601cf39f"

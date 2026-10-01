@@ -363,6 +363,7 @@ def build_evaluator_packet(
     prequalification: Mapping[str, Any],
     evaluator_implementation_digest: str,
     runner_digest: str,
+    qualification_digest: str,
     candidate_builder_actor_ref: str,
 ) -> dict[str, Any]:
     packet = {
@@ -378,6 +379,12 @@ def build_evaluator_packet(
             "implementationDigest": evaluator_implementation_digest,
             "runnerPath": "studies/security/dwc-r21-dw12-qualification/scripts/run_frozen_evaluation_r2.py",
             "runnerDigest": runner_digest,
+            "dependencyFiles": [
+                {
+                    "path": "studies/security/dwc-r21-dw12-qualification/dwc_dw12/qualification.py",
+                    "digest": qualification_digest,
+                }
+            ],
         },
         "evaluationBoundaryRef": "meta/next/evidence/acceptance/evaluation-boundary-rw6-profile.json",
         "allowedEvidence": {
@@ -470,6 +477,21 @@ def verify_evaluator_packet_files(
         observed = file_digest(repo / rel)
         if observed != expected:
             raise FrozenEvaluationError(f"evaluation harness digest mismatch: {rel}")
+    dependencies = harness.get("dependencyFiles")
+    if not isinstance(dependencies, list) or not dependencies:
+        raise FrozenEvaluationError("evaluation harness dependency closure is missing")
+    for row in dependencies:
+        if not isinstance(row, Mapping):
+            raise FrozenEvaluationError("evaluation harness dependency must be object")
+        rel = row.get("path")
+        expected = row.get("digest")
+        if not isinstance(rel, str) or not isinstance(expected, str):
+            raise FrozenEvaluationError("evaluation harness dependency path/digest missing")
+        observed = file_digest(repo / rel)
+        if observed != expected:
+            raise FrozenEvaluationError(
+                f"evaluation harness dependency digest mismatch: {rel}"
+            )
     verify_frozen_subject(
         repo,
         subject,

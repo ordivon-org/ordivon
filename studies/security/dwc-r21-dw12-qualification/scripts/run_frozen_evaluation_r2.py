@@ -57,6 +57,7 @@ def main() -> int:
     prequalification = mechanical_prequalification_r2(repo, subject, proto)
 
     implementation_path = study / "dwc_dw12/frozen_evaluation.py"
+    qualification_path = study / "dwc_dw12/qualification.py"
     runner_path = Path(__file__).resolve()
     packet = build_evaluator_packet(
         subject=subject,
@@ -64,6 +65,7 @@ def main() -> int:
         prequalification=prequalification,
         evaluator_implementation_digest=sha(implementation_path),
         runner_digest=sha(runner_path),
+        qualification_digest=sha(qualification_path),
         candidate_builder_actor_ref=args.candidate_builder_actor_ref,
     )
 
