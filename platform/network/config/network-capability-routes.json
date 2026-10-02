@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.network-v2.route-policy",
+  "routes": [
+    {
+      "routeId": "direct-linux-v1",
+      "priority": 10,
+      "providerProfileId": null,
+      "provides": [
+        "linux",
+        "direct",
+        "tcp",
+        "udp",
+        "ipv4",
+        "ipv6",
+        "http",
+        "https"
+      ],
+      "readiness": {
+        "kind": "systemd-active",
+        "unit": "network-v2-r0.target"
+      }
+    },
+    {
+      "routeId": "provider-egress-v1",
+      "priority": 20,
+      "providerProfileId": "surfshark:th-bkk",
+      "provides": [
+        "linux",
+        "provider-egress",
+        "http-proxy",
+        "https",
+        "tcp",
+        "ipv4",
+        "fail-closed",
+        "shared-carrier",
+        "wireguard"
+      ],
+      "readiness": {
+        "kind": "command-json",
+        "command": "/usr/local/libexec/network-v2/browserless-provider-carrier-ready",
+        "expectedKind": "ordivon.network-v2.shared-provider-readiness",
+        "expectedStanding": "READY"
+      }
+    },
+    {
+      "routeId": "isolated-tun-v1",
+      "priority": 30,
+      "providerProfileId": null,
+      "provides": [
+        "linux",
+        "isolated",
+        "full-ip",
+        "udp",
+        "quic",
+        "ipv4",
+        "ipv6",
+        "tun",
+        "netns",
+        "fail-closed"
+      ],
+      "readiness": {
+        "kind": "evidence-current-kernel",
+        "evidencePath": "evidence/current-capabilities.json",
+        "requiredClaims": {
+          "generic.udpQuicIsolatedTun": "PASS",
+          "generic.netnsTopology": "PASS"
+        }
+      }
+    }
+  ],
+  "nonClaims": [
+    "route-selection-does-not-grant-network-authority",
+    "route-selection-does-not-grant-provider-effect-authority",
+    "historical-qualification-does-not-imply-current-readiness"
+  ]
+}

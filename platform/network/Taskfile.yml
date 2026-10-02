@@ -9,6 +9,12 @@ tasks:
       - promtool check config config/prometheus/prometheus.yml
       - /usr/bin/systemd-analyze verify systemd/network-v2-r0.target systemd/network-v2-dnsproxy.service systemd/network-v2-singbox.service systemd/network-v2-blackbox.service systemd/network-v2-prometheus.service
 
+  network-router:validate:
+    desc: Validate read-only Network Capability Router and stale-evidence fail-closed semantics
+    cmds:
+      - python -m pytest -q tests/test_network_capability_router.py
+      - python scripts/network_capability_router.py catalog >/dev/null
+
   provider-egress:validate:
     desc: Validate semantic shared provider-egress ownership without changing the physical carrier
     cmds:
@@ -65,7 +71,7 @@ tasks:
 
   all:validate:
     desc: Validate core plus optional provider and consumer profiles without changing live state
-    deps: [core:validate, provider-egress:validate, provider:surfshark:identity-contract:validate, provider:surfshark:validate, consumer:browserless:provider-carrier:validate, consumer:finance:validate, consumer:supply-chain:validate, consumer:x-reality:validate]
+    deps: [core:validate, network-router:validate, provider-egress:validate, provider:surfshark:identity-contract:validate, provider:surfshark:validate, consumer:browserless:provider-carrier:validate, consumer:finance:validate, consumer:supply-chain:validate, consumer:x-reality:validate]
 
   core:install:
     desc: Materialize the exact validated R0 source generation into the live host under one systemd composition root
