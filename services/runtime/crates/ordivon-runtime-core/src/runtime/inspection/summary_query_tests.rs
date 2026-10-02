@@ -128,3 +128,98 @@ fn empty_windows_and_event_sequence_order_are_preserved() {
         ]
     );
 }
+
+fn summarize_fixture(
+    connection: &Connection,
+    since_ms: u64,
+) -> RuntimeResult<RuntimeExperienceSummary> {
+    let path =
+        std::env::temp_dir().join(format!("ordivon-summary-{}.sqlite3", uuid::Uuid::now_v7()));
+    connection
+        .execute("VACUUM INTO ?1", [path.to_str().unwrap()])
+        .unwrap();
+    let result = summarize_experience(
+        &RuntimeInspectionConfig {
+            db_path: path.clone(),
+            busy_timeout_ms: 1000,
+        },
+        since_ms,
+    );
+    std::fs::remove_file(path).unwrap();
+    result
+}
+
+#[test]
+fn summary_excludes_negative_duration_without_fabricating_zero_or_hiding_it() {
+    let connection = fixture();
+    connection
+        .execute_batch(
+            "UPDATE attempts SET finished_at_ms=99 WHERE job_id='j10001';
+        UPDATE attempts SET finished_at_ms=100 WHERE job_id='j10002';
+        UPDATE attempts SET finished_at_ms=NULL WHERE job_id='j10003';",
+        )
+        .unwrap();
+    let summary = summarize_fixture(&connection, 100)
+        .expect("one backwards timestamp must not destroy the summary");
+    assert_eq!(summary.duration_ms.samples, 18);
+    assert_eq!(summary.duration_ms.p50, Some(10));
+    assert_eq!(summary.duration_ms.max, Some(10));
+    let json = serde_json::to_value(&summary).unwrap();
+    assert_eq!(json["invalidJobDurationSamples"], 1);
+    assert_eq!(summary.jobs.total, 20);
+    assert!(!summary.semantic_completion_evaluated);
+    assert_eq!(
+        connection
+            .query_row(
+                "SELECT finished_at_ms FROM attempts WHERE job_id='j10001'",
+                [],
+                |r| r.get::<_, i64>(0)
+            )
+            .unwrap(),
+        99
+    );
+}
+
+#[test]
+fn all_invalid_and_empty_duration_cohorts_keep_percentiles_unknown() {
+    let connection = fixture();
+    connection.execute("UPDATE attempts SET finished_at_ms=99 WHERE job_id IN (SELECT job_id FROM jobs WHERE created_at_ms=100)", []).unwrap();
+    let summary =
+        summarize_fixture(&connection, 100).expect("invalid duration samples remain observable");
+    assert_eq!(summary.duration_ms.samples, 0);
+    assert_eq!(summary.duration_ms.p50, None);
+    assert_eq!(summary.duration_ms.p95, None);
+    assert_eq!(summary.duration_ms.max, None);
+    assert_eq!(
+        serde_json::to_value(&summary).unwrap()["invalidJobDurationSamples"],
+        20
+    );
+    let empty = summarize_fixture(&connection, 101).unwrap();
+    assert_eq!(empty.duration_ms.samples, 0);
+    assert_eq!(empty.duration_ms.max, None);
+    assert_eq!(
+        serde_json::to_value(&empty).unwrap()["invalidJobDurationSamples"],
+        0
+    );
+}
+
+#[test]
+fn latest_attempt_controls_duration_and_missing_terminal_time_is_not_zero() {
+    let connection = fixture();
+    connection
+        .execute(
+            "UPDATE attempts SET finished_at_ms=99 WHERE job_id='j10001'",
+            [],
+        )
+        .unwrap();
+    connection.execute_batch("INSERT INTO attempts(attempt_id,job_id,attempt_number,state,termination_intent,launch_token_digest,bundle_path,unit_name,created_at_ms,finished_at_ms)
+        VALUES('retry1','j10001',2,'succeeded','natural','d','/test','retry-unit',105,120),
+              ('retry2','j10002',2,'running','natural','d','/test','retry-unit2',105,NULL);").unwrap();
+    let summary = summarize_fixture(&connection, 100).unwrap();
+    assert_eq!(summary.duration_ms.samples, 19);
+    assert_eq!(summary.duration_ms.max, Some(20));
+    assert_eq!(
+        serde_json::to_value(&summary).unwrap()["invalidJobDurationSamples"],
+        0
+    );
+}

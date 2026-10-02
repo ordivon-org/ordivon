@@ -147,6 +147,9 @@ pub struct RuntimeExperienceSummary {
     pub cancellation: RuntimeExperienceCancellationSummary,
     pub mechanical_latency_ms: RuntimeExperienceMechanicalLatencySummary,
     pub duration_ms: RuntimeExperienceDurationSummary,
+    /// Latest finished Job attempts whose wall-clock duration is negative.
+    /// These samples remain observable but are excluded from duration percentiles.
+    pub invalid_job_duration_samples: u64,
     pub artifacts: RuntimeExperienceArtifactSummary,
     pub event_types: BTreeMap<String, u64>,
     pub terminal_reasons: BTreeMap<String, u64>,
@@ -1371,16 +1374,21 @@ pub fn summarize_experience(
     let mechanical_latency = collect_mechanical_latency_samples(&connection, since_ms)?;
 
     let mut durations: Vec<u64> = Vec::new();
+    let mut invalid_job_duration_samples = 0_u64;
     let mut statement = connection
         .prepare(
             "SELECT a.finished_at_ms-j.created_at_ms FROM jobs j JOIN attempts a ON a.job_id=j.job_id WHERE j.created_at_ms>=?1 AND a.attempt_number=(SELECT MAX(latest.attempt_number) FROM attempts latest WHERE latest.job_id=j.job_id) AND a.finished_at_ms IS NOT NULL ORDER BY 1",
         )
         .map_err(|error| RuntimeError::from_sql(error, "prepare Job duration summary"))?;
     let rows = statement
-        .query_map([since_ms], |row| row.get(0))
+        .query_map([since_ms], |row| row.get::<_, i64>(0))
         .map_err(|error| RuntimeError::from_sql(error, "query Job durations"))?;
     for row in rows {
-        durations.push(row.map_err(|error| RuntimeError::from_sql(error, "decode Job duration"))?);
+        let duration = row.map_err(|error| RuntimeError::from_sql(error, "decode Job duration"))?;
+        match u64::try_from(duration) {
+            Ok(duration) => durations.push(duration),
+            Err(_) => invalid_job_duration_samples += 1,
+        }
     }
 
     let (artifact_count, artifact_bytes, truncated_artifacts): (u64, u64, u64) = connection
@@ -1456,6 +1464,7 @@ pub fn summarize_experience(
             ),
         },
         duration_ms: duration_summary(&durations),
+        invalid_job_duration_samples,
         artifacts: RuntimeExperienceArtifactSummary {
             count: artifact_count,
             bytes: artifact_bytes,
