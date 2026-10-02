@@ -69,9 +69,20 @@ tasks:
       - '! grep -R -F "10.254.177.2:19381" consumers/supply-chain'
       - '! grep -R -F "provider-auto" consumers/supply-chain/config'
 
+  consumer:model-provider:validate:
+    desc: Validate bounded external model API transport over the shared provider carrier without reading credentials
+    deps: [consumer:browserless:provider-carrier:validate]
+    cmds:
+      - /usr/bin/sing-box check -c consumers/model-provider/config/egress.json
+      - jq -e '.schemaVersion==1 and .kind=="ordivon.network-v2.model-provider-egress" and .listen=={"host":"127.0.0.1","port":19881,"protocol":"http"} and .directFallback==false and .networkAuthority.carrierService=="network-v2-browserless-provider-carrier.service" and .networkAuthority.providerSite=="th-bkk" and .authenticationAuthority=={"separate":true,"transportConsumerOwnsCredential":false}' consumers/model-provider/config/authority.json >/dev/null
+      - jq -e '.inbounds==[{"type":"http","tag":"model-provider-api","listen":"127.0.0.1","listen_port":19881}] and .outbounds==[{"type":"http","tag":"provider-carrier","server":"10.252.246.2","server_port":19680}] and .route.rules[-1].action=="reject" and (has("dns")|not) and (has("services")|not)' consumers/model-provider/config/egress.json >/dev/null
+      - /usr/bin/systemd-analyze verify consumers/browserless/systemd/network-v2-browserless-provider-carrier.service consumers/model-provider/systemd/network-v2-model-provider-egress.service consumers/model-provider/systemd/network-v2-model-provider.target
+      - /usr/bin/bash -n consumers/model-provider/ready.sh
+      - python -m pytest -q tests/test_model_provider_consumer.py
+
   all:validate:
     desc: Validate core plus optional provider and consumer profiles without changing live state
-    deps: [core:validate, network-router:validate, provider-egress:validate, provider:surfshark:identity-contract:validate, provider:surfshark:validate, consumer:browserless:provider-carrier:validate, consumer:windows-real-chrome:validate, consumer:finance:validate, consumer:supply-chain:validate, consumer:x-reality:validate]
+    deps: [core:validate, network-router:validate, provider-egress:validate, provider:surfshark:identity-contract:validate, provider:surfshark:validate, consumer:browserless:provider-carrier:validate, consumer:windows-real-chrome:validate, consumer:finance:validate, consumer:supply-chain:validate, consumer:x-reality:validate, consumer:model-provider:validate]
 
   core:install:
     desc: Materialize the exact validated R0 source generation into the live host under one systemd composition root
@@ -780,6 +791,52 @@ tasks:
     desc: Stop only X semantic transport; leave the shared physical carrier untouched
     cmds:
       - systemctl stop network-v2-x-reality.target
+
+  consumer:model-provider:materialize:
+    desc: Materialize bounded model Provider API transport without credential effects
+    deps: [consumer:browserless:provider-carrier:materialize, consumer:model-provider:validate]
+    cmds:
+      - install -d -m 0755 /etc/network-v2/model-provider /usr/local/libexec/network-v2
+      - install -m 0644 consumers/model-provider/config/authority.json /etc/network-v2/model-provider/authority.json
+      - install -m 0644 consumers/model-provider/config/egress.json /etc/network-v2/model-provider/egress.json
+      - install -m 0644 consumers/model-provider/systemd/network-v2-model-provider-egress.service /etc/systemd/system/network-v2-model-provider-egress.service
+      - install -m 0644 consumers/model-provider/systemd/network-v2-model-provider.target /etc/systemd/system/network-v2-model-provider.target
+      - install -m 0755 consumers/model-provider/ready.sh /usr/local/libexec/network-v2/model-provider-ready
+      - systemctl daemon-reload
+      - systemctl enable network-v2-model-provider.target
+
+  consumer:model-provider:start:
+    desc: Start only the bounded model Provider transport authority
+    deps: [consumer:model-provider:materialize]
+    cmds:
+      - systemctl start network-v2-model-provider.target
+
+  consumer:model-provider:ready:
+    desc: Prove admitted model Provider destinations and unknown-domain rejection without credentials
+    cmds:
+      - /usr/local/libexec/network-v2/model-provider-ready
+
+  consumer:model-provider:converge:
+    desc: Materialize, restart and prove model Provider transport without authentication effects
+    cmds:
+      - task: consumer:model-provider:materialize
+      - systemctl restart network-v2-model-provider.target
+      - task: consumer:model-provider:ready
+
+  consumer:model-provider:verify:
+    desc: Verify exact deployed model Provider authority bytes and live fail-closed transport
+    cmds:
+      - cmp -s consumers/model-provider/config/authority.json /etc/network-v2/model-provider/authority.json
+      - cmp -s consumers/model-provider/config/egress.json /etc/network-v2/model-provider/egress.json
+      - cmp -s consumers/model-provider/systemd/network-v2-model-provider-egress.service /etc/systemd/system/network-v2-model-provider-egress.service
+      - cmp -s consumers/model-provider/systemd/network-v2-model-provider.target /etc/systemd/system/network-v2-model-provider.target
+      - systemctl is-enabled --quiet network-v2-model-provider.target
+      - /usr/local/libexec/network-v2/model-provider-ready
+
+  consumer:model-provider:stop:
+    desc: Stop only model Provider semantic transport; leave the shared physical carrier untouched
+    cmds:
+      - systemctl stop network-v2-model-provider.target
 
 
 vars:

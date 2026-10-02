@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.network-v2.model-provider-egress",
+  "listen": {
+    "host": "127.0.0.1",
+    "port": 19881,
+    "protocol": "http"
+  },
+  "allowedHttpsDomains": [
+    "api.deepseek.com",
+    "generativelanguage.googleapis.com",
+    "openrouter.ai",
+    "api.cerebras.ai",
+    "integrate.api.nvidia.com",
+    "open.bigmodel.cn"
+  ],
+  "directFallback": false,
+  "networkAuthority": {
+    "kind": "network-v2",
+    "name": "provider-egress",
+    "namespace": "nv2-browserless-prod",
+    "carrierService": "network-v2-browserless-provider-carrier.service",
+    "providerSite": "th-bkk"
+  },
+  "authenticationAuthority": {
+    "separate": true,
+    "transportConsumerOwnsCredential": false
+  }
+}
