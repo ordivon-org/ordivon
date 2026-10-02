@@ -35,7 +35,8 @@
       "evidence": [
         "docs/JEV_FASTPATH_PROVIDER.md",
         "scripts/jev_fastpath_adapter.py"
-      ]
+      ],
+      "controlPortAdapter": "jev-fast-v1"
     },
     {
       "routeId": "browser-harness-windows-real-chrome-v1",
@@ -76,7 +77,8 @@
         "scripts/browser_harness_windows_real_chrome.py",
         "docs/BROWSER_REAL_CHROME_AUTHORITY_R1.md",
         "catalogs/capabilities/providers/browser-use.md"
-      ]
+      ],
+      "controlPortAdapter": "browser-harness-real-chrome-v1"
     },
     {
       "routeId": "browser-use-browserless-v1",
@@ -103,7 +105,8 @@
       "evidence": [
         "scripts/browser_use_browserless.py",
         "scripts/browserless_substrate.py"
-      ]
+      ],
+      "controlPortAdapter": "browser-use-browserless-v1"
     },
     {
       "routeId": "cft-human-session-v1",
@@ -131,7 +134,8 @@
       "evidence": [
         "planning/human-handoff-lego-r1.json",
         "docs/superpowers/plans/2026-09-19-durable-human-handoff-standards-replacement.md"
-      ]
+      ],
+      "controlPortAdapter": "cft-human-session-v1"
     },
     {
       "routeId": "chatgpt-agent-automation-browserless-v1",

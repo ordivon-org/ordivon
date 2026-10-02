@@ -1,0 +1,175 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.browser-control-port-contract",
+  "operations": [
+    {
+      "operationId": "readiness",
+      "effectClass": "observation"
+    },
+    {
+      "operationId": "tabs.list",
+      "effectClass": "observation"
+    },
+    {
+      "operationId": "page.observe-structured",
+      "effectClass": "observation"
+    },
+    {
+      "operationId": "page.observe-dom",
+      "effectClass": "observation"
+    },
+    {
+      "operationId": "page.navigate",
+      "effectClass": "navigation"
+    },
+    {
+      "operationId": "page.click",
+      "effectClass": "interaction"
+    },
+    {
+      "operationId": "page.text-entry",
+      "effectClass": "interaction"
+    },
+    {
+      "operationId": "page.select",
+      "effectClass": "interaction"
+    },
+    {
+      "operationId": "page.scroll",
+      "effectClass": "interaction"
+    },
+    {
+      "operationId": "page.back",
+      "effectClass": "navigation"
+    },
+    {
+      "operationId": "provider.commit",
+      "effectClass": "commit"
+    }
+  ],
+  "routeFeatureOperationMap": {
+    "tabs": "tabs.list",
+    "observe-structured": "page.observe-structured",
+    "observe-dom": "page.observe-dom",
+    "navigate": "page.navigate",
+    "click": "page.click",
+    "text-entry": "page.text-entry",
+    "select": "page.select",
+    "scroll": "page.scroll",
+    "back": "page.back"
+  },
+  "adapters": [
+    {
+      "adapterId": "browser-harness-real-chrome-v1",
+      "transportFamily": "browser-harness",
+      "routeIds": [
+        "browser-harness-windows-real-chrome-v1"
+      ],
+      "implementationSupports": [
+        "readiness",
+        "tabs.list",
+        "page.observe-structured"
+      ],
+      "qualifiedOperations": [
+        "readiness",
+        "tabs.list",
+        "page.observe-structured"
+      ],
+      "qualificationStanding": "QUALIFIED_READ_ONLY_BASELINE",
+      "currentnessOwner": "browser-route-readiness",
+      "rawProtocolEscapesDomainApi": false,
+      "evidence": [
+        "runtime-job:job-01a0f76c-f3cd-7c52-9a24-824b53a9edb6",
+        "runtime-job:job-01a0f76d-04c2-7ef0-b2d4-f1f0591255a3",
+        "runtime-job:job-01a0f7d7-a038-7352-b2e5-42a429975782"
+      ]
+    },
+    {
+      "adapterId": "jev-fast-v1",
+      "transportFamily": "jev",
+      "routeIds": [
+        "jev-fast-windows-v1"
+      ],
+      "implementationSupports": [
+        "page.observe-dom",
+        "page.navigate",
+        "page.click",
+        "page.text-entry",
+        "page.select",
+        "page.scroll"
+      ],
+      "qualifiedOperations": [],
+      "qualificationStanding": "EXISTING_ROUTE_CONTRACT_NOT_F6_QUALIFIED",
+      "currentnessOwner": "browser-route-readiness",
+      "rawProtocolEscapesDomainApi": false,
+      "evidence": [
+        "docs/JEV_FASTPATH_PROVIDER.md"
+      ]
+    },
+    {
+      "adapterId": "browser-use-browserless-v1",
+      "transportFamily": "browser-use",
+      "routeIds": [
+        "browser-use-browserless-v1"
+      ],
+      "implementationSupports": [
+        "tabs.list",
+        "page.observe-structured",
+        "page.navigate",
+        "page.click",
+        "page.text-entry",
+        "page.scroll",
+        "page.back"
+      ],
+      "qualifiedOperations": [],
+      "qualificationStanding": "EXISTING_ROUTE_CONTRACT_NOT_F6_QUALIFIED",
+      "currentnessOwner": "browser-route-readiness",
+      "rawProtocolEscapesDomainApi": false,
+      "evidence": [
+        "scripts/browser_use_browserless.py",
+        "scripts/browserless_substrate.py"
+      ]
+    },
+    {
+      "adapterId": "cft-human-session-v1",
+      "transportFamily": "route-native",
+      "routeIds": [
+        "cft-human-session-v1"
+      ],
+      "implementationSupports": [
+        "tabs.list",
+        "page.observe-dom",
+        "page.navigate",
+        "page.click",
+        "page.text-entry",
+        "page.scroll",
+        "page.back"
+      ],
+      "qualifiedOperations": [],
+      "qualificationStanding": "EXISTING_ROUTE_CONTRACT_NOT_F6_QUALIFIED",
+      "currentnessOwner": "browser-route-readiness",
+      "rawProtocolEscapesDomainApi": false,
+      "evidence": [
+        "planning/human-handoff-lego-r1.json"
+      ]
+    },
+    {
+      "adapterId": "webdriver-bidi-future-v1",
+      "transportFamily": "webdriver-bidi",
+      "routeIds": [],
+      "implementationSupports": [],
+      "qualifiedOperations": [],
+      "qualificationStanding": "NOT_MATERIALIZED",
+      "currentnessOwner": "none",
+      "rawProtocolEscapesDomainApi": false,
+      "evidence": []
+    }
+  ],
+  "nonClaims": [
+    "control-port-binding-does-not-grant-browser-control-authority",
+    "control-port-binding-does-not-grant-provider-effect-authority",
+    "route-feature-does-not-imply-operation-qualification",
+    "transport-support-does-not-imply-semantic-substitutability",
+    "raw-cdp-is-not-the-browser-domain-api"
+  ]
+}

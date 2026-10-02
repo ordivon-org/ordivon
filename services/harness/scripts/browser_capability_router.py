@@ -51,6 +51,7 @@ def load_policy(path: Path = DEFAULT_ROUTE_CONFIG) -> dict[str, Any]:
         priority = raw.get("priority")
         provides = raw.get("provides")
         readiness = raw.get("readiness")
+        control_port_adapter = raw.get("controlPortAdapter")
         if (
             not isinstance(route_id, str)
             or not route_id
@@ -68,6 +69,10 @@ def load_policy(path: Path = DEFAULT_ROUTE_CONFIG) -> dict[str, Any]:
             or len(set(provides)) != len(provides)
             or not isinstance(readiness, dict)
             or not isinstance(readiness.get("kind"), str)
+            or (
+                control_port_adapter is not None
+                and (not isinstance(control_port_adapter, str) or not control_port_adapter)
+            )
         ):
             raise ValueError(f"invalid browser route: {route_id!r}")
         seen.add(route_id)
@@ -593,6 +598,8 @@ def plan_route(
             row["execution"] = dict(route["execution"])
         if isinstance(route.get("authorityBoundary"), dict):
             row["authorityBoundary"] = dict(route["authorityBoundary"])
+        if isinstance(route.get("controlPortAdapter"), str):
+            row["controlPortAdapter"] = route["controlPortAdapter"]
         rows.append(row)
 
     if explicit is not None:
@@ -641,6 +648,8 @@ def plan_route(
             selected_route["execution"] = dict(selected["execution"])
         if isinstance(selected.get("authorityBoundary"), dict):
             selected_route["authorityBoundary"] = dict(selected["authorityBoundary"])
+        if isinstance(selected.get("controlPortAdapter"), str):
+            selected_route["controlPortAdapter"] = selected["controlPortAdapter"]
     result = {
         "schemaVersion": 1,
         "kind": "ordivon.browser-route-plan",

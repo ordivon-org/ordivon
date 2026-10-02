@@ -472,3 +472,27 @@ class BrowserUsePolicyReadinessTests(unittest.TestCase):
         self.assertEqual(value["standing"], "POLICY_DISABLED")
         self.assertFalse(value["ready"])
         self.assertEqual(value["policyDisabledEndpointIds"], ["browser-agent-21"])
+
+
+def test_selected_real_chrome_route_projects_control_port_adapter():
+    policy = R.load_policy()
+    request = {
+        "schemaVersion": 1,
+        "requestId": "control-port-adapter",
+        "providerFlow": "generic",
+        "requiredFeatures": ["observe-structured", "authenticated-profile"],
+        "preferredFeatures": [],
+        "explicitRouteId": "browser-harness-windows-real-chrome-v1",
+    }
+    result = R.plan_route(
+        request,
+        policy=policy,
+        readiness_overrides={
+            "browser-harness-windows-real-chrome-v1": {
+                "ready": True,
+                "standing": "READY",
+            }
+        },
+    )
+    assert result["standing"] == "SELECTED"
+    assert result["selectedRoute"]["controlPortAdapter"] == "browser-harness-real-chrome-v1"
