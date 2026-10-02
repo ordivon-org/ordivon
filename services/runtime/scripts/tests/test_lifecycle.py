@@ -338,6 +338,10 @@ class LifecycleTests(unittest.TestCase):
             if marker in line
         ]
         self.assertTrue(commands)
+        lifecycle_line = next(
+            line for line in unit.splitlines() if "/ordivon-runtime-lifecycle sweep " in line
+        )
+        self.assertNotIn("--measure-bytes", lifecycle_line)
         self.assertIn("SuccessExitStatus=1 2", unit)
         help_result = subprocess.run(
             [sys.executable, "scripts/ordivon-runtime-lifecycle", "--help"],
