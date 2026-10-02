@@ -10,12 +10,15 @@
     "currentMainAtAdmission": "ce8904a588f5f10835366a1c629a9e5660b1fa61",
     "harnessGatewayObservationCommit": "cf678fcba",
     "networkModelProviderCommit": "ce8904a58",
-    "researchRebasedCommits": [
-      "04ae1b4a0",
-      "d8063c640"
+    "canonicalMainObservedAfterAdmission": "f6d88d68d1b682bbf5842b2d10aec738355941a8",
+    "promotionBase": "f6d88d68d1b682bbf5842b2d10aec738355941a8",
+    "carrierAuthority": "enclosing Git commit/tree; this receipt deliberately does not cache its own final commit id",
+    "rebasedResearchLineage": [
+      "dee33137c",
+      "ccc409289",
+      "cca46fd03"
     ],
-    "candidateHead": "d8063c6401e4fb095977a9ce06d2a2a05c93040e",
-    "canonicalMainObservedAfterAdmission": "f6d88d68d1b682bbf5842b2d10aec738355941a8"
+    "currentBaseQualificationJob": "job-01a0fb1a-616e-7d31-bfa4-96928e96b387"
   },
   "externalSources": {
     "cliproxyapi": {
