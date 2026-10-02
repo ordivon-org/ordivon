@@ -10,6 +10,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use serde_json::Value;
 
 mod projection_contract;
+mod stage_trace;
 mod tool_catalog;
 struct Sandbox {
     root: PathBuf,
