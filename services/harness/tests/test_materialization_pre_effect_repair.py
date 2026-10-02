@@ -198,13 +198,15 @@ def test_repair_evidence_rejects_nonzero_owner_query_or_stale_observation(tmp_pa
         "observedAtMs": 20,
     }
     path = tmp_path / "bad.json"
-    raw = (json.dumps(evidence, sort_keys=True) + "\n").encode(); path.write_bytes(raw)
+    raw = (json.dumps(evidence, sort_keys=True) + "\n").encode()
+    path.write_bytes(raw)
     digest = "sha256:" + hashlib.sha256(raw).hexdigest()
     with pytest.raises(ValueError, match="does not prove exact Windows Runtime request absence"):
         load_and_validate_evidence(path, expected_digest=digest, request=req, current_row=current)
     evidence["generation2"]["windowsRuntimeExactClientRequestQueryCount"] = 0
     evidence["observedAtMs"] = 9
-    raw = (json.dumps(evidence, sort_keys=True) + "\n").encode(); path.write_bytes(raw)
+    raw = (json.dumps(evidence, sort_keys=True) + "\n").encode()
+    path.write_bytes(raw)
     digest = "sha256:" + hashlib.sha256(raw).hexdigest()
     with pytest.raises(ValueError, match="predates the current ledger version"):
         load_and_validate_evidence(path, expected_digest=digest, request=req, current_row=current)
