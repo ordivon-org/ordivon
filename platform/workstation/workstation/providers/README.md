@@ -28,6 +28,7 @@ The provider implementations under providers/ remain because they embody concret
 physically tested machine capabilities such as:
 
 - Windows WSL observation;
+- Windows Real Chrome interactive user-session lifecycle via Task Scheduler;
 - cross-node WSL service control;
 - Runtime/service observation;
 - bounded authority-evidence validation where an accepted maintenance contract still needs it.
