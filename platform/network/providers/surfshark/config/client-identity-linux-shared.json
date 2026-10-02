@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.network-v2.client-identity",
+  "identityId": "surfshark:linux-shared-r1",
+  "providerId": "surfshark",
+  "platformScope": "linux",
+  "secretOwner": "network-provider-materials",
+  "concurrencyPolicy": "single-physical-session",
+  "currentMaterialization": {
+    "kind": "protected-combined-wireguard-profile-set",
+    "selection": "provider-site-via-/etc/network-v2/providers/catalog-profiles/MANIFEST.tsv"
+  },
+  "secretProjection": {
+    "privateKey": false,
+    "assignedAddress": false
+  },
+  "nonClaims": [
+    "descriptor-does-not-contain-secret-bytes",
+    "identity-must-not-be-instantiated-concurrently-by-multiple-physical-carriers",
+    "windows-sibling-carrier-requires-distinct-provider-issued-client-identity"
+  ]
+}

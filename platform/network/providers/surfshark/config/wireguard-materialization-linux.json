@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.network-v2.wireguard-materialization-binding",
+  "bindingId": "surfshark:linux-shared-r1:th-bkk",
+  "providerProfileRef": "providers/surfshark/config/provider-profile.json",
+  "clientIdentityRef": "providers/surfshark/config/client-identity-linux-shared.json",
+  "platform": "linux",
+  "outputKind": "standard-wireguard-config",
+  "compatibilityMode": "legacy-combined-profile",
+  "nonClaims": [
+    "binding-does-not-materialize-secret-bytes",
+    "legacy-combined-profile-is-current-compatibility-realization-not-target-architecture"
+  ]
+}

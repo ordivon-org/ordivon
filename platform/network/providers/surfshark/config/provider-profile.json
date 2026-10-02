@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.network-v2.provider-profile",
+  "profileId": "surfshark:th-bkk",
+  "providerId": "surfshark",
+  "transport": "wireguard",
+  "site": "th-bkk",
+  "endpointCatalogRef": {
+    "sourceId": "gluetun-servers",
+    "lockFile": "providers/surfshark/external/gluetun-servers.lock",
+    "runtimeManifest": "/etc/network-v2/providers/catalog-profiles/MANIFEST.tsv"
+  },
+  "projectedMaterial": [
+    "endpoint",
+    "server-public-key",
+    "provider-site"
+  ],
+  "nonClaims": [
+    "does-not-contain-client-private-key",
+    "does-not-contain-client-assigned-address",
+    "does-not-grant-network-or-provider-effect-authority"
+  ]
+}

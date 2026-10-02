@@ -18,3 +18,15 @@ Cross-consumer recovery qualification on 2026-09-26 selected the current `th-bkk
 The former live Gluetun updater + custom qualification lane was retired after consumer census showed that no current production authority consumed `latest.json` or `qualified-*.json`. Reusable WireGuard implementation/lifecycle support lives under `capabilities/wireguard/`; consumer destination/fail-closed policy belongs under `consumers/`.
 
 OpenAI/ChatGPT reachability and Chromium navigation remain Browserless consumer acceptance. Finance venue semantics and OCI registry semantics remain their consumer owners.
+
+
+## ProviderProfile and ClientIdentity
+
+Canonical source now represents provider/site metadata separately from the client identity.
+provider-profile.json contains only provider-side public/catalog projection.
+client-identity-linux-shared.json names the opaque client identity owner and its single-session
+concurrency contract; it never contains a private key or assigned client address.
+wireguard-materialization-linux.json binds the two to the current Linux realization. The current
+compatibility mode still consumes the protected combined WireGuard profile set; this preserves live
+behavior while making the target separation explicit. A Windows physical carrier must use a distinct
+provider-issued ClientIdentity rather than copying the Linux identity.

@@ -15,6 +15,14 @@ tasks:
       - jq -e '.schemaVersion==1 and .kind=="ordivon.network-v2.provider-egress-definition" and .name=="provider-egress" and .semanticAuthority=="network-v2-provider-egress" and .physicalRealization.namespace=="nv2-browserless-prod" and .physicalRealization.serviceUnit=="network-v2-browserless-provider-carrier.service" and .migration.legacyPhysicalNamesAreCompatibilityIdentifiers==true' config/provider-egress.json >/dev/null
       - python -m pytest -q tests/test_provider_egress_definition.py
 
+  provider:surfshark:identity-contract:validate:
+    desc: Validate ProviderProfile, ClientIdentity and WireGuard materialization separation without reading provider secrets
+    cmds:
+      - jq -e '.kind=="ordivon.network-v2.provider-profile" and .providerId=="surfshark" and .site=="th-bkk" and (.projectedMaterial|sort)==(["endpoint","provider-site","server-public-key"]|sort)' providers/surfshark/config/provider-profile.json >/dev/null
+      - jq -e '.kind=="ordivon.network-v2.client-identity" and .secretOwner=="network-provider-materials" and .concurrencyPolicy=="single-physical-session" and .secretProjection=={"privateKey":false,"assignedAddress":false}' providers/surfshark/config/client-identity-linux-shared.json >/dev/null
+      - jq -e '.kind=="ordivon.network-v2.wireguard-materialization-binding" and .platform=="linux" and .compatibilityMode=="legacy-combined-profile" and .providerProfileRef!=.clientIdentityRef' providers/surfshark/config/wireguard-materialization-linux.json >/dev/null
+      - python -m pytest -q tests/test_provider_identity_split.py
+
   provider:surfshark:validate:
     desc: Validate only the Surfshark provider profile layer
     cmds:
@@ -57,7 +65,7 @@ tasks:
 
   all:validate:
     desc: Validate core plus optional provider and consumer profiles without changing live state
-    deps: [core:validate, provider-egress:validate, provider:surfshark:validate, consumer:browserless:provider-carrier:validate, consumer:finance:validate, consumer:supply-chain:validate, consumer:x-reality:validate]
+    deps: [core:validate, provider-egress:validate, provider:surfshark:identity-contract:validate, provider:surfshark:validate, consumer:browserless:provider-carrier:validate, consumer:finance:validate, consumer:supply-chain:validate, consumer:x-reality:validate]
 
   core:install:
     desc: Materialize the exact validated R0 source generation into the live host under one systemd composition root

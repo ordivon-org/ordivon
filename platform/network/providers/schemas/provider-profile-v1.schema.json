@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ordivon:network-v2:provider-profile:v1",
+  "title": "Network v2 Provider Profile v1",
+  "description": "Public/provider-side metadata only. This schema must not contain client private keys, client assigned addresses, or provider effect authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "profileId",
+    "providerId",
+    "transport",
+    "site",
+    "endpointCatalogRef",
+    "projectedMaterial",
+    "nonClaims"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "kind": {
+      "const": "ordivon.network-v2.provider-profile"
+    },
+    "profileId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "providerId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "transport": {
+      "enum": [
+        "wireguard"
+      ]
+    },
+    "site": {
+      "type": "string",
+      "minLength": 1
+    },
+    "endpointCatalogRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sourceId",
+        "lockFile",
+        "runtimeManifest"
+      ],
+      "properties": {
+        "sourceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lockFile": {
+          "type": "string",
+          "minLength": 1
+        },
+        "runtimeManifest": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "projectedMaterial": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "endpoint",
+          "server-public-key",
+          "provider-site"
+        ]
+      }
+    },
+    "nonClaims": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ordivon:network-v2:client-identity:v1",
+  "title": "Network v2 Client Identity v1",
+  "description": "Opaque client-side identity descriptor. Secret bytes remain with the named material authority and are never projected by this document.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "identityId",
+    "providerId",
+    "platformScope",
+    "secretOwner",
+    "concurrencyPolicy",
+    "currentMaterialization",
+    "secretProjection",
+    "nonClaims"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "kind": {
+      "const": "ordivon.network-v2.client-identity"
+    },
+    "identityId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "providerId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "platformScope": {
+      "enum": [
+        "linux",
+        "windows",
+        "cross-platform-logical"
+      ]
+    },
+    "secretOwner": {
+      "type": "string",
+      "minLength": 1
+    },
+    "concurrencyPolicy": {
+      "enum": [
+        "single-physical-session",
+        "provider-declared"
+      ]
+    },
+    "currentMaterialization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "selection"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "protected-combined-wireguard-profile-set",
+            "separated-wireguard-client-material"
+          ]
+        },
+        "selection": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "secretProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "privateKey",
+        "assignedAddress"
+      ],
+      "properties": {
+        "privateKey": {
+          "const": false
+        },
+        "assignedAddress": {
+          "const": false
+        }
+      }
+    },
+    "nonClaims": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}
