@@ -34,6 +34,13 @@ class DeployTests(unittest.TestCase):
             self.assertTrue(receipt["present"])
             self.assertGreaterEqual(len(p.read_text().strip()), 32)
 
+    def test_windows_user_browser_uses_dedicated_real_chrome_network_consumer(self):
+        c = d.cfg()
+        self.assertEqual(
+            c["windows_user_browser"]["proxy_url"],
+            "http://127.0.0.1:19781",
+        )
+
     def test_runtime_config_is_the_browserless_authoritative_config(self):
         c = d.cfg()
         binding = {
