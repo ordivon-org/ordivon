@@ -25,7 +25,7 @@ The default external Plugin connects only to Gateway. Gateway exposes normal Hos
 - collaboration list/search/post (compatibility)
 - collaboration publish (preferred write vocabulary; explicit global or continuity scope)
 
-Gateway intentionally does not expose host.status; owner administration and Doctor remain direct-owner recovery/admin concerns.
+Gateway exposes host.status as a read-only northbound projection of Host status while Host remains the semantic owner. Owner administration and Doctor/recovery actions remain direct-owner concerns.
 
 Checkpoint payloads are opaque objects at the Gateway boundary. Host validates the current WorkingCheckpoint schema; Gateway does not maintain a second Host checkpoint ontology.
 
