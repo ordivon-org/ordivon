@@ -61,3 +61,13 @@ Earlier observed source identities are retained as superseded provenance, not cu
 4. API-key live canary through Runtime-owned credential delivery + Network-owned egress.
 5. Triangulate the same frozen cases through an independent ordinary API gateway.
 6. Treat rotating OAuth/subscription credentials as a separate owner/state-machine problem.
+
+## Current convergence R3
+
+- Canonical implementation owner seams are now on Ordivon main: Harness gateway evidence projection and Network v2 model-provider egress.
+- Exact current CLIProxyAPI carrier is 6fecc6e5567912661654a4eaf9b8f5436facd1c2 (v8.0.10); SDK auth/translator and internal translator/executor focused suites passed locally.
+- The live Network consumer at 127.0.0.1:19881 is source-byte verified, reaches all six admitted Provider surfaces, rejects unknown destinations, and has directFallback=false.
+- Generic OpenAI compatibility is not treated as universal semantic equivalence; GQ07 remains the explicit Responses-continuation counterexample.
+- Whole OmniRoute is not adopted. It remains a source-locked mechanism/adversarial corpus; only bounded mechanisms may be adapted.
+- See CURRENT_CONVERGENCE_R3.json for exact jobs, commits, source identities, verdicts, and remaining frontiers.
+- Live API-key dogfood reached OpenRouter through CLIProxyAPI and the Network v2 model-provider egress. The Runtime openrouter-provider/api_key currently fails OpenRouter auth with 401, while the legacy local OpenRouter secret returned 200 at the same probe time; automated rotation was blocked by platform safety policy and no authority mutation occurred.

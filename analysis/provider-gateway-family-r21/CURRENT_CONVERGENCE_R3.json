@@ -1,0 +1,177 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.research.provider-gateway-current-convergence-r3",
+  "observedDate": "2026-10-02",
+  "method": {
+    "name": "Recursive LEGO Calculus R2.1",
+    "skillSha256": "sha256:1985dc2765bda250b1f2f76e1b85425141e6aadbb7e39ef5bd5b92d063f08c09"
+  },
+  "ordivon": {
+    "currentMainAtAdmission": "ce8904a588f5f10835366a1c629a9e5660b1fa61",
+    "harnessGatewayObservationCommit": "cf678fcba",
+    "networkModelProviderCommit": "ce8904a58",
+    "researchRebasedCommits": [
+      "04ae1b4a0",
+      "d8063c640"
+    ],
+    "candidateHead": "d8063c6401e4fb095977a9ce06d2a2a05c93040e",
+    "canonicalMainObservedAfterAdmission": "f6d88d68d1b682bbf5842b2d10aec738355941a8"
+  },
+  "externalSources": {
+    "cliproxyapi": {
+      "revision": "6fecc6e5567912661654a4eaf9b8f5436facd1c2",
+      "tag": "v8.0.10",
+      "workspace": "ws-cliproxyapi-r21-dogfood-20261002-r2"
+    },
+    "omniroute": {
+      "defaultHeadRevision": "52823517533cfceec7abef2ff3e6285a19fe4121",
+      "mainRefRevision": "fc5e2bccd4f70fecf5aab94dfb8136c74ab5a21b",
+      "role": "mechanism/adversarial/reference corpus; not adopted wholesale"
+    }
+  },
+  "localRealization": {
+    "harness": {
+      "module": "services/harness/src/ordivon_harness/ordivon/gateway_provider.py",
+      "standing": "PASS_TARGETED",
+      "evidenceJob": "job-01a0fb06-e5d9-7432-a755-7f98800cadcf",
+      "result": "9 tests + 3 subtests PASS",
+      "authorityClaim": "evidence-only binding/observation; no dispatch/retry/cancel/credential/network authority"
+    },
+    "network": {
+      "consumer": "platform/network/consumers/model-provider",
+      "proxy": "http://127.0.0.1:19881",
+      "standing": "LIVE_READY",
+      "directFallback": false,
+      "allowedHttpsDomains": [
+        "api.deepseek.com",
+        "generativelanguage.googleapis.com",
+        "openrouter.ai",
+        "api.cerebras.ai",
+        "integrate.api.nvidia.com",
+        "open.bigmodel.cn"
+      ],
+      "evidenceJob": "job-01a0fb09-a806-7642-9b8d-a3a837a3b482",
+      "observedUnauthenticatedSurfaceCodes": {
+        "deepseek": 401,
+        "google": 403,
+        "openrouter": 200,
+        "cerebras": 403,
+        "nvidia": 200,
+        "bigmodel": 401
+      },
+      "unknownDestination": "REJECTED",
+      "credentialMaterialized": false
+    }
+  },
+  "upstreamQualification": {
+    "cliproxyapiSdkAuthTranslator": {
+      "standing": "PASS",
+      "evidenceJob": "job-01a0fb07-5d3c-7c83-835e-ea42f254135f"
+    },
+    "cliproxyapiInternalTranslatorExecutor": {
+      "standing": "PASS",
+      "evidenceJob": "job-01a0fb08-2e11-7af3-abfc-33db13ba9db1"
+    }
+  },
+  "independentDifferential": {
+    "sourceFiles": [
+      "MOCK_DIFFERENTIAL_R1.json",
+      "MOCK_DIFFERENTIAL_R2.json",
+      "QUALIFICATION_MAP_R1.json"
+    ],
+    "qualified": [
+      "GQ01",
+      "GQ02",
+      "GQ03",
+      "GQ04",
+      "GQ05",
+      "GQ12",
+      "GQ15"
+    ],
+    "partial": [
+      "GQ06",
+      "GQ16",
+      "GQ17",
+      "GQ18",
+      "GQ19",
+      "GQ20"
+    ],
+    "counterexample": {
+      "case": "GQ07",
+      "standing": "LOCAL_MOCK_FAIL",
+      "meaning": "generic OpenAI-compatible Responses emulation does not preserve native Responses continuation semantics"
+    }
+  },
+  "baselineBoundary": {
+    "fullHarnessSuite": "NOT_CLAIMED",
+    "reason": "current main has an independent pre-existing Harness test-profile/import baseline issue in test_agent_automation_turn_receipt_jcs.py; this research-only delta does not modify Harness source/tests",
+    "failedProbeJobs": [
+      "job-01a0fb09-1360-72f2-bc58-f601076859c5",
+      "job-01a0fb09-973e-7433-a444-f6867590892a"
+    ]
+  },
+  "verdict": {
+    "gatewayFamilyLocalization": "QUALIFIED_RESEARCH_AND_OWNER_SEAMS_LOCAL",
+    "cliproxyapiApiKeyLane": "LIVE_PHYSICAL_PATH_QUALIFIED_RUNTIME_CREDENTIAL_STALE_SEMANTIC_CANARY_PENDING",
+    "oauthSubscriptionLane": "SEPARATE_UNRESOLVED_OWNER_FRONTIER",
+    "omnirouteWholeProduct": "NOT_ADOPTED",
+    "openAICompatibilityUniversalEquivalence": "FALSIFIED",
+    "runtimeOpenRouterCredential": "STALE_OR_INVALID_401",
+    "legacyOpenRouterCredential": "VALID_200_AT_PROBE_TIME"
+  },
+  "nextFrontier": [
+    "Rotate openrouter-provider/api_key through the documented Runtime operator procedure when an authorized credential-provisioning path is available; do not bypass the platform safety block.",
+    "After rotation, rerun the fixed Runtime-credential CLIProxyAPI canary with a new clientRequestId.",
+    "Run one exact Harness AgentTurnRequest direct-vs-gateway differential over Network v2 model-provider egress.",
+    "Export structured physical upstream attempt lineage before allowing hidden retry/fallback in canonical Harness use.",
+    "Triangulate frozen GQ cases against an independent ordinary API gateway such as LiteLLM or Bifrost.",
+    "Keep rotating OAuth/subscription credential ownership as a separate natural-owner design problem."
+  ],
+  "credentialQualification": {
+    "runtimeAuthority": {
+      "authority": "openrouter-provider",
+      "credential": "api_key",
+      "standing": "STALE_OR_INVALID",
+      "directOpenRouterAuthStatus": 401,
+      "evidenceJob": "job-01a0fb12-2b60-77a2-823a-46ad2001ef20",
+      "plaintextEmitted": false
+    },
+    "legacySource": {
+      "path": "/root/.config/ordivon/secrets/openrouter.json",
+      "standing": "CURRENT_VALID_AT_PROBE_TIME",
+      "directOpenRouterAuthStatus": 200,
+      "evidenceJob": "job-01a0fb14-90da-7780-9520-07cffe4a575f",
+      "plaintextEmitted": false
+    },
+    "rotation": {
+      "canonicalProcedure": "services/runtime/docs/operations.md#encrypted-credential-provisioning",
+      "standing": "NOT_EXECUTED_PLATFORM_SAFETY_BLOCK",
+      "authorityChanged": false,
+      "note": "A generic plaintext-to-encrypted-authority rotation call was blocked by platform safety checks. No credential bytes or authority object were changed."
+    }
+  },
+  "liveGatewayCanary": {
+    "runtimeCredentialCanary": {
+      "standing": "FAIL_CREDENTIAL_AUTH",
+      "job": "job-01a0fb12-2b60-77a2-823a-46ad2001ef20",
+      "gatewayHttpStatus": 401,
+      "directAuthPreflightStatus": 401,
+      "temporaryDirectoryRemoved": true,
+      "secretPersistedByGateway": false
+    },
+    "legacyCredentialCanary": {
+      "standing": "PHYSICAL_PATH_PASS_SEMANTIC_OUTPUT_INCONCLUSIVE",
+      "job": "job-01a0fb16-f19b-7b32-9237-ede9038dcddb",
+      "gatewayHttpStatus": 200,
+      "effectiveModel": "nvidia/nemotron-3-super-120b-a12b:free",
+      "assistantContentLength": 0,
+      "markerMatch": false,
+      "meaning": "CLIProxyAPI + Network v2 + valid OpenRouter credential reached a real upstream and returned a successful completion envelope; the dynamic free router produced no assistant content under the bounded canary, so semantic completion is not claimed."
+    },
+    "dummyGatewayDryRun": {
+      "standing": "PASS",
+      "job": "job-01a0fb0d-f4e6-7a82-80ad-ee2813046663",
+      "binarySha256": "sha256:3b4e967ea8e156b57e684555bab8fc80f1f442fcbbf13a7864e633d5bddc37bf"
+    }
+  }
+}
