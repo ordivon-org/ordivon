@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.research.gateway-mock-differential",
+  "source": {
+    "gateway": "CLIProxyAPI",
+    "revision": "6fecc6e5567912661654a4eaf9b8f5436facd1c2",
+    "binary": "/tmp/cliproxyapi-r21-current",
+    "runtimeWorkspace": "ws-cliproxyapi-r21-dogfood-20261002-r2"
+  },
+  "cases": [
+    {
+      "caseId": "GQ04",
+      "jobId": "job-01a0faab-6993-7401-9351-213486e2ee69",
+      "verdict": "PASS",
+      "topology": "loopback mock upstream -> generic openai-compatibility gateway -> streaming client",
+      "observation": {
+        "callId": "call_stream_1",
+        "functionName": "lookup",
+        "reconstructedArguments": "{\"q\":\"x\"}",
+        "finishReason": "tool_calls"
+      },
+      "artifactDigests": {
+        "downstreamSse": "sha256:89e3b81241254a6673da7494c35d6febbd3079f564261a0caf17eb07ceef771c",
+        "upstreamRequest": "sha256:9b3bbec7dc8918f2146644b2426d429dd6fe75237788b726a9c16699b16aed94"
+      }
+    },
+    {
+      "caseId": "GQ12",
+      "jobId": "job-01a0faac-5e11-7dd0-8569-9e8c8ef38615",
+      "verdict": "PASS",
+      "observation": "The first upstream attempt received a synthetic HTTP 429. The request recovered with exactly one additional upstream attempt and returned HTTP 200; no unbounded retry was observed.",
+      "attemptCount": 2,
+      "attemptAuthSequence": ["Bearer dummy-b", "Bearer dummy-a"],
+      "artifactDigests": {
+        "downstream": "sha256:c7f878eb530666e7cf1b66626031a419e37b63a573475aa0ace30e927d6a114b",
+        "attemptLog": "sha256:bdddc771d9fefe47aaaf73a107c745be0d1c6256259c2984baaa53ba4727ba95"
+      },
+      "limitation": "This proves a bounded pre-output provider recovery in this synthetic lane; it does not qualify retry after an ambiguous external effect."
+    },
+    {
+      "caseId": "GQ15",
+      "jobId": "job-01a0faac-5e11-7dd0-8569-9e8c8ef38615",
+      "verdict": "PASS",
+      "observation": "After the first selected credential returned 429, the second attempt used the other credential while preserving the same provider/model and completed successfully.",
+      "attemptAuthSequence": ["Bearer dummy-b", "Bearer dummy-a"],
+      "effectiveModel": "upstream-failover-v2",
+      "limitation": "No durable client-visible structured attempt lineage is exported yet."
+    },
+    {
+      "caseId": "GQ17",
+      "jobId": "job-01a0faac-5e11-7dd0-8569-9e8c8ef38615",
+      "verdict": "PARTIAL",
+      "observation": "The independent verifier could observe the two credential attempts from the mock upstream and masked gateway log, but the normal gateway response did not expose a structured ordered attempt receipt.",
+      "brokenFrontier": "Harness-visible GatewayProviderCallReceipt / attempt lineage projection"
+    }
+  ],
+  "invalidatedControl": {
+    "jobId": "job-01a0faab-d528-7b42-b5e9-9a4d4d85f227",
+    "status": "TEST_DESIGN_INVALID_NOT_GATEWAY_FAIL",
+    "reason": "The first version assumed YAML key order determined fill-first selection; the gateway selected dummy-b first and succeeded, so failover was never exercised."
+  },
+  "interpretation": "Core streaming-tool reconstruction and bounded same-provider credential failover are independently observed. The remaining material gap is not basic routing but structured attempt lineage and capability-specific protocol choice."
+}

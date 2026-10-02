@@ -52,6 +52,20 @@
     "testHarnessCensus": {
       "jobId": "job-01a0fa9f-08ae-7fd3-aace-62075e9399b3",
       "finding": "upstream contains httptest servers, mock ProviderExecutor fixtures, protocol translators, Responses/WebSocket/tool/reasoning tests and SDK examples suitable for frozen differential reuse"
+    },
+    "localMockDifferentialR1": {
+      "jobId": "job-01a0faa7-ef89-7042-8a9c-cbb7a30459b7",
+      "verdict": "PARTIAL_PASS_WITH_GQ07_COUNTEREXAMPLE",
+      "finding": "GQ01/GQ02/GQ03/GQ05 passed; simple GQ06 reasoning_content survived; generic openai-compatibility GQ07 failed because downstream Responses HTTP 200 was synthesized via upstream chat/completions and previous_response_id was not forwarded; GQ17 exposed the effective upstream model identity.",
+      "evidenceFile": "MOCK_DIFFERENTIAL_R1.json"
+    },
+    "localMockDifferentialR2": {
+      "streamingToolJobId": "job-01a0faab-6993-7401-9351-213486e2ee69",
+      "failoverJobId": "job-01a0faac-5e11-7dd0-8569-9e8c8ef38615",
+      "invalidControlJobId": "job-01a0faab-d528-7b42-b5e9-9a4d4d85f227",
+      "verdict": "GQ04_GQ12_GQ15_PASS_GQ17_PARTIAL",
+      "finding": "Fragmented streaming tool call reconstructed exactly. A synthetic first-attempt 429 recovered with exactly one second attempt on the other credential under the same provider/model. Structured gateway attempt lineage remains absent.",
+      "evidenceFile": "MOCK_DIFFERENTIAL_R2.json"
     }
   },
   "verdicts": {

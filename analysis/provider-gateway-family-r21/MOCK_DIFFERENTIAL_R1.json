@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.research.gateway-mock-differential",
+  "source": {
+    "gateway": "CLIProxyAPI",
+    "revision": "6fecc6e5567912661654a4eaf9b8f5436facd1c2",
+    "binary": "/tmp/cliproxyapi-r21-current",
+    "runtimeWorkspace": "ws-cliproxyapi-r21-dogfood-20261002-r2"
+  },
+  "job": {
+    "jobId": "job-01a0faa7-ef89-7042-8a9c-cbb7a30459b7",
+    "executionDisposition": "failed_due_to_deliberate_gq07_assertion",
+    "infrastructureFailure": false
+  },
+  "topology": {
+    "client": "local curl verifier",
+    "gateway": "127.0.0.1:38317",
+    "upstream": "127.0.0.1:39001/v1",
+    "gatewayProviderKind": "openai-compatibility",
+    "clientModelAlias": "mock-model",
+    "upstreamModel": "upstream-mock-v1",
+    "realCredentialUsed": false,
+    "networkScope": "loopback only"
+  },
+  "results": [
+    {
+      "caseId": "GQ01",
+      "verdict": "PASS",
+      "observation": "Non-streaming chat returned HELLO through the gateway."
+    },
+    {
+      "caseId": "GQ02",
+      "verdict": "PASS",
+      "observation": "Streaming text preserved HELLO and an explicit [DONE] terminal marker."
+    },
+    {
+      "caseId": "GQ03",
+      "verdict": "PASS",
+      "observation": "Non-streaming tool call preserved call_123, function name lookup and arguments."
+    },
+    {
+      "caseId": "GQ05",
+      "verdict": "PASS",
+      "observation": "A tool result for call_123 was accepted on the next turn and upstream returned TOOL_DONE."
+    },
+    {
+      "caseId": "GQ06",
+      "verdict": "PASS_WITH_LIMITATION",
+      "observation": "A simple chat-completions reasoning_content field survived to the downstream response.",
+      "limitation": "This does not prove provider-signature/encrypted-reasoning replay or Responses continuation."
+    },
+    {
+      "caseId": "GQ07",
+      "verdict": "FAIL",
+      "observation": "Downstream /v1/responses returned HTTP 200, but the mock upstream observed no /responses request and did not receive previous_response_id=resp_prev. The returned downstream response was synthesized from a chat-completions response.",
+      "scope": "generic openai-compatibility route in this exact configuration",
+      "nonClaim": "This is not a claim that every CLIProxyAPI native/provider-specific Responses route loses continuation identity."
+    },
+    {
+      "caseId": "GQ17",
+      "verdict": "PASS_WITH_LIMITATION",
+      "observation": "Client alias mock-model was lowered to upstream-mock-v1 and the downstream response exposed model=upstream-mock-v1.",
+      "limitation": "Effective account/connection and fallback-attempt lineage remain unverified."
+    },
+    {
+      "caseId": "GQ19",
+      "verdict": "PARTIAL",
+      "observation": "Only dummy upstream credentials were used; every observed upstream Authorization header was Bearer dummy-upstream.",
+      "limitation": "This is not a Runtime CredentialAuthority non-leakage proof."
+    }
+  ],
+  "requestSummary": {
+    "upstreamRequestCount": 6,
+    "upstreamAuthAllDummy": true,
+    "responsesHttp": 200,
+    "responsesPreviousResponseIdForwarded": false
+  },
+  "artifactDigests": {
+    "models.json": "sha256:fd9f71ee13fed1cdfa7d10c292912e8bb9537527646640698582d66cb94873d2",
+    "basic.json": "sha256:7aac68aa28f13a41ce4c416a4fcd1ece53e1b1fdf228ff73e84787da96ae8ffd",
+    "stream.txt": "sha256:125a267dc41f19dc1d92f4e88e8a685e7e0291defbca35497d06d59e3acaabb6",
+    "tool.json": "sha256:c4d9892ad18327130dca956e3dea4c6462f6095131da0c1a44b7683c1f9f9770",
+    "tool_continue.json": "sha256:11b0370d194a75ea50e0270ac7df34b33fd8ca10a3b7fa5c99040a3b3a945857",
+    "reason.json": "sha256:04c064e465af47721619cf9d364d950b5c1916364a13932a8584255ed61d825d",
+    "responses.txt": "sha256:ce7fb8187d3fbd36c1565cc90ebbe5df1c821ce64273d7bd40d096efc40b8ce0",
+    "upstream.jsonl": "sha256:f7b49914348bd97c3b66aa4e064fbbe6c2c8f198fd38a635f000fd2650b25eb4",
+    "gateway.log": "sha256:67cace5ea0816b939e33a0268a73f53e910b58acafe2ae1007e4643cf2486c19"
+  },
+  "interpretation": "The generic OpenAI-compatible gateway surface is capability-selective, not semantically transparent. Chat/tool/reasoning fields can survive while native Responses continuation identity is lost by protocol lowering.",
+  "next": [
+    "Test fragmented streaming tool calls (GQ04).",
+    "Test bounded retry/fallback and attempt observability (GQ12/GQ15/GQ17).",
+    "Keep ambiguous external-effect retry (GQ13) unqualified until an Ordivon reconciliation bridge exists."
+  ]
+}

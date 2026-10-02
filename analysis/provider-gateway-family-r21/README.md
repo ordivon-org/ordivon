@@ -50,6 +50,8 @@ Earlier observed source identities are retained as superseded provenance, not cu
 - `GATEWAY_BINDING_RECEIPT_R1.schema.json` — non-authoritative Harness-side binding/call-receipt candidate.
 - `EVIDENCE_R1.json` — Runtime jobs and current qualification receipts.
 - `QUALIFICATION_MAP_R1.json` — upstream test coverage mapped to frozen GQ cases without overstating the independent verifier bridge.
+- `MOCK_DIFFERENTIAL_R1.json` — first independent local mock differential, including the bounded GQ07 counterexample.
+- `MOCK_DIFFERENTIAL_R2.json` — streaming Tool reconstruction plus bounded 429 recovery / same-provider credential failover.
 
 ## Next execution frontier
 
