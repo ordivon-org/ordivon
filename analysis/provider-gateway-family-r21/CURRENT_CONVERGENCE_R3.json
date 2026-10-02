@@ -10,15 +10,10 @@
     "currentMainAtAdmission": "ce8904a588f5f10835366a1c629a9e5660b1fa61",
     "harnessGatewayObservationCommit": "cf678fcba",
     "networkModelProviderCommit": "ce8904a58",
-    "canonicalMainObservedAfterAdmission": "f6d88d68d1b682bbf5842b2d10aec738355941a8",
-    "promotionBase": "f6d88d68d1b682bbf5842b2d10aec738355941a8",
+    "canonicalMainObservedAfterAdmission": "121a8e8ec6f5c69157567b23d050da768b711f2c",
+    "promotionBase": "121a8e8ec6f5c69157567b23d050da768b711f2c",
     "carrierAuthority": "enclosing Git commit/tree; this receipt deliberately does not cache its own final commit id",
-    "rebasedResearchLineage": [
-      "dee33137c",
-      "ccc409289",
-      "cca46fd03"
-    ],
-    "currentBaseQualificationJob": "job-01a0fb1a-616e-7d31-bfa4-96928e96b387"
+    "qualificationEvidenceRule": "Runtime Job identities live in evidence fields and Host Work; final Git carrier identity is read from Git, not self-cached here."
   },
   "externalSources": {
     "cliproxyapi": {
