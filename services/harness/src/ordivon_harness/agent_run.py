@@ -24,6 +24,7 @@ from .ordivon.sqlite_runtime_bridge import (
 )
 from .runtime_port import HarnessRuntimeClient
 from .sqlite_store import SQLiteHarnessStore
+from .working_view import HarnessCognitionRefresh
 from .standalone import (
     HarnessAgentExecution,
     HarnessCognitionProfile,
@@ -483,6 +484,25 @@ class HarnessAgentRun:
                 cancellation=cancellation,
                 cognition_seed=cognition_seed,
             )
+
+    def apply_cognition_refresh(self, refresh: HarnessCognitionRefresh) -> str:
+        """Atomically admit one caller-authored successor cognition selection.
+
+        The caller supplies exact old/new source bytes for only the slots it owns to
+        refresh. Harness preserves every other current pin and returns the committed
+        successor WorkingSet digest. Relevance/currentness decisions remain external.
+        """
+        if self.cognition_profile is None:
+            raise HarnessAgentRunCompositionError(
+                "Harness cognition refresh requires an enabled cognition profile"
+            )
+        with SQLiteHarnessStore(self.state_root) as store:
+            projection = store.load_run(self.harness_run_id)
+            if projection.status.terminal:
+                raise RuntimeError("terminal Harness Agent Run cannot refresh cognition")
+            continuity = self._continuity(store)
+            committed = continuity.apply_cognition_refresh(refresh)
+            return committed.digest
 
     def resume(
         self,

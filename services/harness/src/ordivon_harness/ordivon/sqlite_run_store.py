@@ -23,6 +23,7 @@ from ..working_view import (
     WORKING_SET_HISTORY_CONTROL_NAME,
     AgentCallerIngressPromotionProposal,
     AgentWorkingSetTransitionProposal,
+    HarnessCognitionRefresh,
     HarnessWorkingSetPin,
     HarnessWorkingSetSpec,
     HarnessWorkingView,
@@ -557,6 +558,206 @@ class SQLiteHarnessRunContinuityStore:
                         recorded_at_ms=recorded_at_ms,
                         caused_by_event_id=caused_by,
                         referenced_objects=refs,
+                    )
+                )
+                caused_by = event_id
+            self.store.append_events(
+                harness_run_id=self.harness_run_id,
+                events=tuple(writes),
+                expected_revision=lease.run_revision,
+                lease=lease,
+                lease_checked_at_ms=self.clock_ms(),
+            )
+            return committed
+        finally:
+            self.store.release_run_lease(lease)
+
+    def apply_cognition_refresh(
+        self,
+        refresh: HarnessCognitionRefresh,
+    ) -> HarnessWorkingSetSpec:
+        """Atomically refresh exact caller-owned cognition slots.
+
+        Source bytes may enter CAS before the Run lease; that does not change cognition
+        truth. Under one Run lease, Harness verifies slot-level expected-source CAS,
+        preserves every unmentioned current pin, and records replan/select/commit as one
+        bounded Journal transaction. This path is caller-authored and never masquerades
+        as an Agent WorkingSet transition.
+        """
+        if not self.contract.privacy.allow_model_content:
+            raise ValueError(
+                "Harness cognition refresh requires permission to retain model content"
+            )
+
+        prepared: list[tuple[HarnessWorkingSetPin, HarnessWorkingSetPin]] = []
+        for change in refresh.sources:
+            expected_object = self.store_working_view_source(change.expected_source)
+            replacement_object = self.store_working_view_source(change.replacement_source)
+            expected_pin = HarnessWorkingSetPin(
+                slot=change.slot,
+                logical_ref=change.expected_source.logical_ref,
+                logical_generation=change.expected_source.logical_generation,
+                resolved_digest=expected_object.digest,
+            )
+            replacement_pin = HarnessWorkingSetPin(
+                slot=change.slot,
+                logical_ref=change.replacement_source.logical_ref,
+                logical_generation=change.replacement_source.logical_generation,
+                resolved_digest=replacement_object.digest,
+            )
+            prepared.append((expected_pin, replacement_pin))
+
+        def existing_refresh() -> HarnessWorkingSetSpec | None:
+            current = self._load_current_working_set_or_none()
+            if (
+                current is None
+                or not current.committed
+                or current.attempt_id != refresh.next_attempt_id
+                or current.commit_basis != refresh.basis
+            ):
+                return None
+            attempt_events = [
+                event
+                for event in self.store.list_run_events(self.harness_run_id)
+                if event.event_kind == "harness.working-set-recorded"
+                and event.data.get("attemptId") == refresh.next_attempt_id
+            ]
+            if len(attempt_events) != 3:
+                return None
+            specs = [self._working_set_from_event(event) for event in attempt_events]
+            if [spec.revision for spec in specs] != [1, 2, 3]:
+                return None
+            if any(
+                event.data.get("cognitionRefreshDigest") != refresh.digest
+                or event.data.get("refreshProvenance") != "caller"
+                for event in attempt_events
+            ):
+                return None
+            first = specs[0]
+            if first.previous_digest is None:
+                return None
+            predecessor = next(
+                (
+                    self._working_set_from_event(event)
+                    for event in self.store.list_run_events(self.harness_run_id)
+                    if event.event_kind == "harness.working-set-recorded"
+                    and event.data.get("workingSetDigest") == first.previous_digest
+                ),
+                None,
+            )
+            if predecessor is None or not predecessor.committed:
+                return None
+            if any(
+                event.data.get("sourceWorkingSetDigest") != predecessor.digest
+                for event in attempt_events
+            ):
+                return None
+            predecessor_by_slot = {pin.slot: pin for pin in predecessor.pins}
+            current_by_slot = {pin.slot: pin for pin in current.pins}
+            for expected_pin, replacement_pin in prepared:
+                if predecessor_by_slot.get(expected_pin.slot) != expected_pin:
+                    return None
+                if current_by_slot.get(replacement_pin.slot) != replacement_pin:
+                    return None
+            return current
+
+        replay = existing_refresh()
+        if replay is not None:
+            return replay
+
+        now_ms = self.clock_ms()
+        lease = self._acquire_lease("cognition-refresh", refresh.digest, now_ms=now_ms)
+        try:
+            replay = existing_refresh()
+            if replay is not None:
+                return replay
+            current = self._load_current_working_set_or_none()
+            if current is None or not current.committed:
+                raise ValueError("Harness cognition refresh requires a committed predecessor")
+            if refresh.next_attempt_id == current.attempt_id:
+                raise ValueError("Harness cognition refresh requires a new attempt identity")
+            if any(
+                event.event_kind == "harness.working-set-recorded"
+                and event.data.get("attemptId") == refresh.next_attempt_id
+                for event in self.store.list_run_events(self.harness_run_id)
+            ):
+                raise ValueError("Harness cognition refresh attempt identity was already used")
+
+            provider = self._load_current_provider_call_or_none()
+            if provider is not None and provider.record.status in {
+                HarnessProviderCallStatus.CLAIMED,
+                HarnessProviderCallStatus.DISPATCHING,
+                HarnessProviderCallStatus.UNKNOWN,
+            }:
+                raise HarnessProviderCallRecoveryRequired(
+                    "Working Set cannot change while a Provider Call may still act on the prior view"
+                )
+
+            by_slot = {pin.slot: pin for pin in current.pins}
+            for expected_pin, replacement_pin in prepared:
+                if by_slot.get(expected_pin.slot) != expected_pin:
+                    raise HarnessProviderCallRequestMismatch(
+                        "Harness cognition refresh expected source is no longer current"
+                    )
+                by_slot[replacement_pin.slot] = replacement_pin
+            successor_pins = tuple(by_slot[key] for key in sorted(by_slot))
+
+            replanned = current.replan(refresh.next_attempt_id)
+            selected = replanned.select_pins(successor_pins)
+            committed = selected.commit(refresh.basis)
+            chain = (replanned, selected, committed)
+            self._require_working_set_predecessor(current, replanned)
+            self._require_working_set_predecessor(replanned, selected)
+            self._require_working_set_predecessor(selected, committed)
+
+            refresh_object = self.store.put_object(
+                refresh.to_dict(), kind="harness-cognition-refresh"
+            )
+            spec_objects = tuple(
+                self.store.put_object(spec.to_dict(), kind="harness-working-set-spec")
+                for spec in chain
+            )
+            source_objects: list[StoredHarnessObject] = []
+            for pin in successor_pins:
+                raw = self.store.get_object(
+                    pin.resolved_digest,
+                    expected_kind="harness-working-view-source",
+                )
+                if not isinstance(raw, dict):
+                    raise TypeError("Harness cognition refresh source object is invalid")
+                source = HarnessWorkingViewSource.from_dict(raw)
+                if (
+                    source.logical_ref != pin.logical_ref
+                    or source.logical_generation != pin.logical_generation
+                ):
+                    raise ValueError("Harness cognition refresh pin differs from its exact source")
+                self._require_working_view_source_authorized(source)
+                source_objects.append(self.store.inspect_object(pin.resolved_digest))
+
+            recorded_at_ms = self._recorded_time(now_ms)
+            prior_event_id = self._latest_event_id()
+            writes: list[HarnessEventWrite] = []
+            caused_by = prior_event_id
+            for spec, spec_object in zip(chain, spec_objects, strict=True):
+                event_id = self._event_id("working-set", spec.digest)
+                writes.append(
+                    HarnessEventWrite(
+                        event_id=event_id,
+                        event_kind="harness.working-set-recorded",
+                        data={
+                            "workingSetDigest": spec.digest,
+                            "workingSetObjectDigest": spec_object.digest,
+                            "attemptId": spec.attempt_id,
+                            "workingSetRevision": spec.revision,
+                            "committed": spec.committed,
+                            "cognitionRefreshDigest": refresh.digest,
+                            "cognitionRefreshObjectDigest": refresh_object.digest,
+                            "refreshProvenance": "caller",
+                            "sourceWorkingSetDigest": current.digest,
+                        },
+                        recorded_at_ms=recorded_at_ms,
+                        caused_by_event_id=caused_by,
+                        referenced_objects=(spec_object, refresh_object, *source_objects),
                     )
                 )
                 caused_by = event_id

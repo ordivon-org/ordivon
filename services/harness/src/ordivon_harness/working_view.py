@@ -242,6 +242,111 @@ class AgentWorkingSetTransitionProposal:
 
 
 @dataclass(frozen=True, slots=True)
+class HarnessCognitionRefreshSource:
+    """One caller-authored exact replacement for an already-selected cognition slot.
+
+    Refresh is deliberately narrower than Agent selection. The logical source identity
+    stays stable while its exact generation/content advances. Harness does not decide
+    whether the refresh is relevant or current; it only performs exact slot-level CAS.
+    """
+
+    slot: str
+    expected_source: HarnessWorkingViewSource
+    replacement_source: HarnessWorkingViewSource
+
+    def __post_init__(self) -> None:
+        _text(self.slot, "cognition refresh slot", max_bytes=160)
+        if not isinstance(self.expected_source, HarnessWorkingViewSource):
+            raise ValueError("cognition refresh expected source is invalid")
+        if not isinstance(self.replacement_source, HarnessWorkingViewSource):
+            raise ValueError("cognition refresh replacement source is invalid")
+        if self.expected_source.logical_ref != self.replacement_source.logical_ref:
+            raise ValueError("cognition refresh must preserve source logical reference")
+        if self.expected_source.logical_generation == self.replacement_source.logical_generation:
+            raise ValueError("cognition refresh requires a new logical generation")
+        if self.expected_source.digest == self.replacement_source.digest:
+            raise ValueError("cognition refresh replacement must differ from expected source")
+
+    def to_dict(self) -> dict[str, JsonValue]:
+        return {
+            "slot": self.slot,
+            "expectedSource": self.expected_source.to_dict(),
+            "replacementSource": self.replacement_source.to_dict(),
+        }
+
+    @classmethod
+    def from_dict(cls, value: dict[str, Any]) -> HarnessCognitionRefreshSource:
+        if set(value) != {"slot", "expectedSource", "replacementSource"}:
+            raise ValueError("HarnessCognitionRefreshSource fields differ")
+        expected = value["expectedSource"]
+        replacement = value["replacementSource"]
+        if not isinstance(expected, dict) or not isinstance(replacement, dict):
+            raise ValueError("HarnessCognitionRefreshSource sources must be objects")
+        return cls(
+            slot=value["slot"],
+            expected_source=HarnessWorkingViewSource.from_dict(expected),
+            replacement_source=HarnessWorkingViewSource.from_dict(replacement),
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class HarnessCognitionRefresh:
+    """Caller-authored exact refresh of selected cognition sources.
+
+    This value carries no relevance, owner, execution or effect authority. It only says:
+    for these already-selected slots, replace the exact expected source with the supplied
+    exact successor at a new cognition attempt boundary.
+    """
+
+    next_attempt_id: str
+    sources: tuple[HarnessCognitionRefreshSource, ...]
+    basis: str
+
+    def __post_init__(self) -> None:
+        _text(self.next_attempt_id, "cognition refresh attempt identity")
+        _text(self.basis, "cognition refresh basis", max_bytes=2_048)
+        if not self.sources:
+            raise ValueError("cognition refresh requires at least one source")
+        slots = [item.slot for item in self.sources]
+        if len(slots) != len(set(slots)):
+            raise ValueError("cognition refresh slots must be unique")
+        if tuple(sorted(self.sources, key=lambda item: item.slot)) != self.sources:
+            raise ValueError("cognition refresh sources must be sorted by slot")
+
+    @property
+    def digest(self) -> str:
+        return canonical_digest(self.to_dict())
+
+    def to_dict(self) -> dict[str, JsonValue]:
+        return {
+            "schemaVersion": 1,
+            "kind": "ordivon.harness-cognition-refresh",
+            "nextAttemptId": self.next_attempt_id,
+            "sources": [item.to_dict() for item in self.sources],
+            "basis": self.basis,
+        }
+
+    @classmethod
+    def from_dict(cls, value: dict[str, Any]) -> HarnessCognitionRefresh:
+        expected = {"schemaVersion", "kind", "nextAttemptId", "sources", "basis"}
+        if set(value) != expected:
+            raise ValueError("HarnessCognitionRefresh fields differ")
+        raw_sources = value["sources"]
+        if (
+            value["schemaVersion"] != 1
+            or value["kind"] != "ordivon.harness-cognition-refresh"
+            or not isinstance(raw_sources, list)
+            or any(not isinstance(item, dict) for item in raw_sources)
+        ):
+            raise ValueError("HarnessCognitionRefresh is invalid")
+        return cls(
+            next_attempt_id=value["nextAttemptId"],
+            sources=tuple(HarnessCognitionRefreshSource.from_dict(item) for item in raw_sources),
+            basis=value["basis"],
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class AgentCallerIngressPromotionProposal:
     """Agent-authored request to add exact current caller messages to cognition.
 
