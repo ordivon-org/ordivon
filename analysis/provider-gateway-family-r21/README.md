@@ -71,3 +71,13 @@ Earlier observed source identities are retained as superseded provenance, not cu
 - Whole OmniRoute is not adopted. It remains a source-locked mechanism/adversarial corpus; only bounded mechanisms may be adapted.
 - See CURRENT_CONVERGENCE_R3.json for exact jobs, commits, source identities, verdicts, and remaining frontiers.
 - Live API-key dogfood reached OpenRouter through CLIProxyAPI and the Network v2 model-provider egress. The Runtime openrouter-provider/api_key currently fails OpenRouter auth with 401, while the legacy local OpenRouter secret returned 200 at the same probe time; automated rotation was blocked by platform safety policy and no authority mutation occurred.
+
+## Current convergence R4
+
+- Added an internal qualified GatewayBackedDeepSeekTurnAdapter that reuses the existing DeepSeek Harness codec and rewrites only the physical transport to one evidence-bound loopback gateway.
+- The same exact AgentTurnRequest yields byte-identical provider request bodies and identical normalized AgentTurnResult on direct versus gateway-backed fixture paths.
+- The adapter has no Provider API-key input, retry/fallback surface, credential selection, or Network selection authority; it composes with the existing durable ProviderCallLifecycle.
+- Latest focused gate: 30 tests plus 9 subtests PASS, Ruff PASS, and the supported public API remains unchanged.
+- Wider Harness regression passed 60 tests plus 23 subtests. The canonical queue is currently blocked before this delta by unrelated Browser/Agent-Automation Ruff violations; those paths remain with their natural owners.
+- Runtime openrouter-provider/api_key rotation remains blocked because no authorized CredentialAuthority write Tool is currently exposed; no mutation was attempted through a bypass.
+- See CURRENT_CONVERGENCE_R4.json for exact method fences, file digests, Runtime Jobs, qualified properties, non-claims, and next frontier.

@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.research.provider-gateway-current-convergence-r4",
+  "observedDate": "2026-10-02",
+  "method": {
+    "name": "Recursive LEGO Calculus R2.1",
+    "skillId": "project-ordivon-next/recursive-lego-calculus",
+    "instructionDigest": "sha256:1985dc2765bda250b1f2f76e1b85425141e6aadbb7e39ef5bd5b92d063f08c09",
+    "packageRevision": "sha256:ee18e53bb17d08c52d1d5aeba7816ece18b2c2ca3c8693167fbfb457afffb",
+    "snapshotRevision": "sha256:7f554642da50f497deea95187660211fa25da51cc96264eebb16005b56e53c23"
+  },
+  "admission": {
+    "canonicalMainAtWorkspaceOpen": "edd71db7a73d8e4fc450abc57d7ace0d214a3756",
+    "hostWork": "work:ordivon:provider-gateway-family-r21:20261002",
+    "hostWorkRevision": 3
+  },
+  "minimalBrokenFrontier": {
+    "credentialRotation": {
+      "standing": "BLOCKED_NO_AUTHORIZED_WRITE_TOOL",
+      "detail": "Runtime exposes credential consumption but no CredentialAuthority provision/rotate Tool; generic secret mutation remains disallowed.",
+      "authorityMutationPerformed": false
+    },
+    "harnessGatewayDispatchSeam": {
+      "standing": "LOCAL_IMPLEMENTATION_QUALIFIED",
+      "strategy": "reuse existing DeepSeekTurnAdapter codec; rewrite only physical transport to one evidence-bound loopback gateway"
+    },
+    "physicalAttemptLineage": {
+      "standing": "UNKNOWN_PENDING_GATEWAY_EXPORT",
+      "policy": "keep gateway retry/fallback disabled or independently observed before canonical live use"
+    }
+  },
+  "implementation": {
+    "module": "services/harness/src/ordivon_harness/ordivon/gateway_turn.py",
+    "moduleSha256": "sha256:a315445a9db8841415e53630d7b2263fc77e10e94e8dec860cc7efb911779e0d",
+    "test": "services/harness/tests/test_gateway_backed_deepseek_turn.py",
+    "testSha256": "sha256:00a54a01becd7bf5e758fda7d6fdc15d3c8bbd19a41f448c3e9eb998277519a3",
+    "adapterId": "ordivon.gateway.deepseek.openai-chat.v1",
+    "publicFacadeExported": false,
+    "reasonNotPublic": "Runtime credential rotation and physical upstream-attempt lineage are not yet qualified; avoid premature compatibility commitment."
+  },
+  "qualifiedProperties": [
+    "Direct DeepSeek and gateway-backed paths produce byte-identical OpenAI Chat request bodies for the same exact AgentTurnRequest.",
+    "Direct DeepSeek and gateway-backed paths decode the same fixture response to identical normalized AgentTurnResult.",
+    "Provider API credentials are not constructor inputs and the codec sentinel is removed before physical gateway dispatch.",
+    "Optional gateway client authentication is local-gateway access only and is excluded from durable provider request identity.",
+    "Provider request identity binds exact gateway binding digest, Agent dispatch digest, semantic headers, body digest and gateway path.",
+    "Binding guards fail closed on wrong ingress protocol, wrong requested Provider, direct fallback, multi-provider widening, or missing opaque credential/network refs.",
+    "Gateway transport errors preserve existing AgentTurnFailureCode and AgentTurnDispatchSafety.",
+    "The adapter runs through the existing OrdivonAgentLoop and SQLite durable ProviderCallLifecycle to COMPLETED without a second continuity store.",
+    "The recommended ordivon_harness.api exact public facade remains unchanged."
+  ],
+  "evidence": {
+    "initialAdapterDifferentialJob": "job-01a0fb9f-4a65-7cd1-ad50-701596c50f4a",
+    "agentLoopIntegrationJob": "job-01a0fba2-5918-72c2-9f1d-0900eaf4e545",
+    "qualityAndPublicFacadeJob": "job-01a0fba4-3251-7543-9350-2179dfe2ee5f",
+    "latestTargetedResult": "30 tests + 9 subtests PASS; Ruff PASS; git diff --check PASS",
+    "wideRegressionJob": "job-01a0fba6-492d-7000-b506-c1c5ebc344e1",
+    "wideRegressionResult": "60 tests + 23 subtests PASS; Ruff PASS; R4 JSON parse PASS; git diff --check PASS",
+    "invalidOrchestrationProbe": "job-01a0fba5-e5c4-78f2-84b1-6df9cd75dc47 was an invalid shell-composition verifier and carries no qualification standing",
+    "canonicalQueueJob": "job-01a0fba6-8861-7321-b8b0-1dbcdebea0d5"
+  },
+  "nonClaims": [
+    "No real Provider credential was consumed by the new Harness adapter during local qualification.",
+    "No ordered physical upstream-attempt lineage is claimed.",
+    "No hidden gateway retry/fallback behavior is admitted.",
+    "No public API stability commitment is made for GatewayBackedDeepSeekTurnAdapter yet.",
+    "Runtime CredentialAuthority rotation remains unresolved and was not bypassed."
+  ],
+  "nextFrontier": [
+    "Run wider DeepSeek/Provider/Harness regression on the internal adapter candidate.",
+    "Execute one real gateway-backed AgentTurnRequest against an ephemeral CLIProxyAPI instance using a valid operator-owned Provider credential without moving credential authority into Harness.",
+    "Promote only after fresh-main rebase and owner-level qualification.",
+    "Then perform the frozen GQ corpus differential against an independent ordinary gateway such as LiteLLM or Bifrost.",
+    "Keep OAuth/subscription credential lifecycle separate."
+  ],
+  "canonicalQueue": {
+    "standing": "BLOCKED_UNRELATED_BASELINE",
+    "failureStage": "ruff",
+    "providerGatewayDeltaImplicated": false,
+    "observedUnrelatedPaths": [
+      "services/harness/scripts/agent_automation_pre_effect_repair.py",
+      "services/harness/scripts/browser_use_windows_cdp.py",
+      "services/harness/tests/test_browser_use_windows_cdp.py",
+      "services/harness/tests/test_browserless_session_repair.py",
+      "services/harness/tests/test_materialization_pre_effect_repair.py"
+    ],
+    "detail": "Canonical queue stopped on 19 existing Browser/Agent-Automation Ruff violations before the Provider Gateway delta was exercised by the queue. This lane does not modify those natural-owner paths."
+  },
+  "liveGatewayBackedAgentTurn": {
+    "standing": "BLOCKED_BY_SECRET_TOOLING_POLICY",
+    "effectPerformed": false,
+    "detail": "Attempted legacy DeepSeek credential preflight was rejected by platform secret-safety checks before Runtime execution; no secret was read and no Provider request was sent."
+  }
+}
