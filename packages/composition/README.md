@@ -15,6 +15,7 @@ capability discovery, seam-specific verification, workflow state, or domain trut
 - Successor Contract predecessor/candidate binding and verifier-owned succession-gate
   evaluation.
 - Deterministic non-authoritative Agent Run binding over already-selected exact references.
+- Deterministic non-authoritative Browser/Network binding over already-selected exact route references.
 - Public JSON Schemas for those contracts.
 
 ## Non-claims
@@ -48,3 +49,8 @@ leaves authority and execution authority false.
 ## Verification
 
 Run \`mise run verify\` from this directory.
+
+
+Browser Network Binding R1 preserves explicit Network requirements across already-selected Browser
+and Network plans. It does not inspect or rerank owner-native plans, grant authority, configure a
+browser proxy, mutate network state, or dispatch execution.

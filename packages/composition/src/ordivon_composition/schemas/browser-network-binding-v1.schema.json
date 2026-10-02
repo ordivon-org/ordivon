@@ -1,0 +1,183 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ordivon:schema:browser-network-binding:v1",
+  "title": "Browser Network Binding v1",
+  "description": "Task-local non-authoritative binding over already-selected Browser and Network route plans. It does not route, grant authority, dispatch execution, or establish domain success.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "truthRole",
+    "browserPlanRef",
+    "networkPlanRef",
+    "browserRoute",
+    "networkRoute",
+    "requiredNetworkFeatures",
+    "missingNetworkFeatures",
+    "unresolvedInputs",
+    "readyForExecution",
+    "authorityGranted",
+    "browserEffectAuthorized",
+    "providerEffectAuthorized",
+    "executionDispatched",
+    "claimBoundary",
+    "bindingDigest"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "kind": {
+      "const": "ordivon.browser-network-binding"
+    },
+    "truthRole": {
+      "const": "task-local-non-authoritative-browser-network-binding-projection"
+    },
+    "browserPlanRef": {
+      "$ref": "#/$defs/boundRef"
+    },
+    "networkPlanRef": {
+      "$ref": "#/$defs/boundRef"
+    },
+    "browserRoute": {
+      "$ref": "#/$defs/browserRoute"
+    },
+    "networkRoute": {
+      "$ref": "#/$defs/networkRoute"
+    },
+    "requiredNetworkFeatures": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "missingNetworkFeatures": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "unresolvedInputs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "readyForExecution": {
+      "type": "boolean"
+    },
+    "authorityGranted": {
+      "const": false
+    },
+    "browserEffectAuthorized": {
+      "const": false
+    },
+    "providerEffectAuthorized": {
+      "const": false
+    },
+    "executionDispatched": {
+      "const": false
+    },
+    "claimBoundary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "bindingDigest": {
+      "$ref": "#/$defs/sha256"
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "identifier": {
+      "type": "string",
+      "minLength": 1
+    },
+    "boundRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "digest"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "digest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "browserRoute": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "routeId",
+        "executor",
+        "substrate",
+        "providerFlow"
+      ],
+      "properties": {
+        "routeId": {
+          "$ref": "#/$defs/identifier"
+        },
+        "executor": {
+          "$ref": "#/$defs/identifier"
+        },
+        "substrate": {
+          "$ref": "#/$defs/identifier"
+        },
+        "providerFlow": {
+          "$ref": "#/$defs/identifier"
+        }
+      }
+    },
+    "networkRoute": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "routeId",
+        "providerProfileId",
+        "provides",
+        "readinessStanding"
+      ],
+      "properties": {
+        "routeId": {
+          "$ref": "#/$defs/identifier"
+        },
+        "providerProfileId": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/identifier"
+            }
+          ]
+        },
+        "provides": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "readinessStanding": {
+          "const": "READY"
+        }
+      }
+    }
+  }
+}

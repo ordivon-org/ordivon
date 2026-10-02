@@ -11,6 +11,12 @@ from .authority_obligation_r1 import (
     compile_authority_obligations,
     validate_authority_obligation_set,
 )
+from .browser_network_binding_r1 import (
+    BrowserNetworkBindingError,
+    compile_browser_network_binding,
+    require_ready_browser_network_binding,
+    validate_browser_network_binding,
+)
 from .cognitive_circuit_r1 import (
     CircuitContractError,
     canonical_digest,
@@ -33,6 +39,10 @@ from .verification_obligation_r1 import (
 )
 
 __all__ = [
+    "validate_browser_network_binding",
+    "require_ready_browser_network_binding",
+    "compile_browser_network_binding",
+    "BrowserNetworkBindingError",
     "AuthorityObligationError",
     "AgentRunBindingError",
     "CircuitContractError",
