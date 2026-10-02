@@ -202,6 +202,18 @@ class OperationalScriptTests(unittest.TestCase):
         self.assertIn('export ORDIVON_RUNTIME_INSPECT=', owner)
         self.assertIn('cmp -s "$source_inspect"', owner)
 
+    def test_runtime_verify_runs_reference_model_only_via_extended_surface(self) -> None:
+        mise = (REPO / "mise.toml").read_text(encoding="utf-8")
+        verify = mise.split("[tasks.verify]", 1)[1]
+        property_name = "request_identity_and_terminal_winner_match_reference_model"
+        transactional = next(
+            line
+            for line in verify.splitlines()
+            if "cargo test --locked -p ordivon-runtime-core" in line
+        )
+        self.assertIn(f"--skip {property_name}", transactional)
+        self.assertEqual(verify.count("scripts/owner-environment extended"), 1)
+
     def test_owner_environment_extended_reuses_a_complete_offline_environment(self) -> None:
         owner = (REPO / "scripts/owner-environment").read_text(encoding="utf-8")
         self.assertIn("environment_is_materialized()", owner)
