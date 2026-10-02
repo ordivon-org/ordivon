@@ -108,3 +108,11 @@ def test_plan_is_projection_only():
     }))
     assert "plan-is-not-network-authority" in result["nonClaims"]
     assert "plan-does-not-mutate-network-state" in result["nonClaims"]
+
+
+def test_windows_real_chrome_projection_is_catalogued_as_network_only_route():
+    policy = mod.load_policy()
+    route = next(r for r in policy["routes"] if r["routeId"] == "windows-real-chrome-projected-v1")
+    assert route["providerProfileId"] == "surfshark:th-bkk"
+    assert set(["windows", "cross-os", "browser-egress", "provider-egress", "fail-closed"]).issubset(route["provides"])
+    assert "browser-control" not in route["provides"]

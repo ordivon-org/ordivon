@@ -1,0 +1,8 @@
+[Unit]
+Description=Network v2 Windows Real Chrome provider-egress projection
+Requires=network-v2-windows-real-chrome-proxy.service network-v2-windows-real-chrome-relay.service
+After=network-v2-browserless.target network-v2-windows-real-chrome-proxy.service network-v2-windows-real-chrome-relay.service
+BindsTo=network-v2-browserless.target
+
+[Install]
+WantedBy=multi-user.target

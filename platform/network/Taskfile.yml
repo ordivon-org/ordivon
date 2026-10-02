@@ -71,7 +71,7 @@ tasks:
 
   all:validate:
     desc: Validate core plus optional provider and consumer profiles without changing live state
-    deps: [core:validate, network-router:validate, provider-egress:validate, provider:surfshark:identity-contract:validate, provider:surfshark:validate, consumer:browserless:provider-carrier:validate, consumer:finance:validate, consumer:supply-chain:validate, consumer:x-reality:validate]
+    deps: [core:validate, network-router:validate, provider-egress:validate, provider:surfshark:identity-contract:validate, provider:surfshark:validate, consumer:browserless:provider-carrier:validate, consumer:windows-real-chrome:validate, consumer:finance:validate, consumer:supply-chain:validate, consumer:x-reality:validate]
 
   core:install:
     desc: Materialize the exact validated R0 source generation into the live host under one systemd composition root
@@ -556,6 +556,65 @@ tasks:
     cmds:
       - ./consumers/browserless/acceptance/serial-browserless.sh
 
+
+  consumer:windows-real-chrome:validate:
+    desc: Validate dedicated Windows Real Chrome public-web egress over semantic provider-egress
+    deps: [consumer:browserless:provider-carrier:validate]
+    cmds:
+      - jq -e '.schemaVersion==1 and .kind=="ordivon.network-v2.windows-real-chrome-egress" and .listen=={"host":"127.0.0.1","port":19781,"protocol":"mixed"} and .networkAuthority.name=="provider-egress" and .networkAuthority.providerProfileId=="surfshark:th-bkk" and .directFallback==false and .browserAuthority.separate==true and .browserAuthority.grantsBrowserControl==false and .browserAuthority.grantsProviderEffect==false' consumers/windows-real-chrome/config/authority.json >/dev/null
+      - /usr/bin/sing-box check -c consumers/windows-real-chrome/config/sing-box.json
+      - jq -e 'any(.route.rules[]; .ip_is_private==true and .action=="reject") and any(.route.rules[]; .ip_version==6 and .action=="reject")' consumers/windows-real-chrome/config/sing-box.json >/dev/null
+      - /usr/bin/systemd-analyze verify consumers/windows-real-chrome/systemd/network-v2-windows-real-chrome-proxy.service consumers/windows-real-chrome/systemd/network-v2-windows-real-chrome-relay.service consumers/windows-real-chrome/systemd/network-v2-windows-real-chrome.target
+      - /usr/bin/bash -n consumers/windows-real-chrome/ready.sh
+      - python -m pytest -q tests/test_windows_real_chrome_consumer.py tests/test_network_capability_router.py
+
+  consumer:windows-real-chrome:materialize:
+    desc: Materialize dedicated Windows Real Chrome egress without changing Chrome settings
+    deps: [consumer:windows-real-chrome:validate]
+    cmds:
+      - install -d -m 0755 /etc/network-v2/windows-real-chrome /usr/local/libexec/network-v2
+      - install -m 0644 consumers/windows-real-chrome/config/authority.json /etc/network-v2/windows-real-chrome/authority.json
+      - install -m 0644 consumers/windows-real-chrome/config/sing-box.json /etc/network-v2/windows-real-chrome/sing-box.json
+      - install -m 0644 consumers/windows-real-chrome/systemd/network-v2-windows-real-chrome-proxy.service /etc/systemd/system/network-v2-windows-real-chrome-proxy.service
+      - install -m 0644 consumers/windows-real-chrome/systemd/network-v2-windows-real-chrome-relay.service /etc/systemd/system/network-v2-windows-real-chrome-relay.service
+      - install -m 0644 consumers/windows-real-chrome/systemd/network-v2-windows-real-chrome.target /etc/systemd/system/network-v2-windows-real-chrome.target
+      - install -m 0755 consumers/windows-real-chrome/ready.sh /usr/local/libexec/network-v2/windows-real-chrome-ready
+      - systemctl daemon-reload
+      - systemctl enable network-v2-windows-real-chrome.target
+
+  consumer:windows-real-chrome:start:
+    desc: Start only the Windows Real Chrome network consumer
+    deps: [consumer:windows-real-chrome:materialize]
+    cmds:
+      - systemctl start network-v2-windows-real-chrome.target
+
+  consumer:windows-real-chrome:ready:
+    desc: Prove public-web provider egress without mutating Chrome
+    cmds:
+      - /usr/local/libexec/network-v2/windows-real-chrome-ready
+
+  consumer:windows-real-chrome:converge:
+    desc: Materialize, restart and prove the dedicated Windows Real Chrome network consumer
+    cmds:
+      - task: consumer:windows-real-chrome:materialize
+      - systemctl restart network-v2-windows-real-chrome.target
+      - task: consumer:windows-real-chrome:ready
+
+  consumer:windows-real-chrome:verify:
+    desc: Verify exact deployed Windows Real Chrome egress bytes and live readiness
+    cmds:
+      - cmp -s consumers/windows-real-chrome/config/authority.json /etc/network-v2/windows-real-chrome/authority.json
+      - cmp -s consumers/windows-real-chrome/config/sing-box.json /etc/network-v2/windows-real-chrome/sing-box.json
+      - cmp -s consumers/windows-real-chrome/systemd/network-v2-windows-real-chrome-proxy.service /etc/systemd/system/network-v2-windows-real-chrome-proxy.service
+      - cmp -s consumers/windows-real-chrome/systemd/network-v2-windows-real-chrome-relay.service /etc/systemd/system/network-v2-windows-real-chrome-relay.service
+      - cmp -s consumers/windows-real-chrome/systemd/network-v2-windows-real-chrome.target /etc/systemd/system/network-v2-windows-real-chrome.target
+      - systemctl is-enabled --quiet network-v2-windows-real-chrome.target
+      - /usr/local/libexec/network-v2/windows-real-chrome-ready
+
+  consumer:windows-real-chrome:stop:
+    desc: Stop only the Windows Real Chrome network consumer; keep provider-egress alive
+    cmds:
+      - systemctl stop network-v2-windows-real-chrome.target
 
   consumer:chat-ingress:validate:
     desc: Validate the scoped ChatIngress proxy over the existing Browserless Network v2 authority

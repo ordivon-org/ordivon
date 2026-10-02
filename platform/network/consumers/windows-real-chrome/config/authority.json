@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.network-v2.windows-real-chrome-egress",
+  "listen": {
+    "host": "127.0.0.1",
+    "port": 19781,
+    "protocol": "mixed"
+  },
+  "networkAuthority": {
+    "kind": "network-v2",
+    "name": "provider-egress",
+    "namespace": "nv2-browserless-prod",
+    "serviceUnit": "network-v2-browserless.target",
+    "providerProfileId": "surfshark:th-bkk"
+  },
+  "destinationPolicy": {
+    "scope": "public-web",
+    "rejectPrivateAddresses": true,
+    "rejectIpv6": true
+  },
+  "directFallback": false,
+  "browserAuthority": {
+    "separate": true,
+    "grantsBrowserControl": false,
+    "grantsProviderEffect": false
+  }
+}

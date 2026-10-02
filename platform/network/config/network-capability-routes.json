@@ -67,6 +67,29 @@
           "generic.netnsTopology": "PASS"
         }
       }
+    },
+    {
+      "routeId": "windows-real-chrome-projected-v1",
+      "priority": 15,
+      "providerProfileId": "surfshark:th-bkk",
+      "provides": [
+        "windows",
+        "cross-os",
+        "browser-egress",
+        "provider-egress",
+        "mixed-proxy",
+        "http-proxy",
+        "https",
+        "tcp",
+        "ipv4",
+        "fail-closed"
+      ],
+      "readiness": {
+        "kind": "command-json",
+        "command": "/usr/local/libexec/network-v2/windows-real-chrome-ready",
+        "expectedKind": "ordivon.network-v2.windows-real-chrome-readiness",
+        "expectedStanding": "READY"
+      }
     }
   ],
   "nonClaims": [
