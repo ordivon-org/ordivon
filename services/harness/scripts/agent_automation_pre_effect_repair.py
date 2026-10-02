@@ -145,7 +145,7 @@ def repair(
     except KeyError as error:
         raise ValueError("agent id is absent from campaign roster") from error
     row = read_current_row(ledger, request.request_id)
-    evidence = load_and_validate_evidence(
+    load_and_validate_evidence(
         evidence_path,
         expected_digest=evidence_digest,
         request=request,

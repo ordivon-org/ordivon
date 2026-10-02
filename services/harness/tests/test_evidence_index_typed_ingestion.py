@@ -259,6 +259,8 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
         self.assertEqual(
             invalidating,
             [
+                "src/ordivon_harness/ordivon/gateway_provider.py",
+                "src/ordivon_harness/ordivon/gateway_turn.py",
                 "src/ordivon_harness/ordivon/runtime_lowering.py",
                 "src/ordivon_harness/ordivon/sqlite_run_store.py",
                 "src/ordivon_harness/ordivon/sqlite_runtime_bridge.py",
