@@ -9,6 +9,12 @@ tasks:
       - promtool check config config/prometheus/prometheus.yml
       - /usr/bin/systemd-analyze verify systemd/network-v2-r0.target systemd/network-v2-dnsproxy.service systemd/network-v2-singbox.service systemd/network-v2-blackbox.service systemd/network-v2-prometheus.service
 
+  provider-egress:validate:
+    desc: Validate semantic shared provider-egress ownership without changing the physical carrier
+    cmds:
+      - jq -e '.schemaVersion==1 and .kind=="ordivon.network-v2.provider-egress-definition" and .name=="provider-egress" and .semanticAuthority=="network-v2-provider-egress" and .physicalRealization.namespace=="nv2-browserless-prod" and .physicalRealization.serviceUnit=="network-v2-browserless-provider-carrier.service" and .migration.legacyPhysicalNamesAreCompatibilityIdentifiers==true' config/provider-egress.json >/dev/null
+      - python -m pytest -q tests/test_provider_egress_definition.py
+
   provider:surfshark:validate:
     desc: Validate only the Surfshark provider profile layer
     cmds:
@@ -51,7 +57,7 @@ tasks:
 
   all:validate:
     desc: Validate core plus optional provider and consumer profiles without changing live state
-    deps: [core:validate, provider:surfshark:validate, consumer:browserless:provider-carrier:validate, consumer:finance:validate, consumer:supply-chain:validate, consumer:x-reality:validate]
+    deps: [core:validate, provider-egress:validate, provider:surfshark:validate, consumer:browserless:provider-carrier:validate, consumer:finance:validate, consumer:supply-chain:validate, consumer:x-reality:validate]
 
   core:install:
     desc: Materialize the exact validated R0 source generation into the live host under one systemd composition root

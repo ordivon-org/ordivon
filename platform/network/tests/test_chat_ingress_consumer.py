@@ -7,14 +7,14 @@ ROOT = Path(__file__).resolve().parents[1]
 CONSUMER = ROOT / 'consumers' / 'chat-ingress'
 
 
-def test_chat_ingress_consumer_is_scoped_to_existing_browserless_network_authority():
+def test_chat_ingress_consumer_is_scoped_to_provider_egress_authority():
     cfg = json.loads((CONSUMER / 'config' / 'egress.json').read_text())
     assert cfg['schemaVersion'] == 1
     assert cfg['kind'] == 'ordivon.network-v2.chat-ingress-egress'
     assert cfg['listen'] == {'host': '127.0.0.1', 'port': 19081, 'protocol': 'mixed'}
     assert cfg['networkAuthority'] == {
         'kind': 'network-v2',
-        'name': 'browserless-prod',
+        'name': 'provider-egress',
         'namespace': 'nv2-browserless-prod',
         'serviceUnit': 'network-v2-browserless.target',
     }

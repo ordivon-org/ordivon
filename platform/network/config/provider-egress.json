@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.network-v2.provider-egress-definition",
+  "name": "provider-egress",
+  "role": "shared-physical-provider-carrier",
+  "semanticAuthority": "network-v2-provider-egress",
+  "physicalRealization": {
+    "compatibilityGeneration": "browserless-r1",
+    "namespace": "nv2-browserless-prod",
+    "serviceUnit": "network-v2-browserless-provider-carrier.service",
+    "targetUnit": "network-v2-browserless.target",
+    "providerReadyCommand": "/usr/local/libexec/network-v2/browserless-provider-carrier-ready"
+  },
+  "invariants": [
+    "consumer-policy-remains-consumer-owned",
+    "provider-credentials-remain-provider-owned",
+    "one-client-identity-one-concurrent-physical-session",
+    "no-direct-fallback"
+  ],
+  "migration": {
+    "semanticRenameComplete": false,
+    "physicalRenameRequiredForSemanticCorrectness": false,
+    "legacyPhysicalNamesAreCompatibilityIdentifiers": true
+  }
+}

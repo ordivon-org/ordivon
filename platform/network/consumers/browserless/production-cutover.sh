@@ -232,7 +232,7 @@ o=re.sub(r'After=ordivon-exterior-anchor-chatgpt-browserless-r1\.service', 'Afte
 o=re.sub(r'ip netns exec [^ ]+ ', 'ip netns exec nv2-browserless-prod ', o)
 open(operator,'w',encoding='utf-8').write(o)
 c=json.load(open(config,encoding='utf-8'))
-c['browserNetworkAuthority']={'kind':'network-v2','name':'browserless-prod','generationDigest':generation,'serviceUnit':'network-v2-browserless.target'}
+c['browserNetworkAuthority']={'kind':'network-v2','name':'provider-egress','generationDigest':generation,'serviceUnit':'network-v2-browserless.target'}
 for ep in c['browserSubstrate']['endpoints']:
     ep['networkNamespace']='nv2-browserless-prod'
 with open(config,'w',encoding='utf-8') as f:

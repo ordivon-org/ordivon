@@ -31,7 +31,7 @@
   "groupTag": "provider-carrier",
   "networkAuthority": {
     "kind": "network-v2",
-    "name": "browserless-prod",
+    "name": "provider-egress",
     "namespace": "nv2-browserless-prod",
     "carrierService": "network-v2-browserless-provider-carrier.service",
     "providerSite": "th-bkk"
