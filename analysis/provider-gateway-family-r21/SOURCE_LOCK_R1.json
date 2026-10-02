@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.research.external-source-lock",
+  "observedDate": "2026-10-02",
+  "ordivon": {
+    "localizationBaseRevision": "284d063ba9ccc9cef1a8fba09dd550fc3b18d892",
+    "initialCensusRevision": "f50221c0db6ab3957026d0bfd47da4c2aee604d8",
+    "recursiveLegoSkillSha256": "1985dc2765bda250b1f2f76e1b85425141e6aadbb7e39ef5bd5b92d063f08c09"
+  },
+  "current": {
+    "cliproxyapi": {
+      "repo": "https://github.com/router-for-me/CLIProxyAPI.git",
+      "ref": "refs/heads/main",
+      "revision": "6fecc6e5567912661654a4eaf9b8f5436facd1c2",
+      "commitObserved": "2026-10-02T11:00:47+08:00",
+      "trackedFilesObserved": 1727,
+      "runtimeWorkspace": "ws-cliproxyapi-r21-dogfood-20261002-r2"
+    },
+    "omniroute": {
+      "repo": "https://github.com/diegosouzapw/OmniRoute.git",
+      "defaultHeadRevision": "52823517533cfceec7abef2ff3e6285a19fe4121",
+      "mainRefRevision": "fc5e2bccd4f70fecf5aab94dfb8136c74ab5a21b"
+    }
+  },
+  "supersededObservations": [
+    {
+      "cliproxyapiRevision": "fd48ea6840f5572deb53aeb5657740937ac9daaa",
+      "omnirouteDefaultHeadRevision": "228d72db08c2251fa266b09c25d9cdd786c7cddd",
+      "reason": "external repositories moved before localization; retained only as historical provenance"
+    },
+    {
+      "ordivonRevision": "f50221c0db6ab3957026d0bfd47da4c2aee604d8",
+      "reason": "initial census base; research commit was rebased onto 284d063ba9ccc9cef1a8fba09dd550fc3b18d892 before finalization"
+    }
+  ],
+  "rules": [
+    "remote source identities are location evidence, not Ordivon truth ownership",
+    "refresh before implementation or release qualification",
+    "do not vendor whole external repositories into Ordivon merely to preserve source identity"
+  ]
+}

@@ -1,0 +1,61 @@
+# Provider Gateway Family — Recursive LEGO R2.1
+
+Status: research-qualified / isolated dogfood in progress  
+Date: 2026-10-02  
+Method: Recursive LEGO Calculus R2.1  
+Method digest: `sha256:1985dc2765bda250b1f2f76e1b85425141e6aadbb7e39ef5bd5b92d063f08c09`
+
+## Purpose
+
+This package records the local Ordivon study of mature multi-provider gateway mechanisms, centered on CLIProxyAPI and OmniRoute and intended to be triangulated against independent ordinary API gateways such as LiteLLM/Bifrost.
+
+The goal is not to add another Ordivon control plane. The goal is to determine which external gateway mechanisms can replace custom provider protocol/routing code below Harness while preserving natural-owner boundaries.
+
+## Current owner boundary
+
+- Harness owns Run / Turn / Tool / WorkingSet / Provider-call continuity and semantic candidate completion.
+- Runtime owns physical execution and configured CredentialAuthority.
+- Network v2 owns VPN / egress / destination policy and direct-fallback semantics.
+- External gateway may own bounded protocol translation, provider execution, catalog projection, and bounded account selection only when qualified.
+- Host remains semantic continuity, not provider execution truth.
+
+## Current external source lock
+
+See `SOURCE_LOCK_R1.json`.
+
+Current observations:
+
+- CLIProxyAPI main: `6fecc6e5567912661654a4eaf9b8f5436facd1c2`.
+- OmniRoute default remote HEAD: `52823517533cfceec7abef2ff3e6285a19fe4121`.
+- OmniRoute `refs/heads/main`: `fc5e2bccd4f70fecf5aab94dfb8136c74ab5a21b`.
+
+Earlier observed source identities are retained as superseded provenance, not current truth.
+
+## Current verdict
+
+- CLIProxyAPI auth/selection core: upstream focused test PASS on exact current source.
+- CLIProxyAPI public translator registry: PASS.
+- CLIProxyAPI internal translator family: PASS.
+- CLIProxyAPI as a lower gateway data-plane candidate: qualified for isolated dogfood, not production-qualified.
+- CLIProxyAPI as Ordivon credential authority: rejected.
+- CLIProxyAPI OAuth/subscription mode: separate unresolved rotating-credential owner frontier.
+- OmniRoute: high-information mechanism and adversarial corpus; whole-product adoption rejected for the current Ordivon boundary.
+- "OpenAI-compatible == semantic equivalence": falsified. Qualification is capability-local.
+
+## Key files
+
+- `MECHANISM_STUDY_R1.md` — R2.1 decomposition, owner boundaries, findings and broken frontier.
+- `SOURCE_LOCK_R1.json` — exact external source bindings and superseded identities.
+- `GATEWAY_QUALIFICATION_CASES_R1.json` — frozen capability-local verifier cases.
+- `GATEWAY_BINDING_RECEIPT_R1.schema.json` — non-authoritative Harness-side binding/call-receipt candidate.
+- `EVIDENCE_R1.json` — Runtime jobs and current qualification receipts.
+- `QUALIFICATION_MAP_R1.json` — upstream test coverage mapped to frozen GQ cases without overstating the independent verifier bridge.
+
+## Next execution frontier
+
+1. Local mock differential with no real credential: Chat, Responses, Tools, streaming, reasoning, continuation.
+2. Define one minimal Harness gateway adapter only after the frozen differential shows the exact required surface.
+3. Create a Network-v2-owned model-provider VPN consumer; do not permanently reuse another consumer's semantic route.
+4. API-key live canary through Runtime-owned credential delivery + Network-owned egress.
+5. Triangulate the same frozen cases through an independent ordinary API gateway.
+6. Treat rotating OAuth/subscription credentials as a separate owner/state-machine problem.

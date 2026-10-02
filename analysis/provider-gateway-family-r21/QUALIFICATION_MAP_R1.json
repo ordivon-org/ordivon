@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.research.gateway-qualification-map",
+  "source": "router-for-me/CLIProxyAPI@6fecc6e5567912661654a4eaf9b8f5436facd1c2",
+  "statusSemantics": {
+    "UPSTREAM_PASS": "Relevant upstream package/regression tests passed on the exact source carrier.",
+    "PARTIAL_EXTERNAL_EVIDENCE": "Some relevant evidence exists but does not fully encode the Ordivon obligation.",
+    "ORDIVON_DIFFERENTIAL_PENDING": "No independent frozen Ordivon differential verdict yet."
+  },
+  "cases": [
+    {"id":"GQ01","upstream":"UPSTREAM_PASS","independent":"ORDIVON_DIFFERENTIAL_PENDING","evidence":["internal/translator/...","sdk/api/handlers/..."]},
+    {"id":"GQ02","upstream":"UPSTREAM_PASS","independent":"ORDIVON_DIFFERENTIAL_PENDING","evidence":["internal/translator/...","sdk/api/handlers/..."]},
+    {"id":"GQ03","upstream":"UPSTREAM_PASS","independent":"ORDIVON_DIFFERENTIAL_PENDING","evidence":["internal/translator/common","sdk/api/handlers/openai","internal/runtime/executor"]},
+    {"id":"GQ04","upstream":"UPSTREAM_PASS","independent":"ORDIVON_DIFFERENTIAL_PENDING","evidence":["internal/translator/...","sdk/api/handlers/openai"]},
+    {"id":"GQ05","upstream":"UPSTREAM_PASS","independent":"ORDIVON_DIFFERENTIAL_PENDING","evidence":["internal/translator/...","sdk/api/handlers/openai","internal/runtime/executor"]},
+    {"id":"GQ06","upstream":"UPSTREAM_PASS","independent":"ORDIVON_DIFFERENTIAL_PENDING","evidence":["internal/translator/...","internal/runtime/executor"]},
+    {"id":"GQ07","upstream":"UPSTREAM_PASS","independent":"ORDIVON_DIFFERENTIAL_PENDING","evidence":["internal/translator/*/openai/responses","sdk/api/handlers/openai"]},
+    {"id":"GQ08","upstream":"PARTIAL_EXTERNAL_EVIDENCE","independent":"ORDIVON_DIFFERENTIAL_PENDING","evidence":["translator and handler families"]},
+    {"id":"GQ09","upstream":"PARTIAL_EXTERNAL_EVIDENCE","independent":"ORDIVON_DIFFERENTIAL_PENDING","evidence":["file_data translator tests","handler families"]},
+    {"id":"GQ10","upstream":"UPSTREAM_PASS","independent":"ORDIVON_DIFFERENTIAL_PENDING","evidence":["sdk/cliproxy/auth","internal/runtime/executor"]},
+    {"id":"GQ11","upstream":"UPSTREAM_PASS","independent":"ORDIVON_DIFFERENTIAL_PENDING","evidence":["sdk/cliproxy/auth","sdk/api/handlers"]},
+    {"id":"GQ12","upstream":"UPSTREAM_PASS","independent":"ORDIVON_DIFFERENTIAL_PENDING","evidence":["sdk/cliproxy/auth retry/deadline tests"]},
+    {"id":"GQ13","upstream":"PARTIAL_EXTERNAL_EVIDENCE","independent":"ORDIVON_DIFFERENTIAL_PENDING","evidence":["request-scoped error/retry tests"],"note":"Ordivon external-effect reconciliation is stronger than ordinary provider retry semantics."},
+    {"id":"GQ14","upstream":"UPSTREAM_PASS","independent":"ORDIVON_DIFFERENTIAL_PENDING","evidence":["sdk/cliproxy/auth session-affinity tests"]},
+    {"id":"GQ15","upstream":"UPSTREAM_PASS","independent":"ORDIVON_DIFFERENTIAL_PENDING","evidence":["sdk/cliproxy/auth failover/affinity tests"]},
+    {"id":"GQ16","upstream":"UPSTREAM_PASS","independent":"ORDIVON_DIFFERENTIAL_PENDING","evidence":["quota/cooldown/classification tests"]},
+    {"id":"GQ17","upstream":"PARTIAL_EXTERNAL_EVIDENCE","independent":"ORDIVON_DIFFERENTIAL_PENDING","evidence":["selected-auth metadata","model rewriter tests"],"note":"Exact call-receipt projection into Harness is not yet implemented."},
+    {"id":"GQ18","upstream":"UPSTREAM_PASS","independent":"ORDIVON_DIFFERENTIAL_PENDING","evidence":["API-key model capability/catalog tests","model handlers"]},
+    {"id":"GQ19","upstream":"PARTIAL_EXTERNAL_EVIDENCE","independent":"ORDIVON_DIFFERENTIAL_PENDING","evidence":["auth-store separation and local configuration mechanisms"],"note":"Ordivon Runtime CredentialAuthority bridge remains unimplemented."},
+    {"id":"GQ20","upstream":"PARTIAL_EXTERNAL_EVIDENCE","independent":"ORDIVON_DIFFERENTIAL_PENDING","evidence":["local negative/positive Network-v2 differential"],"note":"Dedicated model-provider egress consumer is still pending."}
+  ]
+}

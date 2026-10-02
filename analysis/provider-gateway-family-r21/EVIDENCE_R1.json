@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.research.provider-gateway-evidence",
+  "date": "2026-10-02",
+  "ordivonLocalizationBaseRevision": "284d063ba9ccc9cef1a8fba09dd550fc3b18d892",
+  "ordivonInitialCensusRevision": "f50221c0db6ab3957026d0bfd47da4c2aee604d8",
+  "recursiveLegoSkillSha256": "1985dc2765bda250b1f2f76e1b85425141e6aadbb7e39ef5bd5b92d063f08c09",
+  "externalSourceRefresh": {
+    "jobId": "job-01a0fa97-0c40-77f3-b9d6-d288b407c516",
+    "cliproxyapiRevision": "6fecc6e5567912661654a4eaf9b8f5436facd1c2",
+    "omnirouteDefaultHeadRevision": "52823517533cfceec7abef2ff3e6285a19fe4121",
+    "omnirouteMainRevision": "fc5e2bccd4f70fecf5aab94dfb8136c74ab5a21b"
+  },
+  "cliproxyapi": {
+    "workspaceId": "ws-cliproxyapi-r21-dogfood-20261002-r2",
+    "sourceRevision": "6fecc6e5567912661654a4eaf9b8f5436facd1c2",
+    "negativeNetworkControl": {
+      "jobId": "job-01a0fa97-f479-7c61-bf8d-925fe23c1e48",
+      "disposition": "cancelled_after_dependency_download_stall_without_explicit_vpn_binding",
+      "semanticClaim": "not an upstream test failure"
+    },
+    "authCore": {
+      "jobId": "job-01a0fa9b-3e94-77c0-a6bb-2eec5e9bc13a",
+      "command": "go test ./sdk/cliproxy/auth",
+      "networkBinding": "HTTPS_PROXY=http://127.0.0.1:19081",
+      "verdict": "PASS"
+    },
+    "sdkTranslator": {
+      "jobId": "job-01a0fa9b-f250-7b62-8da6-7f97d0451946",
+      "command": "go test ./sdk/translator/...",
+      "networkBinding": "HTTPS_PROXY=http://127.0.0.1:19081",
+      "verdict": "PASS"
+    },
+    "internalTranslatorFamily": {
+      "jobId": "job-01a0fa9c-006d-7af0-836f-9bafaa30484c",
+      "command": "go test ./internal/translator/...",
+      "networkBinding": "HTTPS_PROXY=http://127.0.0.1:19081",
+      "verdict": "PASS"
+    },
+    "apiHandlerFamily": {
+      "jobId": "job-01a0fa9f-6803-7711-a0d2-5b3dd930a2b7",
+      "command": "go test ./sdk/api/handlers/...",
+      "networkBinding": "HTTPS_PROXY=http://127.0.0.1:19081",
+      "verdict": "PASS"
+    },
+    "runtimeExecutorFamily": {
+      "jobId": "job-01a0fa9f-d2ce-7973-8ca6-03c1e60e17c1",
+      "command": "go test ./internal/runtime/executor",
+      "networkBinding": "HTTPS_PROXY=http://127.0.0.1:19081",
+      "verdict": "PASS"
+    },
+    "testHarnessCensus": {
+      "jobId": "job-01a0fa9f-08ae-7fd3-aace-62075e9399b3",
+      "finding": "upstream contains httptest servers, mock ProviderExecutor fixtures, protocol translators, Responses/WebSocket/tool/reasoning tests and SDK examples suitable for frozen differential reuse"
+    }
+  },
+  "verdicts": {
+    "cliproxyUpstreamCoreQualification": "PASS_ON_EXACT_CURRENT_SOURCE",
+    "cliproxyDataPlane": "QUALIFIED_FOR_ISOLATED_DOGFOOD",
+    "cliproxyCredentialAuthority": "NOT_ADMISSIBLE_AS_ORDIVON_OWNER",
+    "cliproxyOAuthSubscriptionLane": "SEPARATE_FRONTIER_UNKNOWN",
+    "omnirouteMechanismCorpus": "HIGH_INFORMATION_REFERENCE",
+    "omnirouteWholeProduct": "REJECT_FOR_CURRENT_ORDIVON_BOUNDARY",
+    "openAICompatibleSemanticEquivalence": "FALSIFIED"
+  },
+  "bridgeLimit": "Upstream test PASS demonstrates the upstream implementation satisfies its own encoded tests. It does not prove Ordivon frozen gateway obligations until an independent differential maps exact GQ cases to observations.",
+  "notClaimed": [
+    "production qualification",
+    "whole-gateway semantic equivalence",
+    "all GQ01-GQ20 obligations PASS",
+    "OAuth/subscription credential lifecycle qualification",
+    "live API-key canary through CLIProxyAPI",
+    "independent gateway differential"
+  ]
+}

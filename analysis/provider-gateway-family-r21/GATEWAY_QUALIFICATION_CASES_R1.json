@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.research.gateway-qualification-cases",
+  "method": "capability-local equivalence and invariant preservation",
+  "nonClaim": "A PASS for one case does not imply whole-gateway semantic equivalence.",
+  "cases": [
+    {"id":"GQ01","name":"basic-chat","obligation":"Non-streaming user/assistant message semantics survive the bridge without hidden prompt mutation."},
+    {"id":"GQ02","name":"streaming-text","obligation":"Text chunk order is preserved and terminal completion is explicit and complete."},
+    {"id":"GQ03","name":"tool-call","obligation":"Tool name, call identity and arguments are preserved exactly enough for Harness tool dispatch."},
+    {"id":"GQ04","name":"streaming-tool-call","obligation":"Fragmented tool-call deltas reconstruct one stable call identity/name/arguments."},
+    {"id":"GQ05","name":"tool-result-continuation","obligation":"A tool result can be returned and the next model turn continues the same logical interaction without identity loss."},
+    {"id":"GQ06","name":"reasoning-continuity","obligation":"Required reasoning/thinking carriers or provider signatures survive any continuation that requires replay."},
+    {"id":"GQ07","name":"responses-continuation","obligation":"Responses continuation identity such as previous response/item references is preserved where protocol semantics require it."},
+    {"id":"GQ08","name":"structured-output","obligation":"Structured-output / JSON-Schema constraints are not silently weakened or rewritten."},
+    {"id":"GQ09","name":"multimodal","obligation":"Image/attachment/tool-result carriers preserve type, order and references."},
+    {"id":"GQ10","name":"cancellation","obligation":"Downstream cancellation reaches the active upstream attempt and is classified distinctly from provider failure."},
+    {"id":"GQ11","name":"timeout-classification","obligation":"Timeout origin and attempt standing are observable; timeout is not silently recast as a semantic model failure."},
+    {"id":"GQ12","name":"retry-before-commit","obligation":"Retry before any externally committed response/effect is bounded and recorded."},
+    {"id":"GQ13","name":"ambiguous-effect-retry","obligation":"No automatic redispatch occurs after ambiguous or possibly committed external effect without reconciliation."},
+    {"id":"GQ14","name":"healthy-affinity","obligation":"A session/turn affinity remains stable while the selected account/route is eligible."},
+    {"id":"GQ15","name":"same-provider-failover","obligation":"If a bound account becomes ineligible, compatible same-provider/model candidates can be considered without silently changing provider/model identity."},
+    {"id":"GQ16","name":"quota-classification","obligation":"Transient rate limit and exhausted quota/capacity are classified separately enough for bounded recovery."},
+    {"id":"GQ17","name":"effective-upstream-identity","obligation":"Effective provider/model and non-secret account/connection identity are observable for the committed attempt."},
+    {"id":"GQ18","name":"catalog-capability","obligation":"Model capabilities come from structured provider/gateway evidence; do not infer them from model names."},
+    {"id":"GQ19","name":"credential-nonleakage","obligation":"Secrets do not enter Harness messages, logs, receipts, Host Work or model-visible context."},
+    {"id":"GQ20","name":"network-authority","obligation":"The expected Network-v2 egress is bound/observable and required VPN routes cannot silently direct-fallback."}
+  ]
+}

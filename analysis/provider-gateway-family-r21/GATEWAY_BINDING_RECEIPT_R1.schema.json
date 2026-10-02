@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ordivon://research/provider-gateway-family-r21/gateway-binding-receipt-r1",
+  "title": "Gateway Provider Binding and Call Receipt R1",
+  "type": "object",
+  "required": ["schemaVersion", "binding", "receipt"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "binding": {
+      "type": "object",
+      "required": [
+        "gatewayImplementation",
+        "gatewaySourceIdentity",
+        "endpoint",
+        "ingressProtocol",
+        "capabilityProfileDigest",
+        "requestedProvider",
+        "requestedModel",
+        "credentialAuthorityRef",
+        "networkAuthorityRef",
+        "directFallback"
+      ],
+      "properties": {
+        "gatewayImplementation": {"type":"string","minLength":1},
+        "gatewaySourceIdentity": {"type":"string","minLength":1},
+        "endpoint": {"type":"string","minLength":1},
+        "ingressProtocol": {"enum":["openai-chat","openai-responses","claude-messages","gemini-native","other"]},
+        "capabilityProfileDigest": {"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},
+        "requestedProvider": {"type":"string","minLength":1},
+        "requestedModel": {"type":"string","minLength":1},
+        "routePolicyRef": {"type":["string","null"]},
+        "credentialAuthorityRef": {"type":"string","minLength":1},
+        "credentialNameRef": {"type":["string","null"]},
+        "networkAuthorityRef": {"type":"string","minLength":1},
+        "networkEgressProfileRef": {"type":["string","null"]},
+        "directFallback": {"type":"boolean"},
+        "allowedEffectiveProviders": {
+          "type":"array",
+          "items":{"type":"string","minLength":1},
+          "uniqueItems":true
+        }
+      },
+      "additionalProperties": false
+    },
+    "receipt": {
+      "type": "object",
+      "required": [
+        "bindingDigest",
+        "providerCallRef",
+        "gatewayRequestDigest",
+        "attempts",
+        "effectiveProvider",
+        "effectiveModel",
+        "streamTerminalStanding"
+      ],
+      "properties": {
+        "bindingDigest": {"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},
+        "providerCallRef": {"type":"string","minLength":1},
+        "gatewayRequestDigest": {"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},
+        "translatorPath": {
+          "type":"array",
+          "items":{"type":"string","minLength":1}
+        },
+        "attempts": {
+          "type":"array",
+          "items": {
+            "type":"object",
+            "required":["sequence","provider","model","standing"],
+            "properties":{
+              "sequence":{"type":"integer","minimum":0},
+              "provider":{"type":"string","minLength":1},
+              "model":{"type":"string","minLength":1},
+              "connectionRef":{"type":["string","null"]},
+              "standing":{"enum":["not_dispatched","dispatched_unknown","failed_before_commit","committed","cancelled"]},
+              "retryOrFallbackReason":{"type":["string","null"]},
+              "providerRequestId":{"type":["string","null"]}
+            },
+            "additionalProperties":false
+          }
+        },
+        "effectiveProvider": {"type":["string","null"]},
+        "effectiveModel": {"type":["string","null"]},
+        "effectiveConnectionRef": {"type":["string","null"]},
+        "streamTerminalStanding": {"enum":["complete","incomplete","not_streaming","unknown"]},
+        "responseDigest": {"type":["string","null"],"pattern":"^(sha256:[0-9a-f]{64})?$"},
+        "evidenceRefs": {
+          "type":"array",
+          "items":{"type":"string","minLength":1}
+        },
+        "unknownFields": {
+          "type":"array",
+          "items":{"type":"string","minLength":1},
+          "uniqueItems":true
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
