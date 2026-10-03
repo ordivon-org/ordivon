@@ -133,3 +133,19 @@ source_glob = "domains/capital/pyproject.toml"
 allowed_fragment = "../../packages/composition"
 kind = "PUBLIC_PACKAGE_DEPENDENCY"
 contract_ref = "packages/composition/README.md"
+
+[[seams]]
+from_owner = "workstation"
+to_owner = "runtime"
+source_glob = "platform/workstation/ansible/runtime-lifecycle-service.yml"
+allowed_fragment = "services/runtime/packaging/systemd/ordivon-runtime-lifecycle.service"
+kind = "PUBLIC_SOURCE_CONTRACT"
+contract_ref = "platform/workstation/README.md"
+
+[[seams]]
+from_owner = "workstation"
+to_owner = "runtime"
+source_glob = "platform/workstation/tests/test_runtime_lifecycle_ansible.py"
+allowed_fragment = "services/runtime/packaging/systemd/ordivon-runtime-lifecycle.service"
+kind = "TEST_ONLY_OWNER_LOCATOR"
+contract_ref = "platform/workstation/README.md"

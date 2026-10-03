@@ -16,15 +16,24 @@ SPEC.loader.exec_module(MODULE)
 
 
 class ConvergencePlanTests(unittest.TestCase):
-    def test_runtime_change_stays_in_isolated_owner_component(self) -> None:
+    def test_runtime_change_expands_to_declared_workstation_component(self) -> None:
         plan = MODULE.build_plan(
             changed_files=["services/runtime/crates/ordivon-runtime-core/src/lib.rs"]
         )
         self.assertEqual(plan["directOwners"], ["runtime"])
-        self.assertEqual(plan["verificationOwners"], ["runtime"])
-        self.assertEqual(plan["verifyTasks"], ["runtime:verify"])
-        self.assertEqual(plan["queueVerifyTasks"], ["runtime:verify"])
+        self.assertEqual(
+            plan["verificationOwners"],
+            ["artifact", "distribution", "game", "media", "runtime", "workstation"],
+        )
+        self.assertIn("runtime:verify", plan["verifyTasks"])
+        self.assertIn("workstation:ci", plan["verifyTasks"])
+        self.assertIn("runtime:verify", plan["queueVerifyTasks"])
+        self.assertIn("workstation:ci", plan["queueVerifyTasks"])
         self.assertEqual(plan["queueClass"], "SCOPED")
+        self.assertEqual(
+            plan["scopeIds"],
+            ["owner-component:artifact+distribution+game+media+runtime+workstation"],
+        )
         self.assertEqual(
             plan["independenceClaim"],
             "NOT_ESTABLISHED_BY_THIS_PROJECTION",
@@ -45,7 +54,7 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertEqual(plan["directOwners"], ["media"])
         self.assertEqual(
             plan["verificationOwners"],
-            ["artifact", "distribution", "game", "media", "workstation"],
+            ["artifact", "distribution", "game", "media", "runtime", "workstation"],
         )
         self.assertEqual(len(plan["scopeIds"]), 1)
         self.assertIn("artifact:verify", plan["verifyTasks"])

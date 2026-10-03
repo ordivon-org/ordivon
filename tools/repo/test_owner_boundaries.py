@@ -44,6 +44,28 @@ class OwnerBoundaryTests(unittest.TestCase):
         )
         self.assertFalse(MODULE._allowed(finding, SEAMS))
 
+
+    def test_workstation_runtime_lifecycle_source_contract_is_allowed(self) -> None:
+        finding = self.finding(
+            "platform/workstation/ansible/runtime-lifecycle-service.yml",
+            '"../../../services/runtime/packaging/systemd/ordivon-runtime-lifecycle.service"',
+        )
+        self.assertTrue(MODULE._allowed(finding, SEAMS))
+
+    def test_workstation_runtime_lifecycle_test_locator_is_allowed(self) -> None:
+        finding = self.finding(
+            "platform/workstation/tests/test_runtime_lifecycle_ansible.py",
+            '"services/runtime/packaging/systemd/ordivon-runtime-lifecycle.service"',
+        )
+        self.assertTrue(MODULE._allowed(finding, SEAMS))
+
+    def test_unrelated_workstation_file_cannot_gain_runtime_source_contract(self) -> None:
+        finding = self.finding(
+            "platform/workstation/scripts/unrelated.py",
+            '"services/runtime/packaging/systemd/ordivon-runtime-lifecycle.service"',
+        )
+        self.assertFalse(MODULE._allowed(finding, SEAMS))
+
     def test_meta_next_authority_records_are_navigation_not_runtime_edges(self) -> None:
         self.assertFalse(MODULE.is_active_path(
             "catalogs/authorities/records/iso/iso-28500-2017.json"
