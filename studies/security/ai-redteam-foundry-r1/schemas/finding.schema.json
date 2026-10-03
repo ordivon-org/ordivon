@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/ai-redteam/finding-r1.json",
+  "title": "Finding R1",
+  "description": "Study-local serialization of foundry.core.Finding; not a production Security standing object.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "finding_id",
+    "target_id",
+    "target_version",
+    "threat_model_id",
+    "attack_id",
+    "attack_family",
+    "attacker_budget",
+    "seed",
+    "trajectory_digest",
+    "final_state_digest",
+    "judge_id",
+    "violated_invariants",
+    "root_cause_hypothesis"
+  ],
+  "properties": {
+    "finding_id": {"type": "string", "minLength": 1},
+    "target_id": {"type": "string", "minLength": 1},
+    "target_version": {"type": "string", "minLength": 1},
+    "threat_model_id": {"type": "string", "minLength": 1},
+    "attack_id": {"type": "string", "minLength": 1},
+    "attack_family": {"type": "string", "minLength": 1},
+    "attacker_budget": {"type": "integer", "minimum": 1},
+    "seed": {"type": "integer"},
+    "trajectory_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "final_state_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "judge_id": {"type": "string", "minLength": 1},
+    "violated_invariants": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "root_cause_hypothesis": {"type": "string", "minLength": 1}
+  }
+}
