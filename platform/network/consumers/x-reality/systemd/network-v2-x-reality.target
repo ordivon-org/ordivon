@@ -1,0 +1,7 @@
+[Unit]
+Description=Network v2 X Reality bounded transport authority
+Requires=network-v2-x-reality-egress.service
+After=network-v2-x-reality-egress.service
+
+[Install]
+WantedBy=multi-user.target
