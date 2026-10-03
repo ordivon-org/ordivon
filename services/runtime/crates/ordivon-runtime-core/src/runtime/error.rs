@@ -159,6 +159,17 @@ impl RuntimeError {
         error
     }
 
+    pub fn pending_runtime_release() -> Self {
+        let mut error = Self::new(
+            RuntimeErrorCode::DeploymentInProgress,
+            "A committed Runtime Release is pending; new admission is temporarily blocked",
+            None,
+            true,
+        );
+        error.retry_after_ms = Some(1_000);
+        error
+    }
+
     pub fn concurrency(message: impl Into<String>, field: &str, capacity: RuntimeCapacity) -> Self {
         Self {
             code: RuntimeErrorCode::ConcurrencyLimit,
