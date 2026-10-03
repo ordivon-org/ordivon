@@ -39,8 +39,10 @@ tasks:
     cmds:
       - /usr/bin/sing-box check -c consumers/browserless/config/provider-carrier.json
       - /usr/bin/systemd-analyze verify consumers/browserless/systemd/network-v2-browserless-netns.service consumers/browserless/systemd/network-v2-browserless-forward.service consumers/browserless/systemd/network-v2-browserless-wireguard.service consumers/browserless/systemd/network-v2-browserless-dns.service consumers/browserless/systemd/network-v2-browserless-provider-carrier.service consumers/browserless/systemd/network-v2-browserless.target
-      - /usr/bin/bash -n consumers/browserless/provider-carrier-ready.sh consumers/browserless/provider-switch.sh consumers/browserless/production-cutover.sh
-      - grep -F 'PROVIDER_SITE=${PROVIDER_SITE:-th-bkk}' consumers/browserless/production-cutover.sh >/dev/null
+      - /usr/bin/bash -n consumers/browserless/provider-carrier-ready.sh consumers/browserless/provider-switch.sh
+      - jq -e '.kind=="ordivon.network-v2.provider-profile" and .profileId=="surfshark:th-bkk" and .site=="th-bkk"' providers/surfshark/config/provider-profile.json >/dev/null
+      - grep -F 'SITE=${1:-th-bkk}' consumers/browserless/provider-switch.sh >/dev/null
+      - grep -F 'test "$site" = th-bkk' consumers/browserless/provider-carrier-ready.sh >/dev/null
 
   consumer:finance:validate:
     desc: Validate nine scoped Finance authorities over the shared provider carrier plus explicit direct macro lanes
@@ -555,17 +557,13 @@ tasks:
       - task: reference:linux:wireguard-differential
 
   consumer:browserless:validate:
-    desc: Validate the serialized Browserless migration gate without changing production
-    deps: [provider:surfshark:validate, consumer:browserless:provider-carrier:validate]
+    desc: Validate the current Browserless Network-v2 steady-state carrier without changing production
+    deps: [provider:surfshark:identity-contract:validate, provider:surfshark:validate, consumer:browserless:provider-carrier:validate]
     cmds:
-      - /usr/bin/bash -n consumers/browserless/acceptance/serial-browserless.sh
-      - test -x consumers/browserless/acceptance/serial-browserless.sh
-
-  consumer:browserless:serial-accept:
-    desc: Serialize the shared provider identity, prove real Browserless over Network v2, then restore legacy production
-    deps: [consumer:browserless:validate, provider:surfshark:verify-local]
-    cmds:
-      - ./consumers/browserless/acceptance/serial-browserless.sh
+      - /usr/bin/bash -n consumers/browserless/provider-carrier-ready.sh consumers/browserless/provider-switch.sh consumers/browserless/acceptance/production-path.sh
+      - test -x consumers/browserless/provider-carrier-ready.sh
+      - test -x consumers/browserless/provider-switch.sh
+      - test -x consumers/browserless/acceptance/production-path.sh
 
 
   consumer:windows-real-chrome:validate:

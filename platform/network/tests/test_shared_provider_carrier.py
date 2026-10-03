@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BROWSERLESS = ROOT / "consumers" / "browserless"
 FINANCE = ROOT / "consumers" / "finance"
 SUPPLY = ROOT / "consumers" / "supply-chain"
+PROVIDER_PROFILE = ROOT / "providers" / "surfshark" / "config" / "provider-profile.json"
 
 
 def test_browserless_owns_one_internal_provider_carrier():
@@ -30,10 +31,14 @@ def test_browserless_owns_one_internal_provider_carrier():
 
 
 def test_production_provider_defaults_to_cross_consumer_qualified_site():
-    cutover = (BROWSERLESS / "production-cutover.sh").read_text()
-    assert "PROVIDER_SITE=${PROVIDER_SITE:-th-bkk}" in cutover
-    assert "consumers/browserless/config/provider-carrier.json" in cutover
-    assert "network-v2-browserless-provider-carrier.service" in cutover
+    profile = json.loads(PROVIDER_PROFILE.read_text())
+    assert profile["profileId"] == "surfshark:th-bkk"
+    assert profile["site"] == "th-bkk"
+    switch = (BROWSERLESS / "provider-switch.sh").read_text()
+    ready = (BROWSERLESS / "provider-carrier-ready.sh").read_text()
+    assert "SITE=${1:-th-bkk}" in switch
+    assert 'MANIFEST=/etc/network-v2/providers/catalog-profiles/MANIFEST.tsv' in switch
+    assert 'test "$site" = th-bkk' in ready
 
 
 def test_finance_provider_lanes_share_carrier_and_macro_lanes_remain_direct():
