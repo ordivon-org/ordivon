@@ -15,6 +15,8 @@ B01 is intentionally small. The public schema avoids fast-moving closed enums su
 
 For `execution.windows`, Gateway accepts either the legacy provider-defined string context or a provider-defined JSON object. A string is forwarded as Runtime `windowsAuthority`; an object is forwarded unchanged as Runtime `windowsContext`. Capability projection prefers Runtime `windowsContexts` when the owner advertises them, so identity/privilege composition remains Runtime-owned rather than duplicated in Gateway.
 
+Windows release dependencies are materialized with uv `--link-mode copy` so each release owns its file ACLs independently of the shared package cache. Carrier activation must preserve the existing Service SID, credential-file, and Cloudflare Access boundaries; this release-isolation rule does not authorize a public cutover.
+
 
 ## Host northbound boundary
 
