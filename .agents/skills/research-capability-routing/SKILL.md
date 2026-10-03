@@ -39,11 +39,11 @@ Specialist/provider routing is defined in:
 references/research-capability-routing-r1.json
 ```
 
-The Gateway release projection is mechanically generated from those sources. Do not hand-edit `services/gateway/src/ordivon_gateway/research_routes.py` as a second policy source.
+Research capability meaning and specialist routing stay at these canonical Research/Skill sources. Gateway does **not** carry a generated `research.*` semantic projection or a Research-specific resolver; generic Gateway `capability.search` / `capability.describe` remain owner-routing surfaces only.
 
 ## Operating procedure
 
-1. If the public Gateway currently exposes `capability.search`, use it for bounded Research capability discovery; otherwise use the canonical index directly rather than guessing from memory.
+1. Use the canonical Research capability index for Research capability discovery. Generic Gateway `capability.search` may be used only for its current owner/execution projection when that is relevant; it is not the Research taxonomy.
 2. Translate the already-scoped next action into one exact `problemClass` from `references/research-capability-routing-r1.json`. Do not pass free-form goals to the deterministic resolver.
 3. Obtain currentness from the natural owner before selecting a provider route:
    - Skill procedure: `skills.resolve` / `skills.read`; preserve dependency and scan/trust state.
@@ -52,7 +52,7 @@ The Gateway release projection is mechanically generated from those sources. Do 
    - Temporal/provider/toolchain: provider-native health/version/binding surface.
    - caller-bound connector: current application/plugin connection state.
 4. Represent those observations as an authority-keyed object and run the deterministic resolver.
-5. If the public Gateway currently exposes `capability.resolve`, it may be used to bind an exact current Skill or canonical invocation recipe for the selected stable `research.*` capability. Resolution remains metadata, not authorization or execution.
+5. Resolve any selected Skill directly through the Skills owner (`skills.resolve` / `skills.read`) and use the canonical routing profile for invocation coordinates; Gateway does not mediate Research semantic resolution.
 6. Execute only through the returned owner-native invocation surface. A route decision never grants authority.
 7. Verify using the returned verification boundary plus the Study/domain acceptance contract.
 8. If the resolver returns HOLD, repair/activate the missing natural owner or change the explicit requirement. Do **not** silently fall back to a generic Agent.
@@ -102,7 +102,7 @@ The route can compose them, but none substitutes for the other.
 mise run research-routing:verify
 ```
 
-This validates both machine-readable source contracts and proves the Gateway Research projection is current with them. `mise run gateway:verify` independently qualifies Gateway behavior.
+This validates the canonical machine-readable Research capability index, routing profile, deterministic routing behavior, and typed HOLD semantics. Gateway has no Research semantic projection to keep current; `mise run gateway:verify` independently qualifies the remaining generic Gateway behavior.
 
 ## Stop condition
 

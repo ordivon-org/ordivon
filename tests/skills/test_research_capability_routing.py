@@ -14,7 +14,6 @@ PROFILE = ROOT / ".agents" / "skills" / "research-capability-routing" / "referen
 SCHEMA = ROOT / ".agents" / "skills" / "research-capability-routing" / "references" / "research-capability-routing-r1.schema.json"
 INDEX = ROOT / "profiles" / "research" / "capability-index" / "research-capability-index-r1.json"
 INDEX_SCHEMA = ROOT / "profiles" / "research" / "capability-index" / "research-capability-index-r1.schema.json"
-GATEWAY_GENERATOR = ROOT / "services" / "gateway" / "packaging" / "generate_research_routes.py"
 
 
 def _load_router():
@@ -159,16 +158,6 @@ class ResearchCapabilityRoutingTests(unittest.TestCase):
         for row in index["capabilities"]:
             self.assertLessEqual(set(row["routeProblemClasses"]), declared)
             self.assertNotIn("preferredSkills", row)
-
-    def test_gateway_research_projection_is_generated_from_index_and_routing_profile(self) -> None:
-        proc = subprocess.run(
-            [sys.executable, str(GATEWAY_GENERATOR), "--check"],
-            text=True,
-            capture_output=True,
-            check=False,
-        )
-        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
-        self.assertIn("PASS_RESEARCH_GATEWAY_PROJECTION_CURRENT", proc.stdout)
 
 
 if __name__ == "__main__":

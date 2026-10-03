@@ -140,7 +140,6 @@ uv run --with 'jsonschema>=4.26,<5' python "$base/check_review_lifecycle_schema_
 run = """
 set -euo pipefail
 uv run --with pytest==9.1.1 --with check-jsonschema==0.38.0 python -m pytest -q tests/skills/test_research_capability_routing.py
-python3 services/gateway/packaging/generate_research_routes.py --check
 """
 
 [tasks."composition:verify"]
