@@ -28,6 +28,8 @@ EXPECTED_API = {
     "HarnessCognitionProfile",
     "HarnessCognitionSeed",
     "HarnessCognitionSeedSource",
+    "HarnessCognitionRefresh",
+    "HarnessCognitionRefreshSource",
     "HarnessWorkingViewSource",
     "AgentTurnRequest",
     "AgentTurnResult",

@@ -7,6 +7,7 @@ Runtime authority, own workflow/session state, or establish domain completion.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
@@ -22,9 +23,18 @@ from ordivon_harness.api import (
     AgentTurnAdapter,
     HarnessAgentRun,
     HarnessBoundReference,
+    HarnessCognitionProfile,
+    HarnessCognitionRefresh,
+    HarnessCognitionRefreshSource,
+    HarnessCognitionSeed,
+    HarnessCognitionSeedSource,
     HarnessPrivacyPolicy,
     HarnessRunContract,
+    HarnessWorkingViewSource,
 )
+
+from .cognitive_delta_r1 import project_agent_cognitive_delta
+from .cognitive_orientation_r1 import project_agent_orientation_view
 
 AdapterFactory = Callable[[HarnessRunContract], AgentTurnAdapter]
 
@@ -159,6 +169,7 @@ def compile_no_tool_harness_binding(
     contract: HarnessRunContract,
     *,
     adapter_binding_ref: dict[str, str],
+    cognition_binding_refs: tuple[dict[str, str], ...] = (),
 ) -> dict[str, Any]:
     """Compile the first bounded no-Tool consumer seam without inventing authority."""
 
@@ -178,6 +189,7 @@ def compile_no_tool_harness_binding(
             "digest": contract.digest,
         },
         adapter_binding_ref=adapter_binding_ref,
+        cognition_binding_refs=cognition_binding_refs,
         unresolved_inputs=unresolved_inputs,
     )
 
@@ -231,10 +243,10 @@ def validate_no_tool_harness_binding(
             "EXECUTION_LOWERING_REQUIRED",
             "HUX-30 does not admit an execution binding",
         )
-    if binding["cognitionBindingRefs"]:
+    if len(binding["cognitionBindingRefs"]) > 1:
         raise AgentRunLoweringError(
-            "COGNITION_LOWERING_REQUIRED",
-            "HUX-30 does not admit cognition bindings",
+            "COGNITION_BINDING_CARDINALITY_UNSUPPORTED",
+            "HUX-30 environment lowering admits at most one exact cognition binding",
         )
 
 
@@ -255,11 +267,131 @@ def create_no_tool_harness_run(
         contract,
         adapter_binding_ref=adapter_binding_ref,
     )
-    return HarnessAgentRun.create(state_root, contract, adapter_factory)
+    cognition_profile = HarnessCognitionProfile() if binding["cognitionBindingRefs"] else None
+    return HarnessAgentRun.create(
+        state_root,
+        contract,
+        adapter_factory,
+        cognition_profile=cognition_profile,
+    )
+
+
+def _single_cognition_binding(binding: Mapping[str, Any]) -> dict[str, str]:
+    require_ready_agent_run_binding(dict(binding))
+    refs = binding["cognitionBindingRefs"]
+    if len(refs) != 1:
+        raise AgentRunLoweringError(
+            "COGNITION_BINDING_REQUIRED",
+            "dynamic environment lowering requires exactly one cognition binding",
+        )
+    ref = refs[0]
+    return {"id": ref["id"], "digest": ref["digest"]}
+
+
+def _environment_orientation_source(
+    binding_ref: Mapping[str, str],
+    projection: Mapping[str, Any],
+) -> tuple[dict[str, object], HarnessWorkingViewSource]:
+    if projection.get("agentRun") is not None or projection.get("reentry") is not None:
+        raise AgentRunLoweringError(
+            "COGNITION_ENVIRONMENT_SELF_STATE_UNSUPPORTED",
+            "external environment cognition must not embed Harness Run or re-entry self-state",
+        )
+    orientation = project_agent_orientation_view(projection)
+    generation = orientation.get("viewDigest")
+    if not isinstance(generation, str) or not generation.startswith("sha256:"):
+        raise AgentRunLoweringError(
+            "COGNITION_ORIENTATION_DIGEST_INVALID",
+            "Agent Orientation View must expose one exact sha256 viewDigest",
+        )
+    content = json.dumps(
+        orientation,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    source = HarnessWorkingViewSource(
+        logical_ref=binding_ref["id"],
+        logical_generation=generation,
+        messages=({"role": "system", "content": content},),
+    )
+    return orientation, source
+
+
+def compile_no_tool_agent_environment_seed(
+    binding: dict[str, Any],
+    projection: Mapping[str, Any],
+    *,
+    attempt_id: str,
+    basis: str,
+    slot: str = "environment",
+) -> HarnessCognitionSeed:
+    """Lower one exact R1 environment projection into the initial Harness WorkingSet seed.
+
+    The AgentRunBinding supplies the stable caller-selected logical reference and binds
+    the initial exact Orientation digest. Harness remains responsible only for source
+    materialization and WorkingSet state.
+    """
+
+    binding_ref = _single_cognition_binding(binding)
+    orientation, source = _environment_orientation_source(binding_ref, projection)
+    if binding_ref["digest"] != orientation["viewDigest"]:
+        raise AgentRunLoweringError(
+            "COGNITION_BINDING_MISMATCH",
+            "cognition binding digest differs from the exact initial Agent Orientation View",
+        )
+    return HarnessCognitionSeed(
+        attempt_id=attempt_id,
+        sources=(HarnessCognitionSeedSource(slot=slot, source=source),),
+        basis=basis,
+    )
+
+
+def compile_no_tool_agent_environment_refresh(
+    binding: dict[str, Any],
+    previous_projection: Mapping[str, Any],
+    current_projection: Mapping[str, Any],
+    *,
+    next_attempt_id: str,
+    basis: str,
+    slot: str = "environment",
+) -> HarnessCognitionRefresh | None:
+    """Compile a selected-environment R1 delta into one exact caller cognition refresh.
+
+    This function does no discovery, watch, relevance ranking, or effect authorization.
+    The two projections are already-selected environment inputs. No owner-qualified change
+    means no Harness successor; any selected component change replaces only the environment
+    slot through Harness slot-level CAS.
+    """
+
+    binding_ref = _single_cognition_binding(binding)
+    delta = project_agent_cognitive_delta(previous_projection, current_projection)
+    if not delta["hasChanges"]:
+        return None
+
+    _previous_orientation, expected = _environment_orientation_source(
+        binding_ref, previous_projection
+    )
+    _current_orientation, replacement = _environment_orientation_source(
+        binding_ref, current_projection
+    )
+    return HarnessCognitionRefresh(
+        next_attempt_id=next_attempt_id,
+        sources=(
+            HarnessCognitionRefreshSource(
+                slot=slot,
+                expected_source=expected,
+                replacement_source=replacement,
+            ),
+        ),
+        basis=basis,
+    )
 
 
 __all__ = [
     "AgentRunLoweringError",
+    "compile_no_tool_agent_environment_refresh",
+    "compile_no_tool_agent_environment_seed",
     "compile_no_tool_harness_binding",
     "compile_no_tool_harness_run_contract",
     "create_no_tool_harness_run",

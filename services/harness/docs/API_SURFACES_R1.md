@@ -21,7 +21,7 @@ applies_to:
 ---
 # Harness API Surfaces R1
 
-The current 47-symbol `ordivon_harness.api` set remains compatibility-stable. R1 classifies
+The current 49-symbol `ordivon_harness.api` set remains compatibility-stable. R1 classifies
 that surface so a future product façade can become smaller without a breaking kernel rewrite.
 
 ## Application surface
@@ -60,6 +60,8 @@ Tools or Runtime bindings:
 - `HarnessCognitionProfile`
 - `HarnessCognitionSeed`
 - `HarnessCognitionSeedSource`
+- `HarnessCognitionRefresh`
+- `HarnessCognitionRefreshSource`
 - `HarnessWorkingViewSource`
 - `AgentTurnAdapter`
 - `AgentTurnRequest`

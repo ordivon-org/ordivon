@@ -26,6 +26,8 @@ from .cross_owner_reentry_r1 import (
 )
 from .harness_lowering_r1 import (
     AgentRunLoweringError,
+    compile_no_tool_agent_environment_refresh,
+    compile_no_tool_agent_environment_seed,
     compile_no_tool_harness_binding,
     compile_no_tool_harness_run_contract,
     create_no_tool_harness_run,
@@ -85,6 +87,8 @@ __all__ = [
     "project_harness_run_view",
     "project_harness_run_view_projection",
     "AgentRunLoweringError",
+    "compile_no_tool_agent_environment_refresh",
+    "compile_no_tool_agent_environment_seed",
     "compile_no_tool_harness_binding",
     "compile_no_tool_harness_run_contract",
     "create_no_tool_harness_run",
