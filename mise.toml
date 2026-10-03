@@ -35,12 +35,43 @@ gitleaks = "8.30.1"
 [tasks."repo:secrets:verify"]
 run = """
 set -euo pipefail
-gitleaks git --no-banner --redact=100 --timeout 120 .
-if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
-  echo "GitHub Actions scans durable Git candidate/history only; workspace build artifacts are out of scope."
-else
-  gitleaks dir --no-banner --redact=100 --timeout 120 .
+
+# Required per-change assurance: scan the exact checked-out tree before build artifacts exist.
+gitleaks dir --no-banner --redact=100 --timeout 120 .
+
+if [[ "${ORDIVON_SECRET_SCAN_CURRENT_TREE_ONLY:-false}" == "true" ]]; then
+  echo "Secret scan current-tree-only mode selected explicitly."
+  exit 0
 fi
+
+base="${ORDIVON_SECRET_SCAN_BASE:-}"
+head="${ORDIVON_SECRET_SCAN_HEAD:-HEAD}"
+if [[ -z "$base" ]]; then
+  echo "ORDIVON_SECRET_SCAN_BASE is required for bounded candidate-history verification." >&2
+  exit 2
+fi
+
+git cat-file -e "$base^{commit}"
+git cat-file -e "$head^{commit}"
+merge_base="$(git merge-base "$base" "$head")"
+head_commit="$(git rev-parse "$head")"
+
+if [[ "$merge_base" == "$head_commit" ]]; then
+  echo "No candidate-history delta beyond merge base; current tree already scanned."
+  exit 0
+fi
+
+range="${merge_base}..${head_commit}"
+echo "Scanning candidate Git history range: $range"
+gitleaks git --no-banner --redact=100 --timeout 120 --log-opts="$range" .
+"""
+
+[tasks."repo:secrets:verify-full-history"]
+run = """
+set -euo pipefail
+# Exhaustive assurance is intentionally separate from the per-change critical path.
+# The workflow/job timeout remains the outer bound; do not silently truncate Gitleaks itself.
+gitleaks git --no-banner --redact=100 .
 """
 
 [tasks."repo:retirement:verify"]

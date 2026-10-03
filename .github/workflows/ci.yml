@@ -38,6 +38,40 @@ jobs:
           install: true
           cache: true
 
+      - name: Repository bounded secret scan
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          MERGE_GROUP_BASE: ${{ github.event.merge_group.base_sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          EVENT_HEAD: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == "workflow_dispatch" || "$EVENT_NAME" == "schedule" ]]; then
+            ORDIVON_SECRET_SCAN_CURRENT_TREE_ONLY=true ORDIVON_SECRET_SCAN_HEAD="$EVENT_HEAD" mise run repo:secrets:verify
+            exit 0
+          fi
+
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            base="$PR_BASE"
+          elif [[ "$EVENT_NAME" == "merge_group" ]]; then
+            base="$MERGE_GROUP_BASE"
+          else
+            base="$PUSH_BEFORE"
+          fi
+
+          if [[ -z "$base" || "$base" =~ ^0+$ ]]; then
+            echo "Secret-scan base revision is unavailable for event $EVENT_NAME." >&2
+            exit 2
+          fi
+
+          ORDIVON_SECRET_SCAN_BASE="$base" ORDIVON_SECRET_SCAN_HEAD="$EVENT_HEAD" mise run repo:secrets:verify
+
+      - name: Repository full-history secret assurance
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: mise run repo:secrets:verify-full-history
+
       - name: Repository mechanics
         run: mise run repo:ci
 
@@ -126,6 +160,3 @@ jobs:
           manifest-path: services/runtime/Cargo.toml
           command: check
           arguments: --config services/runtime/deny.toml
-
-      - name: Repository-wide secret scan
-        run: mise run repo:secrets:verify

@@ -115,7 +115,12 @@ def main() -> int:
     assert "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1" in workflow
     assert "jdx/mise-action@9e7f7633ff6f6d6048a9418a68d48f288f50eb14" in workflow
     assert "gitleaks/gitleaks-action@" not in workflow
-    assert "run: mise run repo:secrets:verify" in workflow
+    assert "Repository bounded secret scan" in workflow
+    assert "mise run repo:secrets:verify" in workflow
+    assert "ORDIVON_SECRET_SCAN_BASE" in workflow
+    assert "ORDIVON_SECRET_SCAN_HEAD" in workflow
+    assert "Repository full-history secret assurance" in workflow
+    assert "mise run repo:secrets:verify-full-history" in workflow
 
     runtime_release = RUNTIME_RELEASE_WORKFLOW.read_text(encoding="utf-8")
     for required in (
@@ -149,8 +154,12 @@ def main() -> int:
     assert task_config.get("shell") == "bash -c", "root mise tasks must execute under Bash"
     assert 'gitleaks = "8.30.1"' in mise
     assert '[tasks."repo:secrets:verify"]' in mise
-    assert "gitleaks git --no-banner --redact=100 --timeout 120 ." in mise
+    assert '[tasks."repo:secrets:verify-full-history"]' in mise
     assert "gitleaks dir --no-banner --redact=100 --timeout 120 ." in mise
+    assert '--log-opts="$range"' in mise
+    assert "ORDIVON_SECRET_SCAN_BASE" in mise
+    assert "ORDIVON_SECRET_SCAN_HEAD" in mise
+    assert "gitleaks git --no-banner --redact=100 ." in mise
     for owner in owners:
         assert f'[tasks."{owner.task}"]' in mise, (
             f"owner verify task is not exposed by root mise: {owner.name}={owner.task}"
