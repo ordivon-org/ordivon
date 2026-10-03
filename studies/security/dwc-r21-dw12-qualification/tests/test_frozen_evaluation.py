@@ -246,3 +246,35 @@ def test_independent_receipt_rejects_self_certification_and_digest_drift():
     false_pass["postFreezeMutationObserved"] = True
     with pytest.raises(mod.FrozenEvaluationError, match="post-freeze mutation"):
         mod.validate_independent_receipt(p, false_pass)
+
+
+def test_prequalification_threads_verified_revision_into_freeze_and_evaluate(monkeypatch):
+    mod = load_module()
+    subject = frozen(mod)
+    proto = mod.protocol_r2(subject)
+    expected_revision = subject["candidateRevision"]
+    real_freeze = mod.freeze_corpus
+    real_evaluate = mod.evaluate
+    observed = {}
+
+    def guarded_freeze(repo, revision=None):
+        if revision != expected_revision:
+            raise AssertionError("freeze_corpus used a different or implicit revision")
+        observed["freeze"] = revision
+        return real_freeze(repo, revision=revision)
+
+    def guarded_evaluate(repo, corpus, legacy_proto, revision=None):
+        if revision != expected_revision:
+            raise AssertionError("evaluate used a different or implicit revision")
+        observed["evaluate"] = revision
+        return real_evaluate(repo, corpus, legacy_proto, revision=revision)
+
+    monkeypatch.setattr(mod, "freeze_corpus", guarded_freeze)
+    monkeypatch.setattr(mod, "evaluate", guarded_evaluate)
+    result = mod.mechanical_prequalification_r2(ROOT, subject, proto)
+
+    assert observed == {
+        "freeze": expected_revision,
+        "evaluate": expected_revision,
+    }
+    assert result["candidateRevision"] == expected_revision

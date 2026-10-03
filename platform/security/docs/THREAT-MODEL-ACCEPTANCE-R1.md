@@ -11,6 +11,7 @@ Pinned external schema:
 
 - source: `OWASP/www-project-threat-model-library` tag `v1.0.2`, `threat-model.schema.json`;
 - SHA-256: `428772fecfed799921e90bb7e7acf7ce7bb8e379128e43c4e7f4346a528539be`;
+- acquisition: try the tagged raw GitHub object first; if that carrier is unavailable, the verifier may fetch the same repository/tag/path through jsDelivr, but only bytes matching the pinned SHA-256 above are accepted;
 - validation: `check-jsonschema==0.34.0` after digest verification.
 
 The upstream `v1.0.2` repository currently contains an example whose `$schema` field still names `v1.0.1`; validating that example against the `v1.0.2` schema therefore fails closed until the declaration is updated. Security v2 does not weaken schema validation to accommodate that mismatch.

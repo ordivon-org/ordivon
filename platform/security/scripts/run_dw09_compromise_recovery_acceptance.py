@@ -113,12 +113,15 @@ def obligation(
 def main() -> int:
     repo = Path(__file__).resolve().parents[3]
     out = repo / "platform/security/evidence/acceptance"
-    lowering = json.loads(
-        (repo / "meta/next/evidence/acceptance/dwc-coa-r1-lowering-20261001.json").read_text()
+    composition_binding = json.loads(
+        (
+            repo
+            / "platform/security/fixtures/dw09/historical-exchange-composition-binding-r1.json"
+        ).read_text()
     )
 
-    case_binding = lowering["caseBinding"]
-    circuit = lowering["compiledCircuit"]
+    case_binding = composition_binding["caseBinding"]
+    circuit = composition_binding["compositionGate"]
 
     historical = {
         "schemaVersion": 1,
@@ -356,12 +359,11 @@ def main() -> int:
                 "targetClass": "windows-runtime",
                 "telemetryOrDetectorOwner": "owner-native Runtime/Windows evidence only",
                 "standing": "COMPROMISE_DETECTOR_BINDING_UNKNOWN",
-                "evidenceRefs": [
-                    "services/runtime/evidence/windows-native-rw5-recovery-20260810.json"
-                ],
+                "evidenceRefs": [],
                 "reason": (
-                    "Runtime recovery evidence is not equivalent to compromise/persistence "
-                    "detector coverage."
+                    "No exact Security-owned DW09 compromise/persistence detector binding was "
+                    "found; Runtime recovery evidence is outside current Security detector "
+                    "authority and is not treated as detector coverage."
                 ),
             },
             {
@@ -394,8 +396,10 @@ def main() -> int:
         "workRef": "work:security:dwc-r21:dw09-compromise-recovery:20261001",
         "standing": "DW09_COMPROMISE_PERSISTENCE_RECOVERY_PROJECTION_QUALIFIED",
         "baseRevision": "57fe5429c1c58ae427ca0a897afc27066b010ec2",
-        "incidentProfileRef": "meta/next/planning/incident-case-profile-r1.json",
-        "incidentProfileDigest": "sha256:ae10b4ad9c26009f8c547dc6e3bed1164a9fdb4b875dd47e69bb93473de4bb05",
+        "historicalCompositionBinding": {
+            "fixtureRef": "platform/security/fixtures/dw09/historical-exchange-composition-binding-r1.json",
+            **composition_binding["provenance"],
+        },
         "detectorOwnerCensus": {
             "path": str(census_path.relative_to(repo)),
             "evidenceDigest": census["evidenceDigest"],

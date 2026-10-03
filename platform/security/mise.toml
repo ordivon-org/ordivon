@@ -19,6 +19,13 @@ opa = next(row for row in value["providers"] if row["name"] == "opa")
 print(f'{opa["ciContainer"]["image"]}@{opa["ciContainer"]["digest"]}')
 PY
 )
-docker run --rm --volume "$PWD/policies:/policies:ro" "$image" test -v /policies
+policy_stage=$(mktemp -d)
+cleanup_policy_stage() { rm -rf "$policy_stage"; }
+trap cleanup_policy_stage EXIT
+cp -a policies/. "$policy_stage"/
+chmod -R a+rX "$policy_stage"
+docker run --rm --volume "$policy_stage:/policies:ro" "$image" test -v /policies
+cleanup_policy_stage
+trap - EXIT
 git ls-files -z -- '*.sh' | xargs -0 -r shellcheck
 """

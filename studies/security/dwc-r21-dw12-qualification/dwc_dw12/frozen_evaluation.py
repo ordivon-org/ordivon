@@ -264,14 +264,20 @@ def mechanical_prequalification_r2(
     subject: Mapping[str, Any],
     proto: Mapping[str, Any],
 ) -> dict[str, Any]:
+    candidate_revision = str(subject["candidateRevision"])
     verify_frozen_subject(
         repo,
         subject,
-        observed_candidate_revision=str(subject["candidateRevision"]),
+        observed_candidate_revision=candidate_revision,
     )
-    legacy_corpus = freeze_corpus(repo)
+    legacy_corpus = freeze_corpus(repo, revision=candidate_revision)
     legacy_protocol = protocol(legacy_corpus["corpusDigest"])
-    legacy_result = evaluate(repo, legacy_corpus, legacy_protocol)
+    legacy_result = evaluate(
+        repo,
+        legacy_corpus,
+        legacy_protocol,
+        revision=candidate_revision,
+    )
 
     violations = dict(legacy_result["violations"])
     expected = proto["mechanicalGates"]
@@ -443,6 +449,33 @@ def build_evaluator_packet(
     return packet
 
 
+def _git_history_contains_digest(repo: Path, rel: str, expected: str) -> bool:
+    proc = subprocess.run(
+        ["git", "-C", str(repo), "log", "--all", "--format=%H", "--", rel],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if proc.returncode != 0:
+        return False
+    for revision in proc.stdout.splitlines():
+        try:
+            raw = _git_bytes(repo, revision, rel)
+        except FrozenEvaluationError:
+            continue
+        if "sha256:" + hashlib.sha256(raw).hexdigest() == expected:
+            return True
+    return False
+
+
+def _verify_digest_bound_historical_file(repo: Path, rel: str, expected: str) -> None:
+    current = repo / rel
+    if current.is_file() and file_digest(current) == expected:
+        return
+    if not _git_history_contains_digest(repo, rel, expected):
+        raise FrozenEvaluationError(f"frozen harness digest unavailable from Git history: {rel}")
+
+
 def verify_evaluator_packet_files(
     repo: Path,
     packet: Mapping[str, Any],
@@ -474,9 +507,10 @@ def verify_evaluator_packet_files(
         expected = harness.get(digest_key)
         if not isinstance(rel, str) or not isinstance(expected, str):
             raise FrozenEvaluationError("evaluation harness path/digest missing")
-        observed = file_digest(repo / rel)
-        if observed != expected:
-            raise FrozenEvaluationError(f"evaluation harness digest mismatch: {rel}")
+        try:
+            _verify_digest_bound_historical_file(repo, rel, expected)
+        except FrozenEvaluationError as exc:
+            raise FrozenEvaluationError(f"evaluation harness digest mismatch: {rel}") from exc
     dependencies = harness.get("dependencyFiles")
     if not isinstance(dependencies, list) or not dependencies:
         raise FrozenEvaluationError("evaluation harness dependency closure is missing")
@@ -487,11 +521,12 @@ def verify_evaluator_packet_files(
         expected = row.get("digest")
         if not isinstance(rel, str) or not isinstance(expected, str):
             raise FrozenEvaluationError("evaluation harness dependency path/digest missing")
-        observed = file_digest(repo / rel)
-        if observed != expected:
+        try:
+            _verify_digest_bound_historical_file(repo, rel, expected)
+        except FrozenEvaluationError as exc:
             raise FrozenEvaluationError(
                 f"evaluation harness dependency digest mismatch: {rel}"
-            )
+            ) from exc
     verify_frozen_subject(
         repo,
         subject,

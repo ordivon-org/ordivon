@@ -283,6 +283,21 @@
         "adversary"
       ],
       "weaknesses": []
+    },
+    {
+      "symbolic_name": "applicability-evidence-confusion",
+      "title": "Threat signal or applicability evidence mis-promoted",
+      "description": "Global threat signals, evidence bound to the wrong DW01 subject/snapshot, stale clearance, or unverified VEX are used to mint or weaken local applicability.",
+      "components_affected": [
+        "security-waist"
+      ],
+      "threat_persona": "evidence-spoofer",
+      "event": "Provider-native threat/applicability evidence is fused without exact DW01 subject/snapshot binding, currentness, verification, or signal-versus-applicability separation.",
+      "sources": [
+        "adversary",
+        "human_error"
+      ],
+      "weaknesses": []
     }
   ],
   "controls": [
@@ -315,6 +330,16 @@
       ],
       "status": "active",
       "priority": "critical"
+    },
+    {
+      "symbolic_name": "exact-applicability-fusion",
+      "title": "Exact applicability evidence fusion",
+      "description": "Local applicability is derived only from verified provider-native applicability evidence bound to the exact DW01 subject/snapshot; KEV/EPSS remain threat signals, stale clearance cannot weaken current adverse evidence, and unverified VEX cannot mint clearance.",
+      "threats": [
+        "applicability-evidence-confusion"
+      ],
+      "status": "active",
+      "priority": "critical"
     }
   ],
   "risks": [
@@ -324,7 +349,8 @@
       "description": "Stale or spoofed evidence may produce an incorrect current security decision.",
       "threats": [
         "stale-evidence-promotion",
-        "executor-self-verification"
+        "executor-self-verification",
+        "applicability-evidence-confusion"
       ],
       "likelihood": "possible",
       "impact": "major",
@@ -354,7 +380,7 @@
         "docs/STANDARDS-BASELINE.md",
         "docs/TECHNOLOGY-SELECTION-R2.md"
       ],
-      "architectureEnvelopeSha256": "sha256:c622a0d729b83129665e8b818b0704936cc4f5e616a9f7465c82bd9cd090370a",
+      "architectureEnvelopeSha256": "sha256:0b70c0603731b0d733485377d37b4b78ac94ff7254df65911f50586c15d6c81b",
       "modelingMethod": "OWASP Threat Model Library schema with STRIDE-compatible analysis; CAPEC/CWE references may be added when applicable",
       "editorStanding": "Threat Dragon is a replaceable editor/viewer, not the authority format"
     }

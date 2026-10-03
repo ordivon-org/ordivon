@@ -2,18 +2,23 @@ from __future__ import annotations
 
 import copy
 import hashlib
-import importlib.util
 import json
 import subprocess
-import sys
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
+import types
+import sys
 
 CANDIDATE_REVISION = "b3d165961aa3e28d42942dfa9aa1dacf9b0a870f"
 LIVE_PATH = "meta/next/evidence/acceptance/dwc-operator-ux-r1-live-owner-bundle-20261001.json"
 SYNTHETIC_PATH = "meta/next/evidence/acceptance/dwc-operator-ux-r1-reentry-fixture-20261001.json"
 OPERATOR_PATH = "meta/next/scripts/dwc_operator_ux_r1.py"
+SOCIAL_FABRIC_PATH = "meta/next/scripts/social_fabric_r1.py"
+FROZEN_MODULE_DIGESTS = {
+    OPERATOR_PATH: "sha256:bc3aa987dc2c64f2fe8ed90653d404ef9eea4ea73a7d1a0fe52ae7e9621c48ea",
+    SOCIAL_FABRIC_PATH: "sha256:6711a803daa3b6ed6cf6bb3e03ca7c8517fd620cd19c84f763c04d505b6901ce",
+}
 
 
 class Dw11TrialError(ValueError):
@@ -43,17 +48,39 @@ def git_json(repo: Path, revision: str, rel: str) -> dict[str,Any]:
     return value
 
 
-def _operator(repo: Path):
-    scripts=repo/"meta/next/scripts"
-    if str(scripts) not in sys.path:
-        sys.path.insert(0,str(scripts))
-    path=repo/OPERATOR_PATH
-    spec=importlib.util.spec_from_file_location("dwc_operator_ux_trial",path)
-    if spec is None or spec.loader is None:
-        raise Dw11TrialError("cannot load operator projection")
-    mod=importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
+def _module_from_git(repo: Path, candidate_revision: str, rel: str, name: str):
+    raw = git_bytes(repo, candidate_revision, rel)
+    expected_digest = FROZEN_MODULE_DIGESTS.get(rel)
+    if expected_digest is None:
+        raise Dw11TrialError(f"unbound frozen Python module: {rel}")
+    observed_digest = "sha256:" + hashlib.sha256(raw).hexdigest()
+    if observed_digest != expected_digest:
+        raise Dw11TrialError(f"frozen Python module digest mismatch: {rel}")
+    try:
+        source = raw.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise Dw11TrialError(f"frozen Python module is not UTF-8: {rel}") from exc
+    module = types.ModuleType(name)
+    module.__file__ = f"{candidate_revision}:{rel}"
+    exec(compile(source, module.__file__, "exec"), module.__dict__)
+    return module
+
+
+def _operator(repo: Path, candidate_revision: str):
+    dependency = _module_from_git(
+        repo, candidate_revision, SOCIAL_FABRIC_PATH, "social_fabric_r1"
+    )
+    previous = sys.modules.get("social_fabric_r1")
+    sys.modules["social_fabric_r1"] = dependency
+    try:
+        return _module_from_git(
+            repo, candidate_revision, OPERATOR_PATH, "dwc_operator_ux_trial"
+        )
+    finally:
+        if previous is None:
+            sys.modules.pop("social_fabric_r1", None)
+        else:
+            sys.modules["social_fabric_r1"] = previous
 
 
 def make_counterfactual(base: Mapping[str,Any], case_id: str, standing: str) -> dict[str,Any]:
@@ -92,7 +119,7 @@ def materialize_trial(repo: Path, out_root: Path, candidate_revision: str=CANDID
             "class":"LIVE_OWNER_REENTRY" if case_id=="live-current-owner-bundle" else "SYNTHETIC_PROMPT_COUNTERFACTUAL",
         })
 
-    op=_operator(repo)
+    op=_operator(repo,candidate_revision)
     gt_cases=[]
     for row in case_rows:
         bundle=json.loads((repo/row["path"]).read_text())

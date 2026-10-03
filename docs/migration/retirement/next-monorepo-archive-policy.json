@@ -206,6 +206,38 @@
     {
       "path": "catalogs/knowledge/lessons/lego-recursive-calculus-r1.md",
       "reason": "Knowledge lesson names archived Next LEGO documents explicitly as historical lineage only; it does not reactivate meta/next as a current architecture or execution owner."
+    },
+    {
+      "path": "platform/security/evidence/acceptance/dw09-compromise-recovery-r1-20261001.json",
+      "reason": "Frozen Security acceptance evidence preserves an exact historical meta/next provenance coordinate; current Security execution no longer reads archived Next."
+    },
+    {
+      "path": "studies/security/dwc-r21-dw11-operator-ux-qualification/dwc_dw11_eval/trial.py",
+      "reason": "Study evaluator names archived Next only as an exact Git-revision locator and verifies expected module digests before historical Python execution; current HEAD meta/next is not read."
+    },
+    {
+      "path": "studies/security/dwc-r21-dw11-operator-ux-qualification/evidence/acceptance/dw11-agent-reentry-subject-r2.json",
+      "reason": "Frozen Study subject records exact historical Next coordinates and digests for reproducibility; it is not current execution authority."
+    },
+    {
+      "path": "studies/security/dwc-r21-dw12-qualification/dwc_dw12/frozen_evaluation.py",
+      "reason": "Study evaluator names archived Next only through an exact verified candidate revision and frozen artifact digests; current HEAD meta/next is not read."
+    },
+    {
+      "path": "studies/security/dwc-r21-dw12-qualification/dwc_dw12/qualification.py",
+      "reason": "Study qualification uses archived Next paths only as exact Git-object locators with the caller-threaded verified revision; no current HEAD fallback is authoritative."
+    },
+    {
+      "path": "studies/security/dwc-r21-dw12-qualification/evidence/acceptance/dw12-frozen-corpus-r1.json",
+      "reason": "Frozen Study corpus receipt preserves exact historical Next coordinates and digests for reproducibility; it is not current execution authority."
+    },
+    {
+      "path": "studies/security/dwc-r21-dw12-qualification/evidence/acceptance/dw12-frozen-subject-r2.json",
+      "reason": "Frozen Study subject preserves exact historical Next coordinates, candidate revision, and digests; it is not current execution authority."
+    },
+    {
+      "path": "studies/security/dwc-r21-dw12-qualification/evidence/acceptance/dw12-independent-evaluator-packet-r2.json",
+      "reason": "Frozen independent-evaluator packet preserves exact historical Next provenance coordinates for reproducibility; it is not current execution authority."
     }
   ]
 }

@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
 from pathlib import Path
 from typing import Any
+
+CORPUS_REVISION = "3eec47b6b3ac4f317103a3629f934c2910abaf8a"
 
 CORPUS_PATHS = {
     "dw03": "platform/security/evidence/acceptance/dw03-response-policy-r1-20261001.json",
@@ -27,22 +30,31 @@ def file_digest(path: Path) -> str:
     return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def load_json(repo: Path, rel: str) -> dict[str, Any]:
-    return json.loads((repo / rel).read_text(encoding="utf-8"))
+def git_bytes(repo: Path, revision: str, rel: str) -> bytes:
+    proc = subprocess.run(
+        ["git", "-C", str(repo), "show", f"{revision}:{rel}"],
+        capture_output=True,
+        check=False,
+    )
+    if proc.returncode != 0:
+        raise FileNotFoundError(f"missing frozen corpus artifact: {revision}:{rel}")
+    return proc.stdout
 
 
-def freeze_corpus(repo: Path) -> dict[str, Any]:
+def load_json(repo: Path, rel: str, revision: str = CORPUS_REVISION) -> dict[str, Any]:
+    return json.loads(git_bytes(repo, revision, rel).decode("utf-8"))
+
+
+def freeze_corpus(repo: Path, revision: str = CORPUS_REVISION) -> dict[str, Any]:
     artifacts = []
     for module_id, rel in CORPUS_PATHS.items():
-        path = repo / rel
-        if not path.exists():
-            raise FileNotFoundError(path)
-        value = json.loads(path.read_text(encoding="utf-8"))
+        raw = git_bytes(repo, revision, rel)
+        value = json.loads(raw.decode("utf-8"))
         artifacts.append(
             {
                 "moduleId": module_id,
                 "path": rel,
-                "fileDigest": file_digest(path),
+                "fileDigest": "sha256:" + hashlib.sha256(raw).hexdigest(),
                 "kind": value.get("kind"),
                 "standing": value.get("standing"),
             }
@@ -101,15 +113,20 @@ def protocol(corpus_digest: str) -> dict[str, Any]:
     return value
 
 
-def evaluate(repo: Path, corpus: dict[str, Any], proto: dict[str, Any]) -> dict[str, Any]:
-    dw04 = load_json(repo, CORPUS_PATHS["dw04"])
-    dw05 = load_json(repo, CORPUS_PATHS["dw05"])
-    dw06 = load_json(repo, CORPUS_PATHS["dw06"])
-    dw07 = load_json(repo, CORPUS_PATHS["dw07"])
-    dw08 = load_json(repo, CORPUS_PATHS["dw08"])
-    dw09 = load_json(repo, CORPUS_PATHS["dw09"])
-    dw10 = load_json(repo, CORPUS_PATHS["dw10"])
-    dw11 = load_json(repo, CORPUS_PATHS["dw11"])
+def evaluate(
+    repo: Path,
+    corpus: dict[str, Any],
+    proto: dict[str, Any],
+    revision: str = CORPUS_REVISION,
+) -> dict[str, Any]:
+    dw04 = load_json(repo, CORPUS_PATHS["dw04"], revision)
+    dw05 = load_json(repo, CORPUS_PATHS["dw05"], revision)
+    dw06 = load_json(repo, CORPUS_PATHS["dw06"], revision)
+    dw07 = load_json(repo, CORPUS_PATHS["dw07"], revision)
+    dw08 = load_json(repo, CORPUS_PATHS["dw08"], revision)
+    dw09 = load_json(repo, CORPUS_PATHS["dw09"], revision)
+    dw10 = load_json(repo, CORPUS_PATHS["dw10"], revision)
+    dw11 = load_json(repo, CORPUS_PATHS["dw11"], revision)
 
     violations = {
         "falseClosureViolations": 0,

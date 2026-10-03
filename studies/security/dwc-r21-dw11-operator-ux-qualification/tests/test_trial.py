@@ -123,3 +123,26 @@ def test_saved_independent_agent_receipt_and_score_validate_exactly():
     assert acceptance["independenceBoundary"]["groundTruthExposed"] is False
     assert ("sha256:"+hashlib.sha256(receipt_path.read_bytes()).hexdigest()
             == acceptance["independentReceipt"]["sha256"])
+
+
+@pytest.mark.parametrize(
+    ("path_attr", "name"),
+    [
+        ("OPERATOR_PATH", "dwc_operator_ux_trial"),
+        ("SOCIAL_FABRIC_PATH", "social_fabric_r1"),
+    ],
+)
+def test_frozen_python_digest_is_verified_before_exec(monkeypatch, path_attr, name):
+    import dwc_dw11_eval.trial as trial_module
+
+    def tampered_git_bytes(_repo, _revision, _rel):
+        return b'raise AssertionError("historical Python executed before digest verification")\n'
+
+    monkeypatch.setattr(trial_module, "git_bytes", tampered_git_bytes)
+    with pytest.raises(trial_module.Dw11TrialError, match="digest mismatch"):
+        trial_module._module_from_git(
+            ROOT,
+            trial_module.CANDIDATE_REVISION,
+            getattr(trial_module, path_attr),
+            name,
+        )

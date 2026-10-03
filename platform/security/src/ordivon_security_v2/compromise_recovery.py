@@ -299,7 +299,6 @@ def project_compromise_recovery(case: Mapping[str, Any]) -> dict[str, Any]:
         "caseRef": case["caseRef"],
         "subjectRef": case["subjectRef"],
         "subjectSnapshotDigest": case["subjectSnapshotDigest"],
-        "incidentProfileRef": "meta/next/planning/incident-case-profile-r1.json",
         "protectionVerifiedInput": case["protection"]["verifiedProtectionEstablished"],
         "compromise": compromise,
         "persistence": persistence,

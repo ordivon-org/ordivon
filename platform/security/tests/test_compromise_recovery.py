@@ -98,6 +98,7 @@ class CompromiseRecoveryTests(unittest.TestCase):
         case = base_case()
         case["protection"]["verifiedProtectionEstablished"] = True
         result = project_compromise_recovery(case)
+        self.assertNotIn("incidentProfileRef", result)
         self.assertEqual(result["compromise"]["standing"], "UNKNOWN")
         self.assertEqual(result["persistence"]["standing"], "UNKNOWN")
         self.assertFalse(result["compromiseAbsenceEstablished"])

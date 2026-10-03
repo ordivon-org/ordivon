@@ -1,0 +1,19 @@
+{
+  "caseBinding": {
+    "caseRef": "case:dw04:exchange-proxylogon-2021",
+    "subjectRef": "historical-subject:exchange-proxylogon-2021",
+    "subjectSnapshotDigest": "sha256:e089e805bd2a8aef3bb11378f053c318d82d225a9bbdddbcce17a390decff541"
+  },
+  "compositionGate": {
+    "circuitId": "circuit:dwc-coa:case:dw04:exchange-proxylogon-2021",
+    "manifestDigest": "sha256:af6bdfdbbf65638e8e516cf43a73df7574e9e1a421cbe08b887e2c956cfaba8b"
+  },
+  "kind": "ordivon.security.dw09-composition-binding-r1",
+  "provenance": {
+    "sourceBlob": "7652696df1b0908588c2155b63cc9ded3916103e",
+    "sourceKind": "historical-dw06-composition-lowering",
+    "sourceRevision": "dcd9702fbee31237ecbce6820327dda8bdad5f7f",
+    "sourceSha256": "sha256:053ed6bb6c69a1d8f6c4085fa09ccea4aa4793b4da5ddefaed06d8a9b36144d5"
+  },
+  "schemaVersion": 1
+}
