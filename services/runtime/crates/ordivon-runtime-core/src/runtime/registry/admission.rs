@@ -306,9 +306,7 @@ impl Registry {
             });
         }
 
-        if request.runtime_release_effect.is_none()
-            && pending_runtime_release_exists(&transaction)?
-        {
+        if pending_runtime_release_exists(&transaction)? {
             return Err(RuntimeError::pending_runtime_release());
         }
 

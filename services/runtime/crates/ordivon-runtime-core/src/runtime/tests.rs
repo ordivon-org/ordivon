@@ -1339,11 +1339,25 @@ fn runtime_release_submission_for_test(
     client_request_id: &str,
     global_limit: u32,
 ) -> SubmitRequest {
+    runtime_release_submission_for_workspace_test(
+        sandbox,
+        client_request_id,
+        global_limit,
+        "workspace:test",
+    )
+}
+
+fn runtime_release_submission_for_workspace_test(
+    sandbox: &Sandbox,
+    client_request_id: &str,
+    global_limit: u32,
+    workspace_id: &str,
+) -> SubmitRequest {
     let release_request = RuntimeReleaseRequest {
         schema_version: RUNTIME_SCHEMA_VERSION,
         client_request_id: client_request_id.to_string(),
         principal: "principal:test".to_string(),
-        workspace_id: "workspace:test".to_string(),
+        workspace_id: workspace_id.to_string(),
         commit: "a".repeat(40),
         candidate_manifest_digest: digest(client_request_id.as_bytes()),
         expected_tool_count: 22,
@@ -1367,6 +1381,7 @@ fn runtime_release_submission_for_test(
             .into_owned(),
     };
     let mut submission = request(sandbox, client_request_id, global_limit);
+    submission.plan.workspace_id = workspace_id.to_string();
     submission.request_identity_digest = Some(request_digest);
     submission.execution_provider = Some(ExecutionProviderSnapshot {
         contract: ExecutionProviderContract::LocalLinuxRunnerV1,
@@ -1567,6 +1582,130 @@ fn pending_runtime_release_blocks_new_admission_and_preserves_exact_replay() {
         .unwrap();
     assert_eq!(jobs_after, jobs_before);
     assert_eq!(new_key_count, 0);
+}
+
+#[test]
+fn pending_runtime_release_blocks_distinct_release_until_terminal_released() {
+    let sandbox = Sandbox::new("pending-runtime-release-distinct-release", 5_000);
+    let release_a = runtime_release_submission_for_test(&sandbox, "request:pending-release-a", 8);
+    let created_a = created(sandbox.registry.submit(&release_a).unwrap());
+
+    match sandbox.registry.submit(&release_a).unwrap() {
+        AdmissionOutcome::Existing { job } => assert_eq!(job.job_id, created_a.job.job_id),
+        AdmissionOutcome::Created(_) => panic!("exact Release A replay created a second Job"),
+    }
+
+    let changed_a = runtime_release_submission_for_workspace_test(
+        &sandbox,
+        "request:pending-release-a",
+        8,
+        "workspace:pending-release-a-changed",
+    );
+    let conflict = sandbox.registry.submit(&changed_a).unwrap_err();
+    assert_eq!(conflict.code, RuntimeErrorCode::IdempotencyConflict);
+
+    let release_b = runtime_release_submission_for_workspace_test(
+        &sandbox,
+        "request:pending-release-b",
+        8,
+        "workspace:pending-release-b",
+    );
+    let connection = Connection::open(&sandbox.registry.config().db_path).unwrap();
+    let jobs_before: u64 = connection
+        .query_row("SELECT COUNT(*) FROM jobs", [], |row| row.get(0))
+        .unwrap();
+    drop(connection);
+
+    let blocked = sandbox.registry.submit(&release_b).unwrap_err();
+    assert_eq!(blocked.code, RuntimeErrorCode::DeploymentInProgress);
+    assert!(blocked.retryable);
+    assert_eq!(blocked.retry_after_ms, Some(1_000));
+
+    let connection = Connection::open(&sandbox.registry.config().db_path).unwrap();
+    let jobs_after: u64 = connection
+        .query_row("SELECT COUNT(*) FROM jobs", [], |row| row.get(0))
+        .unwrap();
+    let b_key_count: u64 = connection
+        .query_row(
+            "SELECT COUNT(*) FROM idempotency_keys WHERE principal=?1 AND client_request_id=?2",
+            rusqlite::params!["principal:test", release_b.client_request_id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(jobs_after, jobs_before);
+    assert_eq!(b_key_count, 0);
+    drop(connection);
+
+    terminalize_release_attempt_for_test(
+        &sandbox,
+        &created_a,
+        AttemptState::Succeeded,
+        "PROCESS_EXIT_ZERO",
+        Some(0),
+    );
+    assert_eq!(
+        sandbox
+            .registry
+            .get_reservation(&created_a.attempt.attempt_id)
+            .unwrap()
+            .state,
+        ReservationState::Released
+    );
+    assert!(matches!(
+        sandbox.registry.submit(&release_b).unwrap(),
+        AdmissionOutcome::Created(_)
+    ));
+}
+
+#[test]
+fn concurrent_distinct_runtime_release_admissions_create_exactly_one_new_job() {
+    for index in 0..16 {
+        let sandbox = Sandbox::new(&format!("distinct-release-race-{index}"), 5_000);
+        let registry_a = sandbox.registry.clone();
+        let registry_b = sandbox.registry.clone();
+        let release_a = runtime_release_submission_for_workspace_test(
+            &sandbox,
+            &format!("request:distinct-release-a:{index}"),
+            8,
+            &format!("workspace:distinct-release-a:{index}"),
+        );
+        let release_b = runtime_release_submission_for_workspace_test(
+            &sandbox,
+            &format!("request:distinct-release-b:{index}"),
+            8,
+            &format!("workspace:distinct-release-b:{index}"),
+        );
+        let barrier = Arc::new(Barrier::new(3));
+        let barrier_a = barrier.clone();
+        let barrier_b = barrier.clone();
+
+        let join_a = thread::spawn(move || {
+            barrier_a.wait();
+            registry_a.submit(&release_a)
+        });
+        let join_b = thread::spawn(move || {
+            barrier_b.wait();
+            registry_b.submit(&release_b)
+        });
+        barrier.wait();
+
+        let results = [join_a.join().unwrap(), join_b.join().unwrap()];
+        assert_eq!(
+            results
+                .iter()
+                .filter(|result| { matches!(result, Ok(AdmissionOutcome::Created(_))) })
+                .count(),
+            1,
+            "two distinct Runtime Release intents must never both be newly admitted: {results:?}"
+        );
+        let blocked = results
+            .into_iter()
+            .find_map(Result::err)
+            .expect("one distinct Runtime Release must be blocked");
+        assert_eq!(blocked.code, RuntimeErrorCode::DeploymentInProgress);
+        assert!(blocked.retryable);
+        assert_eq!(sandbox.registry.active_reservation_count().unwrap(), 1);
+    }
 }
 
 #[test]
