@@ -22,6 +22,7 @@ dev = [
 
 [project.scripts]
 ordivon-host-v2-mcp = "ordivon_host_v2.mcp_server:main"
+ordivon-host-v2-lifecycle-report = "ordivon_host_v2.lifecycle_report:main"
 
 [build-system]
 requires = ["uv_build>=0.12.3,<0.13.0"]
