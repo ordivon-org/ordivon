@@ -294,6 +294,17 @@ class LifecycleTests(unittest.TestCase):
                 "NOT_APPLICABLE",
             ),
             (
+                {
+                    "classification": "blocked_unintegrated",
+                    "policyEligible": True,
+                    "retentionHours": 72.0,
+                    "forceCloseUnintegratedAfterRetention": True,
+                },
+                "CLEAN_IDLE_UNINTEGRATED",
+                "POLICY_FORCE_CLOSE_UNINTEGRATED",
+                "ELIGIBLE",
+            ),
+            (
                 {"classification": "blocked_active", "policyEligible": False},
                 "ACTIVE_DIRTY_STATE_UNINSPECTED",
                 "OBSERVE_OR_RECONCILE_ACTIVE_JOB",
@@ -326,6 +337,25 @@ class LifecycleTests(unittest.TestCase):
                 )
                 self.assertFalse(projection["semanticCompletionEvaluated"])
                 self.assertIn("Host/owner", projection["interpretation"])
+
+    def test_hard_lifetime_can_expire_despite_recent_activity(self) -> None:
+        policy = {
+            "schemaVersion": 1,
+            "defaultClass": "ephemeral",
+            "classes": {
+                "ephemeral": {
+                    "retentionHours": 72,
+                    "maxLifetimeHours": 168,
+                    "forceCloseDirtyAfterRetention": True,
+                    "forceCloseUnintegratedAfterRetention": True,
+                    "forceCloseAfterMaxLifetime": True,
+                }
+            },
+            "rules": [],
+            "sourceRepoAliases": {},
+        }
+        observed = self.module["retention_class"](policy, "ws-hard-ttl")
+        self.assertEqual(observed, ("ephemeral", 72.0, 168.0, True, True, True))
 
     def test_packaged_lifecycle_unit_only_invokes_supported_lifecycle_commands(self) -> None:
         unit = (REPO / "packaging/systemd/ordivon-runtime-lifecycle.service").read_text(
@@ -397,7 +427,7 @@ class LifecycleTests(unittest.TestCase):
             report = json.loads(result.stdout)
             item = report["candidates"][0]
             self.assertEqual(item["retentionClass"], "ephemeral")
-            self.assertEqual(item["retentionHours"], 48.0)
+            self.assertEqual(item["retentionHours"], 72.0)
             self.assertEqual(item["lastActivityUnixMs"], 2_000)
             self.assertEqual(item["retentionBasisUnixMs"], 2_000)
             self.assertTrue(item["policyEligible"])
@@ -1023,19 +1053,26 @@ class LifecycleTests(unittest.TestCase):
             )
 
 
-    def test_default_policy_never_force_closes_dirty_workspace(self) -> None:
+    def test_default_policy_is_disposable_with_idle_and_hard_ttl(self) -> None:
         ephemeral = self.module["DEFAULT_POLICY"]["classes"]["ephemeral"]
-        self.assertFalse(ephemeral["forceCloseDirtyAfterRetention"])
+        self.assertEqual(ephemeral["retentionHours"], 72.0)
+        self.assertEqual(ephemeral["maxLifetimeHours"], 168.0)
+        self.assertTrue(ephemeral["forceCloseDirtyAfterRetention"])
+        self.assertTrue(ephemeral["forceCloseUnintegratedAfterRetention"])
+        self.assertTrue(ephemeral["forceCloseAfterMaxLifetime"])
 
-    def test_packaged_default_policy_never_force_closes_dirty_workspace(self) -> None:
+    def test_packaged_default_policy_is_disposable_with_idle_and_hard_ttl(self) -> None:
         policy = json.loads(
             (REPO / "packaging/systemd/ordivon-workspace-retention.json").read_text(
                 encoding="utf-8"
             )
         )
-        self.assertFalse(
-            policy["classes"]["ephemeral"]["forceCloseDirtyAfterRetention"]
-        )
+        ephemeral = policy["classes"]["ephemeral"]
+        self.assertEqual(ephemeral["retentionHours"], 72)
+        self.assertEqual(ephemeral["maxLifetimeHours"], 168)
+        self.assertTrue(ephemeral["forceCloseDirtyAfterRetention"])
+        self.assertTrue(ephemeral["forceCloseUnintegratedAfterRetention"])
+        self.assertTrue(ephemeral["forceCloseAfterMaxLifetime"])
 
 
 if __name__ == "__main__":

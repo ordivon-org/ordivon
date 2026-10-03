@@ -1,12 +1,30 @@
 {
-  "schemaVersion": 1,
-  "defaultClass": "ephemeral",
   "classes": {
-    "ephemeral": {"retentionHours": 48, "forceCloseDirtyAfterRetention": false},
-    "review": {"retentionHours": 168, "forceCloseDirtyAfterRetention": false},
-    "pinned": {"retentionHours": null, "forceCloseDirtyAfterRetention": false}
+    "ephemeral": {
+      "forceCloseAfterMaxLifetime": true,
+      "forceCloseDirtyAfterRetention": true,
+      "forceCloseUnintegratedAfterRetention": true,
+      "maxLifetimeHours": 168,
+      "retentionHours": 72
+    },
+    "pinned": {
+      "forceCloseAfterMaxLifetime": false,
+      "forceCloseDirtyAfterRetention": false,
+      "forceCloseUnintegratedAfterRetention": false,
+      "maxLifetimeHours": null,
+      "retentionHours": null
+    },
+    "review": {
+      "forceCloseAfterMaxLifetime": true,
+      "forceCloseDirtyAfterRetention": true,
+      "forceCloseUnintegratedAfterRetention": true,
+      "maxLifetimeHours": 168,
+      "retentionHours": 168
+    }
   },
+  "defaultClass": "ephemeral",
   "rules": [],
+  "schemaVersion": 1,
   "sourceRepoAliases": {
     "/root/projects/agent-native-computing": "/root/projects/ordivon-computing"
   }

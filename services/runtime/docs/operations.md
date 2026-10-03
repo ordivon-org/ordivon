@@ -264,8 +264,9 @@ Workspace lifecycle has separate states and release rules:
 | Classification | Meaning | Automatic action |
 | --- | --- | --- |
 | `blocked_active` | an unresolved Job or active/held reservation exists | never |
-| `blocked_dirty` | tracked, staged, deleted, or untracked state exists | never |
-| `unknown` | identity, metadata, or Git health cannot be proven | never |
+| `blocked_dirty` | tracked, staged, deleted, or untracked state exists | low-level reclaim never selects it; policy-driven lifecycle may force-close it only when its configured retention class is eligible |
+| `blocked_unintegrated` | clean Workspace contains branch-exclusive source state not proven on canonical source | low-level reclaim never selects it; policy-driven lifecycle may force-close it only when its configured retention class is eligible |
+| `unknown` | identity, metadata, or Git health cannot be proven | never automatically; repair or exact-ID quarantine first |
 | `orphan_directory` | directory exists without an identity record | never automatically; exact-ID quarantine only |
 | `stale_record` | open record exists but the physical Workspace is absent | old record may be archived and deleted |
 | `closable` | Workspace is healthy, clean, and has no active Job | old Workspace may be released through `workspace.close` |
@@ -296,9 +297,9 @@ scripts/ordivon-runtime-reclaim apply \
   --pretty
 ```
 
-The default policy is seven days and includes only `stale_record` and `closable`. A `stale_record` candidate carries a digest from inspection; apply requires the record to remain a regular file with the same digest, rechecks Workspace absence and active Jobs, copies it into the receipt, and only then deletes it. `closable` Workspaces are never removed directly; the tool calls the Runtime's `workspace.close` contract with `force=false`, preserving active-Job exclusion, dirty-state refusal, rescue refs, tombstones, and idempotency.
+The low-level `ordivon-runtime-reclaim apply` default is a seven-day conservative clean/stale policy and includes only `stale_record` and `closable`. It is intentionally narrower than the policy-driven lifecycle described below. A `stale_record` candidate carries a digest from inspection; apply requires the record to remain a regular file with the same digest, rechecks Workspace absence and active Jobs, copies it into the receipt, and only then deletes it. `closable` Workspaces are never removed directly; the low-level tool calls the Runtime's `workspace.close` contract with `force=false`, preserving active-Job exclusion, dirty-state refusal, rescue refs, tombstones, and idempotency.
 
-Dirty Workspaces remain outside automatic reclaim. Use the evidence-only review first:
+Dirty Workspaces remain outside the automatic **low-level reclaim** path. Policy-driven lifecycle may separately select eligible dirty Workspaces under the configured disposable-carrier retention class. When an owner wants to inspect or preserve recoverable bytes before policy expiry, use the evidence-only review first:
 
 ```bash
 ordivon-runtime-lifecycle dirty-review \
@@ -330,7 +331,7 @@ The command is a **physical recovery operation, not a semantic disposition and n
 - an `index/` tree for the staged state; v1 fails closed on unmerged indexes and in-progress Git operations rather than pretending their continuation metadata is recoverable;
 - a manifest whose `truthRole` is `physical-recovery-carrier-not-semantic-standing`.
 
-`stateDigest` identifies this Git recovery representation. It is **not** Runtime `sourceStateDigest` and must never substitute for it. The safe release sequence remains:
+`stateDigest` identifies this Git recovery representation. It is **not** Runtime `sourceStateDigest` and must never substitute for it. For an owner-directed release that chooses to preserve dirty bytes independently of the live worktree, the recovery sequence is:
 
 ```text
 workspace.get -> exact Runtime sourceStateDigest
@@ -347,7 +348,7 @@ The apply command is a policy executor, not a timer. Scheduling is intentionally
 
 ### Policy-driven lifecycle
 
-The low-level reclaim command remains the only release executor. `ordivon-runtime-lifecycle` adds the installed retention policy without creating another Workspace database or querying Registry tables directly. It derives the retention basis from Workspace creation plus the Runtime-projected latest durable Job/Attempt activity and treats active or held Jobs as leases. The packaged policy defaults every Workspace identity—generated or readable—to `ephemeral` for 48 hours. Expired `ephemeral` Workspaces may be force-closed even when dirty, but only through the existing `workspace.close(force=true)` contract, so active/held Jobs and cross-Workspace Git authority still fail closed. `review` and `pinned` classes do not opt into dirty force-close; only explicit exact/prefix rules promote selected identities to those classes. Naming is therefore no longer mistaken for retention intent.
+The low-level reclaim command remains the conservative clean/stale release executor. `ordivon-runtime-lifecycle` adds the higher-level disposable-carrier retention policy without creating another Workspace database or querying Registry tables directly. It derives inactivity from Workspace creation plus the Runtime-projected latest durable Job/Attempt activity and treats active or held Jobs as hard leases. The packaged `ephemeral` class uses a 72-hour inactivity lease and a 168-hour absolute lifetime; eligible dirty and clean-but-unintegrated carriers may be force-closed through the existing `workspace.close(force=true)` boundary. The `review` class uses a 168-hour inactivity lease and the same 168-hour absolute lifetime. Explicitly `pinned` Workspaces remain exempt from automatic expiry. `unknown` and `orphan_directory` identities are not blindly deleted because their exact target identity is unproven; they remain on repair/quarantine paths. Exact/prefix rules, not naming conventions, select non-default classes.
 
 ```bash
 scripts/ordivon-runtime-lifecycle inspect \
@@ -366,9 +367,9 @@ scripts/ordivon-runtime-lifecycle sweep \
   --confirm-policy APPLY_WORKSPACE_RETENTION_POLICY --pretty
 ```
 
-The packaged timer runs the Runtime lifecycle service daily with a randomized delay. The Workspace phase can only select policy-expired `closable` and `stale_record` entries; dirty, active, unintegrated, pinned, unknown, and orphan-directory cases remain excluded. A clean Git worktree is only a mechanical precondition for closure, not semantic evidence that its branch work survived elsewhere. `closable` therefore requires one of two canonical integration proofs: either the Workspace HEAD is reachable from the current `sourceRepo` HEAD, or every branch-exclusive non-merge commit has a `git patch-id --verbatim` equivalent on the canonical side and there are no branch-exclusive merge commits. Ordinary whitespace-insensitive patch equivalence is intentionally insufficient for automatic deletion. Missing or uncomparable Git evidence fails closed as `unknown`; unique commits or merge topology classify as `blocked_unintegrated`.
+The packaged timer runs the Runtime lifecycle service daily with a randomized delay. Workspace retention follows a disposable-execution-substrate policy: the default ephemeral class has a 72-hour inactivity lease and a 168-hour absolute lifetime. Active or held Jobs and explicitly pinned Workspaces remain protected. After the inactivity lease, dirty and clean-but-unintegrated Workspaces are force-closed by policy; after the absolute lifetime, closable, stale_record, dirty, and unintegrated Workspaces are force-closed even if intermittent activity would otherwise renew the inactivity lease. unknown and orphan_directory identities are not blindly deleted because Runtime cannot prove the target identity; they continue through repair/quarantine. Every closure remains receipted and uses the Runtime workspace.close / reclaim boundary rather than direct filesystem deletion.
 
-Reclaim apply also re-reads `workspace.get` immediately before deletion. The fresh `currentHeadRevision` must equal the revision classified during planning, the Workspace must still be clean, and the fresh `sourceStateDigest` is passed unchanged to `workspace.close(expectedSourceStateDigest=...)`. This makes the final removal a compare-and-swap transition rather than a time-of-check/time-of-use guess. The subordinate reclaim receipt is linked from the lifecycle receipt. The same oneshot then runs cache pruning as a separate receipt domain; Workspace retention does not become cache authority. Packaged cache pruning reads `ORDIVON_CACHE_HIGH_WATERMARK_BYTES` and `ORDIVON_CACHE_LOW_WATERMARK_BYTES` from the same Runtime operator environment used by health/status. An explicit `ordivon-runtime-cache prune` invocation may override those values with CLI watermarks; without either an environment file or explicit values, the standalone command retains its 64 GiB / 48 GiB defaults.
+The low-level reclaim apply path also re-reads `workspace.get` immediately before deletion. The fresh `currentHeadRevision` must equal the revision classified during planning, the Workspace must still be clean, and the fresh `sourceStateDigest` is passed unchanged to `workspace.close(expectedSourceStateDigest=...)`. This makes the low-level clean/stale removal a compare-and-swap transition rather than a time-of-check/time-of-use guess. The subordinate reclaim receipt is linked from the lifecycle receipt. The same oneshot then runs cache pruning as a separate receipt domain; Workspace retention does not become cache authority. Packaged cache pruning reads `ORDIVON_CACHE_HIGH_WATERMARK_BYTES` and `ORDIVON_CACHE_LOW_WATERMARK_BYTES` from the same Runtime operator environment used by health/status. An explicit `ordivon-runtime-cache prune` invocation may override those values with CLI watermarks; without either an environment file or explicit values, the standalone command retains its 64 GiB / 48 GiB defaults.
 
 The `--confirm-policy` / `--confirm-quarantine` phrases on these root-operated maintenance CLIs are human/operator anti-mistake ceremony, not semantic authority. The actual protection comes from classification, exact Workspace identity, active-Job checks, locks, before/after receipts, and preserved bytes. Future Agent-facing control surfaces should express deliberate intent and affected identities structurally rather than asking an Agent to echo a magic phrase.
 
