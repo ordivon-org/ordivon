@@ -34,9 +34,27 @@ DEFAULT_POLICY = {
     "schemaVersion": 1,
     "defaultClass": "ephemeral",
     "classes": {
-        "ephemeral": {"retentionHours": 48.0, "forceCloseDirtyAfterRetention": False},
-        "review": {"retentionHours": 168.0, "forceCloseDirtyAfterRetention": False},
-        "pinned": {"retentionHours": None, "forceCloseDirtyAfterRetention": False},
+        "ephemeral": {
+            "retentionHours": 72.0,
+            "maxLifetimeHours": 168.0,
+            "forceCloseDirtyAfterRetention": True,
+            "forceCloseUnintegratedAfterRetention": True,
+            "forceCloseAfterMaxLifetime": True,
+        },
+        "review": {
+            "retentionHours": 168.0,
+            "maxLifetimeHours": 168.0,
+            "forceCloseDirtyAfterRetention": True,
+            "forceCloseUnintegratedAfterRetention": True,
+            "forceCloseAfterMaxLifetime": True,
+        },
+        "pinned": {
+            "retentionHours": None,
+            "maxLifetimeHours": None,
+            "forceCloseDirtyAfterRetention": False,
+            "forceCloseUnintegratedAfterRetention": False,
+            "forceCloseAfterMaxLifetime": False,
+        },
     },
     "rules": [],
     "sourceRepoAliases": {},
@@ -293,11 +311,21 @@ def load_policy(path: Path | None) -> dict[str, object]:
         hours = definition.get("retentionHours")
         if hours is not None and (not isinstance(hours, (int, float)) or hours < 0):
             raise RuntimeError(f"retentionHours for {name} must be null or non-negative")
-        force_dirty = definition.get("forceCloseDirtyAfterRetention", False)
-        if not isinstance(force_dirty, bool):
+        max_lifetime = definition.get("maxLifetimeHours")
+        if max_lifetime is not None and (
+            not isinstance(max_lifetime, (int, float)) or max_lifetime < 0
+        ):
             raise RuntimeError(
-                f"forceCloseDirtyAfterRetention for {name} must be boolean"
+                f"maxLifetimeHours for {name} must be null or non-negative"
             )
+        for field in (
+            "forceCloseDirtyAfterRetention",
+            "forceCloseUnintegratedAfterRetention",
+            "forceCloseAfterMaxLifetime",
+        ):
+            flag_value = definition.get(field, False)
+            if not isinstance(flag_value, bool):
+                raise RuntimeError(f"{field} for {name} must be boolean")
     default_class = value.get("defaultClass")
     if default_class not in classes:
         raise RuntimeError("defaultClass must name a configured class")
@@ -320,7 +348,7 @@ def load_policy(path: Path | None) -> dict[str, object]:
 
 def retention_class(
     policy: dict[str, object], workspace_id: str
-) -> tuple[str, float | None, bool]:
+) -> tuple[str, float | None, float | None, bool, bool, bool]:
     classes = policy["classes"]
     assert isinstance(classes, dict)
     selected = str(policy["defaultClass"])
@@ -336,12 +364,24 @@ def retention_class(
     definition = classes[selected]
     assert isinstance(definition, dict)
     hours = definition.get("retentionHours")
+    max_lifetime = definition.get("maxLifetimeHours")
     force_dirty = definition.get("forceCloseDirtyAfterRetention", False)
+    force_unintegrated = definition.get(
+        "forceCloseUnintegratedAfterRetention", False
+    )
+    force_max = definition.get("forceCloseAfterMaxLifetime", False)
     assert isinstance(force_dirty, bool)
+    assert isinstance(force_unintegrated, bool)
+    assert isinstance(force_max, bool)
     return (
         selected,
         float(hours) if isinstance(hours, (int, float)) else None,
+        float(max_lifetime)
+        if isinstance(max_lifetime, (int, float))
+        else None,
         force_dirty,
+        force_unintegrated,
+        force_max,
     )
 
 
@@ -351,14 +391,29 @@ def carrier_projection(item: dict[str, object]) -> dict[str, object]:
     classification = str(item.get("classification", "unknown"))
     policy_eligible = item.get("policyEligible") is True
     retention_hours = item.get("retentionHours")
-    retention_applies = classification in {"closable", "stale_record"} or (
-        classification == "blocked_dirty"
-        and item.get("forceCloseDirtyAfterRetention") is True
+    max_lifetime_hours = item.get("maxLifetimeHours")
+    hard_lifetime_expired = item.get("hardLifetimeExpired") is True
+    retention_applies = (
+        classification in {"closable", "stale_record"}
+        or (
+            classification == "blocked_dirty"
+            and item.get("forceCloseDirtyAfterRetention") is True
+        )
+        or (
+            classification == "blocked_unintegrated"
+            and item.get("forceCloseUnintegratedAfterRetention") is True
+        )
+        or (
+            hard_lifetime_expired
+            and item.get("forceCloseAfterMaxLifetime") is True
+            and classification
+            in {"closable", "stale_record", "blocked_dirty", "blocked_unintegrated"}
+        )
     )
     if retention_applies:
         if policy_eligible:
             retention_state = "ELIGIBLE"
-        elif retention_hours is None:
+        elif retention_hours is None and max_lifetime_hours is None:
             retention_state = "PINNED"
         else:
             retention_state = "WAITING"
@@ -373,7 +428,13 @@ def carrier_projection(item: dict[str, object]) -> dict[str, object]:
         owner_disposition_required = True
     elif classification == "blocked_dirty":
         physical_state = "DIRTY_IDLE"
-        if policy_eligible and item.get("forceCloseDirtyAfterRetention") is True:
+        if policy_eligible and (
+            item.get("forceCloseDirtyAfterRetention") is True
+            or (
+                hard_lifetime_expired
+                and item.get("forceCloseAfterMaxLifetime") is True
+            )
+        ):
             next_step = "POLICY_FORCE_CLOSE_DIRTY"
             dirty_handoff_required = False
             owner_disposition_required = False
@@ -384,10 +445,20 @@ def carrier_projection(item: dict[str, object]) -> dict[str, object]:
         clean_close_candidate = False
     elif classification == "blocked_unintegrated":
         physical_state = "CLEAN_IDLE_UNINTEGRATED"
-        next_step = "INTEGRATE_OR_EXPLICITLY_DISPOSITION_SOURCE"
+        if policy_eligible and (
+            item.get("forceCloseUnintegratedAfterRetention") is True
+            or (
+                hard_lifetime_expired
+                and item.get("forceCloseAfterMaxLifetime") is True
+            )
+        ):
+            next_step = "POLICY_FORCE_CLOSE_UNINTEGRATED"
+            owner_disposition_required = False
+        else:
+            next_step = "INTEGRATE_OR_EXPLICITLY_DISPOSITION_SOURCE"
+            owner_disposition_required = True
         clean_close_candidate = False
         dirty_handoff_required = False
-        owner_disposition_required = True
     elif classification == "blocked_active":
         physical_state = "ACTIVE_DIRTY_STATE_UNINSPECTED"
         next_step = "OBSERVE_OR_RECONCILE_ACTIVE_JOB"
@@ -527,29 +598,66 @@ def enrich_report(args: argparse.Namespace) -> dict[str, object]:
             continue
         item = dict(raw)
         workspace_id = str(item["workspaceId"])
-        class_name, retention_hours, force_dirty = retention_class(policy, workspace_id)
+        (
+            class_name,
+            retention_hours,
+            max_lifetime_hours,
+            force_dirty,
+            force_unintegrated,
+            force_max,
+        ) = retention_class(policy, workspace_id)
         created_ms = item.get("createdUnixMs")
         activity_ms = activity_by_workspace.get(workspace_id)
-        basis_values = [value for value in (created_ms, activity_ms) if isinstance(value, int)]
+        basis_values = [
+            value for value in (created_ms, activity_ms) if isinstance(value, int)
+        ]
         basis_ms = max(basis_values) if basis_values else None
         eligible_at = (
             int(basis_ms + retention_hours * 3_600_000)
             if basis_ms is not None and retention_hours is not None
             else None
         )
-        classification = item.get("classification")
-        eligible_class = classification in {"closable", "stale_record"} or (
-            classification == "blocked_dirty" and force_dirty
+        hard_expires_at = (
+            int(created_ms + max_lifetime_hours * 3_600_000)
+            if isinstance(created_ms, int) and max_lifetime_hours is not None
+            else None
         )
-        eligible = eligible_class and eligible_at is not None and eligible_at <= now_ms
+        idle_expired = eligible_at is not None and eligible_at <= now_ms
+        hard_lifetime_expired = (
+            hard_expires_at is not None and hard_expires_at <= now_ms
+        )
+        classification = item.get("classification")
+        idle_eligible_class = (
+            classification in {"closable", "stale_record"}
+            or (classification == "blocked_dirty" and force_dirty)
+            or (
+                classification == "blocked_unintegrated"
+                and force_unintegrated
+            )
+        )
+        hard_eligible_class = (
+            force_max
+            and classification
+            in {"closable", "stale_record", "blocked_dirty", "blocked_unintegrated"}
+        )
+        eligible = (
+            (idle_eligible_class and idle_expired)
+            or (hard_eligible_class and hard_lifetime_expired)
+        )
         item.update(
             {
                 "retentionClass": class_name,
                 "retentionHours": retention_hours,
+                "maxLifetimeHours": max_lifetime_hours,
                 "forceCloseDirtyAfterRetention": force_dirty,
+                "forceCloseUnintegratedAfterRetention": force_unintegrated,
+                "forceCloseAfterMaxLifetime": force_max,
                 "lastActivityUnixMs": activity_ms,
                 "retentionBasisUnixMs": basis_ms,
                 "eligibleAtUnixMs": eligible_at,
+                "hardExpiresAtUnixMs": hard_expires_at,
+                "idleRetentionExpired": idle_expired,
+                "hardLifetimeExpired": hard_lifetime_expired,
                 "policyEligible": eligible,
             }
         )
@@ -638,7 +746,11 @@ def sweep(args: argparse.Namespace) -> dict[str, object]:
             str(item["workspaceId"])
             for item in selected_items
             if item.get("classification") == "blocked_dirty"
-            and item.get("forceCloseDirtyAfterRetention") is True
+        ]
+        unintegrated_selected = [
+            str(item["workspaceId"])
+            for item in selected_items
+            if item.get("classification") == "blocked_unintegrated"
         ]
         reclaim_selected = [
             str(item["workspaceId"])
@@ -680,26 +792,30 @@ def sweep(args: argparse.Namespace) -> dict[str, object]:
             actions.extend(subordinate.get("actions", []))
             failures.extend(subordinate.get("failures", []))
             reclaim_receipt = subordinate.get("receipt")
-        for workspace_id in dirty_selected:
-            try:
-                close_result = force_close_workspace(args.env_file, workspace_id)
-                actions.append(
-                    {
-                        "workspaceId": workspace_id,
-                        "classification": "blocked_dirty",
-                        "action": "workspace_force_closed_by_retention_policy",
-                        "closureDisposition": close_result.get("closureDisposition"),
-                        "removed": close_result.get("removed"),
-                    }
-                )
-            except Exception as error:
-                failures.append(
-                    {
-                        "workspaceId": workspace_id,
-                        "classification": "blocked_dirty",
-                        "error": str(error),
-                    }
-                )
+        for classification, workspace_ids in (
+            ("blocked_dirty", dirty_selected),
+            ("blocked_unintegrated", unintegrated_selected),
+        ):
+            for workspace_id in workspace_ids:
+                try:
+                    close_result = force_close_workspace(args.env_file, workspace_id)
+                    actions.append(
+                        {
+                            "workspaceId": workspace_id,
+                            "classification": classification,
+                            "action": "workspace_force_closed_by_retention_policy",
+                            "closureDisposition": close_result.get("closureDisposition"),
+                            "removed": close_result.get("removed"),
+                        }
+                    )
+                except Exception as error:
+                    failures.append(
+                        {
+                            "workspaceId": workspace_id,
+                            "classification": classification,
+                            "error": str(error),
+                        }
+                    )
         after = enrich_report(args)
         write_json_atomic(receipt / "after.json", after)
         result = {
@@ -707,6 +823,7 @@ def sweep(args: argparse.Namespace) -> dict[str, object]:
             "status": "completed" if not failures else "partial",
             "selectedWorkspaceIds": selected,
             "forceDirtyWorkspaceIds": dirty_selected,
+            "forceUnintegratedWorkspaceIds": unintegrated_selected,
             "actions": actions,
             "failures": failures,
             "reclaimReceipt": reclaim_receipt,
