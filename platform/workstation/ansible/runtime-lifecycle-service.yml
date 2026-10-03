@@ -1,0 +1,138 @@
+---
+- name: Realize Ordivon Runtime lifecycle systemd unit
+  hosts: localhost
+  connection: local
+  become: true
+  gather_facts: false
+  vars:
+    runtime_lifecycle_source: >-
+      {{ playbook_dir }}/../../../services/runtime/packaging/systemd/ordivon-runtime-lifecycle.service
+    runtime_lifecycle_target: /etc/systemd/system/ordivon-runtime-lifecycle.service
+    runtime_lifecycle_unit: ordivon-runtime-lifecycle.service
+
+  tasks:
+    - name: Require caller-bound exact source digest
+      ansible.builtin.assert:
+        that:
+          - runtime_lifecycle_expected_sha256 is defined
+          - runtime_lifecycle_expected_sha256 is string
+          - runtime_lifecycle_expected_sha256 is match('^sha256:[0-9a-f]{64}$')
+        fail_msg: runtime_lifecycle_expected_sha256 must be an exact sha256 digest
+
+    - name: Inspect exact Runtime-owned source unit
+      ansible.builtin.stat:
+        path: "{{ runtime_lifecycle_source }}"
+        checksum_algorithm: sha256
+      register: runtime_lifecycle_source_state
+
+    - name: Fence source bytes before any node-local effect
+      ansible.builtin.assert:
+        that:
+          - runtime_lifecycle_source_state.stat.exists
+          - runtime_lifecycle_source_state.stat.isreg
+          - >-
+            ('sha256:' ~ runtime_lifecycle_source_state.stat.checksum)
+            == runtime_lifecycle_expected_sha256
+        fail_msg: Runtime lifecycle source bytes do not match the caller-bound digest
+
+    - name: Inspect installed preimage
+      ansible.builtin.stat:
+        path: "{{ runtime_lifecycle_target }}"
+        checksum_algorithm: sha256
+      register: runtime_lifecycle_target_before
+
+    - name: Realize exact lifecycle unit with native systemd ownership
+      block:
+        - name: Install exact Runtime-owned lifecycle unit bytes
+          ansible.builtin.copy:
+            src: "{{ runtime_lifecycle_source }}"
+            dest: "{{ runtime_lifecycle_target }}"
+            owner: root
+            group: root
+            mode: "0644"
+            backup: true
+          register: runtime_lifecycle_install
+
+        - name: Reload systemd manager after unit-byte change
+          ansible.builtin.systemd_service:
+            daemon_reload: true
+          when:
+            - runtime_lifecycle_install.changed
+            - not ansible_check_mode
+
+        - name: Read back installed target digest
+          ansible.builtin.stat:
+            path: "{{ runtime_lifecycle_target }}"
+            checksum_algorithm: sha256
+          register: runtime_lifecycle_target_after
+          when: not ansible_check_mode
+
+        - name: Read back systemd manager ownership
+          ansible.builtin.systemd_service:
+            name: "{{ runtime_lifecycle_unit }}"
+          register: runtime_lifecycle_manager_state
+          changed_when: false
+          when: not ansible_check_mode
+
+        - name: Require exact installed bytes and loaded manager fragment
+          ansible.builtin.assert:
+            that:
+              - runtime_lifecycle_target_after.stat.exists
+              - runtime_lifecycle_target_after.stat.isreg
+              - >-
+                ('sha256:' ~ runtime_lifecycle_target_after.stat.checksum)
+                == runtime_lifecycle_expected_sha256
+              - runtime_lifecycle_manager_state.status.FragmentPath == runtime_lifecycle_target
+              - runtime_lifecycle_manager_state.status.LoadState == 'loaded'
+            fail_msg: Installed lifecycle unit failed exact systemd readback
+          when: not ansible_check_mode
+
+      rescue:
+        - name: Restore prior unit bytes after failed postcondition
+          ansible.builtin.copy:
+            src: "{{ runtime_lifecycle_install.backup_file }}"
+            dest: "{{ runtime_lifecycle_target }}"
+            owner: root
+            group: root
+            mode: "0644"
+            remote_src: true
+          when:
+            - runtime_lifecycle_install is defined
+            - runtime_lifecycle_install.backup_file is defined
+            - runtime_lifecycle_target_before.stat.exists
+
+        - name: Remove newly created unit when no preimage existed
+          ansible.builtin.file:
+            path: "{{ runtime_lifecycle_target }}"
+            state: absent
+          when:
+            - runtime_lifecycle_install is defined
+            - not runtime_lifecycle_target_before.stat.exists
+
+        - name: Reload systemd manager after rollback
+          ansible.builtin.systemd_service:
+            daemon_reload: true
+          when: not ansible_check_mode
+
+        - name: Fail after rollback attempt
+          ansible.builtin.fail:
+            msg: Runtime lifecycle unit realization failed and rollback was attempted
+
+    - name: Report exact realization evidence
+      ansible.builtin.debug:
+        msg:
+          source_sha256: "sha256:{{ runtime_lifecycle_source_state.stat.checksum }}"
+          previous_target_sha256: >-
+            {{ ('sha256:' ~ runtime_lifecycle_target_before.stat.checksum)
+               if runtime_lifecycle_target_before.stat.exists else none }}
+          installed_target_sha256: >-
+            {{ ('sha256:' ~ runtime_lifecycle_target_after.stat.checksum)
+               if (not ansible_check_mode) else none }}
+          backup_file: "{{ runtime_lifecycle_install.backup_file | default(none) }}"
+          fragment_path: >-
+            {{ runtime_lifecycle_manager_state.status.FragmentPath
+               if (not ansible_check_mode) else none }}
+          load_state: >-
+            {{ runtime_lifecycle_manager_state.status.LoadState
+               if (not ansible_check_mode) else none }}
+          policy_file_mutated: false
