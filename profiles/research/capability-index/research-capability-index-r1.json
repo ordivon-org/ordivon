@@ -32,6 +32,33 @@
       "truthBoundary": "This Research route is non-authoritative composition metadata. Study/domain owners retain scientific truth and completion authority; Skills remain advisory; Runtime owns only physical execution evidence."
     },
     {
+      "capability": "research.community.discovery",
+      "completionOwner": "study",
+      "description": "Discover scoped community discussion records from qualified external community providers while preserving provider access boundaries and source provenance; community discussion is not promoted into scholarly or scientific truth.",
+      "directInvocationRecipes": [],
+      "executionCapability": null,
+      "routeProblemClasses": [
+        "community.discovery"
+      ],
+      "semanticOwner": "study.source-selection-and-evidence-authorities",
+      "skillResolutionNote": "Route only after exact provider currentness/binding is established; community retrieval does not establish source quality, evidential sufficiency, or provider authorization.",
+      "sourceRefs": [
+        "catalogs/capabilities/packages/research.md",
+        ".agents/skills/research-capability-routing/SKILL.md"
+      ],
+      "studyTypes": [
+        "all"
+      ],
+      "tags": [
+        "research",
+        "community",
+        "discussion",
+        "source-discovery",
+        "provider"
+      ],
+      "truthBoundary": "This Research route is non-authoritative composition metadata. Study/domain owners retain scientific truth and completion authority; provider owners retain external access/data truth; Runtime owns only physical execution evidence."
+    },
+    {
       "capability": "research.citation.metadata",
       "completionOwner": "study",
       "description": "Verify scholarly citation and DOI metadata while preserving provider/source authority.",

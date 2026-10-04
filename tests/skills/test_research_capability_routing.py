@@ -40,6 +40,7 @@ class ResearchCapabilityRoutingTests(unittest.TestCase):
         profile = json.loads(PROFILE.read_text(encoding="utf-8"))
         self.assertEqual(profile["truthRole"], "task-routing-profile-not-scientific-or-execution-authority")
         self.assertIn("scholarly.discovery", profile["problemClasses"])
+        self.assertIn("community.discovery", profile["problemClasses"])
         self.assertIn("data.analytical-query", profile["problemClasses"])
         self.assertIn("workflow.scientific-dag", profile["problemClasses"])
         self.assertIn("workflow.durable-process", profile["problemClasses"])
@@ -54,6 +55,45 @@ class ResearchCapabilityRoutingTests(unittest.TestCase):
         self.assertEqual(durable["selectedRoute"]["providerClass"], "temporal")
         self.assertEqual(physical["selectedRoute"]["providerClass"], "ordivon-runtime")
         self.assertNotEqual(dag["selectedRoute"]["providerClass"], durable["selectedRoute"]["providerClass"] )
+
+    def test_community_discovery_requires_exact_provider_binding(self) -> None:
+        r = self.R
+        missing = r.resolve(r.RouteRequest(problem_class="community.discovery"), observations={})
+        self.assertEqual(missing["standing"], "HOLD_CURRENTNESS_REQUIRED")
+
+        unbound = r.resolve(
+            r.RouteRequest(problem_class="community.discovery"),
+            observations={"provider:community-discussion-search": {"state": "ready"}},
+        )
+        self.assertEqual(unbound["standing"], "HOLD_NO_READY_ROUTE")
+        self.assertEqual(unbound["candidates"][0]["availability"]["state"], "binding_missing")
+
+        binding = "provider-contract:community-search:qualified-r1"
+        routed = r.resolve(
+            r.RouteRequest(problem_class="community.discovery"),
+            observations={
+                "provider:community-discussion-search": {
+                    "state": "ready",
+                    "bindings": {"community.discovery": binding},
+                }
+            },
+        )
+        self.assertEqual(routed["standing"], "ROUTED")
+        self.assertEqual(routed["selectedRoute"]["providerClass"], "community-discussion-search")
+        self.assertEqual(routed["selectedRoute"]["providerBinding"], binding)
+        self.assertFalse(routed["selectedRoute"]["scientificSemanticAuthority"])
+        self.assertFalse(routed["authorizationEstablished"])
+
+    def test_community_route_is_provider_generic_not_discord_workflow_identity(self) -> None:
+        profile = json.loads(PROFILE.read_text(encoding="utf-8"))
+        route = next(
+            row for row in profile["routes"]
+            if row["routeId"] == "provider.community-discussion-search"
+        )
+        material = json.dumps(route, sort_keys=True).lower()
+        self.assertNotIn("discord", material)
+        self.assertNotIn("n8n", material)
+        self.assertEqual(route["bindingProblemClass"], "community.discovery")
 
     def test_scholarly_discovery_prefers_specialized_skill_not_generic_agent(self) -> None:
         r = self.R
@@ -154,6 +194,7 @@ class ResearchCapabilityRoutingTests(unittest.TestCase):
         profile = json.loads(PROFILE.read_text(encoding="utf-8"))
         declared = set(profile["problemClasses"])
         capabilities = [row["capability"] for row in index["capabilities"]]
+        self.assertIn("research.community.discovery", capabilities)
         self.assertEqual(len(capabilities), len(set(capabilities)))
         for row in index["capabilities"]:
             self.assertLessEqual(set(row["routeProblemClasses"]), declared)

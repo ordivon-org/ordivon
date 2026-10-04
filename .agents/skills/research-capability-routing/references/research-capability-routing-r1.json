@@ -7,12 +7,14 @@
     "A studied provider is not available until its natural owner or caller establishes current availability.",
     "Scientific DAG, durable workflow, and physical execution are distinct semantic objects with distinct owners.",
     "Provider/tool success never establishes Study/domain completion.",
-    "No generic Agent fallback is admitted when a required specialist route is unavailable."
+    "No generic Agent fallback is admitted when a required specialist route is unavailable.",
+    "Community/community discussion discovery remains distinct from scholarly discovery and requires an exact current provider binding plus external scope/authority; routing never grants that authority."
   ],
   "kind": "ordivon.research-capability-routing-profile",
   "principle": "Given an explicit research action, select the thinnest specialized owner/provider/workflow whose currentness is established by its natural owner; never turn discovery into authorization or provider success into scientific completion.",
   "problemClasses": [
     "scholarly.discovery",
+    "community.discovery",
     "citation.identity",
     "scholarly.synthesis",
     "hypothesis.formulation",
@@ -65,6 +67,34 @@
         "source identity/provenance",
         "query coverage appropriate to Study"
       ]
+    },
+    {
+      "routeId": "provider.community-discussion-search",
+      "rank": 10,
+      "problemClasses": [
+        "community.discovery"
+      ],
+      "providerClass": "community-discussion-search",
+      "providerRef": "qualified-community-discussion-search",
+      "bindingAuthority": "selected-provider",
+      "currentnessKey": "provider:community-discussion-search",
+      "bindingProblemClass": "community.discovery",
+      "provides": [
+        "community-discussion-search",
+        "source-bound-message-retrieval",
+        "scoped-discussion-context"
+      ],
+      "invocation": {
+        "surface": "provider-native",
+        "operation": "search-scoped-community-discussion",
+        "handoff": "invoke the exact current provider binding only under its external community scope/authority; provider implementation details remain provider-owned"
+      },
+      "verification": [
+        "provider/source provenance",
+        "explicit provider scope and authority currentness",
+        "task-local retrieval adequacy"
+      ],
+      "scientificSemanticAuthority": false
     },
     {
       "bindingAuthority": "skills-owner",
