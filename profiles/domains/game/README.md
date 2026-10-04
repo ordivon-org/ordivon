@@ -148,33 +148,33 @@ Canonical local crosswalks:
 - [`GAME_CATEGORY_CROSSWALK_R1.md`](GAME_CATEGORY_CROSSWALK_R1.md) — external market/category vocabulary;
 - [`GAME_MECHANISM_CATALOG_R1.md`](GAME_MECHANISM_CATALOG_R1.md) — normalized mechanism/pattern families;
 - [`GAME_MECHANISM_COMPOSITION_PROFILE_R1.md`](GAME_MECHANISM_COMPOSITION_PROFILE_R1.md) — graph-based design-search method;
-- [`GAME_MECHANISM_EVIDENCE_R1.md`](GAME_MECHANISM_EVIDENCE_R1.md) — frozen first migration snapshot;
-- [`GAME_MECHANISM_EVIDENCE_R2.md`](GAME_MECHANISM_EVIDENCE_R2.md) — current cumulative evidence and stronger composition gates;
-- [`GAME_COMPOSITION_SEARCH_R1.md`](GAME_COMPOSITION_SEARCH_R1.md) — first evidence-guided mechanism-graph search and reuse-first experiment wave;
-- [`GAME_COMPOSITION_SEARCH_R2.md`](GAME_COMPOSITION_SEARCH_R2.md) — current bridge-driven 10-graph experiment search with bounded unknowns and falsifier economics;
-- [`GAME_COMPOSITION_REALIZATIONS_R1.md`](GAME_COMPOSITION_REALIZATIONS_R1.md) — execution ledger separating search snapshots from physically realized falsifier apparatus;
-- [`GAME_PRODUCT_COMPOSITION_R1.md`](GAME_PRODUCT_COMPOSITION_R1.md) — whole-product composition definitions: PC01 Causal Works, PC02 Persistent Workshop, PC03 Loop Cartographer;
-- [`game-product-composition-r1.json`](game-product-composition-r1.json) — machine-readable original product-composition slate and execution order;
-- [`GAME_PRODUCT_COMPOSITION_VOI_R1.md`](GAME_PRODUCT_COMPOSITION_VOI_R1.md) — post-F0 Value-of-Information comparison that supersedes only the next experiment-allocation decision;
-- [`game-product-composition-voi-r1.json`](game-product-composition-voi-r1.json) — machine-readable post-F0 allocation decision and PC03-F0 minimum carrier contract;
+- [`GAME_MECHANISM_EVIDENCE_R1.md`](../../../studies/game/mechanism-composition-r1/GAME_MECHANISM_EVIDENCE_R1.md) — frozen first migration snapshot;
+- [`GAME_MECHANISM_EVIDENCE_R2.md`](../../../studies/game/mechanism-composition-r1/GAME_MECHANISM_EVIDENCE_R2.md) — current cumulative evidence and stronger composition gates;
+- [`GAME_COMPOSITION_SEARCH_R1.md`](../../../studies/game/mechanism-composition-r1/GAME_COMPOSITION_SEARCH_R1.md) — first evidence-guided mechanism-graph search and reuse-first experiment wave;
+- [`GAME_COMPOSITION_SEARCH_R2.md`](../../../studies/game/mechanism-composition-r1/GAME_COMPOSITION_SEARCH_R2.md) — current bridge-driven 10-graph experiment search with bounded unknowns and falsifier economics;
+- [`GAME_COMPOSITION_REALIZATIONS_R1.md`](../../../studies/game/mechanism-composition-r1/GAME_COMPOSITION_REALIZATIONS_R1.md) — execution ledger separating search snapshots from physically realized falsifier apparatus;
+- [`GAME_PRODUCT_COMPOSITION_R1.md`](../../../studies/game/mechanism-composition-r1/GAME_PRODUCT_COMPOSITION_R1.md) — whole-product composition definitions: PC01 Causal Works, PC02 Persistent Workshop, PC03 Loop Cartographer;
+- [`game-product-composition-r1.json`](../../../studies/game/mechanism-composition-r1/game-product-composition-r1.json) — machine-readable original product-composition slate and execution order;
+- [`GAME_PRODUCT_COMPOSITION_VOI_R1.md`](../../../studies/game/mechanism-composition-r1/GAME_PRODUCT_COMPOSITION_VOI_R1.md) — post-F0 Value-of-Information comparison that supersedes only the next experiment-allocation decision;
+- [`game-product-composition-voi-r1.json`](../../../studies/game/mechanism-composition-r1/game-product-composition-voi-r1.json) — machine-readable post-F0 allocation decision and PC03-F0 minimum carrier contract;
 - [`GAME_AUTONOMOUS_INTEREST_PROTOCOL_R1.md`](../../../studies/game/autonomous-interest/domains/game/GAME_AUTONOMOUS_INTEREST_PROTOCOL_R1.md) — frozen no-live-Human-judgment autonomous whole-product synthesis and sealed-holdout protocol;
 - [`game-autonomous-interest-protocol-r1.json`](../../../studies/game/autonomous-interest/domains/game/game-autonomous-interest-protocol-r1.json) — machine-readable R1 search budget, surrogate/anti-Goodhart contract, freeze rules and Human endpoint;
-- [`GAME_TOP_MECHANISM_SPECIMENS_R1.md`](GAME_TOP_MECHANISM_SPECIMENS_R1.md) — 16 elite/canonical game decompositions and 12 recurring structural motifs;
-- [`GAME_TOP_MECHANISM_SPECIMENS_R2.md`](GAME_TOP_MECHANISM_SPECIMENS_R2.md) — current cumulative 27-specimen / 23-motif mechanism map, with R2 gap-filling coverage;
-- [`GAME_TOP_MECHANISM_SPECIMENS_R3.md`](GAME_TOP_MECHANISM_SPECIMENS_R3.md) — current cumulative 37-specimen / 33-motif map, coverage-guided but not coverage-optimized;
-- [`GAME_MECHANISM_SPACE_COVERAGE_R1.md`](GAME_MECHANISM_SPACE_COVERAGE_R1.md) — diagnostic family/element coverage map and admission law;
-- [`GAME_TOP_MOTIF_BRIDGE_R1.md`](GAME_TOP_MOTIF_BRIDGE_R1.md) — crosswalk from 33 top-game motifs to strong local evidence without causal upgrading;
+- [`GAME_TOP_MECHANISM_SPECIMENS_R1.md`](../../../studies/game/mechanism-composition-r1/GAME_TOP_MECHANISM_SPECIMENS_R1.md) — 16 elite/canonical game decompositions and 12 recurring structural motifs;
+- [`GAME_TOP_MECHANISM_SPECIMENS_R2.md`](../../../studies/game/mechanism-composition-r1/GAME_TOP_MECHANISM_SPECIMENS_R2.md) — current cumulative 27-specimen / 23-motif mechanism map, with R2 gap-filling coverage;
+- [`GAME_TOP_MECHANISM_SPECIMENS_R3.md`](../../../studies/game/mechanism-composition-r1/GAME_TOP_MECHANISM_SPECIMENS_R3.md) — current cumulative 37-specimen / 33-motif map, coverage-guided but not coverage-optimized;
+- [`GAME_MECHANISM_SPACE_COVERAGE_R1.md`](../../../studies/game/mechanism-composition-r1/GAME_MECHANISM_SPACE_COVERAGE_R1.md) — diagnostic family/element coverage map and admission law;
+- [`GAME_TOP_MOTIF_BRIDGE_R1.md`](../../../studies/game/mechanism-composition-r1/GAME_TOP_MOTIF_BRIDGE_R1.md) — crosswalk from 33 top-game motifs to strong local evidence without causal upgrading;
 - [`game-design-space-r1.json`](game-design-space-r1.json) — machine-readable category/mechanism crosswalk;
-- [`game-mechanism-evidence-r1.json`](game-mechanism-evidence-r1.json) — frozen R1 machine ledger;
-- [`game-mechanism-evidence-r2.json`](game-mechanism-evidence-r2.json) — current cumulative 50-specimen / 60-claim machine ledger;
-- [`game-composition-search-r1.json`](game-composition-search-r1.json) — machine-readable 8-candidate composition search;
-- [`game-composition-search-r2.json`](game-composition-search-r2.json) — current machine-readable 10-candidate bridge-driven composition search;
-- [`game-composition-realizations-r1.json`](game-composition-realizations-r1.json) — machine-readable realization status and exact external apparatus anchors;
-- [`game-top-mechanism-specimens-r1.json`](game-top-mechanism-specimens-r1.json) — machine-readable top-game mechanism specimen map.
-- [`game-top-mechanism-specimens-r2.json`](game-top-mechanism-specimens-r2.json) — current cumulative top-game mechanism specimen/motif map.
-- [`game-top-mechanism-specimens-r3.json`](game-top-mechanism-specimens-r3.json) — current cumulative top-game mechanism specimen/motif ledger;
-- [`game-mechanism-space-coverage-r1.json`](game-mechanism-space-coverage-r1.json) — machine-readable coverage diagnostic.
-- [`game-top-motif-bridge-r1.json`](game-top-motif-bridge-r1.json) — machine-readable external↔local motif evidence bridge.
+- [`game-mechanism-evidence-r1.json`](../../../studies/game/mechanism-composition-r1/game-mechanism-evidence-r1.json) — frozen R1 machine ledger;
+- [`game-mechanism-evidence-r2.json`](../../../studies/game/mechanism-composition-r1/game-mechanism-evidence-r2.json) — current cumulative 50-specimen / 60-claim machine ledger;
+- [`game-composition-search-r1.json`](../../../studies/game/mechanism-composition-r1/game-composition-search-r1.json) — machine-readable 8-candidate composition search;
+- [`game-composition-search-r2.json`](../../../studies/game/mechanism-composition-r1/game-composition-search-r2.json) — current machine-readable 10-candidate bridge-driven composition search;
+- [`game-composition-realizations-r1.json`](../../../studies/game/mechanism-composition-r1/game-composition-realizations-r1.json) — machine-readable realization status and exact external apparatus anchors;
+- [`game-top-mechanism-specimens-r1.json`](../../../studies/game/mechanism-composition-r1/game-top-mechanism-specimens-r1.json) — machine-readable top-game mechanism specimen map.
+- [`game-top-mechanism-specimens-r2.json`](../../../studies/game/mechanism-composition-r1/game-top-mechanism-specimens-r2.json) — current cumulative top-game mechanism specimen/motif map.
+- [`game-top-mechanism-specimens-r3.json`](../../../studies/game/mechanism-composition-r1/game-top-mechanism-specimens-r3.json) — current cumulative top-game mechanism specimen/motif ledger;
+- [`game-mechanism-space-coverage-r1.json`](../../../studies/game/mechanism-composition-r1/game-mechanism-space-coverage-r1.json) — machine-readable coverage diagnostic.
+- [`game-top-motif-bridge-r1.json`](../../../studies/game/mechanism-composition-r1/game-top-motif-bridge-r1.json) — machine-readable external↔local motif evidence bridge.
 
 PC01 and PC02 now have whole-composition survival evidence at different depths, and the post-F0 VoI decision allocates the next bounded experiment to **PC03 Loop Cartographer** as the orthogonal anti-system-bias control. PC03 must reuse PGP-A rather than reopen infrastructure: build one interactive whole-composition falsifier that couples stable movement, reusable rule knowledge, route choice, fast retry and retained execution demand. Apparatus-valid evidence upgrades only the claim it actually identifies: Human felt/experienced Player Value requires relevant Human participant evidence, while structural, behavioural, causal and population claims use their own admissible evidence carriers. Product commitment remains a domain decision over scoped findings, objectives, consequences, uncertainty and remaining information value; it is not a generic Human approval gate.
 
