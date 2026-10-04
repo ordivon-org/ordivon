@@ -155,6 +155,25 @@ def parse_args() -> argparse.Namespace:
 
     sweep = sub.add_parser("sweep", help="release policy-expired clean Workspaces")
     add_common(sweep)
+    sweep.add_argument(
+        "--workspace-id",
+        action="append",
+        dest="workspace_ids",
+        help=(
+            "sweep only this natural-owner-selected Workspace; repeat for a bounded "
+            "acceptance cohort"
+        ),
+    )
+    sweep.add_argument(
+        "--workspace-ref",
+        action="append",
+        dest="workspace_refs",
+        help=(
+            "consume one Host/natural-owner navigation reference of the exact form "
+            "runtime:workspace:<workspaceId>; repeat for a bounded acceptance cohort. "
+            "The reference selects a carrier only and does not establish semantic completion."
+        ),
+    )
     sweep.add_argument("--env-file", type=absolute_path, required=True)
     sweep.add_argument("--receipt-root", type=absolute_path, required=True)
     sweep.add_argument("--lock-file", type=absolute_path, required=True)
@@ -1439,7 +1458,11 @@ def sweep(args: argparse.Namespace) -> dict[str, object]:
     validate_runtime_authority(args.database, args.runtime_store_root, args.env_file)
 
     with exclusive_lock(args.lock_file):
+        requested_workspace_ids = selected_workspace_ids(args)
+        selection_mode = "bounded" if requested_workspace_ids else "global"
         before = enrich_report(args)
+        before["selectionMode"] = selection_mode
+        before["requestedWorkspaceIds"] = list(requested_workspace_ids)
         selected_items = [
             item
             for item in before.get("candidates", [])
@@ -1520,10 +1543,14 @@ def sweep(args: argparse.Namespace) -> dict[str, object]:
                 )
 
         after = enrich_report(args)
+        after["selectionMode"] = selection_mode
+        after["requestedWorkspaceIds"] = list(requested_workspace_ids)
         write_json_atomic(receipt / "after.json", after)
         result = {
             "schemaVersion": SCHEMA_VERSION,
             "status": "completed" if not failures else "partial",
+            "selectionMode": selection_mode,
+            "requestedWorkspaceIds": list(requested_workspace_ids),
             "selectedWorkspaceIds": selected,
             "forceDirtyWorkspaceIds": planned_dirty,
             "forceUnintegratedWorkspaceIds": planned_unintegrated,
