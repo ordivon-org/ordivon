@@ -120,6 +120,19 @@ class AffectedOwnersTests(unittest.TestCase):
             [owner.name for owner in MODULE.OWNERS],
         )
 
+    def test_living_projection_compilers_are_cross_cutting(self) -> None:
+        for path in (
+            "tools/repo/living_view.py",
+            "tools/repo/test_living_view.py",
+            "tools/repo/information_census.py",
+            "tools/repo/test_information_census.py",
+        ):
+            with self.subTest(path=path):
+                self.assertEqual(
+                    self.names(path),
+                    [owner.name for owner in MODULE.OWNERS],
+                )
+
     def test_dependency_policy_change_is_cross_cutting(self) -> None:
         self.assertEqual(
             self.names("tools/repo/dependency_contracts.toml"),

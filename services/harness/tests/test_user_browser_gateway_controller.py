@@ -244,6 +244,24 @@ def test_classify_driver_does_not_require_effect_identity_parameters():
     assert 'EffectId and RequestDigest are required outside classify mode' in script
 
 
+def test_windows_driver_fails_closed_on_temporary_or_non_durable_compose_routes_before_send():
+    script = (Path(__file__).resolve().parents[1] / "scripts" / "windows_user_browser_chatgpt.ps1").read_text()
+    assert "function Test-CanonicalChatGptComposeAddress" in script
+    assert "return $value -in @('https://chatgpt.com','chatgpt.com')" in script
+    assert "function Get-CanonicalChatGptRootNavigationChoice" in script
+    assert "$prefix='https://chatgpt.com'" in script
+    assert "$name.StartsWith($prefix,[StringComparison]::OrdinalIgnoreCase)" in script
+    assert "$rest[0] -eq [char]0xFF0C" in script
+    assert "-like 'https://chatgpt.com*'" not in script
+    assert "temporary or non-durable ChatGPT compose route observed before effect" in script
+    assert "user-browser:temporary-or-nondurable-compose-route-before-effect" in script
+    assert "user-browser:temporary-or-nondurable-compose-route-before-send" in script
+    send_fence = script.index("$providerEffectAttempted=$true", script.index("$send=Get-SendControl"))
+    assert script.index("$preSendAddress=Get-AddressValue $root") < send_fence
+    assert script.index("Test-CanonicalChatGptComposeAddress $preSendAddress") < send_fence
+    assert script.index("Emit-Receipt 'pre-effect-failed' $null 'user-browser:temporary-or-nondurable-compose-route-before-send'") < send_fence
+
+
 def test_windows_driver_canonicalizes_chrome_omnibox_coordinate_and_waits_for_stable_binding():
     script = (Path(__file__).resolve().parents[1] / 'scripts' / 'windows_user_browser_chatgpt.ps1').read_text()
     assert 'function Get-CanonicalChatResource' in script

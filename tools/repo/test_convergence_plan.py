@@ -81,6 +81,21 @@ class ConvergencePlanTests(unittest.TestCase):
         )
         self.assertEqual(plan["scopeIds"], ["owner-component:ALL"])
 
+    def test_living_projection_compiler_change_requires_all_owner_verification(self) -> None:
+        for path in (
+            "tools/repo/living_view.py",
+            "tools/repo/information_census.py",
+        ):
+            with self.subTest(path=path):
+                plan = MODULE.build_plan(changed_files=[path])
+                self.assertTrue(plan["crossCutting"])
+                self.assertEqual(plan["queueClass"], "CROSS_CUTTING")
+                self.assertEqual(
+                    plan["verificationOwners"],
+                    sorted(owner.name for owner in MODULE.affected_owners.OWNERS),
+                )
+                self.assertEqual(plan["scopeIds"], ["owner-component:ALL"])
+
     def test_repository_only_change_does_not_invent_domain_impact(self) -> None:
         plan = MODULE.build_plan(changed_files=["docs/architecture/EXAMPLE.md"])
         self.assertEqual(plan["queueClass"], "REPOSITORY_ONLY")

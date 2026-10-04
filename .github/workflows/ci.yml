@@ -72,6 +72,69 @@ jobs:
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: mise run repo:secrets:verify-full-history
 
+      - name: Build Living Recursive LEGO View
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          MERGE_GROUP_BASE: ${{ github.event.merge_group.base_sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          base=""
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            base="$PR_BASE"
+          elif [[ "$EVENT_NAME" == "merge_group" ]]; then
+            base="$MERGE_GROUP_BASE"
+          elif [[ "$EVENT_NAME" == "push" ]]; then
+            base="$PUSH_BEFORE"
+          fi
+          living="$RUNNER_TEMP/ordivon-living-view.json"
+          living_args=(--revision HEAD --output "$living")
+          if [[ -n "$base" && ! "$base" =~ ^0+$ ]]; then
+            living_args+=(--base "$base")
+          fi
+          python3 tools/repo/living_view.py "${living_args[@]}"
+          {
+            echo "### Living Recursive LEGO View"
+            python3 - "$living" <<'PYVIEW'
+          import json
+          import sys
+
+          value = json.load(open(sys.argv[1], encoding="utf-8"))
+          source = value["sourceView"]
+          delta = value.get("deltaView")
+          print(f"- view digest: {value['viewDigest']}")
+          print(f"- source revision: {source['sourceRevision']}")
+          print(f"- source tree: {source['sourceTree']}")
+          information = source["informationCoverage"]
+          info_coverage = information["coverage"]
+          info_refs = information["referenceProjection"]["sourcePathStandingCounts"]
+          print(f"- information tracked files: {info_coverage['trackedFiles']}")
+          print(f"- information top-level kinds: {info_coverage['uniqueTopLevelKinds']}")
+          print(f"- source refs exact: {info_refs.get('EXACT_UNIQUE', 0)}")
+          print(f"- source refs ambiguous: {info_refs.get('AMBIGUOUS_EXACT', 0)}")
+          print(f"- source refs unresolved: {info_refs.get('UNRESOLVED_IN_SOURCE_CUT', 0)}")
+          if delta is None:
+              print("- delta: source-only")
+          else:
+              invalidation = delta["sourceInvalidation"]
+              requal = delta["verificationRequalification"]
+              print(f"- delta standing: {invalidation['standing']}")
+              print(f"- source invalidation owners: {', '.join(invalidation['ownerRefs']) or 'none'}")
+              print(f"- verification requalification owners: {', '.join(requal['ownerRefs']) or 'none'}")
+              print(f"- unclassified changed-path count: {len(delta['unclassifiedChangedPaths'])}")
+          PYVIEW
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Retain Living Recursive LEGO View
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ordivon-living-view-${{ github.sha }}
+          path: ${{ runner.temp }}/ordivon-living-view.json
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Repository mechanics
         run: mise run repo:ci
 

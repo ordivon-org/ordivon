@@ -88,6 +88,8 @@ run = """
 set -euo pipefail
 python3 tools/repo/test_affected_owners.py
 python3 tools/repo/test_convergence_plan.py
+python3 tools/repo/test_living_view.py
+python3 tools/repo/test_information_census.py
 python3 tools/repo/test_owner_boundaries.py
 python3 tools/repo/check_owner_boundaries.py
 python3 tools/repo/check_composition_architecture.py
@@ -120,6 +122,21 @@ set -euo pipefail
 tools/repo/migration/check-primary-main.sh /root/projects/ordivon
 """
 
+
+[tasks."living-view:verify"]
+run = """
+set -euo pipefail
+python3 tools/repo/test_information_census.py
+python3 tools/repo/test_living_view.py
+python3 tools/repo/living_view.py --revision HEAD --output /tmp/ordivon-living-view.json
+"""
+
+[tasks."information-census:verify"]
+run = """
+set -euo pipefail
+python3 tools/repo/test_information_census.py
+python3 tools/repo/information_census.py --revision HEAD --output /tmp/ordivon-information-census.json
+"""
 
 [tasks."browser-security-study:verify"]
 run = """

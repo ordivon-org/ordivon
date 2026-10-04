@@ -405,6 +405,38 @@ function Get-AddressValue($Root) {
     } catch { return $null }
 }
 
+function Test-CanonicalChatGptComposeAddress([string]$Address) {
+    if([string]::IsNullOrWhiteSpace($Address)){return $false}
+    $value=$Address.Trim().TrimEnd('/')
+    return $value -in @('https://chatgpt.com','chatgpt.com')
+}
+
+function Get-CanonicalChatGptRootNavigationChoice($Root) {
+    $listCond=[System.Windows.Automation.PropertyCondition]::new(
+        [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+        [System.Windows.Automation.ControlType]::ListItem)
+    $items=$Root.FindAll([System.Windows.Automation.TreeScope]::Descendants,$listCond)
+    $matches=New-Object System.Collections.Generic.List[object]
+    $prefix='https://chatgpt.com'
+    for($i=0;$i -lt $items.Count;$i++){
+        $name=([string]$items.Item($i).Current.Name).Trim()
+        # Chrome exposes the destination first in the canonical URL suggestion. Require the
+        # root URL to terminate at a delimiter so /c/*, ?temporary-chat=true and search/history
+        # suggestions cannot be mistaken for a durable new-conversation entry point.
+        if(-not $name.StartsWith($prefix,[StringComparison]::OrdinalIgnoreCase)){continue}
+        $rest=$name.Substring($prefix.Length)
+        if($rest.StartsWith('/')){$rest=$rest.Substring(1)}
+        if(
+            $rest.Length -eq 0 -or
+            [char]::IsWhiteSpace($rest[0]) -or
+            $rest[0] -eq ',' -or
+            $rest[0] -eq [char]0xFF0C
+        ){$matches.Add($items.Item($i))}
+    }
+    if($matches.Count -eq 1){return $matches[0]}
+    return $null
+}
+
 
 function Invoke-UiElement($Element,[string]$Purpose) {
     $pattern=$null
@@ -728,14 +760,19 @@ if($Mode -eq 'classify'){
         $address.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).SetValue('https://chatgpt.com/')
         $address.SetFocus()
         Start-Sleep -Milliseconds 700
-        $listCond=[System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty,[System.Windows.Automation.ControlType]::ListItem)
-        $items=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,$listCond)
-        $choice=$null
-        for($i=0;$i -lt $items.Count;$i++){ if(([string]$items.Item($i).Current.Name) -like 'https://chatgpt.com*'){$choice=$items.Item($i);break} }
-        if($null -eq $choice){ Emit-Classification 'UNKNOWN' 'ChatGPT navigation choice unavailable'; exit 0 }
+        $choice=Get-CanonicalChatGptRootNavigationChoice $root
+        if($null -eq $choice){ Emit-Classification 'UNKNOWN' 'canonical ChatGPT root navigation choice unavailable or ambiguous'; exit 0 }
         $choice.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
         $page=Wait-ForChatGptPage $browser 75
-        if($page.Standing -eq 'READY'){Emit-Classification 'READY' $page.Detail;exit 0}
+        if($page.Standing -eq 'READY'){
+            $readyAddress=Get-AddressValue $page.Root
+            if(-not (Test-CanonicalChatGptComposeAddress $readyAddress)){
+                Emit-Classification 'UNKNOWN' 'temporary or non-durable ChatGPT compose route observed before effect'
+                exit 0
+            }
+            Emit-Classification 'READY' $page.Detail
+            exit 0
+        }
         if($page.Standing -eq 'CHALLENGE_GATED'){Emit-Classification 'CHALLENGE_GATED' $page.Detail;exit 0}
         if($page.Standing -eq 'AUTH_REQUIRED'){Emit-Classification 'AUTH_REQUIRED' $page.Detail;exit 0}
         if($page.Standing -eq 'NETWORK_UNAVAILABLE'){Emit-Classification 'UNKNOWN' $page.Detail;exit 0}
@@ -842,15 +879,9 @@ try {
     $address.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).SetValue('https://chatgpt.com/')
     $address.SetFocus()
     Start-Sleep -Milliseconds 700
-    $listCond=[System.Windows.Automation.PropertyCondition]::new(
-        [System.Windows.Automation.AutomationElement]::ControlTypeProperty,[System.Windows.Automation.ControlType]::ListItem)
-    $items=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,$listCond)
-    $choice=$null
-    for($i=0;$i -lt $items.Count;$i++){
-        if(([string]$items.Item($i).Current.Name) -like 'https://chatgpt.com*'){$choice=$items.Item($i);break}
-    }
+    $choice=Get-CanonicalChatGptRootNavigationChoice $root
     if($null -eq $choice){
-        Emit-Receipt 'pre-effect-failed' $null 'user-browser:chatgpt-navigation-choice-unavailable' $false 'nav-choice-unavailable'
+        Emit-Receipt 'pre-effect-failed' $null 'user-browser:canonical-chatgpt-root-navigation-choice-unavailable-or-ambiguous' $false 'nav-choice-unavailable'
         exit 0
     }
     $choice.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
@@ -869,6 +900,10 @@ try {
     if($page.Standing -ne 'READY' -or $null -eq $composer){
         Emit-Receipt 'pre-effect-failed' $null 'user-browser:composer-readiness-timeout' $false 'composer-readiness-timeout';exit 0
     }
+    $composeAddress=Get-AddressValue $root
+    if(-not (Test-CanonicalChatGptComposeAddress $composeAddress)){
+        Emit-Receipt 'pre-effect-failed' $null 'user-browser:temporary-or-nondurable-compose-route-before-effect' $false 'noncanonical-compose-route';exit 0
+    }
     if($null -ne $attachments){
         foreach($attachment in $attachments){
             Upload-ExactAttachment $browser $root ([string]$attachment.resolvedPath) ([string]$attachment.presentationName)
@@ -886,6 +921,12 @@ try {
         $null=Set-ComposerTextFresh $browser $prompt 'composer refresh before send'
         $root=Get-Root $browser
         $composer=Get-Composer $root
+    }
+    $preSendAddress=Get-AddressValue $root
+    if(-not (Test-CanonicalChatGptComposeAddress $preSendAddress)){
+        try{$null=Set-ComposerTextFresh $browser '' 'composer clear after noncanonical route'}catch{}
+        Emit-Receipt 'pre-effect-failed' $null 'user-browser:temporary-or-nondurable-compose-route-before-send' $false 'noncanonical-compose-route'
+        exit 0
     }
     $send=Get-SendControl $root $composer
     if($null -eq $send){
