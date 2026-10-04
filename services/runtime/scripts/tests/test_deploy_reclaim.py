@@ -3103,38 +3103,38 @@ class DeployReclaimTests(unittest.TestCase):
             self.assertTrue((receipt / "records/stale.json").is_file())
             self.assertEqual(report["actions"][0]["action"], "record_deleted")
 
-    def test_lifecycle_force_close_helper_uses_force_true(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            observed: list[dict[str, object]] = []
+    def test_lifecycle_close_helper_uses_force_and_exact_source_digest(self) -> None:
+        module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-lifecycle"))
+        close_once = module["close_workspace_once"]
+        globals_ = close_once.__globals__
+        original_client = globals_["runtime_client"]
+        observed: list[dict[str, object]] = []
+        expected_digest = "sha256:" + "d" * 64
 
-            def observe_arguments(arguments: dict[str, object]) -> None:
+        class FakeClient:
+            def call_tool(self, name, arguments):
+                self_outer.assertEqual(name, "workspace.close")
                 observed.append(dict(arguments))
+                return {"closureDisposition": "removed", "removed": True}
 
-            with mcp_server(
-                ["workspace.close"],
-                close_arguments_callback=observe_arguments,
-                modern=False,
-            ) as port:
-                env_file = root / "runtime.env"
-                env_file.write_text(
-                    f"ORDIVON_BIND=127.0.0.1:{port}\nORDIVON_BEARER_TOKEN=test\n",
-                    encoding="utf-8",
-                )
-                module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-lifecycle"))
-                result = module["force_close_workspace"](env_file, "dirty-expired")
-
-            self.assertEqual(result["closureDisposition"], "removed")
-            self.assertEqual(
-                observed,
-                [
-                    {
-                        "schemaVersion": 1,
-                        "workspaceId": "dirty-expired",
-                        "force": True,
-                    }
-                ],
+        self_outer = self
+        try:
+            globals_["runtime_client"] = lambda *_args, **_kwargs: FakeClient()
+            result = close_once(
+                Path("/unused"),
+                "dirty-expired",
+                force=True,
+                expected_source_state_digest=expected_digest,
             )
+        finally:
+            globals_["runtime_client"] = original_client
+
+        self.assertEqual(result["closureDisposition"], "removed")
+        self.assertEqual(len(observed), 1)
+        self.assertTrue(observed[0]["force"])
+        self.assertEqual(
+            observed[0]["expectedSourceStateDigest"], expected_digest
+        )
 
     def test_reclaim_apply_uses_workspace_close_for_clean_workspace(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
