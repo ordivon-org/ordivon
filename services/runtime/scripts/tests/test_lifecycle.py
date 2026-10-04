@@ -357,6 +357,540 @@ class LifecycleTests(unittest.TestCase):
         observed = self.module["retention_class"](policy, "ws-hard-ttl")
         self.assertEqual(observed, ("ephemeral", 72.0, 168.0, True, True, True))
 
+    def _prepared_r54_candidate(
+        self,
+        classification: str,
+        *,
+        created_age_hours: float = 100.0,
+        last_activity_age_hours: float = 73.0,
+    ) -> dict[str, object]:
+        now_ms = int(__import__("time").time() * 1000)
+        return {
+            "workspaceId": "ws-r54",
+            "classification": classification,
+            "createdUnixMs": int(now_ms - created_age_hours * 3_600_000),
+            "lastActivityUnixMs": int(now_ms - last_activity_age_hours * 3_600_000),
+            "activityMarker": "sha256:" + "a" * 64,
+            "retentionHours": 72.0,
+            "maxLifetimeHours": 168.0,
+            "forceCloseDirtyAfterRetention": True,
+            "forceCloseUnintegratedAfterRetention": True,
+            "forceCloseAfterMaxLifetime": True,
+            "canonicalHeadRevision": "c" * 40,
+            "sourceRepo": "/tmp/canonical",
+            "expectedSourceStateDigest": "sha256:" + "d" * 64,
+        }
+
+    def test_r54_under_fence_skips_renewed_l1_activity_for_all_close_classes(self) -> None:
+        revalidate = self.module["revalidate_prepared_item_under_fence"]
+        globals_ = revalidate.__globals__
+        original_registry = globals_["registry_workspace"]
+        original_head = globals_["canonical_head_revision"]
+        try:
+            for classification in (
+                "closable",
+                "blocked_dirty",
+                "blocked_unintegrated",
+            ):
+                with self.subTest(classification=classification):
+                    prepared = self._prepared_r54_candidate(classification)
+                    globals_["registry_workspace"] = lambda *_args, **_kwargs: {
+                        "workspaceId": "ws-r54",
+                        "activeJobIds": [],
+                        "lastActivityMs": int(__import__("time").time() * 1000),
+                        "activityMarker": "sha256:" + "b" * 64,
+                    }
+                    globals_["canonical_head_revision"] = lambda _item: "c" * 40
+                    retained, _state = revalidate(
+                        type("Args", (), {"database": Path("/unused"), "busy_timeout_ms": 1})(),
+                        prepared,
+                    )
+                    self.assertIsNotNone(retained)
+                    self.assertEqual(
+                        retained["reason"], "workspace_activity_changed_after_plan"
+                    )
+        finally:
+            globals_["registry_workspace"] = original_registry
+            globals_["canonical_head_revision"] = original_head
+
+    def test_r54_under_fence_hard_max_survives_renewed_activity(self) -> None:
+        revalidate = self.module["revalidate_prepared_item_under_fence"]
+        globals_ = revalidate.__globals__
+        original_registry = globals_["registry_workspace"]
+        original_head = globals_["canonical_head_revision"]
+        try:
+            prepared = self._prepared_r54_candidate(
+                "blocked_unintegrated", created_age_hours=169.0
+            )
+            globals_["registry_workspace"] = lambda *_args, **_kwargs: {
+                "workspaceId": "ws-r54",
+                "activeJobIds": [],
+                "lastActivityMs": int(__import__("time").time() * 1000),
+                "activityMarker": "sha256:" + "e" * 64,
+            }
+            globals_["canonical_head_revision"] = lambda _item: "c" * 40
+            retained, state = revalidate(
+                type("Args", (), {"database": Path("/unused"), "busy_timeout_ms": 1})(),
+                prepared,
+            )
+            self.assertIsNone(retained)
+            self.assertTrue(state["hardLifetimeExpired"])
+        finally:
+            globals_["registry_workspace"] = original_registry
+            globals_["canonical_head_revision"] = original_head
+
+    def test_r54_under_fence_vetoes_active_job_and_canonical_head_drift(self) -> None:
+        revalidate = self.module["revalidate_prepared_item_under_fence"]
+        globals_ = revalidate.__globals__
+        original_registry = globals_["registry_workspace"]
+        original_head = globals_["canonical_head_revision"]
+        prepared = self._prepared_r54_candidate("closable")
+        try:
+            globals_["registry_workspace"] = lambda *_args, **_kwargs: {
+                "workspaceId": "ws-r54",
+                "activeJobIds": ["job-live"],
+                "lastActivityMs": prepared["lastActivityUnixMs"],
+                "activityMarker": prepared["activityMarker"],
+            }
+            globals_["canonical_head_revision"] = lambda _item: "c" * 40
+            retained, _ = revalidate(
+                type("Args", (), {"database": Path("/unused"), "busy_timeout_ms": 1})(),
+                prepared,
+            )
+            self.assertEqual(retained["reason"], "workspace_active_after_plan")
+
+            globals_["registry_workspace"] = lambda *_args, **_kwargs: {
+                "workspaceId": "ws-r54",
+                "activeJobIds": [],
+                "lastActivityMs": prepared["lastActivityUnixMs"],
+                "activityMarker": prepared["activityMarker"],
+            }
+            globals_["canonical_head_revision"] = lambda _item: "f" * 40
+            retained, _ = revalidate(
+                type("Args", (), {"database": Path("/unused"), "busy_timeout_ms": 1})(),
+                prepared,
+            )
+            self.assertEqual(
+                retained["reason"], "canonicalHeadRevision_changed_after_plan"
+            )
+        finally:
+            globals_["registry_workspace"] = original_registry
+            globals_["canonical_head_revision"] = original_head
+
+    def test_admission_and_runtime_authority_are_exact_and_fail_closed(self) -> None:
+        with tempfile.TemporaryDirectory(dir=REPO) as temporary:
+            root = Path(temporary)
+            registry = root / "registry"
+            runtime = root / "runtime"
+            registry.mkdir()
+            runtime.mkdir()
+            database = registry / "registry.sqlite3"
+            database.touch()
+            env_file = root / "runtime.env"
+            env_file.write_text(
+                f"ORDIVON_REGISTRY_ROOT={registry}\n"
+                f"ORDIVON_STORE_ROOT={runtime}\n"
+                "ORDIVON_BIND=127.0.0.1:1\n"
+                "ORDIVON_BEARER_TOKEN=test\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(
+                self.module["validate_runtime_authority"](
+                    database, runtime, env_file
+                ),
+                registry / "admission.lock",
+            )
+            with self.assertRaisesRegex(RuntimeError, "store authority"):
+                self.module["validate_runtime_authority"](
+                    database, root / "other-store", env_file
+                )
+            wrong_database = registry / "other.sqlite3"
+            wrong_database.touch()
+            with self.assertRaisesRegex(RuntimeError, "Registry authority"):
+                self.module["validate_runtime_authority"](
+                    wrong_database, runtime, env_file
+                )
+
+    def test_r54_close_passes_exact_source_digest_for_clean_and_force(self) -> None:
+        close_once = self.module["close_workspace_once"]
+        globals_ = close_once.__globals__
+        original_client = globals_["runtime_client"]
+        calls: list[dict[str, object]] = []
+
+        class FakeClient:
+            def call_tool(self, name, arguments):
+                self_outer.assertEqual(name, "workspace.close")
+                calls.append(dict(arguments))
+                return {"closureDisposition": "removed", "removed": True}
+
+        self_outer = self
+        try:
+            globals_["runtime_client"] = lambda *_args, **_kwargs: FakeClient()
+            for force in (False, True):
+                calls.clear()
+                close_once(
+                    Path("/unused"),
+                    "ws-close",
+                    force=force,
+                    expected_source_state_digest="sha256:" + "d" * 64,
+                )
+                self.assertEqual(len(calls), 1)
+                self.assertEqual(calls[0]["force"], force)
+                self.assertEqual(
+                    calls[0]["expectedSourceStateDigest"], "sha256:" + "d" * 64
+                )
+        finally:
+            globals_["runtime_client"] = original_client
+
+    def test_r54_effect_binds_authority_and_close_client_to_one_env_snapshot(self) -> None:
+        attempt = self.module["_attempt_prepared_close"]
+        globals_ = attempt.__globals__
+        originals = {
+            name: globals_[name]
+            for name in (
+                "exclusive_admission_fence",
+                "load_environment_file",
+                "validate_runtime_authority_snapshot",
+                "runtime_client_from_environment",
+                "revalidate_prepared_item_under_fence",
+                "close_workspace_once",
+            )
+        }
+        events: list[str] = []
+        environment = {
+            "ORDIVON_REGISTRY_ROOT": "/authority-a/registry",
+            "ORDIVON_STORE_ROOT": "/authority-a/store",
+            "ORDIVON_BIND": "127.0.0.1:1",
+            "ORDIVON_BEARER_TOKEN": "test",
+        }
+        client = object()
+
+        from contextlib import contextmanager
+
+        @contextmanager
+        def fake_fence(_database):
+            events.append("enter")
+            try:
+                yield
+            finally:
+                events.append("exit")
+
+        def load_env(_path):
+            events.append("load-env")
+            return environment
+
+        def validate(database, store, observed):
+            self.assertIs(observed, environment)
+            self.assertEqual(database, Path("/authority-a/registry/registry.sqlite3"))
+            self.assertEqual(store, Path("/authority-a/store"))
+            events.append("validate-authority")
+            return Path("/authority-a/registry/admission.lock")
+
+        def make_client(observed, *, client_name):
+            self.assertIs(observed, environment)
+            self.assertEqual(client_name, "ordivon-runtime-lifecycle-close")
+            events.append("build-client")
+            return client
+
+        def close(*_args, **kwargs):
+            self.assertIs(kwargs["client"], client)
+            self.assertEqual(
+                kwargs["expected_source_state_digest"], "sha256:" + "d" * 64
+            )
+            events.append("close")
+            return {"closureDisposition": "removed", "removed": True}
+
+        try:
+            globals_["exclusive_admission_fence"] = fake_fence
+            globals_["load_environment_file"] = load_env
+            globals_["validate_runtime_authority_snapshot"] = validate
+            globals_["runtime_client_from_environment"] = make_client
+            globals_["revalidate_prepared_item_under_fence"] = (
+                lambda _args, _item: (None, {"bounded": True})
+            )
+            globals_["close_workspace_once"] = close
+            prepared = self._prepared_r54_candidate("blocked_dirty")
+            status, _value = attempt(
+                type(
+                    "Args",
+                    (),
+                    {
+                        "database": Path("/authority-a/registry/registry.sqlite3"),
+                        "runtime_store_root": Path("/authority-a/store"),
+                        "env_file": Path("/unused.env"),
+                    },
+                )(),
+                prepared,
+            )
+            self.assertEqual(status, "closed")
+            self.assertEqual(
+                events,
+                [
+                    "enter",
+                    "load-env",
+                    "validate-authority",
+                    "build-client",
+                    "close",
+                    "exit",
+                ],
+            )
+        finally:
+            for name, value in originals.items():
+                globals_[name] = value
+
+    def test_r54_unknown_close_releases_fence_before_replay(self) -> None:
+        attempt = self.module["_attempt_prepared_close"]
+        globals_ = attempt.__globals__
+        originals = {
+            name: globals_[name]
+            for name in (
+                "exclusive_admission_fence",
+                "load_environment_file",
+                "validate_runtime_authority_snapshot",
+                "runtime_client_from_environment",
+                "revalidate_prepared_item_under_fence",
+                "close_workspace_once",
+            )
+        }
+        events: list[str] = []
+        environment = {
+            "ORDIVON_REGISTRY_ROOT": "/authority-a/registry",
+            "ORDIVON_STORE_ROOT": "/authority-a/store",
+            "ORDIVON_BIND": "127.0.0.1:1",
+            "ORDIVON_BEARER_TOKEN": "test",
+        }
+
+        from contextlib import contextmanager
+
+        @contextmanager
+        def fake_fence(_database):
+            events.append("enter")
+            try:
+                yield
+            finally:
+                events.append("exit")
+
+        try:
+            globals_["exclusive_admission_fence"] = fake_fence
+            globals_["load_environment_file"] = lambda _path: environment
+            globals_["validate_runtime_authority_snapshot"] = lambda *_args: Path(
+                "/authority-a/registry/admission.lock"
+            )
+            globals_["runtime_client_from_environment"] = (
+                lambda *_args, **_kwargs: object()
+            )
+            globals_["revalidate_prepared_item_under_fence"] = (
+                lambda _args, _item: (None, {"bounded": True})
+            )
+            globals_["close_workspace_once"] = lambda *_args, **_kwargs: (_ for _ in ()).throw(
+                self.module["WorkspaceCloseDeliveryUncertain"](
+                    "ws-r54", "sha256:" + "d" * 64, TimeoutError("lost")
+                )
+            )
+            prepared = self._prepared_r54_candidate("blocked_dirty")
+            status, _value = attempt(
+                type(
+                    "Args",
+                    (),
+                    {
+                        "database": Path("/authority-a/registry/registry.sqlite3"),
+                        "runtime_store_root": Path("/authority-a/store"),
+                        "env_file": Path("/unused.env"),
+                    },
+                )(),
+                prepared,
+            )
+            self.assertEqual(status, "uncertain")
+            self.assertEqual(events, ["enter", "exit"])
+        finally:
+            for name, value in originals.items():
+                globals_[name] = value
+
+    def test_r54_unknown_replay_refences_and_uses_fresh_env_snapshot(self) -> None:
+        apply_candidate = self.module["apply_prepared_candidate"]
+        globals_ = apply_candidate.__globals__
+        originals = {
+            name: globals_[name]
+            for name in (
+                "exclusive_admission_fence",
+                "load_environment_file",
+                "validate_runtime_authority_snapshot",
+                "runtime_client_from_environment",
+                "revalidate_prepared_item_under_fence",
+                "close_workspace_once",
+                "closed_workspace_tombstone",
+            )
+        }
+        events: list[str] = []
+        envs = [
+            {
+                "ORDIVON_REGISTRY_ROOT": "/authority-a/registry",
+                "ORDIVON_STORE_ROOT": "/authority-a/store",
+                "ORDIVON_BIND": "127.0.0.1:1",
+                "ORDIVON_BEARER_TOKEN": "first",
+            },
+            {
+                "ORDIVON_REGISTRY_ROOT": "/authority-a/registry",
+                "ORDIVON_STORE_ROOT": "/authority-a/store",
+                "ORDIVON_BIND": "127.0.0.1:1",
+                "ORDIVON_BEARER_TOKEN": "second",
+            },
+        ]
+        load_count = 0
+        close_count = 0
+
+        from contextlib import contextmanager
+
+        @contextmanager
+        def fake_fence(_database):
+            events.append("enter")
+            try:
+                yield
+            finally:
+                events.append("exit")
+
+        def load_env(_path):
+            nonlocal load_count
+            observed = envs[load_count]
+            load_count += 1
+            events.append(f"load-{load_count}")
+            return observed
+
+        def validate(_database, _store, observed):
+            self.assertIs(observed, envs[load_count - 1])
+            events.append(f"validate-{load_count}")
+            return Path("/authority-a/registry/admission.lock")
+
+        def make_client(observed, *, client_name):
+            self.assertIs(observed, envs[load_count - 1])
+            events.append(f"client-{load_count}")
+            return {"generation": load_count, "name": client_name}
+
+        def close(*_args, **kwargs):
+            nonlocal close_count
+            close_count += 1
+            self.assertEqual(
+                kwargs["expected_source_state_digest"], "sha256:" + "d" * 64
+            )
+            self.assertEqual(kwargs["client"]["generation"], close_count)
+            events.append(f"close-{close_count}")
+            if close_count == 1:
+                raise self.module["WorkspaceCloseDeliveryUncertain"](
+                    "ws-r54",
+                    "sha256:" + "d" * 64,
+                    TimeoutError("lost"),
+                )
+            return {
+                "closureDisposition": "removed",
+                "removed": True,
+                "sourceStateDigest": "sha256:" + "d" * 64,
+            }
+
+        def tombstone(*_args, **_kwargs):
+            events.append("tombstone")
+            return None
+
+        try:
+            globals_["exclusive_admission_fence"] = fake_fence
+            globals_["load_environment_file"] = load_env
+            globals_["validate_runtime_authority_snapshot"] = validate
+            globals_["runtime_client_from_environment"] = make_client
+            globals_["revalidate_prepared_item_under_fence"] = (
+                lambda _args, _item: (None, {"bounded": True})
+            )
+            globals_["close_workspace_once"] = close
+            globals_["closed_workspace_tombstone"] = tombstone
+            prepared = self._prepared_r54_candidate("blocked_dirty")
+            result = apply_candidate(
+                type(
+                    "Args",
+                    (),
+                    {
+                        "database": Path("/authority-a/registry/registry.sqlite3"),
+                        "runtime_store_root": Path("/authority-a/store"),
+                        "env_file": Path("/unused.env"),
+                    },
+                )(),
+                prepared,
+            )
+            self.assertTrue(result["deliveryReconciled"])
+            self.assertEqual(result["responseLossReconciledBy"], "same_identity_replay")
+            self.assertEqual(load_count, 2)
+            self.assertEqual(close_count, 2)
+            self.assertEqual(
+                events,
+                [
+                    "enter",
+                    "load-1",
+                    "validate-1",
+                    "client-1",
+                    "close-1",
+                    "exit",
+                    "tombstone",
+                    "enter",
+                    "load-2",
+                    "validate-2",
+                    "client-2",
+                    "close-2",
+                    "exit",
+                ],
+            )
+        finally:
+            for name, value in originals.items():
+                globals_[name] = value
+
+    def test_r54_sweep_authority_mismatch_blocks_stale_subordinate_effect(self) -> None:
+        sweep = self.module["sweep"]
+        globals_ = sweep.__globals__
+        original_reclaim = globals_["reclaim_apply_selected"]
+        for mismatch in ("registry", "store"):
+            with self.subTest(mismatch=mismatch), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                registry = root / "registry"
+                runtime = root / "runtime"
+                registry.mkdir()
+                runtime.mkdir()
+                database = registry / "registry.sqlite3"
+                database.touch()
+                other_database = registry / "other.sqlite3"
+                other_database.touch()
+                other_store = root / "other-store"
+                other_store.mkdir()
+                env_file = root / "runtime.env"
+                env_file.write_text(
+                    f"ORDIVON_REGISTRY_ROOT={registry}\n"
+                    f"ORDIVON_STORE_ROOT={runtime}\n"
+                    "ORDIVON_BIND=127.0.0.1:1\n"
+                    "ORDIVON_BEARER_TOKEN=test\n",
+                    encoding="utf-8",
+                )
+                called = False
+
+                def forbidden_reclaim(*_args, **_kwargs):
+                    nonlocal called
+                    called = True
+                    self.fail("authority mismatch reached stale subordinate reclaim")
+
+                globals_["reclaim_apply_selected"] = forbidden_reclaim
+                args = type(
+                    "Args",
+                    (),
+                    {
+                        "confirm_policy": "APPLY_WORKSPACE_RETENTION_POLICY",
+                        "database": other_database if mismatch == "registry" else database,
+                        "runtime_store_root": other_store if mismatch == "store" else runtime,
+                        "env_file": env_file,
+                        "lock_file": root / "lifecycle.lock",
+                    },
+                )()
+                expected = (
+                    "Registry authority" if mismatch == "registry" else "store authority"
+                )
+                with self.assertRaisesRegex(RuntimeError, expected):
+                    sweep(args)
+                self.assertFalse(called)
+        globals_["reclaim_apply_selected"] = original_reclaim
+
     def test_packaged_lifecycle_unit_only_invokes_supported_lifecycle_commands(self) -> None:
         unit = (REPO / "packaging/systemd/ordivon-runtime-lifecycle.service").read_text(
             encoding="utf-8"
@@ -511,7 +1045,7 @@ class LifecycleTests(unittest.TestCase):
             )
 
     def test_sweep_selects_only_policy_expired_reclaimable_workspaces(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
+        with tempfile.TemporaryDirectory(dir=REPO) as temporary:
             root = Path(temporary)
             runtime = root / "runtime"
             records = runtime / "workspace-records"
@@ -551,7 +1085,7 @@ class LifecycleTests(unittest.TestCase):
                 "import json, sys\n"
                 "command = sys.argv[1]\n"
                 "if command == 'inspect':\n"
-                " print(json.dumps({'schemaVersion':1,'summary':{'counts':{'closable':1},'estimatedBytes':{'closable':10}},'candidates':[{'workspaceId':'ws-expired','classification':'closable','createdUnixMs':1,'estimatedBytes':10}]}))\n"
+                " print(json.dumps({'schemaVersion':1,'summary':{'counts':{'stale_record':1},'estimatedBytes':{'stale_record':10}},'candidates':[{'workspaceId':'ws-expired','classification':'stale_record','createdUnixMs':1,'estimatedBytes':10}]}))\n"
                 "elif command == 'apply':\n"
                 " ids=[sys.argv[i+1] for i,v in enumerate(sys.argv) if v == '--workspace-id']\n"
                 " print(json.dumps({'schemaVersion':1,'status':'completed','actions':[{'workspaceId':x,'action':'workspace_closed'} for x in ids],'failures':[],'receipt':'/fake/reclaim'}))\n"
@@ -561,7 +1095,10 @@ class LifecycleTests(unittest.TestCase):
             fake_reclaim.chmod(0o755)
             env_file = root / "runtime.env"
             env_file.write_text(
-                "ORDIVON_BIND=127.0.0.1:1\nORDIVON_BEARER_TOKEN=test\n",
+                f"ORDIVON_REGISTRY_ROOT={root}\n"
+                f"ORDIVON_STORE_ROOT={runtime}\n"
+                "ORDIVON_BIND=127.0.0.1:1\n"
+                "ORDIVON_BEARER_TOKEN=test\n",
                 encoding="utf-8",
             )
             environment = os.environ.copy()
@@ -979,7 +1516,7 @@ class LifecycleTests(unittest.TestCase):
 
 
     def test_sweep_rejects_incompatible_reclaim_contract_before_apply(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
+        with tempfile.TemporaryDirectory(dir=REPO) as temporary:
             root = Path(temporary)
             marker = root / "apply-called"
             fake_reclaim = root / "fake-reclaim"
@@ -995,6 +1532,18 @@ class LifecycleTests(unittest.TestCase):
                 encoding="utf-8",
             )
             fake_reclaim.chmod(0o755)
+            database = root / "registry.sqlite3"
+            database.touch()
+            runtime = root / "runtime"
+            runtime.mkdir()
+            env_file = root / "runtime.env"
+            env_file.write_text(
+                f"ORDIVON_REGISTRY_ROOT={root}\n"
+                f"ORDIVON_STORE_ROOT={runtime}\n"
+                "ORDIVON_BIND=127.0.0.1:1\n"
+                "ORDIVON_BEARER_TOKEN=test\n",
+                encoding="utf-8",
+            )
             environment = os.environ.copy()
             environment["ORDIVON_RUNTIME_RECLAIM"] = str(fake_reclaim)
             result = subprocess.run(
@@ -1003,11 +1552,11 @@ class LifecycleTests(unittest.TestCase):
                     "scripts/ordivon-runtime-lifecycle",
                     "sweep",
                     "--database",
-                    str(root / "unused.sqlite3"),
+                    str(database),
                     "--runtime-store-root",
-                    str(root / "runtime"),
+                    str(runtime),
                     "--env-file",
-                    str(root / "unused.env"),
+                    str(env_file),
                     "--receipt-root",
                     str(root / "receipts"),
                     "--lock-file",

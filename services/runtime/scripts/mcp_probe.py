@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import stat
 import time
 import urllib.error
@@ -14,16 +15,70 @@ from typing import Any
 MODERN_PROTOCOL_VERSION = "2026-07-28"
 LEGACY_PROTOCOL_VERSION = "2025-06-18"
 PROBE_USER_AGENT = "ordivon-mcp-probe/1"
+MAX_RUNTIME_ENV_FILE_BYTES = 64 * 1024
+MAX_BEARER_TOKEN_FILE_BYTES = 16_384
 
 
 class McpProbeError(RuntimeError):
     pass
 
 
+def _read_bounded_regular_file_text(
+    path: Path,
+    *,
+    max_bytes: int,
+    label: str,
+    require_private: bool = False,
+) -> str:
+    """Read one exact regular-file object through one bounded descriptor."""
+
+    nofollow = getattr(os, "O_NOFOLLOW", None)
+    if nofollow is None:
+        raise McpProbeError(f"{label} secure nofollow open is unavailable")
+    flags = os.O_RDONLY | os.O_NONBLOCK | nofollow | getattr(os, "O_CLOEXEC", 0)
+    try:
+        descriptor = os.open(path, flags)
+    except OSError as error:
+        raise McpProbeError(f"cannot securely open {label}") from error
+    try:
+        metadata = os.fstat(descriptor)
+        if not stat.S_ISREG(metadata.st_mode):
+            raise McpProbeError(f"{label} must be a regular file")
+        if require_private and stat.S_IMODE(metadata.st_mode) & 0o077:
+            raise McpProbeError(
+                f"{label} must not be accessible by group or others"
+            )
+        if metadata.st_size > max_bytes:
+            raise McpProbeError(f"{label} exceeds the configured bound")
+
+        remaining = max_bytes + 1
+        chunks: list[bytes] = []
+        while remaining > 0:
+            chunk = os.read(descriptor, remaining)
+            if not chunk:
+                break
+            chunks.append(chunk)
+            remaining -= len(chunk)
+        payload = b"".join(chunks)
+        if len(payload) > max_bytes:
+            raise McpProbeError(f"{label} exceeds the configured bound")
+        try:
+            return payload.decode("utf-8")
+        except UnicodeDecodeError as error:
+            raise McpProbeError(f"{label} must contain valid UTF-8") from error
+    finally:
+        os.close(descriptor)
+
+
 def load_environment_file(path: Path) -> dict[str, str]:
     """Read the bounded key=value subset used by Runtime's systemd EnvironmentFile."""
     values: dict[str, str] = {}
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
+    payload = _read_bounded_regular_file_text(
+        path,
+        max_bytes=MAX_RUNTIME_ENV_FILE_BYTES,
+        label="Runtime environment file",
+    )
+    for raw_line in payload.splitlines():
         line = raw_line.strip()
         if not line or line.startswith("#"):
             continue
@@ -51,16 +106,12 @@ def load_bearer_token(environment: dict[str, str]) -> str:
         path = Path(token_file)
         if not path.is_absolute():
             raise McpProbeError("ORDIVON_BEARER_TOKEN_FILE must be absolute")
-        metadata = path.lstat()
-        if path.is_symlink() or not stat.S_ISREG(metadata.st_mode):
-            raise McpProbeError("Runtime Bearer token path must be a regular file")
-        if stat.S_IMODE(metadata.st_mode) & 0o077:
-            raise McpProbeError(
-                "Runtime Bearer token file must not be accessible by group or others"
-            )
-        if metadata.st_size > 16_384:
-            raise McpProbeError("Runtime Bearer token file exceeds the configured bound")
-        token = path.read_text(encoding="utf-8").strip()
+        token = _read_bounded_regular_file_text(
+            path,
+            max_bytes=MAX_BEARER_TOKEN_FILE_BYTES,
+            label="Runtime Bearer token file",
+            require_private=True,
+        ).strip()
     else:
         raise McpProbeError(
             "environment must define one of ORDIVON_BEARER_TOKEN or ORDIVON_BEARER_TOKEN_FILE"
