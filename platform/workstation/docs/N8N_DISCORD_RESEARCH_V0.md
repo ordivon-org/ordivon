@@ -29,6 +29,23 @@ It is not a Discord account controller, archive service, RAG system, workflow au
 
 The source template is intentionally `active:false` and contains no credential ID. The HTTP Request node selects n8n's predefined `discordBotApi` credential type, but live credential ID/name binding is a deployment-time owner operation after BF1 authority currentness is established. Secret bytes must never be injected into workflow parameters, Git, Host messages, or generic evidence receipts.
 
+## Deployment binding
+
+The canonical workflow source deliberately contains no environment-specific credential object.
+
+After BF1 creates one live n8n `discordBotApi` credential, the Workstation-owned convergence path is:
+
+```bash
+sudo ORDIVON_DISCORD_N8N_CREDENTIAL_NAME=ordivon-discord-research-v0 \
+  ./platform/workstation/scripts/converge-n8n-discord-research-v0.sh
+```
+
+The convergence script reads only the credential metadata tuple `id/name/type`, requires exactly one matching `discordBotApi` credential, creates a mode-0600 transient import JSON with the n8n credential reference, imports/publishes the stable workflow ID, restarts the existing rootless n8n pod, and waits for readiness.
+
+It never selects or prints the encrypted credential payload or Bot token. Missing/ambiguous credentials fail before import/publish.
+
+This deployment success is still not Discord or Research semantic qualification. BF4 must execute the live provider canaries separately.
+
 ## Request contract
 
 CloudEvent type:

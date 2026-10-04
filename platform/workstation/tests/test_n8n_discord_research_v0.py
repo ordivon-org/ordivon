@@ -261,3 +261,24 @@ def test_unknown_status_stays_unknown() -> None:
     workflow = load_workflow()
     result = normalize(workflow, {"statusCode": 418, "headers": {}, "body": {}})
     assert result["data"]["status"] == "UNKNOWN"
+
+
+def test_deployment_convergence_binds_only_credential_metadata() -> None:
+    script = (ROOT / "scripts" / "converge-n8n-discord-research-v0.sh").read_text(encoding="utf-8")
+    assert "select id,name,type from credentials_entity" in script
+    assert "type='discordBotApi'" in script
+    assert "select data" not in script.lower()
+    assert "botToken" not in script
+    assert "DISCORD_BOT_TOKEN" not in script
+    assert 'http["credentials"]' in script
+    assert '"discordBotApi"' in script
+    assert 'workflow["active"] = True' in script
+    assert "n8n import:workflow" in script
+    assert "n8n publish:workflow" in script
+
+
+def test_deployment_convergence_requires_single_exact_credential() -> None:
+    script = (ROOT / "scripts" / "converge-n8n-discord-research-v0.sh").read_text(encoding="utf-8")
+    assert "expected exactly one n8n discordBotApi credential" in script
+    assert "ORDIVON_DISCORD_N8N_CREDENTIAL_NAME" in script
+    assert "credentials_entity where name='$CREDENTIAL_NAME' and type='discordBotApi'" in script
