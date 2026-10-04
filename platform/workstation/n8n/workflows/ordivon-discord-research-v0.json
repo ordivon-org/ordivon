@@ -1,0 +1,119 @@
+{
+  "id": "ordivon-discord-research-v0",
+  "name": "Ordivon Discord Research v0",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ordivon-discord-research-v0",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -620,
+        0
+      ],
+      "id": "1db907f0-45e3-4e28-900d-774475e9f001",
+      "name": "Webhook",
+      "webhookId": "1db907f0-45e3-4e28-900d-774475e9f002"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const input = $input.first().json;\nconst event = input.body ?? input;\nfor (const key of ['specversion', 'id', 'source', 'type', 'data']) {\n  if (event[key] === undefined || event[key] === null) throw new Error(`missing CloudEvent field: ${key}`);\n}\nif (event.specversion !== '1.0') throw new Error(`unsupported CloudEvents specversion: ${event.specversion}`);\nif (event.type !== 'io.ordivon.research.community.discord.search.request.v1') {\n  throw new Error(`unexpected event type: ${event.type}`);\n}\nconst data = event.data;\nconst snowflake = (value) => typeof value === 'string' && /^\\d{1,20}$/.test(value);\nconst stringArray = (value, max, label) => {\n  if (value === undefined) return [];\n  if (!Array.isArray(value) || value.length > max) throw new Error(`invalid ${label}`);\n  const out = [...new Set(value)];\n  if (out.length !== value.length || out.some((x) => !snowflake(x))) throw new Error(`invalid ${label}`);\n  return out;\n};\nif (typeof data.authorityRef !== 'string' || !data.authorityRef.trim()) throw new Error('missing authorityRef');\nif (!snowflake(data.guildId)) throw new Error('invalid guildId');\nconst channelIds = stringArray(data.channelIds, 500, 'channelIds');\nif (channelIds.length === 0) throw new Error('channelIds must be explicit and non-empty');\nif (typeof data.content !== 'string' || !data.content.trim() || data.content.length > 1024) {\n  throw new Error('content must be 1..1024 characters; broad unfiltered search is not admitted in v0');\n}\nconst authorIds = stringArray(data.authorIds, 100, 'authorIds');\nconst mentions = stringArray(data.mentions, 100, 'mentions');\nconst repliedToUserIds = stringArray(data.repliedToUserIds, 100, 'repliedToUserIds');\nconst allowedHas = new Set(['image','sound','video','file','sticker','embed','link','poll','snapshot']);\nconst has = data.has === undefined ? [] : data.has;\nif (!Array.isArray(has) || has.length > 32 || has.some((x) => typeof x !== 'string' || !allowedHas.has(x.startsWith('-') ? x.slice(1) : x))) {\n  throw new Error('invalid has filters');\n}\nconst limit = data.limit === undefined ? 25 : data.limit;\nconst offset = data.offset === undefined ? 0 : data.offset;\nif (!Number.isInteger(limit) || limit < 1 || limit > 25) throw new Error('limit must be 1..25');\nif (!Number.isInteger(offset) || offset < 0 || offset > 9975) throw new Error('offset must be 0..9975');\nconst sortBy = data.sortBy ?? 'relevance';\nconst sortOrder = data.sortOrder ?? 'desc';\nif (!['timestamp','relevance'].includes(sortBy)) throw new Error('invalid sortBy');\nif (!['asc','desc'].includes(sortOrder)) throw new Error('invalid sortOrder');\nif (data.includeNsfw === true) throw new Error('includeNsfw=true is not admitted in v0');\nfor (const field of ['minId','maxId']) {\n  if (data[field] !== undefined && !snowflake(data[field])) throw new Error(`invalid ${field}`);\n}\nconst url = new URL(`https://discord.com/api/v10/guilds/${data.guildId}/messages/search`);\nurl.searchParams.set('content', data.content);\nfor (const id of channelIds) url.searchParams.append('channel_id', id);\nfor (const id of authorIds) url.searchParams.append('author_id', id);\nfor (const id of mentions) url.searchParams.append('mentions', id);\nfor (const id of repliedToUserIds) url.searchParams.append('replied_to_user_id', id);\nfor (const value of has) url.searchParams.append('has', value);\nif (typeof data.pinned === 'boolean') url.searchParams.set('pinned', String(data.pinned));\nif (typeof data.mentionEveryone === 'boolean') url.searchParams.set('mention_everyone', String(data.mentionEveryone));\nif (data.minId) url.searchParams.set('min_id', data.minId);\nif (data.maxId) url.searchParams.set('max_id', data.maxId);\nurl.searchParams.set('limit', String(limit));\nurl.searchParams.set('offset', String(offset));\nurl.searchParams.set('sort_by', sortBy);\nurl.searchParams.set('sort_order', sortOrder);\nurl.searchParams.set('include_nsfw', 'false');\nreturn [{ json: {\n  event,\n  request: {\n    authorityRef: data.authorityRef,\n    guildId: data.guildId,\n    channelIds,\n    query: {\n      content: data.content,\n      authorIds,\n      mentions,\n      repliedToUserIds,\n      has,\n      pinned: typeof data.pinned === 'boolean' ? data.pinned : null,\n      mentionEveryone: typeof data.mentionEveryone === 'boolean' ? data.mentionEveryone : null,\n      minId: data.minId ?? null,\n      maxId: data.maxId ?? null,\n      limit,\n      offset,\n      sortBy,\n      sortOrder,\n      includeNsfw: false\n    }\n  },\n  provider: {\n    service: 'discord',\n    operation: 'searchGuildMessages',\n    method: 'GET',\n    url: url.toString()\n  }\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -360,
+        0
+      ],
+      "id": "1db907f0-45e3-4e28-900d-774475e9f003",
+      "name": "Validate And Build Search"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.provider.url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "discordBotApi",
+        "options": {
+          "timeout": 15000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -80,
+        0
+      ],
+      "id": "1db907f0-45e3-4e28-900d-774475e9f004",
+      "name": "Discord Search Guild Messages"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const response = $input.first().json;\nconst validated = $('Validate And Build Search').first().json;\nconst event = validated.event;\nconst request = validated.request;\nconst statusCode = Number(response.statusCode ?? 0);\nconst body = response.body && typeof response.body === 'object' ? response.body : {};\nconst headers = response.headers && typeof response.headers === 'object' ? response.headers : {};\nlet status = 'UNKNOWN';\nlet retryAfterSeconds = null;\nlet messages = [];\nlet providerTotalResults = null;\nlet documentsIndexed = null;\nif (statusCode === 200) {\n  status = 'OK';\n  providerTotalResults = Number.isFinite(Number(body.total_results)) ? Number(body.total_results) : null;\n  documentsIndexed = Number.isFinite(Number(body.documents_indexed)) ? Number(body.documents_indexed) : null;\n  const groups = Array.isArray(body.messages) ? body.messages : [];\n  const flat = groups.flatMap((group) => Array.isArray(group) ? group : [group]).filter((m) => m && typeof m === 'object');\n  const seen = new Set();\n  for (const m of flat) {\n    const messageId = m.id === undefined ? null : String(m.id);\n    const channelId = m.channel_id === undefined ? null : String(m.channel_id);\n    if (!messageId || !channelId) continue;\n    const key = `${channelId}:${messageId}`;\n    if (seen.has(key)) continue;\n    seen.add(key);\n    messages.push({\n      sourceRef: `discord:guild:${request.guildId}:channel:${channelId}:message:${messageId}`,\n      guildId: request.guildId,\n      channelId,\n      messageId,\n      author: m.author && typeof m.author === 'object' ? {\n        id: m.author.id === undefined ? null : String(m.author.id),\n        username: m.author.username ?? null,\n        globalName: m.author.global_name ?? null,\n        bot: m.author.bot === true\n      } : null,\n      content: typeof m.content === 'string' ? m.content : '',\n      timestamp: m.timestamp ?? null,\n      editedTimestamp: m.edited_timestamp ?? null,\n      pinned: m.pinned === true,\n      type: Number.isFinite(Number(m.type)) ? Number(m.type) : null,\n      reference: m.message_reference && typeof m.message_reference === 'object' ? {\n        messageId: m.message_reference.message_id === undefined ? null : String(m.message_reference.message_id),\n        channelId: m.message_reference.channel_id === undefined ? null : String(m.message_reference.channel_id),\n        guildId: m.message_reference.guild_id === undefined ? null : String(m.message_reference.guild_id)\n      } : null,\n      attachments: Array.isArray(m.attachments) ? m.attachments.map((a) => ({\n        id: a.id === undefined ? null : String(a.id),\n        filename: a.filename ?? null,\n        contentType: a.content_type ?? null,\n        size: Number.isFinite(Number(a.size)) ? Number(a.size) : null\n      })) : []\n    });\n  }\n} else if (statusCode === 202) {\n  status = 'INDEXING_RETRY';\n  retryAfterSeconds = Number.isFinite(Number(body.retry_after)) ? Number(body.retry_after) : null;\n  documentsIndexed = Number.isFinite(Number(body.documents_indexed)) ? Number(body.documents_indexed) : null;\n} else if (statusCode === 429) {\n  status = 'RATE_LIMITED';\n  const rawRetry = body.retry_after ?? headers['retry-after'] ?? headers['Retry-After'];\n  retryAfterSeconds = Number.isFinite(Number(rawRetry)) ? Number(rawRetry) : null;\n} else if (statusCode === 403) {\n  status = 'DENIED';\n} else if (statusCode === 400) {\n  status = 'PROVIDER_REQUEST_REJECTED';\n} else if (statusCode === 404) {\n  status = 'NOT_FOUND';\n} else if (statusCode >= 500 && statusCode <= 599) {\n  status = 'PROVIDER_UNAVAILABLE';\n}\nconst threadIds = Array.isArray(body.threads)\n  ? body.threads.map((t) => t?.id).filter((id) => id !== undefined && id !== null).map(String)\n  : [];\nreturn [{ json: {\n  specversion: '1.0',\n  id: `${event.id}:discord-search-result`,\n  source: 'urn:ordivon:integration:n8n:discord',\n  type: 'io.ordivon.research.community.discord.search.result.v1',\n  subject: event.id,\n  time: new Date().toISOString(),\n  datacontenttype: 'application/json',\n  correlationid: event.id,\n  data: {\n    status,\n    provider: {\n      service: 'discord',\n      operation: 'searchGuildMessages',\n      httpStatus: statusCode || null,\n      retryAfterSeconds,\n      documentsIndexed,\n      providerTotalResults,\n      paginationComplete: false,\n      paginationNote: 'Discord documents that messages.length is not a reliable pagination-completeness signal and total_results may be inaccurate during active mutations.'\n    },\n    authorityRef: request.authorityRef,\n    scope: {\n      guildId: request.guildId,\n      channelIds: request.channelIds\n    },\n    query: request.query,\n    messages,\n    threadIds,\n    externalEffectPerformed: false\n  }\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        0
+      ],
+      "id": "1db907f0-45e3-4e28-900d-774475e9f005",
+      "name": "Normalize Discord Result"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate And Build Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate And Build Search": {
+      "main": [
+        [
+          {
+            "node": "Discord Search Guild Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Discord Search Guild Messages": {
+      "main": [
+        [
+          {
+            "node": "Normalize Discord Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}

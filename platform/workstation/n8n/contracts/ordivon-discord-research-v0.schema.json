@@ -1,0 +1,200 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/ordivon-discord-research-v0.schema.json",
+  "title": "Ordivon Discord Research V0 Contract",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/request"
+    },
+    {
+      "$ref": "#/$defs/result"
+    }
+  ],
+  "$defs": {
+    "snowflake": {
+      "type": "string",
+      "pattern": "^[0-9]{1,20}$"
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "specversion",
+        "id",
+        "source",
+        "type",
+        "data"
+      ],
+      "properties": {
+        "specversion": {
+          "const": "1.0"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "const": "io.ordivon.research.community.discord.search.request.v1"
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "authorityRef",
+            "guildId",
+            "channelIds",
+            "content"
+          ],
+          "properties": {
+            "authorityRef": {
+              "type": "string",
+              "minLength": 1
+            },
+            "guildId": {
+              "$ref": "#/$defs/snowflake"
+            },
+            "channelIds": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 500,
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/snowflake"
+              }
+            },
+            "content": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "authorIds": {
+              "type": "array",
+              "maxItems": 100,
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/snowflake"
+              }
+            },
+            "mentions": {
+              "type": "array",
+              "maxItems": 100,
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/snowflake"
+              }
+            },
+            "repliedToUserIds": {
+              "type": "array",
+              "maxItems": 100,
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/snowflake"
+              }
+            },
+            "has": {
+              "type": "array",
+              "maxItems": 32,
+              "items": {
+                "type": "string"
+              }
+            },
+            "pinned": {
+              "type": "boolean"
+            },
+            "mentionEveryone": {
+              "type": "boolean"
+            },
+            "minId": {
+              "$ref": "#/$defs/snowflake"
+            },
+            "maxId": {
+              "$ref": "#/$defs/snowflake"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 25
+            },
+            "offset": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9975
+            },
+            "sortBy": {
+              "enum": [
+                "timestamp",
+                "relevance"
+              ]
+            },
+            "sortOrder": {
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            },
+            "includeNsfw": {
+              "const": false
+            }
+          }
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "specversion",
+        "id",
+        "source",
+        "type",
+        "correlationid",
+        "data"
+      ],
+      "properties": {
+        "specversion": {
+          "const": "1.0"
+        },
+        "type": {
+          "const": "io.ordivon.research.community.discord.search.result.v1"
+        },
+        "correlationid": {
+          "type": "string",
+          "minLength": 1
+        },
+        "data": {
+          "type": "object",
+          "required": [
+            "status",
+            "provider",
+            "authorityRef",
+            "scope",
+            "query",
+            "messages",
+            "externalEffectPerformed"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "OK",
+                "INDEXING_RETRY",
+                "RATE_LIMITED",
+                "DENIED",
+                "PROVIDER_REQUEST_REJECTED",
+                "NOT_FOUND",
+                "PROVIDER_UNAVAILABLE",
+                "UNKNOWN"
+              ]
+            },
+            "externalEffectPerformed": {
+              "const": false
+            }
+          }
+        }
+      }
+    }
+  }
+}
