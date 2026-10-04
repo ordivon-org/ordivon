@@ -12,7 +12,9 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
 use super::artifact_release_state::{ArtifactStateContract, ReleaseStateContract};
-use super::evidence::prepare_runner_terminal_from_bundle;
+use super::evidence::{
+    prepare_runner_terminal_from_bundle, validate_workspace_source_observation_artifact,
+};
 use super::execution_provider::{LocalLinuxProvider, LocalLinuxRealizationInputs};
 use super::operation_circuit::OperationCircuitCompiler;
 use super::platform::*;

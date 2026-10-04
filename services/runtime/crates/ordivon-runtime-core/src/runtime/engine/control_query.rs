@@ -568,6 +568,55 @@ fn append_terminal_evidence_for_commit_with_observation(
                 false,
             )
         })?;
+    let runner_result_terminal = terminal
+        .artifacts
+        .iter()
+        .any(|artifact| artifact.kind == "execution_result");
+    let source_observation_required = plan.execution_target
+        == super::ExecutionTarget::LocalLinux
+        && plan.workspace_source_digest.is_some()
+        && runner_result_terminal
+        && matches!(
+            terminal.reason_code.as_str(),
+            "PROCESS_EXIT_ZERO"
+                | "PROCESS_COMPLETED_BEFORE_STOP_EFFECTIVE"
+                | "PROCESS_EXIT_NONZERO"
+                | "DEADLINE_EXCEEDED"
+                | "WORKSPACE_SOURCE_PRECONDITION_DRIFT"
+                | "INPUT_PRECONDITION_DRIFT"
+                | "HOST_DEPENDENCY_RUNTIME_DRIFT"
+                | "EXECUTABLE_RUNTIME_DRIFT"
+        );
+    let source_observation = match validate_workspace_source_observation_artifact(
+        attempt,
+        plan.workspace_source_digest.as_deref(),
+        source_observation_required,
+        terminal.reason_code == "WORKSPACE_SOURCE_PRECONDITION_DRIFT",
+    ) {
+        Ok(source_observation) => source_observation,
+        Err(error)
+            if terminal.reason_code == "RUNNER_RESULT_QUARANTINED"
+                && matches!(
+                    error.code,
+                    RuntimeErrorCode::RegistryCorrupt
+                        | RuntimeErrorCode::ResultIdentityConflict
+                        | RuntimeErrorCode::ArtifactIdentityConflict
+                        | RuntimeErrorCode::LaunchIdentityMismatch
+                ) =>
+        {
+            None
+        }
+        Err(error) => return Err(error),
+    };
+    if let Some(source_observation) = source_observation {
+        let duplicate = terminal
+            .artifacts
+            .iter()
+            .any(|artifact| artifact.artifact_id == source_observation.artifact_id);
+        if !duplicate {
+            terminal.artifacts.push(source_observation);
+        }
+    }
     let previous_terminal_evidence = registry
         .list_artifacts(&attempt.job_id)?
         .into_iter()
