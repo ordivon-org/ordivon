@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import runpy
@@ -116,6 +117,48 @@ class LifecycleTests(unittest.TestCase):
             "runtime:workspace:ws-alpha",
             "runtime:workspace:ws-beta",
         ])
+        self.assertEqual(
+            self.module["selected_workspace_ids"](args),
+            ["ws-alpha", "ws-beta"],
+        )
+
+    def test_lifecycle_sweep_cli_accepts_bounded_workspace_selection(self) -> None:
+        previous = sys.argv
+        sys.argv = [
+            "ordivon-runtime-lifecycle",
+            "sweep",
+            "--database",
+            "/tmp/registry.sqlite3",
+            "--runtime-store-root",
+            "/tmp/runtime",
+            "--workspace-id",
+            "ws-alpha",
+            "--workspace-ref",
+            "runtime:workspace:ws-beta",
+            "--workspace-ref",
+            "runtime:workspace:ws-alpha",
+            "--env-file",
+            "/tmp/runtime.env",
+            "--receipt-root",
+            "/tmp/receipts",
+            "--lock-file",
+            "/tmp/lifecycle.lock",
+            "--confirm-policy",
+            "APPLY_WORKSPACE_RETENTION_POLICY",
+        ]
+        try:
+            args = self.module["parse_args"]()
+        finally:
+            sys.argv = previous
+        self.assertEqual(args.command, "sweep")
+        self.assertEqual(args.workspace_ids, ["ws-alpha"])
+        self.assertEqual(
+            args.workspace_refs,
+            [
+                "runtime:workspace:ws-beta",
+                "runtime:workspace:ws-alpha",
+            ],
+        )
         self.assertEqual(
             self.module["selected_workspace_ids"](args),
             ["ws-alpha", "ws-beta"],
@@ -1514,6 +1557,284 @@ class LifecycleTests(unittest.TestCase):
             self.assertTrue(receipt.is_file())
             self.assertEqual(json.loads(receipt.read_text())["actions"][0]["statusDigest"], action["statusDigest"])
 
+
+    def test_sweep_reuses_bounded_selection_for_before_and_after(self) -> None:
+        sweep = self.module["sweep"]
+        globals_ = sweep.__globals__
+        original_enrich = globals_["enrich_report"]
+        original_reclaim = globals_["reclaim_apply_selected"]
+        with tempfile.TemporaryDirectory(dir=REPO) as temporary:
+            root = Path(temporary)
+            registry = root / "registry"
+            registry.mkdir()
+            database = registry / "registry.sqlite3"
+            database.touch()
+            runtime = root / "runtime"
+            runtime.mkdir()
+            env_file = root / "runtime.env"
+            env_file.write_text(
+                f"ORDIVON_REGISTRY_ROOT={registry}\n"
+                f"ORDIVON_STORE_ROOT={runtime}\n"
+                "ORDIVON_BIND=127.0.0.1:1\n"
+                "ORDIVON_BEARER_TOKEN=test\n",
+                encoding="utf-8",
+            )
+            observed_selections: list[list[str]] = []
+
+            def fake_enrich(args):
+                selected = self.module["selected_workspace_ids"](args)
+                observed_selections.append(list(selected))
+                return {
+                    "schemaVersion": 1,
+                    "summary": {"policyEligible": len(selected)},
+                    "candidates": [
+                        {
+                            "workspaceId": workspace_id,
+                            "classification": "stale_record",
+                            "policyEligible": True,
+                        }
+                        for workspace_id in selected
+                    ],
+                }
+
+            def fake_reclaim(_args, workspace_ids, _receipt):
+                return {
+                    "schemaVersion": 1,
+                    "status": "completed",
+                    "actions": [
+                        {
+                            "workspaceId": workspace_id,
+                            "action": "workspace_closed",
+                        }
+                        for workspace_id in workspace_ids
+                    ],
+                    "failures": [],
+                    "receipt": "/fake/reclaim",
+                }
+
+            globals_["enrich_report"] = fake_enrich
+            globals_["reclaim_apply_selected"] = fake_reclaim
+            args = argparse.Namespace(
+                confirm_policy="APPLY_WORKSPACE_RETENTION_POLICY",
+                database=database,
+                runtime_store_root=runtime,
+                workspace_root=None,
+                policy_file=None,
+                busy_timeout_ms=5_000,
+                measure_bytes=False,
+                workspace_ids=["ws-target"],
+                workspace_refs=[
+                    "runtime:workspace:ws-target",
+                ],
+                env_file=env_file,
+                receipt_root=root / "receipts",
+                lock_file=root / "lifecycle.lock",
+                pretty=False,
+            )
+            try:
+                report = sweep(args)
+            finally:
+                globals_["enrich_report"] = original_enrich
+                globals_["reclaim_apply_selected"] = original_reclaim
+
+            self.assertEqual(
+                observed_selections,
+                [["ws-target"], ["ws-target"]],
+            )
+            self.assertEqual(report["selectionMode"], "bounded")
+            self.assertEqual(report["requestedWorkspaceIds"], ["ws-target"])
+            self.assertEqual(report["selectedWorkspaceIds"], ["ws-target"])
+            before = json.loads(
+                (Path(report["receipt"]) / "before.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(before["selectionMode"], "bounded")
+            self.assertEqual(before["requestedWorkspaceIds"], ["ws-target"])
+            self.assertEqual(
+                [item["workspaceId"] for item in report["actions"]],
+                ["ws-target"],
+            )
+
+    def test_sweep_receipt_preserves_requested_scope_outside_action_plan(self) -> None:
+        sweep = self.module["sweep"]
+        globals_ = sweep.__globals__
+        original_enrich = globals_["enrich_report"]
+        original_reclaim = globals_["reclaim_apply_selected"]
+
+        cases = [
+            (
+                "requested_ineligible",
+                ["ws-a", "ws-b"],
+                [
+                    {
+                        "workspaceId": "ws-a",
+                        "classification": "stale_record",
+                        "policyEligible": True,
+                    },
+                    {
+                        "workspaceId": "ws-b",
+                        "classification": "blocked_dirty",
+                        "policyEligible": False,
+                    },
+                ],
+                "bounded",
+                ["ws-a", "ws-b"],
+                ["ws-a"],
+            ),
+            (
+                "requested_missing",
+                ["ws-a", "ws-missing"],
+                [
+                    {
+                        "workspaceId": "ws-a",
+                        "classification": "stale_record",
+                        "policyEligible": True,
+                    },
+                ],
+                "bounded",
+                ["ws-a", "ws-missing"],
+                ["ws-a"],
+            ),
+            (
+                "global_no_selector",
+                [],
+                [
+                    {
+                        "workspaceId": "ws-global",
+                        "classification": "stale_record",
+                        "policyEligible": True,
+                    },
+                ],
+                "global",
+                [],
+                ["ws-global"],
+            ),
+        ]
+
+        for (
+            name,
+            requested_ids,
+            candidates,
+            expected_mode,
+            expected_requested,
+            expected_selected,
+        ) in cases:
+            with self.subTest(name=name), tempfile.TemporaryDirectory(dir=REPO) as temporary:
+                root = Path(temporary)
+                registry = root / "registry"
+                registry.mkdir()
+                database = registry / "registry.sqlite3"
+                database.touch()
+                runtime = root / "runtime"
+                runtime.mkdir()
+                env_file = root / "runtime.env"
+                env_file.write_text(
+                    f"ORDIVON_REGISTRY_ROOT={registry}\n"
+                    f"ORDIVON_STORE_ROOT={runtime}\n"
+                    "ORDIVON_BIND=127.0.0.1:1\n"
+                    "ORDIVON_BEARER_TOKEN=test\n",
+                    encoding="utf-8",
+                )
+
+                observed_selections: list[list[str]] = []
+
+                def fake_enrich(args):
+                    observed_selections.append(
+                        list(self.module["selected_workspace_ids"](args))
+                    )
+                    return {
+                        "schemaVersion": 1,
+                        "summary": {
+                            "policyEligible": sum(
+                                item.get("policyEligible") is True
+                                for item in candidates
+                            )
+                        },
+                        "candidates": [dict(item) for item in candidates],
+                    }
+
+                def fake_reclaim(_args, workspace_ids, receipt):
+                    before_path = receipt / "before.json"
+                    self.assertTrue(before_path.is_file())
+                    persisted_before = json.loads(before_path.read_text(encoding="utf-8"))
+                    self.assertEqual(persisted_before["selectionMode"], expected_mode)
+                    self.assertEqual(
+                        persisted_before["requestedWorkspaceIds"],
+                        expected_requested,
+                    )
+                    return {
+                        "schemaVersion": 1,
+                        "status": "completed",
+                        "actions": [
+                            {
+                                "workspaceId": workspace_id,
+                                "action": "workspace_closed",
+                            }
+                            for workspace_id in workspace_ids
+                        ],
+                        "failures": [],
+                        "receipt": "/fake/reclaim",
+                    }
+
+                globals_["enrich_report"] = fake_enrich
+                globals_["reclaim_apply_selected"] = fake_reclaim
+                args = argparse.Namespace(
+                    confirm_policy="APPLY_WORKSPACE_RETENTION_POLICY",
+                    database=database,
+                    runtime_store_root=runtime,
+                    workspace_root=None,
+                    policy_file=None,
+                    busy_timeout_ms=5_000,
+                    measure_bytes=False,
+                    workspace_ids=list(requested_ids),
+                    workspace_refs=[],
+                    env_file=env_file,
+                    receipt_root=root / "receipts",
+                    lock_file=root / "lifecycle.lock",
+                    pretty=False,
+                )
+                try:
+                    report = sweep(args)
+                finally:
+                    globals_["enrich_report"] = original_enrich
+                    globals_["reclaim_apply_selected"] = original_reclaim
+
+                self.assertEqual(
+                    observed_selections,
+                    [list(requested_ids), list(requested_ids)],
+                )
+                self.assertEqual(report["selectionMode"], expected_mode)
+                self.assertEqual(
+                    report["requestedWorkspaceIds"],
+                    expected_requested,
+                )
+                self.assertEqual(
+                    report["selectedWorkspaceIds"],
+                    expected_selected,
+                )
+                before = json.loads(
+                    (Path(report["receipt"]) / "before.json").read_text(
+                        encoding="utf-8"
+                    )
+                )
+                self.assertEqual(before["selectionMode"], expected_mode)
+                self.assertEqual(
+                    before["requestedWorkspaceIds"],
+                    expected_requested,
+                )
+                self.assertEqual(
+                    [item["workspaceId"] for item in before["candidates"]],
+                    [item["workspaceId"] for item in candidates],
+                )
+                after = json.loads(
+                    (Path(report["receipt"]) / "after.json").read_text(
+                        encoding="utf-8"
+                    )
+                )
+                self.assertEqual(after["selectionMode"], expected_mode)
+                self.assertEqual(
+                    after["requestedWorkspaceIds"],
+                    expected_requested,
+                )
 
     def test_sweep_rejects_incompatible_reclaim_contract_before_apply(self) -> None:
         with tempfile.TemporaryDirectory(dir=REPO) as temporary:
