@@ -1,3 +1,4 @@
+use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::ffi::CString;
@@ -26,7 +27,26 @@ const CANCEL_FILE: &str = "cancel-requested.json";
 const STDOUT_FILE: &str = "stdout.log";
 const STDERR_FILE: &str = "stderr.log";
 const RUNNER_START_FILE: &str = "runner-start.json";
+const WORKSPACE_SOURCE_OBSERVATION_FILE: &str = "workspace-source-observation.json";
 const PROGRESS_FILE: &str = "progress.json";
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct WorkspaceSourceObservationEvidence<'a> {
+    schema_version: u32,
+    task_id: &'a str,
+    job_id: &'a str,
+    attempt_id: &'a str,
+    launch_token_digest: String,
+    committed_workspace_source_digest: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    observed_workspace_source_digest: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    matches_commitment: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    observation_error_code: Option<&'a str>,
+    observed_unix_ms: u128,
+}
 const TRUSTED_BUILD_TARGET_PRESENTATION: &str = "/proc/self/fd/198";
 const TRUSTED_BUILD_TARGET_PRESENTATION_FD: libc::c_int = 198;
 
@@ -38,13 +58,29 @@ pub fn run_job_runner(task_dir: &Path) -> Result<(), UniversalExecError> {
     let request = load_request(&task_dir)?;
     let started_unix_ms = now_unix_ms()?;
     let execution = validate_request_identity(&request).and_then(|()| {
-        let observed_workspace_source_digest = observe_workspace_source(&request)?;
-        write_runner_start(
-            &task_dir,
-            &request,
-            observed_workspace_source_digest.as_deref(),
-            started_unix_ms,
-        )?;
+        write_runner_start(&task_dir, &request, None, started_unix_ms)?;
+        let observed_workspace_source_digest = match observe_workspace_source(&request) {
+            Ok(observed) => {
+                write_workspace_source_observation(
+                    &task_dir,
+                    &request,
+                    observed.as_deref(),
+                    None,
+                    now_unix_ms()?,
+                )?;
+                observed
+            }
+            Err(error) => {
+                write_workspace_source_observation(
+                    &task_dir,
+                    &request,
+                    None,
+                    Some(error.code.as_str()),
+                    now_unix_ms()?,
+                )?;
+                return Err(error);
+            }
+        };
         validate_workspace_source_commitment(
             &request,
             observed_workspace_source_digest.as_deref(),
@@ -119,6 +155,56 @@ fn observe_workspace_source(request: &RunnerRequest) -> Result<Option<String>, U
         "workspacePath",
     )?;
     workspace_source_state_digest_at(&workspace).map(Some)
+}
+
+fn write_workspace_source_observation(
+    task_dir: &Path,
+    request: &RunnerRequest,
+    observed: Option<&str>,
+    observation_error_code: Option<&str>,
+    observed_unix_ms: u128,
+) -> Result<(), UniversalExecError> {
+    let Some(committed) = request.workspace_source_digest.as_deref() else {
+        return Ok(());
+    };
+    let (job_id, attempt_id, launch_token) = match (
+        request.job_id.as_deref(),
+        request.attempt_id.as_deref(),
+        request.launch_token.as_deref(),
+    ) {
+        (None, None, None) => return Ok(()),
+        (Some(job_id), Some(attempt_id), Some(launch_token)) => (job_id, attempt_id, launch_token),
+        _ => {
+            return Err(runner_error(
+                "Workspace source observation requires complete Runtime Job identity",
+            ));
+        }
+    };
+    if request.task_id != attempt_id {
+        return Err(runner_error("runtime taskId must equal attemptId"));
+    }
+    let (matches_commitment, observation_error_code) = match (observed, observation_error_code) {
+        (Some(observed), None) => (Some(observed == committed), None),
+        (None, Some(error_code)) if !error_code.is_empty() => (None, Some(error_code)),
+        _ => {
+            return Err(runner_error(
+                "Workspace source observation must contain either an exact digest or an observation error",
+            ));
+        }
+    };
+    let evidence = WorkspaceSourceObservationEvidence {
+        schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+        task_id: request.task_id.as_str(),
+        job_id,
+        attempt_id,
+        launch_token_digest: sha256_text(launch_token),
+        committed_workspace_source_digest: committed,
+        observed_workspace_source_digest: observed,
+        matches_commitment,
+        observation_error_code,
+        observed_unix_ms,
+    };
+    write_json_atomic(&task_dir.join(WORKSPACE_SOURCE_OBSERVATION_FILE), &evidence)
 }
 
 fn validate_workspace_source_commitment(

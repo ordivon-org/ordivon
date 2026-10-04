@@ -1,3 +1,5 @@
+const WORKSPACE_LIST_LIVE_PROJECTION_PARALLELISM: usize = 4;
+
 #[cfg(unix)]
 fn filesystem_available_bytes(path: &Path) -> RuntimeResult<u64> {
     use std::ffi::CString;
@@ -109,6 +111,7 @@ impl Runtime {
                 )
             })
             .collect::<Vec<_>>();
+        let mut projection_inputs = Vec::with_capacity(records.len());
         for record in records {
             let active_job_ids = match self
                 .registry
@@ -125,25 +128,82 @@ impl Runtime {
                     continue;
                 }
             };
-            let (current_head_revision, dirty) =
-                match workspace_head_and_dirty_at(Path::new(&record.workspace_path)) {
-                    Ok(projection) => projection,
-                    Err(error) => {
-                        let stage = if error.code
-                            == crate::universal::UniversalExecErrorCode::RevisionNotFound
-                        {
-                            RuntimeWorkspaceIssueStage::HeadRevision
-                        } else {
-                            RuntimeWorkspaceIssueStage::DirtyProbe
-                        };
-                        issues.push(workspace_issue(
-                            &record.workspace_id,
-                            stage,
-                            map_universal_error(error),
-                        ));
-                        continue;
-                    }
-                };
+            projection_inputs.push((record, active_job_ids));
+        }
+
+        // The default list projection is intentionally cheaper than the exact source-state
+        // proof path, but it still needs live Git HEAD/dirty truth for each item on the
+        // requested page. Those probes are independent across Workspaces, so bound their
+        // fan-out instead of serially paying one full `git status` latency per item. Exact
+        // source-state hashing remains serial because it is the proof-strength path and may
+        // read every tracked/untracked byte in each Workspace.
+        let head_dirty = if request.include_source_state_digest || projection_inputs.len() <= 1 {
+            projection_inputs
+                .iter()
+                .map(|(record, _)| workspace_head_and_dirty_at(Path::new(&record.workspace_path)))
+                .collect::<Vec<_>>()
+        } else {
+            let worker_count = projection_inputs
+                .len()
+                .min(WORKSPACE_LIST_LIVE_PROJECTION_PARALLELISM);
+            let chunk_size = projection_inputs.len().div_ceil(worker_count);
+            thread::scope(|scope| -> RuntimeResult<Vec<_>> {
+                let mut handles = Vec::with_capacity(worker_count);
+                for (chunk_index, chunk) in projection_inputs.chunks(chunk_size).enumerate() {
+                    handles.push(scope.spawn(move || {
+                        chunk
+                            .iter()
+                            .enumerate()
+                            .map(|(offset, (record, _))| {
+                                (
+                                    chunk_index * chunk_size + offset,
+                                    workspace_head_and_dirty_at(Path::new(&record.workspace_path)),
+                                )
+                            })
+                            .collect::<Vec<_>>()
+                    }));
+                }
+                let mut projections = Vec::with_capacity(projection_inputs.len());
+                for handle in handles {
+                    let mut worker = handle.join().map_err(|_| {
+                        RuntimeError::new(
+                            RuntimeErrorCode::ToolFailed,
+                            "workspace live-projection worker panicked",
+                            Some("workspaceId"),
+                            false,
+                        )
+                    })?;
+                    projections.append(&mut worker);
+                }
+                projections.sort_by_key(|(index, _)| *index);
+                Ok(projections
+                    .into_iter()
+                    .map(|(_, projection)| projection)
+                    .collect())
+            })?
+        };
+
+        for ((record, active_job_ids), head_dirty) in
+            projection_inputs.into_iter().zip(head_dirty)
+        {
+            let (current_head_revision, dirty) = match head_dirty {
+                Ok(projection) => projection,
+                Err(error) => {
+                    let stage = if error.code
+                        == crate::universal::UniversalExecErrorCode::RevisionNotFound
+                    {
+                        RuntimeWorkspaceIssueStage::HeadRevision
+                    } else {
+                        RuntimeWorkspaceIssueStage::DirtyProbe
+                    };
+                    issues.push(workspace_issue(
+                        &record.workspace_id,
+                        stage,
+                        map_universal_error(error),
+                    ));
+                    continue;
+                }
+            };
             let source_state_digest = if request.include_source_state_digest {
                 match workspace_source_state_digest(&self.executor, &record.workspace_id) {
                     Ok(digest) => Some(digest),

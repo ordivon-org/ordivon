@@ -26,6 +26,17 @@ fn exact_replay_for_submit(
     Ok(Some(existing))
 }
 
+pub(crate) const PENDING_RUNTIME_RELEASE_SQL: &str =
+    "SELECT EXISTS(SELECT 1 FROM job_runtime_release_effects release CROSS JOIN jobs j ON j.job_id=release.job_id WHERE j.resolution IS NULL OR EXISTS(SELECT 1 FROM attempts a JOIN concurrency_reservations r ON r.attempt_id=a.attempt_id WHERE a.job_id=j.job_id AND r.state IN ('active','held_orphaned')))";
+
+fn pending_runtime_release_exists(connection: &Connection) -> RuntimeResult<bool> {
+    connection
+        .query_row(PENDING_RUNTIME_RELEASE_SQL, [], |row| row.get(0))
+        .map_err(|error| {
+            RuntimeError::from_sql(error, "cannot inspect pending Runtime Release admission")
+        })
+}
+
 pub(crate) struct AdmissionFenceGuard {
     _file: File,
 }
@@ -293,6 +304,10 @@ impl Registry {
             return Ok(AdmissionOutcome::Existing {
                 job: Box::new(existing),
             });
+        }
+
+        if pending_runtime_release_exists(&transaction)? {
+            return Err(RuntimeError::pending_runtime_release());
         }
 
         let workspace_active: u32 = transaction
