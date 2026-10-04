@@ -6908,6 +6908,440 @@ fn global_capacity_marks_bounded_holder_projection_incomplete() {
     assert!(capacity.holders_truncated);
 }
 
+fn orphan_recovery_fixture_artifact(attempt_id: &str) -> ArtifactRegistration {
+    ArtifactRegistration {
+        artifact_id: format!("{attempt_id}.workspace-source-observation"),
+        kind: "workspace_source_observation".to_string(),
+        relative_path: "workspace-source-observation.json".to_string(),
+        digest: digest(b"workspace-source-observation"),
+        media_type: "application/json".to_string(),
+        byte_length: 28,
+        truncated: false,
+    }
+}
+
+#[test]
+fn orphan_recovery_reuses_exact_preexisting_artifact_and_releases_capacity() {
+    let sandbox = Sandbox::new("orphan-artifact-exact-replay", 5000);
+    let created = created(
+        sandbox
+            .registry
+            .submit(&request(
+                &sandbox,
+                "request:orphan-artifact-exact-replay",
+                1,
+            ))
+            .unwrap(),
+    );
+    let artifact = orphan_recovery_fixture_artifact(&created.attempt.attempt_id);
+    sandbox
+        .registry
+        .commit_terminal(&TerminalCommit {
+            attempt_id: created.attempt.attempt_id.clone(),
+            expected_row_version: created.attempt.row_version,
+            state: AttemptState::Orphaned,
+            result_digest: digest(b"orphan-control"),
+            exit_code: None,
+            infrastructure_error_digest: Some(digest(b"identity-uncertain")),
+            finished_at_ms: 20,
+            artifacts: vec![artifact.clone()],
+            reason_code: "SUPERVISOR_IDENTITY_ORPHANED".to_string(),
+        })
+        .unwrap();
+    let orphaned = sandbox
+        .registry
+        .get_attempt(&created.attempt.attempt_id)
+        .unwrap();
+
+    let recovered = sandbox
+        .registry
+        .recover_orphaned_terminal(&TerminalCommit {
+            attempt_id: orphaned.attempt_id.clone(),
+            expected_row_version: orphaned.row_version,
+            state: AttemptState::Succeeded,
+            result_digest: digest(b"late-runner-result"),
+            exit_code: Some(0),
+            infrastructure_error_digest: None,
+            finished_at_ms: 21,
+            artifacts: vec![artifact.clone()],
+            reason_code: "LATE_IDENTITY_BOUND_RUNNER_RESULT".to_string(),
+        })
+        .unwrap();
+
+    assert_eq!(recovered.status, "succeeded");
+    assert_eq!(
+        sandbox
+            .registry
+            .get_reservation(&created.attempt.attempt_id)
+            .unwrap()
+            .state,
+        ReservationState::Released
+    );
+    let artifacts = sandbox
+        .registry
+        .list_artifacts(&created.job.job_id)
+        .unwrap();
+    assert_eq!(artifacts.len(), 1);
+    assert_eq!(artifacts[0].artifact_id, artifact.artifact_id);
+    assert_eq!(artifacts[0].digest, artifact.digest);
+}
+
+#[test]
+fn orphan_recovery_inserts_missing_artifact() {
+    let sandbox = Sandbox::new("orphan-artifact-missing-insert", 5000);
+    let created = created(
+        sandbox
+            .registry
+            .submit(&request(
+                &sandbox,
+                "request:orphan-artifact-missing-insert",
+                1,
+            ))
+            .unwrap(),
+    );
+    sandbox
+        .registry
+        .commit_terminal(&TerminalCommit {
+            attempt_id: created.attempt.attempt_id.clone(),
+            expected_row_version: created.attempt.row_version,
+            state: AttemptState::Orphaned,
+            result_digest: digest(b"orphan-control"),
+            exit_code: None,
+            infrastructure_error_digest: Some(digest(b"identity-uncertain")),
+            finished_at_ms: 20,
+            artifacts: Vec::new(),
+            reason_code: "SUPERVISOR_IDENTITY_ORPHANED".to_string(),
+        })
+        .unwrap();
+    let orphaned = sandbox
+        .registry
+        .get_attempt(&created.attempt.attempt_id)
+        .unwrap();
+    let artifact = orphan_recovery_fixture_artifact(&created.attempt.attempt_id);
+
+    sandbox
+        .registry
+        .recover_orphaned_terminal(&TerminalCommit {
+            attempt_id: orphaned.attempt_id.clone(),
+            expected_row_version: orphaned.row_version,
+            state: AttemptState::Succeeded,
+            result_digest: digest(b"late-runner-result"),
+            exit_code: Some(0),
+            infrastructure_error_digest: None,
+            finished_at_ms: 21,
+            artifacts: vec![artifact.clone()],
+            reason_code: "LATE_IDENTITY_BOUND_RUNNER_RESULT".to_string(),
+        })
+        .unwrap();
+
+    let artifacts = sandbox
+        .registry
+        .list_artifacts(&created.job.job_id)
+        .unwrap();
+    assert_eq!(artifacts.len(), 1);
+    assert_eq!(artifacts[0].artifact_id, artifact.artifact_id);
+}
+
+#[test]
+fn orphan_recovery_rejects_same_slot_with_different_artifact_id_atomically() {
+    let sandbox = Sandbox::new("orphan-artifact-slot-conflict", 5000);
+    let created = created(
+        sandbox
+            .registry
+            .submit(&request(
+                &sandbox,
+                "request:orphan-artifact-slot-conflict",
+                1,
+            ))
+            .unwrap(),
+    );
+    let artifact = orphan_recovery_fixture_artifact(&created.attempt.attempt_id);
+    sandbox
+        .registry
+        .commit_terminal(&TerminalCommit {
+            attempt_id: created.attempt.attempt_id.clone(),
+            expected_row_version: created.attempt.row_version,
+            state: AttemptState::Orphaned,
+            result_digest: digest(b"orphan-control"),
+            exit_code: None,
+            infrastructure_error_digest: Some(digest(b"identity-uncertain")),
+            finished_at_ms: 20,
+            artifacts: vec![artifact.clone()],
+            reason_code: "SUPERVISOR_IDENTITY_ORPHANED".to_string(),
+        })
+        .unwrap();
+    let orphaned = sandbox
+        .registry
+        .get_attempt(&created.attempt.attempt_id)
+        .unwrap();
+    let mut conflicting = artifact.clone();
+    conflicting.artifact_id = format!("{}.replacement", created.attempt.attempt_id);
+
+    let error = sandbox
+        .registry
+        .recover_orphaned_terminal(&TerminalCommit {
+            attempt_id: orphaned.attempt_id.clone(),
+            expected_row_version: orphaned.row_version,
+            state: AttemptState::Succeeded,
+            result_digest: digest(b"late-runner-result"),
+            exit_code: Some(0),
+            infrastructure_error_digest: None,
+            finished_at_ms: 21,
+            artifacts: vec![conflicting],
+            reason_code: "LATE_IDENTITY_BOUND_RUNNER_RESULT".to_string(),
+        })
+        .unwrap_err();
+
+    assert_eq!(error.code, RuntimeErrorCode::ArtifactIdentityConflict);
+    assert_eq!(
+        sandbox
+            .registry
+            .get_attempt(&created.attempt.attempt_id)
+            .unwrap()
+            .state,
+        AttemptState::Orphaned
+    );
+    assert_eq!(
+        sandbox
+            .registry
+            .get_reservation(&created.attempt.attempt_id)
+            .unwrap()
+            .state,
+        ReservationState::HeldOrphaned
+    );
+}
+
+#[test]
+fn orphan_recovery_rejects_same_artifact_id_with_changed_evidence_atomically() {
+    let sandbox = Sandbox::new("orphan-artifact-evidence-conflict", 5000);
+    let created = created(
+        sandbox
+            .registry
+            .submit(&request(
+                &sandbox,
+                "request:orphan-artifact-evidence-conflict",
+                1,
+            ))
+            .unwrap(),
+    );
+    let artifact = orphan_recovery_fixture_artifact(&created.attempt.attempt_id);
+    sandbox
+        .registry
+        .commit_terminal(&TerminalCommit {
+            attempt_id: created.attempt.attempt_id.clone(),
+            expected_row_version: created.attempt.row_version,
+            state: AttemptState::Orphaned,
+            result_digest: digest(b"orphan-control"),
+            exit_code: None,
+            infrastructure_error_digest: Some(digest(b"identity-uncertain")),
+            finished_at_ms: 20,
+            artifacts: vec![artifact.clone()],
+            reason_code: "SUPERVISOR_IDENTITY_ORPHANED".to_string(),
+        })
+        .unwrap();
+    let orphaned = sandbox
+        .registry
+        .get_attempt(&created.attempt.attempt_id)
+        .unwrap();
+    let mut conflicting = artifact.clone();
+    conflicting.digest = digest(b"different-evidence");
+    conflicting.byte_length += 1;
+    conflicting.truncated = true;
+
+    let error = sandbox
+        .registry
+        .recover_orphaned_terminal(&TerminalCommit {
+            attempt_id: orphaned.attempt_id.clone(),
+            expected_row_version: orphaned.row_version,
+            state: AttemptState::Succeeded,
+            result_digest: digest(b"late-runner-result"),
+            exit_code: Some(0),
+            infrastructure_error_digest: None,
+            finished_at_ms: 21,
+            artifacts: vec![conflicting],
+            reason_code: "LATE_IDENTITY_BOUND_RUNNER_RESULT".to_string(),
+        })
+        .unwrap_err();
+
+    assert_eq!(error.code, RuntimeErrorCode::ArtifactIdentityConflict);
+    assert_eq!(
+        sandbox
+            .registry
+            .get_attempt(&created.attempt.attempt_id)
+            .unwrap()
+            .state,
+        AttemptState::Orphaned
+    );
+    assert_eq!(
+        sandbox
+            .registry
+            .get_reservation(&created.attempt.attempt_id)
+            .unwrap()
+            .state,
+        ReservationState::HeldOrphaned
+    );
+}
+
+#[test]
+fn orphan_recovery_rejects_same_artifact_id_with_changed_slot_metadata_atomically() {
+    let sandbox = Sandbox::new("orphan-artifact-slot-metadata-conflict", 5000);
+    let created = created(
+        sandbox
+            .registry
+            .submit(&request(
+                &sandbox,
+                "request:orphan-artifact-slot-metadata-conflict",
+                1,
+            ))
+            .unwrap(),
+    );
+    let artifact = orphan_recovery_fixture_artifact(&created.attempt.attempt_id);
+    sandbox
+        .registry
+        .commit_terminal(&TerminalCommit {
+            attempt_id: created.attempt.attempt_id.clone(),
+            expected_row_version: created.attempt.row_version,
+            state: AttemptState::Orphaned,
+            result_digest: digest(b"orphan-control"),
+            exit_code: None,
+            infrastructure_error_digest: Some(digest(b"identity-uncertain")),
+            finished_at_ms: 20,
+            artifacts: vec![artifact.clone()],
+            reason_code: "SUPERVISOR_IDENTITY_ORPHANED".to_string(),
+        })
+        .unwrap();
+    let orphaned = sandbox
+        .registry
+        .get_attempt(&created.attempt.attempt_id)
+        .unwrap();
+    let mut conflicting = artifact.clone();
+    conflicting.kind = "different_kind".to_string();
+    conflicting.relative_path = "different/path.json".to_string();
+    conflicting.media_type = "application/octet-stream".to_string();
+
+    let error = sandbox
+        .registry
+        .recover_orphaned_terminal(&TerminalCommit {
+            attempt_id: orphaned.attempt_id.clone(),
+            expected_row_version: orphaned.row_version,
+            state: AttemptState::Succeeded,
+            result_digest: digest(b"late-runner-result"),
+            exit_code: Some(0),
+            infrastructure_error_digest: None,
+            finished_at_ms: 21,
+            artifacts: vec![conflicting],
+            reason_code: "LATE_IDENTITY_BOUND_RUNNER_RESULT".to_string(),
+        })
+        .unwrap_err();
+
+    assert_eq!(error.code, RuntimeErrorCode::ArtifactIdentityConflict);
+    assert_eq!(
+        sandbox
+            .registry
+            .get_attempt(&created.attempt.attempt_id)
+            .unwrap()
+            .state,
+        AttemptState::Orphaned
+    );
+    assert_eq!(
+        sandbox
+            .registry
+            .get_reservation(&created.attempt.attempt_id)
+            .unwrap()
+            .state,
+        ReservationState::HeldOrphaned
+    );
+}
+
+#[test]
+fn orphan_recovery_rejects_cross_job_artifact_id_reuse_atomically() {
+    let sandbox = Sandbox::new("orphan-artifact-cross-job-conflict", 5000);
+
+    let first =
+        running_attempt_for_commit_fault(&sandbox, "request:orphan-artifact-cross-job-first");
+    let shared_id = format!("{}.shared-artifact", first.attempt_id);
+    let mut first_artifact = orphan_recovery_fixture_artifact(&first.attempt_id);
+    first_artifact.artifact_id = shared_id.clone();
+    sandbox
+        .registry
+        .commit_terminal(&TerminalCommit {
+            attempt_id: first.attempt_id.clone(),
+            expected_row_version: first.row_version,
+            state: AttemptState::Succeeded,
+            result_digest: digest(b"first-result"),
+            exit_code: Some(0),
+            infrastructure_error_digest: None,
+            finished_at_ms: 20,
+            artifacts: vec![first_artifact],
+            reason_code: "PROCESS_EXIT_ZERO".to_string(),
+        })
+        .unwrap();
+
+    let second = created(
+        sandbox
+            .registry
+            .submit(&request(
+                &sandbox,
+                "request:orphan-artifact-cross-job-second",
+                2,
+            ))
+            .unwrap(),
+    );
+    sandbox
+        .registry
+        .commit_terminal(&TerminalCommit {
+            attempt_id: second.attempt.attempt_id.clone(),
+            expected_row_version: second.attempt.row_version,
+            state: AttemptState::Orphaned,
+            result_digest: digest(b"second-orphan-control"),
+            exit_code: None,
+            infrastructure_error_digest: Some(digest(b"identity-uncertain")),
+            finished_at_ms: 30,
+            artifacts: Vec::new(),
+            reason_code: "SUPERVISOR_IDENTITY_ORPHANED".to_string(),
+        })
+        .unwrap();
+    let orphaned = sandbox
+        .registry
+        .get_attempt(&second.attempt.attempt_id)
+        .unwrap();
+    let mut conflicting = orphan_recovery_fixture_artifact(&second.attempt.attempt_id);
+    conflicting.artifact_id = shared_id;
+
+    let error = sandbox
+        .registry
+        .recover_orphaned_terminal(&TerminalCommit {
+            attempt_id: orphaned.attempt_id.clone(),
+            expected_row_version: orphaned.row_version,
+            state: AttemptState::Succeeded,
+            result_digest: digest(b"second-late-result"),
+            exit_code: Some(0),
+            infrastructure_error_digest: None,
+            finished_at_ms: 31,
+            artifacts: vec![conflicting],
+            reason_code: "LATE_IDENTITY_BOUND_RUNNER_RESULT".to_string(),
+        })
+        .unwrap_err();
+
+    assert_eq!(error.code, RuntimeErrorCode::ArtifactIdentityConflict);
+    assert_eq!(
+        sandbox
+            .registry
+            .get_attempt(&second.attempt.attempt_id)
+            .unwrap()
+            .state,
+        AttemptState::Orphaned
+    );
+    assert_eq!(
+        sandbox
+            .registry
+            .get_reservation(&second.attempt.attempt_id)
+            .unwrap()
+            .state,
+        ReservationState::HeldOrphaned
+    );
+}
+
 #[test]
 fn late_identity_bound_result_corrects_orphan_and_releases_capacity() {
     let sandbox = Sandbox::new("orphan-recovery", 5000);
