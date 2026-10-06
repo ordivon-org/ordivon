@@ -1,6 +1,7 @@
 use ordivon_runtime_core::{
-    apply_runtime_repair, cancel_stale_recovery_required_attempt, RuntimeDoctorConfig,
-    RuntimeRepairConfig, RuntimeRepairRequest, RuntimeStaleCancelRequest,
+    apply_runtime_repair, cancel_stale_recovery_required_attempt, recover_orphaned_runner_result,
+    RuntimeDoctorConfig, RuntimeOrphanResultRecoveryRequest, RuntimeRepairConfig,
+    RuntimeRepairRequest, RuntimeStaleCancelRequest,
 };
 use std::collections::BTreeSet;
 use std::env;
@@ -19,7 +20,7 @@ fn main() {
 fn run() -> Result<(), String> {
     let mut args = env::args().skip(1);
     let command = args.next().ok_or_else(usage)?;
-    if command != "apply" && command != "cancel-stale" {
+    if command != "apply" && command != "cancel-stale" && command != "recover-result" {
         return Err(usage());
     }
     let mut database = None;
@@ -74,7 +75,9 @@ fn run() -> Result<(), String> {
     let output = if command == "apply" {
         let expected_fingerprint = expected_fingerprint.ok_or_else(usage)?;
         if attempt_id.is_some() {
-            return Err("--attempt-id is only valid with cancel-stale".to_string());
+            return Err(
+                "--attempt-id is only valid with cancel-stale or recover-result".to_string(),
+            );
         }
         let request = RuntimeRepairRequest {
             expected_fingerprint,
@@ -88,7 +91,7 @@ fn run() -> Result<(), String> {
         } else {
             serde_json::to_string(&report)
         }
-    } else {
+    } else if command == "cancel-stale" {
         if !finalize_lost_attempt_ids.is_empty() {
             return Err("--finalize-lost is only valid with apply".to_string());
         }
@@ -107,6 +110,25 @@ fn run() -> Result<(), String> {
         } else {
             serde_json::to_string(&report)
         }
+    } else {
+        if !finalize_lost_attempt_ids.is_empty() {
+            return Err("--finalize-lost is only valid with apply".to_string());
+        }
+        if expected_fingerprint.is_some() {
+            return Err("--expected-fingerprint is only valid with apply".to_string());
+        }
+        let request = RuntimeOrphanResultRecoveryRequest {
+            snapshot_path,
+            principal,
+            attempt_id: attempt_id.ok_or_else(usage)?,
+        };
+        let report =
+            recover_orphaned_runner_result(&config, &request).map_err(|error| error.to_string())?;
+        if pretty {
+            serde_json::to_string_pretty(&report)
+        } else {
+            serde_json::to_string(&report)
+        }
     }
     .map_err(|error| format!("cannot serialize repair report: {error}"))?;
     println!("{output}");
@@ -119,5 +141,5 @@ fn require_value(args: &mut impl Iterator<Item = String>, flag: &str) -> Result<
 }
 
 fn usage() -> String {
-    "usage: ordivon-runtime-repair apply --database ABSOLUTE_PATH --store-root ABSOLUTE_PATH --expected-fingerprint sha256:... --snapshot ABSOLUTE_PATH --principal NAME [--finalize-lost ATTEMPT_ID ...] --apply [--pretty]\n       ordivon-runtime-repair cancel-stale --database ABSOLUTE_PATH --store-root ABSOLUTE_PATH --snapshot ABSOLUTE_PATH --principal NAME --attempt-id ATTEMPT_ID --apply [--pretty]".to_string()
+    "usage: ordivon-runtime-repair apply --database ABSOLUTE_PATH --store-root ABSOLUTE_PATH --expected-fingerprint sha256:... --snapshot ABSOLUTE_PATH --principal NAME [--finalize-lost ATTEMPT_ID ...] --apply [--pretty]\n       ordivon-runtime-repair cancel-stale --database ABSOLUTE_PATH --store-root ABSOLUTE_PATH --snapshot ABSOLUTE_PATH --principal NAME --attempt-id ATTEMPT_ID --apply [--pretty]\n       ordivon-runtime-repair recover-result --database ABSOLUTE_PATH --store-root ABSOLUTE_PATH --snapshot ABSOLUTE_PATH --principal NAME --attempt-id ATTEMPT_ID --apply [--pretty]".to_string()
 }
