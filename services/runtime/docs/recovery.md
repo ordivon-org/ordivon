@@ -9,6 +9,29 @@ This protocol is for Registry inconsistency, ambiguous terminal state, backup, a
 3. **Create a fresh verified snapshot.** Back up the Registry and permitted control files before any administrative mutation.
 4. **Classify every case from evidence.** A validated runner Result may support recovery. A missing Result does not prove success or failure.
 5. **Apply an exact repair.** `ordivon-runtime-repair apply` must use the Doctor fingerprint, the verified snapshot, an explicit principal, and explicit selection of every manual Lost conclusion. A separate `cancel-stale` operator path exists only for the narrow bootstrap case where one current nonterminal Attempt is already `recovery_required` with `LAUNCH_IDENTITY_MISMATCH`, the Doctor invariant surface is clean, the verified snapshot contains the exact same Job/Attempt/reservation/recovery state, no Runner result exists, and Runtime proves the systemd unit, recorded process identity, and cgroup own no live execution. Unlike general multi-case repair, this target-scoped path does not bind the global Doctor fingerprint: unrelated Jobs may progress while the large Registry is inspected, while the selected target remains protected by exact snapshot state plus repeated physical-absence proof. It persists cancellation intent and records `Cancelled`; it does not claim the original execution succeeded, failed, or never started. Invocation without `--apply` must remain non-mutating.
+
+`recover-result` is a separate target-scoped exact-recovery path for converging one exact Attempt from an already-existing, validated canonical Runner result. It is not a Doctor-case synthesizer, a generic repair sweep, a raw state override, or permission to redispatch work.
+
+```text
+ordivon-runtime-repair recover-result --database <registry> --store-root <runtime-store> --snapshot <verified-snapshot> --principal <principal> --attempt-id <attempt-id> --apply --pretty
+```
+
+Before either legal mode, require a Doctor-clean supported surface; the Job execution plan's `execution_target` must be `LocalLinux`; no persisted Attempt Supervisor Owner may disqualify the target; canonical Runner `result.json` must already exist and validate; the verified snapshot and principal must bind the exact target; `currentAttemptId=NULL`; the requested Attempt must remain the latest persisted Attempt for the Job; the relevant unit, recorded PID/process identity, and cgroup must own no live execution; and the snapshot/current Job, Attempt, reservation, recovery, result, Artifact, owner, and platform identities must still match.
+
+**INITIAL orphan terminalization.** Use this mode only when the Job resolution is `orphaned`, the Attempt state is `orphaned`, the reservation is `held_orphaned`, and `recoveryRequired=true`. Immediately before terminal mutation, re-read the exact target, latest Attempt, reservation, recovery standing, Supervisor Owner, canonical result identity, and physical execution absence. Any drift fails closed. Terminal convergence must use the existing Registry orphan-recovery seam; recovered immutable Artifacts are compare-and-reuse, so an exact existing identity may be reused while any identity mismatch fails closed. Clearing `recoveryRequired` is a separate transaction after terminal mutation.
+
+**TERMINAL exact-match re-entry.** Use this mode only when the persisted Attempt is already `succeeded`, `failed`, `timed_out`, `cancelled`, or `lost`; its persisted terminal identity/result/exit/infrastructure/final-time fields exactly match the canonical Runner result; the Job resolution matches that terminal state; the reservation is released; `currentAttemptId=NULL`; and the requested Attempt remains the latest persisted Attempt. This mode MUST NOT replay terminal mutation. It may only reconcile the residual recovery condition or prove that no effect remains.
+
+The target-scoped operator reports one of these dispositions:
+
+- `FULL_CONVERGENCE`: terminal truth and the recovery residual are converged.
+- `PARTIAL_CONVERGENCE`: terminal truth is already committed but the recovery-clear residual remains.
+- `NO_EFFECT`: fresh exact re-entry proves the target is already fully converged.
+- fail-closed / HOLD: one or more required identity, currentness, result, or physical-execution facts are not established.
+
+On `PARTIAL_CONVERGENCE`, later re-entry may clear only the residual and must never replay terminal mutation. If response delivery is uncertain, reconcile or reattach the SAME exact recovery effect identity and target evidence; never redispatch the Job and never mint a second terminal effect to obtain a cleaner response.
+
+For every live application, preserve a bounded evidence bundle: (1) before-state Job/Attempt/reservation/recovery/currentAttempt/latestAttempt/canonical-result standing; (2) verified snapshot identity and principal; (3) physical-absence evidence; (4) the exact `recover-result` effect identity and operator report; (5) after-state Job/Attempt/reservation/recovery plus Doctor/integrity readback; and (6) an explicit FULL/PARTIAL/NO_EFFECT/HOLD disposition.
 6. **Verify after mutation.** Run the Doctor again, check SQLite integrity and remaining invariants, then restart or inspect the service as required by the incident.
 7. **Preserve recovery evidence.** Keep the before report, snapshot identity, repair report, after report, and relevant Runtime Artifacts outside the active repository tree.
 
