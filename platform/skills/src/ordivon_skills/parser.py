@@ -22,6 +22,7 @@ class ParsedSkillFrontmatter:
     name: str
     description: str
     diagnostics: tuple[str, ...] = ()
+    client_model_invocation_disabled: bool = False
 
 
 def _split_frontmatter(text: str) -> str:
@@ -154,8 +155,19 @@ def parse_skill_frontmatter(
             raise SkillParseError("allowed-tools must be a space-separated string")
         diagnostics.append("non-standard allowed-tools value type ignored")
 
+    client_model_invocation_disabled = False
+    if validation_mode == "lenient" and "disable-model-invocation" in value:
+        raw_disable_model_invocation = value["disable-model-invocation"]
+        if type(raw_disable_model_invocation) is bool:
+            client_model_invocation_disabled = raw_disable_model_invocation
+        else:
+            diagnostics.append(
+                "non-standard disable-model-invocation value must be boolean; ignored"
+            )
+
     return ParsedSkillFrontmatter(
         name=name,
         description=description,
         diagnostics=tuple(diagnostics),
+        client_model_invocation_disabled=client_model_invocation_disabled,
     )

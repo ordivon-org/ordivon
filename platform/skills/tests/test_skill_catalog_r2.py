@@ -117,6 +117,49 @@ class AgentSkillsStandardsTests(unittest.TestCase):
         )
         self.assertIn("argument-hint", " ".join(parsed.diagnostics))
 
+    def test_lenient_disable_model_invocation_blocks_implicit_only(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "skills"
+            skill_dir = root / "phase-only"
+            skill_dir.mkdir(parents=True)
+            (skill_dir / "SKILL.md").write_text(
+                "---\n"
+                "name: phase-only\n"
+                "description: Explicit workflow phase\n"
+                "disable-model-invocation: true\n"
+                "---\n"
+                "# Phase only\n",
+                encoding="utf-8",
+            )
+            catalog = SkillCatalog.scan(
+                [
+                    SkillSource(
+                        "compat",
+                        root,
+                        "user",
+                        1,
+                        TrustState.APPROVED,
+                        validation_mode="lenient",
+                    )
+                ]
+            )
+            [record] = catalog.inventory
+            self.assertFalse(record.implicit_invocation)
+            self.assertTrue(record.explicit_invocation)
+            with self.assertRaises(SkillCatalogError) as captured:
+                catalog.resolve("phase-only", invocation_mode="implicit")
+            self.assertEqual(captured.exception.code, "SKILL_NOT_VISIBLE")
+            self.assertEqual(
+                catalog.resolve("phase-only", invocation_mode="explicit").resolved.skill_id,
+                "compat/phase-only",
+            )
+            with self.assertRaisesRegex(SkillParseError, "non-standard"):
+                parse_skill_frontmatter(
+                    (skill_dir / "SKILL.md").read_text(encoding="utf-8"),
+                    validation_mode="strict",
+                    expected_directory_name="phase-only",
+                )
+
     def test_strict_parser_enforces_standard_name_and_directory_match(self) -> None:
         for name, directory in (("has.dot", "has.dot"), ("UPPER", "UPPER"), ("good-name", "other")):
             with self.subTest(name=name, directory=directory), self.assertRaises(SkillParseError):
