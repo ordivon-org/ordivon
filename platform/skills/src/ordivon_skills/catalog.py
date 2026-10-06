@@ -367,9 +367,16 @@ class SkillCatalog:
                 package_revision = _package_revision(skill_root)
                 source_relative_root = skill_root.relative_to(root).as_posix()
                 local_ids.add(skill_id)
+                # Lenient parsing may tolerate client-private frontmatter on any source,
+                # but private invocation semantics are opt-in for external/user inputs only.
+                # Positive scoping keeps owner-local, managed, and future scopes fail-closed.
+                client_invocation_disabled = (
+                    parsed.client_model_invocation_disabled
+                    and source.scope in {"user", "vendor", "plugin"}
+                )
                 configured_implicit = (
                     not _prefix_denied(source_relative_root, source.implicit_deny_prefixes)
-                    and not parsed.client_model_invocation_disabled
+                    and not client_invocation_disabled
                 )
                 explicit = not _prefix_denied(source_relative_root, source.explicit_deny_prefixes)
                 eligibility = observe_eligibility(decoded, source.eligibility_adapter)
