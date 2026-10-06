@@ -73,9 +73,11 @@ pub(crate) use registry::{
 };
 #[cfg(feature = "operator-tools")]
 pub use repair::{
-    apply_runtime_repair, cancel_stale_recovery_required_attempt, RuntimeRepairAction,
-    RuntimeRepairActionKind, RuntimeRepairConfig, RuntimeRepairReport, RuntimeRepairRequest,
-    RuntimeStaleCancelReport, RuntimeStaleCancelRequest, RUNTIME_REPAIR_SCHEMA_VERSION,
+    apply_runtime_repair, cancel_stale_recovery_required_attempt, recover_orphaned_runner_result,
+    RuntimeOrphanResultRecoveryDisposition, RuntimeOrphanResultRecoveryReport,
+    RuntimeOrphanResultRecoveryRequest, RuntimeRepairAction, RuntimeRepairActionKind,
+    RuntimeRepairConfig, RuntimeRepairReport, RuntimeRepairRequest, RuntimeStaleCancelReport,
+    RuntimeStaleCancelRequest, RUNTIME_REPAIR_SCHEMA_VERSION,
 };
 #[cfg(test)]
 pub(crate) use types::operation_request_identity_digest;
