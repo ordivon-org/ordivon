@@ -4,6 +4,13 @@ Clean-room, external-first reconstruction of Ordivon Host.
 
 Host v1 is a behavioral/source oracle only. Host v2 does not import `ordivon_host` and does not copy its persistence implementation.
 
+## Agent start
+
+- For current Work/Space/Topic/Message semantics, start with `docs/SOCIAL_WORK_FABRIC_R1.md` and the public Host MCP surface; use `host.status` only for Host/schema readiness.
+- Host owns semantic Work continuity and collaboration state. Runtime owns Workspace/Job/Attempt/process truth, and Git owns source revision/diff truth.
+- Runtime, Git, provider, and domain references carried by Host are navigation/evidence pointers, not transferred authority; revalidate them with the natural owner before acting.
+- Do not infer system-wide health, execution success, source currentness, or domain completion from Host state alone.
+
 ## Substrate
 
 - PostgreSQL is the authority store.
