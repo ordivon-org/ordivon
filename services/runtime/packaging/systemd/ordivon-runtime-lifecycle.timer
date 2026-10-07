@@ -1,10 +1,10 @@
 [Unit]
-Description=Daily Ordivon Runtime Workspace lifecycle sweep
+Description=Hourly Ordivon Runtime Workspace lifecycle sweep
 
 [Timer]
-OnCalendar=daily
+OnCalendar=hourly
 Persistent=true
-RandomizedDelaySec=15m
+RandomizedDelaySec=5m
 Unit=ordivon-runtime-lifecycle.service
 
 [Install]

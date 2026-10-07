@@ -4,8 +4,9 @@
       "forceCloseAfterMaxLifetime": true,
       "forceCloseDirtyAfterRetention": true,
       "forceCloseUnintegratedAfterRetention": true,
-      "maxLifetimeHours": 168,
-      "retentionHours": 72
+      "maxLifetimeHours": 48,
+      "retentionHours": 24,
+      "dirtyRetentionHours": 48
     },
     "pinned": {
       "forceCloseAfterMaxLifetime": false,
@@ -18,8 +19,9 @@
       "forceCloseAfterMaxLifetime": true,
       "forceCloseDirtyAfterRetention": true,
       "forceCloseUnintegratedAfterRetention": true,
-      "maxLifetimeHours": 168,
-      "retentionHours": 168
+      "maxLifetimeHours": 48,
+      "retentionHours": 24,
+      "dirtyRetentionHours": 48
     }
   },
   "defaultClass": "ephemeral",

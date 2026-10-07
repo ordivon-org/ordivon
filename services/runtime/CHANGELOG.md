@@ -1,3 +1,5 @@
+- Workspace lifecycle retention is now aggressively bounded for disposable execution carriers: clean and clean-but-unintegrated Workspaces use a 24-hour inactivity lease, dirty Workspaces use a distinct 48-hour lease, and the disposable hard lifetime is 48 hours. The packaged lifecycle timer runs hourly, clean reclaim runs before the policy sweep, lifecycle exit 1 is no longer masked as systemd success, and active/held or pinned Workspaces remain fail-closed protected.
+
 # Changelog
 
 ## 2026-09-21 — Bound Registry status cost at large history

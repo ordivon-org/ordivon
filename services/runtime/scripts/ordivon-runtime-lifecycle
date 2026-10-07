@@ -41,15 +41,17 @@ DEFAULT_POLICY = {
     "defaultClass": "ephemeral",
     "classes": {
         "ephemeral": {
-            "retentionHours": 72.0,
-            "maxLifetimeHours": 168.0,
+            "retentionHours": 24.0,
+            "dirtyRetentionHours": 48.0,
+            "maxLifetimeHours": 48.0,
             "forceCloseDirtyAfterRetention": True,
             "forceCloseUnintegratedAfterRetention": True,
             "forceCloseAfterMaxLifetime": True,
         },
         "review": {
-            "retentionHours": 168.0,
-            "maxLifetimeHours": 168.0,
+            "retentionHours": 24.0,
+            "dirtyRetentionHours": 48.0,
+            "maxLifetimeHours": 48.0,
             "forceCloseDirtyAfterRetention": True,
             "forceCloseUnintegratedAfterRetention": True,
             "forceCloseAfterMaxLifetime": True,
@@ -347,6 +349,13 @@ def load_policy(path: Path | None) -> dict[str, object]:
         hours = definition.get("retentionHours")
         if hours is not None and (not isinstance(hours, (int, float)) or hours < 0):
             raise RuntimeError(f"retentionHours for {name} must be null or non-negative")
+        dirty_hours = definition.get("dirtyRetentionHours")
+        if dirty_hours is not None and (
+            not isinstance(dirty_hours, (int, float)) or dirty_hours < 0
+        ):
+            raise RuntimeError(
+                f"dirtyRetentionHours for {name} must be null or non-negative"
+            )
         max_lifetime = definition.get("maxLifetimeHours")
         if max_lifetime is not None and (
             not isinstance(max_lifetime, (int, float)) or max_lifetime < 0
@@ -384,7 +393,7 @@ def load_policy(path: Path | None) -> dict[str, object]:
 
 def retention_class(
     policy: dict[str, object], workspace_id: str
-) -> tuple[str, float | None, float | None, bool, bool, bool]:
+) -> tuple[str, float | None, float | None, float | None, bool, bool, bool]:
     classes = policy["classes"]
     assert isinstance(classes, dict)
     selected = str(policy["defaultClass"])
@@ -400,6 +409,7 @@ def retention_class(
     definition = classes[selected]
     assert isinstance(definition, dict)
     hours = definition.get("retentionHours")
+    dirty_hours = definition.get("dirtyRetentionHours")
     max_lifetime = definition.get("maxLifetimeHours")
     force_dirty = definition.get("forceCloseDirtyAfterRetention", False)
     force_unintegrated = definition.get(
@@ -412,6 +422,11 @@ def retention_class(
     return (
         selected,
         float(hours) if isinstance(hours, (int, float)) else None,
+        float(dirty_hours)
+        if isinstance(dirty_hours, (int, float))
+        else (
+            float(hours) if isinstance(hours, (int, float)) else None
+        ),
         float(max_lifetime)
         if isinstance(max_lifetime, (int, float))
         else None,
@@ -601,61 +616,6 @@ def runtime_inspection(
     return value
 
 
-def registry_activity_by_workspace(database: Path, timeout_ms: int) -> dict[str, int | None]:
-    value = runtime_inspection(database, timeout_ms, "registry-activity")
-    workspaces = value.get("workspaces")
-    if not isinstance(workspaces, list):
-        raise RuntimeError("Runtime registry activity inspection omitted workspaces")
-    projected: dict[str, int | None] = {}
-    for raw in workspaces:
-        if not isinstance(raw, dict):
-            raise RuntimeError("Runtime registry activity inspection returned invalid Workspace state")
-        workspace_id = raw.get("workspaceId")
-        last_activity_ms = raw.get("lastActivityMs")
-        if not isinstance(workspace_id, str) or (
-            last_activity_ms is not None and not isinstance(last_activity_ms, int)
-        ):
-            raise RuntimeError("Runtime registry activity inspection returned invalid Workspace activity")
-        projected[workspace_id] = last_activity_ms
-    return projected
-
-
-EMPTY_WORKSPACE_ACTIVITY_MARKER = "sha256:" + hashlib.sha256(b"").hexdigest()
-
-
-def registry_activity_markers(
-    database: Path,
-    timeout_ms: int,
-    *,
-    workspace_id: str | None = None,
-) -> dict[str, str]:
-    value = runtime_inspection(
-        database,
-        timeout_ms,
-        "registry-markers",
-        workspace_id=workspace_id,
-    )
-    workspaces = value.get("workspaces")
-    if not isinstance(workspaces, list):
-        raise RuntimeError("Runtime registry marker inspection omitted workspaces")
-    markers: dict[str, str] = {}
-    for raw in workspaces:
-        if not isinstance(raw, dict):
-            raise RuntimeError("Runtime registry marker inspection returned invalid Workspace state")
-        observed_id = raw.get("workspaceId")
-        marker = raw.get("activityMarker")
-        if (
-            not isinstance(observed_id, str)
-            or not isinstance(marker, str)
-            or not marker.startswith("sha256:")
-        ):
-            raise RuntimeError("Runtime registry marker inspection returned invalid activity marker")
-        markers[observed_id] = marker
-    if workspace_id is not None and workspace_id not in markers:
-        markers[workspace_id] = EMPTY_WORKSPACE_ACTIVITY_MARKER
-    return markers
-
-
 def registry_workspace(database: Path, timeout_ms: int, workspace_id: str) -> dict[str, object]:
     value = runtime_inspection(
         database, timeout_ms, "registry-workspace", workspace_id=workspace_id
@@ -670,12 +630,6 @@ def enrich_report(args: argparse.Namespace) -> dict[str, object]:
     report = reclaim_inspect(args)
     policy = load_policy(args.policy_file)
     now_ms = int(time.time() * 1000)
-    activity_by_workspace = registry_activity_by_workspace(
-        args.database, args.busy_timeout_ms
-    )
-    activity_markers = registry_activity_markers(
-        args.database, args.busy_timeout_ms
-    )
     enriched: list[dict[str, object]] = []
     eligible_count = 0
     eligible_bytes = 0
@@ -686,17 +640,33 @@ def enrich_report(args: argparse.Namespace) -> dict[str, object]:
         workspace_id = str(item["workspaceId"])
         (
             class_name,
-            retention_hours,
+            clean_retention_hours,
+            dirty_retention_hours,
             max_lifetime_hours,
             force_dirty,
             force_unintegrated,
             force_max,
         ) = retention_class(policy, workspace_id)
-        created_ms = item.get("createdUnixMs")
-        activity_ms = activity_by_workspace.get(workspace_id)
-        activity_marker = activity_markers.get(
-            workspace_id, EMPTY_WORKSPACE_ACTIVITY_MARKER
+        classification = item.get("classification")
+        retention_hours = (
+            dirty_retention_hours
+            if classification == "blocked_dirty"
+            else clean_retention_hours
         )
+        created_ms = item.get("createdUnixMs")
+        registry_state = registry_workspace(
+            args.database, args.busy_timeout_ms, workspace_id
+        )
+        activity_ms = registry_state.get("lastActivityMs")
+        activity_marker = registry_state.get("activityMarker")
+        if activity_ms is not None and not isinstance(activity_ms, int):
+            raise RuntimeError(
+                "Runtime Workspace registry inspection returned invalid lastActivityMs"
+            )
+        if not isinstance(activity_marker, str) or not activity_marker.startswith("sha256:"):
+            raise RuntimeError(
+                "Runtime Workspace registry inspection returned invalid activity marker"
+            )
         basis_values = [
             value for value in (created_ms, activity_ms) if isinstance(value, int)
         ]
@@ -715,7 +685,6 @@ def enrich_report(args: argparse.Namespace) -> dict[str, object]:
         hard_lifetime_expired = (
             hard_expires_at is not None and hard_expires_at <= now_ms
         )
-        classification = item.get("classification")
         idle_eligible_class = (
             classification in {"closable", "stale_record"}
             or (classification == "blocked_dirty" and force_dirty)
