@@ -19,7 +19,7 @@ CONTROL_PYTHON = Path("/root/.local/share/ordivon-workstation/agent-automation-m
 ADMISSION_ROOT = Path("/root/.local/state/ordivon-workstation/agent-automation/state")
 ADMISSION_LOCK = ADMISSION_ROOT / "release-admission.lock"
 ADMISSION_CLOSED = ADMISSION_ROOT / "release-admission.closed.json"
-MUTATING_ACTIONS = frozenset({"launch", "birth", "reconcile", "human-resume", "continue"})
+MUTATING_ACTIONS = frozenset({"launch", "birth", "reconcile", "human-resume", "continue", "session-continuity-repair"})
 
 
 def _action(argv: list[str]) -> str | None:

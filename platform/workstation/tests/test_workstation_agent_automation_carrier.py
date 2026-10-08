@@ -39,6 +39,25 @@ class AgentAutomationWrapperTests(unittest.TestCase):
         self.assertEqual(argv[2:4],['--config','/etc/ordivon/agent-automation-browserless.json'])
         self.assertIn('provider-preflight',argv)
 
+    def test_session_continuity_repair_respects_release_admission_fence(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td); lock=root/'release.lock'; closed=root/'closed.json'
+            root.mkdir(exist_ok=True); closed.write_text('{}')
+            completed=subprocess.CompletedProcess([],0)
+            with (
+                patch.object(w,'ADMISSION_ROOT',root),
+                patch.object(w,'ADMISSION_LOCK',lock),
+                patch.object(w,'ADMISSION_CLOSED',closed),
+                patch.object(w,'CONTROL_PYTHON',Path('/control/python')),
+                patch.object(w,'DEFAULT_SOURCE_ROOT',ROOT),
+                patch.object(Path,'is_file',return_value=True),
+                patch.object(w.subprocess,'run',return_value=completed) as run,
+                patch.object(sys,'argv',['agent-automation','session-continuity-repair','--endpoint-id','carrier-a']),
+            ):
+                with self.assertRaisesRegex(SystemExit,'HOLD_CLOSED'):
+                    w.main()
+            run.assert_not_called()
+
     def test_closed_gate_blocks_mutating_admission_but_not_read_only_action(self):
         with tempfile.TemporaryDirectory() as td:
             root=Path(td); lock=root/'release.lock'; closed=root/'closed.json'; root.mkdir(exist_ok=True); closed.write_text('{}')
