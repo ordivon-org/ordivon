@@ -12,11 +12,12 @@ tooling_lock="$repo/requirements-tooling.lock.txt"
 
 usage() {
   cat <<'TXT'
-usage: scripts/owner-environment bootstrap|doctor|test|cold-start|extended
+usage: scripts/owner-environment bootstrap|doctor|test|test-lifecycle|cold-start|extended
 
 bootstrap   materialize pinned Python tooling and fetch Cargo.lock dependencies
 doctor      verify Rust toolchain, Cargo.lock, Python and exact Ruff tooling
 test        bootstrap, doctor, Rust workspace tests, Python gates, and local acceptance contract check
+test-lifecycle  non-qualifying lifecycle inner-loop using the current owner environment and Runtime inspector
 cold-start  prove the default test profile with fresh Python env and Cargo target directory
 extended    run the intentionally long 512-case Registry reference-model property test
 
@@ -102,10 +103,18 @@ run_extended() {
   cd "$repo"
   "$cargo_bin" test --locked -p ordivon-runtime-core request_identity_and_terminal_winner_match_reference_model -- --nocapture
 }
+run_lifecycle_tests() {
+  ensure_materialized_environment
+  cd "$repo"
+  materialize_runtime_inspect
+  echo "lifecycle inner-loop: non-qualifying; run full Runtime verification before submission, integration, or publication"
+  "$python_bin" -m unittest discover -s scripts/tests -p 'test_lifecycle.py' -q
+}
 case "$mode" in
   bootstrap) bootstrap ;;
   doctor) doctor ;;
   test) run_tests ;;
+  test-lifecycle) run_lifecycle_tests ;;
   extended) run_extended ;;
   cold-start)
     tmp=$(mktemp -d -t ordivon-runtime-owner-env-XXXXXX)
