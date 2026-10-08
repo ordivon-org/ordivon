@@ -258,7 +258,11 @@ if command == "registry":
     print(json.dumps({"migrationVersion": 1, "activeWorkspaces": []}))
 elif command == "registry-workspace":
     workspace_id = sys.argv[sys.argv.index("--workspace-id") + 1]
-    print(json.dumps({"workspace": {"workspaceId": workspace_id, "activeJobIds": []}}))
+    print(json.dumps({"workspace": {
+        "workspaceId": workspace_id,
+        "activeJobIds": [],
+        "lastActivityMs": None,
+    }}))
 else:
     raise SystemExit(2)
 """,
@@ -3229,6 +3233,186 @@ class DeployReclaimTests(unittest.TestCase):
             report = json.loads(result.stdout)
             self.assertEqual(report["actions"][0]["action"], "workspace_closed")
             self.assertFalse(workspace.exists())
+
+    def test_reclaim_apply_uses_recent_registry_activity_for_minimum_age(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            runtime = root / "runtime"
+            records = runtime / "workspace-records"
+            workspaces = runtime / "workspaces"
+            records.mkdir(parents=True)
+            workspaces.mkdir()
+            database = root / "registry.sqlite3"
+            initialize_registry(database)
+
+            workspace = workspaces / "recent-clean"
+            revision = initialize_git_repository(workspace, remote=False)
+            now_ms = int(time.time() * 1000)
+            created_ms = now_ms - 30 * 60 * 60 * 1000
+            recent_activity_ms = now_ms - 2 * 60 * 60 * 1000
+            record = records / "recent-clean.json"
+            record.write_text(
+                json.dumps(
+                    {
+                        "schemaVersion": 1,
+                        "workspaceId": "recent-clean",
+                        "sourceRepo": str(workspace),
+                        "sourceRevision": revision,
+                        "workspacePath": str(workspace),
+                        "createdUnixMs": created_ms,
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            inspect = root / "ordivon-runtime-inspect-recent"
+            write_executable(
+                inspect,
+                f"""#!/usr/bin/env python3
+import json
+import sys
+
+command = sys.argv[1]
+if command == "registry":
+    print(json.dumps({{"migrationVersion": 1, "activeWorkspaces": []}}))
+elif command == "registry-workspace":
+    workspace_id = sys.argv[sys.argv.index("--workspace-id") + 1]
+    print(json.dumps({{"workspace": {{
+        "workspaceId": workspace_id,
+        "activeJobIds": [],
+        "lastActivityMs": {recent_activity_ms}
+    }}}}))
+else:
+    raise SystemExit(2)
+""",
+            )
+
+            closed: list[str] = []
+
+            def close_callback(workspace_id: str) -> None:
+                closed.append(workspace_id)
+                shutil.rmtree(workspace)
+                record.write_text(
+                    json.dumps(
+                        {
+                            "schemaVersion": 1,
+                            "workspaceId": workspace_id,
+                            "state": "closed",
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+
+            source_digest = "sha256:" + "f" * 64
+            with mcp_server(
+                ["workspace.get", "workspace.close"],
+                close_callback,
+                workspace_get_result={
+                    "workspaceId": "recent-clean",
+                    "currentHeadRevision": revision,
+                    "sourceStateDigest": source_digest,
+                    "dirty": False,
+                },
+                modern=False,
+            ) as port:
+                env_file = root / "runtime.env"
+                env_file.write_text(
+                    f"ORDIVON_BIND=127.0.0.1:{port}\nORDIVON_BEARER_TOKEN=test\n",
+                    encoding="utf-8",
+                )
+                environment = dict(os.environ)
+                environment["ORDIVON_RUNTIME_INSPECT"] = str(inspect)
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        "scripts/ordivon-runtime-reclaim",
+                        "apply",
+                        "--database",
+                        str(database),
+                        "--runtime-store-root",
+                        str(runtime),
+                        "--env-file",
+                        str(env_file),
+                        "--receipt-root",
+                        str(root / "receipts"),
+                        "--lock-file",
+                        str(root / "reclaim.lock"),
+                        "--minimum-age-hours",
+                        "24",
+                        "--classification",
+                        "closable",
+                        "--workspace-id",
+                        "recent-clean",
+                        "--confirm-policy",
+                        "RECLAIM_ELIGIBLE_WORKSPACES",
+                    ],
+                    cwd=REPO,
+                    check=True,
+                    text=True,
+                    capture_output=True,
+                    env=environment,
+                )
+
+            report = json.loads(result.stdout)
+            self.assertEqual(closed, [])
+            self.assertEqual(report["actions"], [])
+            plan = json.loads(
+                (Path(report["receipt"]) / "plan.json").read_text(encoding="utf-8")
+            )
+            [candidate] = plan["candidates"]
+            self.assertFalse(candidate["eligible"])
+            self.assertEqual(candidate["reason"], "younger_than_minimum_age")
+            self.assertEqual(candidate["lastActivityUnixMs"], recent_activity_ms)
+            self.assertEqual(candidate["minimumAgeBasisUnixMs"], recent_activity_ms)
+            self.assertTrue(workspace.is_dir())
+
+            write_executable(
+                inspect,
+                """#!/usr/bin/env python3
+import json
+import sys
+
+command = sys.argv[1]
+if command == "registry":
+    print(json.dumps({"migrationVersion": 1, "activeWorkspaces": []}))
+elif command == "registry-workspace":
+    workspace_id = sys.argv[sys.argv.index("--workspace-id") + 1]
+    print(json.dumps({"workspace": {
+        "workspaceId": workspace_id,
+        "activeJobIds": [],
+        "lastActivityMs": True,
+    }}))
+else:
+    raise SystemExit(2)
+""",
+            )
+            with mcp_server(
+                ["workspace.get", "workspace.close"],
+                close_callback,
+                workspace_get_result={
+                    "workspaceId": "recent-clean",
+                    "currentHeadRevision": revision,
+                    "sourceStateDigest": source_digest,
+                    "dirty": False,
+                },
+                modern=False,
+            ) as port:
+                env_file.write_text(
+                    f"ORDIVON_BIND=127.0.0.1:{port}\nORDIVON_BEARER_TOKEN=test\n",
+                    encoding="utf-8",
+                )
+                malformed = subprocess.run(
+                    result.args,
+                    cwd=REPO,
+                    check=False,
+                    text=True,
+                    capture_output=True,
+                    env=environment,
+                )
+
+            self.assertNotEqual(malformed.returncode, 0)
+            self.assertEqual(closed, [])
+            self.assertTrue(workspace.is_dir())
 
     def test_prepare_and_plan_treat_local_head_as_diagnostic_not_release_authority(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

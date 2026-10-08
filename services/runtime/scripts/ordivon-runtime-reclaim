@@ -867,16 +867,43 @@ def apply_reclaim(args: argparse.Namespace) -> dict[str, object]:
             eligible = True
             reason = "eligible"
             created_ms = item.get("createdUnixMs")
+            last_activity_ms: int | None = None
+            minimum_age_basis_ms = created_ms if isinstance(created_ms, int) else None
+            if (
+                classification == "closable"
+                and classification in classifications
+                and isinstance(created_ms, int)
+            ):
+                registry_workspace = registry_workspace_projection(
+                    args.database, args.busy_timeout_ms, workspace_id
+                )
+                workspace_registry = registry_workspace["workspace"]
+                assert isinstance(workspace_registry, dict)
+                raw_last_activity_ms = workspace_registry.get("lastActivityMs")
+                if raw_last_activity_ms is not None and (
+                    isinstance(raw_last_activity_ms, bool)
+                    or not isinstance(raw_last_activity_ms, int)
+                ):
+                    raise RuntimeError(
+                        "Runtime Workspace registry inspection returned invalid lastActivityMs"
+                    )
+                last_activity_ms = raw_last_activity_ms
+                if isinstance(last_activity_ms, int):
+                    minimum_age_basis_ms = max(created_ms, last_activity_ms)
             if classification not in classifications:
                 eligible = False
                 reason = "classification_not_selected"
-            elif not isinstance(created_ms, int):
+            elif not isinstance(minimum_age_basis_ms, int):
                 eligible = False
                 reason = "creation_time_unknown"
-            elif created_ms > cutoff_ms:
+            elif minimum_age_basis_ms > cutoff_ms:
                 eligible = False
                 reason = "younger_than_minimum_age"
-            plan.append({**item, "eligible": eligible, "reason": reason})
+            planned = {**item, "eligible": eligible, "reason": reason}
+            if classification == "closable":
+                planned["lastActivityUnixMs"] = last_activity_ms
+                planned["minimumAgeBasisUnixMs"] = minimum_age_basis_ms
+            plan.append(planned)
 
         receipt = reclaim_receipt(args.receipt_root)
         receipt.mkdir(parents=True)
