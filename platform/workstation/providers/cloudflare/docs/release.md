@@ -42,7 +42,7 @@ The candidate must expose the expected signed capability and Receipt contracts, 
 
 ## Verification
 
-Run local provider CI, upload the candidate, require a stable consecutive sequence of version-bound health observations through an override, retry only read-only health and capability checks when an edge still serves the previous version, guard every external smoke POST with another stable override sequence, promote to 100 percent, verify stable unoverridden routing, query authoritative Deployment state after ambiguous responses, and write a private source- and version-bound receipt. [`operations.md`](operations.md) defines installed operation, [`reliability.md`](reliability.md) defines reconciliation, and [`../../../docs/authority.md`](../../../docs/authority.md) records authority.
+Run local provider CI, upload the candidate, require a stable consecutive sequence of version-bound health observations through an override, retry only read-only health and capability checks when an edge still serves the previous version, guard every external smoke POST with another stable override sequence, promote to 100 percent, verify stable unoverridden routing, query authoritative Deployment state after ambiguous responses, and write a private source- and version-bound receipt. [`operations.md`](operations.md) defines installed operation, [`reliability.md`](reliability.md) defines reconciliation, and [`../README.md#authority-boundary`](../README.md#authority-boundary) records authority.
 
 ## Rollback
 
