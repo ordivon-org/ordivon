@@ -61,6 +61,8 @@ project="${projects[0]}"
 materialized=$(mktemp)
 current=$(mktemp)
 import_path="$STATE/ordivon-discord-research-v0.import.json"
+# cleanup is invoked indirectly by the EXIT trap below.
+# shellcheck disable=SC2329
 cleanup() {
   rm -f "$materialized" "$current"
   rm -f "$import_path"
