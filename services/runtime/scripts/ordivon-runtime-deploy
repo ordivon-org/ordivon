@@ -589,6 +589,18 @@ def runtime_policy_state(
     return {**policy, "envFileDigest": sha256(path)}
 
 
+def runtime_policy_transaction_preimage(
+    path: Path,
+    candidate_policy: object,
+) -> dict[str, object]:
+    candidate = validate_runtime_policy(candidate_policy, require_complete=False)
+    previous = runtime_policy_state(path, track_optional_absence=True)
+    for field in RUNTIME_POLICY_LEGACY_OPTIONAL_FIELDS:
+        if field not in candidate:
+            previous.pop(field, None)
+    return previous
+
+
 def candidate_runtime_policy(source_root: Path) -> dict[str, object]:
     source = source_root / RUNTIME_POLICY_SOURCE
     state = runtime_policy_state(source)
@@ -1651,7 +1663,7 @@ def apply_deployment(args: argparse.Namespace) -> dict[str, object]:
             candidate_release_authority(args) if runtime_policy is not None else None
         )
         previous_runtime_policy = (
-            runtime_policy_state(args.env_file, track_optional_absence=True)
+            runtime_policy_transaction_preimage(args.env_file, runtime_policy)
             if runtime_policy is not None
             else None
         )
