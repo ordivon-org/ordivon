@@ -3386,20 +3386,20 @@ fn simultaneous_admissions_cannot_overbook_last_global_slot() {
 }
 
 #[test]
-fn process_local_registry_write_gate_serializes_concurrent_admissions() {
-    let sandbox = Sandbox::new("process-local-write-gate", 1);
+fn process_local_registry_write_gate_serializes_sixteen_concurrent_admissions() {
+    let sandbox = Sandbox::new("process-local-write-gate-16", 1);
     let registry = sandbox.registry.clone();
-    let barrier = Arc::new(Barrier::new(9));
-    let joins = (0..8)
+    let barrier = Arc::new(Barrier::new(17));
+    let joins = (0..16)
         .map(|index| {
             let registry = registry.clone();
             let barrier = barrier.clone();
             let mut submit = request(
                 &sandbox,
-                &format!("request:process-local-write-gate:{index}"),
+                &format!("request:process-local-write-gate-16:{index}"),
                 16,
             );
-            submit.plan.workspace_id = format!("workspace:process-local-write-gate:{index}");
+            submit.plan.workspace_id = format!("workspace:process-local-write-gate-16:{index}");
             thread::spawn(move || {
                 barrier.wait();
                 registry.submit(&submit)
@@ -3413,9 +3413,21 @@ fn process_local_registry_write_gate_serializes_concurrent_admissions() {
         .collect::<Vec<_>>();
     assert!(
         results.iter().all(Result::is_ok),
-        "process-local writers must serialize before SQLite instead of surfacing contention: {results:?}"
+        "sixteen process-local writers must serialize before SQLite instead of surfacing contention: {results:?}"
     );
-    assert_eq!(sandbox.registry.active_reservation_count().unwrap(), 8);
+    assert_eq!(sandbox.registry.active_reservation_count().unwrap(), 16);
+
+    let mut overflow = request(&sandbox, "request:process-local-write-gate-16:overflow", 16);
+    overflow.plan.workspace_id = "workspace:process-local-write-gate-16:overflow".to_string();
+    let error = sandbox.registry.submit(&overflow).unwrap_err();
+    assert_eq!(error.code, RuntimeErrorCode::ConcurrencyLimit);
+    assert!(error.retryable);
+    let capacity = error
+        .capacity
+        .expect("global concurrency error must include capacity details");
+    assert_eq!(capacity.scope, "global");
+    assert_eq!(capacity.active, 16);
+    assert_eq!(capacity.limit, 16);
 }
 
 #[test]
