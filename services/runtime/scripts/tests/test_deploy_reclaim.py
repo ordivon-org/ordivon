@@ -341,7 +341,8 @@ def add_release_operator_sources(path: Path, *, push: bool) -> str:
     policy.parent.mkdir(parents=True, exist_ok=True)
     policy.write_text(
         "ORDIVON_DEFAULT_RUNTIME_MS=3600000\n"
-        "ORDIVON_MAX_RUNTIME_MS=86400000\n",
+        "ORDIVON_MAX_RUNTIME_MS=86400000\n"
+        "ORDIVON_GLOBAL_MAX_CONCURRENCY=16\n",
         encoding="utf-8",
     )
     subprocess.run(["git", "-C", str(path), "add", "scripts", "packaging"], check=True)
@@ -595,6 +596,7 @@ class DeployReclaimTests(unittest.TestCase):
                     "schemaVersion": 1,
                     "defaultRuntimeMs": 3_600_000,
                     "maxRuntimeMs": 86_400_000,
+                    "globalMaxConcurrency": 16,
                 },
             )
             artifacts = {item["name"]: item for item in report["artifacts"]}
@@ -658,6 +660,7 @@ class DeployReclaimTests(unittest.TestCase):
                     "schemaVersion": 1,
                     "defaultRuntimeMs": 3_600_000,
                     "maxRuntimeMs": 86_400_000,
+                    "globalMaxConcurrency": 16,
                 },
             )
             self.assertEqual(
@@ -969,6 +972,7 @@ class DeployReclaimTests(unittest.TestCase):
                     "schemaVersion": 1,
                     "defaultRuntimeMs": 3_600_000,
                     "maxRuntimeMs": 86_400_000,
+                    "globalMaxConcurrency": 16,
                 },
             )
 
@@ -1070,6 +1074,7 @@ class DeployReclaimTests(unittest.TestCase):
                     f"ORDIVON_BIND=127.0.0.1:{port}\n"
                     "ORDIVON_BEARER_TOKEN=test\n"
                     "UNRELATED_RELEASE_SETTING=preserve-me\n"
+                    "ORDIVON_GLOBAL_MAX_CONCURRENCY=8\n"
                     f"ORDIVON_RELEASE_SOURCE_REPO={root / 'standalone-runtime'}\n"
                     "ORDIVON_RELEASE_REQUIRED_REF=origin/legacy\n"
                     "ORDIVON_MAX_RUNTIME_MS=3600000\n",
@@ -1144,11 +1149,16 @@ class DeployReclaimTests(unittest.TestCase):
                     3_600_000,
                 )
                 self.assertEqual(
+                    receipt_manifest["runtimePolicy"]["previous"]["globalMaxConcurrency"],
+                    8,
+                )
+                self.assertEqual(
                     receipt_manifest["runtimePolicy"]["candidate"],
                     {
                         "schemaVersion": 1,
                         "defaultRuntimeMs": 3_600_000,
                         "maxRuntimeMs": 86_400_000,
+                        "globalMaxConcurrency": 16,
                     },
                 )
                 self.assertEqual(
@@ -1170,6 +1180,7 @@ class DeployReclaimTests(unittest.TestCase):
                 deployed_env = env_file.read_text(encoding="utf-8")
                 self.assertIn("ORDIVON_DEFAULT_RUNTIME_MS=3600000\n", deployed_env)
                 self.assertIn("ORDIVON_MAX_RUNTIME_MS=86400000\n", deployed_env)
+                self.assertIn("ORDIVON_GLOBAL_MAX_CONCURRENCY=16\n", deployed_env)
                 self.assertIn("ORDIVON_BEARER_TOKEN=test\n", deployed_env)
                 self.assertIn("UNRELATED_RELEASE_SETTING=preserve-me\n", deployed_env)
                 self.assertIn(f"ORDIVON_RELEASE_SOURCE_REPO={repo.resolve()}\n", deployed_env)
@@ -1214,6 +1225,7 @@ class DeployReclaimTests(unittest.TestCase):
             rolled_back_env = env_file.read_text(encoding="utf-8")
             self.assertNotIn("ORDIVON_DEFAULT_RUNTIME_MS=", rolled_back_env)
             self.assertIn("ORDIVON_MAX_RUNTIME_MS=3600000\n", rolled_back_env)
+            self.assertIn("ORDIVON_GLOBAL_MAX_CONCURRENCY=8\n", rolled_back_env)
             self.assertIn("ORDIVON_BEARER_TOKEN=test\n", rolled_back_env)
             self.assertIn("UNRELATED_RELEASE_SETTING=preserve-me\n", rolled_back_env)
             self.assertIn(
@@ -1701,6 +1713,65 @@ class DeployReclaimTests(unittest.TestCase):
             self.assertEqual(restored["releaseAuthority"]["requiredRef"], "origin/legacy")
             self.assertIsNone(restored["runtimePolicy"]["defaultRuntimeMs"])
             self.assertEqual(restored["runtimePolicy"]["maxRuntimeMs"], 3_600_000)
+
+    def test_runtime_policy_update_owns_global_concurrency_and_preserves_legacy_receipts(self) -> None:
+        scripts_path = str(REPO / "scripts")
+        sys.path.insert(0, scripts_path)
+        try:
+            module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-deploy"))
+        finally:
+            sys.path.remove(scripts_path)
+        with tempfile.TemporaryDirectory() as temporary:
+            env_file = Path(temporary) / "runtime.env"
+            env_file.write_text(
+                "ORDIVON_BIND=127.0.0.1:1\n"
+                "UNRELATED=preserve\n"
+                "ORDIVON_GLOBAL_MAX_CONCURRENCY=8\n"
+                "ORDIVON_MAX_RUNTIME_MS=3600000\n",
+                encoding="utf-8",
+            )
+            previous = module["runtime_policy_state"](env_file)
+            self.assertEqual(previous["globalMaxConcurrency"], 8)
+
+            updated = module["atomic_update_runtime_policy"](
+                env_file,
+                {
+                    "schemaVersion": 1,
+                    "defaultRuntimeMs": 3_600_000,
+                    "maxRuntimeMs": 86_400_000,
+                    "globalMaxConcurrency": 16,
+                },
+                expected_current=previous,
+            )
+            self.assertEqual(updated["globalMaxConcurrency"], 16)
+            text = env_file.read_text(encoding="utf-8")
+            self.assertIn("ORDIVON_GLOBAL_MAX_CONCURRENCY=16\n", text)
+            self.assertIn("UNRELATED=preserve\n", text)
+
+            legacy_candidate = {
+                "schemaVersion": 1,
+                "defaultRuntimeMs": 3_600_000,
+                "maxRuntimeMs": 86_400_000,
+            }
+            module["atomic_update_runtime_policy"](
+                env_file,
+                legacy_candidate,
+                expected_current=legacy_candidate,
+            )
+            self.assertIn(
+                "ORDIVON_GLOBAL_MAX_CONCURRENCY=16\n",
+                env_file.read_text(encoding="utf-8"),
+            )
+
+            restored = module["atomic_update_runtime_policy"](
+                env_file,
+                previous,
+                expected_current=updated,
+            )
+            self.assertEqual(restored["globalMaxConcurrency"], 8)
+            restored_text = env_file.read_text(encoding="utf-8")
+            self.assertIn("ORDIVON_GLOBAL_MAX_CONCURRENCY=8\n", restored_text)
+            self.assertIn("UNRELATED=preserve\n", restored_text)
 
     def test_runtime_policy_update_preserves_unrelated_env_and_detects_policy_drift(self) -> None:
         scripts_path = str(REPO / "scripts")

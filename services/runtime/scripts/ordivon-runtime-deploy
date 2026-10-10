@@ -72,7 +72,9 @@ RUNTIME_POLICY_SOURCE = Path("packaging/systemd/ordivon-runtime.env.example")
 RUNTIME_POLICY_ENV_KEYS = (
     ("ORDIVON_DEFAULT_RUNTIME_MS", "defaultRuntimeMs"),
     ("ORDIVON_MAX_RUNTIME_MS", "maxRuntimeMs"),
+    ("ORDIVON_GLOBAL_MAX_CONCURRENCY", "globalMaxConcurrency"),
 )
+RUNTIME_POLICY_LEGACY_OPTIONAL_FIELDS = frozenset({"globalMaxConcurrency"})
 RELEASE_AUTHORITY_SCHEMA_VERSION = 1
 RELEASE_AUTHORITY_ENV_KEYS = (
     ("ORDIVON_RELEASE_SOURCE_REPO", "sourceRepo"),
@@ -528,9 +530,10 @@ def validate_runtime_policy(value: object, *, require_complete: bool) -> dict[st
     for _env_key, field in RUNTIME_POLICY_ENV_KEYS:
         raw = value.get(field)
         if raw is None:
-            if require_complete:
+            if require_complete and field not in RUNTIME_POLICY_LEGACY_OPTIONAL_FIELDS:
                 raise RuntimeError(f"Runtime policy lacks {field}")
-            result[field] = None
+            if field not in RUNTIME_POLICY_LEGACY_OPTIONAL_FIELDS:
+                result[field] = None
             continue
         if isinstance(raw, bool) or not isinstance(raw, int) or raw <= 0:
             raise RuntimeError(f"Runtime policy {field} must be a positive integer")
@@ -680,6 +683,8 @@ def atomic_update_runtime_environment(
             require_complete=False,
         )
         for _env_key, field in RUNTIME_POLICY_ENV_KEYS:
+            if field not in expected_policy:
+                continue
             if current_policy.get(field) != expected_policy.get(field):
                 raise RuntimeError(f"Runtime env policy changed before commit: {field}")
     if expected_current_release_authority is not None:
@@ -697,7 +702,8 @@ def atomic_update_runtime_environment(
     if runtime_policy is not None:
         policy = validate_runtime_policy(runtime_policy, require_complete=False)
         for env_key, field in RUNTIME_POLICY_ENV_KEYS:
-            desired[env_key] = policy.get(field)
+            if field in policy:
+                desired[env_key] = policy[field]
     if release_authority is not None:
         authority = validate_release_authority(release_authority, require_complete=False)
         for env_key, field in RELEASE_AUTHORITY_ENV_KEYS:
