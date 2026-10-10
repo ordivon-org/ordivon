@@ -1773,6 +1773,44 @@ class DeployReclaimTests(unittest.TestCase):
             self.assertIn("ORDIVON_GLOBAL_MAX_CONCURRENCY=8\n", restored_text)
             self.assertIn("UNRELATED=preserve\n", restored_text)
 
+            absent_env = Path(temporary) / "runtime-absent.env"
+            absent_env.write_text(
+                "ORDIVON_MAX_RUNTIME_MS=3600000\n"
+                "UNRELATED=preserve\n",
+                encoding="utf-8",
+            )
+            legacy_previous = module["runtime_policy_state"](absent_env)
+            self.assertNotIn("globalMaxConcurrency", legacy_previous)
+            explicit_previous = module["runtime_policy_state"](
+                absent_env,
+                track_optional_absence=True,
+            )
+            self.assertIn("globalMaxConcurrency", explicit_previous)
+            self.assertIsNone(explicit_previous["globalMaxConcurrency"])
+
+            absent_updated = module["atomic_update_runtime_policy"](
+                absent_env,
+                {
+                    "schemaVersion": 1,
+                    "defaultRuntimeMs": 3_600_000,
+                    "maxRuntimeMs": 86_400_000,
+                    "globalMaxConcurrency": 16,
+                },
+                expected_current=explicit_previous,
+            )
+            self.assertEqual(absent_updated["globalMaxConcurrency"], 16)
+            absent_restored = module["atomic_update_runtime_policy"](
+                absent_env,
+                explicit_previous,
+                expected_current=absent_updated,
+            )
+            self.assertNotIn("globalMaxConcurrency", absent_restored)
+            self.assertNotIn(
+                "ORDIVON_GLOBAL_MAX_CONCURRENCY=",
+                absent_env.read_text(encoding="utf-8"),
+            )
+            self.assertIn("UNRELATED=preserve\n", absent_env.read_text(encoding="utf-8"))
+
     def test_runtime_policy_update_preserves_unrelated_env_and_detects_policy_drift(self) -> None:
         scripts_path = str(REPO / "scripts")
         sys.path.insert(0, scripts_path)
@@ -2002,6 +2040,7 @@ class DeployReclaimTests(unittest.TestCase):
             self.assertEqual((install / "mcp_probe.py").read_text(), "OLD_PROBE = True\n")
             env_text = env_file.read_text(encoding="utf-8")
             self.assertNotIn("ORDIVON_DEFAULT_RUNTIME_MS=", env_text)
+            self.assertNotIn("ORDIVON_GLOBAL_MAX_CONCURRENCY=", env_text)
             self.assertIn("ORDIVON_MAX_RUNTIME_MS=3600000\n", env_text)
             self.assertIn("ORDIVON_BEARER_TOKEN=secret\n", env_text)
             self.assertIn("UNRELATED=preserve\n", env_text)
