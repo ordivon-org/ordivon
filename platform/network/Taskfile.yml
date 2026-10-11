@@ -190,6 +190,11 @@ tasks:
       - task: capability:wireguard:materialize
       - ./capabilities/wireguard/acceptance/userspace-lifecycle.sh
 
+  capability:gluetun:source:accept:
+    desc: Qualify the exact pinned upstream Gluetun source without provider material or production network effects
+    cmds:
+      - /usr/bin/bash capabilities/gluetun/acceptance/source-contract.sh
+
   accept:process-recovery:
     desc: Kill the live R0 sing-box process and prove functional plus observed automatic recovery
     cmds:

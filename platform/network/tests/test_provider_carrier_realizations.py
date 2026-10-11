@@ -108,3 +108,59 @@ def test_gluetun_lock_is_exact_official_tag():
         "version": "v3.41.3",
         "revision": "3d1e20c5551e9cae1f9d938dc7b7214a6987f27e",
     }
+
+
+def task_block(name: str) -> str:
+    text = (ROOT / "Taskfile.yml").read_text(encoding="utf-8")
+    marker = f"  {name}:\n"
+    start = text.index(marker)
+    lines = text[start:].splitlines(keepends=True)
+    block = [lines[0]]
+    for line in lines[1:]:
+        if line.startswith("  ") and not line.startswith("    ") and line.rstrip().endswith(":"):
+            break
+        block.append(line)
+    return "".join(block)
+
+
+def test_gluetun_source_qualification_is_explicit_and_source_only():
+    script = ROOT / "capabilities/gluetun/acceptance/source-contract.sh"
+    readme = ROOT / "capabilities/gluetun/README.md"
+    assert script.is_file()
+    assert readme.is_file()
+
+    block = task_block("capability:gluetun:source:accept")
+    assert "capabilities/gluetun/acceptance/source-contract.sh" in block
+
+    source = script.read_text(encoding="utf-8")
+    assert "capabilities/gluetun/external/gluetun.lock" in source
+    assert "git init" in source
+    assert "git fetch" in source
+    assert "git rev-parse HEAD" in source
+    assert "test -f \"$tmp/Dockerfile\"" in source
+    assert "test -f \"$tmp/go.mod\"" in source
+
+    forbidden = (
+        "/etc/network-v2/providers",
+        "systemctl ",
+        "wg-quick ",
+        "openvpn ",
+        "VPN_SERVICE_PROVIDER",
+        "WIREGUARD_PRIVATE_KEY",
+    )
+    for term in forbidden:
+        assert term not in source
+
+
+def test_gluetun_source_qualification_is_not_a_production_dependency():
+    text = (ROOT / "Taskfile.yml").read_text(encoding="utf-8")
+    for name in (
+        "core:install",
+        "core:converge",
+        "consumer:browserless:provider-carrier:materialize",
+        "consumer:browserless:provider-carrier:converge",
+        "consumer:browserless:provider-carrier:select",
+    ):
+        assert "capability:gluetun:source:accept" not in task_block(name)
+
+    assert text.count("capability:gluetun:source:accept:") == 1
