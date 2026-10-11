@@ -170,3 +170,44 @@ A candidate fails if any of these regress:
 - No host-wide default-route takeover.
 - No multi-node mesh deployment in R1.
 - No replacement of mature upstream components without a demonstrated requirement gap.
+
+
+## M3 topology decision — R1
+
+The first serialized canary topology uses a Gluetun-owned container/network namespace behind the existing Network-v2 compatibility namespace.
+
+Selected shape:
+
+    existing consumers
+      -> 10.252.246.2:19680
+      -> sing-box compatibility adapter in nv2-browserless-prod
+      -> 10.252.246.1:19682 on the host-veth
+      -> Gluetun HTTP proxy
+      -> Gluetun-owned WireGuard/firewall/DNS
+      -> Surfshark
+
+This selection keeps the current consumer seam unchanged while moving VPN mechanism ownership to upstream Gluetun.
+
+Evidence and constraints:
+
+- Current nv2-browserless-prod can reach host-veth 10.252.246.1 directly over nv2blpn; bounded feasibility proof passed without changing routing or provider identity.
+- The pinned upstream OCI image is docker.io/qmcgaw/gluetun:v3.41.3, index digest sha256:fa19cc76b2af13d57a8d3dc3066f2ada061b1c761b8aecf989b3877c0486e027, linux/amd64 manifest sha256:1baa76576dea1dfbafbd62bb635daf40fd87171f63273c2fdfe630418783011e.
+- Official Gluetun supports a read-only WireGuard INI mounted at /gluetun/wireguard/wg0.conf; the live effect layer can therefore consume the existing protected combined profile without copying key/address values into Git.
+- Gluetun keeps its firewall enabled and owns its own VPN-local DNS. The R1 candidate does not disable the upstream firewall.
+- The compatibility sing-box config has no direct outbound and no DNS block of its own; its sole outbound is the host-veth Gluetun proxy.
+- A source/static acceptance script exists for the temporary-port two-hop topology, but live execution remains non-authoritative until its environment/effect gate is separately admitted.
+
+### Rejected first-cut topology: Gluetun inside nv2-browserless-prod
+
+The current namespace is deliberately fail-closed: the legacy WireGuard lifecycle supplies the provider endpoint route and VPN default path. Making Gluetun start directly inside that namespace would require reopening or redesigning the pre-VPN default route/firewall bootstrap boundary before Gluetun can discover and reach its endpoint. That would either create a direct-fallback window or require additional custom host firewall glue.
+
+R1 therefore prefers the Gluetun-owned container namespace, where upstream owns its expected default-route/firewall lifecycle. The old namespace is retained only as a compatibility adapter and becomes a later deletion candidate after consumers can move to an upstream-owned seam directly.
+
+### M3 source-only artifacts
+
+- capabilities/gluetun/external/gluetun-image.lock
+- capabilities/gluetun/config/serialized-candidate.env
+- consumers/browserless/config/provider-carrier-gluetun-candidate.json
+- capabilities/gluetun/acceptance/compatibility-hop.sh
+
+These artifacts grant no provider effect authority and do not change the active realization.

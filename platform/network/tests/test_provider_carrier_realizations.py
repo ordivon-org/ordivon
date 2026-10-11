@@ -164,3 +164,70 @@ def test_gluetun_source_qualification_is_not_a_production_dependency():
         assert "capability:gluetun:source:accept" not in task_block(name)
 
     assert text.count("capability:gluetun:source:accept:") == 1
+
+
+def test_gluetun_candidate_image_and_nonsecret_runtime_are_pinned():
+    image = parse_lock("capabilities/gluetun/external/gluetun-image.lock")
+    assert image == {
+        "image": "docker.io/qmcgaw/gluetun",
+        "version": "v3.41.3",
+        "indexDigest": "sha256:fa19cc76b2af13d57a8d3dc3066f2ada061b1c761b8aecf989b3877c0486e027",
+        "amd64Digest": "sha256:1baa76576dea1dfbafbd62bb635daf40fd87171f63273c2fdfe630418783011e",
+    }
+
+    env = parse_lock("capabilities/gluetun/config/serialized-candidate.env")
+    assert env == {
+        "VPN_SERVICE_PROVIDER": "custom",
+        "VPN_TYPE": "wireguard",
+        "HTTPPROXY": "on",
+        "HTTPPROXY_LISTENING_ADDRESS": ":8888",
+        "DNS_SERVER": "on",
+        "UPDATER_PERIOD": "0",
+    }
+    raw = (ROOT / "capabilities/gluetun/config/serialized-candidate.env").read_text(encoding="utf-8").lower()
+    for term in ("private_key", "privatekey", "password", "token", "firewall_enabled_disabling_it_shoots_you_in_your_foot=off"):
+        assert term not in raw
+
+
+def test_gluetun_candidate_preserves_consumer_seam_via_host_veth_proxy():
+    cfg = load("consumers/browserless/config/provider-carrier-gluetun-candidate.json")
+    assert cfg["inbounds"] == [{
+        "type": "http",
+        "tag": "shared-provider-carrier",
+        "listen": "10.252.246.2",
+        "listen_port": 19680,
+    }]
+    assert cfg["outbounds"] == [{
+        "type": "http",
+        "tag": "gluetun-upstream",
+        "server": "10.252.246.1",
+        "server_port": 19682,
+    }]
+    assert "dns" not in cfg
+    assert {"ip_is_private": True, "action": "reject"} in cfg["route"]["rules"]
+    assert {"ip_version": 6, "action": "reject"} in cfg["route"]["rules"]
+    assert cfg["route"]["final"] == "gluetun-upstream"
+
+
+def test_gluetun_compatibility_hop_acceptance_is_nonproduction_and_not_automatic():
+    script = ROOT / "capabilities/gluetun/acceptance/compatibility-hop.sh"
+    assert script.is_file()
+    source = script.read_text(encoding="utf-8")
+    assert "nv2-browserless-prod" in source
+    assert "10.252.246.1" in source
+    assert "provider-carrier-gluetun-candidate.json" in source
+    assert "systemctl stop" not in source
+    assert "systemctl restart" not in source
+    assert "/etc/network-v2/providers" not in source
+
+    block = task_block("capability:gluetun:compatibility-hop:accept")
+    assert "capabilities/gluetun/acceptance/compatibility-hop.sh" in block
+
+    for name in (
+        "core:install",
+        "core:converge",
+        "consumer:browserless:provider-carrier:materialize",
+        "consumer:browserless:provider-carrier:converge",
+        "consumer:browserless:provider-carrier:select",
+    ):
+        assert "capability:gluetun:compatibility-hop:accept" not in task_block(name)

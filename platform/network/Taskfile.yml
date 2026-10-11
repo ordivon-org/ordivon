@@ -195,6 +195,12 @@ tasks:
     cmds:
       - /usr/bin/bash capabilities/gluetun/acceptance/source-contract.sh
 
+  capability:gluetun:compatibility-hop:accept:
+    desc: Prove the source-only Gluetun compatibility hop topology on temporary ports without provider identity or production network mutation
+    cmds:
+      - /usr/bin/sing-box check -c consumers/browserless/config/provider-carrier-gluetun-candidate.json
+      - /usr/bin/bash capabilities/gluetun/acceptance/compatibility-hop.sh
+
   accept:process-recovery:
     desc: Kill the live R0 sing-box process and prove functional plus observed automatic recovery
     cmds:

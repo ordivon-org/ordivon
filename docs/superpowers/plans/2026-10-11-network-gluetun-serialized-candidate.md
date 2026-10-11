@@ -185,3 +185,50 @@ Test with fixture executables or command injection only. Do not run a production
 - [ ] Run independent Spec review for single-session enforcement, no implicit production effect, consequence-readiness separation, rollback, and migration-gate coverage.
 - [ ] Resolve every executable blocker. Any counterexample keeps cutover HOLD.
 - [ ] Publish owner decision. Only the natural Network owner may move Gluetun from candidate to active; until that separate decision, live legacy realization remains unchanged.
+
+
+---
+
+## Execution revision after Task 2
+
+### Task 3A: Compatibility topology contract — source only
+
+Status: implemented as a candidate slice; production effect remains zero.
+
+Files:
+- Create platform/network/capabilities/gluetun/external/gluetun-image.lock
+- Create platform/network/capabilities/gluetun/config/serialized-candidate.env
+- Create platform/network/consumers/browserless/config/provider-carrier-gluetun-candidate.json
+- Create platform/network/capabilities/gluetun/acceptance/compatibility-hop.sh
+- Modify platform/network/tests/test_provider_carrier_realizations.py
+- Modify platform/network/Taskfile.yml
+- Modify platform/network/docs/UPSTREAM_FIRST_CONVERGENCE_R1.md
+
+Decision:
+
+    consumers
+      -> existing 10.252.246.2:19680 seam
+      -> sing-box compatibility HTTP outbound
+      -> host-veth 10.252.246.1:19682
+      -> future Gluetun HTTP proxy
+
+The Gluetun container/network namespace owns the eventual VPN/firewall/DNS mechanism. The existing Network-v2 namespace does not receive a new pre-VPN default route.
+
+Validation:
+- candidate image index and linux/amd64 OCI digests are pinned;
+- non-secret Gluetun environment contains no provider identity material;
+- candidate sing-box config has no direct outbound;
+- existing consumer-facing listen address/port is unchanged;
+- compatibility hop source contains no provider material access and no production unit stop/restart;
+- bounded host-veth reachability feasibility passed separately.
+
+### Task 3B: Serialized live canary — still HOLD
+
+Do not implement or run a provider-identity canary until:
+1. independent M1/M2/M3A review is resolved;
+2. exact container materialization/teardown command is fixed to the pinned image digest;
+3. workflow drain/currentness proof is available;
+4. rollback preimage and order are executable and reviewed;
+5. tool/environment policy admits the bounded canary.
+
+If any condition is missing, keep the legacy active realization unchanged.

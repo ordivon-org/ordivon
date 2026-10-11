@@ -13,3 +13,12 @@ It does not own Ordivon consumer policy, ClientIdentity authority, ProviderProfi
 - Activation mode with current Surfshark Linux identity: serialized-only
 
 The first acceptance lane is source-only. It proves that the pinned upstream revision is fetchable and has the expected source entrypoints. It does not inspect protected provider material or start a VPN.
+
+
+## R1 compatibility topology
+
+The R1 source candidate keeps the existing consumer endpoint 10.252.246.2:19680 and uses sing-box only as a compatibility adapter. Its only candidate outbound is an HTTP proxy at host-veth 10.252.246.1:19682, where a future serialized Gluetun container can expose its upstream HTTP proxy.
+
+The candidate OCI artifact is pinned separately in external/gluetun-image.lock. The non-secret runtime knobs are in config/serialized-candidate.env. Provider identity material is intentionally absent.
+
+A live Gluetun container is not yet admitted. The current legacy WireGuard realization remains active.
