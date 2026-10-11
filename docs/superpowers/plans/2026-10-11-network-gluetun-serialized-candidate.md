@@ -232,3 +232,14 @@ Do not implement or run a provider-identity canary until:
 5. tool/environment policy admits the bounded canary.
 
 If any condition is missing, keep the legacy active realization unchanged.
+
+
+### Pre-review hardening after Task 3A
+
+The fixed candidate must additionally satisfy these source-truth fences before independent review:
+
+- the Gluetun realization points to the immutable OCI image lock, while the active legacy realization has no OCI artifact reference;
+- source qualification fetches refs/tags/v3.41.3 and proves that the tag resolves to the pinned revision;
+- candidate Gluetun runtime disables the extra public-IP lookup and binds its control server to loopback;
+- compatibility-hop source is read-only preflight only: no sing-box run, curl, temporary listener, namespace creation, provider secret access, or systemd mutation;
+- preflight explicitly reports twoHopExecutionProven=false. A later serialized canary, not source preflight, owns that proof.

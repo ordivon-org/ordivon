@@ -22,3 +22,10 @@ The R1 source candidate keeps the existing consumer endpoint 10.252.246.2:19680 
 The candidate OCI artifact is pinned separately in external/gluetun-image.lock. The non-secret runtime knobs are in config/serialized-candidate.env. Provider identity material is intentionally absent.
 
 A live Gluetun container is not yet admitted. The current legacy WireGuard realization remains active.
+
+
+## Pre-review hardening
+
+The candidate realization is bound to the immutable OCI lock as well as the source lock. The non-secret runtime contract disables Gluetun public-IP discovery and binds its HTTP control server to container loopback.
+
+The compatibility-hop script is a read-only currentness preflight only. It validates the existing namespace-to-host-veth route, candidate configuration syntax, and candidate proxy port vacancy. It starts no listener and explicitly does not claim two-hop execution proof.

@@ -18,6 +18,7 @@
       "providerProfileRef": "providers/surfshark/config/provider-profile.json",
       "clientIdentityRef": "providers/surfshark/config/client-identity-linux-shared.json",
       "materializationRef": "providers/surfshark/config/wireguard-materialization-linux.json",
+      "artifactRef": null,
       "upstreamRef": null
     },
     {
@@ -30,6 +31,10 @@
       "providerProfileRef": "providers/surfshark/config/provider-profile.json",
       "clientIdentityRef": "providers/surfshark/config/client-identity-linux-shared.json",
       "materializationRef": null,
+      "artifactRef": {
+        "kind": "oci-image",
+        "lockFile": "capabilities/gluetun/external/gluetun-image.lock"
+      },
       "upstreamRef": {
         "repo": "https://github.com/passteque/gluetun.git",
         "version": "v3.41.3",

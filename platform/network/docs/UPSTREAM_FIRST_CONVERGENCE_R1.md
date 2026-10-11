@@ -195,7 +195,7 @@ Evidence and constraints:
 - Official Gluetun supports a read-only WireGuard INI mounted at /gluetun/wireguard/wg0.conf; the live effect layer can therefore consume the existing protected combined profile without copying key/address values into Git.
 - Gluetun keeps its firewall enabled and owns its own VPN-local DNS. The R1 candidate does not disable the upstream firewall.
 - The compatibility sing-box config has no direct outbound and no DNS block of its own; its sole outbound is the host-veth Gluetun proxy.
-- A source/static acceptance script exists for the temporary-port two-hop topology, but live execution remains non-authoritative until its environment/effect gate is separately admitted.
+- A read-only compatibility preflight verifies the current namespace-to-host-veth route, candidate config syntax, and candidate-port vacancy without starting listeners, touching provider identity, or proving the two-hop data path. The earlier bounded host-veth reachability experiment remains separate evidence; live two-hop/provider execution still requires the M3B effect gate.
 
 ### Rejected first-cut topology: Gluetun inside nv2-browserless-prod
 

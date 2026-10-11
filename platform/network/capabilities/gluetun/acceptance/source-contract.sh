@@ -19,7 +19,7 @@ trap 'rm -rf "$tmp"' EXIT
   cd "$tmp"
   git init -q
   git remote add origin "$repo"
-  git fetch --quiet --depth 1 origin "$revision"
+  git fetch --quiet --depth 1 origin "refs/tags/$version"
   git checkout --quiet --detach FETCH_HEAD
   test "$(git rev-parse HEAD)" = "$revision"
 )
@@ -28,4 +28,4 @@ test -f "$tmp/Dockerfile"
 test -f "$tmp/go.mod"
 test -d "$tmp/internal"
 
-printf '{"schemaVersion":1,"kind":"ordivon.network-v2.gluetun-source-qualification","standing":"PASS","version":"%s","revision":"%s","productionEffect":false}\n' "$version" "$revision"
+printf '{"schemaVersion":1,"kind":"ordivon.network-v2.gluetun-source-qualification","standing":"PASS","version":"%s","revision":"%s","tagBound":true,"productionEffect":false}\n' "$version" "$revision"

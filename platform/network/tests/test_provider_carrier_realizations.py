@@ -44,6 +44,7 @@ def test_provider_realization_registry_keeps_active_and_candidate_distinct():
     assert active["productionAuthority"] is True
     assert active["concurrentWithActive"] is False
     assert active["materializationRef"] == "providers/surfshark/config/wireguard-materialization-linux.json"
+    assert active["artifactRef"] is None
     assert active["upstreamRef"] is None
 
     candidate = realizations["gluetun-v3.41.3-r1"]
@@ -53,6 +54,10 @@ def test_provider_realization_registry_keeps_active_and_candidate_distinct():
     assert candidate["productionAuthority"] is False
     assert candidate["concurrentWithActive"] is False
     assert candidate["materializationRef"] is None
+    assert candidate["artifactRef"] == {
+        "kind": "oci-image",
+        "lockFile": "capabilities/gluetun/external/gluetun-image.lock",
+    }
     assert candidate["upstreamRef"] == {
         "repo": "https://github.com/passteque/gluetun.git",
         "version": "v3.41.3",
@@ -99,6 +104,9 @@ def test_realization_schema_is_closed_and_admits_only_expected_states():
     assert set(realization["properties"]["activationMode"]["enum"]) == {"continuous", "serialized-only"}
     assert realization["properties"]["productionAuthority"]["type"] == "boolean"
     assert realization["properties"]["concurrentWithActive"]["type"] == "boolean"
+    artifact = schema["$defs"]["artifactRef"]
+    assert artifact["additionalProperties"] is False
+    assert artifact["properties"]["kind"]["const"] == "oci-image"
 
 
 def test_gluetun_lock_is_exact_official_tag():
@@ -136,6 +144,7 @@ def test_gluetun_source_qualification_is_explicit_and_source_only():
     assert "capabilities/gluetun/external/gluetun.lock" in source
     assert "git init" in source
     assert "git fetch" in source
+    assert 'refs/tags/$version' in source
     assert "git rev-parse HEAD" in source
     assert "test -f \"$tmp/Dockerfile\"" in source
     assert "test -f \"$tmp/go.mod\"" in source
@@ -183,6 +192,8 @@ def test_gluetun_candidate_image_and_nonsecret_runtime_are_pinned():
         "HTTPPROXY_LISTENING_ADDRESS": ":8888",
         "DNS_SERVER": "on",
         "UPDATER_PERIOD": "0",
+        "PUBLICIP_ENABLED": "off",
+        "HTTP_CONTROL_SERVER_ADDRESS": "127.0.0.1:8000",
     }
     raw = (ROOT / "capabilities/gluetun/config/serialized-candidate.env").read_text(encoding="utf-8").lower()
     for term in ("private_key", "privatekey", "password", "token", "firewall_enabled_disabling_it_shoots_you_in_your_foot=off"):
@@ -209,7 +220,7 @@ def test_gluetun_candidate_preserves_consumer_seam_via_host_veth_proxy():
     assert cfg["route"]["final"] == "gluetun-upstream"
 
 
-def test_gluetun_compatibility_hop_acceptance_is_nonproduction_and_not_automatic():
+def test_gluetun_compatibility_hop_preflight_is_read_only_and_not_automatic():
     script = ROOT / "capabilities/gluetun/acceptance/compatibility-hop.sh"
     assert script.is_file()
     source = script.read_text(encoding="utf-8")
@@ -219,8 +230,15 @@ def test_gluetun_compatibility_hop_acceptance_is_nonproduction_and_not_automatic
     assert "systemctl stop" not in source
     assert "systemctl restart" not in source
     assert "/etc/network-v2/providers" not in source
+    assert "sing-box run" not in source
+    assert "curl " not in source
+    assert "python3 -m http.server" not in source
+    assert "mktemp" not in source
+    assert "ip netns add" not in source
+    assert 'ip -4 route get "$HOST_IP"' in source
+    assert '"twoHopExecutionProven":false' in source
 
-    block = task_block("capability:gluetun:compatibility-hop:accept")
+    block = task_block("capability:gluetun:compatibility-hop:preflight")
     assert "capabilities/gluetun/acceptance/compatibility-hop.sh" in block
 
     for name in (
@@ -230,4 +248,7 @@ def test_gluetun_compatibility_hop_acceptance_is_nonproduction_and_not_automatic
         "consumer:browserless:provider-carrier:converge",
         "consumer:browserless:provider-carrier:select",
     ):
-        assert "capability:gluetun:compatibility-hop:accept" not in task_block(name)
+        assert "capability:gluetun:compatibility-hop:preflight" not in task_block(name)
+
+    taskfile = (ROOT / "Taskfile.yml").read_text(encoding="utf-8")
+    assert "capability:gluetun:compatibility-hop:accept:" not in taskfile
