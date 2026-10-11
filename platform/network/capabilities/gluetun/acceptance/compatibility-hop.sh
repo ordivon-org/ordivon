@@ -18,7 +18,8 @@ if printf '%s\n' "$route" | grep -F ' via ' >/dev/null; then
   exit 31
 fi
 
-if ss -ltn | grep -F "$HOST_IP:$CANDIDATE_PROXY_PORT" >/dev/null; then
+listeners=$(ss -H -ltn "( sport = :$CANDIDATE_PROXY_PORT )") || { echo "cannot inspect candidate proxy port" >&2; exit 33; }
+if [ -n "$listeners" ]; then
   echo "candidate host-veth proxy port is already occupied" >&2
   exit 32
 fi
