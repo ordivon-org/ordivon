@@ -211,3 +211,46 @@ R1 therefore prefers the Gluetun-owned container namespace, where upstream owns 
 - capabilities/gluetun/acceptance/compatibility-hop.sh
 
 These artifacts grant no provider effect authority and do not change the active realization.
+
+
+## Ownership succession and orphaned topology decision — 2026-10-12
+
+The human retired the previous Network source owner and appointed the GPT-6
+successor on the existing Work; Host Work revision 4 records the authority
+transition. This is an owner transition, **not** a provider or production
+effect grant. No existing live consumer/VPN state was changed.
+
+**Current auditable source candidate:** isolated successor Workspace
+`ws-network-upstream-review-r1-20261012`, initially pinned to
+`59b780ae671c4bcd2c4a920035b06bb7a7083cbf`. Its two regression fixes
+enforce carrier-realization graph uniqueness and reject wildcard listener
+collisions in the read-only compatibility preflight. The Network test suite
+passed 60/60 and `task all:validate` passed (Runtime
+`job-01a12bd4-bd11-70d1-b580-028c72e7b7a8`).
+
+**Non-adopted predecessor WIP:** the retired owner's uncommitted workspace
+`ws-network-upstream-first-r1-20261011` proposes a Podman Quadlet bridge
+`10.252.246.0/30` with gateway `10.252.246.1`, a Gluetun container
+at `10.252.246.2`, and an automatic stable netns alias named
+`nv2-browserless-prod`. At review time, the live WSL host already had
+`nv2blph` at `10.252.246.1/30` with an installed kernel route to
+`10.252.246.0/30`, and `nv2-browserless-prod` was the active legacy
+network namespace. Runtime read-only evidence:
+`job-01a12c57-9e73-7592-a4f0-b15066a0bcb4`.
+
+The alternative is **HOLD, not integrated**. It would require resolving
+overlapping host IP/route ownership and proving the namespace alias cannot
+replace or detach the live legacy namespace, including during abnormal
+container termination. It also removes the initial compatibility proxy
+without yet proving every scoped consumer interface and fail-closed path.
+This observation is a source/topology conflict, not evidence of an actual
+production collision. The discarded code remains intact in the archived
+workspace for traceability; no WIP patch is auto-cherry-picked.
+
+**Current M3B authority boundary:** source and fixture acceptance do not
+authorize live Gluetun or a second session for
+`surfshark:linux-shared-r1`. A serialized canary still requires an
+independent fixed-HEAD Spec/Standards review, current consumer drain, exact
+rollback preimage, separately admitted owner effect, pinned image
+materialization, and unconditional legacy restoration plus consequence
+checks. An ambiguous result is HOLD with legacy restored.
