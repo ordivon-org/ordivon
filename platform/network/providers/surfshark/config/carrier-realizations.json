@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.network-v2.provider-carrier-realizations",
+  "providerProfileRef": "providers/surfshark/config/provider-profile.json",
+  "clientIdentityRef": "providers/surfshark/config/client-identity-linux-shared.json",
+  "activeRealizationId": "legacy-wireguard-r1",
+  "candidateRealizationIds": [
+    "gluetun-v3.41.3-r1"
+  ],
+  "realizations": [
+    {
+      "realizationId": "legacy-wireguard-r1",
+      "standing": "active",
+      "mechanism": "network-v2-wg-quick",
+      "activationMode": "continuous",
+      "productionAuthority": true,
+      "concurrentWithActive": false,
+      "providerProfileRef": "providers/surfshark/config/provider-profile.json",
+      "clientIdentityRef": "providers/surfshark/config/client-identity-linux-shared.json",
+      "materializationRef": "providers/surfshark/config/wireguard-materialization-linux.json",
+      "upstreamRef": null
+    },
+    {
+      "realizationId": "gluetun-v3.41.3-r1",
+      "standing": "candidate",
+      "mechanism": "gluetun",
+      "activationMode": "serialized-only",
+      "productionAuthority": false,
+      "concurrentWithActive": false,
+      "providerProfileRef": "providers/surfshark/config/provider-profile.json",
+      "clientIdentityRef": "providers/surfshark/config/client-identity-linux-shared.json",
+      "materializationRef": null,
+      "upstreamRef": {
+        "repo": "https://github.com/passteque/gluetun.git",
+        "version": "v3.41.3",
+        "revision": "3d1e20c5551e9cae1f9d938dc7b7214a6987f27e",
+        "lockFile": "capabilities/gluetun/external/gluetun.lock"
+      }
+    }
+  ],
+  "nonClaims": [
+    "candidate-is-not-installed-by-this-registry",
+    "candidate-has-no-production-effect-authority",
+    "registry-does-not-materialize-provider-credentials",
+    "serialized-candidate-must-not-run-concurrently-with-active-realization"
+  ]
+}
