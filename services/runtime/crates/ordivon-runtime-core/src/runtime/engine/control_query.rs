@@ -536,6 +536,7 @@ fn artifact_descriptor(
     };
     ArtifactDescriptor {
         artifact_id: artifact.artifact_id,
+        attempt_id: artifact.attempt_id,
         kind: artifact.kind,
         digest: artifact.digest,
         retained_bytes: artifact.byte_length,
@@ -1776,4 +1777,32 @@ fn load_runner_result_if_present(
             false,
         )
     })
+}
+
+
+#[cfg(test)]
+mod stage_b0_artifact_descriptor_tests {
+    use super::*;
+
+    #[test]
+    fn artifact_descriptor_projects_stored_attempt_id_without_parsing_artifact_id() {
+        let descriptor = artifact_descriptor(
+            RuntimeArtifactRecord {
+                artifact_id: "opaque-artifact".to_string(),
+                job_id: "job-owner-lineage".to_string(),
+                attempt_id: "attempt-owner-lineage".to_string(),
+                kind: "result".to_string(),
+                relative_path: "result.json".to_string(),
+                digest: format!("sha256:{}", "a".repeat(64)),
+                media_type: "application/json".to_string(),
+                byte_length: 7,
+                truncated: false,
+                created_at_ms: 1,
+            },
+            None,
+        );
+
+        assert_eq!(descriptor.artifact_id, "opaque-artifact");
+        assert_eq!(descriptor.attempt_id, "attempt-owner-lineage");
+    }
 }

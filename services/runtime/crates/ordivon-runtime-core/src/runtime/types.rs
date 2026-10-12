@@ -1455,6 +1455,7 @@ pub struct ArtifactRegistration {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ArtifactDescriptor {
     pub artifact_id: String,
+    pub attempt_id: String,
     pub kind: String,
     pub digest: String,
     pub retained_bytes: u64,
