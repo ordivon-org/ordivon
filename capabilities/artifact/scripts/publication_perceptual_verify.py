@@ -10,6 +10,9 @@ from artifact_capabilities.publication.perceptual import (
     evaluate_perceptual_conformance,
     load_observer_report,
 )
+from artifact_capabilities.publication.provider_adapter import (
+    load_provider_bound_observer_reports,
+)
 
 
 def main() -> int:
@@ -18,6 +21,7 @@ def main() -> int:
     )
     parser.add_argument("--carrier-evaluation", required=True, type=Path)
     parser.add_argument("--observer-report", required=True, action="append", type=Path)
+    parser.add_argument("--provider-receipt", action="append", default=[], type=Path)
     parser.add_argument("--pages", required=True, type=int)
     parser.add_argument("--figures", required=True, type=int)
     parser.add_argument("--tables", required=True, type=int)
@@ -26,7 +30,16 @@ def main() -> int:
     args = parser.parse_args()
 
     carrier = json.loads(args.carrier_evaluation.read_text(encoding="utf-8"))
-    reports = tuple(load_observer_report(path) for path in args.observer_report)
+    if args.provider_receipt:
+        reports, observer_lineage_refs = load_provider_bound_observer_reports(
+            observer_report_paths=tuple(args.observer_report),
+            provider_receipt_paths=tuple(args.provider_receipt),
+            expected_carrier_sha256=carrier["pdfSha256"],
+        )
+    else:
+        reports = tuple(load_observer_report(path) for path in args.observer_report)
+        observer_lineage_refs = {}
+
     perceptual = evaluate_perceptual_conformance(
         carrier_sha256=carrier["pdfSha256"],
         deterministic_standing=carrier["machineStanding"],
@@ -34,6 +47,7 @@ def main() -> int:
         expected_figures=args.figures,
         expected_tables=args.tables,
         observer_reports=reports,
+        observer_lineage_refs=observer_lineage_refs,
         visual_regression_standing=args.visual_regression_standing,
     )
     release = combine_carrier_and_perceptual(carrier, perceptual)
