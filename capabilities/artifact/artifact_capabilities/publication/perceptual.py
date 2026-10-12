@@ -108,6 +108,7 @@ def evaluate_perceptual_conformance(
     expected_figures: int,
     expected_tables: int,
     observer_reports: Iterable[ObserverReport],
+    observer_lineage_refs: dict[str, dict[str, str]] | None = None,
     visual_regression_standing: str = "PASS",
 ) -> dict[str, Any]:
     """Adjudicate independent perceptual evidence.
@@ -174,6 +175,38 @@ def evaluate_perceptual_conformance(
         if count != 1:
             reasons.append({"id": "observer-role-cardinality", "role": role, "observed": count})
 
+    lineage_by_observer = observer_lineage_refs or {}
+    required_disjoint_lineage_dimensions = ("executionRef",)
+    for report in reports:
+        lineage = lineage_by_observer.get(report.observer_id, {})
+        for dimension in required_disjoint_lineage_dimensions:
+            value = lineage.get(dimension)
+            if not isinstance(value, str) or not value.strip() or value.strip().upper() == "UNKNOWN":
+                reasons.append(
+                    {
+                        "id": "observer-lineage-missing",
+                        "observerId": report.observer_id,
+                        "dimension": dimension,
+                    }
+                )
+
+    for dimension in required_disjoint_lineage_dimensions:
+        by_value: dict[str, list[str]] = {}
+        for report in reports:
+            value = lineage_by_observer.get(report.observer_id, {}).get(dimension)
+            if not isinstance(value, str) or not value.strip() or value.strip().upper() == "UNKNOWN":
+                continue
+            by_value.setdefault(value, []).append(report.observer_id)
+        for observer_ids_for_value in by_value.values():
+            if len(observer_ids_for_value) > 1:
+                reasons.append(
+                    {
+                        "id": "observer-lineage-not-disjoint",
+                        "dimension": dimension,
+                        "observerIds": observer_ids_for_value,
+                    }
+                )
+
     observer_ids = [x.observer_id for x in reports]
     independence_keys = [x.independence_key for x in reports]
     if len(observer_ids) != len(set(observer_ids)):
@@ -218,6 +251,7 @@ def evaluate_perceptual_conformance(
         "deterministicStanding": deterministic_standing,
         "visualRegressionStanding": visual_regression_standing,
         "requiredObserverRoles": list(ROLES),
+        "requiredDisjointLineageDimensions": list(required_disjoint_lineage_dimensions),
         "observerCount": len(reports),
         "coverage": {
             "pagesExpected": expected_pages,
@@ -240,6 +274,10 @@ def evaluate_perceptual_conformance(
             (
                 "distinct observer metadata is evidence of declared separation, "
                 "not cryptographic proof of model independence"
+            ),
+            (
+                "distinct owner-bound execution refs establish only the required R1 "
+                "execution-lineage separation, not model-weight independence"
             ),
         ],
     }

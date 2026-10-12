@@ -30,8 +30,35 @@ def main() -> int:
         choices=["BLIND_VISION", "VENUE_AWARE_VISION", "SEMANTIC_LAYOUT"],
     )
     parser.add_argument("--independence-key", required=True)
+    parser.add_argument(
+        "--lineage-ref",
+        action="append",
+        default=[],
+        help=(
+            "Optional opaque lineage metadata in key=value form; repeatable. "
+            "executionRef is owner-bound; the direct provider adapter does not mint "
+            "executionRef. owner-native execution lineage is required for PASS."
+        ),
+    )
     parser.add_argument("--timeout-seconds", type=int, default=300)
     args = parser.parse_args()
+
+    lineage_refs: dict[str, str] = {}
+    for raw in args.lineage_ref:
+        if "=" not in raw:
+            parser.error("--lineage-ref must use key=value form")
+        key, value = raw.split("=", 1)
+        key = key.strip()
+        value = value.strip()
+        if not key or not value:
+            parser.error("--lineage-ref key and value must be non-empty")
+        if key == "executionRef":
+            parser.error(
+                "executionRef is owner-bound and cannot be supplied via --lineage-ref"
+            )
+        if key in lineage_refs:
+            parser.error(f"duplicate --lineage-ref key: {key}")
+        lineage_refs[key] = value
 
     spec = ProviderExecutionSpec(
         provider_id=args.provider_id,
@@ -47,6 +74,7 @@ def main() -> int:
         expected_carrier_sha256=args.carrier_sha256,
         expected_role=args.role,
         independence_key=args.independence_key,
+        lineage_refs=lineage_refs,
     )
     write_provider_execution_receipt(args.receipt, receipt)
     print(

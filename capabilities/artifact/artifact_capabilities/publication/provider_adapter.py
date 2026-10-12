@@ -59,6 +59,7 @@ def run_observer_provider(
     expected_carrier_sha256: str,
     expected_role: str,
     independence_key: str,
+    lineage_refs: dict[str, str] | None = None,
     inherited_environment: dict[str, str] | None = None,
 ) -> tuple[ObserverReport, dict[str, Any]]:
     """Execute one replaceable observer provider behind a narrow file/JSON contract."""
@@ -72,6 +73,16 @@ def run_observer_provider(
         raise PerceptualProviderAdapterError(f"packet root missing: {packet}")
     if not independence_key:
         raise ValueError("independence_key is required")
+    owner_lineage = dict(lineage_refs or {})
+    if "executionRef" in owner_lineage:
+        raise ValueError(
+            "executionRef is owner-bound and cannot be supplied via lineage_refs"
+        )
+    for key, value in owner_lineage.items():
+        if not isinstance(key, str) or not key.strip():
+            raise ValueError("lineage ref keys must be non-empty strings")
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError("lineage ref values must be non-empty strings")
 
     envelope_bytes = envelope_path.read_bytes()
     envelope = json.loads(envelope_bytes)
@@ -143,8 +154,10 @@ def run_observer_provider(
         "schemaVersion": 1,
         "kind": "publication-perceptual-provider-execution-receipt",
         "providerId": spec.provider_id,
+        "observerId": report.observer_id,
         "role": expected_role,
         "carrierSha256": expected_carrier_sha256,
+        "lineageRefs": owner_lineage,
         "taskEnvelopeSha256": _sha256_bytes(envelope_bytes),
         "packetManifestSha256": (
             _sha256_file(packet / "packet-manifest-r1.json")
@@ -161,9 +174,90 @@ def run_observer_provider(
             "provider execution identity does not prove model-weight independence",
             "provider PASS does not imply perceptual consensus PASS",
             "ambient process environment is not inherited unless explicitly allow-listed",
+            "direct provider execution is diagnostic/report-binding evidence only; it does not establish an owner-native execution occurrence or mint executionRef",
         ],
     }
     return report, receipt
+
+
+def load_provider_bound_observer_reports(
+    *,
+    observer_report_paths: tuple[Path, ...],
+    provider_receipt_paths: tuple[Path, ...],
+    expected_carrier_sha256: str,
+) -> tuple[tuple[ObserverReport, ...], dict[str, dict[str, str]]]:
+    receipts_by_observer: dict[str, dict[str, Any]] = {}
+    for path in provider_receipt_paths:
+        receipt = json.loads(path.read_text(encoding="utf-8"))
+        if (
+            receipt.get("schemaVersion") != 1
+            or receipt.get("kind") != "publication-perceptual-provider-execution-receipt"
+        ):
+            raise PerceptualProviderAdapterError("invalid provider execution receipt")
+        if receipt.get("standing") != "PASS_PROVIDER_EXECUTION_BOUND":
+            raise PerceptualProviderAdapterError("provider execution receipt is not PASS-bound")
+        observer_id = receipt.get("observerId")
+        if not isinstance(observer_id, str) or not observer_id:
+            raise PerceptualProviderAdapterError("provider receipt observerId missing")
+        if receipt.get("carrierSha256") != expected_carrier_sha256:
+            raise PerceptualProviderAdapterError("provider receipt carrier binding mismatch")
+        if observer_id in receipts_by_observer:
+            raise PerceptualProviderAdapterError(
+                f"duplicate provider receipt for observer: {observer_id}"
+            )
+        receipts_by_observer[observer_id] = receipt
+
+    reports: list[ObserverReport] = []
+    lineage_by_observer: dict[str, dict[str, str]] = {}
+    for path in observer_report_paths:
+        report = load_observer_report(path)
+        if report.carrier_sha256 != expected_carrier_sha256:
+            raise PerceptualProviderAdapterError("observer report carrier binding mismatch")
+        receipt = receipts_by_observer.pop(report.observer_id, None)
+        if receipt is None:
+            raise PerceptualProviderAdapterError(
+                f"provider receipt missing for observer: {report.observer_id}"
+            )
+        if receipt.get("observerReportSha256") != _sha256_file(path):
+            raise PerceptualProviderAdapterError("observer report digest mismatch")
+        if receipt.get("role") != report.role:
+            raise PerceptualProviderAdapterError("provider receipt role binding mismatch")
+        if receipt.get("carrierSha256") != report.carrier_sha256:
+            raise PerceptualProviderAdapterError("provider receipt carrier binding mismatch")
+        if receipt.get("independenceKey") != report.independence_key:
+            raise PerceptualProviderAdapterError(
+                "provider receipt independence binding mismatch"
+            )
+        if receipt.get("observerId") != report.observer_id:
+            raise PerceptualProviderAdapterError("provider receipt observer binding mismatch")
+
+        lineage = receipt.get("lineageRefs", {})
+        if not isinstance(lineage, dict):
+            raise PerceptualProviderAdapterError("provider receipt lineageRefs must be an object")
+        bound_lineage: dict[str, str] = {}
+        for key, value in lineage.items():
+            if not isinstance(key, str) or not key.strip():
+                raise PerceptualProviderAdapterError(
+                    "provider receipt lineage ref keys must be non-empty strings"
+                )
+            if not isinstance(value, str) or not value.strip():
+                raise PerceptualProviderAdapterError(
+                    "provider receipt lineage ref values must be non-empty strings"
+                )
+            if key == "executionRef":
+                continue
+            bound_lineage[key] = value
+        # Direct provider receipts may bind the local report to the carrier and role,
+        # but they are not a natural execution owner. In particular, neither legacy
+        # executionOwnerProof fields nor caller-carried lineage can mint executionRef.
+        reports.append(report)
+        lineage_by_observer[report.observer_id] = bound_lineage
+
+    if receipts_by_observer:
+        raise PerceptualProviderAdapterError(
+            f"unmatched provider receipts: {sorted(receipts_by_observer)}"
+        )
+    return tuple(reports), lineage_by_observer
 
 
 def write_provider_execution_receipt(path: Path, receipt: dict[str, Any]) -> None:
