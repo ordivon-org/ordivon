@@ -1,7 +1,7 @@
 ---
 name: research-capability-routing
 description: "Route an already-scoped Research action to the thinnest specialized Skill, provider, workflow engine, data-plane binding, Runtime, or publication owner. Use after Study/method scope is known when choosing who should perform literature discovery, citation resolution, EDA/statistics, document parsing, data transforms, scientific DAGs, durable processes, physical execution, provenance, or publication mechanics. Does not create Studies, choose scientific methods, authorize effects, or decide scientific completion."
-compatibility: "Uses explicit problem classes plus natural-owner currentness observations. Study Birth and Research-v2 remain separate owners; Skills are advisory; provider/tool availability is not inferred from documentation."
+compatibility: "Uses explicit problem classes plus current owner-native system observations, not approval from a fixed agent identity. Study Birth and Research-v2 retain their own truth boundaries; Skills are advisory."
 metadata:
   source-authority: "Ordivon Research capability index + routing profile + live natural-owner observations"
 ---
@@ -45,17 +45,18 @@ Research capability meaning and specialist routing stay at these canonical Resea
 
 1. Use the canonical Research capability index for Research capability discovery. Generic Gateway `capability.search` may be used only for its current owner/execution projection when that is relevant; it is not the Research taxonomy.
 2. Translate the already-scoped next action into one exact `problemClass` from `references/research-capability-routing-r1.json`. Do not pass free-form goals to the deterministic resolver.
-3. Obtain currentness from the natural owner before selecting a provider route:
-   - Skill procedure: `skills.resolve` / `skills.read`; preserve dependency and scan/trust state.
+3. Freeze the intended canonical Skill identity from the selected profile route `invocation.canonicalSkillId` **before** resolving availability. A current but different Skill is not the intended Skill and must fail closed. Active Agents may take the relevant capability role; do not wait for a named previous Agent to approve discovery.
+4. Obtain currentness from the corresponding owner-native system (provider, Skills, Study, Runtime), not a fixed Agent persona:
+   - Skill procedure: `skills.resolve` / `skills.read`; preserve dependency and scan/trust state, and lower the explicit owner-returned `skillId`, `snapshotRevision`, `instructionDigest`, `packageRevision`, and fenced `readDigest`. Missing owner identity or any generation fence must HOLD rather than being reconstructed from `bindingRef`.
    - Study data plane: current Research-v2 `ordivon-research-study defaults`; do not copy remembered defaults.
    - Runtime: `runtime.describe` / Gateway projection as appropriate.
    - Temporal/provider/toolchain: provider-native health/version/binding surface.
    - caller-bound connector: current application/plugin connection state.
-4. Represent those observations as an authority-keyed object and run the deterministic resolver.
-5. Resolve any selected Skill directly through the Skills owner (`skills.resolve` / `skills.read`) and use the canonical routing profile for invocation coordinates; Gateway does not mediate Research semantic resolution.
-6. Execute only through the returned owner-native invocation surface. A route decision never grants authority.
-7. Verify using the returned verification boundary plus the Study/domain acceptance contract.
-8. If the resolver returns HOLD, repair/activate the missing natural owner or change the explicit requirement. Do **not** silently fall back to a generic Agent.
+5. Represent those observations as an authority-keyed object and run the deterministic resolver.
+6. Resolve any selected Skill directly through the Skills owner (`skills.resolve` / `skills.read`) and use the canonical routing profile for invocation coordinates; Gateway does not mediate Research semantic resolution.
+7. Execute only through the returned owner-native invocation surface. A route decision never grants authority.
+8. Verify using the returned verification boundary plus the Study/domain acceptance contract.
+9. If the resolver returns HOLD, identify missing provider-native evidence, wrong canonical identity, or missing actual capability. An active qualified Agent may take the corresponding work role to repair it; do **not** silently route to a generic Agent or claim that a fixed owner persona must respond.
 
 ## Resolver
 
@@ -79,7 +80,12 @@ Example observation shape:
 {
   "skill:paper-lookup": {
     "state": "available",
-    "bindingRef": "codex-user/paper-lookup"
+    "bindingRef": "codex-user/paper-lookup",
+    "skillId": "codex-user/paper-lookup",
+    "snapshotRevision": "sha256:<owner-snapshot>",
+    "instructionDigest": "sha256:<owner-instruction>",
+    "packageRevision": "sha256:<owner-package>",
+    "readDigest": "sha256:<fenced-skill-read>"
   }
 }
 ```
@@ -106,4 +112,4 @@ This validates the canonical machine-readable Research capability index, routing
 
 ## Stop condition
 
-Stop routing when one exact currently-ready route is selected, or when a typed HOLD identifies the missing currentness/capability. Continue through the selected owner; do not let this Skill absorb execution or domain completion.
+Stop routing when one exact currently-ready route is selected, or when a typed HOLD identifies missing currentness, canonical Skill mismatch, or capability. A qualified active Agent can take the work role; continue through the owner-native executable interface without transferring execution or domain-completion authority into this Skill.

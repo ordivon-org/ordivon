@@ -25,6 +25,21 @@ def _load_router():
     return module
 
 
+def _skill_owner_observation(skill_id: str, *, reason: str | None = None) -> dict[str, str]:
+    observation = {
+        "state": "available",
+        "bindingRef": skill_id,
+        "skillId": skill_id,
+        "snapshotRevision": "sha256:" + "1" * 64,
+        "instructionDigest": "sha256:" + "2" * 64,
+        "packageRevision": "sha256:" + "3" * 64,
+        "readDigest": "sha256:" + "4" * 64,
+    }
+    if reason is not None:
+        observation["reason"] = reason
+    return observation
+
+
 class ResearchCapabilityRoutingTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -97,7 +112,7 @@ class ResearchCapabilityRoutingTests(unittest.TestCase):
 
     def test_scholarly_discovery_prefers_specialized_skill_not_generic_agent(self) -> None:
         r = self.R
-        d = r.resolve(r.RouteRequest(problem_class="scholarly.discovery"), observations={"skill:paper-lookup": {"state": "available", "bindingRef": "codex-user/paper-lookup"}})
+        d = r.resolve(r.RouteRequest(problem_class="scholarly.discovery"), observations={"skill:paper-lookup": _skill_owner_observation("codex-user/paper-lookup")})
         self.assertEqual(d["standing"], "ROUTED")
         self.assertEqual(d["selectedRoute"]["providerClass"], "skill")
         self.assertEqual(d["selectedRoute"]["providerRef"], "paper-lookup")
@@ -155,13 +170,13 @@ class ResearchCapabilityRoutingTests(unittest.TestCase):
     def test_route_plan_digests_are_deterministic_and_currentness_bound(self) -> None:
         r = self.R
         request = r.RouteRequest(problem_class="scholarly.discovery")
-        obs = {"skill:paper-lookup": {"state": "available", "bindingRef": "codex-user/paper-lookup"}}
+        obs = {"skill:paper-lookup": _skill_owner_observation("codex-user/paper-lookup")}
         a = r.resolve(request, observations=obs)
         b = r.resolve(request, observations=obs)
         self.assertEqual(a, b)
         for key in ("profileDigest", "requestDigest", "observationDigest", "planDigest"):
             self.assertRegex(a[key], r"^sha256:[0-9a-f]{64}$")
-        changed = r.resolve(request, observations={"skill:paper-lookup": {"state": "available", "bindingRef": "codex-user/paper-lookup", "reason": "fresh owner observation"}})
+        changed = r.resolve(request, observations={"skill:paper-lookup": _skill_owner_observation("codex-user/paper-lookup", reason="fresh owner observation")})
         self.assertEqual(a["profileDigest"], changed["profileDigest"])
         self.assertNotEqual(a["observationDigest"], changed["observationDigest"])
         self.assertNotEqual(a["planDigest"], changed["planDigest"])
@@ -173,7 +188,7 @@ class ResearchCapabilityRoutingTests(unittest.TestCase):
 
     def test_route_emits_invocation_and_verification_without_execution(self) -> None:
         r = self.R
-        d = r.resolve(r.RouteRequest(problem_class="citation.identity"), observations={"skill:citation-management": {"state": "available", "bindingRef": "codex-user/citation-management"}})
+        d = r.resolve(r.RouteRequest(problem_class="citation.identity"), observations={"skill:citation-management": _skill_owner_observation("codex-user/citation-management")})
         route = d["selectedRoute"]
         self.assertIn("invocation", route)
         self.assertIn("verification", route)
@@ -199,6 +214,62 @@ class ResearchCapabilityRoutingTests(unittest.TestCase):
         for row in index["capabilities"]:
             self.assertLessEqual(set(row["routeProblemClasses"]), declared)
             self.assertNotIn("preferredSkills", row)
+
+
+    def test_skill_route_rejects_wrong_current_canonical_skill(self) -> None:
+        r = self.R
+        d = r.resolve(
+            r.RouteRequest(problem_class="review.peer"),
+            observations={
+                "skill:peer-review": {
+                    "state": "available",
+                    "bindingRef": "codex-user/paper-lookup",
+                    "skillId": "codex-user/paper-lookup",
+                    "snapshotRevision": "sha256:" + "1" * 64,
+                    "instructionDigest": "sha256:" + "2" * 64,
+                    "packageRevision": "sha256:" + "3" * 64,
+                    "readDigest": "sha256:" + "4" * 64,
+                }
+            },
+        )
+        self.assertEqual(d["standing"], "HOLD_NO_READY_ROUTE")
+        self.assertEqual(d["candidates"][0]["availability"]["state"], "canonical_mismatch")
+        self.assertIsNone(d["selectedRoute"])
+
+    def test_skill_route_requires_owner_skill_id_even_when_binding_ref_matches(self) -> None:
+        r = self.R
+        d = r.resolve(
+            r.RouteRequest(problem_class="review.peer"),
+            observations={
+                "skill:peer-review": {
+                    "state": "available",
+                    "bindingRef": "codex-user/peer-review",
+                    "snapshotRevision": "sha256:" + "1" * 64,
+                    "instructionDigest": "sha256:" + "2" * 64,
+                    "packageRevision": "sha256:" + "3" * 64,
+                    "readDigest": "sha256:" + "4" * 64,
+                }
+            },
+        )
+        self.assertEqual(d["standing"], "HOLD_NO_READY_ROUTE")
+        self.assertEqual(d["candidates"][0]["availability"]["state"], "owner_identity_missing")
+        self.assertIsNone(d["selectedRoute"])
+
+    def test_skill_route_requires_complete_owner_generation(self) -> None:
+        r = self.R
+        d = r.resolve(
+            r.RouteRequest(problem_class="review.peer"),
+            observations={
+                "skill:peer-review": {
+                    "state": "available",
+                    "bindingRef": "codex-user/peer-review",
+                    "skillId": "codex-user/peer-review",
+                }
+            },
+        )
+        self.assertEqual(d["standing"], "HOLD_NO_READY_ROUTE")
+        self.assertEqual(d["candidates"][0]["availability"]["state"], "owner_generation_incomplete")
+        self.assertIsNone(d["selectedRoute"])
 
 
 if __name__ == "__main__":

@@ -48,7 +48,8 @@
       "invocation": {
         "handoff": "execute provider/API actions only under task-local authority",
         "operation": "resolve-read",
-        "surface": "skills"
+        "surface": "skills",
+        "canonicalSkillId": "codex-user/paper-lookup"
       },
       "problemClasses": [
         "scholarly.discovery"
@@ -102,7 +103,8 @@
       "invocation": {
         "handoff": "use DOI/Crossref/DataCite/OpenAlex provider-native reads as required",
         "operation": "resolve-read",
-        "surface": "skills"
+        "surface": "skills",
+        "canonicalSkillId": "codex-user/citation-management"
       },
       "problemClasses": [
         "citation.identity"
@@ -127,7 +129,8 @@
       "currentnessKey": "skill:literature-review",
       "invocation": {
         "operation": "resolve-read",
-        "surface": "skills"
+        "surface": "skills",
+        "canonicalSkillId": "codex-user/literature-review"
       },
       "problemClasses": [
         "scholarly.synthesis"
@@ -151,7 +154,8 @@
       "currentnessKey": "skill:hypothesis-generation",
       "invocation": {
         "operation": "resolve-read",
-        "surface": "skills"
+        "surface": "skills",
+        "canonicalSkillId": "codex-user/hypothesis-generation"
       },
       "problemClasses": [
         "hypothesis.formulation"
@@ -176,7 +180,8 @@
       "currentnessKey": "skill:experimental-design",
       "invocation": {
         "operation": "resolve-read",
-        "surface": "skills"
+        "surface": "skills",
+        "canonicalSkillId": "codex-user/experimental-design"
       },
       "problemClasses": [
         "experiment.design"
@@ -202,7 +207,8 @@
       "invocation": {
         "handoff": "compute with Study-bound data-plane tools rather than free-form Agent arithmetic",
         "operation": "resolve-read",
-        "surface": "skills"
+        "surface": "skills",
+        "canonicalSkillId": "codex-user/exploratory-data-analysis"
       },
       "problemClasses": [
         "data.eda"
@@ -228,7 +234,8 @@
       "invocation": {
         "handoff": "numerical computation remains library/Study-environment owned",
         "operation": "resolve-read",
-        "surface": "skills"
+        "surface": "skills",
+        "canonicalSkillId": "codex-user/statistical-analysis"
       },
       "problemClasses": [
         "statistics.analysis"
@@ -255,7 +262,8 @@
       "invocation": {
         "handoff": "renderer/plotting library owns mechanical generation",
         "operation": "resolve-read",
-        "surface": "skills"
+        "surface": "skills",
+        "canonicalSkillId": "codex-user/scientific-visualization"
       },
       "problemClasses": [
         "visualization.scientific"
@@ -280,7 +288,8 @@
       "currentnessKey": "skill:scientific-writing",
       "invocation": {
         "operation": "resolve-read",
-        "surface": "skills"
+        "surface": "skills",
+        "canonicalSkillId": "codex-user/scientific-writing"
       },
       "problemClasses": [
         "writing.scientific"
@@ -305,7 +314,8 @@
       "currentnessKey": "skill:scientific-critical-thinking",
       "invocation": {
         "operation": "resolve-read",
-        "surface": "skills"
+        "surface": "skills",
+        "canonicalSkillId": "codex-user/scientific-critical-thinking"
       },
       "problemClasses": [
         "evidence.critical-review"
@@ -330,7 +340,8 @@
       "currentnessKey": "skill:peer-review",
       "invocation": {
         "operation": "resolve-read",
-        "surface": "skills"
+        "surface": "skills",
+        "canonicalSkillId": "codex-user/peer-review"
       },
       "problemClasses": [
         "review.peer"
@@ -660,7 +671,8 @@
       "currentnessKey": "skill:research-publication-closure",
       "invocation": {
         "operation": "resolve-read",
-        "surface": "skills"
+        "surface": "skills",
+        "canonicalSkillId": "project-ordivon-next/research-publication-closure"
       },
       "problemClasses": [
         "publication.closure"
@@ -684,7 +696,8 @@
       "currentnessKey": "skill:research-publication-perceptual-conformance",
       "invocation": {
         "operation": "resolve-read",
-        "surface": "skills"
+        "surface": "skills",
+        "canonicalSkillId": "project-ordivon-next/research-publication-perceptual-conformance"
       },
       "problemClasses": [
         "publication.perceptual-conformance"

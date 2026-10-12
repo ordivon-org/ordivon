@@ -84,6 +84,21 @@ def _availability(route: Mapping[str, Any], observations: Mapping[str, Mapping[s
         return {"state": "unknown", "ready": False, "authorityKey": key, "reason": "currentness observation required from natural owner"}
     state = raw.get("state")
     reason = str(raw.get("reason") or "owner observation supplied")
+    if route.get("bindingAuthority") == "skills-owner" and state in {"available", "ready", "caller_bound"}:
+        # A current owner observation is not sufficient if it describes a different
+        # canonical Skill. The profile freezes the intended identity before lookup.
+        expected = route.get("invocation", {}).get("canonicalSkillId")
+        observed = raw.get("bindingRef")
+        observed_id = raw.get("skillId")
+        if not isinstance(expected, str) or not expected or not isinstance(observed, str) or not observed:
+            return {"state": "binding_missing", "ready": False, "authorityKey": key, "reason": "exact canonical Skill binding is required"}
+        if not isinstance(observed_id, str) or not observed_id:
+            return {"state": "owner_identity_missing", "ready": False, "authorityKey": key, "reason": "Skill owner observation requires explicit skillId"}
+        generation_fields = ("snapshotRevision", "instructionDigest", "packageRevision", "readDigest")
+        if any(not isinstance(raw.get(field), str) or not raw[field] for field in generation_fields):
+            return {"state": "owner_generation_incomplete", "ready": False, "authorityKey": key, "reason": "complete Skill owner generation is required"}
+        if observed != expected or observed_id != expected or state == "caller_bound":
+            return {"state": "canonical_mismatch", "ready": False, "authorityKey": key, "reason": "Skill owner binding does not match intended canonical Skill"}
     if state == "caller_bound":
         ready = key in caller_available
         return {"state": state, "ready": ready, "authorityKey": key, "reason": reason if ready else "caller-bound capability was not admitted by current caller"}
