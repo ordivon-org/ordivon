@@ -110,12 +110,16 @@ class ResearchCapabilityRoutingTests(unittest.TestCase):
         self.assertNotIn("n8n", material)
         self.assertEqual(route["bindingProblemClass"], "community.discovery")
 
-    def test_scholarly_discovery_prefers_specialized_skill_not_generic_agent(self) -> None:
+    def test_scholarly_discovery_selects_canonical_skill_candidate_but_requires_direct_owner_verification(self) -> None:
         r = self.R
         d = r.resolve(r.RouteRequest(problem_class="scholarly.discovery"), observations={"skill:paper-lookup": _skill_owner_observation("codex-user/paper-lookup")})
-        self.assertEqual(d["standing"], "ROUTED")
-        self.assertEqual(d["selectedRoute"]["providerClass"], "skill")
-        self.assertEqual(d["selectedRoute"]["providerRef"], "paper-lookup")
+        self.assertEqual(d["standing"], "HOLD_OWNER_VERIFICATION_REQUIRED")
+        self.assertIsNone(d["selectedRoute"])
+        candidate = d["candidates"][0]
+        self.assertFalse(candidate["ready"])
+        self.assertEqual(candidate["availability"]["state"], "owner_verification_required")
+        self.assertEqual(candidate["canonicalSkillId"], "codex-user/paper-lookup")
+        self.assertEqual(candidate["invocation"]["surface"], "skills")
         self.assertEqual(d["executionAuthority"], "selected-owner-or-provider")
         self.assertEqual(d["completionAuthority"], "study-or-owning-domain")
 
@@ -186,12 +190,15 @@ class ResearchCapabilityRoutingTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             r.resolve(r.RouteRequest(problem_class="made.up.research.action"), observations={})
 
-    def test_route_emits_invocation_and_verification_without_execution(self) -> None:
+    def test_skill_route_emits_owner_verification_coordinates_without_claiming_execution_readiness(self) -> None:
         r = self.R
         d = r.resolve(r.RouteRequest(problem_class="citation.identity"), observations={"skill:citation-management": _skill_owner_observation("codex-user/citation-management")})
-        route = d["selectedRoute"]
-        self.assertIn("invocation", route)
-        self.assertIn("verification", route)
+        self.assertEqual(d["standing"], "HOLD_OWNER_VERIFICATION_REQUIRED")
+        self.assertIsNone(d["selectedRoute"])
+        candidate = d["candidates"][0]
+        self.assertEqual(candidate["canonicalSkillId"], "codex-user/citation-management")
+        self.assertIn("invocation", candidate)
+        self.assertIn("verification", candidate)
         self.assertFalse(d["executed"] )
         self.assertFalse(d["domainCompletionEstablished"] )
 
@@ -215,6 +222,30 @@ class ResearchCapabilityRoutingTests(unittest.TestCase):
             self.assertLessEqual(set(row["routeProblemClasses"]), declared)
             self.assertNotIn("preferredSkills", row)
 
+
+    def test_complete_canonical_skill_generation_is_not_authenticated_by_offline_router(self) -> None:
+        r = self.R
+        base = _skill_owner_observation("codex-user/peer-review")
+        mutations = {
+            "owner_returned_shape": dict(base),
+            "stale_snapshot": {**base, "snapshotRevision": "sha256:" + "0" * 64},
+            "wrong_instruction": {**base, "instructionDigest": "sha256:" + "a" * 64},
+            "wrong_package": {**base, "packageRevision": "sha256:" + "b" * 64},
+            "wrong_read": {**base, "readDigest": "sha256:" + "c" * 64},
+        }
+        for name, observation in mutations.items():
+            with self.subTest(name=name):
+                d = r.resolve(
+                    r.RouteRequest(problem_class="review.peer"),
+                    observations={"skill:peer-review": observation},
+                )
+                self.assertEqual(d["standing"], "HOLD_OWNER_VERIFICATION_REQUIRED")
+                self.assertIsNone(d["selectedRoute"])
+                candidate = d["candidates"][0]
+                self.assertFalse(candidate["ready"])
+                self.assertEqual(candidate["availability"]["state"], "owner_verification_required")
+                self.assertEqual(candidate["canonicalSkillId"], "codex-user/peer-review")
+                self.assertEqual(candidate["invocation"]["surface"], "skills")
 
     def test_skill_route_rejects_wrong_current_canonical_skill(self) -> None:
         r = self.R

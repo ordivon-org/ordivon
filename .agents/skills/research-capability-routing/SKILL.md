@@ -47,14 +47,14 @@ Research capability meaning and specialist routing stay at these canonical Resea
 2. Translate the already-scoped next action into one exact `problemClass` from `references/research-capability-routing-r1.json`. Do not pass free-form goals to the deterministic resolver.
 3. Freeze the intended canonical Skill identity from the selected profile route `invocation.canonicalSkillId` **before** resolving availability. A current but different Skill is not the intended Skill and must fail closed. Active Agents may take the relevant capability role; do not wait for a named previous Agent to approve discovery.
 4. Obtain currentness from the corresponding owner-native system (provider, Skills, Study, Runtime), not a fixed Agent persona:
-   - Skill procedure: `skills.resolve` / `skills.read`; preserve dependency and scan/trust state, and lower the explicit owner-returned `skillId`, `snapshotRevision`, `instructionDigest`, `packageRevision`, and fenced `readDigest`. Missing owner identity or any generation fence must HOLD rather than being reconstructed from `bindingRef`.
+   - Skill procedure: use the route profile only to identify the intended canonical Skill. The offline resolver can detect missing identity/generation fields or a canonical mismatch, but it **cannot authenticate caller-carried generation hashes**. Even a complete canonical Skill observation therefore returns `HOLD_OWNER_VERIFICATION_REQUIRED`; establish currentness only through a direct `skills.resolve` followed by exact fenced `skills.read`. Do not feed SHA-shaped caller strings back into the router as proof of currentness.
    - Study data plane: current Research-v2 `ordivon-research-study defaults`; do not copy remembered defaults.
    - Runtime: `runtime.describe` / Gateway projection as appropriate.
    - Temporal/provider/toolchain: provider-native health/version/binding surface.
    - caller-bound connector: current application/plugin connection state.
-5. Represent those observations as an authority-keyed object and run the deterministic resolver.
-6. Resolve any selected Skill directly through the Skills owner (`skills.resolve` / `skills.read`) and use the canonical routing profile for invocation coordinates; Gateway does not mediate Research semantic resolution.
-7. Execute only through the returned owner-native invocation surface. A route decision never grants authority.
+5. Represent non-Skill provider observations as an authority-keyed object and run the deterministic resolver. Skill observations may be supplied for mismatch/missing-evidence diagnostics, but they never upgrade offline routing into owner-currentness truth.
+6. For a Skill candidate in `HOLD_OWNER_VERIFICATION_REQUIRED`, take its `canonicalSkillId` / invocation coordinates and resolve that Skill directly through the Skills owner (`skills.resolve` / fenced `skills.read`). Do not rerun the offline router to manufacture a second currentness verdict.
+7. Execute only through the owner-native invocation surface after that direct owner verification. A route decision never grants authority.
 8. Verify using the returned verification boundary plus the Study/domain acceptance contract.
 9. If the resolver returns HOLD, identify missing provider-native evidence, wrong canonical identity, or missing actual capability. An active qualified Agent may take the corresponding work role to repair it; do **not** silently route to a generic Agent or claim that a fixed owner persona must respond.
 
@@ -112,4 +112,4 @@ This validates the canonical machine-readable Research capability index, routing
 
 ## Stop condition
 
-Stop routing when one exact currently-ready route is selected, or when a typed HOLD identifies missing currentness, canonical Skill mismatch, or capability. A qualified active Agent can take the work role; continue through the owner-native executable interface without transferring execution or domain-completion authority into this Skill.
+Stop routing when one exact non-Skill route is currently ready, or when a typed HOLD identifies the next owner action. For Skill routes, `HOLD_OWNER_VERIFICATION_REQUIRED` is the successful routing boundary: use the emitted canonical Skill coordinates for direct Skills-owner resolve/read, then continue through that owner-native executable interface. Do not transfer execution, currentness, or domain-completion authority into this Skill.

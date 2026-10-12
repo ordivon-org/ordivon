@@ -99,6 +99,14 @@ def _availability(route: Mapping[str, Any], observations: Mapping[str, Mapping[s
             return {"state": "owner_generation_incomplete", "ready": False, "authorityKey": key, "reason": "complete Skill owner generation is required"}
         if observed != expected or observed_id != expected or state == "caller_bound":
             return {"state": "canonical_mismatch", "ready": False, "authorityKey": key, "reason": "Skill owner binding does not match intended canonical Skill"}
+        return {
+            "state": "owner_verification_required",
+            "ready": False,
+            "authorityKey": key,
+            "bindingRef": expected,
+            "canonicalSkillId": expected,
+            "reason": "offline router cannot authenticate caller-carried Skill generation; resolve and fenced-read the canonical Skill directly through the Skills owner",
+        }
     if state == "caller_bound":
         ready = key in caller_available
         return {"state": state, "ready": ready, "authorityKey": key, "reason": reason if ready else "caller-bound capability was not admitted by current caller"}
@@ -146,7 +154,7 @@ def resolve(request: RouteRequest, *, observations: Mapping[str, Mapping[str, An
         availability = _availability(route, observations, caller_bound, request.problem_class)
         compatible = not missing
         ready = compatible and availability["ready"] is True
-        candidates.append({
+        candidate = {
             "routeId": route["routeId"],
             "rank": route["rank"],
             "compatible": compatible,
@@ -155,7 +163,15 @@ def resolve(request: RouteRequest, *, observations: Mapping[str, Mapping[str, An
             "preferredMatches": sorted(set(request.preferred_features) & provides),
             "preferredMatchCount": len(set(request.preferred_features) & provides),
             "availability": availability,
-        })
+        }
+        if route.get("bindingAuthority") == "skills-owner":
+            candidate["providerClass"] = route["providerClass"]
+            candidate["providerRef"] = route["providerRef"]
+            candidate["bindingAuthority"] = route["bindingAuthority"]
+            candidate["canonicalSkillId"] = route.get("invocation", {}).get("canonicalSkillId")
+            candidate["invocation"] = dict(route["invocation"])
+            candidate["verification"] = list(route["verification"])
+        candidates.append(candidate)
     if not candidates:
         raise ValueError(f"no route declared for research problem class: {request.problem_class}")
 
@@ -168,6 +184,8 @@ def resolve(request: RouteRequest, *, observations: Mapping[str, Mapping[str, An
             standing = "HOLD_NO_COMPATIBLE_ROUTE"
         elif any(row["availability"]["state"] == "unknown" for row in compatible):
             standing = "HOLD_CURRENTNESS_REQUIRED"
+        elif any(row["availability"]["state"] == "owner_verification_required" for row in compatible):
+            standing = "HOLD_OWNER_VERIFICATION_REQUIRED"
         else:
             standing = "HOLD_NO_READY_ROUTE"
         selected_route = None
@@ -220,6 +238,7 @@ def resolve(request: RouteRequest, *, observations: Mapping[str, Mapping[str, An
             "Route discovery does not grant authority.",
             "Availability does not imply authorization or effect authority.",
             "Skill instructions are advisory and do not grant execution authority.",
+            "Caller-carried Skill generation fields are not Skills-owner currentness proof; execute a Skill route only after direct skills.resolve plus fenced skills.read.",
             "Provider/tool/workflow success does not establish scientific or domain completion.",
             "No generic Agent fallback is implied by a HOLD.",
         ],
