@@ -31,7 +31,8 @@ def test_supply_chain_reuses_one_shared_carrier_without_vpn_identity():
     assert "dns" not in egress
     assert "services" not in egress
     unit = (CONSUMER / "systemd" / "network-v2-supply-chain-egress.service").read_text()
-    assert "Wants=network-v2-browserless-provider-carrier.service" in unit
+    assert "Wants=network-v2-browserless-provider-carrier.service" not in unit
+    assert "After=network-v2-browserless-provider-carrier.service" not in unit
     assert "Requires=network-v2-browserless-provider-carrier.service" not in unit
     assert "provider-endpoints.json" not in unit
     taskfile = (ROOT / "Taskfile.yml").read_text()
@@ -71,3 +72,19 @@ def test_supply_chain_readiness_has_bounded_local_convergence_gate():
     assert "sleep 0.25" in ready
     assert "did not converge within 30s" in ready
     assert "return 42" in ready
+
+
+def test_exact_docker_hub_blob_cdn_hostname_is_authorized_without_wildcard():
+    """The Docker Hub pinned OCI config redirect must not escape scoped egress."""
+    authority = json.loads((CONSUMER / "config" / "authority.json").read_text())
+    egress = json.loads((CONSUMER / "config" / "egress.json").read_text())
+    route = next(r for r in egress["route"]["rules"] if r.get("inbound") == ["supply-chain-oci"])
+    exact = "production.cloudfront.docker.com"
+    assert exact in authority["allowedHttpsDomains"]
+    assert exact in route["domain"]
+    assert exact not in authority["allowedHttpsDomainSuffixes"]
+    assert "cloudfront.docker.com" not in authority["allowedHttpsDomainSuffixes"]
+    assert "docker.com" not in authority["allowedHttpsDomainSuffixes"]
+    assert route["port"] == 443 and route["network"] == ["tcp"]
+    assert authority["directFallback"] is False
+    assert egress["route"]["rules"][-1] == {"action": "reject"}

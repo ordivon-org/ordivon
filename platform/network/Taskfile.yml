@@ -18,8 +18,8 @@ tasks:
   provider-egress:validate:
     desc: Validate semantic shared provider-egress ownership without changing the physical carrier
     cmds:
-      - jq -e '.schemaVersion==1 and .kind=="ordivon.network-v2.provider-egress-definition" and .name=="provider-egress" and .semanticAuthority=="network-v2-provider-egress" and .physicalRealization.namespace=="nv2-browserless-prod" and .physicalRealization.serviceUnit=="network-v2-browserless-provider-carrier.service" and .migration.legacyPhysicalNamesAreCompatibilityIdentifiers==true' config/provider-egress.json >/dev/null
-      - python -m pytest -q tests/test_provider_egress_definition.py
+      - jq -e '.schemaVersion==1 and .kind=="ordivon.network-v2.provider-egress-definition" and .name=="provider-egress" and .semanticAuthority=="network-v2-provider-egress" and .physicalRealization.realizationRegistryRef=="providers/surfshark/config/carrier-realizations.json" and .physicalRealization.namespace=="nv2-browserless-prod" and .physicalRealization.serviceUnit=="network-v2-browserless-provider-carrier.service" and .migration.legacyPhysicalNamesAreCompatibilityIdentifiers==true' config/provider-egress.json >/dev/null
+      - python -m pytest -q tests/test_provider_egress_definition.py tests/test_provider_carrier_realizations.py
 
   provider:surfshark:identity-contract:validate:
     desc: Validate ProviderProfile, ClientIdentity and WireGuard materialization separation without reading provider secrets
@@ -27,7 +27,11 @@ tasks:
       - jq -e '.kind=="ordivon.network-v2.provider-profile" and .providerId=="surfshark" and .site=="th-bkk" and (.projectedMaterial|sort)==(["endpoint","provider-site","server-public-key"]|sort)' providers/surfshark/config/provider-profile.json >/dev/null
       - jq -e '.kind=="ordivon.network-v2.client-identity" and .secretOwner=="network-provider-materials" and .concurrencyPolicy=="single-physical-session" and .secretProjection=={"privateKey":false,"assignedAddress":false}' providers/surfshark/config/client-identity-linux-shared.json >/dev/null
       - jq -e '.kind=="ordivon.network-v2.wireguard-materialization-binding" and .platform=="linux" and .compatibilityMode=="legacy-combined-profile" and .providerProfileRef!=.clientIdentityRef' providers/surfshark/config/wireguard-materialization-linux.json >/dev/null
-      - python -m pytest -q tests/test_provider_identity_split.py
+      - jq -e -f providers/surfshark/acceptance/carrier-realization-semantics.jq providers/surfshark/config/carrier-realizations.json >/dev/null
+      - grep -Fx 'repo=https://github.com/passteque/gluetun.git' capabilities/gluetun/external/gluetun.lock >/dev/null
+      - grep -Fx 'version=v3.41.3' capabilities/gluetun/external/gluetun.lock >/dev/null
+      - grep -Fx 'revision=3d1e20c5551e9cae1f9d938dc7b7214a6987f27e' capabilities/gluetun/external/gluetun.lock >/dev/null
+      - python -m pytest -q tests/test_provider_identity_split.py tests/test_provider_carrier_realizations.py
 
   provider:surfshark:validate:
     desc: Validate only the Surfshark provider profile layer
@@ -35,14 +39,16 @@ tasks:
       - sing-box check -c providers/surfshark/config/carrier.json
 
   consumer:browserless:provider-carrier:validate:
-    desc: Validate the one-identity shared provider carrier without changing live state
+    desc: Validate the currently active legacy provider carrier without changing live state
     cmds:
       - /usr/bin/sing-box check -c consumers/browserless/config/provider-carrier.json
       - /usr/bin/systemd-analyze verify consumers/browserless/systemd/network-v2-browserless-netns.service consumers/browserless/systemd/network-v2-browserless-forward.service consumers/browserless/systemd/network-v2-browserless-wireguard.service consumers/browserless/systemd/network-v2-browserless-dns.service consumers/browserless/systemd/network-v2-browserless-provider-carrier.service consumers/browserless/systemd/network-v2-browserless.target
       - /usr/bin/bash -n consumers/browserless/provider-carrier-ready.sh consumers/browserless/provider-switch.sh
       - jq -e '.kind=="ordivon.network-v2.provider-profile" and .profileId=="surfshark:th-bkk" and .site=="th-bkk"' providers/surfshark/config/provider-profile.json >/dev/null
       - grep -F 'SITE=${1:-th-bkk}' consumers/browserless/provider-switch.sh >/dev/null
-      - grep -F 'test "$site" = th-bkk' consumers/browserless/provider-carrier-ready.sh >/dev/null
+      - grep -F 'mechanism=gluetun' consumers/browserless/provider-carrier-ready.sh >/dev/null
+      - grep -F 'mechanism=legacy-wireguard' consumers/browserless/provider-carrier-ready.sh >/dev/null
+      - grep -F -- '--noproxy ""' consumers/browserless/provider-carrier-ready.sh >/dev/null
 
   consumer:finance:validate:
     desc: Validate nine scoped Finance authorities over the shared provider carrier plus explicit direct macro lanes
@@ -84,7 +90,7 @@ tasks:
 
   all:validate:
     desc: Validate core plus optional provider and consumer profiles without changing live state
-    deps: [core:validate, network-router:validate, provider-egress:validate, provider:surfshark:identity-contract:validate, provider:surfshark:validate, consumer:browserless:provider-carrier:validate, consumer:windows-real-chrome:validate, consumer:finance:validate, consumer:supply-chain:validate, consumer:x-reality:validate, consumer:model-provider:validate]
+    deps: [core:validate, network-router:validate, provider-egress:validate, provider:surfshark:identity-contract:validate, provider:surfshark:validate, consumer:browserless:provider-carrier:validate, capability:gluetun:m4:validate, consumer:windows-real-chrome:validate, consumer:finance:validate, consumer:supply-chain:validate, consumer:x-reality:validate, consumer:model-provider:validate]
 
   core:install:
     desc: Materialize the exact validated R0 source generation into the live host under one systemd composition root
@@ -185,6 +191,64 @@ tasks:
     cmds:
       - task: capability:wireguard:materialize
       - ./capabilities/wireguard/acceptance/userspace-lifecycle.sh
+
+  capability:gluetun:m4:validate:
+    desc: Validate the explicit disabled-by-default M4 owned-mode source without touching installed units
+    cmds:
+      - /usr/bin/sing-box check -c consumers/browserless/config/provider-carrier-gluetun-candidate.json
+      - QUADLET_UNIT_DIRS="$PWD/capabilities/gluetun/m4-source" /usr/lib/systemd/system-generators/podman-system-generator --dryrun | grep -F -- '--publish 10.252.246.1:19682:8888/tcp' >/dev/null
+      - /usr/bin/bash -n capabilities/gluetun/m4-source/m4-owned-restore-legacy capabilities/gluetun/m4-source/provider-identity-exclusive
+      - python -m pytest -q tests/test_gluetun_m4_provider_ownership.py tests/test_gluetun_m4_lifecycle_source.py tests/test_gluetun_m4_boot_recovery.py tests/test_gluetun_cold_replacement.py
+
+  capability:gluetun:m4:materialize:
+    desc: Stage exact M4 bytes under /var/lib only; never install/reload/start provider units
+    deps: [capability:gluetun:m4:validate]
+    cmds:
+      - rm -rf /var/lib/network-v2/m4-stage
+      - install -d -m 0755 /var/lib/network-v2/m4-stage
+      - cp -a capabilities/gluetun/m4-source /var/lib/network-v2/m4-stage/source
+      - install -m 0644 capabilities/gluetun/config/serialized-candidate.env /var/lib/network-v2/m4-stage/serialized-candidate.env
+      - install -m 0644 consumers/browserless/config/provider-carrier-gluetun-candidate.json /var/lib/network-v2/m4-stage/provider-carrier-gluetun-candidate.json
+
+  capability:gluetun:m4:systemd-manager-sandbox:
+    desc: Prove PID1-owned nonproduction fallback after initiator death and candidate failure; disposable /run units only
+    cmds:
+      - NETWORK_V2_RUN_M4_SYSTEMD_SANDBOX=1 python -m pytest -q tests/test_gluetun_m4_systemd_manager_sandbox.py
+
+  capability:gluetun:m4:browserless-proxy-sandbox:
+    desc: Prove real Browserless Chromium reaches a synthetic target only through the provider proxy on an internal Podman network
+    cmds:
+      - /usr/bin/bash capabilities/gluetun/acceptance/browserless-proxy-only-sandbox.sh
+
+  capability:gluetun:source:accept:
+    desc: Qualify the exact pinned upstream Gluetun source without provider material or production network effects
+    cmds:
+      - /usr/bin/bash capabilities/gluetun/acceptance/source-contract.sh
+
+  capability:gluetun:compatibility-hop:preflight:
+    desc: Read-only preflight for the Gluetun host-veth compatibility hop; no provider identity, listeners, routes or production unit mutation
+    cmds:
+      - /usr/bin/bash capabilities/gluetun/acceptance/compatibility-hop.sh
+
+  capability:gluetun:local-real-sandbox:
+    desc: Run the pinned Gluetun image against a throwaway local WireGuard peer, private Podman /30, fail-closed loss/recovery, and Browserless candidate adapter; never uses production provider identity
+    cmds:
+      - /usr/bin/bash capabilities/gluetun/acceptance/local-wireguard-real-sandbox.sh
+
+  capability:gluetun:m3b:preflight:
+    desc: Read-only exact preflight for the bounded one-session Gluetun production canary
+    cmds:
+      - /usr/bin/bash capabilities/gluetun/acceptance/m3b-serialized-canary.sh --preflight
+
+  capability:gluetun:candidate-consequence:
+    desc: Mechanism-neutral provider consequence probe through the stable provider-carrier seam
+    cmds:
+      - /usr/bin/bash capabilities/gluetun/acceptance/candidate-consequence.sh
+
+  capability:gluetun:local-real-sandbox:
+    desc: Run the pinned Gluetun image against a throwaway local WireGuard peer, private Podman /30, fail-closed loss/recovery, and Browserless candidate adapter; never uses production provider identity
+    cmds:
+      - /usr/bin/bash capabilities/gluetun/acceptance/local-wireguard-real-sandbox.sh
 
   accept:process-recovery:
     desc: Kill the live R0 sing-box process and prove functional plus observed automatic recovery

@@ -1,0 +1,117 @@
+# Gluetun capability
+
+This capability tracks and qualifies the upstream Gluetun mechanism as a potential physical provider-carrier realization.
+
+It does not own Ordivon consumer policy, ClientIdentity authority, ProviderProfile semantics, production effect admission, or consequence readiness.
+
+## R1 standing
+
+- Upstream: https://github.com/passteque/gluetun.git
+- Candidate: v3.41.3
+- Exact revision: 3d1e20c5551e9cae1f9d938dc7b7214a6987f27e
+- Production authority: none
+- Activation mode with current Surfshark Linux identity: serialized-only
+
+The first acceptance lane is source-only. It proves that the pinned upstream revision is fetchable and has the expected source entrypoints. It does not inspect protected provider material or start a VPN.
+
+
+## R1 compatibility topology
+
+The R1 source candidate keeps the existing consumer endpoint 10.252.246.2:19680 and uses sing-box only as a compatibility adapter. Its only candidate outbound is an HTTP proxy at host-veth 10.252.246.1:19682, where a future serialized Gluetun container can expose its upstream HTTP proxy.
+
+The candidate OCI artifact is pinned separately in external/gluetun-image.lock. The non-secret runtime knobs are in config/serialized-candidate.env. Provider identity material is intentionally absent.
+
+A production Gluetun provider session is not yet admitted. The exact pinned image has now been materialized through the scoped Supply-Chain route and executed in a fully local nonproduction WireGuard sandbox; the current legacy production WireGuard realization remains active.
+
+
+## Pre-review hardening
+
+The candidate realization is bound to the immutable OCI lock as well as the source lock. The non-secret runtime contract disables Gluetun public-IP discovery and binds its HTTP control server to container loopback.
+
+The compatibility-hop script is a read-only currentness preflight only. It validates the existing namespace-to-host-veth route, candidate configuration syntax, and candidate proxy port vacancy. It starts no listener and explicitly does not claim two-hop execution proof.
+
+## R1 source-only port and proxy evidence — 2026-10-14
+
+The previous source candidate exposed the Gluetun HTTP proxy at container
+`:8888` and pointed the sing-box compatibility HTTP outbound to host-veth
+`10.252.246.1:19682`, but lacked a materialized port-publication contract.
+
+Source-only Quadlet candidate:
+`quadlet-candidate/gluetun-serialized-candidate.container`.
+Its exact `PublishPort=10.252.246.1:19682:8888/tcp` binds the host-veth
+listener, NOT all host interfaces, and `FIREWALL_INPUT_PORTS=8888`
+permits container-side ingress. The candidate uses upstream Podman
+`Network=bridge`, not a custom network or a second alias named
+`nv2-browserless-prod`; `Pull=never` and the pinned amd64 OCI digest
+remove mutable-tag fallback. The candidate has NO `[Install]` section
+and is not included in Network-v2 install/converge tasks. Its protected
+WireGuard profile is a **read-only external bind** (never checked into Git).
+These declarations do not authorize container startup or concurrent use
+of the existing single-session Surfshark identity.
+
+The Podman Quadlet system generator validates `--publish
+10.252.246.1:19682:8888/tcp` in **dryrun** (no listener or container).
+The offline two-hop fixture is run with:
+
+`python3 capabilities/gluetun/acceptance/isolated-two-hop-fixture.py`
+
+It runs a **real sing-box process** under a temporary loopback-only
+candidate config, followed by a local HTTP CONNECT proxy fixture. It
+proves an HTTP response traverses those two local proxies and a private
+destination cannot reach the fixture. No Gluetun process, provider identity,
+production namespace, Podman container, network route, or existing service is
+used. Its result `twoHopExecutionProven=true` is deliberately qualified
+by `transport=real-sing-box-loopback-httpproxy-fixture`, alongside
+`gluetunContainerPortProven=false` and
+`gluetunFirewallRuntimeProven=false`.
+
+Missing evidence before M3B: runtime container port publication, Gluetun
+own firewall actual ingress, real VPN forwarding/kill-switch behavior,
+effect admission/current workload drain, and independent owner consequence
+parity. **M3B remains HOLD.**
+
+### Offline upstream failure injection
+
+`python3 capabilities/gluetun/acceptance/isolated-two-hop-fixture.py
+--fault=upstream-offline` redirects the temporary candidate sing-box
+outbound to a vacant loopback port. It must return
+`FIXTURE_FAULT_PASS` and `upstreamUnavailableFailClosed=true` with
+zero fixture requests. This checks no direct fallback when the candidate
+HTTP CONNECT upstream is unavailable. It still does **not** run Gluetun.
+
+## R3 independent audit closure scope — 2026-10-14
+
+The R2 audit flagged the shared default Podman bridge and an error-code
+false-positive in the offline fixture. The source candidate now uses a
+dedicated isolated bridge network-v2-gluetun-private-r1 with CIDR
+10.253.239.0/30, Options=isolate=strict and one available container
+IP. A rootful Podman administrator or process explicitly sharing its
+network namespace remains outside this membership boundary.
+
+Scoped actual Podman peer rejection was shown in a disposable Linux
+network namespace against a verified live non-Gluetun TCP listener
+(job-01a13982-d235-7c62-99ad-6776237dc391).
+Real host-veth port-publish effect was NOT admitted by Runtime and
+remains unproven. Pinned Gluetun artifact was not materialized
+through the permitted Supply-Chain egress.
+
+The negative oracle now has a direct-target witness. A test-only
+invalid direct-fallback route yields HTTP 403 and curl exit 22;
+the witness proves the unauthorized connection happened, and the
+fixture correctly rejects it. The positive offline oracle separately
+requires zero direct witness arrivals. All this remains a loopback
+test of sing-box, NOT of actual Gluetun.
+
+## R7 real nonproduction acceptance
+
+`acceptance/local-wireguard-real-sandbox.sh` runs the exact pinned image with a generated local WireGuard peer and disposable Podman /30. It proves real Gluetun HTTP proxy/firewall, peer isolation, tunnel-loss fail-closed behavior, restart recovery, and the Browserless candidate compatibility two-hop without reading production provider credentials. `task capability:gluetun:local-real-sandbox` is the reproducible entrypoint. This is not authority to run the unique Surfshark production identity.
+
+## R7 real nonproduction acceptance
+
+acceptance/local-wireguard-real-sandbox.sh runs the exact pinned image
+with a generated local WireGuard peer and disposable Podman /30. It
+proves real Gluetun HTTP proxy/firewall, peer isolation, tunnel-loss
+fail-closed behavior, restart recovery, and the Browserless candidate
+compatibility two-hop without reading production provider credentials.
+task capability:gluetun:local-real-sandbox is the reproducible entrypoint.
+This is not authority to run the unique Surfshark production identity.

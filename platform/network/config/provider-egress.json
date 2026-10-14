@@ -6,6 +6,7 @@
   "semanticAuthority": "network-v2-provider-egress",
   "physicalRealization": {
     "compatibilityGeneration": "browserless-r1",
+    "realizationRegistryRef": "providers/surfshark/config/carrier-realizations.json",
     "namespace": "nv2-browserless-prod",
     "serviceUnit": "network-v2-browserless-provider-carrier.service",
     "targetUnit": "network-v2-browserless.target",

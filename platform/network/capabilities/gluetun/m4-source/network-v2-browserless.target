@@ -1,0 +1,10 @@
+# M4 staged replacement for the legacy Browserless target.
+# It owns only the compatibility substrate; provider realization is selected
+# by exactly one explicit provider-mode target.
+[Unit]
+Description=Network v2 Browserless compatibility substrate
+Wants=network-v2-browserless-netns.service network-v2-browserless-forward.service
+After=network-v2-browserless-netns.service network-v2-browserless-forward.service
+
+[Install]
+WantedBy=multi-user.target

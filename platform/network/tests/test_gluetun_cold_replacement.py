@@ -1,0 +1,80 @@
+from pathlib import Path
+
+ROOT=Path(__file__).resolve().parents[1]
+M4=ROOT/"capabilities/gluetun/m4-source"
+MODE="/etc/network-v2/gluetun/m4-owned-mode.selected"
+
+def text(name): return (M4/name).read_text()
+
+def test_physical_services_enforce_mode_at_service_boundary():
+    legacy=text("network-v2-browserless-wireguard.service")
+    owned=text("network-v2-gluetun-owned.container")
+    guard=text("provider-identity-exclusive")
+    assert f"ConditionPathExists=!{MODE}" in legacy
+    assert "provider-identity-exclusive legacy" in legacy
+    assert f"ConditionPathExists={MODE}" in owned
+    assert "provider-identity-exclusive gluetun" in owned
+    assert ("MODE_MARKER=" + "$" + "{M4_PROVIDER_MODE_MARKER:-" + MODE + "}") in guard
+    assert 'test ! -e "$MODE_MARKER"' in guard
+
+def test_cold_replacement_does_not_auto_fallback_or_cross_conflict_targets():
+    owned_target=text("network-v2-gluetun-owned.target")
+    legacy_target=text("network-v2-browserless-legacy-provider.target")
+    owned_container=text("network-v2-gluetun-owned.container")
+    assert "OnFailure=" not in owned_target
+    assert "OnFailure=" not in owned_container
+    assert "Conflicts=network-v2-gluetun-owned.target" not in legacy_target
+    assert "Restart=on-failure" in owned_container
+
+def test_shared_provider_ready_is_mechanism_neutral():
+    ready=(ROOT/"consumers/browserless/provider-carrier-ready.sh").read_text()
+    assert "network-v2-gluetun-owned-adapter.service" in ready
+    assert "legacy-wireguard" in ready
+    assert "gluetun" in ready
+    assert "candidate-consequence.sh" not in ready
+    assert "--noproxy" in ready
+    assert "network-v2-browserless-wireguard.service network-v2-browserless-dns.service" not in ready
+
+def test_cold_replacement_is_one_transaction_with_rollback():
+    script=ROOT/"capabilities/gluetun/acceptance/cold-replacement.sh"
+    assert script.exists()
+    s=script.read_text()
+    for token in (
+        "--preflight","--execute","rollback","backup.tar",
+        "network-v2-browserless-provider-carrier.service",
+        "network-v2-browserless-wireguard.service",
+        "m4-owned-mode.selected",
+        "network-v2-gluetun-owned.target",
+        "candidate-consequence.sh",
+    ):
+        assert token in s
+    assert s.index('systemctl stop "$LEGACY_CARRIER"') < s.index('systemctl stop "$LEGACY_WG"')
+    assert s.index('systemctl stop "$LEGACY_WG"') < s.index('install -m 0644 /dev/null "$MODE_MARKER"')
+    assert s.index('install -m 0644 /dev/null "$MODE_MARKER"') < s.index('systemctl start "$OWNED_TARGET"')
+    assert 'ip netns exec nv2-browserless-prod curl' in s
+    assert '-x http://10.252.246.1:19682' in s
+    assert 'case "$code" in 401|403)' in s
+    assert "COLD_REPLACEMENT_SELECTED_CONSUMERS_PASS" in s
+    assert "http://127.0.0.1:19881" in s
+    assert "http://127.0.0.1:19581" in s
+    assert "http://127.0.0.1:19781" in s
+    assert "--proxy-server=http://10.252.246.2:19680" in s
+
+def test_owned_target_restart_owns_provider_and_adapter_lifecycle():
+    owned=text("network-v2-gluetun-owned.container")
+    adapter=text("network-v2-gluetun-owned-adapter.service")
+    assert "PartOf=network-v2-gluetun-owned.target" in owned
+    assert "PartOf=network-v2-gluetun-owned.target" in adapter
+
+
+def test_cold_replacement_reads_but_does_not_mutate_harness_owner_state():
+    script=ROOT/"capabilities/gluetun/acceptance/cold-replacement.sh"
+    src=script.read_text()
+    assert "services/harness" not in src
+    assert "browserless_podman_deploy.py" not in src
+    managed=src.split("MANAGED_PATHS=(",1)[1].split(")\n",1)[0]
+    assert "etc/ordivon/agent-automation-browserless.json" not in managed
+    assert "etc/ordivon/browser-use-browserless.json" not in managed
+    assert "browserless_contract_current" in src
+    assert "Path(raw)" in src
+    assert src.index("browserless_contract_current") < src.index('systemctl stop "$LEGACY_CARRIER"')

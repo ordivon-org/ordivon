@@ -1,0 +1,9 @@
+# Cold-replacement owned provider target. Enabled only after supervised cutover.
+[Unit]
+Description=Network v2 Gluetun default provider mode
+Requires=network-v2-browserless.target network-v2-gluetun-owned.service network-v2-gluetun-owned-adapter.service
+After=network-v2-browserless.target network-v2-gluetun-owned.service network-v2-gluetun-owned-adapter.service
+ConditionPathExists=/etc/network-v2/gluetun/m4-owned-mode.selected
+
+[Install]
+WantedBy=multi-user.target

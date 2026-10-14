@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+set -euo pipefail
+CTR=network-v2-gluetun-owned-r1
+OWNED=network-v2-gluetun-owned.service
+OWNED_ADAPTER=network-v2-gluetun-owned-adapter.service
+OWNED_TARGET=network-v2-gluetun-owned.target
+SUBSTRATE=network-v2-browserless.target
+LEGACY_TARGET=network-v2-browserless-legacy-provider.target
+WG=network-v2-browserless-wireguard.service
+DNS=network-v2-browserless-dns.service
+CARRIER=network-v2-browserless-provider-carrier.service
+MARKER=${M4_PROVIDER_MODE_MARKER:-/etc/network-v2/gluetun/m4-owned-mode.selected}
+LOCK=${M4_RESTORE_LOCK:-/run/network-v2-gluetun/owned-restore.lock}
+READY_CHECK=${M4_READY_CHECK:-/usr/local/libexec/network-v2/browserless-provider-carrier-ready}
+PATH_CHECK=${M4_PATH_CHECK:-/usr/local/libexec/network-v2/browserless-production-path}
+
+exec 9>"$LOCK"
+flock -n 9
+systemctl stop "$OWNED_ADAPTER" >/dev/null 2>&1 || true
+systemctl stop "$OWNED_TARGET" >/dev/null 2>&1 || true
+systemctl stop "$OWNED" >/dev/null 2>&1 || true
+
+candidate_rc=0
+podman container exists "$CTR" >/dev/null 2>&1 || candidate_rc=$?
+case "$candidate_rc" in
+  0) podman rm -f "$CTR" >/dev/null 2>&1 || { echo BLOCKED_CANDIDATE_TEARDOWN >&2; exit 70; };;
+  1) ;;
+  *) echo "BLOCKED_UNCERTAIN_CANDIDATE" >&2; exit 70 ;;
+esac
+absent_rc=0
+podman container exists "$CTR" >/dev/null 2>&1 || absent_rc=$?
+test "$absent_rc" = 1 || { echo BLOCKED_CANDIDATE_TEARDOWN >&2; exit 70; }
+systemctl is-active --quiet "$OWNED" && { echo BLOCKED_OWNED_UNIT_ACTIVE >&2; exit 70; } || true
+
+systemctl enable "$LEGACY_TARGET" >/dev/null
+rm -f "$MARKER"
+systemctl disable "$OWNED_TARGET" >/dev/null 2>&1 || true
+systemctl start "$SUBSTRATE"
+systemctl start "$LEGACY_TARGET"
+for unit in "$SUBSTRATE" "$LEGACY_TARGET" "$WG" "$DNS" "$CARRIER"; do
+  systemctl is-active --quiet "$unit"
+done
+
+if ! test -x "$READY_CHECK"; then
+  echo M4_LEGACY_CORE_RESTORED_CONSEQUENCE_UNKNOWN >&2
+  exit 3
+fi
+"$READY_CHECK" >/dev/null
+if ! test -x "$PATH_CHECK"; then
+  echo M4_LEGACY_CORE_RESTORED_PATH_UNKNOWN >&2
+  exit 3
+fi
+"$PATH_CHECK" >/dev/null
+printf '%s\n' 'M4_LEGACY_FALLBACK_FULL_READY'
