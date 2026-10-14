@@ -1,47 +1,13 @@
 {
   "$schema": "https://sing-box.sagernet.org/schema.json",
-  "log": {
-    "level": "warn",
-    "timestamp": true
-  },
-  "dns": {
-    "servers": [
-      {
-        "type": "udp",
-        "tag": "namespace-dns",
-        "server": "127.0.0.1",
-        "server_port": 53
-      }
-    ],
-    "final": "namespace-dns",
-    "strategy": "ipv4_only"
-  },
-  "inbounds": [
-    {
-      "type": "mixed",
-      "tag": "windows-real-chrome",
-      "listen": "127.0.0.1",
-      "listen_port": 19780
-    }
-  ],
-  "outbounds": [
-    {
-      "type": "direct",
-      "tag": "provider-egress-direct"
-    }
-  ],
+  "log": {"level": "warn", "timestamp": true},
+  "inbounds": [{"type": "mixed", "tag": "windows-real-chrome", "listen": "127.0.0.1", "listen_port": 19780}],
+  "outbounds": [{"type": "http", "tag": "provider-carrier", "server": "10.252.246.2", "server_port": 19680}],
   "route": {
-    "default_domain_resolver": "namespace-dns",
     "rules": [
-      {
-        "ip_is_private": true,
-        "action": "reject"
-      },
-      {
-        "ip_version": 6,
-        "action": "reject"
-      }
+      {"ip_is_private": true, "action": "reject"},
+      {"ip_version": 6, "action": "reject"}
     ],
-    "final": "provider-egress-direct"
+    "final": "provider-carrier"
   }
 }

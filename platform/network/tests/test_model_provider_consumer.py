@@ -56,7 +56,8 @@ def test_model_provider_has_no_duplicate_vpn_or_credential_authority() -> None:
         / "systemd"
         / "network-v2-model-provider-egress.service"
     ).read_text()
-    assert "Wants=network-v2-browserless-provider-carrier.service" in unit
+    assert "Wants=network-v2-browserless-provider-carrier.service" not in unit
+    assert "After=network-v2-browserless-provider-carrier.service" not in unit
     assert "Requires=network-v2-browserless-provider-carrier.service" not in unit
     assert "NetworkNamespacePath=" not in unit
     assert "wireguard" not in unit.lower()

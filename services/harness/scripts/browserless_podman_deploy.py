@@ -64,6 +64,11 @@ PLAYWRIGHT_PYTHON = Path(
     "/root/.local/share/ordivon-workstation/conversation-relay-playwright-r4/.venv/bin/python"
 )
 BROWSERLESS_NETWORK_SECTION = "browserless_network"
+PROVIDER_PROXY_LAUNCH_ARGS = [
+    "--proxy-server=http://10.252.246.2:19680",
+    "--proxy-bypass-list=<-loopback>",
+    "--disable-quic",
+]
 QUADLET_NAMESPACE_TOKEN = "@NETWORK_NAMESPACE@"
 QUADLET_AUTHORITY_SERVICE_TOKEN = "@NETWORK_AUTHORITY_SERVICE@"
 DEFAULT_TEMPLATES = tuple(
@@ -337,6 +342,7 @@ def render_config(binding: dict | None = None) -> dict:
                 "httpEndpoint": f"http://127.0.0.1:30{instance}",
                 "tokenFile": str(TOKEN_FILE),
                 "networkNamespace": network_namespace,
+                "launchArgs": list(PROVIDER_PROXY_LAUNCH_ARGS),
                 "operatorHttpEndpoint": f"http://127.0.0.1:131{instance}",
                 "userDataDir": "/data",
                 "headless": False,
@@ -422,6 +428,7 @@ def render_browser_use_config(
                 "httpEndpoint": f"http://127.0.0.1:30{instance}",
                 "tokenFile": str(TOKEN_FILE),
                 "networkNamespace": network_namespace,
+                "launchArgs": list(PROVIDER_PROXY_LAUNCH_ARGS),
                 "operatorHttpEndpoint": f"http://127.0.0.1:131{instance}",
                 "userDataDir": "/data",
                 "headless": False,

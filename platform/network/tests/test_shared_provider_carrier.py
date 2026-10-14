@@ -11,23 +11,30 @@ PROVIDER_PROFILE = ROOT / "providers" / "surfshark" / "config" / "provider-profi
 
 
 def test_browserless_owns_one_internal_provider_carrier():
-    cfg = json.loads((BROWSERLESS / "config" / "provider-carrier.json").read_text())
-    assert cfg["inbounds"] == [{
+    legacy = json.loads((BROWSERLESS / "config" / "provider-carrier.json").read_text())
+    assert legacy["inbounds"] == [{
         "type": "http", "tag": "shared-provider-carrier", "listen": "10.252.246.2", "listen_port": 19680,
     }]
-    assert cfg["dns"]["servers"] == [{
-        "type": "udp", "tag": "namespace-dns", "server": "127.0.0.1", "server_port": 53,
+    assert legacy["outbounds"] == [{"type": "direct", "tag": "provider-direct"}]
+    assert {"ip_is_private": True, "action": "reject"} in legacy["route"]["rules"]
+    assert {"ip_version": 6, "action": "reject"} in legacy["route"]["rules"]
+    assert legacy["route"]["final"] == "provider-direct"
+
+    candidate = json.loads((BROWSERLESS / "config" / "provider-carrier-gluetun-candidate.json").read_text())
+    assert candidate["inbounds"] == legacy["inbounds"]
+    assert candidate["outbounds"] == [{
+        "type": "http", "tag": "gluetun-upstream", "server": "10.252.246.1", "server_port": 19682,
     }]
-    assert cfg["outbounds"] == [{"type": "direct", "tag": "provider-direct"}]
-    assert {"ip_is_private": True, "action": "reject"} in cfg["route"]["rules"]
-    assert {"ip_version": 6, "action": "reject"} in cfg["route"]["rules"]
+    assert "dns" not in candidate
+    assert candidate["route"]["final"] == "gluetun-upstream"
+
     unit = (BROWSERLESS / "systemd" / "network-v2-browserless-provider-carrier.service").read_text()
     assert "NetworkNamespacePath=/run/netns/nv2-browserless-prod" in unit
     assert "Requires=network-v2-browserless-dns.service network-v2-browserless-forward.service" in unit
-    assert "provider-endpoints.json" not in unit
+    assert "provider-carrier.json" in unit
     target = (BROWSERLESS / "systemd" / "network-v2-browserless.target").read_text()
-    assert "Wants=network-v2-browserless-dns.service network-v2-browserless-forward.service network-v2-browserless-provider-carrier.service" in target
-    assert "Requires=network-v2-browserless-dns.service" not in target
+    assert "network-v2-browserless-provider-carrier.service" in target
+    assert "gluetun" not in target.lower()
 
 
 def test_production_provider_defaults_to_cross_consumer_qualified_site():
@@ -59,16 +66,17 @@ def test_finance_provider_lanes_share_carrier_and_macro_lanes_remain_direct():
     assert routes[("finance-fred-public-csv",)]["outbound"] == "public-direct"
     unit = (FINANCE / "systemd" / "network-v2-finance-egress.service").read_text()
     assert "provider-endpoints.json" not in unit
-    assert "Wants=network-v2-browserless-provider-carrier.service" in unit
+    assert "Wants=network-v2-browserless-provider-carrier.service" not in unit
+    assert "After=network-v2-browserless-provider-carrier.service" not in unit
     assert "Requires=network-v2-browserless-provider-carrier.service" not in unit
 
 
 def test_semantic_consumers_survive_physical_carrier_loss():
     for directory, name in ((FINANCE, "finance"), (SUPPLY, "supply-chain")):
         unit = (directory / "systemd" / f"network-v2-{name}-egress.service").read_text()
-        assert "Wants=network-v2-browserless-provider-carrier.service" in unit
+        assert "Wants=network-v2-browserless-provider-carrier.service" not in unit
         assert "Requires=network-v2-browserless-provider-carrier.service" not in unit
-        assert "After=network-v2-browserless-provider-carrier.service" in unit
+        assert "After=network-v2-browserless-provider-carrier.service" not in unit
 
 
 def test_no_current_consumer_materializes_duplicate_provider_identity():

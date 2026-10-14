@@ -21,9 +21,9 @@ def test_egress_uses_shared_carrier_and_rejects_unknown():
 
 def test_semantic_service_soft_depends_on_carrier():
     u = (X / "systemd" / "network-v2-x-reality-egress.service").read_text()
-    assert "Wants=network-v2-browserless-provider-carrier.service" in u
+    assert "Wants=network-v2-browserless-provider-carrier.service" not in u
+    assert "After=network-v2-browserless-provider-carrier.service" not in u
     assert "Requires=network-v2-browserless-provider-carrier.service" not in u
-    assert "After=network-v2-browserless-provider-carrier.service" in u
 
 def test_readiness_has_no_credential_surface():
     r = (X / "ready.sh").read_text()

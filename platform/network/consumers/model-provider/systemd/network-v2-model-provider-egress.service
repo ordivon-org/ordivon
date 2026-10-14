@@ -1,7 +1,5 @@
 [Unit]
 Description=Network v2 Model Provider exact API egress authority
-Wants=network-v2-browserless-provider-carrier.service
-After=network-v2-browserless-provider-carrier.service
 PartOf=network-v2-model-provider.target
 
 [Service]

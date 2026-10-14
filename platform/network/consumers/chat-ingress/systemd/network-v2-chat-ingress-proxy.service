@@ -1,7 +1,7 @@
 [Unit]
 Description=Network v2 scoped ChatIngress proxy inside Browserless network authority
 BindsTo=network-v2-browserless.target
-After=network-v2-browserless.target network-v2-browserless-dns.service
+After=network-v2-browserless.target
 PartOf=network-v2-chat-ingress.target
 
 [Service]

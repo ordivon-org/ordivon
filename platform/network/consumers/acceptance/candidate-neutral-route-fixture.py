@@ -62,7 +62,7 @@ def request(port: int, url: str) -> subprocess.CompletedProcess[str]:
 
 def main() -> int:
     if len(sys.argv) != 3 or sys.argv[1] not in CONSUMER_FILES:
-        raise ValueError("usage: candidate-neutral-route-fixture.py [model-provider|supply-chain|x-reality] DOMAIN")
+        raise ValueError("usage: candidate-neutral-route-fixture.py [model-provider|supply-chain|x-reality|finance|windows-real-chrome] DOMAIN")
     name, domain = sys.argv[1:3]
     allowed, relative = CONSUMER_FILES[name]
     if domain not in allowed:
@@ -92,19 +92,19 @@ def main() -> int:
     elif len(source["inbounds"]) != 1 or len(source["outbounds"]) != 1:
         raise ValueError("consumer source must have exactly one inlet and outlet")
     if is_chrome:
-        if source["outbounds"] != [{"type": "direct", "tag": "provider-egress-direct"}]:
-            raise ValueError("Chrome source provider namespace outbound changed")
         if not any(r.get("ip_is_private") is True and r.get("action") == "reject"
                    for r in source["route"]["rules"]):
             raise ValueError("Chrome source private destination reject missing")
         if not any(r.get("ip_version") == 6 and r.get("action") == "reject"
                    for r in source["route"]["rules"]):
             raise ValueError("Chrome source IPv6 reject missing")
+        if source["route"].get("final") != "provider-carrier":
+            raise ValueError("Chrome source must lower public traffic to provider-carrier")
     else:
         if source["route"]["rules"][-1] != {"action": "reject"}:
             raise ValueError("consumer must end in catch-all rejection")
     upstream = next((o for o in source["outbounds"] if o.get("tag") == "provider-carrier"), None)
-    if not is_chrome and (upstream is None or upstream["type"] != "http"):
+    if upstream is None or upstream["type"] != "http":
         raise ValueError("consumer provider-carrier outlet missing")
 
     seen: list[str] = []
@@ -139,20 +139,11 @@ def main() -> int:
         config = json.loads(json.dumps(source))
         if is_finance:
             config["inbounds"] = [i for i in config["inbounds"] if i["tag"] == finance_inbound]
-        if is_chrome:
-            # Source uses direct inside its provider network namespace; the test
-            # substitutes an HTTP fixture ONLY in a temporary config, to ensure
-            # no actual external traffic occurs. Not evidence of browser parity.
-            config["outbounds"] = [{"type": "http", "tag": "provider-egress-direct",
-                                    "server": "127.0.0.1", "server_port": proxy.server_port}]
-            config.pop("dns", None)
-            config["route"].pop("default_domain_resolver", None)
-        else:
-            config["outbounds"] = [
-                dict(outbound, server="127.0.0.1", server_port=proxy.server_port)
-                if outbound.get("tag") == "provider-carrier" else outbound
-                for outbound in config["outbounds"]
-            ]
+        config["outbounds"] = [
+            dict(outbound, server="127.0.0.1", server_port=proxy.server_port)
+            if outbound.get("tag") == "provider-carrier" else outbound
+            for outbound in config["outbounds"]
+        ]
         listener = free_port()
         config["inbounds"][0].update(listen="127.0.0.1", listen_port=listener)
         with tempfile.TemporaryDirectory(prefix="nv2-consumer-policy-fixture-") as tmp:
@@ -188,7 +179,7 @@ def main() -> int:
             "unknownDestinationRejected":not is_chrome,
             "hostSuffixConfusableRejected":host_confusable_rejected if name == "supply-chain" else None,
             "privateDestinationRejected":is_chrome,
-            "fixtureScope":"private-ip-reject-only" if is_chrome else
+            "fixtureScope":"provider-carrier-private-reject" if is_chrome else
                             "finance-provider-allowlist-only" if is_finance else "consumer-domain-allowlist",
             "usesLegacyWireguard":False,
             "productionNetworkMutation":False,"gluetunRuntimeProven":False,

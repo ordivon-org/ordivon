@@ -360,6 +360,25 @@ class BrowserlessPodmanDeploymentTests(unittest.TestCase):
         self.assertNotIn("/usr/bin/docker", source)
         self.assertNotIn("/usr/bin/containerd", source)
 
+    def test_browserless_endpoints_force_shared_provider_carrier_proxy(self):
+        binding = self.binding()
+        configs = (
+            __import__("browserless_podman_deploy").render_config(binding),
+            __import__("browserless_podman_deploy").render_browser_use_config(
+                binding, browser_use_executable="/bin/true"
+            ),
+        )
+        expected = [
+            "--proxy-server=http://10.252.246.2:19680",
+            "--proxy-bypass-list=<-loopback>",
+            "--disable-quic",
+        ]
+        for config in configs:
+            endpoints = config["browserSubstrate"]["endpoints"]
+            self.assertTrue(endpoints)
+            for endpoint in endpoints:
+                self.assertEqual(endpoint["launchArgs"], expected)
+
 
 if __name__ == "__main__":
     unittest.main()
