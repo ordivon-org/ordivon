@@ -54,3 +54,8 @@ def test_cold_replacement_is_one_transaction_with_rollback():
     assert 'ip netns exec nv2-browserless-prod curl' in s
     assert '-x http://10.252.246.1:19682' in s
     assert 'case "$code" in 401|403)' in s
+    assert "COLD_REPLACEMENT_SELECTED_CONSUMERS_PASS" in s
+    assert "http://127.0.0.1:19881" in s
+    assert "http://127.0.0.1:19581" in s
+    assert "http://127.0.0.1:19781" in s
+    assert "--proxy-server=http://10.252.246.2:19680" in s

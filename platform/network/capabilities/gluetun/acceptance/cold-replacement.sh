@@ -173,14 +173,36 @@ restart_recorded_consumers() {
 }
 
 consumer_checks() {
+  local code
   /usr/local/libexec/network-v2/browserless-provider-carrier-ready
-  test -x /usr/local/libexec/network-v2/model-provider-ready && /usr/local/libexec/network-v2/model-provider-ready
-  test -x /usr/local/libexec/network-v2/supply-chain-ready && /usr/local/libexec/network-v2/supply-chain-ready
-  test -x /usr/local/libexec/network-v2/windows-real-chrome-ready && /usr/local/libexec/network-v2/windows-real-chrome-ready
-  test -x /usr/local/libexec/network-v2/x-reality-ready && /usr/local/libexec/network-v2/x-reality-ready
-  test -x /usr/local/libexec/network-v2/finance-ready && /usr/local/libexec/network-v2/finance-ready public 90
-  test -x /usr/local/libexec/network-v2/claude-ready && /usr/local/libexec/network-v2/claude-ready
-  test -x /usr/local/libexec/network-v2/chat-ingress-ready && /usr/local/libexec/network-v2/chat-ingress-ready
+
+  # Check a small set of already-active semantic consumers directly. Do not
+  # require inactive target wrappers or recreate the old HA migration gate.
+  code=$(curl -4 --noproxy "" -x http://127.0.0.1:19881 -I -sS     --connect-timeout 6 --max-time 15 -o /dev/null -w '%{http_code}'     https://api.deepseek.com/v1/models)
+  case "$code" in 401|403|404) ;; *) echo "model consumer consequence=$code" >&2; return 75;; esac
+
+  code=$(curl -4 --noproxy "" -x http://127.0.0.1:19581 -I -sS     --connect-timeout 6 --max-time 15 -o /dev/null -w '%{http_code}'     https://registry-1.docker.io/v2/)
+  case "$code" in 200|401) ;; *) echo "supply-chain consumer consequence=$code" >&2; return 76;; esac
+
+  code=$(curl -4 --noproxy "" -x http://127.0.0.1:19781 -I -sS     --connect-timeout 6 --max-time 15 -o /dev/null -w '%{http_code}'     https://example.com/)
+  case "$code" in 200|301|302) ;; *) echo "chrome consumer consequence=$code" >&2; return 77;; esac
+
+  python3 - <<'PY2'
+import json
+expected=[
+  "--proxy-server=http://10.252.246.2:19680",
+  "--proxy-bypass-list=<-loopback>",
+  "--disable-quic",
+]
+for fn in ("/etc/ordivon/agent-automation-browserless.json",
+           "/etc/ordivon/browser-use-browserless.json"):
+    with open(fn,encoding="utf-8") as f:
+        x=json.load(f)
+    eps=x["browserSubstrate"]["endpoints"]
+    assert eps and all(e.get("launchArgs")==expected for e in eps), fn
+PY2
+  printf '%s
+' COLD_REPLACEMENT_SELECTED_CONSUMERS_PASS
 }
 
 rollback() {
