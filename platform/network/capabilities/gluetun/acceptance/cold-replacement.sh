@@ -148,16 +148,18 @@ install_candidate_bytes() {
 }
 
 wait_owned_ready() {
-  for _ in $(seq 1 160); do
-    if systemctl is-active --quiet "$OWNED" \
-      && systemctl is-active --quiet "$OWNED_ADAPTER" \
-      && nc -z -w1 10.252.246.1 19682 >/dev/null 2>&1; then
-      return 0
+  local code
+  # The HTTP proxy can listen before the WireGuard tunnel is usable.
+  # Require a real HTTPS consequence through Gluetun, matching M3B readiness.
+  for _ in $(seq 1 100); do
+    if systemctl is-active --quiet "$OWNED"       && systemctl is-active --quiet "$OWNED_ADAPTER"; then
+      code=$(ip netns exec nv2-browserless-prod curl -4 --noproxy ""         -x http://10.252.246.1:19682 -I -sS --connect-timeout 2 --max-time 5         -o /dev/null -w '%{http_code}' https://api.openai.com/v1/models 2>/dev/null || true)
+      case "$code" in 401|403) return 0;; esac
     fi
-    sleep 0.25
+    sleep 0.5
   done
   systemctl status "$OWNED" "$OWNED_ADAPTER" --no-pager >&2 || true
-  podman logs --tail 120 "$CTR" >&2 || true
+  podman logs --tail 160 "$CTR" >&2 || true
   return 71
 }
 

@@ -51,3 +51,6 @@ def test_cold_replacement_is_one_transaction_with_rollback():
     assert s.index('systemctl stop "$LEGACY_CARRIER"') < s.index('systemctl stop "$LEGACY_WG"')
     assert s.index('systemctl stop "$LEGACY_WG"') < s.index('install -m 0644 /dev/null "$MODE_MARKER"')
     assert s.index('install -m 0644 /dev/null "$MODE_MARKER"') < s.index('systemctl start "$OWNED_TARGET"')
+    assert 'ip netns exec nv2-browserless-prod curl' in s
+    assert '-x http://10.252.246.1:19682' in s
+    assert 'case "$code" in 401|403)' in s
