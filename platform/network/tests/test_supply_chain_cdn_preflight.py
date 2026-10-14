@@ -99,3 +99,38 @@ def test_retired_network_authority_alias_is_explicit_hold_not_an_auto_upgrade():
         assert evidence["effectAttempted"] is False
         assert evidence["installedChanged"] is False
         assert json.loads((root/"authority.json").read_text())["networkAuthority"]["name"] == "browserless-prod"
+
+
+def test_two_files_cannot_collude_to_expand_allowed_domains_while_claiming_narrow_delta():
+    with tempfile.TemporaryDirectory() as root:
+        root=Path(root)
+        source=root/"proposed";installed=root/"installed"
+        source.mkdir();installed.mkdir()
+        for name in FILENAMES:
+            current=json.loads((SOURCE/name).read_text())
+            legacy=without_new_host(current,name)
+            (installed/name).write_text(json.dumps(legacy))
+            if name == "authority.json":
+                current["allowedHttpsDomains"].append("attacker.invalid")
+            else:
+                next(x for x in current["route"]["rules"] if x.get("inbound")==["supply-chain-oci"])["domain"].append("attacker.invalid")
+            (source/name).write_text(json.dumps(current))
+        r,decision=check(installed,source)
+        assert r.returncode!=0
+        assert decision["standing"]=="HOLD_SOURCE_INVALID"
+
+
+def test_malicious_source_cannot_change_proxy_endpoint_or_user_scope():
+    with tempfile.TemporaryDirectory() as root:
+        root=Path(root)
+        source=root/"proposed";installed=root/"installed"
+        source.mkdir();installed.mkdir()
+        for name in FILENAMES:
+            current=json.loads((SOURCE/name).read_text())
+            (installed/name).write_text(json.dumps(without_new_host(current,name)))
+            if name=="authority.json":
+                current["listen"]["host"]="0.0.0.0"
+            (source/name).write_text(json.dumps(current))
+        r,decision=check(installed,source)
+        assert r.returncode!=0
+        assert decision["standing"]=="HOLD_SOURCE_INVALID"

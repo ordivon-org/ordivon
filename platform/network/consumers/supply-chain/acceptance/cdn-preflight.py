@@ -14,6 +14,13 @@ import sys
 
 HOST = "production.cloudfront.docker.com"
 FILES = ("authority.json", "egress.json")
+# This preflight is for ONE R4 exact-host source delta, not a general-purpose
+# release operator. Any further authorization change must be reviewed and
+# intentionally re-pinned, never implicitly inherited through this script.
+PINNED_SOURCE_BYTES = {
+    "authority.json": "sha256:d43559f2644c0f0ab0113022e96c663bbb2da5a05585b6f4194519d0f1223cc3",
+    "egress.json": "sha256:c5fa529080f3eb0ede04c14bfca4f4699a7973e1fe3e013f3a704045a58cb377",
+}
 
 
 def domain_lists(doc: dict, name: str) -> tuple[list[str], list[str]]:
@@ -87,7 +94,9 @@ def main() -> int:
         installed = {name: json.loads(installed_raw[name]) for name in FILES}
         record["sourceDigests"] = {name: sha256(source_raw[name]) for name in FILES}
         record["installedDigests"] = {name: sha256(installed_raw[name]) for name in FILES}
-        if not source_policy_valid(source):
+        if not source_policy_valid(source) or any(
+            sha256(source_raw[name]) != PINNED_SOURCE_BYTES[name] for name in FILES
+        ):
             record["standing"] = "HOLD_SOURCE_INVALID"
         else:
             old = {name: sans_exact_host(source[name], name) for name in FILES}
