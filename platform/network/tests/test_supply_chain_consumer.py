@@ -71,3 +71,19 @@ def test_supply_chain_readiness_has_bounded_local_convergence_gate():
     assert "sleep 0.25" in ready
     assert "did not converge within 30s" in ready
     assert "return 42" in ready
+
+
+def test_exact_docker_hub_blob_cdn_hostname_is_authorized_without_wildcard():
+    """The Docker Hub pinned OCI config redirect must not escape scoped egress."""
+    authority = json.loads((CONSUMER / "config" / "authority.json").read_text())
+    egress = json.loads((CONSUMER / "config" / "egress.json").read_text())
+    route = next(r for r in egress["route"]["rules"] if r.get("inbound") == ["supply-chain-oci"])
+    exact = "production.cloudfront.docker.com"
+    assert exact in authority["allowedHttpsDomains"]
+    assert exact in route["domain"]
+    assert exact not in authority["allowedHttpsDomainSuffixes"]
+    assert "cloudfront.docker.com" not in authority["allowedHttpsDomainSuffixes"]
+    assert "docker.com" not in authority["allowedHttpsDomainSuffixes"]
+    assert route["port"] == 443 and route["network"] == ["tcp"]
+    assert authority["directFallback"] is False
+    assert egress["route"]["rules"][-1] == {"action": "reject"}

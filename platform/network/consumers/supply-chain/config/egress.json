@@ -31,6 +31,7 @@
           "registry.docker.io",
           "auth.docker.io",
           "production.cloudflare.docker.com",
+          "production.cloudfront.docker.com",
           "docker.elastic.co",
           "gcr.io"
         ],
