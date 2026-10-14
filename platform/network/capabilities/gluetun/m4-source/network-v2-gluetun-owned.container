@@ -1,11 +1,11 @@
 # M4 SOURCE CANDIDATE ONLY. No [Install] section: not automatically enabled.
 # The operator must separately fence new consumer work and stop legacy WG
-# before creating /run/network-v2-gluetun/ownership-admitted.
+# before creating /etc/network-v2/gluetun/m4-owned-mode.selected.
 [Unit]
 Description=Network-v2 Gluetun owned provider mechanism (NOT ADMITTED)
 Requires=network-v2-browserless-netns.service network-v2-browserless-forward.service
 After=network-v2-browserless-netns.service network-v2-browserless-forward.service
-ConditionPathExists=/run/network-v2-gluetun/ownership-admitted
+ConditionPathExists=/etc/network-v2/gluetun/m4-owned-mode.selected
 OnFailure=network-v2-gluetun-legacy-restore.service
 
 [Container]

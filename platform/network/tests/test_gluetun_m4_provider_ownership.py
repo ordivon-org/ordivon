@@ -22,12 +22,12 @@ def test_owned_mode_is_explicit_staged_and_cannot_implicitly_stop_legacy():
     assert "sha256:1baa76576dea1dfbafbd62bb635daf40fd87171f63273c2fdfe630418783011e" in ctr
     assert "Pull=never" in ctr
     assert "PublishPort=10.252.246.1:19682:8888/tcp" in ctr
-    assert "ConditionPathExists=/run/network-v2-gluetun/ownership-admitted" in ctr
+    assert "ConditionPathExists=/etc/network-v2/gluetun/m4-owned-mode.selected" in ctr
     assert "OnFailure=network-v2-gluetun-legacy-restore.service" in ctr
     assert "Restart=no" in ctr
     assert "provider-identity-exclusive gluetun" in ctr
     assert "Conflicts=network-v2-browserless-wireguard.service" not in ctr
-    assert "ConditionPathExists=/run/network-v2-gluetun/ownership-admitted" in owned
+    assert "ConditionPathExists=/etc/network-v2/gluetun/m4-owned-mode.selected" in owned
     assert "Conflicts=network-v2-browserless" not in owned
 
 def test_provider_modes_split_substrate_from_physical_realization():

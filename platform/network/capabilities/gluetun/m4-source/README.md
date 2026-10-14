@@ -72,3 +72,12 @@ outside the ordinary all:validate path:
 These prove service-manager ownership and browser proxy composition without
 using the sole production Surfshark identity. They do not simulate a machine
 power loss or authorize permanent M4 ownership.
+
+## Durable boot mode
+
+Permanent owned-provider selection uses the root-controlled marker
+/etc/network-v2/gluetun/m4-owned-mode.selected. It is intentionally separate
+from temporary runtime state: reboot clears /run but must not silently erase
+a previously adopted provider mode. No validation/materialization task creates
+this marker. Fallback clears it only after the Gluetun candidate is positively
+absent, then disables owned mode and enables/starts the Legacy provider target.

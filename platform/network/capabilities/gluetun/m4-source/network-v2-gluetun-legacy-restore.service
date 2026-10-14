@@ -3,7 +3,7 @@
 [Unit]
 Description=Network-v2 Gluetun candidate failure -> fenced legacy restore
 After=network-v2-gluetun-owned.service
-ConditionPathExists=/run/network-v2-gluetun/ownership-admitted
+ConditionPathExists=/etc/network-v2/gluetun/m4-owned-mode.selected
 
 [Service]
 Type=oneshot

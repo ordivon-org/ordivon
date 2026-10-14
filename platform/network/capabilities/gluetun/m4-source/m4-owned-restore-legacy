@@ -9,14 +9,13 @@ LEGACY_TARGET=network-v2-browserless-legacy-provider.target
 WG=network-v2-browserless-wireguard.service
 DNS=network-v2-browserless-dns.service
 CARRIER=network-v2-browserless-provider-carrier.service
-MARKER=/run/network-v2-gluetun/ownership-admitted
+MARKER=/etc/network-v2/gluetun/m4-owned-mode.selected
 LOCK=${M4_RESTORE_LOCK:-/run/network-v2-gluetun/owned-restore.lock}
 READY_CHECK=${M4_READY_CHECK:-/usr/local/libexec/network-v2/browserless-provider-carrier-ready}
 PATH_CHECK=${M4_PATH_CHECK:-/usr/local/libexec/network-v2/browserless-production-path}
 
 exec 9>"$LOCK"
 flock -n 9
-rm -f "$MARKER"
 systemctl stop "$OWNED_ADAPTER" >/dev/null 2>&1 || true
 systemctl stop "$OWNED_TARGET" >/dev/null 2>&1 || true
 systemctl stop "$OWNED" >/dev/null 2>&1 || true
@@ -33,6 +32,9 @@ podman container exists "$CTR" >/dev/null 2>&1 || absent_rc=$?
 test "$absent_rc" = 1 || { echo BLOCKED_CANDIDATE_TEARDOWN >&2; exit 70; }
 systemctl is-active --quiet "$OWNED" && { echo BLOCKED_OWNED_UNIT_ACTIVE >&2; exit 70; } || true
 
+# Permanent provider selection is durable across reboot. Clear it only after
+# positive candidate absence, then switch boot selection back to Legacy.
+rm -f "$MARKER"
 systemctl disable "$OWNED_TARGET" >/dev/null 2>&1 || true
 systemctl enable "$LEGACY_TARGET" >/dev/null
 systemctl start "$SUBSTRATE"

@@ -5,7 +5,7 @@ Requires=network-v2-gluetun-owned.service network-v2-browserless-netns.service
 BindsTo=network-v2-gluetun-owned.service
 After=network-v2-gluetun-owned.service network-v2-browserless-netns.service
 Conflicts=network-v2-browserless-provider-carrier.service
-ConditionPathExists=/run/network-v2-gluetun/ownership-admitted
+ConditionPathExists=/etc/network-v2/gluetun/m4-owned-mode.selected
 
 [Service]
 Type=simple
