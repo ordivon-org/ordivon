@@ -629,3 +629,26 @@ These results do not prove production host-veth
 10.252.246.1:19682 publication, the unique Surfshark production session
 cutover, complete cross-owner blackout, or production systemd/provider
 rollback. M3B remains a separate serialized production effect.
+
+### R10 bounded production canary outcome
+
+A bounded single-identity M3B canary has now completed successfully.
+job-01a13a88-189a-72a2-a82f-88a2bd6e4ecd temporarily stopped the
+legacy physical WireGuard session, ran the exact pinned Gluetun candidate,
+passed mechanism-neutral provider consequences, then restored legacy by
+design. job-01a13a89-042b-7060-9bf1-7b85a0fc155c immediately verified
+zero candidate residue, original namespace/config identity, fresh legacy
+handshake, all 17 reverse-dependent services and Agent Automation
+producers active, runtime Supply-Chain egress current, and legacy
+provider/path/consequence PASS.
+
+This closes the bounded M3B physical-session feasibility question. It
+does not itself authorize permanent ownership transfer or legacy
+retirement. Topic seq17038 found reusable-effect failure-path defects
+after the successful run; the source now fails closed on ambiguous
+candidate teardown, preserves protected recovery state on incomplete
+rollback, positively reads back producers, rejects HTTP 5xx consequence
+false positives, forces proxy use, and uses a reachable private leak
+witness. The short canary watchdog remains process-signal scoped; M4
+permanent ownership requires a lifecycle surface that can recover
+independently of the initiating shell.

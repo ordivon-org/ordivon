@@ -352,3 +352,50 @@ nv2-browserless-prod through 10.252.246.1:19682 to the candidate HTTP proxy.
 It also emits candidate log tail on failed candidate acceptance and replaces
 the shell-sleep watchdog with one directly killable Python timer process, so a
 completed restore is not held open by an orphan sleep.
+
+## R10 successful bounded M3B + post-effect hardening
+
+The next bounded production canary ran from clean HEAD
+125b93cf903b418102bda05dffbe2dfb7985c6fc with script SHA-256
+3cf8688f9bb6cbd1d448a8f3ec55e3d42125c36e6ce880ea6ae3c282dea15ebe.
+Runtime job job-01a13a88-189a-72a2-a82f-88a2bd6e4ecd completed with
+CANDIDATE_CONSEQUENCE_PASS_AND_RESTORATION_PASS: the exact pinned
+Gluetun image took the one production Surfshark identity only after the
+legacy WG interface was gone, the unchanged provider seam passed OpenAI,
+Anthropic, Docker registry, DeepSeek, X, OKX, Binance and private-address
+consequence checks, and the transaction then intentionally returned to
+legacy ownership.
+
+Immediate independent readback job
+job-01a13a89-042b-7060-9bf1-7b85a0fc155c found the candidate container
+and private Podman network absent, candidate host port closed, namespace
+inode/profile/provider-env hashes identical to preflight, the original
+legacy endpoint restored with a current handshake, all 17 previously
+active reverse-dependent services active again, Agent Automation worker
+and MCP active, Supply-Chain runtime egress CURRENT, provider-carrier
+readiness PASS, production-path PASS, and mechanism-neutral consequences
+PASS. The bounded canary did not transfer permanent ownership.
+
+The subsequently arriving integrated reviewer finding (Topic seq17038)
+identified failure-path weaknesses that did not trigger in the successful
+run but must not remain in the reusable effect executable. R10 therefore
+hardens the next-run source contract:
+- candidate container absence is now positively verified before legacy WG
+  may start; Podman unknown/removal failure is fail-closed and leaves the
+  legacy session stopped rather than risking two physical sessions;
+- protected recovery state is preserved on incomplete restoration;
+- previously-active producer services must start and read back active;
+- the restored legacy data plane is proven before consumers/producers are
+  reopened;
+- HTTP consequence probes accept endpoint-specific expected statuses and
+  reject proxy 5xx responses, force proxy use with --noproxy "", and
+  private-destination rejection is checked against a directly reachable
+  host-veth witness rather than a dead port.
+
+The internal 150-second Python timer remains a process-signal bound,
+not a machine-failure authority. It does not guarantee recovery from host
+power loss, kernel failure, or SIGKILL of the orchestration shell before
+its EXIT/ERR/INT/TERM trap runs. Those failures are outside the completed
+bounded-canary claim. Any permanent M4 ownership transfer must use a
+systemd-owned lifecycle/recovery surface or otherwise prove independent
+recovery before retiring the legacy mechanism.
