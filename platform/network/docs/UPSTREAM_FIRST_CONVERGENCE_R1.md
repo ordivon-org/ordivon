@@ -398,3 +398,53 @@ R4 also extends candidate-neutral POLICY fixtures:
 These bounded loopback/source tests do not prove authentic HTTPS,
 Gluetun image/runtime firewall, all Finance inlets, workload drain or
 fault-injected physical rollback. M3B serialized canary remains HOLD.
+
+## R5 scoped Docker CDN preflight and nonproduction rollback evidence — 2026-10-14
+
+R4 fixed SOURCE allowlist authorization for the exact Docker Hub blob
+host production.cloudfront.docker.com, but deliberately did not restart
+the running Supply-Chain proxy or broader Network-v2 consumers.
+
+R5 now includes a **read-only, side-effect-free** file currentness gate:
+
+    python3 consumers/supply-chain/acceptance/cdn-preflight.py --source-dir consumers/supply-chain/config --installed-dir /etc/network-v2/supply-chain
+
+Its decisions distinguish READY_TO_DEPLOY_NARROW_SCOPE (only exact CDN
+hostname absent in both installed files), ALREADY_DEPLOYED,
+HOLD_PARTIAL_DEPLOYMENT, HOLD_UNEXPECTED_DRIFT,
+HOLD_LEGACY_AUTHORITY_ALIAS, HOLD_SOURCE_INVALID, and
+HOLD_UNREADABLE_OR_INVALID. A READY decision is a diff classification,
+not human permission for effect. Digests, not file contents, are its
+readback evidence. It does not edit bytes, call systemctl or fetch OCI.
+
+The actual installed Supply-Chain pair is **NOT** merely source-minus-CDN.
+The deployed egress.json is source-minus-CDN, but deployed
+authority.json additionally has networkAuthority.name=browserless-prod.
+The frozen SOURCE uses provider-egress, the canonical Network-v2 semantic
+authority. R5 reproducibly detects exactly this known legacy alias and
+returns HOLD_LEGACY_AUTHORITY_ALIAS (nonzero). Do not use a broad
+materialize/converge step for a purported one-host-only repair: it
+would also silently change an existing semantic authority binding.
+
+For a narrow **test-only** recovery rehearsal, the source includes
+consumers/supply-chain/acceptance/cdn-file-rollback-rehearsal.py.
+It strictly accepts a marked temporary fixture under /tmp, refuses
+production directories and symlink/hardlinked config files, verifies
+the exact preimage state using cdn-preflight.py, atomically stages
+both source files, injects faults after the first write, after the
+second write, and after the synthetic post-stage boundary, then
+restores each original byte stream and file mode. No service restart,
+Docker operation, VPN identity or production network effect is possible
+from this fixture. Therefore PASS proves bounded sandbox FILE
+restoration only, **not live systemd/session rollback**.
+
+R5 read-only consumer census found Browserless, Finance, Supply-Chain,
+Model Provider, Windows Chrome and X Reality target units all active.
+A bounded Temporal query returned zero running workflows on the
+ordivon-agent-automation task queue at that instant; this does NOT
+prove cross-consumer quiescence or prevent new workloads. M3B remains
+HOLD. Production Supply-Chain config changes require independently
+accepted authority-alias reconciliation, live-source currentness,
+consumer/drain consent, precise effect/rollback admission and readiness
+proof. A policy source test is never a Gluetun container or provider
+session test.

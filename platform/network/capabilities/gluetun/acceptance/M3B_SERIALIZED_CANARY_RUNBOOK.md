@@ -201,3 +201,25 @@ Complete separately reviewed minimum-scope service config
 reconciliation, prove live redirect and pinned image digest bytes
 through approved scoped egress, and only then revisit sandbox Gluetun
 runtime. This is NOT production canary effect authorization.
+
+## R5 live-source drift / drain non-admission fence
+
+The narrow read-only CDN preflight detects a second live mismatch:
+deployed Supply-Chain authority networkAuthority.name=browserless-prod
+versus canonical source provider-egress. It emits
+HOLD_LEGACY_AUTHORITY_ALIAS instead of allowing an undocumented
+semantic authority migration bundled with the CDN host change.
+Do not replace both installed config files or restart any service as
+a purported source-only policy edit; the owner must obtain an
+independent migration decision and separately admitted scoped effect.
+The R5 synthetic file rollback rehearsal restored sandbox bytes/modes
+after injected faults but did not call systemd, exercise a Gluetun
+session or prove consumer readiness.
+
+Live R5 read-only target census showed six active consumer targets
+and a zero count only for the specifically queried Temporal automation
+TaskQueue. A zero for that one query is not an authoritative drain,
+nor a fence against future workflow launch. No M3B canary may proceed
+without owner-by-owner currentness/maintenance participation and a
+positive mechanism preventing newly admitted work while the shared
+physical provider identity is unavailable.
