@@ -21,7 +21,7 @@ The R1 source candidate keeps the existing consumer endpoint 10.252.246.2:19680 
 
 The candidate OCI artifact is pinned separately in external/gluetun-image.lock. The non-secret runtime knobs are in config/serialized-candidate.env. Provider identity material is intentionally absent.
 
-A live Gluetun container is not yet admitted. The current legacy WireGuard realization remains active.
+A production Gluetun provider session is not yet admitted. The exact pinned image has now been materialized through the scoped Supply-Chain route and executed in a fully local nonproduction WireGuard sandbox; the current legacy production WireGuard realization remains active.
 
 
 ## Pre-review hardening
@@ -101,3 +101,17 @@ the witness proves the unauthorized connection happened, and the
 fixture correctly rejects it. The positive offline oracle separately
 requires zero direct witness arrivals. All this remains a loopback
 test of sing-box, NOT of actual Gluetun.
+
+## R7 real nonproduction acceptance
+
+`acceptance/local-wireguard-real-sandbox.sh` runs the exact pinned image with a generated local WireGuard peer and disposable Podman /30. It proves real Gluetun HTTP proxy/firewall, peer isolation, tunnel-loss fail-closed behavior, restart recovery, and the Browserless candidate compatibility two-hop without reading production provider credentials. `task capability:gluetun:local-real-sandbox` is the reproducible entrypoint. This is not authority to run the unique Surfshark production identity.
+
+## R7 real nonproduction acceptance
+
+acceptance/local-wireguard-real-sandbox.sh runs the exact pinned image
+with a generated local WireGuard peer and disposable Podman /30. It
+proves real Gluetun HTTP proxy/firewall, peer isolation, tunnel-loss
+fail-closed behavior, restart recovery, and the Browserless candidate
+compatibility two-hop without reading production provider credentials.
+task capability:gluetun:local-real-sandbox is the reproducible entrypoint.
+This is not authority to run the unique Surfshark production identity.

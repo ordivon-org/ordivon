@@ -200,6 +200,16 @@ tasks:
     cmds:
       - /usr/bin/bash capabilities/gluetun/acceptance/compatibility-hop.sh
 
+  capability:gluetun:local-real-sandbox:
+    desc: Run the pinned Gluetun image against a throwaway local WireGuard peer, private Podman /30, fail-closed loss/recovery, and Browserless candidate adapter; never uses production provider identity
+    cmds:
+      - /usr/bin/bash capabilities/gluetun/acceptance/local-wireguard-real-sandbox.sh
+
+  capability:gluetun:local-real-sandbox:
+    desc: Run the pinned Gluetun image against a throwaway local WireGuard peer, private Podman /30, fail-closed loss/recovery, and Browserless candidate adapter; never uses production provider identity
+    cmds:
+      - /usr/bin/bash capabilities/gluetun/acceptance/local-wireguard-real-sandbox.sh
+
   accept:process-recovery:
     desc: Kill the live R0 sing-box process and prove functional plus observed automatic recovery
     cmds:

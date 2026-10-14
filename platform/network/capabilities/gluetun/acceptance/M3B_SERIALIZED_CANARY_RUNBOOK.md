@@ -241,3 +241,57 @@ live service effect implementation and fault-recovery acceptance.
 A cross-consumer Temporal census that was blocked by environment
 policy is not evidence of zero global workflows or work admission
 fencing. M3B HOLD unchanged.
+
+## R7 critical-path evidence now closed before M3B
+
+The exact Docker CDN runtime route is installed in the live Supply-Chain
+sing-box egress while `authority.json` retains its older semantic alias.
+`cdn-preflight.py` now separates those layers and reports the runtime
+egress CURRENT rather than falsely blocking on metadata drift.
+
+The exact pinned Gluetun amd64 OCI manifest is now present locally.
+`local-wireguard-real-sandbox.sh` runs the real image with no Surfshark
+credential, a disposable local WireGuard peer, private Podman /30,
+firewall and HTTP proxy. It proves tunnel traffic, default/same-network
+peer exclusion, fail-closed peer loss, restart recovery and the
+Browserless candidate sing-box -> Gluetun -> WireGuard two-hop. It also
+has explicit TERM cleanup and leaves no named sandbox resources.
+
+The previous R6 planned-checkpoint process rehearsal is also hardened:
+candidate startup failure and candidate SIGKILL enter the same
+unconditional temporary-preimage restoration path before old-policy
+consequence is rechecked.
+
+What remains specific to M3B is therefore narrower: production
+10.252.246.1:19682 publication, authoritative all-consumer drain/no-new-
+work fence, exact systemd/provider preimage and rollback, and the single
+shared Surfshark identity stop -> candidate -> unconditional legacy
+restore. Do not repeat source/CDN/image/local-Gluetun qualification as
+new gates unless their bytes change.
+
+## R7 critical-path evidence now closed before M3B
+
+The exact Docker CDN runtime route is installed in the live Supply-Chain
+sing-box egress while authority.json retains its older semantic alias.
+cdn-preflight.py now separates those layers and reports runtime egress
+CURRENT rather than falsely blocking on metadata drift.
+
+The exact pinned Gluetun amd64 OCI manifest is now present locally.
+local-wireguard-real-sandbox.sh runs the real image with no Surfshark
+credential, a disposable local WireGuard peer, private Podman /30,
+firewall and HTTP proxy. It proves tunnel traffic, default/same-network
+peer exclusion, fail-closed peer loss, restart recovery and the
+Browserless candidate sing-box -> Gluetun -> WireGuard two-hop. It also
+has explicit TERM cleanup and leaves no named sandbox resources.
+
+The previous R6 planned-checkpoint process rehearsal is hardened:
+candidate startup failure and candidate SIGKILL enter the same
+unconditional temporary-preimage restoration path before old-policy
+consequence is rechecked.
+
+What remains specific to M3B is therefore narrower: production
+10.252.246.1:19682 publication, authoritative all-consumer drain/no-new-
+work fence, exact systemd/provider preimage and rollback, and the single
+shared Surfshark identity stop -> candidate -> unconditional legacy
+restore. Do not repeat source/CDN/image/local-Gluetun qualification as
+new gates unless their bytes change.

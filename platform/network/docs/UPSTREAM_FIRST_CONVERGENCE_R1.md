@@ -491,3 +491,141 @@ the surrounding tool safety gate; no global count is claimed. The
 prior snapshot of zero Running workflows in one specified automation
 TaskQueue remains insufficient for cross-owner drain. The M3B
 serialized production canary remains HOLD.
+
+## R7 critical-path execution — scoped runtime CDN, pinned image, real Gluetun sandbox
+
+R7 removes the earlier false coupling between the Supply-Chain semantic
+authority metadata and the sing-box runtime file. The running unit
+`network-v2-supply-chain-egress.service` consumes only
+`/etc/network-v2/supply-chain/egress.json`. The source/runtime CDN delta
+was exactly one domain, `production.cloudfront.docker.com`; the separately
+stale `authority.json` name (`browserless-prod` instead of
+`provider-egress`) is metadata convergence and is not a prerequisite for
+the runtime CDN route.
+
+The scoped production runtime transaction changed only egress.json from
+SHA-256 `0327fdd0617d126b18747e5d70e803b6f73e6502a43b119f7a064c6bd0378600`
+to source SHA-256
+`c5fa529080f3eb0ede04c14bfca4f4699a7973e1fe3e013f3a704045a58cb377`,
+preserved the authority.json digest, restarted only
+`network-v2-supply-chain-egress.service`, and ran the existing scoped
+readiness probes. Receipt: Runtime
+`job-01a13a3e-151b-7f33-8fbe-f2d52d7620ce`. Registry/auth/GCR/Artifact
+Registry/Elastic remained reachable through the scoped proxy and unknown
+destinations remained rejected. A direct CDN probe through 127.0.0.1:19581
+then produced proxy CONNECT 200 and CloudFront HTTP 403 rather than the
+former connection reset (`job-01a13a3e-62df-7920-b14a-38e367de7664`).
+
+Using that already-authorized Supply-Chain route, Podman materialized the
+exact pinned Gluetun linux/amd64 manifest
+`sha256:1baa76576dea1dfbafbd62bb635daf40fd87171f63273c2fdfe630418783011e`
+(`job-01a13a3e-87dc-7851-9502-324d3b123a65`). No direct-egress bypass or
+alternate mirror was used.
+
+The new `capability:gluetun:local-real-sandbox` acceptance uses that real
+pinned image with a generated, throwaway local WireGuard peer. It does not
+load the Surfshark production identity. It proves:
+- real Gluetun v3.41.3 starts with kernel WireGuard, firewall and HTTP
+  proxy enabled;
+- traffic through Gluetun :8888 crosses the local WireGuard tunnel;
+- the private Podman /30 admits no second ordinary peer and a default
+  bridge peer cannot reach :8888;
+- removing the local WireGuard peer makes proxy traffic fail closed;
+- restoring the peer and restarting the candidate restores consequence;
+- the real Browserless candidate sing-box adapter can forward through
+  real Gluetun to the local WireGuard destination while preserving the
+  private-destination rejection rule;
+- teardown removes the container, network and test WireGuard interface.
+
+Primary real execution receipt:
+`job-01a13a46-157a-7f80-9587-43043c69179c`.
+Real Browserless adapter -> Gluetun -> local WireGuard two-hop:
+`job-01a13a48-d1ea-79d1-924f-7747c7d86000`.
+The reproducible source harness:
+`capabilities/gluetun/acceptance/local-wireguard-real-sandbox.sh`,
+validated independently of production identity at
+`job-01a13a4c-0cc6-7862-8440-e279cbf474b4`. A forced TERM test
+`job-01a13a4d-0fec-76c2-99a0-dea196becf35` confirms its temporary
+container/network/WireGuard resources are removed.
+
+R7 also closes the Finance policy-fixture breadth gap: all seven
+provider-bound Finance inlet/domain/port routes are independently
+executed through the candidate-neutral real sing-box local carrier
+fixture, including the OKX 8443 WebSocket lane. Treasury/FRED direct
+lanes remain explicitly separate and are not sent through that fixture.
+
+The Supply-Chain preflight now reports runtime and metadata independently:
+real installed state is `runtimeEgressStanding=CURRENT` and
+`metadataStanding=HOLD_LEGACY_AUTHORITY_ALIAS`, summarized as
+`RUNTIME_EGRESS_CURRENT_METADATA_DRIFT`. Runtime CDN delivery is no longer
+incorrectly blocked by the metadata alias.
+
+These results still do NOT prove the production host-veth
+10.252.246.1:19682 publication (a prior Runtime attempt was safety
+rejected), the unique Surfshark production session cutover, complete
+cross-owner blackout, or production systemd/provider rollback. M3B
+remains a separate high-risk serialized effect.
+
+## R7 critical-path execution — scoped runtime CDN, pinned image, real Gluetun sandbox
+
+R7 removes the earlier false coupling between the Supply-Chain semantic
+authority metadata and the sing-box runtime file. The running unit
+network-v2-supply-chain-egress.service consumes only
+/etc/network-v2/supply-chain/egress.json. The source/runtime CDN delta
+was exactly one domain, production.cloudfront.docker.com; the separately
+stale authority.json name (browserless-prod instead of provider-egress)
+is metadata convergence and is not a prerequisite for the runtime CDN route.
+
+The scoped production runtime transaction changed only egress.json from
+SHA-256 0327fdd0617d126b18747e5d70e803b6f73e6502a43b119f7a064c6bd0378600
+to source SHA-256
+c5fa529080f3eb0ede04c14bfca4f4699a7973e1fe3e013f3a704045a58cb377,
+preserved the authority.json digest, restarted only the Supply-Chain
+egress service, and ran the existing scoped readiness probes.
+Receipt: job-01a13a3e-151b-7f33-8fbe-f2d52d7620ce. A direct CDN probe
+through 127.0.0.1:19581 then produced proxy CONNECT 200 and CloudFront
+HTTP 403 rather than the former connection reset
+(job-01a13a3e-62df-7920-b14a-38e367de7664).
+
+Using that scoped Supply-Chain route, Podman materialized the exact pinned
+Gluetun linux/amd64 manifest
+sha256:1baa76576dea1dfbafbd62bb635daf40fd87171f63273c2fdfe630418783011e
+(job-01a13a3e-87dc-7851-9502-324d3b123a65). No direct-egress bypass or
+alternate mirror was used.
+
+The new capability:gluetun:local-real-sandbox acceptance uses that real
+pinned image with a generated throwaway local WireGuard peer. It does not
+load the Surfshark production identity. It proves real Gluetun v3.41.3
+kernel WireGuard, firewall and HTTP proxy operation; traffic through
+Gluetun :8888 crossing the local WireGuard tunnel; private Podman /30
+peer isolation; tunnel-loss fail-closed behavior; restart recovery; the
+real Browserless candidate sing-box adapter forwarding through real
+Gluetun to the local WireGuard destination while preserving the private
+destination reject; and residue-free teardown.
+
+Primary real execution receipt:
+job-01a13a46-157a-7f80-9587-43043c69179c.
+Real Browserless adapter -> Gluetun -> local WireGuard two-hop:
+job-01a13a48-d1ea-79d1-924f-7747c7d86000.
+Reproducible harness:
+capabilities/gluetun/acceptance/local-wireguard-real-sandbox.sh,
+validated at job-01a13a4c-0cc6-7862-8440-e279cbf474b4. Forced TERM
+cleanup job-01a13a4d-0fec-76c2-99a0-dea196becf35 confirms temporary
+container/network/WireGuard resources are removed.
+
+R7 also closes the Finance policy-fixture breadth gap: all seven
+provider-bound Finance inlet/domain/port routes are independently
+executed through the candidate-neutral real sing-box local carrier
+fixture, including OKX WebSocket port 8443. Treasury/FRED direct lanes
+remain separate and are not exercised through the provider fixture.
+
+The Supply-Chain preflight now reports runtime and metadata independently:
+real installed state is runtimeEgressStanding=CURRENT and
+metadataStanding=HOLD_LEGACY_AUTHORITY_ALIAS, summarized as
+RUNTIME_EGRESS_CURRENT_METADATA_DRIFT. Runtime CDN delivery is no longer
+incorrectly blocked by that metadata alias.
+
+These results do not prove production host-veth
+10.252.246.1:19682 publication, the unique Surfshark production session
+cutover, complete cross-owner blackout, or production systemd/provider
+rollback. M3B remains a separate serialized production effect.
