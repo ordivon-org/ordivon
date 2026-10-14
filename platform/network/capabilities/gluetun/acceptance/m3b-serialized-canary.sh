@@ -50,6 +50,7 @@ for unit in network-v2-browserless-netns.service network-v2-browserless-forward.
 if podman container exists "$CTR"; then echo "candidate container already exists" >&2; exit 41; fi
 if podman network exists "$NET"; then echo "candidate network already exists" >&2; exit 42; fi
 if ss -ltn "( sport = :$HOST_PORT )" | grep -q LISTEN; then echo "candidate host port occupied" >&2; exit 43; fi
+if nc -z -w1 "$HOST_IP" "$HOST_PORT" >/dev/null 2>&1; then echo "candidate host port already reachable" >&2; exit 44; fi
 
 running=0
 if test -x "$TEMPORAL"; then
@@ -116,6 +117,11 @@ restore() {
   set +e
   if test -n "$watchdog_pid"; then kill "$watchdog_pid" >/dev/null 2>&1; wait "$watchdog_pid" >/dev/null 2>&1; fi
   if test -n "$adapter_pid"; then kill "$adapter_pid" >/dev/null 2>&1; wait "$adapter_pid" >/dev/null 2>&1; fi
+  if podman container exists "$CTR" && test "$candidate_pass" != 1; then
+    echo "M3B_CANDIDATE_LOG_TAIL_BEGIN" >&2
+    podman logs --tail 100 "$CTR" >&2 || true
+    echo "M3B_CANDIDATE_LOG_TAIL_END" >&2
+  fi
   podman rm -f "$CTR" >/dev/null 2>&1
   if test "$network_created" = 1; then podman network rm -f "$NET" >/dev/null 2>&1; fi
 
@@ -165,7 +171,7 @@ restore() {
 }
 trap restore EXIT ERR INT TERM
 parent_pid=$BASHPID
-( sleep "$MAX_SECONDS"; kill -TERM "$parent_pid" >/dev/null 2>&1 || true ) &
+/usr/bin/python3 -c 'import os,signal,sys,time; time.sleep(float(sys.argv[2])); os.kill(int(sys.argv[1]),signal.SIGTERM)' "$parent_pid" "$MAX_SECONDS" &
 watchdog_pid=$!
 
 # Freeze primary orchestration and every currently active canonical carrier
@@ -192,12 +198,17 @@ podman network create --driver bridge --subnet "$NET_CIDR" --gateway "$GATEWAY" 
 network_created=1
 podman run -d --name "$CTR" --network "$NET" --ip "$CANDIDATE_IP" --cap-add NET_ADMIN --cap-add NET_RAW --device /dev/net/tun -p "$HOST_IP:$HOST_PORT:8888/tcp" --env-file "$CANDIDATE_ENV" -v "$PROFILE:/gluetun/wireguard/wg0.conf:ro" "$image" >/dev/null
 
-for _ in $(seq 1 120); do
+# Rootful Netavark publication is implemented by NAT and does not require a
+# host listening socket. Prove the actual intended path from the legacy
+# namespace to the candidate HTTP proxy instead of inspecting ss.
+candidate_proxy_ready=0
+for _ in $(seq 1 100); do
   test "$(podman inspect -f '{{.State.Status}}' "$CTR" 2>/dev/null || true)" = running || false
-  ss -ltn "( sport = :$HOST_PORT )" | grep -q "$HOST_IP:$HOST_PORT" && break
-  sleep 0.25
+  code=$(ip netns exec "$NS" curl -4 -x "http://$HOST_IP:$HOST_PORT" -I -sS     --connect-timeout 2 --max-time 5 -o /dev/null -w '%{http_code}'     https://api.openai.com/v1/models 2>/dev/null || true)
+  if test -n "$code" && test "$code" != 000; then candidate_proxy_ready=1; break; fi
+  sleep 0.5
 done
-ss -ltn "( sport = :$HOST_PORT )" | grep -q "$HOST_IP:$HOST_PORT"
+test "$candidate_proxy_ready" = 1
 
 ip netns exec "$NS" /usr/bin/sing-box run -c "$ADAPTER" >"$state/adapter.stdout" 2>"$state/adapter.stderr" &
 adapter_pid=$!

@@ -326,3 +326,29 @@ The executable does not remove the need for one independent integrated review
 of its exact fixed HEAD before the first production run. It replaces the
 previous prose-only effect sequence; unchanged source/CDN/image/local-sandbox
 facts should not be re-gated.
+
+## R9 first production canary negative result and oracle correction
+
+The first bounded production M3B execution job
+job-01a13a60-253d-71d2-8eb5-fa58cda14c0c did enter the blackout and
+single-session transition. Journal evidence shows the exact pinned Gluetun
+candidate started on 10.253.239.2, read the production custom WireGuard
+profile, enabled firewall and HTTP proxy :8888, used kernel WireGuard to
+151.240.88.133:51820, and reached DNS ready. No concurrent legacy session
+was left running.
+
+The candidate was nevertheless classified failed because the canary waited
+for an ss-visible listening socket on 10.252.246.1:19682. Rootful Netavark
+publishes the container port using NAT; an ss listener is not the correct
+behavioral oracle. The failure path removed the candidate/network and restored
+the exact legacy profile/env, WG/DNS/carrier, all previously active reverse
+dependencies and Agent Automation producer services. Independent post-read
+job-01a13a62-cbf3-7a30-aae0-dcdf74908293 confirms candidate absence,
+original hashes, original endpoint with fresh handshake, no inactive reverse
+dependency, and provider consequence PASS.
+
+R9 replaces the ss post-start oracle with a real request from
+nv2-browserless-prod through 10.252.246.1:19682 to the candidate HTTP proxy.
+It also emits candidate log tail on failed candidate acceptance and replaces
+the shell-sleep watchdog with one directly killable Python timer process, so a
+completed restore is not held open by an orphan sleep.
