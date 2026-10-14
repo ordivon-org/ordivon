@@ -9,7 +9,7 @@ LEGACY_TARGET=network-v2-browserless-legacy-provider.target
 WG=network-v2-browserless-wireguard.service
 DNS=network-v2-browserless-dns.service
 CARRIER=network-v2-browserless-provider-carrier.service
-MARKER=/etc/network-v2/gluetun/m4-owned-mode.selected
+MARKER=${M4_PROVIDER_MODE_MARKER:-/etc/network-v2/gluetun/m4-owned-mode.selected}
 LOCK=${M4_RESTORE_LOCK:-/run/network-v2-gluetun/owned-restore.lock}
 READY_CHECK=${M4_READY_CHECK:-/usr/local/libexec/network-v2/browserless-provider-carrier-ready}
 PATH_CHECK=${M4_PATH_CHECK:-/usr/local/libexec/network-v2/browserless-production-path}
@@ -34,9 +34,11 @@ systemctl is-active --quiet "$OWNED" && { echo BLOCKED_OWNED_UNIT_ACTIVE >&2; ex
 
 # Permanent provider selection is durable across reboot. Clear it only after
 # positive candidate absence, then switch boot selection back to Legacy.
+# Ensure next boot has a valid fallback before clearing the adopted selector.
+# Neither enabling a unit nor changing its condition immediately starts it.
+systemctl enable "$LEGACY_TARGET" >/dev/null
 rm -f "$MARKER"
 systemctl disable "$OWNED_TARGET" >/dev/null 2>&1 || true
-systemctl enable "$LEGACY_TARGET" >/dev/null
 systemctl start "$SUBSTRATE"
 systemctl start "$LEGACY_TARGET"
 for unit in "$SUBSTRATE" "$LEGACY_TARGET" "$WG" "$DNS" "$CARRIER"; do

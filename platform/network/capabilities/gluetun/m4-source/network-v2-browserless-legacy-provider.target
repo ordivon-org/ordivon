@@ -1,5 +1,7 @@
 # M4 fallback provider-mode target. Installed only by the permanent transition.
 [Unit]
+# Inverse of persistent adopted mode; safe even if both targets are enabled.
+ConditionPathExists=!/etc/network-v2/gluetun/m4-owned-mode.selected
 Description=Network v2 legacy WireGuard provider fallback mode
 Requires=network-v2-browserless.target
 Wants=network-v2-browserless-wireguard.service network-v2-browserless-dns.service network-v2-browserless-provider-carrier.service

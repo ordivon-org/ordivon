@@ -22,7 +22,7 @@ def test_owned_boot_selection_is_durable_not_run_volatile():
     ):
         assert ini(name)["Unit"].get("ConditionPathExists")==MODE, name
     helper=(ROOT/"m4-owned-restore-legacy").read_text()
-    assert f"MARKER={MODE}" in helper
+    assert "M4_PROVIDER_MODE_MARKER" in helper and MODE in helper
     assert "/run/network-v2-gluetun/ownership-admitted" not in "\n".join(
         (ROOT/name).read_text() for name in (
             "network-v2-gluetun-owned.container",
@@ -38,7 +38,7 @@ def test_fallback_changes_durable_mode_only_after_candidate_absence():
     absent=helper.index('test "$absent_rc" = 1')
     remove=helper.index('rm -f "$MARKER"')
     enable_legacy=helper.index('systemctl enable "$LEGACY_TARGET"')
-    assert absent < remove < enable_legacy
+    assert absent < enable_legacy < remove
 
 def test_no_source_task_creates_or_enables_owned_mode():
     task=(Path(__file__).resolve().parents[1]/"Taskfile.yml").read_text()

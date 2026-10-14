@@ -81,3 +81,15 @@ from temporary runtime state: reboot clears /run but must not silently erase
 a previously adopted provider mode. No validation/materialization task creates
 this marker. Fallback clears it only after the Gluetun candidate is positively
 absent, then disables owned mode and enables/starts the Legacy provider target.
+
+## Boot-interrupted rollback ordering
+
+The legacy provider mode target has the inverse persistent ConditionPathExists
+of the owned Gluetun target. In fallback, the candidate is positively absent
+before enabling the Legacy boot target; Legacy enable must succeed BEFORE
+clearing the Gluetun ownership selector. Thus SIGKILL/crash at the boot-mode
+handoff cannot leave both enabled mode targets skipped after reboot. If both
+were enabled transiently, opposite conditions select one. Validation uses
+a temporary marker override; live runtime uses only the root-controlled
+/etc selector, and no validation task creates it. A physical reboot/power-cut
+simulation remains a separate acceptance from these deterministic checks.
