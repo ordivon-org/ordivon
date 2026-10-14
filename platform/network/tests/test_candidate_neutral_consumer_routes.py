@@ -68,3 +68,25 @@ def test_supply_chain_cdn_hostname_nearmiss_is_explicitly_rejected():
     assert d["hostSuffixConfusableRejected"] is True
     assert d["unknownDestinationRejected"] is True
     assert d["upstreamConnects"] == 1
+
+
+@pytest.mark.parametrize("domain,port", [
+    ("openapi.okx.com",443),
+    ("fapi.binance.com",443),
+    ("ws.okx.com",8443),
+    ("fstream.binance.com",443),
+    ("data-api.binance.vision",443),
+    ("data-stream.binance.vision",443),
+    ("api.binance.com",443),
+])
+def test_finance_every_provider_bound_inlet_uses_candidate_neutral_carrier(domain,port):
+    r=subprocess.run(["/usr/bin/python3",str(FIXTURE),"finance",domain],
+        cwd=ROOT,capture_output=True,text=True,timeout=35,check=False)
+    assert r.returncode==0,(domain,r.stdout[-500:],r.stderr[-500:])
+    d=json.loads(r.stdout.strip())
+    assert d["consumer"]=="finance"
+    assert d["allowedDomain"]==domain
+    assert d["allowedPort"]==port
+    assert d["upstreamConnects"]==1
+    assert d["fixtureScope"]=="finance-provider-allowlist-only"
+    assert d["usesLegacyWireguard"] is False
