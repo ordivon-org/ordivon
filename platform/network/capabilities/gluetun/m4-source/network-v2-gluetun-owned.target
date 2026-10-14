@@ -1,0 +1,11 @@
+# M4 staged provider-mode target. It is never installed by ordinary legacy
+# materialization and must be explicitly enabled only after effect acceptance.
+[Unit]
+Description=Network v2 Gluetun owned provider mode
+Requires=network-v2-browserless.target network-v2-gluetun-owned.service network-v2-gluetun-owned-adapter.service
+After=network-v2-browserless.target network-v2-gluetun-owned.service network-v2-gluetun-owned-adapter.service
+ConditionPathExists=/run/network-v2-gluetun/ownership-admitted
+OnFailure=network-v2-gluetun-legacy-restore.service
+
+[Install]
+WantedBy=multi-user.target

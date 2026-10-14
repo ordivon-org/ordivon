@@ -1,0 +1,10 @@
+# M4 fallback provider-mode target. Installed only by the permanent transition.
+[Unit]
+Description=Network v2 legacy WireGuard provider fallback mode
+Requires=network-v2-browserless.target
+Wants=network-v2-browserless-wireguard.service network-v2-browserless-dns.service network-v2-browserless-provider-carrier.service
+After=network-v2-browserless.target network-v2-browserless-wireguard.service network-v2-browserless-dns.service network-v2-browserless-provider-carrier.service
+Conflicts=network-v2-gluetun-owned.target
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,11 @@
+# SOURCE ONLY. Requires an installed read-only guarded helper to be reviewed
+# with exact recovery authority. Never install as a blind auto-rollback.
+[Unit]
+Description=Network-v2 Gluetun candidate failure -> fenced legacy restore
+After=network-v2-gluetun-owned.service
+ConditionPathExists=/run/network-v2-gluetun/ownership-admitted
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/libexec/network-v2/m4-owned-restore-legacy
+TimeoutStartSec=90s

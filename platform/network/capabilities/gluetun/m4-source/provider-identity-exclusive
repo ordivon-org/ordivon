@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+mode=${1:-}
+NS=nv2-browserless-prod
+WG_IF=nv2blwg
+LEGACY_UNIT=network-v2-browserless-wireguard.service
+OWNED_UNIT=network-v2-gluetun-owned.service
+
+die(){ echo "provider identity exclusivity HOLD: $*" >&2; exit 42; }
+
+case "$mode" in
+  gluetun)
+    test -e "/run/netns/$NS" || die "compatibility namespace missing"
+    systemctl is-active --quiet "$LEGACY_UNIT" && die "legacy WireGuard unit still active"
+    set +e
+    ip -n "$NS" link show "$WG_IF" >/dev/null 2>&1
+    rc=$?
+    set -e
+    case "$rc" in 1) ;; 0) die "legacy WireGuard interface still exists";; *) die "legacy WireGuard interface state unknown rc=$rc";; esac
+    ;;
+  legacy)
+    systemctl is-active --quiet "$OWNED_UNIT" && die "owned Gluetun unit still active"
+    for ctr in network-v2-gluetun-owned-r1 network-v2-gluetun-serialized-candidate; do
+      set +e
+      podman container exists "$ctr" >/dev/null 2>&1
+      rc=$?
+      set -e
+      case "$rc" in 1) ;; 0) die "Gluetun container still exists: $ctr";; *) die "Gluetun container state unknown for $ctr rc=$rc";; esac
+    done
+    ;;
+  *) die "usage: provider-identity-exclusive gluetun|legacy" ;;
+esac
