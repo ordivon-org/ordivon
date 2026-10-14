@@ -205,6 +205,16 @@ tasks:
     cmds:
       - /usr/bin/bash capabilities/gluetun/acceptance/local-wireguard-real-sandbox.sh
 
+  capability:gluetun:m3b:preflight:
+    desc: Read-only exact preflight for the bounded one-session Gluetun production canary
+    cmds:
+      - /usr/bin/bash capabilities/gluetun/acceptance/m3b-serialized-canary.sh --preflight
+
+  capability:gluetun:candidate-consequence:
+    desc: Mechanism-neutral provider consequence probe through the stable provider-carrier seam
+    cmds:
+      - /usr/bin/bash capabilities/gluetun/acceptance/candidate-consequence.sh
+
   capability:gluetun:local-real-sandbox:
     desc: Run the pinned Gluetun image against a throwaway local WireGuard peer, private Podman /30, fail-closed loss/recovery, and Browserless candidate adapter; never uses production provider identity
     cmds:

@@ -295,3 +295,34 @@ work fence, exact systemd/provider preimage and rollback, and the single
 shared Surfshark identity stop -> candidate -> unconditional legacy
 restore. Do not repeat source/CDN/image/local-Gluetun qualification as
 new gates unless their bytes change.
+
+## R8 exact bounded effect executable
+
+R8 adds acceptance/m3b-serialized-canary.sh. Its default mode is read-only
+preflight. The effect mode is deliberately one bounded transaction:
+it records exact source HEAD and script/config hashes, requires a clean Git
+workspace, exact pinned image, live namespace/host-veth identity, zero current
+Agent Automation workflows, zero established provider-carrier flows and no
+candidate network/container/port conflict.
+
+At effect entry it stops the Agent Automation MCP/Temporal worker and every
+currently active systemd service in the reverse dependency graph of the shared
+provider carrier. This creates a network-level blackout for canonical
+provider-dependent consumers instead of relying on per-owner idle assertions.
+It then stops carrier -> DNS -> legacy WG, proves the old WG interface absent,
+starts exactly one pinned Gluetun candidate, starts the mechanism-neutral
+candidate adapter on the unchanged 10.252.246.2:19680 seam, and runs the
+cross-provider consequence probe.
+
+The same shell owns an internal 150-second watchdog. EXIT, ERR, INT and TERM
+all enter one restore function: candidate adapter/container/network teardown,
+protected profile/env preimage restoration if bytes changed, legacy
+WG -> DNS -> carrier/target restore, prior active dependent services restore,
+legacy provider/path acceptance, mechanism-neutral consequence acceptance, and
+finally the previously active worker/MCP restore. Candidate success still
+returns to legacy; it never transfers permanent ownership.
+
+The executable does not remove the need for one independent integrated review
+of its exact fixed HEAD before the first production run. It replaces the
+previous prose-only effect sequence; unchanged source/CDN/image/local-sandbox
+facts should not be re-gated.
