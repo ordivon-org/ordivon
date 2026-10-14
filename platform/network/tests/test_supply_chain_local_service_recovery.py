@@ -7,7 +7,10 @@ import pytest
 ROOT=Path(__file__).resolve().parents[1]
 SCRIPT=ROOT/'consumers/supply-chain/acceptance/cdn-singbox-service-rehearsal.py'
 
-@pytest.mark.parametrize('fault',["before-stop","after-stop","after-new-run"])
+@pytest.mark.parametrize('fault',[
+    "before-stop","after-stop","after-new-run",
+    "candidate-startup-error","candidate-sigkill",
+])
 def test_original_config_and_policy_restore_after_process_boundary_fault(fault):
     r=subprocess.run(['/usr/bin/python3',str(SCRIPT),'--fault',fault],
         text=True,capture_output=True,timeout=35,check=False,cwd=ROOT)

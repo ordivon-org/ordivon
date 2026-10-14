@@ -78,7 +78,10 @@ def request(listen: int, host: str) -> subprocess.CompletedProcess:
 
 def main() -> int:
     arg = argparse.ArgumentParser()
-    arg.add_argument("--fault", choices=["before-stop", "after-stop", "after-new-run"], required=True)
+    arg.add_argument("--fault", choices=[
+        "before-stop", "after-stop", "after-new-run",
+        "candidate-startup-error", "candidate-sigkill",
+    ], required=True)
     a = arg.parse_args()
 
     seen: list[str] = []
@@ -155,27 +158,45 @@ def main() -> int:
             process = launch(cfg, listen)
             assert_policy(False)
 
-            # Real temporary file staging, no host configuration effects.
-            cfg.write_bytes(new_file_bytes)
-            if a.fault == "before-stop":
-                # Existing running process has not re-read the staged bytes.
-                if process.poll() is not None:
-                    raise AssertionError("old process died while staged")
-            else:
+            recovery_trigger = None
+            try:
+                # Real temporary file staging, no host configuration effects.
+                cfg.write_bytes(new_file_bytes)
+                if a.fault == "before-stop":
+                    if process.poll() is not None:
+                        raise AssertionError("old process died while staged")
+                    raise RuntimeError("injected-before-stop")
                 stop(process)
                 process = None
-                if a.fault == "after-new-run":
-                    process = launch(cfg, listen)
-                    assert_policy(True)
-                    stop(process)
-                    process = None
-            # Simulated failure boundary reached: restore EXACT old bytes.
-            cfg.write_bytes(original_file_bytes)
-            if process is None:
+                if a.fault == "after-stop":
+                    raise RuntimeError("injected-after-stop")
+                if a.fault == "candidate-startup-error":
+                    cfg.write_text("{ invalid-json", encoding="utf-8")
+                    launch(cfg, listen)
+                    raise AssertionError("invalid candidate unexpectedly started")
                 process = launch(cfg, listen)
-            assert_policy(False)
+                assert_policy(True)
+                if a.fault == "candidate-sigkill":
+                    process.kill()
+                    process.wait(timeout=3)
+                    raise RuntimeError("injected-candidate-sigkill")
+                if a.fault == "after-new-run":
+                    raise RuntimeError("injected-after-new-run")
+                raise AssertionError("fault mode did not trigger")
+            except (RuntimeError, AssertionError) as error:
+                recovery_trigger = type(error).__name__ + ":" + str(error)
+            finally:
+                # Unconditional recovery path: no planned continuation is
+                # allowed to skip restoring the temporary preimage.
+                stop(process)
+                process = None
+                cfg.write_bytes(original_file_bytes)
+                process = launch(cfg, listen)
+                assert_policy(False)
             if cfg.read_bytes() != original_file_bytes:
                 raise AssertionError("temporary preimage not restored")
+            if recovery_trigger is None:
+                raise AssertionError("recovery path executed without a captured failure")
             print(json.dumps({
                 "schemaVersion": 1,
                 "kind": "ordivon.network-v2.supply-chain-singbox-process-rehearsal",
@@ -190,6 +211,9 @@ def main() -> int:
                 "surfsharkIdentityUsed": False,
                 "actualSystemdRollbackProven": False,
                 "actualGluetunRuntimeProven": False,
+                "unexpectedFailureRecoveryPathProven": a.fault in {
+                    "candidate-startup-error", "candidate-sigkill",
+                },
             }, separators=(",", ":")))
             return 0
     finally:

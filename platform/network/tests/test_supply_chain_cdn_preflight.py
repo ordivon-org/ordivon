@@ -134,3 +134,19 @@ def test_malicious_source_cannot_change_proxy_endpoint_or_user_scope():
         r,decision=check(installed,source)
         assert r.returncode!=0
         assert decision["standing"]=="HOLD_SOURCE_INVALID"
+
+
+def test_runtime_egress_current_with_legacy_metadata_is_not_a_runtime_deploy_hold():
+    with tempfile.TemporaryDirectory() as root:
+        root = Path(root)
+        (root/"egress.json").write_bytes((SOURCE/"egress.json").read_bytes())
+        authority=json.loads((SOURCE/"authority.json").read_text())
+        authority["allowedHttpsDomains"].remove(HOST)
+        authority["networkAuthority"]["name"]="browserless-prod"
+        (root/"authority.json").write_text(json.dumps(authority))
+        result, evidence=check(root)
+        assert result.returncode == 0
+        assert evidence["standing"] == "RUNTIME_EGRESS_CURRENT_METADATA_DRIFT"
+        assert evidence["runtimeEgressStanding"] == "CURRENT"
+        assert evidence["metadataStanding"] == "HOLD_LEGACY_AUTHORITY_ALIAS"
+        assert evidence["effectAttempted"] is False

@@ -105,23 +105,36 @@ def main() -> int:
                 "preimage" if installed[name] == old[name] else "drift"
                 for name in FILES
             ]
+            legacy = json.loads(json.dumps(old["authority.json"]))
+            legacy["networkAuthority"]["name"] = "browserless-prod"
+            legacy_authority = installed["authority.json"] == legacy
+            record["runtimeEgressStanding"] = (
+                "CURRENT" if states[1] == "current" else
+                "PREIMAGE" if states[1] == "preimage" else "DRIFT"
+            )
+            record["metadataStanding"] = (
+                "CURRENT" if states[0] == "current" else
+                "HOLD_LEGACY_AUTHORITY_ALIAS" if legacy_authority else
+                "PREIMAGE" if states[0] == "preimage" else "HOLD_UNEXPECTED_DRIFT"
+            )
             if states == ["current", "current"]:
                 record["standing"] = "ALREADY_DEPLOYED"
                 result = 0
             elif states == ["preimage", "preimage"]:
                 record["standing"] = "READY_TO_DEPLOY_NARROW_SCOPE"
                 result = 0
+            elif legacy_authority and states[1] == "current":
+                # Runtime sing-box consumes egress.json only. A stale semantic
+                # authority file is tracked separately and must not block the
+                # already-current runtime route.
+                record["standing"] = "RUNTIME_EGRESS_CURRENT_METADATA_DRIFT"
+                result = 0
             elif sorted(states) == ["current", "preimage"]:
                 record["standing"] = "HOLD_PARTIAL_DEPLOYMENT"
+            elif legacy_authority and states[1] == "preimage":
+                record["standing"] = "HOLD_LEGACY_AUTHORITY_ALIAS"
             else:
-                # Identify this specific known legacy alias, but never silently
-                # modify it together with the CDN allowlist change.
-                legacy = json.loads(json.dumps(old["authority.json"]))
-                legacy["networkAuthority"]["name"] = "browserless-prod"
-                if installed["authority.json"] == legacy and states[1] == "preimage":
-                    record["standing"] = "HOLD_LEGACY_AUTHORITY_ALIAS"
-                else:
-                    record["standing"] = "HOLD_UNEXPECTED_DRIFT"
+                record["standing"] = "HOLD_UNEXPECTED_DRIFT"
             record["perFileState"] = dict(zip(FILES, states))
     except (OSError, UnicodeError, ValueError, KeyError, TypeError):
         record["standing"] = "HOLD_UNREADABLE_OR_INVALID"
