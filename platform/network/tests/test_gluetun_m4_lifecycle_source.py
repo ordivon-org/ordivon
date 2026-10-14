@@ -26,7 +26,7 @@ def exercise(candidate="absent",rm_ok="0"):
         for n,body in (("podman",PODMAN),("systemctl",SYSTEMCTL)):
             f=b/n; f.write_text(body); f.chmod(0o755)
         log=p/"log";log.write_text("")
-        env={**os.environ,"PATH":str(b)+":"+os.environ["PATH"],"FAKE_CANDIDATE":candidate,"FAKE_RM_OK":rm_ok,"FAKE_LOG":str(log),"M4_RESTORE_LOCK":str(p/"lock"),"M4_READY_CHECK":"/bin/true","M4_PATH_CHECK":"/bin/true"}
+        env={**os.environ,"PATH":str(b)+":"+os.environ["PATH"],"FAKE_CANDIDATE":candidate,"FAKE_RM_OK":rm_ok,"FAKE_LOG":str(log),"M4_RESTORE_LOCK":str(p/"lock"),"M4_PROVIDER_MODE_MARKER":str(p/"owned-mode.selected"),"M4_READY_CHECK":"/bin/true","M4_PATH_CHECK":"/bin/true"}
         r=subprocess.run(["/usr/bin/bash",str(SCRIPT)],env=env,text=True,capture_output=True,timeout=8,check=False)
         return r,log.read_text()
 
