@@ -356,3 +356,45 @@ plain HTTP within the CONNECT tunnel, not a real authenticated HTTPS
 service. The new test does not establish actual owner readiness,
 Temporal/consumer drain, Browserless/Chrome/Finance parity, or canary
 rollback. Do not use it to promote M3B from HOLD.
+
+## R4 Supply-Chain CDN and consumer policy currentness — 2026-10-14
+
+The pinned Gluetun OCI pull previously failed when Docker Hub redirected
+a blob to production.cloudfront.docker.com. Existing Supply-Chain policy
+authorized the DIFFERENT hostname production.cloudflare.docker.com but
+omitted production.cloudfront.docker.com. The official Docker Desktop
+network allowlist names the latter for image pulls, and Docker's OCI
+registry API permits 307 CDN redirects.
+
+R4 adds the exact production.cloudfront.docker.com hostname in BOTH
+consumers/supply-chain/config/authority.json and
+consumers/supply-chain/config/egress.json. It preserves the former
+Cloudflare host, TCP/443 policy, directFallback=false, and the terminal
+catch-all reject. No wildcard or cloudfront.docker.com suffix
+authorization is added. Real isolated sing-box HTTP CONNECT tests now
+verify the allowed hostname and reject the suffix-confusable
+production.cloudfront.docker.com.attacker.invalid.
+
+**Source != live deployment**: /etc/network-v2/supply-chain/authority.json
+still has zero entries for this hostname versus one in current source.
+The existing read-only task consumer:supply-chain:verify fails at the
+source-vs-installed cmp (job
+job-01a139a5-ac46-77c0-ba5c-009a782f366c), even though the
+network-v2-supply-chain-egress service remains active. A separately
+admitted MINIMAL Supply-Chain deployment and independent runtime
+redirect/OCI blob retrieval checks are required. Do not invoke
+broad materialize/converge implicitly: that would touch systemd,
+Docker drop-ins and other consumer integration.
+
+R4 also extends candidate-neutral POLICY fixtures:
+- Finance: original finance-okx inlet and its provider-carrier rule,
+  plus unknown-domain reject; permitted Treasury/FRED public-direct
+  bypasses are intentionally untouched and NOT tested.
+- Windows Chrome: original mixed inlet private-address and IPv6 reject
+  rules; a disposable source copy temporarily replaces the direct
+  outbound with a local HTTP CONNECT stub so no live external traffic
+  occurs. This is NOT full Chrome or Browserless readiness.
+
+These bounded loopback/source tests do not prove authentic HTTPS,
+Gluetun image/runtime firewall, all Finance inlets, workload drain or
+fault-injected physical rollback. M3B serialized canary remains HOLD.

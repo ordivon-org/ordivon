@@ -185,3 +185,19 @@ currentness. In particular the existing legacy WG-bound ready.sh and
 production-path.sh are RESTORATION oracles only. This test is not evidence
 that a consumer has finished work, that a VPN has egress, or that rollback
 was fault-tested.
+
+## R4 Supply-Chain source-vs-deployment prerequisite
+
+OCI artifact admission requires exact Docker blob CDN domain
+authorization AND observed installed Supply-Chain config currentness.
+Source now authorizes production.cloudfront.docker.com; deployed
+Supply-Chain configuration still omitted it at R4 readback. The
+pre-existing task consumer:supply-chain:verify is the source/deployed
+equality gate, currently failing. No source-only fixture can promote
+this missing live config. Avoid broad convergence affecting Docker or
+Browserless as an accidental side effect.
+
+Complete separately reviewed minimum-scope service config
+reconciliation, prove live redirect and pinned image digest bytes
+through approved scoped egress, and only then revisit sandbox Gluetun
+runtime. This is NOT production canary effect authorization.
