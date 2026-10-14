@@ -254,3 +254,39 @@ independent fixed-HEAD Spec/Standards review, current consumer drain, exact
 rollback preimage, separately admitted owner effect, pinned image
 materialization, and unconditional legacy restoration plus consequence
 checks. An ambiguous result is HOLD with legacy restored.
+
+## M3 source acceptance update — independent audit 2026-10-14
+
+Independent audit Topic seq16797 accepted owner succession and bounded source
+fixes but kept M3B HOLD. P1: a source config pointed Gluetun's HTTP proxy
+`:8888` at a sing-box hop expecting host `10.252.246.1:19682` without
+an explicit publication path. The non-installed upstream Podman Quadlet
+source candidate now declares that exact port mapping and the matching
+Gluetun container-side `FIREWALL_INPUT_PORTS=8888`, with immutable OCI
+image pin and no implicit installation. The native Quadlet generator's
+dry-run output is tested. This is configuration evidence, **not Gluetun
+runtime ingress or VPN acceptance**.
+
+An isolated true sing-box HTTP CONNECT hop to a local proxy fixture is
+exercised without production/provider effect and reports the fixture scope
+explicitly. It establishes proxy protocol compatibility only; it cannot
+promote any consumer to READY.
+
+Predecessor WIP remains quarantined: its alias-deletion logic was independently
+flagged as unsafe on lost container PID, in addition to the host-veth CIDR
+collision. No old Quadlet files are used in the approved candidate.
+
+P2: `carrier-realization-semantics.jq` deliberately pins legacy-active
+and Gluetun-candidate **for R1**; changing the active mechanism requires
+a separately reviewed registry transition, not an edit that merely flips
+the existing JSON field.
+
+The existing `provider-carrier-ready.sh` and
+`consumers/browserless/acceptance/production-path.sh` explicitly check
+legacy WireGuard units, namespace interface, handshakes and a fixed provider
+site. They are **legacy-restoration evidence**, not candidate-neutral proof
+during a Gluetun serialized canary. Windows Chrome readiness also invokes
+the former. Candidate phase must use separately reviewed network/consumer
+consequence probes that do not assume a concurrently running legacy WG
+session, while restoration phase reruns the legacy readiness suite.
+Any canary that invokes legacy-only readiness to certify Gluetun is invalid.
