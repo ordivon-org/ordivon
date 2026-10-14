@@ -47,9 +47,9 @@ podman image exists "$image"
 test -e "/run/netns/$NS"
 test "$(ip -4 -o addr show nv2blph | awk '{print $4}')" = 10.252.246.1/30
 for unit in network-v2-browserless-netns.service network-v2-browserless-forward.service "$WG" "$DNS" "$CARRIER" "$TARGET"; do systemctl is-active --quiet "$unit"; done
-! podman container exists "$CTR"
-! podman network exists "$NET"
-! ss -ltn "( sport = :$HOST_PORT )" | grep -q LISTEN
+if podman container exists "$CTR"; then echo "candidate container already exists" >&2; exit 41; fi
+if podman network exists "$NET"; then echo "candidate network already exists" >&2; exit 42; fi
+if ss -ltn "( sport = :$HOST_PORT )" | grep -q LISTEN; then echo "candidate host port occupied" >&2; exit 43; fi
 
 running=0
 if test -x "$TEMPORAL"; then
@@ -66,12 +66,15 @@ test "$established" -eq 0
 # Any active service in this graph is stopped for the candidate window and
 # restored exactly if it had been active. Core carrier is handled separately.
 reverse_services=$(systemctl list-dependencies --reverse "$CARRIER" --plain --no-pager   | awk '{$1=$1} /^[^ ]+\.service$/ {print $1}' | sort -u)
-active_consumers=
+active_consumers=()
+active_count=0
 for unit in $reverse_services; do
   test "$unit" = "$CARRIER" && continue
-  if systemctl is-active --quiet "$unit"; then active_consumers="$active_consumers $unit"; fi
+  if systemctl is-active --quiet "$unit"; then
+    active_consumers+=("$unit")
+    active_count=$((active_count+1))
+  fi
 done
-active_count=$(printf '%s\n' $active_consumers | sed '/^$/d' | wc -l)
 
 ns_inode=$(stat -Lc '%i' "/run/netns/$NS")
 profile_sha=$(sha256sum "$PROFILE" | awk '{print $1}')
@@ -93,7 +96,7 @@ state=$(mktemp -d /run/network-v2-m3b.XXXXXX)
 chmod 0700 "$state"
 install -m 0600 "$PROFILE" "$state/profile.preimage"
 install -m 0600 "$PROVIDER_ENV" "$state/provider.env.preimage"
-printf '%s\n' $active_consumers >"$state/active-consumers.txt"
+printf '%s\n' "${active_consumers[@]}" >"$state/active-consumers.txt"
 
 worker_was_active=0
 mcp_was_active=0
@@ -105,6 +108,8 @@ network_created=0
 restore_failed=0
 candidate_pass=0
 
+# Invoked indirectly by EXIT/ERR/INT/TERM traps.
+# shellcheck disable=SC2329
 restore() {
   rc=$?
   trap - EXIT ERR INT TERM
@@ -167,7 +172,7 @@ watchdog_pid=$!
 # dependent service before the sole production WireGuard session is stopped.
 systemctl stop "$MCP"
 systemctl stop "$WORKER"
-for unit in $active_consumers; do systemctl stop "$unit"; done
+for unit in "${active_consumers[@]}"; do systemctl stop "$unit"; done
 
 if test -x "$TEMPORAL"; then
   tmp_workflows=$(mktemp)
