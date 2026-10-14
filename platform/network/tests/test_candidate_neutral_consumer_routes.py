@@ -11,6 +11,7 @@ FIXTURE=ROOT / "consumers" / "acceptance" / "candidate-neutral-route-fixture.py"
     ("model-provider", "api.deepseek.com"),
     ("supply-chain", "registry-1.docker.io"),
     ("x-reality", "api.x.com"),
+    ("finance", "openapi.okx.com"),
 ])
 def test_source_consumer_allowlist_and_unknown_reject_against_loopback_fixture(consumer,domain):
     r=subprocess.run(["/usr/bin/python3",str(FIXTURE),consumer,domain],
@@ -25,3 +26,45 @@ def test_source_consumer_allowlist_and_unknown_reject_against_loopback_fixture(c
     assert d["usesLegacyWireguard"] is False
     assert d["productionNetworkMutation"] is False
     assert d["gluetunRuntimeProven"] is False
+
+
+def test_supply_chain_docker_cdn_redirect_allowed_through_local_policy_fixture():
+    """The exact observed blob CDN host traverses the scoped OCI proxy policy."""
+    result = subprocess.run(
+        ["/usr/bin/python3", str(FIXTURE), "supply-chain", "production.cloudfront.docker.com"],
+        cwd=ROOT, capture_output=True, text=True, timeout=35, check=False,
+    )
+    assert result.returncode == 0, (result.stdout[-400:], result.stderr[-400:])
+    evidence = json.loads(result.stdout.strip())
+    assert evidence["allowedDomain"] == "production.cloudfront.docker.com"
+    assert evidence["upstreamConnects"] == 1
+    assert evidence["unknownDestinationRejected"] is True
+    assert evidence["productionNetworkMutation"] is False
+
+
+def test_windows_chrome_existing_ip_denial_rules_without_legacy_carrier():
+    """Chrome candidate policy test: public destination forwarded, private IP rejected."""
+    r = subprocess.run(
+        ["/usr/bin/python3", str(FIXTURE), "windows-real-chrome", "example.com"],
+        cwd=ROOT, capture_output=True, text=True, timeout=35, check=False,
+    )
+    assert r.returncode == 0, (r.stdout[-600:], r.stderr[-600:])
+    data = json.loads(r.stdout.strip())
+    assert data["standing"] == "CONSUMER_POLICY_FIXTURE_PASS"
+    assert data["consumer"] == "windows-real-chrome"
+    assert data["privateDestinationRejected"] is True
+    assert data["upstreamConnects"] == 1
+    assert data["usesLegacyWireguard"] is False
+    assert data["gluetunRuntimeProven"] is False
+
+
+def test_supply_chain_cdn_hostname_nearmiss_is_explicitly_rejected():
+    r = subprocess.run(
+        ["/usr/bin/python3", str(FIXTURE), "supply-chain", "production.cloudfront.docker.com"],
+        cwd=ROOT, capture_output=True, text=True, timeout=35, check=False,
+    )
+    assert r.returncode == 0, r.stderr
+    d = json.loads(r.stdout.strip())
+    assert d["hostSuffixConfusableRejected"] is True
+    assert d["unknownDestinationRejected"] is True
+    assert d["upstreamConnects"] == 1

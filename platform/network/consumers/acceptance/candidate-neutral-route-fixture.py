@@ -18,9 +18,11 @@ import time
 
 ROOT = Path(__file__).resolve().parents[2]
 CONSUMER_FILES = {
-    "model-provider": ("api.deepseek.com", "consumers/model-provider/config/egress.json"),
-    "supply-chain": ("registry-1.docker.io", "consumers/supply-chain/config/egress.json"),
-    "x-reality": ("api.x.com", "consumers/x-reality/config/egress.json"),
+    "model-provider": (("api.deepseek.com",), "consumers/model-provider/config/egress.json"),
+    "supply-chain": (("registry-1.docker.io", "production.cloudfront.docker.com"), "consumers/supply-chain/config/egress.json"),
+    "x-reality": (("api.x.com",), "consumers/x-reality/config/egress.json"),
+    "finance": (("openapi.okx.com",), "consumers/finance/config/egress.json"),
+    "windows-real-chrome": (("example.com",), "consumers/windows-real-chrome/config/sing-box.json"),
 }
 EXPECTED = b"NV2_CONSUMER_POLICY_ACCEPTED"
 
@@ -59,15 +61,41 @@ def main() -> int:
         raise ValueError("usage: candidate-neutral-route-fixture.py [model-provider|supply-chain|x-reality] DOMAIN")
     name, domain = sys.argv[1:3]
     allowed, relative = CONSUMER_FILES[name]
-    if domain != allowed:
+    if domain not in allowed:
         raise ValueError("requested domain is not the designated known permitted probe")
     source = json.loads((ROOT / relative).read_text(encoding="utf-8"))
-    if len(source["inbounds"]) != 1 or len(source["outbounds"]) != 1:
-        raise ValueError("consumer source must have exactly one inlet and upstream outlet")
-    if source["outbounds"][0]["type"] != "http":
-        raise ValueError("consumer egress must be a single HTTP proxy without direct fallback")
-    if source["route"]["rules"][-1] != {"action": "reject"}:
-        raise ValueError("consumer must end in catch-all rejection")
+    is_finance = name == "finance"
+    is_chrome = name == "windows-real-chrome"
+    if is_finance:
+        # Finance intentionally has separate PUBLIC-DIRECT routes for Treasury/FRED.
+        # Only exercise the existing finance-okx -> provider-carrier rule here.
+        if not any(i["tag"] == "finance-okx" for i in source["inbounds"]):
+            raise ValueError("missing source finance-okx inbound")
+        if not any(o == {"type": "direct", "tag": "public-direct"} for o in source["outbounds"]):
+            raise ValueError("source finance public-direct contract changed")
+        if not any(
+            r.get("inbound") == ["finance-okx"] and r.get("domain") == "openapi.okx.com"
+            and r.get("outbound") == "provider-carrier"
+            for r in source["route"]["rules"]
+        ):
+            raise ValueError("Finance source OKX route does not bind provider-carrier")
+    elif len(source["inbounds"]) != 1 or len(source["outbounds"]) != 1:
+        raise ValueError("consumer source must have exactly one inlet and outlet")
+    if is_chrome:
+        if source["outbounds"] != [{"type": "direct", "tag": "provider-egress-direct"}]:
+            raise ValueError("Chrome source provider namespace outbound changed")
+        if not any(r.get("ip_is_private") is True and r.get("action") == "reject"
+                   for r in source["route"]["rules"]):
+            raise ValueError("Chrome source private destination reject missing")
+        if not any(r.get("ip_version") == 6 and r.get("action") == "reject"
+                   for r in source["route"]["rules"]):
+            raise ValueError("Chrome source IPv6 reject missing")
+    else:
+        if source["route"]["rules"][-1] != {"action": "reject"}:
+            raise ValueError("consumer must end in catch-all rejection")
+    upstream = next((o for o in source["outbounds"] if o.get("tag") == "provider-carrier"), None)
+    if not is_chrome and (upstream is None or upstream["type"] != "http"):
+        raise ValueError("consumer provider-carrier outlet missing")
 
     seen: list[str] = []
     class ProxyFixture(BaseHTTPRequestHandler):
@@ -99,9 +127,24 @@ def main() -> int:
     process = None
     try:
         config = json.loads(json.dumps(source))
+        if is_finance:
+            config["inbounds"] = [i for i in config["inbounds"] if i["tag"] == "finance-okx"]
+        if is_chrome:
+            # Source uses direct inside its provider network namespace; the test
+            # substitutes an HTTP fixture ONLY in a temporary config, to ensure
+            # no actual external traffic occurs. Not evidence of browser parity.
+            config["outbounds"] = [{"type": "http", "tag": "provider-egress-direct",
+                                    "server": "127.0.0.1", "server_port": proxy.server_port}]
+            config.pop("dns", None)
+            config["route"].pop("default_domain_resolver", None)
+        else:
+            config["outbounds"] = [
+                dict(outbound, server="127.0.0.1", server_port=proxy.server_port)
+                if outbound.get("tag") == "provider-carrier" else outbound
+                for outbound in config["outbounds"]
+            ]
         listener = free_port()
         config["inbounds"][0].update(listen="127.0.0.1", listen_port=listener)
-        config["outbounds"][0].update(server="127.0.0.1", server_port=proxy.server_port)
         with tempfile.TemporaryDirectory(prefix="nv2-consumer-policy-fixture-") as tmp:
             file = Path(tmp) / "consumer.json"
             file.write_text(json.dumps(config), encoding="utf-8")
@@ -117,14 +160,27 @@ def main() -> int:
                 raise AssertionError(f"whitelist through upstream failed: rc={valid.returncode} stderr={valid.stderr[-300:]}")
             if seen != [f"{domain}:443"]:
                 raise AssertionError(f"allowed route did not reach exactly one upstream CONNECT: {seen!r}")
-            invalid = request(listener, "http://example.com:443/rejected-test")
-            if invalid.stdout.encode() == EXPECTED or len(seen) != 1:
-                raise AssertionError("unknown destination reached carrier proxy fixture")
+            invalid_url = "http://127.0.0.1:49123/private-rejected" if is_chrome else "http://example.com:443/rejected-test"
+            invalid = request(listener, invalid_url)
+            if invalid.returncode == 0 or invalid.stdout.encode() == EXPECTED or len(seen) != 1:
+                raise AssertionError("forbidden destination reached provider fixture or returned success")
+            host_confusable_rejected = False
+            if name == "supply-chain":
+                before = len(seen)
+                spoof = request(listener, "http://production.cloudfront.docker.com.attacker.invalid:443/spoof")
+                host_confusable_rejected = spoof.returncode != 0 and len(seen) == before
+                if not host_confusable_rejected:
+                    raise AssertionError("exact CDN host rule accepted a suffix-confusable hostname")
         print(json.dumps({
             "schemaVersion":1,"kind":"ordivon.network-v2.candidate-neutral-consumer-route-fixture",
             "standing":"CONSUMER_POLICY_FIXTURE_PASS",
             "consumer":name,"allowedDomain":domain,"upstreamConnects":len(seen),
-            "unknownDestinationRejected":True,"usesLegacyWireguard":False,
+            "unknownDestinationRejected":not is_chrome,
+            "hostSuffixConfusableRejected":host_confusable_rejected if name == "supply-chain" else None,
+            "privateDestinationRejected":is_chrome,
+            "fixtureScope":"private-ip-reject-only" if is_chrome else
+                            "finance-provider-allowlist-only" if is_finance else "consumer-domain-allowlist",
+            "usesLegacyWireguard":False,
             "productionNetworkMutation":False,"gluetunRuntimeProven":False,
         },separators=(",",":")))
         return 0
