@@ -36,7 +36,8 @@ def test_exact_container_port_publication_matches_consumer_adapter():
     assert env["HTTPPROXY"] == "on"
     assert env["HTTPPROXY_LISTENING_ADDRESS"] == ":8888"
     assert container["PublishPort"] == "10.252.246.1:19682:8888/tcp"
-    assert container["Network"] == "bridge"
+    assert container["Network"] == "gluetun-serialized-candidate.network"
+    assert container["IP"] == "10.253.239.2"
     assert container["Pull"] == "never"
 
 
@@ -81,8 +82,8 @@ def test_native_podman_quadlet_generator_produces_exact_port_mapping():
     )
     assert result.returncode == 0, result.stderr
     assert "--publish 10.252.246.1:19682:8888/tcp" in result.stdout
-    assert "--network bridge" in result.stdout
+    assert "--network network-v2-gluetun-private-r1" in result.stdout
     assert "--pull never" in result.stdout
     assert "--cap-add net_admin" in result.stdout
     assert "--device /dev/net/tun" in result.stdout
-    assert "10.252.246.0/30" not in result.stdout
+    assert "--subnet 10.252.246.0/30" not in result.stdout

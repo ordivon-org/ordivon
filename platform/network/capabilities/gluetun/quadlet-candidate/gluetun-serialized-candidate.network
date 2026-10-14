@@ -1,0 +1,10 @@
+# SOURCE ONLY: no automatic install, no host network changes.
+# The /30 has one container-usable address after the bridge gateway.
+# Do not recycle the active Network-v2 veth 10.252.246.0/30.
+[Network]
+NetworkName=network-v2-gluetun-private-r1
+Driver=bridge
+Subnet=10.253.239.0/30
+Gateway=10.253.239.1
+Options=isolate=strict
+DisableDNS=true
