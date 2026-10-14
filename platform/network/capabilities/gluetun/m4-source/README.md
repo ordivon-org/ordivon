@@ -1,95 +1,88 @@
-# M4 — Native owned lifecycle source candidate (nonproduction)
+# M4 — Gluetun owned lifecycle (production default)
 
-This is a real systemd/Podman Quadlet source prototype for the already
-qualified Gluetun mechanism. It is not installed, enabled or authorized
-to interrupt the current legacy Surfshark session.
+This directory is the current source for the admitted Gluetun physical provider
+lifecycle. It began as a nonproduction M4 candidate, but the supervised
+2026-10-15 cold replacement has now made Gluetun the default production
+realization.
 
-The M3B real production canary succeeded and restored Legacy by design.
-The remaining M4 question is **who owns sustained service lifecycle and
-independent recovery when the initiating shell exits or crashes**.
+## Current composition
 
-Composition:
-- `network-v2-gluetun-owned.network`: isolated /30 Podman-owned native network;
-- `network-v2-gluetun-owned.container`: pinned Gluetun image, exact veth port,
-  native systemd failure hook, no automatic physical reconnect;
-- `network-v2-gluetun-owned-adapter.service`: existing candidate sing-box
-  config, original consumer seam and namespace, BindsTo candidate service;
-- `network-v2-gluetun-legacy-restore.service`: native manager failure hook;
-- `m4-owned-restore-legacy`: guarded candidate-absent-before-legacy core restore.
+- network-v2-gluetun-owned.network: private Podman /30.
+- network-v2-gluetun-owned.container: exact pinned Gluetun v3.41.3 image,
+  service-level provider-identity guard and Restart=on-failure.
+- network-v2-gluetun-owned-adapter.service: compatibility adapter preserving
+  the 10.252.246.2:19680 consumer seam.
+- network-v2-gluetun-owned.target: durable boot owner for provider + adapter.
+- network-v2-browserless-legacy-provider.target and legacy WireGuard/DNS/
+  carrier source: disabled rollback realization retained during soak.
+- m4-owned-restore-legacy and its service: retained recovery tooling from the
+  pre-adoption design; current Gluetun failure recovery is restart-in-place,
+  not automatic physical failover to Legacy.
 
-Safety / status:
-- No [Install] section, no materialization, no new Provider identity and no
-  effect on the current production services.
-- The owned-mode admission marker and two negative WG checks prevent
-  ordinary accidentally concurrent physical sessions; they are not security
-  controls against a privileged Podman administrator or changing the marker
-  behind a running service.
-- No `Restart=always` or `Restart=on-failure`: silently reconnecting a
-  failed candidate concurrently with fallback could reuse Surfshark's sole
-  physical identity.
-- A source-only, exact-scoped activation/maintenance transaction is STILL
-  required. Its admission marker is not itself authorization.
-- This recovery helper restores only WG/DNS/carrier/target after verifying
-  candidate absence. It does **not** prove producer/consumer readiness or
-  an exact full-platform recovery. That is the next nonproduction M4
-  acceptance frontier, not a claim of completion.
-- Before permanent mode: test manager-triggered candidate failure,
-  initiator SIGKILL, consumer readiness, machine reboot, mode fencing,
-  unit generator/Stop/OnFailure behavior, rollback freshness and
-  rootful Podman admin trust boundary. Then separately approve M4
-  ownership. Never auto-retire Legacy because M3B succeeded.
+## Provider-mode safety
 
-## Explicit provider-mode composition
+The durable selector is:
 
-M4 does not add Gluetun to the already enabled legacy Browserless target.
-The staged replacement network-v2-browserless.target owns only the retained
-netns/veth substrate. Provider realization is selected by exactly one mode:
-network-v2-gluetun-owned.target for Gluetun or
-network-v2-browserless-legacy-provider.target for fallback. The owned target
-is staged, not installed or enabled by ordinary legacy materialization.
+    /etc/network-v2/gluetun/m4-owned-mode.selected
 
-Consumer services do not own provider lifecycle. They may keep running while
-the carrier is absent and fail closed at the HTTP seam. Manager-owned fallback
-removes the owned admission marker, positively proves the Gluetun container
-absent, switches boot selection to the legacy provider target, then verifies
-the legacy core and installed consequence probes.
+Gluetun physical startup requires the selector, Legacy WireGuard physical
+startup requires its absence, and provider-identity-exclusive additionally
+checks the opposite physical realization is absent before starting. This is the
+mechanical single-Surfshark-ClientIdentity fence.
 
-## Nonproduction lifecycle evidence
+The selector is a mode input, not an authorization system. A privileged
+administrator can still defeat local service isolation.
 
-Two effectful-but-nonproduction acceptance commands are deliberately kept
-outside the ordinary all:validate path:
+## Cold-replacement transaction
 
-- task capability:gluetun:m4:systemd-manager-sandbox creates uniquely named
-  temporary units under /run/systemd/system, kills the disposable initiator,
-  then proves PID 1 still observes candidate exit/SIGKILL and invokes OnFailure
-  recovery in candidate-absent -> legacy -> consumer -> producer order. It
-  removes every sandbox unit before PASS and never uses provider credentials.
-- task capability:gluetun:m4:browserless-proxy-sandbox runs the pinned real
-  Browserless Chromium image on a Podman internal network. The synthetic
-  target is reachable only when Chromium receives the provider proxy launch
-  argument; the otherwise identical direct launch fails closed.
+The acceptance/cold-replacement.sh transaction is the supervised
+adoption/rollback path. It:
 
-These prove service-manager ownership and browser proxy composition without
-using the sole production Surfshark identity. They do not simulate a machine
-power loss or authorize permanent M4 ownership.
+1. requires the Browserless owner contract to already expose the stable
+   10.252.246.2:19680 seam;
+2. snapshots Network-owned installed bytes and records active Network consumer
+   services;
+3. stops Legacy carrier/DNS/WireGuard;
+4. proves the Legacy physical interface is absent;
+5. creates the durable owned selector and starts Gluetun;
+6. waits for a real HTTPS consequence through the Gluetun tunnel rather than a
+   listening port;
+7. runs mechanism-neutral provider consequences and selected live-consumer
+   consequences;
+8. restores the preimage and Legacy realization if adoption fails.
 
-## Durable boot mode
+Network does not invoke or mutate Harness implementation internals. Harness /
+Browserless materialization is owned by Harness; Network only reads the
+installed owner contract and fails before provider interruption if that
+contract is stale.
 
-Permanent owned-provider selection uses the root-controlled marker
-/etc/network-v2/gluetun/m4-owned-mode.selected. It is intentionally separate
-from temporary runtime state: reboot clears /run but must not silently erase
-a previously adopted provider mode. No validation/materialization task creates
-this marker. Fallback clears it only after the Gluetun candidate is positively
-absent, then disables owned mode and enables/starts the Legacy provider target.
+## Accepted runtime evidence
 
-## Boot-interrupted rollback ordering
+The successful adoption receipt is under:
 
-The legacy provider mode target has the inverse persistent ConditionPathExists
-of the owned Gluetun target. In fallback, the candidate is positively absent
-before enabling the Legacy boot target; Legacy enable must succeed BEFORE
-clearing the Gluetun ownership selector. Thus SIGKILL/crash at the boot-mode
-handoff cannot leave both enabled mode targets skipped after reboot. If both
-were enabled transiently, opposite conditions select one. Validation uses
-a temporary marker override; live runtime uses only the root-controlled
-/etc selector, and no validation task creates it. A physical reboot/power-cut
-simulation remains a separate acceptance from these deterministic checks.
+    /var/lib/network-v2/m4-cold-replacement/20261014T161339Z-1322564/
+
+The successful transaction established real provider consequences for OpenAI,
+Anthropic, Docker Registry, DeepSeek, X, OKX and Binance, with the private
+destination witness rejected. Model Provider, Supply-Chain and Windows Chrome
+selected consumer consequences also passed.
+
+A later real network-v2-gluetun-owned.target restart recreated the Gluetun
+container and re-passed provider readiness. A fresh post-adoption Browserless
+carrier check reached https://chatgpt.com/ through its installed proxy launch
+contract and returned CHALLENGE_GATED; this establishes the live Browserless
+network path without treating provider challenge state as Network success.
+
+## Validation and remaining retirement gate
+
+Ordinary source validation must never touch the live mode selector. Tests use a
+temporary M4_PROVIDER_MODE_MARKER when exercising fallback helpers.
+
+Still pending before deleting Legacy rollback assets:
+
+- deliberate host/WSL cold-boot acceptance;
+- ordinary workload soak;
+- final retirement cleanup of Legacy WireGuard/DNS/carrier and historical
+  recovery-only source where no longer referenced.
+
+Legacy retention is rollback policy, not the current provider mode.

@@ -31,16 +31,23 @@ Mechanism health never proves workload consequence readiness.
 
 ## Current boundary
 
-The current production provider egress remains:
+As of the supervised cold replacement on 2026-10-15, the admitted production
+provider realization is:
 
     ClientIdentity surfshark:linux-shared-r1
-      -> nv2-browserless-prod
-      -> wg-quick + wireguard-go
-      -> provider DNS
-      -> sing-box HTTP carrier :19680
+      -> pinned Gluetun v3.41.3
+      -> Gluetun-owned WireGuard / firewall / DNS / HTTP proxy
+      -> compatibility adapter
+      -> stable sing-box HTTP carrier 10.252.246.2:19680
       -> scoped consumers
 
-The ClientIdentity concurrency policy is single-physical-session. Therefore a Gluetun candidate using that identity is serialized, not concurrently shadowed.
+Legacy wg-quick + wireguard-go, legacy provider DNS and the legacy provider
+carrier are inactive. Their source/config and the cutover preimage are retained
+only as rollback material until cold-boot/soak retirement.
+
+The ClientIdentity concurrency policy remains single-physical-session. The
+service-level mode selector and physical-start guard therefore reject concurrent
+Legacy and Gluetun use of that identity.
 
 ## First upstream target: Gluetun
 
@@ -73,17 +80,21 @@ Target ownership split:
 
 ## Realization contract
 
-Source describes current and candidate realizations without installing either.
+The source contract now describes one admitted active realization plus one
+retained rollback realization.
 
-Required R1 state:
+Current R1 state:
 
-    activeRealizationId = legacy-wireguard-r1
-    candidateRealizationId = gluetun-v3.41.3-r1
-    candidate activationMode = serialized-only
-    candidate productionAuthority = false
-    candidate concurrentWithActive = false
+    activeRealizationId = gluetun-v3.41.3-r1
+    active productionAuthority = true
+    rollbackRealizationId = legacy-wireguard-r1
+    rollback defaultEnabled = false
+    concurrentPhysicalSessionsAllowed = false
+    stableConsumerSeam = 10.252.246.2:19680
 
-The realization registry contains no secret bytes and points to the existing ProviderProfile and ClientIdentity descriptors.
+The realization registry contains no secret bytes and points to the existing
+ProviderProfile and ClientIdentity descriptors. Runtime/provider read-back,
+not this document, remains the authority for present-tense activation.
 
 ## Migration gates
 

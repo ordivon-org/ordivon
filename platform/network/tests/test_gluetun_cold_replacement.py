@@ -65,3 +65,16 @@ def test_owned_target_restart_owns_provider_and_adapter_lifecycle():
     adapter=text("network-v2-gluetun-owned-adapter.service")
     assert "PartOf=network-v2-gluetun-owned.target" in owned
     assert "PartOf=network-v2-gluetun-owned.target" in adapter
+
+
+def test_cold_replacement_reads_but_does_not_mutate_harness_owner_state():
+    script=ROOT/"capabilities/gluetun/acceptance/cold-replacement.sh"
+    src=script.read_text()
+    assert "services/harness" not in src
+    assert "browserless_podman_deploy.py" not in src
+    managed=src.split("MANAGED_PATHS=(",1)[1].split(")\n",1)[0]
+    assert "etc/ordivon/agent-automation-browserless.json" not in managed
+    assert "etc/ordivon/browser-use-browserless.json" not in managed
+    assert "browserless_contract_current" in src
+    assert "Path(raw)" in src
+    assert src.index("browserless_contract_current") < src.index('systemctl stop "$LEGACY_CARRIER"')

@@ -15,7 +15,6 @@ OWNED=network-v2-gluetun-owned.service
 OWNED_ADAPTER=network-v2-gluetun-owned-adapter.service
 CTR=network-v2-gluetun-owned-r1
 CONSEQUENCE="$ROOT/capabilities/gluetun/acceptance/candidate-consequence.sh"
-BROWSERLESS_PREPARE="$ROOT/../../services/harness/scripts/browserless_podman_deploy.py"
 
 CONSUMER_UNITS=(
   network-v2-chat-ingress-proxy.service
@@ -51,8 +50,6 @@ MANAGED_PATHS=(
   etc/systemd/system/network-v2-model-provider-egress.service
   etc/systemd/system/network-v2-supply-chain-egress.service
   etc/systemd/system/network-v2-x-reality-egress.service
-  etc/ordivon/agent-automation-browserless.json
-  etc/ordivon/browser-use-browserless.json
 )
 
 usage() {
@@ -72,7 +69,38 @@ targeted_established() {
   } | awk '$4 ~ /:(19680|19682|19581|19881|19480|19780|19080)$/ || $5 ~ /:(19680|19682|19581|19881|19480|19780|19080)$/ {n++} END{print n+0}'
 }
 
+browserless_contract_current() {
+  python3 - <<'PY'
+import json
+from pathlib import Path
+
+expected_args = [
+    "--proxy-server=http://10.252.246.2:19680",
+    "--proxy-bypass-list=<-loopback>",
+    "--disable-quic",
+]
+for raw in (
+    "/etc/ordivon/agent-automation-browserless.json",
+    "/etc/ordivon/browser-use-browserless.json",
+):
+    path = Path(raw)
+    if not path.is_file():
+        raise SystemExit(f"Harness Browserless owner contract missing: {path}")
+    value = json.loads(path.read_text(encoding="utf-8"))
+    substrate = value.get("browserSubstrate")
+    endpoints = substrate.get("endpoints") if isinstance(substrate, dict) else None
+    if not isinstance(endpoints, list) or not endpoints:
+        raise SystemExit(f"Harness Browserless owner contract has no endpoints: {path}")
+    for endpoint in endpoints:
+        if endpoint.get("networkNamespace") != "nv2-browserless-prod":
+            raise SystemExit(f"Harness Browserless namespace is not current: {path}")
+        if endpoint.get("launchArgs") != expected_args:
+            raise SystemExit(f"Harness Browserless provider seam is not current: {path}")
+PY
+}
+
 preflight() {
+  browserless_contract_current
   podman image exists "$IMAGE"
   test -x "$CONSEQUENCE"
   systemctl is-active --quiet "$SUBSTRATE"
@@ -143,7 +171,6 @@ install_candidate_bytes() {
   install -m 0644 "$ROOT/consumers/supply-chain/systemd/network-v2-supply-chain-egress.service" /etc/systemd/system/network-v2-supply-chain-egress.service
   install -m 0644 "$ROOT/consumers/x-reality/systemd/network-v2-x-reality-egress.service" /etc/systemd/system/network-v2-x-reality-egress.service
 
-  python3 "$BROWSERLESS_PREPARE" --prepare >/dev/null
   systemctl daemon-reload
 }
 
@@ -187,20 +214,7 @@ consumer_checks() {
   code=$(curl -4 --noproxy "" -x http://127.0.0.1:19781 -I -sS     --connect-timeout 6 --max-time 15 -o /dev/null -w '%{http_code}'     https://example.com/)
   case "$code" in 200|301|302) ;; *) echo "chrome consumer consequence=$code" >&2; return 77;; esac
 
-  python3 - <<'PY2'
-import json
-expected=[
-  "--proxy-server=http://10.252.246.2:19680",
-  "--proxy-bypass-list=<-loopback>",
-  "--disable-quic",
-]
-for fn in ("/etc/ordivon/agent-automation-browserless.json",
-           "/etc/ordivon/browser-use-browserless.json"):
-    with open(fn,encoding="utf-8") as f:
-        x=json.load(f)
-    eps=x["browserSubstrate"]["endpoints"]
-    assert eps and all(e.get("launchArgs")==expected for e in eps), fn
-PY2
+  browserless_contract_current
   printf '%s
 ' COLD_REPLACEMENT_SELECTED_CONSUMERS_PASS
 }
