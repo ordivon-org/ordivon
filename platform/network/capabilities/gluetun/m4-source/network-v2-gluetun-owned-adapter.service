@@ -3,6 +3,7 @@ Description=Network-v2 Gluetun sing-box compatibility adapter
 Requires=network-v2-gluetun-owned.service network-v2-browserless-netns.service
 BindsTo=network-v2-gluetun-owned.service
 After=network-v2-gluetun-owned.service network-v2-browserless-netns.service
+PartOf=network-v2-gluetun-owned.target
 ConditionPathExists=/etc/network-v2/gluetun/m4-owned-mode.selected
 
 [Service]

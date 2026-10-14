@@ -59,3 +59,9 @@ def test_cold_replacement_is_one_transaction_with_rollback():
     assert "http://127.0.0.1:19581" in s
     assert "http://127.0.0.1:19781" in s
     assert "--proxy-server=http://10.252.246.2:19680" in s
+
+def test_owned_target_restart_owns_provider_and_adapter_lifecycle():
+    owned=text("network-v2-gluetun-owned.container")
+    adapter=text("network-v2-gluetun-owned-adapter.service")
+    assert "PartOf=network-v2-gluetun-owned.target" in owned
+    assert "PartOf=network-v2-gluetun-owned.target" in adapter
