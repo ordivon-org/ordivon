@@ -78,3 +78,26 @@ outbound to a vacant loopback port. It must return
 `FIXTURE_FAULT_PASS` and `upstreamUnavailableFailClosed=true` with
 zero fixture requests. This checks no direct fallback when the candidate
 HTTP CONNECT upstream is unavailable. It still does **not** run Gluetun.
+
+## R3 independent audit closure scope — 2026-10-14
+
+The R2 audit flagged the shared default Podman bridge and an error-code
+false-positive in the offline fixture. The source candidate now uses a
+dedicated isolated bridge network-v2-gluetun-private-r1 with CIDR
+10.253.239.0/30, Options=isolate=strict and one available container
+IP. A rootful Podman administrator or process explicitly sharing its
+network namespace remains outside this membership boundary.
+
+Scoped actual Podman peer rejection was shown in a disposable Linux
+network namespace against a verified live non-Gluetun TCP listener
+(job-01a13982-d235-7c62-99ad-6776237dc391).
+Real host-veth port-publish effect was NOT admitted by Runtime and
+remains unproven. Pinned Gluetun artifact was not materialized
+through the permitted Supply-Chain egress.
+
+The negative oracle now has a direct-target witness. A test-only
+invalid direct-fallback route yields HTTP 403 and curl exit 22;
+the witness proves the unauthorized connection happened, and the
+fixture correctly rejects it. The positive offline oracle separately
+requires zero direct witness arrivals. All this remains a loopback
+test of sing-box, NOT of actual Gluetun.

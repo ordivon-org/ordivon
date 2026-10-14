@@ -290,3 +290,56 @@ the former. Candidate phase must use separately reviewed network/consumer
 consequence probes that do not assume a concurrently running legacy WG
 session, while restoration phase reruns the legacy readiness suite.
 Any canary that invokes legacy-only readiness to certify Gluetun is invalid.
+
+## M3 R3 ingress isolation and witnessed negative oracle — 2026-10-14
+
+Independent Review R2 (Network Topic seq16861) exposed the default Podman
+bridge as a bypass candidate: a host-only PublishPort bind is not a
+restriction on peers of the same bridge. The R3 candidate no longer
+uses rootful Network=bridge. It has a dedicated Quadlet .network,
+network-v2-gluetun-private-r1, with Options=isolate=strict,
+10.253.239.0/30 (gateway .1, the only container address .2),
+DisableDNS=true, and the container pinned to IP=10.253.239.2.
+This range is separate from live host-veth 10.252.246.0/30 and
+default Podman 10.88.0.0/16. R3 changes neither of those existing
+networks. Native Quadlet generator proves both network-create
+and container network/IP source commands. The server publication
+remains 10.252.246.1:19682:8888/tcp.
+
+Native runtime evidence is narrower and explicit: in a disposable
+unshare --net namespace, Podman created an equivalent isolated
+bridge, launched a non-Gluetun cached Java test image at
+10.253.239.2, and confirmed an actually listening process with
+a same-container TCP probe. A second container attachment to the
+/30 was rejected by Podman IPAM; a container on the default Podman
+bridge failed its direct TCP probe to .2. This proves scoped
+one-member allocation/cross-bridge denial for Podman 6.1/Netavark in
+that nonproduction namespace. Runtime job:
+job-01a13982-d235-7c62-99ad-6776237dc391.
+A preceding attempt in which the test server failed to start was
+explicitly discarded as a false positive: job-01a13981-f990-79b2-bd38-0ff6ea12f3f3.
+
+Threat limits: rootful Podman administrators and processes sharing the
+Gluetun container namespace are not isolated by IPAM. The bridge
+separates ordinary default-network peers, not management authority.
+Prior to any live candidate, independently inspect Podman network
+membership/options/subnet/route currentness; no unexpected peer or
+stale same-name network is acceptable. An attempt to test host-veth
+port publication inside a disposable namespace was blocked by
+Runtime policy (job-01a13984-a187-76f3-8747-18f6c38c7794);
+no bypass was used or port runtime PASS claimed.
+
+P2 oracle now uses an observable local direct destination. A deliberately
+mutated unsafe sing-box route reaches that witness, receives HTTP 403,
+and curl --fail returns exit 22. The fixture records the incoming
+direct connection and emits DIRECT_LEAK_DETECTED rather than
+FIXTURE_FAULT_PASS. Nonmutated offline paths require expected proxy/
+transport failure and zero direct witness arrivals. This is qualified
+loopback fixture evidence, NOT exhaustive public-egress assurance.
+
+Pinned Gluetun OCI image pull via the existing scoped Supply-Chain
+proxy 127.0.0.1:19581 failed after a registry CDN redirect and
+proxy connection reset (job-01a13979-9fd3-70e0-81db-04bb5faef632).
+No unapproved alternate route was used and Gluetun was not run.
+Actual Gluetun firewall, HTTP proxy auth/ingress, VPN forwarding and
+scoped consumer consequences remain UNPROVEN. M3B remains HOLD.

@@ -146,3 +146,21 @@ legacy namespace and DNS pieces remain until Gluetun has qualified
 consequence parity, an independent review, and a separately accepted
 longitudinal production ownership transition. Source-only R1 jq intentionally
 keeps legacy active; it cannot be switched by simply changing one JSON field.
+
+## R3 network isolation and admission delta
+
+The candidate cannot join the shared Podman default bridge.
+The only source-selected candidate network is
+network-v2-gluetun-private-r1, Options=isolate=strict, with subnet
+10.253.239.0/30, gateway 10.253.239.1, and candidate IP
+10.253.239.2. Before actual candidate start, inspect the actual
+network name, options, route, subnet, gateway and members; a stale
+same-name network must FAIL CLOSED rather than be silently reused
+by Podman network create --ignore. Verify no unapproved members,
+and recheck at effect time. Source generator PASS does not qualify
+this runtime identity/membership proof.
+
+Peer-denial evidence exists only in a disposable nonproduction
+namespace. Real pinned Gluetun image is not cached/qualified;
+an explicit host-veth port-publish experiment was blocked by Runtime
+safety admission and must not be bypassed. M3B remains HOLD.
