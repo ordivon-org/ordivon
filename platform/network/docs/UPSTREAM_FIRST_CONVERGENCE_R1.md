@@ -448,3 +448,46 @@ accepted authority-alias reconciliation, live-source currentness,
 consumer/drain consent, precise effect/rollback admission and readiness
 proof. A policy source test is never a Gluetun container or provider
 session test.
+
+## R6 bounded source-integrity and actual process recovery — 2026-10-14
+
+The Supply-Chain CDN preflight remains READ ONLY and fail-closed. R6
+strengthens it with **exact source byte SHA-256 pins** for the one
+approved R4 host addition, not a generic mutable allowlist. This
+prevents a pair of self-consistent but unauthorized source changes
+(e.g. adding attacker.invalid to both authority and sing-box egress)
+or replacing the localhost proxy address from passing as a one-host
+deployment. A later intentional authorization edit requires a separate
+review and explicit re-pinning of the current preflight; it must not
+inherit production rollout authority from R4.
+
+R6 additionally adds a **REAL sing-box process-level** restart and
+failure recovery fixture:
+
+    python3 consumers/supply-chain/acceptance/cdn-singbox-service-rehearsal.py --fault after-new-run
+
+The script creates only an ephemeral localhost HTTP CONNECT proxy and
+sing-box process using a temporary config file under /tmp. It starts
+the old source-minus-CDN policy, verifies registry allow/unknown deny/
+CDN deny, stages the new allowed CDN policy and injects failure at
+three process boundaries: before stopping the old process, after
+stopping the old process, and after starting/validating the new process.
+It restores original TEMPORARY config file bytes and, when needed,
+starts a replacement process; then proves the OLD registry/unknown/CDN
+routing consequences again through actual sing-box and a real
+observed localhost HTTP CONNECT witness.
+
+This provides much stronger **process-level** evidence than a file-only
+rollback. It does not use the installed Supply-Chain service, Docker,
+Podman, a real registry/TLS session, systemd, Surfshark or Gluetun.
+It DOES NOT prove a production systemd restart, loss-of-connection
+recovery for in-flight consumers, real VPN rollback or owner drain.
+The previous R5 real-world preflight still returns
+HOLD_LEGACY_AUTHORITY_ALIAS until separately reviewed config authority
+reconciliation. NO LIVE PRODUCTION CHANGE is authorized by these tests.
+
+One subsequent bounded global Temporal census attempt was rejected by
+the surrounding tool safety gate; no global count is claimed. The
+prior snapshot of zero Running workflows in one specified automation
+TaskQueue remains insufficient for cross-owner drain. The M3B
+serialized production canary remains HOLD.

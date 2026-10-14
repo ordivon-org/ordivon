@@ -223,3 +223,21 @@ nor a fence against future workflow launch. No M3B canary may proceed
 without owner-by-owner currentness/maintenance participation and a
 positive mechanism preventing newly admitted work while the shared
 physical provider identity is unavailable.
+
+## R6 stronger nonproduction restoration and source integrity (not admission)
+
+The R4 exact Docker CDN source policy is pinned by SHA256 in
+consumers/supply-chain/acceptance/cdn-preflight.py. If ANY other
+Supply-Chain source authorization changes, the R4 one-host update
+preflight now fails until separately re-reviewed/re-pinned.
+
+The test-only cdn-singbox-service-rehearsal.py runs real ephemeral
+loopback sing-box proxy processes with local HTTP CONNECT witness and
+faults at before-stop, after-stop and after-new-run boundaries. It
+must restore byte-exact temporary config and old proxy consequences
+after each. No production services or provider identities are used.
+An actual production rollback still needs a separately admitted
+live service effect implementation and fault-recovery acceptance.
+A cross-consumer Temporal census that was blocked by environment
+policy is not evidence of zero global workflows or work admission
+fencing. M3B HOLD unchanged.
