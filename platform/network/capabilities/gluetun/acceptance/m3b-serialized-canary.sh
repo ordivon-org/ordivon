@@ -27,6 +27,7 @@ LOCK="$ROOT/capabilities/gluetun/external/gluetun-image.lock"
 CANDIDATE_ENV="$ROOT/capabilities/gluetun/config/serialized-candidate.env"
 ADAPTER="$ROOT/consumers/browserless/config/provider-carrier-gluetun-candidate.json"
 CONSEQUENCE="$ROOT/capabilities/gluetun/acceptance/candidate-consequence.sh"
+RESTORE_HELPERS="$ROOT/capabilities/gluetun/acceptance/m3b-restore-helpers.sh"
 LEGACY_READY="$ROOT/consumers/browserless/provider-carrier-ready.sh"
 LEGACY_PATH="$ROOT/consumers/browserless/acceptance/production-path.sh"
 NET=network-v2-gluetun-private-r1
@@ -42,6 +43,9 @@ test "$digest" = sha256:1baa76576dea1dfbafbd62bb635daf40fd87171f63273c2fdfe63041
 image="docker.io/qmcgaw/gluetun@$digest"
 for file in "$PROFILE" "$PROVIDER_ENV" "$CANDIDATE_ENV" "$ADAPTER"; do test -f "$file"; done
 test -x "$CONSEQUENCE"
+test -r "$RESTORE_HELPERS"
+# shellcheck source=/dev/null
+. "$RESTORE_HELPERS"
 podman image exists "$image"
 /usr/bin/sing-box check -c "$ADAPTER"
 test -e "/run/netns/$NS"
@@ -117,55 +121,78 @@ restore() {
   set +e
   if test -n "$watchdog_pid"; then kill "$watchdog_pid" >/dev/null 2>&1; wait "$watchdog_pid" >/dev/null 2>&1; fi
   if test -n "$adapter_pid"; then kill "$adapter_pid" >/dev/null 2>&1; wait "$adapter_pid" >/dev/null 2>&1; fi
-  if podman container exists "$CTR" && test "$candidate_pass" != 1; then
+  if podman container exists "$CTR" >/dev/null 2>&1 && test "$candidate_pass" != 1; then
     echo "M3B_CANDIDATE_LOG_TAIL_BEGIN" >&2
     podman logs --tail 100 "$CTR" >&2 || true
     echo "M3B_CANDIDATE_LOG_TAIL_END" >&2
   fi
-  podman rm -f "$CTR" >/dev/null 2>&1
-  if test "$network_created" = 1; then podman network rm -f "$NET" >/dev/null 2>&1; fi
 
-  current_profile=$(sha256sum "$PROFILE" 2>/dev/null | awk '{print $1}')
-  current_env=$(sha256sum "$PROVIDER_ENV" 2>/dev/null | awk '{print $1}')
-  if test "$current_profile" != "$profile_sha"; then install -m 0600 "$state/profile.preimage" "$PROFILE"; fi
-  if test "$current_env" != "$env_sha"; then install -m 0600 "$state/provider.env.preimage" "$PROVIDER_ENV"; fi
+  # The unique production identity MUST NOT be reintroduced under legacy until
+  # candidate absence is positively known. A Podman error is UNKNOWN, not absent.
+  candidate_teardown_ok=1
+  m3b_candidate_teardown "$CTR" || candidate_teardown_ok=0
+  if test "$candidate_teardown_ok" != 1; then
+    restore_failed=1
+    echo "M3B: candidate teardown not positively verified; legacy will remain stopped" >&2
+  fi
 
-  systemctl start "$WG" || restore_failed=1
-  systemctl start "$DNS" || restore_failed=1
-  systemctl start "$CARRIER" || restore_failed=1
-  systemctl start "$TARGET" || restore_failed=1
-  for _ in $(seq 1 120); do
-    systemctl is-active --quiet "$WG" && systemctl is-active --quiet "$DNS" && systemctl is-active --quiet "$CARRIER" && break
-    sleep 0.25
-  done
+  if test "$candidate_teardown_ok" = 1 && test "$network_created" = 1; then
+    podman network rm -f "$NET" >/dev/null 2>&1 || restore_failed=1
+  fi
 
-  if test -f "$state/active-consumers.txt"; then
+  # Only restore host credential/config bytes after the candidate is known gone.
+  if test "$candidate_teardown_ok" = 1; then
+    current_profile=$(sha256sum "$PROFILE" 2>/dev/null | awk '{print $1}')
+    current_env=$(sha256sum "$PROVIDER_ENV" 2>/dev/null | awk '{print $1}')
+    if test "$current_profile" != "$profile_sha"; then install -m 0600 "$state/profile.preimage" "$PROFILE" || restore_failed=1; fi
+    if test "$current_env" != "$env_sha"; then install -m 0600 "$state/provider.env.preimage" "$PROVIDER_ENV" || restore_failed=1; fi
+
+    m3b_start_required_unit "$WG" || restore_failed=1
+    m3b_start_required_unit "$DNS" || restore_failed=1
+    m3b_start_required_unit "$CARRIER" || restore_failed=1
+    m3b_start_required_unit "$TARGET" || restore_failed=1
+
+    test "$(stat -Lc '%i' "/run/netns/$NS" 2>/dev/null)" = "$ns_inode" || restore_failed=1
+    test "$(sha256sum "$PROFILE" 2>/dev/null | awk '{print $1}')" = "$profile_sha" || restore_failed=1
+    test "$(sha256sum "$PROVIDER_ENV" 2>/dev/null | awk '{print $1}')" = "$env_sha" || restore_failed=1
+
+    # Prove the restored core data plane before reopening consumers/producers.
+    if test "$restore_failed" = 0; then
+      "$LEGACY_READY" >/dev/null 2>&1 || restore_failed=1
+      "$LEGACY_PATH" >/dev/null 2>&1 || restore_failed=1
+      "$CONSEQUENCE" >/dev/null 2>&1 || restore_failed=1
+    fi
+  fi
+
+  if test "$restore_failed" = 0 && test -f "$state/active-consumers.txt"; then
     while read -r unit; do
       test -z "$unit" && continue
-      systemctl start "$unit" || restore_failed=1
+      m3b_start_required_unit "$unit" || restore_failed=1
     done <"$state/active-consumers.txt"
   fi
 
-  test "$(stat -Lc '%i' "/run/netns/$NS" 2>/dev/null)" = "$ns_inode" || restore_failed=1
-  test "$(sha256sum "$PROFILE" 2>/dev/null | awk '{print $1}')" = "$profile_sha" || restore_failed=1
-  test "$(sha256sum "$PROVIDER_ENV" 2>/dev/null | awk '{print $1}')" = "$env_sha" || restore_failed=1
-  "$LEGACY_READY" >/dev/null 2>&1 || restore_failed=1
-  "$LEGACY_PATH" >/dev/null 2>&1 || restore_failed=1
-  "$CONSEQUENCE" >/dev/null 2>&1 || restore_failed=1
-
-  test "$worker_was_active" = 1 && systemctl start "$WORKER" >/dev/null 2>&1 || true
-  test "$mcp_was_active" = 1 && systemctl start "$MCP" >/dev/null 2>&1 || true
-  rm -rf "$state"
+  if test "$restore_failed" = 0 && test "$worker_was_active" = 1; then
+    m3b_start_required_unit "$WORKER" || restore_failed=1
+  fi
+  if test "$restore_failed" = 0 && test "$mcp_was_active" = 1; then
+    m3b_start_required_unit "$MCP" || restore_failed=1
+  fi
 
   if test "$restore_failed" = 1; then
-    echo '{"schemaVersion":1,"kind":"ordivon.network-v2.m3b-canary","standing":"BLOCKED_ROLLBACK"}' >&2
+    printf '{"schemaVersion":1,"kind":"ordivon.network-v2.m3b-canary","standing":"BLOCKED_ROLLBACK","protectedStateDir":"%s","legacyStartSuppressedIfCandidateUnknown":true}
+' "$state" >&2
+    # Preserve exact preimages + active-consumer ledger for independent rescue.
     exit 70
   fi
+
+  rm -rf "$state"
   if test "$candidate_pass" = 1 && test "$rc" = 0; then
-    printf '{"schemaVersion":1,"kind":"ordivon.network-v2.m3b-canary","standing":"CANDIDATE_CONSEQUENCE_PASS_AND_RESTORATION_PASS","sourceHead":"%s","canaryScriptSha256":"%s","imageDigest":"%s","legacyRestored":true,"productionOwnershipTransferred":false}\n' "$SOURCE_HEAD" "$SCRIPT_SHA" "$digest"
+    printf '{"schemaVersion":1,"kind":"ordivon.network-v2.m3b-canary","standing":"CANDIDATE_CONSEQUENCE_PASS_AND_RESTORATION_PASS","sourceHead":"%s","canaryScriptSha256":"%s","imageDigest":"%s","legacyRestored":true,"productionOwnershipTransferred":false}
+' "$SOURCE_HEAD" "$SCRIPT_SHA" "$digest"
     exit 0
   fi
-  printf '{"schemaVersion":1,"kind":"ordivon.network-v2.m3b-canary","standing":"CANDIDATE_FAILED_RESTORATION_PASS","legacyRestored":true,"productionOwnershipTransferred":false}\n' >&2
+  printf '{"schemaVersion":1,"kind":"ordivon.network-v2.m3b-canary","standing":"CANDIDATE_FAILED_RESTORATION_PASS","legacyRestored":true,"productionOwnershipTransferred":false}
+' >&2
   if test "$rc" -eq 0; then rc=1; fi
   exit "$rc"
 }
