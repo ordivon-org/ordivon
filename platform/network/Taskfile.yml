@@ -46,7 +46,9 @@ tasks:
       - /usr/bin/bash -n consumers/browserless/provider-carrier-ready.sh consumers/browserless/provider-switch.sh
       - jq -e '.kind=="ordivon.network-v2.provider-profile" and .profileId=="surfshark:th-bkk" and .site=="th-bkk"' providers/surfshark/config/provider-profile.json >/dev/null
       - grep -F 'SITE=${1:-th-bkk}' consumers/browserless/provider-switch.sh >/dev/null
-      - grep -F 'test "$site" = th-bkk' consumers/browserless/provider-carrier-ready.sh >/dev/null
+      - grep -F 'mechanism=gluetun' consumers/browserless/provider-carrier-ready.sh >/dev/null
+      - grep -F 'mechanism=legacy-wireguard' consumers/browserless/provider-carrier-ready.sh >/dev/null
+      - grep -F -- '--noproxy ""' consumers/browserless/provider-carrier-ready.sh >/dev/null
 
   consumer:finance:validate:
     desc: Validate nine scoped Finance authorities over the shared provider carrier plus explicit direct macro lanes
@@ -196,7 +198,7 @@ tasks:
       - /usr/bin/sing-box check -c consumers/browserless/config/provider-carrier-gluetun-candidate.json
       - QUADLET_UNIT_DIRS="$PWD/capabilities/gluetun/m4-source" /usr/lib/systemd/system-generators/podman-system-generator --dryrun | grep -F -- '--publish 10.252.246.1:19682:8888/tcp' >/dev/null
       - /usr/bin/bash -n capabilities/gluetun/m4-source/m4-owned-restore-legacy capabilities/gluetun/m4-source/provider-identity-exclusive
-      - python -m pytest -q tests/test_gluetun_m4_provider_ownership.py tests/test_gluetun_m4_lifecycle_source.py tests/test_gluetun_m4_boot_recovery.py
+      - python -m pytest -q tests/test_gluetun_m4_provider_ownership.py tests/test_gluetun_m4_lifecycle_source.py tests/test_gluetun_m4_boot_recovery.py tests/test_gluetun_cold_replacement.py
 
   capability:gluetun:m4:materialize:
     desc: Stage exact M4 bytes under /var/lib only; never install/reload/start provider units

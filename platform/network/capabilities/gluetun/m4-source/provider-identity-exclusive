@@ -5,11 +5,13 @@ NS=nv2-browserless-prod
 WG_IF=nv2blwg
 LEGACY_UNIT=network-v2-browserless-wireguard.service
 OWNED_UNIT=network-v2-gluetun-owned.service
+MODE_MARKER=${M4_PROVIDER_MODE_MARKER:-/etc/network-v2/gluetun/m4-owned-mode.selected}
 
 die(){ echo "provider identity exclusivity HOLD: $*" >&2; exit 42; }
 
 case "$mode" in
   gluetun)
+    test -e "$MODE_MARKER" || die "owned-mode selector absent"
     test -e "/run/netns/$NS" || die "compatibility namespace missing"
     systemctl is-active --quiet "$LEGACY_UNIT" && die "legacy WireGuard unit still active"
     set +e
@@ -19,6 +21,7 @@ case "$mode" in
     case "$rc" in 1) ;; 0) die "legacy WireGuard interface still exists";; *) die "legacy WireGuard interface state unknown rc=$rc";; esac
     ;;
   legacy)
+    test ! -e "$MODE_MARKER" || die "owned-mode selector still present"
     systemctl is-active --quiet "$OWNED_UNIT" && die "owned Gluetun unit still active"
     for ctr in network-v2-gluetun-owned-r1 network-v2-gluetun-serialized-candidate; do
       set +e

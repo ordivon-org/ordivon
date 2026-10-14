@@ -1,12 +1,9 @@
-# M4 SOURCE CANDIDATE ONLY. No [Install] section: not automatically enabled.
-# The operator must separately fence new consumer work and stop legacy WG
-# before creating /etc/network-v2/gluetun/m4-owned-mode.selected.
+# Cold-replacement Gluetun provider. Physical exclusivity is checked at service start.
 [Unit]
-Description=Network-v2 Gluetun owned provider mechanism (NOT ADMITTED)
+Description=Network v2 Gluetun default provider mechanism
 Requires=network-v2-browserless-netns.service network-v2-browserless-forward.service
 After=network-v2-browserless-netns.service network-v2-browserless-forward.service
 ConditionPathExists=/etc/network-v2/gluetun/m4-owned-mode.selected
-OnFailure=network-v2-gluetun-legacy-restore.service
 
 [Container]
 ContainerName=network-v2-gluetun-owned-r1
@@ -16,15 +13,15 @@ Network=network-v2-gluetun-owned.network
 IP=10.253.239.2
 PublishPort=10.252.246.1:19682:8888/tcp
 AddCapability=NET_ADMIN
+AddCapability=NET_RAW
 AddDevice=/dev/net/tun
 EnvironmentFile=/etc/network-v2/gluetun/serialized-candidate.env
 Volume=/etc/network-v2/browserless/nv2blwg.conf:/gluetun/wireguard/wg0.conf:ro
 
 [Service]
 ExecStartPre=/usr/local/libexec/network-v2/provider-identity-exclusive gluetun
-# Deliberately no autorestart until service-manager recovery exclusivity
-# is proven; auto reconnect plus fallback can create two physical sessions.
-Restart=no
-TimeoutStopSec=20s
 ExecStartPre=/usr/bin/bash -c '! systemctl is-active --quiet network-v2-browserless-wireguard.service'
 ExecStartPre=/usr/bin/bash -c '! ip netns exec nv2-browserless-prod ip link show nv2blwg >/dev/null 2>&1'
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=20s

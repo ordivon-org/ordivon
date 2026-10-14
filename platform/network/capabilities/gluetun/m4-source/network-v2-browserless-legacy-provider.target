@@ -1,12 +1,10 @@
-# M4 fallback provider-mode target. Installed only by the permanent transition.
+# Cold-replacement rollback target. It is installed but disabled while Gluetun owns provider mode.
 [Unit]
-# Inverse of persistent adopted mode; safe even if both targets are enabled.
-ConditionPathExists=!/etc/network-v2/gluetun/m4-owned-mode.selected
-Description=Network v2 legacy WireGuard provider fallback mode
+Description=Network v2 legacy WireGuard rollback provider mode
 Requires=network-v2-browserless.target
 Wants=network-v2-browserless-wireguard.service network-v2-browserless-dns.service network-v2-browserless-provider-carrier.service
 After=network-v2-browserless.target network-v2-browserless-wireguard.service network-v2-browserless-dns.service network-v2-browserless-provider-carrier.service
-Conflicts=network-v2-gluetun-owned.target
+ConditionPathExists=!/etc/network-v2/gluetun/m4-owned-mode.selected
 
 [Install]
 WantedBy=multi-user.target

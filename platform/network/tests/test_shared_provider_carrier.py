@@ -45,7 +45,9 @@ def test_production_provider_defaults_to_cross_consumer_qualified_site():
     ready = (BROWSERLESS / "provider-carrier-ready.sh").read_text()
     assert "SITE=${1:-th-bkk}" in switch
     assert 'MANIFEST=/etc/network-v2/providers/catalog-profiles/MANIFEST.tsv' in switch
-    assert 'test "$site" = th-bkk' in ready
+    assert "mechanism=gluetun" in ready
+    assert "mechanism=legacy-wireguard" in ready
+    assert "--noproxy" in ready
 
 
 def test_finance_provider_lanes_share_carrier_and_macro_lanes_remain_direct():

@@ -23,11 +23,12 @@ def test_owned_mode_is_explicit_staged_and_cannot_implicitly_stop_legacy():
     assert "Pull=never" in ctr
     assert "PublishPort=10.252.246.1:19682:8888/tcp" in ctr
     assert "ConditionPathExists=/etc/network-v2/gluetun/m4-owned-mode.selected" in ctr
-    assert "OnFailure=network-v2-gluetun-legacy-restore.service" in ctr
-    assert "Restart=no" in ctr
+    assert "OnFailure=" not in ctr
+    assert "Restart=on-failure" in ctr
     assert "provider-identity-exclusive gluetun" in ctr
     assert "Conflicts=network-v2-browserless-wireguard.service" not in ctr
     assert "ConditionPathExists=/etc/network-v2/gluetun/m4-owned-mode.selected" in owned
+    assert "OnFailure=" not in owned
     assert "Conflicts=network-v2-browserless" not in owned
 
 def test_provider_modes_split_substrate_from_physical_realization():
@@ -103,13 +104,18 @@ raise SystemExit(90)
 """
     for n in ("systemctl","ip","podman"):
         f=b/n; f.write_text(shim); f.chmod(0o755)
-    env={**os.environ,"PATH":str(b)+":"+os.environ["PATH"],"S":str(sf)}
+    marker=tmp_path/"owned-mode.selected"
+    if state.get("selector"):
+        marker.write_text("owned\n")
+    env={**os.environ,"PATH":str(b)+":"+os.environ["PATH"],"S":str(sf),
+         "M4_PROVIDER_MODE_MARKER":str(marker)}
     return subprocess.run([str(M4/"provider-identity-exclusive"),mode],env=env,capture_output=True,text=True,check=False)
 
 def test_identity_guard_blocks_dual_physical_session(tmp_path):
-    assert _guard(tmp_path/"a","gluetun",{}).returncode==0
-    assert _guard(tmp_path/"b","gluetun",{"legacy":True}).returncode==42
-    assert _guard(tmp_path/"c","gluetun",{"wg":True}).returncode==42
+    assert _guard(tmp_path/"a","gluetun",{"selector":True}).returncode==0
+    assert _guard(tmp_path/"b","gluetun",{"selector":True,"legacy":True}).returncode==42
+    assert _guard(tmp_path/"c","gluetun",{"selector":True,"wg":True}).returncode==42
     assert _guard(tmp_path/"d","legacy",{}).returncode==0
+    assert _guard(tmp_path/"d2","legacy",{"selector":True}).returncode==42
     assert _guard(tmp_path/"e","legacy",{"owned":True}).returncode==42
     assert _guard(tmp_path/"f","legacy",{"containers":["network-v2-gluetun-owned-r1"]}).returncode==42

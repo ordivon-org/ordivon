@@ -1,10 +1,8 @@
-# SOURCE ONLY. Reuses existing sing-box candidate config and consumer seam.
 [Unit]
-Description=Network-v2 Gluetun owned sing-box compatibility adapter
+Description=Network-v2 Gluetun sing-box compatibility adapter
 Requires=network-v2-gluetun-owned.service network-v2-browserless-netns.service
 BindsTo=network-v2-gluetun-owned.service
 After=network-v2-gluetun-owned.service network-v2-browserless-netns.service
-Conflicts=network-v2-browserless-provider-carrier.service
 ConditionPathExists=/etc/network-v2/gluetun/m4-owned-mode.selected
 
 [Service]
@@ -14,7 +12,8 @@ Group=sing-box
 NetworkNamespacePath=/run/netns/nv2-browserless-prod
 ExecStartPre=/usr/bin/sing-box check -c /etc/network-v2/browserless/provider-carrier-gluetun-candidate.json
 ExecStart=/usr/bin/sing-box run -c /etc/network-v2/browserless/provider-carrier-gluetun-candidate.json
-Restart=no
+Restart=on-failure
+RestartSec=2s
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict

@@ -38,7 +38,7 @@ def test_failed_candidate_removal_never_starts_legacy():
 
 def test_absent_candidate_switches_boot_mode_then_starts_fallback():
     r,c=exercise("absent"); assert r.returncode==0,(r.stdout,r.stderr)
-    assert "M4_LEGACY_FALLBACK_READY" in r.stdout
+    assert "M4_LEGACY_FALLBACK_FULL_READY" in r.stdout
     lines=c.splitlines()
     assert "disable network-v2-gluetun-owned.target" in lines
     assert "enable network-v2-browserless-legacy-provider.target" in lines
