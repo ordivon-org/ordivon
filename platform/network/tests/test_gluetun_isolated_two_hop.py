@@ -24,3 +24,19 @@ def test_isolated_fixture_two_hop_executes_and_never_claims_gluetun_production()
     assert evidence["gluetunFirewallRuntimeProven"] is False
     assert evidence["upstreamFixtureRequests"] == 1
     assert evidence["privateDestinationRejected"] is True
+
+
+def test_isolated_fixture_upstream_proxy_failure_stays_fail_closed():
+    script = ROOT / "capabilities/gluetun/acceptance/isolated-two-hop-fixture.py"
+    result = subprocess.run(
+        ["/usr/bin/python3", str(script), "--fault=upstream-offline"],
+        cwd=ROOT, text=True, capture_output=True, timeout=30, check=False,
+    )
+    assert result.returncode == 0, (result.stdout[-500:], result.stderr[-500:])
+    evidence = json.loads(result.stdout.strip())
+    assert evidence["standing"] == "FIXTURE_FAULT_PASS"
+    assert evidence["upstreamUnavailableFailClosed"] is True
+    assert evidence["upstreamFixtureRequests"] == 0
+    assert evidence["providerIdentityUsed"] is False
+    assert evidence["productionNetworkMutation"] is False
+    assert evidence["gluetunContainerPortProven"] is False

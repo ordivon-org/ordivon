@@ -44,7 +44,7 @@ def wait_for_listener(process: subprocess.Popen, port: int) -> None:
 def run_proxy_request(port: int, url: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [
-            "/usr/bin/curl", "-4", "--noproxy", "",
+            "/usr/bin/curl", "-4", "--fail", "--noproxy", "",
             "-x", f"http://127.0.0.1:{port}", "--max-time", "4",
             "--silent", "--show-error", url,
         ], text=True, capture_output=True, check=False, timeout=6,
@@ -52,6 +52,9 @@ def run_proxy_request(port: int, url: str) -> subprocess.CompletedProcess[str]:
 
 
 def main() -> int:
+    if len(sys.argv) > 2 or (len(sys.argv) == 2 and sys.argv[1] != "--fault=upstream-offline"):
+        raise ValueError("usage: isolated-two-hop-fixture.py [--fault=upstream-offline]")
+    fault_upstream_offline = len(sys.argv) == 2
     original = json.loads(SOURCE.read_text(encoding="utf-8"))
     inbound = original["inbounds"]
     outbound = original["outbounds"]
@@ -99,7 +102,10 @@ def main() -> int:
         config = json.loads(json.dumps(original))
         front_port = free_loopback_port()
         config["inbounds"][0].update(listen="127.0.0.1", listen_port=front_port)
-        config["outbounds"][0].update(server="127.0.0.1", server_port=server.server_port)
+        config["outbounds"][0].update(
+            server="127.0.0.1",
+            server_port=free_loopback_port() if fault_upstream_offline else server.server_port,
+        )
         # This change is confined to a TEMPORARY CONFIG; the production source is unchanged.
         with tempfile.TemporaryDirectory(prefix="network-v2-gluetun-fixture-") as tmp:
             cfg = Path(tmp) / "candidate-fixture.json"
@@ -116,6 +122,20 @@ def main() -> int:
             )
             wait_for_listener(process, front_port)
             success = run_proxy_request(front_port, "http://example.com/network-v2-offline-fixture")
+            if fault_upstream_offline:
+                if success.returncode == 0 or requests_seen:
+                    raise AssertionError("offline upstream was not fail-closed")
+                print(json.dumps({
+                    "schemaVersion": 1,
+                    "kind": "ordivon.network-v2.gluetun-offline-two-hop-fixture",
+                    "standing": "FIXTURE_FAULT_PASS",
+                    "upstreamUnavailableFailClosed": True,
+                    "upstreamFixtureRequests": 0,
+                    "providerIdentityUsed": False,
+                    "productionNetworkMutation": False,
+                    "gluetunContainerPortProven": False,
+                }, separators=(",", ":")))
+                return 0
             if success.returncode or success.stdout.encode() != EXPECTED_BODY:
                 process.terminate()
                 _, diagnosis = process.communicate(timeout=3)

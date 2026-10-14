@@ -69,3 +69,12 @@ Missing evidence before M3B: runtime container port publication, Gluetun
 own firewall actual ingress, real VPN forwarding/kill-switch behavior,
 effect admission/current workload drain, and independent owner consequence
 parity. **M3B remains HOLD.**
+
+### Offline upstream failure injection
+
+`python3 capabilities/gluetun/acceptance/isolated-two-hop-fixture.py
+--fault=upstream-offline` redirects the temporary candidate sing-box
+outbound to a vacant loopback port. It must return
+`FIXTURE_FAULT_PASS` and `upstreamUnavailableFailClosed=true` with
+zero fixture requests. This checks no direct fallback when the candidate
+HTTP CONNECT upstream is unavailable. It still does **not** run Gluetun.
