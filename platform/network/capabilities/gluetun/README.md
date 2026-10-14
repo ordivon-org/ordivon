@@ -29,3 +29,43 @@ A live Gluetun container is not yet admitted. The current legacy WireGuard reali
 The candidate realization is bound to the immutable OCI lock as well as the source lock. The non-secret runtime contract disables Gluetun public-IP discovery and binds its HTTP control server to container loopback.
 
 The compatibility-hop script is a read-only currentness preflight only. It validates the existing namespace-to-host-veth route, candidate configuration syntax, and candidate proxy port vacancy. It starts no listener and explicitly does not claim two-hop execution proof.
+
+## R1 source-only port and proxy evidence — 2026-10-14
+
+The previous source candidate exposed the Gluetun HTTP proxy at container
+`:8888` and pointed the sing-box compatibility HTTP outbound to host-veth
+`10.252.246.1:19682`, but lacked a materialized port-publication contract.
+
+Source-only Quadlet candidate:
+`quadlet-candidate/gluetun-serialized-candidate.container`.
+Its exact `PublishPort=10.252.246.1:19682:8888/tcp` binds the host-veth
+listener, NOT all host interfaces, and `FIREWALL_INPUT_PORTS=8888`
+permits container-side ingress. The candidate uses upstream Podman
+`Network=bridge`, not a custom network or a second alias named
+`nv2-browserless-prod`; `Pull=never` and the pinned amd64 OCI digest
+remove mutable-tag fallback. The candidate has NO `[Install]` section
+and is not included in Network-v2 install/converge tasks. Its protected
+WireGuard profile is a **read-only external bind** (never checked into Git).
+These declarations do not authorize container startup or concurrent use
+of the existing single-session Surfshark identity.
+
+The Podman Quadlet system generator validates `--publish
+10.252.246.1:19682:8888/tcp` in **dryrun** (no listener or container).
+The offline two-hop fixture is run with:
+
+`python3 capabilities/gluetun/acceptance/isolated-two-hop-fixture.py`
+
+It runs a **real sing-box process** under a temporary loopback-only
+candidate config, followed by a local HTTP CONNECT proxy fixture. It
+proves an HTTP response traverses those two local proxies and a private
+destination cannot reach the fixture. No Gluetun process, provider identity,
+production namespace, Podman container, network route, or existing service is
+used. Its result `twoHopExecutionProven=true` is deliberately qualified
+by `transport=real-sing-box-loopback-httpproxy-fixture`, alongside
+`gluetunContainerPortProven=false` and
+`gluetunFirewallRuntimeProven=false`.
+
+Missing evidence before M3B: runtime container port publication, Gluetun
+own firewall actual ingress, real VPN forwarding/kill-switch behavior,
+effect admission/current workload drain, and independent owner consequence
+parity. **M3B remains HOLD.**

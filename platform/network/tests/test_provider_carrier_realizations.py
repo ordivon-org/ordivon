@@ -194,6 +194,7 @@ def test_gluetun_candidate_image_and_nonsecret_runtime_are_pinned():
         "UPDATER_PERIOD": "0",
         "PUBLICIP_ENABLED": "off",
         "HTTP_CONTROL_SERVER_ADDRESS": "127.0.0.1:8000",
+        "FIREWALL_INPUT_PORTS": "8888",
     }
     raw = (ROOT / "capabilities/gluetun/config/serialized-candidate.env").read_text(encoding="utf-8").lower()
     for term in ("private_key", "privatekey", "password", "token", "firewall_enabled_disabling_it_shoots_you_in_your_foot=off"):

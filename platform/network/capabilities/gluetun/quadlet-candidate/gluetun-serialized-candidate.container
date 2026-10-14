@@ -1,0 +1,19 @@
+# SOURCE ONLY: not installed or enabled. Serialized canary must be admitted separately.
+# Keep Gluetun behind the currently occupied Network-v2 veth host endpoint.
+# This port mapping is required to connect candidate Gluetun :8888 to sing-box :19682.
+[Unit]
+Description=Network-v2 Gluetun serialized candidate (NO AUTOMATIC PRODUCTION AUTHORITY)
+
+[Container]
+ContainerName=network-v2-gluetun-serialized-candidate
+Image=docker.io/qmcgaw/gluetun@sha256:1baa76576dea1dfbafbd62bb635daf40fd87171f63273c2fdfe630418783011e
+Pull=never
+Network=bridge
+PublishPort=10.252.246.1:19682:8888/tcp
+AddCapability=NET_ADMIN
+AddDevice=/dev/net/tun
+EnvironmentFile=/etc/network-v2/gluetun/serialized-candidate.env
+Volume=/etc/network-v2/browserless/nv2blwg.conf:/gluetun/wireguard/wg0.conf:ro
+
+[Service]
+Restart=no
