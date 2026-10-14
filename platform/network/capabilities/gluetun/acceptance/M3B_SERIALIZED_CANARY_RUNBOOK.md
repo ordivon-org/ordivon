@@ -164,3 +164,24 @@ Peer-denial evidence exists only in a disposable nonproduction
 namespace. Real pinned Gluetun image is not cached/qualified;
 an explicit host-veth port-publish experiment was blocked by Runtime
 safety admission and must not be bypassed. M3B remains HOLD.
+
+## R3 fixture-qualified candidate-neutral consumer policies
+
+The test-only acceptance script
+consumers/acceptance/candidate-neutral-route-fixture.py operates entirely
+under temporary loopback sing-box configs with a local HTTP CONNECT witness.
+It executes the EXISTING source policies of Model Provider, Supply Chain
+and X Reality, changing only source frontend/backhaul listener endpoints
+in transient files. For each allowed domain it verifies one upstream
+CONNECT; for an unknown destination it verifies no new upstream CONNECT.
+It does NOT read /etc/network-v2, open any actual provider session or
+declare production-ready consumers. The fixture sends a plain HTTP GET
+through an upstream CONNECT for route verification; no actual TLS,
+provider authentication, Gluetun/VPN or live API behavior is asserted.
+
+The other owners (Browserless, Windows Chrome, Finance and other users)
+still require candidate-neutral readiness tests and authoritative drain
+currentness. In particular the existing legacy WG-bound ready.sh and
+production-path.sh are RESTORATION oracles only. This test is not evidence
+that a consumer has finished work, that a VPN has egress, or that rollback
+was fault-tested.

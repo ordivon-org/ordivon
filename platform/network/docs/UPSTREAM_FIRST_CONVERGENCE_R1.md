@@ -343,3 +343,16 @@ proxy connection reset (job-01a13979-9fd3-70e0-81db-04bb5faef632).
 No unapproved alternate route was used and Gluetun was not run.
 Actual Gluetun firewall, HTTP proxy auth/ingress, VPN forwarding and
 scoped consumer consequences remain UNPROVEN. M3B remains HOLD.
+
+### R3 partial candidate-neutral owner consequence evidence
+
+Existing Model Provider, Supply Chain and X Reality sing-box source
+allowlists are now exercised in an isolated real sing-box + local HTTP
+CONNECT fixture without legacy WG unit, Gluetun or production routing.
+Each of the three known allowed domains reaches exactly one local
+upstream CONNECT, while unknown destinations do not reach the fixture.
+This is **consumer policy routing** evidence only: the fixture uses
+plain HTTP within the CONNECT tunnel, not a real authenticated HTTPS
+service. The new test does not establish actual owner readiness,
+Temporal/consumer drain, Browserless/Chrome/Finance parity, or canary
+rollback. Do not use it to promote M3B from HOLD.
