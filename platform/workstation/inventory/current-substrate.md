@@ -77,9 +77,7 @@ The following mature packages were installed from the configured Arch repositori
 - Syft 1.50.0 is reserved for on-demand standard SBOM output; a bounded full-directory ALPM probe exceeded 120 seconds and is excluded from the default fast path;
 - dated evidence: `inventory/snapshots/2026-09-14-machine-tools.json` observed 875 pacman packages, 187 explicit packages, 0 foreign packages, and 114 Windows uninstall-registry applications.
 
-## Operations v2 Workstation recovery scheduler slice
 
-- systemd service/timer bytes: Operations Ansible desired state;
-- current timer policy (re-observed 2026-09-14): enabled + active/waiting on the retained daily recovery schedule;
-- semantic launcher: externally owned `/opt/ordivon-workstation-recovery/current/bin/workstation-backup`;
-- this slice does not execute backup, select recovery generations, or establish restore correctness.
+## Retirement update (2026-10-15)
+
+The former Workstation Restic recovery scheduler and Finance capsule backups were retired. Earlier snapshots above are historical observations, not current service statements. PostgreSQL pgBackRest remains independently operated.
