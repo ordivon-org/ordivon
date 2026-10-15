@@ -27,7 +27,7 @@ OFFICIAL_RELEASE_PREFIXES = {
     "uv": "/astral-sh/uv/releases/", "uv-build": "/astral-sh/uv/releases/",
     "opa": "/open-policy-agent/opa/releases/",
     "powershell": "/PowerShell/PowerShell/releases/",
-    "bash": "/pub/gnu/bash/",
+    "bash": "/gnu/bash/",
     "osquery": "/osquery/osquery/releases/",
 }
 LANGUAGE_EXTENSIONS = {

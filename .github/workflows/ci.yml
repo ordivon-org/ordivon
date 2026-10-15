@@ -38,8 +38,23 @@ jobs:
           install: true
           cache: true
 
+      - name: Install verified GNU Bash 5.3.20
+        shell: bash
+        run: |
+          set -euo pipefail
+          tools/repo/install_latest_stable_bash.sh "$RUNNER_TEMP/ordivon-bash-5.3.20"
+          echo "$RUNNER_TEMP/ordivon-bash-5.3.20/bin" >> "$GITHUB_PATH"
+
+      - name: Install pinned SQL validation CLIs
+        shell: bash
+        run: |
+          set -euo pipefail
+          tools/repo/install_sql_verifiers.sh "$RUNNER_TEMP/ordivon-sql-verifiers"
+          echo "$RUNNER_TEMP/ordivon-sql-verifiers/bin" >> "$GITHUB_PATH"
+
       - name: Repository mechanics
-        run: mise run repo:ci
+        run: |
+          "$RUNNER_TEMP/ordivon-bash-5.3.20/bin/bash" -c 'set -euo pipefail; mise run repo:ci'
 
       - name: Select affected owners
         id: affected

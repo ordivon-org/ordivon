@@ -19,7 +19,7 @@ TARGETS = {
     k: {"version": v, "officialRelease": json.loads(
         Path(__file__).with_name("latest_stable_languages.json").read_text()
     )["targets"][k]["officialRelease"]}
-    for k, v in (("python", "3.15.0"), ("rust", "1.99.0"), ("node", "26.12.0"), ("godot", "4.7.2"), ("typescript", "7.0.2"), ("opa", "1.21.2"), ("powershell", "7.6.7"), ("uv", "0.13.1"), ("uv-build", "0.13.1"), ("bash", "5.3.15"), ("sqlite", "3.54.0"), ("postgresql", "18.6"), ("osquery", "5.23.1"))
+    for k, v in (("python", "3.15.0"), ("rust", "1.99.0"), ("node", "26.12.0"), ("godot", "4.7.2"), ("typescript", "7.0.2"), ("opa", "1.21.2"), ("powershell", "7.6.7"), ("uv", "0.13.1"), ("uv-build", "0.13.1"), ("bash", "5.3.20"), ("sqlite", "3.54.0"), ("postgresql", "18.6"), ("osquery", "5.23.1"))
 }
 
 
