@@ -3,6 +3,15 @@ python = "3.12.13"
 uv = "0.12.16"
 rust = { version = "1.95.0", components = "clippy,rustfmt" }
 
+# Upstream prebuilt Nextest, delivered through a GitHub mirror for blocked release-CDN networks.
+# SHA-256 is from GitHub's official release-asset API, not from the mirror.
+# Only linux-x64 is admitted until the other platforms' exact assets are qualified.
+[tools."http:cargo-nextest"]
+version = "0.9.148"
+
+[tools."http:cargo-nextest".platforms]
+linux-x64 = { url = "https://ghproxy.net/https://github.com/nextest-rs/nextest/releases/download/cargo-nextest-0.9.148/cargo-nextest-0.9.148-x86_64-unknown-linux-gnu.tar.gz", checksum = "sha256:223ba936714cc861a9cdedad5a8eb664dfdd69d6fbdf6cea6aa8184f523290dc", size = 12127365 }
+
 [tasks.verify]
 run = """
 set -euo pipefail
