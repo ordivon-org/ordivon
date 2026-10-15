@@ -19,7 +19,7 @@ TARGETS = {
     k: {"version": v, "officialRelease": json.loads(
         Path(__file__).with_name("latest_stable_languages.json").read_text()
     )["targets"][k]["officialRelease"]}
-    for k, v in (("python", "3.15.0"), ("rust", "1.99.0"), ("node", "26.12.0"), ("godot", "4.7.2"), ("typescript", "7.0.2"), ("opa", "1.21.2"), ("powershell", "7.6.7"), ("uv", "0.13.1"), ("uv-build", "0.13.1"), ("sqlite", "3.54.0"), ("postgresql", "18.6"), ("osquery", "5.23.1"))
+    for k, v in (("python", "3.15.0"), ("rust", "1.99.0"), ("node", "26.12.0"), ("godot", "4.7.2"), ("typescript", "7.0.2"), ("opa", "1.21.2"), ("powershell", "7.6.7"), ("uv", "0.13.1"), ("uv-build", "0.13.1"), ("bash", "5.3.15"), ("sqlite", "3.54.0"), ("postgresql", "18.6"), ("osquery", "5.23.1"))
 }
 
 
@@ -99,9 +99,13 @@ class LatestStableLanguageTests(unittest.TestCase):
         self.assertTrue(any("UNAPPROVED EXCEPTION" in x for x in issues))
         self.assertTrue(any("3.12.13 is not latest" in x for x in issues))
 
-    def test_shell_without_interpreter_acceptance_is_noncompliant(self) -> None:
-        self.put("tools/deploy.sh", "#!/usr/bin/env bash\nset -e\n")
-        self.assertTrue(any("Shell scripts span Bash/POSIX-sh" in x for x in self.inspect()))
+    def test_shell_non_bash_shebang_is_rejected(self) -> None:
+        self.put("tools/deploy.sh", "#!/bin/sh\nset -e\n")
+        self.assertTrue(any("interpreter requires separate mapping" in x for x in self.inspect()))
+
+    def test_extensionless_shell_with_syntax_error_is_rejected(self) -> None:
+        self.put("scripts/run-transaction", "#!/usr/bin/env bash\nif (( 1 )); then\n")
+        self.assertTrue(any("bash -n syntax failed" in x for x in self.inspect()))
 
         self.put("game/player.gd", "extends Node\n")
         self.assertTrue(any("GDScript code" in x for x in self.inspect()))

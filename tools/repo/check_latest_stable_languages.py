@@ -19,7 +19,7 @@ OFFICIAL_RELEASE_HOSTS = {
     "python": "www.python.org", "rust": "blog.rust-lang.org",
     "node": "nodejs.org", "godot": "godotengine.org",
     "typescript": "github.com", "opa": "github.com", "uv": "github.com", "uv-build": "github.com",
-    "powershell": "github.com", "sqlite": "www.sqlite.org",
+    "powershell": "github.com", "bash": "ftp.gnu.org", "sqlite": "www.sqlite.org",
     "postgresql": "www.postgresql.org", "osquery": "github.com",
 }
 OFFICIAL_RELEASE_PREFIXES = {
@@ -27,6 +27,7 @@ OFFICIAL_RELEASE_PREFIXES = {
     "uv": "/astral-sh/uv/releases/", "uv-build": "/astral-sh/uv/releases/",
     "opa": "/open-policy-agent/opa/releases/",
     "powershell": "/PowerShell/PowerShell/releases/",
+    "bash": "/pub/gnu/bash/",
     "osquery": "/osquery/osquery/releases/",
 }
 LANGUAGE_EXTENSIONS = {
@@ -121,6 +122,71 @@ def is_exact_stable(value: str, target: str, *, path: str, language: str) -> boo
     return False
 
 
+def bash_source_carriers(root: Path, tracked: list[str]) -> list[str]:
+    """Find tracked *.sh AND extensionless executable Bash/POSIX-sh scripts."""
+    found: list[str] = []
+    for name in tracked:
+        path = root / name
+        if not path.is_file() or path.is_symlink():
+            continue
+        if path.suffix == ".sh":
+            found.append(name)
+            continue
+        if path.suffix:
+            continue
+        try:
+            with path.open("rb") as handle:
+                shebang = handle.readline(240)
+        except OSError:
+            continue
+        if shebang.startswith(b"#!") and (
+            b"bash" in shebang or shebang.rstrip().endswith(b"/sh")
+        ):
+            found.append(name)
+    return found
+
+
+def bash_gate(root: Path, tracked: list[str], required: str) -> tuple[list[str], str]:
+    """No testing an arbitrary pre-existing image as though it were accepted."""
+    names = bash_source_carriers(root, tracked)
+    if not names:
+        return [], "shell scripts: none"
+    issues: list[str] = []
+    try:
+        version = subprocess.run(["bash", "--version"], text=True, capture_output=True, timeout=5, check=True).stdout
+        match = re.search(r"GNU bash, version ([0-9.]+)", version)
+        observed = match.group(1) if match else "UNKNOWN"
+        if observed != required:
+            issues.append(f"Bash executable {observed} != official latest stable {required}")
+    except (OSError, subprocess.SubprocessError):
+        observed = "UNAVAILABLE"
+        issues.append("Bash executable unavailable for acceptance")
+    for name in names:
+        with (root / name).open("rb") as source:
+            first = source.readline(240).decode("utf-8", "replace").strip()
+        if not (
+            first.startswith("#!/bin/bash")
+            or first.startswith("#!/usr/bin/env bash")
+        ):
+            issues.append(f"{name}: interpreter requires separate mapping: {first[:70]}")
+            continue
+        result = subprocess.run(
+            ["bash", "-n", name], cwd=root, text=True, capture_output=True, timeout=8, check=False
+        )
+        if result.returncode:
+            issues.append(f"{name}: bash -n syntax failed: {result.stderr[:140]}")
+    try:
+        checked = subprocess.run(
+            ["shellcheck", "-S", "error", *names],
+            cwd=root, text=True, capture_output=True, timeout=60, check=False,
+        )
+        if checked.returncode:
+            issues.append(f"ShellCheck error gate failed: {checked.stdout[:500]} {checked.stderr[:120]}")
+    except (OSError, subprocess.SubprocessError):
+        issues.append("ShellCheck unavailable or timed out; no compliance claim")
+    return issues, f"bash source carriers: {len(names)}; Bash version {observed}; syntax and ShellCheck error-level gated"
+
+
 def valid_exception(entry: dict, *, today: dt.date) -> tuple[bool, str]:
     required = {
         "path", "language", "currentVersion", "targetVersion", "humanDecisionRef",
@@ -159,7 +225,7 @@ def check(root: Path, *, today: dt.date) -> tuple[list[str], list[str], dict]:
     if observed > today or (today - observed).days > valid_days:
         issues.append(f"official stable-version evidence is stale: {observed} (max {valid_days} days)")
     targets = baseline["targets"]
-    if not set(("python", "rust", "node", "typescript", "godot", "opa", "powershell", "uv", "uv-build")).issubset(targets):
+    if not set(("python", "rust", "node", "typescript", "godot", "opa", "powershell", "uv", "uv-build", "bash")).issubset(targets):
         issues.append("language baselines incomplete")
     for language, item in targets.items():
         release = urlparse(item.get("officialRelease", ""))
@@ -199,8 +265,9 @@ def check(root: Path, *, today: dt.date) -> tuple[list[str], list[str], dict]:
         issues.append("PowerShell code has no version-pinned toolchain")
     if "rego" in source_languages and not any(lang == "opa" for _, lang, _ in rows):
         issues.append("Rego code has no version-pinned OPA toolchain")
-    if "shell" in source_languages:
-        issues.append("Shell scripts span Bash/POSIX-sh executors; current interpreter and dialect acceptance is not yet mapped")
+    shell_issues, shell_facts = bash_gate(root, tracked, targets["bash"]["version"])
+    issues.extend(shell_issues)
+    facts.append(shell_facts)
     if "sql" in source_languages:
         issues.append("SQL code spans PostgreSQL/SQLite/osquery dialects; no exact per-consumer engine-version acceptance is recorded")
     counts = Counter(LANGUAGE_EXTENSIONS.get(Path(p).suffix, "") for p in tracked)
