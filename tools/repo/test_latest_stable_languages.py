@@ -91,7 +91,10 @@ class LatestStableLanguageTests(unittest.TestCase):
         self.assertTrue(any("UNAPPROVED EXCEPTION" in x for x in issues))
         self.assertTrue(any("3.12.13 is not latest" in x for x in issues))
 
-    def test_gdscript_without_engine_pin_cannot_be_certified(self) -> None:
+    def test_shell_without_interpreter_acceptance_is_noncompliant(self) -> None:
+        self.put("tools/deploy.sh", "#!/usr/bin/env bash\nset -e\n")
+        self.assertTrue(any("Shell scripts span Bash/POSIX-sh" in x for x in self.inspect()))
+
         self.put("game/player.gd", "extends Node\n")
         self.assertTrue(any("GDScript code" in x for x in self.inspect()))
 

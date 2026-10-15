@@ -184,6 +184,8 @@ def check(root: Path, *, today: dt.date) -> tuple[list[str], list[str], dict]:
         issues.append("PowerShell code has no version-pinned toolchain")
     if "rego" in source_languages and not any(lang == "opa" for _, lang, _ in rows):
         issues.append("Rego code has no version-pinned OPA toolchain")
+    if "shell" in source_languages:
+        issues.append("Shell scripts span Bash/POSIX-sh executors; current interpreter and dialect acceptance is not yet mapped")
     if "sql" in source_languages:
         issues.append("SQL code spans PostgreSQL/SQLite/osquery dialects; no exact per-consumer engine-version acceptance is recorded")
     counts = Counter(LANGUAGE_EXTENSIONS.get(Path(p).suffix, "") for p in tracked)
@@ -191,7 +193,7 @@ def check(root: Path, *, today: dt.date) -> tuple[list[str], list[str], dict]:
     facts.append(f"official stable versions: " + ", ".join(f"{k}={v['version']}" for k, v in targets.items()))
     facts.append(f"tracked language pin declarations: {len(rows)}; non-current: {stale}")
     facts.append(f"tracked code files by language: {dict(sorted(counts.items()))}")
-    facts.append("Non-pinned language carriers (Shell, PowerShell, GDScript, Rego, SQL) require additional engine/dialect proof; NOT certified compliant.")
+    facts.append("Source pin equality is only configuration evidence; native owner + live interpreter/dialect acceptance is separate.")
     return issues, facts, baseline
 
 
