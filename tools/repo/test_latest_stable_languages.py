@@ -58,6 +58,25 @@ class LatestStableLanguageTests(unittest.TestCase):
         self.put("x/package.json", '{"engines":{"node":"26.12.0"},"devDependencies":{"typescript":"7.0.2"}}')
         self.assertEqual(self.inspect(), [])
 
+    def test_ruff_latest_python_target_is_accepted(self) -> None:
+        self.put("x/pyproject.toml", (
+            '[project]\nname="x"\nversion="1"\nrequires-python="==3.15.0"\n'
+            '[tool.ruff]\ntarget-version="py315"\n'
+        ))
+        self.assertEqual(self.inspect(), [])
+
+    def test_old_ruff_python_target_is_rejected_even_when_runtime_is_latest(self) -> None:
+        for old_target in ("py311", "py314"):
+            with self.subTest(old_target=old_target):
+                self.put("x/pyproject.toml", (
+                    '[project]\nname="x"\nversion="1"\nrequires-python="==3.15.0"\n'
+                    f'[tool.ruff]\ntarget-version="{old_target}"\n'
+                ))
+                self.assertTrue(any(
+                    f"pyproject.toml#tool.ruff.target-version: python={old_target}" in issue
+                    for issue in self.inspect()
+                ))
+
     def test_stale_uv_build_backend_is_rejected(self) -> None:
         self.put("project/pyproject.toml", '[project]\nname="x"\nversion="1"\n[build-system]\nrequires=["uv_build>=0.12.3,<0.13.0"]\nbuild-backend="uv_build"\n')
         self.assertTrue(any("uv-build=>=0.12.3,<0.13.0" in x for x in self.inspect()))

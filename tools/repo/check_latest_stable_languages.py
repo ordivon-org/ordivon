@@ -68,6 +68,9 @@ def pin_rows(root: Path, tracked: list[str]) -> list[tuple[str, str, str]]:
             required_uv = pkg.get("tool", {}).get("uv", {}).get("required-version")
             if required_uv:
                 rows.append((path + "#tool.uv.required-version", "uv", str(required_uv)))
+            ruff_target = pkg.get("tool", {}).get("ruff", {}).get("target-version")
+            if ruff_target:
+                rows.append((path + "#tool.ruff.target-version", "python", str(ruff_target)))
         elif name == ".python-version":
             rows.append((path, "python", source.read_text(encoding="utf-8").strip()))
         elif name == "rust-toolchain.toml":
@@ -110,6 +113,9 @@ def is_exact_stable(value: str, target: str, *, path: str, language: str) -> boo
         return value == f">={target},<{higher}"
     if path.endswith("#tool.uv.required-version"):
         return value == f"=={target}"
+    if path.endswith("#tool.ruff.target-version"):
+        bits = target.split(".")
+        return value == f"py{bits[0]}{bits[1]}"
     if path.endswith("#project.requires-python"):
         # Package metadata is a compatibility range; an owner-local mise/
         # .python-version entry is still required to select exact runtime.
