@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/ai-redteam/regression-receipt-r1.json",
+  "title": "RegressionReceipt R1",
+  "description": "Study-local serialization of foundry.core.RegressionReceipt.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "receipt_id",
+    "finding_id",
+    "patch_owner",
+    "original_replay_passed",
+    "adaptive_retest_passed",
+    "utility_regression_passed",
+    "evidence_digest"
+  ],
+  "properties": {
+    "receipt_id": {"type": "string", "minLength": 1},
+    "finding_id": {"type": "string", "minLength": 1},
+    "patch_owner": {"type": "string", "minLength": 1},
+    "original_replay_passed": {"type": "boolean"},
+    "adaptive_retest_passed": {"type": "boolean"},
+    "utility_regression_passed": {"type": "boolean"},
+    "evidence_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  }
+}

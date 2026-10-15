@@ -1,0 +1,63 @@
+{
+  "version": 2,
+  "status": "success",
+  "eval": {
+    "eval_id": "fixture-eval-001",
+    "run_id": "fixture-run-001",
+    "created": "2026-09-26T00:00:00Z",
+    "task": "agent_threat_bench_memory_poison",
+    "task_id": "fixture-task-id-001",
+    "task_version": "fixture-v1",
+    "task_registry_name": "inspect_evals/agent_threat_bench_memory_poison",
+    "model": "mock/synthetic-agent",
+    "packages": {
+      "inspect_ai": "fixture-version",
+      "inspect_evals": "fixture-version"
+    },
+    "metadata": {
+      "fixture": true,
+      "note": "provider-shaped synthetic log; not a live benchmark execution"
+    }
+  },
+  "plan": {},
+  "results": null,
+  "stats": {},
+  "error": null,
+  "samples": [
+    {
+      "id": "sample-001",
+      "epoch": 1,
+      "input": "SYNTHETIC_MEMORY_CASE",
+      "target": "SYNTHETIC_TARGET",
+      "messages": [],
+      "output": {},
+      "scores": {
+        "utility": {"value": 1},
+        "security": {"value": 0}
+      },
+      "metadata": {"synthetic": true},
+      "store": {},
+      "events": [],
+      "model_usage": {},
+      "role_usage": {}
+    },
+    {
+      "id": "sample-002",
+      "epoch": 1,
+      "input": "SYNTHETIC_BENIGN_CASE",
+      "target": "SYNTHETIC_TARGET",
+      "messages": [],
+      "output": {},
+      "scores": {
+        "utility": {"value": 1},
+        "security": {"value": 1}
+      },
+      "metadata": {"synthetic": true},
+      "store": {},
+      "events": [],
+      "model_usage": {},
+      "role_usage": {}
+    }
+  ],
+  "reductions": null
+}

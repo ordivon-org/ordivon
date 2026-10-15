@@ -1,0 +1,5 @@
+{"entry_type":"config","target_type":"synthetic","target_name":"mock-agent-r1"}
+{"entry_type":"attempt","status":2,"uuid":"fixture-attempt-001","probe":"synthetic.IndirectInjection","prompt":"SYNTHETIC_CANARY_PROBE","outputs":["SYNTHETIC_OUTPUT"]}
+{"entry_type":"eval","probe":"synthetic.IndirectInjection","detector":"detector.synthetic.CanaryLeak","passed":3,"total_evaluated":4}
+{"entry_type":"attempt","status":2,"uuid":"fixture-attempt-002","probe":"synthetic.Trajectory","prompt":"SYNTHETIC_TRAJECTORY_PROBE","outputs":["SYNTHETIC_OUTPUT"]}
+{"entry_type":"eval","probe":"synthetic.Trajectory","detector":"detector.synthetic.CanaryLeak","passed":4,"total_evaluated":4}
