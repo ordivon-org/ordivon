@@ -18,12 +18,13 @@ BASELINE = ROOT / "tools/repo/latest_stable_languages.json"
 OFFICIAL_RELEASE_HOSTS = {
     "python": "www.python.org", "rust": "blog.rust-lang.org",
     "node": "nodejs.org", "godot": "godotengine.org",
-    "typescript": "github.com", "opa": "github.com",
+    "typescript": "github.com", "opa": "github.com", "uv": "github.com", "uv-build": "github.com",
     "powershell": "github.com", "sqlite": "www.sqlite.org",
     "postgresql": "www.postgresql.org", "osquery": "github.com",
 }
 OFFICIAL_RELEASE_PREFIXES = {
     "typescript": "/microsoft/TypeScript/releases/",
+    "uv": "/astral-sh/uv/releases/", "uv-build": "/astral-sh/uv/releases/",
     "opa": "/open-policy-agent/opa/releases/",
     "powershell": "/PowerShell/PowerShell/releases/",
     "osquery": "/osquery/osquery/releases/",
@@ -48,7 +49,7 @@ def pin_rows(root: Path, tracked: list[str]) -> list[tuple[str, str, str]]:
         name = source.name
         if name == "mise.toml":
             tools = tomllib.loads(source.read_text(encoding="utf-8")).get("tools", {})
-            for language in ("python", "rust", "node", "godot", "opa", "powershell"):
+            for language in ("python", "rust", "node", "godot", "opa", "powershell", "uv"):
                 pin = tools.get(language)
                 if isinstance(pin, dict):
                     pin = pin.get("version")
@@ -59,6 +60,13 @@ def pin_rows(root: Path, tracked: list[str]) -> list[tuple[str, str, str]]:
             required = project.get("requires-python")
             if required:
                 rows.append((path + "#project.requires-python", "python", str(required)))
+            pkg = tomllib.loads(source.read_text(encoding="utf-8"))
+            for build in pkg.get("build-system", {}).get("requires", []):
+                if isinstance(build, str) and build.startswith("uv_build"):
+                    rows.append((path + "#build-system.uv-build", "uv-build", build[len("uv_build"):]))
+            required_uv = pkg.get("tool", {}).get("uv", {}).get("required-version")
+            if required_uv:
+                rows.append((path + "#tool.uv.required-version", "uv", str(required_uv)))
         elif name == ".python-version":
             rows.append((path, "python", source.read_text(encoding="utf-8").strip()))
         elif name == "rust-toolchain.toml":
@@ -72,8 +80,9 @@ def pin_rows(root: Path, tracked: list[str]) -> list[tuple[str, str, str]]:
                 if isinstance(value, dict):
                     for key, item in value.items():
                         dotted = f"{prefix}.{key}" if prefix else key
-                        if key in {"python_version", "mcp_python_version"} and isinstance(item, str):
-                            rows.append((path + "#" + dotted, "python", item))
+                        if key in {"python_version", "mcp_python_version", "uv_version"} and isinstance(item, str):
+                            tool = "uv" if key == "uv_version" else "python"
+                            rows.append((path + "#" + dotted, tool, item))
                         elif isinstance(item, dict):
                             walk(item, dotted)
             walk(data)
@@ -94,6 +103,12 @@ def is_exact_stable(value: str, target: str, *, path: str, language: str) -> boo
         return True
     if language == "godot" and value == target + "-stable":
         return True
+    if path.endswith("#build-system.uv-build"):
+        bits = target.split(".")
+        higher = f"{bits[0]}.{int(bits[1])+1}.0"
+        return value == f">={target},<{higher}"
+    if path.endswith("#tool.uv.required-version"):
+        return value == f"=={target}"
     if path.endswith("#project.requires-python"):
         # Package metadata is a compatibility range; an owner-local mise/
         # .python-version entry is still required to select exact runtime.
@@ -144,7 +159,7 @@ def check(root: Path, *, today: dt.date) -> tuple[list[str], list[str], dict]:
     if observed > today or (today - observed).days > valid_days:
         issues.append(f"official stable-version evidence is stale: {observed} (max {valid_days} days)")
     targets = baseline["targets"]
-    if not set(("python", "rust", "node", "typescript", "godot", "opa", "powershell")).issubset(targets):
+    if not set(("python", "rust", "node", "typescript", "godot", "opa", "powershell", "uv", "uv-build")).issubset(targets):
         issues.append("language baselines incomplete")
     for language, item in targets.items():
         release = urlparse(item.get("officialRelease", ""))

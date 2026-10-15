@@ -1,7 +1,7 @@
 [tools]
 powershell = "7.6.7"
 python = "3.15.0"
-uv = "0.12.16"
+uv = "0.13.1"
 
 [tasks.verify]
 run = """

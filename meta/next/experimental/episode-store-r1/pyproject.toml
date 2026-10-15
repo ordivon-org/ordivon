@@ -26,7 +26,7 @@ packages = ["src/ordivon_experimental_episode_store"]
 
 [tool.uv]
 default-groups = ["test", "quality"]
-required-version = "==0.12.3"
+required-version = "==0.13.1"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

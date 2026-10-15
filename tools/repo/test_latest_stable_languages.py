@@ -19,7 +19,7 @@ TARGETS = {
     k: {"version": v, "officialRelease": json.loads(
         Path(__file__).with_name("latest_stable_languages.json").read_text()
     )["targets"][k]["officialRelease"]}
-    for k, v in (("python", "3.15.0"), ("rust", "1.99.0"), ("node", "26.12.0"), ("godot", "4.7.2"), ("typescript", "7.0.2"), ("opa", "1.21.2"), ("powershell", "7.6.7"), ("sqlite", "3.54.0"), ("postgresql", "18.6"), ("osquery", "5.23.1"))
+    for k, v in (("python", "3.15.0"), ("rust", "1.99.0"), ("node", "26.12.0"), ("godot", "4.7.2"), ("typescript", "7.0.2"), ("opa", "1.21.2"), ("powershell", "7.6.7"), ("uv", "0.13.1"), ("uv-build", "0.13.1"), ("sqlite", "3.54.0"), ("postgresql", "18.6"), ("osquery", "5.23.1"))
 }
 
 
@@ -54,9 +54,13 @@ class LatestStableLanguageTests(unittest.TestCase):
         self.put("x/.python-version", "3.15.0\n")
         self.put("x/rust-toolchain.toml", '[toolchain]\nchannel="1.99.0"\n')
         self.put("x/godot/mise.toml", '[tools]\ngodot="4.7.2-stable"\n')
-        self.put("x/pyproject.toml", '[project]\nname="x"\nversion="0.1"\nrequires-python="==3.15.0"\n')
+        self.put("x/pyproject.toml", '[project]\nname="x"\nversion="0.1"\nrequires-python="==3.15.0"\n[tool.uv]\nrequired-version="==0.13.1"\n')
         self.put("x/package.json", '{"engines":{"node":"26.12.0"},"devDependencies":{"typescript":"7.0.2"}}')
         self.assertEqual(self.inspect(), [])
+
+    def test_stale_uv_build_backend_is_rejected(self) -> None:
+        self.put("project/pyproject.toml", '[project]\nname="x"\nversion="1"\n[build-system]\nrequires=["uv_build>=0.12.3,<0.13.0"]\nbuild-backend="uv_build"\n')
+        self.assertTrue(any("uv-build=>=0.12.3,<0.13.0" in x for x in self.inspect()))
 
     def test_old_node_range_and_rust_pin_are_rejected(self) -> None:
         self.put("x/mise.toml", '[tools]\nrust="1.95.0"\n')
@@ -64,6 +68,10 @@ class LatestStableLanguageTests(unittest.TestCase):
         issues = self.inspect()
         self.assertTrue(any("rust=1.95.0" in x for x in issues))
         self.assertTrue(any("node=>=26.9.0 <27" in x for x in issues))
+
+    def test_provider_uv_version_pin_is_not_overlooked(self) -> None:
+        self.put("windows/provider.toml", '[provider]\nuv_version="0.12.3"\n')
+        self.assertTrue(any("windows/provider.toml#provider.uv_version" in x for x in self.inspect()))
 
     def test_independent_provider_python_config_pin_is_not_overlooked(self) -> None:
         self.put("windows/provider.toml", 'python_version="3.12.13"\n')

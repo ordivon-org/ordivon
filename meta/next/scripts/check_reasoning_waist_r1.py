@@ -11,11 +11,12 @@ from __future__ import annotations
 import importlib.metadata as md
 import json
 import platform
+from math import inf
 
-from ortools.sat.python import cp_model
 from pyshacl import validate
 from rdflib import RDF, Graph, Literal, Namespace
 from rdflib.namespace import SH
+from scipy.optimize import Bounds, LinearConstraint, milp
 from unified_planning.shortcuts import (
     BoolType,
     Fluent,
@@ -36,7 +37,7 @@ def require(condition: bool, message: object) -> None:
 
 def package_versions() -> dict[str, str]:
     return {
-        "ortools": md.version("ortools"),
+        "scipy": md.version("scipy"),
         "z3-solver": md.version("z3-solver"),
         "unified-planning": md.version("unified-planning"),
         "up-pyperplan": md.version("up-pyperplan"),
@@ -90,32 +91,38 @@ def validate_problem_shape() -> dict:
 
 
 def solve_configuration() -> dict:
-    model = cp_model.CpModel()
-    retrieve = model.new_bool_var("retrieve")
-    verify = model.new_bool_var("verify")
-    plan = model.new_bool_var("plan")
-    diagnose = model.new_bool_var("diagnose")
-    visualize = model.new_bool_var("visualize")
-
-    model.add(retrieve == 1)
-    model.add(verify == 1)
-    model.add(plan <= retrieve)
-    model.add(2 * retrieve + 3 * verify + 2 * plan + 4 * diagnose + visualize <= 8)
-    model.maximize(3 * retrieve + 5 * verify + 4 * plan + 2 * diagnose + visualize)
-
-    solver = cp_model.CpSolver()
-    status = solver.solve(model)
-    require(
-        status in (cp_model.OPTIMAL, cp_model.FEASIBLE),
-        f"OR-Tools solve failed: {status}",
+    # Exact bounded binary mixed-integer optimization of the original CP-SAT
+    # scenario. HiGHS (via SciPy) remains an independent, mature provider
+    # alongside the separate Z3 satisfiability and Pyperplan checks.
+    names = ("retrieve", "verify", "plan", "diagnose", "visualize")
+    costs = [2, 3, 2, 4, 1]
+    utilities = [3, 5, 4, 2, 1]
+    result = milp(
+        c=[-value for value in utilities],
+        integrality=[1] * len(names),
+        bounds=Bounds([1, 1, 0, 0, 0], [1] * len(names)),
+        constraints=LinearConstraint(
+            [costs, [-1, 0, 1, 0, 0]],
+            [-inf, -inf],
+            [8, 0],
+        ),
+        options={"time_limit": 10.0},
     )
-    vars_ = [retrieve, verify, plan, diagnose, visualize]
-    selected = {v.name: solver.value(v) for v in vars_}
+    require(result.success and result.x is not None, f"SciPy MILP solve failed: {result.message}")
+    selected = {name: round(float(value)) for name, value in zip(names, result.x, strict=True)}
     require(
-        selected["retrieve"] == 1 and selected["verify"] == 1,
-        "required capabilities not selected",
+        all(abs(float(value) - selected[name]) < 1e-6 for name, value in zip(names, result.x, strict=True)),
+        "MILP output is not an integral binary selection",
     )
-    return {"selected": selected, "objective": solver.objective_value}
+    require(selected["retrieve"] == 1 and selected["verify"] == 1, "required capabilities not selected")
+    require(
+        sum(costs[i] * selected[name] for i, name in enumerate(names)) <= 8
+        and selected["plan"] <= selected["retrieve"],
+        "selected capabilities violate source constraints",
+    )
+    objective = sum(utilities[i] * selected[name] for i, name in enumerate(names))
+    require(abs(objective + float(result.fun)) < 1e-6, "solver objective drift")
+    return {"selected": selected, "objective": float(objective)}
 
 
 def crosscheck_logic(config: dict) -> dict:
@@ -188,7 +195,7 @@ def main() -> int:
         "packageVersions": package_versions(),
         "checks": {
             "rdfShaclProblemShape": validate_problem_shape(),
-            "ortoolsConfiguration": configuration,
+            "scipyMilpConfiguration": configuration,
             "z3LogicCrosscheck": crosscheck_logic(configuration),
             "unifiedPlanning": generate_plan(),
         },

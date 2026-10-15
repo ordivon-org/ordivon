@@ -42,6 +42,14 @@
     "osquery": {
       "version": "5.23.1",
       "officialRelease": "https://github.com/osquery/osquery/releases/tag/5.23.1"
+    },
+    "uv": {
+      "version": "0.13.1",
+      "officialRelease": "https://github.com/astral-sh/uv/releases/tag/0.13.1"
+    },
+    "uv-build": {
+      "version": "0.13.1",
+      "officialRelease": "https://github.com/astral-sh/uv/releases/tag/0.13.1"
     }
   },
   "exceptions": []
