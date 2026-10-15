@@ -144,3 +144,7 @@ jobs:
 
       - name: Repository-wide secret scan
         run: mise run repo:secrets:verify
+
+      - name: Current committed-source secret scan
+        shell: bash
+        run: tools/repo/check_tracked_secrets.sh
