@@ -59,6 +59,11 @@ def config(path: Path = DEFAULT_CONTRACT) -> dict[str, Any]:
     port = int(value["cdp_port"])
     if not 1024 <= port <= 65535:
         raise RuntimeError("cdp_port must be an unprivileged TCP port")
+    # Existing historical packages retain their old .venv; new interpreter
+    # candidate installs never rewrite that active environment in place.
+    venv_relative = str(value.get("venv_relative", ".venv"))
+    if not re.fullmatch(r"\.venv(?:-py[0-9]+\.[0-9]+\.[0-9]+)?", venv_relative):
+        raise RuntimeError("venv_relative must be a version-specific local directory")
     if value.get("require_python_utf8") is not True:
         raise RuntimeError("Windows Jev provider must require Python UTF-8 mode")
     return value
@@ -104,6 +109,7 @@ def paths(cfg: dict[str, Any]) -> dict[str, Any]:
     uv_root = external / "uv" / str(cfg["uv_version"])
     python_root = external / "python"
     source_root = external / "jev-ultrafast" / str(cfg["source_revision"])
+    venv_root = source_root / str(cfg.get("venv_relative", ".venv"))
     return {
         "localAppDataWindows": local_win,
         "localAppDataWsl": local_wsl,
@@ -113,9 +119,10 @@ def paths(cfg: dict[str, Any]) -> dict[str, Any]:
         "pythonRoot": python_root,
         "pythonExe": python_root / str(cfg["python_distribution_dir"]) / "python.exe",
         "sourceRoot": source_root,
-        "venvPython": source_root / ".venv" / "Scripts" / "python.exe",
-        "jevExe": source_root / ".venv" / "Scripts" / "jev.exe",
-        "browserHarnessExe": source_root / ".venv" / "Scripts" / "browser-harness.exe",
+        "venvRoot": venv_root,
+        "venvPython": venv_root / "Scripts" / "python.exe",
+        "jevExe": venv_root / "Scripts" / "jev.exe",
+        "browserHarnessExe": venv_root / "Scripts" / "browser-harness.exe",
         "profile": local_wsl / str(cfg["profile_relative"]),
         "consumerSecretsRoot": local_wsl / str(cfg["consumer_secret_relative"]),
         "chrome": windows_to_wsl(str(cfg["chrome_path"])),
@@ -155,9 +162,10 @@ def package_state(cfg: dict[str, Any], p: dict[str, Any]) -> dict[str, Any]:
     if not python.is_file():
         return {"present": False, "jevVersion": None, "browserHarnessVersion": None, "exact": False}
     code = (
-        "import importlib.metadata as m,json;"
+        "import importlib.metadata as m,json,sys;"
         "print(json.dumps({'jev':m.version('jev-ultrafast'),"
-        "'browser_harness':m.version('browser-harness')}))"
+        "'browser_harness':m.version('browser-harness'),"
+        "'python':'.'.join(str(x) for x in sys.version_info[:3])}))"
     )
     env = dict(os.environ)
     env["PYTHONUTF8"] = "1"
@@ -170,9 +178,11 @@ def package_state(cfg: dict[str, Any], p: dict[str, Any]) -> dict[str, Any]:
         "present": proc.returncode == 0,
         "jevVersion": value.get("jev"),
         "browserHarnessVersion": value.get("browser_harness"),
+        "pythonVersion": value.get("python"),
         "exact": (
             value.get("jev") == str(cfg["jev_version"])
             and value.get("browser_harness") == str(cfg["browser_harness_version"])
+            and value.get("python") == str(cfg["python_version"])
         ),
     }
 
@@ -452,6 +462,7 @@ def sync_environment(cfg: dict[str, Any], p: dict[str, Any]) -> None:
     env["UV_PYTHON_INSTALL_DIR"] = wsl_to_windows(p["pythonRoot"])
     env["UV_MANAGED_PYTHON"] = "1"
     env["PYTHONUTF8"] = "1"
+    env["UV_PROJECT_ENVIRONMENT"] = wsl_to_windows(p["venvRoot"])
     proc = run(
         [
             str(p["uvExe"]),
@@ -503,7 +514,7 @@ def apply_provider(cfg: dict[str, Any]) -> dict[str, Any]:
         changed.append(str(p["sourceRoot"]))
     if not before["packages"]["exact"]:
         sync_environment(cfg, p)
-        changed.append(str(p["sourceRoot"] / ".venv"))
+        changed.append(str(p["venvRoot"]))
 
     after_physical = provider_status(cfg)
     if not after_physical["physicalHealthy"]:
