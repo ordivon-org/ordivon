@@ -39,6 +39,10 @@ Use when security loss can arise from authority or data-flow violations inside a
 ### Exploration policy -> causal intervention
 Use exploration policy to choose the next informative intervention only after the causal question and valid intervention space are defined.
 
+## Lifecycle handoff outside method selection
+
+Creating or adopting a new forward Ordivon Research Study is not itself a reasoning-method question. Route that action to `research-study-birth`, which delegates to the current Research-v2 Study Birth owner. Do not encode Research data-plane providers or project layout in this method map.
+
 ## No-route cases
 
 Do not activate a method Skill merely for:
