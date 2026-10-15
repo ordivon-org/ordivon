@@ -269,10 +269,10 @@ def check(root: Path, *, today: dt.date) -> tuple[list[str], list[str], dict]:
     issues.extend(shell_issues)
     facts.append(shell_facts)
     if "sql" in source_languages:
-        issues.append("SQL code spans PostgreSQL/SQLite/osquery dialects; no exact per-consumer engine-version acceptance is recorded")
+        facts.append("SQL dialect acceptance is delegated to the mandatory separate repo:sql:verify gate; not certified by this checker.")
     counts = Counter(LANGUAGE_EXTENSIONS.get(Path(p).suffix, "") for p in tracked)
     counts.pop("", None)
-    facts.append(f"official stable versions: " + ", ".join(f"{k}={v['version']}" for k, v in targets.items()))
+    facts.append("official stable versions: " + ", ".join(f"{k}={v['version']}" for k, v in targets.items()))
     facts.append(f"tracked language pin declarations: {len(rows)}; non-current: {stale}")
     facts.append(f"tracked code files by language: {dict(sorted(counts.items()))}")
     facts.append("Source pin equality is only configuration evidence; native owner + live interpreter/dialect acceptance is separate.")

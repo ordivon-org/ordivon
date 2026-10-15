@@ -30,6 +30,7 @@ python = "3.15.0"
 uv = "0.13.1"
 actionlint = "1.7.12"
 shellcheck = "0.11.0"
+sqlite = "3.54.0"
 gitleaks = "8.30.1"
 
 [tasks."repo:secrets:verify"]
@@ -54,11 +55,20 @@ done
 tools/repo/test-check-archived-source-boundary.sh
 """
 
+[tasks."repo:sql:verify"]
+run = """
+set -euo pipefail
+python3 -m unittest tools/repo/test_sql_dialects.py
+uv run --with pglast==8.6 python tools/repo/check_sql_dialects.py
+"""
+
 [tasks."repo:ci"]
 run = """
 set -euo pipefail
 python3 -m unittest tools/repo/test_latest_stable_languages.py
 python3 tools/repo/check_latest_stable_languages.py
+python3 -m unittest tools/repo/test_sql_dialects.py
+uv run --with pglast==8.6 python tools/repo/check_sql_dialects.py
 python3 tools/repo/test_affected_owners.py
 python3 tools/repo/test_convergence_plan.py
 python3 tools/repo/test_owner_boundaries.py
