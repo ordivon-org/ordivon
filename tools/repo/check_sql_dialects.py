@@ -22,6 +22,15 @@ SQLITE_STORAGE = "services/runtime/crates/ordivon-runtime-core/src/runtime/"
 OSQUERY_PREFIX = "platform/workstation/inventory/queries/"
 POSTGRESQL_FILE = "meta/next/scripts/experimental_episode_r5c_source_r1.sql"
 
+# Exact full-host inventories can traverse thousands of installed Python/npm
+# packages on an ephemeral CI runner. Keep them executable and bounded, not
+# replaced by a table-exists check or a mocked SQL parse.
+OSQUERY_TIMEOUT_SECONDS = {
+    "npm_packages.sql": 120,
+    "python_packages.sql": 120,
+}
+OSQUERY_DEFAULT_TIMEOUT_SECONDS = 30
+
 
 def classify(path: str) -> str | None:
     if path.startswith(OSQUERY_PREFIX) and path.endswith(".sql"):
@@ -44,7 +53,13 @@ def tracked_sql(root: Path) -> list[str]:
     ]
 
 
-def run_bounded(argv: list[str], *, cwd: Path, stdin: str | None = None) -> subprocess.CompletedProcess[str]:
+def run_bounded(
+    argv: list[str],
+    *,
+    cwd: Path,
+    stdin: str | None = None,
+    timeout: int = 20,
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         argv,
         cwd=cwd,
@@ -52,7 +67,7 @@ def run_bounded(argv: list[str], *, cwd: Path, stdin: str | None = None) -> subp
         text=True,
         capture_output=True,
         check=False,
-        timeout=20,
+        timeout=timeout,
     )
 
 
@@ -100,12 +115,23 @@ def check(root: Path) -> tuple[list[str], list[str]]:
         current = observed.group(1) if p.returncode == 0 and observed else "UNAVAILABLE"
         if current != EXPECTED["osquery"]:
             issues.append(f"osqueryi {current} != latest {EXPECTED['osquery']}")
+        passed = 0
         for name in grouped["osquery"]:
             query = (root / name).read_text(encoding="utf-8")
             if not re.match(r"^\s*SELECT\b", query, re.I):
                 issues.append(f"osqueryi query is not bounded read-only SELECT: {name}")
                 continue
-            result = run_bounded(["osqueryi", "--json", query], cwd=root)
+            seconds = OSQUERY_TIMEOUT_SECONDS.get(Path(name).name, OSQUERY_DEFAULT_TIMEOUT_SECONDS)
+            print(f"osquery native query: {name} (budget={seconds}s)", flush=True)
+            try:
+                result = run_bounded(
+                    ["osqueryi", "--json", query],
+                    cwd=root,
+                    timeout=seconds,
+                )
+            except subprocess.TimeoutExpired:
+                issues.append(f"osqueryi timed out after {seconds}s: {name}")
+                continue
             if result.returncode != 0:
                 issues.append(f"osqueryi execution failed: {name}: {result.stderr[-180:]}")
                 continue
@@ -115,7 +141,13 @@ def check(root: Path) -> tuple[list[str], list[str]]:
                     raise ValueError("not a JSON result list")
             except (json.JSONDecodeError, ValueError):
                 issues.append(f"osqueryi non-JSON result: {name}")
-        facts.append(f"osquery {current}: {len(grouped['osquery'])} read-only query executions checked")
+                continue
+            passed += 1
+            print(f"osquery native query passed: {name}; rows={len(rows)}", flush=True)
+        if passed == len(grouped["osquery"]):
+            facts.append(f"osquery {current}: all {passed} native read-only query executions PASS")
+        else:
+            facts.append(f"osquery {current}: {passed}/{len(grouped['osquery'])} native query executions PASS")
     except (OSError, subprocess.SubprocessError) as exc:
         issues.append(f"osquery native SQL evidence unavailable: {type(exc).__name__}")
     # Parsing a schema-dependent projection without executing against live DB.
