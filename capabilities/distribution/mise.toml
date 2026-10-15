@@ -1,8 +1,8 @@
 [tools]
-python = "3.14.7"
+python = "3.15.0"
 uv = "0.12.16"
 shellcheck = "0.11.0"
-opa = "1.20.2"
+opa = "1.21.2"
 
 [tasks.verify]
 run = """

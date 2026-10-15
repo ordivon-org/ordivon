@@ -2,7 +2,7 @@
 name = "ordivon-capital"
 version = "0.1.0"
 description = "Standards-first Ordivon Capital composition across Markets, Trading, Portfolio, Risk, Research, Governance, and Accounting"
-requires-python = "==3.14.7"
+requires-python = "==3.15.0"
 dependencies = [
     "websockets==17.1",
 ]

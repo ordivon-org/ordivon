@@ -6,7 +6,7 @@ build-backend = "uv_build"
 name = "ordivon-skills-bridge"
 version = "0.1.0"
 description = "Temporary standards-first Agent Skills compatibility bridge for Ordivon."
-requires-python = "==3.14.7"
+requires-python = "==3.15.0"
 license = "Apache-2.0"
 dependencies = [
   "mcp==2.0.0",

@@ -26,7 +26,7 @@ config_roots = [
 lockfile = false
 
 [tools]
-python = "3.14.7"
+python = "3.15.0"
 uv = "0.12.16"
 actionlint = "1.7.12"
 gitleaks = "8.30.1"
@@ -56,6 +56,8 @@ tools/repo/test-check-archived-source-boundary.sh
 [tasks."repo:ci"]
 run = """
 set -euo pipefail
+python3 -m unittest tools/repo/test_latest_stable_languages.py
+python3 tools/repo/check_latest_stable_languages.py
 python3 tools/repo/test_affected_owners.py
 python3 tools/repo/test_convergence_plan.py
 python3 tools/repo/test_owner_boundaries.py
