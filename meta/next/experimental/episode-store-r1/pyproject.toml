@@ -5,7 +5,7 @@ description = "Task-local PostgreSQL analytical consumer for Experimental Episod
 requires-python = "==3.15.0"
 dependencies = [
   "alembic==1.18.5",
-  "psycopg[binary]==3.3.5",
+  "psycopg[binary]==3.3.6",
   "sqlalchemy>=2.0,<3",
 ]
 
