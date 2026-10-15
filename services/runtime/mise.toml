@@ -13,3 +13,10 @@ cargo test --locked -p ordivon-runtime-core --no-default-features --features tra
 scripts/owner-environment extended
 python scripts/check_docs.py
 """
+
+[tasks."test:focused"]
+description = "Optional upstream cargo-nextest focused suite with native JUnit (RUNTIME_TEST_EXPR)"
+run = """
+set -euo pipefail
+cargo nextest run --locked --lib -p ordivon-runtime-core --no-default-features --features transactional-runtime --status-level pass -P ci -E "${RUNTIME_TEST_EXPR:-test(public_requests_reject_unknown_fields_and_path_escape)}"
+"""

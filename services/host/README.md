@@ -14,6 +14,17 @@ Host v1 is a behavioral/source oracle only. Host v2 does not import `ordivon_hos
 - Alembic exclusively owns schema creation and migration; the running Host only verifies schema readiness.
 - pytest/Hypothesis remain the executable verification layer.
 
+## Tests with mature upstream tools
+
+The public canonical-JSON boundary has a real [Hypothesis](https://github.com/HypothesisWorks/hypothesis)
+property/regression test in `tests/test_canonical_property.py`. Run the local
+Owner's native `mise run test:focused`; select any existing pytest node with
+`HOST_PYTEST_NODE=tests/test_contract_policy.py mise run test:focused`.
+Both tasks invoke installed pytest directly, not a new harness. Use
+`mise run verify` for the full Host Owner test gate; it can legitimately
+report database cases as SKIP without a database DSN, so focused/unit PASS
+never claims PostgreSQL integration qualification.
+
 ## Current product surface
 
 Host v2 runs Social Work Fabric schema 9 and exposes 21 MCP tools:

@@ -10,12 +10,44 @@ This is **navigation**, not a new test framework, a new Skill, or a second CI au
 4. **Execute** focused native test, then the Owner's `mise run verify` or documented queue qualification.
 5. **Acceptance** reports exact source SHA, tool/runtime, test count, positive/negative/equivalent cases and separate **PASS / FAIL / SKIP / NOT_RUN / ENV_BLOCKED** status. Local green does not equal protected GitHub green.
 
+## Executable Agent Tool binding — upstream Skills + native Owner commands
+
+This is task **Spec → established third-party testing SOP/Skill → task Plan →
+native Owner Tool → observed acceptance**. Never copy SKILL.md or invent a
+parallel Agent test framework. The installed Ordivon Skill MCP returns these
+approved exact IDs via `skills.search` / `skills.read`:
+
+- `obra-superpowers/test-driven-development` or `user-agents/tdd`: Red → Green
+  and behavior seams; choose one lead rather than duplicate two workflows.
+- `obra-superpowers/systematic-debugging`: diagnose reproducible test failures.
+- `obra-superpowers/verification-before-completion`: real execution before
+  claiming completion.
+
+Skill lookup is dynamic. If a binding is not visible to the requesting Agent,
+do not pretend it was activated. Execution uses the existing `mise` and
+framework-native test runners, **not a new Ordivon test dispatcher**.
+
+| Task | Direct native Tool | Evidence boundary |
+| --- | --- | --- |
+| Host Python property/contract example | `cd services/host && mise run test:focused` | Hypothesis `@given` on real RFC 8785 canonicalization, plus independent literal example |
+| Host another exact test node | `cd services/host && HOST_PYTEST_NODE=tests/test_contract_policy.py mise run test:focused` | Scoped pytest test, *not* whole Host DB verification |
+| Rust selected core test | `cd services/runtime && mise run test:focused` | Installed cargo-nextest optional runner, JUnit `target/nextest/ci/junit.xml` |
+| Rust another exact filter | `cd services/runtime && RUNTIME_TEST_EXPR='test(explicit_root_workspace_identity_is_not_forbidden_by_policy)' mise run test:focused` | That native test, not the entire Runtime suite |
+| Source Owner qualification | `cd services/host && mise run verify`, or `cd services/runtime && mise run verify` | The existing Owner full gate |
+| Find the actual executable surface | `cd services/host && mise tasks ls`, or `cd services/runtime && mise tasks ls` | Official mise task discovery; no custom registry |
+
+Host's `test_canonical_property.py` is an executable, reusable upstream
+Hypothesis idiom. An intentionally inverted equality produced a real failing
+two-key counterexample (RED); restoring the real contract passed (GREEN).
+The separate reference example has fixed RFC 8785 output bytes and does not
+derive its expectation from the implementation.
+
 ## Use these existing mature sources, not another Ordivon framework
 
 | Natural task | Preferred upstream / official docs | Ordivon native entry / decision |
 | --- | --- | --- |
 | Python behavior, fixtures, parameter tables | [pytest](https://github.com/pytest-dev/pytest), [fixtures](https://docs.pytest.org/en/stable/how-to/fixtures.html), [parametrize](https://docs.pytest.org/en/stable/how-to/parametrize.html) | `cd services/host && uv run python -m pytest -q tests/FILE.py`; also Harness/Gateway owner |
-| Python generated invariants | [Hypothesis](https://github.com/HypothesisWorks/hypothesis) | Already in Host dev dependencies. Test real public behavior, shrink counterexamples |
+| Python generated invariants | [Hypothesis](https://github.com/HypothesisWorks/hypothesis) | Already in Host; actual `test_canonical_property.py` runs with upstream Hypothesis via `mise run test:focused` |
 | Disposable PostgreSQL | [testcontainers-python](https://github.com/testcontainers/testcontainers-python) | Already in Host dev dependencies; qualified small real PG18 trial, **not** approved to replace Host queue (see binding caveat) |
 | Rust focused unit tests | [cargo-nextest](https://github.com/nextest-rs/nextest), [JUnit reference](https://nexte.st/docs/machine-readable/junit/) | `cd services/runtime && cargo nextest run --locked --lib -p ordivon-runtime-core --no-default-features --features transactional-runtime -E 'test(public_requests_reject_unknown_fields_and_path_escape)' -P ci`; native optional fast feedback |
 | Rust complete source gate | [Cargo](https://github.com/rust-lang/cargo) | Keep `cd services/runtime && mise run verify` (Cargo + clippy + environment + docs). Nextest does not replace it |

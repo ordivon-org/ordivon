@@ -130,6 +130,16 @@ Successful Linux Attempts may additionally register an immutable `resource_recei
 
 For installation and receipted deployment, follow [`docs/quickstart.md`](docs/quickstart.md) and [`docs/operations.md`](docs/operations.md).
 
+## Focused native Rust testing
+
+The optional `mise run test:focused` task calls upstream
+[cargo-nextest](https://github.com/nextest-rs/nextest) with the current
+Runtime feature profile and emits its native JUnit report under
+`target/nextest/ci/junit.xml`. Set `RUNTIME_TEST_EXPR` to the nextest
+filter expression for another exact native test. This is low-cost
+feedback; `mise run verify` still owns Runtime's full Cargo, Clippy,
+environment and docs gate. Filtered tests do not count as passed tests.
+
 ## First Runtime workflow
 
 A normal client journey is:
