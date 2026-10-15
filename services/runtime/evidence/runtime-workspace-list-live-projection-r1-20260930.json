@@ -1,0 +1,51 @@
+{
+  "implementation": {
+    "cacheAdded": false,
+    "change": "bounded parallel page-local HEAD/dirty Git probes for default list projection; exact source-state proof path remains serial",
+    "file": "crates/ordivon-runtime-core/src/runtime/engine/workspace.rs",
+    "publicSchemaChanged": false,
+    "registrySchemaChanged": false,
+    "truthOwnerChanged": false
+  },
+  "kind": "ordivon.runtime-workspace-list-live-projection-r1",
+  "microbenchmark": {
+    "inventoryReadMs": 3932.7,
+    "jobId": "job-01a0f1d8-4750-70b1-a917-b41f89a9d2a6",
+    "parallelGitStatus20Ms": {
+      "workers2": 3901.59,
+      "workers4": 957.52,
+      "workers8": 674.34
+    },
+    "readDirMs": 281.92,
+    "scope": "same live physical Workspace inventory; 20 newest Workspace Git status probes; read-only subprocess timing",
+    "selectedBoundedParallelism": 4,
+    "serialGitStatus20Ms": 27729.32
+  },
+  "nextGate": "build/run candidate Runtime or equivalent owner benchmark, then separately address physical inventory scan if still material",
+  "nonClaims": [
+    "microbenchmark is not an end-to-end candidate Runtime workspace.list benchmark",
+    "does not qualify the all-physical-workspace inventory scan, which remained about 3.9 seconds in this observation",
+    "does not change or weaken exact sourceStateDigest semantics",
+    "does not establish the final workspace.list performance SLO"
+  ],
+  "problem": {
+    "contract": "workspace.list default projection with includeSourceStateDigest=false",
+    "observedEndpointBaseline30m": {
+      "p50Ms": 22773,
+      "p95Ms": 177533
+    },
+    "physicalWorkspaceCount": 366
+  },
+  "schemaVersion": 1,
+  "sourceBase": "8a4268ddb8136a9985702a68a12fee05b3f60ac2",
+  "status": "candidate-qualified-focused",
+  "verification": {
+    "cargoFmt": "PASS",
+    "clippyDenyWarnings": "PASS",
+    "gitDiffCheck": "PASS",
+    "jobId": "job-01a0f1dd-f705-7a53-8eac-72b9368b7f4a",
+    "workspaceListTests": "5/5 PASS",
+    "workspaceListingRecoveryTest": "1/1 PASS"
+  },
+  "workspaceId": "ws-runtime-p1-projection-r1-20260930"
+}
