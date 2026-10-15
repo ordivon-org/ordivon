@@ -105,6 +105,45 @@ class LifecycleTests(unittest.TestCase):
             # A standalone source's explicit HEAD fallback is preserved.
             self.assertEqual(inspect({**planned, "canonicalRef": "HEAD"}), local_head)
 
+    def test_reclaim_planner_and_lifecycle_revalidator_share_published_ref(self) -> None:
+        """Real producer/consumer contract: a moving local HEAD is not publication drift."""
+        inspect_reclaim = runpy.run_path(str(REPO / "scripts/ordivon-runtime-reclaim"))
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = root / "source"
+            baseline = init_repository(repo)
+            published = "refs/remotes/origin/main"
+            subprocess.run(["git", "-C", str(repo), "update-ref", published, baseline], check=True)
+            worktree = root / "workspace"
+            subprocess.run(
+                ["git", "-C", str(repo), "worktree", "add", "--detach", "-q", str(worktree), baseline],
+                check=True,
+            )
+
+            # A developer advances only the local canonical checkout.
+            (repo / "README.md").write_text("unpublished source update\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(repo), "add", "README.md"], check=True)
+            subprocess.run(["git", "-C", str(repo), "commit", "-qm", "unpublished"], check=True)
+            local_head = subprocess.check_output(
+                ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+            ).strip()
+            self.assertNotEqual(baseline, local_head)
+
+            planned = inspect_reclaim["git_canonical_integration"](worktree, str(repo))
+            self.assertEqual(planned["canonicalRef"], "origin/main")
+            self.assertEqual(planned["canonicalHeadRevision"], baseline)
+            self.assertEqual(
+                self.module["canonical_head_revision"]({**planned, "sourceRepo": str(repo)}),
+                planned["canonicalHeadRevision"],
+            )
+
+            # Only an actual publication-ref change invalidates the existing plan.
+            subprocess.run(["git", "-C", str(repo), "update-ref", published, local_head], check=True)
+            self.assertNotEqual(
+                self.module["canonical_head_revision"]({**planned, "sourceRepo": str(repo)}),
+                planned["canonicalHeadRevision"],
+            )
+
     def test_canonical_currentness_rejects_missing_or_unknown_ref(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory) / "source"
