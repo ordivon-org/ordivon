@@ -280,6 +280,32 @@ def _runtime_dependency_closure_projection(revision: str) -> dict[str, object]:
     }
 
 
+def _runtime_python_compatibility_projection(
+    revision: str,
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """Track Python requirements without changing historical dependency digests.
+
+    Existing evidence receipts pin the prior digest algorithm and its bytes.
+    The independent compatibility check catches otherwise invisible drift.
+    """
+    project = tomllib.loads(_git_file_bytes(revision, "pyproject.toml").decode("utf-8"))
+    lock = tomllib.loads(_git_file_bytes(revision, "uv.lock").decode("utf-8"))
+    metadata = project.get("project")
+    project_requirement = metadata.get("requires-python") if isinstance(metadata, dict) else None
+    normalized: list[tuple[str, ...]] = []
+    for source, requirement in (
+        ("pyproject.toml", project_requirement),
+        ("uv.lock", lock.get("requires-python")),
+    ):
+        if not isinstance(requirement, str) or not requirement.strip():
+            raise ValueError(f"{source} omits requires-python")
+        specifiers = tuple(sorted("".join(part.split()) for part in requirement.split(",")))
+        if any(not part for part in specifiers):
+            raise ValueError(f"{source} has an invalid requires-python specifier")
+        normalized.append(specifiers)
+    return normalized[0], normalized[1]
+
+
 def _runtime_dependency_closure_digest(revision: str) -> str:
     encoded = json.dumps(
         _runtime_dependency_closure_projection(revision),
@@ -340,7 +366,11 @@ def _verified_revision_is_current(
             raise ValueError(
                 "scoped runtime dependency digest differs from its implementation revision"
             )
-        if _runtime_dependency_closure_digest("HEAD") != runtime_dependency_closure_digest:
+        if (
+            _runtime_dependency_closure_digest("HEAD") != runtime_dependency_closure_digest
+            or _runtime_python_compatibility_projection(revision)
+            != _runtime_python_compatibility_projection("HEAD")
+        ):
             invalidating.append(_RUNTIME_DEPENDENCY_INVALIDATOR)
     return not invalidating, invalidating
 

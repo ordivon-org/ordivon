@@ -30,7 +30,10 @@ from ordivon_host_v2.social_work import (
 from ordivon_host_v2.work_store import WorkStore
 
 DSN = os.environ.get("ORDIVON_HOST_V2_TEST_DSN")
-pytestmark = pytest.mark.skipif(not DSN, reason="ORDIVON_HOST_V2_TEST_DSN not set")
+pytestmark = [
+    pytest.mark.skipif(not DSN, reason="ORDIVON_HOST_V2_TEST_DSN not set"),
+    pytest.mark.usefixtures("host_test_db_ready"),
+]
 
 
 def refs(label: str) -> tuple[str, str]:
