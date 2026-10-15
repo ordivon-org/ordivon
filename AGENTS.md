@@ -7,3 +7,4 @@
 5. Root tooling may orchestrate checks but may not redefine owner truth.
 6. Do not unify lockfiles, environments, databases, releases, or scientific state as a repository-cleanup shortcut.
 7. Keep source relocation separate from semantic refactoring.
+8. Before designing a test template or automation, consult `docs/architecture/TESTING_UPSTREAM_ADOPTION_R1.md`; reuse the Owner's existing upstream framework and existing mature Skills. SKIP and NOT_RUN are not PASS.
