@@ -108,13 +108,24 @@ def solve_configuration() -> dict:
         ),
         options={"time_limit": 10.0},
     )
-    require(result.success and result.x is not None, f"SciPy MILP solve failed: {result.message}")
-    selected = {name: round(float(value)) for name, value in zip(names, result.x, strict=True)}
     require(
-        all(abs(float(value) - selected[name]) < 1e-6 for name, value in zip(names, result.x, strict=True)),
+        result.success and result.x is not None,
+        f"SciPy MILP solve failed: {result.message}",
+    )
+    selected = {
+        name: round(float(value)) for name, value in zip(names, result.x, strict=True)
+    }
+    require(
+        all(
+            abs(float(value) - selected[name]) < 1e-6
+            for name, value in zip(names, result.x, strict=True)
+        ),
         "MILP output is not an integral binary selection",
     )
-    require(selected["retrieve"] == 1 and selected["verify"] == 1, "required capabilities not selected")
+    require(
+        selected["retrieve"] == 1 and selected["verify"] == 1,
+        "required capabilities not selected",
+    )
     require(
         sum(costs[i] * selected[name] for i, name in enumerate(names)) <= 8
         and selected["plan"] <= selected["retrieve"],
