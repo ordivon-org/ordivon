@@ -75,6 +75,49 @@ class LifecycleTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-lifecycle"))
 
+    def test_canonical_currentness_checks_the_planners_ref_not_local_head(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory) / "source"
+            baseline = init_repository(repo)
+            published = "refs/remotes/origin/main"
+            subprocess.run(["git", "-C", str(repo), "update-ref", published, baseline], check=True)
+
+            # Source checkout moves, but published source remains unchanged.
+            (repo / "README.md").write_text("local-only update\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(repo), "add", "README.md"], check=True)
+            subprocess.run(["git", "-C", str(repo), "commit", "-qm", "local only"], check=True)
+            local_head = subprocess.check_output(
+                ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+            ).strip()
+            self.assertNotEqual(baseline, local_head)
+
+            inspect = self.module["canonical_head_revision"]
+            planned = {
+                "sourceRepo": str(repo),
+                "canonicalHeadRevision": baseline,
+                "canonicalRef": "origin/main",
+            }
+            self.assertEqual(inspect(planned), baseline)
+            # A real publication change is still detected; never bypass drift.
+            subprocess.run(["git", "-C", str(repo), "update-ref", published, local_head], check=True)
+            self.assertNotEqual(inspect(planned), baseline)
+
+            # A standalone source's explicit HEAD fallback is preserved.
+            self.assertEqual(inspect({**planned, "canonicalRef": "HEAD"}), local_head)
+
+    def test_canonical_currentness_rejects_missing_or_unknown_ref(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory) / "source"
+            baseline = init_repository(repo)
+            inspect = self.module["canonical_head_revision"]
+            planned = {"sourceRepo": str(repo), "canonicalHeadRevision": baseline}
+            for bad in (None, "refs/heads/main", "", "HEAD~1"):
+                with self.subTest(ref=bad):
+                    with self.assertRaises(RuntimeError):
+                        inspect({**planned, "canonicalRef": bad})
+            with self.assertRaises(RuntimeError):
+                inspect({**planned, "canonicalRef": "origin/main"})
+
     def test_lifecycle_inspect_cli_accepts_bounded_workspace_selection(self) -> None:
         previous = sys.argv
         sys.argv = [
