@@ -122,3 +122,43 @@ Physical-device closure remains open: no USB-present Apple device, tunnel, signi
 ## Repository-wide gate note
 
 Fresh mise run repo:ci on both the exact mobile candidate and the unmodified ffd2f37b base fails at the same pre-existing retirement-policy check: docs/superpowers/plans/2026-10-17-oss-contribution-operating-profile-r1.md is forbidden by next-monorepo-archive. The candidate does not touch that path. Workstation owner-native verification remains green; this repository-wide baseline drift is tracked separately and must not be misreported as a mobile regression.
+
+
+## DeviceKit 0.0.34 compatibility closure
+
+Fresh 2026-10-17 evidence tightened the runner contract from "current DeviceKit" to one exact artifact.
+
+mobilecli 1.0.20:
+- registry carrier SHA-256: `018dcec38ee4f39ef24fd0987d85e04914294651b8da770c647f21ca04029aa4`;
+- build VCS revision: `b8bd2f90d2af74b2242f5da79e87055e4056d48d`;
+- exact `commands/agent.go` at that revision pins `agentVersionIOS = "0.0.34"`;
+- exact runner filename: `devicekit-ios-runner.ipa`;
+- pinned runner SHA-256: `a39446db09d998289bd2f0821870bb5d9a73330a9f2a3f1f67546b2dd69370bf`;
+- installed runner lookup accepts a re-signed bundle by suffix, so team-prefix rewriting does not break discovery.
+
+Fresh official release replay:
+- URL: `https://github.com/mobile-next/devicekit-ios/releases/download/0.0.34/devicekit-ios-runner.ipa`;
+- observed size: 12,451,974 bytes;
+- observed SHA-256: `a39446db09d998289bd2f0821870bb5d9a73330a9f2a3f1f67546b2dd69370bf`;
+- observed digest exactly equals mobilecli 1.0.20's pinned checksum.
+
+Therefore the old go-ios default DeviceKit 0.0.18 download is not the selected runner for the mobilecli route. The compatible runner contract is DeviceKit iOS 0.0.34.
+
+## Windows bootstrap currentness
+
+mobilecli 1.0.20 documents real-iOS agent installation, but its exact `utils/resign.go` still resolves signing identity through `/usr/bin/security` and signs with `codesign`. Upstream issue `mobile-next/mobilecli#380` remains open for Windows real-device agent installation.
+
+Local go-ios 1.3.2 help independently proves a Windows-native replacement path:
+- `ios ui install (wda | devicekit) --p12file=<p12file> --profile=<mobileprovision> --path=<ipaOrZipOrApp>`;
+- `ios sign app --path=<ipaOrAppFolder> --p12file=<p12file> --profile=<mobileprovision>`;
+- `ios sign provision appstoreconnect ... --asc-private-key=<p8file> ...`.
+
+No signing command was executed because no physical Apple USB device or approved signing authority is present. This is an explicit non-claim.
+
+## Fresh physical boundary
+
+A fresh Windows Runtime limited probe after the runner analysis still reported:
+- Apple USB VID_05AC present count: 0;
+- Apple Mobile Device Service: Running / Automatic.
+
+No tunnel, signing, install, UI effect, or recovery effect was attempted.
