@@ -105,3 +105,9 @@ def test_broad_position_reads_use_official_sdk_without_symbol_filter():
     assert "usdm.position_information_v3,\n            recv_window=5000" in src
     assert "usdm.current_all_open_orders,\n            recv_window=5000" in src
     assert 'parser.add_argument("--symbol", default=None)' in src
+
+
+def test_binance_runner_uses_network_owner_native_readiness():
+    runner = (ROOT / "scripts/capture-binance-usdm-private-r1").read_text()
+    assert "/usr/local/libexec/network-v2/finance-ready" in runner
+    assert "check-network-v2-public-data" not in runner
