@@ -24,7 +24,7 @@ dependencies = [
 mcp = ["mcp==2.2.0"]
 
 [dependency-groups]
-dev = ["ruff==0.15.17"]
+dev = ["ruff==0.16.9"]
 test = [
   "mcp==2.2.0",
   "uvicorn==0.52.1",
