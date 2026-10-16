@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.research.provider-gateway-current-convergence-r5",
+  "observedDate": "2026-10-16",
+  "canonicalMainAtAdmission": "fe38a315ef87b65cb1c5e0e910f19dad625af9f9",
+  "hostEvidence": "message:cc-switch-capacity:api-registry-generic-gateway-r5:20261016",
+  "standing": "OPERATOR_CREDENTIAL_MIGRATION_READY",
+  "carrierPlan": {
+    "path": "PROVIDER_API_CARRIERS_R5.json",
+    "totalCarriers": 15,
+    "providers": {
+      "deepseek": 6,
+      "google": 5,
+      "openrouter": 1,
+      "cerebras": 1,
+      "nvidia": 1,
+      "bigmodel": 1
+    },
+    "authorityPolicy": "research/evidence mapping only; no global provider-status registry",
+    "ccProjectionPolicy": "Runtime CredentialAuthority is source truth; CC Switch provider config is rebuildable projection"
+  },
+  "credentialMigration": {
+    "wizard": "provision_model_provider_credentials.sh",
+    "standing": "STATICALLY_QUALIFIED_NOT_EXECUTED",
+    "requires": "root operator on canonical Linux host",
+    "sourceCarriersMode": "0600 verified",
+    "encryption": "systemd-creds encrypt --with-key=host",
+    "runtimeEnvironment": "/etc/ordivon/ordivon-runtime.env",
+    "runtimeService": "ordivon-runtime.service",
+    "aclSource": "inherit exact allowedPrincipals from existing openrouter-provider authority",
+    "authorities": [
+      "openrouter-provider",
+      "deepseek-provider",
+      "google-provider",
+      "cerebras-provider",
+      "nvidia-provider",
+      "bigmodel-provider"
+    ],
+    "secretInRuntimeEnv": false,
+    "secretInGit": false,
+    "agentExecutedRootEffect": false,
+    "staticGateJob": "job-01a14573-ef69-73a2-9837-67b838558dc1"
+  },
+  "readonlyProbe": {
+    "script": "provider_api_readonly_probe.py",
+    "standing": "QUALIFIED",
+    "probes": [
+      "deepseek-balance",
+      "openrouter-key",
+      "gemini-openai-models",
+      "openai-models"
+    ],
+    "networkProxy": "http://127.0.0.1:19881",
+    "secretEmitted": false,
+    "selfTest": "PASS",
+    "liveOpenRouterEvidence": {
+      "job": "job-01a14572-0650-7191-8372-5b98b5c57661",
+      "httpStatus": 401,
+      "authStanding": "HOLD",
+      "failureClass": "provider_auth_http_401"
+    }
+  },
+  "ccSecureSync": {
+    "script": "sync_cc_provider_from_runtime_credential.py",
+    "standing": "QUALIFIED_CREATE_ONLY",
+    "credentialIngress": "CREDENTIALS_DIRECTORY only",
+    "secretInArgv": false,
+    "temporarySettingsConfig": {
+      "mode": "0600",
+      "removedBeforeJobReturn": true
+    },
+    "idempotence": "existing provider ID returns ALREADY_PRESENT without reading credential plaintext",
+    "rotationPolicy": "new versioned provider ID; do not mutate CC SQLite or automate TTY-only delete",
+    "isolatedE2eJob": "job-01a14578-469b-7602-8d0b-b14e54c9b01f",
+    "openrouterNextProjection": "ordivon-openrouter-1",
+    "openrouterSupersedes": "ordivon-openrouter-0"
+  },
+  "ccObservedConstraints": {
+    "metadataOnlyAdd": "UNSUPPORTED_API_KEY_REQUIRED",
+    "deleteHeadless": "UNSUPPORTED_TTY_CONFIRMATION_REQUIRED",
+    "rawConfigFile": "SUPPORTED",
+    "codexSerializer": "Codex live config normalizes custom provider to client-side responses wire while CC api_format metadata owns chat translation; therefore CC live config is not Harness execution authority"
+  },
+  "canonicalHarness": {
+    "main": "fe38a315ef87b65cb1c5e0e910f19dad625af9f9",
+    "providerCapacityCommit": "0d12223bdf",
+    "apiCapacityCommit": "407f363662",
+    "genericOpenAIChatGatewayCommit": "fe38a315ef",
+    "latestQualifiedQueue": "1203 passed, 2 deselected, 114 subtests"
+  },
+  "externalBlocks": {
+    "codexSubscriptionOAuth": "HOLD_EXTERNAL_PROVIDER_POLICY_403_UNSUPPORTED_COUNTRY_REGION_TERRITORY",
+    "openrouterCurrentRuntimeCredential": "AUTH_HOLD_401"
+  },
+  "nextFrontier": [
+    "Human operator runs the statically qualified credential migration wizard once on the canonical Linux host.",
+    "Agent verifies runtime.describe exposes all six model-provider CredentialAuthorities.",
+    "Agent runs read-only provider-native probes for all 15 credentials.",
+    "Only AUTH PASS credentials are synchronized into CC Switch; OpenRouter uses versioned provider ID ordivon-openrouter-1.",
+    "Agent composes sanitized ProviderApiCapacitySnapshot evidence and qualifies one bounded/free canary per admitted API route.",
+    "Run-birth route filtering remains fixed-policy and capacity-aware; no hidden fallback/bandit until multi-route feedback is attributable."
+  ],
+  "nonClaims": [
+    "The operator credential migration has not been executed by this agent.",
+    "The 14 non-OpenRouter carriers are not yet registered in CC Switch.",
+    "Current OpenRouter Runtime credential is not authenticated.",
+    "Codex subscription OAuth is not available.",
+    "No Provider API key bytes were emitted into Harness, Host, Git, or Runtime result artifacts."
+  ],
+  "qualification": {
+    "staticGate": {
+      "standing": "PASS",
+      "job": "job-01a14579-8c68-78d3-954c-4c9858f2f60a",
+      "checks": [
+        "wizard bash -n",
+        "wizard shellcheck excluding template-owned unused RED color SC2034",
+        "readonly probe self-test",
+        "secure CC sync self-test",
+        "Python compile",
+        "carrier/convergence JSON parse",
+        "git diff --check"
+      ]
+    },
+    "secureCcSyncIsolatedE2E": {
+      "standing": "PASS",
+      "job": "job-01a14578-469b-7602-8d0b-b14e54c9b01f",
+      "properties": [
+        "mode-0600 config-file projection creation",
+        "secret absent from argv",
+        "temporary config removed",
+        "idempotent existing-ID no-op without credential plaintext read"
+      ]
+    },
+    "repoCi": {
+      "standing": "BLOCKED_PREEXISTING_RETIREMENT_BASELINE",
+      "candidateJob": "job-01a1457a-65f6-7812-a0d7-1c075c823f22",
+      "baselineReproductionJob": "job-01a1457b-6b7f-72a0-a5af-9b1b47bb6f99",
+      "failedPolicy": "next-monorepo-archive",
+      "expectedArchivedTree": "320474d446f58462b9ed0b5a9fef3529c44f01d0",
+      "baseArchivedTree": "1d8582c61c2b6e588fbb1894809d5eb6b5b787ab",
+      "candidateArchivedTree": "1d8582c61c2b6e588fbb1894809d5eb6b5b787ab",
+      "candidateMetaNextDiffCount": 0,
+      "candidateImplicated": false,
+      "precedingRepoChecks": "affected owners / architecture / constitution / archived standalone boundaries PASS before baseline failure"
+    }
+  }
+}

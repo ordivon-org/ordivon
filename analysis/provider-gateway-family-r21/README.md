@@ -81,3 +81,16 @@ Earlier observed source identities are retained as superseded provenance, not cu
 - Wider Harness regression passed 60 tests plus 23 subtests. The canonical queue is currently blocked before this delta by unrelated Browser/Agent-Automation Ruff violations; those paths remain with their natural owners.
 - Runtime openrouter-provider/api_key rotation remains blocked because no authorized CredentialAuthority write Tool is currently exposed; no mutation was attempted through a bypass.
 - See CURRENT_CONVERGENCE_R4.json for exact method fences, file digests, Runtime Jobs, qualified properties, non-claims, and next frontier.
+
+## Current convergence R5
+
+- Canonical Harness now owns the qualified capacity/admission and single-provider OpenAI-chat seams; CC Switch remains inventory/capacity/provider-projection tooling rather than Harness execution authority.
+- The local model-provider census has 15 existing carriers: DeepSeek x6, Google x5, and one each for OpenRouter, Cerebras, NVIDIA, and BigModel/GLM. PROVIDER_API_CARRIERS_R5.json is research/evidence mapping only, not a live provider registry.
+- provider_api_readonly_probe.py consumes exactly one Runtime CredentialAuthority binding and emits sanitized auth/rate/spend evidence without secret bytes. Its live OpenRouter probe correctly returns AUTH_HOLD on the current stale/invalid 401 authority.
+- sync_cc_provider_from_runtime_credential.py creates an idempotent CC provider projection from a Runtime-delivered credential using a mode-0600 temporary settings_config; the secret is absent from process argv and the temporary file is removed before Job completion. Existing IDs are not mutated headlessly because CC 5.11.1 deletion requires TTY confirmation; rotations use a new versioned projection ID instead.
+- provision_model_provider_credentials.sh is a one-shot operator wizard built on the installed wizard template. It validates the existing 0600 legacy carriers, encrypts them with systemd-creds, preserves and atomically extends ORDIVON_CREDENTIAL_AUTHORITIES_JSON, inherits the existing openrouter-provider principal ACL instead of inventing one, and restarts only ordivon-runtime.service. The wizard is statically qualified but intentionally not executed by the Agent because CredentialAuthority provisioning is operator-owned.
+- After that single operator cutover, the remaining pipeline is Agent-automatable: runtime.describe currentness -> provider-native read-only auth/capacity probes -> AUTH-PASS CC projection -> Harness capacity snapshot/admission -> bounded/free route canary.
+- Codex subscription OAuth remains a separate external-policy HOLD after provider 403 unsupported_country_region_territory; no region bypass is part of this lane.
+- Repository-wide CI reaches the pre-existing next-monorepo-archive retirement drift: canonical main and this candidate both have meta/next tree 1d8582c6 while the policy pins 320474d4; the R5 delta changes zero meta/next paths. R5 records this bounded baseline instead of altering the retirement owner.
+
+See CURRENT_CONVERGENCE_R5.json for exact standings and evidence Jobs.
