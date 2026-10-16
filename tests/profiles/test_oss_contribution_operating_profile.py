@@ -1,6 +1,6 @@
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = Path(__file__).resolve().parents[2]
 PACKAGE = ROOT / "catalogs/capabilities/packages/multi-agent-work.md"
 INDEX = ROOT / "catalogs/capabilities/packages/INDEX.md"
 OPERATING = ROOT / "docs/architecture/LONG_RUNNING_MULTI_AGENT_WORK_OPERATING_PROFILE_R1.md"

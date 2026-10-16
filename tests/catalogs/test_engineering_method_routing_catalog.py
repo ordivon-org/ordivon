@@ -2,7 +2,7 @@ import json
 from collections import Counter
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = Path(__file__).resolve().parents[2]
 CATALOG = ROOT / 'catalogs/capabilities/packages/engineering-method-routing-r1.json'
 CARD = ROOT / 'catalogs/capabilities/packages/engineering.md'
 

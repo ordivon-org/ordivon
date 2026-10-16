@@ -2,7 +2,7 @@ import csv
 import json
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = Path(__file__).resolve().parents[2]
 LESSONS = ROOT / 'catalogs/knowledge/lessons'
 CENSUS = LESSONS / 'github-top1000-repository-census-r1.json'
 CSV = LESSONS / 'github-top1000-repository-census-r1.csv'

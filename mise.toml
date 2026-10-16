@@ -99,6 +99,7 @@ python3 tools/repo/check_architecture_docs.py
 mise run repo:retirement:verify
 uv run --with pytest==9.1.1 python -m pytest -q tools/repo/test_composition_architecture.py tools/repo/test_structure_r2.py tools/repo/test_architecture_constitution.py tools/repo/test_architecture_docs.py tools/repo/test_convergence_pressure.py
 uv run --with pytest==9.1.1 python -m pytest -q tests/catalogs/test_authority_catalog.py tests/catalogs/test_model_foundry_r2.py tests/catalogs/test_model_foundry_substitution_canary.py tests/skills/test_web_provider_routing.py tests/extensions/test_materialize_agent_plugin.py
+uv run --with pytest==9.1.1 python -m pytest -q tests/catalogs/test_engineering_method_routing_catalog.py tests/catalogs/test_github_top1000_contribution_census.py tests/profiles/test_oss_contribution_operating_profile.py
 mise run whole-system-review:verify
 mise run experimental-episode-store:verify
 mise run research-study:verify

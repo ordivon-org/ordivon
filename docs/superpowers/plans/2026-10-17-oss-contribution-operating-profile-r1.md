@@ -73,7 +73,7 @@
 ### Task 4: Add architectural regression tests
 
 **Files:**
-- Create: meta/next/tests/test_oss_contribution_operating_profile.py
+- Create: tests/profiles/test_oss_contribution_operating_profile.py
 
 **Interfaces:**
 - Consumes: the package, generic profile, OSS profile, glossary, and package index.
