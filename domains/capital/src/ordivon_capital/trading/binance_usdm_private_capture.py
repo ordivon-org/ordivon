@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 from collections.abc import Callable
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -41,7 +42,9 @@ def _oneof(value: Any) -> Any:
 def permission_gate(permission: dict[str, Any]) -> dict[str, Any]:
     reading = permission.get("enable_reading") is True
     writes = {name: permission.get(name) is True for name in WRITE_CAPABLE_PERMISSION_FIELDS}
-    safe = reading and not any(writes.values())
+    safe = reading and all(
+        permission.get(name) is False for name in WRITE_CAPABLE_PERMISSION_FIELDS
+    )
     return {
         "safe": safe,
         "enableReading": reading,
@@ -64,7 +67,7 @@ def _call(name: str, fn: Callable[..., Any], **kwargs: Any) -> dict[str, Any]:
 
 def capture(
     *,
-    symbol: str,
+    symbol: str | None,
     credential_dir: Path,
     wallet_proxy_host: str = "127.0.0.1",
     wallet_proxy_port: int = 19290,
@@ -97,7 +100,9 @@ def capture(
         )
     ).rest_api
 
-    permission_call = _call("get_api_key_permission", wallet.get_api_key_permission, recv_window=5000)
+    permission_call = _call(
+        "get_api_key_permission", wallet.get_api_key_permission, recv_window=5000
+    )
     permission = permission_call.get("data") if permission_call.get("ok") else None
     gate = permission_gate(permission if isinstance(permission, dict) else {})
 
@@ -122,9 +127,7 @@ def capture(
 
     if not gate["safe"]:
         envelope["standing"] = (
-            "PERMISSION_NOT_READ_ONLY"
-            if permission_call.get("ok")
-            else "PERMISSION_QUERY_FAILED"
+            "PERMISSION_NOT_READ_ONLY" if permission_call.get("ok") else "PERMISSION_QUERY_FAILED"
         )
         return envelope
 
@@ -155,38 +158,41 @@ def capture(
         "get_current_position_mode": _call(
             "get_current_position_mode", usdm.get_current_position_mode, recv_window=5000
         ),
-        "notional_and_leverage_brackets": _call(
-            "notional_and_leverage_brackets",
-            usdm.notional_and_leverage_brackets,
-            symbol=symbol,
-            recv_window=5000,
-        ),
-        "position_adl_quantile_estimation": _call(
-            "position_adl_quantile_estimation",
-            usdm.position_adl_quantile_estimation,
-            symbol=symbol,
-            recv_window=5000,
-        ),
         "position_information_v3": _call(
             "position_information_v3",
             usdm.position_information_v3,
-            symbol=symbol,
             recv_window=5000,
         ),
         "current_all_open_orders": _call(
             "current_all_open_orders",
             usdm.current_all_open_orders,
-            symbol=symbol,
-            recv_window=5000,
-        ),
-        "account_trade_list": _call(
-            "account_trade_list",
-            usdm.account_trade_list,
-            symbol=symbol,
-            limit=100,
             recv_window=5000,
         ),
     }
+    if symbol:
+        calls.update(
+            {
+                "notional_and_leverage_brackets": _call(
+                    "notional_and_leverage_brackets",
+                    usdm.notional_and_leverage_brackets,
+                    symbol=symbol,
+                    recv_window=5000,
+                ),
+                "position_adl_quantile_estimation": _call(
+                    "position_adl_quantile_estimation",
+                    usdm.position_adl_quantile_estimation,
+                    symbol=symbol,
+                    recv_window=5000,
+                ),
+                "account_trade_list": _call(
+                    "account_trade_list",
+                    usdm.account_trade_list,
+                    symbol=symbol,
+                    limit=100,
+                    recv_window=5000,
+                ),
+            }
+        )
     envelope["calls"].update(calls)
     required = (
         "account_information_v3",
@@ -194,18 +200,18 @@ def capture(
         "futures_account_configuration",
         "get_current_multi_assets_mode",
         "get_current_position_mode",
-        "notional_and_leverage_brackets",
         "position_information_v3",
         "current_all_open_orders",
     )
-    envelope["privateAccountDataUsed"] = True
+    if symbol:
+        required = (*required, "notional_and_leverage_brackets")
+    envelope["privateAccountDataUsed"] = any(call.get("ok") is True for call in calls.values())
     envelope["standing"] = (
         "READ_ONLY_PRIVATE_REALITY_CAPTURED"
         if all(calls[name]["ok"] for name in required)
         else "READ_ONLY_PERMISSION_VERIFIED_PARTIAL_PRIVATE_REALITY"
     )
     return envelope
-
 
 
 def qualification_summary(result: dict[str, Any]) -> dict[str, Any]:
@@ -241,11 +247,17 @@ def qualification_summary(result: dict[str, Any]) -> dict[str, Any]:
             if isinstance(call, dict)
         },
         "accountConfigurationObserved": isinstance(config, dict),
-        "accountCanTradeProviderField": config.get("can_trade") if isinstance(config, dict) else None,
+        "accountCanTradeProviderField": config.get("can_trade")
+        if isinstance(config, dict)
+        else None,
         "multiAssetsMode": multi.get("multi_assets_margin") if isinstance(multi, dict) else None,
-        "dualSidePosition": posmode.get("dual_side_position") if isinstance(posmode, dict) else None,
-        "leverageBracketObserved": (calls.get("notional_and_leverage_brackets") or {}).get("ok") is True,
-        "positionAdlObserved": (calls.get("position_adl_quantile_estimation") or {}).get("ok") is True,
+        "dualSidePosition": posmode.get("dual_side_position")
+        if isinstance(posmode, dict)
+        else None,
+        "leverageBracketObserved": (calls.get("notional_and_leverage_brackets") or {}).get("ok")
+        is True,
+        "positionAdlObserved": (calls.get("position_adl_quantile_estimation") or {}).get("ok")
+        is True,
         "sndkPositionPresent": any(
             isinstance(row, dict)
             and row.get("symbol") == result.get("symbol")
@@ -253,6 +265,15 @@ def qualification_summary(result: dict[str, Any]) -> dict[str, Any]:
             for row in positions
         ),
         "positionRowCount": len(positions),
+        "activePositionCount": (
+            sum(
+                Decimal(str(row.get("position_amt", "0"))) != 0
+                for row in positions
+                if isinstance(row, dict)
+            )
+            if (calls.get("position_information_v3") or {}).get("ok") is True
+            else None
+        ),
         "openOrderCount": len(orders),
         "tradeRowCount": len(trades),
         "tradFiAgreementStanding": "UNKNOWN_NO_READ_ONLY_STATUS_API",
@@ -261,9 +282,10 @@ def qualification_summary(result: dict[str, Any]) -> dict[str, Any]:
         "externalFinancialWriteAttempted": False,
     }
 
+
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--symbol", default="SNDKUSDT")
+    parser.add_argument("--symbol", default=None)
     parser.add_argument(
         "--credential-dir",
         type=Path,

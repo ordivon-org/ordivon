@@ -25,6 +25,16 @@ def test_permission_gate_requires_reading_and_zero_write_capabilities():
         assert permission_gate(row)["safe"] is False, field
 
 
+def test_permission_gate_rejects_missing_write_capability_fields():
+    permission = {"enable_reading": True}
+    for field in WRITE_CAPABLE_PERMISSION_FIELDS:
+        permission[field] = False
+    for field in WRITE_CAPABLE_PERMISSION_FIELDS:
+        reduced = dict(permission)
+        reduced.pop(field)
+        assert permission_gate(reduced)["safe"] is False, field
+
+
 def test_permission_gate_fails_when_reading_is_missing():
     assert permission_gate({"enable_reading": False})["safe"] is False
 
@@ -63,8 +73,14 @@ def test_qualification_summary_omits_account_values_and_order_trade_details():
             "get_current_position_mode": {"ok": True, "data": {"dual_side_position": False}},
             "notional_and_leverage_brackets": {"ok": True, "data": {"actual_instance": []}},
             "position_adl_quantile_estimation": {"ok": True, "data": {"symbol": "SNDKUSDT"}},
-            "position_information_v3": {"ok": True, "data": [{"symbol": "SNDKUSDT", "position_amt": "0.1", "entry_price": "SECRETISH"}]},
-            "current_all_open_orders": {"ok": True, "data": [{"order_id": 123, "price": "SECRETISH"}]},
+            "position_information_v3": {
+                "ok": True,
+                "data": [{"symbol": "SNDKUSDT", "position_amt": "0.1", "entry_price": "SECRETISH"}],
+            },
+            "current_all_open_orders": {
+                "ok": True,
+                "data": [{"order_id": 123, "price": "SECRETISH"}],
+            },
             "account_trade_list": {"ok": True, "data": [{"id": 1, "price": "SECRETISH"}]},
         },
     }
@@ -73,6 +89,19 @@ def test_qualification_summary_omits_account_values_and_order_trade_details():
     assert "SECRETISH" not in rendered
     assert out["sndkPositionPresent"] is True
     assert out["positionRowCount"] == 1
+    assert out["activePositionCount"] == 1
     assert out["openOrderCount"] == 1
     assert out["tradeRowCount"] == 1
     assert out["externalFinancialWriteAttempted"] is False
+
+
+def test_broad_position_reads_use_official_sdk_without_symbol_filter():
+    from pathlib import Path
+
+    src = (
+        Path(__file__).resolve().parents[1]
+        / "src/ordivon_capital/trading/binance_usdm_private_capture.py"
+    ).read_text()
+    assert "usdm.position_information_v3,\n            recv_window=5000" in src
+    assert "usdm.current_all_open_orders,\n            recv_window=5000" in src
+    assert 'parser.add_argument("--symbol", default=None)' in src
