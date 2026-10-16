@@ -16,7 +16,7 @@ MAIN=Path('/root/projects/ordivon/capabilities/artifact')
 LOCK_PATH=ROOT/'artifact-delivery/artifact-python-runtime-v1.lock.json'
 WRAPPER_SOURCE=ROOT/'scripts/artifact_python_wrapper.py'
 UV=Path(os.environ.get('ARTIFACT_UV','/root/.local/share/mise/installs/uv/0.12.16/uv-x86_64-unknown-linux-musl/uv'))
-SYSTEM_PYTHON=Path(os.environ.get('ARTIFACT_PYTHON','/root/.local/share/mise/installs/python/3.15.0/bin/python3.14'))
+SYSTEM_PYTHON=Path(os.environ.get('ARTIFACT_PYTHON','/root/.local/share/ordivon-toolchains/cpython/3.15.0-sqlite-3.54.0-source-verified-r2/bin/python3.15'))
 
 
 def sha(path:Path)->str:
@@ -70,12 +70,13 @@ def project_status(lock:dict[str,Any])->dict[str,str]:
 
 def python_status(lock:dict[str,Any])->dict[str,str]:
     if not SYSTEM_PYTHON.is_file():raise RuntimeError('Artifact Python interpreter authority is absent')
-    p=run([str(SYSTEM_PYTHON),'-c','import json,platform,sys;print(json.dumps({"version":platform.python_version(),"executable":sys.executable}))'],timeout=30)
+    p=run([str(SYSTEM_PYTHON),'-c','import json,platform,sqlite3,sys;print(json.dumps({"version":platform.python_version(),"sqlite":sqlite3.sqlite_version,"executable":sys.executable}))'],timeout=30)
     if p.returncode:raise RuntimeError('Artifact Python interpreter probe failed: '+p.stderr[-2000:])
     observed=json.loads(p.stdout)
     if observed['version']!=lock['pythonRuntime']:raise RuntimeError(f"Artifact Python authority drifted: {observed['version']}")
+    if observed.get('sqlite')!=lock['sqliteRuntime']:raise RuntimeError(f"Artifact Python embedded SQLite drifted: {observed.get('sqlite')}")
     resolved=SYSTEM_PYTHON.resolve(strict=True)
-    return {'version':observed['version'],'requestedPath':str(SYSTEM_PYTHON),'resolvedPath':str(resolved),'sha256':'sha256:'+sha(resolved)}
+    return {'version':observed['version'],'sqlite':observed['sqlite'],'requestedPath':str(SYSTEM_PYTHON),'resolvedPath':str(resolved),'sha256':'sha256:'+sha(resolved)}
 
 
 def dependency_probe(python:Path,expected:dict[str,str])->dict[str,Any]:
@@ -90,7 +91,7 @@ def dependency_probe(python:Path,expected:dict[str,str])->dict[str,Any]:
 
 
 def generation_spec(lock:dict[str,Any],project:dict[str,str],python:dict[str,str])->dict[str,Any]:
-    return {'schemaVersion':1,'lockSha256':'sha256:'+sha(LOCK_PATH),'wrapperSha256':'sha256:'+sha(WRAPPER_SOURCE),'pythonRuntime':lock['pythonRuntime'],'pythonPackages':lock['pythonPackages'],'uvProjectPyprojectSha256':project['pyprojectSha256'],'uvLockSha256':project['uvLockSha256'],'pythonExecutableResolvedPath':python['resolvedPath'],'pythonExecutableSha256':python['sha256']}
+    return {'schemaVersion':1,'lockSha256':'sha256:'+sha(LOCK_PATH),'wrapperSha256':'sha256:'+sha(WRAPPER_SOURCE),'pythonRuntime':lock['pythonRuntime'],'sqliteRuntime':lock['sqliteRuntime'],'pythonPackages':lock['pythonPackages'],'uvProjectPyprojectSha256':project['pyprojectSha256'],'uvLockSha256':project['uvLockSha256'],'pythonExecutableResolvedPath':python['resolvedPath'],'pythonExecutableSha256':python['sha256']}
 
 
 def probe_wrapper(wrapper:Path)->dict[str,Any]:
