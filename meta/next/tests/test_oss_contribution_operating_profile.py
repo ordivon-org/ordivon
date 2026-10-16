@@ -125,6 +125,15 @@ def test_independent_review_is_exception_driven_not_default_ceremony():
     assert "does not need a second Agent merely for ceremony" in profile
 
 
+def test_repository_ai_policy_precedes_public_contribution():
+    profile = read(PROFILE)
+    assert "## Repository AI-contribution admission" in profile
+    assert "If such contributions are prohibited" in profile
+    assert "If maintainer approval or a human-authored review is required" in profile
+    assert "If disclosure is required" in profile
+    assert "Do not sign CLA/DCO" in profile
+
+
 def test_public_write_and_security_authority_stay_external():
     profile = read(PROFILE)
     assert "A local PR_READY result is not permission to publish." in profile

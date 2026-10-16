@@ -75,7 +75,7 @@ A disposition is evidence-backed. Killing a bad/duplicate/already-fixed candidat
 | --- | --- | --- | --- |
 | Universe | ranked/current repository dataset | batched GitHub/API collection; ECC search/parallel methods as needed | GitHub + retained dataset |
 | Repository admission | software/activity/openness/reachability evidence | ECC GitHub ops + campaign policy | GitHub/repository |
-| Contribution-policy check | current contribution/security/test/CLA-DCO rules | repository-native docs; ECC GitHub ops | repository/GitHub/legal owner |
+| Contribution-policy check | current contribution/security/test/CLA-DCO and AI-assistance/disclosure/approval rules | repository-native docs; ECC GitHub ops | repository/GitHub/legal owner |
 | Issue mining | plausible actionable candidate | batched local/API mining | GitHub |
 | Live dedupe | current Issue, assignee, linked/open PR, current-main check | ECC GitHub ops; Matt triage read-only subset | GitHub/Git |
 | Issue admission | bounded value/repro/cost decision | Matt triage context/redundancy/claim-verification subset | Campaign decision |
@@ -191,6 +191,18 @@ Promote a Case to its own Work only when one or more applies:
 - a patch/PR has become a consequential delegated objective.
 
 Close/abandon the Case Work when its durable objective ends; retain GitHub/Git evidence at natural owners.
+
+## Repository AI-contribution admission
+
+Before assigning an AI-assisted Agent to prepare an upstream contribution, read the current repository-native policy for AI-generated/AI-assisted code, issues, comments and pull requests (including CONTRIBUTING, AI_POLICY, AGENTS and maintainer instructions). Apply it to the **specific intended effect**:
+
+- If such contributions are prohibited, do not produce public AI-generated content for that repository.
+- If maintainer approval or a human-authored review is required, do not treat technical readiness or an open Issue as permission to bypass it.
+- If disclosure is required, identify the AI tools/models in the initial contribution.
+- Do not sign CLA/DCO or make human legal/authorship attestations on behalf of a user.
+- A public Issue being open, labelled help wanted, or unassigned does not override policy or existing contributor work.
+
+This is a repository-native admission check, not a new Ordivon approval role or universal AI policy.
 
 ## Public-write and security law
 
