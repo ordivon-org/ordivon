@@ -53,6 +53,10 @@ def load_dependency_graph(
             raise ValueError(f"dependency seam {index} references unknown owner: {left!r}->{right!r}")
         if left == right:
             raise ValueError(f"dependency seam {index} must cross owner boundaries")
+        # Test-only assertions that explicitly deny an owner dependency
+        # are scanned for boundary drift, not positive interaction edges.
+        if seam.get("kind") == "TEST_ONLY_NEGATIVE_BOUNDARY_ASSERTION":
+            continue
         graph[left].add(right)
         graph[right].add(left)
     return graph

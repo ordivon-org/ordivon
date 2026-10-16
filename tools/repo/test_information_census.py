@@ -69,6 +69,21 @@ class InformationCensusTests(unittest.TestCase):
         self.assertEqual(value["standing"], "EXACT_UNIQUE")
         self.assertEqual(value["candidates"], ["domains/capital/config/policy.json"])
 
+    def test_git_revision_census_distinguishes_local_commit_from_missing_object(
+        self,
+    ) -> None:
+        import subprocess
+
+        head = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"],
+            cwd=MODULE.ROOT,
+            text=True,
+        ).strip()
+        absent = "f" * 40
+        exact, unresolved = MODULE._check_git_revisions({head, absent})
+        self.assertEqual(exact, {head})
+        self.assertEqual(unresolved, {absent})
+
     def test_unresolved_historical_context_is_hint_not_failure(self) -> None:
         value = MODULE.resolve_source_path(
             "domains/capital/planning/retirement.json",

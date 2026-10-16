@@ -60,6 +60,11 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertIn("artifact:verify", plan["verifyTasks"])
         self.assertIn("artifact:queue", plan["queueVerifyTasks"])
 
+    def test_negative_owner_boundary_assertion_does_not_create_a_dependency(self) -> None:
+        graph = MODULE.load_dependency_graph()
+        self.assertNotIn("network", graph["harness"])
+        self.assertNotIn("harness", graph["network"])
+
     def test_security_change_expands_to_harness_and_web_component(self) -> None:
         plan = MODULE.build_plan(changed_files=["platform/security/README.md"])
         self.assertEqual(

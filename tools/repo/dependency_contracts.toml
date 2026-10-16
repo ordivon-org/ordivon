@@ -149,3 +149,13 @@ source_glob = "platform/workstation/tests/test_runtime_lifecycle_ansible.py"
 allowed_fragment = "services/runtime/packaging/systemd/ordivon-runtime-lifecycle.service"
 kind = "TEST_ONLY_OWNER_LOCATOR"
 contract_ref = "platform/workstation/README.md"
+
+# A negative Network regression asserts that its Gluetun cold cutover
+# cannot mutate the Harness owner's source. This is NOT a dependency edge.
+[[seams]]
+from_owner = "network"
+to_owner = "harness"
+source_glob = "platform/network/tests/test_gluetun_cold_replacement.py"
+allowed_fragment = 'assert "services/harness" not in src'
+kind = "TEST_ONLY_NEGATIVE_BOUNDARY_ASSERTION"
+contract_ref = "platform/network/docs/UPSTREAM_FIRST_CONVERGENCE_R1.md"

@@ -13,6 +13,7 @@ import argparse
 import functools
 import hashlib
 import json
+import os
 import posixpath
 import re
 import subprocess
@@ -435,6 +436,10 @@ def _check_git_revisions(values: set[str]) -> tuple[set[str], set[str]]:
         text=True,
         input="".join(f"{value}\n" for value in ordered),
         capture_output=True,
+        # This source-cut inventory checks locally available Git objects only.
+        # A promised but absent object is unresolved, not an instruction to
+        # fetch remote bytes (which can block CI indefinitely).
+        env={**os.environ, "GIT_NO_LAZY_FETCH": "1"},
     )
     lines = proc.stdout.splitlines()
     if len(lines) != len(ordered):
