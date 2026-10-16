@@ -7,12 +7,29 @@ from pathlib import Path
 SCRIPT = Path(__file__).parents[1] / "tools" / "host_queue_verify.sh"
 
 
-def _invoke(tmp_path: Path, *, dsn: str = "", actions: str = "", runner: str = "", major: str = ""):
+def _invoke(
+    tmp_path: Path,
+    *,
+    dsn: str = "",
+    actions: str = "",
+    runner: str = "",
+    major: str = "",
+    connect_failures: int = 0,
+):
     fake = tmp_path / "fake"
     fake.mkdir()
     log = tmp_path / "uv-commands"
     psql = fake / "psql"
-    psql.write_text("#!/bin/sh\necho " + major + "\n", encoding="utf-8")
+    attempts = tmp_path / "psql-attempts"
+    psql.write_text(
+        "#!/bin/sh\n"
+        f'count=0; [ ! -f "{attempts}" ] || count="$(cat "{attempts}")"\n'
+        "count=$((count + 1))\n"
+        f'printf "%s\\n" "$count" > "{attempts}"\n'
+        f'if [ "$count" -le "{connect_failures}" ]; then exit 1; fi\n'
+        f"echo {major}\n",
+        encoding="utf-8",
+    )
     psql.chmod(0o755)
     uv = fake / "uv"
     uv.write_text(f'#!/bin/sh\nprintf "%s\\n" "$*" >> "{log}"\n', encoding="utf-8")
@@ -50,6 +67,35 @@ def test_queue_self_hosted_no_dsn_fails_before_side_effect(tmp_path: Path) -> No
     result, log = _invoke(tmp_path, actions="true", runner="self-hosted")
     assert result.returncode == 2
     assert "HOST_QUEUE_REQUIRES_TEST_DSN" in result.stderr
+    assert log == ""
+
+
+def test_queue_retries_transient_postgres_connection_before_migrations(tmp_path: Path) -> None:
+    result, log = _invoke(
+        tmp_path,
+        dsn="postgresql://test@example.invalid/db",
+        major="180006",
+        connect_failures=2,
+    )
+    assert result.returncode == 0, result.stderr
+    assert log.splitlines() == [
+        "lock --check",
+        "sync --locked",
+        "run alembic upgrade head",
+        "run ruff check .",
+        "run python -m pytest",
+    ]
+
+
+def test_queue_exhausts_transient_connection_retries_before_migrations(tmp_path: Path) -> None:
+    result, log = _invoke(
+        tmp_path,
+        dsn="postgresql://test@example.invalid/db",
+        major="180006",
+        connect_failures=99,
+    )
+    assert result.returncode == 4
+    assert "HOST_QUEUE_TEST_DB_CONNECTION_FAILED" in result.stderr
     assert log == ""
 
 

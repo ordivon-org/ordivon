@@ -52,7 +52,16 @@ if ! command -v psql >/dev/null; then
   echo "HOST_QUEUE_REQUIRES_PSQL" >&2
   exit 2
 fi
-if ! pg_version="$(psql -X -Atq "$ORDIVON_HOST_V2_TEST_DSN" -c 'SHOW server_version_num' 2>/dev/null)"; then
+connected=false
+pg_version=""
+for _ in {1..5}; do
+  if pg_version="$(PGCONNECT_TIMEOUT=1 psql -X -Atq "$ORDIVON_HOST_V2_TEST_DSN" -c 'SHOW server_version_num' 2>/dev/null)"; then
+    connected=true
+    break
+  fi
+  sleep 1
+done
+if [[ "$connected" != true ]]; then
   echo "HOST_QUEUE_TEST_DB_CONNECTION_FAILED" >&2
   exit 4
 fi
