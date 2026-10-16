@@ -5,12 +5,12 @@ import argparse
 import hashlib
 import json
 import subprocess
-import tomllib
 from collections import deque
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 import affected_owners
+import tomllib
 
 DEPENDENCY_PATH = Path(__file__).with_name("dependency_contracts.toml")
 
@@ -20,8 +20,7 @@ def _git(*args: str) -> str:
         ["git", *args],
         check=True,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
     )
     return proc.stdout.strip()
 
@@ -107,6 +106,28 @@ def build_plan(
         head_revision = _git("rev-parse", f"{head}^{{commit}}")
         head_tree = _git("rev-parse", f"{head_revision}^{{tree}}")
         paths = affected_owners.changed_paths(base_revision, head_revision)
+
+    # A new executable owner root must not silently downgrade to repository-only.
+    protected_roots = (
+        "apps/",
+        "services/",
+        "platform/",
+        "capabilities/",
+        "domains/",
+        "packages/",
+        "extensions/",
+    )
+    unregistered = sorted({
+        path
+        for path in paths
+        if any(affected_owners._normalize(path).startswith(prefix) for prefix in protected_roots)
+        and not any(
+            affected_owners._normalize(path).startswith(owner.root)
+            for owner in owners
+        )
+    })
+    if unregistered:
+        raise ValueError(f"unregistered owner path: {', '.join(unregistered)}")
 
     direct = affected_owners.owners_for_paths(paths)
     direct_names = tuple(owner.name for owner in direct)

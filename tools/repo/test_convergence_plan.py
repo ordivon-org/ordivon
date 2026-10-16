@@ -108,6 +108,22 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertEqual(plan["verificationOwners"], [])
         self.assertEqual(plan["scopeIds"], [])
 
+    def test_unknown_protected_path_rejects_repository_only_false_green(self) -> None:
+        for path in (
+            "platform/unknown/new-high-privilege.yml",
+            "services/new-provider/src/main.py",
+            "apps/new-app/package.json",
+        ):
+            with (
+                self.subTest(path=path),
+                self.assertRaisesRegex(ValueError, "unregistered owner path"),
+            ):
+                MODULE.build_plan(changed_files=[path])
+
+    def test_unknown_docs_path_remains_repository_only(self) -> None:
+        plan = MODULE.build_plan(changed_files=["docs/architecture/CURRENT_ARCHITECTURE.md"])
+        self.assertEqual(plan["queueClass"], "REPOSITORY_ONLY")
+
     def test_dependency_graph_rejects_unknown_owner(self) -> None:
         content = """schema_version = 1
 kind = "ordivon.repo-owner-dependency-contracts"
