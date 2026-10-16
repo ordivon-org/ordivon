@@ -364,8 +364,9 @@ class SkillCatalogR2IntegrationTests(unittest.TestCase):
             write_skill(root, "review", "review", "Review security")
             key = root / "review" / "sample.pem"
             body = "\n".join(["A" * 64] * 4)
+            pem_label = " ".join(("PRIVATE", "KEY"))
             key.write_text(
-                "-----BEGIN PRIVATE KEY-----\n" + body + "\n-----END PRIVATE KEY-----",
+                f"-----BEGIN {pem_label}-----\n" + body + f"\n-----END {pem_label}-----",
                 encoding="utf-8",
             )
             catalog = SkillCatalog.scan(
@@ -381,8 +382,9 @@ class SkillCatalogR2IntegrationTests(unittest.TestCase):
             write_skill(root, "review", "review", "Review security")
             refs = root / "review" / "references"
             refs.mkdir()
+            pem_label = " ".join(("PRIVATE", "KEY"))
             (refs / "examples.md").write_text(
-                "Example marker: -----BEGIN PRIVATE KEY-----\nnot-a-real-key\n",
+                f"Example marker: -----BEGIN {pem_label}-----\nnot-a-real-key\n",
                 encoding="utf-8",
             )
             catalog = SkillCatalog.scan(

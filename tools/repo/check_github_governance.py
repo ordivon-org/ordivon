@@ -116,6 +116,10 @@ def main() -> int:
     assert "jdx/mise-action@9e7f7633ff6f6d6048a9418a68d48f288f50eb14" in workflow
     assert "gitleaks/gitleaks-action@" not in workflow
     assert "run: mise run repo:secrets:verify" in workflow
+    assert "run: tools/repo/check_tracked_secrets.sh" in workflow
+    snapshot_scan = (ROOT / "tools/repo/check_tracked_secrets.sh").read_text()
+    assert "archive --format=tar" in snapshot_scan
+    assert "gitleaks dir --no-banner --redact=100 --timeout 120 ." in snapshot_scan
 
     runtime_release = RUNTIME_RELEASE_WORKFLOW.read_text(encoding="utf-8")
     for required in (
