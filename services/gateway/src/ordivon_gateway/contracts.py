@@ -236,3 +236,41 @@ class CollaborationSearch(StrictModel):
     negative_result_authoritative: bool
     requires_exact_source_reentry: bool
     results: list[CollaborationSearchHit]
+
+
+class CapabilityInvocationRecipe(StrictModel):
+    recipe_id: str
+    kind: Literal["skill", "mise-task", "owner-cli"]
+    owner_id: str
+    command: list[str] = Field(default_factory=list)
+    note: str = ""
+
+
+class CapabilitySkillBinding(StrictModel):
+    ref: str
+    skill_id: str
+    name: str
+    instruction_digest: str
+    package_revision: str
+    snapshot_revision: str
+    instruction_authority: str
+
+
+class CapabilityResolution(StrictModel):
+    schema_version: Literal[1] = 1
+    kind: Literal["ordivon.gateway-capability-resolution"] = "ordivon.gateway-capability-resolution"
+    truth_role: Literal["non-authoritative-composition-route"] = (
+        "non-authoritative-composition-route"
+    )
+    capability: str
+    semantic_owner: str
+    completion_owner: str
+    execution_capability: str | None = None
+    study_types: list[str] = Field(default_factory=list)
+    skill_candidates: list[str] = Field(default_factory=list)
+    selected_skill: CapabilitySkillBinding | None = None
+    invocation_recipes: list[CapabilityInvocationRecipe] = Field(default_factory=list)
+    source_refs: list[str] = Field(default_factory=list)
+    observation_errors: list[str] = Field(default_factory=list)
+    non_claims: list[str] = Field(default_factory=list)
+    resolution_digest: str
