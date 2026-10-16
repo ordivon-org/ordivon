@@ -1,45 +1,8 @@
 from pathlib import Path
 
-from ordivon_capital.trading.binance_usdm_private_capture import (
-    WRITE_CAPABLE_PERMISSION_FIELDS,
-    permission_gate,
-    qualification_summary,
-)
+from ordivon_capital.trading.binance_usdm_private_capture import qualification_summary
 
 ROOT = Path(__file__).resolve().parents[1]
-
-
-def test_permission_gate_admits_get_only_observation_with_provider_trade_permissions():
-    base = {
-        "enable_reading": True,
-        "ip_restrict": True,
-        "create_time": 1,
-    }
-    for field in WRITE_CAPABLE_PERMISSION_FIELDS:
-        base[field] = False
-    assert permission_gate(base)["safe"] is True
-    assert permission_gate(base)["credentialReadOnly"] is True
-
-    for field in WRITE_CAPABLE_PERMISSION_FIELDS:
-        row = dict(base)
-        row[field] = True
-        assert permission_gate(row)["safe"] is True, field
-        assert permission_gate(row)["credentialReadOnly"] is False, field
-
-
-def test_permission_gate_reports_unknown_write_permission_fields_without_blocking_reads():
-    permission = {"enable_reading": True}
-    for field in WRITE_CAPABLE_PERMISSION_FIELDS:
-        permission[field] = False
-    for field in WRITE_CAPABLE_PERMISSION_FIELDS:
-        reduced = dict(permission)
-        reduced.pop(field)
-        assert permission_gate(reduced)["safe"] is True, field
-        assert permission_gate(reduced)["credentialReadOnly"] is False, field
-
-
-def test_permission_gate_fails_when_reading_is_missing():
-    assert permission_gate({"enable_reading": False})["safe"] is False
 
 
 def test_private_capture_source_has_no_trade_or_mutation_calls():
@@ -67,7 +30,6 @@ def test_qualification_summary_omits_account_values_and_order_trade_details():
     result = {
         "symbol": "SNDKUSDT",
         "standing": "READ_ONLY_PRIVATE_REALITY_CAPTURED",
-        "permissionGate": {"safe": True, "enableReading": True},
         "privateAccountDataUsed": True,
         "calls": {
             "account_information_v3": {"ok": True, "data": {"total_wallet_balance": "SECRETISH"}},
@@ -117,3 +79,46 @@ def test_binance_runner_uses_network_owner_native_readiness():
     runner = (ROOT / "scripts/capture-binance-usdm-private-r1").read_text()
     assert "/usr/local/libexec/network-v2/finance-ready" in runner
     assert "check-network-v2-public-data" not in runner
+    assert "finance-ready binance-wallet" not in runner
+
+
+def test_old_permission_gate_is_absent_from_observer_source():
+    source = (ROOT / "src/ordivon_capital/trading/binance_usdm_private_capture.py").read_text()
+    for obsolete in (
+        "WRITE_CAPABLE_PERMISSION_FIELDS",
+        "permission_gate(",
+        "credentialReadOnly",
+        "writeCapablePermissions",
+        "permissionGate",
+        "get_api_key_permission",
+        "PERMISSION_NOT_READ_ONLY",
+    ):
+        assert obsolete not in source
+
+
+def test_sdk_read_is_truth_source_not_permissions_metadata():
+    from ordivon_capital.trading.private_reality import normalize_binance_usdm_observer
+
+    x = normalize_binance_usdm_observer(
+        {
+            "standing": "READ_ONLY_PRIVATE_REALITY_CAPTURED",
+            "externalFinancialWriteAttempted": False,
+            "permissionGate": {"safe": False},
+            "calls": {"account_information_v3": {"ok": True, "data": {}}},
+        }
+    )
+    assert x["permissionStanding"] == "USER_DATA_GET_VERIFIED"
+
+
+def test_legacy_permission_metadata_cannot_claim_success_without_provider_get():
+    from ordivon_capital.trading.private_reality import normalize_binance_usdm_observer
+
+    snapshot = normalize_binance_usdm_observer(
+        {
+            "standing": "READ_ONLY_PRIVATE_REALITY_PARTIAL",
+            "externalFinancialWriteAttempted": False,
+            "permissionGate": {"safe": True},
+            "calls": {},
+        }
+    )
+    assert snapshot["permissionStanding"] == "NOT_VERIFIED"

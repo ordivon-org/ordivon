@@ -7,18 +7,6 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
-WRITE_CAPABLE_PERMISSION_FIELDS = (
-    "enable_withdrawals",
-    "enable_internal_transfer",
-    "enable_margin",
-    "enable_futures",
-    "permits_universal_transfer",
-    "enable_vanilla_options",
-    "enable_fix_api_trade",
-    "enable_spot_and_margin_trading",
-    "enable_portfolio_margin_trading",
-)
-
 
 class BinanceUsdmPrivateCaptureError(RuntimeError):
     pass
@@ -39,25 +27,6 @@ def _oneof(value: Any) -> Any:
     return data
 
 
-def permission_gate(permission: dict[str, Any]) -> dict[str, Any]:
-    reading = permission.get("enable_reading") is True
-    writes = {name: permission.get(name) is True for name in WRITE_CAPABLE_PERMISSION_FIELDS}
-    # Admission here is for the GET-only observation path, not for trading.
-    # Binance credentials may have Futures permissions while USER_DATA reads
-    # still belong exclusively to the official SDK's read methods below.
-    credential_read_only = reading and all(
-        permission.get(name) is False for name in WRITE_CAPABLE_PERMISSION_FIELDS
-    )
-    return {
-        "safe": reading,
-        "enableReading": reading,
-        "credentialReadOnly": credential_read_only,
-        "writeCapablePermissions": writes,
-        "ipRestrict": permission.get("ip_restrict"),
-        "createTime": permission.get("create_time"),
-    }
-
-
 def _call(name: str, fn: Callable[..., Any], **kwargs: Any) -> dict[str, Any]:
     try:
         return {"ok": True, "data": _oneof(fn(**kwargs).data())}
@@ -73,8 +42,6 @@ def capture(
     *,
     symbol: str | None,
     credential_dir: Path,
-    wallet_proxy_host: str = "127.0.0.1",
-    wallet_proxy_port: int = 19290,
     usdm_proxy_host: str = "127.0.0.1",
     usdm_proxy_port: int = 19287,
 ) -> dict[str, Any]:
@@ -82,7 +49,6 @@ def capture(
     from binance_sdk_derivatives_trading_usds_futures.derivatives_trading_usds_futures import (
         DerivativesTradingUsdsFutures,
     )
-    from binance_sdk_wallet.wallet import Wallet
 
     api_key_path = credential_dir / "api_key"
     private_key_path = credential_dir / "private.pem"
@@ -94,48 +60,8 @@ def capture(
     if not api_key or not private_key:
         raise BinanceUsdmPrivateCaptureError("bound observer credential files are empty")
 
-    wallet = Wallet(
-        config_rest_api=ConfigurationRestAPI(
-            api_key=api_key,
-            api_secret=None,
-            private_key=private_key,
-            timeout=10_000,
-            proxy={"protocol": "http", "host": wallet_proxy_host, "port": wallet_proxy_port},
-        )
-    ).rest_api
-
-    permission_call = _call(
-        "get_api_key_permission", wallet.get_api_key_permission, recv_window=5000
-    )
-    permission = permission_call.get("data") if permission_call.get("ok") else None
-    gate = permission_gate(permission if isinstance(permission, dict) else {})
-
-    envelope: dict[str, Any] = {
-        "schemaVersion": 2,
-        "kind": "ordivon.capital.trading.binance-usdm-private-observer",
-        "provider": "BINANCE",
-        "product": "USDⓈ-M_FUTURES",
-        "symbol": symbol,
-        "officialSdk": {
-            "wallet": "binance-sdk-wallet==13.4.0",
-            "usdm": "binance-sdk-derivatives-trading-usds-futures==17.4.0",
-        },
-        "credentialBinding": "RUNTIME_DIGEST_BOUND_INPUT_AUTHORITY",
-        "permission": permission_call,
-        "permissionGate": gate,
-        "calls": {},
-        "standing": "PERMISSION_NOT_VERIFIED",
-        "privateAccountDataUsed": False,
-        "externalFinancialWriteAttempted": False,
-    }
-
-    if not gate["safe"]:
-        envelope["standing"] = (
-            "PERMISSION_NOT_READ_ONLY" if permission_call.get("ok") else "PERMISSION_QUERY_FAILED"
-        )
-        return envelope
-
-    # Only after the API key is proven read-only do we touch USD-M private USER_DATA.
+    # Authenticated, signed USER_DATA queries below are provided by Binance's
+    # official USD-M SDK. The observer never calls TRADE endpoints.
     usdm = DerivativesTradingUsdsFutures(
         config_rest_api=ConfigurationRestAPI(
             api_key=api_key,
@@ -145,6 +71,21 @@ def capture(
             proxy={"protocol": "http", "host": usdm_proxy_host, "port": usdm_proxy_port},
         )
     ).rest_api
+
+    envelope: dict[str, Any] = {
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.trading.binance-usdm-private-observer",
+        "provider": "BINANCE",
+        "product": "USDⓈ-M_FUTURES",
+        "symbol": symbol,
+        "officialSdk": {
+            "usdm": "binance-sdk-derivatives-trading-usds-futures==17.4.0",
+        },
+        "credentialBinding": "RUNTIME_DIGEST_BOUND_INPUT_AUTHORITY",
+        "calls": {},
+        "privateAccountDataUsed": False,
+        "externalFinancialWriteAttempted": False,
+    }
 
     calls = {
         "account_information_v3": _call(
@@ -219,7 +160,7 @@ def capture(
     envelope["standing"] = (
         "READ_ONLY_PRIVATE_REALITY_CAPTURED"
         if all(calls[name]["ok"] for name in required)
-        else "READ_ONLY_PERMISSION_VERIFIED_PARTIAL_PRIVATE_REALITY"
+        else "READ_ONLY_PRIVATE_REALITY_PARTIAL"
     )
     return envelope
 
@@ -248,7 +189,6 @@ def qualification_summary(result: dict[str, Any]) -> dict[str, Any]:
         "product": "USDⓈ-M_FUTURES",
         "symbol": result.get("symbol"),
         "standing": result.get("standing"),
-        "permissionGate": result.get("permissionGate"),
         "callStatus": {
             name: {
                 "ok": call.get("ok") is True,

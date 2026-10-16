@@ -203,11 +203,11 @@ def test_wallet_sdk_and_wallet_network_authority_are_registered():
     assert authority["profile"] == "finance-binance-wallet"
 
 
-def test_private_provider_requires_permission_truth_before_usdm_reads():
+def test_private_provider_uses_signed_user_data_get_without_permission_gate():
     cfg = _config()
     private = cfg["privateReadOnlyTruth"]
-    assert "apiRestrictions" in private["permissionTruthOwner"]
-    assert "enableReading=true" in private["permissionGate"]
+    assert "permissionGate" not in private
+    assert "permissionTruthOwner" not in private
     assert private["tradFiAgreementStanding"] == "UNKNOWN_NO_READ_ONLY_STATUS_API"
     assert private["executionAdmitted"] is False
 

@@ -14,10 +14,6 @@ def test_binance_observer_normalizes_without_inventing_execution_authority():
       'status':'success',
       'extensions':{
         'externalFinancialWriteAttempted':False,
-        'credentialRestrictions':{
-          'safe':True,
-          'observed':{'enableReading':True,'enableSpotAndMarginTrading':False,'enableWithdrawals':False},
-        },
       },
       'calls':{
         'account_get_account':call({'accountType':'SPOT','balances':[{'asset':'USDT','free':'10','locked':'2'}]}),
@@ -27,7 +23,7 @@ def test_binance_observer_normalizes_without_inventing_execution_authority():
       }
     }
     x=normalize_binance_observer(env)
-    assert x['permissionStanding']=='READ_ONLY_VERIFIED'
+    assert x['permissionStanding']=='USER_DATA_GET_VERIFIED'
     assert x['balances']==[{'asset':'USDT','available':'10','locked':'2','total':'12'}]
     assert x['openOrders'][0]['clientOrderId']=='c1'
     assert x['orderHistory'][0]['venueOrderId']=='2'
@@ -35,9 +31,9 @@ def test_binance_observer_normalizes_without_inventing_execution_authority():
     assert x['externalFinancialWriteAttempted'] is False
 
 
-def test_binance_trade_permission_fails_closed():
-    env={'status':'failed','extensions':{'externalFinancialWriteAttempted':False,'credentialRestrictions':{'safe':False,'observed':{'enableReading':True,'enableSpotAndMarginTrading':True,'enableWithdrawals':False}}},'calls':{'account_get_account':call({'balances':[]})}}
-    assert normalize_binance_observer(env)['permissionStanding']=='NOT_VERIFIED'
+def test_binance_spot_get_ignores_credential_permission_flags():
+    env={'status':'failed','extensions':{'externalFinancialWriteAttempted':False,},'calls':{'account_get_account':call({'balances':[]})}}
+    assert normalize_binance_observer(env)['permissionStanding']=='USER_DATA_GET_VERIFIED'
 
 
 def okx_call(rows):
@@ -65,7 +61,6 @@ def test_binance_usdm_observer_preserves_provider_risk_truth_without_execution_a
     env={
       'standing':'READ_ONLY_PRIVATE_REALITY_CAPTURED',
       'externalFinancialWriteAttempted':False,
-      'permissionGate':{'safe':True},
       'calls':{
         'account_information_v3':{'ok':True,'data':{
           'total_initial_margin':'10','total_maint_margin':'4','total_wallet_balance':'100',
@@ -91,7 +86,7 @@ def test_binance_usdm_observer_preserves_provider_risk_truth_without_execution_a
       }
     }
     x=normalize_binance_usdm_observer(env)
-    assert x['permissionStanding']=='READ_ONLY_VERIFIED'
+    assert x['permissionStanding']=='USER_DATA_GET_VERIFIED'
     assert x['product']=='USDⓈ-M_FUTURES'
     assert x['balances'][0]['total']=='100'
     assert x['positions'][0]['liquidationPx']=='1200'
@@ -105,9 +100,8 @@ def test_binance_usdm_observer_preserves_provider_risk_truth_without_execution_a
 
 def test_binance_usdm_observer_never_upgrades_unverified_permission():
     env={
-      'standing':'PERMISSION_NOT_READ_ONLY',
+      'standing':'READ_ONLY_PRIVATE_REALITY_PARTIAL',
       'externalFinancialWriteAttempted':False,
-      'permissionGate':{'safe':False},
       'calls':{}
     }
     x=normalize_binance_usdm_observer(env)

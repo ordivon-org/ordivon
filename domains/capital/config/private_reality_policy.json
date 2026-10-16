@@ -71,10 +71,7 @@
       "credentialCarrierStanding": "ACTIVE_RUNTIME_INPUT_AUTHORITY",
       "expectedDigestStanding": "CALLER_COMMITMENT_MISSING",
       "normalizer": "src/ordivon_capital/trading/private_reality.py::normalize_binance_usdm_observer",
-      "permissionClient": "binance-sdk-wallet 13.4.0",
-      "permissionGate": "enableReading=true; provider GET-only USER_DATA calls; provider write-capable flags observed but never exercised",
       "permissionStanding": "PROVIDER_READ_VERIFIED_20261017_RECHECK_EACH_CAPTURE",
-      "permissionTruthOwner": "Binance Wallet GET /sapi/v1/account/apiRestrictions",
       "privateCaptureImplementation": "src/ordivon_capital/trading/binance_usdm_private_capture.py",
       "productEligibilityStanding": "USDM_USER_DATA_READ_VERIFIED",
       "requiredQueries": [

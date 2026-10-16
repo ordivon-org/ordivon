@@ -34,7 +34,8 @@
     "permissionStanding": {
       "enum": [
         "READ_ONLY_VERIFIED",
-        "NOT_VERIFIED"
+        "NOT_VERIFIED",
+        "USER_DATA_GET_VERIFIED"
       ]
     },
     "balances": {

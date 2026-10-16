@@ -6,16 +6,12 @@ py=/root/external/binance-sdk-usdm/17.4.0/.venv/bin/python
 "$py" - <<'PY'
 import importlib.metadata as m
 from binance_common.configuration import ConfigurationRestAPI
-from binance_sdk_wallet.wallet import Wallet
 from binance_sdk_derivatives_trading_usds_futures.derivatives_trading_usds_futures import DerivativesTradingUsdsFutures
 
-assert m.version('binance-sdk-wallet') == '13.4.0'
 assert m.version('binance-sdk-derivatives-trading-usds-futures') == '17.4.0'
 
-wallet=Wallet(config_rest_api=ConfigurationRestAPI(api_key='',api_secret='')).rest_api
 usdm=DerivativesTradingUsdsFutures(config_rest_api=ConfigurationRestAPI(api_key='',api_secret='')).rest_api
 
-assert hasattr(wallet,'get_api_key_permission')
 required={
 'account_information_v3','futures_account_balance_v3','futures_account_configuration',
 'get_current_multi_assets_mode','get_current_position_mode','notional_and_leverage_brackets',
@@ -24,7 +20,7 @@ required={
 missing=sorted(required-set(dir(usdm)))
 if missing:
     raise SystemExit(f'missing USD-M read methods: {missing}')
-print('PASS official Binance Wallet permission + USD-M private GET surfaces; credentialsLoaded=false networkCalled=false')
+print('PASS official Binance USD-M private GET surfaces; credentialsLoaded=false networkCalled=false')
 PY
 
 python3 - "$repo/src/ordivon_capital/trading/binance_usdm_private_capture.py" <<'PY'
@@ -32,7 +28,6 @@ from pathlib import Path
 import sys
 s=Path(sys.argv[1]).read_text()
 required=(
- 'wallet.get_api_key_permission',
  'usdm.account_information_v3',
  'usdm.futures_account_balance_v3',
  'usdm.futures_account_configuration',

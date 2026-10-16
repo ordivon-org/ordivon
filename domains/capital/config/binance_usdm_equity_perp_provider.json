@@ -23,7 +23,7 @@
   },
   "executionRecovery": {
     "blindRetryAllowed": false,
-    "owner": "Binance USD\u24c8-M General Info + authoritative order/user-data state",
+    "owner": "Binance USDⓈ-M General Info + authoritative order/user-data state",
     "unknownExecutionStatusRule": "HTTP 503 unknown-error responses may represent successful execution; reconcile through authoritative order status or user-data updates before any retry."
   },
   "historicalParameterChanges": [
@@ -51,7 +51,7 @@
     "clientOrderIdMaxLength": 36,
     "executionAdmitted": false,
     "newOrderMethod": "new_order",
-    "owner": "Binance USD\u24c8-M New Order API / future qualified Nautilus execution adapter",
+    "owner": "Binance USDⓈ-M New Order API / future qualified Nautilus execution adapter",
     "positionSideModes": [
       "BOTH",
       "LONG",
@@ -94,9 +94,6 @@
     "credentialCarrierStanding": "ACTIVE_RUNTIME_INPUT_AUTHORITY",
     "executionAdmitted": false,
     "expectedDigestStanding": "CALLER_COMMITMENT_MISSING",
-    "permissionGate": "enableReading=true and all write-capable permission flags false before any USD\u24c8-M private GET",
-    "permissionTruthOwner": "Binance Wallet GET /sapi/v1/account/apiRestrictions via binance-sdk-wallet 13.4.0",
-    "privatePermissionQueried": false,
     "privateUsdMRealityQueried": false,
     "requiredMethods": [
       "account_information_v3",
@@ -114,10 +111,9 @@
     "standing": "PENDING_EXPECTED_DIGEST_COMMITMENT",
     "timelinessRule": "combine Position Information V3 with USER_DATA ACCOUNT_UPDATE stream",
     "tradFiAgreementStanding": "UNKNOWN_NO_READ_ONLY_STATUS_API",
-    "usdmNetworkAuthority": "binanceUsdmRest",
-    "walletNetworkAuthority": "binanceWalletRest"
+    "usdmNetworkAuthority": "binanceUsdmRest"
   },
-  "productFamily": "USD\u24c8-M_TRADFI_EQUITY_PERPETUAL",
+  "productFamily": "USDⓈ-M_TRADFI_EQUITY_PERPETUAL",
   "provider": "BINANCE",
   "publicTruth": {
     "adlRisk": "GET /fapi/v1/symbolAdlRisk",

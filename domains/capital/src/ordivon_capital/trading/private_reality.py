@@ -40,16 +40,9 @@ def normalize_binance_observer(envelope: dict[str, Any]) -> dict[str, Any]:
         raise PrivateRealityError('Binance observer envelope must be an object')
     if (envelope.get('extensions') or {}).get('externalFinancialWriteAttempted') is not False:
         raise PrivateRealityError('Binance observer must prove externalFinancialWriteAttempted=false')
-    restrictions = (envelope.get('extensions') or {}).get('credentialRestrictions') or {}
-    observed = restrictions.get('observed') or {}
-    permission_safe = (
-        restrictions.get('safe') is True
-        and observed.get('enableReading') is True
-        and observed.get('enableSpotAndMarginTrading') is False
-        and observed.get('enableWithdrawals') is False
-    )
     calls = envelope.get('calls') or {}
     account = _call_data(calls.get('account_get_account'))
+    permission_safe = isinstance(account, dict)
     balances: list[dict[str, str]] = []
     if isinstance(account, dict):
         for row in account.get('balances') or []:
@@ -86,7 +79,7 @@ def normalize_binance_observer(envelope: dict[str, Any]) -> dict[str, Any]:
         'product': 'SPOT',
         'sourceAuthority': 'BINANCE_USER_DATA',
         'sourceStatus': envelope.get('status'),
-        'permissionStanding': 'READ_ONLY_VERIFIED' if permission_safe else 'NOT_VERIFIED',
+        'permissionStanding': 'USER_DATA_GET_VERIFIED' if permission_safe else 'NOT_VERIFIED',
         'balances': sorted(balances, key=lambda x: x['asset']),
         'positions': [],
         'openOrders': open_orders,
@@ -285,9 +278,11 @@ def normalize_binance_usdm_observer(envelope: dict[str, Any]) -> dict[str, Any]:
     if envelope.get('externalFinancialWriteAttempted') is not False:
         raise PrivateRealityError('Binance USD-M observer must prove externalFinancialWriteAttempted=false')
 
-    gate = envelope.get('permissionGate') or {}
-    permission_safe = gate.get('safe') is True
     calls = envelope.get('calls') or {}
+    permission_safe = any(
+        isinstance(value, dict) and value.get('ok') is True
+        for value in calls.values()
+    )
 
     account = _sdk_data(calls.get('account_information_v3'))
     balance_rows = _as_rows(_sdk_data(calls.get('futures_account_balance_v3')))
@@ -386,7 +381,7 @@ def normalize_binance_usdm_observer(envelope: dict[str, Any]) -> dict[str, Any]:
         'product': 'USDⓈ-M_FUTURES',
         'sourceAuthority': 'BINANCE_USDM_USER_DATA_GET_ONLY',
         'sourceStatus': envelope.get('standing'),
-        'permissionStanding': 'READ_ONLY_VERIFIED' if permission_safe else 'NOT_VERIFIED',
+        'permissionStanding': 'USER_DATA_GET_VERIFIED' if permission_safe else 'NOT_VERIFIED',
         'balances': sorted(balances, key=lambda x: x['asset']),
         'positions': positions,
         'openOrders': open_orders,

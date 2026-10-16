@@ -17,7 +17,7 @@
     "config/execution_policy.json": "sha256:c0fa32dbc48fb8240a90ebf1410d80b3238ededac17184af8832d9994f80d981",
     "contracts/production-authorization.json": "sha256:e9a72b7a605f5b0fb2a87ed021211bb8992ecf8f6636551cefd8ce471b7efeba",
     "config/portfolio_risk_budget.json": "sha256:56c835107bfb68f10d8c021f07b8de90c1aed8152c5462256d25e062be5c7dd4",
-    "config/private_reality_policy.json": "sha256:53797fc6c5ca740739000e0d2335fb99136a0fc2623ddda0116faf2a9a22a58e",
+    "config/private_reality_policy.json": "sha256:8a417e88c750432f4701ae88c804b36975c32927c9c534a1f9fc1efb4d1aaf67",
     "config/accounting_substrate.json": "sha256:2a153fa5a8e42c4430e7467241bfd63d71c16143d8e069b02e25835e5a1f6d0c",
     "config/capital_lego_registry.json": "sha256:d8618fc73bd57b2025bba4ae73c5b5b06d9c1f0dc55d5e085ab85dde0e9552e9",
     "config/investment_model_atlas.json": "sha256:2b4059364e6dd32f157a0b7746ac4ea8515297ddbeacecdd300a4aeefa5d6e7f",
@@ -104,5 +104,5 @@
     "decision state is projected from explicit time-bounded evidence claims; read circuits do not accept caller-authored state tags",
     "frozen decision records preserve context and authority digests without claiming causal attribution or skill"
   ],
-  "projectionDigest": "sha256:9b0cb8be27b25edbcfa3e0052944ae0ea14955cd9f6da216a8715de61645a187"
+  "projectionDigest": "sha256:8008fc1026bc599f8dcd3b77d2db5f07656217fba107f8fced9a8698a56c4f40"
 }

@@ -3,6 +3,5 @@ set -euo pipefail
 repo="$(cd "$(dirname "$0")/.." && pwd)"
 py=/root/external/binance-sdk-usdm/17.4.0/.venv/bin/python
 /usr/local/libexec/network-v2/finance-ready binance-usdm 30 >/dev/null
-/usr/local/libexec/network-v2/finance-ready binance-wallet 30 >/dev/null
 export PYTHONPATH="$repo/src"
 exec "$py" -m ordivon_capital.trading.binance_usdm_private_capture "$@"
