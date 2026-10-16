@@ -824,6 +824,45 @@ class SocialStore:
                 "truthBoundary": "compact social-space locator only; participation is not ownership, authority, or assignment",
             }
 
+    def get_message(
+        self,
+        message_ref: str,
+        *,
+        expected_digest: str | None = None,
+    ) -> dict[str, Any]:
+        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+            conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+            row = conn.execute(
+                "SELECT sequence,message_ref,space_ref,topic_ref,author_actor_ref,message_kind,"
+                "body,message_digest,recorded_at_ms,created_at FROM messages WHERE message_ref=%s",
+                (message_ref,),
+            ).fetchone()
+            if row is None:
+                raise MessageNotFound(message_ref)
+            if expected_digest is not None and row["message_digest"] != expected_digest:
+                raise ConflictError(
+                    f"message digest mismatch: expected {expected_digest}, "
+                    f"actual {row['message_digest']}"
+                )
+            return {
+                "schemaVersion": 1,
+                "kind": "ordivon.host-message-read",
+                "sequence": int(row["sequence"]),
+                "messageRef": row["message_ref"],
+                "spaceRef": row["space_ref"],
+                "topicRef": row["topic_ref"],
+                "authorActorRef": row["author_actor_ref"],
+                "messageKind": row["message_kind"],
+                "body": row["body"],
+                "messageDigest": row["message_digest"],
+                "recordedAtMs": int(row["recorded_at_ms"]),
+                "createdAt": row["created_at"].isoformat(),
+                "truthBoundary": (
+                    "exact durable Host message projection only; message content remains "
+                    "collaboration evidence until interpreted by the owning domain"
+                ),
+            }
+
     def search_messages(
         self,
         query: str,

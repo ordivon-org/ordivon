@@ -16,6 +16,7 @@ from .social_contracts import (
     AttentionAckResponse,
     AttentionDeltaResponse,
     AttentionReentryResponse,
+    MessageReadResponse,
     MessageRelationResponse,
     MessageRelationsResponse,
     MessageResponse,
@@ -419,6 +420,14 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
             message_kind=MessageKind(messageKind),
         )
         return social.post_message(value)
+
+    @mcp.tool(name="message.get")
+    @_project_domain_errors
+    def message_get(
+        messageRef: str,
+        expectedDigest: str | None = None,
+    ) -> MessageReadResponse:
+        return social.get_message(messageRef, expected_digest=expectedDigest)
 
     @mcp.tool(name="message.search")
     @_project_domain_errors
