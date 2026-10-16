@@ -1,4 +1,5 @@
 """Current Artifact Python runtime must not silently admit an older SQLite."""
+
 from __future__ import annotations
 
 import importlib.util
@@ -15,9 +16,7 @@ SPEC.loader.exec_module(ENV)
 
 
 def test_artifact_runtime_requires_latest_python_and_sqlite():
-    lock = json.loads(
-        (ROOT / "artifact-delivery/artifact-python-runtime-v1.lock.json").read_text()
-    )
+    lock = json.loads((ROOT / "artifact-delivery/artifact-python-runtime-v1.lock.json").read_text())
     assert lock["pythonRuntime"] == "3.15.0"
     assert lock["sqliteRuntime"] == "3.54.0"
     project = ROOT / "artifact-delivery/python-uv"
@@ -37,10 +36,13 @@ def test_artifact_interpreter_probe_validates_embedded_sqlite():
 def test_artifact_interpreter_rejects_embedded_sqlite_below_target():
     import subprocess
     from unittest.mock import patch
+
     lock = ENV.load_lock()
     bad = subprocess.CompletedProcess(
-        ["python", "-c", "probe"], 0,
-        '{"version":"3.15.0","sqlite":"3.53.1","executable":"python"}', "",
+        ["python", "-c", "probe"],
+        0,
+        '{"version":"3.15.0","sqlite":"3.53.1","executable":"python"}',
+        "",
     )
     with patch.object(ENV, "run", return_value=bad):
         try:
