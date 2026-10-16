@@ -42,14 +42,15 @@ def main()->int:
     resolved=venv_python.resolve(strict=True)
     if str(resolved)!=binding.get('pythonExecutableResolvedPath') or 'sha256:'+_sha(resolved)!=binding.get('pythonExecutableSha256'):raise RuntimeError('Artifact Python interpreter bytes drifted')
     expected=dict(binding['pythonPackages'])
-    code=("import json,platform;from importlib.metadata import version;import lxml.etree,pptx,PIL,jsonschema,xlsxwriter,opentelemetry.sdk,temporalio;"
+    code=("import json,platform,sqlite3;from importlib.metadata import version;import lxml.etree,pptx,PIL,jsonschema,xlsxwriter,opentelemetry.sdk,temporalio;"
           f"names={json.dumps(sorted(expected))};"
-          "print(json.dumps({'python':platform.python_version(),'versions':{n:version(n) for n in names},'libxml':lxml.etree.LIBXML_VERSION,'libxslt':lxml.etree.LIBXSLT_VERSION},sort_keys=True))")
+          "print(json.dumps({'python':platform.python_version(),'sqlite':sqlite3.sqlite_version,'versions':{n:version(n) for n in names},'libxml':lxml.etree.LIBXML_VERSION,'libxslt':lxml.etree.LIBXSLT_VERSION},sort_keys=True))")
     env={**os.environ,'PYTHONDONTWRITEBYTECODE':'1'}
     probe=subprocess.run([str(venv_python),'-c',code],text=True,capture_output=True,env=env,check=False,timeout=30)
     if probe.returncode:raise RuntimeError('Artifact Python dependency probe failed: '+probe.stderr[-2000:])
     observed=json.loads(probe.stdout)
     if observed.get('python')!=binding.get('pythonRuntime'):raise RuntimeError('Artifact Python runtime version drifted')
+    if observed.get('sqlite')!=binding.get('sqliteRuntime'):raise RuntimeError('Artifact Python embedded SQLite version drifted')
     if observed.get('versions')!=dict(sorted(expected.items())):raise RuntimeError(f"Artifact Python package version drift: {observed.get('versions')}")
     libs={'libxml':observed.get('libxml'),'libxslt':observed.get('libxslt')}
     if libs!=binding.get('lxmlRuntimeLibraries'):raise RuntimeError(f'Artifact Python lxml native library identity drift: {libs}')
