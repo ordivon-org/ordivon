@@ -13,6 +13,10 @@ from ordivon_harness.independent_result import (
     IndependentCompletionProposal,
     IndependentRunRecorder,
 )
+from ordivon_harness.ordivon.capacity import (
+    CapacityAdmissionDecision,
+    CapacityAdmissionStanding,
+)
 from ordivon_harness.ordivon.loop import RunStopCode
 from ordivon_harness.ordivon.model import AgentRunConclusion, ScriptedTurnAdapter
 from ordivon_harness.ordivon.sqlite_agent_bridge import SQLiteHarnessAgentBridge
@@ -28,6 +32,16 @@ from tests.test_p0_sqlite_agent_loop import (
     contract,
     needs_input_result,
 )
+
+
+class _HoldCapacityGuard:
+    def check(self, request, *, request_token_upper_bound):
+        del request, request_token_upper_bound
+        return CapacityAdmissionDecision(
+            CapacityAdmissionStanding.HOLD,
+            "sha256:" + "a" * 64,
+            "test reserve watermark",
+        )
 
 
 class StandaloneHarnessRunnerTests(unittest.TestCase):
@@ -54,6 +68,33 @@ class StandaloneHarnessRunnerTests(unittest.TestCase):
             clock_ms=clock,
             monotonic_ms=clock,
         )
+
+    def test_capacity_guard_is_composed_before_standalone_provider_dispatch(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "state"
+            clock = FixedClock()
+            run_contract, store, continuity = self.initialize(
+                root, "capacity-hold", clock
+            )
+            adapter = ScriptedTurnAdapter((completed_result("capacity-hold"),))
+            bridge = SQLiteHarnessAgentBridge(run_contract, continuity)
+            runner = StandaloneHarnessRunner(
+                run_contract,
+                continuity,
+                adapter,
+                bridge,
+                budget=budget(),
+                clock_ms=clock,
+                monotonic_ms=clock,
+                capacity_admission_guard=_HoldCapacityGuard(),
+            )
+            execution = runner.run(({"role": "user", "content": "complete"},))
+            self.assertEqual(
+                execution.loop_result.stop_code,
+                RunStopCode.PROVIDER_UNAVAILABLE,
+            )
+            self.assertEqual(adapter.requests, [])
+            store.close()
 
     def test_concurrent_workers_dispatch_one_physical_provider_call(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

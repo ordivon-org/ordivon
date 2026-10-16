@@ -4,6 +4,10 @@ import unittest
 
 from anc_canonical import canonical_digest
 
+from ordivon_harness.ordivon.capacity import (
+    CapacityAdmissionDecision,
+    CapacityAdmissionStanding,
+)
 from ordivon_harness.ordivon.loop import RunStopCode
 from ordivon_harness.ordivon.model import AgentRunConclusion, AgentToolCall
 import ordivon_harness.domain_tools as domain_tools
@@ -84,6 +88,16 @@ def _result(
     )
 
 
+class _HoldCapacityGuard:
+    def check(self, request, *, request_token_upper_bound):
+        del request, request_token_upper_bound
+        return CapacityAdmissionDecision(
+            CapacityAdmissionStanding.HOLD,
+            "sha256:" + "b" * 64,
+            "test reserve watermark",
+        )
+
+
 class DomainToolBridgeTests(unittest.TestCase):
     def test_secondary_agent_control_reexports_are_retired(self) -> None:
         for name in (
@@ -108,6 +122,29 @@ class DomainToolBridgeTests(unittest.TestCase):
             allowed_tools=allowed_tools,
             budget=RunBudget(4, 2, 100_000, 60_000),
         )
+
+    def test_capacity_guard_is_composed_before_domain_provider_dispatch(self) -> None:
+        bridge = _SecurityPlanBridge()
+        adapter = ScriptedTurnAdapter(
+            (
+                _result(
+                    "unused",
+                    conclusion=AgentRunConclusion(
+                        "candidate_completed",
+                        "This result must not be consumed.",
+                    ),
+                ),
+            )
+        )
+        runner = DomainToolLoopRunner(
+            adapter,
+            bridge,
+            capacity_admission_guard=_HoldCapacityGuard(),
+        )
+        result = runner.run(self._plan())
+        self.assertIs(result.stop_code, RunStopCode.PROVIDER_UNAVAILABLE)
+        self.assertEqual(adapter.requests, [])
+        self.assertEqual(bridge.calls, [])
 
     def test_generic_domain_bridge_runs_through_harness_loop(self) -> None:
         bridge = _SecurityPlanBridge()

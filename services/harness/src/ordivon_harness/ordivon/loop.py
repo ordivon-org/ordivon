@@ -20,6 +20,7 @@ from ..working_view import (
     WorkingViewProjector,
     parse_working_set_history_query,
 )
+from .capacity import CapacityAdmissionGuard, CapacityAdmissionStanding
 from .cognition_admission import CognitionAdmissionKernel, CognitionSurfaceUnavailable
 from .control import CancellationToken, ExecutionControl, RunDeadline
 from .events import HarnessRunEvent, HarnessTrace, TraceRecorder
@@ -295,10 +296,12 @@ class OrdivonAgentLoop:
         caller_ingress_promotion_handler: CallerIngressPromotionHandler | None = None,
         working_set_history_reader: WorkingSetHistoryReader | None = None,
         tool_program_actions: bool = False,
+        capacity_admission_guard: CapacityAdmissionGuard | None = None,
     ) -> None:
         self.adapter = adapter
         self.tool_bridge = tool_bridge
         self.budget = budget
+        self.capacity_admission_guard = capacity_admission_guard
         bridge_observation_only = getattr(
             tool_bridge, "observation_only_tool_names", ()
         )
@@ -1665,6 +1668,48 @@ class OrdivonAgentLoop:
                             "Provider request cannot fit the remaining total-token "
                             "budget under the Adapter's conservative bound: "
                             f"{request_token_upper_bound}>{remaining_total_tokens}"
+                        ),
+                    )
+            if self.capacity_admission_guard is not None:
+                try:
+                    capacity_decision = self.capacity_admission_guard.check(
+                        request,
+                        request_token_upper_bound=request_token_upper_bound,
+                    )
+                except Exception as error:  # noqa: BLE001 - admission boundary becomes receipt.
+                    return stop(
+                        RunStopCode.HARNESS_FAILED,
+                        detail=(
+                            "Provider capacity admission failed: "
+                            f"{type(error).__name__}: {error}"
+                        ),
+                    )
+                recorder.record(
+                    "provider_capacity_checked",
+                    {
+                        "turnId": turn_id,
+                        "requestDigest": request.digest,
+                        "standing": capacity_decision.standing.value,
+                        "capacitySnapshotDigest": capacity_decision.snapshot_digest,
+                        "capacityDecisionDigest": capacity_decision.digest,
+                        "reason": capacity_decision.reason,
+                    },
+                )
+                if capacity_decision.standing is CapacityAdmissionStanding.HOLD:
+                    return stop(
+                        RunStopCode.PROVIDER_UNAVAILABLE,
+                        detail=(
+                            "Provider capacity admission held before ProviderCallLifecycle: "
+                            + capacity_decision.reason
+                        ),
+                    )
+                if capacity_decision.standing is CapacityAdmissionStanding.UNKNOWN:
+                    return stop(
+                        RunStopCode.PROVIDER_STATE_UNKNOWN,
+                        detail=(
+                            "Provider capacity admission is UNKNOWN before "
+                            "ProviderCallLifecycle: "
+                            + capacity_decision.reason
                         ),
                     )
             if execution_deadline_expired():

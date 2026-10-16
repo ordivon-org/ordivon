@@ -15,6 +15,7 @@ from .independent_result import (
     IndependentRunRecorder,
     StoredIndependentRunResult,
 )
+from .ordivon.capacity import CapacityAdmissionGuard
 from .ordivon.loop import (
     AgentLoopResult,
     CancellationToken,
@@ -146,6 +147,7 @@ class StandaloneHarnessRunner:
         clock_ms: Callable[[], int],
         monotonic_ms: Callable[[], int] | None = None,
         cognition_profile: HarnessCognitionProfile | None = None,
+        capacity_admission_guard: CapacityAdmissionGuard | None = None,
     ) -> None:
         if continuity.harness_run_id != contract.harness_run_id:
             raise ValueError("Standalone Runner continuity belongs to another Run")
@@ -182,6 +184,7 @@ class StandaloneHarnessRunner:
         self.monotonic_ms = monotonic_ms or clock_ms
         self.store = store
         self.cognition_profile = cognition_profile
+        self.capacity_admission_guard = capacity_admission_guard
         self._validate_cognition_composition()
         self.recorder = IndependentRunRecorder(
             store,
@@ -270,6 +273,7 @@ class StandaloneHarnessRunner:
                 monotonic_ms=self.monotonic_ms,
                 assignment_deadline_ms=self.contract.deadline_ms,
                 conclusion_validator=self.conclusion_validator,
+                capacity_admission_guard=self.capacity_admission_guard,
             )
         projector = WorkingSetViewProjector(self.store, self.continuity)
         return OrdivonAgentLoop(
@@ -288,6 +292,7 @@ class StandaloneHarnessRunner:
                 self.continuity if profile.caller_ingress_promotions else None
             ),
             working_set_history_reader=(self.continuity if profile.working_set_history else None),
+            capacity_admission_guard=self.capacity_admission_guard,
         )
 
     def _validate_cognition_composition(self) -> None:

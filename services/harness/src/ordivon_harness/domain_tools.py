@@ -13,6 +13,7 @@ from typing import Callable, Protocol
 
 from anc_canonical import JsonValue, canonical_digest, validate_json_value
 
+from .ordivon.capacity import CapacityAdmissionGuard
 from .ordivon.control import CancellationToken as _CancellationToken, RunDeadline
 from .ordivon.events import HarnessRunEvent
 from .ordivon.loop import (
@@ -172,6 +173,7 @@ class DomainToolLoopRunner:
         clock_ms: Callable[[], int] | None = None,
         monotonic_ms: Callable[[], int] | None = None,
         event_sink: Callable[[HarnessRunEvent], None] | None = None,
+        capacity_admission_guard: CapacityAdmissionGuard | None = None,
     ) -> None:
         validate_json_value(bridge.bridge_identity)
         if not bridge.bridge_identity:
@@ -181,6 +183,7 @@ class DomainToolLoopRunner:
         self.clock_ms = clock_ms
         self.monotonic_ms = monotonic_ms
         self.event_sink = event_sink
+        self.capacity_admission_guard = capacity_admission_guard
 
     def execution_identity(self, plan: DomainToolLoopPlan) -> dict[str, JsonValue]:
         granted = self.bridge.catalog._select(plan.allowed_tools)
@@ -226,6 +229,7 @@ class DomainToolLoopRunner:
             monotonic_ms=self.monotonic_ms,
             assignment_deadline_ms=plan.assignment_deadline_ms,
             event_sink=self.event_sink,
+            capacity_admission_guard=self.capacity_admission_guard,
         )
         return loop.run(
             harness_run_id=plan.harness_run_id,
