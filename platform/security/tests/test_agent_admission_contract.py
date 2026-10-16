@@ -48,3 +48,35 @@ def test_public_contract_preserves_step_up_without_effect_projection() -> None:
     assert result["agent"]["outcome"] == "STEP_UP"
     assert result["agent"]["reason"] == "principal-step-up-required"
     assert result["effect"] is None
+
+
+def test_invalid_grant_shape_is_rejected_before_opa_policy() -> None:
+    original = json.loads(FIXTURE.read_text())
+    for field in ("remainingEffects", "expiresAtEpochSeconds"):
+        payload = json.loads(json.dumps(original))
+        del payload["grant"][field]
+        result = subprocess.run(
+            ["/usr/bin/python3", str(EVALUATOR)],
+            input=json.dumps(payload),
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        assert result.returncode != 0, field
+        error = json.loads(result.stderr)
+        assert error["kind"] == "ordivon.security.agent-admission-error"
+        assert field in error["detail"]
+
+
+def test_invalid_grant_type_is_rejected_before_opa_policy() -> None:
+    payload = json.loads(FIXTURE.read_text())
+    payload["grant"]["remainingEffects"] = "3"
+    result = subprocess.run(
+        ["/usr/bin/python3", str(EVALUATOR)],
+        input=json.dumps(payload),
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode != 0
+    assert json.loads(result.stderr)["kind"] == "ordivon.security.agent-admission-error"
