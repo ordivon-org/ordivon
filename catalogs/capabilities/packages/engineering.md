@@ -1,6 +1,6 @@
 # Package: Engineering
 
-Last census: 2026-09-14
+Last census: 2026-10-16
 Standing: **READY_FOR_REAL_WORK**
 
 ## Outcome scope
@@ -35,6 +35,12 @@ The sequence is risk-adaptive, not mandatory. Small low-risk work may use `FRAME
 Testing is conditional; **verification is mandatory**.
 
 Detailed rules and provenance are recorded in `catalogs/knowledge/lessons/spec-kit-engineering-kernel.md`; complementary coding-agent discipline lessons are recorded in `catalogs/knowledge/lessons/superpowers-engineering-discipline-kernel.md`.
+
+### Current engineering method supply
+
+The current external/native method supply is classified in `engineering-method-routing-r1.md` with a machine-readable 406-Skill census in `engineering-method-routing-r1.json`. The routing standing is intentionally selective: Superpowers supplies the default coding-agent discipline, Matt Skills supplies tracker/spec-oriented engineering flows, Spec Kit is an on-demand formal spec artifact chain, ECC is the broad specialist/multi-harness method library, project-scoped Ordivon Skills supply bounded system-analysis methods, REA owns shipped-artifact reverse engineering, and CC Switch is resource/capacity routing only.
+
+This map is discovery/routing guidance, not another workflow engine or authority layer. Exact Skill trust, eligibility and invocation mode remain owned by Skills MCP.
 
 ## Observed local capability
 
