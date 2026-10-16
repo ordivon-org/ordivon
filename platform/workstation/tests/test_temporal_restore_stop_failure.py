@@ -24,6 +24,11 @@ class RestoreSmokeFailedStopTests(unittest.TestCase):
                 'exit 73\n', encoding="utf-8"
             )
             shim.chmod(0o755)
+            # CI is non-root: only the simulated scratch owns these paths.
+            # Mock chown rather than requiring a real postgres account/privilege.
+            fake_chown = Path(temp) / "chown"
+            fake_chown.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+            fake_chown.chmod(0o755)
             identity = uuid.uuid4().hex
             data = Path(f"/tmp/ordivon-restore-stop-failure-{identity}-data")
             socket = Path(f"/tmp/ordivon-restore-stop-failure-{identity}-socket")
