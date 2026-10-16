@@ -11,9 +11,9 @@
       "binding": "/root/.config/ordivon/secrets/binance/observer",
       "copyIntoRepository": false,
       "executorBindingExplicitlyExcluded": "/root/.config/ordivon/secrets/binance/executor",
-      "permissionStanding": "PENDING_FRESH_PROVIDER_VERIFICATION",
+      "permissionStanding": "PROVIDER_READ_VERIFIED_20261017_RECHECK_EACH_CAPTURE",
       "productScope": "USDⓈ-M Futures",
-      "role": "observer-candidate"
+      "role": "observer"
     },
     "OKX": {
       "binding": "/root/.config/ordivon/secrets/okx/observer/config.toml",
@@ -72,11 +72,11 @@
       "expectedDigestStanding": "CALLER_COMMITMENT_MISSING",
       "normalizer": "src/ordivon_capital/trading/private_reality.py::normalize_binance_usdm_observer",
       "permissionClient": "binance-sdk-wallet 13.4.0",
-      "permissionGate": "enableReading=true; all write-capable permission flags=false",
-      "permissionStanding": "PENDING_FRESH_PROVIDER_VERIFICATION",
+      "permissionGate": "enableReading=true; provider GET-only USER_DATA calls; provider write-capable flags observed but never exercised",
+      "permissionStanding": "PROVIDER_READ_VERIFIED_20261017_RECHECK_EACH_CAPTURE",
       "permissionTruthOwner": "Binance Wallet GET /sapi/v1/account/apiRestrictions",
       "privateCaptureImplementation": "src/ordivon_capital/trading/binance_usdm_private_capture.py",
-      "productEligibilityStanding": "PENDING_PROVIDER_VERIFICATION",
+      "productEligibilityStanding": "USDM_USER_DATA_READ_VERIFIED",
       "requiredQueries": [
         "account_information_v3",
         "futures_account_balance_v3",
@@ -87,13 +87,16 @@
         "position_adl_quantile_estimation",
         "position_information_v3",
         "current_all_open_orders",
-        "account_trade_list"
+        "account_trade_list",
+        "get_income_history"
       ],
       "requiredSecurityType": "USER_DATA",
       "timelinessOwner": "USER_DATA ACCOUNT_UPDATE / ORDER_TRADE_UPDATE streams",
       "tradFiAgreementAutomationAllowed": false,
       "tradFiAgreementStanding": "UNKNOWN_NO_READ_ONLY_STATUS_API",
-      "tradePermissionRequired": false
+      "tradePermissionRequired": false,
+      "currentDataAdmission": "GET_ONLY_ADMITTED",
+      "admissionScope": "Binance USD-M signed USER_DATA GET through official SDK only; no trade, transfer, or withdrawal calls admitted"
     },
     "OKX": {
       "authoritativeReality": "OKX private account/order/trade API",

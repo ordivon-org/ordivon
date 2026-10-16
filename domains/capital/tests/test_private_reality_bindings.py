@@ -10,8 +10,8 @@ def test_observer_bindings_are_external_and_executor_is_excluded():
     x=json.loads((ROOT/'config/private_reality_policy.json').read_text())
     assert x['credentialBindings']['OKX']['role']=='observer'
     assert x['credentialBindings']['BINANCE']['role']=='observer'
-    assert x['credentialBindings']['BINANCE_USDM']['role']=='observer-candidate'
-    assert x['credentialBindings']['BINANCE_USDM']['permissionStanding']=='PENDING_FRESH_PROVIDER_VERIFICATION'
+    assert x['credentialBindings']['BINANCE_USDM']['role']=='observer'
+    assert x['credentialBindings']['BINANCE_USDM']['permissionStanding']=='PROVIDER_READ_VERIFIED_20261017_RECHECK_EACH_CAPTURE'
     assert x['credentialBindings']['OKX']['copyIntoRepository'] is False
     assert x['credentialBindings']['BINANCE']['copyIntoRepository'] is False
     assert x['credentialBindings']['BINANCE']['executorBindingExplicitlyExcluded'].endswith('/binance/executor')

@@ -42,12 +42,16 @@ def _oneof(value: Any) -> Any:
 def permission_gate(permission: dict[str, Any]) -> dict[str, Any]:
     reading = permission.get("enable_reading") is True
     writes = {name: permission.get(name) is True for name in WRITE_CAPABLE_PERMISSION_FIELDS}
-    safe = reading and all(
+    # Admission here is for the GET-only observation path, not for trading.
+    # Binance credentials may have Futures permissions while USER_DATA reads
+    # still belong exclusively to the official SDK's read methods below.
+    credential_read_only = reading and all(
         permission.get(name) is False for name in WRITE_CAPABLE_PERMISSION_FIELDS
     )
     return {
-        "safe": safe,
+        "safe": reading,
         "enableReading": reading,
+        "credentialReadOnly": credential_read_only,
         "writeCapablePermissions": writes,
         "ipRestrict": permission.get("ip_restrict"),
         "createTime": permission.get("create_time"),
@@ -168,6 +172,12 @@ def capture(
             usdm.current_all_open_orders,
             recv_window=5000,
         ),
+        "get_income_history": _call(
+            "get_income_history",
+            usdm.get_income_history,
+            limit=100,
+            recv_window=5000,
+        ),
     }
     if symbol:
         calls.update(
@@ -224,6 +234,8 @@ def qualification_summary(result: dict[str, Any]) -> dict[str, Any]:
     orders = orders_data if isinstance(orders_data, list) else []
     trades_data = (calls.get("account_trade_list") or {}).get("data")
     trades = trades_data if isinstance(trades_data, list) else []
+    income_data = (calls.get("get_income_history") or {}).get("data")
+    income = income_data if isinstance(income_data, list) else []
 
     config = (calls.get("futures_account_configuration") or {}).get("data")
     multi = (calls.get("get_current_multi_assets_mode") or {}).get("data")
@@ -276,6 +288,8 @@ def qualification_summary(result: dict[str, Any]) -> dict[str, Any]:
         ),
         "openOrderCount": len(orders),
         "tradeRowCount": len(trades),
+        "incomeSampleRowCount": len(income),
+        "incomeHistoryComplete": False,
         "tradFiAgreementStanding": "UNKNOWN_NO_READ_ONLY_STATUS_API",
         "tradeEligibilityStanding": "NOT_INFERRED_FROM_READ_SURFACE",
         "privateAccountDataUsed": result.get("privateAccountDataUsed") is True,

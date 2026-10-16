@@ -29,8 +29,9 @@ def test_private_reality_credentials_may_be_located_but_private_data_stays_not_a
     assert not x['venues']['BINANCE']['tradePermissionRequired']
     assert x['venues']['BINANCE_USDM']['requiredSecurityType']=='USER_DATA'
     assert not x['venues']['BINANCE_USDM']['tradePermissionRequired']
-    assert x['venues']['BINANCE_USDM']['permissionStanding']=='PENDING_FRESH_PROVIDER_VERIFICATION'
-    assert x['venues']['BINANCE_USDM']['productEligibilityStanding']=='PENDING_PROVIDER_VERIFICATION'
+    assert x['venues']['BINANCE_USDM']['permissionStanding']=='PROVIDER_READ_VERIFIED_20261017_RECHECK_EACH_CAPTURE'
+    assert x['venues']['BINANCE_USDM']['currentDataAdmission']=='GET_ONLY_ADMITTED'
+    assert x['venues']['BINANCE_USDM']['productEligibilityStanding']=='USDM_USER_DATA_READ_VERIFIED'
     assert x['venues']['BINANCE_USDM']['tradFiAgreementAutomationAllowed'] is False
 
 @pytest.mark.provider_qualification

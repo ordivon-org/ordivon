@@ -9,7 +9,7 @@ from ordivon_capital.trading.binance_usdm_private_capture import (
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_permission_gate_requires_reading_and_zero_write_capabilities():
+def test_permission_gate_admits_get_only_observation_with_provider_trade_permissions():
     base = {
         "enable_reading": True,
         "ip_restrict": True,
@@ -18,21 +18,24 @@ def test_permission_gate_requires_reading_and_zero_write_capabilities():
     for field in WRITE_CAPABLE_PERMISSION_FIELDS:
         base[field] = False
     assert permission_gate(base)["safe"] is True
+    assert permission_gate(base)["credentialReadOnly"] is True
 
     for field in WRITE_CAPABLE_PERMISSION_FIELDS:
         row = dict(base)
         row[field] = True
-        assert permission_gate(row)["safe"] is False, field
+        assert permission_gate(row)["safe"] is True, field
+        assert permission_gate(row)["credentialReadOnly"] is False, field
 
 
-def test_permission_gate_rejects_missing_write_capability_fields():
+def test_permission_gate_reports_unknown_write_permission_fields_without_blocking_reads():
     permission = {"enable_reading": True}
     for field in WRITE_CAPABLE_PERMISSION_FIELDS:
         permission[field] = False
     for field in WRITE_CAPABLE_PERMISSION_FIELDS:
         reduced = dict(permission)
         reduced.pop(field)
-        assert permission_gate(reduced)["safe"] is False, field
+        assert permission_gate(reduced)["safe"] is True, field
+        assert permission_gate(reduced)["credentialReadOnly"] is False, field
 
 
 def test_permission_gate_fails_when_reading_is_missing():
@@ -82,6 +85,7 @@ def test_qualification_summary_omits_account_values_and_order_trade_details():
                 "data": [{"order_id": 123, "price": "SECRETISH"}],
             },
             "account_trade_list": {"ok": True, "data": [{"id": 1, "price": "SECRETISH"}]},
+            "get_income_history": {"ok": True, "data": [{"income": "SECRETISH"}]},
         },
     }
     out = qualification_summary(result)
@@ -92,6 +96,8 @@ def test_qualification_summary_omits_account_values_and_order_trade_details():
     assert out["activePositionCount"] == 1
     assert out["openOrderCount"] == 1
     assert out["tradeRowCount"] == 1
+    assert out["incomeSampleRowCount"] == 1
+    assert out["incomeHistoryComplete"] is False
     assert out["externalFinancialWriteAttempted"] is False
 
 
