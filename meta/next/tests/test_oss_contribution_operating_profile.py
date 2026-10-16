@@ -6,6 +6,9 @@ INDEX = ROOT / "catalogs/capabilities/packages/INDEX.md"
 OPERATING = ROOT / "docs/architecture/LONG_RUNNING_MULTI_AGENT_WORK_OPERATING_PROFILE_R1.md"
 PROFILE = ROOT / "profiles/oss-contribution/README.md"
 GLOSSARY = ROOT / "profiles/oss-contribution/GLOSSARY.md"
+LAUNCH_R2 = ROOT / "profiles/oss-contribution/CONTROLLER_LAUNCH_PROMPT_R2.md"
+ROLES_R2 = ROOT / "profiles/oss-contribution/ROLE_PROMPTS_R2.md"
+PLAN_R2 = ROOT / "docs/superpowers/plans/2026-10-17-oss-contribution-controller-handoff-r2.md"
 
 
 def read(path: Path) -> str:
@@ -170,3 +173,44 @@ def test_glossary_freezes_campaign_language_without_implementation_details():
         assert term in glossary
     assert "not a Host Work lifecycle state" in glossary
     assert "not a second authoritative task or GitHub database" in glossary
+
+
+def test_r2_controller_recovers_existing_campaign_and_owns_only_routing():
+    launch = read(LAUNCH_R2)
+    profile = read(PROFILE)
+    assert "work:oss:top1000-contribution-campaign-r1:20261017" in launch
+    assert "do not spawn a new" in launch.lower()
+    assert "You are not the Scout, Reproducer, Patch Agent" in launch
+    assert "REVALIDATE" in launch or "revalidate" in launch
+    assert "Host Attention/Topic/Work" in launch
+    assert "GitHub Actions action_required" in launch
+    assert "CLA SUCCESS" in launch
+    assert "not a live Issue or PR database" in launch
+    assert "Do not create 1,000 repository Works or thousands of Issue Tasks." in profile
+
+
+def test_r2_specialist_separation_and_no_mandatory_reviewer():
+    roles = read(ROLES_R2)
+    launch = read(LAUNCH_R2)
+    for role in ("S01", "S02", "R01", "P01", "U01"):
+        assert f"## {role}" in roles
+        assert role in launch
+    assert "## Optional F01" in roles and "F01" in launch
+    assert "WRITE SET = 0" in roles
+    assert "Do NOT trust a prior local candidate as GREEN" in roles
+    assert "not the default for ordinary engineering" in launch
+    assert "DO NOT create a standing reviewer" in roles
+    assert "one isolated branch/workspace" in roles
+    assert "action_required" in roles
+    assert "reproducibility and causality only" in roles
+
+
+def test_r2_handoff_has_real_evidence_and_next_wave_plan():
+    launch = read(LAUNCH_R2)
+    plan = read(PLAN_R2)
+    for ref in ("#4609", "#4611", "#4586", "ws-oss-rtk4586-pnpm-20261017"):
+        assert ref in launch
+    assert "not a green PR" in plan
+    assert "Host snapshot/message" in plan
+    assert "Start S01 repo-policy scout" in plan
+    assert "new Task, Scheduler, Review Registry or Board service" in plan
