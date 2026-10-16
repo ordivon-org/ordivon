@@ -8,7 +8,17 @@ Workstation does not decide when Jev is suitable, does not interpret `DONE` as s
 
 ## Windows-native execution provider
 
-workstation/windows/jev_fastpath_provider.py owns the Windows-native realization used when Ordivon invokes Jev through Runtime's windows_native target. It pins the official uv 0.12.3 Windows asset and digest, uv-managed CPython 3.12.13, the exact Jev source commit, and the locked jev-ultrafast 0.1.0 / browser-harness 0.1.13 package pair.
+workstation/windows/jev_fastpath_provider.py owns the Windows materialization contract. The current Windows provider pins the official uv 0.13.1 executable and SHA-256, uv-managed CPython 3.15.0, a separate `.venv-py3.15.0` environment, the exact Jev source commit and locked jev-ultrafast 0.1.0 / browser-harness 0.1.13 package pair. Older `.venv` bytes remain historical, not an acceptable current Python provider.
+
+The `status-native` command must run under the **active Windows user** (not SYSTEM) with the approved provider source and the accompanying `jev-fastpath-provider.toml` deployed in the same directory. Invoke it using the pinned Windows Python 3.15 interpreter, for example:
+
+```powershell
+& $JevPython315 .\jev_fastpath_provider.py --contract .\jev-fastpath-provider.toml status-native
+```
+
+It checks the real Windows binaries, installed Python and package versions, exact Git revision/origin/tracked state, Chrome presence and uv executable SHA-256. A successful exit (0) means only `windowsPhysicalHealthy=true`; mismatched or missing bytes return 1. An unsupported carrier or invalid environment returns 2. The response explicitly has `receiptEvaluated=false`: the Linux-owned receipt must be independently verified by the canonical Workstation provider, and Windows physical readiness is not proof of provider credentials, network reachability, or browser semantic success. This command must **not** depend on WSL interop; running the Linux `status` command in an environment lacking `WSL_INTEROP` is not an acceptable substitute.
+
+The separate historical Linux Ansible realization uses a pinned frozen environment and does not inherit the Windows Python 3.15 qualification. Do not promote that old interpreter to a new default without independent current-source requalification.
 
 The browser contract is deliberately narrow: a dedicated persistent profile under LOCALAPPDATA/Ordivon/Chrome-CDP, a fixed loopback-only CDP endpoint, and no long-lived browser or daemon requirement. The consuming Windows job launches the dedicated Chrome on demand and may retain profile state without exposing DevTools outside Windows loopback.
 
