@@ -35,7 +35,7 @@ sudo -u postgres "$PG_CTL" -D "$RESTORE_ROOT" -l "$LOG" \
 
 CORE_VERSION=$(sudo -u postgres "$PSQL" -p "$PORT" -h "$SOCKET_ROOT" -d temporal -Atqc 'select curr_version from schema_version;')
 VIS_VERSION=$(sudo -u postgres "$PSQL" -p "$PORT" -h "$SOCKET_ROOT" -d temporal_visibility -Atqc 'select curr_version from schema_version;')
-ROW=$(sudo -u postgres "$PSQL" -p "$PORT" -h "$SOCKET_ROOT" -d temporal_visibility -Atqc "select workflow_id||'|'||status from executions_visibility where workflow_id='${WORKFLOW_ID//\'/\'\'}';")
+ROW=$(sudo -u postgres "$PSQL" -p "$PORT" -h "$SOCKET_ROOT" -d temporal_visibility -Atqc "select workflow_id||'|'||status from executions_visibility where workflow_id='${WORKFLOW_ID//\'/\'\'}' and status=2 order by start_time desc limit 1;")
 
 [ "$CORE_VERSION" = "1.19" ]
 [ "$VIS_VERSION" = "1.14" ]
