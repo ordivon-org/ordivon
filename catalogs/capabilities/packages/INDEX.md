@@ -8,6 +8,7 @@ This is a working inventory, not an architecture.
 |---|---|---|---|
 | Research | credible research result / paper / evidence product | READY_FOR_REAL_WORK | close gaps only from active research workloads |
 | Engineering | working, maintainable software/system | READY_FOR_REAL_WORK | use on next engineering workload; no platform build |
+| Multi-Agent Work Coordination | durable multi-Agent semantic continuity and execution routing without duplicate truth stores | READY_FOR_REAL_WORK | dogfood with a bounded Top-1000 OSS contribution wave; add platforms only from measured pressure |
 | Security | bounded cybersecurity risk with verification evidence | READY_FOR_REAL_WORK | activate controls/tools from actual threat/risk context |
 | Artifact | correct consumable digital artifact | READY_FOR_REAL_WORK | use native-family validators on real artifact tasks |
 | Preservation | durable, recoverable preservation of selected digital objects | READY_FOR_REAL_WORK / STANDARD-NATIVE | use E-ARK SIP + external maturity frameworks; activate Enduro only on recurring ingest need |
@@ -28,6 +29,6 @@ Agents, Skills, programs, solvers, databases, workflow engines, APIs, humans and
 
 ## R1 census result
 
-All eleven high-frequency packages have now received the first standards/external-ecosystem/local-capability census. `READY_FOR_REAL_WORK` means enough capability exists to start normal real workloads; it does **not** mean the open-ended field is complete or that every optional tool has been installed.
+All twelve high-frequency packages have now received the first standards/external-ecosystem/local-capability census. `READY_FOR_REAL_WORK` means enough capability exists to start normal real workloads; it does **not** mean the open-ended field is complete or that every optional tool has been installed.
 
 From this point, installation and package growth are workload-triggered only.
