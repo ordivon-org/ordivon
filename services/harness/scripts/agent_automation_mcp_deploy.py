@@ -142,7 +142,7 @@ def runtime_check(c: dict) -> dict:
         "mcp": "2.0.0",
         "mcp-types": "2.0.0",
         "uvicorn": "0.52.1",
-        "pydantic": "2.13.4",
+        "pydantic": "2.14.1",
         "jsonschema": "4.26.0",
         "rfc8785": "0.1.4",
     }
