@@ -130,6 +130,20 @@ Successful Linux Attempts may additionally register an immutable `resource_recei
 
 For installation and receipted deployment, follow [`docs/quickstart.md`](docs/quickstart.md) and [`docs/operations.md`](docs/operations.md).
 
+## Focused native Rust testing
+
+`mise install` now obtains official
+[cargo-nextest](https://github.com/nextest-rs/nextest) **0.9.148** using the
+upstream [mise HTTP backend](https://mise.jdx.dev/dev-tools/backends/http.html)
+and a GitHub Release mirror. This Runtime-local Linux x64 install pins the
+official GitHub release-asset SHA-256, so the mirror is only a transport.
+The optional `mise run test:focused` task calls this pinned version with the
+current Runtime feature profile and emits its native JUnit report under
+`target/nextest/ci/junit.xml`. Set `RUNTIME_TEST_EXPR` to the nextest
+filter expression for another exact native test. This is low-cost
+feedback; `mise run verify` still owns Runtime's full Cargo, Clippy,
+environment and docs gate. Filtered tests do not count as passed tests.
+
 ## First Runtime workflow
 
 A normal client journey is:
