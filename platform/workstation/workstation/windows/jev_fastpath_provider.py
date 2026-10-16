@@ -362,6 +362,76 @@ def provider_status(cfg: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def native_provider_status(cfg: dict[str, Any], local_appdata: Path) -> dict[str, Any]:
+    """Observe Windows bytes with native processes; do not infer WSL receipt health.
+
+    The caller must run this function in the Windows user's own native session.
+    Only physical version/source facts are returned. Credentials, provider
+    effects and the Linux-owned receipt are deliberately out of scope.
+    """
+    external = local_appdata / str(cfg["external_root_relative"])
+    source = external / "jev-ultrafast" / str(cfg["source_revision"])
+    python = external / "python" / str(cfg["python_distribution_dir"]) / "python.exe"
+    venv_python = source / str(cfg["venv_relative"]) / "Scripts" / "python.exe"
+    uv = external / "uv" / str(cfg["uv_version"]) / "uv.exe"
+    chrome = Path(str(cfg["chrome_path"]))
+
+    uv_exact = uv.is_file() and sha256_file(uv) == str(cfg["uv_exe_sha256"])
+    python_observed = None
+    if python.is_file():
+        version = run([str(python), "--version"], timeout=15)
+        if version.returncode == 0:
+            python_observed = (version.stdout or version.stderr).strip()
+    python_exact = python_observed == f"Python {cfg['python_version']}"
+    packages = package_state(cfg, {"venvPython": venv_python})
+
+    native_git = shutil.which("git")
+    source_exact = False
+    revision = None
+    if native_git and (source / ".git").exists():
+        head = run([native_git, "-C", str(source), "rev-parse", "HEAD"], timeout=15)
+        origin = run([native_git, "-C", str(source), "remote", "get-url", "origin"], timeout=15)
+        dirty = run(
+            [native_git, "-C", str(source), "status", "--porcelain", "--untracked-files=no"],
+            timeout=15,
+        )
+        revision = head.stdout.strip() if head.returncode == 0 else None
+        source_exact = (
+            revision == str(cfg["source_revision"])
+            and origin.returncode == 0
+            and origin.stdout.strip() == str(cfg["source_repo"])
+            and dirty.returncode == 0
+            and not dirty.stdout.strip()
+        )
+
+    physical = bool(
+        uv_exact and python_exact and packages["exact"] and source_exact and chrome.is_file()
+    )
+    return {
+        "schemaVersion": 1,
+        "kind": "ordivon.workstation.windows-jev-fastpath-native-status",
+        "observerAuthority": "windows_native_current_user",
+        "receiptEvaluated": False,
+        "windowsPhysicalHealthy": physical,
+        "uv": {"exact": uv_exact},
+        "python": {"exact": python_exact, "version": python_observed},
+        "packages": {
+            "exact": packages["exact"],
+            "jevVersion": packages["jevVersion"],
+            "browserHarnessVersion": packages["browserHarnessVersion"],
+            "pythonVersion": packages.get("pythonVersion"),
+        },
+        "source": {"exact": source_exact, "revision": revision},
+        "chrome": {"present": chrome.is_file()},
+        "nonClaims": [
+            "linux_receipt_bound",
+            "provider_credentials_valid_for_upstream",
+            "provider_network_serviceable",
+            "browser_semantic_success",
+        ],
+    }
+
+
 def download_exact_uv(cfg: dict[str, Any], target: Path) -> None:
     target.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="ordivon-jev-uv-") as raw:
@@ -538,10 +608,19 @@ def apply_provider(cfg: dict[str, Any]) -> dict[str, Any]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--contract", type=Path, default=DEFAULT_CONTRACT)
-    parser.add_argument("command", choices=("status", "apply"))
+    parser.add_argument("command", choices=("status", "apply", "status-native"))
     args = parser.parse_args()
     try:
         cfg = config(args.contract)
+        if args.command == "status-native":
+            if os.name != "nt":
+                raise RuntimeError("status-native requires a Windows-native execution carrier")
+            local = os.environ.get("LOCALAPPDATA")
+            if not local or not Path(local).is_dir():
+                raise RuntimeError("status-native requires the current Windows user's LOCALAPPDATA")
+            native = native_provider_status(cfg, Path(local))
+            print(json.dumps(native, indent=2, sort_keys=True))
+            return 0 if native["windowsPhysicalHealthy"] else 1
         value = provider_status(cfg) if args.command == "status" else apply_provider(cfg)
         print(json.dumps(value, indent=2, sort_keys=True))
         if args.command == "status":

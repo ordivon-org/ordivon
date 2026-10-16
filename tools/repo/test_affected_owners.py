@@ -45,6 +45,10 @@ class AffectedOwnersTests(unittest.TestCase):
         self.assertEqual(self.tasks("meta/next/README.md"), ["next:verify"])
         self.assertEqual(self.queue_tasks("meta/next/README.md"), ["next:verify"])
 
+    def test_host_has_explicit_postgres_queue_verification(self) -> None:
+        self.assertEqual(self.tasks("services/host/README.md"), ["host:verify"])
+        self.assertEqual(self.queue_tasks("services/host/README.md"), ["host:queue"])
+
     def test_harness_has_explicit_queue_portable_verification(self) -> None:
         self.assertEqual(self.tasks("services/harness/README.md"), ["harness:verify"])
         self.assertEqual(

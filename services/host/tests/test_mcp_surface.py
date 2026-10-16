@@ -11,7 +11,10 @@ from ordivon_host_v2 import HostV2
 from ordivon_host_v2.mcp_server import build_server
 
 DSN = os.environ.get("ORDIVON_HOST_V2_TEST_DSN")
-pytestmark = pytest.mark.skipif(not DSN, reason="ORDIVON_HOST_V2_TEST_DSN not set")
+pytestmark = [
+    pytest.mark.skipif(not DSN, reason="ORDIVON_HOST_V2_TEST_DSN not set"),
+    pytest.mark.usefixtures("host_test_db_ready"),
+]
 
 
 def snapshot(frontier: str) -> dict[str, object]:
