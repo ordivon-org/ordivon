@@ -14,11 +14,12 @@ tooling_lock="$repo/requirements-tooling.lock.txt"
 
 usage() {
   cat <<'TXT'
-usage: scripts/owner-environment bootstrap|doctor|test|test-lifecycle|cold-start|extended
+usage: scripts/owner-environment bootstrap|doctor|test|lint|test-lifecycle|cold-start|extended
 
 bootstrap   materialize pinned Python tooling and fetch Cargo.lock dependencies
 doctor      verify Rust toolchain, Cargo.lock, Python and exact Ruff tooling
 test        bootstrap, doctor, Rust workspace tests, Python gates, and local acceptance contract check
+lint        lint Python modules and executable Python entrypoints without Rust tests
 test-lifecycle  non-qualifying lifecycle inner-loop using the current owner environment and Runtime inspector
 cold-start  prove the default test profile with fresh Python env and Cargo target directory
 extended    run the intentionally long 512-case Registry reference-model property test
@@ -76,11 +77,34 @@ materialize_runtime_inspect() {
   }
   export ORDIVON_RUNTIME_INSPECT="$inspect_dir/ordivon-runtime-inspect"
 }
+lint_python_sources() {
+  # Ruff does not find extensionless Python executables during directory scans.
+  "$python_bin" - "$repo/scripts" <<'PYLINT'
+from pathlib import Path
+import subprocess
+import sys
+
+scripts = Path(sys.argv[1])
+entrypoints = [
+    str(path)
+    for path in sorted(scripts.rglob("*"))
+    if path.is_file()
+    and not path.is_symlink()
+    and path.suffix != ".py"
+    and path.open("rb").readline().startswith((b"#!/usr/bin/env python", b"#!/usr/bin/python"))
+]
+raise SystemExit(subprocess.run(
+    [sys.executable, "-m", "ruff", "check", str(scripts), *entrypoints],
+    check=False,
+).returncode)
+PYLINT
+}
+
 run_tests() {
   bootstrap
   doctor
   cd "$repo"
-  "$python_bin" -m ruff check scripts/
+  lint_python_sources
   "$cargo_bin" test --locked --workspace --all-targets --all-features -- --skip request_identity_and_terminal_winner_match_reference_model
   materialize_runtime_inspect
   "$python_bin" -m unittest discover -s scripts/tests -q
@@ -116,6 +140,7 @@ case "$mode" in
   bootstrap) bootstrap ;;
   doctor) doctor ;;
   test) run_tests ;;
+  lint) ensure_materialized_environment; cd "$repo"; lint_python_sources ;;
   test-lifecycle) run_lifecycle_tests ;;
   extended) run_extended ;;
   cold-start)

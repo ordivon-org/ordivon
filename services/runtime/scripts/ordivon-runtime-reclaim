@@ -814,7 +814,7 @@ def closed_workspace_tombstone(
 ) -> dict[str, object] | None:
     record = runtime_store_root / "workspace-records" / f"{workspace_id}.json"
     try:
-        metadata = record.lstat()
+        record.lstat()
     except FileNotFoundError:
         return None
     if record.is_symlink() or not record.is_file():

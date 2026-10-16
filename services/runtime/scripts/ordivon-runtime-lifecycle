@@ -958,6 +958,7 @@ def prepare_selected_item(
         "recordDigest",
         "workspaceHeadRevision",
         "canonicalHeadRevision",
+        "canonicalRef",
         "sourceRepo",
         "sourceRevision",
     ):
@@ -1067,27 +1068,36 @@ def canonical_head_revision(prepared_item: dict[str, object]) -> str | None:
     if expected is None:
         return None
     source_repo = prepared_item.get("sourceRepo")
+    canonical_ref = prepared_item.get("canonicalRef")
     if not isinstance(expected, str) or not isinstance(source_repo, str):
         raise RuntimeError("prepared candidate omitted canonical source identity")
+    # Revalidate the SAME authority selected by reclaim's planner. A local
+    # checkout HEAD may legitimately differ from published origin/main.
+    if canonical_ref == "origin/main":
+        revision = "refs/remotes/origin/main^{commit}"
+    elif canonical_ref == "HEAD":
+        revision = "HEAD"
+    else:
+        raise RuntimeError("prepared candidate omitted or changed canonicalRef")
     try:
         result = subprocess.run(
-            ["git", "-C", source_repo, "rev-parse", "HEAD"],
+            ["git", "-C", source_repo, "rev-parse", "--verify", revision],
             check=False,
             text=True,
             capture_output=True,
             timeout=CANONICAL_HEAD_TIMEOUT_SECONDS,
         )
     except subprocess.TimeoutExpired as error:
-        raise RuntimeError("canonical HEAD read exceeded bounded timeout") from error
+        raise RuntimeError("canonical ref read exceeded bounded timeout") from error
     if result.returncode != 0:
         raise RuntimeError(
             result.stderr.strip()
             or result.stdout.strip()
-            or "canonical HEAD read failed"
+            or "canonical ref read failed"
         )
     observed = result.stdout.strip()
     if not observed:
-        raise RuntimeError("canonical HEAD read returned empty revision")
+        raise RuntimeError("canonical ref read returned empty revision")
     return observed
 
 
@@ -1769,7 +1779,6 @@ def quarantine_orphan_directory(
         raise RuntimeError("quarantine target already exists")
 
     git_evidence = orphan_git_evidence(workspace_path)
-    observed_head = git_evidence.get("observedHead")
     tombstone = {
         "schemaVersion": SCHEMA_VERSION,
         "state": "closed",
@@ -1835,7 +1844,7 @@ def quarantine_one(
     workspace_root = args.workspace_root or args.runtime_store_root / "workspaces"
     workspace_path = workspace_root / workspace_id
     record_path = args.runtime_store_root / "workspace-records" / f"{workspace_id}.json"
-    record = load_open_record(record_path, workspace_id, workspace_path)
+    load_open_record(record_path, workspace_id, workspace_path)
     if active_jobs(args.database, args.busy_timeout_ms, workspace_id):
         raise RuntimeError("workspace acquired an active or held Job")
     args.quarantine_root.mkdir(parents=True, exist_ok=True)
