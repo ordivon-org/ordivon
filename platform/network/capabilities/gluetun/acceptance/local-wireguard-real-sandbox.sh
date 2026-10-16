@@ -37,15 +37,19 @@ cleanup() {
   podman network rm -f "$net" >/dev/null 2>&1
   rm -rf "$tmp"
 }
-trap cleanup EXIT
+# Do not arm cleanup of resources until all collision checks have passed.
+# On preflight failure we own only the temporary directory, not any named
+# container, network, or interface that may already exist.
+trap 'rm -rf "$tmp"' EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
-! podman container exists "$ctr"
-! podman network exists "$net"
-! ip link show "$wgif" >/dev/null 2>&1
-! ip route show | grep -q "^$subnet "
+if podman container exists "$ctr"; then echo "sandbox container collision" >&2; exit 1; fi
+if podman network exists "$net"; then echo "sandbox network collision" >&2; exit 1; fi
+if ip link show "$wgif" >/dev/null 2>&1; then echo "sandbox link collision" >&2; exit 1; fi
+if ip route show | grep -q "^$subnet "; then echo "sandbox route collision" >&2; exit 1; fi
 
+trap cleanup EXIT
 podman network create --driver bridge --subnet "$subnet" --gateway "$gateway" --opt isolate=strict "$net" >/dev/null
 umask 077
 wg genkey >"$tmp/host.key"
@@ -143,6 +147,6 @@ wait "$adapter_pid" 2>/dev/null || true
 adapter_pid=
 cleanup
 trap - EXIT INT TERM
-! podman container exists "$ctr"
-! podman network exists "$net"
-! ip link show "$wgif" >/dev/null 2>&1
+if podman container exists "$ctr"; then echo "sandbox container remained after cleanup" >&2; exit 1; fi
+if podman network exists "$net"; then echo "sandbox network remained after cleanup" >&2; exit 1; fi
+if ip link show "$wgif" >/dev/null 2>&1; then echo "sandbox link remained after cleanup" >&2; exit 1; fi
