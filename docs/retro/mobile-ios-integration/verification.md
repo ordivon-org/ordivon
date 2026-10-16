@@ -162,3 +162,56 @@ A fresh Windows Runtime limited probe after the runner analysis still reported:
 - Apple Mobile Device Service: Running / Automatic.
 
 No tunnel, signing, install, UI effect, or recovery effect was attempted.
+
+## Fresh physical-device qualification — 2026-10-17
+
+A physical iPhone is now attached. This section supersedes the earlier no-USB boundary above.
+
+### Gate 2 — discovery and trust
+
+Fresh Windows/Runtime evidence:
+- the admitted go-ios and mobilecli carrier SHA-256 values still equal their current Workstation contracts;
+- Windows exposes four present Apple USB functions and Apple Mobile Device Service remains Running/Automatic;
+- two consecutive go-ios and mobilecli discovery reads resolved the same provider-native device identity;
+- mobilecli classified it as one online real iOS device on iOS 26.6.2;
+- go-ios reported `HostAttached=true` and `TrustedHostAttached=true`.
+
+The device identifier and subscriber/telephony fields are intentionally not persisted in repository evidence.
+
+Developer Mode is not yet closed. Fresh `ios devmode get` reports `DeveloperModeEnabled=false`. A provider-native enable attempt reached Apple's passcode gate and revealed the Developer Mode setting, so the remaining action is the device-side Settings toggle, reboot, and post-restart confirmation.
+
+### Gate 3 — persistent userspace tunnel
+
+A direct Runtime service/limited `ios tunnel start --userspace` successfully negotiated a tunnel (MTU 1280). That process correctly remained foreground; because the current Windows Runtime native execution lane is one-at-a-time, an independent `tunnel ls` admission was rejected while the foreground tunnel Job was active. Treating process start as Gate 3 completion would therefore have been false-green.
+
+A mature repository pattern was reused instead of adding a mobile daemon:
+- Workstation Scheduled Task is the long-lived process owner;
+- control-plane task registration/lifecycle uses elevated authority;
+- the task principal is the existing Runtime service account with Limited run level;
+- go-ios pair-record/self-identity state is provider-owned under the service profile rather than a Workspace;
+- the exact go-ios carrier remains digest-fenced before task realization.
+
+Independent service/limited Runtime Jobs then proved:
+- provider status `TUNNEL_READY`, task state `Running`, one userspace tunnel;
+- `ios tunnel ls` returns the selected physical-device tunnel;
+- `ios rsd ls` returns the live Remote Service Discovery catalog;
+- stopping the Scheduled Task makes independent tunnel readback fail;
+- restarting the same task restores independent tunnel readback.
+
+The source-owned `mobile_ios_tunnel` Workstation provider was implemented TDD-first. Focused suite: 6/6 PASS. Final materialized provider source SHA-256: `9658b52f3fbe9d8d70b0f436a6d874c693f195c19c17c5162e873479e466ab31`.
+
+### Gate 4 — exact runner before signing
+
+Fresh public runner ingress followed the node's real network ownership:
+- service-authority Windows curl and Linux fetch both timed out to GitHub;
+- active-user Windows curl succeeded;
+- active-user staging SHA-256: `a39446db09d998289bd2f0821870bb5d9a73330a9f2a3f1f67546b2dd69370bf`;
+- elevated promotion into service-owned provider state preserved the same digest;
+- a fresh service/limited readback preserved the same digest and size 12,451,974 bytes.
+
+Signing remains explicitly blocked:
+- no `.p12`, `.p8`, or `.mobileprovision` was found in the approved active-user inventory;
+- no matching Apple/developer private-key certificate was found in CurrentUser/My or LocalMachine/My;
+- Windows Runtime still exposes no CredentialAuthority for this bootstrap.
+
+Standing: `SIGNING_INPUT_UNAVAILABLE`. No signing/install effect has been attempted, and DeviceKit 0.0.34 is not yet claimed installed or runnable.

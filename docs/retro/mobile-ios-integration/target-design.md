@@ -74,3 +74,21 @@ Until such an authority exists, initial runner signing/install remains an explic
 `native-tool-carriers.json` owns source/archive/member/executable/target commitments; `materialize-native-tool-carrier.ps1` owns the common staged transaction. Provider-specific mobile behavior is deliberately absent. Runtime remains the execution owner and the managed-equipment catalog remains the exact node-local binding projection.
 
 The materializer is explicit rather than a daemon or workflow system. Existing exact target bytes return unchanged without network access; mismatched versioned targets fail closed rather than being overwritten.
+
+## Persistent tunnel lifecycle ownership
+
+Fresh physical qualification proved that the iOS 17+ userspace tunnel is long-lived provider state, not one Runtime command result. A direct `ios tunnel start --userspace` under Windows Runtime limited authority negotiated successfully, but it occupied the current single native execution lane and prevented the independent readback command needed by later mobile work.
+
+The retained seam is Workstation-owned process lifecycle, reusing the repository's existing Windows Scheduled Task pattern:
+
+- elevated Workstation control plane installs/starts/stops/removes one exact task;
+- the task runs the exact digest-fenced go-ios carrier as `NT SERVICE\\OrdivonRuntimeR6Candidate` with `RunLevel Limited`;
+- pair-record/self-identity state lives under that service identity's provider-owned LocalAppData, not under a Runtime Workspace;
+- short Runtime Jobs remain service/limited and independently execute `tunnel ls`, RSD reads, discovery, and later provider commands;
+- the tunnel-owner receipt explicitly does not grant device-control authority, runner readiness, or domain success.
+
+This is a lifecycle adapter at an already-proven Workstation seam. It is not a Mobile Runtime, workflow engine, or domain-level `mobile.device` capability.
+
+## Bootstrap artifact ingress
+
+The current node's GitHub route is owned by the interactive Windows user/VPN session: service/Linux downloads timed out while the same `curl.exe` under `active_user` fetched the exact public DeviceKit 0.0.34 runner. Public artifact ingress may therefore use active-user networking, but the bytes are SHA-256 fenced before and after elevated promotion into service-owned provider state. This network ownership does not transfer device-control authority to the active user.

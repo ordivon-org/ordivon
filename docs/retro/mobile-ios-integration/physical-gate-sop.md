@@ -39,16 +39,26 @@ Do not proceed until discovery is stable across two consecutive reads.
 
 ## 3. Tunnel
 
-For iOS 17+:
+For iOS 17+, direct foreground execution is a falsification step only. On the current node it consumes the single Windows native execution lane.
+
+Use the source-owned Workstation tunnel owner for steady state:
 
 ```text
-ios.exe tunnel start --userspace --udid=<selected-udid>
-ios.exe tunnel ls
+MobileIosTunnelProvider.ps1 -Command install -Udid <selected-udid>
+MobileIosTunnelProvider.ps1 -Command start  -Udid <selected-udid>
+MobileIosTunnelProvider.ps1 -Command status -Udid <selected-udid>
 ```
 
-Start with the lowest current Windows execution authority. Escalate only on observed authority failure.
+The provider control plane is elevated because it manages a service-account Scheduled Task. The scheduled task itself must run the exact go-ios carrier as `NT SERVICE\\OrdivonRuntimeR6Candidate` with Limited run level.
 
-PASS requires the selected UDID to have a provider-read tunnel. Keep the tunnel process identity/evidence; do not infer health from a launched process.
+Then verify from a separate service/limited Runtime Job:
+
+```text
+ios.exe tunnel ls --tunnel-info-port 60105
+ios.exe rsd ls --udid <selected-udid> --tunnel-info-port 60105
+```
+
+PASS requires provider readback of the selected-device tunnel and RSD state. Task state or process start alone is insufficient.
 
 ## 4. Exact runner
 

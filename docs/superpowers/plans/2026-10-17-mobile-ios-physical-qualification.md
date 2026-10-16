@@ -33,12 +33,12 @@
 - Consumes: Windows PnP, exact go-ios list, exact mobilecli devices.
 - Produces: one selected provider-native UDID or a bounded blocker.
 
-- [ ] Connect one iPhone/iPad over a USB data path and complete the device-side Trust prompt.
-- [ ] Read Windows PnP and require `VID_05AC > 0`.
-- [ ] Run exact `ios.exe list`.
-- [ ] Run exact `mobilecli.exe devices --include-offline --platform ios`.
-- [ ] Compare provider-native device identities. If they differ, stop with `DEVICE_IDENTITY_MISMATCH`.
-- [ ] Repeat both provider reads once; require stable identity before Task 2.
+- [x] Connect one iPhone/iPad over a USB data path and complete the device-side Trust prompt.
+- [x] Read Windows PnP and require `VID_05AC > 0`.
+- [x] Run exact `ios.exe list`.
+- [x] Run exact `mobilecli.exe devices --include-offline --platform ios`.
+- [x] Compare provider-native device identities. If they differ, stop with `DEVICE_IDENTITY_MISMATCH`.
+- [x] Repeat both provider reads once; require stable identity before Task 2.
 
 ### Task 2: Least-authority iOS 17+ tunnel
 
@@ -49,11 +49,13 @@
 - Consumes: selected UDID from Task 1.
 - Produces: a provider-read healthy tunnel and minimum required Windows authority.
 
-- [ ] Submit `ios.exe tunnel start --userspace --udid=<selected-udid>` with the lowest current Windows authority.
-- [ ] Run `ios.exe tunnel ls` and require the selected device tunnel to be present.
-- [ ] If the first authority fails for an authority reason, repeat once with active-user limited authority.
-- [ ] Record the lower passing authority; do not copy browser authority by analogy.
-- [ ] Re-run `ios.exe list` and `mobilecli.exe devices --include-offline --platform ios`.
+- [x] Submit `ios.exe tunnel start --userspace --udid=<selected-udid>` with the lowest current Windows authority.
+- [x] Run `ios.exe tunnel ls` and require the selected device tunnel to be present.
+- [x] If the first authority fails for an authority reason, repeat once with active-user limited authority.
+- [x] Record the lower passing authority; do not copy browser authority by analogy.
+- [x] Re-run `ios.exe list` and `mobilecli.exe devices --include-offline --platform ios`.
+
+**Execution correction from fresh evidence:** direct foreground go-ios tunnel execution negotiated successfully but consumed the current single Windows native execution lane. Steady state therefore uses the source-owned Workstation Scheduled Task tunnel owner with a Limited Runtime-service data plane and independent Runtime readback. This replaces, rather than layers over, the foreground process owner.
 
 ### Task 3: Exact DeviceKit bootstrap
 
@@ -64,8 +66,8 @@
 - Consumes: selected UDID, exact DeviceKit 0.0.34 IPA, operator-authorized signing inputs.
 - Produces: installed runner accepted by mobilecli.
 
-- [ ] Fetch/reuse DeviceKit 0.0.34 and verify SHA-256 `a39446db09d998289bd2f0821870bb5d9a73330a9f2a3f1f67546b2dd69370bf`.
-- [ ] If no approved signing input path exists, stop with `SIGNING_INPUT_UNAVAILABLE`; do not build a credential subsystem in this task.
+- [x] Fetch/reuse DeviceKit 0.0.34 and verify SHA-256 `a39446db09d998289bd2f0821870bb5d9a73330a9f2a3f1f67546b2dd69370bf`.
+- [x] If no approved signing input path exists, stop with `SIGNING_INPUT_UNAVAILABLE`; do not build a credential subsystem in this task.
 - [ ] Use go-ios `ui install devicekit` with `--path` pointing at the exact 0.0.34 IPA and the selected UDID.
 - [ ] Run `mobilecli.exe agent status --device <selected-udid>`.
 - [ ] Require reported agent version `0.0.34` and a DeviceKit runner bundle ID.

@@ -34,11 +34,11 @@ A Bluetooth/iAP record alone is not PASS.
 
 ## Gate 3 — transport
 
-For iOS 17+, qualify `ios tunnel start --userspace --udid=<UDID>` and `ios tunnel ls`.
+For iOS 17+, first falsify direct `ios tunnel start --userspace --udid=<UDID>`, then retain the proven steady-state owner. Current-node evidence shows the foreground command consumes the single Windows native execution lane, so the steady-state owner is the Workstation `mobile_ios_tunnel` Scheduled Task adapter.
 
-Test the lowest practical Windows authority first. Do not copy browser `active_user` authority by analogy. Retain the least authority that can discover and keep the selected device tunnel healthy.
+The control plane may use elevated authority to install/manage the task. The task itself must run the exact go-ios carrier as the existing Runtime service account with Limited run level. Do not copy browser `active_user` authority by analogy.
 
-PASS requires provider readback of the selected device tunnel. Process start alone is insufficient.
+PASS requires an independent service/limited Runtime Job to read back the selected-device tunnel and RSD state. Process start or Scheduled Task state alone is insufficient.
 
 ## Gate 4 — runner bootstrap
 
