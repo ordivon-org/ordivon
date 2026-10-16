@@ -14,7 +14,9 @@ PRODUCTION_SERVER = "temporal.service"
 WORKER = "ordivon-agent-temporal-worker.service"
 SYSTEMD = Path("/etc/systemd/system")
 CONFIG = Path("/etc/ordivon/agent-automation-browserless.json")
-VENV_PY = Path("/root/.local/share/ordivon-workstation/temporal-agent-automation/.venv/bin/python")
+VENV_PY = Path(
+    "/root/.local/share/ordivon-workstation/temporal-agent-automation/py315-sqlite354-r19-release/bin/python"
+)
 UV = Path("/usr/bin/uv")
 REQUIREMENTS = ROOT / "config" / "agent-automation-temporal-requirements.txt"
 TEMPORAL = Path("/opt/ordivon/external/temporal-cli/1.8.3/temporal")
@@ -25,6 +27,8 @@ EXPECTED_RUNTIME_VERSIONS = {
     "rfc8785": "0.1.4",
     "mcp": "2.2.0",
     "httpx": "0.28.1",
+    "pythonVersion": "3.15.0",
+    "sqliteVersion": "3.54.0",
 }
 
 
@@ -56,9 +60,11 @@ def runtime_versions() -> dict[str, str] | None:
     if not VENV_PY.is_file():
         return None
     code = (
-        "import importlib.metadata as m,json;"
+        "import importlib.metadata as m,json,sqlite3,sys;"
         "names=['temporalio','rfc8785','mcp','httpx'];"
-        "print(json.dumps({n:m.version(n) for n in names},sort_keys=True))"
+        "v={n:m.version(n) for n in names};"
+        "v.update({'pythonVersion':sys.version.split()[0],'sqliteVersion':sqlite3.sqlite_version});"
+        "print(json.dumps(v,sort_keys=True))"
     )
     proc = subprocess.run(
         [str(VENV_PY), "-c", code],
@@ -89,7 +95,7 @@ def provision_runtime_dependencies() -> None:
 def config_address() -> str | None:
     try:
         value = json.loads(CONFIG.read_text())
-    except (OSError, json.JSONDecodeError):
+    except OSError, json.JSONDecodeError:
         return None
     address = value.get("temporalAddress") if isinstance(value, dict) else None
     return address if isinstance(address, str) else None
