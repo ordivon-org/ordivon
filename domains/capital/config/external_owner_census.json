@@ -615,7 +615,7 @@
       "localResponsibility": "normalize public provider market observations and compute explicitly registered non-model summaries; provider remains market reality owner",
       "admittedMechanicsOwners": [],
       "candidateMechanics": [
-        "@okx_ai/okx-trade-cli 1.4.7 as differential/reference client only",
+        "@okx_ai/okx-trade-cli 1.4.8 as official read client",
         "binance-sdk-spot 11.3.0 for future admitted Binance Spot USER_DATA reads",
         "binance-sdk-derivatives-trading-usds-futures 17.4.0 + binance-sdk-wallet 13.4.0 for future admitted USD-M USER_DATA reads"
       ],
@@ -624,7 +624,7 @@
         "Binance account/USER_DATA APIs"
       ],
       "localDependencies": [
-        "LOCAL_BOUNDED_OKX_READONLY_CLIENT for the three qualified OKX provider-capability-audit GETs",
+        "@okx_ai/okx-trade-cli 1.4.8 for current OKX provider account GET queries",
         "provider-response normalization only"
       ],
       "authorityBoundary": "OKX live-trade credential audit is separate from private-Reality observer admission; config/private_reality_policy.json remains authoritative for observer admission"
@@ -632,7 +632,7 @@
     {
       "id": "trading-private-reality",
       "sourcePatterns": [
-        "src/ordivon_capital/trading/okx_readonly_client.py",
+        "tools/okx_private_reality_probe.py",
         "src/ordivon_capital/trading/private_reality.py"
       ],
       "ownerClasses": [
@@ -648,7 +648,7 @@
       "localResponsibility": "normalize authenticated read-only account/order/fill/position truth for reconciliation; provider remains external reality owner and this surface owns no write authority",
       "admittedMechanicsOwners": [],
       "candidateMechanics": [
-        "@okx_ai/okx-trade-cli 1.4.7 as differential/reference client only",
+        "@okx_ai/okx-trade-cli 1.4.8 as official read client",
         "binance-sdk-spot 11.3.0 for future admitted Binance Spot USER_DATA reads",
         "binance-sdk-derivatives-trading-usds-futures 17.4.0 + binance-sdk-wallet 13.4.0 for future admitted USD-M USER_DATA reads"
       ],
@@ -657,7 +657,7 @@
         "Binance account/USER_DATA APIs"
       ],
       "localDependencies": [
-        "LOCAL_BOUNDED_OKX_READONLY_CLIENT for the three qualified OKX provider-capability-audit GETs",
+        "@okx_ai/okx-trade-cli 1.4.8 for current OKX provider account GET queries",
         "provider-response normalization only"
       ],
       "authorityBoundary": "OKX live-trade credential audit is separate from private-Reality observer admission; config/private_reality_policy.json remains authoritative for observer admission"
@@ -1416,7 +1416,7 @@
       "contractId": "okx-bounded-authenticated-read-client",
       "scope": "authenticated GET-only OKX account config, trading-account balance, and open Spot orders through exact Network v2 proxy authority",
       "localBaseline": {
-        "implementation": "src/ordivon_capital/trading/okx_readonly_client.py",
+        "implementation": "tools/okx_private_reality_probe.py",
         "runtime": "Python 3.14.7 stdlib only",
         "allowedMethods": [
           "GET"

@@ -31,7 +31,7 @@ def test_current_public_data_runners_do_not_gate_on_nautilus():
 def test_current_private_and_live_provider_gates_do_not_execute_rc4():
     private = (ROOT / "scripts/check-private-reality-readonly-preflight").read_text()
     assert "/root/external/nautilus-trader" not in private
-    assert "LOCAL_BOUNDED_OKX_READONLY_CLIENT" in private
+    assert "@okx_ai/okx-trade-cli" in private
 
     live = (ROOT / "tools/okx_live_provider_probe.py").read_text()
     assert "nautilus_trader" not in live

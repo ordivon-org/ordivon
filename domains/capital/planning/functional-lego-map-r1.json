@@ -200,9 +200,6 @@
     "src/ordivon_capital/trading/fix44_projection.py": [
       "Normalize"
     ],
-    "src/ordivon_capital/trading/okx_readonly_client.py": [
-      "Observe"
-    ],
     "src/ordivon_capital/trading/private_reality.py": [
       "Normalize"
     ],

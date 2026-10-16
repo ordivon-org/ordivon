@@ -22,16 +22,14 @@ assert x['venues']['BINANCE_USDM']['tradFiAgreementAutomationAllowed'] is False
 print(json.dumps({'policyStanding':x['standing'],'ownerCredentialUseMandate':x['ownerCredentialUseMandate'],'credentialPermissionStanding':x['credentialPermissionStanding'],'privateAccountDataAdmission':x['privateAccountDataAdmission'],'secretDiscoveryAllowed':False},sort_keys=True))
 PY
 
-"$repo/scripts/run-capability-python" - <<'PY'
-import json
-from ordivon_capital.trading.okx_readonly_client import OkxReadOnlyClient
-required={'get_account_config','get_account_balance','get_spot_open_orders'}
-missing=sorted(required-set(dir(OkxReadOnlyClient)))
-if missing: raise SystemExit(f'OKX bounded read surface missing: {missing}')
-forbidden={'post','put','delete','place_order','cancel_order','amend_order','transfer'}
-present=sorted(name for name in forbidden if hasattr(OkxReadOnlyClient,name))
-if present: raise SystemExit(f'OKX bounded reader unexpectedly exposes write surface: {present}')
-print(json.dumps({'venue':'OKX','client':'LOCAL_BOUNDED_OKX_READONLY_CLIENT','runtime':'Python 3.14.7 stdlib','requiredMethods':sorted(required),'credentialsLoaded':False,'networkCalled':False,'writeMethodsPresent':False},sort_keys=True))
+/usr/bin/python3 - <<'PY'
+import json,subprocess
+cli="/root/external/okx-trade-cli/1.4.8/node_modules/.bin/okx"
+v=subprocess.run([cli,"--version"],capture_output=True,text=True,check=True)
+h=subprocess.run([cli,"account","--help"],capture_output=True,text=True,check=True)
+assert v.stdout.startswith("1.4.8")
+assert all(k in h.stdout for k in ("balance","positions","bills"))
+print(json.dumps({"venue":"OKX","client":"@okx_ai/okx-trade-cli","version":"1.4.8","credentialsLoaded":False,"networkCalled":False}))
 PY
 
 /root/external/binance-sdk-spot/.venv/bin/python - <<'PY'

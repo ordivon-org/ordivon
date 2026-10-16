@@ -77,8 +77,8 @@
       "providerWithdrawPermissionCurrent": false,
       "qualificationStanding": "PASS_CURRENT_PROVIDER_BINDING_NO_ORDER_ADMISSION",
       "role": "TEST_ACCOUNT_BY_OWNER_POLICY",
-      "readClient": "LOCAL_BOUNDED_OKX_READONLY_CLIENT",
-      "externalReferenceClient": "@okx_ai/okx-trade-cli 1.4.7",
+      "readClient": "@okx_ai/okx-trade-cli",
+      "externalReferenceClient": "@okx_ai/okx-trade-cli 1.4.8",
       "executionCandidateReference": {
         "providerBinding": "config/okx_live_provider.json#executionCandidateReference",
         "standing": "NOT_ADMITTED_CANDIDATE_EVIDENCE_ONLY"

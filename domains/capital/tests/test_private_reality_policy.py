@@ -18,11 +18,11 @@ def test_private_reality_credentials_may_be_located_but_private_data_stays_not_a
     assert not x['externalFinancialWritesAllowed']
     assert not x['secretDiscoveryAllowed']
     assert x['venues']['OKX']['requiredPermission']=='Read'
-    assert x['venues']['OKX']['client']=='LOCAL_BOUNDED_OKX_READONLY_CLIENT'
-    assert x['venues']['OKX']['runtime']=='Python 3.14.7 stdlib'
+    assert x['venues']['OKX']['client']=='@okx_ai/okx-trade-cli'
+    assert x['venues']['OKX']['runtime']=='Node.js official CLI 1.4.8'
     assert x['venues']['OKX']['permissionStanding']=='READ_ONLY_VERIFIED'
     assert x['venues']['OKX']['currentDataAdmission']=='READ_ONLY_ADMITTED'
-    assert {'get_swap_positions','get_swap_open_orders','get_swap_fills'} <= set(x['venues']['OKX']['requiredQueries'])
+    assert {'account positions --instType SWAP','swap orders','swap fills'} <= set(x['venues']['OKX']['requiredQueries'])
     assert x['venues']['OKX']['candidateReference']['standing']=='HISTORICAL_CANDIDATE_EVIDENCE_ONLY'
     assert set(x['venues']['OKX']['forbiddenPermissions'])=={'Trade','Withdraw'}
     assert x['venues']['BINANCE']['requiredSecurityType']=='USER_DATA'

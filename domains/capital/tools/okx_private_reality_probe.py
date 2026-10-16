@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import socket
 import subprocess
 import time
@@ -11,10 +12,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-from ordivon_capital.trading.okx_readonly_client import (
-    OkxReadOnlyClient,
-    OkxReadOnlyCredentials,
-)
 from ordivon_capital.trading.private_reality import normalize_okx_observer
 
 
@@ -37,6 +34,39 @@ def _permission_tokens(raw: object) -> set[str]:
     }
 
 
+OFFICIAL_OKX = Path("/root/external/okx-trade-cli/1.4.8/node_modules/.bin/okx")
+OBSERVER_HOME = Path("/root/.config/ordivon/okx-observer-home")
+
+
+def official_rows(commands: list[str], *, home: Path, profile: str, base_url: str) -> list[dict]:
+    """Run the provider-owned CLI rather than implementing HTTP, signing, or retries."""
+    if not OFFICIAL_OKX.is_file():
+        raise RuntimeError("official OKX CLI 1.4.8 is unavailable")
+    env = os.environ.copy()
+    for key in ("OKX_API_KEY", "OKX_SECRET_KEY", "OKX_PASSPHRASE", "OKX_DEMO"):
+        env.pop(key, None)
+    env["HOME"] = str(home)
+    env["OKX_API_BASE_URL"] = base_url
+    p = subprocess.run(
+        [str(OFFICIAL_OKX), "--profile", profile, "--json", *commands],
+        env=env,
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        timeout=35,
+    )
+    if p.returncode:
+        raise RuntimeError(f"official OKX CLI {commands[0]} failed (exit={p.returncode})")
+    value = json.loads(p.stdout)
+    if isinstance(value, dict):
+        value = value.get("data")
+        if isinstance(value, dict):
+            value = value.get("data")
+    if not isinstance(value, list) or any(not isinstance(v, dict) for v in value):
+        raise RuntimeError("unexpected official OKX CLI JSON response")
+    return value
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--permission-only", action="store_true")
@@ -52,7 +82,10 @@ def main() -> int:
     policy = json.loads((ROOT / "config/private_reality_policy.json").read_text())
     okx_policy = policy["venues"]["OKX"]
     binding = Path(policy["credentialBindings"]["OKX"]["binding"])
-    if policy.get("ownerCredentialUseMandate") != "AUTHORIZED_READ_ONLY_PRIVATE_REALITY_OBSERVATION":
+    if (
+        policy.get("ownerCredentialUseMandate")
+        != "AUTHORIZED_READ_ONLY_PRIVATE_REALITY_OBSERVATION"
+    ):
         raise SystemExit("owner read-only observer mandate unavailable")
     if not binding.is_file():
         raise SystemExit("OKX observer credential binding unavailable")
@@ -78,28 +111,24 @@ def main() -> int:
         raise SystemExit("Network v2 OKX host drift")
     if authority.get("proxy") != live_cfg["networkAuthority"]["proxy"]:
         raise SystemExit("Network v2 OKX proxy drift")
-    for unit in (live_cfg["networkAuthority"]["targetUnit"], live_cfg["networkAuthority"]["serviceUnit"]):
-        state = subprocess.run(["/usr/bin/systemctl", "is-active", unit], text=True, capture_output=True)
+    for unit in (
+        live_cfg["networkAuthority"]["targetUnit"],
+        live_cfg["networkAuthority"]["serviceUnit"],
+    ):
+        state = subprocess.run(
+            ["/usr/bin/systemctl", "is-active", unit], text=True, capture_output=True
+        )
         if state.returncode != 0 or state.stdout.strip() != "active":
             raise SystemExit(f"Network v2 unit not active: {unit}")
     with socket.create_connection(("127.0.0.1", 19283), timeout=2):
         pass
 
-    client_cfg = live_cfg["readClient"]
-    reader = OkxReadOnlyClient(
+    config_rows = official_rows(
+        ["account", "config"],
+        home=OBSERVER_HOME,
+        profile=profile_name,
         base_url=live_cfg["providerApiAuthority"]["baseUrl"],
-        proxy_url=live_cfg["networkAuthority"]["proxy"],
-        credentials=OkxReadOnlyCredentials(
-            api_key=profile["api_key"],
-            secret_key=profile["secret_key"],
-            passphrase=profile["passphrase"],
-        ),
-        timeout_seconds=float(client_cfg["timeoutSeconds"]),
-        transport_attempts=int(client_cfg.get("transportAttempts", 3)),
-        retry_backoff_seconds=float(client_cfg.get("retryBackoffSeconds", 0.25)),
     )
-
-    config_rows = reader.get_account_config()
     if len(config_rows) != 1:
         raise SystemExit(f"OKX observer account config expected one row, got {len(config_rows)}")
     permissions = _permission_tokens(config_rows[0].get("perm"))
@@ -139,10 +168,30 @@ def main() -> int:
     if okx_policy.get("currentDataAdmission") != "READ_ONLY_ADMITTED":
         raise SystemExit("OKX private-Reality current data admission is not READ_ONLY_ADMITTED")
 
-    balance_rows = reader.get_account_balance()
-    position_rows = reader.get_swap_positions()
-    open_order_rows = reader.get_swap_open_orders()
-    fill_rows = reader.get_swap_fills()
+    balance_rows = official_rows(
+        ["account", "balance"],
+        home=OBSERVER_HOME,
+        profile=profile_name,
+        base_url=live_cfg["providerApiAuthority"]["baseUrl"],
+    )
+    position_rows = official_rows(
+        ["account", "positions", "--instType", "SWAP"],
+        home=OBSERVER_HOME,
+        profile=profile_name,
+        base_url=live_cfg["providerApiAuthority"]["baseUrl"],
+    )
+    open_order_rows = official_rows(
+        ["swap", "orders"],
+        home=OBSERVER_HOME,
+        profile=profile_name,
+        base_url=live_cfg["providerApiAuthority"]["baseUrl"],
+    )
+    fill_rows = official_rows(
+        ["swap", "fills"],
+        home=OBSERVER_HOME,
+        profile=profile_name,
+        base_url=live_cfg["providerApiAuthority"]["baseUrl"],
+    )
     envelope = {
         "status": "success",
         "externalFinancialWriteAttempted": False,

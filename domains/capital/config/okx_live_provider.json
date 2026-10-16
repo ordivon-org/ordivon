@@ -43,32 +43,27 @@
     "truthClass": "AUTHORITATIVE_PRIVATE_ACCOUNT_AND_ORDER_REALITY"
   },
   "readClient": {
-    "name": "LOCAL_BOUNDED_OKX_READONLY_CLIENT",
-    "runtime": "Python 3.14.7 stdlib",
-    "source": "src/ordivon_capital/trading/okx_readonly_client.py",
-    "timeoutSeconds": 15,
-    "allowedMethods": [
-      "GET"
+    "name": "@okx_ai/okx-trade-cli",
+    "version": "1.4.8",
+    "binary": "/root/external/okx-trade-cli/1.4.8/node_modules/.bin/okx",
+    "runtime": "Node.js official CLI",
+    "source": "https://github.com/okx/agent-trade-kit",
+    "allowedCommands": [
+      "account config",
+      "account balance",
+      "account positions",
+      "spot orders",
+      "swap orders",
+      "swap fills"
     ],
-    "allowedPaths": [
-      "/api/v5/account/config",
-      "/api/v5/account/balance",
-      "/api/v5/account/positions?instType=SWAP",
-      "/api/v5/trade/orders-pending?instType=SPOT",
-      "/api/v5/trade/orders-pending?instType=SWAP",
-      "/api/v5/trade/fills?instType=SWAP"
-    ],
-    "writeMethodsImplemented": false,
-    "transportAttempts": 3,
-    "retryBackoffSeconds": 0.25,
-    "retryPolicy": "TRANSIENT_TRANSPORT_ONLY_GET_IDEMPOTENT; HTTP/provider rejection is not retried"
+    "writeMethodsImplemented": false
   },
   "externalReferenceClient": {
     "name": "@okx_ai/okx-trade-cli",
-    "version": "1.4.7",
-    "binary": "/root/external/okx-trade-cli/1.4.7/node_modules/.bin/okx",
+    "version": "1.4.8",
+    "binary": "/root/external/okx-trade-cli/1.4.8/node_modules/.bin/okx",
     "home": "/root/.config/ordivon/okx-live-home",
-    "standing": "DIFFERENTIAL_REFERENCE_NOT_CANONICAL_READ_RUNTIME",
+    "standing": "CANONICAL_READ_RUNTIME",
     "signingDifferential": {
       "cases": 120,
       "mismatches": 0
@@ -97,5 +92,6 @@
     "version": "2.0.0rc4",
     "standing": "NOT_ADMITTED_CANDIDATE_EVIDENCE_ONLY",
     "qualificationTool": "tools/nautilus_rc4/okx_live_config_probe.py"
-  }
+  },
+  "officialClientHome": "/root/.config/ordivon/okx-live-home"
 }

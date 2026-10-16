@@ -23,19 +23,14 @@ def test_okx_live_provider_uses_bounded_read_client_and_unified_secret_root():
     assert x["privateRealityObserverLane"]["currentDataAdmission"] == "NOT_ADMITTED"
 
     assert x["providerApiAuthority"]["owner"] == "OKX"
-    assert x["readClient"]["name"] == "LOCAL_BOUNDED_OKX_READONLY_CLIENT"
-    assert x["readClient"]["runtime"] == "Python 3.14.7 stdlib"
-    assert x["readClient"]["source"] == "src/ordivon_capital/trading/okx_readonly_client.py"
-    assert x["readClient"]["allowedMethods"] == ["GET"]
+    assert x["readClient"]["name"] == "@okx_ai/okx-trade-cli"
+    assert x["readClient"]["version"] == "1.4.8"
+    assert x["readClient"]["runtime"] == "Node.js official CLI"
     assert x["readClient"]["writeMethodsImplemented"] is False
-    assert len(x["readClient"]["allowedPaths"]) == 6
-
+    assert "account balance" in x["readClient"]["allowedCommands"]
     ref = x["externalReferenceClient"]
-    assert ref["name"] == "@okx_ai/okx-trade-cli"
-    assert ref["version"] == "1.4.7"
-    assert ref["standing"] == "DIFFERENTIAL_REFERENCE_NOT_CANONICAL_READ_RUNTIME"
-    assert ref["signingDifferential"] == {"cases": 120, "mismatches": 0}
-    assert ref["liveStructuralDifferential"] == {"methods": 3, "mismatches": 0}
+    assert ref["version"] == "1.4.8"
+    assert ref["standing"] == "CANONICAL_READ_RUNTIME"
 
     candidate = x["executionCandidateReference"]
     assert candidate["name"] == "NautilusTrader"
@@ -63,7 +58,7 @@ def test_probe_contains_no_financial_write_or_candidate_execution():
     ):
         assert command not in s
     assert 'cfg["officialClient"]' not in s
-    assert "OkxReadOnlyClient" in s
+    assert "official_rows" in s
     assert "okx_live_config_probe" not in s
     assert "nautilus_trader" not in s
     assert '"orderSubmissionAttempted": False' in s

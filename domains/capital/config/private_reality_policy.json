@@ -12,7 +12,7 @@
       "copyIntoRepository": false,
       "executorBindingExplicitlyExcluded": "/root/.config/ordivon/secrets/binance/executor",
       "permissionStanding": "PENDING_FRESH_PROVIDER_VERIFICATION",
-      "productScope": "USD\u24c8-M Futures",
+      "productScope": "USDⓈ-M Futures",
       "role": "observer-candidate"
     },
     "OKX": {
@@ -65,7 +65,7 @@
       "tradePermissionRequired": false
     },
     "BINANCE_USDM": {
-      "authoritativeReality": "Binance USD\u24c8-M Futures USER_DATA API + User Data Stream",
+      "authoritativeReality": "Binance USDⓈ-M Futures USER_DATA API + User Data Stream",
       "client": "binance-sdk-derivatives-trading-usds-futures 17.4.0",
       "credentialCarrier": "finance-binance-observer-materials Runtime InputAuthority",
       "credentialCarrierStanding": "ACTIVE_RUNTIME_INPUT_AUTHORITY",
@@ -97,7 +97,7 @@
     },
     "OKX": {
       "authoritativeReality": "OKX private account/order/trade API",
-      "client": "LOCAL_BOUNDED_OKX_READONLY_CLIENT",
+      "client": "@okx_ai/okx-trade-cli",
       "forbiddenPermissions": [
         "Trade",
         "Withdraw"
@@ -107,14 +107,13 @@
       "currentDataAdmission": "READ_ONLY_ADMITTED",
       "admissionScope": "OKX observer credential + bounded GET-only client only; does not promote generic private-account access or execution authority",
       "requiredQueries": [
-        "get_account_config",
-        "get_account_balance",
-        "get_swap_positions",
-        "get_spot_open_orders",
-        "get_swap_open_orders",
-        "get_swap_fills"
+        "account config",
+        "account balance",
+        "account positions --instType SWAP",
+        "swap orders",
+        "swap fills"
       ],
-      "runtime": "Python 3.14.7 stdlib",
+      "runtime": "Node.js official CLI 1.4.8",
       "candidateReference": {
         "name": "NautilusTrader OKXHttpClient",
         "version": "2.0.0rc4",

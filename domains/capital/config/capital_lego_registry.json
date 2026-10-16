@@ -931,8 +931,8 @@
         "Observe"
       ],
       "implementation": {
-        "path": "src/ordivon_capital/trading/okx_readonly_client.py",
-        "symbol": "OkxReadOnlyClient"
+        "path": "src/ordivon_capital/trading/private_reality.py",
+        "symbol": "normalize_okx_observer"
       },
       "authorityRequirement": "PRIVATE_READ",
       "effectClass": "NONE",
@@ -949,7 +949,7 @@
         "credential authority"
       ],
       "permittedUses": [
-        "bounded GET-only private observation after admission"
+        "official OKX CLI observation followed by current private-Reality normalization"
       ],
       "prohibitedUses": [
         "Trade",

@@ -45,7 +45,6 @@
       "execution_feasibility.py",
       "execution_reconciliation.py",
       "fix44_projection.py",
-      "okx_readonly_client.py",
       "private_reality.py"
     ],
     "portfolio": [

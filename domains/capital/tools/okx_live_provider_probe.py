@@ -11,10 +11,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 
-from ordivon_capital.trading.okx_readonly_client import (
-    OkxReadOnlyClient,
-    OkxReadOnlyCredentials,
-)
+from okx_private_reality_probe import official_rows
 
 
 def sha256(path: Path) -> str:
@@ -34,7 +31,11 @@ def rows_of(value: Any) -> list[dict[str, Any]]:
         rows = value
     elif isinstance(value, dict) and isinstance(value.get("data"), list):
         rows = value["data"]
-    elif isinstance(value, dict) and isinstance(value.get("data"), dict) and isinstance(value["data"].get("data"), list):
+    elif (
+        isinstance(value, dict)
+        and isinstance(value.get("data"), dict)
+        and isinstance(value["data"].get("data"), list)
+    ):
         rows = value["data"]["data"]
     else:
         rows = []
@@ -73,42 +74,61 @@ def main() -> int:
     if authority.get("proxy") != cfg["networkAuthority"]["proxy"]:
         raise SystemExit("Network v2 OKX proxy drift")
     for unit in (cfg["networkAuthority"]["targetUnit"], cfg["networkAuthority"]["serviceUnit"]):
-        state = subprocess.run(["/usr/bin/systemctl", "is-active", unit], text=True, capture_output=True)
+        state = subprocess.run(
+            ["/usr/bin/systemctl", "is-active", unit], text=True, capture_output=True
+        )
         if state.returncode != 0 or state.stdout.strip() != "active":
             raise SystemExit(f"Network v2 unit not active: {unit}")
     with socket.create_connection(("127.0.0.1", 19283), timeout=2):
         pass
 
     client_cfg = cfg["readClient"]
-    reader = OkxReadOnlyClient(
+    cli_home = Path(cfg["officialClientHome"])
+    account_rows = official_rows(
+        ["account", "config"],
+        home=cli_home,
+        profile=cfg["profile"],
         base_url=cfg["providerApiAuthority"]["baseUrl"],
-        proxy_url=cfg["networkAuthority"]["proxy"],
-        credentials=OkxReadOnlyCredentials(
-            api_key=profile["api_key"],
-            secret_key=profile["secret_key"],
-            passphrase=profile["passphrase"],
-        ),
-        timeout_seconds=float(client_cfg["timeoutSeconds"]),
-        transport_attempts=int(client_cfg.get("transportAttempts", 3)),
-        retry_backoff_seconds=float(client_cfg.get("retryBackoffSeconds", 0.25)),
     )
-    account_rows = reader.get_account_config()
     if len(account_rows) != 1:
         raise SystemExit(f"OKX account config expected one row, got {len(account_rows)}")
     raw_perm = str(account_rows[0].get("perm") or "")
-    perms = sorted(
-        {x.strip().lower() for x in raw_perm.replace(";", ",").split(",") if x.strip()}
-    )
+    perms = sorted({x.strip().lower() for x in raw_perm.replace(";", ",").split(",") if x.strip()})
     missing = sorted(set(cfg["requiredPermissions"]) - set(perms))
     forbidden = sorted(set(cfg["forbiddenPermissions"]) & set(perms))
     if missing or forbidden:
         raise SystemExit(f"OKX permission mismatch missing={missing} forbidden={forbidden}")
 
-    balance_rows = reader.get_account_balance()
-    position_rows = reader.get_swap_positions()
-    spot_order_rows = reader.get_spot_open_orders()
-    swap_order_rows = reader.get_swap_open_orders()
-    swap_fill_rows = reader.get_swap_fills()
+    balance_rows = official_rows(
+        ["account", "balance"],
+        home=cli_home,
+        profile=cfg["profile"],
+        base_url=cfg["providerApiAuthority"]["baseUrl"],
+    )
+    position_rows = official_rows(
+        ["account", "positions", "--instType", "SWAP"],
+        home=cli_home,
+        profile=cfg["profile"],
+        base_url=cfg["providerApiAuthority"]["baseUrl"],
+    )
+    spot_order_rows = official_rows(
+        ["spot", "orders"],
+        home=cli_home,
+        profile=cfg["profile"],
+        base_url=cfg["providerApiAuthority"]["baseUrl"],
+    )
+    swap_order_rows = official_rows(
+        ["swap", "orders"],
+        home=cli_home,
+        profile=cfg["profile"],
+        base_url=cfg["providerApiAuthority"]["baseUrl"],
+    )
+    swap_fill_rows = official_rows(
+        ["swap", "fills"],
+        home=cli_home,
+        profile=cfg["profile"],
+        base_url=cfg["providerApiAuthority"]["baseUrl"],
+    )
 
     result = {
         "schemaVersion": 3,
@@ -126,7 +146,11 @@ def main() -> int:
         "networkTargetActive": True,
         "networkServiceActive": True,
         "networkProxyReachable": True,
-        "readClient": {"name": client_cfg["name"], "runtime": client_cfg["runtime"], "authenticated": True},
+        "readClient": {
+            "name": client_cfg["name"],
+            "runtime": client_cfg["runtime"],
+            "authenticated": True,
+        },
         "externalReferenceClient": cfg["externalReferenceClient"],
         "authenticatedProviderReadAudit": {
             "accountConfigCurrent": True,
