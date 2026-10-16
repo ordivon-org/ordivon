@@ -1,6 +1,7 @@
 # Mobile iOS Integration Slice Verification
 
-Candidate source base: 4a191669dc3bc24c0d876c633da585b75ce16e85.
+Original qualification base: 4a191669dc3bc24c0d876c633da585b75ce16e85.
+Current integrated main: c3cf38199aacbd8867029bf90a230ad61122ecc0.
 
 ## TDD evidence
 
@@ -73,7 +74,7 @@ A fresh full `mise run workstation:verify` passed after the mobilecli binding wa
 
 ## Generic Windows native-tool carrier materializer
 
-Candidate source adds:
+Current main contains:
 - `workstation/windows/native-tool-carriers.json`
 - `workstation/windows/materialize-native-tool-carrier.ps1`
 - `tests/test_windows_native_tool_carrier.py`
@@ -102,6 +103,22 @@ Fresh `mise run workstation:verify` passed after the materializer and its tests 
 
 Npm registry reports `@mobilenext/mobilecli-windows-amd64@1.0.20` as latest, published 2026-10-14. Local package-lock tarball URL/integrity matches registry. A fresh `npm pack` reproduced the registry SHA-512 integrity and the tarball executable SHA-256 exactly matches the admitted Runtime carrier. Go build metadata names VCS revision `b8bd2f90d2af74b2242f5da79e87055e4056d48d` but also reports `vcs.modified=true`; therefore exact registry-binary provenance is established while clean-source reproducibility remains UNKNOWN.
 
-## Materializer non-closure
+## Current-main integration and remaining non-closure
 
-The materializer is a verified candidate source primitive, not yet a mainline/deployed automatic converge action. Promotion may add a narrow operational invocation surface; it must not expand Runtime executable roots or create a mobile-specific installer subsystem.
+The exact source candidate was replayed onto fresh main ffd2f37b0f24776d17e8b423a7e31e22eba59490, reverified, committed as c3cf38199aacbd8867029bf90a230ad61122ecc0, and integrated through tools/repo/migration/integrate-main.sh with EXPECTED_MAIN=ffd2f37b0f24776d17e8b423a7e31e22eba59490. Integration was FAST_FORWARD. Fresh post-integration repo:primary:verify reported PASS with physical primary HEAD == refs/heads/main == c3cf38199aacbd8867029bf90a230ad61122ecc0 and a clean primary worktree.
+
+Fresh current-node Runtime evidence after integration:
+- direct limited go-ios --version: exit 0, 1.3.2;
+- direct limited go-ios list: exit 0, empty deviceList;
+- direct limited mobilecli --version: exit 0, 1.0.20;
+- direct limited mobilecli devices --include-offline --platform ios: exit 0, empty device list;
+- Windows limited PnP census: VID_05AC count 0;
+- Apple Mobile Device Service: Running, Automatic.
+
+The source-owned materializer is therefore mainline, but it is not yet an automatic operational converge action. That remaining automation is not a mobile-specific subsystem requirement: add only a narrow invocation through an existing operations lane if recurring clean-node convergence actually needs it.
+
+Physical-device closure remains open: no USB-present Apple device, tunnel, signing authority, DeviceKit/WDA runner install, UI action E2E, or reconnect/recovery qualification has been proven.
+
+## Repository-wide gate note
+
+Fresh mise run repo:ci on both the exact mobile candidate and the unmodified ffd2f37b base fails at the same pre-existing retirement-policy check: docs/superpowers/plans/2026-10-17-oss-contribution-operating-profile-r1.md is forbidden by next-monorepo-archive. The candidate does not touch that path. Workstation owner-native verification remains green; this repository-wide baseline drift is tracked separately and must not be misreported as a mobile regression.
