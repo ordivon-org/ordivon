@@ -259,6 +259,7 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
         self.assertEqual(
             invalidating,
             [
+                "src/ordivon_harness/ordivon/api_capacity.py",
                 "src/ordivon_harness/ordivon/capacity.py",
                 "src/ordivon_harness/ordivon/events.py",
                 "src/ordivon_harness/ordivon/gateway_provider.py",
