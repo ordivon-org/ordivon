@@ -155,6 +155,14 @@ mise install
 mise run verify
 """
 
+[tasks."host:queue"]
+run = """
+set -euo pipefail
+cd services/host
+mise install
+mise run queue
+"""
+
 [tasks."harness:verify"]
 run = """
 set -euo pipefail

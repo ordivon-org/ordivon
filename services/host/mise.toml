@@ -17,3 +17,9 @@ run = """
 set -euo pipefail
 uv run python -m pytest -q "${HOST_PYTEST_NODE:-tests/test_canonical_property.py}"
 """
+
+[tasks.queue]
+run = """
+set -euo pipefail
+bash tools/host_queue_verify.sh
+"""

@@ -728,9 +728,9 @@
     {
       "claimId": "harness.composition.agent-plugin-h2b-cooperative-cancellation",
       "file": "harness-agent-plugin-h2b-cooperative-cancellation-20260922.json",
-      "status": "verified",
+      "status": "historical",
       "implementationRevision": "5c70231dcf118a338bc851c2a47eeee4e93b9f0e",
-      "scope": "Current Harness H2b Gateway effect control acceptance: known owner Jobs receive one cooperative execution.cancel on Harness control stop; non-terminal acknowledgement is durably cancel-requested and remains cancel_unknown until later owner reconciliation proves terminal state.",
+      "scope": "Historical H2b Gateway effect control acceptance at immutable implementationRevision 5c70231dcf118a338bc851c2a47eeee4e93b9f0e: known owner Jobs received one cooperative execution.cancel on Harness control stop; a non-terminal acknowledgement remained cancel-requested and cancel_unknown until terminal reconciliation. PR129 U4 source-currentness qualification now also binds pyproject.toml and uv.lock requires-python. This older receipt remains valid for its exact frozen implementation/dependency closure and is NOT current Harness qualification after the Python requirement changed; no new live H2b outcome is asserted.",
       "implementationPaths": [
         "src/ordivon_harness/ordivon/sqlite_runtime_bridge.py",
         "src/ordivon_harness/plugin_gateway_effect.py"
