@@ -138,6 +138,14 @@ def test_official_mcp_exposes_social_work_surface_and_runs_vertical_slice() -> N
                 },
             )
             assert posted["messageRef"] == message_ref
+            exact = await call(
+                client,
+                "message.get",
+                {"messageRef": message_ref, "expectedDigest": posted["messageDigest"]},
+            )
+            assert exact["messageRef"] == message_ref
+            assert exact["messageDigest"] == posted["messageDigest"]
+            assert exact["body"] == "please inspect"
             search = await call(
                 client,
                 "message.search",
