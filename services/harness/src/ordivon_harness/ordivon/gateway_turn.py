@@ -9,8 +9,9 @@ owners and are represented only by HarnessGatewayProviderBinding evidence.
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import dataclass
 import hashlib
-from typing import Protocol
+from typing import Protocol, cast
 
 from anc_canonical import JsonValue, canonical_digest
 
@@ -27,6 +28,23 @@ from .model import AgentTurnAdapterError, AgentTurnRequest, AgentTurnResult
 
 
 _CODEC_SENTINEL = "ordivon-gateway-codec-not-a-provider-secret"
+
+
+@dataclass(frozen=True, slots=True)
+class _GatewayOpenAIChatCodecSettings:
+    """Duck-typed settings for the already-qualified OpenAI-chat codec.
+
+    The gateway transport rewrites the synthetic DeepSeek endpoint before physical
+    dispatch. Provider credentials therefore never enter this settings object.
+    """
+
+    api_key: str
+    base_url: str
+    model: str
+    credential_scope_id: str
+    timeout_seconds: float
+    max_response_bytes: int
+    max_output_tokens: int
 
 
 class GatewayTransportDelegate(Protocol):
@@ -103,9 +121,7 @@ class _GatewayDeepSeekTransport:
         self._provider_url = f"{DEFAULT_DEEPSEEK_BASE_URL}/chat/completions"
         self.gateway_url = binding.endpoint.rstrip("/") + "/v1/chat/completions"
 
-    def _rewrite(
-        self, url: str, headers: dict[str, str]
-    ) -> tuple[str, dict[str, str]]:
+    def _rewrite(self, url: str, headers: dict[str, str]) -> tuple[str, dict[str, str]]:
         if url != self._provider_url:
             raise ValueError("gateway codec attempted an unexpected Provider endpoint")
         rewritten = dict(headers)
@@ -165,6 +181,108 @@ class _GatewayDeepSeekTransport:
             )
         except AgentTurnAdapterError as error:
             raise _gateway_error(error) from error
+
+
+class GatewayBackedOpenAIChatTurnAdapter:
+    """Compose the existing OpenAI-chat codec with one frozen gateway Provider route.
+
+    This is deliberately not a universal router. One binding admits exactly one
+    requested/effective Provider, with direct fallback disabled and credentials plus
+    Network authority represented only by opaque references.
+    """
+
+    adapter_id = "ordivon.gateway.openai-chat.single-provider.v1"
+    supports_call_handle = False
+
+    def __init__(
+        self,
+        binding: HarnessGatewayProviderBinding,
+        *,
+        gateway_access_token: str | None = None,
+        transport: GatewayTransportDelegate | None = None,
+        completion_contract: Mapping[str, JsonValue] | None = None,
+        timeout_seconds: float = 90.0,
+        max_response_bytes: int = 4_194_304,
+        max_output_tokens: int = 8_192,
+    ) -> None:
+        if binding.ingress_protocol != "openai-chat":
+            raise ValueError("OpenAI-chat gateway Adapter requires openai-chat ingress")
+        if binding.direct_fallback:
+            raise ValueError("OpenAI-chat gateway Adapter requires directFallback=false")
+        if binding.allowed_effective_providers != (binding.requested_provider,):
+            raise ValueError(
+                "OpenAI-chat gateway Adapter requires exactly the requested Provider "
+                "as its only allowed effective Provider"
+            )
+        if binding.credential_name_ref is None:
+            raise ValueError("OpenAI-chat gateway binding requires an opaque credential name ref")
+        if binding.network_egress_profile_ref is None:
+            raise ValueError("OpenAI-chat gateway binding requires a Network egress profile ref")
+        if timeout_seconds <= 0 or max_response_bytes < 1 or max_output_tokens < 1:
+            raise ValueError("OpenAI-chat gateway request bounds must be positive")
+
+        self.binding = binding
+        self.model_id = binding.requested_model
+        self._transport = _GatewayDeepSeekTransport(
+            binding,
+            gateway_access_token=gateway_access_token,
+            delegate=transport,
+        )
+        codec_settings = _GatewayOpenAIChatCodecSettings(
+            api_key=_CODEC_SENTINEL,
+            base_url=DEFAULT_DEEPSEEK_BASE_URL,
+            model=binding.requested_model,
+            credential_scope_id=f"gateway:{binding.requested_provider}",
+            timeout_seconds=timeout_seconds,
+            max_response_bytes=max_response_bytes,
+            max_output_tokens=max_output_tokens,
+        )
+        self._codec = DeepSeekTurnAdapter(
+            cast(DeepSeekSettings, codec_settings),
+            transport=self._transport,
+            completion_contract=completion_contract,
+        )
+        self.structured_completion_contract_digest = (
+            self._codec.structured_completion_contract_digest
+        )
+
+    def provider_request_digest(self, request: AgentTurnRequest) -> str:
+        _, _provider_url, headers, body = self._codec._prepare_request(request)
+        semantic_headers = {
+            name: value for name, value in headers.items() if name.lower() != "authorization"
+        }
+        return canonical_digest(
+            {
+                "schemaVersion": 1,
+                "kind": "ordivon.gateway-backed-provider-request",
+                "adapterId": self.adapter_id,
+                "requestedProvider": self.binding.requested_provider,
+                "requestedModelId": self.model_id,
+                "bindingDigest": self.binding.digest,
+                "codecAdapterId": self._codec.adapter_id,
+                "agentDispatchDigest": request.dispatch_digest,
+                "method": "POST",
+                "gatewayPath": "/v1/chat/completions",
+                "headers": semantic_headers,
+                "bodyDigest": "sha256:" + hashlib.sha256(body).hexdigest(),
+            }
+        )
+
+    gateway_request_digest = provider_request_digest
+
+    def request_token_upper_bound(self, request: AgentTurnRequest) -> int:
+        return self._codec.request_token_upper_bound(request)
+
+    def accepts_effective_model_id(self, model_id: str) -> bool:
+        return model_id == self.model_id
+
+    def invoke(self, request: AgentTurnRequest) -> AgentTurnResult:
+        return self._codec.invoke(request)
+
+    def invoke_with_control(
+        self, request: AgentTurnRequest, control: ExecutionControl
+    ) -> AgentTurnResult:
+        return self._codec.invoke_with_control(request, control)
 
 
 class GatewayBackedDeepSeekTurnAdapter:
@@ -231,9 +349,7 @@ class GatewayBackedDeepSeekTurnAdapter:
 
         _, _provider_url, headers, body = self._codec._prepare_request(request)
         semantic_headers = {
-            name: value
-            for name, value in headers.items()
-            if name.lower() != "authorization"
+            name: value for name, value in headers.items() if name.lower() != "authorization"
         }
         return canonical_digest(
             {
@@ -268,4 +384,8 @@ class GatewayBackedDeepSeekTurnAdapter:
         return self._codec.invoke_with_control(request, control)
 
 
-__all__ = ["GatewayBackedDeepSeekTurnAdapter", "GatewayTransportDelegate"]
+__all__ = [
+    "GatewayBackedDeepSeekTurnAdapter",
+    "GatewayBackedOpenAIChatTurnAdapter",
+    "GatewayTransportDelegate",
+]
