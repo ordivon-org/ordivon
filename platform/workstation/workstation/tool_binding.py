@@ -226,20 +226,58 @@ def project_declared_bindings(catalog: Mapping[str, Any]) -> dict[str, Any]:
     return {**identity, "projectionDigest": canonical_digest(identity)}
 
 
-def resolve_managed(catalog: Mapping[str, Any], equipment_id: str) -> dict[str, Any]:
+def resolve_managed(
+    catalog: Mapping[str, Any],
+    equipment_id: str,
+    *,
+    mount_root: Path = WINDOWS_MOUNT_ROOT,
+) -> dict[str, Any]:
     rows = catalog.get("managed_equipment")
     if not isinstance(rows, Mapping) or not isinstance(rows.get(equipment_id), Mapping):
         raise RuntimeError(f"managed equipment is not declared: {equipment_id}")
     spec = rows[equipment_id]
-    path = Path(str(spec.get("executable") or "")).resolve()
+    configured = str(spec.get("executable") or "")
+    execution_target = str(spec.get("execution_target") or "local_linux")
+    if execution_target == "windows_native":
+        path = resolve_windows_path(configured, mount_root=mount_root)
+    elif execution_target == "local_linux":
+        path = Path(configured).resolve()
+    else:
+        raise RuntimeError(
+            f"unsupported managed equipment execution target: {execution_target or 'unknown'}"
+        )
     if not path.is_file():
         raise RuntimeError(f"managed equipment executable is unavailable: {path}")
     digest = sha256_file(path).removeprefix("sha256:")
     expected = str(spec.get("sha256") or "")
     if expected and digest != expected:
-        raise RuntimeError(f"managed equipment digest mismatch for {equipment_id}: expected {expected}, observed {digest}")
-    identity = {"schemaVersion":1,"equipmentId":equipment_id,"observedExecutable":str(path),"executableDigest":"sha256:"+digest,"executionTarget":str(spec.get("execution_target") or "local_linux")}
-    return {"schemaVersion":1,"kind":"ordivon.workstation.v2.tool-binding","truthRole":"node-local-materialization-binding","state":"AVAILABLE",**identity,"bindingDigest":canonical_digest(identity),"nonClaims":["runtime_execution_admitted","task_authorized","domain_suitable","domain_success"]}
+        raise RuntimeError(
+            f"managed equipment digest mismatch for {equipment_id}: "
+            f"expected {expected}, observed {digest}"
+        )
+    identity = {
+        "schemaVersion": 1,
+        "equipmentId": equipment_id,
+        "observedExecutable": str(path),
+        "executableDigest": "sha256:" + digest,
+        "executionTarget": execution_target,
+    }
+    if execution_target == "windows_native":
+        identity["configuredExecutable"] = configured
+    return {
+        "schemaVersion": 1,
+        "kind": "ordivon.workstation.v2.tool-binding",
+        "truthRole": "node-local-materialization-binding",
+        "state": "AVAILABLE",
+        **identity,
+        "bindingDigest": canonical_digest(identity),
+        "nonClaims": [
+            "runtime_execution_admitted",
+            "task_authorized",
+            "domain_suitable",
+            "domain_success",
+        ],
+    }
 
 
 def main() -> int:

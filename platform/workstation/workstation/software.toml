@@ -5,6 +5,22 @@
 playwright_root = "/root/.cache/ms-playwright"
 require_linkage_clean = true
 
+
+# Exact Windows-native go-ios carrier bound to the current native Runtime deployment.
+# Workstation proves only the versioned node-local bytes. Runtime owns execution
+# admission/Job truth; Harness or the consuming domain owns device authority,
+# runner semantics, and task success. RuntimeCandidateR6 is a current node-local
+# realization name, not a stable cross-release architecture contract.
+[managed_equipment.go-ios-1-3-2]
+executable = "C:\\ProgramData\\Ordivon\\RuntimeCandidateR6\\native-tools\\go-ios\\v1.3.2\\ios.exe"
+execution_target = "windows_native"
+sha256 = "c99b04f1d615fa716637efae457d5c554f32259f9d249375de0086e3cc1a1df5"
+
+[managed_equipment.mobilecli-1-0-20]
+executable = "C:\\ProgramData\\Ordivon\\RuntimeCandidateR6\\native-tools\\mobilecli\\v1.0.20\\mobilecli.exe"
+execution_target = "windows_native"
+sha256 = "018dcec38ee4f39ef24fd0987d85e04914294651b8da770c647f21ca04029aa4"
+
 [managed_equipment.temporal-cli-1-8-3]
 executable = "/opt/ordivon/external/temporal-cli/1.8.3/temporal"
 execution_target = "local_linux"
