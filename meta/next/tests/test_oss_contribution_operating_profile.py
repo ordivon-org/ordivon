@@ -110,7 +110,19 @@ def test_reproduction_dispositions_are_real_kill_gates():
     assert "Do not patch a FALSE, ALREADY_FIXED, or NEEDS_INFO case" in profile
     assert "localize root cause before proposing a fix" in profile
     assert "observe RED before changing production behavior" in profile
-    assert "run an independent falsifier" in profile
+    assert "if the review-escalation policy is triggered, run an independent falsifier" in profile
+
+
+def test_independent_review_is_exception_driven_not_default_ceremony():
+    package = read(PACKAGE)
+    operating = read(OPERATING)
+    profile = read(PROFILE)
+    assert "Independent multi-Agent audit is **exception-driven, not a default ceremony**." in package
+    assert "ECC/Matt/Superpowers methods -> owner-native verification" in package
+    assert "must not turn every small engineering step into a multi-Agent audit" in operating
+    assert "If the primary Agent is highly confident" in operating
+    assert "Do **not** assign an independent falsifier/reviewer to every ordinary Issue or patch." in profile
+    assert "does not need a second Agent merely for ceremony" in profile
 
 
 def test_public_write_and_security_authority_stay_external():

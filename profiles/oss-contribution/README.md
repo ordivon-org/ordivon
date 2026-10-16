@@ -85,7 +85,7 @@ A disposition is evidence-backed. Killing a bad/duplicate/already-fixed candidat
 | RED | regression test fails for the claimed defect | Superpowers TDD | repository-native test runner |
 | Minimal repair | smallest behavior change needed by the admitted defect | stack-specific Skill as needed | candidate Git branch |
 | GREEN | same regression test now passes | repository-native test runner | Runtime/test owner |
-| Independent falsifier | adversarial inputs/assumptions fail to disprove repair | independent Agent + review/debug methods | independent evidence |
+| Conditional independent falsifier | when escalation triggers fire, adversarial inputs/assumptions fail to disprove repair | independent Agent + review/debug methods | independent evidence |
 | Owner-native verification | full applicable lint/type/build/test/security gates | Superpowers verification-before-completion; ECC verification-loop when broad gate helps | repository-native tooling/CI |
 | Exact contribution contract | PR template, CLA/DCO, changelog/newsfragment, base/branch rules | repository-native docs + ECC GitHub ops | repository/provider |
 | Pre-PR live dedupe | no newly competing fix/assignment/mainline repair | GitHub/Git revalidation | GitHub/Git |
@@ -115,10 +115,18 @@ After REPRODUCED:
 3. observe RED before changing production behavior;
 4. make the smallest repair that satisfies the admitted behavior;
 5. observe GREEN;
-6. run an independent falsifier;
+6. if the review-escalation policy is triggered, run an independent falsifier; otherwise do not add one ceremonially;
 7. run all applicable owner-native verification before PR_READY.
 
 A broad refactor, dependency upgrade, architecture rewrite, or cleanup is a separate candidate unless the root cause makes it necessary.
+
+## Review escalation for contribution cases
+
+Do **not** assign an independent falsifier/reviewer to every ordinary Issue or patch.
+
+The default contribution repair path is one capable Agent using the relevant ECC/Matt/Superpowers methods plus repository-native verification. Add an independent reviewer only when it is decision-relevant, especially for low-confidence root cause/fix reasoning, risky or hard-to-reverse changes, broad/cross-owner changes, concurrency/platform-specific behavior, security/privacy concerns, ambiguous repository policy/specification, flaky evidence, or verification gaps.
+
+A small, well-bounded bug with a clear reproduction, clear root cause, RED/GREEN regression test, minimal diff, and complete owner-native verification does not need a second Agent merely for ceremony.
 
 ## Multi-Agent wave shape
 
@@ -127,7 +135,7 @@ A normal bounded wave may use:
 - Scouts: repository/policy/Issue discovery and live dedupe;
 - Reproducers: independent current-source reproduction;
 - Patch Agents: only after reproduction/root-cause admission;
-- Falsifiers/Reviewers: independent adversarial/spec/standards review;
+- Falsifiers/Reviewers: conditional independent adversarial/spec/standards review only when confidence/risk triggers justify it;
 - Integrator/Controller: selects transitions, prevents collisions, and distills durable frontier.
 
 Use ECC parallel-execution-optimizer to create a lane matrix. Use Superpowers dispatching-parallel-agents only for genuinely independent domains. Use ECC team-agent-orchestration method for narrow role contracts, evidence, and merge gates.
@@ -232,7 +240,7 @@ The acceptance experiment should prove:
 - one fresh Agent can cold-recover campaign state from Host;
 - at least two independent read/reproduction lanes can run without shared-state collision;
 - one Case can terminate early (FALSE, ALREADY_FIXED, duplicate, or needs-info) without spawning repair work;
-- one genuinely reproduced Case, if available, can progress RED -> repair -> GREEN -> independent falsifier -> owner-native verification;
+- one genuinely reproduced Case, if available, can progress RED -> repair -> GREEN -> conditional falsifier when justified -> owner-native verification;
 - no GitHub public write occurs without explicit effect authority;
 - all durable claims can be reconstructed from Host semantics plus natural-owner evidence refs.
 

@@ -115,7 +115,19 @@ For one admitted action:
 9. Commit a WorkSnapshot only if the durable semantic frontier changed.
 10. Stop rather than manufacture additional work when a kill condition is met.
 
-## 8. Parallel organization
+## 8. Review escalation policy
+
+The controller must not turn every small engineering step into a multi-Agent audit.
+
+Default for ordinary bounded work:
+
+ECC/Matt/Superpowers procedure -> implementation -> owner-native verification
+
+Independent falsification/review is added only when confidence is insufficient or the expected cost of an undetected error justifies another independent lane. Typical triggers are low-confidence reasoning, high-impact or hard-to-reverse changes, cross-owner semantics, ambiguous requirements, concurrency/distributed behavior, security/privacy/external effects, broad architecture changes, flaky evidence, or incomplete owner-native verification.
+
+If the primary Agent is highly confident, the problem is routine, the write surface is bounded, and native verification directly proves the claim, stop after that verification. Do not create reviewer Agents for process symmetry.
+
+## 9. Parallel organization
 
 Use ECC/Superpowers parallel methods to shape independent lanes, not to create another board.
 
@@ -124,7 +136,7 @@ Parallel-safe examples:
 - repository/policy scans;
 - Issue mining and live dedupe;
 - independent reproduction on isolated source cuts;
-- independent review/falsification;
+- independent review/falsification when the review-escalation policy is triggered;
 - cross-platform read-only verification.
 
 Sequential/gated examples:
@@ -133,11 +145,11 @@ Sequential/gated examples:
 - multiple Agents posting conflicting upstream comments;
 - two PRs for the same admitted Case;
 - destructive/provider effects sharing one authority;
-- integration before independent verification.
+- integration before any independent verification that was actually required by the review-escalation policy.
 
 Runtime workspaces/worktrees/branches isolate physical writes. Host records the semantic relationship only when it matters for re-entry.
 
-## 9. Organizational-cybernetics diagnostic
+## 10. Organizational-cybernetics diagnostic
 
 Use these as questions, not service names:
 
@@ -149,7 +161,7 @@ Use these as questions, not service names:
 
 Escalate the organization only when observed variety/coordination pressure exceeds the current composition.
 
-## 10. Promotion gates for optional platforms
+## 11. Promotion gates for optional platforms
 
 Do not add a provider because it exists.
 
@@ -161,7 +173,7 @@ Do not add a provider because it exists.
 
 Every promotion needs a real workload, substitution comparison, and acceptance test.
 
-## 11. Anti-patterns
+## 12. Anti-patterns
 
 - **Agent soup**: many actors with no narrow contract or evidence gate.
 - **Board theater**: duplicating external state into an internal board without decision value.
@@ -173,7 +185,7 @@ Every promotion needs a real workload, substitution comparison, and acceptance t
 - **Profile inflation**: campaign-specific states become global Host schema.
 - **Premature platform activation**: Plane/Temporal/MAF/n8n started for diagram completeness.
 
-## 12. Acceptance
+## 13. Acceptance
 
 The profile is sufficient when a real multi-Agent campaign proves:
 

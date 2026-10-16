@@ -109,6 +109,29 @@ On re-entry:
 
 Navigation acknowledgement is not semantic acceptance.
 
+## Review and audit escalation law
+
+Independent multi-Agent audit is **exception-driven, not a default ceremony**.
+
+For ordinary bounded engineering work, the default path is:
+
+one competent Agent -> applicable ECC/Matt/Superpowers methods -> owner-native verification -> completion
+
+Do not spawn extra reviewers/falsifiers merely because multiple Agents are available.
+
+Escalate to an independent Agent/reviewer only when the extra independence can materially change the decision, for example:
+
+- the acting Agent has low confidence in diagnosis, semantics, or repair;
+- the change has high blast radius, is hard to roll back, or crosses natural-owner truth boundaries;
+- requirements or standards are ambiguous/conflicting;
+- behavior is flaky, nondeterministic, concurrent, distributed, platform-specific, or otherwise hard to falsify locally;
+- security, privacy, publication, money, destructive/external effects, or other consequential authority is involved;
+- a large architectural/migration change has multiple plausible designs;
+- owner-native verification is incomplete or cannot directly cover the risky claim;
+- upstream/repository policy explicitly requires an independent review.
+
+Use ECC, Matt Skills, and Superpowers directly for normal engineering. Multi-Agent review exists to reduce **material uncertainty or risk**, not to add process.
+
 ## Agent-team method
 
 For a bounded wave, treat each Agent as a teammate with a narrow contract:

@@ -14,7 +14,7 @@
 
 **Reproduction Disposition** — The bounded result of testing an admitted Issue claim: REPRODUCED, FALSE, ALREADY_FIXED, NEEDS_INFO, or SECURITY_PRIVATE_ROUTE.
 
-**Independent Falsifier** — An actor whose objective is to disprove the producer's reproduction, root-cause explanation, test, or repair using independent evidence.
+**Independent Falsifier** — A conditionally activated actor whose objective is to disprove the producer's reproduction, root-cause explanation, test, or repair when uncertainty/risk justifies an independent lane; it is not mandatory ceremony for ordinary bounded work.
 
 **Owner-native Verification** — Verification defined and executed according to the target repository/domain's own build, test, lint, type, security, or other acceptance surface.
 
