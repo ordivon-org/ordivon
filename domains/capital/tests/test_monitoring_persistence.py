@@ -95,7 +95,7 @@ def test_persist_monitoring_evidence_parquet_duckdb_manifest(tmp_path):
     assert Path(result["parquetPath"]).is_file()
     assert Path(result["manifestPath"]).is_file()
     assert result["validationImplementation"] == "LOCAL_BOUNDED_ROW_VALIDATION"
-    assert result["storageImplementation"] == "PyArrow 25.0.1 / Parquet"
+    assert result["storageImplementation"] == "PyArrow 26.0.0 / Parquet"
     assert result["independentReadbackImplementation"] == "DuckDB 1.5.5"
     assert result["experimentTrackingClaimed"] is False
     assert result["lineageAuthorityClaimed"] is False
