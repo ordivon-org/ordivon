@@ -413,7 +413,8 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
         self.assertIn("src/ordivon_harness/plugin_gateway_effect.py", h2_invalidating)
 
         current = entries["harness.composition.agent-plugin-h2b-cooperative-cancellation"]
-        self.assertEqual(current["status"], "verified")
+        self.assertEqual(current["status"], "historical")
+        self.assertIn("NOT current Harness qualification", current["scope"])
         self.assertEqual(
             current["implementationRevision"],
             "5c70231dcf118a338bc851c2a47eeee4e93b9f0e",
@@ -451,8 +452,14 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
                 current["runtimeDependencyClosureDigest"]
             ),
         )
-        self.assertTrue(current_ok, current_invalidating)
-        self.assertEqual(current_invalidating, [])
+        self.assertFalse(current_ok)
+        self.assertIn("@runtime-dependency-closure", current_invalidating)
+        self.assertEqual(
+            check_evidence._runtime_dependency_closure_digest(
+                str(current["implementationRevision"])
+            ),
+            current["runtimeDependencyClosureDigest"],
+        )
 
     def test_owner_relative_git_paths_survive_identity_preserving_monorepo_import(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
