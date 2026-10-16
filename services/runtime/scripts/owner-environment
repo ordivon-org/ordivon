@@ -5,9 +5,11 @@ mode=${1:-}
 uv_bin=${UV_BIN:-$(command -v uv || true)}
 cargo_bin=${CARGO_BIN:-$(command -v cargo || true)}
 rustc_bin=${RUSTC_BIN:-$(command -v rustc || true)}
-env_dir=${ORDIVON_OWNER_ENV_DIR:-"$repo/.venv"}
+# Keep a separate rebuildable environment for each interpreter release.
+# A stale Python 3.12 .venv must not impersonate the Python 3.15 contract.
+env_dir=${ORDIVON_OWNER_ENV_DIR:-"$repo/.venv-py3.15.0"}
 python_bin="$env_dir/bin/python"
-python_version=${ORDIVON_OWNER_PYTHON:-3.12.13}
+python_version=${ORDIVON_OWNER_PYTHON:-3.15.0}
 tooling_lock="$repo/requirements-tooling.lock.txt"
 
 usage() {
@@ -46,17 +48,17 @@ doctor() {
   [[ -f "$repo/Cargo.lock" ]] || { echo 'Runtime Cargo.lock is absent' >&2; exit 1; }
   rust=$($rustc_bin --version)
   cargo=$($cargo_bin --version)
-  [[ "$rust" == rustc\ 1.95.0* ]] || { echo "unexpected rustc: $rust" >&2; exit 1; }
-  [[ "$cargo" == cargo\ 1.95.0* ]] || { echo "unexpected cargo: $cargo" >&2; exit 1; }
+  [[ "$rust" == rustc\ 1.99.0* ]] || { echo "unexpected rustc: $rust" >&2; exit 1; }
+  [[ "$cargo" == cargo\ 1.99.0* ]] || { echo "unexpected cargo: $cargo" >&2; exit 1; }
   [[ -x "$python_bin" ]] || { echo "Runtime tooling environment is not materialized: $python_bin" >&2; exit 1; }
   "$python_bin" - <<'PY'
 import importlib.metadata as md
 import sys
-if sys.version_info[:3] != (3, 12, 13):
-    raise SystemExit(f"Runtime tooling profile expects Python 3.12.13, got {sys.version.split()[0]}")
+if sys.version_info[:3] != (3, 15, 0):
+    raise SystemExit(f"Runtime tooling profile expects Python 3.15.0, got {sys.version.split()[0]}")
 if md.version('ruff') != '0.15.17':
     raise SystemExit(f"unexpected Ruff version: {md.version('ruff')}")
-print('owner environment doctor: valid profile=test rust=1.95.0 python=3.12.13 ruff=0.15.17')
+print('owner environment doctor: valid profile=test rust=1.99.0 python=3.15.0 ruff=0.15.17')
 PY
 }
 materialize_runtime_inspect() {

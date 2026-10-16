@@ -1,7 +1,8 @@
 [tools]
-python = "3.12.13"
-uv = "0.12.16"
-rust = { version = "1.95.0", components = "clippy,rustfmt" }
+powershell = "7.6.7"
+python = "3.15.0"
+uv = "0.13.1"
+rust = { version = "1.99.0", components = "clippy,rustfmt" }
 
 # Upstream prebuilt Nextest, delivered through a GitHub mirror for blocked release-CDN networks.
 # SHA-256 is from GitHub's official release-asset API, not from the mirror.

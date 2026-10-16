@@ -38,8 +38,23 @@ jobs:
           install: true
           cache: true
 
+      - name: Install verified GNU Bash 5.3.20
+        shell: bash
+        run: |
+          set -euo pipefail
+          tools/repo/install_latest_stable_bash.sh "$RUNNER_TEMP/ordivon-bash-5.3.20"
+          echo "$RUNNER_TEMP/ordivon-bash-5.3.20/bin" >> "$GITHUB_PATH"
+
+      - name: Install pinned SQL validation CLIs
+        shell: bash
+        run: |
+          set -euo pipefail
+          tools/repo/install_sql_verifiers.sh "$RUNNER_TEMP/ordivon-sql-verifiers"
+          echo "$RUNNER_TEMP/ordivon-sql-verifiers/bin" >> "$GITHUB_PATH"
+
       - name: Repository mechanics
-        run: mise run repo:ci
+        run: |
+          "$RUNNER_TEMP/ordivon-bash-5.3.20/bin/bash" -c 'set -euo pipefail; mise run repo:ci'
 
       - name: Select affected owners
         id: affected
@@ -122,10 +137,14 @@ jobs:
         if: steps.affected.outputs.runtime == 'true'
         uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2
         with:
-          rust-version: "1.95.0"
+          rust-version: "1.99.0"
           manifest-path: services/runtime/Cargo.toml
           command: check
           arguments: --config services/runtime/deny.toml
 
       - name: Repository-wide secret scan
         run: mise run repo:secrets:verify
+
+      - name: Current committed-source secret scan
+        shell: bash
+        run: tools/repo/check_tracked_secrets.sh

@@ -17,8 +17,8 @@ def test_contract_pins_external_provider_without_credentials():
     path = ROOT / "workstation/windows/jev-fastpath-provider.toml"
     raw = path.read_text()
     cfg = tomllib.loads(raw)["jev_windows_provider"]
-    assert cfg["uv_version"] == "0.12.3"
-    assert cfg["python_version"] == "3.12.13"
+    assert cfg["uv_version"] == "0.13.1"
+    assert cfg["python_version"] == "3.15.0"
     assert cfg["source_revision"] == "452c1ad2dd628008f1d5608f28158d76e49e6cc0"
     assert cfg["jev_version"] == "0.1.0"
     assert cfg["browser_harness_version"] == "0.1.13"
@@ -27,6 +27,42 @@ def test_contract_pins_external_provider_without_credentials():
     assert cfg["require_python_utf8"] is True
     assert "TYPESAFE_API_KEY" not in raw
     assert "TEXT_MODEL_API_KEY" not in raw
+
+
+def test_old_interpreter_venv_is_not_accepted_as_new_python(monkeypatch, tmp_path):
+    candidate = tmp_path / ".venv-py3.15.0" / "Scripts" / "python.exe"
+    candidate.parent.mkdir(parents=True)
+    candidate.write_bytes(b"test")
+    cfg = {
+        "jev_version": "0.1.0",
+        "browser_harness_version": "0.1.13",
+        "python_version": "3.15.0",
+    }
+    import json
+    def simulate(version):
+        monkeypatch.setattr(
+            M, "run", lambda *args, **kwargs: SimpleNamespace(
+                returncode=0,
+                stdout=json.dumps({"jev": "0.1.0", "browser_harness": "0.1.13", "python": version}),
+            )
+        )
+        return M.package_state(cfg, {"venvPython": candidate})
+    assert simulate("3.12.13")["exact"] is False
+    assert simulate("3.15.0")["exact"] is True
+
+
+def test_contract_requires_isolated_versioned_venv(tmp_path):
+    raw = (ROOT / "workstation/windows/jev-fastpath-provider.toml").read_text()
+    assert 'venv_relative = ".venv-py3.15.0"' in raw
+    for escape in ('../active', '/tmp/env', '.venv-py3.12.0/../../evil'):
+        f = tmp_path / "bad.toml"
+        f.write_text(raw.replace('venv_relative = ".venv-py3.15.0"', f'venv_relative = "{escape}"'))
+        try:
+            M.config(f)
+        except RuntimeError as error:
+            assert "venv_relative" in str(error)
+        else:
+            raise AssertionError("unbounded venv path accepted")
 
 
 def test_windows_wsl_path_projection_round_trip_for_drive_paths():
