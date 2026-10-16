@@ -185,6 +185,7 @@ def test_r2_controller_recovers_existing_campaign_and_owns_only_routing():
     assert "Host Attention/Topic/Work" in launch
     assert "GitHub Actions action_required" in launch
     assert "CLA SUCCESS" in launch
+    assert "CHALLENGE_GATED / NOT_ADMISSIBLE" in launch
     assert "not a live Issue or PR database" in launch
     assert "Do not create 1,000 repository Works or thousands of Issue Tasks." in profile
 
