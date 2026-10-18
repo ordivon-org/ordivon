@@ -18,6 +18,8 @@ def test_native_read_only_command_set_and_explicit_unknowns():
         calls.append(command)
         if command[0] == "checkupdates":
             return {"returncode": 0, "stdout": "curl 8.1 -> 8.2\n"}
+        if command[:2] == ["pacman", "-Qm"]:
+            return {"returncode": 1, "stdout": ""}
         if command[0] == "mise":
             return {
                 "returncode": 0,
@@ -28,10 +30,12 @@ def test_native_read_only_command_set_and_explicit_unknowns():
     result = module.collect("/tmp", probe=probe, mise_scopes=["."])
     assert calls == [
         ["checkupdates", "--nocolor"],
+        ["pacman", "-Qm"],
         ["mise", "outdated", "--bump", "--json", "--local"],
         ["podman", "auto-update", "--dry-run", "--format", "json"],
     ]
     assert result["checks"]["arch"]["items"][0]["package"] == "curl"
+    assert result["checks"]["archForeign"]["state"] == "none"
     assert result["checks"]["mise"]["items"][0]["latest"] == "26.2"
     assert result["checks"]["podman"]["state"] == "no_eligible_containers"
     assert result["effects"]["containersRestarted"] == 0
@@ -113,3 +117,15 @@ def test_mise_scope_search_only_uses_git_tracked_files(tmp_path):
         check=True,
     )
     assert module.tracked_mise_scopes(str(tmp_path)) == [".", "game"]
+
+
+def test_foreign_arch_packages_are_visible_but_never_treated_as_updates():
+    empty = module.normalize_arch_foreign({"returncode": 1, "stdout": ""})
+    assert empty == {"state": "none", "items": []}
+
+    foreign = module.normalize_arch_foreign({"returncode": 0, "stdout": "local-tool 1.2.3-1\n"})
+    assert foreign["state"] == "unmanaged_foreign_packages"
+    assert foreign["items"] == [{"package": "local-tool", "version": "1.2.3-1"}]
+
+    broken = module.normalize_arch_foreign({"returncode": 2, "stdout": ""})
+    assert broken["state"] == "unknown"

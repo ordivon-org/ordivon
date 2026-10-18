@@ -57,6 +57,37 @@ def normalize_arch(result: dict[str, Any]) -> dict[str, Any]:
     return {"state": "updates_available" if rows else "current", "items": rows}
 
 
+def normalize_arch_foreign(result: dict[str, Any]) -> dict[str, Any]:
+    """Report packages outside configured pacman sync databases.
+
+    pacman -Qm exits 1 with no output when no foreign packages are installed.
+    Foreign packages are not assumed to be AUR packages and are never upgraded.
+    """
+    if "state" in result:
+        return result
+    code = result["returncode"]
+    output = result["stdout"].strip()
+    if code == 1 and not output:
+        return {"state": "none", "items": []}
+    if code != 0:
+        return {"state": "unknown", "items": [], "reason": "pacman_foreign_query_failed"}
+
+    rows = []
+    for line in result["stdout"].splitlines():
+        fields = line.split(maxsplit=1)
+        if len(fields) != 2:
+            return {
+                "state": "unknown",
+                "items": [],
+                "reason": "pacman_foreign_unrecognized_output",
+            }
+        rows.append({"package": fields[0], "version": fields[1]})
+    return {
+        "state": "unmanaged_foreign_packages" if rows else "none",
+        "items": rows,
+    }
+
+
 def normalize_mise(result: dict[str, Any]) -> dict[str, Any]:
     if "state" in result:
         return result
@@ -205,6 +236,7 @@ def collect(
     scopes = tracked_mise_scopes(cwd) if mise_scopes is None else mise_scopes
     checks = {
         "arch": normalize_arch(probe(["checkupdates", "--nocolor"], cwd=cwd, timeout=70)),
+        "archForeign": normalize_arch_foreign(probe(["pacman", "-Qm"], cwd=cwd, timeout=20)),
         "mise": check_mise_scopes(cwd, scopes, probe=probe),
         "podman": normalize_podman(
             probe(["podman", "auto-update", "--dry-run", "--format", "json"], cwd=cwd, timeout=55)

@@ -33,7 +33,11 @@ per-source candidate counts and an explicit `UNKNOWN` or `missing` when a
 probe cannot determine version standing.
 
 The Arch `checkupdates` exit code **2** means no available updates, while
-other errors mean **UNKNOWN**. Mise now discovers **all Git-tracked `mise.toml` / `.mise.toml` files** using `git ls-files -z`, then uses the upstream `mise outdated --bump --json --local` per project. Four native probes run concurrently with a 12-second per-scope limit and a maximum of 64 scanned configurations. Failures, invalid paths and scopes outside the bounded limit are explicit `partial` / `unknown` coverage, never treated as `current`. The `bump` flag surfaces new versions even when current exact pins would hide them.
+other errors mean **UNKNOWN**. A separate `pacman -Qm` probe reports packages
+outside the configured pacman sync databases as
+`unmanaged_foreign_packages`; it never assumes they are AUR packages and
+never upgrades them. On the current node this probe returns `none`.
+Mise now discovers **all Git-tracked `mise.toml` / `.mise.toml` files** using `git ls-files -z`, then uses the upstream `mise outdated --bump --json --local` per project. Four native probes run concurrently with a 12-second per-scope limit and a maximum of 64 scanned configurations. Failures, invalid paths and scopes outside the bounded limit are explicit `partial` / `unknown` coverage, never treated as `current`. The `bump` flag surfaces new versions even when current exact pins would hide them.
 The Podman result `no_eligible_containers` must not be displayed as
 "every container image is up to date".
 
@@ -44,7 +48,7 @@ Native systemd unit/timer:
 
 The timer runs daily with a randomized delay, storing private atomic JSON
 under `/var/lib/ordivon-update-discovery/current.json`. Only one known
-oneshot service does the three bounded checks; systemd remains the scheduler.
+oneshot service does the bounded checks; systemd remains the scheduler.
 Outputs are 0600 and contain no tokens or secrets. A failed source is
 preserved as unknown, not silently suppressed.
 
@@ -117,6 +121,10 @@ parsers were falsified by long names. The report explicitly records
   task performs discovery only; applications such as VPNs, Git and GPU
   support software need per-family acceptance/rollback before automatic
   upgrade is considered.
+- No foreign/AUR packages are installed today (`pacman -Qm` is empty), and
+  neither `paru` nor `yay` is installed. If foreign packages appear later,
+  the report will expose them as uncovered instead of silently claiming Arch
+  coverage.
 - Mise self-update on this node is package-manager controlled; `mise outdated`
   targets project tools and is not a substitute for an OS package upgrade.
 - Production Runtime/Host/Network/Podman releases require exact source
