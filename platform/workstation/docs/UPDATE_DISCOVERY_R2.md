@@ -76,15 +76,47 @@ The `service` invocation can take several minutes for registry and package
 metadata. Interpret status using `systemctl show`, `journalctl -u` and the
 current JSON; do not report success before first execution reaches exit zero.
 
+## Windows native discovery
+
+Windows keeps the same LEGO boundary instead of reusing Linux mechanisms:
+
+- Windows Update remains owned by Windows' existing scheduled tasks and
+  `wuauserv`. A direct `Microsoft.Update.Session` search under the real
+  SYSTEM principal exceeded 90 seconds, so Ordivon does **not** add a second
+  OS-update scanner.
+- Desktop application discovery resolves the installed
+  `Microsoft.DesktopAppInstaller` package and invokes its real
+  `winget.exe` directly. This avoids the false assumption that a missing
+  SYSTEM PATH alias means WinGet is absent.
+- `platform/workstation/windows/update_candidate_report.ps1` stores a
+  private atomic JSON report under
+  `C:\ProgramData\Ordivon\UpdateDiscovery\current.json`.
+- `platform/workstation/windows/install_update_discovery.ps1` installs an
+  idempotent SYSTEM Task Scheduler job named `Ordivon Update Discovery`,
+  daily at 06:30 local time with a five-minute execution bound.
+- The WinGet table is parsed from the right: package ID, current version and
+  available version are the final three tokens; the remaining prefix is the
+  display name. This handles long localized names that overflow WinGet's
+  visual Name column.
+
+Live Windows qualification under the real SYSTEM task completed with
+`LastTaskResult=0`, Windows Update native scheduler present, and **11**
+WinGet upgrade candidates. The regression case
+`Nvidia.PhysX 9.23.1019 -> 9.26.0703` parsed correctly after two earlier
+parsers were falsified by long names. The report explicitly records
+`packagesUpgraded=0`, `windowsUpdatesInstalled=0`,
+`processesRestarted=0`, and `rebootRequested=false`.
+
 ## Remaining frontier / risk tier
 
-- GitHub Dependabot source config must be on the *remote default branch*
-  and version updates enabled at GitHub; repository source alone is not proof
-  any PR has actually been created.
-- Windows app updates: qualify `winget` using the interactive Windows user
-  identity, or install App Installer through a supported Windows workflow,
-  before introducing a scheduled Windows app checker. Existing Windows Update
-  tasks do not imply all applications are updated.
+- GitHub PR #148 carried the Nix/Codex/Workstation discovery source to the
+  protected public `main`; its required `root-verification` check passed,
+  the PR entered the merge queue, and GitHub merged it as
+  `1ad9af5cf51c410a343b81f1c1915e37d6d5268a`.
+- Windows application **installation** remains gated. The scheduled WinGet
+  task performs discovery only; applications such as VPNs, Git and GPU
+  support software need per-family acceptance/rollback before automatic
+  upgrade is considered.
 - Mise self-update on this node is package-manager controlled; `mise outdated`
   targets project tools and is not a substitute for an OS package upgrade.
 - Production Runtime/Host/Network/Podman releases require exact source
