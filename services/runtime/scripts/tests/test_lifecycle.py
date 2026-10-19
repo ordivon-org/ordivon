@@ -898,6 +898,7 @@ class LifecycleTests(unittest.TestCase):
                 "revalidate_prepared_item_under_fence",
                 "close_workspace_once",
                 "closed_workspace_tombstone",
+                "preserve_retention_candidate",
             )
         }
         events: list[str] = []
@@ -979,6 +980,10 @@ class LifecycleTests(unittest.TestCase):
             )
             globals_["close_workspace_once"] = close
             globals_["closed_workspace_tombstone"] = tombstone
+            globals_["preserve_retention_candidate"] = lambda _args, _item: {
+                "preservationKind": "test-only",
+                "semanticCompletionEvaluated": False,
+            }
             prepared = self._prepared_r54_candidate("blocked_dirty")
             result = apply_candidate(
                 type(
@@ -2163,6 +2168,122 @@ class LifecycleTests(unittest.TestCase):
         self.assertTrue(ephemeral["forceCloseDirtyAfterRetention"])
         self.assertTrue(ephemeral["forceCloseUnintegratedAfterRetention"])
         self.assertTrue(ephemeral["forceCloseAfterMaxLifetime"])
+
+
+    def test_retention_dirty_preservation_precedes_close_and_is_receipted(self) -> None:
+        apply_candidate = self.module["apply_prepared_candidate"]
+        globals_ = apply_candidate.__globals__
+        original_checkpoint = globals_.get("dirty_checkpoint_one")
+        original_attempt = globals_["_attempt_prepared_close"]
+        events: list[str] = []
+        try:
+            globals_["dirty_checkpoint_one"] = lambda _args, item: (
+                events.append("checkpoint")
+                or {
+                    "checkpointRef": "refs/ordivon/checkpoints/ws-dirty/state",
+                    "checkpointCommit": "c" * 40,
+                    "stateDigest": "sha256:" + "a" * 64,
+                    "truthRole": "physical-recovery-carrier-not-semantic-standing",
+                    "automaticDeletionAllowed": False,
+                }
+            )
+
+            def close_after_checkpoint(_args, item):
+                events.append("close")
+                self.assertIn("retentionPreservation", item)
+                return (
+                    "closed",
+                    {
+                        "workspaceId": item["workspaceId"],
+                        "action": "workspace_force_closed_by_retention_policy",
+                        "removed": True,
+                    },
+                )
+
+            globals_["_attempt_prepared_close"] = close_after_checkpoint
+            result = apply_candidate(
+                argparse.Namespace(),
+                {
+                    "workspaceId": "ws-dirty",
+                    "classification": "blocked_dirty",
+                    "expectedSourceStateDigest": "sha256:" + "d" * 64,
+                },
+            )
+            self.assertEqual(events, ["checkpoint", "close"])
+            self.assertEqual(
+                result["retentionPreservation"]["checkpointRef"],
+                "refs/ordivon/checkpoints/ws-dirty/state",
+            )
+            self.assertFalse(result["semanticCompletionEvaluated"])
+        finally:
+            if original_checkpoint is None:
+                globals_.pop("dirty_checkpoint_one", None)
+            else:
+                globals_["dirty_checkpoint_one"] = original_checkpoint
+            globals_["_attempt_prepared_close"] = original_attempt
+
+    def test_retention_unintegrated_head_ref_is_durable_and_idempotent(self) -> None:
+        preserve = self.module["preserve_unintegrated_head"]
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory) / "repo"
+            head = init_repository(repo)
+            item = {
+                "workspaceId": "ws-clean-unintegrated",
+                "classification": "blocked_unintegrated",
+                "sourceRepo": str(repo),
+                "workspaceHeadRevision": head,
+                "expectedSourceStateDigest": "sha256:" + "e" * 64,
+            }
+            first = preserve(argparse.Namespace(), item)
+            second = preserve(argparse.Namespace(), item)
+            self.assertEqual(first["retentionRef"], second["retentionRef"])
+            self.assertEqual(first["retentionCommit"], head)
+            self.assertEqual(second["retentionCommit"], head)
+            self.assertEqual(first["retentionDisposition"], "created")
+            self.assertEqual(second["retentionDisposition"], "existing")
+            observed = subprocess.run(
+                ["git", "-C", str(repo), "rev-parse", first["retentionRef"]],
+                check=True,
+                text=True,
+                capture_output=True,
+            ).stdout.strip()
+            self.assertEqual(observed, head)
+            self.assertTrue(first["physicalCarrierRetirementReady"])
+            self.assertFalse(first["automaticDeletionAllowed"])
+
+    def test_retention_preservation_failure_never_reaches_close(self) -> None:
+        apply_candidate = self.module["apply_prepared_candidate"]
+        globals_ = apply_candidate.__globals__
+        original_preserve = globals_.get("preserve_retention_candidate")
+        original_attempt = globals_["_attempt_prepared_close"]
+        events: list[str] = []
+        try:
+            def fail_preservation(_args, _item):
+                events.append("preserve")
+                raise RuntimeError("preservation failed")
+
+            def forbidden_close(_args, _item):
+                events.append("close")
+                raise AssertionError("close must not run after preservation failure")
+
+            globals_["preserve_retention_candidate"] = fail_preservation
+            globals_["_attempt_prepared_close"] = forbidden_close
+            with self.assertRaisesRegex(RuntimeError, "preservation failed"):
+                apply_candidate(
+                    argparse.Namespace(),
+                    {
+                        "workspaceId": "ws-dirty",
+                        "classification": "blocked_dirty",
+                        "expectedSourceStateDigest": "sha256:" + "f" * 64,
+                    },
+                )
+            self.assertEqual(events, ["preserve"])
+        finally:
+            if original_preserve is None:
+                globals_.pop("preserve_retention_candidate", None)
+            else:
+                globals_["preserve_retention_candidate"] = original_preserve
+            globals_["_attempt_prepared_close"] = original_attempt
 
 
 if __name__ == "__main__":

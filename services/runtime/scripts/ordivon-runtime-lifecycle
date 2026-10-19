@@ -1264,6 +1264,120 @@ def closed_workspace_tombstone(
     return value
 
 
+
+def preserve_unintegrated_head(
+    _args: argparse.Namespace,
+    prepared_item: dict[str, object],
+) -> dict[str, object]:
+    workspace_id = str(prepared_item["workspaceId"])
+    if prepared_item.get("classification") != "blocked_unintegrated":
+        raise RuntimeError(
+            f"Workspace is not blocked_unintegrated: {prepared_item.get('classification')}"
+        )
+    source_repo_value = prepared_item.get("sourceRepo")
+    workspace_head = prepared_item.get("workspaceHeadRevision")
+    expected_digest = prepared_item.get("expectedSourceStateDigest")
+    if not isinstance(source_repo_value, str):
+        raise RuntimeError("prepared candidate omitted sourceRepo")
+    if not isinstance(workspace_head, str) or len(workspace_head) != 40:
+        raise RuntimeError("prepared candidate omitted workspaceHeadRevision")
+    if not isinstance(expected_digest, str) or not expected_digest.startswith("sha256:"):
+        raise RuntimeError("prepared candidate omitted expectedSourceStateDigest")
+
+    source_repo = Path(source_repo_value).resolve()
+    if not source_repo.is_dir():
+        raise RuntimeError(f"source repository is unavailable: {source_repo}")
+    resolved = git(
+        source_repo,
+        ["rev-parse", "--verify", f"{workspace_head}^{{commit}}"],
+    ).stdout.strip()
+    if resolved != workspace_head:
+        raise RuntimeError("source repository does not contain exact Workspace HEAD")
+
+    state_hex = expected_digest.split(":", 1)[1]
+    workspace_ref_id = quote(workspace_id, safe="-._")
+    retention_ref = f"refs/ordivon/retention/{workspace_ref_id}/{state_hex}"
+    existing = git(
+        source_repo,
+        ["rev-parse", "--verify", "--quiet", retention_ref],
+        check=False,
+    )
+    if existing.returncode == 0:
+        observed = existing.stdout.strip()
+        if observed != workspace_head:
+            raise RuntimeError("existing retention ref resolves to different Workspace HEAD")
+        disposition = "existing"
+    else:
+        update = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(source_repo),
+                "update-ref",
+                retention_ref,
+                workspace_head,
+                "0" * 40,
+            ],
+            check=False,
+            text=True,
+            capture_output=True,
+        )
+        if update.returncode != 0:
+            replay = git(
+                source_repo,
+                ["rev-parse", "--verify", "--quiet", retention_ref],
+                check=False,
+            )
+            if replay.returncode != 0 or replay.stdout.strip() != workspace_head:
+                raise RuntimeError(
+                    update.stderr.strip()
+                    or update.stdout.strip()
+                    or "retention ref creation failed"
+                )
+            disposition = "existing"
+        else:
+            disposition = "created"
+
+    observed = git(
+        source_repo,
+        ["rev-parse", "--verify", f"{retention_ref}^{{commit}}"],
+    ).stdout.strip()
+    if observed != workspace_head:
+        raise RuntimeError("retention ref readback differs from Workspace HEAD")
+    return {
+        "preservationKind": "unintegrated_head_ref",
+        "workspaceId": workspace_id,
+        "sourceRepo": str(source_repo),
+        "expectedSourceStateDigest": expected_digest,
+        "retentionRef": retention_ref,
+        "retentionCommit": workspace_head,
+        "retentionDisposition": disposition,
+        "truthRole": "physical-recovery-carrier-not-semantic-standing",
+        "automaticDeletionAllowed": False,
+        "physicalCarrierRetirementReady": True,
+        "semanticCompletionEvaluated": False,
+    }
+
+
+def preserve_retention_candidate(
+    args: argparse.Namespace,
+    prepared_item: dict[str, object],
+) -> dict[str, object] | None:
+    classification = str(prepared_item.get("classification"))
+    if classification == "blocked_dirty":
+        checkpoint = dirty_checkpoint_one(args, prepared_item)
+        return {
+            **checkpoint,
+            "preservationKind": "dirty_checkpoint",
+            "expectedSourceStateDigest": prepared_item.get("expectedSourceStateDigest"),
+            "physicalCarrierRetirementReady": True,
+            "semanticCompletionEvaluated": False,
+        }
+    if classification == "blocked_unintegrated":
+        return preserve_unintegrated_head(args, prepared_item)
+    return None
+
+
 def _close_action(
     prepared_item: dict[str, object],
     close_result: dict[str, object],
@@ -1272,7 +1386,7 @@ def _close_action(
     delivery_reconciled: bool,
 ) -> dict[str, object]:
     classification = str(prepared_item.get("classification"))
-    return {
+    action: dict[str, object] = {
         "workspaceId": str(prepared_item["workspaceId"]),
         "classification": classification,
         "action": (
@@ -1285,7 +1399,12 @@ def _close_action(
         "sourceStateDigest": prepared_item.get("expectedSourceStateDigest"),
         "deliveryReconciled": delivery_reconciled,
         "lifecycleCurrentness": currentness,
+        "semanticCompletionEvaluated": False,
     }
+    preservation = prepared_item.get("retentionPreservation")
+    if isinstance(preservation, dict):
+        action["retentionPreservation"] = preservation
+    return action
 
 
 def _attempt_prepared_close(
@@ -1341,9 +1460,17 @@ def apply_prepared_candidate(
     args: argparse.Namespace,
     prepared_item: dict[str, object],
 ) -> dict[str, object]:
+    prepared_item = dict(prepared_item)
+    preservation = preserve_retention_candidate(args, prepared_item)
+    if preservation is not None:
+        prepared_item["retentionPreservation"] = preservation
     status, value = _attempt_prepared_close(args, prepared_item)
     if status in {"closed", "retained"}:
         assert isinstance(value, dict)
+        if preservation is not None:
+            value = dict(value)
+            value.setdefault("retentionPreservation", preservation)
+            value.setdefault("semanticCompletionEvaluated", False)
         return value
 
     assert isinstance(value, WorkspaceCloseDeliveryUncertain)
