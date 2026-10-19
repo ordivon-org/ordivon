@@ -36,7 +36,16 @@ def run_probe(command: list[str], *, cwd: str, timeout: int) -> dict[str, Any]:
         return {"state": "unknown", "items": [], "reason": "probe_timeout"}
     except OSError:
         return {"state": "unknown", "items": [], "reason": "probe_os_error"}
-    return {"returncode": result.returncode, "stdout": result.stdout}
+    return {
+        "returncode": result.returncode,
+        "stdout": result.stdout,
+        # The official mise CLI can return exit 0 and "{}" even when the
+        # upstream latest-version lookup timed out. Do not publish "current".
+        "latest_lookup_failed": (
+            command[0].rsplit("/", 1)[-1] == "mise"
+            and "error getting latest version for" in result.stderr.lower()
+        ),
+    }
 
 
 def normalize_arch(result: dict[str, Any]) -> dict[str, Any]:
@@ -60,6 +69,8 @@ def normalize_arch(result: dict[str, Any]) -> dict[str, Any]:
 def normalize_mise(result: dict[str, Any]) -> dict[str, Any]:
     if "state" in result:
         return result
+    if result.get("latest_lookup_failed"):
+        return {"state": "unknown", "items": [], "reason": "mise_latest_lookup_failed"}
     if result["returncode"] != 0:
         return {"state": "unknown", "items": [], "reason": "mise_outdated_exit_nonzero"}
     try:

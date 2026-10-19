@@ -166,3 +166,46 @@ def test_source_snapshot_checks_git_and_worktree_currentness(tmp_path):
     target.write_text("changed\n")
     assert module.source_snapshot(str(tmp_path))["dirty"] is True
     assert module.source_snapshot(str(tmp_path / "missing"))["revision"] is None
+
+
+def test_mise_provider_failure_even_with_zero_exit_and_empty_json(monkeypatch):
+    from types import SimpleNamespace
+
+    monkeypatch.setattr(module.shutil, "which", lambda _: "/usr/bin/mise")
+    monkeypatch.setattr(
+        module.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(
+            returncode=0,
+            stdout="{}",
+            stderr=(
+                "mise WARN Error getting latest version for python: "
+                "request for https://github.com/pyenv/pyenv.git timed out"
+            ),
+        ),
+    )
+    result = module.run_probe(
+        ["mise", "outdated", "--bump", "--json", "--local"], cwd="/tmp", timeout=20
+    )
+    assert module.normalize_mise(result) == {
+        "state": "unknown",
+        "items": [],
+        "reason": "mise_latest_lookup_failed",
+    }
+
+
+def test_mise_unrelated_self_update_notice_is_not_backend_failure(monkeypatch):
+    from types import SimpleNamespace
+
+    monkeypatch.setattr(module.shutil, "which", lambda _: "/usr/bin/mise")
+    monkeypatch.setattr(
+        module.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(
+            returncode=0,
+            stdout="{}",
+            stderr="mise WARN mise version 2026.10.14 available",
+        ),
+    )
+    result = module.run_probe(["mise", "outdated", "--json"], cwd="/tmp", timeout=5)
+    assert module.normalize_mise(result)["state"] == "current"

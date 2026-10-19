@@ -93,6 +93,17 @@ report were real for its prior source cut, but may be stale after the later
 toolchain pin refresh. Regenerate rather than guessing; retain the old
 report as historical evidence.
 
+## Native mise provider warnings
+
+The current mise CLI can return exit code 0 and an empty JSON object while
+emitting `Error getting latest version for python` when the official upstream
+pyenv Git query times out. The discovery adapter now translates this known
+provider failure to `mise_latest_lookup_failed` and `unknown`, not
+`current`. Ordinary `mise version available` notices alone do not mask
+successful tool queries. The report carries a categorical reason rather than
+recording raw stderr (which could contain environment-specific addresses or
+other private details). This does not repair VPN/proxy or upstream availability.
+
 ## Remaining frontier / risk tier
 
 - GitHub Dependabot source config must be on the *remote default branch*
