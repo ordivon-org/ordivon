@@ -246,19 +246,26 @@ fn workspace_source_entry(
         )
     } else if before.is_file() {
         ("file".to_string(), before.len(), sha256_file(&path)?)
-    } else if before.is_dir() && index_mode == Some("160000") {
+    } else if before.is_dir() {
         if is_git_worktree(&path)? {
             (
                 "git-worktree".to_string(),
                 0,
                 workspace_source_state_digest_at(&path)?,
             )
-        } else {
+        } else if index_mode == Some("160000") {
             (
                 "gitlink-uninitialized".to_string(),
                 0,
                 sha256_bytes(b"gitlink-uninitialized"),
             )
+        } else {
+            return Err(UniversalExecError::new(
+                UniversalExecErrorCode::WorkspacePathDenied,
+                format!("source path is not a regular file, symlink, or Git worktree: {relative}"),
+                Some("workspaceId"),
+                false,
+            ));
         }
     } else {
         return Err(UniversalExecError::new(
@@ -443,5 +450,64 @@ mod gitlink_worktree_root_tests {
         );
         assert!(nested_repo_result);
         assert!(root_result);
+    }
+
+    #[test]
+    fn untracked_nested_git_worktree_is_digestible() {
+        let unique = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "ordivon-untracked-nested-root-{}-{unique}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&root).expect("create root");
+        let run = |cwd: &Path, args: &[&str]| {
+            let output = Command::new("git")
+                .arg("-C")
+                .arg(cwd)
+                .args(args)
+                .output()
+                .expect("run git");
+            assert!(
+                output.status.success(),
+                "git failed: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            output
+        };
+
+        run(&root, &["init", "--quiet"]);
+        run(&root, &["config", "user.name", "Ordivon Test"]);
+        run(&root, &["config", "user.email", "ordivon@example.invalid"]);
+        fs::write(root.join("README.md"), "parent\n").expect("write parent");
+        run(&root, &["add", "README.md"]);
+        run(&root, &["commit", "--quiet", "-m", "parent"]);
+
+        let nested = root.join("nested");
+        fs::create_dir_all(&nested).expect("create nested");
+        run(&nested, &["init", "--quiet"]);
+        run(&nested, &["config", "user.name", "Ordivon Test"]);
+        run(&nested, &["config", "user.email", "ordivon@example.invalid"]);
+        fs::write(nested.join("README.md"), "nested\n").expect("write nested");
+        run(&nested, &["add", "README.md"]);
+        run(&nested, &["commit", "--quiet", "-m", "nested"]);
+
+        let untracked = git_output_bytes(
+            &root,
+            ["ls-files", "--others", "--exclude-standard", "-z"],
+        )
+        .expect("list untracked");
+        let paths = parse_nul_paths(&untracked, "untracked Git path").expect("parse untracked");
+        assert_eq!(paths, vec!["nested/".to_string()]);
+
+        let entry =
+            workspace_source_entry(&root, "nested/", None).expect("digest nested worktree");
+        assert_eq!(entry.kind, "git-worktree");
+        let digest = workspace_source_state_digest_at(&root).expect("digest parent state");
+        fs::remove_dir_all(&root).expect("cleanup fixture");
+
+        assert!(digest.starts_with("sha256:"));
     }
 }
