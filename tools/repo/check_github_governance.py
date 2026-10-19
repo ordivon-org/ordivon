@@ -113,7 +113,10 @@ def main() -> int:
     ]
     assert not floating, f"root workflows contain non-SHA action references: {floating}"
     assert "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1" in workflow
-    assert "jdx/mise-action@9e7f7633ff6f6d6048a9418a68d48f288f50eb14" in workflow
+    # Exact upstream v5.1.2 commit (verified against the immutable GitHub tag).
+    # Keep this review gate: Dependabot must not silently change action code.
+    mise_action_pin = "jdx/mise-action@08ae2a091c038e1e05ec6f5115dc5c69d5a2a6b8"
+    assert mise_action_pin in workflow
     assert "gitleaks/gitleaks-action@" not in workflow
     assert "run: mise run repo:secrets:verify" in workflow
     assert "run: tools/repo/check_tracked_secrets.sh" in workflow
@@ -122,6 +125,7 @@ def main() -> int:
     assert "gitleaks dir --no-banner --redact=100 --timeout 120 ." in snapshot_scan
 
     runtime_release = RUNTIME_RELEASE_WORKFLOW.read_text(encoding="utf-8")
+    assert mise_action_pin in runtime_release
     for required in (
         'runtime-v*',
         'artifact-metadata: write',
