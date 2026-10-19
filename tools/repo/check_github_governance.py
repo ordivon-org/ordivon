@@ -129,7 +129,7 @@ def main() -> int:
         'sourceOwnerPrefix',
         'anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26',
         'actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6',
-        'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a',
+        'actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9',
     ):
         assert required in runtime_release, f"Runtime release workflow missing contract: {required}"
     owners = load_owners()
