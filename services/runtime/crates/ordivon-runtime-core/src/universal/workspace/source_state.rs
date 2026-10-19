@@ -327,10 +327,12 @@ fn is_git_worktree(path: &Path) -> Result<bool, UniversalExecError> {
     let output = Command::new("git")
         .arg("-C")
         .arg(path)
-        .args(["rev-parse", "--is-inside-work-tree"])
+        .args(["rev-parse", "--is-inside-work-tree", "--show-prefix"])
         .output()
         .map_err(|error| tool_unavailable("git rev-parse worktree", error))?;
-    Ok(output.status.success() && output.stdout == b"true\n")
+    // A plain directory inside its parent repository also reports true.
+    // The empty prefix proves this directory is the Git worktree root.
+    Ok(output.status.success() && output.stdout == b"true\n\n")
 }
 
 #[cfg(unix)]
@@ -362,8 +364,8 @@ fn windows_source_semantics_unchanged(
     let observed = match kind {
         "file" => sha256_file(path)?,
         "symlink" => {
-            let target =
-                fs::read_link(path).map_err(|error| io_error(path, "reread source symlink", error))?;
+            let target = fs::read_link(path)
+                .map_err(|error| io_error(path, "reread source symlink", error))?;
             sha256_bytes(&symlink_target_bytes(&target))
         }
         "git-worktree" => workspace_source_state_digest_at(path)?,
@@ -376,4 +378,70 @@ fn windows_source_semantics_unchanged(
         _ => return Ok(false),
     };
     Ok(observed == expected_digest)
+}
+
+#[cfg(test)]
+mod gitlink_worktree_root_tests {
+    use super::*;
+
+    #[test]
+    fn nested_gitlink_directory_does_not_inherit_parent_worktree_identity() {
+        let unique = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "ordivon-gitlink-root-{}-{unique}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&root).expect("create root");
+        let run = |cwd: &Path, args: &[&str]| {
+            let output = Command::new("git")
+                .arg("-C")
+                .arg(cwd)
+                .args(args)
+                .output()
+                .expect("run git");
+            assert!(
+                output.status.success(),
+                "git failed: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            output
+        };
+        run(&root, &["init", "--quiet"]);
+        run(&root, &["config", "user.name", "Ordivon Test"]);
+        run(&root, &["config", "user.email", "ordivon@example.invalid"]);
+        fs::write(root.join("README.md"), "baseline\n").expect("write baseline");
+        run(&root, &["add", "README.md"]);
+        run(&root, &["commit", "--quiet", "-m", "baseline"]);
+
+        let nested = root.join("module");
+        fs::create_dir_all(&nested).expect("create gitlink directory");
+        run(
+            &root,
+            &[
+                "update-index",
+                "--add",
+                "--cacheinfo",
+                "160000,1111111111111111111111111111111111111111,module",
+            ],
+        );
+
+        let inherited = run(&nested, &["rev-parse", "--is-inside-work-tree"]);
+        assert_eq!(inherited.stdout, b"true\n");
+        let inherited_result = is_git_worktree(&nested).expect("classify nested directory");
+
+        run(&nested, &["init", "--quiet"]);
+        let nested_repo_result = is_git_worktree(&nested).expect("classify nested repository");
+        let root_result = is_git_worktree(&root).expect("classify root repository");
+        fs::remove_dir_all(&root).expect("cleanup fixture");
+
+        assert!(
+            !inherited_result,
+            "a directory inherited from its parent worktree is not its own worktree root"
+        );
+        assert!(nested_repo_result);
+        assert!(root_result);
+    }
 }
