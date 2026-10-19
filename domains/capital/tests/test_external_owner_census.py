@@ -195,7 +195,7 @@ def test_latest_stable_language_baseline_is_a_hard_gate():
     baseline = json.loads((ROOT / 'config/language_baseline.json').read_text())
     assert baseline['policy'] == 'LATEST_STABLE_ONLY'
     assert baseline['languages']['python']['requiredVersion'] == '3.15.0'
-    assert baseline['languages']['rust']['requiredVersion'] == '1.99.0'
+    assert baseline['languages']['rust']['requiredVersion'] == '1.99.1'
     assert CENSUS['languageAdmissionPolicy']['standing'] == 'HARD_GATE'
 
 

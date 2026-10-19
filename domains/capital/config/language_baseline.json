@@ -12,7 +12,7 @@
       "requireExecutableQualification": true
     },
     "rust": {
-      "requiredVersion": "1.99.0",
+      "requiredVersion": "1.99.1",
       "releaseChannel": "stable",
       "sourceAuthority": "Rust Release Team",
       "requireExactProjectPin": true,
