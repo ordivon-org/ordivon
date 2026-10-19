@@ -19,7 +19,7 @@ TARGETS = {
     k: {"version": v, "officialRelease": json.loads(
         Path(__file__).with_name("latest_stable_languages.json").read_text()
     )["targets"][k]["officialRelease"]}
-    for k, v in (("python", "3.15.0"), ("rust", "1.99.0"), ("node", "26.12.0"), ("godot", "4.7.2"), ("typescript", "7.0.2"), ("opa", "1.21.2"), ("powershell", "7.6.7"), ("uv", "0.13.1"), ("uv-build", "0.13.1"), ("bash", "5.3.20"), ("sqlite", "3.54.0"), ("postgresql", "18.6"), ("osquery", "5.23.1"))
+    for k, v in (("python", "3.15.0"), ("rust", "1.99.1"), ("node", "26.12.0"), ("godot", "4.7.2"), ("typescript", "7.0.2"), ("opa", "1.21.2"), ("powershell", "7.6.7"), ("uv", "0.13.1"), ("uv-build", "0.13.1"), ("bash", "5.3.20"), ("sqlite", "3.54.1"), ("postgresql", "18.6"), ("osquery", "5.23.1"))
 }
 
 
@@ -50,9 +50,9 @@ class LatestStableLanguageTests(unittest.TestCase):
         return issues
 
     def test_exact_latest_stable_pins_are_accepted(self) -> None:
-        self.put("x/mise.toml", '[tools]\npython="3.15.0"\nrust="1.99.0"\nnode="26.12.0"\n')
+        self.put("x/mise.toml", '[tools]\npython="3.15.0"\nrust="1.99.1"\nnode="26.12.0"\nsqlite="3.54.1"\n')
         self.put("x/.python-version", "3.15.0\n")
-        self.put("x/rust-toolchain.toml", '[toolchain]\nchannel="1.99.0"\n')
+        self.put("x/rust-toolchain.toml", '[toolchain]\nchannel="1.99.1"\n')
         self.put("x/godot/mise.toml", '[tools]\ngodot="4.7.2-stable"\n')
         self.put("x/pyproject.toml", '[project]\nname="x"\nversion="0.1"\nrequires-python="==3.15.0"\n[tool.uv]\nrequired-version="==0.13.1"\n')
         self.put("x/package.json", '{"engines":{"node":"26.12.0"},"devDependencies":{"typescript":"7.0.2"}}')
@@ -87,6 +87,10 @@ class LatestStableLanguageTests(unittest.TestCase):
         issues = self.inspect()
         self.assertTrue(any("rust=1.95.0" in x for x in issues))
         self.assertTrue(any("node=>=26.9.0 <27" in x for x in issues))
+
+    def test_old_sqlite_mise_pin_is_rejected(self) -> None:
+        self.put("x/mise.toml", '[tools]\nsqlite="3.54.0"\n')
+        self.assertTrue(any("sqlite=3.54.0" in x for x in self.inspect()))
 
     def test_provider_uv_version_pin_is_not_overlooked(self) -> None:
         self.put("windows/provider.toml", '[provider]\nuv_version="0.12.3"\n')

@@ -50,7 +50,7 @@ def pin_rows(root: Path, tracked: list[str]) -> list[tuple[str, str, str]]:
         name = source.name
         if name == "mise.toml":
             tools = tomllib.loads(source.read_text(encoding="utf-8")).get("tools", {})
-            for language in ("python", "rust", "node", "godot", "opa", "powershell", "uv"):
+            for language in ("python", "rust", "node", "godot", "opa", "powershell", "uv", "sqlite"):
                 pin = tools.get(language)
                 if isinstance(pin, dict):
                     pin = pin.get("version")

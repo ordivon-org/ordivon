@@ -137,7 +137,7 @@ jobs:
         if: steps.affected.outputs.runtime == 'true'
         uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2
         with:
-          rust-version: "1.99.0"
+          rust-version: "1.99.1"
           manifest-path: services/runtime/Cargo.toml
           command: check
           arguments: --config services/runtime/deny.toml

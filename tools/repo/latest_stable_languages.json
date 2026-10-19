@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "observedOn": "2026-10-15",
+  "observedOn": "2026-10-19",
   "validForDays": 3,
   "targets": {
     "python": {
@@ -8,8 +8,8 @@
       "officialRelease": "https://www.python.org/downloads/release/python-3150/"
     },
     "rust": {
-      "version": "1.99.0",
-      "officialRelease": "https://blog.rust-lang.org/2026/10/01/Rust-1.99.0/"
+      "version": "1.99.1",
+      "officialRelease": "https://blog.rust-lang.org/2026/10/15/Rust-1.99.1/"
     },
     "node": {
       "version": "26.12.0",
@@ -32,7 +32,7 @@
       "officialRelease": "https://github.com/PowerShell/PowerShell/releases/tag/v7.6.7"
     },
     "sqlite": {
-      "version": "3.54.0",
+      "version": "3.54.1",
       "officialRelease": "https://www.sqlite.org/changes.html"
     },
     "postgresql": {
