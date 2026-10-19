@@ -94,3 +94,53 @@ current JSON; do not report success before first execution reaches exit zero.
 The next rung for **automatic installation**, not just discovery, is an
 isolated accepted release path for a named low-risk update family and a
 verified rollback. Do not add a global root-level `pacman -Syu` cron job.
+
+## Windows native update discovery qualification (R4)
+
+Windows keeps the same read-only discovery boundary instead of reusing Linux
+package-manager mechanisms.
+
+- `Microsoft.DesktopAppInstaller` is installed for all users at version
+  `1.29.380.0`.
+- The Runtime service identity is `NT AUTHORITY\\SYSTEM`, so the interactive
+  user's WinGet alias is not on PATH. The implementation resolves the All-Users
+  App Installer package and invokes its official `winget.exe` directly.
+- A real read-only `winget upgrade --source winget --accept-source-agreements
+  --disable-interactivity` query returned **11** available application updates.
+- Windows Update remains owned by its native scheduled tasks and `wuauserv`;
+  Ordivon records health only and does not install OS updates.
+- `platform/workstation/windows/update_candidate_report.ps1` stores private
+  atomic JSON under `C:\\ProgramData\\Ordivon\\UpdateDiscovery\\current.json`.
+- `platform/workstation/windows/install_update_discovery.ps1` installs an
+  idempotent SYSTEM scheduled task named `Ordivon Update Discovery`, daily at
+  06:30 local time with a five-minute execution bound.
+
+### SYSTEM payload ACL repair
+
+The first live ACL audit found that the interactive local user inherited Full
+Control on `C:\\ProgramData\\Ordivon\\UpdateDiscovery` and on the PowerShell
+payload later executed by the SYSTEM/Highest scheduled task. That is a local
+privilege-escalation seam because a writable parent can replace a SYSTEM task
+payload.
+
+The installer now removes inherited ACLs from both the task directory and the
+installed script before task registration. Only these principals retain Full
+Control:
+
+- `NT AUTHORITY\\SYSTEM`
+- `BUILTIN\\Administrators`
+
+The live host was reinstalled with the hardened installer. Independent readback
+confirmed:
+
+- the interactive user is absent from both ACLs;
+- the installed script SHA-256 equals
+  `cf440c326ec01201425e428964cd9ac2868d398c066059193f5b024ff7a2fd1b`;
+- the scheduled task's latest run returned 0;
+- the next daily trigger is 06:30 local time;
+- the report still contains 11 WinGet candidates; and
+- all upgrade, restart, install and reboot effect counters remain zero.
+
+Do not weaken these ACLs merely to make the report easier for a standard user
+to read. A consumer that needs the report should use an explicit bounded read
+path, not write access to a SYSTEM task directory.
