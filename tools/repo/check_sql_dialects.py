@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 EXPECTED = {
-    "sqlite": "3.54.0",
+    "sqlite": "3.54.1",
     "osquery": "5.23.1",
     "postgresql": "18.6",
     "pglast": "8.6",
@@ -105,7 +105,7 @@ def check(root: Path) -> tuple[list[str], list[str]]:
                 issues.append("SQLite latest in-memory DDL/integrity failure: " +
                               (result.stderr or result.stdout)[-250:])
             else:
-                facts.append("SQLite 3.54.0: 6 migrations + 4 storage DDL in-memory and integrity_check PASS")
+                facts.append(f"SQLite {version}: 6 migrations + 4 storage DDL in-memory and integrity_check PASS")
     except (OSError, subprocess.SubprocessError, IndexError) as exc:
         issues.append(f"SQLite native SQL evidence unavailable: {type(exc).__name__}")
     # osquery SELECT providers: query against current host, never mutate.
