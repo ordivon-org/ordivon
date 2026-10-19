@@ -113,3 +113,99 @@ def test_mise_scope_search_only_uses_git_tracked_files(tmp_path):
         check=True,
     )
     assert module.tracked_mise_scopes(str(tmp_path)) == [".", "game"]
+
+
+def test_update_report_binds_exact_source_and_rejects_drift(monkeypatch):
+    clean = {"revision": "a" * 40, "dirty": False}
+    changed = {"revision": "b" * 40, "dirty": False}
+    dirty = {"revision": "a" * 40, "dirty": True}
+
+    def probe(command, *, cwd, timeout):
+        return {"state": "missing", "items": [], "reason": "test-only"}
+
+    sequence = iter([clean, clean])
+    monkeypatch.setattr(module, "source_snapshot", lambda _: next(sequence), raising=False)
+    result = module.collect("/tmp", probe=probe, mise_scopes=[])
+    assert result["sourceRevision"] == "a" * 40
+    assert result["sourceStanding"] == "stable"
+
+    sequence = iter([clean, changed])
+    result = module.collect("/tmp", probe=probe, mise_scopes=[])
+    assert result["sourceRevision"] is None
+    assert result["sourceStanding"] == "changed_or_dirty"
+
+    sequence = iter([clean, dirty])
+    result = module.collect("/tmp", probe=probe, mise_scopes=[])
+    assert result["sourceRevision"] is None
+    assert result["sourceStanding"] == "changed_or_dirty"
+
+
+def test_source_snapshot_checks_git_and_worktree_currentness(tmp_path):
+    import subprocess
+
+    def git(*args):
+        return subprocess.run(
+            ["git", "-C", str(tmp_path), *args],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=12,
+        )
+
+    git("init", "-q")
+    target = tmp_path / "tracked.txt"
+    target.write_text("first\n")
+    git("add", "tracked.txt")
+    git(
+        "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-qm", "baseline"
+    )
+    clean = module.source_snapshot(str(tmp_path))
+    assert len(clean["revision"]) == 40
+    assert clean["dirty"] is False
+
+    target.write_text("changed\n")
+    assert module.source_snapshot(str(tmp_path))["dirty"] is True
+    assert module.source_snapshot(str(tmp_path / "missing"))["revision"] is None
+
+
+def test_mise_provider_failure_even_with_zero_exit_and_empty_json(monkeypatch):
+    from types import SimpleNamespace
+
+    monkeypatch.setattr(module.shutil, "which", lambda _: "/usr/bin/mise")
+    monkeypatch.setattr(
+        module.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(
+            returncode=0,
+            stdout="{}",
+            stderr=(
+                "mise WARN Error getting latest version for python: "
+                "request for https://github.com/pyenv/pyenv.git timed out"
+            ),
+        ),
+    )
+    result = module.run_probe(
+        ["mise", "outdated", "--bump", "--json", "--local"], cwd="/tmp", timeout=20
+    )
+    assert module.normalize_mise(result) == {
+        "state": "unknown",
+        "items": [],
+        "reason": "mise_latest_lookup_failed",
+    }
+
+
+def test_mise_unrelated_self_update_notice_is_not_backend_failure(monkeypatch):
+    from types import SimpleNamespace
+
+    monkeypatch.setattr(module.shutil, "which", lambda _: "/usr/bin/mise")
+    monkeypatch.setattr(
+        module.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(
+            returncode=0,
+            stdout="{}",
+            stderr="mise WARN mise version 2026.10.14 available",
+        ),
+    )
+    result = module.run_probe(["mise", "outdated", "--json"], cwd="/tmp", timeout=5)
+    assert module.normalize_mise(result)["state"] == "current"

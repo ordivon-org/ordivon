@@ -36,7 +36,16 @@ def run_probe(command: list[str], *, cwd: str, timeout: int) -> dict[str, Any]:
         return {"state": "unknown", "items": [], "reason": "probe_timeout"}
     except OSError:
         return {"state": "unknown", "items": [], "reason": "probe_os_error"}
-    return {"returncode": result.returncode, "stdout": result.stdout}
+    return {
+        "returncode": result.returncode,
+        "stdout": result.stdout,
+        # The official mise CLI can return exit 0 and "{}" even when the
+        # upstream latest-version lookup timed out. Do not publish "current".
+        "latest_lookup_failed": (
+            command[0].rsplit("/", 1)[-1] == "mise"
+            and "error getting latest version for" in result.stderr.lower()
+        ),
+    }
 
 
 def normalize_arch(result: dict[str, Any]) -> dict[str, Any]:
@@ -60,6 +69,8 @@ def normalize_arch(result: dict[str, Any]) -> dict[str, Any]:
 def normalize_mise(result: dict[str, Any]) -> dict[str, Any]:
     if "state" in result:
         return result
+    if result.get("latest_lookup_failed"):
+        return {"state": "unknown", "items": [], "reason": "mise_latest_lookup_failed"}
     if result["returncode"] != 0:
         return {"state": "unknown", "items": [], "reason": "mise_outdated_exit_nonzero"}
     try:
@@ -196,12 +207,41 @@ def check_mise_scopes(
     }
 
 
+def source_snapshot(cwd: str) -> dict[str, str | bool | None]:
+    """Bind the current tracked worktree to an exact Git commit, fail closed."""
+    try:
+        revision = subprocess.run(
+            ["git", "-C", cwd, "rev-parse", "--verify", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=10,
+        )
+        status = subprocess.run(
+            ["git", "-C", cwd, "status", "--porcelain", "--untracked-files=no"],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=12,
+        )
+    except OSError, subprocess.TimeoutExpired:
+        return {"revision": None, "dirty": None}
+    sha = revision.stdout.strip()
+    if revision.returncode or len(sha) != 40 or not all(c in "0123456789abcdef" for c in sha):
+        return {"revision": None, "dirty": None}
+    return {
+        "revision": sha,
+        "dirty": bool(status.stdout) if status.returncode == 0 else None,
+    }
+
+
 def collect(
     cwd: str,
     probe=run_probe,
     *,
     mise_scopes: list[str] | None = None,
 ) -> dict[str, Any]:
+    source_before = source_snapshot(cwd)
     scopes = tracked_mise_scopes(cwd) if mise_scopes is None else mise_scopes
     checks = {
         "arch": normalize_arch(probe(["checkupdates", "--nocolor"], cwd=cwd, timeout=70)),
@@ -210,11 +250,32 @@ def collect(
             probe(["podman", "auto-update", "--dry-run", "--format", "json"], cwd=cwd, timeout=55)
         ),
     }
+    source_after = source_snapshot(cwd)
+    if (
+        source_before["revision"] is None
+        or source_after["revision"] is None
+        or source_before["dirty"] is None
+        or source_after["dirty"] is None
+    ):
+        source_standing = "unknown"
+    elif (
+        source_before["revision"] == source_after["revision"]
+        and source_before["dirty"] is False
+        and source_after["dirty"] is False
+    ):
+        source_standing = "stable"
+    else:
+        source_standing = "changed_or_dirty"
+
     return {
         "schemaVersion": 1,
         "kind": "ordivon.workstation.update-candidates",
         "generatedAt": dt.datetime.now(dt.UTC).isoformat(),
         "source": "native-read-only-probes",
+        "sourceRevision": source_after["revision"] if source_standing == "stable" else None,
+        "sourceRevisionBefore": source_before["revision"],
+        "sourceRevisionAfter": source_after["revision"],
+        "sourceStanding": source_standing,
         "checks": checks,
         "effects": {"packagesUpgraded": 0, "containersRestarted": 0, "deploymentChanged": False},
     }
