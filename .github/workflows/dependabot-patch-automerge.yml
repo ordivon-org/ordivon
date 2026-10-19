@@ -1,0 +1,37 @@
+name: Dependabot patch auto-merge
+
+on:
+  pull_request_target:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  queue-safe-patch:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      # pull_request_target has write-capable repository permissions. Never
+      # checkout or execute code from the Dependabot head branch in this job.
+      - name: Read Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Queue patch-only development/indirect update
+        if: >-
+          steps.metadata.outputs.update-type == 'version-update:semver-patch' &&
+          (steps.metadata.outputs.dependency-type == 'direct:development' ||
+           steps.metadata.outputs.dependency-type == 'indirect')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr merge --auto --squash "$PR_URL"

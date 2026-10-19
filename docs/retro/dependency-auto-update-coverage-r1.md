@@ -103,3 +103,20 @@ needs an exact input revision, a minimal bounded smoke, current health check,
 rollback and currentness/admission fence. Reuse Ordivon Runtime + existing
 owner-native release tools when that concrete frontier becomes relevant.
 Do not add a generic privileged unattended upgrader now.
+## Low-risk automatic merge lane
+
+Repository-native auto-merge is enabled, but no PR bypasses branch protection.
+`.github/workflows/dependabot-patch-automerge.yml` queues only Dependabot PRs
+whose metadata says **semver patch** and whose dependency is either
+`direct:development` or `indirect`.
+
+The workflow uses `pull_request_target` only to obtain write permission for the
+repository-owned merge queue. It deliberately does **not** checkout, source, or
+execute the Dependabot head branch. It only reads GitHub's Dependabot metadata
+and calls `gh pr merge --auto --squash`. Existing required CI and protected-
+branch checks must still succeed before GitHub merges the PR.
+
+Production/direct dependencies, minor/major updates, Codex, Nix, Runtime,
+network, Windows system changes and container image release changes remain on
+the gated acceptance path. Enabling repository auto-merge alone has no effect
+without an explicit qualifying workflow or human request.
