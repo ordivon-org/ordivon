@@ -17,28 +17,45 @@ URL="$(read_lock url)"
 SHA1="$(read_lock upstreamSha1)"
 SHA256="$(read_lock sha256)"
 REL="$(read_lock cacheRelativePath)"
-JAR="$ROOT/$REL"
+LOCAL_JAR="$ROOT/$REL"
+# Caller-owned Runtime hostDependencies can fence the external file at execution
+# admission. This script additionally checks both pinned upstream digests.
+JAR="${ORDIVON_TLA_TOOLS_JAR-$LOCAL_JAR}"
 
 verify_jar() {
-  test -f "$JAR" || {
+  if [[ "${ORDIVON_TLA_TOOLS_JAR+x}" == x ]]; then
+    if [[ "$JAR" != /* || ! -f "$JAR" || -L "$JAR" ]]; then
+      echo "TLA+ external jar must be an absolute regular non-symlink file: $JAR" >&2
+      exit 2
+    fi
+  fi
+  if [[ ! -f "$JAR" ]]; then
     echo "TLA+ tools missing: $JAR" >&2
     echo "Run: scripts/tla-formal bootstrap" >&2
     exit 2
-  }
-  test "$(sha1sum "$JAR" | awk '{print $1}')" = "$SHA1"
-  test "$(sha256sum "$JAR" | awk '{print $1}')" = "$SHA256"
+  fi
+  if [[ "$(sha1sum -- "$JAR" | awk '{print $1}')" != "$SHA1" ]]; then
+    echo "TLA+ tools SHA-1 digest mismatch: $JAR" >&2
+    exit 2
+  fi
+  if [[ "$(sha256sum -- "$JAR" | awk '{print $1}')" != "$SHA256" ]]; then
+    echo "TLA+ tools SHA-256 digest mismatch: $JAR" >&2
+    exit 2
+  fi
 }
 
 bootstrap() {
-  mkdir -p "$(dirname "$JAR")"
-  tmp="$JAR.tmp.$$"
+  # Bootstrap always populates the project's local ignored cache, never an
+  # external Runtime dependency or other owner-controlled path.
+  mkdir -p "$(dirname "$LOCAL_JAR")"
+  tmp="$LOCAL_JAR.tmp.$$"
   trap 'rm -f "$tmp"' EXIT
   curl --fail --location --silent --show-error "$URL" -o "$tmp"
   test "$(sha1sum "$tmp" | awk '{print $1}')" = "$SHA1"
   test "$(sha256sum "$tmp" | awk '{print $1}')" = "$SHA256"
-  mv "$tmp" "$JAR"
+  mv "$tmp" "$LOCAL_JAR"
   trap - EXIT
-  echo "TLA+ tools $VERSION materialized and verified at $JAR"
+  echo "TLA+ tools $VERSION materialized and verified at $LOCAL_JAR"
 }
 
 check_runtime_dispatch() {
@@ -46,7 +63,7 @@ check_runtime_dispatch() {
   java -XX:+UseParallelGC -cp "$JAR" tla2sany.SANY "$ROOT/formal/RuntimeDispatchR1.tla"
   (
     cd "$ROOT/formal"
-    java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1       -config RuntimeDispatchR1.cfg RuntimeDispatchR1.tla
+    java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 -config RuntimeDispatchR1.cfg RuntimeDispatchR1.tla
   )
 }
 
