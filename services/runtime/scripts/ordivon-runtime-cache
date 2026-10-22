@@ -329,8 +329,9 @@ def load_open_records(store_root: Path) -> tuple[list[dict[str, str]], list[dict
 
 def inspect(database: Path, store_root: Path) -> dict[str, object]:
     cache_root = store_root / "cache"
-    total_bytes, all_candidates = cache_prune_candidates(
-        database, store_root, include_idle_open_build=True
+    total_bytes, all_candidates, package_bytes = cache_prune_candidates(
+        database, store_root, include_idle_open_build=True,
+        include_package_bytes=True,
     )
     direct_candidates = [
         candidate
@@ -356,7 +357,6 @@ def inspect(database: Path, store_root: Path) -> dict[str, object]:
         )
         candidate_count_by_kind[kind] = candidate_count_by_kind.get(kind, 0) + 1
 
-    package_bytes = directory_bytes(package_root)
     reclaimable_bytes = sum(int(candidate["bytes"]) for candidate in direct_candidates)
     fenced_idle_build_bytes = sum(int(candidate["bytes"]) for candidate in fenced_idle_build)
     protected_or_external_bytes = max(
@@ -410,19 +410,99 @@ def inspect(database: Path, store_root: Path) -> dict[str, object]:
         "issues": issues,
     }
 
+
+def measure_cache_tree(
+    cache_root: Path,
+    candidate_roots: dict[str, dict[str, object]],
+    shared_root: Path,
+) -> tuple[int, int]:
+    """One disjoint tree walk: total, shared, and candidate mtime/byte receipts.
+
+    Every file/symlink path contributes once to apparent bytes, including hard
+    links. All candidate directories share that same traversal; no nested
+    rescans and no traversal outside the runtime cache root.
+    """
+
+    if not cache_root.exists():
+        return 0, 0
+    total = 0
+    package_bytes = 0
+    errors = 0
+    shared_name = str(shared_root)
+    # Carry the candidate's identity through nested paths; do not do an
+    # O(candidate-count) prefix search for each discovered file.
+    stack: list[tuple[Path, dict[str, object] | None, bool]] = [
+        (cache_root, None, False)
+    ]
+    while stack:
+        current, candidate, in_shared = stack.pop()
+        try:
+            with os.scandir(current) as entries:
+                for entry in entries:
+                    try:
+                        tracked = candidate_roots.get(entry.path, candidate)
+                        shared = in_shared or entry.path == shared_name
+                        stat = None
+                        if entry.is_symlink():
+                            stat = entry.stat(follow_symlinks=False)
+                            size = stat.st_size
+                            total += size
+                            if shared:
+                                package_bytes += size
+                            if tracked is not None:
+                                tracked["bytes"] = int(tracked["bytes"]) + size
+                        elif entry.is_dir(follow_symlinks=False):
+                            if tracked is not None:
+                                stat = entry.stat(follow_symlinks=False)
+                            stack.append((Path(entry.path), tracked, shared))
+                        elif entry.is_file(follow_symlinks=False):
+                            stat = entry.stat(follow_symlinks=False)
+                            size = stat.st_size
+                            total += size
+                            if shared:
+                                package_bytes += size
+                            if tracked is not None:
+                                tracked["bytes"] = int(tracked["bytes"]) + size
+                        elif tracked is not None:
+                            stat = entry.stat(follow_symlinks=False)
+                        if tracked is not None and stat is not None:
+                            tracked["modifiedUnixMs"] = max(
+                                int(tracked["modifiedUnixMs"]),
+                                int(stat.st_mtime * 1000),
+                            )
+                    except FileNotFoundError:
+                        # Concurrent cache removal is not retained capacity.
+                        continue
+                    except OSError:
+                        errors += 1
+        except FileNotFoundError:
+            continue
+        except OSError:
+            errors += 1
+    if errors:
+        raise RuntimeError(
+            "cache retention measurement is incomplete: "
+            f"errors={errors} lowerBoundBytes={total}"
+        )
+    if shared_root.is_symlink():
+        # Preserve the preexisting shared-root symlink measurement behavior.
+        package_bytes = directory_bytes(shared_root)
+    return total, package_bytes
+
+
 def cache_prune_candidates(
     database: Path,
     store_root: Path,
     *,
     include_idle_open_build: bool = False,
-) -> tuple[int, list[dict[str, object]]]:
+    include_package_bytes: bool = False,
+) -> tuple[int, list[dict[str, object]]] | tuple[int, list[dict[str, object]], int]:
     cache_root = store_root / "cache"
-    total_bytes = directory_bytes(cache_root)
     active = active_workspace_ids(database)
     records, _ = load_open_records(store_root)
     open_ids = {record["workspaceId"] for record in records}
     activity_markers = workspace_activity_markers(database) if include_idle_open_build else {}
-    candidates: list[dict[str, object]] = []
+    pending: dict[str, dict[str, object]] = {}
 
     def add_children(
         root: Path,
@@ -432,30 +512,27 @@ def cache_prune_candidates(
         fence_idle_open: bool = False,
         idle_open_kind: str | None = None,
     ) -> None:
-        if not root.is_dir():
+        if root.is_symlink() or not root.is_dir():
             return
         for child in root.iterdir():
             if child.name in protected or child.is_symlink() or not child.is_dir():
                 continue
             idle_open = fence_idle_open and child.name in open_ids and child.name not in active
             candidate_kind = idle_open_kind if idle_open and idle_open_kind else kind
-            measured = measure_candidate(child)
-            candidate_bytes = measured["bytes"]
-            if candidate_bytes <= 0:
-                continue
-            candidate = {
+            pending[str(child)] = {
                 "kind": candidate_kind,
                 "path": str(child),
-                "bytes": candidate_bytes,
-                "modifiedUnixMs": measured["modifiedUnixMs"],
+                "bytes": 0,
+                "modifiedUnixMs": 0,
                 "workspaceId": child.name if candidate_kind != "source_build" else None,
                 "requiresAdmissionFence": idle_open,
+                **(
+                    {"workspaceActivityMarker": activity_markers.get(
+                        child.name, EMPTY_WORKSPACE_ACTIVITY_MARKER
+                    )}
+                    if idle_open else {}
+                ),
             }
-            if idle_open:
-                candidate["workspaceActivityMarker"] = activity_markers.get(
-                    child.name, EMPTY_WORKSPACE_ACTIVITY_MARKER
-                )
-            candidates.append(candidate)
 
     build_protected = active | {"sources"}
     if not include_idle_open_build:
@@ -469,11 +546,12 @@ def cache_prune_candidates(
     )
     add_children(cache_root / "workspaces", "workspace_cache", open_ids | active)
     add_children(cache_root / "tmp", "workspace_tmp", open_ids | active)
-    # Source-scoped build caches are legacy realization state. Current execution
-    # always uses Workspace-scoped build targets, so no open Workspace or active
-    # Job can hold a runtime dependency on cache/build/sources/<sourceKey>.
     add_children(cache_root / "build" / "sources", "source_build", set())
     add_children(cache_root / ".prune-detached", "detached_eviction", set())
+    total_bytes, package_bytes = measure_cache_tree(
+        cache_root, pending, cache_root / "shared"
+    )
+    candidates = [item for item in pending.values() if int(item["bytes"]) > 0]
     candidates.sort(
         key=lambda item: (
             int(item["modifiedUnixMs"]),
@@ -481,6 +559,8 @@ def cache_prune_candidates(
             str(item["path"]),
         )
     )
+    if include_package_bytes:
+        return total_bytes, candidates, package_bytes
     return total_bytes, candidates
 
 
