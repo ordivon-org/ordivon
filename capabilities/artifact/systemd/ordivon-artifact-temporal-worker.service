@@ -2,6 +2,9 @@
 Description=Temporal worker for Ordivon Artifact operations
 Requires=temporal.service
 After=temporal.service
+# Use native systemd throttling for consecutive failures.
+StartLimitIntervalSec=5min
+StartLimitBurst=6
 
 [Service]
 Type=simple
@@ -10,6 +13,8 @@ WorkingDirectory=/root/projects/ordivon/capabilities/artifact
 ExecStart=/root/.local/share/ordivon-workstation/artifact-python-v1/current/bin/python /root/projects/ordivon/capabilities/artifact/scripts/artifact_temporal_worker.py --address 127.0.0.1:17233 --namespace default --task-queue ordivon-artifact --state-root /root/.local/state/ordivon-workstation/artifact-temporal
 Restart=on-failure
 RestartSec=2s
+# Exit 126 means carrier integrity refusal; retrying unchanged bytes cannot recover.
+RestartPreventExitStatus=126
 NoNewPrivileges=true
 PrivateTmp=true
 PrivateDevices=true

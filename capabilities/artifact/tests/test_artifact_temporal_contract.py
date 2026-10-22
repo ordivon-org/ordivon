@@ -87,3 +87,13 @@ class TemporalArtifactDeliveryContractTests(unittest.TestCase):
             ex=m.ReceiptFencedArtifactExecutor(Path(d)/'state')
             with self.assertRaisesRegex(RuntimeError,'unsupported fields'):ex._validate_trust_material({'trustPolicy':{},'bundles':{},'signerIds':{},'privateKey':'forbidden'})
 if __name__=='__main__':unittest.main()
+
+
+def test_artifact_worker_service_fail_closed_for_carrier_integrity():
+    """A reproducible carrier integrity refusal cannot create a restart storm."""
+    unit = (ROOT / "systemd/ordivon-artifact-temporal-worker.service").read_text()
+    assert "Restart=on-failure" in unit  # recover transient transport failures
+    assert "RestartPreventExitStatus=126" in unit  # carrier bytes drift
+    assert "StartLimitIntervalSec=5min" in unit
+    assert "StartLimitBurst=6" in unit
+    assert "RestartSec=2s" in unit
