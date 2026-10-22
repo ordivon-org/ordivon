@@ -78,19 +78,26 @@ def source_key(source_repo: str) -> str:
     return hashlib.sha256(source_repo.encode()).hexdigest()
 
 
-def cache_retention_measurement(path: Path) -> dict[str, object]:
-    """Measure additive retention payload bytes with one explicit metric identity."""
+def cache_retention_measurement(
+    path: Path, *, include_latest_mtime: bool = False
+) -> dict[str, object]:
+    """Measure apparent bytes once; optionally collect candidate mtime as well."""
 
     if not path.exists():
-        return {
+        result: dict[str, object] = {
             "metricIdentity": CACHE_RETENTION_METRIC_IDENTITY,
             "standing": "absent",
             "bytes": 0,
             "lowerBoundBytes": 0,
             "errors": 0,
         }
+        if include_latest_mtime:
+            result["latestModifiedUnixMs"] = 0
+        return result
     total = 0
     errors = 0
+    # Candidate root mtime is part of the historical Path.rglob contract.
+    latest = path.stat().st_mtime if include_latest_mtime else 0.0
     stack = [path]
     while stack:
         current = stack.pop()
@@ -99,22 +106,63 @@ def cache_retention_measurement(path: Path) -> dict[str, object]:
                 for entry in entries:
                     try:
                         if entry.is_symlink():
-                            total += entry.stat(follow_symlinks=False).st_size
+                            stat = entry.stat(follow_symlinks=False)
+                            total += stat.st_size
                         elif entry.is_dir(follow_symlinks=False):
+                            stat = (
+                                entry.stat(follow_symlinks=False)
+                                if include_latest_mtime
+                                else None
+                            )
                             stack.append(Path(entry.path))
                         elif entry.is_file(follow_symlinks=False):
-                            total += entry.stat(follow_symlinks=False).st_size
+                            stat = entry.stat(follow_symlinks=False)
+                            total += stat.st_size
+                        else:
+                            stat = (
+                                entry.stat(follow_symlinks=False)
+                                if include_latest_mtime
+                                else None
+                            )
+                        if include_latest_mtime and stat is not None:
+                            latest = max(latest, stat.st_mtime)
+                    except FileNotFoundError:
+                        # A concurrent writer/pruner may remove an entry.
+                        # Missing files no longer retain cache bytes.
+                        continue
                     except OSError:
                         errors += 1
+        except FileNotFoundError:
+            # The queued subdirectory disappeared before traversal.
+            # Other IO/permission failures remain incomplete, never green.
+            continue
         except OSError:
             errors += 1
-    return {
+    result = {
         "metricIdentity": CACHE_RETENTION_METRIC_IDENTITY,
         "standing": "measured" if errors == 0 else "incomplete",
         "bytes": total if errors == 0 else None,
         "lowerBoundBytes": total,
         "errors": errors,
     }
+    if include_latest_mtime:
+        result["latestModifiedUnixMs"] = int(latest * 1000)
+    return result
+
+
+def measure_candidate(path: Path) -> dict[str, int]:
+    """Shared one-pass measurement for a selectable cache candidate."""
+
+    measured = cache_retention_measurement(path, include_latest_mtime=True)
+    size = measured["bytes"]
+    if not isinstance(size, int):
+        raise RuntimeError(
+            "cache retention measurement is incomplete: "
+            f"errors={measured['errors']} lowerBoundBytes={measured['lowerBoundBytes']}"
+        )
+    modified = measured["latestModifiedUnixMs"]
+    assert isinstance(modified, int)
+    return {"bytes": size, "modifiedUnixMs": modified}
 
 
 def directory_bytes(path: Path) -> int:
@@ -362,16 +410,6 @@ def inspect(database: Path, store_root: Path) -> dict[str, object]:
         "issues": issues,
     }
 
-def cache_mtime_ms(path: Path) -> int:
-    latest = path.stat().st_mtime
-    for child in path.rglob("*"):
-        try:
-            latest = max(latest, child.lstat().st_mtime)
-        except OSError:
-            continue
-    return int(latest * 1000)
-
-
 def cache_prune_candidates(
     database: Path,
     store_root: Path,
@@ -401,14 +439,15 @@ def cache_prune_candidates(
                 continue
             idle_open = fence_idle_open and child.name in open_ids and child.name not in active
             candidate_kind = idle_open_kind if idle_open and idle_open_kind else kind
-            candidate_bytes = directory_bytes(child)
+            measured = measure_candidate(child)
+            candidate_bytes = measured["bytes"]
             if candidate_bytes <= 0:
                 continue
             candidate = {
                 "kind": candidate_kind,
                 "path": str(child),
                 "bytes": candidate_bytes,
-                "modifiedUnixMs": cache_mtime_ms(child),
+                "modifiedUnixMs": measured["modifiedUnixMs"],
                 "workspaceId": child.name if candidate_kind != "source_build" else None,
                 "requiresAdmissionFence": idle_open,
             }
