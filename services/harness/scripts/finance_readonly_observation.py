@@ -199,8 +199,18 @@ def _prepare_finance_project_environment(
             "execution": {
                 "workspaceId": finance_workspace_id,
                 "cwdRelative": ".",
-                "executable": "/usr/bin/uv",
-                "args": ["sync", "--locked", "--offline"],
+                "executable": "/bin/bash",
+                "args": [
+                    "-c",
+                    'set -euo pipefail; selected=$(mise which uv); '
+                    '[[ "$selected" = /* && -x "$selected" ]] || exit 69; '
+                    'exec "$selected" sync --locked --offline',
+                ],
+                "env": {
+                    "MISE_OFFLINE": "1",
+                    "MISE_AUTO_INSTALL": "false",
+                    "UV_OFFLINE": "1",
+                },
                 "timeoutMs": 30000,
                 "stdoutLimitBytes": 65536,
                 "stderrLimitBytes": 65536,
@@ -222,7 +232,7 @@ def _prepare_finance_project_environment(
         "owner": "ordivon-finance",
         "workspaceId": finance_workspace_id,
         "mode": "finance-python-lock-offline",
-        "provider": "/usr/bin/uv",
+        "provider": "mise:selected-owner-uv",
         "args": ["sync", "--locked", "--offline"],
         "runtimeJobId": str(result.get("jobId")),
         "runtimeAttemptId": str(result.get("attemptId")) if result.get("attemptId") is not None else None,
