@@ -92,6 +92,7 @@ def test_official_usdm_sdk_is_isolated_capability_provider():
     assert row["interpreter"].endswith("/bin/python")
 
 
+@pytest.mark.provider_qualification
 def test_preflight_introspects_official_sdk_without_credentials_or_network():
     p = subprocess.run(
         [str(ROOT / "scripts/check-binance-usdm-equity-perp-preflight")],
@@ -211,6 +212,7 @@ def test_private_provider_requires_permission_truth_before_usdm_reads():
     assert private["executionAdmitted"] is False
 
 
+@pytest.mark.provider_qualification
 def test_private_readonly_preflight_is_credential_free():
     p = subprocess.run(
         [str(ROOT / "scripts/check-binance-usdm-private-readonly-preflight")],

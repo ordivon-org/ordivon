@@ -31,7 +31,8 @@ def test_access_precedes_tunnel_and_dns_publication():
     )[1].split('resource "cloudflare_dns_record" "handoff"', 1)[0]
     assert "cloudflare_zero_trust_access_application.handoff" in tunnel
     assert "cloudflare_zero_trust_access_application.gateway_mcp" in tunnel
-    assert "depends_on = [cloudflare_zero_trust_tunnel_cloudflared_config.production]" in source
+    assert "cloudflare_zero_trust_tunnel_cloudflared_config.production" in source
+    assert "cloudflare_zero_trust_tunnel_cloudflared_config.native" in source
 
 
 def test_existing_tunnel_is_imported_and_never_destroyed():

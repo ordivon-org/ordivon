@@ -27,6 +27,8 @@ with workflow.unsafe.imports_passed_through():
         BrowserlessAutomationService,
         diagnose_provider_preflight,
         _carrier_lease,
+        _conversation_session_lease,
+        _user_browser_carrier_lease,
         _read_json,
     )
     from agent_automation_browserless_effects import BrowserlessEffectAdapter
@@ -40,7 +42,7 @@ CONTINUE_ACTIVITY = "ordivon.browserless.continue"
 MATERIALIZE_WORKFLOW = "ordivon.materialize"
 CAMPAIGN_MATERIALIZE_WORKFLOW = "ordivon.campaign.materialize"
 AGENT_RECONCILE_WORKFLOW = "ordivon.agent.reconcile"
-AGENT_HUMAN_RESUME_WORKFLOW = "ordivon.agent.human-resume"
+HUMAN_RESUME_UPDATE = "ordivon.materialization.human-resume"
 AGENT_CONTINUE_WORKFLOW = "ordivon.agent.continue"
 
 
@@ -49,6 +51,11 @@ class MaterializationInput:
     spec_path: str
     agent_id: str
     effect_id: str
+    carrier: str = "browserless"
+
+    def __post_init__(self) -> None:
+        if self.carrier not in {"browserless", "windows-user-browser"}:
+            raise ValueError("materialization carrier must be browserless or windows-user-browser")
 
 
 @dataclass(frozen=True)
@@ -57,6 +64,7 @@ class AgentContinueInput:
     agent_id: str
     turn_request_id: str
     prompt: str
+    campaign_ref: str | None = None
 
 
 class BrowserlessActivities:
@@ -148,7 +156,35 @@ class BrowserlessActivities:
         )
 
     def _run_materialization_failover(self, value: MaterializationInput) -> dict:
-        # New/proven-pre-effect Materializations may move only across physically/provider-unavailable carriers.
+        if value.carrier == "windows-user-browser":
+            candidate = self._current_config()
+            if candidate.windows_user_browser is None:
+                raise BrowserlessAutomationHold("Windows user-browser carrier is not configured")
+            context = BrowserlessAutomationService(candidate)
+            spec = context.load_spec(Path(value.spec_path))
+            request = context._materialization(spec, value.agent_id)
+            if request.request_id != value.effect_id:
+                raise RuntimeError(
+                    "Temporal user-browser input effect identity differs from registered campaign bytes"
+                )
+            with self._endpoint_lock("windows-user-browser"):
+                with _user_browser_carrier_lease(candidate, blocking=True):
+                    current = self._current_config()
+                    if current.windows_user_browser is None:
+                        raise BrowserlessAutomationHold(
+                            "Windows user-browser carrier was disabled while waiting for serialization"
+                        )
+                    current_context = BrowserlessAutomationService(current)
+                    current_spec = current_context.load_spec(Path(value.spec_path))
+                    current_request = current_context._materialization(current_spec, value.agent_id)
+                    if current_request.request_id != value.effect_id:
+                        raise RuntimeError(
+                            "Temporal user-browser effect identity changed while waiting for serialization"
+                        )
+                    return self._effects(current).materialize_user_browser(
+                        Path(value.spec_path), value.agent_id
+                    )
+        # New/proven-pre-effect Browserless Materializations may move only across physically/provider-unavailable carriers.
         # Every provider preflight and the subsequent binding/SEND attempt happen under the same
         # cross-process carrier lease. Once an effect has a post-SEND/ambiguous standing, normal
         # bound-carrier reconciliation is used instead and failover is forbidden.
@@ -251,6 +287,14 @@ class BrowserlessActivities:
 
     @activity.defn(name=RECONCILE_ACTIVITY)
     def reconcile(self, value: MaterializationInput) -> dict:
+        if value.carrier == "windows-user-browser":
+            candidate = self._current_config()
+            with self._endpoint_lock("windows-user-browser"):
+                with _user_browser_carrier_lease(candidate, blocking=True):
+                    current = self._current_config()
+                    return self._effects(current).reconcile_user_browser(
+                        Path(value.spec_path), value.agent_id
+                    )
         return self._run_serialized(
             value,
             self._materialization_endpoint_id,
@@ -259,6 +303,10 @@ class BrowserlessActivities:
 
     @activity.defn(name=HUMAN_RESUME_ACTIVITY)
     def human_resume(self, value: MaterializationInput) -> dict:
+        if value.carrier == "windows-user-browser":
+            raise BrowserlessAutomationHold(
+                "Windows user-browser carrier does not implement blind human resume"
+            )
         return self._run_serialized(
             value,
             self._materialization_endpoint_id,
@@ -267,6 +315,50 @@ class BrowserlessActivities:
 
     @activity.defn(name=CONTINUE_ACTIVITY)
     def continue_turn(self, value: AgentContinueInput) -> dict:
+        if value.campaign_ref is not None:
+            candidate = self._current_config()
+            context = BrowserlessAutomationService(candidate)
+            affinity = context.conversation_affinity(
+                Path(value.spec_path), value.campaign_ref, value.agent_id
+            )
+            if affinity.get("affinityKind") == "DURABLE_CFT_SESSION":
+                if affinity.get("standing") != "READY":
+                    raise BrowserlessAutomationHold(
+                        "durable CfT conversation affinity is not READY"
+                    )
+                session_id = affinity.get("sessionId")
+                if not isinstance(session_id, str):
+                    raise RuntimeError("durable CfT affinity lacks session identity")
+                with self._endpoint_lock("cft:" + session_id):
+                    with _conversation_session_lease(candidate, session_id, blocking=True):
+                        current = self._current_config()
+                        current_affinity = BrowserlessAutomationService(
+                            current
+                        ).conversation_affinity(
+                            Path(value.spec_path), value.campaign_ref, value.agent_id
+                        )
+                        if (
+                            current_affinity.get("standing") != "READY"
+                            or current_affinity.get("affinityKind")
+                            != "DURABLE_CFT_SESSION"
+                            or current_affinity.get("sessionId") != session_id
+                            or current_affinity.get("providerResource")
+                            != affinity.get("providerResource")
+                        ):
+                            raise BrowserlessAutomationHold(
+                                "durable CfT conversation affinity changed while waiting for serialization"
+                            )
+                        return self._effects(current).send_adopted_turn(
+                            Path(value.spec_path),
+                            value.campaign_ref,
+                            value.agent_id,
+                            turn_request_id=value.turn_request_id,
+                            prompt=value.prompt,
+                        )
+            if affinity.get("affinityKind") != "BROWSERLESS_MATERIALIZATION":
+                raise BrowserlessAutomationHold(
+                    "conversation continuation has no usable provider affinity"
+                )
         return self._run_serialized(
             value,
             self._continue_endpoint_id,
@@ -289,17 +381,69 @@ EFFECT_FENCED_RETRY = RetryPolicy(
 
 @workflow.defn(name=MATERIALIZE_WORKFLOW)
 class MaterializeWorkflow:
+    def __init__(self) -> None:
+        self._expected_handoff_digest: str | None = None
+        self._resume_accepted = False
+
+    @workflow.update(name=HUMAN_RESUME_UPDATE)
+    async def human_resume(self, handoff_digest: str) -> dict:
+        if (
+            not isinstance(handoff_digest, str)
+            or not handoff_digest.startswith("sha256:")
+            or len(handoff_digest) != 71
+            or any(ch not in "0123456789abcdef" for ch in handoff_digest[7:])
+        ):
+            raise ValueError("human resume requires one canonical SHA-256 handoff digest")
+        if self._expected_handoff_digest is None:
+            raise ValueError("human handoff is not ready for resume")
+        if handoff_digest != self._expected_handoff_digest:
+            raise ValueError("human resume handoff digest does not match current durable handoff")
+        self._resume_accepted = True
+        return {
+            "schemaVersion": 1,
+            "kind": "ordivon.materialization-human-resume-update",
+            "handoffDigest": handoff_digest,
+            "standing": "ACCEPTED",
+        }
+
     @workflow.run
     async def run(self, value: MaterializationInput) -> dict:
         # Activity retry is safe only because the adapter durably claims the exact materialization request identity
         # before SEND. A retry re-enters/reconciles that same effect identity; it cannot blind-send.
-        return await workflow.execute_activity(
+        result = await workflow.execute_activity(
             MATERIALIZE_ACTIVITY,
             value,
             result_type=dict,
             start_to_close_timeout=timedelta(minutes=10),
             retry_policy=EFFECT_FENCED_RETRY,
         )
+        receipt = result.get("receipt") if isinstance(result, dict) else None
+        if not isinstance(receipt, dict) or receipt.get("standing") != "human-required":
+            return result
+        handoff = result.get("humanHandoff")
+        if not isinstance(handoff, dict):
+            raise RuntimeError("HUMAN_REQUIRED materialization lacks durable handoff receipt")
+        digest = handoff.get("handoffDigest")
+        if not isinstance(digest, str):
+            raise RuntimeError("HUMAN_REQUIRED materialization lacks durable handoff digest")
+        self._expected_handoff_digest = digest
+        self._resume_accepted = False
+        await workflow.wait_condition(lambda: self._resume_accepted)
+        resumed = await workflow.execute_activity(
+            HUMAN_RESUME_ACTIVITY,
+            value,
+            result_type=dict,
+            start_to_close_timeout=timedelta(minutes=10),
+            retry_policy=EFFECT_FENCED_RETRY,
+        )
+        return {
+            "schemaVersion": 1,
+            "kind": "ordivon.durable-human-materialization-result",
+            "effectId": value.effect_id,
+            "handoffDigest": digest,
+            "initialHumanRequired": result,
+            "resume": resumed,
+        }
 
 
 @workflow.defn(name=CAMPAIGN_MATERIALIZE_WORKFLOW)
@@ -350,21 +494,6 @@ class AgentReconcileWorkflow:
         )
 
 
-@workflow.defn(name=AGENT_HUMAN_RESUME_WORKFLOW)
-class AgentHumanResumeWorkflow:
-    @workflow.run
-    async def run(self, value: MaterializationInput) -> dict:
-        # HUMAN_REQUIRED proves no prompt SEND has occurred. The materializer atomically claims the
-        # same effect identity before READY revalidation/SEND; activity retry reconciles UNKNOWN.
-        return await workflow.execute_activity(
-            HUMAN_RESUME_ACTIVITY,
-            value,
-            result_type=dict,
-            start_to_close_timeout=timedelta(minutes=10),
-            retry_policy=EFFECT_FENCED_RETRY,
-        )
-
-
 @workflow.defn(name=AGENT_CONTINUE_WORKFLOW)
 class AgentContinueWorkflow:
     @workflow.run
@@ -395,7 +524,6 @@ async def run_worker(
                 CampaignMaterializeWorkflow,
                 MaterializeWorkflow,
                 AgentReconcileWorkflow,
-                AgentHumanResumeWorkflow,
                 AgentContinueWorkflow,
             ],
             activities=[

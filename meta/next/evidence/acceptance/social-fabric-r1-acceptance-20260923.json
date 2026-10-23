@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.social-fabric-r1-acceptance",
+  "truthRole": "candidate-acceptance-evidence-not-production-standing",
+  "observedAt": "2026-09-23",
+  "sourceBase": "60322a3af8aff6fd31f79f93f812617bb78a5802",
+  "primaryMainObservedBeforeCandidate": "6b70f418b5e444406e31b5566ba573a2cddd67e2",
+  "implementation": {
+    "newDaemon": false,
+    "hostSchemaChanged": false,
+    "hostKernelReopened": false,
+    "gatewaySurfaceChanged": false,
+    "mutableSocialRegistry": false,
+    "implemented": [
+      "SocialSignal projection",
+      "Task-to-Workspace WorkGraph",
+      "deterministic reconciliation",
+      "Common Operating Picture",
+      "social:current",
+      "social:attention",
+      "social:reconcile"
+    ]
+  },
+  "verification": {
+    "targetedTests": "8/8 PASS",
+    "ruffLint": "PASS",
+    "ruffFormat": "PASS",
+    "metaNextVerify": "PASS",
+    "dependencyAudit": "No known vulnerabilities",
+    "repoCi": "PASS",
+    "ownerBoundary": "PASS",
+    "architectureDocDrift": "PASS"
+  },
+  "dogfood": {
+    "selectedTasks": 5,
+    "selectedLiveWorkspaces": 4,
+    "linkedTasks": 4,
+    "closedWorkspaceReferences": 1,
+    "checkpointWorkspaceHeadDrifts": 2,
+    "attentionFindings": [
+      "CHECKPOINT_WORKSPACE_HEAD_DRIFT",
+      "CHECKPOINT_WORKSPACE_HEAD_DRIFT",
+      "TASK_REFERENCES_CLOSED_WORKSPACE"
+    ]
+  },
+  "currentStanding": "CANDIDATE_READY_FOR_LATEST_MAIN_REQUALIFICATION",
+  "nonClaims": [
+    "This does not establish production standing.",
+    "This does not establish domain completion for any sampled Task.",
+    "The five-Task cut is bounded and cannot prove global absence or global orphan status.",
+    "Latest-main requalification is required because primary main advanced after the workspace base."
+  ]
+}

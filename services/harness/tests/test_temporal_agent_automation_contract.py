@@ -13,7 +13,6 @@ class TemporalAgentAutomationContractTests(unittest.TestCase):
             "CAMPAIGN_MATERIALIZE_WORKFLOW",
             "MATERIALIZE_WORKFLOW",
             "AGENT_RECONCILE_WORKFLOW",
-            "AGENT_HUMAN_RESUME_WORKFLOW",
             "AGENT_CONTINUE_WORKFLOW",
         ):
             self.assertIn(f"@workflow.defn(name={name})", text)
@@ -27,11 +26,13 @@ class TemporalAgentAutomationContractTests(unittest.TestCase):
             self.assertNotIn(retired, text)
         tree = ast.parse(text)
         run_worker = next(
-            node for node in tree.body
+            node
+            for node in tree.body
             if isinstance(node, ast.AsyncFunctionDef) and node.name == "run_worker"
         )
         worker_call = next(
-            node for node in ast.walk(run_worker)
+            node
+            for node in ast.walk(run_worker)
             if isinstance(node, ast.Call)
             and isinstance(node.func, ast.Name)
             and node.func.id == "Worker"
@@ -40,15 +41,21 @@ class TemporalAgentAutomationContractTests(unittest.TestCase):
         self.assertIsInstance(workflows, ast.List)
         self.assertEqual(
             [elt.id for elt in workflows.elts if isinstance(elt, ast.Name)],
-            ["CampaignMaterializeWorkflow", "MaterializeWorkflow", "AgentReconcileWorkflow", "AgentHumanResumeWorkflow", "AgentContinueWorkflow"],
+            [
+                "CampaignMaterializeWorkflow",
+                "MaterializeWorkflow",
+                "AgentReconcileWorkflow",
+                "AgentContinueWorkflow",
+            ],
         )
 
     def test_campaign_materialization_admits_one_durable_parent(self):
         path = ROOT / "scripts/temporal_agent_automation_launch.py"
         text = path.read_text()
         campaign = text[
-            text.index('if a.operation == "campaign-materialize":'):
-            text.index('elif a.operation == "materialize":')
+            text.index('if a.operation == "campaign-materialize":') : text.index(
+                'elif a.operation == "materialize":'
+            )
         ]
         self.assertNotIn("asyncio.gather(", campaign)
         self.assertIn("CAMPAIGN_MATERIALIZE_WORKFLOW", campaign)
@@ -64,11 +71,14 @@ class TemporalAgentAutomationContractTests(unittest.TestCase):
         text = path.read_text()
         tree = ast.parse(text)
         retry_fn = next(
-            node for node in tree.body
-            if isinstance(node, ast.AsyncFunctionDef) and node.name == "_admit_failed_continue_retry"
+            node
+            for node in tree.body
+            if isinstance(node, ast.AsyncFunctionDef)
+            and node.name == "_admit_failed_continue_retry"
         )
         uuid7_call = next(
-            node for node in ast.walk(retry_fn)
+            node
+            for node in ast.walk(retry_fn)
             if isinstance(node, ast.Call)
             and isinstance(node.func, ast.Attribute)
             and isinstance(node.func.value, ast.Name)
@@ -149,12 +159,18 @@ class TemporalAgentAutomationContractTests(unittest.TestCase):
     def test_temporal_sdk_is_pinned(self):
         self.assertEqual(
             (ROOT / "config/agent-automation-temporal-requirements.txt").read_text().splitlines(),
-            ["temporalio==1.32.0", "rfc8785==0.1.4"],
+            [
+                "temporalio==1.32.0",
+                "rfc8785==0.1.4",
+                "mcp==2.2.0",
+                "httpx==0.28.1",
+            ],
         )
 
 
 if __name__ == "__main__":
     unittest.main()
+
 
 class TemporalCampaignParentStandardTests(unittest.TestCase):
     def test_campaign_fanout_is_owned_by_temporal_parent_child_workflows(self):
@@ -168,9 +184,26 @@ class TemporalCampaignParentStandardTests(unittest.TestCase):
         self.assertNotIn("OccurrenceMaterializeWorkflow", worker)
 
         campaign = launcher[
-            launcher.index('if a.operation == "campaign-materialize":'):
-            launcher.index('elif a.operation == "materialize":')
+            launcher.index('if a.operation == "campaign-materialize":') : launcher.index(
+                'elif a.operation == "materialize":'
+            )
         ]
         self.assertNotIn("asyncio.gather(", campaign)
         self.assertIn("CAMPAIGN_MATERIALIZE_WORKFLOW", campaign)
         self.assertIn("campaign_ref", campaign)
+
+
+class ExplicitMaterializationCarrierTests(unittest.TestCase):
+    def test_materialization_input_freezes_explicit_carrier(self):
+        text = (ROOT / 'scripts/temporal_agent_automation.py').read_text()
+        self.assertIn('carrier: str = "browserless"', text)
+        self.assertIn('{"browserless", "windows-user-browser"}', text)
+        self.assertNotIn('"automatic-failover"', text)
+
+    def test_windows_user_browser_is_explicit_not_browserless_failover(self):
+        text = (ROOT / 'scripts/temporal_agent_automation.py').read_text()
+        self.assertIn('value.carrier == "windows-user-browser"', text)
+        self.assertIn('materialize_user_browser(', text)
+        launcher = (ROOT / 'scripts/temporal_agent_automation_launch.py').read_text()
+        self.assertIn('--carrier', launcher)
+        self.assertIn('choices=("browserless", "windows-user-browser")', launcher)

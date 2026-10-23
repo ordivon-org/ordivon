@@ -287,6 +287,136 @@ where
     }
 }
 
+fn artifact_content_projection_metadata(
+    result: &ArtifactContentReadResult,
+) -> ArtifactContentProjectionMetadata {
+    let registered = result.metadata.media_type.clone();
+    let valid_registered_media_type = registered.contains('/')
+        && registered.len() <= 256
+        && registered.bytes().all(|byte| byte.is_ascii_graphic() || byte == b' ');
+    let (media_type, media_type_standing) = if valid_registered_media_type {
+        (
+            registered.clone(),
+            "REGISTERED_METADATA_UNVERIFIED".to_string(),
+        )
+    } else {
+        (
+            "application/octet-stream".to_string(),
+            "REGISTERED_METADATA_INVALID_FALLBACK".to_string(),
+        )
+    };
+    let digest_hex = result
+        .metadata
+        .digest
+        .strip_prefix("sha256:")
+        .unwrap_or(result.metadata.digest.as_str());
+    ArtifactContentProjectionMetadata {
+        job_id: result.metadata.job_id.clone(),
+        artifact_id: result.metadata.artifact_id.clone(),
+        digest: result.metadata.digest.clone(),
+        byte_length: result.metadata.byte_length,
+        truncated: result.metadata.truncated,
+        registered_media_type: registered,
+        media_type,
+        media_type_standing,
+        resource_uri: format!("ordivon://artifact/sha256/{digest_hex}"),
+    }
+}
+
+fn artifact_content_call_result(
+    outcome: ToolOutcome<ArtifactContentReadResult>,
+) -> Result<CallToolResult, McpError> {
+    match outcome {
+        ToolOutcome::Success(result) => {
+            let metadata = artifact_content_projection_metadata(&result);
+            let structured = serde_json::to_value(&metadata).map_err(|error| {
+                McpError::internal_error(
+                    format!("cannot serialize Artifact content metadata: {error}"),
+                    None,
+                )
+            })?;
+            let resource = ResourceContents::BlobResourceContents {
+                uri: metadata.resource_uri.clone(),
+                mime_type: Some(metadata.media_type.clone()),
+                blob: BASE64_STANDARD.encode(&result.bytes),
+                meta: None,
+            };
+            let mut response = CallToolResult::success(vec![ContentBlock::resource(resource)]);
+            response.structured_content = Some(structured);
+            Ok(response)
+        }
+        ToolOutcome::Error(error) => {
+            let message = error.message.clone();
+            let structured = json!({ "error": error });
+            let mut response = CallToolResult::error(vec![ContentBlock::text(message)]);
+            response.structured_content = Some(structured);
+            Ok(response)
+        }
+    }
+}
+
+fn workspace_file_projection_metadata(
+    result: &WorkspaceFileReadResult,
+    media_type: String,
+    media_type_standing: String,
+) -> WorkspaceFileProjectionMetadata {
+    let digest_hex = result
+        .metadata
+        .digest
+        .strip_prefix("sha256:")
+        .unwrap_or(result.metadata.digest.as_str());
+    WorkspaceFileProjectionMetadata {
+        workspace_id: result.metadata.workspace_id.clone(),
+        relative_path: result.metadata.relative_path.clone(),
+        digest: result.metadata.digest.clone(),
+        byte_length: result.metadata.byte_length,
+        media_type,
+        media_type_standing,
+        resource_uri: format!(
+            "ordivon://workspace/{}/sha256/{digest_hex}",
+            result.metadata.workspace_id
+        ),
+    }
+}
+
+fn workspace_file_call_result(
+    outcome: ToolOutcome<WorkspaceFileReadResult>,
+    media_type: String,
+    media_type_standing: String,
+) -> Result<CallToolResult, McpError> {
+    match outcome {
+        ToolOutcome::Success(result) => {
+            let metadata = workspace_file_projection_metadata(
+                &result,
+                media_type,
+                media_type_standing,
+            );
+            let structured = serde_json::to_value(&metadata).map_err(|error| {
+                McpError::internal_error(
+                    format!("cannot serialize workspace file metadata: {error}"),
+                    None,
+                )
+            })?;
+            let resource = ResourceContents::BlobResourceContents {
+                uri: metadata.resource_uri.clone(),
+                mime_type: Some(metadata.media_type.clone()),
+                blob: BASE64_STANDARD.encode(&result.bytes),
+                meta: None,
+            };
+            let mut response = CallToolResult::success(vec![ContentBlock::resource(resource)]);
+            response.structured_content = Some(structured);
+            Ok(response)
+        }
+        ToolOutcome::Error(error) => {
+            let message = error.message.clone();
+            let structured = json!({ "error": error });
+            let mut response = CallToolResult::error(vec![ContentBlock::text(message)]);
+            response.structured_content = Some(structured);
+            Ok(response)
+        }
+    }
+}
+
 fn workspace_content_call_result(
     outcome: ToolOutcome<ordivon_runtime_core::WorkspaceContentReadResult>,
 ) -> Result<CallToolResult, McpError> {
@@ -313,5 +443,30 @@ fn workspace_content_call_result(
             response.structured_content = Some(structured);
             Ok(response)
         }
+    }
+}
+
+#[cfg(test)]
+mod authorization_tests {
+    use super::*;
+    use ordivon_runtime_core::{RuntimeError, RuntimeErrorCode};
+
+    #[test]
+    fn authorization_denied_is_typed_never_retry_and_not_committed() {
+        let error = ToolError::from(RuntimeError::new(
+            RuntimeErrorCode::AuthorizationDenied,
+            "principal cannot request elevation",
+            Some("execution.windowsContext.privilege"),
+            false,
+        ));
+        assert_eq!(error.code, "AUTHORIZATION_DENIED");
+        assert_eq!(
+            error.context.field.as_deref(),
+            Some("execution.windowsContext.privilege")
+        );
+        assert_eq!(error.context.retry_class, ToolRetryClass::Never);
+        assert_eq!(error.context.commit_state, ToolCommitState::NotCommitted);
+        assert!(!error.context.retryable);
+        assert!(error.context.operation_id.is_none());
     }
 }

@@ -1,7 +1,7 @@
 impl Registry {
     pub(super) fn get_job(&self, job_id: &str) -> RuntimeResult<RuntimeJobRecord> {
         let connection = self.open_connection()?;
-        load_job(&connection, job_id)
+        RegistryStorageBoundary::load_job(&connection, job_id)
     }
 
     pub(crate) fn execution_provider(
@@ -9,7 +9,7 @@ impl Registry {
         job_id: &str,
     ) -> RuntimeResult<Option<ExecutionProviderSnapshot>> {
         let connection = self.open_connection()?;
-        let job = load_job(&connection, job_id)?;
+        let job = RegistryStorageBoundary::load_job(&connection, job_id)?;
         let workspace_snapshot: serde_json::Value =
             serde_json::from_str(&job.workspace_snapshot_json).map_err(|error| {
                 RuntimeError::new(
@@ -199,28 +199,18 @@ impl Registry {
                 false,
             ));
         }
-        let expected_operation_digest = match (host_digest, release_digest) {
-            (Some(host_digest), None) => sha256_bytes(
-                format!(
-                    "runtime-operation-v6\0{}\0{}\0{}\0{}",
-                    job.request_digest, job.execution_plan_digest, committed_digest, host_digest
-                )
-                .as_bytes(),
-            ),
-            (None, Some(release_digest)) => sha256_bytes(
-                format!(
-                    "runtime-operation-v5\0{}\0{}\0{}\0{}",
-                    job.request_digest, job.execution_plan_digest, committed_digest, release_digest
-                )
-                .as_bytes(),
-            ),
-            (None, None) => sha256_bytes(
-                format!(
-                    "runtime-operation-v4\0{}\0{}\0{}",
-                    job.request_digest, job.execution_plan_digest, committed_digest
-                )
-                .as_bytes(),
-            ),
+        let identity_bindings = match (host_digest, release_digest) {
+            (Some(host_digest), None) => OperationIdentityBindings::ProviderWithHostDependencies {
+                provider_digest: committed_digest,
+                host_dependencies_digest: host_digest,
+            },
+            (None, Some(release_digest)) => OperationIdentityBindings::ProviderWithRuntimeRelease {
+                provider_digest: committed_digest,
+                runtime_release_digest: release_digest,
+            },
+            (None, None) => OperationIdentityBindings::Provider {
+                provider_digest: committed_digest,
+            },
             (Some(_), Some(_)) => {
                 return Err(RuntimeError::new(
                     RuntimeErrorCode::RegistryCorrupt,
@@ -230,6 +220,11 @@ impl Registry {
                 ));
             }
         };
+        let expected_operation_digest = JobIdentityContract::operation_digest(
+            &job.request_digest,
+            &job.execution_plan_digest,
+            identity_bindings,
+        );
         if job.operation_digest != expected_operation_digest {
             return Err(RuntimeError::new(
                 RuntimeErrorCode::RegistryCorrupt,
@@ -271,7 +266,7 @@ impl Registry {
         job_id: &str,
     ) -> RuntimeResult<Vec<HostDependencyBinding>> {
         let connection = self.open_connection()?;
-        let job = load_job(&connection, job_id)?;
+        let job = RegistryStorageBoundary::load_job(&connection, job_id)?;
         let workspace_snapshot: serde_json::Value =
             serde_json::from_str(&job.workspace_snapshot_json).map_err(|error| {
                 RuntimeError::new(
@@ -369,13 +364,13 @@ impl Registry {
 
     pub(super) fn get_attempt(&self, attempt_id: &str) -> RuntimeResult<AttemptRecord> {
         let connection = self.open_connection()?;
-        load_attempt(&connection, attempt_id)
+        RegistryStorageBoundary::load_attempt(&connection, attempt_id)
     }
 
     #[cfg(any(test, feature = "operator-tools"))]
     pub(super) fn get_reservation(&self, attempt_id: &str) -> RuntimeResult<ReservationRecord> {
         let connection = self.open_connection()?;
-        load_reservation(&connection, attempt_id)
+        RegistryStorageBoundary::load_reservation(&connection, attempt_id)
     }
 
     pub(super) fn get_latest_attempt(&self, job_id: &str) -> RuntimeResult<Option<AttemptRecord>> {
@@ -389,7 +384,7 @@ impl Registry {
             .optional()
             .map_err(|error| RuntimeError::from_sql(error, "cannot find latest Attempt"))?;
         attempt_id
-            .map(|attempt_id| load_attempt(&connection, &attempt_id))
+            .map(|attempt_id| RegistryStorageBoundary::load_attempt(&connection, &attempt_id))
             .transpose()
     }
 
@@ -469,13 +464,86 @@ impl Registry {
             )
             .map_err(|error| RuntimeError::from_sql(error, "cannot prepare Workspace reconciliation scan"))?;
         let rows = statement
-            .query_map(params![workspace_id, limit], raw_attempt_from_row)
+            .query_map(params![workspace_id, limit], RegistryStorageBoundary::decode_attempt_row)
             .map_err(|error| RuntimeError::from_sql(error, "cannot scan Workspace Attempts"))?;
         rows.map(|row| {
             row.map_err(|error| RuntimeError::from_sql(error, "cannot decode Workspace Attempt"))?
                 .into_record()
         })
         .collect()
+    }
+
+    pub(super) fn list_jobs_for_principal(
+        &self,
+        request: &RuntimeJobListRequest,
+        principal: &str,
+    ) -> RuntimeResult<RuntimeJobListResult> {
+        if request.limit == 0 || request.limit > MAX_RUNTIME_LIST_LIMIT {
+            return Err(RuntimeError::invalid(
+                format!("limit must be in 1..={MAX_RUNTIME_LIST_LIMIT}"),
+                "limit",
+            ));
+        }
+        validate_identifier(principal, "principal")?;
+        if let Some(client_request_id) = request.client_request_id.as_deref() {
+            validate_client_request_id(client_request_id, "clientRequestId")?;
+        }
+        if let Some(workspace_id) = request.workspace_id.as_deref() {
+            validate_identifier(workspace_id, "workspaceId")?;
+        }
+        let connection = self.open_connection()?;
+        let transaction = connection.unchecked_transaction().map_err(|error| {
+            RuntimeError::from_sql(error, "cannot begin principal-scoped Job list read snapshot")
+        })?;
+        let fetch_limit = request.limit + 1;
+        let mut sql = String::from(
+            "SELECT job_id,principal,client_request_id,request_digest,operation_digest,workspace_id,workspace_snapshot_json,execution_plan_json,execution_plan_digest,created_at_ms,desired_state,resolution,current_attempt_id,row_version FROM jobs WHERE principal=?",
+        );
+        let mut values = vec![rusqlite::types::Value::Text(principal.to_string())];
+        if let Some(client_request_id) = request.client_request_id.as_ref() {
+            sql.push_str(" AND client_request_id=?");
+            values.push(rusqlite::types::Value::Text(client_request_id.clone()));
+        }
+        if let Some(workspace_id) = request.workspace_id.as_ref() {
+            sql.push_str(" AND workspace_id=?");
+            values.push(rusqlite::types::Value::Text(workspace_id.clone()));
+        }
+        if let Some(cursor) = request.cursor.as_ref() {
+            sql.push_str(" AND (created_at_ms<? OR (created_at_ms=? AND job_id<?))");
+            values.push(rusqlite::types::Value::Integer(
+                i64::try_from(cursor.created_at_ms).map_err(|_| {
+                    RuntimeError::invalid("cursor createdAtMs exceeds SQLite integer range", "cursor.createdAtMs")
+                })?,
+            ));
+            values.push(rusqlite::types::Value::Integer(
+                i64::try_from(cursor.created_at_ms).map_err(|_| {
+                    RuntimeError::invalid("cursor createdAtMs exceeds SQLite integer range", "cursor.createdAtMs")
+                })?,
+            ));
+            values.push(rusqlite::types::Value::Text(cursor.job_id.clone()));
+        }
+        sql.push_str(" ORDER BY created_at_ms DESC,job_id DESC LIMIT ?");
+        values.push(rusqlite::types::Value::Integer(i64::from(fetch_limit)));
+        let mut statement = transaction.prepare(&sql).map_err(|error| {
+            RuntimeError::from_sql(error, "cannot prepare principal-scoped Job list")
+        })?;
+        let rows = statement
+            .query_map(
+                rusqlite::params_from_iter(values),
+                RegistryStorageBoundary::decode_job_row,
+            )
+            .map_err(|error| {
+                RuntimeError::from_sql(error, "cannot query principal-scoped Job list")
+            })?;
+        let mut jobs = Vec::new();
+        for row in rows {
+            jobs.push(
+                row.map_err(|error| RuntimeError::from_sql(error, "cannot decode Job row"))?
+                    .into_record()?,
+            );
+        }
+        drop(statement);
+        self.project_job_list_page(&transaction, jobs, request.limit)
     }
 
     pub(super) fn list_jobs(
@@ -520,7 +588,7 @@ impl Registry {
                             cursor.job_id,
                             fetch_limit
                         ],
-                        raw_job_from_row,
+                        RegistryStorageBoundary::decode_job_row,
                     )
                     .map_err(|error| {
                         RuntimeError::from_sql(error, "cannot query identity-bounded Job list")
@@ -543,7 +611,7 @@ impl Registry {
                 let rows = statement
                     .query_map(
                         params![client_request_id, workspace_id, fetch_limit],
-                        raw_job_from_row,
+                        RegistryStorageBoundary::decode_job_row,
                     )
                     .map_err(|error| {
                         RuntimeError::from_sql(error, "cannot query identity-bounded Job list")
@@ -571,7 +639,7 @@ impl Registry {
                             cursor.job_id,
                             fetch_limit
                         ],
-                        raw_job_from_row,
+                        RegistryStorageBoundary::decode_job_row,
                     )
                     .map_err(|error| {
                         RuntimeError::from_sql(error, "cannot query filtered Job list")
@@ -592,7 +660,7 @@ impl Registry {
                     )
                     .map_err(|error| RuntimeError::from_sql(error, "cannot prepare filtered Job list"))?;
                 let rows = statement
-                    .query_map(params![client_request_id, fetch_limit], raw_job_from_row)
+                    .query_map(params![client_request_id, fetch_limit], RegistryStorageBoundary::decode_job_row)
                     .map_err(|error| {
                         RuntimeError::from_sql(error, "cannot query filtered Job list")
                     })?;
@@ -619,7 +687,7 @@ impl Registry {
                             cursor.job_id,
                             fetch_limit
                         ],
-                        raw_job_from_row,
+                        RegistryStorageBoundary::decode_job_row,
                     )
                     .map_err(|error| {
                         RuntimeError::from_sql(error, "cannot query Workspace Job list")
@@ -640,7 +708,7 @@ impl Registry {
                     )
                     .map_err(|error| RuntimeError::from_sql(error, "cannot prepare Workspace Job list"))?;
                 let rows = statement
-                    .query_map(params![workspace_id, fetch_limit], raw_job_from_row)
+                    .query_map(params![workspace_id, fetch_limit], RegistryStorageBoundary::decode_job_row)
                     .map_err(|error| {
                         RuntimeError::from_sql(error, "cannot query Workspace Job list")
                     })?;
@@ -662,7 +730,7 @@ impl Registry {
                 let rows = statement
                     .query_map(
                         params![cursor.created_at_ms, cursor.job_id, fetch_limit],
-                        raw_job_from_row,
+                        RegistryStorageBoundary::decode_job_row,
                     )
                     .map_err(|error| RuntimeError::from_sql(error, "cannot query Job list"))?;
                 for row in rows {
@@ -681,7 +749,7 @@ impl Registry {
                     )
                     .map_err(|error| RuntimeError::from_sql(error, "cannot prepare Job list"))?;
                 let rows = statement
-                    .query_map([fetch_limit], raw_job_from_row)
+                    .query_map([fetch_limit], RegistryStorageBoundary::decode_job_row)
                     .map_err(|error| RuntimeError::from_sql(error, "cannot query Job list"))?;
                 for row in rows {
                     jobs.push(
@@ -694,8 +762,17 @@ impl Registry {
             }
         }
 
-        let has_more = jobs.len() > request.limit as usize;
-        jobs.truncate(request.limit as usize);
+        self.project_job_list_page(&transaction, jobs, request.limit)
+    }
+
+    fn project_job_list_page(
+        &self,
+        transaction: &rusqlite::Transaction<'_>,
+        mut jobs: Vec<RuntimeJobRecord>,
+        limit: u32,
+    ) -> RuntimeResult<RuntimeJobListResult> {
+        let has_more = jobs.len() > limit as usize;
+        jobs.truncate(limit as usize);
         let next_cursor = if has_more {
             jobs.last().map(|job| RuntimeJobListCursor {
                 created_at_ms: job.created_at_ms,
@@ -708,7 +785,7 @@ impl Registry {
         let mut summaries = Vec::with_capacity(jobs.len());
         for job in jobs {
             let attempt = match job.current_attempt_id.as_deref() {
-                Some(attempt_id) => Some(load_attempt(&transaction, attempt_id)?),
+                Some(attempt_id) => Some(RegistryStorageBoundary::load_attempt(transaction, attempt_id)?),
                 None => {
                     let attempt_id: Option<String> = transaction
                         .query_row(
@@ -719,13 +796,13 @@ impl Registry {
                         .optional()
                         .map_err(|error| RuntimeError::from_sql(error, "cannot find latest Attempt"))?;
                     attempt_id
-                        .map(|attempt_id| load_attempt(&transaction, &attempt_id))
+                        .map(|attempt_id| RegistryStorageBoundary::load_attempt(transaction, &attempt_id))
                         .transpose()?
                 }
             };
             let recovery_condition_active = attempt
                 .as_ref()
-                .map(|attempt| attempt_recovery_condition_active(&transaction, &attempt.attempt_id))
+                .map(|attempt| attempt_recovery_condition_active(transaction, &attempt.attempt_id))
                 .transpose()?
                 .unwrap_or(false);
             let artifact_count: u32 = transaction
@@ -736,7 +813,7 @@ impl Registry {
                 )
                 .map_err(|error| RuntimeError::from_sql(error, "cannot count Job Artifacts"))?;
             let execution_reason_code =
-                job_execution_reason_code(&transaction, &job.job_id, job.resolution.is_some())?;
+                job_execution_reason_code(transaction, &job.job_id, job.resolution.is_some())?;
             let projection = project_job(
                 &job,
                 attempt.as_ref(),
@@ -799,9 +876,6 @@ impl Registry {
                 poll_after_ms: projection.poll_after_ms,
             });
         }
-        transaction.commit().map_err(|error| {
-            RuntimeError::from_sql(error, "cannot close Job list read snapshot")
-        })?;
         Ok(RuntimeJobListResult {
             jobs: summaries,
             next_cursor,
@@ -852,7 +926,7 @@ impl Registry {
         job_id: &str,
     ) -> RuntimeResult<Option<RuntimeReleaseEffectBinding>> {
         let connection = self.open_connection()?;
-        let job = load_job(&connection, job_id)?;
+        let job = RegistryStorageBoundary::load_job(&connection, job_id)?;
         let workspace_snapshot: serde_json::Value =
             serde_json::from_str(&job.workspace_snapshot_json).map_err(|error| {
                 RuntimeError::new(
@@ -995,7 +1069,7 @@ impl Registry {
         let Some(job_id) = job_id else {
             return Ok(None);
         };
-        let job = load_job(&connection, &job_id)?;
+        let job = RegistryStorageBoundary::load_job(&connection, &job_id)?;
         drop(connection);
         let release = self
             .runtime_release_effect_for_job(&job_id)?

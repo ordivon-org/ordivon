@@ -1,0 +1,668 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.ci-pr-run-index",
+  "truthRole": "provider-observation-not-economic-classification",
+  "repository": "ordivon-org/ordivon",
+  "prs": [
+    {
+      "number": 24,
+      "headSha": "31fa2ef16d74713654840c0bc875a606992de50a",
+      "mergeCommitSha": "cb31b32d44e6c182cfe20d15fa6589cef6d42c60",
+      "mergedAt": "2026-09-22T16:33:52Z",
+      "state": "closed",
+      "title": "feat(repo): project merge queue telemetry"
+    },
+    {
+      "number": 26,
+      "headSha": "64043000857507330e1949d5f0d2a934b8ff6b9f",
+      "mergeCommitSha": "ad023e8e5c80ce8f44bc8c78f9eab78d65e713bc",
+      "mergedAt": "2026-09-23T09:32:24Z",
+      "state": "closed",
+      "title": "meta: reconcile frozen local main cut onto provider main"
+    },
+    {
+      "number": 30,
+      "headSha": "9f5f7dbb0fcd6ba56dd4a115655ef0c4469da207",
+      "mergeCommitSha": "f985d603b99408e066332a73713ae78ddce243c1",
+      "mergedAt": "2026-09-23T11:25:35Z",
+      "state": "closed",
+      "title": "feat(repo): separate convergence observation and pressure diagnosis"
+    },
+    {
+      "number": 31,
+      "headSha": "25999aa56e4d8b1570b0e345b4503ffa77dee618",
+      "mergeCommitSha": "90eaf395bd67cb3e004078e398b089153053792c",
+      "mergedAt": "2026-09-23T11:40:58Z",
+      "state": "closed",
+      "title": "runtime: factor Windows execution authority"
+    },
+    {
+      "number": 32,
+      "headSha": "97c055258e12536a838f364a52e3a5cfc336616a",
+      "mergeCommitSha": "58adb77f870ac08c494b06dc4130a03ff5e4ac64",
+      "mergedAt": "2026-09-23T12:01:16Z",
+      "state": "closed",
+      "title": "feat(repo): persist convergence observations as episodes"
+    },
+    {
+      "number": 33,
+      "headSha": "2eb0755e933c0f337df8a0c4b7b752d06be900c5",
+      "mergeCommitSha": "fdfd4e8a66deacae5dc7bd7409263fe31f55ba5b",
+      "mergedAt": "2026-09-23T13:25:15Z",
+      "state": "closed",
+      "title": "runtime: verify Windows nested release authority"
+    },
+    {
+      "number": 34,
+      "headSha": "bc2cc1e6295c861e418fbed774e5dafb2d581cc8",
+      "mergeCommitSha": "6231bda83a066a73d95392c6cfeee1371681a8e1",
+      "mergedAt": "2026-09-23T13:57:28Z",
+      "state": "closed",
+      "title": "refactor(runtime): extract registry storage boundary"
+    },
+    {
+      "number": 35,
+      "headSha": "bc530fa4e4c22da97c28964a20ed3fe704db11ab",
+      "mergeCommitSha": "a8f9a4bcaea760babc0e8dd79e119728d90bc694",
+      "mergedAt": "2026-09-23T21:08:21Z",
+      "state": "closed",
+      "title": "runtime: bridge verified Windows release recovery"
+    },
+    {
+      "number": 36,
+      "headSha": "5e82709beb473c6784b0fd39bb98b84ec0e11b3f",
+      "mergeCommitSha": null,
+      "mergedAt": null,
+      "state": "open",
+      "title": "refactor(runtime): extract artifact and release state contracts"
+    },
+    {
+      "number": 37,
+      "headSha": "5b8c17c16c3374be607e598bb76bcf9851c3b674",
+      "mergeCommitSha": "867b7f6e3a015d43f316b760790da0f5574f97fe",
+      "mergedAt": "2026-09-23T21:52:21Z",
+      "state": "closed",
+      "title": "fix(runtime): bind bootstrap recovery to persisted evidence"
+    }
+  ],
+  "runs": [
+    {
+      "runId": 35754569300,
+      "prNumbers": [
+        24
+      ],
+      "event": "pull_request",
+      "headSha": "31fa2ef16d74713654840c0bc875a606992de50a",
+      "headBranch": "agent/convergence-queue-telemetry-r1-20260923",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-22T16:30:31Z",
+      "startedAt": "2026-09-22T16:30:31Z",
+      "updatedAt": "2026-09-22T16:32:05Z",
+      "name": "Monorepo Required",
+      "htmlUrl": "https://github.com/ordivon-org/ordivon/actions/runs/35754569300"
+    },
+    {
+      "runId": 35754786182,
+      "prNumbers": [
+        24
+      ],
+      "event": "merge_group",
+      "headSha": "cb31b32d44e6c182cfe20d15fa6589cef6d42c60",
+      "headBranch": "gh-readonly-queue/main/pr-24-8baa98ec0092da69e06519ee7812dff1b581beca",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-22T16:32:28Z",
+      "startedAt": "2026-09-22T16:32:28Z",
+      "updatedAt": "2026-09-22T16:33:21Z",
+      "name": "Monorepo Required",
+      "htmlUrl": "https://github.com/ordivon-org/ordivon/actions/runs/35754786182"
+    },
+    {
+      "runId": 35754947589,
+      "prNumbers": [
+        24
+      ],
+      "event": "push",
+      "headSha": "cb31b32d44e6c182cfe20d15fa6589cef6d42c60",
+      "headBranch": "main",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-22T16:33:54Z",
+      "startedAt": "2026-09-22T16:33:54Z",
+      "updatedAt": "2026-09-22T16:34:50Z",
+      "name": "Monorepo Required",
+      "htmlUrl": "https://github.com/ordivon-org/ordivon/actions/runs/35754947589"
+    },
+    {
+      "runId": 35832180269,
+      "prNumbers": [
+        26
+      ],
+      "event": "pull_request",
+      "headSha": "46f1d91accf88fd100eaa49158dab39f6e964d22",
+      "headBranch": "agent/canonical-main-reconcile-f2ec-r1-20260923",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "failure",
+      "createdAt": "2026-09-23T07:31:43Z",
+      "startedAt": "2026-09-23T07:31:43Z",
+      "updatedAt": "2026-09-23T07:42:39Z",
+      "name": "Monorepo Required",
+      "htmlUrl": "https://github.com/ordivon-org/ordivon/actions/runs/35832180269"
+    },
+    {
+      "runId": 35839093276,
+      "prNumbers": [
+        26
+      ],
+      "event": "pull_request",
+      "headSha": "75583981c847dcba426310b73f34c3a19e78a5fc",
+      "headBranch": "agent/canonical-main-reconcile-f2ec-r1-20260923",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "failure",
+      "createdAt": "2026-09-23T08:47:05Z",
+      "startedAt": "2026-09-23T08:47:05Z",
+      "updatedAt": "2026-09-23T08:59:02Z",
+      "name": "Monorepo Required",
+      "htmlUrl": "https://github.com/ordivon-org/ordivon/actions/runs/35839093276"
+    },
+    {
+      "runId": 35840933293,
+      "prNumbers": [
+        26
+      ],
+      "event": "pull_request",
+      "headSha": "64043000857507330e1949d5f0d2a934b8ff6b9f",
+      "headBranch": "agent/canonical-main-reconcile-f2ec-r1-20260923",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-23T09:06:01Z",
+      "startedAt": "2026-09-23T09:06:01Z",
+      "updatedAt": "2026-09-23T09:18:13Z",
+      "name": "Monorepo Required",
+      "htmlUrl": "https://github.com/ordivon-org/ordivon/actions/runs/35840933293"
+    },
+    {
+      "runId": 35842372127,
+      "prNumbers": [
+        26
+      ],
+      "event": "merge_group",
+      "headSha": "ad023e8e5c80ce8f44bc8c78f9eab78d65e713bc",
+      "headBranch": "gh-readonly-queue/main/pr-26-f766c41543f420aa5a738c7a1ffde90ea6f2f2b9",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-23T09:20:39Z",
+      "startedAt": "2026-09-23T09:20:39Z",
+      "updatedAt": "2026-09-23T09:31:52Z",
+      "name": "Monorepo Required",
+      "htmlUrl": "https://github.com/ordivon-org/ordivon/actions/runs/35842372127"
+    },
+    {
+      "runId": 35843536570,
+      "prNumbers": [
+        26
+      ],
+      "event": "push",
+      "headSha": "ad023e8e5c80ce8f44bc8c78f9eab78d65e713bc",
+      "headBranch": "main",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-23T09:32:25Z",
+      "startedAt": "2026-09-23T09:32:25Z",
+      "updatedAt": "2026-09-23T09:43:26Z",
+      "name": "Monorepo Required",
+      "htmlUrl": "https://github.com/ordivon-org/ordivon/actions/runs/35843536570"
+    },
+    {
+      "runId": 35843541238,
+      "prNumbers": [
+        26
+      ],
+      "event": "dynamic",
+      "headSha": "ad023e8e5c80ce8f44bc8c78f9eab78d65e713bc",
+      "headBranch": "main",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-23T09:32:28Z",
+      "startedAt": "2026-09-23T09:32:28Z",
+      "updatedAt": "2026-09-23T09:33:30Z",
+      "name": "github_actions in /. - Update #1588580849",
+      "htmlUrl": "https://github.com/ordivon-org/ordivon/actions/runs/35843541238"
+    },
+    {
+      "runId": 35843541245,
+      "prNumbers": [
+        26
+      ],
+      "event": "dynamic",
+      "headSha": "ad023e8e5c80ce8f44bc8c78f9eab78d65e713bc",
+      "headBranch": "main",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "failure",
+      "createdAt": "2026-09-23T09:32:28Z",
+      "startedAt": "2026-09-23T09:32:28Z",
+      "updatedAt": "2026-09-23T09:33:31Z",
+      "name": "uv in /capabilities/artifact, /capabilities/artifact/artifact-delivery/python-uv, /capabilities/distribution, /capabilities/media, /domains/capital, /meta/next, /meta/next/experimental/episode-store-r1, /packages/composition, /platform/security, /platform/skills, /platform/workstation, /services/gateway, /services/harness, /services/host - Update #1588580852",
+      "htmlUrl": "https://github.com/ordivon-org/ordivon/actions/runs/35843541245"
+    },
+    {
+      "runId": 35843541274,
+      "prNumbers": [
+        26
+      ],
+      "event": "dynamic",
+      "headSha": "ad023e8e5c80ce8f44bc8c78f9eab78d65e713bc",
+      "headBranch": "main",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-23T09:32:28Z",
+      "startedAt": "2026-09-23T09:32:28Z",
+      "updatedAt": "2026-09-23T09:34:16Z",
+      "name": "npm_and_yarn in /apps/web, /capabilities/artifact/artifact-delivery/node, /capabilities/media, /domains/game, /platform/security/contracts/agent-request-verifier-v1, /platform/security/labs/agent-admission-rs, /platform/workstation/providers/cloudflare - Update #1588580856",
+      "htmlUrl": "https://github.com/ordivon-org/ordivon/actions/runs/35843541274"
+    },
+    {
+      "runId": 35843542198,
+      "prNumbers": [
+        26
+      ],
+      "event": "dynamic",
+      "headSha": "ad023e8e5c80ce8f44bc8c78f9eab78d65e713bc",
+      "headBranch": "main",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-23T09:32:28Z",
+      "startedAt": "2026-09-23T09:32:28Z",
+      "updatedAt": "2026-09-23T09:34:17Z",
+      "name": "cargo in /services/runtime - Update #1588580862",
+      "htmlUrl": "https://github.com/ordivon-org/ordivon/actions/runs/35843542198"
+    },
+    {
+      "runId": 35853906855,
+      "prNumbers": [
+        30
+      ],
+      "event": "pull_request",
+      "headSha": "9f5f7dbb0fcd6ba56dd4a115655ef0c4469da207",
+      "headBranch": "agent/convergence-observation-r2-20260923",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-23T11:19:57Z",
+      "startedAt": "2026-09-23T11:19:57Z",
+      "updatedAt": "2026-09-23T11:20:31Z",
+      "name": "Monorepo Required",
+      "htmlUrl": "https://github.com/ordivon-org/ordivon/actions/runs/35853906855"
+    },
+    {
+      "runId": 35854338691,
+      "prNumbers": [
+        31
+      ],
+      "event": "pull_request",
+      "headSha": "25999aa56e4d8b1570b0e345b4503ffa77dee618",
+      "headBranch": "agent/windows-authority-r2-20260923",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-23T11:24:21Z",
+      "startedAt": "2026-09-23T11:24:21Z",
+      "updatedAt": "2026-09-23T11:30:53Z",
+      "name": "Monorepo Required",
+      "htmlUrl": "https://github.com/ordivon-org/ordivon/actions/runs/35854338691"
+    },
+    {
+      "runId": 35854341121,
+      "prNumbers": [
+        30
+      ],
+      "event": "merge_group",
+      "headSha": "f985d603b99408e066332a73713ae78ddce243c1",
+      "headBranch": "gh-readonly-queue/main/pr-30-ad023e8e5c80ce8f44bc8c78f9eab78d65e713bc",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-23T11:24:23Z",
+      "startedAt": "2026-09-23T11:24:23Z",
+      "updatedAt": "2026-09-23T11:25:03Z",
+      "name": "Monorepo Required",
+      "htmlUrl": "https://github.com/ordivon-org/ordivon/actions/runs/35854341121"
+    },
+    {
+      "runId": 35854460732,
+      "prNumbers": [
+        30
+      ],
+      "event": "push",
+      "headSha": "f985d603b99408e066332a73713ae78ddce243c1",
+      "headBranch": "main",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-23T11:25:36Z",
+      "startedAt": "2026-09-23T11:25:36Z",
+      "updatedAt": "2026-09-23T11:26:20Z",
+      "name": "Monorepo Required",
+      "htmlUrl": "https://github.com/ordivon-org/ordivon/actions/runs/35854460732"
+    },
+    {
+      "runId": 35855224905,
+      "prNumbers": [
+        31
+      ],
+      "event": "merge_group",
+      "headSha": "90eaf395bd67cb3e004078e398b089153053792c",
+      "headBranch": "gh-readonly-queue/main/pr-31-f985d603b99408e066332a73713ae78ddce243c1",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-23T11:33:27Z",
+      "startedAt": "2026-09-23T11:33:27Z",
+      "updatedAt": "2026-09-23T11:40:27Z",
+      "name": "Monorepo Required",
+      "htmlUrl": "https://github.com/ordivon-org/ordivon/actions/runs/35855224905"
+    },
+    {
+      "runId": 35855954128,
+      "prNumbers": [
+        31
+      ],
+      "event": "push",
+      "headSha": "90eaf395bd67cb3e004078e398b089153053792c",
+      "headBranch": "main",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-23T11:41:00Z",
+      "startedAt": "2026-09-23T11:41:00Z",
+      "updatedAt": "2026-09-23T11:48:08Z",
+      "name": "Monorepo Required",
+      "htmlUrl": "https://github.com/ordivon-org/ordivon/actions/runs/35855954128"
+    },
+    {
+      "runId": 35857291155,
+      "prNumbers": [
+        32
+      ],
+      "event": "pull_request",
+      "headSha": "97c055258e12536a838f364a52e3a5cfc336616a",
+      "headBranch": "agent/convergence-observation-m80-20260923",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-23T11:54:49Z",
+      "startedAt": "2026-09-23T11:54:49Z",
+      "updatedAt": "2026-09-23T11:57:11Z",
+      "name": "Monorepo Required",
+      "htmlUrl": "https://github.com/ordivon-org/ordivon/actions/runs/35857291155"
+    },
+    {
+      "runId": 35857605249,
+      "prNumbers": [
+        32
+      ],
+      "event": "merge_group",
+      "headSha": "58adb77f870ac08c494b06dc4130a03ff5e4ac64",
+      "headBranch": "gh-readonly-queue/main/pr-32-90eaf395bd67cb3e004078e398b089153053792c",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-23T11:58:10Z",
+      "startedAt": "2026-09-23T11:58:10Z",
+      "updatedAt": "2026-09-23T12:00:44Z",
+      "name": "Monorepo Required",
+      "htmlUrl": "https://github.com/ordivon-org/ordivon/actions/runs/35857605249"
+    },
+    {
+      "runId": 35857916103,
+      "prNumbers": [
+        32
+      ],
+      "event": "push",
+      "headSha": "58adb77f870ac08c494b06dc4130a03ff5e4ac64",
+      "headBranch": "main",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-23T12:01:17Z",
+      "startedAt": "2026-09-23T12:01:17Z",
+      "updatedAt": "2026-09-23T12:03:49Z",
+      "name": "Monorepo Required",
+      "htmlUrl": "https://github.com/ordivon-org/ordivon/actions/runs/35857916103"
+    },
+    {
+      "runId": 35858077465,
+      "prNumbers": [
+        33
+      ],
+      "event": "pull_request",
+      "headSha": "2eb0755e933c0f337df8a0c4b7b752d06be900c5",
+      "headBranch": "agent/windows-release-owner-authority-r1-20260923",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-23T12:02:56Z",
+      "startedAt": "2026-09-23T12:02:56Z",
+      "updatedAt": "2026-09-23T12:09:11Z",
+      "name": "Monorepo Required",
+      "htmlUrl": "https://github.com/ordivon-org/ordivon/actions/runs/35858077465"
+    },
+    {
+      "runId": 35866112952,
+      "prNumbers": [
+        33
+      ],
+      "event": "merge_group",
+      "headSha": "fdfd4e8a66deacae5dc7bd7409263fe31f55ba5b",
+      "headBranch": "gh-readonly-queue/main/pr-33-58adb77f870ac08c494b06dc4130a03ff5e4ac64",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-23T13:18:05Z",
+      "startedAt": "2026-09-23T13:18:05Z",
+      "updatedAt": "2026-09-23T13:24:43Z",
+      "name": "Monorepo Required",
+      "htmlUrl": "https://github.com/ordivon-org/ordivon/actions/runs/35866112952"
+    },
+    {
+      "runId": 35866938367,
+      "prNumbers": [
+        33
+      ],
+      "event": "push",
+      "headSha": "fdfd4e8a66deacae5dc7bd7409263fe31f55ba5b",
+      "headBranch": "main",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-23T13:25:17Z",
+      "startedAt": "2026-09-23T13:25:17Z",
+      "updatedAt": "2026-09-23T13:31:29Z",
+      "name": "Monorepo Required",
+      "htmlUrl": "https://github.com/ordivon-org/ordivon/actions/runs/35866938367"
+    },
+    {
+      "runId": 35869056272,
+      "prNumbers": [
+        34
+      ],
+      "event": "pull_request",
+      "headSha": "bc2cc1e6295c861e418fbed774e5dafb2d581cc8",
+      "headBranch": "agent/runtime-registry-storage-boundary-r1-20260923",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-23T13:43:24Z",
+      "startedAt": "2026-09-23T13:43:24Z",
+      "updatedAt": "2026-09-23T13:48:38Z",
+      "name": "Monorepo Required",
+      "htmlUrl": "https://github.com/ordivon-org/ordivon/actions/runs/35869056272"
+    },
+    {
+      "runId": 35869856374,
+      "prNumbers": [
+        34
+      ],
+      "event": "merge_group",
+      "headSha": "6231bda83a066a73d95392c6cfeee1371681a8e1",
+      "headBranch": "gh-readonly-queue/main/pr-34-fdfd4e8a66deacae5dc7bd7409263fe31f55ba5b",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-23T13:50:11Z",
+      "startedAt": "2026-09-23T13:50:11Z",
+      "updatedAt": "2026-09-23T13:56:57Z",
+      "name": "Monorepo Required",
+      "htmlUrl": "https://github.com/ordivon-org/ordivon/actions/runs/35869856374"
+    },
+    {
+      "runId": 35870707688,
+      "prNumbers": [
+        34
+      ],
+      "event": "push",
+      "headSha": "6231bda83a066a73d95392c6cfeee1371681a8e1",
+      "headBranch": "main",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-23T13:57:30Z",
+      "startedAt": "2026-09-23T13:57:30Z",
+      "updatedAt": "2026-09-23T14:04:16Z",
+      "name": "Monorepo Required",
+      "htmlUrl": "https://github.com/ordivon-org/ordivon/actions/runs/35870707688"
+    },
+    {
+      "runId": 35894014871,
+      "prNumbers": [
+        35
+      ],
+      "event": "pull_request",
+      "headSha": "bc530fa4e4c22da97c28964a20ed3fe704db11ab",
+      "headBranch": "fix/runtime-windows-release-bootstrap-recovery-r1",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-23T17:12:29Z",
+      "startedAt": "2026-09-23T17:12:29Z",
+      "updatedAt": "2026-09-23T17:19:09Z",
+      "name": "Monorepo Required",
+      "htmlUrl": "https://github.com/ordivon-org/ordivon/actions/runs/35894014871"
+    },
+    {
+      "runId": 35919773975,
+      "prNumbers": [
+        35
+      ],
+      "event": "merge_group",
+      "headSha": "a8f9a4bcaea760babc0e8dd79e119728d90bc694",
+      "headBranch": "gh-readonly-queue/main/pr-35-6231bda83a066a73d95392c6cfeee1371681a8e1",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-23T21:01:15Z",
+      "startedAt": "2026-09-23T21:01:15Z",
+      "updatedAt": "2026-09-23T21:07:49Z",
+      "name": "Monorepo Required",
+      "htmlUrl": "https://github.com/ordivon-org/ordivon/actions/runs/35919773975"
+    },
+    {
+      "runId": 35920542133,
+      "prNumbers": [
+        35
+      ],
+      "event": "push",
+      "headSha": "a8f9a4bcaea760babc0e8dd79e119728d90bc694",
+      "headBranch": "main",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-23T21:08:22Z",
+      "startedAt": "2026-09-23T21:08:22Z",
+      "updatedAt": "2026-09-23T21:14:53Z",
+      "name": "Monorepo Required",
+      "htmlUrl": "https://github.com/ordivon-org/ordivon/actions/runs/35920542133"
+    },
+    {
+      "runId": 35923283497,
+      "prNumbers": [
+        36
+      ],
+      "event": "pull_request",
+      "headSha": "5e82709beb473c6784b0fd39bb98b84ec0e11b3f",
+      "headBranch": "agent/runtime-artifact-release-state-r1-20260924",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-23T21:34:27Z",
+      "startedAt": "2026-09-23T21:34:27Z",
+      "updatedAt": "2026-09-23T21:41:09Z",
+      "name": "Monorepo Required",
+      "htmlUrl": "https://github.com/ordivon-org/ordivon/actions/runs/35923283497"
+    },
+    {
+      "runId": 35923320231,
+      "prNumbers": [
+        37
+      ],
+      "event": "pull_request",
+      "headSha": "5b8c17c16c3374be607e598bb76bcf9851c3b674",
+      "headBranch": "fix/runtime-windows-release-bootstrap-contract-r2-20260924",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-23T21:34:48Z",
+      "startedAt": "2026-09-23T21:34:48Z",
+      "updatedAt": "2026-09-23T21:43:42Z",
+      "name": "Monorepo Required",
+      "htmlUrl": "https://github.com/ordivon-org/ordivon/actions/runs/35923320231"
+    },
+    {
+      "runId": 35924362835,
+      "prNumbers": [
+        37
+      ],
+      "event": "merge_group",
+      "headSha": "867b7f6e3a015d43f316b760790da0f5574f97fe",
+      "headBranch": "gh-readonly-queue/main/pr-37-a8f9a4bcaea760babc0e8dd79e119728d90bc694",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-23T21:45:14Z",
+      "startedAt": "2026-09-23T21:45:14Z",
+      "updatedAt": "2026-09-23T21:51:49Z",
+      "name": "Monorepo Required",
+      "htmlUrl": "https://github.com/ordivon-org/ordivon/actions/runs/35924362835"
+    },
+    {
+      "runId": 35925066244,
+      "prNumbers": [
+        37
+      ],
+      "event": "push",
+      "headSha": "867b7f6e3a015d43f316b760790da0f5574f97fe",
+      "headBranch": "main",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-23T21:52:22Z",
+      "startedAt": "2026-09-23T21:52:22Z",
+      "updatedAt": "2026-09-23T21:59:04Z",
+      "name": "Monorepo Required",
+      "htmlUrl": "https://github.com/ordivon-org/ordivon/actions/runs/35925066244"
+    }
+  ]
+}

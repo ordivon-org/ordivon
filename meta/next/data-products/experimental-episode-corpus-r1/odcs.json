@@ -1,0 +1,205 @@
+{
+  "apiVersion": "v3.2.0",
+  "authoritativeDefinitions": [
+    {
+      "description": "ODCS authority.",
+      "type": "implementation",
+      "url": "https://github.com/bitol-io/open-data-contract-standard"
+    }
+  ],
+  "customProperties": [
+    {
+      "property": "corpusManifestSha256",
+      "value": "67c917eacd59fb7ae48877cde4d893093477c9c730a454824251291aad012b1b"
+    },
+    {
+      "property": "qualifiedParquetIndexSha256",
+      "value": "7c0747db4f0568a83e444cbf46e61aed93bd8d5fa66eb5eedb0ad2af98db233d"
+    },
+    {
+      "property": "artifactDatasetContractCanonicalDigest",
+      "value": "f0cbc86524bd19502c5cbe2cb440461c7493eb3325e7b5b0ddecc40340243752"
+    },
+    {
+      "property": "artifactVerificationStanding",
+      "value": "PASS"
+    },
+    {
+      "property": "expectedEpisodes",
+      "value": 10007
+    },
+    {
+      "property": "projectionTruthRole",
+      "value": "REBUILDABLE_ANALYTICAL_PROJECTION_NOT_OWNER_TRUTH"
+    }
+  ],
+  "dataProduct": "4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b",
+  "description": {
+    "limitations": "This contract does not encode full nested Episode evidence, owner-native payloads, statistical validity, causal effects or generalization. The flat index is a derived interchange view.",
+    "purpose": "Contract the stable corpus manifest and bounded flat Parquet index for Experimental Episode Corpus R1.",
+    "usage": "Bind every consumer to product version 1.0.0 and the exact corpus manifest/replay digests. Use the Episode schema and natural-owner evidence for semantics not represented by the flat index."
+  },
+  "domain": "meta/experimental-learning",
+  "id": "66cca360-d1c5-5f8d-8c7d-3f6fe6137d0d",
+  "kind": "DataContract",
+  "name": "experimental-episode-corpus-r1",
+  "schema": [
+    {
+      "description": "Stable replay-qualified corpus identity and projection-asset manifest.",
+      "name": "experimental-episode-corpus-manifest-r1",
+      "physicalName": "manifest.json",
+      "physicalType": "json",
+      "properties": [
+        {
+          "classification": "internal",
+          "logicalType": "integer",
+          "name": "schemaVersion",
+          "physicalName": "schemaVersion",
+          "physicalType": "integer",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true,
+          "semanticType": "column"
+        },
+        {
+          "classification": "internal",
+          "criticalDataElement": true,
+          "logicalType": "string",
+          "name": "corpusId",
+          "physicalName": "corpusId",
+          "physicalType": "string",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true,
+          "semanticType": "dimension"
+        },
+        {
+          "classification": "internal",
+          "criticalDataElement": true,
+          "logicalType": "string",
+          "name": "sourceRevision",
+          "physicalName": "sourceRevision",
+          "physicalType": "string",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true,
+          "semanticType": "dimension"
+        },
+        {
+          "classification": "internal",
+          "criticalDataElement": true,
+          "logicalType": "string",
+          "name": "standing",
+          "physicalName": "standing",
+          "physicalType": "string",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true,
+          "semanticType": "dimension"
+        }
+      ]
+    },
+    {
+      "description": "Flat Episode identity/anchor interchange view qualified by Artifact Dataset R1.",
+      "name": "experimental-episode-index-r1",
+      "physicalName": "experimental-episode-index-r1.parquet",
+      "physicalType": "parquet",
+      "properties": [
+        {
+          "classification": "internal",
+          "criticalDataElement": true,
+          "logicalType": "string",
+          "name": "episode_id",
+          "physicalName": "episode_id",
+          "physicalType": "VARCHAR",
+          "primaryKey": true,
+          "primaryKeyPosition": 1,
+          "required": true,
+          "semanticType": "dimension"
+        },
+        {
+          "classification": "internal",
+          "criticalDataElement": true,
+          "logicalType": "string",
+          "name": "projection_digest",
+          "physicalName": "projection_digest",
+          "physicalType": "VARCHAR",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true,
+          "semanticType": "dimension"
+        },
+        {
+          "classification": "internal",
+          "logicalType": "string",
+          "name": "profile_id",
+          "physicalName": "profile_id",
+          "physicalType": "VARCHAR",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true,
+          "semanticType": "dimension"
+        },
+        {
+          "classification": "internal",
+          "criticalDataElement": true,
+          "logicalType": "string",
+          "name": "data_class",
+          "physicalName": "data_class",
+          "physicalType": "VARCHAR",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true,
+          "semanticType": "dimension"
+        },
+        {
+          "classification": "internal",
+          "logicalType": "string",
+          "name": "anchor_owner_id",
+          "physicalName": "anchor_owner_id",
+          "physicalType": "VARCHAR",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true,
+          "semanticType": "dimension"
+        },
+        {
+          "classification": "internal",
+          "logicalType": "string",
+          "name": "anchor_object_kind",
+          "physicalName": "anchor_object_kind",
+          "physicalType": "VARCHAR",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true,
+          "semanticType": "dimension"
+        },
+        {
+          "classification": "internal",
+          "logicalType": "string",
+          "name": "anchor_object_id",
+          "physicalName": "anchor_object_id",
+          "physicalType": "VARCHAR",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true,
+          "semanticType": "dimension"
+        },
+        {
+          "classification": "internal",
+          "criticalDataElement": true,
+          "logicalType": "string",
+          "name": "source_record_digest",
+          "physicalName": "source_record_digest",
+          "physicalType": "VARCHAR",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true,
+          "semanticType": "dimension"
+        }
+      ]
+    }
+  ],
+  "status": "active",
+  "version": "1.0.0"
+}

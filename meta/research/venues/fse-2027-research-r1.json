@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "kind": "publication-carrier-contract",
+  "id": "fse-2027-research-r1",
+  "authority": [
+    {
+      "url": "https://conf.researchr.org/track/fse-2027/fse-2027-papers",
+      "observedAt": "2026-09-21",
+      "role": "venue-submission-authority"
+    },
+    {
+      "url": "https://portalparts.acm.org/hippo/latex_templates/acmart.pdf",
+      "observedAt": "2026-09-21",
+      "role": "acm-template-authority"
+    }
+  ],
+  "mechanical": {
+    "requireQpdfPass": true,
+    "requireAllFontsEmbedded": true,
+    "maxType3Fonts": 0,
+    "maxOverfullBoxes": 0,
+    "maxUndefinedCitations": 0,
+    "maxUndefinedReferences": 0
+  },
+  "textSemantics": {
+    "requiredRegex": [
+      {
+        "id": "anonymous-author-marker",
+        "pattern": "Anonymous Author\\(s\\)"
+      },
+      {
+        "id": "ccs-concepts",
+        "pattern": "CCS Concepts"
+      },
+      {
+        "id": "keywords",
+        "pattern": "(?:Additional Key Words and Phrases|Keywords)"
+      }
+    ],
+    "forbiddenRegex": [
+      {
+        "id": "epoch-year-1970",
+        "pattern": "\\b1970\\b"
+      }
+    ],
+    "forbidMarkdownHeadingResidue": true,
+    "detectDuplicateFigureCaptions": true
+  },
+  "pageRules": {
+    "totalPagesMax": 22,
+    "headings": [
+      {
+        "id": "conclusion",
+        "pattern": "^\\s*(?:\\d+\\.\\s+)?Conclusion\\s*$",
+        "maxPage": 18
+      },
+      {
+        "id": "data-availability",
+        "pattern": "^\\s*Data Availability\\s*$",
+        "mustFollow": "conclusion"
+      },
+      {
+        "id": "references",
+        "pattern": "^\\s*References\\s*$",
+        "minPage": 19
+      }
+    ]
+  },
+  "reviewerExperience": {
+    "humanPerceptualSignoffRequired": true
+  },
+  "policyFacts": {
+    "textAndFigurePagesMax": 18,
+    "referencePagesMax": 4,
+    "latexClass": "acmsmall,screen,review,anonymous",
+    "reviewMode": "heavy-double-anonymous",
+    "dataAvailabilityAfterConclusion": true,
+    "dataAvailabilityCountsTowardPageLimit": false,
+    "replicationPackageAtSubmission": "supplemental-upload-or-private/public-repository"
+  },
+  "truthRole": "dated-external-authority-binding-not-venue-truth-copy"
+}

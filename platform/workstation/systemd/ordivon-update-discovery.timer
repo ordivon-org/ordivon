@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily read-only update candidate discovery (never install)
+
+[Timer]
+OnCalendar=daily
+RandomizedDelaySec=50min
+Persistent=true
+Unit=ordivon-update-discovery.service
+
+[Install]
+WantedBy=timers.target

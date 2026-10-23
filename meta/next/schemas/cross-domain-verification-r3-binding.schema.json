@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/cross-domain-verification-r3-binding.schema.json",
+  "title": "Ordivon Cross-domain Verification R3 Task-local Binding",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "truthRole", "researchArtifact", "webSecurity"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "ordivon.cross-domain-verification-r3-binding"},
+    "truthRole": {"const": "task-local-acceptance-binding-not-owner-truth"},
+    "researchArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profilePath",
+        "dogfoodPath",
+        "expectedScientificTruth",
+        "expectedCarrierMechanics",
+        "expectedDistributionEffect"
+      ],
+      "properties": {
+        "profilePath": {"$ref": "#/$defs/repoRelativePath"},
+        "dogfoodPath": {"$ref": "#/$defs/repoRelativePath"},
+        "expectedScientificTruth": {"type": "string", "minLength": 1},
+        "expectedCarrierMechanics": {"type": "string", "minLength": 1},
+        "expectedDistributionEffect": {"type": "string", "minLength": 1}
+      }
+    },
+    "webSecurity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "paths",
+        "requiredSeams",
+        "forbiddenSourceFragments",
+        "requestContractImport",
+        "admissionContractImport",
+        "requiredStoreMarkers",
+        "expectedMatrix"
+      ],
+      "properties": {
+        "paths": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "dependencyContracts",
+            "nativeE2e",
+            "requestSource",
+            "admissionSource",
+            "storeSource"
+          ],
+          "properties": {
+            "dependencyContracts": {"$ref": "#/$defs/repoRelativePath"},
+            "nativeE2e": {"$ref": "#/$defs/repoRelativePath"},
+            "requestSource": {"$ref": "#/$defs/repoRelativePath"},
+            "admissionSource": {"$ref": "#/$defs/repoRelativePath"},
+            "storeSource": {"$ref": "#/$defs/repoRelativePath"}
+          }
+        },
+        "requiredSeams": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["sourceGlob", "allowedFragment", "kind"],
+            "properties": {
+              "sourceGlob": {"type": "string", "minLength": 1},
+              "allowedFragment": {"type": "string", "minLength": 1},
+              "kind": {"type": "string", "minLength": 1}
+            }
+          }
+        },
+        "forbiddenSourceFragments": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "requestContractImport": {"type": "string", "minLength": 1},
+        "admissionContractImport": {"type": "string", "minLength": 1},
+        "requiredStoreMarkers": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "expectedMatrix": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "noProof",
+            "wrongKey",
+            "firstCreate",
+            "proofReplay",
+            "exactReplay",
+            "conflict",
+            "publishStepUp",
+            "approval",
+            "publishApproved",
+            "revoke",
+            "newEffectAfterRevoke",
+            "historicalReplayAfterRevoke"
+          ],
+          "properties": {
+            "noProof": {"type": "integer"},
+            "wrongKey": {"type": "integer"},
+            "firstCreate": {"type": "integer"},
+            "proofReplay": {"type": "integer"},
+            "exactReplay": {"type": "integer"},
+            "conflict": {"type": "integer"},
+            "publishStepUp": {"type": "integer"},
+            "approval": {"type": "integer"},
+            "publishApproved": {"type": "integer"},
+            "revoke": {"type": "integer"},
+            "newEffectAfterRevoke": {"type": "integer"},
+            "historicalReplayAfterRevoke": {"type": "integer"}
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "repoRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+    }
+  }
+}

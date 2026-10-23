@@ -115,9 +115,11 @@ At minimum:
 Do not copy binaries manually. Build, plan, apply, and verify through the canonical deployment script:
 
 ```bash
-repo=$(git rev-parse --show-toplevel)
-commit=$(git rev-parse HEAD)
-candidate="$repo/target/ordivon-release-candidates/$commit/release"
+owner=$(pwd -P)
+git_root=$(git rev-parse --show-toplevel)
+repo_head=$(git -C "$git_root" rev-parse HEAD)
+commit=$(git -C "$owner" log -1 --format=%H "$repo_head" -- .)
+candidate="$owner/target/ordivon-release-candidates/$commit/release"
 manifest="$candidate/ordivon-deployment-manifest.json"
 cargo=$(command -v cargo)
 
@@ -140,7 +142,7 @@ Verification combines the portable contract, the explicit real-system acceptance
 ```bash
 scripts/ordivon-runtime-status --health --json
 scripts/ordivon-runtime-status --dashboard \
-  --source-repo "$(git rev-parse --show-toplevel)"
+  --source-repo "$(pwd -P)"
 scripts/ordivon-runtime-status --diagnose --json \
   --expected-commit "$(git rev-parse HEAD)"
 ```

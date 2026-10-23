@@ -4,7 +4,7 @@
 | --- | --- | --- |
 | M1 | Next / Security / Network | ACCEPTED_SOURCE_ONLY |
 | M2 | Workstation / Media / Artifact | ACCEPTED_SOURCE_ONLY |
-| Workstation | canonical monorepo owner active at platform/workstation; recovery generation v1, Edge carrier, current metadata, and owner verification bind the monorepo; standalone source carrier physically retired with 47-ref Git restore and dirty Playwright residual recovery | ACCEPTED_SOURCE_ONLY |
+| Workstation | canonical monorepo owner active at platform/workstation; retired legacy recovery generation (2026-10-15), Edge carrier, current metadata, and owner verification bind the monorepo; standalone source carrier physically retired with 47-ref Git restore and dirty Playwright residual recovery | ACCEPTED_SOURCE_ONLY |
 | Workstation standalone carrier | /root/projects/ordivon-workstation-v2 physically absent; Operations compatibility alias removed; Git/worktree residual recovery proven | RETIRED_ARCHIVED |
 | Artifact | canonical monorepo owner active at capabilities/artifact; standalone source carrier physically retired with 43-ref Git restore, dirty PPT worktree recovery, live Temporal readback, and post-delete 381-test hermetic proof | ACCEPTED_SOURCE_ONLY |
 | Artifact standalone carrier | /root/projects/ordivon-artifact-v2 physically absent; Git/worktree recovery proven; no compatibility alias | RETIRED_ARCHIVED |

@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.admission-fabric-execution-plan",
+  "planId": "admission-fabric-r1-20260922",
+  "status": "AF-S1_PASS_AF-S2_OPEN",
+  "goal": "Compose existing identity providers, Security authorization semantics, Gateway enforcement/routing, and natural owners without creating a new identity or policy platform.",
+  "invariants": [
+    "AuthN != AuthZ.",
+    "Principal != Agent != Grant != Effect != provider/resource identity.",
+    "Gateway does not own OAuth, credential material, Security policy semantics, or owner truth.",
+    "Interactive admission and workload admission are distinct profiles.",
+    "Human/browser presentation is not required for ordinary workload admission.",
+    "External bearer tokens are not generic downstream Ordivon credentials.",
+    "DCR is compatibility only; client registration mechanism is replaceable.",
+    "Network route selection is orthogonal to identity/authorization semantics."
+  ],
+  "nodes": [
+    {
+      "id": "AF01",
+      "owner": "next",
+      "status": "PASS",
+      "responsibility": "Freeze Admission Fabric architecture boundary and anti-growth laws."
+    },
+    {
+      "id": "AF02",
+      "owner": "next",
+      "status": "PASS",
+      "responsibility": "Compile interactive H2 reference circuit."
+    },
+    {
+      "id": "AF03",
+      "owner": "next",
+      "status": "PASS",
+      "responsibility": "Compile workload H3 circuit without browser/Human dependency."
+    },
+    {
+      "id": "AF04",
+      "owner": "security",
+      "status": "PASS_EXISTING",
+      "responsibility": "Reuse existing Principal/Agent/Grant/Effect admission semantics and OPA decisions."
+    },
+    {
+      "id": "AF05",
+      "owner": "gateway",
+      "status": "OPEN",
+      "responsibility": "Enforce one Security-owned capability decision before owner routing."
+    },
+    {
+      "id": "AF06",
+      "owner": "security/external-provider",
+      "status": "OPEN",
+      "responsibility": "Supply trusted Agent + Grant evidence for the selected Gateway capability."
+    },
+    {
+      "id": "AF07",
+      "owner": "external-provider",
+      "status": "OPEN",
+      "responsibility": "Select one real workload identity provider only when an unattended consumer requires it."
+    },
+    {
+      "id": "AF08",
+      "owner": "gateway/interface-contract",
+      "status": "OPEN",
+      "responsibility": "Verify current MCP 2026-07-28 wire surface independently from admission semantics."
+    },
+    {
+      "id": "AF09",
+      "owner": "harness/external-provider",
+      "status": "PENDING_REFERENCE",
+      "responsibility": "Re-run H2 interactive live witness with transaction-isolated callback."
+    },
+    {
+      "id": "AF10",
+      "owner": "security",
+      "status": "BLOCKED_EXTERNAL_TRANSPORT",
+      "responsibility": "Re-run pinned OPA OCI policy test when Docker registry path is healthy."
+    }
+  ],
+  "nextSlice": {
+    "id": "AF-S2",
+    "principle": "Do not generalize first.",
+    "target": "Choose one low-risk read capability, establish trusted Agent/Grant evidence, evaluate through existing Security contract, and enforce the decision at Gateway.",
+    "acceptance": [
+      "Unauthenticated caller cannot reach the capability.",
+      "Authenticated Principal without a matching Grant is DENY, not implicit ALLOW.",
+      "Matching verified Agent/Grant can ALLOW the exact capability only.",
+      "Changed capability/resource cannot reuse the same authority projection.",
+      "STEP_UP remains unexecuted.",
+      "Gateway does not persist credentials or redefine Security decision semantics.",
+      "Owner receives no external bearer token passthrough.",
+      "Existing direct-owner admin/recovery paths remain separate."
+    ]
+  }
+}

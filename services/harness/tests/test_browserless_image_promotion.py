@@ -1,6 +1,7 @@
 import contextlib
 import hashlib
 import json
+import subprocess
 import sys
 import tempfile
 import types
@@ -195,7 +196,9 @@ class BrowserlessImagePromotionTests(unittest.TestCase):
         value["expectedInstalledQuadletSha256"] = "sha256:" + "0" * 64
         self.request.write_text(json.dumps(value))
         with self.plan_dependencies():
-            with self.assertRaisesRegex(promotion.PromotionError, "installed Quadlet digest changed"):
+            with self.assertRaisesRegex(
+                promotion.PromotionError, "installed Quadlet digest changed"
+            ):
                 promotion.build_plan(self.request)
 
     def test_plan_rejects_canary_digest_drift(self) -> None:
@@ -216,7 +219,9 @@ class BrowserlessImagePromotionTests(unittest.TestCase):
     def test_plan_rejects_running_carrier_control_drift(self) -> None:
         self.write_case()
         with self.plan_dependencies(running_image=IMAGE_B):
-            with self.assertRaisesRegex(promotion.PromotionError, "planned active Browserless carrier image mismatch"):
+            with self.assertRaisesRegex(
+                promotion.PromotionError, "planned active Browserless carrier image mismatch"
+            ):
                 promotion.build_plan(self.request)
 
     def test_post_change_policy_allows_only_shared_browser_control_identity_drift(self) -> None:
@@ -233,9 +238,7 @@ class BrowserlessImagePromotionTests(unittest.TestCase):
             ):
                 promotion.validate_post_change_pool(bad)
 
-    def fake_release(
-        self, *, was_closed=False, running=None, mcp_active=True, worker_active=True
-    ):
+    def fake_release(self, *, was_closed=False, running=None, mcp_active=True, worker_active=True):
         state = {"mcp": mcp_active, "worker": worker_active}
         calls = []
         restore = mock.Mock()
@@ -412,9 +415,7 @@ class BrowserlessImagePromotionTests(unittest.TestCase):
                 ),
             ),
             mock.patch.object(promotion, "_wait_carrier"),
-            mock.patch.object(
-                promotion, "_post_change_pool_check", return_value=(post, post_path)
-            ),
+            mock.patch.object(promotion, "_post_change_pool_check", return_value=(post, post_path)),
             mock.patch.object(promotion, "_persist_receipt") as persist,
             mock.patch.object(promotion.subprocess, "run", return_value=mock.Mock(returncode=0)),
         ):
@@ -493,12 +494,16 @@ class BrowserlessImagePromotionTests(unittest.TestCase):
         self.assertEqual(value["finalSecurityRevision"], "2" * 40)
         self.assertEqual(value["finalPoolIndexSha256"], "sha256:" + "f" * 64)
         self.assertTrue(state["mcp"])
-        restore_topology.assert_called_once_with(
-            {11, 12, 13}, image=IMAGE_B, restart_active=False
-        )
+        restore_topology.assert_called_once_with({11, 12, 13}, image=IMAGE_B, restart_active=False)
         self.assertFalse(fake.ADMISSION_CLOSED.exists())
         restore.assert_not_called()
-        self.assertTrue(any(call[:2] == ("/usr/bin/systemctl", "start") for call in calls if isinstance(call, tuple)))
+        self.assertTrue(
+            any(
+                call[:2] == ("/usr/bin/systemctl", "start")
+                for call in calls
+                if isinstance(call, tuple)
+            )
+        )
 
     def test_finalize_drift_preserves_closed_gate_and_stopped_mcp(self) -> None:
         self.write_case(candidate=IMAGE_B, standing="PASS_EXPECTED_INFRASTRUCTURE_CHANGE")
@@ -537,9 +542,7 @@ class BrowserlessImagePromotionTests(unittest.TestCase):
             mock.patch.object(promotion, "_security_clean_revision", return_value="2" * 40),
             mock.patch.object(promotion, "_require_browser_quiescent"),
             mock.patch.object(promotion, "_restore_carrier_topology"),
-            mock.patch.object(
-                promotion, "_run_pool_observation", return_value=(bad, final_path)
-            ),
+            mock.patch.object(promotion, "_run_pool_observation", return_value=(bad, final_path)),
         ):
             with self.assertRaisesRegex(promotion.PromotionError, "NO_OBSERVED_DRIFT"):
                 promotion.finalize(self.request)
@@ -569,3 +572,27 @@ class BrowserlessImagePromotionTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class MonorepoSourceAuthorityTests(unittest.TestCase):
+    def test_canonical_source_repo_is_modular_monorepo(self):
+        self.assertEqual(promotion.CANONICAL_SOURCE_REPO, Path("/root/projects/ordivon"))
+
+    def test_source_revision_accepts_v2_release_marker(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            commit = "c" * 40
+            (root / ".ordivon-agent-automation-release.json").write_text(
+                json.dumps(
+                    {
+                        "schemaVersion": 2,
+                        "commit": commit,
+                        "archiveDigest": "sha256:x",
+                        "sourceRepo": "/root/projects/ordivon",
+                        "sourceSubtree": "services/harness",
+                    }
+                )
+            )
+            with mock.patch.object(promotion.subprocess, "run") as run:
+                run.return_value = subprocess.CompletedProcess([], 1, stdout="", stderr="")
+                self.assertEqual(promotion._source_revision(root), commit)

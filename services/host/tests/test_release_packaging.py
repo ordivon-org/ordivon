@@ -8,7 +8,9 @@ ROOT = Path(__file__).resolve().parents[1]
 INSTALL = ROOT / "packaging" / "install_release.sh"
 
 
-def _run(*args: str, cwd: Path | None = None, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+def _run(
+    *args: str, cwd: Path | None = None, env: dict[str, str] | None = None
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         args,
         cwd=cwd,
@@ -56,6 +58,11 @@ def test_install_release_extracts_host_subtree_from_monorepo(tmp_path: Path) -> 
     (host / "uv.lock").write_text("version = 1\n", encoding="utf-8")
     (host / "pyproject.toml").write_text(
         '[project]\nname = "ordivon-host-v2"\nversion = "0.1.0"\n',
+        encoding="utf-8",
+    )
+    (host / "mcp-surface.json").write_text(
+        '{"schemaVersion":1,"kind":"ordivon.mcp-tool-surface","service":"ordivon-host-v2",'
+        '"packageVersion":"0.1.0","surfaceEpoch":1,"tools":["host.status"]}\n',
         encoding="utf-8",
     )
     (package / "__init__.py").write_text('VALUE = "monorepo-host"\n', encoding="utf-8")

@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.d02-architecture-documentation-convergence-acceptance",
+  "observedDate": "2026-09-21",
+  "status": "ACCEPTED_COMPLETE",
+  "implementationBaseline": "f15e7012927f838e0e434294242ab80d9ccf99b9",
+  "canonicalDocuments": [
+    "docs/architecture/CURRENT_ARCHITECTURE.md",
+    "docs/architecture/deployed-architecture-r1.json"
+  ],
+  "gates": {
+    "D02.1": "PASS",
+    "D02.2": "PASS",
+    "D02.3": "PASS",
+    "D02.4": "PASS"
+  },
+  "repositoryVerification": {
+    "freshMainRepoCi": true,
+    "compositionTestsPassed": 6,
+    "architectureDriftTestsPassed": 11,
+    "ownerBoundaryPassed": true,
+    "integrateMainSmokePassed": true,
+    "githubGovernancePassed": true,
+    "primaryMainSynchronized": true,
+    "vectorNativeValidatePassed": true,
+    "ansibleTraceSyntaxPassed": true,
+    "tempoNativeConfigVerifyPassed": true
+  },
+  "sidelineConvergence": {
+    "detectedRunningRelease": "c98cf3b5c0cbfdadf74222ed097db3db17428fe3",
+    "wasAncestorOfCanonicalMain": false,
+    "replayedCommits": [
+      "f4ef166bd07d734c4634b0c7d4ae126a5e8ce14b",
+      "c98cf3b5c0cbfdadf74222ed097db3db17428fe3"
+    ],
+    "supersededIntermediateDocsCommitNotReplayed": "ba70a71fdbb79b64abc01006e75bee9e03ed0b0e",
+    "canonicalReplayHead": "eadd7e474292644b23bdd9cdfc96f52f017f8094",
+    "gatewayRedeployedFromCanonicalReplayHead": true
+  },
+  "gateway": {
+    "release": "eadd7e474292644b23bdd9cdfc96f52f017f8094",
+    "active": true,
+    "subState": "running",
+    "restarts": 0,
+    "ownersConfigured": [
+      "runtime.linux",
+      "runtime.windows",
+      "host"
+    ],
+    "capabilitiesAvailable": [
+      "artifact.runtime",
+      "continuity.external",
+      "execution.linux",
+      "execution.windows"
+    ]
+  },
+  "observability": {
+    "status": "deployed-on-demand",
+    "currentActivationPosture": "cold-inactive",
+    "vectorPreserveOtlpTraces": true,
+    "tempoVersion": "3.0.3",
+    "heavyProfileActive": false,
+    "tempoActive": false,
+    "gatewayTraceDropinActive": false,
+    "gatewayDefaultTraceExporter": "none",
+    "persistentTraceOwner": "tempo",
+    "requiredForProductCorrectness": false,
+    "lifecycle": {
+      "containerStopTimeoutSeconds": 60,
+      "systemdStopTimeoutSeconds": 75,
+      "observedGracefulStopSeconds": 31,
+      "finalResult": "success"
+    }
+  },
+  "ownerVerification": {
+    "linuxRuntimeAvailable": true,
+    "windowsRuntimeAvailable": true,
+    "hostD01Revision": 3,
+    "hostD01State": "completed",
+    "e01Revision": 2,
+    "e01State": "completed",
+    "e02Revision": 2,
+    "e02State": "completed"
+  },
+  "methodRouter": {
+    "skillId": "project-ordivon-next/method-router",
+    "trustState": "TRUSTED",
+    "scanState": "PASS",
+    "instructionAuthority": "ADVISORY",
+    "instructionDigest": "sha256:9bfbc6d4bfde5b9122515d00ab354faaf0f631baab5f285d9846f2e878ca3b47",
+    "packageRevision": "sha256:6de23a88d5ec4036bceda1ca1324fc15915f14350d88c76a714bec9caf0b9d45",
+    "snapshotFenceFailClosedObserved": true
+  },
+  "freshGatewayExecutions": {
+    "linux": {
+      "operationRef": "ordivon-exec:v1:runtime.linux:job-01a0c462-fa9d-7b70-9fde-d228f11ea5ac",
+      "state": "succeeded",
+      "exitCode": 0,
+      "artifactCount": 4,
+      "recoveryRequired": false
+    },
+    "windows": {
+      "operationRef": "ordivon-exec:v1:runtime.windows:job-01a0c463-0f60-7093-be9f-d29a6a802d37",
+      "authority": "limited",
+      "state": "succeeded",
+      "exitCode": 0,
+      "artifactCount": 5,
+      "windowsStartArtifact": true,
+      "recoveryRequired": false
+    }
+  },
+  "nonBlockingObservations": [
+    "current ChatGPT-side metadata exposed historical capability.list, while canonical live Gateway correctly rejects the retired alias"
+  ],
+  "unresolvedBlockers": [],
+  "concurrentCloseoutReconciliation": {
+    "hostRevisionObserved": 3,
+    "originalCommits": [
+      "f83b3c0963b1d448acafae603253e777f144edfc",
+      "eb9e0c1c11e4fc8a4363a4549204594a36f2d455"
+    ],
+    "reconciledCommits": [
+      "a32280366898d920466275d98baa7cf325b18196",
+      "f15e7012927f838e0e434294242ab80d9ccf99b9"
+    ],
+    "primaryStaleTreeCommit": "9ecb6685211a841454b926267c36db615e90c979",
+    "primaryRecoveredUnderIntegrationLock": true,
+    "forceResetUsed": false
+  }
+}

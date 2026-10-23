@@ -1,0 +1,11 @@
+{
+  "authorityId": "tla-tools-1.7.4",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "published-current-stable",
+  "note": "TLA+ releases list 1.7.4 as the latest stable release; 1.8.0 is a prerelease channel. Runtime already has a digest-pinned TLC 1.7.4 model-checking path.",
+  "observedDate": "2026-09-22",
+  "officialSource": "https://github.com/tlaplus/tlaplus/releases/tag/v1.7.4",
+  "schemaVersion": 1,
+  "versionObserved": "1.7.4"
+}

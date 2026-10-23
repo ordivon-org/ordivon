@@ -1,6 +1,6 @@
 # Gateway C02 — Public Cutover Acceptance
 
-Date: 2026-09-21  
+Date: 2026-09-21
 Status: ACCEPTED
 
 ## Decision

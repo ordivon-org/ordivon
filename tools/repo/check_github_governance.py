@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import re
 import subprocess
+import tomllib
 from pathlib import Path
 
 import yaml
@@ -12,6 +13,7 @@ from affected_owners import load_owners
 ROOT = Path(__file__).resolve().parents[2]
 DEPENDABOT = ROOT / ".github" / "dependabot.yml"
 WORKFLOW = ROOT / ".github" / "workflows" / "ci.yml"
+RUNTIME_RELEASE_WORKFLOW = ROOT / ".github" / "workflows" / "runtime-release.yml"
 CODEOWNERS = ROOT / ".github" / "CODEOWNERS"
 
 def tracked(pattern: str) -> tuple[str, ...]:
@@ -50,6 +52,7 @@ def configured_dirs(row: dict) -> set[str]:
 def main() -> int:
     assert DEPENDABOT.is_file(), "missing root Dependabot config"
     assert WORKFLOW.is_file(), "missing root required workflow"
+    assert RUNTIME_RELEASE_WORKFLOW.is_file(), "missing Runtime tagged-release workflow"
     assert CODEOWNERS.is_file(), "missing root CODEOWNERS"
 
     config = yaml.safe_load(DEPENDABOT.read_text(encoding="utf-8"))
@@ -86,19 +89,57 @@ def main() -> int:
     workflow = WORKFLOW.read_text(encoding="utf-8")
     assert "name: root-verification" in workflow
     assert "paths:" not in workflow
+    assert "merge_group:" in workflow
+    assert "github.event.merge_group.base_sha" in workflow
+    assert "github.event.merge_group.head_sha" in workflow
+    assert 'convergence_plan.py --base "$base" --head "$head"' in workflow
+    assert '"verificationOwners"' in workflow
+    assert '"queueVerifyTasks"' in workflow
+    assert "affected_owners.py --base" not in workflow
 
-    action_refs = re.findall(r"^\s*-?\s*uses:\s*([^\s#]+)", workflow, flags=re.MULTILINE)
-    assert action_refs, "root workflow has no external actions"
+    workflow_paths = sorted((ROOT / ".github" / "workflows").glob("*.yml")) + sorted(
+        (ROOT / ".github" / "workflows").glob("*.yaml")
+    )
+    action_refs: list[tuple[str, str]] = []
+    for workflow_path in workflow_paths:
+        text = workflow_path.read_text(encoding="utf-8")
+        refs = re.findall(r"^\s*-?\s*uses:\s*([^\s#]+)", text, flags=re.MULTILINE)
+        action_refs.extend((workflow_path.name, ref) for ref in refs)
+    assert action_refs, "root workflows have no external actions"
     floating = [
-        ref
-        for ref in action_refs
+        f"{path}:{ref}"
+        for path, ref in action_refs
         if not ref.startswith("./") and re.fullmatch(r"[^@]+@[0-9a-f]{40}", ref) is None
     ]
-    assert not floating, f"root workflow contains non-SHA action references: {floating}"
+    assert not floating, f"root workflows contain non-SHA action references: {floating}"
     assert "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1" in workflow
-    assert "jdx/mise-action@9e7f7633ff6f6d6048a9418a68d48f288f50eb14" in workflow
-    assert "gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e" in workflow
+    # Exact upstream v5.1.2 commit (verified against the immutable GitHub tag).
+    # Keep this review gate: Dependabot must not silently change action code.
+    mise_action_pin = "jdx/mise-action@08ae2a091c038e1e05ec6f5115dc5c69d5a2a6b8"
+    assert mise_action_pin in workflow
+    assert "gitleaks/gitleaks-action@" not in workflow
+    assert "run: mise run repo:secrets:verify" in workflow
+    assert "run: tools/repo/check_tracked_secrets.sh" in workflow
+    snapshot_scan = (ROOT / "tools/repo/check_tracked_secrets.sh").read_text()
+    assert "archive --format=tar" in snapshot_scan
+    assert "gitleaks dir --no-banner --redact=100 --timeout 120 ." in snapshot_scan
 
+    runtime_release = RUNTIME_RELEASE_WORKFLOW.read_text(encoding="utf-8")
+    assert mise_action_pin in runtime_release
+    for required in (
+        'runtime-v*',
+        'artifact-metadata: write',
+        'attestations: write',
+        'id-token: write',
+        'services/runtime',
+        'owner_commit',
+        'ordivon-runtime-deploy prepare',
+        'sourceOwnerPrefix',
+        'anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26',
+        'actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6',
+        'actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9',
+    ):
+        assert required in runtime_release, f"Runtime release workflow missing contract: {required}"
     owners = load_owners()
     codeowners = CODEOWNERS.read_text(encoding="utf-8")
     for owner in owners:
@@ -109,10 +150,21 @@ def main() -> int:
     for root in ("/.github/", "/tools/repo/", "/mise.toml"):
         assert root in codeowners, f"missing repository-mechanics CODEOWNERS boundary: {root}"
 
-    mise = (ROOT / "mise.toml").read_text(encoding="utf-8")
+    mise_path = ROOT / "mise.toml"
+    mise = mise_path.read_text(encoding="utf-8")
+    task_config = tomllib.loads(mise).get("task_config", {})
+    assert task_config.get("cascade") is True, "root mise task config must cascade into owner configs"
+    assert task_config.get("shell") == "bash -c", "root mise tasks must execute under Bash"
+    assert 'gitleaks = "8.30.1"' in mise
+    assert '[tasks."repo:secrets:verify"]' in mise
+    assert "gitleaks git --no-banner --redact=100 --timeout 120 ." in mise
+    assert "gitleaks dir --no-banner --redact=100 --timeout 120 ." in mise
     for owner in owners:
         assert f'[tasks."{owner.task}"]' in mise, (
             f"owner verify task is not exposed by root mise: {owner.name}={owner.task}"
+        )
+        assert f'[tasks."{owner.queue_task}"]' in mise, (
+            f"owner queue task is not exposed by root mise: {owner.name}={owner.queue_task}"
         )
 
     print(

@@ -46,7 +46,7 @@ Recover ambiguous operation delivery by querying the authoritative `requests/v2`
 
 ## Verification
 
-Verify local provider CI, policy coupling, capability identity, one version-bound release observation, affected capability smoke, Receipt replay, R2 lifecycle reread, Artifact SHA-256 and byte length, private file modes, and exact release or GC receipts. [`../README.md`](../README.md) defines capabilities, [`reliability.md`](reliability.md) defines uncertainty, and [`../../../docs/authority.md`](../../../docs/authority.md) records authority.
+Verify local provider CI, policy coupling, capability identity, one version-bound release observation, affected capability smoke, Receipt replay, R2 lifecycle reread, Artifact SHA-256 and byte length, private file modes, and exact release or GC receipts. [`../README.md`](../README.md) defines capabilities, [`reliability.md`](reliability.md) defines uncertainty, and [`../README.md#authority-boundary`](../README.md#authority-boundary) records authority.
 
 ## Production endpoint
 

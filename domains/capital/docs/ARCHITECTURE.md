@@ -39,7 +39,7 @@ Ordivon Capital owner domains adopt a mechanism only after contract-equivalent q
 
 ### Capital accounting substrate
 
-SQLite 3.53.1 through canonical Python 3.14.7 owns the current single-host ACID/WAL transaction primitive. Ordivon retains only the bounded reservation/post/void schema, deterministic identity binding, and fail-closed durable reconciliation seam. SQLite state is not settlement finality, legal ownership, withdrawability, deployability, venue execution truth, or external-write policy. Authoritative reconciliation maps unresolved effects to NO_MUTATION, proven no-effect to VOID_PENDING_TRANSFER, and positive execution to POST_PENDING_TRANSFER. Intact database restarts preserve exact local accounting history; missing or contradictory state requires no automatic repair and cannot reopen terminal reservation history. TigerBeetle 0.17.9 remains a challenger if replication, consensus, cluster recovery, or materially higher transaction throughput becomes an active contract.
+SQLite remains the bounded single-host ACID/WAL accounting primitive. The Python 3.14.7 / SQLite 3.53.1 evidence was a historical mechanics qualification, not the presently installed interpreter or an approval to use outdated libraries. The installed CPython 3.15.0 still embeds SQLite 3.53.1, while the latest required SQLite is 3.54.0; live cutover remains HOLD. Ordivon retains only the bounded reservation/post/void schema, deterministic identity binding, and fail-closed durable reconciliation seam. SQLite state is not settlement finality, legal ownership, withdrawability, deployability, venue execution truth, or external-write policy. Authoritative reconciliation maps unresolved effects to NO_MUTATION, proven no-effect to VOID_PENDING_TRANSFER, and positive execution to POST_PENDING_TRANSFER. Intact database restarts preserve exact local accounting history; missing or contradictory state requires no automatic repair and cannot reopen terminal reservation history. TigerBeetle 0.17.9 remains a challenger if replication, consensus, cluster recovery, or materially higher transaction throughput becomes an active contract.
 
 ## 2. Decision
 
@@ -120,3 +120,70 @@ Clock timing qualification now passes: Windows w32time is synchronized to qualif
 
 
 Live public-network qualification is operational evidence, not a deterministic source-migration gate. R2/R3 retain their fixed deadlines and record PASS/PARTIAL exactly as observed; deterministic source acceptance remains grounded in controlled tests, contracts, owner census, policy/effect invariants, latest-stable language gates, and source/tree identity.
+
+## Current Python/Parquet/SQLite compatibility boundary (2026-10-16)
+
+The frozen R16 PyArrow 25.0.1 / Python 3.14.7 cross-engine source and historical R16 census statements are preserved; they are **not** acceptance evidence for current Python 3.15.0 / PyArrow 26.0.0. The distinct R17 successor is a new, executable PyArrow 26.0.0 / DuckDB 1.5.5 cross-engine technical candidate: unicode, int64 above 2^53, nullability, multi-rowgroup, corrupt/truncated rejection and bidirectional readback have been re-run. It explicitly reports `externalOwnerAdmitted=false` pending any separate owner/admission decision; no historical R16 result has been rewritten.
+
+The live prebuilt CPython 3.15.0 still embeds SQLite 3.53.1; it has **not** been replaced. A separate CPython 3.15.0 + SQLite 3.54.0 successor was built using official Python.org and SQLite.org release sources, each independently digest-verified. The locked Capital test environment, four additional SQLite-dependent Owner test groups, and an isolated Runtime Registry online-backup/restore exercise passed. This does not replace active processes, project virtualenvs or Runtime/Registry authority. Current check-capabilities deliberately fails closed on the outdated embedded SQLite until a controlled cutover is actually admitted.
+
+## Current runtime admission and SQLite 3.54 source qualification (2026-10-16)
+
+The live Capital virtualenv uses CPython 3.15.0 but its bundled SQLite is
+**3.53.1**, not required **3.54.0**. Active accounting/capability configs
+distinguish installed facts from latest-required versions and set release
+standing to **HOLD**, not a lower-version exception. Frozen PyArrow 25 R16
+and older accounting facts stay historical. PyArrow 26/DuckDB 1.5.5 R17 is
+technically qualified, not independently admitted.
+
+**Source-qualified isolated candidate (not production):**
+
+- Python.org CPython 3.15.0 original tar SHA-256:
+  ba4bed1ba346b916890b76d9e320451420aa69f6408997d33c66482eeae3d575
+- SQLite.org official 3.54.0 autoconf tar from the geographically independent
+  www2.sqlite.org mirror: release SHA3-256
+  f5e3e724e9c9b3b5d512c76b02082091a59eeea9becd169a9fbf4d376403acce
+  (3332512 bytes). Additionally validated official sqlite3.c SHA3-256:
+  8efd453d08a7cfc4c79de5923153036cdc4dcaa254d4f1e617be6a2a98828f9e.
+- Built SQLite with its own upstream configure/make/install and confirmed
+  SQLite release SOURCE_ID. Then rebuilt CPython from a clean official
+  Python source tree, copying the source-built SQLite shared library/headers
+  to a new, version-qualified prefix before configure.
+- CPython build used the standard LIBSQLITE3_CFLAGS, LIBSQLITE3_LIBS and
+  LDFLAGS pointing only at that prefix, plus
+  configure --enable-shared --with-ensurepip=no, make and make altinstall.
+- ELF RUNPATH and /proc/self/maps proved that the Python sqlite3 extension
+  loaded the **source-built SQLite 3.54.0 from that same prefix**, without
+  PYTHONPATH or LD_LIBRARY_PATH. Child Python independently reported 3.54.0.
+- A new uv 0.13.1 --locked --group test environment installed PyArrow 26.0.0
+  from project locks and passed 321 current Capital non-provider tests.
+  Additional Harness SQLite 91 tests + 8 subtests, Gateway Worker 12 tests,
+  Runtime Lifecycle/Reclaim 106 tests and Workstation Recovery 19 tests all
+  passed with this source-verified interpreter. Those secondary Owner tests
+  reused existing package locations and are not a universal clean rebuild.
+
+**Production-data recovery exercise, without production mutation:**
+
+The existing Runtime source-owned backup.py and restore.py (not a new custom
+backup implementation) were executed with the source-built SQLite 3.54
+interpreter. A consistent online snapshot of the running roughly 4.50 GB
+Registry was created in a root-only directory. Restore into a separate
+root-only destination passed the original manifest size/SHA-256 verification,
+complete SQLite integrity_check, and read-only schema checks. An adversarial
+symlinked snapshot was correctly rejected before restoration. The redundant
+restored copy was removed only after validation; the source snapshot and
+root-only machine evidence receipt remain retained outside the Git repository.
+Do not put production database bytes or snapshot identifiers into public Git.
+The real Registry file and active Runtime/Gateway processes were not replaced
+or restarted.
+
+These are source/provenance, compatibility and backup-restore qualifications;
+they are **not** live rollout, universal binary relocatability or application
+semantic E2E completion. Remaining admission requirements are a controlled
+per-service versioned cutover, in-process version/currentness evidence,
+readiness and isolation tests, and a rehearsed switch-back using the
+untouched prior interpreter and verified Registry restore authority. Preserve
+the actual SQLite 3.53.1 live HOLD until each affected process is upgraded;
+do not mark installed/live PASS from a passing isolated candidate. The
+Renovate hosted GitHub App needs separate authorization and a real uv.lock
+update PR before the old Dependabot uv route can be retired.

@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ordivon:schema:convergence-ci-observation:1",
+  "title": "Ordivon Convergence CI Observation Projection",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "authority",
+    "coverage",
+    "runs",
+    "metrics"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "kind": {
+      "const": "ordivon.ci-observation-projection"
+    },
+    "authority": {
+      "type": "object"
+    },
+    "coverage": {
+      "type": "object",
+      "required": [
+        "repository",
+        "runs"
+      ],
+      "properties": {
+        "repository": {
+          "type": "string"
+        },
+        "runs": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "runs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ciRun"
+      }
+    },
+    "metrics": {
+      "type": "object"
+    }
+  },
+  "$defs": {
+    "ciRun": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "kind",
+        "provider",
+        "repository",
+        "runId",
+        "event",
+        "headSha",
+        "status",
+        "conclusion",
+        "terminationReason",
+        "economicOutcome",
+        "economicReason",
+        "jobs"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "kind": {
+          "const": "ordivon.ci-run-observation"
+        },
+        "provider": {
+          "const": "github"
+        },
+        "repository": {
+          "type": "string"
+        },
+        "runId": {
+          "type": "integer"
+        },
+        "workflowId": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "workflowName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "event": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "headSha": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "headBranch": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "runAttempt": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "status": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "conclusion": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "createdAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "startedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "updatedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wallSeconds": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "terminationReason": {
+          "type": "string"
+        },
+        "economicOutcome": {
+          "enum": [
+            "UNCLASSIFIED",
+            "USEFUL",
+            "SAVED_WORK",
+            "AVOIDABLE_WASTE",
+            "FAILED_PRODUCTIVELY",
+            "INFRA_FAILURE",
+            "DUPLICATED",
+            "SUPERSEDED",
+            "NO_EXECUTION",
+            "PENDING"
+          ]
+        },
+        "economicReason": {
+          "type": "string"
+        },
+        "jobs": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  }
+}

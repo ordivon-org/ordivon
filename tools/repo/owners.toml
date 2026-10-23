@@ -8,6 +8,16 @@ root = "meta/next/"
 verify_task = "next:verify"
 
 [[owners]]
+name = "composition"
+root = "packages/composition/"
+verify_task = "composition:verify"
+
+[[owners]]
+name = "control-plugin"
+root = "extensions/ordivon-control-plane/"
+verify_task = "control-plugin:verify"
+
+[[owners]]
 name = "runtime"
 root = "services/runtime/"
 verify_task = "runtime:verify"
@@ -16,11 +26,13 @@ verify_task = "runtime:verify"
 name = "host"
 root = "services/host/"
 verify_task = "host:verify"
+queue_verify_task = "host:queue"
 
 [[owners]]
 name = "harness"
 root = "services/harness/"
 verify_task = "harness:verify"
+queue_verify_task = "harness:queue"
 
 [[owners]]
 name = "gateway"
@@ -51,6 +63,7 @@ verify_task = "network:ci"
 name = "artifact"
 root = "capabilities/artifact/"
 verify_task = "artifact:verify"
+queue_verify_task = "artifact:queue"
 
 [[owners]]
 name = "distribution"

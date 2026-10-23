@@ -707,9 +707,35 @@
     {
       "claimId": "harness.environment.post-skills-extraction-python-3.14.7",
       "file": "harness-post-skills-extraction-python-3.14.7-20260921.json",
-      "status": "verified",
+      "status": "historical",
       "implementationRevision": "e053c4f7eadb86eae8eaff53311ef97a315929be",
-      "scope": "Current Harness owner/release-profile acceptance after M6 Skills bridge extraction: Python 3.14.7, owner-local lock/dependency boundary, Harness regression/release gates, and independent platform/skills compatibility-owner acceptance."
+      "scope": "Historical Harness owner/release-profile acceptance after M6 Skills bridge extraction: Python 3.14.7, owner-local lock/dependency boundary, Harness regression/release gates, and independent platform/skills compatibility-owner acceptance. Superseded by the Agent Plugin H1 composition acceptance after the MCP standards-adapter and Plugin ingestion changed current Harness source and dependency closure."
+    },
+    {
+      "claimId": "harness.composition.agent-plugin-h1",
+      "file": "harness-agent-plugin-h1-acceptance-20260922.json",
+      "status": "historical",
+      "implementationRevision": "5a74fc2611cb16f51114f556285c5fd10a2fb8cf",
+      "scope": "Current Harness H1 Agent Plugins v1 composition acceptance: caller-selected Skill projection plus observation-only Gateway MCP consumption through the official MCP 2.2.0 standards adapter; effectful Gateway Tools remain excluded pending durable intent/receipt/reconciliation composition. Superseded by H2 durable Gateway effect composition."
+    },
+    {
+      "claimId": "harness.composition.agent-plugin-h2-durable-gateway-effects",
+      "file": "harness-agent-plugin-h2-durable-gateway-effects-20260922.json",
+      "status": "historical",
+      "implementationRevision": "443636b205e04b64051e26f80054696bbf7e2091",
+      "scope": "Current Harness H2 Agent Plugin effect composition: caller-fixed execution authority, durable intent and dispatch fence before Gateway/Runtime effect admission, bounded owner observation, and response-loss reconciliation by read-only request identity without blind effect redispatch. Superseded by H2b cooperative cancellation propagation."
+    },
+    {
+      "claimId": "harness.composition.agent-plugin-h2b-cooperative-cancellation",
+      "file": "harness-agent-plugin-h2b-cooperative-cancellation-20260922.json",
+      "status": "historical",
+      "implementationRevision": "5c70231dcf118a338bc851c2a47eeee4e93b9f0e",
+      "scope": "Historical H2b Gateway effect control acceptance at immutable implementationRevision 5c70231dcf118a338bc851c2a47eeee4e93b9f0e: known owner Jobs received one cooperative execution.cancel on Harness control stop; a non-terminal acknowledgement remained cancel-requested and cancel_unknown until terminal reconciliation. PR129 U4 source-currentness qualification now also binds pyproject.toml and uv.lock requires-python. This older receipt remains valid for its exact frozen implementation/dependency closure and is NOT current Harness qualification after the Python requirement changed; no new live H2b outcome is asserted.",
+      "implementationPaths": [
+        "src/ordivon_harness/ordivon/sqlite_runtime_bridge.py",
+        "src/ordivon_harness/plugin_gateway_effect.py"
+      ],
+      "runtimeDependencyClosureDigest": "sha256:c24519d0fdfbbaf56233fb25568428ff6fbdf3dac962ea62e2b95590e1a2d7d5"
     }
   ]
 }

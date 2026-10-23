@@ -311,12 +311,12 @@
     {
       "id": "P01",
       "wave": "W3",
-      "owner": "meta-next-plugin",
+      "owner": "control-plugin",
       "kind": "portable-package",
       "responsibility": "Change the portable Ordivon Agent Plugin from direct Runtime+Host MCP endpoints to exactly one Gateway MCP endpoint.",
       "files": [
-        "meta/next/plugins/ordivon-control-plane/plugin.json",
-        "meta/next/plugins/ordivon-control-plane/mcp.json"
+        "extensions/ordivon-control-plane/plugin.json",
+        "extensions/ordivon-control-plane/mcp.json"
       ],
       "dependsOn": [
         "E05"

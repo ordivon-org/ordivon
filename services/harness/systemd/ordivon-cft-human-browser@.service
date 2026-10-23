@@ -1,0 +1,27 @@
+[Unit]
+Description=Google Chrome for Testing for durable human session slot %i
+Requires=ordivon-cft-human-display@%i.service
+After=ordivon-cft-human-display@%i.service
+PartOf=ordivon-cft-human-session@%i.target
+
+[Service]
+Type=simple
+User=ordivon
+Group=ordivon
+Environment=DISPLAY=:2%i
+Environment=XAUTHORITY=/run/ordivon/cft-human-xauth/%i
+StateDirectory=ordivon-human-browser-sessions/slots/%i
+StateDirectoryMode=0700
+BindReadOnlyPaths=@CFT_ROOT@:/opt/ordivon/cft-current
+ExecStart=@CFT_EXECUTABLE@ --user-data-dir=/var/lib/ordivon-human-browser-sessions/slots/%i/profile --remote-debugging-address=127.0.0.1 --remote-debugging-port=192%i --no-first-run --no-default-browser-check about:blank
+Restart=on-failure
+RestartSec=2s
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK

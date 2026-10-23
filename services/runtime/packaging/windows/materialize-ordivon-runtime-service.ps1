@@ -14,6 +14,9 @@ param(
     [string]$NodeId = 'windows-main',
     [ValidateSet('limited-only', 'limited-and-elevated')]
     [string]$WindowsAuthorityProfile = 'limited-only',
+    [string]$ElevatedPrincipalsJson = '',
+    [string]$ElevatedProfilesJson = '',
+    [string]$MaintenanceLeasePath = '',
     [switch]$Apply
 )
 
@@ -40,6 +43,50 @@ if ([string]::IsNullOrWhiteSpace($ProgramDataRoot)) {
 }
 if (-not [IO.Path]::IsPathRooted($ProgramDataRoot)) {
     throw 'ProgramDataRoot must be absolute.'
+}
+
+$privilegedPolicyValues = @(
+    $ElevatedPrincipalsJson,
+    $ElevatedProfilesJson,
+    $MaintenanceLeasePath
+)
+$privilegedPolicyConfiguredCount = @(
+    $privilegedPolicyValues | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+).Count
+if ($privilegedPolicyConfiguredCount -ne 0 -and $privilegedPolicyConfiguredCount -ne 3) {
+    throw 'Privileged admission policy must configure principals, profiles, and maintenance lease together.'
+}
+$privilegedPolicyConfigured = $privilegedPolicyConfiguredCount -eq 3
+$elevatedPrincipalCount = 0
+$elevatedProfileCount = 0
+if ($privilegedPolicyConfigured) {
+    foreach ($jsonValue in @($ElevatedPrincipalsJson, $ElevatedProfilesJson)) {
+        if ($jsonValue.Contains("`r") -or $jsonValue.Contains("`n")) {
+            throw 'Privileged admission JSON must be single-line.'
+        }
+    }
+    if ($MaintenanceLeasePath.Contains("`r") -or $MaintenanceLeasePath.Contains("`n")) {
+        throw 'MaintenanceLeasePath must be single-line.'
+    }
+    if (-not [IO.Path]::IsPathRooted($MaintenanceLeasePath)) {
+        throw 'MaintenanceLeasePath must be absolute.'
+    }
+    try {
+        $elevatedPrincipals = @($ElevatedPrincipalsJson | ConvertFrom-Json -ErrorAction Stop)
+        $elevatedProfiles = @($ElevatedProfilesJson | ConvertFrom-Json -ErrorAction Stop)
+    } catch {
+        throw ('Privileged admission JSON is invalid: ' + $_.Exception.Message)
+    }
+    if ($elevatedPrincipals.Count -eq 0 -or $elevatedProfiles.Count -eq 0) {
+        throw 'Privileged admission principal and profile arrays must be non-empty when configured.'
+    }
+    foreach ($principalId in $elevatedPrincipals) {
+        if ($principalId -isnot [string] -or [string]::IsNullOrWhiteSpace($principalId)) {
+            throw 'Privileged admission principal ids must be non-empty strings.'
+        }
+    }
+    $elevatedPrincipalCount = $elevatedPrincipals.Count
+    $elevatedProfileCount = $elevatedProfiles.Count
 }
 
 function Assert-Administrator {
@@ -189,6 +236,12 @@ $plan = [ordered]@{
     programDataRoot = $ProgramDataRoot
     bind = $Bind
     nodeId = $NodeId
+    privilegedAdmission = [ordered]@{
+        configured = $privilegedPolicyConfigured
+        principalCount = $elevatedPrincipalCount
+        profileCount = $elevatedProfileCount
+        maintenanceLeasePath = $(if ($privilegedPolicyConfigured) { $MaintenanceLeasePath } else { $null })
+    }
     service = [ordered]@{
         name = $ServiceName
         displayName = $DisplayName
@@ -266,6 +319,16 @@ $materialized = $materialized.Replace(
 $materialized = $materialized.Replace(
     'ORDIVON_NODE_ID=windows-main',
     ('ORDIVON_NODE_ID=' + $NodeId))
+if ($privilegedPolicyConfigured) {
+    if (-not $materialized.EndsWith("`n")) {
+        $materialized += "`r`n"
+    }
+    $materialized += (
+        'ORDIVON_WINDOWS_ELEVATED_PRINCIPALS_JSON=' + $ElevatedPrincipalsJson + "`r`n" +
+        'ORDIVON_WINDOWS_ELEVATED_PROFILES_JSON=' + $ElevatedProfilesJson + "`r`n" +
+        'ORDIVON_WINDOWS_MAINTENANCE_LEASE_PATH=' + $MaintenanceLeasePath + "`r`n"
+    )
+}
 [IO.File]::WriteAllText(
     $configTarget,
     $materialized,

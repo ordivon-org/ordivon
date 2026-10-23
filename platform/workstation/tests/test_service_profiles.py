@@ -36,6 +36,7 @@ class ServiceProfileTests(unittest.TestCase):
             "loki.service",
             "vector.service",
             "ordivon-grafana.service",
+            "ordivon-tempo.service",
             "prometheus.service",
             "prometheus-node-exporter.service",
             "ordivon-gatus.service",

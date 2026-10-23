@@ -46,11 +46,17 @@ internal static class OrdivonWindowsJobLauncher
     private const uint SeGroupIntegrity = 0x00000020;
     private const int TokenGroupsClass = 2;
     private const int TokenTypeClass = 8;
+    private const int TokenSessionIdClass = 12;
     private const int TokenElevationTypeClass = 18;
+    private const int TokenLinkedTokenClass = 19;
     private const int TokenElevationClass = 20;
     private const int TokenIntegrityLevelClass = 25;
     private const int TokenPrimary = 1;
+    private const int TokenElevationTypeDefault = 1;
+    private const int TokenElevationTypeFull = 2;
+    private const int TokenElevationTypeLimited = 3;
     private const int MediumIntegrityRid = 8192;
+    private const int HighIntegrityRid = 12288;
     private const uint PowerRequestContextSimpleString = 0x00000001;
     private const int PowerRequestSystemRequired = 1;
     private const uint ProcessQueryLimitedInformation = 0x00001000;
@@ -162,6 +168,12 @@ internal static class OrdivonWindowsJobLauncher
     private struct TokenElevation
     {
         public int TokenIsElevated;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct TokenLinkedToken
+    {
+        public IntPtr LinkedToken;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -277,6 +289,12 @@ internal static class OrdivonWindowsJobLauncher
         ActiveUser,
     }
 
+    private enum PayloadPrivilege
+    {
+        Limited,
+        Elevated,
+    }
+
     private sealed class Options
     {
         public string Executable;
@@ -311,6 +329,7 @@ internal static class OrdivonWindowsJobLauncher
         public bool EmitLauncherStartEvidence;
         public ExecutionAuthority Authority = ExecutionAuthority.Limited;
         public ExecutionIdentity Identity = ExecutionIdentity.Service;
+        public PayloadPrivilege? RequestedPayloadPrivilege;
         public readonly List<string> ContextEnvironmentNames = new List<string>();
 
         public bool RuntimeMode
@@ -616,6 +635,12 @@ internal static class OrdivonWindowsJobLauncher
                 else if (String.Equals(value, "elevated", StringComparison.OrdinalIgnoreCase)) options.Authority = ExecutionAuthority.Elevated;
                 else throw new InvalidOperationException("--authority must be limited or elevated");
             }
+            else if (current == "--payload-privilege")
+            {
+                if (String.Equals(value, "limited", StringComparison.OrdinalIgnoreCase)) options.RequestedPayloadPrivilege = PayloadPrivilege.Limited;
+                else if (String.Equals(value, "elevated", StringComparison.OrdinalIgnoreCase)) options.RequestedPayloadPrivilege = PayloadPrivilege.Elevated;
+                else throw new InvalidOperationException("--payload-privilege must be limited or elevated");
+            }
             else if (current == "--expected-user-sid")
             {
                 if (String.IsNullOrWhiteSpace(value) || value.IndexOf('\0') >= 0)
@@ -781,6 +806,13 @@ internal static class OrdivonWindowsJobLauncher
 
         bool hasExpectedUserSid = !String.IsNullOrWhiteSpace(options.ExpectedUserSid);
         bool hasExpectedSessionId = options.ExpectedSessionId.HasValue;
+        PayloadPrivilege payloadPrivilege = EffectivePayloadPrivilege(options);
+        if (payloadPrivilege == PayloadPrivilege.Elevated
+            && options.Authority != ExecutionAuthority.Elevated)
+        {
+            throw new InvalidOperationException(
+                "elevated payload privilege requires elevated broker authority");
+        }
         if (options.Identity == ExecutionIdentity.ActiveUser)
         {
             if (options.Authority != ExecutionAuthority.Elevated)
@@ -1134,6 +1166,21 @@ internal static class OrdivonWindowsJobLauncher
         }
     }
 
+    private static PayloadPrivilege EffectivePayloadPrivilege(Options options)
+    {
+        if (options.RequestedPayloadPrivilege.HasValue)
+        {
+            return options.RequestedPayloadPrivilege.Value;
+        }
+        if (options.Identity == ExecutionIdentity.ActiveUser)
+        {
+            return PayloadPrivilege.Limited;
+        }
+        return options.Authority == ExecutionAuthority.Elevated
+            ? PayloadPrivilege.Elevated
+            : PayloadPrivilege.Limited;
+    }
+
     private static int DescribeRuntimeContext(Options options)
     {
         IntPtr token = IntPtr.Zero;
@@ -1141,7 +1188,11 @@ internal static class OrdivonWindowsJobLauncher
         try
         {
             TokenEvidence evidence;
-            token = AcquireExecutionToken(options.Authority, options.Identity, out evidence);
+            token = AcquireExecutionToken(
+                options.Authority,
+                options.Identity,
+                EffectivePayloadPrivilege(options),
+                out evidence);
             VerifyExpectedExecutionIdentity(options, evidence);
             if (!CreateEnvironmentBlock(out environment, token, false))
             {
@@ -1213,16 +1264,31 @@ internal static class OrdivonWindowsJobLauncher
         }
     }
 
-    private static IntPtr AcquireExecutionToken(ExecutionAuthority authority, ExecutionIdentity identity, out TokenEvidence evidence)
+    private static IntPtr AcquireExecutionToken(
+        ExecutionAuthority authority,
+        ExecutionIdentity identity,
+        PayloadPrivilege payloadPrivilege,
+        out TokenEvidence evidence)
     {
         if (identity == ExecutionIdentity.ActiveUser)
         {
-            if (authority != ExecutionAuthority.Elevated) throw new InvalidOperationException("active_user identity requires elevated broker authority");
-            return AcquireActiveUserExecutionToken(out evidence);
+            if (authority != ExecutionAuthority.Elevated)
+                throw new InvalidOperationException("active_user identity requires elevated broker authority");
+            return payloadPrivilege == PayloadPrivilege.Elevated
+                ? AcquireElevatedActiveUserExecutionToken(out evidence)
+                : AcquireActiveUserExecutionToken(out evidence);
         }
-        IntPtr token = authority == ExecutionAuthority.Elevated ? AcquireElevatedExecutionToken(out evidence) : AcquireLimitedExecutionToken(out evidence);
+        if (payloadPrivilege == PayloadPrivilege.Elevated)
+        {
+            if (authority != ExecutionAuthority.Elevated)
+                throw new InvalidOperationException("elevated service payload requires elevated authority");
+            IntPtr elevated = AcquireElevatedExecutionToken(out evidence);
+            evidence.ExecutionIdentity = "service";
+            return elevated;
+        }
+        IntPtr limited = AcquireLimitedExecutionToken(out evidence);
         evidence.ExecutionIdentity = "service";
-        return token;
+        return limited;
     }
 
     private static IntPtr AcquireActiveUserExecutionToken(out TokenEvidence evidence)
@@ -1234,11 +1300,18 @@ internal static class OrdivonWindowsJobLauncher
         if (!WTSQueryUserToken(sessionId, out raw)) ThrowWin32("WTSQueryUserToken(active user)");
         try
         {
-            if (!DuplicateTokenEx(raw, MaximumAllowed, IntPtr.Zero, SecurityImpersonation, TokenPrimary, out primary)) ThrowWin32("DuplicateTokenEx(active user)");
+            if (TokenInformation<uint>(raw, TokenSessionIdClass) != sessionId)
+                throw new InvalidOperationException("active-user token session does not match the active console session");
+            if (!DuplicateTokenEx(raw, MaximumAllowed, IntPtr.Zero, SecurityImpersonation, TokenPrimary, out primary))
+                ThrowWin32("DuplicateTokenEx(active user)");
             TokenEvidence selected = ReadTokenEvidence(primary, "active_user");
             selected.ExecutionIdentity = "active_user";
             selected.SessionId = sessionId;
-            if (selected.TokenType != TokenPrimary || selected.IsElevated || selected.IntegrityLevelRid > MediumIntegrityRid || GroupIsEnabled(selected.AdministratorsGroupAttributes))
+            if (TokenInformation<uint>(primary, TokenSessionIdClass) != sessionId
+                || selected.TokenType != TokenPrimary
+                || selected.IsElevated
+                || selected.IntegrityLevelRid > MediumIntegrityRid
+                || GroupIsEnabled(selected.AdministratorsGroupAttributes))
                 throw new InvalidOperationException("active-user Windows execution token is not a primary non-elevated user token");
             evidence = selected;
             IntPtr result = primary;
@@ -1248,6 +1321,85 @@ internal static class OrdivonWindowsJobLauncher
         finally
         {
             if (primary != IntPtr.Zero) CloseHandle(primary);
+            if (raw != IntPtr.Zero) CloseHandle(raw);
+        }
+    }
+
+    private static IntPtr AcquireElevatedActiveUserExecutionToken(out TokenEvidence evidence)
+    {
+        uint sessionId = WTSGetActiveConsoleSessionId();
+        if (sessionId == InvalidSessionId)
+            throw new InvalidOperationException("no active console Windows session is available");
+
+        IntPtr raw = IntPtr.Zero;
+        IntPtr linked = IntPtr.Zero;
+        IntPtr primary = IntPtr.Zero;
+        if (!WTSQueryUserToken(sessionId, out raw))
+            ThrowWin32("WTSQueryUserToken(active user elevated)");
+        try
+        {
+            if (TokenInformation<uint>(raw, TokenSessionIdClass) != sessionId)
+                throw new InvalidOperationException("active-user token session does not match the active console session");
+
+            TokenEvidence baseEvidence = ReadTokenEvidence(raw, "active_user_base");
+            IntPtr source = raw;
+            string selection = "active_user_elevated_current";
+
+            bool baseAlreadyElevated =
+                baseEvidence.IsElevated
+                && baseEvidence.IntegrityLevelRid >= HighIntegrityRid
+                && GroupIsEnabled(baseEvidence.AdministratorsGroupAttributes);
+
+            if (!baseAlreadyElevated)
+            {
+                if (baseEvidence.ElevationType != TokenElevationTypeLimited)
+                    throw new InvalidOperationException(
+                        "active user has no suitable elevated linked token");
+                TokenLinkedToken linkedInfo =
+                    TokenInformation<TokenLinkedToken>(raw, TokenLinkedTokenClass);
+                linked = linkedInfo.LinkedToken;
+                if (linked == IntPtr.Zero)
+                    throw new InvalidOperationException(
+                        "active user linked elevated token handle is null");
+                source = linked;
+                selection = "active_user_elevated_linked";
+            }
+
+            if (!DuplicateTokenEx(
+                    source,
+                    MaximumAllowed,
+                    IntPtr.Zero,
+                    SecurityImpersonation,
+                    TokenPrimary,
+                    out primary))
+                ThrowWin32("DuplicateTokenEx(active user elevated)");
+
+            TokenEvidence selected = ReadTokenEvidence(primary, selection);
+            selected.ExecutionIdentity = "active_user";
+            selected.SessionId = sessionId;
+
+            if (TokenInformation<uint>(primary, TokenSessionIdClass) != sessionId
+                || selected.TokenType != TokenPrimary
+                || !String.Equals(selected.UserSid, baseEvidence.UserSid, StringComparison.OrdinalIgnoreCase)
+                || !selected.IsElevated
+                || selected.IntegrityLevelRid < HighIntegrityRid
+                || !GroupIsEnabled(selected.AdministratorsGroupAttributes)
+                || (selected.ElevationType != TokenElevationTypeFull
+                    && selected.ElevationType != TokenElevationTypeDefault))
+            {
+                throw new InvalidOperationException(
+                    "active-user elevated token did not prove the requested identity and privilege");
+            }
+
+            evidence = selected;
+            IntPtr result = primary;
+            primary = IntPtr.Zero;
+            return result;
+        }
+        finally
+        {
+            if (primary != IntPtr.Zero) CloseHandle(primary);
+            if (linked != IntPtr.Zero) CloseHandle(linked);
             if (raw != IntPtr.Zero) CloseHandle(raw);
         }
     }
@@ -1643,7 +1795,11 @@ internal static class OrdivonWindowsJobLauncher
                 WriteWindowsLauncherStartEvidence(options);
             }
             powerRequest = AcquireSystemPowerRequest(options.RuntimeAttemptId);
-            executionToken = AcquireExecutionToken(options.Authority, options.Identity, out tokenEvidence);
+            executionToken = AcquireExecutionToken(
+                options.Authority,
+                options.Identity,
+                EffectivePayloadPrivilege(options),
+                out tokenEvidence);
             VerifyExpectedExecutionIdentity(options, tokenEvidence);
             PrepareImmutableInputs(options, tokenEvidence);
             environment = BuildEnvironment(options);

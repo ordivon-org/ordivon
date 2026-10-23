@@ -29,7 +29,7 @@ import sys
 for module in ("ordivon_harness", "anc_canonical", "jsonschema", "pytest", "ruff"):
     __import__(module)
 if sys.version_info[:3] != (3, 14, 7):
-    raise SystemExit(f"Harness requires Python 3.14.7, got {sys.version.split()[0]}")
+    raise SystemExit(f"Harness requires Python 3.15.0, got {sys.version.split()[0]}")
 if md.version("pytest") != "9.1.1":
     raise SystemExit("unexpected pytest version")
 if md.version("ruff") != "0.15.17":

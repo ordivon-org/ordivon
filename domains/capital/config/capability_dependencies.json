@@ -5,8 +5,8 @@
       "interpreter": "/root/external/binance-sdk-usdm/17.4.0/.venv/bin/python",
       "nonResponsibility": "does not grant account/product eligibility, TradFi agreement acceptance, live execution authority, investment suitability or external-write admission",
       "package": "binance-sdk-derivatives-trading-usds-futures",
-      "provider": "Binance Official USD\u24c8-M Futures Python SDK",
-      "responsibility": "official /fapi REST, WebSocket API and WebSocket Streams client mechanics for Binance USD\u24c8-M Futures",
+      "provider": "Binance Official USDⓈ-M Futures Python SDK",
+      "responsibility": "official /fapi REST, WebSocket API and WebSocket Streams client mechanics for Binance USDⓈ-M Futures",
       "version": "17.4.0"
     },
     "binanceWallet": {
@@ -21,10 +21,13 @@
     "capitalAccounting": {
       "provider": "SQLite via Python stdlib sqlite3",
       "interpreter": "./.venv/bin/python",
-      "pythonVersion": "3.14.7",
+      "pythonVersion": "3.15.0",
       "sqliteVersion": "3.53.1",
       "responsibility": "bounded single-host atomic accounting, reservation/post/void, idempotency and restart durability",
-      "nonResponsibility": "does not establish settlement finality, legal ownership, deployability, venue execution truth, external-write admission, distributed replication or consensus"
+      "nonResponsibility": "does not establish settlement finality, legal ownership, deployability, venue execution truth, external-write admission, distributed replication or consensus",
+      "requiredSqliteVersion": "3.54.0",
+      "currentRuntimeAdmission": "HOLD_SQLITE_CUTOVER",
+      "historicalRuntime": "Python 3.14.7 / SQLite 3.53.1 bounded mechanics qualification"
     },
     "research": {
       "dependencyGroup": "research",
@@ -33,7 +36,7 @@
       "interpreter": "./.venv/bin/python",
       "nonResponsibility": "does not implement a generic Research/Data platform, experiment-tracking server, lineage graph, scientific-method authority, Wave-A research pipeline, or borrow the ordivon-research-v2 virtualenv",
       "provider": "PyArrow / DuckDB / NumPy / SciPy / scikit-learn primitives consumed directly by the Capital Risk/Research domains",
-      "pythonVersion": "3.14.7",
+      "pythonVersion": "3.15.0",
       "requiredPythonModules": [
         "numpy",
         "pyarrow",
@@ -48,8 +51,8 @@
         "jsonschema": "TWO_FIXED_SCHEMAS_REPLACED_BY_DOMAIN_LOCAL_VALIDATORS_AFTER_R18_6000_CASE_ZERO_MISMATCH_DIFFERENTIAL"
       },
       "parquetQualificationContract": "contracts/parquet-materialization-readback-v1.json",
-      "parquetOwnerStanding": "PYARROW_25_0_1_REQUALIFIED_R16",
-      "independentReadbackOwnerStanding": "DUCKDB_1_5_5_REQUALIFIED_R16",
+      "parquetOwnerStanding": "PYARROW_26_R17_TECHNICAL_QUALIFIED_NOT_INDEPENDENT_ADMITTED",
+      "independentReadbackOwnerStanding": "DUCKDB_1_5_5_R17_TECHNICAL_QUALIFIED",
       "boundedDocumentValidators": {
         "riskBudget": "src/ordivon_capital/risk/risk_budget_validation.py",
         "quantitativeInventory": "src/ordivon_capital/research/quantitative_inventory_validation.py",
@@ -62,13 +65,14 @@
       "duckdbPackageSha256": "81a5ec42e26876ba0161fde1a29b6b7bf822ccbbc08bb063a05842016a728136",
       "duckdbPackageSignatureSha256": "d912cb65f4268911b03879b6b947c9e4055e91a9ad8366f0a65df379e0727ddd",
       "duckdbPackageSignatureVerification": "PASS_REVERIFIED_VIA_PACMAN_KEY_2026-09-21",
-      "pyarrowCp314ManylinuxX8664WheelSha256": "9171748cdf796972d85a4b60157c279913e242992e350c90c7450182a9838b2a"
+      "pyarrowCp314ManylinuxX8664WheelSha256": "9171748cdf796972d85a4b60157c279913e242992e350c90c7450182a9838b2a",
+      "historicalParquetQualification": "R16 PyArrow 25.0.1 / DuckDB 1.5.5 frozen cross-engine source"
     },
     "publicWebSocketProtocol": {
       "provider": "websockets",
       "version": "17.1",
       "interpreter": "./.venv/bin/python",
-      "pythonVersion": "3.14.7",
+      "pythonVersion": "3.15.0",
       "qualificationContract": "contracts/websocket-client-mechanics-v1.json",
       "standing": "WEBSOCKETS_17_1_REQUALIFIED_R17",
       "responsibility": "bounded RFC 6455 client handshake/framing/control-frame/close/message-limit mechanics plus proxy/TLS integration",

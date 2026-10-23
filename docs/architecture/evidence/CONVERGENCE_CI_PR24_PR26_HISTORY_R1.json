@@ -1,0 +1,413 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.ci-pr24-pr26-history",
+  "truthRole": "provider-observation-not-economic-classification",
+  "prs": {
+    "24": {
+      "number": 24,
+      "branch": "agent/convergence-queue-telemetry-r1-20260923",
+      "headSha": "31fa2ef16d74713654840c0bc875a606992de50a",
+      "mergedAt": "2026-09-22T16:33:52Z",
+      "mergeCommitSha": "cb31b32d44e6c182cfe20d15fa6589cef6d42c60"
+    },
+    "26": {
+      "number": 26,
+      "branch": "agent/canonical-main-reconcile-f2ec-r1-20260923",
+      "headSha": "64043000857507330e1949d5f0d2a934b8ff6b9f",
+      "mergedAt": "2026-09-23T09:32:24Z",
+      "mergeCommitSha": "ad023e8e5c80ce8f44bc8c78f9eab78d65e713bc"
+    }
+  },
+  "runs": [
+    {
+      "pr": 24,
+      "runId": 35752984720,
+      "event": "pull_request",
+      "headSha": "25ea5c65c03f9a6984e4c0afe9c9e264e47694f0",
+      "headBranch": "agent/convergence-queue-telemetry-r1-20260923",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "cancelled",
+      "createdAt": "2026-09-22T16:16:12Z",
+      "updatedAt": "2026-09-22T16:28:15Z",
+      "name": "Monorepo Required",
+      "jobs": [
+        {
+          "id": 106831590482,
+          "name": "root-verification",
+          "status": "completed",
+          "conclusion": "cancelled",
+          "startedAt": "2026-09-22T16:16:52Z",
+          "completedAt": "2026-09-22T16:28:14Z",
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "startedAt": "2026-09-22T16:16:54Z",
+              "completedAt": "2026-09-22T16:16:55Z"
+            },
+            {
+              "name": "Build EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25",
+              "conclusion": "success",
+              "startedAt": "2026-09-22T16:16:55Z",
+              "completedAt": "2026-09-22T16:17:08Z"
+            },
+            {
+              "name": "Checkout exact revision",
+              "conclusion": "success",
+              "startedAt": "2026-09-22T16:17:08Z",
+              "completedAt": "2026-09-22T16:17:12Z"
+            },
+            {
+              "name": "Install monorepo toolchain",
+              "conclusion": "success",
+              "startedAt": "2026-09-22T16:17:12Z",
+              "completedAt": "2026-09-22T16:17:25Z"
+            },
+            {
+              "name": "Repository mechanics",
+              "conclusion": "success",
+              "startedAt": "2026-09-22T16:17:25Z",
+              "completedAt": "2026-09-22T16:17:29Z"
+            },
+            {
+              "name": "Select affected owners",
+              "conclusion": "success",
+              "startedAt": "2026-09-22T16:17:29Z",
+              "completedAt": "2026-09-22T16:17:30Z"
+            },
+            {
+              "name": "Verify affected owners",
+              "conclusion": "success",
+              "startedAt": "2026-09-22T16:17:30Z",
+              "completedAt": "2026-09-22T16:27:52Z"
+            },
+            {
+              "name": "Runtime supply-chain policy",
+              "conclusion": "cancelled",
+              "startedAt": "2026-09-22T16:27:52Z",
+              "completedAt": "2026-09-22T16:28:11Z"
+            },
+            {
+              "name": "Repository-wide secret scan",
+              "conclusion": "skipped",
+              "startedAt": "2026-09-22T16:28:11Z",
+              "completedAt": "2026-09-22T16:28:11Z"
+            },
+            {
+              "name": "Post Checkout exact revision",
+              "conclusion": "success",
+              "startedAt": "2026-09-22T16:28:11Z",
+              "completedAt": "2026-09-22T16:28:11Z"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "startedAt": "2026-09-22T16:28:11Z",
+              "completedAt": "2026-09-22T16:28:11Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pr": 24,
+      "runId": 35754261815,
+      "event": "pull_request",
+      "headSha": "30a28b457794a5a5184b16b8f27f0ff447190537",
+      "headBranch": "agent/convergence-queue-telemetry-r1-20260923",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "cancelled",
+      "createdAt": "2026-09-22T16:27:44Z",
+      "updatedAt": "2026-09-22T16:31:03Z",
+      "name": "Monorepo Required",
+      "jobs": [
+        {
+          "id": 106836122458,
+          "name": "root-verification",
+          "status": "completed",
+          "conclusion": "cancelled",
+          "startedAt": "2026-09-22T16:28:19Z",
+          "completedAt": "2026-09-22T16:31:02Z",
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "startedAt": "2026-09-22T16:28:20Z",
+              "completedAt": "2026-09-22T16:28:22Z"
+            },
+            {
+              "name": "Build EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25",
+              "conclusion": "success",
+              "startedAt": "2026-09-22T16:28:22Z",
+              "completedAt": "2026-09-22T16:28:42Z"
+            },
+            {
+              "name": "Checkout exact revision",
+              "conclusion": "success",
+              "startedAt": "2026-09-22T16:28:42Z",
+              "completedAt": "2026-09-22T16:28:45Z"
+            },
+            {
+              "name": "Install monorepo toolchain",
+              "conclusion": "success",
+              "startedAt": "2026-09-22T16:28:45Z",
+              "completedAt": "2026-09-22T16:28:49Z"
+            },
+            {
+              "name": "Repository mechanics",
+              "conclusion": "success",
+              "startedAt": "2026-09-22T16:28:49Z",
+              "completedAt": "2026-09-22T16:28:52Z"
+            },
+            {
+              "name": "Select affected owners",
+              "conclusion": "success",
+              "startedAt": "2026-09-22T16:28:52Z",
+              "completedAt": "2026-09-22T16:28:52Z"
+            },
+            {
+              "name": "Verify affected owners",
+              "conclusion": "cancelled",
+              "startedAt": "2026-09-22T16:28:52Z",
+              "completedAt": "2026-09-22T16:30:59Z"
+            },
+            {
+              "name": "Runtime supply-chain policy",
+              "conclusion": "skipped",
+              "startedAt": "2026-09-22T16:30:59Z",
+              "completedAt": "2026-09-22T16:30:59Z"
+            },
+            {
+              "name": "Repository-wide secret scan",
+              "conclusion": "skipped",
+              "startedAt": "2026-09-22T16:30:59Z",
+              "completedAt": "2026-09-22T16:30:59Z"
+            },
+            {
+              "name": "Post Checkout exact revision",
+              "conclusion": "success",
+              "startedAt": "2026-09-22T16:30:59Z",
+              "completedAt": "2026-09-22T16:30:59Z"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "startedAt": "2026-09-22T16:30:59Z",
+              "completedAt": "2026-09-22T16:30:59Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pr": 24,
+      "runId": 35754569300,
+      "event": "pull_request",
+      "headSha": "31fa2ef16d74713654840c0bc875a606992de50a",
+      "headBranch": "agent/convergence-queue-telemetry-r1-20260923",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-22T16:30:31Z",
+      "updatedAt": "2026-09-22T16:32:05Z",
+      "name": "Monorepo Required"
+    },
+    {
+      "pr": 26,
+      "runId": 35832180269,
+      "event": "pull_request",
+      "headSha": "46f1d91accf88fd100eaa49158dab39f6e964d22",
+      "headBranch": "agent/canonical-main-reconcile-f2ec-r1-20260923",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "failure",
+      "createdAt": "2026-09-23T07:31:43Z",
+      "updatedAt": "2026-09-23T07:42:39Z",
+      "name": "Monorepo Required",
+      "jobs": [
+        {
+          "id": 107087106993,
+          "name": "root-verification",
+          "status": "completed",
+          "conclusion": "failure",
+          "startedAt": "2026-09-23T07:31:47Z",
+          "completedAt": "2026-09-23T07:42:38Z",
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "startedAt": "2026-09-23T07:31:48Z",
+              "completedAt": "2026-09-23T07:31:50Z"
+            },
+            {
+              "name": "Build EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25",
+              "conclusion": "success",
+              "startedAt": "2026-09-23T07:31:50Z",
+              "completedAt": "2026-09-23T07:32:00Z"
+            },
+            {
+              "name": "Checkout exact revision",
+              "conclusion": "success",
+              "startedAt": "2026-09-23T07:32:00Z",
+              "completedAt": "2026-09-23T07:32:04Z"
+            },
+            {
+              "name": "Install monorepo toolchain",
+              "conclusion": "success",
+              "startedAt": "2026-09-23T07:32:04Z",
+              "completedAt": "2026-09-23T07:32:17Z"
+            },
+            {
+              "name": "Repository mechanics",
+              "conclusion": "success",
+              "startedAt": "2026-09-23T07:32:17Z",
+              "completedAt": "2026-09-23T07:32:21Z"
+            },
+            {
+              "name": "Select affected owners",
+              "conclusion": "success",
+              "startedAt": "2026-09-23T07:32:21Z",
+              "completedAt": "2026-09-23T07:32:21Z"
+            },
+            {
+              "name": "Verify affected owners",
+              "conclusion": "failure",
+              "startedAt": "2026-09-23T07:32:21Z",
+              "completedAt": "2026-09-23T07:42:35Z"
+            },
+            {
+              "name": "Runtime supply-chain policy",
+              "conclusion": "skipped",
+              "startedAt": "2026-09-23T07:42:35Z",
+              "completedAt": "2026-09-23T07:42:35Z"
+            },
+            {
+              "name": "Repository-wide secret scan",
+              "conclusion": "skipped",
+              "startedAt": "2026-09-23T07:42:35Z",
+              "completedAt": "2026-09-23T07:42:35Z"
+            },
+            {
+              "name": "Post Checkout exact revision",
+              "conclusion": "success",
+              "startedAt": "2026-09-23T07:42:35Z",
+              "completedAt": "2026-09-23T07:42:35Z"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "startedAt": "2026-09-23T07:42:35Z",
+              "completedAt": "2026-09-23T07:42:35Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pr": 26,
+      "runId": 35839093276,
+      "event": "pull_request",
+      "headSha": "75583981c847dcba426310b73f34c3a19e78a5fc",
+      "headBranch": "agent/canonical-main-reconcile-f2ec-r1-20260923",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "failure",
+      "createdAt": "2026-09-23T08:47:05Z",
+      "updatedAt": "2026-09-23T08:59:02Z",
+      "name": "Monorepo Required",
+      "jobs": [
+        {
+          "id": 107109594461,
+          "name": "root-verification",
+          "status": "completed",
+          "conclusion": "failure",
+          "startedAt": "2026-09-23T08:47:09Z",
+          "completedAt": "2026-09-23T08:59:02Z",
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "startedAt": "2026-09-23T08:47:10Z",
+              "completedAt": "2026-09-23T08:47:12Z"
+            },
+            {
+              "name": "Build EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25",
+              "conclusion": "success",
+              "startedAt": "2026-09-23T08:47:12Z",
+              "completedAt": "2026-09-23T08:47:23Z"
+            },
+            {
+              "name": "Checkout exact revision",
+              "conclusion": "success",
+              "startedAt": "2026-09-23T08:47:23Z",
+              "completedAt": "2026-09-23T08:47:27Z"
+            },
+            {
+              "name": "Install monorepo toolchain",
+              "conclusion": "success",
+              "startedAt": "2026-09-23T08:47:27Z",
+              "completedAt": "2026-09-23T08:47:40Z"
+            },
+            {
+              "name": "Repository mechanics",
+              "conclusion": "success",
+              "startedAt": "2026-09-23T08:47:40Z",
+              "completedAt": "2026-09-23T08:47:44Z"
+            },
+            {
+              "name": "Select affected owners",
+              "conclusion": "success",
+              "startedAt": "2026-09-23T08:47:44Z",
+              "completedAt": "2026-09-23T08:47:45Z"
+            },
+            {
+              "name": "Verify affected owners",
+              "conclusion": "success",
+              "startedAt": "2026-09-23T08:47:45Z",
+              "completedAt": "2026-09-23T08:58:16Z"
+            },
+            {
+              "name": "Runtime supply-chain policy",
+              "conclusion": "success",
+              "startedAt": "2026-09-23T08:58:16Z",
+              "completedAt": "2026-09-23T08:58:35Z"
+            },
+            {
+              "name": "Repository-wide secret scan",
+              "conclusion": "failure",
+              "startedAt": "2026-09-23T08:58:35Z",
+              "completedAt": "2026-09-23T08:58:59Z"
+            },
+            {
+              "name": "Post Checkout exact revision",
+              "conclusion": "success",
+              "startedAt": "2026-09-23T08:58:59Z",
+              "completedAt": "2026-09-23T08:58:59Z"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "startedAt": "2026-09-23T08:58:59Z",
+              "completedAt": "2026-09-23T08:58:59Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pr": 26,
+      "runId": 35840933293,
+      "event": "pull_request",
+      "headSha": "64043000857507330e1949d5f0d2a934b8ff6b9f",
+      "headBranch": "agent/canonical-main-reconcile-f2ec-r1-20260923",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-23T09:06:01Z",
+      "updatedAt": "2026-09-23T09:18:13Z",
+      "name": "Monorepo Required"
+    }
+  ]
+}
