@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 import tomllib
@@ -61,9 +62,27 @@ def main() -> int:
     github_actions = update_for(config, "github-actions")
     assert configured_dirs(github_actions) == {"/"}
 
+    # Renovate PEP 621 is the single Python manifest + uv.lock update owner.
+    # Keep this check against the actual tracked consumers, not a duplicate list.
     expected_uv = dirs_for_lock("**/uv.lock", "uv.lock")
-    actual_uv = configured_dirs(update_for(config, "uv"))
-    assert actual_uv == expected_uv, f"uv directories drift: expected={sorted(expected_uv)} actual={sorted(actual_uv)}"
+    assert not any(row.get("package-ecosystem") == "uv" for row in config["updates"]), (
+        "Dependabot uv duplicates Renovate pep621 ownership"
+    )
+    renovate = json.loads((ROOT / "renovate.json").read_text(encoding="utf-8"))
+    assert "pep621" in renovate.get("enabledManagers", []), (
+        "Renovate must own Python PEP 621 manifests"
+    )
+    assert renovate.get("lockFileMaintenance", {}).get("enabled") is True, (
+        "Renovate must refresh uv.lock files"
+    )
+    assert renovate.get("automerge", False) is False, (
+        "Python dependency upgrades require consumer verification"
+    )
+    missing = sorted(
+        directory for directory in expected_uv
+        if not (ROOT / directory.lstrip("/") / "pyproject.toml").is_file()
+    )
+    assert not missing, f"uv locks without PEP 621 manifests: {missing}"
 
     npm_locks: set[str] = set()
     for pattern, name in (
