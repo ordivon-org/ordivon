@@ -3,8 +3,8 @@
 [jev_windows_provider]
 uv_version = "0.13.5"
 uv_asset_url = "https://github.com/astral-sh/uv/releases/download/0.13.5/uv-x86_64-pc-windows-msvc.zip"
-uv_asset_sha256 = "sha256:3b2661a463a5baea7f5076ea2b25ab71d77f36a6c0d809e5350651792f80a672"
-uv_exe_sha256 = "sha256:4075a09490327d2bedfacc807fa48252fb93647c5bd7ef28f00e579160ea3fb5"
+uv_asset_sha256 = "sha256:a38b8d1902b7cfbc76b423ba1bb456f623f42064cdc72628b6075b89afd1019a"
+uv_exe_sha256 = "sha256:f45d1cb9d9140ca6d3f4005fdfc0ebeccf849fd04d1dc85804155cb923f1597b"
 python_version = "3.15.1"
 python_distribution_dir = "cpython-3.15.1-windows-x86_64-none"
 venv_relative = ".venv-py3.15.1"

@@ -8,7 +8,7 @@ Workstation does not decide when Jev is suitable, does not interpret `DONE` as s
 
 ## Windows-native execution provider
 
-workstation/windows/jev_fastpath_provider.py owns the Windows materialization contract. The current Windows provider pins the official uv 0.13.1 executable and SHA-256, uv-managed CPython 3.15.0, a separate `.venv-py3.15.0` environment, the exact Jev source commit and locked jev-ultrafast 0.1.0 / browser-harness 0.1.13 package pair. Older `.venv` bytes remain historical, not an acceptable current Python provider.
+workstation/windows/jev_fastpath_provider.py owns the Windows materialization contract. The current Windows provider pins the official uv 0.13.5 executable and SHA-256, uv-managed CPython 3.15.1, a separate `.venv-py3.15.1` environment, the exact Jev source commit and locked jev-ultrafast 0.1.0 / browser-harness 0.1.13 package pair. Older `.venv` bytes remain historical, not an acceptable current Python provider.
 
 The `status-native` command must run under the **active Windows user** (not SYSTEM) with the approved provider source and the accompanying `jev-fastpath-provider.toml` deployed in the same directory. Invoke it using the pinned Windows Python 3.15 interpreter, for example:
 
