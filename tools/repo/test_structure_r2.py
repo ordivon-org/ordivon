@@ -42,6 +42,38 @@ def test_unknown_target_root_fails_closed() -> None:
     with pytest.raises(module.StructureR2Error, match="not admitted"):
         module.validate_plan(value)
 
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("targetPaths", "packages/../../services/runtime/"),
+        ("targetPaths", "/packages/runtime/"),
+        ("sourcePaths", "services/../services/runtime/"),
+        ("sourcePaths", "../../services/runtime/"),
+        ("targetPaths", "packages//runtime/"),
+        ("sourcePaths", "services" + chr(92) + "runtime/"),
+    ],
+)
+def test_mapping_paths_must_be_canonical_repo_relative(field: str, value: str) -> None:
+    plan = load_plan()
+    plan["mappings"][0][field] = [value]
+    with pytest.raises(module.StructureR2Error, match="canonical repository-relative"):
+        module.validate_plan(plan)
+
+
+def test_declared_target_roots_must_be_canonical() -> None:
+    plan = load_plan()
+    plan["targetRoots"].append("packages/../../services/")
+    with pytest.raises(module.StructureR2Error, match="canonical repository-relative"):
+        module.validate_plan(plan)
+
+
+def test_forbidden_roots_must_be_canonical() -> None:
+    plan = load_plan()
+    plan["forbiddenSemanticRoots"].append("services/../platform/")
+    with pytest.raises(module.StructureR2Error, match="canonical repository-relative"):
+        module.validate_plan(plan)
+
+
 def test_missing_current_source_fails_closed() -> None:
     value = load_plan()
     value["mappings"][0]["sourcePaths"] = ["does-not-exist/"]
