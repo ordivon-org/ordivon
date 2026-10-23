@@ -45,7 +45,7 @@ def load_owners(path: Path = MANIFEST_PATH) -> tuple[Owner, ...]:
             )
         if root.startswith("/") or not root.endswith("/"):
             raise ValueError(f"owner {name}: root must be repository-relative and end with '/': {root}")
-        normalized = PurePosixPath(root).as_posix().rstrip("/") + "/"
+        normalized = _normalize(root).rstrip("/") + "/"
         if normalized != root:
             raise ValueError(f"owner {name}: root is not canonical: {root}")
         owners.append(Owner(name=name, root=root, task=task, queue_task=queue_task))
@@ -72,7 +72,6 @@ def load_owners(path: Path = MANIFEST_PATH) -> tuple[Owner, ...]:
     return tuple(owners)
 
 
-OWNERS: tuple[Owner, ...] = load_owners()
 
 CROSS_CUTTING_PATHS = frozenset(
     {
@@ -92,10 +91,13 @@ CROSS_CUTTING_PATHS = frozenset(
 
 
 def _normalize(path: str) -> str:
-    value = PurePosixPath(path.strip()).as_posix()
-    while value.startswith("./"):
-        value = value[2:]
-    return value
+    value = path.strip()
+    if value.startswith("/") or ".." in value.split("/") or chr(92) in value:
+        raise ValueError(f"noncanonical repository path: {path}")
+    return PurePosixPath(value).as_posix()
+
+
+OWNERS: tuple[Owner, ...] = load_owners()
 
 
 # Verification admission is strict for executable owners. Read-only owner
