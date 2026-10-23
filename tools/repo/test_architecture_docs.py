@@ -604,3 +604,49 @@ def test_issue_owner_source_cut_is_explicit(tmp_path: Path) -> None:
     )
     with pytest.raises(module.ArchitectureDocsError, match="undeclared naturalOwner"):
         module.validate_formal_issue_census(census, plans, root=tmp_path)
+
+
+def test_formal_issue_skill_is_bound_to_candidate_source(tmp_path: Path) -> None:
+    """A Skill in the tool's checkout must not validate another source cut."""
+    census, plans = formal_issue_inputs()
+    owner_manifest = tmp_path / "tools/repo/owners.toml"
+    owner_manifest.parent.mkdir(parents=True)
+    owner_manifest.write_bytes((ROOT / "tools/repo/owners.toml").read_bytes())
+    skills = sorted({
+        issue["representation"]["methodSkill"]
+        for issue in census["issues"]
+        if issue["representation"].get("methodSkill")
+    })
+    assert skills
+    for skill in skills[1:]:
+        path = tmp_path / skill
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("candidate-local skill\n", encoding="utf-8")
+    # One missing source-cut Skill must fail even though the real checkout has it.
+    with pytest.raises(module.ArchitectureDocsError, match="unavailable method Skill"):
+        module.validate_formal_issue_census(census, plans, root=tmp_path)
+    missing = tmp_path / skills[0]
+    missing.parent.mkdir(parents=True, exist_ok=True)
+    missing.write_text("candidate-local skill\n", encoding="utf-8")
+    module.validate_formal_issue_census(census, plans, root=tmp_path)
+
+
+def test_formal_issue_skill_symlink_cannot_escape_source_cut(tmp_path: Path) -> None:
+    """Existence outside the candidate source tree is not source-bound proof."""
+    census, plans = formal_issue_inputs()
+    owner_manifest = tmp_path / "tools/repo/owners.toml"
+    owner_manifest.parent.mkdir(parents=True)
+    owner_manifest.write_bytes((ROOT / "tools/repo/owners.toml").read_bytes())
+    skills = sorted({
+        issue["representation"]["methodSkill"]
+        for issue in census["issues"]
+        if issue["representation"].get("methodSkill")
+    })
+    for skill in skills:
+        path = tmp_path / skill
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("candidate-local skill\n", encoding="utf-8")
+    (tmp_path / skills[0]).unlink()
+    (tmp_path / skills[0]).symlink_to(ROOT / skills[0])
+    with pytest.raises(module.ArchitectureDocsError, match="unavailable method Skill"):
+        module.validate_formal_issue_census(census, plans, root=tmp_path)
