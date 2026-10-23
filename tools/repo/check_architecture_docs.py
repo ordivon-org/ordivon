@@ -278,6 +278,39 @@ def validate_formal_issue_census(
             if not isinstance(issue.get(field), str) or not issue[field].strip():
                 raise ArchitectureDocsError(f"issue {issue_id} lacks {field}")
 
+    representation_types = {
+        "type", "graph", "constraint", "state-machine", "algebra",
+        "equivalence", "declarative", "abstraction", "causal", "compression",
+    }
+    for issue in issues:
+        rep = issue.get("representation")
+        issue_id = issue["id"]
+        if not isinstance(rep, dict):
+            raise ArchitectureDocsError(f"issue {issue_id} missing representation")
+        if not isinstance(rep.get("primary"), str) or rep["primary"] not in representation_types:
+            raise ArchitectureDocsError(f"issue {issue_id} unknown primary representation")
+        supporting = rep.get("supporting")
+        if (
+            not isinstance(supporting, list)
+            or len(supporting) > 1
+            or not all(isinstance(x, str) for x in supporting)
+            or len(supporting) != len(set(supporting))
+            or any(x not in representation_types or x == rep["primary"] for x in supporting)
+        ):
+            raise ArchitectureDocsError(f"issue {issue_id} invalid supporting representation")
+        skill = rep.get("methodSkill")
+        if skill is not None and (
+            not isinstance(skill, str)
+            or not skill.startswith(".agents/skills/")
+            or not skill.endswith("/SKILL.md")
+            or ".." in Path(skill).parts
+            or not (ROOT / skill).is_file()
+        ):
+            raise ArchitectureDocsError(f"issue {issue_id} references unavailable method Skill")
+        for field in ("requiredWitness", "selectionReason"):
+            if not isinstance(rep.get(field), str) or not rep[field].strip():
+                raise ArchitectureDocsError(f"issue {issue_id} missing {field}")
+
     registrations = census.get("registrations")
     if not isinstance(registrations, list) or not registrations:
         raise ArchitectureDocsError("issue census needs owner-local LEGO links")

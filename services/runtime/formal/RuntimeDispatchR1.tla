@@ -101,6 +101,18 @@ Next ==
 
 Spec == Init /\ [][Next]_vars
 
+
+\* Liveness is separate from at-most-once safety. Fair admission, dispatch
+\* and observable first outcome give a first decision, not domain completion.
+FairSpec ==
+    Spec
+    /\ WF_vars(Admit)
+    /\ WF_vars(Dispatch)
+    /\ WF_vars(ObserveTerminalEvidence \/ LoseDispatchKnowledge)
+
+ProgressToFirstDecision ==
+    <> (jobState = "terminal" \/ jobState = "ambiguous")
+
 AtMostOnceDispatchPerAttempt ==
     \A a \in Attempts : dispatchCount[a] <= 1
 

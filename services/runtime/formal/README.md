@@ -40,6 +40,19 @@ implements it. Implementation tests must remain separately traced to these invar
 
 Static review note (2026-09-19): `dispatchCount` intentionally permits `0..2` in `TypeOK` so `AtMostOnceDispatchPerAttempt` remains an independently falsifiable safety invariant rather than being true by construction. TLC execution is still required before this model is accepted as checked evidence.
 
+## Scoped progress obligation
+
+TLC additionally checks the temporal property ProgressToFirstDecision under
+FairSpec. Under weak fairness for admission, dispatch, and either terminal
+observation or explicit ambiguity, the model eventually exposes a first
+decision. An ambiguous dispatch counts as an explicit block, NOT success.
+Without fairness, the stuttering model cannot guarantee this liveness.
+
+CHECK_DEADLOCK FALSE remains intentional because terminal states stutter.
+The finite Attempts model is not an actual Runtime retry quota. The model
+does not prove real-world deadlock freedom, reconciliation progress, bound on
+completion time, external effect idempotency, or Rust-to-TLA refinement.
+
 ## Reproducible toolchain gate
 
 The command-line checker is pinned in `formal/toolchain.lock.json`. The repository does
@@ -52,6 +65,21 @@ Bootstrap is the only networked step:
 Model checking is then offline/repeatable from the digest-verified cache:
 
     scripts/tla-formal check
+
+An isolated Runtime Workspace can use a previously materialized trusted JAR without
+duplicating or downloading it into every Workspace:
+
+    ORDIVON_TLA_TOOLS_JAR=/absolute/path/to/tla2tools-v1.7.4.jar scripts/tla-formal verify
+    ORDIVON_TLA_TOOLS_JAR=/absolute/path/to/tla2tools-v1.7.4.jar scripts/tla-formal check
+
+The override must be an absolute regular non-symlink file, and both upstream-locked
+digests are checked before execution. Runtime callers should additionally bind the
+same path and locked SHA-256 through `execution.hostDependencies` to fence admission
+and runtime-host-namespace path continuity. The wrapper's digest checks alone do
+not establish a race-free immutable input or prove Java consumed the committed bytes.
+`bootstrap` still writes only to the project's ignored local cache, regardless of
+the override; a fresh checkout does not require bootstrap if an external pinned JAR
+is available.
 
 The lock records the upstream release URL, the SHA-1 published on the official v1.7.4
 release page, and the SHA-256 measured only after that upstream digest matched. The
