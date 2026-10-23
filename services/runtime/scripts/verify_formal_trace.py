@@ -87,11 +87,20 @@ def require_test_symbol(path: Path, symbol: str) -> list[str]:
         text = path.read_text(encoding="utf-8")
     except (OSError, UnicodeError) as error:
         return [f"{path.relative_to(ROOT)}::{symbol}: {error}"]
-    match = re.search(rf"(?m)^\s*fn\s+{re.escape(symbol)}\s*\(", text)
+    # Bind #[test] to this exact function, not any earlier function in a
+    # proximity window. Consecutive Rust attributes are permitted between
+    # #[test] and the function signature.
+    match = re.search(rf"(?m)^[ \t]*fn[ \t]+{re.escape(symbol)}[ \t]*\(", text)
     if not match:
         return [f"{path.relative_to(ROOT)} missing proving test symbol {symbol!r}"]
-    prefix = text[max(0, match.start() - 512) : match.start()]
-    if not re.search(r"#\s*\[\s*test\s*\]", prefix):
+    attributes = []
+    for line in reversed(text[: match.start()].splitlines()):
+        stripped = line.strip()
+        if re.fullmatch(r"#\s*\[[^\]\r\n]+\]", stripped):
+            attributes.append(stripped)
+        else:
+            break
+    if not any(re.fullmatch(r"#\s*\[\s*test\s*\]", item) for item in attributes):
         return [f"{path.relative_to(ROOT)}::{symbol} is not marked #[test]"]
     return []
 
