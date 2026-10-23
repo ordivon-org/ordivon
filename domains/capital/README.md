@@ -49,6 +49,31 @@ Demo/Testnet Execution R7 preflight is prepared but not admitted: the installed 
 
 Live endpoint test-account policy is now explicit: the user authorizes the existing OKX/Binance LIVE endpoints for non-production qualification, but they remain semantically LIVE. Fresh authoritative account reality must prove an effectively empty account (no positions/open orders/nonquote balances and <=1 quote unit), trade-only authority, clock health and reconciliation health before order submission can be enabled.
 
+## Finance factor LEGO — current consumer boundary
+
+The current Market Capital research/risk consumer is **descriptive**, not a new
+factor-model framework. A factor label, factor exposure, proxy correlation, alpha
+forecast, strategy target and broker order are **different responsibilities**.
+
+| Existing LEGO consumer | Actual implementation | Contract |
+| --- | --- | --- |
+| Factor proxy measurement | `risk/portfolio_risk.py::build_factor_observatory` | Explicit market-proxy histories; dependence evidence is not causal alpha |
+| Portfolio factor exposure | `risk/portfolio_risk.py::build_exposure_ledger` | Caller-supplied loadings; overlapping exposure is not additive risk contribution |
+| Risk budget and report | `risk/portfolio_risk.py::build_portfolio_risk_report` | `UNSET` stays incomplete, never inferred |
+| Portfolio alternatives | `portfolio/portfolio_counterfactuals.py` | Explicit what-if mechanics, not trade ranking or authorization |
+| Execution | Current Capital Governance / Trading authorities | `NON_LIVE`; no financial-write effect from factor observations |
+
+An older experimental decision-state/atlas circuit exists in historical branches
+but **is not a protected-main consumer**. Do not resurrect it merely to satisfy
+a factor test. Use an external academic factor definition or qualified LEAN
+implementation when a real strategy consumer demands it; qualify its data cut,
+source, signal meaning, costs and forward evidence before promoting it.
+
+Golden Path (no provider account, synthetic data, no order):
+`mise run //domains/capital:verify`, including
+`tests/test_factor_lego_consumer_contract.py`. This only demonstrates current
+mechanical consumer boundaries; it is not evidence of positive investment Edge.
+
 ## Verification boundary
 
 Required repository CI is hermetic and authority-free. The capital:verify task runs the
