@@ -153,10 +153,30 @@
       "evidence": [],
       "blockers": [],
       "nextAction": "Use current Scorecard selected/accepted-but-not-admitted standing as the first policy pressure test."
+    },
+    {
+      "id": "SS2",
+      "objective": "Bind transitive authority and compositional security claims to exact principals, service effects, configuration versions, and independent consumer tests.",
+      "status": "PROPOSED",
+      "nodeIds": [
+        "S01",
+        "S03",
+        "S04",
+        "S05"
+      ],
+      "acceptance": [
+        "For each tested effect path, principal -> Tool -> service -> external resource authority is enumerated and bounded.",
+        "Substitution/composition of two locally valid LEGO nodes does not widen effective READ/WRITE/NETWORK/PERSIST/EFFECT sets.",
+        "Existing AS01-AS12/XAS13-XAS18 security lens is reused; no second policy engine or cross-owner authority registry is created."
+      ],
+      "evidence": [],
+      "blockers": [],
+      "nextAction": "Qualify one high-risk MCP/Runtime/network consumer path with existing Security owner policy and evidence projection."
     }
   ],
   "gaps": [
-    "Selected P0/P1 providers are not automatically active/admitted capabilities."
+    "Selected P0/P1 providers are not automatically active/admitted capabilities.",
+    "2026-10-24 audit: empirical transitive authority coverage for selected real Agent consumers is UNKNOWN, not proof of a missing control; see docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261024_R1.json."
   ],
   "doNotOwn": [
     "scanner/vulnerability database mechanics",

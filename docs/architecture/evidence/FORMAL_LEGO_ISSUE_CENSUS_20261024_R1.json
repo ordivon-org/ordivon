@@ -1,0 +1,233 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.formal-lego-issue-census-evidence",
+  "truthRole": "time-scoped-audit-evidence-not-registry-or-admission",
+  "observedAt": "2026-10-24",
+  "source": {
+    "protectedGithubMain": "d507010f93f6fd6b23560e99b71a6c4df1be4597",
+    "linuxLocalMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+    "mergeBase": "80c17a3635219fa00c91ee9ea00700918bd14df4",
+    "researchLocalMain": "098c623d9c38a2fffcf620242f35577d7c827b69"
+  },
+  "counts": {
+    "linuxRuntimeWorkspacesFirstSnapshot": 17,
+    "windowsRuntimeWorkspacesFirstSnapshot": 1,
+    "coreLocalBranches": 51,
+    "coreRemoteTrackingBranches": 163,
+    "coreGitWorktrees": 36,
+    "researchLocalBranches": 31,
+    "researchGitWorktrees": 5,
+    "openPR": 18,
+    "conflictingPR": 3,
+    "failedCheckPR": 4,
+    "recentCI": {
+      "sample": 100,
+      "success": 71,
+      "failure": 7,
+      "cancelled": 22
+    }
+  },
+  "formalLaws": [
+    "NO_UNSCOPED_PASS: evidence is exact-source and consumer bounded",
+    "NO_BLIND_RETIRE: deletions require an explicit unique-source/effect-preservation witness",
+    "NO_AUTHORITY_BY_DISCOVERY: registry, Skill or Tool discovery never grants permissions",
+    "EFFECT_COMPOSITION: authority, shared state and irreversible effects are checked along the full consumer graph",
+    "STOP_SEMANTICS: detection, request to stop, actual process-tree termination, and effect reconciliation are independent"
+  ],
+  "registrations": [
+    {
+      "ownerPlan": "services/harness/planning/lego-plan-r1.json",
+      "slice": "HS2",
+      "scope": "verification proposal only"
+    },
+    {
+      "ownerPlan": "platform/security/planning/lego-plan-r1.json",
+      "slice": "SS2",
+      "scope": "verification proposal only"
+    },
+    {
+      "ownerPlan": "platform/network/planning/lego-plan-r1.json",
+      "slice": "NS2",
+      "scope": "verification proposal only"
+    }
+  ],
+  "issues": [
+    {
+      "id": "GIT-01",
+      "problemClass": "SOURCE_CONVERGENCE",
+      "naturalOwner": "tools/repo",
+      "standing": "OBSERVED",
+      "observation": "Local main and protected remote main diverge; 2300 local-only and 313 remote-only commits at observation.",
+      "evidence": "git merge-base main origin/main; git rev-list --left-right --count main...origin/main",
+      "decision": "Consumer-based patch/merge comparison; never force-reset protected main.",
+      "formalObligation": "The selected source must be an explicit source cut and each chosen change must preserve owner CDC.",
+      "consumers": "Git source, CI, all downstream consumers"
+    },
+    {
+      "id": "GIT-02",
+      "problemClass": "GIT_RESIDUE",
+      "naturalOwner": "tools/repo",
+      "standing": "NEEDS_CONSUMER_TRACE",
+      "observation": "51 local and 163 remote-tracking branches exist; branch count alone does not prove redundancy.",
+      "evidence": "git for-each-ref refs/heads refs/remotes",
+      "decision": "Retire only branches fully reachable from canonical main or with verified zero unique consumers/evidence.",
+      "formalObligation": "Retire(b) implies all unique commits/effects/evidence are reachable elsewhere.",
+      "consumers": "Git/Runtime/Research"
+    },
+    {
+      "id": "WS-01",
+      "problemClass": "WORKSPACE_LIFECYCLE",
+      "naturalOwner": "services/runtime",
+      "standing": "NEEDS_CONSUMER_TRACE",
+      "observation": "17 Linux Runtime Workspaces and one Windows Runtime Workspace at first snapshot; Git reports 36 worktrees in core repo.",
+      "evidence": "runtime.workspace_list + git worktree list --porcelain",
+      "decision": "Close clean unheld workspaces only after source/Job/evidence and exact SourceStateDigest checks.",
+      "formalObligation": "Close(w) -> no active Job and no unique unpreserved source/effect evidence.",
+      "consumers": "Runtime, Harness"
+    },
+    {
+      "id": "PR-01",
+      "problemClass": "PR_CONVERGENCE",
+      "naturalOwner": "tools/repo",
+      "standing": "OBSERVED",
+      "observation": "18 open PR: 3 conflicts (#211 #139 #27); four failing checks (#224 #218 #162 #139).",
+      "evidence": "gh pr list --state open --json mergeable,statusCheckRollup",
+      "decision": "Compare overlapping changes by owner CDC; select one best implementation per consumer.",
+      "formalObligation": "Merge(p) requires compatible protected base, required CI and semantic consumer acceptance.",
+      "consumers": "Repo CI, runtime, web, game, security"
+    },
+    {
+      "id": "CI-01",
+      "problemClass": "CI_EXECUTION",
+      "naturalOwner": "apps/web",
+      "standing": "CONFIRMED_FAIL",
+      "observation": "PR #224 verification-entry.test.ts fails when /bin/sh executes 'set -o pipefail'; actual exit 2, expected 29.",
+      "evidence": "GitHub Actions run 40020297819, failing test at test/verification-entry.test.ts:52",
+      "decision": "Reuse and repair PR #224; explicitly select compatible shell and verify exit-code propagation.",
+      "formalObligation": "ShellInterpreter(script) supports every used shell option; failure oracle is preserved.",
+      "consumers": "Web verification, Security OPA verifier"
+    },
+    {
+      "id": "CI-02",
+      "problemClass": "CI_COVERAGE",
+      "naturalOwner": "tools/repo",
+      "standing": "OBSERVED",
+      "observation": "Last 100 workflow runs: 71 success, 7 failure, 22 cancellation; cancellations cannot all be classified as bugs.",
+      "evidence": "gh run list --limit 100 --json conclusion,status",
+      "decision": "Investigate genuine failure signatures and expected concurrency cancellation separately.",
+      "formalObligation": "RunCancelled != RunFailed; CI pass must be scoped to selected revision and consumers.",
+      "consumers": "Protected main and owners"
+    },
+    {
+      "id": "DEPS-01",
+      "problemClass": "DEPENDENCY_CONVERGENCE",
+      "naturalOwner": "tools/repo",
+      "standing": "NEEDS_CONSUMER_TRACE",
+      "observation": "Six open Dependabot PRs (#207 #206 #205 #203 #202 #5); update grouping, lock alignment and consumer tests need source-specific qualification.",
+      "evidence": "gh pr list --state open; .github/dependabot.yml; .github/renovate.json",
+      "decision": "Choose newer supported stable versions on affected natural owners, not wholesale version-string bumping.",
+      "formalObligation": "Upgrade requires lock consistency, owner tests, vulnerable regression negative tests where applicable.",
+      "consumers": "Web, Runtime, Artifact"
+    },
+    {
+      "id": "LEGO-01",
+      "problemClass": "LEGO_DEFINITION",
+      "naturalOwner": "services/harness",
+      "standing": "NOT_YET_FALSIFIED",
+      "observation": "Existing H03 ActionAdmission and H04 EffectBinding declare boundaries; no current cross-service transitive authority experiment was run.",
+      "evidence": "services/harness/planning/lego-plan-r1.json nodes H03,H04",
+      "decision": "Register HS2 verification slice; do not claim H03/H04 implementation is broken.",
+      "formalObligation": "EffectiveAuthority(composition) subset of authorized authority; UNKNOWN remains UNKNOWN.",
+      "consumers": "Harness Tool consumers"
+    },
+    {
+      "id": "SEC-01",
+      "problemClass": "SECURITY_COMPOSITION",
+      "naturalOwner": "platform/security",
+      "standing": "NOT_YET_FALSIFIED",
+      "observation": "Security S01-S05 and Agent Security AS/XAS lens exist; empirical path proof needs requalification.",
+      "evidence": "platform/security/planning/lego-plan-r1.json; catalogs/knowledge/lessons/agent-security-lego-r1.md",
+      "decision": "Register SS2 consumer-qualified effect composition; no new policy engine.",
+      "formalObligation": "LocalSafety(A) and LocalSafety(B) do not alone establish Safety(A ∘ B).",
+      "consumers": "MCP, network, runtime, finance"
+    },
+    {
+      "id": "NET-01",
+      "problemClass": "NETWORK_EGRESS",
+      "naturalOwner": "platform/network",
+      "standing": "NOT_YET_FALSIFIED",
+      "observation": "Network N02-N04 list observations and fault acceptance; current cross-node transitive egress evidence was not executed in this audit.",
+      "evidence": "platform/network/planning/lego-plan-r1.json",
+      "decision": "Register NS2; run indirect DNS/proxy/monitoring service probes in isolated scenario.",
+      "formalObligation": "ObservedEgress is bounded by declared consumer policy after simulated inner-layer failure.",
+      "consumers": "Network developer egress, Windows/WSL"
+    },
+    {
+      "id": "TEST-01",
+      "problemClass": "TEST_EVIDENCE",
+      "naturalOwner": "services/harness",
+      "standing": "NEEDS_CONSUMER_TRACE",
+      "observation": "Green unit tests and executed Runtime jobs do not alone demonstrate domain semantic success; targeted real consumer Golden Path coverage not enumerated here.",
+      "evidence": "AGENTS.md; docs/architecture/TESTING_UPSTREAM_ADOPTION_R1.md",
+      "decision": "Reuse owner CDC, replay, failure injection and trajectory evaluation; inventory real consumer calls.",
+      "formalObligation": "CompletedEffect -> independently observed domain result or UNKNOWN.",
+      "consumers": "All owner services"
+    },
+    {
+      "id": "FORMAL-01",
+      "problemClass": "FORMAL_INFORMATION_FLOW",
+      "naturalOwner": "platform/security",
+      "standing": "NOT_YET_FALSIFIED",
+      "observation": "Shared timing/cache and cross-run noninterference require multi-trace proofs beyond single-run event logging.",
+      "evidence": "OpenAI frontier training environment 2026-10-23; existing Agent Security information-flow lens",
+      "decision": "Scope strong isolation to untrusted workloads/secret-bearing consumers before expensive hardware tests.",
+      "formalObligation": "LowEquivalent(s1,s2) -> LowEquivalent(Obs(run(s1)),Obs(run(s2))) within explicit model.",
+      "consumers": "Multi-Agent/Runtime"
+    },
+    {
+      "id": "SKILL-01",
+      "problemClass": "SKILL_PROVENANCE",
+      "naturalOwner": "services/harness",
+      "standing": "OBSERVED_NOT_DEFECT",
+      "observation": "Native Ordivon, Matt and ECC Skills were discoverable; installation is not proof of task execution or applicability.",
+      "evidence": "Ordivon skills.search and skills.read, 2026-10-24",
+      "decision": "Select one task-relevant approved skill at a time; verify resulting owner effect.",
+      "formalObligation": "SkillRead != WorkCompleted; ToolDiscovered != EffectAuthorized.",
+      "consumers": "Harness and skills consumers"
+    },
+    {
+      "id": "CI-03",
+      "problemClass": "CI_EXECUTION",
+      "naturalOwner": "tools/repo",
+      "standing": "CONFIRMED_FAIL_PENDING_OWNER_PR",
+      "observation": "New open PR #231 fails root-verification for owner-universe-bound convergence plans; this observation does not establish the exact failing assertion.",
+      "evidence": "gh pr view/checks 231; GitHub Actions run 40028281009; files: tools/repo/affected_owners.py, tools/repo/convergence_plan.py, tools/repo/test_convergence_plan.py",
+      "decision": "Fix in existing PR #231; do not fork duplicate owner-universe checker.",
+      "formalObligation": "ConvergenceOwnerSet(plan) subset of DeclaredOwnerUniverse(sourceCut), with strict unknown-owner rejection.",
+      "consumers": "Repository CI, affected-owner selection, merge queue"
+    }
+  ],
+  "followUp": {
+    "observedAt": "2026-10-24",
+    "protectedGithubMain": "0d534cdcc312f71998e1825f2a41ccbcc3880248",
+    "openPR": 18,
+    "pr224": {
+      "head": "579c7b416927ca3e82586bd9aad2746a1965e3c1",
+      "status": "CHECK_SUCCESS_PR_OPEN_NOT_MAIN"
+    },
+    "pr231": {
+      "head": "4c5901c77dfc",
+      "status": "CHECK_FAILURE"
+    },
+    "remainingKnownFailedChecks": [
+      231,
+      218,
+      162,
+      139
+    ],
+    "remainingKnownConflicts": [
+      211
+    ],
+    "qualification": "Specific source-scoped follow-up. Original census counts remain an earlier observation; no background monitoring is implied."
+  }
+}

@@ -251,6 +251,70 @@ def validate_current_document(text: str) -> None:
             raise ArchitectureDocsError(f"stale current-state wording present: {forbidden}")
 
 
+
+def validate_formal_issue_census(
+    census: dict[str, Any], plans: dict[str, dict[str, Any]]
+) -> None:
+    """Check LEGO reference integrity, never implementation or domain acceptance."""
+    if census.get("kind") != "ordivon.formal-lego-issue-census-evidence":
+        raise ArchitectureDocsError("unexpected issue census kind")
+    if census.get("truthRole") != "time-scoped-audit-evidence-not-registry-or-admission":
+        raise ArchitectureDocsError("issue census must remain non-authoritative")
+
+    issues = census.get("issues")
+    if not isinstance(issues, list) or not issues:
+        raise ArchitectureDocsError("issue census must contain typed issues")
+    issue_ids: set[str] = set()
+    for issue in issues:
+        if not isinstance(issue, dict):
+            raise ArchitectureDocsError("issue census entry must be an object")
+        issue_id = issue.get("id")
+        if not isinstance(issue_id, str) or not issue_id:
+            raise ArchitectureDocsError("issue identity required")
+        if issue_id in issue_ids:
+            raise ArchitectureDocsError(f"duplicate issue identity: {issue_id}")
+        issue_ids.add(issue_id)
+        for field in ("problemClass", "naturalOwner", "standing", "evidence", "consumers", "formalObligation"):
+            if not isinstance(issue.get(field), str) or not issue[field].strip():
+                raise ArchitectureDocsError(f"issue {issue_id} lacks {field}")
+
+    registrations = census.get("registrations")
+    if not isinstance(registrations, list) or not registrations:
+        raise ArchitectureDocsError("issue census needs owner-local LEGO links")
+    seen: set[tuple[str, str]] = set()
+    for ref in registrations:
+        if not isinstance(ref, dict):
+            raise ArchitectureDocsError("LEGO registration must be an object")
+        plan_path, slice_id = ref.get("ownerPlan"), ref.get("slice")
+        if not isinstance(plan_path, str) or not isinstance(slice_id, str) or not slice_id:
+            raise ArchitectureDocsError("LEGO registration identity missing")
+        path = Path(plan_path)
+        if path.is_absolute() or ".." in path.parts or not plan_path:
+            raise ArchitectureDocsError("invalid owner-local LEGO path")
+        if (plan_path, slice_id) in seen:
+            raise ArchitectureDocsError("duplicate owner-local LEGO link")
+        seen.add((plan_path, slice_id))
+        plan = plans.get(plan_path)
+        if not isinstance(plan, dict) or plan.get("truthRole") != "planning-projection-not-project-truth":
+            raise ArchitectureDocsError("owner-local LEGO plan must remain non-authoritative")
+        nodes = plan.get("nodes")
+        if not isinstance(nodes, list):
+            raise ArchitectureDocsError("owner-local LEGO nodes missing")
+        node_ids = {n["id"] for n in nodes if isinstance(n, dict) and isinstance(n.get("id"), str)}
+        hits = [s for s in plan.get("slices", []) if isinstance(s, dict) and s.get("id") == slice_id]
+        if len(hits) != 1:
+            raise ArchitectureDocsError(f"owner-local LEGO slice {slice_id} not unique")
+        slice_ = hits[0]
+        bound = slice_.get("nodeIds")
+        if not isinstance(bound, list) or not bound or not all(isinstance(n, str) and n in node_ids for n in bound):
+            raise ArchitectureDocsError(f"unknown LEGO node in {slice_id}")
+        clauses = slice_.get("acceptance")
+        if not isinstance(clauses, list) or not clauses or not all(isinstance(c, str) and c.strip() for c in clauses):
+            raise ArchitectureDocsError(f"LEGO slice {slice_id} needs falsifiable acceptance")
+        if slice_.get("status") not in {"PROPOSED", "IMPLEMENTED", "VERIFIED", "RETIRED"}:
+            raise ArchitectureDocsError(f"LEGO slice {slice_id} has unknown state")
+
+
 def validate_repository(root: Path = ROOT) -> None:
     current = root / CURRENT.relative_to(ROOT)
     deployed = root / DEPLOYED.relative_to(ROOT)
@@ -313,6 +377,19 @@ def validate_repository(root: Path = ROOT) -> None:
         raise ArchitectureDocsError("Tempo graceful cold-stop budget drifted")
     if trace_acceptance.get("status") != "ACCEPTED_DEPLOYED_ON_DEMAND":
         raise ArchitectureDocsError("persistent trace backend lacks accepted live evidence")
+
+    issue_evidence_dir = root / "docs" / "architecture" / "evidence"
+    for census_path in issue_evidence_dir.glob("FORMAL_LEGO_ISSUE_CENSUS_*_R*.json"):
+        census = _load_json(census_path)
+        plans: dict[str, dict[str, Any]] = {}
+        for ref in census.get("registrations", []):
+            if not isinstance(ref, dict) or not isinstance(ref.get("ownerPlan"), str):
+                raise ArchitectureDocsError("invalid owner-local LEGO reference")
+            relative = Path(ref["ownerPlan"])
+            if relative.is_absolute() or ".." in relative.parts:
+                raise ArchitectureDocsError("invalid owner-local LEGO path")
+            plans[ref["ownerPlan"]] = _load_json(root / relative)
+        validate_formal_issue_census(census, plans)
 
     for path, marker in HISTORICAL.items():
         candidate = root / path.relative_to(ROOT)
