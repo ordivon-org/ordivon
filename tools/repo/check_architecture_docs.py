@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import tomllib
 import re
 from pathlib import Path
 from typing import Any
@@ -253,7 +254,7 @@ def validate_current_document(text: str) -> None:
 
 
 def validate_formal_issue_census(
-    census: dict[str, Any], plans: dict[str, dict[str, Any]]
+    census: dict[str, Any], plans: dict[str, dict[str, Any]], *, root: Path = ROOT
 ) -> None:
     """Check LEGO reference integrity, never implementation or domain acceptance."""
     if census.get("kind") != "ordivon.formal-lego-issue-census-evidence":
@@ -264,6 +265,9 @@ def validate_formal_issue_census(
     issues = census.get("issues")
     if not isinstance(issues, list) or not issues:
         raise ArchitectureDocsError("issue census must contain typed issues")
+    owner_manifest = tomllib.loads((root / "tools/repo/owners.toml").read_text(encoding="utf-8"))
+    known_owners = {row["root"].removesuffix("/") for row in owner_manifest["owners"]}
+    known_owners.add("tools/repo")  # Repository mechanics, not a domain owner.
     issue_ids: set[str] = set()
     for issue in issues:
         if not isinstance(issue, dict):
@@ -274,6 +278,8 @@ def validate_formal_issue_census(
         if issue_id in issue_ids:
             raise ArchitectureDocsError(f"duplicate issue identity: {issue_id}")
         issue_ids.add(issue_id)
+        if issue.get("naturalOwner") not in known_owners:
+            raise ArchitectureDocsError(f"issue {issue_id} has undeclared naturalOwner")
         for field in ("problemClass", "naturalOwner", "standing", "evidence", "consumers", "formalObligation"):
             if not isinstance(issue.get(field), str) or not issue[field].strip():
                 raise ArchitectureDocsError(f"issue {issue_id} lacks {field}")
@@ -455,7 +461,7 @@ def validate_repository(root: Path = ROOT) -> None:
             if relative.is_absolute() or ".." in relative.parts:
                 raise ArchitectureDocsError("invalid owner-local LEGO path")
             plans[ref["ownerPlan"]] = _load_json(root / relative)
-        validate_formal_issue_census(census, plans)
+        validate_formal_issue_census(census, plans, root=root)
 
     for path, marker in HISTORICAL.items():
         candidate = root / path.relative_to(ROOT)
