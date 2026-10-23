@@ -14,4 +14,12 @@ else
   pnpm exec playwright install chromium
 fi
 pnpm e2e
+
+# Native Bevy consumer: contract, replay, error injection and ECS behavior.
+# Keep this in the existing Game owner test rather than a new CI framework.
+(
+  cd kits/room-action-r0
+  mise install
+  mise run verify
+)
 """

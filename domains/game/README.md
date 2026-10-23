@@ -334,3 +334,7 @@ See [`docs/PRODUCT.md`](docs/PRODUCT.md), [`docs/ARCHITECTURE.md`](docs/ARCHITEC
 ## License
 
 Apache License 2.0.
+
+## Native reusable Game LEGO
+
+- [Room Action Kit](kits/room-action-r0/README.md): Bevy-native typed recipes, palette/JSON CLI, deterministic seed/replay, encounter/wave/dash/weapon LEGO and real ECS consumer tests. This is a reusable technical kit, not proof of human player value. The existing Game owner verification runs its locked Rust consumers.
