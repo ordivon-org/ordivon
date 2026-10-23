@@ -265,9 +265,9 @@ def validate_formal_issue_census(
     issues = census.get("issues")
     if not isinstance(issues, list) or not issues:
         raise ArchitectureDocsError("issue census must contain typed issues")
-    manifest = tomllib.loads((ROOT / "tools/repo/owners.toml").read_text(encoding="utf-8"))
-    known_owners = {owner["root"].rstrip("/") for owner in manifest["owners"]}
-    known_owners.add(str(Path(__file__).resolve().parent.relative_to(ROOT)))
+    owner_manifest = tomllib.loads((ROOT / "tools/repo/owners.toml").read_text(encoding="utf-8"))
+    declared_owners = {owner["root"].rstrip("/") for owner in owner_manifest["owners"]}
+    declared_owners.add(str(Path(__file__).resolve().parent.relative_to(ROOT)))
     issue_ids: set[str] = set()
     for issue in issues:
         if not isinstance(issue, dict):
@@ -281,7 +281,7 @@ def validate_formal_issue_census(
         for field in ("problemClass", "naturalOwner", "standing", "evidence", "consumers", "formalObligation"):
             if not isinstance(issue.get(field), str) or not issue[field].strip():
                 raise ArchitectureDocsError(f"issue {issue_id} lacks {field}")
-        if issue["naturalOwner"] not in known_owners:
+        if issue["naturalOwner"] not in declared_owners:
             raise ArchitectureDocsError(f"issue {issue_id} has undeclared naturalOwner")
 
     representation_types = {
@@ -353,32 +353,38 @@ def validate_formal_issue_census(
         if slice_.get("status") not in {"PROPOSED", "IMPLEMENTED", "VERIFIED", "RETIRED"}:
             raise ArchitectureDocsError(f"LEGO slice {slice_id} has unknown state")
 
-    # An issue has exactly one disposition. An owner slice must have real issue consumers.
-    linked_slices: set[tuple[str, str]] = set()
+
+    # Registration is a total, typed relation: every observed issue is either
+    # linked to a verified owner-local identity or retains an explicit gap.
+    # Neither state asserts runtime behavior has been proved.
+    linked_pairs: set[tuple[str, str]] = set()
     for issue in issues:
         issue_id = issue["id"]
-        reg = issue.get("registration")
-        if not isinstance(reg, dict):
-            raise ArchitectureDocsError(f"issue {issue_id} missing registration")
-        if reg.get("state") == "UNREGISTERED":
-            if not isinstance(reg.get("reason"), str) or not reg["reason"].strip():
+        registration = issue.get("registration")
+        if not isinstance(registration, dict):
+            raise ArchitectureDocsError(f"issue {issue_id} lacks registration disposition")
+        state = registration.get("state")
+        if state == "UNREGISTERED":
+            if not isinstance(registration.get("reason"), str) or not registration["reason"].strip():
                 raise ArchitectureDocsError(f"issue {issue_id} lacks unregistered reason")
-            if "ownerPlan" in reg or "slice" in reg:
-                raise ArchitectureDocsError(f"issue {issue_id} mixes registration and gap")
-        elif reg.get("state") == "LINKED":
-            plan_path, slice_id = reg.get("ownerPlan"), reg.get("slice")
+            if "ownerPlan" in registration or "slice" in registration:
+                raise ArchitectureDocsError(f"issue {issue_id} mixes gap and linked registration")
+        elif state == "LINKED":
+            plan_path = registration.get("ownerPlan")
+            slice_id = registration.get("slice")
             if not isinstance(plan_path, str) or not isinstance(slice_id, str):
-                raise ArchitectureDocsError(f"issue {issue_id} malformed owner-local link")
+                raise ArchitectureDocsError(f"issue {issue_id} has invalid owner-local LEGO link")
             pair = (plan_path, slice_id)
             if pair not in seen:
-                raise ArchitectureDocsError(f"issue {issue_id} links unknown owner-local slice")
-            if not plan_path.startswith(issue["naturalOwner"] + "/planning/"):
+                raise ArchitectureDocsError(f"issue {issue_id} links unknown owner-local LEGO")
+            plan_path = pair[0]
+            if plan_path.split("/planning/")[0] != issue["naturalOwner"]:
                 raise ArchitectureDocsError(f"issue {issue_id} linked outside natural owner")
-            linked_slices.add(pair)
+            linked_pairs.add(pair)
         else:
-            raise ArchitectureDocsError(f"issue {issue_id} unknown registration state")
-    if linked_slices != seen:
-        raise ArchitectureDocsError("orphan owner-local LEGO slice")
+            raise ArchitectureDocsError(f"issue {issue_id} has unknown registration state")
+    if linked_pairs != seen:
+        raise ArchitectureDocsError("orphan owner-local LEGO registration")
 
 
 def validate_repository(root: Path = ROOT) -> None:

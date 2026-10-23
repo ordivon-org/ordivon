@@ -73,7 +73,7 @@
       },
       "registration": {
         "state": "UNREGISTERED",
-        "reason": "No owner-local verified consumer LEGO is yet evidenced"
+        "reason": "Owner-local LEGO slice and consumer acceptance are not yet evidenced; census observation is not registration."
       }
     },
     {
@@ -97,7 +97,7 @@
       },
       "registration": {
         "state": "UNREGISTERED",
-        "reason": "No owner-local verified consumer LEGO is yet evidenced"
+        "reason": "Owner-local LEGO slice and consumer acceptance are not yet evidenced; census observation is not registration."
       }
     },
     {
@@ -121,7 +121,7 @@
       },
       "registration": {
         "state": "UNREGISTERED",
-        "reason": "No owner-local verified consumer LEGO is yet evidenced"
+        "reason": "Owner-local LEGO slice and consumer acceptance are not yet evidenced; census observation is not registration."
       }
     },
     {
@@ -145,7 +145,7 @@
       },
       "registration": {
         "state": "UNREGISTERED",
-        "reason": "No owner-local verified consumer LEGO is yet evidenced"
+        "reason": "Owner-local LEGO slice and consumer acceptance are not yet evidenced; census observation is not registration."
       }
     },
     {
@@ -167,7 +167,7 @@
       },
       "registration": {
         "state": "UNREGISTERED",
-        "reason": "No owner-local verified consumer LEGO is yet evidenced"
+        "reason": "Owner-local LEGO slice and consumer acceptance are not yet evidenced; census observation is not registration."
       }
     },
     {
@@ -191,7 +191,7 @@
       },
       "registration": {
         "state": "UNREGISTERED",
-        "reason": "No owner-local verified consumer LEGO is yet evidenced"
+        "reason": "Owner-local LEGO slice and consumer acceptance are not yet evidenced; census observation is not registration."
       }
     },
     {
@@ -215,7 +215,7 @@
       },
       "registration": {
         "state": "UNREGISTERED",
-        "reason": "No owner-local verified consumer LEGO is yet evidenced"
+        "reason": "Owner-local LEGO slice and consumer acceptance are not yet evidenced; census observation is not registration."
       }
     },
     {
@@ -364,7 +364,7 @@
       },
       "registration": {
         "state": "UNREGISTERED",
-        "reason": "No owner-local verified consumer LEGO is yet evidenced"
+        "reason": "Owner-local LEGO slice and consumer acceptance are not yet evidenced; census observation is not registration."
       }
     },
     {
@@ -388,7 +388,7 @@
       },
       "registration": {
         "state": "UNREGISTERED",
-        "reason": "No owner-local verified consumer LEGO is yet evidenced"
+        "reason": "Owner-local LEGO slice and consumer acceptance are not yet evidenced; census observation is not registration."
       }
     }
   ],
