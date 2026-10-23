@@ -604,3 +604,26 @@ def test_issue_owner_source_cut_is_explicit(tmp_path: Path) -> None:
     )
     with pytest.raises(module.ArchitectureDocsError, match="undeclared naturalOwner"):
         module.validate_formal_issue_census(census, plans, root=tmp_path)
+
+def test_formal_issue_method_skill_is_bound_to_selected_source_cut(tmp_path: Path) -> None:
+    census, plans = formal_issue_inputs()
+    owner_file = tmp_path / "tools" / "repo" / "owners.toml"
+    owner_file.parent.mkdir(parents=True)
+    owner_file.write_text(
+        (ROOT / "tools" / "repo" / "owners.toml").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    # The selected source cut has no method Skills. A skill from the checkout
+    # executing the validator must not satisfy that source's obligations.
+    with pytest.raises(module.ArchitectureDocsError, match="unavailable method Skill"):
+        module.validate_formal_issue_census(census, plans, root=tmp_path)
+
+    # Once the exact source cut contains its declared method Skills, the
+    # existing owner plan and problem-to-LEGO graph must validate normally.
+    for issue in census["issues"]:
+        skill = issue["representation"].get("methodSkill")
+        if skill is not None:
+            target = tmp_path / skill
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text("admitted method source cut\n", encoding="utf-8")
+    module.validate_formal_issue_census(census, plans, root=tmp_path)

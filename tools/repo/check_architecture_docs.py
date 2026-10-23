@@ -310,7 +310,7 @@ def validate_formal_issue_census(
             or not skill.startswith(".agents/skills/")
             or not skill.endswith("/SKILL.md")
             or ".." in Path(skill).parts
-            or not (ROOT / skill).is_file()
+            or not (root / skill).is_file()
         ):
             raise ArchitectureDocsError(f"issue {issue_id} references unavailable method Skill")
         for field in ("requiredWitness", "selectionReason"):
