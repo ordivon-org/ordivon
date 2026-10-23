@@ -2,7 +2,7 @@
 opa = "1.21.2"
 python = "3.15.0"
 uv = "0.13.1"
-rust = "1.99.1"
+rust = { version = "1.99.1", components = "clippy,rustfmt" }
 
 [tasks.verify]
 run = """
