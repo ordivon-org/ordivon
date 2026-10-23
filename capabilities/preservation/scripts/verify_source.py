@@ -94,6 +94,7 @@ def main() -> int:
     _require(isinstance(compose, dict), "compose profile must be an object")
     services = compose.get("services")
     _require(isinstance(services, dict) and bool(services), "compose services must be nonempty")
+    _require("archivematica-storage-service" in services, "required Archivematica storage service is absent")
     _require(
         all(isinstance(name, str) and isinstance(config, dict) for name, config in services.items()),
         "compose services require names and object configs",
