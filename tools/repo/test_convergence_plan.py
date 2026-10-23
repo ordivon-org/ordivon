@@ -69,6 +69,10 @@ class ConvergencePlanTests(unittest.TestCase):
         )
         self.assertEqual(plan["scopeIds"], ["owner-component:ALL"])
 
+    def test_unregistered_executable_path_refuses_to_skip_consumer_verification(self) -> None:
+        with self.assertRaisesRegex(ValueError, "unregistered owner path"):
+            MODULE.build_plan(changed_files=["services/new-owner/src/main.py"])
+
     def test_repository_only_change_does_not_invent_domain_impact(self) -> None:
         plan = MODULE.build_plan(changed_files=["docs/architecture/EXAMPLE.md"])
         self.assertEqual(plan["queueClass"], "REPOSITORY_ONLY")

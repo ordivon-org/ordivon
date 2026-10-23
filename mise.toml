@@ -67,6 +67,7 @@ run = """
 set -euo pipefail
 python3 -m unittest tools/repo/test_tracked_secrets.py
 python3 -m unittest tools/repo/test_workspace_ready.py
+uv run --with pyyaml==6.0.3 python -m unittest tools/repo/test_dependency_update_ownership.py
 python3 -m unittest tools/repo/test_sql_dialects.py
 uv run --with pglast==8.6 python tools/repo/check_sql_dialects.py
 python3 tools/repo/test_affected_owners.py
