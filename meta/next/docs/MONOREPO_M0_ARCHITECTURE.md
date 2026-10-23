@@ -128,14 +128,13 @@ Ordivon uses a **latest-stable-by-default** language runtime policy.
 6. A newer stable runtime exposing latent warnings, deprecations, resource leaks, or dependency drift is treated as useful migration evidence to fix, not as a reason to remain indefinitely on the old runtime.
 7. Sharing the same runtime version never implies sharing one virtual environment, lockfile, release, or rollback boundary.
 
-**2026-10-15 enforcement refinement.** The latest-stable rule is an invariant,
-not an advisory or an Agent preference. `tools/repo/check_latest_stable_languages.py`
-is part of the existing required `repo:ci` gate. Its short-lived upstream
-release evidence is captured in `tools/repo/latest_stable_languages.json`;
-stale evidence fails closed. Every deployed language carrier (including
-extensionless scripts, secondary provider interpreter selectors, Rego/OPA,
-PowerShell and database SQL dialect executors) must have a current version
-proof; a mise pin alone never proves a live service has migrated.
+**Consumer-driven upgrades.** A release-date observation or an expiring
+version survey is not a pull-request gate. Discover upstream stable updates
+through maintainers and existing dependency-update tooling; then update
+owner-pinned manifests and lockfiles together and verify real consumers.
+Preserve executable/runtime, schema, and integration tests as merge gates;
+do not block unrelated changes solely because a survey timestamp aged.
+Actual installed-service qualification remains separate from source CI.
 
 **Strict exceptional use:** An older interpreter/compiler can be retained only
 after an explicit human decision with an exact project/path, reproduced
