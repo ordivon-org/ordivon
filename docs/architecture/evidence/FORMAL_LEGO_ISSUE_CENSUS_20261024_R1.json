@@ -4,7 +4,7 @@
   "truthRole": "time-scoped-audit-evidence-not-registry-or-admission",
   "observedAt": "2026-10-24",
   "source": {
-    "protectedGithubMain": "d507010f93f6fd6b23560e99b71a6c4df1be4597",
+    "protectedGithubMain": "ac5139d5cd54004ccd4acca89e71930c68afe6af",
     "linuxLocalMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
     "mergeBase": "80c17a3635219fa00c91ee9ea00700918bd14df4",
     "researchLocalMain": "098c623d9c38a2fffcf620242f35577d7c827b69"
@@ -57,9 +57,9 @@
       "problemClass": "SOURCE_CONVERGENCE",
       "naturalOwner": "tools/repo",
       "standing": "OBSERVED",
-      "observation": "Local main and protected remote main diverge; 2300 local-only and 313 remote-only commits at observation.",
-      "evidence": "git merge-base main origin/main; git rev-list --left-right --count main...origin/main",
-      "decision": "Consumer-based patch/merge comparison; never force-reset protected main.",
+      "observation": "Exact Git graph for local main 13704d0cac9e and protected origin/main ac5139d5cd54: 2300 local-only and 378 remote-only commits from 80c17a363521. Among 1546 local non-merge commits compared by Git patch-id, 26 have exact patch equivalents and 1520 have no exact equivalents. Patch distinctness does not imply consumer-level functional uniqueness.",
+      "evidence": "Observed 2026-10-23T23:39:03Z: git merge-base main origin/main; git rev-list --left-right --count main...origin/main; git cherry -v origin/main main; git status --porcelain (clean). Exact identities: local 13704d0cac9e113b395f2d5a21b5bf8119aa04a5, remote ac5139d5cd54004ccd4acca89e71930c68afe6af, base 80c17a3635219fa00c91ee9ea00700918bd14df4. No merge/reset/cherry-pick/rebase/delete performed.",
+      "decision": "Do not fast-forward or reset a non-ancestor local main. Select only source-bound local deltas that preserve actual consumer behavior via owner-native contracts; do not equate Git SHA or patch uniqueness with unique LEGO capability.",
       "formalObligation": "The selected source must be an explicit source cut and each chosen change must preserve owner CDC.",
       "consumers": "Git source, CI, all downstream consumers",
       "representation": {
