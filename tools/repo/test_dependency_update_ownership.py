@@ -34,7 +34,13 @@ class DependencyUpdateOwnershipTests(unittest.TestCase):
             self.assertGreater(len(update["directories"]), 1)
             self.assertEqual(update["groups"]["same-dependency"], {"group-by": "dependency-name"})
             self.assertEqual(len(update["directories"]), len(set(update["directories"])))
-        self.assertEqual(by_ecosystem["cargo"]["directory"], "/services/runtime")
+        cargo = by_ecosystem["cargo"]
+        self.assertEqual(
+            cargo["directories"],
+            ["/services/runtime", "/domains/game/kits/room-action-r0"],
+        )
+        self.assertEqual(cargo["groups"]["same-dependency"], {"group-by": "dependency-name"})
+        self.assertNotIn("directory", cargo)
         self.assertEqual(by_ecosystem["github-actions"]["directory"], "/")
 
 
