@@ -114,5 +114,20 @@ trait Provider {
         self.assertEqual(errors, [])
 
 
+    def test_changed_formal_model_digest_fails_closed(self):
+        trace, invariants = manifests()
+        mutated = copy.deepcopy(trace)
+        mutated["formalSpecification"]["moduleSha256"] = "0" * 64
+        errors = self.module.validate(mutated, invariants)
+        self.assertTrue(any("formal source drift" in error for error in errors), errors)
+
+    def test_removed_formal_model_binding_fails_closed(self):
+        trace, invariants = manifests()
+        mutated = copy.deepcopy(trace)
+        mutated["formalSpecification"]["modelBindings"].pop()
+        errors = self.module.validate(mutated, invariants)
+        self.assertTrue(any("formal model binding set drift" in error for error in errors), errors)
+
+
 if __name__ == "__main__":
     unittest.main()
