@@ -55,8 +55,10 @@ def test_epoch5_is_forward_compatible_with_installed_live_gateway():
     assert manifest["surfaceEpoch"] == 5
     assert manifest["packageVersion"] == project["version"] == "0.8.1"
     assert manifest["tools"] == LIVE_TOOLS
-    assert project["requires-python"] == "==3.15.0"
-    assert (ROOT / ".python-version").read_text().strip() == "3.15.0"
+    root_python = tomllib.loads((ROOT.parents[1] / "mise.toml").read_text())["tools"]["python"]
+    owner_python = (ROOT / ".python-version").read_text().strip()
+    assert owner_python == root_python
+    assert project["requires-python"] == f"=={owner_python}"
 
 
 def test_capability_resolve_implementation_comes_from_real_gateway():

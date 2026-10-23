@@ -18,4 +18,4 @@ if [[ -z "$chromium_executable" ]]; then
 fi
 
 ORDIVON_WEB_CHROMIUM_EXECUTABLE="$chromium_executable" \
-  mise exec node@26.12.0 -- node "$root/test/browser-e2e.ts"
+  mise exec node@26.12.1 -- node "$root/test/browser-e2e.ts"

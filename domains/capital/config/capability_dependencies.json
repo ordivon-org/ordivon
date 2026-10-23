@@ -21,7 +21,7 @@
     "capitalAccounting": {
       "provider": "SQLite via Python stdlib sqlite3",
       "interpreter": "./.venv/bin/python",
-      "pythonVersion": "3.15.0",
+      "pythonVersion": "3.15.1",
       "sqliteVersion": "3.53.1",
       "responsibility": "bounded single-host atomic accounting, reservation/post/void, idempotency and restart durability",
       "nonResponsibility": "does not establish settlement finality, legal ownership, deployability, venue execution truth, external-write admission, distributed replication or consensus",
@@ -36,7 +36,7 @@
       "interpreter": "./.venv/bin/python",
       "nonResponsibility": "does not implement a generic Research/Data platform, experiment-tracking server, lineage graph, scientific-method authority, Wave-A research pipeline, or borrow the ordivon-research-v2 virtualenv",
       "provider": "PyArrow / DuckDB / NumPy / SciPy / scikit-learn primitives consumed directly by the Capital Risk/Research domains",
-      "pythonVersion": "3.15.0",
+      "pythonVersion": "3.15.1",
       "requiredPythonModules": [
         "numpy",
         "pyarrow",
@@ -72,7 +72,7 @@
       "provider": "websockets",
       "version": "17.1",
       "interpreter": "./.venv/bin/python",
-      "pythonVersion": "3.15.0",
+      "pythonVersion": "3.15.1",
       "qualificationContract": "contracts/websocket-client-mechanics-v1.json",
       "standing": "WEBSOCKETS_17_1_REQUALIFIED_R17",
       "responsibility": "bounded RFC 6455 client handshake/framing/control-frame/close/message-limit mechanics plus proxy/TLS integration",

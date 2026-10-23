@@ -2,7 +2,7 @@
 name = "ordivon-artifact-v2"
 version = "0.0.0"
 description = "Repository environment for Ordivon Artifact Build & Delivery."
-requires-python = "==3.15.0"
+requires-python = "==3.15.1"
 dependencies = [
   "attrs==26.1.0",
   "Pillow==12.3.0",
@@ -23,7 +23,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-  "ruff==0.16.8",
+  "ruff==0.17.2",
 ]
 test = [
   "pytest==9.1.1",
