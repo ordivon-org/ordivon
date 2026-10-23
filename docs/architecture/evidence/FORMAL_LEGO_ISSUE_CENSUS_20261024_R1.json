@@ -61,7 +61,11 @@
       "evidence": "git merge-base main origin/main; git rev-list --left-right --count main...origin/main",
       "decision": "Consumer-based patch/merge comparison; never force-reset protected main.",
       "formalObligation": "The selected source must be an explicit source cut and each chosen change must preserve owner CDC.",
-      "consumers": "Git source, CI, all downstream consumers"
+      "consumers": "Git source, CI, all downstream consumers",
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "Owner-local LEGO slice and consumer acceptance are not yet evidenced; census observation is not registration."
+      }
     },
     {
       "id": "GIT-02",
@@ -72,7 +76,11 @@
       "evidence": "git for-each-ref refs/heads refs/remotes",
       "decision": "Retire only branches fully reachable from canonical main or with verified zero unique consumers/evidence.",
       "formalObligation": "Retire(b) implies all unique commits/effects/evidence are reachable elsewhere.",
-      "consumers": "Git/Runtime/Research"
+      "consumers": "Git/Runtime/Research",
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "Owner-local LEGO slice and consumer acceptance are not yet evidenced; census observation is not registration."
+      }
     },
     {
       "id": "WS-01",
@@ -83,7 +91,11 @@
       "evidence": "runtime.workspace_list + git worktree list --porcelain",
       "decision": "Close clean unheld workspaces only after source/Job/evidence and exact SourceStateDigest checks.",
       "formalObligation": "Close(w) -> no active Job and no unique unpreserved source/effect evidence.",
-      "consumers": "Runtime, Harness"
+      "consumers": "Runtime, Harness",
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "Owner-local LEGO slice and consumer acceptance are not yet evidenced; census observation is not registration."
+      }
     },
     {
       "id": "PR-01",
@@ -94,7 +106,11 @@
       "evidence": "gh pr list --state open --json mergeable,statusCheckRollup",
       "decision": "Compare overlapping changes by owner CDC; select one best implementation per consumer.",
       "formalObligation": "Merge(p) requires compatible protected base, required CI and semantic consumer acceptance.",
-      "consumers": "Repo CI, runtime, web, game, security"
+      "consumers": "Repo CI, runtime, web, game, security",
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "Owner-local LEGO slice and consumer acceptance are not yet evidenced; census observation is not registration."
+      }
     },
     {
       "id": "CI-01",
@@ -105,7 +121,11 @@
       "evidence": "GitHub Actions run 40020297819, failing test at test/verification-entry.test.ts:52",
       "decision": "Reuse and repair PR #224; explicitly select compatible shell and verify exit-code propagation.",
       "formalObligation": "ShellInterpreter(script) supports every used shell option; failure oracle is preserved.",
-      "consumers": "Web verification, Security OPA verifier"
+      "consumers": "Web verification, Security OPA verifier",
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "Owner-local LEGO slice and consumer acceptance are not yet evidenced; census observation is not registration."
+      }
     },
     {
       "id": "CI-02",
@@ -116,7 +136,11 @@
       "evidence": "gh run list --limit 100 --json conclusion,status",
       "decision": "Investigate genuine failure signatures and expected concurrency cancellation separately.",
       "formalObligation": "RunCancelled != RunFailed; CI pass must be scoped to selected revision and consumers.",
-      "consumers": "Protected main and owners"
+      "consumers": "Protected main and owners",
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "Owner-local LEGO slice and consumer acceptance are not yet evidenced; census observation is not registration."
+      }
     },
     {
       "id": "DEPS-01",
@@ -127,7 +151,11 @@
       "evidence": "gh pr list --state open; .github/dependabot.yml; .github/renovate.json",
       "decision": "Choose newer supported stable versions on affected natural owners, not wholesale version-string bumping.",
       "formalObligation": "Upgrade requires lock consistency, owner tests, vulnerable regression negative tests where applicable.",
-      "consumers": "Web, Runtime, Artifact"
+      "consumers": "Web, Runtime, Artifact",
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "Owner-local LEGO slice and consumer acceptance are not yet evidenced; census observation is not registration."
+      }
     },
     {
       "id": "LEGO-01",
@@ -138,7 +166,12 @@
       "evidence": "services/harness/planning/lego-plan-r1.json nodes H03,H04",
       "decision": "Register HS2 verification slice; do not claim H03/H04 implementation is broken.",
       "formalObligation": "EffectiveAuthority(composition) subset of authorized authority; UNKNOWN remains UNKNOWN.",
-      "consumers": "Harness Tool consumers"
+      "consumers": "Harness Tool consumers",
+      "registration": {
+        "state": "LINKED",
+        "ownerPlan": "services/harness/planning/lego-plan-r1.json",
+        "slice": "HS2"
+      }
     },
     {
       "id": "SEC-01",
@@ -149,7 +182,12 @@
       "evidence": "platform/security/planning/lego-plan-r1.json; catalogs/knowledge/lessons/agent-security-lego-r1.md",
       "decision": "Register SS2 consumer-qualified effect composition; no new policy engine.",
       "formalObligation": "LocalSafety(A) and LocalSafety(B) do not alone establish Safety(A ∘ B).",
-      "consumers": "MCP, network, runtime, finance"
+      "consumers": "MCP, network, runtime, finance",
+      "registration": {
+        "state": "LINKED",
+        "ownerPlan": "platform/security/planning/lego-plan-r1.json",
+        "slice": "SS2"
+      }
     },
     {
       "id": "NET-01",
@@ -160,7 +198,12 @@
       "evidence": "platform/network/planning/lego-plan-r1.json",
       "decision": "Register NS2; run indirect DNS/proxy/monitoring service probes in isolated scenario.",
       "formalObligation": "ObservedEgress is bounded by declared consumer policy after simulated inner-layer failure.",
-      "consumers": "Network developer egress, Windows/WSL"
+      "consumers": "Network developer egress, Windows/WSL",
+      "registration": {
+        "state": "LINKED",
+        "ownerPlan": "platform/network/planning/lego-plan-r1.json",
+        "slice": "NS2"
+      }
     },
     {
       "id": "TEST-01",
@@ -171,7 +214,12 @@
       "evidence": "AGENTS.md; docs/architecture/TESTING_UPSTREAM_ADOPTION_R1.md",
       "decision": "Reuse owner CDC, replay, failure injection and trajectory evaluation; inventory real consumer calls.",
       "formalObligation": "CompletedEffect -> independently observed domain result or UNKNOWN.",
-      "consumers": "All owner services"
+      "consumers": "All owner services",
+      "registration": {
+        "state": "LINKED",
+        "ownerPlan": "services/harness/planning/lego-plan-r1.json",
+        "slice": "HS2"
+      }
     },
     {
       "id": "FORMAL-01",
@@ -182,7 +230,12 @@
       "evidence": "OpenAI frontier training environment 2026-10-23; existing Agent Security information-flow lens",
       "decision": "Scope strong isolation to untrusted workloads/secret-bearing consumers before expensive hardware tests.",
       "formalObligation": "LowEquivalent(s1,s2) -> LowEquivalent(Obs(run(s1)),Obs(run(s2))) within explicit model.",
-      "consumers": "Multi-Agent/Runtime"
+      "consumers": "Multi-Agent/Runtime",
+      "registration": {
+        "state": "LINKED",
+        "ownerPlan": "platform/security/planning/lego-plan-r1.json",
+        "slice": "SS2"
+      }
     },
     {
       "id": "SKILL-01",
@@ -193,7 +246,11 @@
       "evidence": "Ordivon skills.search and skills.read, 2026-10-24",
       "decision": "Select one task-relevant approved skill at a time; verify resulting owner effect.",
       "formalObligation": "SkillRead != WorkCompleted; ToolDiscovered != EffectAuthorized.",
-      "consumers": "Harness and skills consumers"
+      "consumers": "Harness and skills consumers",
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "Owner-local LEGO slice and consumer acceptance are not yet evidenced; census observation is not registration."
+      }
     },
     {
       "id": "CI-03",
@@ -204,7 +261,11 @@
       "evidence": "gh pr view/checks 231; GitHub Actions run 40028281009; files: tools/repo/affected_owners.py, tools/repo/convergence_plan.py, tools/repo/test_convergence_plan.py",
       "decision": "Fix in existing PR #231; do not fork duplicate owner-universe checker.",
       "formalObligation": "ConvergenceOwnerSet(plan) subset of DeclaredOwnerUniverse(sourceCut), with strict unknown-owner rejection.",
-      "consumers": "Repository CI, affected-owner selection, merge queue"
+      "consumers": "Repository CI, affected-owner selection, merge queue",
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "Owner-local LEGO slice and consumer acceptance are not yet evidenced; census observation is not registration."
+      }
     }
   ],
   "followUp": {

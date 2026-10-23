@@ -469,3 +469,60 @@ def test_formal_issue_census_cannot_grant_authority() -> None:
     census["truthRole"] = "semantic-authority"
     with pytest.raises(module.ArchitectureDocsError, match="non-authoritative"):
         module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issue_census_rejects_missing_registration_disposition() -> None:
+    census, plans = formal_issue_inputs()
+    del census["issues"][0]["registration"]
+    with pytest.raises(module.ArchitectureDocsError, match="lacks registration disposition"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issue_census_rejects_unbound_problem_slice() -> None:
+    census, plans = formal_issue_inputs()
+    issue = next(issue for issue in census["issues"] if issue["id"] == "NET-01")
+    issue["registration"]["slice"] = "NS-NOT-DEFINED"
+    with pytest.raises(module.ArchitectureDocsError, match="links unknown owner-local LEGO"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issue_census_rejects_cross_owner_problem_link() -> None:
+    census, plans = formal_issue_inputs()
+    issue = next(issue for issue in census["issues"] if issue["id"] == "NET-01")
+    issue["registration"]["ownerPlan"] = "services/harness/planning/lego-plan-r1.json"
+    issue["registration"]["slice"] = "HS2"
+    with pytest.raises(module.ArchitectureDocsError, match="linked outside natural owner"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issue_census_rejects_unexplained_gap() -> None:
+    census, plans = formal_issue_inputs()
+    issue = next(issue for issue in census["issues"] if issue["id"] == "GIT-01")
+    issue["registration"]["reason"] = " "
+    with pytest.raises(module.ArchitectureDocsError, match="lacks unregistered reason"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issue_census_rejects_unconsumed_lego_registration() -> None:
+    census, plans = formal_issue_inputs()
+    for issue in census["issues"]:
+        if issue["registration"].get("slice") == "NS2":
+            issue["registration"] = {"state": "UNREGISTERED", "reason": "no consumer linkage"}
+    with pytest.raises(module.ArchitectureDocsError, match="orphan owner-local LEGO registration"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issue_census_rejects_malformed_link_shape() -> None:
+    census, plans = formal_issue_inputs()
+    issue = next(issue for issue in census["issues"] if issue["id"] == "NET-01")
+    issue["registration"]["ownerPlan"] = ["platform/network/planning/lego-plan-r1.json"]
+    with pytest.raises(module.ArchitectureDocsError, match="invalid owner-local LEGO link"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issue_census_rejects_gap_disguised_as_link() -> None:
+    census, plans = formal_issue_inputs()
+    issue = next(issue for issue in census["issues"] if issue["id"] == "GIT-01")
+    issue["registration"]["ownerPlan"] = "platform/network/planning/lego-plan-r1.json"
+    with pytest.raises(module.ArchitectureDocsError, match="mixes gap and linked registration"):
+        module.validate_formal_issue_census(census, plans)
