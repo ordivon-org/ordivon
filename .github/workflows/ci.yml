@@ -99,13 +99,10 @@ jobs:
           fi
           printf 'owners=%s\n' "$(IFS=,; echo "${owners[*]-}")" >> "$GITHUB_OUTPUT"
           runtime=false
-          game=false
           for selected in "${owners[@]-}"; do
             [[ "$selected" == "runtime" ]] && runtime=true
-            [[ "$selected" == "game" ]] && game=true
           done
           printf 'runtime=%s\n' "$runtime" >> "$GITHUB_OUTPUT"
-          printf 'game=%s\n' "$game" >> "$GITHUB_OUTPUT"
           printf '%s\n' "${tasks[@]-}" > "$RUNNER_TEMP/ordivon-affected-tasks.txt"
           {
             echo "### Affected owners"
@@ -124,16 +121,6 @@ jobs:
               echo '~~~'
             } >> "$GITHUB_STEP_SUMMARY"
           fi
-
-      # Bevy's native playable consumer needs the Ubuntu system headers and
-      # pkg-config records; Playwright's browser runtime setup does not supply them.
-      - name: Install Game native build dependencies
-        if: steps.affected.outputs.game == 'true'
-        shell: bash
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends libx11-dev libasound2-dev libudev-dev libxkbcommon-x11-0 libwayland-dev libxkbcommon-dev
-          pkg-config --exists wayland-client xkbcommon
 
       - name: Verify affected owners
         shell: bash
