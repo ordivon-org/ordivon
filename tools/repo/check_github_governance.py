@@ -51,6 +51,10 @@ def configured_dirs(row: dict) -> set[str]:
     return set()
 
 def main() -> int:
+    # This verifier uses assertions for its native policy checks. Python -O removes
+    # them; fail closed rather than incorrectly certifying an unchecked source tree.
+    if not __debug__:
+        raise RuntimeError("github governance cannot be verified under optimized Python (-O)")
     assert DEPENDABOT.is_file(), "missing root Dependabot config"
     assert WORKFLOW.is_file(), "missing root required workflow"
     assert RUNTIME_RELEASE_WORKFLOW.is_file(), "missing Runtime tagged-release workflow"
