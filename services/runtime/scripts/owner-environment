@@ -7,9 +7,23 @@ cargo_bin=${CARGO_BIN:-$(command -v cargo || true)}
 rustc_bin=${RUSTC_BIN:-$(command -v rustc || true)}
 # Keep a separate rebuildable environment for each interpreter release.
 # A stale Python 3.12 .venv must not impersonate the Python 3.15 contract.
-env_dir=${ORDIVON_OWNER_ENV_DIR:-"$repo/.venv-py3.15.0"}
+python_version=${ORDIVON_OWNER_PYTHON:-}
+if [[ -z "$python_version" ]]; then
+  # One existing owner pin; do not shadow services/runtime/mise.toml.
+  python_version=$(python3 - "$repo/mise.toml" <<'PYTOOLS'
+import sys
+import tomllib
+from pathlib import Path
+
+version = tomllib.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))["tools"]["python"]
+if not isinstance(version, str) or len(version.split(".")) != 3 or not all(part.isdigit() for part in version.split(".")):
+    raise SystemExit("Runtime mise.toml must pin an exact Python patch release")
+print(version)
+PYTOOLS
+  )
+fi
+env_dir=${ORDIVON_OWNER_ENV_DIR:-"$repo/.venv-py$python_version"}
 python_bin="$env_dir/bin/python"
-python_version=${ORDIVON_OWNER_PYTHON:-3.15.0}
 tooling_lock="$repo/requirements-tooling.lock.txt"
 
 usage() {
@@ -52,14 +66,18 @@ doctor() {
   [[ "$rust" == rustc\ 1.99.1* ]] || { echo "unexpected rustc: $rust" >&2; exit 1; }
   [[ "$cargo" == cargo\ 1.99.1* ]] || { echo "unexpected cargo: $cargo" >&2; exit 1; }
   [[ -x "$python_bin" ]] || { echo "Runtime tooling environment is not materialized: $python_bin" >&2; exit 1; }
-  "$python_bin" - <<'PY'
+  "$python_bin" - "$python_version" <<'PY'
 import importlib.metadata as md
 import sys
-if sys.version_info[:3] != (3, 15, 0):
-    raise SystemExit(f"Runtime tooling profile expects Python 3.15.0, got {sys.version.split()[0]}")
+try:
+    required = tuple(int(part) for part in sys.argv[1].split("."))
+except ValueError:
+    raise SystemExit(f"invalid Runtime Python requirement: {sys.argv[1]!r}")
+if len(required) != 3 or sys.version_info[:3] != required:
+    raise SystemExit(f"Runtime tooling profile expects Python {sys.argv[1]}, got {sys.version.split()[0]}")
 if md.version('ruff') != '0.15.17':
     raise SystemExit(f"unexpected Ruff version: {md.version('ruff')}")
-print('owner environment doctor: valid profile=test rust=1.99.1 python=3.15.0 ruff=0.15.17')
+print(f'owner environment doctor: valid profile=test rust=1.99.1 python={sys.argv[1]} ruff=0.15.17')
 PY
 }
 materialize_runtime_inspect() {
