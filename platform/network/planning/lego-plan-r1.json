@@ -104,14 +104,17 @@
       "state": "IMPLEMENTED",
       "sharedRefs": [],
       "evidence": [
-        "README.md"
+        "README.md",
+        "consumers/developer-egress/profile.sh",
+        "tests/test_developer_egress_profile.py"
       ],
       "dependencies": [],
       "mustNotOwn": [
         "generic core authority transfer"
       ],
       "acceptance": [
-        "Adding a profile does not redefine generic Network acceptance."
+        "Adding a profile does not redefine generic Network acceptance.",
+        "Cold Workspace dependency consumers reuse the existing developer-egress profile; absent or unsafe egress fails closed without a second tunnel."
       ]
     }
   ],
