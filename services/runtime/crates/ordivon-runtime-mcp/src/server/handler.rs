@@ -80,8 +80,8 @@ impl ServerHandler for RuntimeServer {
             .map(|tool| self.decorate_tool_for_host_extensions(tool))
     }
 
-    fn get_info(&self) -> ServerInfo {
-        ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
+    fn get_info(&self) -> rmcp::model::ServerConfig {
+        rmcp::model::ServerConfig::new(ServerCapabilities::builder().enable_tools().build())
             .with_server_info(
                 Implementation::new("ordivon-runtime-mcp", env!("CARGO_PKG_VERSION"))
                     .with_title("Ordivon Runtime"),
