@@ -469,3 +469,24 @@ def test_formal_issue_census_cannot_grant_authority() -> None:
     census["truthRole"] = "semantic-authority"
     with pytest.raises(module.ArchitectureDocsError, match="non-authoritative"):
         module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issue_census_rejects_unknown_registered_issue() -> None:
+    census, plans = formal_issue_inputs()
+    census["registrations"][0]["issueIds"] = ["GHOST-999"]
+    with pytest.raises(module.ArchitectureDocsError, match="unknown registered issue"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issue_census_rejects_cross_owner_registration() -> None:
+    census, plans = formal_issue_inputs()
+    census["registrations"][0]["issueIds"] = ["NET-01"]
+    with pytest.raises(module.ArchitectureDocsError, match="registered issue owner mismatch"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issue_census_requires_issue_to_slice_links() -> None:
+    census, plans = formal_issue_inputs()
+    census["registrations"][0].pop("issueIds", None)
+    with pytest.raises(module.ArchitectureDocsError, match="LEGO registration requires linked issues"):
+        module.validate_formal_issue_census(census, plans)
