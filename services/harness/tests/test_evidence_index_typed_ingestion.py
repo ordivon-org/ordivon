@@ -327,10 +327,11 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
             )
             self.assertFalse(current, entry.get("claimId"))
             self.assertIn("@runtime-dependency-closure", invalidating, entry.get("claimId"))
-        self.assertEqual(
-            check_evidence._runtime_dependency_closure_digest("HEAD"),
-            "sha256:c24519d0fdfbbaf56233fb25568428ff6fbdf3dac962ea62e2b95590e1a2d7d5",
-        )
+        # The current digest is derived from the actual committed owner lock;
+        # only historical receipts retain a fixed, provenance-bound digest.
+        current_digest = check_evidence._runtime_dependency_closure_digest("HEAD")
+        self.assertRegex(current_digest, r"\Asha256:[0-9a-f]{64}\Z")
+        self.assertNotEqual(current_digest, scoped[0]["runtimeDependencyClosureDigest"])
 
     def test_scoped_runtime_dependency_digest_fails_closed_on_wrong_revision_binding(self) -> None:
         scope = ("src/ordivon_harness/adaptive_edit.py",)
@@ -413,7 +414,8 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
         self.assertIn("src/ordivon_harness/plugin_gateway_effect.py", h2_invalidating)
 
         current = entries["harness.composition.agent-plugin-h2b-cooperative-cancellation"]
-        self.assertEqual(current["status"], "verified")
+        self.assertEqual(current["status"], "historical")
+        self.assertIn("NOT current Harness qualification", current["scope"])
         self.assertEqual(
             current["implementationRevision"],
             "5c70231dcf118a338bc851c2a47eeee4e93b9f0e",
@@ -451,8 +453,14 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
                 current["runtimeDependencyClosureDigest"]
             ),
         )
-        self.assertTrue(current_ok, current_invalidating)
-        self.assertEqual(current_invalidating, [])
+        self.assertFalse(current_ok)
+        self.assertIn("@runtime-dependency-closure", current_invalidating)
+        self.assertEqual(
+            check_evidence._runtime_dependency_closure_digest(
+                str(current["implementationRevision"])
+            ),
+            current["runtimeDependencyClosureDigest"],
+        )
 
     def test_owner_relative_git_paths_survive_identity_preserving_monorepo_import(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

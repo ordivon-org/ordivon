@@ -46,7 +46,7 @@ pub fn inspect_job(
     for attempt_id in attempt_ids {
         let attempt = RegistryStorageBoundary::load_attempt(&connection, &attempt_id)?;
         let reservation = RegistryStorageBoundary::load_reservation(&connection, &attempt_id)?;
-        let conditions = load_conditions(&connection, migration_version, &attempt_id)?;
+        let conditions = load_conditions(&connection, migration_version, job_id, &attempt_id)?;
         let (artifact_count, artifact_bytes, truncated_artifacts) = connection
             .query_row(
                 "SELECT COUNT(*),COALESCE(SUM(byte_length),0),COALESCE(SUM(truncated),0) FROM artifacts WHERE attempt_id=?1",
@@ -225,6 +225,7 @@ fn open_read_only_with_schema_policy(
 fn load_conditions(
     connection: &Connection,
     migration_version: i64,
+    job_id: &str,
     attempt_id: &str,
 ) -> RuntimeResult<Vec<RuntimeInspectionCondition>> {
     if migration_version < CONDITION_RETIREMENT_MIGRATION_VERSION {
@@ -252,26 +253,34 @@ fn load_conditions(
             .collect();
     }
 
+    // Scope derived conditions to the exact Job/Attempt before any windowing or grouping.
+    // `job_events` already has the durable UNIQUE(job_id,event_sequence) index, so point
+    // inspection stays proportional to this Job instead of total Runtime history.
     let sql = r#"
-WITH runner_latest AS (
+WITH attempt_events AS (
+    SELECT attempt_id,event_sequence,event_type,reason_code,observed_at_ms
+    FROM job_events
+    WHERE job_id=?1 AND attempt_id=?2
+),
+runner_latest AS (
     SELECT attempt_id,reason_code,observed_at_ms,
            ROW_NUMBER() OVER(PARTITION BY attempt_id ORDER BY event_sequence DESC) AS rn
-    FROM job_events WHERE event_type='RUNNER_BOUND'
+    FROM attempt_events WHERE event_type='RUNNER_BOUND'
 ),
 result_event AS (
     SELECT a.attempt_id,e.reason_code,e.observed_at_ms,
            ROW_NUMBER() OVER(PARTITION BY a.attempt_id ORDER BY e.event_sequence DESC) AS rn
     FROM attempts a
-    JOIN job_events e ON e.attempt_id=a.attempt_id AND e.observed_at_ms=a.finished_at_ms
-    WHERE a.result_digest IS NOT NULL
+    JOIN attempt_events e ON e.attempt_id=a.attempt_id AND e.observed_at_ms=a.finished_at_ms
+    WHERE a.job_id=?1 AND a.attempt_id=?2 AND a.result_digest IS NOT NULL
       AND e.event_type IN ('JOB_TERMINAL','RUNNER_RESULT_RECOVERED','ADMIN_TERMINAL_REPAIR','JOB_RESOLUTION_ADMIN_CORRECTED')
 ),
 derived AS (
     SELECT attempt_id,'bundle_ready' AS condition_type,'true' AS status,reason_code,observed_at_ms
-    FROM job_events WHERE event_type='BUNDLE_READY'
+    FROM attempt_events WHERE event_type='BUNDLE_READY'
     UNION ALL
     SELECT attempt_id,'dispatch_issued','true',reason_code,observed_at_ms
-    FROM job_events WHERE event_type='DISPATCH_ISSUED'
+    FROM attempt_events WHERE event_type='DISPATCH_ISSUED'
     UNION ALL
     SELECT attempt_id,'runner_bound','true',reason_code,observed_at_ms
     FROM runner_latest WHERE rn=1
@@ -284,19 +293,20 @@ derived AS (
            CASE WHEN r.state='active' THEN 'CAPACITY_RESERVED' ELSE r.release_reason END,
            r.state_observed_at_ms
     FROM attempts a JOIN concurrency_reservations r ON r.attempt_id=a.attempt_id
+    WHERE a.job_id=?1 AND a.attempt_id=?2
     UNION ALL
     SELECT attempt_id,'recovery_required',CASE recovery_required WHEN 1 THEN 'true' ELSE 'false' END,
            recovery_reason_code,recovery_observed_at_ms
-    FROM attempts WHERE recovery_required IS NOT NULL
+    FROM attempts WHERE job_id=?1 AND attempt_id=?2 AND recovery_required IS NOT NULL
 )
 SELECT condition_type,status,reason_code,observed_at_ms
-FROM derived WHERE attempt_id=?1 ORDER BY condition_type
+FROM derived ORDER BY condition_type
 "#;
     let mut statement = connection.prepare(sql).map_err(|error| {
         RuntimeError::from_sql(error, "prepare derived Attempt condition inspection")
     })?;
     let rows = statement
-        .query_map([attempt_id], |row| {
+        .query_map(params![job_id, attempt_id], |row| {
             Ok(RuntimeInspectionCondition {
                 condition_type: row.get(0)?,
                 status: row.get(1)?,

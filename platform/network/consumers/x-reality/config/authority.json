@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.network-v2.x-reality-egress",
+  "listen": {
+    "host": "127.0.0.1",
+    "port": 19681,
+    "protocol": "http"
+  },
+  "allowedHttpsDomains": [
+    "api.x.com"
+  ],
+  "directFallback": false,
+  "networkAuthority": {
+    "kind": "network-v2",
+    "name": "browserless-prod",
+    "namespace": "nv2-browserless-prod",
+    "carrierService": "network-v2-browserless-provider-carrier.service",
+    "providerSite": "th-bkk"
+  },
+  "authenticationAuthority": {
+    "separate": true,
+    "transportConsumerOwnsCredential": false,
+    "userContextProven": false
+  },
+  "historicalTask": "task:ordivon-x-reality-source-connector-20260904"
+}

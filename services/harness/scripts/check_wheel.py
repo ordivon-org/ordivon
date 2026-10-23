@@ -7,6 +7,7 @@ import argparse
 from email import policy
 from email.parser import BytesParser
 import json
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -214,13 +215,36 @@ def validate_archive(wheel: Path) -> str:
     return project["version"]
 
 
+def wheel_python_interpreter(
+    requires_python: str, observed_python: str, interpreter: str
+) -> str:
+    """Bind the isolated wheel test to the exact current project interpreter.
+
+    Do not resolve the venv using an unrelated cached interpreter or historical
+    qualification version. The same bound executable seeds both base and MCP
+    extra environments.
+    """
+    version = re.fullmatch(r"==([0-9]+\.[0-9]+\.[0-9]+)", requires_python)
+    if version is None:
+        fail(f"project requires-python must be an exact stable version: {requires_python}")
+    if observed_python != version.group(1):
+        fail(f"wheel Python mismatch: project={version.group(1)} actual={observed_python}")
+    if not Path(interpreter).is_absolute():
+        fail("wheel Python interpreter must be an absolute executable path")
+    return interpreter
+
+
 def install_smoke(wheel: Path, version: str) -> dict[str, object]:
     uv = shutil.which("uv")
     if uv is None:
         fail("uv is required")
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
+    exact_python = wheel_python_interpreter(
+        project["requires-python"], sys.version.split()[0], sys.executable
+    )
     with tempfile.TemporaryDirectory(prefix="ordivon-harness-wheel-") as directory:
         root = Path(directory)
-        checked([uv, "venv", "--python", "3.14.7", str(root)])
+        checked([uv, "venv", "--python", exact_python, str(root)])
         python = root / "bin/python"
         cli = root / "bin/ordivon-harness"
         checked([uv, "pip", "install", "--link-mode", "copy", "--python", str(python), str(wheel)])
@@ -265,7 +289,7 @@ def install_smoke(wheel: Path, version: str) -> dict[str, object]:
                 fail(f"CLI still advertises removed surface: {removed}")
 
         mcp_root = root / "mcp-extra"
-        checked([uv, "venv", "--python", "3.14.7", str(mcp_root)])
+        checked([uv, "venv", "--python", exact_python, str(mcp_root)])
         mcp_python = mcp_root / "bin/python"
         checked(
             [

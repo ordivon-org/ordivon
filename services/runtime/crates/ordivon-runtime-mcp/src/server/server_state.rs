@@ -83,7 +83,7 @@ impl RuntimeServer {
                 }
             }
         }
-        let runtime = Runtime::new_service_with_authorities_default_runtime_and_workspace_headroom(
+        let runtime = Runtime::new_with_authorities_default_runtime_and_workspace_headroom(
             config.runtime, config.input_authorities, config.credential_authorities,
             default_runtime_ms, config.workspace_headroom,
         )

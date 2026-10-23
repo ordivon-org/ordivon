@@ -1,0 +1,190 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.research-fresh-agent-corpus",
+  "corpusId": "research-fresh-agent-corpus-r1",
+  "standing": "STRUCTURALLY_DEFINED_NOT_EXECUTED",
+  "provenance": {
+    "designSource": "research infrastructure SC09 / SB07",
+    "observationCut": "2026-10-11",
+    "note": "Historical fixture anchors are not current owner truth; every case requires owner-native revalidation at execution."
+  },
+  "nonClaims": [
+    "fresh_agent_effectiveness",
+    "model_independence",
+    "scientific_validity",
+    "paper_resume",
+    "provider_authority",
+    "owner_currentness_from_copied_fixture",
+    "benchmark_execution",
+    "performance_improvement"
+  ],
+  "cases": [
+    {
+      "caseId": "work-research-mainline-owner-state",
+      "family": "work_owner_cold_entry",
+      "standing": "NOT_EXECUTED",
+      "observedResult": null,
+      "expectedDecisionClass": "REVALIDATE_RESEARCH_MAINLINE_OWNER_STATE",
+      "historicalAnchor": {
+        "workRef": "work:research:mainline-control-r1:20261010",
+        "revision": 15,
+        "snapshotDigest": "sha256:ae47099951cf7d4b196b91e9024a8a5de953797800a944485d0f93d1984b9d14"
+      },
+      "ownerCurrentnessAtRun": {
+        "required": true,
+        "standing": "MUST_REVALIDATE_AT_RUN",
+        "ownerRef": "host-work:work:research:mainline-control-r1:20261010"
+      }
+    },
+    {
+      "caseId": "work-research-architecture-owner-state",
+      "family": "work_owner_cold_entry",
+      "standing": "NOT_EXECUTED",
+      "observedResult": null,
+      "expectedDecisionClass": "REVALIDATE_RESEARCH_ARCHITECTURE_OWNER_STATE",
+      "historicalAnchor": {
+        "workRef": "work:research:architecture-transformation-r2:20261011",
+        "revision": 24,
+        "snapshotDigest": "sha256:3a1f30b26948874869bae51dfcd30c81da86af52f3cebe892a190387a1c3f5e3"
+      },
+      "ownerCurrentnessAtRun": {
+        "required": true,
+        "standing": "MUST_REVALIDATE_AT_RUN",
+        "ownerRef": "host-work:work:research:architecture-transformation-r2:20261011"
+      }
+    },
+    {
+      "caseId": "work-research-infrastructure-owner-state",
+      "family": "work_owner_cold_entry",
+      "standing": "NOT_EXECUTED",
+      "observedResult": null,
+      "expectedDecisionClass": "REVALIDATE_RESEARCH_INFRASTRUCTURE_OWNER_STATE",
+      "historicalAnchor": {
+        "workRef": "work:research:infrastructure-capacity-frontier-r1:20261011",
+        "revision": 17,
+        "snapshotDigest": "sha256:14026d458d5baf6bfe69cd1047f2284ae4bcf27735ad5b538236edbb56fe95a5"
+      },
+      "ownerCurrentnessAtRun": {
+        "required": true,
+        "standing": "MUST_REVALIDATE_AT_RUN",
+        "ownerRef": "host-work:work:research:infrastructure-capacity-frontier-r1:20261011"
+      }
+    },
+    {
+      "caseId": "work-research-r4-method-owner-state",
+      "family": "work_owner_cold_entry",
+      "standing": "NOT_EXECUTED",
+      "observedResult": null,
+      "expectedDecisionClass": "REVALIDATE_RESEARCH_R4_METHOD_OWNER_STATE",
+      "historicalAnchor": {
+        "workRef": "work:research:production-lifecycle-r4-github-integration:20261008",
+        "revision": 105,
+        "snapshotDigest": "sha256:c228b76c5ee83d0646258024d9f630daa6425e74d27443b59420cf50bcd8d689"
+      },
+      "ownerCurrentnessAtRun": {
+        "required": true,
+        "standing": "MUST_REVALIDATE_AT_RUN",
+        "ownerRef": "host-work:work:research:production-lifecycle-r4-github-integration:20261008"
+      }
+    },
+    {
+      "caseId": "work-capability-science-nonpaper",
+      "family": "work_owner_cold_entry",
+      "standing": "NOT_EXECUTED",
+      "observedResult": null,
+      "expectedDecisionClass": "REVALIDATE_NON_PAPER_OWNER_STATE",
+      "historicalAnchor": {
+        "workRef": "work:capability-science:r2:20260927",
+        "revision": 2,
+        "snapshotDigest": "sha256:19a7a2fdb2e0b8bcc598cad8fed4a7b097e1f33eca785b22ac13301fdb671f76"
+      },
+      "ownerCurrentnessAtRun": {
+        "required": true,
+        "standing": "MUST_REVALIDATE_AT_RUN",
+        "ownerRef": "host-work:work:capability-science:r2:20260927"
+      }
+    },
+    {
+      "caseId": "route-peer-review-intended-owner",
+      "family": "legal_skill_route",
+      "standing": "NOT_EXECUTED",
+      "observedResult": null,
+      "expectedDecisionClass": "ROUTED_IF_OWNER_CURRENT",
+      "fixtureInput": {
+        "routeId": "review.peer",
+        "intendedCanonicalSkillId": "codex-user/peer-review"
+      },
+      "ownerCurrentnessAtRun": {
+        "required": true,
+        "standing": "MUST_REVALIDATE_AT_RUN",
+        "ownerRef": "skills-owner:codex-user/peer-review"
+      }
+    },
+    {
+      "caseId": "route-peer-review-wrong-owner",
+      "family": "wrong_owner_route",
+      "standing": "NOT_EXECUTED",
+      "observedResult": null,
+      "expectedDecisionClass": "HOLD_WRONG_OWNER",
+      "fixtureInput": {
+        "routeId": "review.peer",
+        "intendedCanonicalSkillId": "codex-user/peer-review",
+        "presentedCanonicalSkillId": "codex-user/citation-management"
+      },
+      "ownerCurrentnessAtRun": {
+        "required": true,
+        "standing": "MUST_REVALIDATE_AT_RUN",
+        "ownerRef": "skills-owner:codex-user/peer-review"
+      }
+    },
+    {
+      "caseId": "route-peer-review-stale-owner",
+      "family": "stale_owner_route",
+      "standing": "NOT_EXECUTED",
+      "observedResult": null,
+      "expectedDecisionClass": "HOLD_STALE_OWNER",
+      "fixtureInput": {
+        "routeId": "review.peer",
+        "intendedCanonicalSkillId": "codex-user/peer-review",
+        "ownerGenerationStanding": "STALE_FIXTURE_ONLY"
+      },
+      "ownerCurrentnessAtRun": {
+        "required": true,
+        "standing": "MUST_REVALIDATE_AT_RUN",
+        "ownerRef": "skills-owner:codex-user/peer-review"
+      }
+    },
+    {
+      "caseId": "evidence-synthesis-owner-adjudication",
+      "family": "evidence_synthesis_hold",
+      "standing": "NOT_EXECUTED",
+      "observedResult": null,
+      "expectedDecisionClass": "HOLD_OWNER_ADJUDICATION_REQUIRED",
+      "fixtureInput": {
+        "evidenceStanding": "MECHANICAL_ONLY",
+        "adjudicationOwnerBound": false
+      },
+      "ownerCurrentnessAtRun": {
+        "required": true,
+        "standing": "MUST_REVALIDATE_AT_RUN",
+        "ownerRef": "study-owner:task-local-evidence-synthesis"
+      }
+    },
+    {
+      "caseId": "tool-selection-without-owner-binding",
+      "family": "tool_selection_owner_hold",
+      "standing": "NOT_EXECUTED",
+      "observedResult": null,
+      "expectedDecisionClass": "HOLD_OWNER_BINDING_REQUIRED",
+      "fixtureInput": {
+        "toolSelectionPresent": true,
+        "ownerBindingPresent": false
+      },
+      "ownerCurrentnessAtRun": {
+        "required": true,
+        "standing": "MUST_REVALIDATE_AT_RUN",
+        "ownerRef": "tool-owner:task-local-selection"
+      }
+    }
+  ]
+}

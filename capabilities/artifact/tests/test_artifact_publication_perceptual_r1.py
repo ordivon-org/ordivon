@@ -1,10 +1,18 @@
 from __future__ import annotations
 
+import hashlib
+import inspect
+import json
+import os
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 
 from PIL import Image
+
+ROOT = Path(__file__).resolve().parents[1]
 
 from artifact_capabilities.publication.attestation import (
     build_publication_carrier_attestation,
@@ -25,6 +33,12 @@ from artifact_capabilities.publication.visual import (
 
 class PublicationPerceptualR1Tests(unittest.TestCase):
     CARRIER = "sha256:" + "a" * 64
+
+    def test_evaluator_contract_accepts_owner_bound_lineage(self) -> None:
+        self.assertIn(
+            "observer_lineage_refs",
+            inspect.signature(evaluate_perceptual_conformance).parameters,
+        )
 
     def _report(
         self,
@@ -57,14 +71,95 @@ class PublicationPerceptualR1Tests(unittest.TestCase):
             self._report("SEMANTIC_LAYOUT", observer="layout-c", key="attempt-c"),
         )
 
+    def _lineage(
+        self,
+        reports: tuple[ObserverReport, ...],
+        *,
+        execution_refs: tuple[str | None, ...] | None = None,
+        model_ref: str = "model:shared",
+    ) -> dict[str, dict[str, str]]:
+        refs = execution_refs or tuple(
+            f"runtime:attempt:{index}" for index, _ in enumerate(reports, start=1)
+        )
+        result: dict[str, dict[str, str]] = {}
+        for report, execution_ref in zip(reports, refs, strict=True):
+            value = {"modelRef": model_ref}
+            if execution_ref is not None:
+                value["executionRef"] = execution_ref
+            result[report.observer_id] = value
+        return result
+
+    def test_shared_required_execution_lineage_escalates_even_with_unique_labels(self) -> None:
+        reports = self._three_passes()
+        result = evaluate_perceptual_conformance(
+            carrier_sha256=self.CARRIER,
+            deterministic_standing="PASS",
+            expected_pages=20,
+            expected_figures=4,
+            expected_tables=5,
+            observer_reports=reports,
+            observer_lineage_refs=self._lineage(
+                reports,
+                execution_refs=("runtime:attempt:same",) * 3,
+            ),
+        )
+        self.assertEqual(result["standing"], "ESCALATE_SPECIALIST")
+        self.assertTrue(
+            any(
+                reason.get("id") == "observer-lineage-not-disjoint"
+                and reason.get("dimension") == "executionRef"
+                for reason in result["adjudicationReasons"]
+            )
+        )
+
+    def test_missing_required_execution_lineage_escalates(self) -> None:
+        reports = self._three_passes()
+        result = evaluate_perceptual_conformance(
+            carrier_sha256=self.CARRIER,
+            deterministic_standing="PASS",
+            expected_pages=20,
+            expected_figures=4,
+            expected_tables=5,
+            observer_reports=reports,
+            observer_lineage_refs=self._lineage(
+                reports,
+                execution_refs=("runtime:attempt:1", None, "runtime:attempt:3"),
+            ),
+        )
+        self.assertEqual(result["standing"], "ESCALATE_SPECIALIST")
+        self.assertTrue(
+            any(
+                reason.get("id") == "observer-lineage-missing"
+                and reason.get("dimension") == "executionRef"
+                and reason.get("observerId") == "vision-b"
+                for reason in result["adjudicationReasons"]
+            )
+        )
+
+    def test_same_model_ref_is_not_required_to_be_disjoint_in_r1(self) -> None:
+        reports = self._three_passes()
+        result = evaluate_perceptual_conformance(
+            carrier_sha256=self.CARRIER,
+            deterministic_standing="PASS",
+            expected_pages=20,
+            expected_figures=4,
+            expected_tables=5,
+            observer_reports=reports,
+            observer_lineage_refs=self._lineage(reports, model_ref="model:shared"),
+        )
+        self.assertEqual(result["standing"], "PASS_AGENT_ENSEMBLE")
+        self.assertEqual(result["requiredDisjointLineageDimensions"], ["executionRef"])
+
     def test_three_independent_passes_supersede_legacy_perceptual_human_gate(self) -> None:
+        reports = self._three_passes()
         perceptual = evaluate_perceptual_conformance(
             carrier_sha256=self.CARRIER,
             deterministic_standing="PASS",
             expected_pages=20,
             expected_figures=4,
             expected_tables=5,
-            observer_reports=self._three_passes(),
+            observer_reports=reports,
+            observer_lineage_refs=self._lineage(reports),
         )
         self.assertEqual(perceptual["standing"], "PASS_AGENT_ENSEMBLE")
         self.assertFalse(perceptual["authorReviewRequired"])
@@ -105,6 +200,7 @@ class PublicationPerceptualR1Tests(unittest.TestCase):
             expected_figures=4,
             expected_tables=5,
             observer_reports=reports,
+            observer_lineage_refs=self._lineage(reports),
         )
         self.assertEqual(result["standing"], "ESCALATE_SPECIALIST")
         self.assertEqual(result["escalationTarget"], "INDEPENDENT_PUBLICATION_SPECIALIST")
@@ -135,6 +231,7 @@ class PublicationPerceptualR1Tests(unittest.TestCase):
             expected_figures=4,
             expected_tables=5,
             observer_reports=reports,
+            observer_lineage_refs=self._lineage(reports),
         )
         self.assertEqual(result["standing"], "FAIL")
 
@@ -151,6 +248,7 @@ class PublicationPerceptualR1Tests(unittest.TestCase):
             expected_figures=4,
             expected_tables=5,
             observer_reports=reports,
+            observer_lineage_refs=self._lineage(reports),
         )
         self.assertEqual(result["standing"], "ESCALATE_SPECIALIST")
 
@@ -169,19 +267,131 @@ class PublicationPerceptualR1Tests(unittest.TestCase):
             tables_reviewed=5,
             findings=(),
         )
+        reports = (
+            report,
+            self._report("VENUE_AWARE_VISION", observer="vision-b", key="attempt-b"),
+            self._report("SEMANTIC_LAYOUT", observer="layout-c", key="attempt-c"),
+        )
         result = evaluate_perceptual_conformance(
             carrier_sha256=self.CARRIER,
             deterministic_standing="PASS",
             expected_pages=20,
             expected_figures=4,
             expected_tables=5,
-            observer_reports=(
-                report,
-                self._report("VENUE_AWARE_VISION", observer="vision-b", key="attempt-b"),
-                self._report("SEMANTIC_LAYOUT", observer="layout-c", key="attempt-c"),
-            ),
+            observer_reports=reports,
+            observer_lineage_refs=self._lineage(reports),
         )
         self.assertEqual(result["standing"], "ESCALATE_SPECIALIST")
+
+    def test_verify_cli_consumes_bound_provider_receipts_for_lineage(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            carrier = root / "carrier.json"
+            carrier.write_text(
+                json.dumps(
+                    {
+                        "machineStanding": "PASS",
+                        "pdfSha256": self.CARRIER,
+                        "humanGates": ["HUMAN_PERCEPTUAL_SIGNOFF"],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            report_paths: list[Path] = []
+            receipt_paths: list[Path] = []
+            fixtures = (
+                ("BLIND_VISION", "vision-a", "attempt-a", "runtime:attempt:1"),
+                ("VENUE_AWARE_VISION", "vision-b", "attempt-b", "runtime:attempt:2"),
+                ("SEMANTIC_LAYOUT", "layout-c", "attempt-c", "runtime:attempt:3"),
+            )
+            for role, observer_id, key, execution_ref in fixtures:
+                report_path = root / f"{observer_id}.json"
+                report_path.write_text(
+                    json.dumps(
+                        {
+                            "schemaVersion": 1,
+                            "kind": "publication-perceptual-observer-report",
+                            "observerId": observer_id,
+                            "role": role,
+                            "independenceKey": key,
+                            "carrierSha256": self.CARRIER,
+                            "standing": "PASS",
+                            "inputScope": {"allowed": [], "forbidden": []},
+                            "coverage": {
+                                "pagesExpected": 20,
+                                "pagesReviewed": 20,
+                                "figuresExpected": 4,
+                                "figuresReviewed": 4,
+                                "tablesExpected": 5,
+                                "tablesReviewed": 5,
+                            },
+                            "findings": [],
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+                digest = "sha256:" + hashlib.sha256(report_path.read_bytes()).hexdigest()
+                receipt_path = root / f"{observer_id}.receipt.json"
+                receipt_path.write_text(
+                    json.dumps(
+                        {
+                            "schemaVersion": 1,
+                            "kind": "publication-perceptual-provider-execution-receipt",
+                            "providerId": "fixture-provider",
+                            "observerId": observer_id,
+                            "role": role,
+                            "carrierSha256": self.CARRIER,
+                            "observerReportSha256": digest,
+                            "independenceKey": key,
+                            "lineageRefs": {"executionRef": execution_ref},
+                            "standing": "PASS_PROVIDER_EXECUTION_BOUND",
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+                report_paths.append(report_path)
+                receipt_paths.append(receipt_path)
+
+            command = [
+                sys.executable,
+                str(ROOT / "scripts/publication_perceptual_verify.py"),
+                "--carrier-evaluation",
+                str(carrier),
+                "--pages",
+                "20",
+                "--figures",
+                "4",
+                "--tables",
+                "5",
+            ]
+            for report_path in report_paths:
+                command.extend(["--observer-report", str(report_path)])
+            for receipt_path in receipt_paths:
+                command.extend(["--provider-receipt", str(receipt_path)])
+            env = dict(os.environ)
+            env["PYTHONPATH"] = str(ROOT)
+            completed = subprocess.run(
+                command,
+                cwd=ROOT,
+                env=env,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(completed.returncode, 1, completed.stdout + completed.stderr)
+            result = json.loads(completed.stdout)
+            self.assertEqual(
+                result["perceptual"]["standing"],
+                "ESCALATE_SPECIALIST",
+            )
+            self.assertEqual(result["release"]["standing"], "ESCALATE_SPECIALIST")
+            self.assertTrue(
+                any(
+                    reason.get("id") == "observer-lineage-missing"
+                    and reason.get("dimension") == "executionRef"
+                    for reason in result["perceptual"]["adjudicationReasons"]
+                )
+            )
 
     def test_visual_diff_detects_changed_page(self) -> None:
         with tempfile.TemporaryDirectory() as d:

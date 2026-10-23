@@ -258,7 +258,11 @@ if command == "registry":
     print(json.dumps({"migrationVersion": 1, "activeWorkspaces": []}))
 elif command == "registry-workspace":
     workspace_id = sys.argv[sys.argv.index("--workspace-id") + 1]
-    print(json.dumps({"workspace": {"workspaceId": workspace_id, "activeJobIds": []}}))
+    print(json.dumps({"workspace": {
+        "workspaceId": workspace_id,
+        "activeJobIds": [],
+        "lastActivityMs": None,
+    }}))
 else:
     raise SystemExit(2)
 """,
@@ -327,6 +331,7 @@ def add_release_operator_sources(path: Path, *, push: bool) -> str:
         "ordivon-runtime-cache",
         "ordivon-runtime-status",
         "ordivon-runtime-capacity-acceptance",
+        "ordivon-runtime-pressure-control",
     )
     for name in names:
         write_executable(scripts / name, f"#!/bin/sh\nprintf '{name}-candidate\\n'\n")
@@ -336,7 +341,8 @@ def add_release_operator_sources(path: Path, *, push: bool) -> str:
     policy.parent.mkdir(parents=True, exist_ok=True)
     policy.write_text(
         "ORDIVON_DEFAULT_RUNTIME_MS=3600000\n"
-        "ORDIVON_MAX_RUNTIME_MS=86400000\n",
+        "ORDIVON_MAX_RUNTIME_MS=86400000\n"
+        "ORDIVON_GLOBAL_MAX_CONCURRENCY=16\n",
         encoding="utf-8",
     )
     subprocess.run(["git", "-C", str(path), "add", "scripts", "packaging"], check=True)
@@ -590,14 +596,17 @@ class DeployReclaimTests(unittest.TestCase):
                     "schemaVersion": 1,
                     "defaultRuntimeMs": 3_600_000,
                     "maxRuntimeMs": 86_400_000,
+                    "globalMaxConcurrency": 16,
                 },
             )
             artifacts = {item["name"]: item for item in report["artifacts"]}
-            self.assertEqual(len(artifacts), 12)
+            self.assertEqual(len(artifacts), 13)
             self.assertEqual(artifacts["mcp_probe.py"]["kind"], "support")
             self.assertEqual(artifacts["mcp_probe.py"]["mode"], 0o644)
             self.assertEqual(artifacts["ordivon-runtime-status"]["kind"], "operator")
             self.assertEqual(artifacts["ordivon-runtime-status"]["mode"], 0o755)
+            self.assertEqual(artifacts["ordivon-runtime-pressure-control"]["kind"], "operator")
+            self.assertEqual(artifacts["ordivon-runtime-pressure-control"]["mode"], 0o755)
             self.assertEqual(
                 (candidate / "ordivon-runtime-status").read_bytes(),
                 (repo / "scripts/ordivon-runtime-status").read_bytes(),
@@ -651,6 +660,7 @@ class DeployReclaimTests(unittest.TestCase):
                     "schemaVersion": 1,
                     "defaultRuntimeMs": 3_600_000,
                     "maxRuntimeMs": 86_400_000,
+                    "globalMaxConcurrency": 16,
                 },
             )
             self.assertEqual(
@@ -962,6 +972,7 @@ class DeployReclaimTests(unittest.TestCase):
                     "schemaVersion": 1,
                     "defaultRuntimeMs": 3_600_000,
                     "maxRuntimeMs": 86_400_000,
+                    "globalMaxConcurrency": 16,
                 },
             )
 
@@ -1009,8 +1020,12 @@ class DeployReclaimTests(unittest.TestCase):
                 "ordivon-runtime-cache",
                 "ordivon-runtime-status",
                 "ordivon-runtime-capacity-acceptance",
+                "ordivon-runtime-pressure-control",
             ]
-            for name in release_names:
+            previous_release_names = [
+                name for name in release_names if name != "ordivon-runtime-pressure-control"
+            ]
+            for name in previous_release_names:
                 write_executable(install / name, f"old-{name}\n")
             (install / "mcp_probe.py").write_text("OLD_PROBE = True\n", encoding="utf-8")
             (install / "mcp_probe.py").chmod(0o644)
@@ -1018,7 +1033,7 @@ class DeployReclaimTests(unittest.TestCase):
             prior_receipt = root / "receipts" / "prior"
             prior_receipt.mkdir(parents=True)
             prior_installed = []
-            for name in [*release_names, "mcp_probe.py"]:
+            for name in [*previous_release_names, "mcp_probe.py"]:
                 path = install / name
                 prior_installed.append(
                     {
@@ -1059,6 +1074,7 @@ class DeployReclaimTests(unittest.TestCase):
                     f"ORDIVON_BIND=127.0.0.1:{port}\n"
                     "ORDIVON_BEARER_TOKEN=test\n"
                     "UNRELATED_RELEASE_SETTING=preserve-me\n"
+                    "ORDIVON_GLOBAL_MAX_CONCURRENCY=8\n"
                     f"ORDIVON_RELEASE_SOURCE_REPO={root / 'standalone-runtime'}\n"
                     "ORDIVON_RELEASE_REQUIRED_REF=origin/legacy\n"
                     "ORDIVON_MAX_RUNTIME_MS=3600000\n",
@@ -1101,13 +1117,14 @@ class DeployReclaimTests(unittest.TestCase):
                         "2",
                     ],
                     cwd=REPO,
-                    check=True,
+                    check=False,
                     text=True,
                     capture_output=True,
                 )
+                self.assertEqual(deployed.returncode, 0, deployed.stderr or deployed.stdout)
                 result = json.loads(deployed.stdout)
                 installed = {item["name"]: item for item in result["installed"]}
-                self.assertEqual(len(installed), 12)
+                self.assertEqual(len(installed), 13)
                 self.assertEqual(installed["mcp_probe.py"]["mode"], 0o644)
                 self.assertEqual((install / "mcp_probe.py").stat().st_mode & 0o777, 0o644)
                 self.assertEqual(
@@ -1117,7 +1134,12 @@ class DeployReclaimTests(unittest.TestCase):
                 receipt = Path(result["receipt"])
                 receipt_manifest = json.loads((receipt / "manifest.json").read_text())
                 self.assertEqual(receipt_manifest["schemaVersion"], 2)
-                self.assertEqual(len(receipt_manifest["artifacts"]), 12)
+                self.assertEqual(len(receipt_manifest["artifacts"]), 13)
+                previous_by_name = {
+                    item["name"]: item for item in receipt_manifest["previous"]
+                }
+                self.assertFalse(previous_by_name["ordivon-runtime-pressure-control"]["present"])
+                self.assertIsNone(previous_by_name["ordivon-runtime-pressure-control"]["digest"])
                 self.assertEqual(
                     receipt_manifest["runtimePolicy"]["previous"]["defaultRuntimeMs"],
                     None,
@@ -1127,11 +1149,16 @@ class DeployReclaimTests(unittest.TestCase):
                     3_600_000,
                 )
                 self.assertEqual(
+                    receipt_manifest["runtimePolicy"]["previous"]["globalMaxConcurrency"],
+                    8,
+                )
+                self.assertEqual(
                     receipt_manifest["runtimePolicy"]["candidate"],
                     {
                         "schemaVersion": 1,
                         "defaultRuntimeMs": 3_600_000,
                         "maxRuntimeMs": 86_400_000,
+                        "globalMaxConcurrency": 16,
                     },
                 )
                 self.assertEqual(
@@ -1153,6 +1180,7 @@ class DeployReclaimTests(unittest.TestCase):
                 deployed_env = env_file.read_text(encoding="utf-8")
                 self.assertIn("ORDIVON_DEFAULT_RUNTIME_MS=3600000\n", deployed_env)
                 self.assertIn("ORDIVON_MAX_RUNTIME_MS=86400000\n", deployed_env)
+                self.assertIn("ORDIVON_GLOBAL_MAX_CONCURRENCY=16\n", deployed_env)
                 self.assertIn("ORDIVON_BEARER_TOKEN=test\n", deployed_env)
                 self.assertIn("UNRELATED_RELEASE_SETTING=preserve-me\n", deployed_env)
                 self.assertIn(f"ORDIVON_RELEASE_SOURCE_REPO={repo.resolve()}\n", deployed_env)
@@ -1189,12 +1217,15 @@ class DeployReclaimTests(unittest.TestCase):
             self.assertEqual(rollback["commit"], prior_commit)
             self.assertTrue(rollback["commitKnown"])
             self.assertEqual(len(rollback["installed"]), 12)
+            self.assertIn("ordivon-runtime-pressure-control", rollback["removedArtifacts"])
+            self.assertFalse((install / "ordivon-runtime-pressure-control").exists())
             self.assertEqual((install / "ordivon-runtime-status").read_text(), "old-ordivon-runtime-status\n")
             self.assertEqual((install / "mcp_probe.py").read_text(), "OLD_PROBE = True\n")
             self.assertEqual((install / "mcp_probe.py").stat().st_mode & 0o777, 0o644)
             rolled_back_env = env_file.read_text(encoding="utf-8")
             self.assertNotIn("ORDIVON_DEFAULT_RUNTIME_MS=", rolled_back_env)
             self.assertIn("ORDIVON_MAX_RUNTIME_MS=3600000\n", rolled_back_env)
+            self.assertIn("ORDIVON_GLOBAL_MAX_CONCURRENCY=8\n", rolled_back_env)
             self.assertIn("ORDIVON_BEARER_TOKEN=test\n", rolled_back_env)
             self.assertIn("UNRELATED_RELEASE_SETTING=preserve-me\n", rolled_back_env)
             self.assertIn(
@@ -1202,6 +1233,122 @@ class DeployReclaimTests(unittest.TestCase):
                 rolled_back_env,
             )
             self.assertIn("ORDIVON_RELEASE_REQUIRED_REF=origin/legacy\n", rolled_back_env)
+
+    def test_full_release_plan_rejects_missing_artifact_from_latest_receipted_baseline(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            repo = root / "repo"
+            initialize_git_repository(repo, remote=True)
+            commit = add_release_operator_sources(repo, push=True)
+            candidate = repo / "target" / "release"
+            manifest = root / "candidate-manifest.json"
+            cargo = fake_cargo_for_default_release(root)
+            subprocess.run(
+                [
+                    sys.executable,
+                    "scripts/ordivon-runtime-deploy",
+                    "prepare",
+                    "--source-repo",
+                    str(repo),
+                    "--commit",
+                    commit,
+                    "--candidate-dir",
+                    str(candidate),
+                    "--candidate-manifest",
+                    str(manifest),
+                    "--cargo",
+                    str(cargo),
+                ],
+                cwd=REPO,
+                check=True,
+                text=True,
+                capture_output=True,
+            )
+            install = root / "install"
+            install.mkdir()
+            artifact_records = []
+            manifest_value = json.loads(manifest.read_text(encoding="utf-8"))
+            for artifact in manifest_value["artifacts"]:
+                name = artifact["name"]
+                mode = artifact["mode"]
+                source = candidate / name
+                target = install / name
+                target.write_bytes(source.read_bytes())
+                target.chmod(mode)
+                artifact_records.append(
+                    {
+                        "name": name,
+                        "kind": artifact["kind"],
+                        "mode": mode,
+                        "digest": "sha256:" + hashlib.sha256(target.read_bytes()).hexdigest(),
+                        "bytes": target.stat().st_size,
+                        "path": str(target),
+                    }
+                )
+            receipt = root / "receipts" / "baseline"
+            receipt.mkdir(parents=True)
+            (receipt / "result.json").write_text(
+                json.dumps(
+                    {
+                        "schemaVersion": 2,
+                        "status": "deployed",
+                        "commit": commit,
+                        "finishedAtMs": 1,
+                        "installed": artifact_records,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (install / "ordivon-runtime-pressure-control").unlink()
+            database = root / "registry.sqlite3"
+            initialize_registry(database)
+            env_file = root / "runtime.env"
+            env_file.write_text(
+                "ORDIVON_BIND=127.0.0.1:1\nORDIVON_BEARER_TOKEN=test\n",
+                encoding="utf-8",
+            )
+            environment = dict(os.environ)
+            environment["ORDIVON_RUNTIME_INSPECT"] = str(
+                fake_runtime_inspect_with_active_jobs(root)
+            )
+            planned = subprocess.run(
+                [
+                    sys.executable,
+                    "scripts/ordivon-runtime-deploy",
+                    "plan",
+                    "--source-repo",
+                    str(repo),
+                    "--commit",
+                    commit,
+                    "--candidate-dir",
+                    str(candidate),
+                    "--candidate-manifest",
+                    str(manifest),
+                    "--install-dir",
+                    str(install),
+                    "--database",
+                    str(database),
+                    "--env-file",
+                    str(env_file),
+                    "--receipt-root",
+                    str(root / "receipts"),
+                    "--git",
+                    shutil.which("git") or "/usr/bin/git",
+                ],
+                cwd=REPO,
+                check=False,
+                text=True,
+                capture_output=True,
+                env=environment,
+            )
+            self.assertEqual(planned.returncode, 2, planned.stderr)
+            plan = json.loads(planned.stdout)
+            self.assertFalse(plan["eligible"])
+            self.assertFalse(plan["installedBaseline"]["authorized"])
+            self.assertIn(
+                "installed release artifacts do not match the latest deployment receipt",
+                plan["blockers"],
+            )
 
     def test_new_deployer_rolls_back_legacy_v1_binary_receipt(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -1567,6 +1714,169 @@ class DeployReclaimTests(unittest.TestCase):
             self.assertIsNone(restored["runtimePolicy"]["defaultRuntimeMs"])
             self.assertEqual(restored["runtimePolicy"]["maxRuntimeMs"], 3_600_000)
 
+    def test_runtime_policy_update_owns_global_concurrency_and_preserves_legacy_receipts(self) -> None:
+        scripts_path = str(REPO / "scripts")
+        sys.path.insert(0, scripts_path)
+        try:
+            module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-deploy"))
+        finally:
+            sys.path.remove(scripts_path)
+        with tempfile.TemporaryDirectory() as temporary:
+            env_file = Path(temporary) / "runtime.env"
+            env_file.write_text(
+                "ORDIVON_BIND=127.0.0.1:1\n"
+                "UNRELATED=preserve\n"
+                "ORDIVON_GLOBAL_MAX_CONCURRENCY=8\n"
+                "ORDIVON_MAX_RUNTIME_MS=3600000\n",
+                encoding="utf-8",
+            )
+            previous = module["runtime_policy_state"](env_file)
+            self.assertEqual(previous["globalMaxConcurrency"], 8)
+
+            updated = module["atomic_update_runtime_policy"](
+                env_file,
+                {
+                    "schemaVersion": 1,
+                    "defaultRuntimeMs": 3_600_000,
+                    "maxRuntimeMs": 86_400_000,
+                    "globalMaxConcurrency": 16,
+                },
+                expected_current=previous,
+            )
+            self.assertEqual(updated["globalMaxConcurrency"], 16)
+            text = env_file.read_text(encoding="utf-8")
+            self.assertIn("ORDIVON_GLOBAL_MAX_CONCURRENCY=16\n", text)
+            self.assertIn("UNRELATED=preserve\n", text)
+
+            legacy_candidate = {
+                "schemaVersion": 1,
+                "defaultRuntimeMs": 3_600_000,
+                "maxRuntimeMs": 86_400_000,
+            }
+            module["atomic_update_runtime_policy"](
+                env_file,
+                legacy_candidate,
+                expected_current=legacy_candidate,
+            )
+            self.assertIn(
+                "ORDIVON_GLOBAL_MAX_CONCURRENCY=16\n",
+                env_file.read_text(encoding="utf-8"),
+            )
+
+            restored = module["atomic_update_runtime_policy"](
+                env_file,
+                previous,
+                expected_current=updated,
+            )
+            self.assertEqual(restored["globalMaxConcurrency"], 8)
+            restored_text = env_file.read_text(encoding="utf-8")
+            self.assertIn("ORDIVON_GLOBAL_MAX_CONCURRENCY=8\n", restored_text)
+            self.assertIn("UNRELATED=preserve\n", restored_text)
+
+            absent_env = Path(temporary) / "runtime-absent.env"
+            absent_env.write_text(
+                "ORDIVON_MAX_RUNTIME_MS=3600000\n"
+                "UNRELATED=preserve\n",
+                encoding="utf-8",
+            )
+            legacy_previous = module["runtime_policy_state"](absent_env)
+            self.assertNotIn("globalMaxConcurrency", legacy_previous)
+            explicit_previous = module["runtime_policy_state"](
+                absent_env,
+                track_optional_absence=True,
+            )
+            self.assertIn("globalMaxConcurrency", explicit_previous)
+            self.assertIsNone(explicit_previous["globalMaxConcurrency"])
+
+            absent_updated = module["atomic_update_runtime_policy"](
+                absent_env,
+                {
+                    "schemaVersion": 1,
+                    "defaultRuntimeMs": 3_600_000,
+                    "maxRuntimeMs": 86_400_000,
+                    "globalMaxConcurrency": 16,
+                },
+                expected_current=explicit_previous,
+            )
+            self.assertEqual(absent_updated["globalMaxConcurrency"], 16)
+            absent_restored = module["atomic_update_runtime_policy"](
+                absent_env,
+                explicit_previous,
+                expected_current=absent_updated,
+            )
+            self.assertNotIn("globalMaxConcurrency", absent_restored)
+            self.assertNotIn(
+                "ORDIVON_GLOBAL_MAX_CONCURRENCY=",
+                absent_env.read_text(encoding="utf-8"),
+            )
+            self.assertIn("UNRELATED=preserve\n", absent_env.read_text(encoding="utf-8"))
+
+    def test_runtime_policy_transaction_preimage_matches_optional_candidate_ownership(self) -> None:
+        scripts_path = str(REPO / "scripts")
+        sys.path.insert(0, scripts_path)
+        try:
+            module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-deploy"))
+        finally:
+            sys.path.remove(scripts_path)
+        with tempfile.TemporaryDirectory() as temporary:
+            env_file = Path(temporary) / "runtime.env"
+            env_file.write_text(
+                "ORDIVON_DEFAULT_RUNTIME_MS=3600000\n"
+                "ORDIVON_MAX_RUNTIME_MS=86400000\n"
+                "ORDIVON_GLOBAL_MAX_CONCURRENCY=8\n"
+                "UNRELATED=preserve\n",
+                encoding="utf-8",
+            )
+            legacy_candidate = {
+                "schemaVersion": 1,
+                "defaultRuntimeMs": 3_600_000,
+                "maxRuntimeMs": 86_400_000,
+            }
+            previous = module["runtime_policy_transaction_preimage"](
+                env_file,
+                legacy_candidate,
+            )
+            self.assertNotIn("globalMaxConcurrency", previous)
+
+            module["atomic_update_runtime_policy"](
+                env_file,
+                legacy_candidate,
+                expected_current=previous,
+            )
+            self.assertIn(
+                "ORDIVON_GLOBAL_MAX_CONCURRENCY=8\n",
+                env_file.read_text(encoding="utf-8"),
+            )
+
+            env_file.write_text(
+                env_file.read_text(encoding="utf-8").replace(
+                    "ORDIVON_GLOBAL_MAX_CONCURRENCY=8",
+                    "ORDIVON_GLOBAL_MAX_CONCURRENCY=12",
+                ),
+                encoding="utf-8",
+            )
+            restored = module["atomic_update_runtime_policy"](
+                env_file,
+                previous,
+                expected_current=legacy_candidate,
+            )
+            self.assertEqual(restored["globalMaxConcurrency"], 12)
+            self.assertIn(
+                "ORDIVON_GLOBAL_MAX_CONCURRENCY=12\n",
+                env_file.read_text(encoding="utf-8"),
+            )
+            self.assertIn("UNRELATED=preserve\n", env_file.read_text(encoding="utf-8"))
+
+            owned_candidate = {
+                **legacy_candidate,
+                "globalMaxConcurrency": 16,
+            }
+            owned_previous = module["runtime_policy_transaction_preimage"](
+                env_file,
+                owned_candidate,
+            )
+            self.assertEqual(owned_previous["globalMaxConcurrency"], 12)
+
     def test_runtime_policy_update_preserves_unrelated_env_and_detects_policy_drift(self) -> None:
         scripts_path = str(REPO / "scripts")
         sys.path.insert(0, scripts_path)
@@ -1656,6 +1966,7 @@ class DeployReclaimTests(unittest.TestCase):
                 "ordivon-runtime-cache",
                 "ordivon-runtime-status",
                 "ordivon-runtime-capacity-acceptance",
+                "ordivon-runtime-pressure-control",
             )
             for name in release_names:
                 write_executable(install / name, f"old-{name}\n")
@@ -1742,6 +2053,7 @@ class DeployReclaimTests(unittest.TestCase):
                 "ordivon-runtime-cache",
                 "ordivon-runtime-status",
                 "ordivon-runtime-capacity-acceptance",
+                "ordivon-runtime-pressure-control",
             )
             for name in release_names:
                 write_executable(install / name, f"old-{name}\n")
@@ -1794,6 +2106,7 @@ class DeployReclaimTests(unittest.TestCase):
             self.assertEqual((install / "mcp_probe.py").read_text(), "OLD_PROBE = True\n")
             env_text = env_file.read_text(encoding="utf-8")
             self.assertNotIn("ORDIVON_DEFAULT_RUNTIME_MS=", env_text)
+            self.assertNotIn("ORDIVON_GLOBAL_MAX_CONCURRENCY=", env_text)
             self.assertIn("ORDIVON_MAX_RUNTIME_MS=3600000\n", env_text)
             self.assertIn("ORDIVON_BEARER_TOKEN=secret\n", env_text)
             self.assertIn("UNRELATED=preserve\n", env_text)
@@ -1820,6 +2133,33 @@ class DeployReclaimTests(unittest.TestCase):
         self.assertEqual(module["nonnegative_float"]("87601"), 87_601.0)
         with self.assertRaises(Exception):
             module["nonnegative_float"]("nan")
+
+    def test_reclaim_inspect_cli_accepts_bounded_workspace_selection(self) -> None:
+        scripts_path = str(REPO / "scripts")
+        sys.path.insert(0, scripts_path)
+        try:
+            module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-reclaim"))
+        finally:
+            sys.path.remove(scripts_path)
+        previous = sys.argv
+        sys.argv = [
+            "ordivon-runtime-reclaim",
+            "inspect",
+            "--database",
+            "/tmp/registry.sqlite3",
+            "--runtime-store-root",
+            "/tmp/runtime",
+            "--workspace-id",
+            "ws-alpha",
+            "--workspace-id",
+            "ws-beta",
+        ]
+        try:
+            args = module["parse_args"]()
+        finally:
+            sys.argv = previous
+        self.assertEqual(args.command, "inspect")
+        self.assertEqual(args.workspace_ids, ["ws-alpha", "ws-beta"])
 
     def test_reclaim_requested_selection_does_not_scan_unrelated_workspaces(self) -> None:
         scripts_path = str(REPO / "scripts")
@@ -2437,6 +2777,89 @@ class DeployReclaimTests(unittest.TestCase):
             self.assertEqual(item["closureReason"], "UNINTEGRATED_GIT_COMMITS")
             self.assertEqual(item["uniqueCommitCount"], 1)
 
+    def test_reclaim_prefers_published_origin_main_over_local_head_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "source"
+            baseline = initialize_git_repository(source, remote=True)
+            runtime = root / "runtime"
+            records = runtime / "workspace-records"
+            workspaces = runtime / "workspaces"
+            records.mkdir(parents=True)
+            workspaces.mkdir()
+            workspace = workspaces / "published-equivalent"
+            subprocess.run(
+                ["git", "-C", str(source), "worktree", "add", "--detach", "-q", str(workspace), baseline],
+                check=True,
+            )
+            subprocess.run(["git", "-C", str(workspace), "config", "user.name", "Test"], check=True)
+            subprocess.run(
+                ["git", "-C", str(workspace), "config", "user.email", "test@example.invalid"],
+                check=True,
+            )
+
+            (source / "README.md").write_text("published equivalent\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(source), "add", "README.md"], check=True)
+            subprocess.run(["git", "-C", str(source), "commit", "-qm", "canonical published form"], check=True)
+            subprocess.run(["git", "-C", str(source), "push", "-q", "origin", "main"], check=True)
+            canonical = subprocess.run(
+                ["git", "-C", str(source), "rev-parse", "refs/remotes/origin/main"],
+                check=True, text=True, capture_output=True,
+            ).stdout.strip()
+
+            (workspace / "README.md").write_text("published equivalent\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(workspace), "add", "README.md"], check=True)
+            subprocess.run(["git", "-C", str(workspace), "commit", "-qm", "workspace equivalent form"], check=True)
+
+            subprocess.run(["git", "-C", str(source), "checkout", "--detach", "-q", baseline], check=True)
+            (source / "LOCAL_ONLY.md").write_text("unpublished local drift\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(source), "add", "LOCAL_ONLY.md"], check=True)
+            subprocess.run(["git", "-C", str(source), "commit", "-qm", "unpublished local drift"], check=True)
+            local_head = subprocess.run(
+                ["git", "-C", str(source), "rev-parse", "HEAD"],
+                check=True, text=True, capture_output=True,
+            ).stdout.strip()
+            self.assertNotEqual(local_head, canonical)
+
+            database = root / "registry.sqlite3"
+            initialize_registry(database)
+            environment = dict(os.environ)
+            environment["ORDIVON_RUNTIME_INSPECT"] = str(fake_runtime_inspect(root))
+            (records / "published-equivalent.json").write_text(
+                json.dumps(
+                    {
+                        "schemaVersion": 1,
+                        "workspaceId": "published-equivalent",
+                        "sourceRepo": str(source),
+                        "sourceRevision": baseline,
+                        "workspacePath": str(workspace),
+                        "createdUnixMs": 1,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "scripts/ordivon-runtime-reclaim",
+                    "inspect",
+                    "--database",
+                    str(database),
+                    "--runtime-store-root",
+                    str(runtime),
+                ],
+                cwd=REPO,
+                check=True,
+                text=True,
+                capture_output=True,
+                env=environment,
+            )
+            item = json.loads(result.stdout)["candidates"][0]
+            self.assertEqual(item["classification"], "closable")
+            self.assertEqual(item["closureReason"], "PATCH_EQUIVALENT_IN_CANONICAL")
+            self.assertEqual(item["canonicalHeadRevision"], canonical)
+            self.assertEqual(item["canonicalRef"], "origin/main")
+
     def test_reclaim_does_not_collapse_unique_merge_topology(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -2636,6 +3059,101 @@ class DeployReclaimTests(unittest.TestCase):
                 ],
             )
 
+    def test_reclaim_closed_tombstone_is_convergence_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            records = root / "workspace-records"
+            records.mkdir()
+            digest = "sha256:" + "f" * 64
+            (records / "closed.json").write_text(
+                json.dumps({"schemaVersion": 1, "state": "closed", "sourceStateDigest": digest}),
+                encoding="utf-8",
+            )
+            scripts_path = str(REPO / "scripts")
+            sys.path.insert(0, scripts_path)
+            try:
+                module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-reclaim"))
+            finally:
+                sys.path.remove(scripts_path)
+            tombstone = module["closed_workspace_tombstone"](root, "closed")
+            self.assertIsNotNone(tombstone)
+            self.assertEqual(tombstone["sourceStateDigest"], digest)
+            self.assertIsNone(
+                module["closed_workspace_tombstone"](
+                    root,
+                    "closed",
+                    expected_source_state_digest="sha256:" + "0" * 64,
+                )
+            )
+            self.assertEqual(
+                module["closed_workspace_tombstone"](
+                    root,
+                    "closed",
+                    expected_source_state_digest=digest,
+                )["sourceStateDigest"],
+                digest,
+            )
+            self.assertIsNone(module["closed_workspace_tombstone"](root, "missing"))
+
+    def test_reclaim_close_reconciles_timeout_by_exact_tombstone_replay(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            env_file = root / "runtime.env"
+            env_file.write_text(
+                "ORDIVON_BIND=127.0.0.1:8897\nORDIVON_BEARER_TOKEN=test\n",
+                encoding="utf-8",
+            )
+            scripts_path = str(REPO / "scripts")
+            sys.path.insert(0, scripts_path)
+            try:
+                module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-reclaim"))
+            finally:
+                sys.path.remove(scripts_path)
+
+            planned_head = "a" * 40
+            digest = "sha256:" + "b" * 64
+            calls = []
+
+            class InitialClient:
+                def call_tool(self, name, arguments):
+                    calls.append(("initial", name, dict(arguments)))
+                    if name == "workspace.get":
+                        return {
+                            "workspaceId": "closable",
+                            "currentHeadRevision": planned_head,
+                            "sourceStateDigest": digest,
+                            "dirty": False,
+                        }
+                    if name == "workspace.close":
+                        raise TimeoutError("timed out")
+                    raise AssertionError(name)
+
+            class ReconcileClient:
+                def call_tool(self, name, arguments):
+                    calls.append(("reconcile", name, dict(arguments)))
+                    assert name == "workspace.close"
+                    return {
+                        "workspaceId": "closable",
+                        "removed": False,
+                        "closureDisposition": "already_closed",
+                        "sourceStateDigest": digest,
+                    }
+
+            clients = iter((InitialClient(), ReconcileClient()))
+            module["close_workspace"].__globals__["connect_compatible"] = (
+                lambda *args, **kwargs: next(clients)
+            )
+            result = module["close_workspace"](
+                env_file,
+                "closable",
+                expected_head_revision=planned_head,
+            )
+            self.assertEqual(result["closureDisposition"], "already_closed")
+            self.assertTrue(result["deliveryReconciled"])
+            self.assertEqual([entry[1] for entry in calls], ["workspace.get", "workspace.close", "workspace.close"])
+            self.assertEqual(calls[1][2], calls[2][2])
+            self.assertEqual(calls[2][2]["expectedSourceStateDigest"], digest)
+
     def test_reclaim_close_rejects_head_change_before_cas_close(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -2765,38 +3283,38 @@ class DeployReclaimTests(unittest.TestCase):
             self.assertTrue((receipt / "records/stale.json").is_file())
             self.assertEqual(report["actions"][0]["action"], "record_deleted")
 
-    def test_lifecycle_force_close_helper_uses_force_true(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            observed: list[dict[str, object]] = []
+    def test_lifecycle_close_helper_uses_force_and_exact_source_digest(self) -> None:
+        module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-lifecycle"))
+        close_once = module["close_workspace_once"]
+        globals_ = close_once.__globals__
+        original_client = globals_["runtime_client"]
+        observed: list[dict[str, object]] = []
+        expected_digest = "sha256:" + "d" * 64
 
-            def observe_arguments(arguments: dict[str, object]) -> None:
+        class FakeClient:
+            def call_tool(self, name, arguments):
+                self_outer.assertEqual(name, "workspace.close")
                 observed.append(dict(arguments))
+                return {"closureDisposition": "removed", "removed": True}
 
-            with mcp_server(
-                ["workspace.close"],
-                close_arguments_callback=observe_arguments,
-                modern=False,
-            ) as port:
-                env_file = root / "runtime.env"
-                env_file.write_text(
-                    f"ORDIVON_BIND=127.0.0.1:{port}\nORDIVON_BEARER_TOKEN=test\n",
-                    encoding="utf-8",
-                )
-                module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-lifecycle"))
-                result = module["force_close_workspace"](env_file, "dirty-expired")
-
-            self.assertEqual(result["closureDisposition"], "removed")
-            self.assertEqual(
-                observed,
-                [
-                    {
-                        "schemaVersion": 1,
-                        "workspaceId": "dirty-expired",
-                        "force": True,
-                    }
-                ],
+        self_outer = self
+        try:
+            globals_["runtime_client"] = lambda *_args, **_kwargs: FakeClient()
+            result = close_once(
+                Path("/unused"),
+                "dirty-expired",
+                force=True,
+                expected_source_state_digest=expected_digest,
             )
+        finally:
+            globals_["runtime_client"] = original_client
+
+        self.assertEqual(result["closureDisposition"], "removed")
+        self.assertEqual(len(observed), 1)
+        self.assertTrue(observed[0]["force"])
+        self.assertEqual(
+            observed[0]["expectedSourceStateDigest"], expected_digest
+        )
 
     def test_reclaim_apply_uses_workspace_close_for_clean_workspace(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -2891,6 +3409,186 @@ class DeployReclaimTests(unittest.TestCase):
             report = json.loads(result.stdout)
             self.assertEqual(report["actions"][0]["action"], "workspace_closed")
             self.assertFalse(workspace.exists())
+
+    def test_reclaim_apply_uses_recent_registry_activity_for_minimum_age(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            runtime = root / "runtime"
+            records = runtime / "workspace-records"
+            workspaces = runtime / "workspaces"
+            records.mkdir(parents=True)
+            workspaces.mkdir()
+            database = root / "registry.sqlite3"
+            initialize_registry(database)
+
+            workspace = workspaces / "recent-clean"
+            revision = initialize_git_repository(workspace, remote=False)
+            now_ms = int(time.time() * 1000)
+            created_ms = now_ms - 30 * 60 * 60 * 1000
+            recent_activity_ms = now_ms - 2 * 60 * 60 * 1000
+            record = records / "recent-clean.json"
+            record.write_text(
+                json.dumps(
+                    {
+                        "schemaVersion": 1,
+                        "workspaceId": "recent-clean",
+                        "sourceRepo": str(workspace),
+                        "sourceRevision": revision,
+                        "workspacePath": str(workspace),
+                        "createdUnixMs": created_ms,
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            inspect = root / "ordivon-runtime-inspect-recent"
+            write_executable(
+                inspect,
+                f"""#!/usr/bin/env python3
+import json
+import sys
+
+command = sys.argv[1]
+if command == "registry":
+    print(json.dumps({{"migrationVersion": 1, "activeWorkspaces": []}}))
+elif command == "registry-workspace":
+    workspace_id = sys.argv[sys.argv.index("--workspace-id") + 1]
+    print(json.dumps({{"workspace": {{
+        "workspaceId": workspace_id,
+        "activeJobIds": [],
+        "lastActivityMs": {recent_activity_ms}
+    }}}}))
+else:
+    raise SystemExit(2)
+""",
+            )
+
+            closed: list[str] = []
+
+            def close_callback(workspace_id: str) -> None:
+                closed.append(workspace_id)
+                shutil.rmtree(workspace)
+                record.write_text(
+                    json.dumps(
+                        {
+                            "schemaVersion": 1,
+                            "workspaceId": workspace_id,
+                            "state": "closed",
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+
+            source_digest = "sha256:" + "f" * 64
+            with mcp_server(
+                ["workspace.get", "workspace.close"],
+                close_callback,
+                workspace_get_result={
+                    "workspaceId": "recent-clean",
+                    "currentHeadRevision": revision,
+                    "sourceStateDigest": source_digest,
+                    "dirty": False,
+                },
+                modern=False,
+            ) as port:
+                env_file = root / "runtime.env"
+                env_file.write_text(
+                    f"ORDIVON_BIND=127.0.0.1:{port}\nORDIVON_BEARER_TOKEN=test\n",
+                    encoding="utf-8",
+                )
+                environment = dict(os.environ)
+                environment["ORDIVON_RUNTIME_INSPECT"] = str(inspect)
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        "scripts/ordivon-runtime-reclaim",
+                        "apply",
+                        "--database",
+                        str(database),
+                        "--runtime-store-root",
+                        str(runtime),
+                        "--env-file",
+                        str(env_file),
+                        "--receipt-root",
+                        str(root / "receipts"),
+                        "--lock-file",
+                        str(root / "reclaim.lock"),
+                        "--minimum-age-hours",
+                        "24",
+                        "--classification",
+                        "closable",
+                        "--workspace-id",
+                        "recent-clean",
+                        "--confirm-policy",
+                        "RECLAIM_ELIGIBLE_WORKSPACES",
+                    ],
+                    cwd=REPO,
+                    check=True,
+                    text=True,
+                    capture_output=True,
+                    env=environment,
+                )
+
+            report = json.loads(result.stdout)
+            self.assertEqual(closed, [])
+            self.assertEqual(report["actions"], [])
+            plan = json.loads(
+                (Path(report["receipt"]) / "plan.json").read_text(encoding="utf-8")
+            )
+            [candidate] = plan["candidates"]
+            self.assertFalse(candidate["eligible"])
+            self.assertEqual(candidate["reason"], "younger_than_minimum_age")
+            self.assertEqual(candidate["lastActivityUnixMs"], recent_activity_ms)
+            self.assertEqual(candidate["minimumAgeBasisUnixMs"], recent_activity_ms)
+            self.assertTrue(workspace.is_dir())
+
+            write_executable(
+                inspect,
+                """#!/usr/bin/env python3
+import json
+import sys
+
+command = sys.argv[1]
+if command == "registry":
+    print(json.dumps({"migrationVersion": 1, "activeWorkspaces": []}))
+elif command == "registry-workspace":
+    workspace_id = sys.argv[sys.argv.index("--workspace-id") + 1]
+    print(json.dumps({"workspace": {
+        "workspaceId": workspace_id,
+        "activeJobIds": [],
+        "lastActivityMs": True,
+    }}))
+else:
+    raise SystemExit(2)
+""",
+            )
+            with mcp_server(
+                ["workspace.get", "workspace.close"],
+                close_callback,
+                workspace_get_result={
+                    "workspaceId": "recent-clean",
+                    "currentHeadRevision": revision,
+                    "sourceStateDigest": source_digest,
+                    "dirty": False,
+                },
+                modern=False,
+            ) as port:
+                env_file.write_text(
+                    f"ORDIVON_BIND=127.0.0.1:{port}\nORDIVON_BEARER_TOKEN=test\n",
+                    encoding="utf-8",
+                )
+                malformed = subprocess.run(
+                    result.args,
+                    cwd=REPO,
+                    check=False,
+                    text=True,
+                    capture_output=True,
+                    env=environment,
+                )
+
+            self.assertNotEqual(malformed.returncode, 0)
+            self.assertEqual(closed, [])
+            self.assertTrue(workspace.is_dir())
 
     def test_prepare_and_plan_treat_local_head_as_diagnostic_not_release_authority(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

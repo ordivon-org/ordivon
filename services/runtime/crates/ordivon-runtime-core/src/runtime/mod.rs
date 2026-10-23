@@ -1,5 +1,6 @@
 mod artifact_release_state;
 mod authority_contract;
+mod control_primitives;
 #[cfg(feature = "operator-tools")]
 mod doctor;
 mod engine;
@@ -9,6 +10,7 @@ mod evidence;
 mod execution_provider;
 mod inspection;
 mod job_attempt_state;
+mod lifecycle_locks;
 mod operation_circuit;
 mod platform;
 mod registry;
@@ -71,9 +73,11 @@ pub(crate) use registry::{
 };
 #[cfg(feature = "operator-tools")]
 pub use repair::{
-    apply_runtime_repair, cancel_stale_recovery_required_attempt, RuntimeRepairAction,
-    RuntimeRepairActionKind, RuntimeRepairConfig, RuntimeRepairReport, RuntimeRepairRequest,
-    RuntimeStaleCancelReport, RuntimeStaleCancelRequest, RUNTIME_REPAIR_SCHEMA_VERSION,
+    apply_runtime_repair, cancel_stale_recovery_required_attempt, recover_orphaned_runner_result,
+    RuntimeOrphanResultRecoveryDisposition, RuntimeOrphanResultRecoveryReport,
+    RuntimeOrphanResultRecoveryRequest, RuntimeRepairAction, RuntimeRepairActionKind,
+    RuntimeRepairConfig, RuntimeRepairReport, RuntimeRepairRequest, RuntimeStaleCancelReport,
+    RuntimeStaleCancelRequest, RUNTIME_REPAIR_SCHEMA_VERSION,
 };
 #[cfg(test)]
 pub(crate) use types::operation_request_identity_digest;
@@ -91,25 +95,25 @@ pub(crate) use types::{
     PROPOSAL_IDENTITY_PREFIX, REQUEST_IDENTITY_PREFIX, RUNTIME_RELEASE_IDENTITY_PREFIX,
 };
 pub use types::{
-    runtime_release_effect_id, runtime_release_request_identity_digest, ArtifactDescriptor,
-    ArtifactReadRequest, ArtifactReadResult, AttemptState, AttemptTerminationIntent,
-    CredentialAuthority, CredentialBindingRequest, EffectiveExecutionLimits, EffectiveStepTimeout,
-    ExecutionBudget, ExecutionProfile, ExecutionProposal, ExecutionProviderContract,
-    ExecutionProviderSnapshot, ExecutionStepProposal, ExecutionTarget, ForeignReference,
-    HostDependencyBinding, InputAuthority, InputBindingRequest, JobCancelRequest, JobDesiredState,
-    JobObservation, JobObserveRequest, JobObserveWaitUntil, JobResolution, JobRunProposal,
-    ReservationState, RuntimeCapabilities, RuntimeDeliveryDisposition,
-    RuntimeExecutionTargetCapability, RuntimeJobListCursor, RuntimeJobListRequest,
-    RuntimeJobListResult, RuntimeJobSummary, RuntimeNodeIdentity, RuntimeNodePlatform,
-    RuntimeReleaseAdmission, RuntimeReleaseContract, RuntimeReleaseDisposition,
-    RuntimeReleaseGetRequest, RuntimeReleaseProjection, RuntimeReleaseRequest,
-    RuntimeWorkspaceGetRequest, RuntimeWorkspaceIssue, RuntimeWorkspaceIssueStage,
-    RuntimeWorkspaceListCursor, RuntimeWorkspaceListRequest, RuntimeWorkspaceListResult,
-    RuntimeWorkspaceSummary, WindowsAuthority, WindowsExecutionContextRequest,
-    WindowsExecutionIdentity, WindowsPayloadPrivilege, CLIENT_REQUEST_ID_MAX_LENGTH,
-    CLIENT_REQUEST_ID_MIN_LENGTH, CLIENT_REQUEST_ID_PATTERN, LOGICAL_ID_MAX_LENGTH,
-    LOGICAL_ID_MIN_LENGTH, LOGICAL_ID_PATTERN, MAX_TASK_TAIL_BYTES, MAX_TASK_WAIT_MS,
-    RUNTIME_SCHEMA_VERSION,
+    runtime_release_effect_id, runtime_release_request_identity_digest, ArtifactContentMetadata,
+    ArtifactContentReadResult, ArtifactContentRequest, ArtifactDescriptor, ArtifactReadRequest,
+    ArtifactReadResult, AttemptState, AttemptTerminationIntent, CredentialAuthority,
+    CredentialBindingRequest, EffectiveExecutionLimits, EffectiveStepTimeout, ExecutionBudget,
+    ExecutionProfile, ExecutionProposal, ExecutionProviderContract, ExecutionProviderSnapshot,
+    ExecutionStepProposal, ExecutionTarget, ForeignReference, HostDependencyBinding,
+    InputAuthority, InputBindingRequest, JobCancelRequest, JobDesiredState, JobObservation,
+    JobObserveRequest, JobObserveWaitUntil, JobResolution, JobRunProposal, ReservationState,
+    RuntimeCapabilities, RuntimeDeliveryDisposition, RuntimeExecutionTargetCapability,
+    RuntimeJobListCursor, RuntimeJobListRequest, RuntimeJobListResult, RuntimeJobSummary,
+    RuntimeNodeIdentity, RuntimeNodePlatform, RuntimeReleaseAdmission, RuntimeReleaseContract,
+    RuntimeReleaseDisposition, RuntimeReleaseGetRequest, RuntimeReleaseProjection,
+    RuntimeReleaseRequest, RuntimeWorkspaceGetRequest, RuntimeWorkspaceIssue,
+    RuntimeWorkspaceIssueStage, RuntimeWorkspaceListCursor, RuntimeWorkspaceListRequest,
+    RuntimeWorkspaceListResult, RuntimeWorkspaceSummary, WindowsAuthority,
+    WindowsExecutionContextRequest, WindowsExecutionIdentity, WindowsPayloadPrivilege,
+    CLIENT_REQUEST_ID_MAX_LENGTH, CLIENT_REQUEST_ID_MIN_LENGTH, CLIENT_REQUEST_ID_PATTERN,
+    LOGICAL_ID_MAX_LENGTH, LOGICAL_ID_MIN_LENGTH, LOGICAL_ID_PATTERN, MAX_TASK_TAIL_BYTES,
+    MAX_TASK_WAIT_MS, RUNTIME_SCHEMA_VERSION,
 };
 #[cfg(not(any(test, feature = "operator-tools")))]
 pub(crate) use types::{ArtifactRegistration, TerminalCommit};
@@ -118,7 +122,7 @@ pub(crate) use types::{ArtifactRegistration, TerminalCommit};
 pub use types::{ArtifactRegistration, RuntimeInvariantViolation, TerminalCommit};
 pub use windows::{
     materialize_windows_credential_binding, WindowsCredentialMaterializationObservation,
-    WindowsExecutionConfig,
+    WindowsElevatedCommandProfile, WindowsElevatedExecutionProfile, WindowsExecutionConfig,
 };
 pub use windows_broker::WindowsPrivilegedBrokerConfig;
 

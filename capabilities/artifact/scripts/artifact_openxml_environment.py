@@ -41,7 +41,7 @@ VALIDATOR_WRAPPER=ROOT/'scripts/artifact_openxml_validator_wrapper.py'
 EXTERNAL_EVIDENCE=ROOT/'scripts/artifact_openxml_external_evidence.py'
 NIX=Path('/usr/bin/nix')
 NIX_FLAKE=ROOT/'artifact-delivery/openxml-nix'
-SYSTEM_PYTHON=Path(os.environ.get('ARTIFACT_PYTHON','/root/.local/share/mise/installs/python/3.14.7/bin/python3.14'))
+SYSTEM_PYTHON=Path(os.environ.get('ARTIFACT_PYTHON','/root/.local/share/mise/installs/python/3.15.0/bin/python3.14'))
 NIX_FEATURES=['--extra-experimental-features','nix-command flakes']
 
 def canonical(v:Any)->bytes:return json.dumps(v,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()

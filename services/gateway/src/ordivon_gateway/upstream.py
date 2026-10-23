@@ -14,7 +14,18 @@ from mcp.shared._otel import inject_trace_context
 
 
 class OwnerCallError(RuntimeError):
-    pass
+    def __init__(
+        self,
+        message: str,
+        *,
+        owner_id: str | None = None,
+        tool_name: str | None = None,
+        error: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.owner_id = owner_id
+        self.tool_name = tool_name
+        self.error = dict(error) if error is not None else None
 
 
 @dataclass(frozen=True)
@@ -23,6 +34,66 @@ class OwnerEndpoint:
     bearer_token_file: str | None = None
     access_client_id_file: str | None = None
     access_client_secret_file: str | None = None
+
+
+def _runtime_identity_configured(endpoint: OwnerEndpoint) -> bool:
+    return endpoint.bearer_token_file is not None or endpoint.access_client_id_file is not None
+
+
+def _exception_summary(exc: BaseException, *, limit: int = 4) -> str:
+    leaves: list[BaseException] = []
+
+    def visit(value: BaseException) -> None:
+        if isinstance(value, BaseExceptionGroup):
+            for child in value.exceptions:
+                visit(child)
+            return
+        leaves.append(value)
+
+    visit(exc)
+    rendered = [f"{type(value).__name__}: {str(value)[:180]}" for value in leaves[:limit]]
+    if len(leaves) > limit:
+        rendered.append(f"+{len(leaves) - limit} more")
+    return "; ".join(rendered) or f"{type(exc).__name__}: {str(exc)[:180]}"
+
+
+def _extract_owner_tool_error(
+    result: Any, *, owner_id: str, tool_name: str
+) -> dict[str, Any] | None:
+    """Preserve owner-typed errors without granting arbitrary text structured authority."""
+    if isinstance(result.structured_content, dict):
+        candidate = result.structured_content.get("error")
+        if isinstance(candidate, dict):
+            return dict(candidate)
+
+    # Host domain errors are raised by MCP tools and MCP v2 currently serializes that
+    # exception as text rather than structuredContent. Recover only the exact canonical
+    # Host envelope; arbitrary owner prose must remain an opaque OWNER_CALL_FAILED.
+    if owner_id != "host":
+        return None
+    prefix = f"Error executing tool {tool_name}: "
+    for item in result.content:
+        text = getattr(item, "text", None)
+        if not isinstance(text, str) or not text.startswith(prefix):
+            continue
+        try:
+            candidate = json.loads(text[len(prefix) :])
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(candidate, dict):
+            continue
+        if candidate.get("kind") != "ordivon.host-domain-error":
+            continue
+        if candidate.get("schemaVersion") != 1:
+            continue
+        code = candidate.get("code")
+        if not isinstance(code, str) or not code:
+            continue
+        retryable = candidate.get("retryable")
+        if retryable is not None and not isinstance(retryable, bool):
+            continue
+        return dict(candidate)
+    return None
 
 
 class OwnerToolCaller(Protocol):
@@ -236,38 +307,71 @@ class McpOwnerCaller:
             )
         return cls(owners)
 
+    def configuration_error(self, owner_id: str) -> str | None:
+        endpoint = self._owners.get(owner_id)
+        if endpoint is None:
+            return "owner endpoint is not configured"
+        if owner_id.startswith("runtime.") and not _runtime_identity_configured(endpoint):
+            return "owner authentication is not configured"
+        return None
+
     def is_configured(self, owner_id: str) -> bool:
-        return owner_id in self._owners
+        return self.configuration_error(owner_id) is None
 
     async def call_tool(
         self, owner_id: str, tool_name: str, arguments: dict[str, Any]
     ) -> dict[str, Any]:
         endpoint = self._owners.get(owner_id)
-        if endpoint is None:
-            raise OwnerCallError(f"owner is not configured: {owner_id}")
+        configuration_error = self.configuration_error(owner_id)
+        if configuration_error is not None:
+            code = "OWNER_NOT_CONFIGURED" if endpoint is None else "OWNER_AUTH_NOT_CONFIGURED"
+            raise OwnerCallError(
+                f"{configuration_error}: {owner_id}",
+                owner_id=owner_id,
+                tool_name=tool_name,
+                error={
+                    "code": code,
+                    "message": configuration_error,
+                    "origin": "gateway_adapter",
+                },
+            )
+        assert endpoint is not None
 
-        headers = _headers_for_endpoint(endpoint)
-
-        async with create_mcp_http_client(headers=headers) as http_client:
-            transport = streamable_http_client(endpoint.url, http_client=http_client)
-            # MCP v2 Client owns modern discovery, output-schema validation, and
-            # legacy fallback. Gateway does not hand-code protocol negotiation.
-            async with Client(transport, mode="auto", raise_exceptions=False) as client:
-                meta: dict[str, Any] = {}
-                inject_trace_context(meta)
-                result = await client.call_tool(
-                    tool_name,
-                    arguments,
-                    meta=meta or None,
-                )
+        try:
+            headers = _headers_for_endpoint(endpoint)
+            async with create_mcp_http_client(headers=headers) as http_client:
+                transport = streamable_http_client(endpoint.url, http_client=http_client)
+                # MCP v2 Client owns modern discovery, output-schema validation, and
+                # legacy fallback. Gateway does not hand-code protocol negotiation.
+                async with Client(transport, mode="auto", raise_exceptions=False) as client:
+                    meta: dict[str, Any] = {}
+                    inject_trace_context(meta)
+                    result = await client.call_tool(
+                        tool_name,
+                        arguments,
+                        meta=meta or None,
+                    )
+        except OwnerCallError:
+            raise
+        except Exception as exc:
+            detail = _exception_summary(exc)
+            raise OwnerCallError(
+                f"owner transport/protocol call failed: {owner_id}/{tool_name}: {detail}",
+                owner_id=owner_id,
+                tool_name=tool_name,
+                error={
+                    "code": "OWNER_TRANSPORT_OR_PROTOCOL_ERROR",
+                    "message": detail,
+                    "origin": "gateway_adapter",
+                },
+            ) from exc
 
         if result.is_error:
-            detail = None
-            if isinstance(result.structured_content, dict):
-                detail = result.structured_content.get("error")
             raise OwnerCallError(
-                f"owner tool returned error: {owner_id}/{tool_name}"
-                + (f": {detail}" if detail is not None else "")
+                f"owner tool returned error: {owner_id}/{tool_name}",
+                owner_id=owner_id,
+                tool_name=tool_name,
+                error=_extract_owner_tool_error(result, owner_id=owner_id, tool_name=tool_name),
             )
         if isinstance(result.structured_content, dict):
             return dict(result.structured_content)

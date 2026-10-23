@@ -1,0 +1,4 @@
+# cargo-nextest official native JUnit profile. Optional; no change to Owner verify.
+# https://nexte.st/docs/machine-readable/junit/
+[profile.ci.junit]
+path = "junit.xml"

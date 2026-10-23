@@ -15,6 +15,89 @@ import browserless_podman_deploy as browserless_deploy  # noqa: E402
 
 
 class DeployTests(unittest.TestCase):
+    def test_runtime_check_rejects_old_python_even_if_pinned_packages_match(self):
+        versions = {
+            "mcp": "2.0.0",
+            "mcp-types": "2.0.0",
+            "uvicorn": "0.52.1",
+            "pydantic": "2.14.1",
+            "jsonschema": "4.26.0",
+            "rfc8785": "0.1.4",
+        }
+        with tempfile.TemporaryDirectory() as td:
+            py = Path(td) / "python"
+            py.write_bytes(b"runtime-carrier")
+            c = {
+                "mcp_runtime_python": str(py),
+                "mcp_python_version": "3.15.0",
+                "mcp_sqlite_version": "3.54.0",
+            }
+            old_runtime = {
+                "versions": versions,
+                "forbidden": {"ordivon-protocol": None},
+                "pythonVersion": "3.12.13",
+                "sqliteVersion": "3.53.1",
+            }
+            with patch.object(d, "_runtime_versions", return_value=old_runtime):
+                with self.assertRaisesRegex(RuntimeError, "MCP Python runtime mismatch"):
+                    d.runtime_check(c)
+
+    def test_runtime_check_rejects_old_embedded_sqlite_at_latest_python(self):
+        versions = {
+            "mcp": "2.0.0",
+            "mcp-types": "2.0.0",
+            "uvicorn": "0.52.1",
+            "pydantic": "2.14.1",
+            "jsonschema": "4.26.0",
+            "rfc8785": "0.1.4",
+        }
+        with tempfile.TemporaryDirectory() as td:
+            py = Path(td) / "python"
+            py.write_bytes(b"runtime-carrier")
+            c = {
+                "mcp_runtime_python": str(py),
+                "mcp_python_version": "3.15.0",
+                "mcp_sqlite_version": "3.54.0",
+            }
+            old_sqlite = {
+                "versions": versions,
+                "forbidden": {"ordivon-protocol": None},
+                "pythonVersion": "3.15.0",
+                "sqliteVersion": "3.53.1",
+            }
+            with patch.object(d, "_runtime_versions", return_value=old_sqlite):
+                with self.assertRaisesRegex(RuntimeError, "MCP embedded SQLite mismatch"):
+                    d.runtime_check(c)
+
+    def test_runtime_check_admits_only_matching_latest_python_and_sqlite(self):
+        versions = {
+            "mcp": "2.0.0",
+            "mcp-types": "2.0.0",
+            "uvicorn": "0.52.1",
+            "pydantic": "2.14.1",
+            "jsonschema": "4.26.0",
+            "rfc8785": "0.1.4",
+        }
+        with tempfile.TemporaryDirectory() as td:
+            py = Path(td) / "python"
+            py.write_bytes(b"runtime-carrier")
+            c = {
+                "mcp_runtime_python": str(py),
+                "mcp_python_version": "3.15.0",
+                "mcp_sqlite_version": "3.54.0",
+            }
+            current = {
+                "versions": versions,
+                "forbidden": {"ordivon-protocol": None},
+                "pythonVersion": "3.15.0",
+                "sqliteVersion": "3.54.0",
+            }
+            with patch.object(d, "_runtime_versions", return_value=current):
+                observed = d.runtime_check(c)
+            self.assertEqual(observed["pythonVersion"], "3.15.0")
+            self.assertEqual(observed["sqliteVersion"], "3.54.0")
+            self.assertEqual(observed["versions"], versions)
+
     def test_private_token_receipt_has_no_secret_derived_digest_and_preserves_existing(self):
         with tempfile.TemporaryDirectory() as td:
             p = Path(td) / "token"

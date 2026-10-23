@@ -1,15 +1,3 @@
-pub(super) fn observation_result_satisfies_terminal_wait(
-    result_available: bool,
-    recovery_required: bool,
-    status: &str,
-    execution_reason_code: Option<&str>,
-) -> bool {
-    result_available
-        && !(recovery_required
-            && status == "orphaned"
-            && execution_reason_code == Some("LIVE_UNIT_WITHOUT_LAUNCH_TOKEN_EVIDENCE"))
-}
-
 impl Runtime {
     pub fn observe_job(&self, request: &JobObserveRequest) -> RuntimeResult<JobObservation> {
         validate_observe_request(request)?;
@@ -27,12 +15,8 @@ impl Runtime {
             if initial_signature.is_none() {
                 initial_signature = Some(signature);
             }
-            if observation_result_satisfies_terminal_wait(
-                snapshot.projection.result_available,
-                snapshot.projection.recovery_required,
-                &snapshot.projection.status,
-                snapshot.projection.execution_reason_code.as_deref(),
-            ) || request.wait_ms == 0
+            if snapshot.projection.result_available
+                || request.wait_ms == 0
                 || Instant::now() >= deadline
                 || (request.wait_until == JobObserveWaitUntil::ChangeOrTerminal && changed)
             {
@@ -859,8 +843,11 @@ impl Runtime {
         {
             return Ok(false);
         }
+        // Preserve the Runner-derived execution outcome reason. Recovery lineage is already
+        // represented by the new terminal evidence superseding the prior orphan evidence; using
+        // a recovery-process label here would erase PROCESS_EXIT_ZERO, HOST_DEPENDENCY_RUNTIME_DRIFT,
+        // DEADLINE_EXCEEDED, and other outcome semantics that downstream evidence depends on.
         let mut terminal = self.prepare_runner_terminal(&current)?;
-        terminal.reason_code = "LATE_IDENTITY_BOUND_RUNNER_RESULT".to_string();
         self.append_terminal_evidence(&current, &mut terminal)?;
         self.registry.recover_orphaned_terminal(&terminal)?;
         self.release_attempt_supervisor(&current)?;
@@ -965,7 +952,10 @@ impl Runtime {
                         }
                         return Ok(());
                     }
-                    let age_ms = now_ms()?.saturating_sub(current.created_at_ms);
+                    let dispatch_issued_at_ms = self
+                        .registry
+                        .dispatch_issued_at_ms(&current.attempt_id)?;
+                    let age_ms = now_ms()?.saturating_sub(dispatch_issued_at_ms);
                     if age_ms < self.startup_grace_ms {
                         return Ok(());
                     }
@@ -997,7 +987,10 @@ impl Runtime {
         let properties = systemctl_show(&attempt.unit_name)?;
         let active = unit_is_active(&properties);
         let pending_manager_job = unit_has_pending_job(&properties);
-        let age_ms = now_ms()?.saturating_sub(attempt.created_at_ms);
+        let dispatch_issued_at_ms = self
+            .registry
+            .dispatch_issued_at_ms(&attempt.attempt_id)?;
+        let age_ms = now_ms()?.saturating_sub(dispatch_issued_at_ms);
         // `systemd-run --no-block` returns after the start request is verified and
         // enqueued, not after startup completes. A manager Job therefore proves that
         // the dispatch outcome is still pending even if the unit is currently inactive
@@ -1184,7 +1177,10 @@ impl Runtime {
             // turn this ambiguity into a no-effect/redrive-safe terminal standing.
             return Err(native_windows_pre_target_evidence_gap());
         }
-        let age_ms = now_ms()?.saturating_sub(attempt.created_at_ms);
+        let dispatch_issued_at_ms = self
+            .registry
+            .dispatch_issued_at_ms(&attempt.attempt_id)?;
+        let age_ms = now_ms()?.saturating_sub(dispatch_issued_at_ms);
         if age_ms < self.startup_grace_ms {
             return Ok(());
         }
@@ -1306,7 +1302,13 @@ impl Runtime {
         {
             return self.reconcile_provider_owned_attempt(attempt, &plan, &owner);
         }
-        let (expected, observation) = observe_linux_process_owner(attempt)?;
+        let linux_observation = LocalLinuxProvider::new(
+            self.node_identity.platform,
+            &self.executor,
+        )
+        .observe_bound_attempt(attempt)?;
+        let expected = linux_observation.expected;
+        let observation = linux_observation.observed;
         let intent = match attempt.termination_intent {
             super::AttemptTerminationIntent::Natural => TerminationIntent::Natural,
             super::AttemptTerminationIntent::StopRequested => TerminationIntent::StopRequested,

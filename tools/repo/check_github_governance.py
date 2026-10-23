@@ -113,11 +113,19 @@ def main() -> int:
     ]
     assert not floating, f"root workflows contain non-SHA action references: {floating}"
     assert "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1" in workflow
-    assert "jdx/mise-action@9e7f7633ff6f6d6048a9418a68d48f288f50eb14" in workflow
+    # Exact upstream v5.1.2 commit (verified against the immutable GitHub tag).
+    # Keep this review gate: Dependabot must not silently change action code.
+    mise_action_pin = "jdx/mise-action@08ae2a091c038e1e05ec6f5115dc5c69d5a2a6b8"
+    assert mise_action_pin in workflow
     assert "gitleaks/gitleaks-action@" not in workflow
     assert "run: mise run repo:secrets:verify" in workflow
+    assert "run: tools/repo/check_tracked_secrets.sh" in workflow
+    snapshot_scan = (ROOT / "tools/repo/check_tracked_secrets.sh").read_text()
+    assert "archive --format=tar" in snapshot_scan
+    assert "gitleaks dir --no-banner --redact=100 --timeout 120 ." in snapshot_scan
 
     runtime_release = RUNTIME_RELEASE_WORKFLOW.read_text(encoding="utf-8")
+    assert mise_action_pin in runtime_release
     for required in (
         'runtime-v*',
         'artifact-metadata: write',
@@ -129,7 +137,7 @@ def main() -> int:
         'sourceOwnerPrefix',
         'anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26',
         'actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6',
-        'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a',
+        'actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9',
     ):
         assert required in runtime_release, f"Runtime release workflow missing contract: {required}"
     owners = load_owners()

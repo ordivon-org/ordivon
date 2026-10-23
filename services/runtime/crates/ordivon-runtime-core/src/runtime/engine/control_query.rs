@@ -1,4 +1,25 @@
 impl Runtime {
+    pub fn authorize_job_principal(&self, job_id: &str, principal: &str) -> RuntimeResult<()> {
+        let job = self.registry.get_job(job_id)?;
+        if job.principal != principal {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::AuthorizationDenied,
+                "authenticated principal is not authorized for this Runtime Job",
+                Some("jobId"),
+                false,
+            ));
+        }
+        Ok(())
+    }
+
+    pub fn list_jobs_for_principal(
+        &self,
+        request: &RuntimeJobListRequest,
+        principal: &str,
+    ) -> RuntimeResult<RuntimeJobListResult> {
+        self.registry.list_jobs_for_principal(request, principal)
+    }
+
     pub fn cancel_job(&self, request: &JobCancelRequest) -> RuntimeResult<JobObservation> {
         if request.schema_version != RUNTIME_SCHEMA_VERSION {
             return Err(RuntimeError::invalid(
@@ -212,14 +233,12 @@ impl Runtime {
         self.registry.list_jobs(request)
     }
 
-    pub fn read_artifact(
+    fn verified_artifact_path(
         &self,
-        request: &ArtifactReadRequest,
-    ) -> RuntimeResult<ArtifactReadResult> {
-        ArtifactStateContract::validate_read_request(request)?;
-        let artifact = self
-            .registry
-            .get_artifact(&request.job_id, &request.artifact_id)?;
+        job_id: &str,
+        artifact_id: &str,
+    ) -> RuntimeResult<(RuntimeArtifactRecord, PathBuf)> {
+        let artifact = self.registry.get_artifact(job_id, artifact_id)?;
         let attempt = self.registry.get_attempt(&artifact.attempt_id)?;
         let bundle = canonical_directory(Path::new(&attempt.bundle_path), "bundlePath")
             .map_err(map_universal_error)?;
@@ -254,6 +273,16 @@ impl Runtime {
                 false,
             ));
         }
+        Ok((artifact, canonical))
+    }
+
+    pub fn read_artifact(
+        &self,
+        request: &ArtifactReadRequest,
+    ) -> RuntimeResult<ArtifactReadResult> {
+        ArtifactStateContract::validate_read_request(request)?;
+        let (artifact, canonical) =
+            self.verified_artifact_path(&request.job_id, &request.artifact_id)?;
         let range = read_utf8_range(
             &canonical,
             request.offset,
@@ -274,6 +303,48 @@ impl Runtime {
             next_offset: range.next_offset,
             eof: range.next_offset >= artifact.byte_length,
             digest: artifact.digest,
+        })
+    }
+
+    pub fn read_artifact_content(
+        &self,
+        request: &ArtifactContentRequest,
+    ) -> RuntimeResult<ArtifactContentReadResult> {
+        ArtifactStateContract::validate_content_request(request)?;
+        let (artifact, canonical) =
+            self.verified_artifact_path(&request.job_id, &request.artifact_id)?;
+        if artifact.byte_length > request.max_bytes {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::InvalidRequest,
+                format!(
+                    "Artifact requires {} bytes but maxBytes is {}",
+                    artifact.byte_length, request.max_bytes
+                ),
+                Some("maxBytes"),
+                false,
+            ));
+        }
+        let bytes = fs::read(&canonical).map_err(|error| io_error("read Artifact", error))?;
+        if u64::try_from(bytes.len()).unwrap_or(u64::MAX) != artifact.byte_length
+            || sha256_bytes(&bytes) != artifact.digest
+        {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::ArtifactIdentityConflict,
+                "Artifact bytes changed while projecting content",
+                Some("artifactId"),
+                false,
+            ));
+        }
+        Ok(ArtifactContentReadResult {
+            metadata: ArtifactContentMetadata {
+                job_id: request.job_id.clone(),
+                artifact_id: request.artifact_id.clone(),
+                digest: artifact.digest,
+                media_type: artifact.media_type,
+                byte_length: artifact.byte_length,
+                truncated: artifact.truncated,
+            },
+            bytes,
         })
     }
 
@@ -465,6 +536,7 @@ fn artifact_descriptor(
     };
     ArtifactDescriptor {
         artifact_id: artifact.artifact_id,
+        attempt_id: artifact.attempt_id,
         kind: artifact.kind,
         digest: artifact.digest,
         retained_bytes: artifact.byte_length,
@@ -497,6 +569,55 @@ fn append_terminal_evidence_for_commit_with_observation(
                 false,
             )
         })?;
+    let runner_result_terminal = terminal
+        .artifacts
+        .iter()
+        .any(|artifact| artifact.kind == "execution_result");
+    let source_observation_required = plan.execution_target
+        == super::ExecutionTarget::LocalLinux
+        && plan.workspace_source_digest.is_some()
+        && runner_result_terminal
+        && matches!(
+            terminal.reason_code.as_str(),
+            "PROCESS_EXIT_ZERO"
+                | "PROCESS_COMPLETED_BEFORE_STOP_EFFECTIVE"
+                | "PROCESS_EXIT_NONZERO"
+                | "DEADLINE_EXCEEDED"
+                | "WORKSPACE_SOURCE_PRECONDITION_DRIFT"
+                | "INPUT_PRECONDITION_DRIFT"
+                | "HOST_DEPENDENCY_RUNTIME_DRIFT"
+                | "EXECUTABLE_RUNTIME_DRIFT"
+        );
+    let source_observation = match validate_workspace_source_observation_artifact(
+        attempt,
+        plan.workspace_source_digest.as_deref(),
+        source_observation_required,
+        terminal.reason_code == "WORKSPACE_SOURCE_PRECONDITION_DRIFT",
+    ) {
+        Ok(source_observation) => source_observation,
+        Err(error)
+            if terminal.reason_code == "RUNNER_RESULT_QUARANTINED"
+                && matches!(
+                    error.code,
+                    RuntimeErrorCode::RegistryCorrupt
+                        | RuntimeErrorCode::ResultIdentityConflict
+                        | RuntimeErrorCode::ArtifactIdentityConflict
+                        | RuntimeErrorCode::LaunchIdentityMismatch
+                ) =>
+        {
+            None
+        }
+        Err(error) => return Err(error),
+    };
+    if let Some(source_observation) = source_observation {
+        let duplicate = terminal
+            .artifacts
+            .iter()
+            .any(|artifact| artifact.artifact_id == source_observation.artifact_id);
+        if !duplicate {
+            terminal.artifacts.push(source_observation);
+        }
+    }
     let previous_terminal_evidence = registry
         .list_artifacts(&attempt.job_id)?
         .into_iter()
@@ -1656,4 +1777,32 @@ fn load_runner_result_if_present(
             false,
         )
     })
+}
+
+
+#[cfg(test)]
+mod stage_b0_artifact_descriptor_tests {
+    use super::*;
+
+    #[test]
+    fn artifact_descriptor_projects_stored_attempt_id_without_parsing_artifact_id() {
+        let descriptor = artifact_descriptor(
+            RuntimeArtifactRecord {
+                artifact_id: "opaque-artifact".to_string(),
+                job_id: "job-owner-lineage".to_string(),
+                attempt_id: "attempt-owner-lineage".to_string(),
+                kind: "result".to_string(),
+                relative_path: "result.json".to_string(),
+                digest: format!("sha256:{}", "a".repeat(64)),
+                media_type: "application/json".to_string(),
+                byte_length: 7,
+                truncated: false,
+                created_at_ms: 1,
+            },
+            None,
+        );
+
+        assert_eq!(descriptor.artifact_id, "opaque-artifact");
+        assert_eq!(descriptor.attempt_id, "attempt-owner-lineage");
+    }
 }

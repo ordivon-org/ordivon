@@ -10,6 +10,7 @@ fn tool_catalog_uses_transactional_job_contract() {
     assert_eq!(
         names,
         [
+            "artifact.content",
             "artifact.read",
             "credential.materialize",
             "input.ingest",
@@ -29,6 +30,7 @@ fn tool_catalog_uses_transactional_job_contract() {
             "workspace.execBoundTrusted",
             "workspace.execCredentialBoundTrusted",
             "workspace.execPlan",
+            "workspace.file",
             "workspace.get",
             "workspace.list",
             "workspace.mutate",
@@ -346,7 +348,9 @@ fn compiled_tool_catalog_identity_is_deterministic_and_host_extension_free() {
     let first = RuntimeServer::compiled_tool_catalog_identity();
     let second = RuntimeServer::compiled_tool_catalog_identity();
     assert_eq!(first, second);
-    assert_eq!(first.0, 24);
+    let compiled_tools = RuntimeServer::tool_router().list_all();
+    assert_eq!(usize::try_from(first.0).unwrap(), compiled_tools.len());
+    assert!(!compiled_tools.is_empty());
     assert!(first.1.starts_with("sha256:"));
     assert_eq!(first.1.len(), 71);
 

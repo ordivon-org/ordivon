@@ -67,7 +67,33 @@ impl Runtime {
             expected_tool_count: request.expected_tool_count,
             receipt_path: receipt_path.to_string_lossy().into_owned(),
         };
-        let _guard = self.lock_lifecycle()?;
+        if let Some(job) = self.registry.find_idempotent_job(
+            &request.principal,
+            &request.client_request_id,
+            &request_digest,
+            None,
+        )? {
+            let committed = self
+                .registry
+                .runtime_release_effect_for_job(&job.job_id)?
+                .ok_or_else(|| {
+                    RuntimeError::new(
+                        RuntimeErrorCode::RegistryCorrupt,
+                        "Runtime Release replay lost its release side truth",
+                        Some("runtimeReleaseEffect"),
+                        false,
+                    )
+                })?;
+            ReleaseStateContract::validate_binding_matches_request(&committed, request)?;
+            return Ok(RuntimeReleaseAdmission {
+                replayed: true,
+                release: self.runtime_release_projection(&job.job_id, &committed)?,
+            });
+        }
+
+        self.with_admission_workspace_lease(
+            &request.workspace_id,
+            |admission_fence| {
         if let Some(job) = self.registry.find_idempotent_job(
             &request.principal,
             &request.client_request_id,
@@ -114,7 +140,7 @@ impl Runtime {
             plan,
             global_limit: resolved.global_limit,
         };
-        let job_id = match self.registry.submit(&submit)? {
+        let job_id = match self.registry.submit_with_admission_fence(&submit, admission_fence)? {
             AdmissionOutcome::Created(created) => created.job.job_id.clone(),
             AdmissionOutcome::Existing { job } => job.job_id.clone(),
         };
@@ -125,6 +151,8 @@ impl Runtime {
             replayed: false,
             release: self.runtime_release_projection(&job_id, &binding)?,
         })
+            },
+        )
     }
 
     pub fn get_runtime_release_effect(

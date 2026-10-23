@@ -113,7 +113,7 @@ def private_token(path: Path, create: bool) -> dict:
 
 
 def _runtime_versions(py: Path) -> dict:
-    code = """import importlib.metadata as m,json\nnames=["mcp","mcp-types","uvicorn","pydantic","jsonschema","rfc8785"]\nforbidden={}\nfor n in ["ordivon-protocol"]:\n try: forbidden[n]=m.version(n)\n except m.PackageNotFoundError: forbidden[n]=None\nprint(json.dumps({"versions":{n:m.version(n) for n in names},"forbidden":forbidden},sort_keys=True))"""
+    code = """import importlib.metadata as m,json,sqlite3,sys\nnames=["mcp","mcp-types","uvicorn","pydantic","jsonschema","rfc8785"]\nforbidden={}\nfor n in ["ordivon-protocol"]:\n try: forbidden[n]=m.version(n)\n except m.PackageNotFoundError: forbidden[n]=None\nprint(json.dumps({"versions":{n:m.version(n) for n in names},"forbidden":forbidden,"pythonVersion":sys.version.split()[0],"sqliteVersion":sqlite3.sqlite_version},sort_keys=True))"""
     proc = subprocess.run(
         [str(py), "-c", code], capture_output=True, text=True, timeout=10, check=True
     )
@@ -125,12 +125,24 @@ def runtime_check(c: dict) -> dict:
     if not py.is_file():
         raise RuntimeError("dedicated MCP Python runtime is absent")
     observed = _runtime_versions(py)
+    expected_python = c["mcp_python_version"]
+    if observed.get("pythonVersion") != expected_python:
+        raise RuntimeError(
+            f"MCP Python runtime mismatch: expected {expected_python}, "
+            f"observed {observed.get('pythonVersion')}"
+        )
+    expected_sqlite = c["mcp_sqlite_version"]
+    if observed.get("sqliteVersion") != expected_sqlite:
+        raise RuntimeError(
+            f"MCP embedded SQLite mismatch: expected {expected_sqlite}, "
+            f"observed {observed.get('sqliteVersion')}"
+        )
     versions = observed["versions"]
     expected = {
         "mcp": "2.0.0",
         "mcp-types": "2.0.0",
         "uvicorn": "0.52.1",
-        "pydantic": "2.13.4",
+        "pydantic": "2.14.1",
         "jsonschema": "4.26.0",
         "rfc8785": "0.1.4",
     }
@@ -142,6 +154,8 @@ def runtime_check(c: dict) -> dict:
     return {
         "python": str(py),
         "versions": versions,
+        "pythonVersion": observed["pythonVersion"],
+        "sqliteVersion": observed["sqliteVersion"],
         "forbidden": forbidden,
         "pythonDigest": digest(py.read_bytes()),
     }
@@ -167,7 +181,7 @@ def converge_runtime(c: dict) -> dict:
             "--offline",
             "--no-python-downloads",
             "--python",
-            str(c["mcp_python_version"]),
+            str(c.get("mcp_python_executable", c["mcp_python_version"])),
             str(staging),
         ],
         check=True,

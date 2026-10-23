@@ -1,11 +1,14 @@
 {
   "schemaVersion": 1,
   "kind": "ordivon.capital.accounting.sqlite-substrate",
-  "standing": "PASS_BOUNDED_SQLITE_WAL_ACCOUNTING",
+  "standing": "HOLD_CURRENT_RUNTIME_LATEST_SQLITE",
   "runtime": {
-    "python": "3.14.7",
+    "python": "3.15.0",
     "binding": "Python stdlib sqlite3",
-    "sqlite": "3.53.1"
+    "sqlite": "3.53.1",
+    "requiredSqliteVersion": "3.54.0",
+    "sqliteCurrentness": "HOLD_OLD_EMBEDDED_SQLITE",
+    "candidate": "Python 3.15.0 + SQLite 3.54.0 separately qualified; not default/installed"
   },
   "storage": {
     "journalMode": "WAL",
@@ -29,5 +32,6 @@
     "distributed replication",
     "multi-host consensus"
   ],
-  "externalFinancialWrites": "NOT_ADMITTED"
+  "externalFinancialWrites": "NOT_ADMITTED",
+  "historicalQualification": "PASS_BOUNDED_SQLITE_WAL_ACCOUNTING under Python 3.14.7 / SQLite 3.53.1; historical mechanics evidence, not current latest release admission"
 }

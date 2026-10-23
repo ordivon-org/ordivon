@@ -10,11 +10,12 @@ use crate::universal::sha256_bytes;
 use super::job_attempt_state::JobIdentityContract;
 use super::{
     runtime_release_effect_id, runtime_release_request_identity_digest, validate_client_request_id,
-    ArtifactReadRequest, ArtifactRegistration, AttemptState, ExecutionProfile,
-    ExecutionProviderContract, ExecutionTarget, JobResolution, RuntimeError, RuntimeErrorCode,
-    RuntimeReleaseContract, RuntimeReleaseDisposition, RuntimeReleaseEffectBinding,
-    RuntimeReleaseRequest, RuntimeResult, SubmitRequest, WindowsAuthority, WindowsTokenClass,
-    MAX_ARTIFACT_READ_BYTES, RUNTIME_RELEASE_IDENTITY_PREFIX, RUNTIME_SCHEMA_VERSION,
+    ArtifactContentRequest, ArtifactReadRequest, ArtifactRegistration, AttemptState,
+    ExecutionProfile, ExecutionProviderContract, ExecutionTarget, JobResolution, RuntimeError,
+    RuntimeErrorCode, RuntimeReleaseContract, RuntimeReleaseDisposition,
+    RuntimeReleaseEffectBinding, RuntimeReleaseRequest, RuntimeResult, SubmitRequest,
+    WindowsAuthority, WindowsTokenClass, MAX_ARTIFACT_READ_BYTES, RUNTIME_RELEASE_IDENTITY_PREFIX,
+    RUNTIME_SCHEMA_VERSION,
 };
 
 pub(crate) struct ArtifactStateContract;
@@ -46,6 +47,22 @@ impl ArtifactStateContract {
     }
 
     pub(crate) fn validate_read_request(request: &ArtifactReadRequest) -> RuntimeResult<()> {
+        if request.schema_version != RUNTIME_SCHEMA_VERSION {
+            return Err(RuntimeError::invalid(
+                "unsupported runtime schema version",
+                "schemaVersion",
+            ));
+        }
+        if request.max_bytes == 0 || request.max_bytes > MAX_ARTIFACT_READ_BYTES {
+            return Err(RuntimeError::invalid(
+                format!("maxBytes must be in 1..={MAX_ARTIFACT_READ_BYTES}"),
+                "maxBytes",
+            ));
+        }
+        Ok(())
+    }
+
+    pub(crate) fn validate_content_request(request: &ArtifactContentRequest) -> RuntimeResult<()> {
         if request.schema_version != RUNTIME_SCHEMA_VERSION {
             return Err(RuntimeError::invalid(
                 "unsupported runtime schema version",

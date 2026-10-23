@@ -10,6 +10,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 MODULE_PATH = ROOT / "tools" / "repo" / "check_architecture_docs.py"
 GRAPH = ROOT / "docs" / "architecture" / "deployed-architecture-r1.json"
+GATEWAY_SURFACE = ROOT / "services" / "gateway" / "mcp-surface.json"
 
 spec = importlib.util.spec_from_file_location("check_architecture_docs", MODULE_PATH)
 assert spec is not None and spec.loader is not None
@@ -23,6 +24,16 @@ def graph():
 
 def test_current_repository_architecture_docs_are_converged() -> None:
     module.validate_repository(ROOT)
+
+
+def test_gateway_source_surface_is_owned_by_source_manifest() -> None:
+    manifest = json.loads(GATEWAY_SURFACE.read_text(encoding="utf-8"))
+    observed = set(manifest["tools"])
+    module.validate_source_tool_surface(observed, manifest, service="ordivon-gateway")
+    mutated = copy.deepcopy(manifest)
+    mutated["tools"] = mutated["tools"][:-1]
+    with pytest.raises(module.ArchitectureDocsError, match="differs from source manifest"):
+        module.validate_source_tool_surface(observed, mutated, service="ordivon-gateway")
 
 
 def test_gateway_cannot_become_authoritative() -> None:
@@ -105,7 +116,7 @@ def test_heavy_observability_default_posture_stays_cold() -> None:
 
 def test_gateway_normal_host_surface_cannot_drop_actions() -> None:
     value = graph()
-    value["hostNorthbound"]["normalTools"].remove("continuity.checkpoint")
+    value["hostNorthbound"]["normalTools"].remove("work.snapshot.commit")
     with pytest.raises(module.ArchitectureDocsError, match="normal Host northbound Tool set"):
         module.validate_deployed_graph(value)
 

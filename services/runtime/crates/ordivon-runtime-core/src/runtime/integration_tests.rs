@@ -4,12 +4,13 @@ use crate::universal::{
     create_git_workspace, remove_git_workspace, write_workspace_text, WorkspaceWriteRequest,
 };
 use crate::{
-    ArtifactReadRequest, AttemptState, ExecutionBudget, ExecutionProposal, ExecutionStepProposal,
-    ForeignReference, GitWorkspaceCreateRequest, HostDependencyBinding, InputAuthority,
-    InputBindingRequest, JobCancelRequest, JobObservation, JobObserveRequest, JobObserveWaitUntil,
-    JobRunProposal, RegistryConfig, Runtime, RuntimeConfig, RuntimeJobListRequest, RuntimeResult,
-    UniversalExecutorConfig, WorkspaceCloseRequest, WorkspaceMutateRequest, WorkspaceMutation,
-    WorkspaceMutationMode, RUNTIME_SCHEMA_VERSION, UNIVERSAL_EXEC_SCHEMA_VERSION,
+    ArtifactContentRequest, ArtifactReadRequest, AttemptState, ExecutionBudget, ExecutionProposal,
+    ExecutionStepProposal, ForeignReference, GitWorkspaceCreateRequest, HostDependencyBinding,
+    InputAuthority, InputBindingRequest, JobCancelRequest, JobObservation, JobObserveRequest,
+    JobObserveWaitUntil, JobRunProposal, RegistryConfig, Runtime, RuntimeConfig,
+    RuntimeJobListRequest, RuntimeResult, UniversalExecutorConfig, WorkspaceCloseRequest,
+    WorkspaceMutateRequest, WorkspaceMutation, WorkspaceMutationMode, RUNTIME_SCHEMA_VERSION,
+    UNIVERSAL_EXEC_SCHEMA_VERSION,
 };
 use rusqlite::Connection;
 use sha2::{Digest, Sha256};
@@ -20,7 +21,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::{Arc, Barrier};
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
 fn proposal_from_concrete_request(request: &JobRunRequest) -> JobRunProposal {
@@ -86,6 +87,13 @@ impl RunJobWithInputsViaProposalTestExt for Runtime {
 
 fn digest(value: &[u8]) -> String {
     format!("sha256:{}", hex::encode(Sha256::digest(value)))
+}
+
+fn wall_clock_ms() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as u64
 }
 
 fn file_digest(path: &Path) -> String {
@@ -271,7 +279,7 @@ fn runtime_transactional_runtime_executes_replays_and_releases_capacity() {
     assert_eq!(listed.jobs[0].client_request_id, request.client_request_id);
     assert_eq!(listed.jobs[0].workspace_id, workspace_id);
     assert_eq!(listed.jobs[0].executable_name, "python3.14");
-    assert_eq!(listed.jobs[0].artifact_count, 4);
+    assert_eq!(listed.jobs[0].artifact_count, 6);
     let artifacts = runtime.registry().list_artifacts(&first.job_id).unwrap();
     let artifact_kinds = artifacts
         .iter()
@@ -281,11 +289,40 @@ fn runtime_transactional_runtime_executes_replays_and_releases_capacity() {
         artifact_kinds,
         std::collections::BTreeSet::from([
             "execution_result",
+            "resource_receipt",
             "stderr",
             "stdout",
             "terminal_evidence",
+            "workspace_source_observation",
         ])
     );
+    let resource_receipt = artifacts
+        .iter()
+        .find(|artifact| artifact.kind == "resource_receipt")
+        .unwrap();
+    let receipt = runtime
+        .read_artifact(&ArtifactReadRequest {
+            schema_version: RUNTIME_SCHEMA_VERSION,
+            job_id: first.job_id.clone(),
+            artifact_id: resource_receipt.artifact_id.clone(),
+            offset: 0,
+            max_bytes: 65_536,
+        })
+        .unwrap();
+    let receipt: serde_json::Value = serde_json::from_str(&receipt.content).unwrap();
+    assert_eq!(receipt["schemaVersion"], 1);
+    assert_eq!(receipt["jobId"], first.job_id);
+    assert_eq!(receipt["attemptId"], first.attempt_id.as_deref().unwrap());
+    assert_eq!(receipt["scope"], "attempt_cgroup_including_runner");
+    assert_eq!(receipt["provider"], "linux_cgroup_v2");
+    assert!(receipt["cpu"]["usageUsec"]
+        .as_u64()
+        .is_some_and(|value| value > 0));
+    assert!(receipt["memory"]["peakBytes"]
+        .as_u64()
+        .is_some_and(|value| value > 0));
+    assert!(receipt["io"]["readBytes"].as_u64().is_some());
+    assert!(receipt["io"]["writeBytes"].as_u64().is_some());
     let stdout = artifacts
         .iter()
         .find(|artifact| artifact.kind == "stdout")
@@ -301,6 +338,38 @@ fn runtime_transactional_runtime_executes_replays_and_releases_capacity() {
         .unwrap();
     assert!(read.content.contains("RUNTIME_OK"));
     assert!(read.eof);
+
+    let binary_projection = runtime
+        .read_artifact_content(&ArtifactContentRequest {
+            schema_version: RUNTIME_SCHEMA_VERSION,
+            job_id: first.job_id.clone(),
+            artifact_id: stdout.artifact_id.clone(),
+            max_bytes: 65_536,
+        })
+        .unwrap();
+    assert_eq!(binary_projection.metadata.digest, stdout.digest);
+    assert_eq!(
+        binary_projection.metadata.media_type,
+        "text/plain; charset=utf-8"
+    );
+    assert_eq!(
+        binary_projection.metadata.byte_length,
+        binary_projection.bytes.len() as u64
+    );
+    assert!(binary_projection
+        .bytes
+        .windows(b"RUNTIME_OK".len())
+        .any(|window| window == b"RUNTIME_OK"));
+
+    let too_small = runtime
+        .read_artifact_content(&ArtifactContentRequest {
+            schema_version: RUNTIME_SCHEMA_VERSION,
+            job_id: first.job_id.clone(),
+            artifact_id: stdout.artifact_id.clone(),
+            max_bytes: 1,
+        })
+        .unwrap_err();
+    assert_eq!(too_small.field.as_deref(), Some("maxBytes"));
 
     let custom_target = root.join("caller-custom-cargo-target");
     let mut custom_request = request.clone();
@@ -1332,11 +1401,58 @@ fn runtime_systemd_path_rejects_source_drift_before_target_spawn() {
         Some(runner_digest.as_str()),
         "the source-drift falsifier must not substitute the committed Runner provider"
     );
-    let runner_observed_source = runner_start
-        .get("observedWorkspaceSourceDigest")
-        .and_then(serde_json::Value::as_str)
-        .expect("Runner start must record observed Workspace source state");
+    assert!(
+        runner_start.get("observedWorkspaceSourceDigest").is_none(),
+        "Runner start is physical identity evidence and must not wait on source observation"
+    );
+    let source_observation_artifact = observed
+        .artifacts
+        .iter()
+        .find(|artifact| artifact.kind == "workspace_source_observation")
+        .expect("source-drift result must register exact source observation evidence");
+    let source_observation_read = runtime
+        .read_artifact(&ArtifactReadRequest {
+            schema_version: RUNTIME_SCHEMA_VERSION,
+            job_id: observed.job_id.clone(),
+            artifact_id: source_observation_artifact.artifact_id.clone(),
+            offset: 0,
+            max_bytes: 65_536,
+        })
+        .unwrap();
+    let source_observation: serde_json::Value =
+        serde_json::from_str(&source_observation_read.content).unwrap();
+    assert_eq!(
+        source_observation["committedWorkspaceSourceDigest"],
+        committed_source
+    );
+    let runner_observed_source = source_observation["observedWorkspaceSourceDigest"]
+        .as_str()
+        .expect("source observation must preserve the Runner-observed Workspace digest");
     assert_ne!(runner_observed_source, committed_source);
+    assert_eq!(source_observation["matchesCommitment"], false);
+    assert!(source_observation.get("observationErrorCode").is_none());
+
+    let terminal_artifact = observed
+        .artifacts
+        .iter()
+        .find(|artifact| artifact.kind == "terminal_evidence")
+        .expect("source-drift result must retain terminal evidence");
+    let terminal_evidence = runtime
+        .read_artifact(&ArtifactReadRequest {
+            schema_version: RUNTIME_SCHEMA_VERSION,
+            job_id: observed.job_id.clone(),
+            artifact_id: terminal_artifact.artifact_id.clone(),
+            offset: 0,
+            max_bytes: 65_536,
+        })
+        .unwrap();
+    let terminal_evidence: serde_json::Value =
+        serde_json::from_str(&terminal_evidence.content).unwrap();
+    assert!(terminal_evidence["terminalArtifactIds"]
+        .as_array()
+        .is_some_and(|ids| ids
+            .iter()
+            .any(|id| id.as_str() == Some(source_observation_artifact.artifact_id.as_str()))));
 
     let connection = Connection::open(&context.registry.db_path).unwrap();
     let reason: String = connection
@@ -1348,6 +1464,349 @@ fn runtime_systemd_path_rejects_source_drift_before_target_spawn() {
         .unwrap();
     assert_eq!(reason, "WORKSPACE_SOURCE_PRECONDITION_DRIFT");
     assert_eq!(runtime.registry().active_reservation_count().unwrap(), 0);
+}
+
+#[test]
+#[ignore = "requires root, systemd, cgroup v2, built Runner, and explicit local opt-in"]
+fn runtime_success_missing_source_observation_is_quarantined() {
+    if std::env::var("ORDIVON_RUN_INTEGRATION").as_deref() != Ok("1") {
+        return;
+    }
+    let context = IntegrationContext::new("missing-source-observation");
+    let gate = context.root.join("missing-source-observation-gate");
+    context.write(
+        "missing_source_observation.py",
+        &format!(
+            "import pathlib,time\ngate=pathlib.Path({gate:?})\nfor _ in range(2000):\n    if gate.exists(): break\n    time.sleep(0.01)\nprint('TARGET_COMPLETED', flush=True)\n",
+            gate = gate.to_string_lossy(),
+        ),
+    );
+    let runtime = context.runtime(10_000);
+    let started = runtime
+        .run_job(&context.request("missing_source_observation.py", 0))
+        .unwrap();
+    let deadline = Instant::now() + Duration::from_secs(15);
+    let (attempt, observation_path) = loop {
+        let attempt = runtime
+            .registry()
+            .get_latest_attempt(&started.job_id)
+            .unwrap()
+            .unwrap();
+        let observation_path =
+            Path::new(&attempt.bundle_path).join("workspace-source-observation.json");
+        if observation_path.is_file() {
+            break (attempt, observation_path);
+        }
+        assert!(
+            Instant::now() < deadline,
+            "Workspace source observation was not written before target completion"
+        );
+        thread::sleep(Duration::from_millis(10));
+    };
+    assert!(
+        !Path::new(&attempt.bundle_path)
+            .join("result.json")
+            .is_file(),
+        "gated target unexpectedly finished before the evidence removal"
+    );
+    fs::remove_file(&observation_path).unwrap();
+    fs::write(&gate, b"go").unwrap();
+
+    let observed = runtime
+        .observe_job(&JobObserveRequest {
+            schema_version: RUNTIME_SCHEMA_VERSION,
+            job_id: started.job_id.clone(),
+            wait_ms: 10_000,
+            wait_until: JobObserveWaitUntil::Terminal,
+            stdout_tail_bytes: 8_192,
+            stderr_tail_bytes: 8_192,
+            stdout_offset: None,
+            stderr_offset: None,
+        })
+        .unwrap();
+    assert_eq!(observed.status, "orphaned");
+    assert!(!observed
+        .artifacts
+        .iter()
+        .any(|artifact| artifact.kind == "workspace_source_observation"));
+    let connection = Connection::open(&context.registry.db_path).unwrap();
+    let reason: String = connection
+        .query_row(
+            "SELECT reason_code FROM job_events WHERE job_id=?1 AND event_type='JOB_TERMINAL'",
+            [&started.job_id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(reason, "RUNNER_RESULT_QUARANTINED");
+    let dispatches: i64 = connection
+        .query_row(
+            "SELECT COUNT(*) FROM job_events WHERE job_id=?1 AND event_type='DISPATCH_ISSUED'",
+            [&started.job_id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(dispatches, 1);
+}
+
+#[test]
+#[ignore = "requires root, systemd, cgroup v2, built Runner, and explicit local opt-in"]
+fn runtime_tampered_source_observation_is_quarantined() {
+    if std::env::var("ORDIVON_RUN_INTEGRATION").as_deref() != Ok("1") {
+        return;
+    }
+    let context = IntegrationContext::new("tampered-source-observation");
+    let gate = context.root.join("tampered-source-observation-gate");
+    context.write(
+        "tampered_source_observation.py",
+        &format!(
+            "import pathlib,time\ngate=pathlib.Path({gate:?})\nfor _ in range(2000):\n    if gate.exists(): break\n    time.sleep(0.01)\nprint('TARGET_COMPLETED', flush=True)\n",
+            gate = gate.to_string_lossy(),
+        ),
+    );
+    let runtime = context.runtime(10_000);
+    let started = runtime
+        .run_job(&context.request("tampered_source_observation.py", 0))
+        .unwrap();
+    let deadline = Instant::now() + Duration::from_secs(15);
+    let observation_path = loop {
+        let attempt = runtime
+            .registry()
+            .get_latest_attempt(&started.job_id)
+            .unwrap()
+            .unwrap();
+        let observation_path =
+            Path::new(&attempt.bundle_path).join("workspace-source-observation.json");
+        if observation_path.is_file() {
+            break observation_path;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "Workspace source observation was not written before tamper test"
+        );
+        thread::sleep(Duration::from_millis(10));
+    };
+    let mut observation: serde_json::Value =
+        serde_json::from_slice(&fs::read(&observation_path).unwrap()).unwrap();
+    observation["observedWorkspaceSourceDigest"] =
+        serde_json::Value::String(format!("sha256:{}", "0".repeat(64)));
+    fs::write(
+        &observation_path,
+        serde_json::to_vec_pretty(&observation).unwrap(),
+    )
+    .unwrap();
+    fs::write(&gate, b"go").unwrap();
+
+    let observed = runtime
+        .observe_job(&JobObserveRequest {
+            schema_version: RUNTIME_SCHEMA_VERSION,
+            job_id: started.job_id.clone(),
+            wait_ms: 10_000,
+            wait_until: JobObserveWaitUntil::Terminal,
+            stdout_tail_bytes: 8_192,
+            stderr_tail_bytes: 8_192,
+            stdout_offset: None,
+            stderr_offset: None,
+        })
+        .unwrap();
+    assert_eq!(observed.status, "orphaned");
+    assert!(!observed
+        .artifacts
+        .iter()
+        .any(|artifact| artifact.kind == "workspace_source_observation"));
+    let connection = Connection::open(&context.registry.db_path).unwrap();
+    let reason: String = connection
+        .query_row(
+            "SELECT reason_code FROM job_events WHERE job_id=?1 AND event_type='JOB_TERMINAL'",
+            [&started.job_id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(reason, "RUNNER_RESULT_QUARANTINED");
+}
+
+#[test]
+#[ignore = "requires root, systemd, cgroup v2, built Runner, and explicit local opt-in"]
+fn runtime_tampered_request_source_commitment_cannot_retarget_observation() {
+    if std::env::var("ORDIVON_RUN_INTEGRATION").as_deref() != Ok("1") {
+        return;
+    }
+    let context = IntegrationContext::new("tampered-request-source-commitment");
+    let gate = context.root.join("tampered-request-source-commitment-gate");
+    context.write(
+        "tampered_request_source_commitment.py",
+        &format!(
+            "import pathlib,time\ngate=pathlib.Path({gate:?})\nfor _ in range(2000):\n    if gate.exists(): break\n    time.sleep(0.01)\nprint('TARGET_COMPLETED', flush=True)\n",
+            gate = gate.to_string_lossy(),
+        ),
+    );
+    let runtime = context.runtime(10_000);
+    let started = runtime
+        .run_job(&context.request("tampered_request_source_commitment.py", 0))
+        .unwrap();
+    let deadline = Instant::now() + Duration::from_secs(15);
+    let attempt = loop {
+        let attempt = runtime
+            .registry()
+            .get_latest_attempt(&started.job_id)
+            .unwrap()
+            .unwrap();
+        let observation_path =
+            Path::new(&attempt.bundle_path).join("workspace-source-observation.json");
+        if observation_path.is_file() {
+            break attempt;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "Workspace source observation was not written before request tamper test"
+        );
+        thread::sleep(Duration::from_millis(10));
+    };
+
+    let request_path = Path::new(&attempt.bundle_path).join("request.json");
+    let mut request: serde_json::Value =
+        serde_json::from_slice(&fs::read(&request_path).unwrap()).unwrap();
+    request["workspaceSourceDigest"] =
+        serde_json::Value::String(format!("sha256:{}", "0".repeat(64)));
+    fs::write(&request_path, serde_json::to_vec_pretty(&request).unwrap()).unwrap();
+    fs::write(&gate, b"go").unwrap();
+
+    let observed = runtime
+        .observe_job(&JobObserveRequest {
+            schema_version: RUNTIME_SCHEMA_VERSION,
+            job_id: started.job_id.clone(),
+            wait_ms: 10_000,
+            wait_until: JobObserveWaitUntil::Terminal,
+            stdout_tail_bytes: 8_192,
+            stderr_tail_bytes: 8_192,
+            stdout_offset: None,
+            stderr_offset: None,
+        })
+        .unwrap();
+    assert_eq!(observed.status, "orphaned");
+    assert!(!observed
+        .artifacts
+        .iter()
+        .any(|artifact| artifact.kind == "workspace_source_observation"));
+    let connection = Connection::open(&context.registry.db_path).unwrap();
+    let reason: String = connection
+        .query_row(
+            "SELECT reason_code FROM job_events WHERE job_id=?1 AND event_type='JOB_TERMINAL'",
+            [&started.job_id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(reason, "RUNNER_RESULT_QUARANTINED");
+}
+
+#[test]
+#[ignore = "requires root, systemd, cgroup v2, built Runner, and explicit local opt-in"]
+fn runtime_process_loss_after_source_observation_preserves_observation_artifact() {
+    if std::env::var("ORDIVON_RUN_INTEGRATION").as_deref() != Ok("1") {
+        return;
+    }
+    let context = IntegrationContext::new("source-observation-process-loss");
+    context.write(
+        "source_observation_process_loss.py",
+        "import time\nprint('TARGET_STARTED', flush=True)\ntime.sleep(60)\n",
+    );
+    let runtime = context.runtime(10_000);
+    let started = runtime
+        .run_job(&context.request("source_observation_process_loss.py", 0))
+        .unwrap();
+    let deadline = Instant::now() + Duration::from_secs(15);
+    let attempt = loop {
+        let attempt = runtime
+            .registry()
+            .get_latest_attempt(&started.job_id)
+            .unwrap()
+            .unwrap();
+        let observation_path =
+            Path::new(&attempt.bundle_path).join("workspace-source-observation.json");
+        if attempt.state == AttemptState::Running && observation_path.is_file() {
+            break attempt;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "Attempt did not bind Runner identity and source observation in time"
+        );
+        thread::sleep(Duration::from_millis(10));
+    };
+    assert!(attempt.runner_start_digest.is_some());
+    assert!(
+        !Path::new(&attempt.bundle_path)
+            .join("result.json")
+            .is_file(),
+        "process-loss test requires no Runner result before kill"
+    );
+    let killed = Command::new("systemctl")
+        .args([
+            "kill",
+            "--kill-who=all",
+            "--signal=KILL",
+            &attempt.unit_name,
+        ])
+        .output()
+        .unwrap();
+    assert!(
+        killed.status.success(),
+        "failed to kill exact Attempt unit: {}",
+        String::from_utf8_lossy(&killed.stderr)
+    );
+
+    let observed = runtime
+        .observe_job(&JobObserveRequest {
+            schema_version: RUNTIME_SCHEMA_VERSION,
+            job_id: started.job_id.clone(),
+            wait_ms: 10_000,
+            wait_until: JobObserveWaitUntil::Terminal,
+            stdout_tail_bytes: 8_192,
+            stderr_tail_bytes: 8_192,
+            stdout_offset: None,
+            stderr_offset: None,
+        })
+        .unwrap();
+    assert_ne!(observed.status, "succeeded");
+    assert!(
+        !Path::new(&attempt.bundle_path)
+            .join("result.json")
+            .is_file(),
+        "killed Runner unexpectedly produced result evidence"
+    );
+    let source_observation = observed
+        .artifacts
+        .iter()
+        .find(|artifact| artifact.kind == "workspace_source_observation")
+        .expect("control terminal must bind an existing exact source observation");
+    let terminal_evidence_artifact = observed
+        .artifacts
+        .iter()
+        .find(|artifact| artifact.kind == "terminal_evidence")
+        .expect("control terminal must retain terminal evidence");
+    let terminal_evidence = runtime
+        .read_artifact(&ArtifactReadRequest {
+            schema_version: RUNTIME_SCHEMA_VERSION,
+            job_id: started.job_id.clone(),
+            artifact_id: terminal_evidence_artifact.artifact_id.clone(),
+            offset: 0,
+            max_bytes: 65_536,
+        })
+        .unwrap();
+    let terminal_evidence: serde_json::Value =
+        serde_json::from_str(&terminal_evidence.content).unwrap();
+    assert!(terminal_evidence["terminalArtifactIds"]
+        .as_array()
+        .is_some_and(|ids| ids
+            .iter()
+            .any(|id| id.as_str() == Some(source_observation.artifact_id.as_str()))));
+    let connection = Connection::open(&context.registry.db_path).unwrap();
+    let dispatches: i64 = connection
+        .query_row(
+            "SELECT COUNT(*) FROM job_events WHERE job_id=?1 AND event_type='DISPATCH_ISSUED'",
+            [&started.job_id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(dispatches, 1);
 }
 
 #[test]
@@ -2140,6 +2599,77 @@ fn runtime_pending_systemd_start_job_is_not_misclassified_as_lost() {
         .output();
     let _ = Command::new("systemctl")
         .args(["reset-failed", &attempt.unit_name, &blocker])
+        .output();
+}
+
+#[test]
+#[ignore = "requires root, systemd, cgroup v2, built Runner, and explicit local opt-in"]
+fn runtime_startup_grace_begins_at_dispatch_after_slow_bundle_preparation() {
+    if std::env::var("ORDIVON_RUN_INTEGRATION").as_deref() != Ok("1") {
+        return;
+    }
+    let context = IntegrationContext::new("dispatch-grace-after-slow-bundle");
+    let runtime = context.runtime(2_000);
+    let created = created_admission(
+        runtime
+            .registry()
+            .submit(&context.direct_submit("request:dispatch-grace-slow-bundle", 1))
+            .unwrap(),
+    );
+    let ready = runtime
+        .registry()
+        .mark_bundle_ready(
+            &created.attempt.attempt_id,
+            created.attempt.row_version,
+            &digest(b"simulated-bundle"),
+            wall_clock_ms(),
+        )
+        .unwrap();
+
+    // Deliberately consume more than the configured startup grace before dispatch.
+    // This preparation latency must not count against physical Runner startup.
+    thread::sleep(Duration::from_millis(2_200));
+    let dispatched = runtime
+        .registry()
+        .mark_dispatch_issued(&ready.attempt_id, ready.row_version, wall_clock_ms())
+        .unwrap();
+    let launch = Command::new("systemd-run")
+        .arg(format!("--unit={}", dispatched.unit_name))
+        .arg("--collect")
+        .arg("--property=Type=exec")
+        .arg("/usr/bin/sleep")
+        .arg("30")
+        .output()
+        .unwrap();
+    assert!(launch.status.success());
+    thread::sleep(Duration::from_millis(20));
+
+    runtime.reconcile_attempt(&dispatched.attempt_id).unwrap();
+    let projection = runtime.registry().project_job(&created.job.job_id).unwrap();
+    let current = runtime
+        .registry()
+        .get_attempt(&dispatched.attempt_id)
+        .unwrap();
+    assert_eq!(
+        current.state,
+        AttemptState::Starting,
+        "pre-dispatch preparation latency consumed the startup grace"
+    );
+    assert_ne!(projection.status, "orphaned");
+    assert_eq!(runtime.registry().active_reservation_count().unwrap(), 1);
+
+    let stopped = Command::new("systemctl")
+        .args(["stop", &dispatched.unit_name])
+        .output()
+        .unwrap();
+    assert!(stopped.status.success());
+    thread::sleep(Duration::from_millis(2_100));
+    runtime.reconcile_attempt(&dispatched.attempt_id).unwrap();
+    let converged = runtime.registry().project_job(&created.job.job_id).unwrap();
+    assert_eq!(converged.status, "lost");
+    assert_eq!(runtime.registry().active_reservation_count().unwrap(), 0);
+    let _ = Command::new("systemctl")
+        .args(["reset-failed", &dispatched.unit_name])
         .output();
 }
 

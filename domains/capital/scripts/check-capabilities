@@ -2,7 +2,13 @@
 set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 mise_bin="${ORDIVON_CAPITAL_MISE:-$(command -v mise || true)}"
-market_python="$root/.venv/bin/python"
+market_python="${ORDIVON_CAPITAL_PYTHON:-$root/.venv/bin/python}"
+# Exact absolute carrier opt-in for pre-rollout qualification. Project default
+# keeps using its installed Python until every real consumer qualifies.
+if [[ "$market_python" != /* || ! -x "$market_python" ]]; then
+  echo "Capital capability interpreter must be an executable absolute path" >&2
+  exit 2
+fi
 
 cd "$root"
 if [[ -z "$mise_bin" || ! -x "$mise_bin" ]]; then
@@ -22,7 +28,7 @@ expected = {
     "numpy": "2.5.3",
     "scipy": "1.18.1",
     "scikit-learn": "1.9.1",
-    "pyarrow": "25.0.1",
+    "pyarrow": "26.0.0",
     "pytest": "9.1.1",
     "websockets": "17.1",
 }
@@ -41,9 +47,9 @@ print(json.dumps({
     "marketOwnedPythonModules": {dist: dist not in missing for dist in modules},
     "versions": versions,
 }, sort_keys=True))
-if sys.version.split()[0] != "3.14.7":
+if sys.version.split()[0] != "3.15.0":
     raise SystemExit(f"unexpected Market Python version: {sys.version.split()[0]}")
-if sqlite3.sqlite_version != "3.53.1":
+if sqlite3.sqlite_version != "3.54.0":
     raise SystemExit(f"unexpected SQLite version: {sqlite3.sqlite_version}")
 print(json.dumps({"sqlite": sqlite3.sqlite_version, "sqliteBinding": "stdlib sqlite3"}, sort_keys=True))
 if missing:

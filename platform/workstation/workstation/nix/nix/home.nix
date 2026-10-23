@@ -1,4 +1,10 @@
 { config, pkgs, ... }:
+let
+  # Dependabot tracks the exact upstream CLI package in codex-cli/package.json.
+  # Do not duplicate a manually maintained version in this Nix configuration.
+  codexManifest = builtins.fromJSON (builtins.readFile ../codex-cli/package.json);
+  codexVersion = codexManifest.dependencies."@openai/codex";
+in
 {
   home.username = "root";
   home.homeDirectory = "/root";
@@ -110,9 +116,12 @@
   home.file."tools/bin/pnpm".source =
     config.lib.file.mkOutOfStoreSymlink "/root/.local/share/mise/shims/pnpm";
 
-  # Codex package/materialization authority is Nixpkgs. Keep the historical first-PATH
-  # command location as a direct immutable symlink, not an Ordivon wrapper/store.
-  home.file."tools/bin/codex".source = "${pkgs.codex}/bin/codex";
+  # Codex upstream release is installed at its pinned versioned npm prefix.
+  # Reuse the same Home Manager out-of-store symlink mechanism as mise/pnpm,
+  # rather than introducing a second package manager or CLI wrapper.
+  home.file."tools/bin/codex".source =
+    config.lib.file.mkOutOfStoreSymlink
+      "/root/tools/share/codex-npm-${codexVersion}/node_modules/@openai/codex/bin/codex.js";
 
   # n8n package/materialization authority is Nixpkgs. Workstation owns only the
   # first-PATH command materialization; n8n owns its workflow/integration behavior.
@@ -137,7 +146,6 @@
     shfmt
     osquery
     netdata
-    codex
     n8n
 
     # Broad research workstation profile. These are reusable workstation tools, not

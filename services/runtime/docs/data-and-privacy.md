@@ -55,6 +55,8 @@ Runtime does **not** automatically redact command arguments, environment values 
 
 `workspace.content` creates no additional retained media store. It opens one already-existing Workspace PNG/JPEG through descriptor-bound Workspace path authority, performs the bounded read and digest on that exact opened file, verifies the caller-supplied SHA-256 digest, and projects those exact bytes through the MCP response. The source image keeps the Workspace's existing lifecycle; Agent observation does not register a second Artifact or persist another image copy.
 
+`workspace.file` follows the same no-additional-store rule for arbitrary bounded Workspace binary files, and `artifact.content` projects bytes already retained by the owning Attempt bundle. Their MCP responses may contain the complete selected bytes (base64-encoded at the protocol layer), so clients and traces outside Runtime must treat those responses with the same sensitivity as the source file. Neither projection creates a second Runtime retention record or implies permission to share the bytes externally.
+
 ## Data inventory
 
 | Data | Typical location | Purpose | Default lifecycle |
@@ -107,7 +109,7 @@ These controls protect against ordinary local disclosure. They do not protect da
 
 ## Retention
 
-Workspace retention is policy-driven and implemented through `ordivon-runtime-lifecycle`; it never deletes dirty, active, pinned, unknown, or orphan-directory state automatically.
+Workspace retention is policy-driven and implemented through `ordivon-runtime-lifecycle`. The packaged disposable policy may close clean carriers after 24 hours of inactivity and dirty carriers after 48 hours, using the same Runtime `workspace.close` fences; active or held Jobs and pinned Workspaces remain protected, while unknown and orphan-directory identities are never blindly deleted automatically.
 `dirty-checkpoint` may explicitly convert one owner-selected dirty Workspace's Git-relevant state into an immutable recovery ref in that Workspace's source repository. The checkpoint preserves physical state without changing semantic ownership or permitting automatic deletion; later release still uses the exact Runtime `workspace.close` fence.
 
 Job, Attempt, event, Artifact, and terminal-evidence history is currently append-oriented and has no automatic per-record deletion path. This preserves idempotency, reconciliation, and recovery evidence. Operators who require bounded historical retention must use one of two explicit models:

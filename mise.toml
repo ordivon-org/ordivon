@@ -26,18 +26,22 @@ config_roots = [
 lockfile = false
 
 [tools]
-python = "3.14.7"
-uv = "0.12.16"
+python = "3.15.0"
+uv = "0.13.1"
 actionlint = "1.7.12"
+shellcheck = "0.11.0"
+sqlite = "3.54.1"
 gitleaks = "8.30.1"
 
 [tasks."repo:secrets:verify"]
 run = """
 set -euo pipefail
-gitleaks git --no-banner --redact=100 --timeout 120 .
 if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
-  echo "GitHub Actions scans durable Git candidate/history only; workspace build artifacts are out of scope."
+  test -n "${GITHUB_SHA:-}"
+  gitleaks git --no-banner --redact=100 --timeout 120 --log-opts="$GITHUB_SHA" .
+  echo "GitHub Actions scans only the durable candidate/history rooted at GITHUB_SHA; unrelated fetched refs and workspace build artifacts are out of scope."
 else
+  gitleaks git --no-banner --redact=100 --timeout 120 .
   gitleaks dir --no-banner --redact=100 --timeout 120 .
 fi
 """
@@ -51,9 +55,19 @@ done
 tools/repo/test-check-archived-source-boundary.sh
 """
 
+[tasks."repo:sql:verify"]
+run = """
+set -euo pipefail
+python3 -m unittest tools/repo/test_sql_dialects.py
+uv run --with pglast==8.6 python tools/repo/check_sql_dialects.py
+"""
+
 [tasks."repo:ci"]
 run = """
 set -euo pipefail
+python3 -m unittest tools/repo/test_tracked_secrets.py
+python3 -m unittest tools/repo/test_sql_dialects.py
+uv run --with pglast==8.6 python tools/repo/check_sql_dialects.py
 python3 tools/repo/test_affected_owners.py
 python3 tools/repo/test_convergence_plan.py
 python3 tools/repo/test_owner_boundaries.py
@@ -61,7 +75,7 @@ python3 tools/repo/check_owner_boundaries.py
 python3 tools/repo/check_composition_architecture.py
 python3 tools/repo/check_structure_r2.py
 python3 tools/repo/check_architecture_docs.py
-uv run --with pytest==9.1.1 python -m pytest -q tools/repo/test_composition_architecture.py tools/repo/test_structure_r2.py tools/repo/test_architecture_docs.py
+uv run --with pytest==9.1.1 --with jsonschema==4.25.1 python -m pytest -q tools/repo/test_composition_architecture.py tools/repo/test_structure_r2.py tools/repo/test_architecture_docs.py tests/catalogs/test_research_tool_and_mechanical_component_contracts.py
 tools/repo/migration/test-integrate-main.sh
 uv run --with pyyaml==6.0.3 python tools/repo/check_github_governance.py
 actionlint .github/workflows/*.yml
@@ -137,6 +151,14 @@ set -euo pipefail
 cd services/host
 mise install
 mise run verify
+"""
+
+[tasks."host:queue"]
+run = """
+set -euo pipefail
+cd services/host
+mise install
+mise run queue
 """
 
 [tasks."harness:verify"]

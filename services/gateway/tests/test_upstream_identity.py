@@ -11,6 +11,8 @@ from ordivon_gateway.upstream import (
     McpOwnerCaller,
     OwnerCallError,
     OwnerEndpoint,
+    _exception_summary,
+    _extract_owner_tool_error,
     _headers_for_endpoint,
     _read_private_secret_file,
 )
@@ -150,15 +152,15 @@ def test_conforming_owner_uses_first_class_mcp_client(monkeypatch: pytest.Monkey
             )
         }
     )
-    result = asyncio.run(caller.call_tool("host", "task.list", {"limit": 1}))
+    result = asyncio.run(caller.call_tool("host", "host.status", {"detail": "summary"}))
 
     assert result == {"task": {"task_id": "task:1"}}
     assert observed["url"] == "https://host.example/mcp"
     assert observed["transport"] is fake_transport
     assert observed["client_kwargs"] == {"mode": "auto", "raise_exceptions": False}
     assert observed["call"] == (
-        "task.list",
-        {"limit": 1},
+        "host.status",
+        {"detail": "summary"},
         {
             "traceparent": "00-11111111111111111111111111111111-2222222222222222-01",
             "tracestate": "vendor=value",
@@ -189,3 +191,82 @@ def test_group_read_outside_systemd_credential_directory_is_rejected(
 
     with pytest.raises(OwnerCallError, match="group/world accessible"):
         _read_private_secret_file(str(credential), "owner bearer token")
+
+
+def test_runtime_endpoint_requires_explicit_owner_identity_before_configured() -> None:
+    caller = McpOwnerCaller({"runtime.windows": OwnerEndpoint("http://127.0.0.1:18997/mcp")})
+
+    assert caller.is_configured("runtime.windows") is False
+    assert caller.configuration_error("runtime.windows") == "owner authentication is not configured"
+    with pytest.raises(OwnerCallError) as captured:
+        asyncio.run(caller.call_tool("runtime.windows", "runtime.describe", {"schemaVersion": 1}))
+    assert captured.value.error == {
+        "code": "OWNER_AUTH_NOT_CONFIGURED",
+        "message": "owner authentication is not configured",
+        "origin": "gateway_adapter",
+    }
+
+
+def test_host_endpoint_may_remain_unauthenticated_loopback_contract() -> None:
+    caller = McpOwnerCaller({"host": OwnerEndpoint("http://127.0.0.1:8898/mcp")})
+    assert caller.is_configured("host") is True
+    assert caller.configuration_error("host") is None
+
+
+def test_exception_summary_exposes_nested_task_group_leaf() -> None:
+    error = ExceptionGroup(
+        "unhandled errors in a TaskGroup",
+        [RuntimeError("HTTP 401 owner authentication required")],
+    )
+    assert _exception_summary(error) == "RuntimeError: HTTP 401 owner authentication required"
+
+
+def test_host_domain_error_text_is_preserved_as_typed_owner_error() -> None:
+    domain_error = {
+        "code": "NOT_FOUND",
+        "kind": "ordivon.host-domain-error",
+        "resourceKind": "work",
+        "resourceRef": "work:missing",
+        "retryable": False,
+        "schemaVersion": 1,
+        "suggestedAction": "discover-before-create",
+    }
+    result = SimpleNamespace(
+        structured_content=None,
+        content=[
+            SimpleNamespace(
+                text="Error executing tool work.get: "
+                + __import__("json").dumps(domain_error, separators=(",", ":"))
+            )
+        ],
+    )
+
+    assert _extract_owner_tool_error(result, owner_id="host", tool_name="work.get") == domain_error
+
+
+def test_arbitrary_owner_error_text_is_not_promoted_to_structured_authority() -> None:
+    result = SimpleNamespace(
+        structured_content=None,
+        content=[SimpleNamespace(text='Error executing tool work.get: {"code":"NOT_FOUND"}')],
+    )
+
+    assert _extract_owner_tool_error(result, owner_id="host", tool_name="work.get") is None
+    assert _extract_owner_tool_error(result, owner_id="runtime.linux", tool_name="work.get") is None
+
+
+def test_structured_owner_error_precedes_text_fallback() -> None:
+    structured = {
+        "code": "REGISTRY_COMMIT_UNKNOWN",
+        "origin": "runtime_core",
+        "retryable": True,
+    }
+    result = SimpleNamespace(
+        structured_content={"error": structured},
+        content=[
+            SimpleNamespace(
+                text='Error executing tool work.get: {"code":"NOT_FOUND","kind":"ordivon.host-domain-error","schemaVersion":1}'
+            )
+        ],
+    )
+
+    assert _extract_owner_tool_error(result, owner_id="host", tool_name="work.get") == structured

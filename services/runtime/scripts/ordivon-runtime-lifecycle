@@ -7,6 +7,7 @@ import math
 import argparse
 import fcntl
 import hashlib
+import http.client
 import json
 import os
 import shutil
@@ -16,6 +17,7 @@ import tempfile
 import time
 from contextlib import contextmanager
 from pathlib import Path
+import urllib.error
 from urllib.parse import quote
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -29,14 +31,38 @@ REPAIR_CONFIRMATION = "REPAIR_WORKSPACE_IDENTITIES"
 QUARANTINE_CONFIRMATION = "QUARANTINE_BROKEN_WORKSPACES"
 DIRTY_CHECKPOINT_CONFIRMATION = "CHECKPOINT_DIRTY_WORKSPACE_STATE"
 MAX_DIRTY_PATHS = 10_000
+SUBPROCESS_WALL_TIMEOUT_SECONDS = 120.0
+RUNTIME_INSPECT_WALL_TIMEOUT_SECONDS = 15.0
+MCP_EFFECT_TIMEOUT_SECONDS = 10.0
+CANONICAL_HEAD_TIMEOUT_SECONDS = 5.0
 TRUSTED_TMP_PRESENTATION_ROOT = Path("/tmp/ordivon-t")
 DEFAULT_POLICY = {
     "schemaVersion": 1,
     "defaultClass": "ephemeral",
     "classes": {
-        "ephemeral": {"retentionHours": 48.0, "forceCloseDirtyAfterRetention": False},
-        "review": {"retentionHours": 168.0, "forceCloseDirtyAfterRetention": False},
-        "pinned": {"retentionHours": None, "forceCloseDirtyAfterRetention": False},
+        "ephemeral": {
+            "retentionHours": 24.0,
+            "dirtyRetentionHours": 48.0,
+            "maxLifetimeHours": 48.0,
+            "forceCloseDirtyAfterRetention": True,
+            "forceCloseUnintegratedAfterRetention": True,
+            "forceCloseAfterMaxLifetime": True,
+        },
+        "review": {
+            "retentionHours": 24.0,
+            "dirtyRetentionHours": 48.0,
+            "maxLifetimeHours": 48.0,
+            "forceCloseDirtyAfterRetention": True,
+            "forceCloseUnintegratedAfterRetention": True,
+            "forceCloseAfterMaxLifetime": True,
+        },
+        "pinned": {
+            "retentionHours": None,
+            "maxLifetimeHours": None,
+            "forceCloseDirtyAfterRetention": False,
+            "forceCloseUnintegratedAfterRetention": False,
+            "forceCloseAfterMaxLifetime": False,
+        },
     },
     "rules": [],
     "sourceRepoAliases": {},
@@ -49,6 +75,33 @@ def absolute_path(value: str) -> Path:
         raise argparse.ArgumentTypeError("path must be absolute")
     return path
 
+
+def workspace_id_from_reference(value: str) -> str:
+    prefix = "runtime:workspace:"
+    if not value.startswith(prefix):
+        raise RuntimeError(
+            "workspace reference must use runtime:workspace:<workspaceId>"
+        )
+    workspace_id = value[len(prefix):]
+    if not workspace_id or len(workspace_id) > 96:
+        raise RuntimeError("workspace reference contains an invalid Workspace id")
+    first_allowed = set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
+    allowed = first_allowed | set("._-")
+    if workspace_id[0] not in first_allowed or any(char not in allowed for char in workspace_id):
+        raise RuntimeError("workspace reference contains an invalid Workspace id")
+    return workspace_id
+
+
+def selected_workspace_ids(args: argparse.Namespace) -> list[str]:
+    selected: list[str] = []
+    for workspace_id in getattr(args, "workspace_ids", None) or []:
+        if workspace_id not in selected:
+            selected.append(workspace_id)
+    for reference in getattr(args, "workspace_refs", None) or []:
+        workspace_id = workspace_id_from_reference(reference)
+        if workspace_id not in selected:
+            selected.append(workspace_id)
+    return selected
 
 def nonnegative_float(value: str) -> float:
     parsed = float(value)
@@ -81,10 +134,48 @@ def parse_args() -> argparse.Namespace:
 
     inspect = sub.add_parser("inspect", help="enrich reclaim evidence with retention policy")
     add_common(inspect)
+    inspect.add_argument(
+        "--workspace-id",
+        action="append",
+        dest="workspace_ids",
+        help=(
+            "inspect only this natural-owner-selected Workspace; repeat for a bounded "
+            "completion cohort"
+        ),
+    )
+    inspect.add_argument(
+        "--workspace-ref",
+        action="append",
+        dest="workspace_refs",
+        help=(
+            "consume one Host/natural-owner navigation reference of the exact form "
+            "runtime:workspace:<workspaceId>; repeat for a bounded completion cohort. "
+            "The reference selects a carrier only and does not establish semantic completion."
+        ),
+    )
     inspect.add_argument("--pretty", action="store_true")
 
     sweep = sub.add_parser("sweep", help="release policy-expired clean Workspaces")
     add_common(sweep)
+    sweep.add_argument(
+        "--workspace-id",
+        action="append",
+        dest="workspace_ids",
+        help=(
+            "sweep only this natural-owner-selected Workspace; repeat for a bounded "
+            "acceptance cohort"
+        ),
+    )
+    sweep.add_argument(
+        "--workspace-ref",
+        action="append",
+        dest="workspace_refs",
+        help=(
+            "consume one Host/natural-owner navigation reference of the exact form "
+            "runtime:workspace:<workspaceId>; repeat for a bounded acceptance cohort. "
+            "The reference selects a carrier only and does not establish semantic completion."
+        ),
+    )
     sweep.add_argument("--env-file", type=absolute_path, required=True)
     sweep.add_argument("--receipt-root", type=absolute_path, required=True)
     sweep.add_argument("--lock-file", type=absolute_path, required=True)
@@ -140,7 +231,18 @@ def reclaim_program() -> Path:
 
 
 def run_json(command: list[str], *, accepted_codes: tuple[int, ...] = (0,)) -> dict[str, object]:
-    result = subprocess.run(command, check=False, text=True, capture_output=True)
+    try:
+        result = subprocess.run(
+            command,
+            check=False,
+            text=True,
+            capture_output=True,
+            timeout=SUBPROCESS_WALL_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired as error:
+        raise RuntimeError(
+            f"subordinate Runtime tool exceeded {SUBPROCESS_WALL_TIMEOUT_SECONDS:.0f}s wall timeout"
+        ) from error
     if result.returncode not in accepted_codes:
         raise RuntimeError(result.stderr.strip() or result.stdout.strip() or "command failed")
     value = json.loads(result.stdout)
@@ -216,6 +318,8 @@ def reclaim_inspect(args: argparse.Namespace) -> dict[str, object]:
         command.extend(["--workspace-root", str(args.workspace_root)])
     if args.measure_bytes:
         command.append("--measure-bytes")
+    for workspace_id in selected_workspace_ids(args):
+        command.extend(["--workspace-id", workspace_id])
     return validate_reclaim_inspect(run_json(command))
 
 
@@ -245,11 +349,28 @@ def load_policy(path: Path | None) -> dict[str, object]:
         hours = definition.get("retentionHours")
         if hours is not None and (not isinstance(hours, (int, float)) or hours < 0):
             raise RuntimeError(f"retentionHours for {name} must be null or non-negative")
-        force_dirty = definition.get("forceCloseDirtyAfterRetention", False)
-        if not isinstance(force_dirty, bool):
+        dirty_hours = definition.get("dirtyRetentionHours")
+        if dirty_hours is not None and (
+            not isinstance(dirty_hours, (int, float)) or dirty_hours < 0
+        ):
             raise RuntimeError(
-                f"forceCloseDirtyAfterRetention for {name} must be boolean"
+                f"dirtyRetentionHours for {name} must be null or non-negative"
             )
+        max_lifetime = definition.get("maxLifetimeHours")
+        if max_lifetime is not None and (
+            not isinstance(max_lifetime, (int, float)) or max_lifetime < 0
+        ):
+            raise RuntimeError(
+                f"maxLifetimeHours for {name} must be null or non-negative"
+            )
+        for field in (
+            "forceCloseDirtyAfterRetention",
+            "forceCloseUnintegratedAfterRetention",
+            "forceCloseAfterMaxLifetime",
+        ):
+            flag_value = definition.get(field, False)
+            if not isinstance(flag_value, bool):
+                raise RuntimeError(f"{field} for {name} must be boolean")
     default_class = value.get("defaultClass")
     if default_class not in classes:
         raise RuntimeError("defaultClass must name a configured class")
@@ -272,7 +393,7 @@ def load_policy(path: Path | None) -> dict[str, object]:
 
 def retention_class(
     policy: dict[str, object], workspace_id: str
-) -> tuple[str, float | None, bool]:
+) -> tuple[str, float | None, float | None, float | None, bool, bool, bool]:
     classes = policy["classes"]
     assert isinstance(classes, dict)
     selected = str(policy["defaultClass"])
@@ -288,12 +409,30 @@ def retention_class(
     definition = classes[selected]
     assert isinstance(definition, dict)
     hours = definition.get("retentionHours")
+    dirty_hours = definition.get("dirtyRetentionHours")
+    max_lifetime = definition.get("maxLifetimeHours")
     force_dirty = definition.get("forceCloseDirtyAfterRetention", False)
+    force_unintegrated = definition.get(
+        "forceCloseUnintegratedAfterRetention", False
+    )
+    force_max = definition.get("forceCloseAfterMaxLifetime", False)
     assert isinstance(force_dirty, bool)
+    assert isinstance(force_unintegrated, bool)
+    assert isinstance(force_max, bool)
     return (
         selected,
         float(hours) if isinstance(hours, (int, float)) else None,
+        float(dirty_hours)
+        if isinstance(dirty_hours, (int, float))
+        else (
+            float(hours) if isinstance(hours, (int, float)) else None
+        ),
+        float(max_lifetime)
+        if isinstance(max_lifetime, (int, float))
+        else None,
         force_dirty,
+        force_unintegrated,
+        force_max,
     )
 
 
@@ -303,14 +442,29 @@ def carrier_projection(item: dict[str, object]) -> dict[str, object]:
     classification = str(item.get("classification", "unknown"))
     policy_eligible = item.get("policyEligible") is True
     retention_hours = item.get("retentionHours")
-    retention_applies = classification in {"closable", "stale_record"} or (
-        classification == "blocked_dirty"
-        and item.get("forceCloseDirtyAfterRetention") is True
+    max_lifetime_hours = item.get("maxLifetimeHours")
+    hard_lifetime_expired = item.get("hardLifetimeExpired") is True
+    retention_applies = (
+        classification in {"closable", "stale_record"}
+        or (
+            classification == "blocked_dirty"
+            and item.get("forceCloseDirtyAfterRetention") is True
+        )
+        or (
+            classification == "blocked_unintegrated"
+            and item.get("forceCloseUnintegratedAfterRetention") is True
+        )
+        or (
+            hard_lifetime_expired
+            and item.get("forceCloseAfterMaxLifetime") is True
+            and classification
+            in {"closable", "stale_record", "blocked_dirty", "blocked_unintegrated"}
+        )
     )
     if retention_applies:
         if policy_eligible:
             retention_state = "ELIGIBLE"
-        elif retention_hours is None:
+        elif retention_hours is None and max_lifetime_hours is None:
             retention_state = "PINNED"
         else:
             retention_state = "WAITING"
@@ -325,7 +479,13 @@ def carrier_projection(item: dict[str, object]) -> dict[str, object]:
         owner_disposition_required = True
     elif classification == "blocked_dirty":
         physical_state = "DIRTY_IDLE"
-        if policy_eligible and item.get("forceCloseDirtyAfterRetention") is True:
+        if policy_eligible and (
+            item.get("forceCloseDirtyAfterRetention") is True
+            or (
+                hard_lifetime_expired
+                and item.get("forceCloseAfterMaxLifetime") is True
+            )
+        ):
             next_step = "POLICY_FORCE_CLOSE_DIRTY"
             dirty_handoff_required = False
             owner_disposition_required = False
@@ -336,10 +496,20 @@ def carrier_projection(item: dict[str, object]) -> dict[str, object]:
         clean_close_candidate = False
     elif classification == "blocked_unintegrated":
         physical_state = "CLEAN_IDLE_UNINTEGRATED"
-        next_step = "INTEGRATE_OR_EXPLICITLY_DISPOSITION_SOURCE"
+        if policy_eligible and (
+            item.get("forceCloseUnintegratedAfterRetention") is True
+            or (
+                hard_lifetime_expired
+                and item.get("forceCloseAfterMaxLifetime") is True
+            )
+        ):
+            next_step = "POLICY_FORCE_CLOSE_UNINTEGRATED"
+            owner_disposition_required = False
+        else:
+            next_step = "INTEGRATE_OR_EXPLICITLY_DISPOSITION_SOURCE"
+            owner_disposition_required = True
         clean_close_candidate = False
         dirty_handoff_required = False
-        owner_disposition_required = True
     elif classification == "blocked_active":
         physical_state = "ACTIVE_DIRTY_STATE_UNINSPECTED"
         next_step = "OBSERVE_OR_RECONCILE_ACTIVE_JOB"
@@ -422,7 +592,18 @@ def runtime_inspection(
     ]
     if workspace_id is not None:
         arguments.extend(["--workspace-id", workspace_id])
-    result = subprocess.run(arguments, check=False, text=True, capture_output=True)
+    try:
+        result = subprocess.run(
+            arguments,
+            check=False,
+            text=True,
+            capture_output=True,
+            timeout=RUNTIME_INSPECT_WALL_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired as error:
+        raise RuntimeError(
+            f"Runtime inspection exceeded {RUNTIME_INSPECT_WALL_TIMEOUT_SECONDS:.0f}s wall timeout"
+        ) from error
     if result.returncode != 0:
         detail = result.stderr.strip() or result.stdout.strip() or f"exit {result.returncode}"
         raise RuntimeError(f"Runtime inspection failed: {detail}")
@@ -433,25 +614,6 @@ def runtime_inspection(
     if not isinstance(value, dict):
         raise RuntimeError("Runtime inspection did not return an object")
     return value
-
-
-def registry_activity_by_workspace(database: Path, timeout_ms: int) -> dict[str, int | None]:
-    value = runtime_inspection(database, timeout_ms, "registry-activity")
-    workspaces = value.get("workspaces")
-    if not isinstance(workspaces, list):
-        raise RuntimeError("Runtime registry activity inspection omitted workspaces")
-    projected: dict[str, int | None] = {}
-    for raw in workspaces:
-        if not isinstance(raw, dict):
-            raise RuntimeError("Runtime registry activity inspection returned invalid Workspace state")
-        workspace_id = raw.get("workspaceId")
-        last_activity_ms = raw.get("lastActivityMs")
-        if not isinstance(workspace_id, str) or (
-            last_activity_ms is not None and not isinstance(last_activity_ms, int)
-        ):
-            raise RuntimeError("Runtime registry activity inspection returned invalid Workspace activity")
-        projected[workspace_id] = last_activity_ms
-    return projected
 
 
 def registry_workspace(database: Path, timeout_ms: int, workspace_id: str) -> dict[str, object]:
@@ -468,9 +630,6 @@ def enrich_report(args: argparse.Namespace) -> dict[str, object]:
     report = reclaim_inspect(args)
     policy = load_policy(args.policy_file)
     now_ms = int(time.time() * 1000)
-    activity_by_workspace = registry_activity_by_workspace(
-        args.database, args.busy_timeout_ms
-    )
     enriched: list[dict[str, object]] = []
     eligible_count = 0
     eligible_bytes = 0
@@ -479,29 +638,85 @@ def enrich_report(args: argparse.Namespace) -> dict[str, object]:
             continue
         item = dict(raw)
         workspace_id = str(item["workspaceId"])
-        class_name, retention_hours, force_dirty = retention_class(policy, workspace_id)
+        (
+            class_name,
+            clean_retention_hours,
+            dirty_retention_hours,
+            max_lifetime_hours,
+            force_dirty,
+            force_unintegrated,
+            force_max,
+        ) = retention_class(policy, workspace_id)
+        classification = item.get("classification")
+        retention_hours = (
+            dirty_retention_hours
+            if classification == "blocked_dirty"
+            else clean_retention_hours
+        )
         created_ms = item.get("createdUnixMs")
-        activity_ms = activity_by_workspace.get(workspace_id)
-        basis_values = [value for value in (created_ms, activity_ms) if isinstance(value, int)]
+        registry_state = registry_workspace(
+            args.database, args.busy_timeout_ms, workspace_id
+        )
+        activity_ms = registry_state.get("lastActivityMs")
+        activity_marker = registry_state.get("activityMarker")
+        if activity_ms is not None and not isinstance(activity_ms, int):
+            raise RuntimeError(
+                "Runtime Workspace registry inspection returned invalid lastActivityMs"
+            )
+        if not isinstance(activity_marker, str) or not activity_marker.startswith("sha256:"):
+            raise RuntimeError(
+                "Runtime Workspace registry inspection returned invalid activity marker"
+            )
+        basis_values = [
+            value for value in (created_ms, activity_ms) if isinstance(value, int)
+        ]
         basis_ms = max(basis_values) if basis_values else None
         eligible_at = (
             int(basis_ms + retention_hours * 3_600_000)
             if basis_ms is not None and retention_hours is not None
             else None
         )
-        classification = item.get("classification")
-        eligible_class = classification in {"closable", "stale_record"} or (
-            classification == "blocked_dirty" and force_dirty
+        hard_expires_at = (
+            int(created_ms + max_lifetime_hours * 3_600_000)
+            if isinstance(created_ms, int) and max_lifetime_hours is not None
+            else None
         )
-        eligible = eligible_class and eligible_at is not None and eligible_at <= now_ms
+        idle_expired = eligible_at is not None and eligible_at <= now_ms
+        hard_lifetime_expired = (
+            hard_expires_at is not None and hard_expires_at <= now_ms
+        )
+        idle_eligible_class = (
+            classification in {"closable", "stale_record"}
+            or (classification == "blocked_dirty" and force_dirty)
+            or (
+                classification == "blocked_unintegrated"
+                and force_unintegrated
+            )
+        )
+        hard_eligible_class = (
+            force_max
+            and classification
+            in {"closable", "stale_record", "blocked_dirty", "blocked_unintegrated"}
+        )
+        eligible = (
+            (idle_eligible_class and idle_expired)
+            or (hard_eligible_class and hard_lifetime_expired)
+        )
         item.update(
             {
                 "retentionClass": class_name,
                 "retentionHours": retention_hours,
+                "maxLifetimeHours": max_lifetime_hours,
                 "forceCloseDirtyAfterRetention": force_dirty,
+                "forceCloseUnintegratedAfterRetention": force_unintegrated,
+                "forceCloseAfterMaxLifetime": force_max,
                 "lastActivityUnixMs": activity_ms,
+                "activityMarker": activity_marker,
                 "retentionBasisUnixMs": basis_ms,
                 "eligibleAtUnixMs": eligible_at,
+                "hardExpiresAtUnixMs": hard_expires_at,
+                "idleRetentionExpired": idle_expired,
+                "hardLifetimeExpired": hard_lifetime_expired,
                 "policyEligible": eligible,
             }
         )
@@ -532,6 +747,72 @@ def exclusive_lock(path: Path):
         yield
 
 
+def admission_fence_path(database: Path) -> Path:
+    registry_root = database.parent
+    expected_database = registry_root / "registry.sqlite3"
+    if registry_root.is_symlink() or not registry_root.is_dir():
+        raise RuntimeError("Registry root is not a direct regular directory")
+    if registry_root.resolve(strict=True) != registry_root:
+        raise RuntimeError("Registry root resolves through an alias or symlink")
+    if database != expected_database:
+        raise RuntimeError("database path does not match Registry admission-fence authority")
+    if database.is_symlink() or not database.is_file():
+        raise RuntimeError("Registry database is not a direct regular file")
+    if database.resolve(strict=True) != database:
+        raise RuntimeError("Registry database resolves through an alias or symlink")
+    if database.stat().st_nlink != 1:
+        raise RuntimeError("Registry database has multiple hardlink names")
+    return registry_root / "admission.lock"
+
+
+def validate_runtime_authority_snapshot(
+    database: Path,
+    runtime_store_root: Path,
+    environment: dict[str, str],
+) -> Path:
+    """Bind CLI Registry/store coordinates to one already-read Runtime env snapshot."""
+
+    registry_value = environment.get("ORDIVON_REGISTRY_ROOT")
+    store_value = environment.get("ORDIVON_STORE_ROOT")
+    if not registry_value or not store_value:
+        raise RuntimeError(
+            "Runtime environment must define ORDIVON_REGISTRY_ROOT and ORDIVON_STORE_ROOT"
+        )
+    registry_root = Path(registry_value)
+    store_root = Path(store_value)
+    if not registry_root.is_absolute() or not store_root.is_absolute():
+        raise RuntimeError("Runtime authority roots must be absolute paths")
+    if database != registry_root / "registry.sqlite3":
+        raise RuntimeError("CLI database does not match Runtime Registry authority")
+    if runtime_store_root != store_root:
+        raise RuntimeError("CLI runtime-store-root does not match Runtime store authority")
+    if store_root.is_symlink() or not store_root.is_dir():
+        raise RuntimeError("Runtime store root is not a direct regular directory")
+    if store_root.resolve(strict=True) != store_root:
+        raise RuntimeError("Runtime store root resolves through an alias or symlink")
+    return admission_fence_path(database)
+
+
+def validate_runtime_authority(
+    database: Path,
+    runtime_store_root: Path,
+    env_file: Path,
+) -> Path:
+    return validate_runtime_authority_snapshot(
+        database,
+        runtime_store_root,
+        load_environment_file(env_file),
+    )
+
+
+@contextmanager
+def exclusive_admission_fence(database: Path):
+    path = admission_fence_path(database)
+    with path.open("a+", encoding="utf-8") as handle:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        yield
+
+
 def receipt_path(root: Path, label: str) -> Path:
     stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
     candidate = root / f"{stamp}-{label}"
@@ -553,112 +834,834 @@ def write_json_atomic(path: Path, value: object) -> None:
         temporary.unlink(missing_ok=True)
 
 
-def force_close_workspace(env_file: Path, workspace_id: str) -> dict[str, object]:
-    environment = load_environment_file(env_file)
+def bounded_revalidation_args(
+    args: argparse.Namespace,
+    workspace_id: str,
+) -> argparse.Namespace:
+    values = dict(vars(args))
+    values["workspace_ids"] = [workspace_id]
+    values["workspace_refs"] = []
+    return argparse.Namespace(**values)
+
+
+def retained_after_plan(
+    planned_item: dict[str, object],
+    *,
+    reason: str,
+    current_item: dict[str, object] | None = None,
+    registry_state: dict[str, object] | None = None,
+) -> dict[str, object]:
+    value: dict[str, object] = {
+        "workspaceId": str(planned_item["workspaceId"]),
+        "classification": str(planned_item.get("classification", "unknown")),
+        "action": "workspace_retention_skipped_stale_candidate",
+        "reason": reason,
+        "plannedActivityMarker": planned_item.get("activityMarker"),
+        "plannedRetentionBasisUnixMs": planned_item.get("retentionBasisUnixMs"),
+        "plannedHardLifetimeExpired": planned_item.get("hardLifetimeExpired") is True,
+    }
+    if current_item is not None:
+        value.update(
+            {
+                "currentClassification": current_item.get("classification"),
+                "currentActivityMarker": current_item.get("activityMarker"),
+                "currentRetentionBasisUnixMs": current_item.get("retentionBasisUnixMs"),
+                "currentHardLifetimeExpired": current_item.get("hardLifetimeExpired") is True,
+                "currentPolicyEligible": current_item.get("policyEligible") is True,
+            }
+        )
+    if registry_state is not None:
+        value["currentActivityMarker"] = registry_state.get("activityMarker")
+        value["currentLastActivityUnixMs"] = registry_state.get("lastActivityMs")
+    return value
+
+
+def runtime_client_from_environment(
+    environment: dict[str, str],
+    *,
+    client_name: str,
+):
+    """Construct one MCP client from the exact env snapshot used for effect authority."""
+
     bind = environment.get("ORDIVON_BIND")
     if not bind:
         raise RuntimeError("environment file must define ORDIVON_BIND")
-    client = connect_compatible(
+    return connect_compatible(
         f"http://{bind}/mcp",
         load_bearer_token(environment),
-        client_name="ordivon-runtime-lifecycle",
-        timeout=30.0,
+        client_name=client_name,
+        timeout=MCP_EFFECT_TIMEOUT_SECONDS,
     )
-    structured = client.call_tool(
-        "workspace.close",
-        {"schemaVersion": SCHEMA_VERSION, "workspaceId": workspace_id, "force": True},
+
+
+def runtime_client(env_file: Path, *, client_name: str):
+    return runtime_client_from_environment(
+        load_environment_file(env_file),
+        client_name=client_name,
     )
-    if structured.get("closureDisposition") not in {
-        "removed", "already_closed", "already_absent", "recovered_missing"
-    }:
-        raise RuntimeError(f"workspace.close did not close {workspace_id}: {structured}")
+
+
+def workspace_state(env_file: Path, workspace_id: str) -> dict[str, object]:
+    current = runtime_client(
+        env_file, client_name="ordivon-runtime-lifecycle-currentness"
+    ).call_tool(
+        "workspace.get",
+        {"schemaVersion": SCHEMA_VERSION, "workspaceId": workspace_id},
+    )
+    if current.get("workspaceId") != workspace_id:
+        raise RuntimeError("workspace.get returned mismatched Workspace identity")
+    return current
+
+
+def prepare_selected_item(
+    args: argparse.Namespace,
+    planned_item: dict[str, object],
+) -> tuple[dict[str, object] | None, dict[str, object] | None]:
+    workspace_id = planned_item.get("workspaceId")
+    if not isinstance(workspace_id, str) or not workspace_id:
+        raise RuntimeError("lifecycle plan omitted workspaceId")
+
+    current_report = enrich_report(bounded_revalidation_args(args, workspace_id))
+    current_items = [
+        item
+        for item in current_report.get("candidates", [])
+        if isinstance(item, dict) and item.get("workspaceId") == workspace_id
+    ]
+    if not current_items:
+        return None, retained_after_plan(
+            planned_item, reason="workspace_missing_after_plan"
+        )
+    if len(current_items) != 1:
+        raise RuntimeError(
+            f"pre-effect observation returned duplicate Workspace identity: {workspace_id}"
+        )
+    current = dict(current_items[0])
+
+    if current.get("policyEligible") is not True:
+        return None, retained_after_plan(
+            planned_item,
+            reason="workspace_policy_no_longer_eligible",
+            current_item=current,
+        )
+
+    # The expensive classifier and policy view must still describe the same
+    # candidate selected by the plan. Hard-max may override ordinary activity
+    # renewal, but it does not override classification or policy drift.
+    for field in (
+        "classification",
+        "retentionClass",
+        "retentionHours",
+        "maxLifetimeHours",
+        "forceCloseDirtyAfterRetention",
+        "forceCloseUnintegratedAfterRetention",
+        "forceCloseAfterMaxLifetime",
+        "recordDigest",
+        "workspaceHeadRevision",
+        "canonicalHeadRevision",
+        "canonicalRef",
+        "sourceRepo",
+        "sourceRevision",
+    ):
+        planned = planned_item.get(field)
+        if planned is not None and current.get(field) != planned:
+            return None, retained_after_plan(
+                planned_item,
+                reason=f"{field}_changed_after_plan",
+                current_item=current,
+            )
+
+    planned_marker = planned_item.get("activityMarker")
+    current_marker = current.get("activityMarker")
+    if (
+        isinstance(planned_marker, str)
+        and isinstance(current_marker, str)
+        and planned_marker != current_marker
+        and current.get("hardLifetimeExpired") is not True
+    ):
+        return None, retained_after_plan(
+            planned_item,
+            reason="workspace_activity_changed_after_plan",
+            current_item=current,
+        )
+
+    if current.get("classification") == "stale_record":
+        return current, None
+
+    physical = workspace_state(args.env_file, workspace_id)
+    source_state_digest = physical.get("sourceStateDigest")
+    if not isinstance(source_state_digest, str) or not source_state_digest.startswith(
+        "sha256:"
+    ):
+        raise RuntimeError("workspace.get omitted sourceStateDigest")
+    current_head = physical.get("currentHeadRevision")
+    expected_head = current.get("workspaceHeadRevision")
+    if isinstance(expected_head, str) and current_head != expected_head:
+        return None, retained_after_plan(
+            planned_item,
+            reason="workspaceHeadRevision_changed_after_classification",
+            current_item=current,
+        )
+
+    current["expectedSourceStateDigest"] = source_state_digest
+    current["expectedCurrentHeadRevision"] = current_head
+    return current, None
+
+
+def _policy_standing_from_registry(
+    prepared_item: dict[str, object],
+    registry_state: dict[str, object],
+) -> dict[str, object]:
+    classification = prepared_item.get("classification")
+    created_ms = prepared_item.get("createdUnixMs")
+    activity_ms = registry_state.get("lastActivityMs")
+    if activity_ms is not None and not isinstance(activity_ms, int):
+        raise RuntimeError("Runtime Workspace registry projection returned invalid lastActivityMs")
+
+    retention_hours = prepared_item.get("retentionHours")
+    max_lifetime_hours = prepared_item.get("maxLifetimeHours")
+    basis_values = [
+        value for value in (created_ms, activity_ms) if isinstance(value, int)
+    ]
+    basis_ms = max(basis_values) if basis_values else None
+    now_ms = int(time.time() * 1000)
+    eligible_at = (
+        int(basis_ms + float(retention_hours) * 3_600_000)
+        if basis_ms is not None and isinstance(retention_hours, (int, float))
+        else None
+    )
+    hard_expires_at = (
+        int(created_ms + float(max_lifetime_hours) * 3_600_000)
+        if isinstance(created_ms, int) and isinstance(max_lifetime_hours, (int, float))
+        else None
+    )
+    idle_expired = eligible_at is not None and eligible_at <= now_ms
+    hard_expired = hard_expires_at is not None and hard_expires_at <= now_ms
+
+    idle_eligible_class = (
+        classification in {"closable", "stale_record"}
+        or (
+            classification == "blocked_dirty"
+            and prepared_item.get("forceCloseDirtyAfterRetention") is True
+        )
+        or (
+            classification == "blocked_unintegrated"
+            and prepared_item.get("forceCloseUnintegratedAfterRetention") is True
+        )
+    )
+    hard_eligible_class = (
+        prepared_item.get("forceCloseAfterMaxLifetime") is True
+        and classification
+        in {"closable", "stale_record", "blocked_dirty", "blocked_unintegrated"}
+    )
+    return {
+        "lastActivityUnixMs": activity_ms,
+        "retentionBasisUnixMs": basis_ms,
+        "idleRetentionExpired": idle_expired,
+        "hardLifetimeExpired": hard_expired,
+        "policyEligible": (idle_eligible_class and idle_expired)
+        or (hard_eligible_class and hard_expired),
+    }
+
+
+def canonical_head_revision(prepared_item: dict[str, object]) -> str | None:
+    expected = prepared_item.get("canonicalHeadRevision")
+    if expected is None:
+        return None
+    source_repo = prepared_item.get("sourceRepo")
+    canonical_ref = prepared_item.get("canonicalRef")
+    if not isinstance(expected, str) or not isinstance(source_repo, str):
+        raise RuntimeError("prepared candidate omitted canonical source identity")
+    # Revalidate the SAME authority selected by reclaim's planner. A local
+    # checkout HEAD may legitimately differ from published origin/main.
+    if canonical_ref == "origin/main":
+        revision = "refs/remotes/origin/main^{commit}"
+    elif canonical_ref == "HEAD":
+        revision = "HEAD"
+    else:
+        raise RuntimeError("prepared candidate omitted or changed canonicalRef")
+    try:
+        result = subprocess.run(
+            ["git", "-C", source_repo, "rev-parse", "--verify", revision],
+            check=False,
+            text=True,
+            capture_output=True,
+            timeout=CANONICAL_HEAD_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired as error:
+        raise RuntimeError("canonical ref read exceeded bounded timeout") from error
+    if result.returncode != 0:
+        raise RuntimeError(
+            result.stderr.strip()
+            or result.stdout.strip()
+            or "canonical ref read failed"
+        )
+    observed = result.stdout.strip()
+    if not observed:
+        raise RuntimeError("canonical ref read returned empty revision")
+    return observed
+
+
+def revalidate_prepared_item_under_fence(
+    args: argparse.Namespace,
+    prepared_item: dict[str, object],
+) -> tuple[dict[str, object] | None, dict[str, object]]:
+    workspace_id = str(prepared_item["workspaceId"])
+    registry_state = registry_workspace(
+        args.database, args.busy_timeout_ms, workspace_id
+    )
+    active = registry_state.get("activeJobIds")
+    if not isinstance(active, list) or any(not isinstance(job_id, str) for job_id in active):
+        raise RuntimeError("Runtime Workspace registry projection omitted activeJobIds")
+    if active:
+        return retained_after_plan(
+            prepared_item,
+            reason="workspace_active_after_plan",
+            current_item=prepared_item,
+            registry_state=registry_state,
+        ), registry_state
+
+    activity_marker = registry_state.get("activityMarker")
+    if not isinstance(activity_marker, str) or not activity_marker.startswith("sha256:"):
+        raise RuntimeError("Runtime Workspace registry projection omitted activityMarker")
+
+    standing = _policy_standing_from_registry(prepared_item, registry_state)
+    planned_activity = prepared_item.get("lastActivityUnixMs")
+    planned_marker = prepared_item.get("activityMarker")
+    activity_changed = (
+        registry_state.get("lastActivityMs") != planned_activity
+        or activity_marker != planned_marker
+    )
+    if activity_changed and standing["hardLifetimeExpired"] is not True:
+        return retained_after_plan(
+            prepared_item,
+            reason="workspace_activity_changed_after_plan",
+            current_item={**prepared_item, **standing},
+            registry_state=registry_state,
+        ), registry_state
+
+    if standing["policyEligible"] is not True:
+        return retained_after_plan(
+            prepared_item,
+            reason="workspace_policy_no_longer_eligible",
+            current_item={**prepared_item, **standing},
+            registry_state=registry_state,
+        ), registry_state
+
+    expected_canonical = prepared_item.get("canonicalHeadRevision")
+    if expected_canonical is not None:
+        observed_canonical = canonical_head_revision(prepared_item)
+        if observed_canonical != expected_canonical:
+            return retained_after_plan(
+                prepared_item,
+                reason="canonicalHeadRevision_changed_after_plan",
+                current_item={**prepared_item, **standing},
+                registry_state=registry_state,
+            ), registry_state
+
+    currentness = {
+        "plannedActivityMarker": prepared_item.get("activityMarker"),
+        "currentActivityMarker": activity_marker,
+        "plannedLastActivityUnixMs": prepared_item.get("lastActivityUnixMs"),
+        "currentLastActivityUnixMs": registry_state.get("lastActivityMs"),
+        "hardLifetimeExpired": standing["hardLifetimeExpired"],
+        "expectedSourceStateDigest": prepared_item.get("expectedSourceStateDigest"),
+        "canonicalHeadRevision": expected_canonical,
+    }
+    return None, currentness
+
+
+class WorkspaceCloseDeliveryUncertain(RuntimeError):
+    def __init__(
+        self,
+        workspace_id: str,
+        expected_source_state_digest: str,
+        cause: Exception,
+    ):
+        super().__init__(
+            f"workspace.close delivery remained uncertain for {workspace_id}: {cause}"
+        )
+        self.workspace_id = workspace_id
+        self.expected_source_state_digest = expected_source_state_digest
+
+
+def _validate_close_result(
+    workspace_id: str,
+    expected_source_state_digest: str,
+    structured: dict[str, object],
+) -> dict[str, object]:
+    disposition = structured.get("closureDisposition")
+    if disposition == "removed":
+        if structured.get("removed") is not True:
+            raise RuntimeError(
+                f"workspace.close reported removed without removal for {workspace_id}: {structured}"
+            )
+    elif disposition == "already_closed":
+        if structured.get("sourceStateDigest") != expected_source_state_digest:
+            raise RuntimeError(
+                f"workspace.close returned mismatched closed tombstone for {workspace_id}: {structured}"
+            )
+    else:
+        raise RuntimeError(
+            f"workspace.close did not prove exact closure for {workspace_id}: {structured}"
+        )
     return structured
+
+
+def close_workspace_once(
+    env_file: Path,
+    workspace_id: str,
+    *,
+    force: bool,
+    expected_source_state_digest: str,
+    client=None,
+) -> dict[str, object]:
+    close_arguments = {
+        "schemaVersion": SCHEMA_VERSION,
+        "workspaceId": workspace_id,
+        "force": force,
+        "expectedSourceStateDigest": expected_source_state_digest,
+    }
+    effect_client = client or runtime_client(
+        env_file, client_name="ordivon-runtime-lifecycle-close"
+    )
+    try:
+        structured = effect_client.call_tool("workspace.close", close_arguments)
+    except (
+        TimeoutError,
+        ConnectionError,
+        urllib.error.URLError,
+        http.client.HTTPException,
+    ) as error:
+        raise WorkspaceCloseDeliveryUncertain(
+            workspace_id, expected_source_state_digest, error
+        ) from error
+    return _validate_close_result(
+        workspace_id, expected_source_state_digest, structured
+    )
+
+
+def closed_workspace_tombstone(
+    runtime_store_root: Path,
+    workspace_id: str,
+    *,
+    expected_source_state_digest: str,
+) -> dict[str, object] | None:
+    record = runtime_store_root / "workspace-records" / f"{workspace_id}.json"
+    try:
+        metadata = record.lstat()
+    except FileNotFoundError:
+        return None
+    if record.is_symlink() or not record.is_file() or metadata.st_nlink != 1:
+        return None
+    try:
+        value = json.loads(record.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(value, dict) or value.get("state") != "closed":
+        return None
+    if value.get("sourceStateDigest") != expected_source_state_digest:
+        return None
+    return value
+
+
+
+def preserve_unintegrated_head(
+    _args: argparse.Namespace,
+    prepared_item: dict[str, object],
+) -> dict[str, object]:
+    workspace_id = str(prepared_item["workspaceId"])
+    if prepared_item.get("classification") != "blocked_unintegrated":
+        raise RuntimeError(
+            f"Workspace is not blocked_unintegrated: {prepared_item.get('classification')}"
+        )
+    source_repo_value = prepared_item.get("sourceRepo")
+    workspace_head = prepared_item.get("workspaceHeadRevision")
+    expected_digest = prepared_item.get("expectedSourceStateDigest")
+    if not isinstance(source_repo_value, str):
+        raise RuntimeError("prepared candidate omitted sourceRepo")
+    if not isinstance(workspace_head, str) or len(workspace_head) != 40:
+        raise RuntimeError("prepared candidate omitted workspaceHeadRevision")
+    if not isinstance(expected_digest, str) or not expected_digest.startswith("sha256:"):
+        raise RuntimeError("prepared candidate omitted expectedSourceStateDigest")
+
+    source_repo = Path(source_repo_value).resolve()
+    if not source_repo.is_dir():
+        raise RuntimeError(f"source repository is unavailable: {source_repo}")
+    resolved = git(
+        source_repo,
+        ["rev-parse", "--verify", f"{workspace_head}^{{commit}}"],
+    ).stdout.strip()
+    if resolved != workspace_head:
+        raise RuntimeError("source repository does not contain exact Workspace HEAD")
+
+    state_hex = expected_digest.split(":", 1)[1]
+    workspace_ref_id = quote(workspace_id, safe="-._")
+    retention_ref = f"refs/ordivon/retention/{workspace_ref_id}/{state_hex}"
+    existing = git(
+        source_repo,
+        ["rev-parse", "--verify", "--quiet", retention_ref],
+        check=False,
+    )
+    if existing.returncode == 0:
+        observed = existing.stdout.strip()
+        if observed != workspace_head:
+            raise RuntimeError("existing retention ref resolves to different Workspace HEAD")
+        disposition = "existing"
+    else:
+        update = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(source_repo),
+                "update-ref",
+                retention_ref,
+                workspace_head,
+                "0" * 40,
+            ],
+            check=False,
+            text=True,
+            capture_output=True,
+        )
+        if update.returncode != 0:
+            replay = git(
+                source_repo,
+                ["rev-parse", "--verify", "--quiet", retention_ref],
+                check=False,
+            )
+            if replay.returncode != 0 or replay.stdout.strip() != workspace_head:
+                raise RuntimeError(
+                    update.stderr.strip()
+                    or update.stdout.strip()
+                    or "retention ref creation failed"
+                )
+            disposition = "existing"
+        else:
+            disposition = "created"
+
+    observed = git(
+        source_repo,
+        ["rev-parse", "--verify", f"{retention_ref}^{{commit}}"],
+    ).stdout.strip()
+    if observed != workspace_head:
+        raise RuntimeError("retention ref readback differs from Workspace HEAD")
+    return {
+        "preservationKind": "unintegrated_head_ref",
+        "workspaceId": workspace_id,
+        "sourceRepo": str(source_repo),
+        "expectedSourceStateDigest": expected_digest,
+        "retentionRef": retention_ref,
+        "retentionCommit": workspace_head,
+        "retentionDisposition": disposition,
+        "truthRole": "physical-recovery-carrier-not-semantic-standing",
+        "automaticDeletionAllowed": False,
+        "physicalCarrierRetirementReady": True,
+        "semanticCompletionEvaluated": False,
+    }
+
+
+def preserve_retention_candidate(
+    args: argparse.Namespace,
+    prepared_item: dict[str, object],
+) -> dict[str, object] | None:
+    classification = str(prepared_item.get("classification"))
+    if classification == "blocked_dirty":
+        checkpoint = dirty_checkpoint_one(args, prepared_item)
+        return {
+            **checkpoint,
+            "preservationKind": "dirty_checkpoint",
+            "expectedSourceStateDigest": prepared_item.get("expectedSourceStateDigest"),
+            "physicalCarrierRetirementReady": True,
+            "semanticCompletionEvaluated": False,
+        }
+    if classification == "blocked_unintegrated":
+        return preserve_unintegrated_head(args, prepared_item)
+    return None
+
+
+def _close_action(
+    prepared_item: dict[str, object],
+    close_result: dict[str, object],
+    currentness: dict[str, object],
+    *,
+    delivery_reconciled: bool,
+) -> dict[str, object]:
+    classification = str(prepared_item.get("classification"))
+    action: dict[str, object] = {
+        "workspaceId": str(prepared_item["workspaceId"]),
+        "classification": classification,
+        "action": (
+            "workspace_force_closed_by_retention_policy"
+            if classification in {"blocked_dirty", "blocked_unintegrated"}
+            else "workspace_closed_by_retention_policy"
+        ),
+        "closureDisposition": close_result.get("closureDisposition"),
+        "removed": close_result.get("removed"),
+        "sourceStateDigest": prepared_item.get("expectedSourceStateDigest"),
+        "deliveryReconciled": delivery_reconciled,
+        "lifecycleCurrentness": currentness,
+        "semanticCompletionEvaluated": False,
+    }
+    preservation = prepared_item.get("retentionPreservation")
+    if isinstance(preservation, dict):
+        action["retentionPreservation"] = preservation
+    return action
+
+
+def _attempt_prepared_close(
+    args: argparse.Namespace,
+    prepared_item: dict[str, object],
+) -> tuple[str, dict[str, object] | WorkspaceCloseDeliveryUncertain]:
+    classification = str(prepared_item.get("classification"))
+    force = classification in {"blocked_dirty", "blocked_unintegrated"}
+    expected_digest = prepared_item.get("expectedSourceStateDigest")
+    if not isinstance(expected_digest, str) or not expected_digest.startswith("sha256:"):
+        raise RuntimeError("prepared candidate omitted expectedSourceStateDigest")
+
+    with exclusive_admission_fence(args.database):
+        # Bind the destructive cut to one environment snapshot.  A concurrent
+        # installation/operator replacement of the env file must not let us hold
+        # Registry A's admission fence while addressing Runtime B through a later
+        # reread of ORDIVON_BIND/credentials.
+        environment = load_environment_file(args.env_file)
+        validate_runtime_authority_snapshot(
+            args.database,
+            args.runtime_store_root,
+            environment,
+        )
+        effect_client = runtime_client_from_environment(
+            environment,
+            client_name="ordivon-runtime-lifecycle-close",
+        )
+
+        retained, currentness = revalidate_prepared_item_under_fence(
+            args, prepared_item
+        )
+        if retained is not None:
+            return "retained", retained
+        try:
+            result = close_workspace_once(
+                args.env_file,
+                str(prepared_item["workspaceId"]),
+                force=force,
+                expected_source_state_digest=expected_digest,
+                client=effect_client,
+            )
+        except WorkspaceCloseDeliveryUncertain as error:
+            return "uncertain", error
+        return "closed", _close_action(
+            prepared_item,
+            result,
+            currentness,
+            delivery_reconciled=False,
+        )
+
+
+def apply_prepared_candidate(
+    args: argparse.Namespace,
+    prepared_item: dict[str, object],
+) -> dict[str, object]:
+    prepared_item = dict(prepared_item)
+    preservation = preserve_retention_candidate(args, prepared_item)
+    if preservation is not None:
+        prepared_item["retentionPreservation"] = preservation
+    status, value = _attempt_prepared_close(args, prepared_item)
+    if status in {"closed", "retained"}:
+        assert isinstance(value, dict)
+        if preservation is not None:
+            value = dict(value)
+            value.setdefault("retentionPreservation", preservation)
+            value.setdefault("semanticCompletionEvaluated", False)
+        return value
+
+    assert isinstance(value, WorkspaceCloseDeliveryUncertain)
+    workspace_id = str(prepared_item["workspaceId"])
+    expected_digest = value.expected_source_state_digest
+    tombstone = closed_workspace_tombstone(
+        args.runtime_store_root,
+        workspace_id,
+        expected_source_state_digest=expected_digest,
+    )
+    if tombstone is not None:
+        return _close_action(
+            prepared_item,
+            {
+                "closureDisposition": "already_closed",
+                "removed": False,
+                "sourceStateDigest": expected_digest,
+            },
+            {"responseLossReconciledBy": "matching_closed_tombstone"},
+            delivery_reconciled=True,
+        )
+
+    replay_status, replay_value = _attempt_prepared_close(args, prepared_item)
+    if replay_status == "retained":
+        raise RuntimeError(
+            f"workspace.close delivery is UNKNOWN for {workspace_id}; "
+            "fresh bounded currentness changed before exact replay"
+        )
+    if replay_status == "closed":
+        assert isinstance(replay_value, dict)
+        replay_value["deliveryReconciled"] = True
+        replay_value["responseLossReconciledBy"] = "same_identity_replay"
+        return replay_value
+
+    assert isinstance(replay_value, WorkspaceCloseDeliveryUncertain)
+    tombstone = closed_workspace_tombstone(
+        args.runtime_store_root,
+        workspace_id,
+        expected_source_state_digest=expected_digest,
+    )
+    if tombstone is not None:
+        return _close_action(
+            prepared_item,
+            {
+                "closureDisposition": "already_closed",
+                "removed": False,
+                "sourceStateDigest": expected_digest,
+            },
+            {"responseLossReconciledBy": "matching_closed_tombstone_after_replay"},
+            delivery_reconciled=True,
+        )
+    raise replay_value
+
+
+def reclaim_apply_selected(
+    args: argparse.Namespace,
+    workspace_ids: list[str],
+    receipt: Path,
+) -> dict[str, object]:
+    command = [
+        sys.executable,
+        str(reclaim_program()),
+        "apply",
+        "--database",
+        str(args.database),
+        "--runtime-store-root",
+        str(args.runtime_store_root),
+        "--busy-timeout-ms",
+        str(args.busy_timeout_ms),
+        "--env-file",
+        str(args.env_file),
+        "--receipt-root",
+        str(receipt / "reclaim"),
+        "--lock-file",
+        str(receipt / "reclaim.lock"),
+        "--minimum-age-hours",
+        "0",
+        "--confirm-policy",
+        "RECLAIM_ELIGIBLE_WORKSPACES",
+    ]
+    if args.workspace_root:
+        command.extend(["--workspace-root", str(args.workspace_root)])
+    for workspace_id in workspace_ids:
+        command.extend(["--workspace-id", workspace_id])
+    return validate_reclaim_apply(run_json(command, accepted_codes=(0, 2)))
 
 
 def sweep(args: argparse.Namespace) -> dict[str, object]:
     if args.confirm_policy != SWEEP_CONFIRMATION:
         raise RuntimeError(f"confirm-policy must equal {SWEEP_CONFIRMATION}")
+    validate_runtime_authority(args.database, args.runtime_store_root, args.env_file)
+
     with exclusive_lock(args.lock_file):
+        requested_workspace_ids = selected_workspace_ids(args)
+        selection_mode = "bounded" if requested_workspace_ids else "global"
         before = enrich_report(args)
+        before["selectionMode"] = selection_mode
+        before["requestedWorkspaceIds"] = list(requested_workspace_ids)
         selected_items = [
             item
             for item in before.get("candidates", [])
             if isinstance(item, dict) and item.get("policyEligible") is True
         ]
         selected = [str(item["workspaceId"]) for item in selected_items]
-        dirty_selected = [
+        planned_dirty = [
             str(item["workspaceId"])
             for item in selected_items
             if item.get("classification") == "blocked_dirty"
-            and item.get("forceCloseDirtyAfterRetention") is True
         ]
-        reclaim_selected = [
+        planned_unintegrated = [
             str(item["workspaceId"])
             for item in selected_items
-            if item.get("classification") in {"closable", "stale_record"}
+            if item.get("classification") == "blocked_unintegrated"
         ]
         receipt = receipt_path(args.receipt_root, "workspace-lifecycle")
         write_json_atomic(receipt / "before.json", before)
         actions: list[dict[str, object]] = []
         failures: list[dict[str, object]] = []
+        effect_eligible: list[str] = []
+        stale_candidates: list[str] = []
         reclaim_receipt: object = None
-        if reclaim_selected:
-            command = [
-                sys.executable,
-                str(reclaim_program()),
-                "apply",
-                "--database",
-                str(args.database),
-                "--runtime-store-root",
-                str(args.runtime_store_root),
-                "--busy-timeout-ms",
-                str(args.busy_timeout_ms),
-                "--env-file",
-                str(args.env_file),
-                "--receipt-root",
-                str(receipt / "reclaim"),
-                "--lock-file",
-                str(receipt / "reclaim.lock"),
-                "--minimum-age-hours",
-                "0",
-                "--confirm-policy",
-                "RECLAIM_ELIGIBLE_WORKSPACES",
-            ]
-            if args.workspace_root:
-                command.extend(["--workspace-root", str(args.workspace_root)])
-            for workspace_id in reclaim_selected:
-                command.extend(["--workspace-id", workspace_id])
-            subordinate = validate_reclaim_apply(run_json(command, accepted_codes=(0, 2)))
-            actions.extend(subordinate.get("actions", []))
-            failures.extend(subordinate.get("failures", []))
-            reclaim_receipt = subordinate.get("receipt")
-        for workspace_id in dirty_selected:
+
+        for planned_item in selected_items:
+            workspace_id = str(planned_item["workspaceId"])
+            classification = str(planned_item.get("classification"))
+
+            # stale_record is a Registry-record reconciliation class, not a
+            # physical Workspace close. Keep it on the mature reclaim owner
+            # path and outside the global admission critical section.
+            if classification == "stale_record":
+                try:
+                    subordinate = reclaim_apply_selected(
+                        args, [workspace_id], receipt
+                    )
+                    actions.extend(
+                        raw
+                        for raw in subordinate.get("actions", [])
+                        if isinstance(raw, dict)
+                    )
+                    failures.extend(
+                        raw
+                        for raw in subordinate.get("failures", [])
+                        if isinstance(raw, dict)
+                    )
+                    reclaim_receipt = subordinate.get("receipt")
+                    effect_eligible.append(workspace_id)
+                except Exception as error:
+                    failures.append(
+                        {
+                            "workspaceId": workspace_id,
+                            "classification": classification,
+                            "error": str(error),
+                        }
+                    )
+                continue
+
             try:
-                close_result = force_close_workspace(args.env_file, workspace_id)
-                actions.append(
-                    {
-                        "workspaceId": workspace_id,
-                        "classification": "blocked_dirty",
-                        "action": "workspace_force_closed_by_retention_policy",
-                        "closureDisposition": close_result.get("closureDisposition"),
-                        "removed": close_result.get("removed"),
-                    }
-                )
+                prepared, retained = prepare_selected_item(args, planned_item)
+                if retained is not None:
+                    stale_candidates.append(workspace_id)
+                    actions.append(retained)
+                    continue
+                assert prepared is not None
+                effect_eligible.append(workspace_id)
+                action = apply_prepared_candidate(args, prepared)
+                if action.get("action") == "workspace_retention_skipped_stale_candidate":
+                    stale_candidates.append(workspace_id)
+                actions.append(action)
             except Exception as error:
                 failures.append(
                     {
                         "workspaceId": workspace_id,
-                        "classification": "blocked_dirty",
+                        "classification": classification,
                         "error": str(error),
                     }
                 )
+
         after = enrich_report(args)
+        after["selectionMode"] = selection_mode
+        after["requestedWorkspaceIds"] = list(requested_workspace_ids)
         write_json_atomic(receipt / "after.json", after)
         result = {
             "schemaVersion": SCHEMA_VERSION,
             "status": "completed" if not failures else "partial",
+            "selectionMode": selection_mode,
+            "requestedWorkspaceIds": list(requested_workspace_ids),
             "selectedWorkspaceIds": selected,
-            "forceDirtyWorkspaceIds": dirty_selected,
+            "forceDirtyWorkspaceIds": planned_dirty,
+            "forceUnintegratedWorkspaceIds": planned_unintegrated,
+            "effectEligibleWorkspaceIds": effect_eligible,
+            "staleCandidateWorkspaceIds": stale_candidates,
             "actions": actions,
             "failures": failures,
             "reclaimReceipt": reclaim_receipt,
@@ -666,7 +1669,6 @@ def sweep(args: argparse.Namespace) -> dict[str, object]:
         }
         write_json_atomic(receipt / "result.json", result)
         return result
-
 
 def sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
@@ -904,7 +1906,6 @@ def quarantine_orphan_directory(
         raise RuntimeError("quarantine target already exists")
 
     git_evidence = orphan_git_evidence(workspace_path)
-    observed_head = git_evidence.get("observedHead")
     tombstone = {
         "schemaVersion": SCHEMA_VERSION,
         "state": "closed",
@@ -970,7 +1971,7 @@ def quarantine_one(
     workspace_root = args.workspace_root or args.runtime_store_root / "workspaces"
     workspace_path = workspace_root / workspace_id
     record_path = args.runtime_store_root / "workspace-records" / f"{workspace_id}.json"
-    record = load_open_record(record_path, workspace_id, workspace_path)
+    load_open_record(record_path, workspace_id, workspace_path)
     if active_jobs(args.database, args.busy_timeout_ms, workspace_id):
         raise RuntimeError("workspace acquired an active or held Job")
     args.quarantine_root.mkdir(parents=True, exist_ok=True)

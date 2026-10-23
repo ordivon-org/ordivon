@@ -1,3 +1,46 @@
+fn exact_replay_for_submit(
+    connection: &Connection,
+    request: &SubmitRequest,
+    operation_digest: &str,
+) -> RuntimeResult<Option<RuntimeJobRecord>> {
+    let existing_job_id = connection
+        .query_row(
+            "SELECT job_id FROM idempotency_keys WHERE principal=?1 AND client_request_id=?2",
+            params![request.plan.principal, request.client_request_id],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()
+        .map_err(|error| RuntimeError::from_sql(error, "cannot check idempotency key"))?;
+    let Some(existing_job_id) = existing_job_id else {
+        return Ok(None);
+    };
+    let existing = RegistryStorageBoundary::load_job(connection, &existing_job_id)?;
+    let matches = JobIdentityContract::exact_replay_matches(
+        &existing,
+        request.request_identity_digest.as_deref(),
+        operation_digest,
+    )?;
+    if !matches {
+        return Err(JobIdentityContract::idempotency_conflict());
+    }
+    Ok(Some(existing))
+}
+
+pub(crate) const PENDING_RUNTIME_RELEASE_SQL: &str =
+    "SELECT EXISTS(SELECT 1 FROM job_runtime_release_effects release CROSS JOIN jobs j ON j.job_id=release.job_id WHERE j.resolution IS NULL OR EXISTS(SELECT 1 FROM attempts a JOIN concurrency_reservations r ON r.attempt_id=a.attempt_id WHERE a.job_id=j.job_id AND r.state IN ('active','held_orphaned')))";
+
+fn pending_runtime_release_exists(connection: &Connection) -> RuntimeResult<bool> {
+    connection
+        .query_row(PENDING_RUNTIME_RELEASE_SQL, [], |row| row.get(0))
+        .map_err(|error| {
+            RuntimeError::from_sql(error, "cannot inspect pending Runtime Release admission")
+        })
+}
+
+pub(crate) struct AdmissionFenceGuard {
+    _file: File,
+}
+
 impl Registry {
     pub(super) fn find_idempotent_job(
         &self,
@@ -36,6 +79,7 @@ impl Registry {
         Ok(Some(job))
     }
 
+    #[cfg(test)]
     pub(super) fn submit(&self, request: &SubmitRequest) -> RuntimeResult<AdmissionOutcome> {
         let ids = self.preallocate_admission_ids();
         self.submit_preallocated(request, &ids)
@@ -49,10 +93,38 @@ impl Registry {
         }
     }
 
+    pub(super) fn submit_with_admission_fence(
+        &self,
+        request: &SubmitRequest,
+        admission_fence: &AdmissionFenceGuard,
+    ) -> RuntimeResult<AdmissionOutcome> {
+        let ids = self.preallocate_admission_ids();
+        self.submit_preallocated_with_admission_fence(request, &ids, admission_fence)
+    }
+
+    #[cfg(test)]
     pub(super) fn submit_preallocated(
         &self,
         request: &SubmitRequest,
         ids: &PreallocatedAdmissionIds,
+    ) -> RuntimeResult<AdmissionOutcome> {
+        self.submit_preallocated_inner(request, ids, None)
+    }
+
+    pub(super) fn submit_preallocated_with_admission_fence(
+        &self,
+        request: &SubmitRequest,
+        ids: &PreallocatedAdmissionIds,
+        admission_fence: &AdmissionFenceGuard,
+    ) -> RuntimeResult<AdmissionOutcome> {
+        self.submit_preallocated_inner(request, ids, Some(admission_fence))
+    }
+
+    fn submit_preallocated_inner(
+        &self,
+        request: &SubmitRequest,
+        ids: &PreallocatedAdmissionIds,
+        admission_fence: Option<&AdmissionFenceGuard>,
     ) -> RuntimeResult<AdmissionOutcome> {
         validate_submit(request)?;
         let created_at_ms = now_ms()?;
@@ -206,28 +278,26 @@ impl Registry {
         };
 
         let mut connection = self.open_connection()?;
-        let transaction = connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(|error| RuntimeError::from_sql(error, "cannot begin admission transaction"))?;
+        if let Some(existing) = exact_replay_for_submit(&connection, request, &operation_digest)? {
+            return Ok(AdmissionOutcome::Existing {
+                job: Box::new(existing),
+            });
+        }
 
-        if let Some(existing_job_id) = transaction
-            .query_row(
-                "SELECT job_id FROM idempotency_keys WHERE principal=?1 AND client_request_id=?2",
-                params![request.plan.principal, request.client_request_id],
-                |row| row.get::<_, String>(0),
-            )
-            .optional()
-            .map_err(|error| RuntimeError::from_sql(error, "cannot check idempotency key"))?
-        {
-            let existing = RegistryStorageBoundary::load_job(&transaction, &existing_job_id)?;
-            let matches = JobIdentityContract::exact_replay_matches(
-                &existing,
-                request.request_identity_digest.as_deref(),
-                &operation_digest,
-            )?;
-            if !matches {
-                return Err(JobIdentityContract::idempotency_conflict());
-            }
+        // New admission shares the deployment fence until its Registry transaction commits.
+        // Exact replay is checked before this boundary, so deployment cannot make a previously
+        // committed request unreplayable. The Registry write gate is intentionally acquired
+        // only after the file fence: it serializes SQLite writers, not filesystem waits.
+        let _owned_admission_fence = if admission_fence.is_none() {
+            Some(self.acquire_admission_fence()?)
+        } else {
+            None
+        };
+        let transaction = immediate(self, &mut connection, "admission transaction")?;
+
+        // Recheck under the write transaction because another same-key admission may have
+        // committed between the projection-only replay check and this serialized writer slot.
+        if let Some(existing) = exact_replay_for_submit(&transaction, request, &operation_digest)? {
             transaction
                 .commit()
                 .map_err(|error| RuntimeError::from_sql(error, "cannot close replay transaction"))?;
@@ -236,10 +306,9 @@ impl Registry {
             });
         }
 
-        // New admission shares the deployment fence until its Registry transaction commits.
-        // Exact replay deliberately returns above this boundary, so deployment cannot make a
-        // previously committed request unreplayable.
-        let _admission_fence = self.acquire_admission_fence()?;
+        if pending_runtime_release_exists(&transaction)? {
+            return Err(RuntimeError::pending_runtime_release());
+        }
 
         let workspace_active: u32 = transaction
             .query_row(
@@ -506,34 +575,14 @@ impl Registry {
         })))
     }
 
-    fn acquire_admission_fence(&self) -> RuntimeResult<File> {
-        let path = self.config.admission_fence_path();
-        let mut options = OpenOptions::new();
-        options.read(true).write(true).create(true).truncate(false);
-        #[cfg(unix)]
-        options.mode(0o600);
-        let file = options
-            .open(&path)
-            .map_err(|error| {
-                RuntimeError::new(
-                    RuntimeErrorCode::RegistryUnavailable,
-                    format!("cannot open admission fence {}: {error}", path.display()),
-                    None,
-                    true,
-                )
-            })?;
-        match file.try_lock_shared() {
-            Ok(()) => Ok(file),
-            Err(std::fs::TryLockError::WouldBlock) => {
-                Err(RuntimeError::deployment_in_progress())
-            }
-            Err(std::fs::TryLockError::Error(error)) => Err(RuntimeError::new(
-                RuntimeErrorCode::RegistryUnavailable,
-                format!("cannot acquire admission fence {}: {error}", path.display()),
-                None,
-                true,
-            )),
-        }
+    pub(super) fn acquire_admission_fence(&self) -> RuntimeResult<AdmissionFenceGuard> {
+        Ok(AdmissionFenceGuard {
+            _file: acquire_shared_file_fence(
+                &self.config.admission_fence_path(),
+                "admission fence",
+                RuntimeError::deployment_in_progress(),
+            )?,
+        })
     }
 
 }

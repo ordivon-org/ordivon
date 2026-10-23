@@ -11,9 +11,10 @@ use super::engine::{
 use super::registry::MAX_MIGRATION_VERSION;
 use super::registry_storage::RegistryStorageBoundary;
 use super::{
-    inspect_runtime, ArtifactRegistration, AttemptState, Registry, RegistryConfig,
-    ReservationState, RuntimeDoctorCase, RuntimeDoctorConfig, RuntimeDoctorProposal,
-    RuntimeDoctorReport, RuntimeError, RuntimeErrorCode, RuntimeResult, TerminalCommit,
+    inspect_runtime, ArtifactRegistration, AttemptState, ExecutionTarget, JobResolution, Registry,
+    RegistryConfig, ReservationState, RuntimeDoctorCase, RuntimeDoctorConfig,
+    RuntimeDoctorProposal, RuntimeDoctorReport, RuntimeError, RuntimeErrorCode, RuntimeResult,
+    TerminalCommit,
 };
 use crate::universal::{sha256_bytes, sha256_file, write_json_atomic};
 
@@ -30,7 +31,6 @@ pub struct RuntimeRepairRequest {
     pub snapshot_path: PathBuf,
     pub principal: String,
     pub finalize_lost_attempt_ids: BTreeSet<String>,
-    pub finalize_quarantined_lost_attempt_ids: BTreeSet<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -54,6 +54,41 @@ pub struct RuntimeStaleCancelReport {
     pub previous_state: AttemptState,
     pub new_state: AttemptState,
     pub process_tree_absence_proven: bool,
+    pub before: RuntimeDoctorReport,
+    pub after: RuntimeDoctorReport,
+}
+
+#[derive(Clone, Debug)]
+pub struct RuntimeOrphanResultRecoveryRequest {
+    pub snapshot_path: PathBuf,
+    pub principal: String,
+    pub attempt_id: String,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum RuntimeOrphanResultRecoveryDisposition {
+    NoEffect,
+    PartialConvergence,
+    FullConvergence,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeOrphanResultRecoveryReport {
+    pub schema_version: u32,
+    pub applied_at_ms: u64,
+    pub snapshot_path: String,
+    pub snapshot_digest: String,
+    pub principal: String,
+    pub job_id: String,
+    pub attempt_id: String,
+    pub previous_state: AttemptState,
+    pub new_state: AttemptState,
+    pub process_tree_absence_proven: bool,
+    pub disposition: RuntimeOrphanResultRecoveryDisposition,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub recovery_clear_error: Option<String>,
     pub before: RuntimeDoctorReport,
     pub after: RuntimeDoctorReport,
 }
@@ -98,7 +133,6 @@ pub enum RuntimeRepairActionKind {
     RecoverRunnerResult,
     ReleaseTerminalReservation,
     FinalizeLost,
-    FinalizeQuarantinedLost,
 }
 
 #[derive(Clone, Debug)]
@@ -210,7 +244,7 @@ pub fn cancel_stale_recovery_required_attempt(
             false,
         ));
     }
-    verify_snapshot_stale_cancel_target(
+    verify_snapshot_target_state(
         &request.snapshot_path,
         &job,
         &job_attempt,
@@ -323,6 +357,337 @@ pub fn cancel_stale_recovery_required_attempt(
     })
 }
 
+pub fn recover_orphaned_runner_result(
+    config: &RuntimeRepairConfig,
+    request: &RuntimeOrphanResultRecoveryRequest,
+) -> RuntimeResult<RuntimeOrphanResultRecoveryReport> {
+    validate_snapshot_principal(&request.snapshot_path, &request.principal)?;
+    if request.attempt_id.trim().is_empty() || request.attempt_id.chars().any(char::is_control) {
+        return Err(RuntimeError::invalid(
+            "attempt id must be non-empty and control-free",
+            "attemptId",
+        ));
+    }
+
+    let before = inspect_runtime(&config.doctor)?;
+    if before.migration_version != MAX_MIGRATION_VERSION {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::SchemaVersionUnsupported,
+            format!(
+                "Runtime orphan-result recovery requires schema {MAX_MIGRATION_VERSION}, observed {}",
+                before.migration_version
+            ),
+            Some("migrationVersion"),
+            false,
+        ));
+    }
+    if before.violation_count != 0 {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::ReconciliationRequired,
+            "target-scoped orphan-result recovery requires a Doctor-clean invariant surface",
+            Some("violations"),
+            false,
+        ));
+    }
+
+    let snapshot_digest = verify_snapshot(&request.snapshot_path)?;
+    let registry = Registry::initialize(RegistryConfig {
+        db_path: config.doctor.db_path.clone(),
+        store_root: config.doctor.store_root.clone(),
+        busy_timeout_ms: config.doctor.busy_timeout_ms,
+    })?;
+
+    let attempt = registry.get_attempt(&request.attempt_id)?;
+    let job = registry.get_job(&attempt.job_id)?;
+    let reservation = registry.get_reservation(&request.attempt_id)?;
+    let recovery = read_recovery_state(&config.doctor.db_path, &request.attempt_id)?;
+    verify_snapshot_target_state(
+        &request.snapshot_path,
+        &job,
+        &attempt,
+        &reservation,
+        &recovery,
+    )?;
+
+    if registry
+        .attempt_supervisor_owner(&request.attempt_id)?
+        .is_some()
+    {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::OrphanRemediationDenied,
+            "target-scoped orphan-result recovery does not operate on an Attempt with a persisted Supervisor Owner",
+            Some("attemptSupervisorOwner"),
+            false,
+        ));
+    }
+    if registry.execution_plan(&job.job_id)?.execution_target != ExecutionTarget::LocalLinux {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::OrphanRemediationDenied,
+            "target-scoped orphan-result recovery is qualified only for local Linux execution",
+            Some("executionTarget"),
+            false,
+        ));
+    }
+    if !Path::new(&attempt.bundle_path)
+        .join("result.json")
+        .is_file()
+    {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::ReconciliationRequired,
+            "canonical Runner result is missing; target-scoped recovery cannot invent terminal truth",
+            Some("attemptId"),
+            false,
+        ));
+    }
+    if !launch_identity_mismatch_cancel_target_absent(&attempt)? {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::OrphanRemediationDenied,
+            "target-scoped recovery denied because the unit, recorded process identity, or cgroup may still own live execution",
+            Some("attemptId"),
+            false,
+        ));
+    }
+
+    let applied_at_ms = now_ms()?;
+    let previous_state = attempt.state;
+
+    if matches!(
+        attempt.state,
+        AttemptState::Succeeded
+            | AttemptState::Failed
+            | AttemptState::TimedOut
+            | AttemptState::Cancelled
+            | AttemptState::Lost
+    ) {
+        let expected_terminal = super::evidence::prepare_runner_terminal_from_bundle(&attempt)?;
+        let expected_resolution = terminal_job_resolution(expected_terminal.state)?;
+        let terminal_matches = attempt.state == expected_terminal.state
+            && attempt.result_digest.as_deref() == Some(expected_terminal.result_digest.as_str())
+            && attempt.exit_code == expected_terminal.exit_code
+            && attempt.infrastructure_error_digest == expected_terminal.infrastructure_error_digest
+            && attempt.finished_at_ms == Some(expected_terminal.finished_at_ms)
+            && job.resolution == Some(expected_resolution)
+            && reservation.state == ReservationState::Released;
+        if !terminal_matches {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::ResultIdentityConflict,
+                "current terminal state does not match the canonical Runner result",
+                Some("attemptId"),
+                false,
+            ));
+        }
+
+        let latest_attempt = registry.get_latest_attempt(&job.job_id)?;
+        if job.current_attempt_id.is_some()
+            || latest_attempt
+                .as_ref()
+                .map(|latest| latest.attempt_id.as_str())
+                != Some(request.attempt_id.as_str())
+        {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::ReconciliationRequired,
+                "terminal orphan-result re-entry requires currentAttemptId=NULL and the target as the latest persisted Attempt",
+                Some("attemptId"),
+                false,
+            ));
+        }
+
+        let recovery_clear_error = if recovery.required {
+            registry
+                .clear_reconciliation_failure(&request.attempt_id, applied_at_ms)
+                .err()
+                .map(|error| error.to_string())
+        } else {
+            None
+        };
+        let after_recovery = read_recovery_state(&config.doctor.db_path, &request.attempt_id)?;
+        let after = inspect_runtime(&config.doctor)?;
+        let disposition = if !recovery.required {
+            RuntimeOrphanResultRecoveryDisposition::NoEffect
+        } else if recovery_clear_error.is_none()
+            && !after_recovery.required
+            && after.violation_count == 0
+        {
+            RuntimeOrphanResultRecoveryDisposition::FullConvergence
+        } else {
+            RuntimeOrphanResultRecoveryDisposition::PartialConvergence
+        };
+        return Ok(RuntimeOrphanResultRecoveryReport {
+            schema_version: RUNTIME_REPAIR_SCHEMA_VERSION,
+            applied_at_ms,
+            snapshot_path: request.snapshot_path.to_string_lossy().into_owned(),
+            snapshot_digest,
+            principal: request.principal.clone(),
+            job_id: job.job_id,
+            attempt_id: request.attempt_id.clone(),
+            previous_state,
+            new_state: attempt.state,
+            process_tree_absence_proven: true,
+            disposition,
+            recovery_clear_error,
+            before,
+            after,
+        });
+    }
+
+    if attempt.state != AttemptState::Orphaned
+        || job.resolution != Some(JobResolution::Orphaned)
+        || reservation.state != ReservationState::HeldOrphaned
+        || !recovery.required
+    {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::OrphanRemediationDenied,
+            "target-scoped Runner-result recovery requires Job=orphaned, Attempt=orphaned, held_orphaned reservation, and recoveryRequired=true",
+            Some("attemptId"),
+            false,
+        ));
+    }
+
+    let latest_attempt = registry.get_latest_attempt(&job.job_id)?;
+    if job.current_attempt_id.is_some()
+        || latest_attempt
+            .as_ref()
+            .map(|latest| latest.attempt_id.as_str())
+            != Some(request.attempt_id.as_str())
+    {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::OrphanRemediationDenied,
+            "target-scoped Runner-result recovery requires currentAttemptId=NULL and the target as the latest persisted Attempt",
+            Some("attemptId"),
+            false,
+        ));
+    }
+
+    // Re-read the exact target immediately before the terminal mutation. Unrelated Registry
+    // activity is allowed, but any target-state drift invalidates the operator snapshot.
+    let current = registry.get_attempt(&request.attempt_id)?;
+    let current_job = registry.get_job(&current.job_id)?;
+    let current_reservation = registry.get_reservation(&request.attempt_id)?;
+    let current_recovery = read_recovery_state(&config.doctor.db_path, &request.attempt_id)?;
+    if current.state != AttemptState::Orphaned
+        || current_job.resolution != Some(JobResolution::Orphaned)
+        || current_reservation.state != ReservationState::HeldOrphaned
+        || !current_recovery.required
+    {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::ReconciliationRequired,
+            "target state changed before orphan-result recovery",
+            Some("attemptId"),
+            false,
+        ));
+    }
+    verify_snapshot_target_state(
+        &request.snapshot_path,
+        &current_job,
+        &current,
+        &current_reservation,
+        &current_recovery,
+    )?;
+    let latest_attempt = registry.get_latest_attempt(&current_job.job_id)?;
+    if current_job.current_attempt_id.is_some()
+        || latest_attempt
+            .as_ref()
+            .map(|latest| latest.attempt_id.as_str())
+            != Some(request.attempt_id.as_str())
+    {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::ReconciliationRequired,
+            "target state changed: currentAttemptId must remain NULL and the target must remain the latest persisted Attempt",
+            Some("attemptId"),
+            false,
+        ));
+    }
+    if registry
+        .attempt_supervisor_owner(&request.attempt_id)?
+        .is_some()
+    {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::OrphanRemediationDenied,
+            "Attempt Supervisor Owner appeared before orphan-result recovery",
+            Some("attemptSupervisorOwner"),
+            false,
+        ));
+    }
+    if !Path::new(&current.bundle_path)
+        .join("result.json")
+        .is_file()
+    {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::ReconciliationRequired,
+            "canonical Runner result disappeared before recovery",
+            Some("attemptId"),
+            false,
+        ));
+    }
+
+    let mut terminal = super::evidence::prepare_runner_terminal_from_bundle(&current)?;
+    append_terminal_evidence_for_commit(&registry, &current, &mut terminal)?;
+
+    // This is the final physical-effect fence before the atomic Registry terminal mutation.
+    if !launch_identity_mismatch_cancel_target_absent(&current)? {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::ReconciliationRequired,
+            "execution ownership changed immediately before orphan-result recovery",
+            Some("attemptId"),
+            false,
+        ));
+    }
+
+    registry.recover_orphaned_terminal(&terminal)?;
+
+    // Recovery-state clearing is intentionally a second transaction. If it fails after the
+    // terminal commit, report PARTIAL_CONVERGENCE; a later fresh invocation may clear only the
+    // residual recovery condition and must never replay the terminal mutation.
+    let recovery_clear_error = registry
+        .clear_reconciliation_failure(&request.attempt_id, applied_at_ms)
+        .err()
+        .map(|error| error.to_string());
+
+    let after_attempt = registry.get_attempt(&request.attempt_id)?;
+    let after_recovery = read_recovery_state(&config.doctor.db_path, &request.attempt_id)?;
+    let after = inspect_runtime(&config.doctor)?;
+    let disposition =
+        if recovery_clear_error.is_none() && !after_recovery.required && after.violation_count == 0
+        {
+            RuntimeOrphanResultRecoveryDisposition::FullConvergence
+        } else {
+            RuntimeOrphanResultRecoveryDisposition::PartialConvergence
+        };
+
+    Ok(RuntimeOrphanResultRecoveryReport {
+        schema_version: RUNTIME_REPAIR_SCHEMA_VERSION,
+        applied_at_ms,
+        snapshot_path: request.snapshot_path.to_string_lossy().into_owned(),
+        snapshot_digest,
+        principal: request.principal.clone(),
+        job_id: current_job.job_id,
+        attempt_id: request.attempt_id.clone(),
+        previous_state,
+        new_state: after_attempt.state,
+        process_tree_absence_proven: true,
+        disposition,
+        recovery_clear_error,
+        before,
+        after,
+    })
+}
+
+fn terminal_job_resolution(state: AttemptState) -> RuntimeResult<JobResolution> {
+    match state {
+        AttemptState::Succeeded => Ok(JobResolution::Succeeded),
+        AttemptState::Failed => Ok(JobResolution::Failed),
+        AttemptState::TimedOut => Ok(JobResolution::TimedOut),
+        AttemptState::Cancelled => Ok(JobResolution::Cancelled),
+        AttemptState::Lost => Ok(JobResolution::Lost),
+        _ => Err(RuntimeError::new(
+            RuntimeErrorCode::ResultIdentityConflict,
+            "canonical Runner result did not produce a conclusive terminal state",
+            Some("state"),
+            false,
+        )),
+    }
+}
+
 pub fn apply_runtime_repair(
     config: &RuntimeRepairConfig,
     request: &RuntimeRepairRequest,
@@ -379,64 +744,32 @@ pub fn apply_runtime_repair(
     let snapshot_digest = verify_snapshot(&request.snapshot_path)?;
     verify_snapshot_cases(&request.snapshot_path, &before.cases)?;
 
-    let quarantined_manual_attempts: BTreeSet<String> = before
+    let manual_attempts: BTreeSet<String> = before
         .cases
         .iter()
-        .filter(|case| is_quarantined_launch_identity_case(case))
-        .map(|case| case.attempt.attempt_id.clone())
-        .collect();
-    let ordinary_manual_attempts: BTreeSet<String> = before
-        .cases
-        .iter()
-        .filter(|case| {
-            matches!(case.proposal, RuntimeDoctorProposal::ManualReview { .. })
-                && !is_quarantined_launch_identity_case(case)
-        })
+        .filter(|case| matches!(case.proposal, RuntimeDoctorProposal::ManualReview { .. }))
         .map(|case| case.attempt.attempt_id.clone())
         .collect();
     for attempt_id in &request.finalize_lost_attempt_ids {
-        if !ordinary_manual_attempts.contains(attempt_id) {
+        if !manual_attempts.contains(attempt_id) {
             return Err(RuntimeError::invalid(
-                format!("{attempt_id} is not a current ordinary manual-review Attempt"),
+                format!("{attempt_id} is not a current manual-review Attempt"),
                 "finalizeLostAttemptIds",
             ));
         }
     }
-    for attempt_id in &request.finalize_quarantined_lost_attempt_ids {
-        if !quarantined_manual_attempts.contains(attempt_id) {
-            return Err(RuntimeError::invalid(
-                format!("{attempt_id} is not a current launch-identity quarantine Attempt"),
-                "finalizeQuarantinedLostAttemptIds",
-            ));
-        }
-    }
-    let unselected_ordinary: Vec<String> = ordinary_manual_attempts
+    let unselected: Vec<String> = manual_attempts
         .difference(&request.finalize_lost_attempt_ids)
         .cloned()
         .collect();
-    if !unselected_ordinary.is_empty() {
+    if !unselected.is_empty() {
         return Err(RuntimeError::new(
             RuntimeErrorCode::ReconciliationRequired,
             format!(
-                "ordinary manual-review Attempts require explicit --finalize-lost selection: {}",
-                unselected_ordinary.join(",")
+                "manual-review Attempts require explicit --finalize-lost selection: {}",
+                unselected.join(",")
             ),
             Some("finalizeLostAttemptIds"),
-            false,
-        ));
-    }
-    let unselected_quarantined: Vec<String> = quarantined_manual_attempts
-        .difference(&request.finalize_quarantined_lost_attempt_ids)
-        .cloned()
-        .collect();
-    if !unselected_quarantined.is_empty() {
-        return Err(RuntimeError::new(
-            RuntimeErrorCode::ReconciliationRequired,
-            format!(
-                "launch-identity quarantine Attempts require explicit --finalize-quarantined-lost selection: {}",
-                unselected_quarantined.join(",")
-            ),
-            Some("finalizeQuarantinedLostAttemptIds"),
             false,
         ));
     }
@@ -456,12 +789,7 @@ pub fn apply_runtime_repair(
             snapshot_path: request.snapshot_path.to_string_lossy().into_owned(),
             snapshot_digest: snapshot_digest.clone(),
             principal: request.principal.clone(),
-            action: action_name(
-                case,
-                &request.finalize_lost_attempt_ids,
-                &request.finalize_quarantined_lost_attempt_ids,
-            )?
-            .to_string(),
+            action: action_name(case, &request.finalize_lost_attempt_ids)?.to_string(),
             observed_at_ms: applied_at_ms,
             expected_job_row_version: case.job.row_version,
             expected_current_attempt_id: case.job.current_attempt_id.clone(),
@@ -500,24 +828,14 @@ pub fn apply_runtime_repair(
                 ));
             }
             RuntimeDoctorProposal::ManualReview { .. } => {
-                let quarantined = request
-                    .finalize_quarantined_lost_attempt_ids
-                    .contains(&case.attempt.attempt_id);
-                let mut terminal = if quarantined {
-                    prepare_quarantined_lost_terminal(&config.doctor.store_root, case, &audit)?
-                } else {
-                    prepare_final_lost_terminal(&config.doctor.store_root, case, &audit)?
-                };
+                let mut terminal =
+                    prepare_final_lost_terminal(&config.doctor.store_root, case, &audit)?;
                 let attempt = registry.get_attempt(&case.attempt.attempt_id)?;
                 append_terminal_evidence_for_commit(&registry, &attempt, &mut terminal)?;
                 operations.push(AdminRepairOperation::Terminal { terminal, audit });
                 actions.push(action(
                     case,
-                    if quarantined {
-                        RuntimeRepairActionKind::FinalizeQuarantinedLost
-                    } else {
-                        RuntimeRepairActionKind::FinalizeLost
-                    },
+                    RuntimeRepairActionKind::FinalizeLost,
                     AttemptState::Lost,
                 ));
             }
@@ -551,15 +869,6 @@ pub fn apply_runtime_repair(
 }
 
 fn validate_request(request: &RuntimeRepairRequest) -> RuntimeResult<()> {
-    if !request
-        .finalize_lost_attempt_ids
-        .is_disjoint(&request.finalize_quarantined_lost_attempt_ids)
-    {
-        return Err(RuntimeError::invalid(
-            "an Attempt cannot be selected for both finalize-lost and finalize-quarantined-lost",
-            "finalizeQuarantinedLostAttemptIds",
-        ));
-    }
     validate_repair_identity(
         &request.expected_fingerprint,
         &request.snapshot_path,
@@ -633,7 +942,7 @@ fn read_recovery_state(database_path: &Path, attempt_id: &str) -> RuntimeResult<
         .map_err(|error| RuntimeError::from_sql(error, "cannot read Attempt recovery state"))
 }
 
-fn verify_snapshot_stale_cancel_target(
+fn verify_snapshot_target_state(
     snapshot_path: &Path,
     live_job: &super::RuntimeJobRecord,
     live_attempt: &super::AttemptRecord,
@@ -648,13 +957,13 @@ fn verify_snapshot_stale_cancel_target(
     .map_err(|error| {
         RuntimeError::from_sql(
             error,
-            "cannot open backup Registry for stale cancellation validation",
+            "cannot open backup Registry for target-state validation",
         )
     })?;
     connection
         .busy_timeout(Duration::from_secs(5))
         .map_err(|error| {
-            RuntimeError::from_sql(error, "cannot set backup stale-cancel busy timeout")
+            RuntimeError::from_sql(error, "cannot set backup target-state busy timeout")
         })?;
     let job = RegistryStorageBoundary::load_job(&connection, &live_job.job_id)?;
     let attempt = RegistryStorageBoundary::load_attempt(&connection, &live_attempt.attempt_id)?;
@@ -694,7 +1003,7 @@ fn verify_snapshot_stale_cancel_target(
         return Err(RuntimeError::new(
             RuntimeErrorCode::ReconciliationRequired,
             format!(
-                "backup does not contain the exact stale-cancellation state for Attempt {}",
+                "backup does not contain the exact target state for Attempt {}",
                 live_attempt.attempt_id
             ),
             Some("snapshotPath"),
@@ -862,20 +1171,6 @@ fn verify_snapshot_cases(snapshot_path: &Path, cases: &[RuntimeDoctorCase]) -> R
         let attempt = RegistryStorageBoundary::load_attempt(&connection, &case.attempt.attempt_id)?;
         let reservation =
             RegistryStorageBoundary::load_reservation(&connection, &case.attempt.attempt_id)?;
-        let recovery = connection
-            .query_row(
-                "SELECT COALESCE(recovery_required,0),recovery_reason_code,recovery_evidence_digest,recovery_observed_at_ms FROM attempts WHERE attempt_id=?1",
-                [&case.attempt.attempt_id],
-                |row| {
-                    Ok(RecoveryState {
-                        required: row.get::<_, i64>(0)? != 0,
-                        reason_code: row.get(1)?,
-                        evidence_digest: row.get(2)?,
-                        observed_at_ms: row.get(3)?,
-                    })
-                },
-            )
-            .map_err(|error| RuntimeError::from_sql(error, "cannot read backup Attempt recovery state"))?;
         let matches = job.job_id == case.job.job_id
             && job.workspace_id == case.job.workspace_id
             && job.resolution == case.job.resolution
@@ -888,10 +1183,6 @@ fn verify_snapshot_cases(snapshot_path: &Path, cases: &[RuntimeDoctorCase]) -> R
             && attempt.exit_code == case.attempt.exit_code
             && attempt.finished_at_ms == case.attempt.finished_at_ms
             && attempt.row_version == case.attempt.row_version
-            && recovery.required == case.attempt.recovery_required
-            && recovery.reason_code == case.attempt.recovery_reason_code
-            && recovery.evidence_digest == case.attempt.recovery_evidence_digest
-            && recovery.observed_at_ms == case.attempt.recovery_observed_at_ms
             && reservation.reservation_id == case.reservation.reservation_id
             && reservation.state == case.reservation.state
             && reservation.released_at_ms == case.reservation.released_at_ms
@@ -914,17 +1205,10 @@ fn verify_snapshot_cases(snapshot_path: &Path, cases: &[RuntimeDoctorCase]) -> R
 fn action_name<'a>(
     case: &'a RuntimeDoctorCase,
     finalize_lost: &BTreeSet<String>,
-    finalize_quarantined_lost: &BTreeSet<String>,
 ) -> RuntimeResult<&'a str> {
     match case.proposal {
         RuntimeDoctorProposal::RecoverRunnerResult { .. } => Ok("recover_runner_result"),
         RuntimeDoctorProposal::ReleaseTerminalReservation => Ok("release_terminal_reservation"),
-        RuntimeDoctorProposal::ManualReview { .. }
-            if finalize_quarantined_lost.contains(&case.attempt.attempt_id)
-                && is_quarantined_launch_identity_case(case) =>
-        {
-            Ok("finalize_quarantined_lost")
-        }
         RuntimeDoctorProposal::ManualReview { .. }
             if finalize_lost.contains(&case.attempt.attempt_id) =>
         {
@@ -938,15 +1222,6 @@ fn action_name<'a>(
         )),
         RuntimeDoctorProposal::NoRepairNeeded => Ok("no_repair"),
     }
-}
-
-fn is_quarantined_launch_identity_case(case: &RuntimeDoctorCase) -> bool {
-    matches!(case.proposal, RuntimeDoctorProposal::ManualReview { .. })
-        && case.attempt.state == AttemptState::Orphaned
-        && case.attempt.recovery_required
-        && case.attempt.recovery_reason_code.as_deref() == Some("LAUNCH_IDENTITY_MISMATCH")
-        && case.reservation.state == ReservationState::HeldOrphaned
-        && case.runner_result_present
 }
 
 fn write_admin_receipt(
@@ -981,47 +1256,6 @@ fn write_admin_receipt(
         media_type: "application/json".to_string(),
         byte_length: metadata.len(),
         truncated: false,
-    })
-}
-
-fn prepare_quarantined_lost_terminal(
-    store_root: &Path,
-    case: &RuntimeDoctorCase,
-    audit: &AdminRepairAudit,
-) -> RuntimeResult<TerminalCommit> {
-    if !is_quarantined_launch_identity_case(case)
-        || case.job.resolution != Some(super::JobResolution::Orphaned)
-        || audit.action != "finalize_quarantined_lost"
-    {
-        return Err(RuntimeError::new(
-            RuntimeErrorCode::OrphanRemediationDenied,
-            "finalize-quarantined-lost requires an Orphaned LAUNCH_IDENTITY_MISMATCH Attempt with a held reservation and quarantined Runner result",
-            Some("attemptId"),
-            false,
-        ));
-    }
-    let result_path = store_root
-        .join("attempts")
-        .join(&case.attempt.attempt_id)
-        .join("result.json");
-    let quarantined_result_digest = sha256_file(&result_path).map_err(map_universal_error)?;
-    let receipt = write_admin_receipt(store_root, case, audit)?;
-    Ok(TerminalCommit {
-        attempt_id: case.attempt.attempt_id.clone(),
-        expected_row_version: case.attempt.row_version,
-        state: AttemptState::Lost,
-        result_digest: receipt.digest.clone(),
-        exit_code: None,
-        infrastructure_error_digest: Some(sha256_bytes(
-            format!(
-                "admin confirmed lost: quarantined Runner result {} rejected because launch identity is untrusted",
-                quarantined_result_digest
-            )
-            .as_bytes(),
-        )),
-        finished_at_ms: audit.observed_at_ms,
-        artifacts: vec![receipt],
-        reason_code: "ADMIN_CONFIRMED_LOST_QUARANTINED_LAUNCH_IDENTITY_RESULT".to_string(),
     })
 }
 

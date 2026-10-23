@@ -1,16 +1,31 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "kind": "ordivon.runtime-formal-implementation-trace",
-  "traceId": "runtime-dispatch-r1-at-most-once-trace-r1",
-  "effectiveDate": "2026-09-24",
+  "traceId": "runtime-dispatch-r1-at-most-once-trace-r2",
+  "effectiveDate": "2026-09-29",
   "truthRole": "traceability-gate-not-mechanized-refinement-proof",
   "formalSpecification": {
     "modulePath": "formal/RuntimeDispatchR1.tla",
     "moduleSha256": "29e54c84ef33441976c7ec2be112e4d2584a5e5611060712b3e73cabc852ac6f",
     "configPath": "formal/RuntimeDispatchR1.cfg",
     "configSha256": "0985b94b18573a206b048714dbb812cb1c5d2b6fe9bbb71e6186e8ab8d268bc4",
-    "invariant": "AtMostOnceDispatchPerAttempt",
-    "modelTransition": "Dispatch"
+    "modelBindings": [
+      {
+        "id": "RuntimeDispatch.Dispatch",
+        "kind": "transition",
+        "symbol": "Dispatch"
+      },
+      {
+        "id": "RuntimeDispatch.AtMostOnceDispatchPerAttempt",
+        "kind": "invariant",
+        "symbol": "AtMostOnceDispatchPerAttempt"
+      },
+      {
+        "id": "RuntimeDispatch.AmbiguityRequiresReconciliation",
+        "kind": "invariant",
+        "symbol": "AmbiguityRequiresReconciliation"
+      }
+    ]
   },
   "runtimeInvariantBindings": [
     {
@@ -28,69 +43,69 @@
       ]
     }
   ],
-  "implementationBindings": [
+  "contractSeams": [
     {
+      "id": "Registry.dispatchCAS",
       "path": "crates/ordivon-runtime-core/src/runtime/registry/lifecycle.rs",
+      "ownerKind": "impl",
+      "owner": "Registry",
+      "symbolKind": "method",
       "symbol": "mark_dispatch_issued",
-      "requiredFragments": [
-        "attempt.state != AttemptState::Accepted",
-        "attempt.row_version != expected_row_version",
-        "attempt.bundle_digest.is_none()",
-        "UPDATE attempts SET state='starting',row_version=row_version+1",
-        "state='accepted' AND row_version=?2 AND bundle_digest IS NOT NULL",
-        "if changed != 1",
-        "DISPATCH_ISSUED",
-        "AT_MOST_ONCE_BOUNDARY_COMMITTED"
-      ],
-      "relation": "The durable compare-and-swap transition commits the one-attempt dispatch boundary before physical launch."
+      "relation": "Durable Registry CAS owns the transition from Accepted into the one-Attempt physical dispatch boundary."
     },
     {
+      "id": "AttemptLifecycle.singleDispatch",
       "path": "crates/ordivon-runtime-core/src/runtime/engine/execution.rs",
+      "ownerKind": "impl",
+      "owner": "Runtime",
+      "symbolKind": "method",
       "symbol": "ensure_attempt_dispatched",
-      "requiredFragments": [
-        "AttemptState::Accepted => match self.dispatch_attempt(&attempt)",
-        "AttemptState::Starting",
-        "AttemptState::Running",
-        "self.reconcile_attempt(&current.attempt_id)"
-      ],
-      "relation": "Only Accepted reaches dispatch; already-dispatched nonterminal states are reconciled instead of blindly redriven."
+      "relation": "Runtime routes only dispatch-eligible Attempts toward realization and reconciles already-dispatched states instead of blind redispatch."
     },
     {
+      "id": "ExecutionProvider.realize",
       "path": "crates/ordivon-runtime-core/src/runtime/engine/execution.rs",
+      "ownerKind": "impl",
+      "owner": "Runtime",
+      "symbolKind": "method",
       "symbol": "dispatch_attempt",
-      "requiredFragments": [
-        "self.registry.mark_dispatch_issued(",
-        "systemd_run(&SystemdRunSpec",
-        "spawn_windows_native(&WindowsNativeRunSpec"
-      ],
-      "relation": "The durable dispatch-intent transition precedes either Linux or Windows physical provider launch."
+      "relation": "The production Runtime dispatch seam crosses the durable dispatch boundary into the committed provider realization path; Linux/Windows mechanism internals may move without changing this named owner seam."
     }
   ],
-  "testBindings": [
+  "provingTests": [
     {
+      "id": "RuntimeDispatch.concurrentObservers",
       "path": "crates/ordivon-runtime-core/src/runtime/integration_tests.rs",
       "symbol": "runtime_two_observers_do_not_race_dispatch_of_one_accepted_attempt",
-      "requiredFragments": [
-        "let observer_a = spawn(runtime_a);",
-        "let observer_b = spawn(runtime_b);",
-        "assert!(matches!("
-      ],
-      "relation": "Concurrent observers cannot turn one Accepted Attempt into duplicate dispatches."
+      "proves": [
+        "Registry.dispatchCAS",
+        "AttemptLifecycle.singleDispatch",
+        "RuntimeDispatch.AtMostOnceDispatchPerAttempt",
+        "ExecutionProvider.realize"
+      ]
     },
     {
+      "id": "RuntimeDispatch.ambiguityNoRedrive",
       "path": "crates/ordivon-runtime-core/src/runtime/integration_tests.rs",
       "symbol": "runtime_ambiguous_dispatch_is_lost_without_automatic_redispatch",
-      "requiredFragments": [
-        ".mark_dispatch_issued(",
-        "runtime.reconcile_attempt(&attempt.attempt_id).unwrap();",
-        "assert_eq!(projection.status, \"lost\");"
-      ],
-      "relation": "An ambiguous issued dispatch converges without treating uncertainty as permission to launch again."
+      "proves": [
+        "AttemptLifecycle.singleDispatch",
+        "RuntimeDispatch.AmbiguityRequiresReconciliation"
+      ]
+    },
+    {
+      "id": "ExecutionProvider.guaranteeNegativeControl",
+      "path": "crates/ordivon-runtime-core/src/runtime/execution_provider.rs",
+      "symbol": "provider_replacement_cannot_weaken_r1_guarantees",
+      "proves": [
+        "ExecutionProvider.assumeGuarantee"
+      ]
     }
   ],
   "supportScope": [
-    "machine-checkable currentness of the named formal model, Runtime invariant references, implementation symbols and integration-test anchors",
-    "bounded correspondence for the at-most-once physical dispatch design seam"
+    "machine-checkable currentness of the named TLA+ model, Runtime invariant references, stable Runtime contract seams and proving-test identities",
+    "bounded correspondence for the at-most-once physical dispatch and ambiguity-preserving design seams",
+    "provider refactors may move Linux or Windows realization internals without invalidating the trace while the ExecutionProvider.realize contract seam remains current"
   ],
   "nonClaims": [
     "This is not a mechanized refinement proof from Rust semantics to TLA+ semantics.",
@@ -98,5 +113,16 @@
     "The finite TLC model remains abstraction evidence and must be checked separately.",
     "The integration tests remain empirical implementation evidence and may require an owner-native real-system environment.",
     "This trace does not establish domain semantic completion or exactly-once external effects."
+  ],
+  "supportingContracts": [
+    {
+      "id": "ExecutionProvider.assumeGuarantee",
+      "path": "crates/ordivon-runtime-core/src/runtime/execution_provider.rs",
+      "ownerKind": "trait",
+      "owner": "ExecutionProviderSpi",
+      "symbolKind": "method",
+      "symbol": "realize",
+      "relation": "The provider SPI names the replaceable realization obligation; it is supporting contract evidence rather than a claim that every current production provider is dynamically dispatched through this trait."
+    }
   ]
 }

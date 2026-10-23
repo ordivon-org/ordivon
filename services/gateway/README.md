@@ -43,3 +43,26 @@ ORDIVON_GATEWAY_WORKER_ENROLLMENT_TOKEN_FILE is configured.
 This transport is execution-delivery mechanics only. It does not close Admission Fabric
 AF-S2 capability authorization, does not establish domain EffectAuthority, and does not
 grant shell workers browser authority.
+
+## Capability observation lifecycle
+
+Independent read-only Runtime and Host capability observations run concurrently, once per required owner per request. Projection ordering stays deterministic, and observations are not cached across requests. A failed or timed-out owner observation remains UNKNOWN through the existing observation error; healthy owners remain visible.
+
+The default per-probe cooperative cancellation budget is five seconds. Cancellation waits for transport cleanup: legacy MCP session DELETE cleanup may extend that budget, so it is not a hard end-to-end latency deadline. Cancellation of the enclosing request drains its child probes. Gateway does not parallelize effects or retry upstream effects.
+
+### Windows local service identity
+
+The Windows candidate can optionally bind `LocalServiceBearerTokenFile` while preserving
+`TrustCfAccess`. Keep the candidate stopped, materialize all configured owner credentials
+together with `CreateLocalServiceBearer`, and activate using the resulting receipt.
+The generated local identity is separate from upstream Runtime credentials, protected
+for SYSTEM, Administrators and the Gateway service SID, and accepted only on loopback.
+Never print token contents or credential receipt digests. Existing profiles without the
+optional field retain their activation contract. This local acceptance lane does not
+qualify the public Cloudflare principal, Linux/Skills bindings or public promotion.
+
+Native Windows identity tests require an installed, stopped
+`OrdivonGatewayCandidateR5` service so its service SID can be resolved. Linux runs
+skip these Windows-only checks; those skips are not native Windows qualification.
+
+Windows release dependencies use uv `--link-mode copy`: each release owns its file ACLs independently of the shared package cache. Existing releases are not rewritten by reinstall; repair a qualified stopped release separately and retain its recovery backup.

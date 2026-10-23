@@ -1,0 +1,94 @@
+{
+  "candidateBaseRevision": "bec31a81ba5b4ae8fa4310f400cb15f11b6bdd6f",
+  "gatewayAuthority": "projection-only",
+  "gatewaySourceTools": [
+    "actor.declare",
+    "artifact.read",
+    "attention.ack",
+    "attention.delta",
+    "attention.get",
+    "capability.describe",
+    "execution.cancel",
+    "execution.get",
+    "execution.resolve",
+    "execution.submit",
+    "host.status",
+    "message.post",
+    "message.relation.add",
+    "message.search",
+    "space.create",
+    "space.get",
+    "space.list",
+    "space.participation.set",
+    "subscription.follow",
+    "subscription.list",
+    "subscription.unfollow",
+    "system.describe",
+    "topic.create",
+    "topic.resume",
+    "work.create",
+    "work.get",
+    "work.list",
+    "work.snapshot.commit"
+  ],
+  "heldNotExposed": [
+    "work.relation.*",
+    "intent.*",
+    "private/confidential semantics"
+  ],
+  "hostProduction": {
+    "doctorHealthy": true,
+    "release": "08c3099daa897a5da585918b3e6623aa90ddbc08",
+    "schemaVersion": 9
+  },
+  "kind": "ordivon.gateway-swf-northbound-acceptance",
+  "nonClaims": [
+    "Source candidate is not yet the live Gateway release.",
+    "Gateway does not absorb Host semantic authority.",
+    "Cloudflare provider route is not repaired by weakening Runtime or Gateway Host-header protection."
+  ],
+  "normalHostTools": [
+    "actor.declare",
+    "attention.ack",
+    "attention.delta",
+    "attention.get",
+    "host.status",
+    "message.post",
+    "message.relation.add",
+    "message.search",
+    "space.create",
+    "space.get",
+    "space.list",
+    "space.participation.set",
+    "subscription.follow",
+    "subscription.list",
+    "subscription.unfollow",
+    "topic.create",
+    "topic.resume",
+    "work.create",
+    "work.get",
+    "work.list",
+    "work.snapshot.commit"
+  ],
+  "observedAt": "2026-09-24",
+  "publicIngress": {
+    "canonicalGatewayLoopback": "http://127.0.0.1:8899",
+    "observedCloudflareOriginService": "http://127.0.0.1:8897",
+    "publicConnectorResult": "HTTP_421_INVALID_HOST_HEADER",
+    "standing": "SEPARATE_PROVIDER_ROUTE_BLOCKER"
+  },
+  "qualification": {
+    "gatewaySuite": "PASS",
+    "gatewaySuiteJob": "job-01a0d378-ef64-7963-85fe-974ef43db14d",
+    "liveDeployment": "PENDING",
+    "repoArchitectureGate": "PENDING_AFTER_DOCUMENT_REBIND"
+  },
+  "removedLegacyFamilies": [
+    "continuity.*",
+    "collaboration.*"
+  ],
+  "schemaVersion": 1,
+  "semanticOwner": "host",
+  "status": "SOURCE_CUTOVER_CANDIDATE_VERIFIED_LIVE_PENDING",
+  "truthRole": "gateway-projection-over-host-owned-social-work-fabric"
+}

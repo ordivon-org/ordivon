@@ -12,6 +12,8 @@ param(
     [Parameter()]
     [string]$HostBearerSource = '',
     [Parameter()]
+    [switch]$CreateLocalServiceBearer,
+    [Parameter()]
     [switch]$ReplaceExisting
 )
 
@@ -99,19 +101,28 @@ $specs = @(
         label = 'host-bearer'
         source = $HostBearerSource
         destination = 'host-bearer'
+    },
+    [ordered]@{
+        label = 'local-service-bearer'
+        source = ''
+        destination = 'local-service-bearer'
     }
 )
 
 $materialized = @()
 foreach ($spec in $specs) {
-    if ([string]::IsNullOrWhiteSpace($spec.source)) {
+    $generate = $CreateLocalServiceBearer -and $spec.label -eq 'local-service-bearer'
+    if ([string]::IsNullOrWhiteSpace($spec.source) -and -not $generate) {
         continue
     }
 
-    $source = (Resolve-Path -LiteralPath $spec.source).Path
-    $sourceItem = Get-Item -LiteralPath $source -Force
-    if ($sourceItem.PSIsContainer -or ($sourceItem.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
-        throw "$($spec.label) source must be a non-reparse regular file"
+    $source = $null
+    if (-not $generate) {
+        $source = (Resolve-Path -LiteralPath $spec.source).Path
+        $sourceItem = Get-Item -LiteralPath $source -Force
+        if ($sourceItem.PSIsContainer -or ($sourceItem.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+            throw "$($spec.label) source must be a non-reparse regular file"
+        }
     }
 
     $destination = Join-Path $credentials $spec.destination
@@ -121,20 +132,42 @@ foreach ($spec in $specs) {
 
     $tmp = Join-Path $credentials (".$($spec.destination).tmp-" + [guid]::NewGuid().ToString('N'))
     $bytes = $null
+    $generatedDigest = $null
     try {
-        $bytes = [IO.File]::ReadAllBytes($source)
-        [IO.File]::WriteAllBytes($tmp, $bytes)
-    }
-    finally {
-        if ($null -ne $bytes) {
-            [Array]::Clear($bytes, 0, $bytes.Length)
-            $bytes = $null
-        }
-    }
-
-    try {
+        New-Item -ItemType File -Path $tmp | Out-Null
         Protect-CredentialFile -Path $tmp -ServiceSid $serviceSid
-        $sourceDigest = Get-Sha256Lower -Path $source
+        try {
+            if ($generate) {
+                $random = New-Object byte[] 32
+                $rng = [Security.Cryptography.RandomNumberGenerator]::Create()
+                $sha = [Security.Cryptography.SHA256]::Create()
+                try {
+                    $rng.GetBytes($random)
+                    $value = ([BitConverter]::ToString($random)).Replace('-', '').ToLowerInvariant()
+                    $bytes = [Text.Encoding]::ASCII.GetBytes($value)
+                    $value = $null
+                    $generatedDigest = ([BitConverter]::ToString($sha.ComputeHash($bytes))).Replace('-', '').ToLowerInvariant()
+                }
+                finally {
+                    $rng.Dispose()
+                    $sha.Dispose()
+                    [Array]::Clear($random, 0, $random.Length)
+                }
+            }
+            else {
+                $bytes = [IO.File]::ReadAllBytes($source)
+            }
+            [IO.File]::WriteAllBytes($tmp, $bytes)
+        }
+        finally {
+            if ($null -ne $bytes) {
+                [Array]::Clear($bytes, 0, $bytes.Length)
+                $bytes = $null
+            }
+        }
+
+        Protect-CredentialFile -Path $tmp -ServiceSid $serviceSid
+        $sourceDigest = if ($generate) { $generatedDigest } else { Get-Sha256Lower -Path $source }
         $targetDigest = Get-Sha256Lower -Path $tmp
         if ($sourceDigest -ne $targetDigest) {
             throw "$($spec.label) digest mismatch after copy"
@@ -161,6 +194,9 @@ foreach ($spec in $specs) {
         }
     }
     finally {
+        if ($null -ne $bytes) {
+            [Array]::Clear($bytes, 0, $bytes.Length)
+        }
         Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
     }
 }

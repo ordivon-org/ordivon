@@ -138,3 +138,7 @@ pub struct RuntimeInspectionEvent {
 include!("inspection/job.rs");
 #[cfg(feature = "operator-tools")]
 include!("inspection/operator.rs");
+
+#[cfg(all(test, feature = "operator-tools"))]
+#[path = "inspection/summary_query_tests.rs"]
+mod summary_query_tests;

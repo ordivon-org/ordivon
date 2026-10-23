@@ -11,7 +11,8 @@ DEPLOYED = ROOT / "docs" / "architecture" / "deployed-architecture-r1.json"
 PLUGIN = ROOT / "extensions" / "ordivon-control-plane" / "mcp.json"
 ROUTES = ROOT / "services" / "gateway" / "src" / "ordivon_gateway" / "routes.py"
 GATEWAY_MCP = ROOT / "services" / "gateway" / "src" / "ordivon_gateway" / "mcp_server.py"
-HOST_NORTHBOUND_ACCEPTANCE = ROOT / "docs" / "architecture" / "gateway-host-northbound-acceptance-20260922.json"
+GATEWAY_SURFACE_MANIFEST = ROOT / "services" / "gateway" / "mcp-surface.json"
+HOST_NORTHBOUND_ACCEPTANCE = ROOT / "docs" / "architecture" / "gateway-swf-northbound-acceptance-20260924.json"
 METHOD_ROUTER = ROOT / ".agents" / "skills" / "method-router" / "SKILL.md"
 README = ROOT / "README.md"
 
@@ -38,41 +39,28 @@ EXPECTED_CAPABILITIES = {
     "execution.windows",
 }
 
-EXPECTED_GATEWAY_TOOLS = {
-    "system.describe",
-    "capability.describe",
-    "execution.submit",
-    "execution.resolve",
-    "execution.get",
-    "execution.cancel",
-    "artifact.read",
-    "continuity.get",
-    "continuity.list",
-    "continuity.observe",
-    "continuity.adopt",
-    "continuity.checkpoint",
-    "continuity.attention",
-    "continuity.find",
-    "continuity.changes",
-    "collaboration.list",
-    "collaboration.search",
-    "collaboration.post",
-    "collaboration.publish",
-}
-
 EXPECTED_HOST_NORTHBOUND_TOOLS = {
-    "continuity.get",
-    "continuity.list",
-    "continuity.observe",
-    "continuity.adopt",
-    "continuity.checkpoint",
-    "continuity.attention",
-    "continuity.find",
-    "continuity.changes",
-    "collaboration.list",
-    "collaboration.search",
-    "collaboration.post",
-    "collaboration.publish",
+    'actor.declare',
+    'attention.ack',
+    'attention.delta',
+    'attention.get',
+    'host.status',
+    'message.post',
+    'message.relation.add',
+    'message.search',
+    'space.create',
+    'space.get',
+    'space.list',
+    'space.participation.set',
+    'subscription.follow',
+    'subscription.list',
+    'subscription.unfollow',
+    'topic.create',
+    'topic.resume',
+    'work.create',
+    'work.get',
+    'work.list',
+    'work.snapshot.commit',
 }
 
 
@@ -158,12 +146,12 @@ def validate_deployed_graph(value: dict[str, Any]) -> None:
         raise ArchitectureDocsError("persistent trace backend cannot remain not-admitted")
 
     host_northbound = value.get("hostNorthbound")
-    if not isinstance(host_northbound, dict) or host_northbound.get("status") != "deployed":
-        raise ArchitectureDocsError("Host northbound seam must remain deployed")
+    if not isinstance(host_northbound, dict) or host_northbound.get("status") not in {"source-cutover-candidate", "deployed"}:
+        raise ArchitectureDocsError("Host northbound seam must be a verified source cutover candidate or deployed")
     if host_northbound.get("semanticOwner") != "host" or host_northbound.get("gatewayAuthority") != "projection-only":
         raise ArchitectureDocsError("Gateway must not absorb Host semantic authority")
-    if host_northbound.get("checkpointSchemaOwner") != "host":
-        raise ArchitectureDocsError("Host must remain WorkingCheckpoint schema owner")
+    if host_northbound.get("workSnapshotSchemaOwner") != "host":
+        raise ArchitectureDocsError("Host must remain WorkSnapshot schema owner")
     if set(host_northbound.get("normalTools", [])) != EXPECTED_HOST_NORTHBOUND_TOOLS:
         raise ArchitectureDocsError("normal Host northbound Tool set drifted")
     if host_northbound.get("adminOnlyDirect") != ["host.status"]:
@@ -189,9 +177,59 @@ def gateway_tools(source: str) -> set[str]:
     return set(re.findall(r'@server\.tool\(name="([^"]+)"\)', source))
 
 
+def validate_source_tool_surface(
+    observed_tools: set[str], manifest: dict[str, Any], *, service: str
+) -> set[str]:
+    if manifest.get("schemaVersion") != 1:
+        raise ArchitectureDocsError(f"{service} source Tool manifest schemaVersion must be 1")
+    if manifest.get("kind") != "ordivon.mcp-tool-surface":
+        raise ArchitectureDocsError(f"{service} source Tool manifest kind drifted")
+    if manifest.get("service") != service:
+        raise ArchitectureDocsError(f"{service} source Tool manifest service identity drifted")
+    tools = manifest.get("tools")
+    if not isinstance(tools, list) or not all(isinstance(item, str) and item for item in tools):
+        raise ArchitectureDocsError(f"{service} source Tool manifest tools must be strings")
+    if len(tools) != len(set(tools)):
+        raise ArchitectureDocsError(f"{service} source Tool manifest contains duplicate tools")
+    declared_tools = set(tools)
+    if observed_tools != declared_tools:
+        raise ArchitectureDocsError(
+            f"{service} source Tool surface differs from source manifest: {sorted(observed_tools)}"
+        )
+    return declared_tools
+
+
+def validate_deployed_source_tool_relation(
+    graph: dict[str, Any], source_tools: set[str]
+) -> None:
+    host_northbound = graph.get("hostNorthbound")
+    default_northbound = graph.get("defaultNorthbound")
+    if not isinstance(host_northbound, dict) or not isinstance(default_northbound, dict):
+        raise ArchitectureDocsError("deployed/source Tool relation requires northbound projections")
+    deployed_tools = host_northbound.get("normalTools")
+    if not isinstance(deployed_tools, list) or not all(
+        isinstance(item, str) and item for item in deployed_tools
+    ):
+        raise ArchitectureDocsError("deployed Host normalTools must be strings")
+    deployed_set = set(deployed_tools)
+    missing_from_source = deployed_set - source_tools
+    if missing_from_source:
+        raise ArchitectureDocsError(
+            "deployed Host northbound claims tools absent from current Gateway source: "
+            f"{sorted(missing_from_source)}"
+        )
+    declared_count = default_northbound.get("declaredToolCount")
+    if not isinstance(declared_count, int):
+        raise ArchitectureDocsError("deployed Gateway declaredToolCount must be an integer")
+    if declared_count < len(deployed_set):
+        raise ArchitectureDocsError("deployed Gateway declaredToolCount undercounts deployed Host tools")
+    if declared_count > len(source_tools):
+        raise ArchitectureDocsError("deployed Gateway declaredToolCount exceeds current source surface")
+
+
 def validate_current_document(text: str) -> None:
     required = [
-        "Status: **CURRENT CANONICAL / DEPLOYED BASELINE**",
+        "Status: **CURRENT DEPLOYED PROJECTION — NON-AUTHORITATIVE**",
         "Method Router ≠ Capability Router",
         "Harness is not currently a routed Gateway owner",
         "historical Ordivon Agent Service is **RETIRED**",
@@ -235,13 +273,18 @@ def validate_repository(root: Path = ROOT) -> None:
         )
 
     observed_tools = gateway_tools(gateway_mcp.read_text(encoding="utf-8"))
-    if observed_tools != EXPECTED_GATEWAY_TOOLS:
-        raise ArchitectureDocsError(
-            f"Gateway public Tool surface drifted: {sorted(observed_tools)}"
-        )
+    source_tools = validate_source_tool_surface(
+        observed_tools,
+        _load_json(root / GATEWAY_SURFACE_MANIFEST.relative_to(ROOT)),
+        service="ordivon-gateway",
+    )
+    validate_deployed_source_tool_relation(graph, source_tools)
     host_acceptance = _load_json(host_northbound_acceptance)
-    if host_acceptance.get("status") != "SERVER_DEPLOYED_LIVE_OWNER_PATH_ACCEPTED_CLIENT_REFRESH_PENDING":
-        raise ArchitectureDocsError("Gateway Host northbound acceptance status drifted")
+    if host_acceptance.get("status") not in {
+        "SOURCE_CUTOVER_CANDIDATE_VERIFIED_LIVE_PENDING",
+        "LIVE_ACCEPTED_CLIENT_REFRESH_PENDING",
+    }:
+        raise ArchitectureDocsError("Gateway SWF northbound acceptance status drifted")
 
     if not method_router.is_file():
         raise ArchitectureDocsError("canonical Method Router Skill is missing")

@@ -76,12 +76,6 @@ function Protect-File {
     )
 }
 
-Get-Service -Name $ServiceName -ErrorAction Stop | Out-Null
-$serviceAccount = New-Object System.Security.Principal.NTAccount("NT SERVICE\$ServiceName")
-$serviceSid = $serviceAccount.Translate(
-    [System.Security.Principal.SecurityIdentifier]
-).Value
-
 $prefixPath = [System.IO.Path]::GetFullPath($Prefix)
 $release = Join-Path (Join-Path $prefixPath 'releases') $ReleaseCommit
 $pythonRoot = Join-Path $prefixPath 'python'
@@ -94,6 +88,24 @@ foreach ($required in @($release, $pythonRoot, $logs, $credentials, $shawl)) {
         throw "ACL target is missing: $required"
     }
 }
+
+$gatewayExe = Join-Path $release '.venv\Scripts\ordivon-gateway.exe'
+$pythonRequest = (Get-Content -LiteralPath (Join-Path $release '.python-version') -Raw).Trim()
+if ($pythonRequest -notmatch '^\d+\.\d+\.\d+$') {
+    throw 'ACL Python request must be an exact numeric version'
+}
+$basePython = Join-Path $pythonRoot "cpython-$pythonRequest-windows-x86_64-none\python.exe"
+foreach ($probe in @($gatewayExe, $basePython, $shawl)) {
+    if (-not (Test-Path -LiteralPath $probe -PathType Leaf)) {
+        throw "ACL read-back probe missing: $probe"
+    }
+}
+
+Get-Service -Name $ServiceName -ErrorAction Stop | Out-Null
+$serviceAccount = New-Object System.Security.Principal.NTAccount("NT SERVICE\$ServiceName")
+$serviceSid = $serviceAccount.Translate(
+    [System.Security.Principal.SecurityIdentifier]
+).Value
 
 Invoke-IcaclsChecked -Arguments @(
     $prefixPath,
@@ -113,14 +125,6 @@ Protect-Directory -Path $pythonRoot -ServiceSid $serviceSid -ServiceRights RX
 Protect-Directory -Path $logs -ServiceSid $serviceSid -ServiceRights M
 Protect-Directory -Path $credentials -ServiceSid $serviceSid -ServiceRights R
 Protect-File -Path $shawl -ServiceSid $serviceSid -ServiceRights RX
-
-$gatewayExe = Join-Path $release '.venv\Scripts\ordivon-gateway.exe'
-$basePython = Join-Path $pythonRoot 'cpython-3.14-windows-x86_64-none\python.exe'
-foreach ($probe in @($gatewayExe, $basePython, $shawl)) {
-    if (-not (Test-Path -LiteralPath $probe -PathType Leaf)) {
-        throw "ACL read-back probe missing: $probe"
-    }
-}
 
 $receipt = [ordered]@{
     schemaVersion = 1

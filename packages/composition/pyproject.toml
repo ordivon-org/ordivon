@@ -3,7 +3,7 @@ name = "ordivon-composition"
 version = "0.1.0"
 description = "Task-local non-authoritative composition contracts and mechanical evaluators for Ordivon."
 readme = "README.md"
-requires-python = "==3.14.7"
+requires-python = "==3.15.0"
 dependencies = [
   "jsonschema>=4.26,<5",
 ]
@@ -21,7 +21,7 @@ ordivon-verification-obligations = "ordivon_composition.verification_obligation_
 ordivon-successor = "ordivon_composition.successor_contract_r1:main"
 
 [build-system]
-requires = ["uv_build>=0.12.3,<0.13.0"]
+requires = ["uv_build>=0.13.1,<0.14.0"]
 build-backend = "uv_build"
 
 [tool.pytest.ini_options]
@@ -29,7 +29,7 @@ testpaths = ["tests"]
 addopts = "-q"
 
 [tool.ruff]
-target-version = "py314"
+target-version = "py315"
 line-length = 100
 
 [tool.ruff.lint]

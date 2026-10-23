@@ -1,6 +1,7 @@
 use ordivon_runtime_core::{
-    apply_runtime_repair, cancel_stale_recovery_required_attempt, RuntimeDoctorConfig,
-    RuntimeRepairConfig, RuntimeRepairRequest, RuntimeStaleCancelRequest,
+    apply_runtime_repair, cancel_stale_recovery_required_attempt, recover_orphaned_runner_result,
+    RuntimeDoctorConfig, RuntimeOrphanResultRecoveryRequest, RuntimeRepairConfig,
+    RuntimeRepairRequest, RuntimeStaleCancelRequest,
 };
 use std::collections::BTreeSet;
 use std::env;
@@ -19,7 +20,7 @@ fn main() {
 fn run() -> Result<(), String> {
     let mut args = env::args().skip(1);
     let command = args.next().ok_or_else(usage)?;
-    if command != "apply" && command != "cancel-stale" {
+    if command != "apply" && command != "cancel-stale" && command != "recover-result" {
         return Err(usage());
     }
     let mut database = None;
@@ -28,7 +29,6 @@ fn run() -> Result<(), String> {
     let mut snapshot_path = None;
     let mut principal = None;
     let mut finalize_lost_attempt_ids = BTreeSet::new();
-    let mut finalize_quarantined_lost_attempt_ids = BTreeSet::new();
     let mut attempt_id = None;
     let mut busy_timeout_ms = 5_000_u64;
     let mut apply = false;
@@ -48,10 +48,6 @@ fn run() -> Result<(), String> {
             "--principal" => principal = Some(require_value(&mut args, "--principal")?),
             "--finalize-lost" => {
                 finalize_lost_attempt_ids.insert(require_value(&mut args, "--finalize-lost")?);
-            }
-            "--finalize-quarantined-lost" => {
-                finalize_quarantined_lost_attempt_ids
-                    .insert(require_value(&mut args, "--finalize-quarantined-lost")?);
             }
             "--attempt-id" => attempt_id = Some(require_value(&mut args, "--attempt-id")?),
             "--busy-timeout-ms" => {
@@ -79,14 +75,15 @@ fn run() -> Result<(), String> {
     let output = if command == "apply" {
         let expected_fingerprint = expected_fingerprint.ok_or_else(usage)?;
         if attempt_id.is_some() {
-            return Err("--attempt-id is only valid with cancel-stale".to_string());
+            return Err(
+                "--attempt-id is only valid with cancel-stale or recover-result".to_string(),
+            );
         }
         let request = RuntimeRepairRequest {
             expected_fingerprint,
             snapshot_path,
             principal,
             finalize_lost_attempt_ids,
-            finalize_quarantined_lost_attempt_ids,
         };
         let report = apply_runtime_repair(&config, &request).map_err(|error| error.to_string())?;
         if pretty {
@@ -94,12 +91,9 @@ fn run() -> Result<(), String> {
         } else {
             serde_json::to_string(&report)
         }
-    } else {
+    } else if command == "cancel-stale" {
         if !finalize_lost_attempt_ids.is_empty() {
             return Err("--finalize-lost is only valid with apply".to_string());
-        }
-        if !finalize_quarantined_lost_attempt_ids.is_empty() {
-            return Err("--finalize-quarantined-lost is only valid with apply".to_string());
         }
         if expected_fingerprint.is_some() {
             return Err("--expected-fingerprint is only valid with apply".to_string());
@@ -111,6 +105,25 @@ fn run() -> Result<(), String> {
         };
         let report = cancel_stale_recovery_required_attempt(&config, &request)
             .map_err(|error| error.to_string())?;
+        if pretty {
+            serde_json::to_string_pretty(&report)
+        } else {
+            serde_json::to_string(&report)
+        }
+    } else {
+        if !finalize_lost_attempt_ids.is_empty() {
+            return Err("--finalize-lost is only valid with apply".to_string());
+        }
+        if expected_fingerprint.is_some() {
+            return Err("--expected-fingerprint is only valid with apply".to_string());
+        }
+        let request = RuntimeOrphanResultRecoveryRequest {
+            snapshot_path,
+            principal,
+            attempt_id: attempt_id.ok_or_else(usage)?,
+        };
+        let report =
+            recover_orphaned_runner_result(&config, &request).map_err(|error| error.to_string())?;
         if pretty {
             serde_json::to_string_pretty(&report)
         } else {
@@ -128,5 +141,5 @@ fn require_value(args: &mut impl Iterator<Item = String>, flag: &str) -> Result<
 }
 
 fn usage() -> String {
-    "usage: ordivon-runtime-repair apply --database ABSOLUTE_PATH --store-root ABSOLUTE_PATH --expected-fingerprint sha256:... --snapshot ABSOLUTE_PATH --principal NAME [--finalize-lost ATTEMPT_ID ...] [--finalize-quarantined-lost ATTEMPT_ID ...] --apply [--pretty]\n       ordivon-runtime-repair cancel-stale --database ABSOLUTE_PATH --store-root ABSOLUTE_PATH --snapshot ABSOLUTE_PATH --principal NAME --attempt-id ATTEMPT_ID --apply [--pretty]".to_string()
+    "usage: ordivon-runtime-repair apply --database ABSOLUTE_PATH --store-root ABSOLUTE_PATH --expected-fingerprint sha256:... --snapshot ABSOLUTE_PATH --principal NAME [--finalize-lost ATTEMPT_ID ...] --apply [--pretty]\n       ordivon-runtime-repair cancel-stale --database ABSOLUTE_PATH --store-root ABSOLUTE_PATH --snapshot ABSOLUTE_PATH --principal NAME --attempt-id ATTEMPT_ID --apply [--pretty]\n       ordivon-runtime-repair recover-result --database ABSOLUTE_PATH --store-root ABSOLUTE_PATH --snapshot ABSOLUTE_PATH --principal NAME --attempt-id ATTEMPT_ID --apply [--pretty]".to_string()
 }
