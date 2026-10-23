@@ -19,7 +19,7 @@ A local sibling checkout may be used for compatibility experiments only when exa
 
 ```bash
 uv run python -m compileall -q src tests scripts evals
-uvx ruff==0.15.17 check src tests scripts
+uvx ruff==0.17.2 check src tests scripts
 uv run python -W error::ResourceWarning -m unittest discover -s tests -v
 uv run python scripts/check_dependencies.py
 uv run python scripts/check_docs.py

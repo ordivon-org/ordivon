@@ -77,3 +77,55 @@ def test_out_of_contract_inputs_fail_closed(kwargs, message):
     args.update(kwargs)
     with pytest.raises(ExecutionFeasibilityError, match=message):
         bounded_us_equity_target_quantity(**args)
+
+
+@pytest.mark.parametrize("pv,price,buffer", [
+    ("10", "0.1", "0.1"),
+    ("100", "0.0001", "0.1"),
+    ("1000", "0.05", "0.01"),
+])
+def test_reserved_cash_is_not_spent_as_fee(pv, price, buffer):
+    # LEAN's bounded quantity candidate must not be presented as executable
+    # if the independently calculated fee would consume protected cash.
+    with pytest.raises(ExecutionFeasibilityError, match="free portfolio value"):
+        bounded_us_equity_target_quantity(
+            portfolio_value_usd=pv,
+            price_usd=price,
+            target_weight="1",
+            free_portfolio_value_weight=buffer,
+        )
+
+
+def test_seeded_fee_and_available_cash_invariant_across_admitted_numeric_inputs():
+    # Operator-level property: a returned candidate never violates its
+    # exact Decimal cash reserve after adding the current LEAN fee.
+    prices = ("0.0001", "0.01", "0.1", "1", "10", "200")
+    portfolios = ("10", "100", "10000")
+    weights = ("0.01", "0.3", "1")
+    buffers = ("0", "0.01", "0.1")
+    accepted = 0
+    rejected = 0
+    for pv in portfolios:
+        for price in prices:
+            for weight in weights:
+                for buffer in buffers:
+                    try:
+                        result = bounded_us_equity_target_quantity(
+                            portfolio_value_usd=pv,
+                            price_usd=price,
+                            target_weight=weight,
+                            free_portfolio_value_weight=buffer,
+                        )
+                    except ExecutionFeasibilityError:
+                        rejected += 1
+                        continue
+                    accepted += 1
+                    assert result.quantity >= 0
+                    if result.quantity:
+                        fee = ib_us_equity_validation_fee(
+                            quantity=result.quantity, price_usd=price
+                        )
+                        assert result.estimated_fee_usd == fee
+                        available = Decimal(pv) * (1 - Decimal(buffer))
+                        assert Decimal(price) * result.quantity + fee <= available
+    assert accepted > 0 and rejected > 0

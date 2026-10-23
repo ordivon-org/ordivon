@@ -29,7 +29,7 @@ class DeployTests(unittest.TestCase):
             py.write_bytes(b"runtime-carrier")
             c = {
                 "mcp_runtime_python": str(py),
-                "mcp_python_version": "3.15.0",
+                "mcp_python_version": "3.15.1",
                 "mcp_sqlite_version": "3.54.0",
             }
             old_runtime = {
@@ -56,13 +56,13 @@ class DeployTests(unittest.TestCase):
             py.write_bytes(b"runtime-carrier")
             c = {
                 "mcp_runtime_python": str(py),
-                "mcp_python_version": "3.15.0",
+                "mcp_python_version": "3.15.1",
                 "mcp_sqlite_version": "3.54.0",
             }
             old_sqlite = {
                 "versions": versions,
                 "forbidden": {"ordivon-protocol": None},
-                "pythonVersion": "3.15.0",
+                "pythonVersion": "3.15.1",
                 "sqliteVersion": "3.53.1",
             }
             with patch.object(d, "_runtime_versions", return_value=old_sqlite):
@@ -83,18 +83,18 @@ class DeployTests(unittest.TestCase):
             py.write_bytes(b"runtime-carrier")
             c = {
                 "mcp_runtime_python": str(py),
-                "mcp_python_version": "3.15.0",
+                "mcp_python_version": "3.15.1",
                 "mcp_sqlite_version": "3.54.0",
             }
             current = {
                 "versions": versions,
                 "forbidden": {"ordivon-protocol": None},
-                "pythonVersion": "3.15.0",
+                "pythonVersion": "3.15.1",
                 "sqliteVersion": "3.54.0",
             }
             with patch.object(d, "_runtime_versions", return_value=current):
                 observed = d.runtime_check(c)
-            self.assertEqual(observed["pythonVersion"], "3.15.0")
+            self.assertEqual(observed["pythonVersion"], "3.15.1")
             self.assertEqual(observed["sqliteVersion"], "3.54.0")
             self.assertEqual(observed["versions"], versions)
 

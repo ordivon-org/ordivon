@@ -23,11 +23,11 @@ TEMPORAL = Path("/opt/ordivon/external/temporal-cli/1.8.3/temporal")
 TEMPORAL_SHA = "76aea8d71fafe2d39c1104bef3ce86c1600d9adbff79953d102f60e535ae1413"
 PRODUCTION_ADDRESS = "127.0.0.1:17233"
 EXPECTED_RUNTIME_VERSIONS = {
-    "temporalio": "1.32.0",
+    "temporalio": "1.34.0",
     "rfc8785": "0.1.4",
     "mcp": "2.2.0",
     "httpx": "0.28.1",
-    "pythonVersion": "3.15.0",
+    "pythonVersion": "3.15.1",
     "sqliteVersion": "3.54.0",
 }
 

@@ -71,7 +71,7 @@ else
 fi
 
 # Critical: the Python interpreter version does NOT prove its embedded SQLite.
-# The current managed CPython 3.15.0 wheel includes SQLite 3.53.1. No old
+# The current managed CPython 3.15.1 wheel includes SQLite 3.53.1. No old
 # embedded-version exception is authorized, so fail closed before activation.
 "$PYTHON" - "$PYTHON_REQUEST" <<'PYTHON_CHECK'
 import sqlite3
@@ -79,7 +79,7 @@ import sys
 
 requested = sys.argv[1]
 actual = sys.version.split()[0]
-if actual != requested or actual != "3.15.0":
+if actual != requested or actual != "3.15.1":
     raise SystemExit(f"Gateway release Python mismatch: expected {requested}, got {actual}")
 if sqlite3.sqlite_version != "3.54.0":
     raise SystemExit(

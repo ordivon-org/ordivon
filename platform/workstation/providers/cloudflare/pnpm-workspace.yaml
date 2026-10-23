@@ -1,0 +1,14 @@
+packages:
+  - .
+
+# pnpm >= 12 reads dependency overrides from the workspace manifest.
+overrides:
+  undici: 7.29.0
+
+# Permit only the reviewed native build consumers at their locked versions.
+# Unknown/new postinstall scripts must continue to fail closed.
+strictDepBuilds: true
+allowBuilds:
+  'esbuild@0.28.1': true
+  'esbuild@0.28.2': true
+  'workerd@1.20261019.1': true

@@ -176,7 +176,7 @@ If a new shared mechanism cannot survive deletion against Agent-owned choice, ca
 Repository checks use isolated Ruff rather than assuming it is installed inside the project environment:
 
 ```bash
-uvx ruff==0.15.17 check src tests scripts
+uvx ruff==0.17.2 check src tests scripts
 python scripts/check_dependencies.py
 python scripts/check_docs.py
 ```
