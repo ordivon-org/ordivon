@@ -145,6 +145,46 @@ class AffectedOwnersTests(unittest.TestCase):
             [],
         )
 
+    def test_unknown_executable_root_fails_closed_at_verification_admission(self) -> None:
+        self.assertEqual(self.names("services/unregistered/new.py"), [])
+        with self.assertRaisesRegex(ValueError, "unregistered owner path"):
+            MODULE.require_registered_execution_paths(["services/unregistered/new.py"])
+        MODULE.require_registered_execution_paths(
+            ["services/runtime/crates/ordivon-runtime-core/src/lib.rs"]
+        )
+
+    def test_git_cross_owner_move_selects_both_endpoints(self) -> None:
+        import os
+        import subprocess
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            subprocess.run(["git", "init", "-q", "-b", "main", directory], check=True)
+            subprocess.run(["git", "-C", directory, "config", "user.name", "CDC"], check=True)
+            subprocess.run(["git", "-C", directory, "config", "user.email", "cdc@example.invalid"], check=True)
+            source = root / "services/runtime/src/example.txt"
+            source.parent.mkdir(parents=True)
+            source.write_text("consumer\n")
+            subprocess.run(["git", "-C", directory, "add", "-A"], check=True)
+            subprocess.run(["git", "-C", directory, "commit", "-qm", "base"], check=True)
+            before = subprocess.check_output(["git", "-C", directory, "rev-parse", "HEAD"], text=True).strip()
+            destination = root / "services/gateway/src/example.txt"
+            destination.parent.mkdir(parents=True)
+            source.rename(destination)
+            subprocess.run(["git", "-C", directory, "add", "-A"], check=True)
+            subprocess.run(["git", "-C", directory, "commit", "-qm", "move"], check=True)
+            after = subprocess.check_output(["git", "-C", directory, "rev-parse", "HEAD"], text=True).strip()
+            previous = Path.cwd()
+            try:
+                os.chdir(root)
+                paths = MODULE.changed_paths(before, after)
+            finally:
+                os.chdir(previous)
+            self.assertEqual(
+                set(paths),
+                {"services/runtime/src/example.txt", "services/gateway/src/example.txt"},
+            )
+
     def test_unknown_top_level_path_is_not_silently_attributed(self) -> None:
         self.assertEqual(self.names("README.md"), [])
 
