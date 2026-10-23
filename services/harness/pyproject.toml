@@ -24,7 +24,7 @@ dependencies = [
 mcp = ["mcp==2.2.0"]
 
 [dependency-groups]
-dev = ["ruff==0.15.17"]
+dev = ["ruff==0.17.2"]
 test = [
   "mcp==2.2.0",
   "uvicorn==0.52.1",
@@ -53,6 +53,10 @@ where = ["src"]
 [tool.ruff]
 target-version = "py315"
 line-length = 100
+
+# Preserve the previous Ruff gate semantics explicitly across linter releases.
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
 
 [tool.pytest.ini_options]
 markers = ["node_qualification: requires exact node-local provider/equipment materialization"]

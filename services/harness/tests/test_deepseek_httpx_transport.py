@@ -113,7 +113,9 @@ class DeepSeekHttpxTransportTests(unittest.TestCase):
             self.base_url + path,
             headers={"Content-Type": "application/json"},
             body=b'{"exact":true}',
-            timeout_seconds=1,
+            # Give local threaded HTTP fixtures headroom on contended CI hosts;
+            # timeout behavior is separately verified with a 0.05s deadline.
+            timeout_seconds=5,
             max_response_bytes=bound,
         )
 

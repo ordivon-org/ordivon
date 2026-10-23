@@ -27,7 +27,7 @@ EXPECTED_RUNTIME_VERSIONS = {
     "rfc8785": "0.1.4",
     "mcp": "2.2.0",
     "httpx": "0.28.1",
-    "pythonVersion": "3.15.0",
+    "pythonVersion": "3.15.1",
     "sqliteVersion": "3.54.0",
 }
 

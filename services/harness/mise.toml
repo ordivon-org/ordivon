@@ -13,7 +13,7 @@ uv sync --locked
 uv run python scripts/check_runtime_search_profile.py
 uv lock --check
 uv run python -m compileall -q src tests scripts evals
-uvx ruff==0.15.17 check src tests scripts
+uvx ruff==0.17.2 check src tests scripts
 uv run python -W error::ResourceWarning -m pytest -q tests
 uv run python scripts/check_dependencies.py
 uvx pip-audit -r requirements-audit.txt --strict --progress-spinner off
@@ -37,7 +37,7 @@ set -euo pipefail
 uv sync --locked
 uv lock --check
 uv run python -m compileall -q src tests scripts evals
-uvx ruff==0.15.17 check src tests scripts
+uvx ruff==0.17.2 check src tests scripts
 uv run python -W error::ResourceWarning -m pytest -q -m "not node_qualification" tests
 uv run python scripts/check_dependencies.py
 uvx pip-audit -r requirements-audit.txt --strict --progress-spinner off
