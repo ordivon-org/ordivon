@@ -40,6 +40,51 @@ if [ ! -d "$RELEASE" ]; then
   trap - EXIT
 fi
 
+# Existing release directories can outlive the Git branch which produced them.
+# Never trust a directory solely because it is named after a real commit:
+# use Git's native blob identities to reject post-archive source drift before
+# resolving dependencies, changing the active symlink or touching a service.
+verify_release_source() {
+  local record metadata path mode expected actual rel file count=0
+  while IFS= read -r -d '' record; do
+    metadata=${record%%$'\t'*}
+    path=${record#*$'\t'}
+    mode=${metadata%% *}
+    expected=${metadata##* }
+    rel=${path#"$SOURCE_SUBTREE/"}
+    file="$RELEASE/$rel"
+    if [[ "$mode" == "120000" ]]; then
+      [[ -L "$file" ]] || {
+        echo "release source drift: missing symlink $rel" >&2
+        return 2
+      }
+      actual=$(readlink -n -- "$file" | git -C "$REPO" hash-object --stdin)
+    else
+      [[ -f "$file" && ! -L "$file" ]] || {
+        echo "release source drift: missing regular file $rel" >&2
+        return 2
+      }
+      if [[ ( "$mode" == "100755" && ! -x "$file" ) ||
+            ( "$mode" == "100644" && -x "$file" ) ]]; then
+        echo "release source drift: Git executable bit differs for $rel" >&2
+        return 2
+      fi
+      actual=$(git -C "$REPO" hash-object --no-filters -- "$file")
+    fi
+    [[ "$actual" == "$expected" ]] || {
+      echo "release source drift: Git blob differs for $rel" >&2
+      return 2
+    }
+    count=$((count + 1))
+  done < <(git -C "$REPO" ls-tree -rz "$COMMIT" "$SOURCE_SUBTREE")
+  ((count > 0)) || {
+    echo "release source drift: empty Git source subtree" >&2
+    return 2
+  }
+}
+
+verify_release_source
+
 # The project pin owns the requested Python version; uv owns the managed interpreter.
 # Keep the interpreter outside protected user homes so the systemd DynamicUser can
 # execute the release-local venv while ProtectHome remains enabled.
