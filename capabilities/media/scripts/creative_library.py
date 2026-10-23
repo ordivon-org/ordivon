@@ -317,6 +317,12 @@ def parse_range(header: str | None, size: int) -> tuple[int, int] | None:
     a, b = m.groups()
     if not a and not b:
         raise ValueError("empty byte range")
+    if not a and int(b) == 0:
+        raise ValueError("invalid suffix range")
+    # RFC 9110 permits ignoring Range for an empty selected representation.
+    # A partial response cannot describe a byte interval in a zero-byte body.
+    if size == 0:
+        return None
     if not a:
         count = int(b)
         if count <= 0:
@@ -417,7 +423,8 @@ class LibraryHandler(BaseHTTPRequestHandler):
         if carrier["kind"] == "html":
             extra["Content-Security-Policy"] = "sandbox allow-scripts; default-src 'self' data: blob:; connect-src 'none'; form-action 'none'; object-src 'none'; base-uri 'none'; frame-ancestors 'self'"
         try:
-            byte_range = parse_range(self.headers.get("Range"), len(body))
+            # Range only changes GET semantics; HEAD returns full-carrier metadata.
+            byte_range = parse_range(None if head_only else self.headers.get("Range"), len(body))
         except ValueError:
             self._headers(HTTPStatus.REQUESTED_RANGE_NOT_SATISFIABLE, mime, 0, etag=carrier["objectId"])
             self.send_header("Content-Range", f"bytes */{len(body)}")
