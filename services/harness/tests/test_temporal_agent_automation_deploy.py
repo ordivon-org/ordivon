@@ -1,5 +1,7 @@
 from __future__ import annotations
 import ast
+import sys
+from unittest.mock import patch
 import unittest
 from pathlib import Path
 
@@ -7,6 +9,25 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class TemporalDeployTests(unittest.TestCase):
+    def test_incompatible_live_worker_never_receives_in_place_pip_install(self):
+        # Failure injection: live Worker still imports old MCP, update wants
+        # 2.3.0. Mutating its venv while it polls the queue is unsafe.
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import temporal_agent_automation_deploy as deploy
+
+        current = {
+            "worker": {"active": True},
+            "runtimeVersionsExact": False,
+            "temporalBinaryValid": True,
+            "temporalSdkPresent": True,
+        }
+        with patch.object(deploy, "plan", return_value=current), patch.object(
+            deploy, "provision_runtime_dependencies"
+        ) as provision:
+            with self.assertRaisesRegex(RuntimeError, "active.*worker|quiescent"):
+                deploy.apply()
+            provision.assert_not_called()
+
     def test_canonical_worker_targets_production_cluster(self):
         text = (ROOT / "systemd/ordivon-agent-temporal-worker.service").read_text()
         self.assertIn("Production Temporal worker", text)

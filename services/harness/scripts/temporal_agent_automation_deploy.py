@@ -134,6 +134,14 @@ def apply() -> dict:
         raise RuntimeError("Temporal CLI exact binary is unavailable")
     if not current["temporalSdkPresent"]:
         raise RuntimeError("Temporal SDK venv is unavailable")
+    # Never mutate importable packages under a currently polling Worker.
+    # Stop and drain via the existing release admission fence first; otherwise
+    # an in-place pip install can corrupt the live process and its recovery.
+    if current["worker"]["active"] and not current["runtimeVersionsExact"]:
+        raise RuntimeError(
+            "active Temporal worker uses older dependencies; require quiescent "
+            "release activation before provisioning its runtime"
+        )
     provision_runtime_dependencies()
     current = plan()
     if not current["runtimeVersionsExact"]:
