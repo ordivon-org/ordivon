@@ -1,0 +1,6 @@
+packages:
+  - .
+
+# pnpm >= 12 reads dependency overrides from the workspace manifest.
+overrides:
+  undici: 7.29.0

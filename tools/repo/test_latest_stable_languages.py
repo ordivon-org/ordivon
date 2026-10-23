@@ -19,7 +19,7 @@ TARGETS = {
     k: {"version": v, "officialRelease": json.loads(
         Path(__file__).with_name("latest_stable_languages.json").read_text()
     )["targets"][k]["officialRelease"]}
-    for k, v in (("python", "3.15.0"), ("rust", "1.99.1"), ("node", "26.12.0"), ("godot", "4.7.2"), ("typescript", "7.0.2"), ("opa", "1.21.2"), ("powershell", "7.6.7"), ("uv", "0.13.1"), ("uv-build", "0.13.1"), ("bash", "5.3.20"), ("sqlite", "3.54.1"), ("postgresql", "18.6"), ("osquery", "5.23.1"))
+    for k, v in (("python", "3.15.1"), ("rust", "1.99.1"), ("node", "26.12.1"), ("godot", "4.7.2"), ("typescript", "7.0.2"), ("opa", "1.21.2"), ("powershell", "7.6.7"), ("uv", "0.13.5"), ("uv-build", "0.13.5"), ("bash", "5.3.20"), ("sqlite", "3.54.1"), ("postgresql", "18.6"), ("osquery", "5.23.1"))
 }
 
 
@@ -50,17 +50,17 @@ class LatestStableLanguageTests(unittest.TestCase):
         return issues
 
     def test_exact_latest_stable_pins_are_accepted(self) -> None:
-        self.put("x/mise.toml", '[tools]\npython="3.15.0"\nrust="1.99.1"\nnode="26.12.0"\nsqlite="3.54.1"\n')
-        self.put("x/.python-version", "3.15.0\n")
+        self.put("x/mise.toml", '[tools]\npython="3.15.1"\nrust="1.99.1"\nnode="26.12.1"\nsqlite="3.54.1"\n')
+        self.put("x/.python-version", "3.15.1\n")
         self.put("x/rust-toolchain.toml", '[toolchain]\nchannel="1.99.1"\n')
         self.put("x/godot/mise.toml", '[tools]\ngodot="4.7.2-stable"\n')
-        self.put("x/pyproject.toml", '[project]\nname="x"\nversion="0.1"\nrequires-python="==3.15.0"\n[tool.uv]\nrequired-version="==0.13.1"\n')
-        self.put("x/package.json", '{"engines":{"node":"26.12.0"},"devDependencies":{"typescript":"7.0.2"}}')
+        self.put("x/pyproject.toml", '[project]\nname="x"\nversion="0.1"\nrequires-python="==3.15.1"\n[tool.uv]\nrequired-version="==0.13.5"\n')
+        self.put("x/package.json", '{"engines":{"node":"26.12.1"},"devDependencies":{"typescript":"7.0.2"}}')
         self.assertEqual(self.inspect(), [])
 
     def test_ruff_latest_python_target_is_accepted(self) -> None:
         self.put("x/pyproject.toml", (
-            '[project]\nname="x"\nversion="1"\nrequires-python="==3.15.0"\n'
+            '[project]\nname="x"\nversion="1"\nrequires-python="==3.15.1"\n'
             '[tool.ruff]\ntarget-version="py315"\n'
         ))
         self.assertEqual(self.inspect(), [])
@@ -69,7 +69,7 @@ class LatestStableLanguageTests(unittest.TestCase):
         for old_target in ("py311", "py314"):
             with self.subTest(old_target=old_target):
                 self.put("x/pyproject.toml", (
-                    '[project]\nname="x"\nversion="1"\nrequires-python="==3.15.0"\n'
+                    '[project]\nname="x"\nversion="1"\nrequires-python="==3.15.1"\n'
                     f'[tool.ruff]\ntarget-version="{old_target}"\n'
                 ))
                 self.assertTrue(any(
@@ -111,7 +111,7 @@ class LatestStableLanguageTests(unittest.TestCase):
         self.put("x/.python-version", "3.12.13")
         self.baseline["exceptions"] = [{
             "path": "x/.python-version", "language": "python",
-            "currentVersion": "3.12.13", "targetVersion": "3.15.0",
+            "currentVersion": "3.12.13", "targetVersion": "3.15.1",
             "humanDecisionRef": "human-decision:claimed", "approvedBy": "some-human",
             "approvalPr": "https://github.com/ordivon-org/ordivon/pull/123",
             "approvedOn": "2026-10-15", "expiresOn": "2026-10-22",
