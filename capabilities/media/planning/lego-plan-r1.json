@@ -86,14 +86,17 @@
       ],
       "evidence": [
         "README.md",
-        "STUDIO.md"
+        "STUDIO.md",
+        "scripts/require-js-deps.mjs",
+        "apps/motion-remotion/package.json"
       ],
       "dependencies": [],
       "mustNotOwn": [
         "human preference"
       ],
       "acceptance": [
-        "Mechanical/factual pass is distinguishable from craft/human-response claims."
+        "Mechanical/factual pass is distinguishable from craft/human-response claims.",
+        "Media owner preflight rejects a different pinned @remotion/cli version from remotion before render verification."
       ]
     },
     {

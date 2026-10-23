@@ -1,7 +1,15 @@
-import { access } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 import { resolve } from "node:path";
 import process from "node:process";
+
+const motionManifest = JSON.parse(await readFile(new URL("../apps/motion-remotion/package.json", import.meta.url), "utf8"));
+const runtimeVersion = motionManifest.dependencies?.remotion;
+const cliVersion = motionManifest.devDependencies?.["@remotion/cli"];
+if (!runtimeVersion || runtimeVersion !== cliVersion) {
+  process.stderr.write(`Media Remotion dependency contract failed: remotion=${runtimeVersion ?? "missing"}, @remotion/cli=${cliVersion ?? "missing"}; pin both to the same exact version.\n`);
+  process.exit(2);
+}
 
 const required = [
   ["TypeScript", "node_modules/.bin/tsc"],
