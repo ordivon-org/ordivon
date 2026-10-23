@@ -3,7 +3,7 @@ powershell = "7.6.7"
 python = "3.15.0"
 uv = "0.13.1"
 node = "26.12.0"
-pnpm = "10.33.2"
+pnpm = "12.15.0"
 shellcheck = "0.11.0"
 
 [tasks.ci]
@@ -26,4 +26,22 @@ depends = ["ci"]
 run = """
 set -euo pipefail
 uv run python -m pytest -q tests/test_workstation_consequences.py
+"""
+
+[tasks."codex:materialize"]
+run = """
+set -euo pipefail
+source_dir=workstation/nix/codex-cli
+version=$(node -p 'require("./workstation/nix/codex-cli/package.json").dependencies["@openai/codex"]')
+prefix_root=${ORDIVON_CODEX_PREFIX_ROOT:-/root/tools/share}
+prefix="$prefix_root/codex-pnpm-$version"
+mkdir -p "$prefix"
+cp "$source_dir/package.json" "$source_dir/pnpm-lock.yaml" "$prefix/"
+(cd "$prefix" && pnpm install --frozen-lockfile --ignore-scripts)
+actual=$(node "$prefix/node_modules/@openai/codex/bin/codex.js" --version)
+test "$actual" = "codex-cli $version" || {
+  echo "Codex consumer identity mismatch: $actual != codex-cli $version" >&2
+  exit 1
+}
+printf 'codex_pnpm_consumer_ready=%s\n' "$prefix"
 """
