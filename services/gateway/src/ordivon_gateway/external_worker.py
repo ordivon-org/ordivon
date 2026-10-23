@@ -341,8 +341,10 @@ class ExternalPullWorkerTransport:
             row = db.execute(
                 "SELECT * FROM operations WHERE operation_id=?", (operation_id,)
             ).fetchone()
+            if row is None:
+                db.execute("ROLLBACK")
+                raise WorkerConflict("persisted operation is missing")
             db.execute("COMMIT")
-            assert row is not None
             return self._operation_from_row(db, row)
 
     def resolve(self, capability: str, request_id: str) -> ExternalOperation | None:
@@ -607,8 +609,10 @@ class ExternalPullWorkerTransport:
             row = db.execute(
                 "SELECT * FROM operations WHERE operation_id=?", (operation_id,)
             ).fetchone()
+            if row is None:
+                db.execute("ROLLBACK")
+                raise WorkerConflict("persisted operation is missing")
             db.execute("COMMIT")
-            assert row is not None
             return self._operation_from_row(db, row)
 
     def record_event(
@@ -743,8 +747,10 @@ class ExternalPullWorkerTransport:
             row = db.execute(
                 "SELECT * FROM operations WHERE operation_id=?", (operation_id,)
             ).fetchone()
+            if row is None:
+                db.execute("ROLLBACK")
+                raise WorkerConflict("persisted operation is missing")
             db.execute("COMMIT")
-            assert row is not None
             return self._operation_from_row(db, row)
 
     def get(self, operation_id: str) -> ExternalOperation:
