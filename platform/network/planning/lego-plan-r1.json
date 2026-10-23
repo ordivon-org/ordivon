@@ -156,9 +156,30 @@
       "evidence": [],
       "blockers": [],
       "nextAction": "Apply this gate to the next provider/consumer request."
+    },
+    {
+      "id": "NS2",
+      "objective": "Falsify indirect egress and DNS/control-plane bypass assumptions from real Linux, Windows, WSL and developer-tool consumers.",
+      "status": "PROPOSED",
+      "nodeIds": [
+        "N02",
+        "N03",
+        "N04",
+        "N05"
+      ],
+      "acceptance": [
+        "Every sampled path states its DNS resolver, proxy/tunnel, actual egress destination and independent observation.",
+        "A precompromised inner execution layer still cannot access an undeclared external endpoint through metrics/auth/package services.",
+        "VPN reachability is not accepted as network policy enforcement; failure and recovery are consumer-tested."
+      ],
+      "evidence": [],
+      "blockers": [],
+      "nextAction": "Reuse network owner-native fault tests, then run a real restricted indirect-egress probe without exposing production secrets."
     }
   ],
-  "gaps": [],
+  "gaps": [
+    "2026-10-24 audit: current source-bound independent proof for agent-mediated indirect egress across all consumer paths remains UNKNOWN. See docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261024_R1.json."
+  ],
   "doNotOwn": [
     "Runtime management ingress",
     "consumer cutover semantics",

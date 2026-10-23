@@ -429,3 +429,43 @@ def test_convergence_observation_r2_keeps_control_out_of_observation() -> None:
     assert "adaptive speculation" in r2["blockedControls"]
     assert "batching/bisection" in r2["blockedControls"]
     assert "predictive cost scheduling" in r2["blockedControls"]
+
+
+FORMAL_ISSUE_CENSUS = ROOT / "docs" / "architecture" / "evidence" / "FORMAL_LEGO_ISSUE_CENSUS_20261024_R1.json"
+
+
+def formal_issue_inputs():
+    census = json.loads(FORMAL_ISSUE_CENSUS.read_text(encoding="utf-8"))
+    plans = {
+        ref["ownerPlan"]: json.loads((ROOT / ref["ownerPlan"]).read_text(encoding="utf-8"))
+        for ref in census["registrations"]
+    }
+    return census, plans
+
+
+def test_formal_issue_census_preserves_existing_owner_legos() -> None:
+    census, plans = formal_issue_inputs()
+    module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issue_census_rejects_unbound_lego_node() -> None:
+    census, plans = formal_issue_inputs()
+    owner_plan = census["registrations"][0]["ownerPlan"]
+    slice_id = census["registrations"][0]["slice"]
+    next(item for item in plans[owner_plan]["slices"] if item["id"] == slice_id)["nodeIds"].append("UNKNOWN-NODE")
+    with pytest.raises(module.ArchitectureDocsError, match="unknown LEGO node"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issue_census_rejects_duplicate_problem_identity() -> None:
+    census, plans = formal_issue_inputs()
+    census["issues"].append(copy.deepcopy(census["issues"][0]))
+    with pytest.raises(module.ArchitectureDocsError, match="duplicate issue"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issue_census_cannot_grant_authority() -> None:
+    census, plans = formal_issue_inputs()
+    census["truthRole"] = "semantic-authority"
+    with pytest.raises(module.ArchitectureDocsError, match="non-authoritative"):
+        module.validate_formal_issue_census(census, plans)
