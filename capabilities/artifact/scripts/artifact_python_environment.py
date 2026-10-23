@@ -19,7 +19,9 @@ def selected_owner_tool(tool:str,override_env:str)->Path:
     override=os.environ.get(override_env)
     if override:selected=Path(override)
     else:
-        resolved=subprocess.run(['/usr/bin/mise','-C',str(ROOT),'which',tool],capture_output=True,text=True,check=False,timeout=15,env={**os.environ,'MISE_AUTO_INSTALL':'false','MISE_OFFLINE':'1'})
+        mise=shutil.which('mise')
+        if not mise:raise RuntimeError('Artifact owner mise executable unavailable on PATH')
+        resolved=subprocess.run([mise,'-C',str(ROOT),'which',tool],capture_output=True,text=True,check=False,timeout=15,env={**os.environ,'MISE_AUTO_INSTALL':'false','MISE_OFFLINE':'1'})
         if resolved.returncode:raise RuntimeError(f'Artifact owner mise {tool} unavailable: '+resolved.stderr[-1000:])
         selected=Path(resolved.stdout.strip())
     if not selected.is_absolute() or not selected.is_file() or not os.access(selected,os.X_OK):raise RuntimeError(f'Artifact owner {tool} path is unavailable or non-executable')
