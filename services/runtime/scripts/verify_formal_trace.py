@@ -90,8 +90,18 @@ def require_test_symbol(path: Path, symbol: str) -> list[str]:
     match = re.search(rf"(?m)^\s*fn\s+{re.escape(symbol)}\s*\(", text)
     if not match:
         return [f"{path.relative_to(ROOT)} missing proving test symbol {symbol!r}"]
-    prefix = text[max(0, match.start() - 512) : match.start()]
-    if not re.search(r"#\s*\[\s*test\s*\]", prefix):
+    # Test identity is a proof reference: attribute must belong to this function,
+    # not merely appear near it on an earlier function (or in a comment).
+    attributes = []
+    for line in reversed(text[: match.start()].splitlines()):
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if stripped.startswith("#[") and stripped.endswith("]"):
+            attributes.append(stripped)
+            continue
+        break
+    if not any(re.fullmatch(r"#\s*\[\s*test\s*\]", attribute) for attribute in attributes):
         return [f"{path.relative_to(ROOT)}::{symbol} is not marked #[test]"]
     return []
 
