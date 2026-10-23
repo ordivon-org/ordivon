@@ -61,6 +61,16 @@ def main() -> int:
     github_actions = update_for(config, "github-actions")
     assert configured_dirs(github_actions) == {"/"}
 
+    # Native Dependabot LEGO: same dependency across owner directories
+    # becomes one version-update PR, without merging owner lockfiles.
+    for ecosystem in ("uv", "npm", "nix"):
+        update = update_for(config, ecosystem)
+        assert len(configured_dirs(update)) > 1
+        groups = update.get("groups", {})
+        assert groups.get("same-dependency", {}).get("group-by") == "dependency-name", (
+            f"{ecosystem}: missing native cross-directory dependency-name grouping"
+        )
+
     expected_uv = dirs_for_lock("**/uv.lock", "uv.lock")
     actual_uv = configured_dirs(update_for(config, "uv"))
     assert actual_uv == expected_uv, f"uv directories drift: expected={sorted(expected_uv)} actual={sorted(actual_uv)}"

@@ -23,6 +23,9 @@ updates:
       - "/services/host"
     schedule:
       interval: weekly
+    groups:
+      same-dependency:
+        group-by: dependency-name
 
   - package-ecosystem: npm
     directories:
@@ -36,6 +39,9 @@ updates:
       - "/platform/workstation/workstation/nix/codex-cli"
     schedule:
       interval: weekly
+    groups:
+      same-dependency:
+        group-by: dependency-name
 
   - package-ecosystem: cargo
     directory: "/services/runtime"
@@ -49,4 +55,7 @@ updates:
       - "/capabilities/artifact/artifact-delivery/openxml-nix"
     schedule:
       interval: weekly
+    groups:
+      same-dependency:
+        group-by: dependency-name
     open-pull-requests-limit: 5
