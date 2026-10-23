@@ -36,11 +36,16 @@ class DependencyUpdateOwnershipTests(unittest.TestCase):
             self.assertEqual(len(update["directories"]), len(set(update["directories"])))
         cargo = by_ecosystem["cargo"]
         self.assertEqual(
-            cargo["directories"],
-            ["/services/runtime", "/domains/game/kits/room-action-r0"],
+            set(cargo["directories"]),
+            {"/services/runtime", "/domains/game/kits/room-action-r0"},
         )
-        self.assertEqual(cargo["groups"]["same-dependency"], {"group-by": "dependency-name"})
+        self.assertEqual(
+            cargo["groups"]["same-dependency"], {"group-by": "dependency-name"}
+        )
         self.assertNotIn("directory", cargo)
+        for directory in cargo["directories"]:
+            self.assertTrue((ROOT / directory.lstrip("/") / "Cargo.toml").is_file())
+            self.assertTrue((ROOT / directory.lstrip("/") / "Cargo.lock").is_file())
         self.assertEqual(by_ecosystem["github-actions"]["directory"], "/")
 
 
