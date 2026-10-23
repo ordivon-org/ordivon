@@ -23,8 +23,8 @@ The former Operations v2 owner is now Workstation v2. `/root/workstation-lab` be
 | legacy `workstation-semantic` | exact tool binding supersedes its current equipment-resolution role | **RETIRED live launcher in R5; zero current tracked consumers** |
 | `engineering-python` legacy helper | historical design experiments only | **live launcher retired in R5; do not migrate** |
 | giant global Doctor | decompose into upstream observation + operation-relative verifier | draining |
-| Workstation recovery scheduler | Workstation v2 systemd substrate | migrated |
-| recovery generation/restore semantics | minimal `recovery/` kernel + immutable generation | **migrated + activated in R3 (`aba2a689…`), verify-current PASS** |
+| Workstation recovery scheduler | retired legacy backup component | **retired 2026-10-15** |
+| recovery generation/restore semantics | old immutable Workstation recovery generation | **retired 2026-10-15; historical R3 acceptance no longer live** |
 | Windows Runtime launcher materialization | native Runtime + Windows SCM/Job Objects; Workstation WSL carrier is retired after native acceptance | **v2 provider source retired; live transition carrier remains only until cutover** |
 | production transport/failover | Network v2 | do not migrate |
 | domain suitability/completion | owning Domain E2E | do not migrate |

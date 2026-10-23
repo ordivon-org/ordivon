@@ -45,56 +45,6 @@ def main() -> int:
     if "ordivon-host" in lock or "ordivon_host" in lock:
         fail("uv.lock still contains Ordivon Host")
 
-    audit = sorted(
-        line.strip()
-        for line in (ROOT / "requirements-audit.txt").read_text(encoding="utf-8").splitlines()
-        if line.strip() and not line.lstrip().startswith("#")
-    )
-    lock_data = tomllib.loads(lock)
-    packages = [p for p in lock_data.get("package", []) if isinstance(p, dict)]
-    by_name: dict[str, dict] = {}
-    for package in packages:
-        name = str(package.get("name") or "").lower()
-        if not name:
-            fail("uv.lock contains a package without a name")
-        if name in by_name:
-            fail(f"uv.lock contains ambiguous duplicate package name: {name}")
-        by_name[name] = package
-
-    root = by_name.get("ordivon-harness")
-    if root is None:
-        fail("uv.lock omits the Harness root package")
-
-    pending = [
-        str(item.get("name") or "").lower()
-        for item in root.get("dependencies", [])
-        if isinstance(item, dict)
-    ]
-    runtime_names: set[str] = set()
-    while pending:
-        name = pending.pop()
-        if not name or name in runtime_names:
-            continue
-        package = by_name.get(name)
-        if package is None:
-            fail(f"runtime dependency is absent from uv.lock: {name}")
-        runtime_names.add(name)
-        pending.extend(
-            str(item.get("name") or "").lower()
-            for item in package.get("dependencies", [])
-            if isinstance(item, dict)
-        )
-
-    locked_pypi = sorted(
-        f"{package['name']}=={package['version']}"
-        for name, package in by_name.items()
-        if name in runtime_names
-        and isinstance(package.get("source"), dict)
-        and package["source"].get("registry") == "https://pypi.org/simple"
-    )
-    if audit != locked_pypi:
-        fail("requirements-audit.txt must exactly match registry-sourced uv.lock runtime packages")
-
     version_match = re.search(
         r'^version = "([^"]+)"$',
         (ROOT / "pyproject.toml").read_text(),

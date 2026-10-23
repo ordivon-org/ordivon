@@ -1,6 +1,6 @@
 # Ordivon Workstation E2E v2
 
-Workstation E2E v2 is the external-first execution-node operations, desired-state, inventory, realization, and recovery composition layer. The former Operations v2 implementation is this Workstation v2 implementation; Operations is no longer a separate owner. It does **not** implement a second monitoring platform, scheduler, service supervisor, backup engine, incident manager, inventory database, policy engine, or infrastructure state engine.
+Workstation E2E v2 is the external-first execution-node operations, desired-state, inventory, realization, and composition layer. The former Operations v2 implementation is this Workstation v2 implementation; Operations is no longer a separate owner. It does **not** implement a second monitoring platform, scheduler, service supervisor, backup engine, incident manager, inventory database, policy engine, or infrastructure state engine.
 
 ## Core rule
 
@@ -21,7 +21,6 @@ Use mature upstream systems for generic operations capability. Keep Ordivon code
 - visualization: Grafana
 - alert routing: Alertmanager-compatible Prometheus alerting path
 - generic host facts: osquery; native package/application inventory: pacman + WinGet/Windows uninstall registry; on-demand standard SBOM: Syft
-- file backup: restic
 - PostgreSQL backup/PITR: pgBackRest
 - secrets-at-rest: SOPS + age
 - policy-as-code: OPA
@@ -66,11 +65,9 @@ Workstation v2 owns only the generic node-operational substrate for the shared P
 
 Workstation v2 owns generic host desired-state for systemd manager limits, coredump policy, the disabled `systemd-homed` lifecycle on this non-homed node, and the bounded WSL settings used by this node. WSL INI files are managed key-by-key rather than replaced wholesale: unknown or separately owned entries such as the current custom `kernel=` path remain untouched. Applying bytes does not activate a new WSL generation; distribution shutdown/restart is a separate explicit operation boundary.
 
-## Workstation recovery scheduler substrate
+## Retired legacy Workstation recovery
 
-Workstation v2 owns the generic systemd scheduling substrate for the existing immutable Workstation recovery launcher: service/timer lifecycle and host-level scheduling mechanics. It does not build, select, execute, or reinterpret the recovery generation, Restic snapshot/mirror verification, authority backup, semantic-state backup, or restore acceptance.
-
-As re-observed on 2026-09-14, `ordivon-workstation-backup.timer` is intentionally **enabled and active**, with a daily ~03:30 schedule, while the oneshot service executes the immutable `/opt/ordivon-workstation-recovery/current/bin/workstation-backup` launcher. The most recent completed run succeeded. This is a retained Workstation v2 recovery capability. Recovery-generation semantics now live in the bounded `recovery/` kernel and the active immutable generation no longer depends on legacy `/root/workstation-lab`. See `docs/WORKSTATION_RECOVERY_RETENTION_20260914.md`.
+The old Workstation Restic recovery generation, Finance owner-capsule backup, timers, installers, and associated storage were destructively retired on 2026-10-15. They are not current capabilities. Shared PostgreSQL pgBackRest remains separate.
 
 ## Standards-first integration composition
 
