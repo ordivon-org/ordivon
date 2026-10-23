@@ -10,6 +10,12 @@ default decision := {
   "reason": "insufficient-reconciliation-evidence",
 }
 
+# A claimed absence proof requires a provider-native absent readback.
+authoritative_absence_proven if {
+  input.providerReadback == "absent"
+  input.retryProof == "authoritative_absence"
+}
+
 decision := {
   "action": "effect_confirmed",
   "retryPermitted": false,
@@ -34,7 +40,8 @@ decision := {
 } if {
   input.dispatchStanding == "ambiguous"
   input.providerReadback != "present"
-  input.retryProof == "none"
+  input.retryProof != "provider_idempotency"
+  not authoritative_absence_proven
 }
 
 decision := {
@@ -53,8 +60,7 @@ decision := {
   "reason": "bound-authoritative-absence-proof",
 } if {
   input.dispatchStanding == "ambiguous"
-  input.providerReadback == "absent"
-  input.retryProof == "authoritative_absence"
+  authoritative_absence_proven
 }
 
 decision := {

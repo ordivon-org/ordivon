@@ -8,5 +8,6 @@ uv run python -O scripts/test-effect-authority-producer.py
 bash scripts/test-effect-authority-entrypoint.sh
 bash scripts/test-bound-entrypoint.sh
 uv run python scripts/test-reconciliation.py
+opa test --verbose policy/ contracts/reconciliation-input.schema.json
 bash scripts/test-github-read-positive-control.sh
 printf 'PASS Distribution deterministic repository reference suite\n'
