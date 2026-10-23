@@ -256,13 +256,17 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
             runtime_dependency_closure_digest="sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829",
         )
         self.assertFalse(current)
-        self.assertEqual(
+        # A valid new consumer change may add an invalidating path. Do not
+        # freeze the full historical diff: preserve the actual obligations.
+        self.assertIn(
+            "src/ordivon_harness/ordivon/sqlite_runtime_bridge.py",
             invalidating,
-            [
-                "src/ordivon_harness/ordivon/sqlite_runtime_bridge.py",
-                "@runtime-dependency-closure",
-            ],
         )
+        self.assertIn(
+            "src/ordivon_harness/ordivon/adaptive_edit_bridge.py",
+            invalidating,
+        )
+        self.assertEqual(invalidating[-1], "@runtime-dependency-closure")
 
         lsp_scope = ("src/ordivon_harness/lsp_workspace_edit.py",)
         current, invalidating = check_evidence._verified_revision_is_current(
