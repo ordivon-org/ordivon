@@ -136,15 +136,14 @@ def _quantile(values: Sequence[float], fraction: float) -> float:
 
 
 def _correlation(left: Sequence[float], right: Sequence[float]) -> float:
+    # Media's domain contract treats degenerate profiles as zero coupling.
+    # Python's statistics library owns the Pearson arithmetic.
     if len(left) != len(right) or len(left) < 2:
         return 0.0
-    mx = statistics.fmean(left)
-    my = statistics.fmean(right)
-    dx = sum((value - mx) ** 2 for value in left)
-    dy = sum((value - my) ** 2 for value in right)
-    if dx == 0.0 or dy == 0.0:
+    try:
+        return statistics.correlation(left, right)
+    except statistics.StatisticsError:
         return 0.0
-    return sum((a - mx) * (b - my) for a, b in zip(left, right)) / math.sqrt(dx * dy)
 
 
 def _normalized_entropy(values: Sequence[float]) -> float:
