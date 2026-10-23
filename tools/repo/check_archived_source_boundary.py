@@ -6,6 +6,7 @@ import fnmatch
 import json
 import subprocess
 import sys
+from functools import cache
 from pathlib import Path
 
 
@@ -42,11 +43,26 @@ def tracked_reference_paths(root: Path, locator: str) -> list[str]:
 
 
 def matches_glob(path: str, pattern: str) -> bool:
-    if fnmatch.fnmatchcase(path, pattern):
-        return True
-    if pattern.startswith("**/"):
-        return fnmatch.fnmatchcase(path, pattern[3:])
-    return False
+    """One '*' matches one path segment; '**' matches zero or more segments."""
+    segments = tuple(path.split("/"))
+    globs = tuple(pattern.split("/"))
+
+    @cache
+    def matches(path_index: int, glob_index: int) -> bool:
+        if glob_index == len(globs):
+            return path_index == len(segments)
+        glob = globs[glob_index]
+        if glob == "**":
+            return matches(path_index, glob_index + 1) or (
+                path_index < len(segments) and matches(path_index + 1, glob_index)
+            )
+        return (
+            path_index < len(segments)
+            and fnmatch.fnmatchcase(segments[path_index], glob)
+            and matches(path_index + 1, glob_index + 1)
+        )
+
+    return matches(0, 0)
 
 
 def classify(path: str, policy: dict) -> tuple[str, str] | None:
