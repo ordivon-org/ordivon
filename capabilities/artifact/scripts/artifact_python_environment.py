@@ -15,8 +15,20 @@ ROOT=Path(__file__).resolve().parents[1]
 MAIN=Path('/root/projects/ordivon/capabilities/artifact')
 LOCK_PATH=ROOT/'artifact-delivery/artifact-python-runtime-v1.lock.json'
 WRAPPER_SOURCE=ROOT/'scripts/artifact_python_wrapper.py'
-UV=Path(os.environ.get('ARTIFACT_UV','/root/.local/share/mise/installs/uv/0.12.16/uv-x86_64-unknown-linux-musl/uv'))
-SYSTEM_PYTHON=Path(os.environ.get('ARTIFACT_PYTHON','/root/.local/share/mise/installs/python/3.15.0/bin/python3.14'))
+def selected_owner_tool(tool:str,override_env:str)->Path:
+    override=os.environ.get(override_env)
+    if override:selected=Path(override)
+    else:
+        mise=shutil.which('mise')
+        if not mise:raise RuntimeError('Artifact owner mise executable unavailable on PATH')
+        resolved=subprocess.run([mise,'-C',str(ROOT),'which',tool],capture_output=True,text=True,check=False,timeout=15,env={**os.environ,'MISE_AUTO_INSTALL':'false','MISE_OFFLINE':'1'})
+        if resolved.returncode:raise RuntimeError(f'Artifact owner mise {tool} unavailable: '+resolved.stderr[-1000:])
+        selected=Path(resolved.stdout.strip())
+    if not selected.is_absolute() or not selected.is_file() or not os.access(selected,os.X_OK):raise RuntimeError(f'Artifact owner {tool} path is unavailable or non-executable')
+    return selected
+
+UV=selected_owner_tool('uv','ARTIFACT_UV')
+SYSTEM_PYTHON=selected_owner_tool('python','ARTIFACT_PYTHON')
 
 
 def sha(path:Path)->str:

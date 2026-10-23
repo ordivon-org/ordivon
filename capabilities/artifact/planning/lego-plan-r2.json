@@ -245,9 +245,26 @@
       "responsibility": "Probe and manage execution-tool availability and environment facts.",
       "currentEvidence": [
         "scripts/artifact_delivery_toolchain_doctor.py",
-        "scripts/artifact_python_environment.py"
+        "scripts/artifact_python_environment.py",
+        "artifact-delivery/artifact-python-runtime-v1.lock.json",
+        "artifact-delivery/python-uv/pyproject.toml",
+        "artifact-delivery/python-uv/uv.lock",
+        "tests/test_artifact_python_currentness_contract.py"
       ],
-      "state": "OPERATIONAL_NOT_KERNEL"
+      "state": "OPERATIONAL_CURRENTNESS_CONTRACTED",
+      "acceptance": [
+        "Artifact Python carrier has one version authority: mise Python, runtime-lock pythonRuntime, pyproject requires-python and uv.lock requires-python agree.",
+        "Python and uv executables are selected through Artifact owner mise (or explicit bounded overrides), not hard-coded versioned installation paths.",
+        "A carrier plan must fail closed when the declared Python authority, uv project digests or selected owner tools drift.",
+        "Python-carrier currentness does not own GeoPackage SQLite CLI currentness; that remains a separate geospatial provider responsibility."
+      ],
+      "mustNotOwn": [
+        "GeoPackage SQLite provider version",
+        "machine-wide Python desired state",
+        "Artifact semantic standing",
+        "Workstation node-local materialization policy beyond declared carrier requirements"
+      ],
+      "replacementContract": "A replacement must preserve one Artifact-owned Python/uv version authority, exact uv-project digest checks, selected-tool readback, stable carrier identity, and explicit separation from unrelated external SQLite providers."
     },
     {
       "id": "X03",
