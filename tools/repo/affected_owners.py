@@ -123,12 +123,14 @@ def require_registered_execution_paths(
         raise ValueError(f"unregistered owner path: {', '.join(unregistered)}")
 
 
-def owners_for_paths(paths: Iterable[str]) -> tuple[Owner, ...]:
+def owners_for_paths(
+    paths: Iterable[str], *, owners: tuple[Owner, ...] = OWNERS
+) -> tuple[Owner, ...]:
     normalized = tuple(_normalize(path) for path in paths if path.strip())
     if any(path in CROSS_CUTTING_PATHS for path in normalized):
-        return OWNERS
+        return owners
     selected: list[Owner] = []
-    for owner in OWNERS:
+    for owner in owners:
         if any(path.startswith(owner.root) for path in normalized):
             selected.append(owner)
     return tuple(selected)
