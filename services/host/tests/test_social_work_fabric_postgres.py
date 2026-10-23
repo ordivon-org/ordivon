@@ -30,7 +30,10 @@ from ordivon_host_v2.social_work import (
 from ordivon_host_v2.work_store import WorkStore
 
 DSN = os.environ.get("ORDIVON_HOST_V2_TEST_DSN")
-pytestmark = pytest.mark.skipif(not DSN, reason="ORDIVON_HOST_V2_TEST_DSN not set")
+pytestmark = [
+    pytest.mark.skipif(not DSN, reason="ORDIVON_HOST_V2_TEST_DSN not set"),
+    pytest.mark.usefixtures("host_test_db_ready"),
+]
 
 
 def refs(label: str) -> tuple[str, str]:
@@ -228,6 +231,16 @@ def test_topic_message_reply_and_mention_are_structured() -> None:
     )
     resumed = social.resume_topic(topic_ref)
     assert [row["messageRef"] for row in resumed["messages"]] == [first_ref, second_ref]
+
+    second = resumed["messages"][1]
+    exact = social.get_message(second_ref, expected_digest=second["messageDigest"])
+    assert exact["messageRef"] == second_ref
+    assert exact["body"] == "reply"
+    assert exact["messageDigest"] == second["messageDigest"]
+    assert exact["truthBoundary"].startswith("exact durable Host message projection")
+
+    with pytest.raises(ConflictError, match="message digest mismatch"):
+        social.get_message(second_ref, expected_digest="sha256:" + ("0" * 64))
 
 
 def test_attention_routes_follow_mention_reply_and_cursor_without_ranking() -> None:

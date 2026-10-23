@@ -26,6 +26,7 @@ verify_task = "runtime:verify"
 name = "host"
 root = "services/host/"
 verify_task = "host:verify"
+queue_verify_task = "host:queue"
 
 [[owners]]
 name = "harness"

@@ -2,17 +2,17 @@
   "schemaVersion": 1,
   "kind": "ordivon.capital.language-baseline",
   "policy": "LATEST_STABLE_ONLY",
-  "asOfDate": "2026-09-21",
+  "asOfDate": "2026-10-16",
   "languages": {
     "python": {
-      "requiredVersion": "3.14.7",
+      "requiredVersion": "3.15.0",
       "releaseChannel": "stable",
       "sourceAuthority": "Python.org",
       "requireExactProjectPin": true,
       "requireExecutableQualification": true
     },
     "rust": {
-      "requiredVersion": "1.98.1",
+      "requiredVersion": "1.99.1",
       "releaseChannel": "stable",
       "sourceAuthority": "Rust Release Team",
       "requireExactProjectPin": true,

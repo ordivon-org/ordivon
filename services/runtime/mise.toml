@@ -1,7 +1,17 @@
 [tools]
-python = "3.12.13"
-uv = "0.12.16"
-rust = { version = "1.95.0", components = "clippy,rustfmt" }
+powershell = "7.6.7"
+python = "3.15.0"
+uv = "0.13.1"
+rust = { version = "1.99.1", components = "clippy,rustfmt" }
+
+# Upstream prebuilt Nextest, delivered through a GitHub mirror for blocked release-CDN networks.
+# SHA-256 is from GitHub's official release-asset API, not from the mirror.
+# Only linux-x64 is admitted until the other platforms' exact assets are qualified.
+[tools."http:cargo-nextest"]
+version = "0.9.148"
+
+[tools."http:cargo-nextest".platforms]
+linux-x64 = { url = "https://ghproxy.net/https://github.com/nextest-rs/nextest/releases/download/cargo-nextest-0.9.148/cargo-nextest-0.9.148-x86_64-unknown-linux-gnu.tar.gz", checksum = "sha256:223ba936714cc861a9cdedad5a8eb664dfdd69d6fbdf6cea6aa8184f523290dc", size = 12127365 }
 
 [tasks.verify]
 run = """
@@ -12,4 +22,11 @@ cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
 cargo test --locked -p ordivon-runtime-core --no-default-features --features transactional-runtime -- --skip request_identity_and_terminal_winner_match_reference_model
 scripts/owner-environment extended
 python scripts/check_docs.py
+"""
+
+[tasks."test:focused"]
+description = "Optional upstream cargo-nextest focused suite with native JUnit (RUNTIME_TEST_EXPR)"
+run = """
+set -euo pipefail
+cargo nextest run --locked --lib -p ordivon-runtime-core --no-default-features --features transactional-runtime --status-level pass -P ci -E "${RUNTIME_TEST_EXPR:-test(public_requests_reject_unknown_fields_and_path_escape)}"
 """

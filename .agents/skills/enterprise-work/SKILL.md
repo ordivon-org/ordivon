@@ -138,6 +138,15 @@ Preserve partial/open/external-assertion/currentness states instead of manufactu
 
 Historical evidence is append/supersede, not rewrite.
 
+## User-facing decision reports
+
+After verifying the real outcome, lead with the direct conclusion and what was done or will be done.
+
+- State material blockers, uncertainty, or authority constraints only when they change the decision or next action.
+- Do not attach ritual disclaimers, generic precautions, obvious reminders, or defensive "however" paragraphs to otherwise complete answers.
+- Do not restate facts the user already established or lecture them about routine engineering trade-offs.
+- Expand evidence and limitations when requested or when they materially affect the work; otherwise keep reports concise and concrete.
+
 ## 8. Keep local residue thin
 
 Retain only:

@@ -39,7 +39,7 @@ doctor() {
   (cd "$repo" && "$mise_bin" exec -- node - <<'JS'
 const fs=require('node:fs');
 const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
-if (process.version !== 'v26.9.0') throw new Error(`Studio expects Node 26.9.0 via mise, got ${process.version}`);
+if (process.version !== 'v26.12.0') throw new Error(`Studio expects Node 26.12.0 via mise, got ${process.version}`);
 if (pkg.packageManager !== 'pnpm@12.4.2') throw new Error(`unexpected packageManager ${pkg.packageManager}`);
 console.log(`studio node=${process.version} packageManager=${pkg.packageManager}`);
 JS

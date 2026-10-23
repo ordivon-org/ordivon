@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from importlib.metadata import version
 
 from mcp import Client
 
@@ -24,6 +25,7 @@ EXPECTED = {
     "topic.cursor.get",
     "topic.list",
     "topic.resume",
+    "message.get",
     "message.post",
     "message.search",
     "message.relation.add",
@@ -46,7 +48,7 @@ def test_host_server_identity_and_exact_social_work_surface() -> None:
             listed = await client.list_tools()
             assert client.server_info is not None
             assert client.server_info.name == "ordivon-host-v2"
-            assert client.server_info.version == "0.5.0"
+            assert client.server_info.version == version("ordivon-host-v2")
             assert listed.ttl_ms == 0
             assert listed.cache_scope == "private"
             by_name = {tool.name: tool for tool in listed.tools}

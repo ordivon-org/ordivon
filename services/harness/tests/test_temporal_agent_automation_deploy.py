@@ -10,7 +10,7 @@ class TemporalDeployTests(unittest.TestCase):
     def test_canonical_worker_targets_production_cluster(self):
         text = (ROOT / "systemd/ordivon-agent-temporal-worker.service").read_text()
         self.assertIn("Production Temporal worker", text)
-        self.assertIn("temporal-agent-automation/.venv/bin/python", text)
+        self.assertIn("temporal-agent-automation/py315-sqlite354-r19-release/bin/python", text)
         self.assertIn("agent-automation-browserless.json", text)
         self.assertIn("--address 127.0.0.1:17233", text)
         self.assertIn("Requires=temporal.service", text)
@@ -43,7 +43,7 @@ class TemporalDeployTests(unittest.TestCase):
         self.assertIn('"mcp": "2.2.0"', text)
         self.assertIn('"httpx": "0.28.1"', text)
         self.assertIn('"pip", "install", "--python"', text)
-        self.assertIn('agent-automation-temporal-requirements.txt', text)
+        self.assertIn("agent-automation-temporal-requirements.txt", text)
 
 
 if __name__ == "__main__":

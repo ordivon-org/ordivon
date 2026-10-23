@@ -106,12 +106,16 @@ def test_windows_runtime_concurrency_policy_is_host_specific():
     linux_env = (
         ROOT / "packaging" / "systemd" / "ordivon-runtime.env.example"
     ).read_text(encoding="utf-8")
+    linux_main = (
+        ROOT / "crates" / "ordivon-runtime-mcp" / "src" / "main.rs"
+    ).read_text(encoding="utf-8")
     registry = (
         ROOT / "crates" / "ordivon-runtime-core" / "src" / "runtime" / "registry.rs"
     ).read_text(encoding="utf-8")
 
     assert "ORDIVON_GLOBAL_MAX_CONCURRENCY=12" in windows_env
-    assert "ORDIVON_GLOBAL_MAX_CONCURRENCY=8" in linux_env
+    assert "ORDIVON_GLOBAL_MAX_CONCURRENCY=16" in linux_env
+    assert ".unwrap_or(8);" in linux_main
     assert "const WORKSPACE_EXECUTION_LIMIT: u32 = 1;" in registry
 
 

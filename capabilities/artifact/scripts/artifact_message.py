@@ -9,7 +9,7 @@ from pathlib import Path
 import jsonschema
 ROOT=Path(__file__).resolve().parents[1]
 SCHEMA=ROOT/'artifact-delivery/shadow-contracts/message-internet-text-contract-v1.schema.json'
-NODE=Path(os.environ.get('ARTIFACT_NODE','/root/.local/share/mise/installs/node/26.9.0/bin/node')); MAILPARSER=Path('/opt/ordivon/external/mailparser-js/3.9.26/node_modules/mailparser')
+NODE=Path(os.environ.get('ARTIFACT_NODE','/root/.local/share/mise/installs/node/26.12.0/bin/node')); MAILPARSER=Path('/opt/ordivon/external/mailparser-js/3.9.26/node_modules/mailparser')
 REQ=['Date','From','To','Subject','Message-ID','MIME-Version','Content-Type','Content-Transfer-Encoding']
 def sha_bytes(b):return hashlib.sha256(b).hexdigest()
 def sha_file(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()

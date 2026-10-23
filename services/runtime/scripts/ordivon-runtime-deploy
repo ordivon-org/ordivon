@@ -72,7 +72,9 @@ RUNTIME_POLICY_SOURCE = Path("packaging/systemd/ordivon-runtime.env.example")
 RUNTIME_POLICY_ENV_KEYS = (
     ("ORDIVON_DEFAULT_RUNTIME_MS", "defaultRuntimeMs"),
     ("ORDIVON_MAX_RUNTIME_MS", "maxRuntimeMs"),
+    ("ORDIVON_GLOBAL_MAX_CONCURRENCY", "globalMaxConcurrency"),
 )
+RUNTIME_POLICY_LEGACY_OPTIONAL_FIELDS = frozenset({"globalMaxConcurrency"})
 RELEASE_AUTHORITY_SCHEMA_VERSION = 1
 RELEASE_AUTHORITY_ENV_KEYS = (
     ("ORDIVON_RELEASE_SOURCE_REPO", "sourceRepo"),
@@ -526,11 +528,13 @@ def validate_runtime_policy(value: object, *, require_complete: bool) -> dict[st
         raise RuntimeError("Runtime policy schemaVersion is unsupported")
     result: dict[str, object] = {"schemaVersion": RUNTIME_POLICY_SCHEMA_VERSION}
     for _env_key, field in RUNTIME_POLICY_ENV_KEYS:
+        field_present = field in value
         raw = value.get(field)
         if raw is None:
-            if require_complete:
+            if require_complete and field not in RUNTIME_POLICY_LEGACY_OPTIONAL_FIELDS:
                 raise RuntimeError(f"Runtime policy lacks {field}")
-            result[field] = None
+            if field not in RUNTIME_POLICY_LEGACY_OPTIONAL_FIELDS or field_present:
+                result[field] = None
             continue
         if isinstance(raw, bool) or not isinstance(raw, int) or raw <= 0:
             raise RuntimeError(f"Runtime policy {field} must be a positive integer")
@@ -542,7 +546,12 @@ def validate_runtime_policy(value: object, *, require_complete: bool) -> dict[st
     return result
 
 
-def runtime_policy_from_text(text: str, *, label: str) -> dict[str, object]:
+def runtime_policy_from_text(
+    text: str,
+    *,
+    label: str,
+    track_optional_absence: bool = False,
+) -> dict[str, object]:
     observed: dict[str, int | None] = {}
     for env_key, field in RUNTIME_POLICY_ENV_KEYS:
         matches = []
@@ -555,18 +564,41 @@ def runtime_policy_from_text(text: str, *, label: str) -> dict[str, object]:
             matches.append(int(raw))
         if len(matches) > 1:
             raise RuntimeError(f"{label} contains duplicate {env_key}")
-        observed[field] = matches[0] if matches else None
+        if matches:
+            observed[field] = matches[0]
+        elif field not in RUNTIME_POLICY_LEGACY_OPTIONAL_FIELDS or track_optional_absence:
+            observed[field] = None
     return validate_runtime_policy(
         {"schemaVersion": RUNTIME_POLICY_SCHEMA_VERSION, **observed},
         require_complete=False,
     )
 
 
-def runtime_policy_state(path: Path) -> dict[str, object]:
+def runtime_policy_state(
+    path: Path,
+    *,
+    track_optional_absence: bool = False,
+) -> dict[str, object]:
     if path.is_symlink() or not path.is_file():
         raise RuntimeError(f"Runtime env file is missing or unsafe: {path}")
-    policy = runtime_policy_from_text(path.read_text(encoding="utf-8"), label="Runtime env")
+    policy = runtime_policy_from_text(
+        path.read_text(encoding="utf-8"),
+        label="Runtime env",
+        track_optional_absence=track_optional_absence,
+    )
     return {**policy, "envFileDigest": sha256(path)}
+
+
+def runtime_policy_transaction_preimage(
+    path: Path,
+    candidate_policy: object,
+) -> dict[str, object]:
+    candidate = validate_runtime_policy(candidate_policy, require_complete=False)
+    previous = runtime_policy_state(path, track_optional_absence=True)
+    for field in RUNTIME_POLICY_LEGACY_OPTIONAL_FIELDS:
+        if field not in candidate:
+            previous.pop(field, None)
+    return previous
 
 
 def candidate_runtime_policy(source_root: Path) -> dict[str, object]:
@@ -680,6 +712,8 @@ def atomic_update_runtime_environment(
             require_complete=False,
         )
         for _env_key, field in RUNTIME_POLICY_ENV_KEYS:
+            if field not in expected_policy:
+                continue
             if current_policy.get(field) != expected_policy.get(field):
                 raise RuntimeError(f"Runtime env policy changed before commit: {field}")
     if expected_current_release_authority is not None:
@@ -697,7 +731,8 @@ def atomic_update_runtime_environment(
     if runtime_policy is not None:
         policy = validate_runtime_policy(runtime_policy, require_complete=False)
         for env_key, field in RUNTIME_POLICY_ENV_KEYS:
-            desired[env_key] = policy.get(field)
+            if field in policy:
+                desired[env_key] = policy[field]
     if release_authority is not None:
         authority = validate_release_authority(release_authority, require_complete=False)
         for env_key, field in RELEASE_AUTHORITY_ENV_KEYS:
@@ -1628,7 +1663,9 @@ def apply_deployment(args: argparse.Namespace) -> dict[str, object]:
             candidate_release_authority(args) if runtime_policy is not None else None
         )
         previous_runtime_policy = (
-            runtime_policy_state(args.env_file) if runtime_policy is not None else None
+            runtime_policy_transaction_preimage(args.env_file, runtime_policy)
+            if runtime_policy is not None
+            else None
         )
         previous_release_authority = (
             release_authority_state(args.env_file) if release_authority is not None else None

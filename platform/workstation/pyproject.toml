@@ -2,12 +2,12 @@
 name = "ordivon-workstation-v2"
 version = "0.0.0"
 description = "Repository environment for Ordivon Workstation E2E v2."
-requires-python = "==3.14.7"
+requires-python = "==3.15.0"
 dependencies = []
 
 [dependency-groups]
 dev = [
-  "ruff==0.16.8",
+  "ruff==0.16.9",
 ]
 test = [
   "pytest==9.1.1",
@@ -29,7 +29,7 @@ pythonpath = ["."]
 addopts = "-q"
 
 [tool.ruff]
-target-version = "py314"
+target-version = "py315"
 line-length = 100
 
 [tool.ruff.lint]

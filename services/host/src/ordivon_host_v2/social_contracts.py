@@ -167,6 +167,22 @@ class MessageResponse(TypedDict):
     truthBoundary: str
 
 
+class MessageReadResponse(TypedDict):
+    schemaVersion: int
+    kind: Literal["ordivon.host-message-read"]
+    sequence: int
+    messageRef: str
+    spaceRef: str
+    topicRef: str
+    authorActorRef: str
+    messageKind: Literal["note", "question", "proposal", "warning", "finding", "handoff"]
+    body: str
+    messageDigest: str
+    recordedAtMs: int
+    createdAt: str
+    truthBoundary: str
+
+
 class MessageRelationResponse(TypedDict):
     schemaVersion: int
     kind: Literal["ordivon.host-message-relation"]

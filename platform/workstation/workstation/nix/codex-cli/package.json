@@ -1,0 +1,9 @@
+{
+  "name": "ordivon-codex-cli",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Workstation Codex CLI version tracked by Dependabot and consumed by Home Manager",
+  "dependencies": {
+    "@openai/codex": "0.163.0"
+  }
+}

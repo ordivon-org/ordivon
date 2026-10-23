@@ -2,10 +2,10 @@
 name = "ordivon-experimental-episode-store"
 version = "0.1.0"
 description = "Task-local PostgreSQL analytical consumer for Experimental Episode projections."
-requires-python = "==3.14.7"
+requires-python = "==3.15.0"
 dependencies = [
   "alembic==1.18.5",
-  "psycopg[binary]==3.3.5",
+  "psycopg[binary]==3.3.6",
   "sqlalchemy>=2.0,<3",
 ]
 
@@ -26,14 +26,14 @@ packages = ["src/ordivon_experimental_episode_store"]
 
 [tool.uv]
 default-groups = ["test", "quality"]
-required-version = "==0.12.3"
+required-version = "==0.13.1"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
 
 [tool.ruff]
-target-version = "py314"
+target-version = "py315"
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F", "I", "UP"]

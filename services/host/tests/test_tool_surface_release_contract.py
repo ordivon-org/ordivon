@@ -26,9 +26,37 @@ def test_release_manifest_matches_exact_mcp_surface_and_package_identity() -> No
             assert version("ordivon-host-v2") == manifest["packageVersion"]
             assert client.server_info is not None
             assert client.server_info.version == manifest["packageVersion"]
-            assert manifest["surfaceEpoch"] == 3
+            assert manifest["surfaceEpoch"] == 4
 
     asyncio.run(scenario())
+
+
+def test_epoch4_surface_release_advances_package_identity_from_epoch3(tmp_path: Path) -> None:
+    import subprocess
+
+    candidate = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    current = dict(candidate)
+    current["packageVersion"] = "0.5.0"
+    current["surfaceEpoch"] = 3
+    current["tools"] = [tool for tool in candidate["tools"] if tool != "message.get"]
+    current_path = tmp_path / "current.json"
+    current_path.write_text(json.dumps(current), encoding="utf-8")
+    result = subprocess.run(
+        [
+            "python3",
+            str(ROOT / "packaging" / "verify_tool_surface.py"),
+            str(MANIFEST),
+            str(ROOT / "pyproject.toml"),
+            str(current_path),
+        ],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "epoch=4" in result.stdout
+    assert "version=0.6.0" in result.stdout
+    assert "changed=true" in result.stdout
 
 
 def test_release_guard_rejects_surface_change_without_epoch_advance(tmp_path: Path) -> None:

@@ -11,7 +11,10 @@ from ordivon_host_v2 import HostV2
 from ordivon_host_v2.mcp_server import build_server
 
 DSN = os.environ.get("ORDIVON_HOST_V2_TEST_DSN")
-pytestmark = pytest.mark.skipif(not DSN, reason="ORDIVON_HOST_V2_TEST_DSN not set")
+pytestmark = [
+    pytest.mark.skipif(not DSN, reason="ORDIVON_HOST_V2_TEST_DSN not set"),
+    pytest.mark.usefixtures("host_test_db_ready"),
+]
 
 
 def snapshot(frontier: str) -> dict[str, object]:
@@ -135,6 +138,14 @@ def test_official_mcp_exposes_social_work_surface_and_runs_vertical_slice() -> N
                 },
             )
             assert posted["messageRef"] == message_ref
+            exact = await call(
+                client,
+                "message.get",
+                {"messageRef": message_ref, "expectedDigest": posted["messageDigest"]},
+            )
+            assert exact["messageRef"] == message_ref
+            assert exact["messageDigest"] == posted["messageDigest"]
+            assert exact["body"] == "please inspect"
             search = await call(
                 client,
                 "message.search",

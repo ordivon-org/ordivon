@@ -33,6 +33,7 @@ updates:
       - "/platform/security/contracts/agent-request-verifier-v1"
       - "/platform/security/labs/agent-admission-rs"
       - "/platform/workstation/providers/cloudflare"
+      - "/platform/workstation/workstation/nix/codex-cli"
     schedule:
       interval: weekly
 
@@ -40,3 +41,12 @@ updates:
     directory: "/services/runtime"
     schedule:
       interval: weekly
+
+  # Official Dependabot Nix flake version updates; installation remains gated.
+  - package-ecosystem: nix
+    directories:
+      - "/platform/workstation/workstation/nix"
+      - "/capabilities/artifact/artifact-delivery/openxml-nix"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5

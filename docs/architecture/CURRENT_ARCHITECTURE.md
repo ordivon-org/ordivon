@@ -11,6 +11,8 @@ Machine-readable companion: `docs/architecture/deployed-architecture-r1.json`.
 
 Ordivon is a **Modular Monorepo with independent natural owners**. Co-location does not merge authority, state, release lifecycle, or semantic acceptance.
 
+Here, a **natural owner** is the component, provider, or domain boundary that supplies authoritative facts or accepts an effect; it is not a permanent Agent-worker identity. Agent roles and ActorRefs are provenance, capability, and context-affinity signals rather than exclusive labor rights; those labels neither make a result correct nor grant source or effect authority. Qualified workers may independently perform read-only discovery, proposals, verification, or isolated candidate work, while canonical source and external effects still require the exact current authority, source/currentness checks, and fenced commit/effect identity.
+
 The normal Agent-facing topology is:
 
 ```text

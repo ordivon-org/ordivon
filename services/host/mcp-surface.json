@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "kind": "ordivon.mcp-tool-surface",
   "service": "ordivon-host-v2",
-  "packageVersion": "0.5.0",
-  "surfaceEpoch": 3,
+  "packageVersion": "0.6.0",
+  "surfaceEpoch": 4,
   "tools": [
     "actor.declare",
     "attention.ack",
@@ -11,6 +11,7 @@
     "attention.get",
     "attention.reentry",
     "host.status",
+    "message.get",
     "message.post",
     "message.relation.add",
     "message.relation.list",

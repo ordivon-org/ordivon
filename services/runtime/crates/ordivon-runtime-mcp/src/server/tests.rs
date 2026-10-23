@@ -1553,6 +1553,7 @@ fn job_observation_serializes_discoverable_artifacts() {
         artifacts_available: true,
         artifacts: vec![ArtifactDescriptor {
             artifact_id: "attempt-test.stdout".to_string(),
+            attempt_id: "attempt-test".to_string(),
             kind: "stdout".to_string(),
             digest: format!("sha256:{}", "a".repeat(64)),
             retained_bytes: 3,
@@ -1582,6 +1583,12 @@ fn job_observation_serializes_discoverable_artifacts() {
             .pointer("/artifacts/0/artifactId")
             .and_then(Value::as_str),
         Some("attempt-test.stdout")
+    );
+    assert_eq!(
+        value
+            .pointer("/artifacts/0/attemptId")
+            .and_then(Value::as_str),
+        Some("attempt-test")
     );
     assert_eq!(
         value

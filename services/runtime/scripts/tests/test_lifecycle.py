@@ -8,6 +8,7 @@ import sqlite3
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from contextlib import closing
 from pathlib import Path
@@ -73,6 +74,88 @@ class LifecycleTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-lifecycle"))
+
+    def test_canonical_currentness_checks_the_planners_ref_not_local_head(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory) / "source"
+            baseline = init_repository(repo)
+            published = "refs/remotes/origin/main"
+            subprocess.run(["git", "-C", str(repo), "update-ref", published, baseline], check=True)
+
+            # Source checkout moves, but published source remains unchanged.
+            (repo / "README.md").write_text("local-only update\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(repo), "add", "README.md"], check=True)
+            subprocess.run(["git", "-C", str(repo), "commit", "-qm", "local only"], check=True)
+            local_head = subprocess.check_output(
+                ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+            ).strip()
+            self.assertNotEqual(baseline, local_head)
+
+            inspect = self.module["canonical_head_revision"]
+            planned = {
+                "sourceRepo": str(repo),
+                "canonicalHeadRevision": baseline,
+                "canonicalRef": "origin/main",
+            }
+            self.assertEqual(inspect(planned), baseline)
+            # A real publication change is still detected; never bypass drift.
+            subprocess.run(["git", "-C", str(repo), "update-ref", published, local_head], check=True)
+            self.assertNotEqual(inspect(planned), baseline)
+
+            # A standalone source's explicit HEAD fallback is preserved.
+            self.assertEqual(inspect({**planned, "canonicalRef": "HEAD"}), local_head)
+
+    def test_reclaim_planner_and_lifecycle_revalidator_share_published_ref(self) -> None:
+        """Real producer/consumer contract: a moving local HEAD is not publication drift."""
+        inspect_reclaim = runpy.run_path(str(REPO / "scripts/ordivon-runtime-reclaim"))
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = root / "source"
+            baseline = init_repository(repo)
+            published = "refs/remotes/origin/main"
+            subprocess.run(["git", "-C", str(repo), "update-ref", published, baseline], check=True)
+            worktree = root / "workspace"
+            subprocess.run(
+                ["git", "-C", str(repo), "worktree", "add", "--detach", "-q", str(worktree), baseline],
+                check=True,
+            )
+
+            # A developer advances only the local canonical checkout.
+            (repo / "README.md").write_text("unpublished source update\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(repo), "add", "README.md"], check=True)
+            subprocess.run(["git", "-C", str(repo), "commit", "-qm", "unpublished"], check=True)
+            local_head = subprocess.check_output(
+                ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+            ).strip()
+            self.assertNotEqual(baseline, local_head)
+
+            planned = inspect_reclaim["git_canonical_integration"](worktree, str(repo))
+            self.assertEqual(planned["canonicalRef"], "origin/main")
+            self.assertEqual(planned["canonicalHeadRevision"], baseline)
+            self.assertEqual(
+                self.module["canonical_head_revision"]({**planned, "sourceRepo": str(repo)}),
+                planned["canonicalHeadRevision"],
+            )
+
+            # Only an actual publication-ref change invalidates the existing plan.
+            subprocess.run(["git", "-C", str(repo), "update-ref", published, local_head], check=True)
+            self.assertNotEqual(
+                self.module["canonical_head_revision"]({**planned, "sourceRepo": str(repo)}),
+                planned["canonicalHeadRevision"],
+            )
+
+    def test_canonical_currentness_rejects_missing_or_unknown_ref(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory) / "source"
+            baseline = init_repository(repo)
+            inspect = self.module["canonical_head_revision"]
+            planned = {"sourceRepo": str(repo), "canonicalHeadRevision": baseline}
+            for bad in (None, "refs/heads/main", "", "HEAD~1"):
+                with self.subTest(ref=bad):
+                    with self.assertRaises(RuntimeError):
+                        inspect({**planned, "canonicalRef": bad})
+            with self.assertRaises(RuntimeError):
+                inspect({**planned, "canonicalRef": "origin/main"})
 
     def test_lifecycle_inspect_cli_accepts_bounded_workspace_selection(self) -> None:
         previous = sys.argv
@@ -234,6 +317,59 @@ class LifecycleTests(unittest.TestCase):
             [command[index + 1] for index, value in enumerate(command[:-1]) if value == "--workspace-id"],
             ["ws-alpha", "ws-beta"],
         )
+
+    def test_enrich_report_bounds_registry_activity_to_reclaim_candidates(self) -> None:
+        calls: list[str] = []
+        globals_ = self.module["enrich_report"].__globals__
+        original_reclaim = globals_["reclaim_inspect"]
+        original_workspace = globals_["registry_workspace"]
+
+        globals_["reclaim_inspect"] = lambda args: {
+            "schemaVersion": 1,
+            "summary": {},
+            "candidates": [
+                {"workspaceId": "ws-alpha", "classification": "closable", "createdUnixMs": 1},
+                {"workspaceId": "ws-beta", "classification": "blocked_dirty", "createdUnixMs": 1},
+            ],
+        }
+
+        def fake_registry_workspace(database: Path, timeout_ms: int, workspace_id: str) -> dict[str, object]:
+            del database, timeout_ms
+            calls.append(workspace_id)
+            return {
+                "workspaceId": workspace_id,
+                "activeJobIds": [],
+                "lastActivityMs": 2,
+                "activityMarker": "sha256:" + ("a" if workspace_id == "ws-alpha" else "b") * 64,
+            }
+
+        globals_["registry_workspace"] = fake_registry_workspace
+        args = type(
+            "Args",
+            (),
+            {
+                "database": Path("/tmp/registry.sqlite3"),
+                "runtime_store_root": Path("/tmp/runtime"),
+                "workspace_root": None,
+                "policy_file": REPO / "packaging/systemd/ordivon-workspace-retention.json",
+                "busy_timeout_ms": 5_000,
+                "measure_bytes": False,
+                "workspace_ids": None,
+                "workspace_refs": None,
+            },
+        )()
+        try:
+            report = self.module["enrich_report"](args)
+        finally:
+            globals_["reclaim_inspect"] = original_reclaim
+            globals_["registry_workspace"] = original_workspace
+
+        self.assertEqual(calls, ["ws-alpha", "ws-beta"])
+        by_id = {item["workspaceId"]: item for item in report["candidates"]}
+        self.assertEqual(by_id["ws-alpha"]["lastActivityUnixMs"], 2)
+        self.assertEqual(by_id["ws-alpha"]["activityMarker"], "sha256:" + "a" * 64)
+        self.assertEqual(by_id["ws-alpha"]["retentionHours"], 24.0)
+        self.assertEqual(by_id["ws-beta"]["retentionHours"], 48.0)
 
     def test_open_record_accepts_identity_derived_from_record_location(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -398,7 +534,7 @@ class LifecycleTests(unittest.TestCase):
             "sourceRepoAliases": {},
         }
         observed = self.module["retention_class"](policy, "ws-hard-ttl")
-        self.assertEqual(observed, ("ephemeral", 72.0, 168.0, True, True, True))
+        self.assertEqual(observed, ("ephemeral", 72.0, 72.0, 168.0, True, True, True))
 
     def _prepared_r54_candidate(
         self,
@@ -762,6 +898,7 @@ class LifecycleTests(unittest.TestCase):
                 "revalidate_prepared_item_under_fence",
                 "close_workspace_once",
                 "closed_workspace_tombstone",
+                "preserve_retention_candidate",
             )
         }
         events: list[str] = []
@@ -843,6 +980,10 @@ class LifecycleTests(unittest.TestCase):
             )
             globals_["close_workspace_once"] = close
             globals_["closed_workspace_tombstone"] = tombstone
+            globals_["preserve_retention_candidate"] = lambda _args, _item: {
+                "preservationKind": "test-only",
+                "semanticCompletionEvaluated": False,
+            }
             prepared = self._prepared_r54_candidate("blocked_dirty")
             result = apply_candidate(
                 type(
@@ -949,7 +1090,14 @@ class LifecycleTests(unittest.TestCase):
             line for line in unit.splitlines() if "/ordivon-runtime-lifecycle sweep " in line
         )
         self.assertNotIn("--measure-bytes", lifecycle_line)
-        self.assertIn("SuccessExitStatus=1 2", unit)
+        self.assertIn("SuccessExitStatus=2", unit)
+        self.assertNotIn("SuccessExitStatus=1 2", unit)
+        self.assertIn("--minimum-age-hours 24 --classification closable", unit)
+        timer = (REPO / "packaging/systemd/ordivon-runtime-lifecycle.timer").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("OnCalendar=hourly", timer)
+        self.assertIn("Persistent=true", timer)
         help_result = subprocess.run(
             [sys.executable, "scripts/ordivon-runtime-lifecycle", "--help"],
             cwd=REPO,
@@ -1004,7 +1152,7 @@ class LifecycleTests(unittest.TestCase):
             report = json.loads(result.stdout)
             item = report["candidates"][0]
             self.assertEqual(item["retentionClass"], "ephemeral")
-            self.assertEqual(item["retentionHours"], 72.0)
+            self.assertEqual(item["retentionHours"], 24.0)
             self.assertEqual(item["lastActivityUnixMs"], 2_000)
             self.assertEqual(item["retentionBasisUnixMs"], 2_000)
             self.assertTrue(item["policyEligible"])
@@ -1085,6 +1233,81 @@ class LifecycleTests(unittest.TestCase):
             self.assertEqual(
                 item["carrierProjection"]["nextProtocolStep"],
                 "POLICY_FORCE_CLOSE_DIRTY",
+            )
+
+    def test_dirty_retention_window_is_distinct_from_clean_retention(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            runtime = root / "runtime"
+            records = runtime / "workspace-records"
+            workspaces = runtime / "workspaces"
+            records.mkdir(parents=True)
+            workspaces.mkdir()
+            now_ms = int(time.time() * 1000)
+            thirty_hours_ago_ms = now_ms - 30 * 3_600_000
+            database = root / "registry.sqlite3"
+            initialize_registry(database, "dirty-waiting", thirty_hours_ago_ms)
+            workspace = workspaces / "dirty-waiting"
+            revision = init_repository(workspace)
+            (workspace / "dirty.txt").write_text("dirty\n", encoding="utf-8")
+            (records / "dirty-waiting.json").write_text(
+                json.dumps(
+                    {
+                        "schemaVersion": 1,
+                        "workspaceId": "dirty-waiting",
+                        "sourceRepo": str(workspace),
+                        "sourceRevision": revision,
+                        "workspacePath": str(workspace),
+                        "createdUnixMs": thirty_hours_ago_ms,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            policy = root / "policy.json"
+            policy.write_text(
+                json.dumps(
+                    {
+                        "schemaVersion": 1,
+                        "classes": {
+                            "ephemeral": {
+                                "retentionHours": 24,
+                                "dirtyRetentionHours": 48,
+                                "maxLifetimeHours": 48,
+                                "forceCloseDirtyAfterRetention": True,
+                                "forceCloseUnintegratedAfterRetention": True,
+                                "forceCloseAfterMaxLifetime": True,
+                            }
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "scripts/ordivon-runtime-lifecycle",
+                    "inspect",
+                    "--database",
+                    str(database),
+                    "--runtime-store-root",
+                    str(runtime),
+                    "--policy-file",
+                    str(policy),
+                ],
+                cwd=REPO,
+                check=False,
+                text=True,
+                capture_output=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            item = json.loads(result.stdout)["candidates"][0]
+            self.assertEqual(item["classification"], "blocked_dirty")
+            self.assertEqual(item["retentionHours"], 48.0)
+            self.assertFalse(item["idleRetentionExpired"])
+            self.assertFalse(item["policyEligible"])
+            self.assertEqual(
+                item["carrierProjection"]["nextProtocolStep"],
+                "DECLARE_DIRTY_HANDOFF_OR_CHECKPOINT",
             )
 
     def test_sweep_selects_only_policy_expired_reclaimable_workspaces(self) -> None:
@@ -1925,8 +2148,9 @@ class LifecycleTests(unittest.TestCase):
 
     def test_default_policy_is_disposable_with_idle_and_hard_ttl(self) -> None:
         ephemeral = self.module["DEFAULT_POLICY"]["classes"]["ephemeral"]
-        self.assertEqual(ephemeral["retentionHours"], 72.0)
-        self.assertEqual(ephemeral["maxLifetimeHours"], 168.0)
+        self.assertEqual(ephemeral["retentionHours"], 24.0)
+        self.assertEqual(ephemeral["dirtyRetentionHours"], 48.0)
+        self.assertEqual(ephemeral["maxLifetimeHours"], 48.0)
         self.assertTrue(ephemeral["forceCloseDirtyAfterRetention"])
         self.assertTrue(ephemeral["forceCloseUnintegratedAfterRetention"])
         self.assertTrue(ephemeral["forceCloseAfterMaxLifetime"])
@@ -1938,11 +2162,128 @@ class LifecycleTests(unittest.TestCase):
             )
         )
         ephemeral = policy["classes"]["ephemeral"]
-        self.assertEqual(ephemeral["retentionHours"], 72)
-        self.assertEqual(ephemeral["maxLifetimeHours"], 168)
+        self.assertEqual(ephemeral["retentionHours"], 24)
+        self.assertEqual(ephemeral["dirtyRetentionHours"], 48)
+        self.assertEqual(ephemeral["maxLifetimeHours"], 48)
         self.assertTrue(ephemeral["forceCloseDirtyAfterRetention"])
         self.assertTrue(ephemeral["forceCloseUnintegratedAfterRetention"])
         self.assertTrue(ephemeral["forceCloseAfterMaxLifetime"])
+
+
+    def test_retention_dirty_preservation_precedes_close_and_is_receipted(self) -> None:
+        apply_candidate = self.module["apply_prepared_candidate"]
+        globals_ = apply_candidate.__globals__
+        original_checkpoint = globals_.get("dirty_checkpoint_one")
+        original_attempt = globals_["_attempt_prepared_close"]
+        events: list[str] = []
+        try:
+            globals_["dirty_checkpoint_one"] = lambda _args, item: (
+                events.append("checkpoint")
+                or {
+                    "checkpointRef": "refs/ordivon/checkpoints/ws-dirty/state",
+                    "checkpointCommit": "c" * 40,
+                    "stateDigest": "sha256:" + "a" * 64,
+                    "truthRole": "physical-recovery-carrier-not-semantic-standing",
+                    "automaticDeletionAllowed": False,
+                }
+            )
+
+            def close_after_checkpoint(_args, item):
+                events.append("close")
+                self.assertIn("retentionPreservation", item)
+                return (
+                    "closed",
+                    {
+                        "workspaceId": item["workspaceId"],
+                        "action": "workspace_force_closed_by_retention_policy",
+                        "removed": True,
+                    },
+                )
+
+            globals_["_attempt_prepared_close"] = close_after_checkpoint
+            result = apply_candidate(
+                argparse.Namespace(),
+                {
+                    "workspaceId": "ws-dirty",
+                    "classification": "blocked_dirty",
+                    "expectedSourceStateDigest": "sha256:" + "d" * 64,
+                },
+            )
+            self.assertEqual(events, ["checkpoint", "close"])
+            self.assertEqual(
+                result["retentionPreservation"]["checkpointRef"],
+                "refs/ordivon/checkpoints/ws-dirty/state",
+            )
+            self.assertFalse(result["semanticCompletionEvaluated"])
+        finally:
+            if original_checkpoint is None:
+                globals_.pop("dirty_checkpoint_one", None)
+            else:
+                globals_["dirty_checkpoint_one"] = original_checkpoint
+            globals_["_attempt_prepared_close"] = original_attempt
+
+    def test_retention_unintegrated_head_ref_is_durable_and_idempotent(self) -> None:
+        preserve = self.module["preserve_unintegrated_head"]
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory) / "repo"
+            head = init_repository(repo)
+            item = {
+                "workspaceId": "ws-clean-unintegrated",
+                "classification": "blocked_unintegrated",
+                "sourceRepo": str(repo),
+                "workspaceHeadRevision": head,
+                "expectedSourceStateDigest": "sha256:" + "e" * 64,
+            }
+            first = preserve(argparse.Namespace(), item)
+            second = preserve(argparse.Namespace(), item)
+            self.assertEqual(first["retentionRef"], second["retentionRef"])
+            self.assertEqual(first["retentionCommit"], head)
+            self.assertEqual(second["retentionCommit"], head)
+            self.assertEqual(first["retentionDisposition"], "created")
+            self.assertEqual(second["retentionDisposition"], "existing")
+            observed = subprocess.run(
+                ["git", "-C", str(repo), "rev-parse", first["retentionRef"]],
+                check=True,
+                text=True,
+                capture_output=True,
+            ).stdout.strip()
+            self.assertEqual(observed, head)
+            self.assertTrue(first["physicalCarrierRetirementReady"])
+            self.assertFalse(first["automaticDeletionAllowed"])
+
+    def test_retention_preservation_failure_never_reaches_close(self) -> None:
+        apply_candidate = self.module["apply_prepared_candidate"]
+        globals_ = apply_candidate.__globals__
+        original_preserve = globals_.get("preserve_retention_candidate")
+        original_attempt = globals_["_attempt_prepared_close"]
+        events: list[str] = []
+        try:
+            def fail_preservation(_args, _item):
+                events.append("preserve")
+                raise RuntimeError("preservation failed")
+
+            def forbidden_close(_args, _item):
+                events.append("close")
+                raise AssertionError("close must not run after preservation failure")
+
+            globals_["preserve_retention_candidate"] = fail_preservation
+            globals_["_attempt_prepared_close"] = forbidden_close
+            with self.assertRaisesRegex(RuntimeError, "preservation failed"):
+                apply_candidate(
+                    argparse.Namespace(),
+                    {
+                        "workspaceId": "ws-dirty",
+                        "classification": "blocked_dirty",
+                        "expectedSourceStateDigest": "sha256:" + "f" * 64,
+                    },
+                )
+            self.assertEqual(events, ["preserve"])
+        finally:
+            if original_preserve is None:
+                globals_.pop("preserve_retention_candidate", None)
+            else:
+                globals_["preserve_retention_candidate"] = original_preserve
+            globals_["_attempt_prepared_close"] = original_attempt
 
 
 if __name__ == "__main__":

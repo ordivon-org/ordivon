@@ -128,6 +128,26 @@ Ordivon uses a **latest-stable-by-default** language runtime policy.
 6. A newer stable runtime exposing latent warnings, deprecations, resource leaks, or dependency drift is treated as useful migration evidence to fix, not as a reason to remain indefinitely on the old runtime.
 7. Sharing the same runtime version never implies sharing one virtual environment, lockfile, release, or rollback boundary.
 
+**Consumer-driven upgrades.** A release-date observation or an expiring
+version survey is not a pull-request gate. Discover upstream stable updates
+through maintainers and existing dependency-update tooling; then update
+owner-pinned manifests and lockfiles together and verify real consumers.
+Preserve executable/runtime, schema, and integration tests as merge gates;
+do not block unrelated changes solely because a survey timestamp aged.
+Actual installed-service qualification remains separate from source CI.
+
+**Strict exceptional use:** An older interpreter/compiler can be retained only
+after an explicit human decision with an exact project/path, reproduced
+incompatibility, impact, approved temporary version, independently checked
+approval evidence, a remediation/exit condition and an expiration not exceeding
+14 days. Agents may collect the failed acceptance evidence but **must not
+invent, self-approve or silently honor an exception**. A document string or
+self-authored PR is not human authorization. Until an authenticated
+verification of that human decision exists, the checker rejects the exception.
+A failed new-runtime acceptance is a real migration blocker, not permission
+to mark the previous runtime compliant. Toolchain configuration convergence,
+owner-native cold-start, and live release installation are separate verdicts.
+
 At the current M0 migration point, Harness `main` has been accepted and fast-forwarded to Python `3.14.7` at `f747f6d3f513e76530d9777725a6727351c47dc8`, including a fresh cold-start owner environment, 909 pytest cases + 156 subtests, wheel install smoke, dependency/docs/evidence contracts, and vulnerability audit. Future Python, Node.js, Rust, and other language upgrades apply the same rule using their own official release authorities and owner-native acceptance.
 
 ### 4.6 mise as thin monorepo task navigation
