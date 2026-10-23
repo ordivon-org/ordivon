@@ -308,5 +308,6 @@ mise run verify
 [tasks."preservation:verify"]
 run = """
 set -euo pipefail
+uv run --with pyyaml==6.0.3 python capabilities/preservation/scripts/test_verify_source.py
 uv run --with pyyaml==6.0.3 python capabilities/preservation/scripts/verify_source.py
 """

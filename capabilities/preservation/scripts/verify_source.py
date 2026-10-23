@@ -20,7 +20,14 @@ CONTROL_FILES = {
     "README.md",
     "SOURCE_BOUNDARY.json",
     "scripts/verify_source.py",
+    "scripts/test_verify_source.py",
 }
+
+
+def _require(valid: bool, message: str) -> None:
+    # Unlike assert, this acceptance gate also executes under python -O.
+    if not valid:
+        raise ValueError(message)
 
 
 def _tracked_owner_files() -> set[str]:
@@ -40,50 +47,58 @@ def _matches(path: str, pattern: str) -> bool:
     if pattern.endswith("/**"):
         prefix = pattern[:-3].rstrip("/")
         return path == prefix or path.startswith(prefix + "/")
-    return fnmatch.fnmatchcase(path, pattern)
+    path_parts = path.split("/")
+    pattern_parts = pattern.split("/")
+    return len(path_parts) == len(pattern_parts) and all(
+        fnmatch.fnmatchcase(part, glob)
+        for part, glob in zip(path_parts, pattern_parts, strict=True)
+    )
 
 
 def main() -> int:
     data = json.loads(BOUNDARY.read_text(encoding="utf-8"))
-    assert data["schemaVersion"] == 1
-    assert data["kind"] == "ordivon.preservation-source-boundary"
+    _require(data["schemaVersion"] == 1, "unsupported source boundary schema")
+    _require(data["kind"] == "ordivon.preservation-source-boundary", "invalid source boundary kind")
     authority = data["authorityBoundary"]
-    assert authority["runtimeFrameworkOwnedByOrdivon"] is False
-    assert authority["localProfileOnly"] is True
+    _require(authority["runtimeFrameworkOwnedByOrdivon"] is False, "preservation framework is external")
+    _require(authority["localProfileOnly"] is True, "preservation profile must remain local only")
 
     included = data.get("includedPaths")
-    assert isinstance(included, list) and included
-    assert all(isinstance(pattern, str) and pattern for pattern in included)
+    _require(isinstance(included, list) and bool(included), "includedPaths must be nonempty")
+    _require(all(isinstance(pattern, str) and pattern for pattern in included), "invalid source path pattern")
 
     tracked = _tracked_owner_files()
     payload = tracked - CONTROL_FILES
     unmatched = sorted(
         path for path in payload if not any(_matches(path, pattern) for pattern in included)
     )
-    assert not unmatched, f"tracked Preservation payload escaped SOURCE_BOUNDARY: {unmatched}"
+    _require(not unmatched, f"tracked Preservation payload escaped SOURCE_BOUNDARY: {unmatched}")
 
     empty_patterns = sorted(
         pattern for pattern in included if not any(_matches(path, pattern) for path in payload)
     )
-    assert not empty_patterns, f"SOURCE_BOUNDARY includes empty patterns: {empty_patterns}"
+    _require(not empty_patterns, f"SOURCE_BOUNDARY includes empty patterns: {empty_patterns}")
 
     creative_library = [
         path
         for path in tracked
         if "creative-library" in path.lower() or "creative_library" in path.lower()
     ]
-    assert not creative_library, (
+    _require(not creative_library, (
         "Creative Library is Media-owned and must not enter Preservation source: "
         f"{creative_library}"
-    )
+    ))
 
     compose_path = OWNER_ROOT / "config/archivematica-preservation-r10.compose.yml"
     compose = yaml.safe_load(compose_path.read_text(encoding="utf-8"))
-    assert isinstance(compose, dict)
+    _require(isinstance(compose, dict), "compose profile must be an object")
     services = compose.get("services")
-    assert isinstance(services, dict) and services
-    assert "archivematica-storage-service" in services
-    assert all(isinstance(name, str) and isinstance(config, dict) for name, config in services.items())
+    _require(isinstance(services, dict) and bool(services), "compose services must be nonempty")
+    _require("archivematica-storage-service" in services, "required Archivematica storage service is absent")
+    _require(
+        all(isinstance(name, str) and isinstance(config, dict) for name, config in services.items()),
+        "compose services require names and object configs",
+    )
 
     service = (
         OWNER_ROOT / "systemd/ordivon-preservation-fixity-r7.service"
@@ -92,9 +107,9 @@ def main() -> int:
         OWNER_ROOT / "systemd/ordivon-preservation-fixity-r7.timer"
     ).read_text(encoding="utf-8")
     for section in ("[Unit]", "[Service]", "[Install]"):
-        assert section in service, f"missing service section {section}"
+        _require(section in service, f"missing service section {section}")
     for section in ("[Unit]", "[Timer]", "[Install]"):
-        assert section in timer, f"missing timer section {section}"
+        _require(section in timer, f"missing timer section {section}")
 
     print(
         "preservation source profile: valid "
