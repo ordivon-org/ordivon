@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import importlib.util
 import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -139,7 +140,6 @@ QUEUE_TELEMETRY_PATH = ROOT / "tools" / "repo" / "queue_telemetry.py"
 queue_spec = importlib.util.spec_from_file_location("queue_telemetry", QUEUE_TELEMETRY_PATH)
 assert queue_spec is not None and queue_spec.loader is not None
 queue_module = importlib.util.module_from_spec(queue_spec)
-import sys
 sys.modules[queue_spec.name] = queue_module
 queue_spec.loader.exec_module(queue_module)
 
@@ -468,4 +468,63 @@ def test_formal_issue_census_cannot_grant_authority() -> None:
     census, plans = formal_issue_inputs()
     census["truthRole"] = "semantic-authority"
     with pytest.raises(module.ArchitectureDocsError, match="non-authoritative"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_representation_first_all_issues_have_one_primary_and_witness() -> None:
+    census, plans = formal_issue_inputs()
+    module.validate_formal_issue_census(census, plans)
+    census["issues"][0].pop("representation")
+    with pytest.raises(module.ArchitectureDocsError, match="representation"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_representation_first_rejects_unknown_or_unbounded_methods() -> None:
+    census, plans = formal_issue_inputs()
+    for issue in census["issues"]:
+        issue["representation"] = {
+            "primary": "type",
+            "supporting": [],
+            "methodSkill": None,
+            "requiredWitness": "Native consumer test on an exact source cut.",
+            "selectionReason": "Avoid speculative method proliferation.",
+        }
+    census["issues"][0]["representation"]["primary"] = "made-up-method"
+    with pytest.raises(module.ArchitectureDocsError, match="primary representation"):
+        module.validate_formal_issue_census(census, plans)
+    census["issues"][0]["representation"]["primary"] = "type"
+    census["issues"][0]["representation"]["supporting"] = [
+        "graph", "constraint", "state-machine",
+    ]
+    with pytest.raises(module.ArchitectureDocsError, match="supporting representation"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_representation_first_rejects_unbound_skill_and_missing_evidence() -> None:
+    census, plans = formal_issue_inputs()
+    for issue in census["issues"]:
+        issue["representation"] = {
+            "primary": "type",
+            "supporting": [],
+            "methodSkill": None,
+            "requiredWitness": "Run exact owner test.",
+            "selectionReason": "Prefer concrete owner contracts.",
+        }
+    census["issues"][0]["representation"]["methodSkill"] = ".agents/skills/missing-method/SKILL.md"
+    with pytest.raises(module.ArchitectureDocsError, match="method Skill"):
+        module.validate_formal_issue_census(census, plans)
+    census["issues"][0]["representation"]["methodSkill"] = None
+    census["issues"][0]["representation"]["requiredWitness"] = ""
+    with pytest.raises(module.ArchitectureDocsError, match="requiredWitness"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_representation_first_rejects_non_scalar_values_without_crashing() -> None:
+    census, plans = formal_issue_inputs()
+    census["issues"][0]["representation"]["primary"] = ["graph"]
+    with pytest.raises(module.ArchitectureDocsError, match="primary representation"):
+        module.validate_formal_issue_census(census, plans)
+    census["issues"][0]["representation"]["primary"] = "graph"
+    census["issues"][0]["representation"]["supporting"] = [{"arbitrary": "state-machine"}]
+    with pytest.raises(module.ArchitectureDocsError, match="supporting representation"):
         module.validate_formal_issue_census(census, plans)
