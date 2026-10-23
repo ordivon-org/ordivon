@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.runtime-formal-trace-acceptance",
+  "effectiveDate": "2026-09-29",
+  "standing": "PASS_BOUNDED_TRACEABILITY_CURRENTNESS",
+  "truthRole": "formal-trace-acceptance-not-mechanized-refinement-proof",
+  "baseMain": "ece9feeea0b9a52e787151519965df96e5e2c527",
+  "mechanismCandidateCommit": "fa02cff61bd8f819be4cc4261d9204b6712524fa",
+  "qualifiedWorkspaceSourceDigest": "sha256:5f4484d8b3a5485daeadf22e6bddbe6a9622c12e0d7343eee9159c7662996203",
+  "traceVerification": {
+    "jobId": "job-01a0ec17-3f15-77d1-b7b5-dd283f22430c",
+    "terminalEvidenceDigest": "sha256:0d140bb911fb2a930f7ede4adc4198fd7cd3764e98f54e8dc7eb6fa40fe09a2e",
+    "result": "PASS",
+    "traceSchemaVersion": 2,
+    "focusedPytestPassed": 6,
+    "sourceFragmentBindingRetired": true
+  },
+  "formalModelCheck": {
+    "jobId": "job-01a0ec17-3f15-77d1-b7b5-dd283f22430c",
+    "terminalEvidenceDigest": "sha256:0d140bb911fb2a930f7ede4adc4198fd7cd3764e98f54e8dc7eb6fa40fe09a2e",
+    "toolchain": "TLA+ tools 1.7.4 / TLC 2.19",
+    "generatedStates": 25,
+    "distinctStates": 20,
+    "depth": 9,
+    "errors": 0
+  },
+  "runtimeIntegration": {
+    "jobId": "job-01a0ec1f-fb90-76b3-bd98-468e6aa47445",
+    "terminalEvidenceDigest": "sha256:d959951643d305ddee52f38436c388057af3c194f20174539bc937f7801344c1",
+    "result": "PASS",
+    "explicitOptIn": "ORDIVON_RUN_INTEGRATION=1",
+    "runnerDigest": "sha256:ee52dcc44b20b1ab2738944f9a223d4f5bf45d1e0b1927af4f502aae74ca18c4",
+    "tests": [
+      "runtime_two_observers_do_not_race_dispatch_of_one_accepted_attempt",
+      "runtime_ambiguous_dispatch_is_lost_without_automatic_redispatch"
+    ]
+  },
+  "providerGuaranteeNegativeControl": {
+    "jobId": "job-01a0ec17-3f15-77d1-b7b5-dd283f22430c",
+    "terminalEvidenceDigest": "sha256:0d140bb911fb2a930f7ede4adc4198fd7cd3764e98f54e8dc7eb6fa40fe09a2e",
+    "result": "PASS",
+    "test": "provider_replacement_cannot_weaken_r1_guarantees"
+  },
+  "supportScope": [
+    "machine-checkable currentness of the RuntimeDispatchR1 formal model, Runtime invariant bindings, stable Runtime contract seams, supporting provider contract, and named proving tests",
+    "bounded evidence for at-most-once physical dispatch and ambiguity-preserving reconciliation on the exact qualified source state",
+    "provider refactors may move Linux or Windows realization internals without invalidating the trace while the stable Runtime realization seam and proving tests remain current"
+  ],
+  "nonClaims": [
+    "This is not a mechanized refinement proof from Rust semantics to TLA+ semantics.",
+    "TLC finite-model success is abstraction evidence, not a proof that every implementation/environment behavior conforms.",
+    "Runtime process/test success does not establish domain semantic completion.",
+    "This receipt does not grant Git, release, deployment, or other effect authority."
+  ]
+}

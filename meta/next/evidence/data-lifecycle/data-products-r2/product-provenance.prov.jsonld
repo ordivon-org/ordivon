@@ -1,0 +1,233 @@
+{
+  "@context": {
+    "dct": "http://purl.org/dc/terms/",
+    "prov": "http://www.w3.org/ns/prov#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@graph": [
+    {
+      "@id": "urn:sha256:6c2066eb1bf1824887a72c6f6df3cb5106894efde206686eb564287fe6547e50",
+      "@type": "prov:Entity",
+      "dct:identifier": "sha256:6c2066eb1bf1824887a72c6f6df3cb5106894efde206686eb564287fe6547e50",
+      "dct:title": "Paper1 frozen benchmark CSV"
+    },
+    {
+      "@id": "urn:uuid:94d0bf2c-036b-53b1-b733-14d3a5536a74?version=1.0.0",
+      "@type": "prov:Entity",
+      "dct:title": "Paper1 Frozen Flaky-Test Benchmark",
+      "prov:wasDerivedFrom": {
+        "@id": "urn:sha256:6c2066eb1bf1824887a72c6f6df3cb5106894efde206686eb564287fe6547e50"
+      }
+    },
+    {
+      "@id": "urn:ordivon:activity:paper1-crossproject-robustness-r1",
+      "@type": "prov:Activity",
+      "prov:used": {
+        "@id": "urn:sha256:6c2066eb1bf1824887a72c6f6df3cb5106894efde206686eb564287fe6547e50"
+      },
+      "prov:wasAssociatedWith": {
+        "@id": "urn:ordivon:repo:research"
+      }
+    },
+    {
+      "@id": "urn:sha256:37a092e36c0d31bad0e66f7992812537b3e99abc7037d685182743df62b1e10c",
+      "@type": "prov:Entity",
+      "dct:title": "Paper1 R1 robustness combined seed-order results",
+      "prov:wasDerivedFrom": {
+        "@id": "urn:sha256:6c2066eb1bf1824887a72c6f6df3cb5106894efde206686eb564287fe6547e50"
+      },
+      "prov:wasGeneratedBy": {
+        "@id": "urn:ordivon:activity:paper1-crossproject-robustness-r1"
+      }
+    },
+    {
+      "@id": "urn:ordivon:repo:research",
+      "@type": "prov:Agent",
+      "dct:identifier": "ordivon-research-v2@18a8afae92ae2ef3b89d645bbcccf6db51db1b9d"
+    },
+    {
+      "@id": "urn:sha256:ed5fba6227a5d997adefb6bf63717463dc75fdc8b62cfb0005804109eb0a2d7e",
+      "@type": "prov:Entity",
+      "dct:identifier": "sha256:ed5fba6227a5d997adefb6bf63717463dc75fdc8b62cfb0005804109eb0a2d7e",
+      "dct:title": "Crypto public shadow R2 evidence"
+    },
+    {
+      "@id": "urn:uuid:d14d7457-c9aa-59e0-8bf5-7783cea39c1c?version=2026.09.14",
+      "@type": "prov:Entity",
+      "dct:title": "Crypto Public Shadow R2 Observation",
+      "prov:wasDerivedFrom": {
+        "@id": "urn:sha256:ed5fba6227a5d997adefb6bf63717463dc75fdc8b62cfb0005804109eb0a2d7e"
+      }
+    },
+    {
+      "@id": "urn:ordivon:activity:crypto-public-shadow-r2-capture",
+      "@type": "prov:Activity",
+      "prov:generated": {
+        "@id": "urn:sha256:ed5fba6227a5d997adefb6bf63717463dc75fdc8b62cfb0005804109eb0a2d7e"
+      },
+      "prov:wasAssociatedWith": {
+        "@id": "urn:ordivon:repo:finance"
+      }
+    },
+    {
+      "@id": "urn:ordivon:repo:finance",
+      "@type": "prov:Agent",
+      "dct:identifier": "ordivon-market-capital-next@14885beb2b566458123dd9f273a66884fb337017"
+    },
+    {
+      "@id": "urn:uuid:b07502e6-b0da-58ba-91e8-6e85043f8f31",
+      "@type": "prov:Activity",
+      "dct:title": "Paper1 product/result binding verification run",
+      "prov:generated": {
+        "@id": "urn:sha256:6ec1059b1eb1712d493ba010a12ea29228f40a2f4f278f0716fe2261f9db4efa"
+      },
+      "prov:used": [
+        {
+          "@id": "urn:uuid:94d0bf2c-036b-53b1-b733-14d3a5536a74?version=1.0.0"
+        },
+        {
+          "@id": "urn:sha256:37a092e36c0d31bad0e66f7992812537b3e99abc7037d685182743df62b1e10c"
+        }
+      ],
+      "prov:wasAssociatedWith": {
+        "@id": "urn:ordivon:repo:research"
+      }
+    },
+    {
+      "@id": "urn:sha256:6ec1059b1eb1712d493ba010a12ea29228f40a2f4f278f0716fe2261f9db4efa",
+      "@type": "prov:Entity",
+      "dct:title": "Paper1 product/result binding verification artifact",
+      "dct:type": "verification-not-scientific-result-generation",
+      "prov:wasDerivedFrom": [
+        {
+          "@id": "urn:uuid:94d0bf2c-036b-53b1-b733-14d3a5536a74?version=1.0.0"
+        },
+        {
+          "@id": "urn:sha256:37a092e36c0d31bad0e66f7992812537b3e99abc7037d685182743df62b1e10c"
+        }
+      ],
+      "prov:wasGeneratedBy": {
+        "@id": "urn:uuid:b07502e6-b0da-58ba-91e8-6e85043f8f31"
+      }
+    },
+    {
+      "@id": "urn:uuid:db63ce70-d168-5dfd-b76f-55419d25bea6",
+      "@type": "prov:Activity",
+      "dct:title": "Crypto public-shadow product consumption decision run",
+      "prov:generated": {
+        "@id": "urn:sha256:6cafaf913b639d6b4652ef34838860f78fb93b15a28faeb5891da7980ea2a402"
+      },
+      "prov:used": {
+        "@id": "urn:uuid:d14d7457-c9aa-59e0-8bf5-7783cea39c1c?version=2026.09.14"
+      },
+      "prov:wasAssociatedWith": {
+        "@id": "urn:ordivon:repo:finance"
+      }
+    },
+    {
+      "@id": "urn:sha256:6cafaf913b639d6b4652ef34838860f78fb93b15a28faeb5891da7980ea2a402",
+      "@type": "prov:Entity",
+      "dct:title": "Crypto public-shadow decision/outcome/feedback artifact",
+      "dct:type": "decision-outcome-feedback-no-external-effect",
+      "prov:wasDerivedFrom": {
+        "@id": "urn:uuid:d14d7457-c9aa-59e0-8bf5-7783cea39c1c?version=2026.09.14"
+      },
+      "prov:wasGeneratedBy": {
+        "@id": "urn:uuid:db63ce70-d168-5dfd-b76f-55419d25bea6"
+      }
+    },
+    {
+      "@id": "urn:sha256:ff4257772344c51e25313e914586ee760e1180cb1f261796beedd34345267e8d",
+      "@type": "prov:Entity",
+      "dct:identifier": "sha256:ff4257772344c51e25313e914586ee760e1180cb1f261796beedd34345267e8d",
+      "dct:title": "Runtime R5C Episode replay set"
+    },
+    {
+      "@id": "urn:sha256:7566b2172663ba4286fd2778ca234b0c8e099937ae1a0c6de1389e2e07e294d6",
+      "@type": "prov:Entity",
+      "dct:identifier": "sha256:7566b2172663ba4286fd2778ca234b0c8e099937ae1a0c6de1389e2e07e294d6",
+      "dct:title": "Harness RSI Episode replay set"
+    },
+    {
+      "@id": "urn:sha256:67c917eacd59fb7ae48877cde4d893093477c9c730a454824251291aad012b1b",
+      "@type": "prov:Entity",
+      "dct:identifier": "sha256:67c917eacd59fb7ae48877cde4d893093477c9c730a454824251291aad012b1b",
+      "dct:title": "Experimental Episode Corpus R1 manifest"
+    },
+    {
+      "@id": "urn:uuid:4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b?version=1.0.0",
+      "@type": "prov:Entity",
+      "dct:title": "Experimental Episode Corpus R1",
+      "prov:wasDerivedFrom": [
+        {
+          "@id": "urn:sha256:ff4257772344c51e25313e914586ee760e1180cb1f261796beedd34345267e8d"
+        },
+        {
+          "@id": "urn:sha256:7566b2172663ba4286fd2778ca234b0c8e099937ae1a0c6de1389e2e07e294d6"
+        },
+        {
+          "@id": "urn:sha256:67c917eacd59fb7ae48877cde4d893093477c9c730a454824251291aad012b1b"
+        }
+      ]
+    },
+    {
+      "@id": "urn:ordivon:activity:experimental-episode-index-r1",
+      "@type": "prov:Activity",
+      "prov:generated": {
+        "@id": "urn:sha256:7c0747db4f0568a83e444cbf46e61aed93bd8d5fa66eb5eedb0ad2af98db233d"
+      },
+      "prov:used": [
+        {
+          "@id": "urn:sha256:ff4257772344c51e25313e914586ee760e1180cb1f261796beedd34345267e8d"
+        },
+        {
+          "@id": "urn:sha256:7566b2172663ba4286fd2778ca234b0c8e099937ae1a0c6de1389e2e07e294d6"
+        }
+      ],
+      "prov:wasAssociatedWith": {
+        "@id": "urn:ordivon:consumer:experimental-analysis"
+      }
+    },
+    {
+      "@id": "urn:sha256:7c0747db4f0568a83e444cbf46e61aed93bd8d5fa66eb5eedb0ad2af98db233d",
+      "@type": "prov:Entity",
+      "dct:title": "Qualified flat Experimental Episode index Parquet",
+      "prov:wasDerivedFrom": {
+        "@id": "urn:uuid:4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b?version=1.0.0"
+      },
+      "prov:wasGeneratedBy": {
+        "@id": "urn:ordivon:activity:experimental-episode-index-r1"
+      }
+    },
+    {
+      "@id": "urn:uuid:cb6ddba6-a7f4-5bbb-91d4-c9b30b5bc0ba",
+      "@type": "prov:Activity",
+      "dct:title": "Experimental System Analysis R1",
+      "prov:generated": {
+        "@id": "urn:sha256:e5e2c6bd8801c266dc6e94f80ca30fbaf62ef9240b7dce816f73634259d1d57d"
+      },
+      "prov:used": {
+        "@id": "urn:uuid:4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b?version=1.0.0"
+      },
+      "prov:wasAssociatedWith": {
+        "@id": "urn:ordivon:consumer:experimental-analysis"
+      }
+    },
+    {
+      "@id": "urn:sha256:e5e2c6bd8801c266dc6e94f80ca30fbaf62ef9240b7dce816f73634259d1d57d",
+      "@type": "prov:Entity",
+      "dct:title": "Experimental System Analysis R1 report",
+      "prov:wasDerivedFrom": {
+        "@id": "urn:uuid:4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b?version=1.0.0"
+      },
+      "prov:wasGeneratedBy": {
+        "@id": "urn:uuid:cb6ddba6-a7f4-5bbb-91d4-c9b30b5bc0ba"
+      }
+    },
+    {
+      "@id": "urn:ordivon:consumer:experimental-analysis",
+      "@type": "prov:Agent",
+      "dct:identifier": "ordivon@1214254b38af1485eca368e190704d360ffeb06a"
+    }
+  ]
+}

@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.convergence-observation-dataset-acceptance-evidence",
+  "date": "2026-09-23",
+  "truthRole": "rebuildable-analytical-projection-evidence-not-provider-or-control-authority",
+  "providerBase": "f985d603b99408e066332a73713ae78ddce243c1",
+  "adapter": {
+    "path": "meta/next/scripts/experimental_episode_convergence_r1.py",
+    "queueProfileId": "convergence-queue-observation-v1",
+    "ciProfileId": "convergence-ci-observation-v1",
+    "targetContract": "meta/next/schemas/experimental-episode-binding-r1.schema.json",
+    "targetStore": "meta/next/experimental/episode-store-r1"
+  },
+  "validation": {
+    "adapterContracts": {
+      "standing": "PASS",
+      "tests": 5,
+      "runtimeJobId": "job-01a0ce0b-f09c-7fd3-b36c-a4336cb1de35"
+    },
+    "liveProjection": {
+      "standing": "PASS_CONVERGENCE_EPISODE_PROJECTION",
+      "queueEpisodes": 12,
+      "ciEpisodes": 20,
+      "identityCollisions": 0,
+      "runtimeJobId": "job-01a0ce0f-5c08-7103-ab4d-8b570eeba796"
+    },
+    "episodeStorePackage": {
+      "standing": "PASS",
+      "tests": 7,
+      "runtimeJobId": "job-01a0ce11-739f-7f63-be3f-2111c8c4adab"
+    },
+    "postgresPhysicalReplay": {
+      "standing": "PASS_IDEMPOTENT_PROJECTION_INGEST",
+      "postgresVersion": "18.6",
+      "isolation": "ephemeral independent PostgreSQL cluster; removed after validation",
+      "queueEpisodes": 13,
+      "ciEpisodes": 20,
+      "episodeProjections": 33,
+      "projectionIngestReceipts": 2,
+      "queueReplayInserted": 0,
+      "ciReplayInserted": 0,
+      "runtimeJobId": "job-01a0ce12-0aea-7dc0-932a-cbeb5ab0f061"
+    }
+  },
+  "architecture": {
+    "databaseSchemaChange": false,
+    "queueSpecificDatabaseCreated": false,
+    "rawProviderPayloadStoredByAdapter": false,
+    "postgresRole": "rebuildable analytical materialization",
+    "providerAuthority": [
+      "GitHub Merge Queue",
+      "GitHub Actions"
+    ],
+    "analyticalContract": "Experimental Episode R1",
+    "deploymentOwner": "Workstation/PostgreSQL substrate"
+  },
+  "invariants": [
+    "stable Episode identity is distinct from exact projection digest",
+    "owner-native/provider evidence remains authority",
+    "PostgreSQL persistence is replayable and idempotent",
+    "provider conclusion remains separate from economic outcome",
+    "analytical persistence grants no merge, scheduling, cancellation, evidence-reuse, or domain authority"
+  ],
+  "nonClaims": [
+    "CI waste is proven",
+    "owner long-tail general optimization is admitted",
+    "PostgreSQL is Queue or Actions truth",
+    "a new universal Ordivon data plane or queue database is required",
+    "adaptive speculation, batching, cancellation control, evidence reuse, or predictive scheduling is admitted"
+  ],
+  "standing": "PASS_CQ_M80_EXISTING_EPISODE_STORE_REUSE",
+  "latestMainRequalification": {
+    "providerBase": "90eaf395bd67cb3e004078e398b089153053792c",
+    "runtimeJobId": "job-01a0ce17-4c14-7070-94da-ba96e7e00e40",
+    "standing": "PASS",
+    "repoCi": "PASS",
+    "nextVerify": "PASS",
+    "convergencePlan": {
+      "queueClass": "SCOPED",
+      "directOwners": [
+        "next"
+      ],
+      "verificationOwners": [
+        "composition",
+        "harness",
+        "next",
+        "security",
+        "skills",
+        "web"
+      ],
+      "crossCutting": false
+    },
+    "validatedCandidateBeforeEvidenceBinding": "98ab2cc3674bf263f23ab4022a2ed09053fa82b4",
+    "finalCandidateSelfReference": "OMITTED_BY_DESIGN_TO_AVOID_COMMIT_SELF_REFERENCE"
+  }
+}

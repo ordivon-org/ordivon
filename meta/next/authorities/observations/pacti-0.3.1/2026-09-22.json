@@ -1,0 +1,11 @@
+{
+  "authorityId": "pacti-0.3.1",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current",
+  "note": "PyPI lists 0.3.1 as the latest Pacti release, released 2026-07-22; Ordivon additionally verified isolated import and contract algebra under CPython 3.14.7.",
+  "observedDate": "2026-09-22",
+  "officialSource": "https://pypi.org/project/pacti/0.3.1/",
+  "schemaVersion": 1,
+  "versionObserved": "0.3.1"
+}

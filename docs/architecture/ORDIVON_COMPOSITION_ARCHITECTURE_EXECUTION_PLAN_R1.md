@@ -1,6 +1,10 @@
 # Ordivon Composition Architecture — Executable LEGO Plan R1
 
 Date: 2026-09-21  
+Historical standing: EXECUTED / SUPERSEDED FOR CURRENT STATE by `CURRENT_ARCHITECTURE.md`
+
+> This is the frozen execution plan used to reach the current architecture. Present-tense observations below are historical inputs from its baseline and MUST NOT be interpreted as current deployment status.
+
 Baseline: `/root/projects/ordivon@a77690a72efaeb12323d01b35131e0da861e2adf`  
 Workspace: `ws-composition-architecture-lego-plan-r1-20260921`
 

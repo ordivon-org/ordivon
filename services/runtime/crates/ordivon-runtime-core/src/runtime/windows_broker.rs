@@ -105,6 +105,8 @@ struct BrokerRequest<'a> {
     launcher_args: Option<&'a [String]>,
     #[serde(skip_serializing_if = "Option::is_none")]
     launcher_stderr_path: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    binding: Option<&'a str>,
 }
 
 #[cfg(windows)]
@@ -130,6 +132,18 @@ struct BrokerResponse {
     error_code: Option<String>,
     #[serde(default)]
     error_message: Option<String>,
+    #[serde(default)]
+    binding: Option<String>,
+    #[serde(default)]
+    disposition: Option<String>,
+    #[serde(default)]
+    endpoint_count: Option<u32>,
+    #[serde(default)]
+    bytes: Option<u64>,
+    #[serde(default)]
+    secret_values_returned: Option<bool>,
+    #[serde(default)]
+    secret_digests_returned: Option<bool>,
 }
 
 #[cfg(windows)]
@@ -275,6 +289,7 @@ pub(crate) fn capture(
             operation: "capture",
             launcher_args: Some(launcher_args),
             launcher_stderr_path: None,
+            binding: None,
         },
     )?;
     if response.operation.as_deref() != Some("capture")
@@ -336,6 +351,7 @@ pub(crate) fn spawn(
             operation: "spawn",
             launcher_args: Some(launcher_args),
             launcher_stderr_path: Some(launcher_stderr_path),
+            binding: None,
         },
     )?;
     let process_id = response.process_id.unwrap_or(0);
@@ -357,6 +373,79 @@ pub(crate) fn spawn(
     Ok(BrokerSpawnObservation {
         launcher_process_id: process_id,
         launcher_process_creation_time_file_time: creation,
+    })
+}
+
+#[cfg(windows)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct BrokerMaterializationObservation {
+    pub binding: String,
+    pub disposition: String,
+    pub endpoint_count: u32,
+    pub bytes: u64,
+}
+
+#[cfg(windows)]
+pub(crate) fn materialize(
+    config: &WindowsPrivilegedBrokerConfig,
+    request_id: &str,
+    binding: &str,
+) -> RuntimeResult<BrokerMaterializationObservation> {
+    let _ = config.executable_digest()?;
+    if binding.is_empty()
+        || binding.len() > 128
+        || !binding
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-'))
+    {
+        return Err(RuntimeError::invalid(
+            "Windows credential materialization binding is invalid",
+            "binding",
+        ));
+    }
+    let response = invoke(
+        config,
+        &BrokerRequest {
+            schema_version: BROKER_SCHEMA_VERSION,
+            request_id,
+            operation: "materialize",
+            launcher_args: None,
+            launcher_stderr_path: None,
+            binding: Some(binding),
+        },
+    )?;
+    if response.operation.as_deref() != Some("materialize")
+        || response.binding.as_deref() != Some(binding)
+        || response
+            .disposition
+            .as_deref()
+            .is_none_or(|value| !matches!(value, "materialized" | "existing"))
+        || response
+            .endpoint_count
+            .is_none_or(|value| value < 2 || value > 8)
+        || response
+            .bytes
+            .is_none_or(|value| value == 0 || value > 16_384)
+        || response.secret_values_returned != Some(false)
+        || response.secret_digests_returned != Some(false)
+        || response.exit_code.is_some()
+        || response.stdout.is_some()
+        || response.stderr.is_some()
+        || response.process_id.is_some()
+        || response.process_creation_time_file_time.is_some()
+    {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::LaunchIdentityMismatch,
+            "Windows privileged broker materialization response shape was inconsistent",
+            Some("windows.privilegedBroker"),
+            false,
+        ));
+    }
+    Ok(BrokerMaterializationObservation {
+        binding: response.binding.unwrap_or_default(),
+        disposition: response.disposition.unwrap_or_default(),
+        endpoint_count: response.endpoint_count.unwrap_or(0),
+        bytes: response.bytes.unwrap_or(0),
     })
 }
 

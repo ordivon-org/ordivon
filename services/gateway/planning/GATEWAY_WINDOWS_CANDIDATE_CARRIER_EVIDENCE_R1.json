@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.gateway-windows-candidate-carrier-evidence",
+  "truthRole": "mechanical-candidate-acceptance-evidence",
+  "observedAt": "2026-09-22",
+  "candidate": {
+    "serviceName": "OrdivonGatewayCandidateR1",
+    "account": "NT SERVICE\\OrdivonGatewayCandidateR1",
+    "serviceSid": "S-1-5-80-2696575333-4176246308-1588887141-2723265740-3433717632",
+    "serviceSidType": "UNRESTRICTED",
+    "startMode": "Auto",
+    "state": "Running",
+    "port": 18999,
+    "sourceCommit": "5bd241df24da3259c1c6e3637bf3fc513129e4b9",
+    "gatewayVersion": "0.3.0",
+    "healthStatus": 200,
+    "toolCount": 16
+  },
+  "production": {
+    "wslGatewayPort": 8899,
+    "healthStatus": 200,
+    "modified": false
+  },
+  "acl": {
+    "release": "service RX; SYSTEM/Admin F",
+    "python": "service RX; SYSTEM/Admin F",
+    "logs": "service M; SYSTEM/Admin F",
+    "credentials": "service R; SYSTEM/Admin F",
+    "descendantInheritanceVerified": true
+  },
+  "ownerProjectionWithoutRuntimeCredentials": {
+    "continuity.external": true,
+    "execution.linux": false,
+    "execution.windows": false,
+    "artifact.runtime": false,
+    "gatewayRemainedAvailable": true
+  },
+  "verdict": "PASS_FOR_GW07_GW08_GW10"
+}

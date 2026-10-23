@@ -32,7 +32,17 @@ try:
         compile_campaign,
     )
     from sqlite_conversation_materializer import SQLiteConversationMaterializer
+    from materialization_reconciliation_archive import project_archive
+    from sqlite_conversation_binding import (
+        ConversationBindingConflict,
+        SQLiteConversationBindingStore,
+        read_conversation_binding,
+    )
+    from chatgpt_conversation_discovery import discover_exact_marker
+    from cft_human_session import resolve_session
+    from cft_human_materialization import load_verified_handoff as load_verified_cft_handoff
     from standard_identifiers import require_uuid7
+    from sqlite_wake_turn_map import SQLiteWakeTurnMap, WakeTurnConflict
     from browserless_human_handoff import load_verified_handoff
     from provider_boundary_diagnosis import (
         CARRIER_FAILOVER_STANDINGS,
@@ -47,7 +57,19 @@ except ModuleNotFoundError:
         compile_campaign,
     )
     from scripts.sqlite_conversation_materializer import SQLiteConversationMaterializer
+    from scripts.materialization_reconciliation_archive import project_archive
+    from scripts.sqlite_conversation_binding import (
+        ConversationBindingConflict,
+        SQLiteConversationBindingStore,
+        read_conversation_binding,
+    )
+    from scripts.chatgpt_conversation_discovery import discover_exact_marker
+    from scripts.cft_human_session import resolve_session
+    from scripts.cft_human_materialization import (
+        load_verified_handoff as load_verified_cft_handoff,
+    )
     from scripts.standard_identifiers import require_uuid7
+    from scripts.sqlite_wake_turn_map import SQLiteWakeTurnMap, WakeTurnConflict
     from scripts.browserless_human_handoff import load_verified_handoff
     from scripts.provider_boundary_diagnosis import (
         CARRIER_FAILOVER_STANDINGS,
@@ -133,9 +155,73 @@ def _project_public_handoff_url(public_origin: str, local_url: str) -> str:
             "encrypt": "1",
         }
     )
-    return urllib.parse.urlunsplit(
-        ("https", public.netloc, "/vnc.html", query, "")
-    )
+    return urllib.parse.urlunsplit(("https", public.netloc, "/vnc.html", query, ""))
+
+
+@dataclass(frozen=True, slots=True)
+class WindowsUserBrowserAutomationConfig:
+    gateway_url: str
+    workspace_id: str
+    powershell_path: str
+    driver_path: str
+    proxy_url: str
+    linux_stage_root: Path
+    windows_stage_root: str
+    timeout_ms: int = 150_000
+
+    def __post_init__(self) -> None:
+        parsed = urllib.parse.urlsplit(self.gateway_url)
+        if (
+            parsed.scheme != "http"
+            or parsed.hostname != "127.0.0.1"
+            or parsed.port is None
+            or parsed.path != "/mcp"
+            or parsed.query
+            or parsed.fragment
+            or parsed.username is not None
+            or parsed.password is not None
+        ):
+            raise ValueError(
+                "windowsUserBrowser.gatewayUrl must be exact loopback HTTP /mcp"
+            )
+        for value, label in (
+            (self.workspace_id, "workspaceId"),
+            (self.powershell_path, "powershellPath"),
+            (self.driver_path, "driverPath"),
+            (self.proxy_url, "proxyUrl"),
+            (self.windows_stage_root, "windowsStageRoot"),
+        ):
+            if not isinstance(value, str) or not value or value != value.strip():
+                raise ValueError(f"windowsUserBrowser.{label} must be non-empty and trimmed")
+        proxy = urllib.parse.urlsplit(self.proxy_url)
+        if (
+            proxy.scheme != "http"
+            or proxy.hostname != "127.0.0.1"
+            or proxy.port is None
+            or proxy.path not in {"", "/"}
+            or proxy.query
+            or proxy.fragment
+        ):
+            raise ValueError("windowsUserBrowser.proxyUrl must be loopback HTTP")
+        if not self.linux_stage_root.is_absolute():
+            raise ValueError("windowsUserBrowser.linuxStageRoot must be absolute")
+        if type(self.timeout_ms) is not int or not 1 <= self.timeout_ms <= 900_000:
+            raise ValueError("windowsUserBrowser.timeoutMs must be between 1 and 900000")
+
+    @classmethod
+    def from_dict(cls, value: dict) -> "WindowsUserBrowserAutomationConfig":
+        if not isinstance(value, dict):
+            raise ValueError("windowsUserBrowser must be an object")
+        return cls(
+            gateway_url=str(value["gatewayUrl"]),
+            workspace_id=str(value["workspaceId"]),
+            powershell_path=str(value["powershellPath"]),
+            driver_path=str(value["driverPath"]),
+            proxy_url=str(value["proxyUrl"]),
+            linux_stage_root=_abs(value["linuxStageRoot"]),
+            windows_stage_root=str(value["windowsStageRoot"]),
+            timeout_ms=int(value.get("timeoutMs", 150_000)),
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -164,8 +250,14 @@ class BrowserlessAutomationConfig:
     browserless_idle_ttl_seconds: int = 900
     browserless_warm_endpoint_ids: tuple[str, ...] = ()
     browserless_human_public_origins: dict[str, str] | None = None
+    windows_user_browser: WindowsUserBrowserAutomationConfig | None = None
+    materialization_carrier: str = "browserless"
 
     def __post_init__(self) -> None:
+        if self.materialization_carrier not in {"browserless", "windows-user-browser"}:
+            raise ValueError("materializationCarrier must be browserless or windows-user-browser")
+        if self.materialization_carrier == "windows-user-browser" and self.windows_user_browser is None:
+            raise ValueError("windows-user-browser materialization requires windowsUserBrowser config")
         if self.human_handoff_mode not in {"self-hosted-vnc", "live-url"}:
             raise ValueError("browserlessHumanHandoffMode must be self-hosted-vnc or live-url")
         if self.human_handoff_ms <= 0:
@@ -244,12 +336,16 @@ class BrowserlessAutomationConfig:
             ),
             human_handoff_mode=str(value.get("browserlessHumanHandoffMode", "self-hosted-vnc")),
             browser_session_timeout_ms=int(value.get("browserlessSessionTimeoutMs", 480000)),
-            browserless_start_timeout_seconds=int(
-                value.get("browserlessStartTimeoutSeconds", 20)
-            ),
+            browserless_start_timeout_seconds=int(value.get("browserlessStartTimeoutSeconds", 20)),
             browserless_idle_ttl_seconds=int(value.get("browserlessIdleTtlSeconds", 900)),
             browserless_warm_endpoint_ids=tuple(warm),
             browserless_human_public_origins=dict(public_origins),
+            windows_user_browser=(
+                WindowsUserBrowserAutomationConfig.from_dict(value["windowsUserBrowser"])
+                if value.get("windowsUserBrowser") is not None
+                else None
+            ),
+            materialization_carrier=str(value.get("materializationCarrier", "browserless")),
         )
 
     @property
@@ -336,7 +432,9 @@ def _cf07_profile_first_observed(
         "firstObservedAtMs",
         "semanticProviderSessionCreationKnown",
     }:
-        raise BrowserlessAutomationConflict("CF07 profile-first-observed marker has unexpected fields")
+        raise BrowserlessAutomationConflict(
+            "CF07 profile-first-observed marker has unexpected fields"
+        )
     if (
         existing.get("schemaVersion") != 1
         or existing.get("kind") != "ordivon.cf07-profile-first-observed"
@@ -435,6 +533,46 @@ def _carrier_lease(config: BrowserlessAutomationConfig, endpoint_id: str, *, blo
             fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
 
+@contextmanager
+def _user_browser_carrier_lease(
+    config: BrowserlessAutomationConfig, *, blocking: bool
+):
+    """Serialize the single Normal-Chrome user-browser carrier across processes."""
+    lock_root = config.state_root / "carrier-leases"
+    lock_root.mkdir(parents=True, exist_ok=True)
+    path = lock_root / "windows-user-browser.lock"
+    with path.open("a+") as handle:
+        operation = fcntl.LOCK_EX | (0 if blocking else fcntl.LOCK_NB)
+        try:
+            fcntl.flock(handle.fileno(), operation)
+        except BlockingIOError as error:
+            raise BrowserlessCarrierBusy("Windows user-browser carrier busy") from error
+        try:
+            yield
+        finally:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
+@contextmanager
+def _conversation_session_lease(
+    config: BrowserlessAutomationConfig, session_id: str, *, blocking: bool
+):
+    session_id = require_uuid7(session_id, "sessionId")
+    lock_root = config.state_root / "conversation-session-leases"
+    lock_root.mkdir(parents=True, exist_ok=True)
+    path = lock_root / f"{_suffix(session_id, 32)}.lock"
+    with path.open("a+") as handle:
+        operation = fcntl.LOCK_EX | (0 if blocking else fcntl.LOCK_NB)
+        try:
+            fcntl.flock(handle.fileno(), operation)
+        except BlockingIOError as error:
+            raise BrowserlessCarrierBusy(f"conversation session busy: {session_id}") from error
+        try:
+            yield
+        finally:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
 class BrowserlessAutomationService:
     def __init__(self, config: BrowserlessAutomationConfig) -> None:
         self.config = config
@@ -473,13 +611,29 @@ class BrowserlessAutomationService:
         try:
             return requests[agent_id]
         except KeyError as error:
-            raise BrowserlessAutomationConflict("agentId does not identify exactly one campaign request") from error
+            raise BrowserlessAutomationConflict(
+                "agentId does not identify exactly one campaign request"
+            ) from error
 
     def _materialization_dir(self, materialization) -> Path:
         return self.config.state_root / "materializations" / _suffix(materialization.request_id)
 
     def _binding_path(self, materialization) -> Path:
         return self._materialization_dir(materialization) / "carrier-binding.json"
+
+    def _durable_human_handoff_path(self, materialization) -> Path:
+        return (
+            self._materialization_dir(materialization)
+            / "durable-human-handoff"
+            / f"{_suffix(materialization.request_id)}.json"
+        )
+
+    def _legacy_human_handoff_path(self, materialization) -> Path:
+        return (
+            self._materialization_dir(materialization)
+            / "human-handoff"
+            / f"{_suffix(materialization.request_id)}.json"
+        )
 
     def _endpoint_by_id(self, endpoint_id: str):
         rows = [e for e in self.config.browserless_pool.endpoints if e.endpoint_id == endpoint_id]
@@ -561,9 +715,27 @@ class BrowserlessAutomationService:
             materialization = by_agent.get(row.get("agentId"))
             if materialization is None:
                 continue
-            path = (
-                self._materialization_dir(materialization) / "human-handoff" / f"{_suffix(materialization.request_id)}.json"
-            )
+            durable_path = self._durable_human_handoff_path(materialization)
+            if durable_path.is_file():
+                try:
+                    handoff = load_verified_cft_handoff(durable_path)
+                    session = resolve_session(handoff["sessionId"])
+                except Exception:
+                    continue
+                available = (
+                    handoff.get("effectId") == materialization.request_id
+                    and handoff.get("providerEffectAttempted") is False
+                    and session.get("standing") == "READY"
+                    and session.get("sessionActive") is True
+                    and session.get("sessionId") == handoff.get("sessionId")
+                    and row.get("materializationStanding") == "human-required"
+                )
+                if available:
+                    row["humanHandoffAvailable"] = True
+                    row["humanHandoffMode"] = "durable-cft-session"
+                    active += 1
+                continue
+            path = self._legacy_human_handoff_path(materialization)
             if not path.is_file():
                 continue
             try:
@@ -674,7 +846,9 @@ class BrowserlessAutomationService:
             # materialization-level re-entry; otherwise exact campaign replay would create fresh retries.
             if row.get("materializationStanding") is not None:
                 continue
-            self._require_materialization_substrate_available(materialization, observations=observations)
+            self._require_materialization_substrate_available(
+                materialization, observations=observations
+            )
         return census
 
     def _temporal_admit(
@@ -732,6 +906,8 @@ class BrowserlessAutomationService:
                 self.config.temporal_namespace,
                 "--task-queue",
                 self.config.temporal_task_queue,
+                "--carrier",
+                self.config.materialization_carrier,
             ]
             if agent_id is not None:
                 cmd += ["--agent-id", agent_id]
@@ -744,7 +920,19 @@ class BrowserlessAutomationService:
                 cmd += ["--turn-request-id", turn_request_id]
             if resume_id is not None:
                 cmd += ["--resume-id", resume_id]
-            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=30, check=False)
+            temporal_env = dict(os.environ)
+            source_python = str(SOURCE_ROOT / "src")
+            temporal_env["PYTHONPATH"] = source_python + (
+                os.pathsep + temporal_env["PYTHONPATH"] if temporal_env.get("PYTHONPATH") else ""
+            )
+            proc = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
+                env=temporal_env,
+            )
         finally:
             if prompt_dir is not None:
                 prompt_dir.cleanup()
@@ -781,6 +969,11 @@ class BrowserlessAutomationService:
                     raise BrowserlessAutomationAmbiguous(
                         "Temporal campaign admission outcome is unknown because one child intent is malformed; observe the same campaign workflow identity before any retry"
                     )
+        elif operation == "human-resume":
+            if row.get("disposition") != "updated" or not row.get("workflowId"):
+                raise BrowserlessAutomationAmbiguous(
+                    "Temporal human-resume update outcome is unknown because the receipt is malformed; observe the same materialization workflow identity before retry"
+                )
         elif row.get("disposition") not in {"admitted", "started", "existing"} or not row.get(
             "workflowId"
         ):
@@ -866,20 +1059,62 @@ class BrowserlessAutomationService:
             "census": census,
         }
 
-
     def human_handoff_info(self, spec_path: Path, agent_id: str) -> dict:
         spec = self.load_spec(spec_path)
         materialization = self._materialization(spec, agent_id)
         census = campaign_census(spec, self.config.ledger)
         row = next(r for r in census["materializations"] if r["agentId"] == agent_id)
-        # While a self-hosted VNC handoff is actively attached, the effect ledger may remain UNKNOWN
-        # because the effect attempt was durably claimed before target execution. The private handoff
-        # receipt independently proves providerEffectAttempted=false during that bounded window.
         if row.get("materializationStanding") not in {"human-required", "unknown"}:
             raise BrowserlessAutomationHold(
                 "materialization is not waiting for human provider verification"
             )
-        path = self._materialization_dir(materialization) / "human-handoff" / f"{_suffix(materialization.request_id)}.json"
+
+        durable_path = self._durable_human_handoff_path(materialization)
+        if durable_path.is_file():
+            value = load_verified_cft_handoff(durable_path)
+            if (
+                value.get("effectId") != materialization.request_id
+                or value.get("providerEffectAttempted") is not False
+            ):
+                raise BrowserlessAutomationConflict(
+                    "durable human handoff identity/effect proof mismatch"
+                )
+            try:
+                session = resolve_session(value["sessionId"])
+            except Exception as error:
+                raise BrowserlessAutomationHold(
+                    f"durable human session is not currently usable: {error}"
+                ) from error
+            if (
+                session.get("standing") != "READY"
+                or session.get("sessionActive") is not True
+                or session.get("sessionId") != value.get("sessionId")
+            ):
+                raise BrowserlessAutomationHold("durable human session is not currently READY")
+            handoff_url = session.get("operatorURL")
+            if not isinstance(handoff_url, str) or not handoff_url:
+                raise BrowserlessAutomationHold(
+                    "durable human verification operator URL is unavailable"
+                )
+            return {
+                "schemaVersion": 1,
+                "kind": "ordivon.provider-human-verification-handoff",
+                "agentId": agent_id,
+                "effectId": materialization.request_id,
+                "standing": "HUMAN_REQUIRED",
+                "ledgerStanding": row.get("materializationStanding"),
+                "mode": "durable-cft-session",
+                "blocker": value.get("blocker"),
+                "handoffURL": handoff_url,
+                "sessionId": value.get("sessionId"),
+                "sessionActive": True,
+                "handoffDigest": value.get("handoffDigest"),
+                "providerEffectAttempted": False,
+            }
+
+        # Legacy Browserless handoffs remain readable only so pre-cutover HUMAN_REQUIRED ledger
+        # entries can be reconciled. Current materialization no longer creates this surface.
+        path = self._legacy_human_handoff_path(materialization)
         if not path.is_file():
             raise BrowserlessAutomationHold("human verification handoff receipt is unavailable")
         value = load_verified_handoff(path)
@@ -891,7 +1126,7 @@ class BrowserlessAutomationService:
         liveness = self._human_handoff_liveness(value)
         if liveness != "CURRENT":
             raise BrowserlessAutomationHold(
-                f"human verification handoff is not currently usable: {liveness}; resume only after current-session absence is proven"
+                f"legacy human verification handoff is not currently usable: {liveness}; resume only after current-session absence is proven"
             )
         mode = value.get("mode")
         endpoint_id = value.get("browserlessEndpointId")
@@ -905,8 +1140,7 @@ class BrowserlessAutomationService:
             and endpoint_id in (self.config.browserless_human_public_origins or {})
         ):
             handoff_url = _project_public_handoff_url(
-                self.config.browserless_human_public_origins[endpoint_id],
-                handoff_url,
+                self.config.browserless_human_public_origins[endpoint_id], handoff_url
             )
         if not isinstance(handoff_url, str) or not handoff_url:
             raise BrowserlessAutomationHold("human verification interactive URL is unavailable")
@@ -935,20 +1169,42 @@ class BrowserlessAutomationService:
             raise BrowserlessAutomationHold(
                 "only a HUMAN_REQUIRED materialization may resume after human verification"
             )
-        handoff_path = (
-            self._materialization_dir(materialization) / "human-handoff" / f"{_suffix(materialization.request_id)}.json"
-        )
-        if not handoff_path.is_file():
-            raise BrowserlessAutomationHold(
-                "HUMAN_REQUIRED materialization has no private handoff receipt"
-            )
-        handoff = load_verified_handoff(handoff_path)
-        liveness = self._human_handoff_liveness(handoff)
-        if handoff.get("mode") == "self-hosted-vnc" and liveness != "INACTIVE":
-            raise BrowserlessAutomationHold(
-                f"self-hosted human resume requires proven current-session absence; observed {liveness}"
-            )
-        resume_id = handoff.get("handoffDigest")
+
+        durable_path = self._durable_human_handoff_path(materialization)
+        if durable_path.is_file():
+            handoff = load_verified_cft_handoff(durable_path)
+            if handoff.get("effectId") != materialization.request_id:
+                raise BrowserlessAutomationConflict(
+                    "durable human handoff belongs to another materialization effect"
+                )
+            try:
+                session = resolve_session(handoff["sessionId"])
+            except Exception as error:
+                raise BrowserlessAutomationHold(
+                    f"durable human session is unavailable for resume: {error}"
+                ) from error
+            if (
+                session.get("standing") != "READY"
+                or session.get("sessionActive") is not True
+                or session.get("sessionId") != handoff.get("sessionId")
+            ):
+                raise BrowserlessAutomationHold("durable human session is not READY for resume")
+            resume_id = handoff.get("handoffDigest")
+        else:
+            # Legacy Browserless handoff resume remains only for already-persisted pre-cutover rows.
+            handoff_path = self._legacy_human_handoff_path(materialization)
+            if not handoff_path.is_file():
+                raise BrowserlessAutomationHold(
+                    "HUMAN_REQUIRED materialization has no private handoff receipt"
+                )
+            handoff = load_verified_handoff(handoff_path)
+            liveness = self._human_handoff_liveness(handoff)
+            if handoff.get("mode") == "self-hosted-vnc" and liveness != "INACTIVE":
+                raise BrowserlessAutomationHold(
+                    f"legacy self-hosted human resume requires proven current-session absence; observed {liveness}"
+                )
+            resume_id = handoff.get("handoffDigest")
+
         if not isinstance(resume_id, str) or not resume_id.startswith("sha256:"):
             raise BrowserlessAutomationConflict("human handoff lacks stable resume identity")
         temporal = self._temporal_admit(
@@ -961,6 +1217,183 @@ class BrowserlessAutomationService:
             "effectId": materialization.request_id,
             "temporal": temporal,
             "census": census,
+        }
+
+    def conversation_affinity(self, spec_path: Path, campaign_ref: str, agent_id: str) -> dict:
+        """Project the preferred existing conversation without provider effects."""
+        spec = self.load_spec(spec_path)
+        materialization = self._materialization(spec, agent_id)
+        adopted = read_conversation_binding(self.config.ledger, campaign_ref, agent_id)
+        if adopted is not None:
+            try:
+                session = resolve_session(adopted["sessionId"])
+            except Exception:
+                return {
+                    "schemaVersion": 1,
+                    "kind": "ordivon.conversation-affinity",
+                    "campaignRef": campaign_ref,
+                    "agentId": agent_id,
+                    "standing": "STALE",
+                    "placementAction": "HOLD_EXISTING_AFFINITY",
+                    "affinityKind": "DURABLE_CFT_SESSION",
+                    "providerResource": adopted["providerResource"],
+                    "sessionId": adopted["sessionId"],
+                    "bindingDigest": adopted["bindingDigest"],
+                    "providerEffectAttempted": False,
+                }
+            if session.get("standing") != "READY":
+                return {
+                    "schemaVersion": 1,
+                    "kind": "ordivon.conversation-affinity",
+                    "campaignRef": campaign_ref,
+                    "agentId": agent_id,
+                    "standing": "STALE",
+                    "placementAction": "HOLD_EXISTING_AFFINITY",
+                    "affinityKind": "DURABLE_CFT_SESSION",
+                    "providerResource": adopted["providerResource"],
+                    "sessionId": adopted["sessionId"],
+                    "bindingDigest": adopted["bindingDigest"],
+                    "providerEffectAttempted": False,
+                }
+            return {
+                "schemaVersion": 1,
+                "kind": "ordivon.conversation-affinity",
+                "campaignRef": campaign_ref,
+                "agentId": agent_id,
+                "standing": "READY",
+                "placementAction": "CONTINUE",
+                "affinityKind": "DURABLE_CFT_SESSION",
+                "providerResource": adopted["providerResource"],
+                "sessionId": adopted["sessionId"],
+                "bindingDigest": adopted["bindingDigest"],
+                "providerEffectAttempted": False,
+            }
+
+        census = campaign_census(spec, self.config.ledger)
+        row = next(item for item in census["materializations"] if item["agentId"] == agent_id)
+        if row.get("materializationStanding") == "bound" and row.get("providerResource"):
+            try:
+                binding = self._current_binding(materialization)
+            except BrowserlessCarrierIdentityStale:
+                binding = None
+            if binding is None:
+                return {
+                    "schemaVersion": 1,
+                    "kind": "ordivon.conversation-affinity",
+                    "campaignRef": campaign_ref,
+                    "agentId": agent_id,
+                    "standing": "STALE",
+                    "placementAction": "HOLD_EXISTING_AFFINITY",
+                    "affinityKind": "BROWSERLESS_MATERIALIZATION",
+                    "providerResource": row["providerResource"],
+                    "providerEffectAttempted": False,
+                }
+            return {
+                "schemaVersion": 1,
+                "kind": "ordivon.conversation-affinity",
+                "campaignRef": campaign_ref,
+                "agentId": agent_id,
+                "standing": "READY",
+                "placementAction": "CONTINUE",
+                "affinityKind": "BROWSERLESS_MATERIALIZATION",
+                "providerResource": row["providerResource"],
+                "endpointId": binding["endpointId"],
+                "providerEffectAttempted": False,
+            }
+        return {
+            "schemaVersion": 1,
+            "kind": "ordivon.conversation-affinity",
+            "campaignRef": campaign_ref,
+            "agentId": agent_id,
+            "standing": "NONE",
+            "placementAction": "MATERIALIZE_FALLBACK",
+            "affinityKind": "NONE",
+            "providerEffectAttempted": False,
+        }
+
+    def adopt_conversation(
+        self,
+        spec_path: Path,
+        campaign_ref: str,
+        agent_id: str,
+        *,
+        adoption_request_id: str,
+        marker_proof: dict,
+    ) -> dict:
+        """Adopt one exact existing provider conversation without crossing SEND."""
+        spec = self.load_spec(spec_path)
+        if agent_id not in {role.agent_id for role in spec.roster}:
+            raise BrowserlessAutomationConflict(
+                "agentId does not identify exactly one campaign role"
+            )
+        if not isinstance(marker_proof, dict) or set(marker_proof) != {
+            "sessionId",
+            "markerDigest",
+        }:
+            raise BrowserlessAutomationConflict(
+                "markerProof must contain exactly sessionId and markerDigest"
+            )
+        try:
+            session = resolve_session(marker_proof["sessionId"])
+        except (RuntimeError, ValueError) as error:
+            raise BrowserlessAutomationHold(
+                f"durable human session is unavailable: {error}"
+            ) from error
+        if (
+            session.get("standing") != "READY"
+            or session.get("sessionId") != marker_proof["sessionId"]
+            or not isinstance(session.get("cdpEndpoint"), str)
+        ):
+            raise BrowserlessAutomationHold("durable human session is not READY")
+        discovery = discover_exact_marker(
+            {
+                "sessionId": session["sessionId"],
+                "cdpEndpoint": session["cdpEndpoint"],
+            },
+            marker_proof["markerDigest"],
+        )
+        standing = discovery.get("standing")
+        if standing == "NO_MATCH":
+            raise BrowserlessAutomationHold(
+                "conversation adoption found no exact provider conversation"
+            )
+        if standing == "AMBIGUOUS_MATCH":
+            raise BrowserlessAutomationConflict(
+                "conversation adoption found multiple exact provider conversations"
+            )
+        if standing != "EXACT_MATCH" or discovery.get("matchCount") != 1:
+            raise BrowserlessAutomationConflict(
+                "conversation adoption discovery returned an unsupported standing"
+            )
+        resource = discovery.get("providerResource")
+        evidence = discovery.get("evidenceDigest")
+        if not isinstance(resource, str) or not isinstance(evidence, str):
+            raise BrowserlessAutomationConflict(
+                "exact conversation discovery lacks binding evidence"
+            )
+        try:
+            binding = SQLiteConversationBindingStore(self.config.ledger).adopt_binding(
+                campaign_ref=campaign_ref,
+                agent_id=agent_id,
+                provider_resource=resource,
+                session_id=session["sessionId"],
+                evidence_digest=evidence,
+                request_id=adoption_request_id,
+            )
+        except ConversationBindingConflict as error:
+            raise BrowserlessAutomationConflict(str(error)) from error
+        return {
+            "schemaVersion": 1,
+            "kind": "ordivon.conversation-adoption",
+            "standing": "ADOPTED",
+            "campaignRef": campaign_ref,
+            "agentId": agent_id,
+            "providerResource": binding["providerResource"],
+            "sessionId": binding["sessionId"],
+            "bindingDigest": binding["bindingDigest"],
+            "discoveryEvidenceDigest": evidence,
+            "providerEffectAttempted": False,
+            "sendAttempted": False,
         }
 
     def _turn_effect_row(self, turn_request_id: str) -> dict | None:
@@ -988,7 +1421,13 @@ class BrowserlessAutomationService:
         }
 
     def launch_continue(
-        self, spec_path: Path, agent_id: str, *, prompt: str, turn_request_id: str
+        self,
+        spec_path: Path,
+        agent_id: str,
+        *,
+        prompt: str,
+        turn_request_id: str,
+        campaign_ref: str | None = None,
     ) -> dict:
         spec = self.load_spec(spec_path)
         materialization = self._materialization(spec, agent_id)
@@ -998,16 +1437,36 @@ class BrowserlessAutomationService:
             raise BrowserlessAutomationConflict(str(error)) from error
         prompt = _continuation_prompt(prompt)
         census = campaign_census(spec, self.config.ledger)
-        row = next(r for r in census["materializations"] if r["agentId"] == agent_id)
-        if row.get("materializationStanding") != "bound" or not row.get("providerResource"):
-            raise BrowserlessAutomationHold("materialization is not provider-bound")
-        binding = self._current_binding(materialization)
-        if binding is None:
-            raise BrowserlessAutomationHold(
-                "provider-bound materialization has no current carrier binding"
-            )
-        endpoint = self._endpoint_by_id(binding["endpointId"])
         ledger_before = self._turn_effect_row(turn_request_id)
+        affinity: dict | None = None
+        endpoint = None
+        if ledger_before is None:
+            if campaign_ref is not None:
+                affinity = self.conversation_affinity(spec_path, campaign_ref, agent_id)
+                if affinity["placementAction"] == "HOLD_EXISTING_AFFINITY":
+                    raise BrowserlessAutomationHold(
+                        "existing conversation affinity is not currently usable"
+                    )
+                if affinity["placementAction"] != "CONTINUE":
+                    raise BrowserlessAutomationHold(
+                        "conversation has no existing affinity; materialization fallback is required"
+                    )
+                if affinity["affinityKind"] == "BROWSERLESS_MATERIALIZATION":
+                    endpoint = self._endpoint_by_id(affinity["endpointId"])
+                elif affinity["affinityKind"] != "DURABLE_CFT_SESSION":
+                    raise BrowserlessAutomationConflict(
+                        "conversation affinity kind is unsupported for continuation"
+                    )
+            else:
+                row = next(r for r in census["materializations"] if r["agentId"] == agent_id)
+                if row.get("materializationStanding") != "bound" or not row.get("providerResource"):
+                    raise BrowserlessAutomationHold("materialization is not provider-bound")
+                binding = self._current_binding(materialization)
+                if binding is None:
+                    raise BrowserlessAutomationHold(
+                        "provider-bound materialization has no current carrier binding"
+                    )
+                endpoint = self._endpoint_by_id(binding["endpointId"])
         # A claimed turn is never re-sent. Temporal replay remains useful for recovering the
         # original workflow identity, and provider readiness is irrelevant once the effect fence
         # exists.
@@ -1027,10 +1486,12 @@ class BrowserlessAutomationService:
                 "temporal": temporal,
                 "turnLedgerStanding": ledger_before["state"],
                 "retryAdmitted": False,
+                "affinityKind": "REPLAY_FENCED" if affinity is None else affinity["affinityKind"],
                 "census": census,
             }
 
-        self._require_provider_ready(endpoint.endpoint_id)
+        if endpoint is not None:
+            self._require_provider_ready(endpoint.endpoint_id)
         temporal = self._temporal_admit(
             spec_path, "continue", agent_id=agent_id, prompt=prompt, turn_request_id=turn_request_id
         )
@@ -1060,7 +1521,67 @@ class BrowserlessAutomationService:
             "temporal": temporal,
             "turnLedgerStanding": None,
             "retryAdmitted": retry_admitted,
+            "affinityKind": (
+                affinity["affinityKind"] if affinity is not None else "BROWSERLESS_MATERIALIZATION"
+            ),
             "census": census,
+        }
+
+    def launch_wake(
+        self,
+        spec_path: Path,
+        campaign_ref: str,
+        agent_id: str,
+        *,
+        wake_intent_id: str,
+        prompt: str,
+    ) -> dict:
+        prompt = _continuation_prompt(prompt)
+        prompt_digest = "sha256:" + hashlib.sha256(prompt.encode("utf-8")).hexdigest()
+        try:
+            mapping = SQLiteWakeTurnMap(self.config.turn_ledger).allocate(
+                campaign_ref=campaign_ref,
+                agent_id=agent_id,
+                wake_intent_id=wake_intent_id,
+                prompt_digest=prompt_digest,
+            )
+        except WakeTurnConflict as error:
+            raise BrowserlessAutomationConflict(str(error)) from error
+        affinity = self.conversation_affinity(spec_path, campaign_ref, agent_id)
+        if affinity["placementAction"] == "HOLD_EXISTING_AFFINITY":
+            raise BrowserlessAutomationHold(
+                "existing conversation affinity is not currently usable"
+            )
+        if affinity["placementAction"] == "MATERIALIZE_FALLBACK":
+            materialization = self.launch_reconcile(spec_path, agent_id)
+            return {
+                "schemaVersion": 1,
+                "kind": "ordivon.conversation-wake",
+                "campaignRef": campaign_ref,
+                "agentId": agent_id,
+                "wakeIntentId": wake_intent_id,
+                "turnRequestId": mapping["turnRequestId"],
+                "placementAction": "MATERIALIZE_FALLBACK",
+                "promptSent": False,
+                "materialization": materialization,
+            }
+        continuation = self.launch_continue(
+            spec_path,
+            agent_id,
+            campaign_ref=campaign_ref,
+            prompt=prompt,
+            turn_request_id=mapping["turnRequestId"],
+        )
+        return {
+            "schemaVersion": 1,
+            "kind": "ordivon.conversation-wake",
+            "campaignRef": campaign_ref,
+            "agentId": agent_id,
+            "wakeIntentId": wake_intent_id,
+            "turnRequestId": mapping["turnRequestId"],
+            "placementAction": "CONTINUE",
+            "promptSent": True,
+            "continuation": continuation,
         }
 
     def _provider_preflight_under_carrier_lease(self, endpoint_id: str) -> dict:
@@ -1248,10 +1769,22 @@ class BrowserlessAutomationService:
                 raise AssertionError
 
         ledger = SQLiteConversationMaterializer(self.config.ledger, Noop()).doctor()
+        archive = project_archive(
+            self.config.ledger,
+            self.config.state_root / "materialization-reconciliation-archive.json",
+        )
+        ledger = {
+            **ledger,
+            "historicalArchivedUnresolved": archive["activeArchivedUnresolved"],
+            "actionableUnresolved": archive["actionableUnresolved"],
+            "actionableEffectOutcomeAmbiguous": archive["actionableEffectOutcomeAmbiguous"],
+            "actionableHumanRequired": archive["actionableHumanRequired"],
+            "administrativeArchive": archive,
+        }
         return {
             "schemaVersion": 1,
             "kind": "ordivon.browserless-agent-automation-doctor",
-            "healthy": health["healthy"] and ledger["healthy"],
+            "healthy": health["healthy"] and ledger["healthy"] and archive["healthy"],
             "browserSubstrate": health,
             "providerBoundaryPolicy": provider_boundary_policy(),
             "ledger": ledger,

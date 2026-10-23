@@ -14,13 +14,21 @@ PRODUCTION_SERVER = "temporal.service"
 WORKER = "ordivon-agent-temporal-worker.service"
 SYSTEMD = Path("/etc/systemd/system")
 CONFIG = Path("/etc/ordivon/agent-automation-browserless.json")
-VENV_PY = Path("/root/.local/share/ordivon-workstation/temporal-agent-automation/.venv/bin/python")
+VENV_PY = Path(
+    "/root/.local/share/ordivon-workstation/temporal-agent-automation/py315-sqlite354-r19-release/bin/python"
+)
+UV = Path("/usr/bin/uv")
+REQUIREMENTS = ROOT / "config" / "agent-automation-temporal-requirements.txt"
 TEMPORAL = Path("/opt/ordivon/external/temporal-cli/1.8.3/temporal")
 TEMPORAL_SHA = "76aea8d71fafe2d39c1104bef3ce86c1600d9adbff79953d102f60e535ae1413"
 PRODUCTION_ADDRESS = "127.0.0.1:17233"
 EXPECTED_RUNTIME_VERSIONS = {
     "temporalio": "1.32.0",
     "rfc8785": "0.1.4",
+    "mcp": "2.2.0",
+    "httpx": "0.28.1",
+    "pythonVersion": "3.15.0",
+    "sqliteVersion": "3.54.0",
 }
 
 
@@ -52,9 +60,11 @@ def runtime_versions() -> dict[str, str] | None:
     if not VENV_PY.is_file():
         return None
     code = (
-        "import importlib.metadata as m,json;"
-        "names=['temporalio','rfc8785'];"
-        "print(json.dumps({n:m.version(n) for n in names},sort_keys=True))"
+        "import importlib.metadata as m,json,sqlite3,sys;"
+        "names=['temporalio','rfc8785','mcp','httpx'];"
+        "v={n:m.version(n) for n in names};"
+        "v.update({'pythonVersion':sys.version.split()[0],'sqliteVersion':sqlite3.sqlite_version});"
+        "print(json.dumps(v,sort_keys=True))"
     )
     proc = subprocess.run(
         [str(VENV_PY), "-c", code],
@@ -72,10 +82,20 @@ def runtime_versions() -> dict[str, str] | None:
     return value if isinstance(value, dict) else None
 
 
+def provision_runtime_dependencies() -> None:
+    if not UV.is_file() or not REQUIREMENTS.is_file() or not VENV_PY.is_file():
+        raise RuntimeError("Temporal worker dependency provisioning inputs are unavailable")
+    subprocess.run(
+        [str(UV), "pip", "install", "--python", str(VENV_PY), "-r", str(REQUIREMENTS)],
+        check=True,
+        timeout=180,
+    )
+
+
 def config_address() -> str | None:
     try:
         value = json.loads(CONFIG.read_text())
-    except (OSError, json.JSONDecodeError):
+    except OSError, json.JSONDecodeError:
         return None
     address = value.get("temporalAddress") if isinstance(value, dict) else None
     return address if isinstance(address, str) else None
@@ -114,6 +134,8 @@ def apply() -> dict:
         raise RuntimeError("Temporal CLI exact binary is unavailable")
     if not current["temporalSdkPresent"]:
         raise RuntimeError("Temporal SDK venv is unavailable")
+    provision_runtime_dependencies()
+    current = plan()
     if not current["runtimeVersionsExact"]:
         raise RuntimeError(
             f"Temporal worker runtime versions differ from contract: {current['runtimeVersions']}"

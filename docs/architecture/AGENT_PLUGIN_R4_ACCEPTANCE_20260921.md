@@ -1,7 +1,10 @@
 # B05 — Agent Plugin R4 Selective Composition Acceptance
 
 Date: 2026-09-21
-Status: ACCEPTED AS COMPOSITION CANDIDATE / CONNECTOR CUTOVER REMAINS C02
+Status: ACCEPTED HISTORICAL COMPOSITION CANDIDATE
+Historical standing: SUPERSEDED BY C02/D01 FOR CURRENT ENDPOINT TOPOLOGY
+
+> The endpoint statement in this B05 snapshot predates C02/D01. The current canonical Plugin declares exactly one Gateway MCP endpoint; see `CURRENT_ARCHITECTURE.md`.
 
 ## Decision
 

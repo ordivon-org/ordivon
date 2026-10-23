@@ -1,7 +1,10 @@
 # Architecture Convergence A01-R2 — Current-Source Authority Audit
 
 Date: 2026-09-21
-Status: ACCEPTED / SUPERSEDES STALE HISTORICAL A01 CONCLUSION
+Status: ACCEPTED HISTORICAL SNAPSHOT
+Historical standing: SUPERSEDED FOR CURRENT DEPLOYMENT STATUS by `CURRENT_ARCHITECTURE.md`
+
+> This file preserves the A01-R2 decision point. Its `planned` / `BUILD` labels describe that checkpoint, not current deployment. Gateway, Method Router, Tool Binding, and subsequent convergence gates were implemented and accepted later.
 
 ## Scope
 

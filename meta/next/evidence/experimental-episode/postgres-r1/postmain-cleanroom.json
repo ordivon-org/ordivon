@@ -1,0 +1,111 @@
+{
+  "dump": {
+    "bytes": 7468299,
+    "sha256": "sha256:ccbabba54b9f812b858a3f17b022ebfa72dab40851eb1dfa6d56ab3daeb81890"
+  },
+  "firstLoad": {
+    "harness": {
+      "episodeCount": 7,
+      "ingestId": "ingest:sha256:f5914889d6ba17492a2dcc4b862dbcdbc6598f1e70a0e8f9c8ee678fdb49bf0a",
+      "insertedProjectionCountThisRun": 7,
+      "profileId": "harness-rsi-acceptance-v1",
+      "replayExistingIngest": false,
+      "retainedOriginalInsertedProjectionCount": 7,
+      "sourceFileDigest": "sha256:7566b2172663ba4286fd2778ca234b0c8e099937ae1a0c6de1389e2e07e294d6",
+      "standing": "PASS_IDEMPOTENT_PROJECTION_INGEST"
+    },
+    "runtime": {
+      "episodeCount": 10000,
+      "ingestId": "ingest:sha256:5532332cd1961d49457a2141c59831d93f8e863ccc71c16b9ed146b9c04f8b5e",
+      "insertedProjectionCountThisRun": 10000,
+      "profileId": "runtime-r5c-v1",
+      "replayExistingIngest": false,
+      "retainedOriginalInsertedProjectionCount": 10000,
+      "sourceFileDigest": "sha256:ff4257772344c51e25313e914586ee760e1180cb1f261796beedd34345267e8d",
+      "standing": "PASS_IDEMPOTENT_PROJECTION_INGEST"
+    }
+  },
+  "identityMatch": true,
+  "primary": {
+    "owners": [
+      "alembic_version|ordivon_experimental_owner_postmain",
+      "episode_dimensions|ordivon_experimental_owner_postmain",
+      "episode_evidence_bindings|ordivon_experimental_owner_postmain",
+      "episode_measures|ordivon_experimental_owner_postmain",
+      "episode_owner_refs|ordivon_experimental_owner_postmain",
+      "episode_projections|ordivon_experimental_owner_postmain",
+      "experimental_schema|ordivon_experimental_owner_postmain",
+      "projection_ingests|ordivon_experimental_owner_postmain"
+    ],
+    "projectionIdentityCount": 10007,
+    "projectionIdentitySetSha256": "sha256:7080e193ab09c148bd43b9f54f4d4989ef553bd9d2097690b5857da35feed66d",
+    "tableCounts": {
+      "episode_dimensions": 50027,
+      "episode_evidence_bindings": 20014,
+      "episode_measures": 30036,
+      "episode_owner_refs": 70063,
+      "episode_projections": 10007,
+      "projection_ingests": 2
+    }
+  },
+  "replay": {
+    "harness": {
+      "episodeCount": 7,
+      "ingestId": "ingest:sha256:f5914889d6ba17492a2dcc4b862dbcdbc6598f1e70a0e8f9c8ee678fdb49bf0a",
+      "insertedProjectionCountThisRun": 0,
+      "profileId": "harness-rsi-acceptance-v1",
+      "replayExistingIngest": true,
+      "retainedOriginalInsertedProjectionCount": 7,
+      "sourceFileDigest": "sha256:7566b2172663ba4286fd2778ca234b0c8e099937ae1a0c6de1389e2e07e294d6",
+      "standing": "PASS_IDEMPOTENT_PROJECTION_INGEST"
+    },
+    "runtime": {
+      "episodeCount": 10000,
+      "ingestId": "ingest:sha256:5532332cd1961d49457a2141c59831d93f8e863ccc71c16b9ed146b9c04f8b5e",
+      "insertedProjectionCountThisRun": 0,
+      "profileId": "runtime-r5c-v1",
+      "replayExistingIngest": true,
+      "retainedOriginalInsertedProjectionCount": 10000,
+      "sourceFileDigest": "sha256:ff4257772344c51e25313e914586ee760e1180cb1f261796beedd34345267e8d",
+      "standing": "PASS_IDEMPOTENT_PROJECTION_INGEST"
+    }
+  },
+  "restored": {
+    "owners": [
+      "alembic_version|ordivon_experimental_owner_postmain",
+      "episode_dimensions|ordivon_experimental_owner_postmain",
+      "episode_evidence_bindings|ordivon_experimental_owner_postmain",
+      "episode_measures|ordivon_experimental_owner_postmain",
+      "episode_owner_refs|ordivon_experimental_owner_postmain",
+      "episode_projections|ordivon_experimental_owner_postmain",
+      "experimental_schema|ordivon_experimental_owner_postmain",
+      "projection_ingests|ordivon_experimental_owner_postmain"
+    ],
+    "projectionIdentityCount": 10007,
+    "projectionIdentitySetSha256": "sha256:7080e193ab09c148bd43b9f54f4d4989ef553bd9d2097690b5857da35feed66d",
+    "tableCounts": {
+      "episode_dimensions": 50027,
+      "episode_evidence_bindings": 20014,
+      "episode_measures": 30036,
+      "episode_owner_refs": 70063,
+      "episode_projections": 10007,
+      "projection_ingests": 2
+    }
+  },
+  "standing": "PASS_RW3_POSTMAIN_CLEANROOM",
+  "summary": {
+    "profiles": {
+      "harness-rsi-acceptance-v1": 7,
+      "runtime-r5c-v1": 10000
+    },
+    "tables": {
+      "episode_dimensions": 50027,
+      "episode_evidence_bindings": 20014,
+      "episode_measures": 30036,
+      "episode_owner_refs": 70063,
+      "episode_projections": 10007,
+      "projection_ingests": 2
+    }
+  },
+  "tableCountsMatch": true
+}

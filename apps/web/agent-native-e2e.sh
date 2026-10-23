@@ -80,6 +80,6 @@ if [[ -z "$chromium_executable" ]]; then
 fi
 
 printf '%s\n' 'stage=agent-native-e2e'
-ORDIVON_WEB_CHROMIUM_EXECUTABLE="$chromium_executable" ORDIVON_WEB_AGENT_ISSUER="$issuer"   mise exec node@26.9.0 -- node "$root/test/agent-native-e2e.ts"
+ORDIVON_WEB_CHROMIUM_EXECUTABLE="$chromium_executable" ORDIVON_WEB_AGENT_ISSUER="$issuer"   mise exec node@26.12.0 -- node "$root/test/agent-native-e2e.ts"
 
 printf '%s\n' 'stage=done'

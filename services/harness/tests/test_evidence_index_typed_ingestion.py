@@ -256,7 +256,13 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
             runtime_dependency_closure_digest="sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829",
         )
         self.assertFalse(current)
-        self.assertEqual(invalidating, ["@runtime-dependency-closure"])
+        self.assertEqual(
+            invalidating,
+            [
+                "src/ordivon_harness/ordivon/sqlite_runtime_bridge.py",
+                "@runtime-dependency-closure",
+            ],
+        )
 
         lsp_scope = ("src/ordivon_harness/lsp_workspace_edit.py",)
         current, invalidating = check_evidence._verified_revision_is_current(
@@ -297,7 +303,8 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
     def test_scoped_historical_evidence_preserves_old_runtime_dependency_closure(self) -> None:
         entries = self._entries()
         scoped = [
-            entry for entry in entries.values()
+            entry
+            for entry in entries.values()
             if "implementationPaths" in entry
             and entry.get("runtimeDependencyClosureDigest")
             == "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829"
@@ -320,10 +327,11 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
             )
             self.assertFalse(current, entry.get("claimId"))
             self.assertIn("@runtime-dependency-closure", invalidating, entry.get("claimId"))
-        self.assertEqual(
-            check_evidence._runtime_dependency_closure_digest("HEAD"),
-            "sha256:9dcd43f9409ad41c5113ac5ab929898eceb9da4e7485d88d4873242ed6205e21",
-        )
+        # The current digest is derived from the actual committed owner lock;
+        # only historical receipts retain a fixed, provenance-bound digest.
+        current_digest = check_evidence._runtime_dependency_closure_digest("HEAD")
+        self.assertRegex(current_digest, r"\Asha256:[0-9a-f]{64}\Z")
+        self.assertNotEqual(current_digest, scoped[0]["runtimeDependencyClosureDigest"])
 
     def test_scoped_runtime_dependency_digest_fails_closed_on_wrong_revision_binding(self) -> None:
         scope = ("src/ordivon_harness/adaptive_edit.py",)
@@ -351,56 +359,108 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
         )
         self.assertTrue(any("ancestor" in error for error in errors))
 
-    def test_python_3147_upgrade_is_historical_after_skills_owner_extraction(self) -> None:
+    def test_environment_and_h1_profiles_are_historical_after_plugin_h2(self) -> None:
         entries = self._entries()
+
         old = entries["harness.environment.python-3.14.7-upgrade"]
         self.assertEqual(old["status"], "historical")
-        self.assertEqual(
-            old["implementationRevision"],
-            "dfe099d7d7725089c270aaf2acf08a6688c8c045",
-        )
-        old_receipt = json.loads(
-            (ROOT / "evidence" / "harness-python-3.14.7-upgrade-20260921.json").read_text(
-                encoding="utf-8"
-            )
-        )
-        self.assertEqual(old_receipt["checks"]["pytest"]["cases"], 909)
-        self.assertEqual(old_receipt["checks"]["pytest"]["subtests"], 156)
         old_current, invalidating = check_evidence._verified_revision_is_current(
             str(old["implementationRevision"])
         )
         self.assertFalse(old_current)
         self.assertIn("pyproject.toml", invalidating)
-        self.assertIn("uv.lock", invalidating)
-        self.assertIn("src/ordivon_harness/skills/catalog.py", invalidating)
 
-        current = entries["harness.environment.post-skills-extraction-python-3.14.7"]
-        self.assertEqual(current["status"], "verified")
+        post_skills = entries["harness.environment.post-skills-extraction-python-3.14.7"]
+        self.assertEqual(post_skills["status"], "historical")
+        post_current, post_invalidating = check_evidence._verified_revision_is_current(
+            str(post_skills["implementationRevision"])
+        )
+        self.assertFalse(post_current)
+        self.assertIn("src/ordivon_harness/agent_plugin.py", post_invalidating)
+
+        h1 = entries["harness.composition.agent-plugin-h1"]
+        self.assertEqual(h1["status"], "historical")
+        h1_receipt = json.loads(
+            (ROOT / "evidence" / "harness-agent-plugin-h1-acceptance-20260922.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(h1_receipt["composition"]["pluginStandard"], "Agent Plugins v1")
+        self.assertFalse(h1_receipt["composition"]["effectfulToolsAdmitted"])
+        h1_current, h1_invalidating = check_evidence._verified_revision_is_current(
+            str(h1["implementationRevision"])
+        )
+        self.assertFalse(h1_current)
+        self.assertIn("src/ordivon_harness/agent_run.py", h1_invalidating)
+        self.assertIn("src/ordivon_harness/plugin_gateway_effect.py", h1_invalidating)
+
+        h2 = entries["harness.composition.agent-plugin-h2-durable-gateway-effects"]
+        self.assertEqual(h2["status"], "historical")
+        h2_receipt = json.loads(
+            (
+                ROOT / "evidence" / "harness-agent-plugin-h2-durable-gateway-effects-20260922.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertTrue(h2_receipt["composition"]["durablePreDispatchIntent"])
+        self.assertFalse(h2_receipt["composition"]["blindEffectRedispatchOnResponseLoss"])
+        h2_current, h2_invalidating = check_evidence._verified_revision_is_current(
+            str(h2["implementationRevision"])
+        )
+        self.assertFalse(h2_current)
+        self.assertIn(
+            "src/ordivon_harness/ordivon/sqlite_runtime_bridge.py",
+            h2_invalidating,
+        )
+        self.assertIn("src/ordivon_harness/plugin_gateway_effect.py", h2_invalidating)
+
+        current = entries["harness.composition.agent-plugin-h2b-cooperative-cancellation"]
+        self.assertEqual(current["status"], "historical")
+        self.assertIn("NOT current Harness qualification", current["scope"])
         self.assertEqual(
             current["implementationRevision"],
-            "e053c4f7eadb86eae8eaff53311ef97a315929be",
+            "5c70231dcf118a338bc851c2a47eeee4e93b9f0e",
         )
         receipt = json.loads(
             (
                 ROOT
                 / "evidence"
-                / "harness-post-skills-extraction-python-3.14.7-20260921.json"
+                / "harness-agent-plugin-h2b-cooperative-cancellation-20260922.json"
             ).read_text(encoding="utf-8")
         )
-        self.assertEqual(receipt["python"]["version"], "3.14.7")
-        self.assertEqual(receipt["checks"]["skillsOwner"]["pytest"]["cases"], 82)
-        self.assertEqual(receipt["checks"]["skillsOwner"]["pytest"]["subtests"], 34)
-        self.assertEqual(receipt["checks"]["harness"]["pytest"]["cases"], 838)
-        self.assertEqual(receipt["checks"]["harness"]["pytest"]["subtests"], 122)
+        self.assertEqual(receipt["composition"]["controlTool"], "execution.cancel")
+        self.assertFalse(receipt["composition"]["cancelAcknowledgementIsTerminalProof"])
+        self.assertEqual(receipt["composition"]["nonTerminalReceiptStatus"], "cancel-requested")
+        self.assertEqual(receipt["composition"]["runStopCodeUntilTerminalProof"], "cancel_unknown")
         self.assertEqual(
             receipt["runtimeDependencyClosureDigest"],
-            "sha256:9dcd43f9409ad41c5113ac5ab929898eceb9da4e7485d88d4873242ed6205e21",
+            "sha256:c24519d0fdfbbaf56233fb25568428ff6fbdf3dac962ea62e2b95590e1a2d7d5",
+        )
+        self.assertEqual(
+            current["implementationPaths"],
+            [
+                "src/ordivon_harness/ordivon/sqlite_runtime_bridge.py",
+                "src/ordivon_harness/plugin_gateway_effect.py",
+            ],
+        )
+        self.assertEqual(
+            current["runtimeDependencyClosureDigest"],
+            receipt["runtimeDependencyClosureDigest"],
         )
         current_ok, current_invalidating = check_evidence._verified_revision_is_current(
-            str(current["implementationRevision"])
+            str(current["implementationRevision"]),
+            tuple(current["implementationPaths"]),
+            runtime_dependency_closure_digest=str(
+                current["runtimeDependencyClosureDigest"]
+            ),
         )
-        self.assertTrue(current_ok, current_invalidating)
-        self.assertEqual(current_invalidating, [])
+        self.assertFalse(current_ok)
+        self.assertIn("@runtime-dependency-closure", current_invalidating)
+        self.assertEqual(
+            check_evidence._runtime_dependency_closure_digest(
+                str(current["implementationRevision"])
+            ),
+            current["runtimeDependencyClosureDigest"],
+        )
 
     def test_owner_relative_git_paths_survive_identity_preserving_monorepo_import(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -423,16 +483,16 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
                 "print('probe')\n", encoding="utf-8"
             )
             subprocess.run(["git", "-C", str(source), "add", "."], check=True)
-            subprocess.run(["git", "-C", str(source), "commit", "-q", "-m", "implementation"], check=True)
+            subprocess.run(
+                ["git", "-C", str(source), "commit", "-q", "-m", "implementation"], check=True
+            )
             implementation = subprocess.check_output(
                 ["git", "-C", str(source), "rev-parse", "HEAD"], text=True
             ).strip()
 
             receipt_bytes = b'{"kind":"probe"}\n'
             (source / "evidence" / "receipt.json").write_bytes(receipt_bytes)
-            subprocess.run(
-                ["git", "-C", str(source), "add", "evidence/receipt.json"], check=True
-            )
+            subprocess.run(["git", "-C", str(source), "add", "evidence/receipt.json"], check=True)
             subprocess.run(["git", "-C", str(source), "commit", "-q", "-m", "evidence"], check=True)
             source_head = subprocess.check_output(
                 ["git", "-C", str(source), "rev-parse", "HEAD"], text=True

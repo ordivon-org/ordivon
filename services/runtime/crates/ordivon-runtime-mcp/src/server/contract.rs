@@ -73,6 +73,36 @@ pub struct WorkspaceReadResult {
 
 #[derive(Clone, Debug, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct WorkspaceFileToolRequest {
+    #[schemars(range(min = 1, max = 1), extend("const" = 1))]
+    #[serde(default = "default_schema_version")]
+    pub schema_version: u32,
+    #[schemars(length(min = WORKSPACE_ID_MIN_LENGTH, max = WORKSPACE_ID_MAX_LENGTH), regex(pattern = WORKSPACE_ID_PATTERN))]
+    pub workspace_id: String,
+    pub relative_path: String,
+    #[schemars(regex(pattern = r"^sha256:[0-9a-f]{64}$"))]
+    pub expected_digest: String,
+    #[schemars(range(min = 1, max = MAX_WORKSPACE_IO_BYTES))]
+    pub max_bytes: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(length(min = 1, max = 256))]
+    pub media_type: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceFileProjectionMetadata {
+    pub workspace_id: String,
+    pub relative_path: String,
+    pub digest: String,
+    pub byte_length: u64,
+    pub media_type: String,
+    pub media_type_standing: String,
+    pub resource_uri: String,
+}
+
+#[derive(Clone, Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct WorkspaceDiffRequest {
     #[schemars(range(min = 1, max = 1), extend("const" = 1))]
     #[serde(default = "default_schema_version")]
@@ -99,6 +129,20 @@ fn default_task_get_event_limit() -> u32 {
     DEFAULT_INSPECTION_EVENT_LIMIT
 }
 
+#[derive(Clone, Debug, Serialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ArtifactContentProjectionMetadata {
+    pub job_id: String,
+    pub artifact_id: String,
+    pub digest: String,
+    pub byte_length: u64,
+    pub truncated: bool,
+    pub registered_media_type: String,
+    pub media_type: String,
+    pub media_type_standing: String,
+    pub resource_uri: String,
+}
+
 #[derive(Clone, Debug, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct RuntimeDescribeRequest {
@@ -119,6 +163,7 @@ pub struct RuntimeDescribeResult {
     pub allowed_executable_roots: Vec<String>,
     pub input_authorities: Vec<String>,
     pub credential_authorities: Vec<String>,
+    pub credential_materialization_bindings: Vec<String>,
     pub input_ingress_authorities: Vec<String>,
     pub targets: Vec<RuntimeExecutionTargetCapability>,
     pub structured_release_configured: bool,
@@ -130,6 +175,7 @@ impl RuntimeDescribeResult {
         global_execution_limit: u32,
         structured_release_configured: bool,
         input_ingress_authorities: Vec<String>,
+        credential_materialization_bindings: Vec<String>,
     ) -> Self {
         Self {
             schema_version: capabilities.schema_version,
@@ -141,11 +187,43 @@ impl RuntimeDescribeResult {
             allowed_executable_roots: capabilities.allowed_executable_roots,
             input_authorities: capabilities.input_authorities,
             credential_authorities: capabilities.credential_authorities,
+            credential_materialization_bindings,
             input_ingress_authorities,
             targets: capabilities.targets,
             structured_release_configured,
         }
     }
+}
+
+#[derive(Clone, Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CredentialMaterializationToolRequest {
+    #[schemars(range(min = 1, max = 1), extend("const" = 1))]
+    #[serde(default = "default_schema_version")]
+    pub schema_version: u32,
+    #[schemars(length(min = CLIENT_REQUEST_ID_MIN_LENGTH, max = CLIENT_REQUEST_ID_MAX_LENGTH), extend("pattern" = CLIENT_REQUEST_ID_PATTERN))]
+    pub client_request_id: String,
+    #[schemars(length(min = 1, max = 128), regex(pattern = "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"))]
+    pub binding: String,
+}
+
+#[derive(Clone, Debug, Serialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct CredentialMaterializationToolResult {
+    pub schema_version: u32,
+    pub kind: String,
+    pub binding: String,
+    pub disposition: String,
+    pub endpoint_count: u32,
+    pub bytes: u64,
+    pub secret_values_returned: bool,
+    pub secret_digests_returned: bool,
+    pub non_claims: Vec<String>,
+}
+
+#[derive(Clone, Debug)]
+pub struct CredentialMaterializationExecutionConfig {
+    pub bindings: BTreeMap<String, Vec<String>>,
 }
 
 #[derive(Clone, Debug, Deserialize, JsonSchema)]
@@ -268,6 +346,76 @@ impl RuntimeReleaseExecutionPlatform {
             Self::WindowsNative => WindowsAuthority::Elevated,
         }
     }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct RuntimeReleaseSourceIdentity {
+    owner_root: PathBuf,
+    git_root: PathBuf,
+    owner_prefix: PathBuf,
+}
+
+fn runtime_release_git_text(source_repo: &std::path::Path, args: &[&str]) -> Result<String, String> {
+    let output = std::process::Command::new("git")
+        .arg("-C")
+        .arg(source_repo)
+        .args(args)
+        .output()
+        .map_err(|error| format!("cannot execute Git for Runtime release source: {error}"))?;
+    if !output.status.success() {
+        return Err(format!(
+            "Git Runtime release source query failed: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        ));
+    }
+    Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+}
+
+fn runtime_release_source_identity(
+    source_repo: &std::path::Path,
+) -> Result<RuntimeReleaseSourceIdentity, String> {
+    let owner_root = std::fs::canonicalize(source_repo)
+        .map_err(|error| format!("cannot canonicalize Runtime release owner: {error}"))?;
+    let git_root = PathBuf::from(runtime_release_git_text(
+        &owner_root,
+        &["rev-parse", "--show-toplevel"],
+    )?);
+    let git_root = std::fs::canonicalize(&git_root)
+        .map_err(|error| format!("cannot canonicalize Runtime release Git root: {error}"))?;
+    let prefix = runtime_release_git_text(&owner_root, &["rev-parse", "--show-prefix"])?;
+    let owner_prefix = PathBuf::from(prefix.trim_end_matches('/'));
+    let expected_owner = std::fs::canonicalize(git_root.join(&owner_prefix))
+        .map_err(|error| format!("cannot resolve Runtime release owner prefix: {error}"))?;
+    if expected_owner != owner_root {
+        return Err("Runtime release owner does not match its Git prefix".to_string());
+    }
+    Ok(RuntimeReleaseSourceIdentity {
+        owner_root,
+        git_root,
+        owner_prefix,
+    })
+}
+
+fn runtime_release_owner_commit(
+    source_repo: &std::path::Path,
+    revision: &str,
+) -> Result<String, String> {
+    let identity = runtime_release_source_identity(source_repo)?;
+    let exact = runtime_release_git_text(
+        &identity.owner_root,
+        &["rev-parse", "--verify", &format!("{revision}^{{commit}}")],
+    )?;
+    if identity.owner_prefix.as_os_str().is_empty() {
+        return Ok(exact);
+    }
+    let owner = runtime_release_git_text(
+        &identity.owner_root,
+        &["log", "-1", "--format=%H", &exact, "--", "."],
+    )?;
+    if owner.len() != 40 || !owner.bytes().all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase()) {
+        return Err("Runtime release revision has no exact owner commit".to_string());
+    }
+    Ok(owner)
 }
 
 #[derive(Clone, Debug)]
@@ -482,6 +630,8 @@ pub struct WorkspaceExecPlanInput {
     pub execution_target: ExecutionTarget,
     #[serde(default)]
     pub windows_authority: WindowsAuthority,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub windows_context: Option<WindowsExecutionContextRequest>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub foreign_references: Vec<ForeignReference>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]

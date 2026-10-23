@@ -1,0 +1,17 @@
+[Unit]
+Description=Loopback relay from host Claude Code proxy into Browserless VPN namespace
+BindsTo=network-v2-browserless.target
+After=network-v2-browserless.target network-v2-claude-proxy.service
+Requires=network-v2-claude-proxy.service
+PartOf=network-v2-claude.target
+
+[Service]
+Type=simple
+ExecStartPre=/usr/bin/ip netns exec nv2-browserless-prod /usr/bin/bash -c 'for i in $(seq 1 40); do /usr/bin/ss -ltn | /usr/bin/grep -q "127.0.0.1:19480" && exit 0; /usr/bin/sleep 0.25; done; exit 1'
+ExecStart=/usr/bin/systemd-socket-activate -l 127.0.0.1:19481 --now /usr/bin/ip netns exec nv2-browserless-prod /usr/lib/systemd/systemd-socket-proxyd 127.0.0.1:19480
+Restart=on-failure
+RestartSec=1s
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+RestrictAddressFamilies=AF_INET AF_UNIX AF_NETLINK

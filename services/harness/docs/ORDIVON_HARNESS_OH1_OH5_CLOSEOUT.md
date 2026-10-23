@@ -241,6 +241,8 @@ Exercise failure before dispatch, response loss, Job creation, Job completion, O
 
 Only after E3–E4 should the system attempt a durable read → mutate → diff → check → verify → complete workload.
 
+> **2026-09-22 supersession note:** this section records the OH1–OH5 boundary at closeout time. Agent Plugin consumption is no longer wholly deferred: the later H1 slice adds a thin Agent Plugins v1 composition adapter for caller-selected Skills and observation-only MCP Tools. It does **not** add a Plugin registry, Skill authority, Hook platform, live hot-reload system, or effectful generic MCP bypass. Effectful Plugin/Gateway Tools remain gated on durable Harness intent/receipt/reconciliation semantics.
+
 ## Deferred directions
 
 The following are not next-stage requirements:

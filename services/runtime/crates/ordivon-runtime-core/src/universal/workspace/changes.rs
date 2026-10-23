@@ -385,10 +385,8 @@ impl ChangeSetAccumulator {
         for (target, value) in self.xor.iter_mut().zip(bytes.iter()) {
             *target ^= *value;
         }
-        for (index, chunk) in bytes.chunks_exact(8).enumerate() {
-            let mut word = [0_u8; 8];
-            word.copy_from_slice(chunk);
-            self.sums[index] = self.sums[index].wrapping_add(u64::from_be_bytes(word));
+        for (index, chunk) in bytes.as_chunks::<8>().0.iter().enumerate() {
+            self.sums[index] = self.sums[index].wrapping_add(u64::from_be_bytes(*chunk));
         }
         self.count = self.count.saturating_add(1);
     }

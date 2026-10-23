@@ -7,6 +7,7 @@ import argparse
 from email import policy
 from email.parser import BytesParser
 import json
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -20,6 +21,13 @@ EXPECTED_API = {
     "HarnessAgentExecution",
     "HarnessAgentRun",
     "HarnessAgentRunCompositionError",
+    "HarnessToolBridgeFactory",
+    "PluginGatewayExecutionBridgeFactory",
+    "PluginGatewayExecutionGrant",
+    "AgentPluginComposition",
+    "AgentPluginCompositionError",
+    "OfficialMcpClient",
+    "PluginMcpObservationBridge",
     "HarnessCognitionProfile",
     "HarnessCognitionSeed",
     "HarnessCognitionSeedSource",
@@ -62,7 +70,10 @@ REQUIRED_MEMBERS = {
     "anc_canonical/__init__.py",
     "anc_canonical/canonical.py",
     "ordivon_harness/agent_run.py",
+    "ordivon_harness/agent_plugin.py",
     "ordivon_harness/api.py",
+    "ordivon_harness/plugin_gateway_effect.py",
+    "ordivon_harness/plugin_mcp.py",
     "ordivon_harness/completion.py",
     "ordivon_harness/core_contracts.py",
     "ordivon_harness/independent_cli.py",
@@ -174,42 +185,66 @@ def validate_archive(wheel: Path) -> str:
         if forbidden:
             fail("wheel still contains retired modules: " + ", ".join(forbidden))
         forbidden_prefixed = sorted(
-            name
-            for name in names
-            if any(name.startswith(prefix) for prefix in FORBIDDEN_PREFIXES)
+            name for name in names if any(name.startswith(prefix) for prefix in FORBIDDEN_PREFIXES)
         )
         if forbidden_prefixed:
-            fail(
-                "wheel still contains extracted owner namespace: "
-                + ", ".join(forbidden_prefixed)
-            )
+            fail("wheel still contains extracted owner namespace: " + ", ".join(forbidden_prefixed))
         metadata = BytesParser(policy=policy.default).parsebytes(archive.read(metadata_names[0]))
         entries = archive.read(entry_names[0]).decode()
     if metadata.get("Name") != project["name"] or metadata.get("Version") != project["version"]:
         fail("wheel name/version differs from pyproject")
     requirements = tuple(metadata.get_all("Requires-Dist", []))
-    if len(requirements) != 2:
-        fail(f"wheel must contain only pinned HTTPX and bounded jsonschema: {requirements}")
-    if "httpx==0.28.1" not in requirements:
-        fail(f"wheel lacks the pinned HTTPX dependency: {requirements}")
-    if "jsonschema<5,>=4.26" not in requirements:
-        fail(f"wheel lacks the bounded jsonschema dependency: {requirements}")
+    expected_requirements = {
+        "httpx==0.28.1",
+        "jsonschema<5,>=4.26",
+        'mcp==2.2.0; extra == "mcp"',
+    }
+    if set(requirements) != expected_requirements:
+        fail(
+            "wheel dependencies must be exact base HTTPX/jsonschema plus "
+            f"the official MCP v2 adapter extra: {requirements}"
+        )
+    if tuple(metadata.get_all("Provides-Extra", [])) != ("mcp",):
+        fail("wheel may expose only the MCP standards-adapter extra")
     if any("ordivon-protocol" in item or "ordivon-computing" in item for item in requirements):
         fail("wheel still exposes retired Computing/Protocol dependency")
-    if any("ordivon-host" in item or "extra ==" in item for item in requirements):
-        fail("wheel metadata still exposes Host/extra dependencies")
+    if any("ordivon-host" in item for item in requirements):
+        fail("wheel metadata still exposes Host dependency")
     if "ordivon-harness = ordivon_harness.cli:entrypoint" not in entries:
         fail("wheel entry point differs")
     return project["version"]
+
+
+def wheel_python_interpreter(
+    requires_python: str, observed_python: str, interpreter: str
+) -> str:
+    """Bind the isolated wheel test to the exact current project interpreter.
+
+    Do not resolve the venv using an unrelated cached interpreter or historical
+    qualification version. The same bound executable seeds both base and MCP
+    extra environments.
+    """
+    version = re.fullmatch(r"==([0-9]+\.[0-9]+\.[0-9]+)", requires_python)
+    if version is None:
+        fail(f"project requires-python must be an exact stable version: {requires_python}")
+    if observed_python != version.group(1):
+        fail(f"wheel Python mismatch: project={version.group(1)} actual={observed_python}")
+    if not Path(interpreter).is_absolute():
+        fail("wheel Python interpreter must be an absolute executable path")
+    return interpreter
 
 
 def install_smoke(wheel: Path, version: str) -> dict[str, object]:
     uv = shutil.which("uv")
     if uv is None:
         fail("uv is required")
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
+    exact_python = wheel_python_interpreter(
+        project["requires-python"], sys.version.split()[0], sys.executable
+    )
     with tempfile.TemporaryDirectory(prefix="ordivon-harness-wheel-") as directory:
         root = Path(directory)
-        checked([uv, "venv", "--python", "3.14.7", str(root)])
+        checked([uv, "venv", "--python", exact_python, str(root)])
         python = root / "bin/python"
         cli = root / "bin/ordivon-harness"
         checked([uv, "pip", "install", "--link-mode", "copy", "--python", str(python), str(wheel)])
@@ -221,7 +256,9 @@ def install_smoke(wheel: Path, version: str) -> dict[str, object]:
                     "import importlib.metadata as m,importlib.util,json,sys; import ordivon_harness,ordivon_harness.api as api; "
                     "print(json.dumps({'version':m.version('ordivon-harness'),'api':sorted(api.__all__),"
                     "'root':sorted(ordivon_harness.__all__),'hostInstalled':importlib.util.find_spec('ordivon_host') is not None,"
-                    "'hostLoaded':any(k=='ordivon_host' or k.startswith('ordivon_host.') for k in sys.modules),'skillsInstalled':importlib.util.find_spec('ordivon_harness.skills') is not None}))",
+                    "'hostLoaded':any(k=='ordivon_host' or k.startswith('ordivon_host.') for k in sys.modules),"
+                    "'skillsInstalled':importlib.util.find_spec('ordivon_harness.skills') is not None,"
+                    "'mcpInstalled':importlib.util.find_spec('mcp') is not None}))",
                 ]
             ).stdout
         )
@@ -233,17 +270,63 @@ def install_smoke(wheel: Path, version: str) -> dict[str, object]:
             fail("Host appeared in isolated base installation")
         if probe["skillsInstalled"]:
             fail("extracted Skills owner reappeared in isolated Harness installation")
+        if probe["mcpInstalled"]:
+            fail("base Harness installation unexpectedly pulled the optional MCP adapter")
         checked([str(python), str(ROOT / "scripts/check_harness_without_host.py")])
         help_text = checked([str(cli), "--help"]).stdout
         for command in CLI_COMMANDS:
             if command not in help_text:
                 fail(f"CLI lacks {command}")
-        for removed in ("host", "telemetry", "capabilities", "cutover-status", "cutover-activate", "--harness-state-root"):
+        for removed in (
+            "host",
+            "telemetry",
+            "capabilities",
+            "cutover-status",
+            "cutover-activate",
+            "--harness-state-root",
+        ):
             if removed in help_text:
                 fail(f"CLI still advertises removed surface: {removed}")
+
+        mcp_root = root / "mcp-extra"
+        checked([uv, "venv", "--python", exact_python, str(mcp_root)])
+        mcp_python = mcp_root / "bin/python"
+        checked(
+            [
+                uv,
+                "pip",
+                "install",
+                "--link-mode",
+                "copy",
+                "--python",
+                str(mcp_python),
+                f"{wheel}[mcp]",
+            ]
+        )
+        mcp_probe = json.loads(
+            checked(
+                [
+                    str(mcp_python),
+                    "-c",
+                    "import importlib.metadata as m,json; import ordivon_harness.api as api; "
+                    "print(json.dumps({'mcpVersion':m.version('mcp'),"
+                    "'officialClient':hasattr(api,'OfficialMcpClient'),"
+                    "'pluginComposition':hasattr(api,'AgentPluginComposition')}))",
+                ]
+            ).stdout
+        )
+        if mcp_probe != {
+            "mcpVersion": "2.2.0",
+            "officialClient": True,
+            "pluginComposition": True,
+        }:
+            fail(f"MCP adapter extra installation differs: {mcp_probe}")
+
         return {
             "installedVersion": version,
             "hostFreeHarnessVerified": True,
+            "baseMcpAbsentVerified": True,
+            "mcpAdapterExtraVerified": True,
             "cliCommandsVerified": len(CLI_COMMANDS),
         }
 

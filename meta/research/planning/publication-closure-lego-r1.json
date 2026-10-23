@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "kind": "research-publication-closure-lego-plan",
+  "id": "publication-closure-lego-r1",
+  "truthRole": "planning-projection-not-study-truth",
+  "sourceDecision": "docs/architecture/RESEARCH_STUDY_AUTHORITY_R1.md",
+  "problem": "A mechanically reproducible PDF can still violate venue, publication-semantic, or reviewer-experience constraints.",
+  "derivedPrinciple": "REPRODUCIBLE_CARRIER_NEQ_CONFORMANT_CARRIER_NEQ_REVIEWER_READY_CARRIER",
+  "nodes": [
+    {"id": "P01", "label": "ScienceFreeze", "owner": "Study authority", "kind": "authority", "state": "EXTERNAL_TO_SHARED_RESEARCH"},
+    {"id": "P02", "label": "ClaimFreeze", "owner": "Study authority", "kind": "authority", "state": "EXTERNAL_TO_SHARED_RESEARCH"},
+    {"id": "P03", "label": "ManuscriptSemanticFreeze", "owner": "Study authority", "kind": "authority", "state": "EXTERNAL_TO_ARTIFACT"},
+    {"id": "C01", "label": "CarrierBuild", "owner": "Artifact + Study-selected mature renderer", "kind": "carrier", "state": "IMPLEMENTED_COMPOSITION"},
+    {"id": "C02", "label": "CarrierMechanicalProbe", "owner": "capabilities/artifact", "kind": "carrier", "state": "R1_IMPLEMENTED"},
+    {"id": "C03", "label": "CarrierTextSemanticLint", "owner": "capabilities/artifact", "kind": "carrier", "state": "R1_IMPLEMENTED"},
+    {"id": "V01", "label": "VenueContractBinding", "owner": "Research composition profile + external venue authority", "kind": "profile", "state": "R1_FSE2027_BOUND"},
+    {"id": "V02", "label": "VenueContractEvaluation", "owner": "capabilities/artifact", "kind": "verification", "state": "R1_IMPLEMENTED"},
+    {"id": "R01", "label": "ReviewerPerceptualGate", "owner": "Human/reviewer evidence", "kind": "human-gate", "state": "EXPLICIT_NOT_AUTOMATICALLY_UPGRADED"},
+    {"id": "A01", "label": "ArtifactCarrierRebind", "owner": "Study artifact authority", "kind": "binding", "state": "STUDY_LOCAL"},
+    {"id": "A02", "label": "ColdReplay", "owner": "Study artifact authority + Runtime when needed", "kind": "verification", "state": "STUDY_LOCAL"},
+    {"id": "S01", "label": "SubmissionFreeze", "owner": "Study/submission authority", "kind": "release", "state": "HUMAN_EFFECT_BOUNDARY"}
+  ],
+  "edges": [
+    ["P01", "P02"], ["P02", "P03"], ["P03", "C01"], ["C01", "C02"], ["C02", "C03"],
+    ["C03", "V01"], ["V01", "V02"], ["V02", "R01"], ["R01", "A01"], ["A01", "A02"], ["A02", "S01"]
+  ],
+  "carrierLayers": {
+    "source": ["syntax", "heading-boundaries", "figure-directives", "caption-ownership"],
+    "metadata": ["year", "month", "venue", "anonymity", "CCS", "keywords"],
+    "compilation": ["renderer", "template", "dependency-identity", "determinism"],
+    "pdfStructure": ["pages", "fonts", "Type3", "qpdf", "citations", "references"],
+    "textSemantics": ["Markdown-residue", "duplicate-captions", "placeholders", "identity-leaks"],
+    "visual": ["clipping", "overlap", "normal-zoom-legibility", "page-break-quality"],
+    "identity": ["source-digest", "pdf-digest", "artifact-binding"]
+  },
+  "stopRules": [
+    "Carrier-only repair does not reopen science absent contradictory evidence.",
+    "Deterministic rendering proves reproducibility only.",
+    "Machine carrier PASS does not satisfy Human perceptual review.",
+    "Venue policy is a dated external authority binding, not hard-coded Research truth.",
+    "Reviewer artifact bytes freeze after carrier QA, not before."
+  ],
+  "dogfood": {
+    "study": "Paper3",
+    "pdfSha256": "sha256:e2412d9aeb8f1fff72fd8fca925cb042efa06b8f334984fba0146f9f48c08f60",
+    "contract": "meta/research/venues/fse-2027-research-r1.json",
+    "machineStanding": "PASS",
+    "standing": "PENDING_HUMAN",
+    "falsificationFound": "acmart review line numbers required text-layer heading normalization"
+  }
+}

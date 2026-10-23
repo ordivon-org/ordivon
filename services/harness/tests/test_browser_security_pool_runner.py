@@ -1,6 +1,7 @@
 import contextlib
 import hashlib
 import json
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -101,16 +102,18 @@ class BrowserSecurityPoolRunnerTests(unittest.TestCase):
 
             config_path = tmp_root / "automation.json"
             config_path.write_text("{}\n")
-            with mock.patch.object(
-                runner, "_carrier_observation_lifecycle", side_effect=lifecycle
-            ) as lifecycle_mock, mock.patch.object(
-                runner, "_collect_carrier", side_effect=collect
-            ) as collect_mock, mock.patch.object(
-                runner, "_build_bundle", side_effect=build
-            ) as build_mock, mock.patch.object(
-                runner, "_compare_pool", return_value=classification
-            ) as compare_mock, mock.patch.object(
-                runner, "_source_revision", side_effect=["harness-head", "security-head"]
+            with (
+                mock.patch.object(
+                    runner, "_carrier_observation_lifecycle", side_effect=lifecycle
+                ) as lifecycle_mock,
+                mock.patch.object(runner, "_collect_carrier", side_effect=collect) as collect_mock,
+                mock.patch.object(runner, "_build_bundle", side_effect=build) as build_mock,
+                mock.patch.object(
+                    runner, "_compare_pool", return_value=classification
+                ) as compare_mock,
+                mock.patch.object(
+                    runner, "_source_revision", side_effect=["harness-head", "security-head"]
+                ),
             ):
                 receipt = runner.run_pool(
                     run_id="test-run",
@@ -160,10 +163,14 @@ class BrowserSecurityPoolRunnerTests(unittest.TestCase):
             "lifecycleStarted": False,
         }
         active = mock.Mock(returncode=0)
-        with mock.patch.object(runner, "_load_automation_config", return_value=config), mock.patch(
-            "scripts.agent_automation_browserless.BrowserlessAutomationService",
-            return_value=service,
-        ), mock.patch.object(runner.subprocess, "run", return_value=active) as run:
+        with (
+            mock.patch.object(runner, "_load_automation_config", return_value=config),
+            mock.patch(
+                "scripts.agent_automation_browserless.BrowserlessAutomationService",
+                return_value=service,
+            ),
+            mock.patch.object(runner.subprocess, "run", return_value=active) as run,
+        ):
             with runner._carrier_observation_lifecycle(
                 Path("/etc/fixture.json"), "chatgpt-carrier-11"
             ) as state:
@@ -199,12 +206,15 @@ class BrowserSecurityPoolRunnerTests(unittest.TestCase):
             mock.Mock(returncode=0),  # stop succeeds
             mock.Mock(returncode=3),  # remains inactive after stop
         ]
-        with mock.patch.object(runner, "_load_automation_config", return_value=config), mock.patch(
-            "scripts.agent_automation_browserless.BrowserlessAutomationService",
-            return_value=service,
-        ), mock.patch(
-            "scripts.agent_automation_browserless._carrier_lease", side_effect=lease
-        ), mock.patch.object(runner.subprocess, "run", side_effect=calls) as run:
+        with (
+            mock.patch.object(runner, "_load_automation_config", return_value=config),
+            mock.patch(
+                "scripts.agent_automation_browserless.BrowserlessAutomationService",
+                return_value=service,
+            ),
+            mock.patch("scripts.agent_automation_browserless._carrier_lease", side_effect=lease),
+            mock.patch.object(runner.subprocess, "run", side_effect=calls) as run,
+        ):
             with runner._carrier_observation_lifecycle(
                 Path("/etc/fixture.json"), "chatgpt-carrier-12"
             ) as state:
@@ -233,14 +243,17 @@ class BrowserSecurityPoolRunnerTests(unittest.TestCase):
         def lease(*args, **kwargs):
             yield
 
-        with mock.patch.object(runner, "_load_automation_config", return_value=config), mock.patch(
-            "scripts.agent_automation_browserless.BrowserlessAutomationService",
-            return_value=service,
-        ), mock.patch(
-            "scripts.agent_automation_browserless._carrier_lease", side_effect=lease
-        ), mock.patch.object(
-            runner.subprocess, "run", return_value=mock.Mock(returncode=3)
-        ) as run:
+        with (
+            mock.patch.object(runner, "_load_automation_config", return_value=config),
+            mock.patch(
+                "scripts.agent_automation_browserless.BrowserlessAutomationService",
+                return_value=service,
+            ),
+            mock.patch("scripts.agent_automation_browserless._carrier_lease", side_effect=lease),
+            mock.patch.object(
+                runner.subprocess, "run", return_value=mock.Mock(returncode=3)
+            ) as run,
+        ):
             with self.assertRaisesRegex(RuntimeError, "acquired a session"):
                 with runner._carrier_observation_lifecycle(
                     Path("/etc/fixture.json"), "chatgpt-carrier-13"
@@ -266,6 +279,26 @@ class BrowserSecurityPoolRunnerTests(unittest.TestCase):
                 "run",
                 return_value=mock.Mock(returncode=128, stdout="", stderr="not a git repo"),
             ):
+                self.assertEqual(runner._source_revision(root), commit)
+
+    def test_source_revision_accepts_v2_monorepo_release_marker(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            commit = "b" * 40
+            (root / ".ordivon-agent-automation-release.json").write_text(
+                json.dumps(
+                    {
+                        "schemaVersion": 2,
+                        "commit": commit,
+                        "archiveDigest": "sha256:x",
+                        "sourceRepo": "/root/projects/ordivon",
+                        "sourceSubtree": "services/harness",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with mock.patch.object(runner.subprocess, "run") as run:
+                run.return_value = subprocess.CompletedProcess([], 1, stdout="", stderr="")
                 self.assertEqual(runner._source_revision(root), commit)
 
     def test_source_revision_rejects_invalid_release_marker(self) -> None:

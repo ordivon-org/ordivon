@@ -1,3 +1,4 @@
+use super::lifecycle_locks::WorkspaceLeaseTable;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{self, File, OpenOptions};
@@ -10,7 +11,12 @@ use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
-use super::evidence::prepare_runner_terminal_from_bundle;
+use super::artifact_release_state::{ArtifactStateContract, ReleaseStateContract};
+use super::evidence::{
+    prepare_runner_terminal_from_bundle, validate_workspace_source_observation_artifact,
+};
+use super::execution_provider::{LocalLinuxProvider, LocalLinuxRealizationInputs};
+use super::operation_circuit::OperationCircuitCompiler;
 use super::platform::*;
 use super::registry::JobSnapshot;
 use super::supervisor::{
@@ -18,11 +24,16 @@ use super::supervisor::{
     SupervisorObservation, SupervisorRecoveryDisposition, SupervisorUnitState, TerminationIntent,
 };
 use super::windows::*;
+use super::workspace_state::{
+    ensure_workspace_close_allowed, ensure_workspace_mutation_allowed, project_workspace_summary,
+    WorkspaceProjectionFacts,
+};
 use super::{
     runtime_release_effect_id, runtime_release_request_identity_digest, validate_client_request_id,
-    validate_logical_id, AdmissionOutcome, ArtifactDescriptor, ArtifactReadRequest,
-    ArtifactReadResult, ArtifactRegistration, AttemptRecord, AttemptState,
-    AttemptTerminationIntent, CredentialAuthority, CredentialBindingRequest, EffectiveInputBinding,
+    validate_logical_id, AdmissionOutcome, ArtifactContentMetadata, ArtifactContentReadResult,
+    ArtifactContentRequest, ArtifactDescriptor, ArtifactReadRequest, ArtifactReadResult,
+    ArtifactRegistration, AttemptRecord, AttemptState, AttemptTerminationIntent,
+    CredentialAuthority, CredentialBindingRequest, EffectiveInputBinding,
     ExecutionProviderContract, ExecutionProviderSnapshot, HostDependencyBinding, InputAccessMode,
     InputAuthority, InputBindingRequest, JobCancelRequest, JobDesiredState, JobObservation,
     JobObserveRequest, JobObserveWaitUntil, JobResolution, JobRunRequest, Registry, RegistryConfig,
@@ -33,7 +44,7 @@ use super::{
     RuntimeReleaseProjection, RuntimeReleaseRequest, RuntimeResult, RuntimeWorkspaceGetRequest,
     RuntimeWorkspaceIssue, RuntimeWorkspaceIssueStage, RuntimeWorkspaceListRequest,
     RuntimeWorkspaceListResult, RuntimeWorkspaceSummary, SubmitRequest, TerminalCommit,
-    MAX_ARTIFACT_READ_BYTES, MAX_TASK_TAIL_BYTES, MAX_TASK_WAIT_MS, RUNTIME_SCHEMA_VERSION,
+    MAX_TASK_TAIL_BYTES, MAX_TASK_WAIT_MS, RUNTIME_SCHEMA_VERSION,
 };
 use crate::universal::{
     canonical_directory, create_git_workspace, list_open_workspace_record_inventory,
@@ -200,6 +211,12 @@ fn sleep_until_poll(deadline: Instant, poll_index: &mut usize) {
     *poll_index = poll_index.saturating_add(1);
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorkspaceHeadroomConfig {
+    pub path: PathBuf,
+    pub minimum_free_bytes: u64,
+}
+
 #[derive(Clone, Debug)]
 pub struct RuntimeConfig {
     pub node_id: String,
@@ -253,7 +270,9 @@ pub struct Runtime {
     windows: Option<WindowsExecutionConfig>,
     input_authorities: BTreeMap<String, OpenedInputAuthority>,
     credential_authorities: BTreeMap<String, OpenedCredentialAuthority>,
-    lifecycle_lock: Arc<Mutex<()>>,
+    workspace_headroom: Option<WorkspaceHeadroomConfig>,
+    topology_lock: Arc<Mutex<()>>,
+    workspace_leases: WorkspaceLeaseTable,
     control_terminal_lock: Arc<Mutex<()>>,
 }
 
@@ -764,51 +783,6 @@ fn protect_posix_path(_path: &Path, mode: u32, operation: &str) -> RuntimeResult
     ))
 }
 
-#[cfg(unix)]
-fn open_regular_file_nofollow(path: &Path) -> std::io::Result<File> {
-    OpenOptions::new()
-        .read(true)
-        .custom_flags(libc::O_NOFOLLOW)
-        .open(path)
-}
-
-#[cfg(windows)]
-fn open_regular_file_nofollow(path: &Path) -> std::io::Result<File> {
-    use std::os::windows::fs::{MetadataExt, OpenOptionsExt};
-
-    // CreateFileW FILE_FLAG_OPEN_REPARSE_POINT: open the named reparse point itself
-    // instead of traversing it. Validate the opened handle before consuming bytes so
-    // a rename/symlink race cannot silently redirect Runtime Release receipt truth.
-    const FILE_FLAG_OPEN_REPARSE_POINT: u32 = 0x0020_0000;
-    const FILE_ATTRIBUTE_DIRECTORY: u32 = 0x0000_0010;
-    const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x0000_0400;
-
-    let file = OpenOptions::new()
-        .read(true)
-        .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT)
-        .open(path)?;
-    let metadata = file.metadata()?;
-    let attributes = metadata.file_attributes();
-    if !metadata.is_file()
-        || attributes & FILE_ATTRIBUTE_DIRECTORY != 0
-        || attributes & FILE_ATTRIBUTE_REPARSE_POINT != 0
-    {
-        return Err(std::io::Error::new(
-            std::io::ErrorKind::InvalidData,
-            "secure receipt open requires a regular non-reparse file",
-        ));
-    }
-    Ok(file)
-}
-
-#[cfg(not(any(unix, windows)))]
-fn open_regular_file_nofollow(_path: &Path) -> std::io::Result<File> {
-    Err(std::io::Error::new(
-        std::io::ErrorKind::Unsupported,
-        "secure no-follow regular-file open is not implemented for this platform",
-    ))
-}
-
 fn write_bytes_synced(path: &Path, bytes: &[u8]) -> RuntimeResult<()> {
     let mut file = OpenOptions::new()
         .create_new(true)
@@ -1041,6 +1015,7 @@ mod trusted_systemd_command_tests {
                 execution_profile: ExecutionProfile::ContainedLocal,
                 execution_target: crate::runtime::ExecutionTarget::LocalLinux,
                 windows_authority: crate::runtime::WindowsAuthority::Limited,
+                windows_context: None,
                 foreign_references: Vec::new(),
                 host_dependencies: Vec::new(),
             },
@@ -1074,6 +1049,7 @@ mod trusted_systemd_command_tests {
                 execution_profile: request.execution.execution_profile,
                 execution_target: request.execution.execution_target,
                 windows_authority: request.execution.windows_authority,
+                windows_context: None,
                 foreign_references: request.execution.foreign_references.clone(),
                 host_dependencies: request.execution.host_dependencies.clone(),
             },
@@ -1368,6 +1344,7 @@ mod trusted_systemd_command_tests {
                 execution_profile: ExecutionProfile::TrustedLocal,
                 execution_target: crate::runtime::ExecutionTarget::LocalLinux,
                 windows_authority: crate::runtime::WindowsAuthority::Limited,
+                windows_context: None,
                 foreign_references: Vec::new(),
                 host_dependencies: Vec::new(),
             },
@@ -1533,6 +1510,7 @@ mod trusted_systemd_command_tests {
                 execution_profile: crate::runtime::ExecutionProfile::TrustedLocal,
                 execution_target: crate::runtime::ExecutionTarget::LocalLinux,
                 windows_authority: crate::runtime::WindowsAuthority::Limited,
+                windows_context: None,
                 foreign_references: Vec::new(),
                 host_dependencies: Vec::new(),
             },
@@ -1567,6 +1545,7 @@ mod trusted_systemd_command_tests {
                 execution_profile: crate::runtime::ExecutionProfile::ContainedLocal,
                 execution_target: crate::runtime::ExecutionTarget::LocalLinux,
                 windows_authority: crate::runtime::WindowsAuthority::Limited,
+                windows_context: None,
                 foreign_references: Vec::new(),
                 host_dependencies: Vec::new(),
             },

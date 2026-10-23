@@ -1,0 +1,209 @@
+{
+  "apiVersion": "v1.1.0",
+  "authoritativeDefinitions": [
+    {
+      "description": "ODPS authority.",
+      "type": "canonicalUrl",
+      "url": "https://github.com/bitol-io/open-data-product-standard"
+    },
+    {
+      "description": "ODCS authority.",
+      "type": "dataContract",
+      "url": "https://github.com/bitol-io/open-data-contract-standard"
+    },
+    {
+      "description": "OpenLineage operational lineage authority.",
+      "type": "operationalLineage",
+      "url": "https://openlineage.io/"
+    },
+    {
+      "description": "W3C PROV-O semantic provenance authority.",
+      "type": "semanticProvenance",
+      "url": "https://www.w3.org/TR/prov-o/"
+    },
+    {
+      "description": "W3C ODRL 2.2 policy model.",
+      "type": "rightsPolicyModel",
+      "url": "https://www.w3.org/TR/odrl-model/"
+    }
+  ],
+  "context": {
+    "constraints": [
+      {
+        "constraint": "Do not promote PostgreSQL, Parquet, OpenLineage or this product metadata to Runtime/Harness/domain truth.",
+        "id": "no-owner-promotion"
+      },
+      {
+        "constraint": "Do not infer causal intervention effects without a frozen intervention contract and explicit assignment.",
+        "id": "no-causal-overclaim"
+      },
+      {
+        "constraint": "Do not infer generalization without explicit DEVELOPMENT/JUDGE evidence.",
+        "id": "no-generalization-overclaim"
+      },
+      {
+        "constraint": "Do not reconstruct raw prompts, credentials, workspace snapshots, execution plans or artifact bytes from this projection.",
+        "id": "no-sensitive-reconstruction"
+      }
+    ],
+    "instructions": "Preserve exact replay/source digests and distinguish owner truth, Episode projection, materialization and derived analysis.",
+    "verifiedStatements": [
+      {
+        "answer": "10,007 Episodes: 10,000 Runtime R5C plus 7 Harness RSI receipts.",
+        "id": "episodes",
+        "question": "How many replay-qualified Episodes are in R1?"
+      },
+      {
+        "answer": "Yes. 47/47 declared Runtime Job references resolved in the retained Runtime registry at qualification.",
+        "id": "runtime-join",
+        "question": "Do Harness Runtime references join exactly?"
+      },
+      {
+        "answer": "No. DEVELOPMENT=0 and JUDGE=0; SystemAnalysisR1 returns NOT_IDENTIFIED.",
+        "id": "generalization",
+        "question": "Does R1 identify out-of-sample generalization?"
+      }
+    ]
+  },
+  "customProperties": [
+    {
+      "property": "corpusManifestRelativePath",
+      "value": "meta/next/evidence/experimental-episode/corpus-r1/manifest.json"
+    },
+    {
+      "property": "corpusManifestSha256",
+      "value": "67c917eacd59fb7ae48877cde4d893093477c9c730a454824251291aad012b1b"
+    },
+    {
+      "property": "sourceImplementationRevision",
+      "value": "1214254b38af1485eca368e190704d360ffeb06a"
+    },
+    {
+      "property": "episodeCount",
+      "value": 10007
+    },
+    {
+      "property": "runtimeEpisodeCount",
+      "value": 10000
+    },
+    {
+      "property": "harnessEpisodeCount",
+      "value": 7
+    },
+    {
+      "property": "runtimeReplayJsonlSha256",
+      "value": "ff4257772344c51e25313e914586ee760e1180cb1f261796beedd34345267e8d"
+    },
+    {
+      "property": "harnessReplayJsonlSha256",
+      "value": "7566b2172663ba4286fd2778ca234b0c8e099937ae1a0c6de1389e2e07e294d6"
+    },
+    {
+      "property": "qualifiedParquetIndexSha256",
+      "value": "7c0747db4f0568a83e444cbf46e61aed93bd8d5fa66eb5eedb0ad2af98db233d"
+    },
+    {
+      "property": "artifactDatasetContractSha256",
+      "value": "9621cb8cb5805d62a6ef211528efa7ff7a27ae60a754e591ffcae01168d2e53e"
+    },
+    {
+      "property": "artifactVerificationSha256",
+      "value": "1d63df720b1d9c30a3e282d7e13851c2718a1de4857c41a11046de6c4b0d0249"
+    },
+    {
+      "property": "governancePolicyUid",
+      "value": "urn:uuid:f4c742f8-78ad-56a4-ae40-cb6d79f5f545"
+    },
+    {
+      "property": "governancePolicyRelativePath",
+      "value": "meta/next/data-products/experimental-episode-corpus-r1/governance-policy.odrl.jsonld"
+    },
+    {
+      "property": "sourceRightsStatus",
+      "value": "INTERNAL_PROJECTION_OVER_MIXED_OWNER_EVIDENCE"
+    },
+    {
+      "property": "redistributionStatus",
+      "value": "NOT_AUTHORIZED_BY_PRODUCT_METADATA"
+    },
+    {
+      "property": "thirdPartyGrantStatus",
+      "value": "NOT_AUTHORIZED_BY_PRODUCT_METADATA"
+    },
+    {
+      "property": "retentionScheduleStatus",
+      "value": "UNASSIGNED"
+    },
+    {
+      "property": "automaticDeletionStatus",
+      "value": "NOT_AUTHORIZED_UNTIL_RECORDS_REQUIREMENT_ASSIGNED"
+    },
+    {
+      "property": "privacyAssessmentStatus",
+      "value": "BOUNDED_PROJECTION_EXCLUDES_RAW_CREDENTIAL_PROMPT_PAYLOAD_FORMAL_ASSESSMENT_NOT_COMPLETE"
+    }
+  ],
+  "description": {
+    "limitations": "Non-authoritative analytical projection only. Runtime/Harness/domain truth remains with natural owners. All current episodes are EXPERIENCE; no DEVELOPMENT/JUDGE generalization split or frozen causal intervention is present.",
+    "purpose": "Expose the replay-qualified Experimental Episode R1 corpus as a governed analytical data product for system analysis and future study design.",
+    "usage": "Consume by exact product version, corpus-manifest digest and linked ODCS contract. Rebuild PostgreSQL or Parquet materializations from the bound replay inputs rather than treating a database instance as product identity."
+  },
+  "domain": "meta/experimental-learning",
+  "id": "4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b",
+  "kind": "DataProduct",
+  "name": "Experimental Episode Corpus R1",
+  "outputPorts": [
+    {
+      "context": {
+        "constraints": [
+          {
+            "constraint": "Do not treat the manifest as owner-native execution or cognition truth."
+          }
+        ],
+        "instructions": "Verify manifest SHA-256 and rebuild derived materializations from exact bound inputs."
+      },
+      "contractId": "66cca360-d1c5-5f8d-8c7d-3f6fe6137d0d",
+      "description": "Canonical replay-qualified corpus manifest stored in Git.",
+      "id": "4664e208-2cdc-5d4f-a83d-e70e187b046a",
+      "name": "episode-corpus-manifest-json",
+      "type": "file/json",
+      "version": "1.0.0"
+    },
+    {
+      "context": {
+        "constraints": [
+          {
+            "constraint": "The Parquet index intentionally omits full dimensions, measures and evidence payloads."
+          }
+        ],
+        "instructions": "Materialize from exact Episode JSONL projections, then require Artifact dataset verification."
+      },
+      "contractId": "66cca360-d1c5-5f8d-8c7d-3f6fe6137d0d",
+      "description": "Rebuildable flat identity/anchor index qualified by the existing Artifact dataset profile.",
+      "id": "70592aa5-9a4c-5f03-ac41-c79baa235d85",
+      "name": "episode-index-parquet",
+      "type": "file/parquet",
+      "version": "1.0.0"
+    }
+  ],
+  "status": "active",
+  "tags": [
+    "experimental-learning",
+    "episode",
+    "system-analysis",
+    "replayable",
+    "non-authoritative"
+  ],
+  "team": {
+    "customProperties": [
+      {
+        "property": "ownershipScope",
+        "value": "PRODUCT_METADATA_AND_ANALYTICAL_LIFECYCLE_NOT_OWNER_NATIVE_TRUTH"
+      }
+    ],
+    "description": "Task-local owner of this data-product metadata and analytical lifecycle. It does not own Runtime, Harness, domain or provider source truth.",
+    "name": "Ordivon Experimental analysis consumer"
+  },
+  "type": "consumerAligned",
+  "version": "1.0.0"
+}

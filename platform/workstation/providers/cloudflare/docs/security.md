@@ -43,7 +43,7 @@ The shared HMAC key remains a high-value secret, allowlisted public hosts may st
 
 ## Verification
 
-Verify signature rejection, timestamp and digest binding, request conflict behavior, stale-generation fencing, policy-version takeover rejection, redirect and hostname validation, Browser request blocking, private Artifact headers and bytes, absence of lease tokens and ETags, capability and policy coupling, and failed-download atomicity. [`reliability.md`](reliability.md) defines uncertain delivery, [`operations.md`](operations.md) defines operation, and [`../../../docs/authority.md`](../../../docs/authority.md) records authority.
+Verify signature rejection, timestamp and digest binding, request conflict behavior, stale-generation fencing, policy-version takeover rejection, redirect and hostname validation, Browser request blocking, private Artifact headers and bytes, absence of lease tokens and ETags, capability and policy coupling, and failed-download atomicity. [`reliability.md`](reliability.md) defines uncertain delivery, [`operations.md`](operations.md) defines operation, and [`../README.md#authority-boundary`](../README.md#authority-boundary) records authority.
 
 ## Authentication
 

@@ -1,0 +1,209 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ordivon:schema:cognitive-circuit-manifest:v1",
+  "title": "Task-local Cognitive Circuit Manifest v1",
+  "description": "A non-authoritative task-local composition proposal binding an objective to already-selected methods, capabilities, owner-scoped stages, typed edges, and composition-gate requirements. It is not a workflow engine, capability registry, permission grant, domain verdict, or semantic planner.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "circuitId",
+    "objectiveRef",
+    "methodBindings",
+    "capabilityBindings",
+    "stages",
+    "edges",
+    "gateRequirements",
+    "unresolvedAssumptions",
+    "nonClaims"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "kind": { "const": "ordivon.cognitive-circuit-manifest" },
+    "circuitId": { "type": "string", "minLength": 1 },
+    "objectiveRef": { "$ref": "#/$defs/boundRef" },
+    "methodBindings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/methodBinding" }
+    },
+    "capabilityBindings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/capabilityBinding" }
+    },
+    "stages": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/stage" }
+    },
+    "edges": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/edge" }
+    },
+    "gateRequirements": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/gateRequirement" }
+    },
+    "unresolvedAssumptions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "nonClaims": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+    },
+    "boundRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "digest"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "digest": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "methodBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "skillId", "instructionDigest", "role"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "skillId": { "$ref": "#/$defs/identifier" },
+        "instructionDigest": { "$ref": "#/$defs/sha256" },
+        "role": { "const": "advisory" }
+      }
+    },
+    "capabilityBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "capability",
+        "ownerId",
+        "sourceKind",
+        "truthBoundary"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "capability": { "$ref": "#/$defs/identifier" },
+        "ownerId": { "$ref": "#/$defs/identifier" },
+        "sourceKind": {
+          "enum": ["gateway-projection", "direct-owner", "external-provider"]
+        },
+        "bindingDigest": {
+          "anyOf": [
+            { "$ref": "#/$defs/sha256" },
+            { "type": "null" }
+          ]
+        },
+        "truthBoundary": { "type": "string", "minLength": 1 }
+      }
+    },
+    "stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "ownerId",
+        "responsibility",
+        "dependsOn",
+        "methodBindings",
+        "capabilityBindings",
+        "inputs",
+        "outputs"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "ownerId": { "$ref": "#/$defs/identifier" },
+        "responsibility": { "type": "string", "minLength": 1 },
+        "dependsOn": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/identifier" }
+        },
+        "methodBindings": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/identifier" }
+        },
+        "capabilityBindings": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/identifier" }
+        },
+        "inputs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/identifier" }
+        },
+        "outputs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/identifier" }
+        }
+      }
+    },
+    "portRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stageId", "port"],
+      "properties": {
+        "stageId": { "$ref": "#/$defs/identifier" },
+        "port": { "$ref": "#/$defs/identifier" }
+      }
+    },
+    "edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "from", "to"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "from": { "$ref": "#/$defs/portRef" },
+        "to": { "$ref": "#/$defs/portRef" },
+        "contractRef": {
+          "anyOf": [
+            { "$ref": "#/$defs/identifier" },
+            { "type": "null" }
+          ]
+        }
+      }
+    },
+    "gateRequirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "producerStageId",
+        "consumerStageId",
+        "assumption",
+        "guarantee",
+        "verifierOwnerId",
+        "supportScope",
+        "required"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "producerStageId": { "$ref": "#/$defs/identifier" },
+        "consumerStageId": { "$ref": "#/$defs/identifier" },
+        "assumption": { "type": "string", "minLength": 1 },
+        "guarantee": { "type": "string", "minLength": 1 },
+        "verifierOwnerId": { "$ref": "#/$defs/identifier" },
+        "supportScope": { "type": "string", "minLength": 1 },
+        "required": { "type": "boolean" }
+      }
+    }
+  }
+}

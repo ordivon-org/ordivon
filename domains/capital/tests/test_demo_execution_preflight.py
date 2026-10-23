@@ -2,6 +2,8 @@ import json
 import subprocess
 from pathlib import Path
 
+import pytest
+
 ROOT=Path(__file__).resolve().parents[1]
 
 
@@ -20,6 +22,7 @@ def test_demo_execution_stays_not_admitted():
     assert x['venues']['BINANCE']['candidateStanding']=='NOT_ADMITTED_CANDIDATE_EVIDENCE_ONLY'
 
 
+@pytest.mark.provider_qualification
 def test_nautilus_candidate_execution_configs_construct_without_credentials_or_network():
     p=subprocess.run([str(ROOT/'tools/nautilus_rc4/check-demo-execution-configs')],cwd=ROOT,text=True,capture_output=True,check=True)
     assert 'okxConfigConstructed": true' in p.stdout

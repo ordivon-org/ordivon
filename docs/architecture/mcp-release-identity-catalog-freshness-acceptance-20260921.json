@@ -1,0 +1,63 @@
+{
+  "baselineRevision": "c3a31010eabea36c887726356f5e14d0bfaf9efe",
+  "gateway": {
+    "exactTools": [
+      "artifact.read",
+      "capability.describe",
+      "continuity.get",
+      "continuity.list",
+      "execution.cancel",
+      "execution.get",
+      "execution.submit",
+      "system.describe"
+    ],
+    "packageVersion": "0.2.0",
+    "retiredToolsAbsent": [
+      "capability.list"
+    ],
+    "serverInfoVersion": "0.2.0"
+  },
+  "harness": {
+    "reason": "physical dispatch/reconciliation/cancellation semantics",
+    "runtimeJobRefStanding": "RETAIN_RUNTIME_SPECIFIC"
+  },
+  "host": {
+    "exactTools": [
+      "attention.delta",
+      "board.list",
+      "board.post",
+      "board.search",
+      "host.status",
+      "task.adopt",
+      "task.checkpoint",
+      "task.list",
+      "task.observe",
+      "task.resume"
+    ],
+    "packageVersion": "0.2.0",
+    "retiredToolsAbsent": [
+      "news.list",
+      "news.read",
+      "news.publish"
+    ],
+    "serverInfoVersion": "0.2.0"
+  },
+  "kind": "ordivon.mcp-release-identity-catalog-freshness-acceptance",
+  "observedAt": "2026-09-21",
+  "schemaVersion": 1,
+  "standardBoundary": {
+    "connectorSnapshotOwner": "connector/client",
+    "privateSurfaceVersionIntroduced": false,
+    "toolListChanged": "MCP standard; connected/subscribed-client refresh only",
+    "toolsListCacheHint": {
+      "cacheScope": "private",
+      "ttlMs": 0
+    }
+  },
+  "status": "ACCEPTED_ISOLATED_SOURCE",
+  "verification": {
+    "gatewayVerify": "PASS",
+    "hostVerify": "PASS",
+    "repoCi": "PASS"
+  }
+}

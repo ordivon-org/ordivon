@@ -1,8 +1,14 @@
 monorepo_root = true
 
+[task_config]
+cascade = true
+shell = "bash -c"
+
 [monorepo]
 config_roots = [
   "meta/next",
+  "meta/next/experimental/episode-store-r1",
+  "packages/composition",
   "services/runtime",
   "services/host",
   "services/harness",
@@ -20,9 +26,25 @@ config_roots = [
 lockfile = false
 
 [tools]
-python = "3.14.7"
-uv = "0.12.16"
+python = "3.15.0"
+uv = "0.13.1"
 actionlint = "1.7.12"
+shellcheck = "0.11.0"
+sqlite = "3.54.1"
+gitleaks = "8.30.1"
+
+[tasks."repo:secrets:verify"]
+run = """
+set -euo pipefail
+if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
+  test -n "${GITHUB_SHA:-}"
+  gitleaks git --no-banner --redact=100 --timeout 120 --log-opts="$GITHUB_SHA" .
+  echo "GitHub Actions scans only the durable candidate/history rooted at GITHUB_SHA; unrelated fetched refs and workspace build artifacts are out of scope."
+else
+  gitleaks git --no-banner --redact=100 --timeout 120 .
+  gitleaks dir --no-banner --redact=100 --timeout 120 .
+fi
+"""
 
 [tasks."repo:retirement:verify"]
 run = """
@@ -33,14 +55,27 @@ done
 tools/repo/test-check-archived-source-boundary.sh
 """
 
+[tasks."repo:sql:verify"]
+run = """
+set -euo pipefail
+python3 -m unittest tools/repo/test_sql_dialects.py
+uv run --with pglast==8.6 python tools/repo/check_sql_dialects.py
+"""
+
 [tasks."repo:ci"]
 run = """
 set -euo pipefail
+python3 -m unittest tools/repo/test_tracked_secrets.py
+python3 -m unittest tools/repo/test_sql_dialects.py
+uv run --with pglast==8.6 python tools/repo/check_sql_dialects.py
 python3 tools/repo/test_affected_owners.py
+python3 tools/repo/test_convergence_plan.py
 python3 tools/repo/test_owner_boundaries.py
 python3 tools/repo/check_owner_boundaries.py
 python3 tools/repo/check_composition_architecture.py
-python3 -m pytest -q tools/repo/test_composition_architecture.py
+python3 tools/repo/check_structure_r2.py
+python3 tools/repo/check_architecture_docs.py
+uv run --with pytest==9.1.1 --with jsonschema==4.25.1 python -m pytest -q tools/repo/test_composition_architecture.py tools/repo/test_structure_r2.py tools/repo/test_architecture_docs.py tests/catalogs/test_research_tool_and_mechanical_component_contracts.py
 tools/repo/migration/test-integrate-main.sh
 uv run --with pyyaml==6.0.3 python tools/repo/check_github_governance.py
 actionlint .github/workflows/*.yml
@@ -65,6 +100,41 @@ set -euo pipefail
 cd meta/next
 mise install
 mise run verify
+cd experimental/episode-store-r1
+mise install
+mise run verify
+"""
+
+[tasks."composition:verify"]
+run = """
+set -euo pipefail
+cd packages/composition
+mise install
+mise run verify
+"""
+
+[tasks."control-plugin:verify"]
+run = """
+set -euo pipefail
+cd meta/next
+mise install
+mise exec -- uv sync --locked
+mise exec -- uv run --locked python -m pytest -q tests/test_agent_plugin_materialization.py
+mise exec -- uv run --locked python - <<'PY'
+import json
+from pathlib import Path
+root = Path('../..') / 'extensions' / 'ordivon-control-plane'
+names = {p.name for p in root.iterdir()}
+assert names == {'plugin.json', 'mcp.json'}, names
+plugin = json.loads((root / 'plugin.json').read_text())
+mcp = json.loads((root / 'mcp.json').read_text())
+assert plugin['$schema'] == 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json'
+assert plugin['name'] == 'ordivon-control-plane'
+assert mcp['$schema'] == 'https://agent-plugins.org/schemas/1.0.0/mcp.schema.json'
+assert set(mcp['mcpServers']) == {'ordivon-gateway'}
+server = mcp['mcpServers']['ordivon-gateway']
+assert server == {'type': 'streamable-http', 'url': 'https://gateway-mcp.ordivon.com/mcp'}
+PY
 """
 
 [tasks."runtime:verify"]
@@ -81,6 +151,14 @@ set -euo pipefail
 cd services/host
 mise install
 mise run verify
+"""
+
+[tasks."host:queue"]
+run = """
+set -euo pipefail
+cd services/host
+mise install
+mise run queue
 """
 
 [tasks."harness:verify"]
@@ -139,6 +217,14 @@ mise install
 mise run verify
 """
 
+[tasks."artifact:queue"]
+run = """
+set -euo pipefail
+cd capabilities/artifact
+mise install
+mise run queue
+"""
+
 [tasks."distribution:verify"]
 run = """
 set -euo pipefail
@@ -178,6 +264,14 @@ cd platform/network
 task all:validate
 """
 
+
+[tasks."harness:queue"]
+run = """
+set -euo pipefail
+cd services/harness
+mise install
+mise run queue
+"""
 
 [tasks."gateway:verify"]
 dir = "services/gateway"

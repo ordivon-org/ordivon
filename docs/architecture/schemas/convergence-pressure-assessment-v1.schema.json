@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ordivon:schema:convergence-pressure-assessment:1",
+  "title": "Ordivon Convergence Pressure Assessment",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "truthRole",
+    "gates",
+    "controlsAdmitted"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "kind": {
+      "const": "ordivon.convergence-pressure-assessment"
+    },
+    "truthRole": {
+      "const": "diagnosis-only-no-provider-or-control-authority"
+    },
+    "gates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "gate",
+          "status",
+          "reason",
+          "evidence",
+          "allowedExperiments"
+        ],
+        "properties": {
+          "gate": {
+            "enum": [
+              "QUEUE_CONTENTION",
+              "HIGH_QUEUE_DEPTH",
+              "CI_WASTE",
+              "LONG_TAIL_OWNER",
+              "PREDICTOR_DATA"
+            ]
+          },
+          "status": {
+            "enum": [
+              "INSUFFICIENT_EVIDENCE",
+              "NOT_PROVEN",
+              "PROVEN",
+              "REGRESSED"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "object"
+          },
+          "allowedExperiments": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          }
+        }
+      }
+    },
+    "controlsAdmitted": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    }
+  }
+}

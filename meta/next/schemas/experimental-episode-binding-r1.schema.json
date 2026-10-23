@@ -1,0 +1,341 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ordivon:schema:experimental-episode-binding:r1",
+  "title": "Ordivon Experimental Episode Binding R1",
+  "description": "A deterministic non-authoritative analytical binding over exact owner-native identities and evidence. Owner-specific observations may remain profile-local; common dimensions/measures stay scalar.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "profileId",
+    "episodeId",
+    "dataClass",
+    "anchor",
+    "ownerRefs",
+    "evidenceBindings",
+    "dimensions",
+    "measures",
+    "unresolved",
+    "nonClaims",
+    "projectionDigest"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "kind": {
+      "const": "ordivon.experimental-episode-binding"
+    },
+    "profileId": {
+      "$ref": "#/$defs/id"
+    },
+    "episodeId": {
+      "$ref": "#/$defs/id"
+    },
+    "dataClass": {
+      "enum": [
+        "EXPERIENCE",
+        "DEVELOPMENT",
+        "JUDGE",
+        "DERIVED"
+      ]
+    },
+    "anchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ownerId",
+        "objectKind",
+        "objectId",
+        "sourceRecordDigest"
+      ],
+      "properties": {
+        "ownerId": {
+          "$ref": "#/$defs/id"
+        },
+        "objectKind": {
+          "$ref": "#/$defs/id"
+        },
+        "objectId": {
+          "$ref": "#/$defs/id"
+        },
+        "sourceRecordDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "ownerRefs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ownerId",
+          "objectKind",
+          "objectId",
+          "relation"
+        ],
+        "properties": {
+          "ownerId": {
+            "$ref": "#/$defs/id"
+          },
+          "objectKind": {
+            "$ref": "#/$defs/id"
+          },
+          "objectId": {
+            "$ref": "#/$defs/id"
+          },
+          "relation": {
+            "$ref": "#/$defs/id"
+          },
+          "digest": {
+            "$ref": "#/$defs/sha256"
+          }
+        }
+      }
+    },
+    "evidenceBindings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "count",
+          "setDigest"
+        ],
+        "properties": {
+          "kind": {
+            "$ref": "#/$defs/id"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "setDigest": {
+            "$ref": "#/$defs/sha256"
+          },
+          "totalBytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "truncatedCount": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "dimensions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "value"
+        ],
+        "properties": {
+          "name": {
+            "$ref": "#/$defs/id"
+          },
+          "value": {
+            "type": [
+              "string",
+              "integer",
+              "number",
+              "boolean",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "measures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "value"
+        ],
+        "properties": {
+          "name": {
+            "$ref": "#/$defs/id"
+          },
+          "value": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "evidenceSets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "events",
+        "artifacts"
+      ],
+      "properties": {
+        "events": {
+          "$ref": "#/$defs/evidenceSet"
+        },
+        "artifacts": {
+          "$ref": "#/$defs/artifactEvidenceSet"
+        }
+      }
+    },
+    "executionObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "desiredState",
+        "executionState",
+        "terminationIntent",
+        "createdAt"
+      ],
+      "properties": {
+        "desiredState": {
+          "type": "string",
+          "minLength": 1
+        },
+        "executionState": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resolution": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "terminationIntent": {
+          "type": "string",
+          "minLength": 1
+        },
+        "createdAt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "startedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "finishedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "recoveryRequired": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "recoveryReasonCode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "costObservations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifactBytes"
+      ],
+      "properties": {
+        "artifactBytes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "unresolved": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "nonClaims": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "projectionDigest": {
+      "$ref": "#/$defs/sha256"
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "evidenceSet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "count",
+        "setDigest"
+      ],
+      "properties": {
+        "count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "setDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "artifactEvidenceSet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "count",
+        "setDigest",
+        "totalBytes",
+        "truncatedCount"
+      ],
+      "properties": {
+        "count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "setDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "totalBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "truncatedCount": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

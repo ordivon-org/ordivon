@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.e01-trace-context-contract",
+  "baselineRevision": "9ecb6685211a841454b926267c36db615e90c979",
+  "owner": "OpenTelemetry",
+  "transport": "MCP _meta / W3C Trace Context",
+  "truthRole": "telemetry-correlation-only",
+  "modules": {
+    "T01": "PASS",
+    "T02": "PASS",
+    "T03": "PASS",
+    "T04": "PASS_BOUNDARY",
+    "T05": "BLOCKED_TRACE_BACKEND"
+  },
+  "gateway": {
+    "sdk": "mcp 2.2.0",
+    "inboundMiddleware": "mcp.server._otel.OpenTelemetryMiddleware (SDK default)",
+    "outboundInjection": "mcp.shared._otel.inject_trace_context -> Client.call_tool(meta=...)",
+    "verification": "gateway:verify PASS"
+  },
+  "harness": {
+    "currentContract": "schema v2",
+    "traceInAuthority": false,
+    "historicalV1Readable": true,
+    "telemetryProjection": "retired"
+  },
+  "substrate": {
+    "otlpGrpc": "127.0.0.1:4317",
+    "otlpHttp": "127.0.0.1:4318",
+    "traceSink": "deferred blackhole",
+    "queryableTraceBackend": false
+  },
+  "finalClosureEligible": false
+}

@@ -2,6 +2,8 @@ import json
 import subprocess
 from pathlib import Path
 
+import pytest
+
 ROOT=Path(__file__).resolve().parents[1]
 
 def test_private_reality_credentials_may_be_located_but_private_data_stays_not_admitted():
@@ -28,6 +30,7 @@ def test_private_reality_credentials_may_be_located_but_private_data_stays_not_a
     assert x['venues']['BINANCE_USDM']['productEligibilityStanding']=='PENDING_PROVIDER_VERIFICATION'
     assert x['venues']['BINANCE_USDM']['tradFiAgreementAutomationAllowed'] is False
 
+@pytest.mark.provider_qualification
 def test_preflight_uses_blank_credentials_and_no_secret_discovery():
     s=(ROOT/'scripts/check-private-reality-readonly-preflight').read_text()
     assert "api_key='',api_secret=''" in s

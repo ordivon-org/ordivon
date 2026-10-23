@@ -1,0 +1,11 @@
+{
+  "authorityId": "nuxmv-2.2.0",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "published-current-license-bounded",
+  "note": "nuXmv 2.2.0 is current on the official download page; that page limits use to non-commercial or academic purposes.",
+  "observedDate": "2026-09-22",
+  "officialSource": "https://nuxmv.fbk.eu/download.html",
+  "schemaVersion": 1,
+  "versionObserved": "2.2.0"
+}

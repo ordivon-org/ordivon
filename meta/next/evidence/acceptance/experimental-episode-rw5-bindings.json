@@ -1,0 +1,14 @@
+{
+  "artifactDatasetSchema": {
+    "ownerId": "capabilities/artifact",
+    "repoRelativePath": "capabilities/artifact/artifact-delivery/shadow-contracts/dataset-contract-v1.schema.json",
+    "sha256": "55d3247b777cba0d367691992f09586b0001eee45389dc30f70597f7f5f6cc93"
+  },
+  "kind": "ordivon.experimental-episode-rw5-task-local-bindings",
+  "nonClaims": [
+    "This binding does not move Artifact schema authority into meta/next.",
+    "This binding is task-local evidence and not a global owner or verifier registry."
+  ],
+  "schemaVersion": 1,
+  "truthRole": "task-local-non-authoritative-cross-owner-locator"
+}

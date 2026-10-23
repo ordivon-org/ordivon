@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.successor-contract",
+  "contractId": "successor:harness-rsi-p2-to-p3-r1",
+  "selfBoundaryRef": {
+    "id": "self:services-harness",
+    "digest": "sha256:745fba740dee588c5d583d71550218bfe0ac009996e010af04e3b88598f35eab"
+  },
+  "predecessorRef": {
+    "id": "system:harness-base-5a390657",
+    "digest": "sha256:00a37b207ea104a205aac7d314f1498b80ac8aeae73541f2a8dd1307d99b928c"
+  },
+  "candidateRef": {
+    "id": "system:harness-candidate-aea4ec10",
+    "digest": "sha256:b30b0bd684ad741d91dab531aa5781ced62c6532d6893c16d093247599b4667e"
+  },
+  "objectiveRef": {
+    "id": "objective:improve-improvement-composition",
+    "digest": "sha256:1aa4035f370eae7fa4cefadefce158fedb4034f2f6c5690d1c659826d327df71"
+  },
+  "improvementProcessRef": {
+    "id": "improvement-process:harness-rsi-p3-r10",
+    "digest": "sha256:b4cc0944922af416832e82a49cac8832ede27d725e033248ea49b5fea25dbbd4"
+  },
+  "changeTargets": [
+    "harness",
+    "improvement-mechanism"
+  ],
+  "evaluationGrounding": {
+    "mode": "EXTERNALLY_ANCHORED",
+    "anchors": [
+      {
+        "id": "anchor:p3-baseline-falsifier",
+        "ownerId": "study:harness-rsi-independent-evaluation",
+        "ref": "evidence:p3-baseline-falsifier",
+        "digest": "sha256:db6450debb13a375b278fb8cc6f4d222d91568cd7f6c99db7c6832379689a6ea",
+        "relation": "EXTERNAL_TO_CANDIDATE"
+      },
+      {
+        "id": "anchor:p3-regression-suite",
+        "ownerId": "study:harness-rsi-independent-evaluation",
+        "ref": "evidence:p3-independent-evaluation",
+        "digest": "sha256:9419f334f8b6e654315077f8940564d8037a918fdaab94016b1d41c37ea51cc3",
+        "relation": "EXTERNAL_TO_CANDIDATE"
+      }
+    ]
+  },
+  "promotionPolicyRef": {
+    "id": "policy:harness-rsi-p3-guarded-promotion",
+    "digest": "sha256:5c446d02c67d0a65418c1472791210dbe3e892c235f12ea159fb60dd5b7c1636"
+  },
+  "gateRequirements": [
+    {
+      "id": "gate:p3-causal-red-to-green",
+      "verifierOwnerId": "study:harness-rsi-independent-evaluation",
+      "supportScope": "The selected digest-authority defect changes from admitted baseline-red to candidate-green under the same falsifier only.",
+      "required": true,
+      "anchorRefIds": [
+        "anchor:p3-baseline-falsifier"
+      ]
+    },
+    {
+      "id": "gate:p3-regression-preservation",
+      "verifierOwnerId": "study:harness-rsi-independent-evaluation",
+      "supportScope": "The candidate preserves named Harness regression/release checks reported by the independent evaluator only.",
+      "required": true,
+      "anchorRefIds": [
+        "anchor:p3-regression-suite"
+      ]
+    }
+  ],
+  "unresolvedAssumptions": [],
+  "nonClaims": [
+    "This historical dogfood does not prove open-ended recursive self-improvement.",
+    "Mechanical successor closure does not grant Git/release promotion authority.",
+    "Historical Harness acceptance does not establish cross-domain or global intelligence improvement."
+  ]
+}

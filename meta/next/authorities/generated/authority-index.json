@@ -301,6 +301,34 @@
     },
     {
       "aliases": [
+        "Apalache",
+        "Apalache 0.58.3"
+      ],
+      "authorityKind": "provider-authority",
+      "currentnessChecked": "2026-09-22",
+      "domains": [
+        "architecture",
+        "engineering",
+        "formal-methods"
+      ],
+      "id": "apalache-0.58.3",
+      "identityMode": "versioned",
+      "issuer": "Apalache / TLA+ Foundation",
+      "lifecycleStatus": "published-current",
+      "observationDigest": "sha256:fdc9dfe7dbb9fa86edcadb92c5955750eff8bf5e544b3c1d9e5babe97722a53d",
+      "recordDigest": "sha256:28ef746c6f3e3da1183eae0317f28515688b4239ada255bb97c10e7dd3d2d16f",
+      "title": "Apalache 0.58.3",
+      "topics": [
+        "bounded-model-checking",
+        "quint",
+        "smt",
+        "symbolic-model-checking",
+        "tla-plus"
+      ],
+      "versionLabel": "0.58.3"
+    },
+    {
+      "aliases": [
         "ArchiMate",
         "ArchiMate 3.2",
         "ArchiMate Specification"
@@ -1223,6 +1251,39 @@
         "spam-policy"
       ],
       "versionLabel": null
+    },
+    {
+      "aliases": [
+        "Goal Structuring Notation",
+        "Goal Structuring Notation Community Standard Version 3",
+        "GSN",
+        "GSN v3"
+      ],
+      "authorityKind": "method-standard",
+      "currentnessChecked": "2026-09-22",
+      "domains": [
+        "architecture",
+        "assurance",
+        "safety",
+        "security"
+      ],
+      "id": "gsn-3",
+      "identityMode": "versioned",
+      "issuer": "SCSC Assurance Case Working Group",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:271fe9482a2e15fa8c2dce7bfe801c24e07a9e0303fa6078711bafa11abf5f19",
+      "recordDigest": "sha256:5053b74fe0310d907e213f1cfc59919e0e6a48c3fa5df258649b2d7e55fc729c",
+      "title": "Goal Structuring Notation Community Standard Version 3",
+      "topics": [
+        "arguments",
+        "assumptions",
+        "assurance-case",
+        "claims",
+        "context",
+        "dialectics",
+        "evidence"
+      ],
+      "versionLabel": "3"
     },
     {
       "aliases": [
@@ -2912,6 +2973,34 @@
     },
     {
       "aliases": [
+        "nuXmv",
+        "nuXmv 2.2.0"
+      ],
+      "authorityKind": "provider-authority",
+      "currentnessChecked": "2026-09-22",
+      "domains": [
+        "architecture",
+        "engineering",
+        "formal-methods"
+      ],
+      "id": "nuxmv-2.2.0",
+      "identityMode": "versioned",
+      "issuer": "Fondazione Bruno Kessler",
+      "lifecycleStatus": "published-current-license-bounded",
+      "observationDigest": "sha256:3c082a6f931c5dc9202316a394b47a5a7f956f334a398b380767b96db0e26e54",
+      "recordDigest": "sha256:5579b8b0a9478e5475b37d214dee6c1a108d338731227e198bfadfb089ded7b9",
+      "title": "nuXmv 2.2.0",
+      "topics": [
+        "ctl",
+        "infinite-state",
+        "ltl",
+        "model-checking",
+        "vmt"
+      ],
+      "versionLabel": "2.2.0"
+    },
+    {
+      "aliases": [
         "ODF",
         "OpenDocument",
         "OpenDocument 1.3"
@@ -3048,6 +3137,64 @@
     },
     {
       "aliases": [
+        "OCRA",
+        "OCRA 1.1.2",
+        "Othello Contracts Refinement Analysis"
+      ],
+      "authorityKind": "provider-authority",
+      "currentnessChecked": "2026-09-22",
+      "domains": [
+        "architecture",
+        "engineering",
+        "formal-methods"
+      ],
+      "id": "ocra-1.1.2",
+      "identityMode": "versioned",
+      "issuer": "Fondazione Bruno Kessler",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:3cf4aad791b5cc8f9c9b1c91a00c2be7a1d62f46291a0328ee9960c57dcaab9e",
+      "recordDigest": "sha256:3c7ce53314c068ead2f4a3d705e43ad191e9997122b97f2a8fc3cf0dff266e81",
+      "title": "OCRA 1.1.2 — Othello Contracts Refinement Analysis",
+      "topics": [
+        "compositional-verification",
+        "contract-refinement",
+        "ltl",
+        "model-checking",
+        "temporal-contracts"
+      ],
+      "versionLabel": "1.1.2"
+    },
+    {
+      "aliases": [
+        "OCRA",
+        "OCRA 2.1.0",
+        "Othello Contracts Refinement Analysis"
+      ],
+      "authorityKind": "provider-authority",
+      "currentnessChecked": "2026-09-22",
+      "domains": [
+        "architecture",
+        "engineering",
+        "formal-methods"
+      ],
+      "id": "ocra-2.1.0",
+      "identityMode": "versioned",
+      "issuer": "Fondazione Bruno Kessler",
+      "lifecycleStatus": "latest-release-confirmed-aged",
+      "observationDigest": "sha256:9fb7b8c432f7589dabeba27fc944e87f40350e6b104812b4b1d3610c2b31d707",
+      "recordDigest": "sha256:c2db8b9ecad6348cef170582769e9c6003541683f6f89e70381652fbea1c0d11",
+      "title": "OCRA 2.1.0 — Othello Contracts Refinement Analysis",
+      "topics": [
+        "compositional-verification",
+        "contract-refinement",
+        "ltl",
+        "model-checking",
+        "temporal-contracts"
+      ],
+      "versionLabel": "2.1.0"
+    },
+    {
+      "aliases": [
         "GeoPackage",
         "GeoPackage 1.4.0",
         "GPKG"
@@ -3178,6 +3325,37 @@
         "traceability"
       ],
       "versionLabel": "1.2"
+    },
+    {
+      "aliases": [
+        "SACM",
+        "SACM 2.3",
+        "Structured Assurance Case Metamodel"
+      ],
+      "authorityKind": "formal-specification",
+      "currentnessChecked": "2026-09-22",
+      "domains": [
+        "architecture",
+        "assurance",
+        "safety",
+        "security"
+      ],
+      "id": "omg-sacm-2.3",
+      "identityMode": "versioned",
+      "issuer": "Object Management Group",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:9a10916566cd46772462b30d9b20f42333b19fd6935e41e5679d81d288532e90",
+      "recordDigest": "sha256:f972ba293e9e247a2a93017bb68c10d0ee061f2be870df3a4b9116488c1601d9",
+      "title": "Structured Assurance Case Metamodel (SACM) 2.3",
+      "topics": [
+        "argumentation",
+        "arguments",
+        "assurance-case",
+        "claims",
+        "evidence",
+        "interchange"
+      ],
+      "versionLabel": "2.3"
     },
     {
       "aliases": [
@@ -3410,6 +3588,35 @@
         "web-security"
       ],
       "versionLabel": "5.0.0"
+    },
+    {
+      "aliases": [
+        "Pacti",
+        "Pacti 0.3.1"
+      ],
+      "authorityKind": "open-source-release",
+      "currentnessChecked": "2026-09-22",
+      "domains": [
+        "architecture",
+        "engineering",
+        "formal-methods"
+      ],
+      "id": "pacti-0.3.1",
+      "identityMode": "versioned",
+      "issuer": "Pacti project",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:0f8347e0acc10694af1fb46682e29c89aaa232ee585840ed5c1d326deb195af9",
+      "recordDigest": "sha256:89c2bfd1291b2abfdd3fe4dd3803d008a3d774fa72a991a75784fb17bb31e7e2",
+      "title": "Pacti 0.3.1",
+      "topics": [
+        "assume-guarantee",
+        "composition",
+        "contract-algebra",
+        "quotient",
+        "refinement",
+        "smt"
+      ],
+      "versionLabel": "0.3.1"
     },
     {
       "aliases": [
@@ -4341,6 +4548,36 @@
     },
     {
       "aliases": [
+        "TLA+",
+        "TLA+ Tools 1.7.4",
+        "TLC"
+      ],
+      "authorityKind": "provider-authority",
+      "currentnessChecked": "2026-09-22",
+      "domains": [
+        "architecture",
+        "engineering",
+        "formal-methods"
+      ],
+      "id": "tla-tools-1.7.4",
+      "identityMode": "versioned",
+      "issuer": "TLA+ Foundation",
+      "lifecycleStatus": "published-current-stable",
+      "observationDigest": "sha256:e776606622759ad6a15071ca0f31066a1baecfad84f757d84d30a499f8fc41bd",
+      "recordDigest": "sha256:2d01da6328c456297515ac8c8c3cc55b88d0ba38f071cd2b6094267e25f51baf",
+      "title": "TLA+ Tools / TLC 1.7.4",
+      "topics": [
+        "concurrency",
+        "liveness",
+        "model-checking",
+        "safety",
+        "state-machines",
+        "temporal-logic"
+      ],
+      "versionLabel": "1.7.4"
+    },
+    {
+      "aliases": [
         "TOGAF",
         "TOGAF 10",
         "TOGAF Standard 10th Edition"
@@ -4679,7 +4916,7 @@
     }
   ],
   "kind": "ordivon.external-authority-discovery-index",
-  "recordCount": 168,
-  "recordsDigest": "sha256:24b433258a8021f66699f6ca3ad77f53b966ee71b719e3ef2d4227d0596dbc50",
+  "recordCount": 176,
+  "recordsDigest": "sha256:e6d5f33ab73ed50e62ef7842765252cfa9bece47df955192ff7bf249d95d548c",
   "schemaVersion": 1
 }

@@ -1,4 +1,25 @@
 impl Runtime {
+    pub fn authorize_job_principal(&self, job_id: &str, principal: &str) -> RuntimeResult<()> {
+        let job = self.registry.get_job(job_id)?;
+        if job.principal != principal {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::AuthorizationDenied,
+                "authenticated principal is not authorized for this Runtime Job",
+                Some("jobId"),
+                false,
+            ));
+        }
+        Ok(())
+    }
+
+    pub fn list_jobs_for_principal(
+        &self,
+        request: &RuntimeJobListRequest,
+        principal: &str,
+    ) -> RuntimeResult<RuntimeJobListResult> {
+        self.registry.list_jobs_for_principal(request, principal)
+    }
+
     pub fn cancel_job(&self, request: &JobCancelRequest) -> RuntimeResult<JobObservation> {
         if request.schema_version != RUNTIME_SCHEMA_VERSION {
             return Err(RuntimeError::invalid(
@@ -212,25 +233,12 @@ impl Runtime {
         self.registry.list_jobs(request)
     }
 
-    pub fn read_artifact(
+    fn verified_artifact_path(
         &self,
-        request: &ArtifactReadRequest,
-    ) -> RuntimeResult<ArtifactReadResult> {
-        if request.schema_version != RUNTIME_SCHEMA_VERSION {
-            return Err(RuntimeError::invalid(
-                "unsupported runtime schema version",
-                "schemaVersion",
-            ));
-        }
-        if request.max_bytes == 0 || request.max_bytes > MAX_ARTIFACT_READ_BYTES {
-            return Err(RuntimeError::invalid(
-                format!("maxBytes must be in 1..={MAX_ARTIFACT_READ_BYTES}"),
-                "maxBytes",
-            ));
-        }
-        let artifact = self
-            .registry
-            .get_artifact(&request.job_id, &request.artifact_id)?;
+        job_id: &str,
+        artifact_id: &str,
+    ) -> RuntimeResult<(RuntimeArtifactRecord, PathBuf)> {
+        let artifact = self.registry.get_artifact(job_id, artifact_id)?;
         let attempt = self.registry.get_attempt(&artifact.attempt_id)?;
         let bundle = canonical_directory(Path::new(&attempt.bundle_path), "bundlePath")
             .map_err(map_universal_error)?;
@@ -265,6 +273,16 @@ impl Runtime {
                 false,
             ));
         }
+        Ok((artifact, canonical))
+    }
+
+    pub fn read_artifact(
+        &self,
+        request: &ArtifactReadRequest,
+    ) -> RuntimeResult<ArtifactReadResult> {
+        ArtifactStateContract::validate_read_request(request)?;
+        let (artifact, canonical) =
+            self.verified_artifact_path(&request.job_id, &request.artifact_id)?;
         let range = read_utf8_range(
             &canonical,
             request.offset,
@@ -285,6 +303,48 @@ impl Runtime {
             next_offset: range.next_offset,
             eof: range.next_offset >= artifact.byte_length,
             digest: artifact.digest,
+        })
+    }
+
+    pub fn read_artifact_content(
+        &self,
+        request: &ArtifactContentRequest,
+    ) -> RuntimeResult<ArtifactContentReadResult> {
+        ArtifactStateContract::validate_content_request(request)?;
+        let (artifact, canonical) =
+            self.verified_artifact_path(&request.job_id, &request.artifact_id)?;
+        if artifact.byte_length > request.max_bytes {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::InvalidRequest,
+                format!(
+                    "Artifact requires {} bytes but maxBytes is {}",
+                    artifact.byte_length, request.max_bytes
+                ),
+                Some("maxBytes"),
+                false,
+            ));
+        }
+        let bytes = fs::read(&canonical).map_err(|error| io_error("read Artifact", error))?;
+        if u64::try_from(bytes.len()).unwrap_or(u64::MAX) != artifact.byte_length
+            || sha256_bytes(&bytes) != artifact.digest
+        {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::ArtifactIdentityConflict,
+                "Artifact bytes changed while projecting content",
+                Some("artifactId"),
+                false,
+            ));
+        }
+        Ok(ArtifactContentReadResult {
+            metadata: ArtifactContentMetadata {
+                job_id: request.job_id.clone(),
+                artifact_id: request.artifact_id.clone(),
+                digest: artifact.digest,
+                media_type: artifact.media_type,
+                byte_length: artifact.byte_length,
+                truncated: artifact.truncated,
+            },
+            bytes,
         })
     }
 
@@ -476,6 +536,7 @@ fn artifact_descriptor(
     };
     ArtifactDescriptor {
         artifact_id: artifact.artifact_id,
+        attempt_id: artifact.attempt_id,
         kind: artifact.kind,
         digest: artifact.digest,
         retained_bytes: artifact.byte_length,
@@ -508,6 +569,55 @@ fn append_terminal_evidence_for_commit_with_observation(
                 false,
             )
         })?;
+    let runner_result_terminal = terminal
+        .artifacts
+        .iter()
+        .any(|artifact| artifact.kind == "execution_result");
+    let source_observation_required = plan.execution_target
+        == super::ExecutionTarget::LocalLinux
+        && plan.workspace_source_digest.is_some()
+        && runner_result_terminal
+        && matches!(
+            terminal.reason_code.as_str(),
+            "PROCESS_EXIT_ZERO"
+                | "PROCESS_COMPLETED_BEFORE_STOP_EFFECTIVE"
+                | "PROCESS_EXIT_NONZERO"
+                | "DEADLINE_EXCEEDED"
+                | "WORKSPACE_SOURCE_PRECONDITION_DRIFT"
+                | "INPUT_PRECONDITION_DRIFT"
+                | "HOST_DEPENDENCY_RUNTIME_DRIFT"
+                | "EXECUTABLE_RUNTIME_DRIFT"
+        );
+    let source_observation = match validate_workspace_source_observation_artifact(
+        attempt,
+        plan.workspace_source_digest.as_deref(),
+        source_observation_required,
+        terminal.reason_code == "WORKSPACE_SOURCE_PRECONDITION_DRIFT",
+    ) {
+        Ok(source_observation) => source_observation,
+        Err(error)
+            if terminal.reason_code == "RUNNER_RESULT_QUARANTINED"
+                && matches!(
+                    error.code,
+                    RuntimeErrorCode::RegistryCorrupt
+                        | RuntimeErrorCode::ResultIdentityConflict
+                        | RuntimeErrorCode::ArtifactIdentityConflict
+                        | RuntimeErrorCode::LaunchIdentityMismatch
+                ) =>
+        {
+            None
+        }
+        Err(error) => return Err(error),
+    };
+    if let Some(source_observation) = source_observation {
+        let duplicate = terminal
+            .artifacts
+            .iter()
+            .any(|artifact| artifact.artifact_id == source_observation.artifact_id);
+        if !duplicate {
+            terminal.artifacts.push(source_observation);
+        }
+    }
     let previous_terminal_evidence = registry
         .list_artifacts(&attempt.job_id)?
         .into_iter()
@@ -1198,329 +1308,6 @@ fn effective_input_requests_from_plan(
     )
 }
 
-const MAX_RUNTIME_RELEASE_RECEIPT_BYTES: u64 = 1_048_576;
-
-struct RuntimeReleaseReceiptProjection {
-    disposition: RuntimeReleaseDisposition,
-    terminal: bool,
-    available: bool,
-    digest: Option<String>,
-    deployed_tool_count: Option<u32>,
-    tool_catalog_digest: Option<String>,
-    rollback_status: Option<String>,
-    issue: Option<String>,
-}
-
-fn validate_runtime_release_request(request: &RuntimeReleaseRequest) -> RuntimeResult<()> {
-    if request.schema_version != RUNTIME_SCHEMA_VERSION {
-        return Err(RuntimeError::invalid(
-            "unsupported runtime schema version",
-            "schemaVersion",
-        ));
-    }
-    validate_client_request_id(&request.client_request_id, "clientRequestId")?;
-    if request.expected_tool_count == 0 {
-        return Err(RuntimeError::invalid(
-            "Runtime Release expectedToolCount must be positive",
-            "expectedToolCount",
-        ));
-    }
-    if request.commit.len() != 40
-        || !request
-            .commit
-            .bytes()
-            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
-    {
-        return Err(RuntimeError::invalid(
-            "Runtime Release commit must be exactly 40 lowercase hexadecimal characters",
-            "commit",
-        ));
-    }
-    let manifest = request
-        .candidate_manifest_digest
-        .strip_prefix("sha256:")
-        .ok_or_else(|| {
-            RuntimeError::invalid(
-                "candidate manifest digest must use sha256",
-                "candidateManifestDigest",
-            )
-        })?;
-    if manifest.len() != 64
-        || !manifest
-            .bytes()
-            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
-    {
-        return Err(RuntimeError::invalid(
-            "candidate manifest digest must contain 64 lowercase hexadecimal characters",
-            "candidateManifestDigest",
-        ));
-    }
-    Ok(())
-}
-
-fn validate_release_binding_matches_request(
-    binding: &RuntimeReleaseEffectBinding,
-    request: &RuntimeReleaseRequest,
-) -> RuntimeResult<()> {
-    let expected_request_digest = runtime_release_request_identity_digest(request)?;
-    let expected_effect_id = runtime_release_effect_id(request);
-    if binding.contract != RuntimeReleaseContract::RuntimeReleaseV1
-        || binding.effect_id != expected_effect_id
-        || binding.request_digest != expected_request_digest
-        || binding.workspace_id != request.workspace_id
-        || binding.commit != request.commit
-        || binding.candidate_manifest_digest != request.candidate_manifest_digest
-        || binding.expected_tool_count != request.expected_tool_count
-    {
-        return Err(RuntimeError::new(
-            RuntimeErrorCode::RegistryCorrupt,
-            "stored Runtime Release side truth does not match the request identity",
-            Some("runtimeReleaseEffect"),
-            false,
-        ));
-    }
-    Ok(())
-}
-
-fn release_receipt_json(path: &Path) -> Result<Option<(serde_json::Value, String)>, String> {
-    let metadata = match fs::symlink_metadata(path) {
-        Ok(metadata) => metadata,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-        Err(_) => return Err("RELEASE_RECEIPT_METADATA_UNAVAILABLE".to_string()),
-    };
-    if metadata.file_type().is_symlink() || !metadata.is_file() {
-        return Err("RELEASE_RECEIPT_FILE_UNSAFE".to_string());
-    }
-    if metadata.len() > MAX_RUNTIME_RELEASE_RECEIPT_BYTES {
-        return Err("RELEASE_RECEIPT_FILE_TOO_LARGE".to_string());
-    }
-    let mut file = open_regular_file_nofollow(path)
-        .map_err(|_| "RELEASE_RECEIPT_OPEN_FAILED".to_string())?;
-    let mut bytes = Vec::new();
-    std::io::Read::by_ref(&mut file)
-        .take(MAX_RUNTIME_RELEASE_RECEIPT_BYTES + 1)
-        .read_to_end(&mut bytes)
-        .map_err(|_| "RELEASE_RECEIPT_READ_FAILED".to_string())?;
-    if bytes.len() as u64 > MAX_RUNTIME_RELEASE_RECEIPT_BYTES {
-        return Err("RELEASE_RECEIPT_FILE_TOO_LARGE".to_string());
-    }
-    let value = serde_json::from_slice::<serde_json::Value>(&bytes)
-        .map_err(|_| "RELEASE_RECEIPT_JSON_INVALID".to_string())?;
-    if !value.is_object() {
-        return Err("RELEASE_RECEIPT_JSON_INVALID".to_string());
-    }
-    Ok(Some((value, sha256_bytes(&bytes))))
-}
-
-fn release_effect_json_matches(
-    value: &serde_json::Value,
-    binding: &RuntimeReleaseEffectBinding,
-) -> bool {
-    let Some(object) = value.as_object() else {
-        return false;
-    };
-    object.get("contract").and_then(|value| value.as_str()) == Some("runtime_release_v1")
-        && object.get("effectId").and_then(|value| value.as_str())
-            == Some(binding.effect_id.as_str())
-        && object.get("requestDigest").and_then(|value| value.as_str())
-            == Some(binding.request_digest.as_str())
-        && object.get("commit").and_then(|value| value.as_str()) == Some(binding.commit.as_str())
-        && object
-            .get("candidateManifestDigest")
-            .and_then(|value| value.as_str())
-            == Some(binding.candidate_manifest_digest.as_str())
-        && object
-            .get("expectedToolCount")
-            .and_then(|value| value.as_u64())
-            == Some(u64::from(binding.expected_tool_count))
-}
-
-fn unresolved_release_projection(snapshot: &JobSnapshot) -> RuntimeReleaseReceiptProjection {
-    let admitted = snapshot
-        .attempt
-        .as_ref()
-        .is_some_and(|attempt| attempt.state == AttemptState::Accepted);
-    RuntimeReleaseReceiptProjection {
-        disposition: if admitted {
-            RuntimeReleaseDisposition::Admitted
-        } else {
-            RuntimeReleaseDisposition::InProgress
-        },
-        terminal: false,
-        available: false,
-        digest: None,
-        deployed_tool_count: None,
-        tool_catalog_digest: None,
-        rollback_status: None,
-        issue: None,
-    }
-}
-
-fn release_reconciliation_projection(issue: &str) -> RuntimeReleaseReceiptProjection {
-    RuntimeReleaseReceiptProjection {
-        disposition: RuntimeReleaseDisposition::ReconciliationRequired,
-        terminal: false,
-        available: false,
-        digest: None,
-        deployed_tool_count: None,
-        tool_catalog_digest: None,
-        rollback_status: None,
-        issue: Some(issue.to_string()),
-    }
-}
-
-fn inspect_runtime_release_receipt(
-    binding: &RuntimeReleaseEffectBinding,
-    snapshot: &JobSnapshot,
-) -> RuntimeResult<RuntimeReleaseReceiptProjection> {
-    let receipt = Path::new(&binding.receipt_path);
-    let directory = match fs::symlink_metadata(receipt) {
-        Ok(metadata) => Some(metadata),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
-        Err(_) => {
-            return Ok(release_reconciliation_projection(
-                "RELEASE_RECEIPT_DIRECTORY_UNAVAILABLE",
-            ));
-        }
-    };
-    let Some(directory) = directory else {
-        return if snapshot.job.resolution.is_none() {
-            Ok(unresolved_release_projection(snapshot))
-        } else {
-            Ok(release_reconciliation_projection(
-                "RELEASE_RECEIPT_MISSING_AFTER_JOB_TERMINAL",
-            ))
-        };
-    };
-    if directory.file_type().is_symlink() || !directory.is_dir() {
-        return Ok(release_reconciliation_projection(
-            "RELEASE_RECEIPT_DIRECTORY_UNSAFE",
-        ));
-    }
-
-    let effect_request = match release_receipt_json(&receipt.join("effect-request.json")) {
-        Ok(Some((value, _))) => value,
-        Ok(None) if snapshot.job.resolution.is_none() => {
-            return Ok(unresolved_release_projection(snapshot))
-        }
-        Ok(None) => {
-            return Ok(release_reconciliation_projection(
-                "RELEASE_EFFECT_REQUEST_MISSING_AFTER_JOB_TERMINAL",
-            ));
-        }
-        Err(issue) => return Ok(release_reconciliation_projection(&issue)),
-    };
-    if !release_effect_json_matches(&effect_request, binding) {
-        return Ok(release_reconciliation_projection(
-            "RELEASE_EFFECT_REQUEST_MISMATCH",
-        ));
-    }
-
-    let result = match release_receipt_json(&receipt.join("result.json")) {
-        Ok(Some(value)) => value,
-        Ok(None) if snapshot.job.resolution.is_none() => {
-            return Ok(unresolved_release_projection(snapshot))
-        }
-        Ok(None) => {
-            return Ok(release_reconciliation_projection(
-                "RELEASE_RESULT_MISSING_AFTER_JOB_TERMINAL",
-            ));
-        }
-        Err(issue) => return Ok(release_reconciliation_projection(&issue)),
-    };
-    let (result, result_digest) = result;
-    if result.get("commit").and_then(|value| value.as_str()) != Some(binding.commit.as_str())
-        || !result
-            .get("releaseEffect")
-            .is_some_and(|value| release_effect_json_matches(value, binding))
-    {
-        return Ok(release_reconciliation_projection("RELEASE_RESULT_MISMATCH"));
-    }
-
-    let rollback = match release_receipt_json(&receipt.join("rollback-result.json")) {
-        Ok(Some((value, _))) => value
-            .get("status")
-            .and_then(|status| status.as_str())
-            .map(str::to_string),
-        Ok(None) => None,
-        Err(issue) => return Ok(release_reconciliation_projection(&issue)),
-    };
-    if rollback.as_deref() == Some("restored_previous") {
-        return Ok(RuntimeReleaseReceiptProjection {
-            disposition: RuntimeReleaseDisposition::RolledBack,
-            terminal: true,
-            available: true,
-            digest: Some(result_digest),
-            deployed_tool_count: result
-                .pointer("/probe/toolCount")
-                .and_then(|value| value.as_u64())
-                .and_then(|value| u32::try_from(value).ok()),
-            tool_catalog_digest: result
-                .pointer("/probe/toolCatalogDigest")
-                .and_then(|value| value.as_str())
-                .map(str::to_string),
-            rollback_status: rollback,
-            issue: None,
-        });
-    }
-
-    let status = result.get("status").and_then(|value| value.as_str());
-    let deployed_tool_count = result
-        .pointer("/probe/toolCount")
-        .and_then(|value| value.as_u64())
-        .and_then(|value| u32::try_from(value).ok());
-    let tool_catalog_digest = result
-        .pointer("/probe/toolCatalogDigest")
-        .and_then(|value| value.as_str())
-        .map(str::to_string);
-    if status == Some("deployed") && deployed_tool_count != Some(binding.expected_tool_count) {
-        return Ok(release_reconciliation_projection(
-            "RELEASE_RESULT_TOOL_COUNT_MISMATCH",
-        ));
-    }
-    let (disposition, terminal, issue) = match status {
-        Some("deployed") => (RuntimeReleaseDisposition::Deployed, true, None),
-        Some("not_committed") => (RuntimeReleaseDisposition::NotCommitted, true, None),
-        Some("rolled_back") => (RuntimeReleaseDisposition::RolledBack, true, None),
-        Some("rollback_failed") => (
-            RuntimeReleaseDisposition::ReconciliationRequired,
-            false,
-            Some("RELEASE_ROLLBACK_FAILED".to_string()),
-        ),
-        Some("reconciliation_required") => (
-            RuntimeReleaseDisposition::ReconciliationRequired,
-            false,
-            Some(
-                result
-                    .get("reconciliationIssue")
-                    .and_then(|value| value.as_str())
-                    .unwrap_or("RELEASE_RECONCILIATION_REQUIRED")
-                    .to_string(),
-            ),
-        ),
-        Some("recovery_failed") => (
-            RuntimeReleaseDisposition::ReconciliationRequired,
-            false,
-            Some("RELEASE_RECOVERY_FAILED".to_string()),
-        ),
-        _ => (
-            RuntimeReleaseDisposition::ReconciliationRequired,
-            false,
-            Some("RELEASE_RESULT_STATUS_UNKNOWN".to_string()),
-        ),
-    };
-    Ok(RuntimeReleaseReceiptProjection {
-        disposition,
-        terminal,
-        available: true,
-        digest: Some(result_digest),
-        deployed_tool_count,
-        tool_catalog_digest,
-        rollback_status: rollback,
-        issue,
-    })
-}
-
 fn validate_run_request_structure(request: &JobRunRequest) -> RuntimeResult<()> {
     if request.schema_version != RUNTIME_SCHEMA_VERSION {
         return Err(RuntimeError::invalid(
@@ -1739,6 +1526,7 @@ fn validate_run_proposal_structure(proposal: &super::JobRunProposal) -> RuntimeR
             execution_profile: proposal.execution.execution_profile,
             execution_target: proposal.execution.execution_target,
             windows_authority: proposal.execution.windows_authority,
+            windows_context: proposal.execution.windows_context,
             foreign_references: proposal.execution.foreign_references.clone(),
             host_dependencies: Vec::new(),
         },
@@ -1989,4 +1777,32 @@ fn load_runner_result_if_present(
             false,
         )
     })
+}
+
+
+#[cfg(test)]
+mod stage_b0_artifact_descriptor_tests {
+    use super::*;
+
+    #[test]
+    fn artifact_descriptor_projects_stored_attempt_id_without_parsing_artifact_id() {
+        let descriptor = artifact_descriptor(
+            RuntimeArtifactRecord {
+                artifact_id: "opaque-artifact".to_string(),
+                job_id: "job-owner-lineage".to_string(),
+                attempt_id: "attempt-owner-lineage".to_string(),
+                kind: "result".to_string(),
+                relative_path: "result.json".to_string(),
+                digest: format!("sha256:{}", "a".repeat(64)),
+                media_type: "application/json".to_string(),
+                byte_length: 7,
+                truncated: false,
+                created_at_ms: 1,
+            },
+            None,
+        );
+
+        assert_eq!(descriptor.artifact_id, "opaque-artifact");
+        assert_eq!(descriptor.attempt_id, "attempt-owner-lineage");
+    }
 }

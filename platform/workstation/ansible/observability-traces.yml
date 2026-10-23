@@ -1,0 +1,83 @@
+---
+- name: Operations v2 shared trace slice
+  hosts: operations_local
+  become: true
+  gather_facts: false
+  vars:
+    tempo_image: docker.io/grafana/tempo@sha256:0296560ac66f8a3600d7fb3014a52c189d4d9c3549ad6ff441bf2409855d68d5
+    tempo_state_dir: /var/lib/ordivon-operations/tempo
+    tempo_config_dir: /etc/ordivon-tempo
+    tempo_quadlet_dir: /etc/containers/systemd
+    ordivon_trace_observability_acceptance: false
+  tasks:
+    - name: Ensure official pinned Tempo OCI image is already admitted locally
+      ansible.builtin.command:
+        argv: [/usr/bin/podman, image, exists, "{{ tempo_image }}"]
+      changed_when: false
+
+    - name: Create Tempo persistent state directory
+      ansible.builtin.file:
+        path: "{{ tempo_state_dir }}"
+        state: directory
+        owner: "10001"
+        group: "10001"
+        mode: "0750"
+
+    - name: Create Tempo configuration directory
+      ansible.builtin.file:
+        path: "{{ tempo_config_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install loopback-only Tempo configuration
+      ansible.builtin.copy:
+        src: ../observability/tempo.yaml
+        dest: "{{ tempo_config_dir }}/tempo.yaml"
+        owner: root
+        group: root
+        mode: "0644"
+      register: tempo_config
+
+    - name: Install digest-pinned Tempo Quadlet
+      ansible.builtin.copy:
+        src: ../tempo/ordivon-tempo.container
+        dest: "{{ tempo_quadlet_dir }}/ordivon-tempo.container"
+        owner: root
+        group: root
+        mode: "0644"
+      register: tempo_quadlet
+
+    - name: Regenerate systemd units after Tempo Quadlet changes
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+      when: tempo_config.changed or tempo_quadlet.changed
+
+    - name: Keep Tempo cold by default
+      ansible.builtin.systemd_service:
+        name: ordivon-tempo.service
+        enabled: false
+        state: stopped
+        daemon_reload: true
+      when: not ordivon_trace_observability_acceptance | bool
+
+    - name: Start Tempo for explicit trace acceptance
+      ansible.builtin.systemd_service:
+        name: ordivon-tempo.service
+        enabled: false
+        state: started
+        daemon_reload: true
+      when: ordivon_trace_observability_acceptance | bool
+
+    - name: Wait for Tempo readiness during explicit acceptance
+      ansible.builtin.uri:
+        url: http://127.0.0.1:3200/ready
+        method: GET
+        status_code: 200
+        return_content: true
+      register: tempo_ready
+      retries: 40
+      delay: 1
+      until: tempo_ready.status == 200
+      when: ordivon_trace_observability_acceptance | bool

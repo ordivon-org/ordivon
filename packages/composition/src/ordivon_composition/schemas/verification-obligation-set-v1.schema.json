@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ordivon:schema:verification-obligation-set:v1",
+  "title": "Task-local Verification Obligation Set v1",
+  "description": "A deterministic non-authoritative projection of Cognitive Circuit Composition Gates into verifier-discharge obligations. It does not discover or execute verifiers and does not establish domain acceptance.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "truthRole",
+    "circuitRef",
+    "obligations",
+    "requiredGateIds",
+    "nonClaims",
+    "obligationSetDigest"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "kind": { "const": "ordivon.verification-obligation-set" },
+    "truthRole": {
+      "const": "task-local-non-authoritative-verification-obligation-projection"
+    },
+    "circuitRef": { "$ref": "#/$defs/boundRef" },
+    "obligations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/obligation" }
+    },
+    "requiredGateIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/identifier" }
+    },
+    "nonClaims": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "obligationSetDigest": { "$ref": "#/$defs/sha256" }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+    },
+    "boundRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "digest"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "digest": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "obligation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gateId",
+        "sourceGateDigest",
+        "circuitRef",
+        "producerStageId",
+        "consumerStageId",
+        "assumption",
+        "guarantee",
+        "verifierOwnerId",
+        "supportScope",
+        "required",
+        "requiredStanding",
+        "resultKind",
+        "nonClaims",
+        "obligationDigest"
+      ],
+      "properties": {
+        "gateId": { "$ref": "#/$defs/identifier" },
+        "sourceGateDigest": { "$ref": "#/$defs/sha256" },
+        "circuitRef": { "$ref": "#/$defs/boundRef" },
+        "producerStageId": { "$ref": "#/$defs/identifier" },
+        "consumerStageId": { "$ref": "#/$defs/identifier" },
+        "assumption": { "type": "string", "minLength": 1 },
+        "guarantee": { "type": "string", "minLength": 1 },
+        "verifierOwnerId": { "$ref": "#/$defs/identifier" },
+        "supportScope": { "type": "string", "minLength": 1 },
+        "required": { "type": "boolean" },
+        "requiredStanding": { "const": "SATISFIED" },
+        "resultKind": { "const": "ordivon.composition-gate-result" },
+        "nonClaims": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "obligationDigest": { "$ref": "#/$defs/sha256" }
+      }
+    }
+  }
+}

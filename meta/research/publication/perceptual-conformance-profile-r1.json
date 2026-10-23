@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "kind": "research-publication-perceptual-conformance-profile",
+  "id": "perceptual-conformance-r1",
+  "truthRole": "carrier-perception-composition-profile-not-scientific-truth",
+  "principle": "HUMAN_REQUIRED_EQ_HUMAN_AUTHORITY_REQUIRED_NOT_HARD_TO_AUTOMATE",
+  "states": [
+    "PASS_AGENT_ENSEMBLE",
+    "ESCALATE_SPECIALIST",
+    "FAIL"
+  ],
+  "requiredObserverRoles": [
+    "BLIND_VISION",
+    "VENUE_AWARE_VISION",
+    "SEMANTIC_LAYOUT"
+  ],
+  "consensusPolicy": {
+    "r1": "UNANIMOUS_3_OF_3_WITH_FULL_COVERAGE",
+    "autoPassRequires": [
+      "DETERMINISTIC_CONFORMANCE_PASS",
+      "ALL_REQUIRED_OBSERVER_ROLES_EXACTLY_ONCE",
+      "DISTINCT_OBSERVER_IDS",
+      "DISTINCT_INDEPENDENCE_KEYS",
+      "100_PERCENT_PAGE_COVERAGE",
+      "100_PERCENT_FIGURE_COVERAGE",
+      "100_PERCENT_TABLE_COVERAGE",
+      "NO_BLOCKER_OR_MAJOR_FINDINGS",
+      "NO_UNCERTAIN_FINDINGS",
+      "ALL_OBSERVER_STANDINGS_PASS"
+    ],
+    "uncertainty": "ESCALATE_TO_INDEPENDENT_PUBLICATION_SPECIALIST_NOT_AUTHOR",
+    "majorOrBlocker": "FAIL"
+  },
+  "observerIsolation": {
+    "BLIND_VISION": {
+      "allowed": ["canonical page rasters"],
+      "forbidden": [
+        "manuscript source",
+        "previous observer findings",
+        "expected pass/fail conclusion"
+      ]
+    },
+    "VENUE_AWARE_VISION": {
+      "allowed": ["canonical page rasters", "venue presentation rubric"],
+      "forbidden": [
+        "previous observer findings",
+        "expected pass/fail conclusion"
+      ]
+    },
+    "SEMANTIC_LAYOUT": {
+      "allowed": [
+        "PDF text layer",
+        "layout geometry",
+        "carrier inventory",
+        "venue structural rubric"
+      ],
+      "forbidden": [
+        "other observer findings",
+        "expected pass/fail conclusion"
+      ]
+    }
+  },
+  "humanAuthorityOnly": [
+    "AUTHORSHIP_DECLARATION",
+    "CONFLICT_ATTESTATION",
+    "ORIGINALITY_AND_SIMULTANEOUS_SUBMISSION_ATTESTATION",
+    "ETHICS_OR_LEGAL_DECLARATION",
+    "FINAL_SUBMISSION_AUTHORIZATION"
+  ],
+  "legacyMigration": {
+    "legacyGate": "HUMAN_PERCEPTUAL_SIGNOFF",
+    "supersededWhen": "PERCEPTUAL_CONFORMANCE_R1_EQUALS_PASS_AGENT_ENSEMBLE",
+    "historyHandling": "PRESERVE_OLD_RECEIPTS_MARK_GATE_SUPERSEDED_DO_NOT_DELETE"
+  },
+  "externalPatterns": [
+    {
+      "name": "GWG Universal Proof of Preflight",
+      "role": "profile-bound preflight audit trail and post-check alteration detection"
+    },
+    {
+      "name": "Chromium pixel tests",
+      "role": "approved baseline plus screenshot regression"
+    },
+    {
+      "name": "veraPDF",
+      "role": "formal validation profiles and machine-readable policy checking"
+    },
+    {
+      "name": "PDF Association Matterhorn terminology update",
+      "role": "deterministic versus non-deterministic assessment rather than permanent human/machine categories"
+    }
+  ]
+}
