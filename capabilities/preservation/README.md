@@ -28,5 +28,5 @@ with current Media consumers, not preservation-format authority.
 - **Responsibility:** reject source declarations, provenance paths and local carrier profiles that exceed the registered preservation boundary.
 - **Inputs:** `SOURCE_BOUNDARY.json`, Git-tracked owner files, Archivematica Compose profile and systemd service/timer definitions.
 - **Outputs:** successful source-profile verification or a non-zero rejection; no persistent domain truth or provider mutation.
-- **Contract:** declared kind/schema, external framework ownership, local-only profile, payload inclusion, segment-scoped globs and nonempty configured carriers are mandatory in normal and optimized Python. Recursive paths require an explicit `/**` grant.
+- **Contract:** declared kind/schema, external framework ownership, local-only profile, payload inclusion, segment-scoped globs, an explicit Archivematica storage-service requirement, and nonempty configured carriers are mandatory in normal and optimized Python. Recursive paths require an explicit `/**` grant.
 - **Acceptance/consumer:** `mise run preservation:verify` runs source verification plus owner-local positive and falsifying cases in `scripts/test_verify_source.py`; the repository Owner CI invokes the same task. This checks the local source interface, not external Archivematica or OAIS certification.
