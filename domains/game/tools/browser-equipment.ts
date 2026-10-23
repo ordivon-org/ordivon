@@ -4,14 +4,14 @@ import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 
 function workstationBinding(): string | undefined {
-  const tool = process.env.ORDIVON_EQUIPMENT_BINDING || "/root/tools/bin/equipment-binding";
+  const tool = process.env.ORDIVON_TOOL_BINDING || "/root/tools/bin/tool-binding";
   if (!existsSync(tool)) return undefined;
   try {
     const value = JSON.parse(execFileSync(tool, ["browser", "--family", "chromium"], { encoding: "utf8", timeout: 15000 }));
-    if (value?.schemaVersion !== 1 || value?.kind !== "ordivon.workstation-equipment-binding") return undefined;
+    if (value?.schemaVersion !== 1 || value?.kind !== "ordivon.workstation.v2.tool-binding") return undefined;
     if (value?.state !== "AVAILABLE" || value?.equipmentId !== "browser:playwright-chromium") return undefined;
-    if (value?.executionTarget !== "local_linux" || typeof value?.executable !== "string") return undefined;
-    return existsSync(value.executable) ? value.executable : undefined;
+    if (value?.executionTarget !== "local_linux" || typeof value?.observedExecutable !== "string") return undefined;
+    return existsSync(value.observedExecutable) ? value.observedExecutable : undefined;
   } catch {
     return undefined;
   }

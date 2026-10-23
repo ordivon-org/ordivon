@@ -4,11 +4,12 @@
   "activated": {
     "opa": {
       "repo": "https://github.com/open-policy-agent/opa.git",
-      "revision": "8ce961d78fc6398ff25be63aa087d628c65927d2",
-      "release": "v1.20.2",
-      "containerImage": "docker.io/openpolicyagent/opa:1.20.2-static",
-      "containerDigest": "sha256:9c5770a0023d56a11224b0514fec2e4e0247357db4392b955c1270fd49cb1f0f",
-      "role": "policy-decision-point"
+      "revision": "05c845177c80747a2aabb607f9318f981993cc76",
+      "release": "v1.21.4",
+      "containerImage": "docker.io/openpolicyagent/opa:1.21.4-static",
+      "containerDigest": "sha256:47f93480b09e24c220ae75f1e9133585ba6d698059951668d35e6a4fc32ebc82",
+      "role": "policy-decision-point",
+      "lastQualifiedOn": "2026-10-24"
     },
     "postiz": {
       "repo": "https://github.com/gitroomhq/postiz-app.git",

@@ -12,6 +12,7 @@ import urllib.error
 import json
 import os
 import shutil
+import stat
 import subprocess
 import sys
 import time
@@ -22,6 +23,8 @@ from pathlib import Path
 from mcp_probe import connect_compatible, load_bearer_token, load_environment_file
 
 SCHEMA_VERSION = 1
+# Bound the native inspector even when the enclosing lifecycle has a deadline.
+RUNTIME_INSPECT_WALL_TIMEOUT_SECONDS = 15.0
 MAX_DIRTY_PATHS = 20
 RECLAIM_CONFIRMATION = "RECLAIM_ELIGIBLE_WORKSPACES"
 RECLAIMABLE_CLASSIFICATIONS = ("stale_record", "closable")
@@ -72,7 +75,7 @@ def add_inspection_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--measure-bytes",
         action="store_true",
-        help="walk Workspace trees and include logical byte estimates",
+        help="estimate logical file lengths and unique-inode allocated file blocks (not guaranteed reclaimable bytes)",
     )
 
 
@@ -139,7 +142,19 @@ def runtime_inspection(
     ]
     if workspace_id is not None:
         arguments.extend(["--workspace-id", workspace_id])
-    completed = subprocess.run(arguments, check=False, text=True, capture_output=True)
+    try:
+        completed = subprocess.run(
+            arguments,
+            check=False,
+            text=True,
+            capture_output=True,
+            timeout=RUNTIME_INSPECT_WALL_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired as error:
+        # Do not echo Registry paths, source coordinates, or credentials.
+        raise RuntimeError(
+            f"Runtime inspection exceeded {RUNTIME_INSPECT_WALL_TIMEOUT_SECONDS:.0f}s wall timeout"
+        ) from error
     if completed.returncode != 0:
         detail = completed.stderr.strip() or completed.stdout.strip() or f"exit {completed.returncode}"
         raise RuntimeError(f"Runtime inspection failed: {detail}")
@@ -213,9 +228,26 @@ def inspect_workspaces(
     for record_path in record_paths:
         workspace_id = record_path.stem
         record_ids.add(workspace_id)
+        workspace_path = workspace_root / workspace_id
+        # Closed tombstones vastly outnumber physical Workspaces. A valid
+        # terminal record with no physical carrier cannot produce a candidate.
+        # Do not hash/read it a second time or invoke Git classification.
+        # Malformed/symlink records and residual directories retain the
+        # ordinary fail-closed path below.
+        if (
+            not workspace_path.exists()
+            and record_path.is_file()
+            and not record_path.is_symlink()
+        ):
+            try:
+                terminal_record = json.loads(record_path.read_text(encoding="utf-8"))
+            except (OSError, UnicodeError, json.JSONDecodeError):
+                terminal_record = None
+            if isinstance(terminal_record, dict) and terminal_record.get("state") == "closed":
+                continue
         record_candidate = classify_record(
             record_path,
-            workspace_root / workspace_id,
+            workspace_path,
             workspace_id,
             active_job_ids=active_by_workspace.get(workspace_id, []),
             measure_bytes=args.measure_bytes,
@@ -237,24 +269,34 @@ def inspect_workspaces(
             ]
         for workspace_path in workspace_paths:
             if workspace_path.name not in record_ids:
+                logical_bytes, allocated_bytes = (
+                    workspace_footprint_bytes(workspace_path)
+                    if args.measure_bytes else (None, None)
+                )
                 candidates.append(
                     candidate(
                         workspace_path.name,
                         "orphan_directory",
                         detail="physical Workspace has no identity record",
-                        estimated_bytes=workspace_bytes(workspace_path) if args.measure_bytes else None,
+                        estimated_bytes=logical_bytes,
+                        estimated_allocated_bytes=allocated_bytes,
                     )
                 )
 
     candidates.sort(key=lambda item: str(item["workspaceId"]))
     counts: dict[str, int] = {}
     estimated_bytes: dict[str, int] = {}
+    allocated_bytes: dict[str, int] = {}
     for item in candidates:
         classification = str(item["classification"])
         counts[classification] = counts.get(classification, 0) + 1
         if isinstance(item.get("estimatedBytes"), int):
             estimated_bytes[classification] = estimated_bytes.get(classification, 0) + int(
                 item["estimatedBytes"]
+            )
+        if isinstance(item.get("estimatedAllocatedBytes"), int):
+            allocated_bytes[classification] = allocated_bytes.get(classification, 0) + int(
+                item["estimatedAllocatedBytes"]
             )
     return {
         "schemaVersion": SCHEMA_VERSION,
@@ -265,6 +307,7 @@ def inspect_workspaces(
         "summary": {
             "counts": dict(sorted(counts.items())),
             "estimatedBytes": dict(sorted(estimated_bytes.items())),
+            "estimatedAllocatedBytes": dict(sorted(allocated_bytes.items())),
         },
         "candidates": candidates,
     }
@@ -290,8 +333,13 @@ def classify_record(
     except (OSError, UnicodeError, json.JSONDecodeError):
         return candidate(workspace_id, "unknown", detail="workspace record cannot be decoded")
 
-    estimated_bytes = workspace_bytes(workspace_path) if measure_bytes and workspace_path.exists() else None
+    estimated_bytes, estimated_allocated_bytes = (
+        workspace_footprint_bytes(workspace_path)
+        if measure_bytes and workspace_path.is_dir() and not workspace_path.is_symlink()
+        else (None, None)
+    )
     metadata = {
+        "estimated_allocated_bytes": estimated_allocated_bytes,
         "sourceRepo": value.get("sourceRepo"),
         "sourceRevision": value.get("sourceRevision"),
         "createdUnixMs": value.get("createdUnixMs"),
@@ -479,6 +527,24 @@ def git_verbatim_patch_ids(
 
 
 def git_canonical_head(source_repo: Path) -> tuple[str, str]:
+    # Git local-main is authoritative when the repository owner has checked it
+    # out as the integration branch. Workspaces merged there need not wait for
+    # publication to a possibly stale origin/main tracking ref.
+    branch = subprocess.run(
+        ["git", "-C", str(source_repo), "symbolic-ref", "--quiet", "HEAD"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if branch.returncode == 0 and branch.stdout.strip() == "refs/heads/main":
+        return git_text(source_repo, ["rev-parse", "refs/heads/main^{commit}"]), "main"
+    if branch.returncode not in {0, 1}:
+        raise RuntimeError(
+            f"git symbolic-ref HEAD failed: {branch.stderr.strip() or branch.returncode}"
+        )
+
+    # Detached/non-main source checkouts are not implicit local publication.
+    # Keep the existing remote release authority rather than accepting drift.
     published_ref = "refs/remotes/origin/main"
     published = subprocess.run(
         ["git", "-C", str(source_repo), "show-ref", "--verify", "--quiet", published_ref],
@@ -608,8 +674,11 @@ def git_bytes(workspace: Path, arguments: Sequence[str]) -> bytes:
     return result.stdout
 
 
-def workspace_bytes(workspace: Path) -> int:
-    total = 0
+def workspace_footprint_bytes(workspace: Path) -> tuple[int, int]:
+    """One walk: logical file bytes and unique-inode allocated file blocks."""
+    logical_bytes = 0
+    allocated_bytes = 0
+    counted_inodes: set[tuple[int, int]] = set()
     for root, directories, files in os.walk(workspace, followlinks=False):
         root_path = Path(root)
         directories[:] = [
@@ -618,11 +687,17 @@ def workspace_bytes(workspace: Path) -> int:
         for name in files:
             path = root_path / name
             try:
-                if not path.is_symlink() and path.is_file():
-                    total += path.stat().st_size
+                metadata = path.lstat()
             except FileNotFoundError:
                 continue
-    return total
+            if not stat.S_ISREG(metadata.st_mode):
+                continue
+            logical_bytes += metadata.st_size
+            inode = (metadata.st_dev, metadata.st_ino)
+            if inode not in counted_inodes:
+                counted_inodes.add(inode)
+                allocated_bytes += getattr(metadata, "st_blocks", 0) * 512
+    return logical_bytes, allocated_bytes
 
 
 
@@ -641,6 +716,7 @@ def candidate(
     dirty_paths: list[str] | None = None,
     detail: str | None = None,
     estimated_bytes: int | None = None,
+    estimated_allocated_bytes: int | None = None,
     sourceRepo: object = None,
     sourceRevision: object = None,
     createdUnixMs: object = None,
@@ -666,6 +742,8 @@ def candidate(
         result["detail"] = detail
     if estimated_bytes is not None:
         result["estimatedBytes"] = estimated_bytes
+    if estimated_allocated_bytes is not None:
+        result["estimatedAllocatedBytes"] = estimated_allocated_bytes
     if isinstance(sourceRepo, str):
         result["sourceRepo"] = sourceRepo
     if isinstance(sourceRevision, str):
