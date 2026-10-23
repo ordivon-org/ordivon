@@ -278,6 +278,9 @@ def validate_formal_issue_census(
             if not isinstance(issue.get(field), str) or not issue[field].strip():
                 raise ArchitectureDocsError(f"issue {issue_id} lacks {field}")
 
+    issue_by_id = {issue["id"]: issue for issue in issues}
+    bound_issue_ids: set[str] = set()
+    registered_owners: set[str] = set()
     registrations = census.get("registrations")
     if not isinstance(registrations, list) or not registrations:
         raise ArchitectureDocsError("issue census needs owner-local LEGO links")
@@ -294,6 +297,23 @@ def validate_formal_issue_census(
         if (plan_path, slice_id) in seen:
             raise ArchitectureDocsError("duplicate owner-local LEGO link")
         seen.add((plan_path, slice_id))
+        owner_scope = Path(plan_path).parent.parent.as_posix()
+        registered_owners.add(owner_scope)
+        linked_ids = ref.get("issueIds")
+        if not isinstance(linked_ids, list) or not linked_ids or not all(
+            isinstance(identity, str) and identity for identity in linked_ids
+        ):
+            raise ArchitectureDocsError(f"issueIds required for LEGO slice {slice_id}")
+        for identity in linked_ids:
+            if identity not in issue_by_id:
+                raise ArchitectureDocsError(f"unknown issue binding: {identity}")
+            if issue_by_id[identity]["naturalOwner"] != owner_scope:
+                raise ArchitectureDocsError(
+                    f"cross-owner issue binding: {identity} -> {owner_scope}"
+                )
+            if identity in bound_issue_ids:
+                raise ArchitectureDocsError(f"duplicate issue binding: {identity}")
+            bound_issue_ids.add(identity)
         plan = plans.get(plan_path)
         if not isinstance(plan, dict) or plan.get("truthRole") != "planning-projection-not-project-truth":
             raise ArchitectureDocsError("owner-local LEGO plan must remain non-authoritative")
@@ -313,6 +333,13 @@ def validate_formal_issue_census(
             raise ArchitectureDocsError(f"LEGO slice {slice_id} needs falsifiable acceptance")
         if slice_.get("status") not in {"PROPOSED", "IMPLEMENTED", "VERIFIED", "RETIRED"}:
             raise ArchitectureDocsError(f"LEGO slice {slice_id} has unknown state")
+
+    missing = sorted(
+        issue_id for issue_id, issue in issue_by_id.items()
+        if issue["naturalOwner"] in registered_owners and issue_id not in bound_issue_ids
+    )
+    if missing:
+        raise ArchitectureDocsError(f"unbound owner issue: {missing}")
 
 
 def validate_repository(root: Path = ROOT) -> None:

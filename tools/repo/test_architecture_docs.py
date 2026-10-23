@@ -469,3 +469,31 @@ def test_formal_issue_census_cannot_grant_authority() -> None:
     census["truthRole"] = "semantic-authority"
     with pytest.raises(module.ArchitectureDocsError, match="non-authoritative"):
         module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issue_census_rejects_unknown_issue_reference() -> None:
+    census, plans = formal_issue_inputs()
+    census["registrations"][0]["issueIds"] = ["UNREGISTERED-999"]
+    with pytest.raises(module.ArchitectureDocsError, match="unknown issue binding"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issue_census_rejects_cross_owner_registration() -> None:
+    census, plans = formal_issue_inputs()
+    census["registrations"][0]["issueIds"] = ["NET-01"]
+    with pytest.raises(module.ArchitectureDocsError, match="cross-owner issue binding"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issue_census_rejects_missing_owner_issue_binding() -> None:
+    census, plans = formal_issue_inputs()
+    census["registrations"][0]["issueIds"] = ["LEGO-01"]
+    with pytest.raises(module.ArchitectureDocsError, match="unbound owner issue"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issue_census_requires_explicit_issue_links() -> None:
+    census, plans = formal_issue_inputs()
+    census["registrations"][0].pop("issueIds", None)
+    with pytest.raises(module.ArchitectureDocsError, match="issueIds required"):
+        module.validate_formal_issue_census(census, plans)

@@ -38,17 +38,29 @@
     {
       "ownerPlan": "services/harness/planning/lego-plan-r1.json",
       "slice": "HS2",
-      "scope": "verification proposal only"
+      "scope": "verification proposal only",
+      "issueIds": [
+        "LEGO-01",
+        "TEST-01",
+        "SKILL-01"
+      ]
     },
     {
       "ownerPlan": "platform/security/planning/lego-plan-r1.json",
       "slice": "SS2",
-      "scope": "verification proposal only"
+      "scope": "verification proposal only",
+      "issueIds": [
+        "SEC-01",
+        "FORMAL-01"
+      ]
     },
     {
       "ownerPlan": "platform/network/planning/lego-plan-r1.json",
       "slice": "NS2",
-      "scope": "verification proposal only"
+      "scope": "verification proposal only",
+      "issueIds": [
+        "NET-01"
+      ]
     }
   ],
   "issues": [
