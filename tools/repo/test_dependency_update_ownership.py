@@ -16,6 +16,11 @@ class DependencyUpdateOwnershipTests(unittest.TestCase):
         renovate = json.loads((ROOT / "renovate.json").read_text(encoding="utf-8"))
         self.assertIn("pep621", renovate["enabledManagers"])
         self.assertTrue(renovate["lockFileMaintenance"]["enabled"])
+        # Native Renovate grouping: one same-name PR across independent uv owners.
+        self.assertEqual(
+            renovate["packageRules"],
+            [{"matchManagers": ["pep621"], "groupName": "Python {{depName}}"}],
+        )
         config = yaml.safe_load((ROOT / ".github/dependabot.yml").read_text(encoding="utf-8"))
         ecosystems = [item["package-ecosystem"] for item in config["updates"]]
         self.assertNotIn("uv", ecosystems)
