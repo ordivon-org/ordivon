@@ -5,6 +5,7 @@ import importlib.util
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 MODULE_PATH = Path(__file__).with_name("convergence_plan.py")
@@ -89,6 +90,50 @@ to_owner = "missing"
             path.write_text(content, encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "unknown owner"):
                 MODULE.load_dependency_graph(path=path)
+
+
+    def test_calendar_only_correction_does_not_run_unrelated_owners(self) -> None:
+        base = (
+            '[tools]\npython="3.15.0"\n'
+            '[tasks."repo:ci"]\nrun = """\nset -euo pipefail\n'
+            'python3 -m unittest tools/repo/test_latest_stable_languages.py\n'
+            'python3 tools/repo/check_latest_stable_languages.py\n'
+            'python3 tools/repo/check_owner_boundaries.py\n"""\n'
+        )
+        head = base.replace(
+            'python3 tools/repo/check_latest_stable_languages.py\n', ''
+        )
+        def source(*args: str) -> str:
+            if args[0] == "rev-parse":
+                return args[1].split("^")[0]
+            if args == ("show", "base:mise.toml"):
+                return base
+            if args == ("show", "head:mise.toml"):
+                return head
+            raise AssertionError(args)
+        with patch.object(MODULE, "_git", side_effect=source), patch.object(
+            MODULE.affected_owners, "changed_paths", return_value=("mise.toml", "tools/repo/convergence_plan.py", "tools/repo/test_convergence_plan.py")
+        ):
+            plan = MODULE.build_plan(base="base", head="head")
+            self.assertEqual(plan["verificationOwners"], [])
+            self.assertEqual(plan["queueClass"], "REPOSITORY_ONLY")
+            self.assertEqual(set(plan["changedPaths"]), {"mise.toml", "tools/repo/convergence_plan.py", "tools/repo/test_convergence_plan.py"})
+
+            # Changing a real tool version must still invoke all consumers.
+            def changed(*args: str) -> str:
+                result = source(*args)
+                if args == ("show", "head:mise.toml"):
+                    return result.replace('python="3.15.0"', 'python="3.15.1"')
+                return result
+            with patch.object(MODULE, "_git", side_effect=changed):
+                full = MODULE.build_plan(base="base", head="head")
+            self.assertTrue(full["crossCutting"])
+            self.assertEqual(len(full["verificationOwners"]), len(MODULE.affected_owners.OWNERS))
+
+        # A hand-provided pathname is insufficient to waive consumer checks.
+        guessed = MODULE.build_plan(changed_files=["mise.toml"])
+        self.assertTrue(guessed["crossCutting"])
+
 
 
 if __name__ == "__main__":

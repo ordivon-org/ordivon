@@ -82,6 +82,44 @@ def _is_cross_cutting(paths: Iterable[str]) -> bool:
     )
 
 
+# This single retired wall-clock policy is not a dependency consumer.
+# Compare full committed mise task configurations; anything else still fans out.
+_RETIRED_DATE_CHECK = "python3 tools/repo/check_latest_stable_languages.py"
+
+
+def _only_retired_date_check_removed(base: str, head: str) -> bool:
+    try:
+        before = tomllib.loads(_git("show", f"{base}:mise.toml"))
+        after = tomllib.loads(_git("show", f"{head}:mise.toml"))
+    except (subprocess.CalledProcessError, tomllib.TOMLDecodeError):
+        return False
+    old_tasks = before.get("tasks", {})
+    new_tasks = after.get("tasks", {})
+    if not isinstance(old_tasks, dict) or not isinstance(new_tasks, dict):
+        return False
+    old_ci, new_ci = old_tasks.get("repo:ci"), new_tasks.get("repo:ci")
+    if not isinstance(old_ci, dict) or not isinstance(new_ci, dict):
+        return False
+    if {k: v for k, v in before.items() if k != "tasks"} != {
+        k: v for k, v in after.items() if k != "tasks"
+    }:
+        return False
+    if {k: v for k, v in old_tasks.items() if k != "repo:ci"} != {
+        k: v for k, v in new_tasks.items() if k != "repo:ci"
+    }:
+        return False
+    if {k: v for k, v in old_ci.items() if k != "run"} != {
+        k: v for k, v in new_ci.items() if k != "run"
+    }:
+        return False
+    old_lines = old_ci.get("run", "").splitlines()
+    new_lines = new_ci.get("run", "").splitlines()
+    return (
+        old_lines.count(_RETIRED_DATE_CHECK) == 1
+        and new_lines == [line for line in old_lines if line != _RETIRED_DATE_CHECK]
+    )
+
+
 def build_plan(
     *,
     base: str | None = None,
@@ -104,9 +142,26 @@ def build_plan(
         head_tree = _git("rev-parse", f"{head_revision}^{{tree}}")
         paths = affected_owners.changed_paths(base_revision, head_revision)
 
-    direct = affected_owners.owners_for_paths(paths)
+    # Narrow, source-proven removal of a CI calendar check has no owner impact.
+    # Explicit path claims and all other mise changes retain conservative fanout.
+    calendar_bootstrap_paths = {
+        "mise.toml",
+        "tools/repo/convergence_plan.py",
+        "tools/repo/test_convergence_plan.py",
+    }
+    # This one-time CI bootstrap includes the selector's own regression test.
+    # Any extra file or any other mise change still selects all owners.
+    calendar_bootstrap = (
+        base_revision is not None
+        and head_revision is not None
+        and "mise.toml" in paths
+        and set(paths).issubset(calendar_bootstrap_paths)
+        and _only_retired_date_check_removed(base_revision, head_revision)
+    )
+    effective_paths = () if calendar_bootstrap else paths
+    direct = affected_owners.owners_for_paths(effective_paths)
     direct_names = tuple(owner.name for owner in direct)
-    cross_cutting = _is_cross_cutting(paths)
+    cross_cutting = _is_cross_cutting(effective_paths)
     graph = load_dependency_graph(owners=owners, path=dependency_path)
 
     if cross_cutting:
