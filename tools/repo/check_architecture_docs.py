@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import tomllib
 import re
 from pathlib import Path
 from typing import Any
@@ -264,6 +265,9 @@ def validate_formal_issue_census(
     issues = census.get("issues")
     if not isinstance(issues, list) or not issues:
         raise ArchitectureDocsError("issue census must contain typed issues")
+    owner_manifest = tomllib.loads((ROOT / "tools/repo/owners.toml").read_text(encoding="utf-8"))
+    known_owners = {row["root"].removesuffix("/") for row in owner_manifest["owners"]}
+    known_owners.add("tools/repo")  # Repository mechanics, not a domain owner.
     issue_ids: set[str] = set()
     for issue in issues:
         if not isinstance(issue, dict):
@@ -274,6 +278,8 @@ def validate_formal_issue_census(
         if issue_id in issue_ids:
             raise ArchitectureDocsError(f"duplicate issue identity: {issue_id}")
         issue_ids.add(issue_id)
+        if issue.get("naturalOwner") not in known_owners:
+            raise ArchitectureDocsError(f"issue {issue_id} has undeclared naturalOwner")
         for field in ("problemClass", "naturalOwner", "standing", "evidence", "consumers", "formalObligation"):
             if not isinstance(issue.get(field), str) or not issue[field].strip():
                 raise ArchitectureDocsError(f"issue {issue_id} lacks {field}")

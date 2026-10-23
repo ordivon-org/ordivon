@@ -469,3 +469,12 @@ def test_formal_issue_census_cannot_grant_authority() -> None:
     census["truthRole"] = "semantic-authority"
     with pytest.raises(module.ArchitectureDocsError, match="non-authoritative"):
         module.validate_formal_issue_census(census, plans)
+
+
+
+@pytest.mark.parametrize("owner", ["services/unknown", "services/runtime-shadow", "tools/unknown"])
+def test_formal_issue_census_rejects_undeclared_natural_owner(owner: str) -> None:
+    census, plans = formal_issue_inputs()
+    census["issues"][0]["naturalOwner"] = owner
+    with pytest.raises(module.ArchitectureDocsError, match="undeclared naturalOwner"):
+        module.validate_formal_issue_census(census, plans)

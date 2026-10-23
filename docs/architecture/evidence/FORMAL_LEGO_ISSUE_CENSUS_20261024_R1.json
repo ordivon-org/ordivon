@@ -205,6 +205,17 @@
       "decision": "Fix in existing PR #231; do not fork duplicate owner-universe checker.",
       "formalObligation": "ConvergenceOwnerSet(plan) subset of DeclaredOwnerUniverse(sourceCut), with strict unknown-owner rejection.",
       "consumers": "Repository CI, affected-owner selection, merge queue"
+    },
+    {
+      "id": "TYPE-01",
+      "problemClass": "OWNER_IDENTITY_CONTRACT",
+      "naturalOwner": "tools/repo",
+      "standing": "LOCAL_REGRESSION_VERIFIED_REMOTE_PENDING",
+      "observation": "The original issue validator accepted a nonempty but undeclared naturalOwner such as services/runtime-shadow; classification could therefore create a dangling consumer/owner edge.",
+      "evidence": "tools/repo/test_architecture_docs.py::test_formal_issue_census_rejects_undeclared_natural_owner (three failing counterexamples before the fix; three passed afterward); tools/repo/owners.toml",
+      "decision": "Derive valid naturalOwner paths from existing owners.toml and allow only the repository-mechanics tools/repo exception. Do not create a second owner registry.",
+      "formalObligation": "For every issue i, naturalOwner(i) belongs to CanonicalOwnerRoots(source) union {tools/repo}; an unknown or prefix-impostor owner fails closed.",
+      "consumers": "Formal issue census, owner plans, repository CI, owner/consumer trace"
     }
   ],
   "followUp": {
