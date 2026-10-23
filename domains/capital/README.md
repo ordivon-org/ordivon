@@ -28,6 +28,18 @@ Crypto Shadow Mechanics R1 also passes local multi-currency Spot OMS mechanics f
 
 Crypto data transport is now venue-specific: OKX uses the qualified Nautilus native public client, while Binance uses its official credential-free REST/WebSocket boundary because Nautilus 2.0.0rc4 still times out during native data-client startup.
 
+**Public-data adapter policy LEGO** (capital.markets.crypto-public-data-admission):
+Capital owns one responsibility—reject nonpublic or execution-capable adapter
+configuration. Input: config/crypto_data_adapters.json; output: a successful
+bounded public-data policy receipt or nonzero rejection. Contract: PUBLIC_DATA_ONLY,
+credential-free OKX/Binance primary paths, no venue execution client, and no Binance
+SBE credential workaround. Actual consumers: scripts/run-crypto-public-shadow-r2
+and scripts/run-crypto-stream-resilience-r3. Acceptance:
+tests/test_crypto_data_adapters.py injects forbidden credential/execution flags
+into an isolated configuration and requires rejection under ordinary and optimized
+Python, then mise run verify checks the owner suite. This does not authorize
+private account access, trading or external financial effects.
+
 Crypto Public Shadow R2 now passes repeated persistent public streaming through exact Network v2 WS authorities using the mature `websockets` client proxy support. OKX `bbo-tbt` plus Binance market-data-only `@ticker` produced one warm-up and three measured coherent snapshots; all measured source/receive spans remained below the frozen 1200 ms limits. Provider selection is owned by Network v2 `provider-auto`, not by an application-level node/protocol matrix.
 
 Crypto Stream Resilience R3 keeps fail-closed missing/stale/time-divergence semantics and the dual-venue reconnect harness on exact Network v2 WS authorities. Current injected-disconnect qualification passes for both OKX and Binance; observed reconnect latencies were ~16.0 s and ~26.3 s respectively and remain evidence rather than a hidden transport claim. The state is exported through the existing Prometheus/Grafana stack without enabling private/demo/live execution.
