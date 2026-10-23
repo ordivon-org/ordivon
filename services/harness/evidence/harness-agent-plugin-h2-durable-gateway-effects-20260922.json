@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.harness-agent-plugin-h2-durable-gateway-effects",
+  "date": "2026-09-22",
+  "implementationRevision": "443636b205e04b64051e26f80054696bbf7e2091",
+  "python": {
+    "version": "3.14.7",
+    "channel": "stable-ga"
+  },
+  "runtimeDependencyClosureDigest": "sha256:c24519d0fdfbbaf56233fb25568428ff6fbdf3dac962ea62e2b95590e1a2d7d5",
+  "gateway": {
+    "packageVersion": "0.3.0",
+    "recoveryTool": "execution.resolve",
+    "boundedObservationWaitMs": 30000,
+    "authorityReferencesForwarded": true
+  },
+  "composition": {
+    "pluginStandard": "Agent Plugins v1",
+    "mcpAdapter": {
+      "package": "mcp",
+      "version": "2.2.0",
+      "installation": "optional-extra"
+    },
+    "modelFacingTools": [
+      "execution.submit"
+    ],
+    "internalRecoveryTools": [
+      "execution.resolve",
+      "execution.get"
+    ],
+    "callerFixedAuthority": [
+      "capability",
+      "workspaceId",
+      "context",
+      "requestId",
+      "authorityReferences"
+    ],
+    "durablePreDispatchIntent": true,
+    "durableDispatchFence": true,
+    "blindEffectRedispatchOnResponseLoss": false
+  },
+  "checks": {
+    "gatewayFullVerify": "PASS",
+    "focusedHarnessH2": {
+      "status": "PASS",
+      "cases": 16
+    },
+    "preEvidenceWorkingTreeFullVerify": {
+      "status": "PASS",
+      "cases": 1027,
+      "subtests": 121,
+      "note": "Implementation bytes were exercised before commit; evidence-currentness was subsequently refreshed against the committed implementation revision."
+    },
+    "wheel": "PASS",
+    "dependencyContract": "PASS",
+    "documentationContract": "PASS",
+    "vulnerabilityScan": "PASS",
+    "finalCommittedHarnessFullVerify": {
+      "status": "PASS",
+      "cases": 1027,
+      "subtests": 121,
+      "evidenceContract": "PASS",
+      "wheel": "PASS",
+      "vulnerabilityScan": "PASS"
+    }
+  },
+  "externalStandardDisposition": {
+    "mcpTasksExtension": "ADOPT_WHEN_PINNED_PYTHON_CLIENT_EXPOSES_REQUIRED_EXTENSION_SURFACE",
+    "currentCompatibilityReason": "The adopted mcp==2.2.0 Client does not expose tasks/get, tasks/update, or tasks/cancel; Ordivon keeps its existing Gateway lifecycle isolated behind one adapter instead of hand-rolling a second MCP Tasks implementation."
+  },
+  "authorityBoundary": {
+    "proves": [
+      "no physical Gateway/Runtime process effect is dispatched before Harness has durably recorded the Tool intent and dispatch fence",
+      "model cannot choose capability, workspace, context, request identity, credentials, or authority references on the H2 surface",
+      "submit response loss is reconciled through Gateway execution.resolve plus execution.get without a second execution.submit",
+      "Gateway remains a projection/routing layer and forwards Harness authority references to Runtime without owning them"
+    ],
+    "doesNotProve": [
+      "live public OAuth/Cloudflare production cutover",
+      "standard MCP Tasks extension interoperability",
+      "cooperative cancellation propagation from Harness execution control",
+      "arbitrary executable authority beyond the caller allowlist"
+    ]
+  },
+  "standing": "VERIFIED_CURRENT_AGENT_PLUGIN_H2_OWNER_ACCEPTED"
+}

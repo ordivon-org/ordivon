@@ -16,7 +16,7 @@ MAIN=Path('/root/projects/ordivon/capabilities/artifact')
 LOCK_PATH=ROOT/'artifact-delivery/artifact-python-runtime-v1.lock.json'
 WRAPPER_SOURCE=ROOT/'scripts/artifact_python_wrapper.py'
 UV=Path(os.environ.get('ARTIFACT_UV','/root/.local/share/mise/installs/uv/0.12.16/uv-x86_64-unknown-linux-musl/uv'))
-SYSTEM_PYTHON=Path(os.environ.get('ARTIFACT_PYTHON','/root/.local/share/mise/installs/python/3.14.7/bin/python3.14'))
+SYSTEM_PYTHON=Path(os.environ.get('ARTIFACT_PYTHON','/root/.local/share/mise/installs/python/3.15.0/bin/python3.14'))
 
 
 def sha(path:Path)->str:

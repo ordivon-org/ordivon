@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.gateway-windows-r2-crash-host-readback-evidence",
+  "truthRole": "point-in-time-mechanical-acceptance-evidence",
+  "observedAt": "2026-09-22",
+  "observedMain": "2ae7d5a2c5d640ea03b78e08c6402e15c9423404",
+  "candidate": {
+    "serviceName": "OrdivonGatewayCandidateR1",
+    "releaseCommit": "ba3de6c25641c88ba16868dce35426134e57aa19",
+    "gatewayVersion": "0.3.0",
+    "port": 18999,
+    "startMode": "Manual",
+    "serviceIdentity": "NT SERVICE\\OrdivonGatewayCandidateR1"
+  },
+  "hostRouteReadback": {
+    "continuityListIsError": false,
+    "capabilityProjectionRecovered": true,
+    "continuityExternalAvailable": true,
+    "interpretation": "The earlier continuity.external=false observation after candidate restart was transient/aggregate observation state, not a persistent Host route failure."
+  },
+  "scmCrashRecovery": {
+    "action": "force-terminate candidate SCM service process",
+    "beforePid": 19716,
+    "beforeHealth": 200,
+    "afterState": "Running",
+    "afterPid": 26640,
+    "afterHealth": 200,
+    "startModeAfter": "Manual",
+    "toolCountAfter": 16,
+    "continuityReadbackAfter": true,
+    "verdict": "PASS"
+  },
+  "runtimeOwnerStanding": {
+    "executionLinux": "AUTH_BLOCKED",
+    "executionWindows": "AUTH_BLOCKED",
+    "artifactRuntime": "AUTH_BLOCKED",
+    "credentialAutomation": "HUMAN_REQUIRED_PLATFORM_SAFETY_BLOCK",
+    "policy": "DO_NOT_BYPASS"
+  },
+  "remainingLifecycleGap": "cold boot acceptance",
+  "productionGatewayMutated": false
+}

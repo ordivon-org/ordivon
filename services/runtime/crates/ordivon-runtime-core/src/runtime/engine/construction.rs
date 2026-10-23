@@ -50,6 +50,18 @@ impl Runtime {
         credential_authorities: Vec<CredentialAuthority>,
         default_runtime_ms: u64,
     ) -> RuntimeResult<Self> {
+        Self::new_with_authorities_default_runtime_and_workspace_headroom(
+            config, input_authorities, credential_authorities, default_runtime_ms, None,
+        )
+    }
+
+    pub fn new_with_authorities_default_runtime_and_workspace_headroom(
+        config: RuntimeConfig,
+        input_authorities: Vec<InputAuthority>,
+        credential_authorities: Vec<CredentialAuthority>,
+        default_runtime_ms: u64,
+        workspace_headroom: Option<WorkspaceHeadroomConfig>,
+    ) -> RuntimeResult<Self> {
         super::validate_logical_id(&config.node_id, "nodeId")?;
         config.executor.validate().map_err(map_universal_error)?;
         if default_runtime_ms == 0 || default_runtime_ms > config.executor.max_runtime_ms {
@@ -66,6 +78,14 @@ impl Runtime {
         }
         if let Some(windows) = &config.windows {
             windows.validate()?;
+        }
+        if let Some(headroom) = workspace_headroom.as_ref() {
+            if !headroom.path.is_absolute() {
+                return Err(RuntimeError::invalid("workspace headroom path must be absolute", "workspaceHeadroom.path"));
+            }
+            if headroom.minimum_free_bytes == 0 {
+                return Err(RuntimeError::invalid("workspace minimum free bytes must be positive", "workspaceHeadroom.minimumFreeBytes"));
+            }
         }
         if config.startup_grace_ms == 0 {
             return Err(RuntimeError::invalid(
@@ -198,7 +218,9 @@ impl Runtime {
             windows: config.windows,
             input_authorities: configured_input_authorities,
             credential_authorities: configured_credential_authorities,
-            lifecycle_lock: Arc::new(Mutex::new(())),
+            workspace_headroom,
+            topology_lock: Arc::new(Mutex::new(())),
+            workspace_leases: WorkspaceLeaseTable::default(),
             control_terminal_lock: Arc::new(Mutex::new(())),
         };
         runtime.reconcile_recoverable_orphans()?;
@@ -227,15 +249,25 @@ impl Runtime {
         )
     }
 
-    fn lock_lifecycle(&self) -> RuntimeResult<MutexGuard<'_, ()>> {
-        self.lifecycle_lock.lock().map_err(|_| {
-            RuntimeError::new(
-                RuntimeErrorCode::RegistryUnavailable,
-                "Workspace lifecycle lock is poisoned",
-                None,
-                true,
-            )
-        })
+    fn lock_topology(&self) -> RuntimeResult<MutexGuard<'_, ()>> {
+        super::lifecycle_locks::lock_topology(&self.topology_lock)
+    }
+
+    fn with_workspace_lease<T>(
+        &self,
+        workspace_id: &str,
+        operation: impl FnOnce() -> RuntimeResult<T>,
+    ) -> RuntimeResult<T> {
+        self.workspace_leases.with_lease(workspace_id, operation)
+    }
+
+    pub(crate) fn with_admission_workspace_lease<T>(
+        &self,
+        workspace_id: &str,
+        operation: impl FnOnce(&super::registry::AdmissionFenceGuard) -> RuntimeResult<T>,
+    ) -> RuntimeResult<T> {
+        let admission_fence = self.registry.acquire_admission_fence()?;
+        self.with_workspace_lease(workspace_id, || operation(&admission_fence))
     }
 
     fn lock_control_terminal(&self) -> RuntimeResult<MutexGuard<'_, ()>> {

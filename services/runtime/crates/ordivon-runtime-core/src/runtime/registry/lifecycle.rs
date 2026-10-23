@@ -8,8 +8,8 @@ impl Registry {
     ) -> RuntimeResult<AttemptRecord> {
         validate_digest(bundle_digest, "bundleDigest")?;
         let mut connection = self.open_connection()?;
-        let transaction = immediate(&mut connection, "bundle-ready transaction")?;
-        let attempt = load_attempt(&transaction, attempt_id)?;
+        let transaction = immediate(self, &mut connection, "bundle-ready transaction")?;
+        let attempt = RegistryStorageBoundary::load_attempt(&transaction, attempt_id)?;
         if attempt.state != AttemptState::Accepted || attempt.row_version != expected_row_version {
             return Err(state_conflict(
                 "Attempt is not the expected accepted version",
@@ -39,7 +39,7 @@ impl Registry {
         transaction
             .commit()
             .map_err(|error| RuntimeError::from_sql(error, "cannot commit bundle identity"))?;
-        load_attempt(&connection, attempt_id)
+        RegistryStorageBoundary::load_attempt(&connection, attempt_id)
     }
 
     pub(super) fn mark_dispatch_issued(
@@ -49,8 +49,8 @@ impl Registry {
         observed_at_ms: u64,
     ) -> RuntimeResult<AttemptRecord> {
         let mut connection = self.open_connection()?;
-        let transaction = immediate(&mut connection, "dispatch-intent transaction")?;
-        let attempt = load_attempt(&transaction, attempt_id)?;
+        let transaction = immediate(self, &mut connection, "dispatch-intent transaction")?;
+        let attempt = RegistryStorageBoundary::load_attempt(&transaction, attempt_id)?;
         if attempt.state != AttemptState::Accepted
             || attempt.row_version != expected_row_version
             || attempt.bundle_digest.is_none()
@@ -84,7 +84,27 @@ impl Registry {
         transaction
             .commit()
             .map_err(|error| RuntimeError::from_sql(error, "cannot commit dispatch intent"))?;
-        load_attempt(&connection, attempt_id)
+        RegistryStorageBoundary::load_attempt(&connection, attempt_id)
+    }
+
+    pub(crate) fn dispatch_issued_at_ms(&self, attempt_id: &str) -> RuntimeResult<u64> {
+        let connection = self.open_connection()?;
+        connection
+            .query_row(
+                "SELECT observed_at_ms FROM job_events WHERE attempt_id=?1 AND event_type='DISPATCH_ISSUED' ORDER BY event_sequence DESC LIMIT 1",
+                [attempt_id],
+                |row| row.get(0),
+            )
+            .optional()
+            .map_err(|error| RuntimeError::from_sql(error, "cannot read dispatch issue time"))?
+            .ok_or_else(|| {
+                RuntimeError::new(
+                    RuntimeErrorCode::RegistryCorrupt,
+                    "Starting Attempt has no durable DISPATCH_ISSUED event",
+                    Some("attemptId"),
+                    false,
+                )
+            })
     }
 
     pub(super) fn bind_running(
@@ -95,15 +115,14 @@ impl Registry {
     ) -> RuntimeResult<AttemptRecord> {
         validate_runner_identity(identity)?;
         let mut connection = self.open_connection()?;
-        let transaction = immediate(&mut connection, "runner-bind transaction")?;
-        let attempt = load_attempt(&transaction, attempt_id)?;
+        let transaction = immediate(self, &mut connection, "runner-bind transaction")?;
+        let attempt = RegistryStorageBoundary::load_attempt(&transaction, attempt_id)?;
         if attempt_runner_identity_matches(&attempt, identity) {
             return Ok(attempt);
         }
-        if !matches!(
-            attempt.state,
-            AttemptState::Starting | AttemptState::Recovering
-        ) || attempt.row_version != expected_row_version
+        if AttemptLifecycleContract::runner_identity_bound_state(attempt.state)
+            != Some(AttemptState::Running)
+            || attempt.row_version != expected_row_version
             || attempt.unit_name != identity.unit_name
         {
             return Err(state_conflict(
@@ -152,7 +171,7 @@ impl Registry {
         transaction
             .commit()
             .map_err(|error| RuntimeError::from_sql(error, "cannot commit Runner identity"))?;
-        load_attempt(&connection, attempt_id)
+        RegistryStorageBoundary::load_attempt(&connection, attempt_id)
     }
 
     pub(crate) fn attempt_supervisor_owner(
@@ -173,6 +192,14 @@ impl Registry {
         let Some((owner_json, owner_digest)) = row else {
             return Ok(None);
         };
+        if owner_json.len() > MAX_REGISTRY_INLINE_JSON_BYTES {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::RegistryCorrupt,
+                "stored Attempt Supervisor Owner exceeds bounded Registry inline metadata limit",
+                Some("attemptSupervisorOwner"),
+                false,
+            ));
+        }
         if sha256_bytes(owner_json.as_bytes()) != owner_digest {
             return Err(RuntimeError::new(
                 RuntimeErrorCode::RegistryCorrupt,
@@ -209,11 +236,21 @@ impl Registry {
                 false,
             )
         })?;
+        if owner_json.len() > MAX_REGISTRY_INLINE_JSON_BYTES {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::OutputLimitExceeded,
+                format!(
+                    "Attempt Supervisor Owner exceeds bounded Registry inline metadata limit of {MAX_REGISTRY_INLINE_JSON_BYTES} bytes"
+                ),
+                Some("attemptSupervisorOwner"),
+                false,
+            ));
+        }
         let owner_digest = sha256_bytes(owner_json.as_bytes());
         let start_evidence_digest = owner.start_evidence_digest();
         let mut connection = self.open_connection()?;
-        let transaction = immediate(&mut connection, "supervisor-owner bind transaction")?;
-        let attempt = load_attempt(&transaction, attempt_id)?;
+        let transaction = immediate(self, &mut connection, "supervisor-owner bind transaction")?;
+        let attempt = RegistryStorageBoundary::load_attempt(&transaction, attempt_id)?;
         let existing: Option<(String, String)> = transaction
             .query_row(
                 "SELECT owner_json,owner_digest FROM attempt_supervisor_owners WHERE attempt_id=?1",
@@ -224,12 +261,15 @@ impl Registry {
             .map_err(|error| {
                 RuntimeError::from_sql(error, "cannot inspect existing Attempt Supervisor Owner")
             })?;
-        let bound_state = if attempt.state == AttemptState::Stopping {
-            AttemptState::Stopping
-        } else {
-            AttemptState::Running
-        };
         if let Some((existing_json, existing_digest)) = existing {
+            if existing_json.len() > MAX_REGISTRY_INLINE_JSON_BYTES {
+                return Err(RuntimeError::new(
+                    RuntimeErrorCode::RegistryCorrupt,
+                    "stored Attempt Supervisor Owner exceeds bounded Registry inline metadata limit",
+                    Some("attemptSupervisorOwner"),
+                    false,
+                ));
+            }
             if sha256_bytes(existing_json.as_bytes()) != existing_digest {
                 return Err(RuntimeError::new(
                     RuntimeErrorCode::RegistryCorrupt,
@@ -238,12 +278,13 @@ impl Registry {
                     false,
                 ));
             }
-            if existing_digest == owner_digest
-                && matches!(
-                    attempt.state,
-                    AttemptState::Running | AttemptState::Stopping
-                )
-                && attempt.runner_start_digest.as_deref() == Some(start_evidence_digest)
+            if AttemptLifecycleContract::physical_owner_replay_matches(
+                attempt.state,
+                &existing_digest,
+                &owner_digest,
+                attempt.runner_start_digest.as_deref(),
+                start_evidence_digest,
+            )
             {
                 return Ok(attempt);
             }
@@ -251,11 +292,9 @@ impl Registry {
                 "Attempt is already bound to a different Supervisor Owner",
             ));
         }
-        if !matches!(
-            attempt.state,
-            AttemptState::Starting | AttemptState::Recovering | AttemptState::Stopping
-        ) || attempt.row_version != expected_row_version
-        {
+        let bound_state = AttemptLifecycleContract::supervisor_owner_bound_state(attempt.state)
+            .ok_or_else(|| state_conflict("Attempt is not bindable to this Supervisor Owner"))?;
+        if attempt.row_version != expected_row_version {
             return Err(state_conflict(
                 "Attempt is not bindable to this Supervisor Owner",
             ));
@@ -304,7 +343,7 @@ impl Registry {
         transaction.commit().map_err(|error| {
             RuntimeError::from_sql(error, "cannot commit Attempt Supervisor Owner")
         })?;
-        load_attempt(&connection, attempt_id)
+        RegistryStorageBoundary::load_attempt(&connection, attempt_id)
     }
 
     pub(super) fn request_deadline_termination(
@@ -313,18 +352,18 @@ impl Registry {
         observed_at_ms: u64,
     ) -> RuntimeResult<AttemptRecord> {
         let mut connection = self.open_connection()?;
-        let transaction = immediate(&mut connection, "deadline-intent transaction")?;
-        let attempt = load_attempt(&transaction, attempt_id)?;
-        let job = load_job(&transaction, &attempt.job_id)?;
-        if attempt.state.is_terminal()
-            || attempt.termination_intent == AttemptTerminationIntent::DeadlineExceeded
-            || attempt.termination_intent == AttemptTerminationIntent::StopRequested
-            || job.desired_state == JobDesiredState::Cancelled
+        let transaction = immediate(self, &mut connection, "deadline-intent transaction")?;
+        let attempt = RegistryStorageBoundary::load_attempt(&transaction, attempt_id)?;
+        let job = RegistryStorageBoundary::load_job(&transaction, &attempt.job_id)?;
+        if AttemptLifecycleContract::deadline_request_is_replay(
+            attempt.state,
+            attempt.termination_intent,
+        ) || job.desired_state == JobDesiredState::Cancelled
         {
             transaction.commit().map_err(|error| {
                 RuntimeError::from_sql(error, "cannot close deadline-intent replay")
             })?;
-            return load_attempt(&connection, attempt_id);
+            return RegistryStorageBoundary::load_attempt(&connection, attempt_id);
         }
         if job.resolution.is_some() {
             return Err(RuntimeError::new(
@@ -334,13 +373,7 @@ impl Registry {
                 false,
             ));
         }
-        if !matches!(
-            attempt.state,
-            AttemptState::Starting
-                | AttemptState::Running
-                | AttemptState::Recovering
-                | AttemptState::Stopping
-        ) {
+        if !AttemptLifecycleContract::deadline_request_is_admissible(attempt.state) {
             return Err(RuntimeError::new(
                 RuntimeErrorCode::AttemptStateConflict,
                 "deadline termination requires a dispatched nonterminal Attempt",
@@ -376,7 +409,7 @@ impl Registry {
         transaction.commit().map_err(|error| {
             RuntimeError::from_sql(error, "cannot commit Attempt deadline intent")
         })?;
-        load_attempt(&connection, attempt_id)
+        RegistryStorageBoundary::load_attempt(&connection, attempt_id)
     }
 
     pub(super) fn request_cancel(
@@ -385,8 +418,8 @@ impl Registry {
         observed_at_ms: u64,
     ) -> RuntimeResult<JobProjection> {
         let mut connection = self.open_connection()?;
-        let transaction = immediate(&mut connection, "cancel-intent transaction")?;
-        let job = load_job(&transaction, job_id)?;
+        let transaction = immediate(self, &mut connection, "cancel-intent transaction")?;
+        let job = RegistryStorageBoundary::load_job(&transaction, job_id)?;
         if job.resolution.is_some() {
             if job.resolution == Some(JobResolution::Orphaned) {
                 let attempt_id: String = transaction
@@ -405,8 +438,8 @@ impl Registry {
                             false,
                         )
                     })?;
-                let attempt = load_attempt(&transaction, &attempt_id)?;
-                let reservation = load_reservation(&transaction, &attempt_id)?;
+                let attempt = RegistryStorageBoundary::load_attempt(&transaction, &attempt_id)?;
+                let reservation = RegistryStorageBoundary::load_reservation(&transaction, &attempt_id)?;
                 if attempt.state != AttemptState::Orphaned
                     || reservation.state != ReservationState::HeldOrphaned
                 {
@@ -472,8 +505,8 @@ impl Registry {
                 false,
             )
         })?;
-        let attempt = load_attempt(&transaction, &attempt_id)?;
-        if attempt.state.is_terminal() {
+        let attempt = RegistryStorageBoundary::load_attempt(&transaction, &attempt_id)?;
+        if AttemptLifecycleContract::is_terminal(attempt.state) {
             return Err(RuntimeError::new(
                 RuntimeErrorCode::ReconciliationRequired,
                 "Attempt is terminal but Job is unresolved",
@@ -487,7 +520,9 @@ impl Registry {
                 [job_id],
             )
             .map_err(|error| RuntimeError::from_sql(error, "cannot persist cancel intent"))?;
-        if attempt.state == AttemptState::Accepted {
+        if AttemptLifecycleContract::cancel_target_state(attempt.state)
+            == Some(AttemptState::Cancelled)
+        {
             let result_digest = sha256_bytes(
                 format!("runtime-cancel-before-dispatch\0{job_id}\0{attempt_id}").as_bytes(),
             );
@@ -521,7 +556,10 @@ impl Registry {
                 serde_json::json!({}),
                 observed_at_ms,
             )?;
-        } else if attempt.state != AttemptState::Stopping {
+        } else if AttemptLifecycleContract::cancel_target_state(attempt.state)
+            == Some(AttemptState::Stopping)
+            && attempt.state != AttemptState::Stopping
+        {
             transaction
                 .execute(
                     "UPDATE attempts SET state='stopping',termination_intent='stop_requested',row_version=row_version+1 WHERE attempt_id=?1 AND state IN ('starting','running','recovering')",
@@ -603,7 +641,7 @@ impl Registry {
     }
 
     pub(super) fn commit_terminal(&self, request: &TerminalCommit) -> RuntimeResult<JobProjection> {
-        if !request.state.is_terminal() {
+        if !AttemptLifecycleContract::is_terminal(request.state) {
             return Err(RuntimeError::invalid(
                 "terminal commit requires a terminal Attempt state",
                 "state",
@@ -611,13 +649,13 @@ impl Registry {
         }
         validate_digest(&request.result_digest, "resultDigest")?;
         for artifact in &request.artifacts {
-            validate_artifact_registration(artifact)?;
+            ArtifactStateContract::validate_registration(artifact)?;
         }
         let mut connection = self.open_connection()?;
-        let transaction = immediate(&mut connection, "terminal transaction")?;
-        let attempt = load_attempt(&transaction, &request.attempt_id)?;
-        let job = load_job(&transaction, &attempt.job_id)?;
-        if attempt.state.is_terminal() {
+        let transaction = immediate(self, &mut connection, "terminal transaction")?;
+        let attempt = RegistryStorageBoundary::load_attempt(&transaction, &request.attempt_id)?;
+        let job = RegistryStorageBoundary::load_job(&transaction, &attempt.job_id)?;
+        if AttemptLifecycleContract::is_terminal(attempt.state) {
             if attempt.result_digest.as_deref() == Some(request.result_digest.as_str())
                 && attempt.state == request.state
             {
@@ -638,7 +676,7 @@ impl Registry {
                 "Attempt row version changed before terminal commit",
             ));
         }
-        if !attempt.state.can_transition_to(request.state) {
+        if !AttemptLifecycleContract::can_transition(attempt.state, request.state) {
             return Err(state_conflict(format!(
                 "invalid Attempt transition {:?} -> {:?}",
                 attempt.state, request.state
@@ -711,7 +749,7 @@ impl Registry {
             )?;
         }
 
-        let resolution = resolution_for_state(request.state)?;
+        let resolution = AttemptLifecycleContract::require_terminal_resolution(request.state)?;
         transaction
             .execute(
                 "UPDATE jobs SET resolution=?1,current_attempt_id=NULL,row_version=row_version+1 WHERE job_id=?2 AND resolution IS NULL",
@@ -759,7 +797,7 @@ impl Registry {
                     None,
                 ));
             }
-            return match load_attempt(&connection, &request.attempt_id) {
+            return match RegistryStorageBoundary::load_attempt(&connection, &request.attempt_id) {
                 Ok(current)
                     if current.state == request.state
                         && current.result_digest.as_deref()

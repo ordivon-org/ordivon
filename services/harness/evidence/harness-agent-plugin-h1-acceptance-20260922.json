@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.harness-agent-plugin-h1-acceptance",
+  "date": "2026-09-22",
+  "implementationRevision": "5a74fc2611cb16f51114f556285c5fd10a2fb8cf",
+  "python": {
+    "version": "3.14.7",
+    "channel": "stable-ga"
+  },
+  "runtimeDependencyClosureDigest": "sha256:c24519d0fdfbbaf56233fb25568428ff6fbdf3dac962ea62e2b95590e1a2d7d5",
+  "composition": {
+    "pluginStandard": "Agent Plugins v1",
+    "pluginName": "ordivon-control-plane",
+    "pluginVersion": "0.2.0",
+    "mcpAdapter": {
+      "package": "mcp",
+      "version": "2.2.0",
+      "installation": "optional-extra"
+    },
+    "observationOnlyTools": [
+      "capability.describe",
+      "continuity.get",
+      "continuity.list",
+      "system.describe"
+    ],
+    "effectfulToolsAdmitted": false
+  },
+  "checks": {
+    "cleanCandidateFullVerify": {
+      "status": "PASS",
+      "cases": 892,
+      "subtests": 122
+    },
+    "latestMainPreEvidenceRegression": {
+      "passed": 1021,
+      "failed": 3,
+      "subtests": 121,
+      "failureClass": "verified-evidence-staleness-only"
+    },
+    "dependencyContract": "PASS",
+    "documentationContract": "PASS",
+    "wheelBaseMcpAbsent": true,
+    "wheelMcpExtraVersion": "2.2.0",
+    "realPluginMaterializationProbe": "PASS",
+    "latestMainFullVerify": {
+      "status": "PASS",
+      "cases": 1024,
+      "subtests": 121,
+      "evidenceContract": "PASS",
+      "wheel": "PASS",
+      "vulnerabilityScan": "PASS"
+    }
+  },
+  "authorityBoundary": {
+    "proves": [
+      "Harness can consume one caller-selected Agent Plugins v1 package without becoming a Plugin registry",
+      "Agent Skill bytes project into cognition as advisory procedure content without granting Tool or credential authority",
+      "observation-only Gateway MCP Tools are bound by exact catalog and grant digests and fail closed on catalog drift",
+      "the base Harness wheel remains MCP-free while the explicit mcp extra installs the official MCP 2.2.0 adapter"
+    ],
+    "doesNotProve": [
+      "effectful Gateway Tools preserve Harness durable intent receipt and reconciliation semantics",
+      "live OAuth or Cloudflare production cutover",
+      "Plugin discovery registry ownership by Harness",
+      "Skill trust or authorization ownership by Harness"
+    ]
+  },
+  "standing": "VERIFIED_CURRENT_AGENT_PLUGIN_H1_OWNER_ACCEPTED"
+}

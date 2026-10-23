@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.cross-domain-verification-r3-binding",
+  "truthRole": "task-local-acceptance-binding-not-owner-truth",
+  "researchArtifact": {
+    "profilePath": "meta/research/publication-closure-profile-r1.json",
+    "dogfoodPath": "meta/research/evidence/publication-carrier-paper3-dogfood-r1.json",
+    "expectedScientificTruth": "Study authority",
+    "expectedCarrierMechanics": "capabilities/artifact",
+    "expectedDistributionEffect": "capabilities/distribution or venue-native submission surface"
+  },
+  "webSecurity": {
+    "paths": {
+      "dependencyContracts": "tools/repo/dependency_contracts.toml",
+      "nativeE2e": "apps/web/evidence/AGENT-NATIVE-WEBSITE-E2E-R1.json",
+      "requestSource": "apps/web/src/security-agent-verifier.ts",
+      "admissionSource": "apps/web/src/agent-authority.ts",
+      "storeSource": "apps/web/src/store.ts"
+    },
+    "requiredSeams": [
+      {
+        "sourceGlob": "apps/web/src/security-agent-verifier.ts",
+        "allowedFragment": "platform/security/contracts/agent-request-verifier-v1/",
+        "kind": "PUBLIC_SOURCE_CONTRACT"
+      },
+      {
+        "sourceGlob": "apps/web/src/agent-authority.ts",
+        "allowedFragment": "platform/security/contracts/agent-admission-v1/",
+        "kind": "PUBLIC_SOURCE_CONTRACT"
+      }
+    ],
+    "forbiddenSourceFragments": [
+      "platform/security/policies/",
+      "platform/security/labs/",
+      "agent_admission.rego",
+      "effect_admission.rego"
+    ],
+    "requestContractImport": "../../../platform/security/contracts/agent-request-verifier-v1/src/index.ts",
+    "admissionContractImport": "../../../platform/security/contracts/agent-admission-v1/evaluate.py",
+    "requiredStoreMarkers": [
+      "CREATE TABLE IF NOT EXISTS agent_grants",
+      "CREATE TABLE IF NOT EXISTS dpop_proofs",
+      "consumeDpopProof(",
+      "createAgentGrant(",
+      "revokeAgentGrant(",
+      "requirePendingEffectApproval(",
+      "putEffectApproval("
+    ],
+    "expectedMatrix": {
+      "noProof": 401,
+      "wrongKey": 401,
+      "firstCreate": 201,
+      "proofReplay": 401,
+      "exactReplay": 200,
+      "conflict": 409,
+      "publishStepUp": 428,
+      "approval": 201,
+      "publishApproved": 200,
+      "revoke": 200,
+      "newEffectAfterRevoke": 403,
+      "historicalReplayAfterRevoke": 200
+    }
+  }
+}

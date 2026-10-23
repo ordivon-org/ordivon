@@ -219,6 +219,7 @@ class BrowserCapabilityRouterTests(unittest.TestCase):
         }
         with (
             mock.patch.object(R, "_subprocess_json", return_value=(0, fake_status, "")),
+            mock.patch.object(R.Path, "is_file", return_value=True),
             mock.patch.dict(R.os.environ, {}, clear=True),
         ):
             value = R._probe_jev(route, {"text-entry"})
@@ -244,6 +245,7 @@ class BrowserCapabilityRouterTests(unittest.TestCase):
         }
         with (
             mock.patch.object(R, "_subprocess_json", return_value=(0, fake_status, "")),
+            mock.patch.object(R.Path, "is_file", return_value=True),
             mock.patch.dict(R.os.environ, {}, clear=True),
         ):
             value = R._probe_jev(route, {"text-entry"})
@@ -267,6 +269,7 @@ class BrowserCapabilityRouterTests(unittest.TestCase):
         }
         with (
             mock.patch.object(R, "_subprocess_json", return_value=(0, fake_status, "")),
+            mock.patch.object(R.Path, "is_file", return_value=True),
             mock.patch.dict(R.os.environ, {}, clear=True),
         ):
             value = R._probe_jev(route, {"navigate", "click"})

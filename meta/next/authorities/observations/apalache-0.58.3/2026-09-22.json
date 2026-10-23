@@ -1,0 +1,11 @@
+{
+  "authorityId": "apalache-0.58.3",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "published-current",
+  "note": "Apalache 0.58.3 was released 2026-07-09 and remains an active symbolic TLA+/Quint model-checking candidate; no Ordivon dependency is admitted.",
+  "observedDate": "2026-09-22",
+  "officialSource": "https://github.com/apalache-mc/apalache/releases/tag/v0.58.3",
+  "schemaVersion": 1,
+  "versionObserved": "0.58.3"
+}

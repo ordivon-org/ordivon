@@ -1,0 +1,8 @@
+[Unit]
+Description=Network v2 isolated Claude Code client path
+Requires=network-v2-claude.target network-v2-claude-client-netns.service network-v2-claude-client-bridge.service
+After=network-v2-claude.target network-v2-claude-client-netns.service network-v2-claude-client-bridge.service
+BindsTo=network-v2-claude.target
+
+[Install]
+WantedBy=multi-user.target

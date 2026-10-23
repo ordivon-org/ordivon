@@ -871,6 +871,65 @@ class RuntimeStatusTests(unittest.TestCase):
             self.assertIn("capacity=0+0/8", result.stdout)
 
 
+    def test_dashboard_source_currentness_ignores_sibling_monorepo_commits(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            paths = fixture(root)
+            remote = root / "source-remote.git"
+            source = root / "source"
+            owner = source / "services" / "runtime"
+            subprocess.run(["git", "init", "-q", "--bare", str(remote)], check=True)
+            subprocess.run(["git", "init", "-q", "-b", "main", str(source)], check=True)
+            subprocess.run(["git", "-C", str(source), "config", "user.name", "Test"], check=True)
+            subprocess.run(
+                ["git", "-C", str(source), "config", "user.email", "test@example.invalid"],
+                check=True,
+            )
+            owner.mkdir(parents=True)
+            (owner / "runtime.txt").write_text("runtime\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(source), "add", "."], check=True)
+            subprocess.run(["git", "-C", str(source), "commit", "-qm", "runtime"], check=True)
+            owner_commit = subprocess.check_output(
+                ["git", "-C", str(source), "rev-parse", "HEAD"], text=True
+            ).strip()
+            subprocess.run(["git", "-C", str(source), "remote", "add", "origin", str(remote)], check=True)
+            subprocess.run(
+                ["git", "-C", str(source), "push", "-u", "origin", "main"],
+                check=True,
+                capture_output=True,
+            )
+            (source / "gateway.txt").write_text("gateway\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(source), "add", "gateway.txt"], check=True)
+            subprocess.run(["git", "-C", str(source), "commit", "-qm", "gateway"], check=True)
+            repository_head = subprocess.check_output(
+                ["git", "-C", str(source), "rev-parse", "HEAD"], text=True
+            ).strip()
+            subprocess.run(
+                ["git", "-C", str(source), "push", "origin", "main"],
+                check=True,
+                capture_output=True,
+            )
+            self.assertNotEqual(owner_commit, repository_head)
+
+            completed = subprocess.run(
+                raw_command(paths, "--dashboard", "--json", "--source-repo", str(owner)),
+                cwd=REPO,
+                check=True,
+                text=True,
+                capture_output=True,
+            )
+            projected = json.loads(completed.stdout)["dashboard"]["source"]
+            self.assertEqual(projected["ownerPrefix"], "services/runtime")
+            self.assertEqual(projected["head"], owner_commit)
+            self.assertEqual(projected["repositoryHead"], repository_head)
+            self.assertEqual(projected["originMain"], owner_commit)
+            self.assertEqual(projected["originMainRepositoryCommit"], repository_head)
+            self.assertEqual(projected["remoteMain"], owner_commit)
+            self.assertEqual(projected["remoteMainRepositoryCommit"], repository_head)
+            self.assertTrue(projected["headMatchesOriginMain"])
+            self.assertTrue(projected["headMatchesRemoteMain"])
+            self.assertEqual(projected["relationToDeployment"], "unknown")
+
     def test_dashboard_source_currentness_distinguishes_cached_ref_from_fresh_remote(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

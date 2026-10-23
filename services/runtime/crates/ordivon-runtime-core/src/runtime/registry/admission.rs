@@ -1,3 +1,46 @@
+fn exact_replay_for_submit(
+    connection: &Connection,
+    request: &SubmitRequest,
+    operation_digest: &str,
+) -> RuntimeResult<Option<RuntimeJobRecord>> {
+    let existing_job_id = connection
+        .query_row(
+            "SELECT job_id FROM idempotency_keys WHERE principal=?1 AND client_request_id=?2",
+            params![request.plan.principal, request.client_request_id],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()
+        .map_err(|error| RuntimeError::from_sql(error, "cannot check idempotency key"))?;
+    let Some(existing_job_id) = existing_job_id else {
+        return Ok(None);
+    };
+    let existing = RegistryStorageBoundary::load_job(connection, &existing_job_id)?;
+    let matches = JobIdentityContract::exact_replay_matches(
+        &existing,
+        request.request_identity_digest.as_deref(),
+        operation_digest,
+    )?;
+    if !matches {
+        return Err(JobIdentityContract::idempotency_conflict());
+    }
+    Ok(Some(existing))
+}
+
+pub(crate) const PENDING_RUNTIME_RELEASE_SQL: &str =
+    "SELECT EXISTS(SELECT 1 FROM job_runtime_release_effects release CROSS JOIN jobs j ON j.job_id=release.job_id WHERE j.resolution IS NULL OR EXISTS(SELECT 1 FROM attempts a JOIN concurrency_reservations r ON r.attempt_id=a.attempt_id WHERE a.job_id=j.job_id AND r.state IN ('active','held_orphaned')))";
+
+fn pending_runtime_release_exists(connection: &Connection) -> RuntimeResult<bool> {
+    connection
+        .query_row(PENDING_RUNTIME_RELEASE_SQL, [], |row| row.get(0))
+        .map_err(|error| {
+            RuntimeError::from_sql(error, "cannot inspect pending Runtime Release admission")
+        })
+}
+
+pub(crate) struct AdmissionFenceGuard {
+    _file: File,
+}
+
 impl Registry {
     pub(super) fn find_idempotent_job(
         &self,
@@ -8,9 +51,9 @@ impl Registry {
     ) -> RuntimeResult<Option<RuntimeJobRecord>> {
         validate_identifier(principal, "principal")?;
         validate_client_request_id(client_request_id, "clientRequestId")?;
-        validate_request_identity_digest(request_identity_digest)?;
+        JobIdentityContract::validate_request_identity_digest(request_identity_digest)?;
         if let Some(digest) = compatible_request_identity_digest {
-            validate_request_identity_digest(digest)?;
+            JobIdentityContract::validate_request_identity_digest(digest)?;
         }
         let connection = self.open_connection()?;
         let job_id: Option<String> = connection
@@ -24,16 +67,19 @@ impl Registry {
         let Some(job_id) = job_id else {
             return Ok(None);
         };
-        let job = load_job(&connection, &job_id)?;
-        let stored_identity = job_request_identity_digest(&job)?;
-        if stored_identity != request_identity_digest
-            && compatible_request_identity_digest != Some(stored_identity.as_str())
-        {
-            return Err(idempotency_conflict());
+        let job = RegistryStorageBoundary::load_job(&connection, &job_id)?;
+        let stored_identity = JobIdentityContract::stored_request_identity_digest(&job)?;
+        if !JobIdentityContract::compatible_request_identity_matches(
+            &stored_identity,
+            request_identity_digest,
+            compatible_request_identity_digest,
+        ) {
+            return Err(JobIdentityContract::idempotency_conflict());
         }
         Ok(Some(job))
     }
 
+    #[cfg(test)]
     pub(super) fn submit(&self, request: &SubmitRequest) -> RuntimeResult<AdmissionOutcome> {
         let ids = self.preallocate_admission_ids();
         self.submit_preallocated(request, &ids)
@@ -47,10 +93,38 @@ impl Registry {
         }
     }
 
+    pub(super) fn submit_with_admission_fence(
+        &self,
+        request: &SubmitRequest,
+        admission_fence: &AdmissionFenceGuard,
+    ) -> RuntimeResult<AdmissionOutcome> {
+        let ids = self.preallocate_admission_ids();
+        self.submit_preallocated_with_admission_fence(request, &ids, admission_fence)
+    }
+
+    #[cfg(test)]
     pub(super) fn submit_preallocated(
         &self,
         request: &SubmitRequest,
         ids: &PreallocatedAdmissionIds,
+    ) -> RuntimeResult<AdmissionOutcome> {
+        self.submit_preallocated_inner(request, ids, None)
+    }
+
+    pub(super) fn submit_preallocated_with_admission_fence(
+        &self,
+        request: &SubmitRequest,
+        ids: &PreallocatedAdmissionIds,
+        admission_fence: &AdmissionFenceGuard,
+    ) -> RuntimeResult<AdmissionOutcome> {
+        self.submit_preallocated_inner(request, ids, Some(admission_fence))
+    }
+
+    fn submit_preallocated_inner(
+        &self,
+        request: &SubmitRequest,
+        ids: &PreallocatedAdmissionIds,
+        admission_fence: Option<&AdmissionFenceGuard>,
     ) -> RuntimeResult<AdmissionOutcome> {
         validate_submit(request)?;
         let created_at_ms = now_ms()?;
@@ -111,20 +185,16 @@ impl Registry {
         let runtime_release_digest = runtime_release_json
             .as_deref()
             .map(|json| sha256_bytes(json.as_bytes()));
-        let request_json = serde_json::to_vec(request).map_err(|error| {
-            RuntimeError::new(
-                RuntimeErrorCode::InvalidRequest,
-                format!("cannot serialize submit request: {error}"),
-                None,
-                false,
-            )
-        })?;
-        let legacy_request_digest = sha256_bytes(&request_json);
-        let request_digest = request
-            .request_identity_digest
-            .clone()
-            .unwrap_or(legacy_request_digest);
         let plan_digest = sha256_bytes(plan_json.as_bytes());
+        let identity = JobIdentityContract::from_submit(
+            request,
+            &plan_digest,
+            execution_provider_digest.as_deref(),
+            host_dependencies_digest.as_deref(),
+            runtime_release_digest.as_deref(),
+        )?;
+        let request_digest = identity.request_digest;
+        let operation_digest = identity.operation_digest;
         let mut workspace_snapshot = serde_json::json!({
             "workspaceId": request.plan.workspace_id,
             "workspacePath": request.plan.workspace_path,
@@ -144,49 +214,6 @@ impl Registry {
                 serde_json::Value::String(release_digest.to_string());
         }
         let workspace_snapshot_json = workspace_snapshot.to_string();
-        let operation_digest = match (
-            execution_provider_digest.as_deref(),
-            host_dependencies_digest.as_deref(),
-            runtime_release_digest.as_deref(),
-        ) {
-            (Some(provider_digest), Some(host_digest), None) => sha256_bytes(
-                format!(
-                    "runtime-operation-v6\0{request_digest}\0{plan_digest}\0{provider_digest}\0{host_digest}"
-                )
-                .as_bytes(),
-            ),
-            (Some(provider_digest), None, Some(release_digest)) => sha256_bytes(
-                format!(
-                    "runtime-operation-v5\0{request_digest}\0{plan_digest}\0{provider_digest}\0{release_digest}"
-                )
-                .as_bytes(),
-            ),
-            (Some(provider_digest), None, None) => sha256_bytes(
-                format!("runtime-operation-v4\0{request_digest}\0{plan_digest}\0{provider_digest}")
-                    .as_bytes(),
-            ),
-            (None, None, None) => sha256_bytes(
-                format!("runtime-operation-v3\0{request_digest}\0{plan_digest}").as_bytes(),
-            ),
-            (Some(_), Some(_), Some(_)) => {
-                return Err(RuntimeError::invalid(
-                    "Runtime Release effect and Host Dependencies cannot share one Job",
-                    "hostDependencies",
-                ));
-            }
-            (None, Some(_), _) => {
-                return Err(RuntimeError::invalid(
-                    "Host Dependencies require a committed execution provider",
-                    "executionProvider",
-                ));
-            }
-            (None, None, Some(_)) => {
-                return Err(RuntimeError::invalid(
-                    "Runtime Release effect requires a committed execution provider",
-                    "executionProvider",
-                ));
-            }
-        };
         let job_id = ids.job_id.clone();
         let attempt_id = ids.attempt_id.clone();
         let reservation_id = ids.reservation_id.clone();
@@ -219,9 +246,9 @@ impl Registry {
         let attempt = AttemptRecord {
             attempt_id: attempt_id.clone(),
             job_id: job_id.clone(),
-            attempt_number: 1,
-            state: AttemptState::Accepted,
-            termination_intent: AttemptTerminationIntent::Natural,
+            attempt_number: AttemptLifecycleContract::INITIAL_ATTEMPT_NUMBER,
+            state: AttemptLifecycleContract::initial_state(),
+            termination_intent: AttemptLifecycleContract::initial_termination_intent(),
             launch_token_digest: launch_token_digest.clone(),
             bundle_path: bundle_path.clone(),
             bundle_digest: None,
@@ -244,37 +271,33 @@ impl Registry {
             reservation_id: reservation_id.clone(),
             attempt_id: attempt_id.clone(),
             global_limit: request.global_limit,
-            state: ReservationState::Active,
+            state: ReservationContract::initial_state(),
             acquired_at_ms: created_at_ms,
             released_at_ms: None,
             release_reason: None,
         };
 
         let mut connection = self.open_connection()?;
-        let transaction = connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(|error| RuntimeError::from_sql(error, "cannot begin admission transaction"))?;
+        if let Some(existing) = exact_replay_for_submit(&connection, request, &operation_digest)? {
+            return Ok(AdmissionOutcome::Existing {
+                job: Box::new(existing),
+            });
+        }
 
-        if let Some((existing_operation_digest, existing_job_id)) = transaction
-            .query_row(
-                "SELECT operation_digest, job_id FROM idempotency_keys WHERE principal=?1 AND client_request_id=?2",
-                params![request.plan.principal, request.client_request_id],
-                |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
-            )
-            .optional()
-            .map_err(|error| RuntimeError::from_sql(error, "cannot check idempotency key"))?
-        {
-            let existing = load_job(&transaction, &existing_job_id)?;
-            let matches = if let Some(request_identity_digest) =
-                request.request_identity_digest.as_deref()
-            {
-                job_request_identity_digest(&existing)? == request_identity_digest
-            } else {
-                existing_operation_digest == operation_digest
-            };
-            if !matches {
-                return Err(idempotency_conflict());
-            }
+        // New admission shares the deployment fence until its Registry transaction commits.
+        // Exact replay is checked before this boundary, so deployment cannot make a previously
+        // committed request unreplayable. The Registry write gate is intentionally acquired
+        // only after the file fence: it serializes SQLite writers, not filesystem waits.
+        let _owned_admission_fence = if admission_fence.is_none() {
+            Some(self.acquire_admission_fence()?)
+        } else {
+            None
+        };
+        let transaction = immediate(self, &mut connection, "admission transaction")?;
+
+        // Recheck under the write transaction because another same-key admission may have
+        // committed between the projection-only replay check and this serialized writer slot.
+        if let Some(existing) = exact_replay_for_submit(&transaction, request, &operation_digest)? {
             transaction
                 .commit()
                 .map_err(|error| RuntimeError::from_sql(error, "cannot close replay transaction"))?;
@@ -283,10 +306,9 @@ impl Registry {
             });
         }
 
-        // New admission shares the deployment fence until its Registry transaction commits.
-        // Exact replay deliberately returns above this boundary, so deployment cannot make a
-        // previously committed request unreplayable.
-        let _admission_fence = self.acquire_admission_fence()?;
+        if pending_runtime_release_exists(&transaction)? {
+            return Err(RuntimeError::pending_runtime_release());
+        }
 
         let workspace_active: u32 = transaction
             .query_row(
@@ -295,7 +317,7 @@ impl Registry {
                 |row| row.get(0),
             )
             .map_err(|error| RuntimeError::from_sql(error, "cannot count workspace reservations"))?;
-        if workspace_active >= WORKSPACE_EXECUTION_LIMIT {
+        if ReservationContract::capacity_exhausted(workspace_active, WORKSPACE_EXECUTION_LIMIT) {
             let (holder_job_ids, holder_workspace_ids) = capacity_holders(
                 &transaction,
                 Some(&request.plan.workspace_id),
@@ -325,7 +347,7 @@ impl Registry {
                 |row| row.get(0),
             )
             .map_err(|error| RuntimeError::from_sql(error, "cannot count global reservations"))?;
-        if global_active >= request.global_limit {
+        if ReservationContract::capacity_exhausted(global_active, request.global_limit) {
             let holder_limit = request.global_limit.min(16);
             let (holder_job_ids, holder_workspace_ids) =
                 capacity_holders(&transaction, None, holder_limit)?;
@@ -413,10 +435,11 @@ impl Registry {
         }
         transaction
             .execute(
-                "INSERT INTO attempts(attempt_id,job_id,attempt_number,state,termination_intent,launch_token_digest,bundle_path,bundle_digest,boot_id,unit_name,invocation_id,control_group,main_pid,process_start_identity,runner_start_digest,result_digest,exit_code,infrastructure_error_digest,created_at_ms,started_at_ms,finished_at_ms,row_version) VALUES(?1,?2,1,?3,?4,?5,?6,NULL,NULL,?7,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,?8,NULL,NULL,0)",
+                "INSERT INTO attempts(attempt_id,job_id,attempt_number,state,termination_intent,launch_token_digest,bundle_path,bundle_digest,boot_id,unit_name,invocation_id,control_group,main_pid,process_start_identity,runner_start_digest,result_digest,exit_code,infrastructure_error_digest,created_at_ms,started_at_ms,finished_at_ms,row_version) VALUES(?1,?2,?3,?4,?5,?6,?7,NULL,NULL,?8,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,?9,NULL,NULL,0)",
                 params![
                     attempt.attempt_id,
                     attempt.job_id,
+                    attempt.attempt_number,
                     attempt.state.as_db(),
                     attempt.termination_intent.as_db(),
                     attempt.launch_token_digest,
@@ -485,7 +508,7 @@ impl Registry {
             None,
             Some(AttemptState::Accepted),
             "ATTEMPT_ACCEPTED",
-            serde_json::json!({"attemptNumber": 1}),
+            serde_json::json!({"attemptNumber": attempt.attempt_number}),
             created_at_ms,
         )?;
 
@@ -512,9 +535,9 @@ impl Registry {
             match durable {
                 Ok(Some((existing_operation_digest, existing_job_id))) => {
                     if existing_operation_digest != operation_digest {
-                        return Err(idempotency_conflict());
+                        return Err(JobIdentityContract::idempotency_conflict());
                     }
-                    return match load_job(&connection, &existing_job_id) {
+                    return match RegistryStorageBoundary::load_job(&connection, &existing_job_id) {
                         Ok(existing) => Ok(AdmissionOutcome::Existing {
                             job: Box::new(existing),
                         }),
@@ -552,34 +575,14 @@ impl Registry {
         })))
     }
 
-    fn acquire_admission_fence(&self) -> RuntimeResult<File> {
-        let path = self.config.admission_fence_path();
-        let mut options = OpenOptions::new();
-        options.read(true).write(true).create(true).truncate(false);
-        #[cfg(unix)]
-        options.mode(0o600);
-        let file = options
-            .open(&path)
-            .map_err(|error| {
-                RuntimeError::new(
-                    RuntimeErrorCode::RegistryUnavailable,
-                    format!("cannot open admission fence {}: {error}", path.display()),
-                    None,
-                    true,
-                )
-            })?;
-        match file.try_lock_shared() {
-            Ok(()) => Ok(file),
-            Err(std::fs::TryLockError::WouldBlock) => {
-                Err(RuntimeError::deployment_in_progress())
-            }
-            Err(std::fs::TryLockError::Error(error)) => Err(RuntimeError::new(
-                RuntimeErrorCode::RegistryUnavailable,
-                format!("cannot acquire admission fence {}: {error}", path.display()),
-                None,
-                true,
-            )),
-        }
+    pub(super) fn acquire_admission_fence(&self) -> RuntimeResult<AdmissionFenceGuard> {
+        Ok(AdmissionFenceGuard {
+            _file: acquire_shared_file_fence(
+                &self.config.admission_fence_path(),
+                "admission fence",
+                RuntimeError::deployment_in_progress(),
+            )?,
+        })
     }
 
 }

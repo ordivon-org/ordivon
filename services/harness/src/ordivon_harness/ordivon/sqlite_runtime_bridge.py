@@ -187,9 +187,7 @@ def _runtime_delivery_state(payload: dict[str, JsonValue]) -> str:
     if not isinstance(result_available, bool):
         raise HarnessRuntimeClientError("Runtime observation omitted resultAvailable")
     if semantic_completion_evaluated is not False:
-        raise HarnessRuntimeClientError(
-            "Runtime must not claim Harness/domain semantic completion"
-        )
+        raise HarnessRuntimeClientError("Runtime must not claim Harness/domain semantic completion")
 
     if recovery_required or delivery_disposition == "reconciliation_required":
         return "reconcile"
@@ -231,12 +229,8 @@ class SQLiteHarnessRuntimeBridge(SQLiteHarnessAgentBridge):
         tool_grant: RuntimeToolGrantView | None = None,
     ) -> None:
         self._tool_definitions = tool_definitions or (SEARCH_WORKSPACE_DEFINITION,)
-        self._tool_surface_digest = (
-            tool_surface_digest or INDEPENDENT_SEARCH_TOOL_SURFACE_DIGEST
-        )
-        self._tool_grant_digest = (
-            tool_grant_digest or INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST
-        )
+        self._tool_surface_digest = tool_surface_digest or INDEPENDENT_SEARCH_TOOL_SURFACE_DIGEST
+        self._tool_grant_digest = tool_grant_digest or INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST
         self._tool_grant = tool_grant
         super().__init__(
             contract,
@@ -267,9 +261,7 @@ class SQLiteHarnessRuntimeBridge(SQLiteHarnessAgentBridge):
         ]
         if len(contract_refs) != 1 or contract_refs[0].get("digest") != contract.digest:
             raise ValueError("Harness Execution Binding Contract reference differs")
-        grant_refs = [
-            reference for reference in references if reference["type"] == "tool_grant"
-        ]
+        grant_refs = [reference for reference in references if reference["type"] == "tool_grant"]
         if len(grant_refs) != 1 or grant_refs[0].get("digest") != self._tool_grant_digest:
             raise ValueError("Harness Execution Binding Tool Grant reference differs")
         self.execution_binding = execution_binding
@@ -562,8 +554,7 @@ class SQLiteHarnessRuntimeBridge(SQLiteHarnessAgentBridge):
             )
         if (
             operation == "workspace.patch"
-            and self.recovery_consequence
-            != HarnessRecoveryConsequence.WORKSPACE_CHANGE_POSSIBLE
+            and self.recovery_consequence != HarnessRecoveryConsequence.WORKSPACE_CHANGE_POSSIBLE
         ):
             raise ToolBridgeError(
                 "workspace.patch requires WORKSPACE_CHANGE_POSSIBLE recovery consequence",
@@ -763,6 +754,32 @@ class SQLiteHarnessRuntimeBridge(SQLiteHarnessAgentBridge):
                 )
         return self._record_observation(intent, observation)
 
+    def _control_stop_observation(
+        self,
+        *,
+        tool_call_id: str,
+        tool_name: str,
+        runtime_job_ref: str,
+        query: str | None,
+        relative_path: str | None,
+        reconciled: bool,
+    ) -> HarnessToolObservation | None:
+        """Optional owner-specific cooperative cancellation hook.
+
+        The generic Runtime bridge remains fail-closed and returns UNKNOWN on control
+        stop. Bridges with an explicit owner cancellation contract may override this
+        hook and return a durable cancel-requested/cancelled observation.
+        """
+        _ = (
+            tool_call_id,
+            tool_name,
+            runtime_job_ref,
+            query,
+            relative_path,
+            reconciled,
+        )
+        return None
+
     def _terminal_observation(
         self,
         *,
@@ -789,9 +806,7 @@ class SQLiteHarnessRuntimeBridge(SQLiteHarnessAgentBridge):
                     relative_path=relative_path,
                     reconciled=reconciled,
                     runtime_job_ref=(
-                        current.get("jobId")
-                        if isinstance(current.get("jobId"), str)
-                        else None
+                        current.get("jobId") if isinstance(current.get("jobId"), str) else None
                     ),
                 )
             if delivery_state == "terminal":
@@ -805,9 +820,7 @@ class SQLiteHarnessRuntimeBridge(SQLiteHarnessAgentBridge):
                         relative_path=relative_path,
                         reconciled=reconciled,
                         runtime_job_ref=(
-                            current.get("jobId")
-                            if isinstance(current.get("jobId"), str)
-                            else None
+                            current.get("jobId") if isinstance(current.get("jobId"), str) else None
                         ),
                     )
                 try:
@@ -835,9 +848,7 @@ class SQLiteHarnessRuntimeBridge(SQLiteHarnessAgentBridge):
                         relative_path=relative_path,
                         reconciled=reconciled,
                         runtime_job_ref=(
-                            current.get("jobId")
-                            if isinstance(current.get("jobId"), str)
-                            else None
+                            current.get("jobId") if isinstance(current.get("jobId"), str) else None
                         ),
                     )
             if delivery_state == "unknown":
@@ -850,9 +861,7 @@ class SQLiteHarnessRuntimeBridge(SQLiteHarnessAgentBridge):
                     relative_path=relative_path,
                     reconciled=reconciled,
                     runtime_job_ref=(
-                        current.get("jobId")
-                        if isinstance(current.get("jobId"), str)
-                        else None
+                        current.get("jobId") if isinstance(current.get("jobId"), str) else None
                     ),
                 )
             job_id = current.get("jobId")
@@ -867,6 +876,16 @@ class SQLiteHarnessRuntimeBridge(SQLiteHarnessAgentBridge):
                     reconciled=reconciled,
                 )
             if control is not None and control.stop_requested:
+                controlled = self._control_stop_observation(
+                    tool_call_id=tool_call_id,
+                    tool_name=tool_name,
+                    runtime_job_ref=job_id,
+                    query=query,
+                    relative_path=relative_path,
+                    reconciled=reconciled,
+                )
+                if controlled is not None:
+                    return controlled
                 return self._unknown_observation(
                     tool_call_id,
                     tool_name,
@@ -1331,9 +1350,7 @@ class SQLiteHarnessRuntimeBridge(SQLiteHarnessAgentBridge):
                             "byteOffset": absolute_offset + match_start,
                             "matchBytes": match_end - match_start,
                             "lineText": (
-                                None
-                                if not isinstance(line_text, str)
-                                else line_text[:2_048]
+                                None if not isinstance(line_text, str) else line_text[:2_048]
                             ),
                         }
                     )
@@ -1364,7 +1381,9 @@ class SQLiteHarnessRuntimeBridge(SQLiteHarnessAgentBridge):
                 try:
                     index = int(line.split("\t", 1)[1])
                 except (ValueError, IndexError) as error:
-                    raise HarnessRuntimeClientError("batch search begin marker is invalid") from error
+                    raise HarnessRuntimeClientError(
+                        "batch search begin marker is invalid"
+                    ) from error
                 if active is not None or index != expected_begin or index >= len(queries):
                     raise HarnessRuntimeClientError("batch search begin sequence differs")
                 active = index
@@ -1386,7 +1405,11 @@ class SQLiteHarnessRuntimeBridge(SQLiteHarnessAgentBridge):
                 continue
             if active is not None:
                 frames[active].append(line)
-        if active is not None or expected_begin != len(queries) or any(code is None for code in result_codes):
+        if (
+            active is not None
+            or expected_begin != len(queries)
+            or any(code is None for code in result_codes)
+        ):
             raise HarnessRuntimeClientError("batch search framing is incomplete")
 
         query_results: list[dict[str, JsonValue]] = []

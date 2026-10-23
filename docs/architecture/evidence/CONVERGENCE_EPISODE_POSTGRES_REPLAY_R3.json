@@ -1,0 +1,111 @@
+{
+  "ciFirstIngest": {
+    "episodeCount": 118,
+    "ingestId": "ingest:sha256:da5fba35040358353df86be5ead3ed9fe0f105d1a0ffa22132b3dacee7f537cd",
+    "insertedProjectionCountThisRun": 118,
+    "profileId": "convergence-ci-observation-v1",
+    "replayExistingIngest": false,
+    "retainedOriginalInsertedProjectionCount": 118,
+    "sourceFileDigest": "sha256:39d2c5ac7d69bce84e5e4ae6c8d14fb5a6ba52c496d140980fa7e4f852cc05e8",
+    "standing": "PASS_IDEMPOTENT_PROJECTION_INGEST"
+  },
+  "ciReplay": {
+    "episodeCount": 118,
+    "ingestId": "ingest:sha256:da5fba35040358353df86be5ead3ed9fe0f105d1a0ffa22132b3dacee7f537cd",
+    "insertedProjectionCountThisRun": 0,
+    "profileId": "convergence-ci-observation-v1",
+    "replayExistingIngest": true,
+    "retainedOriginalInsertedProjectionCount": 118,
+    "sourceFileDigest": "sha256:39d2c5ac7d69bce84e5e4ae6c8d14fb5a6ba52c496d140980fa7e4f852cc05e8",
+    "standing": "PASS_IDEMPOTENT_PROJECTION_INGEST"
+  },
+  "kind": "ordivon.convergence-economics-postgres-replay",
+  "ownerCostFirstIngest": {
+    "episodeCount": 19,
+    "ingestId": "ingest:sha256:1812f31f280584034bb0081335768880ed968047f25a0e4a0d9cf9c115696897",
+    "insertedProjectionCountThisRun": 19,
+    "profileId": "convergence-owner-cost-episode-v1",
+    "replayExistingIngest": false,
+    "retainedOriginalInsertedProjectionCount": 19,
+    "sourceFileDigest": "sha256:89c4f5ea35093d03e6b18b419a503977f81048523cae633fd698bbddf8ff3009",
+    "standing": "PASS_IDEMPOTENT_PROJECTION_INGEST"
+  },
+  "ownerCostProjection": {
+    "candidateIdSetDigest": "sha256:474ed7cfa694ebe61e6a289c6e11191155abb142c0df029e9045ca4400b6c9bf",
+    "candidates": 2,
+    "claimBoundary": "Owner-cost Episodes are rebuildable analytical projections over measured qualification evidence. They do not grant scheduling, cancellation, batching, or verification-evidence-reuse authority.",
+    "episodeIdSetDigest": "sha256:d936fb91cc5dadc4001d96e055b805c6dc546539b8e719ae5dc0eb548306e55e",
+    "episodeIdentityCollisions": 0,
+    "episodes": 19,
+    "kind": "ordivon.convergence-owner-cost-experimental-episode-projection-summary",
+    "profileId": "convergence-owner-cost-episode-v1",
+    "projectionDigestSetDigest": "sha256:956331bc842bef35a8075f82eb4099f8b1d742b506f4805ab646b484f80cae96",
+    "schemaVersion": 1,
+    "standing": "PASS_OWNER_COST_EPISODE_PROJECTION",
+    "summaryDigest": "sha256:2d03519ac5f372353533931d1992e6039f871e0a9d7793c6899069df2a678d13"
+  },
+  "ownerCostReplay": {
+    "episodeCount": 19,
+    "ingestId": "ingest:sha256:1812f31f280584034bb0081335768880ed968047f25a0e4a0d9cf9c115696897",
+    "insertedProjectionCountThisRun": 0,
+    "profileId": "convergence-owner-cost-episode-v1",
+    "replayExistingIngest": true,
+    "retainedOriginalInsertedProjectionCount": 19,
+    "sourceFileDigest": "sha256:89c4f5ea35093d03e6b18b419a503977f81048523cae633fd698bbddf8ff3009",
+    "standing": "PASS_IDEMPOTENT_PROJECTION_INGEST"
+  },
+  "projection": {
+    "ciEpisodeIdSetDigest": "sha256:4746b401177d82c64c21f18efe53078e08d2d2360afb7441425c172723ec781d",
+    "ciEpisodes": 118,
+    "ciProfileId": "convergence-ci-observation-v1",
+    "ciProjectionDigestSetDigest": "sha256:04a326c1f522fd82c68d14a12f4496a35cdb5cb8055bf5ec8fd3f66a054b1883",
+    "claimBoundary": "This is a rebuildable analytical projection into the existing Experimental Episode contract. GitHub remains Queue/Actions authority and PostgreSQL remains a derived consumer.",
+    "episodeIdentityCollisions": 0,
+    "kind": "ordivon.convergence-experimental-episode-projection-summary",
+    "queueEpisodeIdSetDigest": "sha256:b3802907ae0242ff092bfd222a52655af0f13d3e515e1ae58059bb0a83839c87",
+    "queueEpisodes": 20,
+    "queueProfileId": "convergence-queue-observation-v1",
+    "queueProjectionDigestSetDigest": "sha256:f4867086c916ec46a3183e8be14f0da37631aba38e6dfb59fefbf9d99f23b544",
+    "repository": "ordivon-org/ordivon",
+    "schemaVersion": 1,
+    "standing": "PASS_CONVERGENCE_EPISODE_PROJECTION",
+    "summaryDigest": "sha256:8856299756c8b9c42df139970633a532ecc9feda7c7a69b0d99dcf99b996ce8c"
+  },
+  "queueFirstIngest": {
+    "episodeCount": 20,
+    "ingestId": "ingest:sha256:5cbf5fe41e6d611cd82acf4ab9c885a1bf18ba770559283612bb6dd3e69ce51b",
+    "insertedProjectionCountThisRun": 20,
+    "profileId": "convergence-queue-observation-v1",
+    "replayExistingIngest": false,
+    "retainedOriginalInsertedProjectionCount": 20,
+    "sourceFileDigest": "sha256:9c94f92e3388797cde8ee219d84e3889b3a0f19a7fb9a866c25bdd9c94223665",
+    "standing": "PASS_IDEMPOTENT_PROJECTION_INGEST"
+  },
+  "queueReplay": {
+    "episodeCount": 20,
+    "ingestId": "ingest:sha256:5cbf5fe41e6d611cd82acf4ab9c885a1bf18ba770559283612bb6dd3e69ce51b",
+    "insertedProjectionCountThisRun": 0,
+    "profileId": "convergence-queue-observation-v1",
+    "replayExistingIngest": true,
+    "retainedOriginalInsertedProjectionCount": 20,
+    "sourceFileDigest": "sha256:9c94f92e3388797cde8ee219d84e3889b3a0f19a7fb9a866c25bdd9c94223665",
+    "standing": "PASS_IDEMPOTENT_PROJECTION_INGEST"
+  },
+  "schemaVersion": 1,
+  "standing": "PASS",
+  "storeSummary": {
+    "profiles": {
+      "convergence-ci-observation-v1": 118,
+      "convergence-owner-cost-episode-v1": 19,
+      "convergence-queue-observation-v1": 20
+    },
+    "tables": {
+      "episode_dimensions": 1158,
+      "episode_evidence_bindings": 352,
+      "episode_measures": 2057,
+      "episode_owner_refs": 334,
+      "episode_projections": 157,
+      "projection_ingests": 3
+    }
+  }
+}

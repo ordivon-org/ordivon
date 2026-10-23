@@ -77,5 +77,10 @@ def test_gateway_audit_uses_verified_request_state_not_tool_arguments(caplog) ->
     assert event["spanId"] is not None
     assert "forged" not in caplog.records[-1].message
     assert "must-not-be-read" not in caplog.records[-1].message
+    assert span.attributes["enduser.id"] == principal
+    assert span.attributes["ordivon.auth.issuer"] == "https://team.cloudflareaccess.com"
     assert span.attributes["ordivon.gateway.auth.principal"] == principal
     assert span.attributes["ordivon.gateway.auth.issuer"] == "https://team.cloudflareaccess.com"
+    assert span.attributes["ordivon.operation_ref"] == "ordivon-exec:v1:runtime.linux:job-1"
+    assert span.attributes["ordivon.owner_id"] == "runtime.linux"
+    assert span.attributes["ordivon.native_id"] == "job-1"

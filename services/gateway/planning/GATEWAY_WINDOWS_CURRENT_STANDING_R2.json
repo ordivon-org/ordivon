@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.gateway-windows-current-standing",
+  "truthRole": "point-in-time-mechanical-observation",
+  "observedAt": "2026-09-22",
+  "source": {
+    "main": "2ae7d5a2c5d640ea03b78e08c6402e15c9423404",
+    "gatewayLastChange": "ab9e3b5417559462f112ec6d6b7b131bf20b4f51",
+    "gatewayVersion": "0.3.0",
+    "toolCount": 16
+  },
+  "production": {
+    "release": "ad84462ecb8f1e8014e2b087eda0399f210f6bf5",
+    "gatewayVersion": "0.3.0",
+    "toolCount": 16,
+    "health": 200,
+    "carrier": "wsl-systemd"
+  },
+  "connector": {
+    "toolCount": 9,
+    "staleExtra": [
+      "capability.list"
+    ],
+    "missingFromCurrent": [
+      "execution.resolve",
+      "continuity.observe",
+      "continuity.adopt",
+      "continuity.checkpoint",
+      "continuity.attention",
+      "collaboration.post",
+      "collaboration.list",
+      "collaboration.search"
+    ]
+  },
+  "candidate": {
+    "serviceName": "OrdivonGatewayCandidateR1",
+    "state": "Running",
+    "startMode": "Manual",
+    "releaseCommit": "ba3de6c25641c88ba16868dce35426134e57aa19",
+    "port": 18999,
+    "listenerPresent": true,
+    "linuxBearerConfigured": false,
+    "windowsBearerConfigured": false,
+    "health": 200,
+    "toolCount": 16,
+    "serviceIdentity": "NT SERVICE\\OrdivonGatewayCandidateR1",
+    "ownerServiceDependencies": []
+  },
+  "transport": {
+    "windowsToLinuxRuntime": "REACHABLE_AUTH_REQUIRED",
+    "windowsToHost": "VERIFIED_MCP_ROUTE",
+    "windowsToWindowsRuntime": "REACHABLE_AUTH_REQUIRED"
+  },
+  "acceptance": {
+    "regression": "54/54 PASS at R2 live-acceptance revision; later control-plane workspace 45/45 PASS",
+    "wslOffGatewaySurvived": true,
+    "hostRecoveredWithoutGatewayRestart": true,
+    "hostDirectContinuityReadback": true,
+    "scmCrashRecovery": {
+      "passed": true,
+      "beforePid": 19716,
+      "afterPid": 26640,
+      "healthBefore": 200,
+      "healthAfter": 200,
+      "toolCountAfter": 16,
+      "continuityAfterCrashRecovery": true,
+      "startModeAfter": "Manual"
+    },
+    "coldBoot": "OPEN"
+  },
+  "securityBoundary": {
+    "runtimeCredentialMaterializer": "IMPLEMENTED_AND_FAIL_CLOSED",
+    "linuxBearerCrossBoundary": "HUMAN_REQUIRED_PLATFORM_SAFETY_BLOCK",
+    "windowsBearerMaterialization": "HUMAN_REQUIRED_PLATFORM_SAFETY_BLOCK",
+    "policy": "DO_NOT_BYPASS",
+    "secretBytesRecordedInEvidence": false
+  }
+}

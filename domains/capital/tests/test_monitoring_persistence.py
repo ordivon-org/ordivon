@@ -81,6 +81,7 @@ def test_monitoring_validation_fails_closed(path, value, match):
         monitoring_table(evidence)
 
 
+@pytest.mark.provider_qualification
 def test_persist_monitoring_evidence_parquet_duckdb_manifest(tmp_path):
     evidence_path = tmp_path / "evidence.json"
     evidence_path.write_text(json.dumps(_evidence()))
@@ -94,7 +95,7 @@ def test_persist_monitoring_evidence_parquet_duckdb_manifest(tmp_path):
     assert Path(result["parquetPath"]).is_file()
     assert Path(result["manifestPath"]).is_file()
     assert result["validationImplementation"] == "LOCAL_BOUNDED_ROW_VALIDATION"
-    assert result["storageImplementation"] == "PyArrow 25.0.1 / Parquet"
+    assert result["storageImplementation"] == "PyArrow 26.0.0 / Parquet"
     assert result["independentReadbackImplementation"] == "DuckDB 1.5.5"
     assert result["experimentTrackingClaimed"] is False
     assert result["lineageAuthorityClaimed"] is False

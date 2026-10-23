@@ -4,30 +4,11 @@ impl Runtime {
         target: super::ExecutionTarget,
     ) -> RuntimeResult<ExecutionProviderSnapshot> {
         match target {
-            super::ExecutionTarget::LocalLinux => {
-                if self.node_identity.platform != super::RuntimeNodePlatform::Linux {
-                    return Err(RuntimeError::new(
-                        RuntimeErrorCode::ToolUnavailable,
-                        "local_linux execution is available only on a Linux Runtime node",
-                        Some("execution.executionTarget"),
-                        false,
-                    ));
-                }
-                let runner_path = self.executor.runner_path.as_deref().ok_or_else(|| {
-                    RuntimeError::new(
-                        RuntimeErrorCode::ToolUnavailable,
-                        "local_linux runner is not configured on this Runtime node",
-                        Some("runnerPath"),
-                        false,
-                    )
-                })?;
-                let runner = validate_runner(runner_path)?;
-                Ok(ExecutionProviderSnapshot {
-                    contract: ExecutionProviderContract::LocalLinuxRunnerV1,
-                    executable_digest: sha256_file(&runner).map_err(map_universal_error)?,
-                    wsl_distribution: None,
-                })
-            }
+            super::ExecutionTarget::LocalLinux => LocalLinuxProvider::new(
+                self.node_identity.platform,
+                &self.executor,
+            )
+            .snapshot(),
             super::ExecutionTarget::WindowsNative => {
                 let windows = self.windows.as_ref().ok_or_else(|| {
                     RuntimeError::invalid(
@@ -64,78 +45,89 @@ impl Runtime {
             .cloned()
             .collect::<Vec<_>>();
 
-        let linux_configured = self.node_identity.platform == super::RuntimeNodePlatform::Linux
-            && self.executor.runner_path.is_some();
-        let linux_provider = linux_configured
-            .then(|| self.current_execution_provider_snapshot(super::ExecutionTarget::LocalLinux))
-            .transpose()
-            .ok()
-            .flatten();
-        let linux = RuntimeExecutionTargetCapability {
-            target: super::ExecutionTarget::LocalLinux,
-            configured: linux_configured,
-            available: linux_provider.is_some(),
-            execution_profiles: if linux_configured {
-                vec![
-                    super::ExecutionProfile::TrustedLocal,
-                    super::ExecutionProfile::ContainedLocal,
-                ]
-            } else {
-                Vec::new()
-            },
-            windows_authorities: Vec::new(),
-            windows_immutable_input_authorities: Vec::new(),
-            structured_plan: linux_configured,
-            immutable_inputs: linux_configured,
-            host_dependency_commitments: linux_configured,
-            host_dependency_continuity_scope: linux_configured
-                .then(|| HOST_DEPENDENCY_CONTINUITY_SCOPE.to_string()),
-            availability_issue: (linux_configured && linux_provider.is_none())
-                .then(|| "EXECUTION_PROVIDER_UNAVAILABLE".to_string()),
-            execution_provider: linux_provider,
-        };
+        let linux = LocalLinuxProvider::new(self.node_identity.platform, &self.executor)
+            .capabilities();
 
         let windows_configured = self.windows.is_some();
-        let (windows_provider, windows_authorities, windows_issue) = if let Some(windows) =
-            &self.windows
-        {
-            match self.current_execution_provider_snapshot(super::ExecutionTarget::WindowsNative) {
-                Ok(provider) => {
-                    let mut authorities = Vec::new();
-                    for authority in [
-                        super::WindowsAuthority::Limited,
-                        super::WindowsAuthority::Elevated,
-                        super::WindowsAuthority::ActiveUser,
-                    ] {
-                        if snapshot_windows_runtime_context(windows, authority).is_ok() {
-                            authorities.push(authority);
+        let (windows_provider, windows_authorities, windows_contexts, windows_issue) =
+            if let Some(windows) = &self.windows {
+                match self.current_execution_provider_snapshot(super::ExecutionTarget::WindowsNative)
+                {
+                    Ok(provider) => {
+                        let mut contexts = Vec::new();
+                        for context in [
+                            super::WindowsExecutionContextRequest::new(
+                                super::WindowsExecutionIdentity::Service,
+                                super::WindowsPayloadPrivilege::Limited,
+                            ),
+                            super::WindowsExecutionContextRequest::new(
+                                super::WindowsExecutionIdentity::Service,
+                                super::WindowsPayloadPrivilege::Elevated,
+                            ),
+                            super::WindowsExecutionContextRequest::new(
+                                super::WindowsExecutionIdentity::ActiveUser,
+                                super::WindowsPayloadPrivilege::Limited,
+                            ),
+                            super::WindowsExecutionContextRequest::new(
+                                super::WindowsExecutionIdentity::ActiveUser,
+                                super::WindowsPayloadPrivilege::Elevated,
+                            ),
+                        ] {
+                            if snapshot_windows_runtime_context_for(windows, context).is_ok() {
+                                contexts.push(context);
+                            }
                         }
+                        let authorities = contexts
+                            .iter()
+                            .filter_map(|context| context.legacy_authority())
+                            .collect::<Vec<_>>();
+                        let issue = contexts
+                            .is_empty()
+                            .then(|| "WINDOWS_CONTEXT_UNAVAILABLE".to_string());
+                        (Some(provider), authorities, contexts, issue)
                     }
-                    let issue = authorities
-                        .is_empty()
-                        .then(|| "WINDOWS_AUTHORITY_UNAVAILABLE".to_string());
-                    (Some(provider), authorities, issue)
+                    Err(_) => (
+                        None,
+                        Vec::new(),
+                        Vec::new(),
+                        Some("EXECUTION_PROVIDER_UNAVAILABLE".to_string()),
+                    ),
                 }
-                Err(_) => (
-                    None,
-                    Vec::new(),
-                    Some("EXECUTION_PROVIDER_UNAVAILABLE".to_string()),
-                ),
-            }
-        } else {
-            (None, Vec::new(), None)
-        };
+            } else {
+                (None, Vec::new(), Vec::new(), None)
+            };
         let windows_immutable_input_authorities = windows_authorities
             .contains(&super::WindowsAuthority::Limited)
             .then_some(vec![super::WindowsAuthority::Limited])
             .unwrap_or_default();
+        let windows_privileged_profiles = self
+            .windows
+            .as_ref()
+            .map(|windows| {
+                let mut ids = windows
+                    .elevated_profiles
+                    .iter()
+                    .map(|profile| profile.id.clone())
+                    .collect::<Vec<_>>();
+                ids.sort();
+                ids.dedup();
+                ids
+            })
+            .unwrap_or_default();
+        let windows_maintenance_fence_configured = self
+            .windows
+            .as_ref()
+            .is_some_and(|windows| windows.maintenance_lease_path.is_some());
         let windows = RuntimeExecutionTargetCapability {
             target: super::ExecutionTarget::WindowsNative,
             configured: windows_configured,
             available: windows_provider.is_some() && !windows_authorities.is_empty(),
             execution_profiles: vec![super::ExecutionProfile::TrustedLocal],
             windows_authorities,
+            windows_contexts,
             windows_immutable_input_authorities: windows_immutable_input_authorities.clone(),
+            windows_privileged_profiles,
+            windows_maintenance_fence_configured,
             structured_plan: false,
             immutable_inputs: !windows_immutable_input_authorities.is_empty(),
             host_dependency_commitments: false,
@@ -323,6 +315,27 @@ impl Runtime {
             &request.execution.executable,
             "execution.executable",
         )?;
+        let explicit_windows_context = request.execution.windows_context;
+        if request.execution.execution_target != super::ExecutionTarget::WindowsNative
+            && explicit_windows_context.is_some()
+        {
+            return Err(RuntimeError::invalid(
+                "windowsContext is valid only for windows_native execution",
+                "execution.windowsContext",
+            ));
+        }
+        let requested_windows_context = explicit_windows_context
+            .unwrap_or_else(|| request.execution.windows_authority.canonical_context());
+        if explicit_windows_context.is_some()
+            && !requested_windows_context.compatible_with_legacy(request.execution.windows_authority)
+        {
+            return Err(RuntimeError::invalid(
+                "windowsContext conflicts with the non-default legacy windowsAuthority",
+                "execution.windowsContext",
+            ));
+        }
+        let effective_windows_authority = requested_windows_context.transport_authority();
+
         let (base_environment, windows_execution_context) = match request.execution.execution_target
         {
             super::ExecutionTarget::LocalLinux => (
@@ -337,14 +350,18 @@ impl Runtime {
                     )
                 })?;
                 let snapshot =
-                    snapshot_windows_runtime_context(windows, request.execution.windows_authority)?;
-                let token_class = match request.execution.windows_authority {
-                    super::WindowsAuthority::Limited => super::WindowsTokenClass::Limited,
-                    super::WindowsAuthority::Elevated => super::WindowsTokenClass::Elevated,
-                    super::WindowsAuthority::ActiveUser => super::WindowsTokenClass::ActiveUser,
+                    super::windows::snapshot_windows_runtime_context_for(windows, requested_windows_context)?;
+                let token_class = match requested_windows_context.identity {
+                    super::WindowsExecutionIdentity::ActiveUser => super::WindowsTokenClass::ActiveUser,
+                    super::WindowsExecutionIdentity::Service
+                        if requested_windows_context.privilege == super::WindowsPayloadPrivilege::Elevated =>
+                    {
+                        super::WindowsTokenClass::Elevated
+                    }
+                    super::WindowsExecutionIdentity::Service => super::WindowsTokenClass::Limited,
                 };
                 let privileged_broker_digest =
-                    if request.execution.windows_authority != super::WindowsAuthority::Limited {
+                    if effective_windows_authority != super::WindowsAuthority::Limited {
                         windows
                             .privileged_broker
                             .as_ref()
@@ -353,8 +370,8 @@ impl Runtime {
                     } else {
                         None
                     };
-                let environment_source = match request.execution.windows_authority {
-                    super::WindowsAuthority::ActiveUser => "windows_active_user_profile_allowlist_v1",
+                let environment_source = match requested_windows_context.identity {
+                    super::WindowsExecutionIdentity::ActiveUser => "windows_active_user_profile_allowlist_v1",
                     _ if privileged_broker_digest.is_some() => {
                         "windows_privileged_broker_profile_allowlist_v1"
                     }
@@ -364,6 +381,8 @@ impl Runtime {
                     snapshot.environment,
                     Some(super::WindowsExecutionContext {
                         token_class,
+                        payload_identity: explicit_windows_context.map(|context| context.identity),
+                        payload_privilege: explicit_windows_context.map(|context| context.privilege),
                         token_user_sid: snapshot.token_user_sid,
                         session_id: snapshot.session_id,
                         environment_source: environment_source.to_string(),
@@ -437,7 +456,8 @@ impl Runtime {
             budget: request.execution.budget.clone(),
             execution_profile: request.execution.execution_profile,
             execution_target: request.execution.execution_target,
-            windows_authority: request.execution.windows_authority,
+            windows_authority: effective_windows_authority,
+            windows_context: explicit_windows_context,
             windows_execution_context,
             foreign_references: request.execution.foreign_references.clone(),
             input_set_id: None,
@@ -1377,18 +1397,8 @@ impl Runtime {
         let plan = self.registry.execution_plan(&starting.job_id)?;
         let bundle_path = canonical_directory(Path::new(&starting.bundle_path), "bundlePath")
             .map_err(map_universal_error)?;
-        let runtime_ceiling = plan.timeout_ms.saturating_add(5_000);
         let output = match plan.execution_target {
             super::ExecutionTarget::LocalLinux => {
-                let runner_path = self.executor.runner_path.as_deref().ok_or_else(|| {
-                    RuntimeError::new(
-                        RuntimeErrorCode::ToolUnavailable,
-                        "local_linux runner is not configured on this Runtime node",
-                        Some("runnerPath"),
-                        false,
-                    )
-                })?;
-                let runner = validate_runner(runner_path)?;
                 let input_set_path = if plan.input_set_id.is_some() {
                     self.ensure_job_input_ownership(&starting.job_id)?;
                     let path = self.executor.job_input_path(&starting.job_id);
@@ -1407,23 +1417,17 @@ impl Runtime {
                     } else {
                         (None, Vec::new())
                     };
-                systemd_run(&SystemdRunSpec {
-                    unit_name: &starting.unit_name,
-                    runner: &runner,
-                    bundle_path: &bundle_path,
-                    workspace_path: Path::new(&plan.workspace_path),
-                    workspace_git_common_dir: plan
-                        .workspace_git_common_dir
-                        .as_deref()
-                        .map(Path::new),
-                    input_set_path: input_set_path.as_deref(),
-                    credential_source_root: credential_source_root.as_deref(),
-                    credential_names: &credential_names,
-                    runtime_ceiling_ms: runtime_ceiling,
-                    budget: &plan.budget,
-                    execution_profile: plan.execution_profile,
-                    environment: &plan.env,
-                })?
+                LocalLinuxProvider::new(self.node_identity.platform, &self.executor)
+                    .realize_prepared(
+                        &plan,
+                        &starting,
+                        LocalLinuxRealizationInputs {
+                            bundle_path: &bundle_path,
+                            input_set_path: input_set_path.as_deref(),
+                            credential_source_root: credential_source_root.as_deref(),
+                            credential_names: &credential_names,
+                        },
+                    )?
             }
             super::ExecutionTarget::WindowsNative => {
                 let windows = self.windows.as_ref().ok_or_else(|| {
@@ -1459,6 +1463,9 @@ impl Runtime {
                 };
                 let runner_request_digest =
                     sha256_file(&bundle_path.join(RUNNER_REQUEST_FILE)).map_err(map_universal_error)?;
+                    let requested_windows_context = plan
+                        .windows_context
+                        .unwrap_or_else(|| plan.windows_authority.canonical_context());
                     let dispatch = match spawn_windows_native(&WindowsNativeRunSpec {
                         config: windows,
                         bundle_path: &bundle_path,
@@ -1467,6 +1474,7 @@ impl Runtime {
                         launch_token_digest: &starting.launch_token_digest,
                         request_digest: &runner_request_digest,
                         authority: plan.windows_authority,
+                        payload_privilege: requested_windows_context.privilege,
                         expected_privileged_broker_digest: plan
                             .windows_execution_context
                             .as_ref()
@@ -1474,12 +1482,12 @@ impl Runtime {
                         expected_user_sid: plan
                             .windows_execution_context
                             .as_ref()
-                            .filter(|_| plan.windows_authority == super::WindowsAuthority::ActiveUser)
+                            .filter(|_| requested_windows_context.identity == super::WindowsExecutionIdentity::ActiveUser)
                             .map(|context| context.token_user_sid.as_str()),
                         expected_session_id: plan
                             .windows_execution_context
                             .as_ref()
-                            .filter(|_| plan.windows_authority == super::WindowsAuthority::ActiveUser)
+                            .filter(|_| requested_windows_context.identity == super::WindowsExecutionIdentity::ActiveUser)
                             .and_then(|context| context.session_id),
                         executable: Path::new(&plan.executable),
                         args: &plan.args,
@@ -1791,23 +1799,36 @@ impl Runtime {
                 false,
             )
         })?;
-        let expected_token_class = match plan.windows_authority {
-            super::WindowsAuthority::Limited => super::WindowsTokenClass::Limited,
-            super::WindowsAuthority::Elevated => super::WindowsTokenClass::Elevated,
-            super::WindowsAuthority::ActiveUser => super::WindowsTokenClass::ActiveUser,
+        let requested_windows_context = plan
+            .windows_context
+            .unwrap_or_else(|| plan.windows_authority.canonical_context());
+        let expected_token_class = match requested_windows_context.identity {
+            super::WindowsExecutionIdentity::ActiveUser => super::WindowsTokenClass::ActiveUser,
+            super::WindowsExecutionIdentity::Service
+                if requested_windows_context.privilege == super::WindowsPayloadPrivilege::Elevated =>
+            {
+                super::WindowsTokenClass::Elevated
+            }
+            super::WindowsExecutionIdentity::Service => super::WindowsTokenClass::Limited,
         };
         let broker_backed = context.privileged_broker_digest.is_some();
-        let expected_environment_source = match plan.windows_authority {
-            super::WindowsAuthority::ActiveUser => "windows_active_user_profile_allowlist_v1",
+        let expected_environment_source = match requested_windows_context.identity {
+            super::WindowsExecutionIdentity::ActiveUser => "windows_active_user_profile_allowlist_v1",
             _ if broker_backed => "windows_privileged_broker_profile_allowlist_v1",
             _ => "windows_user_machine_profile_allowlist_v1",
         };
         if context.token_class != expected_token_class
             || context.environment_source != expected_environment_source
-            || (plan.windows_authority == super::WindowsAuthority::Limited && broker_backed)
-            || (plan.windows_authority == super::WindowsAuthority::ActiveUser
+            || (plan.windows_context.is_some()
+                && (context.payload_identity != Some(requested_windows_context.identity)
+                    || context.payload_privilege != Some(requested_windows_context.privilege)))
+            || (plan.windows_context.is_none()
+                && (context.payload_identity.is_some() || context.payload_privilege.is_some()))
+            || (requested_windows_context.transport_authority() == super::WindowsAuthority::Limited
+                && broker_backed)
+            || (requested_windows_context.identity == super::WindowsExecutionIdentity::ActiveUser
                 && (!broker_backed || context.session_id.is_none()))
-            || (plan.windows_authority != super::WindowsAuthority::ActiveUser
+            || (requested_windows_context.identity != super::WindowsExecutionIdentity::ActiveUser
                 && context.session_id.is_some())
             || (broker_backed && windows.privileged_broker.is_none())
         {
@@ -1881,8 +1902,11 @@ impl Runtime {
                 Some(windows_input_bindings_digest(&plan.effective_inputs)),
             )
         };
-        let token_authority_matches = match plan.windows_authority {
-            super::WindowsAuthority::Limited => {
+        let token_authority_matches = match (
+            requested_windows_context.identity,
+            requested_windows_context.privilege,
+        ) {
+            (super::WindowsExecutionIdentity::Service, super::WindowsPayloadPrivilege::Limited) => {
                 !evidence.token_is_elevated
                     && evidence.token_integrity_level_rid <= 8192
                     && (evidence.administrators_group_attributes == u32::MAX
@@ -1897,7 +1921,7 @@ impl Runtime {
                         || (evidence.administrators_group_attributes & 0x10) != 0)
                     && matches!(evidence.execution_identity.as_str(), "" | "service")
             }
-            super::WindowsAuthority::Elevated => {
+            (super::WindowsExecutionIdentity::Service, super::WindowsPayloadPrivilege::Elevated) => {
                 evidence.token_is_elevated
                     && evidence.token_integrity_level_rid >= 12288
                     && evidence.administrators_group_attributes != u32::MAX
@@ -1906,13 +1930,24 @@ impl Runtime {
                     && evidence.token_selection == "current_elevated"
                     && matches!(evidence.execution_identity.as_str(), "" | "service")
             }
-            super::WindowsAuthority::ActiveUser => {
+            (super::WindowsExecutionIdentity::ActiveUser, super::WindowsPayloadPrivilege::Limited) => {
                 !evidence.token_is_elevated
                     && evidence.token_integrity_level_rid <= 8192
                     && (evidence.administrators_group_attributes == u32::MAX
                         || (evidence.administrators_group_attributes & 0x4) == 0
                         || (evidence.administrators_group_attributes & 0x10) != 0)
                     && evidence.token_selection == "active_user"
+                    && evidence.execution_identity == "active_user"
+                    && evidence.session_id.is_some()
+            }
+            (super::WindowsExecutionIdentity::ActiveUser, super::WindowsPayloadPrivilege::Elevated) => {
+                evidence.token_is_elevated
+                    && evidence.token_integrity_level_rid >= 12288
+                    && evidence.administrators_group_attributes != u32::MAX
+                    && (evidence.administrators_group_attributes & 0x4) != 0
+                    && (evidence.administrators_group_attributes & 0x10) == 0
+                    && matches!(evidence.token_elevation_type, 1 | 2)
+                    && matches!(evidence.token_selection.as_str(), "active_user_elevated_current" | "active_user_elevated_linked")
                     && evidence.execution_identity == "active_user"
                     && evidence.session_id.is_some()
             }
@@ -1928,7 +1963,7 @@ impl Runtime {
             || evidence.process_creation_time_file_time == 0
             || evidence.image_digest != expected_executable_digest
             || evidence.token_user_sid != context.token_user_sid
-            || (plan.windows_authority == super::WindowsAuthority::ActiveUser
+            || (requested_windows_context.identity == super::WindowsExecutionIdentity::ActiveUser
                 && evidence.session_id != context.session_id)
             || evidence.token_type != 1
             || !token_authority_matches

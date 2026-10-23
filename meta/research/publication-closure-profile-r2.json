@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 2,
+  "kind": "research-publication-closure-composition-profile",
+  "id": "publication-closure-r2",
+  "supersedes": "publication-closure-r1",
+  "truthRole": "composition-profile-not-scientific-truth",
+  "runtimeOwner": null,
+  "ownerBindings": {
+    "scientificTruth": "Study authority",
+    "methodAuthority": "external/domain-native standards",
+    "carrierMechanics": "capabilities/artifact",
+    "perceptualObservation": "independent replaceable observer providers",
+    "perceptualAdjudication": "capabilities/artifact",
+    "renderingToolchain": "mature external tools selected per Study",
+    "physicalExecution": "services/runtime when exact execution evidence is needed",
+    "distributionEffect": "capabilities/distribution or venue-native submission surface"
+  },
+  "freezeOrder": [
+    "SCIENCE_FREEZE",
+    "CLAIM_FREEZE",
+    "MANUSCRIPT_SEMANTIC_FREEZE",
+    "CARRIER_BUILD",
+    "DETERMINISTIC_CONFORMANCE",
+    "PERCEPTUAL_CONFORMANCE",
+    "INDEPENDENT_RELEASE_VERIFICATION",
+    "CARRIER_ATTESTATION",
+    "ARTIFACT_CARRIER_REBIND",
+    "COLD_REPLAY",
+    "SUBMISSION_FREEZE"
+  ],
+  "authorityInvariant": "HUMAN_REQUIRED_MEANS_HUMAN_AUTHORITY_REQUIRED_NOT_HARD_TO_AUTOMATE",
+  "perceptualStanding": [
+    "PASS_AGENT_ENSEMBLE",
+    "ESCALATE_SPECIALIST",
+    "FAIL"
+  ],
+  "humanAuthorityGates": [
+    "AUTHORSHIP_DECLARATION",
+    "CONFLICT_ATTESTATION",
+    "ORIGINALITY_ATTESTATION",
+    "ETHICS_OR_LEGAL_DECLARATION",
+    "FINAL_SUBMISSION_AUTHORIZATION"
+  ],
+  "stopRules": [
+    "Do not reopen science to repair a carrier-only defect unless contradictory evidence appears.",
+    "Do not treat deterministic rendering as venue or perceptual conformance.",
+    "Do not map non-deterministic assessment to author labor by default.",
+    "Observer disagreement escalates to an independent publication specialist rather than the author.",
+    "Do not freeze reviewer artifact bytes before carrier and perceptual QA have closed.",
+    "Venue rules remain dated external authority bindings."
+  ]
+}

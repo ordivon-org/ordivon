@@ -1,0 +1,30 @@
+{
+  "asOf": "2026-09-22",
+  "catalog": {
+    "datasetCount": 3,
+    "distributionCount": 4
+  },
+  "claimBoundary": "R2 adds one real internal analytical product without changing Research/Capital owner truth. The Episode product remains a non-authoritative projection; its Parquet index is an Artifact-qualified interchange view and SystemAnalysisR1 explicitly preserves non-identification for unsupported generalization/causal claims.",
+  "experimentalEpisode": {
+    "artifactIndexStanding": "PASS",
+    "consumerReceipt": "meta/next/evidence/data-products/experimental-episode-analysis-r1/receipt.json",
+    "contractId": "66cca360-d1c5-5f8d-8c7d-3f6fe6137d0d",
+    "generalizationStanding": "NOT_IDENTIFIED",
+    "interventionStanding": "NOT_IDENTIFIED",
+    "openLineageRunId": "cb6ddba6-a7f4-5bbb-91d4-c9b30b5bc0ba",
+    "productAcceptance": "meta/next/data-products/experimental-episode-corpus-r1/acceptance.json",
+    "productId": "4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b",
+    "productVersion": "1.0.0"
+  },
+  "externalOwners": {
+    "catalog": "w3c-dcat-3-2024",
+    "contract": "bitol-odcs-3.2.0",
+    "operationalLineage": "openlineage-2.0.2",
+    "product": "bitol-odps-1.1.0",
+    "semanticProvenance": "w3c-prov-o-2013"
+  },
+  "kind": "ordivon.data-product-federation-acceptance",
+  "predecessor": "../data-products-r1/acceptance.json",
+  "schemaVersion": 2,
+  "standing": "PASS_THREE_PRODUCT_ODPS_ODCS_DCAT_PROV_OPENLINEAGE"
+}

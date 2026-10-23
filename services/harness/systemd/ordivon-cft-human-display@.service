@@ -1,0 +1,18 @@
+[Unit]
+Description=Xvfb display for durable CfT human session slot %i
+PartOf=ordivon-cft-human-session@%i.target
+
+[Service]
+Type=simple
+User=ordivon
+Group=ordivon
+ExecStartPre=+/usr/bin/python3 /opt/ordivon/agent-automation/current/scripts/cft_human_session_auth.py --slot %i
+ExecStart=/usr/bin/Xvfb :2%i -screen 0 1440x1000x24 -nolisten tcp -auth /run/ordivon/cft-human-xauth/%i
+Restart=on-failure
+RestartSec=1s
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=true
+RestrictSUIDSGID=true
+LockPersonality=true

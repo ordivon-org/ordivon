@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.successor-gate-result",
+  "contractId": "successor:harness-rsi-p2-to-p3-r1",
+  "contractDigest": "sha256:11b4855c47e9ebb473741700b374cb584a7fa0ec1382f8d04f57ecef6b4e2931",
+  "gateId": "gate:p3-regression-preservation",
+  "verifierOwnerId": "study:harness-rsi-independent-evaluation",
+  "standing": "SATISFIED",
+  "anchorRefIds": [
+    "anchor:p3-regression-suite"
+  ],
+  "evidenceRefs": [
+    "sha256:a3c15383b61e1d9fc45c5c0c46bdd8c0035f5b3aab9ad67f2eed7d4c9a909984",
+    "sha256:b8e7c8961d309195ea70349bf98d78b277eb96f7e4a7312a05996735eab13958"
+  ],
+  "supportScope": "The candidate preserves named Harness regression/release checks reported by the independent evaluator only.",
+  "nonClaims": [
+    "This result does not establish cross-domain correctness or future generalization."
+  ]
+}

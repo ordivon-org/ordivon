@@ -43,7 +43,7 @@ This lane is deliberately separate from semantic Foundations.
 - [Station Zero v3 Product Value](../../docs/STATION_ZERO_V3_PRODUCT_VALUE.md)
 - [Station Zero v3 Domain Value](../../docs/STATION_ZERO_V3_DOMAIN_VALUE_GV.md)
 - [Station Zero v3 Contraction](../../docs/STATION_ZERO_V3_CONTRACTION.md)
-- [Station Zero v3 DeepSeek Pool](../../docs/STATION_ZERO_V3_DEEPSEEK_POOL.md)
+- [Station Zero v3 External Provider](../../docs/STATION_ZERO_V3_EXTERNAL_PROVIDER.md)
 - [Station Zero v3 Vertical Slice](../../docs/STATION_ZERO_V3_VERTICAL_SLICE.md)
 - [Station Zero v3 P0](../../docs/STATION_ZERO_V3_P0.md)
 - [Station Zero v3 P1](../../docs/STATION_ZERO_V3_P1.md)

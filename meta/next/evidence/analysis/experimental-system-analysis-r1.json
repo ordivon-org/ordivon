@@ -1,0 +1,327 @@
+{
+  "analysisBoundary": [
+    "No universal fitness score is computed.",
+    "No ranking or promotion decision is emitted.",
+    "NOT_IDENTIFIED is a valid outcome when design evidence is absent."
+  ],
+  "analysisDigest": "sha256:fbf5b4268f9d8483e5c8e4077c563de5d2301e04bb8218b764c795a0e3d3c2a5",
+  "capability": {
+    "nonClaims": [
+      "Observed owner references are evidence coverage, not a capability registry.",
+      "Reference frequency is not capability quality or importance."
+    ],
+    "ownerReferenceObservations": [
+      {
+        "count": 6,
+        "objectKind": "revision",
+        "ownerId": "git",
+        "profileId": "harness-rsi-acceptance-v1",
+        "relation": "base-revision"
+      },
+      {
+        "count": 2,
+        "objectKind": "revision",
+        "ownerId": "git",
+        "profileId": "harness-rsi-acceptance-v1",
+        "relation": "documentation-revision"
+      },
+      {
+        "count": 7,
+        "objectKind": "revision",
+        "ownerId": "git",
+        "profileId": "harness-rsi-acceptance-v1",
+        "relation": "implementation-revision"
+      },
+      {
+        "count": 2,
+        "objectKind": "revision",
+        "ownerId": "git",
+        "profileId": "harness-rsi-acceptance-v1",
+        "relation": "test-hardening-revision"
+      },
+      {
+        "count": 47,
+        "objectKind": "job",
+        "ownerId": "runtime",
+        "profileId": "harness-rsi-acceptance-v1",
+        "relation": "cited-runtime-job"
+      },
+      {
+        "count": 10000,
+        "objectKind": "execution-bundle",
+        "ownerId": "runtime-historical-r5c",
+        "profileId": "runtime-r5c-v1",
+        "relation": "materialized-from"
+      },
+      {
+        "count": 10000,
+        "objectKind": "execution-plan",
+        "ownerId": "runtime-historical-r5c",
+        "profileId": "runtime-r5c-v1",
+        "relation": "planned-by"
+      },
+      {
+        "count": 9999,
+        "objectKind": "execution-result",
+        "ownerId": "runtime-historical-r5c",
+        "profileId": "runtime-r5c-v1",
+        "relation": "produced-result"
+      },
+      {
+        "count": 10000,
+        "objectKind": "legacy-attempt",
+        "ownerId": "runtime-historical-r5c",
+        "profileId": "runtime-r5c-v1",
+        "relation": "legacy-source-attempt"
+      },
+      {
+        "count": 10000,
+        "objectKind": "operation",
+        "ownerId": "runtime-historical-r5c",
+        "profileId": "runtime-r5c-v1",
+        "relation": "execution-operation"
+      },
+      {
+        "count": 10000,
+        "objectKind": "request",
+        "ownerId": "runtime-historical-r5c",
+        "profileId": "runtime-r5c-v1",
+        "relation": "execution-request"
+      },
+      {
+        "count": 10000,
+        "objectKind": "workspace",
+        "ownerId": "runtime-historical-r5c",
+        "profileId": "runtime-r5c-v1",
+        "relation": "executed-in-workspace"
+      }
+    ],
+    "standing": "DESCRIPTIVE_ONLY"
+  },
+  "cost": {
+    "harnessEpisodes": 7,
+    "harnessProviderCostCoverageEpisodes": 2,
+    "nonClaims": [
+      "Runtime event/artifact rows are mechanical load proxies, not monetary cost.",
+      "Provider token/call signals are sparse and are not summed across differently named evidence because they may overlap semantically."
+    ],
+    "observedProviderSignals": {
+      "harness.acceptedTrajectoryProviderCost.completedProviderCalls": [
+        {
+          "episodeId": "episode:harness-rsi:harness-rsi-p5-high-information-discovery-999d753",
+          "value": 12.0
+        }
+      ],
+      "harness.acceptedTrajectoryProviderCost.completionTokens": [
+        {
+          "episodeId": "episode:harness-rsi:harness-rsi-p5-high-information-discovery-999d753",
+          "value": 8624.0
+        }
+      ],
+      "harness.acceptedTrajectoryProviderCost.promptTokens": [
+        {
+          "episodeId": "episode:harness-rsi:harness-rsi-p5-high-information-discovery-999d753",
+          "value": 231329.0
+        }
+      ],
+      "harness.acceptedTrajectoryProviderCost.totalTokens": [
+        {
+          "episodeId": "episode:harness-rsi:harness-rsi-p5-high-information-discovery-999d753",
+          "value": 239953.0
+        }
+      ],
+      "harness.r12Discovery.providerCalls": [
+        {
+          "episodeId": "episode:harness-rsi:harness-rsi-p5-final-acceptance-89fc499",
+          "value": 12.0
+        }
+      ],
+      "harness.r12Discovery.totalTokens": [
+        {
+          "episodeId": "episode:harness-rsi:harness-rsi-p5-final-acceptance-89fc499",
+          "value": 239953.0
+        }
+      ]
+    },
+    "runtimeMechanicalProxyCoverageEpisodes": 10000,
+    "runtimeMechanicalProxyKinds": [
+      "runtime.artifact_bytes",
+      "runtime.artifact_rows",
+      "runtime.event_rows"
+    ],
+    "standing": "PARTIAL_COVERAGE"
+  },
+  "failure": {
+    "nonClaims": [
+      "Resource associations do not establish failure causation.",
+      "Runtime resolution is not domain success."
+    ],
+    "resourceProfilesByExecutionState": {
+      "cancelled": {
+        "runtime.artifact_bytes": {
+          "max": 30097.0,
+          "mean": 8053.823529411765,
+          "median": 4696.0,
+          "min": 2230.0,
+          "n": 17,
+          "p95": 19571.39999999999
+        },
+        "runtime.artifact_rows": {
+          "max": 4.0,
+          "mean": 4.0,
+          "median": 4.0,
+          "min": 4.0,
+          "n": 17,
+          "p95": 4.0
+        },
+        "runtime.event_rows": {
+          "max": 9.0,
+          "mean": 9.0,
+          "median": 9.0,
+          "min": 9.0,
+          "n": 17,
+          "p95": 9.0
+        }
+      },
+      "failed": {
+        "runtime.artifact_bytes": {
+          "max": 289471.0,
+          "mean": 9136.701570680629,
+          "median": 4860.0,
+          "min": 3235.0,
+          "n": 955,
+          "p95": 25807.49999999998
+        },
+        "runtime.artifact_rows": {
+          "max": 4.0,
+          "mean": 4.0,
+          "median": 4.0,
+          "min": 4.0,
+          "n": 955,
+          "p95": 4.0
+        },
+        "runtime.event_rows": {
+          "max": 8.0,
+          "mean": 7.997905759162304,
+          "median": 8.0,
+          "min": 7.0,
+          "n": 955,
+          "p95": 8.0
+        }
+      },
+      "running": {
+        "runtime.artifact_bytes": {
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 1,
+          "p95": 0.0
+        },
+        "runtime.artifact_rows": {
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 1,
+          "p95": 0.0
+        },
+        "runtime.event_rows": {
+          "max": 6.0,
+          "mean": 6.0,
+          "median": 6.0,
+          "min": 6.0,
+          "n": 1,
+          "p95": 6.0
+        }
+      },
+      "succeeded": {
+        "runtime.artifact_bytes": {
+          "max": 955218.0,
+          "mean": 11395.244763078303,
+          "median": 5232.0,
+          "min": 2875.0,
+          "n": 8927,
+          "p95": 38696.79999999989
+        },
+        "runtime.artifact_rows": {
+          "max": 6.0,
+          "mean": 4.00022403943094,
+          "median": 4.0,
+          "min": 4.0,
+          "n": 8927,
+          "p95": 4.0
+        },
+        "runtime.event_rows": {
+          "max": 9.0,
+          "mean": 7.998095664837011,
+          "median": 8.0,
+          "min": 7.0,
+          "n": 8927,
+          "p95": 8.0
+        }
+      },
+      "timed_out": {
+        "runtime.artifact_bytes": {
+          "max": 45314.0,
+          "mean": 6269.3,
+          "median": 4363.0,
+          "min": 3216.0,
+          "n": 100,
+          "p95": 15372.349999999991
+        },
+        "runtime.artifact_rows": {
+          "max": 4.0,
+          "mean": 4.0,
+          "median": 4.0,
+          "min": 4.0,
+          "n": 100,
+          "p95": 4.0
+        },
+        "runtime.event_rows": {
+          "max": 8.0,
+          "mean": 8.0,
+          "median": 8.0,
+          "min": 8.0,
+          "n": 100,
+          "p95": 8.0
+        }
+      }
+    },
+    "runtimeExecutionStateDistribution": {
+      "cancelled": 17,
+      "failed": 955,
+      "running": 1,
+      "succeeded": 8927,
+      "timed_out": 100
+    },
+    "standing": "DESCRIPTIVE_ONLY",
+    "terminalEpisodes": 9999,
+    "terminalUnsuccessfulEpisodes": 1072,
+    "terminalUnsuccessfulRate": 0.1072107210721072
+  },
+  "generalization": {
+    "developmentEpisodes": 0,
+    "judgeEpisodes": 0,
+    "reason": "INSUFFICIENT_EXPLICIT_DEVELOPMENT_JUDGE_SPLIT",
+    "standing": "NOT_IDENTIFIED"
+  },
+  "intervention": {
+    "assignedEpisodes": 0,
+    "reason": "NO_FROZEN_INTERVENTION_CONTRACT",
+    "standing": "NOT_IDENTIFIED"
+  },
+  "kind": "ordivon.experimental-system-analysis-r1",
+  "population": {
+    "dataClasses": {
+      "EXPERIENCE": 10007
+    },
+    "episodes": 10007,
+    "profiles": {
+      "harness-rsi-acceptance-v1": 7,
+      "runtime-r5c-v1": 10000
+    }
+  },
+  "schemaVersion": 1,
+  "truthRole": "derived-analysis-not-owner-truth"
+}

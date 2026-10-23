@@ -2,6 +2,8 @@ import json
 import subprocess
 from pathlib import Path
 
+import pytest
+
 ROOT=Path(__file__).resolve().parents[1]
 
 def test_nonlive_provisioning_never_grants_live_write():
@@ -12,6 +14,7 @@ def test_nonlive_provisioning_never_grants_live_write():
     assert x['venues']['OKX']['liveCredentialReuseForbidden'] is True
     assert x['venues']['BINANCE']['liveCredentialReuseForbidden'] is True
 
+@pytest.mark.provider_qualification
 def test_provisioning_checker_requires_server_issued_nonlive_key():
     p=subprocess.run([str(ROOT/'scripts/check-nonlive-credential-provisioning')],cwd=ROOT,text=True,capture_output=True,check=True)
     x=json.loads(p.stdout)

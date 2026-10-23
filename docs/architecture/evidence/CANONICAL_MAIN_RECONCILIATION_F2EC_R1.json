@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.canonical-main-reconciliation-evidence",
+  "date": "2026-09-23",
+  "truthRole": "frozen-cut-replay-evidence-not-provider-publication-authority",
+  "frozenCut": {
+    "localSource": "f2ec4ec0c77fcf6b29fedd33c9145cea653cf730",
+    "providerBase": "f766c41543f420aa5a738c7a1ffde90ea6f2f2b9",
+    "equivalentLocalCommitSkipped": "8778425b",
+    "replayedLocalCommits": 14,
+    "replayConflicts": 0,
+    "replayHeadBeforeEvidence": "3615600ade11fbb797145988eb38e7b94c7de2c6"
+  },
+  "validation": {
+    "repoCi": {
+      "standing": "PASS",
+      "runtimeJobId": "job-01a0cd18-d03f-79e2-bf8d-0e2ea4182ab2"
+    },
+    "ownerVerification": {
+      "selection": "CROSS_CUTTING_18_OWNERS",
+      "directSuccessfulOwners": 17,
+      "providerCarrierInfraFailures": 1,
+      "runtimeJobId": "job-01a0cd19-5529-7bb0-890f-ef0c5d12c17d",
+      "security": {
+        "codeAndUnitTests": "PASS",
+        "dockerOpaCarrier": "INFRA_FAILURE",
+        "failure": "configured Docker proxy 10.254.177.2:19381 unreachable",
+        "localProviderEquivalent": {
+          "version": "1.20.2",
+          "sha256": "sha256:ae0171e1b8cfed38f39c435660924c06a313868dd5d34bf5f5869d6dbe78d21b",
+          "policyTests": "34/34 PASS",
+          "runtimeJobId": "job-01a0cd28-a881-7000-a10e-9ab3fbda2392"
+        }
+      }
+    },
+    "workspaceCleanAfterValidation": true
+  },
+  "publication": {
+    "providerAuthority": "GitHub protected main plus Merge Queue",
+    "standing": "NOT_YET_PUBLISHED",
+    "localMainWasNotResetOrOverwritten": true
+  },
+  "nonClaims": [
+    "local refs/heads/main is canonical provider truth",
+    "Docker carrier failure is a candidate code failure",
+    "local OPA equivalence replaces remote required checks",
+    "replayed candidate is published before provider merge"
+  ]
+}

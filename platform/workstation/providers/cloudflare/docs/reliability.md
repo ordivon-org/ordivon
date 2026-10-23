@@ -46,7 +46,7 @@ Reread authoritative state after ambiguous writes, accept a matching committed R
 
 ## Evidence
 
-Tests inject R2, commit, takeover, cleanup, policy, rate-limit, and replay failures. Every final Receipt excludes private lease tokens and ETags, binds execution and policy identity, and references Artifacts whose bytes are independently verified by the client. See [`operations.md`](operations.md) for recovery commands, [`security.md`](security.md) for protection controls, and [`../../../docs/authority.md`](../../../docs/authority.md) for authority.
+Tests inject R2, commit, takeover, cleanup, policy, rate-limit, and replay failures. Every final Receipt excludes private lease tokens and ETags, binds execution and policy identity, and references Artifacts whose bytes are independently verified by the client. See [`operations.md`](operations.md) for recovery commands, [`security.md`](security.md) for protection controls, and [`../README.md#authority-boundary`](../README.md#authority-boundary) for authority.
 
 ## Authoritative request state
 

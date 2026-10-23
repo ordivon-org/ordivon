@@ -271,11 +271,20 @@ def _source_revision(root: Path) -> str:
     commit = value.get("commit") if isinstance(value, dict) else None
     if (
         not isinstance(value, dict)
-        or value.get("schemaVersion") != 1
+        or value.get("schemaVersion") not in {1, 2}
         or not isinstance(commit, str)
         or not re.fullmatch(r"[0-9a-f]{40}", commit)
     ):
         raise RuntimeError(f"immutable release marker is invalid for {root}")
+    if value.get("schemaVersion") == 2:
+        source_repo = value.get("sourceRepo")
+        source_subtree = value.get("sourceSubtree")
+        if (
+            not isinstance(source_repo, str)
+            or not source_repo.startswith("/")
+            or source_subtree not in {"services/harness", None}
+        ):
+            raise RuntimeError(f"immutable release marker source authority is invalid for {root}")
     return commit
 
 

@@ -12,8 +12,9 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_PLUGIN = ROOT / "plugins" / "ordivon-control-plane"
-DEFAULT_SKILLS = ROOT / ".agents" / "skills"
+REPO_ROOT = ROOT.parents[1]
+DEFAULT_PLUGIN = REPO_ROOT / "extensions" / "ordivon-control-plane"
+DEFAULT_SKILLS = REPO_ROOT / ".agents" / "skills"
 PLUGIN_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
 MCP_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json"
 
@@ -236,8 +237,8 @@ def materialize(
         skill_rows.append(
             {
                 "name": skill.name,
-                "sourceRelativePath": skill.relative_to(ROOT).as_posix()
-                if ROOT in skill.parents
+                "sourceRelativePath": skill.relative_to(REPO_ROOT).as_posix()
+                if REPO_ROOT in skill.parents
                 else str(skill),
                 "packageDigest": sha256_bytes(canonical_bytes(package_manifest)),
                 "fileCount": len(package_manifest),
@@ -246,8 +247,8 @@ def materialize(
     skill_source = None
     if resolved_skills_root is not None:
         skill_source = (
-            resolved_skills_root.relative_to(ROOT).as_posix()
-            if ROOT in resolved_skills_root.parents
+            resolved_skills_root.relative_to(REPO_ROOT).as_posix()
+            if REPO_ROOT in resolved_skills_root.parents
             else str(resolved_skills_root)
         )
     value = {
@@ -255,8 +256,8 @@ def materialize(
         "kind": "ordivon.agent-plugin-release-materialization-receipt",
         "sourceOfTruth": ".agents/skills" if resolved_skills_root is not None else None,
         "sourceGitRevision": git_head(),
-        "pluginSource": plugin.relative_to(ROOT).as_posix()
-        if ROOT in plugin.parents
+        "pluginSource": plugin.relative_to(REPO_ROOT).as_posix()
+        if REPO_ROOT in plugin.parents
         else str(plugin),
         "skillComposition": (
             "selected"

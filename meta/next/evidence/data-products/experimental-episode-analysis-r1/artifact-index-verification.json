@@ -1,0 +1,384 @@
+{
+  "artifact": {
+    "name": "experimental-episode-index-r1.parquet",
+    "path": "/tmp/experimental-episode-index-r1.parquet",
+    "sha256": "7c0747db4f0568a83e444cbf46e61aed93bd8d5fa66eb5eedb0ad2af98db233d",
+    "size": 1061168
+  },
+  "boundary": "PASS is bounded to a flat primitive Parquet dataset under one exact Dataset Contract: native Parquet schema/profile agreement, two independent reader interpretations, primary-key integrity, row bounds and exact canonical logical-row agreement. It does not establish data truth, provenance, statistical quality, domain semantics, units/ontology, schema evolution, nested types, warehouse/catalog transactions or broader database constraints.",
+  "contract": {
+    "canonicalDigest": "f0cbc86524bd19502c5cbe2cb440461c7493eb3325e7b5b0ddecc40340243752",
+    "path": "/tmp/experimental-episode-index-artifact-contract-r1.json",
+    "sha256": "9621cb8cb5805d62a6ef211528efa7ff7a27ae60a754e591ffcae01168d2e53e"
+  },
+  "duckdb": {
+    "metadataEvidenceSha256": "307b4ceba5ae8da70196a7b20b471e7752018fff86bb097857af942f6b199c8a",
+    "rowsEvidenceSha256": "b2a6ee62c440fe1411e7c9fa471ea4f790b199c8fb7f5c15516269a54f4cb63a",
+    "schemaEvidenceSha256": "2aecf34b1bcd06a69c9d2c1d9c3462ed9f8aa219cd5fa1323e57f9a7607a44f3"
+  },
+  "failures": [],
+  "keyIntegrity": {
+    "columns": [
+      "episode_id"
+    ],
+    "duplicateKeyObserved": false,
+    "nullKeyObserved": false,
+    "status": "PASS"
+  },
+  "kind": "artifact-dataset-verification",
+  "parquetSchema": {
+    "contractColumns": [
+      {
+        "name": "episode_id",
+        "nullable": false,
+        "type": "string"
+      },
+      {
+        "name": "projection_digest",
+        "nullable": false,
+        "type": "string"
+      },
+      {
+        "name": "profile_id",
+        "nullable": false,
+        "type": "string"
+      },
+      {
+        "name": "data_class",
+        "nullable": false,
+        "type": "string"
+      },
+      {
+        "name": "anchor_owner_id",
+        "nullable": false,
+        "type": "string"
+      },
+      {
+        "name": "anchor_object_kind",
+        "nullable": false,
+        "type": "string"
+      },
+      {
+        "name": "anchor_object_id",
+        "nullable": false,
+        "type": "string"
+      },
+      {
+        "name": "source_record_digest",
+        "nullable": false,
+        "type": "string"
+      }
+    ],
+    "duckdbParquetFields": [
+      {
+        "column_id": 1,
+        "converted_type": "UTF8",
+        "duckdb_type": "VARCHAR",
+        "field_id": null,
+        "file_name": "/tmp/experimental-episode-index-r1.parquet",
+        "logical_type": "StringType()",
+        "name": "episode_id",
+        "num_children": null,
+        "precision": null,
+        "repetition_type": "REQUIRED",
+        "scale": null,
+        "type": "BYTE_ARRAY",
+        "type_length": null
+      },
+      {
+        "column_id": 2,
+        "converted_type": "UTF8",
+        "duckdb_type": "VARCHAR",
+        "field_id": null,
+        "file_name": "/tmp/experimental-episode-index-r1.parquet",
+        "logical_type": "StringType()",
+        "name": "projection_digest",
+        "num_children": null,
+        "precision": null,
+        "repetition_type": "REQUIRED",
+        "scale": null,
+        "type": "BYTE_ARRAY",
+        "type_length": null
+      },
+      {
+        "column_id": 3,
+        "converted_type": "UTF8",
+        "duckdb_type": "VARCHAR",
+        "field_id": null,
+        "file_name": "/tmp/experimental-episode-index-r1.parquet",
+        "logical_type": "StringType()",
+        "name": "profile_id",
+        "num_children": null,
+        "precision": null,
+        "repetition_type": "REQUIRED",
+        "scale": null,
+        "type": "BYTE_ARRAY",
+        "type_length": null
+      },
+      {
+        "column_id": 4,
+        "converted_type": "UTF8",
+        "duckdb_type": "VARCHAR",
+        "field_id": null,
+        "file_name": "/tmp/experimental-episode-index-r1.parquet",
+        "logical_type": "StringType()",
+        "name": "data_class",
+        "num_children": null,
+        "precision": null,
+        "repetition_type": "REQUIRED",
+        "scale": null,
+        "type": "BYTE_ARRAY",
+        "type_length": null
+      },
+      {
+        "column_id": 5,
+        "converted_type": "UTF8",
+        "duckdb_type": "VARCHAR",
+        "field_id": null,
+        "file_name": "/tmp/experimental-episode-index-r1.parquet",
+        "logical_type": "StringType()",
+        "name": "anchor_owner_id",
+        "num_children": null,
+        "precision": null,
+        "repetition_type": "REQUIRED",
+        "scale": null,
+        "type": "BYTE_ARRAY",
+        "type_length": null
+      },
+      {
+        "column_id": 6,
+        "converted_type": "UTF8",
+        "duckdb_type": "VARCHAR",
+        "field_id": null,
+        "file_name": "/tmp/experimental-episode-index-r1.parquet",
+        "logical_type": "StringType()",
+        "name": "anchor_object_kind",
+        "num_children": null,
+        "precision": null,
+        "repetition_type": "REQUIRED",
+        "scale": null,
+        "type": "BYTE_ARRAY",
+        "type_length": null
+      },
+      {
+        "column_id": 7,
+        "converted_type": "UTF8",
+        "duckdb_type": "VARCHAR",
+        "field_id": null,
+        "file_name": "/tmp/experimental-episode-index-r1.parquet",
+        "logical_type": "StringType()",
+        "name": "anchor_object_id",
+        "num_children": null,
+        "precision": null,
+        "repetition_type": "REQUIRED",
+        "scale": null,
+        "type": "BYTE_ARRAY",
+        "type_length": null
+      },
+      {
+        "column_id": 8,
+        "converted_type": "UTF8",
+        "duckdb_type": "VARCHAR",
+        "field_id": null,
+        "file_name": "/tmp/experimental-episode-index-r1.parquet",
+        "logical_type": "StringType()",
+        "name": "source_record_digest",
+        "num_children": null,
+        "precision": null,
+        "repetition_type": "REQUIRED",
+        "scale": null,
+        "type": "BYTE_ARRAY",
+        "type_length": null
+      }
+    ],
+    "failures": [],
+    "pyarrowFields": [
+      {
+        "arrowType": "string",
+        "logicalType": "String",
+        "maxDefinitionLevel": 0,
+        "maxRepetitionLevel": 0,
+        "name": "episode_id",
+        "nullable": false,
+        "physicalType": "BYTE_ARRAY"
+      },
+      {
+        "arrowType": "string",
+        "logicalType": "String",
+        "maxDefinitionLevel": 0,
+        "maxRepetitionLevel": 0,
+        "name": "projection_digest",
+        "nullable": false,
+        "physicalType": "BYTE_ARRAY"
+      },
+      {
+        "arrowType": "string",
+        "logicalType": "String",
+        "maxDefinitionLevel": 0,
+        "maxRepetitionLevel": 0,
+        "name": "profile_id",
+        "nullable": false,
+        "physicalType": "BYTE_ARRAY"
+      },
+      {
+        "arrowType": "string",
+        "logicalType": "String",
+        "maxDefinitionLevel": 0,
+        "maxRepetitionLevel": 0,
+        "name": "data_class",
+        "nullable": false,
+        "physicalType": "BYTE_ARRAY"
+      },
+      {
+        "arrowType": "string",
+        "logicalType": "String",
+        "maxDefinitionLevel": 0,
+        "maxRepetitionLevel": 0,
+        "name": "anchor_owner_id",
+        "nullable": false,
+        "physicalType": "BYTE_ARRAY"
+      },
+      {
+        "arrowType": "string",
+        "logicalType": "String",
+        "maxDefinitionLevel": 0,
+        "maxRepetitionLevel": 0,
+        "name": "anchor_object_kind",
+        "nullable": false,
+        "physicalType": "BYTE_ARRAY"
+      },
+      {
+        "arrowType": "string",
+        "logicalType": "String",
+        "maxDefinitionLevel": 0,
+        "maxRepetitionLevel": 0,
+        "name": "anchor_object_id",
+        "nullable": false,
+        "physicalType": "BYTE_ARRAY"
+      },
+      {
+        "arrowType": "string",
+        "logicalType": "String",
+        "maxDefinitionLevel": 0,
+        "maxRepetitionLevel": 0,
+        "name": "source_record_digest",
+        "nullable": false,
+        "physicalType": "BYTE_ARRAY"
+      }
+    ],
+    "status": "PASS"
+  },
+  "profileId": "dataset-parquet-flat-r1",
+  "pyarrow": {
+    "fields": [
+      {
+        "arrowType": "string",
+        "logicalType": "String",
+        "maxDefinitionLevel": 0,
+        "maxRepetitionLevel": 0,
+        "name": "episode_id",
+        "nullable": false,
+        "physicalType": "BYTE_ARRAY"
+      },
+      {
+        "arrowType": "string",
+        "logicalType": "String",
+        "maxDefinitionLevel": 0,
+        "maxRepetitionLevel": 0,
+        "name": "projection_digest",
+        "nullable": false,
+        "physicalType": "BYTE_ARRAY"
+      },
+      {
+        "arrowType": "string",
+        "logicalType": "String",
+        "maxDefinitionLevel": 0,
+        "maxRepetitionLevel": 0,
+        "name": "profile_id",
+        "nullable": false,
+        "physicalType": "BYTE_ARRAY"
+      },
+      {
+        "arrowType": "string",
+        "logicalType": "String",
+        "maxDefinitionLevel": 0,
+        "maxRepetitionLevel": 0,
+        "name": "data_class",
+        "nullable": false,
+        "physicalType": "BYTE_ARRAY"
+      },
+      {
+        "arrowType": "string",
+        "logicalType": "String",
+        "maxDefinitionLevel": 0,
+        "maxRepetitionLevel": 0,
+        "name": "anchor_owner_id",
+        "nullable": false,
+        "physicalType": "BYTE_ARRAY"
+      },
+      {
+        "arrowType": "string",
+        "logicalType": "String",
+        "maxDefinitionLevel": 0,
+        "maxRepetitionLevel": 0,
+        "name": "anchor_object_kind",
+        "nullable": false,
+        "physicalType": "BYTE_ARRAY"
+      },
+      {
+        "arrowType": "string",
+        "logicalType": "String",
+        "maxDefinitionLevel": 0,
+        "maxRepetitionLevel": 0,
+        "name": "anchor_object_id",
+        "nullable": false,
+        "physicalType": "BYTE_ARRAY"
+      },
+      {
+        "arrowType": "string",
+        "logicalType": "String",
+        "maxDefinitionLevel": 0,
+        "maxRepetitionLevel": 0,
+        "name": "source_record_digest",
+        "nullable": false,
+        "physicalType": "BYTE_ARRAY"
+      }
+    ],
+    "metadata": {
+      "createdBy": "parquet-cpp-arrow version 25.0.1",
+      "formatVersion": "2.6",
+      "numRowGroups": 1
+    },
+    "numColumns": 8,
+    "numRows": 10007,
+    "pyarrowVersion": "25.0.1",
+    "status": "PASS"
+  },
+  "readerAgreement": {
+    "duckdbRowsSha256": "7fc89298fbf4c197015edc339f410e56de8f832c8c81dcfce9bfb4d24c632c9f",
+    "exactCanonicalRowsMatch": true,
+    "pyarrowRowsSha256": "7fc89298fbf4c197015edc339f410e56de8f832c8c81dcfce9bfb4d24c632c9f",
+    "rowCount": 10007,
+    "status": "PASS"
+  },
+  "rowBounds": {
+    "duckdbRowCount": 10007,
+    "failures": [],
+    "maximumRows": 10007,
+    "minimumRows": 10007,
+    "pyarrowRowCount": 10007,
+    "status": "PASS"
+  },
+  "schemaVersion": 1,
+  "status": "PASS",
+  "tools": {
+    "duckdb": {
+      "path": "/opt/ordivon/external/duckdb/1.5.5-1/duckdb",
+      "sha256": "9268d6c7b8853d3b78a38c806da4b6c3905bbdb76d76429ca0994af3eae4b2d0"
+    },
+    "pyarrowPython": {
+      "path": "/opt/ordivon/external/pyarrow/25.0.1/python",
+      "sha256": "8a753dfe91916c892814b80d3b82924c2766930e8d8ed4863d460c95ed80a126"
+    }
+  }
+}

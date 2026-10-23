@@ -1,0 +1,52 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": "Catalog registration is discovery/currentness evidence, not dependency admission."
+  },
+  "discovery": {
+    "aliases": [
+      "Apalache",
+      "Apalache 0.58.3"
+    ],
+    "domains": [
+      "architecture",
+      "engineering",
+      "formal-methods"
+    ],
+    "topics": [
+      "tla-plus",
+      "quint",
+      "symbolic-model-checking",
+      "bounded-model-checking",
+      "smt"
+    ]
+  },
+  "id": "apalache-0.58.3",
+  "identity": {
+    "authorityKind": "provider-authority",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "apalache-mc",
+      "name": "Apalache / TLA+ Foundation"
+    },
+    "officialSource": "https://github.com/apalache-mc/apalache/releases/tag/v0.58.3",
+    "publicationDate": null,
+    "title": "Apalache 0.58.3",
+    "versionLabel": "0.58.3"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-22",
+    "registrationBasis": [
+      "official upstream source checked 2026-09-22",
+      "verified reintegration temporal owner currentness review"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

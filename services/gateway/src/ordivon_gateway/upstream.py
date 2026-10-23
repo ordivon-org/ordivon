@@ -10,10 +10,22 @@ from typing import Any, Protocol
 
 from mcp import Client
 from mcp.client.streamable_http import create_mcp_http_client, streamable_http_client
+from mcp.shared._otel import inject_trace_context
 
 
 class OwnerCallError(RuntimeError):
-    pass
+    def __init__(
+        self,
+        message: str,
+        *,
+        owner_id: str | None = None,
+        tool_name: str | None = None,
+        error: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.owner_id = owner_id
+        self.tool_name = tool_name
+        self.error = dict(error) if error is not None else None
 
 
 @dataclass(frozen=True)
@@ -24,12 +36,153 @@ class OwnerEndpoint:
     access_client_secret_file: str | None = None
 
 
+def _runtime_identity_configured(endpoint: OwnerEndpoint) -> bool:
+    return endpoint.bearer_token_file is not None or endpoint.access_client_id_file is not None
+
+
+def _exception_summary(exc: BaseException, *, limit: int = 4) -> str:
+    leaves: list[BaseException] = []
+
+    def visit(value: BaseException) -> None:
+        if isinstance(value, BaseExceptionGroup):
+            for child in value.exceptions:
+                visit(child)
+            return
+        leaves.append(value)
+
+    visit(exc)
+    rendered = [f"{type(value).__name__}: {str(value)[:180]}" for value in leaves[:limit]]
+    if len(leaves) > limit:
+        rendered.append(f"+{len(leaves) - limit} more")
+    return "; ".join(rendered) or f"{type(exc).__name__}: {str(exc)[:180]}"
+
+
+def _extract_owner_tool_error(
+    result: Any, *, owner_id: str, tool_name: str
+) -> dict[str, Any] | None:
+    """Preserve owner-typed errors without granting arbitrary text structured authority."""
+    if isinstance(result.structured_content, dict):
+        candidate = result.structured_content.get("error")
+        if isinstance(candidate, dict):
+            return dict(candidate)
+
+    # Host domain errors are raised by MCP tools and MCP v2 currently serializes that
+    # exception as text rather than structuredContent. Recover only the exact canonical
+    # Host envelope; arbitrary owner prose must remain an opaque OWNER_CALL_FAILED.
+    if owner_id != "host":
+        return None
+    prefix = f"Error executing tool {tool_name}: "
+    for item in result.content:
+        text = getattr(item, "text", None)
+        if not isinstance(text, str) or not text.startswith(prefix):
+            continue
+        try:
+            candidate = json.loads(text[len(prefix) :])
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(candidate, dict):
+            continue
+        if candidate.get("kind") != "ordivon.host-domain-error":
+            continue
+        if candidate.get("schemaVersion") != 1:
+            continue
+        code = candidate.get("code")
+        if not isinstance(code, str) or not code:
+            continue
+        retryable = candidate.get("retryable")
+        if retryable is not None and not isinstance(retryable, bool):
+            continue
+        return dict(candidate)
+    return None
+
+
 class OwnerToolCaller(Protocol):
     async def call_tool(
         self, owner_id: str, tool_name: str, arguments: dict[str, Any]
     ) -> dict[str, Any]: ...
 
     def is_configured(self, owner_id: str) -> bool: ...
+
+
+def _validate_windows_private_secret_file(path: Path, label: str) -> None:
+    try:
+        import ntsecuritycon
+        import win32security
+    except ImportError as exc:  # pragma: no cover - exercised on Windows acceptance lane
+        raise OwnerCallError(f"{label} Windows ACL verifier is unavailable") from exc
+
+    service_name = os.environ.get("ORDIVON_GATEWAY_WINDOWS_SERVICE_NAME", "").strip()
+    if not service_name:
+        raise OwnerCallError(
+            f"{label} Windows credential validation requires ORDIVON_GATEWAY_WINDOWS_SERVICE_NAME"
+        )
+
+    try:
+        service_sid = win32security.LookupAccountName(None, rf"NT SERVICE\{service_name}")[0]
+    except Exception as exc:
+        raise OwnerCallError(f"{label} cannot resolve Gateway Windows service identity") from exc
+
+    service_sid_text = win32security.ConvertSidToStringSid(service_sid)
+    system_sid_text = "S-1-5-18"
+    administrators_sid_text = "S-1-5-32-544"
+    allowed_sids = {
+        system_sid_text,
+        administrators_sid_text,
+        service_sid_text,
+    }
+
+    try:
+        descriptor = win32security.GetFileSecurity(
+            str(path), win32security.DACL_SECURITY_INFORMATION
+        )
+        control, _revision = descriptor.GetSecurityDescriptorControl()
+        dacl = descriptor.GetSecurityDescriptorDacl()
+    except Exception as exc:
+        raise OwnerCallError(f"{label} Windows security descriptor read failed") from exc
+
+    if control & win32security.SE_DACL_PROTECTED == 0:
+        raise OwnerCallError(f"{label} Windows credential DACL must be protected")
+    if dacl is None:
+        raise OwnerCallError(f"{label} Windows credential has no DACL")
+
+    seen_sids: set[str] = set()
+    service_read = False
+    service_forbidden_mask = (
+        0x00000002
+        | 0x00000004
+        | 0x00000010
+        | 0x00000100
+        | 0x00010000
+        | 0x00040000
+        | 0x00080000
+        | 0x10000000
+        | 0x40000000
+    )
+
+    for index in range(dacl.GetAceCount()):
+        header, access_mask, sid = dacl.GetAce(index)
+        ace_type, ace_flags = header
+        sid_text = win32security.ConvertSidToStringSid(sid)
+        if ace_type != win32security.ACCESS_ALLOWED_ACE_TYPE:
+            raise OwnerCallError(f"{label} Windows credential has non-allow ACE")
+        if ace_flags & 0x10:
+            raise OwnerCallError(f"{label} Windows credential has inherited ACE")
+        if sid_text not in allowed_sids:
+            raise OwnerCallError(f"{label} Windows credential grants an unexpected principal")
+        seen_sids.add(sid_text)
+        if sid_text == service_sid_text:
+            if (access_mask & ntsecuritycon.FILE_GENERIC_READ) != ntsecuritycon.FILE_GENERIC_READ:
+                raise OwnerCallError(f"{label} Gateway service SID lacks generic read access")
+            if access_mask & service_forbidden_mask:
+                raise OwnerCallError(f"{label} Gateway service SID has write/control access")
+            service_read = True
+
+    if seen_sids != allowed_sids:
+        raise OwnerCallError(
+            f"{label} Windows credential ACL must name only and all required principals"
+        )
+    if not service_read:
+        raise OwnerCallError(f"{label} Gateway service SID lacks readable ACE")
 
 
 def _read_private_secret_file(path_text: str, label: str) -> str:
@@ -39,21 +192,28 @@ def _read_private_secret_file(path_text: str, label: str) -> str:
     metadata = path.lstat()
     if path.is_symlink() or not stat.S_ISREG(metadata.st_mode):
         raise OwnerCallError(f"{label} path must be a regular file")
-    mode = stat.S_IMODE(metadata.st_mode)
-    credential_directory = os.environ.get("CREDENTIALS_DIRECTORY", "").strip()
-    is_systemd_credential = bool(
-        credential_directory
-        and Path(credential_directory).is_absolute()
-        and path.parent == Path(credential_directory)
-        and not Path(credential_directory).is_symlink()
-    )
-    if is_systemd_credential:
-        if mode & 0o037:
-            raise OwnerCallError(
-                f"{label} systemd credential must not be world accessible or group writable/executable"
-            )
-    elif mode & 0o077:
-        raise OwnerCallError(f"{label} file must not be group/world accessible")
+    if os.name == "nt":
+        reparse_flag = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+        if reparse_flag and getattr(metadata, "st_file_attributes", 0) & reparse_flag:
+            raise OwnerCallError(f"{label} Windows credential must not be a reparse point")
+        _validate_windows_private_secret_file(path, label)
+    else:
+        mode = stat.S_IMODE(metadata.st_mode)
+        credential_directory = os.environ.get("CREDENTIALS_DIRECTORY", "").strip()
+        is_systemd_credential = bool(
+            credential_directory
+            and Path(credential_directory).is_absolute()
+            and path.parent == Path(credential_directory)
+            and not Path(credential_directory).is_symlink()
+        )
+        if is_systemd_credential:
+            if mode & 0o037:
+                raise OwnerCallError(
+                    f"{label} systemd credential must not be world accessible "
+                    "or group writable/executable"
+                )
+        elif mode & 0o077:
+            raise OwnerCallError(f"{label} file must not be group/world accessible")
     if metadata.st_size > 16_384:
         raise OwnerCallError(f"{label} file exceeds size bound")
     value = path.read_text(encoding="utf-8").strip()
@@ -147,32 +307,71 @@ class McpOwnerCaller:
             )
         return cls(owners)
 
+    def configuration_error(self, owner_id: str) -> str | None:
+        endpoint = self._owners.get(owner_id)
+        if endpoint is None:
+            return "owner endpoint is not configured"
+        if owner_id.startswith("runtime.") and not _runtime_identity_configured(endpoint):
+            return "owner authentication is not configured"
+        return None
+
     def is_configured(self, owner_id: str) -> bool:
-        return owner_id in self._owners
+        return self.configuration_error(owner_id) is None
 
     async def call_tool(
         self, owner_id: str, tool_name: str, arguments: dict[str, Any]
     ) -> dict[str, Any]:
         endpoint = self._owners.get(owner_id)
-        if endpoint is None:
-            raise OwnerCallError(f"owner is not configured: {owner_id}")
+        configuration_error = self.configuration_error(owner_id)
+        if configuration_error is not None:
+            code = "OWNER_NOT_CONFIGURED" if endpoint is None else "OWNER_AUTH_NOT_CONFIGURED"
+            raise OwnerCallError(
+                f"{configuration_error}: {owner_id}",
+                owner_id=owner_id,
+                tool_name=tool_name,
+                error={
+                    "code": code,
+                    "message": configuration_error,
+                    "origin": "gateway_adapter",
+                },
+            )
+        assert endpoint is not None
 
-        headers = _headers_for_endpoint(endpoint)
-
-        async with create_mcp_http_client(headers=headers) as http_client:
-            transport = streamable_http_client(endpoint.url, http_client=http_client)
-            # MCP v2 Client owns modern discovery, output-schema validation, and
-            # legacy fallback. Gateway does not hand-code protocol negotiation.
-            async with Client(transport, mode="auto", raise_exceptions=False) as client:
-                result = await client.call_tool(tool_name, arguments)
+        try:
+            headers = _headers_for_endpoint(endpoint)
+            async with create_mcp_http_client(headers=headers) as http_client:
+                transport = streamable_http_client(endpoint.url, http_client=http_client)
+                # MCP v2 Client owns modern discovery, output-schema validation, and
+                # legacy fallback. Gateway does not hand-code protocol negotiation.
+                async with Client(transport, mode="auto", raise_exceptions=False) as client:
+                    meta: dict[str, Any] = {}
+                    inject_trace_context(meta)
+                    result = await client.call_tool(
+                        tool_name,
+                        arguments,
+                        meta=meta or None,
+                    )
+        except OwnerCallError:
+            raise
+        except Exception as exc:
+            detail = _exception_summary(exc)
+            raise OwnerCallError(
+                f"owner transport/protocol call failed: {owner_id}/{tool_name}: {detail}",
+                owner_id=owner_id,
+                tool_name=tool_name,
+                error={
+                    "code": "OWNER_TRANSPORT_OR_PROTOCOL_ERROR",
+                    "message": detail,
+                    "origin": "gateway_adapter",
+                },
+            ) from exc
 
         if result.is_error:
-            detail = None
-            if isinstance(result.structured_content, dict):
-                detail = result.structured_content.get("error")
             raise OwnerCallError(
-                f"owner tool returned error: {owner_id}/{tool_name}"
-                + (f": {detail}" if detail is not None else "")
+                f"owner tool returned error: {owner_id}/{tool_name}",
+                owner_id=owner_id,
+                tool_name=tool_name,
+                error=_extract_owner_tool_error(result, owner_id=owner_id, tool_name=tool_name),
             )
         if isinstance(result.structured_content, dict):
             return dict(result.structured_content)

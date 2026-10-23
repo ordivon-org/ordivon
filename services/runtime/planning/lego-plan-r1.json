@@ -1,0 +1,964 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-runtime-complete-architecture-r1",
+    "purpose": "Evolve the already-operational Runtime into a LEGO-centric physical-execution kernel by preserving proven behavior while extracting state, authority, provider, control, evidence, and compatibility seams; do not recreate a generic Execution Fabric.",
+    "sourceEvidence": [
+      "services/runtime/README.md",
+      "services/runtime/docs/runtime.md",
+      "services/runtime/docs/status.md",
+      "services/runtime/docs/effect-kernel.md",
+      "services/runtime/docs/operations.md",
+      "services/runtime/planning/EXECUTION_FABRIC_R1_ROADMAP.md"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "R00",
+      "label": "RuntimeInvariantFreeze",
+      "kind": "contract_freeze",
+      "responsibility": "Freeze the externally observable laws that refactoring must preserve: Workspace lineage/source-state, Job/Attempt identity, replay, reservations, cancellation, terminal commit, Artifact identity, ambiguity, release, Tool catalog and error semantics.",
+      "authority": "Runtime architecture contract",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "docs/runtime.md",
+        "docs/effect-kernel.md",
+        "docs/status.md",
+        "planning/invariants-r1.json"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "implementation layout",
+        "new product semantics"
+      ],
+      "acceptance": [
+        "A machine-readable invariant manifest exists and every invariant maps to at least one current test or an explicitly added contract test.",
+        "The 23-tool public catalog, Tool schemas, Registry semantic version, and current release/rollback laws are frozen as refactor constraints unless a later slice explicitly changes them.",
+        "Execution Fabric R1 remains retired and is listed as a negative architecture constraint."
+      ],
+      "nextAction": "Maintain the invariant manifest as a refactor fence; any deliberate public-law change must update its proofs explicitly."
+    },
+    {
+      "id": "R01",
+      "label": "ContractTestPartition",
+      "kind": "verification_structure",
+      "responsibility": "Partition the current large tests into contract, property, provider, migration, recovery, and integration suites without changing behavior.",
+      "authority": "Runtime verification",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "crates/ordivon-runtime-core/src/runtime/tests.rs",
+        "crates/ordivon-runtime-core/src/runtime/integration_tests.rs",
+        "planning/test-taxonomy-r1.json",
+        "crates/ordivon-runtime-mcp/src/server/tests/tool_catalog.rs",
+        "crates/ordivon-runtime-mcp/src/server/tests/projection_contract.rs"
+      ],
+      "dependencies": [
+        "R00"
+      ],
+      "mustNotOwn": [
+        "new Runtime semantics"
+      ],
+      "acceptance": [
+        "Existing test count and assertions are preserved or strengthened.",
+        "Contract tests are runnable independently from provider/system acceptance.",
+        "No semantic behavior change is required to complete the split."
+      ],
+      "nextAction": "Keep the independently runnable Tool Catalog and projection contract partitions as the baseline feedback gate; continue broader taxonomy-driven physical splits opportunistically without blocking noun-level state extraction."
+    },
+    {
+      "id": "R02",
+      "label": "WorkspaceStateModule",
+      "kind": "state_authority",
+      "responsibility": "Extract Workspace identity, source-state commitment, lifecycle CAS, dependency fence, and tombstone semantics from the historical engine aggregation.",
+      "authority": "Runtime Workspace truth",
+      "state": "IN_PROGRESS",
+      "sharedRefs": [],
+      "evidence": [
+        "docs/runtime.md",
+        "planning/state-responsibility-census-r1.json",
+        "crates/ordivon-runtime-core/src/runtime/workspace_state.rs"
+      ],
+      "dependencies": [
+        "R00",
+        "R01"
+      ],
+      "mustNotOwn": [
+        "Job execution semantics",
+        "Git semantic integration decisions",
+        "Host completion truth"
+      ],
+      "acceptance": [
+        "Workspace open/get/list/close behavior and replay remain byte-for-byte/schema compatible at the MCP boundary.",
+        "sourceRevision/currentHeadRevision/sourceStateDigest invariants remain unchanged.",
+        "Workspace lifecycle tests no longer require unrelated Job/Provider internals except through declared interfaces."
+      ],
+      "nextAction": "The first WorkspaceState contract slice is integrated (projection plus mutation/close guards); extract additional Workspace laws only where duplicate semantics remain, without duplicating Git mechanics."
+    },
+    {
+      "id": "R03",
+      "label": "JobAttemptStateModule",
+      "kind": "state_authority",
+      "responsibility": "Extract logical Job identity and physical Attempt-generation lifecycle into explicit state modules.",
+      "authority": "Runtime Job/Attempt truth",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "docs/runtime.md",
+        "docs/effect-kernel.md",
+        "planning/state-responsibility-census-r1.json",
+        "crates/ordivon-runtime-core/src/runtime/job_attempt_state.rs",
+        "R03-A1 candidate verification: owner-environment test PASS; extended reference-model 1/1 PASS; local-acceptance supervisor 2/2 + Runtime integration 36/36 + MCP/Workspace/Release E2E PASS",
+        "R03-A2 candidate verification: job_attempt_state 9/9; owner-environment test PASS; extended reference-model 1/1 PASS; local-acceptance supervisor 2/2 + Runtime integration 36/36 + MCP/Workspace/Release E2E PASS"
+      ],
+      "dependencies": [
+        "R00",
+        "R01"
+      ],
+      "mustNotOwn": [
+        "provider implementation",
+        "semantic Task completion"
+      ],
+      "acceptance": [
+        "Job replay never redispatches an already committed operation.",
+        "Attempt generation and terminalization preserve current ambiguity/lost/orphaned behavior.",
+        "Physical provider code depends on Job/Attempt contracts rather than engine internals."
+      ],
+      "nextAction": "R03 is closed at the planned A1/A2 seam and R04 ReservationContract is integrated on the verified candidate; proceed to R05 ArtifactAndReleaseStateModule without reopening Job/Attempt ownership."
+    },
+    {
+      "id": "R04",
+      "label": "ReservationStateModule",
+      "kind": "state_authority",
+      "responsibility": "Extract durable capacity reservation and one-active-execution-per-Workspace laws into an independently testable component.",
+      "authority": "Runtime admission capacity truth",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "docs/runtime.md",
+        "planning/state-responsibility-census-r1.json",
+        "crates/ordivon-runtime-core/src/runtime/reservation_state.rs",
+        "commit:e48b2eab5fb743efa3b50cb1eceae4539e1c99a7",
+        "owner verification on verified candidate 4131cbe02c54ea2ea419aeb80c651231c940ecf3:job-01a0cd18-695a-7dc3-b07a-a712d3bd2a31 PASS (exitCode=0; core 261/261 runnable PASS with 36 opt-in ignored; focused reference-model 1/1 PASS; MCP 66/66 PASS; auth 10/10 PASS; owner environment and documentation contract valid)",
+        "prior equivalent-R04-patch physical acceptance on an earlier base: fast-success race 1/1 PASS and timeout-descendant-pipes 1/1 PASS; clean baseline independently reproduced the launch-evidence race, so it is not owned by R04",
+        "integration equivalence: integrated e48b2eab5fb743efa3b50cb1eceae4539e1c99a7 is byte-identical to verified 4131cbe02c54ea2ea419aeb80c651231c940ecf3 across the five R04 responsibility files"
+      ],
+      "dependencies": [
+        "R03"
+      ],
+      "mustNotOwn": [
+        "scheduling priority",
+        "hidden queue",
+        "workflow timing"
+      ],
+      "acceptance": [
+        "Global limit remains a strict durable invariant across restart.",
+        "Rejected admission remains commitState=not_started.",
+        "No queue, priority scheduler, or second in-memory capacity truth is introduced."
+      ],
+      "nextAction": "R04 is closed. Proceed to R05 ArtifactAndReleaseStateModule; keep queue, priority, scheduling, and launch-evidence reconciliation outside ReservationContract."
+    },
+    {
+      "id": "R05",
+      "label": "ArtifactAndReleaseStateModule",
+      "kind": "state_authority",
+      "responsibility": "Separate Artifact/result identity and structured Runtime release effect state from generic engine/storage aggregation while preserving their distinct semantics.",
+      "authority": "Runtime Artifact truth and Runtime self-release effect truth",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "docs/runtime.md",
+        "docs/effect-kernel.md",
+        "docs/operations.md",
+        "crates/ordivon-runtime-core/src/runtime/artifact_release_state.rs",
+        "commit:2954b576fc06a9cbe2646d0a7a9adf216729b182",
+        "core qualification job-01a0ce0a-9ceb-77d2-b9e0-ff7ba85b37e9 PASS: 269 runnable core tests PASS with 36 opt-in ignored; platform owner boundary 2/2 PASS",
+        "owner verification job-01a0ce0e-7915-78d2-9a79-fcdb8d324756 PASS: cargo fmt, owner environment, all-features clippy, transactional Runtime 292 PASS with 36 opt-in ignored, MCP 66/66 PASS, auth 10/10 PASS, extended reference-model 1/1 PASS, documentation contract valid; terminal-evidence sha256:384885d11bb3b43656fc722fc6e6a3f4cef70f0bdea7d0e0df0da82a16de5dba",
+        "Registry MAX_MIGRATION_VERSION remains 6; R05 introduces no SQL/schema migration and no public MCP Tool change"
+      ],
+      "dependencies": [
+        "R03"
+      ],
+      "mustNotOwn": [
+        "generic external-effect framework",
+        "domain Artifact semantics"
+      ],
+      "acceptance": [
+        "Artifact reads remain digest-bound and Job/Attempt attributable.",
+        "release.apply/release.get remain the only graduated structured external effect in Runtime.",
+        "No generic EffectAdapter, effect registry, or caller-supplied effect class is introduced."
+      ],
+      "nextAction": "R05 is closed. Proceed to R06 RegistryStorageBoundary; preserve Artifact/result and Runtime self-release as distinct operation-specific semantics and do not introduce a generic Effect framework."
+    },
+    {
+      "id": "R06",
+      "label": "RegistryStorageBoundary",
+      "kind": "replacement_seam",
+      "responsibility": "Reduce Registry to transactional persistence, migration, query, and reconstructible-index duties while state semantics remain owned by explicit state modules.",
+      "authority": "Runtime durable storage mechanism",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "crates/ordivon-runtime-core/src/runtime/registry.rs",
+        "crates/ordivon-runtime-core/src/runtime/registry/storage.rs",
+        "crates/ordivon-runtime-core/src/runtime/registry_storage.rs",
+        "commit:7523f282994d82ed2891a16fd142c1503f7f1f46",
+        "full core gate job-01a0ce4c-f6fc-7de2-b129-261f1c8e1af5 PASS after consumer rewiring",
+        "MCP/clippy/fmt/diff gate job-01a0ce51-1f86-7013-8881-b91b5c17944c PASS",
+        "owner-environment + documentation gate job-01a0ce57-27a8-7d92-ab15-aacb7f69c31a PASS",
+        "extended 512-case Registry reference-model job-01a0ce5a-3e07-7af3-9e46-683ad67c56dc PASS",
+        "Registry MAX_MIGRATION_VERSION remains 6; R06 changes no SQL/schema migration and introduces no public MCP Tool change"
+      ],
+      "dependencies": [
+        "R02",
+        "R03",
+        "R04",
+        "R05"
+      ],
+      "mustNotOwn": [
+        "Runtime domain semantics",
+        "business workflow"
+      ],
+      "acceptance": [
+        "Registry schema remains v6 unless an explicit semantic migration is proven necessary.",
+        "Performance-only indexes remain reconstructible and outside semantic migrations.",
+        "State modules can be unit-tested against a narrow transactional storage contract."
+      ],
+      "nextAction": "R06 is closed. Proceed to R07 AuthorityContract, then R08 OperationCircuitCompiler; keep Registry limited to transactional persistence, migration, query/decoding and reconstructible indexes rather than semantic ownership."
+    },
+    {
+      "id": "R07",
+      "label": "AuthorityContract",
+      "kind": "typed_contract",
+      "responsibility": "Compile execution target, profile, principal, input authority, credential authority, Windows authority, executable identity and Host Dependency commitments into one internal enforceable authority contract.",
+      "authority": "Runtime authority binding; grants remain external/provider owned",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "AuthorityContract implementation: commit 163db3230483ec932fa8152fb1c9e6bd756e59d5",
+        "crates/ordivon-runtime-core/src/runtime/authority_contract.rs plus runtime/engine/admission.rs integration",
+        "existing-Job replay resolves before AuthorityContract compilation/current authority reinterpretation",
+        "public MCP Tool surface unchanged; Registry semantic schema remains v6; Runtime does not mint Security/provider/domain grants",
+        "current-main runtime:verify PASS job-01a0cf0f-a02a-76b3-8cc0-59f2e5abd896: fmt + owner-environment test + clippy + transactional Runtime + extended Registry reference model + owner-boundary + docs"
+      ],
+      "dependencies": [
+        "R00",
+        "R03"
+      ],
+      "mustNotOwn": [
+        "central approval policy",
+        "provider IAM truth",
+        "secret vault"
+      ],
+      "acceptance": [
+        "Existing exec/execBound/execBoundTrusted/execCredentialBoundTrusted requests compile to explicit AuthorityContract variants without widening any authority.",
+        "Runtime consumes and enforces authority; it does not invent provider/domain permission.",
+        "Replay resolves existing Jobs before current authority/policy reinterpretation exactly as today."
+      ],
+      "nextAction": "R07 is closed. Proceed to R08 OperationCircuitCompiler with one existing execution family first; prove exact parity and fail-closed behavior before migrating the remaining families."
+    },
+    {
+      "id": "R08",
+      "label": "OperationCircuitCompiler",
+      "kind": "transform",
+      "responsibility": "Compile a typed request plus state, authority, inputs, budgets, provider commitment and evidence obligations into one immutable Execution Plan/circuit.",
+      "authority": "Runtime mechanical execution plan truth",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "ordinary-family OperationCircuitCompiler pilot commit 397dee5ef0caa296283253c03da5f277f4fa2a8d",
+        "reduced immutable-input OperationCircuitCompiler slice commit 40c414a3901c4383a9d7d122fe7716effbe8506e",
+        "trusted immutable-input OperationCircuitCompiler slice integrated at 645d50cd51c8efe772de762610e045ea112fb78c",
+        "credential-bound trusted OperationCircuitCompiler slice commit c52737fd7bc2b6ccf71418719b220070a620da5f, integrated by repository-native merge 897e504916fca4078847005a4b78198042b1c01b",
+        "all four current effect-opaque execution families reuse existing RuntimeExecutionPlan/ExecutionProviderSnapshot/SubmitRequest rather than adding a public or persisted circuit schema",
+        "exact existing-Job replay remains before current AuthorityContract compilation, materialization, provider snapshotting, or current policy reinterpretation",
+        "reduced/trusted immutable-input families preserve existing materialization/preallocation ownership and verify logical-to-effective read-only realization before compilation",
+        "credential-bound trusted preserves operator-owned encrypted credential snapshot/materialization and Job-owned ciphertext lifecycle; public requests remain opaque authority/name references with no secret digests or paths",
+        "post-integration exact-commit Runtime owner qualification PASS job-01a0d323-f7ca-7351-8f5c-1d01b4877ca6 on 897e504916fca4078847005a4b78198042b1c01b, including Registry reference-model property, Windows deployer, MCP/auth, owner-boundary and documentation gates",
+        "public MCP Tool schemas, Registry schema v6, request identity, provider authority, materialization authority and domain/Security semantic ownership unchanged",
+        "runtime self-release remains a separate reconciliable effect and is intentionally not compiled as an effect-opaque execution circuit"
+      ],
+      "dependencies": [
+        "R03",
+        "R04",
+        "R07"
+      ],
+      "mustNotOwn": [
+        "Agent reasoning",
+        "workflow DAGs",
+        "semantic completion"
+      ],
+      "acceptance": [
+        "All execution Tools map to the same compiler with explicit LEGO selections rather than bespoke admission paths.",
+        "Legacy all-explicit request identity remains replay-compatible.",
+        "Compiled plans contain only enforceable facts; metadata without enforcement does not enter operation identity."
+      ],
+      "nextAction": "R08 is closed. Proceed to R09 ExecutionProviderSPI by freezing minimal assume/guarantee obligations before extracting either Linux or Windows provider mechanics."
+    },
+    {
+      "id": "R09",
+      "label": "ExecutionProviderSPI",
+      "kind": "replacement_seam",
+      "responsibility": "Define the minimal provider contract for validate, realize, observe, cancel and reconcile without turning Runtime into a provider marketplace.",
+      "authority": "Runtime execution-provider boundary",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "private static ExecutionProviderSpi contract commit fd3f166024587e9c943207fc8987cff436f43098",
+        "SPI obligations: capabilities, validate, realize, observe, cancel, reconcile",
+        "R1 guarantees fail closed on weakening of committed provider identity, physical Attempt ownership, terminal observation, process-tree cancellation, crash/restart reconciliation, or scoped evidence",
+        "Linux and Windows provider probes satisfy the same obligations with distinct owner/observation/evidence types; no false OS-mechanism equivalence",
+        "full Runtime owner qualification PASS job-01a0d34d-18e1-7140-b577-c34c0c660b4a",
+        "no public Tool/Registry schema change and no dynamic provider registry, marketplace, plugin discovery, cross-node router, or semantic effect authority"
+      ],
+      "dependencies": [
+        "R08"
+      ],
+      "mustNotOwn": [
+        "cross-node routing",
+        "provider marketplace",
+        "semantic effect verification"
+      ],
+      "acceptance": [
+        "Local Linux and Windows Native can satisfy the same provider-level obligations without pretending their OS mechanisms are identical.",
+        "Provider replacement cannot strengthen caller assumptions or weaken process ownership, evidence, cancellation, or reconciliation guarantees.",
+        "No dynamic plugin registry is required for R1."
+      ],
+      "nextAction": "R09 is qualified. Integrate under current-main fencing, then proceed to R10 LocalLinuxProvider extraction and exact-candidate real-system systemd/cgroup acceptance."
+    },
+    {
+      "id": "R10",
+      "label": "LocalLinuxProvider",
+      "kind": "provider_adapter",
+      "responsibility": "Move systemd/cgroup Runner realization, trusted/contained profiles, Linux continuity witnesses and cancellation/reconciliation behind the provider seam.",
+      "authority": "Linux physical execution realization",
+      "state": "PROPOSED",
+      "sharedRefs": [],
+      "evidence": [
+        "docs/runtime.md",
+        "docs/operations.md"
+      ],
+      "dependencies": [
+        "R09"
+      ],
+      "mustNotOwn": [
+        "hostile multi-tenant isolation",
+        "generic network policy"
+      ],
+      "acceptance": [
+        "trusted_local and contained_local retain current semantics and evidence scopes.",
+        "systemd/cgroup real-system acceptance passes for the exact candidate commit.",
+        "Host Dependency and executable path continuity claims retain runtime_host_namespace_path_witness limitations."
+      ],
+      "nextAction": "R10 is next after R09 integration: extract the existing Linux physical realization behind the static SPI without changing Runner wire contract, then prove exact-candidate local acceptance."
+    },
+    {
+      "id": "R11",
+      "label": "WindowsNativeProvider",
+      "kind": "provider_adapter",
+      "responsibility": "Move SCM/Job Object launcher, token/ACL, Power Request, immutable-input realization and native reconstruction behind the provider seam.",
+      "authority": "Windows physical execution realization",
+      "state": "PROPOSED",
+      "sharedRefs": [],
+      "evidence": [
+        "docs/runtime.md",
+        "docs/status.md",
+        "docs/operations.md"
+      ],
+      "dependencies": [
+        "R09"
+      ],
+      "mustNotOwn": [
+        "WSL carrier",
+        "cross-node routing"
+      ],
+      "acceptance": [
+        "Native Windows remains WSL-independent.",
+        "limited/elevated ordinary execution and limited-only input-bound execution retain current admission rules.",
+        "Windows real-system acceptance passes before provider extraction is accepted."
+      ],
+      "nextAction": "Extract Windows provider only after SPI obligations are proven with Linux."
+    },
+    {
+      "id": "R12",
+      "label": "ControlPrimitives",
+      "kind": "control_primitive_set",
+      "responsibility": "Extract small reusable mechanical controls—fence, reservation, drain, revalidate, CAS, commit, rollback, quarantine, receipt—without creating a generic Effect engine.",
+      "authority": "Runtime mechanical control semantics",
+      "state": "PROPOSED",
+      "sharedRefs": [],
+      "evidence": [
+        "docs/effect-kernel.md",
+        "docs/operations.md"
+      ],
+      "dependencies": [
+        "R06",
+        "R08"
+      ],
+      "mustNotOwn": [
+        "generic workflow engine",
+        "generic effect dispatcher",
+        "business compensation"
+      ],
+      "acceptance": [
+        "Release, Workspace close and lifecycle/cache paths can reuse primitives while preserving operation-specific state/evidence.",
+        "No second durable lifecycle is introduced alongside Job/Attempt unless a concrete owner proves it necessary.",
+        "Control primitives remain pure/mechanical enough to test independently."
+      ],
+      "nextAction": "Start with Fence/Revalidate/CAS because they already recur across release and lifecycle operations."
+    },
+    {
+      "id": "R13",
+      "label": "EvidenceClaimModel",
+      "kind": "evidence_binding",
+      "responsibility": "Represent machine claims as subject + claim + scope + witness + observation + boundary + limitation while retaining historical evidence compatibility.",
+      "authority": "Runtime physical evidence semantics",
+      "state": "PROPOSED",
+      "sharedRefs": [],
+      "evidence": [
+        "docs/runtime.md",
+        "docs/effect-kernel.md"
+      ],
+      "dependencies": [
+        "R08",
+        "R09",
+        "R12"
+      ],
+      "mustNotOwn": [
+        "domain truth",
+        "semantic success"
+      ],
+      "acceptance": [
+        "Provider, executable, Host Dependency and terminal evidence can project through the model without losing current fields.",
+        "Every positive continuity claim names its exact scope and limitation.",
+        "Historical evidence remains readable; no migration is required merely to introduce the internal model."
+      ],
+      "nextAction": "Map current evidence records into a claim matrix before changing serialization."
+    },
+    {
+      "id": "R14",
+      "label": "MCPRequestAdapter",
+      "kind": "interface_adapter",
+      "responsibility": "Keep the 23 public Tools strongly typed while making them thin request adapters into state/authority/compiler/control LEGO.",
+      "authority": "Runtime MCP transport/schema boundary",
+      "state": "PROPOSED",
+      "sharedRefs": [],
+      "evidence": [
+        "README.md",
+        "crates/ordivon-runtime-mcp/src/server/tools.rs",
+        "crates/ordivon-runtime-mcp/src/server/contract.rs"
+      ],
+      "dependencies": [
+        "R07",
+        "R08",
+        "R13"
+      ],
+      "mustNotOwn": [
+        "persistence",
+        "physical provider logic"
+      ],
+      "acceptance": [
+        "Tool catalog digest is unchanged for structural-only waves.",
+        "Tools contain schema/adaptation logic, not duplicate admission or provider semantics.",
+        "Connector/client catalog refresh is required only when a deliberate public contract change occurs."
+      ],
+      "nextAction": "Migrate one execution Tool end-to-end, then prove schema/catalog identity before the remaining Tools."
+    },
+    {
+      "id": "R15",
+      "label": "OperatorPlaneDecomposition",
+      "kind": "operator_adapter",
+      "responsibility": "Turn deploy/status/lifecycle/reclaim/cache scripts into thin operator compositions over stable Runtime control/state primitives where practical.",
+      "authority": "Runtime operator surface",
+      "state": "PROPOSED",
+      "sharedRefs": [],
+      "evidence": [
+        "scripts/ordivon-runtime-deploy",
+        "scripts/ordivon-runtime-status",
+        "scripts/ordivon-runtime-lifecycle"
+      ],
+      "dependencies": [
+        "R12",
+        "R13"
+      ],
+      "mustNotOwn": [
+        "new daemon state",
+        "second scheduler"
+      ],
+      "acceptance": [
+        "Operator scripts shrink by moving proven shared mechanics into owner-local libraries, not by hiding behavior in a generic framework.",
+        "Release receipt and rollback compatibility remain exact.",
+        "Fast health stays bounded by active state rather than historical Registry size."
+      ],
+      "nextAction": "Extract pure receipt/fence/status projection helpers first; leave CLI orchestration intact until parity is proven."
+    },
+    {
+      "id": "R16",
+      "label": "StabilityEnvelope",
+      "kind": "compatibility_contract",
+      "responsibility": "Define the future 1.0 stability envelope: stable identity/lifecycle/error/evidence laws versus intentionally evolvable provider/profile extensions.",
+      "authority": "Runtime public compatibility policy",
+      "state": "PROPOSED",
+      "sharedRefs": [],
+      "evidence": [
+        "docs/status.md",
+        "docs/compatibility.md",
+        "docs/releases.md"
+      ],
+      "dependencies": [
+        "R00",
+        "R14"
+      ],
+      "mustNotOwn": [
+        "release marketing versioning"
+      ],
+      "acceptance": [
+        "Stable and evolvable surfaces are explicitly enumerated.",
+        "Deprecation/migration/rollback rules exist for Tool, Registry and evidence evolution.",
+        "A provider implementation can evolve without redefining Workspace/Job/Attempt semantics."
+      ],
+      "nextAction": "Draft the envelope only after internal seams are proven; do not declare 1.0 early."
+    },
+    {
+      "id": "R17",
+      "label": "CrossPlaneFalsification",
+      "kind": "acceptance_gate",
+      "responsibility": "Attack composition seams with real-system faults and ambiguity cases rather than accepting local unit correctness as whole-system correctness.",
+      "authority": "Runtime acceptance evidence",
+      "state": "PROPOSED",
+      "sharedRefs": [],
+      "evidence": [
+        "scripts/local-acceptance",
+        "scripts/windows-job-launcher-acceptance.py"
+      ],
+      "dependencies": [
+        "R10",
+        "R11",
+        "R12",
+        "R13",
+        "R14",
+        "R15"
+      ],
+      "mustNotOwn": [
+        "implementation"
+      ],
+      "acceptance": [
+        "Linux real-system acceptance binds exact candidate commit and binary digests.",
+        "Windows native acceptance proves process-tree ownership and reconstruction for provider changes.",
+        "Fault cases cover response loss, provider drift, path drift, cancellation races, crash/restart reconciliation, release rollback and Workspace close CAS.",
+        "No ambiguity case is converted into success or blind redispatch."
+      ],
+      "nextAction": "Maintain a seam-specific falsification matrix and require exact evidence for each structural wave."
+    },
+    {
+      "id": "R18",
+      "label": "StructuralClosure",
+      "kind": "deletion_gate",
+      "responsibility": "Delete historical aggregation only after all new seams prove behavioral equivalence and reduce oversized engine/registry/operator ownership.",
+      "authority": "Runtime source architecture",
+      "state": "PROPOSED",
+      "sharedRefs": [],
+      "evidence": [
+        "crates/ordivon-runtime-core/src/runtime/engine.rs",
+        "crates/ordivon-runtime-core/src/runtime/registry.rs"
+      ],
+      "dependencies": [
+        "R06",
+        "R07",
+        "R08",
+        "R09",
+        "R12",
+        "R13",
+        "R14",
+        "R15",
+        "R17"
+      ],
+      "mustNotOwn": [
+        "new capability"
+      ],
+      "acceptance": [
+        "engine.rs, registry.rs and MCP tools no longer contain materially different hidden authorities.",
+        "Old compatibility shims are deleted only with replay/migration evidence.",
+        "Source complexity decreases without adding a generic Fabric, effect framework or provider registry."
+      ],
+      "nextAction": "Measure deleted responsibilities and code after each extraction; closure is deletion, not another abstraction layer."
+    }
+  ],
+  "edges": [
+    {
+      "from": "R00",
+      "to": "R01",
+      "type": "VERIFICATION",
+      "label": "freeze laws before reorganizing tests"
+    },
+    {
+      "from": "R01",
+      "to": "R02",
+      "type": "VERIFICATION",
+      "label": "contract feedback protects Workspace extraction"
+    },
+    {
+      "from": "R01",
+      "to": "R03",
+      "type": "VERIFICATION",
+      "label": "contract feedback protects Job/Attempt extraction"
+    },
+    {
+      "from": "R03",
+      "to": "R04",
+      "type": "STATE",
+      "label": "reservation belongs to admitted execution lifecycle"
+    },
+    {
+      "from": "R03",
+      "to": "R05",
+      "type": "STATE",
+      "label": "artifacts/release effects bind Job/Attempt truth"
+    },
+    {
+      "from": "R02",
+      "to": "R06",
+      "type": "STORAGE",
+      "label": "Workspace state owns semantics above storage"
+    },
+    {
+      "from": "R03",
+      "to": "R06",
+      "type": "STORAGE",
+      "label": "Job/Attempt state owns semantics above storage"
+    },
+    {
+      "from": "R04",
+      "to": "R06",
+      "type": "STORAGE",
+      "label": "Reservation transitions use transactional storage"
+    },
+    {
+      "from": "R05",
+      "to": "R06",
+      "type": "STORAGE",
+      "label": "Artifact/release state use transactional storage"
+    },
+    {
+      "from": "R03",
+      "to": "R07",
+      "type": "AUTHORITY",
+      "label": "admission binds Job to enforceable authority"
+    },
+    {
+      "from": "R04",
+      "to": "R08",
+      "type": "CONTROL",
+      "label": "compiler resolves durable admission/capacity facts"
+    },
+    {
+      "from": "R07",
+      "to": "R08",
+      "type": "DATA",
+      "label": "authority contract enters immutable plan"
+    },
+    {
+      "from": "R08",
+      "to": "R09",
+      "type": "REALIZATION",
+      "label": "provider realizes compiled plan"
+    },
+    {
+      "from": "R09",
+      "to": "R10",
+      "type": "SPECIALIZATION",
+      "label": "Linux satisfies provider obligations"
+    },
+    {
+      "from": "R09",
+      "to": "R11",
+      "type": "SPECIALIZATION",
+      "label": "Windows satisfies provider obligations"
+    },
+    {
+      "from": "R06",
+      "to": "R12",
+      "type": "TRANSACTION",
+      "label": "control primitives commit through durable storage"
+    },
+    {
+      "from": "R08",
+      "to": "R12",
+      "type": "CONTROL",
+      "label": "plan execution uses fences/CAS/revalidation"
+    },
+    {
+      "from": "R09",
+      "to": "R13",
+      "type": "EVIDENCE",
+      "label": "provider observations become scoped evidence"
+    },
+    {
+      "from": "R12",
+      "to": "R13",
+      "type": "EVIDENCE",
+      "label": "control transitions emit receipts/witnesses"
+    },
+    {
+      "from": "R07",
+      "to": "R14",
+      "type": "ADAPTATION",
+      "label": "typed Tool selects authority composition"
+    },
+    {
+      "from": "R08",
+      "to": "R14",
+      "type": "ADAPTATION",
+      "label": "typed Tool compiles operation circuit"
+    },
+    {
+      "from": "R12",
+      "to": "R15",
+      "type": "COMPOSITION",
+      "label": "operator surfaces reuse mechanical controls"
+    },
+    {
+      "from": "R13",
+      "to": "R15",
+      "type": "OBSERVATION",
+      "label": "operator status/receipts project evidence"
+    },
+    {
+      "from": "R14",
+      "to": "R16",
+      "type": "COMPATIBILITY",
+      "label": "stability envelope binds public contract"
+    },
+    {
+      "from": "R10",
+      "to": "R17",
+      "type": "FALSIFICATION",
+      "label": "Linux provider must survive real-system attacks"
+    },
+    {
+      "from": "R11",
+      "to": "R17",
+      "type": "FALSIFICATION",
+      "label": "Windows provider must survive native attacks"
+    },
+    {
+      "from": "R15",
+      "to": "R17",
+      "type": "FALSIFICATION",
+      "label": "operator composition must preserve release/lifecycle truth"
+    },
+    {
+      "from": "R17",
+      "to": "R18",
+      "type": "DELETION",
+      "label": "only proven replacement permits old aggregation deletion"
+    }
+  ],
+  "slices": [
+    {
+      "id": "RW0",
+      "objective": "Freeze Runtime laws and split verification so structural work cannot silently change behavior.",
+      "status": "IN_PROGRESS",
+      "nodeIds": [
+        "R00",
+        "R01"
+      ],
+      "acceptance": [
+        "Invariant manifest complete.",
+        "Contract/property/provider/migration/integration tests independently addressable.",
+        "No public Tool or Registry semantic change."
+      ],
+      "evidence": [
+        "planning/invariants-r1.json",
+        "planning/test-taxonomy-r1.json",
+        "planning/tool-necessity-audit-r1.json",
+        "crates/ordivon-runtime-mcp/src/server/tests/tool_catalog.rs",
+        "cargo test --locked -q -p ordivon-runtime-mcp => 66/66 + 10/10 PASS"
+      ],
+      "blockers": [],
+      "nextAction": "R00 and the R01 baseline gate are complete; continue broader physical test partition opportunistically while RW1 state-contract extraction proceeds behind independently runnable contract and real-system gates."
+    },
+    {
+      "id": "RW1",
+      "objective": "Extract durable state ownership from historical engine/registry aggregation.",
+      "status": "COMPLETE",
+      "nodeIds": [
+        "R02",
+        "R03",
+        "R04",
+        "R05",
+        "R06"
+      ],
+      "acceptance": [
+        "Workspace/Job/Attempt/Reservation/Artifact/Release semantics each have explicit owner modules.",
+        "Registry is storage/transaction/migration rather than the semantic owner.",
+        "Registry schema remains v6 unless a separately reviewed semantic migration is unavoidable."
+      ],
+      "evidence": [
+        "crates/ordivon-runtime-core/src/runtime/workspace_state.rs",
+        "local-acceptance: supervisor 2/2 + Runtime integration 36/36 + MCP/Workspace/Release E2E PASS on 5bd241df24da3259c1c6e3637bf3fc513129e4b9",
+        "crates/ordivon-runtime-core/src/runtime/job_attempt_state.rs (R03-A1 canonical v3/v4/v5/v6 operation identity + exact replay/conflict law)",
+        "R04 ReservationContract: integrated e48b2eab, tree-equivalent to verified candidate 4131cbe0; full owner verification PASS; prior equivalent-patch focused real-system acceptance PASS",
+        "R05 ArtifactAndReleaseStateModule: commit 2954b576; full owner verification PASS; Registry v6/public MCP surface preserved; no generic Effect abstraction",
+        "R06 RegistryStorageBoundary: commit 7523f282; full core/MCP/clippy/owner-environment/extended reference-model verification PASS; Registry schema remains v6"
+      ],
+      "blockers": [],
+      "nextAction": "RW1 is complete. Begin RW2 with R07 AuthorityContract, then R08 OperationCircuitCompiler; reopen RW1 only for a newly proven ownership violation."
+    },
+    {
+      "id": "RW2",
+      "objective": "Compile existing execution variants from orthogonal authority and operation LEGO instead of bespoke feature paths.",
+      "status": "COMPLETE",
+      "nodeIds": [
+        "R07",
+        "R08"
+      ],
+      "acceptance": [
+        "Four current execution families compile through one internal operation compiler.",
+        "Replay/identity compatibility is preserved.",
+        "No generic public authority object is introduced."
+      ],
+      "evidence": [
+        "R07 AuthorityContract implemented at 163db3230483ec932fa8152fb1c9e6bd756e59d5",
+        "R08 ordinary execution integrated at 397dee5ef0caa296283253c03da5f277f4fa2a8d",
+        "R08 reduced immutable-input integrated at 40c414a3901c4383a9d7d122fe7716effbe8506e",
+        "R08 trusted immutable-input integrated at 645d50cd51c8efe772de762610e045ea112fb78c",
+        "R08 credential-bound trusted integrated at 897e504916fca4078847005a4b78198042b1c01b via c52737fd7bc2b6ccf71418719b220070a620da5f",
+        "post-integration Runtime owner qualification PASS job-01a0d323-f7ca-7351-8f5c-1d01b4877ca6; exact replay/public Tool/Registry v6/provider/materialization/semantic-completion boundaries preserved"
+      ],
+      "blockers": [],
+      "nextAction": "RW2 is complete. Begin RW3 with R09 ExecutionProviderSPI; reopen RW2 only for a proven compiler/authority/replay regression."
+    },
+    {
+      "id": "RW3",
+      "objective": "Establish replaceable provider seams and move Linux/Windows OS mechanics behind them.",
+      "status": "IN_PROGRESS",
+      "nodeIds": [
+        "R09",
+        "R10",
+        "R11"
+      ],
+      "acceptance": [
+        "Provider assume/guarantee contract is explicit.",
+        "Linux and Windows both satisfy it without sharing false OS equivalences.",
+        "Cross-node routing/provider marketplace remain outside Runtime."
+      ],
+      "evidence": [
+        "R09 ExecutionProviderSPI candidate fd3f166024587e9c943207fc8987cff436f43098",
+        "full Runtime owner qualification PASS job-01a0d34d-18e1-7140-b577-c34c0c660b4a"
+      ],
+      "blockers": [],
+      "nextAction": "Integrate qualified R09 under current-main fencing, then extract/prove R10 LocalLinuxProvider before R11 WindowsNativeProvider."
+    },
+    {
+      "id": "RW4",
+      "objective": "Extract reusable control and evidence LEGO without recreating generic Execution Fabric or Effect infrastructure.",
+      "status": "BLOCKED_ON_RW1_RW2",
+      "nodeIds": [
+        "R12",
+        "R13"
+      ],
+      "acceptance": [
+        "Fence/CAS/revalidate/receipt mechanics are independently testable.",
+        "Evidence claims carry scope and limitation.",
+        "Self-release remains operation-specific; opaque commands remain effect-opaque."
+      ],
+      "evidence": [],
+      "blockers": [
+        "RW1",
+        "RW2"
+      ],
+      "nextAction": "Extract the smallest recurring primitive first and reject any abstraction that requires a second durable lifecycle."
+    },
+    {
+      "id": "RW5",
+      "objective": "Thin MCP and operator surfaces over the extracted LEGO composition.",
+      "status": "BLOCKED_ON_RW2_RW4",
+      "nodeIds": [
+        "R14",
+        "R15"
+      ],
+      "acceptance": [
+        "23 public Tools remain strongly typed.",
+        "Tool catalog digest stays stable for structural-only work.",
+        "Deploy/status/lifecycle/reclaim/cache lose duplicate mechanics rather than merely moving code."
+      ],
+      "evidence": [],
+      "blockers": [
+        "RW2",
+        "RW4"
+      ],
+      "nextAction": "Migrate one MCP execution Tool and one operator path, prove parity, then expand."
+    },
+    {
+      "id": "RW6",
+      "objective": "Prove whole-system substitutability and define the stable public evolution envelope.",
+      "status": "BLOCKED_ON_RW3_RW5",
+      "nodeIds": [
+        "R16",
+        "R17"
+      ],
+      "acceptance": [
+        "Linux and Windows real-system evidence covers changed seams.",
+        "All ambiguity/recovery invariants survive structural refactoring.",
+        "Stable versus evolvable contracts are explicit enough for a future 1.0 decision."
+      ],
+      "evidence": [],
+      "blockers": [
+        "RW3",
+        "RW5"
+      ],
+      "nextAction": "Run seam-specific falsification before declaring any extracted interface stable."
+    },
+    {
+      "id": "RW7",
+      "objective": "Delete obsolete aggregation and freeze the LEGO-centric architecture.",
+      "status": "BLOCKED_ON_RW6",
+      "nodeIds": [
+        "R18"
+      ],
+      "acceptance": [
+        "Historical aggregation shrinks materially.",
+        "No duplicate state/control/effect framework remains.",
+        "Owner-native verification, extended property tests, real-system acceptance, root repo:ci and release/rollback proof are all green."
+      ],
+      "evidence": [],
+      "blockers": [
+        "RW6"
+      ],
+      "nextAction": "Delete only code whose replacement has current acceptance evidence."
+    }
+  ],
+  "gaps": [
+    "Core state semantics are conceptually separated but still aggregated in large engine.rs/types.rs/registry.rs modules.",
+    "Execution authority dimensions exist but are composed partly through feature-specific Tool paths rather than one internal authority contract.",
+    "Mechanical control primitives recur across release/lifecycle/cache/Workspace operations but are not fully explicit reusable LEGO.",
+    "Evidence is strong but not yet represented through one internal claim/scope/witness/limitation model.",
+    "MCP and operator surfaces still contain some duplicated composition logic.",
+    "Public interface remains intentionally pre-1.0.",
+    "contained_local remains experimental within its declared reduced-authority boundary.",
+    "Windows Long Paths admission evidence remains unimplemented.",
+    "No current production need justifies hostile-code isolation, non-systemd Linux, macOS, remote scheduling, generic effects or a provider marketplace inside Runtime."
+  ],
+  "doNotOwn": [
+    "Host Task truth",
+    "Harness Agent Run/cognition truth",
+    "domain semantic completion",
+    "generic workflow orchestration",
+    "generic effect registry/dispatcher",
+    "provider marketplace or cross-node routing",
+    "hostile multi-tenant sandbox implementation",
+    "central IAM/approval policy",
+    "secret vault",
+    "external-world semantic verification"
+  ],
+  "review": {
+    "sourceRevision": "fd3f166024587e9c943207fc8987cff436f43098",
+    "updatedAt": "2026-09-24",
+    "standing": "RW3_R09_QUALIFIED_R10_NEXT",
+    "notes": "RW2 is complete. R09 now freezes one private static ExecutionProviderSPI assume/guarantee seam with common provider obligations and non-weakenable R1 guarantees while preserving distinct Linux/Windows mechanism and evidence shapes. Full Runtime owner qualification passes. No public/persisted schema or dynamic provider marketplace/router was introduced. R10 LocalLinuxProvider is next after serialized R09 integration."
+  }
+}

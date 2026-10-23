@@ -172,6 +172,15 @@ class PlanSemanticGateTests(unittest.TestCase):
             {"hostname": "gateway-mcp.ordivon.com", "service": "http://127.0.0.1:8899"},
             prior_ingress[-1],
         ]
+        native_prior_ingress = [
+            {"hostname": "canary-mcp.ordivon.com", "service": "http://127.0.0.1:18997"},
+            {"hostname": None, "service": "http_status:404"},
+        ]
+        native_planned_ingress = [
+            native_prior_ingress[0],
+            {"hostname": "gateway-mcp.ordivon.com", "service": "http://127.0.0.1:19000"},
+            native_prior_ingress[-1],
+        ]
         return {
             "prior_state": {
                 "values": {
@@ -180,7 +189,14 @@ class PlanSemanticGateTests(unittest.TestCase):
                             {
                                 "address": "cloudflare_zero_trust_tunnel_cloudflared_config.production",
                                 "values": {"config": {"ingress": prior_ingress}},
-                            }
+                            },
+                            {
+                                "address": "cloudflare_zero_trust_tunnel_cloudflared_config.native",
+                                "values": {
+                                    "tunnel_id": "native-tunnel",
+                                    "config": {"ingress": native_prior_ingress},
+                                },
+                            },
                         ]
                     }
                 }
@@ -201,7 +217,14 @@ class PlanSemanticGateTests(unittest.TestCase):
                                 "policies": [{"decision": "allow"}],
                                 "oauth_configuration": {
                                     "enabled": True,
-                                    "dynamic_client_registration": {"enabled": True},
+                                    "dynamic_client_registration": {
+                                        "enabled": True,
+                                        "allowed_uris": [
+                                            "https://chatgpt.com/connector/oauth/*"
+                                        ],
+                                        "allow_any_on_localhost": True,
+                                        "allow_any_on_loopback": True,
+                                    },
                                     "grant": {
                                         "access_token_lifetime": "15m",
                                         "session_duration": "336h",
@@ -213,6 +236,7 @@ class PlanSemanticGateTests(unittest.TestCase):
                             "address": "cloudflare_dns_record.gateway_mcp",
                             "values": {
                                 "name": "gateway-mcp.ordivon.com",
+                                "content": "native-tunnel.cfargotunnel.com",
                                 "type": "CNAME",
                                 "proxied": True,
                             },
@@ -223,6 +247,13 @@ class PlanSemanticGateTests(unittest.TestCase):
                                 "name": "Ordivon Gateway Windows Runtime",
                                 "duration": "8760h",
                                 "enabled": True,
+                            },
+                        },
+                        {
+                            "address": "cloudflare_zero_trust_tunnel_cloudflared_config.native",
+                            "values": {
+                                "tunnel_id": "native-tunnel",
+                                "config": {"ingress": native_planned_ingress},
                             },
                         },
                     ]
@@ -245,6 +276,10 @@ class PlanSemanticGateTests(unittest.TestCase):
                     "address": "cloudflare_zero_trust_access_service_token.gateway_windows_runtime",
                     "change": {"actions": ["create"]},
                 },
+                {
+                    "address": "cloudflare_zero_trust_tunnel_cloudflared_config.native",
+                    "change": {"actions": ["update"]},
+                },
             ],
         }
 
@@ -252,6 +287,33 @@ class PlanSemanticGateTests(unittest.TestCase):
         semantics = controller._handoff_semantics(self._plan())
         self.assertTrue(semantics["semantic_gate"])
         self.assertEqual(semantics["details"]["unexpected_mutations"], [])
+
+    def test_semantic_gate_rejects_disabled_local_oauth_callbacks(self) -> None:
+        for field in ("allow_any_on_localhost", "allow_any_on_loopback"):
+            with self.subTest(field=field):
+                plan = self._plan()
+                gateway = plan["planned_values"]["root_module"]["resources"][1]
+                gateway["values"]["oauth_configuration"]["dynamic_client_registration"][
+                    field
+                ] = False
+                semantics = controller._handoff_semantics(plan)
+                self.assertFalse(semantics["semantic_gate"])
+                check = (
+                    "localhost_callbacks_enabled"
+                    if field == "allow_any_on_localhost"
+                    else "loopback_callbacks_enabled"
+                )
+                self.assertFalse(semantics["checks"][check])
+
+    def test_semantic_gate_rejects_lost_chatgpt_callback_allowlist(self) -> None:
+        plan = self._plan()
+        gateway = plan["planned_values"]["root_module"]["resources"][1]
+        gateway["values"]["oauth_configuration"]["dynamic_client_registration"][
+            "allowed_uris"
+        ] = []
+        semantics = controller._handoff_semantics(plan)
+        self.assertFalse(semantics["semantic_gate"])
+        self.assertFalse(semantics["checks"]["chatgpt_callback_allowlist_retained"])
 
     def test_semantic_gate_rejects_lost_existing_ingress(self) -> None:
         plan = self._plan()
@@ -263,6 +325,25 @@ class PlanSemanticGateTests(unittest.TestCase):
         semantics = controller._handoff_semantics(plan)
         self.assertFalse(semantics["semantic_gate"])
         self.assertFalse(semantics["checks"]["prior_named_ingress_preserved"])
+
+    def test_semantic_gate_rejects_lost_native_runtime_canary(self) -> None:
+        plan = self._plan()
+        native = plan["planned_values"]["root_module"]["resources"][4]
+        native["values"]["config"]["ingress"] = [
+            {"hostname": "gateway-mcp.ordivon.com", "service": "http://127.0.0.1:19000"},
+            {"hostname": None, "service": "http_status:404"},
+        ]
+        semantics = controller._handoff_semantics(plan)
+        self.assertFalse(semantics["semantic_gate"])
+        self.assertFalse(semantics["checks"]["native_runtime_canary_retained"])
+
+    def test_semantic_gate_rejects_gateway_dns_not_on_native_tunnel(self) -> None:
+        plan = self._plan()
+        dns = plan["planned_values"]["root_module"]["resources"][2]
+        dns["values"]["content"] = "production-tunnel.cfargotunnel.com"
+        semantics = controller._handoff_semantics(plan)
+        self.assertFalse(semantics["semantic_gate"])
+        self.assertFalse(semantics["checks"]["gateway_dns_exact"])
 
     def test_semantic_gate_rejects_unexpected_mutation(self) -> None:
         plan = self._plan()

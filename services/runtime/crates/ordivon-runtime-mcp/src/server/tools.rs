@@ -33,13 +33,39 @@ impl RuntimeServer {
             .as_ref()
             .map(|config| config.authorities.clone())
             .unwrap_or_default();
+        let credential_materialization_bindings = self.credential_materialization_binding_names();
         self.run_core("runtime.describe", move || {
             Ok(RuntimeDescribeResult::from_capabilities(
                 runtime.capabilities(),
                 global_execution_limit,
                 structured_release_configured,
                 input_ingress_authorities,
+                credential_materialization_bindings,
             ))
+        })
+        .await
+    }
+
+    #[tool(
+        name = "credential.materialize",
+        description = "Ensure one operator-configured credential binding through the native Windows privileged broker. The caller supplies only a logical binding and clientRequestId; host paths, credential bytes, and credential digests are never request fields or result fields. Runtime enforces the authenticated-principal allowlist before invoking the broker. Exact re-invocation converges on the same broker-owned authority bearer and missing endpoint copies; conflicting endpoint bytes fail closed. The receipt proves byte materialization only and does not prove consumer reload or provider authentication.",
+        output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<CredentialMaterializationToolResult>>(),
+        annotations(
+            title = "Materialize credential binding",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
+    )]
+    async fn credential_materialize(
+        &self,
+        principal: EffectivePrincipal,
+        Parameters(request): Parameters<CredentialMaterializationToolRequest>,
+    ) -> ToolOutcome<CredentialMaterializationToolResult> {
+        let server = self.clone();
+        self.run_core("credential.materialize", move || {
+            server.perform_credential_materialization(&principal.principal, request)
         })
         .await
     }
@@ -68,7 +94,7 @@ impl RuntimeServer {
 
     #[tool(
         name = "release.apply",
-        description = "Admit one exact Runtime self-release as a structured reconciliable effect. The caller chooses a Workspace commit and exact candidate-manifest digest; operator configuration owns source/install/Registry/environment/receipt authority. Exact clientRequestId replay is resolved before consulting current Workspace or candidate state. New admission commits a durable release effect and an Accepted Runtime Job, then returns without directly dispatching it; normal Runtime reconciliation owns later at-most-once execution. A connection loss during self-replacement is not failure evidence: reconnect with release.get using the same clientRequestId. The deployment receipt, not process exit alone, is authoritative for whether the external release effect committed.",
+        description = "Admit one exact Runtime self-release as a structured reconciliable effect. The caller chooses the Runtime-owner commit resolved from a Workspace revision and an exact candidate-manifest digest; operator configuration owns source/install/Registry/environment/receipt authority. Exact clientRequestId replay is resolved before consulting current Workspace or candidate state. New admission commits a durable release effect and an Accepted Runtime Job, then returns without directly dispatching it; normal Runtime reconciliation owns later at-most-once execution. A connection loss during self-replacement is not failure evidence: reconnect with release.get using the same clientRequestId. The deployment receipt, not process exit alone, is authoritative for whether the external release effect committed.",
         output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<RuntimeReleaseAdmission>>(),
         annotations(
             title = "Apply structured Runtime release",
@@ -85,7 +111,7 @@ impl RuntimeServer {
     ) -> ToolOutcome<RuntimeReleaseAdmission> {
         let runtime = self.state.runtime.clone();
         let release_config = self.state.release.clone();
-        let execution = self.state.execution.with_principal(principal.0);
+        let execution = self.state.execution.with_principal(principal.principal);
         let principal = execution.principal.clone();
         let global_limit = execution.global_limit;
         self.run_core("release.apply", move || {
@@ -119,24 +145,43 @@ impl RuntimeServer {
                     workspace_id: request.workspace_id.clone(),
                 })
                 .map_err(ToolError::from)?;
-            let configured_source = std::fs::canonicalize(&release.source_repo).map_err(|error| {
-                ToolError::invalid(
-                    format!("configured release source repository is unavailable: {error}"),
-                    "release.sourceRepo",
-                )
-            })?;
-            if workspace.source_repo != configured_source.to_string_lossy() {
+            let source_identity =
+                runtime_release_source_identity(&release.source_repo).map_err(|error| {
+                    ToolError::invalid(
+                        format!("configured Runtime release source is invalid: {error}"),
+                        "release.sourceRepo",
+                    )
+                })?;
+            let workspace_source =
+                std::fs::canonicalize(&workspace.source_repo).map_err(|error| {
+                    ToolError::invalid(
+                        format!("Workspace source repository is unavailable: {error}"),
+                        "workspaceId",
+                    )
+                })?;
+            if workspace_source != source_identity.git_root {
                 return Err(ToolError::invalid(
-                    "Workspace source repository does not match operator-owned Runtime release source",
+                    "Workspace Git root does not match operator-owned Runtime release source",
                     "workspaceId",
                 ));
             }
-            if workspace.current_head_revision != request.commit {
+            let owner_commit = runtime_release_owner_commit(
+                &source_identity.owner_root,
+                &workspace.current_head_revision,
+            )
+            .map_err(|error| {
+                ToolError::invalid(
+                    format!("cannot resolve Runtime owner revision from Workspace: {error}"),
+                    "commit",
+                )
+            })?;
+            if owner_commit != request.commit {
                 return Err(ToolError::invalid(
-                    "Workspace HEAD does not match the requested Runtime release commit",
+                    "requested commit does not match the Runtime owner revision at Workspace HEAD",
                     "commit",
                 ));
             }
+            let configured_source = source_identity.owner_root;
             if workspace.dirty {
                 return Err(ToolError::invalid(
                     "Runtime release Workspace must be clean",
@@ -147,12 +192,13 @@ impl RuntimeServer {
             let candidate_dir = release.candidate_dir(&request.commit);
             let candidate_manifest = candidate_dir.join("ordivon-deployment-manifest.json");
             let candidate_deployer = release.candidate_deployer(&request.commit);
-            let manifest_metadata = std::fs::symlink_metadata(&candidate_manifest).map_err(|error| {
-                ToolError::invalid(
-                    format!("Runtime release candidate manifest is unavailable: {error}"),
-                    "candidateManifestDigest",
-                )
-            })?;
+            let manifest_metadata =
+                std::fs::symlink_metadata(&candidate_manifest).map_err(|error| {
+                    ToolError::invalid(
+                        format!("Runtime release candidate manifest is unavailable: {error}"),
+                        "candidateManifestDigest",
+                    )
+                })?;
             if manifest_metadata.file_type().is_symlink() || !manifest_metadata.is_file() {
                 return Err(ToolError::invalid(
                     "Runtime release candidate manifest must be a regular non-symlink file",
@@ -178,12 +224,13 @@ impl RuntimeServer {
                     "candidateManifestDigest",
                 ));
             }
-            let deployer_metadata = std::fs::symlink_metadata(&candidate_deployer).map_err(|error| {
-                ToolError::invalid(
-                    format!("Runtime release candidate deployer is unavailable: {error}"),
-                    "commit",
-                )
-            })?;
+            let deployer_metadata =
+                std::fs::symlink_metadata(&candidate_deployer).map_err(|error| {
+                    ToolError::invalid(
+                        format!("Runtime release candidate deployer is unavailable: {error}"),
+                        "commit",
+                    )
+                })?;
             if deployer_metadata.file_type().is_symlink() || !deployer_metadata.is_file() {
                 return Err(ToolError::invalid(
                     "Runtime release candidate deployer must be a regular non-symlink file",
@@ -233,10 +280,7 @@ impl RuntimeServer {
             ];
             let mut args = args;
             if let Some(broker_service_name) = release.broker_service_name.as_ref() {
-                args.extend([
-                    "--broker-service".to_string(),
-                    broker_service_name.clone(),
-                ]);
+                args.extend(["--broker-service".to_string(), broker_service_name.clone()]);
             }
             let proposal = JobRunProposal {
                 schema_version: RUNTIME_SCHEMA_VERSION,
@@ -257,6 +301,7 @@ impl RuntimeServer {
                     execution_profile: ExecutionProfile::TrustedLocal,
                     execution_target: release.execution_target(),
                     windows_authority: release.windows_authority(),
+                    windows_context: None,
                     foreign_references: vec![ForeignReference {
                         namespace: "ordivon.runtime".to_string(),
                         reference_type: "runtime_release".to_string(),
@@ -295,7 +340,7 @@ impl RuntimeServer {
         Parameters(request): Parameters<RuntimeReleaseGetToolRequest>,
     ) -> ToolOutcome<RuntimeReleaseProjection> {
         let runtime = self.state.runtime.clone();
-        let principal = principal.0;
+        let principal = principal.principal;
         self.run_core("release.get", move || {
             runtime
                 .get_runtime_release_effect(&RuntimeReleaseGetRequest {
@@ -467,6 +512,61 @@ impl RuntimeServer {
     }
 
     #[tool(
+        name = "workspace.file",
+        description = "Project one exact digest-bound regular Workspace file as a bounded MCP embedded binary resource. Runtime reuses the Workspace descriptor-bound path authority, verifies the current bytes against expectedDigest, and returns the whole file only when it fits maxBytes. Optional mediaType is caller-declared projection metadata; when omitted Runtime uses application/octet-stream. It is never semantic format validation. This creates no Runtime Artifact, external upload, delivery receipt, or consumer-acceptance standing.",
+        output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<WorkspaceFileProjectionMetadata>>(),
+        annotations(
+            title = "Read verified workspace file",
+            read_only_hint = true,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
+    )]
+    async fn workspace_file(
+        &self,
+        Parameters(request): Parameters<WorkspaceFileToolRequest>,
+    ) -> Result<CallToolResult, McpError> {
+        let (media_type, media_type_standing) = match request.media_type.as_deref() {
+            Some(value)
+                if !value.is_empty()
+                    && value.len() <= 256
+                    && value.bytes().all(|byte| byte.is_ascii_graphic()) =>
+            {
+                (value.to_string(), "CALLER_DECLARED_UNVERIFIED".to_string())
+            }
+            Some(_) => {
+                return workspace_file_call_result(
+                    ToolOutcome::Error(ToolError::invalid(
+                        "mediaType must contain 1..=256 visible ASCII characters",
+                        "mediaType",
+                    )),
+                    "application/octet-stream".to_string(),
+                    "DEFAULT_BINARY".to_string(),
+                );
+            }
+            None => (
+                "application/octet-stream".to_string(),
+                "DEFAULT_BINARY".to_string(),
+            ),
+        };
+        let core_request = WorkspaceFileRequest {
+            schema_version: request.schema_version,
+            workspace_id: request.workspace_id,
+            relative_path: request.relative_path,
+            expected_digest: request.expected_digest,
+            max_bytes: request.max_bytes,
+        };
+        let config = self.state.executor.clone();
+        let outcome = self
+            .run_core("workspace.file", move || {
+                read_workspace_file(&config, &core_request).map_err(ToolError::from)
+            })
+            .await;
+        workspace_file_call_result(outcome, media_type, media_type_standing)
+    }
+
+    #[tool(
         name = "workspace.content",
         description = "Project one exact digest-bound Workspace image as native MCP image content. Runtime verifies the current file bytes against expectedDigest and validates PNG/JPEG signatures before transport; a changed file fails closed instead of silently changing the Agent's perceptual input.",
         output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<WorkspaceContentMetadata>>(),
@@ -599,7 +699,7 @@ impl RuntimeServer {
         let request = self
             .state
             .execution
-            .with_principal(principal.0)
+            .with_principal(principal.principal)
             .bind(request);
         self.run_core("workspace.exec", move || {
             runtime.run_job_proposal(&request).map_err(ToolError::from)
@@ -628,7 +728,7 @@ impl RuntimeServer {
         let (proposal, inputs) = self
             .state
             .execution
-            .with_principal(principal.0)
+            .with_principal(principal.principal)
             .bind_bound(request);
         self.run_core("workspace.execBound", move || {
             runtime
@@ -656,7 +756,7 @@ impl RuntimeServer {
         Parameters(request): Parameters<WorkspaceExecBoundRequest>,
     ) -> ToolOutcome<JobObservation> {
         let runtime = self.state.runtime.clone();
-        let execution = self.state.execution.with_principal(principal.0);
+        let execution = self.state.execution.with_principal(principal.principal);
         let (proposal, inputs) = match execution.bind_bound_trusted(request) {
             Ok(bound) => bound,
             Err(error) => return ToolOutcome::Error(error),
@@ -687,7 +787,7 @@ impl RuntimeServer {
         Parameters(request): Parameters<WorkspaceExecCredentialBoundRequest>,
     ) -> ToolOutcome<JobObservation> {
         let runtime = self.state.runtime.clone();
-        let execution = self.state.execution.with_principal(principal.0);
+        let execution = self.state.execution.with_principal(principal.principal);
         let (proposal, credentials) = match execution.bind_credential_bound_trusted(request) {
             Ok(bound) => bound,
             Err(error) => return ToolOutcome::Error(error),
@@ -718,7 +818,7 @@ impl RuntimeServer {
         Parameters(request): Parameters<WorkspaceExecPlanRequest>,
     ) -> ToolOutcome<JobObservation> {
         let runtime = self.state.runtime.clone();
-        let execution = self.state.execution.with_principal(principal.0);
+        let execution = self.state.execution.with_principal(principal.principal);
         let request = match execution.bind_plan(request) {
             Ok(request) => request,
             Err(error) => return ToolOutcome::Error(error),
@@ -731,7 +831,7 @@ impl RuntimeServer {
 
     #[tool(
         name = "job.get",
-        description = "Read one exact durable Job as a projection-only Runtime inspection. This never reconciles, dispatches, cancels, or otherwise advances the Job. The Job projection includes the exact sourceRevision and admission-frozen workspaceSourceDigest from its committed execution plan, so later Workspace movement cannot be mistaken for the source state this Job actually bound. It also returns bounded Attempt history, mechanical convergence, Artifact/episode summaries, and a bounded event timeline with event detail omitted; use artifact.read for retained stdout/stderr/results and job.observe only when targeted reconciliation or waiting is intended.",
+        description = "Read one exact durable Job as a projection-only Runtime inspection. This never reconciles, dispatches, cancels, or otherwise advances the Job. The Job projection includes the exact sourceRevision and admission-frozen workspaceSourceDigest from its committed execution plan, so later Workspace movement cannot be mistaken for the source state this Job actually bound. It also returns bounded Attempt history, mechanical convergence, Artifact/episode summaries, and a bounded event timeline with event detail omitted; use artifact.read for bounded retained UTF-8 ranges, artifact.content for complete bounded registered Artifact bytes, and job.observe only when targeted reconciliation or waiting is intended.",
         output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<RuntimeJobInspection>>(),
         annotations(
             title = "Get transactional job",
@@ -743,6 +843,7 @@ impl RuntimeServer {
     )]
     async fn job_get(
         &self,
+        principal: EffectivePrincipal,
         Parameters(request): Parameters<JobGetRequest>,
     ) -> ToolOutcome<RuntimeJobInspection> {
         if request.schema_version != 1 {
@@ -752,7 +853,12 @@ impl RuntimeServer {
             ));
         }
         let runtime = self.state.runtime.clone();
+        let scoped = principal.scopes_job_lifecycle();
+        let principal_id = principal.principal.clone();
         self.run_core("job.get", move || {
+            if scoped {
+                runtime.authorize_job_principal(&request.job_id, &principal_id)?;
+            }
             runtime
                 .inspect_job(&request.job_id, request.event_limit)
                 .map_err(ToolError::from)
@@ -774,10 +880,16 @@ impl RuntimeServer {
     )]
     async fn job_observe(
         &self,
+        principal: EffectivePrincipal,
         Parameters(request): Parameters<JobObserveRequest>,
     ) -> ToolOutcome<JobObservation> {
         let runtime = self.state.runtime.clone();
+        let scoped = principal.scopes_job_lifecycle();
+        let principal_id = principal.principal.clone();
         self.run_core("job.observe", move || {
+            if scoped {
+                runtime.authorize_job_principal(&request.job_id, &principal_id)?;
+            }
             runtime.observe_job(&request).map_err(ToolError::from)
         })
         .await
@@ -797,10 +909,16 @@ impl RuntimeServer {
     )]
     async fn job_cancel(
         &self,
+        principal: EffectivePrincipal,
         Parameters(request): Parameters<JobCancelRequest>,
     ) -> ToolOutcome<JobObservation> {
         let runtime = self.state.runtime.clone();
+        let scoped = principal.scopes_job_lifecycle();
+        let principal_id = principal.principal.clone();
         self.run_core("job.cancel", move || {
+            if scoped {
+                runtime.authorize_job_principal(&request.job_id, &principal_id)?;
+            }
             runtime.cancel_job(&request).map_err(ToolError::from)
         })
         .await
@@ -820,18 +938,60 @@ impl RuntimeServer {
     )]
     async fn job_list(
         &self,
+        principal: EffectivePrincipal,
         Parameters(request): Parameters<RuntimeJobListRequest>,
     ) -> ToolOutcome<RuntimeJobListResult> {
         let runtime = self.state.runtime.clone();
+        let scoped = principal.scopes_job_lifecycle();
+        let principal_id = principal.principal.clone();
         self.run_core("job.list", move || {
-            runtime.list_jobs(&request).map_err(ToolError::from)
+            if scoped {
+                runtime
+                    .list_jobs_for_principal(&request, &principal_id)
+                    .map_err(ToolError::from)
+            } else {
+                runtime.list_jobs(&request).map_err(ToolError::from)
+            }
         })
         .await
     }
 
     #[tool(
+        name = "artifact.content",
+        description = "Project one complete verified Runtime Job Artifact as a bounded MCP embedded binary resource by exact jobId and artifactId. Runtime revalidates the registered Artifact path, digest and byte length before projection and fails closed if the whole retained object exceeds maxBytes. Registered mediaType is preserved as metadata and used only as an unverified projection hint when syntactically usable. This is Artifact-byte observation, not domain semantic completion, external delivery, or consumer acceptance.",
+        output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<ArtifactContentProjectionMetadata>>(),
+        annotations(
+            title = "Read verified job artifact content",
+            read_only_hint = true,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
+    )]
+    async fn artifact_content(
+        &self,
+        principal: EffectivePrincipal,
+        Parameters(request): Parameters<ArtifactContentRequest>,
+    ) -> Result<CallToolResult, McpError> {
+        let runtime = self.state.runtime.clone();
+        let scoped = principal.scopes_job_lifecycle();
+        let principal_id = principal.principal.clone();
+        let outcome = self
+            .run_core("artifact.content", move || {
+                if scoped {
+                    runtime.authorize_job_principal(&request.job_id, &principal_id)?;
+                }
+                runtime
+                    .read_artifact_content(&request)
+                    .map_err(ToolError::from)
+            })
+            .await;
+        artifact_content_call_result(outcome)
+    }
+
+    #[tool(
         name = "artifact.read",
-        description = "Read a bounded verified range from one Job Artifact by Job and Artifact identity.",
+        description = "Read a bounded verified UTF-8 range from one Job Artifact by Job and Artifact identity. This compatibility surface is continuation-aware text projection; use artifact.content when the complete retained Artifact must be projected as binary bytes.",
         output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<ArtifactReadResult>>(),
         annotations(
             title = "Read transactional job artifact",
@@ -843,10 +1003,16 @@ impl RuntimeServer {
     )]
     async fn artifact_read(
         &self,
+        principal: EffectivePrincipal,
         Parameters(request): Parameters<ArtifactReadRequest>,
     ) -> ToolOutcome<ArtifactReadResult> {
         let runtime = self.state.runtime.clone();
+        let scoped = principal.scopes_job_lifecycle();
+        let principal_id = principal.principal.clone();
         self.run_core("artifact.read", move || {
+            if scoped {
+                runtime.authorize_job_principal(&request.job_id, &principal_id)?;
+            }
             runtime.read_artifact(&request).map_err(ToolError::from)
         })
         .await

@@ -54,6 +54,7 @@ serde.workspace = true
 serde_json.workspace = true
 schemars.workspace = true
 sha2.workspace = true
+tracing.workspace = true
 uuid = { workspace = true, optional = true }
 
 [target.'cfg(windows)'.dependencies]

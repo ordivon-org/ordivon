@@ -3,7 +3,7 @@ impl Runtime {
         &self,
         request: &RuntimeReleaseRequest,
     ) -> RuntimeResult<Option<RuntimeReleaseAdmission>> {
-        validate_runtime_release_request(request)?;
+        ReleaseStateContract::validate_request(request)?;
         let request_digest = runtime_release_request_identity_digest(request)?;
         let Some(job) = self.registry.find_idempotent_job(
             &request.principal,
@@ -25,7 +25,7 @@ impl Runtime {
                     false,
                 )
             })?;
-        validate_release_binding_matches_request(&binding, request)?;
+        ReleaseStateContract::validate_binding_matches_request(&binding, request)?;
         let release = self.runtime_release_projection(&job.job_id, &binding)?;
         Ok(Some(RuntimeReleaseAdmission {
             replayed: true,
@@ -39,7 +39,7 @@ impl Runtime {
         proposal: &super::JobRunProposal,
         receipt_path: &Path,
     ) -> RuntimeResult<RuntimeReleaseAdmission> {
-        validate_runtime_release_request(request)?;
+        ReleaseStateContract::validate_request(request)?;
         validate_run_proposal_structure(proposal)?;
         if proposal.client_request_id != request.client_request_id
             || proposal.principal != request.principal
@@ -67,7 +67,6 @@ impl Runtime {
             expected_tool_count: request.expected_tool_count,
             receipt_path: receipt_path.to_string_lossy().into_owned(),
         };
-        let _guard = self.lock_lifecycle()?;
         if let Some(job) = self.registry.find_idempotent_job(
             &request.principal,
             &request.client_request_id,
@@ -85,7 +84,34 @@ impl Runtime {
                         false,
                     )
                 })?;
-            validate_release_binding_matches_request(&committed, request)?;
+            ReleaseStateContract::validate_binding_matches_request(&committed, request)?;
+            return Ok(RuntimeReleaseAdmission {
+                replayed: true,
+                release: self.runtime_release_projection(&job.job_id, &committed)?,
+            });
+        }
+
+        self.with_admission_workspace_lease(
+            &request.workspace_id,
+            |admission_fence| {
+        if let Some(job) = self.registry.find_idempotent_job(
+            &request.principal,
+            &request.client_request_id,
+            &request_digest,
+            None,
+        )? {
+            let committed = self
+                .registry
+                .runtime_release_effect_for_job(&job.job_id)?
+                .ok_or_else(|| {
+                    RuntimeError::new(
+                        RuntimeErrorCode::RegistryCorrupt,
+                        "Runtime Release replay lost its release side truth",
+                        Some("runtimeReleaseEffect"),
+                        false,
+                    )
+                })?;
+            ReleaseStateContract::validate_binding_matches_request(&committed, request)?;
             return Ok(RuntimeReleaseAdmission {
                 replayed: true,
                 release: self.runtime_release_projection(&job.job_id, &committed)?,
@@ -114,7 +140,7 @@ impl Runtime {
             plan,
             global_limit: resolved.global_limit,
         };
-        let job_id = match self.registry.submit(&submit)? {
+        let job_id = match self.registry.submit_with_admission_fence(&submit, admission_fence)? {
             AdmissionOutcome::Created(created) => created.job.job_id.clone(),
             AdmissionOutcome::Existing { job } => job.job_id.clone(),
         };
@@ -125,6 +151,8 @@ impl Runtime {
             replayed: false,
             release: self.runtime_release_projection(&job_id, &binding)?,
         })
+            },
+        )
     }
 
     pub fn get_runtime_release_effect(
@@ -157,7 +185,11 @@ impl Runtime {
         binding: &RuntimeReleaseEffectBinding,
     ) -> RuntimeResult<RuntimeReleaseProjection> {
         let snapshot = self.registry.job_snapshot(job_id)?;
-        let receipt = inspect_runtime_release_receipt(binding, &snapshot)?;
+        let receipt = ReleaseStateContract::inspect_receipt(
+            binding,
+            snapshot.job.resolution,
+            snapshot.attempt.as_ref().map(|attempt| attempt.state),
+        )?;
         Ok(RuntimeReleaseProjection {
             contract: binding.contract,
             effect_id: binding.effect_id.clone(),

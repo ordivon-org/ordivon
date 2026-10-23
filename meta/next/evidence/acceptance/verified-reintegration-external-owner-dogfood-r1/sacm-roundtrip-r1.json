@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.verified-reintegration-sacm-shadow-roundtrip",
+  "date": "2026-09-22",
+  "truthRole": "assurance-interchange-shadow-not-domain-truth",
+  "source": {
+    "circuitId": "circuit:research-artifact-publication-r3",
+    "gateId": "gate:research-artifact-carrier",
+    "manifestDigest": "sha256:33e299e93b6e114af9a1610fb6fff9bb2dcdadc26b8f74e0a499c0dc16e906a2",
+    "gateStanding": "SATISFIED",
+    "verifierOwnerId": "research"
+  },
+  "sacm": {
+    "version": "2.3",
+    "namespace": "http://www.omg.org/spec/SACM/20220301",
+    "normativeModelUrl": "https://www.omg.org/spec/SACM/20220301/SACM.xml",
+    "normativeModelSha256": "sha256:4bc12020fe38018fe24d39e56ec04f2fc9190fe7cf1161d85452fda5f3fbeb1e",
+    "xmiSha256": "sha256:2552407d0c39a56ae2b495f00f87a1385fcb0593cdd9d72eee8ae9747ba127ac",
+    "xmiBytes": 4529,
+    "usedMetaclasses": [
+      "ArgumentPackage",
+      "Artifact",
+      "ArtifactPackage",
+      "ArtifactReference",
+      "AssertedContext",
+      "AssertedEvidence",
+      "AssuranceCasePackage",
+      "Claim"
+    ]
+  },
+  "roundTrip": {
+    "standing": "PASS",
+    "preserved": [
+      "assumption",
+      "evidenceRefs",
+      "guarantee",
+      "meta",
+      "nonClaims",
+      "supportScope"
+    ],
+    "standingUpgradeObserved": false,
+    "supportScopeExpansionObserved": false,
+    "nonClaimsDropped": false
+  },
+  "conformance": {
+    "fullSacmConformanceClaimed": false,
+    "statement": "The shadow uses SACM 2.3 namespace/metaclasses present in the normative OMG machine-readable model and preserves the selected Ordivon gate semantics through an XMI round trip. It is not an OMG certification or a claim that every SACM compliance point has been implemented."
+  }
+}

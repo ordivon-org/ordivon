@@ -1,0 +1,20 @@
+[Unit]
+Description=Loopback VNC for durable CfT human session slot %i
+Requires=ordivon-cft-human-display@%i.service ordivon-cft-human-browser@%i.service
+After=ordivon-cft-human-display@%i.service ordivon-cft-human-browser@%i.service
+PartOf=ordivon-cft-human-session@%i.target
+
+[Service]
+Type=simple
+User=ordivon
+Group=ordivon
+ExecStart=/usr/bin/x11vnc -display :2%i -auth /run/ordivon/cft-human-xauth/%i -rfbport 193%i -listen 127.0.0.1 -no6 -forever -shared -nopw -quiet
+Restart=on-failure
+RestartSec=1s
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET

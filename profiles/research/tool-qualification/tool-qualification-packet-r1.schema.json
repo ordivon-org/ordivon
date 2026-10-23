@@ -1,0 +1,208 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.dev/profiles/research/tool-qualification/tool-qualification-packet-r1.schema.json",
+  "title": "Research Tool Qualification Packet R1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "packetKind",
+    "schemaVersion",
+    "observationCut",
+    "qualifiedProblemClass",
+    "qualifiedOperation",
+    "ownerRef",
+    "canonicalToolId",
+    "effectClass",
+    "nonClaims",
+    "standing"
+  ],
+  "properties": {
+    "packetKind": {
+      "const": "research-tool-qualification-packet"
+    },
+    "schemaVersion": {
+      "const": "r1"
+    },
+    "observationCut": {
+      "type": "string",
+      "minLength": 1
+    },
+    "qualifiedProblemClass": {
+      "type": "string",
+      "minLength": 1
+    },
+    "qualifiedOperation": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ownerRef": {
+      "type": "string",
+      "minLength": 1
+    },
+    "canonicalToolId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ownerCurrentnessEvidenceRef": {
+      "type": "string",
+      "minLength": 1
+    },
+    "versionRef": {
+      "type": "string",
+      "minLength": 1
+    },
+    "interfaceRef": {
+      "type": "string",
+      "minLength": 1
+    },
+    "effectClass": {
+      "enum": [
+        "none",
+        "read_only",
+        "local_mutation",
+        "external_mutation",
+        "publication_submission",
+        "other_separately_authorized"
+      ]
+    },
+    "executionOwnerRef": {
+      "type": "string",
+      "minLength": 1
+    },
+    "effectAuthorizationOwnerRef": {
+      "type": "string",
+      "minLength": 1
+    },
+    "invocationSurface": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidenceRefs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "positiveControlRefs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "negativeControlRefs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "reuseDecisionRef": {
+      "type": "string",
+      "minLength": 1
+    },
+    "componentDefinitionRef": {
+      "type": "string",
+      "minLength": 1
+    },
+    "nonClaims": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "standing": {
+      "enum": [
+        "QUALIFIED_IN_SCOPE",
+        "HOLD"
+      ]
+    },
+    "holdReasons": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "standing": {
+            "const": "QUALIFIED_IN_SCOPE"
+          }
+        },
+        "required": [
+          "standing"
+        ]
+      },
+      "then": {
+        "required": [
+          "ownerCurrentnessEvidenceRef",
+          "interfaceRef",
+          "executionOwnerRef",
+          "invocationSurface",
+          "evidenceRefs",
+          "positiveControlRefs",
+          "negativeControlRefs"
+        ],
+        "properties": {
+          "evidenceRefs": {
+            "minItems": 1
+          },
+          "positiveControlRefs": {
+            "minItems": 1
+          },
+          "negativeControlRefs": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "standing": {
+            "const": "HOLD"
+          }
+        },
+        "required": [
+          "standing"
+        ]
+      },
+      "then": {
+        "required": [
+          "holdReasons"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "effectClass": {
+            "enum": [
+              "external_mutation",
+              "publication_submission"
+            ]
+          }
+        },
+        "required": [
+          "effectClass"
+        ]
+      },
+      "then": {
+        "required": [
+          "effectAuthorizationOwnerRef"
+        ]
+      }
+    }
+  ]
+}

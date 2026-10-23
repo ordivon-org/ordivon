@@ -1,3 +1,59 @@
+#[derive(Clone, Copy)]
+struct WindowedSummaryQuery {
+    full_history: &'static str,
+    recent_window: &'static str,
+}
+
+impl WindowedSummaryQuery {
+    fn sql(self, since_ms: u64) -> &'static str {
+        if since_ms == 0 {
+            self.full_history
+        } else {
+            self.recent_window
+        }
+    }
+}
+
+const SUMMARY_ATTEMPTS: WindowedSummaryQuery = WindowedSummaryQuery {
+    full_history: "SELECT a.state,COUNT(*) FROM attempts a JOIN jobs j ON j.job_id=a.job_id WHERE j.created_at_ms>=?1 GROUP BY a.state ORDER BY a.state",
+    recent_window: "SELECT a.state,COUNT(*) FROM jobs j CROSS JOIN attempts a ON a.job_id=j.job_id WHERE j.created_at_ms>=?1 GROUP BY a.state ORDER BY a.state",
+};
+
+const SUMMARY_RESERVATIONS: WindowedSummaryQuery = WindowedSummaryQuery {
+    full_history: "SELECT r.state,COUNT(*) FROM concurrency_reservations r JOIN attempts a ON a.attempt_id=r.attempt_id JOIN jobs j ON j.job_id=a.job_id WHERE j.created_at_ms>=?1 GROUP BY r.state ORDER BY r.state",
+    recent_window: "SELECT r.state,COUNT(*) FROM jobs j CROSS JOIN attempts a ON a.job_id=j.job_id CROSS JOIN concurrency_reservations r ON r.attempt_id=a.attempt_id WHERE j.created_at_ms>=?1 GROUP BY r.state ORDER BY r.state",
+};
+
+const SUMMARY_RECOVERY_FAILURES: WindowedSummaryQuery = WindowedSummaryQuery {
+    full_history: "SELECT COUNT(DISTINCT e.job_id) FROM job_events e JOIN jobs j ON j.job_id=e.job_id WHERE j.created_at_ms>=?1 AND e.event_type='RECONCILIATION_FAILED'",
+    recent_window: "SELECT COUNT(DISTINCT e.job_id) FROM jobs j CROSS JOIN job_events e ON e.job_id=j.job_id WHERE j.created_at_ms>=?1 AND e.event_type='RECONCILIATION_FAILED'",
+};
+
+const SUMMARY_ADMIN_REPAIRS: WindowedSummaryQuery = WindowedSummaryQuery {
+    full_history: "SELECT COUNT(DISTINCT e.job_id) FROM job_events e JOIN jobs j ON j.job_id=e.job_id WHERE j.created_at_ms>=?1 AND e.event_type='ADMIN_TERMINAL_REPAIR'",
+    recent_window: "SELECT COUNT(DISTINCT e.job_id) FROM jobs j CROSS JOIN job_events e ON e.job_id=j.job_id WHERE j.created_at_ms>=?1 AND e.event_type='ADMIN_TERMINAL_REPAIR'",
+};
+
+const SUMMARY_DISPATCHES: WindowedSummaryQuery = WindowedSummaryQuery {
+    full_history: "SELECT COUNT(*) FROM job_events e JOIN jobs j ON j.job_id=e.job_id WHERE j.created_at_ms>=?1 AND e.event_type='DISPATCH_ISSUED'",
+    recent_window: "SELECT COUNT(*) FROM jobs j CROSS JOIN job_events e ON e.job_id=j.job_id WHERE j.created_at_ms>=?1 AND e.event_type='DISPATCH_ISSUED'",
+};
+
+const SUMMARY_DUPLICATE_DISPATCHES: WindowedSummaryQuery = WindowedSummaryQuery {
+    full_history: "SELECT COUNT(*),COALESCE(SUM(extra),0) FROM (SELECT e.job_id,e.attempt_id,COUNT(*)-1 extra FROM job_events e JOIN jobs j ON j.job_id=e.job_id WHERE j.created_at_ms>=?1 AND e.event_type='DISPATCH_ISSUED' GROUP BY e.job_id,e.attempt_id HAVING COUNT(*)>1)",
+    recent_window: "SELECT COUNT(*),COALESCE(SUM(extra),0) FROM (SELECT e.job_id,e.attempt_id,COUNT(*)-1 extra FROM jobs j CROSS JOIN job_events e ON e.job_id=j.job_id WHERE j.created_at_ms>=?1 AND e.event_type='DISPATCH_ISSUED' GROUP BY e.job_id,e.attempt_id HAVING COUNT(*)>1)",
+};
+
+const SUMMARY_TERMINAL_REASONS: WindowedSummaryQuery = WindowedSummaryQuery {
+    full_history: "SELECT e.reason_code,COUNT(*) FROM job_events e JOIN jobs j ON j.job_id=e.job_id WHERE j.created_at_ms>=?1 AND e.event_type='JOB_TERMINAL' GROUP BY e.reason_code ORDER BY e.reason_code",
+    recent_window: "SELECT e.reason_code,COUNT(*) FROM jobs j CROSS JOIN job_events e ON e.job_id=j.job_id WHERE j.created_at_ms>=?1 AND e.event_type='JOB_TERMINAL' GROUP BY e.reason_code ORDER BY e.reason_code",
+};
+
+const SUMMARY_LATENCY_EVENTS: WindowedSummaryQuery = WindowedSummaryQuery {
+    full_history: "SELECT e.job_id,j.created_at_ms,e.event_type,e.observed_at_ms FROM job_events e JOIN jobs j ON j.job_id=e.job_id WHERE j.created_at_ms>=?1 ORDER BY e.job_id,e.event_sequence",
+    recent_window: "SELECT e.job_id,j.created_at_ms,e.event_type,e.observed_at_ms FROM jobs j CROSS JOIN job_events e ON e.job_id=j.job_id WHERE j.created_at_ms>=?1 ORDER BY e.job_id,e.event_sequence",
+};
+
 use rusqlite::OptionalExtension;
 use sha2::{Digest, Sha256};
 use std::path::Path;
@@ -9,6 +65,7 @@ use crate::universal::{
     load_workspace_record, workspace_change_projection_at, workspace_head_revision_at,
     UniversalExecutorConfig,
 };
+use super::supervisor::{validate_attempt_supervisor_owner, AttemptSupervisorOwner};
 use super::types::{RuntimeReleaseContract, RuntimeReleaseEffectBinding};
 
 pub const DEFAULT_WORKSPACE_INSPECTION_JOB_LIMIT: u32 = 20;
@@ -90,6 +147,9 @@ pub struct RuntimeExperienceSummary {
     pub cancellation: RuntimeExperienceCancellationSummary,
     pub mechanical_latency_ms: RuntimeExperienceMechanicalLatencySummary,
     pub duration_ms: RuntimeExperienceDurationSummary,
+    /// Latest finished Job attempts whose wall-clock duration is negative.
+    /// These samples remain observable but are excluded from duration percentiles.
+    pub invalid_job_duration_samples: u64,
     pub artifacts: RuntimeExperienceArtifactSummary,
     pub event_types: BTreeMap<String, u64>,
     pub terminal_reasons: BTreeMap<String, u64>,
@@ -183,6 +243,17 @@ pub struct RuntimeExperienceArtifactSummary {
 }
 
 
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeOperatorAttemptSupervisorOwner {
+    pub contract: String,
+    pub launcher_process_id: u32,
+    pub launcher_process_creation_time_file_time: u64,
+    pub launcher_image_digest: String,
+    pub job_name: String,
+    pub start_evidence_digest: String,
+}
+
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeOperatorRegistryInspection {
@@ -194,6 +265,8 @@ pub struct RuntimeOperatorRegistryInspection {
     pub held_workspace_ids: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub resolved_attempt_job_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resolved_attempt_supervisor_owner: Option<RuntimeOperatorAttemptSupervisorOwner>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -607,6 +680,72 @@ pub fn inspect_registry(
         .transpose()?
         .flatten();
 
+    let supervisor_owner_table_exists = connection
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='attempt_supervisor_owners')",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(|error| {
+            RuntimeError::from_sql(error, "inspect Attempt Supervisor Owner storage")
+        })?;
+    let resolved_attempt_supervisor_owner = if supervisor_owner_table_exists {
+        resolve_attempt_id
+            .map(|attempt_id| {
+                connection
+                    .query_row(
+                        "SELECT owner_json,owner_digest FROM attempt_supervisor_owners WHERE attempt_id=?1",
+                        [attempt_id],
+                        |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+                    )
+                    .optional()
+                    .map_err(|error| {
+                        RuntimeError::from_sql(error, "inspect Attempt Supervisor Owner")
+                    })
+            })
+            .transpose()?
+            .flatten()
+    } else {
+        None
+    }
+    .map(|(owner_json, owner_digest)| -> RuntimeResult<_> {
+            let observed_digest = format!("sha256:{:x}", Sha256::digest(owner_json.as_bytes()));
+            if observed_digest != owner_digest {
+                return Err(RuntimeError::new(
+                    RuntimeErrorCode::RegistryCorrupt,
+                    "stored Attempt Supervisor Owner digest does not match side truth",
+                    Some("attemptSupervisorOwner"),
+                    false,
+                ));
+            }
+            let owner: AttemptSupervisorOwner =
+                serde_json::from_str(&owner_json).map_err(|error| {
+                    RuntimeError::new(
+                        RuntimeErrorCode::RegistryCorrupt,
+                        format!("stored Attempt Supervisor Owner is invalid: {error}"),
+                        Some("attemptSupervisorOwner"),
+                        false,
+                    )
+                })?;
+            validate_attempt_supervisor_owner(&owner)?;
+            let AttemptSupervisorOwner::WindowsLauncherV1 {
+                launcher_process_id,
+                launcher_process_creation_time_file_time,
+                launcher_image_digest,
+                job_name,
+                start_evidence_digest,
+            } = owner;
+            Ok(RuntimeOperatorAttemptSupervisorOwner {
+                contract: "windows_launcher_v1".to_string(),
+                launcher_process_id,
+                launcher_process_creation_time_file_time,
+                launcher_image_digest,
+                job_name,
+                start_evidence_digest,
+            })
+        })
+        .transpose()?;
+
     Ok(RuntimeOperatorRegistryInspection {
         schema_version: RUNTIME_INSPECTION_SCHEMA_VERSION,
         generated_at_ms: now_ms()?,
@@ -615,6 +754,7 @@ pub fn inspect_registry(
         active_workspaces,
         held_workspace_ids,
         resolved_attempt_job_id,
+        resolved_attempt_supervisor_owner,
     })
 }
 
@@ -687,13 +827,16 @@ pub fn inspect_registry_status(
         ));
     }
 
-    let (jobs_total, jobs_active): (u64, u64) = connection
-        .query_row(
-            "SELECT COUNT(*),COALESCE(SUM(resolution IS NULL),0) FROM jobs",
-            [],
-            |row| Ok((row.get(0)?, row.get(1)?)),
-        )
+    let jobs_total: u64 = connection
+        .query_row("SELECT COUNT(*) FROM jobs", [], |row| row.get(0))
         .map_err(|error| RuntimeError::from_sql(error, "count Registry Jobs for status"))?;
+    let jobs_active: u64 = connection
+        .query_row(
+            "SELECT COUNT(*) FROM jobs WHERE resolution IS NULL",
+            [],
+            |row| row.get(0),
+        )
+        .map_err(|error| RuntimeError::from_sql(error, "count active Registry Jobs for status"))?;
     let nonterminal_attempts: u64 = connection
         .query_row(
             "SELECT COUNT(*) FROM attempts WHERE state NOT IN ('succeeded','failed','timed_out','cancelled','lost','orphaned')",
@@ -1151,6 +1294,9 @@ pub fn summarize_experience(
         "count converged summary Jobs",
     )?;
 
+    // Keep the time-selected Job cohort outside the historical child-table loops.
+    // SQLite CROSS JOIN preserves this loop order without new indexes or schema state.
+    // Ordinary joins here chose whole-history scans for recent summaries on production.
     let resolutions = grouped_counts(
         &connection,
         "SELECT COALESCE(resolution,'unresolved'),COUNT(*) FROM jobs WHERE created_at_ms>=?1 GROUP BY COALESCE(resolution,'unresolved') ORDER BY 1",
@@ -1159,20 +1305,20 @@ pub fn summarize_experience(
     )?;
     let attempts = grouped_counts(
         &connection,
-        "SELECT a.state,COUNT(*) FROM attempts a JOIN jobs j ON j.job_id=a.job_id WHERE j.created_at_ms>=?1 GROUP BY a.state ORDER BY a.state",
+        SUMMARY_ATTEMPTS.sql(since_ms),
         since_ms,
         "group Attempt states",
     )?;
     let reservations = grouped_counts(
         &connection,
-        "SELECT r.state,COUNT(*) FROM concurrency_reservations r JOIN attempts a ON a.attempt_id=r.attempt_id JOIN jobs j ON j.job_id=a.job_id WHERE j.created_at_ms>=?1 GROUP BY r.state ORDER BY r.state",
+        SUMMARY_RESERVATIONS.sql(since_ms),
         since_ms,
         "group reservation states",
     )?;
 
     let recovery_failures = count(
         &connection,
-        "SELECT COUNT(DISTINCT e.job_id) FROM job_events e JOIN jobs j ON j.job_id=e.job_id WHERE j.created_at_ms>=?1 AND e.event_type='RECONCILIATION_FAILED'",
+        SUMMARY_RECOVERY_FAILURES.sql(since_ms),
         since_ms,
         "count Jobs with reconciliation failure",
     )?;
@@ -1184,20 +1330,20 @@ pub fn summarize_experience(
     )?;
     let admin_repairs = count(
         &connection,
-        "SELECT COUNT(DISTINCT e.job_id) FROM job_events e JOIN jobs j ON j.job_id=e.job_id WHERE j.created_at_ms>=?1 AND e.event_type='ADMIN_TERMINAL_REPAIR'",
+        SUMMARY_ADMIN_REPAIRS.sql(since_ms),
         since_ms,
         "count administratively repaired Jobs",
     )?;
 
     let dispatches = count(
         &connection,
-        "SELECT COUNT(*) FROM job_events e JOIN jobs j ON j.job_id=e.job_id WHERE j.created_at_ms>=?1 AND e.event_type='DISPATCH_ISSUED'",
+        SUMMARY_DISPATCHES.sql(since_ms),
         since_ms,
         "count dispatch events",
     )?;
     let (jobs_with_duplicate_dispatch, duplicate_dispatches): (u64, u64) = connection
         .query_row(
-            "SELECT COUNT(*),COALESCE(SUM(extra),0) FROM (SELECT e.job_id,e.attempt_id,COUNT(*)-1 extra FROM job_events e JOIN jobs j ON j.job_id=e.job_id WHERE j.created_at_ms>=?1 AND e.event_type='DISPATCH_ISSUED' GROUP BY e.job_id,e.attempt_id HAVING COUNT(*)>1)",
+            SUMMARY_DUPLICATE_DISPATCHES.sql(since_ms),
             [since_ms],
             |row| Ok((row.get(0)?, row.get(1)?)),
         )
@@ -1228,16 +1374,21 @@ pub fn summarize_experience(
     let mechanical_latency = collect_mechanical_latency_samples(&connection, since_ms)?;
 
     let mut durations: Vec<u64> = Vec::new();
+    let mut invalid_job_duration_samples = 0_u64;
     let mut statement = connection
         .prepare(
             "SELECT a.finished_at_ms-j.created_at_ms FROM jobs j JOIN attempts a ON a.job_id=j.job_id WHERE j.created_at_ms>=?1 AND a.attempt_number=(SELECT MAX(latest.attempt_number) FROM attempts latest WHERE latest.job_id=j.job_id) AND a.finished_at_ms IS NOT NULL ORDER BY 1",
         )
         .map_err(|error| RuntimeError::from_sql(error, "prepare Job duration summary"))?;
     let rows = statement
-        .query_map([since_ms], |row| row.get(0))
+        .query_map([since_ms], |row| row.get::<_, i64>(0))
         .map_err(|error| RuntimeError::from_sql(error, "query Job durations"))?;
     for row in rows {
-        durations.push(row.map_err(|error| RuntimeError::from_sql(error, "decode Job duration"))?);
+        let duration = row.map_err(|error| RuntimeError::from_sql(error, "decode Job duration"))?;
+        match u64::try_from(duration) {
+            Ok(duration) => durations.push(duration),
+            Err(_) => invalid_job_duration_samples += 1,
+        }
     }
 
     let (artifact_count, artifact_bytes, truncated_artifacts): (u64, u64, u64) = connection
@@ -1256,7 +1407,7 @@ pub fn summarize_experience(
     )?;
     let terminal_reasons = grouped_counts(
         &connection,
-        "SELECT e.reason_code,COUNT(*) FROM job_events e JOIN jobs j ON j.job_id=e.job_id WHERE j.created_at_ms>=?1 AND e.event_type='JOB_TERMINAL' GROUP BY e.reason_code ORDER BY e.reason_code",
+        SUMMARY_TERMINAL_REASONS.sql(since_ms),
         since_ms,
         "group terminal reasons",
     )?;
@@ -1313,6 +1464,7 @@ pub fn summarize_experience(
             ),
         },
         duration_ms: duration_summary(&durations),
+        invalid_job_duration_samples,
         artifacts: RuntimeExperienceArtifactSummary {
             count: artifact_count,
             bytes: artifact_bytes,
@@ -1330,7 +1482,7 @@ fn collect_mechanical_latency_samples(
 ) -> RuntimeResult<RuntimeMechanicalLatencySamples> {
     let mut statement = connection
         .prepare(
-            "SELECT e.job_id,j.created_at_ms,e.event_type,e.observed_at_ms FROM job_events e JOIN jobs j ON j.job_id=e.job_id WHERE j.created_at_ms>=?1 ORDER BY e.job_id,e.event_sequence",
+            SUMMARY_LATENCY_EVENTS.sql(since_ms),
         )
         .map_err(|error| RuntimeError::from_sql(error, "prepare mechanical latency events"))?;
     let rows = statement
@@ -1510,7 +1662,7 @@ fn load_recent_workspace_jobs(
     let observed_at_ms = now_ms()?;
     let mut jobs = Vec::with_capacity(job_ids.len());
     for job_id in job_ids {
-        let job = load_job(connection, &job_id)?;
+        let job = RegistryStorageBoundary::load_job(connection, &job_id)?;
         let latest_attempt_id = connection
             .query_row(
                 "SELECT attempt_id FROM attempts WHERE job_id=?1 ORDER BY attempt_number DESC LIMIT 1",
@@ -1524,7 +1676,7 @@ fn load_recent_workspace_jobs(
             .as_ref()
             .or(latest_attempt_id.as_ref());
         let attempt = attempt_id
-            .map(|attempt_id| load_attempt(connection, attempt_id))
+            .map(|attempt_id| RegistryStorageBoundary::load_attempt(connection, attempt_id))
             .transpose()?;
         let recovery_required = if let Some(attempt) = attempt.as_ref() {
             let recovery_sql = if migration_version >= CONDITION_RETIREMENT_MIGRATION_VERSION {

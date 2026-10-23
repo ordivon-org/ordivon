@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "kind": "research-publication-perceptual-conformance-lego-plan",
+  "id": "publication-perceptual-conformance-lego-r1",
+  "truthRole": "planning-projection-not-study-truth",
+  "principle": "HUMAN_REQUIRED_EQ_HUMAN_AUTHORITY_REQUIRED",
+  "waves": [
+    {"id": "RW0", "goal": "contract-and-inventory"},
+    {"id": "RW1", "goal": "raster-geometry-visual-regression"},
+    {"id": "RW2", "goal": "readability-and-semantic-layout"},
+    {"id": "RW3", "goal": "independent-observers-and-consensus"},
+    {"id": "RW4", "goal": "independent-verifier-and-attestation"},
+    {"id": "RW5", "goal": "paper3-pilot-and-legacy-gate-supersession"},
+    {"id": "RW6", "goal": "typography-accessibility-and-cross-study-migration"}
+  ],
+  "nodes": [
+    {"id": "PC00", "label": "PerceptualConformanceContract", "owner": "Research composition + Artifact evaluator", "state": "R1_IMPLEMENTED"},
+    {"id": "PC01", "label": "CarrierInventory", "owner": "capabilities/artifact", "state": "R1_IMPLEMENTED"},
+    {"id": "PC02", "label": "CanonicalRaster", "owner": "capabilities/artifact + Poppler", "state": "R1_IMPLEMENTED"},
+    {"id": "PC03", "label": "LayoutGeometry", "owner": "capabilities/artifact", "state": "PARTIAL_R1_EXISTING_MARGIN_OBSERVATION"},
+    {"id": "PC04", "label": "VisualRegression", "owner": "capabilities/artifact", "state": "R1_IMPLEMENTED_PIXEL_DIFF"},
+    {"id": "PC05", "label": "FigureReadability", "owner": "independent perceptual observer", "state": "R1_OBSERVER_CONTRACT"},
+    {"id": "PC06", "label": "TableReadability", "owner": "independent perceptual observer", "state": "R1_OBSERVER_CONTRACT"},
+    {"id": "PC07", "label": "TypographyGlyphQA", "owner": "capabilities/artifact + observer", "state": "RW6"},
+    {"id": "PC08", "label": "SemanticLayoutQA", "owner": "independent semantic-layout observer", "state": "R1_OBSERVER_CONTRACT"},
+    {"id": "PC09", "label": "AccessibilityObserver", "owner": "replaceable external validator", "state": "RW6_ADVISORY"},
+    {"id": "PC10", "label": "BlindVisionReviewerA", "owner": "independent observer provider", "state": "R1_CONTRACT_READY"},
+    {"id": "PC11", "label": "VenueAwareVisionReviewerB", "owner": "independent observer provider", "state": "R1_CONTRACT_READY"},
+    {"id": "PC12", "label": "SemanticLayoutReviewerC", "owner": "independent observer provider", "state": "R1_CONTRACT_READY"},
+    {"id": "PC13", "label": "ConsensusEngine", "owner": "capabilities/artifact", "state": "R1_IMPLEMENTED"},
+    {"id": "PC14", "label": "IndependentReleaseVerifier", "owner": "independent verifier", "state": "COMPOSE_EXISTING_PUBLICATION_VERIFIER"},
+    {"id": "PC15", "label": "CarrierAttestation", "owner": "capabilities/artifact", "state": "R1_IMPLEMENTED"},
+    {"id": "PC16", "label": "Paper3Migration", "owner": "Paper3 Study overlay", "state": "READY_AFTER_GENERIC_R1_INTEGRATION"}
+  ],
+  "edges": [
+    ["PC00", "PC01"],
+    ["PC01", "PC02"],
+    ["PC02", "PC03"],
+    ["PC02", "PC04"],
+    ["PC03", "PC05"],
+    ["PC03", "PC06"],
+    ["PC03", "PC08"],
+    ["PC04", "PC10"],
+    ["PC05", "PC10"],
+    ["PC06", "PC11"],
+    ["PC08", "PC12"],
+    ["PC10", "PC13"],
+    ["PC11", "PC13"],
+    ["PC12", "PC13"],
+    ["PC13", "PC14"],
+    ["PC14", "PC15"],
+    ["PC15", "PC16"]
+  ],
+  "doNotOwn": [
+    "scientific peer review",
+    "venue policy authority",
+    "model-provider internals",
+    "author legal attestations",
+    "submission authorization",
+    "generic PDF rendering engines",
+    "PDF accessibility standards"
+  ]
+}

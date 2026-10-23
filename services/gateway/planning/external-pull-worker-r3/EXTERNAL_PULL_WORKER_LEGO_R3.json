@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-pull-worker-lego-r3",
+  "truthRole": "candidate-implementation-decomposition-not-production-standing",
+  "acceptedIrreduciblePrimitives": [],
+  "legos": [
+    {"name":"WorkerIdentity","classification":"MECHANISM_ONLY","owner":"Gateway external pull adapter"},
+    {"name":"WorkerRegistry","classification":"MECHANISM_ONLY","owner":"Gateway external pull adapter"},
+    {"name":"WorkerCapabilityProjection","classification":"PROJECTION_ONLY","owner":"Gateway capability projection"},
+    {"name":"WorkerHeartbeat","classification":"MECHANISM_ONLY","owner":"Gateway external pull adapter"},
+    {"name":"WorkQueue","classification":"MECHANISM_ONLY","owner":"Gateway external pull adapter"},
+    {"name":"LeaseAdapter","classification":"MECHANISM_ONLY","owner":"Gateway external pull adapter"},
+    {"name":"PullClaim","classification":"MECHANISM_ONLY","owner":"Gateway external pull adapter"},
+    {"name":"AttemptBinding","classification":"MECHANISM_ONLY","owner":"Gateway external pull adapter"},
+    {"name":"ResultReceiver","classification":"ADAPTER_ONLY","owner":"Gateway execution projection"},
+    {"name":"EvidenceReceiver","classification":"ADAPTER_ONLY","owner":"Gateway external pull adapter"},
+    {"name":"CancellationProjection","classification":"ADAPTER_ONLY","owner":"Gateway execution.cancel"},
+    {"name":"Revocation","classification":"MECHANISM_ONLY","owner":"Gateway external pull adapter"},
+    {"name":"ResurrectionAdapter","classification":"ADAPTER_ONLY","owner":"lease expiry plus worker re-claim"}
+  ],
+  "antiDuplication": {
+    "secondScheduler": false,
+    "secondTaskOntology": false,
+    "secondCapabilityRegistry": false,
+    "secondArtifactPublicAPI": false,
+    "secondRecoveryOntology": false,
+    "secondIdentityOntology": false
+  },
+  "notes": [
+    "Runtime Reservation remains Runtime-owned physical capacity truth; R3 does not import it into Gateway.",
+    "The external lease is transport mechanics, not a new domain ontology.",
+    "Worker identity is an execution-endpoint identity, not Principal, Agent, Human, Task owner, or authority."
+  ]
+}

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -108,7 +109,7 @@ class AgentSurfaceTests(unittest.TestCase):
             self.assertEqual(stale["python"]["reason"], "PYTHON_RECEIPT_STALE")
             self.assertFalse(stale["python"]["ready"])
 
-    def test_js_status_delegates_currentness_to_fail_closed_workstation_resolver(self) -> None:
+    def test_js_status_delegates_currentness_to_project_pinned_pnpm_resolver(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = self._root(directory)
             with mock.patch("ordivon_studio.agent_surface.subprocess.run", return_value=mock.Mock(returncode=2)) as probe:
@@ -116,7 +117,7 @@ class AgentSurfaceTests(unittest.TestCase):
             self.assertFalse(state["js"]["ready"])
             self.assertEqual(state["js"]["reason"], "JS_DEPENDENCIES_STALE_OR_UNAVAILABLE")
             self.assertTrue(state["js"]["resolverChecked"])
-            self.assertEqual(probe.call_args.args[0][:3], ["/root/tools/bin/pnpm", "exec", "node"])
+            self.assertEqual(probe.call_args.args[0][:3], [shutil.which("pnpm"), "exec", "node"])
 
     def test_missing_dependencies_compile_explicit_acquisition_only(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -127,7 +128,7 @@ class AgentSurfaceTests(unittest.TestCase):
             python = dependency_proposal("python", root)
             resolve = dependency_proposal("resolve", root)
             self.assertTrue(js["effectRequired"])
-            self.assertEqual(js["plan"]["executable"], "/root/tools/bin/pnpm")
+            self.assertEqual(js["plan"]["executable"], shutil.which("pnpm"))
             self.assertEqual(js["plan"]["args"], ["install", "--frozen-lockfile"])
             self.assertEqual(python["plan"]["executable"], "/usr/bin/python3")
             self.assertEqual(resolve["plan"]["args"], ["scripts/materialize-python.py", "--extra", "resolve"])

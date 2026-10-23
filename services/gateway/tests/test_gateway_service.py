@@ -9,6 +9,7 @@ from mcp.types import Tool
 
 from ordivon_gateway.mcp_server import build_server
 from ordivon_gateway.service import GatewayError, GatewayService
+from ordivon_gateway.upstream import OwnerCallError
 
 
 class FakeOwnerCaller:
@@ -61,6 +62,13 @@ def test_current_mcp_sdk_accepts_runtime_tool_outcome_union_schema() -> None:
     assert len(tool.output_schema["oneOf"]) == 2
 
 
+def test_gateway_server_registers_sdk_open_telemetry_middleware() -> None:
+    from mcp.server._otel import OpenTelemetryMiddleware
+
+    server = build_server(GatewayService(FakeOwnerCaller()))
+    assert any(isinstance(item, OpenTelemetryMiddleware) for item in server.middleware)
+
+
 def test_windows_context_is_dynamic_data_not_gateway_schema_enum() -> None:
     caller = FakeOwnerCaller()
     service = GatewayService(caller)
@@ -69,13 +77,65 @@ def test_windows_context_is_dynamic_data_not_gateway_schema_enum() -> None:
         async with Client(build_server(service), raise_exceptions=True) as client:
             tools = await client.list_tools()
             by_name = {tool.name: tool for tool in tools.tools}
+            assert client.server_info is not None
+            assert client.server_info.name == "ordivon-gateway"
+            assert client.server_info.version == "0.8.1"
+            assert set(by_name) == {
+                "system.describe",
+                "capability.describe",
+                "capability.resolve",
+                "capability.search",
+                "execution.submit",
+                "execution.resolve",
+                "execution.get",
+                "execution.cancel",
+                "artifact.read",
+                "host.status",
+                "actor.declare",
+                "work.create",
+                "work.get",
+                "work.list",
+                "work.snapshot.commit",
+                "space.create",
+                "space.get",
+                "space.list",
+                "space.participation.set",
+                "space.participation.list",
+                "space.subject.list",
+                "topic.create",
+                "topic.cursor.ack",
+                "topic.cursor.get",
+                "topic.list",
+                "topic.resume",
+                "message.post",
+                "message.search",
+                "message.relation.add",
+                "message.relation.list",
+                "subscription.follow",
+                "subscription.list",
+                "subscription.unfollow",
+                "attention.get",
+                "attention.delta",
+                "attention.ack",
+                "attention.reentry",
+            }
+            assert tools.ttl_ms == 0
+            assert tools.cache_scope == "private"
             assert "capability.list" not in by_name
             assert "capability.describe" in by_name
             submit = by_name["execution.submit"].input_schema
             assert "enum" not in submit["properties"]["context"]
+            context_schema = submit["properties"]["context"]
+            assert "string" in str(context_schema)
+            assert "object" in str(context_schema)
             assert "enum" not in submit["properties"]["capability"]
 
     asyncio.run(scenario())
+
+
+def test_system_description_uses_package_release_identity() -> None:
+    service = GatewayService(FakeOwnerCaller())
+    assert service.system_describe().gateway_version == "0.8.1"
 
 
 def test_execution_submit_lowers_linux_without_leaking_owner_schema() -> None:
@@ -99,6 +159,14 @@ def test_execution_submit_lowers_linux_without_leaking_owner_schema() -> None:
             cwd_relative=".",
             context="contained_local",
             timeout_ms=30_000,
+            authority_references=[
+                {
+                    "namespace": "ordivon.harness",
+                    "type": "dispatch_fence",
+                    "id": "fence:1",
+                    "digest": "sha256:fence",
+                }
+            ],
         )
     )
 
@@ -114,9 +182,19 @@ def test_execution_submit_lowers_linux_without_leaking_owner_schema() -> None:
     assert execution["executionTarget"] == "local_linux"
     assert execution["executionProfile"] == "contained_local"
     assert "windowsAuthority" not in execution
+    assert execution["foreignReferences"] == [
+        {
+            "namespace": "ordivon.harness",
+            "type": "dispatch_fence",
+            "id": "fence:1",
+            "digest": "sha256:fence",
+        }
+    ]
 
 
-def test_execution_submit_windows_context_passes_through_as_string() -> None:
+def test_execution_submit_windows_context_routes_legacy_or_structured_without_interpretation() -> (
+    None
+):
     caller = FakeOwnerCaller()
     caller.responses[("runtime.windows", "workspace.exec")] = {
         "jobId": "job-win-1",
@@ -154,6 +232,22 @@ def test_execution_submit_windows_context_passes_through_as_string() -> None:
     )
     assert caller.calls[-1][2]["execution"]["windowsAuthority"] == "future_provider_context"
 
+    caller.responses[("runtime.windows", "workspace.exec")]["jobId"] = "job-win-structured"
+    structured_context = {"identity": "active_user", "privilege": "elevated"}
+    asyncio.run(
+        service.execution_submit(
+            capability="execution.windows",
+            request_id="req-structured",
+            workspace_id="ws-win",
+            executable=r"C:\Windows\System32\whoami.exe",
+            args=[],
+            context=structured_context,
+        )
+    )
+    structured_execution = caller.calls[-1][2]["execution"]
+    assert structured_execution["windowsContext"] == structured_context
+    assert "windowsAuthority" not in structured_execution
+
     caller.responses[("runtime.windows", "workspace.exec")]["jobId"] = "job-win-3"
     asyncio.run(
         service.execution_submit(
@@ -173,6 +267,66 @@ def test_execution_submit_windows_context_passes_through_as_string() -> None:
         "ORDIVON_JEV_TYPESAFE_DPAPI_FILE": r"C:\Users\u\secret.dpapi",
         "PYTHONUTF8": "1",
     }
+
+
+def test_execution_resolve_projects_request_identity_without_redispatch() -> None:
+    caller = FakeOwnerCaller()
+    caller.responses[("runtime.linux", "job.list")] = {
+        "jobs": [
+            {
+                "jobId": "job-resolved",
+                "clientRequestId": "req-resolved",
+            }
+        ],
+        "nextCursor": None,
+    }
+    service = GatewayService(caller)
+
+    resolved = asyncio.run(
+        service.execution_resolve(
+            capability="execution.linux",
+            request_id="req-resolved",
+        )
+    )
+    assert resolved.resolution == "found"
+    assert resolved.operation_ref == "ordivon-exec:v1:runtime.linux:job-resolved"
+    assert resolved.native_id == "job-resolved"
+    assert caller.calls == [
+        (
+            "runtime.linux",
+            "job.list",
+            {"limit": 2, "clientRequestId": "req-resolved"},
+        )
+    ]
+
+    caller.responses[("runtime.linux", "job.list")] = {
+        "jobs": [],
+        "nextCursor": None,
+    }
+    absent = asyncio.run(
+        service.execution_resolve(
+            capability="execution.linux",
+            request_id="req-absent",
+        )
+    )
+    assert absent.resolution == "absent"
+    assert absent.operation_ref is None
+
+    caller.responses[("runtime.linux", "job.list")] = {
+        "jobs": [
+            {"jobId": "job-a", "clientRequestId": "req-many"},
+            {"jobId": "job-b", "clientRequestId": "req-many"},
+        ],
+        "nextCursor": None,
+    }
+    ambiguous = asyncio.run(
+        service.execution_resolve(
+            capability="execution.linux",
+            request_id="req-many",
+        )
+    )
+    assert ambiguous.resolution == "ambiguous"
+    assert ambiguous.operation_ref is None
 
 
 def test_execution_get_and_cancel_route_by_operation_reference() -> None:
@@ -218,7 +372,7 @@ def test_execution_get_and_cancel_route_by_operation_reference() -> None:
     service = GatewayService(caller)
     ref = "ordivon-exec:v1:runtime.windows:job-9"
 
-    observed = asyncio.run(service.execution_get(ref))
+    observed = asyncio.run(service.execution_get(ref, wait_ms=1_234))
     assert observed.native_id == "job-9"
     assert observed.exit_code == 0
     assert observed.artifacts_available is True
@@ -226,6 +380,18 @@ def test_execution_get_and_cancel_route_by_operation_reference() -> None:
     assert observed.artifact_ids == ["artifact-stdout", "artifact-terminal"]
     assert observed.artifact_projection_complete is True
     assert observed.recovery_required is False
+    assert caller.calls[-2] == (
+        "runtime.windows",
+        "job.observe",
+        {
+            "schemaVersion": 1,
+            "jobId": "job-9",
+            "waitMs": 1_234,
+            "waitUntil": "change_or_terminal",
+            "stdoutTailBytes": 0,
+            "stderrTailBytes": 0,
+        },
+    )
     assert caller.calls[-1] == (
         "runtime.windows",
         "job.get",
@@ -333,55 +499,96 @@ def test_artifact_read_is_bound_to_execution_owner() -> None:
     assert caller.calls[-1][0:2] == ("runtime.linux", "artifact.read")
 
 
-def test_continuity_reads_route_to_host_and_normalize_projection() -> None:
+def test_social_work_surface_routes_exact_owner_semantics_without_gateway_reinterpretation() -> (
+    None
+):
     caller = FakeOwnerCaller()
-    caller.responses[("host", "task.resume")] = {
-        "task": {
-            "task_id": "task:x",
-            "goal_id": "goal:x",
-            "revision": 3,
-            "state": "open",
-            "checkpoint_digest": "sha256:c",
-        },
-        "checkpoint": {"frontier": "continue"},
-        "truthBoundary": "semantic working claim only",
+    owner = {
+        "schemaVersion": 1,
+        "kind": "ordivon.host-work",
+        "workRef": "work:x",
+        "revision": 3,
+        "state": "open",
+        "snapshot": {"frontier": "x"},
+        "truthBoundary": "host owner",
     }
-    caller.responses[("host", "task.list")] = {
-        "tasks": [
-            {
-                "task_id": "task:x",
-                "goal_id": "goal:x",
-                "revision": 3,
-                "state": "open",
-                "checkpoint_digest": "sha256:c",
-            }
-        ],
-        "hasMore": False,
-        "nextCursor": None,
-    }
+    caller.responses[("host", "work.get")] = owner
     service = GatewayService(caller)
 
-    one = asyncio.run(service.continuity_get("task:x"))
-    assert one.task_id == "task:x"
-    assert one.checkpoint == {"frontier": "continue"}
+    async def scenario() -> None:
+        result = await service.social_work_call("work.get", {"workRef": "work:x", "revision": None})
+        assert result == owner
+        assert caller.calls[-1] == ("host", "work.get", {"workRef": "work:x", "revision": None})
+        with pytest.raises(GatewayError):
+            await service.social_work_call("task.resume", {"taskId": "legacy"})
 
-    page = asyncio.run(service.continuity_list(goal_id="goal:x", limit=10))
-    assert page.items[0].task_id == "task:x"
-    assert page.has_more is False
+    asyncio.run(scenario())
 
 
-def test_unknown_capability_fails_closed_before_owner_call() -> None:
+def test_continuity_capability_probes_host_status_not_legacy_task_surface() -> None:
     caller = FakeOwnerCaller()
-    service = GatewayService(caller)
+    caller.responses[("host", "host.status")] = {"schemaVersion": 3, "kind": "ordivon.host-status"}
+    projection = asyncio.run(GatewayService(caller).capability_describe("continuity.external"))
+    assert projection.capabilities[0].available is True
+    assert caller.calls[-1] == ("host", "host.status", {"detail": "summary"})
 
-    with pytest.raises(GatewayError, match="unknown capability"):
-        asyncio.run(
-            service.execution_submit(
-                capability="execution.unknown",
-                request_id="req",
-                workspace_id="ws",
-                executable="/bin/true",
-                args=[],
-            )
+
+class StructuredFailureCaller:
+    def is_configured(self, owner_id: str) -> bool:
+        return True
+
+    async def call_tool(
+        self, owner_id: str, tool_name: str, arguments: dict[str, Any]
+    ) -> dict[str, Any]:
+        raise OwnerCallError(
+            f"owner tool returned error: {owner_id}/{tool_name}",
+            owner_id=owner_id,
+            tool_name=tool_name,
+            error={
+                "code": "REGISTRY_COMMIT_UNKNOWN",
+                "origin": "runtime_core",
+                "retryClass": "reconcile_first",
+                "commitState": "unknown",
+                "retryable": True,
+                "traceId": "runtime-trace-1",
+                "operationId": "job-uncertain-1",
+            },
         )
-    assert caller.calls == []
+
+
+def test_gateway_mcp_preserves_runtime_recovery_error_as_structured_tool_error() -> None:
+    async def scenario() -> None:
+        async with Client(
+            build_server(GatewayService(StructuredFailureCaller())),
+            raise_exceptions=False,
+        ) as client:
+            tools = await client.list_tools()
+            submit = {tool.name: tool for tool in tools.tools}["execution.submit"]
+            assert submit.output_schema is not None
+            assert "operation_ref" in str(submit.output_schema)
+
+            result = await client.call_tool(
+                "execution.submit",
+                {
+                    "capability": "execution.linux",
+                    "requestId": "req-uncertain",
+                    "workspaceId": "ws-uncertain",
+                    "executable": "/usr/bin/true",
+                    "args": [],
+                },
+            )
+            assert result.is_error is True
+            assert result.structured_content is not None
+            assert result.structured_content["error"] == {
+                "code": "REGISTRY_COMMIT_UNKNOWN",
+                "origin": "runtime_core",
+                "retryClass": "reconcile_first",
+                "commitState": "unknown",
+                "retryable": True,
+                "traceId": "runtime-trace-1",
+                "operationId": "job-uncertain-1",
+            }
+            assert result.structured_content["gatewayOwnerId"] == "runtime.linux"
+            assert result.structured_content["gatewayOwnerTool"] == "workspace.exec"
+
+    asyncio.run(scenario())

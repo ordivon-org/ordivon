@@ -1,0 +1,287 @@
+# Ordivon Current Architecture
+
+Date: 2026-09-28
+Status: **CURRENT DEPLOYED PROJECTION — NON-AUTHORITATIVE**
+
+This document is a **rebuildable projection** of Ordivon's currently deployed architecture. Architecture contracts, execution plans, migration records, research notes, and acceptance reports remain useful evidence, but none of these documents override current physical/source/owner truth.
+
+Machine-readable companion: `docs/architecture/deployed-architecture-r1.json`.
+
+## 1. System shape
+
+Ordivon is a **Modular Monorepo with independent natural owners**. Co-location does not merge authority, state, release lifecycle, or semantic acceptance.
+
+Here, a **natural owner** is the component, provider, or domain boundary that supplies authoritative facts or accepts an effect; it is not a permanent Agent-worker identity. Agent roles and ActorRefs are provenance, capability, and context-affinity signals rather than exclusive labor rights; those labels neither make a result correct nor grant source or effect authority. Qualified workers may independently perform read-only discovery, proposals, verification, or isolated candidate work, while canonical source and external effects still require the exact current authority, source/currentness checks, and fenced commit/effect identity.
+
+The normal Agent-facing topology is:
+
+```text
+Agent client
+   │
+   ├── native Agent Skills
+   │      └── Method Router Skill
+   │
+   └── portable Agent Plugin
+             │
+             v
+      Cloudflare Access / OAuth
+             │
+             v
+       Ordivon Gateway MCP
+       Capability Router
+       (non-authoritative)
+          ┌──┼───────────────┐
+          │  │               │
+          v  v               v
+ Linux Runtime      Windows Runtime       Host
+ execution/artifact execution/artifact   external continuity
+ physical truth     physical truth       semantic checkpoint truth
+```
+
+Harness is an independent Agent Run owner used by concrete workloads/callers. **Harness is not currently a routed Gateway owner** in the deployed Gateway route table.
+
+The remote Skills MCP remains only an exact compatibility edge for ChatGPT while that client requires remote Skill projection. It is not the canonical Skill store.
+
+## 2. Deployed owner graph
+
+| Surface / concern | Current owner | Deployed standing |
+| --- | --- | --- |
+| default public Ordivon Agent ingress | Gateway MCP | deployed |
+| public authentication | Cloudflare Access / OAuth | deployed |
+| capability-to-owner routing | Gateway static Capability Router | deployed, non-authoritative |
+| Linux Workspace / Job / Attempt / execution / Runtime Artifact | Linux Runtime | deployed authority |
+| Windows Workspace / Job / Attempt / execution / Runtime Artifact | Windows Runtime | deployed authority |
+| external semantic continuity / checkpoint / collaboration | Host | deployed authority |
+| bounded Agent Run / cognition / Provider+Tool continuity | Harness | deployed authority, separate from Gateway routes |
+| procedural method selection guidance | Method Router Agent Skill | deployed advisory Skill |
+| canonical project Skill bytes | standard Agent Skill source under `.agents/skills` | deployed source |
+| ChatGPT Skill compatibility | Skills MCP | retained compatibility edge only |
+| portable composition envelope | Agent Plugins 1.0 package | deployed distribution surface |
+| Workstation service/deployment realization | Workstation | deployed platform owner |
+| long-lived orchestration where explicitly used | Temporal/provider-native workflow owner | deployed only for named consumers |
+| Agent Automation / Browserless carrier | Harness/Workstation automation stack | live separate system; not Agent Service |
+| historical Agent Service | none | retired; do not reconstruct |
+| persistent/queryable trace backend | Vector OTLP → Tempo | deployed on demand; currently cold/inactive by default; observability-only |
+| Temporal cross-process trace propagation | none proven | not claimed |
+
+## 3. Gateway Capability Router
+
+The Gateway's **Capability Router** is a static, rebuildable projection over natural owners. It does not own a capability registry, workflow state, Task state, Job state, or domain success.
+
+The deployed route table currently exposes exactly these stable capability families:
+
+| Capability | Natural owner | Owner operation family |
+| --- | --- | --- |
+| `execution.linux` | Linux Runtime | Runtime execution |
+| `execution.windows` | Windows Runtime | Runtime execution |
+| `continuity.external` | Host | Host continuity |
+| `artifact.runtime` | Runtime selected by operation reference | Runtime Artifact read |
+
+Availability is owner-derived. Gateway may normalize routing, error shape, public ABI, authentication boundary, correlation, and projections; it must not manufacture owner truth. A routed owner is `configured` only when both its endpoint and the machine identity required by that owner are configured. An endpoint URL alone is not capability realization.
+
+As of the 2026-09-28 Gateway 0.6 live promotion, the canonical public Windows Gateway R2 carrier is healthy for Host/Social/discovery northbound and is deliberately rematerialized with both Runtime owner URLs empty while approved node-local Runtime bearer projections remain unavailable. Direct Linux and Windows Runtime owners both report `available=true`; public Gateway Runtime execution is therefore **explicitly unconfigured by missing Gateway→Runtime owner authentication**, not a Runtime owner outage. Public `system.describe` projects both Runtime owners `configured=false`, and `capability.describe` returns `owner endpoint is not configured` rather than attempting unauthenticated owner HTTP. Credential materialization remains a separate node-local authority action and must not be bypassed.
+
+For Runtime execution, once owner authentication is admitted, the normal Gateway northbound surface includes submit/get/cancel plus read-only `execution.resolve` for response-loss reconciliation by the already frozen request identity. `execution.resolve` discovers an existing Runtime Job; it does not redispatch an effect or move execution truth into Gateway.
+
+### Host normal northbound completion
+
+Host has destructively retired the privileged Task/Board core and now owns Social Work Fabric schema 9. Live Gateway 0.6.0 projects Host's bounded `actor.declare`, `work.*`, `space.*`, `topic.*`, `message.*`, `subscription.*`, `attention.*`, and `host.status` surfaces directly, while Host remains the semantic owner. There is no `continuity.*` or `collaboration.*` compatibility facade, no dual-write path, and no Gateway-owned work state. GATE99-held `work.relation.*`, `intent.*`, and private/confidential semantics are not exposed by the default Gateway surface. The portable default Plugin requires only Gateway for normal work; direct Host remains operator/admin/recovery-only.
+
+`WorkSnapshot` validation and CAS remain Host-owned. `host.status` is also projected through Gateway for bounded health/currentness while direct Host access remains operator/admin/recovery-only. Gateway 0.6.0 is live on the canonical Windows R2 carrier from immutable release `d91d63b70da5fa1c02a7b1a136c651649f62bd75`. Its epoch-3 source manifest declares 29 tools including read-only `capability.search`; the already-established ChatGPT connector session observed during promotion still enumerated the previous 28-tool catalog, so connector catalog currentness is again an explicit consumer-side seam until refresh/reconnect. This stale consumer catalog must be refreshed rather than repaired by weakening Host/Gateway boundaries or resurrecting compatibility aliases.
+
+## 4. Method Router ≠ Capability Router
+
+These are deliberately different components.
+
+### Method Router
+
+The **Method Router** is the canonical Agent Skill at:
+
+```text
+.agents/skills/method-router/SKILL.md
+```
+
+It helps an Agent choose **how to approach a problem**: which mature method, lens, standard, or procedure is appropriate. It is advisory knowledge.
+
+It does **not**:
+
+- route network calls;
+- choose Runtime/Host authority;
+- grant permissions;
+- execute effects;
+- become Gateway state.
+
+### Capability Router
+
+The **Capability Router** is the Gateway's static owner-routing projection in:
+
+```text
+services/gateway/src/ordivon_gateway/routes.py
+```
+
+It chooses **which natural owner implements one already-named stable capability**.
+
+It does **not**:
+
+- choose research/engineering methods;
+- plan work;
+- own Skill content;
+- own owner availability or semantic truth.
+
+Therefore:
+
+```text
+Method Router   = HOW should the Agent proceed?      → Agent Skill
+Capability Router = WHICH owner serves this capability? → Gateway projection
+```
+
+Neither substitutes for the other.
+
+## 5. Public and recovery surfaces
+
+The normal distribution path contains exactly one Ordivon MCP endpoint:
+
+```text
+ordivon-gateway -> https://gateway-mcp.ordivon.com/mcp
+```
+
+Direct Runtime and Host MCP surfaces remain available only as explicit operator/admin/recovery surfaces. Their existence does not make them default Agent distribution endpoints.
+
+The Skills MCP is separately retained for the exact ChatGPT compatibility gap proven by C03.
+
+Direct third-party MCPs remain direct when Ordivon adds no irreducible routing, policy, normalization, verification, or composition value.
+
+## 6. Identity boundary
+
+Identity namespaces are not interchangeable:
+
+```text
+Cloudflare Access principal
+        !=
+Gateway downstream machine credential
+        !=
+Agent identity
+        !=
+Host writer label
+        !=
+Runtime Job identity
+```
+
+Cloudflare Access/OAuth owns public authentication. Gateway derives a stable pseudonymous principal only after JWT verification.
+
+Gateway → Runtime owner calls require a separate machine identity appropriate to the deployed carrier; endpoint presence never substitutes for it. Linux systemd Gateway uses a systemd-projected Runtime bearer and its Windows-owner path uses a Cloudflare Access service identity. The canonical public Windows Gateway R2 carrier is currently missing its node-local Runtime bearer projections, so those execution routes are not configured even though both Runtime owners themselves are healthy.
+
+The public principal is not replayed as downstream authorization. Node-local credential bytes remain outside source and require their explicit credential authority/materialization path.
+
+## 7. Trace and audit boundary
+
+MCP 2.x owns W3C Trace Context propagation for Gateway server/client calls. OpenTelemetry owns span/export semantics.
+
+Gateway runs through the standard Python OpenTelemetry zero-code launcher. Its base production unit still defaults to:
+
+```text
+OTEL_TRACES_EXPORTER=none
+```
+
+because Workstation heavy observability is intentionally cold by default and telemetry availability must never gate product correctness. The existing opt-in trace profile switches Gateway to standard OTLP/HTTP export when the observability profile is intentionally activated.
+
+The deployed on-demand trace path is:
+
+```text
+Gateway OpenTelemetry
+  -> Vector OTLP HTTP 127.0.0.1:4318
+     (OTLP traces preserved)
+  -> Tempo OTLP HTTP 127.0.0.1:14318
+  -> Tempo query API 127.0.0.1:3200
+  -> Grafana Tempo datasource
+```
+
+Tempo 3.0.3 is the natural owner for trace persistence/query semantics; Workstation owns its local deployment. Vector remains the local observability carrier. Neither becomes Runtime, Host, authorization, completion, replay, currentness, or domain truth.
+
+Live acceptance on 2026-09-21 proved both a direct Tempo control span and a Vector-forwarded span were queryable by exact trace ID, then proved one real Cloudflare-authenticated Gateway `execution.submit` trace was queryable in Tempo and correlated with the exact Runtime operation reference. The observability profile remains on-demand rather than a prerequisite for Gateway correctness.
+
+Current default running posture is cold: the heavy observability target and Tempo service are inactive, the Gateway trace-export drop-in is absent, and Gateway reports `OTEL_TRACES_EXPORTER=none`. This is compatible with the deployed-on-demand standing: the capability is admitted and live-accepted, while activation remains explicit.
+
+Harness keeps telemetry outside its semantic core. Its canonical `TraceRecorder.event_sink` may be projected by caller-owned adapters such as `services/harness/scripts/harness_otel_event_sink.py`.
+
+Telemetry is observability only. It is never authorization, currentness, replay, completion, or owner truth.
+
+## 8. Plugin and Skill boundary
+
+The portable Agent Plugin uses the upstream-standard shape:
+
+```text
+plugin.json
+mcp.json
+[skills/]
+```
+
+The canonical `ordivon-control-plane` package is sourced from `extensions/ordivon-control-plane/` and declares exactly one MCP server: Gateway.
+
+Selected Skills may be copied into a materialized Plugin, but canonical Skill ownership remains with the standard Skill source. Plugin packaging does not transfer semantic ownership.
+
+No private third portable component type is introduced for local tools. Node-local Tool Binding evidence remains node-local.
+
+## 9. Retired Agent Service
+
+The historical Ordivon Agent Service is **RETIRED**.
+
+Its old implementation remains useful only as historical requirements/research evidence. Current responsibilities resolve directly to natural owners such as Host, Harness, Runtime, provider-native IAM/effect APIs, MCP/A2A where applicable, and mature workflow/orchestration systems.
+
+There is no "Agent Service 2.0" target in the current architecture. Reintroduction requires a new concrete workload and evidence that mature external ownership plus narrow adapters cannot satisfy it.
+
+Agent Automation + Temporal + Browserless is a separate live automation/carrier system. It must not be renamed or interpreted as the retired Agent Service.
+
+## 10. Deployed vs planned-only
+
+A component is "current" only when repository source **and** deployment/consumer evidence establish it.
+
+Current examples:
+
+- Gateway normal northbound MCP;
+- Linux/Windows Runtime;
+- Host;
+- Harness;
+- Method Router Skill;
+- Gateway Capability Router;
+- Gateway trace/audit projection;
+- Workstation Vector OTLP → Tempo persistent/queryable tracing (deployed on demand; cold by default);
+- exact ChatGPT Skills MCP compatibility edge.
+
+Not currently admitted/deployed as architecture truth:
+
+- Gateway database;
+- Gateway Task/Workflow authority;
+- universal Ordivon capability registry;
+- Agent Service replacement;
+- always-on/mandatory trace backend;
+- proven Temporal trace propagation;
+- universal proxy of third-party MCPs.
+
+## 11. Source-of-truth order
+
+This document is a rebuildable human projection, not an authority above the system it describes. For present-tense architecture claims, use:
+
+```text
+CURRENT PHYSICAL TRUTH
+  > CANONICAL SOURCE / CONFIGURATION
+  > LIVE OWNER STATE / PROVIDER READ-BACK
+  > DURABLE REGISTRY / RECEIPT
+  > TEST / VERIFICATION EVIDENCE
+  > CURRENT DOCUMENTATION
+  > PLANNING / HISTORICAL ARTIFACT
+```
+
+Always select the natural owner for the exact claim. A provider effect is established by provider authority, not by Git; a source contract is established by canonical source, not by an old deployment receipt. If this document conflicts with current physical/source/owner truth, this document is stale and must be repaired rather than used to override reality.
+
+## 12. Non-regression
+
+`mise run repo:ci` checks the current architecture documentation against:
+
+- the default portable Plugin's Gateway-only MCP declaration;
+- the deployed Gateway route capability set;
+- Method Router vs Capability Router ownership;
+- retired Agent Service status;
+- explicit supersession markers on known historical architecture snapshots.
+
+Owner-native verification and live acceptance remain necessary; documentation checks are a drift detector, not implementation proof.

@@ -1,0 +1,502 @@
+{
+  "attention": [
+    {
+      "code": "CHECKPOINT_WORKSPACE_HEAD_DRIFT",
+      "detail": "Host observed e63600be001687c555cc3930181992232203cb47; Runtime now projects 59ba4f80fe50495482f90449088937dbd5d15a38.",
+      "evidenceRefs": [
+        "sha256:dd825819d5809968bd58c04331303e70e860729bc04b9a6703f1694e0824b073"
+      ],
+      "findingId": "finding:sha256:26bccdf872bc860f9b7768d8de3e4c440ed445a6b3501e277b2eacfa218fa2a2",
+      "severity": "warning",
+      "subjectRefs": [
+        "task:gateway-windows-public-cutover-r3-20260923",
+        "ws-win-concurrency12-source-r1-20260922"
+      ],
+      "truthBoundary": "Deterministic finding over this cut; not owner-state mutation, priority, assignment, execution authority, or domain verdict."
+    },
+    {
+      "code": "CHECKPOINT_WORKSPACE_HEAD_DRIFT",
+      "detail": "Host observed 60322a3af8aff6fd31f79f93f812617bb78a5802; Runtime now projects 1b0158d2c65c90b083b7d62f276be2ffbfb6742a.",
+      "evidenceRefs": [
+        "sha256:32e3d9f129dfee921f92776be777c13675d9aa67dcb72fa27a3959544f8d6c63"
+      ],
+      "findingId": "finding:sha256:62b1e8e2ef28d04779ac7c937b998b5da0e17f8823737654f5bfcd4fafaa2f5b",
+      "severity": "warning",
+      "subjectRefs": [
+        "task:ordivon-integrated-lego-convergence-r2-20260923",
+        "ws-ordivon-current-architecture-r1-20260923"
+      ],
+      "truthBoundary": "Deterministic finding over this cut; not owner-state mutation, priority, assignment, execution authority, or domain verdict."
+    },
+    {
+      "code": "TASK_REFERENCES_CLOSED_WORKSPACE",
+      "detail": "Host continuity references a Runtime workspace observed closed.",
+      "evidenceRefs": [
+        "sha256:3223558fd935c4a4750508c604233486d5dfaacf0e3b70b7f9f6adce2d75c5ac"
+      ],
+      "findingId": "finding:sha256:874fd99f44ff4f2f47c26cb2d932c25ff9e93b182507f7dfdfab5146e1034617",
+      "severity": "warning",
+      "subjectRefs": [
+        "task:execution-fabric-r1-20260918",
+        "ws-execution-fabric-r1-20260918"
+      ],
+      "truthBoundary": "Deterministic finding over this cut; not owner-state mutation, priority, assignment, execution authority, or domain verdict."
+    }
+  ],
+  "commonOperatingPicture": {
+    "attentionCount": 3,
+    "availableCapabilities": [
+      "artifact.runtime",
+      "continuity.external",
+      "execution.linux",
+      "execution.windows"
+    ],
+    "checkpointWorkspaceHeadDriftCount": 2,
+    "closedWorkspaceReferenceCount": 1,
+    "gitMainRevision": "60322a3af8aff6fd31f79f93f812617bb78a5802",
+    "linkedTaskCount": 4,
+    "selectedTaskCount": 5,
+    "selectedWorkspaceCount": 4
+  },
+  "factSet": {
+    "kind": "ordivon.social-fact-set",
+    "observedAt": "2026-09-23T02:57:00+08:00",
+    "schemaVersion": 1,
+    "signals": [
+      {
+        "data": {
+          "available": true,
+          "capability": "artifact.runtime",
+          "ownerId": "runtime.dynamic"
+        },
+        "id": "signal:sha256:387b64e3263b80791da99909855b235e387fc00d49f78775ddd4444334e9c050",
+        "kind": "ordivon.social-signal",
+        "observedAt": "2026-09-23T02:57:00+08:00",
+        "schemaVersion": 1,
+        "source": "gateway",
+        "subject": "artifact.runtime",
+        "truthBoundary": "Gateway routing/availability projection only; natural owner truth remains external.",
+        "type": "ordivon.gateway.capability.observed"
+      },
+      {
+        "data": {
+          "available": true,
+          "capability": "continuity.external",
+          "ownerId": "host"
+        },
+        "id": "signal:sha256:b37ef2706ae10b7307883242e365a15e8ff95f723edde7af3eda95a3d5b32c48",
+        "kind": "ordivon.social-signal",
+        "observedAt": "2026-09-23T02:57:00+08:00",
+        "schemaVersion": 1,
+        "source": "gateway",
+        "subject": "continuity.external",
+        "truthBoundary": "Gateway routing/availability projection only; natural owner truth remains external.",
+        "type": "ordivon.gateway.capability.observed"
+      },
+      {
+        "data": {
+          "available": true,
+          "capability": "execution.linux",
+          "ownerId": "runtime.linux"
+        },
+        "id": "signal:sha256:c2c0e1c23b452aa47c07cf81666109ea5727c7f69a19cd7e603625a4ed592530",
+        "kind": "ordivon.social-signal",
+        "observedAt": "2026-09-23T02:57:00+08:00",
+        "schemaVersion": 1,
+        "source": "gateway",
+        "subject": "execution.linux",
+        "truthBoundary": "Gateway routing/availability projection only; natural owner truth remains external.",
+        "type": "ordivon.gateway.capability.observed"
+      },
+      {
+        "data": {
+          "available": true,
+          "capability": "execution.windows",
+          "ownerId": "runtime.windows"
+        },
+        "id": "signal:sha256:ac81bca49c8098f921acdbca6bf4975410a7372ad143fc4774cda3d33d73ebe3",
+        "kind": "ordivon.social-signal",
+        "observedAt": "2026-09-23T02:57:00+08:00",
+        "schemaVersion": 1,
+        "source": "gateway",
+        "subject": "execution.windows",
+        "truthBoundary": "Gateway routing/availability projection only; natural owner truth remains external.",
+        "type": "ordivon.gateway.capability.observed"
+      },
+      {
+        "data": {
+          "checkpointDigest": "sha256:51ddbc071b3172761d929cbd7b428b9dc874ab19d747c080cbaa909782517c30",
+          "goalId": "goal:agent-birth-v2-external-first-20260911",
+          "revision": 2,
+          "runtime": {
+            "observedHeadRevision": "140f33cc3b2d992c68b05179daae4e9b44e8443e",
+            "relevantJobIds": [],
+            "workspaceId": "ws-runtime-live-release-root-7741c2e9-r1-20260922"
+          },
+          "state": "open",
+          "taskId": "task:agent-materialization-convergence-plan-r1-20260921"
+        },
+        "id": "signal:sha256:66a138cae253ea8b8273cb6880878069b0e925a8638ead3e46e59f8f00c5dd69",
+        "kind": "ordivon.social-signal",
+        "observedAt": "2026-09-23T02:57:00+08:00",
+        "schemaVersion": 1,
+        "source": "host",
+        "subject": "task:agent-materialization-convergence-plan-r1-20260921",
+        "truthBoundary": "Host continuity observation only; foreign references require owner revalidation.",
+        "type": "ordivon.host.task.observed"
+      },
+      {
+        "data": {
+          "checkpointDigest": "sha256:3223558fd935c4a4750508c604233486d5dfaacf0e3b70b7f9f6adce2d75c5ac",
+          "goalId": "goal:ordivon-execution-fabric",
+          "revision": 2,
+          "runtime": {
+            "observedHeadRevision": "fa086380375aa035243bf55093b20767b170e9d4",
+            "relevantJobIds": [
+              "job-01a0b3a4-cb04-79c0-9768-0b83e740919b"
+            ],
+            "workspaceId": "ws-execution-fabric-r1-20260918"
+          },
+          "state": "open",
+          "taskId": "task:execution-fabric-r1-20260918"
+        },
+        "id": "signal:sha256:bfaf7b0026399a855f419f425fcb00c7382693fb0c5fe804877e36e8d71f643e",
+        "kind": "ordivon.social-signal",
+        "observedAt": "2026-09-23T02:57:00+08:00",
+        "schemaVersion": 1,
+        "source": "host",
+        "subject": "task:execution-fabric-r1-20260918",
+        "truthBoundary": "Host continuity observation only; foreign references require owner revalidation.",
+        "type": "ordivon.host.task.observed"
+      },
+      {
+        "data": {
+          "checkpointDigest": "sha256:dd825819d5809968bd58c04331303e70e860729bc04b9a6703f1694e0824b073",
+          "goalId": "goal:ordivon-gateway-windows-control-plane-cutover",
+          "revision": 4,
+          "runtime": {
+            "observedHeadRevision": "e63600be001687c555cc3930181992232203cb47",
+            "relevantJobIds": [
+              "job-01a0ca20-2457-7ff3-af0b-72e7617bcfec",
+              "job-01a0ca23-1343-7b92-92a8-94b7ae4444d2"
+            ],
+            "workspaceId": "ws-win-concurrency12-source-r1-20260922"
+          },
+          "state": "open",
+          "taskId": "task:gateway-windows-public-cutover-r3-20260923"
+        },
+        "id": "signal:sha256:bd0cdf8e568ec227f5c38ed3213d33a141d7107b7047f5c1ec979692bd6ad37b",
+        "kind": "ordivon.social-signal",
+        "observedAt": "2026-09-23T02:57:00+08:00",
+        "schemaVersion": 1,
+        "source": "host",
+        "subject": "task:gateway-windows-public-cutover-r3-20260923",
+        "truthBoundary": "Host continuity observation only; foreign references require owner revalidation.",
+        "type": "ordivon.host.task.observed"
+      },
+      {
+        "data": {
+          "checkpointDigest": "sha256:8b252bf22f1c95f2b60496e90f592a15a35739304141047d3093d40d376fe155",
+          "goalId": "goal:ordivon-host-ux-convergence",
+          "revision": 1,
+          "runtime": {
+            "observedHeadRevision": "8a5127a96272fe1d157cd636ac3b73942cb2d469",
+            "relevantJobIds": [],
+            "workspaceId": "ws-host-ux-convergence-r1-20260923"
+          },
+          "state": "open",
+          "taskId": "task:host-northbound-ux-convergence-r1-20260923"
+        },
+        "id": "signal:sha256:c54442ed1fbce99f99d531ca26bfc5495afe744e38184a653e29ccbfcc627a79",
+        "kind": "ordivon.social-signal",
+        "observedAt": "2026-09-23T02:57:00+08:00",
+        "schemaVersion": 1,
+        "source": "host",
+        "subject": "task:host-northbound-ux-convergence-r1-20260923",
+        "truthBoundary": "Host continuity observation only; foreign references require owner revalidation.",
+        "type": "ordivon.host.task.observed"
+      },
+      {
+        "data": {
+          "checkpointDigest": "sha256:32e3d9f129dfee921f92776be777c13675d9aa67dcb72fa27a3959544f8d6c63",
+          "goalId": "goal:ordivon-architecture-convergence-r2",
+          "revision": 1,
+          "runtime": {
+            "observedHeadRevision": "60322a3af8aff6fd31f79f93f812617bb78a5802",
+            "relevantJobIds": [
+              "job-01a0ca37-7987-7200-8ce5-35419ffe6c68"
+            ],
+            "workspaceId": "ws-ordivon-current-architecture-r1-20260923"
+          },
+          "state": "open",
+          "taskId": "task:ordivon-integrated-lego-convergence-r2-20260923"
+        },
+        "id": "signal:sha256:ee39eadf87bac46930fab4e054f332cc20ff915fe5a762895171a326ac8b6e9a",
+        "kind": "ordivon.social-signal",
+        "observedAt": "2026-09-23T02:57:00+08:00",
+        "schemaVersion": 1,
+        "source": "host",
+        "subject": "task:ordivon-integrated-lego-convergence-r2-20260923",
+        "truthBoundary": "Host continuity observation only; foreign references require owner revalidation.",
+        "type": "ordivon.host.task.observed"
+      },
+      {
+        "data": {
+          "standing": "CLOSED",
+          "workspaceId": "ws-execution-fabric-r1-20260918"
+        },
+        "id": "signal:sha256:a71dab014314f73dbd851d07ddcb27498eb5fb5cb204beb4556314ef118c0156",
+        "kind": "ordivon.social-signal",
+        "observedAt": "2026-09-23T02:57:00+08:00",
+        "schemaVersion": 1,
+        "source": "runtime",
+        "subject": "ws-execution-fabric-r1-20260918",
+        "truthBoundary": "Runtime workspace lifecycle observation only.",
+        "type": "ordivon.runtime.workspace.closed"
+      },
+      {
+        "data": {
+          "currentHeadRevision": "8a5127a96272fe1d157cd636ac3b73942cb2d469",
+          "dirty": true,
+          "sourceRepo": "/root/projects/ordivon",
+          "sourceRevision": "8a5127a96272fe1d157cd636ac3b73942cb2d469",
+          "sourceStateDigest": "sha256:e50b9a2bb479e664e8cd08f4d0ffb31fea9b1b07762e5e1b37032ba2ce5a7c3c",
+          "workspaceId": "ws-host-ux-convergence-r1-20260923"
+        },
+        "id": "signal:sha256:6ea4e073decc74cb541cca4ad279e9ba042e8ceb99a98c03f887b4202e413284",
+        "kind": "ordivon.social-signal",
+        "observedAt": "2026-09-23T02:57:00+08:00",
+        "schemaVersion": 1,
+        "source": "runtime",
+        "subject": "ws-host-ux-convergence-r1-20260923",
+        "truthBoundary": "Runtime physical/source-state observation only; no domain completion implied.",
+        "type": "ordivon.runtime.workspace.observed"
+      },
+      {
+        "data": {
+          "currentHeadRevision": "1b0158d2c65c90b083b7d62f276be2ffbfb6742a",
+          "dirty": true,
+          "sourceRepo": "/root/projects/ordivon",
+          "sourceRevision": "1b0158d2c65c90b083b7d62f276be2ffbfb6742a",
+          "sourceStateDigest": "sha256:b72885b89a510e87967be0fea0743a81bcf6838b2c1e079d5cba6cc53aeebd26",
+          "workspaceId": "ws-ordivon-current-architecture-r1-20260923"
+        },
+        "id": "signal:sha256:9b2a13e09394e0241fe134dda090ff2b0d656964ac073c0024e5c396f91b1f8f",
+        "kind": "ordivon.social-signal",
+        "observedAt": "2026-09-23T02:57:00+08:00",
+        "schemaVersion": 1,
+        "source": "runtime",
+        "subject": "ws-ordivon-current-architecture-r1-20260923",
+        "truthBoundary": "Runtime physical/source-state observation only; no domain completion implied.",
+        "type": "ordivon.runtime.workspace.observed"
+      },
+      {
+        "data": {
+          "currentHeadRevision": "140f33cc3b2d992c68b05179daae4e9b44e8443e",
+          "dirty": false,
+          "sourceRepo": "/root/projects/ordivon",
+          "sourceRevision": "140f33cc3b2d992c68b05179daae4e9b44e8443e",
+          "sourceStateDigest": "sha256:d6cf5ada0139e6f47ae4af620f8b1078f2ad89ba8eef6f535db593d2b98a288e",
+          "workspaceId": "ws-runtime-live-release-root-7741c2e9-r1-20260922"
+        },
+        "id": "signal:sha256:c1640077b0779198f67958a6c766d880e09ada56cd301bb34cdd17afa5e7afc5",
+        "kind": "ordivon.social-signal",
+        "observedAt": "2026-09-23T02:57:00+08:00",
+        "schemaVersion": 1,
+        "source": "runtime",
+        "subject": "ws-runtime-live-release-root-7741c2e9-r1-20260922",
+        "truthBoundary": "Runtime physical/source-state observation only; no domain completion implied.",
+        "type": "ordivon.runtime.workspace.observed"
+      },
+      {
+        "data": {
+          "currentHeadRevision": "59ba4f80fe50495482f90449088937dbd5d15a38",
+          "dirty": true,
+          "sourceRepo": "/root/projects/ordivon",
+          "sourceRevision": "223e5cad9a2b6d5739e6f79a0453be44b4708f5e",
+          "sourceStateDigest": "sha256:d6d84946861f19e5a28748b266a4aa42579fa0f3094d6ec225bc3b2fcf26bff7",
+          "workspaceId": "ws-win-concurrency12-source-r1-20260922"
+        },
+        "id": "signal:sha256:ca6d829eab2b8b703667b04e4eadfb5d8f212ea993892d864f422be189091a3b",
+        "kind": "ordivon.social-signal",
+        "observedAt": "2026-09-23T02:57:00+08:00",
+        "schemaVersion": 1,
+        "source": "runtime",
+        "subject": "ws-win-concurrency12-source-r1-20260922",
+        "truthBoundary": "Runtime physical/source-state observation only; no domain completion implied.",
+        "type": "ordivon.runtime.workspace.observed"
+      }
+    ]
+  },
+  "factSetDigest": "sha256:25a489715a552b4283ad4fcf487b9493ebac8aeeff3bed2d3eb705b3b6843c4a",
+  "findingsDigest": "sha256:dcde7d17d00137284c31800877aa332c7aec10993236764b1f74572e698a0698",
+  "kind": "ordivon.social-fabric-current-projection",
+  "nonClaims": [
+    "Open does not mean active.",
+    "Physical realization does not establish domain completion.",
+    "Bounded absence does not prove global absence.",
+    "This projection grants no execution, scheduling, assignment, priority, or EffectAuthority."
+  ],
+  "observedAt": "2026-09-23T02:57:00+08:00",
+  "reconciliation": {
+    "findingCount": 3,
+    "findings": [
+      {
+        "code": "CHECKPOINT_WORKSPACE_HEAD_DRIFT",
+        "detail": "Host observed e63600be001687c555cc3930181992232203cb47; Runtime now projects 59ba4f80fe50495482f90449088937dbd5d15a38.",
+        "evidenceRefs": [
+          "sha256:dd825819d5809968bd58c04331303e70e860729bc04b9a6703f1694e0824b073"
+        ],
+        "findingId": "finding:sha256:26bccdf872bc860f9b7768d8de3e4c440ed445a6b3501e277b2eacfa218fa2a2",
+        "severity": "warning",
+        "subjectRefs": [
+          "task:gateway-windows-public-cutover-r3-20260923",
+          "ws-win-concurrency12-source-r1-20260922"
+        ],
+        "truthBoundary": "Deterministic finding over this cut; not owner-state mutation, priority, assignment, execution authority, or domain verdict."
+      },
+      {
+        "code": "CHECKPOINT_WORKSPACE_HEAD_DRIFT",
+        "detail": "Host observed 60322a3af8aff6fd31f79f93f812617bb78a5802; Runtime now projects 1b0158d2c65c90b083b7d62f276be2ffbfb6742a.",
+        "evidenceRefs": [
+          "sha256:32e3d9f129dfee921f92776be777c13675d9aa67dcb72fa27a3959544f8d6c63"
+        ],
+        "findingId": "finding:sha256:62b1e8e2ef28d04779ac7c937b998b5da0e17f8823737654f5bfcd4fafaa2f5b",
+        "severity": "warning",
+        "subjectRefs": [
+          "task:ordivon-integrated-lego-convergence-r2-20260923",
+          "ws-ordivon-current-architecture-r1-20260923"
+        ],
+        "truthBoundary": "Deterministic finding over this cut; not owner-state mutation, priority, assignment, execution authority, or domain verdict."
+      },
+      {
+        "code": "TASK_REFERENCES_CLOSED_WORKSPACE",
+        "detail": "Host continuity references a Runtime workspace observed closed.",
+        "evidenceRefs": [
+          "sha256:3223558fd935c4a4750508c604233486d5dfaacf0e3b70b7f9f6adce2d75c5ac"
+        ],
+        "findingId": "finding:sha256:874fd99f44ff4f2f47c26cb2d932c25ff9e93b182507f7dfdfab5146e1034617",
+        "severity": "warning",
+        "subjectRefs": [
+          "task:execution-fabric-r1-20260918",
+          "ws-execution-fabric-r1-20260918"
+        ],
+        "truthBoundary": "Deterministic finding over this cut; not owner-state mutation, priority, assignment, execution authority, or domain verdict."
+      }
+    ],
+    "warningOrErrorCount": 3
+  },
+  "schemaVersion": 1,
+  "sourceSnapshotDigest": "sha256:0b94b20a772c8fc20fe71321eadb0ba4354f4888d423d984850704550295c1d5",
+  "truthRole": "rebuildable-cross-owner-projection",
+  "workGraph": {
+    "edges": [
+      {
+        "authority": "host-checkpoint-claim",
+        "edgeKind": "task-runtime-reference",
+        "from": "task:agent-materialization-convergence-plan-r1-20260921",
+        "to": "ws-runtime-live-release-root-7741c2e9-r1-20260922"
+      },
+      {
+        "authority": "host-checkpoint-claim",
+        "edgeKind": "task-runtime-reference",
+        "from": "task:execution-fabric-r1-20260918",
+        "to": "ws-execution-fabric-r1-20260918"
+      },
+      {
+        "authority": "host-checkpoint-claim",
+        "edgeKind": "task-runtime-reference",
+        "from": "task:gateway-windows-public-cutover-r3-20260923",
+        "to": "ws-win-concurrency12-source-r1-20260922"
+      },
+      {
+        "authority": "host-checkpoint-claim",
+        "edgeKind": "task-runtime-reference",
+        "from": "task:host-northbound-ux-convergence-r1-20260923",
+        "to": "ws-host-ux-convergence-r1-20260923"
+      },
+      {
+        "authority": "host-checkpoint-claim",
+        "edgeKind": "task-runtime-reference",
+        "from": "task:ordivon-integrated-lego-convergence-r2-20260923",
+        "to": "ws-ordivon-current-architecture-r1-20260923"
+      }
+    ],
+    "kind": "ordivon.social-work-graph",
+    "nodes": [
+      {
+        "id": "git:60322a3af8aff6fd31f79f93f812617bb78a5802",
+        "nodeKind": "git-main",
+        "owner": "git",
+        "revision": "60322a3af8aff6fd31f79f93f812617bb78a5802"
+      },
+      {
+        "id": "task:agent-materialization-convergence-plan-r1-20260921",
+        "nodeKind": "task",
+        "owner": "host",
+        "revision": 2,
+        "state": "open"
+      },
+      {
+        "id": "task:execution-fabric-r1-20260918",
+        "nodeKind": "task",
+        "owner": "host",
+        "revision": 2,
+        "state": "open"
+      },
+      {
+        "id": "task:gateway-windows-public-cutover-r3-20260923",
+        "nodeKind": "task",
+        "owner": "host",
+        "revision": 4,
+        "state": "open"
+      },
+      {
+        "id": "task:host-northbound-ux-convergence-r1-20260923",
+        "nodeKind": "task",
+        "owner": "host",
+        "revision": 1,
+        "state": "open"
+      },
+      {
+        "id": "task:ordivon-integrated-lego-convergence-r2-20260923",
+        "nodeKind": "task",
+        "owner": "host",
+        "revision": 1,
+        "state": "open"
+      },
+      {
+        "currentHeadRevision": "8a5127a96272fe1d157cd636ac3b73942cb2d469",
+        "dirty": true,
+        "id": "ws-host-ux-convergence-r1-20260923",
+        "nodeKind": "workspace",
+        "owner": "runtime"
+      },
+      {
+        "currentHeadRevision": "1b0158d2c65c90b083b7d62f276be2ffbfb6742a",
+        "dirty": true,
+        "id": "ws-ordivon-current-architecture-r1-20260923",
+        "nodeKind": "workspace",
+        "owner": "runtime"
+      },
+      {
+        "currentHeadRevision": "140f33cc3b2d992c68b05179daae4e9b44e8443e",
+        "dirty": false,
+        "id": "ws-runtime-live-release-root-7741c2e9-r1-20260922",
+        "nodeKind": "workspace",
+        "owner": "runtime"
+      },
+      {
+        "currentHeadRevision": "59ba4f80fe50495482f90449088937dbd5d15a38",
+        "dirty": true,
+        "id": "ws-win-concurrency12-source-r1-20260922",
+        "nodeKind": "workspace",
+        "owner": "runtime"
+      }
+    ],
+    "observedAt": "2026-09-23T02:57:00+08:00",
+    "schemaVersion": 1,
+    "truthBoundary": "Cross-owner reference projection only; natural owners retain truth."
+  },
+  "workGraphDigest": "sha256:a702fbc4b6a2ab5e8943f38203802c340f61a1321eb63893e97a8fc55af46f78"
+}

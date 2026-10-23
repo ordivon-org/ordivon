@@ -1,0 +1,19 @@
+[Unit]
+Description=Network v2 scoped ChatIngress proxy inside Browserless network authority
+BindsTo=network-v2-browserless.target
+After=network-v2-browserless.target network-v2-browserless-dns.service
+PartOf=network-v2-chat-ingress.target
+
+[Service]
+Type=simple
+NetworkNamespacePath=/run/netns/nv2-browserless-prod
+ExecStartPre=/usr/bin/sing-box check -c /etc/network-v2/chat-ingress/sing-box.json
+ExecStart=/usr/bin/sing-box run -c /etc/network-v2/chat-ingress/sing-box.json
+Restart=on-failure
+RestartSec=2s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+# namespace-local listener: 127.0.0.1:19080
