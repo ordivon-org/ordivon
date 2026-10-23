@@ -21,7 +21,7 @@ test("verification provisions OPA and propagates a failing package ci script", {
     const env: NodeJS.ProcessEnv = {
       HOME: process.env.HOME, USER: process.env.USER, CI: "true", BASH_ENV: "/dev/null",
       MISE_DATA_DIR: process.env.MISE_DATA_DIR, MISE_CACHE_DIR: process.env.MISE_CACHE_DIR,
-      MISE_CONFIG_DIR: process.env.MISE_CONFIG_DIR, MISE_TRUSTED_CONFIG_PATHS: root,
+      MISE_CONFIG_DIR: join(root, "mise-config"), MISE_TRUSTED_CONFIG_PATHS: root,
       PATH: [unavailable, dirname(binding.stdout.trim()), dirname(process.execPath), dirname(mise), "/usr/bin", "/bin"].join(delimiter),
     };
     const consumer = join(root, "apps/web");
