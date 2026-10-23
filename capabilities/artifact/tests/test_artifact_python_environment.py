@@ -41,7 +41,7 @@ class ArtifactDeliveryEnvironmentTests(unittest.TestCase):
         lock=M.load_lock()
         self.assertEqual(lock['pythonPackages']['temporalio'],'1.32.0')
         self.assertEqual(lock['pythonPackages']['nexus-rpc'],'1.4.0')
-        self.assertEqual(lock['pythonPackages']['protobuf'],'7.36.1')
+        self.assertEqual(lock['pythonPackages']['protobuf'],'7.36.2')
         self.assertEqual(lock['pythonPackages']['types-protobuf'],'7.35.1.20260906')
     def test_published_stable_python_is_wrapper_not_internal_venv_interpreter(self):
         lock=M.load_lock();stable=lock['stablePython'];self.assertTrue(stable.endswith('/current/bin/python'));self.assertNotIn('/.venv/',stable)
