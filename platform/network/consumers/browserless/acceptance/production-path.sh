@@ -23,19 +23,16 @@ test "$(sysctl -n net.ipv4.ip_forward)" = 1
 iptables-legacy -C FORWARD -i "$HOST_IF" -s "$NS_CIDR" -m comment --comment "$FORWARD_COMMENT" -j ACCEPT
 iptables-legacy -C FORWARD -o "$HOST_IF" -d "$NS_CIDR" -m conntrack --ctstate RELATED,ESTABLISHED -m comment --comment "$FORWARD_COMMENT" -j ACCEPT
 
-handshake_age=999999
-for _ in $(seq 1 24); do
-  ip netns exec "$NS" ping -4 -c1 -W1 1.1.1.1 >/dev/null 2>&1 || true
-  hs=$(ip netns exec "$NS" wg show "$WG_IF" latest-handshakes 2>/dev/null | awk 'NR==1{print $2+0}')
-  now=$(date +%s)
-  if [ "${hs:-0}" -gt 0 ] && [ "$now" -ge "$hs" ]; then
-    handshake_age=$((now-hs))
-    [ "$handshake_age" -le 30 ] && break
-  fi
-  sleep .25
-done
+# WireGuard latest-handshake is structural evidence that the peer session has been
+# established, not a per-packet freshness clock. Persistent keepalives and healthy data
+# traffic do not require a new handshake every 30 seconds. Current liveness is proven
+# below by bounded DNS + OpenAI + ChatGPT application consequences.
+ip netns exec "$NS" ping -4 -c1 -W1 1.1.1.1 >/dev/null 2>&1 || true
+hs=$(ip netns exec "$NS" wg show "$WG_IF" latest-handshakes 2>/dev/null | awk 'NR==1{print $2+0}')
+now=$(date +%s)
 test "${hs:-0}" -gt 0
-test "$handshake_age" -le 30
+test "$now" -ge "$hs"
+handshake_age=$((now-hs))
 
 resolve4() {
   local host=$1 value
