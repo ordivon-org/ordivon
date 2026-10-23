@@ -1,0 +1,18 @@
+[Unit]
+Description=Network v2 X Reality exact API egress authority
+Wants=network-v2-browserless-provider-carrier.service
+After=network-v2-browserless-provider-carrier.service
+
+[Service]
+Type=simple
+User=sing-box
+Group=sing-box
+ExecStartPre=/usr/bin/sing-box check -c /etc/network-v2/x-reality/egress.json
+ExecStart=/usr/bin/sing-box run -c /etc/network-v2/x-reality/egress.json
+Restart=on-failure
+RestartSec=2s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+RestrictAddressFamilies=AF_INET AF_UNIX AF_NETLINK

@@ -2,6 +2,8 @@ import json
 import subprocess
 from pathlib import Path
 
+import pytest
+
 ROOT=Path(__file__).resolve().parents[1]
 
 def test_observer_bindings_are_external_and_executor_is_excluded():
@@ -16,6 +18,7 @@ def test_observer_bindings_are_external_and_executor_is_excluded():
     assert x['privateAccountDataAllowed'] is False
     assert x['externalFinancialWritesAllowed'] is False
 
+@pytest.mark.provider_qualification
 def test_binding_checker_only_checks_paths_and_modes():
     p=subprocess.run([str(ROOT/'scripts/check-private-reality-credential-bindings')],cwd=ROOT,text=True,capture_output=True,check=True)
     assert 'secretBytesRead": false' in p.stdout

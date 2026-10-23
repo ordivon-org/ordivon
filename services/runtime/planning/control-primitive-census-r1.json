@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.runtime-control-primitive-census",
+  "sourceRevision": "75dc93c56e367535cbff0d50921d188798c9de5e",
+  "primitives": [
+    {
+      "id": "C01",
+      "name": "Fence",
+      "currentLocations": [
+        "runtime deployment fence",
+        "Workspace active/held guards",
+        "lifecycle/reclaim locks"
+      ],
+      "candidate": "typed precondition/admission fence",
+      "risk": "Do not generalize into business policy."
+    },
+    {
+      "id": "C02",
+      "name": "Reservation",
+      "currentLocations": [
+        "Registry concurrency_reservations"
+      ],
+      "candidate": "durable capacity primitive",
+      "risk": "No queue/priority semantics."
+    },
+    {
+      "id": "C03",
+      "name": "Revalidate",
+      "currentLocations": [
+        "release candidate/authority rechecks",
+        "workspace close source-state checks",
+        "reclaim/lifecycle before-delete checks"
+      ],
+      "candidate": "read-current-then-compare primitive",
+      "risk": "Must remain operation-specific about what truth is compared."
+    },
+    {
+      "id": "C04",
+      "name": "CAS",
+      "currentLocations": [
+        "sourceStateDigest close",
+        "release env authority/policy atomic update",
+        "Git ref/checkpoint expected old value"
+      ],
+      "candidate": "exact expected-state transition helper",
+      "risk": "No generic effect state machine."
+    },
+    {
+      "id": "C05",
+      "name": "Drain",
+      "currentLocations": [
+        "structured self-release ingress/drain"
+      ],
+      "candidate": "release-specific use of generic wait-for-holder-zero mechanic",
+      "risk": "Do not add hidden scheduler."
+    },
+    {
+      "id": "C06",
+      "name": "Receipt",
+      "currentLocations": [
+        "release",
+        "lifecycle",
+        "reclaim",
+        "dirty checkpoint",
+        "repair"
+      ],
+      "candidate": "common atomic receipt envelope + operation-owned payload",
+      "risk": "Receipt schema must not erase operation semantics."
+    },
+    {
+      "id": "C07",
+      "name": "Rollback",
+      "currentLocations": [
+        "structured release previous artifact/authority restore"
+      ],
+      "candidate": "operation-specific rollback composition",
+      "risk": "No generic compensation engine."
+    },
+    {
+      "id": "C08",
+      "name": "Quarantine",
+      "currentLocations": [
+        "Workspace lifecycle repair/orphan quarantine",
+        "retirement evidence flows"
+      ],
+      "candidate": "physical detach/move + identity tombstone primitive",
+      "risk": "Never infer semantic safety from quarantine alone."
+    },
+    {
+      "id": "C09",
+      "name": "AtomicWrite",
+      "currentLocations": [
+        "operator JSON receipts/env files"
+      ],
+      "candidate": "shared mechanical atomic-file helper",
+      "risk": "No new durable state owner."
+    }
+  ],
+  "extractionOrder": [
+    "C03",
+    "C04",
+    "C06",
+    "C01",
+    "C09",
+    "C08",
+    "C05",
+    "C07"
+  ],
+  "rationale": "Revalidate/CAS/Receipt recur broadly and are easiest to extract without inventing a second lifecycle."
+}

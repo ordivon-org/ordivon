@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.convergence-observation-r2-acceptance-evidence",
+  "date": "2026-09-23",
+  "truthRole": "provider-main-requalified-candidate-evidence-not-provider-publication-authority",
+  "lineage": {
+    "providerBase": "ad023e8e5c80ce8f44bc8c78f9eab78d65e713bc",
+    "sourceImplementationCommit": "0c62eae1eddac9a953e60c94a66a73a0348d0946",
+    "requalifiedImplementationCommit": "4dd3084a72acb6a244a044f6ca0ec70d0dafba3f",
+    "pr26MergeCommit": "ad023e8e5c80ce8f44bc8c78f9eab78d65e713bc"
+  },
+  "validation": {
+    "focusedContracts": {
+      "standing": "PASS",
+      "tests": "7 passed, 15 deselected",
+      "runtimeJobId": "job-01a0cdfb-2017-73f0-a872-f1035fc72b55"
+    },
+    "repoCi": {
+      "standing": "PASS",
+      "architectureTests": 41,
+      "runtimeJobId": "job-01a0cdfb-2017-73f0-a872-f1035fc72b55"
+    },
+    "liveProviderProof": {
+      "standing": "PASS",
+      "runtimeJobId": "job-01a0cdfb-8c6d-7840-8a14-af98eb609f9a"
+    }
+  },
+  "liveObservation": {
+    "queue": {
+      "episodes": 11,
+      "mergeGroupRuns": 11,
+      "medianDispatchSeconds": 18.0,
+      "medianResidenceSeconds": 104.0,
+      "medianVerificationSeconds": 44.0,
+      "p95VerificationSeconds": 669.0,
+      "peakDepthLowerBound": 2,
+      "requeues": 0,
+      "unsuccessfulMergeGroupRuns": 0
+    },
+    "ci": {
+      "runs": 20,
+      "pullRequestRuns": 10,
+      "mergeGroupRuns": 10,
+      "terminationReasonCounts": {
+        "CANCELLED": 2,
+        "FAILURE": 3,
+        "SUCCESS": 15
+      },
+      "economicOutcomeCounts": {
+        "UNCLASSIFIED": 20
+      },
+      "rootVerificationMedianSeconds": 150.0,
+      "rootVerificationP95Seconds": 692.0,
+      "rootVerificationMaxSeconds": 713.0,
+      "affectedOwnersMedianSeconds": 102.0,
+      "affectedOwnersP95Seconds": 630.0,
+      "affectedOwnersMaxSeconds": 631.0
+    }
+  },
+  "pressure": {
+    "QUEUE_CONTENTION": "NOT_PROVEN",
+    "HIGH_QUEUE_DEPTH": "NOT_PROVEN",
+    "CI_WASTE": "INSUFFICIENT_EVIDENCE",
+    "LONG_TAIL_OWNER": "INSUFFICIENT_EVIDENCE",
+    "PREDICTOR_DATA": "INSUFFICIENT_EVIDENCE",
+    "controlsAdmitted": []
+  },
+  "acceptedBoundaries": [
+    "GitHub remains queue and Actions authority",
+    "observation has no provider mutation or control authority",
+    "provider conclusion is not economic outcome",
+    "pressure assessment is diagnosis only",
+    "live observations are rebuildable projections rather than canonical mutable queue state"
+  ],
+  "nonClaims": [
+    "CI waste is proven from cancellation or failure counts alone",
+    "owner long-tail general optimization is admitted from one cross-cutting owner-cost episode",
+    "adaptive speculation, batching, evidence reuse, cancellation control, or predictive scheduling is admitted",
+    "local acceptance evidence is provider publication authority"
+  ],
+  "standing": "LOCAL_ACCEPTANCE_PASS_PROVIDER_QUALIFICATION_REQUIRED"
+}

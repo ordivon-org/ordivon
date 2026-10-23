@@ -58,6 +58,12 @@ class CampaignSpecInput(BaseModel):
     roster: list[RoleCardInput] = Field(min_length=1, max_length=256)
 
 
+class ConversationMarkerProofInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    sessionId: str = Field(pattern=UUID7_PATTERN)
+    markerDigest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+
+
 @dataclass(frozen=True, slots=True)
 class McpSettings:
     config_file: Path
@@ -234,7 +240,7 @@ def build_server(settings: McpSettings) -> MCPServer:
         instructions=(
             "Use campaign.register only for controller-classified L0 Direct work. L1/L2 campaign registration is intentionally unavailable until authoritative current Host Inquiry standing can be verified; L1/L2 work MUST NOT fall back to campaign.register. "
             "campaign.launch and materialization.reconcile admit deterministic Temporal workflows; Browserless owns browser lifecycle. "
-            "A challenge/auth gate may become HUMAN_REQUIRED without crossing ChatGPT SEND. Use materialization.humanHandoff to obtain the bounded interactive operator URL, then materialization.humanResume only after a bounded self-hosted handoff expires or current-session absence is proven. "
+            "AUTH_REQUIRED may become HUMAN_REQUIRED without crossing ChatGPT SEND. Use materialization.humanHandoff to obtain the durable CfT operator URL, complete authentication in that exact systemd-owned session, then materialization.humanResume to update the same materialization workflow/effect identity. CHALLENGE_GATED remains pre-effect HOLD. "
             "The SQLite effect fence remains authoritative at ChatGPT SEND, so UNKNOWN/ambiguous never authorizes blind resend. "
             "Use provider.preflight for one explicit read-only endpoint admission observation."
         ),
@@ -278,7 +284,7 @@ def build_server(settings: McpSettings) -> MCPServer:
     @server.tool(
         name="campaign.launch",
         title="Launch registered campaign",
-        description="Materialize all missing materializations of one registered campaignRef. READY proceeds normally; challenge/auth admission may enter a bounded HUMAN_REQUIRED handoff without filling the composer or crossing SEND. Existing effects remain idempotent and ambiguous states never blind-resend.",
+        description="Materialize all missing materializations of one registered campaignRef. READY proceeds normally; AUTH_REQUIRED may enter a durable CfT HUMAN_REQUIRED handoff without filling the composer or crossing SEND, while CHALLENGE_GATED remains a pre-effect HOLD. Existing effects remain idempotent and ambiguous states never blind-resend.",
         annotations=ToolAnnotations(
             readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=True
         ),
@@ -323,7 +329,7 @@ def build_server(settings: McpSettings) -> MCPServer:
     @server.tool(
         name="materialization.humanHandoff",
         title="Open human provider verification",
-        description="Read the private interactive URL for one currently active HUMAN_REQUIRED provider-admission session. This is an operator handoff only: it never fills the composer, clicks the provider challenge, or crosses SEND.",
+        description="Read the operator URL for one current HUMAN_REQUIRED provider-admission session. New AUTH_REQUIRED handoffs use a durable systemd-owned CfT session; legacy Browserless handoffs are read only for pre-cutover recovery. This never fills the composer, clicks a provider challenge, or crosses SEND.",
         annotations=ToolAnnotations(
             readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False
         ),
@@ -338,9 +344,9 @@ def build_server(settings: McpSettings) -> MCPServer:
     @server.tool(
         name="materialization.humanResume",
         title="Resume after human provider verification",
-        description="Re-enter provider admission for the same frozen materialization effect after a prior HUMAN_REQUIRED handoff window expired. The materializer atomically claims the same effect identity and never blind-resends an UNKNOWN outcome.",
+        description="Resume the same durable HUMAN_REQUIRED materialization workflow after verified human provider admission. The handoff digest is sent as an exact Temporal update to the same provider-effect identity; no second workflow or fresh materialization effect is minted.",
         annotations=ToolAnnotations(
-            readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True
+            readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=True
         ),
     )
     async def materialization_human_resume(campaignRef: str, agentId: str) -> CallToolResult:
@@ -349,6 +355,74 @@ def build_server(settings: McpSettings) -> MCPServer:
         except Exception as error:
             return _tool_error(str(error))
         return await _invoke(current_service().launch_human_resume, path, agentId)
+
+    @server.tool(
+        name="conversation.adopt",
+        title="Adopt existing provider conversation",
+        description="Bind one already-existing provider conversation to a registered campaign role after an exact read-only marker proof. Adoption performs zero provider SEND, fails closed on zero/multiple matches, and persists only the exact binding evidence.",
+        annotations=ToolAnnotations(
+            readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=True
+        ),
+    )
+    async def conversation_adopt(
+        campaignRef: str,
+        agentId: str,
+        adoptionRequestId: str,
+        markerProof: ConversationMarkerProofInput,
+    ) -> CallToolResult:
+        try:
+            path = current_registry().resolve(campaignRef)
+        except Exception as error:
+            return _tool_error(str(error))
+        return await _invoke(
+            current_service().adopt_conversation,
+            path,
+            campaignRef,
+            agentId,
+            adoption_request_id=adoptionRequestId,
+            marker_proof=markerProof.model_dump(exclude_none=True),
+        )
+
+    @server.tool(
+        name="conversation.affinity",
+        title="Read preferred conversation affinity",
+        description="Read the current continue-first conversation placement for one campaign role. Existing adopted affinity is preferred; stale affinity is held rather than silently materializing a duplicate conversation. No provider effect.",
+        annotations=ToolAnnotations(
+            readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False
+        ),
+    )
+    async def conversation_affinity(campaignRef: str, agentId: str) -> CallToolResult:
+        try:
+            path = current_registry().resolve(campaignRef)
+        except Exception as error:
+            return _tool_error(str(error))
+        return await _invoke(
+            current_service().conversation_affinity, path, campaignRef, agentId
+        )
+
+    @server.tool(
+        name="conversation.wake",
+        title="Wake role with continue-first placement",
+        description="Map one stable wakeIntentId to one UUIDv7 turnRequestId, continue the preferred existing conversation when available, or admit materialization fallback without sending the wake prompt. Exact replay converges on the same turn identity.",
+        annotations=ToolAnnotations(
+            readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=True
+        ),
+    )
+    async def conversation_wake(
+        campaignRef: str, agentId: str, wakeIntentId: str, prompt: str
+    ) -> CallToolResult:
+        try:
+            path = current_registry().resolve(campaignRef)
+        except Exception as error:
+            return _tool_error(str(error))
+        return await _invoke(
+            current_service().launch_wake,
+            path,
+            campaignRef,
+            agentId,
+            wake_intent_id=wakeIntentId,
+            prompt=prompt,
+        )
 
     @server.tool(
         name="conversation.continue",
@@ -374,6 +448,7 @@ def build_server(settings: McpSettings) -> MCPServer:
             agentId,
             prompt=prompt,
             turn_request_id=turnRequestId,
+            campaign_ref=campaignRef,
         )
 
     @server.tool(

@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.runtime-evidence-claim-matrix",
+  "sourceRevision": "75dc93c56e367535cbff0d50921d188798c9de5e",
+  "claims": [
+    {
+      "id": "E01",
+      "subject": "Execution provider",
+      "claim": "Job bound to exact provider realization identity",
+      "witness": "ExecutionProviderSnapshot + start evidence",
+      "scope": "provider/config/binary identity committed for Job",
+      "limitation": "Does not prove provider/domain semantic correctness."
+    },
+    {
+      "id": "E02",
+      "subject": "Executable path",
+      "claim": "Runtime witnessed target executable path continuity through execution step",
+      "witness": "Runner path/topology witness + digest checks",
+      "scope": "Runtime host namespace pathname view",
+      "limitation": "Not target private mount namespace isolation or proof of byte consumption."
+    },
+    {
+      "id": "E03",
+      "subject": "Host Dependency",
+      "claim": "Declared host prerequisite did not drift in witnessed namespace during Attempt",
+      "witness": "digest validation + inotify/topology witness",
+      "scope": "runtime_host_namespace_path_witness",
+      "limitation": "Partial explicit dependency set; not automatic environment closure."
+    },
+    {
+      "id": "E04",
+      "subject": "Immutable input",
+      "claim": "Committed Job consumed Runtime-owned materialization identity",
+      "witness": "authority/object/digest + Job-owned materialized bytes",
+      "scope": "materialized input commitment",
+      "limitation": "Does not imply domain acceptance."
+    },
+    {
+      "id": "E05",
+      "subject": "Credential",
+      "claim": "Authorized principal selected opaque credential version and Runtime delivered encrypted snapshot via systemd credentials",
+      "witness": "CredentialAuthority ACL + encrypted snapshot identity",
+      "scope": "credential binding/delivery",
+      "limitation": "Does not prove provider permission or external effect success."
+    },
+    {
+      "id": "E06",
+      "subject": "Attempt terminal state",
+      "claim": "Physical owner reached observed terminal state",
+      "witness": "Runner/Windows supervisor result + terminal evidence artifact",
+      "scope": "process/supervisor execution",
+      "limitation": "Mechanical completion only; semanticCompletionEvaluated remains false."
+    },
+    {
+      "id": "E07",
+      "subject": "Artifact",
+      "claim": "Bytes belong to exact Runtime Artifact identity",
+      "witness": "digest/length/kind/Job/Attempt record",
+      "scope": "retained artifact bytes",
+      "limitation": "Artifact existence does not imply scientific/business correctness."
+    },
+    {
+      "id": "E08",
+      "subject": "Runtime release",
+      "claim": "Structured self-release committed/not-committed/rolled-back",
+      "witness": "deployment receipt joined with Job/Attempt",
+      "scope": "Runtime release effect",
+      "limitation": "Generic process exit/transport status is subordinate to receipt truth."
+    },
+    {
+      "id": "E09",
+      "subject": "Windows physical ownership",
+      "claim": "Native process tree owned by Windows Job Object/launcher contract",
+      "witness": "WindowsStartEvidence/WindowsLauncherStartEvidence",
+      "scope": "native Windows realization",
+      "limitation": "Does not make Linux and Windows mechanism-equivalent."
+    }
+  ],
+  "targetModel": "EvidenceClaim{subject,claim,scope,witness,observation,boundary,limitation}",
+  "migrationRule": "Introduce as internal projection first; historical serialized evidence remains readable and need not be rewritten."
+}

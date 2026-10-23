@@ -1,0 +1,155 @@
+{
+  "@context": {
+    "dcat": "http://www.w3.org/ns/dcat#",
+    "dct": "http://purl.org/dc/terms/",
+    "odrl": "http://www.w3.org/ns/odrl/2/",
+    "prov": "http://www.w3.org/ns/prov#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@id": "urn:ordivon:catalog:data-products:2026-09-22:r2",
+  "@type": "dcat:Catalog",
+  "dcat:dataset": [
+    {
+      "@id": "urn:uuid:94d0bf2c-036b-53b1-b733-14d3a5536a74",
+      "@type": [
+        "dcat:Dataset",
+        "odrl:Asset"
+      ],
+      "dcat:distribution": [
+        {
+          "@id": "urn:uuid:dc3b3f74-1c92-5a22-8e39-3abfb3af03fd",
+          "@type": "dcat:Distribution",
+          "dcat:accessURL": {
+            "@id": "file:///root/projects/ordivon-research-v2/research_objects/first_paper_r2_r4_frozen/source/inputs/dataset.full.csv"
+          },
+          "dct:format": "text/csv",
+          "dct:identifier": "sha256:6c2066eb1bf1824887a72c6f6df3cb5106894efde206686eb564287fe6547e50",
+          "dct:title": "frozen-benchmark-csv"
+        }
+      ],
+      "dcat:version": "1.0.0",
+      "dct:conformsTo": [
+        {
+          "@id": "https://github.com/bitol-io/open-data-product-standard"
+        },
+        {
+          "@id": "https://github.com/bitol-io/open-data-contract-standard"
+        }
+      ],
+      "dct:description": "Expose the exact frozen benchmark used by Paper1 as a governed research data product.",
+      "dct:identifier": "94d0bf2c-036b-53b1-b733-14d3a5536a74",
+      "dct:rights": {
+        "@id": "urn:uuid:2bbc6d0e-8d2c-5dfc-93b4-c1e6db873694"
+      },
+      "dct:title": "Paper1 Frozen Flaky-Test Benchmark",
+      "odrl:hasPolicy": {
+        "@id": "urn:uuid:2bbc6d0e-8d2c-5dfc-93b4-c1e6db873694"
+      },
+      "prov:wasDerivedFrom": {
+        "@id": "urn:sha256:6c2066eb1bf1824887a72c6f6df3cb5106894efde206686eb564287fe6547e50"
+      }
+    },
+    {
+      "@id": "urn:uuid:d14d7457-c9aa-59e0-8bf5-7783cea39c1c",
+      "@type": [
+        "dcat:Dataset",
+        "odrl:Asset"
+      ],
+      "dcat:distribution": [
+        {
+          "@id": "urn:uuid:358e57ff-d416-5dd6-a90c-f62b4bc94ff0",
+          "@type": "dcat:Distribution",
+          "dcat:accessURL": {
+            "@id": "file:///root/projects/ordivon-market-capital-next/evidence/crypto-public-shadow-r2-20260914.json"
+          },
+          "dct:format": "application/json",
+          "dct:identifier": "sha256:ed5fba6227a5d997adefb6bf63717463dc75fdc8b62cfb0005804109eb0a2d7e",
+          "dct:title": "public-shadow-json"
+        }
+      ],
+      "dcat:version": "2026.09.14",
+      "dct:conformsTo": [
+        {
+          "@id": "https://github.com/bitol-io/open-data-product-standard"
+        },
+        {
+          "@id": "https://github.com/bitol-io/open-data-contract-standard"
+        }
+      ],
+      "dct:description": "Expose the frozen cross-venue public streaming observation as a governed, read-only analytical data product.",
+      "dct:identifier": "d14d7457-c9aa-59e0-8bf5-7783cea39c1c",
+      "dct:rights": {
+        "@id": "urn:uuid:33b9c6e5-23e4-576a-8fb1-59977a40e200"
+      },
+      "dct:title": "Crypto Public Shadow R2 Observation",
+      "odrl:hasPolicy": {
+        "@id": "urn:uuid:33b9c6e5-23e4-576a-8fb1-59977a40e200"
+      },
+      "prov:wasDerivedFrom": {
+        "@id": "urn:sha256:ed5fba6227a5d997adefb6bf63717463dc75fdc8b62cfb0005804109eb0a2d7e"
+      }
+    },
+    {
+      "@id": "urn:uuid:4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b",
+      "@type": [
+        "dcat:Dataset",
+        "odrl:Asset"
+      ],
+      "dcat:distribution": [
+        {
+          "@id": "urn:uuid:4664e208-2cdc-5d4f-a83d-e70e187b046a",
+          "@type": "dcat:Distribution",
+          "dcat:accessURL": {
+            "@id": "file://meta/next/evidence/experimental-episode/corpus-r1/manifest.json"
+          },
+          "dct:format": "application/json",
+          "dct:identifier": "sha256:67c917eacd59fb7ae48877cde4d893093477c9c730a454824251291aad012b1b",
+          "dct:title": "episode-corpus-manifest-json"
+        },
+        {
+          "@id": "urn:uuid:70592aa5-9a4c-5f03-ac41-c79baa235d85",
+          "@type": "dcat:Distribution",
+          "dct:description": "Qualified reproducible materialization; canonical Parquet bytes are not stored in Git.",
+          "dct:format": "application/vnd.apache.parquet",
+          "dct:identifier": "sha256:7c0747db4f0568a83e444cbf46e61aed93bd8d5fa66eb5eedb0ad2af98db233d",
+          "dct:title": "episode-index-parquet"
+        }
+      ],
+      "dcat:version": "1.0.0",
+      "dct:conformsTo": [
+        {
+          "@id": "https://github.com/bitol-io/open-data-product-standard"
+        },
+        {
+          "@id": "https://github.com/bitol-io/open-data-contract-standard"
+        }
+      ],
+      "dct:description": "Replay-qualified non-authoritative analytical Episode corpus. PostgreSQL is a rebuildable materialization, not product identity.",
+      "dct:identifier": "4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b",
+      "dct:rights": {
+        "@id": "urn:uuid:f4c742f8-78ad-56a4-ae40-cb6d79f5f545"
+      },
+      "dct:title": "Experimental Episode Corpus R1",
+      "odrl:hasPolicy": {
+        "@id": "urn:uuid:f4c742f8-78ad-56a4-ae40-cb6d79f5f545"
+      },
+      "prov:wasDerivedFrom": [
+        {
+          "@id": "urn:sha256:ff4257772344c51e25313e914586ee760e1180cb1f261796beedd34345267e8d"
+        },
+        {
+          "@id": "urn:sha256:7566b2172663ba4286fd2778ca234b0c8e099937ae1a0c6de1389e2e07e294d6"
+        }
+      ]
+    }
+  ],
+  "dct:conformsTo": {
+    "@id": "https://www.w3.org/TR/vocab-dcat-3/"
+  },
+  "dct:description": "Federated projection over domain-owned ODPS/ODCS products. The catalog is discovery metadata, not the authoritative owner of domain data.",
+  "dct:issued": {
+    "@type": "xsd:date",
+    "@value": "2026-09-22"
+  },
+  "dct:title": "Ordivon Federated Data Product Catalog R2"
+}

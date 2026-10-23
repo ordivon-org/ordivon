@@ -202,6 +202,53 @@ class OperationalScriptTests(unittest.TestCase):
         self.assertIn('export ORDIVON_RUNTIME_INSPECT=', owner)
         self.assertIn('cmp -s "$source_inspect"', owner)
 
+    def test_owner_environment_test_lifecycle_is_public_and_non_qualifying(self) -> None:
+        help_result = subprocess.run(
+            ["scripts/owner-environment", "--help"],
+            cwd=REPO,
+            check=True,
+            text=True,
+            capture_output=True,
+        )
+        self.assertIn("test-lifecycle", help_result.stdout)
+        self.assertIn("non-qualifying", help_result.stdout.lower())
+
+        environment = os.environ.copy()
+        environment.pop("CARGO_TARGET_DIR", None)
+        result = subprocess.run(
+            ["scripts/owner-environment", "test-lifecycle"],
+            cwd=REPO,
+            env=environment,
+            check=True,
+            text=True,
+            capture_output=True,
+        )
+        self.assertIn("lifecycle inner-loop: non-qualifying", result.stdout.lower())
+
+    def test_runtime_verify_runs_reference_model_only_via_extended_surface(self) -> None:
+        mise = (REPO / "mise.toml").read_text(encoding="utf-8")
+        verify = mise.split("[tasks.verify]", 1)[1]
+        property_name = "request_identity_and_terminal_winner_match_reference_model"
+        transactional = next(
+            line
+            for line in verify.splitlines()
+            if "cargo test --locked -p ordivon-runtime-core" in line
+        )
+        self.assertIn(f"--skip {property_name}", transactional)
+        self.assertEqual(verify.count("scripts/owner-environment extended"), 1)
+
+    def test_owner_environment_extended_reuses_a_complete_offline_environment(self) -> None:
+        owner = (REPO / "scripts/owner-environment").read_text(encoding="utf-8")
+        self.assertIn("environment_is_materialized()", owner)
+        self.assertIn("ensure_materialized_environment()", owner)
+        self.assertIn('uv_bin" pip sync --offline --python "$python_bin" "$tooling_lock"', owner)
+        self.assertIn('cargo_bin" fetch --locked --offline', owner)
+        self.assertIn('uv_bin" pip sync --python "$python_bin" "$tooling_lock"', owner)
+        self.assertIn('cargo_bin" fetch --locked)', owner)
+        run_extended = owner.split("run_extended() {", 1)[1].split("\n}", 1)[0]
+        self.assertIn("ensure_materialized_environment", run_extended)
+        self.assertNotIn("\n  bootstrap\n", run_extended)
+
     def test_local_acceptance_contract_is_executable(self) -> None:
         result = subprocess.run(
             ["scripts/local-acceptance", "check"],

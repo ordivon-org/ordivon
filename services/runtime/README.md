@@ -126,7 +126,23 @@ sudo scripts/local-acceptance run
 
 That command builds the Runtime and Runner, executes the ignored systemd/cgroup tests, starts a temporary loopback MCP server, and exercises Workspace creation, mutation, durable Patch replay, execution, observation, Artifact reading, cancellation, restart recovery, and safe closure.
 
+Successful Linux Attempts may additionally register an immutable `resource_receipt` Artifact containing a terminal pre-result snapshot of the Attempt cgroup's CPU, memory, swap, memory-event, and I/O counters. Receipt absence remains compatible and does not change execution state; present receipts are identity-validated before registration. `scripts/resource_workload_profile.py` is a read-only derived-analysis helper for caller-supplied receipt files/directories and never becomes Runtime execution or pricing authority.
+
 For installation and receipted deployment, follow [`docs/quickstart.md`](docs/quickstart.md) and [`docs/operations.md`](docs/operations.md).
+
+## Focused native Rust testing
+
+`mise install` now obtains official
+[cargo-nextest](https://github.com/nextest-rs/nextest) **0.9.148** using the
+upstream [mise HTTP backend](https://mise.jdx.dev/dev-tools/backends/http.html)
+and a GitHub Release mirror. This Runtime-local Linux x64 install pins the
+official GitHub release-asset SHA-256, so the mirror is only a transport.
+The optional `mise run test:focused` task calls this pinned version with the
+current Runtime feature profile and emits its native JUnit report under
+`target/nextest/ci/junit.xml`. Set `RUNTIME_TEST_EXPR` to the nextest
+filter expression for another exact native test. This is low-cost
+feedback; `mise run verify` still owns Runtime's full Cargo, Clippy,
+environment and docs gate. Filtered tests do not count as passed tests.
 
 ## First Runtime workflow
 
@@ -134,10 +150,10 @@ A normal client journey is:
 
 ```text
 workspace.open
-→ workspace.read / workspace.patch / workspace.content
+→ workspace.read / workspace.patch / workspace.file / workspace.content
 → workspace.exec / workspace.execPlan / workspace.execBound / workspace.execBoundTrusted
 → job.observe
-→ artifact.read
+→ artifact.read / artifact.content
 → workspace.diff
 → workspace.get
 → workspace.close
@@ -146,6 +162,8 @@ workspace.open
 After response loss, reuse the exact `clientRequestId` or reconnect through `workspace.list`, `workspace.get`, `job.list`, and `job.observe`. Do not create a new operation merely because delivery is uncertain.
 
 `workspace.content` is the binary observation companion to `workspace.read`: it projects one exact digest-bound Workspace PNG/JPEG as native MCP image content. The caller supplies the expected SHA-256 digest, so a mutable Workspace cannot silently substitute different pixels after the observation identity has been chosen. It creates no Artifact or review ledger.
+
+`workspace.file` is the generic bounded binary sibling: it projects one complete digest-bound regular Workspace file through MCP `EmbeddedResource` blob content when the bytes fit `maxBytes`. Optional `mediaType` is projection metadata only, never semantic format validation. `artifact.content` provides the corresponding whole-byte projection for already-registered Job Artifacts while preserving Registry `jobId`/`artifactId`, digest, byte length, media metadata, and truncation standing. Neither Tool performs an external upload or creates delivery standing.
 
 ## Responsibility boundary
 

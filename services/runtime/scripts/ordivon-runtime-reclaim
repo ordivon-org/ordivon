@@ -7,6 +7,8 @@ import math
 import argparse
 import fcntl
 import hashlib
+import http.client
+import urllib.error
 import json
 import os
 import shutil
@@ -30,6 +32,15 @@ def parse_args() -> argparse.Namespace:
 
     inspect = subparsers.add_parser("inspect", help="classify Workspace reclaim candidates")
     add_inspection_arguments(inspect)
+    inspect.add_argument(
+        "--workspace-id",
+        action="append",
+        dest="workspace_ids",
+        help=(
+            "classify only this natural-owner-selected Workspace; repeat to classify a "
+            "bounded completion cohort without scanning unrelated Workspaces"
+        ),
+    )
     inspect.add_argument("--pretty", action="store_true")
 
     apply = subparsers.add_parser(
@@ -167,7 +178,11 @@ def registry_workspace_projection(
     return value
 
 
-def inspect_workspaces(args: argparse.Namespace) -> dict[str, object]:
+def inspect_workspaces(
+    args: argparse.Namespace,
+    *,
+    selected_workspace_ids: set[str] | None = None,
+) -> dict[str, object]:
     workspace_root = args.workspace_root or args.runtime_store_root / "workspaces"
     records_root = args.runtime_store_root / "workspace-records"
     registry = registry_projection(args.database, args.busy_timeout_ms)
@@ -186,7 +201,16 @@ def inspect_workspaces(args: argparse.Namespace) -> dict[str, object]:
 
     record_ids: set[str] = set()
     candidates: list[dict[str, object]] = []
-    for record_path in sorted(records_root.glob("*.json")) if records_root.exists() else []:
+    if selected_workspace_ids is None:
+        record_paths = sorted(records_root.glob("*.json")) if records_root.exists() else []
+    else:
+        record_paths = [
+            records_root / f"{workspace_id}.json"
+            for workspace_id in sorted(selected_workspace_ids)
+            if (records_root / f"{workspace_id}.json").exists()
+            or (records_root / f"{workspace_id}.json").is_symlink()
+        ]
+    for record_path in record_paths:
         workspace_id = record_path.stem
         record_ids.add(workspace_id)
         record_candidate = classify_record(
@@ -200,9 +224,18 @@ def inspect_workspaces(args: argparse.Namespace) -> dict[str, object]:
             candidates.append(record_candidate)
 
     if workspace_root.exists():
-        for workspace_path in sorted(
-            path for path in workspace_root.iterdir() if path.is_dir() and not path.is_symlink()
-        ):
+        if selected_workspace_ids is None:
+            workspace_paths = sorted(
+                path for path in workspace_root.iterdir() if path.is_dir() and not path.is_symlink()
+            )
+        else:
+            workspace_paths = [
+                workspace_root / workspace_id
+                for workspace_id in sorted(selected_workspace_ids)
+                if (workspace_root / workspace_id).is_dir()
+                and not (workspace_root / workspace_id).is_symlink()
+            ]
+        for workspace_path in workspace_paths:
             if workspace_path.name not in record_ids:
                 candidates.append(
                     candidate(
@@ -228,6 +261,7 @@ def inspect_workspaces(args: argparse.Namespace) -> dict[str, object]:
         "generatedAtMs": int(time.time() * 1000),
         "registryVersion": registry_version,
         "releaseTool": "workspace.close",
+        "selection": "all" if selected_workspace_ids is None else "requested",
         "summary": {
             "counts": dict(sorted(counts.items())),
             "estimatedBytes": dict(sorted(estimated_bytes.items())),
@@ -444,6 +478,21 @@ def git_verbatim_patch_ids(
     return mapping
 
 
+def git_canonical_head(source_repo: Path) -> tuple[str, str]:
+    published_ref = "refs/remotes/origin/main"
+    published = subprocess.run(
+        ["git", "-C", str(source_repo), "show-ref", "--verify", "--quiet", published_ref],
+        check=False,
+    )
+    if published.returncode == 0:
+        return git_text(source_repo, ["rev-parse", f"{published_ref}^{{commit}}"]), "origin/main"
+    if published.returncode != 1:
+        raise RuntimeError(
+            f"git show-ref failed while resolving canonical publication ref: {published.returncode}"
+        )
+    return git_text(source_repo, ["rev-parse", "HEAD"]), "HEAD"
+
+
 def git_canonical_integration(workspace: Path, source_repo_value: object) -> dict[str, object]:
     if not isinstance(source_repo_value, str):
         raise RuntimeError("Workspace record omitted sourceRepo")
@@ -452,7 +501,7 @@ def git_canonical_integration(workspace: Path, source_repo_value: object) -> dic
         raise RuntimeError("sourceRepo is not an absolute regular directory")
 
     workspace_head = git_text(workspace, ["rev-parse", "HEAD"])
-    canonical_head = git_text(source_repo, ["rev-parse", "HEAD"])
+    canonical_head, canonical_ref = git_canonical_head(source_repo)
 
     ancestry = subprocess.run(
         ["git", "-C", str(workspace), "merge-base", "--is-ancestor", workspace_head, canonical_head],
@@ -464,6 +513,7 @@ def git_canonical_integration(workspace: Path, source_repo_value: object) -> dic
             "closureReason": "HEAD_REACHABLE_FROM_CANONICAL",
             "workspaceHeadRevision": workspace_head,
             "canonicalHeadRevision": canonical_head,
+            "canonicalRef": canonical_ref,
             "equivalentCommitCount": 0,
             "uniqueCommitCount": 0,
             "uniqueMergeCommitCount": 0,
@@ -481,6 +531,7 @@ def git_canonical_integration(workspace: Path, source_repo_value: object) -> dic
             "closureReason": "UNINTEGRATED_MERGE_TOPOLOGY",
             "workspaceHeadRevision": workspace_head,
             "canonicalHeadRevision": canonical_head,
+            "canonicalRef": canonical_ref,
             "equivalentCommitCount": 0,
             "uniqueCommitCount": 0,
             "uniqueMergeCommitCount": len(branch_merges),
@@ -509,6 +560,7 @@ def git_canonical_integration(workspace: Path, source_repo_value: object) -> dic
             "closureReason": "PATCH_EQUIVALENT_IN_CANONICAL",
             "workspaceHeadRevision": workspace_head,
             "canonicalHeadRevision": canonical_head,
+            "canonicalRef": canonical_ref,
             "equivalentCommitCount": equivalent,
             "uniqueCommitCount": 0,
             "uniqueMergeCommitCount": 0,
@@ -518,6 +570,7 @@ def git_canonical_integration(workspace: Path, source_repo_value: object) -> dic
         "closureReason": "UNINTEGRATED_GIT_COMMITS",
         "workspaceHeadRevision": workspace_head,
         "canonicalHeadRevision": canonical_head,
+        "canonicalRef": canonical_ref,
         "equivalentCommitCount": equivalent,
         "uniqueCommitCount": unique if unique else max(1, len(branch_commits) - len(branch_patch_ids)),
         "uniqueMergeCommitCount": 0,
@@ -595,6 +648,7 @@ def candidate(
     closureReason: object = None,
     workspaceHeadRevision: object = None,
     canonicalHeadRevision: object = None,
+    canonicalRef: object = None,
     equivalentCommitCount: object = None,
     uniqueCommitCount: object = None,
     uniqueMergeCommitCount: object = None,
@@ -626,6 +680,8 @@ def candidate(
         result["workspaceHeadRevision"] = workspaceHeadRevision
     if isinstance(canonicalHeadRevision, str):
         result["canonicalHeadRevision"] = canonicalHeadRevision
+    if isinstance(canonicalRef, str):
+        result["canonicalRef"] = canonicalRef
     if isinstance(equivalentCommitCount, int):
         result["equivalentCommitCount"] = equivalentCommitCount
     if isinstance(uniqueCommitCount, int):
@@ -635,6 +691,15 @@ def candidate(
     if isinstance(patchEquivalenceMode, str):
         result["patchEquivalenceMode"] = patchEquivalenceMode
     return result
+
+
+class WorkspaceCloseDeliveryUncertain(RuntimeError):
+    def __init__(self, workspace_id: str, expected_source_state_digest: str, cause: Exception):
+        super().__init__(
+            f"workspace.close delivery remained uncertain for {workspace_id} after exact replay: {cause}"
+        )
+        self.workspace_id = workspace_id
+        self.expected_source_state_digest = expected_source_state_digest
 
 
 def close_workspace(
@@ -671,20 +736,53 @@ def close_workspace(
     if not isinstance(source_state_digest, str) or not source_state_digest.startswith("sha256:"):
         raise RuntimeError("workspace.get omitted sourceStateDigest")
 
-    structured = client.call_tool(
-        "workspace.close",
-        {
-            "schemaVersion": SCHEMA_VERSION,
-            "workspaceId": workspace_id,
-            "force": False,
-            "expectedSourceStateDigest": source_state_digest,
-        },
-    )
-    if structured.get("removed") is not True:
+    close_arguments = {
+        "schemaVersion": SCHEMA_VERSION,
+        "workspaceId": workspace_id,
+        "force": False,
+        "expectedSourceStateDigest": source_state_digest,
+    }
+
+    delivery_reconciled = False
+    try:
+        structured = client.call_tool("workspace.close", close_arguments)
+    except (TimeoutError, ConnectionError, urllib.error.URLError, http.client.HTTPException) as delivery_error:
+        # workspace.close persists an exact sourceStateDigest in its closed tombstone and
+        # explicitly permits exact replay.  A transport timeout is therefore UNKNOWN
+        # delivery, not failure evidence: reconnect and replay the same compare-and-close
+        # before classifying the reclaim action.
+        try:
+            reconcile_client = connect_compatible(
+                f"http://{bind}/mcp",
+                token,
+                client_name="ordivon-runtime-reclaim-reconcile",
+                timeout=10.0,
+            )
+            structured = reconcile_client.call_tool("workspace.close", close_arguments)
+            delivery_reconciled = True
+        except Exception as reconcile_error:
+            raise WorkspaceCloseDeliveryUncertain(
+                workspace_id, source_state_digest, reconcile_error
+            ) from delivery_error
+
+    disposition = structured.get("closureDisposition")
+    if disposition == "removed":
+        if structured.get("removed") is not True:
+            raise RuntimeError(
+                f"workspace.close reported removed disposition without removal for {workspace_id}: {structured}"
+            )
+    elif disposition == "already_closed":
+        if structured.get("sourceStateDigest") != source_state_digest:
+            raise RuntimeError(
+                f"workspace.close replay returned a mismatched closed tombstone for {workspace_id}: {structured}"
+            )
+    else:
         raise RuntimeError(
-            f"workspace.close did not remove {workspace_id}: {structured}"
+            f"workspace.close did not prove closure for {workspace_id}: {structured}"
         )
-    return structured
+    result = dict(structured)
+    result["deliveryReconciled"] = delivery_reconciled
+    return result
 
 
 @contextmanager
@@ -708,6 +806,33 @@ def write_json_atomic(path: Path, value: object) -> None:
         temporary.unlink(missing_ok=True)
 
 
+def closed_workspace_tombstone(
+    runtime_store_root: Path,
+    workspace_id: str,
+    *,
+    expected_source_state_digest: str | None = None,
+) -> dict[str, object] | None:
+    record = runtime_store_root / "workspace-records" / f"{workspace_id}.json"
+    try:
+        record.lstat()
+    except FileNotFoundError:
+        return None
+    if record.is_symlink() or not record.is_file():
+        return None
+    try:
+        value = json.loads(record.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(value, dict) or value.get("state") != "closed":
+        return None
+    digest = value.get("sourceStateDigest")
+    if digest is not None and (not isinstance(digest, str) or not digest.startswith("sha256:")):
+        return None
+    if expected_source_state_digest is not None and digest != expected_source_state_digest:
+        return None
+    return value
+
+
 def reclaim_receipt(root: Path) -> Path:
     stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
     candidate = root / f"{stamp}-workspace-reclaim"
@@ -725,7 +850,11 @@ def apply_reclaim(args: argparse.Namespace) -> dict[str, object]:
     requested = set(args.workspace_ids or [])
     cutoff_ms = int((time.time() - args.minimum_age_hours * 3600) * 1000)
     with exclusive_lock(args.lock_file):
-        before = inspect_workspaces(args)
+        selected_workspace_ids = requested or None
+        before = inspect_workspaces(
+            args,
+            selected_workspace_ids=selected_workspace_ids,
+        )
         candidates_by_id = {
             str(item["workspaceId"]): item for item in before["candidates"]
         }
@@ -738,16 +867,43 @@ def apply_reclaim(args: argparse.Namespace) -> dict[str, object]:
             eligible = True
             reason = "eligible"
             created_ms = item.get("createdUnixMs")
+            last_activity_ms: int | None = None
+            minimum_age_basis_ms = created_ms if isinstance(created_ms, int) else None
+            if (
+                classification == "closable"
+                and classification in classifications
+                and isinstance(created_ms, int)
+            ):
+                registry_workspace = registry_workspace_projection(
+                    args.database, args.busy_timeout_ms, workspace_id
+                )
+                workspace_registry = registry_workspace["workspace"]
+                assert isinstance(workspace_registry, dict)
+                raw_last_activity_ms = workspace_registry.get("lastActivityMs")
+                if raw_last_activity_ms is not None and (
+                    isinstance(raw_last_activity_ms, bool)
+                    or not isinstance(raw_last_activity_ms, int)
+                ):
+                    raise RuntimeError(
+                        "Runtime Workspace registry inspection returned invalid lastActivityMs"
+                    )
+                last_activity_ms = raw_last_activity_ms
+                if isinstance(last_activity_ms, int):
+                    minimum_age_basis_ms = max(created_ms, last_activity_ms)
             if classification not in classifications:
                 eligible = False
                 reason = "classification_not_selected"
-            elif not isinstance(created_ms, int):
+            elif not isinstance(minimum_age_basis_ms, int):
                 eligible = False
                 reason = "creation_time_unknown"
-            elif created_ms > cutoff_ms:
+            elif minimum_age_basis_ms > cutoff_ms:
                 eligible = False
                 reason = "younger_than_minimum_age"
-            plan.append({**item, "eligible": eligible, "reason": reason})
+            planned = {**item, "eligible": eligible, "reason": reason}
+            if classification == "closable":
+                planned["lastActivityUnixMs"] = last_activity_ms
+                planned["minimumAgeBasisUnixMs"] = minimum_age_basis_ms
+            plan.append(planned)
 
         receipt = reclaim_receipt(args.receipt_root)
         receipt.mkdir(parents=True)
@@ -805,7 +961,7 @@ def apply_reclaim(args: argparse.Namespace) -> dict[str, object]:
                     expected_head_revision = item.get("workspaceHeadRevision")
                     if not isinstance(expected_head_revision, str):
                         raise RuntimeError("reclaim plan omitted workspaceHeadRevision")
-                    close_workspace(
+                    close_result = close_workspace(
                         args.env_file,
                         workspace_id,
                         expected_head_revision=expected_head_revision,
@@ -815,10 +971,37 @@ def apply_reclaim(args: argparse.Namespace) -> dict[str, object]:
                             "workspaceId": workspace_id,
                             "classification": classification,
                             "action": "workspace_closed",
+                            "closureDisposition": close_result.get("closureDisposition"),
+                            "deliveryReconciled": bool(close_result.get("deliveryReconciled", False)),
                         }
                     )
                 else:
                     raise RuntimeError(f"unsupported reclaim classification: {classification}")
+            except WorkspaceCloseDeliveryUncertain as error:
+                tombstone = closed_workspace_tombstone(
+                    args.runtime_store_root,
+                    workspace_id,
+                    expected_source_state_digest=error.expected_source_state_digest,
+                )
+                if tombstone is not None:
+                    actions.append(
+                        {
+                            "workspaceId": workspace_id,
+                            "classification": classification,
+                            "action": "workspace_already_closed",
+                            "closureDisposition": "already_closed",
+                            "deliveryReconciled": True,
+                            "sourceStateDigest": tombstone.get("sourceStateDigest"),
+                        }
+                    )
+                    continue
+                failures.append(
+                    {
+                        "workspaceId": workspace_id,
+                        "classification": classification,
+                        "error": str(error),
+                    }
+                )
             except Exception as error:
                 failures.append(
                     {
@@ -827,7 +1010,10 @@ def apply_reclaim(args: argparse.Namespace) -> dict[str, object]:
                         "error": str(error),
                     }
                 )
-        after = inspect_workspaces(args)
+        after = inspect_workspaces(
+            args,
+            selected_workspace_ids=selected_workspace_ids,
+        )
         write_json_atomic(receipt / "after.json", after)
         status = "completed" if not failures and not missing_requested else "partial"
         result = {
@@ -848,7 +1034,11 @@ def main() -> int:
     try:
         args = parse_args()
         if args.command == "inspect":
-            report = inspect_workspaces(args)
+            selected_workspace_ids = set(args.workspace_ids or []) or None
+            report = inspect_workspaces(
+                args,
+                selected_workspace_ids=selected_workspace_ids,
+            )
             print(json.dumps(report, indent=2 if args.pretty else None, sort_keys=args.pretty))
             return 0
         if args.command == "apply":

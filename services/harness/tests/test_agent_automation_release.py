@@ -26,6 +26,8 @@ class ReleaseTests(unittest.TestCase):
         self._admission_td = tempfile.TemporaryDirectory()
         root = Path(self._admission_td.name) / "admission"
         self._admission_patchers = [
+            patch.object(r.os, "geteuid", return_value=0),
+            patch.object(r, "SOURCE_REPO", ROOT.parents[1]),
             patch.object(r, "ADMISSION_ROOT", root),
             patch.object(r, "ADMISSION_LOCK", root / "release.lock"),
             patch.object(r, "ADMISSION_CLOSED", root / "closed.json"),
@@ -148,7 +150,12 @@ class ReleaseTests(unittest.TestCase):
             completed = subprocess.CompletedProcess(
                 [],
                 0,
-                stdout=json.dumps({"rfc8785": "0.1.4", "temporalio": "1.32.0"}) + "\n",
+                stdout=json.dumps({
+                    "rfc8785": "0.1.4",
+                    "temporalio": "1.32.0",
+                    "mcp": "2.2.0",
+                    "httpx": "0.28.1",
+                }) + "\n",
                 stderr="",
             )
             with patch.object(r, "run", return_value=completed) as invoked:

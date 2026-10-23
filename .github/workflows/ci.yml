@@ -3,6 +3,9 @@ name: Monorepo Required
 on:
   pull_request:
     branches: [main]
+  merge_group:
+    branches: [main]
+    types: [checks_requested]
   push:
     branches: [main]
   workflow_dispatch:
@@ -14,7 +17,7 @@ permissions:
 
 concurrency:
   group: monorepo-required-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name != 'merge_group' }}
 
 jobs:
   root-verification:
@@ -29,14 +32,29 @@ jobs:
           persist-credentials: false
 
       - name: Install monorepo toolchain
-        uses: jdx/mise-action@9e7f7633ff6f6d6048a9418a68d48f288f50eb14 # v4.2.3
+        uses: jdx/mise-action@08ae2a091c038e1e05ec6f5115dc5c69d5a2a6b8 # v5.1.2
         with:
           version: 2026.9.12
           install: true
           cache: true
 
+      - name: Install verified GNU Bash 5.3.20
+        shell: bash
+        run: |
+          set -euo pipefail
+          tools/repo/install_latest_stable_bash.sh "$RUNNER_TEMP/ordivon-bash-5.3.20"
+          echo "$RUNNER_TEMP/ordivon-bash-5.3.20/bin" >> "$GITHUB_PATH"
+
+      - name: Install pinned SQL validation CLIs
+        shell: bash
+        run: |
+          set -euo pipefail
+          tools/repo/install_sql_verifiers.sh "$RUNNER_TEMP/ordivon-sql-verifiers"
+          echo "$RUNNER_TEMP/ordivon-sql-verifiers/bin" >> "$GITHUB_PATH"
+
       - name: Repository mechanics
-        run: mise run repo:ci
+        run: |
+          "$RUNNER_TEMP/ordivon-bash-5.3.20/bin/bash" -c 'set -euo pipefail; mise run repo:ci'
 
       - name: Select affected owners
         id: affected
@@ -45,27 +63,38 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           PR_BASE: ${{ github.event.pull_request.base.sha }}
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          MERGE_GROUP_BASE: ${{ github.event.merge_group.base_sha }}
+          MERGE_GROUP_HEAD: ${{ github.event.merge_group.head_sha }}
           PUSH_BEFORE: ${{ github.event.before }}
           EVENT_HEAD: ${{ github.sha }}
         run: |
           set -euo pipefail
           if [[ "$EVENT_NAME" == "workflow_dispatch" || "$EVENT_NAME" == "schedule" ]]; then
             mapfile -t owners < <(python3 tools/repo/affected_owners.py --all --format names)
-            mapfile -t tasks < <(python3 tools/repo/affected_owners.py --all --format tasks)
+            mapfile -t tasks < <(python3 tools/repo/affected_owners.py --all --format queue-tasks)
           else
             if [[ "$EVENT_NAME" == "pull_request" ]]; then
               base="$PR_BASE"
               head="$PR_HEAD"
+            elif [[ "$EVENT_NAME" == "merge_group" ]]; then
+              base="$MERGE_GROUP_BASE"
+              head="$MERGE_GROUP_HEAD"
             else
               base="$PUSH_BEFORE"
               head="$EVENT_HEAD"
             fi
             if [[ -z "$base" || "$base" =~ ^0+$ ]]; then
               mapfile -t owners < <(python3 tools/repo/affected_owners.py --all --format names)
-              mapfile -t tasks < <(python3 tools/repo/affected_owners.py --all --format tasks)
+              mapfile -t tasks < <(python3 tools/repo/affected_owners.py --all --format queue-tasks)
             else
-              mapfile -t owners < <(python3 tools/repo/affected_owners.py --base "$base" --head "$head" --format names)
-              mapfile -t tasks < <(python3 tools/repo/affected_owners.py --base "$base" --head "$head" --format tasks)
+              plan="$RUNNER_TEMP/ordivon-convergence-plan.json"
+              python3 tools/repo/convergence_plan.py --base "$base" --head "$head" > "$plan"
+              mapfile -t owners < <(
+                python3 -c 'import json,sys; print(*json.load(open(sys.argv[1], encoding="utf-8"))["verificationOwners"], sep="\n")' "$plan"
+              )
+              mapfile -t tasks < <(
+                python3 -c 'import json,sys; print(*json.load(open(sys.argv[1], encoding="utf-8"))["queueVerifyTasks"], sep="\n")' "$plan"
+              )
             fi
           fi
           printf 'owners=%s\n' "$(IFS=,; echo "${owners[*]-}")" >> "$GITHUB_OUTPUT"
@@ -83,6 +112,15 @@ jobs:
               printf -- '- %s\n' "${owners[@]}"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
+          if [[ -f "$RUNNER_TEMP/ordivon-convergence-plan.json" ]]; then
+            {
+              echo
+              echo "### Convergence projection"
+              echo '~~~json'
+              cat "$RUNNER_TEMP/ordivon-convergence-plan.json"
+              echo '~~~'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Verify affected owners
         shell: bash
@@ -99,12 +137,14 @@ jobs:
         if: steps.affected.outputs.runtime == 'true'
         uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2
         with:
-          rust-version: "1.95.0"
+          rust-version: "1.99.1"
           manifest-path: services/runtime/Cargo.toml
           command: check
           arguments: --config services/runtime/deny.toml
 
       - name: Repository-wide secret scan
-        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: mise run repo:secrets:verify
+
+      - name: Current committed-source secret scan
+        shell: bash
+        run: tools/repo/check_tracked_secrets.sh

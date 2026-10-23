@@ -1,4 +1,111 @@
 impl Registry {
+    fn register_or_reuse_recovered_artifact(
+        transaction: &Transaction<'_>,
+        job_id: &str,
+        attempt_id: &str,
+        artifact: &super::ArtifactRegistration,
+        created_at_ms: u64,
+    ) -> RuntimeResult<()> {
+        let existing = {
+            let mut statement = transaction
+                .prepare(
+                    "SELECT artifact_id,job_id,attempt_id,kind,relative_path,digest,media_type,byte_length,truncated,created_at_ms FROM artifacts WHERE artifact_id=?1 OR (attempt_id=?2 AND kind=?3 AND relative_path=?4) ORDER BY artifact_id",
+                )
+                .map_err(|error| {
+                    RuntimeError::from_sql(
+                        error,
+                        "cannot prepare recovered Artifact identity lookup",
+                    )
+                })?;
+            let rows = statement
+                .query_map(
+                    params![
+                        artifact.artifact_id,
+                        attempt_id,
+                        artifact.kind,
+                        artifact.relative_path,
+                    ],
+                    |row| {
+                        Ok(RuntimeArtifactRecord {
+                            artifact_id: row.get(0)?,
+                            job_id: row.get(1)?,
+                            attempt_id: row.get(2)?,
+                            kind: row.get(3)?,
+                            relative_path: row.get(4)?,
+                            digest: row.get(5)?,
+                            media_type: row.get(6)?,
+                            byte_length: row.get(7)?,
+                            truncated: row.get::<_, i64>(8)? != 0,
+                            created_at_ms: row.get(9)?,
+                        })
+                    },
+                )
+                .map_err(|error| {
+                    RuntimeError::from_sql(error, "cannot query recovered Artifact identity")
+                })?;
+            rows.collect::<Result<Vec<_>, _>>().map_err(|error| {
+                RuntimeError::from_sql(error, "cannot decode recovered Artifact identity")
+            })?
+        };
+
+        if existing.is_empty() {
+            transaction
+                .execute(
+                    "INSERT INTO artifacts(artifact_id,job_id,attempt_id,kind,relative_path,digest,media_type,byte_length,truncated,created_at_ms) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)",
+                    params![
+                        artifact.artifact_id,
+                        job_id,
+                        attempt_id,
+                        artifact.kind,
+                        artifact.relative_path,
+                        artifact.digest,
+                        artifact.media_type,
+                        artifact.byte_length,
+                        i64::from(artifact.truncated),
+                        created_at_ms,
+                    ],
+                )
+                .map_err(|error| {
+                    RuntimeError::new(
+                        RuntimeErrorCode::ArtifactIdentityConflict,
+                        format!(
+                            "cannot register recovered Artifact {}: {error}",
+                            artifact.artifact_id
+                        ),
+                        Some("artifacts"),
+                        false,
+                    )
+                })?;
+            return Ok(());
+        }
+
+        if existing.len() == 1 {
+            let current = &existing[0];
+            if current.artifact_id == artifact.artifact_id
+                && current.job_id == job_id
+                && current.attempt_id == attempt_id
+                && current.kind == artifact.kind
+                && current.relative_path == artifact.relative_path
+                && current.digest == artifact.digest
+                && current.media_type == artifact.media_type
+                && current.byte_length == artifact.byte_length
+                && current.truncated == artifact.truncated
+            {
+                return Ok(());
+            }
+        }
+
+        Err(RuntimeError::new(
+            RuntimeErrorCode::ArtifactIdentityConflict,
+            format!(
+                "recovered Artifact {} conflicts with an existing immutable Artifact identity",
+                artifact.artifact_id
+            ),
+            Some("artifacts"),
+            false,
+        ))
+    }
+
     #[cfg(test)]
     pub(super) fn list_nonterminal_attempts(&self) -> RuntimeResult<Vec<AttemptRecord>> {
         self.list_nonterminal_attempts_with_limit(None)
@@ -20,7 +127,7 @@ impl Registry {
             .map_err(|error| RuntimeError::from_sql(error, "cannot prepare reconciliation scan"))?;
         if let Some(limit) = limit {
             let rows = statement
-                .query_map([limit], raw_attempt_from_row)
+                .query_map([limit], RegistryStorageBoundary::decode_attempt_row)
                 .map_err(|error| {
                     RuntimeError::from_sql(error, "cannot scan nonterminal Attempts")
                 })?;
@@ -31,7 +138,7 @@ impl Registry {
             .collect()
         } else {
             let rows = statement
-                .query_map([], raw_attempt_from_row)
+                .query_map([], RegistryStorageBoundary::decode_attempt_row)
                 .map_err(|error| {
                     RuntimeError::from_sql(error, "cannot scan nonterminal Attempts")
                 })?;
@@ -57,7 +164,7 @@ impl Registry {
             )
             .map_err(|error| RuntimeError::from_sql(error, "cannot prepare maintenance reconciliation scan"))?;
         let rows = statement
-            .query_map([limit], raw_attempt_from_row)
+            .query_map([limit], RegistryStorageBoundary::decode_attempt_row)
             .map_err(|error| RuntimeError::from_sql(error, "cannot scan maintenance Attempts"))?;
         rows.map(|row| {
             row.map_err(|error| {
@@ -76,7 +183,7 @@ impl Registry {
             )
             .map_err(|error| RuntimeError::from_sql(error, "cannot prepare orphan reconciliation scan"))?;
         let rows = statement
-            .query_map([], raw_attempt_from_row)
+            .query_map([], RegistryStorageBoundary::decode_attempt_row)
             .map_err(|error| RuntimeError::from_sql(error, "cannot scan held orphaned Attempts"))?;
         rows.map(|row| {
             row.map_err(|error| {
@@ -106,13 +213,13 @@ impl Registry {
         }
         validate_digest(&request.result_digest, "resultDigest")?;
         for artifact in &request.artifacts {
-            validate_artifact_registration(artifact)?;
+            ArtifactStateContract::validate_registration(artifact)?;
         }
         let mut connection = self.open_connection()?;
-        let transaction = immediate(&mut connection, "orphan recovery transaction")?;
-        let attempt = load_attempt(&transaction, &request.attempt_id)?;
-        let job = load_job(&transaction, &attempt.job_id)?;
-        let reservation = load_reservation(&transaction, &attempt.attempt_id)?;
+        let transaction = immediate(self, &mut connection, "orphan recovery transaction")?;
+        let attempt = RegistryStorageBoundary::load_attempt(&transaction, &request.attempt_id)?;
+        let job = RegistryStorageBoundary::load_job(&transaction, &attempt.job_id)?;
+        let reservation = RegistryStorageBoundary::load_reservation(&transaction, &attempt.attempt_id)?;
         if attempt.state != AttemptState::Orphaned
             || job.resolution != Some(JobResolution::Orphaned)
             || reservation.state != ReservationState::HeldOrphaned
@@ -147,28 +254,13 @@ impl Registry {
             return Err(state_conflict("Attempt changed during orphan recovery"));
         }
         for artifact in &request.artifacts {
-            transaction
-                .execute(
-                    "INSERT INTO artifacts(artifact_id,job_id,attempt_id,kind,relative_path,digest,media_type,byte_length,truncated,created_at_ms) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)",
-                    params![
-                        artifact.artifact_id,
-                        attempt.job_id,
-                        attempt.attempt_id,
-                        artifact.kind,
-                        artifact.relative_path,
-                        artifact.digest,
-                        artifact.media_type,
-                        artifact.byte_length,
-                        i64::from(artifact.truncated),
-                        request.finished_at_ms,
-                    ],
-                )
-                .map_err(|error| RuntimeError::new(
-                    RuntimeErrorCode::ArtifactIdentityConflict,
-                    format!("cannot register recovered Artifact {}: {error}", artifact.artifact_id),
-                    Some("artifacts"),
-                    false,
-                ))?;
+            Self::register_or_reuse_recovered_artifact(
+                &transaction,
+                &attempt.job_id,
+                &attempt.attempt_id,
+                artifact,
+                request.finished_at_ms,
+            )?;
         }
         release_reservation(
             &transaction,
@@ -176,7 +268,7 @@ impl Registry {
             request.finished_at_ms,
             &request.reason_code,
         )?;
-        let resolution = resolution_for_state(request.state)?;
+        let resolution = AttemptLifecycleContract::require_terminal_resolution(request.state)?;
         transaction
             .execute(
                 "UPDATE jobs SET resolution=?1,row_version=row_version+1 WHERE job_id=?2 AND resolution='orphaned'",
@@ -219,7 +311,7 @@ impl Registry {
         operations: &[AdminRepairOperation],
     ) -> RuntimeResult<()> {
         let mut connection = self.open_connection()?;
-        let transaction = immediate(&mut connection, "administrative Runtime repair batch")?;
+        let transaction = immediate(self, &mut connection, "administrative Runtime repair batch")?;
         for operation in operations {
             match operation {
                 AdminRepairOperation::Terminal { terminal, audit } => {
@@ -262,18 +354,18 @@ impl Registry {
         observed_at_ms: u64,
     ) -> RuntimeResult<bool> {
         let mut connection = self.open_connection()?;
-        let attempt = load_attempt(&connection, attempt_id)?;
-        let job = load_job(&connection, &attempt.job_id)?;
-        let reservation = load_reservation(&connection, attempt_id)?;
+        let attempt = RegistryStorageBoundary::load_attempt(&connection, attempt_id)?;
+        let job = RegistryStorageBoundary::load_job(&connection, &attempt.job_id)?;
+        let reservation = RegistryStorageBoundary::load_reservation(&connection, attempt_id)?;
         let target = terminal_reservation_target(&attempt, &job)?;
         if reservation.state == target {
             return Ok(false);
         }
 
-        let transaction = immediate(&mut connection, "terminal reservation convergence")?;
-        let attempt = load_attempt(&transaction, attempt_id)?;
-        let job = load_job(&transaction, &attempt.job_id)?;
-        let reservation = load_reservation(&transaction, attempt_id)?;
+        let transaction = immediate(self, &mut connection, "terminal reservation convergence")?;
+        let attempt = RegistryStorageBoundary::load_attempt(&transaction, attempt_id)?;
+        let job = RegistryStorageBoundary::load_job(&transaction, &attempt.job_id)?;
+        let reservation = RegistryStorageBoundary::load_reservation(&transaction, attempt_id)?;
         let target = terminal_reservation_target(&attempt, &job)?;
         if reservation.state == target {
             transaction.commit().map_err(|error| {

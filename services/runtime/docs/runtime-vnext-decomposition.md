@@ -162,7 +162,7 @@ A component can be deleted only when all are true:
 ## Next cuts
 
 1. Review the still-large `inspection/operator.rs` by measured responsibility, not file size alone. Split only if status/activity/marker/workspace projections have independent change pressure or compilation ownership; do not manufacture service boundaries for aesthetic symmetry.
-2. Keep the repeated `runtime_inspect_binary()`/JSON subprocess adapters in the operator scripts until a shared support artifact is justified by real maintenance cost. Centralizing them today would change the receipt-bound production release set from 12 artifacts to 13, so line-count reduction alone is insufficient evidence.
+2. Keep the repeated `runtime_inspect_binary()`/JSON subprocess adapters in the operator scripts until a shared support artifact is justified by real maintenance cost. Centralizing them today would change the receipt-bound production release set from 13 artifacts to 14, so line-count reduction alone is insufficient evidence.
 3. Investigate recurring control-plane `REGISTRY_BUSY` during runner-bind observation and one-second `systemctl show` timeouts as a separate Runtime reliability/performance problem. Terminal evidence no longer depends on the latter when cgroup identity exists, but live supervision/reconciliation still does; these observations must not be conflated with Registry read-model semantics.
 4. Revisit compact projection wrappers after MCP DTO ownership is explicit; do not delete them while MCP still consumes them.
 5. Before production replacement, run the exact release candidate through the normal deployment/rollback acceptance path and at least one real agent execution workflow. Source-level decomposition success is not deployment truth.

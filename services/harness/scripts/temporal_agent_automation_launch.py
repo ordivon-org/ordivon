@@ -19,7 +19,7 @@ from temporal_agent_automation import (
     MATERIALIZE_WORKFLOW,
     CAMPAIGN_MATERIALIZE_WORKFLOW,
     AGENT_RECONCILE_WORKFLOW,
-    AGENT_HUMAN_RESUME_WORKFLOW,
+    HUMAN_RESUME_UPDATE,
     AGENT_CONTINUE_WORKFLOW,
     MaterializationInput,
     AgentContinueInput,
@@ -112,6 +112,7 @@ async def run(a) -> None:
                 spec_path=str(a.spec.resolve()),
                 agent_id=agent_id,
                 effect_id=materializations[agent_id].request_id,
+                carrier=a.carrier,
             )
             for agent_id in requested_ids
         ]
@@ -147,6 +148,7 @@ async def run(a) -> None:
                 spec_path=str(a.spec.resolve()),
                 agent_id=a.agent_id,
                 effect_id=materialization.request_id,
+                carrier=a.carrier,
             ),
             workflow_id=workflow_id,
             task_queue=a.task_queue,
@@ -170,6 +172,7 @@ async def run(a) -> None:
                 spec_path=str(a.spec.resolve()),
                 agent_id=a.agent_id,
                 effect_id=materialization.request_id,
+                carrier=a.carrier,
             ),
             workflow_id=retry_id,
             task_queue=a.task_queue,
@@ -198,6 +201,7 @@ async def run(a) -> None:
                 spec_path=str(a.spec.resolve()),
                 agent_id=a.agent_id,
                 effect_id=materialization.request_id,
+                carrier=a.carrier,
             ),
             workflow_id=workflow_id,
             task_queue=a.task_queue,
@@ -221,24 +225,23 @@ async def run(a) -> None:
             and all(ch in "0123456789abcdef" for ch in resume_id[7:])
         ):
             raise ValueError("resumeId must be one full SHA-256 digest")
-        admission = await _admit_workflow(
-            client,
-            AGENT_HUMAN_RESUME_WORKFLOW,
-            MaterializationInput(
-                spec_path=str(a.spec.resolve()),
-                agent_id=a.agent_id,
-                effect_id=materialization.request_id,
-            ),
-            workflow_id=resume_id,
-            task_queue=a.task_queue,
+        handle = client.get_workflow_handle(materialization.request_id)
+        update_result = await handle.execute_update(
+            HUMAN_RESUME_UPDATE,
+            resume_id,
+            id=resume_id,
+            result_type=dict,
         )
         out = {
-            **admission,
-            "workflowType": AGENT_HUMAN_RESUME_WORKFLOW,
+            "workflowId": materialization.request_id,
+            "workflowType": MATERIALIZE_WORKFLOW,
+            "disposition": "updated",
             "campaignId": spec.campaign_id,
             "agentId": a.agent_id,
             "effectId": materialization.request_id,
             "resumeId": resume_id,
+            "updateName": HUMAN_RESUME_UPDATE,
+            "updateResult": update_result,
         }
     else:
         if not a.agent_id or a.prompt_file is None or not a.turn_request_id or a.resume_id:
@@ -258,6 +261,7 @@ async def run(a) -> None:
             agent_id=a.agent_id,
             turn_request_id=turn_request_id,
             prompt=prompt,
+            campaign_ref=a.campaign_ref,
         )
         if a.operation == "continue-retry":
             admission = await _admit_failed_continue_retry(
@@ -300,6 +304,11 @@ p.add_argument(
     default="campaign-materialize",
 )
 p.add_argument("--agent-id")
+p.add_argument(
+    "--carrier",
+    choices=("browserless", "windows-user-browser"),
+    default="browserless",
+)
 p.add_argument("--campaign-ref")
 p.add_argument("--campaign-agent-id", action="append", default=[])
 p.add_argument("--prompt-file", type=Path)

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.experimental-projection-policy",
+  "asOf": "2026-09-22",
+  "defaultDisposition": "DENY_UNLESS_EXPLICITLY_PROJECTED",
+  "allowedClasses": [
+    "stable owner/object identifiers",
+    "content digests and exact revision identities",
+    "lifecycle state/resolution observations",
+    "bounded timestamps/durations",
+    "aggregate event/artifact counts",
+    "non-secret model/tool/circuit identifiers",
+    "bounded resource/cost observations",
+    "verifier standing and evidence references",
+    "declared intervention/evaluation role"
+  ],
+  "forbiddenClasses": [
+    "credentials",
+    "API keys/tokens",
+    "cookies/session secrets",
+    "raw environment secrets",
+    "raw private account data",
+    "raw artifact bytes",
+    "raw Runtime workspace_snapshot",
+    "raw Runtime execution_plan",
+    "raw event payloads by default",
+    "raw prompts/results by default"
+  ],
+  "rule": "Forbidden owner payloads may influence a sourceRecordDigest computed in a trusted adapter, but their bytes must not be copied into the Episode projection."
+}

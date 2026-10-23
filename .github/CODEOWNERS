@@ -2,6 +2,9 @@
 
 /meta/next/ @zycxfyh
 
+/packages/composition/ @zycxfyh
+/extensions/ordivon-control-plane/ @zycxfyh
+
 /services/runtime/ @zycxfyh
 /services/host/ @zycxfyh
 /services/harness/ @zycxfyh

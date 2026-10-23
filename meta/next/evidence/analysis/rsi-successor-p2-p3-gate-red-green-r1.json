@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.successor-gate-result",
+  "contractId": "successor:harness-rsi-p2-to-p3-r1",
+  "contractDigest": "sha256:11b4855c47e9ebb473741700b374cb584a7fa0ec1382f8d04f57ecef6b4e2931",
+  "gateId": "gate:p3-causal-red-to-green",
+  "verifierOwnerId": "study:harness-rsi-independent-evaluation",
+  "standing": "SATISFIED",
+  "anchorRefIds": [
+    "anchor:p3-baseline-falsifier"
+  ],
+  "evidenceRefs": [
+    "sha256:67f1a12ff3981ab5287b1dfa2b3e252565d659592c9539b95d5d661418872eeb",
+    "sha256:635d7b9639e66d1ad68eb6334d65286aad936fd3e49ff07e71b927d2f140c6dd"
+  ],
+  "supportScope": "The selected digest-authority defect changes from admitted baseline-red to candidate-green under the same falsifier only.",
+  "nonClaims": [
+    "This result does not establish general Harness correctness or promotion authority."
+  ]
+}

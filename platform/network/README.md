@@ -100,3 +100,14 @@ See `docs/ARCHITECTURE.md`, `docs/DECISION_MATRIX.md`, `docs/ACCEPTANCE_MATRIX.m
 A full `task accept:local` run now refreshes `evidence/current-capabilities.json` only after all local acceptance gates pass. `task evidence:verify-local` detects source/platform drift against that generated projection.
 
 Cross-platform kernel fidelity is expressed separately under `reference/linux/`. The standard-Linux reference lane has now passed on an isolated KVM guest. Future CI can replay the same `task reference:linux:accept` contract on a dedicated non-WSL self-hosted runner labelled `network-e2e`; the checked-in GitHub Actions workflow remains a replay contract until this repository is attached to an appropriate Git remote/runner.
+
+
+### Owner-native test selection
+
+The source-local `mise run ci` runs upstream ShellCheck **and** the Network
+Owner's checked-in Python pytest suite using Python 3.15 and pytest 9.1.1.
+It must fail when either native tool fails. These tests protect the exact
+source currently present in this repository; their PASS does **not** certify
+real-network/provider behavior, a full external Gluetun cutover, or additional
+tests from divergent unpublished source revisions. Production acceptance
+remains separately scoped to actual owned provider and consumer evidence.

@@ -1,0 +1,57 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "GSN",
+      "GSN v3",
+      "Goal Structuring Notation",
+      "Goal Structuring Notation Community Standard Version 3"
+    ],
+    "domains": [
+      "assurance",
+      "safety",
+      "security",
+      "architecture"
+    ],
+    "topics": [
+      "assurance-case",
+      "claims",
+      "arguments",
+      "evidence",
+      "context",
+      "assumptions",
+      "dialectics"
+    ]
+  },
+  "id": "gsn-3",
+  "identity": {
+    "authorityKind": "method-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "scsc-acwg",
+      "name": "SCSC Assurance Case Working Group"
+    },
+    "officialSource": "https://scsc.uk/gsn-standard",
+    "publicationDate": "2021-05-04",
+    "title": "Goal Structuring Notation Community Standard Version 3",
+    "versionLabel": "3"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-22",
+    "registrationBasis": [
+      "SCSC GSN Standard page checked 2026-09-22",
+      "SCSC citation record for Version 3, published 2021-05-04"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

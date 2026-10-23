@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shutil
 import subprocess
 from collections.abc import Mapping
 from pathlib import Path
@@ -14,6 +15,7 @@ from .learning_context import build_learning_context
 from .production_context import build_production_context
 
 ROOT = Path(__file__).resolve().parents[2]
+ARTIFACT_OWNER_ROOT = Path("capabilities/artifact")
 PYTHON_RECEIPT = Path(".venv/.ordivon-materialization.json")
 PYTHON_INPUTS = ("pyproject.toml", "uv.lock", ".python-version")
 
@@ -76,14 +78,15 @@ def _js_status(root: Path) -> dict[str, Any]:
             "requiredPaths": [str(path.relative_to(root)) for path in required],
             "resolverChecked": False,
         }
-    resolver = Path("/root/tools/bin/pnpm")
-    if not resolver.is_file():
+    resolver_name = shutil.which("pnpm")
+    if resolver_name is None:
         return {
             "ready": False,
             "reason": "JS_RESOLVER_UNAVAILABLE",
             "requiredPaths": [str(path.relative_to(root)) for path in required],
             "resolverChecked": False,
         }
+    resolver = Path(resolver_name)
     probe = subprocess.run(
         [str(resolver), "exec", "node", "-e", "process.exit(0)"],
         cwd=root,
@@ -99,7 +102,7 @@ def _js_status(root: Path) -> dict[str, Any]:
         "requiredPaths": [str(path.relative_to(root)) for path in required],
         "resolverChecked": True,
         "resolver": str(resolver),
-        "boundary": "The Workstation pnpm resolver performs a non-mutating fail-closed dependency-status check; Studio does not duplicate pnpm currentness semantics.",
+        "boundary": "The project-pinned pnpm resolver performs a non-mutating fail-closed dependency-status check; Studio does not duplicate pnpm currentness semantics.",
     }
 
 
@@ -130,7 +133,7 @@ def dependency_proposal(target: str, root: Path = ROOT) -> dict[str, Any]:
             "status": current,
         }
     if target == "js":
-        executable = "/root/tools/bin/pnpm"
+        executable = shutil.which("pnpm") or "pnpm"
         args = ["install", "--frozen-lockfile"]
     else:
         executable = "/usr/bin/python3"
@@ -311,7 +314,9 @@ def execute_surface_action(name: str, arguments: Mapping[str, Any], *, root: Pat
             _production_root(root, current)
         return build_learning_context(root, current_production_id=current)
     if name == "studio_creative_index_query":
-        artifact_candidate = Path(os.environ.get("ORDIVON_ARTIFACT_ROOT", "/root/projects/ordivon/capabilities/artifact"))
+        artifact_candidate = Path(
+            os.environ.get("ORDIVON_ARTIFACT_ROOT", str(root.parents[1] / ARTIFACT_OWNER_ROOT))
+        )
         creative_library_candidate = Path(os.environ.get("ORDIVON_CREATIVE_LIBRARY_ROOT", str(root)))
         index = build_creative_index(
             root,

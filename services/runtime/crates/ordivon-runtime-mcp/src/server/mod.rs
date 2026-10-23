@@ -8,28 +8,31 @@ use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
 use ordivon_runtime_core::{
-    read_workspace_content, read_workspace_slice_compact, read_workspace_text_compact,
-    workspace_changes_page, workspace_diff_compact, ArtifactReadRequest, ArtifactReadResult,
-    CompactWorkspaceDiffResult, CompactWorkspaceOpenResult, CredentialAuthority,
-    CredentialBindingRequest, ExecutionBudget, ExecutionProfile, ExecutionProposal,
-    ExecutionStepProposal, ExecutionTarget, ForeignReference, GitWorkspaceCreateRequest,
-    HostDependencyBinding, InputAuthority, InputBindingRequest, JobCancelRequest, JobObservation,
-    JobObserveRequest, JobRunProposal, Runtime, RuntimeCapabilities, RuntimeCapacity,
-    RuntimeConfig, RuntimeError, RuntimeExecutionTargetCapability, RuntimeJobInspection,
-    RuntimeJobListRequest, RuntimeJobListResult, RuntimeNodeIdentity, RuntimeReleaseAdmission,
-    RuntimeReleaseGetRequest, RuntimeReleaseProjection, RuntimeReleaseRequest,
-    RuntimeWorkspaceGetRequest, RuntimeWorkspaceListRequest, RuntimeWorkspaceListResult,
-    RuntimeWorkspaceSummary, UniversalExecError, UniversalExecutorConfig, WindowsAuthority,
-    WorkspaceChangeCursor, WorkspaceChangePageRequest as ExecWorkspaceChangePageRequest,
-    WorkspaceChangePageResult, WorkspaceCloseRequest, WorkspaceCloseResult,
-    WorkspaceContentMetadata, WorkspaceContentRequest,
-    WorkspaceDiffRequest as ExecWorkspaceDiffRequest, WorkspaceMutateRequest,
-    WorkspaceMutateResult, WorkspaceReadRequest as ExecWorkspaceReadRequest,
-    WorkspaceReadSliceRequest, CLIENT_REQUEST_ID_MAX_LENGTH, CLIENT_REQUEST_ID_MIN_LENGTH,
-    CLIENT_REQUEST_ID_PATTERN, DEFAULT_INSPECTION_EVENT_LIMIT, ENVIRONMENT_VARIABLE_NAME_PATTERN,
-    MAX_INSPECTION_EVENT_LIMIT, MAX_TASK_TAIL_BYTES, MAX_TASK_WAIT_MS,
-    MAX_WORKSPACE_CHANGE_PAGE_ENTRIES, MAX_WORKSPACE_IO_BYTES, RUNTIME_SCHEMA_VERSION,
-    WORKSPACE_ID_MAX_LENGTH, WORKSPACE_ID_MIN_LENGTH, WORKSPACE_ID_PATTERN,
+    materialize_windows_credential_binding, read_workspace_content, read_workspace_file,
+    read_workspace_slice_compact, read_workspace_text_compact, workspace_changes_page,
+    workspace_diff_compact, ArtifactContentReadResult, ArtifactContentRequest, ArtifactReadRequest,
+    ArtifactReadResult, CompactWorkspaceDiffResult, CompactWorkspaceOpenResult,
+    CredentialAuthority, CredentialBindingRequest, ExecutionBudget, ExecutionProfile,
+    ExecutionProposal, ExecutionStepProposal, ExecutionTarget, ForeignReference,
+    GitWorkspaceCreateRequest, HostDependencyBinding, InputAuthority, InputBindingRequest,
+    JobCancelRequest, JobObservation, JobObserveRequest, JobRunProposal, Runtime,
+    RuntimeCapabilities, RuntimeCapacity, RuntimeConfig, RuntimeError,
+    RuntimeExecutionTargetCapability, RuntimeJobInspection, RuntimeJobListRequest,
+    RuntimeJobListResult, RuntimeNodeIdentity, RuntimeReleaseAdmission, RuntimeReleaseGetRequest,
+    RuntimeReleaseProjection, RuntimeReleaseRequest, RuntimeWorkspaceGetRequest,
+    RuntimeWorkspaceListRequest, RuntimeWorkspaceListResult, RuntimeWorkspaceSummary,
+    UniversalExecError, UniversalExecutorConfig, WindowsAuthority, WindowsExecutionContextRequest,
+    WindowsPrivilegedBrokerConfig, WorkspaceChangeCursor,
+    WorkspaceChangePageRequest as ExecWorkspaceChangePageRequest, WorkspaceChangePageResult,
+    WorkspaceCloseRequest, WorkspaceCloseResult, WorkspaceContentMetadata, WorkspaceContentRequest,
+    WorkspaceDiffRequest as ExecWorkspaceDiffRequest, WorkspaceFileReadResult,
+    WorkspaceFileRequest, WorkspaceHeadroomConfig, WorkspaceMutateRequest, WorkspaceMutateResult,
+    WorkspaceReadRequest as ExecWorkspaceReadRequest, WorkspaceReadSliceRequest,
+    CLIENT_REQUEST_ID_MAX_LENGTH, CLIENT_REQUEST_ID_MIN_LENGTH, CLIENT_REQUEST_ID_PATTERN,
+    DEFAULT_INSPECTION_EVENT_LIMIT, ENVIRONMENT_VARIABLE_NAME_PATTERN, MAX_INSPECTION_EVENT_LIMIT,
+    MAX_TASK_TAIL_BYTES, MAX_TASK_WAIT_MS, MAX_WORKSPACE_CHANGE_PAGE_ENTRIES,
+    MAX_WORKSPACE_IO_BYTES, RUNTIME_SCHEMA_VERSION, WORKSPACE_ID_MAX_LENGTH,
+    WORKSPACE_ID_MIN_LENGTH, WORKSPACE_ID_PATTERN,
 };
 use rmcp::handler::server::common::FromContextPart;
 use rmcp::handler::server::router::tool::ToolRouter;
@@ -75,26 +78,47 @@ impl AuthenticatedPrincipalBinding {
     }
 }
 
-fn authenticated_principal_from_http_parts(parts: &axum::http::request::Parts) -> Option<String> {
+fn authenticated_principal_from_http_parts(
+    parts: &axum::http::request::Parts,
+) -> Option<AuthenticatedPrincipalBinding> {
     parts
         .extensions
         .get::<AuthenticatedPrincipalBinding>()
-        .map(|binding| binding.principal.clone())
+        .cloned()
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-struct EffectivePrincipal(String);
+struct EffectivePrincipal {
+    principal: String,
+    auth_source: Option<String>,
+}
+
+impl EffectivePrincipal {
+    fn scopes_job_lifecycle(&self) -> bool {
+        matches!(
+            self.auth_source.as_deref(),
+            Some("remote_bearer") | Some("cloudflare_access")
+        )
+    }
+}
 
 impl FromContextPart<ToolCallContext<'_, RuntimeServer>> for EffectivePrincipal {
     fn from_context_part(context: &mut ToolCallContext<RuntimeServer>) -> Result<Self, McpError> {
-        let request_principal = context
+        let binding = context
             .request_context
             .extensions
             .get::<axum::http::request::Parts>()
             .and_then(authenticated_principal_from_http_parts);
-        Ok(Self(request_principal.unwrap_or_else(|| {
-            context.service.state.execution.principal.clone()
-        })))
+        Ok(match binding {
+            Some(binding) => Self {
+                principal: binding.principal,
+                auth_source: Some(binding.auth_source),
+            },
+            None => Self {
+                principal: context.service.state.execution.principal.clone(),
+                auth_source: None,
+            },
+        })
     }
 }
 

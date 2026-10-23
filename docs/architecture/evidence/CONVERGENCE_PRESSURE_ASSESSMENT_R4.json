@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.convergence-pressure-assessment",
+  "truthRole": "diagnosis-only-no-provider-or-control-authority",
+  "gates": [
+    {
+      "gate": "QUEUE_CONTENTION",
+      "status": "NOT_PROVEN",
+      "reason": "observed episodes contain no requeue or unsuccessful merge-group signal",
+      "evidence": {
+        "episodes": 21,
+        "requeues": 0,
+        "unsuccessfulMergeGroupRuns": 0
+      },
+      "allowedExperiments": []
+    },
+    {
+      "gate": "HIGH_QUEUE_DEPTH",
+      "status": "NOT_PROVEN",
+      "reason": "observed lower-bound peak depth does not establish sustained high depth",
+      "evidence": {
+        "observedPeakQueueDepthLowerBound": 2,
+        "episodes": 21
+      },
+      "allowedExperiments": []
+    },
+    {
+      "gate": "CI_WASTE",
+      "status": "INSUFFICIENT_EVIDENCE",
+      "reason": "terminal CI exists but economic outcomes remain deliberately unclassified",
+      "evidence": {
+        "runs": 121,
+        "unclassifiedTerminalRuns": 90
+      },
+      "allowedExperiments": []
+    },
+    {
+      "gate": "LONG_TAIL_OWNER",
+      "status": "INSUFFICIENT_EVIDENCE",
+      "reason": "multiple owner-cost candidates are observed, but no validated comparable cross-candidate admission threshold exists",
+      "evidence": {
+        "ownerCostEpisodes": 25,
+        "ownerCostCandidates": 3,
+        "successfulMeasuredOwnerCostEpisodes": 23
+      },
+      "allowedExperiments": []
+    },
+    {
+      "gate": "PREDICTOR_DATA",
+      "status": "INSUFFICIENT_EVIDENCE",
+      "reason": "no validated history-size or calibration threshold has been admitted",
+      "evidence": {
+        "queueEpisodes": 21,
+        "ownerCostEpisodes": 25,
+        "ownerCostCandidates": 3
+      },
+      "allowedExperiments": []
+    }
+  ],
+  "controlsAdmitted": []
+}

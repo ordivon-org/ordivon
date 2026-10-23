@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -10,13 +11,15 @@ from typing import Any
 SECURITY_ROOT = Path(__file__).resolve().parents[2]
 AGENT_POLICY = SECURITY_ROOT / "policies" / "agent_admission.rego"
 EFFECT_POLICY = SECURITY_ROOT / "policies" / "effect_admission.rego"
-OPA = Path("/usr/bin/opa")
+OPA = shutil.which("opa")
 
 
 def _opa(policy: Path, query: str, payload: dict[str, Any]) -> dict[str, Any]:
+    if OPA is None:
+        raise RuntimeError("OPA executable is not available on PATH")
     result = subprocess.run(
         [
-            str(OPA),
+            OPA,
             "eval",
             "--format=json",
             "--data",

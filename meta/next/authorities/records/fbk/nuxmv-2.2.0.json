@@ -1,0 +1,52 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": "Official download page states nuXmv is available only for non-commercial or academic purposes; catalog registration is not dependency admission."
+  },
+  "discovery": {
+    "aliases": [
+      "nuXmv",
+      "nuXmv 2.2.0"
+    ],
+    "domains": [
+      "architecture",
+      "engineering",
+      "formal-methods"
+    ],
+    "topics": [
+      "model-checking",
+      "ltl",
+      "ctl",
+      "infinite-state",
+      "vmt"
+    ]
+  },
+  "id": "nuxmv-2.2.0",
+  "identity": {
+    "authorityKind": "provider-authority",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "fbk",
+      "name": "Fondazione Bruno Kessler"
+    },
+    "officialSource": "https://nuxmv.fbk.eu/download.html",
+    "publicationDate": null,
+    "title": "nuXmv 2.2.0",
+    "versionLabel": "2.2.0"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-22",
+    "registrationBasis": [
+      "official upstream source checked 2026-09-22",
+      "verified reintegration temporal owner currentness review"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

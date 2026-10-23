@@ -5,10 +5,13 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use super::evidence::{prepare_runner_terminal_from_bundle, RESULT_FILE};
+use super::job_attempt_state::AttemptLifecycleContract;
 use super::registry::{
-    inspect_runtime_invariants_connection, load_attempt, load_job, load_reservation,
-    CONDITION_RETIREMENT_MIGRATION_VERSION, MAX_MIGRATION_VERSION,
+    inspect_runtime_invariants_connection, CONDITION_RETIREMENT_MIGRATION_VERSION,
+    MAX_MIGRATION_VERSION,
 };
+use super::registry_storage::RegistryStorageBoundary;
+use super::reservation_state::ReservationContract;
 use super::{
     AttemptRecord, AttemptState, AttemptTerminationIntent, JobResolution, RegistryConfig,
     ReservationRecord, ReservationState, RuntimeError, RuntimeErrorCode, RuntimeInvariantViolation,
@@ -205,9 +208,9 @@ pub fn inspect_runtime(config: &RuntimeDoctorConfig) -> RuntimeResult<RuntimeDoc
 
     let mut cases = Vec::with_capacity(by_attempt.len());
     for (attempt_id, codes) in by_attempt {
-        let attempt = load_attempt(&connection, &attempt_id)?;
-        let job = load_job(&connection, &attempt.job_id)?;
-        let reservation = load_reservation(&connection, &attempt_id)?;
+        let attempt = RegistryStorageBoundary::load_attempt(&connection, &attempt_id)?;
+        let job = RegistryStorageBoundary::load_job(&connection, &attempt.job_id)?;
+        let reservation = RegistryStorageBoundary::load_reservation(&connection, &attempt_id)?;
         let expected_bundle = config.store_root.join("attempts").join(&attempt.attempt_id);
         let bundle_path_trusted = Path::new(&attempt.bundle_path) == expected_bundle;
         let result_path = expected_bundle.join(RESULT_FILE);
@@ -383,12 +386,21 @@ fn inspect_summary(
     for row in rows {
         let (job_id, workspace_id, attempt_id, attempt_state, reservation_state, recovery_required) =
             row.map_err(|error| RuntimeError::from_sql(error, "decode capacity-holder summary"))?;
+        let reservation_state = ReservationState::parse(&reservation_state)?;
+        if !ReservationContract::holds_capacity(reservation_state) {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::RegistryCorrupt,
+                "capacity-holder projection contains a non-holding reservation",
+                Some("reservationState"),
+                false,
+            ));
+        }
         capacity_holders.push(RuntimeDoctorCapacityHolder {
             job_id,
             workspace_id,
             attempt_id,
             attempt_state: AttemptState::parse(&attempt_state)?,
-            reservation_state: ReservationState::parse(&reservation_state)?,
+            reservation_state,
             recovery_required,
         });
     }
@@ -462,8 +474,9 @@ fn propose_repair(
     if result_present {
         return match prepare_runner_terminal_from_bundle(attempt) {
             Ok(terminal) => {
-                let expected_resolution = resolution_for_state(terminal.state);
-                let target_reservation = reservation_target(terminal.state);
+                let expected_resolution = AttemptLifecycleContract::resolution(terminal.state);
+                let target_reservation = ReservationContract::terminal_target(terminal.state)
+                    .expect("Runner terminal status must map to a terminal reservation target");
                 let terminal_matches = attempt.state == terminal.state
                     && attempt.result_digest.as_deref() == Some(terminal.result_digest.as_str())
                     && attempt.finished_at_ms == Some(terminal.finished_at_ms)
@@ -472,8 +485,18 @@ fn propose_repair(
                     && job.current_attempt_id.is_none();
                 if terminal_matches && reservation.state == target_reservation {
                     RuntimeDoctorProposal::NoRepairNeeded
-                } else if terminal_matches {
+                } else if terminal_matches
+                    && ReservationContract::can_transition(reservation.state, target_reservation)
+                {
                     RuntimeDoctorProposal::ReleaseTerminalReservation
+                } else if terminal_matches {
+                    RuntimeDoctorProposal::ManualReview {
+                        reasons: vec![format!(
+                            "reservation cannot transition from {} to {}",
+                            reservation.state.as_db(),
+                            target_reservation.as_db()
+                        )],
+                    }
                 } else {
                     RuntimeDoctorProposal::RecoverRunnerResult { terminal }
                 }
@@ -484,18 +507,29 @@ fn propose_repair(
         };
     }
 
-    let expected_resolution = resolution_for_state(attempt.state);
-    let evidence_complete = attempt.state.is_terminal()
-        && attempt.result_digest.is_some()
-        && attempt.finished_at_ms.is_some()
-        && job.resolution == expected_resolution
-        && job.current_attempt_id.is_none();
+    let expected_resolution = AttemptLifecycleContract::resolution(attempt.state);
+    let evidence_complete = AttemptLifecycleContract::terminal_evidence_complete(
+        attempt.state,
+        attempt.result_digest.is_some(),
+        attempt.finished_at_ms.is_some(),
+        job.resolution,
+        job.current_attempt_id.is_some(),
+    );
     if evidence_complete {
-        let target = reservation_target(attempt.state);
+        let target = ReservationContract::terminal_target(attempt.state)
+            .expect("complete terminal evidence must map to a reservation target");
         if reservation.state == target {
             RuntimeDoctorProposal::NoRepairNeeded
-        } else {
+        } else if ReservationContract::can_transition(reservation.state, target) {
             RuntimeDoctorProposal::ReleaseTerminalReservation
+        } else {
+            RuntimeDoctorProposal::ManualReview {
+                reasons: vec![format!(
+                    "reservation cannot transition from {} to {}",
+                    reservation.state.as_db(),
+                    target.as_db()
+                )],
+            }
         }
     } else {
         let mut reasons = Vec::new();
@@ -516,26 +550,6 @@ fn propose_repair(
         }
         reasons.push("Runner result bundle is absent".to_string());
         RuntimeDoctorProposal::ManualReview { reasons }
-    }
-}
-
-fn resolution_for_state(state: AttemptState) -> Option<JobResolution> {
-    match state {
-        AttemptState::Succeeded => Some(JobResolution::Succeeded),
-        AttemptState::Failed => Some(JobResolution::Failed),
-        AttemptState::TimedOut => Some(JobResolution::TimedOut),
-        AttemptState::Cancelled => Some(JobResolution::Cancelled),
-        AttemptState::Lost => Some(JobResolution::Lost),
-        AttemptState::Orphaned => Some(JobResolution::Orphaned),
-        _ => None,
-    }
-}
-
-fn reservation_target(state: AttemptState) -> ReservationState {
-    if state == AttemptState::Orphaned {
-        ReservationState::HeldOrphaned
-    } else {
-        ReservationState::Released
     }
 }
 

@@ -1,0 +1,79 @@
+{
+  "currentPhysicalProbeBenchmark": {
+    "batch100": {
+      "bad": 2,
+      "serialGood": 98,
+      "serialMs": 48870.83,
+      "workers4Good": 98,
+      "workers4Ms": 15102.41
+    },
+    "batch20": {
+      "note": "one carrier changed/failed during concurrent live churn",
+      "serialGood": 20,
+      "serialMs": 11341.75,
+      "workers4Good": 19,
+      "workers4Ms": 2795.32
+    },
+    "claimBoundary": "component benchmark on current physical carriers; not end-to-end candidate workspace.list latency",
+    "command": "git --no-optional-locks -C <workspace> status --porcelain=v2 --branch -z --untracked-files=normal --ignore-submodules=none",
+    "physicalDirectorySnapshot": 381
+  },
+  "historicalEvidence": {
+    "commit": "96e98960a89dd89fe18ad6336af7355f7dbe6931",
+    "inventoryReadMs": 3932.7,
+    "physicalWorkspaceCount": 366,
+    "serialGitStatus20Ms": 27729.32,
+    "sourceBase": "8a4268ddb8136a9985702a68a12fee05b3f60ac2",
+    "standing": "historical provenance only; requalified above on current base",
+    "workers4GitStatus20Ms": 957.52
+  },
+  "implementation": {
+    "cacheAdded": false,
+    "change": "bounded parallel page-local HEAD/dirty Git probes for default list projection; exact source-state proof path remains serial",
+    "historicalMechanismCommit": "96e98960a89dd89fe18ad6336af7355f7dbe6931",
+    "parallelism": 4,
+    "publicSchemaChanged": false,
+    "registrySchemaChanged": false,
+    "truthOwnerChanged": false
+  },
+  "kind": "ordivon.runtime-workspace-list-live-projection-r21",
+  "nextGate": "independent Falsifier review plus full Runtime owner verification; then provider publication decision",
+  "nonClaims": [
+    "does not establish an end-to-end candidate Runtime workspace.list speedup until candidate server qualification",
+    "does not remove all physical inventory scan cost",
+    "does not weaken or parallelize includeSourceStateDigest exact proof semantics",
+    "does not establish a global Runtime performance SLO",
+    "does not authorize publication or release without independent review and provider gates"
+  ],
+  "problem": {
+    "claimBoundary": "operation-local and page-size-sensitive; not a global Runtime SLO",
+    "controlledEndpointProjectionMs": {
+      "limit1": 136,
+      "limit100": 45769,
+      "limit20": 10189
+    },
+    "installedRelease": "98e0302850686adb0fc4e15428cc9cf628baa124",
+    "operationDominantSlowCalls": 991,
+    "slowCoreGe30s": 991,
+    "stageRows": 2132,
+    "traceWindow": "strict recent 2h at 2026-10-03 ~19:12+08",
+    "waitDominantSlowCalls": 0,
+    "workspaceList": {
+      "maxMs": 67305,
+      "n": 12,
+      "p95Ms": 64046
+    }
+  },
+  "schemaVersion": 1,
+  "sourceBase": "9e45df219377f5934570205a44e6dbbb41a70f3e",
+  "status": "candidate-qualified-focused-current",
+  "verification": {
+    "cargoFmt": "PASS",
+    "clippyCoreAllTargetsAllFeaturesDenyWarnings": "PASS",
+    "focusedJob": "job-01a10182-f50f-7cc1-a239-2e357ed790c7",
+    "gitDiffCheck": "PASS",
+    "workspaceListTests": "6/6 PASS",
+    "workspaceListingRecoveryTest": "1/1 PASS"
+  },
+  "workspaceId": "ws-runtime-workspace-projection-r21-r1-20261003"
+}

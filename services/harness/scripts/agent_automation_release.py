@@ -18,7 +18,8 @@ import re
 from contextlib import contextmanager
 from pathlib import Path, PurePosixPath
 
-SOURCE_REPO = Path("/root/projects/ordivon/services/harness")
+SOURCE_REPO = Path("/root/projects/ordivon")
+SOURCE_SUBTREE = Path("services/harness")
 RELEASE_ROOT = Path("/opt/ordivon/agent-automation/releases")
 CURRENT = Path("/opt/ordivon/agent-automation/current")
 TEMPORAL = Path("/opt/ordivon/external/temporal-cli/1.8.3/temporal")
@@ -30,7 +31,9 @@ WORKER_PY = Path(
 BROWSER_SECURITY_PY = Path(
     "/root/.local/share/ordivon-workstation/conversation-relay-playwright-r4/.venv/bin/python"
 )
-SECURITY_ROOT = Path(os.environ.get("ORDIVON_SECURITY_ROOT", "/root/projects/ordivon/platform/security")).resolve()
+SECURITY_ROOT = Path(
+    os.environ.get("ORDIVON_SECURITY_ROOT", "/root/projects/ordivon/platform/security")
+).resolve()
 MCP_UNIT = "ordivon-agent-automation-mcp.service"
 WORKER_UNIT = "ordivon-agent-temporal-worker.service"
 SYSTEMD = Path("/etc/systemd/system")
@@ -70,6 +73,7 @@ RELEASE_PATHS = (
     "scripts/playwright_browserless_human_resume.py",
     "scripts/playwright_browserless_provider_preflight.py",
     "scripts/playwright_browserless_turn_once.py",
+    "scripts/playwright_cft_chatgpt_resume.py",
     "scripts/provider_boundary_diagnosis.py",
     "scripts/temporal_agent_automation.py",
     "scripts/temporal_agent_automation_deploy.py",
@@ -78,12 +82,35 @@ RELEASE_PATHS = (
     "scripts/campaign_materialization.py",
     "scripts/chatgpt_provider_gate.py",
     "scripts/chatgpt_provider_resource.py",
+    "scripts/chatgpt_conversation_discovery.py",
+    "scripts/cft_human_session.py",
+    "scripts/cft_human_materialization.py",
+    "scripts/cft_human_session_auth.py",
+    "scripts/cft_human_session_deploy.py",
     "config/browserless-playwright-requirements.txt",
     "scripts/conversation_relay_carrier.py",
     "scripts/sqlite_conversation_materializer.py",
+    "scripts/materialization_reconciliation_archive.py",
+    "scripts/sqlite_conversation_binding.py",
+    "scripts/sqlite_wake_turn_map.py",
     "scripts/standard_identifiers.py",
+    "scripts/windows_user_browser_materialization_target.py",
+    "scripts/windows_user_browser_chatgpt.ps1",
+    "src/anc_canonical",
+    "src/ordivon_harness/__init__.py",
+    "src/ordivon_harness/version.py",
+    "src/ordivon_harness/ordivon/__init__.py",
+    "src/ordivon_harness/ordivon/tool_errors.py",
+    "src/ordivon_harness/mcp_http_client.py",
+    "src/ordivon_harness/gateway_execution_port.py",
+    "src/ordivon_harness/user_browser_gateway.py",
     "systemd/ordivon-agent-automation-mcp.service",
     "systemd/ordivon-agent-temporal-worker.service",
+    "systemd/ordivon-cft-human-session@.target",
+    "systemd/ordivon-cft-human-display@.service",
+    "systemd/ordivon-cft-human-browser@.service",
+    "systemd/ordivon-cft-human-vnc@.service",
+    "systemd/ordivon-cft-human-web@.service",
     "systemd/ordivon-browser-agent.target",
     "systemd/ordivon-browserless-display@.service",
     "systemd/ordivon-browserless-idle-reaper.service",
@@ -96,6 +123,8 @@ GATE_SCHEMA_VERSION = 2
 WORKER_RUNTIME_VERSIONS = {
     "temporalio": "1.32.0",
     "rfc8785": "0.1.4",
+    "mcp": "2.2.0",
+    "httpx": "0.28.1",
 }
 PLAYWRIGHT_RUNTIME_VERSIONS = {
     "playwright": "1.63.0",
@@ -130,10 +159,7 @@ def _materialization_ledger_snapshot(path: Path) -> dict:
         integrity = db.execute("PRAGMA integrity_check").fetchone()
         if integrity is None or integrity[0] != "ok":
             raise ReleaseError(f"materialization ledger integrity check failed: {path}")
-        columns = [
-            row[1]
-            for row in db.execute("PRAGMA table_info(requests)")
-        ]
+        columns = [row[1] for row in db.execute("PRAGMA table_info(requests)")]
         expected = [
             "request_id",
             "request_digest",
@@ -256,7 +282,9 @@ def rollback_materialization_ledger_migration(receipt: dict) -> None:
     legacy = Path(receipt["legacyPath"])
     current = Path(receipt["currentPath"])
     if not legacy.is_file():
-        raise ReleaseError("cannot roll back materialization ledger migration: legacy authority missing")
+        raise ReleaseError(
+            "cannot roll back materialization ledger migration: legacy authority missing"
+        )
     for path in (
         current,
         current.with_name(current.name + "-wal"),
@@ -277,11 +305,15 @@ def finalize_materialization_ledger_migration(receipt: dict) -> dict:
         "semanticDigest": receipt["semanticDigest"],
     }
     if current_snapshot != expected:
-        raise ReleaseError("current materialization ledger changed before release cutover finalized")
+        raise ReleaseError(
+            "current materialization ledger changed before release cutover finalized"
+        )
     if legacy.is_file():
         legacy_snapshot = _materialization_ledger_snapshot(legacy)
         if legacy_snapshot != expected:
-            raise ReleaseError("legacy materialization ledger changed during closed-admission cutover")
+            raise ReleaseError(
+                "legacy materialization ledger changed during closed-admission cutover"
+            )
         for path in (
             legacy,
             legacy.with_name(legacy.name + "-wal"),
@@ -413,26 +445,65 @@ def finalize_materialization_state_migration(receipt: dict) -> dict:
     return {**receipt, "standing": "FINALIZED"}
 
 
-def exact_commit(repo: Path, revision: str) -> str:
-    p = run(["/usr/bin/git", "-C", str(repo), "rev-parse", "--verify", f"{revision}^{{commit}}"])
-    v = p.stdout.strip()
-    if len(v) != 40 or any(c not in "0123456789abcdef" for c in v):
-        raise ReleaseError("revision is not one exact Git commit")
-
-    # A standalone owner repo has no Git prefix, so its exact commit is already
-    # owner-scoped. Inside the modular monorepo, collapse an arbitrary repository
-    # revision to the last commit at or before it that actually changed this owner.
-    # This prevents unrelated sibling-owner commits from minting new Harness
-    # release identities while preserving the existing commit/fast-forward model.
-    prefix = run(
-        ["/usr/bin/git", "-C", str(repo), "rev-parse", "--show-prefix"],
+def git_top_level(repo: Path) -> Path:
+    proc = run(
+        ["/usr/bin/git", "-C", str(repo), "rev-parse", "--show-toplevel"],
         timeout=20,
-    ).stdout.strip()
-    if not prefix:
-        return v
+    )
+    value = Path(proc.stdout.strip())
+    try:
+        return value.resolve(strict=True)
+    except OSError as error:
+        raise ReleaseError(f"Git top-level repository unavailable: {value}") from error
 
+
+def release_source_subtree(repo: Path, commit: str) -> Path | None:
+    """Return the Harness owner subtree present in this exact commit, if any."""
+    repo = git_top_level(repo)
+    probe = run(
+        [
+            "/usr/bin/git",
+            "-C",
+            str(repo),
+            "cat-file",
+            "-e",
+            f"{commit}:{SOURCE_SUBTREE.as_posix()}",
+        ],
+        check=False,
+        timeout=20,
+    )
+    return SOURCE_SUBTREE if probe.returncode == 0 else None
+
+
+def exact_commit(repo: Path, revision: str) -> str:
+    """Resolve a revision to the exact owner-scoped Harness commit identity.
+
+    In the modular monorepo, unrelated sibling-owner commits do not mint new Harness releases.
+    Standalone fixture repositories retain ordinary repository commit identity.
+    """
+    git_root = git_top_level(repo)
+    p = run(
+        ["/usr/bin/git", "-C", str(git_root), "rev-parse", "--verify", f"{revision}^{{commit}}"],
+        timeout=20,
+    )
+    value = p.stdout.strip()
+    if len(value) != 40 or any(c not in "0123456789abcdef" for c in value):
+        raise ReleaseError("revision is not one exact Git commit")
+    subtree = release_source_subtree(git_root, value)
+    if subtree is None:
+        return value
     owner = run(
-        ["/usr/bin/git", "-C", str(repo), "log", "-1", "--format=%H", v, "--", "."],
+        [
+            "/usr/bin/git",
+            "-C",
+            str(git_root),
+            "log",
+            "-1",
+            "--format=%H",
+            value,
+            "--",
+            f":(top){subtree.as_posix()}",
+        ],
         timeout=20,
     ).stdout.strip()
     if len(owner) != 40 or any(c not in "0123456789abcdef" for c in owner):
@@ -440,9 +511,16 @@ def exact_commit(repo: Path, revision: str) -> str:
     return owner
 
 
-def archive_bytes(repo: Path, commit: str) -> bytes:
+def archive_bytes(repo: Path, commit: str, *, source_subtree: Path | None = None) -> bytes:
+    repo = git_top_level(repo)
+    subtree = release_source_subtree(repo, commit) if source_subtree is None else source_subtree
+    paths = (
+        tuple((subtree / path).as_posix() for path in RELEASE_PATHS)
+        if subtree is not None
+        else RELEASE_PATHS
+    )
     p = subprocess.run(
-        ["/usr/bin/git", "-C", str(repo), "archive", "--format=tar", commit, "--", *RELEASE_PATHS],
+        ["/usr/bin/git", "-C", str(repo), "archive", "--format=tar", commit, "--", *paths],
         capture_output=True,
         check=True,
         timeout=60,
@@ -457,16 +535,24 @@ def sha(raw: bytes) -> str:
 def marker(path: Path) -> dict | None:
     try:
         v = json.loads((path / MARKER).read_text())
-    except (OSError, json.JSONDecodeError):
+    except OSError, json.JSONDecodeError:
         return None
     return v if isinstance(v, dict) else None
 
 
 def materialize(repo: Path, commit: str, release_root: Path = RELEASE_ROOT) -> dict:
-    raw = archive_bytes(repo, commit)
+    repo = git_top_level(Path(repo))
+    subtree = release_source_subtree(repo, commit)
+    raw = archive_bytes(repo, commit, source_subtree=subtree)
     ad = sha(raw)
     target = release_root / commit
-    expected = {"schemaVersion": 1, "commit": commit, "archiveDigest": ad}
+    expected = {
+        "schemaVersion": 2,
+        "commit": commit,
+        "archiveDigest": ad,
+        "sourceRepo": source_repo_identity(repo),
+        "sourceSubtree": subtree.as_posix() if subtree is not None else None,
+    }
     if target.exists():
         if marker(target) != expected:
             raise ReleaseError(f"existing release identity differs: {target}")
@@ -479,13 +565,21 @@ def materialize(repo: Path, commit: str, release_root: Path = RELEASE_ROOT) -> d
     release_root.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=f".{commit[:12]}.", dir=release_root))
     try:
+        payload = staging / "payload"
+        payload.mkdir()
         with tarfile.open(fileobj=io.BytesIO(raw), mode="r:") as tf:
             members = tf.getmembers()
             for m in members:
                 p = PurePosixPath(m.name)
                 if p.is_absolute() or ".." in p.parts or m.ischr() or m.isblk() or m.isfifo():
                     raise ReleaseError(f"unsafe archive member: {m.name}")
-            tf.extractall(staging, members=members, filter="data")
+            tf.extractall(payload, members=members, filter="data")
+        source_root = payload / subtree if subtree is not None else payload
+        if not source_root.is_dir():
+            raise ReleaseError("release archive lacks resolved Harness source root")
+        for child in list(source_root.iterdir()):
+            os.replace(child, staging / child.name)
+        shutil.rmtree(payload)
         (staging / MARKER).write_text(json.dumps(expected, sort_keys=True) + "\n")
         for p in sorted(staging.rglob("*"), reverse=True):
             if p.is_symlink():
@@ -586,14 +680,16 @@ def require_operator_carrier_available() -> None:
 
 def require_worker_runtime_importable(release: Path) -> None:
     scripts = release / "scripts"
+    source = release / "src"
     code = (
         "import sys,json,importlib.metadata as m;"
-        "sys.path.insert(0,sys.argv[1]);"
-        "import temporal_agent_automation;"
-        "names=['temporalio','rfc8785'];"
+        "sys.path.insert(0,sys.argv[1]);sys.path.insert(0,sys.argv[2]);"
+        "import temporal_agent_automation,windows_user_browser_materialization_target;"
+        "import ordivon_harness.mcp_http_client,ordivon_harness.gateway_execution_port,ordivon_harness.user_browser_gateway;"
+        "names=['temporalio','rfc8785','mcp','httpx'];"
         "print(json.dumps({n:m.version(n) for n in names},sort_keys=True))"
     )
-    p = run([str(WORKER_PY), "-c", code, str(scripts)], check=False, timeout=30)
+    p = run([str(WORKER_PY), "-c", code, str(scripts), str(source)], check=False, timeout=30)
     if p.returncode != 0:
         detail = (p.stderr or p.stdout or "").strip().replace("\n", " ")[-1200:]
         raise ReleaseError(
@@ -602,7 +698,9 @@ def require_worker_runtime_importable(release: Path) -> None:
     try:
         versions = json.loads(p.stdout.strip().splitlines()[-1])
     except (json.JSONDecodeError, IndexError) as error:
-        raise ReleaseError("Temporal worker runtime dependency versions are not observable") from error
+        raise ReleaseError(
+            "Temporal worker runtime dependency versions are not observable"
+        ) from error
     if versions != WORKER_RUNTIME_VERSIONS:
         raise ReleaseError(
             f"worker runtime dependency versions differ from release contract: {versions}"
@@ -724,7 +822,11 @@ def require_browser_security_release_qualification(release: Path, commit: str) -
             timeout=240,
         )
         if proc.returncode != 0:
-            detail = (proc.stderr or proc.stdout or f"rc={proc.returncode}").strip().replace("\n", " ")[-1600:]
+            detail = (
+                (proc.stderr or proc.stdout or f"rc={proc.returncode}")
+                .strip()
+                .replace("\n", " ")[-1600:]
+            )
             value = {
                 "schemaVersion": 1,
                 "kind": "ordivon.agent-automation-browser-security-qualification",
@@ -832,14 +934,16 @@ def restore_optional_file(path: Path, raw: bytes | None, mode: int) -> None:
         write_atomic(path, raw, mode)
 
 
-def source_repo_identity(repo: Path = SOURCE_REPO) -> str:
+def source_repo_identity(repo: Path | None = None) -> str:
+    repo = SOURCE_REPO if repo is None else Path(repo)
     try:
-        return str(repo.resolve(strict=True))
-    except OSError as e:
-        raise ReleaseError(f"Agent Automation source repository unavailable: {repo}") from e
+        return str(git_top_level(repo))
+    except (OSError, ReleaseError) as error:
+        raise ReleaseError(f"Agent Automation source repository unavailable: {repo}") from error
 
 
-def _close_admission(commit: str, repo: Path = SOURCE_REPO) -> None:
+def _close_admission(commit: str, repo: Path | None = None) -> None:
+    repo = SOURCE_REPO if repo is None else Path(repo)
     ADMISSION_ROOT.mkdir(parents=True, exist_ok=True)
     write_atomic(
         ADMISSION_CLOSED,
@@ -899,8 +1003,9 @@ def _restore_admission_gate(was_closed: bool) -> None:
 
 
 def candidate_fast_forwards_closed_gate(
-    old_commit: str, new_commit: str, repo: Path = SOURCE_REPO
+    old_commit: str, new_commit: str, repo: Path | None = None
 ) -> bool:
+    repo = SOURCE_REPO if repo is None else Path(repo)
     if old_commit == new_commit:
         return True
     p = run(
@@ -912,7 +1017,8 @@ def candidate_fast_forwards_closed_gate(
 
 
 @contextmanager
-def release_admission_fence(commit: str):
+def release_admission_fence(commit: str, repo: Path | None = None):
+    repo = SOURCE_REPO if repo is None else Path(repo)
     ADMISSION_ROOT.mkdir(parents=True, exist_ok=True)
     with ADMISSION_LOCK.open("a+") as handle:
         os.chmod(ADMISSION_LOCK, 0o600)
@@ -925,19 +1031,19 @@ def release_admission_fence(commit: str):
                 raise ReleaseError(
                     f"legacy closed admission gate requires explicit reconciliation before owner migration: {old_commit}"
                 )
-            current_source = source_repo_identity(SOURCE_REPO)
+            current_source = source_repo_identity(repo)
             if existing.get("sourceRepo") != current_source:
                 raise ReleaseError(
                     f"closed admission gate belongs to another source repository: {existing.get('sourceRepo')}"
                 )
-            if not candidate_fast_forwards_closed_gate(old_commit, commit, SOURCE_REPO):
+            if not candidate_fast_forwards_closed_gate(old_commit, commit, repo):
                 raise ReleaseError(
                     f"existing closed admission gate belongs to non-ancestor candidate: {old_commit}"
                 )
             # Repair candidates may advance a still-closed gate only within the same exact source repository.
-            _close_admission(commit, SOURCE_REPO)
+            _close_admission(commit, repo)
         if not was_closed:
-            _close_admission(commit, SOURCE_REPO)
+            _close_admission(commit, repo)
         try:
             yield was_closed
         finally:
@@ -954,7 +1060,7 @@ def activate(repo: Path, revision: str) -> dict:
     require_mcp_runtime_importable(release)
     require_worker_runtime_importable(release)
     require_playwright_runtime_importable(release)
-    with release_admission_fence(commit) as admission_was_closed:
+    with release_admission_fence(commit, repo) as admission_was_closed:
         # Snapshot every rollback-relevant pre-state before the first service/file mutation. Early
         # failures (including quiescence observation or worker stop) must restore the same state.
         mcp_was = active(MCP_UNIT)

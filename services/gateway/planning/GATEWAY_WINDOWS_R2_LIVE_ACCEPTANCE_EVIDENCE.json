@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.gateway-windows-r2-live-acceptance-evidence",
+  "truthRole": "point-in-time-mechanical-acceptance-evidence",
+  "observedAt": "2026-09-22",
+  "implementationHead": "ba3de6c25641c88ba16868dce35426134e57aa19",
+  "candidate": {
+    "serviceName": "OrdivonGatewayCandidateR1",
+    "releaseCommit": "ba3de6c25641c88ba16868dce35426134e57aa19",
+    "gatewayVersion": "0.3.0",
+    "startMode": "Manual",
+    "state": "Running",
+    "port": 18999,
+    "healthStatus": 200,
+    "toolCount": 16,
+    "serviceIdentity": "NT SERVICE\\OrdivonGatewayCandidateR1",
+    "ownerServiceDependencies": []
+  },
+  "regression": {
+    "pytest": "54/54 PASS",
+    "ruff": "PASS after import-order repair",
+    "diffCheck": "PASS"
+  },
+  "withoutRuntimeCredentials": {
+    "gatewayHealthy": true,
+    "continuity.external": true,
+    "execution.linux": false,
+    "execution.windows": false,
+    "artifact.runtime": false,
+    "interpretation": "Runtime unavailability is credential-scoped; Host and Gateway remain available."
+  },
+  "serviceLifecycle": {
+    "stopRemovedListener": true,
+    "restartRestoredListener": true,
+    "healthAfterRestart": 200
+  },
+  "credentialStanding": {
+    "windowsRuntimeSourceLocatedWithoutSecretDisclosure": true,
+    "windowsMaterializationAttempt": "BLOCKED_BY_PLATFORM_SAFETY",
+    "linuxRuntimeCrossBoundaryHandoff": "BLOCKED_DO_NOT_BYPASS"
+  },
+  "verdict": "PASS_FOR_GW07_GW10_AND_PARTIAL_GW20"
+}

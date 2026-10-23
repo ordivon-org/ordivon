@@ -42,7 +42,7 @@ def test_example_project_binding_is_monorepo_owned() -> None:
     )
     workspace = config["workspaces"]["ordivon-next"]
     assert workspace == {
-        "path": "/root/projects/ordivon/meta/next",
+        "path": "/root/projects/ordivon",
         "trusted": True,
     }
 

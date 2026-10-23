@@ -1,7 +1,7 @@
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SKILL = ROOT / ".agents" / "skills" / "web-provider-routing" / "SKILL.md"
+SKILL = ROOT.parents[1] / ".agents" / "skills" / "web-provider-routing" / "SKILL.md"
 SCRIPT = ROOT / "scripts" / "web_interaction_route.py"
 
 

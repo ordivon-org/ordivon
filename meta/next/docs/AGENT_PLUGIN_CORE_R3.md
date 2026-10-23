@@ -529,7 +529,7 @@ The absence of these systems is intentional architecture, not missing implementa
 Canonical portable package stays intentionally small:
 
 ```text
-plugins/ordivon-control-plane/
+extensions/ordivon-control-plane/
 ├── plugin.json
 └── mcp.json
 ```

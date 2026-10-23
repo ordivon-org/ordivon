@@ -17,11 +17,12 @@ use axum::response::{IntoResponse, Response};
 use axum::Router;
 use ordivon_runtime_core::{
     CredentialAuthority, InputAuthority, RegistryConfig, RuntimeConfig, UniversalExecutorConfig,
-    WindowsExecutionConfig, WindowsPrivilegedBrokerConfig,
+    WindowsExecutionConfig, WindowsPrivilegedBrokerConfig, WorkspaceHeadroomConfig,
 };
 use ordivon_runtime_mcp::server::{
-    AuthenticatedPrincipalBinding, ExecutionContext, InputIngressExecutionConfig,
-    RuntimeReleaseExecutionConfig, RuntimeReleaseExecutionPlatform, RuntimeServer, ServerConfig,
+    AuthenticatedPrincipalBinding, CredentialMaterializationExecutionConfig, ExecutionContext,
+    InputIngressExecutionConfig, RuntimeReleaseExecutionConfig, RuntimeReleaseExecutionPlatform,
+    RuntimeServer, ServerConfig,
 };
 use ordivon_runtime_mcp::{append_rotating_jsonl, DEFAULT_TRACE_ROTATION_BYTES};
 use rmcp::transport::streamable_http_server::{
@@ -66,6 +67,13 @@ struct InputAuthorityConfig {
 struct CredentialAuthorityConfig {
     name: String,
     root: PathBuf,
+    allowed_principals: Vec<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct CredentialMaterializationBindingConfig {
+    name: String,
     allowed_principals: Vec<String>,
 }
 
@@ -659,6 +667,13 @@ fn load_config() -> Result<AppConfig, Box<dyn std::error::Error>> {
     };
     let windows_launcher = optional_env("ORDIVON_WINDOWS_LAUNCHER_PATH")?;
     let windows_wsl_distribution = optional_env("ORDIVON_WINDOWS_WSL_DISTRIBUTION")?;
+    let windows_elevated_principals = parse_windows_elevated_principals(optional_env(
+        "ORDIVON_WINDOWS_ELEVATED_PRINCIPALS_JSON",
+    )?)?;
+    let windows_elevated_profiles =
+        parse_windows_elevated_profiles(optional_env("ORDIVON_WINDOWS_ELEVATED_PROFILES_JSON")?)?;
+    let windows_maintenance_lease_path =
+        optional_env("ORDIVON_WINDOWS_MAINTENANCE_LEASE_PATH")?.map(PathBuf::from);
     let windows = if cfg!(windows) {
         if windows_wsl_distribution.is_some() {
             return Err(
@@ -670,6 +685,9 @@ fn load_config() -> Result<AppConfig, Box<dyn std::error::Error>> {
             Some(launcher) => Some(WindowsExecutionConfig {
                 launcher_path: PathBuf::from(launcher),
                 privileged_broker,
+                elevated_principals: windows_elevated_principals.clone(),
+                elevated_profiles: windows_elevated_profiles.clone(),
+                maintenance_lease_path: windows_maintenance_lease_path.clone(),
             }),
             None => {
                 if privileged_broker.is_some() {
@@ -685,6 +703,9 @@ fn load_config() -> Result<AppConfig, Box<dyn std::error::Error>> {
         if windows_launcher.is_some()
             || windows_wsl_distribution.is_some()
             || privileged_broker.is_some()
+            || !windows_elevated_principals.is_empty()
+            || !windows_elevated_profiles.is_empty()
+            || windows_maintenance_lease_path.is_some()
         {
             return Err(
                 "Linux-hosted Windows execution is retired; configure windows_native only on a native Windows Runtime"
@@ -745,6 +766,35 @@ fn load_config() -> Result<AppConfig, Box<dyn std::error::Error>> {
             allowed_principals: authority.allowed_principals,
         })
         .collect::<Vec<_>>();
+    let credential_materialization = optional_env(
+        "ORDIVON_CREDENTIAL_MATERIALIZATION_BINDINGS_JSON",
+    )?
+    .map(|value| {
+        serde_json::from_str::<Vec<CredentialMaterializationBindingConfig>>(&value).map_err(
+            |error| {
+                format!(
+                    "ORDIVON_CREDENTIAL_MATERIALIZATION_BINDINGS_JSON must be a JSON array of named bindings with allowedPrincipals: {error}"
+                )
+            },
+        )
+    })
+    .transpose()?
+    .map(|bindings| -> Result<CredentialMaterializationExecutionConfig, String> {
+        let mut mapped = BTreeMap::new();
+        for binding in bindings {
+            if mapped
+                .insert(binding.name.clone(), binding.allowed_principals)
+                .is_some()
+            {
+                return Err(format!(
+                    "ORDIVON_CREDENTIAL_MATERIALIZATION_BINDINGS_JSON contains duplicate binding {}",
+                    binding.name
+                ));
+            }
+        }
+        Ok(CredentialMaterializationExecutionConfig { bindings: mapped })
+    })
+    .transpose()?;
     let input_ingress = optional_env("ORDIVON_INPUT_INGRESS_JSON")?
         .map(|value| {
             serde_json::from_str::<InputIngressConfig>(&value)
@@ -940,6 +990,22 @@ fn load_config() -> Result<AppConfig, Box<dyn std::error::Error>> {
                 .into(),
         );
     }
+    let workspace_headroom = match (
+        optional_env("ORDIVON_WORKSPACE_HEADROOM_PATH")?,
+        optional_env("ORDIVON_WORKSPACE_MIN_FREE_BYTES")?,
+    ) {
+        (None, None) => None,
+        (Some(path), Some(minimum_free_bytes)) => Some(WorkspaceHeadroomConfig {
+            path: PathBuf::from(path),
+            minimum_free_bytes: minimum_free_bytes.parse()?,
+        }),
+        _ => {
+            return Err(
+                "ORDIVON_WORKSPACE_HEADROOM_PATH and ORDIVON_WORKSPACE_MIN_FREE_BYTES must be configured together"
+                    .into(),
+            )
+        }
+    };
     let node_id = std::env::var("ORDIVON_NODE_ID").unwrap_or_else(|_| {
         if cfg!(windows) {
             "windows-local".to_string()
@@ -983,12 +1049,14 @@ fn load_config() -> Result<AppConfig, Box<dyn std::error::Error>> {
             },
             input_authorities,
             credential_authorities,
+            workspace_headroom,
             execution: ExecutionContext {
                 principal,
                 global_limit,
             },
             release,
             input_ingress,
+            credential_materialization,
             trace_path,
         },
         principal_mode,
@@ -1077,6 +1145,42 @@ fn validate_private_token_file_permissions(
     })
 }
 
+fn parse_windows_elevated_principals(
+    value: Option<String>,
+) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+    value
+        .map(|value| {
+            serde_json::from_str::<Vec<String>>(&value).map_err(|error| {
+                format!(
+                    "ORDIVON_WINDOWS_ELEVATED_PRINCIPALS_JSON must be a JSON array of authenticated principal ids: {error}"
+                )
+                .into()
+            })
+        })
+        .transpose()
+        .map(|principals| principals.unwrap_or_default())
+}
+
+fn parse_windows_elevated_profiles(
+    value: Option<String>,
+) -> Result<Vec<ordivon_runtime_core::WindowsElevatedExecutionProfile>, Box<dyn std::error::Error>>
+{
+    value
+        .map(|value| {
+            serde_json::from_str::<Vec<ordivon_runtime_core::WindowsElevatedExecutionProfile>>(
+                &value,
+            )
+            .map_err(|error| {
+                format!(
+                    "ORDIVON_WINDOWS_ELEVATED_PROFILES_JSON must be a JSON array of privileged profile objects: {error}"
+                )
+                .into()
+            })
+        })
+        .transpose()
+        .map(|profiles| profiles.unwrap_or_default())
+}
+
 fn optional_env(name: &str) -> Result<Option<String>, Box<dyn std::error::Error>> {
     match std::env::var(name) {
         Ok(value) => Ok(Some(value)),
@@ -1153,6 +1257,7 @@ mod tests {
         parse_runtime_env_text, read_private_token_file, request_auth_source,
         validate_loopback_bind, AuthSource, HttpState, PrincipalMode,
     };
+    use super::{parse_windows_elevated_principals, parse_windows_elevated_profiles};
     use axum::http::{header, HeaderMap, HeaderValue};
     use std::fs;
     use std::os::unix::fs::{symlink, PermissionsExt};
@@ -1322,6 +1427,33 @@ mod tests {
         );
         let authenticated = authenticate_request(&headers, &state).await.unwrap();
         assert_eq!(authenticated.principal, "principal:local-owner");
+    }
+
+    #[test]
+    fn windows_elevated_principal_json_defaults_empty_and_requires_array_shape() {
+        assert!(parse_windows_elevated_principals(None).unwrap().is_empty());
+        assert_eq!(
+            parse_windows_elevated_principals(Some(
+                r#"["principal:maintenance-owner"]"#.to_string()
+            ))
+            .unwrap(),
+            vec!["principal:maintenance-owner"]
+        );
+        assert!(parse_windows_elevated_principals(Some(
+            r#"{"principal":"maintenance-owner"}"#.to_string()
+        ))
+        .is_err());
+    }
+
+    #[test]
+    fn windows_elevated_profile_json_defaults_empty_and_requires_profile_shape() {
+        assert!(parse_windows_elevated_profiles(None).unwrap().is_empty());
+        let parsed = parse_windows_elevated_profiles(Some(
+            r#"[{"id":"workstation.d-drive-compact-r3","principals":["principal:windows-main"],"commands":[{"executable":"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe","argumentPrefix":["-File","D:\\OrdivonStudio\\d-drive-compact-run-r3.ps1"],"allowAdditionalArguments":false}]}]"#.to_string(),
+        ))
+        .unwrap();
+        assert_eq!(parsed[0].id, "workstation.d-drive-compact-r3");
+        assert!(parse_windows_elevated_profiles(Some(r#"["not-a-profile"]"#.to_string())).is_err());
     }
 
     #[test]

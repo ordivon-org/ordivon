@@ -246,19 +246,26 @@ fn workspace_source_entry(
         )
     } else if before.is_file() {
         ("file".to_string(), before.len(), sha256_file(&path)?)
-    } else if before.is_dir() && index_mode == Some("160000") {
+    } else if before.is_dir() {
         if is_git_worktree(&path)? {
             (
                 "git-worktree".to_string(),
                 0,
                 workspace_source_state_digest_at(&path)?,
             )
-        } else {
+        } else if index_mode == Some("160000") {
             (
                 "gitlink-uninitialized".to_string(),
                 0,
                 sha256_bytes(b"gitlink-uninitialized"),
             )
+        } else {
+            return Err(UniversalExecError::new(
+                UniversalExecErrorCode::WorkspacePathDenied,
+                format!("source path is not a regular file, symlink, or Git worktree: {relative}"),
+                Some("workspaceId"),
+                false,
+            ));
         }
     } else {
         return Err(UniversalExecError::new(
@@ -327,10 +334,12 @@ fn is_git_worktree(path: &Path) -> Result<bool, UniversalExecError> {
     let output = Command::new("git")
         .arg("-C")
         .arg(path)
-        .args(["rev-parse", "--is-inside-work-tree"])
+        .args(["rev-parse", "--is-inside-work-tree", "--show-prefix"])
         .output()
         .map_err(|error| tool_unavailable("git rev-parse worktree", error))?;
-    Ok(output.status.success() && output.stdout == b"true\n")
+    // A plain directory inside its parent repository also reports true.
+    // The empty prefix proves this directory is the Git worktree root.
+    Ok(output.status.success() && output.stdout == b"true\n\n")
 }
 
 #[cfg(unix)]
@@ -362,8 +371,8 @@ fn windows_source_semantics_unchanged(
     let observed = match kind {
         "file" => sha256_file(path)?,
         "symlink" => {
-            let target =
-                fs::read_link(path).map_err(|error| io_error(path, "reread source symlink", error))?;
+            let target = fs::read_link(path)
+                .map_err(|error| io_error(path, "reread source symlink", error))?;
             sha256_bytes(&symlink_target_bytes(&target))
         }
         "git-worktree" => workspace_source_state_digest_at(path)?,
@@ -376,4 +385,129 @@ fn windows_source_semantics_unchanged(
         _ => return Ok(false),
     };
     Ok(observed == expected_digest)
+}
+
+#[cfg(test)]
+mod gitlink_worktree_root_tests {
+    use super::*;
+
+    #[test]
+    fn nested_gitlink_directory_does_not_inherit_parent_worktree_identity() {
+        let unique = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "ordivon-gitlink-root-{}-{unique}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&root).expect("create root");
+        let run = |cwd: &Path, args: &[&str]| {
+            let output = Command::new("git")
+                .arg("-C")
+                .arg(cwd)
+                .args(args)
+                .output()
+                .expect("run git");
+            assert!(
+                output.status.success(),
+                "git failed: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            output
+        };
+        run(&root, &["init", "--quiet"]);
+        run(&root, &["config", "user.name", "Ordivon Test"]);
+        run(&root, &["config", "user.email", "ordivon@example.invalid"]);
+        fs::write(root.join("README.md"), "baseline\n").expect("write baseline");
+        run(&root, &["add", "README.md"]);
+        run(&root, &["commit", "--quiet", "-m", "baseline"]);
+
+        let nested = root.join("module");
+        fs::create_dir_all(&nested).expect("create gitlink directory");
+        run(
+            &root,
+            &[
+                "update-index",
+                "--add",
+                "--cacheinfo",
+                "160000,1111111111111111111111111111111111111111,module",
+            ],
+        );
+
+        let inherited = run(&nested, &["rev-parse", "--is-inside-work-tree"]);
+        assert_eq!(inherited.stdout, b"true\n");
+        let inherited_result = is_git_worktree(&nested).expect("classify nested directory");
+
+        run(&nested, &["init", "--quiet"]);
+        let nested_repo_result = is_git_worktree(&nested).expect("classify nested repository");
+        let root_result = is_git_worktree(&root).expect("classify root repository");
+        fs::remove_dir_all(&root).expect("cleanup fixture");
+
+        assert!(
+            !inherited_result,
+            "a directory inherited from its parent worktree is not its own worktree root"
+        );
+        assert!(nested_repo_result);
+        assert!(root_result);
+    }
+
+    #[test]
+    fn untracked_nested_git_worktree_is_digestible() {
+        let unique = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "ordivon-untracked-nested-root-{}-{unique}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&root).expect("create root");
+        let run = |cwd: &Path, args: &[&str]| {
+            let output = Command::new("git")
+                .arg("-C")
+                .arg(cwd)
+                .args(args)
+                .output()
+                .expect("run git");
+            assert!(
+                output.status.success(),
+                "git failed: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            output
+        };
+
+        run(&root, &["init", "--quiet"]);
+        run(&root, &["config", "user.name", "Ordivon Test"]);
+        run(&root, &["config", "user.email", "ordivon@example.invalid"]);
+        fs::write(root.join("README.md"), "parent\n").expect("write parent");
+        run(&root, &["add", "README.md"]);
+        run(&root, &["commit", "--quiet", "-m", "parent"]);
+
+        let nested = root.join("nested");
+        fs::create_dir_all(&nested).expect("create nested");
+        run(&nested, &["init", "--quiet"]);
+        run(&nested, &["config", "user.name", "Ordivon Test"]);
+        run(&nested, &["config", "user.email", "ordivon@example.invalid"]);
+        fs::write(nested.join("README.md"), "nested\n").expect("write nested");
+        run(&nested, &["add", "README.md"]);
+        run(&nested, &["commit", "--quiet", "-m", "nested"]);
+
+        let untracked = git_output_bytes(
+            &root,
+            ["ls-files", "--others", "--exclude-standard", "-z"],
+        )
+        .expect("list untracked");
+        let paths = parse_nul_paths(&untracked, "untracked Git path").expect("parse untracked");
+        assert_eq!(paths, vec!["nested/".to_string()]);
+
+        let entry =
+            workspace_source_entry(&root, "nested/", None).expect("digest nested worktree");
+        assert_eq!(entry.kind, "git-worktree");
+        let digest = workspace_source_state_digest_at(&root).expect("digest parent state");
+        fs::remove_dir_all(&root).expect("cleanup fixture");
+
+        assert!(digest.starts_with("sha256:"));
+    }
 }

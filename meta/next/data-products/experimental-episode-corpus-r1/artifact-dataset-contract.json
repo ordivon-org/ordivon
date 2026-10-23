@@ -1,0 +1,53 @@
+{
+  "columns": [
+    {
+      "name": "episode_id",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "name": "projection_digest",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "name": "profile_id",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "name": "data_class",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "name": "anchor_owner_id",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "name": "anchor_object_kind",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "name": "anchor_object_id",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "name": "source_record_digest",
+      "nullable": false,
+      "type": "string"
+    }
+  ],
+  "contractVersion": 1,
+  "id": "experimental-episode-index-r1",
+  "maximumRows": 10007,
+  "minimumRows": 10007,
+  "notes": "Rebuildable non-authoritative flat index over Experimental Episode R1. Full evidence/dimensions/measures remain in owner evidence and the Episode analytical projection.",
+  "primaryKey": [
+    "episode_id"
+  ],
+  "profileId": "dataset-parquet-flat-r1"
+}

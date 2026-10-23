@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/convergence-owner-cost-episode-v1.schema.json",
+  "title": "Ordivon Convergence Owner Cost Episode v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "kind", "candidateSha", "providerBaseSha", "queueClass",
+    "changedPaths", "changedPathCount", "directOwners", "verificationOwners",
+    "ownerFanout", "owner", "verifyTask", "runnerWaitSeconds", "setupSeconds",
+    "buildSeconds", "testSeconds", "totalSeconds", "result", "evidenceRefs",
+    "observationTimestamp"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "ordivon.convergence-owner-cost-episode"},
+    "candidateSha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "providerBaseSha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "queueClass": {"enum": ["SCOPED", "CROSS_CUTTING"]},
+    "changedPaths": {"type": ["array", "null"], "items": {"type": "string"}, "uniqueItems": true},
+    "changedPathCount": {"type": ["integer", "null"], "minimum": 0},
+    "directOwners": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "verificationOwners": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "ownerFanout": {"type": "integer", "minimum": 0},
+    "owner": {"type": "string", "minLength": 1},
+    "verifyTask": {"type": "string", "minLength": 1},
+    "runnerWaitSeconds": {"type": ["number", "null"], "minimum": 0},
+    "setupSeconds": {"type": ["number", "null"], "minimum": 0},
+    "buildSeconds": {"type": ["number", "null"], "minimum": 0},
+    "testSeconds": {"type": ["number", "null"], "minimum": 0},
+    "totalSeconds": {"type": ["number", "null"], "minimum": 0},
+    "result": {"type": "string", "minLength": 1},
+    "evidenceRefs": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true},
+    "observationTimestamp": {"type": "string", "format": "date-time"}
+  }
+}

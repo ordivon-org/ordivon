@@ -24,7 +24,9 @@ import tempfile
 from typing import Any
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-HARNESS_CURRENT = pathlib.Path('/opt/ordivon/agent-automation/current')
+HARNESS_CURRENT = pathlib.Path(
+    os.environ.get("ORDIVON_AGENT_AUTOMATION_SOURCE_ROOT", "/opt/ordivon/agent-automation/current")
+)
 HARNESS_SCRIPTS = HARNESS_CURRENT / 'scripts'
 if str(HARNESS_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(HARNESS_SCRIPTS))

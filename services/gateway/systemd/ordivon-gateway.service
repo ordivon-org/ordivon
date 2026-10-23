@@ -1,8 +1,7 @@
 [Unit]
 Description=Ordivon Gateway stable northbound MCP adapter
 After=network-online.target ordivon-runtime.service ordivon-host-v2.service
-Wants=network-online.target
-Requires=ordivon-runtime.service ordivon-host-v2.service
+Wants=network-online.target ordivon-runtime.service ordivon-host-v2.service
 
 [Service]
 Type=simple
@@ -21,7 +20,7 @@ Environment=OTEL_TRACES_EXPORTER=none
 Environment=OTEL_METRICS_EXPORTER=none
 Environment=OTEL_LOGS_EXPORTER=none
 ExecStart=/opt/ordivon/gateway/current/.venv/bin/opentelemetry-instrument /opt/ordivon/gateway/current/.venv/bin/ordivon-gateway
-Restart=on-failure
+Restart=always
 RestartSec=3
 TimeoutStopSec=20
 KillMode=control-group

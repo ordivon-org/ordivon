@@ -1,0 +1,11 @@
+{
+  "authorityId": "gsn-3",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current",
+  "note": "SCSC identifies Goal Structuring Notation Community Standard Version 3 as the current GSN standard.",
+  "observedDate": "2026-09-22",
+  "officialSource": "https://scsc.uk/gsn-standard",
+  "schemaVersion": 1,
+  "versionObserved": "3"
+}

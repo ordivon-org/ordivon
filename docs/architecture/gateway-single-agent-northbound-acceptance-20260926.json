@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.gateway-single-agent-northbound-acceptance",
+  "observedAt": "2026-09-26",
+  "status": "PARTIAL_PASS_LOGICAL_ROUTING_ACCEPTED_PRODUCTION_CARRIER_CONVERGENCE_PENDING",
+  "target": "Gateway is the only normal Agent-facing Ordivon MCP; Host and Runtime MCPs remain private owner/admin/recovery interfaces behind Gateway.",
+  "retirementSemantics": {
+    "retire": "Remove direct Host/Linux Runtime/Windows Runtime connectors from the normal ChatGPT/Agent-visible tool surface after all gates pass.",
+    "doNotRetire": "Do not delete owner-native Host/Runtime APIs or MCP servers that Gateway itself requires for owner routing, recovery, diagnostics, and bounded administration."
+  },
+  "productionGateway": {
+    "version": "0.4.0",
+    "release": "57327cd9ba0f8374819989f2c8ddefb9dfd8f483",
+    "service": "OrdivonGatewayCandidateR2",
+    "hostContinuityAvailable": true,
+    "linuxExecutionAvailable": false,
+    "windowsExecutionAvailable": false,
+    "runtimeArtifactAvailable": false,
+    "runtimeAvailabilityBlocker": "Windows Gateway credential directory exists but is physically empty; configured Linux and Windows runtime bearer paths therefore fail with FileNotFoundError."
+  },
+  "consumerCatalog": {
+    "standing": "STALE_EXTERNAL_CONNECTOR_SNAPSHOT",
+    "evidence": [
+      "Current ChatGPT Gateway connector still advertises retired continuity.* and collaboration.* entries.",
+      "Calling advertised continuity.list against Gateway 0.4.0 returns Unknown tool: continuity.list.",
+      "Current direct Host connector still advertises retired task.* and board.* entries while release-native Host tools/list exposes schema-9 Social Work tools."
+    ],
+    "owner": "external consumer/connector catalog",
+    "forbiddenRepair": "Do not restore compatibility aliases or legacy storage to satisfy a stale client catalog."
+  },
+  "candidateAgentFacingMcp": {
+    "gatewayVersion": "0.4.0",
+    "toolCount": 28,
+    "legacyContinuityToolsPresent": false,
+    "hostSocialWork": {
+      "standing": "PASS",
+      "tool": "work.get",
+      "workRef": "work:swf:connector-catalog-currentness:r1:20260926",
+      "observedRevision": 2,
+      "observedState": "open"
+    },
+    "linuxExecution": {
+      "standing": "PASS",
+      "owner": "runtime.linux",
+      "capabilityProjectionAvailable": true,
+      "contexts": ["trusted_local", "contained_local"],
+      "executionOperationRef": "ordivon-exec:v1:runtime.linux:job-01a0de21-a8a3-7e63-b1a4-15f172f8d32c",
+      "executionDisposition": "succeeded",
+      "deliveryDisposition": "committed",
+      "exitCode": 0,
+      "recoveryRequired": false
+    },
+    "runtimeArtifact": {
+      "standing": "PASS",
+      "owner": "runtime.linux",
+      "artifactId": "attempt-01a0de21-a8a3-7e63-b1a4-1606f91d4260.stdout",
+      "eof": true,
+      "expectedContent": "GATEWAY_ONLY_LINUX_SMOKE_R4\\n"
+    }
+  },
+  "windowsCredentialPhysicalTruth": {
+    "credentialDirectory": "C:\\ProgramData\\Ordivon\\GatewayCandidateR2\\credentials",
+    "directoryExists": true,
+    "materializedCredentialFiles": 0,
+    "serviceAclAllowsGatewayRead": true,
+    "credentialMaterializationReceiptPresent": false,
+    "serviceMaterializationReceiptPreviouslyClaimed": {
+      "linuxBearerConfigured": true,
+      "windowsBearerConfigured": true
+    },
+    "diagnosis": "The legacy receipt fields proved only that path arguments were supplied, not that credential files existed. Credential materialization was not converged for the live R2 carrier."
+  },
+  "credentialOwnerEvidence": {
+    "windowsRuntimeBearerSource": {
+      "path": "C:\\ProgramData\\Ordivon\\RuntimeCandidateR6\\secrets\\runtime-mcp.token",
+      "exists": true,
+      "bytes": 65
+    },
+    "linuxRuntimeBearerSource": {
+      "path": "/etc/ordivon/runtime-mcp.token",
+      "exists": true,
+      "bytes": 65,
+      "historicalR1StagingMetadataMatchesLengthAndMtime": true,
+      "byteEqualityNotClaimed": true
+    },
+    "secretBoundary": "No bearer value or digest was exposed. Credential content inspection was not used as acceptance evidence."
+  },
+  "candidateRepair": {
+    "files": [
+      "services/gateway/packaging/windows/materialize_service.ps1",
+      "services/gateway/tests/test_windows_service_contract.py"
+    ],
+    "change": "Separate bearer path configuration from physical file presence in service materialization receipts; remove ambiguous *BearerConfigured receipt fields.",
+    "targetedTests": "PASS",
+    "gatewayFullSuite": "PASS",
+    "ruff": "PASS"
+  },
+  "remainingRetirementGates": [
+    "Materialize current Linux and Windows Runtime machine credentials into the production Windows Gateway using the existing credential materializer and owner-managed sources; do not hand-copy or invent tokens.",
+    "Re-probe production Gateway until execution.linux, execution.windows, artifact.runtime, and continuity.external are all available.",
+    "Run one harmless production Gateway Windows execution round-trip and one production Gateway Linux execution plus artifact round-trip.",
+    "Refresh the external ChatGPT connector catalog until the normal Gateway surface exposes the 28 current tools including schema-9 Social Work names and no retired continuity/collaboration names.",
+    "After those gates pass, remove direct Host/Linux Runtime/Windows Runtime connectors from the default Agent-visible tool surface while retaining owner-native private/admin/recovery endpoints behind Gateway."
+  ],
+  "blockedAction": {
+    "action": "Stop production OrdivonGatewayCandidateR2 to run the existing stopped-service credential materializer.",
+    "standing": "TOOL_ENVIRONMENT_BLOCKED_BEFORE_EXECUTION",
+    "response": "No bypass or alternate service-control path was attempted. Production credentials were left untouched."
+  },
+  "truthBoundary": "This acceptance distinguishes candidate routing correctness from production carrier currentness. Candidate PASS does not claim the live Windows Gateway currently has Runtime credentials or that the external ChatGPT connector catalog is refreshed."
+}

@@ -109,7 +109,16 @@ class EquipmentWorldTests(unittest.TestCase):
     def test_blender_proposal_requires_declared_semantic_postcondition(self) -> None:
         world = load_equipment_world(ROOT / "research/equipment/equipment-world.json")
         inventory = {"equipment": [{"id": "blender", "present": True}]}
-        with mock.patch("ordivon_studio.equipment.discover_equipment_for_capability", return_value=inventory):
+        with (
+            mock.patch(
+                "ordivon_studio.equipment.discover_equipment_for_capability",
+                return_value=inventory,
+            ),
+            mock.patch(
+                "ordivon_studio.equipment._first_existing",
+                return_value="/usr/bin/blender",
+            ),
+        ):
             incomplete = propose_operation(world, "scene.render", {"script": "scene.py"}, equipment_id="blender")
             complete = propose_operation(
                 world,

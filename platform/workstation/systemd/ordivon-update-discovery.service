@@ -1,0 +1,15 @@
+[Unit]
+Description=Ordivon workstation native update discovery (read-only)
+Documentation=https://man.archlinux.org/man/checkupdates.8
+ConditionPathExists=/root/projects/ordivon/platform/workstation/tools/update_candidate_report.py
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+StateDirectory=ordivon-update-discovery
+UMask=0077
+NoNewPrivileges=yes
+TimeoutStartSec=4min
+ExecStart=/usr/bin/python3 /root/projects/ordivon/platform/workstation/tools/update_candidate_report.py --output /var/lib/ordivon-update-discovery/current.json

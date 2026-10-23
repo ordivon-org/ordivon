@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.e01-e02-cross-layer-acceptance",
+  "observedDate": "2026-09-21",
+  "status": "ACCEPTED",
+  "canonicalHeadAtT04": "ee99dbd93955ea01a528ca594e8a04356c35eecc",
+  "trace": {
+    "T01": {
+      "status": "ACCEPTED",
+      "owner": "MCP_W3C_TRACE_CONTEXT_PLUS_OPENTELEMETRY",
+      "semanticAuthority": false
+    },
+    "T02": {
+      "status": "ACCEPTED",
+      "implementation": "MCP_2_2_DEFAULT_SERVER_OPENTELEMETRY_MIDDLEWARE",
+      "gatewayZeroCode": true
+    },
+    "T03": {
+      "status": "ACCEPTED",
+      "implementation": "MCP_CLIENT_DISPATCHER_W3C_META_INJECTION",
+      "liveTraceId": "b12a2ad95542d9754ded8ad14e4cd91b",
+      "gatewayServerSpanId": "04c93b617029223a",
+      "downstreamTool": "workspace.exec"
+    },
+    "T04": {
+      "status": "ACCEPTED",
+      "implementation": "caller-owned TraceRecorder.event_sink OpenTelemetry projection",
+      "coreTelemetryModule": false,
+      "productionDependencyChange": false,
+      "canonicalTraceChangedByProjection": false,
+      "harnessVerification": {
+        "passed": 886,
+        "subtestsPassed": 122
+      },
+      "commit": "ee99dbd93955ea01a528ca594e8a04356c35eecc"
+    },
+    "T05": {
+      "status": "ACCEPTED",
+      "pipeline": "Gateway OTLP HTTP -> Vector 0.57 otel.traces -> deferred blackhole",
+      "vectorHttpStatus": 200,
+      "traceStorageClaim": false,
+      "temporaryAcceptanceProxyRemoved": true,
+      "gatewayDefaultTraceExporter": "none"
+    }
+  },
+  "identity": {
+    "I01": {
+      "status": "ACCEPTED",
+      "authority": "Cloudflare Access/OAuth"
+    },
+    "I02": {
+      "status": "ACCEPTED",
+      "principalSource": "verified HTTP request state",
+      "toolArgumentsAreIdentitySource": false
+    },
+    "I03": {
+      "status": "ACCEPTED",
+      "userAndMachineIdentitySeparated": true,
+      "linuxOwnerCredential": "systemd bearer credential",
+      "windowsOwnerCredential": "systemd Cloudflare Access service identity"
+    },
+    "I04": {
+      "status": "ACCEPTED",
+      "liveTraceId": "0fc24bde37de4e82373ff124d5e81b5a",
+      "liveSpanId": "6df972e4d25a230a",
+      "principal": "principal:cf-access:9a688f59beb4f27da72d4eaa15de073180b7ea024d15b4baa38662dbf741f8a3",
+      "ownerId": "runtime.linux",
+      "nativeId": "job-01a0c435-3e5f-7a81-b88a-4ead9a4afba3",
+      "operationRef": "ordivon-exec:v1:runtime.linux:job-01a0c435-3e5f-7a81-b88a-4ead9a4afba3"
+    }
+  },
+  "nonClaims": [
+    "persistent or queryable trace storage",
+    "production OTLP export while observability profile is cold",
+    "Temporal cross-process trace propagation",
+    "Host writerLabel as authenticated identity",
+    "public principal as delegated owner authorization",
+    "telemetry availability as product correctness gate"
+  ],
+  "postAcceptanceEvolution": {
+    "standing": "SUPERSEDED_FOR_CURRENT_OBSERVABILITY_TOPOLOGY_ONLY",
+    "currentReference": "docs/architecture/CURRENT_ARCHITECTURE.md",
+    "change": "optional cold-by-default Vector -> Tempo heavy observability profile added after T05 acceptance",
+    "gatewayDefaultTraceExporter": "none",
+    "productCorrectnessDependsOnTraceStorage": false
+  }
+}

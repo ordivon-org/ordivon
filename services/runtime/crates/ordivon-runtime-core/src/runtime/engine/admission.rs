@@ -19,20 +19,40 @@ impl Runtime {
         let inputs = canonical_input_binding_requests(inputs)?;
         let request_identity_digest =
             super::input_bound_proposal_request_identity_digest(proposal, &inputs)?;
-        let job_id = {
-            let _guard = self.lock_lifecycle()?;
-            if let Some(existing) = self.registry.find_idempotent_job(
-                &proposal.principal,
-                &proposal.client_request_id,
-                &request_identity_digest,
-                None,
-            )? {
-                existing.job_id
-            } else {
-                let request = self.resolve_proposal(proposal);
-                validate_run_request_structure(&request)?;
-                self.admit_new_job_with_inputs(&request, request_identity_digest, &inputs)?
-            }
+        let job_id = if let Some(existing) = self.registry.find_idempotent_job(
+            &proposal.principal,
+            &proposal.client_request_id,
+            &request_identity_digest,
+            None,
+        )? {
+            existing.job_id
+        } else {
+            self.with_admission_workspace_lease(
+                &proposal.execution.workspace_id,
+                |admission_fence| {
+                    if let Some(existing) = self.registry.find_idempotent_job(
+                        &proposal.principal,
+                        &proposal.client_request_id,
+                        &request_identity_digest,
+                        None,
+                    )? {
+                        return Ok(existing.job_id);
+                    }
+                    let authority_contract =
+                        super::authority_contract::AuthorityContract::immutable_inputs(
+                            proposal, &inputs,
+                        )?;
+                    let request = self.resolve_proposal(proposal);
+                    validate_run_request_structure(&request)?;
+                    self.admit_new_job_with_inputs(
+                        &request,
+                        request_identity_digest,
+                        &inputs,
+                        &authority_contract,
+                        admission_fence,
+                    )
+                },
+            )?
         };
         self.observe_admitted_job(
             &job_id,
@@ -87,24 +107,41 @@ impl Runtime {
         let credentials = canonical_credential_binding_requests(credentials)?;
         let request_identity_digest =
             super::credential_bound_proposal_request_identity_digest(proposal, &credentials)?;
-        let job_id = {
-            let _guard = self.lock_lifecycle()?;
-            if let Some(existing) = self.registry.find_idempotent_job(
-                &proposal.principal,
-                &proposal.client_request_id,
-                &request_identity_digest,
-                None,
-            )? {
-                existing.job_id
-            } else {
-                let request = self.resolve_proposal(proposal);
-                validate_run_request_structure(&request)?;
-                self.admit_new_job_with_credentials(
-                    &request,
-                    request_identity_digest,
-                    &credentials,
-                )?
-            }
+        let job_id = if let Some(existing) = self.registry.find_idempotent_job(
+            &proposal.principal,
+            &proposal.client_request_id,
+            &request_identity_digest,
+            None,
+        )? {
+            existing.job_id
+        } else {
+            self.with_admission_workspace_lease(
+                &proposal.execution.workspace_id,
+                |admission_fence| {
+                    if let Some(existing) = self.registry.find_idempotent_job(
+                        &proposal.principal,
+                        &proposal.client_request_id,
+                        &request_identity_digest,
+                        None,
+                    )? {
+                        return Ok(existing.job_id);
+                    }
+                    let authority_contract =
+                        super::authority_contract::AuthorityContract::credential_bound_trusted(
+                            proposal,
+                            &credentials,
+                        )?;
+                    let request = self.resolve_proposal(proposal);
+                    validate_run_request_structure(&request)?;
+                    self.admit_new_job_with_credentials(
+                        &request,
+                        request_identity_digest,
+                        &credentials,
+                        &authority_contract,
+                        admission_fence,
+                    )
+                },
+            )?
         };
         self.observe_admitted_job(
             &job_id,
@@ -119,6 +156,8 @@ impl Runtime {
         request: &JobRunRequest,
         request_identity_digest: String,
         credentials: &[CredentialBindingRequest],
+        authority_contract: &super::authority_contract::AuthorityContract,
+        admission_fence: &super::registry::AdmissionFenceGuard,
     ) -> RuntimeResult<String> {
         if request.execution.execution_target != super::ExecutionTarget::LocalLinux
             || request.execution.execution_profile != super::ExecutionProfile::TrustedLocal
@@ -133,7 +172,6 @@ impl Runtime {
             self.executor.max_runtime_ms,
             self.executor.max_output_bytes,
         )?;
-        self.reconcile_recoverable_orphans()?;
         let _ = self.reconcile_workspace(&request.execution.workspace_id)?;
         let mut plan = self.resolve_plan(request)?;
         let admission_ids = self.registry.preallocate_admission_ids();
@@ -143,20 +181,27 @@ impl Runtime {
             credentials,
         )?;
         plan.credential_set_id = Some(prepared.credential_set_id.clone());
-
-        let submit = SubmitRequest {
-            schema_version: RUNTIME_SCHEMA_VERSION,
-            client_request_id: request.client_request_id.clone(),
-            request_identity_digest: Some(request_identity_digest),
-            execution_provider: Some(
-                self.current_execution_provider_snapshot(request.execution.execution_target)?,
-            ),
-            runtime_release_effect: None,
-            host_dependencies: Vec::new(),
+        let provider =
+            self.current_execution_provider_snapshot(request.execution.execution_target)?;
+        let submit = match OperationCircuitCompiler::credential_bound_trusted(
+            authority_contract,
+            request,
+            credentials,
+            request_identity_digest,
+            provider,
             plan,
-            global_limit: request.global_limit,
+        ) {
+            Ok(circuit) => circuit.into_submit_request(),
+            Err(error) => {
+                self.discard_prepared_credential_set(&prepared.prepared_root)?;
+                return Err(error);
+            }
         };
-        match self.registry.submit_preallocated(&submit, &admission_ids) {
+        match self.registry.submit_preallocated_with_admission_fence(
+            &submit,
+            &admission_ids,
+            admission_fence,
+        ) {
             Ok(AdmissionOutcome::Created(created)) => {
                 let job_id = created.job.job_id.clone();
                 self.ensure_job_credential_ownership(&job_id)
@@ -179,6 +224,8 @@ impl Runtime {
         request: &JobRunRequest,
         request_identity_digest: String,
         inputs: &[InputBindingRequest],
+        authority_contract: &super::authority_contract::AuthorityContract,
+        admission_fence: &super::registry::AdmissionFenceGuard,
     ) -> RuntimeResult<String> {
         match request.execution.execution_target {
             super::ExecutionTarget::LocalLinux => {
@@ -213,7 +260,6 @@ impl Runtime {
             self.executor.max_runtime_ms,
             self.executor.max_output_bytes,
         )?;
-        self.reconcile_recoverable_orphans()?;
         let _ = self.reconcile_workspace(&request.execution.workspace_id)?;
         let mut plan = self.resolve_plan(request)?;
         let admission_ids = self.registry.preallocate_admission_ids();
@@ -243,19 +289,39 @@ impl Runtime {
                 input_root.clone(),
             );
         }
-        let submit = SubmitRequest {
-            schema_version: RUNTIME_SCHEMA_VERSION,
-            client_request_id: request.client_request_id.clone(),
-            request_identity_digest: Some(request_identity_digest),
-            execution_provider: Some(
-                self.current_execution_provider_snapshot(request.execution.execution_target)?,
-            ),
-            runtime_release_effect: None,
-            host_dependencies: Vec::new(),
-            plan,
-            global_limit: request.global_limit,
+        let provider =
+            self.current_execution_provider_snapshot(request.execution.execution_target)?;
+        let compiled = if authority_contract.is_immutable_input_reduced() {
+            OperationCircuitCompiler::immutable_input_reduced(
+                authority_contract,
+                request,
+                inputs,
+                request_identity_digest,
+                provider,
+                plan,
+            )
+        } else {
+            OperationCircuitCompiler::immutable_input_trusted(
+                authority_contract,
+                request,
+                inputs,
+                request_identity_digest,
+                provider,
+                plan,
+            )
         };
-        match self.registry.submit_preallocated(&submit, &admission_ids) {
+        let submit = match compiled {
+            Ok(circuit) => circuit.into_submit_request(),
+            Err(error) => {
+                self.discard_prepared_input_set(&prepared.prepared_root)?;
+                return Err(error);
+            }
+        };
+        match self.registry.submit_preallocated_with_admission_fence(
+            &submit,
+            &admission_ids,
+            admission_fence,
+        ) {
             Ok(AdmissionOutcome::Created(created)) => {
                 let job_id = created.job.job_id.clone();
                 self.ensure_job_input_ownership(&job_id)
@@ -284,28 +350,66 @@ impl Runtime {
         let request_identity_digest = super::proposal_request_identity_digest(proposal)?;
         let legacy_request_identity_digest =
             super::legacy_request_identity_digest_from_proposal(proposal)?;
-        let (job_id, created) = {
-            let _guard = self.lock_lifecycle()?;
-            if let Some(existing) = self.registry.find_idempotent_job(
-                &proposal.principal,
-                &proposal.client_request_id,
-                &request_identity_digest,
-                legacy_request_identity_digest.as_deref(),
-            )? {
-                (existing.job_id, false)
-            } else {
-                let request = self.resolve_proposal(proposal);
-                validate_run_request_structure(&request)?;
-                validate_new_admission_policy(
-                    &request,
-                    self.executor.max_runtime_ms,
-                    self.executor.max_output_bytes,
-                )?;
-                (
-                    self.admit_new_job(&request, request_identity_digest)?,
-                    true,
-                )
-            }
+        let (job_id, created) = if let Some(existing) = self.registry.find_idempotent_job(
+            &proposal.principal,
+            &proposal.client_request_id,
+            &request_identity_digest,
+            legacy_request_identity_digest.as_deref(),
+        )? {
+            (existing.job_id, false)
+        } else {
+            self.with_admission_workspace_lease(
+                &proposal.execution.workspace_id,
+                |admission_fence| {
+                    if let Some(existing) = self.registry.find_idempotent_job(
+                        &proposal.principal,
+                        &proposal.client_request_id,
+                        &request_identity_digest,
+                        legacy_request_identity_digest.as_deref(),
+                    )? {
+                        return Ok((existing.job_id, false));
+                    }
+                    let authority_contract =
+                        super::authority_contract::AuthorityContract::ordinary(proposal)?;
+                    let elevated_principals = self
+                        .windows
+                        .as_ref()
+                        .map(|windows| windows.elevated_principals.as_slice())
+                        .unwrap_or(&[]);
+                    authority_contract.authorize_windows_elevation(elevated_principals)?;
+                    if let Some(windows) = self.windows.as_ref() {
+                        windows.authorize_new_proposal(proposal)?;
+                    } else if authority_contract
+                        .effective_windows_context()
+                        .is_some_and(|context| {
+                            context.privilege == super::WindowsPayloadPrivilege::Elevated
+                        })
+                    {
+                        return Err(RuntimeError::new(
+                            super::RuntimeErrorCode::AuthorizationDenied,
+                            "elevated Windows execution requires a configured native Windows provider",
+                            Some("execution.windowsContext.privilege"),
+                            false,
+                        ));
+                    }
+                    let request = self.resolve_proposal(proposal);
+                    validate_run_request_structure(&request)?;
+                    validate_new_admission_policy(
+                        &request,
+                        self.executor.max_runtime_ms,
+                        self.executor.max_output_bytes,
+                    )?;
+                    Ok((
+                        self.admit_new_job(
+                            &request,
+                            request_identity_digest,
+                            Some(&authority_contract),
+                            admission_fence,
+                        )?,
+                        true,
+                    ))
+                },
+            )?
         };
         if created {
             self.ensure_newly_admitted_job_dispatched(&job_id)?;
@@ -324,23 +428,41 @@ impl Runtime {
         request: &JobRunRequest,
         request_identity_digest: String,
     ) -> RuntimeResult<JobObservation> {
-        let (job_id, created) = {
-            let _guard = self.lock_lifecycle()?;
-            if let Some(existing) = self.registry.find_idempotent_job(
-                &request.principal,
-                &request.client_request_id,
-                &request_identity_digest,
-                None,
-            )? {
-                (existing.job_id, false)
-            } else {
-                validate_new_admission_policy(
-                    request,
-                    self.executor.max_runtime_ms,
-                    self.executor.max_output_bytes,
-                )?;
-                (self.admit_new_job(request, request_identity_digest)?, true)
-            }
+        let (job_id, created) = if let Some(existing) = self.registry.find_idempotent_job(
+            &request.principal,
+            &request.client_request_id,
+            &request_identity_digest,
+            None,
+        )? {
+            (existing.job_id, false)
+        } else {
+            self.with_admission_workspace_lease(
+                &request.execution.workspace_id,
+                |admission_fence| {
+                    if let Some(existing) = self.registry.find_idempotent_job(
+                        &request.principal,
+                        &request.client_request_id,
+                        &request_identity_digest,
+                        None,
+                    )? {
+                        return Ok((existing.job_id, false));
+                    }
+                    validate_new_admission_policy(
+                        request,
+                        self.executor.max_runtime_ms,
+                        self.executor.max_output_bytes,
+                    )?;
+                    Ok((
+                        self.admit_new_job(
+                            request,
+                            request_identity_digest,
+                            None,
+                            admission_fence,
+                        )?,
+                        true,
+                    ))
+                },
+            )?
         };
         if created {
             self.ensure_newly_admitted_job_dispatched(&job_id)?;
@@ -357,24 +479,36 @@ impl Runtime {
         &self,
         request: &JobRunRequest,
         request_identity_digest: String,
+        authority_contract: Option<&super::authority_contract::AuthorityContract>,
+        admission_fence: &super::registry::AdmissionFenceGuard,
     ) -> RuntimeResult<String> {
-        self.reconcile_recoverable_orphans()?;
         let _ = self.reconcile_workspace(&request.execution.workspace_id)?;
         let host_dependencies = self.validate_host_dependencies(request)?;
         let plan = self.resolve_plan(request)?;
-        let submit = SubmitRequest {
-            schema_version: RUNTIME_SCHEMA_VERSION,
-            client_request_id: request.client_request_id.clone(),
-            request_identity_digest: Some(request_identity_digest),
-            execution_provider: Some(
-                self.current_execution_provider_snapshot(request.execution.execution_target)?,
-            ),
-            runtime_release_effect: None,
-            host_dependencies,
-            plan,
-            global_limit: request.global_limit,
+        let provider =
+            self.current_execution_provider_snapshot(request.execution.execution_target)?;
+        let submit = match authority_contract {
+            Some(authority_contract) => OperationCircuitCompiler::ordinary(
+                authority_contract,
+                request,
+                request_identity_digest,
+                provider,
+                host_dependencies,
+                plan,
+            )?
+            .into_submit_request(),
+            None => SubmitRequest {
+                schema_version: RUNTIME_SCHEMA_VERSION,
+                client_request_id: request.client_request_id.clone(),
+                request_identity_digest: Some(request_identity_digest),
+                execution_provider: Some(provider),
+                runtime_release_effect: None,
+                host_dependencies,
+                plan,
+                global_limit: request.global_limit,
+            },
         };
-        match self.registry.submit(&submit)? {
+        match self.registry.submit_with_admission_fence(&submit, admission_fence)? {
             AdmissionOutcome::Created(created) => Ok(created.job.job_id.clone()),
             AdmissionOutcome::Existing { job } => Ok(job.job_id),
         }
@@ -443,6 +577,7 @@ impl Runtime {
                 execution_profile: proposal.execution.execution_profile,
                 execution_target: proposal.execution.execution_target,
                 windows_authority: proposal.execution.windows_authority,
+                windows_context: proposal.execution.windows_context,
                 foreign_references: proposal.execution.foreign_references.clone(),
                 host_dependencies: proposal.execution.host_dependencies.clone(),
             },

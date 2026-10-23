@@ -86,14 +86,14 @@ printf '%s\n' 'stage=grant-bootstrap'
 rm -f "$db" "$db-shm" "$db-wal"
 AGENT_ADMISSION_DB="$db" \
 AGENT_ADMISSION_AUDIENCE="http://127.0.0.1:8788" \
-  mise exec node@26.9.0 -- node "$root/src/bootstrap-grant.ts" >/dev/null
+  mise exec node@26.12.0 -- node "$root/src/bootstrap-grant.ts" >/dev/null
 
 printf '%s\n' 'stage=resource-server-start'
 AGENT_ADMISSION_DB="$db" \
 AGENT_ADMISSION_AUDIENCE="http://127.0.0.1:8788" \
 AGENT_ADMISSION_ISSUER="$issuer" \
 AGENT_ADMISSION_ALLOW_INSECURE=1 \
-  mise exec node@26.9.0 -- node "$root/src/server.ts" >"$server_log" 2>&1 &
+  mise exec node@26.12.0 -- node "$root/src/server.ts" >"$server_log" 2>&1 &
 server_pid="$!"
 
 printf '%s\n' 'stage=resource-server-ready'
@@ -114,6 +114,6 @@ done
 printf '%s\n' 'stage=e2e-client'
 AGENT_ADMISSION_AUDIENCE="http://127.0.0.1:8788" \
 AGENT_ADMISSION_ISSUER="$issuer" \
-  mise exec node@26.9.0 -- node "$root/src/e2e-client.ts"
+  mise exec node@26.12.0 -- node "$root/src/e2e-client.ts"
 
 printf '%s\n' 'stage=done'

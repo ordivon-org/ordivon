@@ -21,18 +21,37 @@ class CapabilityDescriptor(StrictModel):
     category: str
     configured: bool
     available: bool
-    context_mode: Literal["none", "provider-defined-string"]
-    contexts: list[str] = Field(default_factory=list)
+    context_mode: Literal["none", "provider-defined-string", "provider-defined-json"]
+    contexts: list[Any] = Field(default_factory=list)
     owner_node_id: str | None = None
     owner_node_ids: list[str] = Field(default_factory=list)
     observation_error: str | None = None
     truth_boundary: str
+    description: str = ""
+    tags: list[str] = Field(default_factory=list)
+
+
+class CapabilitySearchMatch(StrictModel):
+    match_kind: Literal["exact", "prefix", "token", "substring"]
+    capability: CapabilityDescriptor
+
+
+class CapabilitySearchProjection(StrictModel):
+    schema_version: Literal[1] = 1
+    kind: Literal["ordivon.gateway-capability-search"] = "ordivon.gateway-capability-search"
+    truth_role: Literal["rebuildable-non-authoritative-discovery-projection"] = (
+        "rebuildable-non-authoritative-discovery-projection"
+    )
+    query: str
+    projection_digest: str
+    total_matches: int
+    matches: list[CapabilitySearchMatch]
 
 
 class SystemDescription(StrictModel):
     schema_version: Literal[1] = 1
     kind: Literal["ordivon.gateway-system-description"] = "ordivon.gateway-system-description"
-    gateway_version: str = "0.1.0"
+    gateway_version: str
     truth_role: Literal["non-authoritative-routing-projection"] = (
         "non-authoritative-routing-projection"
     )
@@ -60,6 +79,17 @@ class ExecutionReceipt(StrictModel):
     state: str
     terminal: bool
     delivery_disposition: str | None = None
+
+
+class ExecutionResolution(StrictModel):
+    schema_version: Literal[1] = 1
+    kind: Literal["ordivon.gateway-execution-resolution"] = "ordivon.gateway-execution-resolution"
+    request_id: str
+    capability: str
+    owner_id: str
+    resolution: Literal["found", "absent", "ambiguous"]
+    operation_ref: str | None = None
+    native_id: str | None = None
 
 
 class ExecutionObservation(ExecutionReceipt):
@@ -93,6 +123,8 @@ class ContinuityItem(StrictModel):
     revision: int
     state: str
     checkpoint_digest: str | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
 
 
 class ContinuityObservation(ContinuityItem):
@@ -112,3 +144,133 @@ class ContinuityPage(StrictModel):
     items: list[ContinuityItem]
     has_more: bool
     next_cursor: str | None = None
+    sort_key: Literal["created", "updated"] = "created"
+
+
+class ContinuityEvent(StrictModel):
+    revision: int
+    event_type: str
+    state: str
+    created_at: str
+
+
+class ContinuityObserved(ContinuityObservation):
+    kind: Literal["ordivon.gateway-continuity-observed"] = "ordivon.gateway-continuity-observed"
+    recent_events: list[ContinuityEvent] = Field(default_factory=list)
+
+
+class ContinuityMutationReceipt(ContinuityObservation):
+    kind: Literal["ordivon.gateway-continuity-mutation"] = "ordivon.gateway-continuity-mutation"
+    admission: str
+    writer_label: str | None = None
+
+
+class ContinuityAttention(StrictModel):
+    schema_version: Literal[1] = 1
+    kind: Literal["ordivon.gateway-continuity-attention"] = "ordivon.gateway-continuity-attention"
+    truth_role: Literal["host-navigation-projection"] = "host-navigation-projection"
+    board_fence: dict[str, Any]
+    summary: dict[str, Any]
+    routed_tasks: list[dict[str, Any]]
+    unrouted_messages: list[dict[str, Any]]
+    truth_boundary: str | None = None
+
+
+class ContinuityChanges(StrictModel):
+    schema_version: Literal[1] = 1
+    kind: Literal["ordivon.gateway-continuity-changes"] = "ordivon.gateway-continuity-changes"
+    truth_role: Literal["host-navigation-projection"] = "host-navigation-projection"
+    board_fence: dict[str, Any]
+    summary: dict[str, Any]
+    routed_tasks: list[dict[str, Any]]
+    unrouted_messages: list[dict[str, Any]]
+    truth_boundary: str | None = None
+
+
+class CollaborationMessage(StrictModel):
+    sequence: int
+    client_message_id: str
+    author_label: str
+    author_identity_role: str
+    message_kind: str
+    topic: str | None = None
+    message: str
+    reply_to_client_message_id: str | None = None
+    task_id: str | None = None
+    recorded_at_ms: int
+    message_digest: str
+    truth_role: str
+
+
+class CollaborationPostReceipt(StrictModel):
+    schema_version: Literal[1] = 1
+    kind: Literal["ordivon.gateway-collaboration-post"] = "ordivon.gateway-collaboration-post"
+    truth_role: Literal["host-collaboration-projection"] = "host-collaboration-projection"
+    admission: str
+    message: CollaborationMessage
+    truth_boundary: str | None = None
+
+
+class CollaborationPage(StrictModel):
+    schema_version: Literal[1] = 1
+    kind: Literal["ordivon.gateway-collaboration-page"] = "ordivon.gateway-collaboration-page"
+    truth_role: Literal["host-collaboration-projection"] = "host-collaboration-projection"
+    messages: list[CollaborationMessage]
+    last_sequence: int
+    next_after_sequence: int
+    has_more: bool
+    truth_boundary: str | None = None
+
+
+class CollaborationSearchHit(StrictModel):
+    sequence: int
+    client_message_id: str
+
+
+class CollaborationSearch(StrictModel):
+    schema_version: Literal[1] = 1
+    kind: Literal["ordivon.gateway-collaboration-search"] = "ordivon.gateway-collaboration-search"
+    truth_role: Literal["host-navigation-projection"] = "host-navigation-projection"
+    source_snapshot_high_water: int
+    live_high_water: int
+    negative_result_authoritative: bool
+    requires_exact_source_reentry: bool
+    results: list[CollaborationSearchHit]
+
+
+class CapabilityInvocationRecipe(StrictModel):
+    recipe_id: str
+    kind: Literal["skill", "mise-task", "owner-cli"]
+    owner_id: str
+    command: list[str] = Field(default_factory=list)
+    note: str = ""
+
+
+class CapabilitySkillBinding(StrictModel):
+    ref: str
+    skill_id: str
+    name: str
+    instruction_digest: str
+    package_revision: str
+    snapshot_revision: str
+    instruction_authority: str
+
+
+class CapabilityResolution(StrictModel):
+    schema_version: Literal[1] = 1
+    kind: Literal["ordivon.gateway-capability-resolution"] = "ordivon.gateway-capability-resolution"
+    truth_role: Literal["non-authoritative-composition-route"] = (
+        "non-authoritative-composition-route"
+    )
+    capability: str
+    semantic_owner: str
+    completion_owner: str
+    execution_capability: str | None = None
+    study_types: list[str] = Field(default_factory=list)
+    skill_candidates: list[str] = Field(default_factory=list)
+    selected_skill: CapabilitySkillBinding | None = None
+    invocation_recipes: list[CapabilityInvocationRecipe] = Field(default_factory=list)
+    source_refs: list[str] = Field(default_factory=list)
+    observation_errors: list[str] = Field(default_factory=list)
+    non_claims: list[str] = Field(default_factory=list)
+    resolution_digest: str

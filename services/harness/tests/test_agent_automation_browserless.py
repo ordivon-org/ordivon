@@ -1471,7 +1471,8 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             self.assertEqual(diagnosis["substrateStanding"], "HEALTHY")
             self.assertEqual(diagnosis["providerAdmission"], "NOT_ADMISSIBLE")
             self.assertEqual(diagnosis["carrierRouting"], "PRESERVE_SELECTED_CARRIER")
-            self.assertTrue(diagnosis["humanVerificationEligible"])
+            self.assertEqual(diagnosis["providerAction"], "PRE_EFFECT_HOLD")
+            self.assertFalse(diagnosis["humanVerificationEligible"])
             self.assertFalse(diagnosis["automaticInfrastructureMutationAllowed"])
             command = run.call_args.args[0]
             self.assertIn("--endpoint-id", command)
@@ -1505,7 +1506,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 "UNMANAGED_OBSERVED",
             )
             policy = result["providerBoundaryPolicy"]
-            self.assertEqual(policy["policyVersion"], "provider-boundary-r1")
+            self.assertEqual(policy["policyVersion"], "provider-boundary-r2")
             self.assertEqual(
                 policy["neutralAttributionReference"],
                 {
@@ -1966,9 +1967,11 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 )
 
     def test_provider_policy_and_ui_standings_do_not_rotate_carriers(self):
+        # AUTH_REQUIRED now transfers to the durable CfT human-auth path and is covered by
+        # test_durable_human_materialization.py. The remaining provider/UI standings stay
+        # pre-effect on the selected Browserless carrier and must never rotate profiles.
         for standing in (
             "PROVIDER_RATE_LIMITED",
-            "AUTH_REQUIRED",
             "CHALLENGE_GATED",
             "CONTEXT_UNAVAILABLE",
             "COMPOSER_UNAVAILABLE",
@@ -2020,9 +2023,18 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                     "mutate-network-authority",
                 ):
                     self.assertIn(action, diagnosis["forbiddenAutomaticInfrastructureRepairs"])
-                if standing in {"CHALLENGE_GATED", "AUTH_REQUIRED"}:
+                if standing == "AUTH_REQUIRED":
                     self.assertTrue(diagnosis["humanVerificationEligible"])
-                    self.assertIn("human-verification", diagnosis["allowedAutomaticActions"])
+                    self.assertEqual(diagnosis["providerAction"], "HUMAN_CONTROL_TRANSFER")
+                    self.assertIn(
+                        "authorized-human-control-transfer", diagnosis["allowedAutomaticActions"]
+                    )
+                elif standing == "CHALLENGE_GATED":
+                    self.assertFalse(diagnosis["humanVerificationEligible"])
+                    self.assertEqual(diagnosis["providerAction"], "PRE_EFFECT_HOLD")
+                    self.assertIn("hold-provider-effect", diagnosis["allowedAutomaticActions"])
+                else:
+                    self.assertFalse(diagnosis["humanVerificationEligible"])
                 target.assert_called_once()
                 binding = json.loads(
                     next(
@@ -2138,3 +2150,89 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class WindowsUserBrowserCarrierTests(unittest.TestCase):
+    def test_config_admits_explicit_windows_user_browser_only(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            raw = config(root)
+            raw['windowsUserBrowser'] = {
+                'gatewayUrl': 'http://127.0.0.1:8899/mcp',
+                'workspaceId': 'ws-user-browser-prod-r1',
+                'powershellPath': r'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe',
+                'driverPath': r'C:\ProgramData\Ordivon\chat-ingress\windows_user_browser_chatgpt.ps1',
+                'proxyUrl': 'http://127.0.0.1:19081',
+                'linuxStageRoot': '/mnt/c/ProgramData/Ordivon/chat-ingress',
+                'windowsStageRoot': r'C:\ProgramData\Ordivon\chat-ingress',
+                'timeoutMs': 90000,
+            }
+            cfg = BrowserlessAutomationConfig.from_dict(raw)
+            self.assertEqual(cfg.windows_user_browser.workspace_id, 'ws-user-browser-prod-r1')
+            self.assertEqual(cfg.windows_user_browser.gateway_url, 'http://127.0.0.1:8899/mcp')
+
+    def test_user_browser_materialize_reuses_existing_effect_ledger(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            raw = config(root)
+            raw['windowsUserBrowser'] = {
+                'gatewayUrl': 'http://127.0.0.1:8899/mcp',
+                'workspaceId': 'ws-user-browser-prod-r1',
+                'powershellPath': r'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe',
+                'driverPath': r'C:\ProgramData\Ordivon\chat-ingress\windows_user_browser_chatgpt.ps1',
+                'proxyUrl': 'http://127.0.0.1:19081',
+                'linuxStageRoot': '/mnt/c/ProgramData/Ordivon/chat-ingress',
+                'windowsStageRoot': r'C:\ProgramData\Ordivon\chat-ingress',
+                'timeoutMs': 90000,
+            }
+            sp = root / 'spec.json'
+            sp.write_text(json.dumps(spec()))
+            effects = BrowserlessEffectAdapter(BrowserlessAutomationConfig.from_dict(raw))
+
+            class Target:
+                def materialize(self, request):
+                    return TargetMaterializationObservation(
+                        standing=MaterializationStanding.BOUND,
+                        provider_conversation_coordinate='https://chatgpt.com/c/user-browser-canary',
+                        evidence_digest='sha256:' + '7' * 64,
+                        detail='fake user browser bound',
+                    )
+                def reconcile(self, request):
+                    raise AssertionError
+
+            with mock.patch.object(effects, '_user_browser_target', return_value=Target()):
+                result = effects.materialize_user_browser(sp, 'A01')
+            self.assertEqual(result['kind'], 'ordivon.user-browser-materialization')
+            self.assertEqual(result['receipt']['standing'], 'bound')
+            self.assertTrue(effects.config.ledger.is_file())
+            self.assertFalse(list((root / 'state' / 'materializations').glob('*/carrier-binding.json')))
+
+
+def test_temporal_admission_passes_configured_materialization_carrier(tmp_path):
+    raw = json.loads(json.dumps(config(tmp_path)))
+    raw["windowsUserBrowser"] = {
+        "gatewayUrl":"http://127.0.0.1:8899/mcp",
+        "workspaceId":"ws-user-browser-prod-r1-20260922",
+        "powershellPath":r"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "driverPath":r"C:\\ProgramData\\Ordivon\\chat-ingress\\windows_user_browser_chatgpt.ps1",
+        "proxyUrl":"http://127.0.0.1:19081",
+        "linuxStageRoot":"/mnt/c/ProgramData/Ordivon/chat-ingress",
+        "windowsStageRoot":r"C:\\ProgramData\\Ordivon\\chat-ingress",
+        "timeoutMs":150000,
+    }
+    raw["materializationCarrier"] = "windows-user-browser"
+    cfg = BrowserlessAutomationConfig.from_dict(raw)
+    assert cfg.materialization_carrier == "windows-user-browser"
+
+
+def test_temporal_admission_projects_release_src_into_subprocess_pythonpath():
+    source = (ROOT / "scripts" / "agent_automation_browserless.py").read_text()
+    assert 'source_python = str(SOURCE_ROOT / "src")' in source
+    assert 'temporal_env["PYTHONPATH"] = source_python' in source
+    assert 'env=temporal_env' in source
+
+
+def test_user_browser_effect_adapter_uses_client_side_gateway_polling_contract():
+    source = (ROOT / "scripts" / "agent_automation_browserless_effects.py").read_text()
+    assert 'wait_ms=' not in source
+    assert 'poll_interval_seconds=0.25' in source

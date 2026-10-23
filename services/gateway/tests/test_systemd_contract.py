@@ -29,6 +29,15 @@ def test_gateway_unit_is_loopback_dynamic_user_and_credential_scoped() -> None:
     assert "AmbientCapabilities=" in text
     assert "ORDIVON_GATEWAY_PUBLIC_ORIGIN" not in text
     assert "WINDOWS_ACCESS_CLIENT_SECRET" not in text
+    assert "Wants=network-online.target ordivon-runtime.service ordivon-host-v2.service" in text
+    assert "After=network-online.target ordivon-runtime.service ordivon-host-v2.service" in text
+    assert "Requires=ordivon-runtime.service" not in text
+    assert "Requires=ordivon-host-v2.service" not in text
+    assert "PartOf=ordivon-runtime.service" not in text
+    assert "PartOf=ordivon-host-v2.service" not in text
+    assert "BindsTo=ordivon-runtime.service" not in text
+    assert "BindsTo=ordivon-host-v2.service" not in text
+    assert "Restart=always" in text
 
 
 def test_release_python_uses_same_managed_pattern_as_host() -> None:
@@ -106,3 +115,51 @@ def test_gateway_pins_external_opentelemetry_runtime() -> None:
     dependencies = set(project["project"]["dependencies"])
     assert "opentelemetry-distro==0.65b0" in dependencies
     assert "opentelemetry-exporter-otlp-proto-http==1.44.0" in dependencies
+
+
+TRACE_PROFILE = ROOT / "systemd" / "ordivon-gateway.service.d" / "40-otel-traces.example.conf"
+TRACE_ENABLER = ROOT / "packaging" / "enable_trace_export.sh"
+
+
+def test_trace_profile_is_opt_in_standard_otlp_http() -> None:
+    text = TRACE_PROFILE.read_text(encoding="utf-8")
+    assert "OTEL_TRACES_EXPORTER=otlp_proto_http" in text
+    assert "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://127.0.0.1:4318/v1/traces" in text
+    assert "OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf" in text
+
+
+def test_trace_export_enabler_requires_live_local_observability_and_is_fixed_path() -> None:
+    text = TRACE_ENABLER.read_text(encoding="utf-8")
+    assert "40-otel-traces.example.conf" in text
+    assert "/etc/systemd/system/ordivon-gateway.service.d" in text
+    assert "systemctl is-active --quiet vector.service" in text
+    assert "http://127.0.0.1:3200/ready" in text
+    assert "systemctl restart ordivon-gateway.service" in text
+    assert "http://127.0.0.1:8899/health" in text
+    assert "$1" not in text
+
+
+LOCAL_SERVICE = (
+    ROOT / "systemd" / "ordivon-gateway.service.d" / "10-local-service-identity.example.conf"
+)
+
+
+def test_local_service_identity_is_optional_loadcredential_not_loopback_trust() -> None:
+    text = LOCAL_SERVICE.read_text(encoding="utf-8")
+    assert "LoadCredential=local-client-bearer:/etc/ordivon/gateway/local-client-bearer" in text
+    assert "ORDIVON_GATEWAY_LOCAL_BEARER_TOKEN_FILE=%d/local-client-bearer" in text
+    assert "TRUST_LOOPBACK" not in text
+
+
+LOCAL_SERVICE_ENABLER = ROOT / "packaging" / "enable_local_service_identity.sh"
+
+
+def test_local_service_identity_enabler_generates_private_credential_without_printing_it() -> None:
+    text = LOCAL_SERVICE_ENABLER.read_text(encoding="utf-8")
+    assert 'openssl rand -hex 32 > "$CREDENTIAL"' in text
+    assert "umask 077" in text
+    assert "root:root" in text
+    assert "'600'" in text and "'400'" in text
+    assert "systemctl restart ordivon-gateway.service" in text
+    assert "http://127.0.0.1:8899/health" in text
+    assert 'cat "$CREDENTIAL"' not in text
