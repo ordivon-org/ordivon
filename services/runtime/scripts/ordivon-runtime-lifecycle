@@ -1075,6 +1075,8 @@ def canonical_head_revision(prepared_item: dict[str, object]) -> str | None:
     # checkout HEAD may legitimately differ from published origin/main.
     if canonical_ref == "origin/main":
         revision = "refs/remotes/origin/main^{commit}"
+    elif canonical_ref == "main":
+        revision = "refs/heads/main^{commit}"
     elif canonical_ref == "HEAD":
         revision = "HEAD"
     else:
@@ -1100,6 +1102,47 @@ def canonical_head_revision(prepared_item: dict[str, object]) -> str | None:
         raise RuntimeError("canonical ref read returned empty revision")
     return observed
 
+
+def canonical_fast_forward_preserves_integration(
+    prepared_item: dict[str, object],
+    observed_canonical: str,
+) -> bool:
+    """Allow only monotonic Git publication since a proven ancestor close.
+
+    A local main or remote tracking ref can safely advance while Runtime
+    verifies an already-integrated clean Workspace. A rewind, a rewritten
+    history, a patch-equivalent-only claim, or unknown input still fails
+    closed. No Git ref is changed by this check.
+    """
+    if prepared_item.get("canonicalRef") not in {"main", "origin/main"}:
+        return False
+    if prepared_item.get("closureReason") != "HEAD_REACHABLE_FROM_CANONICAL":
+        return False
+    source_repo = prepared_item.get("sourceRepo")
+    workspace_head = prepared_item.get("workspaceHeadRevision")
+    expected = prepared_item.get("canonicalHeadRevision")
+    revisions = (workspace_head, expected, observed_canonical)
+    if not isinstance(source_repo, str) or not all(
+        isinstance(sha, str)
+        and len(sha) in (40, 64)
+        and all(char in "0123456789abcdef" for char in sha)
+        for sha in revisions
+    ):
+        return False
+
+    def is_ancestor(earlier: str, later: str) -> bool:
+        try:
+            result = subprocess.run(
+                ["git", "-C", source_repo, "merge-base", "--is-ancestor", earlier, later],
+                check=False,
+                capture_output=True,
+                timeout=CANONICAL_HEAD_TIMEOUT_SECONDS,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            return False
+        return result.returncode == 0
+
+    return is_ancestor(workspace_head, expected) and is_ancestor(expected, observed_canonical)
 
 def revalidate_prepared_item_under_fence(
     args: argparse.Namespace,
@@ -1150,7 +1193,9 @@ def revalidate_prepared_item_under_fence(
     expected_canonical = prepared_item.get("canonicalHeadRevision")
     if expected_canonical is not None:
         observed_canonical = canonical_head_revision(prepared_item)
-        if observed_canonical != expected_canonical:
+        if observed_canonical != expected_canonical and not canonical_fast_forward_preserves_integration(
+            prepared_item, observed_canonical
+        ):
             return retained_after_plan(
                 prepared_item,
                 reason="canonicalHeadRevision_changed_after_plan",
