@@ -11,6 +11,8 @@ compose this bridge explicitly and provide a Tool Grant admitting the exact path
 
 from __future__ import annotations
 
+from hashlib import sha256
+
 from anc_canonical import JsonValue, canonical_digest, validate_json_value
 
 from ..adaptive_edit import (
@@ -342,6 +344,13 @@ class AdaptiveEditRuntimeBridge(SQLiteHarnessRuntimeBridge):
                     f"expected {source_digest}, observed {observed_digest}"
                 ),
                 kind=ToolBridgeErrorKind.MODEL_CORRECTABLE,
+            )
+        # Confirm the claimed Runtime snapshot digest actually binds to the
+        # supplied UTF-8 bytes, before any source-fenced physical Patch.
+        if observed_digest != "sha256:" + sha256(content.encode("utf-8")).hexdigest():
+            raise ToolBridgeError(
+                "Runtime workspace.read source bytes disagree with its digest",
+                kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
             )
         return SourceSnapshot(relative_path, observed_digest, content)
 
