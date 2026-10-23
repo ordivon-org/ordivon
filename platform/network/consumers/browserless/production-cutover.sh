@@ -10,6 +10,7 @@ STATE=/run/ordivon/network-v2-browserless-cutover-state.json
 RECEIPT_DIR=/var/lib/network-v2/browserless-cutover
 NS=nv2-browserless-prod
 WG_IF=nv2blwg
+PROVIDER_SITE=${PROVIDER_SITE:-th-bkk}
 PROFILE=/etc/network-v2/browserless/$WG_IF.conf
 ENV_FILE=/etc/network-v2/browserless/provider.env
 CATALOG_MANIFEST=/etc/network-v2/providers/catalog-profiles/MANIFEST.tsv
@@ -133,13 +134,16 @@ for f in "$RUNTIME_STATE" "$CATALOG_MANIFEST" "$CONFIG" "$QUADLET" "$OPERATOR"; 
 OLD_GEN=$(jq -r '.generationDigest' "$RUNTIME_STATE")
 OLD_NS=$(jq -r '.namespace' "$RUNTIME_STATE")
 LEGACY_ENDPOINT=$(jq -r '.endpointIp' "$RUNTIME_STATE")
-ENDPOINT=$(awk -F '\t' '$1=="kr-seo"{print $2; exit}' "$CATALOG_MANIFEST")
-SOURCE_PROFILE=$(awk -F '\t' '$1=="kr-seo"{print $4; exit}' "$CATALOG_MANIFEST")
-SOURCE_DIGEST=$(awk -F '\t' '$1=="kr-seo"{print $5; exit}' "$CATALOG_MANIFEST")
+ENDPOINT=$(awk -F '\t' -v site="$PROVIDER_SITE" '$1==site{print $2; exit}' "$CATALOG_MANIFEST")
+SOURCE_PROFILE=$(awk -F '\t' -v site="$PROVIDER_SITE" '$1==site{print $4; exit}' "$CATALOG_MANIFEST")
+SOURCE_DIGEST=$(awk -F '\t' -v site="$PROVIDER_SITE" '$1==site{print $5; exit}' "$CATALOG_MANIFEST")
 [ "$(jq -r '.recoveryState' "$RUNTIME_STATE")" = healthy ]
 [[ "$OLD_GEN" == sha256:* ]]
 [[ "$LEGACY_ENDPOINT" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]
 [[ "$ENDPOINT" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]
+[ -n "$ENDPOINT" ]
+[ -n "$SOURCE_PROFILE" ]
+[ -n "$SOURCE_DIGEST" ]
 [ -f "$SOURCE_PROFILE" ]
 [ "sha256:$(sha256sum "$SOURCE_PROFILE" | awk '{print $1}')" = "$SOURCE_DIGEST" ]
 
@@ -167,6 +171,7 @@ HOST_IP=10.252.246.1
 ENDPOINT=$ENDPOINT
 PROFILE=$PROFILE
 WG_IF=$WG_IF
+PROVIDER_SITE=$PROVIDER_SITE
 EOF
 chmod 0600 "$ENV_FILE"
 mkdir -p "/etc/netns/$NS"
@@ -174,10 +179,12 @@ printf 'nameserver 127.0.0.1\noptions timeout:2 attempts:2\n' >"/etc/netns/$NS/r
 awk 'BEGIN{done=0} /^hosts:/{print "hosts: files dns";done=1;next} {print} END{if(!done)print "hosts: files dns"}' \
   /etc/nsswitch.conf >"/etc/netns/$NS/nsswitch.conf"
 
+install -m 0644 "$ROOT/consumers/browserless/config/provider-carrier.json" /etc/network-v2/browserless/provider-carrier.json
 for f in "$ROOT"/consumers/browserless/systemd/network-v2-browserless-netns.service \
          "$ROOT"/consumers/browserless/systemd/network-v2-browserless-forward.service \
          "$ROOT"/consumers/browserless/systemd/network-v2-browserless-wireguard.service \
          "$ROOT"/consumers/browserless/systemd/network-v2-browserless-dns.service \
+         "$ROOT"/consumers/browserless/systemd/network-v2-browserless-provider-carrier.service \
          "$ROOT"/consumers/browserless/systemd/network-v2-browserless.target; do
   install -m 0644 "$f" "/etc/systemd/system/$(basename "$f")"
 done
