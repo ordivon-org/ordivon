@@ -15,7 +15,7 @@ test = [
   "z3-solver>=4,<5",
 ]
 quality = [
-  "ruff==0.16.8",
+  "ruff==0.17.2",
 ]
 security = [
   "bandit>=1.9.4",
