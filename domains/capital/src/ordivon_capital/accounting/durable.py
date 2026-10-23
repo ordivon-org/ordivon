@@ -81,15 +81,13 @@ class DurableReservationHistory:
     resolution_ref: str | None = None
 
     def __post_init__(self) -> None:
+        if not isinstance(self.standing, ReservationStanding):
+            raise AccountingMappingError("standing must be a ReservationStanding")
         if self.standing is ReservationStanding.RESERVED:
             if self.resolution_ref is not None:
-                raise AccountingMappingError(
-                    "RESERVED history cannot carry a resolution_ref"
-                )
+                raise AccountingMappingError("RESERVED history cannot carry a resolution_ref")
         elif not self.resolution_ref or not self.resolution_ref.strip():
-            raise AccountingMappingError(
-                "terminal reservation history requires resolution_ref"
-            )
+            raise AccountingMappingError("terminal reservation history requires resolution_ref")
 
 
 @dataclass(frozen=True)
@@ -203,8 +201,7 @@ def _result(
 ) -> DurableReconciliationResult:
     return DurableReconciliationResult(
         standing=standing,
-        terminal_history_preserved=history.standing
-        is not ReservationStanding.RESERVED,
+        terminal_history_preserved=history.standing is not ReservationStanding.RESERVED,
         ledger_repair_allowed=False,
         reason=reason,
     )
