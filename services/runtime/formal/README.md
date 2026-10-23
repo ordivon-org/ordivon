@@ -40,6 +40,19 @@ implements it. Implementation tests must remain separately traced to these invar
 
 Static review note (2026-09-19): `dispatchCount` intentionally permits `0..2` in `TypeOK` so `AtMostOnceDispatchPerAttempt` remains an independently falsifiable safety invariant rather than being true by construction. TLC execution is still required before this model is accepted as checked evidence.
 
+## Scoped progress obligation
+
+TLC additionally checks the temporal property ProgressToFirstDecision under
+FairSpec. Under weak fairness for admission, dispatch, and either terminal
+observation or explicit ambiguity, the model eventually exposes a first
+decision. An ambiguous dispatch counts as an explicit block, NOT success.
+Without fairness, the stuttering model cannot guarantee this liveness.
+
+CHECK_DEADLOCK FALSE remains intentional because terminal states stutter.
+The finite Attempts model is not an actual Runtime retry quota. The model
+does not prove real-world deadlock freedom, reconciliation progress, bound on
+completion time, external effect idempotency, or Rust-to-TLA refinement.
+
 ## Reproducible toolchain gate
 
 The command-line checker is pinned in `formal/toolchain.lock.json`. The repository does
