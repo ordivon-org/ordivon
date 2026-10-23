@@ -53,6 +53,21 @@ Model checking is then offline/repeatable from the digest-verified cache:
 
     scripts/tla-formal check
 
+An isolated Runtime Workspace can use a previously materialized trusted JAR without
+duplicating or downloading it into every Workspace:
+
+    ORDIVON_TLA_TOOLS_JAR=/absolute/path/to/tla2tools-v1.7.4.jar scripts/tla-formal verify
+    ORDIVON_TLA_TOOLS_JAR=/absolute/path/to/tla2tools-v1.7.4.jar scripts/tla-formal check
+
+The override must be an absolute regular non-symlink file, and both upstream-locked
+digests are checked before execution. Runtime callers should additionally bind the
+same path and locked SHA-256 through `execution.hostDependencies` to fence admission
+and runtime-host-namespace path continuity. The wrapper's digest checks alone do
+not establish a race-free immutable input or prove Java consumed the committed bytes.
+`bootstrap` still writes only to the project's ignored local cache, regardless of
+the override; a fresh checkout does not require bootstrap if an external pinned JAR
+is available.
+
 The lock records the upstream release URL, the SHA-1 published on the official v1.7.4
 release page, and the SHA-256 measured only after that upstream digest matched. The
 cached JAR lives under ignored `target/` state.
