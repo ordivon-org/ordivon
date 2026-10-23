@@ -182,6 +182,69 @@ def test_expired_attempt_cannot_commit_and_operation_is_reclaimed(tmp_path) -> N
         )
 
 
+def test_expired_mixed_batch_is_bounded_sql_and_never_retries_started(tmp_path) -> None:
+    clock = Clock()
+    transport = ExternalPullWorkerTransport(
+        tmp_path / "workers.sqlite3", clock_ms=clock, lease_ms=1_000
+    )
+    _, public_key = keypair()
+    transport.enroll(
+        worker_id="worker-1",
+        provider_id="muse",
+        generation=1,
+        public_key_b64=public_key,
+        capabilities=["muse.shell.echo"],
+    )
+    claimed = []
+    operations = []
+    for index in range(4):
+        operation = transport.submit(
+            capability="muse.shell.echo",
+            request_id=f"batch-{index}",
+            parcel={"action": "echo"},
+        )
+        operations.append(operation)
+        attempt = transport.claim("worker-1", generation=1)
+        assert attempt is not None and attempt["operation_id"] == operation.operation_id
+        claimed.append(attempt)
+        if index == 2:
+            transport.started(
+                worker_id="worker-1",
+                generation=1,
+                operation_id=attempt["operation_id"],
+                attempt_id=attempt["attempt_id"],
+                lease_id=attempt["lease_id"],
+            )
+        clock.now += 1
+
+    clock.now += 1_001
+    statements = []
+    with transport._connect() as db:
+        db.execute("BEGIN IMMEDIATE")
+        db.set_trace_callback(statements.append)
+        transport._reap_expired(db, clock.now)
+        db.set_trace_callback(None)
+        db.execute("COMMIT")
+
+    updates = [sql for sql in statements if sql.lstrip().upper().startswith("UPDATE")]
+    assert len(updates) == 4, statements  # one statement per state transition class
+    assert not any(sql.lstrip().upper().startswith("SELECT") for sql in statements)
+    assert transport.get(operations[2].operation_id).state == "reconcile_required"
+    assert [transport.get(operations[i].operation_id).state for i in (0, 1, 3)] == [
+        "queued",
+        "queued",
+        "queued",
+    ]
+    with transport._connect() as db:
+        rows = db.execute(
+            "SELECT attempt_id, state FROM attempts WHERE attempt_id IN (?,?,?,?)",
+            tuple(attempt["attempt_id"] for attempt in claimed),
+        ).fetchall()
+    states = {row["attempt_id"]: row["state"] for row in rows}
+    assert states[claimed[2]["attempt_id"]] == "reconcile_required"
+    assert all(states[claimed[i]["attempt_id"]] == "expired_unstarted" for i in (0, 1, 3))
+
+
 def test_duplicate_completion_is_idempotent_but_changed_completion_conflicts(tmp_path) -> None:
     transport = ExternalPullWorkerTransport(tmp_path / "workers.sqlite3")
     _, public_key = keypair()
