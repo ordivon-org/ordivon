@@ -265,6 +265,7 @@ def validate_formal_issue_census(
     if not isinstance(issues, list) or not issues:
         raise ArchitectureDocsError("issue census must contain typed issues")
     issue_ids: set[str] = set()
+    issue_by_id: dict[str, dict[str, Any]] = {}
     for issue in issues:
         if not isinstance(issue, dict):
             raise ArchitectureDocsError("issue census entry must be an object")
@@ -274,6 +275,7 @@ def validate_formal_issue_census(
         if issue_id in issue_ids:
             raise ArchitectureDocsError(f"duplicate issue identity: {issue_id}")
         issue_ids.add(issue_id)
+        issue_by_id[issue_id] = issue
         for field in ("problemClass", "naturalOwner", "standing", "evidence", "consumers", "formalObligation"):
             if not isinstance(issue.get(field), str) or not issue[field].strip():
                 raise ArchitectureDocsError(f"issue {issue_id} lacks {field}")
@@ -282,6 +284,7 @@ def validate_formal_issue_census(
     if not isinstance(registrations, list) or not registrations:
         raise ArchitectureDocsError("issue census needs owner-local LEGO links")
     seen: set[tuple[str, str]] = set()
+    bound_issues: set[str] = set()
     for ref in registrations:
         if not isinstance(ref, dict):
             raise ArchitectureDocsError("LEGO registration must be an object")
@@ -294,6 +297,22 @@ def validate_formal_issue_census(
         if (plan_path, slice_id) in seen:
             raise ArchitectureDocsError("duplicate owner-local LEGO link")
         seen.add((plan_path, slice_id))
+        linked = ref.get("issueIds")
+        if not isinstance(linked, list) or not linked or not all(
+            isinstance(issue_id, str) and issue_id for issue_id in linked
+        ):
+            raise ArchitectureDocsError(f"LEGO {slice_id} requires an explicit issue binding")
+        if len(linked) != len(set(linked)):
+            raise ArchitectureDocsError(f"LEGO {slice_id} has duplicate issue bindings")
+        expected_owner = path.parents[1].as_posix()
+        for issue_id in linked:
+            if issue_id not in issue_by_id:
+                raise ArchitectureDocsError(f"LEGO {slice_id} binds unknown issue {issue_id}")
+            if issue_by_id[issue_id]["naturalOwner"] != expected_owner:
+                raise ArchitectureDocsError(f"LEGO {slice_id} binds cross-owner issue {issue_id}")
+            if issue_id in bound_issues:
+                raise ArchitectureDocsError(f"issue {issue_id} has duplicate owner LEGO bindings")
+            bound_issues.add(issue_id)
         plan = plans.get(plan_path)
         if not isinstance(plan, dict) or plan.get("truthRole") != "planning-projection-not-project-truth":
             raise ArchitectureDocsError("owner-local LEGO plan must remain non-authoritative")
