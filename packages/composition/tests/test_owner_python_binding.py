@@ -8,7 +8,7 @@ from pathlib import Path
 def test_uv_python_matches_mise_owner_interpreter():
     root = Path(__file__).resolve().parents[1]
     selected = subprocess.run(
-        ["/usr/bin/mise", "which", "python"],
+        ["mise", "which", "python"],
         cwd=root,
         capture_output=True,
         text=True,
