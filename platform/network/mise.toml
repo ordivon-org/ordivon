@@ -11,3 +11,13 @@ git ls-files -z -- '*.sh' | xargs -0 shellcheck
 PYTHONDONTWRITEBYTECODE=1 uv run --no-project --python 3.15.1 --with pytest==9.1.1 \
   python -m pytest -q -p no:cacheprovider tests
 """
+
+
+# Explicit fail-closed semantic consumer probe; unlike optional local CI discovery,
+# this task cannot pass when the native sing-box executable is unavailable.
+[tasks.behavior]
+run = '''
+set -euo pipefail
+command -v sing-box >/dev/null || { echo 'sing-box is required for network behavior verification' >&2; exit 2; }
+PYTHONDONTWRITEBYTECODE=1 uv run --no-project --python 3.15.1 --with pytest==9.1.1   python -m pytest -q -p no:cacheprovider tests/test_egress_routing_behavior.py
+'''

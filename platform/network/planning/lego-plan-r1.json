@@ -172,8 +172,13 @@
         "A precompromised inner execution layer still cannot access an undeclared external endpoint through metrics/auth/package services.",
         "VPN reachability is not accepted as network policy enforcement; failure and recovery are consumer-tested."
       ],
-      "evidence": [],
-      "blockers": [],
+      "evidence": [
+        "platform/network/tests/test_egress_routing_behavior.py: isolated loopback upstream CONNECT oracle, including a terminal-reject negative control",
+        "platform/network/mise.toml: behavior task fails closed without native sing-box; owner CI conditionally exercises native tests when present"
+      ],
+      "blockers": [
+        "This is not a production DNS, VPN, WSL, Windows or compromised inner-layer proof; finish independent live consumer probes before changing NS2 status"
+      ],
       "nextAction": "Reuse network owner-native fault tests, then run a real restricted indirect-egress probe without exposing production secrets."
     }
   ],
