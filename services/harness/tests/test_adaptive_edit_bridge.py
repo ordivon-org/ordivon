@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from hashlib import sha256
 import tempfile
 import unittest
 
@@ -28,7 +29,7 @@ from ordivon_harness.sqlite_store import SQLiteHarnessStore
 DIGEST_A = "sha256:" + "a" * 64
 DIGEST_B = "sha256:" + "b" * 64
 DIGEST_C = "sha256:" + "c" * 64
-SOURCE_DIGEST = "sha256:" + "1" * 64
+SOURCE_DIGEST = "sha256:" + sha256("alpha\nβeta = 1\nomega\n".encode()).hexdigest()
 CHANGED_DIGEST = "sha256:" + "2" * 64
 GRANT_DIGEST = "sha256:" + "3" * 64
 
@@ -327,6 +328,21 @@ class AdaptiveEditBridgeTests(unittest.TestCase):
             retained = continuity.load_current_tool_step()
             self.assertEqual(retained.intent.tool_name, "edit_workspace")
             self.assertEqual(retained.intent.runtime_operation, "workspace.patch")
+            store.close()
+
+    def test_claimed_source_digest_must_match_actual_bytes_before_patch(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = FakeRuntime()
+            # A forged Runtime read can repeat the *expected* digest while
+            # returning different bytes. The bridge must not dispatch Patch.
+            runtime.content += "# forged contents\\n"
+            store, _, bridge = setup_bridge(
+                Path(directory) / "state", "forged", runtime
+            )
+            with self.assertRaisesRegex(ToolBridgeError, "source bytes disagree"):
+                bridge.execute(exact_edit_call("forged"), step_id="turn-2-edit")
+            self.assertEqual([name for name, _ in runtime.calls], ["workspace.read"])
+            self.assertIsNone(runtime.patch_request)
             store.close()
 
     def test_stale_source_digest_rejects_before_patch_admission(self) -> None:
