@@ -11,6 +11,7 @@ from typing import Any
 SECURITY_ROOT = Path(__file__).resolve().parents[2]
 AGENT_POLICY = SECURITY_ROOT / "policies" / "agent_admission.rego"
 EFFECT_POLICY = SECURITY_ROOT / "policies" / "effect_admission.rego"
+INPUT_SCHEMA = SECURITY_ROOT / "schemas" / "agent-admission-input-v0.schema.json"
 OPA = shutil.which("opa")
 
 
@@ -44,6 +45,32 @@ def _opa(policy: Path, query: str, payload: dict[str, Any]) -> dict[str, Any]:
     return value
 
 
+
+def _validate_input(payload: dict[str, Any]) -> None:
+    """Enforce the existing normalized admission input type before any policy decision."""
+    if OPA is None:
+        raise RuntimeError("OPA executable is not available on PATH")
+    result = subprocess.run(
+        [OPA, "eval", "--format=json", "--data", str(INPUT_SCHEMA),
+         "--stdin-input", "json.match_schema(input, data)"],
+        input=json.dumps(payload, separators=(",", ":")),
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"OPA input schema validation failed: {result.stderr.strip()}")
+    try:
+        matched, failures = json.loads(result.stdout)["result"][0]["expressions"][0]["value"]
+    except (KeyError, IndexError, TypeError, ValueError) as exc:
+        raise RuntimeError("OPA input schema validation returned no decision") from exc
+    if not isinstance(matched, bool) or not isinstance(failures, list):
+        raise RuntimeError("OPA input schema validation returned an invalid decision")
+    if not matched:
+        reasons = "; ".join(str(item.get("error", "invalid")) for item in failures[:4] if isinstance(item, dict))
+        raise ValueError(f"agent admission input violates schema: {reasons or 'invalid input'}")
+
+
 def _effect_input(projection: dict[str, Any]) -> dict[str, Any]:
     return {
         "actorIds": [projection["actorId"]],
@@ -61,6 +88,7 @@ def _effect_input(projection: dict[str, Any]) -> dict[str, Any]:
 
 
 def evaluate(payload: dict[str, Any]) -> dict[str, Any]:
+    _validate_input(payload)
     agent = _opa(
         AGENT_POLICY,
         "data.ordivon.security.v2.agent_admission.decision",
