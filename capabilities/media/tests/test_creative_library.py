@@ -38,6 +38,39 @@ class CreativeLibraryUnitTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             creative_library.parse_range("items=0-1", 100)
 
+    def test_empty_representation_range_is_ignored_without_invalid_content_range(self):
+        # RFC 9110 permits the origin to ignore Range if the selected representation is empty.
+        # An invalid 206 Content-Range "bytes 0--1/0" must never be produced.
+        self.assertIsNone(creative_library.parse_range("bytes=-1", 0))
+        self.assertIsNone(creative_library.parse_range("bytes=0-", 0))
+
+    def test_supported_single_ranges_never_emit_invalid_content_interval(self):
+        for size in (0, 1, 2, 10, 100):
+            for header in (
+                "bytes=0-",
+                "bytes=0-0",
+                "bytes=0-9999",
+                "bytes=1-1",
+                "bytes=9-",
+                "bytes=-1",
+                "bytes=-500",
+            ):
+                with self.subTest(size=size, header=header):
+                    try:
+                        byte_range = creative_library.parse_range(header, size)
+                    except ValueError:
+                        continue  # 416 from the existing single-range handler
+                    if byte_range is not None:
+                        start, end = byte_range
+                        self.assertLessEqual(0, start)
+                        self.assertLessEqual(start, end)
+                        self.assertLess(end, size)
+
+        with self.assertRaises(ValueError):
+            creative_library.parse_range("bytes=-0", 0)
+        with self.assertRaises(ValueError):
+            creative_library.parse_range("bytes=0-1,2-3", 100)
+
     def test_output_carrier_beats_evidence_carrier(self):
         carriers = [
             {"relativePath": "evidence/preview-validation.png", "kind": "image"},
@@ -87,6 +120,7 @@ class CreativeLibraryHttpTests(unittest.TestCase):
             (repo / "work").mkdir()
             (repo / "work" / "artifact.txt").write_text("historical-v1", encoding="utf-8")
             (repo / "work" / "sound.wav").write_bytes(bytes(range(128)))
+            (repo / "work" / "empty.txt").write_bytes(b"")
             subprocess.check_call(["git", "-C", str(repo), "add", "."])
             subprocess.check_call(["git", "-C", str(repo), "commit", "-qm", "v1"])
             rev1 = subprocess.check_output(["git", "-C", str(repo), "rev-parse", "HEAD"], text=True).strip()
@@ -117,6 +151,26 @@ class CreativeLibraryHttpTests(unittest.TestCase):
                 self.assertEqual(res.status, 206)
                 self.assertEqual(res.getheader("Content-Range"), "bytes 10-19/128")
                 self.assertEqual(res.read(), bytes(range(10, 20)))
+                conn.close()
+
+                # HEAD does not have Range semantics: full frozen carrier metadata.
+                conn = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=5)
+                conn.request("HEAD", f"/raw/{wid}/sound.wav", headers={"Range": "bytes=10-19"})
+                res = conn.getresponse()
+                self.assertEqual(res.status, 200)
+                self.assertEqual(res.getheader("Content-Length"), "128")
+                self.assertIsNone(res.getheader("Content-Range"))
+                self.assertEqual(res.read(), b"")
+                conn.close()
+
+                # Empty carriers must not emit invalid bytes 0--1/0.
+                conn = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=5)
+                conn.request("GET", f"/raw/{wid}/empty.txt", headers={"Range": "bytes=-1"})
+                res = conn.getresponse()
+                self.assertEqual(res.status, 200)
+                self.assertEqual(res.getheader("Content-Length"), "0")
+                self.assertIsNone(res.getheader("Content-Range"))
+                self.assertEqual(res.read(), b"")
                 conn.close()
 
                 conn = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=5)
