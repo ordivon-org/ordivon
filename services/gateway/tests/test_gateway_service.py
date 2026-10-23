@@ -133,6 +133,22 @@ def test_windows_context_is_dynamic_data_not_gateway_schema_enum() -> None:
     asyncio.run(scenario())
 
 
+def test_host_pagination_bounds_are_discoverable_before_owner_call() -> None:
+    """Gateway advertises the Host's admissible bounds, not merely an int."""
+    caller = FakeOwnerCaller()
+
+    async def scenario() -> None:
+        async with Client(build_server(GatewayService(caller)), raise_exceptions=True) as client:
+            tools = {tool.name: tool for tool in (await client.list_tools()).tools}
+            for tool, minimum in (("space.get", 1_048_576), ("topic.resume", 131_072)):
+                bound = tools[tool].input_schema["properties"]["maxBytes"]
+                assert bound["minimum"] == minimum, (tool, bound)
+                assert bound["maximum"] == 4_194_304, (tool, bound)
+            assert caller.calls == []
+
+    asyncio.run(scenario())
+
+
 def test_system_description_uses_package_release_identity() -> None:
     service = GatewayService(FakeOwnerCaller())
     assert service.system_describe().gateway_version == "0.8.1"

@@ -25,9 +25,14 @@ updates:
         group-by: dependency-name
 
   - package-ecosystem: cargo
-    directory: "/services/runtime"
+    directories:
+      - "/services/runtime"
+      - "/domains/game/kits/room-action-r0"
     schedule:
       interval: weekly
+    groups:
+      same-dependency:
+        group-by: dependency-name
 
   # Official Dependabot Nix flake version updates; installation remains gated.
   - package-ecosystem: nix

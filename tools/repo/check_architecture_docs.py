@@ -284,6 +284,39 @@ def validate_formal_issue_census(
             if not isinstance(issue.get(field), str) or not issue[field].strip():
                 raise ArchitectureDocsError(f"issue {issue_id} lacks {field}")
 
+    representation_types = {
+        "type", "graph", "constraint", "state-machine", "algebra",
+        "equivalence", "declarative", "abstraction", "causal", "compression",
+    }
+    for issue in issues:
+        rep = issue.get("representation")
+        issue_id = issue["id"]
+        if not isinstance(rep, dict):
+            raise ArchitectureDocsError(f"issue {issue_id} missing representation")
+        if not isinstance(rep.get("primary"), str) or rep["primary"] not in representation_types:
+            raise ArchitectureDocsError(f"issue {issue_id} unknown primary representation")
+        supporting = rep.get("supporting")
+        if (
+            not isinstance(supporting, list)
+            or len(supporting) > 1
+            or not all(isinstance(x, str) for x in supporting)
+            or len(supporting) != len(set(supporting))
+            or any(x not in representation_types or x == rep["primary"] for x in supporting)
+        ):
+            raise ArchitectureDocsError(f"issue {issue_id} invalid supporting representation")
+        skill = rep.get("methodSkill")
+        if skill is not None and (
+            not isinstance(skill, str)
+            or not skill.startswith(".agents/skills/")
+            or not skill.endswith("/SKILL.md")
+            or ".." in Path(skill).parts
+            or not (ROOT / skill).is_file()
+        ):
+            raise ArchitectureDocsError(f"issue {issue_id} references unavailable method Skill")
+        for field in ("requiredWitness", "selectionReason"):
+            if not isinstance(rep.get(field), str) or not rep[field].strip():
+                raise ArchitectureDocsError(f"issue {issue_id} missing {field}")
+
     registrations = census.get("registrations")
     if not isinstance(registrations, list) or not registrations:
         raise ArchitectureDocsError("issue census needs owner-local LEGO links")
@@ -319,6 +352,39 @@ def validate_formal_issue_census(
             raise ArchitectureDocsError(f"LEGO slice {slice_id} needs falsifiable acceptance")
         if slice_.get("status") not in {"PROPOSED", "IMPLEMENTED", "VERIFIED", "RETIRED"}:
             raise ArchitectureDocsError(f"LEGO slice {slice_id} has unknown state")
+
+
+    # Registration is a total, typed relation: every observed issue is either
+    # linked to a verified owner-local identity or retains an explicit gap.
+    # Neither state asserts runtime behavior has been proved.
+    linked_pairs: set[tuple[str, str]] = set()
+    for issue in issues:
+        issue_id = issue["id"]
+        registration = issue.get("registration")
+        if not isinstance(registration, dict):
+            raise ArchitectureDocsError(f"issue {issue_id} lacks registration disposition")
+        state = registration.get("state")
+        if state == "UNREGISTERED":
+            if not isinstance(registration.get("reason"), str) or not registration["reason"].strip():
+                raise ArchitectureDocsError(f"issue {issue_id} lacks unregistered reason")
+            if "ownerPlan" in registration or "slice" in registration:
+                raise ArchitectureDocsError(f"issue {issue_id} mixes gap and linked registration")
+        elif state == "LINKED":
+            plan_path = registration.get("ownerPlan")
+            slice_id = registration.get("slice")
+            if not isinstance(plan_path, str) or not isinstance(slice_id, str):
+                raise ArchitectureDocsError(f"issue {issue_id} has invalid owner-local LEGO link")
+            pair = (plan_path, slice_id)
+            if pair not in seen:
+                raise ArchitectureDocsError(f"issue {issue_id} links unknown owner-local LEGO")
+            plan_path = pair[0]
+            if plan_path.split("/planning/")[0] != issue["naturalOwner"]:
+                raise ArchitectureDocsError(f"issue {issue_id} linked outside natural owner")
+            linked_pairs.add(pair)
+        else:
+            raise ArchitectureDocsError(f"issue {issue_id} has unknown registration state")
+    if linked_pairs != seen:
+        raise ArchitectureDocsError("orphan owner-local LEGO registration")
 
 
 def validate_repository(root: Path = ROOT) -> None:
