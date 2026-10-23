@@ -83,6 +83,37 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertEqual(plan["verificationOwners"], [])
         self.assertEqual(plan["scopeIds"], [])
 
+    def test_explicit_owner_universe_is_used_for_direct_selection(self) -> None:
+        # Scoped owner sets must not leak global owner identities into plans.
+        scoped_owner = MODULE.affected_owners.Owner(
+            name="scoped-runtime",
+            root="services/runtime/",
+            task="scoped-runtime:verify",
+            queue_task="scoped-runtime:verify",
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "dependencies.toml"
+            path.write_text(
+                'schema_version = 1\n'
+                'truth_role = "repository-boundary-policy-not-domain-authority"\n',
+                encoding="utf-8",
+            )
+            plan = MODULE.build_plan(
+                changed_files=["services/runtime/crates/ordivon-runtime-core/src/lib.rs"],
+                owners=(scoped_owner,),
+                dependency_path=path,
+            )
+            self.assertEqual(plan["directOwners"], ["scoped-runtime"])
+            self.assertEqual(plan["verificationOwners"], ["scoped-runtime"])
+            self.assertEqual(plan["verifyTasks"], ["scoped-runtime:verify"])
+            cross_cutting = MODULE.build_plan(
+                changed_files=["tools/repo/owners.toml"],
+                owners=(scoped_owner,),
+                dependency_path=path,
+            )
+            self.assertEqual(cross_cutting["queueClass"], "CROSS_CUTTING")
+            self.assertEqual(cross_cutting["verificationOwners"], ["scoped-runtime"])
+
     def test_dependency_graph_rejects_unknown_owner(self) -> None:
         content = """schema_version = 1
 kind = "ordivon.repo-owner-dependency-contracts"
