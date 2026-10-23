@@ -5,5 +5,8 @@
   "lockFileMaintenance": {
     "enabled": true
   },
-  "prConcurrentLimit": 4
+  "prConcurrentLimit": 4,
+  "packageRules": [
+    {"matchManagers": ["pep621"], "groupName": "Python {{depName}}"}
+  ]
 }

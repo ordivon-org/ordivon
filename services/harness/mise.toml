@@ -1,7 +1,7 @@
 [tools]
 powershell = "7.6.7"
-python = "3.15.0"
-uv = "0.13.1"
+python = "3.15.1"
+uv = "0.13.5"
 
 [tasks.verify]
 run = """
@@ -13,15 +13,22 @@ uv sync --locked
 uv run python scripts/check_runtime_search_profile.py
 uv lock --check
 uv run python -m compileall -q src tests scripts evals
-uvx ruff==0.15.17 check src tests scripts
-uv run python -W error::ResourceWarning -m pytest -q tests
+uvx ruff==0.17.2 check src tests scripts
+# Provider transports reject ambient non-loopback proxies; hermetic
+# unit/queue tests must not inherit the host network proxy.
+env -u HTTPS_PROXY -u https_proxy -u HTTP_PROXY -u http_proxy \
+    -u ALL_PROXY -u all_proxy -u NO_PROXY -u no_proxy \
+    uv run python -W error::ResourceWarning -m pytest -q tests
 uv run python scripts/check_dependencies.py
-uvx pip-audit -r requirements-audit.txt --strict --progress-spinner off
+# uv.lock is the single dependency authority. Export its runtime-only hashed
+# closure for official pip-audit; do not hand-maintain a second snapshot.
+tmp=$(mktemp -d -t ordivon-harness-verify-XXXXXX)
+trap 'rm -rf "$tmp"' EXIT
+uv export --locked --no-default-groups --no-emit-project --format requirements-txt > "$tmp/runtime-requirements.txt"
+uvx pip-audit --disable-pip --require-hashes -r "$tmp/runtime-requirements.txt" --strict --progress-spinner off
 uv run python scripts/check_docs.py
 uv run python scripts/check_evidence.py
 uv run python scripts/demo_deterministic_run.py
-tmp=$(mktemp -d -t ordivon-harness-wheel-XXXXXX)
-trap 'rm -rf "$tmp"' EXIT
 rm -rf build
 uv build --wheel --out-dir "$tmp"
 wheel=$(find "$tmp" -maxdepth 1 -type f -name '*.whl' -print -quit)
@@ -37,15 +44,22 @@ set -euo pipefail
 uv sync --locked
 uv lock --check
 uv run python -m compileall -q src tests scripts evals
-uvx ruff==0.15.17 check src tests scripts
-uv run python -W error::ResourceWarning -m pytest -q -m "not node_qualification" tests
+uvx ruff==0.17.2 check src tests scripts
+# Provider transports reject ambient non-loopback proxies; hermetic
+# unit/queue tests must not inherit the host network proxy.
+env -u HTTPS_PROXY -u https_proxy -u HTTP_PROXY -u http_proxy \
+    -u ALL_PROXY -u all_proxy -u NO_PROXY -u no_proxy \
+    uv run python -W error::ResourceWarning -m pytest -q -m "not node_qualification" tests
 uv run python scripts/check_dependencies.py
-uvx pip-audit -r requirements-audit.txt --strict --progress-spinner off
+# uv.lock is the single dependency authority. Export its runtime-only hashed
+# closure for official pip-audit; do not hand-maintain a second snapshot.
+tmp=$(mktemp -d -t ordivon-harness-verify-XXXXXX)
+trap 'rm -rf "$tmp"' EXIT
+uv export --locked --no-default-groups --no-emit-project --format requirements-txt > "$tmp/runtime-requirements.txt"
+uvx pip-audit --disable-pip --require-hashes -r "$tmp/runtime-requirements.txt" --strict --progress-spinner off
 uv run python scripts/check_docs.py
 uv run python scripts/check_evidence.py
 uv run python scripts/demo_deterministic_run.py
-tmp=$(mktemp -d -t ordivon-harness-wheel-XXXXXX)
-trap 'rm -rf "$tmp"' EXIT
 rm -rf build
 uv build --wheel --out-dir "$tmp"
 wheel=$(find "$tmp" -maxdepth 1 -type f -name '*.whl' -print -quit)

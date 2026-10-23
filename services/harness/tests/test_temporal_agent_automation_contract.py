@@ -160,7 +160,7 @@ class TemporalAgentAutomationContractTests(unittest.TestCase):
         self.assertEqual(
             (ROOT / "config/agent-automation-temporal-requirements.txt").read_text().splitlines(),
             [
-                "temporalio==1.32.0",
+                "temporalio==1.34.0",
                 "rfc8785==0.1.4",
                 "mcp==2.2.0",
                 "httpx==0.28.1",

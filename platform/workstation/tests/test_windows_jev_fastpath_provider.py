@@ -17,8 +17,8 @@ def test_contract_pins_external_provider_without_credentials():
     path = ROOT / "workstation/windows/jev-fastpath-provider.toml"
     raw = path.read_text()
     cfg = tomllib.loads(raw)["jev_windows_provider"]
-    assert cfg["uv_version"] == "0.13.1"
-    assert cfg["python_version"] == "3.15.0"
+    assert cfg["uv_version"] == "0.13.5"
+    assert cfg["python_version"] == "3.15.1"
     assert cfg["source_revision"] == "452c1ad2dd628008f1d5608f28158d76e49e6cc0"
     assert cfg["jev_version"] == "0.1.0"
     assert cfg["browser_harness_version"] == "0.1.13"
@@ -53,10 +53,10 @@ def test_old_interpreter_venv_is_not_accepted_as_new_python(monkeypatch, tmp_pat
 
 def test_contract_requires_isolated_versioned_venv(tmp_path):
     raw = (ROOT / "workstation/windows/jev-fastpath-provider.toml").read_text()
-    assert 'venv_relative = ".venv-py3.15.0"' in raw
+    assert 'venv_relative = ".venv-py3.15.1"' in raw
     for escape in ('../active', '/tmp/env', '.venv-py3.12.0/../../evil'):
         f = tmp_path / "bad.toml"
-        f.write_text(raw.replace('venv_relative = ".venv-py3.15.0"', f'venv_relative = "{escape}"'))
+        f.write_text(raw.replace('venv_relative = ".venv-py3.15.1"', f'venv_relative = "{escape}"'))
         try:
             M.config(f)
         except RuntimeError as error:
@@ -144,9 +144,9 @@ def test_windows_native_provider_probe_uses_exact_contract_and_binds_versions(mo
     def native_runner(argv, **_kwargs):
         cmd = " ".join(map(str, argv))
         if argv[0] == str(python_path):
-            return SimpleNamespace(returncode=0, stdout="Python 3.15.0\n", stderr="")
+            return SimpleNamespace(returncode=0, stdout="Python 3.15.1\n", stderr="")
         if argv[0] == str(venv_python):
-            return SimpleNamespace(returncode=0, stdout='{"jev":"0.1.0","browser_harness":"0.1.13","python":"3.15.0"}', stderr="")
+            return SimpleNamespace(returncode=0, stdout='{"jev":"0.1.0","browser_harness":"0.1.13","python":"3.15.1"}', stderr="")
         if "rev-parse HEAD" in cmd:
             return SimpleNamespace(returncode=0, stdout=cfg["source_revision"], stderr="")
         if "remote get-url origin" in cmd:
@@ -160,7 +160,7 @@ def test_windows_native_provider_probe_uses_exact_contract_and_binds_versions(mo
     assert good["windowsPhysicalHealthy"] is True
     assert good["observerAuthority"] == "windows_native_current_user"
     assert good["receiptEvaluated"] is False
-    assert good["python"]["version"] == "Python 3.15.0"
+    assert good["python"]["version"] == "Python 3.15.1"
     assert good["source"]["exact"] is True
     assert good["packages"]["exact"] is True
 

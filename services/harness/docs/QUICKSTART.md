@@ -31,7 +31,7 @@ related:
 
 ```bash
 uv sync
-uvx ruff==0.15.17 check src tests scripts
+uvx ruff==0.17.2 check src tests scripts
 uv run python -m unittest discover -s tests -v
 ```
 

@@ -126,10 +126,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          while IFS= read -r task; do
+          while IFS= read -r task || [[ -n "$task" ]]; do
             [[ -z "$task" ]] && continue
             echo "::group::mise run $task"
-            mise run "$task"
+            # The selected task must not consume the following queue entries.
+            mise run "$task" </dev/null
             echo "::endgroup::"
           done < "$RUNNER_TEMP/ordivon-affected-tasks.txt"
 

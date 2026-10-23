@@ -15,17 +15,17 @@ SPEC.loader.exec_module(MODULE)
 
 def test_exact_project_python_passes_to_isolated_wheel_env():
     assert MODULE.wheel_python_interpreter(
-        "==3.15.0", "3.15.0", "/opt/uv-py3.15/bin/python"
+        "==3.15.1", "3.15.1", "/opt/uv-py3.15/bin/python"
     ) == "/opt/uv-py3.15/bin/python"
 
 
 @pytest.mark.parametrize(
     "requirement, observed, executable",
     [
-        ("==3.15.0", "3.14.7", "/opt/old/bin/python"),
-        ("==3.15.0", "3.16.0", "/opt/newer/bin/python"),
-        (">=3.14", "3.15.0", "/opt/python"),
-        ("==3.15.0", "3.15.0", "python"),
+        ("==3.15.1", "3.14.7", "/opt/old/bin/python"),
+        ("==3.15.1", "3.16.0", "/opt/newer/bin/python"),
+        (">=3.14", "3.15.1", "/opt/python"),
+        ("==3.15.1", "3.15.1", "python"),
     ],
 )
 def test_wrong_or_unbound_interpreter_fails_closed(requirement, observed, executable):
