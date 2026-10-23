@@ -37,6 +37,21 @@ class OwnerBoundaryTests(unittest.TestCase):
         )
         self.assertFalse(MODULE._allowed(finding, SEAMS))
 
+    def test_source_glob_grants_only_one_path_segment(self) -> None:
+        same_directory = self.finding(
+            "services/harness/scripts/browser_security_probe.py",
+            'source = "platform/security"',
+        )
+        nested_directory = self.finding(
+            "services/harness/scripts/browser_security_probe/escape.py",
+            'source = "platform/security"',
+        )
+        self.assertTrue(MODULE._allowed(same_directory, SEAMS))
+        self.assertFalse(
+            MODULE._allowed(nested_directory, SEAMS),
+            "a single '*' in a source_glob must not authorize a different directory",
+        )
+
     def test_unrelated_web_file_cannot_gain_security_contract_by_owner_pair(self) -> None:
         finding = self.finding(
             "apps/web/src/store.ts",

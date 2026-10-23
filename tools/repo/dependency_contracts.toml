@@ -3,6 +3,7 @@ kind = "ordivon.repo-owner-dependency-contracts"
 truth_role = "repository-boundary-policy-not-domain-authority"
 scan_mode = "active-source-literal-seams"
 
+# Source globs match complete, slash-delimited path segments; '*' cannot cross directories.
 # These declarations authorize only the named literal seam in the named source files.
 # They do not transfer truth ownership and do not authorize arbitrary access to the target owner.
 
