@@ -294,6 +294,17 @@ def validate_formal_issue_census(
         if (plan_path, slice_id) in seen:
             raise ArchitectureDocsError("duplicate owner-local LEGO link")
         seen.add((plan_path, slice_id))
+        linked_issues = ref.get("issueIds")
+        if (
+            not isinstance(linked_issues, list)
+            or not linked_issues
+            or any(not isinstance(item, str) or not item for item in linked_issues)
+            or len(linked_issues) != len(set(linked_issues))
+        ):
+            raise ArchitectureDocsError(f"LEGO registration {slice_id} needs unique issueIds")
+        unknown = set(linked_issues) - issue_ids
+        if unknown:
+            raise ArchitectureDocsError(f"LEGO registration {slice_id} references unknown issue: {sorted(unknown)}")
         plan = plans.get(plan_path)
         if not isinstance(plan, dict) or plan.get("truthRole") != "planning-projection-not-project-truth":
             raise ArchitectureDocsError("owner-local LEGO plan must remain non-authoritative")

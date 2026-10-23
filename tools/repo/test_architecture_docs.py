@@ -464,6 +464,20 @@ def test_formal_issue_census_rejects_duplicate_problem_identity() -> None:
         module.validate_formal_issue_census(census, plans)
 
 
+def test_formal_issue_census_requires_problem_to_lego_edges() -> None:
+    census, plans = formal_issue_inputs()
+    census["registrations"][0].pop("issueIds", None)
+    with pytest.raises(module.ArchitectureDocsError, match="issueIds"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issue_census_rejects_dangling_problem_edge() -> None:
+    census, plans = formal_issue_inputs()
+    census["registrations"][0]["issueIds"] = ["MISSING-ISSUE"]
+    with pytest.raises(module.ArchitectureDocsError, match="unknown issue"):
+        module.validate_formal_issue_census(census, plans)
+
+
 def test_formal_issue_census_cannot_grant_authority() -> None:
     census, plans = formal_issue_inputs()
     census["truthRole"] = "semantic-authority"
