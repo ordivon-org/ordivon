@@ -129,6 +129,10 @@ def validate_obligation_set(value: dict[str, Any]) -> None:
         raise CircuitContractError("verification obligation requiredGateIds mismatch")
 
     for obligation in obligations.values():
+        if obligation["circuitRef"] != value["circuitRef"]:
+            raise CircuitContractError(
+                f"verification obligation circuitRef mismatch: {obligation['gateId']}"
+            )
         embedded = obligation["obligationDigest"]
         base = dict(obligation)
         del base["obligationDigest"]
