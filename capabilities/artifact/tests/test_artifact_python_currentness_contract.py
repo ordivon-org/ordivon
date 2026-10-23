@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import tomllib
 from pathlib import Path
@@ -30,14 +31,16 @@ def test_materializer_consumes_owner_mise_tools_without_version_paths() -> None:
     assert "/installs/uv/0.12.16/" not in source
     assert "/installs/python/3.15.0/" not in source
     owner = tomllib.loads(MISE.read_text())["tools"]
+    mise = shutil.which("mise")
+    assert mise is not None, "Artifact owner mise must be discoverable on PATH"
     python = subprocess.run(
-        ["/usr/bin/mise", "-C", str(ROOT), "which", "python"],
+        [mise, "-C", str(ROOT), "which", "python"],
         check=True,
         text=True,
         capture_output=True,
     ).stdout.strip()
     uv = subprocess.run(
-        ["/usr/bin/mise", "-C", str(ROOT), "which", "uv"],
+        [mise, "-C", str(ROOT), "which", "uv"],
         check=True,
         text=True,
         capture_output=True,
