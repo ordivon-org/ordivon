@@ -107,6 +107,13 @@
         "scripts/local-acceptance",
         "native Windows Runtime acceptance"
       ]
+    },
+    {
+      "id": "verification.focused-selection",
+      "examples": [
+        "mise run test:focused fails when RUNTIME_TEST_EXPR matches zero tests",
+        "mise run test:focused reports the selected named consumer on PASS"
+      ]
     }
   ],
   "firstMove": {
@@ -143,13 +150,40 @@
           "workspace_list_schema_makes_exact_source_digest_opt_in"
         ],
         "verification": "cargo test --locked -q -p ordivon-runtime-mcp => 66 passed + 10 auth passed; clippy -D warnings PASS"
+      },
+      {
+        "id": "R01-B3",
+        "source": "ad-hoc focused cargo invocations",
+        "destination": "mise test:focused backed by pinned cargo-nextest",
+        "tests": [
+          "test_real_focused_entrypoint_rejects_zero_matches",
+          "test_real_focused_entrypoint_runs_named_consumer"
+        ],
+        "verification": "owner consumer contract requires zero-match != PASS and a named positive selector to execute at least one test"
       }
     ],
-    "next": "Baseline R01 acceptance is complete. Continue broader taxonomy-driven physical splits opportunistically where they reduce conflict or improve feedback; they no longer block state-contract extraction.",
+    "next": "Use R01-V1 as the canonical focused verifier. Continue broader taxonomy-driven physical splits only when they reduce conflict or improve feedback; never treat an empty selection or focused PASS as whole-owner acceptance.",
     "baselineVerification": [
       "tool_catalog:: => 4 passed / 0 failed",
       "projection_contract:: => 3 passed / 0 failed",
       "current-main local acceptance => supervisor 2/2 + Runtime integration 36/36 + MCP/Workspace/Release E2E PASS"
     ]
+  },
+  "focusedVerification": {
+    "id": "R01-V1",
+    "kind": "verification-lego",
+    "responsibility": "Run an exact bounded Runtime test selection and refuse PASS when the selector matches no tests.",
+    "provider": "cargo-nextest",
+    "entrypoint": "mise run test:focused",
+    "selectorEnv": "RUNTIME_TEST_EXPR",
+    "formalObligation": "PASS(selector) => matched(selector) >= 1 AND every matched test PASS",
+    "zeroMatchStanding": "FAIL_CLOSED",
+    "consumerTest": "scripts/tests/test_focused_verification_contract.py",
+    "mustNotOwn": [
+      "test semantics",
+      "Runtime domain truth",
+      "whole-owner acceptance"
+    ],
+    "evidenceBoundary": "A focused PASS proves only the selected non-empty Runtime test set. It does not prove runtime:verify, real-system acceptance, or domain goal completion."
   }
 }
