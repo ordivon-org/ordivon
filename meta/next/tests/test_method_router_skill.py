@@ -41,3 +41,40 @@ def test_router_does_not_define_tool_or_execution_authority() -> None:
     assert "does not execute tools" in text
     assert "authority transfer" in text
     assert "smallest method set" in text
+
+
+def test_representation_first_routes_are_complete_and_non_authoritative() -> None:
+    """Navigation contract only; never treat this textual check as formal proof."""
+    skill = (ROUTER / "SKILL.md").read_text(encoding="utf-8")
+    reference = (ROUTER / "references" / "representation-first.md").read_text(
+        encoding="utf-8"
+    )
+    charter = (ROOT / "docs" / "META_THINKING_REPRESENTATION_R1.md").read_text(
+        encoding="utf-8"
+    )
+    assert "references/representation-first.md" in skill
+    assert "before" in skill.lower()
+    for lens in (
+        "Type-driven",
+        "Constraint-first",
+        "Graph-first",
+        "State-machine-first",
+        "Algebra-first",
+        "Equivalence-first",
+        "Declarative-first",
+        "Abstraction-first",
+        "Causal-first",
+        "Compression-first",
+    ):
+        assert reference.count(f"| {lens} |") == 1, lens
+        assert charter.count(f"| {lens} |") == 1, lens
+    for needed in (
+        "UNKNOWN",
+        "owner",
+        "counterexample",
+        "consumer",
+        "not a new registry",
+    ):
+        assert needed.lower() in reference.lower()
+    assert "owner-native" in charter
+    assert "No new framework without residual" in charter
