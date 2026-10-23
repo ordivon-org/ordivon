@@ -1,0 +1,7 @@
+[Unit]
+Description=Network v2 Supply-Chain scoped egress authority
+Requires=network-v2-supply-chain-egress.service
+After=network-v2-supply-chain-egress.service
+
+[Install]
+WantedBy=multi-user.target
