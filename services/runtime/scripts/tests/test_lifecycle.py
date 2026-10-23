@@ -53,7 +53,8 @@ def initialize_registry(database: Path, workspace_id: str | None = None, activit
 
 
 def init_repository(path: Path) -> str:
-    subprocess.run(["git", "init", "-q", str(path)], check=True)
+    # Explicit fixture branch: CI runners may default git init to master.
+    subprocess.run(["git", "init", "-q", "-b", "main", str(path)], check=True)
     subprocess.run(["git", "-C", str(path), "config", "user.name", "Test"], check=True)
     subprocess.run(
         ["git", "-C", str(path), "config", "user.email", "test@example.invalid"],
