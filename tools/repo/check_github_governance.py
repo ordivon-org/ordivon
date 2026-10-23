@@ -113,9 +113,9 @@ def main() -> int:
     ]
     assert not floating, f"root workflows contain non-SHA action references: {floating}"
     assert "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1" in workflow
-    # Exact upstream v5.1.2 commit (verified against the immutable GitHub tag).
+    # Exact upstream v5.2.2 commit (verified against the immutable GitHub tag).
     # Keep this review gate: Dependabot must not silently change action code.
-    mise_action_pin = "jdx/mise-action@08ae2a091c038e1e05ec6f5115dc5c69d5a2a6b8"
+    mise_action_pin = "jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550"
     assert mise_action_pin in workflow
     assert "gitleaks/gitleaks-action@" not in workflow
     assert "run: mise run repo:secrets:verify" in workflow
