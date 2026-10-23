@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 import tomllib
@@ -62,8 +63,18 @@ def main() -> int:
     assert configured_dirs(github_actions) == {"/"}
 
     expected_uv = dirs_for_lock("**/uv.lock", "uv.lock")
-    actual_uv = configured_dirs(update_for(config, "uv"))
-    assert actual_uv == expected_uv, f"uv directories drift: expected={sorted(expected_uv)} actual={sorted(actual_uv)}"
+    assert not any(item["package-ecosystem"] == "uv" for item in config["updates"]), (
+        "Dependabot uv would duplicate Renovate ownership"
+    )
+    renovate = json.loads((ROOT / "renovate.json").read_text())
+    assert "pep621" in renovate["enabledManagers"]
+    assert renovate["lockFileMaintenance"]["enabled"] is True
+    assert renovate.get("automerge", False) is False
+    assert renovate["packageRules"] == [
+        {"matchManagers": ["pep621"], "groupName": "Python {{depName}}"}
+    ], "updates for the same Python dependency must share a native Renovate group"
+    for directory in expected_uv:
+        assert (ROOT / directory.lstrip("/") / "pyproject.toml").is_file(), directory
 
     npm_locks: set[str] = set()
     for pattern, name in (
@@ -72,8 +83,12 @@ def main() -> int:
         ("**/npm-shrinkwrap.json", "npm-shrinkwrap.json"),
     ):
         npm_locks |= dirs_for_lock(pattern, name)
-    actual_npm = configured_dirs(update_for(config, "npm"))
+    npm_update = update_for(config, "npm")
+    actual_npm = configured_dirs(npm_update)
     assert actual_npm == npm_locks, f"npm directories drift: expected={sorted(npm_locks)} actual={sorted(actual_npm)}"
+    assert npm_update["groups"] == {"same-dependency": {"group-by": "dependency-name"}}
+    nix_update = update_for(config, "nix")
+    assert nix_update["groups"] == {"same-dependency": {"group-by": "dependency-name"}}
 
     expected_cargo = dirs_for_lock("**/Cargo.lock", "Cargo.lock")
     actual_cargo = configured_dirs(update_for(config, "cargo"))

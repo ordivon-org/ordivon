@@ -5,24 +5,7 @@ updates:
     schedule:
       interval: weekly
 
-  - package-ecosystem: uv
-    directories:
-      - "/capabilities/artifact"
-      - "/capabilities/artifact/artifact-delivery/python-uv"
-      - "/capabilities/distribution"
-      - "/capabilities/media"
-      - "/domains/capital"
-      - "/meta/next"
-      - "/meta/next/experimental/episode-store-r1"
-      - "/packages/composition"
-      - "/platform/security"
-      - "/platform/skills"
-      - "/platform/workstation"
-      - "/services/gateway"
-      - "/services/harness"
-      - "/services/host"
-    schedule:
-      interval: weekly
+  # Python PEP 621 and uv.lock are updated by Renovate; avoid competing bots.
 
   - package-ecosystem: npm
     directories:
@@ -36,6 +19,9 @@ updates:
       - "/platform/workstation/workstation/nix/codex-cli"
     schedule:
       interval: weekly
+    groups:
+      same-dependency:
+        group-by: dependency-name
 
   - package-ecosystem: cargo
     directory: "/services/runtime"
@@ -49,4 +35,7 @@ updates:
       - "/capabilities/artifact/artifact-delivery/openxml-nix"
     schedule:
       interval: weekly
+    groups:
+      same-dependency:
+        group-by: dependency-name
     open-pull-requests-limit: 5
