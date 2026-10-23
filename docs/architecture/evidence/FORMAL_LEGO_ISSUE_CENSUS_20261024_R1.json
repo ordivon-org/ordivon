@@ -70,6 +70,10 @@
         "methodSkill": ".agents/skills/compositional-contracts/SKILL.md",
         "requiredWitness": "Use git range-diff on explicit source cuts and run affected consumer CDC before selecting a patch.",
         "selectionReason": "Different commit histories may be equivalent only under the actual consumer contract."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "No owner-local verified consumer LEGO is yet evidenced"
       }
     },
     {
@@ -90,6 +94,10 @@
         "methodSkill": ".agents/skills/design-structure-matrix/SKILL.md",
         "requiredWitness": "Prove unique commits, consumers and durable evidence are reachable elsewhere before retiring a branch.",
         "selectionReason": "The objective is the minimal lossless source/effect basis, not fewest arbitrary refs."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "No owner-local verified consumer LEGO is yet evidenced"
       }
     },
     {
@@ -110,6 +118,10 @@
         "methodSkill": null,
         "requiredWitness": "Read Runtime current Workspace/Job state and compare-and-close only an unheld clean SourceStateDigest.",
         "selectionReason": "Lifecycle/hold/recovery are state transitions, not filesystem age heuristics."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "No owner-local verified consumer LEGO is yet evidenced"
       }
     },
     {
@@ -130,6 +142,10 @@
         "methodSkill": ".agents/skills/design-structure-matrix/SKILL.md",
         "requiredWitness": "Construct PR/head/base/merge-group dependency graph and verify required checks at the final merge cut.",
         "selectionReason": "Overlapping branches must be resolved as dependency edges, not a timestamp sorting task."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "No owner-local verified consumer LEGO is yet evidenced"
       }
     },
     {
@@ -148,6 +164,10 @@
         "methodSkill": null,
         "requiredWitness": "Reproduce the exact shell interpreter and assert the exit status of an expected failing command.",
         "selectionReason": "Bash-compatible script and POSIX sh are different executable contracts."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "No owner-local verified consumer LEGO is yet evidenced"
       }
     },
     {
@@ -168,6 +188,10 @@
         "methodSkill": null,
         "requiredWitness": "Reconcile sampled Actions run statuses with queue cancellation semantics and classify failure independently.",
         "selectionReason": "Failure, cancellation, and success form distinct outcomes; counting is not causation."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "No owner-local verified consumer LEGO is yet evidenced"
       }
     },
     {
@@ -188,6 +212,10 @@
         "methodSkill": ".agents/skills/compositional-contracts/SKILL.md",
         "requiredWitness": "Check upstream supported stable version, affected owner manifest and lockfile, then run owner-native CDC.",
         "selectionReason": "Version selection is a constrained compatibility problem, not maximization of version strings."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "No owner-local verified consumer LEGO is yet evidenced"
       }
     },
     {
@@ -208,6 +236,11 @@
         "methodSkill": ".agents/skills/project-kernel-decomposition/SKILL.md",
         "requiredWitness": "Run fail-closed Harness admission and effect-reconciliation tests on the declared H03/H04 Tool surface.",
         "selectionReason": "The explicit I/O/effect contract removes ambiguity without adding a new coordinator."
+      },
+      "registration": {
+        "state": "LINKED",
+        "ownerPlan": "services/harness/planning/lego-plan-r1.json",
+        "slice": "HS2"
       }
     },
     {
@@ -228,6 +261,11 @@
         "methodSkill": ".agents/skills/information-flow-analysis/SKILL.md",
         "requiredWitness": "Falsify a principal-to-Tool-to-service-to-effect authority path under least-privilege policy.",
         "selectionReason": "Authority is transitive along real effect paths rather than bounded by component labels."
+      },
+      "registration": {
+        "state": "LINKED",
+        "ownerPlan": "platform/security/planning/lego-plan-r1.json",
+        "slice": "SS2"
       }
     },
     {
@@ -248,6 +286,11 @@
         "methodSkill": ".agents/skills/causal-intervention/SKILL.md",
         "requiredWitness": "Run a controlled DNS/proxy/inner-compromise fault injection and compare independently observed egress.",
         "selectionReason": "A controlled intervention distinguishes a real bypass cause from network correlation."
+      },
+      "registration": {
+        "state": "LINKED",
+        "ownerPlan": "platform/network/planning/lego-plan-r1.json",
+        "slice": "NS2"
       }
     },
     {
@@ -268,6 +311,11 @@
         "methodSkill": ".agents/skills/compositional-contracts/SKILL.md",
         "requiredWitness": "Execute one source-to-consumer Golden Path and replay a counterexample with exact environment and effect readback.",
         "selectionReason": "A unit test, a trace, and consumer semantic success are different abstraction levels."
+      },
+      "registration": {
+        "state": "LINKED",
+        "ownerPlan": "services/harness/planning/lego-plan-r1.json",
+        "slice": "HS2"
       }
     },
     {
@@ -288,6 +336,11 @@
         "methodSkill": ".agents/skills/information-flow-analysis/SKILL.md",
         "requiredWitness": "Compare paired low-equivalent runs for unauthorized information flow; record unmodeled channels UNKNOWN.",
         "selectionReason": "Noninterference is a relational two-trace property, not a single-execution log assertion."
+      },
+      "registration": {
+        "state": "LINKED",
+        "ownerPlan": "platform/security/planning/lego-plan-r1.json",
+        "slice": "SS2"
       }
     },
     {
@@ -308,6 +361,10 @@
         "methodSkill": ".agents/skills/method-router/SKILL.md",
         "requiredWitness": "Resolve an approved Skill, perform the actual owner Tool action, then verify its output and authority.",
         "selectionReason": "Instruction/Skill, executable Tool, and authoritative provider effect are distinct types."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "No owner-local verified consumer LEGO is yet evidenced"
       }
     },
     {
@@ -328,6 +385,10 @@
         "methodSkill": ".agents/skills/causal-intervention/SKILL.md",
         "requiredWitness": "Replay the exact failed Runtime concurrent-admission test from run 40028281009 separately from dependency download failures.",
         "selectionReason": "Observed CI failure must be attributed by intervention rather than inferred from PR title."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "No owner-local verified consumer LEGO is yet evidenced"
       }
     }
   ],

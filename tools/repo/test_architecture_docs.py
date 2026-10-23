@@ -528,3 +528,74 @@ def test_representation_first_rejects_non_scalar_values_without_crashing() -> No
     census["issues"][0]["representation"]["supporting"] = [{"arbitrary": "state-machine"}]
     with pytest.raises(module.ArchitectureDocsError, match="supporting representation"):
         module.validate_formal_issue_census(census, plans)
+
+
+# Formal Issue graph consumer contract: exactly one disposition per observed Issue.
+def issue_registration_fixture():
+    census, plans = formal_issue_inputs()
+    bindings = {
+        "LEGO-01": ("services/harness/planning/lego-plan-r1.json", "HS2"),
+        "TEST-01": ("services/harness/planning/lego-plan-r1.json", "HS2"),
+        "SEC-01": ("platform/security/planning/lego-plan-r1.json", "SS2"),
+        "FORMAL-01": ("platform/security/planning/lego-plan-r1.json", "SS2"),
+        "NET-01": ("platform/network/planning/lego-plan-r1.json", "NS2"),
+    }
+    for issue in census["issues"]:
+        key = bindings.get(issue["id"])
+        issue["registration"] = (
+            {"state": "LINKED", "ownerPlan": key[0], "slice": key[1]}
+            if key else {"state": "UNREGISTERED", "reason": "No native owner LEGO verification slice evidenced"}
+        )
+    return census, plans
+
+
+def test_formal_issues_require_total_registration() -> None:
+    census, plans = issue_registration_fixture()
+    census["issues"][0].pop("registration")
+    with pytest.raises(module.ArchitectureDocsError, match="registration"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issues_reject_unknown_natural_owner() -> None:
+    census, plans = issue_registration_fixture()
+    census["issues"][0]["naturalOwner"] = "services/runtime-shadow"
+    with pytest.raises(module.ArchitectureDocsError, match="undeclared naturalOwner"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issues_reject_wrong_owner_registration() -> None:
+    census, plans = issue_registration_fixture()
+    network = next(x for x in census["issues"] if x["id"] == "NET-01")
+    network["registration"] = {
+        "state": "LINKED", "ownerPlan": "services/harness/planning/lego-plan-r1.json", "slice": "HS2"
+    }
+    with pytest.raises(module.ArchitectureDocsError, match="natural owner"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issues_reject_unknown_owner_slice() -> None:
+    census, plans = issue_registration_fixture()
+    network = next(x for x in census["issues"] if x["id"] == "NET-01")
+    network["registration"]["slice"] = "NS-MISSING"
+    with pytest.raises(module.ArchitectureDocsError, match="unknown owner-local"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issues_reject_unexplained_gap() -> None:
+    census, plans = issue_registration_fixture()
+    census["issues"][0]["registration"]["reason"] = " "
+    with pytest.raises(module.ArchitectureDocsError, match="unregistered reason"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issues_reject_orphan_owner_slice() -> None:
+    census, plans = issue_registration_fixture()
+    network = next(x for x in census["issues"] if x["id"] == "NET-01")
+    network["registration"] = {"state": "UNREGISTERED", "reason": "Pending verified consumer"}
+    with pytest.raises(module.ArchitectureDocsError, match="orphan owner-local"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issues_accept_total_owner_bound_graph() -> None:
+    census, plans = issue_registration_fixture()
+    module.validate_formal_issue_census(census, plans)
