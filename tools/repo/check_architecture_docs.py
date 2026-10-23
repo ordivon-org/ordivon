@@ -265,6 +265,7 @@ def validate_formal_issue_census(
     if not isinstance(issues, list) or not issues:
         raise ArchitectureDocsError("issue census must contain typed issues")
     issue_ids: set[str] = set()
+    issues_by_id: dict[str, dict[str, Any]] = {}
     for issue in issues:
         if not isinstance(issue, dict):
             raise ArchitectureDocsError("issue census entry must be an object")
@@ -274,6 +275,7 @@ def validate_formal_issue_census(
         if issue_id in issue_ids:
             raise ArchitectureDocsError(f"duplicate issue identity: {issue_id}")
         issue_ids.add(issue_id)
+        issues_by_id[issue_id] = issue
         for field in ("problemClass", "naturalOwner", "standing", "evidence", "consumers", "formalObligation"):
             if not isinstance(issue.get(field), str) or not issue[field].strip():
                 raise ArchitectureDocsError(f"issue {issue_id} lacks {field}")
@@ -294,6 +296,17 @@ def validate_formal_issue_census(
         if (plan_path, slice_id) in seen:
             raise ArchitectureDocsError("duplicate owner-local LEGO link")
         seen.add((plan_path, slice_id))
+        bound_issues = ref.get("issueIds")
+        if (not isinstance(bound_issues, list) or not bound_issues
+                or any(not isinstance(issue_id, str) or not issue_id for issue_id in bound_issues)
+                or len(bound_issues) != len(set(bound_issues))):
+            raise ArchitectureDocsError(f"LEGO registration {slice_id} needs distinct issueIds")
+        for issue_id in bound_issues:
+            issue = issues_by_id.get(issue_id)
+            if issue is None:
+                raise ArchitectureDocsError(f"LEGO registration {slice_id} references unknown issue: {issue_id}")
+            if not plan_path.startswith(issue["naturalOwner"].rstrip("/") + "/"):
+                raise ArchitectureDocsError(f"LEGO registration {slice_id} violates natural owner for {issue_id}")
         plan = plans.get(plan_path)
         if not isinstance(plan, dict) or plan.get("truthRole") != "planning-projection-not-project-truth":
             raise ArchitectureDocsError("owner-local LEGO plan must remain non-authoritative")

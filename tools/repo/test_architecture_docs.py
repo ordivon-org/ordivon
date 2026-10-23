@@ -464,6 +464,20 @@ def test_formal_issue_census_rejects_duplicate_problem_identity() -> None:
         module.validate_formal_issue_census(census, plans)
 
 
+def test_formal_issue_census_rejects_orphan_registration() -> None:
+    census, plans = formal_issue_inputs()
+    census["registrations"][0]["issueIds"] = ["NONEXISTENT-ISSUE"]
+    with pytest.raises(module.ArchitectureDocsError, match="unknown issue"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issue_census_rejects_wrong_owner_binding() -> None:
+    census, plans = formal_issue_inputs()
+    census["registrations"][0]["issueIds"] = ["SEC-01"]
+    with pytest.raises(module.ArchitectureDocsError, match="natural owner"):
+        module.validate_formal_issue_census(census, plans)
+
+
 def test_formal_issue_census_cannot_grant_authority() -> None:
     census, plans = formal_issue_inputs()
     census["truthRole"] = "semantic-authority"
