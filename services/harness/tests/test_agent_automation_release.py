@@ -152,7 +152,7 @@ class ReleaseTests(unittest.TestCase):
                 0,
                 stdout=json.dumps({
                     "rfc8785": "0.1.4",
-                    "temporalio": "1.32.0",
+                    "temporalio": "1.34.0",
                     "mcp": "2.2.0",
                     "httpx": "0.28.1",
                 }) + "\n",
