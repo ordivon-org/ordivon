@@ -510,4 +510,32 @@ mod gitlink_worktree_root_tests {
 
         assert!(digest.starts_with("sha256:"));
     }
+
+    #[test]
+    fn ordinary_untracked_directory_cannot_be_source_git_worktree() {
+        let unique = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "ordivon-ordinary-source-directory-{}-{unique}",
+            std::process::id()
+        ));
+        let nested = root.join("ordinary");
+        fs::create_dir_all(&nested).expect("create ordinary directory");
+        let status = Command::new("git")
+            .arg("-C")
+            .arg(&root)
+            .args(["init", "--quiet"])
+            .status()
+            .expect("initialize parent Git repository");
+        assert!(status.success());
+
+        assert!(!is_git_worktree(&nested).expect("classify nested directory"));
+        let error = workspace_source_entry(&root, "ordinary/", None)
+            .err()
+            .expect("a plain untracked directory must not be accepted as a Git worktree");
+        assert_eq!(error.code, UniversalExecErrorCode::WorkspacePathDenied);
+        fs::remove_dir_all(&root).expect("cleanup fixture");
+    }
 }
