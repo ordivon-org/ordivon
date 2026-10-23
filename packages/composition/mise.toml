@@ -5,6 +5,9 @@ uv = "0.13.5"
 [tasks.verify]
 run = """
 set -euo pipefail
+# Native mise selects the version; uv must not infer an older interpreter
+# from a previously materialized Workspace .venv.
+export UV_PYTHON="$(mise which python)"
 uv lock --check
 uv sync --locked
 uv run ruff check src tests
