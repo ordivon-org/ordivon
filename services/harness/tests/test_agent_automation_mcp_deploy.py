@@ -191,6 +191,9 @@ class DeployTests(unittest.TestCase):
 
     def test_service_keeps_host_tmp_visible_for_display_census(self):
         unit = (d.ROOT / "systemd/ordivon-agent-automation-mcp.service").read_text()
+        # An exec-synchronized start catches missing binaries before ExecStartPost.
+        self.assertIn("Type=exec", unit)
+        self.assertNotIn("Type=simple", unit)
         self.assertNotIn("PrivateTmp=true", unit)
         self.assertIn("ProtectSystem=strict", unit)
         self.assertIn(
