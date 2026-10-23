@@ -478,3 +478,14 @@ def test_formal_issue_census_rejects_undeclared_natural_owner(owner: str) -> Non
     census["issues"][0]["naturalOwner"] = owner
     with pytest.raises(module.ArchitectureDocsError, match="undeclared naturalOwner"):
         module.validate_formal_issue_census(census, plans)
+
+
+def test_issue_owner_source_cut_is_explicit(tmp_path: Path) -> None:
+    census, plans = formal_issue_inputs()
+    owner_file = tmp_path / "tools" / "repo" / "owners.toml"
+    owner_file.parent.mkdir(parents=True)
+    owner_file.write_text(
+        '[[owners]]\nname = "alternate"\nroot = "services/alternate/"\n'
+    )
+    with pytest.raises(module.ArchitectureDocsError, match="undeclared naturalOwner"):
+        module.validate_formal_issue_census(census, plans, root=tmp_path)
