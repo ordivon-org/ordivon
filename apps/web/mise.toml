@@ -5,6 +5,7 @@ pnpm = "12.5.1"
 [tasks.verify]
 run = """
 set -euo pipefail
+pnpm --dir ../../platform/security/contracts/agent-request-verifier-v1 install --frozen-lockfile
 pnpm install --frozen-lockfile
-pnpm ci
+pnpm run ci
 """
