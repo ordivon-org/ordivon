@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -20,31 +21,32 @@ def _run(payload: dict[str, object]) -> dict[str, object]:
     return json.loads(result.stdout)
 
 
-def test_public_contract_composes_agent_and_effect_admission() -> None:
-    payload = json.loads(FIXTURE.read_text())
-    result = _run(payload)
+class AgentAdmissionContractTests(unittest.TestCase):
+    def test_public_contract_composes_agent_and_effect_admission(self) -> None:
+        payload = json.loads(FIXTURE.read_text())
+        result = _run(payload)
 
-    assert result["kind"] == "ordivon.security.agent-admission-chain"
-    assert result["agent"]["outcome"] == "ALLOW"
-    assert result["agent"]["reason"] == "admitted"
-    assert result["effect"]["admitted"] is True
-    assert result["effect"]["requestId"] == payload["effect"]["effectId"]
+        self.assertEqual(result["kind"], "ordivon.security.agent-admission-chain")
+        self.assertEqual(result["agent"]["outcome"], "ALLOW")
+        self.assertEqual(result["agent"]["reason"], "admitted")
+        self.assertIs(result["effect"]["admitted"], True)
+        self.assertEqual(result["effect"]["requestId"], payload["effect"]["effectId"])
 
 
-def test_public_contract_preserves_step_up_without_effect_projection() -> None:
-    payload = json.loads(FIXTURE.read_text())
-    payload["effect"]["riskClass"] = "R4"
-    payload["grant"]["maxRiskClass"] = "R4"
-    payload["grant"]["stepUpAtOrAbove"] = "R4"
-    payload["approval"] = {
-        "verified": False,
-        "principalId": None,
-        "effectId": None,
-        "method": None,
-    }
+    def test_public_contract_preserves_step_up_without_effect_projection(self) -> None:
+        payload = json.loads(FIXTURE.read_text())
+        payload["effect"]["riskClass"] = "R4"
+        payload["grant"]["maxRiskClass"] = "R4"
+        payload["grant"]["stepUpAtOrAbove"] = "R4"
+        payload["approval"] = {
+            "verified": False,
+            "principalId": None,
+            "effectId": None,
+            "method": None,
+        }
 
-    result = _run(payload)
+        result = _run(payload)
 
-    assert result["agent"]["outcome"] == "STEP_UP"
-    assert result["agent"]["reason"] == "principal-step-up-required"
-    assert result["effect"] is None
+        self.assertEqual(result["agent"]["outcome"], "STEP_UP")
+        self.assertEqual(result["agent"]["reason"], "principal-step-up-required")
+        self.assertIsNone(result["effect"])
