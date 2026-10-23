@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import os
 from importlib.metadata import version as package_version
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 from urllib.parse import urlsplit
 
 import uvicorn
 from mcp.server import MCPServer
 from mcp.server.transport_security import TransportSecuritySettings
 from mcp_types import CallToolResult, TextContent
+from pydantic import Field
 from starlette.responses import JSONResponse
 
 from .access_auth import (
@@ -258,7 +259,7 @@ def build_server(
         spaceRef: str,
         participantLimit: int = 200,
         topicLimit: int = 200,
-        maxBytes: int = 2_097_152,
+        maxBytes: Annotated[int, Field(ge=1_048_576, le=4_194_304)] = 2_097_152,
     ) -> dict[str, Any]:
         return await _host(
             "space.get",
@@ -381,7 +382,10 @@ def build_server(
 
     @server.tool(name="topic.resume")
     async def topic_resume(
-        topicRef: str, afterSequence: int = 0, limit: int = 50, maxBytes: int = 524_288
+        topicRef: str,
+        afterSequence: int = 0,
+        limit: int = 50,
+        maxBytes: Annotated[int, Field(ge=131_072, le=4_194_304)] = 524_288,
     ) -> dict[str, Any]:
         return await _host(
             "topic.resume",
