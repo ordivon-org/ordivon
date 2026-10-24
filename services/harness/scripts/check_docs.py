@@ -249,6 +249,15 @@ def validate_public_contracts() -> list[str]:
     for label, workflow in (("CI", ci), ("release acceptance", release)):
         if "scripts/check_wheel.py" not in workflow:
             errors.append(f"{label} does not verify the built wheel")
+        if "requirements-audit.txt" in workflow:
+            errors.append(f"{label} still references the retired dependency snapshot")
+        audit_export = "uv export --locked --no-default-groups --no-emit-project --format requirements-txt"
+        audit_check = 'uvx pip-audit --disable-pip --require-hashes -r "$tmp/runtime-requirements.txt" --strict --progress-spinner off'
+        if audit_export not in workflow or audit_check not in workflow:
+            errors.append(f"{label} must audit the locked hashed runtime closure")
+        if "uv run --locked ruff check src tests scripts" not in workflow:
+            errors.append(f"{label} must use the locked Ruff owner")
+
     if 'tags:\n      - "v*"' not in release:
         errors.append("release acceptance is not triggered by version tags")
     if "actions/upload-artifact@" not in release:
