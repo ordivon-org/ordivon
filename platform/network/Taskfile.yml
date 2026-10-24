@@ -57,6 +57,7 @@ tasks:
     desc: Materialize the exact validated R0 source generation into the live host under one systemd composition root
     cmds:
       - task: core:validate
+      - /usr/bin/python3 scripts/monitoring-sourcecut-preflight.py --source config --live /etc/network-v2
       - install -d -m 0755 /etc/network-v2/sing-box /etc/network-v2/blackbox /etc/network-v2/prometheus
       - install -m 0644 config/sing-box/direct.json /etc/network-v2/sing-box/direct.json
       - install -m 0644 config/blackbox/blackbox.yml /etc/network-v2/blackbox/blackbox.yml
