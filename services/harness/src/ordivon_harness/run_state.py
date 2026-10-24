@@ -238,6 +238,8 @@ def state_from_dict(value: dict[str, Any], *, harness_run_id: str) -> HarnessRun
     }
     fields = frozenset(value)
     version = value.get("schemaVersion")
+    if type(version) is not int:
+        raise ValueError("Harness Run state version must be an integer")
     if not (
         version == 1 and fields in {frozenset(legacy_fields), frozenset(version_one_fields)}
         or version == 2 and fields == version_two_fields
