@@ -77,6 +77,66 @@ def _load_json(path: Path) -> dict[str, Any]:
     return value
 
 
+# The other registered Owner checker handles typed edges and dependency DAGs.
+# This validator checks the independent typed node and slice closure;
+# no new registry, executable DSL, scheduler or Owner truth.
+OWNER_LEGO_PLANS = (
+    "services/runtime/planning/lego-plan-r1.json",
+    "services/host/planning/lego-plan-r1.json",
+    "services/harness/planning/lego-plan-r1.json",
+    "platform/network/planning/lego-plan-r1.json",
+)
+
+
+def validate_owner_lego_graph(plan: dict[str, Any]) -> None:
+    """Check all Owner slices reference typed vertices, including unregistered ones.
+
+    Registered dependency DAGs and typed edges have separate existing laws.
+    This does not assert behavioral currentness or execution authority.
+    """
+    if plan.get("kind") != "ordivon.project-lego-plan":
+        raise ArchitectureDocsError("owner LEGO graph has unexpected kind")
+    if plan.get("truthRole") != "planning-projection-not-project-truth":
+        raise ArchitectureDocsError("owner LEGO graph must remain non-authoritative")
+
+    nodes = plan.get("nodes")
+    if not isinstance(nodes, list) or not nodes:
+        raise ArchitectureDocsError("owner LEGO graph needs nodes")
+    identities: set[str] = set()
+    for node in nodes:
+        if not isinstance(node, dict):
+            raise ArchitectureDocsError("LEGO node must be an object")
+        identity = node.get("id")
+        if not isinstance(identity, str) or not identity.strip():
+            raise ArchitectureDocsError("LEGO node requires non-empty identity")
+        if identity in identities:
+            raise ArchitectureDocsError(f"duplicate LEGO node: {identity}")
+        if not isinstance(node.get("kind"), str) or not node["kind"].strip():
+            raise ArchitectureDocsError(f"LEGO node {identity} requires a type")
+        identities.add(identity)
+
+    slices = plan.get("slices", [])
+    if not isinstance(slices, list):
+        raise ArchitectureDocsError("LEGO slices must be a list")
+    slice_ids: set[str] = set()
+    for slice_ in slices:
+        if not isinstance(slice_, dict):
+            raise ArchitectureDocsError("LEGO slice must be an object")
+        identity = slice_.get("id")
+        if not isinstance(identity, str) or not identity.strip():
+            raise ArchitectureDocsError("LEGO slice needs non-empty identity")
+        if identity in slice_ids:
+            raise ArchitectureDocsError(f"duplicate LEGO slice: {identity}")
+        slice_ids.add(identity)
+        refs = slice_.get("nodeIds")
+        if not isinstance(refs, list) or not refs:
+            raise ArchitectureDocsError(f"LEGO slice {identity} needs node references")
+        if any(not isinstance(ref, str) or ref not in identities for ref in refs):
+            raise ArchitectureDocsError(f"unknown LEGO slice node in {identity}")
+        if len(refs) != len(set(refs)):
+            raise ArchitectureDocsError(f"duplicate LEGO slice node in {identity}")
+
+
 def validate_deployed_graph(value: dict[str, Any]) -> None:
     if value.get("schemaVersion") != 1:
         raise ArchitectureDocsError("deployed architecture schemaVersion must be 1")
@@ -715,9 +775,13 @@ def validate_repository(root: Path = ROOT) -> None:
     if trace_acceptance.get("status") != "ACCEPTED_DEPLOYED_ON_DEMAND":
         raise ArchitectureDocsError("persistent trace backend lacks accepted live evidence")
 
-    # Host is a natural-Owner plan even though no current issue-census row
-    # happens to register it.  Validate its real dependency edges directly;
-    # never make issue presence a prerequisite for a sound architecture.
+    # Independent obligations: finite typed node/slice closure is not the
+    # predecessor DAG law; a valid STATE cycle must not be rejected as a
+    # scheduling dependency.  Preserve both existing source-bound consumers.
+    for relative in OWNER_LEGO_PLANS:
+        validate_owner_lego_graph(_load_json(root / relative))
+
+    # Host R1 dependencies have a consumer even without an issue-census row.
     validate_owner_lego_dependencies(
         _load_json(root / "services/host/planning/lego-plan-r1.json"),
         "services/host",
