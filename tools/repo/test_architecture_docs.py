@@ -1022,6 +1022,11 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC",
             "EXACT_OWNER_LOCKED_COMPONENTS_NO_LIVE_PROVIDER",
         }
+        if item["evidenceScope"] == "EXACT_OWNER_LOCKED_COMPONENTS_NO_LIVE_PROVIDER":
+            assert item["disposition"] == "SKIP_DUPLICATE_CHERRY_PICK"
+            assert item["sourceQualification"]["tipRelation"] == "PARTIAL_TIP_LOCK_COMPONENT_IDENTITY"
+            assert item["sourceQualification"]["branchDeletionAllowed"] is False
+            assert item["owner"] == "platform/workstation"
         if item["evidenceScope"] == "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC":
             assert item["disposition"] == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
             assert item["sourceQualification"]["branchDeletionAllowed"] is False
