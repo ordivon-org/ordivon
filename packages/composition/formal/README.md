@@ -78,10 +78,13 @@ A deliberate RED mutation broadened `HostAccept` to any non-none
 evidence. The already configured `NoHostAcceptanceFromRuntimeAlone`
 invariant then produced a real TLC counterexample: terminal Runtime,
 `consumerEvidence="foreign"`, `host="accepted"`. Restoring the exact
-matching guard produced four GREEN TLC finite-state exhaustions under
-the upstream digest-verified tool, respectively **11, 32, 18 and 18**
-distinct states for Harness+Network, direct-local, direct-egress and
-Harness-local. This is a typed abstract source/consumer contract and
+matching guard and retaining the concurrently selected admission-time
+Network degradation model produced four GREEN TLC finite-state exhaustions
+under the upstream digest-verified tool: **18, 32, 32 and 18** distinct
+states for Harness+Network, direct-local, direct-egress and Harness-local.
+The committed native non-vacuity probe for post-admission Network
+degradation remains PASS. This is a typed abstract source/consumer
+contract and
 does **not** establish that a deployed Host checks provenance; the
 actual Owner verifier remains responsible for binding evidence to
 the correct Work and SourceCut. This replacement needs no new proof
