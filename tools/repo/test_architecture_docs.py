@@ -958,7 +958,6 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             "SKIP_RETIRED_UNCONSUMED",
             "SKIP_OLDER_TOOLCHAIN_CHERRY_PICK",
             "SKIP_IDENTICAL_TIP_WITH_NATIVE_CONSUMER",
-            "PORT_MINIMAL_REQUIRED_CONSUMER_CONTRACT",
         }
         assert item["evidenceScope"] in {
             "NATIVE_CONSUMER_PASS", "EXACT_GIT_BLOBS",
@@ -976,17 +975,6 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
         if item["evidenceScope"] == "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC":
             assert item["disposition"] == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
             assert item["sourceQualification"]["branchDeletionAllowed"] is False
-        if item["disposition"] == "PORT_MINIMAL_REQUIRED_CONSUMER_CONTRACT":
-            assert item["owner"] == "capabilities/media"
-            assert item["evidenceScope"] == "NATIVE_CONSUMER_PASS"
-            qualification = item["sourceQualification"]
-            assert qualification["localMain"] == source["localMain"]
-            assert len(qualification["protectedMain"]) == 40
-            assert qualification["kind"] == "non-merge"
-            assert qualification["patchRelation"] == "PATCH_DISTINCT_UNQUALIFIED"
-            assert qualification["branchDeletionAllowed"] is False
-            assert qualification["consumerContract"] == "inputSchema validation before Owner dispatch"
-            assert len(qualification["changedPathIdentities"]) == 2
         if item["evidenceScope"] == "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF":
             assert item["disposition"] == "SKIP_OLDER_PIN"
         if item["localCommit"].startswith(("ecca6ad", "86298d7", "9c8e37d", "fcf5fc6")):
@@ -1005,30 +993,29 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             else:
                 assert item["evidenceScope"] == "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN"
                 assert item["disposition"] == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
-    # Selected distinct non-merge patches may be absorbed at identical exact
-    # Main tips, but native Owner consumers (not the Git blobs) decide whether
-    # the historical commit has any necessary independent effect.
-    qualified = {
-        item["localCommit"][:12]: item for item in candidates
+    # Algebraic identity of exact tip blobs is a proof category, not the
+    # identity of a historical commit or its concrete consumer disposition.
+    # Keep qualified records type checked; independent owner-native tests
+    # determine when corrected current source supersedes an old source cut.
+    identical = [
+        item for item in candidates
         if item["disposition"] == "SKIP_IDENTICAL_TIP_WITH_NATIVE_CONSUMER"
-    }
-    for short, owner, path_count in (
-        ("f0cfddcfd2f2", "services/runtime", 1),
-        ("d91d63b70da5", "services/gateway", 2),
-        ("0fbdd2445e1a", "platform/workstation", 3),
-    ):
-        selected = qualified[short]
-        assert selected["owner"] == owner
+    ]
+    assert identical
+    for selected in identical:
+        assert selected["owner"]
         assert selected["evidenceScope"] == "EXACT_GIT_BLOB_AND_NATIVE_CONSUMER_PASS"
         proof = selected["sourceQualification"]
         assert proof["localMain"] == source["localMain"]
-        assert proof["protectedMain"] == "3faee758c6c9bf4c7e97f3d7f6cb8bab93d3ca6a"
+        assert len(proof["protectedMain"]) == 40
         assert proof["kind"] == "non-merge"
         assert proof["patchRelation"] == "PATCH_DISTINCT_UNQUALIFIED"
         assert proof["branchDeletionAllowed"] is False
-        assert len(proof["changedPathIdentities"]) == path_count
-        assert len({row["path"] for row in proof["changedPathIdentities"]}) == path_count
-        assert all(len(row["blobOid"]) == 40 and row["mode"] for row in proof["changedPathIdentities"])
+        paths = proof["changedPathIdentities"]
+        assert paths and len({row["path"] for row in paths}) == len(paths)
+        assert all(len(row["blobOid"]) == 40 and row["mode"] for row in paths)
+    # A corrected Gateway or Workstation source cut is not an exact historical
+    # blob: those bounded obligations are independently tested below.
     module.validate_formal_issue_census(census, plans)
 
 
@@ -1624,4 +1611,45 @@ def test_git01_three_uv_owner_nonmerge_effects_use_current_verified_consumers() 
         mise = tomllib.loads((ROOT / owner / "mise.toml").read_text(encoding="utf-8"))
         assert tuple(map(int, mise["tools"]["uv"].split("."))) >= (0, 13, 5)
         assert task in mise["tasks"]
+    module.validate_formal_issue_census(census, plans)
+
+
+def test_git01_gateway_windows_release_historical_verifier_consumer() -> None:
+    """Do not replay an old Gateway verifier when current owner has stronger CDC."""
+    census, plans = formal_issue_inputs()
+    owner = next(issue for issue in census["issues"] if issue["id"] == "GIT-01")
+    matches = [entry for entry in owner["consumerSelections"]
+               if entry["localCommit"].startswith("d91d63b70da5")]
+    assert len(matches) == 1
+    evidence = matches[0]
+    assert evidence["owner"] == "services/gateway"
+    assert evidence["disposition"] == "SKIP_DUPLICATE_CHERRY_PICK"
+    assert evidence["evidenceScope"] == "NATIVE_CONSUMER_PASS"
+    assert evidence["sourceQualification"]["branchDeletionAllowed"] is False
+    assert evidence["sourceQualification"]["historicalTestBlobEqual"] is False
+    verifier = ROOT / "services/gateway/packaging/windows/verify_release.py"
+    current_test = ROOT / "services/gateway/tests/test_windows_release_contract.py"
+    assert verifier.is_file() and current_test.is_file()
+    assert "SURFACE_PATH" in verifier.read_text()
+    assert "test_windows_release_dependencies_do_not_share_cache_acl" in current_test.read_text()
+    module.validate_formal_issue_census(census, plans)
+
+
+def test_git01_workstation_cloudflare_gateway_tunnel_historical_correction() -> None:
+    """Old Gateway DNS tunnel switch may not override the corrected owner carrier."""
+    census, plans = formal_issue_inputs()
+    ledger = next(x for x in census["issues"] if x["id"] == "GIT-01")
+    matches = [x for x in ledger["consumerSelections"]
+               if x["localCommit"].startswith("0fbdd2445e1a")]
+    assert len(matches) == 1
+    row = matches[0]
+    assert row["owner"] == "platform/workstation"
+    assert row["disposition"] == "SKIP_OLDER_SOURCECUT"
+    assert row["evidenceScope"] == "NATIVE_CONSUMER_PASS"
+    assert row["sourceQualification"]["branchDeletionAllowed"] is False
+    assert row["sourceQualification"]["currentGatewayCname"] == "native_tunnel"
+    p = ROOT / "platform/workstation/tofu/agent-birth-handoff/main.tf"
+    source = p.read_text()
+    gateway = source.split('resource "cloudflare_dns_record" "gateway_mcp" {', 1)[1].split("\n}", 1)[0]
+    assert 'content = "${local.native_tunnel_id}.cfargotunnel.com"' in gateway
     module.validate_formal_issue_census(census, plans)

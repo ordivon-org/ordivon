@@ -1018,27 +1018,19 @@
         {
           "localCommit": "d91d63b70da5fa1c02a7b1a136c651649f62bd75",
           "owner": "services/gateway",
-          "consumer": "Gateway Windows release verifier and installer consume the canonical mcp-surface.json packageVersion, tool set and surfaceEpoch, not a static copied surface. Current source is byte-identical on both Main tips; the local patch has no remaining independent release effect.",
-          "remoteWitness": "services/gateway/packaging/windows/verify_release.py + mcp-surface.json + services/gateway/tests/test_windows_release_contract.py::test_windows_release_verifier_uses_canonical_mcp_surface + test_tool_surface_release_contract.py; owner uv run --locked pytest 8/8 PASS. Windows production release/apply was not invoked.",
-          "evidenceScope": "EXACT_GIT_BLOB_AND_NATIVE_CONSUMER_PASS",
-          "disposition": "SKIP_IDENTICAL_TIP_WITH_NATIVE_CONSUMER",
+          "consumer": "GW05 WindowsReleaseLayout uses the existing native canonical MCP-surface release verifier. Historical producer verify_release.py Git Blob is identical on local Main, protected Main and the historical commit. Current Windows release owner test is a strict historical-test superset with an extra uv --link-mode copy ACL/isolated-release check. Preserve stronger current consumer; do not restore old test or duplicate verifier.",
+          "remoteWitness": "services/gateway/packaging/windows/verify_release.py Git Blob 53c2881e9d09257fb333666b7cb3fd7201a875e2 at historical commit and both Main tips; historical test 850b335854c7bf1986313f601080220e6b3c3693 vs current test a4c9df6e7430dee7449b8e615a614183cbe77992; services/gateway/planning/lego-plan-windows-carrier-r2.json GW05; current python pytest -q services/gateway/tests/test_windows_release_contract.py: 5 PASS. This is only static/source-tested Windows release consumer, not re-probed live Windows SCM.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
           "sourceQualification": {
             "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
-            "protectedMain": "3faee758c6c9bf4c7e97f3d7f6cb8bab93d3ca6a",
+            "protectedMain": "d375287686b7ad7f04b1f5ef181bff846ac9cc94",
             "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
-            "kind": "non-merge",
-            "changedPathIdentities": [
-              {
-                "path": "services/gateway/packaging/windows/verify_release.py",
-                "mode": "100644",
-                "blobOid": "53c2881e9d09257fb333666b7cb3fd7201a875e2"
-              },
-              {
-                "path": "services/gateway/tests/test_windows_release_contract.py",
-                "mode": "100644",
-                "blobOid": "a4c9df6e7430dee7449b8e615a614183cbe77992"
-              }
-            ],
+            "tipRelation": "SAME_BLOB_AND_MODE",
+            "historicalVerifierBlobEqual": true,
+            "historicalTestBlobEqual": false,
+            "consumerStanding": "CURRENT_OWNER_TEST_STRICT_SUPERSET",
+            "windowsLiveAcceptance": "NOT_REEXECUTED",
             "branchDeletionAllowed": false
           }
         },
@@ -1067,32 +1059,19 @@
         {
           "localCommit": "0fbdd2445e1a6d2db4da0401d61c41e6d78a0577",
           "owner": "platform/workstation",
-          "consumer": "Cloudflare Tofu handoff currently consumes exact native Gateway tunnel ingress/canary and DNS preservation constraints, is installed through install-edge-operations, and its semantic gate rejects lost canary and unexpected mutation. The local historic patch is wholly present byte-for-byte in protected Main and requires no replay.",
-          "remoteWitness": "platform/workstation/providers/cloudflare/scripts/ordivon_cloudflare_tofu_handoff.py::_handoff_semantics via install-edge-operations and providers/cloudflare/test/handoff_tofu_test.py; native unittest 20/20 PASS with failing-policy negative checks. No live Cloudflare mutation, Windows service apply or credential claims.",
-          "evidenceScope": "EXACT_GIT_BLOB_AND_NATIVE_CONSUMER_PASS",
-          "disposition": "SKIP_IDENTICAL_TIP_WITH_NATIVE_CONSUMER",
+          "consumer": "Cloudflare native Gateway cutover consumes Workstation OpenTofu controller and DNS handoff. Historical patch pointed stable gateway_mcp CNAME at production tunnel and used planned stale data.cloudflare_zero_trust_tunnel_cloudflared_config.native instead of the prior native tunnel state. Corrected current source routes Gateway DNS to native_tunnel_id while other handoff records stay on production_tunnel_id; Gateway route depends on the native and production tunnel config. Never replay older incomplete tunnel topology.",
+          "remoteWitness": "platform/workstation/tofu/agent-birth-handoff/main.tf current Git Blob dd3d8ae700fcca7d0ce8c0a31f79d4f78a316635 vs historical d9c88ab12e089e04134f95c83c8bb519872c7129; platform/workstation/providers/cloudflare/scripts/ordivon_cloudflare_tofu_handoff.py current 1f7643791c5c099aae587e3861835489f31be01b vs historical d702f958ece8e5ec62dcd3611431270011719c09. Native existing Workstation Cloudflare test 20 PASS and one new gateway_mcp DNS/prior-state guard PASS. Did not run real OpenTofu apply or change active Cloudflare routing.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_OLDER_SOURCECUT",
           "sourceQualification": {
             "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
-            "protectedMain": "3faee758c6c9bf4c7e97f3d7f6cb8bab93d3ca6a",
+            "protectedMain": "dec3223590bc5dc616fc32adb91412d90583a428",
             "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
-            "kind": "non-merge",
-            "changedPathIdentities": [
-              {
-                "path": "platform/workstation/providers/cloudflare/scripts/ordivon_cloudflare_tofu_handoff.py",
-                "mode": "100755",
-                "blobOid": "1f7643791c5c099aae587e3861835489f31be01b"
-              },
-              {
-                "path": "platform/workstation/providers/cloudflare/test/handoff_tofu_test.py",
-                "mode": "100644",
-                "blobOid": "3a8e2fbf885392bfc7cbeafa07f8d9ba590ddd64"
-              },
-              {
-                "path": "platform/workstation/tofu/agent-birth-handoff/main.tf",
-                "mode": "100644",
-                "blobOid": "dd3d8ae700fcca7d0ce8c0a31f79d4f78a316635"
-              }
-            ],
+            "tipRelation": "SAME_BLOB_AND_MODE",
+            "historicalFinalBlobEqual": false,
+            "currentGatewayCname": "native_tunnel",
+            "consumerStanding": "CURRENT_OWNER_CORRECTED_NATIVE_TOPOLOGY",
+            "liveCloudflareAcceptance": "NOT_REEXECUTED",
             "branchDeletionAllowed": false
           }
         },
@@ -1643,30 +1622,33 @@
           }
         },
         {
-          "localCommit": "ea9f4730f4e98c158607da2f13e6c2775c316474",
-          "owner": "capabilities/media",
-          "consumer": "Studio Agent surface_projection() advertises Draft 2020-12 inputSchema and scripts/studio-agent-surface.py passes JSON arguments to execute_surface_action(). Protected code previously dispatched extraProperties/invalid enum without enforcing its own schema. Select only the missing pre-dispatch contract guard; preserve current improved dependency acquisition and Studio domain behavior.",
-          "remoteWitness": "Exact protected sourcecut: schemas advertise additionalProperties:false, target enum and typed parameters, but execute_surface_action previously did not validate them. Media locked jsonschema 4.26.0 reused without new dependency. RED real native unittest test_advertised_json_schema_rejects_unlisted_arguments_before_owner_work failed (ValueError not raised); after minimal guard GREEN, invalid keys/enum/types rejected before owner work, Media three owner suites+ruff passed. Studio CLI calls this same entrypoint. Not a claim about end-to-end Harness tool admission or production side effects.",
+          "localCommit": "12ad36fd4b3876f160235553d06d828c9019b220",
+          "owner": "platform/network",
+          "consumer": "Network v2 observability Blackbox IPv4/IPv6 HTTP probes must never count a successful opposite address-family fallback. Both monitor scrape budgets must admit the declared full probe duration. The real consumer chain is Blackbox config -> exporter native probes -> Prometheus scrape -> R0 core verification.",
+          "remoteWitness": "PR #445 merged: protected Main has ip_protocol_fallback=false for HTTP ip4/ip6 and per-HTTP-job scrape_interval=15s/scrape_timeout=12s against a 10s Blackbox timeout. Current Native Blackbox Exporter IPv4/IPv6 test 3/3 PASS; task core:validate PASS with Blackbox config, Prometheus promtool, sing-box and systemd verify on the source cut. This certifies the current source and tested native provider, not live deployed Internet reachability.",
           "evidenceScope": "NATIVE_CONSUMER_PASS",
-          "disposition": "PORT_MINIMAL_REQUIRED_CONSUMER_CONTRACT",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "09127dc34b3de8bf4ab7984a32de1e604d477f4d",
           "sourceQualification": {
             "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
-            "protectedMain": "97ebe3828c482cbeb7f58df4e6da614615017c56",
-            "kind": "non-merge",
-            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
-            "changedPathIdentities": {
-              "capabilities/media/src/ordivon_studio/agent_surface.py": {
-                "historicalLocalBlob": "ebbf4bd34979f55ec09220fe73917c020317bd4a",
-                "protectedBeforeFixBlob": "2a0ad83b478d26ea8618cd72fe65a8a3a20d78ea"
-              },
-              "capabilities/media/tests/test_agent_surface.py": {
-                "historicalLocalBlob": "3afdfed93f09e34da2ac0cc969f5521725d9a517",
-                "protectedBeforeFixBlob": "0fba217696f25dfd2ccb9a0be309826489de7e25"
-              }
-            },
+            "protectedMain": "09127dc34b3de8bf4ab7984a32de1e604d477f4d",
             "branchDeletionAllowed": false,
-            "consumerContract": "inputSchema validation before Owner dispatch",
-            "negativeControl": "unknown argument on production_standing is accepted before fix, rejected after fix"
+            "semanticStanding": "CURRENT_NETWORK_OWNER_NATIVE_BEHAVIOR_PRESENT_NOT_WHOLE_GIT_TREE"
+          }
+        },
+        {
+          "localCommit": "43325a89e906ccf82f83347d735f57b5789979f4",
+          "owner": "platform/network",
+          "consumer": "Network v2 source policies for consumer converge require deployed byte identity, currently loaded systemd PartOf and NeedDaemonReload=no; transport probes alone must not authorize a converged state. The historical patch also changes Web -> Security dependency seam, whose current canonical public-package relation is different and must not be replayed by an unrelated Network patch.",
+          "remoteWitness": "Merged #463 Network Claude loaded-policy CDC: platform/network/Taskfile.yml consumer:claude:verify checks actual source bytes and systemctl show PartOf/NeedDaemonReload, and test_claude_loaded_policy_cdc.py passes on current Main. The current tools/repo/dependency_contracts.toml uses Web package.json with PUBLIC_PACKAGE_DEPENDENCY and a separate TEST_ONLY_ENVIRONMENT_BINDING test locator, so the historical TEST_ONLY_PUBLIC_PACKAGE_DEPENDENCY locator is superseded; full historical commit is NOT a code-equivalent blob and live systemd state is not certified by this source test.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "NO_WHOLE_COMMIT_REPLAY_WITHOUT_PRODUCER_AUTHORITY",
+          "evaluatedRemoteMain": "09127dc34b3de8bf4ab7984a32de1e604d477f4d",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "09127dc34b3de8bf4ab7984a32de1e604d477f4d",
+            "branchDeletionAllowed": false,
+            "semanticStanding": "NETWORK_NATIVE_CDC_ABSORBED_WEB_PUBLIC_SEAM_DIFFERENT_NO_WHOLE_CHERRY_PICK"
           }
         }
       ],
