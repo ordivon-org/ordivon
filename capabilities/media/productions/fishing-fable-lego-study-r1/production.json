@@ -13,7 +13,7 @@
     {
       "id": "media-fable-source",
       "repository": "ordivon",
-      "revision": "127c171b750a58a0a5de5ca391092b1c23c0b64d",
+      "revision": "a336bdcb97325795ebab2f3c3eb14a70efa64722",
       "role": "fenced-local-reconstructed-story-and-research-source-not-original-chat-verbatim"
     }
   ],
@@ -33,7 +33,8 @@
       "kind": "article",
       "status": "rendered",
       "profile": "writing",
-      "blobDigest": "sha256:b3c18d635a5d5979490eb977c3a576901831fe5d788fac9cd894fa63a33b6f2c"
+      "blobDigest": "sha256:b3c18d635a5d5979490eb977c3a576901831fe5d788fac9cd894fa63a33b6f2c",
+      "sourceCarrier": "story-archival-reconstruction.md"
     }
   ]
 }

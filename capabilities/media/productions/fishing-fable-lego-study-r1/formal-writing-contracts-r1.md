@@ -74,3 +74,36 @@ Acceptable alternative: *fit-for-purpose representation with explicit proof obli
 - Existing Media schema and owner tests: targeted execution required on this exact revision before reporting PASS.
 - Actual literary quality / reader comprehension / original chat fidelity: UNKNOWN.
 - Formal model of whole Ordivon writing system: NOT CLAIMED.
+
+## R2: consumer-driven exact carrier + local Git witness (2026-10-25)
+
+The real hard kernel is **qualified evidence**: a syntactically well-formed result must not be silently promoted to a stronger claim about bytes, historical source, literary quality, or reader reception.
+
+Owner-native Media `production.schema.json` now optionally accepts `outputs[].sourceCarrier` only with `blobDigest`. It is not required of the ordinary transformed video, PDF, derived book chapters, or unqualified outputs.
+
+For each selected output `o` that declares carrier `c`:
+
+```text
+SourceCarrierAccepted(o,c) =>
+    c in DeclaredSources(Production)
+    AND RealFileInsideOwnerRoot(c)
+    AND SHA256(ReadBytes(c)) == o.blobDigest
+```
+
+This is an executable local check, not a universal mathematical proof that a story is good. For `repository == "ordivon"` and a claim binding `(revision, path)`, the owner validator additionally demands a Git commit object and a Git blob at the declared revision and path. External repositories still own their own historical proof; the local checker cannot claim to have validated those owners.
+
+**Concrete consumers**: `fishing-fable-lego-study-r1` source markdown, `browser-perception-note` MDX, `mhs-hardware-boundary` MDX, and the exact `ordivon-book-v0-current-zh` output. The separately-derived Ordivon Book chapters deliberately do **not** acquire `sourceCarrier`; their bytes are not equal to the whole book. This counterexample prevented the unsafe blanket rule `all outputs.digest = sources.article.digest`.
+
+**CEGAR-inspired progression** (not a claim that an automated CEGAR model checker ran):
+
+- A0 schema-only digest shape: concrete forged digest is admitted. False `SyntaxPass => ByteIdentity`.
+- A1 optional exact source relation and byte readback: forged digest, undeclared carrier or absent digest are rejected by the existing Media owner validator.
+- A2 historical source binding: a new file in the current tree can be absent in a declared frozen Git revision. For explicitly local `ordivon` source bindings, absent revision or historical blob is a fail, not a skipped test.
+- Remaining unknown: source availability across clone topology or post-merge squash cannot be inferred from the local worktree; a PR qualification must fetch required history, and later source re-binding may be necessary. Current `.github/workflows/ci.yml` uses `fetch-depth: 0`, but independent post-merge currentness is still required.
+- Reader comprehension, story-world state consistency and actual literary quality remain UNKNOWN. Never bridge `SourceCarrierAccepted` to any such result.
+
+**Verification observation on this candidate**: Media owner `unittest discover -s tests -q` with declared `resolve` extra ran 200 tests PASS. The first naive run without `resolve` failed to import OpenTimelineIO; reproducing with the project's documented extra made its 13 targeted tests pass, without changing dependency versions. No separate testing framework or verifier was created. A real parser/compiler returning exit zero proves only its declared predicate; the source-to-goal refinement bridge must still be justified (Recursive LEGO formal reference).
+
+**No MSR promotion**: the World/Discourse/Reader viewpoints are useful provisional labels, neither provably minimal nor known sufficient across unfamiliar readers, hostile context or future tasks. Deletion/optimization is governed by known consumer evidence and formal requirements, not a blanket minimality claim.
+
+Mature theoretical substrates: CEGAR (Clarke et al., CAV 2000, https://web.stanford.edu/class/cs357/cegar.pdf); W3C PROV-O (https://www.w3.org/TR/prov-o/); JSON Schema Draft 2020-12 (https://json-schema.org/draft/2020-12). They ground scoping and provenance terminology; this implementation is a narrow owner-native validation step, not an attempt to reimplement those frameworks.

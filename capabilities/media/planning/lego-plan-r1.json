@@ -170,23 +170,35 @@
     {
       "id": "VS2",
       "objective": "Register the real fishing-fable long-form Writing consumer using the existing Studio Production/Claims and reject unsupported source-verbatim, MSR, carrier-identity and reader-quality promotions.",
-      "status": "PROPOSED",
-      "nodeIds": ["V02", "V03", "V04", "V05"],
+      "status": "IN_PROGRESS",
+      "nodeIds": [
+        "V02",
+        "V03",
+        "V04",
+        "V05"
+      ],
       "acceptance": [
         "Exactly one owner-native Production with claims and source binding records the reconstructed source as non-verbatim.",
         "The existing Media model validator accepts the production; a checksum consumer rejects drift from exact output bytes.",
-        "No mechanical PASS is presented as original-chat equivalence or independent reader acceptance."
+        "No mechanical PASS is presented as original-chat equivalence or independent reader acceptance.",
+        "For outputs that opt into sourceCarrier, the native owner rejects undeclared files, syntactically valid but incorrect digests, and missing digest witnesses.",
+        "For repository=ordivon Claim bindings, the native owner requires exact historical commit/blob presence; do not convert local Git presence into remote reachability."
       ],
       "evidence": [
         "productions/fishing-fable-lego-study-r1/production.json",
         "productions/fishing-fable-lego-study-r1/writing-issue-census-r1.md",
-        "tests/test_models.py"
+        "tests/test_models.py",
+        "schemas/production.schema.json",
+        "src/ordivon_studio/models.py",
+        "productions/browser-perception-note/production.json",
+        "productions/mhs-hardware-boundary/production.json",
+        "productions/ordivon-book-v0/production.json"
       ],
       "blockers": [
         "Original chat text not present as independent machine-verified bytes.",
         "Independent reader evaluation not yet performed."
       ],
-      "nextAction": "Validate the owner-native consumer; invite independent review of narrative quality and unsupported source/reader claims before any implementation expansion."
+      "nextAction": "Mechanical SourceCarrier/Git proofs passed in the current candidate; request independent writing/reader falsification and future source-revision accessibility after merge; do not promote narrative meaning from machine PASS."
     }
   ],
   "gaps": [

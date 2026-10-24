@@ -26,3 +26,19 @@ External references: CEGAR Clarke et al. (2000) DOI 10.1007/10722167_15; W3C PRO
 Found during final counterexample review: a claimed source file added in the current candidate does not exist at the frozen source revision `127c171b...` that `Production.sourceBindings` names. A source path valid in the current worktree is not sufficient to establish that its bytes were present at an earlier source SHA. Corrected `claims.json` so claim source paths reference files present in the frozen revision (existing Recursive LEGO and Writing Profile); the new study reports remain supporting current-candidate documents, not falsely attested old-revision source artifacts. This fix does NOT supply original-chat bytes or independent reader observations.
 
 This reveals a general owner-native test gap: schema source-path syntax + mapping membership does not prove exact `sourceBinding.revision:path` existence. Formal qualification should use `git cat-file -e SHA:path` for repository-owned source bindings when the repository identity is available, and explicitly UNKNOWN for nonlocal repositories. Prefer extending the current Media source-binding verifier only after a real native consumer needs it; no parallel source registry.
+
+## R2 delta — current-main integration / consumer-counterexample results (2026-10-25)
+
+R1 Git and PR values above were time-scoped observations, **not** active currentness; do not overwrite them retroactively.
+
+| Issue LEGO | Problem type | Observed current evidence | Status / action |
+|---|---|---|---|
+| WRI-DIGEST-04 | `FORMAL_ORACLE_GAP` | `sourceCarrier` with owner-schema `dependentRequired`, real-file SHA-256 in `models._validate_production_semantics`, 4 real consumers; forged digest rejected | FIXED for opted-in exact-byte outputs; do not generalize to unbound transforms |
+| WRI-SOURCE-FENCE-11 | `SOURCE_REVISION_IDENTITY` | `git cat-file -t <SHA>^{commit}` and `<SHA>:<path>`; synthetic missing revision and missing historical blob rejected | FIXED locally for `repository=ordivon` bindings, Git history must be available |
+| WRI-HISTORY-12 | `REMOTE_REACHABILITY / SOURCE_CUT` | prior source commit `127c171...` returned GitHub HTTP 404, despite local Git availability | REBIND current integration archived-story commit; require PR and post-merge qualification; never treat local object as remote fact |
+| WRI-CONSUMER-13 | `EQUIVALENCE / FALSE_GLOBAL_INVARIANT` | Ordivon Book derived chapter digests differ from whole-book source digest | REJECT universal `outputs.digest = article.digest`; use optional exact carrier contract |
+| WRI-ENV-14 | `ENVIRONMENT_DEPENDENCY` | indiscriminate unittest discovery without `resolve` extra failed OpenTimelineIO import; `pyproject.toml` already declares optional `opentimelineio` and owner test command separates `python:test:resolve` | NOT CODE BUG; invoked declared uv extra; 200 whole-Media tests passed with the correct environment |
+| WRI-CURRENT-15 | `GIT_CURRENTNESS` | fresh current-base `main=origin/main=bd22b7ba7dc5`; 25 local branches, 75 remote-tracking refs, 63 worktrees; 12 open PR in latest sampled GitHub query | TIME-SCOPED, no unrelated branch/PR cleanup |
+| WRI-READERS-16 | `SEMANTIC_CONSUMER_EVIDENCE` | no controlled independent readers for the fable | UNKNOWN; cannot be solved by SHA-256, JSON Schema, TLA+ or textual score |
+
+The main cleanup in R2 is **logical subtraction**: retire per-story-only duplicate checksum logic in favor of the exact source-carrier seam shared with three preexisting works. No unconsumed Skill deletions were proven, so none were deleted. Runtime/Host/Harness/Network remain owned by their respective domain authorities; this Media slice does not claim their formal closure.
