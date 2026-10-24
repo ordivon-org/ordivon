@@ -20,28 +20,37 @@ wait_local_ready() {
 }
 wait_local_ready
 probe() {
-  local url=$1 code=000 remaining max_time
+  local url=$1 allowed=$2 code=000 tunnel=000 response="" extra="" remaining max_time
   for _ in 1 2 3; do
     remaining=$((readiness_deadline - SECONDS))
     ((remaining > 0)) || break
     max_time=$((remaining < 20 ? remaining : 20))
-    code=$(curl -4 -x "$proxy" -I -sS --connect-timeout 8 --max-time "$max_time" -o /dev/null -w '%{http_code}' "$url") && {
-      test "$code" != 000 && { printf '%s' "$code"; return 0; }
-    }
+    # A permitted origin HTTP status does not prove the proxy established
+    # its HTTPS CONNECT tunnel. Consume curl's standard two-stage result.
+    # Explicit --noproxy "" prevents inherited NO_PROXY from bypassing policy.
+    # Use GET: auth.docker.io and Artifact Registry legitimately reject HEAD.
+    response=$(curl -q -4 --noproxy "" -x "$proxy" -sS --connect-timeout 8 --max-time "$max_time" -o /dev/null -w '%{http_code} %{http_connect}' "$url") || response=""
+    code=000 tunnel=000 extra=""
+    read -r code tunnel extra <<< "$response"
+    if [[ "$code" =~ ^($allowed)$ && "$tunnel" == 200 && -z "$extra" ]]; then
+      printf '%s' "$code"
+      return 0
+    fi
     ((SECONDS < readiness_deadline)) || break
     sleep 1
   done
+  echo "Supply-Chain required provider endpoint rejected response: $url (http=$code CONNECT=$tunnel)" >&2
   return 1
 }
-registry_code=$(probe https://registry-1.docker.io/v2/)
-auth_code=$(probe 'https://auth.docker.io/token?service=registry.docker.io&scope=repository:openpolicyagent/opa:pull')
-gcr_code=$(probe https://gcr.io/v2/)
-artifact_code=$(probe https://us-central1-docker.pkg.dev/v2/)
-elastic_code=$(probe https://docker.elastic.co/v2/)
+registry_code=$(probe https://registry-1.docker.io/v2/ '200|401')
+auth_code=$(probe 'https://auth.docker.io/token?service=registry.docker.io&scope=repository:openpolicyagent/opa:pull' '200')
+gcr_code=$(probe https://gcr.io/v2/ '200|401')
+artifact_code=$(probe https://us-central1-docker.pkg.dev/v2/ '200|401')
+elastic_code=$(probe https://docker.elastic.co/v2/ '200|401')
 remaining=$((readiness_deadline - SECONDS))
 ((remaining > 0)) || { echo 'Supply-Chain readiness total deadline expired' >&2; exit 1; }
 max_time=$((remaining < 8 ? remaining : 8))
-if curl -4 -x "$proxy" -I -fsS --connect-timeout 4 --max-time "$max_time" https://example.com/ >/dev/null 2>&1; then
+if curl -q -4 --noproxy "" -x "$proxy" -I -fsS --connect-timeout 4 --max-time "$max_time" https://example.com/ >/dev/null 2>&1; then
   echo 'ERROR: unknown destination escaped Supply-Chain allowlist' >&2
   exit 41
 fi

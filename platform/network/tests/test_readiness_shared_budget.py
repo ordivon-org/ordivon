@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 from pathlib import Path
@@ -122,3 +123,66 @@ def test_namespace_and_chat_readiness_share_one_deadline(
     assert len(observed) == expected, (
         consumer, observed, result.stderr[-500:]
     )
+
+
+@pytest.mark.parametrize(
+    ("transport", "expected_ready"),
+    (("denied", False), ("valid", True), ("wrong_origin", False)),
+)
+def test_supply_chain_requires_connect_and_allowed_origin_status(
+    tmp_path: Path, transport: str, expected_ready: bool
+) -> None:
+    """Exercise five actual registry probes; reject forged/denied CONNECT evidence."""
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    shims = {
+        "systemctl": "#!/bin/sh\nexit 0\n",
+        "ss": "#!/bin/sh\necho '127.0.0.1:19581'\n",
+        "sleep": "#!/bin/sh\nexit 0\n",
+        "curl": (
+            "#!/bin/sh\n"
+            'printf "%s\n" "$*" >> "$SUPPLY_CURL_RECORD"\n'
+            'case "$*" in *example.com*) exit 7;; esac\n'
+            'case "$SUPPLY_TEST_TRANSPORT" in\n'
+            '  denied) printf "200 407";;\n'
+            '  wrong_origin) printf "500 200";;\n'
+            '  valid) printf "200 200";;\n'
+            'esac\n'
+        ),
+    }
+    for name, content in shims.items():
+        target = bin_dir / name
+        target.write_text(content)
+        target.chmod(0o755)
+    call_log = tmp_path / "curl.log"
+    proc = subprocess.run(
+        ["/usr/bin/bash", str(ROOT / "consumers/supply-chain/ready.sh")],
+        env={
+            **os.environ,
+            "PATH": str(bin_dir) + os.pathsep + os.environ.get("PATH", ""),
+            "SUPPLY_CURL_RECORD": str(call_log),
+            "SUPPLY_TEST_TRANSPORT": transport,
+        },
+        capture_output=True,
+        text=True,
+        timeout=8,
+        check=False,
+    )
+    calls = call_log.read_text().splitlines() if call_log.exists() else []
+    assert calls and "registry-1.docker.io" in calls[0], (proc.stderr, calls)
+    if expected_ready:
+        assert proc.returncode == 0, (proc.stdout, proc.stderr, calls)
+        payload = json.loads(proc.stdout)
+        assert payload["standing"] == "READY"
+        assert payload["registryHttpStatus"] == 200
+        for domain in (
+            "auth.docker.io", "gcr.io", "us-central1-docker.pkg.dev", "docker.elastic.co",
+        ):
+            assert any(domain in line for line in calls)
+    else:
+        assert proc.returncode != 0, (proc.stdout, proc.stderr, calls)
+        assert '"standing":"READY"' not in proc.stdout
+        # The first required registry must block all later registry consumers.
+        assert all("registry-1.docker.io" in line for line in calls)
+    assert all("-q" in line and "--noproxy" in line for line in calls)
+    assert all("%{http_connect}" in line for line in calls if "example.com" not in line)

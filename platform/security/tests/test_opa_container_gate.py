@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import tomllib
 import unittest
 from pathlib import Path
@@ -22,13 +21,15 @@ class OpaVerificationOwnerContract(unittest.TestCase):
         self.assertNotIn("ciContainer", verify)
         self.assertNotIn("uv sync --frozen", verify)
 
-    def test_removed_container_provider_is_not_second_opa_version_authority(self) -> None:
-        lock = json.loads((ROOT / "providers.lock.json").read_text(encoding="utf-8"))
-        providers = lock["providers"]
-        self.assertEqual(len(providers), len({p["name"] for p in providers}))
-        self.assertNotIn("opa", {p["name"] for p in providers})
-        for row in providers:
-            self.assertNotIn("ciContainer", row)
+    def test_retired_provider_snapshot_is_not_an_independent_version_authority(self) -> None:
+        """Only the current owner toolchain and live consumer scripts define tool versions."""
+        self.assertFalse(
+            (ROOT / "providers.lock.json").exists(),
+            "unconsumed provider inventory must not become a second tool version authority",
+        )
+        for path in (ROOT / "mise.toml", *sorted((ROOT / "scripts").glob("*.sh"))):
+            with self.subTest(path=path.name):
+                self.assertNotIn("providers.lock.json", path.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":
