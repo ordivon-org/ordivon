@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 from ordivon_composition import (
+    CircuitContractError,
     compile_verification_obligations,
     resolve_verifier_bindings,
 )
@@ -142,3 +143,30 @@ def test_owner_timeout_envelope_uses_real_pacti_and_scopes_live_claims() -> None
     assert "freshness" in good["nonClaims"][0]
     assert "does not prove" in good["nonClaims"][1]
     assert "never grants" in good["nonClaims"][2]
+
+
+@pytest.mark.parametrize(
+    ("case", "field"),
+    [
+        ("acceptedCase", "grantMaxMs"),
+        ("acceptedCase", "runtimeMaxMs"),
+        ("deliberateMismatch", "grantMaxMs"),
+        ("deliberateMismatch", "runtimeMaxMs"),
+    ],
+)
+def test_pacti_formal_timeout_spec_rejects_boolean_as_integer(
+    case: str, field: str
+) -> None:
+    """Every formal input bound must reject JSON true rather than alias 1 ms."""
+    spec = _spec()
+    spec[case][field] = True
+    with pytest.raises(CircuitContractError, match="must be a positive integer"):
+        validate_spec(spec)
+
+
+def test_pacti_formal_spec_rejects_boolean_schema_version() -> None:
+    """True must not alias schemaVersion=1 during formal-spec admission."""
+    spec = _spec()
+    spec["schemaVersion"] = True
+    with pytest.raises(CircuitContractError, match="schemaVersion must equal 1"):
+        validate_spec(spec)
