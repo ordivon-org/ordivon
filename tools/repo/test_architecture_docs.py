@@ -868,6 +868,56 @@ def test_retired_next_historical_owner_cohorts_are_not_reintroduced() -> None:
     module.validate_formal_issue_census(census, plans)
 
 
+@pytest.mark.parametrize(
+    ("damage", "expected_error"),
+    [
+        ("duplicate", "duplicate Git consumer"),
+        ("invalid_sha", "invalid Git consumer"),
+        ("missing_owner", "lacks owner"),
+        ("missing_consumer", "lacks consumer"),
+        ("missing_witness", "lacks remoteWitness"),
+        ("unverified_delete", "unverified Git consumer retirement"),
+        ("invalid_source", "invalid Git consumer source"),
+        ("blocked_collision", "both selected and blocked"),
+        ("invalid_disposition", "unknown Git consumer disposition"),
+        ("invalid_scope", "unknown Git consumer evidence scope"),
+    ],
+)
+def test_git01_invalid_consumer_claims_fail_at_owner_native_entry(
+    damage: str, expected_error: str
+) -> None:
+    """A malformed claim must fail normal repo:ci, not only a static fixture test."""
+    census, plans = formal_issue_inputs()
+    issue = next(row for row in census["issues"] if row["id"] == "GIT-01")
+    rows = issue["consumerSelections"]
+    assert rows
+    if damage == "duplicate":
+        rows.append(copy.deepcopy(rows[0]))
+    elif damage == "invalid_sha":
+        rows[0]["localCommit"] = "not-a-git-object-id"
+    elif damage == "missing_owner":
+        rows[0]["owner"] = " "
+    elif damage == "missing_consumer":
+        rows[0]["consumer"] = ""
+    elif damage == "missing_witness":
+        rows[0]["remoteWitness"] = ""
+    elif damage == "unverified_delete":
+        rows[0]["sourceQualification"] = {"branchDeletionAllowed": True}
+    elif damage == "invalid_source":
+        row = next(row for row in rows if "sourceQualification" in row)
+        row["sourceQualification"]["protectedMain"] = "invalid-source-cut"
+    elif damage == "blocked_collision":
+        issue["consumerBlockedSelections"][0]["localCommit"] = rows[0]["localCommit"]
+    elif damage == "invalid_disposition":
+        rows[0]["disposition"] = "ALLOW_UNVERIFIED_DELETE"
+    elif damage == "invalid_scope":
+        rows[0]["evidenceScope"] = "PROVED_BY_AGENT_ASSERTION"
+    else:
+        raise AssertionError(damage)
+    with pytest.raises(module.ArchitectureDocsError, match=expected_error):
+        module.validate_formal_issue_census(census, plans)
+
+
 def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
     """A Git-only commit cannot be called unique without a source-bound consumer comparison."""
     census, plans = formal_issue_inputs()
@@ -891,29 +941,8 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
         assert item["owner"]
         assert item["consumer"]
         assert item["remoteWitness"]
-        assert item["disposition"] in {
-            "SKIP_DUPLICATE_CHERRY_PICK", "SKIP_OLDER_PIN",
-            "SKIP_OLDER_SOURCECUT", "SKIP_UNCONSUMED_PERMISSION",
-            "NO_WHOLE_COMMIT_REPLAY_WITHOUT_PRODUCER_AUTHORITY",
-            "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
-            "SKIP_CANCELLED_HISTORY_PAIR",
-            "SKIP_RETIRED_UNCONSUMED",
-            "SKIP_OLDER_TOOLCHAIN_CHERRY_PICK",
-            "SKIP_IDENTICAL_TIP_WITH_NATIVE_CONSUMER",
-        }
-        assert item["evidenceScope"] in {
-            "NATIVE_CONSUMER_PASS", "EXACT_GIT_BLOBS",
-            "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF",
-            "LATEST_STABLE_SOURCE_NO_UPGRADE",
-            "CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT",
-            "FROZEN_GATEWAY_CONSUMER_ONLY",
-            "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN",
-            "CURRENT_TOOLCHAIN_SUPERSEDES_OLD_LOCK_AND_NATIVE_TEST_PASS",
-            "EXACT_EXECUTABLE_BLOB_WITH_NONWINDOWS_HOLD_ONLY",
-            "EXACT_GIT_BLOB_AND_NATIVE_CONSUMER_PASS",
-            "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC",
-            "EXACT_OWNER_LOCKED_COMPONENTS_NO_LIVE_PROVIDER",
-        }
+        # The production validator owns the finite disposition/evidence enums.
+        # Do not maintain a second, diverging type list in this fixture test.
         if item["evidenceScope"] == "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC":
             assert item["disposition"] == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
             assert item["sourceQualification"]["branchDeletionAllowed"] is False

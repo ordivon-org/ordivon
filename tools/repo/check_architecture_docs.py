@@ -313,6 +313,91 @@ def validate_formal_issue_census(
             if not isinstance(issue.get(field), str) or not issue[field].strip():
                 raise ArchitectureDocsError(f"issue {issue_id} lacks {field}")
 
+    # GIT-01 is a source-scoped evidence set, not an authorization to
+    # cherry-pick or retire history. Validate its finite identity/claim graph
+    # in the production repo:ci entrypoint, not just a test of the frozen JSON.
+    git_issue = next((item for item in issues if item["id"] == "GIT-01"), None)
+    if git_issue is not None:
+        selections = git_issue.get("consumerSelections")
+        if not isinstance(selections, list) or not selections:
+            raise ArchitectureDocsError("GIT-01 needs consumer selections")
+        # Finite, reviewable claim types are the only allowed proof language.
+        # New standing requires a source-bound contract change, not free text.
+        dispositions = {
+            "SKIP_DUPLICATE_CHERRY_PICK", "SKIP_OLDER_PIN",
+            "SKIP_OLDER_SOURCECUT", "SKIP_UNCONSUMED_PERMISSION",
+            "NO_WHOLE_COMMIT_REPLAY_WITHOUT_PRODUCER_AUTHORITY",
+            "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
+            "SKIP_CANCELLED_HISTORY_PAIR", "SKIP_RETIRED_UNCONSUMED",
+            "SKIP_OLDER_TOOLCHAIN_CHERRY_PICK",
+            "SKIP_IDENTICAL_TIP_WITH_NATIVE_CONSUMER",
+        }
+        evidence_scopes = {
+            "NATIVE_CONSUMER_PASS", "EXACT_GIT_BLOBS",
+            "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF",
+            "LATEST_STABLE_SOURCE_NO_UPGRADE",
+            "CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT",
+            "FROZEN_GATEWAY_CONSUMER_ONLY",
+            "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN",
+            "CURRENT_TOOLCHAIN_SUPERSEDES_OLD_LOCK_AND_NATIVE_TEST_PASS",
+            "EXACT_EXECUTABLE_BLOB_WITH_NONWINDOWS_HOLD_ONLY",
+            "EXACT_GIT_BLOB_AND_NATIVE_CONSUMER_PASS",
+            "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC",
+            "EXACT_OWNER_LOCKED_COMPONENTS_NO_LIVE_PROVIDER",
+        }
+        selected: set[str] = set()
+        for claim in selections:
+            if not isinstance(claim, dict):
+                raise ArchitectureDocsError("invalid Git consumer entry")
+            commit = claim.get("localCommit")
+            if not isinstance(commit, str) or re.fullmatch(r"[0-9a-f]{40}", commit) is None:
+                raise ArchitectureDocsError("invalid Git consumer commit identity")
+            if commit in selected:
+                raise ArchitectureDocsError(f"duplicate Git consumer commit: {commit}")
+            selected.add(commit)
+            for field in ("owner", "consumer", "remoteWitness", "disposition", "evidenceScope"):
+                if not isinstance(claim.get(field), str) or not claim[field].strip():
+                    raise ArchitectureDocsError(f"Git consumer {commit} lacks {field}")
+            if claim["disposition"] not in dispositions:
+                raise ArchitectureDocsError("unknown Git consumer disposition")
+            if claim["evidenceScope"] not in evidence_scopes:
+                raise ArchitectureDocsError("unknown Git consumer evidence scope")
+            # Existing early evidence predates sourceQualification. Never let
+            # later, explicit proof silently opt into branch deletion.
+            if claim.get("branchDeletionAllowed") is not None:
+                if claim["branchDeletionAllowed"] is not False:
+                    raise ArchitectureDocsError("unverified Git consumer retirement")
+            if "sourceQualification" in claim:
+                proof = claim["sourceQualification"]
+                if not isinstance(proof, dict):
+                    raise ArchitectureDocsError("invalid Git consumer source qualification")
+                if proof.get("branchDeletionAllowed") is not False:
+                    raise ArchitectureDocsError("unverified Git consumer retirement")
+                for key in ("localMain", "protectedMain"):
+                    if key in proof and (
+                        not isinstance(proof[key], str)
+                        or re.fullmatch(r"[0-9a-f]{40}", proof[key]) is None
+                    ):
+                        raise ArchitectureDocsError("invalid Git consumer source revision")
+
+        blockers = git_issue.get("consumerBlockedSelections", [])
+        if not isinstance(blockers, list):
+            raise ArchitectureDocsError("invalid Git consumer blocker set")
+        blocked: set[str] = set()
+        for claim in blockers:
+            if not isinstance(claim, dict):
+                raise ArchitectureDocsError("invalid Git consumer blocker")
+            commit = claim.get("localCommit")
+            if not isinstance(commit, str) or re.fullmatch(r"[0-9a-f]{40}", commit) is None:
+                raise ArchitectureDocsError("invalid Git consumer blocker identity")
+            if commit in selected:
+                raise ArchitectureDocsError("Git consumer both selected and blocked")
+            if commit in blocked:
+                raise ArchitectureDocsError("duplicate Git consumer blocker")
+            if claim.get("branchDeletionAllowed") is not False:
+                raise ArchitectureDocsError("unverified Git consumer retirement")
+            blocked.add(commit)
+
     representation_types = {
         "type", "graph", "constraint", "state-machine", "algebra",
         "equivalence", "declarative", "abstraction", "causal", "compression",
