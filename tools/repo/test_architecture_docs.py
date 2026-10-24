@@ -1305,3 +1305,24 @@ def test_git01_browser_harness_legacy_nonmerge_effects_are_source_bound() -> Non
     assert "network-v2" in current
     assert (ROOT / "services/harness/tests/test_browserless_podman_deploy.py").is_file()
     module.validate_formal_issue_census(census, plans)
+
+
+def test_git01_gateway_windows_release_historical_verifier_consumer() -> None:
+    """Do not replay an old Gateway verifier when current owner has stronger CDC."""
+    census, plans = formal_issue_inputs()
+    owner = next(issue for issue in census["issues"] if issue["id"] == "GIT-01")
+    matches = [entry for entry in owner["consumerSelections"]
+               if entry["localCommit"].startswith("d91d63b70da5")]
+    assert len(matches) == 1
+    evidence = matches[0]
+    assert evidence["owner"] == "services/gateway"
+    assert evidence["disposition"] == "SKIP_DUPLICATE_CHERRY_PICK"
+    assert evidence["evidenceScope"] == "NATIVE_CONSUMER_PASS"
+    assert evidence["sourceQualification"]["branchDeletionAllowed"] is False
+    assert evidence["sourceQualification"]["historicalTestBlobEqual"] is False
+    verifier = ROOT / "services/gateway/packaging/windows/verify_release.py"
+    current_test = ROOT / "services/gateway/tests/test_windows_release_contract.py"
+    assert verifier.is_file() and current_test.is_file()
+    assert "SURFACE_PATH" in verifier.read_text()
+    assert "test_windows_release_dependencies_do_not_share_cache_acl" in current_test.read_text()
+    module.validate_formal_issue_census(census, plans)

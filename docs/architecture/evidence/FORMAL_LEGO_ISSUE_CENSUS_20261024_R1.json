@@ -951,6 +951,25 @@
             "packages/composition/src/ordivon_composition/browser_network_binding_r1.py",
             "packages/composition/tests/test_browser_network_binding_r1.py"
           ]
+        },
+        {
+          "localCommit": "d91d63b70da5fa1c02a7b1a136c651649f62bd75",
+          "owner": "services/gateway",
+          "consumer": "GW05 WindowsReleaseLayout uses the existing native canonical MCP-surface release verifier. Historical producer verify_release.py Git Blob is identical on local Main, protected Main and the historical commit. Current Windows release owner test is a strict historical-test superset with an extra uv --link-mode copy ACL/isolated-release check. Preserve stronger current consumer; do not restore old test or duplicate verifier.",
+          "remoteWitness": "services/gateway/packaging/windows/verify_release.py Git Blob 53c2881e9d09257fb333666b7cb3fd7201a875e2 at historical commit and both Main tips; historical test 850b335854c7bf1986313f601080220e6b3c3693 vs current test a4c9df6e7430dee7449b8e615a614183cbe77992; services/gateway/planning/lego-plan-windows-carrier-r2.json GW05; current python pytest -q services/gateway/tests/test_windows_release_contract.py: 5 PASS. This is only static/source-tested Windows release consumer, not re-probed live Windows SCM.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "d375287686b7ad7f04b1f5ef181bff846ac9cc94",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "SAME_BLOB_AND_MODE",
+            "historicalVerifierBlobEqual": true,
+            "historicalTestBlobEqual": false,
+            "consumerStanding": "CURRENT_OWNER_TEST_STRICT_SUPERSET",
+            "windowsLiveAcceptance": "NOT_REEXECUTED",
+            "branchDeletionAllowed": false
+          }
         }
       ],
       "consumerBlockedSelections": [
