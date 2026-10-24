@@ -54,6 +54,11 @@
       "ownerPlan": "services/runtime/planning/lego-plan-r1.json",
       "slice": "RW1",
       "scope": "verification proposal only; R02 lifecycle CAS with remaining downstream acceptance UNKNOWN"
+    },
+    {
+      "ownerPlan": "tools/repo/planning/lego-plan-r1.json",
+      "slice": "RG1",
+      "scope": "registered implementation and verification boundary; actual historical consumer equivalence not established"
     }
   ],
   "issues": [
@@ -150,6 +155,42 @@
           "remoteWitness": "platform/workstation/workstation/nix/flake.lock :: nixpkgs lastModified 1792503283 > historical 1792030654; platform/workstation/workstation/nix/nix/home.nix (no rstudio)",
           "evidenceScope": "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF",
           "disposition": "SKIP_OLDER_PIN"
+        },
+        {
+          "localCommit": "ecca6ad1ae1df4acedd9ec5d7a4f3efe771c0b1e",
+          "owner": "domains/game",
+          "consumer": "Game browser equipment discovery consumes Workstation's canonical tool binding; native browser equipment consumer is byte-identical and updated downstream negative tests pass (11/11 equipment tests).",
+          "remoteWitness": "domains/game/tools/browser-equipment.ts (identical Git blob 326c712e92fc3a35798662d193a1497bfa34122e) + test/browser-equipment.test.ts",
+          "evidenceScope": "EXACT_GIT_BLOBS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "a56afcf30aafd8d5bcd0f41adb950504f5724267"
+        },
+        {
+          "localCommit": "86298d72eac5461bd84d1d8ccacd0c4deab1b5e4",
+          "owner": "platform/workstation",
+          "consumer": "Cloudflare Wrangler already consumes npm registry latest stable 4.152.0 in protected provider package; historical whole manifest has weaker Node engine range than current explicit v26.12.1, so do not overwrite current carrier.",
+          "remoteWitness": "platform/workstation/providers/cloudflare/package.json devDependencies.wrangler=4.152.0; npm view wrangler dist-tags.latest=4.152.0; current engines.node=26.12.1",
+          "evidenceScope": "LATEST_STABLE_SOURCE_NO_UPGRADE",
+          "disposition": "SKIP_OLDER_SOURCECUT",
+          "evaluatedRemoteMain": "a56afcf30aafd8d5bcd0f41adb950504f5724267"
+        },
+        {
+          "localCommit": "9c8e37dfe8650967972025ee76a06ec58d3df080",
+          "owner": "services/harness",
+          "consumer": "Gateway bearer is now consumed by the Temporal Worker effect authority, not the front-door automation MCP service. Do not resurrect old MCP LoadCredential or stale .venv python path just because the local commit is not reachable from protected Main.",
+          "remoteWitness": "services/harness/systemd/ordivon-agent-temporal-worker.service LoadCredential and ORDIVON_AGENT_GATEWAY_BEARER_TOKEN_FILE; scripts/agent_automation_browserless_effects.py; test_agent_automation_release_monorepo.py and test_agent_automation_browserless_effects.py (12/12 native PASS)",
+          "evidenceScope": "CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT",
+          "disposition": "SKIP_UNCONSUMED_PERMISSION",
+          "evaluatedRemoteMain": "a56afcf30aafd8d5bcd0f41adb950504f5724267"
+        },
+        {
+          "localCommit": "fcf5fc6d1b7e23a0527e20309388e974bf4158d0",
+          "owner": "domains/game",
+          "consumer": "Historical Game production-smoke provider identity was selected narrowly and merged via PR #342; current protected producer-consumer test 11/11 PASS and the exact current run.ts blob is retained. Replaying the historical whole commit would only regress current source/evidence.",
+          "remoteWitness": "domains/game/experiments/production-smoke-r1/run.ts historical Git blob 84f0cf54374f9ea4915f94c8894eee3dfd9790f0 identical to protected main; GitHub merged PR #342 2026-10-24T02:29:17Z; Game equipment native 11/11 PASS",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "a56afcf30aafd8d5bcd0f41adb950504f5724267"
         }
       ],
       "formalObligation": "The selected source must be an explicit source cut and each chosen change must preserve owner CDC.",
@@ -164,8 +205,9 @@
         "selectionReason": "Different commit histories may be equivalent only under the actual consumer contract."
       },
       "registration": {
-        "state": "UNREGISTERED",
-        "reason": "Owner-local LEGO slice and consumer acceptance are not yet evidenced; census observation is not registration."
+        "state": "LINKED",
+        "ownerPlan": "tools/repo/planning/lego-plan-r1.json",
+        "slice": "RG1"
       }
     },
     {

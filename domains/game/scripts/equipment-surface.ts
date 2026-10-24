@@ -83,6 +83,9 @@ export function resolveGameEquipment(operation: GameEquipmentOperation, sourceEn
     const binding = JSON.parse(output);
     if (binding?.kind !== "ordivon.workstation-equipment-binding" || binding?.state !== "AVAILABLE") throw new Error("invalid Workstation equipment binding");
     if (binding?.equipmentId !== spec.equipmentId) throw new Error("Workstation equipment identity mismatch");
+    const expectedProvider = spec.source === "professional"
+      ? "workstation.v2.professional-software" : "workstation.v2.managed-external";
+    if (binding?.provider !== expectedProvider) throw new Error("Workstation equipment provider mismatch");
     return {
       schemaVersion: 1,
       kind: "ordivon.game-equipment-resolution",

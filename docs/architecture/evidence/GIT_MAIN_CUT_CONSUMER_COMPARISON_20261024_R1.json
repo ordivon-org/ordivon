@@ -125,6 +125,13 @@
       "basis": "both changed Harness file blobs match at current remote source cut; source delta does not need cherry-pick",
       "owner": "harness",
       "nativeCDC": "NOT_RUN_IDENTICAL_BYTES"
+    },
+    {
+      "localCommit": "63d3c481720e",
+      "state": "OWNER_CONSUMER_SUBSUMED_REMOTE_PREFERRED",
+      "basis": "Exact local historical PG restore script blob b913b9e5ece33e6805293bf95477c845eb46c075 matches protected remote source cut 7b51fd3e033f964db551c127e2e910ae3bc88ef8 (and newer a56afcf30aafd8d5bcd0f41adb950504f5724267). The remote tests differ from the historical tests, so copy neither without qualification. The existing five remote Owner negatives pass, including failed pg_ctl stop preserving PGDATA and pre-existing scratch paths.",
+      "owner": "workstation",
+      "nativeCDC": "Source cut a56afcf30aafd8d5bcd0f41adb950504f5724267: python3 -m unittest discover -s platform/workstation/tests -p test_temporal_restore_*py -q => 5 passed; historical-vs-remote script Git blob exact match. Owner contract covered, no cherry-pick needed."
     }
   ],
   "samples": {

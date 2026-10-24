@@ -4,6 +4,7 @@ let
   # Do not duplicate a manually maintained version in this Nix configuration.
   codexManifest = builtins.fromJSON (builtins.readFile ../codex-cli/package.json);
   codexVersion = codexManifest.dependencies."@openai/codex";
+  interactiveShellPath = "/root/.local/share/mise/shims:/root/tools/bin:/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/lib/wsl/lib:/root/.local/bin:/root/bin";
 in
 {
   home.username = "root";
@@ -22,7 +23,7 @@ in
     historyFileSize = 0;
     historyControl = [ "ignoreboth" "erasedups" ];
     sessionVariables = {
-      PATH = "/root/.local/share/mise/shims:/root/tools/bin:/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/lib/wsl/lib:/root/.local/bin:/root/bin";
+      PATH = interactiveShellPath;
       EDITOR = "vim";
       VISUAL = "vim";
       PROJECTS = "/root/projects";
@@ -47,7 +48,7 @@ in
       projects = "cd \"$PROJECTS\"";
     };
     bashrcExtra = ''
-      export PATH="/root/.local/share/mise/shims:/root/tools/bin:/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/lib/wsl/lib:/root/.local/bin:/root/bin"
+      export PATH="${interactiveShellPath}"
       export EDITOR="vim"
       export VISUAL="vim"
       export PROJECTS="/root/projects"
