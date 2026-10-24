@@ -235,6 +235,35 @@ class ToolProgramP2Tests(unittest.TestCase):
         )
         self.assertEqual(capability["admittedToolNames"], ["lookup_value", "read_value"])
 
+    def test_wire_action_and_program_reject_noninteger_identity_and_accounting(self) -> None:
+        """Bool/float are not wire integers, even when Python says True == 1."""
+        action = HarnessToolProgramAction(
+            action_call_id="program-action:p2:type-boundary",
+            program=HarnessToolProgram(
+                steps=(HarnessToolProgramStep("read", "read_value", {"key": "x"}),),
+                outputs={},
+            ),
+        )
+        original = action.to_dict()
+        for field, invalid in (
+            ("schemaVersion", True),
+            ("schemaVersion", 1.0),
+            ("physicalToolCalls", True),
+            ("physicalToolCalls", 1.0),
+        ):
+            with self.subTest(field=field, invalid=invalid):
+                forged = {**original, field: invalid}
+                with self.assertRaises(ValueError):
+                    HarnessToolProgramAction.from_dict(forged)
+        for invalid in (True, 1.0):
+            with self.subTest(program_version=invalid):
+                forged = {
+                    **original,
+                    "program": {**original["program"], "schemaVersion": invalid},
+                }
+                with self.assertRaises(ValueError):
+                    HarnessToolProgramAction.from_dict(forged)
+
     def test_action_round_trip_rejects_forged_physical_tool_count(self) -> None:
         raw = HarnessToolProgramAction(
             action_call_id="program-action:p2:forged-count",

@@ -257,6 +257,47 @@ def test_cross_owner_gate_cannot_collapse_to_one_owner() -> None:
         validate_manifest(manifest)
 
 
+def test_task_local_gate_closure_does_not_claim_all_data_edges_are_verified() -> None:
+    """A bounded R3-style verifier may consume a multi-edge pathway.
+
+    Gate closure concerns only the declared target; treating each cross-owner
+    data edge as requiring a separate Gate would reject the real
+    Research->Artifact->Research consumer without proving anything stronger.
+    """
+    manifest = valid_manifest()
+    manifest["stages"].append(
+        {
+            "id": "stage:independent",
+            "ownerId": "qa",
+            "responsibility": "Produce independent QA evidence.",
+            "dependsOn": [],
+            "methodBindings": [],
+            "capabilityBindings": [],
+            "inputs": [],
+            "outputs": ["quality"],
+        }
+    )
+    artifact = manifest["stages"][1]
+    artifact["dependsOn"].append("stage:independent")
+    artifact["inputs"].append("quality")
+    manifest["edges"].append(
+        {
+            "id": "edge:qa-to-artifact",
+            "from": {"stageId": "stage:independent", "port": "quality"},
+            "to": {"stageId": "stage:artifact", "port": "quality"},
+            "contractRef": "contract:quality",
+        }
+    )
+
+    # Research's original gate still proves exactly its own supportScope,
+    # not the newly introduced QA edge. Whole-graph equivalence is UNKNOWN.
+    projection = evaluate_gate_results(manifest, [gate_result(manifest)])
+    assert projection["standing"] == "COMPOSITION_GATES_SATISFIED"
+    assert projection["mechanicalClosure"] is True
+    assert projection["domainAcceptanceEstablished"] is False
+    assert "all required task-local composition" in projection["claimBoundary"]
+
+
 def test_satisfied_gate_closes_only_mechanical_composition() -> None:
     manifest = valid_manifest()
     projection = evaluate_gate_results(manifest, [gate_result(manifest)])

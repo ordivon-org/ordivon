@@ -39,9 +39,23 @@ exit 75
     _shim(mock, "curl", r"""
 printf '%s\n' "$*" >> "$CLAUDE_CURL_RECORD"
 joined=" $* "
-if [[ "$joined" == *"https://example.com/"* ]];then exit 22;fi
+if [[ "$joined" == *"https://example.com/"* ]];then
+  if [[ "$MOCK_CLAUDE_SCENARIO" == unknown_http_forbidden ]];then
+    # Curl -f masks an actually reachable origin HTTP 403 as process failure.
+    [[ "$joined" == *" -f"* ]] && exit 22
+    exit 0
+  fi
+  exit 22
+fi
 if [[ "$joined" == *"https://api.anthropic.com/"* ]];then
-  if [[ "$joined" != *" -x "* && "$joined" != *" --proxy "* ]];then exit 28;fi
+  if [[ "$joined" != *" -x "* && "$joined" != *" --proxy "* ]];then
+    if [[ "$MOCK_CLAUDE_SCENARIO" == direct_http_forbidden ]];then
+      # Direct TLS succeeded: HTTP status is 403, not network isolation.
+      [[ "$joined" == *" -f"* ]] && exit 22
+      exit 0
+    fi
+    exit 28
+  fi
   case "$MOCK_CLAUDE_SCENARIO" in
     connect_denied) printf '404|403|0';;
     tls_missing) printf '404|200|0';;
@@ -118,6 +132,7 @@ def test_live_transport_shape_and_isolated_proxy_contract(tmp_path):
     unknown = [s for s in calls if "https://example.com/" in s]
     assert len(direct) == 1 and "--noproxy *" in direct[0]
     assert len(unknown) == 1 and "--noproxy" in unknown[0]
+    assert not any("-fsS" in call for call in direct + unknown)
     assert all(" -q " in " "+line for line in calls)
 
 
@@ -138,6 +153,16 @@ def test_real_consumer_readiness_fails_closed_for_upstream_faults(tmp_path, faul
     assert '"standing":"READY"' not in outcome.stdout
     assert calls
     assert not any("--insecure" in line for line in calls)
+
+
+@pytest.mark.parametrize("scenario", ["direct_http_forbidden", "unknown_http_forbidden"])
+def test_http_denial_is_not_an_isolation_or_allowlist_witness(tmp_path, scenario):
+    # A completed TLS exchange with HTTP 403 is a reachable endpoint,
+    # even when curl -f turns the 403 into an exit-22 status.
+    outcome, calls = _readiness(tmp_path, scenario)
+    assert outcome.returncode != 0, (scenario, outcome.stdout, outcome.stderr)
+    assert '"standing":"READY"' not in outcome.stdout
+    assert calls
 
 
 def test_existing_production_components_and_authority_remain_unchanged():

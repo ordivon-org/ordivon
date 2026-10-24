@@ -6,9 +6,9 @@
   "truthRole": "traceability-gate-not-mechanized-refinement-proof",
   "formalSpecification": {
     "modulePath": "formal/RuntimeDispatchR1.tla",
-    "moduleSha256": "e723a7c67075fe0ac5bc04c3d22dc385b8776066a7d6549d475e46b38da0ccad",
+    "moduleSha256": "27b366563c34b8890ee10b281c7ebac2733b42c4317f01dced462afb15b2b23d",
     "configPath": "formal/RuntimeDispatchR1.cfg",
-    "configSha256": "d1f7879e940f65f663719a429bd31bf060e7984ee236cb6f897ad411fed669ed",
+    "configSha256": "220dfc877a072a78301993d1c2c555b6b2d7150bcb3e1a4ace8520474bcfe717",
     "modelBindings": [
       {
         "id": "RuntimeDispatch.Dispatch",
@@ -29,6 +29,11 @@
         "id": "RuntimeDispatch.TerminalEvidenceIsCommitted",
         "kind": "invariant",
         "symbol": "TerminalEvidenceIsCommitted"
+      },
+      {
+        "id": "RuntimeDispatch.NoCompetingLiveAttempts",
+        "kind": "invariant",
+        "symbol": "NoCompetingLiveAttempts"
       }
     ]
   },
@@ -113,6 +118,14 @@
       "proves": [
         "RuntimeDispatch.TerminalEvidenceIsCommitted"
       ]
+    },
+    {
+      "id": "RuntimeDispatch.parallelAdmissionUnique",
+      "path": "crates/ordivon-runtime-core/src/runtime/tests.rs",
+      "symbol": "simultaneous_same_key_creates_one_job_and_one_attempt",
+      "proves": [
+        "RuntimeDispatch.NoCompetingLiveAttempts"
+      ]
     }
   ],
   "supportScope": [
@@ -121,7 +134,9 @@
     "provider refactors may move Linux or Windows realization internals without invalidating the trace while the ExecutionProvider.realize contract seam remains current",
     "fairness-qualified abstract first-decision progress: admitted work reaches terminal evidence or explicit ambiguity, not guaranteed eventual completion",
     "Always-on Registry CAS/held-orphan native tests are bounded implementation witnesses; ignored physical integration tests are conditional, unexecuted by normal CI and cannot establish production realization.",
-    "TLC bounded terminal-state provenance: terminal Job implies committed reconciliation on its dispatched Attempt; existing Rust owner test separately checks more detailed evidence fields; no mechanized refinement is claimed"
+    "TLC bounded terminal-state provenance: terminal Job implies committed reconciliation on its dispatched Attempt; existing Rust owner test separately checks more detailed evidence fields; no mechanized refinement is claimed",
+    "bounded pairwise state safety: the lost predecessor and a new admitted retry are distinct, while an unresolved live predecessor cannot overlap a live retry",
+    "always-on native concurrent same-request admission test witnesses one Job/Attempt and one reserved slot under two racing submitters; bounded initial-admission slice only, not a whole Rust-to-model refinement"
   ],
   "nonClaims": [
     "This is not a mechanized refinement proof from Rust semantics to TLA+ semantics.",
@@ -130,7 +145,8 @@
     "The integration tests remain empirical implementation evidence and may require an owner-native real-system environment.",
     "This trace does not establish domain semantic completion or exactly-once external effects.",
     "Weak fairness is a model assumption; real scheduling, provider responsiveness, retries, deadlock freedom and domain completion are not proven.",
-    "Conditional physical acceptance test identity does not prove that a root/systemd/cgroup test was executed or passed."
+    "Conditional physical acceptance test identity does not prove that a root/systemd/cgroup test was executed or passed.",
+    "The new NoCompetingLiveAttempts abstract invariant is model-checked but not an always-on Rust proof: physical concurrent-observer and ambiguity-no-redrive integration tests are opt-in."
   ],
   "supportingContracts": [
     {

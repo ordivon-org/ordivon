@@ -19,12 +19,14 @@ ip netns exec nv2-browserless-prod ss -ltn '( sport = :19482 )' | grep -F '10.25
 
 # The Claude client namespace has only the private inter-namespace link. Any direct
 # Internet attempt must fail even if a child process ignores proxy environment variables.
+# Do not use curl -f for a negative reachability proof: HTTP 401/403 after
+# successful TLS still demonstrates direct network connectivity.
 test -z "$(ip netns exec nv2-claude-client ip -4 route show default)"
 test -z "$(ip netns exec nv2-claude-client ip -6 route show default)"
 remaining=$((readiness_deadline - SECONDS))
 ((remaining > 0)) || { echo 'Claude readiness total deadline expired' >&2; exit 1; }
 max_time=$((remaining < 5 ? remaining : 5))
-if ip netns exec nv2-claude-client curl -q -4 --noproxy '*' -I -fsS --connect-timeout 2 --max-time "$max_time" https://api.anthropic.com/ >/dev/null 2>&1; then
+if ip netns exec nv2-claude-client curl -q -4 --noproxy '*' -I -sS --connect-timeout 2 --max-time "$max_time" https://api.anthropic.com/ >/dev/null 2>&1; then
   echo 'ERROR: isolated Claude client acquired direct Internet reachability' >&2
   exit 40
 fi
@@ -83,10 +85,11 @@ done
 test "$ok" = 1
 
 # Unknown destinations are refused by the Claude egress policy.
+# An HTTP 403 from a reachable origin is NOT proof of network-level denial.
 remaining=$((readiness_deadline - SECONDS))
 ((remaining > 0)) || { echo 'Claude readiness total deadline expired' >&2; exit 1; }
 max_time=$((remaining < 8 ? remaining : 8))
-if ip netns exec nv2-claude-client curl -q -x "$client_proxy" --noproxy '' -I -fsS --connect-timeout 3 --max-time "$max_time" https://example.com/ >/dev/null 2>&1; then
+if ip netns exec nv2-claude-client curl -q -x "$client_proxy" --noproxy '' -I -sS --connect-timeout 3 --max-time "$max_time" https://example.com/ >/dev/null 2>&1; then
   echo 'ERROR: unknown destination escaped Claude allowlist' >&2
   exit 41
 fi

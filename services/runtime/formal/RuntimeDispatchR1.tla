@@ -116,6 +116,16 @@ ProgressToFirstDecision ==
 AtMostOnceDispatchPerAttempt ==
     \A a \in Attempts : dispatchCount[a] <= 1
 
+(* Safety across distinct Attempt identities: no second unresolved live Attempt. *)
+LiveAttemptStates == {"admitted", "running", "ambiguous"}
+
+NoCompetingLiveAttempts ==
+    \A a \in Attempts:
+        \A b \in Attempts:
+            a # b =>
+                ~(attemptState[a] \in LiveAttemptStates
+                  /\ attemptState[b] \in LiveAttemptStates)
+
 AmbiguityRequiresReconciliation ==
     jobState = "ambiguous" =>
         /\ currentAttempt # NoAttempt

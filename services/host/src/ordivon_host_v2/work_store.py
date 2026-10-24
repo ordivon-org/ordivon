@@ -296,6 +296,13 @@ class WorkStore:
             self._require_work(conn, value.source_work_ref)
             self._require_work(conn, value.target_work_ref)
             if value.relation in {WorkRelationKind.PARENT_OF, WorkRelationKind.DEPENDS_ON}:
+                # The reachability check and INSERT must be one serialized
+                # transaction per DAG relation kind. Under READ COMMITTED, two
+                # concurrent opposite edges could each validate an empty graph.
+                # PostgreSQL releases this native transaction lock on commit
+                # and rollback; unrelated relation kinds remain independent.
+                relation_lock = 1 if value.relation == WorkRelationKind.PARENT_OF else 2
+                conn.execute("SELECT pg_advisory_xact_lock(%s,%s)", (0x4F524456, relation_lock))
                 self._reject_cycle(conn, value)
             row = conn.execute(
                 "INSERT INTO work_relations(source_work_ref,relation,target_work_ref,created_by_actor_ref) "

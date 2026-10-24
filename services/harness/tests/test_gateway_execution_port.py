@@ -196,3 +196,71 @@ def test_long_running_execution_is_client_polled_beyond_old_twenty_observation_c
     gets = [args for name, args in client.calls if name == 'execution.get']
     assert len(gets) == 26
     assert all('waitMs' not in args for args in gets)
+
+
+
+def test_committed_terminal_with_incomplete_projection_is_not_consumer_terminal():
+    """Runtime/Gateway committed physical result does not discharge Harness artifact identity."""
+    class IncompleteProjection(FakeGateway):
+        def call_tool(self, name, arguments):
+            is_error, value = super().call_tool(name, arguments)
+            if name == "execution.get":
+                value["artifact_count"] = 2
+                value["artifact_ids"] = []
+                value["artifact_projection_complete"] = False
+            return is_error, value
+
+    client = IncompleteProjection()
+    port = GatewayExecutionPort(client, max_observations=3, poll_interval_seconds=0)
+    with pytest.raises(GatewayExecutionAmbiguous, match="projection|delivery"):
+        port.execute(request())
+    names = [name for name, _ in client.calls]
+    assert names.count("execution.submit") == 1
+    assert names.count("execution.get") == 3
+
+
+def test_delayed_complete_projection_is_consumed_without_redispatch():
+    class DelayedProjection(FakeGateway):
+        observations = 0
+
+        def call_tool(self, name, arguments):
+            is_error, value = super().call_tool(name, arguments)
+            if name == "execution.get":
+                self.observations += 1
+                if self.observations == 1:
+                    value["artifact_count"] = 2
+                    value["artifact_ids"] = []
+                    value["artifact_projection_complete"] = False
+            return is_error, value
+
+    client = DelayedProjection()
+    result = GatewayExecutionPort(
+        client, max_observations=3, poll_interval_seconds=0
+    ).execute(request())
+    assert result.artifact_ids == ("attempt-1.stdout", "attempt-1.result")
+    assert [name for name, _ in client.calls].count("execution.submit") == 1
+    assert [name for name, _ in client.calls].count("execution.get") == 2
+
+
+
+@pytest.mark.parametrize(
+    "patch",
+    (
+        {"artifact_projection_complete": "true"},
+        {"artifact_projection_complete": None},
+        {"artifact_count": True},
+        {"artifact_count": 3},
+    ),
+)
+def test_committed_terminal_rejects_typed_or_inconsistent_artifact_proof(patch):
+    """The Gateway complete-artifact witness has a typed finite-set cardinality."""
+    class InvalidArtifactWitness(FakeGateway):
+        def call_tool(self, name, arguments):
+            is_error, value = super().call_tool(name, arguments)
+            if name == "execution.get":
+                value["artifact_count"] = 2
+                value.update(patch)
+            return is_error, value
+
+    with pytest.raises(GatewayExecutionError, match="artifact"):
+        GatewayExecutionPort(InvalidArtifactWitness()).execute(request())

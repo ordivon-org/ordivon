@@ -78,7 +78,7 @@ python3 tools/repo/check_owner_boundaries.py
 python3 tools/repo/check_composition_architecture.py
 python3 tools/repo/check_structure_r2.py
 python3 tools/repo/check_architecture_docs.py
-uv run --with pytest==9.1.1 --with jsonschema==4.25.1 python -m pytest -q tools/repo/test_composition_architecture.py tools/repo/test_structure_r2.py tools/repo/test_architecture_docs.py tests/catalogs/test_research_tool_and_mechanical_component_contracts.py
+uv run --with pytest==9.1.1 --with jsonschema==4.26.0 python -m pytest -q tools/repo/test_composition_architecture.py tools/repo/test_structure_r2.py tools/repo/test_architecture_docs.py tests/catalogs/test_research_tool_and_mechanical_component_contracts.py
 tools/repo/migration/test-integrate-main.sh
 tools/repo/migration/test-check-publication-main.sh
 uv run --with pyyaml==6.0.3 python -m unittest tools/repo/test_github_governance.py

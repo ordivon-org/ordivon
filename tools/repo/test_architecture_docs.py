@@ -1919,6 +1919,26 @@ def test_recursive_lego_r21_source_digest_matches_current_declared_contract() ->
     assert hashlib.sha256(reference.read_bytes()).hexdigest() == declared.group(1)
 
 
+
+def test_formal_r21_empty_host_owner_graph_must_not_pass_owner_admission() -> None:
+    """Host R1 is a declared 2.1 Owner; an empty DAG cannot witness its five contracts."""
+    plan = json.loads((ROOT / "services/host/planning/lego-plan-r1.json").read_text())
+    plan["nodes"] = []
+    plan["edges"] = []
+    plan["slices"] = []
+    with pytest.raises(module.ArchitectureDocsError, match="empty LEGO owner graph"):
+        module.validate_owner_lego_dependencies(plan, "services/host")
+
+
+def test_formal_r21_empty_harness_graph_must_not_pass_registered_census() -> None:
+    """Census links may not bless empty Owner graph after its node list was erased."""
+    census, plans = formal_issue_inputs()
+    owner = "services/harness/planning/lego-plan-r1.json"
+    plans[owner]["nodes"] = []
+    plans[owner]["edges"] = []
+    with pytest.raises(module.ArchitectureDocsError, match="empty LEGO owner graph"):
+        module.validate_formal_issue_census(census, plans)
+
 @pytest.mark.parametrize(
     ("relative", "target", "predecessor"),
     [

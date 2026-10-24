@@ -7,6 +7,8 @@ EXTENDS Naturals
 (* This is a bounded model, NOT an implementation-refinement proof.         *)
 (***************************************************************************)
 
+CONSTANTS RequiresHarness, RequiresNetwork
+
 VARIABLES host, harness, network, runtime, dispatchCount, consumerEvidence
 
 vars == <<host, harness, network, runtime, dispatchCount, consumerEvidence>>
@@ -17,6 +19,8 @@ NetworkStates == {"unknown", "ready"}
 RuntimeStates == {"idle", "admitted", "running", "ambiguous", "terminal"}
 
 TypeOK ==
+    /\ RequiresHarness \in BOOLEAN
+    /\ RequiresNetwork \in BOOLEAN
     /\ host \in HostStates
     /\ harness \in HarnessStates
     /\ network \in NetworkStates
@@ -44,8 +48,8 @@ HarnessPropose ==
 
 RuntimeAdmit ==
     /\ runtime = "idle"
-    /\ harness = "proposed"
-    /\ network = "ready"
+    /\ (~RequiresHarness \/ harness = "proposed")
+    /\ (~RequiresNetwork \/ network = "ready")
     /\ runtime' = "admitted"
     /\ UNCHANGED <<host, harness, network, dispatchCount, consumerEvidence>>
 
@@ -96,8 +100,10 @@ AtMostOnePhysicalDispatch == dispatchCount <= 1
 NoHostAcceptanceFromRuntimeAlone ==
     host = "accepted" => (runtime = "terminal" /\ consumerEvidence)
 
-NoDispatchFromNetworkOrModelDiscovery ==
-    dispatchCount > 0 => (harness = "proposed" /\ network = "ready")
+NoDispatchWithoutRequiredInputs ==
+    dispatchCount > 0 =>
+        /\ (~RequiresHarness \/ harness = "proposed")
+        /\ (~RequiresNetwork \/ network = "ready")
 
 AmbiguityCannotBeTreatedAsCompletion ==
     runtime = "ambiguous" => (host = "open" /\ ~consumerEvidence /\ dispatchCount = 1)

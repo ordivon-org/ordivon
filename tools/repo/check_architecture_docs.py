@@ -80,12 +80,68 @@ def _load_json(path: Path) -> dict[str, Any]:
 # The other registered Owner checker handles typed edges and dependency DAGs.
 # This validator checks the independent typed node and slice closure;
 # no new registry, executable DSL, scheduler or Owner truth.
+# Finite R2.1 relation types already consumed by the natural Owners.
+# graphlib, not this vocabulary, owns dependency DAG math.
+LEGO_RELATION_KINDS = frozenset({
+    "ADAPTATION",
+    "AUTHORITY",
+    "COMPATIBILITY",
+    "COMPOSITION",
+    "CONTROL",
+    "DATA",
+    "DELETION",
+    "DEPENDENCY",
+    "EFFECT",
+    "EVIDENCE",
+    "FALSIFICATION",
+    "IDENTITY",
+    "OBSERVATION",
+    "POLICY",
+    "REALIZATION",
+    "SPECIALIZATION",
+    "STATE",
+    "STORAGE",
+    "TRANSACTION",
+    "VERIFICATION",
+})
+
 OWNER_LEGO_PLANS = (
     "services/runtime/planning/lego-plan-r1.json",
     "services/host/planning/lego-plan-r1.json",
     "services/harness/planning/lego-plan-r1.json",
     "platform/network/planning/lego-plan-r1.json",
+    "platform/security/planning/lego-plan-r1.json",
 )
+
+
+def _validated_owner_lego_edges(
+    edges: Any, vertices: set[str],
+) -> list[tuple[str, str, str]]:
+    """One total typed relation check; scheduling semantics remain separate."""
+    if not isinstance(edges, list):
+        raise ArchitectureDocsError("owner LEGO edges must be a list")
+    observed: set[tuple[str, str, str]] = set()
+    for edge in edges:
+        if not isinstance(edge, dict):
+            raise ArchitectureDocsError("LEGO edge must be an object")
+        kind = edge.get("type")
+        if not isinstance(kind, str) or not kind.strip() or kind != kind.strip():
+            raise ArchitectureDocsError("LEGO edge requires a type")
+        if kind not in LEGO_RELATION_KINDS:
+            raise ArchitectureDocsError("unknown LEGO edge type")
+        source, target = edge.get("from"), edge.get("to")
+        if (
+            not isinstance(source, str)
+            or not isinstance(target, str)
+            or source not in vertices
+            or target not in vertices
+        ):
+            raise ArchitectureDocsError("unknown LEGO edge endpoint")
+        triple = (source, kind, target)
+        if triple in observed:
+            raise ArchitectureDocsError(f"duplicate LEGO edge: {triple}")
+        observed.add(triple)
+    return sorted(observed)
 
 
 def validate_owner_lego_graph(plan: dict[str, Any]) -> None:
@@ -135,6 +191,9 @@ def validate_owner_lego_graph(plan: dict[str, Any]) -> None:
             raise ArchitectureDocsError(f"unknown LEGO slice node in {identity}")
         if len(refs) != len(set(refs)):
             raise ArchitectureDocsError(f"duplicate LEGO slice node in {identity}")
+
+    # Typed relations are structural; OBSERVATION/STATE cycles are allowed.
+    _validated_owner_lego_edges(plan.get("edges", []), identities)
 
 
 def validate_deployed_graph(value: dict[str, Any]) -> None:
@@ -337,6 +396,8 @@ def validate_owner_lego_dependencies(
     nodes = plan.get("nodes")
     if not isinstance(nodes, list):
         raise ArchitectureDocsError("owner-local LEGO nodes missing")
+    if not nodes:
+        raise ArchitectureDocsError(f"{owner}: empty LEGO owner graph")
     graph: dict[str, set[str]] = {}
     for node in nodes:
         if not isinstance(node, dict) or not isinstance(node.get("id"), str) or not node["id"]:
@@ -355,18 +416,13 @@ def validate_owner_lego_dependencies(
     node_ids = set(graph)
     if any(d not in node_ids for deps in graph.values() for d in deps):
         raise ArchitectureDocsError("unknown LEGO dependency")
-    edges = plan.get("edges", [])
-    if not isinstance(edges, list):
-        raise ArchitectureDocsError(f"{owner}: owner LEGO edges missing")
-    for edge in edges:
-        if not isinstance(edge, dict):
-            raise ArchitectureDocsError(f"{owner}: untyped LEGO edge")
-        if edge.get("type") != "DEPENDENCY":
-            continue
-        source, target = edge.get("from"), edge.get("to")
-        if not isinstance(source, str) or not isinstance(target, str) or source not in node_ids or target not in node_ids:
-            raise ArchitectureDocsError(f"{owner}: unknown LEGO dependency edge")
-        graph[target].add(source)
+    # Reuse the same total typed relation check without altering the
+    # existing node/dependency/slice error precedence.
+    for source, kind, target in _validated_owner_lego_edges(
+        plan.get("edges", []), node_ids,
+    ):
+        if kind == "DEPENDENCY":
+            graph[target].add(source)
     sorter = TopologicalSorter(graph)
     try:
         sorter.prepare()
