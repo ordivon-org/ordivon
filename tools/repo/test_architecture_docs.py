@@ -797,7 +797,7 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             "SKIP_OLDER_SOURCECUT", "SKIP_UNCONSUMED_PERMISSION",
             "NO_WHOLE_COMMIT_REPLAY_WITHOUT_PRODUCER_AUTHORITY",
             "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
-            "SKIP_CANCELLED_HISTORY_PAIR",
+            "SKIP_CANCELLED_HISTORY_PAIR", "SKIP_RETIRED_UNCONSUMED",
         }
         assert item["evidenceScope"] in {
             "NATIVE_CONSUMER_PASS", "EXACT_GIT_BLOBS",
@@ -806,6 +806,7 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             "CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT",
             "FROZEN_GATEWAY_CONSUMER_ONLY",
             "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN",
+            "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC",
         }
         if item["evidenceScope"] == "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF":
             assert item["disposition"] == "SKIP_OLDER_PIN"
@@ -843,6 +844,28 @@ def test_divergent_history_does_not_weaken_frozen_artifact_receipts() -> None:
         for receipt in entry["frozenReceiptPaths"]:
             assert (ROOT / "capabilities/artifact/artifact-delivery/consumer-acceptance" / receipt).is_file()
     assert any(entry["localCommit"].startswith("e9547525bae3") for entry in blockers)
+
+
+def test_git01_old_capital_r3_office_has_no_current_consumer() -> None:
+    """Deleted R3 Office is an historical LEGO, not current capital authority."""
+    census, plans = formal_issue_inputs()
+    issue = next(row for row in census["issues"] if row["id"] == "GIT-01")
+    entry = next(x for x in issue["consumerSelections"] if x["localCommit"].startswith("d116d1e468"))
+    assert entry["owner"] == "domains/capital"
+    assert entry["disposition"] == "SKIP_RETIRED_UNCONSUMED"
+    assert entry["evidenceScope"] == "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC"
+    source = entry["sourceQualification"]
+    assert source["localMain"] == "13704d0cac9e113b395f2d5a21b5bf8119aa04a5"
+    assert source["tipRelation"] == "BOTH_TIPS_ABSENT"
+    assert source["branchDeletionAllowed"] is False
+    removed = entry["removedHistoricalPaths"]
+    assert len(removed) == 42
+    assert len(set(removed)) == len(removed)
+    assert all(name.startswith("domains/capital/") for name in removed)
+    assert all(not (ROOT / name).exists() for name in removed)
+    assert "domains/capital/config/capital_office_registry.json" in removed
+    assert "domains/capital/src/ordivon_capital/governance/owner_authority.py" in removed
+    module.validate_formal_issue_census(census, plans)
 
 
 def test_formal_issue_owner_plan_cannot_escape_source_cut(tmp_path: Path) -> None:
