@@ -40,6 +40,28 @@ implements it. Implementation tests must remain separately traced to these invar
 
 Static review note (2026-09-19): `dispatchCount` intentionally permits `0..2` in `TypeOK` so `AtMostOnceDispatchPerAttempt` remains an independently falsifiable safety invariant rather than being true by construction. TLC execution is still required before this model is accepted as checked evidence.
 
+- across distinct Attempt identities, no two Attempts may simultaneously be
+  admitted/running/ambiguous; an explicitly reconciled **lost** predecessor may
+  coexist with an independently admitted retry.
+
+## R2.1 compositional state obligation
+
+Use the existing TLA+ relational/transition-system math kernel. For the
+finite set of Attempts, define Live(a) when an Attempt is admitted, running or
+ambiguous. NoCompetingLiveAttempts requires
+forall a,b: a != b => not (Live(a) and Live(b).
+The existing ReconcileProvenAbsent transition marks an ambiguous predecessor
+lost *before* AdmitExplicitRetry admits a fresh Attempt. Its physical-absence
+assumption requires Runtime owner evidence; the model cannot certify it.
+
+An actual TLC violation caused by adding a blind-retry transition is a
+bounded falsification witness. Two physical Runtime tests are **opt-in** (root,
+systemd, cgroup); they must never be represented as executed always-on CI
+proof. This invariant supplements, and must not replace, the independent
+TerminalEvidenceIsCommitted property and its always-on Rust test. Passing TLC
+does not establish Rust-to-TLA refinement, external effect idempotency, or
+semantic Work acceptance.
+
 ## Scoped progress obligation
 
 TLC additionally checks the temporal property ProgressToFirstDecision under

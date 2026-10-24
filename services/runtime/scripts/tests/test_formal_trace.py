@@ -234,6 +234,27 @@ trait Provider {
             errors,
         )
 
+    def test_no_competing_live_attempts_preserves_always_on_vs_conditional_evidence(self):
+        trace, invariants = manifests()
+        names = {row["id"] for row in trace["formalSpecification"]["modelBindings"]}
+        self.assertIn("RuntimeDispatch.NoCompetingLiveAttempts", names)
+        conditional = {row["id"]: row for row in trace["conditionalAcceptanceTests"]}
+        self.assertEqual(conditional["RuntimeDispatch.concurrentObservers"]["evidenceMode"], "physical-opt-in")
+        self.assertEqual(conditional["RuntimeDispatch.ambiguityNoRedrive"]["evidenceMode"], "physical-opt-in")
+        witness = next(row for row in trace["provingTests"] if row["id"] == "RuntimeDispatch.parallelAdmissionUnique")
+        self.assertEqual(witness["symbol"], "simultaneous_same_key_creates_one_job_and_one_attempt")
+        self.assertIn("RuntimeDispatch.NoCompetingLiveAttempts", witness["proves"])
+        self.assertEqual(self.module.validate(trace, invariants), [])
+
+    def test_no_competing_live_attempts_model_binding_cannot_vanish(self):
+        trace, invariants = manifests()
+        trace["formalSpecification"]["modelBindings"] = [
+            row for row in trace["formalSpecification"]["modelBindings"]
+            if row["id"] != "RuntimeDispatch.NoCompetingLiveAttempts"
+        ]
+        errors = self.module.validate(trace, invariants)
+        self.assertTrue(any("formal model binding set drift" in error for error in errors))
+
     def test_removed_formal_model_binding_fails_closed(self):
         trace, invariants = manifests()
         mutated = copy.deepcopy(trace)
