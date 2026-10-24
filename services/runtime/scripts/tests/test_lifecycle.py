@@ -73,6 +73,39 @@ def init_repository(path: Path) -> str:
 
 class LifecycleTests(unittest.TestCase):
 
+    def test_lifecycle_rejects_boolean_timestamps_at_owner_boundaries(self) -> None:
+        """JSON booleans cannot silently become epoch timestamps or byte counts."""
+        for field in ("createdUnixMs", "estimatedBytes"):
+            with self.subTest(projection=field):
+                candidate = {
+                    "workspaceId": "ws-typed-time",
+                    "classification": "closable",
+                    field: True,
+                }
+                with self.assertRaisesRegex(RuntimeError, field):
+                    self.module["validate_reclaim_inspect"](
+                        {"summary": {}, "candidates": [candidate]}
+                    )
+        prepared = {
+            "classification": "closable",
+            "createdUnixMs": 1,
+            "retentionHours": 24.0,
+            "maxLifetimeHours": 48.0,
+            "forceCloseAfterMaxLifetime": False,
+        }
+        for field in ("createdUnixMs", "lastActivityMs"):
+            with self.subTest(standing=field):
+                args = dict(prepared)
+                state = {"lastActivityMs": 1}
+                if field == "createdUnixMs":
+                    args[field] = True
+                else:
+                    state[field] = True
+                with self.assertRaisesRegex(RuntimeError, field):
+                    self.module["_policy_standing_from_registry"](args, state)
+
+
+
     def test_default_retention_requires_owner_disposition_for_dirty_workspaces(self) -> None:
         """Automatic lifecycle sweep must not force-close unapproved dirty source."""
         policy = self.module["DEFAULT_POLICY"]
