@@ -19,6 +19,6 @@ opa = next(row for row in value["providers"] if row["name"] == "opa")
 print(f'{opa["ciContainer"]["image"]}@{opa["ciContainer"]["digest"]}')
 PY
 )
-docker run --rm --volume "$PWD/policies:/policies:ro" "$image" test -v /policies
+docker run --rm --user "$(id -u):$(id -g)" --cap-drop=ALL --security-opt no-new-privileges --network none --volume "$PWD/policies:/policies:ro" "$image" test -v /policies
 git ls-files -z -- '*.sh' | xargs -0 -r shellcheck
 """
