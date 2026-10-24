@@ -784,6 +784,7 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
         "ecca6ad1ae", "86298d72ea", "9c8e37dfe8", "fcf5fc6d1b",
         "82c8fa2924", "84baec0ea1", "7a96b238fb", "7c2fa8c4d2",
         "225192c6e7", "2919a6d840", "495b45d461", "f93faa57cf",
+        "3ab30f2b82", "eeb5630524", "db9d21d033",
     }
     for item in candidates:
         assert len(item["localCommit"]) == 40
@@ -805,6 +806,34 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             assert item["evaluatedRemoteMain"] == "41a1073703343aad61c3ffacac34edfb91019800"
         if item["evidenceScope"] == "CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT":
             assert item["disposition"] == "SKIP_UNCONSUMED_PERMISSION"
+    module.validate_formal_issue_census(census, plans)
+
+
+
+def test_git01_game_room_action_historical_refinements_have_native_consumer_proofs() -> None:
+    """Three old Game gameplay commits are covered by current rule and ECS consumers."""
+    census, plans = formal_issue_inputs()
+    issue = next(row for row in census["issues"] if row["id"] == "GIT-01")
+    wanted = {
+        "3ab30f2b827a": "seeded room",
+        "eeb563052487": "wave",
+        "db9d21d0330a": "weapon",
+    }
+    selected = [
+        x for x in issue["consumerSelections"]
+        if x["localCommit"][:12] in wanted
+    ]
+    assert len(selected) == len(wanted)
+    assert {row["localCommit"][:12] for row in selected} == set(wanted)
+    for row in selected:
+        assert row["owner"] == "domains/game"
+        assert row["evidenceScope"] == "NATIVE_CONSUMER_PASS"
+        assert row["disposition"] == "SKIP_DUPLICATE_CHERRY_PICK"
+        assert "domains/game/kits/room-action-r0/" in row["remoteWitness"]
+        assert row["sourceQualification"]["localMain"] == "13704d0cac9e113b395f2d5a21b5bf8119aa04a5"
+        assert row["sourceQualification"]["protectedMain"] == "6d44eb7860cff086e27bedd1a59e49415a4c87cc"
+        assert row["sourceQualification"]["branchDeletionAllowed"] is False
+        assert row["sourceQualification"]["consumerStanding"] == "CURRENT_OWNER_COVERED"
     module.validate_formal_issue_census(census, plans)
 
 

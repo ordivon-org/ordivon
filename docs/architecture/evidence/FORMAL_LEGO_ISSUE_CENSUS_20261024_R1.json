@@ -302,6 +302,57 @@
             "tipRelation": "SAME_BLOB_AND_MODE",
             "consumerStanding": "CURRENT_OWNER_COVERED"
           }
+        },
+        {
+          "localCommit": "3ab30f2b827ade5313b8bbf56d0df40d345a3ecd",
+          "owner": "domains/game",
+          "consumer": "Seeded room and enemy/weapon palette generates validated replayable recipes without a second world engine",
+          "remoteWitness": "domains/game/kits/room-action-r0/src/lib.rs::catalog_generator_replays_identically_and_composes_across_categories + src/main.rs::seeded_game_spawns_actual_bevy_enemy_archetypes_from_palette",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "INTERMEDIATE_HISTORICAL_BLOBS_SUPERSEDED_BY_CURRENT_GAME_KIT",
+            "consumerStanding": "CURRENT_OWNER_COVERED",
+            "scope": "RULES_AND_HEADLESS_ECS_ONLY_NOT_REAL_DISPLAY_OR_JSON_CLI_BINARY",
+            "branchDeletionAllowed": false
+          }
+        },
+        {
+          "localCommit": "eeb5630524877b26fc2fbab321e02c9f1b8a069b",
+          "owner": "domains/game",
+          "consumer": "Encounter reinforcement waves block gate until final foe; dash timing remains independent deterministic game state",
+          "remoteWitness": "domains/game/kits/room-action-r0/src/lib.rs::reinforcement_wave_blocks_gate_until_final_enemy_and_survives_restart + src/main.rs::ecs_boss_reinforcement_blocks_gate_and_uses_same_enemy_lego + native_player_move_consumes_dash_speed_and_cooldown_state",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "INTERMEDIATE_HISTORICAL_BLOBS_SUPERSEDED_BY_CURRENT_GAME_KIT",
+            "consumerStanding": "CURRENT_OWNER_COVERED",
+            "scope": "RULES_AND_HEADLESS_ECS_ONLY_NOT_REAL_DISPLAY_OR_JSON_CLI_BINARY",
+            "branchDeletionAllowed": false
+          }
+        },
+        {
+          "localCommit": "db9d21d0330a2370943f5788909ea0f1864bb09c",
+          "owner": "domains/game",
+          "consumer": "Composable weapon and enemy behavior recipes preserve live ECS pellet spread, hit damage, chase and keep-distance contracts",
+          "remoteWitness": "domains/game/kits/room-action-r0/src/lib.rs::weapon_recipe_and_behavior_are_replaceable_without_gameplay_forks + src/main.rs::weapon_recipe_spawns_real_bevy_three_pellet_spread_and_damage + chase_and_keep_distance_behaviors_move_oppositely_for_same_player",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "INTERMEDIATE_HISTORICAL_BLOBS_SUPERSEDED_BY_CURRENT_GAME_KIT",
+            "consumerStanding": "CURRENT_OWNER_COVERED",
+            "scope": "RULES_AND_HEADLESS_ECS_ONLY_NOT_REAL_DISPLAY_OR_JSON_CLI_BINARY",
+            "branchDeletionAllowed": false
+          }
         }
       ],
       "formalObligation": "The selected source must be an explicit source cut and each chosen change must preserve owner CDC.",
