@@ -992,6 +992,70 @@
             "tools/repo/check_tracked_secrets.sh",
             "tools/repo/test_tracked_secrets.py"
           ]
+        },
+        {
+          "localCommit": "47ecd35d70c8ce71ab9c6f54eaf3a51e6d2682c8",
+          "owner": "platform/security",
+          "consumer": "Historical uv/Ruff Security producer is already absorbed by the native Security owner, including locked uv sync, Python 3.15.1, current Ruff and owner-pinned OPA 1.21.4. Keep current threat-binding/admission policy and shellcheck; do not replay removed nested Security workflow or lower versions.",
+          "remoteWitness": "platform/security/mise.toml::tasks.verify; platform/security/tests/test_owner_uv_lock_freshness.py; platform/security/tests/test_opa_container_gate.py; current uv lock --check PASS, native mise run verify PASS, OPA 34/34 PASS. Historical pyproject.toml and uv.lock exact final right-cut blob identities.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_OLDER_SOURCECUT",
+          "evaluatedRemoteMain": "97ebe3828c482cbeb7f58df4e6da614615017c56",
+          "verifiedEqualChangedPaths": [
+            "platform/security/pyproject.toml",
+            "platform/security/uv.lock"
+          ],
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "97ebe3828c482cbeb7f58df4e6da614615017c56",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "PARTIAL_OBJECT_IDENTITY_CURRENT_OWNER_LOCKED",
+            "consumerStanding": "CURRENT_VERIFIED_OWNER_NO_HISTORICAL_REPLAY",
+            "branchDeletionAllowed": false,
+            "inferenceBoundary": "Native owner test and current lock freshness verify scoped consumer. Git partial identity does not prove entire historical commit equivalence, deployment, or wholesale branch retirement."
+          }
+        },
+        {
+          "localCommit": "dd3163920cb40ceac52a42a12f7cbdf4f455976a",
+          "owner": "capabilities/media",
+          "consumer": "Media uv 0.13.5 and native locked Ruff/Python consumer are already present in current production source. The historical lock is different because media has since evolved; preserve current package and pinned pnpm rather than replay older lock.",
+          "remoteWitness": "capabilities/media/mise.toml::tasks.verify; capabilities/media/pyproject.toml exact right-cut blob; current uv lock --check PASS; real pnpm frozen JS dependency install, Ruff, 170 Python tests and Vite build PASS.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_OLDER_SOURCECUT",
+          "evaluatedRemoteMain": "97ebe3828c482cbeb7f58df4e6da614615017c56",
+          "verifiedEqualChangedPaths": [
+            "capabilities/media/pyproject.toml"
+          ],
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "97ebe3828c482cbeb7f58df4e6da614615017c56",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "PARTIAL_OBJECT_IDENTITY_CURRENT_OWNER_LOCKED",
+            "consumerStanding": "CURRENT_VERIFIED_OWNER_NO_HISTORICAL_REPLAY",
+            "branchDeletionAllowed": false,
+            "inferenceBoundary": "Native owner test and current lock freshness verify scoped consumer. Git partial identity does not prove entire historical commit equivalence, deployment, or wholesale branch retirement."
+          }
+        },
+        {
+          "localCommit": "993ed44db090a7d2f002800ce6fe075bd2eb0b5a",
+          "owner": "capabilities/distribution",
+          "consumer": "Distribution native uv 0.13.5 and Ruff consumer remain present and current; its old local lock is not exact current and should not replace Distribution v2 reconciliation and effect-proof semantics.",
+          "remoteWitness": "capabilities/distribution/mise.toml::tasks.verify; capabilities/distribution/pyproject.toml exact right-cut blob; current uv lock --check PASS, mise run verify PASS including reconciliation ambiguity fault matrix, pinned OPA 4/4 and native historical provider-read proof.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_OLDER_SOURCECUT",
+          "evaluatedRemoteMain": "97ebe3828c482cbeb7f58df4e6da614615017c56",
+          "verifiedEqualChangedPaths": [
+            "capabilities/distribution/pyproject.toml"
+          ],
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "97ebe3828c482cbeb7f58df4e6da614615017c56",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "PARTIAL_OBJECT_IDENTITY_CURRENT_OWNER_LOCKED",
+            "consumerStanding": "CURRENT_VERIFIED_OWNER_NO_HISTORICAL_REPLAY",
+            "branchDeletionAllowed": false,
+            "inferenceBoundary": "Native owner test and current lock freshness verify scoped consumer. Git partial identity does not prove entire historical commit equivalence, deployment, or wholesale branch retirement."
+          }
         }
       ],
       "consumerBlockedSelections": [
