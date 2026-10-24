@@ -885,6 +885,33 @@
             "platform/network/consumers/developer-egress/profile.sh",
             "platform/network/tests/test_developer_egress_profile.py"
           ]
+        },
+        {
+          "localCommit": "ce973c944d5835c32d559a856fa55b070968aea5",
+          "owner": "services/host",
+          "consumer": "The current Host Work/Social Work Fabric implementation and owner-local plan retain the essential Schema 9 legacy Task/Board retirement contract, immutable archive identity, recovery posture, and zero-legacy table/module/MCP assertions. The original time-stamped acceptance receipt is absent in both final Main trees and has no in-tree runtime consumer; do not replay its historical patch or delete current Host authority.",
+          "remoteWitness": "services/host/planning/social-work-fabric-r1.json::legacyRetirement + services/host/tests/test_social_work_fabric_architecture.py + tests/test_mcp_surface.py; source-native Host uv run --locked --offline pytest: 9 PASS, 1 SKIP. Current plan records historical restoration PASS and schema9 zero-legacy claims; this run did not re-test database migration/archive restore, public Gateway ingress, or active Work production state.",
+          "evidenceScope": "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN",
+          "disposition": "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "5ee2f28dd58593c9d68293f91ad94ac03760379e",
+            "pathFinalRelation": "TWO_IDENTICAL_ONE_BOTH_ABSENT",
+            "retiredHistoricalReceiptPath": "meta/next/evidence/acceptance/social-work-fabric-r1-legacy-retirement-live-20260924.json",
+            "identicalTipModeBlobs": {
+              "services/host/docs/SOCIAL_WORK_FABRIC_R1.md": {
+                "mode": "100644",
+                "blob": "dfdf171a93bb332c1b8a83251fbf37207c53f03b"
+              },
+              "services/host/planning/social-work-fabric-r1.json": {
+                "mode": "100644",
+                "blob": "600e520e5493c985ea3df3b953d8e8432b96b286"
+              }
+            },
+            "branchDeletionAllowed": false,
+            "liveDatabaseReverified": false,
+            "archiveRestoreReverified": false
+          }
         }
       ],
       "consumerBlockedSelections": [

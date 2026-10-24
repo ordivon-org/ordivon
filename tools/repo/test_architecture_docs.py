@@ -1226,3 +1226,30 @@ def test_git01_old_capital_r3_office_has_no_current_consumer() -> None:
     assert "domains/capital/config/capital_office_registry.json" in removed
     assert "domains/capital/src/ordivon_capital/governance/owner_authority.py" in removed
     module.validate_formal_issue_census(census, plans)
+
+
+def test_host_historical_retirement_snapshot_is_not_a_live_consumer() -> None:
+    """Keep current SWF Owner proof, not the deleted one-off historical receipt."""
+    census, plans = formal_issue_inputs()
+    issue = next(item for item in census["issues"] if item["id"] == "GIT-01")
+    selected = next(
+        item for item in issue["consumerSelections"]
+        if item["localCommit"] == "ce973c944d5835c32d559a856fa55b070968aea5"
+    )
+    assert selected["owner"] == "services/host"
+    assert selected["disposition"] == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
+    proof = selected["sourceQualification"]
+    assert proof["pathFinalRelation"] == "TWO_IDENTICAL_ONE_BOTH_ABSENT"
+    assert proof["branchDeletionAllowed"] is False
+    assert proof["liveDatabaseReverified"] is False
+    assert proof["archiveRestoreReverified"] is False
+    assert len(proof["identicalTipModeBlobs"]) == 2
+    assert not (ROOT / proof["retiredHistoricalReceiptPath"]).exists()
+    host = json.loads((ROOT / "services/host/planning/social-work-fabric-r1.json").read_text())
+    legacy = host["legacyRetirement"]
+    assert legacy["standing"] == "LIVE_SCHEMA9_RETIRED_PASS"
+    assert legacy["archive"]["restoreVerification"] == "PASS"
+    assert legacy["liveAcceptance"]["legacyActiveTableCount"] == 0
+    assert legacy["liveAcceptance"]["legacyActiveModuleCount"] == 0
+    assert legacy["liveAcceptance"]["legacyMcpToolCount"] == 0
+    module.validate_formal_issue_census(census, plans)
