@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Protocol
 
 from anc_canonical import JsonValue, validate_json_value
@@ -54,25 +55,30 @@ def _build_workspace_exec_request(
         raise ValueError("Runtime executable must be non-empty and trimmed")
     if len(executable.encode("utf-8")) > 300:
         raise ValueError("Runtime executable exceeds 300 UTF-8 bytes")
-    if not executable.startswith("/"):
-        raise ValueError("Runtime executable must be absolute")
+    if not executable.startswith("/") or "\x00" in executable:
+        raise ValueError("Runtime executable must be absolute and NUL-free")
     if not isinstance(cwd_relative, str) or not cwd_relative or cwd_relative != cwd_relative.strip():
         raise ValueError("Runtime working directory must be non-empty and trimmed")
     if len(cwd_relative.encode("utf-8")) > 300:
         raise ValueError("Runtime working directory exceeds 300 UTF-8 bytes")
+    if "\x00" in cwd_relative or cwd_relative.startswith("/"):
+        raise ValueError("Runtime working directory must be relative and NUL-free")
     for argument in args:
-        if not isinstance(argument, str):
-            raise ValueError("Runtime arguments must be strings")
+        if not isinstance(argument, str) or "\x00" in argument:
+            raise ValueError("Runtime arguments must be NUL-free strings")
     environment = {} if env is None else dict(env)
     if any(
-        not isinstance(key, str) or not isinstance(item, str) or not key or key != key.strip()
+        not isinstance(key, str)
+        or re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", key) is None
+        or not isinstance(item, str)
+        or "\x00" in item
         for key, item in environment.items()
     ):
         raise ValueError("Runtime environment must contain trimmed string keys and values")
-    if timeout_ms < 0:
-        raise ValueError("Runtime timeout must be non-negative")
-    if stdout_limit_bytes < 0 or stderr_limit_bytes < 0:
-        raise ValueError("Runtime output limits must be non-negative")
+    if timeout_ms <= 0:
+        raise ValueError("Runtime timeout must be positive")
+    if stdout_limit_bytes <= 0 or stderr_limit_bytes <= 0:
+        raise ValueError("Runtime output limits must be positive")
     if wait_ms < 0 or wait_ms > 30_000:
         raise ValueError("Runtime wait must be between 0 and 30000 milliseconds")
     if not 0 <= stdout_tail_bytes <= 65_536 or not 0 <= stderr_tail_bytes <= 65_536:

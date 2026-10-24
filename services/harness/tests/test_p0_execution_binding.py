@@ -8,6 +8,7 @@ from anc_canonical import canonical_digest
 from ordivon_harness.execution_binding import HarnessExecutionBinding
 from ordivon_harness.ordivon.model import AgentToolCall
 from ordivon_harness.ordivon.runtime_lowering import lower_runtime_tool
+from ordivon_harness.ordivon.tool_errors import ToolBridgeError, ToolBridgeErrorKind
 
 DIGEST_A = "sha256:" + "a" * 64
 DIGEST_B = "sha256:" + "b" * 64
@@ -94,6 +95,62 @@ class HarnessExecutionBindingTests(unittest.TestCase):
         self.assertNotIn("task:", rendered)
         self.assertNotIn("task_attempt", rendered)
         self.assertNotIn("ordivon.host", rendered)
+
+    def test_run_in_workspace_rejects_runtime_invalid_execution_contract(self) -> None:
+        invalid_cases = (
+            {"timeoutMs": 0},
+            {"stdoutLimitBytes": 0},
+            {"stderrLimitBytes": 0},
+            {"env": {"NOT-AN-ENV-NAME": "value"}},
+            {"env": {"VALID_NAME": "\x00"}},
+            {"args": ["invalid\x00argument"]},
+            {"executable": "/bin/echo\x00bad"},
+            {"cwdRelative": "workspace\x00dir"},
+            {"cwdRelative": "/tmp/escape-workspace"},
+        )
+        for invalid in invalid_cases:
+            with self.subTest(invalid=invalid):
+                call = AgentToolCall(
+                    tool_call_id="tool-call:p0-execution-binding-invalid-runtime",
+                    name="run_in_workspace",
+                    arguments={"executable": "/bin/echo", **invalid},
+                )
+                with self.assertRaises(ToolBridgeError) as caught:
+                    lower_runtime_tool(
+                        call,
+                        step_id="turn-1-tool-invalid-runtime",
+                        execution_binding=binding(),
+                        tool_grant=None,
+                        known_job_ids=frozenset(),
+                        known_artifacts=frozenset(),
+                    )
+                self.assertEqual(caught.exception.kind, ToolBridgeErrorKind.MODEL_CORRECTABLE)
+
+    def test_runtime_exec_accepts_valid_edge_inputs(self) -> None:
+        call = AgentToolCall(
+            tool_call_id="tool-call:p0-runtime-valid-bounds",
+            name="run_in_workspace",
+            arguments={
+                "executable": "/bin/bash",
+                "cwdRelative": "src",
+                "env": {"_VALID_9": ""},
+                "timeoutMs": 1,
+                "stdoutLimitBytes": 1,
+                "stderrLimitBytes": 1,
+            },
+        )
+        operation, request, _ = lower_runtime_tool(
+            call,
+            step_id="turn-1-runtime-valid-bounds",
+            execution_binding=binding(),
+            tool_grant=None,
+            known_job_ids=frozenset(),
+            known_artifacts=frozenset(),
+        )
+        self.assertEqual(operation, "workspace.exec")
+        self.assertEqual(request["execution"]["cwdRelative"], "src")
+        self.assertEqual(request["execution"]["env"], {"_VALID_9": ""})
+        self.assertEqual(request["execution"]["timeoutMs"], 1)
 
     def test_generic_search_lowering_uses_execution_binding(self) -> None:
         call = AgentToolCall(
