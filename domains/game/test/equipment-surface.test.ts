@@ -1,4 +1,6 @@
 import test from "node:test";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
 import { mkdtempSync, writeFileSync, chmodSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -137,4 +139,47 @@ print(json.dumps({"schemaVersion":1,"kind":"ordivon.workstation-equipment-bindin
 test("missing Workstation projection is unresolved rather than replaced by ambient PATH folklore", () => {
   const value = resolveGameEquipment("gpu.frame.inspect", { ORDIVON_EQUIPMENT_BINDING: join(tmpdir(), "definitely-missing-equipment-binding") });
   assert.equal(value.state, "UNRESOLVED");
+});
+
+test("production smoke accepts only the actual Workstation v2 professional provider", () => {
+  const root = mkdtempSync(join(tmpdir(), "game-workstation-v2-cdc-"));
+  const tool = join(root, "equipment-binding");
+  const godot = join(root, "godot");
+  const entry = fileURLToPath(new URL("../experiments/production-smoke-r1/run.ts", import.meta.url));
+  try {
+    writeFileSync(godot, "#!/bin/sh\nprintf '%s\\n' '4.7.2.stable.official'\n");
+    chmodSync(godot, 0o755);
+    for (const provider of [
+      "workstation.v2.professional-software",
+      "workstation.professional-software",
+    ]) {
+      const binding = {
+        schemaVersion: 1,
+        kind: "ordivon.workstation-equipment-binding",
+        state: "AVAILABLE",
+        equipmentId: "professional:godot:godot",
+        provider,
+        executable: godot,
+        executableDigest: "sha256:" + "a".repeat(64),
+      };
+      writeFileSync(tool, "#!/usr/bin/env python3\nprint(" + JSON.stringify(JSON.stringify(binding)) + ")\n");
+      chmodSync(tool, 0o755);
+      const result = spawnSync(process.execPath, [entry], {
+        encoding: "utf8",
+        timeout: 12000,
+        env: { ...process.env, ORDIVON_EQUIPMENT_BINDING: tool, XDG_DATA_HOME: root },
+      });
+      assert.equal(result.status, 1, result.stderr);
+      if (provider === "workstation.v2.professional-software") {
+        // The exact consumer contract must pass; no actual Godot template is
+        // supplied, so execution stops before exporting a build.
+        assert.match(result.stderr, /missing exact Godot release template/);
+      } else {
+        assert.match(result.stderr, /workstation\.v2\.professional-software/);
+        assert.doesNotMatch(result.stderr, /missing exact Godot release template/);
+      }
+    }
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });

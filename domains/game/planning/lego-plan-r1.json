@@ -65,14 +65,17 @@
       "sharedRefs": [],
       "evidence": [
         "README.md",
-        "experiments/README.md"
+        "experiments/README.md",
+        "experiments/production-smoke-r1/run.ts",
+        "test/equipment-surface.test.ts"
       ],
       "dependencies": [],
       "mustNotOwn": [
         "product selection"
       ],
       "acceptance": [
-        "Experiment outcomes remain scoped to their hypothesis and evidence."
+        "Experiment outcomes remain scoped to their hypothesis and evidence.",
+        "Game production cold-start accepts only the actual Workstation v2 professional-software provider identity, rejecting legacy bindings before invoking Godot."
       ]
     },
     {
