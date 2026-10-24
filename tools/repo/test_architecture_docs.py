@@ -782,14 +782,14 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
         "a6af91c187", "63d3c48172", "0abd90d3ba",
         "b13052b5da", "fd2082905f", "e140571445",
         "ecca6ad1ae", "86298d72ea", "9c8e37dfe8", "fcf5fc6d1b",
-        "82c8fa2924", "84baec0ea1", "7a96b238fb", "7c2fa8c4d2",
+        "82c8fa2924", "84baec0ea1", "7a96b238fb", "7c2fa8c4d2", "329f86db80",
     }
     for item in candidates:
         assert len(item["localCommit"]) == 40
         assert item["owner"]
         assert item["consumer"]
         assert item["remoteWitness"]
-        assert item["disposition"] in {"SKIP_DUPLICATE_CHERRY_PICK", "SKIP_OLDER_PIN", "SKIP_OLDER_SOURCECUT", "SKIP_UNCONSUMED_PERMISSION"}
+        assert item["disposition"] in {"SKIP_DUPLICATE_CHERRY_PICK", "SKIP_OLDER_PIN", "SKIP_OLDER_SOURCECUT", "SKIP_UNCONSUMED_PERMISSION", "SKIP_RETIRED_UNCONSUMED"}
         assert item["evidenceScope"] in {
             "NATIVE_CONSUMER_PASS", "EXACT_GIT_BLOBS",
             "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF",
@@ -804,6 +804,16 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             assert item["evaluatedRemoteMain"] == "41a1073703343aad61c3ffacac34edfb91019800"
         if item["evidenceScope"] == "CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT":
             assert item["disposition"] == "SKIP_UNCONSUMED_PERMISSION"
+    retired = next(item for item in candidates if item["disposition"] == "SKIP_RETIRED_UNCONSUMED")
+    assert retired["owner"] == "platform/network"
+    assert len(retired["historicalCohort"]) == 8
+    assert retired["localCommit"] in retired["historicalCohort"]
+    assert len(set(retired["historicalCohort"])) == 8
+    assert all(len(oid) == 40 for oid in retired["historicalCohort"])
+    plan = plans["platform/network/planning/lego-plan-r1.json"]
+    node = next(n for n in plan["nodes"] if n["id"] == "N01")
+    assert any("Retired custom Network Capability Router" in a for a in node["acceptance"])
+    assert "tests/test_shared_provider_carrier.py::test_retired_network_capability_router_stays_retired" in node["evidence"]
     module.validate_formal_issue_census(census, plans)
 
 
