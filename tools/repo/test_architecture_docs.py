@@ -817,6 +817,57 @@ def test_git01_exact_committed_tree_secret_scanner_preserves_current_ci_and_loca
     module.validate_formal_issue_census(census, plans)
 
 
+def test_retired_next_historical_owner_cohorts_are_not_reintroduced() -> None:
+    """Six nonmerge historic commits select four retired Next responsibilities."""
+    census, plans = formal_issue_inputs()
+    issue = next(row for row in census["issues"] if row["id"] == "GIT-01")
+    entries = {row["localCommit"]: row for row in issue["consumerSelections"]}
+    cases = {
+        "dcd9702fbee31237ecbce6820327dda8bdad5f7f": {
+            "count": 8,
+            "commits": {"dcd9702fbee31237ecbce6820327dda8bdad5f7f"},
+        },
+        "b81ae9d0bf9ffe77726e4fb95ba1d89b44e3d363": {
+            "count": 7,
+            "commits": {
+                "b81ae9d0bf9ffe77726e4fb95ba1d89b44e3d363",
+                "ba339f80c0c3730b9770f092e0566fae24e71488",
+            },
+        },
+        "832468936934e03aa2b8f67836182a8543b124a6": {
+            "count": 16,
+            "commits": {
+                "832468936934e03aa2b8f67836182a8543b124a6",
+                "1c20627bce9ab12bda2e92917962c4c233da6d88",
+            },
+        },
+        "0dcead882cec69318243326858a13fa48989a772": {
+            "count": 5,
+            "commits": {"0dcead882cec69318243326858a13fa48989a772"},
+        },
+    }
+    retired = set()
+    for primary, case in cases.items():
+        row = entries[primary]
+        assert row["owner"] == "meta/next"
+        assert row["disposition"] == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
+        assert row["evidenceScope"] == "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN"
+        assert row["sourceQualification"]["branchDeletionAllowed"] is False
+        assert row["sourceQualification"]["tipRelation"] == "BOTH_TIPS_ABSENT"
+        assert set(row["historicalCohort"]) == case["commits"]
+        paths = row["retiredPaths"]
+        assert len(paths) == case["count"]
+        assert all(path.startswith("meta/next/") for path in paths)
+        assert all(not (ROOT / path).exists() for path in paths)
+        assert not retired.intersection(paths)
+        retired.update(paths)
+    assert len(retired) == 36
+    # The current Social Fabric Owner is retained, not replaced by old R2.
+    assert (ROOT / "meta/next/scripts/social_fabric_r1.py").is_file()
+    assert (ROOT / "meta/next/tests/test_social_fabric_r1.py").is_file()
+    module.validate_formal_issue_census(census, plans)
+
+
 def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
     """A Git-only commit cannot be called unique without a source-bound consumer comparison."""
     census, plans = formal_issue_inputs()
@@ -848,7 +899,6 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             "SKIP_CANCELLED_HISTORY_PAIR",
             "SKIP_RETIRED_UNCONSUMED",
             "SKIP_OLDER_TOOLCHAIN_CHERRY_PICK",
-            "SELECT_MINIMAL_OWNER_CONSUMER_EFFECT",
             "SKIP_IDENTICAL_TIP_WITH_NATIVE_CONSUMER",
         }
         assert item["evidenceScope"] in {
@@ -863,13 +913,6 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             "EXACT_GIT_BLOB_AND_NATIVE_CONSUMER_PASS",
             "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC",
         }
-        if item["disposition"] == "SELECT_MINIMAL_OWNER_CONSUMER_EFFECT":
-            assert item["owner"] == "services/gateway"
-            assert item["selectedOwnerEvidence"]
-            q = item["sourceQualification"]
-            assert q["branchDeletionAllowed"] is False
-            assert q["patchRelation"] == "LOCAL_NONMERGE_HISTORICAL_EFFECT"
-            assert q["consumerStanding"] == "RED_GREEN_PLUS_GATEWAY_FULL_NATIVE_PASS"
         if item["evidenceScope"] == "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC":
             assert item["disposition"] == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
             assert item["sourceQualification"]["branchDeletionAllowed"] is False
@@ -1210,6 +1253,17 @@ def test_retired_repository_status_projections_stay_absent() -> None:
     assert (ROOT / "tools/repo/check_architecture_docs.py").is_file()
     for relative in legacy:
         assert not (ROOT / relative).exists(), f"unconsumed historical tool restored: {relative}"
+    census, plans = formal_issue_inputs()
+    issue = next(x for x in census["issues"] if x["id"] == "GIT-01")
+    row = next(x for x in issue["consumerSelections"] if x["localCommit"].startswith("9c0684c02c"))
+    assert len(row["historicalCohort"]) == len(set(row["historicalCohort"])) == 10
+    assert set(row["historicalCohort"]) >= {
+        "ba9732f8bcc7348c73d570509ebdc2fdf4b30fcf",
+        "a1768d039268f1396439bfef8605a7700935c617",
+        "709816a1f89ce2a4811d7162a658f2f6f84018d9",
+        "61de83cb01b71793301907862840e3176f169b3a",
+    }
+    module.validate_formal_issue_census(census, plans)
 
 
 def test_git01_retired_network_router_cohort_has_one_qualified_lego() -> None:
