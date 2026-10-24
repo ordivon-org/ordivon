@@ -141,3 +141,56 @@ def test_ready_successor_precedes_unrelated_late_root() -> None:
         "stage:b",
         "stage:z",
     ]
+
+
+def test_all_three_node_directed_graphs_match_permutation_oracle() -> None:
+    """Bounded exhaustive LEGO graph proof independent of graphlib's algorithm.
+
+    All 2^(3*2) labeled directed loop-free relations are enumerated. A graph
+    is a DAG iff a permutation can place each producer before its consumer.
+    The production graphlib operator must accept exactly those cases and
+    project their lexicographically minimal valid ordering.
+    """
+    from itertools import permutations
+
+    names = ("stage:a", "stage:b", "stage:c")
+    possible_edges = [(target, source) for target in names for source in names if target != source]
+    template = valid_manifest()
+    dag_count = 0
+    cycle_count = 0
+    for mask in range(1 << len(possible_edges)):
+        edges = [edge for index, edge in enumerate(possible_edges) if mask & (1 << index)]
+        manifest = copy.deepcopy(template)
+        stages = []
+        for name in names:
+            stage = copy.deepcopy(template["stages"][0])
+            stage.update(
+                id=name,
+                ownerId=name.replace("stage:", "owner:"),
+                dependsOn=[source for target, source in edges if target == name],
+            )
+            stages.append(stage)
+        manifest["stages"] = stages
+        manifest["edges"] = []
+        manifest["gateRequirements"] = []
+
+        valid_orders = [
+            permutation
+            for permutation in permutations(names)
+            if all(
+                permutation.index(source) < permutation.index(target) for target, source in edges
+            )
+        ]
+        if not valid_orders:
+            cycle_count += 1
+            with pytest.raises(CircuitContractError, match="dependency cycle"):
+                compile_manifest(manifest)
+            continue
+
+        dag_count += 1
+        expected = list(min(valid_orders))
+        assert compile_manifest(manifest)["stageOrder"] == expected
+        manifest["stages"].reverse()
+        assert compile_manifest(manifest)["stageOrder"] == expected
+
+    assert (dag_count, cycle_count) == (25, 39)
