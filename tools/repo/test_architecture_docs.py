@@ -758,15 +758,21 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
     candidates = issue["consumerSelections"]
     assert {item["localCommit"][:10] for item in candidates} == {
         "13704d0cac", "35b7e06ffd", "4a2555f42e", "0dcfbb750f",
-        "a6af91c187", "63d3c48172",
+        "a6af91c187", "63d3c48172", "0abd90d3ba",
+        "b13052b5da", "fd2082905f", "e140571445",
     }
     for item in candidates:
         assert len(item["localCommit"]) == 40
         assert item["owner"]
         assert item["consumer"]
         assert item["remoteWitness"]
-        assert item["disposition"] == "SKIP_DUPLICATE_CHERRY_PICK"
-        assert item["evidenceScope"] == "NATIVE_CONSUMER_PASS"
+        assert item["disposition"] in {"SKIP_DUPLICATE_CHERRY_PICK", "SKIP_OLDER_PIN"}
+        assert item["evidenceScope"] in {
+            "NATIVE_CONSUMER_PASS", "EXACT_GIT_BLOBS",
+            "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF",
+        }
+        if item["evidenceScope"] == "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF":
+            assert item["disposition"] == "SKIP_OLDER_PIN"
     module.validate_formal_issue_census(census, plans)
 
 

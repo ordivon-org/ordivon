@@ -118,6 +118,38 @@
           "remoteWitness": "platform/workstation/scripts/temporal_pgbackrest_restore_smoke.sh + platform/workstation/tests/test_temporal_restore_stop_failure.py",
           "evidenceScope": "NATIVE_CONSUMER_PASS",
           "disposition": "SKIP_DUPLICATE_CHERRY_PICK"
+        },
+        {
+          "localCommit": "0abd90d3ba18f680268b2184981cad36d6261185",
+          "owner": "services/gateway",
+          "consumer": "Pinned Windows ACL preflight preserves native candidate release access guards; both source and existing regression file are byte-identical",
+          "remoteWitness": "Exact Git blobs: services/gateway/packaging/windows/protect_candidate_acl.ps1 + services/gateway/tests/test_windows_acl_preflight.py",
+          "evidenceScope": "EXACT_GIT_BLOBS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK"
+        },
+        {
+          "localCommit": "b13052b5dac74107b21139a4ca298f0fdc6ff616",
+          "owner": "tools/repo",
+          "consumer": "GitHub main CI and Runtime release both consume the same official mise-action v5.2.2 immutable SHA, and native governance verifies the pin",
+          "remoteWitness": ".github/workflows/ci.yml + .github/workflows/runtime-release.yml + tools/repo/check_github_governance.py::main (SHA 8418fedb1110381a0d3ba51a7a415d7c1b884550)",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK"
+        },
+        {
+          "localCommit": "fd2082905f36602d80bb024f606103228e42ecb4",
+          "owner": "capabilities/artifact",
+          "consumer": "Artifact Python release carrier pins protobuf 7.36.2 and the official release SBOM action is v0.24.3; native artifact environment tests verify the carrier",
+          "remoteWitness": "capabilities/artifact/artifact-delivery/python-uv/pyproject.toml + artifact-python-runtime-v1.lock.json + capabilities/artifact/tests/test_artifact_python_environment.py (11 PASS); .github/workflows/runtime-release.yml",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK"
+        },
+        {
+          "localCommit": "e1405714453450b6792c67cb7ea1b72ed19bc717",
+          "owner": "platform/workstation",
+          "consumer": "Older Nixpkgs revision is superseded by later upstream nixos-26.05 source cut; the hazardous RStudio package is already absent from native home.nix",
+          "remoteWitness": "platform/workstation/workstation/nix/flake.lock :: nixpkgs lastModified 1792503283 > historical 1792030654; platform/workstation/workstation/nix/nix/home.nix (no rstudio)",
+          "evidenceScope": "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF",
+          "disposition": "SKIP_OLDER_PIN"
         }
       ],
       "formalObligation": "The selected source must be an explicit source cut and each chosen change must preserve owner CDC.",
