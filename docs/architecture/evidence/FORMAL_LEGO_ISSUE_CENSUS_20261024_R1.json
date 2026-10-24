@@ -152,10 +152,10 @@
       "id": "CI-01",
       "problemClass": "CI_EXECUTION",
       "naturalOwner": "apps/web",
-      "standing": "CONFIRMED_FAIL",
+      "standing": "HISTORICAL_FAIL_CURRENT_OWNER_VERIFIED",
       "observation": "PR #224 verification-entry.test.ts fails when /bin/sh executes 'set -o pipefail'; actual exit 2, expected 29.",
-      "evidence": "GitHub Actions run 40020297819, failing test at test/verification-entry.test.ts:52",
-      "decision": "Reuse and repair PR #224; explicitly select compatible shell and verify exit-code propagation.",
+      "evidence": "GitHub Actions run 40020297819, failing test at test/verification-entry.test.ts:52; merged PR #224 (2026-10-23T21:59:20Z); current source 2fe391460bc5c64815269483797709caa9e43372: mise exec -- node --test test/verification-entry.test.ts => 1 passed, 0 failed",
+      "decision": "Historical shell mismatch repaired by merged PR #224. Keep the owner-native negative consumer oracle; re-open only with a failing test on a newer exact source cut, without adding another verifier or owner LEGO.",
       "formalObligation": "ShellInterpreter(script) supports every used shell option; failure oracle is preserved.",
       "consumers": "Web verification, Security OPA verifier",
       "representation": {
@@ -167,7 +167,7 @@
       },
       "registration": {
         "state": "UNREGISTERED",
-        "reason": "Owner-local LEGO slice and consumer acceptance are not yet evidenced; census observation is not registration."
+        "reason": "No new LEGO required: the original shell mismatch is repaired by existing apps/web owner configuration and the exact failing-script consumer regression now passes."
       }
     },
     {
