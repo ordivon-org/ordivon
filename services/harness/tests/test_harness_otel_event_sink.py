@@ -199,6 +199,38 @@ def test_reconciled_event_must_not_close_wrong_dispatched_step() -> None:
     assert tracer.spans[0].end_time == 1_002_000_000
 
 
+def test_replayed_terminal_cannot_steal_another_runtime_job_identity() -> None:
+    from ordivon_harness.ordivon.events import HarnessRunEvent
+
+    tracer = RecordingTracer()
+    sink = OpenTelemetryHarnessEventSink(
+        "harness-run:bound-job",
+        tracer=tracer,  # type: ignore[arg-type]
+    )
+    original = {
+        "toolCallId": "tool:1",
+        "toolName": "read_value",
+        "stepId": "step:one",
+        "runtimeJobRef": "job:original",
+    }
+    sink(HarnessRunEvent(1, "tool_call_dispatched", 1000, original))
+    sink(HarnessRunEvent(
+        2, "tool_call_reconciled", 1001,
+        {**original, "runtimeJobRef": "job:foreign", "status": "unknown"},
+    ))
+    assert len(tracer.spans) == 1
+    assert tracer.spans[0].attributes["ordivon.runtime.job.ref"] == "job:original"
+    assert tracer.spans[0].end_time is None
+    sink(HarnessRunEvent(
+        3, "tool_call_reconciled", 1002,
+        {**original, "status": "observed"},
+    ))
+    assert len(tracer.spans) == 1
+    assert tracer.spans[0].attributes["ordivon.harness.tool.status"] == "observed"
+    assert tracer.spans[0].attributes["ordivon.runtime.job.ref"] == "job:original"
+    assert tracer.spans[0].end_time == 1_002_000_000
+
+
 def test_reconciled_cancel_request_is_not_terminal() -> None:
     from ordivon_harness.ordivon.events import HarnessRunEvent
 
