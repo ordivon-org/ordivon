@@ -12,9 +12,9 @@ AttemptStates == {"unused", "admitted", "running", "ambiguous", "orphanedHeld", 
 JobStates == {"none", "admitted", "ambiguous", "terminal"}
 ReconcileStates == {"none", "required", "absent", "committed"}
 
-VARIABLES jobState, attemptState, currentAttempt, dispatchCount, reconcileState
+VARIABLES jobState, attemptState, currentAttempt, dispatchCount, reconcileState, heldReservation
 
-vars == <<jobState, attemptState, currentAttempt, dispatchCount, reconcileState>>
+vars == <<jobState, attemptState, currentAttempt, dispatchCount, reconcileState, heldReservation>>
 
 TypeOK ==
     /\ Attempts # {}
@@ -24,6 +24,7 @@ TypeOK ==
     /\ currentAttempt \in Attempts \cup {NoAttempt}
     /\ dispatchCount \in [Attempts -> 0..2]
     /\ reconcileState \in ReconcileStates
+    /\ heldReservation \in BOOLEAN
 
 Init ==
     /\ jobState = "none"
@@ -31,6 +32,7 @@ Init ==
     /\ currentAttempt = NoAttempt
     /\ dispatchCount = [a \in Attempts |-> 0]
     /\ reconcileState = "none"
+    /\ heldReservation = FALSE
 
 Admit ==
     /\ jobState = "none"
@@ -41,7 +43,7 @@ Admit ==
         /\ currentAttempt' = a
     /\ jobState' = "admitted"
     /\ reconcileState' = "none"
-    /\ UNCHANGED dispatchCount
+    /\ UNCHANGED <<dispatchCount, heldReservation>>
 
 Dispatch ==
     /\ jobState = "admitted"
@@ -50,7 +52,7 @@ Dispatch ==
     /\ dispatchCount[currentAttempt] = 0
     /\ attemptState' = [attemptState EXCEPT ![currentAttempt] = "running"]
     /\ dispatchCount' = [dispatchCount EXCEPT ![currentAttempt] = @ + 1]
-    /\ UNCHANGED <<jobState, currentAttempt, reconcileState>>
+    /\ UNCHANGED <<jobState, currentAttempt, reconcileState, heldReservation>>
 
 LoseDispatchKnowledge ==
     /\ jobState = "admitted"
@@ -59,17 +61,18 @@ LoseDispatchKnowledge ==
     /\ attemptState' = [attemptState EXCEPT ![currentAttempt] = "ambiguous"]
     /\ jobState' = "ambiguous"
     /\ reconcileState' = "required"
-    /\ UNCHANGED <<currentAttempt, dispatchCount>>
+    /\ UNCHANGED <<currentAttempt, dispatchCount, heldReservation>>
 
 (* A physical orphan has no selected current Attempt, yet its durable *)
 (* held reservation forbids blind admission/retry until proven absent.   *)
 ObserveOrphanedHeld ==
     /\ currentAttempt # NoAttempt
-    /\ attemptState[currentAttempt] \in {"running", "ambiguous"}
+    /\ attemptState[currentAttempt] \in {"admitted", "running", "ambiguous"}
     /\ attemptState' = [attemptState EXCEPT ![currentAttempt] = "orphanedHeld"]
     /\ currentAttempt' = NoAttempt
     /\ jobState' = "ambiguous"
     /\ reconcileState' = "required"
+    /\ heldReservation' = TRUE
     /\ UNCHANGED dispatchCount
 
 ReconcileHeldOrphanProvenAbsent ==
@@ -81,6 +84,7 @@ ReconcileHeldOrphanProvenAbsent ==
         /\ attemptState' = [attemptState EXCEPT ![a] = "lost"]
     /\ jobState' = "admitted"
     /\ reconcileState' = "absent"
+    /\ heldReservation' = FALSE
     /\ UNCHANGED <<currentAttempt, dispatchCount>>
 
 ObserveTerminalEvidence ==
@@ -89,7 +93,7 @@ ObserveTerminalEvidence ==
     /\ attemptState' = [attemptState EXCEPT ![currentAttempt] = "terminal"]
     /\ jobState' = "terminal"
     /\ reconcileState' = "committed"
-    /\ UNCHANGED <<currentAttempt, dispatchCount>>
+    /\ UNCHANGED <<currentAttempt, dispatchCount, heldReservation>>
 
 ReconcileProvenAbsent ==
     /\ jobState = "ambiguous"
@@ -100,7 +104,7 @@ ReconcileProvenAbsent ==
     /\ jobState' = "admitted"
     /\ currentAttempt' = NoAttempt
     /\ reconcileState' = "absent"
-    /\ UNCHANGED dispatchCount
+    /\ UNCHANGED <<dispatchCount, heldReservation>>
 
 AdmitExplicitRetry ==
     /\ jobState = "admitted"
@@ -111,7 +115,7 @@ AdmitExplicitRetry ==
         /\ attemptState' = [attemptState EXCEPT ![a] = "admitted"]
         /\ currentAttempt' = a
     /\ reconcileState' = "none"
-    /\ UNCHANGED <<jobState, dispatchCount>>
+    /\ UNCHANGED <<jobState, dispatchCount, heldReservation>>
 
 Next ==
     \/ Admit
@@ -157,13 +161,14 @@ NoDetachedLiveAttempt ==
 
 (* An orphaned-held record is unresolved even if no Attempt pointer *)
 (* remains; it must not become dispatch-eligible or appear accepted.     *)
+(* The one-Job abstraction needs only one extra bit for the physical *)
+(* held-orphan capacity fence; selection and reservation are not equal. *)
 HeldOrphanIsFenced ==
-    \A a \in Attempts:
-        attemptState[a] = "orphanedHeld" =>
-            /\ currentAttempt = NoAttempt
-            /\ jobState = "ambiguous"
-            /\ reconcileState = "required"
-            /\ dispatchCount[a] = 1
+    /\ (heldReservation <=> (\E a \in Attempts: attemptState[a] = "orphanedHeld"))
+    /\ (heldReservation =>
+           /\ currentAttempt = NoAttempt
+           /\ jobState = "ambiguous"
+           /\ reconcileState = "required")
 
 AmbiguityRequiresReconciliation ==
     jobState = "ambiguous" =>

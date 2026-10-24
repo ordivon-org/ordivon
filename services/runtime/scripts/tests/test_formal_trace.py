@@ -45,6 +45,17 @@ class FormalTraceContractTests(unittest.TestCase):
         witnesses = {target for item in trace["provingTests"] for target in item["proves"]}
         self.assertIn("RuntimeDispatch.NoDetachedLiveAttempt", witnesses)
         self.assertIn("RuntimeDispatch.HeldOrphanIsFenced", witnesses)
+        admitted = next(
+            entry for entry in trace["provingTests"]
+            if entry["id"] == "RuntimeDispatch.parallelAdmissionUnique"
+        )
+        orphan = next(
+            entry for entry in trace["provingTests"]
+            if entry["id"] == "RuntimeDispatch.ambiguityHeld"
+        )
+        self.assertIn("RuntimeDispatch.NoDetachedLiveAttempt", admitted["proves"])
+        self.assertIn("RuntimeDispatch.HeldOrphanIsFenced", orphan["proves"])
+        self.assertNotIn("RuntimeDispatch.NoDetachedLiveAttempt", orphan["proves"])
         self.assertEqual(self.module.validate(trace, invariant_manifest), [])
         modified = copy.deepcopy(trace)
         modified["formalSpecification"]["modelBindings"] = [

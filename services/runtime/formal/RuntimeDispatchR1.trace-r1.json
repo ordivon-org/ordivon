@@ -6,7 +6,7 @@
   "truthRole": "traceability-gate-not-mechanized-refinement-proof",
   "formalSpecification": {
     "modulePath": "formal/RuntimeDispatchR1.tla",
-    "moduleSha256": "4a4700c09c60ad8f1707444ff256e0ab0c0b2b4178713964a4acd34cc7528d09",
+    "moduleSha256": "445293a98b0f6dbd60262efa432874694519599c331de9f80b7050349e4d9553",
     "configPath": "formal/RuntimeDispatchR1.cfg",
     "configSha256": "f74c871922cd1e269dcb47c1ec4a8a8b1e89b53bee7422b2849bc8ba779d04b1",
     "modelBindings": [
@@ -111,7 +111,6 @@
       "proves": [
         "AttemptLifecycle.singleDispatch",
         "RuntimeDispatch.AmbiguityRequiresReconciliation",
-        "RuntimeDispatch.NoDetachedLiveAttempt",
         "RuntimeDispatch.HeldOrphanIsFenced"
       ]
     },
@@ -151,7 +150,8 @@
     "bounded pairwise state safety: the lost predecessor and a new admitted retry are distinct, while an unresolved live predecessor cannot overlap a live retry",
     "always-on native concurrent same-request admission test witnesses one Job/Attempt and one reserved slot under two racing submitters; bounded initial-admission slice only, not a whole Rust-to-model refinement",
     "bounded identity consistency: every abstract live Attempt is the current Attempt before a second retry could introduce overlap",
-    "abstract held-orphan fence: Runtime may clear the selected Attempt while preserving a reserved orphan that remains recovery-required; no blind retry"
+    "abstract held-orphan fence: Runtime may clear the selected Attempt while preserving a reserved orphan that remains recovery-required; no blind retry",
+    "held-orphan reservation is a separate BOOLEAN owner abstraction; a qualifying orphan may arise before or after confirmed dispatch"
   ],
   "nonClaims": [
     "This is not a mechanized refinement proof from Rust semantics to TLA+ semantics.",
@@ -163,7 +163,8 @@
     "Conditional physical acceptance test identity does not prove that a root/systemd/cgroup test was executed or passed.",
     "The new NoCompetingLiveAttempts abstract invariant is model-checked but not an always-on Rust proof: physical concurrent-observer and ambiguity-no-redrive integration tests are opt-in.",
     "NoDetachedLiveAttempt does not prove Rust/SQLite refinement; admission and held-orphan Rust witnesses are narrower concrete cases.",
-    "The abstract orphanedHeld state is only a bounded projection of a persisted held-orphan reservation. It does not establish persistence/recovery refinement or cross-Job reservation exclusivity."
+    "The abstract orphanedHeld state is only a bounded projection of a persisted held-orphan reservation. It does not establish persistence/recovery refinement or cross-Job reservation exclusivity.",
+    "The heldReservation Boolean abstracts one Job only; it does not prove global capacity accounting or physical launch occurrence for an Orphaned attempt."
   ],
   "supportingContracts": [
     {
