@@ -44,6 +44,7 @@ ADMISSION_ROOT = Path("/root/.local/state/ordivon-workstation/agent-automation/s
 ADMISSION_LOCK = ADMISSION_ROOT / "release-admission.lock"
 ADMISSION_CLOSED = ADMISSION_ROOT / "release-admission.closed.json"
 RELEASE_PATHS = (
+    "mise.toml",  # release-owned uv toolchain; the deployer must not use ambient /usr/bin/uv
     "config/agent-automation.toml",
     "config/agent-automation-mcp-requirements.txt",
     "config/agent-automation-temporal-requirements.txt",
