@@ -326,6 +326,7 @@ def validate_formal_issue_census(
         "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER", "SKIP_CANCELLED_HISTORY_PAIR",
         "SKIP_RETIRED_UNCONSUMED", "SKIP_OLDER_TOOLCHAIN_CHERRY_PICK",
         "SKIP_IDENTICAL_TIP_WITH_NATIVE_CONSUMER",
+        "PORT_REQUIRED_OWNER_EFFECT",
     }
     allowed_evidence_scopes = {
         "NATIVE_CONSUMER_PASS", "EXACT_GIT_BLOBS",
@@ -370,6 +371,11 @@ def validate_formal_issue_census(
                 raise ArchitectureDocsError("invalid historical Git SHA")
             if oid in identities:
                 raise ArchitectureDocsError("duplicate historical Git selection")
+            # A non-primary cohort member already has an Owner disposition.
+            # Selecting it separately would allow parallel agents to make
+            # conflicting decisions about the same immutable Git object.
+            if oid in cohort_ids:
+                raise ArchitectureDocsError("historical Git cohort member collision")
             identities.add(oid)
             owner = entry.get("owner")
             if not isinstance(owner, str) or (
@@ -407,11 +413,24 @@ def validate_formal_issue_census(
                 or any(not isinstance(v, str) or not oid_pattern.fullmatch(v) for v in cohort)
                 or len(cohort) != len(set(cohort))
                 or not cohort_ids.isdisjoint(cohort)
+                or not (set(cohort) - {oid}).isdisjoint(identities)
             ):
                 raise ArchitectureDocsError("invalid historical Git cohort")
             if cohort is not None:
                 cohort_ids.update(cohort)
             source_proof = entry.get("sourceQualification")
+            if entry["disposition"] == "PORT_REQUIRED_OWNER_EFFECT":
+                # An actual port is not a skip. File/blob observations alone
+                # cannot establish an accepted native consumer behavior.
+                if (
+                    entry["evidenceScope"] != "NATIVE_CONSUMER_PASS"
+                    or not isinstance(source_proof, dict)
+                    or source_proof.get("branchDeletionAllowed") is not False
+                ):
+                    raise ArchitectureDocsError(
+                        "PORT_REQUIRED_OWNER_EFFECT requires native Owner acceptance "
+                        "and cannot authorize branch deletion"
+                    )
             if source_proof is not None:
                 if not isinstance(source_proof, dict):
                     raise ArchitectureDocsError("invalid historical Git source qualification")
@@ -461,7 +480,7 @@ def validate_formal_issue_census(
             commit = blocker.get("localCommit")
             if not isinstance(commit, str) or not oid_pattern.fullmatch(commit):
                 raise ArchitectureDocsError("invalid historical Git blocker identity")
-            if commit in identities:
+            if commit in identities or commit in cohort_ids:
                 raise ArchitectureDocsError("historical Git selected and blocked collision")
             if commit in blocked:
                 raise ArchitectureDocsError("duplicate historical Git blocker")

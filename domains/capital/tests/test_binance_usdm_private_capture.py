@@ -76,3 +76,30 @@ def test_qualification_summary_omits_account_values_and_order_trade_details():
     assert out["openOrderCount"] == 1
     assert out["tradeRowCount"] == 1
     assert out["externalFinancialWriteAttempted"] is False
+
+
+def test_cli_stdout_never_contains_raw_private_account_payload(monkeypatch, capsys):
+    import json
+    import sys
+
+    from ordivon_capital.trading import binance_usdm_private_capture as m
+
+    monkeypatch.setattr(m, "capture", lambda **kwargs: {
+        "symbol": "SOXLUSDT",
+        "standing": "READ_ONLY_PRIVATE_REALITY_PARTIAL",
+        "privateAccountDataUsed": True,
+        "externalFinancialWriteAttempted": False,
+        "calls": {
+            "account_information_v3": {
+                "ok": True,
+                "data": {"total_wallet_balance": "PRIVATE_ACCOUNT_DO_NOT_PRINT"},
+            }
+        },
+    })
+    monkeypatch.setattr(sys, "argv", ["capture-binance-usdm-private-r1", "--symbol", "SOXLUSDT"])
+    assert m.main() == 3
+    output = capsys.readouterr().out
+    assert "PRIVATE_ACCOUNT_DO_NOT_PRINT" not in output
+    reported = json.loads(output)
+    assert reported["standing"] == "READ_ONLY_PRIVATE_REALITY_PARTIAL"
+    assert "calls" not in reported

@@ -151,5 +151,22 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         self.assertIn("optimized Python", result.stderr)
 
 
+    def test_explicit_codeowner_rules_target_existing_sources(self) -> None:
+        """Literal root CODEOWNERS overrides must have real current consumers."""
+        source = (ROOT / ".github/CODEOWNERS").read_text(encoding="utf-8")
+        for line in source.splitlines():
+            raw = line.strip()
+            if not raw or raw.startswith("#"):
+                continue
+            pattern = raw.split()[0]
+            if not pattern.startswith("/") or any(c in pattern for c in "*?[]"):
+                continue
+            with self.subTest(pattern=pattern):
+                self.assertTrue(
+                    (ROOT / pattern.lstrip("/")).exists(),
+                    f"orphan CODEOWNERS rule: {pattern}",
+                )
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -123,6 +123,45 @@ class SourceHistoryLegosTests(unittest.TestCase):
             ))
             self.assertEqual(cli, runtime)
 
+    def test_declared_owner_with_no_commits_has_valid_zero_delta_view(self):
+        with tempfile.TemporaryDirectory(prefix="ordivon-empty-owner-cut-") as temp:
+            root = Path(temp)
+            git(root, "init", "-q", "-b", "main")
+            git(root, "config", "user.name", "Ordivon Test")
+            git(root, "config", "user.email", "test@example.invalid")
+            manifest = root / "tools/repo/owners.toml"
+            manifest.parent.mkdir(parents=True)
+            manifest.write_text(
+                CANONICAL_OWNER_HEADER
+                + '[[owners]]\nname = "runtime"\nroot = "services/runtime/"\n'
+                + 'verify_task = "runtime:verify"\n'
+                + '[[owners]]\nname = "harness"\nroot = "services/harness/"\n'
+                + 'verify_task = "harness:verify"\n'
+            )
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "registered owners but no effects")
+            git(root, "branch", "remote-main")
+            report = history(root, "main", "remote-main")
+            self.assertEqual(report["counts"], {"local": 0, "remote": 0})
+            for owner in ("runtime", "harness", "tools/repo"):
+                scoped = source_history_legos.owner_slice(report, owner)
+                self.assertEqual(scoped["counts"], {"local": 0, "remote": 0})
+                self.assertEqual(scoped["commits"], [])
+                self.assertEqual(scoped["sourceCut"], report["sourceCut"])
+            with self.assertRaisesRegex(ValueError, "unknown Owner"):
+                source_history_legos.owner_slice(report, "phantom")
+            target = root / "services/runtime/safe.txt"
+            target.parent.mkdir(parents=True)
+            target.write_text("runtime newer\n")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "runtime only")
+            changed = history(root, "main", "remote-main")
+            runtime = source_history_legos.owner_slice(changed, "runtime")
+            harness = source_history_legos.owner_slice(changed, "harness")
+            self.assertEqual(runtime["counts"], {"local": 1, "remote": 0})
+            self.assertEqual(harness["counts"], {"local": 0, "remote": 0})
+            self.assertEqual(harness["commits"], [])
+
     def test_one_sided_dag_owner_views_are_an_overlapping_cover(self):
         # The common fast-forward shape has NO local-only commits. A missing
         # Counter key must not be confused with a missing Git source cut.
@@ -131,6 +170,7 @@ class SourceHistoryLegosTests(unittest.TestCase):
             "sourceCut": {"local": "a" * 40, "remote": "b" * 40,
                           "commonAncestor": "a" * 40},
             "ownerMappingSourceCut": "b" * 40,
+            "ownerUniverse": ["harness", "runtime"],
             "counts": {"local": 0, "remote": 2},
             "ownerMembership": {
                 "remote:runtime": 2,
