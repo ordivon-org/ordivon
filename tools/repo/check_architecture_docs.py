@@ -358,15 +358,50 @@ def validate_owner_lego_dependencies(
     edges = plan.get("edges", [])
     if not isinstance(edges, list):
         raise ArchitectureDocsError(f"{owner}: owner LEGO edges missing")
+    # R2.1 is a finite, typed relation over existing Owner node identities.
+    # Only DEPENDENCY edges assert ordering; other relation labels must still
+    # be well-typed and closed, never silently ignored by a DAG-only check.
+    edge_types = {
+        "ADAPTATION",
+        "AUTHORITY",
+        "COMPATIBILITY",
+        "COMPOSITION",
+        "CONTROL",
+        "DATA",
+        "DELETION",
+        "DEPENDENCY",
+        "EFFECT",
+        "EVIDENCE",
+        "FALSIFICATION",
+        "IDENTITY",
+        "OBSERVATION",
+        "POLICY",
+        "REALIZATION",
+        "SPECIALIZATION",
+        "STATE",
+        "STORAGE",
+        "TRANSACTION",
+        "VERIFICATION",
+    }
+    seen_edges: set[tuple[str, str, str]] = set()
     for edge in edges:
         if not isinstance(edge, dict):
             raise ArchitectureDocsError(f"{owner}: untyped LEGO edge")
-        if edge.get("type") != "DEPENDENCY":
-            continue
+        kind = edge.get("type")
+        if not isinstance(kind, str) or kind not in edge_types:
+            raise ArchitectureDocsError(f"{owner}: unknown LEGO edge type")
         source, target = edge.get("from"), edge.get("to")
-        if not isinstance(source, str) or not isinstance(target, str) or source not in node_ids or target not in node_ids:
-            raise ArchitectureDocsError(f"{owner}: unknown LEGO dependency edge")
-        graph[target].add(source)
+        if (
+            not isinstance(source, str) or not isinstance(target, str)
+            or source not in node_ids or target not in node_ids
+        ):
+            raise ArchitectureDocsError(f"{owner}: unknown LEGO edge endpoint")
+        identity = (source, target, kind)
+        if identity in seen_edges:
+            raise ArchitectureDocsError(f"{owner}: duplicate LEGO typed edge")
+        seen_edges.add(identity)
+        if kind == "DEPENDENCY":
+            graph[target].add(source)
     sorter = TopologicalSorter(graph)
     try:
         sorter.prepare()

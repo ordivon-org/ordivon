@@ -1828,6 +1828,62 @@ def test_opa_port_required_without_native_consumer_is_rejected() -> None:
         module.validate_formal_issue_census(negative, plans)
 
 
+@pytest.mark.parametrize(
+    ("plan_path", "edge_type"),
+    [
+        ("services/runtime/planning/lego-plan-r1.json", "VERIFICATION"),
+        ("services/host/planning/lego-plan-r1.json", "DATA"),
+        ("services/harness/planning/lego-plan-r1.json", "CONTROL"),
+        ("platform/network/planning/lego-plan-r1.json", "OBSERVATION"),
+        ("platform/security/planning/lego-plan-r1.json", "IDENTITY"),
+    ],
+)
+@pytest.mark.parametrize(
+    ("fault", "message"),
+    [
+        ("dangling_source", "unknown LEGO edge endpoint"),
+        ("dangling_target", "unknown LEGO edge endpoint"),
+        ("untyped_source", "unknown LEGO edge endpoint"),
+        ("unknown_relation", "unknown LEGO edge type"),
+        ("missing_relation", "unknown LEGO edge type"),
+        ("duplicate_relation", "duplicate LEGO typed edge"),
+    ],
+)
+def test_formal_r21_every_owner_relation_is_typed_and_closed(
+    plan_path: str, edge_type: str, fault: str, message: str,
+) -> None:
+    """Non-DAG relations must not bypass type, graph-closure or identity checks."""
+    plan = json.loads((ROOT / plan_path).read_text())
+    edge = next(e for e in plan["edges"] if e["type"] == edge_type)
+    if fault == "dangling_source":
+        edge["from"] = "UNKNOWN_LEGO_NODE"
+    elif fault == "dangling_target":
+        edge["to"] = "UNKNOWN_LEGO_NODE"
+    elif fault == "untyped_source":
+        edge["from"] = ["not", "a", "node"]
+    elif fault == "unknown_relation":
+        edge["type"] = "DEPENDENCIES"  # Previously bypassed the DAG checker.
+    elif fault == "missing_relation":
+        del edge["type"]
+    else:
+        plan["edges"].append(copy.deepcopy(edge))
+    with pytest.raises(module.ArchitectureDocsError, match=message):
+        module.validate_owner_lego_dependencies(plan, plan_path)
+
+
+def test_formal_r21_untyped_feedback_cycle_is_not_a_prerequisite_cycle() -> None:
+    """Type-check real observation feedback without inventing workflow ordering."""
+    path = "platform/network/planning/lego-plan-r1.json"
+    plan = json.loads((ROOT / path).read_text())
+    plan["edges"].append({
+        "from": "N04", "to": "N01", "type": "OBSERVATION",
+        "label": "non-precedence feedback loop",
+    })
+    nodes, frontiers = module.validate_owner_lego_dependencies(plan, path)
+    assert nodes == {n["id"] for n in plan["nodes"]}
+    assert len(frontiers) >= 2
+
+
 def test_formal_r21_host_existing_typed_dependencies_form_nontrivial_frontiers() -> None:
     plan = json.loads((ROOT / "services/host/planning/lego-plan-r1.json").read_text())
     nodes, fronts = module.validate_owner_lego_dependencies(plan, "services/host")
