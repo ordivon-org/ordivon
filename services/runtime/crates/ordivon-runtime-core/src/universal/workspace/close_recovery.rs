@@ -328,48 +328,61 @@ fn write_closed_workspace_record(
     write_json_atomic(record_path, &closed)
 }
 
+// A rescue ref is a durable, immutable Workspace identity. Checking first
+// and then updating unconditionally is a TOCTOU overwrite under concurrent
+// closures. Git's expected-absent old oid is the atomic authority; the empty
+// string also works in SHA-256 repositories without hardcoding the hash width.
+fn try_create_rescue_ref_if_absent(
+    git_root: &Path,
+    reference: &str,
+    final_head: &str,
+) -> Result<std::process::Output, UniversalExecError> {
+    Command::new("git")
+        .arg("-C")
+        .arg(git_root)
+        .args(["update-ref", reference, final_head, ""])
+        .output()
+        .map_err(|error| tool_unavailable("git update-ref", error))
+}
+
 fn ensure_rescue_ref(
     git_root: &Path,
     workspace_id: &str,
     final_head: &str,
 ) -> Result<(), UniversalExecError> {
     let reference = format!("refs/ordivon/closed/{workspace_id}");
+    let created = try_create_rescue_ref_if_absent(git_root, &reference, final_head)?;
+    if created.status.success() {
+        return Ok(());
+    }
+    // A simultaneous closure may have won the creation transaction. Accept
+    // only the exact same immutable HEAD; never turn a losing CAS into a write.
     let existing = Command::new("git")
         .arg("-C")
         .arg(git_root)
         .args(["rev-parse", "--verify", "--quiet", &reference])
         .output()
         .map_err(|error| tool_unavailable("git rev-parse rescue ref", error))?;
-    if existing.status.success() {
-        let observed = String::from_utf8(existing.stdout).map_err(|error| {
-            UniversalExecError::new(
-                UniversalExecErrorCode::ToolFailed,
-                format!("git rescue ref output is not UTF-8: {error}"),
-                None,
-                false,
-            )
-        })?;
-        if observed.trim() == final_head {
-            return Ok(());
-        }
-        return Err(UniversalExecError::new(
-            UniversalExecErrorCode::RevisionMismatch,
-            "workspace rescue ref already points to a different commit",
-            Some("workspaceId"),
+    if !existing.status.success() {
+        return Err(tool_failed("git update-ref", &created.stderr));
+    }
+    let observed = String::from_utf8(existing.stdout).map_err(|error| {
+        UniversalExecError::new(
+            UniversalExecErrorCode::ToolFailed,
+            format!("git rescue ref output is not UTF-8: {error}"),
+            None,
             false,
-        ));
+        )
+    })?;
+    if observed.trim() == final_head {
+        return Ok(());
     }
-    let output = Command::new("git")
-        .arg("-C")
-        .arg(git_root)
-        .args(["update-ref", &reference, final_head])
-        .output()
-        .map_err(|error| tool_unavailable("git update-ref", error))?;
-    if output.status.success() {
-        Ok(())
-    } else {
-        Err(tool_failed("git update-ref", &output.stderr))
-    }
+    Err(UniversalExecError::new(
+        UniversalExecErrorCode::RevisionMismatch,
+        "workspace rescue ref already points to a different commit",
+        Some("workspaceId"),
+        false,
+    ))
 }
 
 fn remove_residual_workspace_directory(target: &Path) -> Result<(), UniversalExecError> {
@@ -567,5 +580,72 @@ fn remove_git_worktree_from_workspace(
         Ok(())
     } else {
         Err(tool_failed("git worktree remove", &output.stderr))
+    }
+}
+
+
+#[cfg(test)]
+mod rescue_ref_atomicity_tests {
+    use super::*;
+
+    fn git(root: &Path, args: &[&str]) -> String {
+        let output = Command::new("git")
+            .arg("-C")
+            .arg(root)
+            .args(args)
+            .output()
+            .expect("native Git must run");
+        assert!(
+            output.status.success(),
+            "Git {:?} failed: {}",
+            args,
+            String::from_utf8_lossy(&output.stderr)
+        );
+        String::from_utf8(output.stdout)
+            .expect("Git output is UTF-8")
+            .trim()
+            .to_string()
+    }
+
+    #[test]
+    fn rescue_ref_create_if_absent_does_not_overwrite_interleaved_commit() {
+        // The Git ref transaction, not an Agent-side preflight read,
+        // atomically decides whether the immutable rescue slot is free.
+        for algorithm in ["sha1", "sha256"] {
+            let path = std::env::temp_dir().join(format!(
+                "ordivon-rescue-cas-{}-{algorithm}-{}",
+                std::process::id(),
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .expect("clock")
+                    .as_nanos()
+            ));
+            std::fs::create_dir(&path).expect("create test repository");
+            git(&path, &["init", "-q", "-b", "main", &format!("--object-format={algorithm}")]);
+            git(&path, &["config", "user.name", "Ordivon Test"]);
+            git(&path, &["config", "user.email", "test@example.invalid"]);
+            std::fs::write(path.join("state"), b"first").expect("first source");
+            git(&path, &["add", "."]);
+            git(&path, &["commit", "-qm", "first"]);
+            let first_head = git(&path, &["rev-parse", "HEAD"]);
+            std::fs::write(path.join("state"), b"second").expect("second source");
+            git(&path, &["add", "."]);
+            git(&path, &["commit", "-qm", "second"]);
+            let second_head = git(&path, &["rev-parse", "HEAD"]);
+            let reference = "refs/ordivon/closed/one-slot";
+            let first = try_create_rescue_ref_if_absent(&path, reference, &first_head)
+                .expect("atomic Git transaction");
+            assert!(first.status.success());
+            let collision = try_create_rescue_ref_if_absent(&path, reference, &second_head)
+                .expect("atomic Git transaction");
+            assert!(!collision.status.success(), "an occupied slot must never be replaced");
+            assert_eq!(git(&path, &["rev-parse", reference]), first_head);
+            ensure_rescue_ref(&path, "one-slot", &first_head).expect("same HEAD is idempotent");
+            let mismatch = ensure_rescue_ref(&path, "one-slot", &second_head)
+                .expect_err("a different HEAD must fail closed");
+            assert_eq!(mismatch.code, UniversalExecErrorCode::RevisionMismatch);
+            assert_eq!(git(&path, &["rev-parse", reference]), first_head);
+            std::fs::remove_dir_all(path).expect("remove temporary test repository");
+        }
     }
 }
