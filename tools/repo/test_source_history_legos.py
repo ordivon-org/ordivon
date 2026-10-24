@@ -78,6 +78,85 @@ class SourceHistoryLegosTests(unittest.TestCase):
                 sum(projection["counts"].values()),
             )
 
+    def test_unique_cross_path_bytes_are_not_consumer_or_rename_proofs(self):
+        # Different catalog locations can contain identical bytes without
+        # either commit being cherry-pick-equivalent or consumer-equivalent.
+        with tempfile.TemporaryDirectory(prefix="ordivon-history-relocation-") as temp:
+            root = Path(temp)
+            git(root, "init", "-q", "-b", "main")
+            git(root, "config", "user.name", "Ordivon Test")
+            git(root, "config", "user.email", "test@example.invalid")
+            owner = root / "tools/repo/owners.toml"
+            owner.parent.mkdir(parents=True)
+            owner.write_text(
+                CANONICAL_OWNER_HEADER
+                + '[[owners]]\nname = "authority"\nroot = "meta/next/"\n'
+                + 'verify_task = "repo:ci"\n'
+            )
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "base")
+            git(root, "branch", "remote-main")
+
+            old = "catalogs/authorities/observations/example.json"
+            new = "meta/next/authorities/observations/example.json"
+            source = root / old
+            source.parent.mkdir(parents=True)
+            shared_bytes = b'{"shared":"exact"}\n'
+            source.write_bytes(shared_bytes)
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "local catalog")
+            left = git(root, "rev-parse", "HEAD")
+
+            git(root, "switch", "-q", "remote-main")
+            dest = root / new
+            dest.parent.mkdir(parents=True)
+            dest.write_bytes(shared_bytes)
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "remote catalog")
+            right = git(root, "rev-parse", "HEAD")
+
+            report = history(root, "main", "remote-main")
+            records = {r["commit"]: r for r in report["commits"]}
+            for oid, path, match in [(left, old, new), (right, new, old)]:
+                row = records[oid]
+                self.assertEqual(
+                    row["pathRelations"], {"CROSS_PATH_EXACT_BLOB_AND_MODE": 1}
+                )
+                self.assertEqual(
+                    row["exactCrossPathMatches"],
+                    [{"sourcePath": path, "oppositePath": match}],
+                )
+                self.assertEqual(
+                    row["consumerQualification"], "UNKNOWN_REQUIRES_OWNER_CDC"
+                )
+                self.assertEqual(
+                    row["patchRelation"], "PATCH_DISTINCT_UNQUALIFIED"
+                )
+
+            # Duplicate content yields no unique identity => fail closed.
+            alias = dest.with_name("copy.json")
+            alias.write_bytes(dest.read_bytes())
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "remote duplicate")
+            report = history(root, "main", "remote-main")
+            local = next(r for r in report["commits"] if r["commit"] == left)
+            self.assertEqual(
+                local["pathRelations"], {"OPPOSITE_TIP_ABSENT": 1}
+            )
+            self.assertEqual(local["exactCrossPathMatches"], [])
+
+            # Different executable modes invalidate apparent byte equality.
+            alias.unlink()
+            dest.chmod(0o755)
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "remote mode changed")
+            report = history(root, "main", "remote-main")
+            local = next(r for r in report["commits"] if r["commit"] == left)
+            self.assertEqual(
+                local["pathRelations"], {"OPPOSITE_TIP_ABSENT": 1}
+            )
+            self.assertEqual(local["exactCrossPathMatches"], [])
+
     def test_merge_connectors_are_preserved_not_mistaken_for_patch_proofs(self):
         with tempfile.TemporaryDirectory(prefix="ordivon-history-merge-") as temp:
             root = Path(temp)
