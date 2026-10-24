@@ -1276,55 +1276,58 @@ def test_git01_old_capital_r3_office_has_no_current_consumer() -> None:
     assert "domains/capital/src/ordivon_capital/governance/owner_authority.py" in removed
     module.validate_formal_issue_census(census, plans)
 
-def test_git01_harness_observer_add_revert_is_one_cancelled_source_effect() -> None:
-    """Only the transient historic observer cancels; the current Browser owner lives."""
+def test_git01_old_capital_r3_office_has_no_current_consumer() -> None:
+    """Deleted R3 Office is an historical LEGO, not current capital authority."""
     census, plans = formal_issue_inputs()
-    issue = next(record for record in census["issues"] if record["id"] == "GIT-01")
-    selected = {
-        record["localCommit"][:12]: record
-        for record in issue["consumerSelections"]
-    }
-    pair = selected["ee1f93801091"]
-    assert pair["localCommit"] == "ee1f938010915f348ce96413a06d7407d5434efe"
-    assert pair["pairedRevertCommit"] == "82239de6a1731b1f54f59166b06e95f9003fcd15"
-    assert pair["owner"] == "services/harness"
-    assert pair["disposition"] == "SKIP_CANCELLED_HISTORY_PAIR"
-    assert pair["evidenceScope"] == "EXACT_GIT_BLOBS"
-    assert pair["beforeTreeOid"] == pair["afterTreeOid"] == (
-        "c6ae0ba390a6e37d69ee403395547cc6318f7992"
-    )
-    source = pair["sourceQualification"]
+    issue = next(row for row in census["issues"] if row["id"] == "GIT-01")
+    entry = next(x for x in issue["consumerSelections"] if x["localCommit"].startswith("d116d1e468"))
+    assert entry["owner"] == "domains/capital"
+    assert entry["disposition"] == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
+    assert entry["evidenceScope"] == "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC"
+    source = entry["sourceQualification"]
     assert source["localMain"] == "13704d0cac9e113b395f2d5a21b5bf8119aa04a5"
-    assert source["protectedMain"] == "4db6ce847677dfb12ea5faf64cb40441613fa242"
-    assert source["patchRelation"] == "INVERSE_DIRECT_CHILD"
-    assert source["tipRelation"] == "CURRENT_BROWSER_OWNER_RETAINED"
-    assert source["consumerStanding"] == "CURRENT_OWNER_COVERED"
-    assert source["historicalRuntimeParity"] == "UNKNOWN"
+    assert source["tipRelation"] == "BOTH_TIPS_ABSENT"
     assert source["branchDeletionAllowed"] is False
-    assert "31 native tests" in pair["remoteWitness"]
+    removed = entry["removedHistoricalPaths"]
+    assert len(removed) == 42
+    assert len(set(removed)) == len(removed)
+    assert all(name.startswith("domains/capital/") for name in removed)
+    assert all(not (ROOT / name).exists() for name in removed)
+    assert "domains/capital/config/capital_office_registry.json" in removed
+    assert "domains/capital/src/ordivon_capital/governance/owner_authority.py" in removed
     module.validate_formal_issue_census(census, plans)
 
 
-def test_git01_composition_browser_network_legacy_is_not_revived_without_consumers() -> None:
-    """Absent historical Composition surface is not an active Browserless Network-v2 owner."""
+def test_git01_browser_harness_legacy_nonmerge_effects_are_source_bound() -> None:
+    """Two historical patches have distinct Owners and do not override the live browser."""
     census, plans = formal_issue_inputs()
-    issue = next(row for row in census["issues"] if row["id"] == "GIT-01")
-    matches = [
-        row for row in issue["consumerSelections"]
-        if row["localCommit"] == "d6f0d184dec98746704291ce74639b38fa645d8e"
-    ]
-    assert len(matches) == 1
-    candidate = matches[0]
-    assert candidate["owner"] == "packages/composition"
-    assert candidate["disposition"] == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
-    assert candidate["evidenceScope"] == "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN"
-    assert candidate["sourceQualification"]["historicalSourceState"] == "BOTH_TIPS_ABSENT"
-    assert candidate["sourceQualification"]["branchDeletionAllowed"] is False
-    assert all(not (ROOT / p).exists() for p in candidate["changedPaths"])
-    owner = (ROOT / "services/harness/scripts/browserless_podman_deploy.py").read_text()
-    assert "def resolve_network_binding(" in owner
-    assert "PRODUCTION_CUTOVER_PASS" in owner
-    assert "generationDigest" in owner
+    issue = next(item for item in census["issues"] if item["id"] == "GIT-01")
+    by_sha = {item["localCommit"]: item for item in issue["consumerSelections"]}
+    observer = by_sha["ee1f938010915f348ce96413a06d7407d5434efe"]
+    assert observer["owner"] == "services/harness"
+    assert observer["pairedRevertCommit"] == "82239de6a1731b1f54f59166b06e95f9003fcd15"
+    assert observer["disposition"] == "SKIP_CANCELLED_HISTORY_PAIR"
+    assert observer["beforeTreeOid"] == observer["afterTreeOid"] == (
+        "c6ae0ba390a6e37d69ee403395547cc6318f7992"
+    )
+    assert observer["sourceQualification"]["patchRelation"] == "INVERSE_DIRECT_CHILD"
+    assert observer["sourceQualification"]["historicalRuntimeParity"] == "UNKNOWN"
+    assert observer["sourceQualification"]["branchDeletionAllowed"] is False
+
+    legacy = by_sha["d6f0d184dec98746704291ce74639b38fa645d8e"]
+    assert legacy["owner"] == "packages/composition"
+    assert legacy["disposition"] == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
+    assert legacy["evidenceScope"] == "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN"
+    assert legacy["sourceQualification"]["historicalSourceState"] == "BOTH_TIPS_ABSENT"
+    assert legacy["sourceQualification"]["branchDeletionAllowed"] is False
+    assert all(not (ROOT / path).exists() for path in legacy["changedPaths"])
+
+    # Preserve the current natural Owner, not the obsolete Composition API.
+    current = (ROOT / "services/harness/scripts/browserless_podman_deploy.py").read_text()
+    assert "def resolve_network_binding(" in current
+    assert "PRODUCTION_CUTOVER_PASS" in current
+    assert "generationDigest" in current
+    assert "network-v2" in current
     assert (ROOT / "services/harness/tests/test_browserless_podman_deploy.py").is_file()
     module.validate_formal_issue_census(census, plans)
 
