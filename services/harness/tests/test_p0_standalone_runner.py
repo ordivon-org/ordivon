@@ -99,18 +99,25 @@ class StandaloneHarnessRunnerTests(unittest.TestCase):
                         runner.run(({"role": "user", "content": "complete"},))
                     return "ok"
                 except Exception as error:  # concurrency losers must not reach Provider
-                    return type(error).__name__
+                    return f"{type(error).__name__}: {str(error)[:160]}"
 
             with ThreadPoolExecutor(max_workers=workers) as pool:
                 outcomes = list(pool.map(execute, range(workers)))
 
-            self.assertEqual(len(physical_calls), 1)
-            self.assertEqual(outcomes.count("ok"), 1)
+            # Preserve the durable projection on a failed acknowledgment check:
+            # physical dispatch safety and caller delivery are different claims.
             with SQLiteHarnessStore(root) as store:
                 report = store.doctor(full=True)
                 projection = store.load_run(run_contract.harness_run_id)
                 events = store.list_run_events(run_contract.harness_run_id)
                 event_kinds = [event.event_kind for event in events]
+                witness = (
+                    f"physical_calls={physical_calls!r}; outcomes={outcomes!r}; "
+                    f"status={projection.status!r}; events={event_kinds!r}; "
+                    f"doctor_healthy={report['healthy']!r}"
+                )
+                self.assertEqual(len(physical_calls), 1, witness)
+                self.assertEqual(outcomes.count("ok"), 1, witness)
                 self.assertTrue(report["healthy"] )
                 self.assertEqual(projection.status, HarnessRunStatus.COMPLETED)
                 self.assertEqual(event_kinds.count("harness.provider-call-claimed"), 1)
