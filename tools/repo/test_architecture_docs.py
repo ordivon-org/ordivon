@@ -1276,27 +1276,6 @@ def test_git01_old_capital_r3_office_has_no_current_consumer() -> None:
     assert "domains/capital/src/ordivon_capital/governance/owner_authority.py" in removed
     module.validate_formal_issue_census(census, plans)
 
-def test_git01_old_capital_r3_office_has_no_current_consumer() -> None:
-    """Deleted R3 Office is an historical LEGO, not current capital authority."""
-    census, plans = formal_issue_inputs()
-    issue = next(row for row in census["issues"] if row["id"] == "GIT-01")
-    entry = next(x for x in issue["consumerSelections"] if x["localCommit"].startswith("d116d1e468"))
-    assert entry["owner"] == "domains/capital"
-    assert entry["disposition"] == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
-    assert entry["evidenceScope"] == "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC"
-    source = entry["sourceQualification"]
-    assert source["localMain"] == "13704d0cac9e113b395f2d5a21b5bf8119aa04a5"
-    assert source["tipRelation"] == "BOTH_TIPS_ABSENT"
-    assert source["branchDeletionAllowed"] is False
-    removed = entry["removedHistoricalPaths"]
-    assert len(removed) == 42
-    assert len(set(removed)) == len(removed)
-    assert all(name.startswith("domains/capital/") for name in removed)
-    assert all(not (ROOT / name).exists() for name in removed)
-    assert "domains/capital/config/capital_office_registry.json" in removed
-    assert "domains/capital/src/ordivon_capital/governance/owner_authority.py" in removed
-    module.validate_formal_issue_census(census, plans)
-
 
 def test_git01_browser_harness_legacy_nonmerge_effects_are_source_bound() -> None:
     """Two historical patches have distinct Owners and do not override the live browser."""
