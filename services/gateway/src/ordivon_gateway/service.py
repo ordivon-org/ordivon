@@ -116,6 +116,14 @@ def _required_str(payload: dict[str, Any], key: str) -> str:
     return value
 
 
+def _required_bool(payload: dict[str, Any], key: str) -> bool:
+    """Runtime is the physical state owner; reject non-JSON-boolean terminality."""
+    value = payload.get(key)
+    if type(value) is not bool:
+        raise GatewayError(f"Runtime owner response requires boolean {key}")
+    return value
+
+
 def _optional_str(payload: dict[str, Any], key: str) -> str | None:
     value = payload.get(key)
     if value is None:
@@ -796,7 +804,7 @@ class GatewayService:
             owner_id=route.owner_id,
             native_id=native_id,
             state=str(result.get("status", result.get("attemptState", "unknown"))),
-            terminal=bool(result.get("executionTerminal", False)),
+            terminal=_required_bool(result, "executionTerminal"),
             delivery_disposition=(
                 str(result["deliveryDisposition"])
                 if result.get("deliveryDisposition") is not None
@@ -947,7 +955,7 @@ class GatewayService:
         artifact_count = len(artifacts)
         artifact_projection_complete: bool | None = None
 
-        if bool(result.get("executionTerminal", False)) or artifacts_available:
+        if _required_bool(result, "executionTerminal") or artifacts_available:
             inspection = await self._caller.call_tool(
                 owner_id,
                 "job.get",
@@ -1003,7 +1011,7 @@ class GatewayService:
             owner_id=owner_id,
             native_id=observed_native_id,
             state=str(result.get("status", result.get("attemptState", "unknown"))),
-            terminal=bool(result.get("executionTerminal", False)),
+            terminal=_required_bool(result, "executionTerminal"),
             delivery_disposition=(
                 str(result["deliveryDisposition"])
                 if result.get("deliveryDisposition") is not None
@@ -1059,7 +1067,7 @@ class GatewayService:
             owner_id=owner_id,
             native_id=_required_str(result, "jobId"),
             state=str(result.get("status", "unknown")),
-            terminal=bool(result.get("executionTerminal", False)),
+            terminal=_required_bool(result, "executionTerminal"),
             delivery_disposition=(
                 str(result["deliveryDisposition"])
                 if result.get("deliveryDisposition") is not None
