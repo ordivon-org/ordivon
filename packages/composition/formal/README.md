@@ -83,3 +83,7 @@ that freezing the old live-readiness invariant gives a counterexample,
 and removing Network's admission guard produces an unwitnessed dispatch.
 
 This is bounded model evidence, not live Runtime/Network refinement.
+The native `formal:verify` task also checks the model is **non-vacuous**:
+a dedicated expected-counterexample config must make TLC find an admitted
+Network degradation. A missing transition or incorrectly restricted model
+therefore fails owner verification instead of silently yielding four PASSes.

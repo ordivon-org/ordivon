@@ -136,4 +136,15 @@ AmbiguityCannotBeTreatedAsCompletion ==
 NoHostAcceptanceWithoutConsumerEvidence ==
     ~consumerEvidence => host = "open"
 
+(***************************************************************************)
+(* Intentionally FALSE non-vacuity probe, not an admitted safety invariant. *)
+(* The standalone probe cfg must find a post-admission NetworkDegrade path. *)
+(***************************************************************************)
+NetworkNeverDegradesAfterAdmission ==
+    ~(
+        network = "unknown"
+        /\ runtime \in {"admitted", "running", "ambiguous", "terminal"}
+        /\ admissionInputsWitness
+    )
+
 =============================================================================
