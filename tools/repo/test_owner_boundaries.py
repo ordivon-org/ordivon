@@ -52,6 +52,29 @@ class OwnerBoundaryTests(unittest.TestCase):
             "a single '*' in a source_glob must not authorize a different directory",
         )
 
+    def test_web_cold_ci_consumes_security_owner_lock_once(self) -> None:
+        """Direct pnpm ci and mise verify must reach one Security lock authority."""
+        import json
+        import tomllib
+
+        root = Path(__file__).resolve().parents[2]
+        pkg = json.loads((root / "apps/web/package.json").read_text(encoding="utf-8"))
+        mise = tomllib.loads((root / "apps/web/mise.toml").read_text(encoding="utf-8"))
+        install = (
+            "pnpm --dir ../../platform/security/contracts/"
+            "agent-request-verifier-v1 install --frozen-lockfile"
+        )
+        self.assertIn(install, pkg["scripts"]["ci"])
+        self.assertNotIn(install, mise["tasks"]["verify"]["run"])
+        self.assertIn("pnpm run ci", mise["tasks"]["verify"]["run"])
+        actual = self.finding(
+            "apps/web/package.json",
+            '"ci": "' + install + ' && pnpm typecheck && pnpm test"',
+        )
+        self.assertTrue(MODULE._allowed(actual, SEAMS))
+        stale = self.finding("apps/web/mise.toml", install)
+        self.assertFalse(MODULE._allowed(stale, SEAMS))
+
     def test_unrelated_web_file_cannot_gain_security_contract_by_owner_pair(self) -> None:
         finding = self.finding(
             "apps/web/src/store.ts",
