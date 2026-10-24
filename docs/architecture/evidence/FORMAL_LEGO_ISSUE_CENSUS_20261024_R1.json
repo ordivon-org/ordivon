@@ -760,6 +760,131 @@
             "domains/capital/tools/resource_governance_validation_r1/differential.py",
             "domains/capital/tools/resource_governance_validation_r1/run-differential"
           ]
+        },
+        {
+          "localCommit": "5b8cd86294f277af95ccb64d96b19a02495f435e",
+          "owner": "services/runtime",
+          "consumer": "Root, candidate, and protected Runtime cache bytes must be measured in one traversal without losing allocated or shared-cache accounting; current native test preserves single root traversal contract.",
+          "remoteWitness": "Runtime current script and exact historical test contract; 3/3 grouped native unittest PASS at protected source 4db6ce847677; no live cache pruning or retained-byte deployment claim.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "PARTIAL_TIP_BLOB_EQUIVALENCE_WITH_OWNER_CDC",
+            "consumerStanding": "CURRENT_OWNER_COVERED_WITH_LIMITED_SCOPE",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+          "verifiedEqualChangedBlobs": false,
+          "equalChangedBlobOids": {
+            "services/runtime/scripts/tests/test_cache_root_singlepass.py": "6a742d5ddd71a2dcc1529e67ca46ef03e4b88f53"
+          },
+          "changedPaths": [
+            "services/runtime/scripts/ordivon-runtime-cache",
+            "services/runtime/scripts/tests/test_cache_root_singlepass.py"
+          ]
+        },
+        {
+          "localCommit": "c25b547f24f0fb6248c9cdaafec2145461f84996",
+          "owner": "services/runtime",
+          "consumer": "A cache candidate must obtain size and latest mtime in one logical filesystem walk; current Runtime owner satisfies the exact historical test, without a second independent cache scanner.",
+          "remoteWitness": "Runtime current script and exact historical owner regression; 3/3 combined native unittest PASS at protected source 4db6ce847677; physical cache retention and pruning not claimed.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "PARTIAL_TIP_BLOB_EQUIVALENCE_WITH_OWNER_CDC",
+            "consumerStanding": "CURRENT_OWNER_COVERED_WITH_LIMITED_SCOPE",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+          "verifiedEqualChangedBlobs": false,
+          "equalChangedBlobOids": {
+            "services/runtime/scripts/tests/test_cache_singlewalk_consumer.py": "1c9df2d2361c19adf71b3f921a0a9223f5fcb976"
+          },
+          "changedPaths": [
+            "services/runtime/scripts/ordivon-runtime-cache",
+            "services/runtime/scripts/tests/test_cache_singlewalk_consumer.py"
+          ]
+        },
+        {
+          "localCommit": "0f619c1a3b987ddc753f4e6f59e6ffe19c7a1ee6",
+          "owner": "services/gateway",
+          "consumer": "Independent read-only Gateway Runtime owner observations must use bounded concurrent projection, with no effect retry or misleading stale owner cache; existing Gateway owner test exercises this consumer.",
+          "remoteWitness": "Exact Git test blob equals protected main and native Gateway projection concurrent CDC 7/7 PASS at source 4db6ce847677; script changed since historical commit; do not infer byte identity or all-latency production guarantees.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "PARTIAL_TIP_BLOB_EQUIVALENCE_WITH_OWNER_CDC",
+            "consumerStanding": "CURRENT_OWNER_COVERED_WITH_LIMITED_SCOPE",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+          "verifiedEqualChangedBlobs": false,
+          "equalChangedBlobOids": {
+            "services/gateway/tests/test_projection_concurrency.py": "302aa93d8cb95cff73e09b3e7a5fc3b3bb3c12ce"
+          },
+          "changedPaths": [
+            "services/gateway/src/ordivon_gateway/service.py",
+            "services/gateway/tests/test_projection_concurrency.py"
+          ]
+        },
+        {
+          "localCommit": "b588eddac985c546a0a737781f17c7b19eeb5f36",
+          "owner": "capabilities/artifact",
+          "consumer": "Artifact Temporal worker must not infinite-restart on a permanent carrier-integrity refusal (code126), while preserving transient retry behavior. This is a current source contract, not a live systemd restart test.",
+          "remoteWitness": "The protected main service blob equals exact historical source, incl StartLimitIntervalSec=5min, StartLimitBurst=6, RestartPreventExitStatus=126. Current native Artifact Temporal suite 15/15 PASS at source 4db6ce847677; historical test file changed.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "PARTIAL_TIP_BLOB_EQUIVALENCE_WITH_OWNER_CDC",
+            "consumerStanding": "CURRENT_OWNER_COVERED_WITH_LIMITED_SCOPE",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+          "verifiedEqualChangedBlobs": false,
+          "equalChangedBlobOids": {
+            "capabilities/artifact/systemd/ordivon-artifact-temporal-worker.service": "dcee0dc2837a3b9ea27fa29ef15023b283370423"
+          },
+          "changedPaths": [
+            "capabilities/artifact/systemd/ordivon-artifact-temporal-worker.service",
+            "capabilities/artifact/tests/test_artifact_temporal_contract.py"
+          ]
+        },
+        {
+          "localCommit": "a6ed084fcd6bd977b63fd367361e46096787e0de",
+          "owner": "platform/network",
+          "consumer": "Developer egress selection must reject malformed NO_PROXY controls and ambiguous inherited Runtime proxy environment, protecting in-scope private addresses without automatic VPN production dependency.",
+          "remoteWitness": "Protected main developer-egress profile Git blob is exact historical blob; native Network provider egress regression 46/46 PASS at source 4db6ce847677; test file has evolved; no real external VPN/DNS availability claimed.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "PARTIAL_TIP_BLOB_EQUIVALENCE_WITH_OWNER_CDC",
+            "consumerStanding": "CURRENT_OWNER_COVERED_WITH_LIMITED_SCOPE",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+          "verifiedEqualChangedBlobs": false,
+          "equalChangedBlobOids": {
+            "platform/network/consumers/developer-egress/profile.sh": "b67e6cfc668ba76f634321e6f59949d536ee4b9b"
+          },
+          "changedPaths": [
+            "platform/network/consumers/developer-egress/profile.sh",
+            "platform/network/tests/test_developer_egress_profile.py"
+          ]
         }
       ],
       "consumerBlockedSelections": [
