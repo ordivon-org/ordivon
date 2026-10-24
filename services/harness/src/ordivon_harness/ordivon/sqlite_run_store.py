@@ -3687,13 +3687,15 @@ class SQLiteHarnessRunContinuityStore:
                 )
 
     @classmethod
-    def _require_provider_outcome_state(
+    def _require_provider_settlement_state(
         cls,
         previous: HarnessRunState,
         current: HarnessRunState,
         *,
-        label: str = "Provider Call outcome",
+        label: str,
+        consume_retry: bool,
     ) -> None:
+        """One settlement invariant; only a safe retry consumes retry budget."""
         if (
             previous.messages_digest != current.messages_digest
             or previous.observation_digests != current.observation_digests
@@ -3705,8 +3707,24 @@ class SQLiteHarnessRunContinuityStore:
             or previous.effective_model_ids != current.effective_model_ids
             or set(previous.remaining_budget) != set(current.remaining_budget)
         ):
-            raise HarnessProviderCallRequestMismatch(f"{label} state changed outside active time")
+            scope = "retry accounting" if consume_retry else "active time"
+            raise HarnessProviderCallRequestMismatch(
+                f"{label} state changed outside {scope}"
+            )
+        if consume_retry:
+            previous_retries = previous.remaining_budget.get("modelRetries")
+            current_retries = current.remaining_budget.get("modelRetries")
+            if (
+                type(previous_retries) is not int
+                or type(current_retries) is not int
+                or current_retries != previous_retries - 1
+            ):
+                raise HarnessProviderCallRequestMismatch(
+                    "Provider Call safe retry did not consume exactly one retry"
+                )
         for field, previous_value in previous.remaining_budget.items():
+            if consume_retry and field == "modelRetries":
+                continue
             current_value = current.remaining_budget[field]
             if field == "wallTimeMs":
                 if (
@@ -3718,8 +3736,22 @@ class SQLiteHarnessRunContinuityStore:
                         f"{label} revived its wall-time budget"
                     )
             elif current_value != previous_value:
-                raise HarnessProviderCallRequestMismatch(f"{label} changed a non-time budget")
+                raise HarnessProviderCallRequestMismatch(
+                    f"{label} changed a non-time budget"
+                )
         cls._require_provider_time_monotonic(previous, current, label=label)
+
+    @classmethod
+    def _require_provider_outcome_state(
+        cls,
+        previous: HarnessRunState,
+        current: HarnessRunState,
+        *,
+        label: str = "Provider Call outcome",
+    ) -> None:
+        cls._require_provider_settlement_state(
+            previous, current, label=label, consume_retry=False
+        )
 
     @classmethod
     def _require_provider_safe_retry_state(
@@ -3727,51 +3759,8 @@ class SQLiteHarnessRunContinuityStore:
         previous: HarnessRunState,
         current: HarnessRunState,
     ) -> None:
-        if (
-            previous.messages_digest != current.messages_digest
-            or previous.observation_digests != current.observation_digests
-            or previous.requested_model_id != current.requested_model_id
-            or previous.effective_model_id != current.effective_model_id
-            or previous.seen_model_call_ids != current.seen_model_call_ids
-            or previous.seen_tool_call_ids != current.seen_tool_call_ids
-            or previous.provider_usage != current.provider_usage
-            or previous.effective_model_ids != current.effective_model_ids
-            or set(previous.remaining_budget) != set(current.remaining_budget)
-        ):
-            raise HarnessProviderCallRequestMismatch(
-                "Provider Call safe retry state changed outside retry accounting"
-            )
-        previous_retries = previous.remaining_budget.get("modelRetries")
-        current_retries = current.remaining_budget.get("modelRetries")
-        if (
-            type(previous_retries) is not int
-            or type(current_retries) is not int
-            or current_retries != previous_retries - 1
-        ):
-            raise HarnessProviderCallRequestMismatch(
-                "Provider Call safe retry did not consume exactly one retry"
-            )
-        for field, previous_value in previous.remaining_budget.items():
-            current_value = current.remaining_budget[field]
-            if field == "modelRetries":
-                continue
-            if field == "wallTimeMs":
-                if (
-                    type(previous_value) is not int
-                    or type(current_value) is not int
-                    or current_value > previous_value
-                ):
-                    raise HarnessProviderCallRequestMismatch(
-                        "Provider Call safe retry revived its wall-time budget"
-                    )
-            elif current_value != previous_value:
-                raise HarnessProviderCallRequestMismatch(
-                    "Provider Call safe retry changed a non-time budget"
-                )
-        cls._require_provider_time_monotonic(
-            previous,
-            current,
-            label="Provider Call safe retry",
+        cls._require_provider_settlement_state(
+            previous, current, label="Provider Call safe retry", consume_retry=True
         )
 
     @staticmethod
