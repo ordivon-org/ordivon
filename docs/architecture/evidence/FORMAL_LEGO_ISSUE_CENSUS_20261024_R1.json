@@ -2543,6 +2543,31 @@
         "refinementObligation": "For all qualified protected refs, Git worktree sources and Runtime recovery refs, each required referenced object must be available or covered by an explicitly admissible promisor contract before maintenance may be accepted; MIDX index consistency alone is insufficient. Concrete failed Git fsck is a counterexample; restore and independent postcondition check are required, and source-writer concurrency/root cause remains UNKNOWN.",
         "decision": "Register in existing STORAGE-01; reuse Git native maintenance/fsck and natural tools/repo Owner; prohibit unattended MIDX expiration until qualified concurrency, recovery and negative-case checks exist. No extra GC tool or independent registry."
       }
+    },
+    {
+      "id": "RECOVERY-01",
+      "problemClass": "RECOVERY_SNAPSHOT_RETENTION_UNPROVEN",
+      "naturalOwner": "services/runtime",
+      "standing": "OBSERVED_DISK_COST_RETENTION_AND_RESTORE_CONSUMERS_UNKNOWN",
+      "observation": "2026-10-25 WSL Runtime /dev/sdd 1007 GiB ext4, 302 GiB used and 655 GiB available at census. Historical Runtime recovery root lifecycle-postrelease-acceptance-r1-20261005 occupies about 12 GiB: three independent Oct 7 SQLite snapshots at 4089880576, 4089749504, 4101996544 bytes. Each has an identity-bound manifest with SHA-256; the adjacent protected-9142-two-held-r1 hold.json explicitly reads HOLD_UNKNOWN. A current live /var/lib/ordivon/registry/registry.sqlite3 remains writable. No sampled open file descriptor or tracked source name reference to the old recovery directory was found, but this does not prove absence of dynamic, external, delayed, incident-recovery, or human restore consumers. Separately native paccache removed 930 redistributable installation archives and df showed 5194207232 bytes of reclaimed space with installed package list and pacman DB unchanged.",
+      "evidence": "Local native Runtime Job observed 2026-10-25 ~07:16-07:23 Asia/Shanghai at source main 6ba19fef183bba5b52d0cde6cdd06787f286bcbe. Exact recovery snapshot manifest paths: /var/lib/ordivon/runtime/recovery/lifecycle-postrelease-acceptance-r1-20261005/{human-b-target-a-r2-20261007/manifest.json,human-b-target-a-r3-20261007/snapshot/manifest.json,human-b-target-b-r1-20261007/snapshot/manifest.json}; protected-9142-two-held-r1/hold.json = HOLD_UNKNOWN. Native pacman -Q and pacman -Dk pre/post diff equals zero; paccache -r -k 0 freed 4.84 GiB in df. No deletion of Runtime Registry recovery data.",
+      "decision": "Register storage and recovery-retention obligation in the existing Runtime durable-state RW1 Owner slice, without adding any cleanup daemon, registry or solver. Installed-package download cache is recyclable and was cleaned with native pacman; historical Registry snapshots are different. Keep source/restore uncertainty explicit: neither age nor absence of tracked textual references establishes permission to destroy a recovery image. Qualify a named restore/evidence consumer and one independent readable alternative before retiring a specific snapshot, or retain UNKNOWN. Verify exact file manifest, current hold state, active file users and owner retention contract at the time of any future deletion.",
+      "formalObligation": "For every recovery artifact r, Delete(r) requires an exact source manifest, owner-qualified retention expiry, no held recovery/effect or active restore consumers, verified recoverability or an approved no-restore policy, and an independent before/after acceptance oracle. UNKNOWN, missing evidence, or any held state grants no deletion authority. This scoped abstraction must never infer a concrete guarantee from the result of a static source grep or an old timestamp.",
+      "consumers": "Runtime Registry recovery and release rollback, retained incident/recovery artifacts, Human B acceptance evidence; potential external restore operator remains UNKNOWN",
+      "representation": {
+        "primary": "state-machine",
+        "supporting": [
+          "constraint"
+        ],
+        "methodSkill": ".agents/skills/recursive-lego-calculus/SKILL.md",
+        "requiredWitness": "At the exact source cut, independently reconcile hold.json / Job/Attempt recovery state, snapshot manifests, live file handles, actual restore consumer requirements and one recoverable canonical state before any deletion. Cache reclaim has a separate native pacman database equivalence witness.",
+        "selectionReason": "The hard issue is lossless release authority for durable recovery state, not generic disk size or a second cleaner; use the existing Runtime owner state/transition/evidence relation."
+      },
+      "registration": {
+        "state": "LINKED",
+        "ownerPlan": "services/runtime/planning/lego-plan-r1.json",
+        "slice": "RW1"
+      }
     }
   ],
   "followUp": {

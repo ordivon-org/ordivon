@@ -95,11 +95,26 @@ def write_local(path: Path):
     print(path)
 
 def verify_local(path: Path):
-    report = json.loads(path.read_text())
-    _, plat_digest = platform_info()
+    def unique_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
+        members: dict[str, object] = {}
+        for name, value in pairs:
+            if name in members:
+                raise ValueError(f"duplicate JSON member: {name}")
+            members[name] = value
+        return members
+
+    report = json.loads(path.read_text(), object_pairs_hook=unique_object)
+    expected = build_local_report()
     failures = []
-    expected_source = source_fingerprint()
-    if report.get("schemaVersion") != 2: failures.append("schemaVersion")
+    expected_source = expected["authority"]["sourceFingerprint"]
+    plat_digest = expected["authority"]["platformFingerprint"]
+    if type(report.get("schemaVersion")) is not int or report["schemaVersion"] != 2: failures.append("schemaVersion")
+    # The source digest authenticates the matrix, not arbitrary fields in the
+    # materialized report. Verify the actual declared capabilities and scope.
+    # Byte-stable JSON comparison distinguishes true from 1 and 2 from 2.0.
+    for field in ("platform", "platformEvidence", "generic", "externalFidelity", "outsideNetworkBoundary"):
+        if json.dumps(report.get(field), sort_keys=True) != json.dumps(expected[field], sort_keys=True):
+            failures.append(field)
     if report.get("authority", {}).get("sourceFingerprint") != expected_source: failures.append("sourceFingerprint")
     if report.get("authority", {}).get("platformFingerprint") != plat_digest: failures.append("platformFingerprint")
     if report.get("authority", {}).get("entryPoint") != "task accept:local": failures.append("entryPoint")
