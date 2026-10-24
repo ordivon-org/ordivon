@@ -8,7 +8,7 @@ EXTENDS Naturals
 
 CONSTANTS Attempts, NoAttempt
 
-AttemptStates == {"unused", "admitted", "running", "ambiguous", "lost", "terminal"}
+AttemptStates == {"unused", "admitted", "running", "ambiguous", "orphanedHeld", "lost", "terminal"}
 JobStates == {"none", "admitted", "ambiguous", "terminal"}
 ReconcileStates == {"none", "required", "absent", "committed"}
 
@@ -61,6 +61,28 @@ LoseDispatchKnowledge ==
     /\ reconcileState' = "required"
     /\ UNCHANGED <<currentAttempt, dispatchCount>>
 
+(* A physical orphan has no selected current Attempt, yet its durable *)
+(* held reservation forbids blind admission/retry until proven absent.   *)
+ObserveOrphanedHeld ==
+    /\ currentAttempt # NoAttempt
+    /\ attemptState[currentAttempt] \in {"running", "ambiguous"}
+    /\ attemptState' = [attemptState EXCEPT ![currentAttempt] = "orphanedHeld"]
+    /\ currentAttempt' = NoAttempt
+    /\ jobState' = "ambiguous"
+    /\ reconcileState' = "required"
+    /\ UNCHANGED dispatchCount
+
+ReconcileHeldOrphanProvenAbsent ==
+    /\ jobState = "ambiguous"
+    /\ currentAttempt = NoAttempt
+    /\ reconcileState = "required"
+    /\ \E a \in Attempts:
+        /\ attemptState[a] = "orphanedHeld"
+        /\ attemptState' = [attemptState EXCEPT ![a] = "lost"]
+    /\ jobState' = "admitted"
+    /\ reconcileState' = "absent"
+    /\ UNCHANGED <<currentAttempt, dispatchCount>>
+
 ObserveTerminalEvidence ==
     /\ currentAttempt # NoAttempt
     /\ attemptState[currentAttempt] \in {"running", "ambiguous"}
@@ -95,6 +117,8 @@ Next ==
     \/ Admit
     \/ Dispatch
     \/ LoseDispatchKnowledge
+    \/ ObserveOrphanedHeld
+    \/ ReconcileHeldOrphanProvenAbsent
     \/ ObserveTerminalEvidence
     \/ ReconcileProvenAbsent
     \/ AdmitExplicitRetry
@@ -126,11 +150,28 @@ NoCompetingLiveAttempts ==
                 ~(attemptState[a] \in LiveAttemptStates
                   /\ attemptState[b] \in LiveAttemptStates)
 
+(* One detached unresolved Attempt is a defect before any retry occurs. *)
+NoDetachedLiveAttempt ==
+    \A a \in Attempts:
+        attemptState[a] \in LiveAttemptStates => currentAttempt = a
+
+(* An orphaned-held record is unresolved even if no Attempt pointer *)
+(* remains; it must not become dispatch-eligible or appear accepted.     *)
+HeldOrphanIsFenced ==
+    \A a \in Attempts:
+        attemptState[a] = "orphanedHeld" =>
+            /\ currentAttempt = NoAttempt
+            /\ jobState = "ambiguous"
+            /\ reconcileState = "required"
+            /\ dispatchCount[a] = 1
+
 AmbiguityRequiresReconciliation ==
     jobState = "ambiguous" =>
-        /\ currentAttempt # NoAttempt
-        /\ attemptState[currentAttempt] = "ambiguous"
         /\ reconcileState = "required"
+        /\ (\/ /\ currentAttempt # NoAttempt
+               /\ attemptState[currentAttempt] = "ambiguous"
+            \/ /\ currentAttempt = NoAttempt
+               /\ \E a \in Attempts: attemptState[a] = "orphanedHeld")
 
 NoUnusedAttemptWasDispatched ==
     \A a \in Attempts : attemptState[a] = "unused" => dispatchCount[a] = 0

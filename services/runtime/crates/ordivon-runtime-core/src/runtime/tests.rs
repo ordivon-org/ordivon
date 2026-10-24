@@ -3401,6 +3401,19 @@ fn simultaneous_same_key_creates_one_job_and_one_attempt() {
         1
     );
     assert_eq!(sandbox.registry.active_reservation_count().unwrap(), 1);
+    // Bounded concrete identity witness, not an unbounded model refinement.
+    let admitted = outcomes
+        .iter()
+        .find_map(|outcome| match outcome {
+            AdmissionOutcome::Created(value) => Some(value),
+            AdmissionOutcome::Existing { .. } => None,
+        })
+        .unwrap();
+    let job = sandbox.registry.get_job(&admitted.job.job_id).unwrap();
+    assert_eq!(
+        job.current_attempt_id.as_deref(),
+        Some(admitted.attempt.attempt_id.as_str())
+    );
 }
 
 #[test]
@@ -6904,6 +6917,11 @@ fn orphaned_terminal_keeps_capacity_reserved() {
             .state,
         ReservationState::HeldOrphaned
     );
+    // Actual Orphaned semantics: the selected pointer is cleared but
+    // HeldOrphaned capacity remains. A model that requires the pointer here
+    // would be unsound against the native owner.
+    let job = sandbox.registry.get_job(&created.job.job_id).unwrap();
+    assert_eq!(job.current_attempt_id, None);
 }
 
 #[test]

@@ -164,3 +164,32 @@ identity; neither it nor the bounded TLC result proves Rust-to-TLA+
 refinement. Actual provider completion and semantic Work acceptance are
 outside this model. Consumers of terminal standing must still enforce their
 domain acceptance predicate.
+
+## LEGO R2.1: selected-live and held-orphan identity semantics
+
+The bounded Runtime dispatch model now distinguishes selected live Attempt
+(admitted/running/ambiguous with currentAttempt identity) from a physically
+orphaned and held Attempt (orphanedHeld, no current pointer, reconciliation
+still required). These are distinct legal safety representations. The
+NoDetachedLiveAttempt safety condition forbids an unfenced detached live
+Attempt; HeldOrphanIsFenced prevents a held orphan from becoming a new
+dispatch-eligible Job state without explicit reconciliation. The actual Rust
+owner tests confirm both current identity after initial admission and the
+legal Orphaned pattern of current_attempt_id=None plus HeldOrphaned reservation.
+
+A prepatch negative-control mutation left a detached ambiguous Attempt, with
+no retry enabled. The previous TLC invariant set PASSed (11 distinct states).
+The new selected-live invariant rejected it (TLC exit 12). A separate held
+orphan state is needed because native Rust demonstrated that an orphan can
+legally have no current pointer while retaining its capacity reservation.
+A second held-orphan mutation falsely reset dispatchCount to zero after a
+physical orphan while retaining its held reservation. With the new
+HeldOrphanIsFenced obligation omitted, TLC reported PASS (39 distinct states).
+With that invariant enabled, TLC exited 12 at the earlier false-state
+transition. These are finite bounded falsifiers rather than a claim that
+the Rust implementation was fully refined.
+
+The official SHA-256-locked upstream TLC checks abstract rules only, not
+Rust/SQLite/Windows/Linux refinement, global concurrency capacity or actual
+domain outcomes. Preserve always-on Rust witnesses and conditional physical
+acceptance rather than replacing them with synthetic model claims.
