@@ -25,7 +25,7 @@ Do not create a routing task for a simple known operation. If one method suffice
 | Algebra-first | Each LEGO variant needs a handwritten generator | Native generics/constructors/combinators; compositional-contracts for composition laws | Property tests: identity, associativity, closure only where mathematically valid |
 | Equivalence-first | Multiple implementations offer apparently same behavior | compositional-contracts and consumer-level differential/property tests | Contextual substitutability includes effects, assumptions, version, authority |
 | Declarative-first | Depends on implicit installation/order/env/PATH | Owner-native lockfile, environment declaration and reproducible task | Same declared input/environment yields equivalent result; environmental unknowns listed |
-| Abstraction-first | LEGO compositions require global knowledge or explode in combinations | project-kernel-decomposition; systems-engineering; design-structure-matrix; abstraction/model checker if justified | Hierarchical boundary preserves externally visible contract under composition |
+| Abstraction-first | LEGO compositions explode or an abstract property has infeasible traces | existing Owner model checker; Counterexample-Guided Abstraction Refinement (CEGAR) if justified | Concretize counterexample: real violation repairs Owner, spurious trace refines the model, UNKNOWN stays unproved |
 | Causal-first | Repeated fixes target correlations rather than root cause | causal-intervention; independent telemetry and controlled A/B or fault injection | A contrasting intervention separates competing failure hypotheses |
 | Compression-first | Notes/models replicate stale global advice ignoring context | Existing `meta/next/knowledge` lessons with source, context, consumer and applicability window | Retrieved claim is reproducible and invalid outside declared context |
 
@@ -38,6 +38,16 @@ These lenses are neither a priority score nor mandatory data fields for every LE
 - `ToolDiscovered != Authorized`; `SkillRead != Executed`; `JobSucceeded != ConsumerAccepted`; `IndividualLEGOValid != CompositionValid`.
 - Do not create universal owners or require a universal LEGO registry. Git, Runtime, Host and actual consumer/domain owners keep their respective truth.
 - A type check is not a proof of distributed execution; bounded model checking does not prove implementation equivalence; passing examples do not establish universal equivalence.
+
+## Property-scoped CEGAR only when there is an actual verification consumer
+
+Start from the existing coarse model. Check the property, then classify its
+abstract counterexample as real, spurious or UNKNOWN by comparing with Owner
+transitions and physical effects. Repair real failures; refine only the
+predicate or time distinction missing from spurious traces; preserve UNKNOWN
+when the abstract-to-concrete relation cannot be justified. Passing a bounded
+model does not prove the implementation. Do not request a global minimality
+or sufficiency proof, or create a new solver, registry or workflow.
 
 ## Minimal evidence for an actual reform
 
