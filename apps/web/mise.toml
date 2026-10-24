@@ -7,7 +7,6 @@ opa = "1.21.4"
 shell = "bash -c"
 run = """
 set -euo pipefail
-pnpm --dir ../../platform/security/contracts/agent-request-verifier-v1 install --frozen-lockfile
 pnpm install --frozen-lockfile
 pnpm run ci
 """

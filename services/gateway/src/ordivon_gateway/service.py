@@ -150,7 +150,12 @@ class GatewayService:
             raise ValueError("projection_timeout_seconds must be positive finite")
         self._projection_timeout_seconds = projection_timeout_seconds
         self._caller = caller
-        self._routes = routes or default_routes()
+        self._routes = default_routes() if routes is None else dict(routes)
+        if any(
+            not isinstance(route, CapabilityRoute) or name != route.capability
+            for name, route in self._routes.items()
+        ):
+            raise GatewayError("route identity must match its capability")
         self._external_workers = external_workers
 
     def system_describe(self) -> SystemDescription:
@@ -1059,13 +1064,16 @@ class GatewayService:
             "job.cancel",
             {"schemaVersion": 1, "jobId": native_id},
         )
+        observed_native_id = _required_str(result, "jobId")
+        if observed_native_id != native_id:
+            raise GatewayError("Runtime job.cancel returned mismatched job identity")
         return ExecutionReceipt(
             operation_ref=operation_ref,
             capability=(
                 "execution.windows" if owner_id == "runtime.windows" else "execution.linux"
             ),
             owner_id=owner_id,
-            native_id=_required_str(result, "jobId"),
+            native_id=observed_native_id,
             state=str(result.get("status", "unknown")),
             terminal=_required_bool(result, "executionTerminal"),
             delivery_disposition=(
