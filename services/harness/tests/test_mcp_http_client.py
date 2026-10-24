@@ -39,3 +39,56 @@ def test_official_client_reads_private_bearer_at_call_time(tmp_path):
     credential.chmod(0o644)
     with pytest.raises(ValueError):
         client._request_headers()
+
+
+def test_official_mcp_http_client_preserves_unstructured_native_tool_error():
+    """Real official MCP HTTP owner->client contract, including later recovery."""
+    import asyncio
+    import socket
+    import threading
+    import time
+
+    import uvicorn
+    from mcp.server.mcpserver import MCPServer
+    from mcp.server.mcpserver.exceptions import ToolError
+
+    server_owner = MCPServer("ordivon-mcp-text-error-consumer")
+
+    @server_owner.tool()
+    def unavailable(item: str) -> dict[str, str]:
+        raise ToolError(f"expected missing item: {item}")
+
+    @server_owner.tool()
+    def healthy(item: str) -> dict[str, str]:
+        return {"item": item}
+
+    app = server_owner.streamable_http_app(stateless_http=True, json_response=True)
+    server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", log_level="error"))
+    sock = socket.socket()
+    sock.bind(("127.0.0.1", 0))
+    sock.listen(8)
+    port = sock.getsockname()[1]
+    thread = threading.Thread(
+        target=lambda: asyncio.run(server.serve(sockets=[sock])), daemon=True
+    )
+    thread.start()
+    try:
+        deadline = time.monotonic() + 10
+        while not server.started and time.monotonic() < deadline:
+            time.sleep(0.01)
+        assert server.started, "MCP server failed to start"
+        client = OfficialMcpClient(LoopbackMcpEndpoint(f"http://127.0.0.1:{port}/mcp"))
+        failed, payload = client.call_tool("unavailable", {"item": "sample"})
+        assert failed is True
+        assert payload["isError"] is True
+        assert payload["content"][0]["type"] == "text"
+        assert "expected missing item" in payload["content"][0]["text"]
+        assert client.call_tool("healthy", {"item": "recovered"}) == (
+            False,
+            {"item": "recovered"},
+        )
+    finally:
+        server.should_exit = True
+        thread.join(timeout=10)
+        sock.close()
+        assert not thread.is_alive()
