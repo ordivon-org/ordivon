@@ -155,6 +155,18 @@ Zero required gates produces COMPOSITION_GATES_OPEN, not a successful compositio
 proof. UNKNOWN, missing evidence and UNSATISFIED remain distinct. Neither compilation
 nor Boolean closure proves domain acceptance or grants execution permission.
 
+
+R2.1 scope rule: required Gates are **task-local verification obligations**,
+not a forced one-to-one mapping to all cross-Owner data edges. A bounded
+Research -> Artifact -> Research verifier can legitimately cover a composite
+path through one explicit consumer predicate. Its SATISFIED result cannot
+be upgraded to whole-graph correctness; that separate claim requires a
+declared coverage/refinement bridge to the actual edge contracts. Never
+force one Gate per edge or install a custom mathematical kernel just because
+the diagram contains additional connections. A pass is always about the
+declared Gate supportScope, not the total number of lines in a DAG.
+
+
 For a task where text-only assumptions/guarantees are insufficient, use a
 consumer-selected external mathematical kernel: Pacti for assume-guarantee
 composition/refinement, an existing Runtime TLA+ state-machine model for physical
