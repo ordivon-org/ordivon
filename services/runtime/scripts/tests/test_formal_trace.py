@@ -101,6 +101,22 @@ trait Provider {
                 self.module.ROOT = original_root
         self.assertTrue(any("is not marked #[test]" in error for error in errors))
 
+    def test_ignored_integration_cannot_claim_always_on_proving_test(self):
+        # A source symbol is not executed evidence when Rust marks it ignored.
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "integration_tests.rs"
+            source.write_text(
+                '#[test]\n#[ignore = "requires root and cgroup"]\nfn target() {}\n',
+                encoding="utf-8",
+            )
+            original_root = self.module.ROOT
+            self.module.ROOT = Path(temporary)
+            try:
+                errors = self.module.require_test_symbol(source, "target")
+            finally:
+                self.module.ROOT = original_root
+        self.assertTrue(any("ignored" in error for error in errors), errors)
+
     def test_test_annotation_accepts_adjacent_attributes(self):
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary) / "integration_tests.rs"
@@ -113,6 +129,29 @@ trait Provider {
                 self.module.ROOT = original_root
         self.assertEqual(errors, [])
 
+
+    def test_physical_witness_must_be_explicitly_ignored(self):
+        trace, invariants = manifests()
+        mutated = copy.deepcopy(trace)
+        mutated["conditionalAcceptanceTests"][0]["symbol"] = "orphaned_terminal_keeps_capacity_reserved"
+        mutated["conditionalAcceptanceTests"][0]["path"] = "crates/ordivon-runtime-core/src/runtime/tests.rs"
+        errors = self.module.validate(mutated, invariants)
+        self.assertTrue(any("not an explicitly ignored" in error for error in errors), errors)
+
+    def test_missing_conditional_physical_witness_fails_closed(self):
+        trace, invariants = manifests()
+        mutated = copy.deepcopy(trace)
+        mutated.pop("conditionalAcceptanceTests")
+        errors = self.module.validate(mutated, invariants)
+        self.assertIn("conditional acceptance test set drift", errors)
+
+    def test_conditional_evidence_cannot_replace_always_on_oracle(self):
+        trace, invariants = manifests()
+        mutated = copy.deepcopy(trace)
+        mutated["provingTests"][0]["path"] = "crates/ordivon-runtime-core/src/runtime/integration_tests.rs"
+        mutated["provingTests"][0]["symbol"] = "runtime_two_observers_do_not_race_dispatch_of_one_accepted_attempt"
+        errors = self.module.validate(mutated, invariants)
+        self.assertTrue(any("ignored, not an always-on" in error for error in errors), errors)
 
     def test_changed_formal_model_digest_fails_closed(self):
         trace, invariants = manifests()
@@ -190,6 +229,19 @@ trait Provider {
         mutated["runtimeInvariantBindings"][0]["requiredProofRefs"] = []
         errors = self.module.validate(mutated, invariants)
         self.assertTrue(any("has no required proof references" in error for error in errors), errors)
+
+
+    def test_ignored_physical_proof_ref_cannot_claim_always_on_invariant(self):
+        trace, invariants = manifests()
+        mutated = copy.deepcopy(trace)
+        mutated["runtimeInvariantBindings"][0]["requiredProofRefs"] = [
+            "crates/ordivon-runtime-core/src/runtime/integration_tests.rs::runtime_two_observers_do_not_race_dispatch_of_one_accepted_attempt"
+        ]
+        errors = self.module.validate(mutated, invariants)
+        self.assertTrue(
+            any("ignored, not an always-on proving test" in error for error in errors),
+            errors,
+        )
 
 
 if __name__ == "__main__":

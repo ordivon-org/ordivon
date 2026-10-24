@@ -97,6 +97,26 @@ First accepted finite-model result (2026-09-19):
 This result is evidence for the bounded abstraction only. It is not a proof that the Rust
 implementation refines the model; refinement/traceability remains a separate gate.
 
+## LEGO R2.1: evidence is typed by execution boundary
+
+Reuse the current upstream TLA+/TLC transition-system checker for the **finite
+model**; use Rust Registry CAS and orphan-state tests as **always-on owner
+implementation witnesses**. Do not treat either as a mechanized refinement of
+Rust into TLA+.
+
+The two root/systemd/cgroup integration tests remain present and executable
+with explicit opt-in, but carry **physical-opt-in** evidence status because
+Rust ignores them in normal CI. The source-bound trace gate now rejects an
+ignored test as an always-on proving reference. Its PASS establishes that
+the expected named obligations and test identities exist, not that conditional
+physical tests were executed or that a deployment accepted the behavior.
+
+Mathematical substrate: TLA+ state transitions and invariants, Rust
+versioned CAS semantics, and an assume/guarantee obligation at the
+ExecutionProvider boundary; no new Ordivon DSL, interpreter, global LEGO
+registry, or second test runner is introduced. Model safety, unit-test
+acceptance, optional physical acceptance and domain completion remain separate
+facts.
 
 ## R2.1 consumer-slice: terminal evidence provenance (TLA+ + Rust)
 

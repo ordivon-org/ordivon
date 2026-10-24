@@ -37,14 +37,14 @@
       "id": "I05",
       "name": "JobAttemptSeparation",
       "requiredProofRefs": [
-        "crates/ordivon-runtime-core/src/runtime/integration_tests.rs::runtime_two_observers_do_not_race_dispatch_of_one_accepted_attempt"
+        "crates/ordivon-runtime-core/src/runtime/tests.rs::simultaneous_same_key_creates_one_job_and_one_attempt"
       ]
     },
     {
       "id": "I11",
       "name": "AmbiguityNoBlindRedispatch",
       "requiredProofRefs": [
-        "crates/ordivon-runtime-core/src/runtime/integration_tests.rs::runtime_ambiguous_dispatch_is_lost_without_automatic_redispatch"
+        "crates/ordivon-runtime-core/src/runtime/tests.rs::orphaned_terminal_keeps_capacity_reserved"
       ]
     }
   ],
@@ -79,9 +79,9 @@
   ],
   "provingTests": [
     {
-      "id": "RuntimeDispatch.concurrentObservers",
-      "path": "crates/ordivon-runtime-core/src/runtime/integration_tests.rs",
-      "symbol": "runtime_two_observers_do_not_race_dispatch_of_one_accepted_attempt",
+      "id": "RuntimeDispatch.registryDispatchCAS",
+      "path": "crates/ordivon-runtime-core/src/runtime/tests.rs",
+      "symbol": "formal_dispatch_cas_commits_only_one_event_per_attempt",
       "proves": [
         "Registry.dispatchCAS",
         "AttemptLifecycle.singleDispatch",
@@ -90,9 +90,9 @@
       ]
     },
     {
-      "id": "RuntimeDispatch.ambiguityNoRedrive",
-      "path": "crates/ordivon-runtime-core/src/runtime/integration_tests.rs",
-      "symbol": "runtime_ambiguous_dispatch_is_lost_without_automatic_redispatch",
+      "id": "RuntimeDispatch.ambiguityHeld",
+      "path": "crates/ordivon-runtime-core/src/runtime/tests.rs",
+      "symbol": "orphaned_terminal_keeps_capacity_reserved",
       "proves": [
         "AttemptLifecycle.singleDispatch",
         "RuntimeDispatch.AmbiguityRequiresReconciliation"
@@ -120,6 +120,7 @@
     "bounded correspondence for the at-most-once physical dispatch and ambiguity-preserving design seams",
     "provider refactors may move Linux or Windows realization internals without invalidating the trace while the ExecutionProvider.realize contract seam remains current",
     "fairness-qualified abstract first-decision progress: admitted work reaches terminal evidence or explicit ambiguity, not guaranteed eventual completion",
+    "Always-on Registry CAS/held-orphan native tests are bounded implementation witnesses; ignored physical integration tests are conditional, unexecuted by normal CI and cannot establish production realization.",
     "TLC bounded terminal-state provenance: terminal Job implies committed reconciliation on its dispatched Attempt; existing Rust owner test separately checks more detailed evidence fields; no mechanized refinement is claimed"
   ],
   "nonClaims": [
@@ -128,7 +129,8 @@
     "The finite TLC model remains abstraction evidence and must be checked separately.",
     "The integration tests remain empirical implementation evidence and may require an owner-native real-system environment.",
     "This trace does not establish domain semantic completion or exactly-once external effects.",
-    "Weak fairness is a model assumption; real scheduling, provider responsiveness, retries, deadlock freedom and domain completion are not proven."
+    "Weak fairness is a model assumption; real scheduling, provider responsiveness, retries, deadlock freedom and domain completion are not proven.",
+    "Conditional physical acceptance test identity does not prove that a root/systemd/cgroup test was executed or passed."
   ],
   "supportingContracts": [
     {
@@ -139,6 +141,22 @@
       "symbolKind": "method",
       "symbol": "realize",
       "relation": "The provider SPI names the replaceable realization obligation; it is supporting contract evidence rather than a claim that every current production provider is dynamically dispatched through this trait."
+    }
+  ],
+  "conditionalAcceptanceTests": [
+    {
+      "id": "RuntimeDispatch.concurrentObservers",
+      "path": "crates/ordivon-runtime-core/src/runtime/integration_tests.rs",
+      "symbol": "runtime_two_observers_do_not_race_dispatch_of_one_accepted_attempt",
+      "evidenceMode": "physical-opt-in",
+      "condition": "root + systemd + cgroup v2 + built Runner + ORDIVON_RUN_INTEGRATION=1"
+    },
+    {
+      "id": "RuntimeDispatch.ambiguityNoRedrive",
+      "path": "crates/ordivon-runtime-core/src/runtime/integration_tests.rs",
+      "symbol": "runtime_ambiguous_dispatch_is_lost_without_automatic_redispatch",
+      "evidenceMode": "physical-opt-in",
+      "condition": "root + systemd + cgroup v2 + built Runner + ORDIVON_RUN_INTEGRATION=1"
     }
   ]
 }

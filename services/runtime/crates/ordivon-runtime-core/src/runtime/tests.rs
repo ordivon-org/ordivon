@@ -494,6 +494,48 @@ fn startup_grace_uses_durable_dispatch_issue_time_not_attempt_creation() {
     );
 }
 
+#[test]
+fn formal_dispatch_cas_commits_only_one_event_per_attempt() {
+    let sandbox = Sandbox::new("formal-dispatch-once-cas", 5_000);
+    let created = created(
+        sandbox
+            .registry
+            .submit(&request(&sandbox, "request:formal-dispatch-once", 1))
+            .unwrap(),
+    );
+    let ready = sandbox
+        .registry
+        .mark_bundle_ready(
+            &created.attempt.attempt_id,
+            created.attempt.row_version,
+            &digest(b"bundle"),
+            10,
+        )
+        .unwrap();
+    let issued = sandbox
+        .registry
+        .mark_dispatch_issued(&ready.attempt_id, ready.row_version, 11)
+        .unwrap();
+    assert_eq!(issued.state, AttemptState::Starting);
+
+    // Reusing the old CAS version cannot cross the physical boundary again.
+    let error = sandbox
+        .registry
+        .mark_dispatch_issued(&ready.attempt_id, ready.row_version, 12)
+        .unwrap_err();
+    assert_eq!(error.code, RuntimeErrorCode::AttemptStateConflict);
+
+    let connection = Connection::open(&sandbox.registry.config().db_path).unwrap();
+    let count: i64 = connection
+        .query_row(
+            "SELECT COUNT(*) FROM job_events WHERE attempt_id=?1 AND event_type='DISPATCH_ISSUED'",
+            [&ready.attempt_id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(count, 1);
+}
+
 fn running_attempt_for_commit_fault(sandbox: &Sandbox, client_request_id: &str) -> AttemptRecord {
     let created = created(
         sandbox
