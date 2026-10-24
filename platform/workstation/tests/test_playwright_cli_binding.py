@@ -49,5 +49,10 @@ def test_materialize_writes_only_upstream_config(tmp_path: Path) -> None:
 def test_current_catalog_registers_exact_playwright_cli() -> None:
     catalog = MODULE.core.read_catalog(ROOT / "workstation" / "software.toml")
     row = catalog["managed_equipment"][MODULE.CLI_EQUIPMENT_ID]
-    assert row["executable"].endswith("/@playwright/cli/playwright-cli.js")
-    assert row["sha256"] == "66ea6722d77e57ce1bc7e850cb990d14895d17d8584405ed54a8c72fab38eb75"
+    assert MODULE.CLI_EQUIPMENT_ID == "playwright-cli-0-1-22"
+    assert row["executable"] == (
+        "/opt/ordivon/external/playwright-cli/0.1.22/"
+        "node_modules/@playwright/cli/playwright-cli.js"
+    )
+    assert row["sha256"] == "fda252270793401d2856530a5f503adf7fc326fc07bed97e413138f67c50662b"
+    assert "playwright-cli-0-1-18" not in catalog["managed_equipment"]

@@ -18,7 +18,7 @@ from typing import Any
 import equipment_binding
 import tool_binding as core
 
-CLI_EQUIPMENT_ID = "playwright-cli-0-1-18"
+CLI_EQUIPMENT_ID = "playwright-cli-0-1-22"
 DEFAULT_NODE = Path("/usr/bin/node")
 
 
