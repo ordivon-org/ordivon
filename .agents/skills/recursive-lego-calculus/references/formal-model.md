@@ -147,6 +147,27 @@ A candidate `compose(ell2,ell1)` is defined only when:
 
 If defined, the composite must itself expose the LEGO schema. This is type/schema closure only; it is not proof that the realization is correct in the world.
 
+
+### Scoped evidence is not global graph coverage
+
+A Gate verifier for an existing composite may check one consumer-level
+predicate even when the explicit dataflow has several cross-Owner edges.
+Let `G_req` denote caller-declared required Gates and `E_cross` the
+cross-Owner edges in a representation. Their sets are NOT the same
+mathematical object, and requiring a separate Gate for every `e in
+E_cross` is not a general LEGO axiom. One verifier may legitimately
+discharge a composite end-to-end assumption, provided its scope and
+bridge are independently justified.
+
+A scoped gate closure establishes only `forall g in G_req: psi_g` under
+each verifier's assumptions. It does not imply
+`forall e in E_cross: ContractValid(e)` without independently established
+coverage/refinement relations linking the Gates to those edges. If a
+consumer actually requires whole-graph assurance, that additional
+coverage is a separate task-local obligation; without an express bridge,
+its standing is UNKNOWN. Never upgrade a passed bounded Gate into domain
+acceptance or add redundant Gates merely to match graph cardinality.
+
 ## Encapsulation
 
 A recursive composite may be encapsulated when
