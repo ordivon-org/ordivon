@@ -1758,6 +1758,57 @@
             "branchDeletionAllowed": false
           },
           "evaluatedRemoteMain": "0cd09c67af8fd4dc04f38174b856089c9b5ae6ce"
+        },
+        {
+          "localCommit": "bafd53345257358548039fa095de44dfd89c36a1",
+          "owner": "services/runtime",
+          "consumer": "Runtime lifecycle inspect and reclaim CLI must consume only the bounded, explicitly requested Workspace selection without scanning or affecting unrelated workspaces.",
+          "remoteWitness": "Original Runtime lifecycle inspect/reclaim test methods remain live on exact source cut 0a99bf0e43e9; official scripts/owner-environment test-lifecycle PASS after compiling Runtime inspect helper, then full scripts/owner-environment test SUCCEEDED. No real Workspace close performed.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "0a99bf0e43e9686b4904ca6b734cba723024eeb6",
+            "tipRelation": "CURRENT_LIFECYCLE_OWNER_CONTRACT_COVERS_PATCH_EQUIVALENT_EFFECT",
+            "patchRelation": "PATCH_ID_EQUIVALENT",
+            "consumerStanding": "CURRENT_OWNER_NATIVE_TEST_WITH_PRIVILEGED_LIVE_HOLD",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "0a99bf0e43e9686b4904ca6b734cba723024eeb6"
+        },
+        {
+          "localCommit": "86fc060603cdf0e4d9d6cf3eabffbaaebf0e587e",
+          "owner": "services/runtime",
+          "consumer": "Runtime lifecycle inspect must accept typed Host owner runtime:workspace:<id> references, reject invalid references, and deduplicate identical selections with Workspace ID values.",
+          "remoteWitness": "Original owner-workspace-reference parser and dedup negative tests remain live on source cut 0a99bf0e43e9; official Runtime owner-environment test-lifecycle and full test SUCCEEDED after correct inspector materialization. No production Host-to-Runtime admission asserted.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "0a99bf0e43e9686b4904ca6b734cba723024eeb6",
+            "tipRelation": "CURRENT_LIFECYCLE_OWNER_CONTRACT_COVERS_PATCH_EQUIVALENT_EFFECT",
+            "patchRelation": "PATCH_ID_EQUIVALENT",
+            "consumerStanding": "CURRENT_OWNER_NATIVE_TEST_WITH_PRIVILEGED_LIVE_HOLD",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "0a99bf0e43e9686b4904ca6b734cba723024eeb6"
+        },
+        {
+          "localCommit": "488dd04e14472addaaa8b760c0a197f021f0ba7b",
+          "owner": "services/runtime",
+          "consumer": "Runtime native Owner verification should not duplicate expensive qualification via lifecycle unit or transactional reference model; preserve one extended verification contract and explicit nonqualifying lifecycle inner-loop.",
+          "remoteWitness": "Official scripts/owner-environment test and focused lifecycle/operational tests SUCCEEDED at protected 0a99bf0e43e9. Current Runtime owner toolchain and operator script are authoritative; do not bring back old Cargo/mise/systemd pinned bytes. Ignored privileged integration tests remain outside proof scope.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "0a99bf0e43e9686b4904ca6b734cba723024eeb6",
+            "tipRelation": "CURRENT_LIFECYCLE_OWNER_CONTRACT_COVERS_PATCH_EQUIVALENT_EFFECT",
+            "patchRelation": "PATCH_ID_EQUIVALENT",
+            "consumerStanding": "CURRENT_OWNER_NATIVE_TEST_WITH_PRIVILEGED_LIVE_HOLD",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "0a99bf0e43e9686b4904ca6b734cba723024eeb6"
         }
       ],
       "consumerBlockedSelections": [
