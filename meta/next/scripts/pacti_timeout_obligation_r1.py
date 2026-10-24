@@ -32,7 +32,7 @@ def _load(path: Path) -> dict[str, Any]:
 
 
 def validate_spec(spec: dict[str, Any]) -> None:
-    if spec.get("schemaVersion") != 1:
+    if type(spec.get("schemaVersion")) is not int or spec["schemaVersion"] != 1:
         raise CircuitContractError("spec schemaVersion must equal 1")
     if spec.get("kind") != "ordivon.pacti-timeout-obligation-spec":
         raise CircuitContractError("spec kind is invalid")
@@ -46,9 +46,9 @@ def validate_spec(spec: dict[str, Any]) -> None:
             raise CircuitContractError(f"{key} must be an object")
         grant = case.get("grantMaxMs")
         runtime = case.get("runtimeMaxMs")
-        if not isinstance(grant, int) or grant < 1:
+        if type(grant) is not int or grant < 1:
             raise CircuitContractError(f"{key}.grantMaxMs must be a positive integer")
-        if not isinstance(runtime, int) or runtime < 1:
+        if type(runtime) is not int or runtime < 1:
             raise CircuitContractError(f"{key}.runtimeMaxMs must be a positive integer")
     if spec["acceptedCase"]["grantMaxMs"] > spec["acceptedCase"]["runtimeMaxMs"]:
         raise CircuitContractError("acceptedCase must be algebraically admissible")
