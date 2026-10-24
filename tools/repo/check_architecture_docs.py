@@ -71,7 +71,27 @@ class ArchitectureDocsError(ValueError):
 
 
 def _load_json(path: Path) -> dict[str, Any]:
-    value = json.loads(path.read_text(encoding="utf-8"))
+    """Use unambiguous standard JSON bytes for Owner and evidence registration.
+
+    Python's default last-key-wins and NaN extensions are not a sound source
+    identity for a formal claim. Keep this guard at the existing repo boundary.
+    """
+    def unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, item in pairs:
+            if key in result:
+                raise ArchitectureDocsError(f"duplicate JSON object key: {key!r} in {path}")
+            result[key] = item
+        return result
+
+    def finite_constant(value: str) -> None:
+        raise ArchitectureDocsError(f"non-finite JSON constant: {value} in {path}")
+
+    value = json.loads(
+        path.read_text(encoding="utf-8"),
+        object_pairs_hook=unique_object,
+        parse_constant=finite_constant,
+    )
     if not isinstance(value, dict):
         raise ArchitectureDocsError(f"{path} root must be an object")
     return value
