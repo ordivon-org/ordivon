@@ -6,9 +6,9 @@
   "truthRole": "traceability-gate-not-mechanized-refinement-proof",
   "formalSpecification": {
     "modulePath": "formal/RuntimeDispatchR1.tla",
-    "moduleSha256": "bacbfac86d57fa1eea624a3d778e103c7ed530ae4b87df4e6130e07d69ff80cc",
+    "moduleSha256": "e723a7c67075fe0ac5bc04c3d22dc385b8776066a7d6549d475e46b38da0ccad",
     "configPath": "formal/RuntimeDispatchR1.cfg",
-    "configSha256": "07c60b959a656dae60c583e54c48139b39f8299bd34729bf347f250e08dbe595",
+    "configSha256": "d1f7879e940f65f663719a429bd31bf060e7984ee236cb6f897ad411fed669ed",
     "modelBindings": [
       {
         "id": "RuntimeDispatch.Dispatch",
@@ -24,6 +24,11 @@
         "id": "RuntimeDispatch.AmbiguityRequiresReconciliation",
         "kind": "invariant",
         "symbol": "AmbiguityRequiresReconciliation"
+      },
+      {
+        "id": "RuntimeDispatch.TerminalEvidenceIsCommitted",
+        "kind": "invariant",
+        "symbol": "TerminalEvidenceIsCommitted"
       }
     ]
   },
@@ -100,13 +105,22 @@
       "proves": [
         "ExecutionProvider.assumeGuarantee"
       ]
+    },
+    {
+      "id": "RuntimeDispatch.terminalEvidence",
+      "path": "crates/ordivon-runtime-core/src/runtime/job_attempt_state.rs",
+      "symbol": "terminal_evidence_requires_result_finish_matching_resolution_and_no_current_attempt",
+      "proves": [
+        "RuntimeDispatch.TerminalEvidenceIsCommitted"
+      ]
     }
   ],
   "supportScope": [
     "machine-checkable currentness of the named TLA+ model, Runtime invariant references, stable Runtime contract seams and proving-test identities",
     "bounded correspondence for the at-most-once physical dispatch and ambiguity-preserving design seams",
     "provider refactors may move Linux or Windows realization internals without invalidating the trace while the ExecutionProvider.realize contract seam remains current",
-    "fairness-qualified abstract first-decision progress: admitted work reaches terminal evidence or explicit ambiguity, not guaranteed eventual completion"
+    "fairness-qualified abstract first-decision progress: admitted work reaches terminal evidence or explicit ambiguity, not guaranteed eventual completion",
+    "TLC bounded terminal-state provenance: terminal Job implies committed reconciliation on its dispatched Attempt; existing Rust owner test separately checks more detailed evidence fields; no mechanized refinement is claimed"
   ],
   "nonClaims": [
     "This is not a mechanized refinement proof from Rust semantics to TLA+ semantics.",

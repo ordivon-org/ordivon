@@ -51,6 +51,29 @@ def test_cycle_fails_closed() -> None:
         module.validate_graph(value)
 
 
+@pytest.mark.parametrize("cycle", [False, True])
+def test_long_dependency_chain_uses_nonrecursive_mature_graph_kernel(
+    cycle: bool,
+) -> None:
+    """A deep, bounded owner-DAG must not depend on Python recursion depth."""
+    value = load_graph()
+    exemplar = copy.deepcopy(value["nodes"][0])
+    predecessor = exemplar["id"]
+    for index in range(2048):
+        node = copy.deepcopy(exemplar)
+        node["id"] = f"DEEP{index:04d}"
+        node["wave"] = "W1"
+        node["dependsOn"] = [predecessor]
+        value["nodes"].append(node)
+        predecessor = node["id"]
+    if cycle:
+        value["nodes"][-2048]["dependsOn"] = [predecessor]
+        with pytest.raises(module.CompositionArchitectureError, match="dependency cycle"):
+            module.validate_graph(value)
+    else:
+        module.validate_graph(value)
+
+
 def test_gateway_truth_boundary_must_remain_non_authoritative() -> None:
     value = load_graph()
     gateway = next(node for node in value["nodes"] if node["owner"] == "gateway")
