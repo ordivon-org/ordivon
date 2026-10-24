@@ -418,6 +418,30 @@
         "requiredWitness": "tools/repo/test_architecture_docs.py::test_formal_issue_census_rejects_undeclared_natural_owner and test_issue_owner_source_cut_is_explicit",
         "selectionReason": "Exact membership in canonical owner source is sufficient; graph machinery would be redundant."
       }
+    },
+    {
+      "id": "FORMAL-02",
+      "problemClass": "FORMAL_REGISTRATION_SOURCE_PROVENANCE",
+      "naturalOwner": "tools/repo",
+      "standing": "LOCAL_VERIFIED_PENDING_PR_ACCEPTANCE",
+      "observation": "At protected source 9be7175d5c00, the existing census validation accepted a lexically owner-local LEGO plan whose actual file was an out-of-tree symlink. A complete, plausible plan payload therefore did not prove a registered owner-local source identity. The globbed FORMAL_LEGO_ISSUE_CENSUS JSON source itself also accepted an out-of-checkout symlink prior to parsing. The canonical owners.toml type universe was likewise read via an unchecked path.",
+      "evidence": "RED: test_formal_issue_owner_plan_cannot_escape_source_cut failed with DID NOT RAISE ArchitectureDocsError (1 failed); GREEN: same exact negative-control test and 44 existing architecture-doc tests passed after requiring resolved plan path to equal the canonical source-tree path. Runtime Job job-01a16b6a-f07e-74d3-9882-969f0c0a209a. Second RED: the census glob parsed an external symlink as formal issue evidence. Second GREEN must require a source-owned census regular file before _load_json. Third RED: external-symlink owners.toml parsed 18 externally supplied owners. GREEN: candidate-local owner manifest required before naturalOwner type evaluation.",
+      "decision": "Use the existing tools/repo architecture checker and native consumer tests to reject any missing, symlinked or path-redirected owner plan before loading JSON. Do not create a second registry, authority mechanism, or verifier.",
+      "formalObligation": "For every registration r, resolve(root/r.ownerPlan) == resolve(root)/r.ownerPlan, and the resolved object is a regular source-tree file; its owner-local contract is then checked separately. All globbed census inputs have the same exact SourceCut file identity. The canonical owner manifest is source-owned before resolving naturalOwner types.",
+      "consumers": "tools/repo/check_architecture_docs.py validate_repository and validate_formal_issue_census; tools/repo/test_architecture_docs.py; repo:ci.",
+      "representation": {
+        "primary": "equivalence",
+        "supporting": [
+          "constraint"
+        ],
+        "methodSkill": ".agents/skills/compositional-contracts/SKILL.md",
+        "requiredWitness": "A passing local SourceCut plan and an otherwise identical out-of-tree symlink plan must yield PASS and fail-closed respectively. The census input file itself must fail closed when missing or symlinked outside the checkout. The owner manifest source must also fail closed on missing or redirected paths.",
+        "selectionReason": "Realpath identity is a source-equivalence invariant; extra state machines or registries cannot add discriminating evidence."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "tools/repo is repository mechanics, not a domain LEGO owner. Its existing architecture checker and tests are the natural implementation and consumer, while a new owner-local plan would duplicate responsibility."
+      }
     }
   ],
   "followUp": {
