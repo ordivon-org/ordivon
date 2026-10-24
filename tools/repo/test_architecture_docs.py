@@ -782,6 +782,7 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
         "a6af91c187", "63d3c48172", "0abd90d3ba",
         "b13052b5da", "fd2082905f", "e140571445",
         "ecca6ad1ae", "86298d72ea", "9c8e37dfe8", "fcf5fc6d1b",
+        "82c8fa2924", "84baec0ea1", "7a96b238fb", "7c2fa8c4d2",
     }
     for item in candidates:
         assert len(item["localCommit"]) == 40
@@ -799,6 +800,8 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             assert item["disposition"] == "SKIP_OLDER_PIN"
         if item["localCommit"].startswith(("ecca6ad", "86298d7", "9c8e37d", "fcf5fc6")):
             assert item["evaluatedRemoteMain"] == "a56afcf30aafd8d5bcd0f41adb950504f5724267"
+        if item["localCommit"].startswith(("82c8fa2924", "84baec0ea1", "7a96b238fb", "7c2fa8c4d2")):
+            assert item["evaluatedRemoteMain"] == "41a1073703343aad61c3ffacac34edfb91019800"
         if item["evidenceScope"] == "CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT":
             assert item["disposition"] == "SKIP_UNCONSUMED_PERMISSION"
     module.validate_formal_issue_census(census, plans)
