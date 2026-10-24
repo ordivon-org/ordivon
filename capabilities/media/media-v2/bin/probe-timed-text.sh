@@ -9,7 +9,7 @@ fi
 input=$(realpath "$1")
 profile=$(realpath "$2")
 out=$3
-root=$(git rev-parse --show-toplevel)
+root=$(cd "$(dirname "$0")/../.." && pwd)
 ttconv="$root/media-v2/bin/ttconv-pinned.sh"
 
 [[ -f "$input" ]] || { echo "timed text not found: $input" >&2; exit 66; }
