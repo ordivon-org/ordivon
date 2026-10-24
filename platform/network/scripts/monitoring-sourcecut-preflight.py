@@ -14,6 +14,19 @@ CONFIGS = ("blackbox/blackbox.yml", "prometheus/prometheus.yml")
 
 
 def verify(source: Path, live: Path) -> str:
+    # The two declared configs are a closed set for this install owner.
+    # Extra YAML may be a previously deployed consumer or alert rule.
+    for tree in (source, live):
+        for folder in ("blackbox", "prometheus"):
+            directory = tree / folder
+            if directory.is_symlink():
+                raise ValueError(f"unmanaged monitoring directory: {folder}")
+            if not directory.is_dir():
+                continue
+            for path in directory.iterdir():
+                name = f"{folder}/{path.name}"
+                if path.suffix.lower() in {".yml", ".yaml"} and name not in CONFIGS:
+                    raise ValueError(f"unmanaged monitoring configuration: {name}")
     candidate = []
     for name in CONFIGS:
         path = source / name

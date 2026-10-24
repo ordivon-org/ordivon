@@ -93,3 +93,15 @@ def test_production_path_uses_application_consequence_not_30s_handshake_age():
     assert 'test "${hs:-0}" -gt 0' in script
     assert 'openai_http' in script and 'chatgpt_http' in script
     assert 'Current liveness is proven' in script
+
+
+def test_retired_network_capability_router_stays_retired():
+    """The current provider and consumer policies replace the old custom routing layer."""
+    for relative in (
+        "scripts/network_capability_router.py",
+        "config/network-capability-routes.json",
+        "tests/test_network_capability_router.py",
+    ):
+        assert not (ROOT / relative).exists(), f"retired Network Router returned: {relative}"
+    for consumer in ("x-reality", "supply-chain"):
+        assert (ROOT / "consumers" / consumer / "config" / "egress.json").is_file()

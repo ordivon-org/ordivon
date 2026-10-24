@@ -457,6 +457,207 @@
           "evaluatedRemoteMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc"
         },
         {
+          "localCommit": "ac558a911eaad6a2725f51d3d88c2de2605ce540",
+          "owner": "services/runtime",
+          "consumer": "Source-bound TLA+ external-jar formal wrapper runs through the existing Runtime Python unittest runner. Historical test source is byte-identical to protected consumer; no alternate TLA toolchain or test wrapper to recreate.",
+          "remoteWitness": "services/runtime/scripts/tests/test_tla_formal_external_jar.py (Git historical-to-remote blob d09159ee32a3d2 unchanged at SourceCut); python3 -m unittest -q services.runtime.scripts.tests.test_tla_formal_external_jar: 10 PASS.",
+          "evidenceScope": "EXACT_GIT_BLOB_AND_NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc"
+        },
+        {
+          "localCommit": "1e509f0b6c56f5935523014d3b069460a9f2baf8",
+          "owner": "domains/game",
+          "consumer": "Historical Game Windows foreground guard's executable and HOLD-before-input behavior already exist byte-for-byte on protected Main. Current Game README has substantially newer product and recipe contract; copying old README would regress documentation. Windows live foreground UI behavior is not established by this source-level proof.",
+          "remoteWitness": "domains/game/kits/room-action-r0/scripts/windows_foreground_guard.py: historical/current blob 2c4c64332d4696 equal. Native non-Windows invocation returns the explicit HOLD exit 20 without input. No live Windows foreground acceptance claimed.",
+          "evidenceScope": "EXACT_EXECUTABLE_BLOB_WITH_NONWINDOWS_HOLD_ONLY",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc"
+        },
+        {
+          "localCommit": "107e6b52c399777e0ee03a36a2c8f321f1962dbe",
+          "owner": "capabilities/artifact",
+          "consumer": "Artifact browser-carrier pnpm 12.15.0 package manifest and locked dependency graph already match protected Main exactly. Historical mise.toml Python 3.14.9 / uv 0.13.4 is older than protected Main 3.15.1 / 0.13.5, so cherry-picking the whole historical commit would reintroduce lower tool versions.",
+          "remoteWitness": "Exact current Git blobs: artifact-delivery/node/package.json and node/pnpm-lock.yaml equal historical cut; artifact-delivery/mise.toml protected toolchain node 26.12.1, pnpm 12.15.0, Python 3.15.1, uv 0.13.5. Native test_artifact_delivery_toolchain_doctor.py: 3 PASS.",
+          "evidenceScope": "CURRENT_TOOLCHAIN_SUPERSEDES_OLD_LOCK_AND_NATIVE_TEST_PASS",
+          "disposition": "SKIP_OLDER_TOOLCHAIN_CHERRY_PICK",
+          "evaluatedRemoteMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc"
+        },
+        {
+          "localCommit": "3ab30f2b827ade5313b8bbf56d0df40d345a3ecd",
+          "owner": "domains/game",
+          "consumer": "Seeded room and enemy/weapon palette generates validated replayable recipes without a second world engine",
+          "remoteWitness": "domains/game/kits/room-action-r0/src/lib.rs::catalog_generator_replays_identically_and_composes_across_categories + src/main.rs::seeded_game_spawns_actual_bevy_enemy_archetypes_from_palette",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "INTERMEDIATE_HISTORICAL_BLOBS_SUPERSEDED_BY_CURRENT_GAME_KIT",
+            "consumerStanding": "CURRENT_OWNER_COVERED",
+            "scope": "RULES_AND_HEADLESS_ECS_ONLY_NOT_REAL_DISPLAY_OR_JSON_CLI_BINARY",
+            "branchDeletionAllowed": false
+          }
+        },
+        {
+          "localCommit": "eeb5630524877b26fc2fbab321e02c9f1b8a069b",
+          "owner": "domains/game",
+          "consumer": "Encounter reinforcement waves block gate until final foe; dash timing remains independent deterministic game state",
+          "remoteWitness": "domains/game/kits/room-action-r0/src/lib.rs::reinforcement_wave_blocks_gate_until_final_enemy_and_survives_restart + src/main.rs::ecs_boss_reinforcement_blocks_gate_and_uses_same_enemy_lego + native_player_move_consumes_dash_speed_and_cooldown_state",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "INTERMEDIATE_HISTORICAL_BLOBS_SUPERSEDED_BY_CURRENT_GAME_KIT",
+            "consumerStanding": "CURRENT_OWNER_COVERED",
+            "scope": "RULES_AND_HEADLESS_ECS_ONLY_NOT_REAL_DISPLAY_OR_JSON_CLI_BINARY",
+            "branchDeletionAllowed": false
+          }
+        },
+        {
+          "localCommit": "db9d21d0330a2370943f5788909ea0f1864bb09c",
+          "owner": "domains/game",
+          "consumer": "Composable weapon and enemy behavior recipes preserve live ECS pellet spread, hit damage, chase and keep-distance contracts",
+          "remoteWitness": "domains/game/kits/room-action-r0/src/lib.rs::weapon_recipe_and_behavior_are_replaceable_without_gameplay_forks + src/main.rs::weapon_recipe_spawns_real_bevy_three_pellet_spread_and_damage + chase_and_keep_distance_behaviors_move_oppositely_for_same_player",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "INTERMEDIATE_HISTORICAL_BLOBS_SUPERSEDED_BY_CURRENT_GAME_KIT",
+            "consumerStanding": "CURRENT_OWNER_COVERED",
+            "scope": "RULES_AND_HEADLESS_ECS_ONLY_NOT_REAL_DISPLAY_OR_JSON_CLI_BINARY",
+            "branchDeletionAllowed": false
+          }
+        },
+        {
+          "localCommit": "8303ca3a7a4ef8501942449fb72522fd9d5b5984",
+          "owner": "domains/game",
+          "consumer": "Current Game room-action JSON palette and seeded recipe CLI preserve validated structured output with one existing Bevy/Rust consumer",
+          "remoteWitness": "domains/game/kits/room-action-r0/src/lib.rs::palette_json_round_trip_preserves_generator_and_validation + recipe_json_round_trip_matches_consumed_run; native Cargo CLI --palette-json yields rooms/weapons/enemies; --seed 42 --rooms 4 --json yields four rooms",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "INTERMEDIATE_HISTORICAL_BLOBS_SUPERSEDED_BY_CURRENT_GAME_KIT",
+            "consumerStanding": "CURRENT_OWNER_COVERED",
+            "scope": "LOCKED_OFFLINE_JSON_CLI_AND_LIB_NOT_GPU_DISPLAY_OR_REAL_INPUT",
+            "executionBoundary": "CARGO_TARGET_DIR_REALPATH_OF_RUNTIME_CACHE_ALIAS",
+            "branchDeletionAllowed": false
+          }
+        },
+        {
+          "localCommit": "7263f9ea652e4bd1658cf705826cf2635f00ab0d",
+          "owner": "services/runtime",
+          "consumer": "Nested Git worktree cannot inherit parent identity; a genuinely nested Git repository is digestible, and a plain untracked directory fails closed as WorkspacePathDenied.",
+          "remoteWitness": "services/runtime/crates/ordivon-runtime-core/src/universal/workspace/source_state.rs::gitlink_worktree_root_tests::{nested_gitlink_directory_does_not_inherit_parent_worktree_identity,untracked_nested_git_worktree_is_digestible,ordinary_untracked_directory_cannot_be_source_git_worktree}; native transactional-runtime cargo test filter gitlink_worktree_root_tests: 3/3 PASS.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc"
+        },
+        {
+          "localCommit": "efb7510538ef8d4932edd39d257357dfee63c695",
+          "owner": "services/runtime",
+          "consumer": "Workspace list bounded live HEAD/dirty Git projection already executes independent probes with maximum four scoped workers, preserves input order and per-workspace issue isolation; exact includeSourceStateDigest keeps serial proof-strength path.",
+          "remoteWitness": "services/runtime/crates/ordivon-runtime-core/src/runtime/engine/workspace.rs::WORKSPACE_LIST_LIVE_PROJECTION_PARALLELISM=4, thread::scope + contiguous chunks + ordered join; cargo test filter workspace_list 6/6 PASS, covering paging/order and isolated projection errors. Concurrency bound is source-inspected rather than timed independently.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc"
+        },
+        {
+          "localCommit": "100aee2ec81b7e77f7da439c100f46e89c010c5c",
+          "owner": "platform/security",
+          "consumer": "Pinned OWASP TM-BOM upstream schema remains an exact Git blob, while current validator consumes the digest and refuses tampering before validator execution; do not replay the historical 969-line carrier.",
+          "remoteWitness": "platform/security/schemas/owasp-threat-model-v1.0.2.schema.json byte-identical; scripts/validate_tmbom.sh digest check + tests/test_tmbom_pinned_schema.py native 2/2 PASS.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "68e4281b78581746a32c4502726a4c6ce7fe8d46"
+        },
+        {
+          "localCommit": "e815f92b0ce92f1c42c78bbb30da721e66269e1c",
+          "owner": "tools/repo",
+          "consumer": "Historical nested Security GitHub workflow no longer exists on protected source. Root CI and Runtime release consume immutable mise-action v5.2.2; native GitHub governance enforces ownership. Do not resurrect redundant nested CI.",
+          "remoteWitness": ".github/workflows/ci.yml + runtime-release.yml immutable mise-action SHA 8418fedb1110381a0d3ba51a7a415d7c1b884550; tools/repo/test_github_governance.py native 3/3 PASS; old Security nested workflow absent.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "68e4281b78581746a32c4502726a4c6ce7fe8d46"
+        },
+        {
+          "localCommit": "d521d142682ca667da5a8d97997b5d1157b132a0",
+          "owner": "platform/security",
+          "consumer": "Historical private Security CI and stale-lock check superseded by root pinned CI and Security owner uv sync --locked followed by --frozen verification. Avoid restoring legacy workflow or weaker pin.",
+          "remoteWitness": "platform/security/mise.toml verify uses uv sync --locked --python 3.15.1 + uv run --frozen, native owner pinned Node/pnpm/uv; root GitHub governance 3/3 PASS; obsolete nested workflow absent.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_OLDER_SOURCECUT",
+          "evaluatedRemoteMain": "68e4281b78581746a32c4502726a4c6ce7fe8d46"
+        },
+        {
+          "localCommit": "392531163cf9ab2b68355d39a5730076b7026536",
+          "owner": "platform/workstation",
+          "consumer": "Old local commit implicitly requires /usr/local/bin/codex-vpn. Protected Home Manager instead consumes exact-version pnpm Codex CLI directly; VPN is not a production launch dependency. Do not restore redundant wrapper or forced egress authority.",
+          "remoteWitness": "platform/workstation/workstation/nix/nix/home.nix tools/bin/codex direct out-of-store symlink to versioned upstream package; tests/test_codex_cli_pnpm_contract.py 3/3 native owner PASS.",
+          "evidenceScope": "CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT",
+          "disposition": "SKIP_UNCONSUMED_PERMISSION",
+          "evaluatedRemoteMain": "68e4281b78581746a32c4502726a4c6ce7fe8d46"
+        },
+        {
+          "localCommit": "9ae3d88bbd4bfae6e72494b4157c76c5edc0a983",
+          "owner": "tools/repo",
+          "consumer": "Cross-cutting repo edits select explicit native owner verification; obsolete calendar-specific exception must not be revived. Existing convergence planner remains narrower than replaying historical logic.",
+          "remoteWitness": "tools/repo/convergence_plan.py::build_plan and test_convergence_plan.py::test_cross_cutting_change_requires_all_owner_verification; native convergence planner 13/13 PASS.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "68e4281b78581746a32c4502726a4c6ce7fe8d46"
+        },
+        {
+          "localCommit": "9c0684c02c9ee13f7190388d93431fa96c34caea",
+          "historicalCohort": [
+            "9c0684c02c9ee13f7190388d93431fa96c34caea",
+            "61a3f3c0e905a7ee7bb1a910cefec0521340b4f6",
+            "cfdbc893ba8f351579e3d8bda8896efecf40a567",
+            "812f768254704d70aac987948d0fee72fade4d64",
+            "c1108ebc9820066d830e1699e7887c31860228b3",
+            "a5e14b5ec8bc6848a12b382a1b22acbabb6dccfa"
+          ],
+          "owner": "tools/repo",
+          "consumer": "Retired document-currentness reporting, historical live-view and one-shot first-contact evaluation had zero current file/entrypoint consumers in both exact Main trees. Existing architecture documentation validator and native repository CI remain the effective consumers; do not reintroduce the old helpers.",
+          "remoteWitness": "Exact main 13704d0cac9e + origin/main bb8c591851a4: both trees lack document_currentness.py, living_view.py, first_contact_eval_receipt.py, first_contact_eval_matrix.py and their former test entrypoints; git grep -F on eight historical path names returns zero tracked references; tools/repo/check_architecture_docs.py; tools/repo/test_architecture_docs.py::test_retired_repository_status_projections_stay_absent (negative RED + GREEN)",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_RETIRED_UNCONSUMED",
+          "evaluatedRemoteMain": "bb8c591851a4c9f0a34763bc1a5fde365030cba4"
+        },
+        {
+          "localCommit": "329f86db80dde3fe6764504f43d3b3e0d7d0de92",
+          "historicalCohort": [
+            "329f86db80dde3fe6764504f43d3b3e0d7d0de92",
+            "086793c4174d6e0c35b978e5597383af1666aaa0",
+            "08c485070671d232a7ba186d4123cdab9bc8e5c9",
+            "cb750b696b57e2e5bb420d41ddfc47f5eae62f81",
+            "d6388e91d7ead82c74d3dff73d77e36ab1683faa",
+            "a9fadabd8f5c90712a5dd3dab4469823cd0a0f94",
+            "6840c27fd6ae13404277461e7dbce6a9c3d59327",
+            "e31280f36b2eb9c94a8e73ebb4d94908f0cb1f41"
+          ],
+          "owner": "platform/network",
+          "consumer": "Custom Network Capability Router has no operational consumers in either final Main tree; native sing-box per-consumer policies, systemd readiness, and owner probes preserve the necessary Network effect. Do not resurrect the retired router, policy or its own tests.",
+          "remoteWitness": "platform/network/planning/lego-plan-r1.json::N01 + platform/network/tests/test_shared_provider_carrier.py::test_retired_network_capability_router_stays_retired, test_browserless_owns_one_internal_provider_carrier, test_finance_provider_lanes_share_carrier_and_macro_lanes_remain_direct; local source main platform/network/docs/UPSTREAM_FIRST_CONVERGENCE_R1.md retirement ledger at 2026-10-22",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_RETIRED_UNCONSUMED",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+            "patchRelation": "DISTINCT_HISTORICAL_RETIRED_EFFECT",
+            "consumerStanding": "NO_CURRENT_CONSUMER_AND_NATIVE_REPLACEMENT",
+            "branchDeletionAllowed": false
+          }
+        },
+        {
           "localCommit": "d6f0d184dec98746704291ce74639b38fa645d8e",
           "owner": "packages/composition",
           "consumer": "Historical browser-network binding input-sequence validator and tests are absent at both current local Main and protected Main tips. No in-tree caller uses compile_browser_network_binding. Production Browserless instead consumes a Network v2 namespace, graduated receipt generation and service state through the existing Harness deployment Owner; there is no requirement to revive the old list-valued Composition API.",
