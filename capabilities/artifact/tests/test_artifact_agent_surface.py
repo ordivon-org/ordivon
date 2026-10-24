@@ -18,6 +18,19 @@ class ArtifactAgentSurfaceTests(unittest.TestCase):
         names = {x["name"] for x in surface["tools"]}
         self.assertEqual(names, {"artifact_family_status", "artifact_profile_coverage", "artifact_verify_propose", "artifact_build_propose", "artifact_toolchain_doctor_propose", "artifact_cad_admission_status"})
 
+    def test_published_tool_input_schema_rejects_extra_missing_and_wrong_types(self):
+        # The published JSON Schema is the only input authority.
+        for action, invalid in (
+            ("artifact_family_status", {"unpublishedField": "must-reject"}),
+            ("artifact_family_status", {"familyId": 42}),
+            ("artifact_verify_propose", {}),
+            ("artifact_build_propose", {"request": ""}),
+            ("artifact_cad_admission_status", {"request": "unpublished"}),
+        ):
+            with self.subTest(action=action, invalid=invalid):
+                with self.assertRaisesRegex(ValueError, "invalid arguments"):
+                    M.execute_surface_action(action, invalid)
+
     def test_electronic_design_profile_is_family_visible_and_service_routed(self):
         status = M.family_status("electronic-design")
         row = status["families"][0]
