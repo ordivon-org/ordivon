@@ -217,7 +217,8 @@ impl RuntimeServer {
                     "candidateManifestDigest",
                 )
             })?;
-            let manifest_digest = format!("sha256:{:x}", Sha256::digest(&manifest_bytes));
+            let manifest_digest =
+                format!("sha256:{}", hex::encode(Sha256::digest(&manifest_bytes)));
             if manifest_digest != request.candidate_manifest_digest {
                 return Err(ToolError::invalid(
                     "Runtime release candidate manifest digest does not match current bytes",
