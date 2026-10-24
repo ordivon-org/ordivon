@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 from pathlib import Path
 import sqlite3
 import subprocess
@@ -69,7 +70,7 @@ def _percentile(values: list[float], percentile: float) -> float:
     if not values:
         return 0.0
     ordered = sorted(values)
-    index = min(len(ordered) - 1, max(0, int((len(ordered) - 1) * percentile)))
+    index = min(len(ordered) - 1, max(0, math.ceil(len(ordered) * percentile) - 1))
     return ordered[index]
 
 
