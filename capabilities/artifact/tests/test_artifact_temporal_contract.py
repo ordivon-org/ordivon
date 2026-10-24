@@ -25,8 +25,14 @@ class TemporalArtifactDeliveryContractTests(unittest.TestCase):
                 seg=ast.get_source_segment(text,node) or ''
                 for forbidden in ('subprocess.','Path(','open(','read_text(','write_text('):self.assertNotIn(forbidden,seg)
     def test_temporal_sdk_pin(self):
-        project=tomllib.loads((ROOT/'pyproject.toml').read_text())
-        self.assertIn('temporalio==1.32.0',project['project']['dependencies'])
+        # Both owner environments must consume the same supported SDK revision.
+        for relative in ('pyproject.toml', 'artifact-delivery/python-uv/pyproject.toml'):
+            with self.subTest(environment=relative):
+                project = tomllib.loads((ROOT / relative).read_text())
+                self.assertIn('temporalio==1.34.0', project['project']['dependencies'])
+        carrier = json.loads((ROOT / 'artifact-delivery/artifact-python-runtime-v1.lock.json').read_text())
+        plan = json.loads((ROOT / 'artifact-delivery/toolchain-v1.plan.json').read_text())
+        self.assertEqual(plan['shared']['workflow']['version'], carrier['pythonPackages']['temporalio'])
     def test_launcher_duplicate_policy(self):
         text=(ROOT/'scripts/artifact_temporal_launch.py').read_text();self.assertIn('WorkflowIDReusePolicy.REJECT_DUPLICATE',text);self.assertIn('WorkflowIDConflictPolicy.FAIL',text);self.assertIn('signal-trust',text)
     def test_receipt_fence_replays_same_build(self):
@@ -77,6 +83,23 @@ class TemporalArtifactDeliveryContractTests(unittest.TestCase):
             package_root=Path(first['packageDirectory']).parent; self.assertFalse((package_root/'package-index.json').exists()); self.assertFalse((package_root/'release-manifest.json').exists())
             victim=Path(first['roles'][blob_roles[0]]['path']); victim.write_bytes(victim.read_bytes()+b'drift')
             with self.assertRaisesRegex(RuntimeError,'committed operation output drift'): ex.package(value)
+
+    def test_deploy_sdk_gate_consumes_carrier_lock_not_historical_pin(self):
+        from unittest.mock import patch
+        spec = importlib.util.spec_from_file_location(
+            'artifact_temporal_deploy_pin_consumer', ROOT / 'scripts/artifact_temporal_deploy.py'
+        )
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        with patch.object(module, 'MAIN', module.ROOT), patch.object(module, 'active', return_value=True):
+            with patch.object(module, 'temporal_sdk_version', return_value='1.32.0'):
+                previous = module.plan()
+                self.assertFalse(previous['temporalSdkPinned'])
+                self.assertFalse(previous['applyEligible'])
+            with patch.object(module, 'temporal_sdk_version', return_value='1.34.0'):
+                current = module.plan()
+                self.assertTrue(current['temporalSdkPinned'])
+                self.assertTrue(current['applyEligible'])
 
     def test_deploy_rejects_running_workflow_before_unit_mutation(self):
         from unittest.mock import patch

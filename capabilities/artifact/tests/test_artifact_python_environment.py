@@ -61,7 +61,7 @@ class ArtifactDeliveryEnvironmentTests(unittest.TestCase):
             self.assertNotIn('.cache/artifact-delivery-venv',text,name)
             self.assertIn(stable,text,name)
         lock=M.load_lock()
-        self.assertEqual(lock['pythonPackages']['temporalio'],'1.32.0')
+        self.assertEqual(lock['pythonPackages']['temporalio'],'1.34.0')
         self.assertEqual(lock['pythonPackages']['nexus-rpc'],'1.4.0')
         self.assertEqual(lock['pythonPackages']['protobuf'],'7.36.2')
         self.assertEqual(lock['pythonPackages']['types-protobuf'],'7.35.1.20260906')
@@ -74,7 +74,7 @@ class ArtifactDeliveryEnvironmentTests(unittest.TestCase):
             self.assertEqual(M.tree_digest(root),W.tree_digest(root));first=W.tree_digest(root);(root/'pkg/data').write_bytes(b'drift');self.assertNotEqual(first,W.tree_digest(root))
     def test_generation_spec_binds_uv_and_interpreter_identity(self):
         lock=M.load_lock();project={'project':'/x','pyprojectSha256':'sha256:p','uvLockSha256':'sha256:u'};python={'version':'3.15.1','requestedPath':'/toolchain/python','resolvedPath':'/toolchain/python3.15','sha256':'sha256:i'}
-        spec=M.generation_spec(lock,project,python);self.assertEqual(spec['uvLockSha256'],'sha256:u');self.assertEqual(spec['pythonExecutableSha256'],'sha256:i');self.assertEqual(spec['pythonPackages']['lxml'],'6.1.3');self.assertEqual(spec['pythonPackages']['temporalio'],'1.32.0')
+        spec=M.generation_spec(lock,project,python);self.assertEqual(spec['uvLockSha256'],'sha256:u');self.assertEqual(spec['pythonExecutableSha256'],'sha256:i');self.assertEqual(spec['pythonPackages']['lxml'],'6.1.3');self.assertEqual(spec['pythonPackages']['temporalio'],'1.34.0')
     def test_read_only_tree_changes_mode_before_digest(self):
         with tempfile.TemporaryDirectory() as d:
             root=Path(d);f=root/'x';f.write_text('x');f.chmod(0o644);M.make_read_only(root);self.assertEqual(root.stat().st_mode & 0o777,0o555);self.assertEqual(f.stat().st_mode & 0o777,0o444)
