@@ -78,22 +78,10 @@ def _check_dag(stages: dict[str, dict[str, Any]]) -> None:
         if stage_id in stage["dependsOn"]:
             raise CircuitContractError(f"stage {stage_id} cannot depend on itself")
 
-    visiting: set[str] = set()
-    visited: set[str] = set()
-
-    def visit(stage_id: str) -> None:
-        if stage_id in visited:
-            return
-        if stage_id in visiting:
-            raise CircuitContractError(f"stage dependency cycle includes {stage_id}")
-        visiting.add(stage_id)
-        for dependency in stages[stage_id]["dependsOn"]:
-            visit(dependency)
-        visiting.remove(stage_id)
-        visited.add(stage_id)
-
-    for stage_id in sorted(stages):
-        visit(stage_id)
+    # The existing iterative Kahn topological operator already proves that
+    # the dependency relation is acyclic. A second recursive DFS did not add
+    # evidence and incorrectly rejected long but valid finite DAGs.
+    _topological_order(list(stages.values()))
 
 
 def validate_manifest(value: dict[str, Any]) -> None:
@@ -219,7 +207,7 @@ def _topological_order(rows: list[dict[str, Any]]) -> list[str]:
                 ready.append(child)
                 ready.sort()
     if len(order) != len(stages):
-        raise CircuitContractError("stage dependency graph is not acyclic")
+        raise CircuitContractError("stage dependency cycle prevents a topological order")
     return order
 
 

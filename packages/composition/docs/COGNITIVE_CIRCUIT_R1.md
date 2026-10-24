@@ -96,6 +96,18 @@ It then emits a deterministic projection containing:
 
 The output is disposable/rebuildable. It is not a workflow or execution record.
 
+The **graph kernel** is the existing finite directed-acyclic-graph/topological-order
+relation, not a second Ordivon graph DSL or custom graph service. For stage set
+`V` and declared dependency relation `E = {(producer, consumer) | producer in
+consumer.dependsOn}`, admissibility means an ordering `π` exists with every
+producer preceding its consumer. The same deterministic, iterative topological
+operator checks acyclicity and projects `stageOrder`; recursive DFS was retired
+because it duplicated that operator and rejected sufficiently deep valid DAGs.
+Owner-native contract tests compare the operator with an independent exhaustive
+permutation oracle for all 64 directed three-node graphs and accept a 1,100-stage
+finite deep chain. These **bounded** tests cover graph shape, not Runtime/Host
+authority, cross-owner assumption discharge, or domain acceptance.
+
 ## Cross-owner composition gates
 
 A Gate requirement records one bounded assume/guarantee seam:
