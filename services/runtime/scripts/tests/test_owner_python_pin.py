@@ -98,6 +98,13 @@ if args and args[0] == "venv":
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("expects Python 9.99.99", result.stderr)
 
+    def test_doctor_fails_closed_when_ruff_hash_lock_is_missing(self):
+        prepare = self.run_owner("3.15.1")
+        self.assertEqual(prepare.returncode, 0, prepare.stderr)
+        result = self.run_owner("3.15.1", action="doctor")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Ruff hash lock must pin exactly one version", result.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()
