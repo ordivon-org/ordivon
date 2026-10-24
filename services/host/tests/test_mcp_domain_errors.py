@@ -73,6 +73,58 @@ def test_mcp_work_revision_is_strictly_typed_before_store(
     asyncio.run(scenario())
 
 
+@pytest.mark.parametrize("bad_limit", [True, False, 1.0, 2.0, "1", 0, -1, 201])
+def test_mcp_work_list_limit_must_not_coerce_numeric_aliases(
+    monkeypatch, bad_limit
+) -> None:
+    """Preserve the Host input type before FastMCP can normalize it to int."""
+    called = []
+
+    def forbidden(*args, **kwargs):
+        called.append((args, kwargs))
+        raise AssertionError("invalid MCP limit must not enter Host WorkStore")
+
+    monkeypatch.setattr(WorkStore, "list_works", forbidden)
+
+    async def scenario() -> None:
+        async with Client(
+            build_server("postgresql://unused.invalid/host"), raise_exceptions=False
+        ) as client:
+            result = await client.call_tool("work.list", {"limit": bad_limit})
+            assert result.is_error is True
+            assert not called, "MCP accepted or coerced an invalid numeric alias"
+
+    asyncio.run(scenario())
+
+
+def test_mcp_work_list_legal_integer_preserves_native_owner_input(monkeypatch) -> None:
+    observed = []
+
+    def witness(self, **kwargs):
+        observed.append(kwargs["limit"])
+        return {
+            "schemaVersion": 1,
+            "kind": "ordivon.host-work-list",
+            "works": [],
+            "hasMore": False,
+            "nextCursor": None,
+            "rankingApplied": False,
+            "truthBoundary": "Host point-in-time Work inventory only",
+        }
+
+    monkeypatch.setattr(WorkStore, "list_works", witness)
+
+    async def scenario() -> None:
+        async with Client(
+            build_server("postgresql://unused.invalid/host"), raise_exceptions=False
+        ) as client:
+            result = await client.call_tool("work.list", {"limit": 200})
+            assert result.is_error is False
+            assert observed == [200]
+
+    asyncio.run(scenario())
+
+
 def test_work_not_found_is_expected_typed_tool_error(monkeypatch) -> None:
     def missing(self, work_ref, revision=None):
         _ = self, revision

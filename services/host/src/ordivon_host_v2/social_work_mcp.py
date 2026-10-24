@@ -57,6 +57,9 @@ from .work_store import ActorRefNotFound, WorkNotFound, WorkStore
 # A revision is an exact Host CAS identity, never a coerced bool/float/string.
 # Use the existing provider's strict bounded integer instead of a custom DSL.
 PositiveWorkRevision = Annotated[int, Field(strict=True, ge=1)]
+# Work inventory pagination is a bounded exact integer at the wire boundary.
+# Do not let MCP normalize bool, float or string into a valid Host limit.
+PositiveWorkListLimit = Annotated[int, Field(strict=True, ge=1, le=200)]
 
 
 def _request_id(prefix: str, payload: object) -> str:
@@ -201,7 +204,7 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
     @_project_domain_errors
     def work_list(
         state: Literal["open", "completed", "abandoned"] | None = None,
-        limit: int = 50,
+        limit: PositiveWorkListLimit = 50,
         beforeUpdatedAt: str | None = None,
         beforeWorkRef: str | None = None,
         maxBytes: int = 262_144,
