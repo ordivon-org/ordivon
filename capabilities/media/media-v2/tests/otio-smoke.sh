@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-root=$(git rev-parse --show-toplevel)
+root=$(cd "$(dirname "$0")/../.." && pwd)
 work="$root/.tmp/media-v2-otio-smoke"
 rm -rf "$work"
 mkdir -p "$work"
@@ -9,7 +9,7 @@ trap 'rm -rf "$work"' EXIT
 
 probe="$root/media-v2/bin/probe-otio.sh"
 
-/usr/bin/uv run --with 'opentimelineio==0.18.1' python - "$work/good.otio" "$work/bad-range.otio" <<'PY'
+/usr/bin/mise -C "$root" exec -- uv run --no-project --with 'opentimelineio==0.18.1' python - "$work/good.otio" "$work/bad-range.otio" <<'PY'
 import sys
 import opentimelineio as otio
 
