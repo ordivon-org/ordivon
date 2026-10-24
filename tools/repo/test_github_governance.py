@@ -123,6 +123,16 @@ class GovernanceAcceptanceTests(unittest.TestCase):
 
         fault_cases = (
             ("missing_pep621", mutated("enabledManagers", []), "Renovate must own Python PEP 621"),
+            (
+                "missing_mise",
+                mutated("enabledManagers", ["pep621"]),
+                "Renovate must own Mise toolchain",
+            ),
+            (
+                "duplicate_npm_manager",
+                mutated("enabledManagers", ["pep621", "mise", "npm"]),
+                "Renovate must not duplicate Dependabot",
+            ),
             ("lock_maintenance_off", mutated("lockFileMaintenance", {"enabled": False}), "Renovate must refresh uv.lock"),
             ("automerge_without_owner_cdc", mutated("automerge", True), "Python dependency upgrades require consumer verification"),
             (
