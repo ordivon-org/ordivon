@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import importlib.util
 from pathlib import Path
 import unittest
@@ -91,6 +92,105 @@ class AdaptiveEditR2LiveABRunnerTests(unittest.TestCase):
         self.assertEqual(receipt["clientRequestId"], request["clientRequestId"])
         self.assertNotEqual(runtime.files["allocation.py"], before)
         self.assertIn("return [0 for _ in weights]", runtime.files["allocation.py"])
+
+    def test_memory_runtime_replay_identity_is_request_content_addressed(self) -> None:
+        runtime = runner.MemoryRuntime()
+        before = runtime.files["allocation.py"]
+        request = {
+            "clientRequestId": "request:live-ab-replay-identity",
+            "files": [
+                {
+                    "relativePath": "allocation.py",
+                    "expectedDigest": runner.sha(before),
+                    "edits": [
+                        {
+                            "range": {
+                                "start": {"line": 1, "column": 0},
+                                "end": {"line": 1, "column": 0},
+                            },
+                            "expectedText": "",
+                            "replacement": "# header\\n",
+                        }
+                    ],
+                }
+            ],
+        }
+        first = runtime.call_tool("workspace.patch", request)
+        after = runtime.files["allocation.py"]
+        self.assertNotEqual(before, after)
+        duplicate = runtime.call_tool("workspace.patch", copy.deepcopy(request))
+        self.assertEqual(duplicate["requestDigest"], first["requestDigest"])
+        self.assertTrue(duplicate["replayed"])
+
+        conflicting = copy.deepcopy(request)
+        conflicting["files"][0]["edits"][0]["replacement"] = "# different header\\n"
+        with self.assertRaisesRegex(runner.HarnessRuntimeToolRejected, "identity"):
+            runtime.call_tool("workspace.patch", conflicting)
+        self.assertEqual(runtime.files["allocation.py"], after)
+        self.assertEqual(len(runtime.receipts), 1)
+
+    def test_memory_runtime_overlapping_intervals_cannot_commit(self) -> None:
+        runtime = runner.MemoryRuntime()
+        before = runtime.files["allocation.py"]
+        request = {
+            "clientRequestId": "request:live-ab-overlap",
+            "files": [
+                {
+                    "relativePath": "allocation.py",
+                    "expectedDigest": runner.sha(before),
+                    "edits": [
+                        {
+                            "range": {
+                                "start": {"line": 1, "column": 0},
+                                "end": {"line": 1, "column": 0},
+                            },
+                            "expectedText": "",
+                            "replacement": "# first\\n",
+                        },
+                        {
+                            "range": {
+                                "start": {"line": 1, "column": 0},
+                                "end": {"line": 1, "column": 0},
+                            },
+                            "expectedText": "",
+                            "replacement": "# second\\n",
+                        },
+                    ],
+                }
+            ],
+        }
+        with self.assertRaisesRegex(runner.HarnessRuntimeToolRejected, "overlap"):
+            runtime.call_tool("workspace.patch", request)
+        self.assertEqual(runtime.files["allocation.py"], before)
+        self.assertEqual(runtime.receipts, {})
+
+    def test_memory_runtime_duplicate_file_producers_fail_before_effect(self) -> None:
+        runtime = runner.MemoryRuntime()
+        before = runtime.files["allocation.py"]
+        first_file = {
+            "relativePath": "allocation.py",
+            "expectedDigest": runner.sha(before),
+            "edits": [
+                {
+                    "range": {
+                        "start": {"line": 1, "column": 0},
+                        "end": {"line": 1, "column": 0},
+                    },
+                    "expectedText": "",
+                    "replacement": "# first\\n",
+                }
+            ],
+        }
+        second_file = copy.deepcopy(first_file)
+        second_file["edits"][0]["replacement"] = "# second\\n"
+        request = {
+            "clientRequestId": "request:live-ab-duplicate-producer",
+            "files": [first_file, second_file],
+        }
+        with self.assertRaisesRegex(runner.HarnessRuntimeToolRejected, "more than one producer"):
+            runtime.call_tool("workspace.patch", request)
+        self.assertEqual(runtime.files["allocation.py"], before)
+        self.assertFalse(runtime.receipts)
 
     def test_summary_is_descriptive_only(self) -> None:
         records = [
