@@ -13,7 +13,7 @@ uv sync --locked
 uv run python scripts/check_runtime_search_profile.py
 uv lock --check
 uv run python -m compileall -q src tests scripts evals
-uvx ruff==0.17.2 check src tests scripts
+uv run --locked ruff check src tests scripts
 # Provider transports reject ambient non-loopback proxies; hermetic
 # unit/queue tests must not inherit the host network proxy.
 env -u HTTPS_PROXY -u https_proxy -u HTTP_PROXY -u http_proxy \
@@ -44,7 +44,7 @@ set -euo pipefail
 uv sync --locked
 uv lock --check
 uv run python -m compileall -q src tests scripts evals
-uvx ruff==0.17.2 check src tests scripts
+uv run --locked ruff check src tests scripts
 # Provider transports reject ambient non-loopback proxies; hermetic
 # unit/queue tests must not inherit the host network proxy.
 env -u HTTPS_PROXY -u https_proxy -u HTTP_PROXY -u http_proxy \
