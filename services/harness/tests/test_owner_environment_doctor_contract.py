@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -19,6 +20,17 @@ def test_owner_doctor_uses_declared_versions_and_locked_sync():
     assert '"$repo/mise.toml" "$repo/pyproject.toml"' in text
     assert "tomllib.loads" in text
     assert "md.version" in text
+    # Same lock must serve doctor, queue, and verification: no second uvx
+    # installation with the same hard-coded version.
+    tasks = (OWNER / "mise.toml").read_text()
+    project = tomllib.loads((OWNER / "pyproject.toml").read_text())
+    locked = tomllib.loads((OWNER / "uv.lock").read_text())
+    pinned = [p.removeprefix("ruff==") for p in project["dependency-groups"]["dev"] if p.startswith("ruff==")]
+    resolved = [p["version"] for p in locked["package"] if p["name"] == "ruff"]
+    assert len(pinned) == len(resolved) == 1
+    assert pinned == resolved
+    assert tasks.count("uv run --locked ruff check src tests scripts") == 2
+    assert "uvx ruff" not in tasks
 
 
 def _fake_checkout(tmp_path: Path) -> Path:
