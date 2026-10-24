@@ -887,6 +887,33 @@
           ]
         },
         {
+          "localCommit": "bf1b282ff64fe94a796eaea96366d9e25a243b6f",
+          "historicalCohort": [
+            "591672cd8637ba4fdc68bc3f31ce5a90918cdb71",
+            "bf1b282ff64fe94a796eaea96366d9e25a243b6f"
+          ],
+          "owner": "services/harness",
+          "consumer": "Historical HUX-40 milestone/baseline planning responsibility: prior non-merge commit 591672cd changed two planning files, then bf1b282ff retired all four HUX documents. Both exact Main tips have no HUX plan files, active Harness source/test runner or tracked source references to those plan identities. Current Harness natural Owner has its own lego-plan-r1; absent HUX plans are not executable consumer inputs.",
+          "remoteWitness": "Source local main 13704d0cac9e113b395f2d5a21b5bf8119aa04a5, protected main 78895b2291830be75fa472f3621fc24ebd2e67f3: Git path/mode trees omit the four HUX plan files at both tips; git grep on services/harness and tools/repo finds no references to HUX_EXECUTION_PLAN_R1, hux-execution-plan-r1, HUX_CURRENT_BASELINE_R1, hux-current-baseline-r1. Native tools/repo/test_architecture_docs.py checks negative current source-bound HUX paths; no external automation use or live harness execution is claimed.",
+          "evidenceScope": "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN",
+          "disposition": "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "78895b2291830be75fa472f3621fc24ebd2e67f3",
+            "tipRelation": "BOTH_TIPS_ABSENT",
+            "consumerStanding": "NO_IN_TREE_CONSUMER_EXTERNAL_UNKNOWN",
+            "branchDeletionAllowed": false,
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "inferenceBoundary": "historical planning file absence only, no external plan consumer proof"
+          },
+          "retiredPaths": [
+            "services/harness/planning/HUX_CURRENT_BASELINE_R1.md",
+            "services/harness/planning/HUX_EXECUTION_PLAN_R1.md",
+            "services/harness/planning/hux-current-baseline-r1.json",
+            "services/harness/planning/hux-execution-plan-r1.json"
+          ]
+        },
+        {
           "localCommit": "f0cfddcfd2f2a20e2c408e4a3f159ec047bd600c",
           "owner": "services/runtime",
           "consumer": "RuntimeDispatchR1 formal-trace acceptance receipt has the exact same current Git blob in both Main trees, while the current owner verifier consumes a separate stable-seam formal trace model and named tests. The old metadata refresh is not a new mechanized TLA+-to-Rust proof or new live effect.",
@@ -903,6 +930,65 @@
                 "path": "services/runtime/formal/RuntimeDispatchR1.trace-r1.acceptance.json",
                 "mode": "100644",
                 "blobOid": "bd91be10978ae691b8ab4cc6bb12abfa6a1e728c"
+              }
+            ],
+            "branchDeletionAllowed": false
+          }
+        },
+        {
+          "localCommit": "d91d63b70da5fa1c02a7b1a136c651649f62bd75",
+          "owner": "services/gateway",
+          "consumer": "Gateway Windows release verifier and installer consume the canonical mcp-surface.json packageVersion, tool set and surfaceEpoch, not a static copied surface. Current source is byte-identical on both Main tips; the local patch has no remaining independent release effect.",
+          "remoteWitness": "services/gateway/packaging/windows/verify_release.py + mcp-surface.json + services/gateway/tests/test_windows_release_contract.py::test_windows_release_verifier_uses_canonical_mcp_surface + test_tool_surface_release_contract.py; owner uv run --locked pytest 8/8 PASS. Windows production release/apply was not invoked.",
+          "evidenceScope": "EXACT_GIT_BLOB_AND_NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_IDENTICAL_TIP_WITH_NATIVE_CONSUMER",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "3faee758c6c9bf4c7e97f3d7f6cb8bab93d3ca6a",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "kind": "non-merge",
+            "changedPathIdentities": [
+              {
+                "path": "services/gateway/packaging/windows/verify_release.py",
+                "mode": "100644",
+                "blobOid": "53c2881e9d09257fb333666b7cb3fd7201a875e2"
+              },
+              {
+                "path": "services/gateway/tests/test_windows_release_contract.py",
+                "mode": "100644",
+                "blobOid": "a4c9df6e7430dee7449b8e615a614183cbe77992"
+              }
+            ],
+            "branchDeletionAllowed": false
+          }
+        },
+        {
+          "localCommit": "0fbdd2445e1a6d2db4da0401d61c41e6d78a0577",
+          "owner": "platform/workstation",
+          "consumer": "Cloudflare Tofu handoff currently consumes exact native Gateway tunnel ingress/canary and DNS preservation constraints, is installed through install-edge-operations, and its semantic gate rejects lost canary and unexpected mutation. The local historic patch is wholly present byte-for-byte in protected Main and requires no replay.",
+          "remoteWitness": "platform/workstation/providers/cloudflare/scripts/ordivon_cloudflare_tofu_handoff.py::_handoff_semantics via install-edge-operations and providers/cloudflare/test/handoff_tofu_test.py; native unittest 20/20 PASS with failing-policy negative checks. No live Cloudflare mutation, Windows service apply or credential claims.",
+          "evidenceScope": "EXACT_GIT_BLOB_AND_NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_IDENTICAL_TIP_WITH_NATIVE_CONSUMER",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "3faee758c6c9bf4c7e97f3d7f6cb8bab93d3ca6a",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "kind": "non-merge",
+            "changedPathIdentities": [
+              {
+                "path": "platform/workstation/providers/cloudflare/scripts/ordivon_cloudflare_tofu_handoff.py",
+                "mode": "100755",
+                "blobOid": "1f7643791c5c099aae587e3861835489f31be01b"
+              },
+              {
+                "path": "platform/workstation/providers/cloudflare/test/handoff_tofu_test.py",
+                "mode": "100644",
+                "blobOid": "3a8e2fbf885392bfc7cbeafa07f8d9ba590ddd64"
+              },
+              {
+                "path": "platform/workstation/tofu/agent-birth-handoff/main.tf",
+                "mode": "100644",
+                "blobOid": "dd3d8ae700fcca7d0ce8c0a31f79d4f78a316635"
               }
             ],
             "branchDeletionAllowed": false
