@@ -117,12 +117,16 @@ in
   home.file."tools/bin/pnpm".source =
     config.lib.file.mkOutOfStoreSymlink "/root/.local/share/mise/shims/pnpm";
 
-  # Codex upstream release is installed at its pinned versioned pnpm prefix.
-  # Reuse the same Home Manager out-of-store symlink mechanism as mise/pnpm,
-  # rather than introducing a second package manager or CLI wrapper.
-  home.file."tools/bin/codex".source =
+  # Preserve the version-locked upstream CLI as an explicit, nonrecursive
+  # maintenance command. The existing Network-v2 codex-vpn carrier is the
+  # ordinary Codex entrypoint; no new wrapper or transport service is created.
+  # Host adoption must verify the external carrier and readiness before
+  # switching the live Home Manager generation.
+  home.file."tools/bin/codex-raw".source =
     config.lib.file.mkOutOfStoreSymlink
       "/root/tools/share/codex-pnpm-${codexVersion}/node_modules/@openai/codex/bin/codex.js";
+  home.file."tools/bin/codex".source =
+    config.lib.file.mkOutOfStoreSymlink "/usr/local/bin/codex-vpn";
 
   # n8n package/materialization authority is Nixpkgs. Workstation owns only the
   # first-PATH command materialization; n8n owns its workflow/integration behavior.

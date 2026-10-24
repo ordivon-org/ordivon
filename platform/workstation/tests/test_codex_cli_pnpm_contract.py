@@ -21,6 +21,19 @@ class CodexPnpmConsumerContract(unittest.TestCase):
         self.assertNotIn("codex-npm-", home)
         self.assertIn("node_modules/@openai/codex/bin/codex.js", home)
 
+    def test_default_codex_uses_existing_failclosed_scoped_carrier_without_recursion(self):
+        # Current Workstation preserves the upstream pnpm CLI separately.
+        # The optional maintenance command must never resolve back into
+        # the first-PATH VPN wrapper, or the default launch would recurse.
+        home = (ROOT / "workstation/nix/nix/home.nix").read_text()
+        self.assertIn('home.file."tools/bin/codex-raw".source =', home)
+        raw = home.split('home.file."tools/bin/codex-raw".source =', 1)[1].split(';', 1)[0]
+        self.assertIn('"/root/tools/share/codex-pnpm-${codexVersion}/node_modules/@openai/codex/bin/codex.js"', raw)
+        default = home.split('home.file."tools/bin/codex".source =', 1)[1].split(';', 1)[0]
+        self.assertIn('"/usr/local/bin/codex-vpn"', default)
+        self.assertNotIn('codex-pnpm-', default)
+        self.assertNotIn('codex-raw', default)
+
     def test_owner_native_ci_has_no_duplicate_nested_github_workflow(self):
         # This project is verified by the root owner selector. Do not add an
         # independently maintained nested workflow just for Codex.
