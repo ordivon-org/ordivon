@@ -111,3 +111,28 @@ def test_same_owner_vertices_can_have_distinct_typed_relations() -> None:
         {"type": "OBSERVATION", "from": first["from"], "to": first["to"]}
     )
     module.validate_owner_lego_graph(plan)
+
+
+@pytest.mark.parametrize(
+    "relative",
+    [*OWNER_GRAPH_PLANS, "platform/security/planning/lego-plan-r1.json"],
+)
+def test_registered_owner_relations_reject_unrecognised_typed_edges(relative: str) -> None:
+    """A mistyped DEPENDENCY must not silently become an unvalidated edge kind."""
+    plan = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+    plan["edges"][0]["type"] = "DEPENDENCIES"
+    with pytest.raises(module.ArchitectureDocsError, match="unknown LEGO edge type"):
+        module.validate_owner_lego_graph(plan)
+    with pytest.raises(module.ArchitectureDocsError, match="unknown LEGO edge type"):
+        module.validate_owner_lego_dependencies(plan, relative)
+
+
+def test_security_owner_direct_dependency_entry_checks_all_non_dependency_edges() -> None:
+    plan = json.loads(
+        (ROOT / "platform/security/planning/lego-plan-r1.json").read_text(encoding="utf-8")
+    )
+    module.validate_owner_lego_graph(plan)
+    module.validate_owner_lego_dependencies(plan, "platform/security")
+    plan["edges"][0]["to"] = "MISSING_SECURITY_NODE"
+    with pytest.raises(module.ArchitectureDocsError, match="unknown LEGO edge endpoint"):
+        module.validate_owner_lego_dependencies(plan, "platform/security")
