@@ -9,7 +9,7 @@
       "status": "CROSS_FORMAT_PROFILE_MATRIX_PASS",
       "profiles": ["presentation", "document", "spreadsheet", "fixed-view-pdf", "accessible-pdf", "web"]
     },
-    "workflow": {"paradigm": "Durable Execution", "tool": "Temporal", "sdk": "temporalio", "version": "1.32.0", "reuseExistingOrdivonSubstrate": true, "status": "REUSE_EXISTING"},
+    "workflow": {"paradigm": "Durable Execution", "tool": "Temporal", "sdk": "temporalio", "version": "1.34.0", "reuseExistingOrdivonSubstrate": true, "status": "REUSE_EXISTING"},
     "observability": {"standard": "OpenTelemetry", "pythonSdk": "1.44.0", "nodeApi": "1.9.1", "nodeSdk": "0.222.0", "status": "IMPORT_SMOKE_PASS"},
     "sourceVersioning": {"standard": "Git", "tool": "Git/GitHub"},
     "buildProvenance": {"statement": "in-toto Statement v1", "predicate": "SLSA Provenance v1", "releaseManifest": "digest-bound assembly manifest"}
