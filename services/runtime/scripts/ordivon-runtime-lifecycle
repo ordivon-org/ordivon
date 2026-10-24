@@ -239,10 +239,14 @@ def run_json(command: list[str], *, accepted_codes: tuple[int, ...] = (0,)) -> d
             capture_output=True,
             timeout=SUBPROCESS_WALL_TIMEOUT_SECONDS,
         )
-    except subprocess.TimeoutExpired as error:
+    except subprocess.TimeoutExpired:
+        # Reclaim is invoked through Python: [sys.executable, script, phase, ...].
+        # Do not leak command arguments through the exception or its traceback.
+        phase = command[2] if len(command) > 2 and command[2] in {"inspect", "apply"} else "operation"
         raise RuntimeError(
-            f"subordinate Runtime tool exceeded {SUBPROCESS_WALL_TIMEOUT_SECONDS:.0f}s wall timeout"
-        ) from error
+            f"subordinate Runtime reclaim {phase} exceeded "
+            f"{SUBPROCESS_WALL_TIMEOUT_SECONDS:.0f}s wall timeout"
+        ) from None
     if result.returncode not in accepted_codes:
         raise RuntimeError(result.stderr.strip() or result.stdout.strip() or "command failed")
     value = json.loads(result.stdout)
