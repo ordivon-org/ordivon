@@ -303,8 +303,13 @@ class McpClient:
             status = int(error.code)
             message = parse_http_response(error.headers.get("Content-Type", ""), error.read())
             response_headers = {key.lower(): value for key, value in error.headers.items()}
-        if request_id is not None and message and message.get("id") != request_id:
-            raise ValueError(f"unexpected response id for {method}: {message}")
+        if request_id is not None and (
+            not isinstance(message, dict)
+            or message.get("jsonrpc") != "2.0"
+            or message.get("id") != request_id
+            or ("result" in message) == ("error" in message)
+        ):
+            raise ValueError(f"invalid JSON-RPC response for {method}: {message}")
         return status, message, response_headers
 
     def request(self, method: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
