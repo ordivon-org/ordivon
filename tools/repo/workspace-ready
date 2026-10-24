@@ -146,6 +146,11 @@ prepare() {
 sync_cached_or_download() {
   local tool=$1
   shift
+  # pnpm defaults to downloading a mismatched packageManager version. Never
+  # replace the owner-selected stable tool with a lower transient version.
+  if [[ "$tool" == pnpm ]]; then
+    export pnpm_config_pm_on_fail=error
+  fi
   if "$mise_bin" exec -- /usr/bin/env "PATH=$owner_tool_path" "$tool" "$@" --offline; then
     return 0
   fi

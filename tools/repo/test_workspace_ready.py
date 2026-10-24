@@ -250,6 +250,7 @@ class WorkspaceReadyTests(unittest.TestCase):
             "#!/bin/sh\n"
             'if [ "$1" = "--version" ]; then echo 12.15.0; exit 0; fi\n'
             'printf "pnpm:%s\\n" "$*" >> "$RECORDER"\n'
+            'printf "pnpm-policy:%s\\n" "${pnpm_config_pm_on_fail:-unset}" >> "$RECORDER"\n'
         )
         pnpm.chmod(0o755)
         node = toolbin / "node"
@@ -270,6 +271,7 @@ class WorkspaceReadyTests(unittest.TestCase):
         )
         accepted = self.run_ready("services/harness/node", "--", "/usr/bin/true")
         self.assertEqual(accepted.returncode, 0, accepted.stderr)
+        self.assertIn("pnpm-policy:error", self.log.read_text())
 
     def test_package_manager_cannot_self_select_older_version_during_probe(self):
         # pnpm can auto-switch based on the cwd packageManager. Comparing its
