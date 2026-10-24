@@ -191,6 +191,42 @@
           "evidenceScope": "NATIVE_CONSUMER_PASS",
           "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
           "evaluatedRemoteMain": "a56afcf30aafd8d5bcd0f41adb950504f5724267"
+        },
+        {
+          "localCommit": "82c8fa2924e89f6706eddee4761899b727c67902",
+          "owner": "services/harness",
+          "consumer": "Source-bound editable reads and exact patch admission use the same on-disk digest; existing bridge source and native negative tests are byte-identical to the protected consumer.",
+          "remoteWitness": "services/harness/src/ordivon_harness/ordivon/adaptive_edit_bridge.py + tests/test_adaptive_edit_bridge.py; native Harness 9/9 PASS (offline locked)",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "41a1073703343aad61c3ffacac34edfb91019800"
+        },
+        {
+          "localCommit": "84baec0ea131f1161177ab18cba3fff253bf3a2d",
+          "owner": "capabilities/media",
+          "consumer": "Creative-library GET byte ranges respect 206/416 boundaries and empty carriers; the provider and its native tests already exist byte-for-byte, so do not replay historical media code.",
+          "remoteWitness": "capabilities/media/scripts/creative_library.py + tests/test_creative_library.py; native Media 11 tests and 35 subtests PASS (pytest 9.1.1 injected offline, no lock mutation)",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "41a1073703343aad61c3ffacac34edfb91019800"
+        },
+        {
+          "localCommit": "7a96b238fbdd90881999f880425999f0e3cb48ab",
+          "owner": "platform/workstation",
+          "consumer": "User-owned Windows Git bundle checkout stages before promotion and publishes receipt only after transactional exact checkout; both PowerShell producer and source-level contract equal current protected bytes.",
+          "remoteWitness": "platform/workstation/windows/user_git_bundle_checkout.ps1 + tests/test_windows_user_git_bundle_consumer.py; native Linux source-level Windows contracts 4/4 PASS; no live Windows deployment claimed",
+          "evidenceScope": "EXACT_GIT_BLOBS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "41a1073703343aad61c3ffacac34edfb91019800"
+        },
+        {
+          "localCommit": "7c2fa8c4d2d857c9d7e0b5ec9ab079755959120f",
+          "owner": "platform/workstation",
+          "consumer": "Windows agent worktree doctor allows standalone user-owned Git only under explicit identity and digest contracts; existing PowerShell consumer and native source contract are byte-identical.",
+          "remoteWitness": "platform/workstation/windows/workspace_environment_doctor.ps1 + tests/test_windows_workspace_environment_doctor.py; native Linux source-level Windows contracts 6/6 PASS; no live Windows execution claimed",
+          "evidenceScope": "EXACT_GIT_BLOBS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "41a1073703343aad61c3ffacac34edfb91019800"
         }
       ],
       "formalObligation": "The selected source must be an explicit source cut and each chosen change must preserve owner CDC.",
