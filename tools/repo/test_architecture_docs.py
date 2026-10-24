@@ -1226,3 +1226,33 @@ def test_git01_old_capital_r3_office_has_no_current_consumer() -> None:
     assert "domains/capital/config/capital_office_registry.json" in removed
     assert "domains/capital/src/ordivon_capital/governance/owner_authority.py" in removed
     module.validate_formal_issue_census(census, plans)
+
+
+def test_git01_exact_mode_blob_source_consumer_selection_stays_non_deploying() -> None:
+    """Equal endpoint blobs plus owner CDC do not certify a Windows deployment."""
+    census, plans = formal_issue_inputs()
+    git_issue = next(item for item in census["issues"] if item["id"] == "GIT-01")
+    qualified = [
+        item for item in git_issue["consumerSelections"]
+        if item.get("sourceQualification", {}).get("proofKind")
+        == "IDENTICAL_FINAL_TIP_MODE_BLOBS_WITH_NATIVE_OWNER_CDC"
+    ]
+    assert {item["owner"] for item in qualified} == {
+        "services/gateway", "platform/workstation"
+    }
+    for item in qualified:
+        proof = item["sourceQualification"]
+        assert proof["localMain"] == census["source"]["linuxLocalMain"]
+        assert len(proof["protectedMain"]) == 40
+        assert proof["branchDeletionAllowed"] is False
+        assert proof["windowsDeploymentObserved"] is False
+        assert item["evidenceScope"] == "EXACT_GIT_BLOB_AND_NATIVE_CONSUMER_PASS"
+        assert item["disposition"] == "SKIP_DUPLICATE_CHERRY_PICK"
+        blobs = proof["tipModeBlobs"]
+        assert len(blobs) == (2 if item["owner"] == "services/gateway" else 3)
+        for path, source in blobs.items():
+            assert not path.startswith("/") and ".." not in Path(path).parts
+            assert source["mode"] in {"100644", "100755"}
+            assert len(source["blob"]) == 40
+            assert all(ch in "0123456789abcdef" for ch in source["blob"])
+    module.validate_formal_issue_census(census, plans)
