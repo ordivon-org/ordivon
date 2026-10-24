@@ -1620,6 +1620,36 @@
             "branchDeletionAllowed": false,
             "inferenceBoundary": "Current source uses compatible pinned tool/schema with native owner tests; neither source equivalence nor whole historic commit acceptance follows."
           }
+        },
+        {
+          "localCommit": "12ad36fd4b3876f160235553d06d828c9019b220",
+          "owner": "platform/network",
+          "consumer": "Network v2 observability Blackbox IPv4/IPv6 HTTP probes must never count a successful opposite address-family fallback. Both monitor scrape budgets must admit the declared full probe duration. The real consumer chain is Blackbox config -> exporter native probes -> Prometheus scrape -> R0 core verification.",
+          "remoteWitness": "PR #445 merged: protected Main has ip_protocol_fallback=false for HTTP ip4/ip6 and per-HTTP-job scrape_interval=15s/scrape_timeout=12s against a 10s Blackbox timeout. Current Native Blackbox Exporter IPv4/IPv6 test 3/3 PASS; task core:validate PASS with Blackbox config, Prometheus promtool, sing-box and systemd verify on the source cut. This certifies the current source and tested native provider, not live deployed Internet reachability.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "09127dc34b3de8bf4ab7984a32de1e604d477f4d",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "09127dc34b3de8bf4ab7984a32de1e604d477f4d",
+            "branchDeletionAllowed": false,
+            "semanticStanding": "CURRENT_NETWORK_OWNER_NATIVE_BEHAVIOR_PRESENT_NOT_WHOLE_GIT_TREE"
+          }
+        },
+        {
+          "localCommit": "43325a89e906ccf82f83347d735f57b5789979f4",
+          "owner": "platform/network",
+          "consumer": "Network v2 source policies for consumer converge require deployed byte identity, currently loaded systemd PartOf and NeedDaemonReload=no; transport probes alone must not authorize a converged state. The historical patch also changes Web -> Security dependency seam, whose current canonical public-package relation is different and must not be replayed by an unrelated Network patch.",
+          "remoteWitness": "Merged #463 Network Claude loaded-policy CDC: platform/network/Taskfile.yml consumer:claude:verify checks actual source bytes and systemctl show PartOf/NeedDaemonReload, and test_claude_loaded_policy_cdc.py passes on current Main. The current tools/repo/dependency_contracts.toml uses Web package.json with PUBLIC_PACKAGE_DEPENDENCY and a separate TEST_ONLY_ENVIRONMENT_BINDING test locator, so the historical TEST_ONLY_PUBLIC_PACKAGE_DEPENDENCY locator is superseded; full historical commit is NOT a code-equivalent blob and live systemd state is not certified by this source test.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "NO_WHOLE_COMMIT_REPLAY_WITHOUT_PRODUCER_AUTHORITY",
+          "evaluatedRemoteMain": "09127dc34b3de8bf4ab7984a32de1e604d477f4d",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "09127dc34b3de8bf4ab7984a32de1e604d477f4d",
+            "branchDeletionAllowed": false,
+            "semanticStanding": "NETWORK_NATIVE_CDC_ABSORBED_WEB_PUBLIC_SEAM_DIFFERENT_NO_WHOLE_CHERRY_PICK"
+          }
         }
       ],
       "consumerBlockedSelections": [
