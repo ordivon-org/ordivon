@@ -954,6 +954,33 @@
       "evidence": [],
       "blockers": [],
       "nextAction": "Use the existing runtime::tests::process_local_registry_write_gate_serializes_sixteen_concurrent_admissions test and Runtime formal trace verifier; compare current source against CI run 40028281009. Do not duplicate the lock implementation."
+    },
+    {
+      "id": "RW9",
+      "objective": "Enforce concrete Runner-result precedence at the Runtime control-terminal serialization boundary; prevent an already materialized identity-bound result from being overwritten by a later LOST verdict, while quarantining a foreign result.",
+      "status": "PROPOSED",
+      "nodeIds": [
+        "R03",
+        "R12",
+        "R13",
+        "R17"
+      ],
+      "acceptance": [
+        "The exact Owner-native test existing_runner_result_cannot_be_relabelled_as_unknown_dispatch first fails RED on the pre-fix source where result.json precedes control LOST; it becomes GREEN only after a Runtime implementation change.",
+        "For an identity-bound completed Runner result, a simultaneous control LOST proposal must converge to Succeeded with no automatic redispatch; foreign Attempt result identity must converge to Orphaned without promoting success.",
+        "Native Runtime Core suite, Rust formatting and Clippy remain green under the declared source cut; skipped/ignored physical tests are not PASS.",
+        "TLA+/TLC remains a bounded abstraction; deployment/refinement and real-world completion require independent evidence at the installed Runtime binary and consumer."
+      ],
+      "evidence": [
+        "Runtime source pre-fix 39ae761e5c53dfc4fd7bd2275552ecb3334e28ff; red/green native test and fix in commit db0c9d3f0a2d312bd204ca35010dcc2aa53d25f4, PR #623.",
+        "Forensic Attempt attempt-01a16fc4-33f9-7310-aa8a-e60778df3b8a: result.json COMPLETED exit0 at 2026-10-25T05:15:18+08:00, later control LOST at 05:15:38+08:00. This is a source-bound counterexample candidate, not proven complete production root cause.",
+        "services/runtime/crates/ordivon-runtime-core/src/runtime/engine/reconciliation.rs",
+        "services/runtime/crates/ordivon-runtime-core/src/runtime/tests.rs"
+      ],
+      "blockers": [
+        "Protected GitHub CI, installed-binary attribution and production result/registry reconciliation remain independent acceptance gates."
+      ],
+      "nextAction": "Consume PR #623 native verification and independent CI. After merge, bind deployed runtime executable digest and observed Runner/Registry reconciliation under the same exact source; do not replay or reclassify an uncertain historical Attempt merely from this model."
     }
   ],
   "gaps": [
