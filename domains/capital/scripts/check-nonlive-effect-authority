@@ -5,24 +5,28 @@ import json
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
+def require(condition, label):
+    if not condition:
+        raise SystemExit("Capital owner policy rejected: " + str(label))
+
 contract=json.loads((ROOT/'contracts/nonlive-effect-admission-v2.json').read_text())
 authority=json.loads((ROOT/'config/nonlive_effect_authority.json').read_text())
 real=json.loads((ROOT/'contracts/external-write-policy-input-v2.json').read_text())
 
-assert contract['kind']=='ordivon.capital.governance.nonlive-effect-admission'
-assert contract['state']=='ADMITTED'
-assert contract['providerWriteCapabilityBound'] is True
-assert contract['allowedEffectClass']=='SIMULATED_EXCHANGE_ORDER_EFFECT'
-assert contract['realMoney'] is False
-assert contract['liveEndpoint'] is False
-assert contract['externalFinancialWriteAllowed'] is False
-assert contract['requiresReconciliation'] is True
-assert contract['requiresCapitalResolution'] is True
-assert authority['executionMode']=='BOUNDED_SIMULATED_EXCHANGE'
-assert authority['externalWritePolicyStanding']=='NOT_ADMITTED'
-assert real['state']=='NOT_ADMITTED'
-assert real.get('providerWriteCapabilityBound',False) is False
-assert real.get('externalFinancialWriteAllowed',False) is False
+require(contract['kind']=='ordivon.capital.governance.nonlive-effect-admission', "contract['kind']=='ordivon.capital.governance.nonlive-effect-admission'")
+require(contract['state']=='ADMITTED', "contract['state']=='ADMITTED'")
+require(contract['providerWriteCapabilityBound'] is True, "contract['providerWriteCapabilityBound'] is True")
+require(contract['allowedEffectClass']=='SIMULATED_EXCHANGE_ORDER_EFFECT', "contract['allowedEffectClass']=='SIMULATED_EXCHANGE_ORDER_EFFECT'")
+require(contract['realMoney'] is False, "contract['realMoney'] is False")
+require(contract['liveEndpoint'] is False, "contract['liveEndpoint'] is False")
+require(contract['externalFinancialWriteAllowed'] is False, "contract['externalFinancialWriteAllowed'] is False")
+require(contract['requiresReconciliation'] is True, "contract['requiresReconciliation'] is True")
+require(contract['requiresCapitalResolution'] is True, "contract['requiresCapitalResolution'] is True")
+require(authority['executionMode']=='BOUNDED_SIMULATED_EXCHANGE', "authority['executionMode']=='BOUNDED_SIMULATED_EXCHANGE'")
+require(authority['externalWritePolicyStanding']=='NOT_ADMITTED', "authority['externalWritePolicyStanding']=='NOT_ADMITTED'")
+require(real['state']=='NOT_ADMITTED', "real['state']=='NOT_ADMITTED'")
+require(real.get('providerWriteCapabilityBound',False) is False, "real.get('providerWriteCapabilityBound',False) is False")
+require(real.get('externalFinancialWriteAllowed',False) is False, "real.get('externalFinancialWriteAllowed',False) is False")
 
 print(json.dumps({
     'standing':'NONLIVE_EFFECT_ADMITTED_REAL_FINANCIAL_WRITE_NOT_ADMITTED',
