@@ -147,6 +147,12 @@ def test_evidence_union_accepts_own_representative_inside_own_cohort() -> None:
     group["historicalCohort"] = [group["localCommit"], f"{101:040x}"]
     merged = merge_selections(census(), census(group))
     assert selections(merged) == [group]
+def test_evidence_union_refuses_cohort_omitting_its_own_commit() -> None:
+    """A historical cohort must actually represent the registered primary effect."""
+    selected = claim(3)
+    selected["historicalCohort"] = [f"{4:040x}"]
+    with pytest.raises(MergeConflict, match="historicalCohort"):
+        merge_selections(census(claim(1)), census(selected))
 
 
 def test_evidence_union_refuses_duplicate_historical_cohort_members() -> None:
