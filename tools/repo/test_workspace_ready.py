@@ -271,6 +271,37 @@ class WorkspaceReadyTests(unittest.TestCase):
         accepted = self.run_ready("services/harness/node", "--", "/usr/bin/true")
         self.assertEqual(accepted.returncode, 0, accepted.stderr)
 
+    def test_package_manager_cannot_self_select_older_version_during_probe(self):
+        # pnpm can auto-switch based on the cwd packageManager. Comparing its
+        # version *in that cwd* with the same field is circular and unsound.
+        (self.scope / "package.json").write_text(
+            '{"name":"owner","packageManager":"pnpm@12.14.0"}\n'
+        )
+        (self.scope / "pnpm-lock.yaml").write_text("lockfileVersion: '9.0'\n")
+        toolbin = self.root / "toolbin"
+        toolbin.mkdir()
+        pnpm = toolbin / "pnpm"
+        pnpm.write_text(
+            "#!/bin/sh\n"
+            'if [ "$1" = "--version" ]; then\n'
+            '  if [ -f package.json ] && grep -q "12.14.0" package.json; then\n'
+            '    echo 12.14.0; else echo 12.15.0; fi\n'
+            "  exit 0\n"
+            "fi\n"
+            'printf "pnpm:%s\\n" "$*" >> "$RECORDER"\n'
+        )
+        pnpm.chmod(0o755)
+        node = toolbin / "node"
+        node.write_text("#!/bin/sh\necho pnpm@12.14.0\n")
+        node.chmod(0o755)
+        self.env["MISE_INSTALLED"] = "true"
+        self.env["MISE_SELECTED_BIN"] = str(toolbin)
+        self.env["PATH"] = f"{toolbin}:/usr/bin:/bin"
+        result = self.run_ready("services/harness", "--", "/usr/bin/true")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("packageManager", result.stderr)
+        self.assertNotIn("pnpm:install", self.log.read_text())
+
     def test_nested_dependency_without_lock_is_rejected_before_any_effect(self):
         nested = self.scope / "node"
         nested.mkdir()

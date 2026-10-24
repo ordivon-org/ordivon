@@ -215,7 +215,9 @@ if [[ -f package.json ]] && grep -q 'packageManager' package.json; then
     echo "workspace-ready: invalid packageManager manifest at $scope" >&2
     exit 69
   fi
-  if ! selected_pnpm=$(cd -- "$owner" && "$mise_bin" exec -- /usr/bin/env       "PATH=$owner_tool_path" pnpm --version); then
+  # pnpm can auto-select the manifest version from its cwd. Probe the
+  # owner-selected tool outside the source tree so the comparison is not circular.
+  if ! selected_pnpm=$(cd -- "$owner" && "$mise_bin" exec -- /usr/bin/env -C / "PATH=$owner_tool_path" pnpm --version); then
     echo "workspace-ready: owner pnpm version unavailable at $scope" >&2
     exit 69
   fi
