@@ -157,6 +157,63 @@ class SourceHistoryLegosTests(unittest.TestCase):
             )
             self.assertEqual(local["exactCrossPathMatches"], [])
 
+    def test_unmapped_path_presence_is_symmetric_and_never_an_owner_proof(self):
+        # ROOT_UNOWNED is only a path-mapping gap, not a natural owner or
+        # consumer-based permission to revive/retire a historical project.
+        with tempfile.TemporaryDirectory(prefix="ordivon-unmapped-presence-") as temp:
+            root = Path(temp)
+            git(root, "init", "-q", "-b", "main")
+            git(root, "config", "user.name", "Ordivon Test")
+            git(root, "config", "user.email", "test@example.invalid")
+            manifest = root / "tools/repo/owners.toml"
+            manifest.parent.mkdir(parents=True)
+            manifest.write_text(
+                CANONICAL_OWNER_HEADER
+                + '[[owners]]\nname = "runtime"\nroot = "services/runtime/"\n'
+                + 'verify_task = "runtime:verify"\n'
+            )
+            shared = root / "both-present.txt"
+            shared.write_text("base")
+            absent = root / "both-absent.txt"
+            absent.write_text("retired")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "base")
+            git(root, "branch", "remote-main")
+            shared.write_text("local value")
+            absent.unlink()
+            local = root / "catalogs/local.json"
+            local.parent.mkdir(parents=True)
+            local.write_text('{"local":1}')
+            git(root, "add", "-A")
+            git(root, "commit", "-qm", "local unmapped project")
+            local_sha = git(root, "rev-parse", "HEAD")
+            git(root, "switch", "-q", "remote-main")
+            shared.write_text("remote value")
+            absent.unlink()
+            remote = root / "studies/remote.txt"
+            remote.parent.mkdir(parents=True)
+            remote.write_text("remote")
+            git(root, "add", "-A")
+            git(root, "commit", "-qm", "remote unmapped project")
+            remote_sha = git(root, "rev-parse", "HEAD")
+
+            report = history(root, "main", "remote-main")
+            records = {r["commit"]: r for r in report["commits"]}
+            for sha, expected in [
+                (local_sha, {"LOCAL_ONLY": 1, "BOTH_PRESENT": 1, "BOTH_ABSENT": 1}),
+                (remote_sha, {"REMOTE_ONLY": 1, "BOTH_PRESENT": 1, "BOTH_ABSENT": 1}),
+            ]:
+                record = records[sha]
+                self.assertEqual(record["owners"], ["ROOT_UNOWNED"])
+                self.assertEqual(record["unmappedPathTipPresence"], expected)
+                self.assertEqual(
+                    sum(record["unmappedPathTipPresence"].values()),
+                    len(record["changedPaths"]),
+                )
+                self.assertEqual(
+                    record["consumerQualification"], "UNKNOWN_REQUIRES_OWNER_CDC"
+                )
+
     def test_merge_connectors_are_preserved_not_mistaken_for_patch_proofs(self):
         with tempfile.TemporaryDirectory(prefix="ordivon-history-merge-") as temp:
             root = Path(temp)
