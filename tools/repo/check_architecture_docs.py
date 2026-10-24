@@ -178,6 +178,11 @@ def _validated_owner_lego_edges(
     return sorted(observed)
 
 
+def _canonical_owner_lego_id(identity: str) -> bool:
+    """One unambiguous machine key, distinct from localized LEGO labels."""
+    return re.fullmatch(r"[A-Za-z][A-Za-z0-9._-]*", identity) is not None
+
+
 def validate_owner_lego_graph(plan: dict[str, Any]) -> None:
     """Check all Owner slices reference typed vertices, including unregistered ones.
 
@@ -199,7 +204,7 @@ def validate_owner_lego_graph(plan: dict[str, Any]) -> None:
         identity = node.get("id")
         if not isinstance(identity, str) or not identity.strip():
             raise ArchitectureDocsError("LEGO node requires non-empty identity")
-        if identity != identity.strip():
+        if not _canonical_owner_lego_id(identity):
             raise ArchitectureDocsError("non-canonical LEGO node identity")
         if identity in identities:
             raise ArchitectureDocsError(f"duplicate LEGO node: {identity}")
@@ -217,7 +222,7 @@ def validate_owner_lego_graph(plan: dict[str, Any]) -> None:
         identity = slice_.get("id")
         if not isinstance(identity, str) or not identity.strip():
             raise ArchitectureDocsError("LEGO slice needs non-empty identity")
-        if identity != identity.strip():
+        if not _canonical_owner_lego_id(identity):
             raise ArchitectureDocsError("non-canonical LEGO slice identity")
         if identity in slice_ids:
             raise ArchitectureDocsError(f"duplicate LEGO slice: {identity}")
@@ -441,7 +446,7 @@ def validate_owner_lego_dependencies(
         if not isinstance(node, dict) or not isinstance(node.get("id"), str) or not node["id"]:
             raise ArchitectureDocsError("untyped LEGO node identity")
         identity = node["id"]
-        if identity != identity.strip():
+        if not _canonical_owner_lego_id(identity):
             raise ArchitectureDocsError("non-canonical LEGO node identity")
         if identity in graph:
             raise ArchitectureDocsError("duplicate LEGO node identity")
