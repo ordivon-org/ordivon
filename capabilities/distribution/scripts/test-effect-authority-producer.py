@@ -39,15 +39,48 @@ def expect_deny(name: str, intent: dict, approval: dict, contains: str, now: dat
     raise AssertionError(f"{name}: expected denial")
 
 
+def check_authority_contract(authority: dict) -> None:
+    """Exact approval-to-effect consumer oracle; remains active under python -O."""
+    expected = {
+        "decision": "grant",
+        "occurrenceRef": INTENT["occurrenceRef"],
+        "provider": "github",
+        "accountRef": "repo:ordivon-org/ordivon-runtime",
+        "effectName": "create_issue",
+    }
+    for key, value in expected.items():
+        if authority.get(key) != value:
+            raise AssertionError(
+                f"effect authority contract: {key} expected {value!r}, got {authority.get(key)!r}"
+            )
+    source_ref = authority.get("sourceRef")
+    if not isinstance(source_ref, str) or not source_ref.startswith(
+        "approval:synthetic-test-only-approval:"
+    ):
+        raise AssertionError("effect authority contract: sourceRef must bind the exact approval")
+
+
 def main() -> int:
     approval = approval_for(INTENT)
     authority = produce(INTENT, approval, now=NOW)
-    assert authority["decision"] == "grant"
-    assert authority["occurrenceRef"] == INTENT["occurrenceRef"]
-    assert authority["provider"] == "github"
-    assert authority["accountRef"] == "repo:ordivon-org/ordivon-runtime"
-    assert authority["effectName"] == "create_issue"
-    assert authority["sourceRef"].startswith("approval:synthetic-test-only-approval:")
+    check_authority_contract(authority)
+
+    # Falsification: a forged producer output must not pass the test oracle.
+    invalid_outputs = (
+        ("provider", "other-provider"),
+        ("accountRef", "repo:unrelated/repository"),
+        ("decision", "deny"),
+        ("sourceRef", "approval:unrelated:something"),
+    )
+    for field, invalid in invalid_outputs:
+        wrong = deepcopy(authority)
+        wrong[field] = invalid
+        try:
+            check_authority_contract(wrong)
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError(f"contract oracle accepted a wrong {field}")
     print("PASS synthetic exact approval translates to exact EffectAuthority")
 
     swapped = deepcopy(INTENT)

@@ -149,14 +149,16 @@ class FinanceReadonlyObservationTests(unittest.TestCase):
         self.assertFalse(receipt["networkAcquisitionAllowed"])
         self.assertFalse(receipt["lockfileMutationAllowed"])
         self.assertFalse(receipt["agentToolAuthorityGranted"])
-        self.assertEqual(receipt["provider"], "/usr/bin/uv")
+        self.assertEqual(receipt["provider"], "mise:selected-owner-uv")
         self.assertEqual(receipt["args"], ["sync", "--locked", "--offline"])
         self.assertEqual(len(fake.calls), 1)
         name, arguments = fake.calls[0]
         self.assertEqual(name, "workspace.exec")
         self.assertEqual(arguments["execution"]["workspaceId"], "finance-ws")
-        self.assertEqual(arguments["execution"]["executable"], "/usr/bin/uv")
-        self.assertEqual(arguments["execution"]["args"], ["sync", "--locked", "--offline"])
+        self.assertEqual(arguments["execution"]["executable"], "/bin/bash")
+        self.assertIn("mise which uv", arguments["execution"]["args"][-1])
+        self.assertIn("sync --locked --offline", arguments["execution"]["args"][-1])
+        self.assertEqual(arguments["execution"]["env"]["MISE_OFFLINE"], "1")
 
     def test_project_environment_preparation_fails_closed_when_python_offline_closure_is_unavailable(self):
         fake = EnvironmentRuntime(failed=True)
