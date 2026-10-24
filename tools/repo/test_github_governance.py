@@ -128,6 +128,40 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         self.assertNotEqual(duplicate.returncode, 0, duplicate.stdout + duplicate.stderr)
         self.assertIn("Dependabot uv duplicates Renovate pep621 ownership", duplicate.stderr)
 
+    def test_local_composite_action_cannot_escape_sha_pin_authority(self) -> None:
+        """Reproduce the historic local-only composite Action nested-uses bypass."""
+        import importlib.util
+        from unittest import mock
+
+        sys.path.insert(0, str(SCRIPT.parent))
+        spec = importlib.util.spec_from_file_location("governance_action_test", SCRIPT)
+        assert spec is not None and spec.loader is not None
+        governance = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(governance)
+        with tempfile.TemporaryDirectory() as directory:
+            action = Path(directory) / "action.yml"
+            action.write_text(
+                "name: nested\nruns:\n  using: composite\n  steps:\n"
+                "    - uses: actions/checkout@v7\n", encoding="utf-8"
+            )
+            rglob_original = Path.rglob
+
+            def source_action_files(folder: Path, pattern: str):
+                if folder == ROOT / ".github" / "actions":
+                    return iter([action]) if pattern == "action.yml" else iter([])
+                return rglob_original(folder, pattern)
+
+            with mock.patch.object(Path, "rglob", source_action_files):
+                with self.assertRaisesRegex(AssertionError, "non-SHA action references"):
+                    governance.main()
+                action.write_text(
+                    "name: nested\nruns:\n  using: composite\n  steps:\n"
+                    "    - uses: actions/checkout@" + "f" * 40 + "\n"
+                    "    - uses: $/.github/actions/another\n",
+                    encoding="utf-8",
+                )
+                self.assertEqual(governance.main(), 0)
+
     def test_optimized_mode_refuses_assert_based_governance_verification(self) -> None:
         result = self.run_contract(invalid=False, optimized=True)
         self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
