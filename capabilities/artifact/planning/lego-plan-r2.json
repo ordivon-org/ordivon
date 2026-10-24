@@ -242,7 +242,7 @@
       "id": "X02",
       "label": "ToolchainEnvironment",
       "kind": "externalize",
-      "responsibility": "Probe and manage execution-tool availability and environment facts.",
+      "responsibility": "Probe execution-tool availability and materialize source-digest-checked, generation-local Python interpreter bytes for the existing Artifact carrier; reject immutable-generation source drift.",
       "currentEvidence": [
         "scripts/artifact_delivery_toolchain_doctor.py",
         "scripts/artifact_python_environment.py",
