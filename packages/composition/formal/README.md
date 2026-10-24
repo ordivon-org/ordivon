@@ -29,6 +29,8 @@ In `Lego21OwnerBoundary.tla`, TLC checks at-most-once physical dispatch, that ne
 
 ## Reuse the existing native checker
 
+The Composition Owner native verify now requires the Formal task and checks all four Harness/Network optionality configurations using the existing Runtime public SHA-verified upstream TLA+ toolchain. The exact tool-only cross-Owner dependency is admitted in the canonical dependency contracts. No Runtime Job/Attempt internals or execution authority are imported. A model, tool integrity, or configuration failure now blocks Owner acceptance.
+
 The Runtime owner pins both TLA+ tools digests in `services/runtime/formal/toolchain.lock.json`. Use the digest-verified tool; **no extra formal checker or package is introduced**.
 
 ```bash
