@@ -3,6 +3,9 @@ services:
     restart: unless-stopped
   archivematica-storage-service:
     restart: unless-stopped
+    # Fixity runs as a host systemd service; only loopback may reach Storage Service.
+    ports:
+      - "127.0.0.1:62081:8000"
     volumes:
       - "/var/lib/ordivon/creative-preservation/r7-secondary-store:/mnt/r7-secondary"
       - "/opt/ordivon/external/unar/1.10.8/bin/unar:/usr/local/bin/unar:ro"

@@ -99,6 +99,15 @@ def main() -> int:
         all(isinstance(name, str) and isinstance(config, dict) for name, config in services.items()),
         "compose services require names and object configs",
     )
+    # A host-native Fixity consumer uses STORAGE_SERVICE_URL at localhost:62081.
+    # Container existence / TCP 8000 alone does not prove host reachability:
+    # the compose overlay must bind that same route to loopback only. The
+    # deployed Compose config + real service readiness need separate evidence.
+    storage = services["archivematica-storage-service"]
+    _require(
+        storage.get("ports") == ["127.0.0.1:62081:8000"],
+        "Fixity host consumer requires exactly loopback 127.0.0.1:62081 -> Storage Service 8000",
+    )
 
     service = (
         OWNER_ROOT / "systemd/ordivon-preservation-fixity-r7.service"
