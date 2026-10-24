@@ -38,6 +38,71 @@ REQUIRED_MODEL_BINDINGS = {
 }
 
 
+# These are the actual existing RuntimeDispatchR1.cfg obligations, not a
+# substitute for TLC. Their independent currentness check prevents a
+# refreshed hash from laundering a weaker (or entirely vacuous) check.
+REQUIRED_TLC_INVARIANTS = {
+    "TypeOK",
+    "AtMostOnceDispatchPerAttempt",
+    "AmbiguityRequiresReconciliation",
+    "NoUnusedAttemptWasDispatched",
+    "TerminalAttemptWasDispatched",
+}
+REQUIRED_TLC_PROPERTIES = {"ProgressToFirstDecision"}
+
+
+def check_tlc_config_obligations(content: str, claimed_invariants: set[str] | None = None) -> list[str]:
+    checked: dict[str, set[str]] = {"INVARIANTS": set(), "PROPERTIES": set()}
+    specification: list[str] = []
+    retry_bound_sets: list[set[str]] = []
+    unreviewed_state_filters: set[str] = set()
+    section = ""
+    for raw in content.splitlines():
+        # TLA+ configuration comments start at backslash-star.
+        line = raw.split("\\*", 1)[0].strip()
+        if not line:
+            continue
+        attempts = re.fullmatch(r"Attempts\s*=\s*\{([^{}]*)\}", line)
+        if attempts:
+            members = [member.strip() for member in attempts.group(1).split(",")]
+            retry_bound_sets.append(set(members))
+            if len(members) != len(set(members)) or any(not member for member in members):
+                retry_bound_sets.append(set())
+        parts = line.split()
+        marker = parts[0]
+        if marker in {"CONSTRAINT", "CONSTRAINTS", "ACTION_CONSTRAINT", "SYMMETRY", "VIEW"}:
+            unreviewed_state_filters.add(marker)
+        if marker in {"SPECIFICATION", "INVARIANTS", "INVARIANT", "PROPERTIES", "PROPERTY",
+                      "CONSTANTS", "CONSTANT", "CHECK_DEADLOCK", "CONSTRAINT", "SYMMETRY",
+                      "VIEW", "ALIAS", "INIT", "NEXT"}:
+            section = {"INVARIANT": "INVARIANTS", "PROPERTY": "PROPERTIES"}.get(marker, marker)
+            if marker == "SPECIFICATION":
+                specification.append(" ".join(parts[1:]))
+            elif section in checked:
+                checked[section].update(parts[1:])
+        elif section in checked:
+            checked[section].update(parts)
+
+    errors = []
+    if unreviewed_state_filters:
+        errors.append(
+            f"TLC config unreviewed state-space restrictions: {sorted(unreviewed_state_filters)}"
+        )
+    if specification != ["FairSpec"]:
+        errors.append(f"TLC config must check FairSpec including fairness, got {specification!r}")
+    if len(retry_bound_sets) != 1 or len(retry_bound_sets[0]) < 2:
+        errors.append("TLC config must bind at least two distinct Attempts to explore explicit retry")
+    for section, required in (
+        ("INVARIANTS", REQUIRED_TLC_INVARIANTS),
+        ("PROPERTIES", REQUIRED_TLC_PROPERTIES),
+    ):
+        expected = required | (claimed_invariants or set()) if section == "INVARIANTS" else required
+        missing = expected - checked[section]
+        if missing:
+            errors.append(f"TLC config missing checked {section}: {sorted(missing)}")
+    return errors
+
+
 def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -142,6 +207,21 @@ def validate(trace: dict[str, Any], invariant_manifest: dict[str, Any]) -> list[
         observed = sha256(path)
         if observed != expected:
             errors.append(f"formal source drift: {relative}: expected {expected}, observed {observed}")
+
+    config = formal.get("configPath")
+    if isinstance(config, str) and (ROOT / config).is_file():
+        model_claims = formal.get("modelBindings", [])
+        claimed = {
+            item["symbol"] for item in model_claims
+            if isinstance(item, dict) and item.get("kind") == "invariant"
+            and isinstance(item.get("symbol"), str)
+        } if isinstance(model_claims, list) else set()
+        try:
+            errors.extend(check_tlc_config_obligations(
+                (ROOT / config).read_text(encoding="utf-8"), claimed
+            ))
+        except (OSError, UnicodeError) as error:
+            errors.append(f"TLC config unreadable: {error}")
 
     model_bindings = formal.get("modelBindings", [])
     model_ids = _ids(model_bindings)

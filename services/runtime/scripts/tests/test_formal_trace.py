@@ -5,6 +5,7 @@ or LEGO test registry is needed.
 """
 
 import copy
+import hashlib
 import importlib.util
 import json
 import tempfile
@@ -127,6 +128,50 @@ trait Provider {
         mutated["formalSpecification"]["modelBindings"].pop()
         errors = self.module.validate(mutated, invariants)
         self.assertTrue(any("formal model binding set drift" in error for error in errors), errors)
+
+
+    def test_new_model_invariant_cannot_be_claimed_without_a_tlc_check(self):
+        # An independently added R2.1 invariant must be checked, not merely
+        # named in a proof manifest. No extra schema or proof engine is needed.
+        config = (ROOT / "formal/RuntimeDispatchR1.cfg").read_text(encoding="utf-8")
+        missing = self.module.check_tlc_config_obligations(
+            config, {"NewlyClaimedFormalInvariant"}
+        )
+        self.assertTrue(
+            any("NewlyClaimedFormalInvariant" in error for error in missing),
+            missing,
+        )
+
+    def test_tlc_checker_obligations_survive_source_digest_refresh(self):
+        # Hash/currentness alone is not evidence that the model checker
+        # actually checked the safety/liveness claim on the same source cut.
+        trace, invariants = manifests()
+        actual = (ROOT / "formal/RuntimeDispatchR1.cfg").read_text(encoding="utf-8")
+        mutations = {
+            "lost_safety": actual.replace("    AtMostOnceDispatchPerAttempt\n", ""),
+            "lost_progress": actual.replace("    ProgressToFirstDecision\n", ""),
+            "lost_fairness": actual.replace("SPECIFICATION FairSpec", "SPECIFICATION Spec"),
+            "lost_retry_capacity": actual.replace("Attempts = {A1, A2}", "Attempts = {A1}"),
+            "vacuous_type_constraint": actual.replace(
+                "CHECK_DEADLOCK FALSE", "CONSTRAINT TypeOK\nCHECK_DEADLOCK FALSE"
+            ),
+        }
+        for variant, content in mutations.items():
+            self.assertNotEqual(actual, content, variant)
+            with self.subTest(variant=variant):
+                with tempfile.TemporaryDirectory(dir=ROOT / "formal", prefix="model-cut-") as temp:
+                    alternative = Path(temp) / "RuntimeDispatchR1.cfg"
+                    alternative.write_text(content, encoding="utf-8")
+                    fresh = copy.deepcopy(trace)
+                    fresh["formalSpecification"]["configPath"] = str(alternative.relative_to(ROOT))
+                    fresh["formalSpecification"]["configSha256"] = hashlib.sha256(
+                        alternative.read_bytes()
+                    ).hexdigest()
+                    errors = self.module.validate(fresh, invariants)
+                    self.assertTrue(
+                        any("TLC config" in error for error in errors),
+                        f"source-bound {variant} was accepted without proof: {errors}",
+                    )
 
 
 if __name__ == "__main__":
