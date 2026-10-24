@@ -72,6 +72,12 @@ def _unique_index(rows: list[dict[str, Any]], label: str) -> dict[str, dict[str,
 
 
 def validate_manifest(value: dict[str, Any]) -> None:
+    """Check only the contract; preserve the public None-returning API."""
+    _validate_manifest_and_order(value)
+
+
+def _validate_manifest_and_order(value: dict[str, Any]) -> list[str]:
+    """Return the linear extension while discharging the exact same checks."""
     _validate_schema(value, MANIFEST_SCHEMA, "cognitive circuit manifest")
 
     methods = _unique_index(value["methodBindings"], "method binding")
@@ -81,7 +87,7 @@ def validate_manifest(value: dict[str, Any]) -> None:
     gates = _unique_index(value["gateRequirements"], "gate requirement")
     del edges  # uniqueness is the only direct edge-index property needed below.
 
-    _topological_order(value["stages"])
+    stage_order = _topological_order(value["stages"])
 
     method_ids = set(methods)
     capability_ids = set(capabilities)
@@ -148,9 +154,11 @@ def validate_manifest(value: dict[str, Any]) -> None:
                 f"gate {gate_id} producer must be a dependency of its consumer stage"
             )
 
+    return stage_order
+
 
 def compile_manifest(value: dict[str, Any]) -> dict[str, Any]:
-    validate_manifest(value)
+    stage_order = _validate_manifest_and_order(value)
     manifest_digest = canonical_digest(value)
     required_gate_ids = sorted(gate["id"] for gate in value["gateRequirements"] if gate["required"])
     compiled: dict[str, Any] = {
@@ -162,7 +170,7 @@ def compile_manifest(value: dict[str, Any]) -> dict[str, Any]:
         "objectiveRef": value["objectiveRef"],
         "methodBindingIds": sorted(item["id"] for item in value["methodBindings"]),
         "capabilityBindingIds": sorted(item["id"] for item in value["capabilityBindings"]),
-        "stageOrder": _topological_order(value["stages"]),
+        "stageOrder": stage_order,
         "requiredGateIds": required_gate_ids,
         "unresolvedAssumptions": sorted(value["unresolvedAssumptions"]),
         "authorityBoundary": (

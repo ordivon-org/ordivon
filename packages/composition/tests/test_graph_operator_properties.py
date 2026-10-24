@@ -10,6 +10,7 @@ import random
 import pytest
 from test_cognitive_circuit_r1 import valid_manifest
 
+from ordivon_composition import cognitive_circuit_r1 as compiler
 from ordivon_composition.cognitive_circuit_r1 import (
     CircuitContractError,
     compile_manifest,
@@ -194,3 +195,25 @@ def test_all_three_node_directed_graphs_match_permutation_oracle() -> None:
         assert compile_manifest(manifest)["stageOrder"] == expected
 
     assert (dag_count, cycle_count) == (25, 39)
+
+
+def test_compile_discharges_dag_validation_once_not_twice(monkeypatch: pytest.MonkeyPatch) -> None:
+    """One canonical validated linear extension feeds the compiled projection.
+
+    The public standalone validation contract still returns None. A compiled
+    manifest must not repeat its already-validated graph kernel unnecessarily.
+    """
+    native = compiler._topological_order
+    calls: list[int] = []
+
+    def bound_once(rows: list[dict]) -> list[str]:
+        calls.append(len(rows))
+        return native(rows)
+
+    monkeypatch.setattr(compiler, "_topological_order", bound_once)
+    manifest = _manifest_for_seed(13)
+    assert compiler.validate_manifest(manifest) is None
+    calls.clear()
+    compiled = compiler.compile_manifest(manifest)
+    _assert_valid_topological_projection(manifest, compiled["stageOrder"])
+    assert calls == [len(manifest["stages"])]
