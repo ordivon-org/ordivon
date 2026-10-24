@@ -1,0 +1,1978 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.git-main-consumer-sourcecut-evidence",
+  "truthRole": "time-scoped-comparison-evidence-not-registry-not-merge-authorization",
+  "observedAt": "2026-10-24",
+  "sourceCut": {
+    "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+    "protectedRemoteMain": "7b51fd3e033f964db551c127e2e910ae3bc88ef8",
+    "mergeBase": "80c17a3635219fa00c91ee9ea00700918bd14df4",
+    "gitHistoryExclusive": {
+      "local": 2300,
+      "remote": 453
+    },
+    "localPatchComparisonAgainstRemote": {
+      "noEquivalentPatch": 1516,
+      "equivalentPatch": 30
+    }
+  },
+  "representation": {
+    "primary": "equivalence-first",
+    "supporting": "consumer-graph",
+    "unit": "one selected source commit, changed path, natural owner and other-cut path equivalence",
+    "equivalenceRule": "SAME_BLOB or SAME_ABSENCE at the exact opposite source cut proves the final touched-path results coincide; without native consumer proof it says nothing about all semantic behavior.",
+    "missingPathRule": "absent at the other source cut is not automatically obsolete; trace actual consumers before retirement or resurrection",
+    "selection": "Choose only current Owner-compatible behavior with native CDC and protected CI; all cut-relative statuses require source snapshot refresh before promotion.",
+    "branchDeletionRule": "EXACT_TREE_SUBSUMED of a single commit is not proof that any branch tip has no unique commits or Workspace consumers",
+    "proofBoundary": "Git source cuts and lexical path/blob checks, NOT a full formal semantic equivalence or production test result",
+    "pathEvidenceTuple": "Each pair is [changed tracked path, relation of the commit result to the opposite frozen Main cut]. Sources are re-checkable with Git at sourceCut SHAs."
+  },
+  "registration": {
+    "existingIssue": "GIT-01",
+    "existingEvidence": "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261024_R1.json",
+    "naturalOwner": "tools/repo",
+    "additionalRegistryCreated": false
+  },
+  "mechanicalSummary": {
+    "local": {
+      "sampleCommits": 43,
+      "dispositions": {
+        "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS": 31,
+        "EXACT_TREE_RESULT_SUBSUMED": 4,
+        "OTHER_CUT_PATHS_ABSENT_REVIEW_CONSUMERS": 8
+      },
+      "ownerImpacts": {
+        "artifact": 1,
+        "distribution": 1,
+        "game": 8,
+        "gateway": 2,
+        "harness": 3,
+        "host": 1,
+        "network": 1,
+        "repo-mechanics-or-unregistered-path": 14,
+        "runtime": 5,
+        "security": 1,
+        "web": 1,
+        "workstation": 8
+      },
+      "pathObservations": {
+        "DIFFERENT_BLOB": 72,
+        "SAME_ABSENCE": 3,
+        "SAME_BLOB": 17,
+        "SOURCE_PATH_ABSENT": 20
+      }
+    },
+    "remote": {
+      "sampleCommits": 43,
+      "dispositions": {
+        "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS": 32,
+        "OTHER_CUT_PATHS_ABSENT_REVIEW_CONSUMERS": 11
+      },
+      "ownerImpacts": {
+        "artifact": 3,
+        "capital": 4,
+        "game": 1,
+        "gateway": 1,
+        "harness": 1,
+        "media": 2,
+        "network": 3,
+        "next": 1,
+        "preservation": 2,
+        "repo-mechanics-or-unregistered-path": 17,
+        "runtime": 7,
+        "security": 3,
+        "web": 1
+      },
+      "pathObservations": {
+        "DIFFERENT_BLOB": 63,
+        "SAME_BLOB": 3,
+        "SOURCE_PATH_ABSENT": 35
+      }
+    }
+  },
+  "consumerReviewedSelections": [
+    {
+      "localCommit": "225192c6e71",
+      "state": "RETIREMENT_EFFECT_PRESENT_IN_REMOTE",
+      "basis": "three historical migration note files are absent at BOTH cuts; never resurrect documentation solely to replay historical commit",
+      "owner": "distribution-and-workstation",
+      "nativeCDC": "NOT_RUN_UNNECESSARY_FOR_ABSENCE_PROOF"
+    },
+    {
+      "localCommit": "83fb2956e051",
+      "state": "SOURCE_PATH_RETIRED_NO_CURRENT_CONSUMER",
+      "basis": "remote protected tree lacks platform/network/consumers/model-provider/ready.sh and current remote network consumers have no model-provider reference",
+      "owner": "network",
+      "nativeCDC": "NOT_RUN_OLD_PATH_NOT_PRESENT"
+    },
+    {
+      "localCommit": "efb7510538ef",
+      "state": "ALREADY_HAS_BOUNDED_PARALLEL_PROJECTION_CANDIDATE",
+      "basis": "remote Workspace list performs 4-way bounded Git HEAD/dirty probes, source-digest serial checks, stable indexed ordering; old patch must not replace newer implementation",
+      "owner": "runtime",
+      "nativeCDC": "EXISTING_RUNTIME_TESTS_NOT_RERUN"
+    },
+    {
+      "localCommit": "13704d0cac9",
+      "state": "OBSOLETE_CALENDAR_EXCEPTION_REMOVAL_NEEDS_CURRENT_OWNER_CHECK",
+      "basis": "remote convergence planner no longer defines old calendar-exemption symbols, but has other independent edits; open PR #317 owns overlap on existing convergence test path",
+      "owner": "repo-mechanics",
+      "nativeCDC": "NOT_RUN_OPEN_PR_CONFLICT"
+    },
+    {
+      "localCommit": "82c8fa2924e8",
+      "state": "EXACT_TREE_SUBSUMED",
+      "basis": "both changed Harness file blobs match at current remote source cut; source delta does not need cherry-pick",
+      "owner": "harness",
+      "nativeCDC": "NOT_RUN_IDENTICAL_BYTES"
+    }
+  ],
+  "samples": {
+    "localOnlyLatest43": [
+      {
+        "sha": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+        "subject": "refactor(repo): delete obsolete calendar-gate owner-fanout exception",
+        "ownerSet": [
+          "repo-mechanics-or-unregistered-path"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "tools/repo/convergence_plan.py",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "tools/repo/test_convergence_plan.py",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "225192c6e711ea4b6493377b7536f18e531ac72f",
+        "subject": "docs: delete unconsumed legacy migration notes",
+        "ownerSet": [
+          "distribution",
+          "workstation"
+        ],
+        "mechanicalDisposition": "EXACT_TREE_RESULT_SUBSUMED",
+        "pathEvidence": [
+          [
+            "capabilities/distribution/docs/LEGACY-DIFFERENTIAL-R1.md",
+            "SAME_ABSENCE"
+          ],
+          [
+            "platform/workstation/docs/LEGACY_LAUNCHER_RETIREMENT_R5.md",
+            "SAME_ABSENCE"
+          ],
+          [
+            "platform/workstation/docs/LEGACY_WORKSTATION_MIGRATION_R1.md",
+            "SAME_ABSENCE"
+          ]
+        ]
+      },
+      {
+        "sha": "d521d142682ca667da5a8d97997b5d1157b132a0",
+        "subject": "fix(security): fail closed on stale uv locks and align mise-action",
+        "ownerSet": [
+          "security"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "platform/security/.github/workflows/security.yml",
+            "SOURCE_PATH_ABSENT"
+          ],
+          [
+            "platform/security/mise.toml",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "platform/security/tests/test_security_workflow_native_opa.py",
+            "SOURCE_PATH_ABSENT"
+          ]
+        ]
+      },
+      {
+        "sha": "e1405714453450b6792c67cb7ea1b72ed19bc717",
+        "subject": "fix(workstation): upgrade nixpkgs without insecure RStudio, preserve current Home Manager",
+        "ownerSet": [
+          "workstation"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "platform/workstation/workstation/nix/flake.lock",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "platform/workstation/workstation/nix/nix/home.nix",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "ecca6ad1ae1df4acedd9ec5d7a4f3efe771c0b1e",
+        "subject": "fix(game): consume canonical Workstation v2 browser tool binding",
+        "ownerSet": [
+          "game"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "domains/game/test/browser-equipment.test.ts",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "domains/game/tools/browser-equipment.ts",
+            "SAME_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "efb7510538ef8d4932edd39d257357dfee63c695",
+        "subject": "perf(runtime): select bounded Git live probes from historical PR 82",
+        "ownerSet": [
+          "runtime"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "services/runtime/crates/ordivon-runtime-core/src/runtime/engine/workspace.rs",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "services/runtime/crates/ordivon-runtime-core/src/runtime/tests.rs",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "02cc68566c0c467641bc9b2f3e483705a18209b4",
+        "subject": "upgrade(workstation): consume verified Wrangler 4.152.0 lock",
+        "ownerSet": [
+          "workstation"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "platform/workstation/providers/cloudflare/package.json",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "platform/workstation/providers/cloudflare/pnpm-lock.yaml",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "86298d72eac5461bd84d1d8ccacd0c4deab1b5e4",
+        "subject": "build(cloudflare): update official wrangler to 4.152.0 with native consumer checks",
+        "ownerSet": [
+          "workstation"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "platform/workstation/providers/cloudflare/package.json",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "platform/workstation/providers/cloudflare/pnpm-lock.yaml",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "9ae3d88bbd4bfae6e72494b4157c76c5edc0a983",
+        "subject": "fix(ci): retire obsolete calendar gates without all-owner reruns",
+        "ownerSet": [
+          "repo-mechanics-or-unregistered-path"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "tools/repo/convergence_plan.py",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "tools/repo/test_convergence_plan.py",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "d107811c26b37d975b95b4dec6996c290c294ff8",
+        "subject": "docs(git): reconcile current local remote PR and recovery receipts",
+        "ownerSet": [
+          "repo-mechanics-or-unregistered-path"
+        ],
+        "mechanicalDisposition": "OTHER_CUT_PATHS_ABSENT_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "docs/migration/receipts/GIT_PR_CONVERGENCE_20261023_R1.md",
+            "SOURCE_PATH_ABSENT"
+          ]
+        ]
+      },
+      {
+        "sha": "70732958bee4737b3c269c4239eb7c334726a7a5",
+        "subject": "build(workstation): select latest Home Manager 26.05 source",
+        "ownerSet": [
+          "workstation"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "platform/workstation/workstation/nix/flake.lock",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "82c8fa2924e89f6706eddee4761899b727c67902",
+        "subject": "fix(harness): bind editable workspace source digest to actual bytes",
+        "ownerSet": [
+          "harness"
+        ],
+        "mechanicalDisposition": "EXACT_TREE_RESULT_SUBSUMED",
+        "pathEvidence": [
+          [
+            "services/harness/src/ordivon_harness/ordivon/adaptive_edit_bridge.py",
+            "SAME_BLOB"
+          ],
+          [
+            "services/harness/tests/test_adaptive_edit_bridge.py",
+            "SAME_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "fd2082905f36602d80bb024f606103228e42ecb4",
+        "subject": "upgrade(artifact,ci): consume protobuf 7.36.2 and SBOM action v0.24.3",
+        "ownerSet": [
+          "artifact",
+          "repo-mechanics-or-unregistered-path"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            ".github/workflows/runtime-release.yml",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "capabilities/artifact/artifact-delivery/artifact-python-runtime-v1.lock.json",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "capabilities/artifact/artifact-delivery/python-uv/pyproject.toml",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "capabilities/artifact/artifact-delivery/python-uv/uv.lock",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "capabilities/artifact/tests/test_artifact_python_environment.py",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "tools/repo/check_github_governance.py",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "fcf5fc6d1b7e23a0527e20309388e974bf4158d0",
+        "subject": "test(game): follow Workstation v2 provider in production smoke",
+        "ownerSet": [
+          "game"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "domains/game/experiments/production-smoke-r1/run.ts",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "557e436d19b79fb6983c5c8fdc4e3965d0e25ddd",
+        "subject": "build(web,game): update Node 26 type declarations to latest 26.6.5",
+        "ownerSet": [
+          "game",
+          "web"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "apps/web/package.json",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "apps/web/pnpm-lock.yaml",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "domains/game/package.json",
+            "SAME_BLOB"
+          ],
+          [
+            "domains/game/pnpm-lock.yaml",
+            "SAME_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "5f9bb546a47caa344341eaaafbc9f28e67106efc",
+        "subject": "docs(repo): record consumer-qualified dirty workspace retirement",
+        "ownerSet": [
+          "repo-mechanics-or-unregistered-path"
+        ],
+        "mechanicalDisposition": "OTHER_CUT_PATHS_ABSENT_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "docs/migration/receipts/GIT_PR_CONVERGENCE_20261023_R1.md",
+            "SOURCE_PATH_ABSENT"
+          ]
+        ]
+      },
+      {
+        "sha": "7263f9ea652e4bd1658cf705826cf2635f00ab0d",
+        "subject": "test(runtime): preserve historical nested Git digest consumer regressions",
+        "ownerSet": [
+          "runtime"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "services/runtime/crates/ordivon-runtime-core/src/universal/workspace/source_state.rs",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "0dcfbb750f4a017b07ab7cd7e035cbece7e6c9eb",
+        "subject": "game: add validated piercing projectile LEGO to Bevy recipes",
+        "ownerSet": [
+          "game"
+        ],
+        "mechanicalDisposition": "EXACT_TREE_RESULT_SUBSUMED",
+        "pathEvidence": [
+          [
+            "domains/game/kits/room-action-r0/README.md",
+            "SAME_BLOB"
+          ],
+          [
+            "domains/game/kits/room-action-r0/src/lib.rs",
+            "SAME_BLOB"
+          ],
+          [
+            "domains/game/kits/room-action-r0/src/main.rs",
+            "SAME_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "83fb2956e051ad9c27c091e96631a842f8eebcc7",
+        "subject": "network: require measured proxy and verified TLS in model readiness",
+        "ownerSet": [
+          "network"
+        ],
+        "mechanicalDisposition": "OTHER_CUT_PATHS_ABSENT_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "platform/network/consumers/model-provider/ready.sh",
+            "SOURCE_PATH_ABSENT"
+          ],
+          [
+            "platform/network/tests/test_model_provider_consumer.py",
+            "SOURCE_PATH_ABSENT"
+          ]
+        ]
+      },
+      {
+        "sha": "3ee4459aa418737ea745764fc0d9c385d1d77955",
+        "subject": "build(runtime): adopt schemars 1.2.3 in current native lock",
+        "ownerSet": [
+          "runtime"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "services/runtime/Cargo.lock",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "b13052b5dac74107b21139a4ca298f0fdc6ff616",
+        "subject": "build(ci): pin official mise-action v5.2.2 across verification and release",
+        "ownerSet": [
+          "repo-mechanics-or-unregistered-path"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            ".github/workflows/ci.yml",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            ".github/workflows/runtime-release.yml",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "tools/repo/check_github_governance.py",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "tools/repo/test_github_governance.py",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "8303ca3a7a4ef8501942449fb72522fd9d5b5984",
+        "subject": "game: expose validated LEGO palettes and recipes as native JSON CLI",
+        "ownerSet": [
+          "game"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "domains/game/kits/room-action-r0/Cargo.lock",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "domains/game/kits/room-action-r0/Cargo.toml",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "domains/game/kits/room-action-r0/README.md",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "domains/game/kits/room-action-r0/src/lib.rs",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "domains/game/kits/room-action-r0/src/main.rs",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "0abd90d3ba18f680268b2184981cad36d6261185",
+        "subject": "fix(gateway): reuse remote pinned Windows ACL preflight",
+        "ownerSet": [
+          "gateway"
+        ],
+        "mechanicalDisposition": "EXACT_TREE_RESULT_SUBSUMED",
+        "pathEvidence": [
+          [
+            "services/gateway/packaging/windows/protect_candidate_acl.ps1",
+            "SAME_BLOB"
+          ],
+          [
+            "services/gateway/tests/test_windows_acl_preflight.py",
+            "SAME_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "af6f3f48f14b9a8429b7bbd837cd55005031ad86",
+        "subject": "research: preserve historical dataset owner materialization route",
+        "ownerSet": [
+          "repo-mechanics-or-unregistered-path"
+        ],
+        "mechanicalDisposition": "OTHER_CUT_PATHS_ABSENT_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            ".agents/skills/research-capability-routing/SKILL.md",
+            "SOURCE_PATH_ABSENT"
+          ],
+          [
+            ".agents/skills/research-capability-routing/references/research-capability-routing-r1.json",
+            "SOURCE_PATH_ABSENT"
+          ],
+          [
+            "profiles/research/capability-index/research-capability-index-r1.json",
+            "SOURCE_PATH_ABSENT"
+          ],
+          [
+            "tests/skills/test_research_capability_routing.py",
+            "SOURCE_PATH_ABSENT"
+          ]
+        ]
+      },
+      {
+        "sha": "beab83436239bf87ab37e83e1b0649e992768d4e",
+        "subject": "build(deps): group same-name Dependabot updates across owner directories",
+        "ownerSet": [
+          "repo-mechanics-or-unregistered-path"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            ".github/dependabot.yml",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "tools/repo/test_dependency_update_ownership.py",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "0f619c1a3b987ddc753f4e6f59e6ffe19c7a1ee6",
+        "subject": "fix(gateway): reuse remote concurrent owner observation contracts",
+        "ownerSet": [
+          "gateway"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "services/gateway/src/ordivon_gateway/service.py",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "services/gateway/tests/test_projection_concurrency.py",
+            "SAME_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "fa5df398a036589968a4e24ed3e9de789d86b2b6",
+        "subject": "docs(repo): capture local-remote divergence and PR census",
+        "ownerSet": [
+          "repo-mechanics-or-unregistered-path"
+        ],
+        "mechanicalDisposition": "OTHER_CUT_PATHS_ABSENT_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "docs/migration/receipts/GIT_PR_CONVERGENCE_20261023_R1.md",
+            "SOURCE_PATH_ABSENT"
+          ]
+        ]
+      },
+      {
+        "sha": "63d3c481720e6498ddf305696189b2824aab68c4",
+        "subject": "fix(workstation): preserve PG restore scratch and PGDATA on stop failure",
+        "ownerSet": [
+          "workstation"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "platform/workstation/scripts/temporal_pgbackrest_restore_smoke.sh",
+            "SAME_BLOB"
+          ],
+          [
+            "platform/workstation/tests/test_temporal_restore_scratch_safety.py",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "platform/workstation/tests/test_temporal_restore_stop_failure.py",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "eea3383bb262f47eb945fba41a1775dabdb62b56",
+        "subject": "fix(harness): preserve Python compatibility evidence across source revisions",
+        "ownerSet": [
+          "harness"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "services/harness/docs/u4-test-repair-sop-20261015.md",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "services/harness/scripts/check_evidence.py",
+            "SAME_BLOB"
+          ],
+          [
+            "services/harness/tests/test_runtime_python_compatibility_currentness.py",
+            "SAME_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "b066c82c8d4701e36d8b6eac448bc3fc34d747aa",
+        "subject": "fix(artifact): pin copied Python executable in immutable carrier generation",
+        "ownerSet": [
+          "workstation"
+        ],
+        "mechanicalDisposition": "OTHER_CUT_PATHS_ABSENT_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "platform/workstation/tests/test_artifact_toolchain_materialization_owner.py",
+            "SOURCE_PATH_ABSENT"
+          ],
+          [
+            "platform/workstation/workstation/providers/artifact_toolchain/python_environment.py",
+            "SOURCE_PATH_ABSENT"
+          ]
+        ]
+      },
+      {
+        "sha": "3ab30f2b827ade5313b8bbf56d0df40d345a3ecd",
+        "subject": "game: generate seeded playable recipes from LEGO palettes",
+        "ownerSet": [
+          "game"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "domains/game/kits/room-action-r0/README.md",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "domains/game/kits/room-action-r0/src/lib.rs",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "domains/game/kits/room-action-r0/src/main.rs",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "8ac2e7f8147eba471c36650cda52ca2a6fb51347",
+        "subject": "fix(daily-brief): integrate complete v5.2 contract loading",
+        "ownerSet": [
+          "repo-mechanics-or-unregistered-path"
+        ],
+        "mechanicalDisposition": "OTHER_CUT_PATHS_ABSENT_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "catalogs/knowledge/daily-world-model-brief/CURRENT.json",
+            "SOURCE_PATH_ABSENT"
+          ],
+          [
+            "catalogs/knowledge/daily-world-model-brief/README.md",
+            "SOURCE_PATH_ABSENT"
+          ],
+          [
+            "catalogs/knowledge/daily-world-model-brief/validate_current.py",
+            "SOURCE_PATH_ABSENT"
+          ]
+        ]
+      },
+      {
+        "sha": "eeb5630524877b26fc2fbab321e02c9f1b8a069b",
+        "subject": "game: compose wave, dash and seeded room LEGO in Bevy",
+        "ownerSet": [
+          "game"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "domains/game/kits/room-action-r0/Cargo.lock",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "domains/game/kits/room-action-r0/Cargo.toml",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "domains/game/kits/room-action-r0/README.md",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "domains/game/kits/room-action-r0/src/lib.rs",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "domains/game/kits/room-action-r0/src/main.rs",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "2eaaf11fb80460c1cbc72f18b6991dee7c5d9b67",
+        "subject": "test(ci): preserve native uv-lock authority fault regressions",
+        "ownerSet": [
+          "repo-mechanics-or-unregistered-path"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "tools/repo/check_github_governance.py",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "tools/repo/test_github_governance.py",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "334d0eb75adb297b676b35b39808c9bac661ec76",
+        "subject": "fix(security): reuse remote exact committed-tree secret scanner",
+        "ownerSet": [
+          "repo-mechanics-or-unregistered-path"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "mise.toml",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "tools/repo/check_github_governance.py",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "tools/repo/check_tracked_secrets.sh",
+            "SAME_BLOB"
+          ],
+          [
+            "tools/repo/test_tracked_secrets.py",
+            "SAME_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "db9d21d0330a2370943f5788909ea0f1864bb09c",
+        "subject": "game: compose weapon and enemy behavior recipes in Bevy",
+        "ownerSet": [
+          "game"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "domains/game/kits/room-action-r0/Cargo.lock",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "domains/game/kits/room-action-r0/README.md",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "domains/game/kits/room-action-r0/src/lib.rs",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "domains/game/kits/room-action-r0/src/main.rs",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "4a2555f42e6d2edfdc184e0b831f15050c08f375",
+        "subject": "build(harness): upgrade exact Temporal worker SDK to 1.34.0",
+        "ownerSet": [
+          "harness"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "services/harness/config/agent-automation-temporal-requirements.txt",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "services/harness/scripts/agent_automation_release.py",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "services/harness/tests/test_agent_automation_jcs_standard.py",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "services/harness/tests/test_agent_automation_release.py",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "services/harness/tests/test_temporal_agent_automation_contract.py",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "4530735ebb0d23c1628d4e3a89366e3c2866ece9",
+        "subject": "build(runtime): align native uv and locked Ruff consumers",
+        "ownerSet": [
+          "runtime"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "services/runtime/mise.toml",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "services/runtime/requirements-tooling.lock.txt",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "services/runtime/requirements-tooling.txt",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "a6af91c187ef363af3729fc685ab76755f11044e",
+        "subject": "fix(host): reject reused release directories with Git source drift",
+        "ownerSet": [
+          "host"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "services/host/packaging/install_release.sh",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "services/host/tests/test_release_packaging.py",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "a2f4133009217480e0b7c73894185cc76d2a4419",
+        "subject": "build(research): select current Ruff for scholarly native verification",
+        "ownerSet": [
+          "repo-mechanics-or-unregistered-path"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "mise.toml",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "b3367cc80edc4ef5889d371d177e5d75f7a3cd38",
+        "subject": "build(workstation): select native uv 0.13.5 and Ruff 0.17.2",
+        "ownerSet": [
+          "workstation"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "platform/workstation/mise.toml",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "platform/workstation/pyproject.toml",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "platform/workstation/uv.lock",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "79dc6d0b6cdd2f8716157aebfa5bf51c1a46a866",
+        "subject": "upgrade(agent): align uv Ruff and downstream Skills frozen lock",
+        "ownerSet": [
+          "repo-mechanics-or-unregistered-path"
+        ],
+        "mechanicalDisposition": "OTHER_CUT_PATHS_ABSENT_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "apps/agent/mise.toml",
+            "SOURCE_PATH_ABSENT"
+          ],
+          [
+            "apps/agent/pyproject.toml",
+            "SOURCE_PATH_ABSENT"
+          ],
+          [
+            "apps/agent/uv.lock",
+            "SOURCE_PATH_ABSENT"
+          ],
+          [
+            "extensions/chatgpt-skills-mcp/uv.lock",
+            "SOURCE_PATH_ABSENT"
+          ]
+        ]
+      },
+      {
+        "sha": "35b7e06ffd401f56d974627097f6e7c0543d59ed",
+        "subject": "fix(runtime): reject boolean workspace activity before close effects",
+        "ownerSet": [
+          "runtime"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "services/runtime/scripts/ordivon-runtime-reclaim",
+            "SAME_BLOB"
+          ],
+          [
+            "services/runtime/scripts/tests/test_deploy_reclaim.py",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      }
+    ],
+    "remoteOnlyLatest43": [
+      {
+        "sha": "33f49982a10988ffedb4c2a7379a0746c286f91a",
+        "subject": "docs(formal): requalify merged owner-type contract with negative tests",
+        "ownerSet": [
+          "repo-mechanics-or-unregistered-path"
+        ],
+        "mechanicalDisposition": "OTHER_CUT_PATHS_ABSENT_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261024_R1.json",
+            "SOURCE_PATH_ABSENT"
+          ]
+        ]
+      },
+      {
+        "sha": "713951b454ffc9d52843d2154a06c80599811735",
+        "subject": "test(security): exercise a schema-valid ungranted action",
+        "ownerSet": [
+          "security"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "platform/security/tests/test_agent_admission_contract.py",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "642e2ec49f0f7ced196da4af2f2f87fe3bb97b19",
+        "subject": "docs(formal): requalify historical Web CI shell failure with live owner proof",
+        "ownerSet": [
+          "repo-mechanics-or-unregistered-path"
+        ],
+        "mechanicalDisposition": "OTHER_CUT_PATHS_ABSENT_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261024_R1.json",
+            "SOURCE_PATH_ABSENT"
+          ]
+        ]
+      },
+      {
+        "sha": "d30b7463aad195a091f6cfc766a92fdaef322768",
+        "subject": "fix(harness): reject untyped Tool Step and Run protocol states",
+        "ownerSet": [
+          "harness"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "services/harness/README.md",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "services/harness/src/ordivon_harness/protocol.py",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "services/harness/tests/test_p0_sqlite_tool_store.py",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "f74825887e5a6544c9a982624e89580ea14587a2",
+        "subject": "fix(formal): bind Workspace issue to native Runtime state LEGO",
+        "ownerSet": [
+          "repo-mechanics-or-unregistered-path"
+        ],
+        "mechanicalDisposition": "OTHER_CUT_PATHS_ABSENT_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261024_R1.json",
+            "SOURCE_PATH_ABSENT"
+          ],
+          [
+            "tools/repo/check_architecture_docs.py",
+            "SOURCE_PATH_ABSENT"
+          ],
+          [
+            "tools/repo/test_architecture_docs.py",
+            "SOURCE_PATH_ABSENT"
+          ]
+        ]
+      },
+      {
+        "sha": "d25b3e27b33deb0a50153ed9141a42ca288da8f2",
+        "subject": "fix(capital): reject untyped accounting operations across instruction consumers",
+        "ownerSet": [
+          "capital"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "domains/capital/README.md",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "domains/capital/src/ordivon_capital/accounting/substrate.py",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "domains/capital/tests/test_accounting_substrate.py",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "4c6e5833892fea0ae5ba4ca99a56f06394925366",
+        "subject": "docs(media): record archive carrier consumer and Git ref retirement proof",
+        "ownerSet": [
+          "repo-mechanics-or-unregistered-path"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "docs/migration/acceptance/MEDIA_STANDALONE_ARCHIVE_IN_PLACE_ACCEPTANCE_20260921.md",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "a5296085ce9ce757847a9572940989699b4dc2be",
+        "subject": "fix(capital): preserve public-shadow admission under optimized Python",
+        "ownerSet": [
+          "capital"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "domains/capital/README.md",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "domains/capital/scripts/consume_crypto_public_shadow_product_r1.py",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "domains/capital/tests/test_data_product_consumption_crypto_public_shadow.py",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "d24ffbff99732b2bb6af67bff06c12fd94f00885",
+        "subject": "test(runtime): preserve bounded reclaim inspector error contract",
+        "ownerSet": [
+          "runtime"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "services/runtime/scripts/tests/test_deploy_reclaim.py",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "2887cebaa762d005e9ef099cc61b72b64174e572",
+        "subject": "build(runtime): complete latest dependency closure with reqwest 0.13",
+        "ownerSet": [
+          "runtime"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "services/runtime/Cargo.lock",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "services/runtime/Cargo.toml",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "0342eb772e0b0b39bdfa102b789e7395d954ae25",
+        "subject": "build(media): advance paired Remotion CLI and runtime to 4.0.538",
+        "ownerSet": [
+          "media"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "capabilities/media/apps/motion-remotion/package.json",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "capabilities/media/pnpm-lock.yaml",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "8ae8e6b9744ace4476257033009448e04bff9af8",
+        "subject": "fix(repo): verify composition initial parallel set is an antichain",
+        "ownerSet": [
+          "repo-mechanics-or-unregistered-path"
+        ],
+        "mechanicalDisposition": "OTHER_CUT_PATHS_ABSENT_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "tools/repo/check_composition_architecture.py",
+            "SOURCE_PATH_ABSENT"
+          ],
+          [
+            "tools/repo/test_composition_architecture.py",
+            "SOURCE_PATH_ABSENT"
+          ]
+        ]
+      },
+      {
+        "sha": "fe72b5a02d5cce666299b99cee661ba652926790",
+        "subject": "fix(formal): bind method Skill evidence to exact source cut",
+        "ownerSet": [
+          "repo-mechanics-or-unregistered-path"
+        ],
+        "mechanicalDisposition": "OTHER_CUT_PATHS_ABSENT_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "tools/repo/check_architecture_docs.py",
+            "SOURCE_PATH_ABSENT"
+          ],
+          [
+            "tools/repo/test_architecture_docs.py",
+            "SOURCE_PATH_ABSENT"
+          ]
+        ]
+      },
+      {
+        "sha": "7c09264828e898cb4fc759894101f15b4767622c",
+        "subject": "fix(capital): reject untyped durable reservation standing before reconciliation",
+        "ownerSet": [
+          "capital"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "domains/capital/contracts/README.md",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "domains/capital/src/ordivon_capital/accounting/durable.py",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "domains/capital/tests/test_accounting_durable.py",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "1e855922fe3c1bf3fff1c33fb1f755390f76cd84",
+        "subject": "chore(security): retire unconsumed nested GitHub workflow",
+        "ownerSet": [
+          "security"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "platform/security/.github/workflows/security.yml",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "6403e9ef266120db12f5b501d9ee41ba44493e0e",
+        "subject": "docs(lego): capture proved divergent source graph in GIT-01",
+        "ownerSet": [
+          "repo-mechanics-or-unregistered-path"
+        ],
+        "mechanicalDisposition": "OTHER_CUT_PATHS_ABSENT_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261024_R1.json",
+            "SOURCE_PATH_ABSENT"
+          ]
+        ]
+      },
+      {
+        "sha": "784546ce674550c3a2a6600b0b08bd8b919ab167",
+        "subject": "perf(runtime): singlepass cache accounting with fail-closed disappearance handling",
+        "ownerSet": [
+          "runtime"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "services/runtime/scripts/ordivon-runtime-cache",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "services/runtime/scripts/tests/test_cache_root_singlepass.py",
+            "SAME_BLOB"
+          ],
+          [
+            "services/runtime/scripts/tests/test_cache_singlewalk_consumer.py",
+            "SAME_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "80418189d6f5deed248873ed68ecb2a9c7544a7a",
+        "subject": "build(runtime): converge latest Rust dependencies with consumer contracts",
+        "ownerSet": [
+          "runtime"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "services/runtime/Cargo.lock",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "services/runtime/Cargo.toml",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "services/runtime/crates/ordivon-runtime-core/tests/sqlite_unsigned_contract.rs",
+            "SOURCE_PATH_ABSENT"
+          ],
+          [
+            "services/runtime/crates/ordivon-runtime-mcp/src/server/handler.rs",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "b89494153b4eeba73091d4c253c07a235632e820",
+        "subject": "fix(repo): reject noncanonical paths at owner verification admission",
+        "ownerSet": [
+          "repo-mechanics-or-unregistered-path"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "tools/repo/affected_owners.py",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "tools/repo/test_affected_owners.py",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "37ba4887722d8c5d213b9b7684c60f3987dd0a71",
+        "subject": "test(artifact): resolve owner mise executable from PATH in CI",
+        "ownerSet": [
+          "artifact"
+        ],
+        "mechanicalDisposition": "OTHER_CUT_PATHS_ABSENT_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "capabilities/artifact/tests/test_artifact_python_currentness_contract.py",
+            "SOURCE_PATH_ABSENT"
+          ]
+        ]
+      },
+      {
+        "sha": "139c072088544fc89710c8b88619a8c9040c555e",
+        "subject": "fix(gateway): rollback external worker writes when durable readback is missing",
+        "ownerSet": [
+          "gateway"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "services/gateway/README.md",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "services/gateway/src/ordivon_gateway/external_worker.py",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "services/gateway/tests/test_external_worker_precommit_readback.py",
+            "SOURCE_PATH_ABSENT"
+          ]
+        ]
+      },
+      {
+        "sha": "e2d8e8b2bff04012c2bb4d6a8b281a82f8220587",
+        "subject": "test(lego): represent Runtime and Game CI issues with owner-local formal contracts",
+        "ownerSet": [
+          "game",
+          "repo-mechanics-or-unregistered-path",
+          "runtime"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261024_R2.json",
+            "SOURCE_PATH_ABSENT"
+          ],
+          [
+            "domains/game/planning/lego-plan-r1.json",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "services/runtime/planning/lego-plan-r1.json",
+            "SOURCE_PATH_ABSENT"
+          ]
+        ]
+      },
+      {
+        "sha": "ac215ff6b2d30dac35b73ba10ffd531caad32663",
+        "subject": "fix(artifact): locate owner mise on runner PATH and fail closed",
+        "ownerSet": [
+          "artifact"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "capabilities/artifact/scripts/artifact_python_environment.py",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "capabilities/artifact/tests/test_artifact_python_environment.py",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "2b7b71d3d52e04964627687bfe652283424f58b9",
+        "subject": "fix(repo): constrain archived-source policy globs by path segment",
+        "ownerSet": [
+          "repo-mechanics-or-unregistered-path"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "tools/repo/check_archived_source_boundary.py",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "tools/repo/test-check-archived-source-boundary.sh",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "bd9e2edda4d47976dfd6769fc491fe2ccacec2ab",
+        "subject": "fix(media): enforce coherent Remotion versions and converge tooling",
+        "ownerSet": [
+          "media"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "capabilities/media/apps/motion-remotion/package.json",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "capabilities/media/apps/preview/package.json",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "capabilities/media/planning/lego-plan-r1.json",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "capabilities/media/pnpm-lock.yaml",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "capabilities/media/scripts/require-js-deps.mjs",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "40e064cc7b4a28595c0e8dd85713e621f2c1f65e",
+        "subject": "docs(network): bind developer egress provider to existing N05 LEGO",
+        "ownerSet": [
+          "network"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "platform/network/planning/lego-plan-r1.json",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "9e084460ae1b0150be443909b161f381b3176934",
+        "subject": "fix(repo): reject noncanonical Structure R2 transition paths",
+        "ownerSet": [
+          "repo-mechanics-or-unregistered-path"
+        ],
+        "mechanicalDisposition": "OTHER_CUT_PATHS_ABSENT_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "tools/repo/check_structure_r2.py",
+            "SOURCE_PATH_ABSENT"
+          ],
+          [
+            "tools/repo/test_structure_r2.py",
+            "SOURCE_PATH_ABSENT"
+          ]
+        ]
+      },
+      {
+        "sha": "3c478ba8205fbe47c3e66a8b993104069971e026",
+        "subject": "fix(network): restore developer egress provider consumed by workspace-ready",
+        "ownerSet": [
+          "network"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "platform/network/consumers/developer-egress/profile.sh",
+            "SAME_BLOB"
+          ],
+          [
+            "platform/network/tests/test_developer_egress_profile.py",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "de8a90c1febf52ba2d3c4ec2337097248a4ff184",
+        "subject": "fix(capital): preserve public-data admission under optimized Python",
+        "ownerSet": [
+          "capital"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "domains/capital/README.md",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "domains/capital/scripts/check-crypto-data-adapter-policy",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "domains/capital/tests/test_crypto_data_adapters.py",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "f7410f2932ee0550d37ebbeb734c60eed1160904",
+        "subject": "test(network): verify consumer routing with loopback upstream effects",
+        "ownerSet": [
+          "network"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "platform/network/mise.toml",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "platform/network/planning/lego-plan-r1.json",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "platform/network/tests/test_egress_routing_behavior.py",
+            "SOURCE_PATH_ABSENT"
+          ]
+        ]
+      },
+      {
+        "sha": "584dc5644c4aea4717c38911031d9a9271f18bc7",
+        "subject": "fix(security): validate Agent Admission input before policy evaluation",
+        "ownerSet": [
+          "security"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "platform/security/contracts/agent-admission-v1/evaluate.py",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "platform/security/tests/test_agent_admission_schema_boundary.py",
+            "SOURCE_PATH_ABSENT"
+          ]
+        ]
+      },
+      {
+        "sha": "f070304b129318c55696ad3e3fd1d37087d141b1",
+        "subject": "fix(artifact): bind Python carrier to owner mise currentness",
+        "ownerSet": [
+          "artifact"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "capabilities/artifact/artifact-delivery/artifact-python-runtime-v1.lock.json",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "capabilities/artifact/planning/lego-plan-r2.json",
+            "SOURCE_PATH_ABSENT"
+          ],
+          [
+            "capabilities/artifact/scripts/artifact_python_environment.py",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "capabilities/artifact/tests/test_artifact_python_currentness_contract.py",
+            "SOURCE_PATH_ABSENT"
+          ],
+          [
+            "capabilities/artifact/tests/test_artifact_python_environment.py",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "a150a4ec94b9abdb99e09c0c39383b198454e549",
+        "subject": "fix(repo): bind natural-owner validation to inspected source root",
+        "ownerSet": [
+          "repo-mechanics-or-unregistered-path"
+        ],
+        "mechanicalDisposition": "OTHER_CUT_PATHS_ABSENT_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261024_R1.json",
+            "SOURCE_PATH_ABSENT"
+          ],
+          [
+            "tools/repo/check_architecture_docs.py",
+            "SOURCE_PATH_ABSENT"
+          ],
+          [
+            "tools/repo/test_architecture_docs.py",
+            "SOURCE_PATH_ABSENT"
+          ]
+        ]
+      },
+      {
+        "sha": "0926c2a08d74f044c4572fe649b4f75568456f4c",
+        "subject": "fix(repo): constrain cross-owner seam globs to path segments",
+        "ownerSet": [
+          "repo-mechanics-or-unregistered-path"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "tools/repo/check_owner_boundaries.py",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "tools/repo/dependency_contracts.toml",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "tools/repo/test_owner_boundaries.py",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "e7b700ea2a05db999acbc72249202f7bceb3b743",
+        "subject": "meta(next): route complexity through minimum sufficient representation",
+        "ownerSet": [
+          "next",
+          "repo-mechanics-or-unregistered-path"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            ".agents/skills/method-router/SKILL.md",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            ".agents/skills/method-router/references/representation-first.md",
+            "SOURCE_PATH_ABSENT"
+          ],
+          [
+            "meta/next/docs/META_THINKING_REPRESENTATION_R1.md",
+            "SOURCE_PATH_ABSENT"
+          ],
+          [
+            "meta/next/tests/test_method_router_skill.py",
+            "SOURCE_PATH_ABSENT"
+          ]
+        ]
+      },
+      {
+        "sha": "4c063b353b6e2c91b2a6193a1b3fef87b02387d2",
+        "subject": "build(deps): bump reqwest in /services/runtime",
+        "ownerSet": [
+          "runtime"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "services/runtime/Cargo.lock",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "services/runtime/Cargo.toml",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "73d80e6e22d208f62d6f59e20c5d5cc133b69ef8",
+        "subject": "test(repo): fail closed when governance assertions are optimized away",
+        "ownerSet": [
+          "repo-mechanics-or-unregistered-path"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "mise.toml",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "tools/repo/check_github_governance.py",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "tools/repo/test_github_governance.py",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "6a74e5d4e6ba4e4d27b1e30e3e1de251ffeca1a9",
+        "subject": "docs(preservation): bind mandatory storage service to existing source LEGO",
+        "ownerSet": [
+          "preservation"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "capabilities/preservation/README.md",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "bd4f8cbe6fff8a46f027ffe9ed32cab73b12b21a",
+        "subject": "fix(repo): bind issue natural owners to canonical source manifest",
+        "ownerSet": [
+          "repo-mechanics-or-unregistered-path"
+        ],
+        "mechanicalDisposition": "OTHER_CUT_PATHS_ABSENT_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261024_R1.json",
+            "SOURCE_PATH_ABSENT"
+          ],
+          [
+            "tools/repo/check_architecture_docs.py",
+            "SOURCE_PATH_ABSENT"
+          ],
+          [
+            "tools/repo/test_architecture_docs.py",
+            "SOURCE_PATH_ABSENT"
+          ]
+        ]
+      },
+      {
+        "sha": "b2fefac28f53754e178707574fac9b6dc1da4123",
+        "subject": "fix(preservation): retain required storage service contract under Python -O",
+        "ownerSet": [
+          "preservation"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "capabilities/preservation/scripts/test_verify_source.py",
+            "SOURCE_PATH_ABSENT"
+          ],
+          [
+            "capabilities/preservation/scripts/verify_source.py",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "e68048ddf5a4844ab93fcba89e8ef7982fc8bc02",
+        "subject": "build(web): group current Fastify dependency updates",
+        "ownerSet": [
+          "web"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "apps/web/package.json",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "apps/web/pnpm-lock.yaml",
+            "DIFFERENT_BLOB"
+          ]
+        ]
+      },
+      {
+        "sha": "fec7bd92d04f64085c3c5a79050601a4f4aefcbb",
+        "subject": "fix(runtime): derive Python owner environment from mise pin",
+        "ownerSet": [
+          "runtime"
+        ],
+        "mechanicalDisposition": "DIFFERENT_OR_MIXED_TREE_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "services/runtime/scripts/owner-environment",
+            "DIFFERENT_BLOB"
+          ],
+          [
+            "services/runtime/scripts/tests/test_owner_python_pin.py",
+            "SOURCE_PATH_ABSENT"
+          ]
+        ]
+      },
+      {
+        "sha": "f5b7ad28a5eaeaf4c57e87dc0fc933985ab27549",
+        "subject": "test(lego): select representation and witness per typed issue",
+        "ownerSet": [
+          "repo-mechanics-or-unregistered-path"
+        ],
+        "mechanicalDisposition": "OTHER_CUT_PATHS_ABSENT_REVIEW_CONSUMERS",
+        "pathEvidence": [
+          [
+            "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261024_R1.json",
+            "SOURCE_PATH_ABSENT"
+          ],
+          [
+            "tools/repo/check_architecture_docs.py",
+            "SOURCE_PATH_ABSENT"
+          ],
+          [
+            "tools/repo/test_architecture_docs.py",
+            "SOURCE_PATH_ABSENT"
+          ]
+        ]
+      }
+    ]
+  },
+  "nonClaims": [
+    "this enumerates all source changes from the two histories",
+    "identical file bytes prove every possible runtime property",
+    "a historical branch is safe to delete because one commit was subsumed",
+    "local main is authorized to overwrite GitHub main",
+    "a canceled or pending CI check is a failed runtime test"
+  ],
+  "wholeTreeOwnerQuotient": {
+    "meaning": "tracked tree difference at the exact frozen source cuts, not actionable unique capabilities",
+    "pathChangeTotal": 4244,
+    "direction": {
+      "remoteOnly": 1318,
+      "localOnly": 2082,
+      "differentBytes": 844,
+      "differentType": 0
+    },
+    "ownerCounts": {
+      "artifact": {
+        "DIFFERENT_BYTES": 72,
+        "LOCAL_ONLY_PATH": 41,
+        "REMOTE_ONLY_PATH": 39
+      },
+      "capital": {
+        "DIFFERENT_BYTES": 71,
+        "LOCAL_ONLY_PATH": 168,
+        "REMOTE_ONLY_PATH": 8
+      },
+      "composition": {
+        "DIFFERENT_BYTES": 8,
+        "LOCAL_ONLY_PATH": 7,
+        "REMOTE_ONLY_PATH": 20
+      },
+      "distribution": {
+        "DIFFERENT_BYTES": 9,
+        "REMOTE_ONLY_PATH": 2
+      },
+      "game": {
+        "DIFFERENT_BYTES": 119,
+        "LOCAL_ONLY_PATH": 3,
+        "REMOTE_ONLY_PATH": 1
+      },
+      "gateway": {
+        "DIFFERENT_BYTES": 27,
+        "LOCAL_ONLY_PATH": 7,
+        "REMOTE_ONLY_PATH": 7
+      },
+      "harness": {
+        "DIFFERENT_BYTES": 153,
+        "LOCAL_ONLY_PATH": 66,
+        "REMOTE_ONLY_PATH": 20
+      },
+      "host": {
+        "DIFFERENT_BYTES": 28,
+        "LOCAL_ONLY_PATH": 7,
+        "REMOTE_ONLY_PATH": 13
+      },
+      "media": {
+        "DIFFERENT_BYTES": 32,
+        "LOCAL_ONLY_PATH": 1,
+        "REMOTE_ONLY_PATH": 4
+      },
+      "network": {
+        "DIFFERENT_BYTES": 66,
+        "LOCAL_ONLY_PATH": 148,
+        "REMOTE_ONLY_PATH": 3
+      },
+      "next": {
+        "REMOTE_ONLY_PATH": 1015
+      },
+      "preservation": {
+        "DIFFERENT_BYTES": 3,
+        "LOCAL_ONLY_PATH": 2,
+        "REMOTE_ONLY_PATH": 1
+      },
+      "repo-mechanics-or-unregistered-path": {
+        "DIFFERENT_BYTES": 42,
+        "LOCAL_ONLY_PATH": 1429,
+        "REMOTE_ONLY_PATH": 117
+      },
+      "runtime": {
+        "DIFFERENT_BYTES": 98,
+        "LOCAL_ONLY_PATH": 16,
+        "REMOTE_ONLY_PATH": 18
+      },
+      "security": {
+        "DIFFERENT_BYTES": 26,
+        "LOCAL_ONLY_PATH": 56,
+        "REMOTE_ONLY_PATH": 2
+      },
+      "skills": {
+        "REMOTE_ONLY_PATH": 36
+      },
+      "web": {
+        "DIFFERENT_BYTES": 7,
+        "LOCAL_ONLY_PATH": 4,
+        "REMOTE_ONLY_PATH": 1
+      },
+      "workstation": {
+        "DIFFERENT_BYTES": 83,
+        "LOCAL_ONLY_PATH": 127,
+        "REMOTE_ONLY_PATH": 11
+      }
+    },
+    "dependencyManifestOrLockPathCountByOwner": {
+      "artifact": 4,
+      "capital": 2,
+      "composition": 1,
+      "distribution": 2,
+      "game": 3,
+      "gateway": 2,
+      "harness": 4,
+      "host": 2,
+      "media": 6,
+      "network": 1,
+      "next": 4,
+      "repo-mechanics-or-unregistered-path": 7,
+      "runtime": 4,
+      "security": 5,
+      "skills": 2,
+      "web": 3,
+      "workstation": 9
+    },
+    "disposition": "NO_AUTOMATIC_PORT_OR_DELETE; select with actual Owner consumer proof; preserve latest validated dependency closure"
+  }
+}

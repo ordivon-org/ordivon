@@ -36,7 +36,7 @@ test        bootstrap, doctor, Rust workspace tests, Python gates, and local acc
 lint        lint Python modules and executable Python entrypoints without Rust tests
 test-lifecycle  non-qualifying lifecycle inner-loop using the current owner environment and Runtime inspector
 cold-start  prove the default test profile with fresh Python env and Cargo target directory
-extended    run the intentionally long 512-case Registry reference-model property test
+extended    execute all 512 Registry reference-model property cases in 8 bounded native shards
 
 Root/systemd/cgroup/MCP live acceptance remains `sudo scripts/local-acceptance run`.
 TXT
@@ -145,7 +145,7 @@ ensure_materialized_environment() {
 run_extended() {
   ensure_materialized_environment
   cd "$repo"
-  "$cargo_bin" test --locked -p ordivon-runtime-core request_identity_and_terminal_winner_match_reference_model -- --nocapture
+  CARGO_BIN="$cargo_bin" "$python_bin" scripts/verify_reference_model_shards.py --shards 8 --parallel 4
 }
 run_lifecycle_tests() {
   ensure_materialized_environment

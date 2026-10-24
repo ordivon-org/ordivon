@@ -78,3 +78,48 @@ def test_owner_cost_loader_accepts_legacy_observation() -> None:
 def test_owner_cost_loader_rejects_unknown_kind() -> None:
     with pytest.raises(ValueError, match="unsupported owner-cost evidence kind"):
         pressure.owner_cost_rows([{"kind": "ordivon.not-owner-cost"}])
+
+
+def test_ci_waste_cannot_be_proven_from_aggregate_without_run_evidence() -> None:
+    # CI-02: an aggregate alone is not a provider/consumer witness.
+    fake = {"metrics": {"runs": 1, "explicitAvoidableWasteRuns": 1,
+                        "unclassifiedTerminalRuns": 0}}
+    result = pressure.assess(queue_projection(), fake)
+    gate = next(g for g in result["gates"] if g["gate"] == "CI_WASTE")
+    assert gate["status"] == "INSUFFICIENT_EVIDENCE"
+    assert result["controlsAdmitted"] == []
+
+
+def test_ci_waste_rejects_summary_that_disagrees_with_source_runs() -> None:
+    fake = {
+        "metrics": {"runs": 2, "explicitAvoidableWasteRuns": 1,
+                    "unclassifiedTerminalRuns": 0},
+        "runs": [
+            {"runId": 41, "runAttempt": 1, "status": "completed",
+             "economicOutcome": "USEFUL", "economicReason": "normal build"},
+            {"runId": 42, "runAttempt": 1, "status": "completed",
+             "economicOutcome": "FAILED_PRODUCTIVELY",
+             "economicReason": "valid consumer bug"},
+        ],
+    }
+    result = pressure.assess(queue_projection(), fake)
+    assert next(g for g in result["gates"] if g["gate"] == "CI_WASTE")["status"] == "INSUFFICIENT_EVIDENCE"
+    assert result["controlsAdmitted"] == []
+
+
+def test_ci_waste_unfinished_or_duplicate_run_cannot_admit_controls() -> None:
+    row = {"runId": 51, "runAttempt": 1, "status": "in_progress",
+           "economicOutcome": "AVOIDABLE_WASTE", "economicReason": "pending cannot prove waste"}
+    fake = {"metrics": {"runs": 1, "explicitAvoidableWasteRuns": 1,
+                        "unclassifiedTerminalRuns": 0}, "runs": [row]}
+    result = pressure.assess(queue_projection(), fake)
+    assert next(g for g in result["gates"] if g["gate"] == "CI_WASTE")["status"] == "INSUFFICIENT_EVIDENCE"
+    assert result["controlsAdmitted"] == []
+
+    completed = {**row, "status": "completed"}
+    duplicate = {**fake, "metrics": {**fake["metrics"], "runs": 2,
+                                     "explicitAvoidableWasteRuns": 2},
+                 "runs": [completed, dict(completed)]}
+    result = pressure.assess(queue_projection(), duplicate)
+    assert next(g for g in result["gates"] if g["gate"] == "CI_WASTE")["status"] == "INSUFFICIENT_EVIDENCE"
+    assert result["controlsAdmitted"] == []

@@ -52,6 +52,47 @@ def owner_cost_rows(payloads: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return rows
 
 
+def _ci_waste_has_run_witness(
+    projection: dict[str, Any], *, runs: int, explicit_waste: int,
+    unclassified: int,
+) -> bool:
+    """A summary cannot establish control eligibility without its source runs.
+
+    This is an evidence-integrity check, not independent GitHub attestation.
+    The CI provider remains authoritative; this read-only projection never is.
+    """
+    observed = projection.get("runs")
+    if not isinstance(observed, list) or len(observed) != runs:
+        return False
+    identities: set[tuple[int | str, int | None]] = set()
+    waste = unknown = 0
+    for row in observed:
+        if not isinstance(row, dict):
+            return False
+        run_id, attempt = row.get("runId"), row.get("runAttempt")
+        if not isinstance(run_id, (str, int)) or isinstance(run_id, bool):
+            return False
+        if attempt is not None and (type(attempt) is not int or attempt < 1):
+            return False
+        identity = (run_id, attempt)
+        if identity in identities:
+            return False
+        identities.add(identity)
+        outcome = row.get("economicOutcome")
+        status = row.get("status")
+        if status == "completed" and outcome == "UNCLASSIFIED":
+            unknown += 1
+        if outcome in {"AVOIDABLE_WASTE", "DUPLICATED"}:
+            if (
+                status != "completed"
+                or not isinstance(row.get("economicReason"), str)
+                or not row["economicReason"].strip()
+            ):
+                return False
+            waste += 1
+    return waste == explicit_waste and unknown == unclassified
+
+
 def assess(
     queue_projection: dict[str, Any],
     ci_projection: dict[str, Any] | None = None,
@@ -128,7 +169,23 @@ def assess(
         explicit_waste = int(cmetrics.get("explicitAvoidableWasteRuns") or 0)
         unclassified = int(cmetrics.get("unclassifiedTerminalRuns") or 0)
         runs = int(cmetrics.get("runs") or 0)
-        if explicit_waste > 0:
+        if explicit_waste > 0 and not _ci_waste_has_run_witness(
+            ci_projection,
+            runs=runs,
+            explicit_waste=explicit_waste,
+            unclassified=unclassified,
+        ):
+            ci_waste = gate(
+                "CI_WASTE",
+                "INSUFFICIENT_EVIDENCE",
+                "claimed waste lacks matching terminal, unique source-run evidence",
+                {
+                    "runs": runs,
+                    "explicitAvoidableWasteRuns": explicit_waste,
+                    "unclassifiedTerminalRuns": unclassified,
+                },
+            )
+        elif explicit_waste > 0:
             ci_waste = gate(
                 "CI_WASTE",
                 "PROVEN",
