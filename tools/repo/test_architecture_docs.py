@@ -868,6 +868,55 @@ def test_retired_next_historical_owner_cohorts_are_not_reintroduced() -> None:
     module.validate_formal_issue_census(census, plans)
 
 
+@pytest.mark.parametrize(
+    ("fault", "message"),
+    [
+        ("duplicate", "duplicate historical consumer"),
+        ("bad_oid", "invalid historical Git commit"),
+        ("empty_witness", "missing historical consumer evidence"),
+        ("unknown_scope", "unrecognized historical evidence scope"),
+        ("unhashable_scope", "unrecognized historical evidence scope"),
+        ("cohort_mismatch", "historical cohort missing primary"),
+        ("invalid_cohort_type", "historical cohort missing primary"),
+        ("unsafe_delete", "historical consumer deletion is not authorized"),
+        ("numeric_delete", "historical consumer deletion is not authorized"),
+        ("bad_source_oid", "invalid historical Git source cut"),
+    ],
+)
+def test_git01_historical_consumer_invalid_states_are_rejected_by_owner_validator(
+    fault: str, message: str
+) -> None:
+    """Ten independently falsifiable inputs: invalid evidence cannot enter a source cut."""
+    census, plans = formal_issue_inputs()
+    selections = next(x for x in census["issues"] if x["id"] == "GIT-01")["consumerSelections"]
+    assert len(selections) > 1
+    candidate = selections[-1]
+    if fault == "duplicate":
+        selections.append(copy.deepcopy(candidate))
+    elif fault == "bad_oid":
+        candidate["localCommit"] = "not-a-commit-id"
+    elif fault == "empty_witness":
+        candidate["remoteWitness"] = ""
+    elif fault == "unknown_scope":
+        candidate["evidenceScope"] = "ALL_HISTORY_SAFE_TO_DELETE"
+    elif fault == "unhashable_scope":
+        candidate["evidenceScope"] = ["NATIVE_CONSUMER_PASS"]
+    elif fault == "cohort_mismatch":
+        candidate["historicalCohort"] = ["a" * 40]
+    elif fault == "invalid_cohort_type":
+        candidate["historicalCohort"] = [candidate["localCommit"], {"oid": candidate["localCommit"]}]
+    elif fault == "unsafe_delete":
+        candidate.setdefault("sourceQualification", {})["branchDeletionAllowed"] = True
+    elif fault == "numeric_delete":
+        candidate.setdefault("sourceQualification", {})["branchDeletionAllowed"] = 1
+    elif fault == "bad_source_oid":
+        candidate.setdefault("sourceQualification", {})["protectedMain"] = "moving-main"
+    else:
+        raise AssertionError(fault)
+    with pytest.raises(module.ArchitectureDocsError, match=message):
+        module.validate_formal_issue_census(census, plans)
+
+
 def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
     """A Git-only commit cannot be called unique without a source-bound consumer comparison."""
     census, plans = formal_issue_inputs()

@@ -421,6 +421,93 @@ def validate_formal_issue_census(
     if linked_pairs != seen:
         raise ArchitectureDocsError("orphan owner-local LEGO registration")
 
+    # Git-history selections are explanatory evidence, NEVER an execution or
+    # deletion authority. A source-only witness cannot silently become a
+    # machine-actionable proof when many Agents append concurrent entries.
+    history = next((entry for entry in issues if entry["id"] == "GIT-01"), None)
+    if history is not None and "consumerSelections" in history:
+        selected = history["consumerSelections"]
+        if not isinstance(selected, list) or not selected:
+            raise ArchitectureDocsError("historical consumer selections must be nonempty")
+        admitted_scopes = {
+            "NATIVE_CONSUMER_PASS", "EXACT_GIT_BLOBS",
+            "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF",
+            "LATEST_STABLE_SOURCE_NO_UPGRADE",
+            "CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT",
+            "FROZEN_GATEWAY_CONSUMER_ONLY",
+            "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN",
+            "CURRENT_TOOLCHAIN_SUPERSEDES_OLD_LOCK_AND_NATIVE_TEST_PASS",
+            "EXACT_EXECUTABLE_BLOB_WITH_NONWINDOWS_HOLD_ONLY",
+            "EXACT_GIT_BLOB_AND_NATIVE_CONSUMER_PASS",
+            "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC",
+            "EXACT_OWNER_LOCKED_COMPONENTS_NO_LIVE_PROVIDER",
+        }
+        admitted_decisions = {
+            "SKIP_DUPLICATE_CHERRY_PICK", "SKIP_OLDER_PIN",
+            "SKIP_OLDER_SOURCECUT", "SKIP_UNCONSUMED_PERMISSION",
+            "NO_WHOLE_COMMIT_REPLAY_WITHOUT_PRODUCER_AUTHORITY",
+            "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
+            "SKIP_CANCELLED_HISTORY_PAIR", "SKIP_RETIRED_UNCONSUMED",
+            "SKIP_OLDER_TOOLCHAIN_CHERRY_PICK",
+            "SKIP_IDENTICAL_TIP_WITH_NATIVE_CONSUMER",
+        }
+        selected_commits: set[str] = set()
+        for selected_entry in selected:
+            if not isinstance(selected_entry, dict):
+                raise ArchitectureDocsError("invalid historical consumer evidence")
+            commit = selected_entry.get("localCommit")
+            if not isinstance(commit, str) or re.fullmatch(r"[0-9a-f]{40}", commit) is None:
+                raise ArchitectureDocsError("invalid historical Git commit")
+            if commit in selected_commits:
+                raise ArchitectureDocsError("duplicate historical consumer")
+            selected_commits.add(commit)
+            if selected_entry.get("owner") not in known_owners | {"ROOT_UNOWNED"}:
+                raise ArchitectureDocsError("historical consumer has unknown natural Owner")
+            for field in ("consumer", "remoteWitness"):
+                if not isinstance(selected_entry.get(field), str) or not selected_entry[field].strip():
+                    raise ArchitectureDocsError("missing historical consumer evidence")
+            scope, decision = selected_entry.get("evidenceScope"), selected_entry.get("disposition")
+            if not isinstance(scope, str) or scope not in admitted_scopes:
+                raise ArchitectureDocsError("unrecognized historical evidence scope")
+            if not isinstance(decision, str) or decision not in admitted_decisions:
+                raise ArchitectureDocsError("unrecognized historical disposition")
+            cohort = selected_entry.get("historicalCohort")
+            if cohort is not None and (
+                not isinstance(cohort, list)
+                or commit not in cohort
+                or any(not isinstance(oid, str) or re.fullmatch(r"[0-9a-f]{40}", oid) is None for oid in cohort)
+                or len(cohort) != len(set(cohort))
+            ):
+                raise ArchitectureDocsError("historical cohort missing primary or invalid member")
+            proof = selected_entry.get("sourceQualification")
+            if proof is not None and not isinstance(proof, dict):
+                raise ArchitectureDocsError("invalid historical Git source cut")
+            if isinstance(proof, dict):
+                for name in ("localMain", "protectedMain"):
+                    oid = proof.get(name)
+                    if oid is not None and (
+                        not isinstance(oid, str) or re.fullmatch(r"[0-9a-f]{40}", oid) is None
+                    ):
+                        raise ArchitectureDocsError("invalid historical Git source cut")
+            # The issue census is NOT a deletion capability regardless of how
+            # strong one source witness looks. An explicit positive grant
+            # cannot be laundered into the documented history evidence.
+            if ("branchDeletionAllowed" in selected_entry
+                and selected_entry["branchDeletionAllowed"] is not False
+            ) or (isinstance(proof, dict) and "branchDeletionAllowed" in proof
+                and proof["branchDeletionAllowed"] is not False
+            ):
+                raise ArchitectureDocsError("historical consumer deletion is not authorized")
+            if scope in {
+                "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN",
+                "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC",
+            } and (
+                decision != "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
+                or not isinstance(proof, dict)
+                or proof.get("branchDeletionAllowed") is not False
+            ):
+                raise ArchitectureDocsError("weak historical absence cannot authorize replay or deletion")
+
 
 def validate_repository(root: Path = ROOT) -> None:
     current = root / CURRENT.relative_to(ROOT)
