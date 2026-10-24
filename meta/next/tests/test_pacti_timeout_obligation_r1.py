@@ -4,6 +4,7 @@ import json
 import tomllib
 from pathlib import Path
 
+import pytest
 from ordivon_composition import (
     compile_verification_obligations,
     resolve_verifier_bindings,
@@ -114,6 +115,13 @@ def test_owner_timeout_envelope_fails_closed_on_unknown_or_invalid_status() -> N
 
 
 def test_owner_timeout_envelope_uses_real_pacti_and_scopes_live_claims() -> None:
+    # Pacti is a task-local mathematics provider, intentionally NOT a Next
+    # project/default CI dependency. Explicit provider runs must execute this
+    # integration test; normal CI reports a visible SKIP rather than falsely
+    # claiming the external algebra passed.
+    pytest.importorskip(
+        "pacti", reason="run explicitly with uv run --with pacti==0.3.1"
+    )
     from scripts.pacti_timeout_obligation_r1 import evaluate_owner_timeout_envelope
 
     grant = {
