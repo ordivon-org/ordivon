@@ -29,6 +29,10 @@ from ordivon_capital.accounting.substrate import (
     stable_accounting_id,
 )
 
+def require(condition, label):
+    if not condition:
+        raise SystemExit("Capital SQLite smoke contract rejected: " + str(label))
+
 expected={
     "FILL":"POST_PENDING_TRANSFER",
     "PARTIAL_FILL_SLICES":"POST_PENDING_TRANSFER",
@@ -42,25 +46,25 @@ namespaces={}
 bindings={}
 
 with SQLiteAccountingLedger(path) as ledger:
-    assert ledger.create_account(fund) is LedgerApplyStatus.CREATED
+    require(ledger.create_account(fund) is LedgerApplyStatus.CREATED, "ledger.create_account(fund) is LedgerApplyStatus.CREATED")
     for scenario in expected:
         ns=CapitalAccountNamespace("owner:qualification",f"parcel:nonlive:{scenario.lower()}")
         namespaces[scenario]=ns
-        assert ledger.create_account(ns.account(CapitalAccountRole.AVAILABLE)) is LedgerApplyStatus.CREATED
-        assert ledger.create_account(ns.account(CapitalAccountRole.ENCUMBRANCE)) is LedgerApplyStatus.CREATED
-        assert ledger.apply_immediate_transfer(
+        require(ledger.create_account(ns.account(CapitalAccountRole.AVAILABLE)) is LedgerApplyStatus.CREATED, "ledger.create_account(ns.account(CapitalAccountRole.AVAILABLE)) is LedgerApplyStatus.CREATED")
+        require(ledger.create_account(ns.account(CapitalAccountRole.ENCUMBRANCE)) is LedgerApplyStatus.CREATED, "ledger.create_account(ns.account(CapitalAccountRole.ENCUMBRANCE)) is LedgerApplyStatus.CREATED")
+        require(ledger.apply_immediate_transfer(
             transfer_id=stable_accounting_id("ordivon-capital:nonlive-effect:fund",scenario),
             debit_account_id=fund.account_id,
             credit_account_id=ns.available_account_id,
             amount=100,
-        ) is LedgerApplyStatus.CREATED
+        ) is LedgerApplyStatus.CREATED, "funding transfer must be created")
         binding=binding_for_namespace(
             namespace=ns,
             reservation_ref=f"reservation:nonlive:{scenario.lower()}",
             amount=100,
         )
         bindings[scenario]=binding
-        assert ledger.apply_instruction(reservation_instruction(binding)) is LedgerApplyStatus.CREATED
+        require(ledger.apply_instruction(reservation_instruction(binding)) is LedgerApplyStatus.CREATED, "ledger.apply_instruction(reservation_instruction(binding)) is LedgerApplyStatus.CREATED")
 
     for scenario,resolution_name in expected.items():
         if resolution_name=="NO_MUTATION":
@@ -71,8 +75,8 @@ with SQLiteAccountingLedger(path) as ledger:
             operation=operation,
             resolution_ref=f"effect:nonlive:{scenario.lower()}",
         )
-        assert instruction is not None
-        assert ledger.apply_instruction(instruction) is LedgerApplyStatus.CREATED
+        require(instruction is not None, "instruction is not None")
+        require(ledger.apply_instruction(instruction) is LedgerApplyStatus.CREATED, "ledger.apply_instruction(instruction) is LedgerApplyStatus.CREATED")
 
 # Reopen the same SQLite database and reconcile exact durable state.
 results={}
@@ -81,7 +85,7 @@ with SQLiteAccountingLedger(path) as ledger:
         ns=namespaces[scenario]
         binding=bindings[scenario]
         p=ledger.transfer(binding.pending_transfer_id)
-        assert p is not None
+        require(p is not None, "p is not None")
         pending=LedgerTransferObservation(
             transfer_id=p.transfer_id,
             operation=AccountingOperation.PENDING,
@@ -100,9 +104,9 @@ with SQLiteAccountingLedger(path) as ledger:
                 operation=operation,
                 resolution_ref=resolution_ref,
             )
-            assert instruction is not None
+            require(instruction is not None, "instruction is not None")
             r=ledger.transfer(instruction.transfer_id)
-            assert r is not None
+            require(r is not None, "r is not None")
             resolution=LedgerTransferObservation(
                 transfer_id=r.transfer_id,
                 operation=operation,
@@ -121,18 +125,18 @@ with SQLiteAccountingLedger(path) as ledger:
             pending=pending,
             resolution=resolution,
         )
-        assert rec.standing is LedgerReconciliationStanding.MATCH
+        require(rec.standing is LedgerReconciliationStanding.MATCH, "rec.standing is LedgerReconciliationStanding.MATCH")
         available=ledger.account(ns.available_account_id)
         enc=ledger.account(ns.encumbrance_account_id)
         if operation is AccountingOperation.POST_PENDING_TRANSFER:
-            assert available.debits_posted==100 and available.debits_pending==0
-            assert enc.credits_posted==100 and enc.credits_pending==0
+            require(available.debits_posted==100 and available.debits_pending==0, "available.debits_posted==100 and available.debits_pending==0")
+            require(enc.credits_posted==100 and enc.credits_pending==0, "enc.credits_posted==100 and enc.credits_pending==0")
         elif operation is AccountingOperation.VOID_PENDING_TRANSFER:
-            assert available.debits_posted==0 and available.debits_pending==0
-            assert enc.credits_posted==0 and enc.credits_pending==0
+            require(available.debits_posted==0 and available.debits_pending==0, "available.debits_posted==0 and available.debits_pending==0")
+            require(enc.credits_posted==0 and enc.credits_pending==0, "enc.credits_posted==0 and enc.credits_pending==0")
         else:
-            assert available.debits_posted==0 and available.debits_pending==100
-            assert enc.credits_posted==0 and enc.credits_pending==100
+            require(available.debits_posted==0 and available.debits_pending==100, "available.debits_posted==0 and available.debits_pending==100")
+            require(enc.credits_posted==0 and enc.credits_pending==100, "enc.credits_posted==0 and enc.credits_pending==100")
 
         results[scenario]={
             "reservationResolution":resolution_name,
@@ -151,9 +155,9 @@ with SQLiteAccountingLedger(path) as ledger:
         operation=AccountingOperation.POST_PENDING_TRANSFER,
         resolution_ref="effect:nonlive:fill",
     )
-    assert replay is not None
+    require(replay is not None, "replay is not None")
     replay_status=ledger.apply_instruction(replay)
-    assert replay_status is LedgerApplyStatus.EXISTS
+    require(replay_status is LedgerApplyStatus.EXISTS, "replay_status is LedgerApplyStatus.EXISTS")
 
 print(json.dumps({
     "schemaVersion":2,

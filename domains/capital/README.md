@@ -61,6 +61,19 @@ Composition policy: prefer authoritative standards, mature implementations, and 
 
 TigerBeetle Capital Substrate R1 passes the base mechanical integration and R3.1 composes Reservation -> PENDING, RETAIN -> no mutation, RELEASE -> VOID_PENDING_TRANSFER, and CONSUME -> POST_PENDING_TRANSFER. R3.2 now passes durable restart/reconciliation on one intact data file: a pending reservation survived the first process restart, a consumed reservation survived the second, exact replay returned `EXISTS` without reopening pending state, and exact terminal semantic history reconciled `MATCH`. If provider terminal history is missing or stale, the result is retain/recovery (`PROVIDER_INCOMPLETE_RETAIN` / `CONTRADICTION_RETAIN`) with provider repair forbidden; terminal Capital accounting history is never resurrected from provider state. The bounded harness deletes its data file afterward, so no long-running canonical ledger or external financial write is admitted.
 
+**SQLite accounting smoke verification LEGO**: the existing disposable
+SQLite scripts run-sqlite-accounting-durable-restart-smoke-r1 and
+run-nonlive-capital-effect-matrix own one responsibility: prove local
+state transitions, durable reopen, reconciliation and exact replay before
+issuing a PASS receipt. Inputs are synthetic accounting instructions and
+a disposable SQLite file; outputs are the existing JSON receipts.
+Consumers are scripts/run-r0-r5-closure and
+scripts/run-capital-trading-fullpath-closure respectively.
+Necessary writes and checks execute identically with ordinary Python
+and python -O. The native tests/test_accounting_smoke_optimizer_contract.py
+verifies actual entrypoint equivalence and distinct pending/consume
+observables. No live funds or provider write authority is used.
+
 Crypto FIX Projection R4 now passes: the four already-qualified Nautilus mechanics-only Spot orders project through sessionless QuickFIX/n FIX 4.4 `NewOrderSingle` semantics with ClientOrderId→ClOrdID identity continuity, venue `ExDestination`, Market order type and IOC TIF. No credential, FIX session, private account read or external financial write is admitted.
 
 Private Reality read-only preflight now passes without credentials: OKX will use the installed NautilusTrader `OKXHttpClient`; Binance will use the first-party `binance-sdk-spot 11.3.0`. Required account/order/trade query surfaces are present, but credential use remains `NOT_ADMITTED`, secret discovery is forbidden, and TRADE/Withdraw remain blocked.
