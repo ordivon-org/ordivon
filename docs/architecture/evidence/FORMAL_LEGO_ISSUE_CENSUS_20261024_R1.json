@@ -419,6 +419,26 @@
             "platform/workstation/providers/cloudflare/test/handoff_tofu_test.py",
             "platform/workstation/tofu/agent-birth-handoff/main.tf"
           ]
+        },
+        {
+          "localCommit": "ee1f938010915f348ce96413a06d7407d5434efe",
+          "pairedRevertCommit": "82239de6a1731b1f54f59166b06e95f9003fcd15",
+          "owner": "services/harness",
+          "consumer": "The Oct 19 transient rendered-turn observer altered windows_user_browser_chatgpt.ps1 and its old controller test, then its direct child reverted those two changed files and the full repository Git tree, before any durable Main consumer admission. Current Harness still owns the Windows user-browser driver, agent-automation release binding and corresponding provider/identity contracts; do not delete or replace the modern driver. Only the obsolete transient observer patch pair is skipped.",
+          "remoteWitness": "Entire frozen Git source tree ee1f93801091^ and 82239de6a173 is exactly c6ae0ba390a6e37d69ee403395547cc6318f7992. Git original pair differs on precisely two Harness paths, but final full-tree delta is empty. Current Harness native 31 native tests PASS across test_user_browser_gateway_controller.py, test_agent_automation_release_monorepo.py and test_agent_automation_mcp_deploy.py. Real Windows UI/ChatGPT turn and historical network effects remain UNKNOWN.",
+          "evidenceScope": "EXACT_GIT_BLOBS",
+          "disposition": "SKIP_CANCELLED_HISTORY_PAIR",
+          "beforeTreeOid": "c6ae0ba390a6e37d69ee403395547cc6318f7992",
+          "afterTreeOid": "c6ae0ba390a6e37d69ee403395547cc6318f7992",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+            "patchRelation": "INVERSE_DIRECT_CHILD",
+            "tipRelation": "CURRENT_BROWSER_OWNER_RETAINED",
+            "consumerStanding": "CURRENT_OWNER_COVERED",
+            "branchDeletionAllowed": false,
+            "historicalRuntimeParity": "UNKNOWN"
+          }
         }
       ],
       "consumerBlockedSelections": [

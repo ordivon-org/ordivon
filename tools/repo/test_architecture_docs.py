@@ -1089,3 +1089,32 @@ def test_git01_three_selected_historical_owner_effects_have_sufficient_source_pr
     assert "WINDOWS_SOURCE_CONTRACT_ONLY" in selected["eaa045252ef7"]["remoteWitness"]
     assert "NO_LIVE_CLOUDFLARE_CUTOVER" in selected["bec31a81ba5b"]["remoteWitness"]
     module.validate_formal_issue_census(census, plans)
+
+
+def test_git01_harness_observer_add_revert_is_one_cancelled_source_effect() -> None:
+    """Only the transient historic observer cancels; the current Browser owner lives."""
+    census, plans = formal_issue_inputs()
+    issue = next(record for record in census["issues"] if record["id"] == "GIT-01")
+    selected = {
+        record["localCommit"][:12]: record
+        for record in issue["consumerSelections"]
+    }
+    pair = selected["ee1f93801091"]
+    assert pair["localCommit"] == "ee1f938010915f348ce96413a06d7407d5434efe"
+    assert pair["pairedRevertCommit"] == "82239de6a1731b1f54f59166b06e95f9003fcd15"
+    assert pair["owner"] == "services/harness"
+    assert pair["disposition"] == "SKIP_CANCELLED_HISTORY_PAIR"
+    assert pair["evidenceScope"] == "EXACT_GIT_BLOBS"
+    assert pair["beforeTreeOid"] == pair["afterTreeOid"] == (
+        "c6ae0ba390a6e37d69ee403395547cc6318f7992"
+    )
+    source = pair["sourceQualification"]
+    assert source["localMain"] == "13704d0cac9e113b395f2d5a21b5bf8119aa04a5"
+    assert source["protectedMain"] == "4db6ce847677dfb12ea5faf64cb40441613fa242"
+    assert source["patchRelation"] == "INVERSE_DIRECT_CHILD"
+    assert source["tipRelation"] == "CURRENT_BROWSER_OWNER_RETAINED"
+    assert source["consumerStanding"] == "CURRENT_OWNER_COVERED"
+    assert source["historicalRuntimeParity"] == "UNKNOWN"
+    assert source["branchDeletionAllowed"] is False
+    assert "31 native tests" in pair["remoteWitness"]
+    module.validate_formal_issue_census(census, plans)
