@@ -24,7 +24,15 @@ Use whichever of these questions changes the current decision. They are **not** 
 5. **Act.** Agents freely choose, compete, cooperate and adapt the smallest relevant Skills and Tools. Execute only through actual owner-authorized boundaries; no permanent role, mandatory workflow, or new LEGO execution service.
 6. **Select.** Observe the changed consumer behavior and the smallest relevant native check. Report PASS, FAIL or UNKNOWN honestly. Keep, replace, merge or delete based on evidence; stop when further decomposition adds glue instead of value.
 
-For a simple case the entire working note can fit in a sentence and six short fields. Reuse an existing API and its tests; do not create a separate LEGO specification file merely to restate the API.
+For a simple case a working note can fit in six short fields, but six fields do NOT prove globally minimum or sufficiently safe representation. Reuse real APIs and their owner-native tests rather than creating a redundant specification file.
+
+### Representation method decision: CEGAR; MSR is not a default
+
+Do **not** default to Minimum Sufficient Representation (MSR). The adjective minimum requires an explicit feasible candidate space, cost ordering and proof against alternatives. The adjective sufficient requires an actual specification and proof that the abstraction preserves what its consumers require, including security and physical effects. Those proofs may cost more than solving the domain problem; unknown future requirements and attacks are not guaranteed covered. MSR remains an OPTIONAL, removable method/Skill LEGO for reversible, low-risk, independently verified local compression. Never label a candidate PROVEN MINIMUM, SUFFICIENT or SAFE solely because it has few fields or passed bounded tests.
+
+Use established **Counterexample-Guided Abstraction Refinement (CEGAR)** when a real abstraction affects safety or contract claims. Define the concrete source and property, sound abstraction relation, encoded target and accepted assumptions. Check the abstract model; concretize every reported trace against real model constraints before declaring a failure. A feasible exact trace is a concrete-model counterexample; an infeasible trace justifies a sound refinement; an unverified trace is UNKNOWN. Rerun the bounded checker after refinement. An abstract PASS needs sound property-preservation and source-to-implementation bridges before it can support an actual system claim. CEGAR does NOT generally prove termination, minimality or that unmodelled requirements are safe.
+
+The original R2.1 formal-model reference has an exact historical source digest. **Do not alter that frozen reference to change current method policy.** The optional reference references/abstraction-refinement-policy.md records this subsequent decision, MSR advantages/risks and the formal CEGAR proof obligations.
 
 ### Advanced mode — only if the actual problem requires it
 
