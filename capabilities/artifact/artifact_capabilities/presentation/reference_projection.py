@@ -3,9 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-import posixpath
 import re
-import urllib.parse
 import zipfile
 from collections.abc import Iterable
 from pathlib import Path, PurePosixPath
@@ -52,31 +50,6 @@ def _safe_zip_names(names: Iterable[str]) -> list[str]:
         if path.is_absolute() or ".." in path.parts:
             bad.append(name)
     return bad
-
-
-def _relationship_base(rels_name: str) -> str:
-    if rels_name == "_rels/.rels":
-        return ""
-    marker = "/_rels/"
-    if marker not in rels_name or not rels_name.endswith(".rels"):
-        return ""
-    left, right = rels_name.split(marker, 1)
-    owner = posixpath.join(left, right[:-5])
-    return posixpath.dirname(owner)
-
-
-def _resolve_relationship_target(base: str, target: str) -> str | None:
-    target = target.split("#", 1)[0]
-    parsed = urllib.parse.urlparse(target)
-    if parsed.scheme:
-        return None
-    if target.startswith("/"):
-        resolved = posixpath.normpath(target.lstrip("/"))
-    else:
-        resolved = posixpath.normpath(posixpath.join(base, target))
-    if resolved.startswith("../") or resolved == "..":
-        return None
-    return resolved
 
 
 def project_opc_members(

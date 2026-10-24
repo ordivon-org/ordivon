@@ -121,6 +121,11 @@ The gate evaluator binds every result to the exact manifest digest and verifier 
 Required gates close mechanically only when every required result is `SATISFIED` and the
 manifest has no unresolved assumptions.
 
+A circuit with **zero required composition gates** has no observed owner
+boundary and MUST remain mechanically OPEN: the mathematical truth of an empty
+conjunction is not evidence that any real consumer was checked. This is a
+source-bound verification obligation, not a new schema or global policy owner.
+
 Even then:
 
 ```text
@@ -130,6 +135,34 @@ domainAcceptanceEstablished = false
 
 This is deliberate. Local composition evidence never upgrades itself into scientific,
 business, safety, publication, product or other domain success.
+
+## Formal LEGO R2.1 — mature kernels and non-vacuous evidence
+
+This is not a new schema or universal LEGO authority. The existing circuit manifest
+is the task-local representation; JSON Schema Draft 2020-12 checks shape, and Python's
+standard-library graphlib.TopologicalSorter owns DAG ordering and cycle detection.
+A deterministic lexicographic ready-node policy preserves stable circuit output under
+stage-input permutations without recreating a second graph implementation.
+
+The gate evaluator uses a non-vacuity constraint:
+
+    mechanicalClosure =
+        (at least one REQUIRED composition gate)
+        AND (all required gates have verifier-owned SATISFIED results)
+        AND (there are no unresolved assumptions)
+
+Zero required gates produces COMPOSITION_GATES_OPEN, not a successful composition
+proof. UNKNOWN, missing evidence and UNSATISFIED remain distinct. Neither compilation
+nor Boolean closure proves domain acceptance or grants execution permission.
+
+For a task where text-only assumptions/guarantees are insufficient, use a
+consumer-selected external mathematical kernel: Pacti for assume-guarantee
+composition/refinement, an existing Runtime TLA+ state-machine model for physical
+lifecycle properties, or an owner-native SMT/typed checker when appropriate.
+Bind the exact source/specification and verifier scope through existing Verification
+Obligation R1. A mathematical PASS for predicate psi does not establish a real-world
+goal predicate phi without a justified refinement bridge. Avoid recreating algebra,
+solvers, schedulers or a universal LEGO registry here.
 
 ## Interface Contract relation
 

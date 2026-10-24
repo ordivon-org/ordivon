@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import importlib.util
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -1824,3 +1826,93 @@ def test_opa_port_required_without_native_consumer_is_rejected() -> None:
     selected["evidenceScope"] = "EXACT_GIT_BLOBS"
     with pytest.raises(module.ArchitectureDocsError, match="requires native Owner acceptance"):
         module.validate_formal_issue_census(negative, plans)
+
+
+def test_formal_r21_host_existing_typed_dependencies_form_nontrivial_frontiers() -> None:
+    plan = json.loads((ROOT / "services/host/planning/lego-plan-r1.json").read_text())
+    nodes, fronts = module.validate_owner_lego_dependencies(plan, "services/host")
+    depth = {node: d for d, front in enumerate(fronts) for node in front}
+    assert len(nodes) == 5
+    assert depth["O04"] < depth["O01"]
+    assert depth["O04"] < depth["O02"]
+    assert any(e["from"] == "O02" and e["to"] == "O03" and e["type"] == "DATA"
+               for e in plan["edges"])
+
+
+def test_formal_r21_typed_dependency_cycle_rejected_not_just_node_dependencies() -> None:
+    plan = json.loads((ROOT / "services/host/planning/lego-plan-r1.json").read_text())
+    plan["edges"].append({"from": "O01", "to": "O04", "type": "DEPENDENCY"})
+    with pytest.raises(module.ArchitectureDocsError, match="cyclic LEGO dependencies"):
+        module.validate_owner_lego_dependencies(plan, "services/host")
+
+
+def test_formal_r21_nonprerequisite_feedback_is_not_silently_scheduled() -> None:
+    plan = json.loads((ROOT / "platform/network/planning/lego-plan-r1.json").read_text())
+    plan["edges"].append({"from": "N04", "to": "N01", "type": "OBSERVATION"})
+    _, fronts = module.validate_owner_lego_dependencies(plan, "platform/network")
+    assert len(fronts) >= 2
+
+
+@pytest.mark.parametrize(
+    ("owner", "cycle_a", "cycle_b"),
+    [
+        ("services/runtime/planning/lego-plan-r1.json", "R00", "R01"),
+        ("services/harness/planning/lego-plan-r1.json", "H01", "H02"),
+        ("platform/network/planning/lego-plan-r1.json", "N01", "N02"),
+        ("platform/security/planning/lego-plan-r1.json", "S01", "S02"),
+    ],
+)
+def test_formal_lego21_registered_owner_graph_rejects_cycle(
+    owner: str, cycle_a: str, cycle_b: str
+) -> None:
+    census, plans = formal_issue_inputs()
+    nodes = {node["id"]: node for node in plans[owner]["nodes"]}
+    nodes[cycle_a]["dependencies"] = [cycle_b]
+    nodes[cycle_b]["dependencies"] = [cycle_a]
+    with pytest.raises(module.ArchitectureDocsError, match="cyclic LEGO dependencies"):
+        module.validate_formal_issue_census(census, plans)
+
+
+@pytest.mark.parametrize(
+    ("mutation", "reason"),
+    [
+        ("dangling", "unknown LEGO dependency"),
+        ("duplicate_edge", "duplicate LEGO dependency"),
+        ("duplicate_node", "duplicate LEGO node identity"),
+        ("untyped_dependencies", "untyped LEGO dependencies"),
+    ],
+)
+def test_formal_lego21_runtime_dependency_relation_is_typed(
+    mutation: str, reason: str
+) -> None:
+    census, plans = formal_issue_inputs()
+    nodes = plans["services/runtime/planning/lego-plan-r1.json"]["nodes"]
+    node = next(n for n in nodes if n["id"] == "R01")
+    if mutation == "dangling":
+        node["dependencies"] = ["NONEXISTENT"]
+    elif mutation == "duplicate_edge":
+        node["dependencies"] = ["R00", "R00"]
+    elif mutation == "duplicate_node":
+        nodes.append(copy.deepcopy(nodes[0]))
+    else:
+        node["dependencies"] = "R00"
+    with pytest.raises(module.ArchitectureDocsError, match=reason):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_recursive_lego_r21_source_digest_matches_current_declared_contract() -> None:
+    """A referenced formal source must exist and match its exact declared provenance."""
+    document = (
+        ROOT / "docs/architecture/AGENT_CONCEPTS_FORMAL_LEGO_RESEARCH_20261024.md"
+    ).read_text(encoding="utf-8")
+    declared = re.search(r"observed model SHA-256 .([0-9a-f]{64}).", document)
+    assert declared is not None, "R2.1 declaration must bind a source digest"
+
+    skill_root = ROOT / ".agents/skills/recursive-lego-calculus"
+    skill = skill_root / "SKILL.md"
+    reference = skill_root / "references/formal-model.md"
+    assert skill.is_file() and reference.is_file(), (
+        "R2.1 original Skill/model disappeared while the live architecture names it"
+    )
+    assert "name: recursive-lego-calculus" in skill.read_text(encoding="utf-8")
+    assert hashlib.sha256(reference.read_bytes()).hexdigest() == declared.group(1)

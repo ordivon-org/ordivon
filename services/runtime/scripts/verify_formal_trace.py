@@ -24,9 +24,16 @@ REQUIRED_SEAMS = {
     "ExecutionProvider.realize",
 }
 REQUIRED_TESTS = {
+    "RuntimeDispatch.registryDispatchCAS",
+    "RuntimeDispatch.ambiguityHeld",
+    "ExecutionProvider.guaranteeNegativeControl",
+    "RuntimeDispatch.terminalEvidence",
+}
+# Root/cgroup-bound Rust tests exist, but #[ignore] means CI does not execute them.
+# These are conditional external acceptance witnesses, never active proving tests.
+REQUIRED_OPT_IN_TESTS = {
     "RuntimeDispatch.concurrentObservers",
     "RuntimeDispatch.ambiguityNoRedrive",
-    "ExecutionProvider.guaranteeNegativeControl",
 }
 REQUIRED_SUPPORTING_CONTRACTS = {
     "ExecutionProvider.assumeGuarantee",
@@ -35,7 +42,9 @@ REQUIRED_MODEL_BINDINGS = {
     "RuntimeDispatch.Dispatch",
     "RuntimeDispatch.AtMostOnceDispatchPerAttempt",
     "RuntimeDispatch.AmbiguityRequiresReconciliation",
+    "RuntimeDispatch.TerminalEvidenceIsCommitted",
 }
+REQUIRED_RUNTIME_INVARIANT_BINDINGS = {"I05", "I11"}
 
 
 # These are the actual existing RuntimeDispatchR1.cfg obligations, not a
@@ -147,7 +156,7 @@ def require_owned_method(path: Path, owner_kind: str, owner: str, symbol: str) -
     return []
 
 
-def require_test_symbol(path: Path, symbol: str) -> list[str]:
+def require_test_symbol(path: Path, symbol: str, *, require_ignored: bool = False) -> list[str]:
     try:
         text = path.read_text(encoding="utf-8")
     except (OSError, UnicodeError) as error:
@@ -168,6 +177,11 @@ def require_test_symbol(path: Path, symbol: str) -> list[str]:
         break
     if not any(re.fullmatch(r"#\s*\[\s*test\s*\]", attribute) for attribute in attributes):
         return [f"{path.relative_to(ROOT)}::{symbol} is not marked #[test]"]
+    ignored = any(re.fullmatch(r'#\s*\[\s*ignore(?:\s*=\s*".*")?\s*\]', attribute) for attribute in attributes)
+    if ignored and not require_ignored:
+        return [f"{path.relative_to(ROOT)}::{symbol} is ignored, not an always-on proving test"]
+    if require_ignored and not ignored:
+        return [f"{path.relative_to(ROOT)}::{symbol} is not an explicitly ignored opt-in test"]
     return []
 
 
@@ -250,7 +264,16 @@ def validate(trace: dict[str, Any], invariant_manifest: dict[str, Any]) -> list[
         for item in invariant_manifest.get("invariants", [])
         if isinstance(item, dict)
     }
-    for binding in trace.get("runtimeInvariantBindings", []):
+    runtime_bindings = trace.get("runtimeInvariantBindings", [])
+    runtime_ids = _ids(runtime_bindings)
+    if not isinstance(runtime_bindings, list) or len(runtime_ids) != len(set(runtime_ids)):
+        errors.append("Runtime invariant binding IDs are invalid or duplicated")
+    if set(runtime_ids) != REQUIRED_RUNTIME_INVARIANT_BINDINGS:
+        errors.append(
+            f"Runtime invariant binding set drift: expected {sorted(REQUIRED_RUNTIME_INVARIANT_BINDINGS)}, "
+            f"observed {sorted(set(runtime_ids))}"
+        )
+    for binding in runtime_bindings if isinstance(runtime_bindings, list) else []:
         if not isinstance(binding, dict):
             errors.append("Runtime invariant binding must be an object")
             continue
@@ -262,10 +285,24 @@ def validate(trace: dict[str, Any], invariant_manifest: dict[str, Any]) -> list[
             errors.append(
                 f"Runtime invariant name drift: {binding.get('id')}: expected {binding.get('name')!r}, observed {item.get('name')!r}"
             )
+        required_refs = binding.get("requiredProofRefs")
+        if (
+            not isinstance(required_refs, list)
+            or not required_refs
+            or any(not isinstance(ref, str) or not ref for ref in required_refs)
+        ):
+            errors.append(f"Runtime invariant {binding.get('id')} has no required proof references")
+            continue
         proofs = set(item.get("proof", []))
-        for required in binding.get("requiredProofRefs", []):
+        for required in required_refs:
             if required not in proofs:
                 errors.append(f"Runtime invariant {binding.get('id')} lost proof binding {required}")
+                continue
+            if "::" not in required:
+                errors.append(f"Runtime invariant {binding.get('id')} has malformed proof reference {required!r}")
+                continue
+            path, symbol = required.split("::", 1)
+            errors.extend(require_test_symbol(ROOT / path, symbol))
 
     seams = trace.get("contractSeams", [])
     seam_ids = _ids(seams)
@@ -339,6 +376,25 @@ def validate(trace: dict[str, Any], invariant_manifest: dict[str, Any]) -> list[
                 errors.append(f"proving test {binding.get('id')} references unknown target {target!r}")
             elif isinstance(target, str):
                 proved.add(target)
+
+    # Disjoint evidence roles: existence of a conditional physical test does not
+    # count toward always-on implementation witnesses or model refinement.
+    conditional = trace.get("conditionalAcceptanceTests", [])
+    conditional_ids = _ids(conditional)
+    if len(conditional_ids) != len(set(conditional_ids)) or set(conditional_ids) != REQUIRED_OPT_IN_TESTS:
+        errors.append("conditional acceptance test set drift")
+    for binding in conditional if isinstance(conditional, list) else []:
+        if not isinstance(binding, dict):
+            errors.append("conditional acceptance binding must be an object")
+            continue
+        relative = binding.get("path")
+        symbol = binding.get("symbol")
+        if binding.get("evidenceMode") != "physical-opt-in" or not all(
+            isinstance(value, str) for value in (relative, symbol)
+        ):
+            errors.append(f"conditional acceptance {binding.get('id')} lost opt-in evidence type")
+            continue
+        errors.extend(require_test_symbol(ROOT / relative, symbol, require_ignored=True))
 
     for seam in REQUIRED_SEAMS:
         if seam not in proved:

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+
+import pytest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -105,3 +107,86 @@ def test_retired_network_capability_router_stays_retired():
         assert not (ROOT / relative).exists(), f"retired Network Router returned: {relative}"
     for consumer in ("x-reality", "supply-chain"):
         assert (ROOT / "consumers" / consumer / "config" / "egress.json").is_file()
+
+
+@pytest.mark.parametrize(
+    ("receipt", "okx_receipt", "expected_ready"),
+    [
+        ("407", "200 200", False),      # Proxy denial is not a healthy tunnel.
+        ("401 407", "200 200", False),  # Origin-looking status with denied CONNECT.
+        ("502 200", "200 200", False),  # A broken upstream is not application readiness.
+        ("401 200", "200 407", False),  # Successful probes cannot override failed OKX.
+        ("401 200", "200 000", False),  # OKX direct/bypassed route is not proxy evidence.
+        ("401 200", "200 200", True),   # Anonymous challenge through valid CONNECT.
+    ],
+)
+def test_browserless_shared_provider_requires_real_tunnel_and_origin_evidence(
+    tmp_path: Path, receipt: str, okx_receipt: str, expected_ready: bool
+) -> None:
+    """Physical Bash consumer; substitute only provider config and external tools."""
+    import os
+    import subprocess
+
+    script = (BROWSERLESS / "provider-carrier-ready.sh").read_text()
+    provider = tmp_path / "provider.env"
+    provider.write_text("PROVIDER_SITE=th-bkk\nENDPOINT=198.51.100.1\n")
+    manifest = tmp_path / "MANIFEST.tsv"
+    manifest.write_text("th-bkk\t198.51.100.1\n")
+    script = script.replace(
+        "/etc/network-v2/browserless/provider.env", str(provider)
+    ).replace(
+        "/etc/network-v2/providers/catalog-profiles/MANIFEST.tsv", str(manifest)
+    )
+    assert str(provider) in script and str(manifest) in script
+    selected = tmp_path / "ready.sh"
+    selected.write_text(script)
+    tools = tmp_path / "bin"
+    tools.mkdir()
+    for name, body in {
+        "systemctl": "#!/bin/sh\nexit 0\n",
+        "ip": "#!/bin/sh\necho 'LISTEN 10.252.246.2:19680'\n",
+        "sleep": "#!/bin/sh\nexit 0\n",
+        "curl": (
+            "#!/usr/bin/env python3\n"
+            "import os, sys\n"
+            "args = sys.argv[1:]\n"
+            "with open(os.environ['PROVIDER_CURL_LOG'], 'a') as stream:\n"
+            "    print(' '.join(args), file=stream)\n"
+            "if any('openapi.okx.com' in arg for arg in args):\n"
+            "    if '-o' in args:\n"
+            "        with open(args[args.index('-o')+1], 'w') as dest:\n"
+            "            dest.write('{\"code\":\"0\",\"data\":[{}]}')\n"
+            "    if '-w' in args:\n"
+            "        print(os.environ['PROVIDER_OKX_RECEIPT'], end='')\n"
+            "    sys.exit(0)\n"
+            "print(os.environ['PROVIDER_RECEIPT'], end='')\n"
+        ),
+    }.items():
+        path = tools / name
+        path.write_text(body)
+        path.chmod(0o755)
+    curl_log = tmp_path / "curl.log"
+    process = subprocess.run(
+        ["/usr/bin/bash", str(selected)],
+        env={
+            **os.environ,
+            "PATH": f"{tools}:{os.environ.get('PATH','')}",
+            "PROVIDER_RECEIPT": receipt,
+            "PROVIDER_OKX_RECEIPT": okx_receipt,
+            "PROVIDER_CURL_LOG": str(curl_log),
+        },
+        capture_output=True,
+        text=True,
+        timeout=9,
+    )
+    assert (process.returncode == 0) is expected_ready, (
+        receipt, process.stdout, process.stderr
+    )
+    if expected_ready:
+        assert json.loads(process.stdout)["standing"] == "READY"
+    else:
+        assert '"standing":"READY"' not in process.stdout
+    calls = curl_log.read_text()
+    assert "api.openai.com" in calls
+    assert "--noproxy" in calls and "-q" in calls
+    assert "%{http_connect}" in calls

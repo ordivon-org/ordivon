@@ -51,6 +51,29 @@ def test_cycle_fails_closed() -> None:
         module.validate_graph(value)
 
 
+@pytest.mark.parametrize("cycle", [False, True])
+def test_long_dependency_chain_uses_nonrecursive_mature_graph_kernel(
+    cycle: bool,
+) -> None:
+    """A deep, bounded owner-DAG must not depend on Python recursion depth."""
+    value = load_graph()
+    exemplar = copy.deepcopy(value["nodes"][0])
+    predecessor = exemplar["id"]
+    for index in range(2048):
+        node = copy.deepcopy(exemplar)
+        node["id"] = f"DEEP{index:04d}"
+        node["wave"] = "W1"
+        node["dependsOn"] = [predecessor]
+        value["nodes"].append(node)
+        predecessor = node["id"]
+    if cycle:
+        value["nodes"][-2048]["dependsOn"] = [predecessor]
+        with pytest.raises(module.CompositionArchitectureError, match="dependency cycle"):
+            module.validate_graph(value)
+    else:
+        module.validate_graph(value)
+
+
 def test_gateway_truth_boundary_must_remain_non_authoritative() -> None:
     value = load_graph()
     gateway = next(node for node in value["nodes"] if node["owner"] == "gateway")
@@ -87,4 +110,42 @@ def test_on_demand_node_cannot_be_initial_parallel_work() -> None:
     value = load_graph()
     value["initialParallelSet"] = ["O01"]
     with pytest.raises(module.CompositionArchitectureError, match="on-demand"):
+        module.validate_graph(value)
+
+
+
+def test_lego21_dependency_edge_is_unique() -> None:
+    """A typed graph edge is a relation, not a counted multiset of imports."""
+    value = load_graph()
+    node = next(n for n in value["nodes"] if n["id"] == "G02")
+    node["dependsOn"] = ["G01", "G01"]
+    with pytest.raises(module.CompositionArchitectureError, match="duplicate dependencies"):
+        module.validate_graph(value)
+
+
+def test_lego21_critical_path_is_topological_order() -> None:
+    """A claimed execution order cannot list a consumer before its prerequisite."""
+    value = load_graph()
+    order = value["criticalPath"]
+    i, j = order.index("G01"), order.index("G02")
+    order[i], order[j] = order[j], order[i]
+    with pytest.raises(module.CompositionArchitectureError, match="criticalPath dependency order"):
+        module.validate_graph(value)
+
+
+
+def test_lego21_critical_path_rejects_transitive_noncritical_prerequisite() -> None:
+    """Scheduling depends on transitive reachability, not only listed edges."""
+    value = load_graph()
+    intermediary = copy.deepcopy(value["nodes"][0])
+    intermediary["id"] = "INTERMEDIARY"
+    intermediary["owner"] = "runtime"
+    intermediary["dependsOn"] = ["G01"]
+    value["nodes"].append(intermediary)
+    consumer = next(node for node in value["nodes"] if node["id"] == "G02")
+    consumer["dependsOn"] = ["INTERMEDIARY"]
+    critical = value["criticalPath"]
+    a, b = critical.index("G01"), critical.index("G02")
+    critical[a], critical[b] = critical[b], critical[a]
+    with pytest.raises(module.CompositionArchitectureError, match="criticalPath dependency order"):
         module.validate_graph(value)

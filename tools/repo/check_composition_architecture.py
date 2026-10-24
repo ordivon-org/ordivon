@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from graphlib import CycleError, TopologicalSorter
 from pathlib import Path
 from typing import Any
 
@@ -60,6 +61,8 @@ def validate_graph(value: dict[str, Any]) -> None:
                 raise CompositionArchitectureError(f"{node_id}: {field} must be non-empty")
             if not all(isinstance(item, str) and item.strip() for item in rows):
                 raise CompositionArchitectureError(f"{node_id}: {field} entries must be strings")
+            if field == "dependsOn" and len(rows) != len(set(rows)):
+                raise CompositionArchitectureError(f"{node_id}: duplicate dependencies")
         if raw["owner"] == "gateway":
             boundary = raw["authorityBoundary"].lower()
             if "non-authoritative" not in boundary:
@@ -76,22 +79,19 @@ def validate_graph(value: dict[str, Any]) -> None:
                 f"{node_id}: unknown dependencies: {unknown}"
             )
 
-    visiting: set[str] = set()
-    visited: set[str] = set()
-
-    def visit(node_id: str) -> None:
-        if node_id in visited:
-            return
-        if node_id in visiting:
-            raise CompositionArchitectureError(f"dependency cycle includes {node_id}")
-        visiting.add(node_id)
-        for dependency in by_id[node_id]["dependsOn"]:
-            visit(dependency)
-        visiting.remove(node_id)
-        visited.add(node_id)
-
-    for node_id in sorted(by_id):
-        visit(node_id)
+    # Mature stdlib partial-order kernel. A deep owner dependency DAG is
+    # validated without handwritten recursive traversal or a second graph engine.
+    predecessors = {
+        node_id: set(node["dependsOn"]) for node_id, node in by_id.items()
+    }
+    try:
+        TopologicalSorter(predecessors).prepare()
+    except CycleError as exc:
+        cycle = exc.args[1] if len(exc.args) > 1 else []
+        witness = cycle[0] if cycle else "<unknown>"
+        raise CompositionArchitectureError(
+            f"dependency cycle includes {witness}"
+        ) from exc
 
     critical = value.get("criticalPath")
     if not isinstance(critical, list) or not critical:
@@ -108,6 +108,22 @@ def validate_graph(value: dict[str, Any]) -> None:
     }
     if set(critical) & on_demand:
         raise CompositionArchitectureError("on-demand nodes must not enter criticalPath")
+    # The critical sequence is a linear extension of the DAG, even when
+    # intermediate prerequisite nodes are not themselves on the sequence.
+    critical_pos = {node_id: pos for pos, node_id in enumerate(critical)}
+    for node_id, position in critical_pos.items():
+        pending = list(by_id[node_id]["dependsOn"])
+        seen: set[str] = set()
+        while pending:
+            dependency = pending.pop()
+            if dependency in seen:
+                continue
+            if dependency in critical_pos and critical_pos[dependency] >= position:
+                raise CompositionArchitectureError(
+                    f"criticalPath dependency order: {node_id} requires {dependency}"
+                )
+            seen.add(dependency)
+            pending.extend(by_id[dependency]["dependsOn"])
 
     parallel = value.get("initialParallelSet")
     if not isinstance(parallel, list) or not parallel:

@@ -12,6 +12,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+from graphlib import CycleError, TopologicalSorter
+from heapq import heapify, heappop, heappush
 from pathlib import Path
 from typing import Any
 
@@ -69,33 +71,6 @@ def _unique_index(rows: list[dict[str, Any]], label: str) -> dict[str, dict[str,
     return result
 
 
-def _check_dag(stages: dict[str, dict[str, Any]]) -> None:
-    known = set(stages)
-    for stage_id, stage in stages.items():
-        unknown = sorted(set(stage["dependsOn"]) - known)
-        if unknown:
-            raise CircuitContractError(f"stage {stage_id} depends on unknown stages: {unknown}")
-        if stage_id in stage["dependsOn"]:
-            raise CircuitContractError(f"stage {stage_id} cannot depend on itself")
-
-    visiting: set[str] = set()
-    visited: set[str] = set()
-
-    def visit(stage_id: str) -> None:
-        if stage_id in visited:
-            return
-        if stage_id in visiting:
-            raise CircuitContractError(f"stage dependency cycle includes {stage_id}")
-        visiting.add(stage_id)
-        for dependency in stages[stage_id]["dependsOn"]:
-            visit(dependency)
-        visiting.remove(stage_id)
-        visited.add(stage_id)
-
-    for stage_id in sorted(stages):
-        visit(stage_id)
-
-
 def validate_manifest(value: dict[str, Any]) -> None:
     _validate_schema(value, MANIFEST_SCHEMA, "cognitive circuit manifest")
 
@@ -106,7 +81,7 @@ def validate_manifest(value: dict[str, Any]) -> None:
     gates = _unique_index(value["gateRequirements"], "gate requirement")
     del edges  # uniqueness is the only direct edge-index property needed below.
 
-    _check_dag(stages)
+    _topological_order(value["stages"])
 
     method_ids = set(methods)
     capability_ids = set(capabilities)
@@ -200,26 +175,34 @@ def compile_manifest(value: dict[str, Any]) -> dict[str, Any]:
 
 
 def _topological_order(rows: list[dict[str, Any]]) -> list[str]:
+    """Native graphlib DAG proof with stable, lexically prioritized ready nodes."""
     stages = {row["id"]: row for row in rows}
-    indegree = {stage_id: 0 for stage_id in stages}
-    children: dict[str, list[str]] = {stage_id: [] for stage_id in stages}
-    for stage_id, stage in stages.items():
-        for dependency in stage["dependsOn"]:
-            indegree[stage_id] += 1
-            children[dependency].append(stage_id)
+    known = set(stages)
+    sorter = TopologicalSorter()
+    for stage_id in sorted(stages):
+        dependencies = stages[stage_id]["dependsOn"]
+        unknown = sorted(set(dependencies) - known)
+        if unknown:
+            raise CircuitContractError(f"stage {stage_id} depends on unknown stages: {unknown}")
+        if stage_id in dependencies:
+            raise CircuitContractError(f"stage {stage_id} cannot depend on itself")
+        sorter.add(stage_id, *sorted(dependencies))
+    try:
+        sorter.prepare()
+    except CycleError as exc:
+        raise CircuitContractError(f"stage dependency cycle includes {exc.args[1][0]}") from exc
 
-    ready = sorted(stage_id for stage_id, degree in indegree.items() if degree == 0)
+    # A priority heap retains the accepted source-independent ordering of
+    # ready nodes; graphlib owns cycle detection and dependency resolution.
+    ready = list(sorter.get_ready())
+    heapify(ready)
     order: list[str] = []
     while ready:
-        current = ready.pop(0)
-        order.append(current)
-        for child in sorted(children[current]):
-            indegree[child] -= 1
-            if indegree[child] == 0:
-                ready.append(child)
-                ready.sort()
-    if len(order) != len(stages):
-        raise CircuitContractError("stage dependency graph is not acyclic")
+        stage_id = heappop(ready)
+        order.append(stage_id)
+        sorter.done(stage_id)
+        for newly_ready in sorter.get_ready():
+            heappush(ready, newly_ready)
     return order
 
 
@@ -279,7 +262,8 @@ def evaluate_gate_results(
 
     if unsatisfied:
         standing = "COMPOSITION_GATES_UNSATISFIED"
-    elif missing or unknown or unresolved:
+    elif not required or missing or unknown or unresolved:
+        # An empty required Gate set contains no verified cross-owner property.
         standing = "COMPOSITION_GATES_OPEN"
     else:
         standing = "COMPOSITION_GATES_SATISFIED"

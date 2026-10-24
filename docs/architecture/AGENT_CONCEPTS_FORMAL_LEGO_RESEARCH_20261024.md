@@ -134,4 +134,88 @@ No new Agent role, new Skill, registry, approval loop, scheduler or formal DSL i
 - Lifecycle subtraction is part of correctness: close clean, unused workspaces; preserve/reconcile dirty, unique contributions and recoverable points before close; do not leave unowned duplicate implementations or orphan PRs by default. Never use a source scan alone as proof of absent external consumers.
 - Move gradually, one verified actual consumer slice at a time, then remove superseded custom code/tests when justified. Reuse existing Cognitive Circuit, Verification Obligation, Runtime, Git and Host boundaries; do not create a universal mathematical gateway, another test regime, new management Agent, second owner or parallel ledger.
 
+**R2.1 first concrete mathematics-backed LEGO (2026-10-25): registered Owner dependency relation.**
+
+- **Minimum representation:** reuse each existing Owner planning node's id and dependencies; no common schema extension, executor, registry, or new declared ownership. Let N be the finite set of exact node IDs and D be a subset of N x N, the predecessor relation (u depends on v).
+- **Well-formedness obligation:** every node ID is unique and nonempty; every dependency is a typed, unique node ID; D is closed over N; D is acyclic. Consequently a topological order exists. This is a structural precondition, not a claim that environment assumptions, tool permissions, effects or domain outcomes have been discharged.
+- **Mature kernel and native witness:** Python standard-library graphlib.TopologicalSorter at the existing tools/repo/check_architecture_docs.py owner-registration gate. Runtime, Harness, Network, Security currently use this existing node/dependency plan shape; the Host V2 R3 frozen retained/external-owner list is not silently transformed into a graph or made authoritative.
+- **Negative witnesses:** two-node cycles in each registered core plan and dangling, duplicate or untyped edges/nodes must all fail the existing native tests before admission. Owner-specific behavioral CDC, Runtime TLA+ model scope, Host durable re-entry and independent consumer acceptance remain separate obligations.
+- **Subtraction rule:** use graphlib, not a bespoke DAG checker, a cross-domain graph database, a second LEGO registry, or mandatory 2.1 metadata on every component.
+
+**R2.1 minimal typed contract, not a new registry:** interpret a needed LEGO
+as the partial contract `L = (I, O, A, G, E, V)`: owner input/output
+types `I/O`, source/environment/authority assumptions `A`,
+consumer-observable guarantee (or state transition relation) `G`,
+already-owned bounded effects `E`, and scoped verifier `V`.
+Composition of `L1; L2` requires typed output/input compatibility,
+a *discharged* `G1 => A2` obligation, and explicit independent effect
+authority; unresolved assumption discharge is UNKNOWN, never PASS.
+Current `graphlib`, JSON Schema, Runtime TLA+/TLC and real consumer
+checks retain **distinct** proof scopes. A finite DAG or zero required
+gates cannot establish real outcome acceptance. No new execution owner,
+global LEGO metadata requirement, or custom solver is introduced.
+
 **Operational stopping rule:** one needed property, one appropriate mature owner/kernel, one scoped verification/effect witness, followed by read-back and cleanup. If none materially improves real consumer outcomes, do not add it.
+
+
+## R2.1 mathematical kernel: existing mathematics at the Owner boundary (2026-10-25)
+
+**Standing:** scoped refinement of the already accepted recursive LEGO calculus,
+not a new schema, all-Owner registry, proof kernel, default Workflow or source
+of runtime authority. This section is useful only when a *named current
+consumer* needs a contract that its natural Owner can actually verify.
+
+A candidate LEGO is best represented as an existing Owner responsibility
+view \(L=(C,I,O,S,R,A,G,V)\), not as a new executable object:
+
+- \(C\): current consumers and their externally observable acceptance predicates;
+- \(I,O\): typed inputs/outputs from current native interfaces;
+- \(S\): durable state owned by precisely one existing authoritative Owner;
+- \(R\subseteq(I\times S)\times(O\times S)\): an existing transition or
+  effect relation, **not** an invented Ordivon transition engine;
+- \(A,G\): assumptions/guarantees expressed by current Owner contracts;
+- \(V\): scoped evidence with exact SourceCut, tool/version and falsification.
+
+These are **mathematical views of existing typed interfaces**. No field is
+mandated in every domain's JSON. For sequential composition \(L_1;L_2\),
+verify compatible types and \(G_1\Rightarrow A_2\) under the real shared-state,
+authority and environment assumptions. Independent component PASS does not
+prove composite correctness. To replace old \(L\) with new \(L'\), compare the
+*current consumer's observable projection* \(\pi_C(R)\), not raw Git commits,
+file bytes, prose, tool names, historical work or a universal score.
+
+| Existing Owner | Mature semantic kernel | Current executable consumer boundary | Missing authority deliberately **not** inferred |
+| --- | --- | --- | --- |
+| Runtime | TLA+ state transitions, invariants, weak fairness; Rust typed Attempt state | `services/runtime/formal/RuntimeDispatchR1.tla`, `scripts/verify_formal_trace.py`, `job_attempt_state.rs` | model result does not mechanically refine Rust or prove business completion |
+| Host | typed Work revision and state-machine transition contracts | `services/host/src/ordivon_host_v2/work_store.py` and natural-owner tests | Host Work terminal state does not establish Runtime dispatch or domain success |
+| Harness | assume/guarantee at bounded Agent Run and Tool/Runtime admission | `services/harness/tests/test_gateway_execution_port.py` and owner-local admission contracts | model proposal, Run success or Skill text cannot grant effect authority |
+| Network | state-based convergence, source identity and actual loaded-policy predicates | `platform/network/tests/test_claude_loaded_policy_cdc.py`, `test_monitoring_precommit.py` | file delivery or transport success does not establish loaded policy or safety |
+
+**First executable mathematical slice (Runtime).** The property
+`TerminalEvidenceIsCommitted` is stated in TLA+ and enabled in its
+upstream TLC config: a terminal Job must identify a terminal Attempt and
+committed reconciliation evidence. The existing Rust terminal-evidence
+negative-control test is bound by the Runtime native trace gate; the
+bounded 2-Attempt TLC model and a deliberately mutated terminal transition
+falsify the safety obligation. This is a concrete scoped proof and
+counterexample, **not** a proof of implementation refinement. No separate
+LEGO model checker, global test registry or mandatory abstraction was added.
+
+**Subtractive promotion rule:** retain or port only the smallest behavior
+that a real consumer currently requires and the accepted Owner does not
+already supply. UNKNOWN external consumption blocks destructive erasure
+of the last recoverable source, but does **not** justify reinstalling the
+historical feature, creating a migration PR or re-running successful tests.
+Once an Owner evidence cut is admitted, re-check it only if its declared
+source, consumer or environment assumptions change.
+
+Mature external foundations: TLA+/TLC (https://docs.tlapl.us/), typed Rust
+state transitions, contract-based assume/guarantee reasoning and existing
+Git SHA/source-provenance semantics. Use SMT or an additional prover only
+where a concrete constraint consumer cannot be discharged by an existing
+Owner test or TLC model.
+
+
+### Scoped Pacti observation algebra (task-local, not Host/Runtime authority)
+
+The existing Pacti 0.3.1 assume/guarantee provider is used task-locally for the typed Harness grant maxTimeoutMs and a caller-supplied Runtime status.config.maxRuntimeMs observation. The operation binds both inputs to canonical digests and returns only a mathematical compatibility verdict; it does not claim the observations were authenticated, fresh, implementation-refined or safe to apply as physical effects. The old frozen numerical example is not live Runtime truth. Pacti remains absent from Next's default dependency set: root CI explicitly marks its optional provider execution SKIPPED, while the pinned task-local run exercises the real positive/negative algebra. Runtime admission and actual consumer outcomes remain natural-Owner obligations.

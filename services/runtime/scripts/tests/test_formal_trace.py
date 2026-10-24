@@ -102,6 +102,22 @@ trait Provider {
                 self.module.ROOT = original_root
         self.assertTrue(any("is not marked #[test]" in error for error in errors))
 
+    def test_ignored_integration_cannot_claim_always_on_proving_test(self):
+        # A source symbol is not executed evidence when Rust marks it ignored.
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "integration_tests.rs"
+            source.write_text(
+                '#[test]\n#[ignore = "requires root and cgroup"]\nfn target() {}\n',
+                encoding="utf-8",
+            )
+            original_root = self.module.ROOT
+            self.module.ROOT = Path(temporary)
+            try:
+                errors = self.module.require_test_symbol(source, "target")
+            finally:
+                self.module.ROOT = original_root
+        self.assertTrue(any("ignored" in error for error in errors), errors)
+
     def test_test_annotation_accepts_adjacent_attributes(self):
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary) / "integration_tests.rs"
@@ -115,12 +131,76 @@ trait Provider {
         self.assertEqual(errors, [])
 
 
+    def test_physical_witness_must_be_explicitly_ignored(self):
+        trace, invariants = manifests()
+        mutated = copy.deepcopy(trace)
+        mutated["conditionalAcceptanceTests"][0]["symbol"] = "orphaned_terminal_keeps_capacity_reserved"
+        mutated["conditionalAcceptanceTests"][0]["path"] = "crates/ordivon-runtime-core/src/runtime/tests.rs"
+        errors = self.module.validate(mutated, invariants)
+        self.assertTrue(any("not an explicitly ignored" in error for error in errors), errors)
+
+    def test_missing_conditional_physical_witness_fails_closed(self):
+        trace, invariants = manifests()
+        mutated = copy.deepcopy(trace)
+        mutated.pop("conditionalAcceptanceTests")
+        errors = self.module.validate(mutated, invariants)
+        self.assertIn("conditional acceptance test set drift", errors)
+
+    def test_conditional_evidence_cannot_replace_always_on_oracle(self):
+        trace, invariants = manifests()
+        mutated = copy.deepcopy(trace)
+        mutated["provingTests"][0]["path"] = "crates/ordivon-runtime-core/src/runtime/integration_tests.rs"
+        mutated["provingTests"][0]["symbol"] = "runtime_two_observers_do_not_race_dispatch_of_one_accepted_attempt"
+        errors = self.module.validate(mutated, invariants)
+        self.assertTrue(any("ignored, not an always-on" in error for error in errors), errors)
+
     def test_changed_formal_model_digest_fails_closed(self):
         trace, invariants = manifests()
         mutated = copy.deepcopy(trace)
         mutated["formalSpecification"]["moduleSha256"] = "0" * 64
         errors = self.module.validate(mutated, invariants)
         self.assertTrue(any("formal source drift" in error for error in errors), errors)
+
+    def test_terminal_evidence_math_kernel_has_one_native_owner_witness(self):
+        """R2.1 consumer seam: terminal standing requires committed physical evidence."""
+        trace, invariants = manifests()
+        bindings = {item["id"] for item in trace["formalSpecification"]["modelBindings"]}
+        self.assertIn("RuntimeDispatch.TerminalEvidenceIsCommitted", bindings)
+        terminal = next(
+            item for item in trace["provingTests"]
+            if item["id"] == "RuntimeDispatch.terminalEvidence"
+        )
+        self.assertEqual(
+            terminal["path"],
+            "crates/ordivon-runtime-core/src/runtime/job_attempt_state.rs",
+        )
+        self.assertEqual(
+            terminal["symbol"],
+            "terminal_evidence_requires_result_finish_matching_resolution_and_no_current_attempt",
+        )
+        self.assertIn("RuntimeDispatch.TerminalEvidenceIsCommitted", terminal["proves"])
+        self.assertEqual(self.module.validate(trace, invariants), [])
+
+    def test_terminal_evidence_proof_cannot_be_dropped_without_rejection(self):
+        trace, invariants = manifests()
+        mutated = copy.deepcopy(trace)
+        mutated["formalSpecification"]["modelBindings"] = [
+            row for row in mutated["formalSpecification"]["modelBindings"]
+            if row["id"] != "RuntimeDispatch.TerminalEvidenceIsCommitted"
+        ]
+        self.assertTrue(any(
+            "formal model binding set drift" in error
+            for error in self.module.validate(mutated, invariants)
+        ))
+        mutated = copy.deepcopy(trace)
+        mutated["provingTests"] = [
+            row for row in mutated["provingTests"]
+            if row["id"] != "RuntimeDispatch.terminalEvidence"
+        ]
+        self.assertTrue(any(
+            "proving test set drift" in error
+            for error in self.module.validate(mutated, invariants)
+        ))
 
     def test_removed_formal_model_binding_fails_closed(self):
         trace, invariants = manifests()
@@ -172,6 +252,40 @@ trait Provider {
                         any("TLC config" in error for error in errors),
                         f"source-bound {variant} was accepted without proof: {errors}",
                     )
+
+    def test_erasing_all_runtime_invariant_bindings_is_rejected(self):
+        trace, invariants = manifests()
+        mutated = copy.deepcopy(trace)
+        mutated["runtimeInvariantBindings"] = []
+        errors = self.module.validate(mutated, invariants)
+        self.assertTrue(any("Runtime invariant binding set drift" in error for error in errors), errors)
+
+    def test_erasing_one_runtime_invariant_binding_is_rejected(self):
+        trace, invariants = manifests()
+        mutated = copy.deepcopy(trace)
+        mutated["runtimeInvariantBindings"].pop()
+        errors = self.module.validate(mutated, invariants)
+        self.assertTrue(any("Runtime invariant binding set drift" in error for error in errors), errors)
+
+    def test_empty_proof_references_cannot_vacuously_pass(self):
+        trace, invariants = manifests()
+        mutated = copy.deepcopy(trace)
+        mutated["runtimeInvariantBindings"][0]["requiredProofRefs"] = []
+        errors = self.module.validate(mutated, invariants)
+        self.assertTrue(any("has no required proof references" in error for error in errors), errors)
+
+
+    def test_ignored_physical_proof_ref_cannot_claim_always_on_invariant(self):
+        trace, invariants = manifests()
+        mutated = copy.deepcopy(trace)
+        mutated["runtimeInvariantBindings"][0]["requiredProofRefs"] = [
+            "crates/ordivon-runtime-core/src/runtime/integration_tests.rs::runtime_two_observers_do_not_race_dispatch_of_one_accepted_attempt"
+        ]
+        errors = self.module.validate(mutated, invariants)
+        self.assertTrue(
+            any("ignored, not an always-on proving test" in error for error in errors),
+            errors,
+        )
 
 
 if __name__ == "__main__":

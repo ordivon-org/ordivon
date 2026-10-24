@@ -94,7 +94,8 @@
         "universal network guarantees"
       ],
       "acceptance": [
-        "DNS/transport/recovery faults have explicit acceptance evidence."
+        "DNS/transport/recovery faults have explicit acceptance evidence.",
+        "Network N04 Browserless post-lease typed nonempty namespace equality must fail closed with Python -O; test_browserless_serial_restoration_contract.py falsifies mismatched and missing consumer bindings."
       ]
     },
     {

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+from graphlib import CycleError, TopologicalSorter
 import tomllib
 from pathlib import Path
 from typing import Any
@@ -74,6 +75,66 @@ def _load_json(path: Path) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ArchitectureDocsError(f"{path} root must be an object")
     return value
+
+
+# The other registered Owner checker handles typed edges and dependency DAGs.
+# This validator checks the independent typed node and slice closure;
+# no new registry, executable DSL, scheduler or Owner truth.
+OWNER_LEGO_PLANS = (
+    "services/runtime/planning/lego-plan-r1.json",
+    "services/host/planning/lego-plan-r1.json",
+    "services/harness/planning/lego-plan-r1.json",
+    "platform/network/planning/lego-plan-r1.json",
+)
+
+
+def validate_owner_lego_graph(plan: dict[str, Any]) -> None:
+    """Check all Owner slices reference typed vertices, including unregistered ones.
+
+    Registered dependency DAGs and typed edges have separate existing laws.
+    This does not assert behavioral currentness or execution authority.
+    """
+    if plan.get("kind") != "ordivon.project-lego-plan":
+        raise ArchitectureDocsError("owner LEGO graph has unexpected kind")
+    if plan.get("truthRole") != "planning-projection-not-project-truth":
+        raise ArchitectureDocsError("owner LEGO graph must remain non-authoritative")
+
+    nodes = plan.get("nodes")
+    if not isinstance(nodes, list) or not nodes:
+        raise ArchitectureDocsError("owner LEGO graph needs nodes")
+    identities: set[str] = set()
+    for node in nodes:
+        if not isinstance(node, dict):
+            raise ArchitectureDocsError("LEGO node must be an object")
+        identity = node.get("id")
+        if not isinstance(identity, str) or not identity.strip():
+            raise ArchitectureDocsError("LEGO node requires non-empty identity")
+        if identity in identities:
+            raise ArchitectureDocsError(f"duplicate LEGO node: {identity}")
+        if not isinstance(node.get("kind"), str) or not node["kind"].strip():
+            raise ArchitectureDocsError(f"LEGO node {identity} requires a type")
+        identities.add(identity)
+
+    slices = plan.get("slices", [])
+    if not isinstance(slices, list):
+        raise ArchitectureDocsError("LEGO slices must be a list")
+    slice_ids: set[str] = set()
+    for slice_ in slices:
+        if not isinstance(slice_, dict):
+            raise ArchitectureDocsError("LEGO slice must be an object")
+        identity = slice_.get("id")
+        if not isinstance(identity, str) or not identity.strip():
+            raise ArchitectureDocsError("LEGO slice needs non-empty identity")
+        if identity in slice_ids:
+            raise ArchitectureDocsError(f"duplicate LEGO slice: {identity}")
+        slice_ids.add(identity)
+        refs = slice_.get("nodeIds")
+        if not isinstance(refs, list) or not refs:
+            raise ArchitectureDocsError(f"LEGO slice {identity} needs node references")
+        if any(not isinstance(ref, str) or ref not in identities for ref in refs):
+            raise ArchitectureDocsError(f"unknown LEGO slice node in {identity}")
+        if len(refs) != len(set(refs)):
+            raise ArchitectureDocsError(f"duplicate LEGO slice node in {identity}")
 
 
 def validate_deployed_graph(value: dict[str, Any]) -> None:
@@ -262,6 +323,61 @@ def _source_bound_file(root: Path, relative_path: str, label: str) -> Path:
     if not expected.is_file() or expected.resolve() != expected:
         raise ArchitectureDocsError(f"{label} escapes SourceCut")
     return expected
+
+
+def validate_owner_lego_dependencies(
+    plan: dict[str, Any], owner: str,
+) -> tuple[set[str], tuple[tuple[str, ...], ...]]:
+    """Well-founded *declared prerequisites*, not a workflow/execution graph.
+
+    Node.dependencies and typed DEPENDENCY edges are equivalent prerequisite
+    syntax in different existing natural-Owner LEGO plans.  DATA, CONTROL,
+    EFFECT and OBSERVATION edges are not prerequisite claims.
+    """
+    nodes = plan.get("nodes")
+    if not isinstance(nodes, list):
+        raise ArchitectureDocsError("owner-local LEGO nodes missing")
+    graph: dict[str, set[str]] = {}
+    for node in nodes:
+        if not isinstance(node, dict) or not isinstance(node.get("id"), str) or not node["id"]:
+            raise ArchitectureDocsError("untyped LEGO node identity")
+        identity = node["id"]
+        if identity in graph:
+            raise ArchitectureDocsError("duplicate LEGO node identity")
+        depends = node.get("dependencies")
+        if not isinstance(depends, list) or any(
+            not isinstance(value, str) or not value for value in depends
+        ):
+            raise ArchitectureDocsError("untyped LEGO dependencies")
+        if len(depends) != len(set(depends)):
+            raise ArchitectureDocsError("duplicate LEGO dependency")
+        graph[identity] = set(depends)
+    node_ids = set(graph)
+    if any(d not in node_ids for deps in graph.values() for d in deps):
+        raise ArchitectureDocsError("unknown LEGO dependency")
+    edges = plan.get("edges", [])
+    if not isinstance(edges, list):
+        raise ArchitectureDocsError(f"{owner}: owner LEGO edges missing")
+    for edge in edges:
+        if not isinstance(edge, dict):
+            raise ArchitectureDocsError(f"{owner}: untyped LEGO edge")
+        if edge.get("type") != "DEPENDENCY":
+            continue
+        source, target = edge.get("from"), edge.get("to")
+        if not isinstance(source, str) or not isinstance(target, str) or source not in node_ids or target not in node_ids:
+            raise ArchitectureDocsError(f"{owner}: unknown LEGO dependency edge")
+        graph[target].add(source)
+    sorter = TopologicalSorter(graph)
+    try:
+        sorter.prepare()
+    except CycleError as error:
+        raise ArchitectureDocsError("cyclic LEGO dependencies") from error
+    frontiers: list[tuple[str, ...]] = []
+    while sorter.is_active():
+        ready = tuple(sorted(sorter.get_ready()))
+        frontiers.append(ready)
+        sorter.done(*ready)
+    return node_ids, tuple(frontiers)
 
 
 def validate_formal_issue_census(
@@ -546,10 +662,7 @@ def validate_formal_issue_census(
         plan = plans.get(plan_path)
         if not isinstance(plan, dict) or plan.get("truthRole") != "planning-projection-not-project-truth":
             raise ArchitectureDocsError("owner-local LEGO plan must remain non-authoritative")
-        nodes = plan.get("nodes")
-        if not isinstance(nodes, list):
-            raise ArchitectureDocsError("owner-local LEGO nodes missing")
-        node_ids = {n["id"] for n in nodes if isinstance(n, dict) and isinstance(n.get("id"), str)}
+        node_ids, _ = validate_owner_lego_dependencies(plan, plan_path)
         hits = [s for s in plan.get("slices", []) if isinstance(s, dict) and s.get("id") == slice_id]
         if len(hits) != 1:
             raise ArchitectureDocsError(f"owner-local LEGO slice {slice_id} not unique")
@@ -659,6 +772,18 @@ def validate_repository(root: Path = ROOT) -> None:
         raise ArchitectureDocsError("Tempo graceful cold-stop budget drifted")
     if trace_acceptance.get("status") != "ACCEPTED_DEPLOYED_ON_DEMAND":
         raise ArchitectureDocsError("persistent trace backend lacks accepted live evidence")
+
+    # Independent obligations: finite typed node/slice closure is not the
+    # predecessor DAG law; a valid STATE cycle must not be rejected as a
+    # scheduling dependency.  Preserve both existing source-bound consumers.
+    for relative in OWNER_LEGO_PLANS:
+        validate_owner_lego_graph(_load_json(root / relative))
+
+    # Host R1 dependencies have a consumer even without an issue-census row.
+    validate_owner_lego_dependencies(
+        _load_json(root / "services/host/planning/lego-plan-r1.json"),
+        "services/host",
+    )
 
     issue_evidence_dir = root / "docs" / "architecture" / "evidence"
     for census_path in issue_evidence_dir.glob("FORMAL_LEGO_ISSUE_CENSUS_*_R*.json"):
