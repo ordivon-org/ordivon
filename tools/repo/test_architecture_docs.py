@@ -510,6 +510,45 @@ def test_formal_issue_census_rejects_duplicate_problem_identity() -> None:
         module.validate_formal_issue_census(census, plans)
 
 
+@pytest.mark.parametrize(
+    ("fault", "diagnostic"),
+    [
+        ("duplicate", "duplicate GIT-01 consumer commit"),
+        ("short_sha", "invalid GIT-01 consumer SHA"),
+        ("wrong_owner", "undeclared GIT-01 consumer owner"),
+        ("missing_witness", "missing GIT-01 consumer remoteWitness"),
+        ("missing_scope", "missing GIT-01 consumer evidenceScope"),
+        ("unsafe_delete", "GIT-01 evidence cannot authorize branch deletion"),
+        ("bad_cohort", "invalid GIT-01 historical cohort"),
+    ],
+)
+def test_formal_validator_rejects_invalid_git01_consumer_records(
+    fault: str, diagnostic: str
+) -> None:
+    """Fail at the production architecture validator, not only the test harness."""
+    census, plans = formal_issue_inputs()
+    row = next(item for item in census["issues"] if item["id"] == "GIT-01")
+    records = row["consumerSelections"]
+    if fault == "duplicate":
+        records.append(copy.deepcopy(records[0]))
+    elif fault == "short_sha":
+        records[0]["localCommit"] = "abc"
+    elif fault == "wrong_owner":
+        records[0]["owner"] = "unregistered/owner"
+    elif fault == "missing_witness":
+        records[0]["remoteWitness"] = ""
+    elif fault == "missing_scope":
+        records[0].pop("evidenceScope")
+    elif fault == "unsafe_delete":
+        selected = next(item for item in records if "sourceQualification" in item)
+        selected["sourceQualification"]["branchDeletionAllowed"] = True
+    elif fault == "bad_cohort":
+        retired = next(item for item in records if "historicalCohort" in item)
+        retired["historicalCohort"].append(retired["historicalCohort"][0])
+    with pytest.raises(module.ArchitectureDocsError, match=diagnostic):
+        module.validate_formal_issue_census(census, plans)
+
+
 def test_formal_issue_census_cannot_grant_authority() -> None:
     census, plans = formal_issue_inputs()
     census["truthRole"] = "semantic-authority"
