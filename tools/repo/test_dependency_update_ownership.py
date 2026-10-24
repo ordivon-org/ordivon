@@ -41,16 +41,35 @@ class DependencyUpdateOwnershipTests(unittest.TestCase):
 
     def test_python_uv_lock_has_one_updater(self):
         renovate = json.loads((ROOT / "renovate.json").read_text(encoding="utf-8"))
-        self.assertIn("pep621", renovate["enabledManagers"])
+        # Python uv and Mise tool versions have distinct canonical file owners.
+        # Dependabot continues to own npm/Cargo/Nix, so enabling those Renovate
+        # managers would create competing dependency update authorities.
+        self.assertEqual(set(renovate["enabledManagers"]), {"pep621", "mise"})
         self.assertTrue(renovate["lockFileMaintenance"]["enabled"])
-        # Native Renovate grouping: one same-name PR across independent uv owners.
         self.assertEqual(
             renovate["packageRules"],
-            [{"matchManagers": ["pep621"], "groupName": "Python {{depName}}"}],
+            [
+                {"matchManagers": ["pep621"], "groupName": "Python {{depName}}"},
+                {"matchManagers": ["mise"], "groupName": "Mise {{depName}}"},
+            ],
         )
         config = yaml.safe_load((ROOT / ".github/dependabot.yml").read_text(encoding="utf-8"))
         ecosystems = [item["package-ecosystem"] for item in config["updates"]]
         self.assertNotIn("uv", ecosystems)
+
+    def test_mise_toolchain_updates_have_one_nonduplicated_owner(self):
+        """Mise pins are real consumers, not covered by Python-only Renovate."""
+        renovate = json.loads((ROOT / "renovate.json").read_text(encoding="utf-8"))
+        config = yaml.safe_load((ROOT / ".github/dependabot.yml").read_text(encoding="utf-8"))
+        self.assertTrue(
+            (ROOT / "mise.toml").is_file(), "no root Mise consumer for the manager"
+        )
+        self.assertEqual(set(renovate["enabledManagers"]), {"pep621", "mise"})
+        self.assertNotIn(
+            "mise", {row["package-ecosystem"] for row in config["updates"]}
+        )
+        self.assertFalse(renovate.get("automerge", False))
+        self.assertLessEqual(renovate["prConcurrentLimit"], 4)
 
     def test_same_name_groups_preserve_separate_owner_locks(self):
         config = yaml.safe_load((ROOT / ".github/dependabot.yml").read_text(encoding="utf-8"))

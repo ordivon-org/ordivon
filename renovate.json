@@ -1,12 +1,13 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
-  "enabledManagers": ["pep621"],
+  "enabledManagers": ["pep621", "mise"],
   "lockFileMaintenance": {
     "enabled": true
   },
   "prConcurrentLimit": 4,
   "packageRules": [
-    {"matchManagers": ["pep621"], "groupName": "Python {{depName}}"}
+    {"matchManagers": ["pep621"], "groupName": "Python {{depName}}"},
+    {"matchManagers": ["mise"], "groupName": "Mise {{depName}}"}
   ]
 }
