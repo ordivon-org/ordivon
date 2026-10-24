@@ -29,7 +29,7 @@ from ordivon_harness.protocol import (
     HarnessProviderCallFailureReceipt,
     HarnessProviderCallStatus,
 )
-from ordivon_harness.run_state import HarnessRunState
+from ordivon_harness.run_state import HarnessRunState, state_from_dict
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
 
 DIGEST_A = "sha256:" + "a" * 64
@@ -134,6 +134,24 @@ def failure(
 
 
 class SQLiteHarnessRunContinuityProviderTests(unittest.TestCase):
+    def test_persisted_run_state_rejects_noninteger_wire_version(self) -> None:
+        """The actual continuity decoder must not conflate 1 and True or 2 and 2.0."""
+        run_id = "harness-run:p0-provider-001"
+        base = state()
+        examples = (
+            (replace(base, active_elapsed_ms=None), True),
+            (replace(base, active_elapsed_ms=None), 1.0),
+            (base, 2.0),
+            (base.for_persistence(allow_model_content=False, allow_tool_content=False), 3.0),
+        )
+        for original, wrong_version in examples:
+            with self.subTest(schema_version=wrong_version):
+                payload = original.to_dict(run_id)
+                self.assertEqual(payload["schemaVersion"], wrong_version)
+                payload["schemaVersion"] = wrong_version
+                with self.assertRaises(ValueError):
+                    state_from_dict(payload, harness_run_id=run_id)
+
     def test_provider_settlement_distinguishes_only_retry_budget_and_time(self) -> None:
         """One state machine invariant, with two distinct effect permissions."""
         previous = state(elapsed=10, wall_time_ms=29_990, retries=2)
