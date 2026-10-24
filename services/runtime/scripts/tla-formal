@@ -92,7 +92,7 @@ BlindRetryWithoutReconciliation ==
         /\ currentAttempt' = a
     /\ jobState' = "admitted"
     /\ reconcileState' = "none"
-    /\ UNCHANGED dispatchCount
+    /\ UNCHANGED <<dispatchCount, heldReservation>>
 
 '''
 assert source.count("Next ==\n") == 1, "counterexample mutation source drift"
