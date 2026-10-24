@@ -155,13 +155,34 @@ class GatewayExecutionPort:
                 'execution.get',
                 {'operationRef': operation_ref, 'eventLimit': 10},
             )
+            if _field(last, 'operation_ref', 'operationRef') != operation_ref:
+                raise GatewayExecutionError('Gateway observation changed operation identity')
             observed_native = _required_text(
                 _field(last, 'native_id', 'nativeId'), 'observation nativeId'
             )
             if observed_native != native_id:
                 raise GatewayExecutionError('Gateway observation changed native execution identity')
             terminal = _field(last, 'terminal', 'terminal')
+            delivery = _field(last, 'delivery_disposition', 'deliveryDisposition')
             if terminal is True:
+                # The physical Runner can finish before durable Gateway
+                # delivery. Process completion alone is not consumer evidence.
+                if delivery not in {
+                    'committed', 'reconciliation_required', 'unknown', 'in_progress'
+                }:
+                    raise GatewayExecutionError('Gateway terminal delivery disposition is invalid')
+                recovery = _field(last, 'recovery_required', 'recoveryRequired')
+                if recovery is None:
+                    recovery = False
+                if type(recovery) is not bool:
+                    raise GatewayExecutionError('Gateway observation recoveryRequired is invalid')
+                if recovery or delivery != 'committed':
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        break
+                    if self.poll_interval_seconds:
+                        time.sleep(min(self.poll_interval_seconds, remaining))
+                    continue
                 artifact_ids = _field(last, 'artifact_ids', 'artifactIds') or []
                 if not isinstance(artifact_ids, list) or any(
                     not isinstance(item, str) for item in artifact_ids
@@ -170,11 +191,6 @@ class GatewayExecutionPort:
                 exit_code = _field(last, 'exit_code', 'exitCode')
                 if exit_code is not None and type(exit_code) is not int:
                     raise GatewayExecutionError('Gateway observation exit code is invalid')
-                recovery = _field(last, 'recovery_required', 'recoveryRequired')
-                if recovery is None:
-                    recovery = False
-                if not isinstance(recovery, bool):
-                    raise GatewayExecutionError('Gateway observation recoveryRequired is invalid')
                 return GatewayExecutionResult(
                     operation_ref=operation_ref,
                     native_id=native_id,
@@ -185,6 +201,10 @@ class GatewayExecutionPort:
                 )
             if terminal is not False:
                 raise GatewayExecutionError('Gateway observation omitted terminal')
+            if delivery == 'committed':
+                raise GatewayExecutionError('Gateway non-terminal observation contradicts committed delivery')
+            if delivery not in {None, 'reconciliation_required', 'unknown', 'in_progress'}:
+                raise GatewayExecutionError('Gateway observation has invalid delivery disposition')
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 break
@@ -192,7 +212,7 @@ class GatewayExecutionPort:
                 time.sleep(min(self.poll_interval_seconds, remaining))
         state = last.get('state') if isinstance(last, dict) else None
         raise GatewayExecutionAmbiguous(
-            f'Gateway execution remained non-terminal after bounded observation; state={state}'
+            f'Gateway execution remained non-terminal or delivery not reconciled after bounded observation; state={state}'
         )
 
     def read_stdout(self, result: GatewayExecutionResult, *, max_bytes: int = 1_048_576) -> str:

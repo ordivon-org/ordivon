@@ -1745,3 +1745,28 @@ def test_git01_cancelled_pair_requires_equal_typed_full_trees(fault: str) -> Non
         source["patchRelation"] = "UNQUALIFIED"
     with pytest.raises(module.ArchitectureDocsError, match="cancelled pair tree proof"):
         module.validate_formal_issue_census(census, plans)
+
+
+@pytest.mark.parametrize(
+    ("evidence_scope", "false_disposition"),
+    [
+        ("SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF", "SKIP_DUPLICATE_CHERRY_PICK"),
+        ("SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC", "SKIP_DUPLICATE_CHERRY_PICK"),
+        ("CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT", "SKIP_DUPLICATE_CHERRY_PICK"),
+        ("EXACT_OWNER_LOCKED_COMPONENTS_NO_LIVE_PROVIDER", "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"),
+        ("FROZEN_GATEWAY_CONSUMER_ONLY", "SKIP_DUPLICATE_CHERRY_PICK"),
+    ],
+)
+def test_formal_git01_evidence_cannot_escalate_historical_consumer_admission(
+    evidence_scope: str, false_disposition: str,
+) -> None:
+    """Proof level cannot silently become stronger when parallel Agents merge."""
+    census, plans = formal_issue_inputs()
+    row = next(
+        item
+        for item in next(x for x in census["issues"] if x["id"] == "GIT-01")["consumerSelections"]
+        if item["evidenceScope"] == evidence_scope
+    )
+    row["disposition"] = false_disposition
+    with pytest.raises(module.ArchitectureDocsError, match="incompatible historical Git evidence"):
+        module.validate_formal_issue_census(census, plans)

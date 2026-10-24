@@ -44,17 +44,17 @@ DEFAULT_POLICY = {
             "retentionHours": 24.0,
             "dirtyRetentionHours": 48.0,
             "maxLifetimeHours": 48.0,
-            "forceCloseDirtyAfterRetention": True,
+            "forceCloseDirtyAfterRetention": False,
             "forceCloseUnintegratedAfterRetention": True,
-            "forceCloseAfterMaxLifetime": True,
+            "forceCloseAfterMaxLifetime": False,
         },
         "review": {
             "retentionHours": 24.0,
             "dirtyRetentionHours": 48.0,
             "maxLifetimeHours": 48.0,
-            "forceCloseDirtyAfterRetention": True,
+            "forceCloseDirtyAfterRetention": False,
             "forceCloseUnintegratedAfterRetention": True,
-            "forceCloseAfterMaxLifetime": True,
+            "forceCloseAfterMaxLifetime": False,
         },
         "pinned": {
             "retentionHours": None,
@@ -278,11 +278,11 @@ def validate_reclaim_inspect(value: dict[str, object]) -> dict[str, object]:
         if not isinstance(classification, str) or not classification:
             raise RuntimeError("reclaim inspect candidate classification must be a non-empty string")
         created_ms = item.get("createdUnixMs")
-        if created_ms is not None and not isinstance(created_ms, int):
+        if created_ms is not None and type(created_ms) is not int:
             raise RuntimeError("reclaim inspect candidate createdUnixMs must be an integer when present")
         estimated_bytes = item.get("estimatedBytes")
         if estimated_bytes is not None and (
-            not isinstance(estimated_bytes, int) or estimated_bytes < 0
+            type(estimated_bytes) is not int or estimated_bytes < 0
         ):
             raise RuntimeError("reclaim inspect candidate estimatedBytes must be non-negative when present")
     return value
@@ -663,7 +663,7 @@ def enrich_report(args: argparse.Namespace) -> dict[str, object]:
         )
         activity_ms = registry_state.get("lastActivityMs")
         activity_marker = registry_state.get("activityMarker")
-        if activity_ms is not None and not isinstance(activity_ms, int):
+        if activity_ms is not None and type(activity_ms) is not int:
             raise RuntimeError(
                 "Runtime Workspace registry inspection returned invalid lastActivityMs"
             )
@@ -672,7 +672,7 @@ def enrich_report(args: argparse.Namespace) -> dict[str, object]:
                 "Runtime Workspace registry inspection returned invalid activity marker"
             )
         basis_values = [
-            value for value in (created_ms, activity_ms) if isinstance(value, int)
+            value for value in (created_ms, activity_ms) if type(value) is int
         ]
         basis_ms = max(basis_values) if basis_values else None
         eligible_at = (
@@ -682,7 +682,7 @@ def enrich_report(args: argparse.Namespace) -> dict[str, object]:
         )
         hard_expires_at = (
             int(created_ms + max_lifetime_hours * 3_600_000)
-            if isinstance(created_ms, int) and max_lifetime_hours is not None
+            if type(created_ms) is int and max_lifetime_hours is not None
             else None
         )
         idle_expired = eligible_at is not None and eligible_at <= now_ms
@@ -1018,13 +1018,15 @@ def _policy_standing_from_registry(
     classification = prepared_item.get("classification")
     created_ms = prepared_item.get("createdUnixMs")
     activity_ms = registry_state.get("lastActivityMs")
-    if activity_ms is not None and not isinstance(activity_ms, int):
+    if created_ms is not None and type(created_ms) is not int:
+        raise RuntimeError("Runtime Workspace registry projection returned invalid createdUnixMs")
+    if activity_ms is not None and type(activity_ms) is not int:
         raise RuntimeError("Runtime Workspace registry projection returned invalid lastActivityMs")
 
     retention_hours = prepared_item.get("retentionHours")
     max_lifetime_hours = prepared_item.get("maxLifetimeHours")
     basis_values = [
-        value for value in (created_ms, activity_ms) if isinstance(value, int)
+        value for value in (created_ms, activity_ms) if type(value) is int
     ]
     basis_ms = max(basis_values) if basis_values else None
     now_ms = int(time.time() * 1000)
@@ -1035,7 +1037,7 @@ def _policy_standing_from_registry(
     )
     hard_expires_at = (
         int(created_ms + float(max_lifetime_hours) * 3_600_000)
-        if isinstance(created_ms, int) and isinstance(max_lifetime_hours, (int, float))
+        if type(created_ms) is int and isinstance(max_lifetime_hours, (int, float))
         else None
     )
     idle_expired = eligible_at is not None and eligible_at <= now_ms

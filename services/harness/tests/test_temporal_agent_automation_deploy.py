@@ -66,6 +66,41 @@ class TemporalDeployTests(unittest.TestCase):
         read.assert_called_once_with()
         self.assertEqual(plan["runtimeVersions"], observed)
         self.assertTrue(plan["runtimeVersionsExact"])
+    def test_provisioning_requires_both_version_drift_and_quiescence(self):
+        import tempfile
+        from unittest.mock import Mock
+
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import temporal_agent_automation_deploy as deploy
+
+        # Existing incompatible active-worker rejection covers the fourth case.
+        for active, versions_exact, expected_installs in (
+            (False, False, 1),
+            (False, True, 0),
+            (True, True, 0),
+        ):
+            with self.subTest(active=active, versions_exact=versions_exact):
+                current = {
+                    "worker": {"active": active, "installed": True},
+                    "runtimeVersionsExact": versions_exact,
+                    "temporalBinaryValid": True,
+                    "temporalSdkPresent": True,
+                    "browserlessConfigPresent": True,
+                    "admissionAddress": deploy.PRODUCTION_ADDRESS,
+                    "productionCluster": {"healthy": True},
+                    "serverActive": True,
+                }
+                exact = {**current, "runtimeVersionsExact": True, "worker": {"active": True, "installed": True}}
+                observations = [current, exact, exact] if not versions_exact else [current, exact]
+                with (
+                    tempfile.TemporaryDirectory() as temp,
+                    patch.object(deploy, "plan", side_effect=observations),
+                    patch.object(deploy, "SYSTEMD", Path(temp)),
+                    patch.object(deploy, "provision_runtime_dependencies") as provision,
+                    patch.object(deploy.subprocess, "run", return_value=Mock(returncode=0)),
+                ):
+                    self.assertEqual(deploy.apply(), exact)
+                    self.assertEqual(provision.call_count, expected_installs)
 
     def test_canonical_worker_targets_production_cluster(self):
         text = (ROOT / "systemd/ordivon-agent-temporal-worker.service").read_text()
