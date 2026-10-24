@@ -1,8 +1,8 @@
 {
   "classes": {
     "ephemeral": {
-      "forceCloseAfterMaxLifetime": true,
-      "forceCloseDirtyAfterRetention": true,
+      "forceCloseAfterMaxLifetime": false,
+      "forceCloseDirtyAfterRetention": false,
       "forceCloseUnintegratedAfterRetention": true,
       "maxLifetimeHours": 48,
       "retentionHours": 24,
@@ -16,8 +16,8 @@
       "retentionHours": null
     },
     "review": {
-      "forceCloseAfterMaxLifetime": true,
-      "forceCloseDirtyAfterRetention": true,
+      "forceCloseAfterMaxLifetime": false,
+      "forceCloseDirtyAfterRetention": false,
       "forceCloseUnintegratedAfterRetention": true,
       "maxLifetimeHours": 48,
       "retentionHours": 24,
