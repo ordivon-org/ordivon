@@ -212,7 +212,11 @@ fn classify_terminal_state(
         TerminationIntent::StopRequested => AttemptState::Cancelled,
         TerminationIntent::DeadlineExceeded => AttemptState::TimedOut,
         TerminationIntent::Natural => {
-            if matches!(result, Some("success"))
+            if result == Some("timeout") {
+                // systemd RuntimeMaxSec is the outer deadline, including when
+                // Runner cannot persist its result before the unit is killed.
+                AttemptState::TimedOut
+            } else if matches!(result, Some("success"))
                 || (exec_main_code == Some(1) && exec_main_status == Some(0))
             {
                 AttemptState::Succeeded
@@ -357,6 +361,49 @@ mod tests {
             classify_supervisor_recovery(&expected(), &observation, TerminationIntent::Natural)
                 .unwrap(),
             SupervisorRecoveryDisposition::Terminal(AttemptState::Succeeded)
+        );
+    }
+
+    #[test]
+    fn native_systemd_runtime_max_timeout_is_not_generic_supervisor_failure() {
+        // systemd RuntimeMaxSec may kill the unit before Runner writes result.json.
+        // Preserve stop/deadline intent precedence while distinguishing a true
+        // outer supervisor deadline from an unrelated process failure.
+        let mut observation = running();
+        observation.unit_state = SupervisorUnitState::Terminal;
+        observation.recorded_pid_alive = false;
+        observation.result = Some("timeout".into());
+        observation.exec_main_code = Some(2);
+        observation.exec_main_status = Some(9);
+        assert_eq!(
+            classify_supervisor_recovery(&expected(), &observation, TerminationIntent::Natural)
+                .unwrap(),
+            SupervisorRecoveryDisposition::Terminal(AttemptState::TimedOut)
+        );
+        observation.result = Some("exit-code".into());
+        assert_eq!(
+            classify_supervisor_recovery(&expected(), &observation, TerminationIntent::Natural)
+                .unwrap(),
+            SupervisorRecoveryDisposition::Terminal(AttemptState::Failed)
+        );
+        observation.result = Some("timeout".into());
+        assert_eq!(
+            classify_supervisor_recovery(
+                &expected(),
+                &observation,
+                TerminationIntent::StopRequested
+            )
+            .unwrap(),
+            SupervisorRecoveryDisposition::Terminal(AttemptState::Cancelled)
+        );
+        assert_eq!(
+            classify_supervisor_recovery(
+                &expected(),
+                &observation,
+                TerminationIntent::DeadlineExceeded
+            )
+            .unwrap(),
+            SupervisorRecoveryDisposition::Terminal(AttemptState::TimedOut)
         );
     }
 
