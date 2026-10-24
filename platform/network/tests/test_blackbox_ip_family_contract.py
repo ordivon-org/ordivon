@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 import socket
 import subprocess
 import threading
@@ -64,6 +65,13 @@ def test_blackbox_http_modules_refuse_fallback_by_configuration() -> None:
 
 
 def test_blackbox_ip_family_is_exact_even_when_other_family_works() -> None:
+    exporter_binary = shutil.which("prometheus-blackbox-exporter") or shutil.which(
+        "blackbox_exporter"
+    )
+    if exporter_binary is None:
+        pytest.skip(
+            "native Blackbox Exporter not installed; strict config CDC remains mandatory"
+        )
     try:
         ipv6 = _IPv6Server(("::1", 0), _OK)
     except OSError:
@@ -76,7 +84,7 @@ def test_blackbox_ip_family_is_exact_even_when_other_family_works() -> None:
     ipv6_thread.start()
     exporter = subprocess.Popen(
         [
-            "/usr/bin/prometheus-blackbox-exporter",
+            exporter_binary,
             f"--config.file={NETWORK / 'config/blackbox/blackbox.yml'}",
             f"--web.listen-address=127.0.0.1:{exporter_port}",
         ],
