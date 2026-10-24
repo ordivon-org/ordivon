@@ -1,0 +1,60 @@
+"""Owner-native regression for editable manifest / frozen lock divergence."""
+
+from __future__ import annotations
+
+import re
+import shutil
+import subprocess
+import tempfile
+import tomllib
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+class OwnerUvLockFreshness(unittest.TestCase):
+    def test_verify_checks_lock_before_frozen_dependency_consumers(self) -> None:
+        data = tomllib.loads((ROOT / "mise.toml").read_text(encoding="utf-8"))
+        script = data["tasks"]["verify"]["run"]
+        check = "uv lock --check --offline --python 3.15.1"
+        self.assertIn(check, script)
+        self.assertLess(script.index(check), script.index("uv sync --frozen"))
+        self.assertLess(script.index(check), script.index("ruff check"))
+
+    def test_frozen_sync_alone_accepts_stale_lock(self) -> None:
+        original = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+        # Remove owner dev requirements and generate a legitimate small lock.
+        without_dev, changed = re.subn(
+            r'(?m)^dev = \[\n(?:  "[^"]+",?\n)+\]',
+            "dev = []",
+            original,
+            count=1,
+        )
+        self.assertEqual(changed, 1)
+        with tempfile.TemporaryDirectory(prefix="ordivon-lock-drift-") as directory:
+            temp = Path(directory)
+            (temp / "pyproject.toml").write_text(without_dev, encoding="utf-8")
+            shutil.copy2(ROOT / "uv.lock", temp / "uv.lock")
+
+            def uv(*args: str) -> subprocess.CompletedProcess[str]:
+                return subprocess.run(
+                    ["uv", *args], cwd=temp, text=True,
+                    capture_output=True, timeout=40, check=False,
+                )
+
+            base = uv("lock", "--offline", "--python", "3.15.1")
+            self.assertEqual(base.returncode, 0, base.stderr)
+            # Reintroduce the original requirements without refreshing lock.
+            (temp / "pyproject.toml").write_text(original, encoding="utf-8")
+            frozen = uv(
+                "sync", "--frozen", "--offline", "--python", "3.15.1",
+                "--no-install-project",
+            )
+            self.assertEqual(frozen.returncode, 0, frozen.stderr)
+            strict = uv("lock", "--check", "--offline", "--python", "3.15.1")
+            self.assertNotEqual(strict.returncode, 0, strict.stderr)
+
+
+if __name__ == "__main__":
+    unittest.main()
