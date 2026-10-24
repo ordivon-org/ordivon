@@ -15,7 +15,7 @@ EOF
 
 repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 python_bin=${PYTHON_BIN:-$(command -v python3.14 || true)}
-uv_bin=${UV_BIN:-$(command -v uv || true)}
+uv_bin=${UV_BIN:-}
 env_dir=${ORDIVON_OWNER_ENV_DIR:-"$repo/.venv"}
 owner_environment="$repo/scripts/owner-environment"
 mode=${1:-}
@@ -41,8 +41,8 @@ case "$mode" in
     printf '%s\n' 'local acceptance contract: present' 'run with: scripts/local-acceptance run'
     ;;
   run)
-    test -n "$uv_bin" || { echo 'uv is required' >&2; exit 1; }
     ORDIVON_OWNER_ENV_DIR="$env_dir" "$owner_environment" bootstrap
+    uv_bin=$(cd "$repo" && "${MISE_BIN:-mise}" which uv)
     ORDIVON_OWNER_ENV_DIR="$env_dir" "$owner_environment" doctor
     python_bin="$env_dir/bin/python"
     cd "$repo"
