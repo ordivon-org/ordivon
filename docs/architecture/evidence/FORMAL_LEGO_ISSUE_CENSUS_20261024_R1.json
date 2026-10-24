@@ -1953,6 +1953,16 @@
           "MIXED_IDENTICAL_AND_ABSENT": 0,
           "REQUIRES_OWNER_CDC": 338
         }
+      },
+      "currentObservation": {
+        "observedAt": "2026-10-25T04:01:33+08:00",
+        "sourceCut": "728f971bca1e1ddfb7e5c45a7bd9d91192984fe9",
+        "liveProtectedMain": "728f971bca1e1ddfb7e5c45a7bd9d91192984fe9",
+        "localMain": "728f971bca1e1ddfb7e5c45a7bd9d91192984fe9",
+        "leftOnly": 0,
+        "rightOnly": 0,
+        "standing": "CURRENT_GIT_GRAPH_CONVERGED_HISTORICAL_BEHAVIOR_NOT_AUTO_PROVEN",
+        "nonClaim": "Historical 2300-only-commit observation remains a distinct earlier SourceCut; this newer graph comparison is not consumer or Windows deployment proof."
       }
     },
     {
@@ -2118,6 +2128,14 @@
         "state": "LINKED",
         "ownerPlan": "services/runtime/planning/lego-plan-r1.json",
         "slice": "RW1"
+      },
+      "currentObservation": {
+        "observedAt": "2026-10-25T04:01:33+08:00",
+        "sourceCut": "728f971bca1e1ddfb7e5c45a7bd9d91192984fe9",
+        "linuxWorkspaces": 67,
+        "linuxDirty": 40,
+        "source": "Native Runtime workspace_list; no close/deletion asserted by this observation",
+        "nonClaim": "A clean or old Workspace is not automatically unconsumed; held Jobs and unique source/effect evidence block retirement."
       }
     },
     {
@@ -2142,6 +2160,13 @@
       "registration": {
         "state": "UNREGISTERED",
         "reason": "Owner-local LEGO slice and consumer acceptance are not yet evidenced; census observation is not registration."
+      },
+      "currentObservation": {
+        "observedAt": "2026-10-25T04:01:33+08:00",
+        "sourceCut": "728f971bca1e1ddfb7e5c45a7bd9d91192984fe9",
+        "openPR": 8,
+        "provider": "gh pr list --state open --limit 100",
+        "classification": "PROVIDER_SNAPSHOT_MUTABLE; mergeStateStatus UNKNOWN is not failure"
       }
     },
     {
@@ -2433,6 +2458,30 @@
         "state": "LINKED",
         "ownerPlan": "tools/repo/planning/lego-plan-r1.json",
         "slice": "RG3"
+      }
+    },
+    {
+      "id": "ENV-01",
+      "problemClass": "CROSS_TARGET_EXECUTION_ENVIRONMENT",
+      "naturalOwner": "services/runtime",
+      "standing": "OBSERVED_PRECONDITION_GAP_NOT_GLOBAL_RUNTIME_FAILURE",
+      "observation": "At 2026-10-25, WSL2 Linux Runtime root shell resolves gh/mise/uv/Python/Cargo; independently observed Windows Native candidate Runtime service identity NT SERVICE\\OrdivonRuntimeR6Candidate has no service-PATH resolution for mise, uv, python, py, pnpm, cargo or gh. Windows still resolves git/pwsh/node. Current evidence does not prove those tools are needed by every Windows Runtime Job.",
+      "evidence": "Linux Runtime Job job-01a16f80-abec-7463-ba2c-fb6e92d0d773, frozen SourceCut c0e5052689605f460b8ef618596738391e208148; Windows Native Runtime Job job-01a16f69-0936-7262-b9d9-8309b60fd0a6, immutable sourceRevision 73196dc2bc076f148e905b688fafa34d40486a9c, committed native pwsh.exe result. WSL disk pressure ~4.0/4.0 GiB swap and IO PSI full avg10 ~14.97%, independent of Windows tool identity.",
+      "decision": "First determine the exact execution identity and executable prerequisites of one named Windows-native consumer. Validate tool accessibility as that account before admitting an effect needing that tool; do not mutate Windows service identity, globally require Python, install versions, or infer a missing tool from WSL alone. Keep Linux and Windows evidence separate.",
+      "formalObligation": "For an admitted operation requiring executable t, its exact execution target and authority must be bound, and a target-local prerequisite witness for t must pass before effect. Result UNKNOWN if that prerequisite or its consumer is not observed. This owner-native refinement is not mechanically proved by this census.",
+      "consumers": "Windows native Runtime Job/Attempt; Host/Workstation operations only when they explicitly require external developer tools",
+      "representation": {
+        "primary": "constraint",
+        "supporting": [
+          "type"
+        ],
+        "methodSkill": ".agents/skills/compositional-contracts/SKILL.md",
+        "requiredWitness": "Target-local Windows Runtime service-account prerequisite check plus one real consumer's native RED/GREEN and effect readback; do not use WSL which/echo as witness.",
+        "selectionReason": "The failure surface is per-target, per-authority executable capability, not a universal dependency-version or extra Agent/scheduler issue."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "Existing Runtime RW1 is a Workspace lifecycle slice, not a Windows toolchain/environment acceptance. Do not forge a verified slice or create a global registry before the named Windows consumer is evidenced."
       }
     }
   ],

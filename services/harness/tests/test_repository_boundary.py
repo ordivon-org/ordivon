@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import json
 from pathlib import Path
 import tomllib
 import unittest
@@ -46,6 +47,21 @@ class RepositoryBoundaryTests(unittest.TestCase):
         self.assertFalse((package / "skills").exists())
         self.assertFalse(hasattr(ordivon_harness, "HarnessHost"))
         self.assertFalse(hasattr(ordivon_harness, "HarnessRunner"))
+
+    def test_unconsumed_generic_harness_provider_spi_stays_retired(self) -> None:
+        """A prospective alternate-engine plan is not an admitted executable Owner."""
+        plan = json.loads((ROOT / "planning" / "lego-plan-r1.json").read_text())
+        node_ids = {item["id"] for item in plan["nodes"]}
+        self.assertTrue({"H01", "H02", "H03", "H04"} <= node_ids)
+        self.assertNotIn("H05", node_ids)
+        self.assertFalse(any(
+            edge["from"] == "H05" or edge["to"] == "H05"
+            for edge in plan["edges"]
+        ))
+        slices = {item["id"]: item for item in plan["slices"]}
+        self.assertNotIn("HS1", slices)
+        self.assertEqual(set(slices["HS2"]["nodeIds"]), {"H03", "H04"})
+        self.assertFalse(any("alternate-harness adapter" in gap for gap in plan["gaps"]))
 
     def test_portable_workflows_consume_only_locked_runtime_audit_closure(self) -> None:
         """No optional extracted-repo Workflow may reference a retired requirements snapshot."""

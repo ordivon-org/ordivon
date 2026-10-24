@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import socket
+import subprocess
 import sys
 import tempfile
 import threading
@@ -34,20 +35,81 @@ class LiveDockerSocketTests(unittest.TestCase):
             path = Path(tmp) / "docker.sock"
             listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             listener.bind(str(path))
-            listener.listen(1)
+            listener.listen(2)
 
             def serve() -> None:
-                connection, _ = listener.accept()
-                with connection:
-                    connection.recv(4096)
-                    connection.sendall(b"HTTP/1.0 200 OK\r\n\r\nOK")
+                for _ in range(2):
+                    connection, _ = listener.accept()
+                    with connection:
+                        connection.recv(4096)
+                        connection.sendall(b"HTTP/1.0 200 OK\r\n\r\nOK")
                 listener.close()
 
             thread = threading.Thread(target=serve, daemon=True)
             thread.start()
             self.assertEqual(MCP_E2E.live_docker_socket((path,)), path)
+            port, host_thread = MCP_E2E.host_network_probe()
+            probe = subprocess.run(
+                [sys.executable, "-c", MCP_E2E.make_trusted_host_probe_script(port, path)],
+                cwd=tmp,
+                text=True,
+                capture_output=True,
+                timeout=15,
+                check=False,
+            )
+            self.assertEqual(probe.returncode, 0, probe.stderr)
+            self.assertIs(json.loads(probe.stdout)["dockerPing"], True)
+            host_thread.join(timeout=2)
+            self.assertFalse(host_thread.is_alive())
             thread.join(timeout=2)
             self.assertFalse(thread.is_alive())
+
+
+    def test_ping_must_not_accept_http_failure_or_ok_substrings(self) -> None:
+        # A failing Docker Engine must not be used as an execution capability.
+        # Status and response body are separate parts of the HTTP contract.
+        responses = (
+            b"HTTP/1.0 503 Service Unavailable\r\n\r\nOK",
+            b"HTTP/1.0 200 OK\r\n\r\nNOT_OK",
+            b"HTTP/1.0 200 OK\r\nContent-Length: 0\r\n\r\n",
+            b"HTTP/1.0 500 Error\r\n\r\nNOT_OK",
+            b"OK",
+        )
+        for response in responses:
+            with self.subTest(response=response), tempfile.TemporaryDirectory() as tmp:
+                path = Path(tmp) / "docker.sock"
+                listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                listener.bind(str(path))
+                listener.listen(2)
+
+                def serve() -> None:
+                    try:
+                        for _ in range(2):
+                            connection, _ = listener.accept()
+                            with connection:
+                                connection.recv(4096)
+                                connection.sendall(response)
+                    finally:
+                        listener.close()
+
+                thread = threading.Thread(target=serve, daemon=True)
+                thread.start()
+                self.assertIsNone(MCP_E2E.live_docker_socket((path,)))
+                port, host_thread = MCP_E2E.host_network_probe()
+                probe = subprocess.run(
+                    [sys.executable, "-c", MCP_E2E.make_trusted_host_probe_script(port, path)],
+                    cwd=tmp,
+                    text=True,
+                    capture_output=True,
+                    timeout=15,
+                    check=False,
+                )
+                self.assertEqual(probe.returncode, 0, probe.stderr)
+                self.assertIs(json.loads(probe.stdout)["dockerPing"], False)
+                host_thread.join(timeout=2)
+                self.assertFalse(host_thread.is_alive())
+                thread.join(timeout=2)
+                self.assertFalse(thread.is_alive())
 
 
 class McpJsonRpcEnvelopeTests(unittest.TestCase):

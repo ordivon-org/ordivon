@@ -1,0 +1,39 @@
+"""Composition Formal is executable Owner evidence, not a documentation-only PASS."""
+
+import tomllib
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+
+CONFIGS = (
+    "Lego21OwnerBoundary.cfg",
+    "Lego21OwnerBoundary.direct-local.cfg",
+    "Lego21OwnerBoundary.direct-egress.cfg",
+    "Lego21OwnerBoundary.harness-local.cfg",
+)
+
+
+def test_four_mode_tlc_is_mandatory_in_composition_owner_verify():
+    tasks = tomllib.loads((ROOT / "mise.toml").read_text(encoding="utf-8"))["tasks"]
+    assert "mise run formal:verify" in tasks["verify"]["run"]
+    formal = tasks["formal:verify"]["run"]
+    assert "tlc2.TLC" in formal
+    assert "Lego21OwnerBoundary.tla" in formal
+    for config in CONFIGS:
+        assert (ROOT / "formal" / config).is_file()
+        assert config in formal
+
+
+def test_formal_toolchain_is_digest_checked_and_explicitly_admitted():
+    tasks = tomllib.loads((ROOT / "mise.toml").read_text(encoding="utf-8"))["tasks"]
+    formal = tasks["formal:verify"]["run"]
+    assert '"$runtime_root/scripts/tla-formal" verify' in formal
+    repo = ROOT.parents[1]
+    policy = tomllib.loads((repo / "tools/repo/dependency_contracts.toml").read_text())
+    assert any(
+        row["from_owner"] == "composition"
+        and row["to_owner"] == "runtime"
+        and row["source_glob"] == "packages/composition/mise.toml"
+        and row["kind"] == "PUBLIC_PINNED_FORMAL_TOOLCHAIN"
+        for row in policy["seams"]
+    )

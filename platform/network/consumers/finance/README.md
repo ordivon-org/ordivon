@@ -8,7 +8,7 @@ Provider-bound venue traffic is lowered through the single Network v2 Browserles
 
 The provider-bound authorities remain OKX/Binance REST/WS on `127.0.0.1:19283-19290`. U.S. Treasury (`19291`) and FRED (`19292`) remain explicit `public-direct` lanes; direct is an admitted carrier for those authorities and never a fallback for exchange venues.
 
-There is no Finance `provider-endpoints.json`, provider URLTest, provider DNS race, second WireGuard session, or provider credential materialization in the current design. Historical R5/R6/R7 and DNS-race evidence remains under `history/` as evidence only.
+There is no Finance `provider-endpoints.json`, provider URLTest, provider DNS race, second WireGuard session, or provider credential materialization in the current design. Historical R5/R6/R7 evidence documents remain under `history/` as evidence only. The retired DNS-race executable is not an active consumer or test: it depended on the removed `/etc/network-v2/finance/provider-endpoints.json` and is available from Git history when needed for forensic review. It must not be reactivated as a live readiness or transport provider.
 
 ## Readiness
 

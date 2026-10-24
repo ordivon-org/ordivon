@@ -53,6 +53,19 @@ def load_dependency_graph(
             raise ValueError(f"dependency seam {index} references unknown owner: {left!r}->{right!r}")
         if left == right:
             raise ValueError(f"dependency seam {index} must cross owner boundaries")
+        # A pinned upstream verifier is a Tool dependency, not a live
+        # Runtime/Composition consumer edge. Admit only its exact declared
+        # public toolchain source; other kinds retain conservative closure.
+        if seam.get("kind") == "PUBLIC_PINNED_FORMAL_TOOLCHAIN":
+            if (
+                left, right, seam.get("source_glob"),
+                seam.get("allowed_fragment"), seam.get("contract_ref"),
+            ) != (
+                "composition", "runtime", "packages/composition/mise.toml",
+                "../../services/runtime", "services/runtime/formal/README.md",
+            ):
+                raise ValueError("unapproved upstream toolchain-only seam")
+            continue
         graph[left].add(right)
         graph[right].add(left)
     return graph

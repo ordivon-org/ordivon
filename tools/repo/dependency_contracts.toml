@@ -150,3 +150,12 @@ source_glob = "apps/web/test/verification-entry.test.ts"
 allowed_fragment = "platform/security/contracts/agent-request-verifier-v1"
 kind = "TEST_ONLY_ENVIRONMENT_BINDING"
 contract_ref = "platform/security/contracts/agent-request-verifier-v1/README.md"
+
+# Public digest-verified upstream Formal toolchain; not Runtime Job/Attempt state.
+[[seams]]
+from_owner = "composition"
+to_owner = "runtime"
+source_glob = "packages/composition/mise.toml"
+allowed_fragment = "../../services/runtime"
+kind = "PUBLIC_PINNED_FORMAL_TOOLCHAIN"
+contract_ref = "services/runtime/formal/README.md"
