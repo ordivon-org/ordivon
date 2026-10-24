@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 OWNER_GRAPH_PLANS = (
     "services/runtime/planning/lego-plan-r1.json",
-    "services/host/planning/lego-plan-r2.json",
+    "services/host/planning/lego-plan-r1.json",
     "services/harness/planning/lego-plan-r1.json",
     "platform/network/planning/lego-plan-r1.json",
 )

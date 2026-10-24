@@ -82,7 +82,7 @@ def _load_json(path: Path) -> dict[str, Any]:
 # no new registry, executable DSL, scheduler or Owner truth.
 OWNER_LEGO_PLANS = (
     "services/runtime/planning/lego-plan-r1.json",
-    "services/host/planning/lego-plan-r2.json",
+    "services/host/planning/lego-plan-r1.json",
     "services/harness/planning/lego-plan-r1.json",
     "platform/network/planning/lego-plan-r1.json",
 )
