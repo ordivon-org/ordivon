@@ -1059,13 +1059,16 @@ class GatewayService:
             "job.cancel",
             {"schemaVersion": 1, "jobId": native_id},
         )
+        observed_native_id = _required_str(result, "jobId")
+        if observed_native_id != native_id:
+            raise GatewayError("Runtime job.cancel returned mismatched job identity")
         return ExecutionReceipt(
             operation_ref=operation_ref,
             capability=(
                 "execution.windows" if owner_id == "runtime.windows" else "execution.linux"
             ),
             owner_id=owner_id,
-            native_id=_required_str(result, "jobId"),
+            native_id=observed_native_id,
             state=str(result.get("status", "unknown")),
             terminal=_required_bool(result, "executionTerminal"),
             delivery_disposition=(
