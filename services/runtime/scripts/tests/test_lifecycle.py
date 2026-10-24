@@ -72,6 +72,76 @@ def init_repository(path: Path) -> str:
 
 
 class LifecycleTests(unittest.TestCase):
+    def test_reclaim_timeout_diagnostics_follow_real_argv_without_secret_traceback(self) -> None:
+        # Both real producers invoke: [sys.executable, reclaim_program(), phase, ...].
+        import traceback
+        from unittest.mock import patch
+
+        command_path = "/private/runtime/ordivon-runtime-reclaim"
+        for phase in ("inspect", "apply", "unknown"):
+            with self.subTest(phase=phase):
+                command = [sys.executable, command_path, phase, "--bearer", "hidden-token"]
+                runner = self.module["run_json"]
+                with patch.object(
+                    runner.__globals__["subprocess"],
+                    "run",
+                    side_effect=subprocess.TimeoutExpired(command, 120),
+                ):
+                    with self.assertRaises(RuntimeError) as raised:
+                        runner(command)
+                expected = phase if phase in {"inspect", "apply"} else "operation"
+                self.assertIn("reclaim " + expected, str(raised.exception))
+                self.assertIn("120s", str(raised.exception))
+                rendered = "".join(traceback.format_exception(raised.exception))
+                self.assertNotIn("hidden-token", rendered)
+                self.assertNotIn(command_path, rendered)
+
+    def test_native_lifecycle_owner_invokes_both_cache_and_lifecycle_cdc(self) -> None:
+        owner = (REPO / "scripts/owner-environment").read_text(encoding="utf-8")
+        function = owner.split("run_lifecycle_tests() {", 1)[1].split("\n}", 1)[0]
+        self.assertIn("materialize_runtime_inspect", function)
+        self.assertIn("test_cache*.py", function)
+        self.assertIn("test_lifecycle*.py", function)
+
+    def test_reclaim_producer_argv_positions_match_timeout_contract(self) -> None:
+        from unittest.mock import patch
+
+        args = argparse.Namespace(
+            database=Path("/tmp/runtime-registry.sqlite"),
+            runtime_store_root=Path("/tmp/runtime-store"),
+            busy_timeout_ms=5000,
+            workspace_root=None,
+            measure_bytes=False,
+            workspace_ids=None,
+            workspace_refs=None,
+            env_file=Path("/tmp/runtime.env"),
+        )
+        runner = self.module["run_json"]
+        for phase, producer in (
+            ("inspect", lambda: self.module["reclaim_inspect"](args)),
+            ("apply", lambda: self.module["reclaim_apply_selected"](
+                args, ["ws-probe"], Path("/tmp/receipt")
+            )),
+        ):
+            observed: list[list[str]] = []
+
+            def timeout_from_actual_subprocess(command: list[str], **_kwargs: object) -> None:
+                observed.append(command)
+                raise subprocess.TimeoutExpired(command, 120)
+
+            with self.subTest(phase=phase), patch.object(
+                runner.__globals__["subprocess"],
+                "run",
+                side_effect=timeout_from_actual_subprocess,
+            ):
+                with self.assertRaises(RuntimeError) as raised:
+                    producer()
+            self.assertEqual(len(observed), 1)
+            self.assertEqual(observed[0][0], sys.executable)
+            self.assertEqual(Path(observed[0][1]).name, "ordivon-runtime-reclaim")
+            self.assertEqual(observed[0][2], phase)
+            self.assertIn("reclaim " + phase, str(raised.exception))
+
     @classmethod
     def setUpClass(cls) -> None:
         cls.module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-lifecycle"))
