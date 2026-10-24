@@ -57,6 +57,7 @@ def load_policy(path: Path = POLICY) -> tuple[Seam, ...]:
     if not isinstance(rows, list):
         raise ValueError("dependency policy seams must be an array")
     result: list[Seam] = []
+    seen: set[Seam] = set()
     for index, row in enumerate(rows):
         if not isinstance(row, dict):
             raise ValueError(f"seam {index} must be a table")
@@ -67,7 +68,11 @@ def load_policy(path: Path = POLICY) -> tuple[Seam, ...]:
             raise ValueError(f"seam {index} has missing/empty fields")
         if values["from_owner"] == values["to_owner"]:
             raise ValueError(f"seam {index} cannot point to the same owner")
-        result.append(Seam(**values))
+        seam = Seam(**values)
+        if seam in seen:
+            raise ValueError(f"duplicate dependency seam: {seam.from_owner}->{seam.to_owner}:{seam.source_glob}")
+        seen.add(seam)
+        result.append(seam)
     return tuple(result)
 
 
