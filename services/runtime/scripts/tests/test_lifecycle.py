@@ -9,7 +9,9 @@ import subprocess
 import sys
 import tempfile
 import time
+import traceback
 import unittest
+from unittest.mock import patch
 from contextlib import closing
 from pathlib import Path
 
@@ -75,6 +77,34 @@ class LifecycleTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-lifecycle"))
+
+    def test_subordinate_reclaim_timeout_identifies_phase_without_arguments(self) -> None:
+        # History: 0fe936565611. Phase diagnosis is part of the operational
+        # consumer contract, but argv and sensitive paths are not.
+        runner = self.module["run_json"]
+        for action, expected in (("inspect", "inspect"), ("apply", "apply"), ("unknown", "operation")):
+            with self.subTest(action=action):
+                with patch.object(
+                    runner.__globals__["subprocess"], "run",
+                    side_effect=subprocess.TimeoutExpired(["secret-program", action], 120),
+                ):
+                    with self.assertRaises(RuntimeError) as raised:
+                        runner(["/private/credential", action, "--token", "secret-value"])
+                message = str(raised.exception)
+                self.assertIn(f"reclaim {expected}", message)
+                self.assertIn("120s", message)
+                self.assertNotIn("secret-value", message)
+                self.assertNotIn("/private/", message)
+                rendered = "".join(traceback.format_exception(raised.exception))
+                self.assertNotIn("secret-value", rendered)
+                self.assertNotIn("/private/", rendered)
+
+    def test_focused_lifecycle_owner_loop_includes_cache_consumers(self) -> None:
+        script = (REPO / "scripts/owner-environment").read_text()
+        body = script.split("run_lifecycle_tests() {", 1)[1].split("\n}", 1)[0]
+        self.assertIn("test_cache*.py", body)
+        self.assertIn("test_lifecycle*.py", body)
+        self.assertIn("materialize_runtime_inspect", body)
 
     def test_canonical_currentness_checks_the_planners_ref_not_local_head(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
