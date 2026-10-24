@@ -313,6 +313,50 @@ def validate_formal_issue_census(
             if not isinstance(issue.get(field), str) or not issue[field].strip():
                 raise ArchitectureDocsError(f"issue {issue_id} lacks {field}")
 
+    # GIT-01 is evidence, not admission. Owner decisions compose by exact SHA.
+    git_issue = next((item for item in issues if item["id"] == "GIT-01"), None)
+    if git_issue is not None:
+        rows = git_issue.get("consumerSelections")
+        if not isinstance(rows, list):
+            raise ArchitectureDocsError("GIT-01 consumer selections must be a list")
+        identities: set[str] = set()
+        cohort_ids: set[str] = set()
+        for row in rows:
+            if not isinstance(row, dict):
+                raise ArchitectureDocsError("GIT-01 consumer selection must be an object")
+            sha = row.get("localCommit")
+            if not isinstance(sha, str) or re.fullmatch(r"[0-9a-f]{40}", sha) is None:
+                raise ArchitectureDocsError("invalid GIT-01 consumer SHA")
+            if sha in identities:
+                raise ArchitectureDocsError("duplicate GIT-01 consumer commit")
+            identities.add(sha)
+            if row.get("owner") not in known_owners | {"ROOT_UNOWNED"}:
+                raise ArchitectureDocsError("undeclared GIT-01 consumer owner")
+            for key in ("consumer", "remoteWitness", "evidenceScope", "disposition"):
+                value = row.get(key)
+                if not isinstance(value, str) or not value.strip():
+                    raise ArchitectureDocsError(f"missing GIT-01 consumer {key}")
+            q = row.get("sourceQualification")
+            if q is not None:
+                if not isinstance(q, dict):
+                    raise ArchitectureDocsError("invalid GIT-01 source qualification")
+                if q.get("branchDeletionAllowed") is not False:
+                    raise ArchitectureDocsError("GIT-01 evidence cannot authorize branch deletion")
+            cohort = row.get("historicalCohort")
+            if cohort is not None:
+                if (
+                    not isinstance(cohort, list)
+                    or not cohort
+                    or any(
+                        not isinstance(x, str) or re.fullmatch(r"[0-9a-f]{40}", x) is None
+                        for x in cohort
+                    )
+                    or len(cohort) != len(set(cohort))
+                    or not cohort_ids.isdisjoint(cohort)
+                ):
+                    raise ArchitectureDocsError("invalid GIT-01 historical cohort")
+                cohort_ids.update(cohort)
+
     representation_types = {
         "type", "graph", "constraint", "state-machine", "algebra",
         "equivalence", "declarative", "abstraction", "causal", "compression",
