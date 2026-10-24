@@ -1,0 +1,87 @@
+#!/usr/bin/env python3
+"""Lossless, fail-closed GIT-01 evidence-set union. No second registry."""
+
+from __future__ import annotations
+
+import argparse
+import copy
+import json
+import re
+import sys
+from pathlib import Path
+
+
+class MergeConflict(ValueError):
+    """No automatic choice can safely reconcile these two proof sources."""
+
+
+def _issue(doc: dict) -> dict:
+    items = doc.get("issues")
+    if not isinstance(items, list):
+        raise MergeConflict("issues must be an array")
+    found = [x for x in items if isinstance(x, dict) and x.get("id") == "GIT-01"]
+    if len(found) != 1:
+        raise MergeConflict("expected exactly one GIT-01 issue")
+    return found[0]
+
+
+def _proofs(issue: dict) -> dict[str, dict]:
+    rows = issue.get("consumerSelections")
+    if not isinstance(rows, list):
+        raise MergeConflict("consumerSelections must be an array")
+    claims: dict[str, dict] = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            raise MergeConflict("claim must be an object")
+        sha = row.get("localCommit")
+        if not isinstance(sha, str) or re.fullmatch(r"[0-9a-f]{40}", sha) is None:
+            raise MergeConflict("localCommit must be a lowercase full Git SHA")
+        if sha in claims:
+            raise MergeConflict(f"duplicate localCommit {sha}")
+        for field in ("owner", "consumer", "remoteWitness", "evidenceScope", "disposition"):
+            if not isinstance(row.get(field), str) or not row[field]:
+                raise MergeConflict(f"{sha}: missing {field}")
+        claims[sha] = row
+    return claims
+
+
+def merge_selections(current: dict, candidate: dict) -> dict:
+    """Union immutable proof claims by SHA, leaving current Main's other truth intact."""
+    main, old = _issue(current), _issue(candidate)
+    cut = main.get("consumerSourceCut", {}).get("localMain")
+    if not isinstance(cut, str) or not cut or cut != old.get("consumerSourceCut", {}).get("localMain"):
+        raise MergeConflict("localMain source identity differs")
+    current_claims, proposed = _proofs(main), _proofs(old)
+    for sha, claim in proposed.items():
+        if sha in current_claims and claim != current_claims[sha]:
+            raise MergeConflict(f"conflicting proof for localCommit {sha}")
+    result = copy.deepcopy(current)
+    rows = _issue(result)["consumerSelections"]
+    rows.extend(copy.deepcopy(proposed[sha]) for sha in sorted(proposed.keys() - current_claims.keys()))
+    return result
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--current", required=True, type=Path)
+    parser.add_argument("--candidate", required=True, type=Path)
+    parser.add_argument("--output", type=Path, help="explicit output; omit to print JSON")
+    args = parser.parse_args()
+    try:
+        merged = merge_selections(
+            json.loads(args.current.read_text(encoding="utf-8")),
+            json.loads(args.candidate.read_text(encoding="utf-8")),
+        )
+    except (MergeConflict, OSError, json.JSONDecodeError) as exc:
+        parser.error(str(exc))
+    value = json.dumps(merged, ensure_ascii=False, indent=2) + "\n"
+    if args.output is None:
+        sys.stdout.write(value)
+    else:
+        args.output.write_text(value, encoding="utf-8")
+        print(f"GIT-01 union: {len(_issue(merged)['consumerSelections'])} proofs", file=sys.stderr)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
