@@ -419,6 +419,23 @@
             "platform/workstation/providers/cloudflare/test/handoff_tofu_test.py",
             "platform/workstation/tofu/agent-birth-handoff/main.tf"
           ]
+        },
+        {
+          "localCommit": "9c0684c02c9ee13f7190388d93431fa96c34caea",
+          "historicalCohort": [
+            "9c0684c02c9ee13f7190388d93431fa96c34caea",
+            "61a3f3c0e905a7ee7bb1a910cefec0521340b4f6",
+            "cfdbc893ba8f351579e3d8bda8896efecf40a567",
+            "812f768254704d70aac987948d0fee72fade4d64",
+            "c1108ebc9820066d830e1699e7887c31860228b3",
+            "a5e14b5ec8bc6848a12b382a1b22acbabb6dccfa"
+          ],
+          "owner": "tools/repo",
+          "consumer": "Retired document-currentness reporting, historical live-view and one-shot first-contact evaluation had zero current file/entrypoint consumers in both exact Main trees. Existing architecture documentation validator and native repository CI remain the effective consumers; do not reintroduce the old helpers.",
+          "remoteWitness": "Exact main 13704d0cac9e + origin/main bb8c591851a4: both trees lack document_currentness.py, living_view.py, first_contact_eval_receipt.py, first_contact_eval_matrix.py and their former test entrypoints; git grep -F on eight historical path names returns zero tracked references; tools/repo/check_architecture_docs.py; tools/repo/test_architecture_docs.py::test_retired_repository_status_projections_stay_absent (negative RED + GREEN)",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_RETIRED_UNCONSUMED",
+          "evaluatedRemoteMain": "bb8c591851a4c9f0a34763bc1a5fde365030cba4"
         }
       ],
       "consumerBlockedSelections": [
