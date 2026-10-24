@@ -1,3 +1,12 @@
+// Unlike Path::exists(), lstat-style inspection also observes dangling symlinks.
+fn workspace_entry_metadata(path: &Path) -> Result<Option<fs::Metadata>, UniversalExecError> {
+    match fs::symlink_metadata(path) {
+        Ok(metadata) => Ok(Some(metadata)),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(io_error(path, "inspect Workspace path", error)),
+    }
+}
+
 pub(crate) fn resolve_existing_workspace_path(
     record: &WorkspaceRecord,
     relative: &str,
@@ -70,9 +79,7 @@ pub(crate) fn preflight_workspace_write_path(
                 continue;
             };
             current.push(name);
-            if current.exists() {
-                let metadata = fs::symlink_metadata(&current)
-                    .map_err(|error| io_error(&current, "inspect", error))?;
+            if let Some(metadata) = workspace_entry_metadata(&current)? {
                 if metadata.file_type().is_symlink() || !metadata.is_dir() {
                     return Err(UniversalExecError::new(
                         UniversalExecErrorCode::WorkspacePathDenied,
@@ -85,9 +92,7 @@ pub(crate) fn preflight_workspace_write_path(
         }
     }
     let target = root.join(relative);
-    if target.exists() {
-        let metadata =
-            fs::symlink_metadata(&target).map_err(|error| io_error(&target, "inspect", error))?;
+    if let Some(metadata) = workspace_entry_metadata(&target)? {
         if metadata.file_type().is_symlink() || !metadata.is_file() {
             return Err(UniversalExecError::new(
                 UniversalExecErrorCode::WorkspacePathDenied,
@@ -127,9 +132,7 @@ fn resolve_workspace_write_path(
                 continue;
             };
             let next = safe_parent.join(name);
-            if next.exists() {
-                let metadata = fs::symlink_metadata(&next)
-                    .map_err(|error| io_error(&next, "inspect", error))?;
+            if let Some(metadata) = workspace_entry_metadata(&next)? {
                 if metadata.file_type().is_symlink() || !metadata.is_dir() {
                     return Err(UniversalExecError::new(
                         UniversalExecErrorCode::WorkspacePathDenied,
@@ -153,7 +156,18 @@ fn resolve_workspace_write_path(
             }
         }
     }
-    Ok(safe_parent.join(file_name))
+    let target = safe_parent.join(file_name);
+    if let Some(metadata) = workspace_entry_metadata(&target)? {
+        if metadata.file_type().is_symlink() || !metadata.is_file() {
+            return Err(UniversalExecError::new(
+                UniversalExecErrorCode::WorkspacePathDenied,
+                "write target must be a non-symlink regular file",
+                Some("relativePath"),
+                false,
+            ));
+        }
+    }
+    Ok(target)
 }
 
 fn resolve_git_commit(repo: &Path, source_revision: &str) -> Result<String, UniversalExecError> {
