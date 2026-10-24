@@ -59,6 +59,16 @@
       "ownerPlan": "tools/repo/planning/lego-plan-r1.json",
       "slice": "RG1",
       "scope": "registered implementation and verification boundary; actual historical consumer equivalence not established"
+    },
+    {
+      "ownerPlan": "tools/repo/planning/lego-plan-r1.json",
+      "slice": "RG2",
+      "scope": "existing owner-native source and type negative contracts; no runtime behavior authority"
+    },
+    {
+      "ownerPlan": "tools/repo/planning/lego-plan-r1.json",
+      "slice": "RG3",
+      "scope": "existing owner-native source and type negative contracts; no runtime behavior authority"
     }
   ],
   "issues": [
@@ -2388,8 +2398,9 @@
       "formalObligation": "For every issue i, naturalOwner(i) belongs to CanonicalOwnerRoots(sourceCut) union {tools/repo}; checks must use the exact repository root under validation, rejecting unknown or prefix-impostor owners.",
       "consumers": "Formal issue census, owner plans, repository CI, owner/consumer trace",
       "registration": {
-        "state": "UNREGISTERED",
-        "reason": "This repository-owner validation obligation has not been promoted to an owner-local LEGO slice; native architecture checks hold the evidence."
+        "state": "LINKED",
+        "ownerPlan": "tools/repo/planning/lego-plan-r1.json",
+        "slice": "RG2"
       },
       "representation": {
         "primary": "type",
@@ -2419,8 +2430,9 @@
         "selectionReason": "Realpath identity is a source-equivalence invariant; extra state machines or registries cannot add discriminating evidence."
       },
       "registration": {
-        "state": "UNREGISTERED",
-        "reason": "tools/repo is repository mechanics, not a domain LEGO owner. Its existing architecture checker and tests are the natural implementation and consumer, while a new owner-local plan would duplicate responsibility."
+        "state": "LINKED",
+        "ownerPlan": "tools/repo/planning/lego-plan-r1.json",
+        "slice": "RG3"
       }
     }
   ],
