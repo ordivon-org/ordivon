@@ -326,6 +326,7 @@ def validate_formal_issue_census(
         "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER", "SKIP_CANCELLED_HISTORY_PAIR",
         "SKIP_RETIRED_UNCONSUMED", "SKIP_OLDER_TOOLCHAIN_CHERRY_PICK",
         "SKIP_IDENTICAL_TIP_WITH_NATIVE_CONSUMER",
+        "PORT_REQUIRED_OWNER_EFFECT",
     }
     allowed_evidence_scopes = {
         "NATIVE_CONSUMER_PASS", "EXACT_GIT_BLOBS",
@@ -412,6 +413,18 @@ def validate_formal_issue_census(
             if cohort is not None:
                 cohort_ids.update(cohort)
             source_proof = entry.get("sourceQualification")
+            if entry["disposition"] == "PORT_REQUIRED_OWNER_EFFECT":
+                # An actual port is not a skip. File/blob observations alone
+                # cannot establish an accepted native consumer behavior.
+                if (
+                    entry["evidenceScope"] != "NATIVE_CONSUMER_PASS"
+                    or not isinstance(source_proof, dict)
+                    or source_proof.get("branchDeletionAllowed") is not False
+                ):
+                    raise ArchitectureDocsError(
+                        "PORT_REQUIRED_OWNER_EFFECT requires native Owner acceptance "
+                        "and cannot authorize branch deletion"
+                    )
             if source_proof is not None:
                 if not isinstance(source_proof, dict):
                     raise ArchitectureDocsError("invalid historical Git source qualification")
