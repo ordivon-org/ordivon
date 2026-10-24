@@ -65,6 +65,18 @@ Workstation v2 owns only the generic node-operational substrate for the shared P
 
 Workstation v2 owns generic host desired-state for systemd manager limits, coredump policy, the disabled `systemd-homed` lifecycle on this non-homed node, and the bounded WSL settings used by this node. WSL INI files are managed key-by-key rather than replaced wholesale: unknown or separately owned entries such as the current custom `kernel=` path remain untouched. Applying bytes does not activate a new WSL generation; distribution shutdown/restart is a separate explicit operation boundary.
 
+**Interactive Shell PATH LEGO** (`workstation.shell-path`, ENVIRONMENT /
+DECLARATIVE / EQUIVALENCE): the single `interactiveShellPath` expression in
+`workstation/nix/nix/home.nix` is Workstation's desired-state input for both
+Home Manager session variables and Bash startup. Its actual consumers are
+login and non-login Bash on the workstation; `tests/test_workstation_consequences.py`
+compares their effective PATH against an independent expected value. On this
+node, include the installed mise shims and Cargo tool directories; omitting
+them caused a reproducible Owner verification failure even though repository
+CI was green. The acceptance boundary is `mise run verify` from
+`platform/workstation` (plus Nix parse). This is **interactive host**
+configuration, not Runtime Job execution PATH or Codex release authorization.
+
 ## Retired legacy Workstation recovery
 
 The old Workstation Restic recovery generation, Finance owner-capsule backup, timers, installers, and associated storage were destructively retired on 2026-10-15. They are not current capabilities. Shared PostgreSQL pgBackRest remains separate.
