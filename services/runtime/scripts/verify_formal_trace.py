@@ -101,8 +101,8 @@ def check_tlc_config_obligations(content: str, claimed_invariants: set[str] | No
         )
     if specification != ["FairSpec"]:
         errors.append(f"TLC config must check FairSpec including fairness, got {specification!r}")
-    if len(retry_bound_sets) != 1 or len(retry_bound_sets[0]) < 2:
-        errors.append("TLC config must bind at least two distinct Attempts to explore explicit retry")
+    if len(retry_bound_sets) != 1 or len(retry_bound_sets[0]) < 3:
+        errors.append("TLC config must bind at least three distinct Attempts to explore consecutive explicit retries")
     for section, required in (
         ("INVARIANTS", REQUIRED_TLC_INVARIANTS),
         ("PROPERTIES", REQUIRED_TLC_PROPERTIES),

@@ -302,6 +302,19 @@ trait Provider {
             missing,
         )
 
+    def test_runtime_model_check_explores_two_explicit_retries(self):
+        """An exact hashed two-Attempt source alone cannot qualify consecutive retries."""
+        trace, invariants = manifests()
+        config = (ROOT / "formal/RuntimeDispatchR1.cfg").read_text(encoding="utf-8")
+        self.assertIn("Attempts = {A1, A2, A3}", config)
+        downgraded = config.replace("Attempts = {A1, A2, A3}", "Attempts = {A1, A2}")
+        self.assertNotEqual(downgraded, config)
+        self.assertTrue(any(
+            "at least three distinct Attempts" in error
+            for error in self.module.check_tlc_config_obligations(downgraded)
+        ))
+        self.assertEqual(self.module.validate(trace, invariants), [])
+
     def test_tlc_checker_obligations_survive_source_digest_refresh(self):
         # Hash/currentness alone is not evidence that the model checker
         # actually checked the safety/liveness claim on the same source cut.
@@ -311,7 +324,8 @@ trait Provider {
             "lost_safety": actual.replace("    AtMostOnceDispatchPerAttempt\n", ""),
             "lost_progress": actual.replace("    ProgressToFirstDecision\n", ""),
             "lost_fairness": actual.replace("SPECIFICATION FairSpec", "SPECIFICATION Spec"),
-            "lost_retry_capacity": actual.replace("Attempts = {A1, A2}", "Attempts = {A1}"),
+            "lost_retry_capacity": actual.replace("Attempts = {A1, A2, A3}", "Attempts = {A1}"),
+            "lost_second_retry_capacity": actual.replace("Attempts = {A1, A2, A3}", "Attempts = {A1, A2}"),
             "vacuous_type_constraint": actual.replace(
                 "CHECK_DEADLOCK FALSE", "CONSTRAINT TypeOK\nCHECK_DEADLOCK FALSE"
             ),

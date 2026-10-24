@@ -119,6 +119,18 @@ First accepted finite-model result (2026-09-19):
 This result is evidence for the bounded abstraction only. It is not a proof that the Rust
 implementation refines the model; refinement/traceability remains a separate gate.
 
+Current expanded native verification (2026-10-25): the **same** TLA+ model
+with Attempts = {A1, A2, A3} explores two consecutive explicit retries,
+generating 73 states (56 distinct) and finds no safety/liveness violation.
+The Runtime source-bound trace gate now refuses a future configuration
+silently shrunk below three distinct Attempt identities, even if its SHA-256
+is refreshed. No new formal DSL, extra checker or provider is involved.
+
+The three-Attempt exploration is still bounded abstraction evidence, not an
+unbounded induction proof, a retry quota, external effect exactly-once proof,
+or machine-checked Rust refinement. The historical two-Attempt acceptance
+above is preserved as a dated receipt rather than overwritten.
+
 ## LEGO R2.1: evidence is typed by execution boundary
 
 Reuse the current upstream TLA+/TLC transition-system checker for the **finite
