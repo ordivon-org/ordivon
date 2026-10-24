@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import json
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -73,6 +75,28 @@ def _validate_production_semantics(
         errors.append(f"{prefix}: duplicate source binding id: {duplicate}")
     known_bindings = set(binding_ids)
 
+    # Verify source revisions only for explicitly local monorepo bindings.
+    # Other repositories retain their own source authority; a successful
+    # local check must never be reported as a remote-owner qualification.
+    local_sources = {
+        item["id"]: item["revision"]
+        for item in production.get("sourceBindings", [])
+        if isinstance(item, dict)
+        and item.get("repository") == "ordivon"
+        and isinstance(item.get("id"), str)
+        and isinstance(item.get("revision"), str)
+    }
+    verified_revisions: set[str] = set()
+    for revision in sorted(set(local_sources.values())):
+        observed = subprocess.run(
+            ["git", "-C", str(ROOT), "cat-file", "-t", f"{revision}^{{commit}}"],
+            check=False, capture_output=True, text=True,
+        )
+        if observed.returncode != 0 or observed.stdout.strip() != "commit":
+            errors.append(f"{prefix}: declared local source revision unavailable: {revision}")
+        else:
+            verified_revisions.add(revision)
+
     claim_ids: list[str] = []
     for claim in claims.get("claims", []):
         if not isinstance(claim, dict):
@@ -88,6 +112,21 @@ def _validate_production_semantics(
             source_path = source.get("path")
             if isinstance(source_path, str) and not _is_repository_path(source_path):
                 errors.append(f"{prefix}: claim {claim_id!r} has invalid source path {source_path!r}")
+            elif isinstance(source_path, str) and binding in local_sources:
+                revision = local_sources[binding]
+                if revision in verified_revisions:
+                    # Require the actual historical Git object to be a file,
+                    # not merely an existing path or a current-worktree file.
+                    observed = subprocess.run(
+                        ["git", "-C", str(ROOT), "cat-file", "-t",
+                         f"{revision}:{source_path.split('#', 1)[0]}"],
+                        check=False, capture_output=True, text=True,
+                    )
+                    if observed.returncode != 0 or observed.stdout.strip() != "blob":
+                        errors.append(
+                            f"{prefix}: claim {claim_id!r} historical source missing at "
+                            f"{revision}:{source_path}"
+                        )
         for evidence in claim.get("evidence", []):
             if isinstance(evidence, str) and not _is_repository_path(evidence):
                 errors.append(f"{prefix}: claim {claim_id!r} has invalid evidence path {evidence!r}")
@@ -124,6 +163,35 @@ def _validate_production_semantics(
                 errors.append(f"{prefix}: source escapes repository: {source_path}")
             elif not resolved.exists():
                 errors.append(f"{prefix}: declared source does not exist: {source_path}")
+
+        # One owner-native, opt-in exact-byte seam. JSON Schema can check only a
+        # digest's shape; a real source-carrier witness must inspect the bytes.
+        # Derived article chapters and encoded media outputs must not be forced
+        # to equal an unrelated source artifact.
+        for output in production.get("outputs", []):
+            if not isinstance(output, dict) or "sourceCarrier" not in output:
+                continue
+            carrier = output["sourceCarrier"]
+            output_id = output.get("id")
+            if not isinstance(carrier, str) or carrier not in source_paths:
+                errors.append(f"{prefix}: output {output_id!r} sourceCarrier is not a declared source")
+                continue
+            path = (production_path.parent / carrier).resolve()
+            if not path.is_relative_to(ROOT.resolve()) or not path.is_file():
+                errors.append(f"{prefix}: output {output_id!r} sourceCarrier is not an accessible repository file")
+                continue
+            expected_digest = output.get("blobDigest")
+            if not isinstance(expected_digest, str):
+                errors.append(f"{prefix}: output {output_id!r} sourceCarrier requires blobDigest")
+                continue
+            try:
+                with path.open("rb") as source_file:
+                    actual_digest = "sha256:" + hashlib.file_digest(source_file, "sha256").hexdigest()
+            except OSError as exc:
+                errors.append(f"{prefix}: output {output_id!r} sourceCarrier unreadable: {exc}")
+                continue
+            if actual_digest != expected_digest:
+                errors.append(f"{prefix}: output {output_id!r} sourceCarrier digest mismatch")
     return errors
 
 

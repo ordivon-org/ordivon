@@ -75,6 +75,13 @@ def main() -> int:
     assert "pep621" in renovate.get("enabledManagers", []), (
         "Renovate must own Python PEP 621 manifests"
     )
+    assert "mise" in renovate.get("enabledManagers", []), (
+        "Renovate must own Mise toolchain version manifests"
+    )
+    # No duplicate npm/Cargo dependency owner: those are Dependabot's job.
+    assert set(renovate.get("enabledManagers", [])) == {"pep621", "mise"}, (
+        "Renovate must not duplicate Dependabot npm/Cargo/Nix ownership"
+    )
     assert renovate.get("lockFileMaintenance", {}).get("enabled") is True, (
         "Renovate must refresh uv.lock files"
     )

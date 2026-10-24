@@ -1391,7 +1391,7 @@ impl Runtime {
         }
     }
 
-    fn commit_control_terminal(
+    pub(crate) fn commit_control_terminal(
         &self,
         attempt: &AttemptRecord,
         state: AttemptState,
@@ -1412,6 +1412,18 @@ impl Runtime {
         let control_terminal_guard = self.lock_control_terminal()?;
         let current = self.registry.get_attempt(&attempt.attempt_id)?;
         if current.state.is_terminal() {
+            return self.observation_from_registry(&current.job_id, 0, 0);
+        }
+        // A Runner-owned result is a stronger terminal claimant than a
+        // supervisor-side guess that dispatch was lost. Recheck *under* the
+        // control-terminal serialization boundary: the earlier reconciliation
+        // observation may precede the result file. Do not recurse when
+        // quarantining an invalid result as Orphaned.
+        if state != AttemptState::Orphaned
+            && Path::new(&current.bundle_path).join(RESULT_FILE).is_file()
+        {
+            drop(control_terminal_guard);
+            self.reconcile_runner_result(&current)?;
             return self.observation_from_registry(&current.job_id, 0, 0);
         }
         let observed_at_ms = now_ms()?;

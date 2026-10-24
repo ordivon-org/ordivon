@@ -2182,7 +2182,7 @@ def test_r21_skipped_python_test_class_cannot_witness_owner_acceptance(
 def test_runtime_storage_retention_problem_is_registered_without_deletion_authority() -> None:
     """Disk pressure is a typed owner problem, not evidence to delete recovery."""
     census, plans = formal_issue_inputs()
-    issue = next(item for item in census["issues"] if item["id"] == "STORAGE-01")
+    issue = next(item for item in census["issues"] if item["id"] == "RECOVERY-01")
     assert issue["naturalOwner"] == "services/runtime"
     assert issue["problemClass"] == "RECOVERY_SNAPSHOT_RETENTION_UNPROVEN"
     assert issue["registration"] == {

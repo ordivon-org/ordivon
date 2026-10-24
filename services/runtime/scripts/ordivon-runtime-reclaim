@@ -212,6 +212,9 @@ def inspect_workspaces(
             not isinstance(job_id, str) for job_id in active_job_ids
         ):
             raise RuntimeError("Runtime registry inspection returned invalid active Workspace state")
+        if workspace_id in active_by_workspace:
+            # An ambiguous Registry identity must not erase a held Job.
+            raise RuntimeError("Runtime registry inspection returned duplicate workspace identity")
         active_by_workspace[workspace_id] = list(active_job_ids)
 
     record_ids: set[str] = set()

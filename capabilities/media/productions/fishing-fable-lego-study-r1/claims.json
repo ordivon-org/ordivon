@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "productionId": "fishing-fable-lego-study-r1",
+  "claims": [
+    {
+      "id": "reconstruction-is-not-chat-verbatim",
+      "source": {
+        "binding": "media-fable-source",
+        "path": "capabilities/media/productions/fishing-fable-lego-study-r1/story-archival-reconstruction.md"
+      },
+      "meaning": "A complete 13-chapter prose reconstruction is retained as exact repo bytes and was not byte-by-byte compared with the earlier chat original; source output must not be described as a verbatim canonical transcript.",
+      "evidence": [
+        "capabilities/media/productions/fishing-fable-lego-study-r1/story-archival-reconstruction.md"
+      ],
+      "allowedWording": [],
+      "avoid": [
+        "verbatim match proven",
+        "original chat bytes authenticated",
+        "published"
+      ]
+    },
+    {
+      "id": "writing-lego-registration-bounded",
+      "source": {
+        "binding": "media-fable-source",
+        "path": ".agents/skills/recursive-lego-calculus/SKILL.md"
+      },
+      "meaning": "Media writing LEGO investigation is an evidence-bound study grounded in real consumers and local Skills; candidate responsibility entries are not new execution services or proof of whole-artifact quality.",
+      "evidence": [
+        "capabilities/media/productions/fishing-fable-lego-study-r1/writing-lego-research-dossier-r1.md"
+      ],
+      "allowedWording": [],
+      "avoid": [
+        "a new writing engine is implemented",
+        "creative quality formally proven"
+      ]
+    },
+    {
+      "id": "formal-and-reader-evidence-separate",
+      "source": {
+        "binding": "media-fable-source",
+        "path": "capabilities/media/research/expression/profiles/writing.md"
+      },
+      "meaning": "Formal checks can verify defined schema, source/path/output identity and scoped state properties, while semantic experience and independent reader interpretation remain distinct and currently unvalidated.",
+      "evidence": [
+        "capabilities/media/productions/fishing-fable-lego-study-r1/formal-writing-contracts-r1.md"
+      ],
+      "allowedWording": [],
+      "avoid": [
+        "mechanical PASS proves reader understanding",
+        "minimal or sufficient representation is established"
+      ]
+    }
+  ]
+}

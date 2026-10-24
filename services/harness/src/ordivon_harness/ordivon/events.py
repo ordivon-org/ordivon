@@ -46,6 +46,8 @@ class HarnessRunEvent:
     payload: dict[str, JsonValue]
 
     def __post_init__(self) -> None:
+        if type(self.sequence) is not int or type(self.occurred_at_ms) is not int:
+            raise ValueError("Harness event sequence and time must be exact integers")
         if self.sequence < 1:
             raise ValueError("Harness event sequence must be positive")
         if self.kind not in _EVENT_KINDS:
@@ -88,11 +90,17 @@ class HarnessTrace:
     events: tuple[HarnessRunEvent, ...]
 
     def __post_init__(self) -> None:
+        if type(self.harness_run_id) is not str:
+            raise ValueError("Harness Run identity must be a string")
         if (
             not self.harness_run_id
             or self.harness_run_id != self.harness_run_id.strip()
         ):
             raise ValueError("Harness Run identity must be non-empty and trimmed")
+        if type(self.events) is not tuple or not all(
+            isinstance(event, HarnessRunEvent) for event in self.events
+        ):
+            raise ValueError("Harness Trace events must be a tuple of HarnessRunEvent")
         if tuple(event.sequence for event in self.events) != tuple(
             range(1, len(self.events) + 1)
         ):
@@ -114,7 +122,7 @@ class HarnessTrace:
     def from_dict(cls, value: dict[str, Any]) -> HarnessTrace:
         if set(value) != {"schemaVersion", "kind", "harnessRunId", "events"}:
             raise ValueError("HarnessTrace fields differ")
-        if value["schemaVersion"] != 1 or value["kind"] != "ordivon.harness-trace":
+        if type(value["schemaVersion"]) is not int or value["schemaVersion"] != 1 or value["kind"] != "ordivon.harness-trace":
             raise ValueError("HarnessTrace version or kind is invalid")
         if not isinstance(value["harnessRunId"], str):
             raise ValueError("HarnessTrace Run identity must be a string")
@@ -137,6 +145,8 @@ class TraceRecorder:
         clock_ms: Callable[[], int],
         event_sink: Callable[[HarnessRunEvent], None] | None = None,
     ) -> None:
+        if type(harness_run_id) is not str:
+            raise ValueError("Harness Run identity must be a string")
         if not harness_run_id or harness_run_id != harness_run_id.strip():
             raise ValueError("Harness Run identity must be non-empty and trimmed")
         self.harness_run_id = harness_run_id
@@ -147,6 +157,8 @@ class TraceRecorder:
 
     def record(self, kind: str, payload: dict[str, JsonValue]) -> HarnessRunEvent:
         observed = self.clock_ms()
+        if type(observed) is not int:
+            raise ValueError("Harness clock must return an exact integer")
         if observed < 0:
             raise ValueError("Harness clock returned a negative time")
         occurred_at_ms = max(observed, self._last_time)

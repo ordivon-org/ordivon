@@ -2486,6 +2486,66 @@
     },
     {
       "id": "STORAGE-01",
+      "problemClass": "BACKING_STORE_ALLOCATION_AND_RECOVERY_CONSUMER",
+      "naturalOwner": "platform/workstation",
+      "standing": "OBSERVED_PHYSICAL_PRESSURE_RECOVERY_CONSUMERS_UNKNOWN",
+      "observation": "Windows Native Runtime service-account inspection (2026-10-25) measured C: free 20.3 GiB / used 279.7 GiB and D: free 62.8 GiB / used 589.7 GiB. WSL Arch Linux ext4.vhdx at D:\\WSL\\archlinux\\ext4.vhdx has logical size 711.45 GiB and actual backing allocation ~578 GiB (Linux stat allocated_blocks_512=1210423936); those metrics must not be conflated. C:\\OrdivonRecovery occupies ~44 GiB, including d-drive-offload ~15 GiB, Tencent-Androws-Image-20260922 ~13 GiB, 20260923-rw7 ~4.6 GiB, D-Drivers-20260922 ~4.6 GiB, wsl-swap.vhdx ~4.1 GiB, and wsl-backups ~1.4 GiB. Linux Runtime physical Workspace directory ~15 GiB; Git packs ~9.79 GiB across 649 packs. WSL swap ~3.9/4.0 GiB used and IO-pressure full avg10 ~29.79% in the frozen snapshot. Inventory does not prove any recovery archive is deletable.",
+      "evidence": "Frozen repo SourceCut 6ba19fef183bba5b52d0cde6cdd06787f286bcbe. Linux Runtime Jobs job-01a16fea-e913-71e2-9b28-df5bc0234e3d (source/memory/df), job-01a16ff5-9029-70c3-9880-5c8ac413e2c1 (actual allocation and Git object packs), job-01a16ff7-aa6e-71f0-9e71-d6f060340eeb (recovery subtree bytes). Windows Native service-account Jobs job-01a16ff1-7021-7fb2-a262-b68fe4df5515 and job-01a16ff1-cc66-7061-a7a6-8f9a83740e9c (volume information and path identities). Microsoft Learn documents WSL 2 ext4.vhdx and Hyper-V Optimize-VHD compaction prerequisites; neither operation was invoked.",
+      "consumers": "Live WSL distribution/VHDX, Windows-managed page/swap, Runtime Workspaces and Git object store; recovered archives have UNKNOWN restore/rollback consumers pending source and backup survivability proof.",
+      "formalObligation": "Typed source-bound relation File(path, volume, logicalBytes, allocatedBytes, liveOwner, recoveryUnique, consumers, holders). DeleteAllowed(p) implies NoActiveHolder(p) and VerifiedNoRequiredConsumer(p) and NoUniqueRecovery(p) and SourceStateBound(p) and Recoverable(p); UNKNOWN in any predicate blocks destructive deletion. CompactVHDX implies VerifiedBackup and WSLUnmounted/Detached and exact volume identity and independent post-recovery verification; freeing logical ext4 bytes alone is not evidence that Windows backing allocation decreased. A bounded observation does not prove global absence of future consumers.",
+      "decision": "First close only clean Runtime Workspaces via canonical compare-and-close after active/held-Job checks. Retain active VHDX and Windows paging/hibernation files. Qualify each C:\\OrdivonRecovery archive against currently installed owner consumers and unique restoration value before deletion; do not assume old timestamp implies disposable. Defer Git pack repack/GC and VHDX compaction while multiple Runtime Agents share objects or WSL is live; avoid running competing expensive full scans under measured IO pressure.",
+      "representation": {
+        "primary": "constraint",
+        "supporting": [
+          "graph"
+        ],
+        "methodSkill": ".agents/skills/compositional-contracts/SKILL.md",
+        "requiredWitness": "Windows physical allocation and exact file identity, exact recovery consumer and surviving backup copy, Runtime workspace clean/held-Job/digest preconditions, and before/after physical allocated bytes. For unsafe/nonapplicable candidate emit UNKNOWN rather than claimed savings.",
+        "selectionReason": "Physical allocation versus sparse-file logical capacity and recoverable unique consumer state are separate mathematical objects; minimizing file count is not a correctness or safety proof. Use source-bound CEGAR counterexamples if an abstract capacity/reclaim rule is falsified."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "Registered as a typed issue in the existing census, but no owner-local implementation/specification is proven. Existing Workstation and Runtime owners remain authoritative; a verified consumer/rollback witness is required before linking an Owner slice or deleting a recovery archive."
+      },
+      "gitObjectMaintenanceCounterexampleR1": {
+        "truthRole": "frozen-native-source-bound-recovery-evidence-not-proof-of-concurrent-maintenance-safety",
+        "observedAt": "2026-10-25T06:31:40+08:00",
+        "sourceCut": {
+          "localMainDuringMaintenance": "6ba19fef183bba5b52d0cde6cdd06787f286bcbe",
+          "registeredOnMain": "d5feba66df0c963f717b6572b381d11b08f45db1",
+          "gitVersion": "2.55.0"
+        },
+        "before": {
+          "packs": 651,
+          "sizePackGiB": "9.87",
+          "midxIndexedPacks": 7,
+          "uniqueOidCount": 124828,
+          "packedEntries": 8752117
+        },
+        "counterexample": {
+          "operator": "git multi-pack-index write; git multi-pack-index repack --batch-size=0; git multi-pack-index expire",
+          "outcome": "MIDX_VERIFY_PASS_BUT_GIT_FSCK_FAIL",
+          "missingBlobs": 8,
+          "jobRef": "job-01a17006-5906-7623-9e4b-97525e717b27",
+          "sourceOfMissingObjects": "UNKNOWN",
+          "safetyDisposition": "UNACCEPTED_UNTIL_RECOVERY"
+        },
+        "recovery": {
+          "operator": "git fetch --no-tags --refetch origin main",
+          "recoveredBlobs": 8,
+          "afterPackCount": 12,
+          "afterPackSizeMiB": "186.71",
+          "verification": "git fsck --full --no-dangling; git multi-pack-index verify",
+          "jobRef": "job-01a1700a-49be-7493-b579-f8242c8089a3",
+          "standing": "BOUNDED_AVAILABLE_OBJECT_GRAPH_PASS",
+          "unknown": "Concurrent maintenance correctness, unavailable promisor objects, offline unique local-only recovery and long-term Git object closure are not proved"
+        },
+        "refinementObligation": "For all qualified protected refs, Git worktree sources and Runtime recovery refs, each required referenced object must be available or covered by an explicitly admissible promisor contract before maintenance may be accepted; MIDX index consistency alone is insufficient. Concrete failed Git fsck is a counterexample; restore and independent postcondition check are required, and source-writer concurrency/root cause remains UNKNOWN.",
+        "decision": "Register in existing STORAGE-01; reuse Git native maintenance/fsck and natural tools/repo Owner; prohibit unattended MIDX expiration until qualified concurrency, recovery and negative-case checks exist. No extra GC tool or independent registry."
+      }
+    },
+    {
+      "id": "RECOVERY-01",
       "problemClass": "RECOVERY_SNAPSHOT_RETENTION_UNPROVEN",
       "naturalOwner": "services/runtime",
       "standing": "OBSERVED_DISK_COST_RETENTION_AND_RESTORE_CONSUMERS_UNKNOWN",

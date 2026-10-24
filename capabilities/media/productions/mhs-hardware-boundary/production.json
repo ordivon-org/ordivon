@@ -34,7 +34,8 @@
       "kind": "article",
       "status": "approved",
       "profile": "writing",
-      "blobDigest": "sha256:32cef398e3a5e9451fdd2c1c85970c968af7a7589abe33ce8937b74e0645571d"
+      "blobDigest": "sha256:32cef398e3a5e9451fdd2c1c85970c968af7a7589abe33ce8937b74e0645571d",
+      "sourceCarrier": "story.mdx"
     }
   ]
 }

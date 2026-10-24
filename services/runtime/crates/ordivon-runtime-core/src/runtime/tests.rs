@@ -4776,6 +4776,59 @@ fn runner_binding_converges_exact_duplicate_identity_without_duplicate_event() {
 }
 
 #[test]
+fn existing_runner_result_cannot_be_relabelled_as_unknown_dispatch() {
+    // A completed Runner result wins over stale control LOST; foreign result
+    // identity is quarantined rather than silently upgraded to success.
+    for (case, foreign_result, expected) in [
+        ("valid-result", false, AttemptState::Succeeded),
+        ("foreign-result", true, AttemptState::Orphaned),
+    ] {
+        let sandbox = Sandbox::new(case, 5000);
+        let runtime = Runtime::new(runtime_config(&sandbox)).unwrap();
+        let created = created(
+            sandbox
+                .registry
+                .submit(&request(&sandbox, &format!("request:{case}"), 1))
+                .unwrap(),
+        );
+        let attempt = sandbox
+            .registry
+            .mark_bundle_ready(&created.attempt.attempt_id, 0, &digest(b"bundle"), 10)
+            .unwrap();
+        let attempt = sandbox
+            .registry
+            .mark_dispatch_issued(&attempt.attempt_id, attempt.row_version, 11)
+            .unwrap();
+        write_completed_runner_result(&attempt, 13);
+        let runner_result = Path::new(&attempt.bundle_path).join("result.json");
+        if foreign_result {
+            let mut value: serde_json::Value =
+                serde_json::from_slice(&fs::read(&runner_result).unwrap()).unwrap();
+            value["attemptId"] = serde_json::json!("attempt:foreign");
+            fs::write(&runner_result, serde_json::to_vec(&value).unwrap()).unwrap();
+        }
+
+        runtime
+            .commit_control_terminal(
+                &attempt,
+                AttemptState::Lost,
+                "DISPATCH_OUTCOME_UNKNOWN",
+                None,
+            )
+            .unwrap();
+        let current = runtime.registry().get_attempt(&attempt.attempt_id).unwrap();
+        assert_eq!(
+            current.state, expected,
+            "{case}: existing Runner result cannot be overwritten by control LOST"
+        );
+        assert!(
+            runner_result.is_file(),
+            "{case}: original Runner evidence must be preserved"
+        );
+    }
+}
+
+#[test]
 fn terminal_commit_is_atomic_idempotent_and_releases_capacity() {
     let sandbox = Sandbox::new("terminal", 5000);
     let created = created(
