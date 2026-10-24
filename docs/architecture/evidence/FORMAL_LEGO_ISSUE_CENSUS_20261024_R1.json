@@ -529,7 +529,7 @@
         "ownerPlan": "tools/repo/planning/lego-plan-r1.json",
         "slice": "RG1"
       },
-      "frozenLocalCommitEffectPartition": {
+      "frozenDualMainCommitEffectPartition": {
         "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
         "protectedMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
         "localOnlyCommits": 2300,
@@ -542,10 +542,18 @@
           "MIXED_IDENTICAL_AND_ABSENT": 2,
           "REQUIRES_OWNER_CDC": 1458
         },
-        "method": "git rev-list --no-merges main --not origin/main; for each commit git diff-tree -r -z changedPaths; compare mode+blob Git ls-tree -rz --full-tree of both immutable tips. Absence on BOTH tips is distinct from equal present blobs. Merge connectors require native source_history_legos.history DAG projection.",
+        "method": "git rev-list --no-merges either tip --not opposite tip; for each commit git diff-tree -r -z changedPaths; compare mode+blob Git ls-tree -rz --full-tree of both immutable tips, evaluated symmetrically for local-only and protected-main-only non-merge commits. Absence on BOTH tips is distinct from equal present blobs. Merge connectors require native source_history_legos.history DAG projection.",
         "evidenceStanding": "TIP_STATE_ONLY_NOT_BEHAVIORAL_EQUIVALENCE",
         "branchDeletionAllowed": false,
-        "consumerDecision": "The 22+64+2 endpoint-neutral commits are a fast triage cohort, NOT automatically dispensable; no commit or main ref can be retired by endpoint identity without owner CDC and historical/deployment provenance. 1458 unresolved non-merge effects and 754 merge connectors keep main divergent."
+        "consumerDecision": "The 22+64+2 endpoint-neutral commits are a fast triage cohort, NOT automatically dispensable; no commit or main ref can be retired by endpoint identity without owner CDC and historical/deployment provenance. 1458 unresolved non-merge effects and 754 merge connectors keep main divergent. On the protected side, 338/353 patches also have changed paths requiring owner CDC; protected main is preferred as admitted published source, not because remote patch count is a correctness proof.",
+        "remoteNonMergeCommits": 353,
+        "remoteMergeConnectors": 286,
+        "remoteNonMergePathFinalStates": {
+          "ALL_PRESENT_IDENTICAL": 12,
+          "ALL_BOTH_ABSENT": 3,
+          "MIXED_IDENTICAL_AND_ABSENT": 0,
+          "REQUIRES_OWNER_CDC": 338
+        }
       }
     },
     {

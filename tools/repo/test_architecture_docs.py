@@ -991,11 +991,11 @@ def test_git02_unique_codex_oauth_discovery_history_is_not_relabelled_redundant(
     module.validate_formal_issue_census(census, plans)
 
 
-def test_git01_frozen_nonmerge_endpoint_partition_requires_consumer_proofs() -> None:
+def test_git01_frozen_dualmain_nonmerge_endpoint_partition_requires_consumer_proofs() -> None:
     # Immutable SourceCut projection, not a second dynamic Git-history authority.
     census, plans = formal_issue_inputs()
     issue = next(row for row in census["issues"] if row["id"] == "GIT-01")
-    partition = issue["frozenLocalCommitEffectPartition"]
+    partition = issue["frozenDualMainCommitEffectPartition"]
     assert partition["localMain"] == census["source"]["linuxLocalMain"]
     assert len(partition["protectedMain"]) == 40
     classes = partition["nonMergePathFinalStates"]
@@ -1010,6 +1010,15 @@ def test_git01_frozen_nonmerge_endpoint_partition_requires_consumer_proofs() -> 
         == partition["localOnlyCommits"]
     )
     assert partition["localOnlyCommits"] == 2300
+    remote_classes = partition["remoteNonMergePathFinalStates"]
+    assert set(remote_classes) == set(classes)
+    assert all(type(value) is int and value >= 0 for value in remote_classes.values())
+    assert sum(remote_classes.values()) == partition["remoteNonMergeCommits"]
+    assert (
+        partition["remoteNonMergeCommits"] + partition["remoteMergeConnectors"]
+        == partition["remoteOnlyCommits"]
+    )
+    assert partition["remoteOnlyCommits"] == 639
     assert partition["evidenceStanding"] == "TIP_STATE_ONLY_NOT_BEHAVIORAL_EQUIVALENCE"
     assert partition["branchDeletionAllowed"] is False
     assert classes["REQUIRES_OWNER_CDC"] > 0
