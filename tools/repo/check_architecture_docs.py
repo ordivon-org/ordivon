@@ -277,6 +277,8 @@ def validate_owner_lego_dependencies(
     nodes = plan.get("nodes")
     if not isinstance(nodes, list):
         raise ArchitectureDocsError("owner-local LEGO nodes missing")
+    if not nodes:
+        raise ArchitectureDocsError(f"{owner}: empty LEGO owner graph")
     graph: dict[str, set[str]] = {}
     for node in nodes:
         if not isinstance(node, dict) or not isinstance(node.get("id"), str) or not node["id"]:
