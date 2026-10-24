@@ -1940,6 +1940,7 @@ def test_formal_r21_empty_harness_graph_must_not_pass_registered_census() -> Non
         module.validate_formal_issue_census(census, plans)
 
 
+@pytest.mark.parametrize("source_mutation", ["empty", "symlink"])
 @pytest.mark.parametrize(
     "removed_witness",
     [
@@ -1950,9 +1951,9 @@ def test_formal_r21_empty_harness_graph_must_not_pass_registered_census() -> Non
     ],
 )
 def test_r21_architecture_cannot_call_an_empty_file_native_consumer_evidence(
-    tmp_path: Path, removed_witness: str,
+    tmp_path: Path, removed_witness: str, source_mutation: str,
 ) -> None:
-    """A tracked file path by itself is not a consumer contract witness."""
+    """A pathname, empty file or symlink is not source-bound consumer evidence."""
     document = (
         ROOT / "docs/architecture/AGENT_CONCEPTS_FORMAL_LEGO_RESEARCH_20261024.md"
     ).read_text(encoding="utf-8")
@@ -1964,12 +1965,15 @@ def test_r21_architecture_cannot_call_an_empty_file_native_consumer_evidence(
     ):
         target = tmp_path / relative
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(
-            "# existing test identity intentionally erased\n"
-            if relative == removed_witness
-            else (ROOT / relative).read_text(encoding="utf-8"),
-            encoding="utf-8",
-        )
+        if relative == removed_witness and source_mutation == "symlink":
+            target.symlink_to(ROOT / relative)
+        else:
+            target.write_text(
+                "# existing test identity intentionally erased\n"
+                if relative == removed_witness
+                else (ROOT / relative).read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
     with pytest.raises(module.ArchitectureDocsError, match="consumer witness"):
         module.validate_r21_lego_vocabulary(document, root=tmp_path)
 

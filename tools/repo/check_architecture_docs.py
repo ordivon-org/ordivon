@@ -802,9 +802,11 @@ def validate_r21_lego_vocabulary(document: str, *, root: Path = ROOT) -> None:
         ("platform/network/tests/test_claude_egress_readiness_consumer.py",
          None, "test_real_consumer_readiness_fails_closed_for_upstream_faults"),
     ):
-        path = root / relative
-        if relative not in document or not path.is_file():
+        if relative not in document:
             raise ArchitectureDocsError(f"R2.1 missing current consumer witness: {relative}")
+        # Reuse this Repo Owner's existing source-bound path validator: the
+        # named witness may not be borrowed from outside the frozen source.
+        path = _source_bound_file(root, relative, "R2.1 consumer witness")
         try:
             syntax = ast.parse(path.read_text(encoding="utf-8"), filename=relative)
         except (OSError, UnicodeError, SyntaxError) as exc:
