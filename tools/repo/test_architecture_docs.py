@@ -782,8 +782,8 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
         "a6af91c187", "63d3c48172", "0abd90d3ba",
         "b13052b5da", "fd2082905f", "e140571445",
         "ecca6ad1ae", "86298d72ea", "9c8e37dfe8", "fcf5fc6d1b",
-        "225192c6e7", "84baec0ea1", "2919a6d840", "495b45d461",
-        "82c8fa2924", "f93faa57cf",
+        "82c8fa2924", "84baec0ea1", "7a96b238fb", "7c2fa8c4d2",
+        "225192c6e7", "2919a6d840", "495b45d461", "f93faa57cf",
     }
     for item in candidates:
         assert len(item["localCommit"]) == 40
@@ -801,6 +801,8 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             assert item["disposition"] == "SKIP_OLDER_PIN"
         if item["localCommit"].startswith(("ecca6ad", "86298d7", "9c8e37d", "fcf5fc6")):
             assert item["evaluatedRemoteMain"] == "a56afcf30aafd8d5bcd0f41adb950504f5724267"
+        if item["localCommit"].startswith(("82c8fa2924", "84baec0ea1", "7a96b238fb", "7c2fa8c4d2")):
+            assert item["evaluatedRemoteMain"] == "41a1073703343aad61c3ffacac34edfb91019800"
         if item["evidenceScope"] == "CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT":
             assert item["disposition"] == "SKIP_UNCONSUMED_PERMISSION"
     module.validate_formal_issue_census(census, plans)
@@ -952,32 +954,30 @@ def test_git02_unique_codex_oauth_discovery_history_is_not_relabelled_redundant(
     module.validate_formal_issue_census(census, plans)
 
 
-def test_git01_six_local_patch_equivalents_are_consumer_scoped_and_source_bound() -> None:
-    """Patch identity and exact tip blobs authorize skip, never whole-branch deletion."""
+def test_git01_four_distinct_patch_equivalents_preserve_consumers_and_actual_source_cut() -> None:
+    """Patch equivalence alone grants no branch deletion, owner effects remain typed."""
     census, plans = formal_issue_inputs()
-    issue = next(item for item in census["issues"] if item["id"] == "GIT-01")
-    chosen = {
-        item["localCommit"][:12]: item
-        for item in issue["consumerSelections"]
-        if item["localCommit"][:12] in {
-            "225192c6e711", "84baec0ea131", "2919a6d8406a",
-            "495b45d4610d", "82c8fa2924e8", "f93faa57cf99",
-        }
-    }
-    assert len(chosen) == 6
-    for item in chosen.values():
-        assert item["disposition"] == "SKIP_DUPLICATE_CHERRY_PICK"
-        assert item["evidenceScope"] in {"EXACT_GIT_BLOBS", "NATIVE_CONSUMER_PASS"}
-        assert item["sourceQualification"]["localMain"] == "13704d0cac9e113b395f2d5a21b5bf8119aa04a5"
-        assert item["sourceQualification"]["protectedMain"] == "688ed35d1f502549b04a1fb931a6e86d8350050c"
-        assert item["sourceQualification"]["patchRelation"] == "PATCH_ID_EQUIVALENT"
-        assert item["sourceQualification"]["consumerStanding"] in {
-            "CURRENT_OWNER_COVERED", "NO_CURRENT_CONSUMER",
-        }
-        assert item["sourceQualification"]["branchDeletionAllowed"] is False
-        assert item["remoteWitness"] and item["consumer"]
-    assert chosen["225192c6e711"]["sourceQualification"]["tipRelation"] == "BOTH_TIPS_ABSENT"
-    assert chosen["225192c6e711"]["sourceQualification"]["consumerStanding"] == "NO_CURRENT_CONSUMER"
-    for key in set(chosen) - {"225192c6e711"}:
-        assert chosen[key]["sourceQualification"]["tipRelation"] == "SAME_BLOB_AND_MODE"
+    issue = next(row for row in census["issues"] if row["id"] == "GIT-01")
+    selected = {row["localCommit"][:12]: row for row in issue["consumerSelections"]}
+    four = ("225192c6e711", "2919a6d8406a", "495b45d4610d", "f93faa57cf99")
+    for key in four:
+        entry = selected[key]
+        assert entry["disposition"] == "SKIP_DUPLICATE_CHERRY_PICK"
+        source = entry["sourceQualification"]
+        assert source["localMain"] == "13704d0cac9e113b395f2d5a21b5bf8119aa04a5"
+        assert source["protectedMain"] == "688ed35d1f502549b04a1fb931a6e86d8350050c"
+        assert source["patchRelation"] == "PATCH_ID_EQUIVALENT"
+        assert source["branchDeletionAllowed"] is False
+        assert entry["remoteWitness"] and entry["consumer"]
+    old = selected["225192c6e711"]
+    assert old["sourceQualification"]["tipRelation"] == "BOTH_TIPS_ABSENT"
+    assert old["sourceQualification"]["consumerStanding"] == "NO_CURRENT_CONSUMER"
+    for key in ("2919a6d8406a", "495b45d4610d"):
+        row = selected[key]
+        assert row["sourceQualification"]["consumerStanding"] == "CURRENT_OWNER_COVERED"
+        assert row["sourceQualification"]["tipRelation"] == "SAME_BLOB_AND_MODE"
+        assert row["verifiedEqualChangedBlobs"] is True
+        assert row["evaluatedRemoteMain"] == row["sourceQualification"]["protectedMain"]
+        assert all(len(sha) == 40 for sha in row["equalChangedBlobOids"].values())
+    assert selected["f93faa57cf99"]["sourceQualification"]["tipRelation"] == "SAME_BLOB_AND_MODE"
     module.validate_formal_issue_census(census, plans)

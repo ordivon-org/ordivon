@@ -33,6 +33,36 @@ function Get-Sha256Lower {
     return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
 }
 
+function Read-SecretBytesBounded {
+    param([Parameter(Mandatory = $true)][string]$Path)
+    # Open the source without granting writers access while reading it.
+    # Bound both allocation and read length; reject zero bytes and growth.
+    $sourceStream = [IO.File]::Open(
+        $Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read
+    )
+    try {
+        if ($sourceStream.Length -lt 1 -or $sourceStream.Length -gt 16384) {
+            throw 'credential source size is outside 1..16384 byte bound'
+        }
+        $result = [byte[]]::new([int]$sourceStream.Length)
+        $offset = 0
+        while ($offset -lt $result.Length) {
+            $received = $sourceStream.Read($result, $offset, $result.Length - $offset)
+            if ($received -le 0) {
+                throw 'credential source truncated while reading'
+            }
+            $offset += $received
+        }
+        if ($sourceStream.ReadByte() -ne -1) {
+            throw 'credential source grew while reading'
+        }
+        return ,$result
+    }
+    finally {
+        $sourceStream.Dispose()
+    }
+}
+
 function Protect-CredentialFile {
     param(
         [Parameter(Mandatory = $true)][string]$Path,
@@ -155,7 +185,7 @@ foreach ($spec in $specs) {
                 }
             }
             else {
-                $bytes = [IO.File]::ReadAllBytes($source)
+                $bytes = Read-SecretBytesBounded -Path $source
             }
             [IO.File]::WriteAllBytes($tmp, $bytes)
         }
