@@ -545,6 +545,8 @@ class IndependentRunRecorder:
             raise ValueError("independent terminal objects are invalid")
         receipt = IndependentHarnessRunReceipt.from_dict(raw_receipt)
         trace = HarnessTrace.from_dict(raw_trace)
+        if trace.harness_run_id != self.contract.harness_run_id:
+            raise ValueError("Harness Trace belongs to another Run")
         observations = tuple(HarnessToolObservation.from_dict(item) for item in raw_observations)
         conclusion = None
         conclusion_object = None
