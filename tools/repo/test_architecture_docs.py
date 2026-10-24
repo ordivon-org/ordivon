@@ -769,6 +769,30 @@ def test_formal_issue_skill_symlink_cannot_escape_source_cut(tmp_path: Path) -> 
         module.validate_formal_issue_census(census, plans, root=tmp_path)
 
 
+def test_retired_hux_milestone_history_has_no_live_harness_consumer() -> None:
+    """HUX plan edits and their retirement are one obsolete responsibility, not two features."""
+    census, plans = formal_issue_inputs()
+    issue = next(row for row in census["issues"] if row["id"] == "GIT-01")
+    entry = next(
+        row for row in issue["consumerSelections"]
+        if row["localCommit"] == "bf1b282ff64fe94a796eaea96366d9e25a243b6f"
+    )
+    assert entry["owner"] == "services/harness"
+    assert entry["disposition"] == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
+    assert entry["evidenceScope"] == "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN"
+    assert entry["historicalCohort"] == [
+        "591672cd8637ba4fdc68bc3f31ce5a90918cdb71",
+        "bf1b282ff64fe94a796eaea96366d9e25a243b6f",
+    ]
+    assert entry["sourceQualification"]["branchDeletionAllowed"] is False
+    assert entry["sourceQualification"]["tipRelation"] == "BOTH_TIPS_ABSENT"
+    paths = entry["retiredPaths"]
+    assert len(paths) == 4 and len(set(paths)) == 4
+    assert all(path.startswith("services/harness/planning/") for path in paths)
+    assert all(not (ROOT / path).exists() for path in paths)
+    module.validate_formal_issue_census(census, plans)
+
+
 def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
     """A Git-only commit cannot be called unique without a source-bound consumer comparison."""
     census, plans = formal_issue_inputs()
