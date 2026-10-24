@@ -45,6 +45,26 @@ Use this method when the architecture question is "what information can influenc
    - model context.
 10. Define negative tests that prove sensitive material is absent from prohibited sinks, while preserving evidence that allowed release occurred.
 
+## Candidate-channel qualification (CEGAR, on demand)
+
+For cross-Agent or cross-run isolation, first project only **evidenced** `can_influence(A,R)` and `can_observe(B,R)` edges from natural-owner source, traces, and policy. The join `A -> R -> B` is a **candidate**, not a proven communication channel, privacy breach, or permission to communicate. Keep unknown edges explicitly UNKNOWN; cover stored, timing, resource-contention, control-plane, and persistent memory/training carriers only where the observer model justifies them.
+
+Declare the protected high input H, permitted low inputs L, observer B's observation function Obs_B, authorized release/declassification D, and schedule/termination assumptions. A noninterference-style obligation compares **two executions** with the same permitted low context and different H, not merely one trace or absence of a network edge:
+
+`LowEq(s1,s2) and SameAllowedContext(s1,s2) => Obs_B(run(s1)) == Obs_B(run(s2))`, modulo explicitly owner-authorized release D.
+
+Use **counterexample-guided abstraction refinement (CEGAR)** only when the question has concrete model/test consumers:
+
+1. Construct a conservative candidate graph/model tied to source revision and observer/policy scope. Check the encoded obligation using an existing owner-approved model checker or a bounded synthetic finite oracle.
+2. For an abstract counterexample, require a **concrete, authorized, source-bound witness**. A path that cannot be realized is SPURIOUS, not a leak; refine only the false assumption, edge, state, or observation and recheck.
+3. If the witnessed observation differs without authorized release, report the exact violated property and effect boundary to the natural owner. If concretization is unavailable, record UNKNOWN; never call absence of a witness PASS.
+4. Separate this confidentiality check from integrity and authority: `PeerMessage : Data`, not `AuthorityGrant`; executable effects require independent owner-validated principal, scope, action, freshness, and provenance. A model's claimed authorization is not an actual grant.
+5. Keep real isolation, cache/timing, network, and cross-tenant channel experiments outside task-local testing; use wholly synthetic states and independent consumer-level validation. Do not improve unauthorized covert communications or bypass observability.
+
+Evidence qualification must name the encoded predicate, verifier guarantees, threat model, source/currentness, assumptions, accepted declassification, and any bridge to a real consumer property. A bounded solver PASS establishes its **model-scoped obligation only**. No guarantee of physical side-channel freedom, general protocol impossibility, or automatic authority isolation follows.
+
+Mature references: Goguen–Meseguer noninterference; Clarkson–Schneider *Hyperproperties* (IEEE CSF 2008); Clarke et al. *Counterexample-Guided Abstraction Refinement* (CAV 2000); Ordivon `recursive-lego-calculus/references/formal-model.md`. Reuse the existing Method Router/owner checkers rather than introducing an InformationFlow registry, monitor, or separate execution service.
+
 ## Output
 
 Produce:

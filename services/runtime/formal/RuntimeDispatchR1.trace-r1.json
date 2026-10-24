@@ -8,7 +8,7 @@
     "modulePath": "formal/RuntimeDispatchR1.tla",
     "moduleSha256": "27b366563c34b8890ee10b281c7ebac2733b42c4317f01dced462afb15b2b23d",
     "configPath": "formal/RuntimeDispatchR1.cfg",
-    "configSha256": "220dfc877a072a78301993d1c2c555b6b2d7150bcb3e1a4ace8520474bcfe717",
+    "configSha256": "dab0ec50b7a471daa0e217d2fd1bfa29cc42f87359ea67b6607b14430e0119f1",
     "modelBindings": [
       {
         "id": "RuntimeDispatch.Dispatch",
