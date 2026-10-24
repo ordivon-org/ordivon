@@ -550,6 +550,94 @@ class SQLiteHarnessRuntimeBridgeTests(unittest.TestCase):
         with self.assertRaisesRegex(HarnessRuntimeClientError, "executionTerminal"):
             _runtime_delivery_state({"status": "succeeded"})
 
+    def test_runtime_terminal_disposition_requires_exact_native_job_resolution(self) -> None:
+        # The Runtime JobResolution enum is a closed six-state set. A foreign
+        # terminal label must never become a Harness-observed committed result.
+        terminal = {
+            "executionTerminal": True,
+            "executionDisposition": "succeeded",
+            "deliveryDisposition": "committed",
+            "recoveryRequired": False,
+            "resultAvailable": True,
+            "semanticCompletionEvaluated": False,
+        }
+        for resolution in ("succeeded", "failed", "timed_out", "cancelled"):
+            with self.subTest(accepted=resolution):
+                self.assertEqual(
+                    _runtime_delivery_state({**terminal, "executionDisposition": resolution}),
+                    "terminal",
+                )
+        for resolution in ("working", "success", "", "lost", "orphaned"):
+            with self.subTest(rejected=resolution):
+                with self.assertRaisesRegex(
+                    HarnessRuntimeClientError, "executionDisposition"
+                ):
+                    _runtime_delivery_state(
+                        {**terminal, "executionDisposition": resolution}
+                    )
+        self.assertEqual(
+            _runtime_delivery_state({
+                **terminal, "executionDisposition": "lost",
+                "deliveryDisposition": "unknown",
+            }),
+            "unknown",
+        )
+        self.assertEqual(
+            _runtime_delivery_state({
+                **terminal, "executionDisposition": "orphaned",
+                "deliveryDisposition": "reconciliation_required",
+            }),
+            "reconcile",
+        )
+
+    def test_runtime_delivery_product_has_no_false_terminal_projection(self) -> None:
+        # Exhaust the small finite product of Runtime's six JobResolution
+        # variants, one invalid alien value, four delivery variants, and
+        # terminal/result/recovery booleans: 7 * 4 * 2**3 = 224 cases.
+        # This is a consumer safety property, not a Runtime liveness proof.
+        resolutions = (
+            "succeeded", "failed", "timed_out", "cancelled",
+            "lost", "orphaned", "alien",
+        )
+        deliveries = (
+            "committed", "unknown", "reconciliation_required", "in_progress",
+        )
+        conclusive = {"succeeded", "failed", "timed_out", "cancelled"}
+        checked = 0
+        for resolution in resolutions:
+            for delivery in deliveries:
+                for terminal in (False, True):
+                    for available in (False, True):
+                        for recovery in (False, True):
+                            observation = {
+                                "executionTerminal": terminal,
+                                "executionDisposition": resolution,
+                                "deliveryDisposition": delivery,
+                                "recoveryRequired": recovery,
+                                "resultAvailable": available,
+                                "semanticCompletionEvaluated": False,
+                            }
+                            checked += 1
+                            try:
+                                standing = _runtime_delivery_state(observation)
+                            except HarnessRuntimeClientError:
+                                continue
+                            if standing == "terminal":
+                                self.assertEqual(delivery, "committed")
+                                self.assertIn(resolution, conclusive)
+                                self.assertTrue(terminal)
+                                self.assertTrue(available)
+                                self.assertFalse(recovery)
+                            elif standing == "unknown":
+                                self.assertEqual(resolution, "lost")
+                                self.assertEqual(delivery, "unknown")
+                                self.assertTrue(terminal)
+                                self.assertTrue(available)
+                                self.assertFalse(recovery)
+                            else:
+                                self.assertEqual(standing, "reconcile")
+        self.assertEqual(checked, 224)
+
     def initialize(self, root: Path, suffix: str, runtime: FakeRuntime):
         run_contract = contract(suffix)
         store = SQLiteHarnessStore.initialize(root)

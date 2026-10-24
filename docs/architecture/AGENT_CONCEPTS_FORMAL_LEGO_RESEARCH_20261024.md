@@ -134,6 +134,14 @@ No new Agent role, new Skill, registry, approval loop, scheduler or formal DSL i
 - Lifecycle subtraction is part of correctness: close clean, unused workspaces; preserve/reconcile dirty, unique contributions and recoverable points before close; do not leave unowned duplicate implementations or orphan PRs by default. Never use a source scan alone as proof of absent external consumers.
 - Move gradually, one verified actual consumer slice at a time, then remove superseded custom code/tests when justified. Reuse existing Cognitive Circuit, Verification Obligation, Runtime, Git and Host boundaries; do not create a universal mathematical gateway, another test regime, new management Agent, second owner or parallel ledger.
 
+**R2.1 first concrete mathematics-backed LEGO (2026-10-25): registered Owner dependency relation.**
+
+- **Minimum representation:** reuse each existing Owner planning node's id and dependencies; no common schema extension, executor, registry, or new declared ownership. Let N be the finite set of exact node IDs and D be a subset of N x N, the predecessor relation (u depends on v).
+- **Well-formedness obligation:** every node ID is unique and nonempty; every dependency is a typed, unique node ID; D is closed over N; D is acyclic. Consequently a topological order exists. This is a structural precondition, not a claim that environment assumptions, tool permissions, effects or domain outcomes have been discharged.
+- **Mature kernel and native witness:** Python standard-library graphlib.TopologicalSorter at the existing tools/repo/check_architecture_docs.py owner-registration gate. Runtime, Harness, Network, Security currently use this existing node/dependency plan shape; the Host V2 R3 frozen retained/external-owner list is not silently transformed into a graph or made authoritative.
+- **Negative witnesses:** two-node cycles in each registered core plan and dangling, duplicate or untyped edges/nodes must all fail the existing native tests before admission. Owner-specific behavioral CDC, Runtime TLA+ model scope, Host durable re-entry and independent consumer acceptance remain separate obligations.
+- **Subtraction rule:** use graphlib, not a bespoke DAG checker, a cross-domain graph database, a second LEGO registry, or mandatory 2.1 metadata on every component.
+
 **Operational stopping rule:** one needed property, one appropriate mature owner/kernel, one scoped verification/effect witness, followed by read-back and cleanup. If none materially improves real consumer outcomes, do not add it.
 
 
