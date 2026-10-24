@@ -451,6 +451,9 @@ current free-space         : fresh physical disk observation, not a saved sample
 ```
 
 A policy float or numeric string cannot silently become a storage floor.
+The policy JSON source is single-valued (no duplicate keys), closed over
+the declared policy fields (no ignored typos), and bound to an exact integer
+schemaVersion; all three fail before the controller attempts an effect.
 Malformed saved observations are excluded from slope estimation; they cannot
 invent a consumption rate that bypasses expensive-probe backoff. Corrupted
 historical streaks reenter at zero, then follow the existing saturating

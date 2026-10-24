@@ -33,6 +33,34 @@ class PressureControlTests(unittest.TestCase):
             samples=samples,
         )
 
+    def test_policy_rejects_unknown_fields_instead_of_defaulting_silently(self):
+        policy = dict(self.policy)
+        policy["hardFl00rBytes"] = policy["hardFloorBytes"]
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "policy.json"
+            path.write_text(json.dumps(policy), encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "unknown.*hardFl00rBytes"):
+                self.module["load_policy"](path)
+
+    def test_policy_rejects_duplicate_json_keys_at_source_boundary(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "policy.json"
+            policy = POLICY.read_text(encoding="utf-8").rstrip()
+            self.assertTrue(policy.endswith("}"))
+            policy = policy[:-1] + ', "hardFloorBytes": 1}'
+            path.write_text(policy, encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "duplicate JSON key.*hardFloorBytes"):
+                self.module["load_policy"](path)
+
+    def test_schema_version_boolean_alias_does_not_pass_integer_const(self):
+        policy = dict(self.policy)
+        policy["schemaVersion"] = True
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "policy.json"
+            path.write_text(json.dumps(policy), encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "schemaVersion"):
+                self.module["load_policy"](path)
+
     def test_policy_separates_hard_floor_from_soft_trigger(self):
         self.assertEqual(self.policy["hardFloorBytes"], 20 * 1024**3)
         self.assertEqual(self.policy["softTriggerBytes"], 28 * 1024**3)

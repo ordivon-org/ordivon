@@ -46,6 +46,16 @@ def positive_int(value: object, label: str) -> int:
     return value
 
 
+def _unique_json_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    """A repeated JSON key cannot encode one authoritative policy value."""
+    result: dict[str, object] = {}
+    for key, value in pairs:
+        if key in result:
+            raise RuntimeError(f"duplicate JSON key in pressure policy: {key}")
+        result[key] = value
+    return result
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="ordivon-runtime-pressure-control")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -68,11 +78,16 @@ def parse_args() -> argparse.Namespace:
 
 def load_policy(path: Path) -> dict[str, object]:
     value = dict(DEFAULT_POLICY)
-    loaded = json.loads(path.read_text(encoding="utf-8"))
+    loaded = json.loads(
+        path.read_text(encoding="utf-8"), object_pairs_hook=_unique_json_object
+    )
     if not isinstance(loaded, dict):
         raise RuntimeError("pressure policy must be a JSON object")
+    unknown = sorted(set(loaded) - set(DEFAULT_POLICY))
+    if unknown:
+        raise RuntimeError(f"unknown pressure policy fields: {unknown}")
     value.update(loaded)
-    if value.get("schemaVersion") != SCHEMA_VERSION:
+    if type(value.get("schemaVersion")) is not int or value["schemaVersion"] != SCHEMA_VERSION:
         raise RuntimeError("unsupported pressure policy schemaVersion")
     host_path = value.get("hostStoragePath")
     if not isinstance(host_path, str) or not Path(host_path).is_absolute():
