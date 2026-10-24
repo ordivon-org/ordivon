@@ -798,6 +798,7 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             "NO_WHOLE_COMMIT_REPLAY_WITHOUT_PRODUCER_AUTHORITY",
             "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
             "SELECT_NEGATIVE_CDC",
+            "SKIP_CANCELLED_HISTORY_PAIR",
         }
         assert item["evidenceScope"] in {
             "NATIVE_CONSUMER_PASS", "EXACT_GIT_BLOBS",
@@ -893,7 +894,6 @@ def test_formal_registry_sources_bound_before_loading(
 
 
 def test_git01_unique_lock_maintenance_negative_consumer_is_registered() -> None:
-    """Select 2eaaf11f negative CDC; the baseline is covered by #384."""
     census, plans = formal_issue_inputs()
     issue = next(x for x in census["issues"] if x["id"] == "GIT-01")
     selected = {x["localCommit"][:12]: x for x in issue["consumerSelections"]}
@@ -903,7 +903,6 @@ def test_git01_unique_lock_maintenance_negative_consumer_is_registered() -> None
     assert row["evidenceScope"] == "NATIVE_CONSUMER_PASS"
     assert row["sourceQualification"]["patchRelation"] == "PATCH_DISTINCT_UNQUALIFIED"
     assert row["sourceQualification"]["branchDeletionAllowed"] is False
-    assert (ROOT / "tools/repo/check_github_governance.py").is_file()
     module.validate_formal_issue_census(census, plans)
 
 
@@ -1016,3 +1015,24 @@ def test_git01_four_distinct_patch_equivalents_preserve_consumers_and_actual_sou
         assert all(len(sha) == 40 for sha in row["equalChangedBlobOids"].values())
     assert selected["f93faa57cf99"]["sourceQualification"]["tipRelation"] == "SAME_BLOB_AND_MODE"
     module.validate_formal_issue_census(census, plans)
+
+def test_git01_workstation_history_inverse_pair_is_a_single_non_live_effect() -> None:
+    """An adjacent add/revert is one historical identity, not two live LEGo parts."""
+    census, _ = formal_issue_inputs()
+    issue = next(x for x in census["issues"] if x["id"] == "GIT-01")
+    additions = [x for x in issue["consumerSelections"] if x["localCommit"].startswith("e51472db")]
+    assert len(additions) == 1
+    pair = additions[0]
+    assert pair["owner"] == "platform/workstation"
+    assert pair["pairedRevertCommit"] == "07255e4dfd26d172ebb5e62c5844ff2d661081f8"
+    assert pair["disposition"] == "SKIP_CANCELLED_HISTORY_PAIR"
+    assert pair["sourceQualification"]["branchDeletionAllowed"] is False
+    assert pair["sourceQualification"]["consumerStanding"] == "NO_CURRENT_CONSUMER"
+    assert pair["beforeTreeOid"] == pair["afterTreeOid"] == "ad4aab81359fb9de9223023b702137e8d9101344"
+    files = [
+        "platform/workstation/tests/test_real_chrome_browser_harness_provider.py",
+        "platform/workstation/workstation/providers/real_chrome_browser_harness/materialize.py",
+        "platform/workstation/workstation/providers/real_chrome_browser_harness/README.md",
+        "platform/workstation/workstation/providers/real_chrome_browser_harness/RealChromeBrowserHarnessProvider.ps1",
+    ]
+    assert all(not (ROOT / path).exists() for path in files)

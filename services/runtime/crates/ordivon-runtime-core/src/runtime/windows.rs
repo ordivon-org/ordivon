@@ -1259,6 +1259,131 @@ pub(crate) fn validate_windows_exec_payload(
     Ok(())
 }
 
+/// Keep Git's ownership protection enabled globally. Runtime has already frozen
+/// this exact worktree in the Job, so only its active-user consumer may opt in
+/// to the existing Git command-scope safe.directory primitive. No gitconfig
+/// is written, no wildcard trust is granted, and service jobs are unaffected.
+pub(crate) fn merge_windows_workspace_environment(
+    baseline: &BTreeMap<String, String>,
+    overlay: &BTreeMap<String, String>,
+    active_user: bool,
+    workspace_path: &Path,
+) -> RuntimeResult<BTreeMap<String, String>> {
+    let mut environment = merge_windows_environment(baseline, overlay)?;
+    if !active_user {
+        return Ok(environment);
+    }
+
+    let original = workspace_path.to_string_lossy();
+    let visible = if let Some(path) = original.strip_prefix(r"\\?\UNC\") {
+        format!(r"\\{path}")
+    } else {
+        original
+            .strip_prefix(r"\\?\")
+            .unwrap_or(&original)
+            .to_string()
+    };
+    let windows_drive = visible.as_bytes().get(1) == Some(&b':')
+        && visible
+            .as_bytes()
+            .first()
+            .is_some_and(u8::is_ascii_alphabetic)
+        && visible
+            .as_bytes()
+            .get(2)
+            .is_some_and(|byte| *byte == b'\\' || *byte == b'/');
+    let windows_unc = visible.strip_prefix(r"\\").is_some_and(|unc| {
+        let mut parts = unc.split(['\\', '/']);
+        let server = parts.next().unwrap_or("");
+        let share = parts.next().unwrap_or("");
+        let first_workspace_part = parts.next().unwrap_or("");
+        !server.is_empty() && !share.is_empty() && !first_workspace_part.is_empty()
+    });
+    if (!windows_drive && !windows_unc)
+        || visible
+            .split(['/', '\\'])
+            .any(|part| part == ".." || part == ".")
+        || visible.contains('*')
+        || visible.contains('?')
+    {
+        return Err(RuntimeError::invalid(
+            "active_user Git trust requires an exact absolute Windows workspace path",
+            "execution.cwdRelative",
+        ));
+    }
+
+    let count = environment
+        .iter()
+        .find(|(key, _)| key.eq_ignore_ascii_case("GIT_CONFIG_COUNT"))
+        .map(|(_, value)| value.as_str())
+        .unwrap_or("0")
+        .parse::<usize>()
+        .map_err(|_| {
+            RuntimeError::invalid("invalid Git command configuration count", "execution.env")
+        })?;
+    if count > 63 {
+        return Err(RuntimeError::invalid(
+            "Git command configuration exceeds bounded workspace environment",
+            "execution.env",
+        ));
+    }
+    // A previous command-scoped wildcard would defeat the exact-workspace
+    // restriction even if Runtime appended its own narrower safe.directory.
+    if environment
+        .keys()
+        .any(|name| name.eq_ignore_ascii_case("GIT_CONFIG_PARAMETERS"))
+    {
+        return Err(RuntimeError::invalid(
+            "active_user Git trust cannot inherit arbitrary command parameters",
+            "execution.env",
+        ));
+    }
+    for index in 0..count {
+        let config_name = format!("GIT_CONFIG_KEY_{index}");
+        if environment.iter().any(|(name, value)| {
+            name.eq_ignore_ascii_case(&config_name) && value.eq_ignore_ascii_case("safe.directory")
+        }) {
+            return Err(RuntimeError::invalid(
+                "active_user Git trust cannot inherit a pre-existing safe.directory override",
+                "execution.env",
+            ));
+        }
+        for prefix in ["GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_"] {
+            let name = format!("{prefix}{index}");
+            if !environment
+                .keys()
+                .any(|key| key.eq_ignore_ascii_case(&name))
+            {
+                return Err(RuntimeError::invalid(
+                    "Git command configuration is missing an indexed key or value",
+                    "execution.env",
+                ));
+            }
+        }
+    }
+    let key = format!("GIT_CONFIG_KEY_{count}");
+    let value = format!("GIT_CONFIG_VALUE_{count}");
+    if environment.keys().any(|existing| {
+        existing.eq_ignore_ascii_case(&key) || existing.eq_ignore_ascii_case(&value)
+    }) {
+        return Err(RuntimeError::invalid(
+            "Git command configuration contains an unexpected indexed override",
+            "execution.env",
+        ));
+    }
+    if let Some(existing) = environment
+        .keys()
+        .find(|name| name.eq_ignore_ascii_case("GIT_CONFIG_COUNT"))
+        .cloned()
+    {
+        environment.remove(&existing);
+    }
+    environment.insert("GIT_CONFIG_COUNT".to_string(), (count + 1).to_string());
+    environment.insert(key, "safe.directory".to_string());
+    environment.insert(value, visible);
+    Ok(environment)
+}
+
 pub(crate) fn merge_windows_environment(
     baseline: &BTreeMap<String, String>,
     overlay: &BTreeMap<String, String>,
@@ -1736,6 +1861,115 @@ mod tests {
             assert_eq!(error.code, RuntimeErrorCode::InvalidRequest);
             assert_eq!(error.field.as_deref(), Some("windows.elevatedPrincipals"));
         }
+    }
+
+    #[test]
+    fn windows_active_user_git_workspace_trust_is_exact_and_job_local() {
+        let baseline = BTreeMap::from([("Path".to_string(), r"C:\Windows".to_string())]);
+        let overlay = BTreeMap::new();
+        let env = merge_windows_workspace_environment(
+            &baseline,
+            &overlay,
+            true,
+            Path::new(r"\\?\C:\ProgramData\Ordivon\workspaces\ws-1"),
+        )
+        .unwrap();
+        assert_eq!(env["GIT_CONFIG_COUNT"], "1");
+        assert_eq!(env["GIT_CONFIG_KEY_0"], "safe.directory");
+        assert_eq!(
+            env["GIT_CONFIG_VALUE_0"],
+            r"C:\ProgramData\Ordivon\workspaces\ws-1"
+        );
+        assert!(!env.values().any(|value| value == "*"));
+        assert!(!baseline.contains_key("GIT_CONFIG_COUNT"));
+    }
+
+    #[test]
+    fn windows_git_workspace_environment_preserves_existing_git_command_config() {
+        let overlay = BTreeMap::from([
+            ("GIT_CONFIG_COUNT".to_string(), "1".to_string()),
+            ("GIT_CONFIG_KEY_0".to_string(), "color.ui".to_string()),
+            ("GIT_CONFIG_VALUE_0".to_string(), "never".to_string()),
+        ]);
+        let env = merge_windows_workspace_environment(
+            &BTreeMap::new(),
+            &overlay,
+            true,
+            Path::new(r"C:\Ordivon\workspaces\ws-2"),
+        )
+        .unwrap();
+        assert_eq!(env["GIT_CONFIG_COUNT"], "2");
+        assert_eq!(env["GIT_CONFIG_KEY_0"], "color.ui");
+        assert_eq!(env["GIT_CONFIG_VALUE_0"], "never");
+        assert_eq!(env["GIT_CONFIG_KEY_1"], "safe.directory");
+        assert_eq!(env["GIT_CONFIG_VALUE_1"], r"C:\Ordivon\workspaces\ws-2");
+
+        let service = merge_windows_workspace_environment(
+            &BTreeMap::new(),
+            &BTreeMap::new(),
+            false,
+            Path::new(r"C:\Ordivon\workspaces\ws-2"),
+        )
+        .unwrap();
+        assert!(!service.contains_key("GIT_CONFIG_COUNT"));
+    }
+
+    #[test]
+    fn windows_git_workspace_environment_fails_closed_on_inconsistent_config() {
+        for overlay in [
+            BTreeMap::from([("GIT_CONFIG_COUNT".to_string(), "1".to_string())]),
+            BTreeMap::from([("GIT_CONFIG_COUNT".to_string(), "-1".to_string())]),
+            BTreeMap::from([("GIT_CONFIG_COUNT".to_string(), "999999".to_string())]),
+        ] {
+            let error = merge_windows_workspace_environment(
+                &BTreeMap::new(),
+                &overlay,
+                true,
+                Path::new(r"C:\Ordivon\workspaces\ws-2"),
+            )
+            .unwrap_err();
+            assert_eq!(error.code, RuntimeErrorCode::InvalidRequest);
+        }
+    }
+
+    #[test]
+    fn windows_git_workspace_environment_rejects_incomplete_or_wildcard_trust() {
+        for path in [
+            r"\\",
+            r"\\server\",
+            r"\\server\share\",
+            r"\\?\UNC\server\",
+            r"C:\ProgramData\Ordivon\..\workspaces",
+            r"C:\ProgramData\Ordivon\ws*",
+            r"C:\ProgramData\Ordivon\ws?",
+            "relative/workspaces/ws-1",
+        ] {
+            let error = merge_windows_workspace_environment(
+                &BTreeMap::new(),
+                &BTreeMap::new(),
+                true,
+                Path::new(path),
+            )
+            .unwrap_err();
+            assert_eq!(error.code, RuntimeErrorCode::InvalidRequest, "{path}");
+        }
+    }
+
+    #[test]
+    fn windows_git_workspace_environment_rejects_preexisting_wildcard_command_trust() {
+        let baseline = BTreeMap::from([
+            ("GIT_CONFIG_COUNT".to_string(), "1".to_string()),
+            ("GIT_CONFIG_KEY_0".to_string(), "safe.directory".to_string()),
+            ("GIT_CONFIG_VALUE_0".to_string(), "*".to_string()),
+        ]);
+        let error = merge_windows_workspace_environment(
+            &baseline,
+            &BTreeMap::new(),
+            true,
+            Path::new(r"C:\Ordivon\workspaces\ws-2"),
+        )
+        .unwrap_err();
+        assert_eq!(error.code, RuntimeErrorCode::InvalidRequest);
     }
 
     #[test]
