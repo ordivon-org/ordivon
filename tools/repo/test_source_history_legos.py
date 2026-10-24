@@ -1,10 +1,13 @@
 """Native source graph LEGO: two-sided exact patch classes and no false consumer claims."""
 
+import json
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 
+from tools.repo import source_history_legos
 from tools.repo.source_history_legos import history
 
 CANONICAL_OWNER_HEADER = (
@@ -77,6 +80,87 @@ class SourceHistoryLegosTests(unittest.TestCase):
                 sum(projection["patchClasses"].values()),
                 sum(projection["counts"].values()),
             )
+            # Independently scoped agents must see only their Owner's commits
+            # while retaining exact immutable global source identity.
+            runtime = source_history_legos.owner_slice(projection, "runtime")
+            self.assertEqual(runtime["sourceCut"], projection["sourceCut"])
+            self.assertEqual(runtime["counts"], {"local": 1, "remote": 1})
+            self.assertEqual(runtime["unfilteredCounts"], projection["counts"])
+            self.assertEqual(
+                {entry["commit"] for entry in runtime["commits"]},
+                {local_patch, remote_patch},
+            )
+            self.assertTrue(all(
+                entry["consumerQualification"] == "UNKNOWN_REQUIRES_OWNER_CDC"
+                for entry in runtime["commits"]
+            ))
+            unmapped = source_history_legos.owner_slice(projection, "ROOT_UNOWNED")
+            self.assertEqual(unmapped["counts"], {"local": 0, "remote": 1})
+            self.assertEqual(
+                {entry["commit"] for entry in runtime["commits"]}.union(
+                    entry["commit"] for entry in unmapped["commits"]
+                ),
+                set(records),
+            )
+            with self.assertRaisesRegex(ValueError, "unknown Owner"):
+                source_history_legos.owner_slice(projection, "missing-owner")
+            # A forged global count must not permit a false complete Owner view.
+            altered = {**projection, "counts": {"local": 2, "remote": 2}}
+            with self.assertRaisesRegex(ValueError, "DAG coverage mismatch"):
+                source_history_legos.owner_slice(altered, "runtime")
+            # Agent CLI yields a small source-bound subset, not the full DAG.
+            cli = json.loads(subprocess.check_output(
+                [
+                    sys.executable,
+                    str(Path(__file__).with_name("source_history_legos.py")),
+                    "--repo", str(root),
+                    "--left", "main",
+                    "--right", "remote-main",
+                    "--owner", "runtime",
+                ],
+                text=True,
+            ))
+            self.assertEqual(cli, runtime)
+
+    def test_one_sided_dag_owner_views_are_an_overlapping_cover(self):
+        # The common fast-forward shape has NO local-only commits. A missing
+        # Counter key must not be confused with a missing Git source cut.
+        complete = {
+            "truthRole": "derived-readonly-no-retirement-authority",
+            "sourceCut": {"local": "a" * 40, "remote": "b" * 40,
+                          "commonAncestor": "a" * 40},
+            "ownerMappingSourceCut": "b" * 40,
+            "counts": {"local": 0, "remote": 2},
+            "ownerMembership": {
+                "remote:runtime": 2,
+                "remote:harness": 1,
+            },
+            "warning": "Native Owner CDC required.",
+            "commits": [
+                {"commit": "c" * 40, "side": "remote",
+                 "owners": ["runtime", "harness"],
+                 "consumerQualification": "UNKNOWN_REQUIRES_OWNER_CDC"},
+                {"commit": "d" * 40, "side": "remote",
+                 "owners": ["runtime"],
+                 "consumerQualification": "UNKNOWN_REQUIRES_OWNER_CDC"},
+            ],
+        }
+        runtime = source_history_legos.owner_slice(complete, "runtime")
+        harness = source_history_legos.owner_slice(complete, "harness")
+        self.assertEqual(runtime["counts"], {"local": 0, "remote": 2})
+        self.assertEqual(harness["counts"], {"local": 0, "remote": 1})
+        self.assertGreater(
+            len(runtime["commits"]) + len(harness["commits"]),
+            len(complete["commits"]),
+        )
+        self.assertEqual(
+            {x["commit"] for view in (runtime, harness)
+             for x in view["commits"]},
+            {x["commit"] for x in complete["commits"]},
+        )
+        invalid = {**complete, "ownerMembership": {"remote:runtime": 3}}
+        with self.assertRaisesRegex(ValueError, "Owner membership mismatch"):
+            source_history_legos.owner_slice(invalid, "runtime")
 
     def test_unique_cross_path_bytes_are_not_consumer_or_rename_proofs(self):
         # Different catalog locations can contain identical bytes without
