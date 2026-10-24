@@ -510,45 +510,6 @@ def test_formal_issue_census_rejects_duplicate_problem_identity() -> None:
         module.validate_formal_issue_census(census, plans)
 
 
-@pytest.mark.parametrize(
-    ("fault", "diagnostic"),
-    [
-        ("duplicate", "duplicate GIT-01 consumer commit"),
-        ("short_sha", "invalid GIT-01 consumer SHA"),
-        ("wrong_owner", "undeclared GIT-01 consumer owner"),
-        ("missing_witness", "missing GIT-01 consumer remoteWitness"),
-        ("missing_scope", "missing GIT-01 consumer evidenceScope"),
-        ("unsafe_delete", "GIT-01 evidence cannot authorize branch deletion"),
-        ("bad_cohort", "invalid GIT-01 historical cohort"),
-    ],
-)
-def test_formal_validator_rejects_invalid_git01_consumer_records(
-    fault: str, diagnostic: str
-) -> None:
-    """Fail at the production architecture validator, not only the test harness."""
-    census, plans = formal_issue_inputs()
-    row = next(item for item in census["issues"] if item["id"] == "GIT-01")
-    records = row["consumerSelections"]
-    if fault == "duplicate":
-        records.append(copy.deepcopy(records[0]))
-    elif fault == "short_sha":
-        records[0]["localCommit"] = "abc"
-    elif fault == "wrong_owner":
-        records[0]["owner"] = "unregistered/owner"
-    elif fault == "missing_witness":
-        records[0]["remoteWitness"] = ""
-    elif fault == "missing_scope":
-        records[0].pop("evidenceScope")
-    elif fault == "unsafe_delete":
-        selected = next(item for item in records if "sourceQualification" in item)
-        selected["sourceQualification"]["branchDeletionAllowed"] = True
-    elif fault == "bad_cohort":
-        retired = next(item for item in records if "historicalCohort" in item)
-        retired["historicalCohort"].append(retired["historicalCohort"][0])
-    with pytest.raises(module.ArchitectureDocsError, match=diagnostic):
-        module.validate_formal_issue_census(census, plans)
-
-
 def test_formal_issue_census_cannot_grant_authority() -> None:
     census, plans = formal_issue_inputs()
     census["truthRole"] = "semantic-authority"
@@ -907,6 +868,67 @@ def test_retired_next_historical_owner_cohorts_are_not_reintroduced() -> None:
     module.validate_formal_issue_census(census, plans)
 
 
+@pytest.mark.parametrize(
+    ("mutation", "expected_error"),
+    [
+        ("duplicate", "duplicate historical Git selection"),
+        ("bad_sha", "invalid historical Git SHA"),
+        ("unknown_owner", "undeclared historical Git owner"),
+        ("unhashable_owner", "undeclared historical Git owner"),
+        ("unowned_with_implementation_authority", "undeclared historical Git owner"),
+        ("missing_consumer", "historical Git selection missing consumer"),
+        ("unknown_disposition", "invalid historical Git disposition"),
+        ("unknown_evidence", "invalid historical Git evidenceScope"),
+        ("retirement", "historical Git selection cannot authorize branch deletion"),
+        ("missing_retirement_flag", "historical Git selection cannot authorize branch deletion"),
+        ("wrong_local_cut", "historical Git selection local SourceCut mismatch"),
+        ("bad_cohort", "invalid historical Git cohort"),
+        ("bad_remote_cut", "invalid historical Git protected SourceCut"),
+    ],
+)
+def test_git01_formal_selection_type_invariants_fail_closed(
+    mutation: str, expected_error: str
+) -> None:
+    """Parallel history cohorts cannot silently change type or deletion authority."""
+    import copy
+
+    census, plans = formal_issue_inputs()
+    census = copy.deepcopy(census)
+    issue = next(item for item in census["issues"] if item["id"] == "GIT-01")
+    row = next(
+        item for item in issue["consumerSelections"]
+        if isinstance(item.get("sourceQualification"), dict)
+    )
+    if mutation == "duplicate":
+        issue["consumerSelections"].append(copy.deepcopy(row))
+    elif mutation == "bad_sha":
+        row["localCommit"] = "not-a-sha"
+    elif mutation == "unknown_owner":
+        row["owner"] = "UNKNOWN_OWNER_NOT_IN_MANIFEST"
+    elif mutation == "unowned_with_implementation_authority":
+        row["owner"] = "ROOT_UNOWNED"
+    elif mutation == "unhashable_owner":
+        row["owner"] = ["tools/repo"]
+    elif mutation == "missing_consumer":
+        row["consumer"] = ""
+    elif mutation == "unknown_disposition":
+        row["disposition"] = "SAFE_TO_DELETE_EVERYTHING"
+    elif mutation == "unknown_evidence":
+        row["evidenceScope"] = "PRODUCTION_IS_PROVEN_BY_GIT_SHA"
+    elif mutation == "retirement":
+        row["sourceQualification"]["branchDeletionAllowed"] = True
+    elif mutation == "missing_retirement_flag":
+        row["sourceQualification"].pop("branchDeletionAllowed")
+    elif mutation == "wrong_local_cut":
+        row["sourceQualification"]["localMain"] = "f" * 40
+    elif mutation == "bad_cohort":
+        row["historicalCohort"] = [row["localCommit"], row["localCommit"]]
+    elif mutation == "bad_remote_cut":
+        row["sourceQualification"]["protectedMain"] = "wrong"
+    with pytest.raises(module.ArchitectureDocsError, match=expected_error):
+        module.validate_formal_issue_census(census, plans)
+
+
 def test_git01_network_uv_nonmerge_uses_current_native_route_consumer() -> None:
     """One absent historic source; native Network verifies the current route."""
     import tomllib
@@ -924,6 +946,34 @@ def test_git01_network_uv_nonmerge_uses_current_native_route_consumer() -> None:
     assert owner["tools"]["uv"] == "0.13.5"
     assert "ci" in owner["tasks"] and "behavior" in owner["tasks"]
     module.validate_formal_issue_census(census, plans)
+
+
+@pytest.mark.parametrize(
+    ("mutation", "error"),
+    [
+        ("overlap_cohort", "invalid historical Git cohort"),
+        ("selected_blocked", "historical Git selected and blocked collision"),
+        ("numeric_retirement", "historical Git selection cannot authorize branch deletion"),
+    ],
+)
+def test_git01_owner_proof_union_cannot_silently_weaken_preexisting_guards(
+    mutation: str, error: str
+) -> None:
+    census, plans = formal_issue_inputs()
+    issue = next(x for x in census["issues"] if x["id"] == "GIT-01")
+    rows = issue["consumerSelections"]
+    if mutation == "overlap_cohort":
+        cases = [x for x in rows if "historicalCohort" in x]
+        assert len(cases) >= 2
+        cases[1]["historicalCohort"].append(cases[0]["historicalCohort"][0])
+    elif mutation == "selected_blocked":
+        issue["consumerBlockedSelections"][0]["localCommit"] = rows[0]["localCommit"]
+    elif mutation == "numeric_retirement":
+        rows[0]["branchDeletionAllowed"] = 1
+    else:
+        raise AssertionError(mutation)
+    with pytest.raises(module.ArchitectureDocsError, match=error):
+        module.validate_formal_issue_census(census, plans)
 
 
 def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
@@ -993,30 +1043,29 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             else:
                 assert item["evidenceScope"] == "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN"
                 assert item["disposition"] == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
-    # Selected distinct non-merge patches may be absorbed at identical exact
-    # Main tips, but native Owner consumers (not the Git blobs) decide whether
-    # the historical commit has any necessary independent effect.
-    qualified = {
-        item["localCommit"][:12]: item for item in candidates
+    # Algebraic identity of exact tip blobs is a proof category, not the
+    # identity of a historical commit or its concrete consumer disposition.
+    # Keep qualified records type checked; independent owner-native tests
+    # determine when corrected current source supersedes an old source cut.
+    identical = [
+        item for item in candidates
         if item["disposition"] == "SKIP_IDENTICAL_TIP_WITH_NATIVE_CONSUMER"
-    }
-    for short, owner, path_count in (
-        ("f0cfddcfd2f2", "services/runtime", 1),
-        ("d91d63b70da5", "services/gateway", 2),
-        ("0fbdd2445e1a", "platform/workstation", 3),
-    ):
-        selected = qualified[short]
-        assert selected["owner"] == owner
+    ]
+    assert identical
+    for selected in identical:
+        assert selected["owner"]
         assert selected["evidenceScope"] == "EXACT_GIT_BLOB_AND_NATIVE_CONSUMER_PASS"
         proof = selected["sourceQualification"]
         assert proof["localMain"] == source["localMain"]
-        assert proof["protectedMain"] == "3faee758c6c9bf4c7e97f3d7f6cb8bab93d3ca6a"
+        assert len(proof["protectedMain"]) == 40
         assert proof["kind"] == "non-merge"
         assert proof["patchRelation"] == "PATCH_DISTINCT_UNQUALIFIED"
         assert proof["branchDeletionAllowed"] is False
-        assert len(proof["changedPathIdentities"]) == path_count
-        assert len({row["path"] for row in proof["changedPathIdentities"]}) == path_count
-        assert all(len(row["blobOid"]) == 40 and row["mode"] for row in proof["changedPathIdentities"])
+        paths = proof["changedPathIdentities"]
+        assert paths and len({row["path"] for row in paths}) == len(paths)
+        assert all(len(row["blobOid"]) == 40 and row["mode"] for row in paths)
+    # A corrected Gateway or Workstation source cut is not an exact historical
+    # blob: those bounded obligations are independently tested below.
     module.validate_formal_issue_census(census, plans)
 
 
@@ -1612,4 +1661,45 @@ def test_git01_three_uv_owner_nonmerge_effects_use_current_verified_consumers() 
         mise = tomllib.loads((ROOT / owner / "mise.toml").read_text(encoding="utf-8"))
         assert tuple(map(int, mise["tools"]["uv"].split("."))) >= (0, 13, 5)
         assert task in mise["tasks"]
+    module.validate_formal_issue_census(census, plans)
+
+
+def test_git01_gateway_windows_release_historical_verifier_consumer() -> None:
+    """Do not replay an old Gateway verifier when current owner has stronger CDC."""
+    census, plans = formal_issue_inputs()
+    owner = next(issue for issue in census["issues"] if issue["id"] == "GIT-01")
+    matches = [entry for entry in owner["consumerSelections"]
+               if entry["localCommit"].startswith("d91d63b70da5")]
+    assert len(matches) == 1
+    evidence = matches[0]
+    assert evidence["owner"] == "services/gateway"
+    assert evidence["disposition"] == "SKIP_DUPLICATE_CHERRY_PICK"
+    assert evidence["evidenceScope"] == "NATIVE_CONSUMER_PASS"
+    assert evidence["sourceQualification"]["branchDeletionAllowed"] is False
+    assert evidence["sourceQualification"]["historicalTestBlobEqual"] is False
+    verifier = ROOT / "services/gateway/packaging/windows/verify_release.py"
+    current_test = ROOT / "services/gateway/tests/test_windows_release_contract.py"
+    assert verifier.is_file() and current_test.is_file()
+    assert "SURFACE_PATH" in verifier.read_text()
+    assert "test_windows_release_dependencies_do_not_share_cache_acl" in current_test.read_text()
+    module.validate_formal_issue_census(census, plans)
+
+
+def test_git01_workstation_cloudflare_gateway_tunnel_historical_correction() -> None:
+    """Old Gateway DNS tunnel switch may not override the corrected owner carrier."""
+    census, plans = formal_issue_inputs()
+    ledger = next(x for x in census["issues"] if x["id"] == "GIT-01")
+    matches = [x for x in ledger["consumerSelections"]
+               if x["localCommit"].startswith("0fbdd2445e1a")]
+    assert len(matches) == 1
+    row = matches[0]
+    assert row["owner"] == "platform/workstation"
+    assert row["disposition"] == "SKIP_OLDER_SOURCECUT"
+    assert row["evidenceScope"] == "NATIVE_CONSUMER_PASS"
+    assert row["sourceQualification"]["branchDeletionAllowed"] is False
+    assert row["sourceQualification"]["currentGatewayCname"] == "native_tunnel"
+    p = ROOT / "platform/workstation/tofu/agent-birth-handoff/main.tf"
+    source = p.read_text()
+    gateway = source.split('resource "cloudflare_dns_record" "gateway_mcp" {', 1)[1].split("\n}", 1)[0]
+    assert 'content = "${local.native_tunnel_id}.cfargotunnel.com"' in gateway
     module.validate_formal_issue_census(census, plans)

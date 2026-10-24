@@ -24,14 +24,17 @@
       "sharedRefs": [],
       "evidence": [
         "README.md",
-        "MEDIA.md"
+        "MEDIA.md",
+        "tests/test_rich_perception.py::test_correlation_rejects_nonfinite_numeric_profiles_before_pearson",
+        "tests/test_rich_perception.py::test_canonical_digest_rejects_non_json_finite_numbers"
       ],
       "dependencies": [],
       "mustNotOwn": [
         "source truth"
       ],
       "acceptance": [
-        "Projection names its source/observer boundary."
+        "Projection names its source/observer boundary.",
+        "RichPerception Pearson coupling requires finite samples and a finite result; its canonical JSON digest rejects NaN/Infinity before recording source identity."
       ]
     },
     {

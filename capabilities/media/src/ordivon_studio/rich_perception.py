@@ -136,14 +136,19 @@ def _quantile(values: Sequence[float], fraction: float) -> float:
 
 
 def _correlation(left: Sequence[float], right: Sequence[float]) -> float:
-    # Media's domain contract treats degenerate profiles as zero coupling.
-    # Python's statistics library owns the Pearson arithmetic.
+    # Media's domain contract treats degenerate *finite* profiles as zero coupling.
+    # Reject non-finite samples before calling the standard Pearson operator.
+    if any(not math.isfinite(value) for series in (left, right) for value in series):
+        raise ValueError("Media correlation profiles must contain finite numbers")
     if len(left) != len(right) or len(left) < 2:
         return 0.0
     try:
-        return statistics.correlation(left, right)
+        result = statistics.correlation(left, right)
     except statistics.StatisticsError:
         return 0.0
+    if not math.isfinite(result):
+        raise ValueError("Media correlation result must be finite")
+    return result
 
 
 def _normalized_entropy(values: Sequence[float]) -> float:
@@ -857,5 +862,7 @@ def media_intervention_report(
 
 
 def canonical_digest(value: Any) -> str:
-    encoded = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    encoded = json.dumps(
+        value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False
+    ).encode("utf-8")
     return "sha256:" + hashlib.sha256(encoded).hexdigest()
