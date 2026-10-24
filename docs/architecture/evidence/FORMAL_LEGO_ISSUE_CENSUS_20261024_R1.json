@@ -904,23 +904,6 @@
           }
         },
         {
-          "localCommit": "beab83436239bf87ab37e83e1b0649e992768d4e",
-          "owner": "tools/repo",
-          "consumer": "GitHub Dependabot npm/cargo/nix same-name updates across owner directories remain grouped by dependency-name while each owner retains its own manifest/lock; Renovate exclusively owns Python uv.lock.",
-          "remoteWitness": ".github/dependabot.yml groups same-dependency and tools/repo/test_dependency_update_ownership.py native 2 tests PASS at 3faee758c6c9 (combined governance/dependency 6 tests PASS); current manifests differ from historical Git blobs, so no byte-level identity.",
-          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
-          "evidenceScope": "NATIVE_CONSUMER_PASS",
-          "sourceQualification": {
-            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
-            "protectedMain": "7bf5f1d89da65e5ce8420910065d8c822cc6c4e3",
-            "tipRelation": "DIFFERENT_GIT_FILE_BLOBS_SELECTED_EFFECT_COVERED",
-            "consumerStanding": "CURRENT_OWNER_COVERED_AT_SOURCECUT",
-            "branchDeletionAllowed": false,
-            "representation": "declarative",
-            "scope": "ONLY_NAMED_CONSUMER_EFFECT_NOT_WHOLE_COMMIT_EQUIVALENCE"
-          }
-        },
-        {
           "localCommit": "c259144afab1a331ef90fee2f47d2328c7d4124e",
           "owner": "tools/repo",
           "consumer": "Runtime release artifact retention must resolve to immutable actions/upload-artifact v7.0.2 commit and fail when required evidence files are missing; root GitHub governance checker consumes that exact SHA.",
