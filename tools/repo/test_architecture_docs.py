@@ -828,8 +828,8 @@ def test_repo_test_function_names_are_unique() -> None:
         assert not duplicates, (source, duplicates)
 
 
-def test_git01_three_uv_owner_nonmerge_effects_use_current_verified_consumers() -> None:
-    """Old uv 0.13.5 patches must not replace the current native Owner graph."""
+def test_git01_five_native_owner_nonmerge_effects_use_current_verified_consumers() -> None:
+    """Historical toolchain locks must not replace the current native Owner graph."""
     import tomllib
 
     census, plans = formal_issue_inputs()
@@ -839,6 +839,8 @@ def test_git01_three_uv_owner_nonmerge_effects_use_current_verified_consumers() 
         "47ecd35d70c8": ("platform/security", "verify"),
         "dd3163920cb4": ("capabilities/media", "verify"),
         "993ed44db090": ("capabilities/distribution", "verify"),
+        "167112a8e6e1": ("platform/network", "ci"),
+        "3ee4459aa418": ("services/runtime", "verify"),
     }
     for sha, (owner, task) in qualification.items():
         record = selected[sha]
@@ -850,9 +852,13 @@ def test_git01_three_uv_owner_nonmerge_effects_use_current_verified_consumers() 
         assert proof["branchDeletionAllowed"] is False
         assert proof["patchRelation"] == "PATCH_DISTINCT_UNQUALIFIED"
         assert record["consumer"].strip() and record["remoteWitness"].strip()
-        mise = tomllib.loads((ROOT / owner / "mise.toml").read_text(encoding="utf-8"))
-        assert tuple(map(int, mise["tools"]["uv"].split("."))) >= (0, 13, 5)
-        assert task in mise["tasks"]
+        if owner == "services/runtime":
+            lock = (ROOT / owner / "Cargo.lock").read_text(encoding="utf-8")
+            assert 'name = "schemars"\nversion = "1.2.3"' in lock
+        else:
+            mise = tomllib.loads((ROOT / owner / "mise.toml").read_text(encoding="utf-8"))
+            assert tuple(map(int, mise["tools"]["uv"].split("."))) >= (0, 13, 5)
+            assert task in mise["tasks"]
     module.validate_formal_issue_census(census, plans)
 
 

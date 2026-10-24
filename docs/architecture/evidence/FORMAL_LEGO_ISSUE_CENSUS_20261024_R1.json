@@ -1056,6 +1056,42 @@
             "branchDeletionAllowed": false,
             "inferenceBoundary": "Native owner test and current lock freshness verify scoped consumer. Git partial identity does not prove entire historical commit equivalence, deployment, or wholesale branch retirement."
           }
+        },
+        {
+          "localCommit": "167112a8e6e1ba7f9af776fe6b85124b60d97cbe",
+          "owner": "platform/network",
+          "consumer": "Network Owner current uv 0.13.5 native CI remains working; the single historical mise.toml update should not be reintroduced into the evolved Network network-v2 context. Functional native sing-box consumer and fault tests, not uv version text alone, are required.",
+          "remoteWitness": "platform/network/mise.toml::tasks.ci and tasks.behavior; source-checked uv 0.13.5; native mise run ci 95/95 PASS, real sing-box behavior 3/3 PASS.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_OLDER_SOURCECUT",
+          "evaluatedRemoteMain": "97ebe3828c482cbeb7f58df4e6da614615017c56",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "97ebe3828c482cbeb7f58df4e6da614615017c56",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "CURRENT_LOCKED_CONSUMER_SOURCE_EVOLVED",
+            "consumerStanding": "CURRENT_NATIVE_OWNER_CONSUMER_VERIFIED",
+            "branchDeletionAllowed": false,
+            "inferenceBoundary": "Current source uses compatible pinned tool/schema with native owner tests; neither source equivalence nor whole historic commit acceptance follows."
+          }
+        },
+        {
+          "localCommit": "3ee4459aa418737ea745764fc0d9c385d1d77955",
+          "owner": "services/runtime",
+          "consumer": "Current Runtime lock already resolves schemars 1.2.3 with the same published registry checksum as the historical upgrade. Retain the current evolved Cargo.lock graph and transactional Runtime native core; do not replay the old whole lock or infer full dependency tree equivalence.",
+          "remoteWitness": "services/runtime/Cargo.lock schemars 1.2.3 checksum ab508826f74a77ca9d5aba6ff19b522583ee3eaf28a19384ff3d0e5835fadf6e; cargo test --locked -p ordivon-runtime-core --no-default-features --features transactional-runtime --lib PASS 363 tests, 41 ignored; source-cut Runtime semantics scoped to these tests.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_OLDER_SOURCECUT",
+          "evaluatedRemoteMain": "97ebe3828c482cbeb7f58df4e6da614615017c56",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "97ebe3828c482cbeb7f58df4e6da614615017c56",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "CURRENT_LOCKED_CONSUMER_SOURCE_EVOLVED",
+            "consumerStanding": "CURRENT_NATIVE_OWNER_CONSUMER_VERIFIED",
+            "branchDeletionAllowed": false,
+            "inferenceBoundary": "Current source uses compatible pinned tool/schema with native owner tests; neither source equivalence nor whole historic commit acceptance follows."
+          }
         }
       ],
       "consumerBlockedSelections": [
