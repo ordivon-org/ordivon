@@ -137,23 +137,10 @@ No new Agent role, new Skill, registry, approval loop, scheduler or formal DSL i
 **R2.1 first concrete mathematics-backed LEGO (2026-10-25): registered Owner dependency relation.**
 
 - **Minimum representation:** reuse each existing Owner planning node's id and dependencies; no common schema extension, executor, registry, or new declared ownership. Let N be the finite set of exact node IDs and D be a subset of N x N, the predecessor relation (u depends on v).
-- **Well-formedness obligation:** every node ID is unique and nonempty; every dependency is a typed, unique node ID; D is closed over N; D is acyclic. Consequently a topological order exists. This is a structural precondition, not a claim that environment assumptions, tool permissions, effects or domain outcomes have been discharged.
+- **Well-formedness obligation:** every node ID is unique and nonempty; every declared edge endpoint belongs to N, with a nonempty edge type. Only node prerequisites and `DEPENDENCY` edges enter D; D is closed over N and acyclic. `STATE`, `CONTROL`, `OBSERVATION` and other non-prerequisite relations may contain feedback cycles. Consequently an independent prerequisite topological order exists, but this is a structural precondition, not evidence that environment assumptions, tool permissions, effects or domain outcomes were discharged.
 - **Mature kernel and native witness:** Python standard-library graphlib.TopologicalSorter at the existing tools/repo/check_architecture_docs.py owner-registration gate. Runtime, Harness, Network, Security currently use this existing node/dependency plan shape; the Host V2 R3 frozen retained/external-owner list is not silently transformed into a graph or made authoritative.
 - **Negative witnesses:** two-node cycles in each registered core plan and dangling, duplicate or untyped edges/nodes must all fail the existing native tests before admission. Owner-specific behavioral CDC, Runtime TLA+ model scope, Host durable re-entry and independent consumer acceptance remain separate obligations.
 - **Subtraction rule:** use graphlib, not a bespoke DAG checker, a cross-domain graph database, a second LEGO registry, or mandatory 2.1 metadata on every component.
-
-**R2.1 minimal typed contract, not a new registry:** interpret a needed LEGO
-as the partial contract `L = (I, O, A, G, E, V)`: owner input/output
-types `I/O`, source/environment/authority assumptions `A`,
-consumer-observable guarantee (or state transition relation) `G`,
-already-owned bounded effects `E`, and scoped verifier `V`.
-Composition of `L1; L2` requires typed output/input compatibility,
-a *discharged* `G1 => A2` obligation, and explicit independent effect
-authority; unresolved assumption discharge is UNKNOWN, never PASS.
-Current `graphlib`, JSON Schema, Runtime TLA+/TLC and real consumer
-checks retain **distinct** proof scopes. A finite DAG or zero required
-gates cannot establish real outcome acceptance. No new execution owner,
-global LEGO metadata requirement, or custom solver is introduced.
 
 **Operational stopping rule:** one needed property, one appropriate mature owner/kernel, one scoped verification/effect witness, followed by read-back and cleanup. If none materially improves real consumer outcomes, do not add it.
 
