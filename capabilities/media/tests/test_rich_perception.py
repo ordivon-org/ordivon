@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import shutil
+import statistics
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from ordivon_studio.rich_perception import (
     ARTICLE_RICH_FEATURES,
+    _correlation,
     article_structure_features,
     audio_structure_features,
     canonical_digest,
@@ -23,6 +26,17 @@ from ordivon_studio.rich_perception import (
 
 
 class RichPerceptionTest(unittest.TestCase):
+    def test_correlation_delegates_pearson_math_to_stdlib_with_zero_contract(self) -> None:
+        left = [1.0, 1.5, 3.0, 5.0, 8.0]
+        right = [9.0, 6.0, 5.0, 2.0, 1.0]
+        expected = statistics.correlation(left, right)
+        with patch.object(statistics, "correlation", wraps=statistics.correlation) as native:
+            self.assertAlmostEqual(_correlation(left, right), expected)
+            native.assert_called_once_with(left, right)
+        self.assertEqual(_correlation([1.0, 1.0, 1.0], [2.0, 3.0, 4.0]), 0.0)
+        self.assertEqual(_correlation([1.0], [2.0]), 0.0)
+        self.assertEqual(_correlation([1.0, 2.0], [3.0]), 0.0)
+
     def test_article_features_preserve_structure_without_raw_body(self) -> None:
         body = (
             "A precise opening explains the mechanism. "

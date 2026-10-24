@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "artifact-python-runtime-lock",
-  "pythonRuntime": "3.14.7",
+  "pythonRuntime": "3.15.1",
   "pythonPackages": {
     "attrs": "26.1.0",
     "jsonschema": "4.26.0",
@@ -12,7 +12,7 @@
     "opentelemetry-sdk": "1.44.0",
     "opentelemetry-semantic-conventions": "0.65b0",
     "Pillow": "12.3.0",
-    "protobuf": "7.36.1",
+    "protobuf": "7.36.2",
     "python-pptx": "1.0.2",
     "referencing": "0.37.0",
     "rpds-py": "2026.6.3",
@@ -23,8 +23,8 @@
   },
   "uvProject": {
     "path": "artifact-delivery/python-uv",
-    "pyprojectSha256": "sha256:ba2fc117aab10d14dc56be10993b92c857fbaad26e2b38bdc7b4b3ed4eff33bd",
-    "uvLockSha256": "sha256:5aa6400a17519b210af9116b8a7b8153176112001235430ed0abf19abb5e0392"
+    "pyprojectSha256": "sha256:8e1aaa5dfac052d3b270d7f4e6b14a0f841a5df47c3dc941cd0beafa86915fd2",
+    "uvLockSha256": "sha256:9e4bb741d751366b19ca9bf1f66d646d28dbb975fdcd0af2b043fcccb5c13cdf"
   },
   "stableRoot": "/root/.local/share/ordivon-workstation/artifact-python-v1",
   "stablePython": "/root/.local/share/ordivon-workstation/artifact-python-v1/current/bin/python",

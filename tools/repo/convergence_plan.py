@@ -104,7 +104,8 @@ def build_plan(
         head_tree = _git("rev-parse", f"{head_revision}^{{tree}}")
         paths = affected_owners.changed_paths(base_revision, head_revision)
 
-    direct = affected_owners.owners_for_paths(paths)
+    affected_owners.require_registered_execution_paths(paths, owners=owners)
+    direct = affected_owners.owners_for_paths(paths, owners=owners)
     direct_names = tuple(owner.name for owner in direct)
     cross_cutting = _is_cross_cutting(paths)
     graph = load_dependency_graph(owners=owners, path=dependency_path)

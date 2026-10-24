@@ -6,9 +6,9 @@
   "truthRole": "traceability-gate-not-mechanized-refinement-proof",
   "formalSpecification": {
     "modulePath": "formal/RuntimeDispatchR1.tla",
-    "moduleSha256": "29e54c84ef33441976c7ec2be112e4d2584a5e5611060712b3e73cabc852ac6f",
+    "moduleSha256": "bacbfac86d57fa1eea624a3d778e103c7ed530ae4b87df4e6130e07d69ff80cc",
     "configPath": "formal/RuntimeDispatchR1.cfg",
-    "configSha256": "0985b94b18573a206b048714dbb812cb1c5d2b6fe9bbb71e6186e8ab8d268bc4",
+    "configSha256": "07c60b959a656dae60c583e54c48139b39f8299bd34729bf347f250e08dbe595",
     "modelBindings": [
       {
         "id": "RuntimeDispatch.Dispatch",
@@ -105,14 +105,16 @@
   "supportScope": [
     "machine-checkable currentness of the named TLA+ model, Runtime invariant references, stable Runtime contract seams and proving-test identities",
     "bounded correspondence for the at-most-once physical dispatch and ambiguity-preserving design seams",
-    "provider refactors may move Linux or Windows realization internals without invalidating the trace while the ExecutionProvider.realize contract seam remains current"
+    "provider refactors may move Linux or Windows realization internals without invalidating the trace while the ExecutionProvider.realize contract seam remains current",
+    "fairness-qualified abstract first-decision progress: admitted work reaches terminal evidence or explicit ambiguity, not guaranteed eventual completion"
   ],
   "nonClaims": [
     "This is not a mechanized refinement proof from Rust semantics to TLA+ semantics.",
     "Passing this gate does not prove all Runtime implementations or all environmental behaviors conform to the model.",
     "The finite TLC model remains abstraction evidence and must be checked separately.",
     "The integration tests remain empirical implementation evidence and may require an owner-native real-system environment.",
-    "This trace does not establish domain semantic completion or exactly-once external effects."
+    "This trace does not establish domain semantic completion or exactly-once external effects.",
+    "Weak fairness is a model assumption; real scheduling, provider responsiveness, retries, deadlock freedom and domain completion are not proven."
   ],
   "supportingContracts": [
     {

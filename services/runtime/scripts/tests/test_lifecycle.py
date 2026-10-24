@@ -53,7 +53,8 @@ def initialize_registry(database: Path, workspace_id: str | None = None, activit
 
 
 def init_repository(path: Path) -> str:
-    subprocess.run(["git", "init", "-q", str(path)], check=True)
+    # Explicit fixture branch: CI runners may default git init to master.
+    subprocess.run(["git", "init", "-q", "-b", "main", str(path)], check=True)
     subprocess.run(["git", "-C", str(path), "config", "user.name", "Test"], check=True)
     subprocess.run(
         ["git", "-C", str(path), "config", "user.email", "test@example.invalid"],
@@ -105,8 +106,8 @@ class LifecycleTests(unittest.TestCase):
             # A standalone source's explicit HEAD fallback is preserved.
             self.assertEqual(inspect({**planned, "canonicalRef": "HEAD"}), local_head)
 
-    def test_reclaim_planner_and_lifecycle_revalidator_share_published_ref(self) -> None:
-        """Real producer/consumer contract: a moving local HEAD is not publication drift."""
+    def test_reclaim_planner_and_lifecycle_revalidator_share_local_main_ref(self) -> None:
+        """Workspace main integration is distinct from remote publication."""
         inspect_reclaim = runpy.run_path(str(REPO / "scripts/ordivon-runtime-reclaim"))
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -119,30 +120,51 @@ class LifecycleTests(unittest.TestCase):
                 ["git", "-C", str(repo), "worktree", "add", "--detach", "-q", str(worktree), baseline],
                 check=True,
             )
-
-            # A developer advances only the local canonical checkout.
-            (repo / "README.md").write_text("unpublished source update\n", encoding="utf-8")
+            (repo / "README.md").write_text("local advanced, tracking old\n", encoding="utf-8")
             subprocess.run(["git", "-C", str(repo), "add", "README.md"], check=True)
-            subprocess.run(["git", "-C", str(repo), "commit", "-qm", "unpublished"], check=True)
+            subprocess.run(["git", "-C", str(repo), "commit", "-qm", "advance local main"], check=True)
             local_head = subprocess.check_output(
-                ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+                ["git", "-C", str(repo), "rev-parse", "main"], text=True,
             ).strip()
-            self.assertNotEqual(baseline, local_head)
+            assert baseline != local_head
 
             planned = inspect_reclaim["git_canonical_integration"](worktree, str(repo))
-            self.assertEqual(planned["canonicalRef"], "origin/main")
-            self.assertEqual(planned["canonicalHeadRevision"], baseline)
+            self.assertEqual(planned["canonicalRef"], "main")
+            self.assertEqual(planned["canonicalHeadRevision"], local_head)
             self.assertEqual(
                 self.module["canonical_head_revision"]({**planned, "sourceRepo": str(repo)}),
-                planned["canonicalHeadRevision"],
+                local_head,
+            )
+            # A local main advance changes canonical head; tracking main alone does not.
+            subprocess.run(["git", "-C", str(repo), "update-ref", published, local_head], check=True)
+            self.assertEqual(
+                self.module["canonical_head_revision"]({**planned, "sourceRepo": str(repo)}),
+                local_head,
             )
 
-            # Only an actual publication-ref change invalidates the existing plan.
-            subprocess.run(["git", "-C", str(repo), "update-ref", published, local_head], check=True)
-            self.assertNotEqual(
-                self.module["canonical_head_revision"]({**planned, "sourceRepo": str(repo)}),
-                planned["canonicalHeadRevision"],
-            )
+    def test_local_main_fast_forward_only_when_ancestry_proven(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory) / "source"
+            baseline = init_repository(repo)
+            (repo / "NEXT").write_text("new commit\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(repo), "add", "NEXT"], check=True)
+            subprocess.run(["git", "-C", str(repo), "commit", "-qm", "advance main"], check=True)
+            head = subprocess.check_output(
+                ["git", "-C", str(repo), "rev-parse", "main"], text=True,
+            ).strip()
+            item = {
+                "sourceRepo": str(repo),
+                "canonicalRef": "main",
+                "canonicalHeadRevision": baseline,
+                "workspaceHeadRevision": baseline,
+                "closureReason": "HEAD_REACHABLE_FROM_CANONICAL",
+            }
+            check = self.module["canonical_fast_forward_preserves_integration"]
+            self.assertTrue(check(item, head))
+            self.assertFalse(check({**item, "closureReason": "PATCH_EQUIVALENT_IN_CANONICAL"}, head))
+            self.assertFalse(check({**item, "canonicalRef": "HEAD"}, head))
+            self.assertFalse(check({**item, "canonicalHeadRevision": head}, baseline))
+            self.assertFalse(check({**item, "workspaceHeadRevision": "0" * 40}, head))
 
     def test_canonical_currentness_rejects_missing_or_unknown_ref(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

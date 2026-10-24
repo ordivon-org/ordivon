@@ -166,10 +166,28 @@
       "evidence": [],
       "blockers": [],
       "nextAction": "Freeze the H05 assume-guarantee obligations, then test one alternate adapter for both positive compatibility and negative substitutability before promoting the SPI."
+    },
+    {
+      "id": "HS2",
+      "objective": "Falsify transitive Tool authority and monitor-to-stop assumptions across admitted Harness effect consumers.",
+      "status": "PROPOSED",
+      "nodeIds": [
+        "H03",
+        "H04"
+      ],
+      "acceptance": [
+        "No Agent message, Tool response, or chained service call is interpreted as a new authority grant.",
+        "Detector observation, stop request, process termination, and external-effect reconciliation are tested separately.",
+        "A missing consumer/effect oracle remains UNKNOWN, never promoted to PASS."
+      ],
+      "evidence": [],
+      "blockers": [],
+      "nextAction": "Reuse existing Harness action/effect tests with a fault-injected indirect-service consumer; do not add a new admission service."
     }
   ],
   "gaps": [
-    "A general alternate-harness adapter has not yet been accepted by evidence in this plan."
+    "A general alternate-harness adapter has not yet been accepted by evidence in this plan.",
+    "2026-10-24 audit: current end-to-end evidence for chained Tool authority and detector-to-stop-to-effect reconciliation is UNKNOWN; see docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261024_R1.json."
   ],
   "doNotOwn": [
     "Host Task truth",

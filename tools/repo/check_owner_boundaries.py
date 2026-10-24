@@ -91,6 +91,16 @@ def tracked_active_files() -> tuple[str, ...]:
     return tuple(path for path in output.splitlines() if is_active_path(path))
 
 
+def _matches_source_glob(path: str, pattern: str) -> bool:
+    """A source_glob is an owner-local file pattern: '*' cannot cross '/'."""
+    parts = path.split("/")
+    globs = pattern.split("/")
+    return len(parts) == len(globs) and all(
+        fnmatch.fnmatchcase(part, glob)
+        for part, glob in zip(parts, globs, strict=True)
+    )
+
+
 def _allowed(
     finding: Finding,
     seams: tuple[Seam, ...],
@@ -98,7 +108,7 @@ def _allowed(
     return any(
         seam.from_owner == finding.from_owner
         and seam.to_owner == finding.to_owner
-        and fnmatch.fnmatchcase(finding.source_path, seam.source_glob)
+        and _matches_source_glob(finding.source_path, seam.source_glob)
         and seam.allowed_fragment in finding.text
         for seam in seams
     )
@@ -176,7 +186,7 @@ def main() -> int:
         if not any(
             from_owner == seam.from_owner
             and to_owner == seam.to_owner
-            and fnmatch.fnmatchcase(source_path, seam.source_glob)
+            and _matches_source_glob(source_path, seam.source_glob)
             for from_owner, to_owner, source_path in used
         ):
             stale.append(seam)

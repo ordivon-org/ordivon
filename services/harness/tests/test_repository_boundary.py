@@ -23,7 +23,7 @@ class RepositoryBoundaryTests(unittest.TestCase):
         self.assertEqual(
             project.get("dependency-groups"),
             {
-                "dev": ["ruff==0.15.17"],
+                "dev": ["ruff==0.17.2"],
                 "test": [
                     "mcp==2.2.0",
                     "uvicorn==0.52.1",

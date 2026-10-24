@@ -28,6 +28,18 @@ Crypto Shadow Mechanics R1 also passes local multi-currency Spot OMS mechanics f
 
 Crypto data transport is now venue-specific: OKX uses the qualified Nautilus native public client, while Binance uses its official credential-free REST/WebSocket boundary because Nautilus 2.0.0rc4 still times out during native data-client startup.
 
+**Public-data adapter policy LEGO** (capital.markets.crypto-public-data-admission):
+Capital owns one responsibility—reject nonpublic or execution-capable adapter
+configuration. Input: config/crypto_data_adapters.json; output: a successful
+bounded public-data policy receipt or nonzero rejection. Contract: PUBLIC_DATA_ONLY,
+credential-free OKX/Binance primary paths, no venue execution client, and no Binance
+SBE credential workaround. Actual consumers: scripts/run-crypto-public-shadow-r2
+and scripts/run-crypto-stream-resilience-r3. Acceptance:
+tests/test_crypto_data_adapters.py injects forbidden credential/execution flags
+into an isolated configuration and requires rejection under ordinary and optimized
+Python, then mise run verify checks the owner suite. This does not authorize
+private account access, trading or external financial effects.
+
 Crypto Public Shadow R2 now passes repeated persistent public streaming through exact Network v2 WS authorities using the mature `websockets` client proxy support. OKX `bbo-tbt` plus Binance market-data-only `@ticker` produced one warm-up and three measured coherent snapshots; all measured source/receive spans remained below the frozen 1200 ms limits. Provider selection is owned by Network v2 `provider-auto`, not by an application-level node/protocol matrix.
 
 Crypto Stream Resilience R3 keeps fail-closed missing/stale/time-divergence semantics and the dual-venue reconnect harness on exact Network v2 WS authorities. Current injected-disconnect qualification passes for both OKX and Binance; observed reconnect latencies were ~16.0 s and ~26.3 s respectively and remain evidence rather than a hidden transport claim. The state is exported through the existing Prometheus/Grafana stack without enabling private/demo/live execution.
@@ -48,6 +60,31 @@ Execution Reconciliation R6 now passes offline: authoritative normalized venue r
 Demo/Testnet Execution R7 preflight is prepared but not admitted: the installed NautilusTrader execution configs construct successfully for OKX DEMO and Binance Spot TESTNET without credentials or network access. Demo/live write authority remains false.
 
 Live endpoint test-account policy is now explicit: the user authorizes the existing OKX/Binance LIVE endpoints for non-production qualification, but they remain semantically LIVE. Fresh authoritative account reality must prove an effectively empty account (no positions/open orders/nonquote balances and <=1 quote unit), trade-only authority, clock health and reconciliation health before order submission can be enabled.
+
+## Finance factor LEGO — current consumer boundary
+
+The current Market Capital research/risk consumer is **descriptive**, not a new
+factor-model framework. A factor label, factor exposure, proxy correlation, alpha
+forecast, strategy target and broker order are **different responsibilities**.
+
+| Existing LEGO consumer | Actual implementation | Contract |
+| --- | --- | --- |
+| Factor proxy measurement | `risk/portfolio_risk.py::build_factor_observatory` | Explicit market-proxy histories; dependence evidence is not causal alpha |
+| Portfolio factor exposure | `risk/portfolio_risk.py::build_exposure_ledger` | Caller-supplied loadings; overlapping exposure is not additive risk contribution |
+| Risk budget and report | `risk/portfolio_risk.py::build_portfolio_risk_report` | `UNSET` stays incomplete, never inferred |
+| Portfolio alternatives | `portfolio/portfolio_counterfactuals.py` | Explicit what-if mechanics, not trade ranking or authorization |
+| Execution | Current Capital Governance / Trading authorities | `NON_LIVE`; no financial-write effect from factor observations |
+
+An older experimental decision-state/atlas circuit exists in historical branches
+but **is not a protected-main consumer**. Do not resurrect it merely to satisfy
+a factor test. Use an external academic factor definition or qualified LEAN
+implementation when a real strategy consumer demands it; qualify its data cut,
+source, signal meaning, costs and forward evidence before promoting it.
+
+Golden Path (no provider account, synthetic data, no order):
+`mise run //domains/capital:verify`, including
+`tests/test_factor_lego_consumer_contract.py`. This only demonstrates current
+mechanical consumer boundaries; it is not evidence of positive investment Edge.
 
 ## Verification boundary
 

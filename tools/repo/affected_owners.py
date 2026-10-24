@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import tomllib
 from dataclasses import dataclass
@@ -97,25 +98,56 @@ def _normalize(path: str) -> str:
     return value
 
 
-def owners_for_paths(paths: Iterable[str]) -> tuple[Owner, ...]:
+# Verification admission is strict for executable owners. Read-only owner
+# discovery stays permissive so unknown paths remain inspectable.
+EXECUTABLE_OWNER_ROOTS = (
+    "apps/",
+    "services/",
+    "platform/",
+    "capabilities/",
+    "domains/",
+    "packages/",
+    "extensions/",
+)
+
+
+def require_registered_execution_paths(
+    paths: Iterable[str], *, owners: tuple[Owner, ...] = OWNERS
+) -> None:
+    unregistered = sorted({
+        path for raw in paths
+        if (path := _normalize(raw)).startswith(EXECUTABLE_OWNER_ROOTS)
+        and not any(path.startswith(owner.root) for owner in owners)
+    })
+    if unregistered:
+        raise ValueError(f"unregistered owner path: {', '.join(unregistered)}")
+
+
+def owners_for_paths(
+    paths: Iterable[str], *, owners: tuple[Owner, ...] = OWNERS
+) -> tuple[Owner, ...]:
     normalized = tuple(_normalize(path) for path in paths if path.strip())
     if any(path in CROSS_CUTTING_PATHS for path in normalized):
-        return OWNERS
+        return owners
     selected: list[Owner] = []
-    for owner in OWNERS:
+    for owner in owners:
         if any(path.startswith(owner.root) for path in normalized):
             selected.append(owner)
     return tuple(selected)
 
 
 def changed_paths(base: str, head: str) -> tuple[str, ...]:
+    # Preserve both sides of a cross-owner move, rather than allowing Git's
+    # similarity detection to hide the source owner from verification.
     proc = subprocess.run(
-        ["git", "diff", "--name-only", "--diff-filter=ACDMRTUXB", f"{base}...{head}"],
+        [
+            "git", "diff", "--name-only", "--no-renames", "-z",
+            "--diff-filter=ACDMRTUXB", f"{base}...{head}",
+        ],
         check=True,
-        text=True,
         stdout=subprocess.PIPE,
     )
-    return tuple(line for line in proc.stdout.splitlines() if line)
+    return tuple(os.fsdecode(path) for path in proc.stdout.split(b"\0") if path)
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -146,6 +178,7 @@ def main() -> int:
             if not args.base or not args.head:
                 raise SystemExit("--base and --head are required unless --all or --changed-file is used")
             paths = changed_paths(args.base, args.head)
+        require_registered_execution_paths(paths)
         selected = owners_for_paths(paths)
 
     if args.format == "names":

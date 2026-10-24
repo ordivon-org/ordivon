@@ -1,7 +1,7 @@
 [tools]
 powershell = "7.6.7"
-python = "3.15.0"
-uv = "0.13.1"
+python = "3.15.1"
+uv = "0.13.5"
 rust = { version = "1.99.1", components = "clippy,rustfmt" }
 
 # Upstream prebuilt Nextest, delivered through a GitHub mirror for blocked release-CDN networks.
@@ -20,8 +20,10 @@ cargo fmt --check
 scripts/owner-environment test
 cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
 cargo test --locked -p ordivon-runtime-core --no-default-features --features transactional-runtime -- --skip request_identity_and_terminal_winner_match_reference_model
+python3 scripts/tests/test_focused_verification_contract.py -v
 scripts/owner-environment extended
 python scripts/check_docs.py
+mise run formal:verify
 """
 
 [tasks."test:focused"]
@@ -29,4 +31,21 @@ description = "Optional upstream cargo-nextest focused suite with native JUnit (
 run = """
 set -euo pipefail
 cargo nextest run --locked --lib -p ordivon-runtime-core --no-default-features --features transactional-runtime --status-level pass -P ci -E "${RUNTIME_TEST_EXPR:-test(public_requests_reject_unknown_fields_and_path_escape)}"
+"""
+
+
+# One Runtime-native Formal verification LEGO: source/consumer trace and
+# actual upstream TLC model checking. Reuse the pinned toolchain owner; do not
+# install a second verifier. CI cold starts bootstrap only the locked cache.
+[tasks."formal:verify"]
+description = "Validate Runtime dispatch contract trace and model-check pinned TLA+"
+run = """
+set -euo pipefail
+python scripts/verify_formal_trace.py
+# Read the cache path from the existing upstream-locked toolchain contract.
+local_jar=$(python -c 'import json; print(json.load(open("formal/toolchain.lock.json", encoding="utf-8"))["cacheRelativePath"])')
+if [[ "${ORDIVON_TLA_TOOLS_JAR+x}" != x && ! -f "$local_jar" ]]; then
+  scripts/tla-formal bootstrap
+fi
+scripts/tla-formal check
 """

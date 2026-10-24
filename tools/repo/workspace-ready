@@ -1,0 +1,234 @@
+#!/bin/bash
+# One cold-Workspace consumer entrypoint; infer the owner from cwd when omitted.
+# mise, owner locks and the shared VPN remain authoritative.
+set -euo pipefail
+
+# Runtime Jobs are not login shells. The fixed OS binaries needed to discover
+# the owner and run mise remain available even with an empty/incomplete PATH.
+# Append, rather than shadow, caller-supplied tool directories; mise's selected
+# owner directories are placed first before executing the consumer.
+PATH="${PATH:+$PATH:}/usr/bin:/bin"
+export PATH
+
+usage() {
+  echo "usage: bash tools/repo/workspace-ready [owner-scope] [-- command args...]" >&2
+  echo "       omit owner-scope inside an owner; nearest mise.toml is selected" >&2
+  exit 2
+}
+root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
+
+if (( $# == 0 )) || [[ "$1" == "--" ]]; then
+  # Runtime cwd chooses the nearest owner, not ambient host shims.
+  caller=$(pwd -P)
+  case "$caller" in
+    "$root"|"$root"/*) ;;
+    *) echo "workspace-ready: current directory must be inside repository" >&2; exit 2 ;;
+  esac
+  owner="$caller"
+  while [[ ! -f "$owner/mise.toml" && "$owner" != "$root" ]]; do
+    owner=$(dirname -- "$owner")
+  done
+  [[ -f "$owner/mise.toml" ]] || {
+    echo "workspace-ready: no owner mise.toml for current directory" >&2
+    exit 2
+  }
+  scope="${owner#"$root"/}"
+  [[ "$owner" == "$root" ]] && scope="."
+  # The nearest dependency manifest is the actual consumer; it may inherit
+  # its toolchain from a higher mise config root.
+  consumer="$owner"
+  probe="$caller"
+  while [[ "$probe" != "$owner" ]]; do
+    if [[ -f "$probe/pyproject.toml" || -f "$probe/package.json" ]]; then
+      consumer="$probe"
+      break
+    fi
+    probe=$(dirname -- "$probe")
+  done
+else
+  scope=$1
+  shift
+  [[ "$scope" != /* && "$scope" != *..* ]] || {
+    echo "workspace-ready: owner scope must stay inside repository" >&2
+    exit 2
+  }
+  [[ -d "$root/$scope" ]] || {
+    echo "workspace-ready: unknown owner: $scope" >&2
+    exit 2
+  }
+  owner=$(cd -- "$root/$scope" && pwd -P)
+  case "$owner" in
+    "$root"|"$root"/*) ;;
+    *) echo "workspace-ready: owner scope escapes repository" >&2; exit 2 ;;
+  esac
+  consumer="$owner"
+  # A nested package may inherit the nearest mise.toml without copying tools.
+  # Only actual locked package consumers may select a directory without one.
+  while [[ ! -f "$owner/mise.toml" && "$owner" != "$root" ]]; do
+    owner=$(dirname -- "$owner")
+  done
+  [[ -f "$owner/mise.toml" ]] || {
+    echo "workspace-ready: no owner mise.toml at $scope" >&2
+    exit 2
+  }
+  if [[ "$consumer" != "$owner" && ! -f "$consumer/package.json" && ! -f "$consumer/pyproject.toml" ]]; then
+    echo "workspace-ready: nested scope has no package manifest: $scope" >&2
+    exit 2
+  fi
+fi
+
+# Existing pnpm workspaces materialize dependencies at their shared lock root,
+# rather than treating each member package.json as an independent install.
+if [[ "$consumer" != "$owner" && -f "$consumer/package.json" &&
+      ! -f "$consumer/pnpm-lock.yaml" && ! -f "$consumer/package-lock.json" &&
+      ! -f "$consumer/npm-shrinkwrap.json" &&
+      -f "$owner/pnpm-workspace.yaml" && -f "$owner/pnpm-lock.yaml" ]]; then
+  consumer="$owner"
+fi
+
+# A partial npm -> pnpm migration can leave both lockfiles beside one
+# package.json. Never silently choose whichever lock branch happens to run
+# first: fail before downloads/bootstraps until the old lock is removed.
+if [[ -f "$consumer/package.json" && -f "$consumer/pnpm-lock.yaml" && (
+        -f "$consumer/package-lock.json" || -f "$consumer/npm-shrinkwrap.json" ) ]]; then
+  echo "workspace-ready: mixed npm and pnpm locks at $scope; remove retired npm lock after pnpm import" >&2
+  exit 2
+fi
+
+# All tracked Node consumers now use pnpm. An npm-only lock is not an
+# alternate bootstrap authority: reject before any tool/network side effects
+# so a freshly added legacy owner cannot bypass the locked pnpm Golden Path.
+if [[ -f "$consumer/package.json" && (
+        -f "$consumer/package-lock.json" || -f "$consumer/npm-shrinkwrap.json" ) ]]; then
+  echo "workspace-ready: npm lock unsupported at $scope; migrate with pnpm import and commit pnpm-lock.yaml" >&2
+  exit 2
+fi
+
+# Fail before any mise probe, download or owner bootstrap if the request cannot
+# be fulfilled. Every lock in a mixed-language owner must exist first.
+if (( $# )); then
+  [[ "$1" == "--" ]] || usage
+  (( $# >= 2 )) || usage
+fi
+if [[ ! -f "$consumer/scripts/owner-environment" ]]; then
+  [[ ! -f "$consumer/pyproject.toml" || -f "$consumer/uv.lock" ]] || {
+    echo "workspace-ready: uv.lock missing at $scope" >&2
+    exit 2
+  }
+  [[ ! -f "$consumer/package.json" || -f "$consumer/pnpm-lock.yaml" ]] || {
+    echo "workspace-ready: pnpm-lock.yaml missing at $scope" >&2
+    exit 2
+  }
+fi
+
+# Preserve host-discoverable tools, but the selected owner's binaries win
+# through the final child PATH projected by mise below.
+mise_bin=${MISE_BIN:-$(command -v mise || true)}
+[[ -n "$mise_bin" && -x "$mise_bin" ]] || {
+  echo "workspace-ready: mise not installed; install the existing project tool manager" >&2
+  exit 127
+}
+provider="$root/platform/network/consumers/developer-egress/profile.sh"
+prepare() {
+  # Network v2 owns downloads, but local, already-installed tools require no egress.
+  [[ -f "$provider" ]] || {
+    echo "workspace-ready: Network v2 developer-egress provider missing; no direct download fallback" >&2
+    exit 69
+  }
+  [[ "${ORDIVON_DEV_VPN:-auto}" != off ]] || {
+    echo "workspace-ready: VPN disabled; refuse owner dependency downloads" >&2
+    exit 69
+  }
+  /usr/bin/bash "$provider" -- "$@"
+}
+# Prefer the native package-manager store. The network/VPN provider is an
+# egress fallback, not a precondition for a cached cold Workspace.
+sync_cached_or_download() {
+  local tool=$1
+  shift
+  if "$mise_bin" exec -- /usr/bin/env "PATH=$owner_tool_path" "$tool" "$@" --offline; then
+    return 0
+  fi
+  if [[ "${ORDIVON_DEV_VPN:-auto}" == off ]]; then
+    echo "workspace-ready: offline $tool cache incomplete or lock invalid; VPN disabled" >&2
+    exit 69
+  fi
+  prepare "$mise_bin" exec -- /usr/bin/env "PATH=$owner_tool_path" "$tool" "$@"
+}
+cd -- "$owner"
+# Native mise dry-run-code is a read-only preflight: 0 = present, 1 = missing,
+# other errors mean misconfiguration. Do not mask a broken preflight as a
+# download request. MISE_OFFLINE protects against resolution egress.
+if MISE_OFFLINE=1 "$mise_bin" install --dry-run-code --include-task-tools; then
+  :
+else
+  status=$?
+  if (( status != 1 )); then
+    echo "workspace-ready: mise preflight failed (exit=$status); refuse downloads" >&2
+    exit 69
+  fi
+  prepare "$mise_bin" install --include-task-tools
+fi
+
+# Use mise's own selected PATH to outrank ambient user wrappers.
+if ! selected_paths=$("$mise_bin" env --paths); then
+  echo "workspace-ready: mise failed to project owner tool PATH" >&2
+  exit 69
+fi
+preferred_path=""
+if [[ -n "$selected_paths" ]]; then
+  while IFS= read -r directory; do
+    [[ -n "$directory" ]] || continue
+    if [[ "$directory" != /* || "$directory" == *:* || ! -d "$directory" ]]; then
+      echo "workspace-ready: mise projected an invalid tool directory" >&2
+      exit 69
+    fi
+    if [[ -z "$preferred_path" ]]; then preferred_path="$directory"; else preferred_path="$preferred_path:$directory"; fi
+  done <<< "$selected_paths"
+fi
+[[ -z "$preferred_path" ]] || export PATH="$preferred_path:$PATH"
+owner_tool_path="$PATH"
+
+# uv's .python-version may be stale or generated by an earlier Workspace
+# consumer. The owner mise.toml, not ambient Python or that marker, is the
+# interpreter authority for the current lock, sync and subsequent uv commands.
+# This is scoped to Python projects: Node-only owners need no interpreter.
+if [[ -f "$consumer/pyproject.toml" ]]; then
+  if ! owner_python=$("$mise_bin" which python); then
+    echo "workspace-ready: owner Python not installed or selected by mise" >&2
+    exit 69
+  fi
+  [[ "$owner_python" == /* && -x "$owner_python" ]] || {
+    echo "workspace-ready: owner mise selected an invalid Python executable" >&2
+    exit 69
+  }
+  export UV_PYTHON="$owner_python"
+fi
+
+cd -- "$consumer"
+if [[ -f scripts/owner-environment ]]; then
+  # Owner scripts already own materialization; do not duplicate their logic.
+  prepare "$mise_bin" exec -- /usr/bin/env "PATH=$owner_tool_path" /usr/bin/bash scripts/owner-environment bootstrap
+  "$mise_bin" exec -- /usr/bin/env "PATH=$owner_tool_path" /usr/bin/bash scripts/owner-environment doctor
+else
+  if [[ -f pyproject.toml ]]; then
+    sync_cached_or_download uv sync --locked
+  fi
+  if [[ -f package.json ]]; then
+    if [[ -f pnpm-lock.yaml ]]; then
+      CI=true sync_cached_or_download pnpm install --frozen-lockfile
+    fi
+  fi
+fi
+
+if (( $# )); then
+  [[ "$1" == "--" ]] || usage
+  shift
+  (( $# )) || usage
+  if [[ -x .venv/bin/python ]]; then
+    # Set the final child PATH after mise exec, which can preserve ambient
+    # wrapper directories ahead of selected versions.
+    exec "$mise_bin" exec -- /usr/bin/env "PATH=$PWD/.venv/bin:$owner_tool_path" "$@"
+  fi
+  exec "$mise_bin" exec -- /usr/bin/env "PATH=$owner_tool_path" "$@"
+fi

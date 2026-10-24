@@ -2,7 +2,7 @@
 name = "ordivon-next"
 version = "0.0.0"
 description = "Repository environment for Ordivon Next."
-requires-python = "==3.15.0"
+requires-python = "==3.15.1"
 dependencies = [
   "ordivon-composition",
 ]
@@ -15,7 +15,7 @@ test = [
   "z3-solver>=4,<5",
 ]
 quality = [
-  "ruff==0.16.8",
+  "ruff==0.17.2",
 ]
 security = [
   "bandit>=1.9.4",
@@ -43,7 +43,7 @@ ordivon-composition = { path = "../../packages/composition" }
 [tool.uv]
 package = false
 default-groups = ["test"]
-required-version = "==0.13.1"
+required-version = "==0.13.5"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

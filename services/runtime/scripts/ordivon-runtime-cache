@@ -104,8 +104,16 @@ def cache_retention_measurement(path: Path) -> dict[str, object]:
                             stack.append(Path(entry.path))
                         elif entry.is_file(follow_symlinks=False):
                             total += entry.stat(follow_symlinks=False).st_size
+                    except FileNotFoundError:
+                        # An active cache writer/pruner may remove an entry
+                        # between scandir and stat. It is no longer retained.
+                        continue
                     except OSError:
                         errors += 1
+        except FileNotFoundError:
+            # The queued subdirectory was removed before traversal.
+            # Other IO/permission failures remain incomplete, never green.
+            continue
         except OSError:
             errors += 1
     return {

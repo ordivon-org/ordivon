@@ -47,7 +47,7 @@ print(json.dumps({
     "marketOwnedPythonModules": {dist: dist not in missing for dist in modules},
     "versions": versions,
 }, sort_keys=True))
-if sys.version.split()[0] != "3.15.0":
+if sys.version.split()[0] != "3.15.1":
     raise SystemExit(f"unexpected Market Python version: {sys.version.split()[0]}")
 if sqlite3.sqlite_version != "3.54.0":
     raise SystemExit(f"unexpected SQLite version: {sqlite3.sqlite_version}")

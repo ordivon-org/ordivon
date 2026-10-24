@@ -111,6 +111,14 @@ def bounded_us_equity_target_quantity(
             (fee_adjusted_target / price).to_integral_value(rounding=ROUND_DOWN)
         )
         if next_quantity == quantity:
+            # This is an explicitly bounded LEAN shadow calculation, not the
+            # complete buying-power model. A candidate that consumes the
+            # declared reserved cash is unsafe to present as feasible.
+            # Do not silently invent an alternative position-sizing rule.
+            if price * quantity + fee > portfolio_value - free_value:
+                raise ExecutionFeasibilityError(
+                    "fee-adjusted target consumes free portfolio value"
+                )
             return BoundedEquitySizingResult(
                 quantity=quantity,
                 estimated_fee_usd=fee,

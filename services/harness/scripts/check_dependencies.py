@@ -25,7 +25,7 @@ def main() -> int:
     if project.get("optional-dependencies") != {"mcp": ["mcp==2.2.0"]}:
         fail("Harness may expose only the official MCP v2 standards-adapter extra")
     expected_groups = {
-        "dev": ["ruff==0.15.17"],
+        "dev": ["ruff==0.17.2"],
         "test": [
             "mcp==2.2.0",
             "uvicorn==0.52.1",

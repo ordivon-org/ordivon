@@ -54,7 +54,9 @@
         "crates/ordivon-runtime-core/src/runtime/integration_tests.rs",
         "planning/test-taxonomy-r1.json",
         "crates/ordivon-runtime-mcp/src/server/tests/tool_catalog.rs",
-        "crates/ordivon-runtime-mcp/src/server/tests/projection_contract.rs"
+        "crates/ordivon-runtime-mcp/src/server/tests/projection_contract.rs",
+        "mise.toml",
+        "scripts/tests/test_focused_verification_contract.py"
       ],
       "dependencies": [
         "R00"
@@ -65,9 +67,11 @@
       "acceptance": [
         "Existing test count and assertions are preserved or strengthened.",
         "Contract tests are runnable independently from provider/system acceptance.",
-        "No semantic behavior change is required to complete the split."
+        "No semantic behavior change is required to complete the split.",
+        "Focused verification fails closed when its selector matches zero tests; PASS requires at least one selected test and every selected test to pass.",
+        "The focused verifier reuses pinned cargo-nextest through mise test:focused; Runtime does not add a second custom focused-test runner."
       ],
-      "nextAction": "Keep the independently runnable Tool Catalog and projection contract partitions as the baseline feedback gate; continue broader taxonomy-driven physical splits opportunistically without blocking noun-level state extraction."
+      "nextAction": "Treat R01-V1 as the canonical focused verification LEGO; split additional tests only when a concrete consumer or feedback problem justifies it."
     },
     {
       "id": "R02",

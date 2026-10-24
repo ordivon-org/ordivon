@@ -74,7 +74,7 @@ AGENT_ADMISSION_WEBAUTHN_ORIGIN="http://localhost:8788" \
 AGENT_ADMISSION_WEBAUTHN_RPID="localhost" \
 AGENT_ADMISSION_ENROLLMENT_TOKEN="$enrollment_token" \
 AGENT_ADMISSION_WEBAUTHN_STEP_UP=1 \
-  mise exec node@26.12.0 -- node "$root/src/server.ts" >"$server_log" 2>&1 &
+  mise exec node@26.12.1 -- node "$root/src/server.ts" >"$server_log" 2>&1 &
 server_pid="$!"
 
 for _ in $(seq 1 100); do
@@ -108,6 +108,6 @@ AGENT_ADMISSION_ISSUER="$issuer" \
 AGENT_ADMISSION_WEBAUTHN_ORIGIN="http://localhost:8788" \
 AGENT_ADMISSION_ENROLLMENT_TOKEN="$enrollment_token" \
 AGENT_ADMISSION_WEBAUTHN_STEP_UP=1 \
-  mise exec node@26.12.0 -- node "$root/src/webauthn-e2e.ts"
+  mise exec node@26.12.1 -- node "$root/src/webauthn-e2e.ts"
 
 printf '%s\n' 'stage=done'

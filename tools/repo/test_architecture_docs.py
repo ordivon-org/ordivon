@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import importlib.util
 import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -139,7 +140,6 @@ QUEUE_TELEMETRY_PATH = ROOT / "tools" / "repo" / "queue_telemetry.py"
 queue_spec = importlib.util.spec_from_file_location("queue_telemetry", QUEUE_TELEMETRY_PATH)
 assert queue_spec is not None and queue_spec.loader is not None
 queue_module = importlib.util.module_from_spec(queue_spec)
-import sys
 sys.modules[queue_spec.name] = queue_module
 queue_spec.loader.exec_module(queue_module)
 
@@ -429,3 +429,178 @@ def test_convergence_observation_r2_keeps_control_out_of_observation() -> None:
     assert "adaptive speculation" in r2["blockedControls"]
     assert "batching/bisection" in r2["blockedControls"]
     assert "predictive cost scheduling" in r2["blockedControls"]
+
+
+FORMAL_ISSUE_CENSUS = ROOT / "docs" / "architecture" / "evidence" / "FORMAL_LEGO_ISSUE_CENSUS_20261024_R1.json"
+
+
+def formal_issue_inputs():
+    census = json.loads(FORMAL_ISSUE_CENSUS.read_text(encoding="utf-8"))
+    plans = {
+        ref["ownerPlan"]: json.loads((ROOT / ref["ownerPlan"]).read_text(encoding="utf-8"))
+        for ref in census["registrations"]
+    }
+    return census, plans
+
+
+def test_formal_issue_census_preserves_existing_owner_legos() -> None:
+    census, plans = formal_issue_inputs()
+    module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issue_census_rejects_unbound_lego_node() -> None:
+    census, plans = formal_issue_inputs()
+    owner_plan = census["registrations"][0]["ownerPlan"]
+    slice_id = census["registrations"][0]["slice"]
+    next(item for item in plans[owner_plan]["slices"] if item["id"] == slice_id)["nodeIds"].append("UNKNOWN-NODE")
+    with pytest.raises(module.ArchitectureDocsError, match="unknown LEGO node"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issue_census_rejects_duplicate_problem_identity() -> None:
+    census, plans = formal_issue_inputs()
+    census["issues"].append(copy.deepcopy(census["issues"][0]))
+    with pytest.raises(module.ArchitectureDocsError, match="duplicate issue"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issue_census_cannot_grant_authority() -> None:
+    census, plans = formal_issue_inputs()
+    census["truthRole"] = "semantic-authority"
+    with pytest.raises(module.ArchitectureDocsError, match="non-authoritative"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_representation_first_all_issues_have_one_primary_and_witness() -> None:
+    census, plans = formal_issue_inputs()
+    module.validate_formal_issue_census(census, plans)
+    census["issues"][0].pop("representation")
+    with pytest.raises(module.ArchitectureDocsError, match="representation"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_representation_first_rejects_unknown_or_unbounded_methods() -> None:
+    census, plans = formal_issue_inputs()
+    for issue in census["issues"]:
+        issue["representation"] = {
+            "primary": "type",
+            "supporting": [],
+            "methodSkill": None,
+            "requiredWitness": "Native consumer test on an exact source cut.",
+            "selectionReason": "Avoid speculative method proliferation.",
+        }
+    census["issues"][0]["representation"]["primary"] = "made-up-method"
+    with pytest.raises(module.ArchitectureDocsError, match="primary representation"):
+        module.validate_formal_issue_census(census, plans)
+    census["issues"][0]["representation"]["primary"] = "type"
+    census["issues"][0]["representation"]["supporting"] = [
+        "graph", "constraint", "state-machine",
+    ]
+    with pytest.raises(module.ArchitectureDocsError, match="supporting representation"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_representation_first_rejects_unbound_skill_and_missing_evidence() -> None:
+    census, plans = formal_issue_inputs()
+    for issue in census["issues"]:
+        issue["representation"] = {
+            "primary": "type",
+            "supporting": [],
+            "methodSkill": None,
+            "requiredWitness": "Run exact owner test.",
+            "selectionReason": "Prefer concrete owner contracts.",
+        }
+    census["issues"][0]["representation"]["methodSkill"] = ".agents/skills/missing-method/SKILL.md"
+    with pytest.raises(module.ArchitectureDocsError, match="method Skill"):
+        module.validate_formal_issue_census(census, plans)
+    census["issues"][0]["representation"]["methodSkill"] = None
+    census["issues"][0]["representation"]["requiredWitness"] = ""
+    with pytest.raises(module.ArchitectureDocsError, match="requiredWitness"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_representation_first_rejects_non_scalar_values_without_crashing() -> None:
+    census, plans = formal_issue_inputs()
+    census["issues"][0]["representation"]["primary"] = ["graph"]
+    with pytest.raises(module.ArchitectureDocsError, match="primary representation"):
+        module.validate_formal_issue_census(census, plans)
+    census["issues"][0]["representation"]["primary"] = "graph"
+    census["issues"][0]["representation"]["supporting"] = [{"arbitrary": "state-machine"}]
+    with pytest.raises(module.ArchitectureDocsError, match="supporting representation"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issue_census_rejects_missing_registration_disposition() -> None:
+    census, plans = formal_issue_inputs()
+    del census["issues"][0]["registration"]
+    with pytest.raises(module.ArchitectureDocsError, match="lacks registration disposition"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issue_census_rejects_unbound_problem_slice() -> None:
+    census, plans = formal_issue_inputs()
+    issue = next(issue for issue in census["issues"] if issue["id"] == "NET-01")
+    issue["registration"]["slice"] = "NS-NOT-DEFINED"
+    with pytest.raises(module.ArchitectureDocsError, match="links unknown owner-local LEGO"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issue_census_rejects_cross_owner_problem_link() -> None:
+    census, plans = formal_issue_inputs()
+    issue = next(issue for issue in census["issues"] if issue["id"] == "NET-01")
+    issue["registration"]["ownerPlan"] = "services/harness/planning/lego-plan-r1.json"
+    issue["registration"]["slice"] = "HS2"
+    with pytest.raises(module.ArchitectureDocsError, match="linked outside natural owner"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issue_census_rejects_unexplained_gap() -> None:
+    census, plans = formal_issue_inputs()
+    issue = next(issue for issue in census["issues"] if issue["id"] == "GIT-01")
+    issue["registration"]["reason"] = " "
+    with pytest.raises(module.ArchitectureDocsError, match="lacks unregistered reason"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issue_census_rejects_unconsumed_lego_registration() -> None:
+    census, plans = formal_issue_inputs()
+    for issue in census["issues"]:
+        if issue["registration"].get("slice") == "NS2":
+            issue["registration"] = {"state": "UNREGISTERED", "reason": "no consumer linkage"}
+    with pytest.raises(module.ArchitectureDocsError, match="orphan owner-local LEGO registration"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issue_census_rejects_malformed_link_shape() -> None:
+    census, plans = formal_issue_inputs()
+    issue = next(issue for issue in census["issues"] if issue["id"] == "NET-01")
+    issue["registration"]["ownerPlan"] = ["platform/network/planning/lego-plan-r1.json"]
+    with pytest.raises(module.ArchitectureDocsError, match="invalid owner-local LEGO link"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issue_census_rejects_gap_disguised_as_link() -> None:
+    census, plans = formal_issue_inputs()
+    issue = next(issue for issue in census["issues"] if issue["id"] == "GIT-01")
+    issue["registration"]["ownerPlan"] = "platform/network/planning/lego-plan-r1.json"
+    with pytest.raises(module.ArchitectureDocsError, match="mixes gap and linked registration"):
+        module.validate_formal_issue_census(census, plans)
+
+
+@pytest.mark.parametrize("owner", ["services/unknown", "services/runtime-shadow", "tools/unknown"])
+def test_formal_issue_census_rejects_undeclared_natural_owner(owner: str) -> None:
+    census, plans = formal_issue_inputs()
+    census["issues"][0]["naturalOwner"] = owner
+    with pytest.raises(module.ArchitectureDocsError, match="undeclared naturalOwner"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_issue_owner_source_cut_is_explicit(tmp_path: Path) -> None:
+    census, plans = formal_issue_inputs()
+    owner_file = tmp_path / "tools" / "repo" / "owners.toml"
+    owner_file.parent.mkdir(parents=True)
+    owner_file.write_text(
+        '[[owners]]\nname = "alternate"\nroot = "services/alternate/"\n'
+    )
+    with pytest.raises(module.ArchitectureDocsError, match="undeclared naturalOwner"):
+        module.validate_formal_issue_census(census, plans, root=tmp_path)

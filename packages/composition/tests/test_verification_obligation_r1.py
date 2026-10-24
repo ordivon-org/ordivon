@@ -135,6 +135,26 @@ def test_obligation_digest_tampering_fails_closed() -> None:
         validate_obligation_set(obligation_set)
 
 
+def test_cross_circuit_obligation_is_rejected_even_with_consistent_digests() -> None:
+    obligation_set = compile_verification_obligations(_manifest())
+    obligation = obligation_set["obligations"][0]
+    obligation["circuitRef"] = {
+        "id": "circuit:unrelated",
+        "digest": _digest("unrelated-circuit"),
+    }
+
+    # Both hashes remain self-consistent: integrity is not identity binding.
+    obligation_body = dict(obligation)
+    del obligation_body["obligationDigest"]
+    obligation["obligationDigest"] = canonical_digest(obligation_body)
+    set_body = dict(obligation_set)
+    del set_body["obligationSetDigest"]
+    obligation_set["obligationSetDigest"] = canonical_digest(set_body)
+
+    with pytest.raises(CircuitContractError, match="circuitRef mismatch"):
+        validate_obligation_set(obligation_set)
+
+
 def test_exact_binding_resolves_without_granting_authority() -> None:
     obligation_set = compile_verification_obligations(_manifest())
     resolution = resolve_verifier_bindings(

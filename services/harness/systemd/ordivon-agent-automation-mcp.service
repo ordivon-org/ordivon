@@ -5,7 +5,7 @@ Wants=network-online.target
 Requires=ordivon-agent-temporal-worker.service
 
 [Service]
-Type=simple
+Type=exec
 User=root
 Group=root
 WorkingDirectory=/opt/ordivon/agent-automation/current

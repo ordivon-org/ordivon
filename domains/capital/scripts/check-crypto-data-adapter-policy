@@ -4,22 +4,25 @@ repo="$(cd "$(dirname "$0")/.." && pwd)"
 "$repo/scripts/check-execution-policy" --mode non-live >/dev/null
 python3 - "$repo/config/crypto_data_adapters.json" <<'PY'
 import json,sys
+def require(condition, label):
+    if not condition:
+        raise SystemExit("public data adapter policy rejected: " + label)
 from pathlib import Path
 p=Path(sys.argv[1]); x=json.loads(p.read_text())
-assert x['kind']=='ordivon.capital.markets.crypto-data-adapter-policy'
-assert x['standing']=='PUBLIC_DATA_ONLY'
-assert x['okx']['primaryPublicDataPath']=='OKX_OFFICIAL_PUBLIC_REST_WS'
-assert x['binance']['primaryPublicDataPath']=='BINANCE_OFFICIAL_PUBLIC_REST_WS'
-assert x['okx']['historicalNautilusNativeAdapter']['role']=='HISTORICAL_CANDIDATE_EVIDENCE_ONLY'
-assert x['binance']['historicalNautilusNativeAdapter']['role']=='HISTORICAL_CANDIDATE_EVIDENCE_ONLY'
-assert x['binance']['marketDataMode']=='JSON'
-assert x['binance']['sbeCredentialsWorkaroundAllowed'] is False
+require(x['kind']=='ordivon.capital.markets.crypto-data-adapter-policy', "x['kind']=='ordivon.capital.markets.crypto-data-adapter-policy'")
+require(x['standing']=='PUBLIC_DATA_ONLY', "x['standing']=='PUBLIC_DATA_ONLY'")
+require(x['okx']['primaryPublicDataPath']=='OKX_OFFICIAL_PUBLIC_REST_WS', "x['okx']['primaryPublicDataPath']=='OKX_OFFICIAL_PUBLIC_REST_WS'")
+require(x['binance']['primaryPublicDataPath']=='BINANCE_OFFICIAL_PUBLIC_REST_WS', "x['binance']['primaryPublicDataPath']=='BINANCE_OFFICIAL_PUBLIC_REST_WS'")
+require(x['okx']['historicalNautilusNativeAdapter']['role']=='HISTORICAL_CANDIDATE_EVIDENCE_ONLY', "x['okx']['historicalNautilusNativeAdapter']['role']=='HISTORICAL_CANDIDATE_EVIDENCE_ONLY'")
+require(x['binance']['historicalNautilusNativeAdapter']['role']=='HISTORICAL_CANDIDATE_EVIDENCE_ONLY', "x['binance']['historicalNautilusNativeAdapter']['role']=='HISTORICAL_CANDIDATE_EVIDENCE_ONLY'")
+require(x['binance']['marketDataMode']=='JSON', "x['binance']['marketDataMode']=='JSON'")
+require(x['binance']['sbeCredentialsWorkaroundAllowed'] is False, "x['binance']['sbeCredentialsWorkaroundAllowed'] is False")
 for venue in ('okx','binance'):
-    assert x[venue]['credentialsAllowed'] is False
-    assert x[venue]['executionClientAllowed'] is False
+    require(x[venue]['credentialsAllowed'] is False, "x[venue]['credentialsAllowed'] is False")
+    require(x[venue]['executionClientAllowed'] is False, "x[venue]['executionClientAllowed'] is False")
 joined=' '.join(x['rules'])
-assert 'Do not add API credentials' in joined
-assert 'external financial writes remain blocked' in joined
+require('Do not add API credentials' in joined, "'Do not add API credentials' in joined")
+require('external financial writes remain blocked' in joined, "'external financial writes remain blocked' in joined")
 print(json.dumps({
   'standing':'PASS_CRYPTO_PUBLIC_DATA_ADAPTER_POLICY',
   'okxPrimary':x['okx']['primaryPublicDataPath'],

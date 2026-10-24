@@ -3,6 +3,10 @@
 This directory is a public Security-owner contract for callers that already
 possess normalized, verified identity/delegation evidence.
 
+Runtime prerequisites are Python 3's standard library and an OPA CLI with Rego v1
+support on the caller's PATH. Consumers must provision these in their own execution
+environment. Missing or failing OPA returns a nonzero exit; callers must fail closed.
+
 Input is the existing Agent Admission v0 normalized JSON shape. The caller must
 not treat this contract as an authentication protocol: public clients may not
 self-assert `authenticated=true`, Principal identity, Agent identity, Grant

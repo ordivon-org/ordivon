@@ -239,7 +239,7 @@ def validate_public_contracts() -> list[str]:
     )
     if "python -m ruff" in canonical_guides:
         errors.append("canonical setup still assumes Ruff is installed in the project environment")
-    if canonical_guides.count("uvx ruff==0.15.17") < 3:
+    if canonical_guides.count("uvx ruff==0.17.2") < 3:
         errors.append("canonical setup does not pin the isolated Ruff invocation")
     if canonical_guides.count("scripts/check_wheel.py") < 3:
         errors.append("canonical setup omits isolated wheel verification")

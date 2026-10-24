@@ -5,18 +5,40 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT=Path(__file__).resolve().parents[1]
 SPEC=importlib.util.spec_from_file_location('artifact_python_environment_test',ROOT/'scripts/artifact_python_environment.py');M=importlib.util.module_from_spec(SPEC);assert SPEC and SPEC.loader;SPEC.loader.exec_module(M)
 WRAP_SPEC=importlib.util.spec_from_file_location('artifact_python_wrapper_test',ROOT/'scripts/artifact_python_wrapper.py');W=importlib.util.module_from_spec(WRAP_SPEC);assert WRAP_SPEC and WRAP_SPEC.loader;WRAP_SPEC.loader.exec_module(W)
 
 class ArtifactDeliveryEnvironmentTests(unittest.TestCase):
+    def test_mise_tool_resolution_uses_selected_path_not_system_bin(self):
+        # A GitHub runner may install mise outside /usr/bin. Do not bind to
+        # the local machine's binary layout when selecting locked owner tools.
+        with patch.object(M.shutil, 'which', return_value='/opt/toolchain/bin/mise') as which:
+            with patch.object(M.subprocess, 'run') as execute:
+                execute.return_value.returncode = 0
+                execute.return_value.stdout = '/bin/sh\n'
+                result = M.selected_owner_tool('uv', 'ARTIFACT_TEST_NONEXISTENT_OVERRIDE')
+        which.assert_called_once_with('mise')
+        self.assertEqual(result, Path('/bin/sh'))
+        command = execute.call_args.args[0]
+        self.assertEqual(command[0], '/opt/toolchain/bin/mise')
+        self.assertEqual(command[1:], ['-C', str(ROOT), 'which', 'uv'])
+
+    def test_mise_absence_fails_closed_without_spawning(self):
+        with patch.object(M.shutil, 'which', return_value=None):
+            with patch.object(M.subprocess, 'run') as execute:
+                with self.assertRaisesRegex(RuntimeError, 'mise executable unavailable'):
+                    M.selected_owner_tool('uv', 'ARTIFACT_TEST_NONEXISTENT_OVERRIDE')
+                execute.assert_not_called()
+
     def test_apply_fence_uses_canonical_monorepo_artifact_owner(self):
         self.assertEqual(M.MAIN, Path("/root/projects/ordivon/capabilities/artifact"))
 
     def test_lock_is_uv_owned_complete_python_package_closure(self):
         lock=json.loads((ROOT/'artifact-delivery/artifact-python-runtime-v1.lock.json').read_text())
-        self.assertEqual(lock['pythonRuntime'],'3.14.7');self.assertEqual(lock['pythonPackages']['lxml'],'6.1.3')
+        self.assertEqual(lock['pythonRuntime'],'3.15.1');self.assertEqual(lock['pythonPackages']['lxml'],'6.1.3')
         self.assertEqual(lock['pythonPackages']['Pillow'],'12.3.0');self.assertNotIn('vendoredEquipment',lock);self.assertNotIn('hostSystemPackages',lock);self.assertNotIn('hostFencedPackages',lock)
         self.assertEqual(lock['uvProject']['path'],'artifact-delivery/python-uv');self.assertTrue(lock['uvProject']['uvLockSha256'].startswith('sha256:'))
     def test_uv_project_pins_every_accepted_distribution(self):
@@ -41,7 +63,7 @@ class ArtifactDeliveryEnvironmentTests(unittest.TestCase):
         lock=M.load_lock()
         self.assertEqual(lock['pythonPackages']['temporalio'],'1.32.0')
         self.assertEqual(lock['pythonPackages']['nexus-rpc'],'1.4.0')
-        self.assertEqual(lock['pythonPackages']['protobuf'],'7.36.1')
+        self.assertEqual(lock['pythonPackages']['protobuf'],'7.36.2')
         self.assertEqual(lock['pythonPackages']['types-protobuf'],'7.35.1.20260906')
     def test_published_stable_python_is_wrapper_not_internal_venv_interpreter(self):
         lock=M.load_lock();stable=lock['stablePython'];self.assertTrue(stable.endswith('/current/bin/python'));self.assertNotIn('/.venv/',stable)
@@ -51,7 +73,7 @@ class ArtifactDeliveryEnvironmentTests(unittest.TestCase):
             root=Path(d);(root/'pkg').mkdir();(root/'pkg/data').write_bytes(b'bytes');(root/'python').symlink_to('/bin/sh')
             self.assertEqual(M.tree_digest(root),W.tree_digest(root));first=W.tree_digest(root);(root/'pkg/data').write_bytes(b'drift');self.assertNotEqual(first,W.tree_digest(root))
     def test_generation_spec_binds_uv_and_interpreter_identity(self):
-        lock=M.load_lock();project={'project':'/x','pyprojectSha256':'sha256:p','uvLockSha256':'sha256:u'};python={'version':'3.14.7','requestedPath':'/toolchain/python','resolvedPath':'/toolchain/python3.14','sha256':'sha256:i'}
+        lock=M.load_lock();project={'project':'/x','pyprojectSha256':'sha256:p','uvLockSha256':'sha256:u'};python={'version':'3.15.1','requestedPath':'/toolchain/python','resolvedPath':'/toolchain/python3.15','sha256':'sha256:i'}
         spec=M.generation_spec(lock,project,python);self.assertEqual(spec['uvLockSha256'],'sha256:u');self.assertEqual(spec['pythonExecutableSha256'],'sha256:i');self.assertEqual(spec['pythonPackages']['lxml'],'6.1.3');self.assertEqual(spec['pythonPackages']['temporalio'],'1.32.0')
     def test_read_only_tree_changes_mode_before_digest(self):
         with tempfile.TemporaryDirectory() as d:

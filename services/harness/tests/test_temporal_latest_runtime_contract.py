@@ -42,7 +42,7 @@ def test_temporal_owner_deployer_has_explicit_embedded_sqlite_and_python_gate():
     expr = assignments[0].value
     assert isinstance(expr, ast.Call) and len(expr.args) == 1
     assert isinstance(expr.args[0], ast.Constant) and expr.args[0].value == PYTHON
-    assert '"pythonVersion": "3.15.0"' in source
+    assert '"pythonVersion": "3.15.1"' in source
     assert '"sqliteVersion": "3.54.0"' in source
     assert "sqlite3.sqlite_version" in source
     assert "runtimeVersionsExact" in source
@@ -68,5 +68,5 @@ def test_real_previous_interpreter_is_not_latest_python_sqlite():
     with patch.object(mod, "VENV_PY", old):
         observed = mod.runtime_versions()
     assert observed is not None
-    assert observed.get("pythonVersion") != "3.15.0"
+    assert observed.get("pythonVersion") != "3.15.1"
     assert observed.get("sqliteVersion") != "3.54.0"

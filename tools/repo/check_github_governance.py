@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 import tomllib
@@ -50,6 +51,10 @@ def configured_dirs(row: dict) -> set[str]:
     return set()
 
 def main() -> int:
+    # This verifier uses assertions for its native policy checks. Python -O removes
+    # them; fail closed rather than incorrectly certifying an unchecked source tree.
+    if not __debug__:
+        raise RuntimeError("github governance cannot be verified under optimized Python (-O)")
     assert DEPENDABOT.is_file(), "missing root Dependabot config"
     assert WORKFLOW.is_file(), "missing root required workflow"
     assert RUNTIME_RELEASE_WORKFLOW.is_file(), "missing Runtime tagged-release workflow"
@@ -61,9 +66,27 @@ def main() -> int:
     github_actions = update_for(config, "github-actions")
     assert configured_dirs(github_actions) == {"/"}
 
+    # Renovate PEP 621 is the single Python manifest + uv.lock update owner.
+    # Keep this check against the actual tracked consumers, not a duplicate list.
     expected_uv = dirs_for_lock("**/uv.lock", "uv.lock")
-    actual_uv = configured_dirs(update_for(config, "uv"))
-    assert actual_uv == expected_uv, f"uv directories drift: expected={sorted(expected_uv)} actual={sorted(actual_uv)}"
+    assert not any(row.get("package-ecosystem") == "uv" for row in config["updates"]), (
+        "Dependabot uv duplicates Renovate pep621 ownership"
+    )
+    renovate = json.loads((ROOT / "renovate.json").read_text(encoding="utf-8"))
+    assert "pep621" in renovate.get("enabledManagers", []), (
+        "Renovate must own Python PEP 621 manifests"
+    )
+    assert renovate.get("lockFileMaintenance", {}).get("enabled") is True, (
+        "Renovate must refresh uv.lock files"
+    )
+    assert renovate.get("automerge", False) is False, (
+        "Python dependency upgrades require consumer verification"
+    )
+    missing = sorted(
+        directory for directory in expected_uv
+        if not (ROOT / directory.lstrip("/") / "pyproject.toml").is_file()
+    )
+    assert not missing, f"uv locks without PEP 621 manifests: {missing}"
 
     npm_locks: set[str] = set()
     for pattern, name in (
@@ -113,9 +136,9 @@ def main() -> int:
     ]
     assert not floating, f"root workflows contain non-SHA action references: {floating}"
     assert "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1" in workflow
-    # Exact upstream v5.1.2 commit (verified against the immutable GitHub tag).
+    # Exact upstream v5.2.2 commit (verified against the immutable GitHub tag).
     # Keep this review gate: Dependabot must not silently change action code.
-    mise_action_pin = "jdx/mise-action@08ae2a091c038e1e05ec6f5115dc5c69d5a2a6b8"
+    mise_action_pin = "jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550"
     assert mise_action_pin in workflow
     assert "gitleaks/gitleaks-action@" not in workflow
     assert "run: mise run repo:secrets:verify" in workflow
@@ -135,11 +158,23 @@ def main() -> int:
         'owner_commit',
         'ordivon-runtime-deploy prepare',
         'sourceOwnerPrefix',
-        'anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26',
         'actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6',
         'actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9',
     ):
         assert required in runtime_release, f"Runtime release workflow missing contract: {required}"
+
+    # Keep the immutable SHA contract without freezing a historical release.
+    # These are two actual SBOM consumers; newer bot versions replace only pins.
+    harness_release = ROOT / "services/harness/.github/workflows/release-acceptance.yml"
+    for workflow_name, workflow_source in (
+        ("Runtime", runtime_release),
+        ("Harness", harness_release.read_text(encoding="utf-8")),
+    ):
+        refs = re.findall(
+            r"(?m)^\s*uses:\s*anchore/sbom-action@([0-9a-f]{40})(?=\s|$)",
+            workflow_source,
+        )
+        assert len(refs) == 1, f"{workflow_name} must use one SHA-pinned SBOM action"
     owners = load_owners()
     codeowners = CODEOWNERS.read_text(encoding="utf-8")
     for owner in owners:

@@ -18,8 +18,8 @@ Do not activate every method merely because it exists. Do not turn the method ca
 
 ## Procedure
 
-1. State the decision or uncertainty in one sentence.
-2. Classify the dominant question using references/method-map.md.
+1. State the decision or uncertainty in one sentence. If the demand is obsolete, delete the demand before routing any method.
+2. If representation is the obstacle, consult references/representation-first.md to try eliminate / quotient / constrain / decouple / resolve **before** choosing a technique; otherwise classify the dominant question using references/method-map.md.
 3. Select one primary method whenever one method is sufficient.
 4. Add a second method only when it answers a materially different question or falsifies a weakness of the primary method.
 5. Sequence methods only when one method's output is an input assumption for another; otherwise they may run independently.

@@ -158,7 +158,6 @@ in
     pandoc
     quarto
     R
-    rstudio
     python3Packages.jupyterlab
     python3Packages.marimo
     julia

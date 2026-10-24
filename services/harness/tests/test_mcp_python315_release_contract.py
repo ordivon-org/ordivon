@@ -15,12 +15,15 @@ INTERPRETER = PREFIX + "/bin/python"
 def test_mcp_runtime_uses_versioned_source_qualified_latest_interpreter():
     config = tomllib.loads((ROOT / "config/agent-automation.toml").read_text())["agent_automation"]
     assert config["mcp_runtime_python"] == INTERPRETER
-    assert config["mcp_python_version"] == "3.15.0"
+    owner_python = tomllib.loads((ROOT / "mise.toml").read_text())["tools"]["python"]
+    assert config["mcp_python_version"] == owner_python
     assert config["mcp_sqlite_version"] == "3.54.0"
-    assert (
-        config["mcp_python_executable"]
-        == "/opt/ordivon/toolchains/python/cpython-3.15.0-sqlite-3.54.0-official-r18/bin/python3.15"
+    python_minor = ".".join(owner_python.split(".")[:2])
+    expected_executable = (
+        f"/opt/ordivon/toolchains/python/cpython-{owner_python}-"
+        f"sqlite-{config['mcp_sqlite_version']}-official-r18/bin/python{python_minor}"
     )
+    assert config["mcp_python_executable"] == expected_executable
 
 
 def test_mcp_locked_packages_have_real_python315_binary_carrier():
