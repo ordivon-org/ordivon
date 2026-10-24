@@ -24,14 +24,17 @@
       ],
       "evidence": [
         "README.md",
-        "ARCHITECTURE.md"
+        "ARCHITECTURE.md",
+        "src/ordivon_harness/ordivon/events.py",
+        "tests/test_trace_type_refinement.py"
       ],
       "dependencies": [],
       "mustNotOwn": [
         "Task/Goal truth"
       ],
       "acceptance": [
-        "A run is independently identifiable and bounded."
+        "A run is independently identifiable and bounded.",
+        "Run Trace evidence must use exact integer event/version/time/clock fields, string Run identity, and an immutable tuple of events; numeric aliases are rejected at the native consumer boundary."
       ]
     },
     {
