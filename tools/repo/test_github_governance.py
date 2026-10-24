@@ -78,6 +78,23 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                 check=False,
             )
 
+    def test_root_ci_does_not_install_unselected_owners(self) -> None:
+        """Root mechanics must not fetch Nextest/Godot for Repo-only PRs."""
+        import yaml
+
+        workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        steps = workflow["jobs"]["root-verification"]["steps"]
+        by_name = {step["name"]: step for step in steps}
+        setup = by_name["Install monorepo toolchain"]
+        self.assertIs(setup["with"]["install"], False)
+        root_install = by_name["Install root verification tools"]["run"]
+        self.assertEqual(root_install.strip(), "set -euo pipefail\nmise install")
+        self.assertNotIn("--monorepo", root_install)
+        names = [step["name"] for step in steps]
+        self.assertLess(names.index("Install root verification tools"), names.index("Repository mechanics"))
+        self.assertLess(names.index("Repository mechanics"), names.index("Select affected owners"))
+        self.assertLess(names.index("Select affected owners"), names.index("Verify affected owners"))
+
     def test_valid_manifest_is_accepted_in_normal_mode(self) -> None:
         result = self.run_contract(invalid=False, optimized=False)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

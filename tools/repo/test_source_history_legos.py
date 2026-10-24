@@ -37,6 +37,7 @@ class ConsumerEvidenceJoinAlgebraTests(unittest.TestCase):
                 "localCommit": format(i, "040x"),
                 "owner": "tools/repo",
                 "consumer": f"Owner consumer {i}",
+                "remoteWitness": "current native owner consumer PASS",
                 "evidenceScope": "NATIVE_CONSUMER_PASS",
                 "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
             }
@@ -59,6 +60,7 @@ class ConsumerEvidenceJoinAlgebraTests(unittest.TestCase):
             "localCommit": "a" * 40,
             "owner": "tools/repo",
             "consumer": "verified current owner",
+            "remoteWitness": "current native owner CDC PASS",
             "evidenceScope": "NATIVE_CONSUMER_PASS",
             "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
         }
@@ -68,10 +70,44 @@ class ConsumerEvidenceJoinAlgebraTests(unittest.TestCase):
             join_consumer_evidence([record], [altered])
         with self.assertRaisesRegex(ValueError, "exact 40-hex"):
             join_consumer_evidence([dict(record, localCommit="short")])
-        with self.assertRaisesRegex(ValueError, "must be a list"):
+        with self.assertRaisesRegex(TypeError, "must be a list"):
             join_consumer_evidence("not-a-list")
         with self.assertRaisesRegex(ValueError, "lacks owner"):
             join_consumer_evidence([dict(record, owner="")])
+        with self.assertRaisesRegex(ValueError, "lacks remoteWitness"):
+            join_consumer_evidence([dict(record, remoteWitness="")])
+        with self.assertRaisesRegex(ValueError, "branch deletion"):
+            join_consumer_evidence([
+                dict(record, sourceQualification={"branchDeletionAllowed": True})
+            ])
+        with self.assertRaisesRegex(TypeError, "sourceQualification"):
+            join_consumer_evidence([
+                dict(record, sourceQualification="not-an-object")
+            ])
+        result = join_consumer_evidence([record])
+        result[0]["consumer"] = "mutated outside the join"
+        self.assertEqual(record["consumer"], "verified current owner")
+
+
+    def test_real_git01_consumer_rows_join_from_natural_owner_shards(self):
+        # Existing GIT-01 is still the only evidence projection: no second
+        # roster or hard-coded list of historical localCommit identities.
+        root = Path(__file__).resolve().parents[2]
+        census = json.loads((root /
+            "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261024_R1.json"
+        ).read_text(encoding="utf-8"))
+        rows = next(x for x in census["issues"] if x["id"] == "GIT-01")[
+            "consumerSelections"
+        ]
+        by_owner = {}
+        for row in rows:
+            by_owner.setdefault(row["owner"], []).append(row)
+        expected = sorted(rows, key=lambda row: row["localCommit"])
+        self.assertEqual(join_consumer_evidence(*by_owner.values()), expected)
+        self.assertEqual(
+            join_consumer_evidence(*reversed(list(by_owner.values()))),
+            expected,
+        )
 
 
 class SourceHistoryLegosTests(unittest.TestCase):

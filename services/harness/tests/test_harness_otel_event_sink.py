@@ -214,17 +214,25 @@ def test_replayed_terminal_cannot_steal_another_runtime_job_identity() -> None:
         "runtimeJobRef": "job:original",
     }
     sink(HarnessRunEvent(1, "tool_call_dispatched", 1000, original))
-    sink(HarnessRunEvent(
-        2, "tool_call_reconciled", 1001,
-        {**original, "runtimeJobRef": "job:foreign", "status": "unknown"},
-    ))
+    sink(
+        HarnessRunEvent(
+            2,
+            "tool_call_reconciled",
+            1001,
+            {**original, "runtimeJobRef": "job:foreign", "status": "unknown"},
+        )
+    )
     assert len(tracer.spans) == 1
     assert tracer.spans[0].attributes["ordivon.runtime.job.ref"] == "job:original"
     assert tracer.spans[0].end_time is None
-    sink(HarnessRunEvent(
-        3, "tool_call_reconciled", 1002,
-        {**original, "status": "observed"},
-    ))
+    sink(
+        HarnessRunEvent(
+            3,
+            "tool_call_reconciled",
+            1002,
+            {**original, "status": "observed"},
+        )
+    )
     assert len(tracer.spans) == 1
     assert tracer.spans[0].attributes["ordivon.harness.tool.status"] == "observed"
     assert tracer.spans[0].attributes["ordivon.runtime.job.ref"] == "job:original"
@@ -252,3 +260,86 @@ def test_reconciled_cancel_request_is_not_terminal() -> None:
         )
     )
     assert tracer.spans == []
+
+
+def test_cancel_request_keeps_tool_pending_until_physical_terminal_receipt() -> None:
+    """Cancellation intent is not evidence of Runtime completion."""
+    from ordivon_harness.ordivon.events import HarnessRunEvent
+
+    for outcome in ("observed", "cancelled"):
+        tracer = RecordingTracer()
+        sink = OpenTelemetryHarnessEventSink("harness-run:cancel-pending", tracer=tracer)
+        identity = {
+            "toolCallId": "tool:cancel-pending",
+            "toolName": "execute_task",
+            "stepId": "step:one",
+            "runtimeJobRef": "job:one",
+        }
+        sink(HarnessRunEvent(1, "tool_call_dispatched", 1000, identity))
+        sink(HarnessRunEvent(2, "tool_call_cancel_requested", 1001, identity))
+        assert len(tracer.spans) == 1
+        assert tracer.spans[0].end_time is None
+        assert tracer.spans[0].attributes.get("ordivon.harness.tool.cancel_requested") is True
+
+        terminal = HarnessRunEvent(3, f"tool_call_{outcome}", 1002, identity)
+        sink(terminal)
+        sink(terminal)
+        assert len(tracer.spans) == 1
+        assert tracer.spans[0].end_time == 1_002_000_000
+        assert tracer.spans[0].attributes["ordivon.harness.tool.status"] == outcome
+
+
+def test_cancel_request_must_not_mutate_another_runtime_job_span() -> None:
+    """Same call ID does not authorize a wrong Job or step to affect the span."""
+    from ordivon_harness.ordivon.events import HarnessRunEvent
+
+    tracer = RecordingTracer()
+    sink = OpenTelemetryHarnessEventSink("harness-run:cancel-identity", tracer=tracer)
+    identity = {
+        "toolCallId": "tool:cancel-identity",
+        "toolName": "execute_task",
+        "stepId": "step:original",
+        "runtimeJobRef": "job:original",
+    }
+    sink(HarnessRunEvent(1, "tool_call_dispatched", 1000, identity))
+    for mismatch in (
+        {**identity, "stepId": "step:other"},
+        {**identity, "runtimeJobRef": "job:other"},
+        {**identity, "toolName": "wrong_tool"},
+    ):
+        sink(HarnessRunEvent(2, "tool_call_cancel_requested", 1001, mismatch))
+    assert len(tracer.spans) == 1
+    assert tracer.spans[0].end_time is None
+    assert "ordivon.harness.tool.cancel_requested" not in tracer.spans[0].attributes
+
+    sink(HarnessRunEvent(3, "tool_call_cancel_requested", 1002, identity))
+    assert tracer.spans[0].end_time is None
+    assert tracer.spans[0].attributes["ordivon.harness.tool.cancel_requested"] is True
+
+
+def test_run_stop_closes_unresolved_tool_spans_as_unknown_once() -> None:
+    """Run stop is not evidence of Tool success but must terminate its projection."""
+    from ordivon_harness.ordivon.events import HarnessRunEvent
+
+    for has_cancel_request in (False, True):
+        tracer = RecordingTracer()
+        sink = OpenTelemetryHarnessEventSink("harness-run:stop-pending", tracer=tracer)
+        identity = {
+            "toolCallId": "tool:still-pending",
+            "toolName": "execute_task",
+            "stepId": "step:pending",
+            "runtimeJobRef": "job:pending",
+        }
+        sink(HarnessRunEvent(1, "tool_call_dispatched", 1000, identity))
+        if has_cancel_request:
+            sink(HarnessRunEvent(2, "tool_call_cancel_requested", 1001, identity))
+        assert tracer.spans[0].end_time is None
+        sink(HarnessRunEvent(3, "run_stopped", 1002, {"stopCode": "runtime_unknown"}))
+        sink(HarnessRunEvent(3, "run_stopped", 1002, {"stopCode": "runtime_unknown"}))
+        sink(HarnessRunEvent(4, "tool_call_observed", 1003, identity))
+        assert len(tracer.spans) == 1
+        span = tracer.spans[0]
+        assert span.end_time == 1_002_000_000
+        assert span.attributes["ordivon.harness.tool.status"] == "unknown"
+        assert span.attributes["error.type"] == "tool_unknown"
+        assert span.status == StatusCode.ERROR

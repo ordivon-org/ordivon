@@ -8,7 +8,6 @@ import tomllib
 from pathlib import Path
 
 import yaml
-
 from affected_owners import load_owners
 
 ROOT = Path(__file__).resolve().parents[2]

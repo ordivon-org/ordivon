@@ -30,14 +30,30 @@ def _revision(root: Path) -> str | None:
 
 
 def _walk_values(value: Any, key: str) -> Iterable[Any]:
-    if isinstance(value, Mapping):
-        if key in value:
-            yield value[key]
-        for child in value.values():
-            yield from _walk_values(child, key)
-    elif isinstance(value, list):
-        for child in value:
-            yield from _walk_values(child, key)
+    # DFS enter/leave markers preserve JSON preorder without Python recursion.
+    # Only ancestors count as cycles: a shared child in a DAG is still visited
+    # once per occurrence, matching the original recursive walk.
+    pending = [(value, False)]
+    ancestors: set[int] = set()
+    while pending:
+        current, leaving = pending.pop()
+        if leaving:
+            ancestors.remove(id(current))
+            continue
+        if not isinstance(current, (Mapping, list)):
+            continue
+        marker = id(current)
+        if marker in ancestors:
+            raise ValueError("creative-index owner metadata contains a cycle")
+        ancestors.add(marker)
+        pending.append((current, True))
+        if isinstance(current, Mapping):
+            if key in current:
+                yield current[key]
+            children = current.values()
+        else:
+            children = current
+        pending.extend((child, False) for child in reversed(tuple(children)))
 
 
 def _first_string(value: Any, key: str) -> str | None:

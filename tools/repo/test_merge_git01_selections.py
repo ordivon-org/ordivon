@@ -95,3 +95,41 @@ def test_legacy_claim_without_optional_evaluated_remote_cut_remains_valid() -> N
     merged = merge_selections(census(historical), census(claim(2)))
     assert len(selections(merged)) == 2
     assert "evaluatedRemoteMain" not in selections(merged)[0]
+
+
+def test_evidence_union_refuses_unsafe_history_deletion_claim() -> None:
+    bad = claim(7)
+    bad["sourceQualification"] = {"branchDeletionAllowed": True}
+    with pytest.raises(MergeConflict, match="branchDeletionAllowed"):
+        merge_selections(census(claim(1)), census(bad))
+
+
+@pytest.mark.parametrize("bad", [[], "not-an-object", {"branchDeletionAllowed": 1}])
+def test_evidence_union_refuses_malformed_source_qualification(bad: object) -> None:
+    item = claim(7)
+    item["sourceQualification"] = bad
+    with pytest.raises(MergeConflict, match="sourceQualification|branchDeletionAllowed"):
+        merge_selections(census(claim(1)), census(item))
+
+
+def test_evidence_union_refuses_whitespace_only_witness() -> None:
+    item = claim(7)
+    item["remoteWitness"] = "   "
+    with pytest.raises(MergeConflict, match="remoteWitness"):
+        merge_selections(census(claim(1)), census(item))
+
+
+def test_evidence_union_refuses_cross_cohort_historical_identity_overlap() -> None:
+    left = claim(1)
+    left["historicalCohort"] = [f"{101:040x}"]
+    right = claim(2)
+    right["historicalCohort"] = [f"{101:040x}"]
+    with pytest.raises(MergeConflict, match="historicalCohort"):
+        merge_selections(census(left), census(right))
+
+
+def test_evidence_union_refuses_duplicate_historical_cohort_members() -> None:
+    item = claim(3)
+    item["historicalCohort"] = [f"{201:040x}", f"{201:040x}"]
+    with pytest.raises(MergeConflict, match="historicalCohort"):
+        merge_selections(census(claim(1)), census(item))

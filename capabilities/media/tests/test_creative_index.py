@@ -1,16 +1,90 @@
 from __future__ import annotations
 
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-from ordivon_studio.creative_index import build_creative_index, query_creative_index
+from ordivon_studio.creative_index import (
+    _first_string,
+    _walk_values,
+    build_creative_index,
+    query_creative_index,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 class CreativeIndexTests(unittest.TestCase):
+    def test_owner_metadata_preorder_survives_arbitrary_json_depth(self) -> None:
+        """An acyclic JSON-shaped source must not depend on Python's call stack."""
+        shallow = {
+            "profileId": "",
+            "source": [{"profileId": "primary"}, {"profileId": "fallback"}],
+        }
+        self.assertEqual(list(_walk_values(shallow, "profileId")), ["", "primary", "fallback"])
+        self.assertEqual(_first_string(shallow, "profileId"), "primary")
+
+        # Explicitly deeper than the running interpreter's recursion budget.
+        deep = {"profileId": "retained-owner"}
+        for _ in range(max(1_350, sys.getrecursionlimit() + 16)):
+            deep = {"source": [deep]}
+        self.assertEqual(_first_string(deep, "profileId"), "retained-owner")
+
+    def test_owner_metadata_cycle_fails_closed_but_shared_child_remains_visible(self) -> None:
+        from itertools import islice
+
+        cyclic = {"profileId": "loop"}
+        cyclic["source"] = [cyclic]
+        # Bound the historical implementation so this red test cannot hang.
+        with self.assertRaisesRegex(ValueError, "cycle"):
+            list(islice(_walk_values(cyclic, "profileId"), 3))
+
+        shared = {"profileId": "shared"}
+        self.assertEqual(
+            list(_walk_values({"source": [shared, shared]}, "profileId")),
+            ["shared", "shared"],
+        )
+
+    def test_owner_metadata_exhaustive_small_graph_model(self) -> None:
+        """Check all ordered 0/1/2-edge graphs up to three owner nodes."""
+        from itertools import islice, product
+
+        cases = 0
+        for count in range(1, 4):
+            options = [()] + [(i,) for i in range(count)]
+            options += list(product(range(count), repeat=2))
+            for edges in product(options, repeat=count):
+                nodes = [{"profileId": f"node-{i}"} for i in range(count)]
+                for i, children in enumerate(edges):
+                    nodes[i]["source"] = [nodes[child] for child in children]
+
+                def oracle(i: int, active: frozenset[int]) -> list[str]:
+                    if i in active:
+                        raise ValueError("cycle in owner graph")
+                    path = active | {i}
+                    result = [f"node-{i}"]
+                    for child in edges[i]:
+                        result.extend(oracle(child, path))
+                    return result
+
+                cases += 1
+                try:
+                    expected = oracle(0, frozenset())
+                except ValueError:
+                    # Every node emits a label; the bound ensures a broken
+                    # cycle guard cannot turn this test into an infinite run.
+                    with self.assertRaisesRegex(ValueError, "cycle"):
+                        list(islice(_walk_values(nodes[0], "profileId"), 256))
+                else:
+                    self.assertEqual(
+                        list(_walk_values(nodes[0], "profileId")),
+                        expected,
+                        (count, edges),
+                    )
+        self.assertEqual(cases, 3 + 7**2 + 13**3)
+
     def test_media_only_projection_contains_equipment_capabilities_and_works(self) -> None:
         index = build_creative_index(ROOT)
         nodes = {row["id"]: row for row in index["nodes"]}

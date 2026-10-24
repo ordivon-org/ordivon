@@ -297,6 +297,24 @@ def tool_definitions() -> list[dict[str, Any]]:
 
 
 def execute_surface_action(name: str, arguments: Mapping[str, Any], *, root: Path = ROOT) -> dict[str, Any]:
+    """Validate one advertised Studio schema before entering any Owner consumer."""
+    tool = next((item for item in tool_definitions() if item["name"] == name), None)
+    if tool is None:
+        raise ValueError(f"unsupported Studio Agent surface action: {name}")
+    if not isinstance(arguments, Mapping):
+        raise ValueError(f"invalid arguments for {name}: expected an object")
+
+    # The dependency is already owned and locked by Studio. Keep discovery
+    # dependency-free; validate only at the actual action execution boundary.
+    from jsonschema import Draft202012Validator
+
+    checked = dict(arguments)
+    violation = next(iter(Draft202012Validator(tool["inputSchema"]).iter_errors(checked)), None)
+    if violation is not None:
+        location = "/".join(map(str, violation.absolute_path)) or "<root>"
+        raise ValueError(f"invalid arguments for {name} at {location}: {violation.message}")
+    arguments = checked
+
     if name == "studio_dependencies_status":
         return dependency_status(root)
     if name == "studio_dependencies_propose":
@@ -308,8 +326,6 @@ def execute_surface_action(name: str, arguments: Mapping[str, Any], *, root: Pat
         return build_production_context(_production_root(root, production_id))
     if name == "studio_learning_context":
         current = arguments.get("currentProductionId")
-        if current is not None and not isinstance(current, str):
-            raise ValueError("currentProductionId must be a string when supplied")
         if current is not None:
             _production_root(root, current)
         return build_learning_context(root, current_production_id=current)
@@ -329,11 +345,7 @@ def execute_surface_action(name: str, arguments: Mapping[str, Any], *, root: Pat
     if name == "studio_equipment_propose":
         world = load_equipment_world(root / "research/equipment/equipment-world.json")
         equipment_id = arguments.get("equipmentId")
-        if equipment_id is not None and not isinstance(equipment_id, str):
-            raise ValueError("equipmentId must be a string when supplied")
-        parameters = arguments.get("parameters")
-        if not isinstance(parameters, Mapping):
-            raise ValueError("parameters must be an object")
+        parameters = arguments["parameters"]
         return propose_operation(
             world,
             str(arguments["capability"]),

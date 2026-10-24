@@ -36,10 +36,18 @@ class AgentAutomationJcsStandardTests(unittest.TestCase):
         self.assertIn('"rfc8785": "0.1.4"', source)
         self.assertIn("worker runtime dependency versions differ", source)
 
-    def test_temporal_deployer_verifies_exact_rfc8785_version(self) -> None:
+    def test_temporal_deployer_derives_exact_jcs_version_from_owner_freeze(self) -> None:
         source = (ROOT / "scripts/temporal_agent_automation_deploy.py").read_text()
-        self.assertIn('"rfc8785": "0.1.4"', source)
-        self.assertIn('"temporalio": "1.34.0"', source)
+        requirements = (
+            ROOT / "config/agent-automation-temporal-requirements.txt"
+        ).read_text()
+        self.assertIn("rfc8785==0.1.4", requirements.splitlines())
+        self.assertIn("temporalio==1.34.0", requirements.splitlines())
+        self.assertIn("def expected_runtime_versions()", source)
+        self.assertIn("REQUIREMENTS.read_text", source)
+        self.assertIn('"runtimeVersionsExact": observed_versions == expected_runtime_versions()', source)
+        self.assertNotIn('"rfc8785": "0.1.4"', source)
+        self.assertNotIn('"temporalio": "1.34.0"', source)
 
 
 if __name__ == "__main__":

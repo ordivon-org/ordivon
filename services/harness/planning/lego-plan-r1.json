@@ -88,14 +88,19 @@
         "L09"
       ],
       "evidence": [
-        "README.md"
+        "README.md",
+        "scripts/temporal_agent_automation_deploy.py",
+        "config/agent-automation-temporal-requirements.txt",
+        "tests/test_temporal_agent_automation_deploy.py",
+        "tests/test_agent_automation_jcs_standard.py"
       ],
       "dependencies": [],
       "mustNotOwn": [
         "provider/domain semantic success"
       ],
       "acceptance": [
-        "Lost response does not cause blind duplicate effect."
+        "Lost response does not cause blind duplicate effect.",
+        "Temporal Worker deployment derives four exact runtime package versions solely from the installed requirements freeze, rejects stale/invalid source projections, and evaluates runtimeVersionsExact using one observed interpreter state per Plan."
       ]
     },
     {

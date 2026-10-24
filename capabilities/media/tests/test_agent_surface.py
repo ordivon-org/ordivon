@@ -66,6 +66,48 @@ class AgentSurfaceTests(unittest.TestCase):
             ],
         )
 
+    def test_advertised_json_schema_rejects_unlisted_arguments_before_owner_work(self) -> None:
+        # A tool definition is a contract, not a suggestion to its caller.
+        with tempfile.TemporaryDirectory() as directory:
+            root = self._root(directory)
+            with mock.patch(
+                "ordivon_studio.agent_surface.production_standing"
+            ) as observe:
+                with self.assertRaisesRegex(ValueError, "invalid arguments"):
+                    execute_surface_action(
+                        "studio_production_standing",
+                        {"unexpected": "must-be-rejected"},
+                        root=root,
+                    )
+                observe.assert_not_called()
+
+            with mock.patch(
+                "ordivon_studio.agent_surface.dependency_proposal"
+            ) as propose:
+                with self.assertRaisesRegex(ValueError, "invalid arguments"):
+                    execute_surface_action(
+                        "studio_dependencies_propose", {"target": "invalid-capability"}, root=root
+                    )
+                propose.assert_not_called()
+
+            with mock.patch(
+                "ordivon_studio.agent_surface.load_equipment_world"
+            ) as equipment:
+                with self.assertRaisesRegex(ValueError, "invalid arguments"):
+                    execute_surface_action(
+                        "studio_equipment_propose",
+                        {"capability": "design.read", "parameters": {}, "extraneous": True},
+                        root=root,
+                    )
+                equipment.assert_not_called()
+
+            with self.assertRaisesRegex(ValueError, "invalid arguments"):
+                execute_surface_action(
+                    "studio_production_context", {"productionId": 17}, root=root
+                )
+            with self.assertRaisesRegex(ValueError, "unsupported Studio Agent surface action"):
+                execute_surface_action("studio_not_declared", {}, root=root)
+
     def test_media_activation_boundary_precedes_studio_lowering(self) -> None:
         root = Path(__file__).resolve().parents[1]
         readme = (root / "README.md").read_text(encoding="utf-8")
