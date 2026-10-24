@@ -7,6 +7,7 @@ from pathlib import Path
 
 from ordivon_studio.models import (
     _validate_cognition_record,
+    _validate_production_semantics,
     _validate_runtime_receipt,
     _validator,
     validate_repository,
@@ -19,6 +20,75 @@ RECEIPT = json.loads(
 
 
 class ModelTests(unittest.TestCase):
+    def test_existing_writing_productions_verify_declared_exact_source_carriers(self) -> None:
+        # Reuse the owner validator on multiple real output shapes, not a story-only checker.
+        for name in ("fishing-fable-lego-study-r1", "browser-perception-note",
+                     "mhs-hardware-boundary", "ordivon-book-v0"):
+            with self.subTest(production=name):
+                root = ROOT / "productions" / name
+                path = root / "production.json"
+                production = json.loads(path.read_text(encoding="utf-8"))
+                claims = json.loads((root / "claims.json").read_text(encoding="utf-8"))
+                self.assertEqual(_validate_production_semantics(path, production, claims, None), [])
+                self.assertEqual(
+                    len([out for out in production["outputs"] if "sourceCarrier" in out]),
+                    1,
+                )
+
+    def test_exact_source_carrier_refines_schema_only_check(self) -> None:
+        root = ROOT / "productions/fishing-fable-lego-study-r1"
+        path = root / "production.json"
+        production = json.loads(path.read_text(encoding="utf-8"))
+        claims = json.loads((root / "claims.json").read_text(encoding="utf-8"))
+        self.assertIn("reconstructed", production["sourceBindings"][0]["role"])
+
+        # A0: a forged, syntactically valid digest passes the generic JSON Schema.
+        corrupted = copy.deepcopy(production)
+        corrupted["outputs"][0]["blobDigest"] = "sha256:" + "0" * 64
+        self.assertEqual(list(_validator("production.schema.json").iter_errors(corrupted)), [])
+        # A1: the owner-native exact-byte verifier rejects this concrete counterexample.
+        self.assertTrue(any("digest mismatch" in e
+                            for e in _validate_production_semantics(path, corrupted, claims, None)))
+
+        unbound_carrier = copy.deepcopy(production)
+        unbound_carrier["outputs"][0]["sourceCarrier"] = "unlisted-source.md"
+        self.assertTrue(any("not a declared source" in e
+                            for e in _validate_production_semantics(path, unbound_carrier, claims, None)))
+
+        missing_digest = copy.deepcopy(production)
+        del missing_digest["outputs"][0]["blobDigest"]
+        self.assertTrue(list(_validator("production.schema.json").iter_errors(missing_digest)))
+        self.assertTrue(any("requires blobDigest" in e
+                            for e in _validate_production_semantics(path, missing_digest, claims, None)))
+
+        unbound_claim = copy.deepcopy(claims)
+        unbound_claim["claims"][0]["source"]["binding"] = "undeclared-owner"
+        self.assertTrue(any("unknown binding" in e
+                            for e in _validate_production_semantics(path, production, unbound_claim, None)))
+
+    def test_local_claims_require_exact_historical_git_witness(self) -> None:
+        production_root = ROOT / "productions/fishing-fable-lego-study-r1"
+        production_path = production_root / "production.json"
+        production = json.loads(production_path.read_text(encoding="utf-8"))
+        claims = json.loads((production_root / "claims.json").read_text(encoding="utf-8"))
+        self.assertEqual(_validate_production_semantics(production_path, production, claims, None), [])
+
+        # Missing SHA is a FAIL for a local binding, not a quiet test skip.
+        stale = copy.deepcopy(production)
+        stale["sourceBindings"][0]["revision"] = "0" * 40
+        errors = _validate_production_semantics(production_path, stale, claims, None)
+        self.assertTrue(any("local source revision unavailable" in e for e in errors))
+
+        # The current worktree contains this file, but the frozen prior
+        # source revision did not. Historical existence cannot be inferred.
+        false_history = copy.deepcopy(claims)
+        false_history["claims"][0]["source"]["path"] = (
+            "capabilities/media/productions/fishing-fable-lego-study-r1/"
+            "formal-writing-contracts-r1.md"
+        )
+        errors = _validate_production_semantics(production_path, production, false_history, None)
+        self.assertTrue(any("historical source missing" in e for e in errors))
+
     def test_repository_models_are_valid(self) -> None:
         self.assertEqual(validate_repository(), [])
 

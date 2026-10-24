@@ -271,7 +271,15 @@
           "blobDigest": {
             "type": "string",
             "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "sourceCarrier": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Optional exact-byte provenance: must name a declared sources path whose current bytes equal blobDigest. Not valid for transformed outputs unless the produced bytes truly equal the named source."
           }
+        },
+        "dependentRequired": {
+          "sourceCarrier": ["blobDigest"]
         }
       }
     }
