@@ -191,6 +191,102 @@
           "evidenceScope": "NATIVE_CONSUMER_PASS",
           "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
           "evaluatedRemoteMain": "a56afcf30aafd8d5bcd0f41adb950504f5724267"
+        },
+        {
+          "localCommit": "225192c6e711ea4b6493377b7536f18e531ac72f",
+          "owner": "platform/workstation",
+          "consumer": "Removed obsolete migration docs have no surviving consumer or source at either tip",
+          "remoteWitness": "Distribution and Workstation legacy notes: 3 paths absent at local Main and protected Main. Git native cherry-mark says equivalent deletion, not a reason to restore obsolete docs.",
+          "evidenceScope": "EXACT_GIT_BLOBS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "688ed35d1f502549b04a1fb931a6e86d8350050c",
+            "patchRelation": "PATCH_ID_EQUIVALENT",
+            "branchDeletionAllowed": false,
+            "tipRelation": "BOTH_TIPS_ABSENT",
+            "consumerStanding": "NO_CURRENT_CONSUMER"
+          }
+        },
+        {
+          "localCommit": "84baec0ea131f1161177ab18cba3fff253bf3a2d",
+          "owner": "capabilities/media",
+          "consumer": "Media HTTP range behavior and creative library consumer retained by identical implementation and test bytes",
+          "remoteWitness": "capabilities/media/scripts/creative_library.py + tests/test_creative_library.py; native 11 pytest PASS and 35 subtests.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "688ed35d1f502549b04a1fb931a6e86d8350050c",
+            "patchRelation": "PATCH_ID_EQUIVALENT",
+            "branchDeletionAllowed": false,
+            "tipRelation": "SAME_BLOB_AND_MODE",
+            "consumerStanding": "CURRENT_OWNER_COVERED"
+          }
+        },
+        {
+          "localCommit": "2919a6d8406a56faa7035804491c042503ad5c25",
+          "owner": "domains/capital",
+          "consumer": "Execution sizing must not spend reserved cash to pay transaction fees; current code and regression bytes identical",
+          "remoteWitness": "domains/capital/src/ordivon_capital/trading/execution_feasibility.py + tests/test_execution_feasibility.py; 16 native pytest PASS.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "688ed35d1f502549b04a1fb931a6e86d8350050c",
+            "patchRelation": "PATCH_ID_EQUIVALENT",
+            "branchDeletionAllowed": false,
+            "tipRelation": "SAME_BLOB_AND_MODE",
+            "consumerStanding": "CURRENT_OWNER_COVERED"
+          }
+        },
+        {
+          "localCommit": "495b45d4610d012e6fd96fed4dd624e723249a37",
+          "owner": "packages/composition",
+          "consumer": "DAG topological ordering and missing-dependency rejection already consumed by current Composition property tests",
+          "remoteWitness": "packages/composition/tests/test_graph_operator_properties.py; 11 native pytest PASS.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "688ed35d1f502549b04a1fb931a6e86d8350050c",
+            "patchRelation": "PATCH_ID_EQUIVALENT",
+            "branchDeletionAllowed": false,
+            "tipRelation": "SAME_BLOB_AND_MODE",
+            "consumerStanding": "CURRENT_OWNER_COVERED"
+          }
+        },
+        {
+          "localCommit": "82c8fa2924e89f6706eddee4761899b727c67902",
+          "owner": "services/harness",
+          "consumer": "Adaptive editing bridge uses actual workspace source digest; current implementation/test byte-identical",
+          "remoteWitness": "services/harness/src/ordivon_harness/ordivon/adaptive_edit_bridge.py + tests/test_adaptive_edit_bridge.py; native Harness suite 24 PASS (combined with Finance read-only fixtures).",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "688ed35d1f502549b04a1fb931a6e86d8350050c",
+            "patchRelation": "PATCH_ID_EQUIVALENT",
+            "branchDeletionAllowed": false,
+            "tipRelation": "SAME_BLOB_AND_MODE",
+            "consumerStanding": "CURRENT_OWNER_COVERED"
+          }
+        },
+        {
+          "localCommit": "f93faa57cf9960a0ba14e29719815e1c453bf812",
+          "owner": "services/harness",
+          "consumer": "Finance read-only observation uses owner-selected locked uv; identical existing scripts and consumer tests",
+          "remoteWitness": "services/harness/scripts/finance_readonly_observation.py + tests/test_finance_owner_uv_selection_contract.py + tests/test_finance_readonly_observation.py; native Harness suite 24 PASS.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "688ed35d1f502549b04a1fb931a6e86d8350050c",
+            "patchRelation": "PATCH_ID_EQUIVALENT",
+            "branchDeletionAllowed": false,
+            "tipRelation": "SAME_BLOB_AND_MODE",
+            "consumerStanding": "CURRENT_OWNER_COVERED"
+          }
         }
       ],
       "formalObligation": "The selected source must be an explicit source cut and each chosen change must preserve owner CDC.",
