@@ -259,5 +259,57 @@ class DeployTests(unittest.TestCase):
                 self.assertEqual(d.source_revision(), commit)
 
 
+    def test_mcp_release_includes_its_canonical_uv_tool_pin(self):
+        import agent_automation_release as release
+
+        self.assertIn("mise.toml", release.RELEASE_PATHS)
+
+    def test_mcp_materialization_selects_one_project_mise_uv_not_global_venv(self):
+        import subprocess
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            (root / "mise.toml").write_text('[tools]\nuv = "0.13.5"\n')
+            selected = root / "versioned-uv"
+            selected.write_text("#!/bin/sh\nexit 0\n")
+            selected.chmod(0o755)
+            process = subprocess.CompletedProcess(
+                ["/usr/bin/mise", "which", "uv"], 0, stdout=str(selected) + "\n"
+            )
+            with patch.object(d, "ROOT", root), patch.object(
+                d.subprocess, "run", return_value=process
+            ) as invoked:
+                self.assertEqual(d.owner_uv_executable(), str(selected))
+            self.assertEqual(invoked.call_args.args[0], ["/usr/bin/mise", "which", "uv"])
+            self.assertEqual(invoked.call_args.kwargs["cwd"], root)
+            self.assertEqual(invoked.call_args.kwargs["env"]["MISE_OFFLINE"], "1")
+            self.assertEqual(invoked.call_args.kwargs["env"]["MISE_AUTO_INSTALL"], "false")
+            source = (ROOT / "scripts/agent_automation_mcp_deploy.py").read_text()
+            self.assertNotIn('"/usr/bin/uv"', source)
+            self.assertIn('uv = owner_uv_executable()', source)
+
+    def test_mcp_owner_uv_fails_without_exact_release_pin_or_executable(self):
+        import subprocess
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            selected = root / "not-executable"
+            fake = subprocess.CompletedProcess(
+                ["/usr/bin/mise", "which", "uv"], 0, stdout=str(selected) + "\n"
+            )
+            with patch.object(d, "ROOT", root), patch.object(
+                d.subprocess, "run", return_value=fake
+            ):
+                with self.assertRaisesRegex(RuntimeError, "owner uv"):
+                    d.owner_uv_executable()
+                (root / "mise.toml").write_text('[tools]\nuv = "0.13.5"\n')
+                with self.assertRaisesRegex(RuntimeError, "owner uv"):
+                    d.owner_uv_executable()
+                selected.write_text("inert")
+                selected.chmod(0o600)
+                with self.assertRaisesRegex(RuntimeError, "owner uv"):
+                    d.owner_uv_executable()
+
+
 if __name__ == "__main__":
     unittest.main()
