@@ -54,6 +54,35 @@ def test_release_guard_rejects_surface_change_without_epoch_advance(tmp_path: Pa
     assert "without advancing surfaceEpoch" in result.stderr
 
 
+def test_linux_release_promotion_requires_actual_installed_sdk_surface() -> None:
+    # Static source manifest checks do not prove what the installed MCP SDK
+    # and owner server really expose after the frozen environment is created.
+    installer = (ROOT / "packaging" / "install_release.sh").read_text(encoding="utf-8")
+    sdk_check = '"$RELEASE/.venv/bin/python" "$RELEASE/packaging/windows/verify_release.py"'
+    assert sdk_check in installer
+    assert installer.index(sdk_check) < installer.index(
+        'ln -sfn "releases/$COMMIT" "$PREFIX/current.next"'
+    )
+
+
+def test_installed_sdk_verifier_fails_closed_when_live_tool_set_differs() -> None:
+    # Real MCP SDK + real Gateway server, with a deliberately wrong expected
+    # surface. A JSON manifest alone cannot detect this candidate drift.
+    import importlib.util
+
+    import pytest
+
+    verifier = ROOT / "packaging" / "windows" / "verify_release.py"
+    spec = importlib.util.spec_from_file_location("gateway_sdk_release_consumer", verifier)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    module.EXPECTED = module.EXPECTED[:-1]
+    with pytest.raises(BaseExceptionGroup) as error:
+        asyncio.run(module.main())
+    assert "Gateway MCP surface drift" in repr(error.value)
+
+
 def test_linux_release_installer_enforces_surface_manifest() -> None:
     installer = (ROOT / "packaging" / "install_release.sh").read_text(encoding="utf-8")
     assert "verify_tool_surface.py" in installer

@@ -370,6 +370,11 @@ def validate_formal_issue_census(
                 raise ArchitectureDocsError("invalid historical Git SHA")
             if oid in identities:
                 raise ArchitectureDocsError("duplicate historical Git selection")
+            # A non-primary cohort member already has an Owner disposition.
+            # Selecting it separately would allow parallel agents to make
+            # conflicting decisions about the same immutable Git object.
+            if oid in cohort_ids:
+                raise ArchitectureDocsError("historical Git cohort member collision")
             identities.add(oid)
             owner = entry.get("owner")
             if not isinstance(owner, str) or (
@@ -407,6 +412,7 @@ def validate_formal_issue_census(
                 or any(not isinstance(v, str) or not oid_pattern.fullmatch(v) for v in cohort)
                 or len(cohort) != len(set(cohort))
                 or not cohort_ids.isdisjoint(cohort)
+                or not (set(cohort) - {oid}).isdisjoint(identities)
             ):
                 raise ArchitectureDocsError("invalid historical Git cohort")
             if cohort is not None:
@@ -461,7 +467,7 @@ def validate_formal_issue_census(
             commit = blocker.get("localCommit")
             if not isinstance(commit, str) or not oid_pattern.fullmatch(commit):
                 raise ArchitectureDocsError("invalid historical Git blocker identity")
-            if commit in identities:
+            if commit in identities or commit in cohort_ids:
                 raise ArchitectureDocsError("historical Git selected and blocked collision")
             if commit in blocked:
                 raise ArchitectureDocsError("duplicate historical Git blocker")

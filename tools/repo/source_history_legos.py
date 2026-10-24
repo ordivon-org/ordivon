@@ -316,6 +316,9 @@ def history(repo: Path, left: str, right: str) -> dict:
         "sourceCut": {"local": left_oid, "remote": right_oid, "commonAncestor": base},
         "counts": {"local": expected_left, "remote": expected_right},
         "ownerMappingSourceCut": right_oid,
+        # Presence is defined by the source-bound Owner manifest, not by
+        # whether a responsibility happens to have commits in this DAG.
+        "ownerUniverse": sorted({name for _, name in mappings} | {"ROOT_UNOWNED"}),
         "patchClasses": dict(counts),
         "ownerMembership": dict(owner_counts),
         "warning": "Patch IDs, equal blobs and unique cross-path byte/mode matches do not prove consumer behavior, rename intent or safe retirement.",
@@ -330,9 +333,15 @@ def owner_slice(projection: dict, owner: str) -> dict:
     a collection of Owner views is a cover, not a disjoint Git partition.
     """
     records = projection["commits"]
-    names = {name for item in records for name in item["owners"]}
-    if owner not in names:
+    declared = projection["ownerUniverse"]
+    if not isinstance(declared, list) or not all(
+        isinstance(name, str) for name in declared
+    ) or declared != sorted(set(declared)):
+        raise ValueError("invalid source-bound Owner universe")
+    if owner not in declared:
         raise ValueError(f"unknown Owner in source history: {owner!r}")
+    if any(name not in declared for item in records for name in item["owners"]):
+        raise ValueError("unbound historical Owner membership")
     global_counts = collections.Counter(item["side"] for item in records)
     if {side: global_counts[side] for side in ("local", "remote")} != projection["counts"]:
         raise ValueError("source-history global DAG coverage mismatch")

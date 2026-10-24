@@ -976,6 +976,44 @@ def test_git01_owner_proof_union_cannot_silently_weaken_preexisting_guards(
         module.validate_formal_issue_census(census, plans)
 
 
+@pytest.mark.parametrize(
+    ("order", "message"),
+    [
+        ("before", "invalid historical Git cohort"),
+        ("after", "historical Git cohort member collision"),
+        ("blocker", "historical Git selected and blocked collision"),
+    ],
+)
+def test_git01_cohort_members_have_one_owner_decision(
+    order: str, message: str
+) -> None:
+    """Every SHA within a historical cohort has exactly one disposition."""
+    census, plans = formal_issue_inputs()
+    issue = next(x for x in census["issues"] if x["id"] == "GIT-01")
+    entries = issue["consumerSelections"]
+    primary = next(x for x in entries if len(x.get("historicalCohort", [])) > 1)
+    secondary = next(
+        sha for sha in primary["historicalCohort"]
+        if sha != primary["localCommit"]
+    )
+    assert all(x["localCommit"] != secondary for x in entries)
+    if order == "blocker":
+        claim = copy.deepcopy(issue["consumerBlockedSelections"][0])
+        claim["localCommit"] = secondary
+        issue["consumerBlockedSelections"].append(claim)
+    else:
+        claim = copy.deepcopy(next(
+            x for x in entries if not x.get("historicalCohort")
+        ))
+        claim["localCommit"] = secondary
+        if order == "before":
+            entries.insert(0, claim)
+        else:
+            entries.append(claim)
+    with pytest.raises(module.ArchitectureDocsError, match=message):
+        module.validate_formal_issue_census(census, plans)
+
+
 def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
     """A Git-only commit cannot be called unique without a source-bound consumer comparison."""
     census, plans = formal_issue_inputs()
