@@ -1937,3 +1937,27 @@ def test_formal_r21_empty_harness_graph_must_not_pass_registered_census() -> Non
     plans[owner]["edges"] = []
     with pytest.raises(module.ArchitectureDocsError, match="empty LEGO owner graph"):
         module.validate_formal_issue_census(census, plans)
+
+
+def test_r21_single_six_role_contract_enforced_at_repository_admission() -> None:
+    """R2.1 semantic lenses must never silently replace the original LEGO interface."""
+    vocabulary = (
+        ROOT / "docs/architecture/AGENT_CONCEPTS_FORMAL_LEGO_RESEARCH_20261024.md"
+    ).read_text(encoding="utf-8")
+    module.validate_r21_lego_vocabulary(vocabulary)
+    canonical = "L = (identity, responsibility, inputs, outputs, contract, acceptance)"
+    assert vocabulary.count(canonical) == 1
+
+    with pytest.raises(module.ArchitectureDocsError, match="canonical"):
+        module.validate_r21_lego_vocabulary(vocabulary.replace(canonical, "L=(C,I,O,S,R,A,G,V)"))
+    with pytest.raises(module.ArchitectureDocsError, match="competing"):
+        module.validate_r21_lego_vocabulary(
+            vocabulary + "\nL = (I, O, A, G, E, V)\n"
+        )
+    with pytest.raises(module.ArchitectureDocsError, match="consumer"):
+        module.validate_r21_lego_vocabulary(
+            vocabulary.replace(
+                "services/host/tests/test_social_work_fabric_postgres.py",
+                "services/host/tests/test_unverified_nonexistent_contract.py",
+            )
+        )
