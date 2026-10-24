@@ -6,7 +6,8 @@ import json
 import sqlite3
 import time
 import uuid
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterator, Mapping
+from contextlib import closing, contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -71,13 +72,17 @@ class ExternalPullWorkerTransport:
         Path(self.path).parent.mkdir(parents=True, exist_ok=True)
         self._init_schema()
 
-    def _connect(self) -> sqlite3.Connection:
-        db = sqlite3.connect(self.path, timeout=30, isolation_level=None)
-        db.row_factory = sqlite3.Row
-        db.execute("PRAGMA foreign_keys=ON")
-        db.execute("PRAGMA journal_mode=WAL")
-        db.execute("PRAGMA synchronous=FULL")
-        return db
+    @contextmanager
+    def _connect(self) -> Iterator[sqlite3.Connection]:
+        # sqlite3.Connection.__exit__ commits/rolls back but never closes.
+        # Preserve the existing transaction boundary and release every handle.
+        with closing(sqlite3.connect(self.path, timeout=30, isolation_level=None)) as db:
+            db.row_factory = sqlite3.Row
+            db.execute("PRAGMA foreign_keys=ON")
+            db.execute("PRAGMA journal_mode=WAL")
+            db.execute("PRAGMA synchronous=FULL")
+            with db:
+                yield db
 
     def _init_schema(self) -> None:
         with self._connect() as db:
@@ -470,6 +475,7 @@ class ExternalPullWorkerTransport:
         attempt_id: str,
         lease_id: str,
         allow_expired_started: bool = False,
+        allow_terminal_replay: bool = False,
     ) -> tuple[sqlite3.Row, sqlite3.Row]:
         self._worker(db, worker_id, generation)
         operation = db.execute(
@@ -492,7 +498,12 @@ class ExternalPullWorkerTransport:
                 and attempt["state"] in {"started", "reconcile_required"}
                 and operation["state"] in {"started", "reconcile_required"}
             )
-            if not late_started_result:
+            committed_replay = (
+                allow_terminal_replay
+                and bool(operation["terminal"])
+                and attempt["state"] in {"completed", "failed"}
+            )
+            if not late_started_result and not committed_replay:
                 raise WorkerConflict("stale attempt lease expired")
         return operation, attempt
 
@@ -560,13 +571,7 @@ class ExternalPullWorkerTransport:
             if operation is None:
                 db.execute("ROLLBACK")
                 raise WorkerConflict("unknown operation")
-            if bool(operation["terminal"]):
-                if operation["result_digest"] != terminal_digest:
-                    db.execute("ROLLBACK")
-                    raise WorkerConflict("terminal result differs from committed result")
-                db.execute("COMMIT")
-                return self._operation_from_row(db, operation)
-
+            # Authenticate exact Worker/Attempt/Lease even for terminal retries.
             operation, _ = self._active_attempt(
                 db,
                 worker_id=worker_id,
@@ -575,7 +580,15 @@ class ExternalPullWorkerTransport:
                 attempt_id=attempt_id,
                 lease_id=lease_id,
                 allow_expired_started=True,
+                allow_terminal_replay=True,
             )
+            if bool(operation["terminal"]):
+                if operation["result_digest"] != terminal_digest:
+                    db.execute("ROLLBACK")
+                    raise WorkerConflict("terminal result differs from committed result")
+                db.execute("COMMIT")
+                return self._operation_from_row(db, operation)
+
             for item, projection in zip(artifacts, artifact_projection, strict=True):
                 db.execute(
                     """
