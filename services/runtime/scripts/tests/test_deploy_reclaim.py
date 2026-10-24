@@ -2206,6 +2206,42 @@ class DeployReclaimTests(unittest.TestCase):
                             module["apply_reclaim"](args)
                     self.assertFalse((Path(temp) / "receipts").exists())
 
+    def test_reclaim_inspection_rejects_duplicate_workspace_registry_identity(self) -> None:
+        # A list->map projection must be injective: a later empty activeJobIds
+        # cannot overwrite an earlier held Job and make deletion appear safe.
+        scripts_path = str(REPO / "scripts")
+        sys.path.insert(0, scripts_path)
+        try:
+            module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-reclaim"))
+        finally:
+            sys.path.remove(scripts_path)
+        globals_ = module["inspect_workspaces"].__globals__
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            args = argparse.Namespace(
+                workspace_root=root / "workspaces",
+                runtime_store_root=root,
+                database=root / "registry.sqlite3",
+                busy_timeout_ms=1000,
+                measure_bytes=False,
+            )
+            for first, second in (
+                (["job-held"], []),
+                ([], ["job-held"]),
+            ):
+                with self.subTest(first=first, second=second):
+                    with patch.dict(globals_, {
+                        "registry_projection": lambda *_a, **_k: {
+                            "migrationVersion": 1,
+                            "activeWorkspaces": [
+                                {"workspaceId": "sensitive", "activeJobIds": first},
+                                {"workspaceId": "sensitive", "activeJobIds": second},
+                            ],
+                        }
+                    }):
+                        with self.assertRaisesRegex(RuntimeError, "duplicate.*workspace"):
+                            module["inspect_workspaces"](args)
+
     def test_reclaim_numeric_bounds_follow_sqlite_and_finite_policy_values(self) -> None:
         module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-reclaim"))
         self.assertEqual(module["positive_timeout"]("60001"), 60_001)
