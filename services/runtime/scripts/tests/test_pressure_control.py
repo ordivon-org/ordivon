@@ -99,6 +99,20 @@ class PressureControlTests(unittest.TestCase):
         self.assertEqual(state["zeroYieldStreak"], 0)
         self.assertEqual(state["lastCooldownSeconds"], self.policy["baseCooldownSeconds"])
 
+    def test_corrupted_backoff_streak_cannot_escape_bounded_integer_state(self):
+        """A corrupt historical counter must not become a negative/float cooldown."""
+        update = self.module["update_backoff"]
+        for bad in (-10, True, 1.5, "10"):
+            with self.subTest(value=bad):
+                state = {"zeroYieldStreak": bad}
+                update(state, now_ms=10_000, yield_bytes=0, policy=self.policy)
+                self.assertEqual(state["zeroYieldStreak"], 1)
+                self.assertIs(type(state["lastCooldownSeconds"]), int)
+                self.assertIs(type(state["nextExpensiveProbeAfterMs"]), int)
+                self.assertGreaterEqual(
+                    state["nextExpensiveProbeAfterMs"], 10_000
+                )
+
     def test_actuator_tries_cache_before_semantic_reclaim_and_skips_reclaim_when_enough(self):
         actuate = self.module["actuate"]
         globals_ = actuate.__globals__
@@ -125,6 +139,45 @@ class PressureControlTests(unittest.TestCase):
             self.assertIsNone(result["reclaim"])
         finally:
             globals_.update(saved)
+
+    def test_policy_integer_fields_fail_closed_on_coerced_json_values(self):
+        """A disk-pressure safety threshold must never use a rounded or text value."""
+        load = self.module["load_policy"]
+        with tempfile.TemporaryDirectory() as temporary:
+            policy_file = Path(temporary) / "policy.json"
+            for bad in (1.9, 1.0, "21474836480", True):
+                with self.subTest(value=bad):
+                    candidate = dict(self.policy)
+                    candidate["hardFloorBytes"] = bad
+                    policy_file.write_text(json.dumps(candidate), encoding="utf-8")
+                    with self.assertRaisesRegex(RuntimeError, "hardFloorBytes.*positive integer"):
+                        load(policy_file)
+
+    def test_historical_samples_drop_non_integer_and_negative_observations(self):
+        """Malformed persisted samples cannot invent a consumption rate."""
+        normalize = self.module["normalized_samples"]
+        now = 20_000_000
+        valid_before = now - 3_600_000
+        state = {
+            "samples": [
+                {"observedAtMs": True, "freeBytes": 99 * 1024**3},
+                {"observedAtMs": valid_before, "freeBytes": True},
+                {"observedAtMs": valid_before, "freeBytes": -1},
+                {"observedAtMs": valid_before + 1, "freeBytes": 0.5},
+                {"observedAtMs": "19000000", "freeBytes": 10},
+                {"observedAtMs": -10, "freeBytes": 10},
+                {"observedAtMs": valid_before, "freeBytes": 28 * 1024**3},
+            ]
+        }
+        samples = normalize(state, now, 26 * 1024**3, 7200)
+        self.assertEqual(
+            samples,
+            [
+                {"observedAtMs": valid_before, "freeBytes": 28 * 1024**3},
+                {"observedAtMs": now, "freeBytes": 26 * 1024**3},
+            ],
+        )
+        self.assertGreater(self.module["conservative_consumption_rate"](samples), 0)
 
     def test_systemd_timer_samples_often_but_service_calls_only_controller(self):
         service = SERVICE.read_text(encoding="utf-8")

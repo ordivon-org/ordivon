@@ -435,6 +435,40 @@ scripts/ordivon-runtime-cache prune \
 
 `scripts/ordivon-runtime-pressure-control` is a thin feedback controller over existing Runtime-owned cache and Workspace-reclaim actuators. Its cheap observation path reads host free bytes plus the bounded Runtime Core `registry-status` projection and persists a bounded sample/backoff state; it does not interpret Registry tables or gain Workspace deletion authority. The default policy separates a 20 GiB hard floor from a 28 GiB soft trigger, estimates time-to-floor from recent physical free-space consumption, wakes on material Registry activity, and exponentially backs off after low-yield expensive probes. Cache pruning runs before semantic Workspace reclaim; the latter is attempted only when physical free space remains below the soft trigger. Subordinate cache/reclaim receipts remain the effect authority. The packaged five-minute timer is therefore a cheap sampling cadence, not a five-minute full semantic scan.
 
+### Storage-pressure input/type refinement (LEGO R2.1 / CEGAR)
+
+Natural Owner: Runtime storage-pressure controller; consumers are the
+existing five-minute observation and guarded cache-then-Workspace-reclaim
+decisions. Issues **STORAGE_POLICY_COERCION**, **HISTORICAL_SAMPLE_FALSIFICATION**
+and **BACKOFF_COUNTER_OUT_OF_RANGE** share one mathematical kernel:
+
+```text
+PolicySeconds, PolicyBytes : positive exact JSON integers (bool excluded)
+Sample                    : (timestamp_ms: nonnegative int,
+                             free_bytes: nonnegative int)
+BackoffStreak              : bounded integer in [0, 20]
+current free-space         : fresh physical disk observation, not a saved sample
+```
+
+A policy float or numeric string cannot silently become a storage floor.
+Malformed saved observations are excluded from slope estimation; they cannot
+invent a consumption rate that bypasses expensive-probe backoff. Corrupted
+historical streaks reenter at zero, then follow the existing saturating
+counter; invalid data must not produce a fractional or negative cooldown.
+The physical hard-floor branch and the existing D-drive-only Owner scope
+remain unchanged. A C: drive capacity measurement is **not** evidence that
+the D: drive Runtime reclaim actuators would free any C: bytes.
+
+Concrete CEGAR falsifiers were first executed against the original Owner:
+fractional/string policy thresholds, boolean/negative historical samples,
+and negative/boolean old streaks caused invalid decisions or states. The
+native `scripts.tests.test_pressure_control` suite now rejects these
+counterexamples. Runtime's existing `scripts/owner-environment test`
+already discovers this suite; no second test runner, state schema, service,
+agent, or model checker is introduced. This establishes bounded input and
+transition invariants, **not** total disk-failure prevention, VHDX compaction
+safety, or correctness of independently owned physical reclaim effects.
+
 `scripts/ordivon-runtime-capacity-acceptance` is the repeatable public-surface proof for global admission. It opens `N+1` isolated Workspaces, admits exactly `N` bounded sleep Jobs, requires the next Job to fail with `CONCURRENCY_LIMIT`, verifies exact `active`/`limit` truth plus an explicit `holdersTruncated` completeness signal, checks that the holder identities are either complete or an honest bounded subset, waits for every admitted Job to succeed, and closes every acceptance Workspace. It emits a digest-bound JSON receipt and never reads the Registry directly.
 
 Run it from a host shell or independent systemd unit, not from a Runtime Job: a Runtime Job would itself consume one of the slots being measured.

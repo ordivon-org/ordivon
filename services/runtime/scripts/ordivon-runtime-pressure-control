@@ -39,15 +39,11 @@ def absolute_path(value: str) -> Path:
 
 
 def positive_int(value: object, label: str) -> int:
-    if isinstance(value, bool):
+    # A JSON policy integer is an exact type, never a coerced float/string.
+    # bool subclasses int in Python; exact type admission blocks it too.
+    if type(value) is not int or value <= 0:
         raise RuntimeError(f"{label} must be a positive integer")
-    try:
-        parsed = int(value)
-    except (TypeError, ValueError) as error:
-        raise RuntimeError(f"{label} must be a positive integer") from error
-    if parsed <= 0:
-        raise RuntimeError(f"{label} must be a positive integer")
-    return parsed
+    return value
 
 
 def parse_args() -> argparse.Namespace:
@@ -234,7 +230,16 @@ def normalized_samples(state: dict[str, object], now_ms: int, free_bytes: int, w
                 continue
             observed = raw.get("observedAtMs")
             free = raw.get("freeBytes")
-            if isinstance(observed, int) and isinstance(free, int) and observed >= cutoff and observed < now_ms:
+            # Persisted samples are untrusted historical observations. Reject
+            # bools, floats, numeric strings, negative free space and bad time:
+            # otherwise an invented slope can trigger an expensive reclaim.
+            if (
+                type(observed) is int
+                and type(free) is int
+                and 0 <= observed < now_ms
+                and observed >= cutoff
+                and free >= 0
+            ):
                 rows.append({"observedAtMs": observed, "freeBytes": free})
     rows.append({"observedAtMs": now_ms, "freeBytes": free_bytes})
     rows.sort(key=lambda row: row["observedAtMs"])
@@ -390,7 +395,10 @@ def update_backoff(
     policy: dict[str, object],
 ) -> None:
     effective = yield_bytes >= int(policy["minimumEffectiveYieldBytes"])
-    prior = int(state.get("zeroYieldStreak", 0)) if isinstance(state.get("zeroYieldStreak", 0), int) else 0
+    # Saturating counter, with a typed nonnegative base even when a persisted
+    # record is corrupted. Negative streaks otherwise produce FLOAT cooldowns.
+    saved = state.get("zeroYieldStreak", 0)
+    prior = saved if type(saved) is int and saved >= 0 else 0
     streak = 0 if effective else min(prior + 1, 20)
     base = int(policy["baseCooldownSeconds"])
     maximum = int(policy["maxCooldownSeconds"])
