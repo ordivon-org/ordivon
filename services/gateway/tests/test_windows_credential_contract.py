@@ -11,7 +11,15 @@ def test_windows_credential_materializer_is_file_reference_only() -> None:
     assert "LinuxRuntimeBearerSource" in text
     assert "WindowsRuntimeBearerSource" in text
     assert "HostBearerSource" in text
-    assert "ReadAllBytes" in text
+    # The producer reads file bytes without exposing them in PowerShell
+    # strings; the source must be size-bounded before allocation.
+    assert "Read-SecretBytesBounded" in text
+    assert "[IO.File]::Open(" in text
+    assert "[IO.FileShare]::Read" in text
+    assert "$sourceStream.Length -lt 1 -or $sourceStream.Length -gt 16384" in text
+    assert "$sourceStream.Read($result, $offset, $result.Length - $offset)" in text
+    assert "$sourceStream.ReadByte() -ne -1" in text
+    assert "ReadAllBytes" not in text
     assert "WriteAllBytes" in text
     assert "Get-Content" not in text
 
