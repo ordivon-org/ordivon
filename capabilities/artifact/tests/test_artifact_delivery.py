@@ -190,7 +190,11 @@ class ArtifactDeliveryTests(unittest.TestCase):
             path.write_text(json.dumps(value))
             result = validate_profile_v1(path)
             self.assertEqual(result["status"], "FAIL")
-            self.assertTrue(any("document primaryOutput.format" in item for item in result["minimalContractErrors"]))
+            # Historical _minimal_profile_checks duplicated the published JSON Schema.
+            # The current canonical validator must solely own acceptance and diagnostics.
+            from artifact_core.json_validation import validate_json_document
+            canonical = validate_json_document(path, ROOT / "artifact-delivery/profile-v1.schema.json")
+            self.assertEqual(result["minimalContractErrors"], canonical["failures"])
 
     def test_delivery_request_binds_exact_profile_and_source_bytes(self) -> None:
         request = ROOT / "artifact-delivery/examples/presentation-native-smoke-request-r1.json"
