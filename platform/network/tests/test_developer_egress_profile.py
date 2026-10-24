@@ -780,6 +780,20 @@ def test_runtime_envfile_rejects_non_literal_values_without_partial_output() -> 
         assert "INJECTED_ROUTE" not in result.stderr, name
 
 
+def test_historical_discord_merge_requires_current_n05_consumer_before_revival() -> None:
+    """A unique merge resolution is not a license to resurrect a daemon."""
+    root = Path(__file__).resolve().parents[3]
+    assert not (root / "platform/network/consumers/discord/systemd/network-v2-discord-egress.service").exists()
+    plan = json.loads((root / "platform/network/planning/lego-plan-r1.json").read_text())
+    n05 = next(x for x in plan["nodes"] if x["id"] == "N05")
+    assert any(
+        "77c36033da05586dbd965d407f35bf2fece578ef" in entry
+        and "NO_CURRENT_CONSUMER" in entry
+        and "UNPROVED" in entry
+        for entry in n05["evidence"]
+    )
+
+
 def test_retired_model_provider_history_uses_existing_n05_consumer() -> None:
     """Only a qualified current consumer can justify reviving an old model readiness daemon."""
     root = Path(__file__).resolve().parents[3]

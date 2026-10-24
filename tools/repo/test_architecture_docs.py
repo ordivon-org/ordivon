@@ -443,6 +443,27 @@ def formal_issue_inputs():
     return census, plans
 
 
+@pytest.mark.parametrize("role", ["protectedGithubMain", "linuxLocalMain", "mergeBase", "researchLocalMain"])
+def test_formal_issue_census_rejects_untyped_git_source_cut(role: str) -> None:
+    census, plans = formal_issue_inputs()
+    census["source"][role] = "not-an-exact-git-oid"
+    with pytest.raises(module.ArchitectureDocsError, match=f"invalid Git source revision: {role}"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issue_census_rejects_missing_protected_source_cut() -> None:
+    census, plans = formal_issue_inputs()
+    del census["source"]["protectedGithubMain"]
+    with pytest.raises(module.ArchitectureDocsError, match="lacks protected Git source revision"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issue_incremental_source_cut_is_valid() -> None:
+    census, plans = formal_issue_inputs()
+    census["source"] = {"protectedGithubMain": census["source"]["protectedGithubMain"]}
+    module.validate_formal_issue_census(census, plans)
+
+
 def test_formal_issue_census_preserves_existing_owner_legos() -> None:
     census, plans = formal_issue_inputs()
     module.validate_formal_issue_census(census, plans)
@@ -581,7 +602,7 @@ def test_formal_issue_census_rejects_cross_owner_problem_link() -> None:
 
 def test_formal_issue_census_rejects_unexplained_gap() -> None:
     census, plans = formal_issue_inputs()
-    issue = next(issue for issue in census["issues"] if issue["id"] == "GIT-01")
+    issue = next(issue for issue in census["issues"] if issue["id"] == "GIT-02")
     issue["registration"]["reason"] = " "
     with pytest.raises(module.ArchitectureDocsError, match="lacks unregistered reason"):
         module.validate_formal_issue_census(census, plans)
@@ -606,7 +627,7 @@ def test_formal_issue_census_rejects_malformed_link_shape() -> None:
 
 def test_formal_issue_census_rejects_gap_disguised_as_link() -> None:
     census, plans = formal_issue_inputs()
-    issue = next(issue for issue in census["issues"] if issue["id"] == "GIT-01")
+    issue = next(issue for issue in census["issues"] if issue["id"] == "GIT-02")
     issue["registration"]["ownerPlan"] = "platform/network/planning/lego-plan-r1.json"
     with pytest.raises(module.ArchitectureDocsError, match="mixes gap and linked registration"):
         module.validate_formal_issue_census(census, plans)
@@ -760,19 +781,29 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
         "13704d0cac", "35b7e06ffd", "4a2555f42e", "0dcfbb750f",
         "a6af91c187", "63d3c48172", "0abd90d3ba",
         "b13052b5da", "fd2082905f", "e140571445",
+        "ecca6ad1ae", "86298d72ea", "9c8e37dfe8", "fcf5fc6d1b",
+        "82c8fa2924", "84baec0ea1", "7a96b238fb", "7c2fa8c4d2",
     }
     for item in candidates:
         assert len(item["localCommit"]) == 40
         assert item["owner"]
         assert item["consumer"]
         assert item["remoteWitness"]
-        assert item["disposition"] in {"SKIP_DUPLICATE_CHERRY_PICK", "SKIP_OLDER_PIN"}
+        assert item["disposition"] in {"SKIP_DUPLICATE_CHERRY_PICK", "SKIP_OLDER_PIN", "SKIP_OLDER_SOURCECUT", "SKIP_UNCONSUMED_PERMISSION"}
         assert item["evidenceScope"] in {
             "NATIVE_CONSUMER_PASS", "EXACT_GIT_BLOBS",
             "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF",
+            "LATEST_STABLE_SOURCE_NO_UPGRADE",
+            "CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT",
         }
         if item["evidenceScope"] == "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF":
             assert item["disposition"] == "SKIP_OLDER_PIN"
+        if item["localCommit"].startswith(("ecca6ad", "86298d7", "9c8e37d", "fcf5fc6")):
+            assert item["evaluatedRemoteMain"] == "a56afcf30aafd8d5bcd0f41adb950504f5724267"
+        if item["localCommit"].startswith(("82c8fa2924", "84baec0ea1", "7a96b238fb", "7c2fa8c4d2")):
+            assert item["evaluatedRemoteMain"] == "41a1073703343aad61c3ffacac34edfb91019800"
+        if item["evidenceScope"] == "CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT":
+            assert item["disposition"] == "SKIP_UNCONSUMED_PERMISSION"
     module.validate_formal_issue_census(census, plans)
 
 
@@ -838,6 +869,22 @@ def test_formal_registry_sources_bound_before_loading(
     local.symlink_to(external)
     with pytest.raises(module.ArchitectureDocsError, match=f"{label} escapes SourceCut"):
         module._source_bound_file(source, relative, label)
+
+
+def test_git01_graph_projection_has_exact_repository_owner_lego_registration() -> None:
+    """The executable GIT-01 graph belongs to repo mechanics, not the census."""
+    census, plans = formal_issue_inputs()
+    issue = next(row for row in census["issues"] if row["id"] == "GIT-01")
+    registration = issue["registration"]
+    assert registration["state"] == "LINKED"
+    assert registration["ownerPlan"] == "tools/repo/planning/lego-plan-r1.json"
+    assert registration["slice"] == "RG1"
+    plan = plans[registration["ownerPlan"]]
+    source = next(x for x in plan["nodes"] if x["id"] == "RG1_SOURCE")
+    assert "source_history_legos.py" in source["evidence"]
+    assert "test_source_history_legos.py" in source["evidence"]
+    assert (ROOT / "tools/repo/source_history_legos.py").is_file()
+    module.validate_formal_issue_census(census, plans)
 
 
 def test_git02_unadmitted_historical_finance_and_network_consumers_remain_source_bound() -> None:

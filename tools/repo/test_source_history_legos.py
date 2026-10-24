@@ -14,7 +14,12 @@ CANONICAL_OWNER_HEADER = (
 
 
 def git(p: Path, *args: str) -> str:
-    return subprocess.check_output(["git", "-C", str(p), *args], text=True).strip()
+    # Synthetic repositories must not spawn background maintenance while
+    # TemporaryDirectory is removing their .git trees (Python 3.15).
+    return subprocess.check_output(
+        ["git", "-c", "maintenance.auto=false", "-c", "gc.auto=0", "-C", str(p), *args],
+        text=True,
+    ).strip()
 
 
 class SourceHistoryLegosTests(unittest.TestCase):
