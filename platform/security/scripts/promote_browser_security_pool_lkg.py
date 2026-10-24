@@ -61,8 +61,18 @@ def _canonical_bytes(value: object) -> bytes:
 
 
 def _load_json(path: Path, label: str) -> dict[str, Any]:
+    def unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        members: dict[str, Any] = {}
+        for name, value in pairs:
+            if name in members:
+                raise ResealError(f"{label} has duplicate JSON member: {name}")
+            members[name] = value
+        return members
+
     try:
-        value = json.loads(path.read_text(encoding="utf-8"))
+        value = json.loads(
+            path.read_text(encoding="utf-8"), object_pairs_hook=unique_object
+        )
     except (OSError, json.JSONDecodeError) as error:
         raise ResealError(f"{label} unavailable: {path}") from error
     if not isinstance(value, dict):

@@ -37,6 +37,48 @@ class FormalTraceContractTests(unittest.TestCase):
     def setUp(self):
         self.module = load_module()
 
+    def test_live_attempt_identity_is_required_tlc_obligation(self):
+        trace, invariant_manifest = manifests()
+        bindings = {entry["id"] for entry in trace["formalSpecification"]["modelBindings"]}
+        self.assertIn("RuntimeDispatch.NoDetachedLiveAttempt", bindings)
+        self.assertIn("RuntimeDispatch.HeldOrphanIsFenced", bindings)
+        witnesses = {target for item in trace["provingTests"] for target in item["proves"]}
+        self.assertIn("RuntimeDispatch.NoDetachedLiveAttempt", witnesses)
+        self.assertIn("RuntimeDispatch.HeldOrphanIsFenced", witnesses)
+        admitted = next(
+            entry for entry in trace["provingTests"]
+            if entry["id"] == "RuntimeDispatch.parallelAdmissionUnique"
+        )
+        orphan = next(
+            entry for entry in trace["provingTests"]
+            if entry["id"] == "RuntimeDispatch.ambiguityHeld"
+        )
+        self.assertIn("RuntimeDispatch.NoDetachedLiveAttempt", admitted["proves"])
+        self.assertIn("RuntimeDispatch.HeldOrphanIsFenced", orphan["proves"])
+        self.assertNotIn("RuntimeDispatch.NoDetachedLiveAttempt", orphan["proves"])
+        self.assertEqual(self.module.validate(trace, invariant_manifest), [])
+        modified = copy.deepcopy(trace)
+        modified["formalSpecification"]["modelBindings"] = [
+            item for item in modified["formalSpecification"]["modelBindings"]
+            if item["id"] != "RuntimeDispatch.NoDetachedLiveAttempt"
+        ]
+        self.assertTrue(any("binding set drift" in err for err in self.module.validate(modified, invariant_manifest)))
+
+        config = (ROOT / "formal/RuntimeDispatchR1.cfg").read_text(encoding="utf-8")
+        checked = {
+            row["symbol"]
+            for row in trace["formalSpecification"]["modelBindings"]
+            if row["kind"] == "invariant"
+        }
+        weaker_config = config.replace("    HeldOrphanIsFenced\n", "")
+        self.assertNotEqual(config, weaker_config)
+        self.assertTrue(
+            any(
+                "HeldOrphanIsFenced" in error
+                for error in self.module.check_tlc_config_obligations(weaker_config, checked)
+            )
+        )
+
     def test_formal_trace_gate_passes_current_runtime_binding(self):
         self.assertEqual(self.module.main(), 0)
 

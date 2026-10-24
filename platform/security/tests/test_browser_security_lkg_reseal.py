@@ -222,6 +222,40 @@ class BrowserSecurityLkgResealTests(unittest.TestCase):
         )
         self.assertEqual(result["observedStanding"], "NO_OBSERVED_DRIFT")
 
+    def test_reseal_rejects_ambiguous_pool_receipt_before_mutation(self):
+        """Conflicting raw evidence must not be collapsed before the LKG gate."""
+        self.write_run()
+        receipt = self.run_root / "pool-run-receipt.json"
+        original = receipt.read_text(encoding="utf-8")
+        marker = '"providerSendAttempted": false'
+        self.assertEqual(original.count(marker), 1)
+        receipt.write_text(
+            original.replace(
+                marker, '"providerSendAttempted": true, "providerSendAttempted": false'
+            ),
+            encoding="utf-8",
+        )
+        before = sha(self.index)
+        with self.assertRaisesRegex(reseal.ResealError, "duplicate JSON member"):
+            reseal.reseal(
+                self.run_root,
+                expected_harness_revision=HARNESS,
+                expected_old_index_sha256=before,
+                fixture_root=self.fixture,
+                index_path=self.index,
+            )
+        self.assertEqual(sha(self.index), before)
+
+    def test_pool_json_admission_rejects_nested_duplicate_members(self):
+        path = self.root / "malformed-nested.json"
+        path.write_text(
+            '{"classification":{"standing":"NO_OBSERVED_DRIFT",'
+            '"standing":"GLOBAL_DRIFT"}}',
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(reseal.ResealError, "duplicate JSON member"):
+            reseal._load_json(path, "nested pool receipt")
+
     def test_reseal_rejects_subject_drift(self):
         classification = self.write_run(public_value="changed")
         self.assertEqual(classification["sharedChangedFamilies"], ["CF04"])
