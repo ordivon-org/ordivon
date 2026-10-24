@@ -353,6 +353,15 @@ def validate_formal_issue_census(
             raise ArchitectureDocsError("historical Git selections missing")
         identities: set[str] = set()
         cohort_ids: set[str] = set()
+        # One finite partial relation: weak or source-only evidence must not
+        # be upgraded into a different native-consumer verdict by a merge.
+        scope_disposition = {
+            "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF": "SKIP_OLDER_PIN",
+            "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC": "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
+            "CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT": "SKIP_UNCONSUMED_PERMISSION",
+            "EXACT_OWNER_LOCKED_COMPONENTS_NO_LIVE_PROVIDER": "SKIP_DUPLICATE_CHERRY_PICK",
+            "FROZEN_GATEWAY_CONSUMER_ONLY": "NO_WHOLE_COMMIT_REPLAY_WITHOUT_PRODUCER_AUTHORITY",
+        }
         for entry in selections:
             if not isinstance(entry, dict):
                 raise ArchitectureDocsError("historical Git selection must be typed")
@@ -382,6 +391,9 @@ def validate_formal_issue_census(
                 raise ArchitectureDocsError("invalid historical Git disposition")
             if not isinstance(entry.get("evidenceScope"), str) or entry["evidenceScope"] not in allowed_evidence_scopes:
                 raise ArchitectureDocsError("invalid historical Git evidenceScope")
+            expected = scope_disposition.get(entry["evidenceScope"])
+            if expected is not None and entry["disposition"] != expected:
+                raise ArchitectureDocsError("incompatible historical Git evidence and disposition")
             if "evaluatedRemoteMain" in entry and (
                 not isinstance(entry["evaluatedRemoteMain"], str)
                 or not oid_pattern.fullmatch(entry["evaluatedRemoteMain"])

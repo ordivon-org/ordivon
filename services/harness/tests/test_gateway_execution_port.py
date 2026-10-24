@@ -4,6 +4,7 @@ import pytest
 
 from ordivon_harness.gateway_execution_port import (
     GatewayExecutionAmbiguous,
+    GatewayExecutionError,
     GatewayExecutionPort,
     GatewayExecutionRequest,
 )
@@ -115,6 +116,76 @@ def test_absent_after_submit_response_loss_is_ambiguous_not_redispatched():
     names = [name for name, _ in client.calls]
     assert names == ['execution.submit', 'execution.resolve']
     assert names.count('execution.submit') == 1
+
+
+@pytest.mark.parametrize("delivery", ("reconciliation_required", "unknown", "in_progress"))
+def test_terminal_process_without_committed_delivery_is_not_consumer_terminal(delivery):
+    class NotDelivered(FakeGateway):
+        def call_tool(self, name, arguments):
+            is_error, value = super().call_tool(name, arguments)
+            if name == "execution.get":
+                value["delivery_disposition"] = delivery
+                value["recovery_required"] = False
+            return is_error, value
+
+    client = NotDelivered()
+    port = GatewayExecutionPort(client, max_observations=3, poll_interval_seconds=0)
+    with pytest.raises(GatewayExecutionAmbiguous, match="delivery"):
+        port.execute(request())
+    assert [name for name, _ in client.calls].count("execution.submit") == 1
+    assert [name for name, _ in client.calls].count("execution.get") == 3
+
+
+def test_terminal_process_with_outstanding_recovery_is_not_consumer_terminal():
+    class NeedsRecovery(FakeGateway):
+        def call_tool(self, name, arguments):
+            is_error, value = super().call_tool(name, arguments)
+            if name == "execution.get":
+                value["recovery_required"] = True
+            return is_error, value
+
+    port = GatewayExecutionPort(NeedsRecovery(), max_observations=2, poll_interval_seconds=0)
+    with pytest.raises(GatewayExecutionAmbiguous):
+        port.execute(request())
+
+
+@pytest.mark.parametrize("delivery", (None, "delivered", True))
+def test_terminal_delivery_requires_known_gateway_disposition(delivery):
+    class InvalidDelivery(FakeGateway):
+        def call_tool(self, name, arguments):
+            is_error, value = super().call_tool(name, arguments)
+            if name == "execution.get":
+                value["delivery_disposition"] = delivery
+            return is_error, value
+
+    port = GatewayExecutionPort(InvalidDelivery(), max_observations=2, poll_interval_seconds=0)
+    with pytest.raises(GatewayExecutionError, match="delivery disposition"):
+        port.execute(request())
+
+
+def test_nonterminal_committed_delivery_is_a_contract_violation():
+    class Contradictory(FakeGateway):
+        def call_tool(self, name, arguments):
+            is_error, value = super().call_tool(name, arguments)
+            if name == "execution.get":
+                value["terminal"] = False
+                value["delivery_disposition"] = "committed"
+            return is_error, value
+
+    with pytest.raises(GatewayExecutionError, match="contradicts"):
+        GatewayExecutionPort(Contradictory()).execute(request())
+
+
+def test_gateway_observation_cannot_rebind_operation_ref():
+    class WrongOperation(FakeGateway):
+        def call_tool(self, name, arguments):
+            is_error, value = super().call_tool(name, arguments)
+            if name == "execution.get":
+                value["operation_ref"] = "ordivon-exec:v1:runtime.windows:another-job"
+            return is_error, value
+
+    with pytest.raises(GatewayExecutionError, match="operation identity"):
+        GatewayExecutionPort(WrongOperation()).execute(request())
 
 
 def test_long_running_execution_is_client_polled_beyond_old_twenty_observation_ceiling():

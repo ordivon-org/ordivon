@@ -1709,6 +1709,57 @@
           }
         },
         {
+          "localCommit": "0c89916e54f67edf1dae244ea983f9a0b2167225",
+          "owner": "services/harness",
+          "consumer": "The production Temporal worker deploy must reject in-place dependency upgrade while a worker remains active before provisioning changes. Current Harness owner deployer apply() owns the admission fence, not the old commit identity.",
+          "remoteWitness": "services/harness/scripts/temporal_agent_automation_deploy.py plus tests/test_temporal_agent_automation_deploy.py. Frozen native Git --cherry-mark marks local patch equivalent; current Harness locked offline owner test 6/6 PASS, including active-worker gate, single runtime-version snapshot and canonical service. No real worker restart or live deployment performed.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "0cd09c67af8fd4dc04f38174b856089c9b5ae6ce",
+            "patchRelation": "PATCH_ID_EQUIVALENT",
+            "consumerStanding": "CURRENT_OWNER_CDC_TEST_PASS_NO_LIVE_DEPLOY",
+            "tipRelation": "PATCH_EQUIVALENT_BUT_NO_WHOLE_BRANCH_EQUIVALENCE",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "0cd09c67af8fd4dc04f38174b856089c9b5ae6ce"
+        },
+        {
+          "localCommit": "2e60fee31923aa7267f6160936b0dcc4d1f4b2a9",
+          "owner": "services/runtime",
+          "consumer": "Current Runtime MCP probe must reject incomplete SSE terminal replies, duplicated terminal responses and duplicated/malformed tool catalog entries. Native Runtime probe keeps the bounded fail-closed protocol semantics, so old historical parser must not be replayed.",
+          "remoteWitness": "services/runtime/scripts/mcp_probe.py plus scripts/tests/test_mcp_probe.py. Frozen native Git --cherry-mark marks local patch equivalent; current actual Runtime Python unittest discover -p test_mcp_probe.py 14/14 PASS. A local uv --locked shortcut failed because Runtime has no uv.lock; running the existing stdlib native test with mise exec confirmed the oracle without creating any lock.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "0cd09c67af8fd4dc04f38174b856089c9b5ae6ce",
+            "patchRelation": "PATCH_ID_EQUIVALENT",
+            "consumerStanding": "CURRENT_OWNER_CDC_TEST_PASS_NOT_REMOTE_PROVIDER_HANDSHAKE",
+            "tipRelation": "PATCH_EQUIVALENT_BUT_NO_WHOLE_BRANCH_EQUIVALENCE",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "0cd09c67af8fd4dc04f38174b856089c9b5ae6ce"
+        },
+        {
+          "localCommit": "3a22e683d438c7025963579eb98cf0edfffbd8e1",
+          "owner": "platform/workstation",
+          "consumer": "Current agent automation session continuity must not mutate an admitted deployment while its release fence is closed. Current Workstation owner carries one immutable release/lease gate, not the historical patch path.",
+          "remoteWitness": "platform/workstation/workstation/agent_automation_carrier.py and tests/test_workstation_agent_automation_carrier.py. Frozen Git --cherry-mark marks local patch equivalent; Workstation owner locked offline source/lease tests 6/6 PASS, including HOLD_CLOSED and cross-process release fence. No live Windows/systemd launch acceptance claimed.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "0cd09c67af8fd4dc04f38174b856089c9b5ae6ce",
+            "patchRelation": "PATCH_ID_EQUIVALENT",
+            "consumerStanding": "CURRENT_OWNER_CDC_TEST_PASS_NO_LIVE_RELEASE",
+            "tipRelation": "PATCH_EQUIVALENT_BUT_NO_WHOLE_BRANCH_EQUIVALENCE",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "0cd09c67af8fd4dc04f38174b856089c9b5ae6ce"
+        },
+        {
           "localCommit": "5d29e016a49c707918b00dd4174717b7d847d74f",
           "owner": "tools/repo",
           "consumer": "The existing root GitHub governance guard must apply immutable full-SHA external Action references transitively to locally defined Composite Actions, without reviving the legacy checker or adding another policy engine. The current verifier rejects floating uses and invalid composite steps, while accepting pinned SHA and same-repository ./ and $/ references.",
