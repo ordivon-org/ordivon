@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+from heapq import heappop, heappush, heapify
 import json
 from graphlib import CycleError, TopologicalSorter
 from pathlib import Path
@@ -86,10 +87,24 @@ def _check_dag(stages: dict[str, dict[str, Any]]) -> list[str]:
     graph = {
         stage_id: tuple(sorted(set(stages[stage_id]["dependsOn"]))) for stage_id in sorted(stages)
     }
+    sorter = TopologicalSorter(graph)
     try:
-        return list(TopologicalSorter(graph).static_order())
+        sorter.prepare()
     except CycleError as exc:
         raise CircuitContractError(f"stage dependency cycle includes {exc.args[1]}") from exc
+
+    # The published stageOrder is digest-bearing: retain the prior smallest-
+    # ready-first normalization, not graphlib.static_order's ready *batches*.
+    ready = list(sorter.get_ready())
+    heapify(ready)
+    order: list[str] = []
+    while ready:
+        stage_id = heappop(ready)
+        order.append(stage_id)
+        sorter.done(stage_id)
+        for released in sorter.get_ready():
+            heappush(ready, released)
+    return order
 
 
 def validate_manifest(value: dict[str, Any]) -> None:
