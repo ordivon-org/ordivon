@@ -28,6 +28,45 @@ class TemporalDeployTests(unittest.TestCase):
                 deploy.apply()
             provision.assert_not_called()
 
+    def test_worker_packages_derive_exclusively_from_qualified_freeze(self):
+        import tempfile
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import temporal_agent_automation_deploy as deploy
+
+        expected = deploy.expected_runtime_versions()
+        self.assertEqual(expected["temporalio"], "1.34.0")
+        self.assertEqual(expected["mcp"], "2.3.0")
+        self.assertEqual(expected["pythonVersion"], "3.15.1")
+        self.assertEqual(expected["sqliteVersion"], "3.54.0")
+        with tempfile.TemporaryDirectory() as tmp:
+            freeze = Path(tmp) / "temporal-requirements.txt"
+            freeze.write_text(
+                "temporalio==1.35.0\nrfc8785==0.1.4\nmcp==2.3.0\nhttpx==0.28.1\n"
+            )
+            with patch.object(deploy, "REQUIREMENTS", freeze):
+                self.assertEqual(deploy.expected_runtime_versions()["temporalio"], "1.35.0")
+                for invalid in (
+                    "temporalio>=1.35.0\nrfc8785==0.1.4\nmcp==2.3.0\nhttpx==0.28.1\n",
+                    "temporalio==1.35.0\nmcp==2.3.0\nmcp==2.3.1\nhttpx==0.28.1\n",
+                    "temporalio==1.35.0\nrfc8785==0.1.4\nmcp==2.3.0\nunknown==1\n",
+                ):
+                    freeze.write_text(invalid)
+                    with self.assertRaises(RuntimeError):
+                        deploy.expected_runtime_versions()
+
+    def test_production_plan_observes_one_runtime_version_snapshot(self):
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import temporal_agent_automation_deploy as deploy
+
+        observed = deploy.expected_runtime_versions()
+        with patch.object(deploy, "runtime_versions", return_value=observed) as read, patch.object(
+            deploy, "active", return_value=False
+        ), patch.object(deploy, "cluster_health", return_value=False):
+            plan = deploy.plan()
+        read.assert_called_once_with()
+        self.assertEqual(plan["runtimeVersions"], observed)
+        self.assertTrue(plan["runtimeVersionsExact"])
+
     def test_canonical_worker_targets_production_cluster(self):
         text = (ROOT / "systemd/ordivon-agent-temporal-worker.service").read_text()
         self.assertIn("Production Temporal worker", text)
@@ -61,8 +100,8 @@ class TemporalDeployTests(unittest.TestCase):
         self.assertNotIn("BLUE_", text)
         self.assertNotIn("GREEN_", text)
         self.assertNotIn("127.0.0.1:7233", text)
-        self.assertIn('"mcp": "2.3.0"', text)
-        self.assertIn('"httpx": "0.28.1"', text)
+        self.assertNotIn('"mcp": "2.3.0"', text)
+        self.assertNotIn('"httpx": "0.28.1"', text)
         self.assertIn('"pip", "install", "--python"', text)
         self.assertIn("agent-automation-temporal-requirements.txt", text)
 

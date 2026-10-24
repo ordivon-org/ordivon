@@ -22,14 +22,33 @@ REQUIREMENTS = ROOT / "config" / "agent-automation-temporal-requirements.txt"
 TEMPORAL = Path("/opt/ordivon/external/temporal-cli/1.8.3/temporal")
 TEMPORAL_SHA = "76aea8d71fafe2d39c1104bef3ce86c1600d9adbff79953d102f60e535ae1413"
 PRODUCTION_ADDRESS = "127.0.0.1:17233"
-EXPECTED_RUNTIME_VERSIONS = {
-    "temporalio": "1.34.0",
-    "rfc8785": "0.1.4",
-    "mcp": "2.3.0",
-    "httpx": "0.28.1",
-    "pythonVersion": "3.15.1",
-    "sqliteVersion": "3.54.0",
-}
+RUNTIME_PACKAGES = ("temporalio", "rfc8785", "mcp", "httpx")
+RUNTIME_ENVIRONMENT = {"pythonVersion": "3.15.1", "sqliteVersion": "3.54.0"}
+
+
+def expected_runtime_versions() -> dict[str, str]:
+    """Derive package versions from the one frozen installation input."""
+    if REQUIREMENTS.is_symlink() or not REQUIREMENTS.is_file():
+        raise RuntimeError("Temporal exact dependency freeze is unavailable")
+    versions: dict[str, str] = {}
+    for raw in REQUIREMENTS.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        name, sep, version = line.partition("==")
+        if (
+            not sep
+            or name not in RUNTIME_PACKAGES
+            or name in versions
+            or not version
+            or any(c.isspace() for c in line)
+            or any(c in version for c in "<>=!~;#")
+        ):
+            raise RuntimeError("Temporal exact dependency freeze contains invalid requirement")
+        versions[name] = version
+    if set(versions) != set(RUNTIME_PACKAGES):
+        raise RuntimeError("Temporal exact dependency freeze differs from runtime consumers")
+    return {**versions, **RUNTIME_ENVIRONMENT}
 
 
 def sha(path: Path) -> str:
@@ -61,7 +80,7 @@ def runtime_versions() -> dict[str, str] | None:
         return None
     code = (
         "import importlib.metadata as m,json,sqlite3,sys;"
-        "names=['temporalio','rfc8785','mcp','httpx'];"
+        f"names={list(RUNTIME_PACKAGES)!r};"
         "v={n:m.version(n) for n in names};"
         "v.update({'pythonVersion':sys.version.split()[0],'sqliteVersion':sqlite3.sqlite_version});"
         "print(json.dumps(v,sort_keys=True))"
@@ -104,13 +123,14 @@ def config_address() -> str | None:
 def plan() -> dict:
     source = ROOT / "systemd" / WORKER
     installed = SYSTEMD / WORKER
+    observed_versions = runtime_versions()
     return {
         "schemaVersion": 1,
         "kind": "ordivon.temporal-agent-production-deployment-plan",
         "temporalBinaryValid": TEMPORAL.is_file() and sha(TEMPORAL) == TEMPORAL_SHA,
         "temporalSdkPresent": VENV_PY.is_file(),
-        "runtimeVersions": runtime_versions(),
-        "runtimeVersionsExact": runtime_versions() == EXPECTED_RUNTIME_VERSIONS,
+        "runtimeVersions": observed_versions,
+        "runtimeVersionsExact": observed_versions == expected_runtime_versions(),
         "browserlessConfigPresent": CONFIG.is_file(),
         "admissionAddress": config_address(),
         "productionCluster": {
