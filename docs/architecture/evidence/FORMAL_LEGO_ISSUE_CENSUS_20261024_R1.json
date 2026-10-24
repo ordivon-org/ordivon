@@ -65,6 +65,61 @@
       "observation": "Exact Git graph for local main 13704d0cac9e and protected origin/main ac5139d5cd54: 2300 local-only and 378 remote-only commits from 80c17a363521. Among 1546 local non-merge commits compared by Git patch-id, 26 have exact patch equivalents and 1520 have no exact equivalents. Patch distinctness does not imply consumer-level functional uniqueness.",
       "evidence": "Observed 2026-10-23T23:39:03Z: git merge-base main origin/main; git rev-list --left-right --count main...origin/main; git cherry -v origin/main main; git status --porcelain (clean). Exact identities: local 13704d0cac9e113b395f2d5a21b5bf8119aa04a5, remote ac5139d5cd54004ccd4acca89e71930c68afe6af, base 80c17a3635219fa00c91ee9ea00700918bd14df4. No merge/reset/cherry-pick/rebase/delete performed.",
       "decision": "Do not fast-forward or reset a non-ancestor local main. Select only source-bound local deltas that preserve actual consumer behavior via owner-native contracts; do not equate Git SHA or patch uniqueness with unique LEGO capability.",
+      "consumerSourceCut": {
+        "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+        "remoteMain": "4f83f744e424c1c5ed583c3b60fc473d29f1efe9",
+        "relation": "BEHAVIORAL_CONSUMER_COVERAGE_NOT_COMMIT_EQUIVALENCE"
+      },
+      "consumerSelections": [
+        {
+          "localCommit": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+          "owner": "tools/repo",
+          "consumer": "ConvergencePlan root toolchain changes retain all-owner verification; retired calendar exception is absent",
+          "remoteWitness": "tools/repo/convergence_plan.py::build_plan + tools/repo/test_convergence_plan.py::test_cross_cutting_change_requires_all_owner_verification",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK"
+        },
+        {
+          "localCommit": "35b7e06ffd401f56d974627097f6e7c0543d59ed",
+          "owner": "services/runtime",
+          "consumer": "Workspace reclaim rejects boolean lastActivityMs before cleanup effects",
+          "remoteWitness": "services/runtime/scripts/ordivon-runtime-reclaim + services/runtime/scripts/tests/test_deploy_reclaim.py::test_reclaim_apply_uses_recent_registry_activity_for_minimum_age",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK"
+        },
+        {
+          "localCommit": "4a2555f42e6d2edfdc184e0b831f15050c08f375",
+          "owner": "services/harness",
+          "consumer": "Pinned Temporal SDK and release compatibility require temporalio 1.34.0",
+          "remoteWitness": "services/harness/config/agent-automation-temporal-requirements.txt + services/harness/scripts/agent_automation_release.py + services/harness/tests/test_temporal_agent_automation_contract.py",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK"
+        },
+        {
+          "localCommit": "0dcfbb750f4a017b07ab7cd7e035cbece7e6c9eb",
+          "owner": "domains/game",
+          "consumer": "WeaponSpec.pierce and bounded distinct-enemy projectile behavior",
+          "remoteWitness": "domains/game/kits/room-action-r0/src/lib.rs::projectile_pierce_is_backward_compatible_json_and_validated + src/main.rs::configured_piercing_shot_hits_two_foes_once_each_then_is_spent",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK"
+        },
+        {
+          "localCommit": "a6af91c187ef363af3729fc685ab76755f11044e",
+          "owner": "services/host",
+          "consumer": "Repeated Host release materialization rejects drifted tracked Git blobs or executable modes before effects",
+          "remoteWitness": "services/host/packaging/install_release.sh::verify_release_source + services/host/tests/test_release_packaging.py::test_install_release_extracts_host_subtree_from_monorepo",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK"
+        },
+        {
+          "localCommit": "63d3c481720e6498ddf305696189b2824aab68c4",
+          "owner": "platform/workstation",
+          "consumer": "Failed Temporal PostgreSQL stop preserves restore scratch and PGDATA instead of deleting unknown effect evidence",
+          "remoteWitness": "platform/workstation/scripts/temporal_pgbackrest_restore_smoke.sh + platform/workstation/tests/test_temporal_restore_stop_failure.py",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK"
+        }
+      ],
       "formalObligation": "The selected source must be an explicit source cut and each chosen change must preserve owner CDC.",
       "consumers": "Git source, CI, all downstream consumers",
       "representation": {
