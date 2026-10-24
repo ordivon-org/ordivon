@@ -636,7 +636,7 @@ fn sha256_file(path: &Path) -> Result<String, String> {
         }
         digest.update(&buffer[..read]);
     }
-    Ok(format!("sha256:{:x}", digest.finalize()))
+    Ok(format!("sha256:{}", hex::encode(digest.finalize())))
 }
 
 fn canonical(path: &Path) -> Result<PathBuf, String> {
