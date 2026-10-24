@@ -38,10 +38,17 @@ class OpenTelemetryHarnessEventSink:
         self.harness_run_id = harness_run_id
         self.tracer = tracer or trace.get_tracer("ordivon-harness-caller")
         self._pending: dict[str, _PendingToolSpan] = {}
+        self._terminal_calls: set[str] = set()
 
     def __call__(self, event: HarnessRunEvent) -> None:
         if event.kind == "tool_call_dispatched":
             self._start_dispatched(event)
+            return
+        if event.kind == "tool_call_reconciled":
+            # A recovered durable Tool result is an observation, not a redispatch.
+            status = event.payload.get("status")
+            if status in ("observed", "rejected", "unknown", "cancelled"):
+                self._finish(event, status, reconciled=True)
             return
         status = _TERMINAL_TOOL_EVENTS.get(event.kind)
         if status is not None:
@@ -52,7 +59,7 @@ class OpenTelemetryHarnessEventSink:
         tool_name = _text(event.payload.get("toolName"))
         if call_id is None or tool_name is None:
             return
-        if call_id in self._pending:
+        if call_id in self._pending or call_id in self._terminal_calls:
             return
         step_id = _text(event.payload.get("stepId"))
         attributes: dict[str, str] = {
@@ -73,12 +80,22 @@ class OpenTelemetryHarnessEventSink:
         )
         self._pending[call_id] = _PendingToolSpan(span, tool_name, step_id)
 
-    def _finish(self, event: HarnessRunEvent, status: str) -> None:
+    def _finish(self, event: HarnessRunEvent, status: str, *, reconciled: bool = False) -> None:
         call_id = _text(event.payload.get("toolCallId"))
         tool_name = _text(event.payload.get("toolName"))
-        if call_id is None or tool_name is None:
+        if call_id is None or tool_name is None or call_id in self._terminal_calls:
             return
 
+        # Reconciliation cannot terminate a different dispatched Tool step.
+        pending = self._pending.get(call_id)
+        if pending is not None and (
+            pending.tool_name != tool_name
+            or (
+                (step_id := _text(event.payload.get("stepId"))) is not None
+                and pending.step_id != step_id
+            )
+        ):
+            return
         pending = self._pending.pop(call_id, None)
         if pending is None:
             attributes: dict[str, str] = {
@@ -96,10 +113,14 @@ class OpenTelemetryHarnessEventSink:
             span = pending.span
 
         span.set_attribute("ordivon.harness.tool.status", status)
+        if reconciled:
+            span.set_attribute("ordivon.harness.tool.reconciled", True)
+            span.set_attribute("ordivon.harness.tool.dispatch_observed", pending is not None)
         runtime_job_ref = _text(event.payload.get("runtimeJobRef"))
         if runtime_job_ref is not None:
             span.set_attribute("ordivon.runtime.job.ref", runtime_job_ref)
         span.end(end_time=event.occurred_at_ms * 1_000_000)
+        self._terminal_calls.add(call_id)
 
 
 def _text(value: object) -> str | None:
