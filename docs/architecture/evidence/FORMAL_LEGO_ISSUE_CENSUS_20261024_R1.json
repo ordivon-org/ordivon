@@ -302,6 +302,42 @@
             "tipRelation": "SAME_BLOB_AND_MODE",
             "consumerStanding": "CURRENT_OWNER_COVERED"
           }
+        },
+        {
+          "localCommit": "ac558a911eaad6a2725f51d3d88c2de2605ce540",
+          "owner": "services/runtime",
+          "consumer": "Source-bound TLA+ external-jar formal wrapper runs through the existing Runtime Python unittest runner. Historical test source is byte-identical to protected consumer; no alternate TLA toolchain or test wrapper to recreate.",
+          "remoteWitness": "services/runtime/scripts/tests/test_tla_formal_external_jar.py (Git historical-to-remote blob d09159ee32a3d2 unchanged at SourceCut); python3 -m unittest -q services.runtime.scripts.tests.test_tla_formal_external_jar: 10 PASS.",
+          "evidenceScope": "EXACT_GIT_BLOB_AND_NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc"
+        },
+        {
+          "localCommit": "1e509f0b6c56f5935523014d3b069460a9f2baf8",
+          "owner": "domains/game",
+          "consumer": "Historical Game Windows foreground guard's executable and HOLD-before-input behavior already exist byte-for-byte on protected Main. Current Game README has substantially newer product and recipe contract; copying old README would regress documentation. Windows live foreground UI behavior is not established by this source-level proof.",
+          "remoteWitness": "domains/game/kits/room-action-r0/scripts/windows_foreground_guard.py: historical/current blob 2c4c64332d4696 equal. Native non-Windows invocation returns the explicit HOLD exit 20 without input. No live Windows foreground acceptance claimed.",
+          "evidenceScope": "EXACT_EXECUTABLE_BLOB_WITH_NONWINDOWS_HOLD_ONLY",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc"
+        },
+        {
+          "localCommit": "107e6b52c399777e0ee03a36a2c8f321f1962dbe",
+          "owner": "capabilities/artifact",
+          "consumer": "Artifact browser-carrier pnpm 12.15.0 package manifest and locked dependency graph already match protected Main exactly. Historical mise.toml Python 3.14.9 / uv 0.13.4 is older than protected Main 3.15.1 / 0.13.5, so cherry-picking the whole historical commit would reintroduce lower tool versions.",
+          "remoteWitness": "Exact current Git blobs: artifact-delivery/node/package.json and node/pnpm-lock.yaml equal historical cut; artifact-delivery/mise.toml protected toolchain node 26.12.1, pnpm 12.15.0, Python 3.15.1, uv 0.13.5. Native test_artifact_delivery_toolchain_doctor.py: 3 PASS.",
+          "evidenceScope": "CURRENT_TOOLCHAIN_SUPERSEDES_OLD_LOCK_AND_NATIVE_TEST_PASS",
+          "disposition": "SKIP_OLDER_TOOLCHAIN_CHERRY_PICK",
+          "evaluatedRemoteMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc"
+        },
+        {
+          "localCommit": "3ab30f2b827ade5313b8bbf56d0df40d345a3ecd",
+          "owner": "domains/game",
+          "consumer": "The historical seeded room recipe responsibility is provided by current Game Room Action kit: seed-repeatable recipe choice, catalog generator replay, JSON round trip and invalid-input fail-closed. Current source files are NOT byte-identical to historical commit and may include substantial newer behavior; selection is limited to these named native consumer properties.",
+          "remoteWitness": "domains/game/kits/room-action-r0/src/lib.rs tests same_seed_reuses_exact_room_recipe_while_different_seeds_vary; catalog_generator_replays_identically_and_composes_across_categories; recipe_json_round_trip_matches_consumed_run; invalid_room_recipe_rejected_before_consumption. SourceCut native mise run rules: 16 PASS. No claim of complete historical commit behavior equivalence.",
+          "evidenceScope": "NAMED_GAME_CONSUMER_PROPERTIES_PASS_NOT_FULL_EQUIVALENCE",
+          "disposition": "SKIP_OLDER_GAME_RECIPE_CHERRY_PICK",
+          "evaluatedRemoteMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc"
         }
       ],
       "formalObligation": "The selected source must be an explicit source cut and each chosen change must preserve owner CDC.",

@@ -784,18 +784,23 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
         "ecca6ad1ae", "86298d72ea", "9c8e37dfe8", "fcf5fc6d1b",
         "82c8fa2924", "84baec0ea1", "7a96b238fb", "7c2fa8c4d2",
         "225192c6e7", "2919a6d840", "495b45d461", "f93faa57cf",
+        "ac558a911e", "1e509f0b6c", "107e6b52c3", "3ab30f2b82",
     }
     for item in candidates:
         assert len(item["localCommit"]) == 40
         assert item["owner"]
         assert item["consumer"]
         assert item["remoteWitness"]
-        assert item["disposition"] in {"SKIP_DUPLICATE_CHERRY_PICK", "SKIP_OLDER_PIN", "SKIP_OLDER_SOURCECUT", "SKIP_UNCONSUMED_PERMISSION"}
+        assert item["disposition"] in {"SKIP_DUPLICATE_CHERRY_PICK", "SKIP_OLDER_PIN", "SKIP_OLDER_SOURCECUT", "SKIP_UNCONSUMED_PERMISSION", "SKIP_OLDER_TOOLCHAIN_CHERRY_PICK", "SKIP_OLDER_GAME_RECIPE_CHERRY_PICK"}
         assert item["evidenceScope"] in {
             "NATIVE_CONSUMER_PASS", "EXACT_GIT_BLOBS",
             "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF",
             "LATEST_STABLE_SOURCE_NO_UPGRADE",
             "CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT",
+            "EXACT_GIT_BLOB_AND_NATIVE_CONSUMER_PASS",
+            "EXACT_EXECUTABLE_BLOB_WITH_NONWINDOWS_HOLD_ONLY",
+            "CURRENT_TOOLCHAIN_SUPERSEDES_OLD_LOCK_AND_NATIVE_TEST_PASS",
+            "NAMED_GAME_CONSUMER_PROPERTIES_PASS_NOT_FULL_EQUIVALENCE",
         }
         if item["evidenceScope"] == "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF":
             assert item["disposition"] == "SKIP_OLDER_PIN"
@@ -870,6 +875,26 @@ def test_formal_registry_sources_bound_before_loading(
     local.symlink_to(external)
     with pytest.raises(module.ArchitectureDocsError, match=f"{label} escapes SourceCut"):
         module._source_bound_file(source, relative, label)
+
+
+@pytest.mark.parametrize("commit,owner,scope", [
+    ("ac558a911eaad6a2725f51d3d88c2de2605ce540", "services/runtime", "EXACT_GIT_BLOB_AND_NATIVE_CONSUMER_PASS"),
+    ("1e509f0b6c56f5935523014d3b069460a9f2baf8", "domains/game", "EXACT_EXECUTABLE_BLOB_WITH_NONWINDOWS_HOLD_ONLY"),
+    ("107e6b52c399777e0ee03a36a2c8f321f1962dbe", "capabilities/artifact", "CURRENT_TOOLCHAIN_SUPERSEDES_OLD_LOCK_AND_NATIVE_TEST_PASS"),
+    ("3ab30f2b827ade5313b8bbf56d0df40d345a3ecd", "domains/game", "NAMED_GAME_CONSUMER_PROPERTIES_PASS_NOT_FULL_EQUIVALENCE"),
+])
+def test_git01_historical_four_owner_consumer_selections_are_source_cut_scoped(commit: str, owner: str, scope: str) -> None:
+    census, plans = formal_issue_inputs()
+    issue = next(row for row in census["issues"] if row["id"] == "GIT-01")
+    selected = {row["localCommit"]: row for row in issue["consumerSelections"]}
+    assert len(selected) == len(issue["consumerSelections"])
+    row = selected[commit]
+    assert row["owner"] == owner
+    assert row["evidenceScope"] == scope
+    assert row["evaluatedRemoteMain"] == "6d44eb7860cff086e27bedd1a59e49415a4c87cc"
+    assert row["disposition"].startswith("SKIP_")
+    assert row["consumer"].strip() and row["remoteWitness"].strip()
+    module.validate_formal_issue_census(census, plans)
 
 
 def test_git01_graph_projection_has_exact_repository_owner_lego_registration() -> None:
