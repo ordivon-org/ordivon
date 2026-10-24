@@ -6,6 +6,7 @@ from typing import Any
 from opentelemetry import context as otel_context
 from opentelemetry import trace
 from opentelemetry.propagate import extract
+from opentelemetry.trace.status import Status, StatusCode
 
 from harness_otel_event_sink import OpenTelemetryHarnessEventSink
 from ordivon_harness.ordivon.loop import OrdivonAgentLoop, RunStopCode
@@ -22,6 +23,10 @@ class RecordedSpan:
     attributes: dict[str, Any]
     start_time: int | None
     end_time: int | None = None
+    status: StatusCode = StatusCode.UNSET
+
+    def set_status(self, status: Status) -> None:
+        self.status = status.status_code
 
     def set_attribute(self, name: str, value: Any) -> None:
         self.attributes[name] = value
@@ -158,6 +163,12 @@ def test_reconciled_tool_results_are_traced_once_without_redispatch_or_payload_l
         assert span.attributes["ordivon.harness.tool.dispatch_observed"] is False
         assert span.attributes["ordivon.runtime.job.ref"] == "job:durable"
         assert span.end_time == 1_000_000_000
+        if outcome in {"rejected", "unknown"}:
+            assert span.status == StatusCode.ERROR
+            assert span.attributes["error.type"] == f"tool_{outcome}"
+        else:
+            assert span.status == StatusCode.UNSET
+            assert "error.type" not in span.attributes
         assert "MUST_NOT_EXPORT" not in repr(span.attributes)
         assert "observationDigest" not in repr(span.attributes)
 

@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from opentelemetry import trace
 from opentelemetry.trace import Span, Tracer
+from opentelemetry.trace.status import Status, StatusCode
 
 from ordivon_harness.ordivon.events import HarnessRunEvent
 
@@ -113,6 +114,10 @@ class OpenTelemetryHarnessEventSink:
             span = pending.span
 
         span.set_attribute("ordivon.harness.tool.status", status)
+        if status in ("rejected", "unknown"):
+            # Standard OTel error status is consumed by external trajectory graders.
+            span.set_attribute("error.type", f"tool_{status}")
+            span.set_status(Status(StatusCode.ERROR))
         if reconciled:
             span.set_attribute("ordivon.harness.tool.reconciled", True)
             span.set_attribute("ordivon.harness.tool.dispatch_observed", pending is not None)
