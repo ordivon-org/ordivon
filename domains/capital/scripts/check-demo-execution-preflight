@@ -3,15 +3,19 @@ set -euo pipefail
 repo="$(cd "$(dirname "$0")/.." && pwd)"
 python3 - "$repo/config/demo_execution_policy.json" <<'PY'
 import json,sys
+def require(condition, label):
+    if not condition:
+        raise SystemExit("Capital policy rejected: " + str(label))
+
 x=json.load(open(sys.argv[1]))
-assert x['standing']=='PREPARED_NOT_ADMITTED'
-assert x['demoWriteAdmission']=='NOT_ADMITTED'
-assert x['liveWriteAdmission']=='NOT_ADMITTED'
-assert x['externalFinancialWritesAllowed'] is False
-assert x['venues']['OKX']['environment']=='DEMO'
-assert x['venues']['BINANCE']['environment']=='TESTNET'
-assert x['venues']['BINANCE']['productType']=='SPOT'
-assert x['venues']['OKX']['orderSubmissionAllowed'] is False
-assert x['venues']['BINANCE']['orderSubmissionAllowed'] is False
+require(x['standing']=='PREPARED_NOT_ADMITTED', "x['standing']=='PREPARED_NOT_ADMITTED'")
+require(x['demoWriteAdmission']=='NOT_ADMITTED', "x['demoWriteAdmission']=='NOT_ADMITTED'")
+require(x['liveWriteAdmission']=='NOT_ADMITTED', "x['liveWriteAdmission']=='NOT_ADMITTED'")
+require(x['externalFinancialWritesAllowed'] is False, "x['externalFinancialWritesAllowed'] is False")
+require(x['venues']['OKX']['environment']=='DEMO', "x['venues']['OKX']['environment']=='DEMO'")
+require(x['venues']['BINANCE']['environment']=='TESTNET', "x['venues']['BINANCE']['environment']=='TESTNET'")
+require(x['venues']['BINANCE']['productType']=='SPOT', "x['venues']['BINANCE']['productType']=='SPOT'")
+require(x['venues']['OKX']['orderSubmissionAllowed'] is False, "x['venues']['OKX']['orderSubmissionAllowed'] is False")
+require(x['venues']['BINANCE']['orderSubmissionAllowed'] is False, "x['venues']['BINANCE']['orderSubmissionAllowed'] is False")
 print(json.dumps({'policyStanding':x['standing'],'demoWriteAdmission':x['demoWriteAdmission'],'externalFinancialWritesAllowed':False},sort_keys=True))
 PY

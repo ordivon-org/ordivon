@@ -86,6 +86,23 @@ Golden Path (no provider account, synthetic data, no order):
 `tests/test_factor_lego_consumer_contract.py`. This only demonstrates current
 mechanical consumer boundaries; it is not evidence of positive investment Edge.
 
+## Non-live and private-read admission LEGO
+
+The existing Capital policy-checker LEGO uses these three Owner scripts:
+- scripts/check-demo-execution-preflight
+- scripts/check-nonlive-credential-provisioning
+- scripts/check-private-reality-readonly-preflight
+
+Their actual consumers are scripts/run-capital-trading-fullpath-closure
+and scripts/run-r0-r5-closure. Their contracts are unchanged: no
+live/external writes, unauthorized demo/testnet order submission or
+private-account access, and no group/world-readable credential files.
+An invalid policy or file permission must produce a nonzero exit under
+both normal Python and optimized Python. The native falsifier is
+tests/test_nonlive_policy_optimized_contract.py with isolated synthetic
+JSON and dummy files. This mechanical boundary does not authorize live
+financial effects or prove external provider behavior.
+
 ## Verification boundary
 
 Required repository CI is hermetic and authority-free. The capital:verify task runs the
