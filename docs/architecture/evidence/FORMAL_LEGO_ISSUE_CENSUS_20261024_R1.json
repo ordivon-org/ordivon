@@ -885,6 +885,18 @@
             "platform/network/consumers/developer-egress/profile.sh",
             "platform/network/tests/test_developer_egress_profile.py"
           ]
+        },
+        {
+          "localCommit": "37ca61f5e7862c40174eff8b59e6b25d741eba61",
+          "owner": "services/runtime",
+          "consumer": "Windows native release CLI obtains workspace identity from the already durable release Effect; it does not admit a second caller-provided --workspace-id value",
+          "remoteWitness": "services/runtime/crates/ordivon-runtime-core/src/bin/ordivon-runtime-windows-deploy.rs::preflight(PlanReceipt.workspace_id=effect.workspace_id) and apply(EffectRequest.workspace_id=&plan.workspace_id); cargo test --locked -p ordivon-runtime-core --features operator-tools --bin ordivon-runtime-windows-deploy deployer_cli_keeps_workspace_identity_in_durable_effect_only: 1/1 PASS",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceCut": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "4b630ed360901d44ae2bea725fc53722225b460a"
+          }
         }
       ],
       "consumerBlockedSelections": [
