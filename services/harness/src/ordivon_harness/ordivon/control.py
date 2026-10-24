@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 import threading
 import time
 from typing import Callable
@@ -42,8 +43,8 @@ class RunDeadline:
         *,
         monotonic_ms: Callable[[], int] | None = None,
     ) -> RunDeadline:
-        if timeout_ms < 1:
-            raise ValueError("Run deadline must be positive")
+        if type(timeout_ms) is not int or timeout_ms < 1:
+            raise ValueError("Run deadline must be a positive integer")
         clock = monotonic_ms or (lambda: time.monotonic_ns() // 1_000_000)
         return cls(clock() + timeout_ms, clock)
 
@@ -70,8 +71,12 @@ class ExecutionControl:
         return self.deadline.remaining_ms
 
     def clamp_timeout_seconds(self, configured_seconds: float) -> float:
-        if configured_seconds <= 0:
-            raise ValueError("configured timeout must be positive")
+        if (
+            type(configured_seconds) not in (int, float)
+            or not math.isfinite(configured_seconds)
+            or configured_seconds <= 0
+        ):
+            raise ValueError("configured timeout must be finite and positive")
         remaining = self.remaining_ms / 1_000
         if remaining <= 0:
             return 0.001
