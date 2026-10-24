@@ -3,6 +3,7 @@ import hashlib
 import importlib.util
 import json
 import struct
+import subprocess
 import tempfile
 import unittest
 import zlib
@@ -210,7 +211,19 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
             path=ROOT/value['relativePath'];self.assertEqual(sha(path),value['sha256'],value['relativePath'])
         game=GAME_ROOT
         for key in ('harness','acceptedReproducibilityBoundary'):
-            value=receipt['producerEvidence'][key];self.assertEqual(sha(game/value['relativePath']),value['sha256'],value['relativePath'])
+            value = receipt['producerEvidence'][key]
+            if key == 'harness':
+                # The receipt is frozen; current Game source may evolve.
+                # An immutable Git blob retains the historical producer bytes.
+                oid = value['monorepoArchiveBlobOid']
+                self.assertEqual(len(oid), 40)
+                self.assertTrue(all(char in '0123456789abcdef' for char in oid))
+                archived = subprocess.check_output(
+                    ['git', '-C', str(MONOREPO_ROOT), 'cat-file', 'blob', oid]
+                )
+                self.assertEqual(hashlib.sha256(archived).hexdigest(), value['sha256'])
+            else:
+                self.assertEqual(sha(game / value['relativePath']), value['sha256'])
         self.assertEqual(receipt['producerEvidence']['currentRuntimeProof']['firstBuildSha256'],receipt['externalSubject']['sha256'])
         self.assertEqual(receipt['producerEvidence']['currentRuntimeProof']['secondBuildSha256'],receipt['externalSubject']['sha256'])
         self.assertIn('Steam or other store upload/release',receipt['boundary']['notEstablished'])

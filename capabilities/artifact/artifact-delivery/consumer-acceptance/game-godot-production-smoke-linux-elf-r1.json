@@ -90,7 +90,8 @@
     },
     "harness": {
       "relativePath": "experiments/production-smoke-r1/run.ts",
-      "sha256": "5072a8054bababdb069507172e295abd8393994c0084501ecbcf55182514a9cc"
+      "sha256": "5072a8054bababdb069507172e295abd8393994c0084501ecbcf55182514a9cc",
+      "monorepoArchiveBlobOid": "5e93674c19245d0174337284c5fe110a306034fe"
     },
     "releaseTemplateSha256": "2cb27aee3f7fdf763d0ae16972f6975606959a071f4cd33f6ef1429eb8385049",
     "sourceDigests": {
