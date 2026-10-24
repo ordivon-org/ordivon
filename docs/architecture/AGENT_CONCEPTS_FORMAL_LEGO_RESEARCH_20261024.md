@@ -149,40 +149,57 @@ not a new schema, all-Owner registry, proof kernel, default Workflow or source
 of runtime authority. This section is useful only when a *named current
 consumer* needs a contract that its natural Owner can actually verify.
 
-A candidate LEGO is best represented as an existing Owner responsibility
-view \(L=(C,I,O,S,R,A,G,V)\), not as a new executable object:
+The *only* canonical LEGO identity remains the original six-part contract
+already specified above:
 
-- \(C\): current consumers and their externally observable acceptance predicates;
-- \(I,O\): typed inputs/outputs from current native interfaces;
-- \(S\): durable state owned by precisely one existing authoritative Owner;
-- \(R\subseteq(I\times S)\times(O\times S)\): an existing transition or
-  effect relation, **not** an invented Ordivon transition engine;
-- \(A,G\): assumptions/guarantees expressed by current Owner contracts;
-- \(V\): scoped evidence with exact SourceCut, tool/version and falsification.
+\[
+L = (identity, responsibility, inputs, outputs, contract, acceptance).
+\]
 
-**Effects are a derived projection, not a ninth independent Owner.** Let
-\(E=\mathrm{Effects}(R)\) be the concrete effect-bearing operations of the
-existing transition relation, and require
-\(E\subseteq\mathrm{AuthorizedEffects}(owner,sourceCut)\) at the true
-admission/commit boundary. A typed schema or verified predecessor DAG
-does not grant this authority. The compact "interfaces/assumptions/effects"
-view is a projection of this single owner-bound relation, not another
-competing definition of LEGO R2.1.
+Here **identity** and **responsibility** belong to the existing natural Owner;
+**acceptance** is a named current consumer's observable predicate. Do not
+rename a consumer set, state machine or mathematical proof into a competing
+LEGO object. When a named consumer B and goal g require more precision,
+interpret—not replace—that LEGO with an **optional semantic view**:
 
-These are **mathematical views of existing typed interfaces**. No field is
-mandated in every domain's JSON. For sequential composition \(L_1;L_2\),
-verify compatible types and \(G_1\Rightarrow A_2\) under the real shared-state,
-authority and environment assumptions. Independent component PASS does not
-prove composite correctness. To replace old \(L\) with new \(L'\), compare the
-*current consumer's observable projection* \(\pi_C(R)\), not raw Git commits,
-file bytes, prose, tool names, historical work or a universal score.
+\[
+\mathrm{Semantics}(L)_{g,B}=(S,Init,Next,A,G,\pi_B).
+\]
+
+- \(S,Init,Next\) are existing Owner state and transition semantics; they are
+  absent for a stateless LEGO. \(I,O\) retain their native interface types.
+- \(A,G\subseteq\mathcal{T}_B\) are environment assumptions and guarantees
+  in the **same consumer-observable trace universe**, and \(\pi_B\) is the
+  consumer's observation projection. The mathematical contract obligation
+  for a model or implementation M is
+  \(\mathrm{Traces}_B(M)\cap A\subseteq G\), never an automatic PASS.
+- For a same-boundary safety replacement Old→New, a sufficient contract
+  refinement criterion is \(A_{\rm old}\subseteq A_{\rm new}\) and
+  \(A_{\rm old}\cap G_{\rm new}\subseteq G_{\rm old}\).
+  Liveness, required outcomes, identity, owner authority and any interface
+  adapters need separate explicit witnesses; a Git patch-ID, static graph or
+  test PASS does not prove behavioral equivalence.
+- For sequential composition \(L_1;L_2\), verify typed port compatibility
+  and \(G_1\land A_{\rm environment}\Rightarrow A_2\) at the actual shared
+  boundary. Feedback cycles need an independent inductive invariant;
+  independent component PASS or circular assumptions are not enough.
+- Effects are **derived** from the existing Owner's effect-bearing transition
+  relation R, not a ninth LEGO role. Admission must establish
+  \(\mathrm{Effects}(R)\subseteq
+  \mathrm{AuthorizedEffects}(owner,sourceCut)\); a verified DAG or type
+  signature by itself never grants that authority.
+
+This uses mature assume/guarantee contracts, trace refinement and the
+Owner's existing TLA+/TLC, typed interfaces and native CDC. It mandates
+**no** new common schema, state engine, solver, registry, Agent or second
+authority; optional fields are materialized only for a real consumer.
 
 | Existing Owner | Mature semantic kernel | Current executable consumer boundary | Missing authority deliberately **not** inferred |
 | --- | --- | --- | --- |
-| Runtime | TLA+ state transitions, invariants, weak fairness; Rust typed Attempt state | `services/runtime/formal/RuntimeDispatchR1.tla`, `scripts/verify_formal_trace.py`, `job_attempt_state.rs` | model result does not mechanically refine Rust or prove business completion |
-| Host | typed Work revision and state-machine transition contracts | `services/host/src/ordivon_host_v2/work_store.py` and natural-owner tests | Host Work terminal state does not establish Runtime dispatch or domain success |
-| Harness | assume/guarantee at bounded Agent Run and Tool/Runtime admission | `services/harness/tests/test_gateway_execution_port.py` and owner-local admission contracts | model proposal, Run success or Skill text cannot grant effect authority |
-| Network | state-based convergence, source identity and actual loaded-policy predicates | `platform/network/tests/test_claude_loaded_policy_cdc.py`, `test_monitoring_precommit.py` | file delivery or transport success does not establish loaded policy or safety |
+| Runtime | Existing TLA+ state transitions and typed Rust Attempt state | `services/runtime/formal/RuntimeDispatchR1.tla`; `services/runtime/scripts/tests/test_mcp_e2e_reconciliation.py` | Finite TLC proof is model-scoped; native Runtime tests independently reject changed Attempt identity |
+| Host | Existing Work revision and optimistic CAS | `services/host/src/ordivon_host_v2/work_store.py`; `services/host/tests/test_social_work_fabric_postgres.py` | Host revision fencing does not imply Runtime dispatch or domain success |
+| Harness | Bounded Run and identity-fenced Tool/Runtime admission | `services/harness/tests/test_agent_automation_browserless.py` | A proposal or Run success does not establish a committed effect |
+| Network | Existing scoped transport/policy observations | `platform/network/tests/test_claude_egress_readiness_consumer.py`; `platform/network/tests/test_monitoring_precommit.py` | File or transport delivery alone does not establish loaded policy, CONNECT or TLS |
 
 **First executable mathematical slice (Runtime).** The property
 `TerminalEvidenceIsCommitted` is stated in TLA+ and enabled in its
