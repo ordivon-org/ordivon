@@ -9,6 +9,15 @@ Gateway owns only:
 - request/response compatibility;
 - correlation/reference normalization.
 
+**Capability-routing LEGO (B01):** `routes=None` selects the default catalog,
+whereas an explicitly supplied empty route map is an intentional no-capability
+configuration. Every route entry must be a `CapabilityRoute` whose
+`capability` exactly matches its map key. The adapter must reject mismatches,
+rather than advertising one capability while dispatching another. Native
+contract tests: `tests/test_gateway_service.py` route-identity and explicit
+empty-routes cases. This is Gateway projection validation, not authorization to
+execute any Runtime or Host effect.
+
 Gateway never owns Runtime Job/Attempt truth, Host continuity truth, Harness run truth, OAuth/credential authority, Plugin/Skill semantics, or domain completion.
 
 **Execution cancellation identity contract (Gateway B01 / Runtime owner):** the

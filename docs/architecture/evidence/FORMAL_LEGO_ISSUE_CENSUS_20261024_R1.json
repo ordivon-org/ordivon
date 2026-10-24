@@ -953,24 +953,44 @@
           ]
         },
         {
-          "localCommit": "24b713eb03a5fcea76b3cc6dc4cf61ba984f0467",
-          "owner": "capabilities/artifact",
-          "consumer": "Artifact Temporal Worker deployment must refuse restart while a matching canonical Artifact workflow is running, or if Temporal visibility cannot be proven, before any installed unit/state side effects. Current owner consumes canonical ARTIFACT_WORKFLOW and existing locked carrier rather than replaying the historical patch.",
-          "remoteWitness": "Native Git --cherry-mark classified exact patch-id equivalent on frozen local/remote DAG. Current capabilities/artifact/scripts/artifact_temporal_deploy.py::ensure_no_running_artifact_workflows and apply block before systemctl; current tests/test_artifact_temporal_contract.py contains both real workflow visibility and before-mutation negatives. Two owner tests + carrier-integrity related unit 3/3 PASS via UV_OFFLINE=1 MISE_OFFLINE=1 mise exec -- uv run --offline --locked python -m pytest.",
+          "localCommit": "37ca61f5e7862c40174eff8b59e6b25d741eba61",
+          "owner": "services/runtime",
+          "consumer": "Windows native release CLI obtains workspace identity from the already durable release Effect; it does not admit a second caller-provided --workspace-id value",
+          "remoteWitness": "services/runtime/crates/ordivon-runtime-core/src/bin/ordivon-runtime-windows-deploy.rs::preflight(PlanReceipt.workspace_id=effect.workspace_id) and apply(EffectRequest.workspace_id=&plan.workspace_id); cargo test --locked -p ordivon-runtime-core --features operator-tools --bin ordivon-runtime-windows-deploy deployer_cli_keeps_workspace_identity_in_durable_effect_only: 1/1 PASS",
           "evidenceScope": "NATIVE_CONSUMER_PASS",
           "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceCut": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "4b630ed360901d44ae2bea725fc53722225b460a"
+          }
+        },
+        {
+          "localCommit": "334d0eb75adb297b676b35b39808c9bac661ec76",
+          "owner": "tools/repo",
+          "consumer": "The local historical patch introduced an exact committed-tree secret scan and native positive/negative controls. Current protected Main keeps both historical scanner and native unittest bytes exactly, invokes the scanner in GitHub CI, AND additionally runs Git history plus local working-directory scans through the root mise task. The script/test effect is fully consumed but the broader root task is intentionally not overwritten with the old, narrower historical version.",
+          "remoteWitness": "Original historical Git blob/mode for tools/repo/check_tracked_secrets.sh and test_tracked_secrets.py equals current protected Main; python3 -m unittest tools/repo/test_tracked_secrets.py: 3/3 PASS, including mismatched GITHUB_SHA refusal, scan exclusion of untracked artifacts, and positive scan-failure propagation. .github/workflows/ci.yml invokes tools/repo/check_tracked_secrets.sh; root mise repo:secrets:verify retains current Git-history and developer working-tree coverage. No source-only equivalence or credential leak assertion for untested external runners.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "cd8483681948ab55624af45e4cdbc67694602d96",
           "sourceQualification": {
             "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
-            "protectedMain": "d375287686b7ad7f04b1f5ef181bff846ac9cc94",
-            "patchRelation": "PATCH_ID_EQUIVALENT",
-            "tipRelation": "CURRENT_OWNER_NATIVE_CDC_NOT_FULL_BRANCH_EQUIVALENCE",
-            "consumerStanding": "CURRENT_OWNER_COVERED_WITH_LIMITED_SCOPE",
-            "branchDeletionAllowed": false
+            "protectedMain": "cd8483681948ab55624af45e4cdbc67694602d96",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "EXACT_SCRIPT_AND_TEST_BLOBS_WITH_NEWER_ROOT_TASK_BEHAVIOR",
+            "consumerStanding": "CURRENT_CI_COMMITTED_SOURCE_SCANNER_WITH_ADDITIONAL_HISTORY_AND_LOCAL_SCAN",
+            "branchDeletionAllowed": false,
+            "historicalRuntimeParity": "SCOPED_ONLY"
           },
-          "evaluatedRemoteMain": "d375287686b7ad7f04b1f5ef181bff846ac9cc94",
           "changedPaths": [
-            "capabilities/artifact/scripts/artifact_temporal_deploy.py",
-            "capabilities/artifact/tests/test_artifact_temporal_contract.py"
+            "mise.toml",
+            "tools/repo/check_github_governance.py",
+            "tools/repo/check_tracked_secrets.sh",
+            "tools/repo/test_tracked_secrets.py"
+          ],
+          "verifiedEqualChangedBlobs": true,
+          "verifiedEqualChangedPaths": [
+            "tools/repo/check_tracked_secrets.sh",
+            "tools/repo/test_tracked_secrets.py"
           ]
         },
         {
@@ -992,6 +1012,27 @@
           "changedPaths": [
             "platform/workstation/tests/test_artifact_toolchain_materialization_owner.py",
             "platform/workstation/workstation/providers/artifact_toolchain/python_environment.py"
+          ]
+        },
+        {
+          "localCommit": "24b713eb03a5fcea76b3cc6dc4cf61ba984f0467",
+          "owner": "capabilities/artifact",
+          "consumer": "Artifact Temporal Worker deployment must refuse restart while a matching canonical Artifact workflow is running, or if Temporal visibility cannot be proven, before any installed unit/state side effects. Current owner consumes canonical ARTIFACT_WORKFLOW and existing locked carrier rather than replaying the historical patch.",
+          "remoteWitness": "Native Git --cherry-mark classified exact patch-id equivalent on frozen local/remote DAG. Current capabilities/artifact/scripts/artifact_temporal_deploy.py::ensure_no_running_artifact_workflows and apply block before systemctl; current tests/test_artifact_temporal_contract.py contains both real workflow visibility and before-mutation negatives. Two owner tests + carrier-integrity related unit 3/3 PASS via UV_OFFLINE=1 MISE_OFFLINE=1 mise exec -- uv run --offline --locked python -m pytest.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "d375287686b7ad7f04b1f5ef181bff846ac9cc94",
+            "patchRelation": "PATCH_ID_EQUIVALENT",
+            "tipRelation": "CURRENT_OWNER_NATIVE_CDC_NOT_FULL_BRANCH_EQUIVALENCE",
+            "consumerStanding": "CURRENT_OWNER_COVERED_WITH_LIMITED_SCOPE",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "d375287686b7ad7f04b1f5ef181bff846ac9cc94",
+          "changedPaths": [
+            "capabilities/artifact/scripts/artifact_temporal_deploy.py",
+            "capabilities/artifact/tests/test_artifact_temporal_contract.py"
           ]
         }
       ],

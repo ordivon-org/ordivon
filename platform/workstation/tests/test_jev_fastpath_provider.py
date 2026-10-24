@@ -32,3 +32,21 @@ def test_equipment_catalog_binds_exact_realized_entrypoints_when_present():
         path = Path(row["executable"])
         if path.is_file():
             assert hashlib.sha256(path.read_bytes()).hexdigest() == digest == row["sha256"]
+
+
+def test_external_provider_uv_effects_use_exact_workstation_mise_owner():
+    # Local Main c8fea848 documented the real owner requirement; the current
+    # Ansible consumers must not regress to an ambient /usr/bin/uv executable.
+    for name, count in (("jev-fastpath-provider.yml", 1),
+                        ("ppt-master-provider.yml", 2)):
+        source = (ROOT / "ansible" / name).read_text()
+        assert "- /usr/bin/uv" not in source
+        assert source.count("- /usr/bin/mise") == count
+        assert source.count('''- "{{ playbook_dir }}/.."''') == count
+        assert source.count("- exec") == count
+        assert source.count("\n          - --\n") == count
+        assert source.count("MISE_AUTO_INSTALL: 'false'") == count
+        assert source.count("MISE_EXEC_AUTO_INSTALL: 'false'") == count
+    jev = (ROOT / "ansible/jev-fastpath-provider.yml").read_text()
+    assert '''- "{{ jev_release }}"''' in jev
+    assert "- /usr/bin/env" in jev
