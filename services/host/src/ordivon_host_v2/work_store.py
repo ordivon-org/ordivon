@@ -133,6 +133,10 @@ class WorkStore:
         state: WorkState = WorkState.OPEN,
         client_request_id: str,
     ) -> dict[str, Any]:
+        # Revision is a typed CAS identity, not Python numeric equality:
+        # bool is an int subclass, and 1.0 compares equal to 1.
+        if type(expected_revision) is not int or expected_revision < 1:
+            raise ValueError("expected_revision must be a positive integer")
         payload = snapshot.canonical_payload()
         snapshot_digest = canonical_digest(payload)
         request = {
@@ -207,6 +211,8 @@ class WorkStore:
             return result
 
     def get_work(self, work_ref: str, revision: int | None = None) -> dict[str, Any]:
+        if revision is not None and (type(revision) is not int or revision < 1):
+            raise ValueError("revision must be a positive integer")
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             return self._get_work_in_tx(conn, work_ref, revision)
