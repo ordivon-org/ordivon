@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "id": "fishing-fable-lego-study-r1",
+  "title": "捞鱼者与造河人 — Formal/LEGO Writing Consumer Study",
+  "status": "review",
+  "intent": "Register an exact reconstructed Chinese fable as a bounded writing consumer; evaluate reuse of Media/Matt/ECC methods, identify evidence-bound writing LEGO gaps, and reject automatic promotion from source validity to literary or reader acceptance.",
+  "audiences": [
+    "reader-chinese",
+    "ordivon-media-researcher",
+    "writing-agent-evaluator"
+  ],
+  "sourceBindings": [
+    {
+      "id": "media-fable-source",
+      "repository": "ordivon",
+      "revision": "127c171b750a58a0a5de5ca391092b1c23c0b64d",
+      "role": "fenced-local-reconstructed-story-and-research-source-not-original-chat-verbatim"
+    }
+  ],
+  "workingProfile": {},
+  "sources": {
+    "claims": "claims.json",
+    "article": "story-archival-reconstruction.md",
+    "sourceDocuments": [
+      "writing-lego-research-dossier-r1.md",
+      "formal-writing-contracts-r1.md",
+      "writing-issue-census-r1.md"
+    ]
+  },
+  "outputs": [
+    {
+      "id": "fishing-fable-reconstruction-v1",
+      "kind": "article",
+      "status": "rendered",
+      "profile": "writing",
+      "blobDigest": "sha256:b3c18d635a5d5979490eb977c3a576901831fe5d788fac9cd894fa63a33b6f2c"
+    }
+  ]
+}

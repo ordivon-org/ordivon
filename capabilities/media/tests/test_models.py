@@ -7,6 +7,7 @@ from pathlib import Path
 
 from ordivon_studio.models import (
     _validate_cognition_record,
+    _validate_production_semantics,
     _validate_runtime_receipt,
     _validator,
     validate_repository,
@@ -19,6 +20,51 @@ RECEIPT = json.loads(
 
 
 class ModelTests(unittest.TestCase):
+    def test_fishing_fable_reconstruction_has_exact_carrier_identity(self) -> None:
+        import hashlib
+
+        production_root = ROOT / "productions/fishing-fable-lego-study-r1"
+        production_path = production_root / "production.json"
+        production = json.loads(production_path.read_text(encoding="utf-8"))
+        claims = json.loads((production_root / "claims.json").read_text(encoding="utf-8"))
+        carrier = production_root / production["sources"]["article"]
+        actual_digest = "sha256:" + hashlib.sha256(carrier.read_bytes()).hexdigest()
+
+        self.assertEqual(production["status"], "review")
+        self.assertIn("reconstructed", production["sourceBindings"][0]["role"])
+        self.assertEqual(production["outputs"][0]["blobDigest"], actual_digest)
+        self.assertEqual(_validate_production_semantics(production_path, production, claims, None), [])
+
+        # CEGAR A0: schema-valid digests can be fabricated.
+        corrupted = copy.deepcopy(production)
+        corrupted["outputs"][0]["blobDigest"] = "sha256:" + "0" * 64
+        self.assertEqual(list(_validator("production.schema.json").iter_errors(corrupted)), [])
+        # CEGAR A1: exact byte read-back defeats this spurious identity.
+        self.assertNotEqual(corrupted["outputs"][0]["blobDigest"], actual_digest)
+
+        unbound = copy.deepcopy(claims)
+        unbound["claims"][0]["source"]["binding"] = "undeclared-owner"
+        errors = _validate_production_semantics(production_path, production, unbound, None)
+        self.assertTrue(any("unknown binding" in error for error in errors))
+
+    def test_fishing_fable_claims_are_fenced_to_existing_historical_sources(self) -> None:
+        import subprocess
+
+        production_root = ROOT / "productions/fishing-fable-lego-study-r1"
+        production = json.loads((production_root / "production.json").read_text(encoding="utf-8"))
+        claims = json.loads((production_root / "claims.json").read_text(encoding="utf-8"))
+        rev = production["sourceBindings"][0]["revision"]
+        check_revision = subprocess.run(["git", "cat-file", "-e", f"{rev}^{{commit}}"], cwd=ROOT, capture_output=True)
+        if check_revision.returncode != 0:
+            self.skipTest("Historical Git commit not available in this checkout; source-revision qualification UNKNOWN")
+        for claim in claims["claims"]:
+            path = claim["source"]["path"]
+            present = subprocess.run(["git", "cat-file", "-e", f"{rev}:{path}"], cwd=ROOT, capture_output=True)
+            self.assertEqual(present.returncode, 0, f"{claim['id']} source absent at frozen revision: {rev}:{path}")
+        # Refute the original faulty registration: the newly created study text was NOT in that old commit.
+        later_path = "capabilities/media/productions/fishing-fable-lego-study-r1/formal-writing-contracts-r1.md"
+        self.assertNotEqual(subprocess.run(["git", "cat-file", "-e", f"{rev}:{later_path}"], cwd=ROOT, capture_output=True).returncode, 0)
+
     def test_repository_models_are_valid(self) -> None:
         self.assertEqual(validate_repository(), [])
 
