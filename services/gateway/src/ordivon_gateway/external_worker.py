@@ -363,8 +363,8 @@ class ExternalPullWorkerTransport:
             UPDATE operations
             SET state='queued', active_attempt_id=NULL, updated_at_ms=?
             WHERE terminal=0 AND desired_state='run'
-              AND active_attempt_id IN (
-                SELECT attempt_id FROM attempts
+              AND (operation_id, active_attempt_id) IN (
+                SELECT operation_id, attempt_id FROM attempts
                 WHERE state='claimed' AND lease_expires_ms < ?
               )
             """,
@@ -376,8 +376,8 @@ class ExternalPullWorkerTransport:
             UPDATE operations
             SET state='reconcile_required', updated_at_ms=?
             WHERE terminal=0 AND desired_state='run'
-              AND active_attempt_id IN (
-                SELECT attempt_id FROM attempts
+              AND (operation_id, active_attempt_id) IN (
+                SELECT operation_id, attempt_id FROM attempts
                 WHERE state='started' AND lease_expires_ms < ?
               )
             """,

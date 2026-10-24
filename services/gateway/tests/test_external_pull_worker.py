@@ -488,3 +488,51 @@ def test_expired_started_attempt_requires_reconciliation_and_is_not_duplicated(t
     )
     assert completed.state == "completed"
     assert completed.terminal is True
+
+
+@pytest.mark.parametrize("started", [False, True])
+def test_expired_attempt_cannot_transition_an_unrelated_operation(tmp_path, started) -> None:
+    clock = Clock()
+    transport = ExternalPullWorkerTransport(
+        tmp_path / "workers.sqlite3", clock_ms=clock, lease_ms=1_000
+    )
+    _, public_key = keypair()
+    transport.enroll(
+        worker_id="worker-1",
+        provider_id="muse",
+        generation=1,
+        public_key_b64=public_key,
+        capabilities=["muse.shell.echo"],
+    )
+    original = transport.submit(
+        capability="muse.shell.echo", request_id="original", parcel={"action": "echo"}
+    )
+    attempt = transport.claim("worker-1", generation=1)
+    assert attempt is not None
+    if started:
+        transport.started(
+            worker_id="worker-1",
+            generation=1,
+            operation_id=attempt["operation_id"],
+            attempt_id=attempt["attempt_id"],
+            lease_id=attempt["lease_id"],
+        )
+    other = transport.submit(
+        capability="muse.shell.echo", request_id="unrelated", parcel={"action": "echo"}
+    )
+    before = "started" if started else "claimed"
+    with transport._connect() as db:
+        # Fault injection: an operation points to another operation's attempt.
+        db.execute(
+            "UPDATE operations SET state=?, active_attempt_id=? WHERE operation_id=?",
+            (before, attempt["attempt_id"], other.operation_id),
+        )
+    clock.now += 1_001
+    with transport._connect() as db:
+        db.execute("BEGIN IMMEDIATE")
+        transport._reap_expired(db, clock.now)
+        db.execute("COMMIT")
+    assert transport.get(other.operation_id).state == before
+    assert transport.get(original.operation_id).state == (
+        "reconcile_required" if started else "queued"
+    )
