@@ -991,6 +991,31 @@ def test_git02_unique_codex_oauth_discovery_history_is_not_relabelled_redundant(
     module.validate_formal_issue_census(census, plans)
 
 
+def test_git01_frozen_nonmerge_endpoint_partition_requires_consumer_proofs() -> None:
+    # Immutable SourceCut projection, not a second dynamic Git-history authority.
+    census, plans = formal_issue_inputs()
+    issue = next(row for row in census["issues"] if row["id"] == "GIT-01")
+    partition = issue["frozenLocalCommitEffectPartition"]
+    assert partition["localMain"] == census["source"]["linuxLocalMain"]
+    assert len(partition["protectedMain"]) == 40
+    classes = partition["nonMergePathFinalStates"]
+    assert set(classes) == {
+        "ALL_PRESENT_IDENTICAL", "ALL_BOTH_ABSENT",
+        "MIXED_IDENTICAL_AND_ABSENT", "REQUIRES_OWNER_CDC",
+    }
+    assert all(type(value) is int and value >= 0 for value in classes.values())
+    assert sum(classes.values()) == partition["localNonMergeCommits"]
+    assert (
+        partition["localNonMergeCommits"] + partition["localMergeConnectors"]
+        == partition["localOnlyCommits"]
+    )
+    assert partition["localOnlyCommits"] == 2300
+    assert partition["evidenceStanding"] == "TIP_STATE_ONLY_NOT_BEHAVIORAL_EQUIVALENCE"
+    assert partition["branchDeletionAllowed"] is False
+    assert classes["REQUIRES_OWNER_CDC"] > 0
+    module.validate_formal_issue_census(census, plans)
+
+
 def test_git01_four_distinct_patch_equivalents_preserve_consumers_and_actual_source_cut() -> None:
     """Patch equivalence alone grants no branch deletion, owner effects remain typed."""
     census, plans = formal_issue_inputs()

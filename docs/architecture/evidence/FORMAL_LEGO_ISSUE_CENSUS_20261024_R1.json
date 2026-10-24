@@ -419,6 +419,72 @@
             "platform/workstation/providers/cloudflare/test/handoff_tofu_test.py",
             "platform/workstation/tofu/agent-birth-handoff/main.tf"
           ]
+        },
+        {
+          "localCommit": "1e509f0b6c56f5935523014d3b069460a9f2baf8",
+          "owner": "domains/game",
+          "consumer": "Windows Room Action foreground guard: disallow any Agent input unless the exact native game executable owns foreground; Linux does not assert Windows foreground ownership.",
+          "remoteWitness": "Exact Windows guard script Git blob is identical at historical commit and both final tips, and modified README is identical between tips (historical README differs). Native Linux negative control returns exit 20 HOLD; Windows interactive acceptance NOT run.",
+          "evidenceScope": "EXACT_GIT_BLOBS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+          "equalChangedBlobOids": {
+            "domains/game/kits/room-action-r0/scripts/windows_foreground_guard.py": "2c4c64332d4696d6d03bb45f7b3038a12651789c",
+            "domains/game/kits/room-action-r0/README.md": "3079ed5f94af1c96418a5c466fc4b94d592cd440"
+          },
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "SAME_BLOB_AND_MODE_AT_BOTH_TIPS",
+            "historicalResultRelation": "MIXED_HISTORICAL_TIP_CONTENT",
+            "consumerStanding": "HISTORICAL_GUARD_BLOB_IDENTICAL_CURRENT_WINDOWS_LIVE_NOT_TESTED",
+            "branchDeletionAllowed": false
+          }
+        },
+        {
+          "localCommit": "c0aba402a63712eb60f237400c6e22fa180adc3d",
+          "owner": "platform/workstation",
+          "consumer": "Owner tool resolution: active Windows Agent must receive concrete mise-pinned tool paths; inherited PATH shims are not executable-owner proof.",
+          "remoteWitness": "Existing Workstation source and test final Git objects are identical on both main tips; intermediate historical commit differs and is not being re-applied. Six Windows environment-doctor source tests and two tool-binding tests PASS via owner uv --locked Python 3.15.1; real Windows process execution not tested.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+          "equalChangedBlobOids": {
+            "platform/workstation/tests/test_windows_workspace_environment_doctor.py": "66e6fd5bee4d1318dc9b3e4366eb4bf5ba222086",
+            "platform/workstation/windows/workspace_environment_doctor.ps1": "f459d562c8d7732f2fed272e0182f6fee4a41007"
+          },
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "SAME_BLOB_AND_MODE_AT_BOTH_TIPS",
+            "historicalResultRelation": "HISTORICAL_INTERMEDIATE_NOT_FINAL",
+            "consumerStanding": "CURRENT_CONTRACT_NATIVE_TESTED_WINDOWS_LIVE_NOT_TESTED",
+            "branchDeletionAllowed": false
+          }
+        },
+        {
+          "localCommit": "046caf2481fb85d710f0d8c6c004112e5a96c2f8",
+          "owner": "platform/workstation",
+          "consumer": "Windows workspace access: fail closed on inaccessible Git metadata/service-identity workspace and require exact checkout identity before scoped mise trust.",
+          "remoteWitness": "Both final tips have exact identical Workstation doctor and native source-test Git objects, unlike the intermediate historical commit. Six owner source tests and two tool-binding tests PASS via owner uv --locked Python; real Windows ACL/failure injection not exercised.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+          "equalChangedBlobOids": {
+            "platform/workstation/tests/test_windows_workspace_environment_doctor.py": "66e6fd5bee4d1318dc9b3e4366eb4bf5ba222086",
+            "platform/workstation/windows/workspace_environment_doctor.ps1": "f459d562c8d7732f2fed272e0182f6fee4a41007"
+          },
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "SAME_BLOB_AND_MODE_AT_BOTH_TIPS",
+            "historicalResultRelation": "HISTORICAL_INTERMEDIATE_NOT_FINAL",
+            "consumerStanding": "CURRENT_CONTRACT_NATIVE_TESTED_WINDOWS_LIVE_NOT_TESTED",
+            "branchDeletionAllowed": false
+          }
         }
       ],
       "consumerBlockedSelections": [
@@ -462,6 +528,24 @@
         "state": "LINKED",
         "ownerPlan": "tools/repo/planning/lego-plan-r1.json",
         "slice": "RG1"
+      },
+      "frozenLocalCommitEffectPartition": {
+        "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+        "protectedMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+        "localOnlyCommits": 2300,
+        "remoteOnlyCommits": 639,
+        "localNonMergeCommits": 1546,
+        "localMergeConnectors": 754,
+        "nonMergePathFinalStates": {
+          "ALL_PRESENT_IDENTICAL": 22,
+          "ALL_BOTH_ABSENT": 64,
+          "MIXED_IDENTICAL_AND_ABSENT": 2,
+          "REQUIRES_OWNER_CDC": 1458
+        },
+        "method": "git rev-list --no-merges main --not origin/main; for each commit git diff-tree -r -z changedPaths; compare mode+blob Git ls-tree -rz --full-tree of both immutable tips. Absence on BOTH tips is distinct from equal present blobs. Merge connectors require native source_history_legos.history DAG projection.",
+        "evidenceStanding": "TIP_STATE_ONLY_NOT_BEHAVIORAL_EQUIVALENCE",
+        "branchDeletionAllowed": false,
+        "consumerDecision": "The 22+64+2 endpoint-neutral commits are a fast triage cohort, NOT automatically dispensable; no commit or main ref can be retired by endpoint identity without owner CDC and historical/deployment provenance. 1458 unresolved non-merge effects and 754 merge connectors keep main divergent."
       }
     },
     {
