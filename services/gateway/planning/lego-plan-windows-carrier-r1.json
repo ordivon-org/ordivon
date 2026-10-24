@@ -212,7 +212,16 @@
       "state": "IN_PROGRESS",
       "dependencies": [],
       "mustNotOwn": [],
-      "acceptance": []
+      "acceptance": [
+        "Owner-native credential materialization rejects an empty or over-16384-byte source before allocation, and fails closed on truncated or growing inputs.",
+        "Existing Windows credential carrier preserves source-to-staging-to-destination SHA-256 equality and protects destination files with a non-inherited exact SYSTEM/Administrators/service-SID principal set.",
+        "Native tests prove file-reference-only handling without exposing secret content; live Windows SCM/ACL admission remains a separate GW2 acceptance gate."
+      ],
+      "evidence": [
+        "services/gateway/packaging/windows/materialize_credentials.ps1",
+        "services/gateway/tests/test_windows_credential_contract.py",
+        "services/gateway/tests/test_windows_service_contract.py"
+      ]
     },
     {
       "id": "GW10",
@@ -617,7 +626,7 @@
     }
   ],
   "gaps": [
-    "Windows credential-file ACL validation contract is not implemented.",
+    "Windows credential-file native ACL/size/digest contracts are implemented; live Windows SCM/service-SID/ACL readback acceptance remains pending in GW09/GW2.",
     "Live Gateway 0.2.0 lags source 0.3.0.",
     "ChatGPT connector exposes stale 9-tool catalog including retired capability.list.",
     "WSL Gateway service currently Requires Linux Runtime and Host, coupling northbound availability to WSL."
