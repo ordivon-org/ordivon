@@ -1770,3 +1770,24 @@ def test_formal_git01_evidence_cannot_escalate_historical_consumer_admission(
     row["disposition"] = false_disposition
     with pytest.raises(module.ArchitectureDocsError, match="incompatible historical Git evidence"):
         module.validate_formal_issue_census(census, plans)
+
+
+def test_git01_three_unconsumed_historical_nonneutral_effects_are_not_reanimated() -> None:
+    """Archived source paths remain unadmitted even after local Main convergence."""
+    census, plans = formal_issue_inputs()
+    issue = next(row for row in census["issues"] if row["id"] == "GIT-01")
+    lookup = {row["localCommit"]: row for row in issue["consumerSelections"]}
+    for sha in (
+        "61618e930d721fb4251442cf796e8f84850b20db",
+        "60fc03863e2cb866e30ed3a47a584580d79955af",
+        "d3bc0905554f92789fe9fd0d1962398d243f62fb",
+    ):
+        row = lookup[sha]
+        assert row["owner"] == "ROOT_UNOWNED"
+        assert row["evidenceScope"] == "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN"
+        assert row["disposition"] == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
+        assert row["sourceQualification"]["historicalSourceState"] == "BOTH_TIPS_ABSENT"
+        assert row["sourceQualification"]["branchDeletionAllowed"] is False
+        assert all(not (ROOT / path).exists() for path in row["changedPaths"])
+    assert (ROOT / ".agents/skills/method-router/SKILL.md").is_file()
+    module.validate_formal_issue_census(census, plans)

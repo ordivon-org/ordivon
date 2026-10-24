@@ -1758,6 +1758,61 @@
             "branchDeletionAllowed": false
           },
           "evaluatedRemoteMain": "0cd09c67af8fd4dc04f38174b856089c9b5ae6ce"
+        },
+        {
+          "localCommit": "61618e930d721fb4251442cf796e8f84850b20db",
+          "owner": "ROOT_UNOWNED",
+          "consumer": "Historical nonmerge source deleted its redundant infrastructure-liveness narrative; both old local and current protected source trees retain that deletion. The current native architecture validator does not consume or restore the old document. The historical commit already performs the retirement; no redundant document port.",
+          "remoteWitness": "Exact archived local Main 13704d0cac9e113b395f2d5a21b5bf8119aa04a5, protected source ebeb7405587d812643eaf0cf993180ab86024cc2: Git tree proves all listed historical paths absent from both tips, and native in-tree grep found no current reference to the removed provider names. No external/Scheduler/Agent consumer inventory claimed; no code behavior parity or branch deletion authority established.",
+          "evidenceScope": "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN",
+          "disposition": "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "ebeb7405587d812643eaf0cf993180ab86024cc2",
+            "historicalSourceState": "BOTH_TIPS_ABSENT",
+            "consumerStanding": "NO_IN_TREE_CONSUMER_EXTERNAL_UNKNOWN",
+            "branchDeletionAllowed": false
+          },
+          "changedPaths": [
+            "docs/architecture/INFRASTRUCTURE_LIVENESS_CONTRACT_R1.md"
+          ]
+        },
+        {
+          "localCommit": "60fc03863e2cb866e30ed3a47a584580d79955af",
+          "owner": "ROOT_UNOWNED",
+          "consumer": "Historical advisory evolution wording belongs to a skill retired from current in-tree discovery. Present code has other bounded method skills, but those are NOT assumed behaviorally equivalent. No current in-tree consumer of the removed skill pathname; do not revive it simply because a historical patch exists.",
+          "remoteWitness": "Exact archived local Main 13704d0cac9e113b395f2d5a21b5bf8119aa04a5, protected source ebeb7405587d812643eaf0cf993180ab86024cc2: Git tree proves all listed historical paths absent from both tips, and native in-tree grep found no current reference to the removed provider names. No external/Scheduler/Agent consumer inventory claimed; no code behavior parity or branch deletion authority established.",
+          "evidenceScope": "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN",
+          "disposition": "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "ebeb7405587d812643eaf0cf993180ab86024cc2",
+            "historicalSourceState": "BOTH_TIPS_ABSENT",
+            "consumerStanding": "NO_IN_TREE_CONSUMER_EXTERNAL_UNKNOWN",
+            "branchDeletionAllowed": false
+          },
+          "changedPaths": [
+            ".agents/skills/ordivon-whole-system-review/SKILL.md"
+          ]
+        },
+        {
+          "localCommit": "d3bc0905554f92789fe9fd0d1962398d243f62fb",
+          "owner": "ROOT_UNOWNED",
+          "consumer": "Historical engineering-method catalog assertion and generated capability package are absent at both current source tips. No current in-tree import or registration consumes the removed catalog. Do not reintroduce a duplicate routing and validation mechanism without an admitted current Owner consumer.",
+          "remoteWitness": "Exact archived local Main 13704d0cac9e113b395f2d5a21b5bf8119aa04a5, protected source ebeb7405587d812643eaf0cf993180ab86024cc2: Git tree proves all listed historical paths absent from both tips, and native in-tree grep found no current reference to the removed provider names. No external/Scheduler/Agent consumer inventory claimed; no code behavior parity or branch deletion authority established.",
+          "evidenceScope": "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN",
+          "disposition": "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "ebeb7405587d812643eaf0cf993180ab86024cc2",
+            "historicalSourceState": "BOTH_TIPS_ABSENT",
+            "consumerStanding": "NO_IN_TREE_CONSUMER_EXTERNAL_UNKNOWN",
+            "branchDeletionAllowed": false
+          },
+          "changedPaths": [
+            "catalogs/capabilities/packages/engineering-method-routing-r1.json",
+            "tests/catalogs/test_engineering_method_routing_catalog.py"
+          ]
         }
       ],
       "consumerBlockedSelections": [
