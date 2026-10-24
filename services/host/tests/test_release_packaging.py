@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import shlex
 import shutil
 import subprocess
 from pathlib import Path
@@ -43,6 +44,7 @@ if [ "$1" = "python" ] && [ "$2" = "find" ]; then
   exit 0
 fi
 if [ "$1" = "sync" ]; then
+  if [ "${ORDIVON_TEST_UV_REJECT_LOCK:-}" = "1" ]; then exit 42; fi
   exit 0
 fi
 printf 'unexpected uv args: %s\\n' "$*" >&2
@@ -53,12 +55,31 @@ exit 64
     path.chmod(0o755)
 
 
+def _fake_mise(path: Path, *, uv: Path, python: Path) -> None:
+    path.write_text(
+        "#!/bin/sh\nset -eu\n"
+        "test -f mise.toml\n"
+        'printf "%s\\n" "$*" >> "$MISE_CALL_LOG"\n'
+        'if [ "$1" = which ] && [ "$2" = uv ]; then\n'
+        f'  printf "%s\\n" {shlex.quote(str(uv))}\n'
+        'elif [ "$1" = install ] && [ "$2" = python@3.15.1 ]; then\n'
+        '  test -d "$MISE_DATA_DIR"\n'
+        'elif [ "$1" = which ] && [ "$2" = python ]; then\n'
+        '  test -d "$MISE_DATA_DIR"\n'
+        f'  printf "%s\\n" {shlex.quote(str(python))}\n'
+        "else exit 66; fi\n",
+        encoding="utf-8",
+    )
+    path.chmod(0o755)
+
+
 def test_install_release_extracts_host_subtree_from_monorepo(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     host = repo / "services" / "host"
     package = host / "src" / "ordivon_host_v2"
     package.mkdir(parents=True)
-    (host / ".python-version").write_text("3.14.7\n", encoding="utf-8")
+    (host / ".python-version").write_text("3.15.1\n", encoding="utf-8")
+    (host / "mise.toml").write_text('[tools]\npython = "3.15.1"\nuv = "0.13.5"\n', encoding="utf-8")
     (host / "uv.lock").write_text("version = 1\n", encoding="utf-8")
     (host / "pyproject.toml").write_text(
         '[project]\nname = "ordivon-host-v2"\nversion = "0.1.0"\n',
@@ -83,7 +104,14 @@ def test_install_release_extracts_host_subtree_from_monorepo(tmp_path: Path) -> 
     _fake_uv(fake_uv)
     prefix = tmp_path / "installed"
     env = os.environ.copy()
-    env["ORDIVON_HOST_V2_RELEASE_UV"] = str(fake_uv)
+    fake_python = tmp_path / "qualified-python"
+    fake_python.write_text("#!/bin/sh\nprintf '3.15.1\\n'\n", encoding="utf-8")
+    fake_python.chmod(0o755)
+    fake_mise = tmp_path / "mise"
+    _fake_mise(fake_mise, uv=fake_uv, python=fake_python)
+    mise_log = tmp_path / "mise-calls.log"
+    env["MISE_BIN"] = str(fake_mise)
+    env["MISE_CALL_LOG"] = str(mise_log)
     env["ORDIVON_HOST_V2_PYTHON_INSTALL_DIR"] = str(tmp_path / "python")
     uv_call_log = tmp_path / "uv_calls.log"
     env["ORDIVON_TEST_UV_CALL_LOG"] = str(uv_call_log)
@@ -92,13 +120,22 @@ def test_install_release_extracts_host_subtree_from_monorepo(tmp_path: Path) -> 
     assert result.returncode == 0, result.stderr
 
     release = prefix / "releases" / commit
-    assert (release / ".python-version").read_text(encoding="utf-8") == "3.14.7\n"
+    assert (release / ".python-version").read_text(encoding="utf-8") == "3.15.1\n"
     assert (release / "src" / "ordivon_host_v2" / "__init__.py").read_text(
         encoding="utf-8"
     ) == 'VALUE = "monorepo-host"\n'
     assert not (release / "services").exists()
     assert not (release / "README.md").exists()
     assert (prefix / "current").resolve() == release
+    calls = uv_call_log.read_text(encoding="utf-8").splitlines()
+    assert len(calls) == 1
+    assert calls[0].startswith("sync --locked ")
+    assert all(not call.startswith("python ") for call in calls)
+    assert mise_log.read_text(encoding="utf-8").splitlines() == [
+        "which uv",
+        "install python@3.15.1",
+        "which python",
+    ]
     assert f"installed_release={commit}" in result.stdout
     assert "source_subtree=services/host" in result.stdout
 
@@ -107,6 +144,22 @@ def test_install_release_extracts_host_subtree_from_monorepo(tmp_path: Path) -> 
     # verification just because its name matches a valid commit.
     replay = _run(str(INSTALL), str(repo), commit, str(prefix), env=env)
     assert replay.returncode == 0, replay.stderr
+    stale = _run(
+        str(INSTALL),
+        str(repo),
+        commit,
+        str(prefix),
+        env={**env, "ORDIVON_TEST_UV_REJECT_LOCK": "1"},
+    )
+    assert stale.returncode == 42, stale.stderr
+    assert (prefix / "current").resolve() == release
+
+    fake_python.write_text("#!/bin/sh\nprintf '3.15.2\\n'\n", encoding="utf-8")
+    mismatched = _run(str(INSTALL), str(repo), commit, str(prefix), env=env)
+    assert mismatched.returncode == 2, mismatched.stderr
+    assert "differs from .python-version" in mismatched.stderr
+    assert (prefix / "current").resolve() == release
+    fake_python.write_text("#!/bin/sh\nprintf '3.15.1\\n'\n", encoding="utf-8")
     _git(repo, "commit", "--allow-empty", "-qm", "same tree, new release generation")
     next_commit = _git(repo, "rev-parse", "HEAD")
     staged_next = prefix / "releases" / next_commit

@@ -9,7 +9,7 @@ fi
 REPO=$1
 COMMIT=$2
 PREFIX=$3
-UV=${ORDIVON_HOST_V2_RELEASE_UV:-/usr/bin/uv}
+UV=${ORDIVON_HOST_V2_RELEASE_UV:-}
 PYTHON_INSTALL_DIR=${ORDIVON_HOST_V2_PYTHON_INSTALL_DIR:-$PREFIX/python}
 SOURCE_SUBTREE="services/host"
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
@@ -85,7 +85,7 @@ verify_release_source() {
 
 verify_release_source
 
-# The project pin owns the requested Python version; uv owns the managed interpreter.
+# Immutable release's mise.toml owns both Python and uv tool versions.
 # Keep the interpreter outside protected user homes so the systemd DynamicUser can
 # execute the release-local venv while ProtectHome remains enabled.
 /usr/bin/python3 "$SCRIPT_DIR/verify_tool_surface.py" \
@@ -103,13 +103,33 @@ if [ -z "$PYTHON_REQUEST" ]; then
   exit 2
 fi
 
+# Resolve tools only after Git has proved the immutable release source.
+MISE_BIN=${MISE_BIN:-/usr/bin/mise}
+[[ -f "$RELEASE/mise.toml" ]] || {
+  echo "release missing mise.toml for owner-pinned tools" >&2
+  exit 2
+}
+if [[ -z "$UV" ]]; then
+  UV=$(cd "$RELEASE" && "$MISE_BIN" which uv)
+fi
+[[ -x "$UV" ]] || { echo "release-selected uv is not executable: $UV" >&2; exit 127; }
+
+# Keep interpreter bytes in a service-readable prefix. A mismatch
+# between .python-version and the release's mise pin fails before publication.
 mkdir -p "$PYTHON_INSTALL_DIR"
-"$UV" python install --install-dir "$PYTHON_INSTALL_DIR" --no-bin "$PYTHON_REQUEST"
-PYTHON=$(UV_PYTHON_INSTALL_DIR="$PYTHON_INSTALL_DIR" "$UV" python find --no-project --managed-python "$PYTHON_REQUEST")
+PYTHON_INSTALL_DIR=$(cd "$PYTHON_INSTALL_DIR" && pwd -P)
+(cd "$RELEASE" && MISE_DATA_DIR="$PYTHON_INSTALL_DIR" "$MISE_BIN" install "python@$PYTHON_REQUEST")
+PYTHON=$(cd "$RELEASE" && MISE_DATA_DIR="$PYTHON_INSTALL_DIR" "$MISE_BIN" which python)
+[[ -x "$PYTHON" ]] || { echo "release Python is not executable: $PYTHON" >&2; exit 127; }
+ACTUAL_PYTHON=$("$PYTHON" -c 'import platform; print(platform.python_version())')
+[[ "$ACTUAL_PYTHON" == "$PYTHON_REQUEST" ]] || {
+  echo "release mise Python differs from .python-version" >&2
+  exit 2
+}
 chmod -R a+rX "$PYTHON_INSTALL_DIR"
 
 # The lock file belongs to the immutable Git release. The venv belongs to that release too.
-UV_PYTHON_INSTALL_DIR="$PYTHON_INSTALL_DIR" "$UV" sync --frozen --no-dev --python "$PYTHON" --project "$RELEASE"
+UV_PYTHON_INSTALL_DIR="$PYTHON_INSTALL_DIR" "$UV" sync --locked --no-dev --python "$PYTHON" --project "$RELEASE"
 chmod -R a+rX "$RELEASE"
 
 ln -sfn "releases/$COMMIT" "$PREFIX/current.next"
