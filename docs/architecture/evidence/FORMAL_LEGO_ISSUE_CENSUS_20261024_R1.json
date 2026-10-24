@@ -585,6 +585,26 @@
           "missingCurrentConsumerEvidence": "Historical Blackbox target/rules and test files are absent in protected Main; old static proxy endpoints and model-provider alerts are not current consumption evidence and must not be resurrected automatically.",
           "selection": "PRESERVE_HISTORICAL_SOURCE_NO_WHOLE_COMMIT_CHERRY_PICK",
           "branchRetirement": "NOT_PROVEN"
+        },
+        {
+          "historicalCommit": "63f0076e9aea0f5ae22d7e3fc9e8142619420446",
+          "historicalParent": "0e735341599b24504af6b0dee16ce7bac9d2258e",
+          "owner": "apps/web",
+          "historicalTestSourceCut": "63f0076e9aea0f5ae22d7e3fc9e8142619420446",
+          "protectedMainSourceCut": "d6e15f621aad7cdb65fbfe97e712540eebcb6309",
+          "historicOnlyFiles": [
+            "apps/web/src/life.ts",
+            "apps/web/test/life-browser-e2e.ts",
+            "apps/web/test/life-contract.test.ts",
+            "apps/web/test/life-web.test.ts"
+          ],
+          "behaviorScope": "Read-only Human Life activity and habit catalog, HTML route and JSON projection; no persistence, account effects or live external actions. Historical source is self-contained but not a current protected Web route.",
+          "historicalNativeTestResult": "NOT_REEXECUTED_NO_CURRENT_CONSUMER",
+          "historicalTestWitness": "Historical exact commit 63f0076e9aea contains life.ts and three owner tests. Do not claim historical tests PASS; only native Git source-path and current Web import/route absence were observed.",
+          "modernConsumerAdmitted": false,
+          "missingCurrentConsumerEvidence": "At protected source cut d6e15f621aad7cdb65fbfe97e712540eebcb6309, apps/web/src/life.ts and the three historical tests are absent. Native ripgrep in apps/web/src and apps/web/test found no lifeCatalog, renderLifePage, or /api/life/catalog consumer. This proves non-admission at this cut, not that Human Life can never be useful.",
+          "selection": "PRESERVE_HISTORICAL_SOURCE_NO_WHOLE_COMMIT_CHERRY_PICK",
+          "branchRetirement": "NOT_PROVEN"
         }
       ],
       "historicalGatewaySourceCut": {
