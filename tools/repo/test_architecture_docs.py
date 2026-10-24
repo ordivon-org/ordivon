@@ -717,3 +717,25 @@ def test_formal_issue_owner_plan_cannot_escape_source_cut(tmp_path: Path) -> Non
     owner_plan.symlink_to(external)
     with pytest.raises(module.ArchitectureDocsError, match="owner-local LEGO plan.*SourceCut"):
         module.validate_formal_issue_census(census, plans, root=source)
+
+
+
+def test_formal_census_file_is_source_bound_before_loading(tmp_path: Path) -> None:
+    """Do not read a plausible formal issue manifest from outside the checkout."""
+    source = tmp_path / "source"
+    rel = Path("docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261024_R1.json")
+    local = source / rel
+    local.parent.mkdir(parents=True, exist_ok=True)
+    value = FORMAL_ISSUE_CENSUS.read_bytes()
+    local.write_bytes(value)
+    assert module._source_bound_file(source, str(rel), "formal issue census") == local
+
+    local.unlink()
+    with pytest.raises(module.ArchitectureDocsError, match="formal issue census escapes SourceCut"):
+        module._source_bound_file(source, str(rel), "formal issue census")
+
+    external = tmp_path / "external-census.json"
+    external.write_bytes(value)
+    local.symlink_to(external)
+    with pytest.raises(module.ArchitectureDocsError, match="formal issue census escapes SourceCut"):
+        module._source_bound_file(source, str(rel), "formal issue census")
