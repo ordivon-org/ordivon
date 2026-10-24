@@ -118,7 +118,7 @@ Required unbound Gates keep the projection open:
 VERIFIER_BINDINGS_OPEN
 ```
 
-When every required Gate has an exact binding:
+When **at least one** required Gate exists and every such Gate has an exact binding:
 
 ```text
 VERIFIER_BINDINGS_RESOLVED
@@ -127,7 +127,10 @@ executionAuthorityGranted = false
 domainAcceptanceEstablished = false
 ```
 
-This is binding closure only.
+This is binding closure only. If no required Gates exist (including
+an optional-only manifest), the result stays VERIFIER_BINDINGS_OPEN with
+mechanicalResolution=false rather than reporting vacuous proof. Optional
+bindings remain valid and unbound optional Gates never become errors.
 
 ## Existing verifier relationship
 

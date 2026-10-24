@@ -181,14 +181,39 @@ def test_missing_required_binding_remains_open() -> None:
     assert resolution["missingRequiredGateIds"] == ["gate:candidate-contract"]
 
 
-def test_unbound_optional_obligation_does_not_block_resolution() -> None:
+@pytest.mark.parametrize("optional_only", [False, True])
+def test_zero_required_gates_cannot_claim_mechanical_verifier_closure(
+    optional_only: bool,
+) -> None:
+    manifest = _manifest(required=False)
+    if not optional_only:
+        manifest["gateRequirements"] = []
+    obligation_set = compile_verification_obligations(manifest)
+    binding_set = {
+        "schemaVersion": 1,
+        "kind": "ordivon.task-local-verifier-binding-set",
+        "circuitRef": copy.deepcopy(obligation_set["circuitRef"]),
+        "obligationSetDigest": obligation_set["obligationSetDigest"],
+        "bindings": [],
+        "nonClaims": ["No verification has occurred."],
+    }
+    result = resolve_verifier_bindings(obligation_set, binding_set)
+    assert result["mechanicalResolution"] is False
+    assert result["standing"] == "VERIFIER_BINDINGS_OPEN"
+    assert result["missingRequiredGateIds"] == []
+    assert result["executionAuthorityGranted"] is False
+    assert result["domainAcceptanceEstablished"] is False
+
+
+def test_unbound_optional_obligation_does_not_invent_required_resolution() -> None:
     obligation_set = compile_verification_obligations(_manifest(required=False))
     binding_set = _binding_set(obligation_set)
     binding_set["bindings"] = []
 
     resolution = resolve_verifier_bindings(obligation_set, binding_set)
 
-    assert resolution["standing"] == "VERIFIER_BINDINGS_RESOLVED"
+    assert resolution["standing"] == "VERIFIER_BINDINGS_OPEN"
+    assert resolution["mechanicalResolution"] is False
     assert resolution["unboundOptionalGateIds"] == ["gate:candidate-contract"]
 
 

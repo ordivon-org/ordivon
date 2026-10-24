@@ -214,7 +214,11 @@ def resolve_verifier_bindings(
         for gate_id, obligation in obligations.items()
         if not obligation["required"] and gate_id not in bindings
     )
-    standing = "VERIFIER_BINDINGS_RESOLVED" if not missing_required else "VERIFIER_BINDINGS_OPEN"
+    # An empty set of required gates cannot witness any verified cross-owner
+    # contract. Binding completeness is an evidence claim, not vacuous truth.
+    required_ids = {gate_id for gate_id, item in obligations.items() if item["required"]}
+    mechanical_resolution = bool(required_ids) and not missing_required
+    standing = "VERIFIER_BINDINGS_RESOLVED" if mechanical_resolution else "VERIFIER_BINDINGS_OPEN"
 
     projection: dict[str, Any] = {
         "schemaVersion": 1,
@@ -227,7 +231,7 @@ def resolve_verifier_bindings(
         "resolvedBindings": resolved,
         "missingRequiredGateIds": missing_required,
         "unboundOptionalGateIds": unbound_optional,
-        "mechanicalResolution": not missing_required,
+        "mechanicalResolution": mechanical_resolution,
         "executionAuthorityGranted": False,
         "domainAcceptanceEstablished": False,
         "claimBoundary": (
