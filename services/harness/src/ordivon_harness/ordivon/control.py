@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 import threading
 import time
 from typing import Callable
@@ -35,6 +36,14 @@ class RunDeadline:
     expires_at_ms: int
     monotonic_ms: Callable[[], int]
 
+    def __post_init__(self) -> None:
+        # The loop also constructs this value directly; factory checks alone
+        # cannot maintain the typed monotonic-deadline invariant.
+        if type(self.expires_at_ms) is not int:
+            raise ValueError("Run deadline expiry must be an exact integer")
+        if not callable(self.monotonic_ms):
+            raise ValueError("Run deadline clock must be callable")
+
     @classmethod
     def after(
         cls,
@@ -42,8 +51,8 @@ class RunDeadline:
         *,
         monotonic_ms: Callable[[], int] | None = None,
     ) -> RunDeadline:
-        if timeout_ms < 1:
-            raise ValueError("Run deadline must be positive")
+        if type(timeout_ms) is not int or timeout_ms < 1:
+            raise ValueError("Run deadline must be a positive integer")
         clock = monotonic_ms or (lambda: time.monotonic_ns() // 1_000_000)
         return cls(clock() + timeout_ms, clock)
 
@@ -70,8 +79,12 @@ class ExecutionControl:
         return self.deadline.remaining_ms
 
     def clamp_timeout_seconds(self, configured_seconds: float) -> float:
-        if configured_seconds <= 0:
-            raise ValueError("configured timeout must be positive")
+        if (
+            type(configured_seconds) not in (int, float)
+            or not math.isfinite(configured_seconds)
+            or configured_seconds <= 0
+        ):
+            raise ValueError("configured timeout must be finite and positive")
         remaining = self.remaining_ms / 1_000
         if remaining <= 0:
             return 0.001

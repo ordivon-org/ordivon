@@ -49,6 +49,45 @@ class IdentityAdapter:
 
 
 class R2ProviderLifecyclePortTests(unittest.TestCase):
+    def test_deadline_rejects_non_integer_or_non_positive_duration_before_clock(self) -> None:
+        observed = []
+        def clock() -> int:
+            observed.append("clock_read")
+            return 100
+
+        for bad in (True, False, 0, -1, 1.0, 3.0, "3", float("nan"), float("inf")):
+            with self.subTest(bad=bad):
+                with self.assertRaises(ValueError):
+                    RunDeadline.after(bad, monotonic_ms=clock)
+        self.assertEqual(observed, [])
+        self.assertEqual(RunDeadline.after(3, monotonic_ms=clock).expires_at_ms, 103)
+
+    def test_direct_deadline_construction_cannot_bypass_timestamp_type(self) -> None:
+        def clock() -> int:
+            return 0
+
+        for bad in (True, False, 1.0, 2.0, "1", float("nan"), float("inf")):
+            with self.subTest(bad=bad):
+                with self.assertRaisesRegex(ValueError, "expiry must be an exact integer"):
+                    RunDeadline(bad, clock)
+        with self.assertRaisesRegex(ValueError, "clock must be callable"):
+            RunDeadline(100, None)
+        # Absolute deadlines may already be expired, unlike relative durations.
+        self.assertTrue(RunDeadline(0, clock).expired)
+        self.assertFalse(RunDeadline(1, clock).expired)
+
+    def test_provider_timeout_rejects_nonfinite_or_boolean_before_effect(self) -> None:
+        control = ExecutionControl(
+            CancellationToken(),
+            RunDeadline.after(10000, monotonic_ms=lambda: 0),
+        )
+        for bad in (True, False, 0, -1, float("nan"), float("inf"), float("-inf"), "1"):
+            with self.subTest(bad=bad):
+                with self.assertRaises(ValueError):
+                    control.clamp_timeout_seconds(bad)
+        self.assertEqual(control.clamp_timeout_seconds(2.5), 2.5)
+        self.assertEqual(control.clamp_timeout_seconds(20), 10.0)
+
     def test_plain_tool_surface_has_no_durable_provider_authority(self) -> None:
         class PlainBridge:
             pass
