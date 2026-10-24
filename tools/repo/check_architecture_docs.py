@@ -136,6 +136,32 @@ def validate_owner_lego_graph(plan: dict[str, Any]) -> None:
         if len(refs) != len(set(refs)):
             raise ArchitectureDocsError(f"duplicate LEGO slice node in {identity}")
 
+    # All typed LEGO relations stay within existing Owner vertices, including
+    # STATE/OBSERVATION feedback, which need not be scheduling dependencies.
+    # A typed triple is one relation; different kinds may share endpoints.
+    edges = plan.get("edges", [])
+    if not isinstance(edges, list):
+        raise ArchitectureDocsError("owner LEGO edges must be a list")
+    observed_edges: set[tuple[str, str, str]] = set()
+    for edge in edges:
+        if not isinstance(edge, dict):
+            raise ArchitectureDocsError("LEGO edge must be an object")
+        kind = edge.get("type")
+        if not isinstance(kind, str) or not kind.strip() or kind != kind.strip():
+            raise ArchitectureDocsError("LEGO edge requires a type")
+        source, target = edge.get("from"), edge.get("to")
+        if (
+            not isinstance(source, str)
+            or not isinstance(target, str)
+            or source not in identities
+            or target not in identities
+        ):
+            raise ArchitectureDocsError("unknown LEGO edge endpoint")
+        typed_edge = (source, kind, target)
+        if typed_edge in observed_edges:
+            raise ArchitectureDocsError(f"duplicate LEGO edge: {typed_edge}")
+        observed_edges.add(typed_edge)
+
 
 def validate_deployed_graph(value: dict[str, Any]) -> None:
     if value.get("schemaVersion") != 1:
@@ -337,6 +363,8 @@ def validate_owner_lego_dependencies(
     nodes = plan.get("nodes")
     if not isinstance(nodes, list):
         raise ArchitectureDocsError("owner-local LEGO nodes missing")
+    if not nodes:
+        raise ArchitectureDocsError(f"{owner}: empty LEGO owner graph")
     graph: dict[str, set[str]] = {}
     for node in nodes:
         if not isinstance(node, dict) or not isinstance(node.get("id"), str) or not node["id"]:

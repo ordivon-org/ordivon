@@ -65,3 +65,49 @@ def test_slice_has_no_duplicate_node_refs() -> None:
     plan["slices"][0]["nodeIds"].append(plan["slices"][0]["nodeIds"][0])
     with pytest.raises(module.ArchitectureDocsError, match="duplicate LEGO slice node"):
         module.validate_owner_lego_graph(plan)
+
+
+@pytest.mark.parametrize("relative", OWNER_GRAPH_PLANS)
+@pytest.mark.parametrize("bad_endpoint", ("from", "to"))
+def test_every_owner_relation_refuses_unknown_endpoint_even_when_not_a_dependency(
+    relative: str, bad_endpoint: str
+) -> None:
+    """DATA/STATE/EFFECT edges are relations too, never dangling free text."""
+    plan = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+    malformed = copy.deepcopy(plan["edges"][0])
+    malformed.update({"type": "OBSERVATION", bad_endpoint: "NOT_A_REGISTERED_LEGO"})
+    plan["edges"].append(malformed)
+    with pytest.raises(module.ArchitectureDocsError, match="unknown LEGO edge endpoint"):
+        module.validate_owner_lego_graph(plan)
+
+
+@pytest.mark.parametrize("relative", OWNER_GRAPH_PLANS)
+def test_owner_graph_has_single_typed_relation_identity(relative: str) -> None:
+    """Repeated (from, to, kind) triples do not create independent evidence."""
+    plan = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+    plan["edges"].append(copy.deepcopy(plan["edges"][0]))
+    with pytest.raises(module.ArchitectureDocsError, match="duplicate LEGO edge"):
+        module.validate_owner_lego_graph(plan)
+
+
+@pytest.mark.parametrize("invalid_kind", ("", "  ", 0, None))
+def test_non_dependency_edge_cannot_hide_an_untyped_relation(invalid_kind: object) -> None:
+    plan = json.loads((ROOT / OWNER_GRAPH_PLANS[0]).read_text(encoding="utf-8"))
+    plan["edges"][0]["type"] = invalid_kind
+    with pytest.raises(module.ArchitectureDocsError, match="LEGO edge requires a type"):
+        module.validate_owner_lego_graph(plan)
+
+
+def test_owner_feedback_edges_are_allowed_to_cycle_outside_dependencies() -> None:
+    plan = json.loads((ROOT / OWNER_GRAPH_PLANS[3]).read_text(encoding="utf-8"))
+    plan["edges"].append({"type": "OBSERVATION", "from": "N04", "to": "N02"})
+    module.validate_owner_lego_graph(plan)
+
+
+def test_same_owner_vertices_can_have_distinct_typed_relations() -> None:
+    plan = json.loads((ROOT / OWNER_GRAPH_PLANS[1]).read_text(encoding="utf-8"))
+    first = plan["edges"][0]
+    plan["edges"].append(
+        {"type": "OBSERVATION", "from": first["from"], "to": first["to"]}
+    )
+    module.validate_owner_lego_graph(plan)
