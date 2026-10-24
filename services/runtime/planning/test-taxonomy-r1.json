@@ -185,5 +185,29 @@
       "whole-owner acceptance"
     ],
     "evidenceBoundary": "A focused PASS proves only the selected non-empty Runtime test set. It does not prove runtime:verify, real-system acceptance, or domain goal completion."
+  },
+  "extendedPropertyVerification": {
+    "id": "R01-V2",
+    "kind": "verification-lego",
+    "naturalOwner": "services/runtime",
+    "representation": "state-machine",
+    "source": "crates/ordivon-runtime-core/src/runtime/tests.rs",
+    "consumer": "scripts/owner-environment extended (used by mise run runtime:verify)",
+    "runner": "scripts/verify_reference_model_shards.py",
+    "requiredWitness": "Eight distinct deterministic RNG shards execute the exact Registry reference-model property 64 times each; all eight must return one executed test success.",
+    "scope": {
+      "totalCases": 512,
+      "shards": 8,
+      "perShard": 64,
+      "parallelWorkers": 4,
+      "sourceBound": true,
+      "defaultUnshardedDirectCargoTestStill512": true
+    },
+    "failClosed": [
+      "Zero test matches never qualify.",
+      "Any error, timeout, partial shard completion or invalid Cargo test binary invalidates the full verification.",
+      "The Runtime-owned temporary /proc/self/fd Cargo target is normalized to its existing physical build cache before creating a child process."
+    ],
+    "proofBoundary": "Eight independent deterministic random seeds do not recreate the previous single random sequence byte-for-byte; this verifies the same 512-case assertion-bearing property over different samples. Not a Rust refinement or production-effect proof."
   }
 }
