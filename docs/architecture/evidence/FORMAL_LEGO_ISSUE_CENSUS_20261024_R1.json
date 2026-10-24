@@ -992,6 +992,46 @@
             "tools/repo/check_tracked_secrets.sh",
             "tools/repo/test_tracked_secrets.py"
           ]
+        },
+        {
+          "localCommit": "4be11556ad69a6373fc3188610fde97b17905214",
+          "owner": "services/gateway",
+          "consumer": "Gateway terminal receipt replay must bind exact Worker, generation, Attempt, Lease; original committed retry remains valid after lease expiry.",
+          "remoteWitness": "Original historical Gateway RED/GREEN pytest test_terminal_completion_replay_requires_the_original_admitted_attempt; full native Gateway owner test PASS.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SELECT_MINIMAL_OWNER_CONSUMER_EFFECT",
+          "selectedOwnerEvidence": [
+            "services/gateway/src/ordivon_gateway/external_worker.py",
+            "services/gateway/tests/test_external_pull_worker.py",
+            "services/gateway/tests/test_external_worker_precommit_readback.py"
+          ],
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "97ebe3828c482cbeb7f58df4e6da614615017c56",
+            "patchRelation": "LOCAL_NONMERGE_HISTORICAL_EFFECT",
+            "consumerStanding": "RED_GREEN_PLUS_GATEWAY_FULL_NATIVE_PASS",
+            "branchDeletionAllowed": false
+          }
+        },
+        {
+          "localCommit": "1a78c05920f0b1df9b8ffe9d558026aaa69182f1",
+          "owner": "services/gateway",
+          "consumer": "Gateway SQLite connection must explicitly close on success/exception and preserve precommit rollback.",
+          "remoteWitness": "Original historical Gateway RED/GREEN test_external_pull_worker_releases_sqlite_connections_on_success_and_failure; precommit readback fault injection all PASS and full owner native PASS.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SELECT_MINIMAL_OWNER_CONSUMER_EFFECT",
+          "selectedOwnerEvidence": [
+            "services/gateway/src/ordivon_gateway/external_worker.py",
+            "services/gateway/tests/test_external_pull_worker.py",
+            "services/gateway/tests/test_external_worker_precommit_readback.py"
+          ],
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "97ebe3828c482cbeb7f58df4e6da614615017c56",
+            "patchRelation": "LOCAL_NONMERGE_HISTORICAL_EFFECT",
+            "consumerStanding": "RED_GREEN_PLUS_GATEWAY_FULL_NATIVE_PASS",
+            "branchDeletionAllowed": false
+          }
         }
       ],
       "consumerBlockedSelections": [

@@ -848,6 +848,7 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             "SKIP_CANCELLED_HISTORY_PAIR",
             "SKIP_RETIRED_UNCONSUMED",
             "SKIP_OLDER_TOOLCHAIN_CHERRY_PICK",
+            "SELECT_MINIMAL_OWNER_CONSUMER_EFFECT",
         }
         assert item["evidenceScope"] in {
             "NATIVE_CONSUMER_PASS", "EXACT_GIT_BLOBS",
@@ -861,6 +862,12 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             "EXACT_GIT_BLOB_AND_NATIVE_CONSUMER_PASS",
             "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC",
         }
+        if item["disposition"] == "SELECT_MINIMAL_OWNER_CONSUMER_EFFECT":
+            assert item["selectedOwnerEvidence"]
+            q = item["sourceQualification"]
+            assert q["branchDeletionAllowed"] is False
+            assert q["patchRelation"] == "LOCAL_NONMERGE_HISTORICAL_EFFECT"
+            assert q["consumerStanding"] == "RED_GREEN_PLUS_GATEWAY_FULL_NATIVE_PASS"
         if item["evidenceScope"] == "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC":
             assert item["disposition"] == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
             assert item["sourceQualification"]["branchDeletionAllowed"] is False
