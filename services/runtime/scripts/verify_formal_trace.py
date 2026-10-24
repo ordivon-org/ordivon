@@ -192,6 +192,54 @@ def _rust_code_only(text: str) -> str:
     return "".join(masked)
 
 
+def _attached_rust_attributes(code: str, item_start: int) -> list[str]:
+    """Read lexical attributes attached to an item, not to an earlier sibling."""
+    attrs: list[str] = []
+    for line in reversed(code[:item_start].splitlines()):
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if stripped.startswith("#[") and stripped.endswith("]"):
+            attrs.append(stripped)
+        else:
+            break
+    return attrs
+
+
+def _has_unqualified_cfg(attrs: list[str], *, test_context: bool) -> bool:
+    for attribute in attrs:
+        if not re.match(r"#\s*\[\s*cfg(?:_attr)?\s*\(", attribute):
+            continue
+        # The built-in test harness selects #[cfg(test)] on test sources.
+        if test_context and re.fullmatch(r"#\s*\[\s*cfg\s*\(\s*test\s*\)\s*\]", attribute):
+            continue
+        # All other cfg claims must have a separately proven active build.
+        return True
+    return False
+
+
+def _conditional_rust_ancestor(
+    code: str, witness_start: int, *, test_context: bool
+) -> bool:
+    """Reject a proof hidden inside a cfg-dependent enclosing Rust module.
+
+    Rust source inspection cannot validate arbitrary cfg expressions or macro
+    expansions. This check only upgrades an obvious false PASS to a typed
+    unknown/rejection; it does not prove an item was compiled.
+    """
+    for match in re.finditer(r"\bmod\s+[A-Za-z_]\w*\s*\{", code):
+        opening = code.find("{", match.start(), match.end())
+        if opening >= witness_start:
+            continue
+        if witness_start >= _matching_brace(code, opening):
+            continue
+        if _has_unqualified_cfg(
+            _attached_rust_attributes(code, match.start()), test_context=test_context
+        ):
+            return True
+    return False
+
+
 def _matching_brace(text: str, opening: int) -> int:
     depth = 0
     for index in range(opening, len(text)):
@@ -246,7 +294,23 @@ def require_owned_method(path: Path, owner_kind: str, owner: str, symbol: str) -
     if identity_error:
         return [identity_error]
     try:
-        block = owner_slice(path.read_text(encoding="utf-8"), owner_kind, owner)
+        text = path.read_text(encoding="utf-8")
+        block = owner_slice(text, owner_kind, owner)
+        code = _rust_code_only(text)
+        if owner_kind == "trait":
+            pattern = re.compile(rf"\btrait\s+{re.escape(owner)}\b[^{{]*{{")
+        else:
+            pattern = re.compile(
+                rf"\bimpl(?:\s*<[^{{>]*>)?\s+{re.escape(owner)}(?:\s*<[^{{>]*>)?\s*{{"
+            )
+        item = pattern.search(code)
+        if item and (
+            _has_unqualified_cfg(
+                _attached_rust_attributes(code, item.start()), test_context=False
+            )
+            or _conditional_rust_ancestor(code, item.start(), test_context=False)
+        ):
+            return [f"{path.relative_to(ROOT)}::{owner} has conditional ancestor or Owner cfg"]
     except (OSError, UnicodeError, ValueError) as error:
         return [f"{path.relative_to(ROOT)}::{owner}: {error}"]
     if not re.search(rf"\bfn\s+{re.escape(symbol)}\s*\(", block):
@@ -266,6 +330,11 @@ def require_test_symbol(path: Path, symbol: str, *, require_ignored: bool = Fals
     match = re.search(rf"(?m)^\s*fn\s+{re.escape(symbol)}\s*\(", code)
     if not match:
         return [f"{path.relative_to(ROOT)} missing proving test symbol {symbol!r}"]
+    try:
+        if _conditional_rust_ancestor(code, match.start(), test_context=True):
+            return [f"{path.relative_to(ROOT)}::{symbol} has conditional ancestor module"]
+    except ValueError as error:
+        return [f"{path.relative_to(ROOT)}::{symbol}: {error}"]
     # Test identity is a proof reference: attribute must belong to this function,
     # not merely appear near it on an earlier function (or in a comment).
     attributes = []
