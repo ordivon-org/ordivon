@@ -22,7 +22,7 @@ in
     historyFileSize = 0;
     historyControl = [ "ignoreboth" "erasedups" ];
     sessionVariables = {
-      PATH = "/root/tools/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/lib/wsl/lib:/root/.local/bin:/root/bin";
+      PATH = "/root/.local/share/mise/shims:/root/tools/bin:/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/lib/wsl/lib:/root/.local/bin:/root/bin";
       EDITOR = "vim";
       VISUAL = "vim";
       PROJECTS = "/root/projects";
@@ -47,7 +47,7 @@ in
       projects = "cd \"$PROJECTS\"";
     };
     bashrcExtra = ''
-      export PATH="/root/tools/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/lib/wsl/lib:/root/.local/bin:/root/bin"
+      export PATH="/root/.local/share/mise/shims:/root/tools/bin:/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/lib/wsl/lib:/root/.local/bin:/root/bin"
       export EDITOR="vim"
       export VISUAL="vim"
       export PROJECTS="/root/projects"

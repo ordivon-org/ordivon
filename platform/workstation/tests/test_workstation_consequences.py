@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import pathlib
+import re
 import subprocess
 import tomllib
 
@@ -52,7 +53,22 @@ def test_pnpm_first_path_uses_mise_and_project_package_manager() -> None:
 
 
 def test_bash_login_and_nonlogin_match_home_manager_policy() -> None:
-    expected_path = "/root/tools/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/lib/wsl/lib:/root/.local/bin:/root/bin"
+    # The immutable Home Manager generation is the runtime authority; compare
+    # both interactive modes against the single checked-in source policy.
+    home_nix = (pathlib.Path(__file__).resolve().parents[1] /
+                "workstation/nix/nix/home.nix").read_text()
+    declared = re.findall(r'(?m)^\s+PATH = "([^"]+)";$', home_nix)
+    bashrc = re.findall(r'(?m)^\s+export PATH="([^"]+)"$', home_nix)
+    assert len(declared) == len(bashrc) == 1
+    expected_path = declared[0]
+    assert bashrc[0] == expected_path, "two Home Manager Bash declarations drifted"
+    entries = expected_path.split(":")
+    assert entries[:3] == [
+        "/root/.local/share/mise/shims",
+        "/root/tools/bin",
+        "/root/.cargo/bin",
+    ]
+    assert "" not in entries and len(entries) == len(set(entries))
     probe = r"""printf 'PATH=%s\nEDITOR=%s\nVISUAL=%s\nPROJECTS=%s\nHISTFILE=%s\nHISTSIZE=%s\nHISTFILESIZE=%s\nHISTCONTROL=%s\nNOFILE=%s\nCDF=%s\nFF=%s\nFP=%s\n' "$PATH" "$EDITOR" "$VISUAL" "$PROJECTS" "$HISTFILE" "$HISTSIZE" "$HISTFILESIZE" "$HISTCONTROL" "$(ulimit -Sn)" "$(type -t cdf)" "$(type -t ff)" "$(type -t fp)" """
     modes = [
         ["/usr/bin/bash", "--noprofile", "--rcfile", "/root/.bashrc", "-i", "-c", probe],
