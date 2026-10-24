@@ -2506,6 +2506,42 @@
       "registration": {
         "state": "UNREGISTERED",
         "reason": "Registered as a typed issue in the existing census, but no owner-local implementation/specification is proven. Existing Workstation and Runtime owners remain authoritative; a verified consumer/rollback witness is required before linking an Owner slice or deleting a recovery archive."
+      },
+      "gitObjectMaintenanceCounterexampleR1": {
+        "truthRole": "frozen-native-source-bound-recovery-evidence-not-proof-of-concurrent-maintenance-safety",
+        "observedAt": "2026-10-25T06:31:40+08:00",
+        "sourceCut": {
+          "localMainDuringMaintenance": "6ba19fef183bba5b52d0cde6cdd06787f286bcbe",
+          "registeredOnMain": "d5feba66df0c963f717b6572b381d11b08f45db1",
+          "gitVersion": "2.55.0"
+        },
+        "before": {
+          "packs": 651,
+          "sizePackGiB": "9.87",
+          "midxIndexedPacks": 7,
+          "uniqueOidCount": 124828,
+          "packedEntries": 8752117
+        },
+        "counterexample": {
+          "operator": "git multi-pack-index write; git multi-pack-index repack --batch-size=0; git multi-pack-index expire",
+          "outcome": "MIDX_VERIFY_PASS_BUT_GIT_FSCK_FAIL",
+          "missingBlobs": 8,
+          "jobRef": "job-01a17006-5906-7623-9e4b-97525e717b27",
+          "sourceOfMissingObjects": "UNKNOWN",
+          "safetyDisposition": "UNACCEPTED_UNTIL_RECOVERY"
+        },
+        "recovery": {
+          "operator": "git fetch --no-tags --refetch origin main",
+          "recoveredBlobs": 8,
+          "afterPackCount": 12,
+          "afterPackSizeMiB": "186.71",
+          "verification": "git fsck --full --no-dangling; git multi-pack-index verify",
+          "jobRef": "job-01a1700a-49be-7493-b579-f8242c8089a3",
+          "standing": "BOUNDED_AVAILABLE_OBJECT_GRAPH_PASS",
+          "unknown": "Concurrent maintenance correctness, unavailable promisor objects, offline unique local-only recovery and long-term Git object closure are not proved"
+        },
+        "refinementObligation": "For all qualified protected refs, Git worktree sources and Runtime recovery refs, each required referenced object must be available or covered by an explicitly admissible promisor contract before maintenance may be accepted; MIDX index consistency alone is insufficient. Concrete failed Git fsck is a counterexample; restore and independent postcondition check are required, and source-writer concurrency/root cause remains UNKNOWN.",
+        "decision": "Register in existing STORAGE-01; reuse Git native maintenance/fsck and natural tools/repo Owner; prohibit unattended MIDX expiration until qualified concurrency, recovery and negative-case checks exist. No extra GC tool or independent registry."
       }
     }
   ],
