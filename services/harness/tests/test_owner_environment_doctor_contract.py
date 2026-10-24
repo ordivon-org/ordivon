@@ -62,6 +62,64 @@ def test_doctor_fails_on_declared_manifest_drift(
     assert expected in result.stderr + result.stdout
 
 
+def test_local_acceptance_reuses_resolved_owner_uv():
+    text = (OWNER / "scripts/local-acceptance").read_text()
+    assert "command -v uv" not in text
+    assert '"$owner_environment" bootstrap' in text
+    assert '"${MISE_BIN:-mise}" which uv' in text
+
+
+def test_bootstrap_selects_owner_pinned_uv_not_ambient_path(tmp_path: Path):
+    """A historical local-Main consumer requires mise, not a PATH uv shim."""
+    checkout = tmp_path / "checkout"
+    (checkout / "scripts").mkdir(parents=True)
+    shutil.copy2(SCRIPT, checkout / "scripts/owner-environment")
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    selected = tmp_path / "selected-uv"
+    selected.write_text(
+        '#!/usr/bin/bash\nprintf "selected\n" >> "$ORDIVON_UV_PROBE"\n'
+    )
+    selected.chmod(0o755)
+    stale = fake_bin / "uv"
+    stale.write_text(
+        '#!/usr/bin/bash\nprintf "stale\n" >> "$ORDIVON_UV_PROBE"\n'
+    )
+    stale.chmod(0o755)
+    mise = fake_bin / "mise"
+    mise.write_text(
+        '#!/usr/bin/bash\n'
+        'if [[ "$1" == which && "$2" == uv ]]; then printf "%s\n" "$ORDIVON_TEST_SELECTED_UV"; '
+        'elif [[ "$1" == exec && "$2" == -- ]]; then shift 2; exec "$@"; '
+        'else exit 91; fi\n'
+    )
+    mise.chmod(0o755)
+    marker = tmp_path / "uv-selection.log"
+    env = dict(os.environ)
+    env.pop("UV_BIN", None)
+    env.pop("MISE_BIN", None)
+    env["PATH"] = f"{fake_bin}:{env.get('PATH', '/usr/bin:/bin')}"
+    env["ORDIVON_TEST_SELECTED_UV"] = str(selected)
+    env["ORDIVON_UV_PROBE"] = str(marker)
+    result = subprocess.run(
+        ["/usr/bin/bash", str(checkout / "scripts/owner-environment"), "bootstrap"],
+        env=env, cwd=checkout, text=True, capture_output=True, timeout=15,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert marker.read_text().splitlines() == ["selected"]
+
+    env["UV_BIN"] = str(stale)
+    marker.unlink()
+    rejected = subprocess.run(
+        ["/usr/bin/bash", str(checkout / "scripts/owner-environment"), "bootstrap"],
+        env=env, cwd=checkout, text=True, capture_output=True, timeout=15,
+        check=False,
+    )
+    assert rejected.returncode != 0, "an unpinned explicit override was accepted"
+    assert not marker.exists(), "a stale uv was executed during rejected admission"
+
+
 def test_real_materialized_harness_owner_doctor():
     result = subprocess.run(
         ["/usr/bin/bash", str(SCRIPT), "doctor"],
