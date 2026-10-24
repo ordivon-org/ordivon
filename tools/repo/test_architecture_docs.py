@@ -675,3 +675,25 @@ def test_formal_issue_skill_symlink_cannot_escape_source_cut(tmp_path: Path) -> 
     (tmp_path / skills[0]).symlink_to(ROOT / skills[0])
     with pytest.raises(module.ArchitectureDocsError, match="unavailable method Skill"):
         module.validate_formal_issue_census(census, plans, root=tmp_path)
+
+
+def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
+    """A Git-only commit cannot be called unique without a source-bound consumer comparison."""
+    census, plans = formal_issue_inputs()
+    issue = next(item for item in census["issues"] if item["id"] == "GIT-01")
+    source = issue["consumerSourceCut"]
+    assert source["localMain"] == "13704d0cac9e113b395f2d5a21b5bf8119aa04a5"
+    assert source["remoteMain"] == "4f83f744e424c1c5ed583c3b60fc473d29f1efe9"
+    candidates = issue["consumerSelections"]
+    assert {item["localCommit"][:10] for item in candidates} == {
+        "13704d0cac", "35b7e06ffd", "4a2555f42e", "0dcfbb750f",
+        "a6af91c187", "63d3c48172",
+    }
+    for item in candidates:
+        assert len(item["localCommit"]) == 40
+        assert item["owner"]
+        assert item["consumer"]
+        assert item["remoteWitness"]
+        assert item["disposition"] == "SKIP_DUPLICATE_CHERRY_PICK"
+        assert item["evidenceScope"] == "NATIVE_CONSUMER_PASS"
+    module.validate_formal_issue_census(census, plans)
