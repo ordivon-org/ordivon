@@ -797,6 +797,7 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             "SKIP_OLDER_SOURCECUT", "SKIP_UNCONSUMED_PERMISSION",
             "NO_WHOLE_COMMIT_REPLAY_WITHOUT_PRODUCER_AUTHORITY",
             "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
+            "SKIP_CANCELLED_HISTORY_PAIR",
         }
         assert item["evidenceScope"] in {
             "NATIVE_CONSUMER_PASS", "EXACT_GIT_BLOBS",
@@ -826,6 +827,22 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
                 assert item["disposition"] == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
     module.validate_formal_issue_census(census, plans)
 
+
+def test_divergent_history_does_not_weaken_frozen_artifact_receipts() -> None:
+    """Semantically identical output does not qualify a different frozen source SHA."""
+    census, _ = formal_issue_inputs()
+    git_issue = next(item for item in census["issues"] if item["id"] == "GIT-01")
+    blockers = git_issue["consumerBlockedSelections"]
+    assert len({entry["localCommit"] for entry in blockers}) == len(blockers)
+    for entry in blockers:
+        assert len(entry["localCommit"]) == len(entry["protectedMain"]) == 40
+        assert entry["owner"] == "capabilities/artifact"
+        assert entry["disposition"] == "KEEP_FROZEN_SOURCE_PENDING_NEW_CONSUMER_ACCEPTANCE"
+        assert entry["branchDeletionAllowed"] is False
+        assert entry["frozenReceiptPaths"]
+        for receipt in entry["frozenReceiptPaths"]:
+            assert (ROOT / "capabilities/artifact/artifact-delivery/consumer-acceptance" / receipt).is_file()
+    assert any(entry["localCommit"].startswith("e9547525bae3") for entry in blockers)
 
 
 def test_git01_game_room_action_historical_refinements_have_native_consumer_proofs() -> None:
@@ -944,15 +961,29 @@ def test_git02_unadmitted_historical_finance_and_network_consumers_remain_source
     assert {row["historicalCommit"] for row in candidates} == {
         "1df72119bc2a04cc6b1f93501d068873546f934f",
         "5f4d4759b2809a5ccc57174e3e110eb6926f135d",
+        "63f0076e9aea0f5ae22d7e3fc9e8142619420446",
     }
-    assert {row["owner"] for row in candidates} == {"domains/capital", "platform/network"}
-    assert {row["historicalNativeTestResult"] for row in candidates} == {"12_PASSED"}
+    assert {row["owner"] for row in candidates} == {
+        "domains/capital", "platform/network", "apps/web"
+    }
+    assert {row["historicalNativeTestResult"] for row in candidates} == {
+        "12_PASSED", "NOT_REEXECUTED_NO_CURRENT_CONSUMER"
+    }
     for row in candidates:
         assert row["modernConsumerAdmitted"] is False
         assert row["branchRetirement"] == "NOT_PROVEN"
         assert row["selection"] == "PRESERVE_HISTORICAL_SOURCE_NO_WHOLE_COMMIT_CHERRY_PICK"
         assert row["historicalTestSourceCut"] == row["historicalCommit"]
-        assert row["protectedMainSourceCut"] == "e74e94a298077432df589e58c61a9b1499a28c5c"
+        assert row["protectedMainSourceCut"] in {
+            "e74e94a298077432df589e58c61a9b1499a28c5c",
+            "d6e15f621aad7cdb65fbfe97e712540eebcb6309",
+        }
+        if row["owner"] == "apps/web":
+            assert row["historicalNativeTestResult"] == "NOT_REEXECUTED_NO_CURRENT_CONSUMER"
+            assert row["historicalCommit"] == "63f0076e9aea0f5ae22d7e3fc9e8142619420446"
+            assert all(path.startswith("apps/web/") for path in row["historicOnlyFiles"])
+        else:
+            assert row["historicalNativeTestResult"] == "12_PASSED"
         assert row["behaviorScope"].strip()
         assert row["missingCurrentConsumerEvidence"].strip()
         assert all(not (ROOT / path).exists() for path in row["historicOnlyFiles"])
@@ -1028,4 +1059,75 @@ def test_git01_four_distinct_patch_equivalents_preserve_consumers_and_actual_sou
         assert row["evaluatedRemoteMain"] == row["sourceQualification"]["protectedMain"]
         assert all(len(sha) == 40 for sha in row["equalChangedBlobOids"].values())
     assert selected["f93faa57cf99"]["sourceQualification"]["tipRelation"] == "SAME_BLOB_AND_MODE"
+    module.validate_formal_issue_census(census, plans)
+
+def test_git01_workstation_history_inverse_pair_is_a_single_non_live_effect() -> None:
+    """An adjacent add/revert is one historical identity, not two live LEGo parts."""
+    census, _ = formal_issue_inputs()
+    issue = next(x for x in census["issues"] if x["id"] == "GIT-01")
+    additions = [x for x in issue["consumerSelections"] if x["localCommit"].startswith("e51472db")]
+    assert len(additions) == 1
+    pair = additions[0]
+    assert pair["owner"] == "platform/workstation"
+    assert pair["pairedRevertCommit"] == "07255e4dfd26d172ebb5e62c5844ff2d661081f8"
+    assert pair["disposition"] == "SKIP_CANCELLED_HISTORY_PAIR"
+    assert pair["sourceQualification"]["branchDeletionAllowed"] is False
+    assert pair["sourceQualification"]["consumerStanding"] == "NO_CURRENT_CONSUMER"
+    assert pair["beforeTreeOid"] == pair["afterTreeOid"] == "ad4aab81359fb9de9223023b702137e8d9101344"
+    files = [
+        "platform/workstation/tests/test_real_chrome_browser_harness_provider.py",
+        "platform/workstation/workstation/providers/real_chrome_browser_harness/materialize.py",
+        "platform/workstation/workstation/providers/real_chrome_browser_harness/README.md",
+        "platform/workstation/workstation/providers/real_chrome_browser_harness/RealChromeBrowserHarnessProvider.ps1",
+    ]
+    assert all(not (ROOT / path).exists() for path in files)
+
+
+def test_git01_three_selected_historical_owner_effects_have_sufficient_source_proof() -> None:
+    """An exact Git source cut plus paths replaces redundant duplicated Git blob hashes."""
+    census, plans = formal_issue_inputs()
+    issue = next(item for item in census["issues"] if item["id"] == "GIT-01")
+    selected = {entry["localCommit"][:12]: entry for entry in issue["consumerSelections"]}
+    expected = {
+        "9fbce29650fb": {
+            "owner": "services/gateway",
+            "paths": {
+                "services/gateway/src/ordivon_gateway/upstream.py",
+                "services/gateway/tests/test_upstream_identity.py",
+            },
+        },
+        "eaa045252ef7": {
+            "owner": "services/gateway",
+            "paths": {
+                "services/gateway/packaging/windows/verify_release.py",
+                "services/gateway/tests/test_windows_release_contract.py",
+            },
+        },
+        "bec31a81ba5b": {
+            "owner": "platform/workstation",
+            "paths": {
+                "platform/workstation/providers/cloudflare/scripts/ordivon_cloudflare_tofu_handoff.py",
+                "platform/workstation/providers/cloudflare/test/handoff_tofu_test.py",
+                "platform/workstation/tofu/agent-birth-handoff/main.tf",
+            },
+        },
+    }
+    for short, consumer in expected.items():
+        entry = selected[short]
+        assert entry["owner"] == consumer["owner"]
+        assert set(entry["changedPaths"]) == consumer["paths"]
+        assert entry["verifiedEqualChangedBlobs"] is True
+        assert "equalChangedBlobOids" not in entry
+        assert entry["evidenceScope"] == "NATIVE_CONSUMER_PASS"
+        assert entry["disposition"] == "SKIP_DUPLICATE_CHERRY_PICK"
+        assert entry["sourceQualification"] == {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "0fcc7c0b188e4b981b25c95f76dfb17a41fc82fb",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "SAME_BLOB_AND_MODE",
+            "consumerStanding": "CURRENT_OWNER_COVERED",
+            "branchDeletionAllowed": False,
+        }
+    assert "WINDOWS_SOURCE_CONTRACT_ONLY" in selected["eaa045252ef7"]["remoteWitness"]
+    assert "NO_LIVE_CLOUDFLARE_CUTOVER" in selected["bec31a81ba5b"]["remoteWitness"]
     module.validate_formal_issue_census(census, plans)

@@ -334,6 +334,93 @@
           }
         },
         {
+          "localCommit": "e51472db167b6571db7c7fa9118f08b1eed7613b",
+          "pairedRevertCommit": "07255e4dfd26d172ebb5e62c5844ff2d661081f8",
+          "owner": "platform/workstation",
+          "consumer": "Current Workstation source and browser consumers do not load a persistent RealChromeBrowserHarnessProvider. The two adjacent historical commits add and revert precisely the same source-tree effect; preserve the existing Browser/Workstation provider, never resurrect the retired parallel service.",
+          "remoteWitness": "Git raw tree of e51472db^ and its direct revert 07255e4 is ad4aab81359fb9de9223023b702137e8d9101344 in both cuts (entire tree, not merely selected path bytes); all four source paths absent in protected Main bb8c591851a4c9f0a34763bc1a5fde365030cba4 and local Main 13704d0cac9e113b395f2d5a21b5bf8119aa04a5; no tracked Workstation consumer reference.",
+          "evidenceScope": "EXACT_GIT_BLOBS",
+          "disposition": "SKIP_CANCELLED_HISTORY_PAIR",
+          "beforeTreeOid": "ad4aab81359fb9de9223023b702137e8d9101344",
+          "afterTreeOid": "ad4aab81359fb9de9223023b702137e8d9101344",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "bb8c591851a4c9f0a34763bc1a5fde365030cba4",
+            "patchRelation": "INVERSE_DIRECT_CHILD",
+            "tipRelation": "BOTH_TIPS_ABSENT",
+            "consumerStanding": "NO_CURRENT_CONSUMER",
+            "branchDeletionAllowed": false,
+            "historicalRuntimeParity": "UNKNOWN"
+          }
+        },
+        {
+          "localCommit": "9fbce29650fb13a5ebb9cfec3283f0cc310b467e",
+          "owner": "services/gateway",
+          "consumer": "Gateway Upstream owner errors preserve real Host domain error identity and avoid replacing it with unrelated generic transport failures; current native consumer source and test bytes are identical on both Main tips.",
+          "remoteWitness": "services/gateway/src/ordivon_gateway/upstream.py + tests/test_upstream_identity.py; combined native Gateway owner pytest 17 PASS, no live remote Host effect acceptance claimed.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "0fcc7c0b188e4b981b25c95f76dfb17a41fc82fb",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "SAME_BLOB_AND_MODE",
+            "consumerStanding": "CURRENT_OWNER_COVERED",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "0fcc7c0b188e4b981b25c95f76dfb17a41fc82fb",
+          "verifiedEqualChangedBlobs": true,
+          "changedPaths": [
+            "services/gateway/src/ordivon_gateway/upstream.py",
+            "services/gateway/tests/test_upstream_identity.py"
+          ]
+        },
+        {
+          "localCommit": "eaa045252ef7fc61d65325aa9dfbb2d40d8f4054",
+          "owner": "services/gateway",
+          "consumer": "Gateway Windows release verifier stable tool-surface ordering is already consumed by the immutable release contract; native current producer and tests match exact protected Main blobs. Earlier d91d63 historical edit touched the same files and does not independently justify rolling back the verifier.",
+          "remoteWitness": "WINDOWS_SOURCE_CONTRACT_ONLY: services/gateway/packaging/windows/verify_release.py + tests/test_windows_release_contract.py; combined native Gateway pytest 17 PASS on Linux; no actual Windows candidate deployment, service activation or ACL effect claimed.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "0fcc7c0b188e4b981b25c95f76dfb17a41fc82fb",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "SAME_BLOB_AND_MODE",
+            "consumerStanding": "CURRENT_OWNER_COVERED",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "0fcc7c0b188e4b981b25c95f76dfb17a41fc82fb",
+          "verifiedEqualChangedBlobs": true,
+          "changedPaths": [
+            "services/gateway/packaging/windows/verify_release.py",
+            "services/gateway/tests/test_windows_release_contract.py"
+          ]
+        },
+        {
+          "localCommit": "bec31a81ba5b4ae8fa4310f400cb15f11b6bdd6f",
+          "owner": "platform/workstation",
+          "consumer": "Current OpenTofu/Cloudflare Gateway handoff preserves source identity, private owner-only credentials, reject-delete/replace semantic planning and lossless existing ingress/canary transitions; exact producer/controller/test/Terraform source blobs already current. Earlier 0fbdd244 historical intermediate edit is not a reason to restore old tunnel routes.",
+          "remoteWitness": "NO_LIVE_CLOUDFLARE_CUTOVER: platform/workstation/providers/cloudflare/scripts/ordivon_cloudflare_tofu_handoff.py + providers/cloudflare/test/handoff_tofu_test.py + tofu/agent-birth-handoff/main.tf; native 20 unittest PASS (source and deterministic semantic simulation), not a live Windows or Cloudflare apply proof.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "0fcc7c0b188e4b981b25c95f76dfb17a41fc82fb",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "SAME_BLOB_AND_MODE",
+            "consumerStanding": "CURRENT_OWNER_COVERED",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "0fcc7c0b188e4b981b25c95f76dfb17a41fc82fb",
+          "verifiedEqualChangedBlobs": true,
+          "changedPaths": [
+            "platform/workstation/providers/cloudflare/scripts/ordivon_cloudflare_tofu_handoff.py",
+            "platform/workstation/providers/cloudflare/test/handoff_tofu_test.py",
+            "platform/workstation/tofu/agent-birth-handoff/main.tf"
+          ]
+        },
+        {
           "localCommit": "3ab30f2b827ade5313b8bbf56d0df40d345a3ecd",
           "owner": "domains/game",
           "consumer": "Seeded room and enemy/weapon palette generates validated replayable recipes without a second world engine",
@@ -401,6 +488,32 @@
             "executionBoundary": "CARGO_TARGET_DIR_REALPATH_OF_RUNTIME_CACHE_ALIAS",
             "branchDeletionAllowed": false
           }
+        }
+      ],
+      "consumerBlockedSelections": [
+        {
+          "localCommit": "e9547525bae3fd0a86f60a160a1a536ce7451c0a",
+          "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+          "protectedMain": "bb8c591851a4c9f0a34763bc1a5fde365030cba4",
+          "owner": "capabilities/artifact",
+          "consumer": "Frozen Game/Artifact acceptance binds exact Artifact verifier source SHA256, not just canonical JSON digest output.",
+          "sourcePathsBound": [
+            "scripts/artifact_aseprite.py",
+            "scripts/artifact_design3d.py",
+            "scripts/artifact_ogg_vorbis.py",
+            "scripts/artifact_software_release_elf.py"
+          ],
+          "frozenReceiptPaths": [
+            "game-station-zero-aseprite-horizontal-sheet-r1.json",
+            "game-veilwild-glb-material-scene-r1.json",
+            "game-veilwild-glb-skinned-animation-r1.json",
+            "game-station-zero-ogg-vorbis-r1.json",
+            "game-godot-production-smoke-linux-elf-r1.json"
+          ],
+          "witness": "Historical direct-reuse migration: 13/13 canonical byte/identity and 27/27 selected Artifact consumer tests PASS, but native mise run artifact:verify FAIL (four test cases: frozen source SHA mismatch). Restore exact protected source bytes: mise run artifact:verify PASS (442 passed, 3 skipped, 39 deselected; 49 subtests). Historical receipt hashes were never rewritten.",
+          "formalCounterexample": "OutputEquivalent != FrozenEvidenceEquivalent",
+          "disposition": "KEEP_FROZEN_SOURCE_PENDING_NEW_CONSUMER_ACCEPTANCE",
+          "branchDeletionAllowed": false
         }
       ],
       "formalObligation": "The selected source must be an explicit source cut and each chosen change must preserve owner CDC.",
@@ -479,6 +592,26 @@
           "historicalTestWitness": "Isolated git archive of exact historical Taskfile, network config, preflight and native tests; latest installed blackbox/promtool parser plus current pytest==9.1.1; 12 tests passed in 1.58 seconds.",
           "modernConsumerAdmitted": false,
           "missingCurrentConsumerEvidence": "Historical Blackbox target/rules and test files are absent in protected Main; old static proxy endpoints and model-provider alerts are not current consumption evidence and must not be resurrected automatically.",
+          "selection": "PRESERVE_HISTORICAL_SOURCE_NO_WHOLE_COMMIT_CHERRY_PICK",
+          "branchRetirement": "NOT_PROVEN"
+        },
+        {
+          "historicalCommit": "63f0076e9aea0f5ae22d7e3fc9e8142619420446",
+          "historicalParent": "0e735341599b24504af6b0dee16ce7bac9d2258e",
+          "owner": "apps/web",
+          "historicalTestSourceCut": "63f0076e9aea0f5ae22d7e3fc9e8142619420446",
+          "protectedMainSourceCut": "d6e15f621aad7cdb65fbfe97e712540eebcb6309",
+          "historicOnlyFiles": [
+            "apps/web/src/life.ts",
+            "apps/web/test/life-browser-e2e.ts",
+            "apps/web/test/life-contract.test.ts",
+            "apps/web/test/life-web.test.ts"
+          ],
+          "behaviorScope": "Read-only Human Life activity and habit catalog, HTML route and JSON projection; no persistence, account effects or live external actions. Historical source is self-contained but not a current protected Web route.",
+          "historicalNativeTestResult": "NOT_REEXECUTED_NO_CURRENT_CONSUMER",
+          "historicalTestWitness": "Historical exact commit 63f0076e9aea contains life.ts and three owner tests. Do not claim historical tests PASS; only native Git source-path and current Web import/route absence were observed.",
+          "modernConsumerAdmitted": false,
+          "missingCurrentConsumerEvidence": "At protected source cut d6e15f621aad7cdb65fbfe97e712540eebcb6309, apps/web/src/life.ts and the three historical tests are absent. Native ripgrep in apps/web/src and apps/web/test found no lifeCatalog, renderLifePage, or /api/life/catalog consumer. This proves non-admission at this cut, not that Human Life can never be useful.",
           "selection": "PRESERVE_HISTORICAL_SOURCE_NO_WHOLE_COMMIT_CHERRY_PICK",
           "branchRetirement": "NOT_PROVEN"
         }

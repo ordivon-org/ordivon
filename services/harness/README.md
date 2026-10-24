@@ -207,6 +207,18 @@ uv build --wheel --out-dir dist
 
 The owner environment binds the exact development lint dependency separately from Harness runtime semantics; it does not reintroduce Host as a Harness dependency. `scripts/owner-environment cold-start` proves the default suite from an empty temporary venv.
 
+The **Harness owner-toolchain consumer LEGO** (historical local-Main
+`f66021ba318e`, GIT-01) uses the existing `services/harness/mise.toml`
+as its sole uv version authority. `owner-environment bootstrap` resolves uv
+through `mise which uv`, rejects a mismatched `UV_BIN` override before any
+dependency install, and executes under the selected mise environment.
+`local-acceptance run` reuses that selected uv rather than ambient PATH.
+The native negative CDC is
+`tests/test_owner_environment_doctor_contract.py::test_bootstrap_selects_owner_pinned_uv_not_ambient_path`;
+the positive consumer is `mise run verify`. This selects the useful
+historical behavior **without cherry-picking the old script** or creating
+another toolchain registry.
+
 Initialize an independent state root:
 
 ```bash

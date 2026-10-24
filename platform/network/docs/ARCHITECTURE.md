@@ -69,6 +69,25 @@ history/                prior round/evolution evidence
 
 The generic core must not import provider- or consumer-specific configuration.
 
+**Monitoring SourceCut precommit LEGO** (Network Owner, Taskfile.yml /
+scripts/monitoring-sourcecut-preflight.py). Before core:install makes its
+first live write, compare the two existing Blackbox/Prometheus configuration
+bytes against the deployed pair:
+
+- Neither live file exists: FIRST_INSTALL, after native configuration validation.
+- Both exist with identical bytes: IDENTICAL_SOURCECUT, idempotent installation.
+- A partial pair, symlink, or any different bytes: BLOCKED, without an install.
+
+This is the minimum no-silent-overwrite guarantee selected from the historical
+Network R6 consumer-failure branch. It intentionally does **not** resurrect the
+old multi-consumer monitoring registry, restore retired alert rules, introduce a
+YAML parser/production dependency, or claim semantic YAML equivalence. Changing
+live monitoring requires a separately qualified migration; no broad automatic
+overwrite is authorized. Native source/fault tests:
+tests/test_monitoring_precommit.py, accepted through mise run ci.
+The preflight prevents static drift; it is not an atomic lock against another
+process changing live files after the check.
+
 ## Reference environments
 
 Current local execution target:
