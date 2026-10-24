@@ -114,6 +114,16 @@ class ConvergencePlanTests(unittest.TestCase):
             self.assertEqual(cross_cutting["queueClass"], "CROSS_CUTTING")
             self.assertEqual(cross_cutting["verificationOwners"], ["scoped-runtime"])
 
+    def test_pinned_upstream_formal_tool_is_not_a_runtime_business_owner_dependency(self) -> None:
+        """A public mathematical tool may be shared without merging owner scopes."""
+        graph = MODULE.load_dependency_graph()
+        self.assertNotIn("runtime", graph["composition"])
+        self.assertNotIn("composition", graph["runtime"])
+        # Existing public code/data dependencies must still propagate.
+        self.assertIn("composition", graph["next"])
+        runtime = MODULE.build_plan(changed_files=["services/runtime/crates/ordivon-runtime-core/src/lib.rs"])
+        self.assertEqual(runtime["verificationOwners"], ["runtime"])
+
     def test_dependency_graph_rejects_unknown_owner(self) -> None:
         content = """schema_version = 1
 kind = "ordivon.repo-owner-dependency-contracts"
