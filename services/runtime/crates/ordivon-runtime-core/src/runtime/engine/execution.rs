@@ -415,7 +415,13 @@ impl Runtime {
                         merge_environment(&base_environment, &step.env)
                     }
                     super::ExecutionTarget::WindowsNative => {
-                        merge_windows_environment(&base_environment, &step.env)?
+                        super::windows::merge_windows_workspace_environment(
+                            &base_environment,
+                            &step.env,
+                            requested_windows_context.identity
+                                == super::WindowsExecutionIdentity::ActiveUser,
+                            &workspace_path,
+                        )?
                     }
                 },
                 timeout_ms: step.timeout_ms,
@@ -446,7 +452,13 @@ impl Runtime {
                     merge_environment(&base_environment, &request.execution.env)
                 }
                 super::ExecutionTarget::WindowsNative => {
-                    merge_windows_environment(&base_environment, &request.execution.env)?
+                    super::windows::merge_windows_workspace_environment(
+                        &base_environment,
+                        &request.execution.env,
+                        requested_windows_context.identity
+                            == super::WindowsExecutionIdentity::ActiveUser,
+                        &workspace_path,
+                    )?
                 }
             },
             timeout_ms: request.execution.timeout_ms,
