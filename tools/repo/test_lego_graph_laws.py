@@ -23,6 +23,34 @@ def test_owner_slice_relation_is_closed(relative: str) -> None:
     module.validate_owner_lego_graph(json.loads((ROOT / relative).read_text(encoding="utf-8")))
 
 
+@pytest.mark.parametrize("relative", OWNER_GRAPH_PLANS)
+def test_owner_node_whitespace_alias_does_not_mint_second_lego(relative: str) -> None:
+    plan = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+    alias = copy.deepcopy(plan["nodes"][0])
+    alias["id"] = " " + alias["id"] + " "
+    plan["nodes"].append(alias)
+    with pytest.raises(module.ArchitectureDocsError, match="non-canonical LEGO node identity"):
+        module.validate_owner_lego_graph(plan)
+
+
+def test_unregistered_slice_whitespace_alias_does_not_mint_second_slice() -> None:
+    plan = json.loads((ROOT / OWNER_GRAPH_PLANS[0]).read_text(encoding="utf-8"))
+    alias = copy.deepcopy(plan["slices"][0])
+    alias["id"] = " " + alias["id"] + " "
+    plan["slices"].append(alias)
+    with pytest.raises(module.ArchitectureDocsError, match="non-canonical LEGO slice identity"):
+        module.validate_owner_lego_graph(plan)
+
+
+def test_direct_owner_dependency_check_rejects_whitespace_alias() -> None:
+    plan = json.loads((ROOT / OWNER_GRAPH_PLANS[0]).read_text(encoding="utf-8"))
+    alias = copy.deepcopy(plan["nodes"][0])
+    alias["id"] = " " + alias["id"] + " "
+    plan["nodes"].append(alias)
+    with pytest.raises(module.ArchitectureDocsError, match="non-canonical LEGO node identity"):
+        module.validate_owner_lego_dependencies(plan, "services/runtime")
+
+
 def test_host_node_kind_is_not_silently_untyped() -> None:
     plan = json.loads((ROOT / OWNER_GRAPH_PLANS[1]).read_text(encoding="utf-8"))
     plan["nodes"][0]["kind"] = ""

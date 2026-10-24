@@ -165,6 +165,8 @@ def validate_owner_lego_graph(plan: dict[str, Any]) -> None:
         identity = node.get("id")
         if not isinstance(identity, str) or not identity.strip():
             raise ArchitectureDocsError("LEGO node requires non-empty identity")
+        if identity != identity.strip():
+            raise ArchitectureDocsError("non-canonical LEGO node identity")
         if identity in identities:
             raise ArchitectureDocsError(f"duplicate LEGO node: {identity}")
         if not isinstance(node.get("kind"), str) or not node["kind"].strip():
@@ -181,6 +183,8 @@ def validate_owner_lego_graph(plan: dict[str, Any]) -> None:
         identity = slice_.get("id")
         if not isinstance(identity, str) or not identity.strip():
             raise ArchitectureDocsError("LEGO slice needs non-empty identity")
+        if identity != identity.strip():
+            raise ArchitectureDocsError("non-canonical LEGO slice identity")
         if identity in slice_ids:
             raise ArchitectureDocsError(f"duplicate LEGO slice: {identity}")
         slice_ids.add(identity)
@@ -403,6 +407,8 @@ def validate_owner_lego_dependencies(
         if not isinstance(node, dict) or not isinstance(node.get("id"), str) or not node["id"]:
             raise ArchitectureDocsError("untyped LEGO node identity")
         identity = node["id"]
+        if identity != identity.strip():
+            raise ArchitectureDocsError("non-canonical LEGO node identity")
         if identity in graph:
             raise ArchitectureDocsError("duplicate LEGO node identity")
         depends = node.get("dependencies")
