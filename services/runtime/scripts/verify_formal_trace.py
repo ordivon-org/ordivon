@@ -28,6 +28,7 @@ REQUIRED_TESTS = {
     "RuntimeDispatch.ambiguityHeld",
     "ExecutionProvider.guaranteeNegativeControl",
     "RuntimeDispatch.terminalEvidence",
+    "RuntimeDispatch.parallelAdmissionUnique",
 }
 # Root/cgroup-bound Rust tests exist, but #[ignore] means CI does not execute them.
 # These are conditional external acceptance witnesses, never active proving tests.
@@ -43,6 +44,7 @@ REQUIRED_MODEL_BINDINGS = {
     "RuntimeDispatch.AtMostOnceDispatchPerAttempt",
     "RuntimeDispatch.AmbiguityRequiresReconciliation",
     "RuntimeDispatch.TerminalEvidenceIsCommitted",
+    "RuntimeDispatch.NoCompetingLiveAttempts",
 }
 REQUIRED_RUNTIME_INVARIANT_BINDINGS = {"I05", "I11"}
 
