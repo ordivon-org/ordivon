@@ -992,6 +992,87 @@
             "tools/repo/check_tracked_secrets.sh",
             "tools/repo/test_tracked_secrets.py"
           ]
+        },
+        {
+          "localCommit": "39b16830cbceec794cf593c4c8b85abd3ee12476",
+          "owner": "capabilities/artifact",
+          "consumer": "Agent surface: reject unadvertised properties, non-string fields, absent required request and empty request BEFORE dispatch; use existing published JSON Schema 2020-12 instead of unchecked argument conversion.",
+          "remoteWitness": "scripts/artifact_agent_surface.py + tests/test_artifact_agent_surface.py::test_published_tool_input_schema_rejects_extra_missing_and_wrong_types; RED 5 cases (silent coercion or KeyError) then GREEN; owner 442 PASS.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SELECT_MINIMAL_OWNER_CONSUMER_EFFECT",
+          "selectedOwnerEvidence": [
+            "capabilities/artifact/scripts/artifact_agent_surface.py",
+            "capabilities/artifact/tests/test_artifact_agent_surface.py"
+          ],
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "d375287686b7ad7f04b1f5ef181bff846ac9cc94",
+            "patchRelation": "LOCAL_NONMERGE_HISTORICAL_EFFECT",
+            "consumerStanding": "RED_GREEN_PLUS_ARTIFACT_NATIVE_442_PASS",
+            "selection": "PORT_MINIMUM_CURRENT_OWNER_EFFECT_NO_WHOLE_COMMIT_REPLAY",
+            "branchDeletionAllowed": false
+          }
+        },
+        {
+          "localCommit": "86ec6ba6216584d2f0e04983f04be695f4dcdff8",
+          "owner": "capabilities/artifact",
+          "consumer": "Artifact delivery Profile v1: route acceptance and failure diagnostics through already existing artifact_core.json_validation.validate_json_document, retire duplicate hand-written minimal profile checks without changing receipt field shape.",
+          "remoteWitness": "artifact_core/profile_v1.py and tests/test_artifact_delivery.py::test_cross_format_profile_rejects_wrong_primary_format; RED shadow profile error diverged from canonical JSON Schema then GREEN; six cross-format valid profiles and owner 442 PASS.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SELECT_MINIMAL_OWNER_CONSUMER_EFFECT",
+          "selectedOwnerEvidence": [
+            "capabilities/artifact/artifact_core/profile_v1.py",
+            "capabilities/artifact/tests/test_artifact_delivery.py"
+          ],
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "d375287686b7ad7f04b1f5ef181bff846ac9cc94",
+            "patchRelation": "LOCAL_NONMERGE_HISTORICAL_EFFECT",
+            "consumerStanding": "RED_GREEN_PLUS_ARTIFACT_NATIVE_442_PASS",
+            "selection": "PORT_MINIMUM_CURRENT_OWNER_EFFECT_NO_WHOLE_COMMIT_REPLAY",
+            "branchDeletionAllowed": false
+          }
+        },
+        {
+          "localCommit": "b408d4f32dd3376aa6ac0ab8d278b52b9c3b6a99",
+          "owner": "capabilities/artifact",
+          "consumer": "Retire exported OperationPlanner and OperationPlan: no in-tree production importer; only self-test and historical reference; retain canonical ProfileRegistry + CapabilityBindingRegistry + real Artifact verifier service instead of parallel verify planner.",
+          "remoteWitness": "git grep tracked production consumers: none; tests/test_artifact_core_registry.py::test_obsolete_operation_planner_is_not_an_independent_public_consumer RED then GREEN; native registry tests and full owner 442 PASS.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SELECT_MINIMAL_OWNER_CONSUMER_EFFECT",
+          "selectedOwnerEvidence": [
+            "capabilities/artifact/artifact_core/__init__.py",
+            "capabilities/artifact/artifact_core/operations.py",
+            "capabilities/artifact/tests/test_artifact_core_registry.py"
+          ],
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "d375287686b7ad7f04b1f5ef181bff846ac9cc94",
+            "patchRelation": "LOCAL_NONMERGE_HISTORICAL_EFFECT",
+            "consumerStanding": "RED_GREEN_PLUS_ARTIFACT_NATIVE_442_PASS",
+            "selection": "PORT_MINIMUM_CURRENT_OWNER_EFFECT_NO_WHOLE_COMMIT_REPLAY",
+            "branchDeletionAllowed": false
+          }
+        },
+        {
+          "localCommit": "ded3fe0e1f91927bb6c6f41cca35058a27343150",
+          "owner": "capabilities/artifact",
+          "consumer": "Retire unused OPC relationship string/path resolving helpers and unnecessary imports; retain real artifact_capabilities.presentation.project_opc_members with digest/size/path/symlink verified native consumer.",
+          "remoteWitness": "reference_projection.py unused _relationship_base/_resolve_relationship_target removed; tests/test_artifact_opc_projection.py all PASS inside focused 24 and full owner 442; no relationship URL expansion effect on current pipeline.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SELECT_MINIMAL_OWNER_CONSUMER_EFFECT",
+          "selectedOwnerEvidence": [
+            "capabilities/artifact/artifact_capabilities/presentation/reference_projection.py",
+            "capabilities/artifact/tests/test_artifact_opc_projection.py"
+          ],
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "d375287686b7ad7f04b1f5ef181bff846ac9cc94",
+            "patchRelation": "LOCAL_NONMERGE_HISTORICAL_EFFECT",
+            "consumerStanding": "RED_GREEN_PLUS_ARTIFACT_NATIVE_442_PASS",
+            "selection": "PORT_MINIMUM_CURRENT_OWNER_EFFECT_NO_WHOLE_COMMIT_REPLAY",
+            "branchDeletionAllowed": false
+          }
         }
       ],
       "consumerBlockedSelections": [
