@@ -500,7 +500,6 @@ def cache_prune_candidates(
     active = active_workspace_ids(database)
     records, _ = load_open_records(store_root)
     open_ids = {record["workspaceId"] for record in records}
-    activity_markers = workspace_activity_markers(database) if include_idle_open_build else {}
     pending: dict[str, dict[str, object]] = {}
 
     def add_children(
@@ -525,12 +524,6 @@ def cache_prune_candidates(
                 "modifiedUnixMs": 0,
                 "workspaceId": child.name if candidate_kind != "source_build" else None,
                 "requiresAdmissionFence": idle_open,
-                **(
-                    {"workspaceActivityMarker": activity_markers.get(
-                        child.name, EMPTY_WORKSPACE_ACTIVITY_MARKER
-                    )}
-                    if idle_open else {}
-                ),
             }
 
     build_protected = active | {"sources"}
@@ -551,6 +544,15 @@ def cache_prune_candidates(
         cache_root, pending, cache_root / "shared"
     )
     candidates = [item for item in pending.values() if int(item["bytes"]) > 0]
+    fenced = [item for item in candidates if item["requiresAdmissionFence"]]
+    if fenced:
+        # No work needs a currentness witness when no measured idle build
+        # survives candidate selection; keep one batch lookup for any number.
+        activity_markers = workspace_activity_markers(database)
+        for candidate in fenced:
+            candidate["workspaceActivityMarker"] = activity_markers.get(
+                str(candidate["workspaceId"]), EMPTY_WORKSPACE_ACTIVITY_MARKER
+            )
     candidates.sort(
         key=lambda item: (
             int(item["modifiedUnixMs"]),
