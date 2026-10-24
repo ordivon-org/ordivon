@@ -131,6 +131,73 @@ def _matching_brace(text: str, opening: int) -> int:
     raise ValueError("owner block has no matching closing brace")
 
 
+def _rust_uncommented_tokens(text: str) -> str:
+    """Mask Rust comments and string literals before binding source symbols.
+
+    Preserve line breaks, brace positions and declarations; nested block
+    comments are legal Rust. This is a conservative lexical witness check,
+    not an AST, compilation, or implementation-refinement proof.
+    """
+    result = list(text)
+    length = len(text)
+    index = 0
+
+    def mask(start: int, end: int) -> None:
+        for offset in range(start, end):
+            if result[offset] != "\n":
+                result[offset] = " "
+
+    while index < length:
+        start = index
+        if text.startswith("//", index):
+            end = text.find("\n", index)
+            index = length if end < 0 else end
+            mask(start, index)
+        elif text.startswith("/*", index):
+            depth = 1
+            index += 2
+            while index < length and depth:
+                if text.startswith("/*", index):
+                    depth += 1
+                    index += 2
+                elif text.startswith("*/", index):
+                    depth -= 1
+                    index += 2
+                else:
+                    index += 1
+            if depth:
+                raise ValueError("unclosed Rust block comment in owner source")
+            mask(start, index)
+        else:
+            # Rust raw literals can contain fake impl, trait and brace tokens.
+            raw = re.match(r'r(#{0,32})"', text[index:])
+            if raw:
+                closer = '"' + raw.group(1)
+                end = text.find(closer, index + len(raw.group(0)))
+                if end < 0:
+                    raise ValueError("unclosed Rust raw string in owner source")
+                index = end + len(closer)
+                mask(start, index)
+            elif text[index] == '"':
+                index += 1
+                closed = False
+                while index < length:
+                    if text[index] == "\\":
+                        index += 2
+                    elif text[index] == '"':
+                        index += 1
+                        closed = True
+                        break
+                    else:
+                        index += 1
+                if not closed:
+                    raise ValueError("unclosed Rust string in owner source")
+                mask(start, min(index, length))
+            else:
+                index += 1
+    return "".join(result)
+
+
 def owner_slice(text: str, owner_kind: str, owner: str) -> str:
     if owner_kind == "trait":
         pattern = re.compile(rf"\btrait\s+{re.escape(owner)}\b[^{{]*{{")
@@ -140,6 +207,7 @@ def owner_slice(text: str, owner_kind: str, owner: str) -> str:
         )
     else:
         raise ValueError(f"unsupported ownerKind: {owner_kind!r}")
+    text = _rust_uncommented_tokens(text)
     match = pattern.search(text)
     if not match:
         raise ValueError(f"{owner_kind} owner not found: {owner}")

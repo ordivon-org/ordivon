@@ -57,6 +57,34 @@ trait Provider {
         self.assertNotIn("fn other", alpha)
         self.assertIn("fn realize", provider)
 
+    def test_comment_only_contracts_cannot_certify_rust_owner_methods(self):
+        # The source-binding witness must refer to parsed Rust code, never a
+        # comment pasted from a previous implementation or documentation.
+        examples = (
+            ("trait", "Provider", "realize", "// trait Provider {\n// fn realize(&self);\n// }\n"),
+            ("impl", "Alpha", "dispatch", "/*\nimpl Alpha {\n    fn dispatch(&self) {}\n}\n*/\n"),
+            ("trait", "Provider", "realize", "/* trait Provider { fn realize(&self); } */\n"),
+            ("trait", "Provider", "realize", 'const TEXT: &str = "trait Provider { fn realize(&self); }";\n'),
+            ("trait", "Provider", "realize", 'const TEXT: &str = r#"trait Provider { fn realize(&self); }"#;\n'),
+            ("trait", "Provider", "realize", '/* outer /* nested */ trait Provider { fn realize(&self); } */\n'),
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "formal_owner.rs"
+            original_root = self.module.ROOT
+            self.module.ROOT = Path(temporary)
+            try:
+                for owner_kind, owner, symbol, text in examples:
+                    with self.subTest(owner_kind=owner_kind, source=text):
+                        source.write_text(text, encoding="utf-8")
+                        self.assertTrue(
+                            self.module.require_owned_method(
+                                source, owner_kind, owner, symbol
+                            ),
+                            "comment-only Rust source must not qualify a formal seam",
+                        )
+            finally:
+                self.module.ROOT = original_root
+
     def test_schema_v2_rejects_source_fragment_binding_regression(self):
         trace, invariants = manifests()
         mutated = copy.deepcopy(trace)
