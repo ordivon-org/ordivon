@@ -304,6 +304,32 @@
           }
         }
       ],
+      "consumerBlockedSelections": [
+        {
+          "localCommit": "e9547525bae3fd0a86f60a160a1a536ce7451c0a",
+          "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+          "protectedMain": "bb8c591851a4c9f0a34763bc1a5fde365030cba4",
+          "owner": "capabilities/artifact",
+          "consumer": "Frozen Game/Artifact acceptance binds exact Artifact verifier source SHA256, not just canonical JSON digest output.",
+          "sourcePathsBound": [
+            "scripts/artifact_aseprite.py",
+            "scripts/artifact_design3d.py",
+            "scripts/artifact_ogg_vorbis.py",
+            "scripts/artifact_software_release_elf.py"
+          ],
+          "frozenReceiptPaths": [
+            "game-station-zero-aseprite-horizontal-sheet-r1.json",
+            "game-veilwild-glb-material-scene-r1.json",
+            "game-veilwild-glb-skinned-animation-r1.json",
+            "game-station-zero-ogg-vorbis-r1.json",
+            "game-godot-production-smoke-linux-elf-r1.json"
+          ],
+          "witness": "Historical direct-reuse migration: 13/13 canonical byte/identity and 27/27 selected Artifact consumer tests PASS, but native mise run artifact:verify FAIL (four test cases: frozen source SHA mismatch). Restore exact protected source bytes: mise run artifact:verify PASS (442 passed, 3 skipped, 39 deselected; 49 subtests). Historical receipt hashes were never rewritten.",
+          "formalCounterexample": "OutputEquivalent != FrozenEvidenceEquivalent",
+          "disposition": "KEEP_FROZEN_SOURCE_PENDING_NEW_CONSUMER_ACCEPTANCE",
+          "branchDeletionAllowed": false
+        }
+      ],
       "formalObligation": "The selected source must be an explicit source cut and each chosen change must preserve owner CDC.",
       "consumers": "Git source, CI, all downstream consumers",
       "representation": {

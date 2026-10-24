@@ -808,6 +808,23 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
     module.validate_formal_issue_census(census, plans)
 
 
+def test_divergent_history_does_not_weaken_frozen_artifact_receipts() -> None:
+    """Semantically identical output does not qualify a different frozen source SHA."""
+    census, _ = formal_issue_inputs()
+    git_issue = next(item for item in census["issues"] if item["id"] == "GIT-01")
+    blockers = git_issue["consumerBlockedSelections"]
+    assert len({entry["localCommit"] for entry in blockers}) == len(blockers)
+    for entry in blockers:
+        assert len(entry["localCommit"]) == len(entry["protectedMain"]) == 40
+        assert entry["owner"] == "capabilities/artifact"
+        assert entry["disposition"] == "KEEP_FROZEN_SOURCE_PENDING_NEW_CONSUMER_ACCEPTANCE"
+        assert entry["branchDeletionAllowed"] is False
+        assert entry["frozenReceiptPaths"]
+        for receipt in entry["frozenReceiptPaths"]:
+            assert (ROOT / "capabilities/artifact/artifact-delivery/consumer-acceptance" / receipt).is_file()
+    assert any(entry["localCommit"].startswith("e9547525bae3") for entry in blockers)
+
+
 def test_formal_issue_owner_plan_cannot_escape_source_cut(tmp_path: Path) -> None:
     """A plausible LEGO plan outside the candidate checkout is not an owner link."""
     census, plans = formal_issue_inputs()
