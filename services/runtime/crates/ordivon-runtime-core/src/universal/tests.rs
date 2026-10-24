@@ -4120,3 +4120,97 @@ fn runner_result_wire_shape_remains_legacy_with_best_effort_resource_observation
         serde_json::from_slice(&fs::read(task_dir.join("result.json")).unwrap()).unwrap();
     assert!(result_value.get("resourceReceipt").is_none());
 }
+
+#[cfg(unix)]
+#[test]
+fn workspace_write_and_mutation_preflight_reject_dangling_symlink_targets() {
+    use std::os::unix::fs::symlink;
+
+    let sandbox = Sandbox::new("workspace-dangling-write");
+    let source = sandbox.root.join("source");
+    init_git_repo(&source);
+    let config = sandbox.config();
+    let workspace_id = "workspace-dangling-write";
+    create_git_workspace(
+        &config,
+        &GitWorkspaceCreateRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            source_repo: source.to_string_lossy().into_owned(),
+            source_revision: "HEAD".to_string(),
+        },
+    )
+    .unwrap();
+    let workspace = config.workspace_path(workspace_id);
+    let target = workspace.join("dangling-link.txt");
+    symlink(sandbox.root.join("outside-nonexistent.txt"), &target).unwrap();
+
+    let record = load_workspace_record(&config, workspace_id).unwrap();
+    let preflight = preflight_workspace_write_path(&record, "dangling-link.txt").unwrap_err();
+    assert_eq!(preflight.code, UniversalExecErrorCode::WorkspacePathDenied);
+
+    let write = write_workspace_text(
+        &config,
+        &WorkspaceWriteRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            relative_path: "dangling-link.txt".to_string(),
+            content: "must-not-write".to_string(),
+            expected_digest: None,
+        },
+    )
+    .unwrap_err();
+    assert_eq!(write.code, UniversalExecErrorCode::WorkspacePathDenied);
+    assert!(fs::symlink_metadata(&target)
+        .unwrap()
+        .file_type()
+        .is_symlink());
+    assert!(!sandbox.root.join("outside-nonexistent.txt").exists());
+
+    let dangling_parent = workspace.join("dangling-parent");
+    symlink(sandbox.root.join("missing-directory"), &dangling_parent).unwrap();
+    let parent_error =
+        preflight_workspace_write_path(&record, "dangling-parent/child.txt").unwrap_err();
+    assert_eq!(
+        parent_error.code,
+        UniversalExecErrorCode::WorkspacePathDenied
+    );
+    let write_error = write_workspace_text(
+        &config,
+        &WorkspaceWriteRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            relative_path: "dangling-parent/child.txt".to_string(),
+            content: "must-not-write".to_string(),
+            expected_digest: None,
+        },
+    )
+    .unwrap_err();
+    assert_eq!(
+        write_error.code,
+        UniversalExecErrorCode::WorkspacePathDenied
+    );
+    assert!(fs::symlink_metadata(&dangling_parent)
+        .unwrap()
+        .file_type()
+        .is_symlink());
+
+    for relative_path in ["dangling-link.txt", "dangling-parent/child.txt"] {
+        let mutation = mutate_workspace(
+            &config,
+            &WorkspaceMutateRequest {
+                schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+                workspace_id: workspace_id.to_string(),
+                mutations: vec![WorkspaceMutation {
+                    relative_path: relative_path.to_string(),
+                    mode: WorkspaceMutationMode::Write,
+                    content: "not-a-file".to_string(),
+                    expected_digest: None,
+                    expected_text: None,
+                }],
+            },
+        )
+        .unwrap_err();
+        assert_eq!(mutation.code, UniversalExecErrorCode::WorkspacePathDenied);
+    }
+}
