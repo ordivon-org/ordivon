@@ -223,6 +223,62 @@ trait Provider {
         errors = self.module.validate(mutated, invariants)
         self.assertTrue(any("Runtime invariant binding set drift" in error for error in errors), errors)
 
+    def test_formal_runtime_proof_cannot_import_foreign_owner_rust_test(self):
+        # A syntactically valid #[test] outside Runtime is not Runtime evidence.
+        with tempfile.TemporaryDirectory(dir=ROOT.parent) as foreign:
+            test = Path(foreign) / "external_proof.rs"
+            test.write_text("#[test]\nfn foreign_proof() {}\n", encoding="utf-8")
+            relative = "../" + str(test.relative_to(ROOT.parent))
+            trace, invariants = manifests()
+            original = trace["runtimeInvariantBindings"][0]["requiredProofRefs"][0]
+            replacement = f"{relative}::foreign_proof"
+            trace["runtimeInvariantBindings"][0]["requiredProofRefs"] = [replacement]
+            entry = next(row for row in invariants["invariants"] if row["id"] == "I05")
+            entry["proof"] = [
+                replacement if ref == original else ref for ref in entry["proof"]
+            ]
+            errors = self.module.validate(trace, invariants)
+            self.assertTrue(any("escapes Runtime source" in error for error in errors), errors)
+
+    def test_formal_runtime_seam_cannot_import_foreign_owner_impl(self):
+        with tempfile.TemporaryDirectory(dir=ROOT.parent) as foreign:
+            source = Path(foreign) / "foreign_impl.rs"
+            source.write_text("impl Foreign { fn fake_owner_method() {} }\n", encoding="utf-8")
+            relative = "../" + str(source.relative_to(ROOT.parent))
+            trace, invariants = manifests()
+            seam = trace["contractSeams"][0]
+            seam.update(path=relative, ownerKind="impl", owner="Foreign", symbol="fake_owner_method")
+            errors = self.module.validate(trace, invariants)
+            self.assertTrue(any("escapes Runtime source" in error for error in errors), errors)
+
+    def test_formal_tla_module_and_config_must_be_runtime_owned(self):
+        # Byte-for-byte identical TLA material in another Owner does not
+        # establish the scoped Runtime model source identity.
+        trace, invariants = manifests()
+        with tempfile.TemporaryDirectory(dir=ROOT.parent) as foreign:
+            for filename, field in (
+                ("RuntimeDispatchR1.tla", "modulePath"),
+                ("RuntimeDispatchR1.cfg", "configPath"),
+            ):
+                external = Path(foreign) / filename
+                external.write_bytes((ROOT / "formal" / filename).read_bytes())
+                trace["formalSpecification"][field] = "../" + str(external.relative_to(ROOT.parent))
+            errors = self.module.validate(trace, invariants)
+            self.assertTrue(
+                sum("formal source escapes Runtime source" in error for error in errors) == 2,
+                errors,
+            )
+
+    def test_formal_runtime_test_symlink_cannot_leave_owner(self):
+        with tempfile.TemporaryDirectory(dir=ROOT.parent) as foreign:
+            target = Path(foreign) / "foreign_proof.rs"
+            target.write_text("#[test]\nfn foreign_proof() {}\n", encoding="utf-8")
+            with tempfile.TemporaryDirectory(dir=ROOT) as local:
+                link = Path(local) / "outside.rs"
+                link.symlink_to(target)
+                errors = self.module.require_test_symbol(link, "foreign_proof")
+                self.assertTrue(any("escapes Runtime source" in error for error in errors), errors)
+
     def test_empty_proof_references_cannot_vacuously_pass(self):
         trace, invariants = manifests()
         mutated = copy.deepcopy(trace)

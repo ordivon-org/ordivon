@@ -82,6 +82,8 @@ def owner_slice(text: str, owner_kind: str, owner: str) -> str:
 
 
 def require_owned_method(path: Path, owner_kind: str, owner: str, symbol: str) -> list[str]:
+    if not path.resolve().is_relative_to(ROOT.resolve()):
+        return [f"{path} escapes Runtime source"]
     try:
         block = owner_slice(path.read_text(encoding="utf-8"), owner_kind, owner)
     except (OSError, UnicodeError, ValueError) as error:
@@ -92,6 +94,8 @@ def require_owned_method(path: Path, owner_kind: str, owner: str, symbol: str) -
 
 
 def require_test_symbol(path: Path, symbol: str, *, require_ignored: bool = False) -> list[str]:
+    if not path.resolve().is_relative_to(ROOT.resolve()):
+        return [f"{path} escapes Runtime source"]
     try:
         text = path.read_text(encoding="utf-8")
     except (OSError, UnicodeError) as error:
@@ -150,6 +154,9 @@ def validate(trace: dict[str, Any], invariant_manifest: dict[str, Any]) -> list[
             errors.append(f"formalSpecification lacks {path_key}/{digest_key}")
             continue
         path = ROOT / relative
+        if not path.resolve().is_relative_to(ROOT.resolve()):
+            errors.append(f"formal source escapes Runtime source: {relative}")
+            continue
         if not path.is_file():
             errors.append(f"formal source missing: {relative}")
             continue
