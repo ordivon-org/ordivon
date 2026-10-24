@@ -191,14 +191,14 @@ def test_user_browser_release_contains_internal_gateway_client_closure():
         'scripts/windows_user_browser_chatgpt.ps1',
     }
     assert required <= set(release.RELEASE_PATHS)
-    assert release.WORKER_RUNTIME_VERSIONS['mcp'] == '2.2.0'
+    assert release.WORKER_RUNTIME_VERSIONS['mcp'] == '2.3.0'
     assert release.WORKER_RUNTIME_VERSIONS['httpx'] == '0.28.1'
 
 
 def test_temporal_worker_dependency_contract_includes_official_mcp_client():
     root = Path(__file__).resolve().parents[1]
     deps = (root / 'config' / 'agent-automation-temporal-requirements.txt').read_text().splitlines()
-    assert 'mcp==2.2.0' in deps
+    assert 'mcp==2.3.0' in deps
     assert 'httpx==0.28.1' in deps
     unit = (root / 'systemd' / 'ordivon-agent-temporal-worker.service').read_text()
     assert 'PYTHONPATH=/opt/ordivon/agent-automation/current/src' in unit

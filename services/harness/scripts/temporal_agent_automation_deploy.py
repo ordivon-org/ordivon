@@ -25,7 +25,7 @@ PRODUCTION_ADDRESS = "127.0.0.1:17233"
 EXPECTED_RUNTIME_VERSIONS = {
     "temporalio": "1.34.0",
     "rfc8785": "0.1.4",
-    "mcp": "2.2.0",
+    "mcp": "2.3.0",
     "httpx": "0.28.1",
     "pythonVersion": "3.15.1",
     "sqliteVersion": "3.54.0",
