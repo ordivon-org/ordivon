@@ -1019,6 +1019,32 @@ def test_git01_four_distinct_patch_equivalents_preserve_consumers_and_actual_sou
     assert selected["f93faa57cf99"]["sourceQualification"]["tipRelation"] == "SAME_BLOB_AND_MODE"
     module.validate_formal_issue_census(census, plans)
 
+
+def test_git01_composition_browser_network_legacy_is_not_revived_without_consumers() -> None:
+    """Absent historical Composition surface is not an active Browserless Network-v2 owner."""
+    census, plans = formal_issue_inputs()
+    issue = next(row for row in census["issues"] if row["id"] == "GIT-01")
+    matches = [
+        row for row in issue["consumerSelections"]
+        if row["localCommit"] == "d6f0d184dec98746704291ce74639b38fa645d8e"
+    ]
+    assert len(matches) == 1
+    candidate = matches[0]
+    assert candidate["owner"] == "packages/composition"
+    assert candidate["disposition"] == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
+    assert candidate["evidenceScope"] == "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN"
+    assert candidate["sourceQualification"]["historicalSourceState"] == "BOTH_TIPS_ABSENT"
+    assert candidate["sourceQualification"]["branchDeletionAllowed"] is False
+    assert all(not (ROOT / p).exists() for p in candidate["changedPaths"])
+    owner = (ROOT / "services/harness/scripts/browserless_podman_deploy.py").read_text()
+    assert "def resolve_network_binding(" in owner
+    assert "PRODUCTION_CUTOVER_PASS" in owner
+    assert "generationDigest" in owner
+    assert (ROOT / "services/harness/tests/test_browserless_podman_deploy.py").is_file()
+    module.validate_formal_issue_census(census, plans)
+
+
+
 def test_git01_workstation_history_inverse_pair_is_a_single_non_live_effect() -> None:
     """An adjacent add/revert is one historical identity, not two live LEGo parts."""
     census, _ = formal_issue_inputs()
