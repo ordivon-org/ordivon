@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 from tools.repo import source_history_legos
-from tools.repo.source_history_legos import history
+from tools.repo.source_history_legos import history, join_consumer_evidence
 
 CANONICAL_OWNER_HEADER = (
     'schema_version = 1\n'
@@ -23,6 +23,55 @@ def git(p: Path, *args: str) -> str:
         ["git", "-c", "maintenance.auto=false", "-c", "gc.auto=0", "-C", str(p), *args],
         text=True,
     ).strip()
+
+
+
+class ConsumerEvidenceJoinAlgebraTests(unittest.TestCase):
+    """Bounded exhaustive laws for three concurrently proposed Owner decisions."""
+
+    def test_parallel_consumer_evidence_join_is_commutative_associative_and_idempotent(self):
+        from itertools import permutations
+
+        records = [
+            {
+                "localCommit": format(i, "040x"),
+                "owner": "tools/repo",
+                "consumer": f"Owner consumer {i}",
+                "evidenceScope": "NATIVE_CONSUMER_PASS",
+                "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+            }
+            for i in (3, 1, 2)
+        ]
+        expected = sorted(records, key=lambda row: row["localCommit"])
+        self.assertEqual(join_consumer_evidence(), [])
+        for order in permutations(records):
+            left, middle, right = ([row] for row in order)
+            self.assertEqual(join_consumer_evidence(left, middle, right), expected)
+            self.assertEqual(
+                join_consumer_evidence(join_consumer_evidence(left, middle), right),
+                join_consumer_evidence(left, join_consumer_evidence(middle, right)),
+            )
+            self.assertEqual(join_consumer_evidence(left, middle, right, left), expected)
+        self.assertEqual(records[0]["consumer"], "Owner consumer 3")
+
+    def test_parallel_consumer_evidence_join_rejects_contradictions_or_untyped_evidence(self):
+        record = {
+            "localCommit": "a" * 40,
+            "owner": "tools/repo",
+            "consumer": "verified current owner",
+            "evidenceScope": "NATIVE_CONSUMER_PASS",
+            "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+        }
+        altered = dict(record, consumer="unverified conflicting witness")
+        self.assertEqual(join_consumer_evidence([record], [dict(record)]), [record])
+        with self.assertRaisesRegex(ValueError, "conflicting consumer evidence"):
+            join_consumer_evidence([record], [altered])
+        with self.assertRaisesRegex(ValueError, "exact 40-hex"):
+            join_consumer_evidence([dict(record, localCommit="short")])
+        with self.assertRaisesRegex(ValueError, "must be a list"):
+            join_consumer_evidence("not-a-list")
+        with self.assertRaisesRegex(ValueError, "lacks owner"):
+            join_consumer_evidence([dict(record, owner="")])
 
 
 class SourceHistoryLegosTests(unittest.TestCase):
