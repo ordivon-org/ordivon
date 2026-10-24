@@ -861,6 +861,25 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
     module.validate_formal_issue_census(census, plans)
 
 
+def test_nonmerge_runtime_formal_history_preserves_stronger_current_acceptance() -> None:
+    """Selected historical nonmerge effects must retain their proof scope."""
+    census, plans = formal_issue_inputs()
+    issue = next(item for item in census["issues"] if item["id"] == "GIT-01")
+    selections = {entry["localCommit"]: entry for entry in issue["consumerSelections"]}
+    accepted = selections["e66aaa1eabcb21b02b58e139b687162dac0e930f"]
+    assert accepted["owner"] == "services/runtime"
+    assert accepted["disposition"] == "SKIP_OLDER_SOURCECUT"
+    assert accepted["evidenceScope"] == "NATIVE_CONSUMER_PASS"
+    assert (ROOT / "services/runtime/formal/RuntimeDispatchR1.trace-r1.acceptance.json").is_file()
+    for entry in (accepted,):
+        proof = entry["sourceQualification"]
+        assert proof["localMain"] == issue["consumerSourceCut"]["localMain"]
+        assert len(proof["protectedMain"]) == 40
+        assert proof["branchDeletionAllowed"] is False
+        assert all(not (ROOT / path).exists() for path in entry["retiredSourcePaths"])
+    module.validate_formal_issue_census(census, plans)
+
+
 def test_divergent_history_does_not_weaken_frozen_artifact_receipts() -> None:
     """Semantically identical output does not qualify a different frozen source SHA."""
     census, _ = formal_issue_inputs()

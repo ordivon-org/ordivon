@@ -912,6 +912,28 @@
             "services/harness/planning/hux-current-baseline-r1.json",
             "services/harness/planning/hux-execution-plan-r1.json"
           ]
+        },
+        {
+          "localCommit": "e66aaa1eabcb21b02b58e139b687162dac0e930f",
+          "owner": "services/runtime",
+          "consumer": "Local-only nonmerge added a historical RuntimeDispatchR1 trace acceptance plus four now-retired architecture census artifacts. Current Runtime owner supersedes that acceptance with schema-v2 stable-seam/currentness and negative provider guarantee; it is not a full Rust/TLA refinement proof.",
+          "remoteWitness": "Exact Git acceptance blobs old 1dda9c9fd4a1 vs protected bd91be10978ae; services/runtime/scripts/verify_formal_trace.py + mise run formal:verify PASS on protected 7bf5f1d89da6 with TLC 2.19, 25 generated / 20 distinct states, depth 9 and no errors. Four historic census doc paths absent on both frozen Main tips.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_OLDER_SOURCECUT",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "7bf5f1d89da65e5ce8420910065d8c822cc6c4e3",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "branchDeletionAllowed": false,
+            "tipRelation": "NEWER_NATIVE_FORMAL_ACCEPTANCE_AND_RETIRED_HISTORIC_CENSUS_DOCS",
+            "consumerStanding": "CURRENT_RUNTIME_FORMAL_GATE_VERIFIED"
+          },
+          "retiredSourcePaths": [
+            "docs/architecture/DATA_LEARNING_SYSTEM_CENSUS_R1.md",
+            "docs/architecture/VERIFICATION_ASSURANCE_FORMAL_CENSUS_R1.md",
+            "docs/architecture/data-learning-system-census-r1.json",
+            "docs/architecture/verification-assurance-formal-census-r1.json"
+          ]
         }
       ],
       "consumerBlockedSelections": [
