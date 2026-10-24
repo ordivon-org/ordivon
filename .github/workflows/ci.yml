@@ -35,8 +35,16 @@ jobs:
         uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
         with:
           version: 2026.9.12
-          install: true
+          # Avoid eager --monorepo tool installation: Owner queue tasks already
+          # install their own toolchain only when the consumer selects them.
+          install: false
           cache: true
+
+      - name: Install root verification tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          mise install
 
       - name: Install verified GNU Bash 5.3.20
         shell: bash
