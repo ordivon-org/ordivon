@@ -760,6 +760,25 @@
             "domains/capital/tools/resource_governance_validation_r1/differential.py",
             "domains/capital/tools/resource_governance_validation_r1/run-differential"
           ]
+        },
+        {
+          "localCommit": "733481b66259399671888eeb109ad6c6ad3edae6",
+          "owner": "meta/next",
+          "consumer": "The retired standalone tools/catalog/check_authority_catalog.py (160 deleted lines) has no tracked executable consumer in either frozen Main tip. Current authority-catalog discovery, registration and loading are consumed by the Next natural Owner via meta/next/mise.toml::verify, scripts/check_authority_catalog_r1.py and tests/test_authority_catalog.py; no standalone old checker is required.",
+          "remoteWitness": "Exact two-tip Git absence for tools/catalog/check_authority_catalog.py; current Next authority checker returns PASS_LIGHTWEIGHT_PROGRESSIVE_DISCOVERY (176 records, 181 observations, 27 nondeferred dogfood IDs); native Next tests/test_authority_catalog.py 7 passed. This proves current catalog mechanics, not semantic catalog completeness or exact old-checker equivalence.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_RETIRED_UNCONSUMED",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "78895b2291830be75fa472f3621fc24ebd2e67f3",
+            "patchRelation": "DISTINCT_HISTORICAL_RETIRED_EFFECT",
+            "tipRelation": "BOTH_TIPS_ABSENT",
+            "consumerStanding": "LEGACY_CHECKER_UNCONSUMED_CURRENT_NEXT_CATALOG_NATIVE_PASS",
+            "branchDeletionAllowed": false
+          },
+          "historicalCohort": [
+            "733481b66259399671888eeb109ad6c6ad3edae6"
+          ]
         }
       ],
       "consumerBlockedSelections": [

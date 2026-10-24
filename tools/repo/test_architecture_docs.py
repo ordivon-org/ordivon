@@ -769,6 +769,24 @@ def test_formal_issue_skill_symlink_cannot_escape_source_cut(tmp_path: Path) -> 
         module.validate_formal_issue_census(census, plans, root=tmp_path)
 
 
+def test_git01_retired_standalone_catalog_checker_has_next_owner_consumer() -> None:
+    """Source-absent historical helper cannot supersede the live Next authority provider."""
+    census, plans = formal_issue_inputs()
+    issue = next(row for row in census["issues"] if row["id"] == "GIT-01")
+    selected = [row for row in issue["consumerSelections"] if row["localCommit"] == "733481b66259399671888eeb109ad6c6ad3edae6"]
+    assert len(selected) == 1
+    row = selected[0]
+    assert row["owner"] == "meta/next"
+    assert row["disposition"] == "SKIP_RETIRED_UNCONSUMED"
+    assert row["evidenceScope"] == "NATIVE_CONSUMER_PASS"
+    assert row["sourceQualification"]["protectedMain"] == "78895b2291830be75fa472f3621fc24ebd2e67f3"
+    assert row["sourceQualification"]["branchDeletionAllowed"] is False
+    assert not (ROOT / "tools/catalog/check_authority_catalog.py").exists()
+    assert (ROOT / "meta/next/scripts/check_authority_catalog_r1.py").is_file()
+    assert (ROOT / "meta/next/tests/test_authority_catalog.py").is_file()
+    module.validate_formal_issue_census(census, plans)
+
+
 def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
     """A Git-only commit cannot be called unique without a source-bound consumer comparison."""
     census, plans = formal_issue_inputs()
