@@ -103,6 +103,16 @@ tests/test_nonlive_policy_optimized_contract.py with isolated synthetic
 JSON and dummy files. This mechanical boundary does not authorize live
 financial effects or prove external provider behavior.
 
+The same Owner contract also covers scripts/check-nonlive-effect-authority,
+scripts/check-private-reality-credential-bindings, and
+scripts/check-clock-quality-gate. Consumers include non-live effect
+reconciliation, R0-R5 private-read binding, and public shadow/stream
+resilience clock qualification. In addition to optimization independence,
+the bindings checker must reject forbidden private-account, trading or
+external-write flags even in ordinary Python; credential file modes and
+clock-forgery declarations are negative-tested with synthetic fixtures.
+No provider resources or live effects are admitted by this proof.
+
 ## Verification boundary
 
 Required repository CI is hermetic and authority-free. The capital:verify task runs the

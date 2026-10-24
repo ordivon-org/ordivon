@@ -107,3 +107,137 @@ def test_world_readable_synthetic_credentials_are_rejected(
     secret.chmod(0o644)
     result = _run(script, config_file, optimized=optimized)
     assert result.returncode != 0, f"world-readable synthetic {filename} was accepted"
+
+
+def _effect_fixture(tmp_path: Path):
+    for folder in ("scripts", "contracts", "config"):
+        (tmp_path / folder).mkdir()
+    script = tmp_path / "scripts/check-nonlive-effect-authority"
+    shutil.copy2(ROOT / "scripts/check-nonlive-effect-authority", script)
+    data = {}
+    paths = {
+        "contract": "contracts/nonlive-effect-admission-v2.json",
+        "real": "contracts/external-write-policy-input-v2.json",
+        "authority": "config/nonlive_effect_authority.json",
+    }
+    for label, location in paths.items():
+        data[label] = json.loads((ROOT / location).read_text(encoding="utf-8"))
+        (tmp_path / location).write_text(json.dumps(data[label]), encoding="utf-8")
+    return script, paths, data
+
+
+@pytest.mark.parametrize("optimized", [False, True])
+def test_nonlive_effect_valid_in_both_modes(tmp_path, optimized):
+    script, _, _ = _effect_fixture(tmp_path)
+    assert _run(script, script, optimized=optimized).returncode == 0
+
+
+@pytest.mark.parametrize("optimized", [False, True])
+@pytest.mark.parametrize("label,field", [
+    ("contract", "realMoney"),
+    ("contract", "externalFinancialWriteAllowed"),
+    ("real", "externalFinancialWriteAllowed"),
+    ("real", "providerWriteCapabilityBound"),
+])
+def test_nonlive_effect_rejects_real_write(tmp_path, label, field, optimized):
+    script, paths, data = _effect_fixture(tmp_path)
+    data[label][field] = True
+    (tmp_path / paths[label]).write_text(json.dumps(data[label]), encoding="utf-8")
+    result = _run(script, script, optimized=optimized)
+    assert result.returncode != 0, f"real write accepted: {label}.{field} optimized={optimized}"
+
+
+def _binding_fixture(tmp_path: Path):
+    script, config_file, data = _fixture(
+        tmp_path, "check-private-reality-readonly-preflight"
+    )
+    script = script.parent / "check-private-reality-credential-bindings"
+    shutil.copy2(ROOT / "scripts/check-private-reality-credential-bindings", script)
+    okx = tmp_path / "fake-okx.toml"
+    okx.write_text("FAKE_NOT_VALID", encoding="utf-8")
+    okx.chmod(0o600)
+    binance = tmp_path / "fake-binance"
+    binance.mkdir()
+    for name in ("api_key", "private.pem", "public.pem"):
+        p = binance / name
+        p.write_text("FAKE_NOT_VALID", encoding="utf-8")
+        p.chmod(0o600)
+    executor = tmp_path / "fake-executor-excluded"
+    executor.mkdir()
+    bindings = data["credentialBindings"]
+    bindings["OKX"]["binding"] = str(okx)
+    bindings["BINANCE"]["binding"] = str(binance)
+    bindings["BINANCE_USDM"]["binding"] = str(binance)
+    bindings["BINANCE"]["executorBindingExplicitlyExcluded"] = str(executor)
+    config_file.write_text(json.dumps(data), encoding="utf-8")
+    return script, config_file, data, okx, binance
+
+
+@pytest.mark.parametrize("optimized", [False, True])
+def test_private_bindings_valid_synthetic_control(tmp_path, optimized):
+    script, config_file, _, _, _ = _binding_fixture(tmp_path)
+    result = _run(script, config_file, optimized=optimized)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+@pytest.mark.parametrize("optimized", [False, True])
+@pytest.mark.parametrize("field", [
+    "privateAccountDataAllowed", "externalFinancialWritesAllowed",
+    "orderCapableCredentialsAllowed",
+])
+def test_private_bindings_reject_unauthorized_fields(tmp_path, field, optimized):
+    script, config_file, data, _, _ = _binding_fixture(tmp_path)
+    data[field] = True
+    config_file.write_text(json.dumps(data), encoding="utf-8")
+    result = _run(script, config_file, optimized=optimized)
+    assert result.returncode != 0, f"private bindings accepted {field} optimized={optimized}"
+
+
+@pytest.mark.parametrize("optimized", [False, True])
+@pytest.mark.parametrize("item", ["okx", "binance-private", "binance-api"])
+def test_private_bindings_reject_permissive_dummy_files(tmp_path, item, optimized):
+    script, config_file, _, okx, binance = _binding_fixture(tmp_path)
+    secret = {
+        "okx": okx,
+        "binance-private": binance / "private.pem",
+        "binance-api": binance / "api_key",
+    }[item]
+    secret.chmod(0o644)
+    result = _run(script, config_file, optimized=optimized)
+    assert result.returncode != 0, f"private bindings accepted permissive {item}"
+
+
+def _clock_fixture(tmp_path: Path):
+    script_folder = tmp_path / "scripts"
+    script_folder.mkdir()
+    script = script_folder / "check-clock-quality-gate"
+    shutil.copy2(ROOT / "scripts/check-clock-quality-gate", script)
+    data = json.loads((ROOT / "config/clock_quality_gate.json").read_text(encoding="utf-8"))
+    evidence_rel = Path(data["latestEvidence"])
+    assert not evidence_rel.is_absolute() and ".." not in evidence_rel.parts
+    evidence = tmp_path / evidence_rel
+    evidence.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(ROOT / evidence_rel, evidence)
+    config_file = tmp_path / "config/clock_quality_gate.json"
+    config_file.parent.mkdir(exist_ok=True)
+    config_file.write_text(json.dumps(data), encoding="utf-8")
+    return script, config_file, data
+
+
+@pytest.mark.parametrize("optimized", [False, True])
+def test_clock_valid_synthetic_control(tmp_path, optimized):
+    script, config_file, _ = _clock_fixture(tmp_path)
+    result = _run(script, config_file, optimized=optimized)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+@pytest.mark.parametrize("optimized", [False, True])
+@pytest.mark.parametrize("field", [
+    "wslIndependentNtpDaemonAllowed", "applicationClockForgeryAllowed",
+])
+def test_clock_rejects_inadmissible_configuration(tmp_path, field, optimized):
+    script, config_file, data = _clock_fixture(tmp_path)
+    data[field] = True
+    config_file.write_text(json.dumps(data), encoding="utf-8")
+    result = _run(script, config_file, optimized=optimized)
+    assert result.returncode != 0, f"unsafe clock policy accepted {field}"
