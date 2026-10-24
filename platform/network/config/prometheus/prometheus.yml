@@ -3,6 +3,8 @@ global:
   evaluation_interval: 5s
 scrape_configs:
   - job_name: blackbox-http-ipv4
+    scrape_interval: 15s
+    scrape_timeout: 12s
     metrics_path: /probe
     params:
       module: [http_2xx_ipv4]
@@ -16,6 +18,8 @@ scrape_configs:
       - target_label: __address__
         replacement: 127.0.0.1:29115
   - job_name: blackbox-http-ipv6
+    scrape_interval: 15s
+    scrape_timeout: 12s
     metrics_path: /probe
     params:
       module: [http_2xx_ipv6]

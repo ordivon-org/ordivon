@@ -89,6 +89,27 @@ def test_bounded_html_data_url_is_admitted_for_deterministic_fixture():
         M.validate_request(req(url="data:text/html," + ("x" * 70000)))
 
 
+def test_explicit_empty_credential_scope_does_not_inherit_process_secrets(monkeypatch, tmp_path):
+    # Caller-owned empty scope is not permission to read unrelated ambient credentials.
+    monkeypatch.setenv("TYPESAFE_API_KEY", "synthetic-unrelated-key")
+    monkeypatch.setenv("TEXT_MODEL_API_KEY", "synthetic-unrelated-text-key")
+    monkeypatch.setenv("ORDIVON_JEV_CHROME_PATH", "/bin/sh")
+    monkeypatch.setenv("ORDIVON_JEV_CHROME_PROFILE", "/tmp/unrelated-profile")
+    assert M.managed_chrome_readiness({})["configured"] is False
+    assert M.credential_readiness({}, require_text=True)["ready"] is False
+    FakeAgent.instances = 0
+    result = M.execute_request(
+        req(requireText=True),
+        state_root=tmp_path,
+        env={},
+        agent_factory=factory(),
+    )
+    assert result["standing"] == "CREDENTIAL_MISSING"
+    assert result["providerEffectMayHaveOccurred"] is False
+    assert FakeAgent.instances == 0
+    assert list(tmp_path.rglob("*.json")) == []
+
+
 def test_dpapi_binding_resolves_without_mutating_caller_environment(monkeypatch):
     monkeypatch.setattr(
         M,

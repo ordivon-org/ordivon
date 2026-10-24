@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import sqlite3
+from contextlib import contextmanager
 
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -45,11 +46,15 @@ class _ReadbackFaultConnection:
 
 def _mask_lookup(monkeypatch, store: ExternalPullWorkerTransport, lookup: int) -> None:
     real_connect = store._connect
-    monkeypatch.setattr(
-        store,
-        "_connect",
-        lambda: _ReadbackFaultConnection(real_connect(), lookup),
-    )
+
+    @contextmanager
+    def fault_injected_connection():
+        # Preserve the real connection's rollback/close lifecycle while masking
+        # only the one readback; _connect now owns the context, not the caller.
+        with real_connect() as connection:
+            yield _ReadbackFaultConnection(connection, lookup)
+
+    monkeypatch.setattr(store, "_connect", fault_injected_connection)
 
 
 def test_submit_must_rollback_if_written_row_is_not_readable(tmp_path, monkeypatch) -> None:

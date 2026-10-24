@@ -13,5 +13,6 @@ pnpm install --frozen-lockfile
 pnpm bootstrap:python
 .venv/bin/ruff check .
 pnpm check
+python -m unittest discover -s media-v2/tests -p 'test_media_v2_owner_tool_resolution.py'
 git ls-files -z -- '*.sh' | xargs -0 -r shellcheck
 """

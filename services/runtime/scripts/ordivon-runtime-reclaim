@@ -236,6 +236,7 @@ def inspect_workspaces(
         # ordinary fail-closed path below.
         if (
             not workspace_path.exists()
+            and not workspace_path.is_symlink()
             and record_path.is_file()
             and not record_path.is_symlink()
         ):
@@ -346,7 +347,7 @@ def classify_record(
         "recordDigest": record_digest,
     }
     if value.get("state") == "closed":
-        if workspace_path.exists():
+        if workspace_path.exists() or workspace_path.is_symlink():
             return candidate(
                 workspace_id,
                 "unknown",
