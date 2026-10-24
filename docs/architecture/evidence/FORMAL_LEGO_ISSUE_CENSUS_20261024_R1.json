@@ -885,6 +885,44 @@
             "platform/network/consumers/developer-egress/profile.sh",
             "platform/network/tests/test_developer_egress_profile.py"
           ]
+        },
+        {
+          "localCommit": "d6f0d184dec98746704291ce74639b38fa645d8e",
+          "owner": "packages/composition",
+          "consumer": "Removed Composition browser-network sequence input validator. Current Harness Browserless consumes directly Network-v2 graduated namespace/receipt/service rather than the old list input; neither current tip has the old module.",
+          "remoteWitness": "Native git/local+protected source path comparison at 78895b2291830be75fa472f3621fc24ebd2e67f3; git grep finds no former module entrypoints. Browserless Network v2 Owner has existing native tests; modern behavior is not claimed equivalent to historic Composition or Agent APIs; no live/external consumer absence demonstrated.",
+          "evidenceScope": "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN",
+          "disposition": "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "78895b2291830be75fa472f3621fc24ebd2e67f3",
+            "historicalSourceState": "BOTH_TIPS_ABSENT",
+            "consumerStanding": "NO_IN_TREE_CONSUMER_EXTERNAL_UNKNOWN",
+            "branchDeletionAllowed": false
+          },
+          "changedPaths": [
+            "packages/composition/src/ordivon_composition/browser_network_binding_r1.py",
+            "packages/composition/tests/test_browser_network_binding_r1.py"
+          ]
+        },
+        {
+          "localCommit": "40479e09d849401f5cfd4297fbe43db0372fe011",
+          "owner": "ROOT_UNOWNED",
+          "consumer": "Historical apps/agent native coding MCP patch test depends on removed provider; no current in-tree caller uses its old workspace.patch shim. Historical tests were not replayed.",
+          "remoteWitness": "Native git/local+protected source path comparison at 78895b2291830be75fa472f3621fc24ebd2e67f3; git grep finds no former module entrypoints. Browserless Network v2 Owner has existing native tests; modern behavior is not claimed equivalent to historic Composition or Agent APIs; no live/external consumer absence demonstrated.",
+          "evidenceScope": "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN",
+          "disposition": "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "78895b2291830be75fa472f3621fc24ebd2e67f3",
+            "historicalSourceState": "BOTH_TIPS_ABSENT",
+            "consumerStanding": "NO_IN_TREE_CONSUMER_EXTERNAL_UNKNOWN",
+            "branchDeletionAllowed": false
+          },
+          "changedPaths": [
+            "apps/agent/tests/test_native_coding_runtime_mcp_port_r1.py",
+            "apps/agent/src/ordivon_agent/native_coding_runtime_mcp_port_r1.py"
+          ]
         }
       ],
       "consumerBlockedSelections": [
