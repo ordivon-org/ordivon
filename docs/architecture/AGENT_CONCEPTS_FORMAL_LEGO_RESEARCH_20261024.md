@@ -7,9 +7,17 @@ Reuse existing owner truth: AGENTS.md; services/harness/docs/authority.md; servi
 
 ## Decision
 
-Distinguish dimensions, not brands. Formal-First states the behavioral obligations and evidence scope. LEGO-First discovers a smallest replaceable, goal-conditioned responsibility. Models, skills, tools, harnesses and runtimes are concrete mechanisms implementing or consuming these responsibilities, not additional universal top-level owners.
+Distinguish dimensions, not brands. Formal-First states the behavioral obligations and evidence scope. LEGO-First discovers a replaceable, goal-conditioned responsibility. Models, skills, tools, harnesses and runtimes are concrete mechanisms implementing or consuming these responsibilities, not additional universal top-level owners.
 
 A LEGO is NOT synonymous with a file, package, agent, tool, skill, runtime object or MCP server. For a needed responsibility name identity, responsibility, inputs, outputs, behavioral contract and acceptance. Only add authority/effects/state/provenance where they change the real decision.
+
+## 2026-10-25 method decision: retire default MSR; use scoped CEGAR
+
+Human policy supersedes any reading of earlier "smallest" and "minimum representation" as a universal optimization theorem. **Minimum Sufficient Representation is NOT the default LEGO/Representation objective.** It remains an optional method/Skill LEGO inside the existing method router, not a new Skill package, registry, Owner or solver. Benefits: reduced needless distinctions, smaller local interface/context and occasionally easier analysis. Limitations: global minimality is undefined without a comparison class and metric; sufficiency depends on a complete admitted specification and source-qualified bridge, not unknown attacks or future consumers; finding/proving minimum may cost more than implementing an effective representation. Serial bottlenecks, Agent reconstruction/coordination cost and unverified compression can dominate apparent size savings.
+
+The selection order is hard correctness/authority obligations first, followed by observed consumer acceptance and qualified multi-objective wall time, parallel work/span, Agent usability, coordination, evidence cost and reversibility. Simple bounded parallel implementations can beat locally sophisticated specialized representations. Aggressively retire **proven redundant behavior**, but do not infer redundant consumers from historical age, apparent simplicity or a formal model that omits them.
+
+**CEGAR is optional and counterexample driven:** start from a conservative over-approximation of exact owner semantics, check a scoped safety predicate, concretize any abstract counterexample, refine only a **proved spurious** behavior while preserving over-approximation, and repeat within a resource budget. Real counterexamples go to the actual implementation owner; unknown concrete feasibility stays UNKNOWN. A bounded model PASS never implies Rust-to-TLA refinement or real-world external-effect acceptance. Reuse existing TLA+/TLC, SMT and native Rust/contract verifiers rather than installing a second proof platform. Details and exact quantifiers: `.agents/skills/recursive-lego-calculus/references/formal-model.md` and `.agents/skills/method-router/references/representation-first.md`; original CEGAR: Clarke et al., CAV 2000, DOI:10.1007/10722167_15.
 
 ## Minimal new-Agent decision boundary
 
@@ -122,7 +130,7 @@ No new Agent role, new Skill, registry, approval loop, scheduler or formal DSL i
 
 ## Human direction — Formal LEGO R2.1 as mathematics-backed representation; agent environment hygiene (2026-10-24)
 
-**Standing:** scoped architecture/working-method decision from the Human, not a new LEGO definition, source of runtime truth, proof of whole-system conformance, or authorization to add infrastructure. The exact formal vocabulary remains the project Skill `project-ordivon-next/recursive-lego-calculus` and optional `references/formal-model.md` (observed model SHA-256 `00cf24160c97e94193c9584d7e963e038c5918059aad37c965503ae09e0901ca`). Space broadcast: `space:ordivon-whole-system-optimization-r1:20261002`, topic `topic:ordivon-whole-system-optimization:mature-engineering-loop-r1:20261006`, message `message:recursive-lego-r21-math-kernels-agent-environment-decision:20261024`.
+**Standing:** scoped architecture/working-method decision from the Human, not a new LEGO definition, source of runtime truth, proof of whole-system conformance, or authorization to add infrastructure. The exact formal vocabulary remains the project Skill `project-ordivon-next/recursive-lego-calculus` and optional `references/formal-model.md` (observed model SHA-256 `a7efdc5e4fa4a031601d2b04dc9b3f9eb48c7233c697f3af47c5c582302ec51a`). Space broadcast: `space:ordivon-whole-system-optimization-r1:20261002`, topic `topic:ordivon-whole-system-optimization:mature-engineering-loop-r1:20261006`, message `message:recursive-lego-r21-math-kernels-agent-environment-decision:20261024`.
 
 **Why:** An Agent's observations and available actions are strongly shaped by paths, refs, tool exposure, installed versions, workspace contents and historical artifacts. The Agent then modifies those same surroundings. Stale sources, missing tools, repeated local patches, uncleared workspaces and unintegrated commits can therefore compound across Agent runs. Environment correctness is a prerequisite for trustworthy reasoning *and* actual effect execution; cleanup prevents feedback-driven duplication. This is a causal hypothesis to test on concrete runs, not a proof about all Agents.
 
@@ -224,7 +232,7 @@ falsify the safety obligation. This is a concrete scoped proof and
 counterexample, **not** a proof of implementation refinement. No separate
 LEGO model checker, global test registry or mandatory abstraction was added.
 
-**Subtractive promotion rule:** retain or port only the smallest behavior
+**Subtractive promotion rule:** retain or port only the behavior
 that a real consumer currently requires and the accepted Owner does not
 already supply. UNKNOWN external consumption blocks destructive erasure
 of the last recoverable source, but does **not** justify reinstalling the

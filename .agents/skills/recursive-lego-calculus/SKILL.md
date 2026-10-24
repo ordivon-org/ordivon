@@ -1,6 +1,6 @@
 ---
 name: recursive-lego-calculus
-description: "Use for real Ordivon LEGO work: question the goal and consumers, delete unneeded responsibilities, express the smallest useful input/output/contract, and compose existing capabilities without adding a new framework. For hard cross-layer reasoning, open the optional formal reference and route to specialist Skills."
+description: "Use for real Ordivon LEGO work: question the goal and consumers, delete unneeded responsibilities, express the task-appropriate input/output/contract, and compose existing capabilities without adding a new framework. For hard cross-layer reasoning, open the optional formal reference and route to specialist Skills."
 compatibility: Cross-platform. Helps Agents simplify and compose real responsibilities; use the formal reference only when necessary. Does not grant authority, execute effects, define domain truth or replace specialist verification.
 metadata:
   ordivon-category: general
@@ -21,14 +21,22 @@ Use whichever of these questions changes the current decision. They are **not** 
 2. **Zero-base.** Pretend the existing file, service, Skill and LEGO do not exist. Trace every consumer through to a real outcome; consumers that exist only to keep each other alive do not justify retention. Prefer deleting the whole chain or using a mature existing provider.
 3. **LEGO.** For a responsibility that remains necessary, name only six things: **identity, one responsibility, inputs, outputs, behavioral contract, acceptance**. Add state, authority, effects, provenance, cost or children only when they change the decision. LEGO is the responsibility, not its file, class, Agent, Skill or Tool.
 4. **Compose.** Connect compatible inputs/outputs, assumptions/guarantees, identities and effect boundaries. Reuse a real owner interface; do not duplicate truth or assume a successful subcomponent implies a successful whole. Split or share only if replaceability and consumer outcomes improve.
-5. **Act.** Agents freely choose, compete, cooperate and adapt the smallest relevant Skills and Tools. Execute only through actual owner-authorized boundaries; no permanent role, mandatory workflow, or new LEGO execution service.
-6. **Select.** Observe the changed consumer behavior and the smallest relevant native check. Report PASS, FAIL or UNKNOWN honestly. Keep, replace, merge or delete based on evidence; stop when further decomposition adds glue instead of value.
+5. **Act.** Agents freely choose, compete, cooperate and adapt the relevant bounded Skills and Tools. Execute only through actual owner-authorized boundaries; no permanent role, mandatory workflow, or new LEGO execution service.
+6. **Select.** Observe the changed consumer behavior and the source-qualified native check. Report PASS, FAIL or UNKNOWN honestly. Keep, replace, merge or delete based on evidence; stop when further decomposition adds glue instead of value.
 
 For a simple case the entire working note can fit in a sentence and six short fields. Reuse an existing API and its tests; do not create a separate LEGO specification file merely to restate the API.
 
 ### Advanced mode — only if the actual problem requires it
 
 Open references/formal-model.md when a decision depends on representation loss/refinement, complex preconditions or state transitions, formal assume/guarantee reasoning, uncertain verifier-to-goal soundness, probabilistic qualifications, search/optimization or self-refinement. In that case distinguish the real problem specification from the encoded verifier target, use legal operators, preserve model/source identity and provenance, and keep independent evaluators and rollback where needed. A formal-tool PASS proves only its encoded target. Do not run all advanced steps on routine file deletion or ordinary module reuse.
+
+## Representation selection: MSR optional, never the default
+
+**Minimum Sufficient Representation (MSR) is a candidate method/Skill LEGO, not an Ordivon axiom or an automatic guarantee.** It can improve task-local readability, compactness, interface cost and needless-state elimination. But a proof of absolute minimum needs an explicit equivalence relation, complete domain/consumer boundary and objective; a proof of sufficiency holds only for an admitted specification, not unknown future requirements or attacks. The optimization/proof effort can exceed the task itself. More compact representations can also create serial bottlenecks, harder Agent collaboration or expensive reconstruction.
+
+**Standing: retired as the default selection rule; retained as an opt-in strategy only with a real consumer, admissible loss/assumptions, a relevant falsifier and a measurable advantage.** Prefer a simple, independent, parallel, readily verified representation over a specialized theoretical minimum when the end-to-end evidence favors it. Zero-base deletion of demonstrably unneeded behavior still applies: deleting redundant production consumers is not the same claim as proving an MSR.
+
+When a safety-relevant abstraction produces an apparent violation, consider existing counterexample-guided abstraction refinement (CEGAR): check whether the abstract counterexample is feasible in the concrete owner semantics; if it is spurious, refine the abstraction *without losing sound coverage of concrete behavior*. A genuine counterexample belongs to the real Owner; unknown feasibility stays UNKNOWN. Read the optional formal reference only when a real model/verification consumer warrants this loop. Do not demand CEGAR or an MSR proof for routine work, and do not add a solver/framework or automatically relabel a finite model PASS as implementation correctness.
 
 ## Specialist routing
 
@@ -62,7 +70,7 @@ Do not activate every lens. Choose only methods/providers that can change the de
 
 ## Output
 
-Report only what changes the action: goal and consumer; whether the capability is needed; the smallest LEGO inputs/outputs/contract; decision to reuse, compose, replace or delete; actual source/owner effect; observed acceptance and unresolved UNKNOWNs. For complex cases include only the additional formal obligations that materially affect acceptance.
+Report only what changes the action: goal and consumer; whether the capability is needed; the task-appropriate LEGO inputs/outputs/contract; decision to reuse, compose, replace or delete; actual source/owner effect; observed acceptance and unresolved UNKNOWNs. For complex cases include only the additional formal obligations that materially affect acceptance.
 
 ## Non-claims
 

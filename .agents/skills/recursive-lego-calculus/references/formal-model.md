@@ -123,6 +123,29 @@ Representation selection may minimize
 
 subject to specification preservation, realizability, authority constraints and evidence/reconstruction obligations.
 
+## Candidate MSR Skill LEGO and agent-parallel representation choice
+
+Minimum Sufficient Representation (MSR) is an optional `mu` method/Skill LEGO for a **particular** problem, not the default R2.1 objective. Minimum depends on an explicit metric, representation class and behavioral/contextual equivalence; sufficiency depends on the admitted `phi`, `Gamma`, nonempty `beta_rho` realization and verifier-to-goal bridge. No universal minimality or coverage of unknown threats follows. Its strengths (less redundant state, reduced interface/context cost) and failure modes (proof/search cost, omitted obligations, serial bottlenecks, reconstruction, Agent coordination and weak extensibility) must be independently evaluated when this method is selected.
+
+For feasible candidate representations compare a Pareto objective, when measurable:
+`J(rho)=(T_wall(rho),W(rho),D(rho),H_coord(rho),C_agent(rho),C_verify(rho),Risk(rho))`,
+subject to `Hard_p(rho)` and qualified acceptance. `W` is total parallel work, `D` is critical-path span and `H_coord` is actual synchronization/merge overhead; with `P` workers the ideal lower bound is `T_P >= max(W/P,D)`, **not** a time guarantee. Agent usability and independent verifiability are decision-relevant, not lower-ranked behind mathematical minimality. The cheapest scalar objective is not assumed unless legitimately authorized.
+
+## Counterexample-guided abstraction refinement (CEGAR): optional soundness-preserving method LEGO
+
+For a fixed owner/source/property boundary, let `M` be the concrete transition system, `M_i` a current over-approximate model, `h_i` its stated trace projection and `Tr(-)` the admissible traces. A necessary safety transfer obligation is
+
+`h_i(Tr(M)) subseteq Tr(M_i)`,
+
+plus a property-preservation bridge: every concrete safety violation relevant to `phi` must project to an abstract violation of the checked predicate. Merely simplifying state variables does **not** establish either obligation.
+
+1. Run the existing model checker for the exact finite/qualified abstract system and safety target `psi_i`. If abstract safety PASS and the over-approximation and `psi_i -> phi` bridges are established, transfer only that **scoped** guarantee. Otherwise remain UNKNOWN.
+2. Given an abstract violation trace `tau_i`, check concrete feasibility `exists tau in Tr(M): h_i(tau)=tau_i` with the natural Owner's semantics/solver. If feasible with a trustworthy witness, record a real bounded violation; if feasibility is unknown, return UNKNOWN rather than labelling it spurious.
+3. Only for a **proven infeasible** trace, choose `M_{i+1}` excluding this spurious behavior while keeping `h_{i+1}(Tr(M)) subseteq Tr(M_{i+1})` and the relevant property bridge. When models share a common trace alphabet, seek a monotone refinement `Tr(M_{i+1}) subseteq Tr(M_i)`; do not assert monotonicity across incomparable alphabets without a relation.
+4. Repeat only under a declared resource/precision budget and independent falsifiers. Source, assumptions, owner authority, fairness, external effects or underlying `phi` changes require requalification. CEGAR is not a termination/completeness theorem for arbitrary systems. Model PASS still needs a model-to-implementation refinement witness for claims about deployed Rust/Host/Harness/Network behavior.
+
+Refining a counterexample-bearing **abstraction** is not automatically repairing the concrete program. When the concrete counterexample is real, send it to the appropriate implementation owner; do not hide it through abstraction refinement. Use existing TLA+/TLC, SMT/Z3 or admitted predicate abstraction tools only for a genuine checkable seam. Reference: Clarke, Grumberg, Jha, Lu, Veith, CAV 2000 (DOI:10.1007/10722167_15); Ball, *Formalizing Counterexample-driven Refinement with Weakest Preconditions*, Microsoft Research TR-2004-134.
+
 ## Generator family
 
 `G_rho={g1,...,gn}` is a compositional vocabulary. It is not called a mathematical basis without independent proofs of independence and completeness.
