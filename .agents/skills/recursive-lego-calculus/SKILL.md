@@ -28,7 +28,8 @@ For a simple case the entire working note can fit in a sentence and six short fi
 
 ### Advanced mode — only if the actual problem requires it
 
-Open references/formal-model.md when a decision depends on representation loss/refinement, complex preconditions or state transitions, formal assume/guarantee reasoning, uncertain verifier-to-goal soundness, probabilistic qualifications, search/optimization or self-refinement. In that case distinguish the real problem specification from the encoded verifier target, use legal operators, preserve model/source identity and provenance, and keep independent evaluators and rollback where needed. A formal-tool PASS proves only its encoded target. Do not run all advanced steps on routine file deletion or ordinary module reuse.
+Open references/formal-model.md when a decision depends on representation loss/refinement, complex preconditions or state transitions, formal assume/guarantee reasoning, uncertain verifier-to-goal soundness, probabilistic qualifications, search/optimization or self-refinement.
+For safety obligations with an explicit sound over-approximation, prefer mature Counterexample-Guided Abstraction Refinement (CEGAR): check the current abstraction, determine whether an abstract counterexample is realizable by the actual owner, fix a real defect or refine a demonstrably spurious trace, then recheck. Keep UNKNOWN when realizability or the abstraction-to-implementation relation is not established. Do not call a bounded model PASS a physical guarantee. In that case distinguish the real problem specification from the encoded verifier target, use legal operators, preserve model/source identity and provenance, and keep independent evaluators and rollback where needed. A formal-tool PASS proves only its encoded target. Do not run all advanced steps on routine file deletion or ordinary module reuse.
 
 ## Specialist routing
 
@@ -58,6 +59,7 @@ Do not activate every lens. Choose only methods/providers that can change the de
 - Similar code does not guarantee a good shared boundary; independent deployments may benefit from duplication.
 - Interface shape is not substitutability; local PASS is not whole-system PASS; execution is not semantic completion.
 - PASS, FAIL and UNKNOWN are different evidence states. Never promote historical or toy-model proof into current real-world correctness.
+- Minimum Sufficient Representation (MSR) is **not** an optimization axiom, acceptance predicate or assurance claim. Global minimality and sufficiency are generally not known and proving them may cost more than solving the actual problem; measure concrete cost and quality only when they affect a real consumer.
 - Method choice and even this LEGO procedure are removable if they cost more than they return.
 
 ## Output

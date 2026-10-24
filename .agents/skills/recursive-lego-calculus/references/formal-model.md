@@ -123,6 +123,63 @@ Representation selection may minimize
 
 subject to specification preservation, realizability, authority constraints and evidence/reconstruction obligations.
 
+## Counterexample-Guided Abstraction Refinement (CEGAR), scoped to a real owner
+
+This is a task-local **verification method**, not a new LEGO kind, registry,
+scheduler, or global proof of the framework. The actual concrete transition
+system C (including admitted environment assumptions and effect boundaries),
+the abstract transition system A_k, and abstraction/concretization maps must
+be named. For a safety claim P, a sufficient *soundness prerequisite* is that
+all relevant projected concrete traces are included in the abstract behavior:
+
+    project_k(Traces(C)) subseteq Traces(A_k).
+
+The inclusion must be justified by a simulation/refinement argument, not by
+an example that happened to pass. A result A_k |= P_abs transfers to the
+concrete safety claim only if P_abs correctly represents the concrete property
+under project_k, its assumptions hold, and the transfer relation is proved.
+A bounded TLC PASS alone provides no such implementation-level implication.
+
+If A_k violates P_abs with an abstract trace t_k:
+
+1. Check whether t_k has a feasible concrete realization under the actual
+   owner transitions, identity, authority, external assumptions, and effects.
+   A concrete witness is a **real counterexample**: fix or reject the actual
+   system behavior, and rerun the relevant verifier. Never refine the model
+   merely to hide this trace.
+2. If concrete infeasibility is established, t_k is **spurious**. Refine only
+   the predicates/state distinctions needed to exclude this trace, while
+   preserving the over-approximation and all admitted concrete behavior:
+   project_(k+1)(Traces(C)) subseteq Traces(A_(k+1)).
+3. If concretization, the soundness bridge, or counterexample classification
+   is not established, return UNKNOWN with the exact trace/source/evidence.
+   Do not label an unexplained counterexample spurious or infer a global PASS.
+
+Repeat model checking only when the counterexample changes the representation
+or actual consumer implementation. Preserve invariant/source IDs and distinct
+evidence for (a) abstract check, (b) concrete feasibility, (c) refinement
+soundness, and (d) actual consumer outcome. Trace validation of observed
+implementations can falsify refinement but is not exhaustive proof of it.
+
+Classical CEGAR over-approximation is principally a safety-property technique.
+Liveness, fairness, probabilistic, real-network and distributed-environment
+claims require their **own** explicit preservation/abstraction arguments;
+do not transfer safety guarantees by analogy. No general termination,
+minimality, full completeness or inevitable convergence is asserted.
+
+This deliberately rejects Minimum Sufficient Representation (MSR) as a
+default target: neither global minimality nor sufficiency is established
+merely by choosing fewer concepts. Complexity, trace costs and performance
+may be measured as engineering objectives after soundness, feasibility,
+consumer identity and acceptance obligations are fixed; no MSR theorem is
+demanded or claimed.
+
+The mature providers remain the existing natural owners: TLA+/TLC for
+admitted temporal models, an existing SMT/Z3 reasoning-waist to decide
+bounded trace feasibility where applicable, and concrete Runtime/Host/
+Harness/Network tests for real owner behavior. Do not install all providers
+for every LEGO or create a replacement CEGAR execution platform.
+
 ## Generator family
 
 `G_rho={g1,...,gn}` is a compositional vocabulary. It is not called a mathematical basis without independent proofs of independence and completeness.

@@ -122,9 +122,24 @@ No new Agent role, new Skill, registry, approval loop, scheduler or formal DSL i
 
 ## Human direction — Formal LEGO R2.1 as mathematics-backed representation; agent environment hygiene (2026-10-24)
 
-**Standing:** scoped architecture/working-method decision from the Human, not a new LEGO definition, source of runtime truth, proof of whole-system conformance, or authorization to add infrastructure. The exact formal vocabulary remains the project Skill `project-ordivon-next/recursive-lego-calculus` and optional `references/formal-model.md` (observed model SHA-256 `00cf24160c97e94193c9584d7e963e038c5918059aad37c965503ae09e0901ca`). Space broadcast: `space:ordivon-whole-system-optimization-r1:20261002`, topic `topic:ordivon-whole-system-optimization:mature-engineering-loop-r1:20261006`, message `message:recursive-lego-r21-math-kernels-agent-environment-decision:20261024`.
+**Standing:** scoped architecture/working-method decision from the Human, not a new LEGO definition, source of runtime truth, proof of whole-system conformance, or authorization to add infrastructure. The exact formal vocabulary remains the project Skill `project-ordivon-next/recursive-lego-calculus` and optional `references/formal-model.md` (observed model SHA-256 `e0a954f7678d1542271b2614982b99c523b9d14f9eb3d31f31498cc97e19bc7f`). Space broadcast: `space:ordivon-whole-system-optimization-r1:20261002`, topic `topic:ordivon-whole-system-optimization:mature-engineering-loop-r1:20261006`, message `message:recursive-lego-r21-math-kernels-agent-environment-decision:20261024`.
 
 **Why:** An Agent's observations and available actions are strongly shaped by paths, refs, tool exposure, installed versions, workspace contents and historical artifacts. The Agent then modifies those same surroundings. Stale sources, missing tools, repeated local patches, uncleared workspaces and unintegrated commits can therefore compound across Agent runs. Environment correctness is a prerequisite for trustworthy reasoning *and* actual effect execution; cleanup prevents feedback-driven duplication. This is a causal hypothesis to test on concrete runs, not a proof about all Agents.
+
+**CEGAR refinement scope (2026-10-25):** The current referenced model extends the previous
+00cf24160c97e94193c9584d7e963e038c5918059aad37c965503ae09e0901ca
+source without erasing its provenance. User direction rejects Minimum Sufficient
+Representation (MSR) as an assumed theorem or default optimization target;
+a smaller representation is neither proven minimal nor necessarily sufficient.
+Prefer Counterexample-Guided Abstraction Refinement for suitable safety
+properties, with an independently justified concrete-to-abstract
+over-approximation, concrete-feasibility classification of counterexamples,
+and preservation of soundness on refinement. A real trace requires an owner
+repair; a proven spurious trace may justify refining the abstraction; unclear
+concretization or missing refinement mapping remains UNKNOWN. Neither a
+bounded model PASS nor trace validation alone proves all actual executions,
+fairness/liveness, external effects or domain acceptance. Reuse existing
+native verifier owners rather than installing a proprietary CEGAR executor.
 
 **R2.1 implications for real Ordivon work:**
 - Treat LEGO as the existing recursive problem/representation/contract/realization/verification calculus, **not** as a file, Unix Tool, new registry row, or mandatory universal schema. Select actual goal and real consumers before decomposition.
