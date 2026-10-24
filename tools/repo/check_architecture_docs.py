@@ -826,31 +826,34 @@ def validate_r21_lego_vocabulary(document: str, *, root: Path = ROOT) -> None:
                 )
             ]
             scope = classes[0].body if len(classes) == 1 else ()
-        witnesses = [
+        count = sum(
+            isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name == symbol
+            for node in scope
+        )
+        if count != 1:
+            raise ArchitectureDocsError(
+                f"R2.1 consumer witness nonunique or missing callable: "
+                f"{relative}::{symbol} (definitions={count})"
+            )
+        # Source existence and unique names are not execution proofs.
+        # Explicit unittest/pytest opt-outs cannot witness an always-on
+        # acceptance claim; runtime test execution remains Owner evidence.
+        witness = next(
             node for node in scope
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name == symbol
-        ]
-        # Python module/class namespace binding is last-definition-wins.
-        # Two same-named callables do not establish a single test identity.
-        if len(witnesses) != 1:
-            raise ArchitectureDocsError(
-                f"R2.1 consumer witness missing or ambiguous callable: {relative}::{symbol}"
-            )
-        # A callable explicitly skipped or marked expected-to-fail cannot be
-        # presented as an always-on falsification witness. This guards only
-        # direct stdlib/pytest decorators; execution evidence remains an
-        # independent Owner-native obligation.
-        decorators = list(witnesses[0].decorator_list)
+        )
+        decorators = list(witness.decorator_list)
         if class_name is not None:
             decorators.extend(classes[0].decorator_list)
         disabled = {
-            "pytest.mark.skip", "pytest.mark.skipif", "pytest.mark.xfail",
             "unittest.skip", "unittest.skipIf", "unittest.skipUnless",
+            "pytest.mark.skip", "pytest.mark.skipif", "pytest.mark.xfail",
         }
         if any(
-            ast.unparse(mark.func if isinstance(mark, ast.Call) else mark) in disabled
-            for mark in decorators
+            ast.unparse(item.func if isinstance(item, ast.Call) else item) in disabled
+            for item in decorators
         ):
             raise ArchitectureDocsError(
                 f"R2.1 disabled consumer witness: {relative}::{symbol}"
