@@ -22,7 +22,8 @@
       "sharedRefs": [],
       "evidence": [
         "source_history_legos.py",
-        "test_source_history_legos.py"
+        "test_source_history_legos.py",
+        "Historical local-main candidate 8ac2e7f8147eba471c36650cda52ca2a6fb51347 (Daily World-Model Brief v5.2) versus protected main 99c24a6aa52ca88b23f238ac21cb9c0a48bb89b4: isolated git archive of the exact 37-file historical package passes its native validate_current.py --self-test (5 required contracts, 2 conditional roots, source digest sha256:745b128aa5b692e7fb603dd7242a4ccf10f47e05fbc0ebf23667fb35c11adcb0). NO_CURRENT_REPO_CONSUMER: the current tip has no catalogs/knowledge/daily-world-model-brief package or invoking source; only a declared but not materialized structure-r2 knowledge-catalog target remains. SKIP_HISTORICAL_CHERRY_PICK; preserve the Git source history, do not reinstate old v5.2 as active repo authority. Outside-repo ChatGPT automation usage is UNVERIFIED and not covered by this judgment."
       ],
       "dependencies": [],
       "mustNotOwn": [
