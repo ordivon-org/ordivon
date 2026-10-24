@@ -58,6 +58,7 @@ def _proofs(issue: dict) -> dict[str, dict]:
                     or re.fullmatch(r"[0-9a-f]{40}", member) is None
                     for member in cohort
                 )
+                or sha not in cohort
                 or len(cohort) != len(set(cohort))
             ):
                 raise MergeConflict(f"{sha}: invalid historicalCohort overlap or identity")
