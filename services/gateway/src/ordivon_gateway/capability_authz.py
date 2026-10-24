@@ -37,27 +37,19 @@ class CapabilityAuthorizer(Protocol):
 
 @dataclass(frozen=True, slots=True)
 class CapabilityAuthorizationTarget:
-    """Server-derived authorization target, distinct from caller-authored Tool arguments."""
+    """Server-derived authorization target, distinct from caller-authored policy claims."""
 
     capability: str
     resource_type: str
     resource_id: str
-    operation_ref: str
-    owner_id: str
-    job_id: str
-    artifact_id: str
+    resource_properties: Mapping[str, Any]
+    allowed_schema_versions: frozenset[int]
 
     def authzen_resource(self) -> dict[str, Any]:
         return {
             "type": self.resource_type,
             "id": self.resource_id,
-            "properties": {
-                "identityContract": "ordivon.runtime-artifact-resource-key.v1",
-                "operationRef": self.operation_ref,
-                "ownerId": self.owner_id,
-                "jobId": self.job_id,
-                "artifactId": self.artifact_id,
-            },
+            "properties": dict(self.resource_properties),
         }
 
 
@@ -77,6 +69,34 @@ _RUNTIME_ARTIFACT_OWNERS = frozenset({"runtime.linux", "runtime.windows"})
 
 def _base64url_text(value: str) -> str:
     return base64.urlsafe_b64encode(value.encode("utf-8")).decode("ascii").rstrip("=")
+
+
+def _host_actor_resource_id(actor_ref: str) -> str:
+    return "host-actor:v1:" + _base64url_text(actor_ref)
+
+
+def _validate_host_actor_ref(value: object) -> str:
+    capability = "host.message.post"
+    if not isinstance(value, str):
+        raise CapabilityAuthorizationTargetError(
+            "CAPABILITY_AUTHZ_TARGET_INVALID",
+            "message.post requires a string authorActorRef before authorization.",
+            capability=capability,
+        )
+    encoded = value.encode("utf-8")
+    if (
+        not value
+        or value != value.strip()
+        or len(encoded) > 512
+        or "\x00" in value
+        or any(unicodedata.category(ch) == "Cc" for ch in value)
+    ):
+        raise CapabilityAuthorizationTargetError(
+            "CAPABILITY_AUTHZ_TARGET_INVALID",
+            "message.post authorActorRef is outside the Host ActorRef identifier contract.",
+            capability=capability,
+        )
+    return value
 
 
 def _artifact_resource_id(operation_ref: str, artifact_id: str) -> str:
@@ -119,10 +139,25 @@ def resolve_authorization_target(
 ) -> CapabilityAuthorizationTarget | None:
     """Resolve the protected natural-owner object from trusted Gateway semantics.
 
-    Tool name alone is intentionally insufficient: ``artifact.read`` also routes external.pull
-    artifacts. Until Security defines an external-artifact policy target, those calls fail closed
-    whenever this PEP is enabled instead of being mislabeled as ``artifact.runtime``.
+    Tool name alone is intentionally insufficient. ``artifact.read`` is bound to an exact
+    Runtime Artifact coordinate, while ``message.post`` is bound to the exact Host ActorRef
+    named by the operation. The latter authorizes the verified Principal to act as that Host actor;
+    it does not establish the truth of the message body. External-pull Artifacts remain unqualified
+    and fail closed whenever this PEP is enabled.
     """
+
+    if tool_name == "message.post":
+        actor_ref = _validate_host_actor_ref(arguments.get("authorActorRef"))
+        return CapabilityAuthorizationTarget(
+            capability="host.message.post",
+            resource_type="ordivon.host.actor",
+            resource_id=_host_actor_resource_id(actor_ref),
+            resource_properties={
+                "identityContract": "ordivon.host-actor-resource-key.v1",
+                "actorRef": actor_ref,
+            },
+            allowed_schema_versions=frozenset({3}),
+        )
 
     if tool_name != "artifact.read":
         return None
@@ -154,10 +189,14 @@ def resolve_authorization_target(
         capability="artifact.runtime",
         resource_type="ordivon.runtime.artifact",
         resource_id=_artifact_resource_id(operation_ref, artifact_id),
-        operation_ref=operation_ref,
-        owner_id=owner_id,
-        job_id=native_id,
-        artifact_id=artifact_id,
+        resource_properties={
+            "identityContract": "ordivon.runtime-artifact-resource-key.v1",
+            "operationRef": operation_ref,
+            "ownerId": owner_id,
+            "jobId": native_id,
+            "artifactId": artifact_id,
+        },
+        allowed_schema_versions=frozenset({2, 3}),
     )
 
 
@@ -265,7 +304,7 @@ class GatewayCapabilityAuthorizationMiddleware:
             )
         schema_version = decision.get("schemaVersion")
         if (
-            schema_version not in {2, 3}
+            schema_version not in target.allowed_schema_versions
             or decision.get("kind") != "ordivon.security.gateway-capability-authz"
             or decision.get("principalId") != principal
             or decision.get("issuer") != issuer

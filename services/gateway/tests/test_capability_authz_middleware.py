@@ -38,6 +38,42 @@ def _resource(
     return target.authzen_resource()
 
 
+def _actor_resource(actor_ref: str = "actor:agent:scientific-owner") -> dict[str, Any]:
+    target = resolve_authorization_target("message.post", {"authorActorRef": actor_ref})
+    assert target is not None
+    return target.authzen_resource()
+
+
+def _interactive_decision(
+    *,
+    outcome: str = "ALLOW",
+    principal: str = "principal:local-service:harness",
+    capability: str = "host.message.post",
+    resource: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    request_id = "request-test"
+    return {
+        "schemaVersion": 3,
+        "kind": "ordivon.security.gateway-capability-authz",
+        "principalId": principal,
+        "issuer": "ordivon-local-service",
+        "requestedCapability": capability,
+        "requestedResource": resource or _actor_resource(),
+        "qualificationTarget": True,
+        "authorizationProfile": "interactive-principal-authzen",
+        "outcome": outcome,
+        "reason": "authzen-permit" if outcome == "ALLOW" else "authzen-deny",
+        "authorizationEvidence": {
+            "standard": "openid-authzen-authorization-api-1.0",
+            "requestId": request_id,
+            "responseRequestId": request_id,
+            "decision": outcome == "ALLOW",
+        },
+        "authorityProjection": None,
+        "effectAdmission": None,
+    }
+
+
 def _decision(
     *,
     outcome: str = "ALLOW",
@@ -238,3 +274,143 @@ def test_build_server_adds_pep_only_when_trusted_authorizer_is_injected() -> Non
     assert names.index("GatewayCapabilityAuthorizationMiddleware") > names.index(
         "GatewayAuditMiddleware"
     )
+
+
+def test_message_post_resolves_exact_author_actor_resource() -> None:
+    first = resolve_authorization_target(
+        "message.post", {"authorActorRef": "actor:agent:scientific-owner"}
+    )
+    second = resolve_authorization_target(
+        "message.post", {"authorActorRef": "actor:agent:other-owner"}
+    )
+    assert first is not None and second is not None
+    assert first.capability == "host.message.post"
+    resource = first.authzen_resource()
+    assert resource["type"] == "ordivon.host.actor"
+    assert resource["properties"] == {
+        "identityContract": "ordivon.host-actor-resource-key.v1",
+        "actorRef": "actor:agent:scientific-owner",
+    }
+    assert resource["id"].startswith("host-actor:v1:")
+    assert resource["id"] != second.authzen_resource()["id"]
+
+
+def test_message_post_requires_verified_principal_when_authz_pep_is_enabled() -> None:
+    authorizer = FakeAuthorizer(_interactive_decision(resource=_actor_resource()))
+    result = asyncio.run(
+        GatewayCapabilityAuthorizationMiddleware(authorizer)(
+            _ctx(
+                tool="message.post",
+                arguments={"authorActorRef": "actor:agent:scientific-owner"},
+            ),
+            _next,
+        )
+    )
+    assert result.is_error is True
+    assert result.structured_content["error"]["code"] == "CAPABILITY_AUTHZ_INGRESS_IDENTITY_MISSING"
+    assert authorizer.calls == []
+
+
+def test_message_post_authzen_allow_is_bound_to_exact_actor() -> None:
+    resource = _actor_resource("actor:agent:scientific-owner")
+    authorizer = FakeAuthorizer(_interactive_decision(resource=resource))
+    result = asyncio.run(
+        GatewayCapabilityAuthorizationMiddleware(authorizer)(
+            _ctx(
+                tool="message.post",
+                state=_verified_state(),
+                arguments={
+                    "authorActorRef": "actor:agent:scientific-owner",
+                    "body": "decision",
+                },
+            ),
+            _next,
+        )
+    )
+    assert result["structuredContent"]["ok"] is True
+    call = authorizer.calls[0]
+    assert call["requested_capability"] == "host.message.post"
+    assert call["requested_resource"] == resource
+    assert call["principal_id"] == "principal:local-service:harness"
+
+
+def test_message_post_authzen_deny_never_reaches_host() -> None:
+    authorizer = FakeAuthorizer(
+        _interactive_decision(
+            outcome="DENY",
+            resource=_actor_resource("actor:agent:scientific-owner"),
+        )
+    )
+    reached = False
+
+    async def forbidden_next(_ctx: Any):
+        nonlocal reached
+        reached = True
+        return {}
+
+    result = asyncio.run(
+        GatewayCapabilityAuthorizationMiddleware(authorizer)(
+            _ctx(
+                tool="message.post",
+                state=_verified_state(),
+                arguments={"authorActorRef": "actor:agent:scientific-owner"},
+            ),
+            forbidden_next,
+        )
+    )
+    assert result.is_error is True
+    assert result.structured_content["error"]["code"] == "CAPABILITY_AUTHZ_DENIED"
+    assert reached is False
+
+
+def test_message_post_actor_binding_mismatch_fails_closed() -> None:
+    wrong_resource = _actor_resource("actor:agent:other-owner")
+    authorizer = FakeAuthorizer(_interactive_decision(resource=wrong_resource))
+    result = asyncio.run(
+        GatewayCapabilityAuthorizationMiddleware(authorizer)(
+            _ctx(
+                tool="message.post",
+                state=_verified_state(),
+                arguments={"authorActorRef": "actor:agent:scientific-owner"},
+            ),
+            _next,
+        )
+    )
+    assert result.is_error is True
+    assert result.structured_content["error"]["code"] == "CAPABILITY_AUTHZ_BINDING_MISMATCH"
+
+
+def test_message_post_invalid_actor_ref_fails_closed_before_authorizer() -> None:
+    authorizer = FakeAuthorizer()
+    result = asyncio.run(
+        GatewayCapabilityAuthorizationMiddleware(authorizer)(
+            _ctx(
+                tool="message.post",
+                state=_verified_state(),
+                arguments={"authorActorRef": "bad\nactor"},
+            ),
+            _next,
+        )
+    )
+    assert result.is_error is True
+    assert result.structured_content["error"]["code"] == "CAPABILITY_AUTHZ_TARGET_INVALID"
+    assert authorizer.calls == []
+
+
+def test_host_actor_target_rejects_delegated_agent_schema2_decision() -> None:
+    resource = _actor_resource("actor:agent:scientific-owner")
+    delegated = _decision(resource=resource)
+    delegated["requestedCapability"] = "host.message.post"
+    authorizer = FakeAuthorizer(delegated)
+    result = asyncio.run(
+        GatewayCapabilityAuthorizationMiddleware(authorizer)(
+            _ctx(
+                tool="message.post",
+                state=_verified_state(),
+                arguments={"authorActorRef": "actor:agent:scientific-owner"},
+            ),
+            _next,
+        )
+    )
+    assert result.is_error is True
+    assert result.structured_content["error"]["code"] == "CAPABILITY_AUTHZ_BINDING_MISMATCH"
