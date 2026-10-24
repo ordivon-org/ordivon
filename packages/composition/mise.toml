@@ -44,5 +44,21 @@ fi
   for cfg in Lego21OwnerBoundary.cfg Lego21OwnerBoundary.direct-local.cfg Lego21OwnerBoundary.direct-egress.cfg Lego21OwnerBoundary.harness-local.cfg; do
     java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config "$cfg" Lego21OwnerBoundary.tla
   done
+  # Non-vacuity: require a reachable post-admission Network degradation.
+  # This intentionally false invariant must be falsified by native TLC.
+  probe_output="$(mktemp)"
+  trap 'rm -f "$probe_output"' EXIT
+  if java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config Lego21OwnerBoundary.readiness-probe.cfg Lego21OwnerBoundary.tla >"$probe_output" 2>&1; then
+    echo "TLC freshness non-vacuity probe unexpectedly passed" >&2
+    exit 1
+  fi
+  if ! grep -Fq "Error: Invariant NetworkNeverDegradesAfterAdmission is violated." "$probe_output"; then
+    cat "$probe_output" >&2
+    echo "TLC did not confirm the expected reachable readiness change" >&2
+    exit 1
+  fi
+  echo "TLC post-admission Network degradation non-vacuity: PASS"
+  rm -f "$probe_output"
+  trap - EXIT
 )
 """

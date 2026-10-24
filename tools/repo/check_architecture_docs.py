@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import json
 import math
 from decimal import Decimal
@@ -819,14 +820,55 @@ def validate_r21_lego_vocabulary(document: str, *, root: Path = ROOT) -> None:
         raise ArchitectureDocsError("R2.1 competing LEGO mathematical definition")
     if r"\mathrm{Semantics}(L)" not in document:
         raise ArchitectureDocsError("R2.1 optional semantics must be distinct from LEGO")
-    for relative in (
-        "services/runtime/scripts/tests/test_mcp_e2e_reconciliation.py",
-        "services/host/tests/test_social_work_fabric_postgres.py",
-        "services/harness/tests/test_agent_automation_browserless.py",
-        "platform/network/tests/test_claude_egress_readiness_consumer.py",
+    # The architecture prose names these existing tests as Owner consumers.
+    # Mere file existence is a false-green: a removed test body would still
+    # allow the R2.1 document to claim an executable native witness.
+    # AST is the mature Python parser; this proves callable identity only,
+    # never test execution, refinement, or domain acceptance.
+    for relative, class_name, symbol in (
+        ("services/runtime/scripts/tests/test_mcp_e2e_reconciliation.py",
+         "ReconciliationContractTests", "test_reconciliation_fails_closed_if_attempt_identity_changes"),
+        ("services/host/tests/test_social_work_fabric_postgres.py",
+         None, "test_work_snapshot_cas_race_has_one_winner"),
+        ("services/harness/tests/test_agent_automation_browserless.py",
+         "BrowserlessAutomationServiceTests", "test_birth_replay_does_not_materialize_again"),
+        ("platform/network/tests/test_claude_egress_readiness_consumer.py",
+         None, "test_real_consumer_readiness_fails_closed_for_upstream_faults"),
     ):
-        if relative not in document or not (root / relative).is_file():
+        if relative not in document:
             raise ArchitectureDocsError(f"R2.1 missing current consumer witness: {relative}")
+        # Reuse this Repo Owner's existing source-bound path validator: the
+        # named witness may not be borrowed from outside the frozen source.
+        path = _source_bound_file(root, relative, "R2.1 consumer witness")
+        try:
+            syntax = ast.parse(path.read_text(encoding="utf-8"), filename=relative)
+        except (OSError, UnicodeError, SyntaxError) as exc:
+            raise ArchitectureDocsError(
+                f"R2.1 consumer witness invalid Python source: {relative}: {exc}"
+            ) from exc
+        if class_name is None:
+            scope = syntax.body
+        else:
+            classes = [
+                node for node in syntax.body
+                if isinstance(node, ast.ClassDef) and node.name == class_name
+                and any(
+                    isinstance(base, ast.Attribute)
+                    and base.attr == "TestCase"
+                    for base in node.bases
+                )
+            ]
+            scope = classes[0].body if len(classes) == 1 else ()
+        count = sum(
+            isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name == symbol
+            for node in scope
+        )
+        if count != 1:
+            raise ArchitectureDocsError(
+                f"R2.1 consumer witness nonunique or missing callable: "
+                f"{relative}::{symbol} (definitions={count})"
+            )
 
 
 def validate_repository(root: Path = ROOT) -> None:

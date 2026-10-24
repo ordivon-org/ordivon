@@ -14,7 +14,7 @@ MIN_SPACE_MAX_BYTES = 1_048_576
 
 
 def validate_max_bytes(max_bytes: int, *, minimum: int = MIN_COLLECTION_MAX_BYTES) -> None:
-    if not minimum <= max_bytes <= MAX_COLLECTION_MAX_BYTES:
+    if type(max_bytes) is not int or not minimum <= max_bytes <= MAX_COLLECTION_MAX_BYTES:
         raise ValueError(f"max_bytes must be in [{minimum},{MAX_COLLECTION_MAX_BYTES}]")
 
 

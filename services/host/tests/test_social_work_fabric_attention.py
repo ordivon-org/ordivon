@@ -1,5 +1,11 @@
 from pathlib import Path
 
+import pytest
+
+from ordivon_host_v2 import social_attention
+from ordivon_host_v2.social_attention import AttentionStore
+from ordivon_host_v2.social_bounds import validate_max_bytes
+
 ROOT = Path(__file__).parents[1]
 ATTENTION = ROOT / "src" / "ordivon_host_v2" / "social_attention.py"
 MIGRATION = ROOT / "migrations" / "versions" / "0008_social_work_fabric_attention.py"
@@ -70,3 +76,58 @@ def test_subscription_horizon_does_not_replay_pre_follow_history() -> None:
     sql = ATTENTION.read_text().split("    def _delta_sql", 1)[1]
     compact = "".join(sql.split())
     assert compact.count("change_sequence>s.change_sequence") >= 6
+
+@pytest.mark.parametrize("limit", [True, False, 1.0, 100.0, "100"])
+@pytest.mark.parametrize("operation", ["list_subscriptions", "delta", "reentry"])
+def test_attention_limit_is_exact_integer_before_store_effect(
+    monkeypatch, operation: str, limit: object
+) -> None:
+    def forbid_connection(*args, **kwargs):
+        raise AssertionError("invalid limit must never reach PostgreSQL")
+
+    monkeypatch.setattr(social_attention.psycopg, "connect", forbid_connection)
+    store = AttentionStore("postgresql://unused.invalid/host")
+    method = getattr(store, operation)
+    extras = {"after_sequence": 1} if operation == "delta" else {}
+    with pytest.raises(ValueError, match="limit"):
+        method("actor:agent:test", limit=limit, **extras)
+
+
+@pytest.mark.parametrize("sequence", [True, False, 1.0, 2.0, "1"])
+@pytest.mark.parametrize("operation", ["delta", "reentry"])
+def test_attention_cursor_is_exact_integer_before_store_effect(
+    monkeypatch, operation: str, sequence: object
+) -> None:
+    def forbid_connection(*args, **kwargs):
+        raise AssertionError("invalid attention cursor must never reach PostgreSQL")
+
+    monkeypatch.setattr(social_attention.psycopg, "connect", forbid_connection)
+    store = AttentionStore("postgresql://unused.invalid/host")
+    with pytest.raises(ValueError, match="after_sequence"):
+        getattr(store, operation)("actor:agent:test", after_sequence=sequence)
+
+
+@pytest.mark.parametrize("invalid_max_bytes", [262144.0, 65536.0, "262144"])
+def test_collection_byte_budget_requires_exact_integer(invalid_max_bytes: object) -> None:
+    with pytest.raises(ValueError, match="max_bytes"):
+        validate_max_bytes(invalid_max_bytes)
+
+@pytest.mark.parametrize("operation", ["list_subscriptions", "delta", "reentry"])
+def test_exact_valid_attention_limit_retains_native_owner_db_path(
+    monkeypatch, operation: str
+) -> None:
+    class ConnectionReached(Exception):
+        pass
+
+    def witnessed_connection(*args, **kwargs):
+        raise ConnectionReached("legal typed attention request reached natural owner")
+
+    monkeypatch.setattr(social_attention.psycopg, "connect", witnessed_connection)
+    store = AttentionStore("postgresql://unused.invalid/host")
+    kwargs = {"after_sequence": 1} if operation in {"delta", "reentry"} else {}
+    with pytest.raises(ConnectionReached):
+        getattr(store, operation)("actor:agent:test", limit=100, **kwargs)
+
+
+def test_exact_valid_collection_byte_budget_is_accepted() -> None:
+    validate_max_bytes(262144)
