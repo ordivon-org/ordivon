@@ -150,7 +150,12 @@ class GatewayService:
             raise ValueError("projection_timeout_seconds must be positive finite")
         self._projection_timeout_seconds = projection_timeout_seconds
         self._caller = caller
-        self._routes = routes or default_routes()
+        self._routes = default_routes() if routes is None else dict(routes)
+        if any(
+            not isinstance(route, CapabilityRoute) or name != route.capability
+            for name, route in self._routes.items()
+        ):
+            raise GatewayError("route identity must match its capability")
         self._external_workers = external_workers
 
     def system_describe(self) -> SystemDescription:
