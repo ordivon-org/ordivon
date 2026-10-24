@@ -65,9 +65,16 @@ def current_tree(repo: Path, revision: str) -> dict[str, str]:
 def history(repo: Path, left: str, right: str) -> dict:
     left_oid = git(repo, "rev-parse", "--verify", left + "^{commit}").strip()
     right_oid = git(repo, "rev-parse", "--verify", right + "^{commit}").strip()
-    base = git(repo, "merge-base", left_oid, right_oid).strip()
-    if not base:
+    # A criss-cross DAG can have several equally best merge bases. A single
+    # commonAncestor is valid only when Git proves exactly one best base.
+    bases = git(repo, "merge-base", "--all", left_oid, right_oid).splitlines()
+    if not bases:
         raise ValueError("source cuts have no common ancestor")
+    if len(bases) != 1:
+        raise ValueError(
+            f"ambiguous merge bases: expected one best common ancestor, got {len(bases)}"
+        )
+    base = bases[0]
 
     spec = left_oid + "..." + right_oid
     # The full DAG includes merge connectors, which have no single patch ID.

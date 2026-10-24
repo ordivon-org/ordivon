@@ -73,6 +73,43 @@ class SourceHistoryLegosTests(unittest.TestCase):
                 sum(projection["counts"].values()),
             )
 
+    def test_criss_cross_merge_bases_cannot_be_called_one_common_ancestor(self):
+        # A real Git DAG may have two best common ancestors. A projection
+        # claiming one canonical ancestor would lose provenance information.
+        with tempfile.TemporaryDirectory(prefix="ordivon-history-crisscross-") as temp:
+            root = Path(temp)
+            git(root, "init", "-q", "-b", "left")
+            git(root, "config", "user.name", "Ordivon Test")
+            git(root, "config", "user.email", "test@example.invalid")
+            owner = root / "tools/repo/owners.toml"
+            owner.parent.mkdir(parents=True)
+            owner.write_text(
+                CANONICAL_OWNER_HEADER
+                + '[[owners]]\nname = "runtime"\nroot = "services/runtime/"\n'
+                + 'verify_task = "runtime:verify"\n'
+            )
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "base")
+            git(root, "branch", "right")
+            (root / "left.txt").write_text("left")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "left first")
+            left_first = git(root, "rev-parse", "HEAD")
+            git(root, "switch", "-q", "right")
+            (root / "right.txt").write_text("right")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "right first")
+            right_first = git(root, "rev-parse", "HEAD")
+            git(root, "switch", "-q", "left")
+            git(root, "merge", "--no-ff", "-qm", "left merge", right_first)
+            git(root, "switch", "-q", "right")
+            git(root, "merge", "--no-ff", "-qm", "right merge", left_first)
+            self.assertEqual(
+                len(git(root, "merge-base", "--all", "left", "right").splitlines()), 2
+            )
+            with self.assertRaisesRegex(ValueError, "ambiguous merge bases"):
+                history(root, "left", "right")
+
     def test_merge_connectors_are_preserved_not_mistaken_for_patch_proofs(self):
         with tempfile.TemporaryDirectory(prefix="ordivon-history-merge-") as temp:
             root = Path(temp)
