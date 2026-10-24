@@ -2206,6 +2206,76 @@ class DeployReclaimTests(unittest.TestCase):
                             module["apply_reclaim"](args)
                     self.assertFalse((Path(temp) / "receipts").exists())
 
+    def test_reclaim_boolean_creation_time_cannot_authorize_workspace_close(self) -> None:
+        # Python bool subclasses int, but true is not a timestamp. A malformed
+        # record must never turn unknown age into permission for destructive close.
+        scripts_path = str(REPO / "scripts")
+        sys.path.insert(0, scripts_path)
+        try:
+            module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-reclaim"))
+        finally:
+            sys.path.remove(scripts_path)
+        globals_ = module["apply_reclaim"].__globals__
+        for creation in (True, False, -1, "-1", 1.0, None):
+            with self.subTest(creation=creation), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                args = argparse.Namespace(
+                    confirm_policy="RECLAIM_ELIGIBLE_WORKSPACES",
+                    classifications=["closable"],
+                    workspace_ids=["unproven"],
+                    minimum_age_hours=24.0,
+                    lock_file=root / "lock",
+                    receipt_root=root / "receipts",
+                    runtime_store_root=root,
+                    database=root / "registry.sqlite3",
+                    busy_timeout_ms=1000,
+                    env_file=root / "runtime.env",
+                    workspace_root=root / "workspaces",
+                )
+                calls = []
+                candidate = {
+                    "workspaceId": "unproven",
+                    "classification": "closable",
+                    "createdUnixMs": creation,
+                    "workspaceHeadRevision": "a" * 40,
+                }
+                with patch.dict(globals_, {
+                    "exclusive_lock": lambda _path: nullcontext(),
+                    "inspect_workspaces": lambda *_a, **_k: {"candidates": [candidate], "summary": {}},
+                    "registry_workspace_projection": lambda *_a, **_k: {
+                        "workspace": {
+                            "workspaceId": "unproven",
+                            "activeJobIds": [],
+                            "lastActivityMs": None,
+                        },
+                    },
+                    "close_workspace": lambda *_a, **_k: calls.append("CLOSED") or {
+                        "closureDisposition": "removed"
+                    },
+                    "reclaim_receipt": lambda _path: root / "receipts" / "current",
+                }):
+                    module["apply_reclaim"](args)
+                assert calls == [], "boolean creation time wrongly admitted destructive close"
+                plan = json.loads((root / "receipts" / "current" / "plan.json").read_text())
+                assert plan["candidates"][0]["eligible"] is False
+                assert plan["candidates"][0]["reason"] == "creation_time_unknown"
+
+    def test_reclaim_registry_migration_version_rejects_boolean_alias(self) -> None:
+        scripts_path = str(REPO / "scripts")
+        sys.path.insert(0, scripts_path)
+        try:
+            module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-reclaim"))
+        finally:
+            sys.path.remove(scripts_path)
+        globals_ = module["registry_projection"].__globals__
+        with patch.dict(globals_, {
+            "runtime_inspection": lambda *_a, **_k: {
+                "migrationVersion": True, "activeWorkspaces": []
+            }
+        }):
+            with self.assertRaisesRegex(RuntimeError, "migrationVersion"):
+                module["registry_projection"](Path("/not-accessed.db"), 1000)
+
     def test_reclaim_numeric_bounds_follow_sqlite_and_finite_policy_values(self) -> None:
         module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-reclaim"))
         self.assertEqual(module["positive_timeout"]("60001"), 60_001)
