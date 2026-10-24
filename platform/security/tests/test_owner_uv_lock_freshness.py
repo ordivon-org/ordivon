@@ -14,13 +14,14 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class OwnerUvLockFreshness(unittest.TestCase):
-    def test_verify_checks_lock_before_frozen_dependency_consumers(self) -> None:
+    def test_verify_uses_one_freshness_aware_sync(self) -> None:
         data = tomllib.loads((ROOT / "mise.toml").read_text(encoding="utf-8"))
         script = data["tasks"]["verify"]["run"]
-        check = "uv lock --check --offline --python 3.15.1"
-        self.assertIn(check, script)
-        self.assertLess(script.index(check), script.index("uv sync --frozen"))
-        self.assertLess(script.index(check), script.index("ruff check"))
+        sync = "uv sync --locked --python 3.15.1"
+        self.assertIn(sync, script)
+        self.assertNotIn("uv lock --check", script)
+        self.assertNotIn("uv sync --frozen", script)
+        self.assertLess(script.index(sync), script.index("ruff check"))
 
     def test_frozen_sync_alone_accepts_stale_lock(self) -> None:
         original = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
@@ -45,15 +46,24 @@ class OwnerUvLockFreshness(unittest.TestCase):
 
             base = uv("lock", "--offline", "--python", "3.15.1")
             self.assertEqual(base.returncode, 0, base.stderr)
+            fresh = uv(
+                "sync", "--locked", "--offline", "--python", "3.15.1",
+                "--no-dev", "--no-install-project",
+            )
+            self.assertEqual(fresh.returncode, 0, fresh.stderr)
             # Reintroduce the original requirements without refreshing lock.
             (temp / "pyproject.toml").write_text(original, encoding="utf-8")
             frozen = uv(
                 "sync", "--frozen", "--offline", "--python", "3.15.1",
-                "--no-install-project",
+                "--no-dev", "--no-install-project",
             )
             self.assertEqual(frozen.returncode, 0, frozen.stderr)
-            strict = uv("lock", "--check", "--offline", "--python", "3.15.1")
+            strict = uv(
+                "sync", "--locked", "--offline", "--python", "3.15.1",
+                "--no-dev", "--no-install-project",
+            )
             self.assertNotEqual(strict.returncode, 0, strict.stderr)
+            self.assertIn("lockfile", strict.stderr.lower())
 
 
 if __name__ == "__main__":
