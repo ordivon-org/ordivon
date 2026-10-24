@@ -26,16 +26,6 @@
       "sha256": "sha256:e95df1c4a37e7bc4ae26a520f7e57589574bef3fb810d4a548550f36dc9ab038"
     },
     {
-      "name": "opa",
-      "version": "1.20.2",
-      "executable": "/usr/bin/opa",
-      "sha256": "sha256:ae0171e1b8cfed38f39c435660924c06a313868dd5d34bf5f5869d6dbe78d21b",
-      "ciContainer": {
-        "image": "docker.io/openpolicyagent/opa",
-        "digest": "sha256:9c5770a0023d56a11224b0514fec2e4e0247357db4392b955c1270fd49cb1f0f"
-      }
-    },
-    {
       "name": "semgrep",
       "version": "1.177.0",
       "execution": "uvx --from semgrep==1.177.0 semgrep",
