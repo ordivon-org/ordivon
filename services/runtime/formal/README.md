@@ -117,3 +117,28 @@ ExecutionProvider boundary; no new Ordivon DSL, interpreter, global LEGO
 registry, or second test runner is introduced. Model safety, unit-test
 acceptance, optional physical acceptance and domain completion remain separate
 facts.
+
+## R2.1 consumer-slice: terminal evidence provenance (TLA+ + Rust)
+
+The mature transition-system kernel supplies states, steps, invariants, weak
+fairness and finite-state counterexamples; no new Ordivon algebra or verifier
+is created. The added `TerminalEvidenceIsCommitted` is an explicit
+safety obligation:
+
+```tla
+jobState = "terminal" =>
+    /\ currentAttempt # NoAttempt
+    /\ attemptState[currentAttempt] = "terminal"
+    /\ reconcileState = "committed"
+```
+
+The invariant is deliberately separate from `TerminalAttemptWasDispatched`:
+physical dispatch and committed terminal evidence are different predicates.
+The exact Runtime Owner's
+`terminal_evidence_requires_result_finish_matching_resolution_and_no_current_attempt`
+test supplies an implementation-level negative-control witness. The
+existing trace gate binds the invariant and test symbol by current source
+identity; neither it nor the bounded TLC result proves Rust-to-TLA+
+refinement. Actual provider completion and semantic Work acceptance are
+outside this model. Consumers of terminal standing must still enforce their
+domain acceptance predicate.

@@ -160,12 +160,88 @@ trait Provider {
         errors = self.module.validate(mutated, invariants)
         self.assertTrue(any("formal source drift" in error for error in errors), errors)
 
+    def test_terminal_evidence_math_kernel_has_one_native_owner_witness(self):
+        """R2.1 consumer seam: terminal standing requires committed physical evidence."""
+        trace, invariants = manifests()
+        bindings = {item["id"] for item in trace["formalSpecification"]["modelBindings"]}
+        self.assertIn("RuntimeDispatch.TerminalEvidenceIsCommitted", bindings)
+        terminal = next(
+            item for item in trace["provingTests"]
+            if item["id"] == "RuntimeDispatch.terminalEvidence"
+        )
+        self.assertEqual(
+            terminal["path"],
+            "crates/ordivon-runtime-core/src/runtime/job_attempt_state.rs",
+        )
+        self.assertEqual(
+            terminal["symbol"],
+            "terminal_evidence_requires_result_finish_matching_resolution_and_no_current_attempt",
+        )
+        self.assertIn("RuntimeDispatch.TerminalEvidenceIsCommitted", terminal["proves"])
+        self.assertEqual(self.module.validate(trace, invariants), [])
+
+    def test_terminal_evidence_proof_cannot_be_dropped_without_rejection(self):
+        trace, invariants = manifests()
+        mutated = copy.deepcopy(trace)
+        mutated["formalSpecification"]["modelBindings"] = [
+            row for row in mutated["formalSpecification"]["modelBindings"]
+            if row["id"] != "RuntimeDispatch.TerminalEvidenceIsCommitted"
+        ]
+        self.assertTrue(any(
+            "formal model binding set drift" in error
+            for error in self.module.validate(mutated, invariants)
+        ))
+        mutated = copy.deepcopy(trace)
+        mutated["provingTests"] = [
+            row for row in mutated["provingTests"]
+            if row["id"] != "RuntimeDispatch.terminalEvidence"
+        ]
+        self.assertTrue(any(
+            "proving test set drift" in error
+            for error in self.module.validate(mutated, invariants)
+        ))
+
     def test_removed_formal_model_binding_fails_closed(self):
         trace, invariants = manifests()
         mutated = copy.deepcopy(trace)
         mutated["formalSpecification"]["modelBindings"].pop()
         errors = self.module.validate(mutated, invariants)
         self.assertTrue(any("formal model binding set drift" in error for error in errors), errors)
+
+
+    def test_erasing_all_runtime_invariant_bindings_is_rejected(self):
+        trace, invariants = manifests()
+        mutated = copy.deepcopy(trace)
+        mutated["runtimeInvariantBindings"] = []
+        errors = self.module.validate(mutated, invariants)
+        self.assertTrue(any("Runtime invariant binding set drift" in error for error in errors), errors)
+
+    def test_erasing_one_runtime_invariant_binding_is_rejected(self):
+        trace, invariants = manifests()
+        mutated = copy.deepcopy(trace)
+        mutated["runtimeInvariantBindings"].pop()
+        errors = self.module.validate(mutated, invariants)
+        self.assertTrue(any("Runtime invariant binding set drift" in error for error in errors), errors)
+
+    def test_empty_proof_references_cannot_vacuously_pass(self):
+        trace, invariants = manifests()
+        mutated = copy.deepcopy(trace)
+        mutated["runtimeInvariantBindings"][0]["requiredProofRefs"] = []
+        errors = self.module.validate(mutated, invariants)
+        self.assertTrue(any("has no required proof references" in error for error in errors), errors)
+
+
+    def test_ignored_physical_proof_ref_cannot_claim_always_on_invariant(self):
+        trace, invariants = manifests()
+        mutated = copy.deepcopy(trace)
+        mutated["runtimeInvariantBindings"][0]["requiredProofRefs"] = [
+            "crates/ordivon-runtime-core/src/runtime/integration_tests.rs::runtime_two_observers_do_not_race_dispatch_of_one_accepted_attempt"
+        ]
+        errors = self.module.validate(mutated, invariants)
+        self.assertTrue(
+            any("ignored, not an always-on proving test" in error for error in errors),
+            errors,
+        )
 
 
 if __name__ == "__main__":

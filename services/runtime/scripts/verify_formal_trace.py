@@ -27,6 +27,7 @@ REQUIRED_TESTS = {
     "RuntimeDispatch.registryDispatchCAS",
     "RuntimeDispatch.ambiguityHeld",
     "ExecutionProvider.guaranteeNegativeControl",
+    "RuntimeDispatch.terminalEvidence",
 }
 # Root/cgroup-bound Rust tests exist, but #[ignore] means CI does not execute them.
 # These are conditional external acceptance witnesses, never active proving tests.
@@ -41,7 +42,9 @@ REQUIRED_MODEL_BINDINGS = {
     "RuntimeDispatch.Dispatch",
     "RuntimeDispatch.AtMostOnceDispatchPerAttempt",
     "RuntimeDispatch.AmbiguityRequiresReconciliation",
+    "RuntimeDispatch.TerminalEvidenceIsCommitted",
 }
+REQUIRED_RUNTIME_INVARIANT_BINDINGS = {"I05", "I11"}
 
 
 def sha256(path: Path) -> str:
@@ -181,7 +184,16 @@ def validate(trace: dict[str, Any], invariant_manifest: dict[str, Any]) -> list[
         for item in invariant_manifest.get("invariants", [])
         if isinstance(item, dict)
     }
-    for binding in trace.get("runtimeInvariantBindings", []):
+    runtime_bindings = trace.get("runtimeInvariantBindings", [])
+    runtime_ids = _ids(runtime_bindings)
+    if not isinstance(runtime_bindings, list) or len(runtime_ids) != len(set(runtime_ids)):
+        errors.append("Runtime invariant binding IDs are invalid or duplicated")
+    if set(runtime_ids) != REQUIRED_RUNTIME_INVARIANT_BINDINGS:
+        errors.append(
+            f"Runtime invariant binding set drift: expected {sorted(REQUIRED_RUNTIME_INVARIANT_BINDINGS)}, "
+            f"observed {sorted(set(runtime_ids))}"
+        )
+    for binding in runtime_bindings if isinstance(runtime_bindings, list) else []:
         if not isinstance(binding, dict):
             errors.append("Runtime invariant binding must be an object")
             continue
@@ -193,10 +205,24 @@ def validate(trace: dict[str, Any], invariant_manifest: dict[str, Any]) -> list[
             errors.append(
                 f"Runtime invariant name drift: {binding.get('id')}: expected {binding.get('name')!r}, observed {item.get('name')!r}"
             )
+        required_refs = binding.get("requiredProofRefs")
+        if (
+            not isinstance(required_refs, list)
+            or not required_refs
+            or any(not isinstance(ref, str) or not ref for ref in required_refs)
+        ):
+            errors.append(f"Runtime invariant {binding.get('id')} has no required proof references")
+            continue
         proofs = set(item.get("proof", []))
-        for required in binding.get("requiredProofRefs", []):
+        for required in required_refs:
             if required not in proofs:
                 errors.append(f"Runtime invariant {binding.get('id')} lost proof binding {required}")
+                continue
+            if "::" not in required:
+                errors.append(f"Runtime invariant {binding.get('id')} has malformed proof reference {required!r}")
+                continue
+            path, symbol = required.split("::", 1)
+            errors.extend(require_test_symbol(ROOT / path, symbol))
 
     seams = trace.get("contractSeams", [])
     seam_ids = _ids(seams)
