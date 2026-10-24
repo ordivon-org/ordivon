@@ -69,3 +69,17 @@ all-owner prerequisite without weakening the required ones. Independent temporar
 Foundations: Leslie Lamport's TLA+/TLC, established assume–guarantee contracts (e.g., Pacti), and existing JSON Schema Draft 2020-12 port contracts.
 
 **R2.1 follow-up (2026-10-25):** distinguish *actual consumer obligations* from indiscriminate all-owner participation. Original network-and-Harness-required model is preserved as one of four profiles. Other configurations remove only the optional prerequisite, not any owned effect or consumer-evidence invariant. A TLC invariant counterexample against an intentionally false `dispatchCount=0` assertion for direct-local is the reachability witness that modeling optional modes is not vacuous.
+
+## Admission-time evidence and mutable readiness (2026-10-25)
+
+In the four-owner bounded model, Network may change from ready to unknown
+after Runtime admission. An admission witness is latched only by RuntimeAdmit,
+and the existing dispatch invariant checks that historical witness rather
+than claiming a mutable route always stays ready.
+
+The four TLC configurations explored 16, 28, 28 and 16 distinct states,
+respectively, with no invariant violations. Negative controls showed
+that freezing the old live-readiness invariant gives a counterexample,
+and removing Network's admission guard produces an unwitnessed dispatch.
+
+This is bounded model evidence, not live Runtime/Network refinement.
