@@ -1646,10 +1646,29 @@ def test_historical_node_types_pin_has_both_current_owner_consumers() -> None:
     assert row["sourceQualification"]["consumerOwners"] == ["apps/web", "domains/game"]
     assert row["sourceQualification"]["branchDeletionAllowed"] is False
     assert row["evaluatedRemoteMain"] == "d375287686b7ad7f04b1f5ef181bff846ac9cc94"
-    for manifest in ("apps/web/package.json", "domains/game/package.json"):
-        data = json.loads((ROOT / manifest).read_text(encoding="utf-8"))
-        assert data["devDependencies"]["@types/node"] == "26.6.5"
     module.validate_formal_issue_census(census, plans)
+
+
+def test_historical_git_consumer_proof_allows_future_owner_dependency_upgrades(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Immutable source-cut proof must not reject newer Owner-native package manifests."""
+    original_read = Path.read_text
+    manifests = {
+        ROOT / "apps/web/package.json",
+        ROOT / "domains/game/package.json",
+    }
+
+    def future_manifest(path: Path, *args: object, **kwargs: object) -> str:
+        content = original_read(path, *args, **kwargs)
+        if path in manifests:
+            data = json.loads(content)
+            data["devDependencies"]["@types/node"] = "27.0.0"
+            return json.dumps(data)
+        return content
+
+    monkeypatch.setattr(Path, "read_text", future_manifest)
+    test_historical_node_types_pin_has_both_current_owner_consumers()
 
 
 def test_repo_test_function_names_are_unique() -> None:
