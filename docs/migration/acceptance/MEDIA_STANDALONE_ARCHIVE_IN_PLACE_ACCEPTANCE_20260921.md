@@ -146,3 +146,17 @@ This acceptance does not:
 - physically delete /root/projects/ordivon-media;
 - retire unrelated standalone repositories;
 - merge Media runtime/service authority into another owner.
+
+## Post-acceptance source-retirement verification — 2026-10-24
+
+This is a *new observation* of the existing Media archive boundary, not a rewrite of the 2026-09-21 acceptance or a second authority registry.
+
+- **Problem LEGO / type:** `GIT_RESIDUE` + `PR_CONVERGENCE` for the archived standalone carrier; current active Media owner remains `capabilities/media`.
+- **Real consumer:** the canonical Creative Library catalog still binds 137 records (133 distinct revisions) to exact `/root/projects/ordivon-media` `sourceRevision:sourcePath` objects. One OMPC recovery fixture also retains the historical locator.
+- **Invariant:** archive revision/path lookups must remain resolvable, and the archived repository must not admit new forward code/dependency responsibility.
+- **Subtractive effect:** removed 27 local branch *references* from `/root/projects/ordivon-media`, each proven an ancestor of the exact remote main `d09aee21285f181e759a2ad0f1e306865a29a618`, unbound to an active worktree and open PR, and lacking an operational tracked consumer. Two explicit historical lineage anchors remain. Local `main` stays at `30f6d1228a4270a68cd715ca9a7b17742478958e`.
+- **Historical consumer witness:** on 2026-10-24, all **137/137** bound `revision:path` lookups succeeded after reference retirement: 132 Git tree objects and 5 blobs, 0 failures. The original 899-ref recovery bundle and its 2026-09-21 digest proof were not modified or discarded.
+- **Existing formal/owner gate:** `mise run repo:retirement:verify` passed; the Media archived-source policy admitted 24 reference-bearing tracked files and found **0 forbidden forward references**. Runtime evidence Job `job-01a16b36-110b-7092-b120-9c87314a01a5`; exact historical consumer check Job `job-01a16b2f-4d33-7cb3-8761-d6c5c798f484`.
+- **GitHub effect:** the obsolete standalone Dependabot PR `ordivon-org/ordivon-media#2` was closed, then `ordivon-org/ordivon-media` was marked **archived=true** on GitHub. GitHub read-only history is retained; no upstream commits were rewritten and the local archive was not deleted.
+
+**Decision:** retain the historic carrier and exact provenance; retire no-longer-consumed local refs and the standalone GitHub development/update channel. Further cleanup requires a new consumer counterexample, not replay of this accepted proof.
