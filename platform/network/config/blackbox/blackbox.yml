@@ -4,12 +4,14 @@ modules:
     timeout: 10s
     http:
       preferred_ip_protocol: ip4
+      ip_protocol_fallback: false
       follow_redirects: true
   http_2xx_ipv6:
     prober: http
     timeout: 10s
     http:
       preferred_ip_protocol: ip6
+      ip_protocol_fallback: false
       follow_redirects: true
   tcp_connect:
     prober: tcp
