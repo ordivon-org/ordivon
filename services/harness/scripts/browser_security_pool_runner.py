@@ -50,7 +50,17 @@ def _inside(root: Path, value: Path) -> Path:
 
 
 def _load_pool_index(index_path: Path, security_root: Path) -> dict[str, Any]:
-    value = json.loads(index_path.read_text(encoding="utf-8"))
+    def unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        members: dict[str, Any] = {}
+        for name, item in pairs:
+            if name in members:
+                raise ValueError(f"pool LKG index has duplicate JSON member: {name}")
+            members[name] = item
+        return members
+
+    value = json.loads(
+        index_path.read_text(encoding="utf-8"), object_pairs_hook=unique_object
+    )
     required = {"schemaVersion", "kind", "poolId", "standing", "comparisonLaw", "carriers"}
     if not isinstance(value, dict) or not required.issubset(value):
         raise ValueError("pool LKG index is missing required fields")
