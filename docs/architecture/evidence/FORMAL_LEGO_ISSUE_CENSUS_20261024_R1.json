@@ -912,6 +912,33 @@
             "services/harness/planning/hux-current-baseline-r1.json",
             "services/harness/planning/hux-execution-plan-r1.json"
           ]
+        },
+        {
+          "localCommit": "e9547525bae3fd0a86f60a160a1a536ce7451c0a",
+          "owner": "capabilities/artifact",
+          "consumer": "Six native Artifact verifier profiles emit the historical SHA-256 of UTF-8 JSON with sorted keys, compact separators, and ensure_ascii=False, preserving float/Unicode number semantics and key-permutation invariance without a new digest provider.",
+          "remoteWitness": "Protected Main six Artifact entrypoints are native standalone digest consumers. The earlier shared core API canonical_sha256 and canonical_json_bytes are absent from current artifact_core.contracts; wholesale historical cherry-pick would import nonexistent symbols. Current owner regression tests all 6 native consumer entrypoints with 5 published-wire representative payloads plus seeded key permutation/mutation: 37 PASS; complete Artifact locked queue on frozen owner source: 458 PASS, 3 skipped, 45 deselected, 49 subtests PASS; root repo CI 118 PASS. Currentness bound to this exact tested SourceCut.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "d375287686b7ad7f04b1f5ef181bff846ac9cc94",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "CURRENT_BEHAVIOR_VERIFIED_WITH_RETIRED_SHARED_API",
+            "consumerStanding": "CURRENT_OWNER_BEHAVIOR_COVERED_TEST_ONLY",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "d375287686b7ad7f04b1f5ef181bff846ac9cc94",
+          "verifiedEqualChangedBlobs": false,
+          "changedPaths": [
+            "capabilities/artifact/scripts/artifact_aseprite.py",
+            "capabilities/artifact/scripts/artifact_design3d.py",
+            "capabilities/artifact/scripts/artifact_message.py",
+            "capabilities/artifact/scripts/artifact_ogg_vorbis.py",
+            "capabilities/artifact/scripts/artifact_software_release_elf.py",
+            "capabilities/artifact/scripts/artifact_web_archive.py",
+            "capabilities/artifact/tests/test_artifact_canonical_operator.py"
+          ]
         }
       ],
       "consumerBlockedSelections": [
