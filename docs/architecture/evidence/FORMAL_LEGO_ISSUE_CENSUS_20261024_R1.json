@@ -103,7 +103,47 @@
       "registration": {
         "state": "UNREGISTERED",
         "reason": "Owner-local LEGO slice and consumer acceptance are not yet evidenced; census observation is not registration."
-      }
+      },
+      "historicalUnadmittedOwnerConsumers": [
+        {
+          "historicalCommit": "1df72119bc2a04cc6b1f93501d068873546f934f",
+          "historicalParent": "9397d126b23e226b2d34f2ddab4024a49792c234",
+          "owner": "domains/capital",
+          "historicalTestSourceCut": "1df72119bc2a04cc6b1f93501d068873546f934f",
+          "protectedMainSourceCut": "e74e94a298077432df589e58c61a9b1499a28c5c",
+          "historicOnlyFiles": [
+            "domains/capital/src/ordivon_capital/portfolio/human_finance_baseline.py",
+            "domains/capital/tests/test_finance_lego_consumption_r7.py"
+          ],
+          "behaviorScope": "Caller-supplied scenario-only read-only Human cash projections: money and dated flow conservation, reserve-floor, forged provider event rejection, permutation invariance and Hypothesis stateful trajectories. No live account or external financial writes.",
+          "historicalNativeTestResult": "12_PASSED",
+          "historicalTestWitness": "Isolated git archive of exact historical capital src, historical consumer test and golden fixture; PYTHONPATH=historic src; current pytest==9.1.1 and latest resolved Hypothesis; 12 passed in 0.59 seconds.",
+          "modernConsumerAdmitted": false,
+          "missingCurrentConsumerEvidence": "Historical human_finance_baseline module and stateful consumer test are absent in protected Main; current Capital architecture instead has counterfactual, live market, accounting and controlled execution Owners. No present consumer requested restoration of the old interface.",
+          "selection": "PRESERVE_HISTORICAL_SOURCE_NO_WHOLE_COMMIT_CHERRY_PICK",
+          "branchRetirement": "NOT_PROVEN"
+        },
+        {
+          "historicalCommit": "5f4d4759b2809a5ccc57174e3e110eb6926f135d",
+          "historicalParent": "955f23473113d1f3f3fd515bd2cbdf40f2f4747c",
+          "owner": "platform/network",
+          "historicalTestSourceCut": "5f4d4759b2809a5ccc57174e3e110eb6926f135d",
+          "protectedMainSourceCut": "e74e94a298077432df589e58c61a9b1499a28c5c",
+          "historicOnlyFiles": [
+            "platform/network/tests/test_consumer_observability_fault_classes.py",
+            "platform/network/acceptance/observability/scoped-consumer-blackbox.sh",
+            "platform/network/config/prometheus/consumer.rules.yml",
+            "platform/network/scripts/observability-sourcecut-preflight.py"
+          ],
+          "behaviorScope": "Offline scoped Blackbox/Prometheus consumer probes, absence/error/TLS alerts, proxy-bound endpoints and sourcecut drift preflight; no provider token, live carrier cutover, DNS or runtime systemd mutation.",
+          "historicalNativeTestResult": "12_PASSED",
+          "historicalTestWitness": "Isolated git archive of exact historical Taskfile, network config, preflight and native tests; latest installed blackbox/promtool parser plus current pytest==9.1.1; 12 tests passed in 1.58 seconds.",
+          "modernConsumerAdmitted": false,
+          "missingCurrentConsumerEvidence": "Historical Blackbox target/rules and test files are absent in protected Main; old static proxy endpoints and model-provider alerts are not current consumption evidence and must not be resurrected automatically.",
+          "selection": "PRESERVE_HISTORICAL_SOURCE_NO_WHOLE_COMMIT_CHERRY_PICK",
+          "branchRetirement": "NOT_PROVEN"
+        }
+      ]
     },
     {
       "id": "WS-01",

@@ -810,3 +810,26 @@ def test_formal_registry_sources_bound_before_loading(
     local.symlink_to(external)
     with pytest.raises(module.ArchitectureDocsError, match=f"{label} escapes SourceCut"):
         module._source_bound_file(source, relative, label)
+
+
+def test_git02_unadmitted_historical_finance_and_network_consumers_remain_source_bound() -> None:
+    """Historical CDC success must not invent current consumers or authorize deletion."""
+    census, plans = formal_issue_inputs()
+    issue = next(row for row in census["issues"] if row["id"] == "GIT-02")
+    candidates = issue["historicalUnadmittedOwnerConsumers"]
+    assert {row["historicalCommit"] for row in candidates} == {
+        "1df72119bc2a04cc6b1f93501d068873546f934f",
+        "5f4d4759b2809a5ccc57174e3e110eb6926f135d",
+    }
+    assert {row["owner"] for row in candidates} == {"domains/capital", "platform/network"}
+    assert {row["historicalNativeTestResult"] for row in candidates} == {"12_PASSED"}
+    for row in candidates:
+        assert row["modernConsumerAdmitted"] is False
+        assert row["branchRetirement"] == "NOT_PROVEN"
+        assert row["selection"] == "PRESERVE_HISTORICAL_SOURCE_NO_WHOLE_COMMIT_CHERRY_PICK"
+        assert row["historicalTestSourceCut"] == row["historicalCommit"]
+        assert row["protectedMainSourceCut"] == "e74e94a298077432df589e58c61a9b1499a28c5c"
+        assert row["behaviorScope"].strip()
+        assert row["missingCurrentConsumerEvidence"].strip()
+        assert all(not (ROOT / path).exists() for path in row["historicOnlyFiles"])
+    module.validate_formal_issue_census(census, plans)
