@@ -9,9 +9,11 @@ EXTENDS Naturals
 
 CONSTANTS RequiresHarness, RequiresNetwork
 
-VARIABLES host, harness, network, runtime, dispatchCount, consumerEvidence
+VARIABLES host, harness, network, runtime, dispatchCount, consumerEvidence,
+          admissionInputsWitness
 
-vars == <<host, harness, network, runtime, dispatchCount, consumerEvidence>>
+vars == <<host, harness, network, runtime, dispatchCount, consumerEvidence,
+          admissionInputsWitness>>
 
 HostStates == {"open", "accepted"}
 HarnessStates == {"idle", "proposed"}
@@ -28,6 +30,7 @@ TypeOK ==
     /\ runtime \in RuntimeStates
     /\ dispatchCount \in 0..2
     /\ consumerEvidence \in EvidenceStates
+    /\ admissionInputsWitness \in BOOLEAN
 
 Init ==
     /\ host = "open"
@@ -36,22 +39,34 @@ Init ==
     /\ runtime = "idle"
     /\ dispatchCount = 0
     /\ consumerEvidence = "none"
+    /\ admissionInputsWitness = FALSE
 
 NetworkObserve ==
     /\ network = "unknown"
     /\ network' = "ready"
-    /\ UNCHANGED <<host, harness, runtime, dispatchCount, consumerEvidence>>
+    /\ UNCHANGED <<host, harness, runtime, dispatchCount, consumerEvidence,
+                  admissionInputsWitness>>
+
+NetworkDegrade ==
+    /\ network = "ready"
+    /\ network' = "unknown"
+    /\ UNCHANGED <<host, harness, runtime, dispatchCount, consumerEvidence,
+                  admissionInputsWitness>>
 
 HarnessPropose ==
     /\ harness = "idle"
     /\ harness' = "proposed"
-    /\ UNCHANGED <<host, network, runtime, dispatchCount, consumerEvidence>>
+    /\ UNCHANGED <<host, network, runtime, dispatchCount, consumerEvidence,
+                  admissionInputsWitness>>
 
 RuntimeAdmit ==
     /\ runtime = "idle"
     /\ (~RequiresHarness \/ harness = "proposed")
     /\ (~RequiresNetwork \/ network = "ready")
     /\ runtime' = "admitted"
+    /\ admissionInputsWitness' =
+        /\ (~RequiresHarness \/ harness = "proposed")
+        /\ (~RequiresNetwork \/ network = "ready")
     /\ UNCHANGED <<host, harness, network, dispatchCount, consumerEvidence>>
 
 RuntimeDispatch ==
@@ -59,35 +74,41 @@ RuntimeDispatch ==
     /\ dispatchCount = 0
     /\ runtime' = "running"
     /\ dispatchCount' = dispatchCount + 1
-    /\ UNCHANGED <<host, harness, network, consumerEvidence>>
+    /\ UNCHANGED <<host, harness, network, consumerEvidence,
+                  admissionInputsWitness>>
 
 RuntimeLoseKnowledge ==
     /\ runtime = "running"
     /\ runtime' = "ambiguous"
-    /\ UNCHANGED <<host, harness, network, dispatchCount, consumerEvidence>>
+    /\ UNCHANGED <<host, harness, network, dispatchCount, consumerEvidence,
+                  admissionInputsWitness>>
 
 RuntimeObserveTerminal ==
     /\ runtime \in {"running", "ambiguous"}
     /\ runtime' = "terminal"
-    /\ UNCHANGED <<host, harness, network, dispatchCount, consumerEvidence>>
+    /\ UNCHANGED <<host, harness, network, dispatchCount, consumerEvidence,
+                  admissionInputsWitness>>
 
 ConsumerObserve ==
     /\ runtime = "terminal"
     /\ consumerEvidence = "none"
-    (* A witness can belong to this Work or an unrelated consumer. *)
+    (* Evidence can belong to this Work or a different consumer. *)
     /\ consumerEvidence' \in {"matching", "foreign"}
-    /\ UNCHANGED <<host, harness, network, runtime, dispatchCount>>
+    /\ UNCHANGED <<host, harness, network, runtime, dispatchCount,
+                  admissionInputsWitness>>
 
 HostAccept ==
     /\ host = "open"
     /\ runtime = "terminal"
-    (* The witness must belong to this Work, not merely exist somewhere. *)
+    (* A foreign Work's valid result is NOT evidence for this Work. *)
     /\ consumerEvidence = "matching"
     /\ host' = "accepted"
-    /\ UNCHANGED <<harness, network, runtime, dispatchCount, consumerEvidence>>
+    /\ UNCHANGED <<harness, network, runtime, dispatchCount, consumerEvidence,
+                  admissionInputsWitness>>
 
 Next ==
     \/ NetworkObserve
+    \/ NetworkDegrade
     \/ HarnessPropose
     \/ RuntimeAdmit
     \/ RuntimeDispatch
@@ -103,15 +124,30 @@ AtMostOnePhysicalDispatch == dispatchCount <= 1
 NoHostAcceptanceFromRuntimeAlone ==
     host = "accepted" => (runtime = "terminal" /\ consumerEvidence = "matching")
 
+(***************************************************************************)
+(* Physical dispatch requires the admission-time witness. Route readiness  *)
+(* can later disappear; a current network reading cannot rewrite history.  *)
+(* This boolean models the existence of admitted evidence, not live TLS or *)
+(* actual effect authorization.                                             *)
+(***************************************************************************)
 NoDispatchWithoutRequiredInputs ==
-    dispatchCount > 0 =>
-        /\ (~RequiresHarness \/ harness = "proposed")
-        /\ (~RequiresNetwork \/ network = "ready")
+    dispatchCount > 0 => admissionInputsWitness
 
 AmbiguityCannotBeTreatedAsCompletion ==
     runtime = "ambiguous" => (host = "open" /\ consumerEvidence = "none" /\ dispatchCount = 1)
 
 NoHostAcceptanceWithoutConsumerEvidence ==
     consumerEvidence # "matching" => host = "open"
+
+(***************************************************************************)
+(* Intentionally FALSE non-vacuity probe, not an admitted safety invariant. *)
+(* The standalone probe cfg must find a post-admission NetworkDegrade path. *)
+(***************************************************************************)
+NetworkNeverDegradesAfterAdmission ==
+    ~(
+        network = "unknown"
+        /\ runtime \in {"admitted", "running", "ambiguous", "terminal"}
+        /\ admissionInputsWitness
+    )
 
 =============================================================================
