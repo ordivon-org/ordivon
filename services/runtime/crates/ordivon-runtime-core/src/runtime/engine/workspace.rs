@@ -149,16 +149,14 @@ impl Runtime {
             let chunk_size = projection_inputs.len().div_ceil(worker_count);
             thread::scope(|scope| -> RuntimeResult<Vec<_>> {
                 let mut handles = Vec::with_capacity(worker_count);
-                for (chunk_index, chunk) in projection_inputs.chunks(chunk_size).enumerate() {
+                // chunks() partitions the sorted input contiguously. Joining handles
+                // in spawn order preserves input order even if workers finish out of order.
+                for chunk in projection_inputs.chunks(chunk_size) {
                     handles.push(scope.spawn(move || {
                         chunk
                             .iter()
-                            .enumerate()
-                            .map(|(offset, (record, _))| {
-                                (
-                                    chunk_index * chunk_size + offset,
-                                    workspace_head_and_dirty_at(Path::new(&record.workspace_path)),
-                                )
+                            .map(|(record, _)| {
+                                workspace_head_and_dirty_at(Path::new(&record.workspace_path))
                             })
                             .collect::<Vec<_>>()
                     }));
@@ -175,11 +173,7 @@ impl Runtime {
                     })?;
                     projections.append(&mut worker);
                 }
-                projections.sort_by_key(|(index, _)| *index);
-                Ok(projections
-                    .into_iter()
-                    .map(|(_, projection)| projection)
-                    .collect())
+                Ok(projections)
             })?
         };
 
