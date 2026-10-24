@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import importlib.util
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -1896,3 +1898,21 @@ def test_formal_lego21_runtime_dependency_relation_is_typed(
         node["dependencies"] = "R00"
     with pytest.raises(module.ArchitectureDocsError, match=reason):
         module.validate_formal_issue_census(census, plans)
+
+
+def test_recursive_lego_r21_source_digest_matches_current_declared_contract() -> None:
+    """A referenced formal source must exist and match its exact declared provenance."""
+    document = (
+        ROOT / "docs/architecture/AGENT_CONCEPTS_FORMAL_LEGO_RESEARCH_20261024.md"
+    ).read_text(encoding="utf-8")
+    declared = re.search(r"observed model SHA-256 .([0-9a-f]{64}).", document)
+    assert declared is not None, "R2.1 declaration must bind a source digest"
+
+    skill_root = ROOT / ".agents/skills/recursive-lego-calculus"
+    skill = skill_root / "SKILL.md"
+    reference = skill_root / "references/formal-model.md"
+    assert skill.is_file() and reference.is_file(), (
+        "R2.1 original Skill/model disappeared while the live architecture names it"
+    )
+    assert "name: recursive-lego-calculus" in skill.read_text(encoding="utf-8")
+    assert hashlib.sha256(reference.read_bytes()).hexdigest() == declared.group(1)
