@@ -76,8 +76,9 @@ def _load_json(path: Path) -> dict[str, Any]:
     return value
 
 
-# The shared structure is only a typed finite relation, not a new registry,
-# executable DSL, dependency scheduler, or owner-independent claim of truth.
+# The other registered Owner checker handles typed edges and dependency DAGs.
+# This validator checks the independent typed node and slice closure;
+# no new registry, executable DSL, scheduler or Owner truth.
 OWNER_LEGO_PLANS = (
     "services/runtime/planning/lego-plan-r1.json",
     "services/host/planning/lego-plan-r2.json",
@@ -87,11 +88,10 @@ OWNER_LEGO_PLANS = (
 
 
 def validate_owner_lego_graph(plan: dict[str, Any]) -> None:
-    """Check finite graph closure: E subset V x Type x V, slices subset V.
+    """Check all Owner slices reference typed vertices, including unregistered ones.
 
-    Graph cycles are valid for lifecycle/STATE relations. This intentionally
-    does not conflate a state transition graph with an acyclic dependency DAG,
-    nor assert any domain semantics, consumer currentness or execution rights.
+    Registered dependency DAGs and typed edges have separate existing laws.
+    This does not assert behavioral currentness or execution authority.
     """
     if plan.get("kind") != "ordivon.project-lego-plan":
         raise ArchitectureDocsError("owner LEGO graph has unexpected kind")
@@ -113,17 +113,6 @@ def validate_owner_lego_graph(plan: dict[str, Any]) -> None:
         if not isinstance(node.get("kind"), str) or not node["kind"].strip():
             raise ArchitectureDocsError(f"LEGO node {identity} requires a type")
         identities.add(identity)
-
-    edges = plan.get("edges", [])
-    if not isinstance(edges, list):
-        raise ArchitectureDocsError("LEGO edge relation must be a list")
-    for edge in edges:
-        if not isinstance(edge, dict):
-            raise ArchitectureDocsError("LEGO edge must be an object")
-        if any(not isinstance(edge.get(key), str) or not edge[key].strip() for key in ("from", "to", "type")):
-            raise ArchitectureDocsError("LEGO edge needs from, to and type")
-        if edge["from"] not in identities or edge["to"] not in identities:
-            raise ArchitectureDocsError("unknown LEGO endpoint")
 
     slices = plan.get("slices", [])
     if not isinstance(slices, list):
