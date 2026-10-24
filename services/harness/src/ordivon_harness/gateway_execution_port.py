@@ -183,11 +183,37 @@ class GatewayExecutionPort:
                     if self.poll_interval_seconds:
                         time.sleep(min(self.poll_interval_seconds, remaining))
                     continue
+                projection_complete = _field(
+                    last, 'artifact_projection_complete', 'artifactProjectionComplete'
+                )
+                if type(projection_complete) is not bool:
+                    raise GatewayExecutionError(
+                        'Gateway artifact projection completeness is invalid'
+                    )
+                if not projection_complete:
+                    # Physical terminal and durable delivery do not guarantee the
+                    # projection of exact artifact identities. Observation may
+                    # converge; it must never trigger a second execution.submit.
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        break
+                    if self.poll_interval_seconds:
+                        time.sleep(min(self.poll_interval_seconds, remaining))
+                    continue
                 artifact_ids = _field(last, 'artifact_ids', 'artifactIds') or []
                 if not isinstance(artifact_ids, list) or any(
                     not isinstance(item, str) for item in artifact_ids
                 ):
                     raise GatewayExecutionError('Gateway observation artifact ids are invalid')
+                artifact_count = _field(last, 'artifact_count', 'artifactCount')
+                if artifact_count is not None and (
+                    type(artifact_count) is not int
+                    or artifact_count < 0
+                    or artifact_count != len(artifact_ids)
+                ):
+                    raise GatewayExecutionError(
+                        'Gateway complete artifact count disagrees with exact ids'
+                    )
                 exit_code = _field(last, 'exit_code', 'exitCode')
                 if exit_code is not None and type(exit_code) is not int:
                     raise GatewayExecutionError('Gateway observation exit code is invalid')
