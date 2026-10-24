@@ -778,3 +778,20 @@ def test_runtime_envfile_rejects_non_literal_values_without_partial_output() -> 
         assert result.returncode != 0, name
         assert result.stdout == "", name
         assert "INJECTED_ROUTE" not in result.stderr, name
+
+
+def test_retired_model_provider_history_uses_existing_n05_consumer() -> None:
+    """Only a qualified current consumer can justify reviving an old model readiness daemon."""
+    root = Path(__file__).resolve().parents[3]
+    retired = root / "platform/network/consumers/model-provider/ready.sh"
+    assert not retired.exists()
+    ready = (root / "tools/repo/workspace-ready").read_text(encoding="utf-8")
+    assert 'platform/network/consumers/developer-egress/profile.sh' in ready
+    plan = json.loads(
+        (root / "platform/network/planning/lego-plan-r1.json").read_text(encoding="utf-8")
+    )
+    n05 = next(node for node in plan["nodes"] if node["id"] == "N05")
+    evidence = " ".join(n05["evidence"])
+    assert "83fb2956e051ad9c27c091e96631a842f8eebcc7" in evidence
+    assert "7b51fd3e033f964db551c127e2e910ae3bc88ef8" in evidence
+    assert "tests/test_developer_egress_profile.py" in evidence
