@@ -242,15 +242,32 @@ def history(repo: Path, left: str, right: str) -> dict:
     for record in all_commits.values():
         counts[record["side"] + ":" + record["patchRelation"]] += 1
         paths = record["changedPaths"]
-        record["owners"] = sorted(
-            {
-                next(
-                    (owner for root, owner in mappings if path.startswith(root)),
-                    "ROOT_UNOWNED",
-                )
-                for path in paths
-            }
-        )
+        # An unmatched historical path is a missing owner binding, not
+        # authority assigned to the repository root. Keep that distinction
+        # while projecting its exact presence at both immutable Git tips.
+        path_owners = {
+            path: next(
+                (owner for root, owner in mappings if path.startswith(root)),
+                "ROOT_UNOWNED",
+            )
+            for path in paths
+        }
+        record["owners"] = sorted(set(path_owners.values()))
+        unmapped_presence: collections.Counter[str] = collections.Counter()
+        for path, owner in path_owners.items():
+            if owner != "ROOT_UNOWNED":
+                continue
+            in_local, in_remote = path in left_tree, path in right_tree
+            if in_local and in_remote:
+                label = "BOTH_PRESENT"
+            elif in_local:
+                label = "LOCAL_ONLY"
+            elif in_remote:
+                label = "REMOTE_ONLY"
+            else:
+                label = "BOTH_ABSENT"
+            unmapped_presence[label] += 1
+        record["unmappedPathTipPresence"] = dict(unmapped_presence)
         for owner in record["owners"]:
             owner_counts[record["side"] + ":" + owner] += 1
         opposite = right_tree if record["side"] == "local" else left_tree
