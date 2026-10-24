@@ -9,7 +9,7 @@ fi
 input=$(realpath "$1")
 profile=$(realpath "$2")
 out=$3
-root=$(git rev-parse --show-toplevel)
+root=$(cd "$(dirname "$0")/../.." && pwd)
 otiotool="$root/media-v2/bin/otiotool-pinned.sh"
 
 [[ -f "$input" ]] || { echo "timeline not found: $input" >&2; exit 66; }

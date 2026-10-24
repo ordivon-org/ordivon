@@ -929,6 +929,53 @@ def test_git01_formal_selection_type_invariants_fail_closed(
         module.validate_formal_issue_census(census, plans)
 
 
+def test_git01_network_uv_nonmerge_uses_current_native_route_consumer() -> None:
+    """One absent historic source; native Network verifies the current route."""
+    import tomllib
+
+    census, plans = formal_issue_inputs()
+    issue = next(row for row in census["issues"] if row["id"] == "GIT-01")
+    rows = [row for row in issue["consumerSelections"] if row["localCommit"] == "167112a8e6e1ba7f9af776fe6b85124b60d97cbe"]
+    assert len(rows) == 1
+    selection = rows[0]
+    assert selection["owner"] == "platform/network"
+    assert selection["disposition"] == "SKIP_OLDER_SOURCECUT"
+    assert selection["evidenceScope"] == "NATIVE_CONSUMER_PASS"
+    assert selection["sourceQualification"]["branchDeletionAllowed"] is False
+    owner = tomllib.loads((ROOT / "platform/network/mise.toml").read_text())
+    assert owner["tools"]["uv"] == "0.13.5"
+    assert "ci" in owner["tasks"] and "behavior" in owner["tasks"]
+    module.validate_formal_issue_census(census, plans)
+
+
+@pytest.mark.parametrize(
+    ("mutation", "error"),
+    [
+        ("overlap_cohort", "invalid historical Git cohort"),
+        ("selected_blocked", "historical Git selected and blocked collision"),
+        ("numeric_retirement", "historical Git selection cannot authorize branch deletion"),
+    ],
+)
+def test_git01_owner_proof_union_cannot_silently_weaken_preexisting_guards(
+    mutation: str, error: str
+) -> None:
+    census, plans = formal_issue_inputs()
+    issue = next(x for x in census["issues"] if x["id"] == "GIT-01")
+    rows = issue["consumerSelections"]
+    if mutation == "overlap_cohort":
+        cases = [x for x in rows if "historicalCohort" in x]
+        assert len(cases) >= 2
+        cases[1]["historicalCohort"].append(cases[0]["historicalCohort"][0])
+    elif mutation == "selected_blocked":
+        issue["consumerBlockedSelections"][0]["localCommit"] = rows[0]["localCommit"]
+    elif mutation == "numeric_retirement":
+        rows[0]["branchDeletionAllowed"] = 1
+    else:
+        raise AssertionError(mutation)
+    with pytest.raises(module.ArchitectureDocsError, match=error):
+        module.validate_formal_issue_census(census, plans)
+
+
 def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
     """A Git-only commit cannot be called unique without a source-bound consumer comparison."""
     census, plans = formal_issue_inputs()

@@ -353,6 +353,7 @@ def validate_formal_issue_census(
         if not isinstance(selections, list) or not selections:
             raise ArchitectureDocsError("historical Git selections missing")
         identities: set[str] = set()
+        cohort_ids: set[str] = set()
         for entry in selections:
             if not isinstance(entry, dict):
                 raise ArchitectureDocsError("historical Git selection must be typed")
@@ -394,8 +395,11 @@ def validate_formal_issue_census(
                 or oid not in cohort
                 or any(not isinstance(v, str) or not oid_pattern.fullmatch(v) for v in cohort)
                 or len(cohort) != len(set(cohort))
+                or not cohort_ids.isdisjoint(cohort)
             ):
                 raise ArchitectureDocsError("invalid historical Git cohort")
+            if cohort is not None:
+                cohort_ids.update(cohort)
             source_proof = entry.get("sourceQualification")
             if source_proof is not None:
                 if not isinstance(source_proof, dict):
@@ -409,10 +413,31 @@ def validate_formal_issue_census(
                 remote_oid = source_proof.get("protectedMain")
                 if not isinstance(remote_oid, str) or not oid_pattern.fullmatch(remote_oid):
                     raise ArchitectureDocsError("invalid historical Git protected SourceCut")
-            if entry.get("branchDeletionAllowed") is True:
+            if ("branchDeletionAllowed" in entry
+                and entry["branchDeletionAllowed"] is not False
+            ):
                 raise ArchitectureDocsError(
                     "historical Git selection cannot authorize branch deletion"
                 )
+
+        # Final-standing claims cannot conflict with an explicitly blocked source.
+        blockers = issue.get("consumerBlockedSelections", [])
+        if not isinstance(blockers, list):
+            raise ArchitectureDocsError("invalid historical Git blocker set")
+        blocked: set[str] = set()
+        for blocker in blockers:
+            if not isinstance(blocker, dict):
+                raise ArchitectureDocsError("invalid historical Git blocker")
+            commit = blocker.get("localCommit")
+            if not isinstance(commit, str) or not oid_pattern.fullmatch(commit):
+                raise ArchitectureDocsError("invalid historical Git blocker identity")
+            if commit in identities:
+                raise ArchitectureDocsError("historical Git selected and blocked collision")
+            if commit in blocked:
+                raise ArchitectureDocsError("duplicate historical Git blocker")
+            if blocker.get("branchDeletionAllowed") is not False:
+                raise ArchitectureDocsError("historical Git blocker cannot authorize branch deletion")
+            blocked.add(commit)
 
     representation_types = {
         "type", "graph", "constraint", "state-machine", "algebra",
