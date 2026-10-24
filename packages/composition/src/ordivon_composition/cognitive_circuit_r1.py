@@ -29,12 +29,16 @@ class CircuitContractError(ValueError):
 
 
 def _canonical_bytes(value: Any) -> bytes:
-    return json.dumps(
-        value,
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=False,
-    ).encode("utf-8")
+    try:
+        return json.dumps(
+            value,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+            allow_nan=False,
+        ).encode("utf-8")
+    except ValueError as exc:
+        raise CircuitContractError("non-JSON numeric value in LEGO evidence digest") from exc
 
 
 def canonical_digest(value: Any) -> str:

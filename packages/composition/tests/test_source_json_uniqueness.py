@@ -8,6 +8,7 @@ import pytest
 
 from ordivon_composition.cognitive_circuit_r1 import (
     CircuitContractError,
+    canonical_digest,
 )
 from ordivon_composition.cognitive_circuit_r1 import (
     _load_json as circuit_load,
@@ -48,3 +49,10 @@ def test_source_bound_lego_contract_rejects_non_json_numeric_constants(
     source.write_text('{"owner":"Runtime","evidence":NaN}', encoding="utf-8")
     with pytest.raises(CircuitContractError, match="invalid JSON constant.*NaN"):
         load(source)
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), -float("inf")])
+def test_in_memory_lego_evidence_digest_rejects_non_json_values(value: float) -> None:
+    """Caller-made representations cannot bypass source JSON constraints."""
+    with pytest.raises(CircuitContractError, match="non-JSON numeric"):
+        canonical_digest({"evidence": {"weight": value}})
