@@ -131,11 +131,32 @@ def main() -> int:
         text = workflow_path.read_text(encoding="utf-8")
         refs = re.findall(r"^\s*-?\s*uses:\s*([^\s#]+)", text, flags=re.MULTILINE)
         action_refs.extend((workflow_path.name, ref) for ref in refs)
+    # Local composite Actions can call external Actions; their transitively
+    # consumed code has the same immutable source obligation as workflow steps.
+    action_root = ROOT / ".github" / "actions"
+    for action_path in sorted((*action_root.rglob("action.yml"), *action_root.rglob("action.yaml"))):
+        action = yaml.safe_load(action_path.read_text(encoding="utf-8"))
+        assert isinstance(action, dict) and isinstance(action.get("runs"), dict), (
+            f"{action_path}: invalid Action metadata"
+        )
+        runs = action["runs"]
+        if runs.get("using") != "composite":
+            continue
+        steps = runs.get("steps")
+        assert isinstance(steps, list), f"{action_path}: composite steps must be a list"
+        for step in steps:
+            assert isinstance(step, dict), f"{action_path}: composite step must be a mapping"
+            if "uses" in step:
+                ref = step["uses"]
+                assert isinstance(ref, str) and ref.strip(), (
+                    f"{action_path}: composite uses must be a nonempty string"
+                )
+                action_refs.append((str(action_path), ref))
     assert action_refs, "root workflows have no external actions"
     floating = [
         f"{path}:{ref}"
         for path, ref in action_refs
-        if not ref.startswith("./") and re.fullmatch(r"[^@]+@[0-9a-f]{40}", ref) is None
+        if not ref.startswith(("./", "$/")) and re.fullmatch(r"[^@]+@[0-9a-f]{40}", ref) is None
     ]
     assert not floating, f"root workflows contain non-SHA action references: {floating}"
     assert "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1" in workflow
