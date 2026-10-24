@@ -656,6 +656,235 @@
             "consumerStanding": "NO_CURRENT_CONSUMER_AND_NATIVE_REPLACEMENT",
             "branchDeletionAllowed": false
           }
+        },
+        {
+          "localCommit": "c0aba402a63712eb60f237400c6e22fa180adc3d",
+          "owner": "platform/workstation",
+          "consumer": "Owner tool resolution: active Windows Agent must receive concrete mise-pinned tool paths; inherited PATH shims are not executable-owner proof.",
+          "remoteWitness": "Existing Workstation source and test final Git objects are identical on both main tips; intermediate historical commit differs and is not being re-applied. Six Windows environment-doctor source tests and two tool-binding tests PASS via owner uv --locked Python 3.15.1; real Windows process execution not tested.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+          "equalChangedBlobOids": {
+            "platform/workstation/tests/test_windows_workspace_environment_doctor.py": "66e6fd5bee4d1318dc9b3e4366eb4bf5ba222086",
+            "platform/workstation/windows/workspace_environment_doctor.ps1": "f459d562c8d7732f2fed272e0182f6fee4a41007"
+          },
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "SAME_BLOB_AND_MODE_AT_BOTH_TIPS",
+            "historicalResultRelation": "HISTORICAL_INTERMEDIATE_NOT_FINAL",
+            "consumerStanding": "CURRENT_CONTRACT_NATIVE_TESTED_WINDOWS_LIVE_NOT_TESTED",
+            "branchDeletionAllowed": false
+          }
+        },
+        {
+          "localCommit": "046caf2481fb85d710f0d8c6c004112e5a96c2f8",
+          "owner": "platform/workstation",
+          "consumer": "Windows workspace access: fail closed on inaccessible Git metadata/service-identity workspace and require exact checkout identity before scoped mise trust.",
+          "remoteWitness": "Both final tips have exact identical Workstation doctor and native source-test Git objects, unlike the intermediate historical commit. Six owner source tests and two tool-binding tests PASS via owner uv --locked Python; real Windows ACL/failure injection not exercised.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+          "equalChangedBlobOids": {
+            "platform/workstation/tests/test_windows_workspace_environment_doctor.py": "66e6fd5bee4d1318dc9b3e4366eb4bf5ba222086",
+            "platform/workstation/windows/workspace_environment_doctor.ps1": "f459d562c8d7732f2fed272e0182f6fee4a41007"
+          },
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "SAME_BLOB_AND_MODE_AT_BOTH_TIPS",
+            "historicalResultRelation": "HISTORICAL_INTERMEDIATE_NOT_FINAL",
+            "consumerStanding": "CURRENT_CONTRACT_NATIVE_TESTED_WINDOWS_LIVE_NOT_TESTED",
+            "branchDeletionAllowed": false
+          }
+        },
+        {
+          "localCommit": "d116d1e468600eac342c2389e99cf9d07101a4b4",
+          "owner": "domains/capital",
+          "consumer": "Historical Personal Resource Office R3 planned governance, authority and risk-capacity substrate; no current production office consumer at either Git Main tip. Its 42 obsolete paths were removed in the local DAG and remain absent from the protected Main source cut.",
+          "remoteWitness": "Git local commit d116d1e468600eac342c2389e99cf9d07101a4b4 deletes 42 tracked owner paths (48 total changed paths; 4,445 lines removed). Native git cat-file -e on local main 13704d0c and protected main bb8c5918 confirms all 42 deleted paths ABSENT; no current Capital src/tests/mise consumer references Office R3. Does not establish semantic equivalence of the six additionally modified files.",
+          "evidenceScope": "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC",
+          "disposition": "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "bb8c591851a4c9f0a34763bc1a5fde365030cba4",
+            "patchRelation": "NOT_QUALIFIED_DO_NOT_ASSUME_PATCH_EQUIVALENCE",
+            "branchDeletionAllowed": false,
+            "tipRelation": "BOTH_TIPS_ABSENT",
+            "consumerStanding": "NO_CURRENT_CONSUMER"
+          },
+          "removedHistoricalPaths": [
+            "domains/capital/acceptance/r3/personal-resource-office-w0-w2-20260929.json",
+            "domains/capital/acceptance/r3/personal-resource-office-w3-20260929.json",
+            "domains/capital/config/capital_office_registry.json",
+            "domains/capital/docs/ORDIVON_CAPITAL_R3_PERSONAL_RESOURCE_OFFICE_SPEC.md",
+            "domains/capital/planning/capital-r3-external-owner-map.json",
+            "domains/capital/planning/capital-r3-personal-resource-office-plan.json",
+            "domains/capital/planning/r3/examples/constitution-example.json",
+            "domains/capital/planning/r3/examples/delegation-example.json",
+            "domains/capital/planning/r3/examples/office-assignment-risk-delegation.json",
+            "domains/capital/planning/r3/examples/office-assignment-risk-example.json",
+            "domains/capital/planning/r3/examples/office-role-risk-example.json",
+            "domains/capital/planning/r3/examples/office-verdict-risk-example.json",
+            "domains/capital/planning/r3/examples/resource-compute-capacity-example.json",
+            "domains/capital/planning/r3/examples/resource-knowledge-example.json",
+            "domains/capital/planning/r3/examples/review-topology-example.json",
+            "domains/capital/planning/r3/examples/risk-capacity-example.json",
+            "domains/capital/planning/r3/resource-office-registry-v1.json",
+            "domains/capital/planning/r3/schema/capital-constitution-v1.schema.json",
+            "domains/capital/planning/r3/schema/capital-delegation-grant-v1.schema.json",
+            "domains/capital/planning/r3/schema/capital-obligation-object-v1.schema.json",
+            "domains/capital/planning/r3/schema/capital-office-role-v1.schema.json",
+            "domains/capital/planning/r3/schema/capital-resource-record-v1.schema.json",
+            "domains/capital/planning/r3/schema/capital-risk-capacity-v1.schema.json",
+            "domains/capital/planning/r3/verification-r1.json",
+            "domains/capital/planning/r3/w2-constitution-delegation-risk-capacity-r1.json",
+            "domains/capital/planning/r3/w3-institutional-role-topology-r1.json",
+            "domains/capital/schema/capital-constitution-v1.schema.json",
+            "domains/capital/schema/capital-delegation-grant-v1.schema.json",
+            "domains/capital/schema/capital-office-assignment-v1.schema.json",
+            "domains/capital/schema/capital-office-role-v1.schema.json",
+            "domains/capital/schema/capital-office-verdict-v1.schema.json",
+            "domains/capital/schema/capital-review-topology-v1.schema.json",
+            "domains/capital/schema/capital-risk-capacity-v1.schema.json",
+            "domains/capital/src/ordivon_capital/governance/institutional_topology.py",
+            "domains/capital/src/ordivon_capital/governance/owner_authority.py",
+            "domains/capital/src/ordivon_capital/risk/risk_capacity_validation.py",
+            "domains/capital/tests/test_capital_r3_institutional_topology.py",
+            "domains/capital/tests/test_capital_r3_owner_authority.py",
+            "domains/capital/tools/institutional_topology_validation_r1/differential.py",
+            "domains/capital/tools/institutional_topology_validation_r1/run-differential",
+            "domains/capital/tools/resource_governance_validation_r1/differential.py",
+            "domains/capital/tools/resource_governance_validation_r1/run-differential"
+          ]
+        },
+        {
+          "localCommit": "5b8cd86294f277af95ccb64d96b19a02495f435e",
+          "owner": "services/runtime",
+          "consumer": "Root, candidate, and protected Runtime cache bytes must be measured in one traversal without losing allocated or shared-cache accounting; current native test preserves single root traversal contract.",
+          "remoteWitness": "Runtime current script and exact historical test contract; 3/3 grouped native unittest PASS at protected source 4db6ce847677; no live cache pruning or retained-byte deployment claim.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "PARTIAL_TIP_BLOB_EQUIVALENCE_WITH_OWNER_CDC",
+            "consumerStanding": "CURRENT_OWNER_COVERED_WITH_LIMITED_SCOPE",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+          "verifiedEqualChangedBlobs": false,
+          "equalChangedBlobOids": {
+            "services/runtime/scripts/tests/test_cache_root_singlepass.py": "6a742d5ddd71a2dcc1529e67ca46ef03e4b88f53"
+          },
+          "changedPaths": [
+            "services/runtime/scripts/ordivon-runtime-cache",
+            "services/runtime/scripts/tests/test_cache_root_singlepass.py"
+          ]
+        },
+        {
+          "localCommit": "c25b547f24f0fb6248c9cdaafec2145461f84996",
+          "owner": "services/runtime",
+          "consumer": "A cache candidate must obtain size and latest mtime in one logical filesystem walk; current Runtime owner satisfies the exact historical test, without a second independent cache scanner.",
+          "remoteWitness": "Runtime current script and exact historical owner regression; 3/3 combined native unittest PASS at protected source 4db6ce847677; physical cache retention and pruning not claimed.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "PARTIAL_TIP_BLOB_EQUIVALENCE_WITH_OWNER_CDC",
+            "consumerStanding": "CURRENT_OWNER_COVERED_WITH_LIMITED_SCOPE",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+          "verifiedEqualChangedBlobs": false,
+          "equalChangedBlobOids": {
+            "services/runtime/scripts/tests/test_cache_singlewalk_consumer.py": "1c9df2d2361c19adf71b3f921a0a9223f5fcb976"
+          },
+          "changedPaths": [
+            "services/runtime/scripts/ordivon-runtime-cache",
+            "services/runtime/scripts/tests/test_cache_singlewalk_consumer.py"
+          ]
+        },
+        {
+          "localCommit": "0f619c1a3b987ddc753f4e6f59e6ffe19c7a1ee6",
+          "owner": "services/gateway",
+          "consumer": "Independent read-only Gateway Runtime owner observations must use bounded concurrent projection, with no effect retry or misleading stale owner cache; existing Gateway owner test exercises this consumer.",
+          "remoteWitness": "Exact Git test blob equals protected main and native Gateway projection concurrent CDC 7/7 PASS at source 4db6ce847677; script changed since historical commit; do not infer byte identity or all-latency production guarantees.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "PARTIAL_TIP_BLOB_EQUIVALENCE_WITH_OWNER_CDC",
+            "consumerStanding": "CURRENT_OWNER_COVERED_WITH_LIMITED_SCOPE",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+          "verifiedEqualChangedBlobs": false,
+          "equalChangedBlobOids": {
+            "services/gateway/tests/test_projection_concurrency.py": "302aa93d8cb95cff73e09b3e7a5fc3b3bb3c12ce"
+          },
+          "changedPaths": [
+            "services/gateway/src/ordivon_gateway/service.py",
+            "services/gateway/tests/test_projection_concurrency.py"
+          ]
+        },
+        {
+          "localCommit": "b588eddac985c546a0a737781f17c7b19eeb5f36",
+          "owner": "capabilities/artifact",
+          "consumer": "Artifact Temporal worker must not infinite-restart on a permanent carrier-integrity refusal (code126), while preserving transient retry behavior. This is a current source contract, not a live systemd restart test.",
+          "remoteWitness": "The protected main service blob equals exact historical source, incl StartLimitIntervalSec=5min, StartLimitBurst=6, RestartPreventExitStatus=126. Current native Artifact Temporal suite 15/15 PASS at source 4db6ce847677; historical test file changed.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "PARTIAL_TIP_BLOB_EQUIVALENCE_WITH_OWNER_CDC",
+            "consumerStanding": "CURRENT_OWNER_COVERED_WITH_LIMITED_SCOPE",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+          "verifiedEqualChangedBlobs": false,
+          "equalChangedBlobOids": {
+            "capabilities/artifact/systemd/ordivon-artifact-temporal-worker.service": "dcee0dc2837a3b9ea27fa29ef15023b283370423"
+          },
+          "changedPaths": [
+            "capabilities/artifact/systemd/ordivon-artifact-temporal-worker.service",
+            "capabilities/artifact/tests/test_artifact_temporal_contract.py"
+          ]
+        },
+        {
+          "localCommit": "a6ed084fcd6bd977b63fd367361e46096787e0de",
+          "owner": "platform/network",
+          "consumer": "Developer egress selection must reject malformed NO_PROXY controls and ambiguous inherited Runtime proxy environment, protecting in-scope private addresses without automatic VPN production dependency.",
+          "remoteWitness": "Protected main developer-egress profile Git blob is exact historical blob; native Network provider egress regression 46/46 PASS at source 4db6ce847677; test file has evolved; no real external VPN/DNS availability claimed.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "PARTIAL_TIP_BLOB_EQUIVALENCE_WITH_OWNER_CDC",
+            "consumerStanding": "CURRENT_OWNER_COVERED_WITH_LIMITED_SCOPE",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+          "verifiedEqualChangedBlobs": false,
+          "equalChangedBlobOids": {
+            "platform/network/consumers/developer-egress/profile.sh": "b67e6cfc668ba76f634321e6f59949d536ee4b9b"
+          },
+          "changedPaths": [
+            "platform/network/consumers/developer-egress/profile.sh",
+            "platform/network/tests/test_developer_egress_profile.py"
+          ]
         }
       ],
       "consumerBlockedSelections": [
@@ -699,6 +928,32 @@
         "state": "LINKED",
         "ownerPlan": "tools/repo/planning/lego-plan-r1.json",
         "slice": "RG1"
+      },
+      "frozenDualMainCommitEffectPartition": {
+        "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+        "protectedMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+        "localOnlyCommits": 2300,
+        "remoteOnlyCommits": 639,
+        "localNonMergeCommits": 1546,
+        "localMergeConnectors": 754,
+        "nonMergePathFinalStates": {
+          "ALL_PRESENT_IDENTICAL": 22,
+          "ALL_BOTH_ABSENT": 64,
+          "MIXED_IDENTICAL_AND_ABSENT": 2,
+          "REQUIRES_OWNER_CDC": 1458
+        },
+        "method": "git rev-list --no-merges either tip --not opposite tip; for each commit git diff-tree -r -z changedPaths; compare mode+blob Git ls-tree -rz --full-tree of both immutable tips, evaluated symmetrically for local-only and protected-main-only non-merge commits. Absence on BOTH tips is distinct from equal present blobs. Merge connectors require native source_history_legos.history DAG projection.",
+        "evidenceStanding": "TIP_STATE_ONLY_NOT_BEHAVIORAL_EQUIVALENCE",
+        "branchDeletionAllowed": false,
+        "consumerDecision": "The 22+64+2 endpoint-neutral commits are a fast triage cohort, NOT automatically dispensable; no commit or main ref can be retired by endpoint identity without owner CDC and historical/deployment provenance. 1458 unresolved non-merge effects and 754 merge connectors keep main divergent. On the protected side, 338/353 patches also have changed paths requiring owner CDC; protected main is preferred as admitted published source, not because remote patch count is a correctness proof.",
+        "remoteNonMergeCommits": 353,
+        "remoteMergeConnectors": 286,
+        "remoteNonMergePathFinalStates": {
+          "ALL_PRESENT_IDENTICAL": 12,
+          "ALL_BOTH_ABSENT": 3,
+          "MIXED_IDENTICAL_AND_ABSENT": 0,
+          "REQUIRES_OWNER_CDC": 338
+        }
       }
     },
     {

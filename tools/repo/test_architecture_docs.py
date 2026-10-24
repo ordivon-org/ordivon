@@ -811,7 +811,11 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             "CURRENT_TOOLCHAIN_SUPERSEDES_OLD_LOCK_AND_NATIVE_TEST_PASS",
             "EXACT_EXECUTABLE_BLOB_WITH_NONWINDOWS_HOLD_ONLY",
             "EXACT_GIT_BLOB_AND_NATIVE_CONSUMER_PASS",
+            "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC",
         }
+        if item["evidenceScope"] == "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC":
+            assert item["disposition"] == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
+            assert item["sourceQualification"]["branchDeletionAllowed"] is False
         if item["evidenceScope"] == "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF":
             assert item["disposition"] == "SKIP_OLDER_PIN"
         if item["localCommit"].startswith(("ecca6ad", "86298d7", "9c8e37d", "fcf5fc6")):
@@ -1165,4 +1169,60 @@ def test_git01_retired_history_cohorts_are_owner_scoped() -> None:
         assert len(cohort) == len(set(cohort))
         assert not set(cohort) & seen
         seen.update(cohort)
+    module.validate_formal_issue_census(census, plans)
+
+
+def test_git01_frozen_dualmain_nonmerge_endpoint_partition_requires_consumer_proofs() -> None:
+    # Immutable SourceCut projection, not a second dynamic Git-history authority.
+    census, plans = formal_issue_inputs()
+    issue = next(row for row in census["issues"] if row["id"] == "GIT-01")
+    partition = issue["frozenDualMainCommitEffectPartition"]
+    assert partition["localMain"] == census["source"]["linuxLocalMain"]
+    assert len(partition["protectedMain"]) == 40
+    classes = partition["nonMergePathFinalStates"]
+    assert set(classes) == {
+        "ALL_PRESENT_IDENTICAL", "ALL_BOTH_ABSENT",
+        "MIXED_IDENTICAL_AND_ABSENT", "REQUIRES_OWNER_CDC",
+    }
+    assert all(type(value) is int and value >= 0 for value in classes.values())
+    assert sum(classes.values()) == partition["localNonMergeCommits"]
+    assert (
+        partition["localNonMergeCommits"] + partition["localMergeConnectors"]
+        == partition["localOnlyCommits"]
+    )
+    assert partition["localOnlyCommits"] == 2300
+    remote_classes = partition["remoteNonMergePathFinalStates"]
+    assert set(remote_classes) == set(classes)
+    assert all(type(value) is int and value >= 0 for value in remote_classes.values())
+    assert sum(remote_classes.values()) == partition["remoteNonMergeCommits"]
+    assert (
+        partition["remoteNonMergeCommits"] + partition["remoteMergeConnectors"]
+        == partition["remoteOnlyCommits"]
+    )
+    assert partition["remoteOnlyCommits"] == 639
+    assert partition["evidenceStanding"] == "TIP_STATE_ONLY_NOT_BEHAVIORAL_EQUIVALENCE"
+    assert partition["branchDeletionAllowed"] is False
+    assert classes["REQUIRES_OWNER_CDC"] > 0
+    module.validate_formal_issue_census(census, plans)
+
+
+def test_git01_old_capital_r3_office_has_no_current_consumer() -> None:
+    """Deleted R3 Office is an historical LEGO, not current capital authority."""
+    census, plans = formal_issue_inputs()
+    issue = next(row for row in census["issues"] if row["id"] == "GIT-01")
+    entry = next(x for x in issue["consumerSelections"] if x["localCommit"].startswith("d116d1e468"))
+    assert entry["owner"] == "domains/capital"
+    assert entry["disposition"] == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
+    assert entry["evidenceScope"] == "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC"
+    source = entry["sourceQualification"]
+    assert source["localMain"] == "13704d0cac9e113b395f2d5a21b5bf8119aa04a5"
+    assert source["tipRelation"] == "BOTH_TIPS_ABSENT"
+    assert source["branchDeletionAllowed"] is False
+    removed = entry["removedHistoricalPaths"]
+    assert len(removed) == 42
+    assert len(set(removed)) == len(removed)
+    assert all(name.startswith("domains/capital/") for name in removed)
+    assert all(not (ROOT / name).exists() for name in removed)
+    assert "domains/capital/config/capital_office_registry.json" in removed
+    assert "domains/capital/src/ordivon_capital/governance/owner_authority.py" in removed
     module.validate_formal_issue_census(census, plans)

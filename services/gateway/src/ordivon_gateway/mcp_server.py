@@ -34,6 +34,11 @@ from .service import GatewayService
 from .upstream import McpOwnerCaller, OwnerCallError
 from .worker_http import attach_worker_routes
 
+# Host owns these byte envelopes. Exposing them in MCP tools/list prevents
+# consumer calls that Host can only reject; no second admission authority.
+HostCollectionBytes = Annotated[int, Field(ge=16_384, le=4_194_304)]
+HostMessageBytes = Annotated[int, Field(ge=131_072, le=4_194_304)]
+
 
 def _owner_error_result(exc: OwnerCallError) -> CallToolResult:
     error = (
@@ -208,7 +213,7 @@ def build_server(
         limit: int = 50,
         beforeUpdatedAt: str | None = None,
         beforeWorkRef: str | None = None,
-        maxBytes: int = 262_144,
+        maxBytes: HostCollectionBytes = 262_144,
     ) -> dict[str, Any]:
         return await _host(
             "work.list",
@@ -278,7 +283,7 @@ def build_server(
         limit: int = 50,
         beforeCreatedAt: str | None = None,
         beforeSpaceRef: str | None = None,
-        maxBytes: int = 262_144,
+        maxBytes: HostCollectionBytes = 262_144,
     ) -> dict[str, Any]:
         return await _host(
             "space.list",
@@ -297,7 +302,7 @@ def build_server(
         spaceRef: str,
         afterSubjectRef: str | None = None,
         limit: int = 100,
-        maxBytes: int = 262_144,
+        maxBytes: HostCollectionBytes = 262_144,
     ) -> dict[str, Any]:
         return await _host(
             "space.subject.list",
@@ -314,7 +319,7 @@ def build_server(
         spaceRef: str,
         afterActorRef: str | None = None,
         limit: int = 100,
-        maxBytes: int = 262_144,
+        maxBytes: HostCollectionBytes = 262_144,
     ) -> dict[str, Any]:
         return await _host(
             "space.participation.list",
@@ -358,7 +363,7 @@ def build_server(
         spaceRef: str,
         afterTopicRef: str | None = None,
         limit: int = 100,
-        maxBytes: int = 262_144,
+        maxBytes: HostCollectionBytes = 262_144,
     ) -> dict[str, Any]:
         return await _host(
             "topic.list",
@@ -429,7 +434,7 @@ def build_server(
         topicRef: str | None = None,
         beforeSequence: int | None = None,
         limit: int = 50,
-        maxBytes: int = 524_288,
+        maxBytes: HostMessageBytes = 524_288,
     ) -> dict[str, Any]:
         return await _host(
             "message.search",
@@ -472,7 +477,7 @@ def build_server(
         | None = None,
         afterChangeSequence: int = 0,
         limit: int = 100,
-        maxBytes: int = 262_144,
+        maxBytes: HostCollectionBytes = 262_144,
     ) -> dict[str, Any]:
         return await _host(
             "message.relation.list",
@@ -506,7 +511,7 @@ def build_server(
         afterTargetKind: str | None = None,
         afterTargetRef: str | None = None,
         limit: int = 200,
-        maxBytes: int = 262_144,
+        maxBytes: HostCollectionBytes = 262_144,
     ) -> dict[str, Any]:
         return await _host(
             "subscription.list",
@@ -535,7 +540,7 @@ def build_server(
 
     @server.tool(name="attention.get")
     async def attention_get(
-        actorRef: str, limit: int = 100, maxBytes: int = 262_144
+        actorRef: str, limit: int = 100, maxBytes: HostCollectionBytes = 262_144
     ) -> dict[str, Any]:
         return await _host(
             "attention.get", {"actorRef": actorRef, "limit": limit, "maxBytes": maxBytes}
@@ -543,7 +548,7 @@ def build_server(
 
     @server.tool(name="attention.delta")
     async def attention_delta(
-        actorRef: str, afterSequence: int, limit: int = 100, maxBytes: int = 262_144
+        actorRef: str, afterSequence: int, limit: int = 100, maxBytes: HostCollectionBytes = 262_144
     ) -> dict[str, Any]:
         return await _host(
             "attention.delta",
@@ -560,7 +565,7 @@ def build_server(
         actorRef: str,
         afterSequence: int | None = None,
         limit: int = 100,
-        maxBytes: int = 262_144,
+        maxBytes: HostCollectionBytes = 262_144,
     ) -> dict[str, Any]:
         return await _host(
             "attention.reentry",
