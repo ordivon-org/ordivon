@@ -96,25 +96,6 @@
       "acceptance": [
         "Restart preserves Host revision identity and task/board continuity."
       ]
-    },
-    {
-      "id": "O05",
-      "label": "CursorContract",
-      "kind": "continuity_contract",
-      "responsibility": "Generalize only the revision/cursor/history-gap pattern needed by future Agent Service consumers without turning Host into their state owner.",
-      "authority": "Host-facing compatibility seam",
-      "state": "DESIGNED",
-      "sharedRefs": [
-        "L11"
-      ],
-      "evidence": [],
-      "dependencies": [],
-      "mustNotOwn": [
-        "Agent Service Task semantics"
-      ],
-      "acceptance": [
-        "Consumer can request bounded changes and detect a history gap without full rescan or inferred currentness."
-      ]
     }
   ],
   "edges": [
@@ -143,26 +124,8 @@
       "label": "route delta to exact task revision"
     }
   ],
-  "slices": [
-    {
-      "id": "OS1",
-      "objective": "Pressure-test a small reusable revision/cursor/history-gap contract against task.resume and attention.delta without adding scheduler or priority semantics.",
-      "status": "PROPOSED",
-      "nodeIds": [
-        "O03",
-        "O05"
-      ],
-      "acceptance": [
-        "A consumer can incrementally reconcile changes and detect gaps while exact task.resume remains the semantic re-entry boundary."
-      ],
-      "evidence": [],
-      "blockers": [],
-      "nextAction": "Write contract tests first; add no new Host authority unless a consumer gap is demonstrated."
-    }
-  ],
-  "gaps": [
-    "Cross-consumer generic cursor semantics remain a candidate seam, not current Host authority."
-  ],
+  "slices": [],
+  "gaps": [],
   "doNotOwn": [
     "priority",
     "assignee",

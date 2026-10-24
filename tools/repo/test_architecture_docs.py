@@ -1832,7 +1832,7 @@ def test_formal_r21_host_existing_typed_dependencies_form_nontrivial_frontiers()
     plan = json.loads((ROOT / "services/host/planning/lego-plan-r1.json").read_text())
     nodes, fronts = module.validate_owner_lego_dependencies(plan, "services/host")
     depth = {node: d for d, front in enumerate(fronts) for node in front}
-    assert len(nodes) == 5
+    assert nodes == {"O01", "O02", "O03", "O04"}
     assert depth["O04"] < depth["O01"]
     assert depth["O04"] < depth["O02"]
     assert any(e["from"] == "O02" and e["to"] == "O03" and e["type"] == "DATA"
