@@ -869,6 +869,28 @@ def validate_r21_lego_vocabulary(document: str, *, root: Path = ROOT) -> None:
                 f"R2.1 consumer witness nonunique or missing callable: "
                 f"{relative}::{symbol} (definitions={count})"
             )
+        # Source existence and unique names are not execution proofs.
+        # Explicit unittest/pytest opt-outs cannot witness an always-on
+        # acceptance claim; runtime test execution remains Owner evidence.
+        witness = next(
+            node for node in scope
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name == symbol
+        )
+        decorators = list(witness.decorator_list)
+        if class_name is not None:
+            decorators.extend(classes[0].decorator_list)
+        disabled = {
+            "unittest.skip", "unittest.skipIf", "unittest.skipUnless",
+            "pytest.mark.skip", "pytest.mark.skipif", "pytest.mark.xfail",
+        }
+        if any(
+            ast.unparse(item.func if isinstance(item, ast.Call) else item) in disabled
+            for item in decorators
+        ):
+            raise ArchitectureDocsError(
+                f"R2.1 disabled consumer witness: {relative}::{symbol}"
+            )
 
 
 def validate_repository(root: Path = ROOT) -> None:

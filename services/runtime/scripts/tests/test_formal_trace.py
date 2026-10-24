@@ -118,6 +118,98 @@ trait Provider {
                 self.module.ROOT = original_root
         self.assertTrue(any("ignored" in error for error in errors), errors)
 
+    def test_rust_block_comment_cannot_forge_an_always_on_test(self):
+        # A textual witness inside a Rust block comment is not compiled or executed.
+        for snippet in (
+            "/*\n#[test]\nfn fabricated_test() {}\n*/\n",
+            "/* outer /* nested */\n#[test]\nfn fabricated_test() {}\n*/\n",
+        ):
+            with self.subTest(snippet=snippet):
+                with tempfile.TemporaryDirectory() as temporary:
+                    source = Path(temporary) / "tests.rs"
+                    source.write_text(snippet, encoding="utf-8")
+                    original_root = self.module.ROOT
+                    self.module.ROOT = Path(temporary)
+                    try:
+                        errors = self.module.require_test_symbol(source, "fabricated_test")
+                    finally:
+                        self.module.ROOT = original_root
+                self.assertTrue(errors, "Comment-only Rust test was accepted as real proof")
+
+    def test_rust_raw_byte_string_cannot_forge_an_always_on_test(self):
+        # A raw byte literal can contain unescaped quotes and Rust-looking lines.
+        source_text = (
+            'const NOTE: &[u8] = br##"literal "interior quote\n'
+            '#[test]\nfn fabricated_test() {}\n"##;\n'
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "tests.rs"
+            source.write_text(source_text, encoding="utf-8")
+            original_root = self.module.ROOT
+            self.module.ROOT = Path(temporary)
+            try:
+                errors = self.module.require_test_symbol(source, "fabricated_test")
+            finally:
+                self.module.ROOT = original_root
+        self.assertTrue(errors, "Raw byte string was accepted as an executable Rust test")
+        self.assertNotIn(
+            "fn fabricated_test", self.module._rust_code_only(source_text)
+        )
+
+    def test_real_owner_survives_comment_delimiters_inside_string(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "runtime.rs"
+            source.write_text(
+                'impl Registry { const TEXT: &str = "/* not a comment */"; '
+                'fn valid(&self) {} }\n',
+                encoding="utf-8",
+            )
+            original_root = self.module.ROOT
+            self.module.ROOT = Path(temporary)
+            try:
+                errors = self.module.require_owned_method(
+                    source, "impl", "Registry", "valid"
+                )
+            finally:
+                self.module.ROOT = original_root
+        self.assertEqual(errors, [])
+
+    def test_rust_comment_cannot_forge_a_runtime_owner_method(self):
+        # A matching Rust impl may contain unrelated real functions, not a fake method.
+        source_text = (
+            "impl Registry {\n fn live(&self) {}\n"
+            " /* fn forged_dispatch(&self) {} */\n}\n"
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "runtime.rs"
+            source.write_text(source_text, encoding="utf-8")
+            original_root = self.module.ROOT
+            self.module.ROOT = Path(temporary)
+            try:
+                errors = self.module.require_owned_method(
+                    source, "impl", "Registry", "forged_dispatch"
+                )
+            finally:
+                self.module.ROOT = original_root
+        self.assertTrue(errors, "Comment-only Rust method was accepted as Owner seam")
+
+    def test_rust_comment_cannot_forge_entire_owner(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "runtime.rs"
+            source.write_text(
+                "/*\nimpl Registry { fn fabricated(&self) {} }\n*/\n",
+                encoding="utf-8",
+            )
+            original_root = self.module.ROOT
+            self.module.ROOT = Path(temporary)
+            try:
+                errors = self.module.require_owned_method(
+                    source, "impl", "Registry", "fabricated"
+                )
+            finally:
+                self.module.ROOT = original_root
+        self.assertTrue(errors, "Comment-only Rust Owner was accepted as real source")
+
     def test_conditionally_disabled_rust_tests_are_not_always_on_witnesses(self):
         # Rust cfg(any()) compiles the test out, even with an adjacent #[test].
         # A missing Feature similarly means no test ever ran. Neither is an
@@ -404,6 +496,67 @@ trait Provider {
             errors = self.module.validate(trace, invariants)
             self.assertTrue(
                 sum("formal source escapes Runtime source" in error for error in errors) == 2,
+                errors,
+            )
+
+    def test_runtime_formal_manifest_inputs_must_not_be_source_aliases(self):
+        """A formal proof manifest or invariant file cannot redirect within Owner."""
+        for attribute in ("TRACE", "INVARIANTS"):
+            with self.subTest(source=attribute):
+                with tempfile.TemporaryDirectory(dir=ROOT / "formal") as folder:
+                    link = Path(folder) / "redirected-input.json"
+                    link.symlink_to(getattr(self.module, attribute))
+                    original = getattr(self.module, attribute)
+                    setattr(self.module, attribute, link)
+                    try:
+                        self.assertEqual(self.module.main(), 1)
+                    finally:
+                        setattr(self.module, attribute, original)
+
+    def test_runtime_formal_same_owner_symlink_sources_are_not_proof(self):
+        """Even same-owner symlinks are aliases, not exact source-cut witnesses."""
+        trace, invariants = manifests()
+        with tempfile.TemporaryDirectory(dir=ROOT / "formal") as folder:
+            temp = Path(folder)
+            model = temp / "model.tla"
+            config = temp / "model.cfg"
+            model.symlink_to(ROOT / "formal/RuntimeDispatchR1.tla")
+            config.symlink_to(ROOT / "formal/RuntimeDispatchR1.cfg")
+            mutated = copy.deepcopy(trace)
+            mutated["formalSpecification"]["modulePath"] = str(model.relative_to(ROOT))
+            mutated["formalSpecification"]["configPath"] = str(config.relative_to(ROOT))
+            errors = self.module.validate(mutated, invariants)
+            self.assertGreaterEqual(
+                sum("is not an exact Runtime source" in e for e in errors),
+                2,
+                errors,
+            )
+
+    def test_runtime_proving_test_same_owner_symlink_is_not_its_own_witness(self):
+        trace, _ = manifests()
+        witness = trace["provingTests"][0]
+        real = ROOT / witness["path"]
+        with tempfile.TemporaryDirectory(dir=ROOT / "formal") as folder:
+            alias = Path(folder) / "alias_proof.rs"
+            alias.symlink_to(real)
+            errors = self.module.require_test_symbol(alias, witness["symbol"])
+            self.assertTrue(
+                any("is not an exact Runtime source" in error for error in errors),
+                errors,
+            )
+
+    def test_runtime_seam_same_owner_symlink_is_not_its_own_witness(self):
+        trace, _ = manifests()
+        seam = trace["contractSeams"][0]
+        real = ROOT / seam["path"]
+        with tempfile.TemporaryDirectory(dir=ROOT / "formal") as folder:
+            alias = Path(folder) / "alias_contract.rs"
+            alias.symlink_to(real)
+            errors = self.module.require_owned_method(
+                alias, seam["ownerKind"], seam["owner"], seam["symbol"]
+            )
+            self.assertTrue(
+                any("is not an exact Runtime source" in error for error in errors),
                 errors,
             )
 
