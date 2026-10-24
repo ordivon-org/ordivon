@@ -64,6 +64,29 @@ intentionally false `NoDispatchEver` claim); the other three could not
 dispatch without their required input. This rejects an **unconditional**
 all-owner prerequisite without weakening the required ones. Independent temporary mutations (remove the Host consumer-evidence guard; remove the Runtime Network-readiness guard) each triggered the intended TLC invariant violation. These mutations were not committed.
 
+**R2.1 type refinement — consumer witness scope.** The previous
+`consumerEvidence: BOOLEAN` could not express the concrete error class
+"a terminal result carries evidence belonging to another Work/consumer".
+The existing model now uses the *same single variable* with the finite
+standing `{"none", "matching", "foreign"}`. The abstract
+`ConsumerObserve` can report either matching or foreign evidence after
+terminal observation; only matching evidence can authorize the existing
+`HostAccept` transition. A foreign observation remains visible as
+non-admissible evidence rather than being silently treated as `TRUE`.
+
+A deliberate RED mutation broadened `HostAccept` to any non-none
+evidence. The already configured `NoHostAcceptanceFromRuntimeAlone`
+invariant then produced a real TLC counterexample: terminal Runtime,
+`consumerEvidence="foreign"`, `host="accepted"`. Restoring the exact
+matching guard produced four GREEN TLC finite-state exhaustions under
+the upstream digest-verified tool, respectively **11, 32, 18 and 18**
+distinct states for Harness+Network, direct-local, direct-egress and
+Harness-local. This is a typed abstract source/consumer contract and
+does **not** establish that a deployed Host checks provenance; the
+actual Owner verifier remains responsible for binding evidence to
+the correct Work and SourceCut. This replacement needs no new proof
+engine, global registry or test framework.
+
 **Claims explicitly excluded:** implementation refinement for Rust/Host/Harness/Network, current network availability, authorization, identity, consumer evidence authenticity, domain success, retries, liveness, unbounded safety and deadlock freedom. `CHECK_DEADLOCK FALSE` is intentional for terminal stuttering; no fairness property is included. Real acceptance needs existing natural-owner native tests mapping abstract transitions to their physical and semantic effects. Do not promote model PASS into reality PASS.
 
 Foundations: Leslie Lamport's TLA+/TLC, established assume–guarantee contracts (e.g., Pacti), and existing JSON Schema Draft 2020-12 port contracts.

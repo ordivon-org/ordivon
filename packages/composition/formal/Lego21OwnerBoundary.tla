@@ -17,6 +17,7 @@ HostStates == {"open", "accepted"}
 HarnessStates == {"idle", "proposed"}
 NetworkStates == {"unknown", "ready"}
 RuntimeStates == {"idle", "admitted", "running", "ambiguous", "terminal"}
+EvidenceStates == {"none", "matching", "foreign"}
 
 TypeOK ==
     /\ RequiresHarness \in BOOLEAN
@@ -26,7 +27,7 @@ TypeOK ==
     /\ network \in NetworkStates
     /\ runtime \in RuntimeStates
     /\ dispatchCount \in 0..2
-    /\ consumerEvidence \in BOOLEAN
+    /\ consumerEvidence \in EvidenceStates
 
 Init ==
     /\ host = "open"
@@ -34,7 +35,7 @@ Init ==
     /\ network = "unknown"
     /\ runtime = "idle"
     /\ dispatchCount = 0
-    /\ consumerEvidence = FALSE
+    /\ consumerEvidence = "none"
 
 NetworkObserve ==
     /\ network = "unknown"
@@ -72,14 +73,16 @@ RuntimeObserveTerminal ==
 
 ConsumerObserve ==
     /\ runtime = "terminal"
-    /\ ~consumerEvidence
-    /\ consumerEvidence' = TRUE
+    /\ consumerEvidence = "none"
+    (* A witness can belong to this Work or an unrelated consumer. *)
+    /\ consumerEvidence' \in {"matching", "foreign"}
     /\ UNCHANGED <<host, harness, network, runtime, dispatchCount>>
 
 HostAccept ==
     /\ host = "open"
     /\ runtime = "terminal"
-    /\ consumerEvidence
+    (* The witness must belong to this Work, not merely exist somewhere. *)
+    /\ consumerEvidence = "matching"
     /\ host' = "accepted"
     /\ UNCHANGED <<harness, network, runtime, dispatchCount, consumerEvidence>>
 
@@ -98,7 +101,7 @@ Spec == Init /\ [][Next]_vars
 AtMostOnePhysicalDispatch == dispatchCount <= 1
 
 NoHostAcceptanceFromRuntimeAlone ==
-    host = "accepted" => (runtime = "terminal" /\ consumerEvidence)
+    host = "accepted" => (runtime = "terminal" /\ consumerEvidence = "matching")
 
 NoDispatchWithoutRequiredInputs ==
     dispatchCount > 0 =>
@@ -106,9 +109,9 @@ NoDispatchWithoutRequiredInputs ==
         /\ (~RequiresNetwork \/ network = "ready")
 
 AmbiguityCannotBeTreatedAsCompletion ==
-    runtime = "ambiguous" => (host = "open" /\ ~consumerEvidence /\ dispatchCount = 1)
+    runtime = "ambiguous" => (host = "open" /\ consumerEvidence = "none" /\ dispatchCount = 1)
 
 NoHostAcceptanceWithoutConsumerEvidence ==
-    ~consumerEvidence => host = "open"
+    consumerEvidence # "matching" => host = "open"
 
 =============================================================================
