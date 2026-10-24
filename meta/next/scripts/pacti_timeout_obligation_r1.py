@@ -277,6 +277,67 @@ def execute_pacti(spec: dict[str, Any]) -> dict[str, Any]:
     return formal
 
 
+def evaluate_owner_timeout_envelope(
+    grant_wire: dict[str, Any],
+    runtime_status: dict[str, Any],
+) -> dict[str, Any]:
+    """Check a *supplied* Harness grant against a *supplied* Runtime config.
+
+    Reuse Pacti algebra; do not install a new contract kernel, make a stale
+    frozen model authoritative, or infer the source/age of either observation.
+    The caller must separately establish current source and runtime identity.
+    """
+    if not isinstance(grant_wire, dict) or (
+        type(grant_wire.get("schemaVersion")) is not int
+        or grant_wire.get("schemaVersion") != 1
+        or grant_wire.get("kind") != "ordivon.plugin-gateway-execution-grant"
+    ):
+        raise CircuitContractError("expected the Harness owner grant wire")
+    grant_max = grant_wire.get("maxTimeoutMs")
+    config = runtime_status.get("config") if isinstance(runtime_status, dict) else None
+    runtime_max = config.get("maxRuntimeMs") if isinstance(config, dict) else None
+    for name, bound in (
+        ("grant.maxTimeoutMs", grant_max),
+        ("runtime.config.maxRuntimeMs", runtime_max),
+    ):
+        if type(bound) is not int or bound <= 0 or bound > (2**64 - 1):
+            raise CircuitContractError(f"missing or invalid {name} observation")
+    if grant_max > 900_000:
+        raise CircuitContractError("grant timeout exceeds the Harness owner contract")
+
+    from pacti.utils.errors import IncompatibleArgsError
+
+    grant, gateway, runtime, top = _contract_bundle(grant_max, runtime_max)
+    # These are actual Pacti operations, NOT custom limit arithmetic.
+    # A failed composition is a counterexample to the declared whole-domain
+    # compatibility; it is not permission to weaken the Runtime admission.
+    try:
+        composed = grant.compose(gateway).compose(runtime)
+        refines_top = composed.refines(top)
+    except IncompatibleArgsError:
+        refines_top = False
+
+    projection = {
+        "schemaVersion": 1,
+        "kind": "ordivon.pacti-observed-owner-timeout-projection",
+        "pactiVersion": "0.3.1",
+        "grantMaxMs": grant_max,
+        "runtimeMaxMs": runtime_max,
+        "modelStanding": "COMPATIBLE" if refines_top else "INCOMPATIBLE",
+        "observationDigest": canonical_digest(
+            {"grant": grant_wire, "runtimeStatus": runtime_status}
+        ),
+        "supportScope": "Polyhedral timeout-domain composition/refinement of supplied owner observations only.",
+        "nonClaims": [
+            "Snapshots are caller supplied; freshness and producer authenticity were not established.",
+            "Pacti does not prove Harness/Gateway/Runtime code implements this model.",
+            "A compatible model never grants effect execution authority.",
+        ],
+    }
+    projection["projectionDigest"] = canonical_digest(projection)
+    return projection
+
+
 def run(spec: dict[str, Any]) -> dict[str, Any]:
     manifest = build_manifest(spec)
     obligations = compile_verification_obligations(manifest)

@@ -214,3 +214,8 @@ state transitions, contract-based assume/guarantee reasoning and existing
 Git SHA/source-provenance semantics. Use SMT or an additional prover only
 where a concrete constraint consumer cannot be discharged by an existing
 Owner test or TLC model.
+
+
+### Scoped Pacti observation algebra (task-local, not Host/Runtime authority)
+
+The existing Pacti 0.3.1 assume/guarantee provider is used task-locally for the typed Harness grant maxTimeoutMs and a caller-supplied Runtime status.config.maxRuntimeMs observation. The operation binds both inputs to canonical digests and returns only a mathematical compatibility verdict; it does not claim the observations were authenticated, fresh, implementation-refined or safe to apply as physical effects. The old frozen numerical example is not live Runtime truth. Pacti remains absent from Next's default dependency set: root CI explicitly marks its optional provider execution SKIPPED, while the pinned task-local run exercises the real positive/negative algebra. Runtime admission and actual consumer outcomes remain natural-Owner obligations.
