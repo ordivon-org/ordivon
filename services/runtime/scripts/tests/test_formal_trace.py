@@ -279,6 +279,74 @@ trait Provider {
             finally:
                 self.module.ROOT = original_root
 
+    def test_disabled_ancestor_module_cannot_be_a_formal_proving_witness(self):
+        # Compiler-elided module is not an always-on test, even with #[test].
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "hidden_tests.rs"
+            original_root = self.module.ROOT
+            self.module.ROOT = root
+            try:
+                for gating in ('#[cfg(any())]', '#[cfg(feature = "not_enabled")]'):
+                    with self.subTest(gating=gating):
+                        source.write_text(
+                            f"{gating}\nmod hidden {{\n"
+                            "    #[test]\n    fn proof_that_does_not_compile() {}\n"
+                            "}\n",
+                            encoding="utf-8",
+                        )
+                        errors = self.module.require_test_symbol(
+                            source, "proof_that_does_not_compile"
+                        )
+                        self.assertTrue(
+                            any("ancestor" in error and "conditional" in error for error in errors),
+                            f"disabled module falsely admitted as proof: {errors}",
+                        )
+            finally:
+                self.module.ROOT = original_root
+
+    def test_disabled_owner_impl_cannot_be_a_formal_contract_witness(self):
+        # Rust cfg(any()) removes the entire impl, despite its textual method.
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "owner.rs"
+            source.write_text(
+                "#[cfg(any())]\nimpl Registry {\n"
+                "    fn phantom_dispatch(&self) {}\n"
+                "}\n",
+                encoding="utf-8",
+            )
+            original_root = self.module.ROOT
+            self.module.ROOT = root
+            try:
+                errors = self.module.require_owned_method(
+                    source, "impl", "Registry", "phantom_dispatch"
+                )
+            finally:
+                self.module.ROOT = original_root
+        self.assertTrue(
+            any("ancestor" in error and "conditional" in error for error in errors),
+            f"compiler-elided impl falsely admitted as Owner contract: {errors}",
+        )
+
+    def test_cfg_test_only_module_is_valid_when_building_native_tests(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "tests.rs"
+            source.write_text(
+                "#[cfg(test)]\nmod tests {\n"
+                "    #[test]\n    fn real_test_witness() {}\n"
+                "}\n",
+                encoding="utf-8",
+            )
+            original_root = self.module.ROOT
+            self.module.ROOT = root
+            try:
+                errors = self.module.require_test_symbol(source, "real_test_witness")
+            finally:
+                self.module.ROOT = original_root
+        self.assertEqual(errors, [])
+
     def test_test_annotation_accepts_adjacent_attributes(self):
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary) / "integration_tests.rs"
