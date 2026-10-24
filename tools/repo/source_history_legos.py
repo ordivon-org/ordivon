@@ -12,8 +12,12 @@ import collections
 import json
 import subprocess
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
-import tomllib
+if __package__:
+    from .affected_owners import load_owners
+else:
+    from affected_owners import load_owners
 
 HEADER = "__ORDIVON_HISTORY_RECORD__"
 
@@ -30,15 +34,15 @@ def git(repo: Path, *args: str) -> str:
 def owners(repo: Path, canonical_revision: str) -> list[tuple[str, str]]:
     # Natural-owner attribution is part of the exact protected-source cut,
     # not a mutable worktree checkout (which may be on another Git branch).
-    manifest = tomllib.loads(
-        git(repo, "show", canonical_revision + ":tools/repo/owners.toml")
-    )
-    # The native Formal Issue owner universe also recognizes tools/repo as
-    # repository mechanics, not as a domain or effect authority. Keep that
-    # existing owner distinct from genuinely unattributed root paths.
-    return [(item["root"], item["name"]) for item in manifest["owners"]] + [
-        ("tools/repo/", "tools/repo"),
-    ]
+    exact_manifest = git(repo, "show", canonical_revision + ":tools/repo/owners.toml")
+    # Reuse the canonical Owner type checker on source-cut bytes; malformed
+    # historical roots must not silently misattribute consumer paths.
+    with TemporaryDirectory(prefix="ordivon-source-owners-") as temp:
+        manifest = Path(temp) / "owners.toml"
+        manifest.write_text(exact_manifest, encoding="utf-8", errors="surrogateescape")
+        native = [(owner.root, owner.name) for owner in load_owners(manifest)]
+    # Repo mechanics is a separate existing owner, never effect authority.
+    return native + [("tools/repo/", "tools/repo")]
 
 
 def current_tree(repo: Path, revision: str) -> dict[str, str]:
