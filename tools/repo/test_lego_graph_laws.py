@@ -45,6 +45,45 @@ def test_owner_node_whitespace_alias_does_not_mint_second_lego(relative: str) ->
         module.validate_owner_lego_graph(plan)
 
 
+@pytest.mark.parametrize(
+    "relative", (*OWNER_GRAPH_PLANS, "platform/security/planning/lego-plan-r1.json")
+)
+@pytest.mark.parametrize("alias_form", ("zero_width_joiner", "fullwidth_first_letter"))
+def test_owner_identity_cannot_be_forked_by_unicode_lookalikes(
+    relative: str, alias_form: str
+) -> None:
+    """A visible LEGO identity must not silently mint a second opaque node."""
+    plan = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+    ghost = copy.deepcopy(plan["nodes"][0])
+    original = ghost["id"]
+    ghost["id"] = (
+        original[0] + "\u200d" + original[1:]
+        if alias_form == "zero_width_joiner"
+        else chr(ord(original[0]) + 0xFEE0) + original[1:]
+    )
+    plan["nodes"].append(ghost)
+    with pytest.raises(module.ArchitectureDocsError, match="non-canonical LEGO node identity"):
+        module.validate_owner_lego_graph(plan)
+    # The direct dependency path must share the SAME identity equivalence.
+    with pytest.raises(module.ArchitectureDocsError, match="non-canonical LEGO node identity"):
+        module.validate_owner_lego_dependencies(plan, relative)
+
+
+@pytest.mark.parametrize("alias_form", ("zero_width_joiner", "fullwidth_first_letter"))
+def test_owner_slice_identity_cannot_use_unicode_lookalikes(alias_form: str) -> None:
+    plan = json.loads((ROOT / OWNER_GRAPH_PLANS[0]).read_text(encoding="utf-8"))
+    ghost = copy.deepcopy(plan["slices"][0])
+    original = ghost["id"]
+    ghost["id"] = (
+        original[0] + "\u200d" + original[1:]
+        if alias_form == "zero_width_joiner"
+        else chr(ord(original[0]) + 0xFEE0) + original[1:]
+    )
+    plan["slices"].append(ghost)
+    with pytest.raises(module.ArchitectureDocsError, match="non-canonical LEGO slice identity"):
+        module.validate_owner_lego_graph(plan)
+
+
 def test_unregistered_slice_whitespace_alias_does_not_mint_second_slice() -> None:
     plan = json.loads((ROOT / OWNER_GRAPH_PLANS[0]).read_text(encoding="utf-8"))
     alias = copy.deepcopy(plan["slices"][0])
