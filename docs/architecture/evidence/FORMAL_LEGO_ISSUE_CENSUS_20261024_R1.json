@@ -1758,6 +1758,40 @@
             "branchDeletionAllowed": false
           },
           "evaluatedRemoteMain": "0cd09c67af8fd4dc04f38174b856089c9b5ae6ce"
+        },
+        {
+          "localCommit": "7845fad19bd02f43ec995d74af8a3eae52524aa2",
+          "owner": "services/runtime",
+          "consumer": "Runtime TLA+ formal toolchain can reuse exact digest-pinned external tools.jar from isolated Workspace while failing closed on mismatched digest, symlink and missing file; real TLC model checking is a separate requirement.",
+          "remoteWitness": "At protected 0a99bf0e43e9 current services/runtime/scripts/tla-formal equals the historical Git Blob; owner-native services/runtime/scripts/tests/test_tla_formal_external_jar.py passed 10/10 using pinned digest and fake-Java contract. The real formal TLC check was NOT executed.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "0a99bf0e43e9686b4904ca6b734cba723024eeb6",
+            "tipRelation": "CURRENT_OWNER_CONTRACT_COVERS_PATCH_EQUIVALENT_EFFECT",
+            "patchRelation": "PATCH_ID_EQUIVALENT",
+            "consumerStanding": "CURRENT_OWNER_COVERED_WITH_LIMITED_SCOPE",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "0a99bf0e43e9686b4904ca6b734cba723024eeb6"
+        },
+        {
+          "localCommit": "13efd13ab8f45911176a28ade03e380ba847a649",
+          "owner": "services/host",
+          "consumer": "Host message.get must project one durable exact message by identity and expected digest, preserving MCP surface identity and not asserting message content is domain truth.",
+          "remoteWitness": "At protected 0a99bf0e43e9 Host test_message_get_contract.py Git Blob is identical to local historic source; owner-native locked offline pytest for message_get, MCP surface identity and release surface passed 5/5. No live PostgreSQL or cross-host deployment acceptance claimed.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "0a99bf0e43e9686b4904ca6b734cba723024eeb6",
+            "tipRelation": "CURRENT_OWNER_CONTRACT_COVERS_PATCH_EQUIVALENT_EFFECT",
+            "patchRelation": "PATCH_ID_EQUIVALENT",
+            "consumerStanding": "CURRENT_OWNER_COVERED_WITH_LIMITED_SCOPE",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "0a99bf0e43e9686b4904ca6b734cba723024eeb6"
         }
       ],
       "consumerBlockedSelections": [
