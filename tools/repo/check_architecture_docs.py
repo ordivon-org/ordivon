@@ -766,6 +766,30 @@ def validate_formal_issue_census(
         raise ArchitectureDocsError("orphan owner-local LEGO registration")
 
 
+
+def validate_r21_lego_vocabulary(document: str, *, root: Path = ROOT) -> None:
+    """Keep the already accepted six-role LEGO interface distinct from optional math.
+
+    This is a documentation/source-bound gate, not a universal proof schema.
+    Consumer paths must name existing Owner-native falsification witnesses.
+    """
+    canonical = "L = (identity, responsibility, inputs, outputs, contract, acceptance)"
+    if document.count(canonical) != 1:
+        raise ArchitectureDocsError("R2.1 canonical LEGO contract must be unique")
+    if re.search(r"\bL\s*=\s*\(\s*(?:C\s*,\s*I\s*,\s*O\s*,\s*S\s*,|I\s*,\s*O\s*,\s*A\s*,)", document):
+        raise ArchitectureDocsError("R2.1 competing LEGO mathematical definition")
+    if r"\mathrm{Semantics}(L)" not in document:
+        raise ArchitectureDocsError("R2.1 optional semantics must be distinct from LEGO")
+    for relative in (
+        "services/runtime/scripts/tests/test_mcp_e2e_reconciliation.py",
+        "services/host/tests/test_social_work_fabric_postgres.py",
+        "services/harness/tests/test_agent_automation_browserless.py",
+        "platform/network/tests/test_claude_egress_readiness_consumer.py",
+    ):
+        if relative not in document or not (root / relative).is_file():
+            raise ArchitectureDocsError(f"R2.1 missing current consumer witness: {relative}")
+
+
 def validate_repository(root: Path = ROOT) -> None:
     current = root / CURRENT.relative_to(ROOT)
     deployed = root / DEPLOYED.relative_to(ROOT)
@@ -777,6 +801,12 @@ def validate_repository(root: Path = ROOT) -> None:
     readme = root / README.relative_to(ROOT)
 
     validate_current_document(current.read_text(encoding="utf-8"))
+    validate_r21_lego_vocabulary(
+        (root / "docs/architecture/AGENT_CONCEPTS_FORMAL_LEGO_RESEARCH_20261024.md").read_text(
+            encoding="utf-8"
+        ),
+        root=root,
+    )
     graph = _load_json(deployed)
     validate_deployed_graph(graph)
     validate_plugin(_load_json(plugin))
