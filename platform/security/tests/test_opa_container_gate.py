@@ -14,7 +14,7 @@ class OpaVerificationOwnerContract(unittest.TestCase):
         source = tomllib.loads((ROOT / "mise.toml").read_text(encoding="utf-8"))
         self.assertTrue(source["tools"]["opa"])
         verify = source["tasks"]["verify"]["run"]
-        self.assertEqual(verify.count("mise exec -- opa test -v policies"), 1)
+        self.assertEqual(verify.count("mise exec -- opa test -v --fail-on-empty policies"), 1)
         self.assertIn("MISE_OFFLINE=1", verify)
         self.assertIn("MISE_AUTO_INSTALL=false", verify)
         self.assertNotIn("docker run", verify)

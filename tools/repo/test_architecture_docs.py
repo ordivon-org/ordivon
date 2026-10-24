@@ -900,6 +900,7 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             "SKIP_RETIRED_UNCONSUMED",
             "SKIP_OLDER_TOOLCHAIN_CHERRY_PICK",
             "SKIP_IDENTICAL_TIP_WITH_NATIVE_CONSUMER",
+            "PORT_REQUIRED_OWNER_EFFECT",
         }
         assert item["evidenceScope"] in {
             "NATIVE_CONSUMER_PASS", "EXACT_GIT_BLOBS",
@@ -914,6 +915,9 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC",
             "EXACT_OWNER_LOCKED_COMPONENTS_NO_LIVE_PROVIDER",
         }
+        if item["disposition"] == "PORT_REQUIRED_OWNER_EFFECT":
+            assert item["evidenceScope"] == "NATIVE_CONSUMER_PASS"
+            assert item["sourceQualification"]["branchDeletionAllowed"] is False
         if item["evidenceScope"] == "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC":
             assert item["disposition"] == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
             assert item["sourceQualification"]["branchDeletionAllowed"] is False
