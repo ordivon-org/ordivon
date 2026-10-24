@@ -861,12 +861,20 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             "EXACT_EXECUTABLE_BLOB_WITH_NONWINDOWS_HOLD_ONLY",
             "EXACT_GIT_BLOB_AND_NATIVE_CONSUMER_PASS",
             "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC",
+            "EXACT_OWNER_LOCKED_COMPONENTS_NO_LIVE_PROVIDER",
         }
         if item["evidenceScope"] == "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC":
             assert item["disposition"] == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
             assert item["sourceQualification"]["branchDeletionAllowed"] is False
         if item["evidenceScope"] == "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF":
             assert item["disposition"] == "SKIP_OLDER_PIN"
+        if item["evidenceScope"] == "EXACT_OWNER_LOCKED_COMPONENTS_NO_LIVE_PROVIDER":
+            assert item["disposition"] == "SKIP_DUPLICATE_CHERRY_PICK"
+            assert item["sourceQualification"]["branchDeletionAllowed"] is False
+            assert "LIVE" not in item["sourceQualification"].get("consumerStanding", "")
+        if item["disposition"] == "SKIP_IDENTICAL_TIP_WITH_NATIVE_CONSUMER":
+            assert item["evidenceScope"] == "EXACT_GIT_BLOB_AND_NATIVE_CONSUMER_PASS"
+            assert item["sourceQualification"]["branchDeletionAllowed"] is False
         if item["localCommit"].startswith(("ecca6ad", "86298d7", "9c8e37d", "fcf5fc6")):
             assert item["evaluatedRemoteMain"] == "a56afcf30aafd8d5bcd0f41adb950504f5724267"
         if item["localCommit"].startswith(("82c8fa2924", "84baec0ea1", "7a96b238fb", "7c2fa8c4d2")):
