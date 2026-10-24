@@ -22,6 +22,7 @@ class _PendingToolSpan:
     span: Span
     tool_name: str
     step_id: str | None
+    runtime_job_ref: str | None
 
 
 class OpenTelemetryHarnessEventSink:
@@ -79,7 +80,7 @@ class OpenTelemetryHarnessEventSink:
             attributes=attributes,
             start_time=event.occurred_at_ms * 1_000_000,
         )
-        self._pending[call_id] = _PendingToolSpan(span, tool_name, step_id)
+        self._pending[call_id] = _PendingToolSpan(span, tool_name, step_id, runtime_job_ref)
 
     def _finish(self, event: HarnessRunEvent, status: str, *, reconciled: bool = False) -> None:
         call_id = _text(event.payload.get("toolCallId"))
@@ -94,6 +95,11 @@ class OpenTelemetryHarnessEventSink:
             or (
                 (step_id := _text(event.payload.get("stepId"))) is not None
                 and pending.step_id != step_id
+            )
+            or (
+                (job_ref := _text(event.payload.get("runtimeJobRef"))) is not None
+                and pending.runtime_job_ref is not None
+                and pending.runtime_job_ref != job_ref
             )
         ):
             return
