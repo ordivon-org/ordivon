@@ -393,6 +393,67 @@ trait Provider {
                 errors,
             )
 
+    def test_runtime_formal_manifest_inputs_must_not_be_source_aliases(self):
+        """A formal proof manifest or invariant file cannot redirect within Owner."""
+        for attribute in ("TRACE", "INVARIANTS"):
+            with self.subTest(source=attribute):
+                with tempfile.TemporaryDirectory(dir=ROOT / "formal") as folder:
+                    link = Path(folder) / "redirected-input.json"
+                    link.symlink_to(getattr(self.module, attribute))
+                    original = getattr(self.module, attribute)
+                    setattr(self.module, attribute, link)
+                    try:
+                        self.assertEqual(self.module.main(), 1)
+                    finally:
+                        setattr(self.module, attribute, original)
+
+    def test_runtime_formal_same_owner_symlink_sources_are_not_proof(self):
+        """Even same-owner symlinks are aliases, not exact source-cut witnesses."""
+        trace, invariants = manifests()
+        with tempfile.TemporaryDirectory(dir=ROOT / "formal") as folder:
+            temp = Path(folder)
+            model = temp / "model.tla"
+            config = temp / "model.cfg"
+            model.symlink_to(ROOT / "formal/RuntimeDispatchR1.tla")
+            config.symlink_to(ROOT / "formal/RuntimeDispatchR1.cfg")
+            mutated = copy.deepcopy(trace)
+            mutated["formalSpecification"]["modulePath"] = str(model.relative_to(ROOT))
+            mutated["formalSpecification"]["configPath"] = str(config.relative_to(ROOT))
+            errors = self.module.validate(mutated, invariants)
+            self.assertGreaterEqual(
+                sum("is not an exact Runtime source" in e for e in errors),
+                2,
+                errors,
+            )
+
+    def test_runtime_proving_test_same_owner_symlink_is_not_its_own_witness(self):
+        trace, _ = manifests()
+        witness = trace["provingTests"][0]
+        real = ROOT / witness["path"]
+        with tempfile.TemporaryDirectory(dir=ROOT / "formal") as folder:
+            alias = Path(folder) / "alias_proof.rs"
+            alias.symlink_to(real)
+            errors = self.module.require_test_symbol(alias, witness["symbol"])
+            self.assertTrue(
+                any("is not an exact Runtime source" in error for error in errors),
+                errors,
+            )
+
+    def test_runtime_seam_same_owner_symlink_is_not_its_own_witness(self):
+        trace, _ = manifests()
+        seam = trace["contractSeams"][0]
+        real = ROOT / seam["path"]
+        with tempfile.TemporaryDirectory(dir=ROOT / "formal") as folder:
+            alias = Path(folder) / "alias_contract.rs"
+            alias.symlink_to(real)
+            errors = self.module.require_owned_method(
+                alias, seam["ownerKind"], seam["owner"], seam["symbol"]
+            )
+            self.assertTrue(
+                any("is not an exact Runtime source" in error for error in errors),
+                errors,
+            )
+
     def test_formal_runtime_test_symlink_cannot_leave_owner(self):
         with tempfile.TemporaryDirectory(dir=ROOT.parent) as foreign:
             target = Path(foreign) / "foreign_proof.rs"

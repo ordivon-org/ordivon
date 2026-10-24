@@ -148,9 +148,28 @@ def owner_slice(text: str, owner_kind: str, owner: str) -> str:
     return text[match.start() : closing + 1]
 
 
+def _runtime_source_identity_error(path: Path) -> str | None:
+    """Proof references must name exact Runtime SourceCut bytes, not aliases."""
+    # Anchor relative names at the canonical Runtime root. A caller may
+    # legitimately mount that root through an outer alias, but a proof
+    # reference must never redirect below the Owner root.
+    try:
+        relative = path.relative_to(ROOT)
+    except ValueError:
+        return f"{path} escapes Runtime source"
+    canonical = ROOT.resolve() / relative
+    resolved = path.resolve()
+    if not resolved.is_relative_to(ROOT.resolve()):
+        return f"{path} escapes Runtime source"
+    if resolved != canonical:
+        return f"{path} is not an exact Runtime source"
+    return None
+
+
 def require_owned_method(path: Path, owner_kind: str, owner: str, symbol: str) -> list[str]:
-    if not path.resolve().is_relative_to(ROOT.resolve()):
-        return [f"{path} escapes Runtime source"]
+    identity_error = _runtime_source_identity_error(path)
+    if identity_error:
+        return [identity_error]
     try:
         block = owner_slice(path.read_text(encoding="utf-8"), owner_kind, owner)
     except (OSError, UnicodeError, ValueError) as error:
@@ -161,8 +180,9 @@ def require_owned_method(path: Path, owner_kind: str, owner: str, symbol: str) -
 
 
 def require_test_symbol(path: Path, symbol: str, *, require_ignored: bool = False) -> list[str]:
-    if not path.resolve().is_relative_to(ROOT.resolve()):
-        return [f"{path} escapes Runtime source"]
+    identity_error = _runtime_source_identity_error(path)
+    if identity_error:
+        return [identity_error]
     try:
         text = path.read_text(encoding="utf-8")
     except (OSError, UnicodeError) as error:
@@ -226,8 +246,12 @@ def validate(trace: dict[str, Any], invariant_manifest: dict[str, Any]) -> list[
             errors.append(f"formalSpecification lacks {path_key}/{digest_key}")
             continue
         path = ROOT / relative
-        if not path.resolve().is_relative_to(ROOT.resolve()):
-            errors.append(f"formal source escapes Runtime source: {relative}")
+        identity_error = _runtime_source_identity_error(path)
+        if identity_error:
+            if "escapes Runtime source" in identity_error:
+                errors.append(f"formal source escapes Runtime source: {relative}")
+            else:
+                errors.append(f"formal source {identity_error}: {relative}")
             continue
         if not path.is_file():
             errors.append(f"formal source missing: {relative}")
@@ -442,6 +466,11 @@ def validate(trace: dict[str, Any], invariant_manifest: dict[str, Any]) -> list[
 
 
 def main() -> int:
+    for source in (TRACE, INVARIANTS):
+        error = _runtime_source_identity_error(source)
+        if error:
+            print(f"formal trace: {error}", file=sys.stderr)
+            return 1
     try:
         trace = json.loads(TRACE.read_text(encoding="utf-8"))
         invariant_manifest = json.loads(INVARIANTS.read_text(encoding="utf-8"))
