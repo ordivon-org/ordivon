@@ -221,6 +221,22 @@ def history(repo: Path, left: str, right: str) -> dict:
 
     mappings = owners(repo, right_oid)
     left_tree, right_tree = current_tree(repo, left_oid), current_tree(repo, right_oid)
+
+    # Identity is the *exact* Git Blob plus file mode, not a guessed rename.
+    # Preserve duplicates as ambiguous: identical content could belong to
+    # unrelated consumers, and relocating source does not relocate its callers.
+    def unique_blob_paths(tree: dict[str, str]) -> dict[str, str]:
+        paths: dict[str, list[str]] = collections.defaultdict(list)
+        for path, identity in tree.items():
+            if ":blob:" in identity:
+                paths[identity].append(path)
+        return {
+            identity: entries[0] for identity, entries in paths.items()
+            if len(entries) == 1
+        }
+
+    unique_left = unique_blob_paths(left_tree)
+    unique_right = unique_blob_paths(right_tree)
     counts: collections.Counter[str] = collections.Counter()
     owner_counts: collections.Counter[str] = collections.Counter()
     for record in all_commits.values():
@@ -239,18 +255,35 @@ def history(repo: Path, left: str, right: str) -> dict:
             owner_counts[record["side"] + ":" + owner] += 1
         opposite = right_tree if record["side"] == "local" else left_tree
         own = left_tree if record["side"] == "local" else right_tree
+        unique_own = unique_left if record["side"] == "local" else unique_right
+        unique_opposite = unique_right if record["side"] == "local" else unique_left
         states = collections.Counter()
+        exact_cross_paths = []
         for path in paths:
             own_blob, opposite_blob = own.get(path), opposite.get(path)
             if own_blob is None and opposite_blob is None:
                 states["BOTH_TIPS_ABSENT"] += 1
             elif own_blob is not None and own_blob == opposite_blob:
                 states["SAME_BLOB_AND_MODE"] += 1
+            elif (
+                opposite_blob is None
+                and own_blob is not None
+                and unique_own.get(own_blob) == path
+                and (other_path := unique_opposite.get(own_blob)) is not None
+                and other_path != path
+            ):
+                # Proves byte/mode identity across *unique final-tree paths*.
+                # Does not prove historical move intent or consumer equivalence.
+                states["CROSS_PATH_EXACT_BLOB_AND_MODE"] += 1
+                exact_cross_paths.append(
+                    {"sourcePath": path, "oppositePath": other_path}
+                )
             elif opposite_blob is None:
                 states["OPPOSITE_TIP_ABSENT"] += 1
             else:
                 states["DIFFERENT_OR_OWN_TIP_ABSENT"] += 1
         record["pathRelations"] = dict(states)
+        record["exactCrossPathMatches"] = exact_cross_paths
         record["consumerQualification"] = "UNKNOWN_REQUIRES_OWNER_CDC"
 
     actual = collections.Counter(r["side"] for r in all_commits.values())
@@ -267,7 +300,7 @@ def history(repo: Path, left: str, right: str) -> dict:
         "ownerMappingSourceCut": right_oid,
         "patchClasses": dict(counts),
         "ownerMembership": dict(owner_counts),
-        "warning": "Patch equivalence and tip blob equality do not prove consumer behavior or safe retirement.",
+        "warning": "Patch IDs, equal blobs and unique cross-path byte/mode matches do not prove consumer behavior, rename intent or safe retirement.",
         "commits": list(all_commits.values()),
     }
 
