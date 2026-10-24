@@ -209,7 +209,11 @@ class HarnessToolProgram:
     def from_dict(cls, value: dict[str, Any]) -> "HarnessToolProgram":
         if set(value) != {"schemaVersion", "kind", "steps", "outputs"}:
             raise ValueError("HarnessToolProgram fields differ")
-        if value["schemaVersion"] != 1 or value["kind"] != "ordivon.harness-tool-program":
+        if (
+            type(value["schemaVersion"]) is not int
+            or value["schemaVersion"] != 1
+            or value["kind"] != "ordivon.harness-tool-program"
+        ):
             raise ValueError("HarnessToolProgram identity is invalid")
         raw_steps = value["steps"]
         raw_outputs = value["outputs"]
@@ -278,7 +282,8 @@ class HarnessToolProgramAction:
         }:
             raise ValueError("HarnessToolProgramAction fields differ")
         if (
-            value["schemaVersion"] != 1
+            type(value["schemaVersion"]) is not int
+            or value["schemaVersion"] != 1
             or value["kind"] != "ordivon.harness-tool-program-action"
         ):
             raise ValueError("HarnessToolProgramAction identity is invalid")
@@ -289,7 +294,10 @@ class HarnessToolProgramAction:
             action_call_id=value["actionCallId"],
             program=HarnessToolProgram.from_dict(raw_program),
         )
-        if value["physicalToolCalls"] != action.physical_tool_calls:
+        if (
+            type(value["physicalToolCalls"]) is not int
+            or value["physicalToolCalls"] != action.physical_tool_calls
+        ):
             raise ValueError("HarnessToolProgramAction physical Tool count differs")
         return action
 
