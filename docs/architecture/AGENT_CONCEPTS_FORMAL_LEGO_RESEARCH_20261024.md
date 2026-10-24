@@ -143,3 +143,61 @@ No new Agent role, new Skill, registry, approval loop, scheduler or formal DSL i
 - **Subtraction rule:** use graphlib, not a bespoke DAG checker, a cross-domain graph database, a second LEGO registry, or mandatory 2.1 metadata on every component.
 
 **Operational stopping rule:** one needed property, one appropriate mature owner/kernel, one scoped verification/effect witness, followed by read-back and cleanup. If none materially improves real consumer outcomes, do not add it.
+
+
+## R2.1 mathematical kernel: existing mathematics at the Owner boundary (2026-10-25)
+
+**Standing:** scoped refinement of the already accepted recursive LEGO calculus,
+not a new schema, all-Owner registry, proof kernel, default Workflow or source
+of runtime authority. This section is useful only when a *named current
+consumer* needs a contract that its natural Owner can actually verify.
+
+A candidate LEGO is best represented as an existing Owner responsibility
+view \(L=(C,I,O,S,R,A,G,V)\), not as a new executable object:
+
+- \(C\): current consumers and their externally observable acceptance predicates;
+- \(I,O\): typed inputs/outputs from current native interfaces;
+- \(S\): durable state owned by precisely one existing authoritative Owner;
+- \(R\subseteq(I\times S)\times(O\times S)\): an existing transition or
+  effect relation, **not** an invented Ordivon transition engine;
+- \(A,G\): assumptions/guarantees expressed by current Owner contracts;
+- \(V\): scoped evidence with exact SourceCut, tool/version and falsification.
+
+These are **mathematical views of existing typed interfaces**. No field is
+mandated in every domain's JSON. For sequential composition \(L_1;L_2\),
+verify compatible types and \(G_1\Rightarrow A_2\) under the real shared-state,
+authority and environment assumptions. Independent component PASS does not
+prove composite correctness. To replace old \(L\) with new \(L'\), compare the
+*current consumer's observable projection* \(\pi_C(R)\), not raw Git commits,
+file bytes, prose, tool names, historical work or a universal score.
+
+| Existing Owner | Mature semantic kernel | Current executable consumer boundary | Missing authority deliberately **not** inferred |
+| --- | --- | --- | --- |
+| Runtime | TLA+ state transitions, invariants, weak fairness; Rust typed Attempt state | `services/runtime/formal/RuntimeDispatchR1.tla`, `scripts/verify_formal_trace.py`, `job_attempt_state.rs` | model result does not mechanically refine Rust or prove business completion |
+| Host | typed Work revision and state-machine transition contracts | `services/host/src/ordivon_host_v2/work_store.py` and natural-owner tests | Host Work terminal state does not establish Runtime dispatch or domain success |
+| Harness | assume/guarantee at bounded Agent Run and Tool/Runtime admission | `services/harness/tests/test_gateway_execution_port.py` and owner-local admission contracts | model proposal, Run success or Skill text cannot grant effect authority |
+| Network | state-based convergence, source identity and actual loaded-policy predicates | `platform/network/tests/test_claude_loaded_policy_cdc.py`, `test_monitoring_precommit.py` | file delivery or transport success does not establish loaded policy or safety |
+
+**First executable mathematical slice (Runtime).** The property
+`TerminalEvidenceIsCommitted` is stated in TLA+ and enabled in its
+upstream TLC config: a terminal Job must identify a terminal Attempt and
+committed reconciliation evidence. The existing Rust terminal-evidence
+negative-control test is bound by the Runtime native trace gate; the
+bounded 2-Attempt TLC model and a deliberately mutated terminal transition
+falsify the safety obligation. This is a concrete scoped proof and
+counterexample, **not** a proof of implementation refinement. No separate
+LEGO model checker, global test registry or mandatory abstraction was added.
+
+**Subtractive promotion rule:** retain or port only the smallest behavior
+that a real consumer currently requires and the accepted Owner does not
+already supply. UNKNOWN external consumption blocks destructive erasure
+of the last recoverable source, but does **not** justify reinstalling the
+historical feature, creating a migration PR or re-running successful tests.
+Once an Owner evidence cut is admitted, re-check it only if its declared
+source, consumer or environment assumptions change.
+
+Mature external foundations: TLA+/TLC (https://docs.tlapl.us/), typed Rust
+state transitions, contract-based assume/guarantee reasoning and existing
+Git SHA/source-provenance semantics. Use SMT or an additional prover only
+where a concrete constraint consumer cannot be discharged by an existing
+Owner test or TLC model.

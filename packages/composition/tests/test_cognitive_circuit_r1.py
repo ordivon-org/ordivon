@@ -267,3 +267,14 @@ def test_private_workflow_or_retry_policy_is_not_in_manifest_contract() -> None:
     manifest["retryPolicy"] = {"attempts": 3}
     with pytest.raises(CircuitContractError, match="schema violation"):
         validate_manifest(manifest)
+
+
+def test_composition_without_required_evidence_never_claims_mechanical_closure() -> None:
+    """The empty conjunction is not evidence of a verified cross-owner boundary."""
+    manifest = valid_manifest()
+    manifest["gateRequirements"] = []
+    projection = evaluate_gate_results(manifest, [])
+    assert projection["requiredGateIds"] == []
+    assert projection["standing"] == "COMPOSITION_GATES_OPEN"
+    assert projection["mechanicalClosure"] is False
+    assert projection["domainAcceptanceEstablished"] is False

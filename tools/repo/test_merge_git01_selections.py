@@ -5,11 +5,15 @@ from __future__ import annotations
 import copy
 import itertools
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 
-from tools.repo.merge_git01_selections import MergeConflict, merge_selections
+from tools.repo.merge_git01_selections import (
+    MergeConflict, merge_selections, merge_many_selections,
+)
 
 
 def claim(index: int, witness: str | None = None) -> dict:
@@ -188,3 +192,84 @@ def test_real_git01_owner_shards_recompose_with_one_canonical_join() -> None:
         assert merge_selections(result, result) == result
         assert result["registrations"] == original["registrations"]
     assert selections(original) == original_rows
+
+
+def test_many_pr_evidence_shards_recompose_with_all_permutations() -> None:
+    """Parallel Owner outputs commute and preserve the current Main projection."""
+    base = census(claim(1))
+    pr_shards = [census(claim(2)), census(claim(3)), census(claim(4))]
+    expected = {claim(i)["localCommit"] for i in range(1, 5)}
+    for order in itertools.permutations(pr_shards):
+        result = merge_many_selections(base, list(order))
+        assert {row["localCommit"] for row in selections(result)} == expected
+        assert result["issues"][1] == base["issues"][1]
+        assert merge_many_selections(result, list(order)) == result
+    assert selections(base) == [claim(1)]
+
+
+def test_parallel_pr_arrival_order_does_not_change_published_census_bytes() -> None:
+    """Canonical evidence output should not create artificial PR conflicts."""
+    base = census(claim(7), claim(1))
+    shards = [census(claim(4), claim(2)), census(claim(3)), census(claim(5), claim(4))]
+    renderings = []
+    for order in itertools.permutations(shards):
+        result = merge_many_selections(base, list(order))
+        renderings.append(json.dumps(result, sort_keys=True, separators=(",", ":")))
+        assert [row["localCommit"] for row in selections(result)[:2]] == [
+            claim(7)["localCommit"], claim(1)["localCommit"]
+        ]
+    assert len(set(renderings)) == 1, "Equivalent PR shard orders must not change JSON"
+
+
+def test_many_pr_evidence_blocks_conflicting_or_unrelated_shards() -> None:
+    base = census(claim(1))
+    with pytest.raises(MergeConflict, match="conflicting proof"):
+        merge_many_selections(base, [census(claim(2)), census(claim(2, "contradicts"))])
+    with pytest.raises(MergeConflict, match="localMain"):
+        merge_many_selections(base, [census(claim(2)), census(claim(3), local="different")])
+    with pytest.raises(MergeConflict, match="at least one"):
+        merge_many_selections(base, [])
+
+
+def test_multi_candidate_cli_publication_is_atomic_on_invalid_shard(tmp_path: Path) -> None:
+    """No partial output: malformed PR evidence cannot truncate existing owner proof."""
+    root = Path(__file__).resolve().parents[2]
+    program = root / "tools/repo/merge_git01_selections.py"
+    before, first, second, conflict = (tmp_path / x for x in (
+        "main.json", "pr-a.json", "pr-b.json", "pr-b-conflict.json"
+    ))
+    output = tmp_path / "selected.json"
+    for path, value in (
+        (before, census(claim(1))),
+        (first, census(claim(2))),
+        (second, census(claim(3))),
+        (conflict, census(claim(2, "different"))),
+    ):
+        path.write_text(json.dumps(value), encoding="utf-8")
+    args = [sys.executable, str(program), "--current", str(before),
+            "--candidate", str(first), "--candidate", str(second),
+            "--output", str(output)]
+    p = subprocess.run(args, text=True, capture_output=True, check=True)
+    assert "3 proofs" in p.stderr
+    assert {v["localCommit"] for v in selections(json.loads(output.read_text()))} == {
+        claim(i)["localCommit"] for i in (1, 2, 3)
+    }
+    saved = output.read_bytes()
+    bad = subprocess.run(args + ["--candidate", str(conflict)],
+                         text=True, capture_output=True, check=False)
+    assert bad.returncode != 0 and "conflicting proof" in bad.stderr
+    assert output.read_bytes() == saved
+    assert sorted(tmp_path.glob(".selected.json.*.tmp")) == []
+
+
+def test_multi_candidate_cli_accepts_single_candidate_for_backwards_compatibility(tmp_path: Path) -> None:
+    program = Path(__file__).resolve().parents[2] / "tools/repo/merge_git01_selections.py"
+    base, candidate = tmp_path / "main.json", tmp_path / "pr.json"
+    base.write_text(json.dumps(census(claim(1))), encoding="utf-8")
+    candidate.write_text(json.dumps(census(claim(2))), encoding="utf-8")
+    run = subprocess.run(
+        [sys.executable, str(program), "--current", str(base),
+         "--candidate", str(candidate)],
+        text=True, capture_output=True, check=True,
+    )
+    assert len(selections(json.loads(run.stdout))) == 2
