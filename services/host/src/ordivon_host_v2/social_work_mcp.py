@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import json
 from functools import wraps
-from typing import Literal
+from typing import Annotated, Literal
 
 from mcp.server import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
-from pydantic import ValidationError
+from pydantic import Field, ValidationError
 
 from .canonical import canonical_digest
 from .errors import ConflictError
@@ -53,6 +53,10 @@ from .social_work import (
     WorkState,
 )
 from .work_store import ActorRefNotFound, WorkNotFound, WorkStore
+
+# A revision is an exact Host CAS identity, never a coerced bool/float/string.
+# Use the existing provider's strict bounded integer instead of a custom DSL.
+PositiveWorkRevision = Annotated[int, Field(strict=True, ge=1)]
 
 
 def _request_id(prefix: str, payload: object) -> str:
@@ -190,7 +194,7 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
 
     @mcp.tool(name="work.get")
     @_project_domain_errors
-    def work_get(workRef: str, revision: int | None = None) -> WorkResponse:
+    def work_get(workRef: str, revision: PositiveWorkRevision | None = None) -> WorkResponse:
         return work.get_work(workRef, revision)
 
     @mcp.tool(name="work.list")
@@ -214,7 +218,7 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
     @_project_domain_errors
     def work_snapshot_commit(
         workRef: str,
-        expectedRevision: int,
+        expectedRevision: PositiveWorkRevision,
         snapshot: WorkSnapshotInput,
         actorRef: str,
         continuityDisposition: Literal["continue", "complete", "abandon"] = "continue",
@@ -476,7 +480,8 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
         direction: Literal["outgoing", "incoming", "both"] = "both",
         relation: Literal[
             "reply_to", "mentions", "references", "acknowledges", "supersedes", "about"
-        ] | None = None,
+        ]
+        | None = None,
         afterChangeSequence: int = 0,
         limit: int = 100,
         maxBytes: int = 262_144,

@@ -237,6 +237,23 @@ impl Runtime {
         let active_job_ids = self
             .registry
             .active_job_ids_for_workspace(&record.workspace_id)?;
+        // Diagnose a non-resolvable HEAD before a Git diff masks the exact failure.
+        // The normal (healthy) path keeps one rev-parse; only failures pay for
+        // the independent status-v2 source probe already used by workspace.list.
+        let current_head_revision =
+            match workspace_head_revision(&self.executor, &record.workspace_id) {
+                Ok(revision) => revision,
+                Err(error) => {
+                    if let Err(probe) =
+                        workspace_head_and_dirty_at(Path::new(&record.workspace_path))
+                    {
+                        if probe.code == crate::universal::UniversalExecErrorCode::RevisionNotFound {
+                            return Err(map_universal_error(probe));
+                        }
+                    }
+                    return Err(map_universal_error(error));
+                }
+            };
         let diff = crate::universal::workspace_diff(
             &self.executor,
             &WorkspaceDiffRequest {
@@ -249,8 +266,7 @@ impl Runtime {
         Ok(project_workspace_summary(
             record,
             WorkspaceProjectionFacts {
-                current_head_revision: workspace_head_revision(&self.executor, &record.workspace_id)
-                    .map_err(map_universal_error)?,
+                current_head_revision,
                 dirty: diff.byte_length > 0 || !diff.untracked_paths.is_empty(),
                 source_state_digest: Some(
                     workspace_source_state_digest(&self.executor, &record.workspace_id)
