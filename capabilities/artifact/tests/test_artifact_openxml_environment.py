@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import subprocess
@@ -20,8 +21,8 @@ class ArtifactOpenXmlEnvironmentTests(unittest.TestCase):
         self.assertEqual(lock['targetFramework'],'net8.0')
         self.assertEqual(lock['dotnetPolicy']['sdkMajorMinor'],'8.0')
         self.assertNotIn('equipment',lock)
-        self.assertEqual(lock['nixDotnet']['expectedSdkVersion'],'8.0.424')
-        self.assertEqual(lock['nixDotnet']['nixpkgsRevision'],'d58a46e3bc02d91ebe04667f8397752a749c0024')
+        self.assertEqual(lock['nixDotnet']['expectedSdkVersion'],'8.0.426')
+        self.assertEqual(lock['nixDotnet']['nixpkgsRevision'],json.loads((ROOT/'artifact-delivery/openxml-nix/flake.lock').read_text())['nodes']['nixpkgs']['locked']['rev'])
         self.assertEqual([(x['id'],x['version']) for x in lock['nugetPackages']],[('DocumentFormat.OpenXml','3.5.1'),('DocumentFormat.OpenXml.Framework','3.5.1'),('System.IO.Packaging','8.0.1')])
         self.assertEqual(lock['sdkRestoreSupportPackages'][0]['id'],'Microsoft.AspNetCore.App.Ref')
     def test_openxml_reconstruction_uses_artifact_owned_nix_not_isolated_equipment(self):
@@ -34,14 +35,47 @@ class ArtifactOpenXmlEnvironmentTests(unittest.TestCase):
         self.assertIn('pkgs.dotnet-sdk_8',flake)
         self.assertIn('dotnetNixStorePath',wrapper)
 
+    def test_nix_and_artifact_openxml_lock_share_exact_source_identity(self):
+        # Consumer-driven lock invariant: one exact flake source cut, not two
+        # independently mutable revision / NAR / byte-digest authorities.
+        flake_path = ROOT / 'artifact-delivery/openxml-nix/flake.lock'
+        raw = flake_path.read_bytes()
+        flake = json.loads(raw)['nodes']['nixpkgs']['locked']
+        sdk = json.loads(
+            (ROOT / 'artifact-delivery/openxml-runtime-v1.lock.json').read_text()
+        )['nixDotnet']
+        self.assertEqual(sdk['nixpkgsRevision'], flake['rev'])
+        self.assertEqual(sdk['nixpkgsNarHash'], flake['narHash'])
+        self.assertEqual(
+            sdk['flakeLockSha256'],
+            'sha256:' + hashlib.sha256(raw).hexdigest(),
+        )
+
+    def test_outdated_nix_sdk_cannot_be_published_even_when_flake_identity_matches(self):
+        # The official Nixpkgs 26.05 and unstable SDK providers still resolve
+        # 8.0.425. That is not an acceptable substitute for security-patched
+        # upstream 8.0.426; refuse before any publication or path-info success.
+        lock = json.loads(
+            (ROOT / 'artifact-delivery/openxml-runtime-v1.lock.json').read_text()
+        )
+        def probe(cmd, **_kwargs):
+            if 'build' in cmd:
+                return subprocess.CompletedProcess(cmd, 0, '/nix/store/mock-dotnet-8.0.425\n', '')
+            if cmd[-1] == '--version':
+                return subprocess.CompletedProcess(cmd, 0, '8.0.425\n', '')
+            raise AssertionError('unpatched SDK reached unsafe downstream step')
+        with patch.object(M, 'run', side_effect=probe):
+            with self.assertRaisesRegex(RuntimeError, 'Nix SDK drift'):
+                M.nix_dotnet_status(lock)
+
     def test_generation_spec_binds_nix_store_and_nar_identity(self):
         lock=json.loads((ROOT/'artifact-delivery/openxml-runtime-v1.lock.json').read_text())
-        dotnet={'storePath':'/nix/store/example-dotnet','narHash':'sha256-example','flakeLockSha256':lock['nixDotnet']['flakeLockSha256'],'nixpkgsRevision':lock['nixDotnet']['nixpkgsRevision'],'observedSdkVersion':'8.0.424'}
+        dotnet={'storePath':'/nix/store/example-dotnet','narHash':'sha256-example','flakeLockSha256':lock['nixDotnet']['flakeLockSha256'],'nixpkgsRevision':lock['nixDotnet']['nixpkgsRevision'],'observedSdkVersion':'8.0.426'}
         with patch.object(M,'source_digests',return_value={'sourceProject':'sha256:p','sourceProgram':'sha256:s'}):
             spec=M.generation_spec(lock,dotnet,[])
         self.assertEqual(spec['dotnetNixStorePath'],'/nix/store/example-dotnet')
         self.assertEqual(spec['dotnetNixNarHash'],'sha256-example')
-        self.assertEqual(spec['observedDotnetSdk'],'8.0.424')
+        self.assertEqual(spec['observedDotnetSdk'],'8.0.426')
 
     def test_production_defaults_use_managed_openxml_carrier(self):
         doctor=(ROOT/'scripts/artifact_delivery_toolchain_doctor.py').read_text()
