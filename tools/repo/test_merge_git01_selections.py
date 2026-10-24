@@ -130,6 +130,25 @@ def test_evidence_union_refuses_cross_cohort_historical_identity_overlap() -> No
         merge_selections(census(left), census(right))
 
 
+def test_evidence_union_rejects_standalone_commit_inside_another_cohort() -> None:
+    """A source commit must have at most one effective owner claim."""
+    standalone = claim(101)
+    cohort = claim(1)
+    cohort["historicalCohort"] = [standalone["localCommit"]]
+    with pytest.raises(MergeConflict, match="overlap|identity"):
+        merge_selections(census(cohort), census(standalone))
+    with pytest.raises(MergeConflict, match="overlap|identity"):
+        merge_selections(census(standalone), census(cohort))
+
+
+def test_evidence_union_accepts_own_representative_inside_own_cohort() -> None:
+    """The representative and its historical set describe one, not two claims."""
+    group = claim(1)
+    group["historicalCohort"] = [group["localCommit"], f"{101:040x}"]
+    merged = merge_selections(census(), census(group))
+    assert selections(merged) == [group]
+
+
 def test_evidence_union_refuses_duplicate_historical_cohort_members() -> None:
     item = claim(3)
     item["historicalCohort"] = [f"{201:040x}", f"{201:040x}"]
