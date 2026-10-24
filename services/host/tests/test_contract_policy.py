@@ -111,3 +111,22 @@ def test_one_shot_legacy_reader_is_not_registered_as_active_mcp_surface() -> Non
     assert "legacy_cutover" not in mcp
     assert 'name="task.' not in mcp
     assert 'name="board.' not in mcp
+
+
+def test_host_lego_r2_unused_projection_retired_r1_and_r3_preserved() -> None:
+    """Retire R2 only; R1 now has an actual graph verifier consumer."""
+    import json
+
+    planning = Path(__file__).parents[1] / "planning"
+    assert not (planning / "lego-plan-r2.json").exists()
+    dependencies = json.loads((planning / "lego-plan-r1.json").read_text())
+    assert dependencies["truthRole"] == "planning-projection-not-project-truth"
+    assert {edge["to"] for edge in dependencies["edges"] if edge["from"] == "O04" and edge["type"] == "DEPENDENCY"} == {"O01", "O02"}
+    current = json.loads((planning / "lego-plan-r3.json").read_text())
+    assert current["schemaVersion"] == 3
+    assert current["project"]["id"] == "ordivon-host-v2"
+    assert current["truthRole"] == "source-current-owner-map-not-runtime-truth"
+    assert current["freezeRule"]["currentDisposition"] == "NO_KERNEL_REOPEN"
+    owners = {item["owner"] for item in current["externalOwners"]}
+    assert "PostgreSQL" in owners
+    assert "Pydantic" in owners
