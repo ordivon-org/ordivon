@@ -32,19 +32,26 @@ def main() -> None:
     source = json.loads(SOURCE.read_text())
     source_sha = sha(SOURCE)
 
-    assert source_sha == acceptance["sourceSha256"]
-    assert product["id"] == acceptance["productId"]
-    assert product["version"] == "2026.09.14"
-    assert source["brokerCredentialsUsed"] is False
-    assert source["privateAccountDataUsed"] is False
-    assert source["externalFinancialWritesAttempted"] is False
     stream = source["streaming"]
-    assert stream["acceptedSnapshotCount"] == 4
-    assert len(stream["measured"]) == 3
-    assert all(m["qualified"] is True for m in stream["measured"])
-    assert all(m["sourceTimeSpanLimitMs"] == 1200 for m in stream["measured"])
-    assert all(m["receiveTimeSpanLimitMs"] == 1200 for m in stream["measured"])
-    assert {x["action"] for x in governance["prohibition"]} == {"distribute", "grantUse", "delete"}
+    # A frozen consumer contract is executable under both python and python -O.
+    # Do not use assert: optimized interpreters remove these acceptance gates.
+    requirements = (
+        ("source digest", source_sha == acceptance["sourceSha256"]),
+        ("product identity", product["id"] == acceptance["productId"]),
+        ("product version", product["version"] == "2026.09.14"),
+        ("public-only credentials", source["brokerCredentialsUsed"] is False),
+        ("no private account data", source["privateAccountDataUsed"] is False),
+        ("no external financial writes", source["externalFinancialWritesAttempted"] is False),
+        ("accepted snapshot count", stream["acceptedSnapshotCount"] == 4),
+        ("measured window count", len(stream["measured"]) == 3),
+        ("qualified measured windows", all(m["qualified"] is True for m in stream["measured"])),
+        ("source span bound", all(m["sourceTimeSpanLimitMs"] == 1200 for m in stream["measured"])),
+        ("receive span bound", all(m["receiveTimeSpanLimitMs"] == 1200 for m in stream["measured"])),
+        ("rights prohibitions", {x["action"] for x in governance["prohibition"]} == {"distribute", "grantUse", "delete"}),
+    )
+    for label, valid in requirements:
+        if not valid:
+            raise ValueError(f"public shadow product acceptance failed: {label}")
 
     port = product["outputPorts"][0]
     out = args.output_dir

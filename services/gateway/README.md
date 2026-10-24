@@ -44,6 +44,14 @@ This transport is execution-delivery mechanics only. It does not close Admission
 AF-S2 capability authorization, does not establish domain EffectAuthority, and does not
 grant shell workers browser authority.
 
+The external worker's SQLite transport must establish a readable persisted
+operation before committing a submit, terminal completion or cancellation.
+If the post-write readback fails, it rolls back the entire transaction,
+including attempt and artifact changes; this never counts as an executed or
+semantically completed effect. Owner-native fault injection and the
+`python -O` negative control live in
+`tests/test_external_worker_precommit_readback.py`.
+
 ## Capability observation lifecycle
 
 Independent read-only Runtime and Host capability observations run concurrently, once per required owner per request. Projection ordering stays deterministic, and observations are not cached across requests. A failed or timed-out owner observation remains UNKNOWN through the existing observation error; healthy owners remain visible.

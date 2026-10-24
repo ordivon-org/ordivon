@@ -305,14 +305,22 @@ def validate_formal_issue_census(
         ):
             raise ArchitectureDocsError(f"issue {issue_id} invalid supporting representation")
         skill = rep.get("methodSkill")
-        if skill is not None and (
-            not isinstance(skill, str)
-            or not skill.startswith(".agents/skills/")
-            or not skill.endswith("/SKILL.md")
-            or ".." in Path(skill).parts
-            or not (ROOT / skill).is_file()
-        ):
-            raise ArchitectureDocsError(f"issue {issue_id} references unavailable method Skill")
+        if skill is not None:
+            if (
+                not isinstance(skill, str)
+                or not skill.startswith(".agents/skills/")
+                or not skill.endswith("/SKILL.md")
+                or ".." in Path(skill).parts
+            ):
+                raise ArchitectureDocsError(f"issue {issue_id} references unavailable method Skill")
+            # The exact source cut supplied to the validator owns its Skills.
+            # A same-named Skill in another checkout or via a symlink is not evidence.
+            candidate_skill = root / skill
+            if (
+                not candidate_skill.is_file()
+                or not candidate_skill.resolve().is_relative_to(root.resolve())
+            ):
+                raise ArchitectureDocsError(f"issue {issue_id} references unavailable method Skill")
         for field in ("requiredWitness", "selectionReason"):
             if not isinstance(rep.get(field), str) or not rep[field].strip():
                 raise ArchitectureDocsError(f"issue {issue_id} missing {field}")

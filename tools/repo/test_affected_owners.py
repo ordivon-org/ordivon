@@ -153,6 +153,23 @@ class AffectedOwnersTests(unittest.TestCase):
             ["services/runtime/crates/ordivon-runtime-core/src/lib.rs"]
         )
 
+    def test_noncanonical_paths_cannot_bypass_owner_verification(self) -> None:
+        malformed = (
+            "../services/runtime/src/lib.rs",
+            "services/runtime/../../gateway/src/lib.rs",
+            "/services/runtime/src/lib.rs",
+            "services" + chr(92) + "runtime/src/lib.rs",
+        )
+        for path in malformed:
+            with self.subTest(path=path):
+                with self.assertRaisesRegex(ValueError, "noncanonical repository path"):
+                    MODULE.require_registered_execution_paths([path])
+                with self.assertRaisesRegex(ValueError, "noncanonical repository path"):
+                    MODULE.owners_for_paths([path])
+
+    def test_safe_relative_prefix_keeps_the_same_owner(self) -> None:
+        self.assertEqual(self.names("./services/runtime/src/lib.rs"), ["runtime"])
+
     def test_git_cross_owner_move_selects_both_endpoints(self) -> None:
         import os
         import subprocess
@@ -215,6 +232,16 @@ verify_task = "y:verify"
             path = Path(directory) / "owners.toml"
             path.write_text(content, encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "duplicate name"):
+                MODULE.load_owners(path)
+
+    def test_manifest_rejects_parent_traversal_root(self) -> None:
+        content = MODULE.MANIFEST_PATH.read_text(encoding="utf-8").replace(
+            'root = "meta/next/"', 'root = "meta/../next/"', 1
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "owners.toml"
+            path.write_text(content, encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "noncanonical repository path"):
                 MODULE.load_owners(path)
 
     def test_manifest_rejects_overlapping_roots(self) -> None:

@@ -99,6 +99,15 @@ R2-R7 document the path by which the repository learned to separate caller inten
 
 Those documents remain useful provenance. Their historical composition is not a required current topology.
 
+## EffectAuthority oracle LEGO (native verification)
+
+- **Identity:** `distribution.effect-authority-consumer-oracle` (Distribution-owned test responsibility, not an authorization provider).
+- **Responsibility:** falsify incorrect mappings from an exact user approval to its provider/account/effect occurrence.
+- **Inputs:** the reference Distribution intent, synthetic approval, and `produce_effect_authority.produce` result.
+- **Outputs:** a deterministic PASS or a nonzero contract violation, with no real external provider effect.
+- **Contract:** exact decision, occurrence, provider, account, effect and approval source binding; deliberate corruptions must always be rejected, including in optimized Python.
+- **Acceptance:** `scripts/test-all.sh` calls `python -O scripts/test-effect-authority-producer.py` through the existing pinned `uv` environment. The test's consumer oracle explicitly checks four corrupted outputs and does not rely on Python `assert` being enabled. This is evidence for the synthetic contract only, not live IAM/provider acceptance.
+
 ## Verification rule
 
 ```text

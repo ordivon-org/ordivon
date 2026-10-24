@@ -23,6 +23,40 @@ def temporal_sdk_version()->str|None:
     if not TEMPORAL_PY.is_file():return None
     p=subprocess.run([str(TEMPORAL_PY),'-c','from importlib.metadata import version;print(version("temporalio"))'],text=True,capture_output=True,check=False,timeout=15)
     return p.stdout.strip() if p.returncode==0 else None
+def ensure_no_running_artifact_workflows()->None:
+    # Consume the canonical workflow type from the Worker module itself:
+    # a hand-typed visibility name can silently return zero false matches.
+    # Run through the pinned, already-installed Artifact carrier SDK; this
+    # stdlib deployment CLI does not need its own Temporal environment.
+    code = """
+import asyncio
+import sys
+sys.path.insert(0,sys.argv[1])
+sys.path.insert(0,sys.argv[4])
+from artifact_temporal_workflow import ARTIFACT_WORKFLOW
+from temporalio.client import Client
+
+async def main():
+    client=await Client.connect(sys.argv[2], namespace=sys.argv[3])
+    query=f'ExecutionStatus="Running" AND WorkflowType="{ARTIFACT_WORKFLOW}"'
+    async for _ in client.list_workflows(query=query, page_size=1):
+        print("1")
+        return
+    print("0")
+
+asyncio.run(main())
+"""
+    observed = subprocess.run(
+        [str(TEMPORAL_PY), '-c', code, str(ROOT/'scripts'),
+         '127.0.0.1:17233', 'default', str(ROOT)],
+        capture_output=True, text=True, check=False, timeout=25,
+    )
+    if observed.returncode or observed.stdout.strip() not in ('0','1'):
+        raise RuntimeError('Artifact Temporal workflow visibility unavailable; refusing restart')
+    if observed.stdout.strip() == '1':
+        raise RuntimeError('running Artifact workflows block Worker restart')
+
+
 def plan()->dict:
     main_source=ROOT.resolve()==MAIN.resolve()
     source_ok=SOURCE_UNIT.is_file(); installed=SYSTEM_UNIT.is_file() and source_ok and SYSTEM_UNIT.read_bytes()==SOURCE_UNIT.read_bytes()
@@ -31,6 +65,7 @@ def plan()->dict:
 def apply()->dict:
     current=plan()
     if not current['applyEligible']:raise RuntimeError('Artifact Temporal worker deployment is not eligible from this source/runtime cut')
+    ensure_no_running_artifact_workflows()
     STATE.mkdir(parents=True,exist_ok=True);SYSTEM_UNIT.write_bytes(SOURCE_UNIT.read_bytes());os.chmod(SYSTEM_UNIT,0o644)
     subprocess.run(['/usr/bin/systemctl','daemon-reload'],check=True);subprocess.run(['/usr/bin/systemctl','enable',UNIT],check=True);subprocess.run(['/usr/bin/systemctl','reset-failed',UNIT],check=False);subprocess.run(['/usr/bin/systemctl','restart',UNIT],check=True)
     return plan()

@@ -37,6 +37,18 @@ def _text(value: Any, *, field: str) -> str:
         raise StructureR2Error(f"{field} must be a non-empty string")
     return value.strip()
 
+def _repo_relative_path(value: Any, *, field: str) -> str:
+    path = _text(value, field=field)
+    parts = path.rstrip("/").split("/")
+    if (
+        path.startswith("/")
+        or "\\" in path
+        or any(part in ("", ".", "..") for part in parts)
+    ):
+        raise StructureR2Error(f"{field} must be a canonical repository-relative path")
+    return path
+
+
 def _path_root(path: str) -> str:
     normalized = path[2:] if path.startswith("./") else path
     if normalized.startswith(".agents/"):
@@ -69,14 +81,14 @@ def validate_plan(value: dict[str, Any], *, repo_root: Path | None = None) -> No
     target_roots = value.get("targetRoots")
     if not isinstance(target_roots, list) or not target_roots:
         raise StructureR2Error("targetRoots must be a non-empty list")
-    target_roots_set = {_text(x, field="targetRoots entry") for x in target_roots}
+    target_roots_set = {_repo_relative_path(x, field="targetRoots entry") for x in target_roots}
     if len(target_roots_set) != len(target_roots):
         raise StructureR2Error("targetRoots must be unique")
 
     forbidden = value.get("forbiddenSemanticRoots")
     if not isinstance(forbidden, list) or not forbidden:
         raise StructureR2Error("forbiddenSemanticRoots must be a non-empty list")
-    forbidden_set = {_text(x, field="forbiddenSemanticRoots entry") for x in forbidden}
+    forbidden_set = {_repo_relative_path(x, field="forbiddenSemanticRoots entry") for x in forbidden}
     if REQUIRED_LEGACY_ROOTS - forbidden_set:
         raise StructureR2Error("legacy semantic roots must remain forbidden target roots")
     if target_roots_set & forbidden_set:
@@ -144,7 +156,7 @@ def validate_plan(value: dict[str, Any], *, repo_root: Path | None = None) -> No
             raise StructureR2Error(f"{mapping_id}: verifyTasks must be non-empty")
 
         for source in source_paths:
-            source = _text(source, field=f"{mapping_id}.sourcePath")
+            source = _repo_relative_path(source, field=f"{mapping_id}.sourcePath")
             source_root = _path_root(source)
             if source_root in REQUIRED_LEGACY_ROOTS:
                 covered_legacy_roots.add(source_root)
@@ -156,7 +168,7 @@ def validate_plan(value: dict[str, Any], *, repo_root: Path | None = None) -> No
                     )
 
         for target in target_paths:
-            target = _text(target, field=f"{mapping_id}.targetPath")
+            target = _repo_relative_path(target, field=f"{mapping_id}.targetPath")
             target_root = _path_root(target)
             if target_root in forbidden_set:
                 raise StructureR2Error(
