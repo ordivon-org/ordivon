@@ -981,6 +981,33 @@
         "Protected GitHub CI, installed-binary attribution and production result/registry reconciliation remain independent acceptance gates."
       ],
       "nextAction": "Consume PR #623 native verification and independent CI. After merge, bind deployed runtime executable digest and observed Runner/Registry reconciliation under the same exact source; do not replay or reclassify an uncertain historical Attempt merely from this model."
+    },
+    {
+      "id": "RW11",
+      "objective": "Enforce immutable Workspace rescue-reference creation using native Git atomic expected-absent compare-and-swap; reject concurrent alternate commit adoption instead of overwriting an existing rescue witness.",
+      "status": "PROPOSED",
+      "nodeIds": [
+        "R02",
+        "R05",
+        "R12",
+        "R17"
+      ],
+      "acceptance": [
+        "For each supported native Git object format SHA-1 and SHA-256, a first rescue ref creation succeeds and a second CAS creation with a different candidate fails without changing the first ref.",
+        "The caller accepts only exact same-commit reuse; a different existing rescue HEAD yields a typed RevisionMismatch rather than replacing the prior proof.",
+        "A corresponding Rust owner-native regression, formatting, clippy and scoped Runtime Core suite pass on the exact published source; ignored physical tests are not considered PASS.",
+        "The atomic Git ref is the linearization point for this property, not a read-then-unconditional-write preflight, and remains independent from workspace.close external-effect idempotency."
+      ],
+      "evidence": [
+        "Source-bound counterexample: services/runtime/crates/ordivon-runtime-core/src/universal/workspace/close_recovery.rs before this refinement runs git rev-parse --verify then git update-ref without an expected old OID (TOCTOU overwrite under interleaving).",
+        "Recovered unique diff originally preserved as dirty Workspace ws-gpt6-formal-msr-nonmerge-convergence-2255-r1 and independently applied to protected-main source d5feba66df0c963f717b6572b381d11b08f45db1; that owner Workspace is retained unchanged.",
+        "Mature native mathematical kernel: git update-ref <ref> <oid> \"\" performs compare-and-create under Git reference transaction; tests exercise SHA-1 and SHA-256 without assuming fixed hash width.",
+        "Focused regression: universal::workspace::rescue_ref_atomicity_tests::rescue_ref_create_if_absent_does_not_overwrite_interleaved_commit."
+      ],
+      "blockers": [
+        "Do not infer protected publication, installed Runtime qualification or exact externally observable Workspace close semantics from local source tests alone."
+      ],
+      "nextAction": "After owner-native verification and protected PR merge, use same-source installed readback to verify rescue-ref atomicity on live Runtime; leave genuinely dirty/unborn Workspaces retained until exact consumer and candidate proof permits safe closure."
     }
   ],
   "gaps": [
