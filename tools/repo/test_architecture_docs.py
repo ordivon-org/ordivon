@@ -793,6 +793,30 @@ def test_retired_hux_milestone_history_has_no_live_harness_consumer() -> None:
     module.validate_formal_issue_census(census, plans)
 
 
+def test_git01_exact_committed_tree_secret_scanner_preserves_current_ci_and_local_scopes() -> None:
+    """Only the historic committed-source scan is reused; do not narrow current CI."""
+    census, plans = formal_issue_inputs()
+    issue = next(row for row in census["issues"] if row["id"] == "GIT-01")
+    selected = {row["localCommit"]: row for row in issue["consumerSelections"]}
+    old = "334d0eb75adb297b676b35b39808c9bac661ec76"
+    row = selected[old]
+    assert row["owner"] == "tools/repo"
+    assert row["disposition"] == "SKIP_DUPLICATE_CHERRY_PICK"
+    assert row["evidenceScope"] == "NATIVE_CONSUMER_PASS"
+    assert row["sourceQualification"]["branchDeletionAllowed"] is False
+    assert row["verifiedEqualChangedBlobs"] is True
+    assert set(row["verifiedEqualChangedPaths"]) == {
+        "tools/repo/check_tracked_secrets.sh",
+        "tools/repo/test_tracked_secrets.py",
+    }
+    assert "equalChangedBlobOids" not in row
+    assert "run: tools/repo/check_tracked_secrets.sh" in (ROOT / ".github/workflows/ci.yml").read_text()
+    root_mise = (ROOT / "mise.toml").read_text()
+    assert 'gitleaks git --no-banner' in root_mise
+    assert 'gitleaks dir --no-banner' in root_mise
+    module.validate_formal_issue_census(census, plans)
+
+
 def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
     """A Git-only commit cannot be called unique without a source-bound consumer comparison."""
     census, plans = formal_issue_inputs()
@@ -1325,4 +1349,25 @@ def test_git01_workstation_cloudflare_gateway_tunnel_historical_correction() -> 
     source = p.read_text()
     gateway = source.split('resource "cloudflare_dns_record" "gateway_mcp" {', 1)[1].split("\n}", 1)[0]
     assert 'content = "${local.native_tunnel_id}.cfargotunnel.com"' in gateway
+    module.validate_formal_issue_census(census, plans)
+
+
+def test_git01_gateway_windows_release_historical_verifier_consumer() -> None:
+    """Do not replay an old Gateway verifier when current owner has stronger CDC."""
+    census, plans = formal_issue_inputs()
+    owner = next(issue for issue in census["issues"] if issue["id"] == "GIT-01")
+    matches = [entry for entry in owner["consumerSelections"]
+               if entry["localCommit"].startswith("d91d63b70da5")]
+    assert len(matches) == 1
+    evidence = matches[0]
+    assert evidence["owner"] == "services/gateway"
+    assert evidence["disposition"] == "SKIP_DUPLICATE_CHERRY_PICK"
+    assert evidence["evidenceScope"] == "NATIVE_CONSUMER_PASS"
+    assert evidence["sourceQualification"]["branchDeletionAllowed"] is False
+    assert evidence["sourceQualification"]["historicalTestBlobEqual"] is False
+    verifier = ROOT / "services/gateway/packaging/windows/verify_release.py"
+    current_test = ROOT / "services/gateway/tests/test_windows_release_contract.py"
+    assert verifier.is_file() and current_test.is_file()
+    assert "SURFACE_PATH" in verifier.read_text()
+    assert "test_windows_release_dependencies_do_not_share_cache_acl" in current_test.read_text()
     module.validate_formal_issue_census(census, plans)
