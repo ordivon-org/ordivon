@@ -67,12 +67,69 @@ check_runtime_dispatch() {
   )
 }
 
+# Non-vacuity control for the existing scoped dispatch invariant: introduce one
+# deliberately forbidden transition in an EPHEMERAL copy of the same source.
+# TLC must return the *named* safety counterexample. Parse/tool/time failures
+# are not counterexamples and MUST fail this gate.
+check_runtime_counterexample() {
+  verify_jar
+  (
+    tmp_dir=$(mktemp -d -t ordivon-tlc-falsifier-XXXXXX)
+    trap 'rm -rf -- "$tmp_dir"' EXIT
+    python - "$ROOT/formal/RuntimeDispatchR1.tla" "$tmp_dir/RuntimeDispatchR1.tla" <<'PY_CEX'
+from pathlib import Path
+import sys
+
+source = Path(sys.argv[1]).read_text(encoding="utf-8")
+unsafe = r'''
+BlindRetryWithoutReconciliation ==
+    /\ jobState = "ambiguous"
+    /\ currentAttempt # NoAttempt
+    /\ attemptState[currentAttempt] = "ambiguous"
+    /\ \E a \in Attempts:
+        /\ attemptState[a] = "unused"
+        /\ attemptState' = [attemptState EXCEPT ![a] = "admitted"]
+        /\ currentAttempt' = a
+    /\ jobState' = "admitted"
+    /\ reconcileState' = "none"
+    /\ UNCHANGED <<dispatchCount, heldReservation>>
+
+'''
+assert source.count("Next ==\n") == 1, "counterexample mutation source drift"
+assert source.count("    \\/ AdmitExplicitRetry\n") == 1, "counterexample mutation transition drift"
+mutant = source.replace("Next ==\n", unsafe + "Next ==\n")
+mutant = mutant.replace(
+    "    \\/ AdmitExplicitRetry\n",
+    "    \\/ AdmitExplicitRetry\n    \\/ BlindRetryWithoutReconciliation\n",
+)
+Path(sys.argv[2]).write_text(mutant, encoding="utf-8")
+PY_CEX
+    cp -- "$ROOT/formal/RuntimeDispatchR1.cfg" "$tmp_dir/RuntimeDispatchR1.cfg"
+    set +e
+    (
+      cd "$tmp_dir"
+      java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+        -config RuntimeDispatchR1.cfg RuntimeDispatchR1.tla
+    ) > "$tmp_dir/result.log" 2>&1
+    result=$?
+    set -e
+    if [[ "$result" -eq 0 ]] ||
+        ! grep -Fq "Invariant NoCompetingLiveAttempts is violated" "$tmp_dir/result.log"; then
+      echo "TLC counterexample negative control FAILED: NoCompetingLiveAttempts did not identify the seeded unsafe retry" >&2
+      tail -35 "$tmp_dir/result.log" >&2
+      exit 1
+    fi
+    echo "TLC counterexample negative control PASS: unsafe retry violates NoCompetingLiveAttempts"
+  )
+}
+
 case "${1:-check}" in
   bootstrap) bootstrap ;;
   verify) verify_jar; echo "TLA+ toolchain digest verification PASS" ;;
   check) check_runtime_dispatch ;;
+  falsify) check_runtime_counterexample ;;
   *)
-    echo "usage: scripts/tla-formal [bootstrap|verify|check]" >&2
+    echo "usage: scripts/tla-formal [bootstrap|verify|check|falsify]" >&2
     exit 2
     ;;
 esac

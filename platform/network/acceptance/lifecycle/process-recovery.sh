@@ -48,8 +48,11 @@ recovered_ms=$(date +%s%3N)
 test "$(curl -fsS "$BLACKBOX/probe?module=tcp_connect&target=127.0.0.1:28080" | awk '/^probe_success / {print $2}')" = "1"
 
 prometheus_ready=no
+WITNESS="$(dirname -- "$0")/../observability/prometheus-singbox-sample.sh"
 for _ in $(seq 1 30); do
-  if curl -fsS --get --data-urlencode 'query=probe_success{job="blackbox-singbox"}' "$PROM/api/v1/query" | grep -Eq '"value"[^]]*"1"'; then
+  # A success observed before recovery cannot witness the recovered process.
+  if curl -fsS --get --data-urlencode 'query=probe_success{job="blackbox-singbox"}' "$PROM/api/v1/query" |
+    "$WITNESS" "$recovered_ms"; then
     prometheus_ready=yes
     break
   fi

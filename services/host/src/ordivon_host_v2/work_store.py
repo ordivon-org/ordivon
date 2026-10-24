@@ -226,7 +226,9 @@ class WorkStore:
         before_work_ref: str | None = None,
         max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
     ) -> dict[str, Any]:
-        if not 1 <= limit <= 200:
+        # A pagination budget is a typed integer, not numeric equality:
+        # True == 1 and 1.0 == 1 must not cross the PostgreSQL boundary.
+        if type(limit) is not int or not 1 <= limit <= 200:
             raise ValueError("limit must be in [1,200]")
         if state is not None and state not in {item.value for item in WorkState}:
             raise ValueError("unknown Work state")
@@ -256,10 +258,14 @@ class WorkStore:
             ]
 
             def envelope(page: list[dict[str, Any]]) -> dict[str, Any]:
-                cursor = None if not page else {
-                    "beforeUpdatedAt": page[-1]["updatedAt"],
-                    "beforeWorkRef": page[-1]["workRef"],
-                }
+                cursor = (
+                    None
+                    if not page
+                    else {
+                        "beforeUpdatedAt": page[-1]["updatedAt"],
+                        "beforeWorkRef": page[-1]["workRef"],
+                    }
+                )
                 return {
                     "schemaVersion": 1,
                     "kind": "ordivon.host-work-list",
