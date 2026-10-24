@@ -27,6 +27,40 @@ def test_current_repository_architecture_docs_are_converged() -> None:
     module.validate_repository(ROOT)
 
 
+
+def test_owner_plan_source_cut_rejects_external_symlink_and_missing_file(tmp_path: Path) -> None:
+    # A valid plan dictionary is not evidence that the candidate source owns it.
+    census, plans = formal_issue_inputs()
+    manifest = tmp_path / "tools/repo/owners.toml"
+    manifest.parent.mkdir(parents=True)
+    manifest.write_bytes((ROOT / "tools/repo/owners.toml").read_bytes())
+    for issue in census["issues"]:
+        skill = issue["representation"].get("methodSkill")
+        if skill:
+            path = tmp_path / skill
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("source-local method Skill\n", encoding="utf-8")
+    references = [ref["ownerPlan"] for ref in census["registrations"]]
+    target = references[0]
+    for ref in references[1:]:
+        local = tmp_path / ref
+        local.parent.mkdir(parents=True, exist_ok=True)
+        local.write_bytes((ROOT / ref).read_bytes())
+    # The in-memory plans are still valid, but a candidate source cut lacks one.
+    with pytest.raises(module.ArchitectureDocsError, match="outside source cut|unavailable owner-local LEGO"):
+        module.validate_formal_issue_census(census, plans, root=tmp_path)
+
+    local = tmp_path / target
+    local.parent.mkdir(parents=True, exist_ok=True)
+    local.symlink_to(ROOT / target)
+    with pytest.raises(module.ArchitectureDocsError, match="outside source cut|unavailable owner-local LEGO"):
+        module.validate_formal_issue_census(census, plans, root=tmp_path)
+
+    local.unlink()
+    local.write_bytes((ROOT / target).read_bytes())
+    module.validate_formal_issue_census(census, plans, root=tmp_path)
+
+
 def test_gateway_source_surface_is_owned_by_source_manifest() -> None:
     manifest = json.loads(GATEWAY_SURFACE.read_text(encoding="utf-8"))
     observed = set(manifest["tools"])
@@ -653,6 +687,10 @@ def test_formal_issue_skill_is_bound_to_candidate_source(tmp_path: Path) -> None
     missing = tmp_path / skills[0]
     missing.parent.mkdir(parents=True, exist_ok=True)
     missing.write_text("candidate-local skill\n", encoding="utf-8")
+    for ref in census["registrations"]:
+        plan = tmp_path / ref["ownerPlan"]
+        plan.parent.mkdir(parents=True, exist_ok=True)
+        plan.write_bytes((ROOT / ref["ownerPlan"]).read_bytes())
     module.validate_formal_issue_census(census, plans, root=tmp_path)
 
 

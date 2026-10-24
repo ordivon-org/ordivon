@@ -253,6 +253,19 @@ def validate_current_document(text: str) -> None:
 
 
 
+
+def _source_bound_owner_plan(root: Path, plan_path: str) -> Path:
+    """An owner plan is a regular file at its canonical candidate-source path."""
+    path = Path(plan_path)
+    if not plan_path or path.is_absolute() or ".." in path.parts:
+        raise ArchitectureDocsError("invalid owner-local LEGO path")
+    candidate = root / path
+    # Prevent a different Git source, symlink alias or missing file from being
+    # silently accepted as evidence for this exact owner-local LEGO identity.
+    if not candidate.is_file() or candidate.resolve() != root.resolve() / path:
+        raise ArchitectureDocsError("unavailable owner-local LEGO outside source cut")
+    return candidate
+
 def validate_formal_issue_census(
     census: dict[str, Any], plans: dict[str, dict[str, Any]], *, root: Path = ROOT
 ) -> None:
@@ -335,9 +348,7 @@ def validate_formal_issue_census(
         plan_path, slice_id = ref.get("ownerPlan"), ref.get("slice")
         if not isinstance(plan_path, str) or not isinstance(slice_id, str) or not slice_id:
             raise ArchitectureDocsError("LEGO registration identity missing")
-        path = Path(plan_path)
-        if path.is_absolute() or ".." in path.parts or not plan_path:
-            raise ArchitectureDocsError("invalid owner-local LEGO path")
+        _source_bound_owner_plan(root, plan_path)
         if (plan_path, slice_id) in seen:
             raise ArchitectureDocsError("duplicate owner-local LEGO link")
         seen.add((plan_path, slice_id))
@@ -465,10 +476,9 @@ def validate_repository(root: Path = ROOT) -> None:
         for ref in census.get("registrations", []):
             if not isinstance(ref, dict) or not isinstance(ref.get("ownerPlan"), str):
                 raise ArchitectureDocsError("invalid owner-local LEGO reference")
-            relative = Path(ref["ownerPlan"])
-            if relative.is_absolute() or ".." in relative.parts:
-                raise ArchitectureDocsError("invalid owner-local LEGO path")
-            plans[ref["ownerPlan"]] = _load_json(root / relative)
+            plans[ref["ownerPlan"]] = _load_json(
+                _source_bound_owner_plan(root, ref["ownerPlan"])
+            )
         validate_formal_issue_census(census, plans, root=root)
 
     for path, marker in HISTORICAL.items():
