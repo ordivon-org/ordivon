@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import os
 from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
+from time import sleep
 from uuid import uuid4
 
 import pytest
@@ -131,6 +133,59 @@ def test_work_parent_cycle_fails_closed() -> None:
             client_request_id=f"rel:{second_ref}:{first_ref}",
         )
 
+
+
+def test_concurrent_reciprocal_work_relations_cannot_commit_cycle() -> None:
+    """Two Agent writers cannot each validate on a stale graph then commit a cycle."""
+    assert DSN is not None
+    actor, a = refs("concurrent-cycle-a")
+    _, b = refs("concurrent-cycle-b")
+
+    class DelayedAfterCycleCheck(WorkStore):
+        def _reject_cycle(self, conn, relation):
+            super()._reject_cycle(conn, relation)
+            # Two independent requests race after reading the same empty DAG.
+            # The sleep is deliberately after the real SQL cycle check, not
+            # a mock of the storage transaction or its visible contract.
+            sleep(0.35)
+
+    store = DelayedAfterCycleCheck(DSN)
+    declare_actor(store, actor)
+    for ref in (a, b):
+        store.create_work(
+            WorkCreateInput(
+                work_ref=ref,
+                kind="task",
+                actor_ref=actor,
+                initial_snapshot=snapshot("open"),
+            ),
+            client_request_id=f"create:{ref}",
+        )
+    barrier = Barrier(2)
+
+    def add_edge(edge):
+        source, target = edge
+        barrier.wait(timeout=5)
+        try:
+            store.add_relation(
+                WorkRelationInput(
+                    source_work_ref=source,
+                    relation=WorkRelationKind.PARENT_OF,
+                    target_work_ref=target,
+                    actor_ref=actor,
+                ),
+                client_request_id=f"rel:{source}:{target}",
+            )
+            return "committed"
+        except ConflictError:
+            return "conflict"
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        outcomes = sorted(pool.map(add_edge, ((a, b), (b, a))))
+    assert outcomes == ["committed", "conflict"]
+
+    edges = store.list_relations(a)["relations"]
+    assert len(edges) == 1
 
 def test_space_can_link_multiple_works_without_becoming_work_container() -> None:
     assert DSN is not None

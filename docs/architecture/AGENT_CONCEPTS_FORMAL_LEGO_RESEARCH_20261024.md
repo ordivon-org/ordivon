@@ -142,22 +142,6 @@ No new Agent role, new Skill, registry, approval loop, scheduler or formal DSL i
 - **Negative witnesses:** two-node cycles in each registered core plan and dangling, duplicate or untyped edges/nodes must all fail the existing native tests before admission. Owner-specific behavioral CDC, Runtime TLA+ model scope, Host durable re-entry and independent consumer acceptance remain separate obligations.
 - **Subtraction rule:** use graphlib, not a bespoke DAG checker, a cross-domain graph database, a second LEGO registry, or mandatory 2.1 metadata on every component.
 
-**R2.1 minimal typed contract, not a new registry:** interpret a needed LEGO
-as the partial contract `L = (I, O, A, G, E, V)`: owner input/output
-types `I/O`, source/environment/authority assumptions `A`,
-consumer-observable guarantee (or state transition relation) `G`,
-already-owned bounded effects `E`, and scoped verifier `V`.
-Composition of `L1; L2` requires typed output/input compatibility,
-a *discharged* `G1 => A2` obligation, and explicit independent effect
-authority; unresolved assumption discharge is UNKNOWN, never PASS.
-Current `graphlib`, JSON Schema, Runtime TLA+/TLC and real consumer
-checks retain **distinct** proof scopes. A finite DAG or zero required
-gates cannot establish real outcome acceptance. No new execution owner,
-global LEGO metadata requirement, or custom solver is introduced.
-
-**Operational stopping rule:** one needed property, one appropriate mature owner/kernel, one scoped verification/effect witness, followed by read-back and cleanup. If none materially improves real consumer outcomes, do not add it.
-
-
 ## R2.1 mathematical kernel: existing mathematics at the Owner boundary (2026-10-25)
 
 **Standing:** scoped refinement of the already accepted recursive LEGO calculus,
@@ -175,6 +159,15 @@ view \(L=(C,I,O,S,R,A,G,V)\), not as a new executable object:
   effect relation, **not** an invented Ordivon transition engine;
 - \(A,G\): assumptions/guarantees expressed by current Owner contracts;
 - \(V\): scoped evidence with exact SourceCut, tool/version and falsification.
+
+**Effects are a derived projection, not a ninth independent Owner.** Let
+\(E=\mathrm{Effects}(R)\) be the concrete effect-bearing operations of the
+existing transition relation, and require
+\(E\subseteq\mathrm{AuthorizedEffects}(owner,sourceCut)\) at the true
+admission/commit boundary. A typed schema or verified predecessor DAG
+does not grant this authority. The compact "interfaces/assumptions/effects"
+view is a projection of this single owner-bound relation, not another
+competing definition of LEGO R2.1.
 
 These are **mathematical views of existing typed interfaces**. No field is
 mandated in every domain's JSON. For sequential composition \(L_1;L_2\),
