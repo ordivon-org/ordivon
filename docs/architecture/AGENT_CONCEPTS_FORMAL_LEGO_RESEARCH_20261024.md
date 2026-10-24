@@ -201,6 +201,18 @@ authority; optional fields are materialized only for a real consumer.
 | Harness | Bounded Run and identity-fenced Tool/Runtime admission | `services/harness/tests/test_agent_automation_browserless.py` | A proposal or Run success does not establish a committed effect |
 | Network | Existing scoped transport/policy observations | `platform/network/tests/test_claude_egress_readiness_consumer.py`; `platform/network/tests/test_monitoring_precommit.py` | File or transport delivery alone does not establish loaded policy, CONNECT or TLS |
 
+**R2.1 issue LEGO — FORMAL_WITNESS_PATH_ONLY (Repo architecture Owner,
+source-currentness repair, 2026-10-25).** The four Owner rows above used to
+be checked only for an existing test *file*, allowing an empty Python file
+to impersonate a consumer witness. The existing repository acceptance
+tools/repo/check_architecture_docs.py now uses Python's standard ast
+to bind one real native test callable per Runtime, Host, Harness and Network
+row; four empty-file mutations must fail before an architecture document
+can name those consumers. This is **source identity**, not execution,
+coverage, model-to-code refinement or semantic outcome. Use each natural
+Owner's existing native tests for implementation-level evidence; do not
+create an all-Owner test runner or another global LEGO registry.
+
 **First executable mathematical slice (Runtime).** The property
 `TerminalEvidenceIsCommitted` is stated in TLA+ and enabled in its
 upstream TLC config: a terminal Job must identify a terminal Attempt and

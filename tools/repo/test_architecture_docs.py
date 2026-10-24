@@ -1940,6 +1940,40 @@ def test_formal_r21_empty_harness_graph_must_not_pass_registered_census() -> Non
         module.validate_formal_issue_census(census, plans)
 
 
+@pytest.mark.parametrize(
+    "removed_witness",
+    [
+        "services/runtime/scripts/tests/test_mcp_e2e_reconciliation.py",
+        "services/host/tests/test_social_work_fabric_postgres.py",
+        "services/harness/tests/test_agent_automation_browserless.py",
+        "platform/network/tests/test_claude_egress_readiness_consumer.py",
+    ],
+)
+def test_r21_architecture_cannot_call_an_empty_file_native_consumer_evidence(
+    tmp_path: Path, removed_witness: str,
+) -> None:
+    """A tracked file path by itself is not a consumer contract witness."""
+    document = (
+        ROOT / "docs/architecture/AGENT_CONCEPTS_FORMAL_LEGO_RESEARCH_20261024.md"
+    ).read_text(encoding="utf-8")
+    for relative in (
+        "services/runtime/scripts/tests/test_mcp_e2e_reconciliation.py",
+        "services/host/tests/test_social_work_fabric_postgres.py",
+        "services/harness/tests/test_agent_automation_browserless.py",
+        "platform/network/tests/test_claude_egress_readiness_consumer.py",
+    ):
+        target = tmp_path / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(
+            "# existing test identity intentionally erased\n"
+            if relative == removed_witness
+            else (ROOT / relative).read_text(encoding="utf-8"),
+            encoding="utf-8",
+        )
+    with pytest.raises(module.ArchitectureDocsError, match="consumer witness"):
+        module.validate_r21_lego_vocabulary(document, root=tmp_path)
+
+
 def test_r21_single_six_role_contract_enforced_at_repository_admission() -> None:
     """R2.1 semantic lenses must never silently replace the original LEGO interface."""
     vocabulary = (
