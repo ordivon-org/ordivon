@@ -83,3 +83,18 @@ def test_added_cycle_and_unknown_dependency_fail_closed(seed: int):
     unknown["stages"][12]["dependsOn"] = ["stage:missing"]
     with pytest.raises(CircuitContractError, match="depends on unknown stages"):
         compile_manifest(unknown)
+
+
+def test_ready_successor_precedes_unrelated_late_root() -> None:
+    """Canonical topological priority must survive replacing the DAG engine."""
+    manifest = _manifest_for_seed(0)
+    manifest["stages"] = [
+        {**manifest["stages"][0], "id": "stage:z", "dependsOn": []},
+        {**manifest["stages"][1], "id": "stage:a", "dependsOn": []},
+        {**manifest["stages"][2], "id": "stage:b", "dependsOn": ["stage:a"]},
+    ]
+    assert compile_manifest(manifest)["stageOrder"] == [
+        "stage:a",
+        "stage:b",
+        "stage:z",
+    ]
