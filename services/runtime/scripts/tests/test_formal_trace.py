@@ -85,6 +85,27 @@ trait Provider {
             finally:
                 self.module.ROOT = original_root
 
+    def test_commented_or_quoted_rust_test_cannot_be_a_proving_witness(self):
+        examples = (
+            "/*\n#[test]\nfn target() {}\n*/\n",
+            "// #[test]\n// fn target() {}\n",
+            'const TEXT: &str = r#"#[test]\nfn target() {}"#;\n',
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "integration_tests.rs"
+            original_root = self.module.ROOT
+            self.module.ROOT = Path(temporary)
+            try:
+                for source_text in examples:
+                    with self.subTest(source=source_text):
+                        source.write_text(source_text, encoding="utf-8")
+                        self.assertTrue(
+                            self.module.require_test_symbol(source, "target"),
+                            "Rust comment/string text is not an executable proving test",
+                        )
+            finally:
+                self.module.ROOT = original_root
+
     def test_schema_v2_rejects_source_fragment_binding_regression(self):
         trace, invariants = manifests()
         mutated = copy.deepcopy(trace)

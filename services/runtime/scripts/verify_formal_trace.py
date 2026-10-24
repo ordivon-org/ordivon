@@ -141,6 +141,7 @@ def _rust_uncommented_tokens(text: str) -> str:
     result = list(text)
     length = len(text)
     index = 0
+    raw_string_prefix = re.compile(r'r(#{0,32})"')
 
     def mask(start: int, end: int) -> None:
         for offset in range(start, end):
@@ -170,7 +171,7 @@ def _rust_uncommented_tokens(text: str) -> str:
             mask(start, index)
         else:
             # Rust raw literals can contain fake impl, trait and brace tokens.
-            raw = re.match(r'r(#{0,32})"', text[index:])
+            raw = raw_string_prefix.match(text, index)
             if raw:
                 closer = '"' + raw.group(1)
                 end = text.find(closer, index + len(raw.group(0)))
@@ -232,8 +233,8 @@ def require_test_symbol(path: Path, symbol: str, *, require_ignored: bool = Fals
     if not path.resolve().is_relative_to(ROOT.resolve()):
         return [f"{path} escapes Runtime source"]
     try:
-        text = path.read_text(encoding="utf-8")
-    except (OSError, UnicodeError) as error:
+        text = _rust_uncommented_tokens(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, ValueError) as error:
         return [f"{path.relative_to(ROOT)}::{symbol}: {error}"]
     match = re.search(rf"(?m)^\s*fn\s+{re.escape(symbol)}\s*\(", text)
     if not match:
@@ -256,7 +257,9 @@ def require_test_symbol(path: Path, symbol: str, *, require_ignored: bool = Fals
     # without proof that its conditional branch is active in the Owner CI cut.
     if any(re.fullmatch(r"#\s*\[\s*cfg(?:_attr)?\s*\(.*\)\s*\]", attr) for attr in attributes):
         return [f"{path.relative_to(ROOT)}::{symbol} is conditionally compiled or ignored, not an always-on proving test"]
-    ignored = any(re.fullmatch(r'#\s*\[\s*ignore(?:\s*=\s*".*")?\s*\]', attribute) for attribute in attributes)
+    # Literal masking retains the attribute token but blanks its optional
+    # explanatory string; that does not change its #[ignore] semantics.
+    ignored = any(re.fullmatch(r'#\s*\[\s*ignore(?:\s*=\s*)?\s*\]', attribute) for attribute in attributes)
     if ignored and not require_ignored:
         return [f"{path.relative_to(ROOT)}::{symbol} is ignored, not an always-on proving test"]
     if require_ignored and not ignored:
