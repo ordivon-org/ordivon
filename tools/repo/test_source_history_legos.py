@@ -21,7 +21,9 @@ class SourceHistoryLegosTests(unittest.TestCase):
             git(root, "config", "user.email", "test@example.invalid")
             owner = root / "tools/repo/owners.toml"
             owner.parent.mkdir(parents=True)
-            owner.write_text('[[owners]]\nname = "runtime"\nroot = "services/runtime/"\n')
+            owner.write_text(
+                '[[owners]]\nname = "runtime"\nroot = "services/runtime/"\n'
+            )
             (root / "README").write_text("base\n")
             git(root, "add", ".")
             git(root, "commit", "-qm", "base")
@@ -45,12 +47,20 @@ class SourceHistoryLegosTests(unittest.TestCase):
             projection = history(root, "main", "remote-main")
             self.assertEqual(projection["counts"], {"local": 1, "remote": 2})
             records = {record["commit"]: record for record in projection["commits"]}
-            self.assertEqual(records[local_patch]["patchRelation"], "PATCH_ID_EQUIVALENT")
-            self.assertEqual(records[remote_patch]["patchRelation"], "PATCH_ID_EQUIVALENT")
+            self.assertEqual(
+                records[local_patch]["patchRelation"], "PATCH_ID_EQUIVALENT"
+            )
+            self.assertEqual(
+                records[remote_patch]["patchRelation"], "PATCH_ID_EQUIVALENT"
+            )
             self.assertEqual(records[local_patch]["owners"], ["runtime"])
-            self.assertEqual(records[local_patch]["pathRelations"], {"SAME_BLOB_AND_MODE": 1})
+            self.assertEqual(
+                records[local_patch]["pathRelations"], {"SAME_BLOB_AND_MODE": 1}
+            )
             for record in records.values():
-                self.assertEqual(record["consumerQualification"], "UNKNOWN_REQUIRES_OWNER_CDC")
+                self.assertEqual(
+                    record["consumerQualification"], "UNKNOWN_REQUIRES_OWNER_CDC"
+                )
             self.assertEqual(
                 sum(projection["patchClasses"].values()),
                 sum(projection["counts"].values()),
@@ -64,7 +74,9 @@ class SourceHistoryLegosTests(unittest.TestCase):
             git(root, "config", "user.email", "test@example.invalid")
             manifest = root / "tools/repo/owners.toml"
             manifest.parent.mkdir(parents=True)
-            manifest.write_text('[[owners]]\nname = "runtime"\nroot = "services/runtime/"\n')
+            manifest.write_text(
+                '[[owners]]\nname = "runtime"\nroot = "services/runtime/"\n'
+            )
             (root / "README").write_text("base")
             git(root, "add", ".")
             git(root, "commit", "-qm", "base")
@@ -81,9 +93,7 @@ class SourceHistoryLegosTests(unittest.TestCase):
             git(root, "merge", "--no-ff", "-qm", "remote merge", "feature")
             report = history(root, "main", "remote-main")
             self.assertEqual(report["counts"], {"local": 1, "remote": 2})
-            merges = [
-                x for x in report["commits"] if x["kind"] == "merge-provenance"
-            ]
+            merges = [x for x in report["commits"] if x["kind"] == "merge-provenance"]
             self.assertEqual(len(merges), 1)
             self.assertEqual(merges[0]["patchRelation"], "NOT_APPLICABLE")
             self.assertEqual(len(merges[0]["parents"]), 2)
@@ -91,6 +101,7 @@ class SourceHistoryLegosTests(unittest.TestCase):
             # can contain the only surviving consumer implementation.
             self.assertEqual(merges[0]["changedPaths"], ["remote.txt"])
             self.assertEqual(merges[0]["owners"], ["ROOT_UNOWNED"])
+            self.assertEqual(merges[0]["resultDistinctFromAllParentsPaths"], [])
 
     def test_merge_conflict_resolution_has_real_owner_and_nonpatch_effect(self):
         with tempfile.TemporaryDirectory(prefix="ordivon-history-resolution-") as temp:
@@ -100,7 +111,9 @@ class SourceHistoryLegosTests(unittest.TestCase):
             git(root, "config", "user.email", "test@example.invalid")
             manifest = root / "tools/repo/owners.toml"
             manifest.parent.mkdir(parents=True)
-            manifest.write_text('[[owners]]\nname = "runtime"\nroot = "services/runtime/"\n')
+            manifest.write_text(
+                '[[owners]]\nname = "runtime"\nroot = "services/runtime/"\n'
+            )
             consumer = root / "services/runtime/consumer.txt"
             consumer.parent.mkdir(parents=True)
             consumer.write_text("base\n")
@@ -117,7 +130,9 @@ class SourceHistoryLegosTests(unittest.TestCase):
             git(root, "branch", "feature", "main")
             merge = subprocess.run(
                 ["git", "-C", str(root), "merge", "--no-ff", "feature"],
-                capture_output=True, text=True,
+                capture_output=True,
+                text=True,
+                check=False,
             )
             self.assertNotEqual(merge.returncode, 0)
             consumer.write_text("resolved behavior unique to merge\n")
@@ -125,12 +140,20 @@ class SourceHistoryLegosTests(unittest.TestCase):
             git(root, "commit", "-qm", "resolved provider contract")
             merged_oid = git(root, "rev-parse", "HEAD")
             report = history(root, "main", "remote-main")
-            record = next(row for row in report["commits"] if row["commit"] == merged_oid)
+            record = next(
+                row for row in report["commits"] if row["commit"] == merged_oid
+            )
             self.assertEqual(record["kind"], "merge-provenance")
             self.assertEqual(record["patchRelation"], "NOT_APPLICABLE")
             self.assertEqual(record["changedPaths"], ["services/runtime/consumer.txt"])
             self.assertEqual(record["owners"], ["runtime"])
-            self.assertEqual(record["consumerQualification"], "UNKNOWN_REQUIRES_OWNER_CDC")
+            self.assertEqual(
+                record["resultDistinctFromAllParentsPaths"],
+                ["services/runtime/consumer.txt"],
+            )
+            self.assertEqual(
+                record["consumerQualification"], "UNKNOWN_REQUIRES_OWNER_CDC"
+            )
 
     def test_newline_paths_and_header_like_names_keep_exact_git_identity(self):
         # Git paths are byte strings: line splitting or C-quoting changes owner identity.

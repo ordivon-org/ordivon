@@ -11,8 +11,9 @@ import argparse
 import collections
 import json
 import subprocess
-import tomllib
 from pathlib import Path
+
+import tomllib
 
 HEADER = "__ORDIVON_HISTORY_RECORD__"
 
@@ -29,7 +30,9 @@ def git(repo: Path, *args: str) -> str:
 def owners(repo: Path, canonical_revision: str) -> list[tuple[str, str]]:
     # Natural-owner attribution is part of the exact protected-source cut,
     # not a mutable worktree checkout (which may be on another Git branch).
-    manifest = tomllib.loads(git(repo, "show", canonical_revision + ":tools/repo/owners.toml"))
+    manifest = tomllib.loads(
+        git(repo, "show", canonical_revision + ":tools/repo/owners.toml")
+    )
     return [(item["root"], item["name"]) for item in manifest["owners"]]
 
 
@@ -44,7 +47,9 @@ def current_tree(repo: Path, revision: str) -> dict[str, str]:
         metadata, name = entry.split(b"\t", 1)
         mode, kind, oid = metadata.decode("ascii").split()
         if kind in ("blob", "commit"):
-            result[name.decode("utf-8", errors="surrogateescape")] = mode + ":" + kind + ":" + oid
+            result[name.decode("utf-8", errors="surrogateescape")] = (
+                mode + ":" + kind + ":" + oid
+            )
     return result
 
 
@@ -78,14 +83,24 @@ def history(repo: Path, left: str, right: str) -> dict:
     # contain NUL); paths may contain newlines or look exactly like HEADER.
     raw_paths = subprocess.check_output(
         [
-            "git", "-C", str(repo), "log", "-z", "--left-right",
-            "--cherry-mark", "--no-merges", "--no-renames",
+            "git",
+            "-C",
+            str(repo),
+            "log",
+            "-z",
+            "--left-right",
+            "--cherry-mark",
+            "--no-merges",
+            "--no-renames",
             "--format=%x00" + HEADER + "%m %H%x00",
-            "--name-only", spec,
+            "--name-only",
+            spec,
         ],
         stderr=subprocess.PIPE,
     )
-    if raw_paths and (not raw_paths.startswith(b"\x00") or not raw_paths.endswith(b"\x00")):
+    if raw_paths and (
+        not raw_paths.startswith(b"\x00") or not raw_paths.endswith(b"\x00")
+    ):
         raise ValueError("malformed NUL-delimited Git history")
     fields = raw_paths.split(b"\x00") if raw_paths else []
     pos = 0
@@ -95,15 +110,17 @@ def history(repo: Path, left: str, right: str) -> dict:
         header = fields[pos + 1].decode("ascii")
         if not header.startswith(HEADER) or fields[pos + 2] != b"":
             raise ValueError("missing Git commit record delimiter")
-        marker, oid = header[len(HEADER):].split()
+        marker, oid = header[len(HEADER) :].split()
         if oid not in all_commits or all_commits[oid]["kind"] != "patch":
             raise ValueError("invalid patch marker reference")
         record = all_commits[oid]
         if marker == "=":
             record["patchRelation"] = "PATCH_ID_EQUIVALENT"
         elif (
-            marker == "<" and record["side"] == "local"
-            or marker == ">" and record["side"] == "remote"
+            marker == "<"
+            and record["side"] == "local"
+            or marker == ">"
+            and record["side"] == "remote"
         ):
             record["patchRelation"] = "PATCH_DISTINCT_UNQUALIFIED"
         else:
@@ -121,7 +138,9 @@ def history(repo: Path, left: str, right: str) -> dict:
                 first_path = False
             if not path:
                 raise ValueError("empty Git path")
-            record["changedPaths"].append(path.decode("utf-8", errors="surrogateescape"))
+            record["changedPaths"].append(
+                path.decode("utf-8", errors="surrogateescape")
+            )
             pos += 1
 
     # A merge is not a single patch, but it still changes the checked-out
@@ -133,17 +152,58 @@ def history(repo: Path, left: str, right: str) -> dict:
             continue
         raw_merge_paths = subprocess.check_output(
             [
-                "git", "-C", str(repo), "diff-tree", "-r", "--name-only",
-                "--no-renames", "-z", record["parents"][0], record["commit"],
+                "git",
+                "-C",
+                str(repo),
+                "diff-tree",
+                "-r",
+                "--name-only",
+                "--no-renames",
+                "-z",
+                record["parents"][0],
+                record["commit"],
             ],
             stderr=subprocess.PIPE,
         )
-        record["changedPaths"] = sorted({
-            path.decode("utf-8", errors="surrogateescape")
-            for path in raw_merge_paths.split(b"\x00") if path
-        })
+        record["changedPaths"] = sorted(
+            {
+                path.decode("utf-8", errors="surrogateescape")
+                for path in raw_merge_paths.split(b"\x00")
+                if path
+            }
+        )
+        # A first-parent delta can merely import behavior from another parent.
+        # Only paths whose resulting mode/blob differs from *every* parent
+        # are possible merge-specific additions; owner CDC still decides.
+        distinct_from_all = set(record["changedPaths"])
+        for parent in record["parents"][1:]:
+            against_parent = subprocess.check_output(
+                [
+                    "git",
+                    "-C",
+                    str(repo),
+                    "diff-tree",
+                    "-r",
+                    "--name-only",
+                    "--no-renames",
+                    "-z",
+                    parent,
+                    record["commit"],
+                ],
+                stderr=subprocess.PIPE,
+            )
+            distinct_from_all.intersection_update(
+                path.decode("utf-8", errors="surrogateescape")
+                for path in against_parent.split(b"\x00")
+                if path
+            )
+        record["resultDistinctFromAllParentsPaths"] = sorted(distinct_from_all)
 
-    missing = [r["commit"] for r in all_commits.values() if r["patchRelation"] == "UNCLASSIFIED"]
+    missing = [
+        r["commit"]
+        for r in all_commits.values()
+        if r["patchRelation"] == "UNCLASSIFIED"
+    ]
     if missing:
         raise ValueError("missing exact patch classification: " + ",".join(missing[:5]))
 
@@ -154,10 +214,15 @@ def history(repo: Path, left: str, right: str) -> dict:
     for record in all_commits.values():
         counts[record["side"] + ":" + record["patchRelation"]] += 1
         paths = record["changedPaths"]
-        record["owners"] = sorted({
-            next((owner for root, owner in mappings if path.startswith(root)), "ROOT_UNOWNED")
-            for path in paths
-        })
+        record["owners"] = sorted(
+            {
+                next(
+                    (owner for root, owner in mappings if path.startswith(root)),
+                    "ROOT_UNOWNED",
+                )
+                for path in paths
+            }
+        )
         for owner in record["owners"]:
             owner_counts[record["side"] + ":" + owner] += 1
         opposite = right_tree if record["side"] == "local" else left_tree
