@@ -87,6 +87,50 @@ class SourceHistoryLegosTests(unittest.TestCase):
             self.assertEqual(len(merges), 1)
             self.assertEqual(merges[0]["patchRelation"], "NOT_APPLICABLE")
             self.assertEqual(len(merges[0]["parents"]), 2)
+            # Merge connectors are not blank: their first-parent transition
+            # can contain the only surviving consumer implementation.
+            self.assertEqual(merges[0]["changedPaths"], ["remote.txt"])
+            self.assertEqual(merges[0]["owners"], ["ROOT_UNOWNED"])
+
+    def test_merge_conflict_resolution_has_real_owner_and_nonpatch_effect(self):
+        with tempfile.TemporaryDirectory(prefix="ordivon-history-resolution-") as temp:
+            root = Path(temp)
+            git(root, "init", "-q", "-b", "main")
+            git(root, "config", "user.name", "Ordivon Test")
+            git(root, "config", "user.email", "test@example.invalid")
+            manifest = root / "tools/repo/owners.toml"
+            manifest.parent.mkdir(parents=True)
+            manifest.write_text('[[owners]]\nname = "runtime"\nroot = "services/runtime/"\n')
+            consumer = root / "services/runtime/consumer.txt"
+            consumer.parent.mkdir(parents=True)
+            consumer.write_text("base\n")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "base")
+            git(root, "branch", "remote-main")
+            consumer.write_text("local behavior\n")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "local consumer")
+            git(root, "switch", "-q", "remote-main")
+            consumer.write_text("remote behavior\n")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "remote consumer")
+            git(root, "branch", "feature", "main")
+            merge = subprocess.run(
+                ["git", "-C", str(root), "merge", "--no-ff", "feature"],
+                capture_output=True, text=True,
+            )
+            self.assertNotEqual(merge.returncode, 0)
+            consumer.write_text("resolved behavior unique to merge\n")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "resolved provider contract")
+            merged_oid = git(root, "rev-parse", "HEAD")
+            report = history(root, "main", "remote-main")
+            record = next(row for row in report["commits"] if row["commit"] == merged_oid)
+            self.assertEqual(record["kind"], "merge-provenance")
+            self.assertEqual(record["patchRelation"], "NOT_APPLICABLE")
+            self.assertEqual(record["changedPaths"], ["services/runtime/consumer.txt"])
+            self.assertEqual(record["owners"], ["runtime"])
+            self.assertEqual(record["consumerQualification"], "UNKNOWN_REQUIRES_OWNER_CDC")
 
     def test_newline_paths_and_header_like_names_keep_exact_git_identity(self):
         # Git paths are byte strings: line splitting or C-quoting changes owner identity.

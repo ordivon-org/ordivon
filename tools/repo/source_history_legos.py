@@ -124,6 +124,25 @@ def history(repo: Path, left: str, right: str) -> dict:
             record["changedPaths"].append(path.decode("utf-8", errors="surrogateescape"))
             pos += 1
 
+    # A merge is not a single patch, but it still changes the checked-out
+    # source tree. Project its exact first-parent path transition so downstream
+    # owner/consumer qualification never silently drops merge-only effects.
+    # Do not treat this diff as patch-ID or behavioral equivalence evidence.
+    for record in all_commits.values():
+        if record["kind"] != "merge-provenance":
+            continue
+        raw_merge_paths = subprocess.check_output(
+            [
+                "git", "-C", str(repo), "diff-tree", "-r", "--name-only",
+                "--no-renames", "-z", record["parents"][0], record["commit"],
+            ],
+            stderr=subprocess.PIPE,
+        )
+        record["changedPaths"] = sorted({
+            path.decode("utf-8", errors="surrogateescape")
+            for path in raw_merge_paths.split(b"\x00") if path
+        })
+
     missing = [r["commit"] for r in all_commits.values() if r["patchRelation"] == "UNCLASSIFIED"]
     if missing:
         raise ValueError("missing exact patch classification: " + ",".join(missing[:5]))
@@ -161,7 +180,7 @@ def history(repo: Path, left: str, right: str) -> dict:
     expected_left, expected_right = [
         int(n) for n in git(repo, "rev-list", "--left-right", "--count", spec).split()
     ]
-    if actual != {"local": expected_left, "remote": expected_right}:
+    if actual["local"] != expected_left or actual["remote"] != expected_right:
         raise ValueError("DAG coverage mismatch")
     return {
         "kind": "ordivon.source-history-lego-projection",
