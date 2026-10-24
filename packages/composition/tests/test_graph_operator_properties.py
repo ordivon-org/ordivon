@@ -72,6 +72,49 @@ def test_seeded_dag_family_is_deterministic_and_respects_every_edge(seed: int):
         assert actual["stageOrder"] == expected_order
 
 
+def test_long_acyclic_lego_dependency_chain_is_valid_without_recursion() -> None:
+    # The schema permits unbounded stage counts. A legal dependency chain must
+    # not be rejected by the Python call-stack limit of a handwritten DFS.
+    manifest = valid_manifest()
+    manifest["edges"] = []
+    manifest["gateRequirements"] = []
+    manifest["stages"] = [
+        {
+            "id": f"stage:{n:04}",
+            "ownerId": "research",
+            "responsibility": f"Independent consumer {n}",
+            "dependsOn": [f"stage:{n - 1:04}"] if n else [],
+            "methodBindings": [],
+            "capabilityBindings": [],
+            "inputs": [],
+            "outputs": [],
+        }
+        for n in range(1500)
+    ]
+    projection = compile_manifest(manifest)
+    assert projection["stageOrder"] == [f"stage:{n:04}" for n in range(1500)]
+
+
+def test_long_dependency_chain_cycle_fails_as_contract_error() -> None:
+    manifest = _manifest_for_seed(2)
+    manifest["stages"] = [
+        {
+            "id": f"stage:{n:04}",
+            "ownerId": "research",
+            "responsibility": f"Independent consumer {n}",
+            "dependsOn": [f"stage:{n - 1:04}"] if n else [],
+            "methodBindings": [],
+            "capabilityBindings": [],
+            "inputs": [],
+            "outputs": [],
+        }
+        for n in range(1500)
+    ]
+    manifest["stages"][0]["dependsOn"] = ["stage:1499"]
+    with pytest.raises(CircuitContractError, match="dependency cycle"):
+        compile_manifest(manifest)
+
+
 @pytest.mark.parametrize("seed", [0, 7, 23])
 def test_added_cycle_and_unknown_dependency_fail_closed(seed: int):
     manifest = _manifest_for_seed(seed)

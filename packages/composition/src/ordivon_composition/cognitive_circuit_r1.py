@@ -11,7 +11,9 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import heapq
 import json
+from graphlib import CycleError, TopologicalSorter
 from pathlib import Path
 from typing import Any
 
@@ -78,22 +80,9 @@ def _check_dag(stages: dict[str, dict[str, Any]]) -> None:
         if stage_id in stage["dependsOn"]:
             raise CircuitContractError(f"stage {stage_id} cannot depend on itself")
 
-    visiting: set[str] = set()
-    visited: set[str] = set()
-
-    def visit(stage_id: str) -> None:
-        if stage_id in visited:
-            return
-        if stage_id in visiting:
-            raise CircuitContractError(f"stage dependency cycle includes {stage_id}")
-        visiting.add(stage_id)
-        for dependency in stages[stage_id]["dependsOn"]:
-            visit(dependency)
-        visiting.remove(stage_id)
-        visited.add(stage_id)
-
-    for stage_id in sorted(stages):
-        visit(stage_id)
+    # Use the standard-library graph kernel, not recursive Python DFS. A long
+    # invalid cycle must remain a typed contract failure at any stack depth.
+    _topological_order(list(stages.values()))
 
 
 def validate_manifest(value: dict[str, Any]) -> None:
@@ -200,27 +189,24 @@ def compile_manifest(value: dict[str, Any]) -> dict[str, Any]:
 
 
 def _topological_order(rows: list[dict[str, Any]]) -> list[str]:
-    stages = {row["id"]: row for row in rows}
-    indegree = {stage_id: 0 for stage_id in stages}
-    children: dict[str, list[str]] = {stage_id: [] for stage_id in stages}
-    for stage_id, stage in stages.items():
-        for dependency in stage["dependsOn"]:
-            indegree[stage_id] += 1
-            children[dependency].append(stage_id)
+    graph = TopologicalSorter({row["id"]: tuple(row["dependsOn"]) for row in rows})
+    try:
+        graph.prepare()
+    except CycleError as exc:
+        raise CircuitContractError("stage dependency cycle") from exc
 
-    ready = sorted(stage_id for stage_id, degree in indegree.items() if degree == 0)
-    order: list[str] = []
+    # TopologicalSorter is the sole graph kernel; a heap makes the ready-node
+    # order deterministic even when inputs/independent stages are shuffled.
+    ready = list(graph.get_ready())
+    heapq.heapify(ready)
+    ordered: list[str] = []
     while ready:
-        current = ready.pop(0)
-        order.append(current)
-        for child in sorted(children[current]):
-            indegree[child] -= 1
-            if indegree[child] == 0:
-                ready.append(child)
-                ready.sort()
-    if len(order) != len(stages):
-        raise CircuitContractError("stage dependency graph is not acyclic")
-    return order
+        stage_id = heapq.heappop(ready)
+        ordered.append(stage_id)
+        graph.done(stage_id)
+        for unlocked in graph.get_ready():
+            heapq.heappush(ready, unlocked)
+    return ordered
 
 
 def validate_gate_result(
