@@ -659,3 +659,19 @@ def test_execution_cancel_refuses_nonboolean_owner_terminality(invalid_bit: obje
         asyncio.run(
             GatewayService(caller).execution_cancel("ordivon-exec:v1:runtime.linux:job-typed")
         )
+
+@pytest.mark.parametrize("owner_id", ["runtime.linux", "runtime.windows"])
+def test_execution_cancel_rejects_mismatched_runtime_job_identity(owner_id: str) -> None:
+    """Owner cancellation must not silently substitute a different Job's identity."""
+    caller = FakeOwnerCaller()
+    caller.responses[(owner_id, "job.cancel")] = {
+        "jobId": "job-unrelated",
+        "status": "cancel_requested",
+        "executionTerminal": False,
+    }
+    ref = f"ordivon-exec:v1:{owner_id}:job-expected"
+    with pytest.raises(GatewayError, match="mismatched job identity"):
+        asyncio.run(GatewayService(caller).execution_cancel(ref))
+    assert caller.calls == [
+        (owner_id, "job.cancel", {"schemaVersion": 1, "jobId": "job-expected"})
+    ]
