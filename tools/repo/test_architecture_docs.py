@@ -2107,3 +2107,73 @@ def test_r21_repository_always_checks_core_owner_prerequisites(
     ):
         with pytest.raises(module.ArchitectureDocsError, match="cyclic LEGO dependencies"):
             module.validate_repository(ROOT)
+
+
+@pytest.mark.parametrize(
+    ("relative", "symbol", "disabled"),
+    [
+        ("services/runtime/scripts/tests/test_mcp_e2e_reconciliation.py",
+         "test_reconciliation_fails_closed_if_attempt_identity_changes",
+         '@unittest.skip("not executed in normal CI")'),
+        ("services/host/tests/test_social_work_fabric_postgres.py",
+         "test_work_snapshot_cas_race_has_one_winner",
+         '@pytest.mark.skip(reason="requires manual database")'),
+        ("services/harness/tests/test_agent_automation_browserless.py",
+         "test_birth_replay_does_not_materialize_again",
+         '@pytest.mark.skipif(True, reason="permanently skipped")'),
+        ("platform/network/tests/test_claude_egress_readiness_consumer.py",
+         "test_real_consumer_readiness_fails_closed_for_upstream_faults",
+         '@pytest.mark.xfail(run=False, reason="cannot execute")'),
+    ],
+)
+def test_r21_source_witness_cannot_be_explicitly_disabled(
+    tmp_path: Path, relative: str, symbol: str, disabled: str,
+) -> None:
+    """An AST-visible skipped witness cannot justify an always-on native claim."""
+    document = (
+        ROOT / "docs/architecture/AGENT_CONCEPTS_FORMAL_LEGO_RESEARCH_20261024.md"
+    ).read_text(encoding="utf-8")
+    for path in (
+        "services/runtime/scripts/tests/test_mcp_e2e_reconciliation.py",
+        "services/host/tests/test_social_work_fabric_postgres.py",
+        "services/harness/tests/test_agent_automation_browserless.py",
+        "platform/network/tests/test_claude_egress_readiness_consumer.py",
+    ):
+        candidate = tmp_path / path
+        candidate.parent.mkdir(parents=True, exist_ok=True)
+        contents = (ROOT / path).read_text(encoding="utf-8")
+        if path == relative:
+            marker = re.compile(r"(?m)^([ 	]*)def " + re.escape(symbol) + r"\(")
+            contents, changed = marker.subn(
+                lambda match: f"{match.group(1)}{disabled}\n{match.group(0)}", contents, count=1
+            )
+            assert changed == 1
+        candidate.write_text(contents, encoding="utf-8")
+    with pytest.raises(module.ArchitectureDocsError, match="disabled.*consumer witness"):
+        module.validate_r21_lego_vocabulary(document, root=tmp_path)
+
+
+
+def test_r21_skipped_python_test_class_cannot_witness_owner_acceptance(
+    tmp_path: Path,
+) -> None:
+    document = (
+        ROOT / "docs/architecture/AGENT_CONCEPTS_FORMAL_LEGO_RESEARCH_20261024.md"
+    ).read_text(encoding="utf-8")
+    target = "services/runtime/scripts/tests/test_mcp_e2e_reconciliation.py"
+    for relative in (
+        target,
+        "services/host/tests/test_social_work_fabric_postgres.py",
+        "services/harness/tests/test_agent_automation_browserless.py",
+        "platform/network/tests/test_claude_egress_readiness_consumer.py",
+    ):
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        source = (ROOT / relative).read_text(encoding="utf-8")
+        if relative == target:
+            marker = "class ReconciliationContractTests("
+            assert source.count(marker) == 1
+            source = source.replace(marker, '@unittest.skip("disabled class")\n' + marker)
+        path.write_text(source, encoding="utf-8")
+    with pytest.raises(module.ArchitectureDocsError, match="disabled consumer witness"):
+        module.validate_r21_lego_vocabulary(document, root=tmp_path)

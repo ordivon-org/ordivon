@@ -118,6 +118,98 @@ trait Provider {
                 self.module.ROOT = original_root
         self.assertTrue(any("ignored" in error for error in errors), errors)
 
+    def test_rust_block_comment_cannot_forge_an_always_on_test(self):
+        # A textual witness inside a Rust block comment is not compiled or executed.
+        for snippet in (
+            "/*\n#[test]\nfn fabricated_test() {}\n*/\n",
+            "/* outer /* nested */\n#[test]\nfn fabricated_test() {}\n*/\n",
+        ):
+            with self.subTest(snippet=snippet):
+                with tempfile.TemporaryDirectory() as temporary:
+                    source = Path(temporary) / "tests.rs"
+                    source.write_text(snippet, encoding="utf-8")
+                    original_root = self.module.ROOT
+                    self.module.ROOT = Path(temporary)
+                    try:
+                        errors = self.module.require_test_symbol(source, "fabricated_test")
+                    finally:
+                        self.module.ROOT = original_root
+                self.assertTrue(errors, "Comment-only Rust test was accepted as real proof")
+
+    def test_rust_raw_byte_string_cannot_forge_an_always_on_test(self):
+        # A raw byte literal can contain unescaped quotes and Rust-looking lines.
+        source_text = (
+            'const NOTE: &[u8] = br##"literal "interior quote\n'
+            '#[test]\nfn fabricated_test() {}\n"##;\n'
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "tests.rs"
+            source.write_text(source_text, encoding="utf-8")
+            original_root = self.module.ROOT
+            self.module.ROOT = Path(temporary)
+            try:
+                errors = self.module.require_test_symbol(source, "fabricated_test")
+            finally:
+                self.module.ROOT = original_root
+        self.assertTrue(errors, "Raw byte string was accepted as an executable Rust test")
+        self.assertNotIn(
+            "fn fabricated_test", self.module._rust_code_only(source_text)
+        )
+
+    def test_real_owner_survives_comment_delimiters_inside_string(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "runtime.rs"
+            source.write_text(
+                'impl Registry { const TEXT: &str = "/* not a comment */"; '
+                'fn valid(&self) {} }\n',
+                encoding="utf-8",
+            )
+            original_root = self.module.ROOT
+            self.module.ROOT = Path(temporary)
+            try:
+                errors = self.module.require_owned_method(
+                    source, "impl", "Registry", "valid"
+                )
+            finally:
+                self.module.ROOT = original_root
+        self.assertEqual(errors, [])
+
+    def test_rust_comment_cannot_forge_a_runtime_owner_method(self):
+        # A matching Rust impl may contain unrelated real functions, not a fake method.
+        source_text = (
+            "impl Registry {\n fn live(&self) {}\n"
+            " /* fn forged_dispatch(&self) {} */\n}\n"
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "runtime.rs"
+            source.write_text(source_text, encoding="utf-8")
+            original_root = self.module.ROOT
+            self.module.ROOT = Path(temporary)
+            try:
+                errors = self.module.require_owned_method(
+                    source, "impl", "Registry", "forged_dispatch"
+                )
+            finally:
+                self.module.ROOT = original_root
+        self.assertTrue(errors, "Comment-only Rust method was accepted as Owner seam")
+
+    def test_rust_comment_cannot_forge_entire_owner(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "runtime.rs"
+            source.write_text(
+                "/*\nimpl Registry { fn fabricated(&self) {} }\n*/\n",
+                encoding="utf-8",
+            )
+            original_root = self.module.ROOT
+            self.module.ROOT = Path(temporary)
+            try:
+                errors = self.module.require_owned_method(
+                    source, "impl", "Registry", "fabricated"
+                )
+            finally:
+                self.module.ROOT = original_root
+        self.assertTrue(errors, "Comment-only Rust Owner was accepted as real source")
+
     def test_conditionally_disabled_rust_tests_are_not_always_on_witnesses(self):
         # Rust cfg(any()) compiles the test out, even with an adjacent #[test].
         # A missing Feature similarly means no test ever ran. Neither is an
