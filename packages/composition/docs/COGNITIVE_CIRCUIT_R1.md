@@ -121,6 +121,11 @@ The gate evaluator binds every result to the exact manifest digest and verifier 
 Required gates close mechanically only when every required result is `SATISFIED` and the
 manifest has no unresolved assumptions.
 
+A circuit with **zero required composition gates** has no observed owner
+boundary and MUST remain mechanically OPEN: the mathematical truth of an empty
+conjunction is not evidence that any real consumer was checked. This is a
+source-bound verification obligation, not a new schema or global policy owner.
+
 Even then:
 
 ```text
