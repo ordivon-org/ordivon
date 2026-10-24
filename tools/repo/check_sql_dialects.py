@@ -45,12 +45,30 @@ def classify(path: str) -> str | None:
 
 
 def tracked_sql(root: Path) -> list[str]:
-    return [
-        p for p in subprocess.check_output(
-            ["git", "-C", str(root), "ls-files", "--", "*.sql"],
-            text=True,
-        ).splitlines() if (root / p).is_file()
-    ]
+    # Git path, index file type and resolved checkout source must agree.
+    # A local replacement must not mask a symlink committed in the index.
+    tracked = subprocess.check_output(
+        ["git", "-C", str(root), "ls-files", "--stage", "-z", "--", "*.sql"],
+    )
+    repository = root.resolve()
+    accepted: list[str] = []
+    for record in tracked.split(b"\0"):
+        if not record:
+            continue
+        metadata, separator, name = record.partition(b"\t")
+        mode, _, stage = metadata.split()
+        path = name.decode("utf-8", errors="surrogateescape")
+        if not separator or mode not in (b"100644", b"100755") or stage != b"0":
+            raise ValueError(f"tracked SQL symlink or nonregular index type: {path}")
+        source = root
+        for component in Path(path).parts:
+            source = source / component
+            if source.is_symlink():
+                raise ValueError(f"tracked SQL symlink or external source: {path}")
+        if not source.is_file() or not source.resolve().is_relative_to(repository):
+            raise ValueError(f"tracked SQL missing or external source: {path}")
+        accepted.append(path)
+    return accepted
 
 
 def run_bounded(
@@ -174,7 +192,11 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--audit", action="store_true")
     args = parser.parse_args()
-    issues, facts = check(ROOT)
+    try:
+        issues, facts = check(ROOT)
+    except ValueError as exc:
+        print(f"SQL dialect acceptance: NONCOMPLIANT ({exc})")
+        return 2
     for fact in facts:
         print(fact)
     for issue in issues:
