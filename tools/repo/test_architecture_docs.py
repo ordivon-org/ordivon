@@ -784,7 +784,7 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
         "ecca6ad1ae", "86298d72ea", "9c8e37dfe8", "fcf5fc6d1b",
         "82c8fa2924", "84baec0ea1", "7a96b238fb", "7c2fa8c4d2",
         "225192c6e7", "2919a6d840", "495b45d461", "f93faa57cf",
-        "3ab30f2b82", "eeb5630524", "db9d21d033",
+        "3ab30f2b82", "8303ca3a7a", "eeb5630524", "db9d21d033",
     }
     for item in candidates:
         assert len(item["localCommit"]) == 40
@@ -811,11 +811,12 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
 
 
 def test_git01_game_room_action_historical_refinements_have_native_consumer_proofs() -> None:
-    """Three old Game gameplay commits are covered by current rule and ECS consumers."""
+    """Four old Game recipe commits retain only current rules, ECS and CLI consumers."""
     census, plans = formal_issue_inputs()
     issue = next(row for row in census["issues"] if row["id"] == "GIT-01")
     wanted = {
         "3ab30f2b827a": "seeded room",
+        "8303ca3a7a4e": "JSON CLI",
         "eeb563052487": "wave",
         "db9d21d0330a": "weapon",
     }

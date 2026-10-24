@@ -353,6 +353,24 @@
             "scope": "RULES_AND_HEADLESS_ECS_ONLY_NOT_REAL_DISPLAY_OR_JSON_CLI_BINARY",
             "branchDeletionAllowed": false
           }
+        },
+        {
+          "localCommit": "8303ca3a7a4ef8501942449fb72522fd9d5b5984",
+          "owner": "domains/game",
+          "consumer": "Current Game room-action JSON palette and seeded recipe CLI preserve validated structured output with one existing Bevy/Rust consumer",
+          "remoteWitness": "domains/game/kits/room-action-r0/src/lib.rs::palette_json_round_trip_preserves_generator_and_validation + recipe_json_round_trip_matches_consumed_run; native Cargo CLI --palette-json yields rooms/weapons/enemies; --seed 42 --rooms 4 --json yields four rooms",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "INTERMEDIATE_HISTORICAL_BLOBS_SUPERSEDED_BY_CURRENT_GAME_KIT",
+            "consumerStanding": "CURRENT_OWNER_COVERED",
+            "scope": "LOCKED_OFFLINE_JSON_CLI_AND_LIB_NOT_GPU_DISPLAY_OR_REAL_INPUT",
+            "executionBoundary": "CARGO_TARGET_DIR_REALPATH_OF_RUNTIME_CACHE_ALIAS",
+            "branchDeletionAllowed": false
+          }
         }
       ],
       "formalObligation": "The selected source must be an explicit source cut and each chosen change must preserve owner CDC.",
