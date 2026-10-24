@@ -953,40 +953,6 @@
           ]
         },
         {
-          "localCommit": "d95d5a7f09d1f490a72d2ba6a744d6bdf2667c7e",
-          "owner": "services/runtime",
-          "consumer": "Runtime Registry durable cancellation/deadline writes must be valid AttemptLifecycleContract transitions: Starting->Stopping and replay targets. The current single state-machine is authoritative, not the old test-only commit.",
-          "remoteWitness": "services/runtime/crates/ordivon-runtime-core/src/runtime/job_attempt_state.rs: Starting->Stopping already admitted; current durable_cancel_and_deadline_edges_are_present_in_attempt_transition_graph Cargo test PASS on 3faee758c6c9; historical vs current test differs only in name/messages. No whole-file blob equivalence claimed.",
-          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
-          "evidenceScope": "NATIVE_CONSUMER_PASS",
-          "sourceQualification": {
-            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
-            "protectedMain": "7bf5f1d89da65e5ce8420910065d8c822cc6c4e3",
-            "tipRelation": "DIFFERENT_GIT_FILE_BLOBS_SELECTED_EFFECT_COVERED",
-            "consumerStanding": "CURRENT_OWNER_COVERED_AT_SOURCECUT",
-            "branchDeletionAllowed": false,
-            "representation": "state-machine",
-            "scope": "ONLY_NAMED_CONSUMER_EFFECT_NOT_WHOLE_COMMIT_EQUIVALENCE"
-          }
-        },
-        {
-          "localCommit": "c259144afab1a331ef90fee2f47d2328c7d4124e",
-          "owner": "tools/repo",
-          "consumer": "Runtime release artifact retention must resolve to immutable actions/upload-artifact v7.0.2 commit and fail when required evidence files are missing; root GitHub governance checker consumes that exact SHA.",
-          "remoteWitness": ".github/workflows/runtime-release.yml and tools/repo/check_github_governance.py both reference actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9; owner governance test suite 4 tests PASS at 3faee758c6c9, with no claim that the entire historical workflow blob matches.",
-          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
-          "evidenceScope": "NATIVE_CONSUMER_PASS",
-          "sourceQualification": {
-            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
-            "protectedMain": "7bf5f1d89da65e5ce8420910065d8c822cc6c4e3",
-            "tipRelation": "DIFFERENT_GIT_FILE_BLOBS_SELECTED_EFFECT_COVERED",
-            "consumerStanding": "CURRENT_OWNER_COVERED_AT_SOURCECUT",
-            "branchDeletionAllowed": false,
-            "representation": "constraint",
-            "scope": "ONLY_NAMED_CONSUMER_EFFECT_NOT_WHOLE_COMMIT_EQUIVALENCE"
-          }
-        },
-        {
           "localCommit": "3ee4459aa418737ea745764fc0d9c385d1d77955",
           "owner": "services/runtime",
           "consumer": "Runtime native Rust lock must resolve schemars 1.2.3 with the same checksum, supporting executable State/Schema consumer compilation; duplicate Cargo.lock edit is not a distinct dependency LEGO.",
