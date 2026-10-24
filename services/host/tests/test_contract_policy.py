@@ -52,15 +52,20 @@ def test_unclaimed_work_standing_ontology_is_retired_from_active_source() -> Non
         assert retired not in text
 
 
-def test_release_python_is_owned_by_uv_and_project_pin() -> None:
+def test_release_python_and_uv_are_owned_by_immutable_mise_pin() -> None:
     root = Path(__file__).parents[1]
     install = (root / "packaging" / "install_release.sh").read_text()
     assert "/usr/bin/python3.14" not in install
     assert ".python-version" in install
+    assert '"$RELEASE/mise.toml"' in install
+    assert '"$MISE_BIN" which uv' in install
+    assert 'install "python@$PYTHON_REQUEST"' in install
+    assert '"$MISE_BIN" which python' in install
+    assert "ACTUAL_PYTHON" in install
     assert "UV_PYTHON_INSTALL_DIR" in install
-    assert "python install" in install
-    assert "python find" in install
-    assert "--managed-python" in install
+    assert "sync --locked" in install
+    assert "sync --frozen" not in install
+    assert "python find" not in install
 
 
 def test_python_pin_matches_project_requirement() -> None:
@@ -70,6 +75,8 @@ def test_python_pin_matches_project_requirement() -> None:
     pinned = (root / ".python-version").read_text().strip()
     project = tomllib.loads((root / "pyproject.toml").read_text())
     assert project["project"]["requires-python"] == f"=={pinned}"
+    mise = tomllib.loads((root / "mise.toml").read_text())
+    assert mise["tools"]["python"] == pinned
 
 
 def test_host_status_does_not_duplicate_foreign_or_mcp_authorities() -> None:

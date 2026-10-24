@@ -69,9 +69,11 @@ jobs:
           EVENT_HEAD: ${{ github.sha }}
         run: |
           set -euo pipefail
+          owners_file="$RUNNER_TEMP/ordivon-affected-owners.txt"
+          tasks_file="$RUNNER_TEMP/ordivon-affected-tasks.txt"
           if [[ "$EVENT_NAME" == "workflow_dispatch" || "$EVENT_NAME" == "schedule" ]]; then
-            mapfile -t owners < <(python3 tools/repo/affected_owners.py --all --format names)
-            mapfile -t tasks < <(python3 tools/repo/affected_owners.py --all --format queue-tasks)
+            python3 tools/repo/affected_owners.py --all --format names > "$owners_file"
+            python3 tools/repo/affected_owners.py --all --format queue-tasks > "$tasks_file"
           else
             if [[ "$EVENT_NAME" == "pull_request" ]]; then
               base="$PR_BASE"
@@ -84,26 +86,57 @@ jobs:
               head="$EVENT_HEAD"
             fi
             if [[ -z "$base" || "$base" =~ ^0+$ ]]; then
-              mapfile -t owners < <(python3 tools/repo/affected_owners.py --all --format names)
-              mapfile -t tasks < <(python3 tools/repo/affected_owners.py --all --format queue-tasks)
+              python3 tools/repo/affected_owners.py --all --format names > "$owners_file"
+              python3 tools/repo/affected_owners.py --all --format queue-tasks > "$tasks_file"
             else
               plan="$RUNNER_TEMP/ordivon-convergence-plan.json"
               python3 tools/repo/convergence_plan.py --base "$base" --head "$head" > "$plan"
-              mapfile -t owners < <(
-                python3 -c 'import json,sys; print(*json.load(open(sys.argv[1], encoding="utf-8"))["verificationOwners"], sep="\n")' "$plan"
-              )
-              mapfile -t tasks < <(
-                python3 -c 'import json,sys; print(*json.load(open(sys.argv[1], encoding="utf-8"))["queueVerifyTasks"], sep="\n")' "$plan"
-              )
+              python3 -c 'import json,sys; print(*json.load(open(sys.argv[1], encoding="utf-8"))["verificationOwners"], sep="\n")' "$plan" > "$owners_file"
+              python3 -c 'import json,sys; print(*json.load(open(sys.argv[1], encoding="utf-8"))["queueVerifyTasks"], sep="\n")' "$plan" > "$tasks_file"
             fi
           fi
+          mapfile -t owners < "$owners_file"
+          mapfile -t tasks < "$tasks_file"
+          # Empty JSON arrays are printed as one blank line by the CLI.
+          # Only a truly empty scope may contain no executable tasks.
+          if (( ${#owners[@]} == 1 )) && [[ -z "${owners[0]}" ]]; then owners=(); fi
+          if (( ${#tasks[@]} == 1 )) && [[ -z "${tasks[0]}" ]]; then tasks=(); fi
+          if (( ${#owners[@]} != ${#tasks[@]} )); then
+            echo "Selected verification owners and executable tasks disagree." >&2
+            exit 2
+          fi
+          # Consumer-selected tasks must match the provider-owned canonical
+          # queue contract exactly. A same-namespace task can still skip the
+          # queue's intended checks and cannot silently replace it.
+          python3 - "$owners_file" "$tasks_file" <<'PY'
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, "tools/repo")
+          from affected_owners import OWNERS
+
+          def read_selection(path):
+              lines = Path(path).read_text(encoding="utf-8").splitlines()
+              return [] if lines == [""] else lines
+
+          selected = read_selection(sys.argv[1])
+          requested = read_selection(sys.argv[2])
+          canonical = {owner.name: owner.queue_task for owner in OWNERS}
+          if len(selected) != len(requested) or len(selected) != len(set(selected)):
+              raise SystemExit("Selected owner/task identities are inconsistent")
+          for owner, task in zip(selected, requested):
+              if canonical.get(owner) != task:
+                  raise SystemExit(
+                      f"Selected task {task!r} violates consumer queue contract "
+                      f"for {owner!r}: {canonical.get(owner)!r}"
+                  )
+          PY
           printf 'owners=%s\n' "$(IFS=,; echo "${owners[*]-}")" >> "$GITHUB_OUTPUT"
           runtime=false
           for selected in "${owners[@]-}"; do
             [[ "$selected" == "runtime" ]] && runtime=true
           done
           printf 'runtime=%s\n' "$runtime" >> "$GITHUB_OUTPUT"
-          printf '%s\n' "${tasks[@]-}" > "$RUNNER_TEMP/ordivon-affected-tasks.txt"
           {
             echo "### Affected owners"
             if (("${#owners[@]}" == 0)); then

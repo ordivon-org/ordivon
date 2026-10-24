@@ -61,7 +61,9 @@ def plan()->dict:
     main_source=ROOT.resolve()==MAIN.resolve()
     source_ok=SOURCE_UNIT.is_file(); installed=SYSTEM_UNIT.is_file() and source_ok and SYSTEM_UNIT.read_bytes()==SOURCE_UNIT.read_bytes()
     sdk=temporal_sdk_version()
-    return {'schemaVersion':1,'kind':'artifact-temporal-worker-deployment-plan','sourceRoot':str(ROOT),'mainSourceAuthority':main_source,'temporalServerActive':active(SERVER_UNIT),'temporalSdkVersion':sdk,'temporalSdkPinned':sdk=='1.32.0','sourceUnitSha256':sha(SOURCE_UNIT) if source_ok else None,'unitInstalledExact':installed,'workerActive':active(UNIT),'stateRoot':str(STATE),'applyEligible':main_source and active(SERVER_UNIT) and sdk=='1.32.0' and source_ok}
+    # Consume the Artifact Python carrier lock instead of a second SDK pin.
+    pinned=json.loads((ROOT/'artifact-delivery/artifact-python-runtime-v1.lock.json').read_text())['pythonPackages']['temporalio']
+    return {'schemaVersion':1,'kind':'artifact-temporal-worker-deployment-plan','sourceRoot':str(ROOT),'mainSourceAuthority':main_source,'temporalServerActive':active(SERVER_UNIT),'temporalSdkVersion':sdk,'temporalSdkPinned':sdk==pinned,'sourceUnitSha256':sha(SOURCE_UNIT) if source_ok else None,'unitInstalledExact':installed,'workerActive':active(UNIT),'stateRoot':str(STATE),'applyEligible':main_source and active(SERVER_UNIT) and sdk==pinned and source_ok}
 def apply()->dict:
     current=plan()
     if not current['applyEligible']:raise RuntimeError('Artifact Temporal worker deployment is not eligible from this source/runtime cut')

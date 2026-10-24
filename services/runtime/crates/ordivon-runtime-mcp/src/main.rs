@@ -584,7 +584,7 @@ fn cloudflare_access_principal(issuer: &str, subject: &str) -> String {
     digest.update(issuer.as_bytes());
     digest.update(b"\0");
     digest.update(subject.as_bytes());
-    format!("principal:cf-access:{:x}", digest.finalize())
+    format!("principal:cf-access:{}", hex::encode(digest.finalize()))
 }
 
 fn constant_time_eq(left: &[u8], right: &[u8]) -> bool {

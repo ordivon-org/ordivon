@@ -551,7 +551,7 @@ pub fn inspect_runtime_release_effect(
             false,
         )
     })?;
-    let observed_digest = format!("sha256:{:x}", Sha256::digest(encoded.as_bytes()));
+    let observed_digest = format!("sha256:{}", hex::encode(Sha256::digest(encoded.as_bytes())));
     if observed_digest != binding_digest {
         return Err(RuntimeError::new(
             RuntimeErrorCode::RegistryCorrupt,
@@ -709,7 +709,7 @@ pub fn inspect_registry(
         None
     }
     .map(|(owner_json, owner_digest)| -> RuntimeResult<_> {
-            let observed_digest = format!("sha256:{:x}", Sha256::digest(owner_json.as_bytes()));
+            let observed_digest = format!("sha256:{}", hex::encode(Sha256::digest(owner_json.as_bytes())));
             if observed_digest != owner_digest {
                 return Err(RuntimeError::new(
                     RuntimeErrorCode::RegistryCorrupt,

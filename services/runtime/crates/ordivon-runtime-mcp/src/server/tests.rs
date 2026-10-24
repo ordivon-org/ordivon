@@ -1030,7 +1030,10 @@ print(json.dumps({{
         assert_eq!(result.source_identity_standing, "HOST_DECLARED_UNVERIFIED");
         assert_eq!(
             result.host_file_reference_digest,
-            format!("sha256:{:x}", Sha256::digest(raw_file_id.as_bytes()))
+            format!(
+                "sha256:{}",
+                hex::encode(Sha256::digest(raw_file_id.as_bytes()))
+            )
         );
         let captured = fs::read_to_string(capture).unwrap();
         assert!(!captured.contains(secret_url));

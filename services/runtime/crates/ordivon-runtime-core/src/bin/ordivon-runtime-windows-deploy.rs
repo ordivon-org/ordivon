@@ -103,6 +103,21 @@ struct CandidateProof {
     artifacts: BTreeMap<String, PathBuf>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ReleaseAuthority {
+    schema_version: u32,
+    source_repo: String,
+    required_ref: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ReleaseAuthorityTransition {
+    previous: ReleaseAuthority,
+    candidate: ReleaseAuthority,
+}
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct PlanReceipt {
@@ -119,6 +134,7 @@ struct PlanReceipt {
     owner_job_id: String,
     active_job_ids: Vec<String>,
     blockers: Vec<String>,
+    release_authority: ReleaseAuthorityTransition,
     workspace_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     bootstrap_recovery: Option<BootstrapRecoveryProof>,
@@ -636,7 +652,7 @@ fn sha256_file(path: &Path) -> Result<String, String> {
         }
         digest.update(&buffer[..read]);
     }
-    Ok(format!("sha256:{:x}", digest.finalize()))
+    Ok(format!("sha256:{}", hex::encode(digest.finalize())))
 }
 
 fn canonical(path: &Path) -> Result<PathBuf, String> {
@@ -1223,10 +1239,47 @@ fn bootstrap_recovery_proof(
     }))
 }
 
+fn release_authority_from_env(snapshot: &EnvSnapshot) -> Result<ReleaseAuthority, String> {
+    let source_repo = snapshot
+        .values
+        .get("ORDIVON_RELEASE_SOURCE_REPO")
+        .ok_or("Runtime env file lacks ORDIVON_RELEASE_SOURCE_REPO")?
+        .clone();
+    let required_ref = snapshot
+        .values
+        .get("ORDIVON_RELEASE_REQUIRED_REF")
+        .ok_or("Runtime env file lacks ORDIVON_RELEASE_REQUIRED_REF")?
+        .clone();
+    if source_repo.trim().is_empty() || !Path::new(&source_repo).is_absolute() {
+        return Err("Runtime release source authority must be one absolute path".to_string());
+    }
+    if required_ref.trim().is_empty() {
+        return Err("Runtime release required-ref authority must be non-empty".to_string());
+    }
+    Ok(ReleaseAuthority {
+        schema_version: 1,
+        source_repo,
+        required_ref,
+    })
+}
+
+fn candidate_release_authority(args: &Args) -> Result<ReleaseAuthority, String> {
+    let source_repo = canonical(&args.source_repo)?;
+    if args.require_ref.trim().is_empty() {
+        return Err("Runtime release required-ref authority must be non-empty".to_string());
+    }
+    Ok(ReleaseAuthority {
+        schema_version: 1,
+        source_repo: source_repo.to_string_lossy().into_owned(),
+        required_ref: args.require_ref.clone(),
+    })
+}
+
 fn replace_env_release_paths(
     snapshot: &EnvSnapshot,
     launcher: &Path,
     broker: &Path,
+    authority: &ReleaseAuthority,
 ) -> Result<Vec<u8>, String> {
     let text = std::str::from_utf8(&snapshot.bytes)
         .map_err(|_| "Runtime env file must be UTF-8".to_string())?;
@@ -1235,6 +1288,8 @@ fn replace_env_release_paths(
     let mut output = Vec::<String>::new();
     let mut launcher_seen = false;
     let mut broker_seen = false;
+    let mut source_repo_seen = false;
+    let mut required_ref_seen = false;
     for raw in text.lines() {
         let line = raw.trim_end_matches('\r');
         if line.starts_with("ORDIVON_WINDOWS_LAUNCHER_PATH=") {
@@ -1243,14 +1298,29 @@ fn replace_env_release_paths(
         } else if line.starts_with("ORDIVON_WINDOWS_PRIVILEGED_BROKER_PATH=") {
             output.push(format!("ORDIVON_WINDOWS_PRIVILEGED_BROKER_PATH={broker}"));
             broker_seen = true;
+        } else if line.starts_with("ORDIVON_RELEASE_SOURCE_REPO=") {
+            output.push(format!(
+                "ORDIVON_RELEASE_SOURCE_REPO={}",
+                authority.source_repo
+            ));
+            source_repo_seen = true;
+        } else if line.starts_with("ORDIVON_RELEASE_REQUIRED_REF=") {
+            output.push(format!(
+                "ORDIVON_RELEASE_REQUIRED_REF={}",
+                authority.required_ref
+            ));
+            required_ref_seen = true;
         } else if line.starts_with(&format!("{BOOTSTRAP_RECOVERY_ATTEMPT_ENV}=")) {
             continue;
         } else {
             output.push(line.to_string());
         }
     }
-    if !launcher_seen || !broker_seen {
-        return Err("Runtime env file lacks Windows launcher/broker path authorities".to_string());
+    if !launcher_seen || !broker_seen || !source_repo_seen || !required_ref_seen {
+        return Err(
+            "Runtime env file lacks Windows launcher/broker or release-authority settings"
+                .to_string(),
+        );
     }
     let newline = if text.contains("\r\n") { "\r\n" } else { "\n" };
     Ok((output.join(newline) + newline).into_bytes())
@@ -1395,6 +1465,7 @@ fn new_service_paths(
     release_dir: &Path,
     env: &EnvSnapshot,
     proof: &CandidateProof,
+    release_authority: &ReleaseAuthority,
 ) -> Result<(String, String, Vec<u8>), String> {
     let runtime = release_dir.join("ordivon-runtime.exe");
     let launcher = release_dir.join("ordivon-windows-job-launcher.exe");
@@ -1460,7 +1531,7 @@ fn new_service_paths(
             &materialization_config.to_string_lossy(),
         ));
     }
-    let env_bytes = replace_env_release_paths(env, &launcher, &broker)?;
+    let env_bytes = replace_env_release_paths(env, &launcher, &broker, release_authority)?;
     Ok((runtime_image, broker_image, env_bytes))
 }
 
@@ -1482,6 +1553,11 @@ fn preflight(args: &Args) -> Result<(CandidateProof, PlanReceipt), String> {
         ));
     }
     let effect = release_effect(args)?;
+    let env_snapshot = load_env(&args.env_file)?;
+    let release_authority = ReleaseAuthorityTransition {
+        previous: release_authority_from_env(&env_snapshot)?,
+        candidate: candidate_release_authority(args)?,
+    };
     let registry = inspect(args)?;
     let blocked = blockers(
         &registry.active_job_ids,
@@ -1508,6 +1584,7 @@ fn preflight(args: &Args) -> Result<(CandidateProof, PlanReceipt), String> {
         owner_job_id: effect.job_id.clone(),
         active_job_ids: registry.active_job_ids,
         blockers: blocked,
+        release_authority,
         workspace_id: effect.workspace_id.clone(),
         bootstrap_recovery,
     };
@@ -1557,10 +1634,18 @@ fn apply(
 
     let release_dir = stage_release(args, &proof)?;
     let env_snapshot = load_env(&args.env_file)?;
+    if release_authority_from_env(&env_snapshot)? != plan.release_authority.previous {
+        return Err("Runtime release authority changed after preflight".to_string());
+    }
     let runtime_snapshot = scm::snapshot(&args.service)?;
     let broker_snapshot = scm::snapshot(&args.broker_service)?;
-    let (runtime_image, broker_image, env_bytes) =
-        new_service_paths(args, &release_dir, &env_snapshot, &proof)?;
+    let (runtime_image, broker_image, env_bytes) = new_service_paths(
+        args,
+        &release_dir,
+        &env_snapshot,
+        &proof,
+        &plan.release_authority.candidate,
+    )?;
 
     let preimage = serde_json::json!({
         "schemaVersion": RECEIPT_SCHEMA_VERSION,
@@ -1579,6 +1664,7 @@ fn apply(
             "processId": broker_snapshot.process_id,
         },
         "envFileSha256": sha256_file(&args.env_file)?,
+        "releaseAuthority": &plan.release_authority,
     });
     write_json_sync(&receipt_dir.join("preimage.json"), &preimage)?;
     fs::write(receipt_dir.join("env-preimage.bin"), &env_snapshot.bytes)
@@ -1592,6 +1678,11 @@ fn apply(
         scm::set_binary_path(&args.broker_service, &broker_image)?;
         scm::start(&args.broker_service, Duration::from_secs(20))?;
         scm::start(&args.service, Duration::from_secs(20))?;
+
+        let applied_env = load_env(&args.env_file)?;
+        if release_authority_from_env(&applied_env)? != plan.release_authority.candidate {
+            return Err("post-cutover Runtime release authority does not match plan".to_string());
+        }
 
         let live_runtime = release_dir.join("ordivon-runtime.exe");
         let live_check = run_self_check(&live_runtime)?;
@@ -1740,6 +1831,81 @@ mod tests {
     use super::*;
 
     #[test]
+    fn release_authority_rewrite_preserves_crlf_and_unrelated_values() {
+        let snapshot = EnvSnapshot {
+            bytes: b"ORDIVON_WINDOWS_LAUNCHER_PATH=C:\\old\\launcher.exe\r\nORDIVON_WINDOWS_PRIVILEGED_BROKER_PATH=C:\\old\\broker.exe\r\nORDIVON_RELEASE_SOURCE_REPO=C:\\old\\source\r\nORDIVON_RELEASE_REQUIRED_REF=origin/legacy\r\nUNRELATED=preserve-me\r\n".to_vec(),
+            values: BTreeMap::from([
+                ("ORDIVON_RELEASE_SOURCE_REPO".to_string(), "C:\\old\\source".to_string()),
+                ("ORDIVON_RELEASE_REQUIRED_REF".to_string(), "origin/legacy".to_string()),
+            ]),
+        };
+        let authority = ReleaseAuthority {
+            schema_version: 1,
+            source_repo: "C:\\new\\source".to_string(),
+            required_ref: "origin/main".to_string(),
+        };
+        let output = replace_env_release_paths(
+            &snapshot,
+            Path::new("C:\\new\\launcher.exe"),
+            Path::new("C:\\new\\broker.exe"),
+            &authority,
+        )
+        .unwrap();
+        let text = String::from_utf8(output).unwrap();
+        assert!(text.contains("ORDIVON_RELEASE_SOURCE_REPO=C:\\new\\source\r\n"));
+        assert!(text.contains("ORDIVON_RELEASE_REQUIRED_REF=origin/main\r\n"));
+        assert!(text.contains("UNRELATED=preserve-me\r\n"));
+        assert!(!text.contains("origin/legacy"));
+    }
+
+    #[test]
+    fn release_authority_rewrite_fails_closed_if_binding_missing() {
+        let snapshot = EnvSnapshot {
+            bytes: b"ORDIVON_WINDOWS_LAUNCHER_PATH=/old/launcher\nORDIVON_WINDOWS_PRIVILEGED_BROKER_PATH=/old/broker\n".to_vec(),
+            values: BTreeMap::new(),
+        };
+        let authority = ReleaseAuthority {
+            schema_version: 1,
+            source_repo: "/root/projects/ordivon/services/runtime".to_string(),
+            required_ref: "origin/main".to_string(),
+        };
+        let result = replace_env_release_paths(
+            &snapshot,
+            Path::new("/new/launcher"),
+            Path::new("/new/broker"),
+            &authority,
+        );
+        assert!(result.unwrap_err().contains("release-authority"));
+    }
+
+    #[test]
+    fn release_authority_from_env_rejects_relative_source_and_empty_ref() {
+        let snapshot = EnvSnapshot {
+            bytes: Vec::new(),
+            values: BTreeMap::from([
+                (
+                    "ORDIVON_RELEASE_SOURCE_REPO".to_string(),
+                    "relative/path".to_string(),
+                ),
+                (
+                    "ORDIVON_RELEASE_REQUIRED_REF".to_string(),
+                    "origin/main".to_string(),
+                ),
+            ]),
+        };
+        assert!(release_authority_from_env(&snapshot).is_err());
+        let mut invalid = snapshot;
+        invalid.values.insert(
+            "ORDIVON_RELEASE_SOURCE_REPO".to_string(),
+            "/absolute/source".to_string(),
+        );
+        invalid
+            .values
+            .insert("ORDIVON_RELEASE_REQUIRED_REF".to_string(), String::new());
+        assert!(release_authority_from_env(&invalid).is_err());
+    }
+
+    #[test]
     fn digest_buffer_matches_bounded_core_pattern() {
         assert_eq!(SHA256_BUFFER_BYTES, 64 * 1024);
         const {
@@ -1866,6 +2032,8 @@ mod tests {
             "ORDIVON_WINDOWS_LAUNCHER_PATH=C:\\old\\launcher.exe\r\n",
             "ORDIVON_WINDOWS_PRIVILEGED_BROKER_PATH=C:\\old\\broker.exe\r\n",
             "ORDIVON_RELEASE_BOOTSTRAP_RECOVERY_ATTEMPT_ID=attempt-123\r\n",
+            "ORDIVON_RELEASE_SOURCE_REPO=C:\\old\\source\r\n",
+            "ORDIVON_RELEASE_REQUIRED_REF=origin/old\r\n",
             "OTHER=value\r\n"
         );
         let snapshot = EnvSnapshot {
@@ -1876,6 +2044,11 @@ mod tests {
             &snapshot,
             Path::new(r"C:\new\launcher.exe"),
             Path::new(r"C:\new\broker.exe"),
+            &ReleaseAuthority {
+                schema_version: 1,
+                source_repo: r"C:\new\source".to_string(),
+                required_ref: "origin/main".to_string(),
+            },
         )
         .expect("rewrite");
         let output = String::from_utf8(output).expect("utf8");

@@ -254,6 +254,7 @@ impl AttemptLifecycleContract {
             AttemptState::Starting => matches!(
                 next,
                 AttemptState::Running
+                    | AttemptState::Stopping
                     | AttemptState::Recovering
                     | AttemptState::Succeeded
                     | AttemptState::Failed
@@ -448,6 +449,42 @@ mod tests {
                 terminal,
                 AttemptState::Running
             ));
+        }
+    }
+
+    #[test]
+    fn durable_cancel_and_deadline_edges_are_present_in_attempt_transition_graph() {
+        // Registry commits these controls while Starting; the formal graph
+        // must recognize their target without assuming Running happened.
+        for state in [
+            AttemptState::Accepted,
+            AttemptState::Starting,
+            AttemptState::Running,
+            AttemptState::Stopping,
+            AttemptState::Recovering,
+            AttemptState::Succeeded,
+            AttemptState::Failed,
+            AttemptState::TimedOut,
+            AttemptState::Cancelled,
+            AttemptState::Lost,
+            AttemptState::Orphaned,
+        ] {
+            if let Some(target) = AttemptLifecycleContract::cancel_target_state(state) {
+                if target != state {
+                    assert!(
+                        AttemptLifecycleContract::can_transition(state, target),
+                        "durable cancellation edge {state:?} -> {target:?} rejected"
+                    );
+                }
+            }
+            if AttemptLifecycleContract::deadline_request_is_admissible(state)
+                && state != AttemptState::Stopping
+            {
+                assert!(
+                    AttemptLifecycleContract::can_transition(state, AttemptState::Stopping),
+                    "durable deadline edge {state:?} -> Stopping rejected"
+                );
+            }
         }
     }
 

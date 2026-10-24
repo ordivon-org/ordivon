@@ -210,8 +210,8 @@ impl RuntimeServer {
                 )
             })?;
         let correlation = format!(
-            "cred:{:x}",
-            Sha256::digest(request.client_request_id.as_bytes())
+            "cred:{}",
+            hex::encode(Sha256::digest(request.client_request_id.as_bytes()))
         );
         let observed = materialize_windows_credential_binding(
             broker,
@@ -345,8 +345,8 @@ impl RuntimeServer {
         }
 
         let host_file_reference_digest = format!(
-            "sha256:{:x}",
-            Sha256::digest(request.file.file_id.as_bytes())
+            "sha256:{}",
+            hex::encode(Sha256::digest(request.file.file_id.as_bytes()))
         );
         let expected_sha256 = request.expected_sha256.to_ascii_lowercase();
         let mut identity = Sha256::new();
@@ -359,7 +359,7 @@ impl RuntimeServer {
         identity.update(expected_sha256.as_bytes());
         identity.update(b"\0");
         identity.update(request.expected_size_bytes.to_string().as_bytes());
-        let key = format!("{:x}", identity.finalize());
+        let key = hex::encode(identity.finalize());
         let source_name = format!("{key}.source");
         let request_name = format!("{key}.request.json");
         let source_path = ingress.staging_root.join(&source_name);
@@ -564,7 +564,7 @@ impl RuntimeServer {
                     "expectedSizeBytes",
                 ));
             }
-            let observed_digest = format!("sha256:{:x}", digest.finalize());
+            let observed_digest = format!("sha256:{}", hex::encode(digest.finalize()));
             if observed_digest != expected_sha256 {
                 cleanup(&[&temporary_path]);
                 return Err(ToolError::invalid(
@@ -633,7 +633,7 @@ impl RuntimeServer {
         let count = u32::try_from(tools.len()).expect("Runtime Tool catalog fits in u32");
         let bytes = serde_json::to_vec(&tools)
             .expect("Tool catalog serialization is infallible for generated schemas");
-        (count, format!("sha256:{:x}", Sha256::digest(bytes)))
+        (count, format!("sha256:{}", hex::encode(Sha256::digest(bytes))))
     }
 
     pub fn tool_catalog_digest(&self) -> String {
@@ -641,7 +641,7 @@ impl RuntimeServer {
         tools.sort_by(|left, right| left.name.cmp(&right.name));
         let bytes = serde_json::to_vec(&tools)
             .expect("Tool catalog serialization is infallible for generated schemas");
-        format!("sha256:{:x}", Sha256::digest(bytes))
+        format!("sha256:{}", hex::encode(Sha256::digest(bytes)))
     }
 
     pub(crate) fn discovery_result(&self) -> DiscoverResult {
