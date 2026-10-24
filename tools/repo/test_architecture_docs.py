@@ -832,6 +832,23 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
     module.validate_formal_issue_census(census, plans)
 
 
+def test_divergent_history_does_not_weaken_frozen_artifact_receipts() -> None:
+    """Semantically identical output does not qualify a different frozen source SHA."""
+    census, _ = formal_issue_inputs()
+    git_issue = next(item for item in census["issues"] if item["id"] == "GIT-01")
+    blockers = git_issue["consumerBlockedSelections"]
+    assert len({entry["localCommit"] for entry in blockers}) == len(blockers)
+    for entry in blockers:
+        assert len(entry["localCommit"]) == len(entry["protectedMain"]) == 40
+        assert entry["owner"] == "capabilities/artifact"
+        assert entry["disposition"] == "KEEP_FROZEN_SOURCE_PENDING_NEW_CONSUMER_ACCEPTANCE"
+        assert entry["branchDeletionAllowed"] is False
+        assert entry["frozenReceiptPaths"]
+        for receipt in entry["frozenReceiptPaths"]:
+            assert (ROOT / "capabilities/artifact/artifact-delivery/consumer-acceptance" / receipt).is_file()
+    assert any(entry["localCommit"].startswith("e9547525bae3") for entry in blockers)
+
+
 def test_formal_issue_owner_plan_cannot_escape_source_cut(tmp_path: Path) -> None:
     """A plausible LEGO plan outside the candidate checkout is not an owner link."""
     census, plans = formal_issue_inputs()
@@ -1045,3 +1062,53 @@ def test_git01_workstation_history_inverse_pair_is_a_single_non_live_effect() ->
         "platform/workstation/workstation/providers/real_chrome_browser_harness/RealChromeBrowserHarnessProvider.ps1",
     ]
     assert all(not (ROOT / path).exists() for path in files)
+
+
+def test_git01_three_selected_historical_owner_effects_have_sufficient_source_proof() -> None:
+    """An exact Git source cut plus paths replaces redundant duplicated Git blob hashes."""
+    census, plans = formal_issue_inputs()
+    issue = next(item for item in census["issues"] if item["id"] == "GIT-01")
+    selected = {entry["localCommit"][:12]: entry for entry in issue["consumerSelections"]}
+    expected = {
+        "9fbce29650fb": {
+            "owner": "services/gateway",
+            "paths": {
+                "services/gateway/src/ordivon_gateway/upstream.py",
+                "services/gateway/tests/test_upstream_identity.py",
+            },
+        },
+        "eaa045252ef7": {
+            "owner": "services/gateway",
+            "paths": {
+                "services/gateway/packaging/windows/verify_release.py",
+                "services/gateway/tests/test_windows_release_contract.py",
+            },
+        },
+        "bec31a81ba5b": {
+            "owner": "platform/workstation",
+            "paths": {
+                "platform/workstation/providers/cloudflare/scripts/ordivon_cloudflare_tofu_handoff.py",
+                "platform/workstation/providers/cloudflare/test/handoff_tofu_test.py",
+                "platform/workstation/tofu/agent-birth-handoff/main.tf",
+            },
+        },
+    }
+    for short, consumer in expected.items():
+        entry = selected[short]
+        assert entry["owner"] == consumer["owner"]
+        assert set(entry["changedPaths"]) == consumer["paths"]
+        assert entry["verifiedEqualChangedBlobs"] is True
+        assert "equalChangedBlobOids" not in entry
+        assert entry["evidenceScope"] == "NATIVE_CONSUMER_PASS"
+        assert entry["disposition"] == "SKIP_DUPLICATE_CHERRY_PICK"
+        assert entry["sourceQualification"] == {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "0fcc7c0b188e4b981b25c95f76dfb17a41fc82fb",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "SAME_BLOB_AND_MODE",
+            "consumerStanding": "CURRENT_OWNER_COVERED",
+            "branchDeletionAllowed": False,
+        }
+    assert "WINDOWS_SOURCE_CONTRACT_ONLY" in selected["eaa045252ef7"]["remoteWitness"]
+    assert "NO_LIVE_CLOUDFLARE_CUTOVER" in selected["bec31a81ba5b"]["remoteWitness"]
+    module.validate_formal_issue_census(census, plans)

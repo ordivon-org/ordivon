@@ -354,6 +354,73 @@
           }
         },
         {
+          "localCommit": "9fbce29650fb13a5ebb9cfec3283f0cc310b467e",
+          "owner": "services/gateway",
+          "consumer": "Gateway Upstream owner errors preserve real Host domain error identity and avoid replacing it with unrelated generic transport failures; current native consumer source and test bytes are identical on both Main tips.",
+          "remoteWitness": "services/gateway/src/ordivon_gateway/upstream.py + tests/test_upstream_identity.py; combined native Gateway owner pytest 17 PASS, no live remote Host effect acceptance claimed.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "0fcc7c0b188e4b981b25c95f76dfb17a41fc82fb",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "SAME_BLOB_AND_MODE",
+            "consumerStanding": "CURRENT_OWNER_COVERED",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "0fcc7c0b188e4b981b25c95f76dfb17a41fc82fb",
+          "verifiedEqualChangedBlobs": true,
+          "changedPaths": [
+            "services/gateway/src/ordivon_gateway/upstream.py",
+            "services/gateway/tests/test_upstream_identity.py"
+          ]
+        },
+        {
+          "localCommit": "eaa045252ef7fc61d65325aa9dfbb2d40d8f4054",
+          "owner": "services/gateway",
+          "consumer": "Gateway Windows release verifier stable tool-surface ordering is already consumed by the immutable release contract; native current producer and tests match exact protected Main blobs. Earlier d91d63 historical edit touched the same files and does not independently justify rolling back the verifier.",
+          "remoteWitness": "WINDOWS_SOURCE_CONTRACT_ONLY: services/gateway/packaging/windows/verify_release.py + tests/test_windows_release_contract.py; combined native Gateway pytest 17 PASS on Linux; no actual Windows candidate deployment, service activation or ACL effect claimed.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "0fcc7c0b188e4b981b25c95f76dfb17a41fc82fb",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "SAME_BLOB_AND_MODE",
+            "consumerStanding": "CURRENT_OWNER_COVERED",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "0fcc7c0b188e4b981b25c95f76dfb17a41fc82fb",
+          "verifiedEqualChangedBlobs": true,
+          "changedPaths": [
+            "services/gateway/packaging/windows/verify_release.py",
+            "services/gateway/tests/test_windows_release_contract.py"
+          ]
+        },
+        {
+          "localCommit": "bec31a81ba5b4ae8fa4310f400cb15f11b6bdd6f",
+          "owner": "platform/workstation",
+          "consumer": "Current OpenTofu/Cloudflare Gateway handoff preserves source identity, private owner-only credentials, reject-delete/replace semantic planning and lossless existing ingress/canary transitions; exact producer/controller/test/Terraform source blobs already current. Earlier 0fbdd244 historical intermediate edit is not a reason to restore old tunnel routes.",
+          "remoteWitness": "NO_LIVE_CLOUDFLARE_CUTOVER: platform/workstation/providers/cloudflare/scripts/ordivon_cloudflare_tofu_handoff.py + providers/cloudflare/test/handoff_tofu_test.py + tofu/agent-birth-handoff/main.tf; native 20 unittest PASS (source and deterministic semantic simulation), not a live Windows or Cloudflare apply proof.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "0fcc7c0b188e4b981b25c95f76dfb17a41fc82fb",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "SAME_BLOB_AND_MODE",
+            "consumerStanding": "CURRENT_OWNER_COVERED",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "0fcc7c0b188e4b981b25c95f76dfb17a41fc82fb",
+          "verifiedEqualChangedBlobs": true,
+          "changedPaths": [
+            "platform/workstation/providers/cloudflare/scripts/ordivon_cloudflare_tofu_handoff.py",
+            "platform/workstation/providers/cloudflare/test/handoff_tofu_test.py",
+            "platform/workstation/tofu/agent-birth-handoff/main.tf"
+          ]
+        },
+        {
           "localCommit": "ac558a911eaad6a2725f51d3d88c2de2605ce540",
           "owner": "services/runtime",
           "consumer": "Source-bound TLA+ external-jar formal wrapper runs through the existing Runtime Python unittest runner. Historical test source is byte-identical to protected consumer; no alternate TLA toolchain or test wrapper to recreate.",
@@ -379,6 +446,32 @@
           "evidenceScope": "CURRENT_TOOLCHAIN_SUPERSEDES_OLD_LOCK_AND_NATIVE_TEST_PASS",
           "disposition": "SKIP_OLDER_TOOLCHAIN_CHERRY_PICK",
           "evaluatedRemoteMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc"
+        }
+      ],
+      "consumerBlockedSelections": [
+        {
+          "localCommit": "e9547525bae3fd0a86f60a160a1a536ce7451c0a",
+          "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+          "protectedMain": "bb8c591851a4c9f0a34763bc1a5fde365030cba4",
+          "owner": "capabilities/artifact",
+          "consumer": "Frozen Game/Artifact acceptance binds exact Artifact verifier source SHA256, not just canonical JSON digest output.",
+          "sourcePathsBound": [
+            "scripts/artifact_aseprite.py",
+            "scripts/artifact_design3d.py",
+            "scripts/artifact_ogg_vorbis.py",
+            "scripts/artifact_software_release_elf.py"
+          ],
+          "frozenReceiptPaths": [
+            "game-station-zero-aseprite-horizontal-sheet-r1.json",
+            "game-veilwild-glb-material-scene-r1.json",
+            "game-veilwild-glb-skinned-animation-r1.json",
+            "game-station-zero-ogg-vorbis-r1.json",
+            "game-godot-production-smoke-linux-elf-r1.json"
+          ],
+          "witness": "Historical direct-reuse migration: 13/13 canonical byte/identity and 27/27 selected Artifact consumer tests PASS, but native mise run artifact:verify FAIL (four test cases: frozen source SHA mismatch). Restore exact protected source bytes: mise run artifact:verify PASS (442 passed, 3 skipped, 39 deselected; 49 subtests). Historical receipt hashes were never rewritten.",
+          "formalCounterexample": "OutputEquivalent != FrozenEvidenceEquivalent",
+          "disposition": "KEEP_FROZEN_SOURCE_PENDING_NEW_CONSUMER_ACCEPTANCE",
+          "branchDeletionAllowed": false
         }
       ],
       "formalObligation": "The selected source must be an explicit source cut and each chosen change must preserve owner CDC.",
