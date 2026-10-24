@@ -47,6 +47,26 @@ class RepositoryBoundaryTests(unittest.TestCase):
         self.assertFalse(hasattr(ordivon_harness, "HarnessHost"))
         self.assertFalse(hasattr(ordivon_harness, "HarnessRunner"))
 
+    def test_portable_workflows_consume_only_locked_runtime_audit_closure(self) -> None:
+        """No optional extracted-repo Workflow may reference a retired requirements snapshot."""
+        audit_export = (
+            "uv export --locked --no-default-groups --no-emit-project "
+            "--format requirements-txt"
+        )
+        audit_action = (
+            'uvx pip-audit --disable-pip --require-hashes '
+            '-r "$tmp/runtime-requirements.txt" --strict --progress-spinner off'
+        )
+        for name in ("ci.yml", "release-acceptance.yml"):
+            with self.subTest(workflow=name):
+                workflow = (ROOT / ".github" / "workflows" / name).read_text()
+                self.assertNotIn("requirements-audit.txt", workflow)
+                self.assertIn(audit_export, workflow)
+                self.assertIn(audit_action, workflow)
+                self.assertIn("uv run --locked ruff check src tests scripts", workflow)
+                self.assertNotIn("uvx ruff==", workflow)
+                self.assertFalse((ROOT / "requirements-audit.txt").exists())
+
     def test_source_tree_contains_no_ordivon_host_imports(self) -> None:
         source_root = ROOT / "src" / "ordivon_harness"
         violations: list[str] = []
