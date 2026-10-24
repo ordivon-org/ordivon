@@ -191,6 +191,47 @@
           "evidenceScope": "NATIVE_CONSUMER_PASS",
           "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
           "evaluatedRemoteMain": "a56afcf30aafd8d5bcd0f41adb950504f5724267"
+        },
+        {
+          "localCommit": "84baec0ea131f1161177ab18cba3fff253bf3a2d",
+          "owner": "capabilities/media",
+          "consumer": "GET-only HTTP byte ranges with empty representation Range ignored; no invalid Content-Range or path traversal",
+          "remoteWitness": "capabilities/media/scripts/creative_library.py + capabilities/media/tests/test_creative_library.py (11 PASS; 35 subtests PASS)",
+          "equalChangedBlobOids": {
+            "capabilities/media/scripts/creative_library.py": "7419fc09e6a94eb40e90487f12120a1c4fd1ee3a",
+            "capabilities/media/tests/test_creative_library.py": "1d066a9d1991f35422297c3b4f2ce1924a16fd54"
+          },
+          "evaluatedRemoteMain": "688ed35d1f502549b04a1fb931a6e86d8350050c",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "verifiedEqualChangedBlobs": true
+        },
+        {
+          "localCommit": "2919a6d8406a56faa7035804491c042503ad5c25",
+          "owner": "domains/capital",
+          "consumer": "Execution feasibility refuses fee-adjusted order quantity that would spend reserved capital; deterministic native fee/buffer constraints retained",
+          "remoteWitness": "domains/capital/src/ordivon_capital/trading/execution_feasibility.py + domains/capital/tests/test_execution_feasibility.py (16 PASS)",
+          "equalChangedBlobOids": {
+            "domains/capital/src/ordivon_capital/trading/execution_feasibility.py": "11492850dd48dee57c62672873733368cf249b9b",
+            "domains/capital/tests/test_execution_feasibility.py": "6cb65c2c29e5358d550fc0f3ae37f2f009f2830d"
+          },
+          "evaluatedRemoteMain": "688ed35d1f502549b04a1fb931a6e86d8350050c",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "verifiedEqualChangedBlobs": true
+        },
+        {
+          "localCommit": "495b45d4610d012e6fd96fed4dd624e723249a37",
+          "owner": "packages/composition",
+          "consumer": "Native DAG ordering property tests preserve edge precedence and reject unknown dependencies/cycles; identical historical and current regression",
+          "remoteWitness": "packages/composition/tests/test_graph_operator_properties.py (11 PASS; Hypothesis + jsonschema included in isolated test environment)",
+          "equalChangedBlobOids": {
+            "packages/composition/tests/test_graph_operator_properties.py": "5a58dcaee66d122dbfac4b04cd8c76ec083393d1"
+          },
+          "evaluatedRemoteMain": "688ed35d1f502549b04a1fb931a6e86d8350050c",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "verifiedEqualChangedBlobs": true
         }
       ],
       "formalObligation": "The selected source must be an explicit source cut and each chosen change must preserve owner CDC.",
