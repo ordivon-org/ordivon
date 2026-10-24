@@ -425,3 +425,17 @@ class WindowsServiceAuthTests(unittest.TestCase):
         }
         self.assertTrue(controller._verify_service_policy(policy, "token-1"))
         self.assertFalse(controller._verify_service_policy(policy, "token-2"))
+
+
+
+def test_gateway_mcp_dns_points_to_native_tunnel_and_handoff_reads_prior_state() -> None:
+    """Native Gateway cutover must not inherit the obsolete production-tunnel CNAME."""
+    tf = (ROOT.parents[1] / "tofu/agent-birth-handoff/main.tf").read_text()
+    gateway = tf.split('resource "cloudflare_dns_record" "gateway_mcp" {', 1)[1].split("\n}", 1)[0]
+    other = tf.split('resource "cloudflare_dns_record" "handoff" {', 1)[1].split("\n}", 1)[0]
+    assert 'content = "${local.native_tunnel_id}.cfargotunnel.com"' in gateway
+    assert 'content = "${local.production_tunnel_id}.cfargotunnel.com"' in other
+    assert 'cloudflare_zero_trust_tunnel_cloudflared_config.native,' in gateway
+    handoff = MODULE_PATH.read_text()
+    assert 'prior[native_tunnel_address]["values"].get("config")' in handoff
+    assert 'planned[native_data_address]' not in handoff

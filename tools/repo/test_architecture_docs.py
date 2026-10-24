@@ -1305,3 +1305,24 @@ def test_git01_browser_harness_legacy_nonmerge_effects_are_source_bound() -> Non
     assert "network-v2" in current
     assert (ROOT / "services/harness/tests/test_browserless_podman_deploy.py").is_file()
     module.validate_formal_issue_census(census, plans)
+
+
+
+def test_git01_workstation_cloudflare_gateway_tunnel_historical_correction() -> None:
+    """Old Gateway DNS tunnel switch may not override the corrected owner carrier."""
+    census, plans = formal_issue_inputs()
+    ledger = next(x for x in census["issues"] if x["id"] == "GIT-01")
+    matches = [x for x in ledger["consumerSelections"]
+               if x["localCommit"].startswith("0fbdd2445e1a")]
+    assert len(matches) == 1
+    row = matches[0]
+    assert row["owner"] == "platform/workstation"
+    assert row["disposition"] == "SKIP_OLDER_SOURCECUT"
+    assert row["evidenceScope"] == "NATIVE_CONSUMER_PASS"
+    assert row["sourceQualification"]["branchDeletionAllowed"] is False
+    assert row["sourceQualification"]["currentGatewayCname"] == "native_tunnel"
+    p = ROOT / "platform/workstation/tofu/agent-birth-handoff/main.tf"
+    source = p.read_text()
+    gateway = source.split('resource "cloudflare_dns_record" "gateway_mcp" {', 1)[1].split("\n}", 1)[0]
+    assert 'content = "${local.native_tunnel_id}.cfargotunnel.com"' in gateway
+    module.validate_formal_issue_census(census, plans)

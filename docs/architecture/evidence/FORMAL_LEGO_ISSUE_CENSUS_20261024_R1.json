@@ -951,6 +951,25 @@
             "packages/composition/src/ordivon_composition/browser_network_binding_r1.py",
             "packages/composition/tests/test_browser_network_binding_r1.py"
           ]
+        },
+        {
+          "localCommit": "0fbdd2445e1a6d2db4da0401d61c41e6d78a0577",
+          "owner": "platform/workstation",
+          "consumer": "Cloudflare native Gateway cutover consumes Workstation OpenTofu controller and DNS handoff. Historical patch pointed stable gateway_mcp CNAME at production tunnel and used planned stale data.cloudflare_zero_trust_tunnel_cloudflared_config.native instead of the prior native tunnel state. Corrected current source routes Gateway DNS to native_tunnel_id while other handoff records stay on production_tunnel_id; Gateway route depends on the native and production tunnel config. Never replay older incomplete tunnel topology.",
+          "remoteWitness": "platform/workstation/tofu/agent-birth-handoff/main.tf current Git Blob dd3d8ae700fcca7d0ce8c0a31f79d4f78a316635 vs historical d9c88ab12e089e04134f95c83c8bb519872c7129; platform/workstation/providers/cloudflare/scripts/ordivon_cloudflare_tofu_handoff.py current 1f7643791c5c099aae587e3861835489f31be01b vs historical d702f958ece8e5ec62dcd3611431270011719c09. Native existing Workstation Cloudflare test 20 PASS and one new gateway_mcp DNS/prior-state guard PASS. Did not run real OpenTofu apply or change active Cloudflare routing.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_OLDER_SOURCECUT",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "dec3223590bc5dc616fc32adb91412d90583a428",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "SAME_BLOB_AND_MODE",
+            "historicalFinalBlobEqual": false,
+            "currentGatewayCname": "native_tunnel",
+            "consumerStanding": "CURRENT_OWNER_CORRECTED_NATIVE_TOPOLOGY",
+            "liveCloudflareAcceptance": "NOT_REEXECUTED",
+            "branchDeletionAllowed": false
+          }
         }
       ],
       "consumerBlockedSelections": [
