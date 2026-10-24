@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import socket
 import sys
 import tempfile
 import threading
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 
@@ -46,6 +48,41 @@ class LiveDockerSocketTests(unittest.TestCase):
             self.assertEqual(MCP_E2E.live_docker_socket((path,)), path)
             thread.join(timeout=2)
             self.assertFalse(thread.is_alive())
+
+
+class McpJsonRpcEnvelopeTests(unittest.TestCase):
+    def test_http_jsonrpc_response_fails_closed_on_malformed_envelopes(self) -> None:
+        # Inject a provider response at the network boundary, not a fabricated
+        # protocol parser result. JSON-RPC identity and mutual exclusion matter
+        # even when the HTTP status and expected result look successful.
+        class Response:
+            status = 200
+            headers = {"Content-Type": "application/json"}
+
+            def __init__(self, envelope: dict[str, object]) -> None:
+                self.payload = json.dumps(envelope).encode("utf-8")
+
+            def __enter__(self) -> "Response":
+                return self
+
+            def __exit__(self, *args: object) -> None:
+                pass
+
+            def read(self) -> bytes:
+                return self.payload
+
+        bad = (
+            {"jsonrpc": "1.0", "id": 1, "result": {"tools": []}},
+            {"id": 1, "result": {"tools": []}},
+            {"jsonrpc": "2.0", "result": {"tools": []}},
+            {"jsonrpc": "2.0", "id": 1, "result": {"tools": []}, "error": {"code": -32603}},
+        )
+        for payload in bad:
+            with self.subTest(payload=payload):
+                client = MCP_E2E.McpClient("http://localhost:80/mcp", "fixture")
+                with patch.object(MCP_E2E.urllib.request, "urlopen", return_value=Response(payload)):
+                    with self.assertRaisesRegex(ValueError, "invalid JSON-RPC response"):
+                        client.request("tools/list")
 
 
 if __name__ == "__main__":

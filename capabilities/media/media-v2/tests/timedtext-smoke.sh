@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-root=$(git rev-parse --show-toplevel)
+root=$(cd "$(dirname "$0")/../.." && pwd)
 work="$root/.tmp/media-v2-timedtext-smoke"
 rm -rf "$work"
 mkdir -p "$work"
