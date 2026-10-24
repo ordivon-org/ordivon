@@ -333,6 +333,99 @@ def test_private_workflow_or_retry_policy_is_not_in_manifest_contract() -> None:
         validate_manifest(manifest)
 
 
+@pytest.mark.parametrize("mode", ["undeclared", "optional"])
+def test_one_passed_gate_cannot_hide_an_unverified_second_owner_seam(mode: str) -> None:
+    """One verified consumer pair cannot discharge an unrelated owner edge."""
+    manifest = valid_manifest()
+    manifest["stages"].append(
+        {
+            "id": "stage:qa",
+            "ownerId": "qa",
+            "responsibility": "Provide independently checked quality evidence.",
+            "dependsOn": [],
+            "methodBindings": [],
+            "capabilityBindings": [],
+            "inputs": ["objective"],
+            "outputs": ["quality-evidence"],
+        }
+    )
+    manifest["stages"][1]["dependsOn"].append("stage:qa")
+    manifest["stages"][1]["inputs"].append("quality-evidence")
+    manifest["edges"].append(
+        {
+            "id": "edge:qa-artifact",
+            "from": {"stageId": "stage:qa", "port": "quality-evidence"},
+            "to": {"stageId": "stage:artifact", "port": "quality-evidence"},
+            "contractRef": "contract:quality-evidence",
+        }
+    )
+    if mode == "optional":
+        manifest["gateRequirements"].append(
+            {
+                "id": "gate:qa-artifact",
+                "producerStageId": "stage:qa",
+                "consumerStageId": "stage:artifact",
+                "assumption": "Artifact can consume QA evidence.",
+                "guarantee": "QA emits verified evidence.",
+                "verifierOwnerId": "qa",
+                "supportScope": "quality-evidence identity",
+                "required": False,
+            }
+        )
+    # Research passes its own exact source-bound gate, but QA has no
+    # mandatory witness: do not promote an incomplete composition to PASS.
+    projection = evaluate_gate_results(manifest, [gate_result(manifest)])
+    assert projection["satisfiedGateIds"] == ["gate:claim-evidence-binding"]
+    assert projection["standing"] == "COMPOSITION_GATES_OPEN"
+    assert projection["mechanicalClosure"] is False
+
+
+def test_two_distinct_owner_seams_close_only_after_both_required_gates_pass() -> None:
+    manifest = valid_manifest()
+    manifest["stages"].append(
+        {
+            "id": "stage:qa",
+            "ownerId": "qa",
+            "responsibility": "Verify quality.",
+            "dependsOn": [],
+            "methodBindings": [],
+            "capabilityBindings": [],
+            "inputs": [],
+            "outputs": ["quality-evidence"],
+        }
+    )
+    manifest["stages"][1]["dependsOn"].append("stage:qa")
+    manifest["stages"][1]["inputs"].append("quality-evidence")
+    manifest["edges"].append(
+        {
+            "id": "edge:qa-artifact",
+            "from": {"stageId": "stage:qa", "port": "quality-evidence"},
+            "to": {"stageId": "stage:artifact", "port": "quality-evidence"},
+        }
+    )
+    manifest["gateRequirements"].append(
+        {
+            "id": "gate:qa-artifact",
+            "producerStageId": "stage:qa",
+            "consumerStageId": "stage:artifact",
+            "assumption": "QA input validated.",
+            "guarantee": "QA evidence delivered.",
+            "verifierOwnerId": "qa",
+            "supportScope": "quality-evidence identity",
+            "required": True,
+        }
+    )
+    first = gate_result(manifest)
+    second = dict(first)
+    second.update(
+        gateId="gate:qa-artifact", verifierOwnerId="qa", supportScope="quality-evidence identity"
+    )
+    projection = evaluate_gate_results(manifest, [first, second])
+    assert projection["standing"] == "COMPOSITION_GATES_SATISFIED"
+    assert projection["mechanicalClosure"] is True
+    assert projection["domainAcceptanceEstablished"] is False
+
+
 def test_composition_without_required_evidence_never_claims_mechanical_closure() -> None:
     """The empty conjunction is not evidence of a verified cross-owner boundary."""
     manifest = valid_manifest()

@@ -260,10 +260,26 @@ def evaluate_gate_results(
     )
     unresolved = sorted(manifest["unresolvedAssumptions"])
 
+    # Exact finite set inclusion is sufficient here: do not install Pacti or
+    # invent a new solver for caller-authored, opaque prose obligations.
+    # A verified research->artifact gate cannot discharge an unverified
+    # QA->artifact edge merely because at least one required gate passed.
+    owners = {stage["id"]: stage["ownerId"] for stage in manifest["stages"]}
+    cross_owner_pairs = {
+        (edge["from"]["stageId"], edge["to"]["stageId"])
+        for edge in manifest["edges"]
+        if owners[edge["from"]["stageId"]] != owners[edge["to"]["stageId"]]
+    }
+    required_pairs = {
+        (gate["producerStageId"], gate["consumerStageId"]) for gate in required.values()
+    }
+    uncovered_pairs = cross_owner_pairs - required_pairs
+
     if unsatisfied:
         standing = "COMPOSITION_GATES_UNSATISFIED"
-    elif not required or missing or unknown or unresolved:
-        # An empty required Gate set contains no verified cross-owner property.
+    elif not required or missing or unknown or unresolved or uncovered_pairs:
+        # Uncovered consumer pairs are not automatically verified by another
+        # pair's PASS, and optional gates cannot discharge required evidence.
         standing = "COMPOSITION_GATES_OPEN"
     else:
         standing = "COMPOSITION_GATES_SATISFIED"
