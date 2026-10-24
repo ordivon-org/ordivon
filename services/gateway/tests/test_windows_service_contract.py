@@ -122,3 +122,19 @@ def test_windows_service_materializer_fences_mcp_surface_changes() -> None:
     assert "Gateway MCP tool surface changed without advancing packageVersion" in text
     assert "Gateway MCP surfaceEpoch changed while tool surface is unchanged" in text
     assert "$existingCim.PathName" in text
+
+
+def test_windows_credential_source_is_bounded_before_loading() -> None:
+    # Historical Gateway source constrained credential inputs to 1..16384
+    # bytes. Preserve that contract in the newer multi-source materializer,
+    # without replacing its stronger service-state, DACL and digest guards.
+    script = (ROOT / "packaging/windows/materialize_credentials.ps1").read_text(
+        encoding="utf-8"
+    )
+    assert "function Read-SecretBytesBounded" in script
+    assert "$sourceStream.Length -lt 1" in script
+    assert "$sourceStream.Length -gt 16384" in script
+    assert "$sourceStream.Read(" in script
+    assert "$sourceStream.ReadByte()" in script
+    assert "$bytes = Read-SecretBytesBounded -Path $source" in script
+    assert "[IO.File]::ReadAllBytes($source)" not in script
