@@ -826,13 +826,15 @@ def validate_r21_lego_vocabulary(document: str, *, root: Path = ROOT) -> None:
                 )
             ]
             scope = classes[0].body if len(classes) == 1 else ()
-        if not any(
+        count = sum(
             isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name == symbol
             for node in scope
-        ):
+        )
+        if count != 1:
             raise ArchitectureDocsError(
-                f"R2.1 consumer witness missing callable: {relative}::{symbol}"
+                f"R2.1 consumer witness nonunique or missing callable: "
+                f"{relative}::{symbol} (definitions={count})"
             )
 
 

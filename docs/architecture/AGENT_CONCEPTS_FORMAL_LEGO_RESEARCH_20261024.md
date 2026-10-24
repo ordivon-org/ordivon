@@ -207,7 +207,8 @@ be checked only for an existing test *file*, allowing an empty Python file
 to impersonate a consumer witness. The existing repository acceptance
 tools/repo/check_architecture_docs.py now uses Python's standard ast
 to bind one real native test callable per Runtime, Host, Harness and Network
-row; four empty-file and four escaped-symlink mutations must fail before an architecture document
+row; four empty-file, four escaped-symlink and a duplicate
+Python test identity mutation must fail before an architecture document
 can name those consumers. This is **source identity**, not execution,
 coverage, model-to-code refinement or semantic outcome. Use each natural
 Owner's existing native tests for implementation-level evidence; do not

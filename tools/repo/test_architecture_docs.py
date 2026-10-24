@@ -1978,6 +1978,32 @@ def test_r21_architecture_cannot_call_an_empty_file_native_consumer_evidence(
         module.validate_r21_lego_vocabulary(document, root=tmp_path)
 
 
+def test_r21_duplicate_python_witness_name_is_not_an_unambiguous_proof(
+    tmp_path: Path,
+) -> None:
+    """The second Python def wins at runtime; two AST names are not one test."""
+    document = (
+        ROOT / "docs/architecture/AGENT_CONCEPTS_FORMAL_LEGO_RESEARCH_20261024.md"
+    ).read_text(encoding="utf-8")
+    for relative in (
+        "services/runtime/scripts/tests/test_mcp_e2e_reconciliation.py",
+        "services/host/tests/test_social_work_fabric_postgres.py",
+        "services/harness/tests/test_agent_automation_browserless.py",
+        "platform/network/tests/test_claude_egress_readiness_consumer.py",
+    ):
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        source = (ROOT / relative).read_text(encoding="utf-8")
+        if relative == "services/host/tests/test_social_work_fabric_postgres.py":
+            source += (
+                "\n\ndef test_work_snapshot_cas_race_has_one_winner():\n"
+                "    pass  # accidental late Python definition shadows the real oracle\n"
+            )
+        path.write_text(source, encoding="utf-8")
+    with pytest.raises(module.ArchitectureDocsError, match="consumer witness"):
+        module.validate_r21_lego_vocabulary(document, root=tmp_path)
+
+
 def test_r21_single_six_role_contract_enforced_at_repository_admission() -> None:
     """R2.1 semantic lenses must never silently replace the original LEGO interface."""
     vocabulary = (
