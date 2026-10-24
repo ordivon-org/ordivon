@@ -30,6 +30,30 @@ def test_current_repository_architecture_docs_are_converged() -> None:
     module.validate_repository(ROOT)
 
 
+@pytest.mark.parametrize(
+    ("source", "reason"),
+    [
+        ('{"kind":"good","kind":"bad"}', "duplicate JSON object key"),
+        ('{"registration":{"standing":"UNKNOWN","standing":"APPROVED"}}', "duplicate JSON object key"),
+        ('{"evidence":{"score":NaN}}', "non-finite JSON constant"),
+        ('{"evidence":{"score":Infinity}}', "non-finite JSON constant"),
+        ('{"evidence":{"score":-Infinity}}', "non-finite JSON constant"),
+        ('{"evidence":{"score":1e999}}', "unrepresentable JSON number"),
+        ('{"evidence":{"score":-1e999}}', "unrepresentable JSON number"),
+        ('{"evidence":{"score":1e-999}}', "unrepresentable JSON number"),
+        ('{"evidence":{"score":-1e-999}}', "unrepresentable JSON number"),
+    ],
+)
+def test_repo_formal_json_source_rejects_ambiguous_or_nonstandard_evidence(
+    tmp_path: Path, source: str, reason: str
+) -> None:
+    """Malformed registration evidence must fail before it is converted into an Owner claim."""
+    source_file = tmp_path / "owner-evidence.json"
+    source_file.write_text(source, encoding="utf-8")
+    with pytest.raises(module.ArchitectureDocsError, match=reason):
+        module._load_json(source_file)
+
+
 def test_gateway_source_surface_is_owned_by_source_manifest() -> None:
     manifest = json.loads(GATEWAY_SURFACE.read_text(encoding="utf-8"))
     observed = set(manifest["tools"])
