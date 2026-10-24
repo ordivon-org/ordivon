@@ -624,11 +624,15 @@ tasks:
       - task: consumer:claude:materialize
       - systemctl restart network-v2-claude.target
       - systemctl restart network-v2-claude-client.target
-      - task: consumer:claude:ready
+      - task: consumer:claude:verify
 
   consumer:claude:verify:
     desc: Verify exact deployed Claude authority/client bytes and live consequence readiness
     cmds:
+      - test "$(systemctl show --value -p PartOf network-v2-claude-proxy.service)" = network-v2-claude.target
+      - test "$(systemctl show --value -p NeedDaemonReload network-v2-claude-proxy.service)" = no
+      - test "$(systemctl show --value -p PartOf network-v2-claude-relay.service)" = network-v2-claude.target
+      - test "$(systemctl show --value -p NeedDaemonReload network-v2-claude-relay.service)" = no
       - cmp -s consumers/claude/config/authority.json /etc/network-v2/claude/authority.json
       - cmp -s consumers/claude/config/sing-box.json /etc/network-v2/claude/sing-box.json
       - cmp -s consumers/claude/systemd/network-v2-claude-proxy.service /etc/systemd/system/network-v2-claude-proxy.service

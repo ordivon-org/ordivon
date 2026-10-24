@@ -151,6 +151,40 @@ def test_edge_requires_declared_ports_and_dependency() -> None:
         validate_manifest(manifest)
 
 
+def test_distinct_producers_cannot_implicitly_merge_at_one_consumer_input() -> None:
+    manifest = valid_manifest()
+    manifest["stages"].append(
+        {
+            "id": "stage:quality",
+            "ownerId": "qa",
+            "responsibility": "Produce independent quality evidence.",
+            "dependsOn": [],
+            "methodBindings": [],
+            "capabilityBindings": [],
+            "inputs": ["objective"],
+            "outputs": ["quality-evidence"],
+        }
+    )
+    consumer = manifest["stages"][1]
+    consumer["dependsOn"].append("stage:quality")
+    manifest["edges"].append(
+        {
+            "id": "edge:quality-to-artifact",
+            "from": {"stageId": "stage:quality", "port": "quality-evidence"},
+            "to": {"stageId": "stage:artifact", "port": "claim-evidence"},
+            "contractRef": "contract:quality-evidence",
+        }
+    )
+    with pytest.raises(CircuitContractError, match="already receives"):
+        compile_manifest(manifest)
+
+    # Distinct explicitly authored ports compose without selecting a winner.
+    consumer["inputs"].append("quality-evidence")
+    manifest["edges"][-1]["to"]["port"] = "quality-evidence"
+    compiled = compile_manifest(manifest)
+    assert compiled["stageOrder"][-1] == "stage:artifact"
+
+
 def test_cross_owner_gate_cannot_collapse_to_one_owner() -> None:
     manifest = valid_manifest()
     manifest["stages"][1]["ownerId"] = "research"

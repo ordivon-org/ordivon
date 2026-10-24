@@ -122,6 +122,8 @@ def validate_manifest(value: dict[str, Any]) -> None:
                 f"stage {stage_id} references unknown capability bindings: {missing_capabilities}"
             )
 
+    # A typed input port has one producer; aggregation requires an explicit LEGO.
+    input_sources: dict[tuple[str, str], str] = {}
     for edge in value["edges"]:
         source = edge["from"]
         target = edge["to"]
@@ -145,6 +147,15 @@ def validate_manifest(value: dict[str, Any]) -> None:
             raise CircuitContractError(
                 f"edge {edge['id']} requires {target['stageId']} to depend on {source['stageId']}"
             )
+        input_port = (target["stageId"], target["port"])
+        previous = input_sources.get(input_port)
+        if previous is not None:
+            raise CircuitContractError(
+                f"edge {edge['id']} consumer {target['stageId']}.{target['port']} "
+                f"already receives input from edge {previous}; use distinct inputs "
+                "or an explicit merge LEGO"
+            )
+        input_sources[input_port] = edge["id"]
 
     for gate_id, gate in gates.items():
         producer = stages.get(gate["producerStageId"])
