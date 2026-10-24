@@ -145,8 +145,64 @@ No new Agent role, new Skill, registry, approval loop, scheduler or formal DSL i
 **Operational stopping rule:** one needed property, one appropriate mature owner/kernel, one scoped verification/effect witness, followed by read-back and cleanup. If none materially improves real consumer outcomes, do not add it.
 
 
-### R2.1 live-observation contract algebra pilot (2026-10-25)
+## R2.1 mathematical kernel: existing mathematics at the Owner boundary (2026-10-25)
 
-The existing optional Pacti 0.3.1 shadow now also provides a task-local mathematical operation on supplied typed Harness grant snapshots and Runtime status.config.maxRuntimeMs observations. It uses actual Pacti polyhedral composition and refinement; the result binds both supplied inputs by canonical digest. This is a semantic dependency in the original verification-obligation seam, not a new registration format, execution authority, proof kernel, or production package dependency.
+**Standing:** scoped refinement of the already accepted recursive LEGO calculus,
+not a new schema, all-Owner registry, proof kernel, default Workflow or source
+of runtime authority. This section is useful only when a *named current
+consumer* needs a contract that its natural Owner can actually verify.
 
-The former frozen example grantMaxMs=300000 / runtimeMaxMs=900000 is not a claim about deployed Runtime: Runtime max_runtime_ms is configuration-dependent. The native pilot tests supplied typed owner-style projections, including a negative smaller-runtime model and missing, zero or boolean Runtime observation counterexamples. Runtime and Harness natural owners, not a Next cross-owner file scan, own source and API conformity. A positive result means ONLY that the two SUPPLIED owner-bound numeric models are compatible in Pacti. Runtime observation authentication/currentness, time-of-check/time-of-use continuity, implementation-to-model refinement, actual effect admission and domain goal acceptance remain unproven. Keep Runtime's own fail-closed timeout admission authoritative.
+A candidate LEGO is best represented as an existing Owner responsibility
+view \(L=(C,I,O,S,R,A,G,V)\), not as a new executable object:
+
+- \(C\): current consumers and their externally observable acceptance predicates;
+- \(I,O\): typed inputs/outputs from current native interfaces;
+- \(S\): durable state owned by precisely one existing authoritative Owner;
+- \(R\subseteq(I\times S)\times(O\times S)\): an existing transition or
+  effect relation, **not** an invented Ordivon transition engine;
+- \(A,G\): assumptions/guarantees expressed by current Owner contracts;
+- \(V\): scoped evidence with exact SourceCut, tool/version and falsification.
+
+These are **mathematical views of existing typed interfaces**. No field is
+mandated in every domain's JSON. For sequential composition \(L_1;L_2\),
+verify compatible types and \(G_1\Rightarrow A_2\) under the real shared-state,
+authority and environment assumptions. Independent component PASS does not
+prove composite correctness. To replace old \(L\) with new \(L'\), compare the
+*current consumer's observable projection* \(\pi_C(R)\), not raw Git commits,
+file bytes, prose, tool names, historical work or a universal score.
+
+| Existing Owner | Mature semantic kernel | Current executable consumer boundary | Missing authority deliberately **not** inferred |
+| --- | --- | --- | --- |
+| Runtime | TLA+ state transitions, invariants, weak fairness; Rust typed Attempt state | `services/runtime/formal/RuntimeDispatchR1.tla`, `scripts/verify_formal_trace.py`, `job_attempt_state.rs` | model result does not mechanically refine Rust or prove business completion |
+| Host | typed Work revision and state-machine transition contracts | `services/host/src/ordivon_host_v2/work_store.py` and natural-owner tests | Host Work terminal state does not establish Runtime dispatch or domain success |
+| Harness | assume/guarantee at bounded Agent Run and Tool/Runtime admission | `services/harness/tests/test_gateway_execution_port.py` and owner-local admission contracts | model proposal, Run success or Skill text cannot grant effect authority |
+| Network | state-based convergence, source identity and actual loaded-policy predicates | `platform/network/tests/test_claude_loaded_policy_cdc.py`, `test_monitoring_precommit.py` | file delivery or transport success does not establish loaded policy or safety |
+
+**First executable mathematical slice (Runtime).** The property
+`TerminalEvidenceIsCommitted` is stated in TLA+ and enabled in its
+upstream TLC config: a terminal Job must identify a terminal Attempt and
+committed reconciliation evidence. The existing Rust terminal-evidence
+negative-control test is bound by the Runtime native trace gate; the
+bounded 2-Attempt TLC model and a deliberately mutated terminal transition
+falsify the safety obligation. This is a concrete scoped proof and
+counterexample, **not** a proof of implementation refinement. No separate
+LEGO model checker, global test registry or mandatory abstraction was added.
+
+**Subtractive promotion rule:** retain or port only the smallest behavior
+that a real consumer currently requires and the accepted Owner does not
+already supply. UNKNOWN external consumption blocks destructive erasure
+of the last recoverable source, but does **not** justify reinstalling the
+historical feature, creating a migration PR or re-running successful tests.
+Once an Owner evidence cut is admitted, re-check it only if its declared
+source, consumer or environment assumptions change.
+
+Mature external foundations: TLA+/TLC (https://docs.tlapl.us/), typed Rust
+state transitions, contract-based assume/guarantee reasoning and existing
+Git SHA/source-provenance semantics. Use SMT or an additional prover only
+where a concrete constraint consumer cannot be discharged by an existing
+Owner test or TLC model.
+
+
+### Scoped Pacti observation algebra (task-local, not Host/Runtime authority)
+
+The existing Pacti 0.3.1 assume/guarantee provider is used task-locally for the typed Harness grant maxTimeoutMs and a caller-supplied Runtime status.config.maxRuntimeMs observation. The operation binds both inputs to canonical digests and returns only a mathematical compatibility verdict; it does not claim the observations were authenticated, fresh, implementation-refined or safe to apply as physical effects. The old frozen numerical example is not live Runtime truth. Pacti remains absent from Next's default dependency set: root CI explicitly marks its optional provider execution SKIPPED, while the pinned task-local run exercises the real positive/negative algebra. Runtime admission and actual consumer outcomes remain natural-Owner obligations.

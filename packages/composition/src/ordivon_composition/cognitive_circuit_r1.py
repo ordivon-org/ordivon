@@ -262,7 +262,8 @@ def evaluate_gate_results(
 
     if unsatisfied:
         standing = "COMPOSITION_GATES_UNSATISFIED"
-    elif missing or unknown or unresolved:
+    elif not required or missing or unknown or unresolved:
+        # An empty required Gate set contains no verified cross-owner property.
         standing = "COMPOSITION_GATES_OPEN"
     else:
         standing = "COMPOSITION_GATES_SATISFIED"

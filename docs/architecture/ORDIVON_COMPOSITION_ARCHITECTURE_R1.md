@@ -117,3 +117,43 @@ A new public Gateway capability is admitted only when all are true:
 ## Verification rule
 
 Architecture documentation does not prove implementation conformance. The machine-readable LEGO graph and repository checks provide mechanical regression gates; owner-native tests and live end-to-end evidence remain required for implementation acceptance.
+
+
+## LEGO 2.1 mathematical kernel (method, not new authority)
+
+**Status:** proposed representation profile over current natural-owner contracts.
+This is NOT a new deployed LEGO version, runtime registry, scheduler, or
+authorization grant.
+
+For a bounded real consumer X:
+
+    LEGO_X = (Owner, Input, Output, Assumption, Guarantee,
+              State, Transition, Effect, Dependencies, Verification)
+
+Use only coordinates required to choose, verify, replace, or retire that LEGO.
+Unknown consumers and unverified equivalence are UNKNOWN, not UNUSED.
+
+Mature operators used instead of new algorithms:
+
+- Types/constraints: existing Rust type checks and JSON Schema Draft 2020-12.
+- Dependency partial order: Python graphlib.TopologicalSorter for finite
+  declared DAGs, and reachability-antichain tests for parallel starts. Other
+  DATA/OBSERVATION/state-machine graphs may contain cycles.
+- Assume/guarantee: the producer's tested guarantee discharges the specific
+  consumer assumption at each explicit cross-owner edge. Matching fields
+  or path names alone do not constitute proof.
+- State: current bounded Runtime TLA+ and owner-native replay/fault injection.
+  Physical completion is not automatically semantic success.
+- Substitution: retain consumer-observable effects and failure semantics
+  in the specified context, or report UNKNOWN instead of deleting.
+
+| Owner | Owned truth | Mature native verifier | Not implied |
+| --- | --- | --- | --- |
+| Runtime | Workspace, Job, Attempt, Artifact, effect commit | Rust types, lifecycle tests, bounded TLA+ | Domain success |
+| Host | Continuity, checkpoint, handoff | owner contracts, durable state | Runtime execution result |
+| Harness | Bounded Run, tool/model trajectory | run/tool contracts, replay, traces | Host Task authority |
+| Network | Substrate, measured route/egress | scoped provider and protocol tests | Credential/domain success |
+
+This root architecture graph is a read-only projection, not a universal
+LEGO registry or proof of four separate Owner models. Host R3 intentionally
+stores retained/retired laws rather than inventing a dependency DAG.

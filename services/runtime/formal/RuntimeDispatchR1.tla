@@ -128,4 +128,10 @@ NoUnusedAttemptWasDispatched ==
 TerminalAttemptWasDispatched ==
     \A a \in Attempts : attemptState[a] = "terminal" => dispatchCount[a] = 1
 
+TerminalEvidenceIsCommitted ==
+    jobState = "terminal" =>
+        /\ currentAttempt # NoAttempt
+        /\ attemptState[currentAttempt] = "terminal"
+        /\ reconcileState = "committed"
+
 =============================================================================
