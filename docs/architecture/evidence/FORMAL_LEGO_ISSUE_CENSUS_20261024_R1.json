@@ -912,6 +912,38 @@
             "services/harness/planning/hux-current-baseline-r1.json",
             "services/harness/planning/hux-execution-plan-r1.json"
           ]
+        },
+        {
+          "localCommit": "b066c82c8d4701e36d8b6eac448bc3fc34d747aa",
+          "owner": "capabilities/artifact",
+          "consumer": "Artifact Python runtime generation must pin verified interpreter executable bytes inside the generation, rather than retain an external mutable mise symlink; the wrapper must reject a foreign interpreter. This responsibility moved from historical Workstation equipment to the Artifact natural Owner.",
+          "remoteWitness": "Current capabilities/artifact/scripts/artifact_python_environment.py pin_interpreter_in_venv and artifact_python_wrapper.py own this behavior. Native Artifact test_artifact_python_environment 14/14 PASS, including Python v1->v2 external source drift, wrong digest, wrapper rejection. The old Workstation file is absent; do not restore old carrier.",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "d375287686b7ad7f04b1f5ef181bff846ac9cc94",
+            "patchRelation": "PATCH_DISTINCT_OR_UNKNOWN",
+            "currentConsumerSelection": "CURRENT_ARTIFACT_OWNER_CDC_SUCCEEDS_HISTORICAL_PROVIDER_RELOCATED",
+            "branchDeletionAllowed": false,
+            "acceptanceLimit": "NAMED_CONSUMER_EFFECT_ONLY_NO_WHOLE_TREE_EQUIVALENCE_NO_EXTERNAL_CONSUMER_CLAIM"
+          }
+        },
+        {
+          "localCommit": "c58210700da85f061c9dd5bac69c712d381d7428",
+          "owner": "tools/repo",
+          "consumer": "Workspace execution must reject nested Node packageManager/pnpm version drift before installation, choosing the nearest parent mise owner; retired check_workspace_environment.py is not a required second registry.",
+          "remoteWitness": "Current tools/repo/workspace-ready and tools/repo/test_workspace_ready.py cover inherited owner pnpm and explicit wrong version before side effects; 38/38 native unittest PASS, including nested Security packages and old pnpm auto-switch rejection. Historical separate checker and test absent from protected Main.",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "d375287686b7ad7f04b1f5ef181bff846ac9cc94",
+            "patchRelation": "PATCH_DISTINCT_OR_UNKNOWN",
+            "currentConsumerSelection": "CURRENT_REPO_WORKSPACE_READY_CDC_SUPERSEDES_OLD_CHECKER",
+            "branchDeletionAllowed": false,
+            "acceptanceLimit": "NAMED_CONSUMER_EFFECT_ONLY_NO_WHOLE_TREE_EQUIVALENCE_NO_EXTERNAL_CONSUMER_CLAIM"
+          }
         }
       ],
       "consumerBlockedSelections": [
