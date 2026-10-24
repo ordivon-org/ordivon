@@ -1253,6 +1253,17 @@ def test_retired_repository_status_projections_stay_absent() -> None:
     assert (ROOT / "tools/repo/check_architecture_docs.py").is_file()
     for relative in legacy:
         assert not (ROOT / relative).exists(), f"unconsumed historical tool restored: {relative}"
+    census, plans = formal_issue_inputs()
+    issue = next(x for x in census["issues"] if x["id"] == "GIT-01")
+    row = next(x for x in issue["consumerSelections"] if x["localCommit"].startswith("9c0684c02c"))
+    assert len(row["historicalCohort"]) == len(set(row["historicalCohort"])) == 10
+    assert set(row["historicalCohort"]) >= {
+        "ba9732f8bcc7348c73d570509ebdc2fdf4b30fcf",
+        "a1768d039268f1396439bfef8605a7700935c617",
+        "709816a1f89ce2a4811d7162a658f2f6f84018d9",
+        "61de83cb01b71793301907862840e3176f169b3a",
+    }
+    module.validate_formal_issue_census(census, plans)
 
 
 def test_git01_retired_network_router_cohort_has_one_qualified_lego() -> None:
