@@ -27,6 +27,7 @@ REQUIRED_TESTS = {
     "RuntimeDispatch.concurrentObservers",
     "RuntimeDispatch.ambiguityNoRedrive",
     "ExecutionProvider.guaranteeNegativeControl",
+    "RuntimeDispatch.terminalEvidence",
 }
 REQUIRED_SUPPORTING_CONTRACTS = {
     "ExecutionProvider.assumeGuarantee",
@@ -35,6 +36,7 @@ REQUIRED_MODEL_BINDINGS = {
     "RuntimeDispatch.Dispatch",
     "RuntimeDispatch.AtMostOnceDispatchPerAttempt",
     "RuntimeDispatch.AmbiguityRequiresReconciliation",
+    "RuntimeDispatch.TerminalEvidenceIsCommitted",
 }
 REQUIRED_RUNTIME_INVARIANT_BINDINGS = {"I05", "I11"}
 
