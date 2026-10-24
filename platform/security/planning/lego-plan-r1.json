@@ -60,14 +60,17 @@
       "state": "IMPLEMENTED",
       "sharedRefs": [],
       "evidence": [
-        "README.md"
+        "README.md",
+        "mise.toml",
+        "tests/test_owner_uv_lock_freshness.py"
       ],
       "dependencies": [],
       "mustNotOwn": [
         "invented currentness"
       ],
       "acceptance": [
-        "Standing can distinguish stale/inapplicable evidence."
+        "Standing can distinguish stale/inapplicable evidence.",
+        "The Security owner verification refuses a stale uv.lock before consuming locked dependencies."
       ]
     },
     {
