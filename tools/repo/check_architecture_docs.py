@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import json
 import re
-import tomllib
 from pathlib import Path
 from typing import Any
+
+import tomllib
 
 ROOT = Path(__file__).resolve().parents[2]
 CURRENT = ROOT / "docs" / "architecture" / "CURRENT_ARCHITECTURE.md"
@@ -419,18 +420,17 @@ def validate_formal_issue_census(
             if cohort is not None:
                 cohort_ids.update(cohort)
             source_proof = entry.get("sourceQualification")
-            if entry["disposition"] == "PORT_REQUIRED_OWNER_EFFECT":
-                # An actual port is not a skip. File/blob observations alone
-                # cannot establish an accepted native consumer behavior.
-                if (
-                    entry["evidenceScope"] != "NATIVE_CONSUMER_PASS"
-                    or not isinstance(source_proof, dict)
-                    or source_proof.get("branchDeletionAllowed") is not False
-                ):
-                    raise ArchitectureDocsError(
-                        "PORT_REQUIRED_OWNER_EFFECT requires native Owner acceptance "
-                        "and cannot authorize branch deletion"
-                    )
+            # An actual port is not a skip. File/blob observations alone
+            # cannot establish an accepted native consumer behavior.
+            if entry["disposition"] == "PORT_REQUIRED_OWNER_EFFECT" and (
+                entry["evidenceScope"] != "NATIVE_CONSUMER_PASS"
+                or not isinstance(source_proof, dict)
+                or source_proof.get("branchDeletionAllowed") is not False
+            ):
+                raise ArchitectureDocsError(
+                    "PORT_REQUIRED_OWNER_EFFECT requires native Owner acceptance "
+                    "and cannot authorize branch deletion"
+                )
             if source_proof is not None:
                 if not isinstance(source_proof, dict):
                     raise ArchitectureDocsError("invalid historical Git source qualification")
@@ -549,7 +549,46 @@ def validate_formal_issue_census(
         nodes = plan.get("nodes")
         if not isinstance(nodes, list):
             raise ArchitectureDocsError("owner-local LEGO nodes missing")
-        node_ids = {n["id"] for n in nodes if isinstance(n, dict) and isinstance(n.get("id"), str)}
+        # A LEGO plan is a finite typed relation over its declared nodes:
+        # E is a subset of Nodes x RelationKind x Nodes, never an unbound arrow.
+        # Do not collapse DATA/CONTROL/STATE/EVIDENCE into Dependencies: their
+        # different semantics are needed by real Runtime/Harness/Network owners.
+        if any(
+            not isinstance(node, dict)
+            or not isinstance(node.get("id"), str)
+            or not node["id"].strip()
+            for node in nodes
+        ):
+            raise ArchitectureDocsError("invalid LEGO node identity")
+        node_ids = {node["id"] for node in nodes}
+        if len(node_ids) != len(nodes):
+            raise ArchitectureDocsError("duplicate LEGO node identity")
+        for node in nodes:
+            dependencies = node.get("dependencies", [])
+            if (
+                not isinstance(dependencies, list)
+                or not all(isinstance(d, str) for d in dependencies)
+                or len(dependencies) != len(set(dependencies))
+            ):
+                raise ArchitectureDocsError("invalid typed LEGO dependencies")
+            if not set(dependencies) <= node_ids:
+                raise ArchitectureDocsError("unknown LEGO dependency")
+        edges = plan.get("edges", [])
+        if not isinstance(edges, list):
+            raise ArchitectureDocsError("LEGO edge relation must be a list")
+        edge_ids: set[tuple[str, str, str]] = set()
+        for edge in edges:
+            if not isinstance(edge, dict) or any(
+                not isinstance(edge.get(field), str) or not edge[field].strip()
+                for field in ("from", "to", "type", "label")
+            ):
+                raise ArchitectureDocsError("invalid typed LEGO edge")
+            if edge["from"] not in node_ids or edge["to"] not in node_ids:
+                raise ArchitectureDocsError("unknown LEGO edge endpoint")
+            relation = (edge["from"], edge["type"], edge["to"])
+            if relation in edge_ids:
+                raise ArchitectureDocsError("duplicate typed LEGO edge")
+            edge_ids.add(relation)
         hits = [s for s in plan.get("slices", []) if isinstance(s, dict) and s.get("id") == slice_id]
         if len(hits) != 1:
             raise ArchitectureDocsError(f"owner-local LEGO slice {slice_id} not unique")

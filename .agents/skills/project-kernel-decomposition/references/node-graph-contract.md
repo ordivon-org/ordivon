@@ -78,6 +78,43 @@ Use typed edges. Do not collapse every relationship into `calls`.
 
 Each edge should identify source port, target port, and whether loss/duplication/reordering matters.
 
+## 3A. Minimal mathematical kernel (reuse, do not reimplement)
+
+These are **scoped relational and assume/guarantee concepts** from ordinary
+typed graph semantics, contract-based design and labeled transition systems,
+not a new Ordivon mathematics engine or universal JSON schema.
+
+For a real consumer and source cut, view a responsibility as
+L = (I, O, A, G, E, V), where I/O are observable input/output contracts;
+A is the environment assumption; G the guarantee under that assumption;
+E names authority and effects that must not silently change; and V is an
+owner-native acceptance witness. Add a state-transition system only for a
+genuinely stateful responsibility. The natural owner holds these facts.
+
+For an owner-local graph with declared vertices N, typed relationships are
+R subseteq N x Kind x N. Each (source, kind, target) triple identifies one
+relation. Both endpoints must be declared; relation kind/label must be
+nonempty; duplicate triples are redundant. Node dependencies are a separate
+relation D subseteq N x N. Do not equate D and R: Harness CONTROL/EFFECT,
+Network OBSERVATION and Runtime VERIFICATION edges are not interchangeable.
+Do not infer universal acyclicity, authority, dependency, or execution from
+the existence of an arrow.
+
+For actual composition L1 -> L2, compatibility is an **obligation**:
+producer guarantees must discharge consumer assumptions under the selected
+context, preserving authority, effects and ordering. V1 PASS and V2 PASS
+alone never establish composed correctness. Reuse owner-native type/schema
+checks for structure, TLA+ for bounded temporal state behavior, and
+consumer-driven contracts/read-back for implementation and semantic success.
+A model proves only its stated scope; missing assumptions remain UNKNOWN.
+
+Replacement and deletion require consumer-observable substitutability,
+including relevant failure/recovery/effect behavior. A common Git Blob,
+matching signatures, green local test or graph edge alone is insufficient.
+If existing native owner checks discharge the selected property, stop:
+no new solver, mandatory LEGO metadata, global registry, runtime scheduler
+or Agent role is justified.
+
 ## 4. Atomicity Gate
 
 A node is `ATOMIC` only if all are true:

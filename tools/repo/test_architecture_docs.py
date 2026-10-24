@@ -494,6 +494,66 @@ def test_runtime_workspace_lego_unknown_slice_state_is_rejected() -> None:
         module.validate_formal_issue_census(census, plans)
 
 
+@pytest.mark.parametrize(
+    "owner_plan",
+    [
+        "services/runtime/planning/lego-plan-r1.json",
+        "services/harness/planning/lego-plan-r1.json",
+        "platform/network/planning/lego-plan-r1.json",
+        "platform/security/planning/lego-plan-r1.json",
+    ],
+)
+def test_registered_owner_lego_edges_require_declared_source_and_target(owner_plan: str) -> None:
+    census, plans = formal_issue_inputs()
+    plan = plans[owner_plan]
+    assert plan["edges"]
+    plan["edges"][0]["to"] = "UNDECLARED-LEGO"
+    with pytest.raises(module.ArchitectureDocsError, match="unknown LEGO edge endpoint"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_registered_runtime_dependency_must_resolve_to_a_declared_node() -> None:
+    census, plans = formal_issue_inputs()
+    plan = plans["services/runtime/planning/lego-plan-r1.json"]
+    plan["nodes"][2]["dependencies"].append("DANGLING-DEPENDENCY")
+    with pytest.raises(module.ArchitectureDocsError, match="unknown LEGO dependency"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_registered_owner_lego_relation_kinds_are_not_dependency_equivalence() -> None:
+    census, plans = formal_issue_inputs()
+    # Two independent typed relations between the same nodes are valid;
+    # Network/Harness use edges for observations/control, not dependency lists.
+    plan = plans["services/harness/planning/lego-plan-r1.json"]
+    original = copy.deepcopy(plan["edges"][0])
+    original["type"] = "EVIDENCE"
+    original["label"] = "separate evidence relation"
+    plan["edges"].append(original)
+    module.validate_formal_issue_census(census, plans)
+
+
+def test_registered_owner_lego_node_identity_is_injective() -> None:
+    census, plans = formal_issue_inputs()
+    plan = plans["services/runtime/planning/lego-plan-r1.json"]
+    plan["nodes"].append(copy.deepcopy(plan["nodes"][0]))
+    with pytest.raises(module.ArchitectureDocsError, match="duplicate LEGO node identity"):
+        module.validate_formal_issue_census(census, plans)
+
+
+@pytest.mark.parametrize("mutation", ["duplicate", "empty-type", "empty-label"])
+def test_registered_owner_lego_edge_relation_is_typed_and_unique(mutation: str) -> None:
+    census, plans = formal_issue_inputs()
+    plan = plans["services/harness/planning/lego-plan-r1.json"]
+    if mutation == "duplicate":
+        plan["edges"].append(copy.deepcopy(plan["edges"][0]))
+    elif mutation == "empty-type":
+        plan["edges"][0]["type"] = ""
+    else:
+        plan["edges"][0]["label"] = " "
+    with pytest.raises(module.ArchitectureDocsError, match="LEGO edge"):
+        module.validate_formal_issue_census(census, plans)
+
+
 def test_formal_issue_census_rejects_unbound_lego_node() -> None:
     census, plans = formal_issue_inputs()
     owner_plan = census["registrations"][0]["ownerPlan"]
