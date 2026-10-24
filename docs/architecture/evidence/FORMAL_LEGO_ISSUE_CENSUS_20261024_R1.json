@@ -304,6 +304,123 @@
           }
         },
         {
+          "localCommit": "af6f3f48f14b9a8429b7bbd837cd55005031ad86",
+          "owner": "services/gateway",
+          "consumer": "Research capability describe/resolve routes remain consumed via the frozen Gateway research_routes.py and service.py. Historical capability index/Skill profile source files are absent at the exact protected Main; do not equate frozen projection with a regenerable authoritative producer.",
+          "remoteWitness": "services/gateway/src/ordivon_gateway/research_routes.py + service.py; tests/test_research_capability_resolution.py 7/7 PASS via locked uv on 99c24a6aa52ca88b23f238ac21cb9c0a48bb89b4. Gateway generated header cites unavailable historical producer.",
+          "evidenceScope": "FROZEN_GATEWAY_CONSUMER_ONLY",
+          "disposition": "NO_WHOLE_COMMIT_REPLAY_WITHOUT_PRODUCER_AUTHORITY",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc",
+            "historicalSourceState": "HISTORICAL_PRODUCER_FILES_ABSENT",
+            "consumerStanding": "FROZEN_GATEWAY_PROJECTION_RUNS",
+            "branchDeletionAllowed": false
+          }
+        },
+        {
+          "localCommit": "8ac2e7f8147eba471c36650cda52ca2a6fb51347",
+          "owner": "tools/repo",
+          "consumer": "Historical daily-world-model-brief v5.2 CURRENT.json/validator are absent on protected Main and no in-tree consumer references the package. External/scheduled users are UNKNOWN, not proven absent.",
+          "remoteWitness": "Three catalog source paths missing at exact protected cut 6d44eb7860cff086e27bedd1a59e49415a4c87cc. Exact Git grep for daily-world-model-brief and validate_current.py on protected Main found no in-tree consumers; no live automation probe performed.",
+          "evidenceScope": "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN",
+          "disposition": "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc",
+            "historicalSourceState": "LOCAL_ONLY_SOURCE",
+            "consumerStanding": "NO_IN_TREE_CONSUMER_EXTERNAL_UNKNOWN",
+            "branchDeletionAllowed": false
+          }
+        },
+        {
+          "localCommit": "e51472db167b6571db7c7fa9118f08b1eed7613b",
+          "pairedRevertCommit": "07255e4dfd26d172ebb5e62c5844ff2d661081f8",
+          "owner": "platform/workstation",
+          "consumer": "Current Workstation source and browser consumers do not load a persistent RealChromeBrowserHarnessProvider. The two adjacent historical commits add and revert precisely the same source-tree effect; preserve the existing Browser/Workstation provider, never resurrect the retired parallel service.",
+          "remoteWitness": "Git raw tree of e51472db^ and its direct revert 07255e4 is ad4aab81359fb9de9223023b702137e8d9101344 in both cuts (entire tree, not merely selected path bytes); all four source paths absent in protected Main bb8c591851a4c9f0a34763bc1a5fde365030cba4 and local Main 13704d0cac9e113b395f2d5a21b5bf8119aa04a5; no tracked Workstation consumer reference.",
+          "evidenceScope": "EXACT_GIT_BLOBS",
+          "disposition": "SKIP_CANCELLED_HISTORY_PAIR",
+          "beforeTreeOid": "ad4aab81359fb9de9223023b702137e8d9101344",
+          "afterTreeOid": "ad4aab81359fb9de9223023b702137e8d9101344",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "bb8c591851a4c9f0a34763bc1a5fde365030cba4",
+            "patchRelation": "INVERSE_DIRECT_CHILD",
+            "tipRelation": "BOTH_TIPS_ABSENT",
+            "consumerStanding": "NO_CURRENT_CONSUMER",
+            "branchDeletionAllowed": false,
+            "historicalRuntimeParity": "UNKNOWN"
+          }
+        },
+        {
+          "localCommit": "9fbce29650fb13a5ebb9cfec3283f0cc310b467e",
+          "owner": "services/gateway",
+          "consumer": "Gateway Upstream owner errors preserve real Host domain error identity and avoid replacing it with unrelated generic transport failures; current native consumer source and test bytes are identical on both Main tips.",
+          "remoteWitness": "services/gateway/src/ordivon_gateway/upstream.py + tests/test_upstream_identity.py; combined native Gateway owner pytest 17 PASS, no live remote Host effect acceptance claimed.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "0fcc7c0b188e4b981b25c95f76dfb17a41fc82fb",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "SAME_BLOB_AND_MODE",
+            "consumerStanding": "CURRENT_OWNER_COVERED",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "0fcc7c0b188e4b981b25c95f76dfb17a41fc82fb",
+          "verifiedEqualChangedBlobs": true,
+          "changedPaths": [
+            "services/gateway/src/ordivon_gateway/upstream.py",
+            "services/gateway/tests/test_upstream_identity.py"
+          ]
+        },
+        {
+          "localCommit": "eaa045252ef7fc61d65325aa9dfbb2d40d8f4054",
+          "owner": "services/gateway",
+          "consumer": "Gateway Windows release verifier stable tool-surface ordering is already consumed by the immutable release contract; native current producer and tests match exact protected Main blobs. Earlier d91d63 historical edit touched the same files and does not independently justify rolling back the verifier.",
+          "remoteWitness": "WINDOWS_SOURCE_CONTRACT_ONLY: services/gateway/packaging/windows/verify_release.py + tests/test_windows_release_contract.py; combined native Gateway pytest 17 PASS on Linux; no actual Windows candidate deployment, service activation or ACL effect claimed.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "0fcc7c0b188e4b981b25c95f76dfb17a41fc82fb",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "SAME_BLOB_AND_MODE",
+            "consumerStanding": "CURRENT_OWNER_COVERED",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "0fcc7c0b188e4b981b25c95f76dfb17a41fc82fb",
+          "verifiedEqualChangedBlobs": true,
+          "changedPaths": [
+            "services/gateway/packaging/windows/verify_release.py",
+            "services/gateway/tests/test_windows_release_contract.py"
+          ]
+        },
+        {
+          "localCommit": "bec31a81ba5b4ae8fa4310f400cb15f11b6bdd6f",
+          "owner": "platform/workstation",
+          "consumer": "Current OpenTofu/Cloudflare Gateway handoff preserves source identity, private owner-only credentials, reject-delete/replace semantic planning and lossless existing ingress/canary transitions; exact producer/controller/test/Terraform source blobs already current. Earlier 0fbdd244 historical intermediate edit is not a reason to restore old tunnel routes.",
+          "remoteWitness": "NO_LIVE_CLOUDFLARE_CUTOVER: platform/workstation/providers/cloudflare/scripts/ordivon_cloudflare_tofu_handoff.py + providers/cloudflare/test/handoff_tofu_test.py + tofu/agent-birth-handoff/main.tf; native 20 unittest PASS (source and deterministic semantic simulation), not a live Windows or Cloudflare apply proof.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "0fcc7c0b188e4b981b25c95f76dfb17a41fc82fb",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "SAME_BLOB_AND_MODE",
+            "consumerStanding": "CURRENT_OWNER_COVERED",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "0fcc7c0b188e4b981b25c95f76dfb17a41fc82fb",
+          "verifiedEqualChangedBlobs": true,
+          "changedPaths": [
+            "platform/workstation/providers/cloudflare/scripts/ordivon_cloudflare_tofu_handoff.py",
+            "platform/workstation/providers/cloudflare/test/handoff_tofu_test.py",
+            "platform/workstation/tofu/agent-birth-handoff/main.tf"
+          ]
+        },
+        {
           "localCommit": "329f86db80dde3fe6764504f43d3b3e0d7d0de92",
           "historicalCohort": [
             "329f86db80dde3fe6764504f43d3b3e0d7d0de92",
@@ -319,7 +436,40 @@
           "consumer": "Custom Network Capability Router has no operational consumers in either final Main tree; native sing-box per-consumer policies, systemd readiness, and owner probes preserve the necessary Network effect. Do not resurrect the retired router, policy or its own tests.",
           "remoteWitness": "platform/network/planning/lego-plan-r1.json::N01 + platform/network/tests/test_shared_provider_carrier.py::test_retired_network_capability_router_stays_retired, test_browserless_owns_one_internal_provider_carrier, test_finance_provider_lanes_share_carrier_and_macro_lanes_remain_direct; local source main platform/network/docs/UPSTREAM_FIRST_CONVERGENCE_R1.md retirement ledger at 2026-10-22",
           "evidenceScope": "NATIVE_CONSUMER_PASS",
-          "disposition": "SKIP_RETIRED_UNCONSUMED"
+          "disposition": "SKIP_RETIRED_UNCONSUMED",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+            "patchRelation": "DISTINCT_HISTORICAL_RETIRED_EFFECT",
+            "consumerStanding": "NO_CURRENT_CONSUMER_AND_NATIVE_REPLACEMENT",
+            "branchDeletionAllowed": false
+          }
+        }
+      ],
+      "consumerBlockedSelections": [
+        {
+          "localCommit": "e9547525bae3fd0a86f60a160a1a536ce7451c0a",
+          "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+          "protectedMain": "bb8c591851a4c9f0a34763bc1a5fde365030cba4",
+          "owner": "capabilities/artifact",
+          "consumer": "Frozen Game/Artifact acceptance binds exact Artifact verifier source SHA256, not just canonical JSON digest output.",
+          "sourcePathsBound": [
+            "scripts/artifact_aseprite.py",
+            "scripts/artifact_design3d.py",
+            "scripts/artifact_ogg_vorbis.py",
+            "scripts/artifact_software_release_elf.py"
+          ],
+          "frozenReceiptPaths": [
+            "game-station-zero-aseprite-horizontal-sheet-r1.json",
+            "game-veilwild-glb-material-scene-r1.json",
+            "game-veilwild-glb-skinned-animation-r1.json",
+            "game-station-zero-ogg-vorbis-r1.json",
+            "game-godot-production-smoke-linux-elf-r1.json"
+          ],
+          "witness": "Historical direct-reuse migration: 13/13 canonical byte/identity and 27/27 selected Artifact consumer tests PASS, but native mise run artifact:verify FAIL (four test cases: frozen source SHA mismatch). Restore exact protected source bytes: mise run artifact:verify PASS (442 passed, 3 skipped, 39 deselected; 49 subtests). Historical receipt hashes were never rewritten.",
+          "formalCounterexample": "OutputEquivalent != FrozenEvidenceEquivalent",
+          "disposition": "KEEP_FROZEN_SOURCE_PENDING_NEW_CONSUMER_ACCEPTANCE",
+          "branchDeletionAllowed": false
         }
       ],
       "formalObligation": "The selected source must be an explicit source cut and each chosen change must preserve owner CDC.",

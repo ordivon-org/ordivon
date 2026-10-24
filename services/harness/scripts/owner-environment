@@ -2,7 +2,8 @@
 set -euo pipefail
 repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 mode=${1:-}
-uv_bin=${UV_BIN:-$(command -v uv || true)}
+mise_bin=${MISE_BIN:-$(command -v mise || true)}
+uv_bin=${UV_BIN:-}
 env_dir=${ORDIVON_OWNER_ENV_DIR:-"$repo/.venv"}
 python_bin="$env_dir/bin/python"
 
@@ -16,10 +17,26 @@ test        bootstrap, doctor, lint, and run the deterministic unit suite
 cold-start  prove the same test profile from a fresh temporary environment
 TXT
 }
-require_uv() { [[ -n "$uv_bin" ]] || { echo 'Harness owner environment requires uv' >&2; exit 1; }; }
+require_uv() {
+  [[ -n "$mise_bin" && -x "$mise_bin" ]] || {
+    echo 'Harness owner environment requires owner-selected mise' >&2; return 1;
+  }
+  local selected
+  selected=$(cd "$repo" && "$mise_bin" which uv) || {
+    echo 'Harness owner environment cannot resolve pinned uv' >&2; return 1;
+  }
+  [[ -n "$selected" && -x "$selected" ]] || {
+    echo 'Harness owner environment selected uv is not executable' >&2; return 1;
+  }
+  if [[ -n "$uv_bin" && "$(readlink -f "$uv_bin")" != "$(readlink -f "$selected")" ]]; then
+    echo 'Harness owner environment refuses non-owner UV_BIN override' >&2
+    return 1
+  fi
+  uv_bin=$selected
+}
 bootstrap() {
   require_uv
-  UV_PROJECT_ENVIRONMENT="$env_dir" "$uv_bin" sync --locked --group dev --group test
+  (cd "$repo" && UV_PROJECT_ENVIRONMENT="$env_dir" "$mise_bin" exec -- "$uv_bin" sync --locked --group dev --group test)
 }
 doctor() {
   [[ -x "$python_bin" ]] || { echo "Harness owner environment is not materialized: $python_bin" >&2; exit 1; }
