@@ -371,24 +371,22 @@
       "id": "CI-03",
       "problemClass": "CI_EXECUTION",
       "naturalOwner": "tools/repo",
-      "standing": "CONFIRMED_FAIL_PENDING_OWNER_PR",
-      "observation": "New open PR #231 fails root-verification for owner-universe-bound convergence plans; this observation does not establish the exact failing assertion.",
-      "evidence": "gh pr view/checks 231; GitHub Actions run 40028281009; files: tools/repo/affected_owners.py, tools/repo/convergence_plan.py, tools/repo/test_convergence_plan.py",
-      "decision": "Fix in existing PR #231; do not fork duplicate owner-universe checker.",
+      "standing": "HISTORICAL_CI_FAILURE_CURRENT_OWNER_CONTRACT_VERIFIED",
+      "observation": "Earlier PR #231 root-verification failed, with the specific historical failure assertion not reconstructed. PR #231 merged on 2026-10-23T22:28:22Z; current source-bound repository consumer checks pass. The historical failure is not asserted to have had the same cause as the current contract.",
+      "evidence": "Historical GitHub Actions run 40028281009 (failure context, exact assertion unrecovered); PR #231 merged 2026-10-23T22:28:22Z; candidate source 33f49982a10988ffedb4c2a7379a0746c286f91a: tools/repo/test_convergence_plan.py 11/11 PASS, tools/repo/test_affected_owners.py 26/26 PASS, tools/repo/test_architecture_docs.py 42/42 PASS, tools/repo/check_architecture_docs.py PASS on 2026-10-24.",
+      "decision": "Retain the existing tools/repo owner-universe and convergence-plan verifier; do not add another LEGO or duplicate validator. Historical CI root cause stays UNKNOWN without a reproduced counterexample. Reopen only on a failing exact-current owner consumer test.",
       "formalObligation": "ConvergenceOwnerSet(plan) subset of DeclaredOwnerUniverse(sourceCut), with strict unknown-owner rejection.",
       "consumers": "Repository CI, affected-owner selection, merge queue",
       "representation": {
-        "primary": "causal",
-        "supporting": [
-          "state-machine"
-        ],
-        "methodSkill": ".agents/skills/causal-intervention/SKILL.md",
-        "requiredWitness": "Replay the exact failed Runtime concurrent-admission test from run 40028281009 separately from dependency download failures.",
-        "selectionReason": "Observed CI failure must be attributed by intervention rather than inferred from PR title."
+        "primary": "type",
+        "supporting": [],
+        "methodSkill": null,
+        "requiredWitness": "Native test_convergence_plan.py rejects unknown owners and preserves the scoped owner universe; test_affected_owners.py exercises owner selection, with the exact source revision recorded.",
+        "selectionReason": "The current obligation is decidable owner-universe membership, already falsified by owner-native negative tests; a separate causal-intervention Skill is unnecessary until a historical failure cause is independently reproduced."
       },
       "registration": {
         "state": "UNREGISTERED",
-        "reason": "Owner-local LEGO slice and consumer acceptance are not yet evidenced; census observation is not registration."
+        "reason": "Existing tools/repo owner-native convergence tests own this safety property; no additional owner-local LEGO slice or registration authority is justified."
       }
     },
     {
