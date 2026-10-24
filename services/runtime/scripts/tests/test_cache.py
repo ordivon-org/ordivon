@@ -14,6 +14,7 @@ import time
 import unittest
 from contextlib import closing
 from pathlib import Path
+from unittest.mock import patch
 
 REPO = Path(__file__).resolve().parents[2]
 
@@ -139,6 +140,59 @@ class CacheRetentionTests(unittest.TestCase):
         )
         self.assertIn("{inspect,prune}", completed.stdout)
         self.assertNotIn("migrate", completed.stdout)
+
+    def test_activity_markers_are_only_inspected_for_nonempty_fenced_builds(self) -> None:
+        """Zero useful idle builds need zero marker queries; multiple use one batch."""
+        module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-cache"))
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            runtime, database = root / "runtime", root / "registry.sqlite3"
+            initialize_registry(database)
+            source = root / "source"
+            source.mkdir()
+            names = ("idle-a", "idle-b")
+            for name in names:
+                record(runtime, name, source)
+                (runtime / "cache" / "build" / name).mkdir(parents=True)
+            # Unrelated bytes must not trigger an idle-Workspace marker query.
+            unrelated = runtime / "cache" / "tmp" / "unrelated"
+            unrelated.mkdir(parents=True)
+            (unrelated / "payload").write_bytes(b"other")
+            marker = "sha256:" + "e" * 64
+            calls: list[str | None] = []
+
+            def inspect(_database: Path, command: str, *, workspace_id=None):
+                if command == "registry":
+                    return {"activeWorkspaces": []}
+                if command == "registry-markers":
+                    calls.append(workspace_id)
+                    self.assertIsNone(workspace_id, "must use one bounded native batch")
+                    return {
+                        "workspaces": [
+                            {"workspaceId": name, "activityMarker": marker}
+                            for name in names
+                        ]
+                    }
+                raise AssertionError(command)
+
+            with patch.dict(
+                module["cache_prune_candidates"].__globals__,
+                {"runtime_inspection": inspect},
+            ):
+                _, before = module["cache_prune_candidates"](
+                    database, runtime, include_idle_open_build=True
+                )
+                self.assertFalse(any(c["requiresAdmissionFence"] for c in before))
+                self.assertEqual(calls, [])
+                for name in names:
+                    (runtime / "cache" / "build" / name / "payload").write_bytes(b"1")
+                _, after = module["cache_prune_candidates"](
+                    database, runtime, include_idle_open_build=True
+                )
+            self.assertEqual(calls, [None])
+            fenced = [c for c in after if c["requiresAdmissionFence"]]
+            self.assertEqual(len(fenced), 2)
+            self.assertEqual({c["workspaceActivityMarker"] for c in fenced}, {marker})
 
     def test_zero_byte_cache_directories_are_not_retention_candidates(self) -> None:
         module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-cache"))
