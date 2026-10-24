@@ -781,19 +781,26 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
         "13704d0cac", "35b7e06ffd", "4a2555f42e", "0dcfbb750f",
         "a6af91c187", "63d3c48172", "0abd90d3ba",
         "b13052b5da", "fd2082905f", "e140571445",
+        "ecca6ad1ae", "86298d72ea", "9c8e37dfe8", "fcf5fc6d1b",
     }
     for item in candidates:
         assert len(item["localCommit"]) == 40
         assert item["owner"]
         assert item["consumer"]
         assert item["remoteWitness"]
-        assert item["disposition"] in {"SKIP_DUPLICATE_CHERRY_PICK", "SKIP_OLDER_PIN"}
+        assert item["disposition"] in {"SKIP_DUPLICATE_CHERRY_PICK", "SKIP_OLDER_PIN", "SKIP_OLDER_SOURCECUT", "SKIP_UNCONSUMED_PERMISSION"}
         assert item["evidenceScope"] in {
             "NATIVE_CONSUMER_PASS", "EXACT_GIT_BLOBS",
             "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF",
+            "LATEST_STABLE_SOURCE_NO_UPGRADE",
+            "CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT",
         }
         if item["evidenceScope"] == "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF":
             assert item["disposition"] == "SKIP_OLDER_PIN"
+        if item["localCommit"].startswith(("ecca6ad", "86298d7", "9c8e37d", "fcf5fc6")):
+            assert item["evaluatedRemoteMain"] == "a56afcf30aafd8d5bcd0f41adb950504f5724267"
+        if item["evidenceScope"] == "CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT":
+            assert item["disposition"] == "SKIP_UNCONSUMED_PERMISSION"
     module.validate_formal_issue_census(census, plans)
 
 
