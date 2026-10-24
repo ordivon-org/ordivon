@@ -2243,6 +2243,11 @@ class DeployReclaimTests(unittest.TestCase):
                     encoding="utf-8",
                 )
             (workspaces / "closed-residual").mkdir()
+            (records / "closed-dangling.json").write_text(
+                json.dumps({"schemaVersion": 1, "workspaceId": "closed-dangling", "state": "closed"}),
+                encoding="utf-8",
+            )
+            (workspaces / "closed-dangling").symlink_to(root / "missing-workspace-carrier")
             (records / "broken.json").write_text("{not JSON", encoding="utf-8")
             (records / "symlink.json").symlink_to(records / "closed-gone.json")
             globals_ = module["inspect_workspaces"].__globals__
@@ -2273,6 +2278,7 @@ class DeployReclaimTests(unittest.TestCase):
             self.assertNotIn("closed-gone", by_id)
             self.assertNotIn("closed-gone", sha_calls)
             self.assertEqual(by_id["closed-residual"], "unknown")
+            self.assertEqual(by_id["closed-dangling"], "unknown")
             self.assertEqual(by_id["stale-open"], "stale_record")
             self.assertEqual(by_id["broken"], "unknown")
             self.assertEqual(by_id["symlink"], "unknown")
