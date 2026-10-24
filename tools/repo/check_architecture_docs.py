@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+from graphlib import CycleError, TopologicalSorter
 import tomllib
 from pathlib import Path
 from typing import Any
@@ -609,7 +610,32 @@ def validate_formal_issue_census(
         nodes = plan.get("nodes")
         if not isinstance(nodes, list):
             raise ArchitectureDocsError("owner-local LEGO nodes missing")
-        node_ids = {n["id"] for n in nodes if isinstance(n, dict) and isinstance(n.get("id"), str)}
+        # LEGO R2.1 / Graph-first: reuse the stdlib predecessor-graph
+        # algebra; the Owner plan is still only a planning projection.
+        # Require identities and relations to be well typed before the
+        # mathematical cycle check (TopologicalSorter adds unknown nodes).
+        graph: dict[str, tuple[str, ...]] = {}
+        for node in nodes:
+            if not isinstance(node, dict) or not isinstance(node.get("id"), str) or not node["id"]:
+                raise ArchitectureDocsError("untyped LEGO node identity")
+            identity = node["id"]
+            if identity in graph:
+                raise ArchitectureDocsError("duplicate LEGO node identity")
+            depends = node.get("dependencies")
+            if not isinstance(depends, list) or any(
+                not isinstance(value, str) or not value for value in depends
+            ):
+                raise ArchitectureDocsError("untyped LEGO dependencies")
+            if len(depends) != len(set(depends)):
+                raise ArchitectureDocsError("duplicate LEGO dependency")
+            graph[identity] = tuple(depends)
+        node_ids = set(graph)
+        if any(dependency not in node_ids for depends in graph.values() for dependency in depends):
+            raise ArchitectureDocsError("unknown LEGO dependency")
+        try:
+            tuple(TopologicalSorter(graph).static_order())
+        except CycleError as exc:
+            raise ArchitectureDocsError("cyclic LEGO dependencies") from exc
         hits = [s for s in plan.get("slices", []) if isinstance(s, dict) and s.get("id") == slice_id]
         if len(hits) != 1:
             raise ArchitectureDocsError(f"owner-local LEGO slice {slice_id} not unique")

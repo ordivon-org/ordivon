@@ -92,6 +92,16 @@ INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST = canonical_digest(INDEPENDENT_SEARCH_TOOL_
 _RUNTIME_DELIVERY_DISPOSITIONS = frozenset(
     {"in_progress", "committed", "reconciliation_required", "unknown"}
 )
+# Exact Runtime JobResolution states: four conclusive outcomes plus two
+# uncertain outcomes form a disjoint sum at the Runtime/Harness boundary.
+# These names are the Runtime-owned public JobResolution wire contract.
+_RUNTIME_COMMITTED_RESOLUTIONS = frozenset(
+    {"succeeded", "failed", "timed_out", "cancelled"}
+)
+_RUNTIME_UNCERTAIN_RESOLUTIONS = frozenset({"lost", "orphaned"})
+_RUNTIME_JOB_RESOLUTIONS = (
+    _RUNTIME_COMMITTED_RESOLUTIONS | _RUNTIME_UNCERTAIN_RESOLUTIONS
+)
 
 
 def _find_runtime_jobs_by_client_request(
@@ -178,10 +188,20 @@ def _runtime_delivery_state(payload: dict[str, JsonValue]) -> str:
 
     if not isinstance(execution_terminal, bool):
         raise HarnessRuntimeClientError("Runtime observation omitted executionTerminal")
-    if execution_disposition is not None and not isinstance(execution_disposition, str):
+    if execution_disposition is not None and (
+        not isinstance(execution_disposition, str)
+        or execution_disposition not in _RUNTIME_JOB_RESOLUTIONS
+    ):
         raise HarnessRuntimeClientError("Runtime executionDisposition is invalid")
     if delivery_disposition not in _RUNTIME_DELIVERY_DISPOSITIONS:
         raise HarnessRuntimeClientError("Runtime deliveryDisposition is invalid")
+    if (
+        delivery_disposition == "committed"
+        and execution_disposition in _RUNTIME_UNCERTAIN_RESOLUTIONS
+    ):
+        raise HarnessRuntimeClientError(
+            "Runtime committed executionDisposition contradicts uncertain resolution"
+        )
     if not isinstance(recovery_required, bool):
         raise HarnessRuntimeClientError("Runtime observation omitted recoveryRequired")
     if not isinstance(result_available, bool):

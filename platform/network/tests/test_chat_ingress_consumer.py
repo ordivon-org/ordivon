@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 import json
+import os
+import subprocess
 from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 CONSUMER = ROOT / 'consumers' / 'chat-ingress'
@@ -63,3 +67,63 @@ def test_relay_waits_for_namespace_proxy_and_target_is_enableable():
     assert '19080' in relay.split('ExecStartPre=', 1)[1]
     assert '[Install]' in target
     assert 'WantedBy=multi-user.target' in target
+
+
+@pytest.mark.parametrize(
+    ("receipt", "exit_code", "ready"),
+    [
+        ("403 200", 0, True),  # auth challenge is transport, not identity proof
+        ("000 407", 0, False),  # forbidden CONNECT is not a healthy tunnel
+        ("502 200", 0, False),  # bad upstream is not application readiness
+        ("200 000", 0, False),  # origin-looking HTTP alone is insufficient
+        ("200 200 extra", 0, False),  # malformed status projection fails closed
+        ("200 200", 7, False),  # curl failure cannot be hidden by output text
+    ],
+)
+def test_chat_ingress_ready_requires_valid_connect_and_origin_pair(
+    tmp_path: Path, receipt: str, exit_code: int, ready: bool
+) -> None:
+    # Actual Bash consumer invocation; fake only external network and systemd.
+    bin_path = tmp_path / "bin"
+    bin_path.mkdir()
+    scripts = {
+        "systemctl": "#!/bin/sh\nexit 0\n",
+        "ss": "#!/bin/sh\necho '127.0.0.1:19081'\n",
+        "curl": (
+            "#!/bin/sh\n"
+            "printf '%s\n' \"$*\" >> \"$CHAT_CURL_CALLS\"\n"
+            "printf '%s' \"$CHAT_RECEIPT\"\n"
+            "exit \"$CHAT_EXIT\"\n"
+        ),
+    }
+    for name, source in scripts.items():
+        path = bin_path / name
+        path.write_text(source, encoding="utf-8")
+        path.chmod(0o755)
+    calls = tmp_path / "curl-args.txt"
+    proc = subprocess.run(
+        ["/usr/bin/bash", str(CONSUMER / "ready.sh")],
+        env={
+            **os.environ,
+            "PATH": str(bin_path) + os.pathsep + os.environ.get("PATH", ""),
+            "CHAT_CURL_CALLS": str(calls),
+            "CHAT_RECEIPT": receipt,
+            "CHAT_EXIT": str(exit_code),
+        },
+        capture_output=True,
+        text=True,
+        timeout=8,
+        check=False,
+    )
+    assert (proc.returncode == 0) is ready, (receipt, proc.stdout, proc.stderr)
+    if ready:
+        payload = json.loads(proc.stdout)
+        assert payload["standing"] == "READY"
+        assert payload["httpStatus"] == 403
+        assert payload["connectStatus"] == 200
+    else:
+        assert '"standing":"READY"' not in proc.stdout
+    recorded = calls.read_text(encoding="utf-8")
+    assert "--noproxy" in recorded and "--proxy" in recorded
+    assert "%{http_connect}" in recorded
+    assert "-q" in recorded

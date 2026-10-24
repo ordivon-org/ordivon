@@ -60,6 +60,8 @@ def validate_graph(value: dict[str, Any]) -> None:
                 raise CompositionArchitectureError(f"{node_id}: {field} must be non-empty")
             if not all(isinstance(item, str) and item.strip() for item in rows):
                 raise CompositionArchitectureError(f"{node_id}: {field} entries must be strings")
+            if field == "dependsOn" and len(rows) != len(set(rows)):
+                raise CompositionArchitectureError(f"{node_id}: duplicate dependencies")
         if raw["owner"] == "gateway":
             boundary = raw["authorityBoundary"].lower()
             if "non-authoritative" not in boundary:
@@ -108,6 +110,22 @@ def validate_graph(value: dict[str, Any]) -> None:
     }
     if set(critical) & on_demand:
         raise CompositionArchitectureError("on-demand nodes must not enter criticalPath")
+    # The critical sequence is a linear extension of the DAG, even when
+    # intermediate prerequisite nodes are not themselves on the sequence.
+    critical_pos = {node_id: pos for pos, node_id in enumerate(critical)}
+    for node_id, position in critical_pos.items():
+        pending = list(by_id[node_id]["dependsOn"])
+        seen: set[str] = set()
+        while pending:
+            dependency = pending.pop()
+            if dependency in seen:
+                continue
+            if dependency in critical_pos and critical_pos[dependency] >= position:
+                raise CompositionArchitectureError(
+                    f"criticalPath dependency order: {node_id} requires {dependency}"
+                )
+            seen.add(dependency)
+            pending.extend(by_id[dependency]["dependsOn"])
 
     parallel = value.get("initialParallelSet")
     if not isinstance(parallel, list) or not parallel:
