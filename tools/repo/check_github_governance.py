@@ -49,31 +49,6 @@ def configured_dirs(row: dict) -> set[str]:
         return {row["directory"]}
     return set()
 
-def validate_uv_lock_renovate(config: dict, renovate: dict) -> set[str]:
-    """The tracked PEP 621 consumer has one update owner and no auto-merge."""
-    expected_uv = dirs_for_lock("**/uv.lock", "uv.lock")
-    assert not any(row.get("package-ecosystem") == "uv" for row in config["updates"]), (
-        "Dependabot uv duplicates Renovate pep621 ownership"
-    )
-    assert "pep621" in renovate.get("enabledManagers", []), (
-        "Renovate must own Python PEP 621 manifests"
-    )
-    maintenance = renovate.get("lockFileMaintenance", {})
-    assert maintenance.get("enabled") is True, "Renovate must refresh uv.lock files"
-    assert maintenance.get("automerge", False) is False, (
-        "uv.lock updates must not bypass consumer verification"
-    )
-    assert renovate.get("automerge", False) is False, (
-        "Python dependency upgrades require consumer verification"
-    )
-    missing = sorted(
-        directory for directory in expected_uv
-        if not (ROOT / directory.lstrip("/") / "pyproject.toml").is_file()
-    )
-    assert not missing, f"uv locks without PEP 621 manifests: {missing}"
-    return expected_uv
-
-
 def main() -> int:
     # This verifier uses assertions for its native policy checks. Python -O removes
     # them; fail closed rather than incorrectly certifying an unchecked source tree.
@@ -90,10 +65,30 @@ def main() -> int:
     github_actions = update_for(config, "github-actions")
     assert configured_dirs(github_actions) == {"/"}
 
-    # The same owner-native contract drives both production acceptance and
-    # historical fault injection; no second dependency registry is introduced.
+    # Renovate PEP 621 is the single Python manifest + uv.lock update owner.
+    # Keep this check against the actual tracked consumers, not a duplicate list.
+    expected_uv = dirs_for_lock("**/uv.lock", "uv.lock")
+    assert not any(row.get("package-ecosystem") == "uv" for row in config["updates"]), (
+        "Dependabot uv duplicates Renovate pep621 ownership"
+    )
     renovate = json.loads((ROOT / "renovate.json").read_text(encoding="utf-8"))
-    expected_uv = validate_uv_lock_renovate(config, renovate)
+    assert "pep621" in renovate.get("enabledManagers", []), (
+        "Renovate must own Python PEP 621 manifests"
+    )
+    assert renovate.get("lockFileMaintenance", {}).get("enabled") is True, (
+        "Renovate must refresh uv.lock files"
+    )
+    assert renovate.get("lockFileMaintenance", {}).get("automerge", False) is False, (
+        "uv.lock maintenance must not automerge without consumer verification"
+    )
+    assert renovate.get("automerge", False) is False, (
+        "Python dependency upgrades require consumer verification"
+    )
+    missing = sorted(
+        directory for directory in expected_uv
+        if not (ROOT / directory.lstrip("/") / "pyproject.toml").is_file()
+    )
+    assert not missing, f"uv locks without PEP 621 manifests: {missing}"
 
     npm_locks: set[str] = set()
     for pattern, name in (

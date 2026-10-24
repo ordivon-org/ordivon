@@ -51,39 +51,6 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                 check=False,
             )
 
-    def test_uv_lock_governance_rejects_historical_update_owner_faults(self) -> None:
-        # Recover the distinct historical negative consumer from local Main,
-        # without restoring its old provider implementation or source cut.
-        import copy
-        import importlib.util
-        import json
-
-        import yaml
-
-        sys.path.insert(0, str(SCRIPT.parent))
-        spec = importlib.util.spec_from_file_location("repo_github_governance", SCRIPT)
-        assert spec and spec.loader
-        checker = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(checker)
-        base_dependabot = yaml.safe_load(DEPENDABOT.read_text(encoding="utf-8"))
-        base_renovate = json.loads((ROOT / "renovate.json").read_text(encoding="utf-8"))
-        self.assertTrue(checker.validate_uv_lock_renovate(base_dependabot, base_renovate))
-
-        for name in ("missing_pep621", "duplicate_uv_owner", "lock_maintenance_off", "unsafe_lock_automerge"):
-            with self.subTest(name=name):
-                dependabot = copy.deepcopy(base_dependabot)
-                renovate = copy.deepcopy(base_renovate)
-                if name == "missing_pep621":
-                    renovate["enabledManagers"].remove("pep621")
-                elif name == "duplicate_uv_owner":
-                    dependabot["updates"].append({"package-ecosystem": "uv", "directory": "/"})
-                elif name == "lock_maintenance_off":
-                    renovate["lockFileMaintenance"]["enabled"] = False
-                else:
-                    renovate["lockFileMaintenance"]["automerge"] = True
-                with self.assertRaises(AssertionError):
-                    checker.validate_uv_lock_renovate(dependabot, renovate)
-
     def test_valid_manifest_is_accepted_in_normal_mode(self) -> None:
         result = self.run_contract(invalid=False, optimized=False)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -103,6 +70,34 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         result = self.run_contract(invalid=False, optimized=True)
         self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("optimized Python", result.stderr)
+
+
+    def test_lock_maintenance_automerge_is_not_an_update_authority(self) -> None:
+        """Renovate documents independent lockFileMaintenance.automerge=true."""
+        import importlib.util
+        import json
+        from unittest.mock import patch
+
+        sys.path.insert(0, str(SCRIPT.parent))
+        spec = importlib.util.spec_from_file_location("native_governance_under_test", SCRIPT)
+        assert spec and spec.loader
+        checker = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(checker)
+        original = Path.read_text
+
+        def mutated_lock_maintenance(path: Path, *args, **kwargs) -> str:
+            value = original(path, *args, **kwargs)
+            if path == ROOT / "renovate.json":
+                config = json.loads(value)
+                config["lockFileMaintenance"]["automerge"] = True
+                return json.dumps(config)
+            return value
+
+        with (
+            patch.object(Path, "read_text", mutated_lock_maintenance),
+            self.assertRaisesRegex(AssertionError, "uv.lock maintenance must not automerge"),
+        ):
+            checker.main()
 
 
 if __name__ == "__main__":

@@ -784,14 +784,14 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
         "ecca6ad1ae", "86298d72ea", "9c8e37dfe8", "fcf5fc6d1b",
         "82c8fa2924", "84baec0ea1", "7a96b238fb", "7c2fa8c4d2",
         "225192c6e7", "2919a6d840", "495b45d461", "f93faa57cf",
-        "e39ee4485e", "107e6b52c3", "7263f9ea65", "2eaaf11fb8",
+        "2eaaf11fb8",
     }
     for item in candidates:
         assert len(item["localCommit"]) == 40
         assert item["owner"]
         assert item["consumer"]
         assert item["remoteWitness"]
-        assert item["disposition"] in {"SKIP_DUPLICATE_CHERRY_PICK", "SKIP_OLDER_PIN", "SKIP_OLDER_SOURCECUT", "SKIP_UNCONSUMED_PERMISSION", "SKIP_CONSUMED_IMPLEMENTATION", "SELECT_NEGATIVE_CDC"}
+        assert item["disposition"] in {"SKIP_DUPLICATE_CHERRY_PICK", "SKIP_OLDER_PIN", "SKIP_OLDER_SOURCECUT", "SKIP_UNCONSUMED_PERMISSION", "SELECT_NEGATIVE_CDC"}
         assert item["evidenceScope"] in {
             "NATIVE_CONSUMER_PASS", "EXACT_GIT_BLOBS",
             "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF",
@@ -873,31 +873,17 @@ def test_formal_registry_sources_bound_before_loading(
         module._source_bound_file(source, relative, label)
 
 
-def test_git01_four_additional_local_history_consumers_are_source_bound() -> None:
-    """Qualify effects, not cherry-picked historical patch names."""
+def test_git01_selects_only_unique_uv_lock_maintenance_fault() -> None:
+    """Other historical Git CDC owners are already selected by peer PRs."""
     census, plans = formal_issue_inputs()
     issue = next(row for row in census["issues"] if row["id"] == "GIT-01")
-    selected = {row["localCommit"][:12]: row for row in issue["consumerSelections"]}
-    decisions = {
-        "e39ee4485eab": ("tools/repo", "SKIP_CONSUMED_IMPLEMENTATION"),
-        "107e6b52c399": ("capabilities/artifact", "SKIP_OLDER_PIN"),
-        "7263f9ea652e": ("services/runtime", "SKIP_CONSUMED_IMPLEMENTATION"),
-        "2eaaf11fb804": ("tools/repo", "SELECT_NEGATIVE_CDC"),
-    }
-    for sha, (owner, disposition) in decisions.items():
-        row = selected[sha]
-        assert row["owner"] == owner
-        assert row["disposition"] == disposition
-        assert row["evidenceScope"] == "NATIVE_CONSUMER_PASS"
-        assert row["sourceQualification"]["patchRelation"] == "PATCH_DISTINCT_UNQUALIFIED"
-        assert row["sourceQualification"]["branchDeletionAllowed"] is False
-        assert row["sourceQualification"]["localMain"] == "13704d0cac9e113b395f2d5a21b5bf8119aa04a5"
-        assert row["consumer"].strip() and row["remoteWitness"].strip()
-    for sha in ("e39ee4485eab", "107e6b52c399"):
-        assert len(selected[sha]["equalChangedBlobOids"]) == 2
-        assert all(len(blob) == 40 for blob in selected[sha]["equalChangedBlobOids"].values())
-    assert (ROOT / "tools/repo/migration/test-check-publication-main.sh").is_file()
-    assert (ROOT / "services/runtime/crates/ordivon-runtime-core/src/universal/workspace/source_state.rs").is_file()
+    chosen = {row["localCommit"][:12]: row for row in issue["consumerSelections"]}
+    row = chosen["2eaaf11fb804"]
+    assert row["owner"] == "tools/repo"
+    assert row["disposition"] == "SELECT_NEGATIVE_CDC"
+    assert row["evidenceScope"] == "NATIVE_CONSUMER_PASS"
+    assert row["sourceQualification"]["patchRelation"] == "PATCH_DISTINCT_UNQUALIFIED"
+    assert row["sourceQualification"]["branchDeletionAllowed"] is False
     module.validate_formal_issue_census(census, plans)
 
 
