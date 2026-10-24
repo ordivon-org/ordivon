@@ -887,6 +887,33 @@
           ]
         },
         {
+          "localCommit": "bf1b282ff64fe94a796eaea96366d9e25a243b6f",
+          "historicalCohort": [
+            "591672cd8637ba4fdc68bc3f31ce5a90918cdb71",
+            "bf1b282ff64fe94a796eaea96366d9e25a243b6f"
+          ],
+          "owner": "services/harness",
+          "consumer": "Historical HUX-40 milestone/baseline planning responsibility: prior non-merge commit 591672cd changed two planning files, then bf1b282ff retired all four HUX documents. Both exact Main tips have no HUX plan files, active Harness source/test runner or tracked source references to those plan identities. Current Harness natural Owner has its own lego-plan-r1; absent HUX plans are not executable consumer inputs.",
+          "remoteWitness": "Source local main 13704d0cac9e113b395f2d5a21b5bf8119aa04a5, protected main 78895b2291830be75fa472f3621fc24ebd2e67f3: Git path/mode trees omit the four HUX plan files at both tips; git grep on services/harness and tools/repo finds no references to HUX_EXECUTION_PLAN_R1, hux-execution-plan-r1, HUX_CURRENT_BASELINE_R1, hux-current-baseline-r1. Native tools/repo/test_architecture_docs.py checks negative current source-bound HUX paths; no external automation use or live harness execution is claimed.",
+          "evidenceScope": "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN",
+          "disposition": "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "78895b2291830be75fa472f3621fc24ebd2e67f3",
+            "tipRelation": "BOTH_TIPS_ABSENT",
+            "consumerStanding": "NO_IN_TREE_CONSUMER_EXTERNAL_UNKNOWN",
+            "branchDeletionAllowed": false,
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "inferenceBoundary": "historical planning file absence only, no external plan consumer proof"
+          },
+          "retiredPaths": [
+            "services/harness/planning/HUX_CURRENT_BASELINE_R1.md",
+            "services/harness/planning/HUX_EXECUTION_PLAN_R1.md",
+            "services/harness/planning/hux-current-baseline-r1.json",
+            "services/harness/planning/hux-execution-plan-r1.json"
+          ]
+        },
+        {
           "localCommit": "d6f0d184dec98746704291ce74639b38fa645d8e",
           "owner": "packages/composition",
           "consumer": "Removed Composition browser-network sequence input validator. Current Harness Browserless consumes directly Network-v2 graduated namespace/receipt/service rather than the old list input; neither current tip has the old module.",
