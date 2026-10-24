@@ -302,6 +302,24 @@
             "tipRelation": "SAME_BLOB_AND_MODE",
             "consumerStanding": "CURRENT_OWNER_COVERED"
           }
+        },
+        {
+          "localCommit": "7263f9ea652e4bd1658cf705826cf2635f00ab0d",
+          "owner": "services/runtime",
+          "consumer": "Nested Git worktree cannot inherit parent identity; a genuinely nested Git repository is digestible, and a plain untracked directory fails closed as WorkspacePathDenied.",
+          "remoteWitness": "services/runtime/crates/ordivon-runtime-core/src/universal/workspace/source_state.rs::gitlink_worktree_root_tests::{nested_gitlink_directory_does_not_inherit_parent_worktree_identity,untracked_nested_git_worktree_is_digestible,ordinary_untracked_directory_cannot_be_source_git_worktree}; native transactional-runtime cargo test filter gitlink_worktree_root_tests: 3/3 PASS.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc"
+        },
+        {
+          "localCommit": "efb7510538ef8d4932edd39d257357dfee63c695",
+          "owner": "services/runtime",
+          "consumer": "Workspace list bounded live HEAD/dirty Git projection already executes independent probes with maximum four scoped workers, preserves input order and per-workspace issue isolation; exact includeSourceStateDigest keeps serial proof-strength path.",
+          "remoteWitness": "services/runtime/crates/ordivon-runtime-core/src/runtime/engine/workspace.rs::WORKSPACE_LIST_LIVE_PROJECTION_PARALLELISM=4, thread::scope + contiguous chunks + ordered join; cargo test filter workspace_list 6/6 PASS, covering paging/order and isolated projection errors. Concurrency bound is source-inspected rather than timed independently.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc"
         }
       ],
       "formalObligation": "The selected source must be an explicit source cut and each chosen change must preserve owner CDC.",

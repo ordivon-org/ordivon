@@ -784,6 +784,7 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
         "ecca6ad1ae", "86298d72ea", "9c8e37dfe8", "fcf5fc6d1b",
         "82c8fa2924", "84baec0ea1", "7a96b238fb", "7c2fa8c4d2",
         "225192c6e7", "2919a6d840", "495b45d461", "f93faa57cf",
+        "7263f9ea65", "efb7510538",
     }
     for item in candidates:
         assert len(item["localCommit"]) == 40
@@ -805,6 +806,33 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             assert item["evaluatedRemoteMain"] == "41a1073703343aad61c3ffacac34edfb91019800"
         if item["evidenceScope"] == "CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT":
             assert item["disposition"] == "SKIP_UNCONSUMED_PERMISSION"
+    module.validate_formal_issue_census(census, plans)
+
+
+def test_runtime_nested_git_and_parallel_probe_history_reuses_current_consumers() -> None:
+    """Two historical patches are not new Runtime LEGO when the present owner consumes both."""
+    census, plans = formal_issue_inputs()
+    issue = next(item for item in census["issues"] if item["id"] == "GIT-01")
+    selected = {
+        row["localCommit"]: row
+        for row in issue["consumerSelections"]
+        if row["localCommit"].startswith(("7263f9ea", "efb75105"))
+    }
+    assert {commit[:12] for commit in selected} == {
+        "7263f9ea652e", "efb7510538ef"
+    }
+    for row in selected.values():
+        assert row["owner"] == "services/runtime"
+        assert row["disposition"] == "SKIP_DUPLICATE_CHERRY_PICK"
+        assert row["evidenceScope"] == "NATIVE_CONSUMER_PASS"
+        assert row["evaluatedRemoteMain"] == "6d44eb7860cff086e27bedd1a59e49415a4c87cc"
+    source = (ROOT / "services/runtime/crates/ordivon-runtime-core/src/universal/workspace/source_state.rs").read_text()
+    listing = (ROOT / "services/runtime/crates/ordivon-runtime-core/src/runtime/engine/workspace.rs").read_text()
+    assert "fn untracked_nested_git_worktree_is_digestible()" in source
+    assert "fn ordinary_untracked_directory_cannot_be_source_git_worktree()" in source
+    assert "const WORKSPACE_LIST_LIVE_PROJECTION_PARALLELISM: usize = 4" in listing
+    assert "if request.include_source_state_digest || projection_inputs.len() <= 1" in listing
+    assert "scope.spawn" in listing
     module.validate_formal_issue_census(census, plans)
 
 
