@@ -124,3 +124,30 @@ The native `formal:verify` task also checks the model is **non-vacuous**:
 a dedicated expected-counterexample config must make TLC find an admitted
 Network degradation. A missing transition or incorrectly restricted model
 therefore fails owner verification instead of silently yielding four PASSes.
+
+
+## Admission SourceCut refinement (2026-10-25)
+
+The older `consumerEvidence = "matching"` classified only Work/consumer identity.
+It could not represent a terminal result for the correct Work whose evidence
+belongs to a **different admission-frozen source revision**. The bounded Owner
+model now also tracks `sourceEvidenceBinding` with `none`,
+`admission-bound`, and `different-source`. `ConsumerObserve` admits both
+source cases independently of Work identity; `HostAccept` requires *both*
+a matching consumer and an admission-bound source. The separate
+`NoHostAcceptanceWithWrongSource` invariant checks this safety obligation.
+
+Four native digest-verified TLC configurations explored **22, 40, 40, 22**
+distinct states without violations (Harness+Network, direct-local,
+direct-egress, Harness-local respectively). The existing Owner formal gate
+requires a negative oracle where the correct Work and wrong SourceCut must be
+reachable; this prevents silently deleting the adversarial abstract state.
+A separate temporary RED guard mutation is needed to validate that the new
+invariant can actually catch an erroneous Host acceptance.
+
+**Truth boundary:** Source binding is a *symbolic classification* supplied by
+an abstract consumer oracle. This model does not hash-check the actual Job
+plan, Git revision, Workspace digest, Host Work, or independent consumer
+receipt. Concrete owner refinement and trustworthy witness production remain
+UNKNOWN until separately qualified by those native owners. A moving Git
+`main` is not the admission-frozen source identity.

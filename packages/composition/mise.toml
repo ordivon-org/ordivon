@@ -70,6 +70,16 @@ fi
     exit 1
   fi
   echo "TLC foreign consumer evidence non-vacuity: PASS"
+  if java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config Lego21OwnerBoundary.sourcecut-probe.cfg Lego21OwnerBoundary.tla >"$probe_output" 2>&1; then
+    echo "TLC wrong-source evidence non-vacuity probe unexpectedly passed" >&2
+    exit 1
+  fi
+  if ! grep -Fq "Error: Invariant WrongSourceEvidenceIsUnreachable is violated." "$probe_output"; then
+    cat "$probe_output" >&2
+    echo "TLC did not expose wrong-source evidence" >&2
+    exit 1
+  fi
+  echo "TLC wrong-source evidence non-vacuity: PASS"
   rm -f "$probe_output"
   trap - EXIT
 )
