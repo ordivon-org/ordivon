@@ -150,4 +150,11 @@ NetworkNeverDegradesAfterAdmission ==
         /\ admissionInputsWitness
     )
 
+(***************************************************************************)
+(* Intentionally FALSE reachability probe, not an admitted safety law.    *)
+(* TLC must find an actual foreign consumer witness or the model is empty. *)
+(***************************************************************************)
+ForeignEvidenceIsUnreachable ==
+    consumerEvidence # "foreign"
+
 =============================================================================

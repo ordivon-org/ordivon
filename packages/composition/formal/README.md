@@ -90,6 +90,17 @@ actual Owner verifier remains responsible for binding evidence to
 the correct Work and SourceCut. This replacement needs no new proof
 engine, global registry or test framework.
 
+**Non-vacuity admission:** the existing Composition native Formal task now
+requires the *opposite* reachability witness as a standalone negative TLC
+configuration. The intentionally false
+`ForeignEvidenceIsUnreachable` invariant must produce a real TLC
+counterexample with `consumerEvidence="foreign"`; an exit status by
+itself never qualifies. If future simplification accidentally makes
+foreign evidence unrepresentable, owner verification fails instead of
+silently reporting an easy safety PASS. This reuses the same digest-verified
+TLC and the existing expected-counterexample gate structure used for
+post-admission Network degradation.
+
 **Claims explicitly excluded:** implementation refinement for Rust/Host/Harness/Network, current network availability, authorization, identity, consumer evidence authenticity, domain success, retries, liveness, unbounded safety and deadlock freedom. `CHECK_DEADLOCK FALSE` is intentional for terminal stuttering; no fairness property is included. Real acceptance needs existing natural-owner native tests mapping abstract transitions to their physical and semantic effects. Do not promote model PASS into reality PASS.
 
 Foundations: Leslie Lamport's TLA+/TLC, established assume–guarantee contracts (e.g., Pacti), and existing JSON Schema Draft 2020-12 port contracts.
