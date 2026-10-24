@@ -128,9 +128,7 @@ def test_windows_credential_source_is_bounded_before_loading() -> None:
     # Historical Gateway source constrained credential inputs to 1..16384
     # bytes. Preserve that contract in the newer multi-source materializer,
     # without replacing its stronger service-state, DACL and digest guards.
-    script = (ROOT / "packaging/windows/materialize_credentials.ps1").read_text(
-        encoding="utf-8"
-    )
+    script = (ROOT / "packaging/windows/materialize_credentials.ps1").read_text(encoding="utf-8")
     assert "function Read-SecretBytesBounded" in script
     assert "$sourceStream.Length -lt 1" in script
     assert "$sourceStream.Length -gt 16384" in script
