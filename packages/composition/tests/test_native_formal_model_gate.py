@@ -24,6 +24,16 @@ def test_four_mode_tlc_is_mandatory_in_composition_owner_verify():
         assert config in formal
 
 
+def test_admission_witness_model_requires_a_real_network_change_counterexample():
+    tasks = tomllib.loads((ROOT / "mise.toml").read_text(encoding="utf-8"))["tasks"]
+    formal = tasks["formal:verify"]["run"]
+    probe = ROOT / "formal" / "Lego21OwnerBoundary.readiness-probe.cfg"
+    assert probe.is_file()
+    assert "INVARIANT NetworkNeverDegradesAfterAdmission" in probe.read_text()
+    assert probe.name in formal
+    assert "Error: Invariant NetworkNeverDegradesAfterAdmission is violated." in formal
+
+
 def test_formal_toolchain_is_digest_checked_and_explicitly_admitted():
     tasks = tomllib.loads((ROOT / "mise.toml").read_text(encoding="utf-8"))["tasks"]
     formal = tasks["formal:verify"]["run"]
