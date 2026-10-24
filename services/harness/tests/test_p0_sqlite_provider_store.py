@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
 from pathlib import Path
 import tempfile
 import time
@@ -133,6 +134,52 @@ def failure(
 
 
 class SQLiteHarnessRunContinuityProviderTests(unittest.TestCase):
+    def test_provider_settlement_distinguishes_only_retry_budget_and_time(self) -> None:
+        """One state machine invariant, with two distinct effect permissions."""
+        previous = state(elapsed=10, wall_time_ms=29_990, retries=2)
+        store = SQLiteHarnessRunContinuityStore
+
+        def altered(*, elapsed: int = 11, wall: object = 29_989, retries: int = 2,
+                    model_calls: int = 4, messages=None):
+            budget = dict(previous.remaining_budget)
+            budget["wallTimeMs"] = wall
+            budget["modelRetries"] = retries
+            budget["modelCalls"] = model_calls
+            return replace(
+                previous,
+                active_elapsed_ms=elapsed,
+                remaining_budget=budget,
+                messages=previous.messages if messages is None else messages,
+            )
+
+        store._require_provider_outcome_state(previous, altered())
+        store._require_provider_safe_retry_state(previous, altered(retries=1))
+        for current, error in (
+            (altered(retries=1), "changed a non-time budget"),
+            (altered(model_calls=3), "changed a non-time budget"),
+            (altered(wall=29_991), "revived its wall-time budget"),
+            (altered(wall=True), "revived its wall-time budget"),
+            (altered(elapsed=9), "active elapsed time decreased"),
+            (altered(messages=({"role": "user", "content": "tampered"},)),
+             "state changed outside active time"),
+        ):
+            with self.subTest(transition="outcome", error=error):
+                with self.assertRaisesRegex(HarnessProviderCallRequestMismatch, error):
+                    store._require_provider_outcome_state(previous, current)
+        for current, error in (
+            (altered(retries=2), "consume exactly one retry"),
+            (altered(retries=0), "consume exactly one retry"),
+            (altered(model_calls=3, retries=1), "changed a non-time budget"),
+            (altered(wall=29_991, retries=1), "revived its wall-time budget"),
+            (altered(wall=True, retries=1), "revived its wall-time budget"),
+            (altered(elapsed=9, retries=1), "active elapsed time decreased"),
+            (altered(retries=1, messages=({"role": "user", "content": "tampered"},)),
+             "state changed outside retry accounting"),
+        ):
+            with self.subTest(transition="safe_retry", error=error):
+                with self.assertRaisesRegex(HarnessProviderCallRequestMismatch, error):
+                    store._require_provider_safe_retry_state(previous, current)
+
     def prepare(
         self,
         root: Path,
