@@ -193,3 +193,45 @@ identity; neither it nor the bounded TLC result proves Rust-to-TLA+
 refinement. Actual provider completion and semantic Work acceptance are
 outside this model. Consumers of terminal standing must still enforce their
 domain acceptance predicate.
+
+## LEGO R2.1: selected-live and held-orphan identity semantics
+
+The bounded Runtime dispatch model now distinguishes selected live Attempt
+(admitted/running/ambiguous with currentAttempt identity) from a physically
+orphaned and held Attempt (orphanedHeld, no current pointer, reconciliation
+still required). These are distinct legal safety representations. The
+NoDetachedLiveAttempt safety condition forbids an unfenced detached live
+Attempt; HeldOrphanIsFenced prevents a held orphan from becoming a new
+dispatch-eligible Job state without explicit reconciliation. The actual Rust
+owner tests confirm both current identity after initial admission and the
+legal Orphaned pattern of current_attempt_id=None plus HeldOrphaned reservation.
+
+A prepatch negative-control mutation left a detached ambiguous Attempt, with
+no retry enabled. The previous TLC invariant set PASSed (11 distinct states).
+The new selected-live invariant rejected it (TLC exit 12). A separate held
+orphan state is needed because native Rust demonstrated that an orphan can
+legally have no current pointer while retaining its capacity reservation.
+Actual Orphaned terminal evidence may occur before confirmed physical
+dispatch. Therefore the revised model permits orphanedHeld from admitted
+or running, and deliberately does not demand dispatchCount=1 for all
+orphaned states. A minimal separate heldReservation Boolean represents the
+physical capacity fence (not a new general ledger or scheduler).
+HeldOrphanIsFenced enforces equivalence between the held bit and the
+abstract orphaned state, while preventing admission/retry until explicit
+reconciliation. The Boolean models one Job and cannot certify global
+capacity accounting.
+
+Independent upstream TLC negative control: an orphan transition sets
+orphanedHeld but incorrectly omits the heldReservation write. The same
+mutated model PASSes with the original invariant set (67 generated,
+45 distinct states; exit 0); selecting HeldOrphanIsFenced produces an
+invariant violation at state 5 (exit 12). This catches missing recovery
+fencing as a state invariant rather than waiting for a subsequent bad
+retry. The admission-originated Orphaned test remains a necessary
+physical witness because modeling a dispatchCount of exactly one
+for every Orphaned state would be incorrect.
+
+The official SHA-256-locked upstream TLC checks abstract rules only, not
+Rust/SQLite/Windows/Linux refinement, global concurrency capacity or actual
+domain outcomes. Preserve always-on Rust witnesses and conditional physical
+acceptance rather than replacing them with synthetic model claims.

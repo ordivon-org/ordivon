@@ -7,7 +7,7 @@ Reuse existing owner truth: AGENTS.md; services/harness/docs/authority.md; servi
 
 ## Decision
 
-Distinguish dimensions, not brands. Formal-First states the behavioral obligations and evidence scope. LEGO-First discovers a smallest replaceable, goal-conditioned responsibility. Models, skills, tools, harnesses and runtimes are concrete mechanisms implementing or consuming these responsibilities, not additional universal top-level owners.
+Distinguish dimensions, not brands. Formal-First states the behavioral obligations and evidence scope. LEGO-First discovers replaceable, goal-conditioned responsibilities without presuming a globally minimum or sufficient representation. Models, skills, tools, harnesses and runtimes are concrete mechanisms implementing or consuming these responsibilities, not additional universal top-level owners.
 
 A LEGO is NOT synonymous with a file, package, agent, tool, skill, runtime object or MCP server. For a needed responsibility name identity, responsibility, inputs, outputs, behavioral contract and acceptance. Only add authority/effects/state/provenance where they change the real decision.
 
@@ -122,7 +122,7 @@ No new Agent role, new Skill, registry, approval loop, scheduler or formal DSL i
 
 ## Human direction — Formal LEGO R2.1 as mathematics-backed representation; agent environment hygiene (2026-10-24)
 
-**Standing:** scoped architecture/working-method decision from the Human, not a new LEGO definition, source of runtime truth, proof of whole-system conformance, or authorization to add infrastructure. The exact formal vocabulary remains the project Skill `project-ordivon-next/recursive-lego-calculus` and optional `references/formal-model.md` (observed model SHA-256 `00cf24160c97e94193c9584d7e963e038c5918059aad37c965503ae09e0901ca`). Space broadcast: `space:ordivon-whole-system-optimization-r1:20261002`, topic `topic:ordivon-whole-system-optimization:mature-engineering-loop-r1:20261006`, message `message:recursive-lego-r21-math-kernels-agent-environment-decision:20261024`.
+**Standing:** scoped architecture/working-method decision from the Human, not a new LEGO definition, source of runtime truth, proof of whole-system conformance, or authorization to add infrastructure. The exact formal vocabulary remains the project Skill `project-ordivon-next/recursive-lego-calculus` and optional `references/formal-model.md` (observed model SHA-256 `ec7a14e36fcf86bef9bfe14c6655d3773a7b582ac7ad1e7ed47a77e4a1969498`). Space broadcast: `space:ordivon-whole-system-optimization-r1:20261002`, topic `topic:ordivon-whole-system-optimization:mature-engineering-loop-r1:20261006`, message `message:recursive-lego-r21-math-kernels-agent-environment-decision:20261024`.
 
 **Why:** An Agent's observations and available actions are strongly shaped by paths, refs, tool exposure, installed versions, workspace contents and historical artifacts. The Agent then modifies those same surroundings. Stale sources, missing tools, repeated local patches, uncleared workspaces and unintegrated commits can therefore compound across Agent runs. Environment correctness is a prerequisite for trustworthy reasoning *and* actual effect execution; cleanup prevents feedback-driven duplication. This is a causal hypothesis to test on concrete runs, not a proof about all Agents.
 
@@ -136,11 +136,61 @@ No new Agent role, new Skill, registry, approval loop, scheduler or formal DSL i
 
 **R2.1 first concrete mathematics-backed LEGO (2026-10-25): registered Owner dependency relation.**
 
-- **Minimum representation:** reuse each existing Owner planning node's id and dependencies; no common schema extension, executor, registry, or new declared ownership. Let N be the finite set of exact node IDs and D be a subset of N x N, the predecessor relation (u depends on v).
+- **Existing task-qualified representation (not a claim of minimality):** reuse each existing Owner planning node's id and dependencies; no common schema extension, executor, registry, or new declared ownership. Let N be the finite set of exact node IDs and D be a subset of N x N, the predecessor relation (u depends on v).
 - **Well-formedness obligation:** every node ID is unique and nonempty, all declared edge endpoints belong to N, and each edge has a nonempty type. Only node prerequisites and typed `DEPENDENCY` edges enter D; D is closed over N and acyclic, while `STATE` / `OBSERVATION` feedback may be cyclic. Thus prerequisite scheduling admits a topological order, but this does not establish environmental assumptions, physical effects or domain acceptance.
 - **Mature kernel and native witness:** Python standard-library graphlib.TopologicalSorter at the existing tools/repo/check_architecture_docs.py owner-registration gate. Runtime, Harness, Network, Security currently use this existing node/dependency plan shape; the Host V2 R3 frozen retained/external-owner list is not silently transformed into a graph or made authoritative.
 - **Negative witnesses:** two-node cycles in each registered core plan and dangling, duplicate or untyped edges/nodes must all fail the existing native tests before admission. Owner-specific behavioral CDC, Runtime TLA+ model scope, Host durable re-entry and independent consumer acceptance remain separate obligations.
 - **Subtraction rule:** use graphlib, not a bespoke DAG checker, a cross-domain graph database, a second LEGO registry, or mandatory 2.1 metadata on every component.
+
+## R2.1 policy update — CEGAR first; retire MSR as default (2026-10-25)
+
+**Decision:** `Minimum Sufficient Representation-first` is **withdrawn as
+an Ordivon-wide default**. Minimality and sufficiency are distinct assertions:
+`Minimal(rho)` does not entail `Sufficient(rho)`, and neither guarantees
+security under unknown threats or future consumer changes. Without an
+exhaustive candidate family, an agreed objective and a complete requirement
+set, global minimality is not even a well-posed proof obligation. Attempting
+to prove it may exceed the cost of directly solving the actual problem.
+MSR remains an **optional method Skill LEGO**, located at
+`.agents/skills/minimum-sufficient-representation/SKILL.md`, with its
+advantages, costs, conditions, limitations and `UNKNOWN` disposition.
+It cannot block admission, require further reduction, or override a real
+Owner verification result merely because a design appears non-minimal.
+
+**Preferred refinement discipline: Counterexample-Guided Abstraction
+Refinement (CEGAR).** An admitted Owner model states `phi`, environment,
+concrete/abstract transition systems and simulation relation. A sound
+**over-approximation** covers all allowed concrete behaviors; a scoped
+safety PASS of the abstract model transfers only via its checked simulation,
+property bridge and implementation evidence. An abstract FAIL generates a
+trace: a *concretely feasible* counterexample means the real scoped claim
+fails and requires repair; a *proven infeasible* counterexample permits
+abstraction refinement while preserving over-approximation. If feasibility
+or a proof bridge is unresolved, report `UNKNOWN`, **not** a successful
+refinement. Bound iterations and preserve exact source/model digests.
+
+Practical current four-Owner slice: Network may degrade **after** a valid
+Runtime admission. Do not demand perpetual Network READY from an immutable
+admission fact. Test concrete replay feasibility, then distinguish the
+admission-time witness from mutable Network observation in the existing
+four-Owner TLA+ model; no novel state-machine infrastructure. Other CEGAR
+consumers use Host CAS, Harness Run/Attempt proofs, Network route/proxy
+behavior and their natural Owner tools. This is not whole-system refinement
+or evidence that real Rust/Python implementations inherit TLC invariants.
+
+**Benefits of scoped reduction:** less duplicated logic, lower integration
+cost and easier diagnosis when real consumers remain served. **Risks:**
+erased counterexample distinctions, hidden environment assumptions, spurious
+proof confidence, loss of rollback paths, and expensive optimization that
+proves neither minimality nor full sufficiency. The primary objective is
+*correct consumer behavior with defensible evidence*; simplicity is a
+secondary engineering tradeoff, not an unqualified theorem.
+
+Mature basis: Clarke et al., CAV 2000 DOI `10.1007/10722167_15`, and the
+existing TLA+/TLC Owner plus concrete replay, contract checks and source
+qualification. See `.agents/skills/recursive-lego-calculus/references/formal-model.md`
+for the precise CEGAR safety assumptions and stop conditions. No parallel
+registry, solver, mandatory workflow or global MSR verifier is introduced.
 
 ## R2.1 mathematical kernel: existing mathematics at the Owner boundary (2026-10-25)
 
@@ -224,7 +274,7 @@ falsify the safety obligation. This is a concrete scoped proof and
 counterexample, **not** a proof of implementation refinement. No separate
 LEGO model checker, global test registry or mandatory abstraction was added.
 
-**Subtractive promotion rule:** retain or port only the smallest behavior
+**Subtractive promotion rule:** retain or port only justified behavior
 that a real consumer currently requires and the accepted Owner does not
 already supply. UNKNOWN external consumption blocks destructive erasure
 of the last recoverable source, but does **not** justify reinstalling the
