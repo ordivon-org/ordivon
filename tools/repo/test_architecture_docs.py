@@ -976,6 +976,36 @@ def test_git01_owner_proof_union_cannot_silently_weaken_preexisting_guards(
         module.validate_formal_issue_census(census, plans)
 
 
+@pytest.mark.parametrize(
+    ("fault", "diagnostic"),
+    [
+        ("missing_paths", "invalid selected historical owner effect"),
+        ("wrong_scope", "invalid selected historical owner effect"),
+        ("wrong_relation", "invalid selected historical owner effect"),
+        ("foreign_owner_path", "invalid selected historical owner effect"),
+    ],
+)
+def test_git01_minimal_owner_effect_cannot_claim_unverified_selection(
+    fault: str, diagnostic: str
+) -> None:
+    census, plans = formal_issue_inputs()
+    issue = next(x for x in census["issues"] if x["id"] == "GIT-01")
+    selected = next(
+        x for x in issue["consumerSelections"]
+        if x["disposition"] == "SELECT_MINIMAL_OWNER_CONSUMER_EFFECT"
+    )
+    if fault == "missing_paths":
+        selected["selectedOwnerEvidence"] = []
+    elif fault == "wrong_scope":
+        selected["evidenceScope"] = "EXACT_GIT_BLOBS"
+    elif fault == "wrong_relation":
+        selected["sourceQualification"]["patchRelation"] = "GIT_BLOB_SAME"
+    elif fault == "foreign_owner_path":
+        selected["selectedOwnerEvidence"] = ["services/gateway/forged.py"]
+    with pytest.raises(module.ArchitectureDocsError, match=diagnostic):
+        module.validate_formal_issue_census(census, plans)
+
+
 def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
     """A Git-only commit cannot be called unique without a source-bound consumer comparison."""
     census, plans = formal_issue_inputs()
@@ -1008,6 +1038,7 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             "SKIP_RETIRED_UNCONSUMED",
             "SKIP_OLDER_TOOLCHAIN_CHERRY_PICK",
             "SKIP_IDENTICAL_TIP_WITH_NATIVE_CONSUMER",
+            "SELECT_MINIMAL_OWNER_CONSUMER_EFFECT",
         }
         assert item["evidenceScope"] in {
             "NATIVE_CONSUMER_PASS", "EXACT_GIT_BLOBS",
@@ -1027,6 +1058,14 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             assert item["sourceQualification"]["tipRelation"] == "PARTIAL_TIP_LOCK_COMPONENT_IDENTITY"
             assert item["sourceQualification"]["branchDeletionAllowed"] is False
             assert item["owner"] == "platform/workstation"
+        if item["disposition"] == "SELECT_MINIMAL_OWNER_CONSUMER_EFFECT":
+            assert item["owner"] == "capabilities/artifact"
+            assert item["evidenceScope"] == "NATIVE_CONSUMER_PASS"
+            assert item["selectedOwnerEvidence"]
+            proof = item["sourceQualification"]
+            assert proof["branchDeletionAllowed"] is False
+            assert proof["patchRelation"] == "LOCAL_NONMERGE_HISTORICAL_EFFECT"
+            assert proof["consumerStanding"] == "RED_GREEN_PLUS_ARTIFACT_NATIVE_442_PASS"
         if item["evidenceScope"] == "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC":
             assert item["disposition"] == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
             assert item["sourceQualification"]["branchDeletionAllowed"] is False

@@ -326,6 +326,7 @@ def validate_formal_issue_census(
         "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER", "SKIP_CANCELLED_HISTORY_PAIR",
         "SKIP_RETIRED_UNCONSUMED", "SKIP_OLDER_TOOLCHAIN_CHERRY_PICK",
         "SKIP_IDENTICAL_TIP_WITH_NATIVE_CONSUMER",
+        "SELECT_MINIMAL_OWNER_CONSUMER_EFFECT",
     }
     allowed_evidence_scopes = {
         "NATIVE_CONSUMER_PASS", "EXACT_GIT_BLOBS",
@@ -412,6 +413,22 @@ def validate_formal_issue_census(
                 remote_oid = source_proof.get("protectedMain")
                 if not isinstance(remote_oid, str) or not oid_pattern.fullmatch(remote_oid):
                     raise ArchitectureDocsError("invalid historical Git protected SourceCut")
+            if entry["disposition"] == "SELECT_MINIMAL_OWNER_CONSUMER_EFFECT":
+                paths = entry.get("selectedOwnerEvidence")
+                if (
+                    entry["evidenceScope"] != "NATIVE_CONSUMER_PASS"
+                    or source_proof is None
+                    or source_proof.get("patchRelation") != "LOCAL_NONMERGE_HISTORICAL_EFFECT"
+                    or not isinstance(paths, list)
+                    or not paths
+                    or any(
+                        not isinstance(path, str)
+                        or not path.startswith(entry["owner"] + "/")
+                        or ".." in Path(path).parts
+                        for path in paths
+                    )
+                ):
+                    raise ArchitectureDocsError("invalid selected historical owner effect")
             # A claim of full-tree direct-child cancellation must be coherent.
             # This validates stated OIDs, not their reachability in the Git DAG.
             if entry["disposition"] == "SKIP_CANCELLED_HISTORY_PAIR":
