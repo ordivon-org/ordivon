@@ -79,7 +79,10 @@
       "state": "IMPLEMENTED",
       "sharedRefs": [],
       "evidence": [
-        "README.md"
+        "README.md",
+        "tests/test_agent_admission_contract.py",
+        "policies/agent_admission_effect_integration_test.rego",
+        "mise.toml"
       ],
       "dependencies": [],
       "mustNotOwn": [
@@ -169,7 +172,10 @@
         "Substitution/composition of two locally valid LEGO nodes does not widen effective READ/WRITE/NETWORK/PERSIST/EFFECT sets.",
         "Existing AS01-AS12/XAS13-XAS18 security lens is reused; no second policy engine or cross-owner authority registry is created."
       ],
-      "evidence": [],
+      "evidence": [
+        "tests/test_agent_admission_contract.py",
+        "policies/agent_admission_effect_integration_test.rego"
+      ],
       "blockers": [],
       "nextAction": "Qualify one high-risk MCP/Runtime/network consumer path with existing Security owner policy and evidence projection."
     }

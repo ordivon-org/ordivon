@@ -49,6 +49,11 @@
       "ownerPlan": "platform/network/planning/lego-plan-r1.json",
       "slice": "NS2",
       "scope": "verification proposal only"
+    },
+    {
+      "ownerPlan": "services/runtime/planning/lego-plan-r1.json",
+      "slice": "RW1",
+      "scope": "verification proposal only; R02 lifecycle CAS with remaining downstream acceptance UNKNOWN"
     }
   ],
   "issues": [
@@ -120,8 +125,9 @@
         "selectionReason": "Lifecycle/hold/recovery are state transitions, not filesystem age heuristics."
       },
       "registration": {
-        "state": "UNREGISTERED",
-        "reason": "Owner-local LEGO slice and consumer acceptance are not yet evidenced; census observation is not registration."
+        "state": "LINKED",
+        "ownerPlan": "services/runtime/planning/lego-plan-r1.json",
+        "slice": "RW1"
       }
     },
     {
@@ -152,10 +158,10 @@
       "id": "CI-01",
       "problemClass": "CI_EXECUTION",
       "naturalOwner": "apps/web",
-      "standing": "CONFIRMED_FAIL",
+      "standing": "HISTORICAL_FAIL_CURRENT_OWNER_VERIFIED",
       "observation": "PR #224 verification-entry.test.ts fails when /bin/sh executes 'set -o pipefail'; actual exit 2, expected 29.",
-      "evidence": "GitHub Actions run 40020297819, failing test at test/verification-entry.test.ts:52",
-      "decision": "Reuse and repair PR #224; explicitly select compatible shell and verify exit-code propagation.",
+      "evidence": "GitHub Actions run 40020297819, failing test at test/verification-entry.test.ts:52; merged PR #224 (2026-10-23T21:59:20Z); current source 2fe391460bc5c64815269483797709caa9e43372: mise exec -- node --test test/verification-entry.test.ts => 1 passed, 0 failed",
+      "decision": "Historical shell mismatch repaired by merged PR #224. Keep the owner-native negative consumer oracle; re-open only with a failing test on a newer exact source cut, without adding another verifier or owner LEGO.",
       "formalObligation": "ShellInterpreter(script) supports every used shell option; failure oracle is preserved.",
       "consumers": "Web verification, Security OPA verifier",
       "representation": {
@@ -167,7 +173,7 @@
       },
       "registration": {
         "state": "UNREGISTERED",
-        "reason": "Owner-local LEGO slice and consumer acceptance are not yet evidenced; census observation is not registration."
+        "reason": "No new LEGO required: the original shell mismatch is repaired by existing apps/web owner configuration and the exact failing-script consumer regression now passes."
       }
     },
     {
@@ -371,33 +377,33 @@
       "id": "CI-03",
       "problemClass": "CI_EXECUTION",
       "naturalOwner": "tools/repo",
-      "standing": "CONFIRMED_FAIL_PENDING_OWNER_PR",
-      "observation": "New open PR #231 fails root-verification for owner-universe-bound convergence plans; this observation does not establish the exact failing assertion.",
-      "evidence": "gh pr view/checks 231; GitHub Actions run 40028281009; files: tools/repo/affected_owners.py, tools/repo/convergence_plan.py, tools/repo/test_convergence_plan.py",
-      "decision": "Fix in existing PR #231; do not fork duplicate owner-universe checker.",
+      "standing": "HISTORICAL_FAIL_CLAIM_REFUTED_OWNER_VERIFIED",
+      "observation": "PR #231 historical CI failure claim is unsupported by its cited run 40028281009: GitHub records completed SUCCESS for root-verification and every reported job step. Owner-universe correction was merged; no current failing assertion reproduced.",
+      "evidence": "GitHub Actions run 40028281009: status=completed, conclusion=success, head=4c5901c77dfc3a540c0ecb849575370286a42e43. PR #231 merged at 2026-10-23T22:28:22Z; source 6dd6364205f33994ffe0d065f93e91286d22beeb: PYTHONPATH=tools/repo python3 -m unittest tools/repo/test_convergence_plan.py -v => 11 passed, 0 failed.",
+      "decision": "Do not remediate a non-reproduced CI failure or fork a verifier. Existing tools/repo convergence owner-universe contract and negative test remain the consumers. New failures require a failing run and exact failing step before classification.",
       "formalObligation": "ConvergenceOwnerSet(plan) subset of DeclaredOwnerUniverse(sourceCut), with strict unknown-owner rejection.",
       "consumers": "Repository CI, affected-owner selection, merge queue",
       "representation": {
-        "primary": "causal",
+        "primary": "type",
         "supporting": [
-          "state-machine"
+          "graph"
         ],
-        "methodSkill": ".agents/skills/causal-intervention/SKILL.md",
-        "requiredWitness": "Replay the exact failed Runtime concurrent-admission test from run 40028281009 separately from dependency download failures.",
-        "selectionReason": "Observed CI failure must be attributed by intervention rather than inferred from PR title."
+        "methodSkill": null,
+        "requiredWitness": "Existing tools/repo/test_convergence_plan.py::test_dependency_graph_rejects_unknown_owner and full owner regression 11/11 PASS; GitHub Actions run 40028281009 conclusion SUCCESS.",
+        "selectionReason": "Canonical owner membership is a type constraint over a declared dependency graph. The cited run has no failed step, so a causal Runtime-admission attribution is unsupported."
       },
       "registration": {
         "state": "UNREGISTERED",
-        "reason": "Owner-local LEGO slice and consumer acceptance are not yet evidenced; census observation is not registration."
+        "reason": "Existing tools/repo owner contract and regression are verified for this source cut; no new LEGO slice or registry is warranted for an unsupported historical CI failure claim."
       }
     },
     {
       "id": "TYPE-01",
       "problemClass": "OWNER_IDENTITY_CONTRACT",
       "naturalOwner": "tools/repo",
-      "standing": "LOCAL_REGRESSION_VERIFIED_REMOTE_PENDING",
+      "standing": "MERGED_OWNER_CONTRACT_CURRENT_NEGATIVES_VERIFIED",
       "observation": "The original issue validator accepted a nonempty but undeclared naturalOwner such as services/runtime-shadow; classification could therefore create a dangling consumer/owner edge.",
-      "evidence": "tools/repo/test_architecture_docs.py::test_formal_issue_census_rejects_undeclared_natural_owner (three failing counterexamples before the fix; three passed afterward); tools/repo/owners.toml",
+      "evidence": "tools/repo/test_architecture_docs.py::test_formal_issue_census_rejects_undeclared_natural_owner (three failing counterexamples before the fix; three passed afterward); tools/repo/owners.toml; PR #258 merged at 2026-10-23T23:24:48Z; source 642e2ec49f0f7ced196da4af2f2f87fe3bb97b19: native owner negative tests 4/4 passed via uv/pytest on 2026-10-24",
       "decision": "Derive valid naturalOwner paths from existing owners.toml and allow only the repository-mechanics tools/repo exception. Do not create a second owner registry.",
       "formalObligation": "For every issue i, naturalOwner(i) belongs to CanonicalOwnerRoots(sourceCut) union {tools/repo}; checks must use the exact repository root under validation, rejecting unknown or prefix-impostor owners.",
       "consumers": "Formal issue census, owner plans, repository CI, owner/consumer trace",

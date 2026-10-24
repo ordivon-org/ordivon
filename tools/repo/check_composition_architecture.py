@@ -112,11 +112,30 @@ def validate_graph(value: dict[str, Any]) -> None:
     parallel = value.get("initialParallelSet")
     if not isinstance(parallel, list) or not parallel:
         raise CompositionArchitectureError("initialParallelSet must be a non-empty list")
-    unknown_parallel = sorted(set(parallel) - known)
+    parallel_set = set(parallel)
+    if len(parallel_set) != len(parallel):
+        raise CompositionArchitectureError("duplicate initialParallelSet node")
+    if parallel_set & on_demand:
+        raise CompositionArchitectureError("on-demand nodes cannot enter initialParallelSet")
+    unknown_parallel = sorted(parallel_set - known)
     if unknown_parallel:
         raise CompositionArchitectureError(
             f"initialParallelSet contains unknown nodes: {unknown_parallel}"
         )
+    # In a dependency DAG, simultaneous starts form an antichain, not just a set.
+    for start in parallel:
+        pending = list(by_id[start]["dependsOn"])
+        visited_dependencies: set[str] = set()
+        while pending:
+            dependency = pending.pop()
+            if dependency in visited_dependencies:
+                continue
+            if dependency in parallel_set:
+                raise CompositionArchitectureError(
+                    f"parallel dependency: {start} transitively depends on {dependency}"
+                )
+            visited_dependencies.add(dependency)
+            pending.extend(by_id[dependency]["dependsOn"])
 
     do_not_build = value.get("doNotBuild")
     if not isinstance(do_not_build, list) or not do_not_build:

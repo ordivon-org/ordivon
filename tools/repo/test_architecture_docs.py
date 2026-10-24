@@ -448,6 +448,31 @@ def test_formal_issue_census_preserves_existing_owner_legos() -> None:
     module.validate_formal_issue_census(census, plans)
 
 
+def test_workspace_lifecycle_issue_binds_existing_runtime_state_lego() -> None:
+    census, plans = formal_issue_inputs()
+    issue = next(issue for issue in census["issues"] if issue["id"] == "WS-01")
+    assert issue["naturalOwner"] == "services/runtime"
+    assert issue["registration"] == {
+        "state": "LINKED",
+        "ownerPlan": "services/runtime/planning/lego-plan-r1.json",
+        "slice": "RW1",
+    }
+    runtime_plan = plans[issue["registration"]["ownerPlan"]]
+    runtime_slice = next(
+        slice_ for slice_ in runtime_plan["slices"] if slice_["id"] == "RW1"
+    )
+    assert "R02" in runtime_slice["nodeIds"]
+    module.validate_formal_issue_census(census, plans)
+
+def test_runtime_workspace_lego_unknown_slice_state_is_rejected() -> None:
+    census, plans = formal_issue_inputs()
+    runtime_plan = plans["services/runtime/planning/lego-plan-r1.json"]
+    slice_ = next(x for x in runtime_plan["slices"] if x["id"] == "RW1")
+    slice_["status"] = "UNKNOWN"
+    with pytest.raises(module.ArchitectureDocsError, match="unknown state"):
+        module.validate_formal_issue_census(census, plans)
+
+
 def test_formal_issue_census_rejects_unbound_lego_node() -> None:
     census, plans = formal_issue_inputs()
     owner_plan = census["registrations"][0]["ownerPlan"]
@@ -605,6 +630,69 @@ def test_issue_owner_source_cut_is_explicit(tmp_path: Path) -> None:
     with pytest.raises(module.ArchitectureDocsError, match="undeclared naturalOwner"):
         module.validate_formal_issue_census(census, plans, root=tmp_path)
 
+
+def test_ci_telemetry_reads_all_requested_pages_not_only_first_hundred() -> None:
+    calls = []
+
+    def fake_api(endpoint):
+        calls.append(endpoint)
+        if "/jobs?" in endpoint:
+            return {"jobs": []}
+        page = 2 if "page=2" in endpoint else 1
+        start, end = (101, 102) if page == 2 else (1, 101)
+        return {"workflow_runs": [
+            {"id": i, "name": "Monorepo Required", "created_at": "2026-10-24T00:00:00Z"}
+            for i in range(start, end)
+        ]}
+
+    owner = ci_module.Gh("ordivon-org/ordivon")
+    owner.api = fake_api
+    observed = owner.collect(limit=101, events=("pull_request",), workflow_name=None)
+    assert [run["id"] for run in observed.runs] == list(range(1, 102))
+    assert any("page=2" in endpoint and "/actions/runs?" in endpoint for endpoint in calls)
+
+
+def test_ci_telemetry_filter_continues_after_unmatched_first_page() -> None:
+    calls = []
+
+    def fake_api(endpoint):
+        calls.append(endpoint)
+        if "/jobs?" in endpoint:
+            return {"jobs": []}
+        if "page=2" in endpoint:
+            return {"workflow_runs": [
+                {"id": 101, "name": "Monorepo Required", "created_at": "2026-10-24T00:00:00Z"}
+            ]}
+        return {"workflow_runs": [
+            {"id": i, "name": "Unrelated Workflow", "created_at": "2026-10-24T00:00:00Z"}
+            for i in range(1, 101)
+        ]}
+
+    owner = ci_module.Gh("ordivon-org/ordivon")
+    owner.api = fake_api
+    observed = owner.collect(limit=101, events=("pull_request",), workflow_name="Monorepo Required")
+    assert [run["id"] for run in observed.runs] == [101]
+    assert any("page=2" in endpoint and "/actions/runs?" in endpoint for endpoint in calls)
+
+
+def test_ci_telemetry_collects_all_jobs_of_one_run() -> None:
+    calls = []
+
+    def fake_api(endpoint):
+        calls.append(endpoint)
+        if "/jobs?" not in endpoint:
+            return {"workflow_runs": [
+                {"id": 7, "name": "Monorepo Required", "created_at": "2026-10-24T00:00:00Z"}
+            ]}
+        page = 2 if "page=2" in endpoint else 1
+        return {"jobs": ([{"id": i} for i in range(101, 102)]
+                         if page == 2 else [{"id": i} for i in range(1, 101)])}
+
+    owner = ci_module.Gh("ordivon-org/ordivon")
+    owner.api = fake_api
+    observed = owner.collect(limit=1, events=("pull_request",), workflow_name=None)
+    assert [job["id"] for job in observed.jobs["7"]] == list(range(1, 102))
+    assert any("page=2" in endpoint and "/jobs?" in endpoint for endpoint in calls)
 
 def test_formal_issue_skill_is_bound_to_candidate_source(tmp_path: Path) -> None:
     """A Skill in the tool's checkout must not validate another source cut."""
