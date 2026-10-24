@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import json
-import tomllib
 import re
+import tomllib
 from pathlib import Path
 from typing import Any
 
@@ -342,6 +342,25 @@ def validate_formal_issue_census(
                     raise ArchitectureDocsError("invalid GIT-01 source qualification")
                 if q.get("branchDeletionAllowed") is not False:
                     raise ArchitectureDocsError("GIT-01 evidence cannot authorize branch deletion")
+            # A claimed direct-child inverse has to preserve the entire Git tree;
+            # this checks source evidence coherence, not remote object reachability.
+            if row["disposition"] == "SKIP_CANCELLED_HISTORY_PAIR":
+                revert = row.get("pairedRevertCommit")
+                before = row.get("beforeTreeOid")
+                after = row.get("afterTreeOid")
+                if (
+                    not isinstance(revert, str)
+                    or re.fullmatch(r"[0-9a-f]{40}", revert) is None
+                    or revert == sha
+                    or not isinstance(before, str)
+                    or re.fullmatch(r"[0-9a-f]{40}", before) is None
+                    or not isinstance(after, str)
+                    or re.fullmatch(r"[0-9a-f]{40}", after) is None
+                    or before != after
+                    or q is None
+                    or q.get("patchRelation") != "INVERSE_DIRECT_CHILD"
+                ):
+                    raise ArchitectureDocsError("invalid GIT-01 cancelled pair tree proof")
             cohort = row.get("historicalCohort")
             if cohort is not None:
                 if (
