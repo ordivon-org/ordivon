@@ -1623,6 +1623,24 @@
             "docs/architecture/data-learning-system-census-r1.json",
             "docs/architecture/verification-assurance-formal-census-r1.json"
           ]
+        },
+        {
+          "localCommit": "167112a8e6e1ba7f9af776fe6b85124b60d97cbe",
+          "owner": "platform/network",
+          "consumer": "Network Owner current uv 0.13.5 native CI remains working; the single historical mise.toml update should not be reintroduced into the evolved Network network-v2 context. Functional native sing-box consumer and fault tests, not uv version text alone, are required.",
+          "remoteWitness": "platform/network/mise.toml::tasks.ci and tasks.behavior; source-checked uv 0.13.5; native mise run ci 95/95 PASS, real sing-box behavior 3/3 PASS.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_OLDER_SOURCECUT",
+          "evaluatedRemoteMain": "97ebe3828c482cbeb7f58df4e6da614615017c56",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "97ebe3828c482cbeb7f58df4e6da614615017c56",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "CURRENT_LOCKED_CONSUMER_SOURCE_EVOLVED",
+            "consumerStanding": "CURRENT_NATIVE_OWNER_CONSUMER_VERIFIED",
+            "branchDeletionAllowed": false,
+            "inferenceBoundary": "Current source uses compatible pinned tool/schema with native owner tests; neither source equivalence nor whole historic commit acceptance follows."
+          }
         }
       ],
       "consumerBlockedSelections": [
