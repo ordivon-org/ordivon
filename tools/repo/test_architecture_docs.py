@@ -38,6 +38,10 @@ def test_current_repository_architecture_docs_are_converged() -> None:
         ('{"evidence":{"score":NaN}}', "non-finite JSON constant"),
         ('{"evidence":{"score":Infinity}}', "non-finite JSON constant"),
         ('{"evidence":{"score":-Infinity}}', "non-finite JSON constant"),
+        ('{"evidence":{"score":1e999}}', "unrepresentable JSON number"),
+        ('{"evidence":{"score":-1e999}}', "unrepresentable JSON number"),
+        ('{"evidence":{"score":1e-999}}', "unrepresentable JSON number"),
+        ('{"evidence":{"score":-1e-999}}', "unrepresentable JSON number"),
     ],
 )
 def test_repo_formal_json_source_rejects_ambiguous_or_nonstandard_evidence(

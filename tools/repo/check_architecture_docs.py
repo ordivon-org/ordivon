@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import math
+from decimal import Decimal
 import re
 from graphlib import CycleError, TopologicalSorter
 import tomllib
@@ -87,10 +89,21 @@ def _load_json(path: Path) -> dict[str, Any]:
     def finite_constant(value: str) -> None:
         raise ArchitectureDocsError(f"non-finite JSON constant: {value} in {path}")
 
+    def representable_float(value: str) -> float:
+        # A JSON exponent is legal syntax but must not silently change a
+        # nonzero finite source claim into infinity or zero at the owner seam.
+        parsed = float(value)
+        if not math.isfinite(parsed) or (
+            parsed == 0.0 and not Decimal(value).is_zero()
+        ):
+            raise ArchitectureDocsError(f"unrepresentable JSON number: {value} in {path}")
+        return parsed
+
     value = json.loads(
         path.read_text(encoding="utf-8"),
         object_pairs_hook=unique_object,
         parse_constant=finite_constant,
+        parse_float=representable_float,
     )
     if not isinstance(value, dict):
         raise ArchitectureDocsError(f"{path} root must be an object")
