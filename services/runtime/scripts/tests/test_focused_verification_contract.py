@@ -62,6 +62,10 @@ class FocusedVerificationContractTests(unittest.TestCase):
         result = self.run_focused(POSITIVE_TEST)
         combined = result.stdout + result.stderr
         self.assertEqual(result.returncode, 0, combined)
+        expected = tomllib.loads((RUNTIME_ROOT / "mise.toml").read_text(encoding="utf-8"))[
+            "tools"
+        ]["http:cargo-nextest"]["version"]
+        self.assertIn(f"qualified cargo-nextest {expected}", combined)
         self.assertIn("1 test run", combined)
         self.assertIn(POSITIVE_TEST, combined)
 
