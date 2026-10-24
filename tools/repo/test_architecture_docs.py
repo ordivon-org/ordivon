@@ -868,6 +868,67 @@ def test_retired_next_historical_owner_cohorts_are_not_reintroduced() -> None:
     module.validate_formal_issue_census(census, plans)
 
 
+@pytest.mark.parametrize(
+    ("mutation", "expected_error"),
+    [
+        ("duplicate", "duplicate historical Git selection"),
+        ("bad_sha", "invalid historical Git SHA"),
+        ("unknown_owner", "undeclared historical Git owner"),
+        ("unhashable_owner", "undeclared historical Git owner"),
+        ("unowned_with_implementation_authority", "undeclared historical Git owner"),
+        ("missing_consumer", "historical Git selection missing consumer"),
+        ("unknown_disposition", "invalid historical Git disposition"),
+        ("unknown_evidence", "invalid historical Git evidenceScope"),
+        ("retirement", "historical Git selection cannot authorize branch deletion"),
+        ("missing_retirement_flag", "historical Git selection cannot authorize branch deletion"),
+        ("wrong_local_cut", "historical Git selection local SourceCut mismatch"),
+        ("bad_cohort", "invalid historical Git cohort"),
+        ("bad_remote_cut", "invalid historical Git protected SourceCut"),
+    ],
+)
+def test_git01_formal_selection_type_invariants_fail_closed(
+    mutation: str, expected_error: str
+) -> None:
+    """Parallel history cohorts cannot silently change type or deletion authority."""
+    import copy
+
+    census, plans = formal_issue_inputs()
+    census = copy.deepcopy(census)
+    issue = next(item for item in census["issues"] if item["id"] == "GIT-01")
+    row = next(
+        item for item in issue["consumerSelections"]
+        if isinstance(item.get("sourceQualification"), dict)
+    )
+    if mutation == "duplicate":
+        issue["consumerSelections"].append(copy.deepcopy(row))
+    elif mutation == "bad_sha":
+        row["localCommit"] = "not-a-sha"
+    elif mutation == "unknown_owner":
+        row["owner"] = "UNKNOWN_OWNER_NOT_IN_MANIFEST"
+    elif mutation == "unowned_with_implementation_authority":
+        row["owner"] = "ROOT_UNOWNED"
+    elif mutation == "unhashable_owner":
+        row["owner"] = ["tools/repo"]
+    elif mutation == "missing_consumer":
+        row["consumer"] = ""
+    elif mutation == "unknown_disposition":
+        row["disposition"] = "SAFE_TO_DELETE_EVERYTHING"
+    elif mutation == "unknown_evidence":
+        row["evidenceScope"] = "PRODUCTION_IS_PROVEN_BY_GIT_SHA"
+    elif mutation == "retirement":
+        row["sourceQualification"]["branchDeletionAllowed"] = True
+    elif mutation == "missing_retirement_flag":
+        row["sourceQualification"].pop("branchDeletionAllowed")
+    elif mutation == "wrong_local_cut":
+        row["sourceQualification"]["localMain"] = "f" * 40
+    elif mutation == "bad_cohort":
+        row["historicalCohort"] = [row["localCommit"], row["localCommit"]]
+    elif mutation == "bad_remote_cut":
+        row["sourceQualification"]["protectedMain"] = "wrong"
+    with pytest.raises(module.ArchitectureDocsError, match=expected_error):
+        module.validate_formal_issue_census(census, plans)
+
+
 def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
     """A Git-only commit cannot be called unique without a source-bound consumer comparison."""
     census, plans = formal_issue_inputs()

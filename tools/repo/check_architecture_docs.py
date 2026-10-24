@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import json
-import tomllib
 import re
 from pathlib import Path
 from typing import Any
+
+import tomllib
 
 ROOT = Path(__file__).resolve().parents[2]
 CURRENT = ROOT / "docs" / "architecture" / "CURRENT_ARCHITECTURE.md"
@@ -312,6 +313,106 @@ def validate_formal_issue_census(
         for field in ("problemClass", "naturalOwner", "standing", "evidence", "consumers", "formalObligation"):
             if not isinstance(issue.get(field), str) or not issue[field].strip():
                 raise ArchitectureDocsError(f"issue {issue_id} lacks {field}")
+
+    # The existing GIT-01 list is an evidence projection, not deletion
+    # authority. Validate its complete source-bound identity/type relation at
+    # the canonical architecture gate, not only in handpicked regression tests.
+    # Older selections may predate sourceQualification; preserve their bounded
+    # claims rather than inventing missing historical proofs.
+    oid_pattern = re.compile(r"[0-9a-f]{40}")
+    allowed_dispositions = {
+        "SKIP_DUPLICATE_CHERRY_PICK", "SKIP_OLDER_PIN", "SKIP_OLDER_SOURCECUT",
+        "SKIP_UNCONSUMED_PERMISSION",
+        "NO_WHOLE_COMMIT_REPLAY_WITHOUT_PRODUCER_AUTHORITY",
+        "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER", "SKIP_CANCELLED_HISTORY_PAIR",
+        "SKIP_RETIRED_UNCONSUMED", "SKIP_OLDER_TOOLCHAIN_CHERRY_PICK",
+        "SKIP_IDENTICAL_TIP_WITH_NATIVE_CONSUMER",
+    }
+    allowed_evidence_scopes = {
+        "NATIVE_CONSUMER_PASS", "EXACT_GIT_BLOBS",
+        "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF",
+        "LATEST_STABLE_SOURCE_NO_UPGRADE",
+        "CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT",
+        "FROZEN_GATEWAY_CONSUMER_ONLY",
+        "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN",
+        "CURRENT_TOOLCHAIN_SUPERSEDES_OLD_LOCK_AND_NATIVE_TEST_PASS",
+        "EXACT_EXECUTABLE_BLOB_WITH_NONWINDOWS_HOLD_ONLY",
+        "EXACT_GIT_BLOB_AND_NATIVE_CONSUMER_PASS",
+        "EXACT_OWNER_LOCKED_COMPONENTS_NO_LIVE_PROVIDER",
+        "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC",
+    }
+    for issue in issues:
+        if issue["id"] != "GIT-01":
+            continue
+        source_cut = issue.get("consumerSourceCut")
+        if not isinstance(source_cut, dict) or not oid_pattern.fullmatch(
+            str(source_cut.get("localMain", ""))
+        ):
+            raise ArchitectureDocsError("invalid historical Git local SourceCut")
+        selections = issue.get("consumerSelections")
+        if not isinstance(selections, list) or not selections:
+            raise ArchitectureDocsError("historical Git selections missing")
+        identities: set[str] = set()
+        for entry in selections:
+            if not isinstance(entry, dict):
+                raise ArchitectureDocsError("historical Git selection must be typed")
+            oid = entry.get("localCommit")
+            if not isinstance(oid, str) or not oid_pattern.fullmatch(oid):
+                raise ArchitectureDocsError("invalid historical Git SHA")
+            if oid in identities:
+                raise ArchitectureDocsError("duplicate historical Git selection")
+            identities.add(oid)
+            owner = entry.get("owner")
+            if not isinstance(owner, str) or (
+                owner not in known_owners
+                and not (
+                    owner == "ROOT_UNOWNED"
+                    and entry.get("disposition") == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
+                    and entry.get("evidenceScope") == "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN"
+                    and isinstance(entry.get("sourceQualification"), dict)
+                    and entry["sourceQualification"].get("consumerStanding")
+                    == "NO_IN_TREE_CONSUMER_EXTERNAL_UNKNOWN"
+                )
+            ):
+                raise ArchitectureDocsError("undeclared historical Git owner")
+            for field in ("consumer", "remoteWitness"):
+                if not isinstance(entry.get(field), str) or not entry[field].strip():
+                    raise ArchitectureDocsError(f"historical Git selection missing {field}")
+            if not isinstance(entry.get("disposition"), str) or entry["disposition"] not in allowed_dispositions:
+                raise ArchitectureDocsError("invalid historical Git disposition")
+            if not isinstance(entry.get("evidenceScope"), str) or entry["evidenceScope"] not in allowed_evidence_scopes:
+                raise ArchitectureDocsError("invalid historical Git evidenceScope")
+            if "evaluatedRemoteMain" in entry and (
+                not isinstance(entry["evaluatedRemoteMain"], str)
+                or not oid_pattern.fullmatch(entry["evaluatedRemoteMain"])
+            ):
+                raise ArchitectureDocsError("invalid historical Git evaluated SourceCut")
+            cohort = entry.get("historicalCohort")
+            if cohort is not None and (
+                not isinstance(cohort, list)
+                or not cohort
+                or oid not in cohort
+                or any(not isinstance(v, str) or not oid_pattern.fullmatch(v) for v in cohort)
+                or len(cohort) != len(set(cohort))
+            ):
+                raise ArchitectureDocsError("invalid historical Git cohort")
+            source_proof = entry.get("sourceQualification")
+            if source_proof is not None:
+                if not isinstance(source_proof, dict):
+                    raise ArchitectureDocsError("invalid historical Git source qualification")
+                if source_proof.get("branchDeletionAllowed") is not False:
+                    raise ArchitectureDocsError(
+                        "historical Git selection cannot authorize branch deletion"
+                    )
+                if source_proof.get("localMain") != source_cut["localMain"]:
+                    raise ArchitectureDocsError("historical Git selection local SourceCut mismatch")
+                remote_oid = source_proof.get("protectedMain")
+                if not isinstance(remote_oid, str) or not oid_pattern.fullmatch(remote_oid):
+                    raise ArchitectureDocsError("invalid historical Git protected SourceCut")
+            if entry.get("branchDeletionAllowed") is True:
+                raise ArchitectureDocsError(
+                    "historical Git selection cannot authorize branch deletion"
+                )
 
     representation_types = {
         "type", "graph", "constraint", "state-machine", "algebra",
