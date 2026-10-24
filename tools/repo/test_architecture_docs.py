@@ -30,6 +30,30 @@ def test_current_repository_architecture_docs_are_converged() -> None:
     module.validate_repository(ROOT)
 
 
+@pytest.mark.parametrize(
+    ("source", "reason"),
+    [
+        ('{"kind":"good","kind":"bad"}', "duplicate JSON object key"),
+        ('{"registration":{"standing":"UNKNOWN","standing":"APPROVED"}}', "duplicate JSON object key"),
+        ('{"evidence":{"score":NaN}}', "non-finite JSON constant"),
+        ('{"evidence":{"score":Infinity}}', "non-finite JSON constant"),
+        ('{"evidence":{"score":-Infinity}}', "non-finite JSON constant"),
+        ('{"evidence":{"score":1e999}}', "unrepresentable JSON number"),
+        ('{"evidence":{"score":-1e999}}', "unrepresentable JSON number"),
+        ('{"evidence":{"score":1e-999}}', "unrepresentable JSON number"),
+        ('{"evidence":{"score":-1e-999}}', "unrepresentable JSON number"),
+    ],
+)
+def test_repo_formal_json_source_rejects_ambiguous_or_nonstandard_evidence(
+    tmp_path: Path, source: str, reason: str
+) -> None:
+    """Malformed registration evidence must fail before it is converted into an Owner claim."""
+    source_file = tmp_path / "owner-evidence.json"
+    source_file.write_text(source, encoding="utf-8")
+    with pytest.raises(module.ArchitectureDocsError, match=reason):
+        module._load_json(source_file)
+
+
 def test_gateway_source_surface_is_owned_by_source_manifest() -> None:
     manifest = json.loads(GATEWAY_SURFACE.read_text(encoding="utf-8"))
     observed = set(manifest["tools"])
@@ -1646,10 +1670,29 @@ def test_historical_node_types_pin_has_both_current_owner_consumers() -> None:
     assert row["sourceQualification"]["consumerOwners"] == ["apps/web", "domains/game"]
     assert row["sourceQualification"]["branchDeletionAllowed"] is False
     assert row["evaluatedRemoteMain"] == "d375287686b7ad7f04b1f5ef181bff846ac9cc94"
-    for manifest in ("apps/web/package.json", "domains/game/package.json"):
-        data = json.loads((ROOT / manifest).read_text(encoding="utf-8"))
-        assert data["devDependencies"]["@types/node"] == "26.6.5"
     module.validate_formal_issue_census(census, plans)
+
+
+def test_historical_git_consumer_proof_allows_future_owner_dependency_upgrades(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Immutable source-cut proof must not reject newer Owner-native package manifests."""
+    original_read = Path.read_text
+    manifests = {
+        ROOT / "apps/web/package.json",
+        ROOT / "domains/game/package.json",
+    }
+
+    def future_manifest(path: Path, *args: object, **kwargs: object) -> str:
+        content = original_read(path, *args, **kwargs)
+        if path in manifests:
+            data = json.loads(content)
+            data["devDependencies"]["@types/node"] = "27.0.0"
+            return json.dumps(data)
+        return content
+
+    monkeypatch.setattr(Path, "read_text", future_manifest)
+    test_historical_node_types_pin_has_both_current_owner_consumers()
 
 
 def test_repo_test_function_names_are_unique() -> None:
@@ -1938,6 +1981,70 @@ def test_formal_r21_empty_harness_graph_must_not_pass_registered_census() -> Non
     plans[owner]["edges"] = []
     with pytest.raises(module.ArchitectureDocsError, match="empty LEGO owner graph"):
         module.validate_formal_issue_census(census, plans)
+
+
+@pytest.mark.parametrize("source_mutation", ["empty", "symlink"])
+@pytest.mark.parametrize(
+    "removed_witness",
+    [
+        "services/runtime/scripts/tests/test_mcp_e2e_reconciliation.py",
+        "services/host/tests/test_social_work_fabric_postgres.py",
+        "services/harness/tests/test_agent_automation_browserless.py",
+        "platform/network/tests/test_claude_egress_readiness_consumer.py",
+    ],
+)
+def test_r21_architecture_cannot_call_an_empty_file_native_consumer_evidence(
+    tmp_path: Path, removed_witness: str, source_mutation: str,
+) -> None:
+    """A pathname, empty file or symlink is not source-bound consumer evidence."""
+    document = (
+        ROOT / "docs/architecture/AGENT_CONCEPTS_FORMAL_LEGO_RESEARCH_20261024.md"
+    ).read_text(encoding="utf-8")
+    for relative in (
+        "services/runtime/scripts/tests/test_mcp_e2e_reconciliation.py",
+        "services/host/tests/test_social_work_fabric_postgres.py",
+        "services/harness/tests/test_agent_automation_browserless.py",
+        "platform/network/tests/test_claude_egress_readiness_consumer.py",
+    ):
+        target = tmp_path / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if relative == removed_witness and source_mutation == "symlink":
+            target.symlink_to(ROOT / relative)
+        else:
+            target.write_text(
+                "# existing test identity intentionally erased\n"
+                if relative == removed_witness
+                else (ROOT / relative).read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+    with pytest.raises(module.ArchitectureDocsError, match="consumer witness"):
+        module.validate_r21_lego_vocabulary(document, root=tmp_path)
+
+
+def test_r21_duplicate_python_witness_name_is_not_an_unambiguous_proof(
+    tmp_path: Path,
+) -> None:
+    """The second Python def wins at runtime; two AST names are not one test."""
+    document = (
+        ROOT / "docs/architecture/AGENT_CONCEPTS_FORMAL_LEGO_RESEARCH_20261024.md"
+    ).read_text(encoding="utf-8")
+    for relative in (
+        "services/runtime/scripts/tests/test_mcp_e2e_reconciliation.py",
+        "services/host/tests/test_social_work_fabric_postgres.py",
+        "services/harness/tests/test_agent_automation_browserless.py",
+        "platform/network/tests/test_claude_egress_readiness_consumer.py",
+    ):
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        source = (ROOT / relative).read_text(encoding="utf-8")
+        if relative == "services/host/tests/test_social_work_fabric_postgres.py":
+            source += (
+                "\n\ndef test_work_snapshot_cas_race_has_one_winner():\n"
+                "    pass  # accidental late Python definition shadows the real oracle\n"
+            )
+        path.write_text(source, encoding="utf-8")
+    with pytest.raises(module.ArchitectureDocsError, match="consumer witness"):
+        module.validate_r21_lego_vocabulary(document, root=tmp_path)
 
 
 def test_r21_single_six_role_contract_enforced_at_repository_admission() -> None:
