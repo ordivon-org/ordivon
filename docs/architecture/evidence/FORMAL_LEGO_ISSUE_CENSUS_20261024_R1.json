@@ -885,6 +885,28 @@
             "platform/network/consumers/developer-egress/profile.sh",
             "platform/network/tests/test_developer_egress_profile.py"
           ]
+        },
+        {
+          "localCommit": "f0cfddcfd2f2a20e2c408e4a3f159ec047bd600c",
+          "owner": "services/runtime",
+          "consumer": "RuntimeDispatchR1 formal-trace acceptance receipt has the exact same current Git blob in both Main trees, while the current owner verifier consumes a separate stable-seam formal trace model and named tests. The old metadata refresh is not a new mechanized TLA+-to-Rust proof or new live effect.",
+          "remoteWitness": "services/runtime/formal/RuntimeDispatchR1.trace-r1.acceptance.json is identical in both tips; services/runtime/scripts/verify_formal_trace.py::main and scripts/tests/test_formal_trace.py owner native 10/10 PASS including negative model drift and erased seam. Traceability only; no complete refinement claim.",
+          "evidenceScope": "EXACT_GIT_BLOB_AND_NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_IDENTICAL_TIP_WITH_NATIVE_CONSUMER",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "3faee758c6c9bf4c7e97f3d7f6cb8bab93d3ca6a",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "kind": "non-merge",
+            "changedPathIdentities": [
+              {
+                "path": "services/runtime/formal/RuntimeDispatchR1.trace-r1.acceptance.json",
+                "mode": "100644",
+                "blobOid": "bd91be10978ae691b8ab4cc6bb12abfa6a1e728c"
+              }
+            ],
+            "branchDeletionAllowed": false
+          }
         }
       ],
       "consumerBlockedSelections": [
