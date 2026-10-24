@@ -54,6 +54,11 @@
       "ownerPlan": "services/runtime/planning/lego-plan-r1.json",
       "slice": "RW1",
       "scope": "verification proposal only; R02 lifecycle CAS with remaining downstream acceptance UNKNOWN"
+    },
+    {
+      "ownerPlan": "tools/repo/planning/lego-plan-r1.json",
+      "slice": "RG1",
+      "scope": "registered implementation and verification boundary; actual historical consumer equivalence not established"
     }
   ],
   "issues": [
@@ -164,8 +169,9 @@
         "selectionReason": "Different commit histories may be equivalent only under the actual consumer contract."
       },
       "registration": {
-        "state": "UNREGISTERED",
-        "reason": "Owner-local LEGO slice and consumer acceptance are not yet evidenced; census observation is not registration."
+        "state": "LINKED",
+        "ownerPlan": "tools/repo/planning/lego-plan-r1.json",
+        "slice": "RG1"
       }
     },
     {

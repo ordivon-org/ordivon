@@ -602,7 +602,7 @@ def test_formal_issue_census_rejects_cross_owner_problem_link() -> None:
 
 def test_formal_issue_census_rejects_unexplained_gap() -> None:
     census, plans = formal_issue_inputs()
-    issue = next(issue for issue in census["issues"] if issue["id"] == "GIT-01")
+    issue = next(issue for issue in census["issues"] if issue["id"] == "GIT-02")
     issue["registration"]["reason"] = " "
     with pytest.raises(module.ArchitectureDocsError, match="lacks unregistered reason"):
         module.validate_formal_issue_census(census, plans)
@@ -627,7 +627,7 @@ def test_formal_issue_census_rejects_malformed_link_shape() -> None:
 
 def test_formal_issue_census_rejects_gap_disguised_as_link() -> None:
     census, plans = formal_issue_inputs()
-    issue = next(issue for issue in census["issues"] if issue["id"] == "GIT-01")
+    issue = next(issue for issue in census["issues"] if issue["id"] == "GIT-02")
     issue["registration"]["ownerPlan"] = "platform/network/planning/lego-plan-r1.json"
     with pytest.raises(module.ArchitectureDocsError, match="mixes gap and linked registration"):
         module.validate_formal_issue_census(census, plans)
@@ -859,6 +859,22 @@ def test_formal_registry_sources_bound_before_loading(
     local.symlink_to(external)
     with pytest.raises(module.ArchitectureDocsError, match=f"{label} escapes SourceCut"):
         module._source_bound_file(source, relative, label)
+
+
+def test_git01_graph_projection_has_exact_repository_owner_lego_registration() -> None:
+    """The executable GIT-01 graph belongs to repo mechanics, not the census."""
+    census, plans = formal_issue_inputs()
+    issue = next(row for row in census["issues"] if row["id"] == "GIT-01")
+    registration = issue["registration"]
+    assert registration["state"] == "LINKED"
+    assert registration["ownerPlan"] == "tools/repo/planning/lego-plan-r1.json"
+    assert registration["slice"] == "RG1"
+    plan = plans[registration["ownerPlan"]]
+    source = next(x for x in plan["nodes"] if x["id"] == "RG1_SOURCE")
+    assert "source_history_legos.py" in source["evidence"]
+    assert "test_source_history_legos.py" in source["evidence"]
+    assert (ROOT / "tools/repo/source_history_legos.py").is_file()
+    module.validate_formal_issue_census(census, plans)
 
 
 def test_git02_unadmitted_historical_finance_and_network_consumers_remain_source_bound() -> None:
