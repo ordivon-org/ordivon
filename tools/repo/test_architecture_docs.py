@@ -798,6 +798,8 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             "NO_WHOLE_COMMIT_REPLAY_WITHOUT_PRODUCER_AUTHORITY",
             "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
             "SKIP_CANCELLED_HISTORY_PAIR",
+            "SKIP_OLDER_TOOLCHAIN_CHERRY_PICK",
+            "SKIP_RETIRED_UNCONSUMED",
         }
         assert item["evidenceScope"] in {
             "NATIVE_CONSUMER_PASS", "EXACT_GIT_BLOBS",
@@ -806,6 +808,9 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             "CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT",
             "FROZEN_GATEWAY_CONSUMER_ONLY",
             "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN",
+            "CURRENT_TOOLCHAIN_SUPERSEDES_OLD_LOCK_AND_NATIVE_TEST_PASS",
+            "EXACT_EXECUTABLE_BLOB_WITH_NONWINDOWS_HOLD_ONLY",
+            "EXACT_GIT_BLOB_AND_NATIVE_CONSUMER_PASS",
         }
         if item["evidenceScope"] == "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF":
             assert item["disposition"] == "SKIP_OLDER_PIN"
@@ -825,6 +830,12 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             else:
                 assert item["evidenceScope"] == "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN"
                 assert item["disposition"] == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
+        if "historicalCohort" in item:
+            cohort = item["historicalCohort"]
+            assert item["disposition"] == "SKIP_RETIRED_UNCONSUMED"
+            assert item["localCommit"] in cohort
+            assert len(cohort) == len(set(cohort))
+            assert all(isinstance(oid, str) and len(oid) == 40 for oid in cohort)
     module.validate_formal_issue_census(census, plans)
 
 
@@ -1103,3 +1114,20 @@ def test_git01_three_selected_historical_owner_effects_have_sufficient_source_pr
     assert "WINDOWS_SOURCE_CONTRACT_ONLY" in selected["eaa045252ef7"]["remoteWitness"]
     assert "NO_LIVE_CLOUDFLARE_CUTOVER" in selected["bec31a81ba5b"]["remoteWitness"]
     module.validate_formal_issue_census(census, plans)
+
+
+def test_retired_repository_status_projections_stay_absent() -> None:
+    """Native Repo Owner rather than obsolete document status/eval helpers."""
+    legacy = (
+        "tools/repo/document_currentness.py",
+        "tools/repo/test_document_currentness.py",
+        "tools/repo/living_view.py",
+        "tools/repo/test_living_view.py",
+        "tools/repo/first_contact_eval_receipt.py",
+        "tools/repo/first_contact_eval_matrix.py",
+        "tests/first_contact/test_eval_receipt_r6.py",
+        "tests/first_contact/test_eval_matrix_r7.py",
+    )
+    assert (ROOT / "tools/repo/check_architecture_docs.py").is_file()
+    for relative in legacy:
+        assert not (ROOT / relative).exists(), f"retired tool returned: {relative}"
