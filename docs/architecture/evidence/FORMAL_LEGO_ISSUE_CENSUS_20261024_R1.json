@@ -1147,6 +1147,33 @@
           "evidenceScope": "NATIVE_CONSUMER_PASS",
           "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
           "evaluatedRemoteMain": "4b630ed360901d44ae2bea725fc53722225b460a"
+        },
+        {
+          "localCommit": "ea9f4730f4e98c158607da2f13e6c2775c316474",
+          "owner": "capabilities/media",
+          "consumer": "Studio Agent surface_projection() advertises Draft 2020-12 inputSchema and scripts/studio-agent-surface.py passes JSON arguments to execute_surface_action(). Protected code previously dispatched extraProperties/invalid enum without enforcing its own schema. Select only the missing pre-dispatch contract guard; preserve current improved dependency acquisition and Studio domain behavior.",
+          "remoteWitness": "Exact protected sourcecut: schemas advertise additionalProperties:false, target enum and typed parameters, but execute_surface_action previously did not validate them. Media locked jsonschema 4.26.0 reused without new dependency. RED real native unittest test_advertised_json_schema_rejects_unlisted_arguments_before_owner_work failed (ValueError not raised); after minimal guard GREEN, invalid keys/enum/types rejected before owner work, Media three owner suites+ruff passed. Studio CLI calls this same entrypoint. Not a claim about end-to-end Harness tool admission or production side effects.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "PORT_MINIMAL_REQUIRED_CONSUMER_CONTRACT",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "97ebe3828c482cbeb7f58df4e6da614615017c56",
+            "kind": "non-merge",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "changedPathIdentities": {
+              "capabilities/media/src/ordivon_studio/agent_surface.py": {
+                "historicalLocalBlob": "ebbf4bd34979f55ec09220fe73917c020317bd4a",
+                "protectedBeforeFixBlob": "2a0ad83b478d26ea8618cd72fe65a8a3a20d78ea"
+              },
+              "capabilities/media/tests/test_agent_surface.py": {
+                "historicalLocalBlob": "3afdfed93f09e34da2ac0cc969f5521725d9a517",
+                "protectedBeforeFixBlob": "0fba217696f25dfd2ccb9a0be309826489de7e25"
+              }
+            },
+            "branchDeletionAllowed": false,
+            "consumerContract": "inputSchema validation before Owner dispatch",
+            "negativeControl": "unknown argument on production_standing is accepted before fix, rejected after fix"
+          }
         }
       ],
       "consumerBlockedSelections": [
