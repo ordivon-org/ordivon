@@ -71,8 +71,20 @@ accept_restored_production() {
 import json
 r=json.load(open('/root/.local/state/ordivon-workstation/exterior-anchors/chatgpt-browserless-r1/runtime-state.json'))
 c=json.load(open('/etc/ordivon/agent-automation-browserless.json'))
-assert r['namespace']==c['browserSubstrate']['endpoints'][0]['networkNamespace']
-print('restored_namespace='+r['namespace'])
+# State-machine composition guard: restored provider identity must match the
+# consumer's configured namespace. Python -O must never erase this invariant.
+restored_ns = r['namespace']
+consumer_ns = c['browserSubstrate']['endpoints'][0]['networkNamespace']
+if not (
+    isinstance(restored_ns, str)
+    and restored_ns
+    and restored_ns == restored_ns.strip()
+    and isinstance(consumer_ns, str)
+    and consumer_ns
+    and restored_ns == consumer_ns
+):
+    raise ValueError('restored Browserless namespace identity differs from consumer contract')
+print('restored_namespace='+restored_ns)
 print('restored_endpoint='+r['endpointIp'])
 print('restored_health='+r['recoveryState'])
 PY
