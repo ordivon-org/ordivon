@@ -28,6 +28,12 @@ R3 does not cancel another Agent's active Runtime Job. It holds the same exclusi
 
 The compact Scheduled Task must not inherit default power semantics that can asynchronously hard-kill the transaction. Battery/AC policy is a precondition/observation concern, not an external lifecycle authority over an in-flight VHD effect.
 
+## Sparse VHDX storage evidence
+
+For a WSL ext4.vhdx, distinguish **Hyper-V Get-VHD.FileSize** (existing receipt field), **NTFS allocated bytes** (GetCompressedFileSizeW, receipt field vhdAllocatedBytes) and **D: free bytes** (Get-Volume.SizeRemaining). These are different quantities for a sparse VHDX. Keep existing reclaimedVhdBytes and reclaimedVolumeBytes meanings; reclaimedAllocatedVhdBytes records the additional before/after difference in NTFS file allocation. A large logical file size does not establish physical usage or a safe reclaim amount.
+
+The allocation witness is observational, not a compact authorization. The R3 offline safety circuit still requires source-bound admission fencing, zero active or held work, exact authorizer grant, WSL shutdown, exclusive VHD access, controller recovery and post-maintenance Doctor qualification.
+
 ## Retirements after acceptance
 
 After R3 live acceptance, retire the R2 long-lived gate/controller/authorizer runner from active paths. Historical receipts remain immutable evidence. Do not reintroduce custom LSA S4U launchers, process-token duplication, full-Doctor polling, or a long-lived `wsl.exe` gate carrier.

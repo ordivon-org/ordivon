@@ -29,7 +29,32 @@ function Atomic-Json([string]$Path,[object]$Value) { $tmp=$Path+'.tmp-'+$PID; $j
 function Get-WslRunning { @(& "$env:WINDIR\System32\wsl.exe" --list --running --quiet 2>$null | ForEach-Object { (($_ -replace [char]0,'').Trim()) } | Where-Object { $_ }) }
 function Test-Admin { return ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator) }
 function Test-VhdExclusiveOpen { try { $s=[IO.File]::Open($vhdPath,[IO.FileMode]::Open,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None);$s.Dispose();$true } catch {$false} }
-function Volume-State { $vol=Get-Volume -DriveLetter D; $v=Get-VHD -Path $vhdPath; [ordered]@{freeBytes=[int64]$vol.SizeRemaining;vhdFileSize=[int64]$v.FileSize;vhdAttached=[bool]$v.Attached} }
+# A sparse VHDX has THREE different quantities: virtual/logical file
+# length, actually allocated NTFS bytes, and free bytes on the D volume.
+# Windows GetCompressedFileSizeW reports the allocated number (Win32 API).
+# Keep the existing Get-VHD FileSize evidence without changing its meaning.
+function Get-SparseAllocatedBytes([string]$Path) {
+  if(-not ('OrdivonR3SparseAllocation' -as [type])) {
+    Add-Type -TypeDefinition @'
+using System;
+using System.ComponentModel;
+using System.Runtime.InteropServices;
+public static class OrdivonR3SparseAllocation {
+  [DllImport("kernel32.dll", EntryPoint="GetCompressedFileSizeW", CharSet=CharSet.Unicode, SetLastError=true)]
+  private static extern uint NativeAllocatedSize(string path, out uint high);
+  public static long Read(string path) {
+    uint high;
+    uint low = NativeAllocatedSize(path, out high);
+    int error = Marshal.GetLastWin32Error();
+    if(low == uint.MaxValue && error != 0) throw new Win32Exception(error);
+    return checked((long)(((ulong)high << 32) | low));
+  }
+}
+'@ -ErrorAction Stop
+  }
+  return [int64][OrdivonR3SparseAllocation]::Read($Path)
+}
+function Volume-State { $vol=Get-Volume -DriveLetter D; $v=Get-VHD -Path $vhdPath; [ordered]@{freeBytes=[int64]$vol.SizeRemaining;vhdFileSize=[int64]$v.FileSize;vhdAllocatedBytes=[int64](Get-SparseAllocatedBytes $vhdPath);vhdAttached=[bool]$v.Attached} }
 function Wsl-Systemctl-State([string]$Unit) { (((& "$env:WINDIR\System32\wsl.exe" -d $distro -u root -- /usr/bin/systemctl is-active $Unit 2>$null)|Out-String).Trim()) }
 function Wsl-Systemctl-Enabled([string]$Unit) { (((& "$env:WINDIR\System32\wsl.exe" -d $distro -u root -- /usr/bin/systemctl is-enabled $Unit 2>$null)|Out-String).Trim()) }
 function Start-ControlPlane([object]$PressureBefore) {
@@ -127,6 +152,7 @@ try {
   try { Optimize-VHD -Path $vhdPath -Mode Full -ErrorAction Stop | Out-String | Set-Content -LiteralPath $optimizeOut -Encoding UTF8 } catch { $_|Out-String|Set-Content -LiteralPath $optimizeOut -Encoding UTF8; throw }
   $afterCompact=Volume-State
   if($afterCompact.vhdFileSize -gt $before.vhdFileSize){throw 'VHD grew during compact'}
+  if($afterCompact.vhdAllocatedBytes -gt $before.vhdAllocatedBytes){throw 'Sparse VHD allocated bytes grew during compact'}
 
   $recovery=Start-ControlPlane $r.pressureBefore
   if($recovery.runtime -ne 'active' -or $recovery.host -ne 'active' -or $recovery.gateway -ne 'active' -or $recovery.pressureTimer -ne $recovery.pressureTimerExpected -or $recovery.pressureTimerEnablement -ne $recovery.pressureTimerEnablementExpected){throw 'Control plane did not recover with pressure policy preserved'}
@@ -136,7 +162,7 @@ try {
   if($doctor.integrityCheck -ne 'ok' -or $doctor.violationCount -ne 0 -or $doctor.summary.recoveryRequiredAttempts -ne 0){throw 'Runtime Doctor did not close cleanly after recovery'}
   $afterRestart=Volume-State
   $status='completed'
-  $receipt=[ordered]@{schemaVersion=3;kind='ordivon.d-drive-offline-compact-result';status=$status;maintenanceId=$MaintenanceId;distro=$distro;vhdPath=$vhdPath;before=$before;afterCompact=$afterCompact;afterRestart=$afterRestart;reclaimedVhdBytes=[int64]($before.vhdFileSize-$afterCompact.vhdFileSize);reclaimedVolumeBytes=[int64]($afterCompact.freeBytes-$before.freeBytes);readySha256=(Sha $ready);authorizationSha256=(Sha $authorization);handoffSha256=(Sha $handoff);compactMethod='Optimize-VHD Full';recovery=$recovery;runtimeHealth=[ordered]@{status=$health.status;recoveryRequired=$health.registry.recoveryRequired;heldReservations=$health.registry.heldReservations};runtimeDoctor=[ordered]@{integrityCheck=$doctor.integrityCheck;violationCount=$doctor.violationCount;recoveryRequiredAttempts=$doctor.summary.recoveryRequiredAttempts};completedAt=[DateTimeOffset]::Now.ToString('o')}
+  $receipt=[ordered]@{schemaVersion=3;kind='ordivon.d-drive-offline-compact-result';status=$status;maintenanceId=$MaintenanceId;distro=$distro;vhdPath=$vhdPath;before=$before;afterCompact=$afterCompact;afterRestart=$afterRestart;reclaimedVhdBytes=[int64]($before.vhdFileSize-$afterCompact.vhdFileSize);reclaimedAllocatedVhdBytes=[int64]($before.vhdAllocatedBytes-$afterCompact.vhdAllocatedBytes);reclaimedVolumeBytes=[int64]($afterCompact.freeBytes-$before.freeBytes);readySha256=(Sha $ready);authorizationSha256=(Sha $authorization);handoffSha256=(Sha $handoff);compactMethod='Optimize-VHD Full';recovery=$recovery;runtimeHealth=[ordered]@{status=$health.status;recoveryRequired=$health.registry.recoveryRequired;heldReservations=$health.registry.heldReservations};runtimeDoctor=[ordered]@{integrityCheck=$doctor.integrityCheck;violationCount=$doctor.violationCount;recoveryRequiredAttempts=$doctor.summary.recoveryRequiredAttempts};completedAt=[DateTimeOffset]::Now.ToString('o')}
   Atomic-Json $result $receipt
   $latest="$root\d-drive-compact-result-r3-latest.json";Atomic-Json $latest $receipt
 } catch {
