@@ -76,6 +76,77 @@ def _load_json(path: Path) -> dict[str, Any]:
     return value
 
 
+# The shared structure is only a typed finite relation, not a new registry,
+# executable DSL, dependency scheduler, or owner-independent claim of truth.
+OWNER_LEGO_PLANS = (
+    "services/runtime/planning/lego-plan-r1.json",
+    "services/host/planning/lego-plan-r2.json",
+    "services/harness/planning/lego-plan-r1.json",
+    "platform/network/planning/lego-plan-r1.json",
+)
+
+
+def validate_owner_lego_graph(plan: dict[str, Any]) -> None:
+    """Check finite graph closure: E subset V x Type x V, slices subset V.
+
+    Graph cycles are valid for lifecycle/STATE relations. This intentionally
+    does not conflate a state transition graph with an acyclic dependency DAG,
+    nor assert any domain semantics, consumer currentness or execution rights.
+    """
+    if plan.get("kind") != "ordivon.project-lego-plan":
+        raise ArchitectureDocsError("owner LEGO graph has unexpected kind")
+    if plan.get("truthRole") != "planning-projection-not-project-truth":
+        raise ArchitectureDocsError("owner LEGO graph must remain non-authoritative")
+
+    nodes = plan.get("nodes")
+    if not isinstance(nodes, list) or not nodes:
+        raise ArchitectureDocsError("owner LEGO graph needs nodes")
+    identities: set[str] = set()
+    for node in nodes:
+        if not isinstance(node, dict):
+            raise ArchitectureDocsError("LEGO node must be an object")
+        identity = node.get("id")
+        if not isinstance(identity, str) or not identity.strip():
+            raise ArchitectureDocsError("LEGO node requires non-empty identity")
+        if identity in identities:
+            raise ArchitectureDocsError(f"duplicate LEGO node: {identity}")
+        if not isinstance(node.get("kind"), str) or not node["kind"].strip():
+            raise ArchitectureDocsError(f"LEGO node {identity} requires a type")
+        identities.add(identity)
+
+    edges = plan.get("edges", [])
+    if not isinstance(edges, list):
+        raise ArchitectureDocsError("LEGO edge relation must be a list")
+    for edge in edges:
+        if not isinstance(edge, dict):
+            raise ArchitectureDocsError("LEGO edge must be an object")
+        if any(not isinstance(edge.get(key), str) or not edge[key].strip() for key in ("from", "to", "type")):
+            raise ArchitectureDocsError("LEGO edge needs from, to and type")
+        if edge["from"] not in identities or edge["to"] not in identities:
+            raise ArchitectureDocsError("unknown LEGO endpoint")
+
+    slices = plan.get("slices", [])
+    if not isinstance(slices, list):
+        raise ArchitectureDocsError("LEGO slices must be a list")
+    slice_ids: set[str] = set()
+    for slice_ in slices:
+        if not isinstance(slice_, dict):
+            raise ArchitectureDocsError("LEGO slice must be an object")
+        identity = slice_.get("id")
+        if not isinstance(identity, str) or not identity.strip():
+            raise ArchitectureDocsError("LEGO slice needs non-empty identity")
+        if identity in slice_ids:
+            raise ArchitectureDocsError(f"duplicate LEGO slice: {identity}")
+        slice_ids.add(identity)
+        refs = slice_.get("nodeIds")
+        if not isinstance(refs, list) or not refs:
+            raise ArchitectureDocsError(f"LEGO slice {identity} needs node references")
+        if any(not isinstance(ref, str) or ref not in identities for ref in refs):
+            raise ArchitectureDocsError(f"unknown LEGO slice node in {identity}")
+        if len(refs) != len(set(refs)):
+            raise ArchitectureDocsError(f"duplicate LEGO slice node in {identity}")
+
+
 def validate_deployed_graph(value: dict[str, Any]) -> None:
     if value.get("schemaVersion") != 1:
         raise ArchitectureDocsError("deployed architecture schemaVersion must be 1")
@@ -659,6 +730,9 @@ def validate_repository(root: Path = ROOT) -> None:
         raise ArchitectureDocsError("Tempo graceful cold-stop budget drifted")
     if trace_acceptance.get("status") != "ACCEPTED_DEPLOYED_ON_DEMAND":
         raise ArchitectureDocsError("persistent trace backend lacks accepted live evidence")
+
+    for relative in OWNER_LEGO_PLANS:
+        validate_owner_lego_graph(_load_json(root / relative))
 
     issue_evidence_dir = root / "docs" / "architecture" / "evidence"
     for census_path in issue_evidence_dir.glob("FORMAL_LEGO_ISSUE_CENSUS_*_R*.json"):
