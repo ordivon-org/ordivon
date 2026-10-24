@@ -1,16 +1,37 @@
 from __future__ import annotations
 
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-from ordivon_studio.creative_index import build_creative_index, query_creative_index
+from ordivon_studio.creative_index import (
+    _first_string,
+    _walk_values,
+    build_creative_index,
+    query_creative_index,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 class CreativeIndexTests(unittest.TestCase):
+    def test_owner_metadata_preorder_survives_arbitrary_json_depth(self) -> None:
+        """An acyclic JSON-shaped source must not depend on Python's call stack."""
+        shallow = {
+            "profileId": "",
+            "source": [{"profileId": "primary"}, {"profileId": "fallback"}],
+        }
+        self.assertEqual(list(_walk_values(shallow, "profileId")), ["", "primary", "fallback"])
+        self.assertEqual(_first_string(shallow, "profileId"), "primary")
+
+        # Explicitly deeper than the running interpreter's recursion budget.
+        deep = {"profileId": "retained-owner"}
+        for _ in range(max(1_350, sys.getrecursionlimit() + 16)):
+            deep = {"source": [deep]}
+        self.assertEqual(_first_string(deep, "profileId"), "retained-owner")
+
     def test_media_only_projection_contains_equipment_capabilities_and_works(self) -> None:
         index = build_creative_index(ROOT)
         nodes = {row["id"]: row for row in index["nodes"]}

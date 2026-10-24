@@ -30,14 +30,17 @@ def _revision(root: Path) -> str | None:
 
 
 def _walk_values(value: Any, key: str) -> Iterable[Any]:
-    if isinstance(value, Mapping):
-        if key in value:
-            yield value[key]
-        for child in value.values():
-            yield from _walk_values(child, key)
-    elif isinstance(value, list):
-        for child in value:
-            yield from _walk_values(child, key)
+    # An explicit stack preserves the recursive preorder of JSON-shaped owner
+    # facts without making accepted nesting depend on Python recursion limits.
+    pending = [value]
+    while pending:
+        current = pending.pop()
+        if isinstance(current, Mapping):
+            if key in current:
+                yield current[key]
+            pending.extend(reversed(tuple(current.values())))
+        elif isinstance(current, list):
+            pending.extend(reversed(current))
 
 
 def _first_string(value: Any, key: str) -> str | None:
