@@ -784,18 +784,26 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
         "ecca6ad1ae", "86298d72ea", "9c8e37dfe8", "fcf5fc6d1b",
         "82c8fa2924", "84baec0ea1", "7a96b238fb", "7c2fa8c4d2",
         "225192c6e7", "2919a6d840", "495b45d461", "f93faa57cf",
+        "af6f3f48f1", "8ac2e7f814",
     }
     for item in candidates:
         assert len(item["localCommit"]) == 40
         assert item["owner"]
         assert item["consumer"]
         assert item["remoteWitness"]
-        assert item["disposition"] in {"SKIP_DUPLICATE_CHERRY_PICK", "SKIP_OLDER_PIN", "SKIP_OLDER_SOURCECUT", "SKIP_UNCONSUMED_PERMISSION"}
+        assert item["disposition"] in {
+            "SKIP_DUPLICATE_CHERRY_PICK", "SKIP_OLDER_PIN",
+            "SKIP_OLDER_SOURCECUT", "SKIP_UNCONSUMED_PERMISSION",
+            "NO_WHOLE_COMMIT_REPLAY_WITHOUT_PRODUCER_AUTHORITY",
+            "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
+        }
         assert item["evidenceScope"] in {
             "NATIVE_CONSUMER_PASS", "EXACT_GIT_BLOBS",
             "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF",
             "LATEST_STABLE_SOURCE_NO_UPGRADE",
             "CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT",
+            "FROZEN_GATEWAY_CONSUMER_ONLY",
+            "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN",
         }
         if item["evidenceScope"] == "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF":
             assert item["disposition"] == "SKIP_OLDER_PIN"
@@ -805,6 +813,16 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             assert item["evaluatedRemoteMain"] == "41a1073703343aad61c3ffacac34edfb91019800"
         if item["evidenceScope"] == "CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT":
             assert item["disposition"] == "SKIP_UNCONSUMED_PERMISSION"
+        if item["localCommit"].startswith(("af6f3f48f1", "8ac2e7f814")):
+            proof = item["sourceQualification"]
+            assert proof["localMain"] == source["localMain"]
+            assert proof["protectedMain"] == "6d44eb7860cff086e27bedd1a59e49415a4c87cc"
+            assert proof["branchDeletionAllowed"] is False
+            if item["evidenceScope"] == "FROZEN_GATEWAY_CONSUMER_ONLY":
+                assert item["disposition"] == "NO_WHOLE_COMMIT_REPLAY_WITHOUT_PRODUCER_AUTHORITY"
+            else:
+                assert item["evidenceScope"] == "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN"
+                assert item["disposition"] == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
     module.validate_formal_issue_census(census, plans)
 
 
