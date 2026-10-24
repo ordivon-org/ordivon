@@ -253,6 +253,17 @@ def validate_current_document(text: str) -> None:
 
 
 
+def _source_bound_owner_plan_path(root: Path, plan_path: str) -> Path:
+    """Bind a registered owner plan to the exact source tree, not a symlink target."""
+    relative = Path(plan_path)
+    if not plan_path or relative.is_absolute() or ".." in relative.parts:
+        raise ArchitectureDocsError("invalid owner-local LEGO path")
+    expected = root.resolve() / relative
+    if not expected.is_file() or expected.resolve() != expected:
+        raise ArchitectureDocsError("owner-local LEGO plan escapes SourceCut")
+    return expected
+
+
 def validate_formal_issue_census(
     census: dict[str, Any], plans: dict[str, dict[str, Any]], *, root: Path = ROOT
 ) -> None:
@@ -338,6 +349,7 @@ def validate_formal_issue_census(
         path = Path(plan_path)
         if path.is_absolute() or ".." in path.parts or not plan_path:
             raise ArchitectureDocsError("invalid owner-local LEGO path")
+        _source_bound_owner_plan_path(root, plan_path)
         if (plan_path, slice_id) in seen:
             raise ArchitectureDocsError("duplicate owner-local LEGO link")
         seen.add((plan_path, slice_id))
@@ -468,7 +480,9 @@ def validate_repository(root: Path = ROOT) -> None:
             relative = Path(ref["ownerPlan"])
             if relative.is_absolute() or ".." in relative.parts:
                 raise ArchitectureDocsError("invalid owner-local LEGO path")
-            plans[ref["ownerPlan"]] = _load_json(root / relative)
+            plans[ref["ownerPlan"]] = _load_json(
+                _source_bound_owner_plan_path(root, ref["ownerPlan"])
+            )
         validate_formal_issue_census(census, plans, root=root)
 
     for path, marker in HISTORICAL.items():
