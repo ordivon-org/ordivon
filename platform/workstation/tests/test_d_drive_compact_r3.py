@@ -116,6 +116,17 @@ def test_windows_controller_submits_systemd_owner_instead_of_holding_wsl_transpo
 
 
 
+def test_windows_r3_receipt_distinguishes_sparse_allocated_bytes_from_file_size() -> None:
+    """Do not conflate a sparse VHDX logical size with NTFS allocated bytes."""
+    text = CONTROLLER.read_text(encoding="utf-8")
+    assert "GetCompressedFileSizeW" in text
+    assert "vhdAllocatedBytes" in text
+    assert "reclaimedAllocatedVhdBytes" in text
+    assert "$before.vhdAllocatedBytes-$afterCompact.vhdAllocatedBytes" in text
+    assert "reclaimedVolumeBytes" in text
+    assert "Optimize-VHD -Path $vhdPath -Mode Full" in text
+
+
 def test_windows_recovery_preserves_pressure_policy_instead_of_enabling_it():
     text = CONTROLLER.read_text(encoding="utf-8")
     assert "enable --now $pressureTimer" not in text
