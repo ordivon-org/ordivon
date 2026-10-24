@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import tomllib
 import unittest
 from pathlib import Path
 
@@ -12,6 +13,32 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class DependencyUpdateOwnershipTests(unittest.TestCase):
+    def test_unconsumed_opa_toolchain_pins_are_retired(self):
+        """Capital uses native Python; Artifact binds an external release OPA carrier."""
+        for owner in ("domains/capital", "capabilities/artifact"):
+            manifest = tomllib.loads((ROOT / owner / "mise.toml").read_text(encoding="utf-8"))
+            self.assertNotIn("opa", manifest["tools"], f"{owner} must not install unused OPA")
+        # Do not confuse an unconsumed Mise version pin with Artifact's actual
+        # OCI release policy: the production carrier is an explicit external
+        # executable whose path and SHA-256 enter the release evidence.
+        carrier = (ROOT / "capabilities/artifact/scripts/artifact_oci_package.py").read_text(encoding="utf-8")
+        self.assertIn('os.environ.get("ARTIFACT_OPA"', carrier)
+        self.assertIn('sha256_file(DEFAULT_OPA)', carrier)
+        for owner in ("platform/security", "capabilities/distribution"):
+            manifest = tomllib.loads((ROOT / owner / "mise.toml").read_text(encoding="utf-8"))
+            self.assertIn("opa", manifest["tools"])
+
+    def test_active_opa_policy_owners_consume_one_current_version(self):
+        """Current OPA policy consumers converge; no stale Mise OPA release."""
+        owners = ("platform/security", "capabilities/distribution", "meta/next")
+        versions = {
+            owner: tomllib.loads((ROOT / owner / "mise.toml").read_text(encoding="utf-8"))
+            ["tools"]["opa"]
+            for owner in owners
+        }
+        self.assertEqual(len(set(versions.values())), 1, versions)
+        self.assertTrue((ROOT / "meta/next/tests/test_research_adopted_policy.py").is_file())
+
     def test_python_uv_lock_has_one_updater(self):
         renovate = json.loads((ROOT / "renovate.json").read_text(encoding="utf-8"))
         self.assertIn("pep621", renovate["enabledManagers"])
