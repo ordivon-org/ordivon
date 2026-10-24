@@ -78,6 +78,51 @@ class TemporalArtifactDeliveryContractTests(unittest.TestCase):
             victim=Path(first['roles'][blob_roles[0]]['path']); victim.write_bytes(victim.read_bytes()+b'drift')
             with self.assertRaisesRegex(RuntimeError,'committed operation output drift'): ex.package(value)
 
+    def test_deploy_rejects_running_workflow_before_unit_mutation(self):
+        from unittest.mock import patch
+        module_spec=importlib.util.spec_from_file_location(
+            'artifact_temporal_deploy_visibility',ROOT/'scripts/artifact_temporal_deploy.py')
+        module=importlib.util.module_from_spec(module_spec);module_spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as scratch:
+            root=Path(scratch);(root/'source-unit').write_text('known')
+            with (
+                patch.object(module,'plan',return_value={'applyEligible':True}),
+                patch.object(module,'ensure_no_running_artifact_workflows',
+                             side_effect=RuntimeError('active Artifact workflow')),
+                patch.object(module,'STATE',root/'state'),
+                patch.object(module,'SOURCE_UNIT',root/'source-unit'),
+                patch.object(module,'SYSTEM_UNIT',root/'installed-unit'),
+                patch.object(module.subprocess,'run') as systemctl,
+            ):
+                with self.assertRaisesRegex(RuntimeError,'active Artifact workflow'):
+                    module.apply()
+                systemctl.assert_not_called()
+                self.assertFalse((root/'installed-unit').exists())
+                self.assertFalse((root/'state').exists())
+
+    def test_deploy_visibility_uses_real_workflow_symbol_and_fails_closed(self):
+        from unittest.mock import patch
+        module_spec=importlib.util.spec_from_file_location(
+            'artifact_temporal_deploy_visibility_test',ROOT/'scripts/artifact_temporal_deploy.py')
+        module=importlib.util.module_from_spec(module_spec);module_spec.loader.exec_module(module)
+        with patch.object(module.subprocess,'run') as run:
+            run.return_value=type('Result',(),{'returncode':0,'stdout':'0\n','stderr':''})()
+            module.ensure_no_running_artifact_workflows()
+            called=run.call_args.args[0]
+            self.assertIn('from artifact_temporal_workflow import ARTIFACT_WORKFLOW',called[2])
+            self.assertIn('sys.path.insert(0,sys.argv[4])',called[2])
+            self.assertEqual(called[6],str(module.ROOT))
+            self.assertIn('ExecutionStatus=',called[2])
+            run.return_value.stdout='1\n'
+            with self.assertRaisesRegex(RuntimeError,'running'):
+                module.ensure_no_running_artifact_workflows()
+            run.return_value.stdout='garbled'
+            with self.assertRaises(RuntimeError):
+                module.ensure_no_running_artifact_workflows()
+            run.return_value.returncode=1
+            with self.assertRaises(RuntimeError):
+                module.ensure_no_running_artifact_workflows()
+
     def test_deployment_is_main_source_fenced_and_hardened(self):
         deploy=(ROOT/'scripts/artifact_temporal_deploy.py').read_text();unit=(ROOT/'systemd/ordivon-artifact-temporal-worker.service').read_text();self.assertIn("MAIN=Path('/root/projects/ordivon/capabilities/artifact')",deploy);self.assertIn("main_source=ROOT.resolve()==MAIN.resolve()",deploy);self.assertIn("WorkingDirectory=/root/projects/ordivon/capabilities/artifact",unit);self.assertIn("/root/projects/ordivon/capabilities/artifact/scripts/artifact_temporal_worker.py",unit);self.assertNotIn("/root/projects/ordivon-artifact-v2",unit);self.assertIn("if not current['applyEligible']",deploy);self.assertNotIn('artifact_python_probe',deploy);self.assertNotIn('--artifact-python',unit);self.assertIn("SERVER_UNIT='temporal.service'",deploy);self.assertIn('/root/.local/share/ordivon-workstation/artifact-python-v1/current/bin/python',deploy);self.assertIn('/root/.local/share/ordivon-workstation/artifact-python-v1/current/bin/python',unit);self.assertNotIn('temporal-agent-automation/.venv/bin/python',unit);self.assertIn('sys.path.insert(0, str(ROOT))',(ROOT/'scripts/artifact_temporal_launch.py').read_text());self.assertIn('ProtectSystem=strict',unit);self.assertIn('NoNewPrivileges=true',unit);self.assertIn('ReadWritePaths=/root/.local/state/ordivon-workstation/artifact-temporal',unit)
 
@@ -87,3 +132,13 @@ class TemporalArtifactDeliveryContractTests(unittest.TestCase):
             ex=m.ReceiptFencedArtifactExecutor(Path(d)/'state')
             with self.assertRaisesRegex(RuntimeError,'unsupported fields'):ex._validate_trust_material({'trustPolicy':{},'bundles':{},'signerIds':{},'privateKey':'forbidden'})
 if __name__=='__main__':unittest.main()
+
+
+def test_artifact_worker_service_fail_closed_for_carrier_integrity():
+    """A reproducible carrier integrity refusal cannot create a restart storm."""
+    unit = (ROOT / "systemd/ordivon-artifact-temporal-worker.service").read_text()
+    assert "Restart=on-failure" in unit  # recover transient transport failures
+    assert "RestartPreventExitStatus=126" in unit  # carrier bytes drift
+    assert "StartLimitIntervalSec=5min" in unit
+    assert "StartLimitBurst=6" in unit
+    assert "RestartSec=2s" in unit
