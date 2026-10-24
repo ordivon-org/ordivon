@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import base64
 import hashlib
+import http.client
 import json
 import os
 import secrets
@@ -147,13 +148,54 @@ def live_docker_socket(
         try:
             client.connect(str(path))
             client.sendall(b"GET /_ping HTTP/1.0\r\n\r\n")
-            if b"OK" in client.recv(4096):
+            response = http.client.HTTPResponse(client)
+            response.begin()
+            if response.status == 200 and response.read(64).strip() == b"OK":
                 return path
-        except OSError:
+        except (OSError, http.client.HTTPException, ValueError):
             pass
         finally:
             client.close()
     return None
+
+
+def make_trusted_host_probe_script(probe_port: int, docker_socket: Path | None) -> str:
+    return "\n".join(
+        [
+            "import http.client, json, os, pathlib, socket, subprocess",
+            f"connection = socket.create_connection(('127.0.0.1', {probe_port}), timeout=3)",
+            "network = connection.recv(128).decode('utf-8')",
+            "connection.close()",
+            f"docker_path = {str(docker_socket)!r}",
+            "docker_ping = None",
+            "if docker_path:",
+            "    docker = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)",
+            "    docker.settimeout(3)",
+            "    try:",
+            "        docker.connect(docker_path)",
+            r"        docker.sendall(b'GET /_ping HTTP/1.0\r\n\r\n')",
+            "        response = http.client.HTTPResponse(docker)",
+            "        response.begin()",
+            "        docker_ping = response.status == 200 and response.read(64).strip() == b'OK'",
+            "    except (OSError, http.client.HTTPException, ValueError):",
+            "        docker_ping = False",
+            "    finally:",
+            "        docker.close()",
+            "systemd = subprocess.run(['/usr/bin/systemctl', 'show', '--property=Version', '--value'], text=True, capture_output=True)",
+            r"pathlib.Path('job-created.txt').write_text('created-by-trusted-job\n')",
+            "print(json.dumps({",
+            "    'network': network,",
+            "    'home': os.environ.get('HOME'),",
+            "    'pathPresent': bool(os.environ.get('PATH')),",
+            "    'sshVisible': pathlib.Path('/root/.ssh').exists(),",
+            "    'configVisible': pathlib.Path('/root/.config').exists(),",
+            "    'dockerSocket': docker_path,",
+            "    'dockerPing': docker_ping,",
+            "    'systemdExit': systemd.returncode,",
+            "    'systemdVersion': systemd.stdout.strip(),",
+            "}, sort_keys=True))",
+        ]
+    )
 
 
 def host_network_probe() -> tuple[int, threading.Thread]:
@@ -1887,40 +1929,7 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
 
         probe_port, probe_thread = host_network_probe()
         docker_socket = live_docker_socket()
-        probe_script = "\n".join(
-            [
-                "import json, os, pathlib, socket, subprocess",
-                f"connection = socket.create_connection(('127.0.0.1', {probe_port}), timeout=3)",
-                "network = connection.recv(128).decode('utf-8')",
-                "connection.close()",
-                f"docker_path = {str(docker_socket)!r}",
-                "docker_ping = None",
-                "if docker_path:",
-                "    docker = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)",
-                "    docker.settimeout(3)",
-                "    try:",
-                "        docker.connect(docker_path)",
-                r"        docker.sendall(b'GET /_ping HTTP/1.0\r\n\r\n')",
-                "        docker_ping = b'OK' in docker.recv(4096)",
-                "    except OSError:",
-                "        docker_ping = False",
-                "    finally:",
-                "        docker.close()",
-                "systemd = subprocess.run(['/usr/bin/systemctl', 'show', '--property=Version', '--value'], text=True, capture_output=True)",
-                r"pathlib.Path('job-created.txt').write_text('created-by-trusted-job\n')",
-                "print(json.dumps({",
-                "    'network': network,",
-                "    'home': os.environ.get('HOME'),",
-                "    'pathPresent': bool(os.environ.get('PATH')),",
-                "    'sshVisible': pathlib.Path('/root/.ssh').exists(),",
-                "    'configVisible': pathlib.Path('/root/.config').exists(),",
-                "    'dockerSocket': docker_path,",
-                "    'dockerPing': docker_ping,",
-                "    'systemdExit': systemd.returncode,",
-                "    'systemdVersion': systemd.stdout.strip(),",
-                "}, sort_keys=True))",
-            ]
-        )
+        probe_script = make_trusted_host_probe_script(probe_port, docker_socket)
         host_probe = client.tool(
             "workspace.exec",
             {
