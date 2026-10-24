@@ -57,6 +57,37 @@ class SQLDialectBoundaryTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "external source"):
                 tracked_sql(repo)
 
+    def test_git_index_symlink_cannot_be_masked_by_local_regular_file(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = root / "repo"
+            repo.mkdir()
+            outside = root / "external.sql"
+            outside.write_text("SELECT 1;", encoding="utf-8")
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            tracked = repo / "query.sql"
+            tracked.symlink_to(outside)
+            subprocess.run(["git", "-C", str(repo), "add", "query.sql"], check=True)
+            tracked.unlink()
+            tracked.write_text("SELECT 1;", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "symlink|index"):
+                tracked_sql(repo)
+
+    def test_git_tracked_sql_parent_symlink_inside_checkout_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory) / "repo"
+            (repo / "queries").mkdir(parents=True)
+            (repo / "queries" / "sample.sql").write_text("SELECT 1;", encoding="utf-8")
+            (repo / "other").mkdir()
+            (repo / "other" / "sample.sql").write_text("SELECT 2;", encoding="utf-8")
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            subprocess.run(["git", "-C", str(repo), "add", "queries/sample.sql"], check=True)
+            (repo / "queries" / "sample.sql").unlink()
+            (repo / "queries").rmdir()
+            (repo / "queries").symlink_to(repo / "other", target_is_directory=True)
+            with self.assertRaisesRegex(ValueError, "symlink"):
+                tracked_sql(repo)
+
     def test_unknown_sql_is_not_certified(self):
         for name in ("domains/game/later.sql", "services/runtime/crates/ordivon-runtime-core/src/runtime/bad.sql"):
             with self.subTest(name=name):

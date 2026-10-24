@@ -45,22 +45,29 @@ def classify(path: str) -> str | None:
 
 
 def tracked_sql(root: Path) -> list[str]:
-    # Git tracks symlink paths too; filesystem is_file() follows those links.
-    # Never read/execute SQL source material outside this repository checkout.
+    # Git path, index file type and resolved checkout source must agree.
+    # A local replacement must not mask a symlink committed in the index.
     tracked = subprocess.check_output(
-        ["git", "-C", str(root), "ls-files", "--", "*.sql"],
-        text=True,
-    ).splitlines()
+        ["git", "-C", str(root), "ls-files", "--stage", "-z", "--", "*.sql"],
+    )
     repository = root.resolve()
     accepted: list[str] = []
-    for path in tracked:
-        source = root / path
-        if source.is_symlink() or (
-            source.is_file() and not source.resolve().is_relative_to(repository)
-        ):
-            raise ValueError(f"tracked SQL symlink or external source: {path}")
-        if source.is_file():
-            accepted.append(path)
+    for record in tracked.split(b"\0"):
+        if not record:
+            continue
+        metadata, separator, name = record.partition(b"\t")
+        mode, _, stage = metadata.split()
+        path = name.decode("utf-8", errors="surrogateescape")
+        if not separator or mode not in (b"100644", b"100755") or stage != b"0":
+            raise ValueError(f"tracked SQL symlink or nonregular index type: {path}")
+        source = root
+        for component in Path(path).parts:
+            source = source / component
+            if source.is_symlink():
+                raise ValueError(f"tracked SQL symlink or external source: {path}")
+        if not source.is_file() or not source.resolve().is_relative_to(repository):
+            raise ValueError(f"tracked SQL missing or external source: {path}")
+        accepted.append(path)
     return accepted
 
 
