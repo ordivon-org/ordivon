@@ -1650,6 +1650,63 @@
             "branchDeletionAllowed": false,
             "semanticStanding": "NETWORK_NATIVE_CDC_ABSORBED_WEB_PUBLIC_SEAM_DIFFERENT_NO_WHOLE_CHERRY_PICK"
           }
+        },
+        {
+          "localCommit": "476a7c04201f8f8a4958d5df1c546dd2adbc91ad",
+          "owner": "platform/network",
+          "consumer": "Claude readiness shares a 90-second total across direct-route fail-closed and proxy probes; each individual curl max-time is constrained by remaining time.",
+          "remoteWitness": "Merged PR #426 recovers selected necessary shared-deadline effect without old code. Network Owner network:ci 95/95 PASS after native RED clock-jump fault; later source PR #450 merged and network:ci 98/98 PASS.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "76788328253912000721a54643d952974cae73d0",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "76788328253912000721a54643d952974cae73d0",
+            "branchDeletionAllowed": false
+          }
+        },
+        {
+          "localCommit": "42e4cd74270fab311646bc0fd2035a2e53089254",
+          "owner": "platform/network",
+          "consumer": "Supply-Chain readiness uses one bounded deadline across carrier convergence and five HTTPS Registry consumers rather than multiplying per-origin retries.",
+          "remoteWitness": "Merged PR #426 recovers the time-bound contract; merged PR #450 additionally checks HTTPS CONNECT=200, allowed registry HTTP statuses, -q and --noproxy empty. Native Network 98/98 PASS and protected root verification SUCCESS.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "76788328253912000721a54643d952974cae73d0",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "76788328253912000721a54643d952974cae73d0",
+            "branchDeletionAllowed": false
+          }
+        },
+        {
+          "localCommit": "7c16347918a09b73a1f104d60c4f77c6c01d9a1b",
+          "owner": "services/runtime",
+          "consumer": "Runtime MCP E2E HTTP response requires JSON-RPC version 2.0, exact request ID, and exactly one of result/error; malformed provider response cannot produce success.",
+          "remoteWitness": "Merged PR #464 restored only the response-envelope constraint; historical four negative real HTTP-response tests RED before and GREEN after. runtime:verify exit 0: Rust core 362 PASS (41 opt-in ignored), 512/512 reference model, TLC 20 distinct bounded-model states no errors; root repo:ci 123 PASS.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "76788328253912000721a54643d952974cae73d0",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "76788328253912000721a54643d952974cae73d0",
+            "branchDeletionAllowed": false
+          }
+        },
+        {
+          "localCommit": "c3055bcfaaed20c694b60ba3f0dfdaeec683611d",
+          "owner": "services/gateway",
+          "consumer": "Optional Host ActorRef-specific Gateway Capability Authorization PEP has test consumers but no in-tree production build_server(capability_authorizer=...) injection; current message.post remains routed through Host and does not itself activate this PEP.",
+          "remoteWitness": "PR #490 historical 7 RED then 16 PEP tests GREEN, gateway:verify and repo:ci 149 PASS, but deliberately CLOSED and branch deleted after consumer penetration. services/gateway/src/ordivon_gateway/mcp_server.py::main invokes build_server(gateway) without Authorizer; systemd/ordivon-gateway.service configures no AuthZEN PDP endpoint or credential. External deployment consumers not asserted.",
+          "evidenceScope": "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN",
+          "disposition": "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
+          "evaluatedRemoteMain": "76788328253912000721a54643d952974cae73d0",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "76788328253912000721a54643d952974cae73d0",
+            "consumerStanding": "NO_IN_TREE_CONSUMER_EXTERNAL_UNKNOWN",
+            "branchDeletionAllowed": false
+          }
         }
       ],
       "consumerBlockedSelections": [
