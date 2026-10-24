@@ -216,6 +216,61 @@ class WorkspaceReadyTests(unittest.TestCase):
         self.assertEqual(Path(result.stdout.strip()).resolve(), nested.resolve())
         self.assertIn("pnpm:install --frozen-lockfile --offline", self.events())
 
+    def test_security_nested_js_consumers_bind_owner_pnpm_and_node(self):
+        # Legacy local c582107's consumer invariant uses the existing owner,
+        # never a resurrected standalone workspace-environment registry.
+        import json
+        import tomllib
+
+        security = SOURCE.parents[2] / "platform/security"
+        owner = tomllib.loads((security / "mise.toml").read_text())["tools"]
+        for nested in (
+            "contracts/agent-request-verifier-v1",
+            "labs/agent-admission-rs",
+        ):
+            with self.subTest(nested=nested):
+                package = json.loads((security / nested / "package.json").read_text())
+                self.assertEqual(package["packageManager"], f"pnpm@{owner['pnpm']}")
+                self.assertEqual(package["engines"]["node"], owner["node"])
+
+    def test_nested_pnpm_version_must_match_owner_selection_before_install(self):
+        # Historical local c582107 consumer condition, now at workspace-ready.
+        # A real packageManager override must not select an older pnpm binary
+        # despite the owner having a newer, already-installed tool.
+        nested = self.scope / "node"
+        nested.mkdir()
+        (nested / "package.json").write_text(
+            '{"name":"nested","packageManager":"pnpm@12.14.0"}\n'
+        )
+        (nested / "pnpm-lock.yaml").write_text("lockfileVersion: '9.0'\n")
+        toolbin = self.root / "toolbin"
+        toolbin.mkdir()
+        pnpm = toolbin / "pnpm"
+        pnpm.write_text(
+            "#!/bin/sh\n"
+            'if [ "$1" = "--version" ]; then echo 12.15.0; exit 0; fi\n'
+            'printf "pnpm:%s\\n" "$*" >> "$RECORDER"\n'
+        )
+        pnpm.chmod(0o755)
+        node = toolbin / "node"
+        node.write_text("#!/bin/sh\necho pnpm@12.14.0\n")
+        node.chmod(0o755)
+        self.env["MISE_INSTALLED"] = "true"
+        self.env["MISE_SELECTED_BIN"] = str(toolbin)
+        self.env["PATH"] = f"{toolbin}:/usr/bin:/bin"
+        result = self.run_ready("services/harness/node", "--", "/usr/bin/true")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("packageManager", result.stderr)
+        self.assertNotIn("pnpm:install", self.log.read_text())
+
+        # The identical consumer with the selected owner's version is admitted.
+        node.write_text("#!/bin/sh\necho pnpm@12.15.0\n")
+        (nested / "package.json").write_text(
+            '{"name":"nested","packageManager":"pnpm@12.15.0"}\n'
+        )
+        accepted = self.run_ready("services/harness/node", "--", "/usr/bin/true")
+        self.assertEqual(accepted.returncode, 0, accepted.stderr)
+
     def test_nested_dependency_without_lock_is_rejected_before_any_effect(self):
         nested = self.scope / "node"
         nested.mkdir()

@@ -206,6 +206,24 @@ if [[ -f "$consumer/pyproject.toml" ]]; then
 fi
 
 cd -- "$consumer"
+# A nested Node consumer may inherit mise from an owner with no package.json.
+# Bind an explicit packageManager declaration to the actual owner-selected
+# pnpm before dependency materialization; a cached older pnpm must not win.
+# Node is already a dependency of these declared JavaScript consumers.
+if [[ -f package.json ]] && grep -q 'packageManager' package.json; then
+  if ! declared_manager=$("$mise_bin" exec -- /usr/bin/env "PATH=$owner_tool_path"       node -p 'JSON.parse(require("node:fs").readFileSync("package.json","utf8")).packageManager ?? ""'); then
+    echo "workspace-ready: invalid packageManager manifest at $scope" >&2
+    exit 69
+  fi
+  if ! selected_pnpm=$(cd -- "$owner" && "$mise_bin" exec -- /usr/bin/env       "PATH=$owner_tool_path" pnpm --version); then
+    echo "workspace-ready: owner pnpm version unavailable at $scope" >&2
+    exit 69
+  fi
+  if [[ "$declared_manager" != "pnpm@$selected_pnpm" ]]; then
+    echo "workspace-ready: packageManager $declared_manager does not match owner pnpm@$selected_pnpm at $scope" >&2
+    exit 69
+  fi
+fi
 if [[ -f scripts/owner-environment ]]; then
   # Owner scripts already own materialization; do not duplicate their logic.
   prepare "$mise_bin" exec -- /usr/bin/env "PATH=$owner_tool_path" /usr/bin/bash scripts/owner-environment bootstrap
