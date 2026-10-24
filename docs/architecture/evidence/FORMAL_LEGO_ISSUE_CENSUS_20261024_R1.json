@@ -992,6 +992,48 @@
             "tools/repo/check_tracked_secrets.sh",
             "tools/repo/test_tracked_secrets.py"
           ]
+        },
+        {
+          "localCommit": "3d93b188d1022d58040c297f735dd548d8eb076e",
+          "owner": "platform/security",
+          "consumer": "Security native OPA policy Golden Path must fail closed on an empty test suite. The historical local-only CI patch used --fail-on-empty but its old nested GitHub workflow was retired; preserve only this necessary verification effect in the current owner-managed mise security:verify command, not old Docker/CI duplication.",
+          "remoteWitness": "Against frozen protected Main 97ebe3828c482cbeb7f58df4e6da614615017c56, current platform/security/mise.toml had opa test -v policies without --fail-on-empty. Repro using installed OPA 1.21.4 and a zero-test policy file: default opa test exit 0; --fail-on-empty exit 1. Existing test_opa_container_gate.py native owner test first RED before fix, then GREEN. Candidate owner mise run verify PASS including 34/34 real OPA policies; exact protected GitHub CI still required.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "PORT_REQUIRED_OWNER_EFFECT",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "97ebe3828c482cbeb7f58df4e6da614615017c56",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "ONE_VERIFICATION_EFFECT_PORTED_IN_CANDIDATE_NOT_OLD_WORKFLOW",
+            "consumerStanding": "CANDIDATE_OWNER_NATIVE_PASS_PROTECTED_CI_PENDING",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "97ebe3828c482cbeb7f58df4e6da614615017c56",
+          "changedPaths": [
+            "platform/security/.github/workflows/security.yml",
+            "platform/security/tests/test_security_workflow_native_opa.py"
+          ]
+        },
+        {
+          "localCommit": "2dadc4c2eb7a8ab6d2c8eeac34709a9a32a94028",
+          "owner": "platform/security",
+          "consumer": "Security policy verification must use one owner-managed native OPA executable and cannot depend on Docker daemon, temporary policy staging or a second OPA version lock. The historical source implementation used scripts.opa_provider, now retired, while current Security owner selects newer OPA 1.21.4 via mise.",
+          "remoteWitness": "Current protected platform/security/mise.toml pins OPA 1.21.4 and invokes MISE_OFFLINE=1 MISE_AUTO_INSTALL=false mise exec -- opa test; providers.lock.json has no competing OPA/ciContainer. Existing native test_opa_container_gate.py asserts single owner and no Docker; native owner mise run verify PASS with 34/34 Rego tests after only adding fail-on-empty. Entire 2dad historic provider code and its removed old tests are not required.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "97ebe3828c482cbeb7f58df4e6da614615017c56",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "NEWER_NATIVE_OWNER_WITH_SCOPED_CONSUMER_EQUIVALENCE",
+            "consumerStanding": "CURRENT_OWNER_COVERED_WITH_LIMITED_SCOPE",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "97ebe3828c482cbeb7f58df4e6da614615017c56",
+          "changedPaths": [
+            "platform/security/mise.toml",
+            "platform/security/tests/test_opa_provider_lock.py"
+          ]
         }
       ],
       "consumerBlockedSelections": [
