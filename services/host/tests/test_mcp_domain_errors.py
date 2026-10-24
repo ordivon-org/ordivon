@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 
+import pytest
 from mcp import Client
 
 from ordivon_host_v2.errors import ConflictError
@@ -23,6 +24,55 @@ def _domain_payload(result) -> dict[str, object]:
     return json.loads(text[marker + 2 :])
 
 
+@pytest.mark.parametrize("bad_revision", [True, False, 1.0, 2.0, "1", 0, -1])
+@pytest.mark.parametrize(
+    ("tool_name", "field_name"),
+    [
+        ("work.get", "revision"),
+        ("work.snapshot.commit", "expectedRevision"),
+    ],
+)
+def test_mcp_work_revision_is_strictly_typed_before_store(
+    monkeypatch, bad_revision, tool_name, field_name
+) -> None:
+    """Agent wire input must not be coerced into a different CAS identity."""
+    called = []
+
+    def forbidden(*args, **kwargs):
+        called.append((args, kwargs))
+        raise AssertionError("non-canonical revision cannot reach Host WorkStore")
+
+    attr = "get_work" if tool_name == "work.get" else "commit_snapshot"
+    monkeypatch.setattr(WorkStore, attr, forbidden)
+    params = {"workRef": "work:strict-revision", field_name: bad_revision}
+    if tool_name == "work.snapshot.commit":
+        params.update(
+            {
+                "actorRef": "actor:agent:test",
+                "snapshot": {
+                    "objective": "reject aliased Host revision",
+                    "frontier": "source-cut",
+                    "established": [],
+                    "unresolved": [],
+                    "rejected": [],
+                    "constraints": [],
+                    "nextActions": [],
+                    "referenceRefs": [],
+                },
+            }
+        )
+
+    async def scenario() -> None:
+        async with Client(
+            build_server("postgresql://unused.invalid/host"), raise_exceptions=False
+        ) as client:
+            result = await client.call_tool(tool_name, params)
+            assert result.is_error is True
+            assert not called, "wire schema coerced an invalid revision into Store"
+
+    asyncio.run(scenario())
+
+
 def test_work_not_found_is_expected_typed_tool_error(monkeypatch) -> None:
     def missing(self, work_ref, revision=None):
         _ = self, revision
@@ -31,7 +81,9 @@ def test_work_not_found_is_expected_typed_tool_error(monkeypatch) -> None:
     monkeypatch.setattr(WorkStore, "get_work", missing)
 
     async def scenario() -> None:
-        async with Client(build_server("postgresql://unused.invalid/unused"), raise_exceptions=False) as client:
+        async with Client(
+            build_server("postgresql://unused.invalid/unused"), raise_exceptions=False
+        ) as client:
             result = await client.call_tool("work.get", {"workRef": "work:missing"})
             assert result.is_error is True
             payload = _domain_payload(result)
@@ -56,7 +108,9 @@ def test_conflict_is_expected_typed_tool_error(monkeypatch) -> None:
     monkeypatch.setattr(WorkStore, "commit_snapshot", conflict)
 
     async def scenario() -> None:
-        async with Client(build_server("postgresql://unused.invalid/unused"), raise_exceptions=False) as client:
+        async with Client(
+            build_server("postgresql://unused.invalid/unused"), raise_exceptions=False
+        ) as client:
             result = await client.call_tool(
                 "work.snapshot.commit",
                 {
@@ -97,7 +151,9 @@ def test_model_validation_is_expected_invalid_argument_without_store_call(monkey
     monkeypatch.setattr(SocialStore, "create_space", forbidden)
 
     async def scenario() -> None:
-        async with Client(build_server("postgresql://unused.invalid/unused"), raise_exceptions=False) as client:
+        async with Client(
+            build_server("postgresql://unused.invalid/unused"), raise_exceptions=False
+        ) as client:
             result = await client.call_tool(
                 "space.create",
                 {
@@ -123,7 +179,9 @@ def test_unexpected_internal_failure_remains_generic_crash(monkeypatch) -> None:
     monkeypatch.setattr(WorkStore, "get_work", crash)
 
     async def scenario() -> None:
-        async with Client(build_server("postgresql://unused.invalid/unused"), raise_exceptions=False) as client:
+        async with Client(
+            build_server("postgresql://unused.invalid/unused"), raise_exceptions=False
+        ) as client:
             result = await client.call_tool("work.get", {"workRef": "work:boom"})
             assert result.is_error is True
             text = _error_text(result)

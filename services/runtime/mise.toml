@@ -9,10 +9,10 @@ rust = { version = "1.99.1", components = "clippy,rustfmt" }
 # Keep the official release SHA-256 and byte-size verification.
 # Only linux-x64 is admitted until the other platforms' exact assets are qualified.
 [tools."http:cargo-nextest"]
-version = "0.9.148"
+version = "0.9.149"
 
 [tools."http:cargo-nextest".platforms]
-linux-x64 = { url = "https://github.com/nextest-rs/nextest/releases/download/cargo-nextest-0.9.148/cargo-nextest-0.9.148-x86_64-unknown-linux-gnu.tar.gz", checksum = "sha256:223ba936714cc861a9cdedad5a8eb664dfdd69d6fbdf6cea6aa8184f523290dc", size = 12127365 }
+linux-x64 = { url = "https://github.com/nextest-rs/nextest/releases/download/cargo-nextest-0.9.149/cargo-nextest-0.9.149-x86_64-unknown-linux-gnu.tar.gz", checksum = "sha256:32d1d8c0567b7a80bee2bad8bb09125c846da96bc009b2de11ec08557290c770", size = 12121096 }
 
 [tasks.verify]
 run = """
@@ -31,7 +31,23 @@ mise run formal:verify
 description = "Optional upstream cargo-nextest focused suite with native JUnit (RUNTIME_TEST_EXPR)"
 run = """
 set -euo pipefail
-cargo nextest run --locked --lib -p ordivon-runtime-core --no-default-features --features transactional-runtime --status-level pass -P ci -E "${RUNTIME_TEST_EXPR:-test(public_requests_reject_unknown_fields_and_path_escape)}"
+# A declared pin alone is not execution evidence: missing mise once
+# resolved an older PATH cargo-nextest while a focused test still passed.
+mise install http:cargo-nextest
+expected_nextest=$(python3 - <<'PY_NEXTTEST_VERSION'
+import tomllib
+from pathlib import Path
+with Path("mise.toml").open("rb") as source:
+    print(tomllib.load(source)["tools"]["http:cargo-nextest"]["version"])
+PY_NEXTTEST_VERSION
+)
+actual_nextest=$(mise exec -- cargo nextest --version | awk 'NR==1 { print $2 }')
+if [[ "$actual_nextest" != "$expected_nextest" ]]; then
+  echo "Nextest tool identity drift: required=$expected_nextest observed=$actual_nextest" >&2
+  exit 1
+fi
+echo "qualified cargo-nextest $actual_nextest"
+mise exec -- cargo nextest run --locked --lib -p ordivon-runtime-core --no-default-features --features transactional-runtime --status-level pass -P ci -E "${RUNTIME_TEST_EXPR:-test(public_requests_reject_unknown_fields_and_path_escape)}"
 """
 
 

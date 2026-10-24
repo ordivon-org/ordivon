@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import ast
 import json
+import math
+from decimal import Decimal
 import re
 from graphlib import CycleError, TopologicalSorter
 import tomllib
@@ -72,7 +74,38 @@ class ArchitectureDocsError(ValueError):
 
 
 def _load_json(path: Path) -> dict[str, Any]:
-    value = json.loads(path.read_text(encoding="utf-8"))
+    """Use unambiguous standard JSON bytes for Owner and evidence registration.
+
+    Python's default last-key-wins and NaN extensions are not a sound source
+    identity for a formal claim. Keep this guard at the existing repo boundary.
+    """
+    def unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, item in pairs:
+            if key in result:
+                raise ArchitectureDocsError(f"duplicate JSON object key: {key!r} in {path}")
+            result[key] = item
+        return result
+
+    def finite_constant(value: str) -> None:
+        raise ArchitectureDocsError(f"non-finite JSON constant: {value} in {path}")
+
+    def representable_float(value: str) -> float:
+        # A JSON exponent is legal syntax but must not silently change a
+        # nonzero finite source claim into infinity or zero at the owner seam.
+        parsed = float(value)
+        if not math.isfinite(parsed) or (
+            parsed == 0.0 and not Decimal(value).is_zero()
+        ):
+            raise ArchitectureDocsError(f"unrepresentable JSON number: {value} in {path}")
+        return parsed
+
+    value = json.loads(
+        path.read_text(encoding="utf-8"),
+        object_pairs_hook=unique_object,
+        parse_constant=finite_constant,
+        parse_float=representable_float,
+    )
     if not isinstance(value, dict):
         raise ArchitectureDocsError(f"{path} root must be an object")
     return value

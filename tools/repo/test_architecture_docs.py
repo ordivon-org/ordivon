@@ -30,6 +30,30 @@ def test_current_repository_architecture_docs_are_converged() -> None:
     module.validate_repository(ROOT)
 
 
+@pytest.mark.parametrize(
+    ("source", "reason"),
+    [
+        ('{"kind":"good","kind":"bad"}', "duplicate JSON object key"),
+        ('{"registration":{"standing":"UNKNOWN","standing":"APPROVED"}}', "duplicate JSON object key"),
+        ('{"evidence":{"score":NaN}}', "non-finite JSON constant"),
+        ('{"evidence":{"score":Infinity}}', "non-finite JSON constant"),
+        ('{"evidence":{"score":-Infinity}}', "non-finite JSON constant"),
+        ('{"evidence":{"score":1e999}}', "unrepresentable JSON number"),
+        ('{"evidence":{"score":-1e999}}', "unrepresentable JSON number"),
+        ('{"evidence":{"score":1e-999}}', "unrepresentable JSON number"),
+        ('{"evidence":{"score":-1e-999}}', "unrepresentable JSON number"),
+    ],
+)
+def test_repo_formal_json_source_rejects_ambiguous_or_nonstandard_evidence(
+    tmp_path: Path, source: str, reason: str
+) -> None:
+    """Malformed registration evidence must fail before it is converted into an Owner claim."""
+    source_file = tmp_path / "owner-evidence.json"
+    source_file.write_text(source, encoding="utf-8")
+    with pytest.raises(module.ArchitectureDocsError, match=reason):
+        module._load_json(source_file)
+
+
 def test_gateway_source_surface_is_owned_by_source_manifest() -> None:
     manifest = json.loads(GATEWAY_SURFACE.read_text(encoding="utf-8"))
     observed = set(manifest["tools"])
@@ -1646,10 +1670,29 @@ def test_historical_node_types_pin_has_both_current_owner_consumers() -> None:
     assert row["sourceQualification"]["consumerOwners"] == ["apps/web", "domains/game"]
     assert row["sourceQualification"]["branchDeletionAllowed"] is False
     assert row["evaluatedRemoteMain"] == "d375287686b7ad7f04b1f5ef181bff846ac9cc94"
-    for manifest in ("apps/web/package.json", "domains/game/package.json"):
-        data = json.loads((ROOT / manifest).read_text(encoding="utf-8"))
-        assert data["devDependencies"]["@types/node"] == "26.6.5"
     module.validate_formal_issue_census(census, plans)
+
+
+def test_historical_git_consumer_proof_allows_future_owner_dependency_upgrades(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Immutable source-cut proof must not reject newer Owner-native package manifests."""
+    original_read = Path.read_text
+    manifests = {
+        ROOT / "apps/web/package.json",
+        ROOT / "domains/game/package.json",
+    }
+
+    def future_manifest(path: Path, *args: object, **kwargs: object) -> str:
+        content = original_read(path, *args, **kwargs)
+        if path in manifests:
+            data = json.loads(content)
+            data["devDependencies"]["@types/node"] = "27.0.0"
+            return json.dumps(data)
+        return content
+
+    monkeypatch.setattr(Path, "read_text", future_manifest)
+    test_historical_node_types_pin_has_both_current_owner_consumers()
 
 
 def test_repo_test_function_names_are_unique() -> None:

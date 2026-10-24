@@ -26,6 +26,72 @@ def _snapshot() -> WorkSnapshotInput:
     )
 
 
+@pytest.mark.parametrize("bad_revision", [True, False, 1.0, 2.0, "1", 0, -1])
+def test_host_work_cas_revision_is_exact_positive_integer_before_db(
+    monkeypatch, bad_revision
+) -> None:
+    """Invalid wire equality aliases must never touch physical Host CAS."""
+    from ordivon_host_v2 import work_store
+    from ordivon_host_v2.work_store import WorkStore
+
+    def fail_if_connected(*args, **kwargs):
+        raise AssertionError("invalid Host revision must not request DB connection")
+
+    monkeypatch.setattr(work_store.psycopg, "connect", fail_if_connected)
+    store = WorkStore("postgresql://unused.invalid/host")
+    with pytest.raises(ValueError, match="expected_revision"):
+        store.commit_snapshot(
+            "work:type-cas",
+            expected_revision=bad_revision,
+            snapshot=_snapshot(),
+            actor_ref="actor:agent:a17",
+            client_request_id="typed-revision-negative",
+        )
+
+
+@pytest.mark.parametrize("bad_revision", [True, False, 1.0, 2.0, "1", 0, -1])
+def test_host_work_read_revision_is_exact_positive_integer_before_db(
+    monkeypatch, bad_revision
+) -> None:
+    from ordivon_host_v2 import work_store
+    from ordivon_host_v2.work_store import WorkStore
+
+    def fail_if_connected(*args, **kwargs):
+        raise AssertionError("invalid Host read revision must not request DB connection")
+
+    monkeypatch.setattr(work_store.psycopg, "connect", fail_if_connected)
+    store = WorkStore("postgresql://unused.invalid/host")
+    with pytest.raises(ValueError, match="revision"):
+        store.get_work("work:type-cas", revision=bad_revision)
+
+
+@pytest.mark.parametrize("valid_revision", [1, 2])
+def test_valid_host_work_revision_retains_native_store_path(
+    monkeypatch, valid_revision
+) -> None:
+    from ordivon_host_v2 import work_store
+    from ordivon_host_v2.work_store import WorkStore
+
+    class ConnectionReached(Exception):
+        pass
+
+    def witness_connection(*args, **kwargs):
+        raise ConnectionReached
+
+    monkeypatch.setattr(work_store.psycopg, "connect", witness_connection)
+    store = WorkStore("postgresql://unused.invalid/host")
+    with pytest.raises(ConnectionReached):
+        store.get_work("work:type-cas", revision=valid_revision)
+    with pytest.raises(ConnectionReached):
+        store.commit_snapshot(
+            "work:type-cas",
+            expected_revision=valid_revision,
+            snapshot=_snapshot(),
+            actor_ref="actor:agent:a17",
+            client_request_id="typed-revision-positive",
+        )
+
+
 def test_actor_ref_is_stable_reference_not_identity_claim() -> None:
     actor = ActorRefInput(actor_ref="actor:agent:a17", actor_kind=ActorKind.AGENT)
     assert actor.actor_ref == "actor:agent:a17"
