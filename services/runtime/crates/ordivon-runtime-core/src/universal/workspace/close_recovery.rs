@@ -157,7 +157,46 @@ pub(crate) fn remove_git_workspace(
         });
     }
 
-    let source_state_digest = workspace_source_state_digest_at(&recorded)?;
+    let source_state_digest = match workspace_source_state_digest_at(&recorded) {
+        Ok(digest) => digest,
+        Err(error) => {
+            // A registered Git worktree with an unborn HEAD has no source
+            // commit for the normal diff/digest path. Do not disguise this as
+            // a verified clean state or manufacture a zero-OID rescue ref.
+            let unborn_head = registered_workspace_head(&record)?.is_some_and(|head| {
+                (head.len() == 40 || head.len() == 64)
+                    && head.bytes().all(|byte| byte == b'0')
+            });
+            if !unborn_head {
+                return Err(error);
+            }
+            if request.expected_source_state_digest.is_some() {
+                return Err(UniversalExecError::new(
+                    UniversalExecErrorCode::RevisionMismatch,
+                    "unborn Workspace HEAD cannot prove expectedSourceStateDigest",
+                    Some("expectedSourceStateDigest"),
+                    false,
+                ));
+            }
+            if !request.force {
+                return Err(UniversalExecError::new(
+                    UniversalExecErrorCode::WorkspaceDirty,
+                    "unborn Workspace HEAD cannot prove a clean source state; force=true is required",
+                    Some("workspaceId"),
+                    false,
+                ));
+            }
+            cleanup_workspace_caches(config, &request.workspace_id)?;
+            remove_git_worktree_from_workspace(&recorded, true)?;
+            write_closed_workspace_record(&record_path, None)?;
+            return Ok(WorkspaceCloseResult {
+                workspace_id: request.workspace_id.clone(),
+                removed: true,
+                closure_disposition: WorkspaceClosureDisposition::RecoveredMissing,
+                source_state_digest: None,
+            });
+        }
+    };
     if let Some(expected) = &request.expected_source_state_digest {
         if expected != &source_state_digest {
             return Err(UniversalExecError::new(

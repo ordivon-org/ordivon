@@ -782,7 +782,9 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
         "a6af91c187", "63d3c48172", "0abd90d3ba",
         "b13052b5da", "fd2082905f", "e140571445",
         "ecca6ad1ae", "86298d72ea", "9c8e37dfe8", "fcf5fc6d1b",
-        "82c8fa2924", "84baec0ea1", "7a96b238fb", "7c2fa8c4d2", "329f86db80",
+        "82c8fa2924", "84baec0ea1", "7a96b238fb", "7c2fa8c4d2",
+        "225192c6e7", "2919a6d840", "495b45d461", "f93faa57cf",
+        "329f86db80",
     }
     for item in candidates:
         assert len(item["localCommit"]) == 40
@@ -960,4 +962,33 @@ def test_git02_unique_codex_oauth_discovery_history_is_not_relabelled_redundant(
     assert entry["scope"] == "DISCOVERY_ONLY_NO_CREDENTIALS_OR_LIVE_GATEWAY"
     assert entry["protectedConsumerAdmitted"] is False
     assert issue["registration"]["state"] == "UNREGISTERED"
+    module.validate_formal_issue_census(census, plans)
+
+
+def test_git01_four_distinct_patch_equivalents_preserve_consumers_and_actual_source_cut() -> None:
+    """Patch equivalence alone grants no branch deletion, owner effects remain typed."""
+    census, plans = formal_issue_inputs()
+    issue = next(row for row in census["issues"] if row["id"] == "GIT-01")
+    selected = {row["localCommit"][:12]: row for row in issue["consumerSelections"]}
+    four = ("225192c6e711", "2919a6d8406a", "495b45d4610d", "f93faa57cf99")
+    for key in four:
+        entry = selected[key]
+        assert entry["disposition"] == "SKIP_DUPLICATE_CHERRY_PICK"
+        source = entry["sourceQualification"]
+        assert source["localMain"] == "13704d0cac9e113b395f2d5a21b5bf8119aa04a5"
+        assert source["protectedMain"] == "688ed35d1f502549b04a1fb931a6e86d8350050c"
+        assert source["patchRelation"] == "PATCH_ID_EQUIVALENT"
+        assert source["branchDeletionAllowed"] is False
+        assert entry["remoteWitness"] and entry["consumer"]
+    old = selected["225192c6e711"]
+    assert old["sourceQualification"]["tipRelation"] == "BOTH_TIPS_ABSENT"
+    assert old["sourceQualification"]["consumerStanding"] == "NO_CURRENT_CONSUMER"
+    for key in ("2919a6d8406a", "495b45d4610d"):
+        row = selected[key]
+        assert row["sourceQualification"]["consumerStanding"] == "CURRENT_OWNER_COVERED"
+        assert row["sourceQualification"]["tipRelation"] == "SAME_BLOB_AND_MODE"
+        assert row["verifiedEqualChangedBlobs"] is True
+        assert row["evaluatedRemoteMain"] == row["sourceQualification"]["protectedMain"]
+        assert all(len(sha) == 40 for sha in row["equalChangedBlobOids"].values())
+    assert selected["f93faa57cf99"]["sourceQualification"]["tipRelation"] == "SAME_BLOB_AND_MODE"
     module.validate_formal_issue_census(census, plans)

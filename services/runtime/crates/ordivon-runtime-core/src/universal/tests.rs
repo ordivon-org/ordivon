@@ -2750,6 +2750,79 @@ fn workspace_close_recovers_final_head_after_physical_removal() {
 }
 
 #[test]
+fn workspace_close_unborn_head_is_force_only_and_cannot_fake_source_state() {
+    let sandbox = Sandbox::new("close-unborn-head");
+    let source = sandbox.root.join("source");
+    init_git_repo(&source);
+    let config = sandbox.config();
+    let workspace_id = "workspace-unborn-head";
+    create_git_workspace(
+        &config,
+        &GitWorkspaceCreateRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            source_repo: source.to_string_lossy().into_owned(),
+            source_revision: "HEAD".to_string(),
+        },
+    )
+    .unwrap();
+    let workspace = config.workspace_path(workspace_id);
+    run_git(&workspace, ["switch", "--orphan", "repair-candidate"]);
+    fs::write(workspace.join("unique-wip.txt"), "uncommitted evidence\n").unwrap();
+    run_git(&workspace, ["add", "unique-wip.txt"]);
+    let listed = git_text(&source, ["worktree", "list", "--porcelain"]);
+    assert!(listed.contains("HEAD 0000000000000000000000000000000000000000"));
+
+    let conservative = remove_git_workspace(
+        &config,
+        &WorkspaceCloseRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            force: false,
+            expected_source_state_digest: None,
+        },
+    )
+    .unwrap_err();
+    assert_eq!(conservative.code, UniversalExecErrorCode::WorkspaceDirty);
+    assert!(workspace.is_dir());
+
+    let fenced = remove_git_workspace(
+        &config,
+        &WorkspaceCloseRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            force: true,
+            expected_source_state_digest: Some(sha256_bytes(b"unprovable-head")),
+        },
+    )
+    .unwrap_err();
+    assert_eq!(fenced.code, UniversalExecErrorCode::RevisionMismatch);
+    assert!(workspace.join("unique-wip.txt").is_file());
+
+    let recovered = remove_git_workspace(
+        &config,
+        &WorkspaceCloseRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            force: true,
+            expected_source_state_digest: None,
+        },
+    )
+    .unwrap();
+    assert_eq!(
+        recovered.closure_disposition,
+        WorkspaceClosureDisposition::RecoveredMissing
+    );
+    assert_eq!(recovered.source_state_digest, None);
+    assert!(recovered.removed);
+    assert!(!workspace.exists());
+    let tombstone: serde_json::Value =
+        serde_json::from_slice(&fs::read(config.workspace_record_path(workspace_id)).unwrap())
+            .unwrap();
+    assert_eq!(tombstone["state"], "closed");
+}
+
+#[test]
 fn workspace_close_force_recovers_residual_directory_after_git_worktree_metadata_loss() {
     let sandbox = Sandbox::new("close-missing-git-metadata");
     let source = sandbox.root.join("source");

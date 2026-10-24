@@ -229,6 +229,81 @@
           "evaluatedRemoteMain": "41a1073703343aad61c3ffacac34edfb91019800"
         },
         {
+          "localCommit": "225192c6e711ea4b6493377b7536f18e531ac72f",
+          "owner": "platform/workstation",
+          "consumer": "Removed obsolete migration docs have no surviving consumer or source at either tip",
+          "remoteWitness": "Distribution and Workstation legacy notes: 3 paths absent at local Main and protected Main. Git native cherry-mark says equivalent deletion, not a reason to restore obsolete docs.",
+          "evidenceScope": "EXACT_GIT_BLOBS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "688ed35d1f502549b04a1fb931a6e86d8350050c",
+            "patchRelation": "PATCH_ID_EQUIVALENT",
+            "branchDeletionAllowed": false,
+            "tipRelation": "BOTH_TIPS_ABSENT",
+            "consumerStanding": "NO_CURRENT_CONSUMER"
+          }
+        },
+        {
+          "localCommit": "2919a6d8406a56faa7035804491c042503ad5c25",
+          "owner": "domains/capital",
+          "consumer": "Execution sizing must not spend reserved cash to pay transaction fees; current code and regression bytes identical",
+          "remoteWitness": "domains/capital/src/ordivon_capital/trading/execution_feasibility.py + tests/test_execution_feasibility.py; 16 native pytest PASS.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "688ed35d1f502549b04a1fb931a6e86d8350050c",
+            "patchRelation": "PATCH_ID_EQUIVALENT",
+            "branchDeletionAllowed": false,
+            "tipRelation": "SAME_BLOB_AND_MODE",
+            "consumerStanding": "CURRENT_OWNER_COVERED"
+          },
+          "equalChangedBlobOids": {
+            "domains/capital/src/ordivon_capital/trading/execution_feasibility.py": "11492850dd48dee57c62672873733368cf249b9b",
+            "domains/capital/tests/test_execution_feasibility.py": "6cb65c2c29e5358d550fc0f3ae37f2f009f2830d"
+          },
+          "evaluatedRemoteMain": "688ed35d1f502549b04a1fb931a6e86d8350050c",
+          "verifiedEqualChangedBlobs": true
+        },
+        {
+          "localCommit": "495b45d4610d012e6fd96fed4dd624e723249a37",
+          "owner": "packages/composition",
+          "consumer": "DAG topological ordering and missing-dependency rejection already consumed by current Composition property tests",
+          "remoteWitness": "packages/composition/tests/test_graph_operator_properties.py; 11 native pytest PASS.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "688ed35d1f502549b04a1fb931a6e86d8350050c",
+            "patchRelation": "PATCH_ID_EQUIVALENT",
+            "branchDeletionAllowed": false,
+            "tipRelation": "SAME_BLOB_AND_MODE",
+            "consumerStanding": "CURRENT_OWNER_COVERED"
+          },
+          "equalChangedBlobOids": {
+            "packages/composition/tests/test_graph_operator_properties.py": "5a58dcaee66d122dbfac4b04cd8c76ec083393d1"
+          },
+          "evaluatedRemoteMain": "688ed35d1f502549b04a1fb931a6e86d8350050c",
+          "verifiedEqualChangedBlobs": true
+        },
+        {
+          "localCommit": "f93faa57cf9960a0ba14e29719815e1c453bf812",
+          "owner": "services/harness",
+          "consumer": "Finance read-only observation uses owner-selected locked uv; identical existing scripts and consumer tests",
+          "remoteWitness": "services/harness/scripts/finance_readonly_observation.py + tests/test_finance_owner_uv_selection_contract.py + tests/test_finance_readonly_observation.py; native Harness suite 24 PASS.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "688ed35d1f502549b04a1fb931a6e86d8350050c",
+            "patchRelation": "PATCH_ID_EQUIVALENT",
+            "branchDeletionAllowed": false,
+            "tipRelation": "SAME_BLOB_AND_MODE",
+            "consumerStanding": "CURRENT_OWNER_COVERED"
+          }
+        },
+        {
           "localCommit": "329f86db80dde3fe6764504f43d3b3e0d7d0de92",
           "historicalCohort": [
             "329f86db80dde3fe6764504f43d3b3e0d7d0de92",
