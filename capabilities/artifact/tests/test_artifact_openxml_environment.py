@@ -64,7 +64,13 @@ class ArtifactOpenXmlEnvironmentTests(unittest.TestCase):
             if cmd[-1] == '--version':
                 return subprocess.CompletedProcess(cmd, 0, '8.0.425\n', '')
             raise AssertionError('unpatched SDK reached unsafe downstream step')
-        with patch.object(M, 'run', side_effect=probe):
+        # The checkout-only CI runner need not install physical Nix. Bind the
+        # executable presence check to an existing fixture path; mock only
+        # the transport outputs. Live Nix acceptance is proved separately.
+        with (
+            patch.object(M, 'NIX', Path(__file__).resolve()),
+            patch.object(M, 'run', side_effect=probe),
+        ):
             with self.assertRaisesRegex(RuntimeError, 'Nix SDK drift'):
                 M.nix_dotnet_status(lock)
 
