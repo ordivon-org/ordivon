@@ -798,6 +798,7 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             "NO_WHOLE_COMMIT_REPLAY_WITHOUT_PRODUCER_AUTHORITY",
             "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
             "SKIP_CANCELLED_HISTORY_PAIR",
+            "SKIP_RETIRED_UNCONSUMED",
         }
         assert item["evidenceScope"] in {
             "NATIVE_CONSUMER_PASS", "EXACT_GIT_BLOBS",
@@ -1102,4 +1103,62 @@ def test_git01_three_selected_historical_owner_effects_have_sufficient_source_pr
         }
     assert "WINDOWS_SOURCE_CONTRACT_ONLY" in selected["eaa045252ef7"]["remoteWitness"]
     assert "NO_LIVE_CLOUDFLARE_CUTOVER" in selected["bec31a81ba5b"]["remoteWitness"]
+    module.validate_formal_issue_census(census, plans)
+
+
+def test_retired_repository_status_projections_stay_absent() -> None:
+    """Deleted status/reporting helpers had no current callers; the owner verifier remains."""
+    legacy = (
+        "tools/repo/document_currentness.py",
+        "tools/repo/test_document_currentness.py",
+        "tools/repo/living_view.py",
+        "tools/repo/test_living_view.py",
+        "tools/repo/first_contact_eval_receipt.py",
+        "tools/repo/first_contact_eval_matrix.py",
+        "tests/first_contact/test_eval_receipt_r6.py",
+        "tests/first_contact/test_eval_matrix_r7.py",
+    )
+    assert (ROOT / "tools/repo/check_architecture_docs.py").is_file()
+    for relative in legacy:
+        assert not (ROOT / relative).exists(), f"unconsumed historical tool restored: {relative}"
+
+
+def test_git01_retired_network_router_cohort_has_one_qualified_lego() -> None:
+    """Eight obsolete commits describe one removed service, not eight providers."""
+    census, plans = formal_issue_inputs()
+    issue = next(x for x in census["issues"] if x["id"] == "GIT-01")
+    rows = [
+        x for x in issue["consumerSelections"]
+        if x["disposition"] == "SKIP_RETIRED_UNCONSUMED"
+        and x["owner"] == "platform/network"
+    ]
+    assert len(rows) == 1
+    retired = rows[0]
+    assert retired["owner"] == "platform/network"
+    assert len(retired["historicalCohort"]) == len(set(retired["historicalCohort"])) == 8
+    assert retired["localCommit"] in retired["historicalCohort"]
+    assert all(len(commit) == 40 for commit in retired["historicalCohort"])
+    assert retired["sourceQualification"]["branchDeletionAllowed"] is False
+    assert retired["sourceQualification"]["patchRelation"] == "DISTINCT_HISTORICAL_RETIRED_EFFECT"
+    network = plans["platform/network/planning/lego-plan-r1.json"]
+    requirement = next(node for node in network["nodes"] if node["id"] == "N01")
+    assert any("Retired custom Network Capability Router" in a for a in requirement["acceptance"])
+    assert "tests/test_shared_provider_carrier.py::test_retired_network_capability_router_stays_retired" in requirement["evidence"]
+    module.validate_formal_issue_census(census, plans)
+
+
+def test_git01_retired_history_cohorts_are_owner_scoped() -> None:
+    census, plans = formal_issue_inputs()
+    issue = next(item for item in census["issues"] if item["id"] == "GIT-01")
+    rows = [item for item in issue["consumerSelections"]
+            if item["disposition"] == "SKIP_RETIRED_UNCONSUMED"]
+    assert {"tools/repo", "platform/network"} <= {item["owner"] for item in rows}
+    seen: set[str] = set()
+    for row in rows:
+        cohort = row["historicalCohort"]
+        assert row["localCommit"] in cohort
+        assert all(len(sha) == 40 for sha in cohort)
+        assert len(cohort) == len(set(cohort))
+        assert not set(cohort) & seen
+        seen.update(cohort)
     module.validate_formal_issue_census(census, plans)
