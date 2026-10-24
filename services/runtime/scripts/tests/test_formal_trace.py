@@ -129,5 +129,27 @@ trait Provider {
         self.assertTrue(any("formal model binding set drift" in error for error in errors), errors)
 
 
+    def test_erasing_all_runtime_invariant_bindings_is_rejected(self):
+        trace, invariants = manifests()
+        mutated = copy.deepcopy(trace)
+        mutated["runtimeInvariantBindings"] = []
+        errors = self.module.validate(mutated, invariants)
+        self.assertTrue(any("Runtime invariant binding set drift" in error for error in errors), errors)
+
+    def test_erasing_one_runtime_invariant_binding_is_rejected(self):
+        trace, invariants = manifests()
+        mutated = copy.deepcopy(trace)
+        mutated["runtimeInvariantBindings"].pop()
+        errors = self.module.validate(mutated, invariants)
+        self.assertTrue(any("Runtime invariant binding set drift" in error for error in errors), errors)
+
+    def test_empty_proof_references_cannot_vacuously_pass(self):
+        trace, invariants = manifests()
+        mutated = copy.deepcopy(trace)
+        mutated["runtimeInvariantBindings"][0]["requiredProofRefs"] = []
+        errors = self.module.validate(mutated, invariants)
+        self.assertTrue(any("has no required proof references" in error for error in errors), errors)
+
+
 if __name__ == "__main__":
     unittest.main()
