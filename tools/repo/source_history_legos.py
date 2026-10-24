@@ -11,7 +11,6 @@ import argparse
 import collections
 import json
 import subprocess
-from copy import deepcopy
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -62,42 +61,6 @@ def current_tree(repo: Path, revision: str) -> dict[str, str]:
             )
     return result
 
-
-
-def join_consumer_evidence(*cohorts: list[dict]) -> list[dict]:
-    """Deterministic, fail-closed evidence union; never Git merge/delete authority.
-
-    Compatible claims form an idempotent commutative join by immutable SHA.
-    A contradictory claim for one SHA has no winner and fails explicitly.
-    """
-    selected: dict[str, dict] = {}
-    for cohort in cohorts:
-        if not isinstance(cohort, list):
-            raise TypeError("consumer evidence cohort must be a list")
-        for row in cohort:
-            if not isinstance(row, dict):
-                raise TypeError("consumer evidence must be an object")
-            oid = row.get("localCommit")
-            if (
-                not isinstance(oid, str)
-                or len(oid) != 40
-                or any(char not in "0123456789abcdef" for char in oid)
-            ):
-                raise ValueError("consumer evidence requires exact 40-hex localCommit")
-            for key in ("owner", "consumer", "remoteWitness", "evidenceScope", "disposition"):
-                if not isinstance(row.get(key), str) or not row[key].strip():
-                    raise ValueError(f"consumer evidence {oid} lacks {key}")
-            qualification = row.get("sourceQualification", {})
-            if not isinstance(qualification, dict):
-                raise TypeError(f"sourceQualification must be an object for {oid}")
-            if qualification.get("branchDeletionAllowed") is True:
-                raise ValueError(f"historical consumer evidence cannot authorize branch deletion for {oid}")
-            previous = selected.get(oid)
-            if previous is not None and previous != row:
-                raise ValueError(f"conflicting consumer evidence for {oid}")
-            if previous is None:
-                selected[oid] = deepcopy(row)
-    return [selected[oid] for oid in sorted(selected)]
 
 
 def history(repo: Path, left: str, right: str) -> dict:
