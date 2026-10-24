@@ -912,6 +912,25 @@
             "services/harness/planning/hux-current-baseline-r1.json",
             "services/harness/planning/hux-execution-plan-r1.json"
           ]
+        },
+        {
+          "localCommit": "557e436d19b79fb6983c5c8fdc4e3965d0e25ddd",
+          "owner": "domains/game",
+          "consumer": "One local historical patch edited @types/node and two owner-lockfiles in domains/game and apps/web; both currently resolve @types/node 26.6.5. Game current manifest and pnpm-lock are exact historical committed blobs. Web manifest and lock differ due to later unrelated dependency changes but retain the required Node typing; no whole-file replay or older lock selection.",
+          "remoteWitness": "protected Main d375287686b7ad7f04b1f5ef181bff846ac9cc94: pnpm-lock and package.json Game end-state exact historical Git blob; Web and Game devDependencies @types/node=26.6.5. Native Game pnpm typecheck PASS; Web mise run verify installs Security agent-request-verifier-v1 via its owner before pnpm typecheck, then all 12 Web node-native tests PASS. Direct tsc without Security owner setup had failed oauth4webapi import and is not the native Web verification contract.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "d375287686b7ad7f04b1f5ef181bff846ac9cc94",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "d375287686b7ad7f04b1f5ef181bff846ac9cc94",
+            "consumerOwners": [
+              "apps/web",
+              "domains/game"
+            ],
+            "branchDeletionAllowed": false,
+            "scope": "historical type declaration effect only, not complete commit or external consumer equivalence"
+          }
         }
       ],
       "consumerBlockedSelections": [

@@ -861,6 +861,25 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
     module.validate_formal_issue_census(census, plans)
 
 
+def test_historical_node_types_pin_has_both_current_owner_consumers() -> None:
+    """One historical patch may have multiple natural consumers without a new registry."""
+    census, plans = formal_issue_inputs()
+    git_issue = next(x for x in census["issues"] if x["id"] == "GIT-01")
+    commit = "557e436d19b79fb6983c5c8fdc4e3965d0e25ddd"
+    matches = [x for x in git_issue["consumerSelections"] if x["localCommit"] == commit]
+    assert len(matches) == 1
+    row = matches[0]
+    assert row["disposition"] == "SKIP_DUPLICATE_CHERRY_PICK"
+    assert row["evidenceScope"] == "NATIVE_CONSUMER_PASS"
+    assert row["sourceQualification"]["consumerOwners"] == ["apps/web", "domains/game"]
+    assert row["sourceQualification"]["branchDeletionAllowed"] is False
+    assert row["evaluatedRemoteMain"] == "d375287686b7ad7f04b1f5ef181bff846ac9cc94"
+    for manifest in ("apps/web/package.json", "domains/game/package.json"):
+        data = json.loads((ROOT / manifest).read_text(encoding="utf-8"))
+        assert data["devDependencies"]["@types/node"] == "26.6.5"
+    module.validate_formal_issue_census(census, plans)
+
+
 def test_divergent_history_does_not_weaken_frozen_artifact_receipts() -> None:
     """Semantically identical output does not qualify a different frozen source SHA."""
     census, _ = formal_issue_inputs()
