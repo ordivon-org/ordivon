@@ -705,8 +705,14 @@ def test_formal_issue_owner_plan_cannot_escape_source_cut(tmp_path: Path) -> Non
     module.validate_formal_issue_census(census, plans, root=source)
 
     owner_plan = source / census["registrations"][0]["ownerPlan"]
+    local_content = owner_plan.read_bytes()
+    owner_plan.unlink()
+    with pytest.raises(module.ArchitectureDocsError, match="owner-local LEGO plan.*SourceCut"):
+        module.validate_formal_issue_census(census, plans, root=source)
+    owner_plan.write_bytes(local_content)
+    module.validate_formal_issue_census(census, plans, root=source)
     external = tmp_path / "external-owner-plan.json"
-    external.write_bytes(owner_plan.read_bytes())
+    external.write_bytes(local_content)
     owner_plan.unlink()
     owner_plan.symlink_to(external)
     with pytest.raises(module.ArchitectureDocsError, match="owner-local LEGO plan.*SourceCut"):

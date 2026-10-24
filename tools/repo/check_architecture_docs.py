@@ -346,9 +346,6 @@ def validate_formal_issue_census(
         plan_path, slice_id = ref.get("ownerPlan"), ref.get("slice")
         if not isinstance(plan_path, str) or not isinstance(slice_id, str) or not slice_id:
             raise ArchitectureDocsError("LEGO registration identity missing")
-        path = Path(plan_path)
-        if path.is_absolute() or ".." in path.parts or not plan_path:
-            raise ArchitectureDocsError("invalid owner-local LEGO path")
         _source_bound_owner_plan_path(root, plan_path)
         if (plan_path, slice_id) in seen:
             raise ArchitectureDocsError("duplicate owner-local LEGO link")
