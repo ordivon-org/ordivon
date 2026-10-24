@@ -784,13 +784,14 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
         "ecca6ad1ae", "86298d72ea", "9c8e37dfe8", "fcf5fc6d1b",
         "82c8fa2924", "84baec0ea1", "7a96b238fb", "7c2fa8c4d2",
         "225192c6e7", "2919a6d840", "495b45d461", "f93faa57cf",
+        "e51472db16",
     }
     for item in candidates:
         assert len(item["localCommit"]) == 40
         assert item["owner"]
         assert item["consumer"]
         assert item["remoteWitness"]
-        assert item["disposition"] in {"SKIP_DUPLICATE_CHERRY_PICK", "SKIP_OLDER_PIN", "SKIP_OLDER_SOURCECUT", "SKIP_UNCONSUMED_PERMISSION"}
+        assert item["disposition"] in {"SKIP_DUPLICATE_CHERRY_PICK", "SKIP_OLDER_PIN", "SKIP_OLDER_SOURCECUT", "SKIP_UNCONSUMED_PERMISSION", "SKIP_CANCELLED_HISTORY_PAIR"}
         assert item["evidenceScope"] in {
             "NATIVE_CONSUMER_PASS", "EXACT_GIT_BLOBS",
             "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF",
@@ -981,3 +982,25 @@ def test_git01_four_distinct_patch_equivalents_preserve_consumers_and_actual_sou
         assert all(len(sha) == 40 for sha in row["equalChangedBlobOids"].values())
     assert selected["f93faa57cf99"]["sourceQualification"]["tipRelation"] == "SAME_BLOB_AND_MODE"
     module.validate_formal_issue_census(census, plans)
+
+
+def test_git01_workstation_history_inverse_pair_is_a_single_non_live_effect() -> None:
+    """An adjacent add/revert is one historical identity, not two live LEGo parts."""
+    census, _ = formal_issue_inputs()
+    issue = next(x for x in census["issues"] if x["id"] == "GIT-01")
+    additions = [x for x in issue["consumerSelections"] if x["localCommit"].startswith("e51472db")]
+    assert len(additions) == 1
+    pair = additions[0]
+    assert pair["owner"] == "platform/workstation"
+    assert pair["pairedRevertCommit"] == "07255e4dfd26d172ebb5e62c5844ff2d661081f8"
+    assert pair["disposition"] == "SKIP_CANCELLED_HISTORY_PAIR"
+    assert pair["sourceQualification"]["branchDeletionAllowed"] is False
+    assert pair["sourceQualification"]["consumerStanding"] == "NO_CURRENT_CONSUMER"
+    assert pair["beforeTreeOid"] == pair["afterTreeOid"] == "ad4aab81359fb9de9223023b702137e8d9101344"
+    files = [
+        "platform/workstation/tests/test_real_chrome_browser_harness_provider.py",
+        "platform/workstation/workstation/providers/real_chrome_browser_harness/materialize.py",
+        "platform/workstation/workstation/providers/real_chrome_browser_harness/README.md",
+        "platform/workstation/workstation/providers/real_chrome_browser_harness/RealChromeBrowserHarnessProvider.ps1",
+    ]
+    assert all(not (ROOT / path).exists() for path in files)
