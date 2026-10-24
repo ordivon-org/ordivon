@@ -847,7 +847,8 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
             "SKIP_CANCELLED_HISTORY_PAIR",
             "SKIP_RETIRED_UNCONSUMED",
-            "SKIP_OLDER_TOOLCHAIN_CHERRY_PICK", "SKIP_IDENTICAL_TIP_WITH_NATIVE_CONSUMER",
+            "SKIP_OLDER_TOOLCHAIN_CHERRY_PICK",
+            "SKIP_IDENTICAL_TIP_WITH_NATIVE_CONSUMER",
         }
         assert item["evidenceScope"] in {
             "NATIVE_CONSUMER_PASS", "EXACT_GIT_BLOBS",
@@ -882,6 +883,30 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             else:
                 assert item["evidenceScope"] == "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN"
                 assert item["disposition"] == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
+    # Exact identical-tip proof is one disposition, not the identity of every
+    # historical change whose current consumer is independently verified.
+    # Do not hard-code a second SHA roster or conflate a corrected historic
+    # Gateway tunnel with exact historical blob equivalence.
+    identical = [
+        item for item in candidates
+        if item["disposition"] == "SKIP_IDENTICAL_TIP_WITH_NATIVE_CONSUMER"
+    ]
+    assert identical
+    for selected in identical:
+        assert selected["owner"]
+        assert selected["evidenceScope"] == "EXACT_GIT_BLOB_AND_NATIVE_CONSUMER_PASS"
+        proof = selected["sourceQualification"]
+        assert proof["localMain"] == source["localMain"]
+        assert len(proof["protectedMain"]) == 40
+        assert proof["kind"] == "non-merge"
+        assert proof["patchRelation"] == "PATCH_DISTINCT_UNQUALIFIED"
+        assert proof["branchDeletionAllowed"] is False
+        paths = proof["changedPathIdentities"]
+        assert paths and len({row["path"] for row in paths}) == len(paths)
+        assert all(len(row["blobOid"]) == 40 and row["mode"] for row in paths)
+    # Gateway verifier and Workstation DNS source cuts have their own stronger
+    # owner-native tests below; overriding a weaker disposition must not
+    # change the uniqueness or consumer evidence of those selections.
     module.validate_formal_issue_census(census, plans)
 
 
@@ -1275,27 +1300,6 @@ def test_git01_old_capital_r3_office_has_no_current_consumer() -> None:
     assert "domains/capital/src/ordivon_capital/governance/owner_authority.py" in removed
     module.validate_formal_issue_census(census, plans)
 
-def test_git01_old_capital_r3_office_has_no_current_consumer() -> None:
-    """Deleted R3 Office is an historical LEGO, not current capital authority."""
-    census, plans = formal_issue_inputs()
-    issue = next(row for row in census["issues"] if row["id"] == "GIT-01")
-    entry = next(x for x in issue["consumerSelections"] if x["localCommit"].startswith("d116d1e468"))
-    assert entry["owner"] == "domains/capital"
-    assert entry["disposition"] == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
-    assert entry["evidenceScope"] == "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC"
-    source = entry["sourceQualification"]
-    assert source["localMain"] == "13704d0cac9e113b395f2d5a21b5bf8119aa04a5"
-    assert source["tipRelation"] == "BOTH_TIPS_ABSENT"
-    assert source["branchDeletionAllowed"] is False
-    removed = entry["removedHistoricalPaths"]
-    assert len(removed) == 42
-    assert len(set(removed)) == len(removed)
-    assert all(name.startswith("domains/capital/") for name in removed)
-    assert all(not (ROOT / name).exists() for name in removed)
-    assert "domains/capital/config/capital_office_registry.json" in removed
-    assert "domains/capital/src/ordivon_capital/governance/owner_authority.py" in removed
-    module.validate_formal_issue_census(census, plans)
-
 
 def test_git01_browser_harness_legacy_nonmerge_effects_are_source_bound() -> None:
     """Two historical patches have distinct Owners and do not override the live browser."""
@@ -1331,24 +1335,21 @@ def test_git01_browser_harness_legacy_nonmerge_effects_are_source_bound() -> Non
     module.validate_formal_issue_census(census, plans)
 
 
-
-def test_git01_workstation_cloudflare_gateway_tunnel_historical_correction() -> None:
-    """Old Gateway DNS tunnel switch may not override the corrected owner carrier."""
+def test_git01_retired_standalone_catalog_checker_has_next_owner_consumer() -> None:
+    """Source-absent historical helper cannot supersede the live Next authority provider."""
     census, plans = formal_issue_inputs()
-    ledger = next(x for x in census["issues"] if x["id"] == "GIT-01")
-    matches = [x for x in ledger["consumerSelections"]
-               if x["localCommit"].startswith("0fbdd2445e1a")]
-    assert len(matches) == 1
-    row = matches[0]
-    assert row["owner"] == "platform/workstation"
-    assert row["disposition"] == "SKIP_OLDER_SOURCECUT"
+    issue = next(row for row in census["issues"] if row["id"] == "GIT-01")
+    selected = [row for row in issue["consumerSelections"] if row["localCommit"] == "733481b66259399671888eeb109ad6c6ad3edae6"]
+    assert len(selected) == 1
+    row = selected[0]
+    assert row["owner"] == "meta/next"
+    assert row["disposition"] == "SKIP_RETIRED_UNCONSUMED"
     assert row["evidenceScope"] == "NATIVE_CONSUMER_PASS"
+    assert row["sourceQualification"]["protectedMain"] == "78895b2291830be75fa472f3621fc24ebd2e67f3"
     assert row["sourceQualification"]["branchDeletionAllowed"] is False
-    assert row["sourceQualification"]["currentGatewayCname"] == "native_tunnel"
-    p = ROOT / "platform/workstation/tofu/agent-birth-handoff/main.tf"
-    source = p.read_text()
-    gateway = source.split('resource "cloudflare_dns_record" "gateway_mcp" {', 1)[1].split("\n}", 1)[0]
-    assert 'content = "${local.native_tunnel_id}.cfargotunnel.com"' in gateway
+    assert not (ROOT / "tools/catalog/check_authority_catalog.py").exists()
+    assert (ROOT / "meta/next/scripts/check_authority_catalog_r1.py").is_file()
+    assert (ROOT / "meta/next/tests/test_authority_catalog.py").is_file()
     module.validate_formal_issue_census(census, plans)
 
 
@@ -1373,19 +1374,21 @@ def test_git01_gateway_windows_release_historical_verifier_consumer() -> None:
     module.validate_formal_issue_census(census, plans)
 
 
-def test_git01_retired_standalone_catalog_checker_has_next_owner_consumer() -> None:
-    """Source-absent historical helper cannot supersede the live Next authority provider."""
+def test_git01_workstation_cloudflare_gateway_tunnel_historical_correction() -> None:
+    """Old Gateway DNS tunnel switch may not override the corrected owner carrier."""
     census, plans = formal_issue_inputs()
-    issue = next(row for row in census["issues"] if row["id"] == "GIT-01")
-    selected = [row for row in issue["consumerSelections"] if row["localCommit"] == "733481b66259399671888eeb109ad6c6ad3edae6"]
-    assert len(selected) == 1
-    row = selected[0]
-    assert row["owner"] == "meta/next"
-    assert row["disposition"] == "SKIP_RETIRED_UNCONSUMED"
+    ledger = next(x for x in census["issues"] if x["id"] == "GIT-01")
+    matches = [x for x in ledger["consumerSelections"]
+               if x["localCommit"].startswith("0fbdd2445e1a")]
+    assert len(matches) == 1
+    row = matches[0]
+    assert row["owner"] == "platform/workstation"
+    assert row["disposition"] == "SKIP_OLDER_SOURCECUT"
     assert row["evidenceScope"] == "NATIVE_CONSUMER_PASS"
-    assert row["sourceQualification"]["protectedMain"] == "78895b2291830be75fa472f3621fc24ebd2e67f3"
     assert row["sourceQualification"]["branchDeletionAllowed"] is False
-    assert not (ROOT / "tools/catalog/check_authority_catalog.py").exists()
-    assert (ROOT / "meta/next/scripts/check_authority_catalog_r1.py").is_file()
-    assert (ROOT / "meta/next/tests/test_authority_catalog.py").is_file()
+    assert row["sourceQualification"]["currentGatewayCname"] == "native_tunnel"
+    p = ROOT / "platform/workstation/tofu/agent-birth-handoff/main.tf"
+    source = p.read_text()
+    gateway = source.split('resource "cloudflare_dns_record" "gateway_mcp" {', 1)[1].split("\n}", 1)[0]
+    assert 'content = "${local.native_tunnel_id}.cfargotunnel.com"' in gateway
     module.validate_formal_issue_census(census, plans)

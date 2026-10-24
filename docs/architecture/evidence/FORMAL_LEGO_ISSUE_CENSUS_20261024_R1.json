@@ -994,23 +994,22 @@
           ]
         },
         {
-          "localCommit": "0fbdd2445e1a6d2db4da0401d61c41e6d78a0577",
-          "owner": "platform/workstation",
-          "consumer": "Cloudflare native Gateway cutover consumes Workstation OpenTofu controller and DNS handoff. Historical patch pointed stable gateway_mcp CNAME at production tunnel and used planned stale data.cloudflare_zero_trust_tunnel_cloudflared_config.native instead of the prior native tunnel state. Corrected current source routes Gateway DNS to native_tunnel_id while other handoff records stay on production_tunnel_id; Gateway route depends on the native and production tunnel config. Never replay older incomplete tunnel topology.",
-          "remoteWitness": "platform/workstation/tofu/agent-birth-handoff/main.tf current Git Blob dd3d8ae700fcca7d0ce8c0a31f79d4f78a316635 vs historical d9c88ab12e089e04134f95c83c8bb519872c7129; platform/workstation/providers/cloudflare/scripts/ordivon_cloudflare_tofu_handoff.py current 1f7643791c5c099aae587e3861835489f31be01b vs historical d702f958ece8e5ec62dcd3611431270011719c09. Native existing Workstation Cloudflare test 20 PASS and one new gateway_mcp DNS/prior-state guard PASS. Did not run real OpenTofu apply or change active Cloudflare routing.",
+          "localCommit": "bfcadfd2bd4cbf6fe707da5164514c81da1b1dd1",
+          "owner": "services/runtime",
+          "consumer": "Retention close is allowed for dirty and unintegrated Workspaces only after a durable preservation witness, and preservation failure must stop the close. Current Runtime preserves dirty changes with checkpoints and unintegrated HEADs with immutable Git refs before mutation; the old script must not be restored.",
+          "remoteWitness": "services/runtime/scripts/ordivon-runtime-lifecycle uses preserve_retention_candidate before _attempt_prepared_close, dirty_checkpoint_one, and preserve_unintegrated_head. Three existing native owner tests PASS: test_retention_dirty_preservation_precedes_close_and_is_receipted; test_retention_unintegrated_head_ref_is_durable_and_idempotent; test_retention_preservation_failure_never_reaches_close. No live Workspace was closed for the test.",
           "evidenceScope": "NATIVE_CONSUMER_PASS",
-          "disposition": "SKIP_OLDER_SOURCECUT",
-          "sourceQualification": {
-            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
-            "protectedMain": "dec3223590bc5dc616fc32adb91412d90583a428",
-            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
-            "tipRelation": "SAME_BLOB_AND_MODE",
-            "historicalFinalBlobEqual": false,
-            "currentGatewayCname": "native_tunnel",
-            "consumerStanding": "CURRENT_OWNER_CORRECTED_NATIVE_TOPOLOGY",
-            "liveCloudflareAcceptance": "NOT_REEXECUTED",
-            "branchDeletionAllowed": false
-          }
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "7bf5f1d89da65e5ce8420910065d8c822cc6c4e3"
+        },
+        {
+          "localCommit": "beab83436239bf87ab37e83e1b0649e992768d4e",
+          "owner": "tools/repo",
+          "consumer": "Same-name NPM, Cargo and Nix updates must be grouped while each Owner retains its own manifests and lockfiles; Python uv.lock has one Renovate PEP 621 updater and no duplicate Dependabot uv updater. Prefer current protected-Main configuration to the historical daily-schedule snapshot.",
+          "remoteWitness": ".github/dependabot.yml uses same-dependency group-by dependency-name across separate Owner directories; renovate.json is the sole uv lock maintenance authority. Existing tools/repo/test_dependency_update_ownership.py native owner checks PASS 2/2 using root-mise selected Python with pyyaml 6.0.3; preserve newer current config rather than replay older file.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "7bf5f1d89da65e5ce8420910065d8c822cc6c4e3"
         },
         {
           "localCommit": "d91d63b70da5fa1c02a7b1a136c651649f62bd75",
@@ -1032,24 +1031,6 @@
           }
         },
         {
-          "localCommit": "bfcadfd2bd4cbf6fe707da5164514c81da1b1dd1",
-          "owner": "services/runtime",
-          "consumer": "Retention close is allowed for dirty and unintegrated Workspaces only after a durable preservation witness, and preservation failure must stop the close. Current Runtime preserves dirty changes with checkpoints and unintegrated HEADs with immutable Git refs before mutation; the old script must not be restored.",
-          "remoteWitness": "services/runtime/scripts/ordivon-runtime-lifecycle uses preserve_retention_candidate before _attempt_prepared_close, dirty_checkpoint_one, and preserve_unintegrated_head. Three existing native owner tests PASS: test_retention_dirty_preservation_precedes_close_and_is_receipted; test_retention_unintegrated_head_ref_is_durable_and_idempotent; test_retention_preservation_failure_never_reaches_close. No live Workspace was closed for the test.",
-          "evidenceScope": "NATIVE_CONSUMER_PASS",
-          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
-          "evaluatedRemoteMain": "7bf5f1d89da65e5ce8420910065d8c822cc6c4e3"
-        },
-        {
-          "localCommit": "beab83436239bf87ab37e83e1b0649e992768d4e",
-          "owner": "tools/repo",
-          "consumer": "Same-name NPM, Cargo and Nix updates must be grouped while each Owner retains its own manifests and lockfiles; Python uv.lock has one Renovate PEP 621 updater and no duplicate Dependabot uv updater. Prefer current protected-Main configuration to the historical daily-schedule snapshot.",
-          "remoteWitness": ".github/dependabot.yml uses same-dependency group-by dependency-name across separate Owner directories; renovate.json is the sole uv lock maintenance authority. Existing tools/repo/test_dependency_update_ownership.py native owner checks PASS 2/2 using root-mise selected Python with pyyaml 6.0.3; preserve newer current config rather than replay older file.",
-          "evidenceScope": "NATIVE_CONSUMER_PASS",
-          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
-          "evaluatedRemoteMain": "7bf5f1d89da65e5ce8420910065d8c822cc6c4e3"
-        },
-        {
           "localCommit": "f0cfddcfd2f2a20e2c408e4a3f159ec047bd600c",
           "owner": "services/runtime",
           "consumer": "RuntimeDispatchR1 formal-trace acceptance receipt has the exact same current Git blob in both Main trees, while the current owner verifier consumes a separate stable-seam formal trace model and named tests. The old metadata refresh is not a new mechanized TLA+-to-Rust proof or new live effect.",
@@ -1068,6 +1049,25 @@
                 "blobOid": "bd91be10978ae691b8ab4cc6bb12abfa6a1e728c"
               }
             ],
+            "branchDeletionAllowed": false
+          }
+        },
+        {
+          "localCommit": "0fbdd2445e1a6d2db4da0401d61c41e6d78a0577",
+          "owner": "platform/workstation",
+          "consumer": "Cloudflare native Gateway cutover consumes Workstation OpenTofu controller and DNS handoff. Historical patch pointed stable gateway_mcp CNAME at production tunnel and used planned stale data.cloudflare_zero_trust_tunnel_cloudflared_config.native instead of the prior native tunnel state. Corrected current source routes Gateway DNS to native_tunnel_id while other handoff records stay on production_tunnel_id; Gateway route depends on the native and production tunnel config. Never replay older incomplete tunnel topology.",
+          "remoteWitness": "platform/workstation/tofu/agent-birth-handoff/main.tf current Git Blob dd3d8ae700fcca7d0ce8c0a31f79d4f78a316635 vs historical d9c88ab12e089e04134f95c83c8bb519872c7129; platform/workstation/providers/cloudflare/scripts/ordivon_cloudflare_tofu_handoff.py current 1f7643791c5c099aae587e3861835489f31be01b vs historical d702f958ece8e5ec62dcd3611431270011719c09. Native existing Workstation Cloudflare test 20 PASS and one new gateway_mcp DNS/prior-state guard PASS. Did not run real OpenTofu apply or change active Cloudflare routing.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_OLDER_SOURCECUT",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "dec3223590bc5dc616fc32adb91412d90583a428",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "SAME_BLOB_AND_MODE",
+            "historicalFinalBlobEqual": false,
+            "currentGatewayCname": "native_tunnel",
+            "consumerStanding": "CURRENT_OWNER_CORRECTED_NATIVE_TOPOLOGY",
+            "liveCloudflareAcceptance": "NOT_REEXECUTED",
             "branchDeletionAllowed": false
           }
         },
