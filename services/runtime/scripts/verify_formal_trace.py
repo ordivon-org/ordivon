@@ -251,6 +251,11 @@ def require_test_symbol(path: Path, symbol: str, *, require_ignored: bool = Fals
         break
     if not any(re.fullmatch(r"#\s*\[\s*test\s*\]", attribute) for attribute in attributes):
         return [f"{path.relative_to(ROOT)}::{symbol} is not marked #[test]"]
+    # A source-level #[test] is not always-on evidence if Rust can compile it
+    # out or inject #[ignore] through cfg_attr. Never promote such a witness
+    # without proof that its conditional branch is active in the Owner CI cut.
+    if any(re.fullmatch(r"#\s*\[\s*cfg(?:_attr)?\s*\(.*\)\s*\]", attr) for attr in attributes):
+        return [f"{path.relative_to(ROOT)}::{symbol} is conditionally compiled or ignored, not an always-on proving test"]
     ignored = any(re.fullmatch(r'#\s*\[\s*ignore(?:\s*=\s*".*")?\s*\]', attribute) for attribute in attributes)
     if ignored and not require_ignored:
         return [f"{path.relative_to(ROOT)}::{symbol} is ignored, not an always-on proving test"]

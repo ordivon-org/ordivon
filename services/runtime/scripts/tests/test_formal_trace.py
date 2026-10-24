@@ -146,10 +146,37 @@ trait Provider {
                 self.module.ROOT = original_root
         self.assertTrue(any("ignored" in error for error in errors), errors)
 
+    def test_conditionally_disabled_rust_tests_are_not_always_on_witnesses(self):
+        # Rust cfg(any()) compiles the test out, even with an adjacent #[test].
+        # A missing Feature similarly means no test ever ran. Neither is an
+        # acceptable always-on proving witness for the Runtime formal model.
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "proof_tests.rs"
+            original_root = self.module.ROOT
+            self.module.ROOT = Path(temporary)
+            try:
+                for conditional in (
+                    "#[cfg(any())]",
+                    '#[cfg(feature = "not_necessarily_enabled")]',
+                    "#[cfg_attr(all(), ignore)]",
+                ):
+                    with self.subTest(conditional=conditional):
+                        source.write_text(
+                            f"#[test]\n{conditional}\nfn formal_witness() {{}}\n",
+                            encoding="utf-8",
+                        )
+                        errors = self.module.require_test_symbol(source, "formal_witness")
+                        self.assertTrue(
+                            any("conditionally" in error for error in errors),
+                            errors,
+                        )
+            finally:
+                self.module.ROOT = original_root
+
     def test_test_annotation_accepts_adjacent_attributes(self):
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary) / "integration_tests.rs"
-            source.write_text("#[test]\n#[cfg(unix)]\nfn target() {}\n", encoding="utf-8")
+            source.write_text("#[test]\n#[allow(dead_code)]\nfn target() {}\n", encoding="utf-8")
             original_root = self.module.ROOT
             self.module.ROOT = Path(temporary)
             try:
