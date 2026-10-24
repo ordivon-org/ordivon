@@ -57,3 +57,16 @@ def test_formal_toolchain_is_digest_checked_and_explicitly_admitted():
         and row["kind"] == "PUBLIC_PINNED_FORMAL_TOOLCHAIN"
         for row in policy["seams"]
     )
+
+
+def test_same_work_wrong_source_cut_reachable_and_rejected():
+    tasks = tomllib.loads((ROOT / "mise.toml").read_text(encoding="utf-8"))["tasks"]
+    formal = tasks["formal:verify"]["run"]
+    probe = ROOT / "formal" / "Lego21OwnerBoundary.sourcecut-probe.cfg"
+    model = (ROOT / "formal" / "Lego21OwnerBoundary.tla").read_text()
+    assert probe.is_file()
+    assert "INVARIANT WrongSourceEvidenceIsUnreachable" in probe.read_text()
+    assert "NoHostAcceptanceWithWrongSource" in model
+    assert 'sourceEvidenceBinding = "admission-bound"' in model
+    assert probe.name in formal
+    assert "Error: Invariant WrongSourceEvidenceIsUnreachable is violated." in formal

@@ -10,16 +10,17 @@ EXTENDS Naturals
 CONSTANTS RequiresHarness, RequiresNetwork
 
 VARIABLES host, harness, network, runtime, dispatchCount, consumerEvidence,
-          admissionInputsWitness
+          sourceEvidenceBinding, admissionInputsWitness
 
 vars == <<host, harness, network, runtime, dispatchCount, consumerEvidence,
-          admissionInputsWitness>>
+          sourceEvidenceBinding, admissionInputsWitness>>
 
 HostStates == {"open", "accepted"}
 HarnessStates == {"idle", "proposed"}
 NetworkStates == {"unknown", "ready"}
 RuntimeStates == {"idle", "admitted", "running", "ambiguous", "terminal"}
 EvidenceStates == {"none", "matching", "foreign"}
+SourceBindingStates == {"none", "admission-bound", "different-source"}
 
 TypeOK ==
     /\ RequiresHarness \in BOOLEAN
@@ -30,6 +31,7 @@ TypeOK ==
     /\ runtime \in RuntimeStates
     /\ dispatchCount \in 0..2
     /\ consumerEvidence \in EvidenceStates
+    /\ sourceEvidenceBinding \in SourceBindingStates
     /\ admissionInputsWitness \in BOOLEAN
 
 Init ==
@@ -39,24 +41,25 @@ Init ==
     /\ runtime = "idle"
     /\ dispatchCount = 0
     /\ consumerEvidence = "none"
+    /\ sourceEvidenceBinding = "none"
     /\ admissionInputsWitness = FALSE
 
 NetworkObserve ==
     /\ network = "unknown"
     /\ network' = "ready"
-    /\ UNCHANGED <<host, harness, runtime, dispatchCount, consumerEvidence,
+    /\ UNCHANGED <<host, harness, runtime, dispatchCount, consumerEvidence, sourceEvidenceBinding,
                   admissionInputsWitness>>
 
 NetworkDegrade ==
     /\ network = "ready"
     /\ network' = "unknown"
-    /\ UNCHANGED <<host, harness, runtime, dispatchCount, consumerEvidence,
+    /\ UNCHANGED <<host, harness, runtime, dispatchCount, consumerEvidence, sourceEvidenceBinding,
                   admissionInputsWitness>>
 
 HarnessPropose ==
     /\ harness = "idle"
     /\ harness' = "proposed"
-    /\ UNCHANGED <<host, network, runtime, dispatchCount, consumerEvidence,
+    /\ UNCHANGED <<host, network, runtime, dispatchCount, consumerEvidence, sourceEvidenceBinding,
                   admissionInputsWitness>>
 
 RuntimeAdmit ==
@@ -67,33 +70,36 @@ RuntimeAdmit ==
     /\ admissionInputsWitness' =
         /\ (~RequiresHarness \/ harness = "proposed")
         /\ (~RequiresNetwork \/ network = "ready")
-    /\ UNCHANGED <<host, harness, network, dispatchCount, consumerEvidence>>
+    /\ UNCHANGED <<host, harness, network, dispatchCount, consumerEvidence, sourceEvidenceBinding>>
 
 RuntimeDispatch ==
     /\ runtime = "admitted"
     /\ dispatchCount = 0
     /\ runtime' = "running"
     /\ dispatchCount' = dispatchCount + 1
-    /\ UNCHANGED <<host, harness, network, consumerEvidence,
+    /\ UNCHANGED <<host, harness, network, consumerEvidence, sourceEvidenceBinding,
                   admissionInputsWitness>>
 
 RuntimeLoseKnowledge ==
     /\ runtime = "running"
     /\ runtime' = "ambiguous"
-    /\ UNCHANGED <<host, harness, network, dispatchCount, consumerEvidence,
+    /\ UNCHANGED <<host, harness, network, dispatchCount, consumerEvidence, sourceEvidenceBinding,
                   admissionInputsWitness>>
 
 RuntimeObserveTerminal ==
     /\ runtime \in {"running", "ambiguous"}
     /\ runtime' = "terminal"
-    /\ UNCHANGED <<host, harness, network, dispatchCount, consumerEvidence,
+    /\ UNCHANGED <<host, harness, network, dispatchCount, consumerEvidence, sourceEvidenceBinding,
                   admissionInputsWitness>>
 
 ConsumerObserve ==
     /\ runtime = "terminal"
     /\ consumerEvidence = "none"
+    /\ sourceEvidenceBinding = "none"
     (* Evidence can belong to this Work or a different consumer. *)
     /\ consumerEvidence' \in {"matching", "foreign"}
+    (* Abstract admission SourceCut binding; not a live digest check. *)
+    /\ sourceEvidenceBinding' \in {"admission-bound", "different-source"}
     /\ UNCHANGED <<host, harness, network, runtime, dispatchCount,
                   admissionInputsWitness>>
 
@@ -102,8 +108,9 @@ HostAccept ==
     /\ runtime = "terminal"
     (* A foreign Work's valid result is NOT evidence for this Work. *)
     /\ consumerEvidence = "matching"
+    /\ sourceEvidenceBinding = "admission-bound"
     /\ host' = "accepted"
-    /\ UNCHANGED <<harness, network, runtime, dispatchCount, consumerEvidence,
+    /\ UNCHANGED <<harness, network, runtime, dispatchCount, consumerEvidence, sourceEvidenceBinding,
                   admissionInputsWitness>>
 
 Next ==
@@ -139,6 +146,9 @@ AmbiguityCannotBeTreatedAsCompletion ==
 NoHostAcceptanceWithoutConsumerEvidence ==
     consumerEvidence # "matching" => host = "open"
 
+NoHostAcceptanceWithWrongSource ==
+    sourceEvidenceBinding # "admission-bound" => host = "open"
+
 (***************************************************************************)
 (* Intentionally FALSE non-vacuity probe, not an admitted safety invariant. *)
 (* The standalone probe cfg must find a post-admission NetworkDegrade path. *)
@@ -156,5 +166,9 @@ NetworkNeverDegradesAfterAdmission ==
 (***************************************************************************)
 ForeignEvidenceIsUnreachable ==
     consumerEvidence # "foreign"
+
+(* Intentionally false negative oracle: a matching Work can have wrong source. *)
+WrongSourceEvidenceIsUnreachable ==
+    ~(consumerEvidence = "matching" /\ sourceEvidenceBinding = "different-source")
 
 =============================================================================
