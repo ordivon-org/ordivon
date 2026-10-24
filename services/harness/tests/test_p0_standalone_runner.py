@@ -3,9 +3,12 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from pathlib import Path
+from types import SimpleNamespace
 import tempfile
 import threading
 import time
+
+import pytest
 import unittest
 
 from ordivon_harness.core_contracts import HarnessPrivacyPolicy
@@ -14,6 +17,7 @@ from ordivon_harness.independent_result import (
     IndependentRunRecorder,
 )
 from ordivon_harness.ordivon.loop import RunStopCode
+from ordivon_harness.ordivon.events import HarnessRunEvent, HarnessTrace
 from ordivon_harness.ordivon.model import AgentRunConclusion, ScriptedTurnAdapter
 from ordivon_harness.ordivon.sqlite_agent_bridge import SQLiteHarnessAgentBridge
 from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
@@ -444,3 +448,33 @@ class StandaloneHarnessRunnerTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+
+def test_reconstructed_trace_must_not_import_foreign_run_segments() -> None:
+    """A valid digest on another Run cannot become this Run's evidence."""
+    foreign = HarnessTrace(
+        "harness:foreign",
+        (HarnessRunEvent(1, "run_started", 0, {"source": "foreign"}),),
+    )
+
+    class ForeignObjectStore:
+        def list_run_events(self, harness_run_id: str):
+            assert harness_run_id == "harness:target"
+            return (SimpleNamespace(
+                event_kind="harness.trace-recorded",
+                data={"traceObjectDigest": foreign.digest, "traceDigest": foreign.digest},
+            ),)
+
+        def get_object(self, digest: str, *, expected_kind: str):
+            assert digest == foreign.digest
+            assert expected_kind == "harness-trace"
+            return foreign.to_dict()
+
+    recorder = object.__new__(IndependentRunRecorder)
+    recorder.contract = SimpleNamespace(harness_run_id="harness:target")
+    recorder.store = ForeignObjectStore()
+    with pytest.raises(ValueError, match="another Run"):
+        recorder._combined_trace()
+    with pytest.raises(ValueError, match="another Run"):
+        recorder.doctor()

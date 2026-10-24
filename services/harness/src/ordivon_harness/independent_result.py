@@ -642,6 +642,8 @@ class IndependentRunRecorder:
                 if not isinstance(raw, dict):
                     raise ValueError("Harness Trace object is invalid")
                 trace = HarnessTrace.from_dict(raw)
+                if trace.harness_run_id != self.contract.harness_run_id:
+                    raise ValueError("Harness Trace belongs to another Run")
                 if trace.digest != event.data.get("traceDigest"):
                     raise ValueError("Harness Trace Event digest differs")
                 trace_segments += 1
@@ -669,6 +671,8 @@ class IndependentRunRecorder:
             if not isinstance(raw, dict):
                 raise ValueError("Harness Trace segment object is invalid")
             segment = HarnessTrace.from_dict(raw)
+            if segment.harness_run_id != self.contract.harness_run_id:
+                raise ValueError("Harness Trace belongs to another Run")
             if segment.digest != event.data.get("traceDigest"):
                 raise ValueError("Harness Trace segment digest differs")
             for item in segment.events:
