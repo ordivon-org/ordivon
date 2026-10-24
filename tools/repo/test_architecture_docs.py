@@ -823,8 +823,8 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
             "SKIP_CANCELLED_HISTORY_PAIR",
             "SKIP_RETIRED_UNCONSUMED",
-            "SKIP_IDENTICAL_TIP_WITH_NATIVE_CONSUMER",
             "SKIP_OLDER_TOOLCHAIN_CHERRY_PICK",
+            "SKIP_IDENTICAL_TIP_WITH_NATIVE_CONSUMER",
         }
         assert item["evidenceScope"] in {
             "NATIVE_CONSUMER_PASS", "EXACT_GIT_BLOBS",
@@ -859,6 +859,30 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             else:
                 assert item["evidenceScope"] == "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN"
                 assert item["disposition"] == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
+    # Selected distinct non-merge patches may be absorbed at identical exact
+    # Main tips, but native Owner consumers (not the Git blobs) decide whether
+    # the historical commit has any necessary independent effect.
+    qualified = {
+        item["localCommit"][:12]: item for item in candidates
+        if item["disposition"] == "SKIP_IDENTICAL_TIP_WITH_NATIVE_CONSUMER"
+    }
+    for short, owner, path_count in (
+        ("f0cfddcfd2f2", "services/runtime", 1),
+        ("d91d63b70da5", "services/gateway", 2),
+        ("0fbdd2445e1a", "platform/workstation", 3),
+    ):
+        selected = qualified[short]
+        assert selected["owner"] == owner
+        assert selected["evidenceScope"] == "EXACT_GIT_BLOB_AND_NATIVE_CONSUMER_PASS"
+        proof = selected["sourceQualification"]
+        assert proof["localMain"] == source["localMain"]
+        assert proof["protectedMain"] == "3faee758c6c9bf4c7e97f3d7f6cb8bab93d3ca6a"
+        assert proof["kind"] == "non-merge"
+        assert proof["patchRelation"] == "PATCH_DISTINCT_UNQUALIFIED"
+        assert proof["branchDeletionAllowed"] is False
+        assert len(proof["changedPathIdentities"]) == path_count
+        assert len({row["path"] for row in proof["changedPathIdentities"]}) == path_count
+        assert all(len(row["blobOid"]) == 40 and row["mode"] for row in proof["changedPathIdentities"])
     module.validate_formal_issue_census(census, plans)
 
 
