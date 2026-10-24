@@ -208,6 +208,21 @@ class DeployTests(unittest.TestCase):
         self.assertNotIn("ordivon-host-mcp.service", unit)
         self.assertNotIn("ordivon-runtime.service", unit)
 
+    def test_gateway_effect_credential_belongs_to_temporal_worker_not_mcp(self):
+        """MCP transport must not inherit the Gateway credential used by effects."""
+        mcp = (ROOT / "systemd/ordivon-agent-automation-mcp.service").read_text()
+        worker = (ROOT / "systemd/ordivon-agent-temporal-worker.service").read_text()
+        self.assertNotIn("LoadCredential=gateway-local-bearer:", mcp)
+        self.assertNotIn("ORDIVON_AGENT_GATEWAY_BEARER_TOKEN_FILE", mcp)
+        self.assertIn(
+            "LoadCredential=gateway-local-bearer:/etc/ordivon/gateway/local-client-bearer",
+            worker,
+        )
+        self.assertIn(
+            "Environment=ORDIVON_AGENT_GATEWAY_BEARER_TOKEN_FILE=%d/gateway-local-bearer",
+            worker,
+        )
+
     def test_declared_path_tool_bootstraps_repo_scripts_when_materialized(self):
         import subprocess
         import tempfile
@@ -242,6 +257,58 @@ class DeployTests(unittest.TestCase):
             )
             with patch.object(d, "ROOT", root):
                 self.assertEqual(d.source_revision(), commit)
+
+
+    def test_mcp_release_includes_its_canonical_uv_tool_pin(self):
+        import agent_automation_release as release
+
+        self.assertIn("mise.toml", release.RELEASE_PATHS)
+
+    def test_mcp_materialization_selects_one_project_mise_uv_not_global_venv(self):
+        import subprocess
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            (root / "mise.toml").write_text('[tools]\nuv = "0.13.5"\n')
+            selected = root / "versioned-uv"
+            selected.write_text("#!/bin/sh\nexit 0\n")
+            selected.chmod(0o755)
+            process = subprocess.CompletedProcess(
+                ["/usr/bin/mise", "which", "uv"], 0, stdout=str(selected) + "\n"
+            )
+            with patch.object(d, "ROOT", root), patch.object(
+                d.subprocess, "run", return_value=process
+            ) as invoked:
+                self.assertEqual(d.owner_uv_executable(), str(selected))
+            self.assertEqual(invoked.call_args.args[0], ["/usr/bin/mise", "which", "uv"])
+            self.assertEqual(invoked.call_args.kwargs["cwd"], root)
+            self.assertEqual(invoked.call_args.kwargs["env"]["MISE_OFFLINE"], "1")
+            self.assertEqual(invoked.call_args.kwargs["env"]["MISE_AUTO_INSTALL"], "false")
+            source = (ROOT / "scripts/agent_automation_mcp_deploy.py").read_text()
+            self.assertNotIn('"/usr/bin/uv"', source)
+            self.assertIn('uv = owner_uv_executable()', source)
+
+    def test_mcp_owner_uv_fails_without_exact_release_pin_or_executable(self):
+        import subprocess
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            selected = root / "not-executable"
+            fake = subprocess.CompletedProcess(
+                ["/usr/bin/mise", "which", "uv"], 0, stdout=str(selected) + "\n"
+            )
+            with patch.object(d, "ROOT", root), patch.object(
+                d.subprocess, "run", return_value=fake
+            ):
+                with self.assertRaisesRegex(RuntimeError, "owner uv"):
+                    d.owner_uv_executable()
+                (root / "mise.toml").write_text('[tools]\nuv = "0.13.5"\n')
+                with self.assertRaisesRegex(RuntimeError, "owner uv"):
+                    d.owner_uv_executable()
+                selected.write_text("inert")
+                selected.chmod(0o600)
+                with self.assertRaisesRegex(RuntimeError, "owner uv"):
+                    d.owner_uv_executable()
 
 
 if __name__ == "__main__":

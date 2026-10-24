@@ -161,6 +161,25 @@ def runtime_check(c: dict) -> dict:
     }
 
 
+def owner_uv_executable() -> str:
+    """Resolve the versioned Harness uv without installing or reaching the network."""
+    if not (ROOT / "mise.toml").is_file():
+        raise RuntimeError("owner uv release lacks its mise.toml")
+    proc = subprocess.run(
+        ["/usr/bin/mise", "which", "uv"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        timeout=20,
+        check=True,
+        env={**os.environ, "MISE_OFFLINE": "1", "MISE_AUTO_INSTALL": "false"},
+    )
+    selected = Path(proc.stdout.strip())
+    if not selected.is_absolute() or not selected.is_file() or not os.access(selected, os.X_OK):
+        raise RuntimeError("owner uv executable missing or not executable")
+    return str(selected)
+
+
 def converge_runtime(c: dict) -> dict:
     try:
         value = runtime_check(c)
@@ -168,6 +187,7 @@ def converge_runtime(c: dict) -> dict:
         return value
     except Exception:
         pass
+    uv = owner_uv_executable()
     py = Path(c["mcp_runtime_python"])
     venv = py.parent.parent
     staging = venv.parent / (venv.name + ".staging")
@@ -176,7 +196,7 @@ def converge_runtime(c: dict) -> dict:
     shutil.rmtree(backup, ignore_errors=True)
     subprocess.run(
         [
-            "/usr/bin/uv",
+            uv,
             "venv",
             "--offline",
             "--no-python-downloads",
@@ -190,7 +210,7 @@ def converge_runtime(c: dict) -> dict:
     requirements = ROOT / str(c["mcp_requirements"])
     subprocess.run(
         [
-            "/usr/bin/uv",
+            uv,
             "pip",
             "install",
             "--offline",

@@ -304,6 +304,36 @@
           }
         },
         {
+          "localCommit": "af6f3f48f14b9a8429b7bbd837cd55005031ad86",
+          "owner": "services/gateway",
+          "consumer": "Research capability describe/resolve routes remain consumed via the frozen Gateway research_routes.py and service.py. Historical capability index/Skill profile source files are absent at the exact protected Main; do not equate frozen projection with a regenerable authoritative producer.",
+          "remoteWitness": "services/gateway/src/ordivon_gateway/research_routes.py + service.py; tests/test_research_capability_resolution.py 7/7 PASS via locked uv on 99c24a6aa52ca88b23f238ac21cb9c0a48bb89b4. Gateway generated header cites unavailable historical producer.",
+          "evidenceScope": "FROZEN_GATEWAY_CONSUMER_ONLY",
+          "disposition": "NO_WHOLE_COMMIT_REPLAY_WITHOUT_PRODUCER_AUTHORITY",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc",
+            "historicalSourceState": "HISTORICAL_PRODUCER_FILES_ABSENT",
+            "consumerStanding": "FROZEN_GATEWAY_PROJECTION_RUNS",
+            "branchDeletionAllowed": false
+          }
+        },
+        {
+          "localCommit": "8ac2e7f8147eba471c36650cda52ca2a6fb51347",
+          "owner": "tools/repo",
+          "consumer": "Historical daily-world-model-brief v5.2 CURRENT.json/validator are absent on protected Main and no in-tree consumer references the package. External/scheduled users are UNKNOWN, not proven absent.",
+          "remoteWitness": "Three catalog source paths missing at exact protected cut 6d44eb7860cff086e27bedd1a59e49415a4c87cc. Exact Git grep for daily-world-model-brief and validate_current.py on protected Main found no in-tree consumers; no live automation probe performed.",
+          "evidenceScope": "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN",
+          "disposition": "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc",
+            "historicalSourceState": "LOCAL_ONLY_SOURCE",
+            "consumerStanding": "NO_IN_TREE_CONSUMER_EXTERNAL_UNKNOWN",
+            "branchDeletionAllowed": false
+          }
+        },
+        {
           "localCommit": "ac558a911eaad6a2725f51d3d88c2de2605ce540",
           "owner": "services/runtime",
           "consumer": "Source-bound TLA+ external-jar formal wrapper runs through the existing Runtime Python unittest runner. Historical test source is byte-identical to protected consumer; no alternate TLA toolchain or test wrapper to recreate.",
