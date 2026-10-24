@@ -67,14 +67,16 @@
       "evidence": [
         "README.md",
         "docs/ACCEPTANCE_MATRIX.md",
-        "evidence/current-capabilities.json"
+        "evidence/current-capabilities.json",
+        "tests/test_prometheus_singbox_witness.py"
       ],
       "dependencies": [],
       "mustNotOwn": [
         "application semantic success"
       ],
       "acceptance": [
-        "Local WSL capability projection is refreshed only after acceptance gates pass."
+        "Local WSL capability projection is refreshed only after acceptance gates pass.",
+        "Prometheus sing-box READY requires a single successful instant-vector response, exact probe_success/job/instance, value 1, and a current timestamp; process-recovery acceptance requires an observation no earlier than the recovered process. Synthetic CDC is not live egress proof."
       ]
     },
     {
