@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 
 def test_historical_alembic_migrations_do_not_import_mutable_runtime_schema() -> None:
     root = Path(__file__).parents[1] / "migrations" / "versions"
@@ -113,6 +115,69 @@ def test_one_shot_legacy_reader_is_not_registered_as_active_mcp_surface() -> Non
     assert 'name="board.' not in mcp
 
 
+def _assert_host_r3_partition(plan: dict) -> None:
+    """Host R3 responsibility function, not a new runtime registry or solver."""
+
+    def distinct_nonempty(values: list, label: str) -> None:
+        if any(not isinstance(x, str) or not x.strip() for x in values):
+            raise ValueError(f"untyped {label}")
+        if len(values) != len(set(values)):
+            raise ValueError(f"duplicate {label}")
+
+    if plan.get("truthRole") != "source-current-owner-map-not-runtime-truth":
+        raise ValueError("Host R3 source map is not runtime truth")
+    kept = plan["retained"]
+    retired = plan["retired"]
+    external = plan["externalOwners"]
+    distinct_nonempty([x["id"] for x in kept], "retained id")
+    distinct_nonempty([x["name"] for x in kept], "retained name")
+    if any(not isinstance(x["owner"], str) or not x["owner"].strip() for x in kept):
+        raise ValueError("untyped retained owner")
+    distinct_nonempty(retired, "retired name")
+    if {x["name"] for x in kept} & set(retired):
+        raise ValueError("retained and retired names overlap")
+    distinct_nonempty([x["capability"] for x in external], "external capability")
+    if any(not isinstance(x["owner"], str) or not x["owner"].strip() for x in external):
+        raise ValueError("untyped external owner")
+
+
+def test_host_r3_partition_is_a_typed_function() -> None:
+    """Current R3 is a partitioned responsibility map, NOT retired R2's node graph."""
+    import json
+
+    plan = json.loads((Path(__file__).parents[1] / "planning" / "lego-plan-r3.json").read_text())
+    _assert_host_r3_partition(plan)
+
+
+def test_host_r3_rejects_retained_and_retired_collisions() -> None:
+    import copy
+    import json
+
+    plan = json.loads((Path(__file__).parents[1] / "planning" / "lego-plan-r3.json").read_text())
+    duplicate = copy.deepcopy(plan)
+    duplicate["retired"].append(duplicate["retained"][0]["name"])
+    with pytest.raises(ValueError, match="retained and retired"):
+        _assert_host_r3_partition(duplicate)
+
+    duplicate = copy.deepcopy(plan)
+    duplicate["retained"].append(copy.deepcopy(duplicate["retained"][0]))
+    with pytest.raises(ValueError, match="duplicate retained"):
+        _assert_host_r3_partition(duplicate)
+
+
+def test_host_r3_rejects_duplicate_external_responsibility() -> None:
+    import copy
+    import json
+
+    plan = json.loads((Path(__file__).parents[1] / "planning" / "lego-plan-r3.json").read_text())
+    duplicate = copy.deepcopy(plan)
+    duplicate["externalOwners"].append(
+        {"capability": duplicate["externalOwners"][0]["capability"], "owner": "Shadow"}
+    )
+    with pytest.raises(ValueError, match="duplicate external capability"):
+        _assert_host_r3_partition(duplicate)
+
+
 def test_host_lego_r2_unused_projection_retired_r1_and_r3_preserved() -> None:
     """Retire R2 only; R1 now has an actual graph verifier consumer."""
     import json
@@ -121,7 +186,11 @@ def test_host_lego_r2_unused_projection_retired_r1_and_r3_preserved() -> None:
     assert not (planning / "lego-plan-r2.json").exists()
     dependencies = json.loads((planning / "lego-plan-r1.json").read_text())
     assert dependencies["truthRole"] == "planning-projection-not-project-truth"
-    assert {edge["to"] for edge in dependencies["edges"] if edge["from"] == "O04" and edge["type"] == "DEPENDENCY"} == {"O01", "O02"}
+    assert {
+        edge["to"]
+        for edge in dependencies["edges"]
+        if edge["from"] == "O04" and edge["type"] == "DEPENDENCY"
+    } == {"O01", "O02"}
     current = json.loads((planning / "lego-plan-r3.json").read_text())
     assert current["schemaVersion"] == 3
     assert current["project"]["id"] == "ordivon-host-v2"
