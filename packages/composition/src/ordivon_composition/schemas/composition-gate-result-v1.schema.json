@@ -31,7 +31,7 @@
     "evidenceRefs": {
       "type": "array",
       "uniqueItems": true,
-      "items": { "type": "string", "minLength": 1 }
+      "items": { "type": "string", "minLength": 1, "pattern": "^\\S+$" }
     },
     "supportScope": { "type": "string", "minLength": 1 },
     "nonClaims": {
