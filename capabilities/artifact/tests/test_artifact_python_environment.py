@@ -79,4 +79,77 @@ class ArtifactDeliveryEnvironmentTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             root=Path(d);f=root/'x';f.write_text('x');f.chmod(0o644);M.make_read_only(root);self.assertEqual(root.stat().st_mode & 0o777,0o555);self.assertEqual(f.stat().st_mode & 0o777,0o444)
 
+
+    def test_generation_interpreter_is_pinned_and_survives_source_drift(self):
+        # Local-main historical candidate b066c82: the published generation
+        # must not depend on mutable external mise executable bytes.
+        import hashlib
+        with tempfile.TemporaryDirectory(prefix="artifact-python-generation-") as temp:
+            root = Path(temp)
+            source = root / "external-mise-python"
+            source.write_bytes(b"python-v1")
+            source.chmod(0o755)
+            venv = root / ".venv"
+            (venv / "bin").mkdir(parents=True)
+            (venv / "bin/python").symlink_to(source)
+            (venv / "bin/python3").symlink_to("python")
+            identity = {
+                "resolvedPath": str(source.resolve()),
+                "sha256": "sha256:" + hashlib.sha256(source.read_bytes()).hexdigest(),
+            }
+            selected = M.pin_interpreter_in_venv(venv, identity)
+            self.assertEqual(selected, venv / "bin/python")
+            self.assertFalse(selected.is_symlink())
+            self.assertEqual(selected.read_bytes(), b"python-v1")
+            digest = M.tree_digest(venv)
+            source.write_bytes(b"python-v2")
+            self.assertEqual(selected.read_bytes(), b"python-v1")
+            self.assertEqual(M.tree_digest(venv), digest)
+            self.assertEqual((venv / "bin/python3").resolve(), selected.resolve())
+
+    def test_generation_interpreter_rejects_wrong_source_hash(self):
+        with tempfile.TemporaryDirectory(prefix="artifact-python-source-drift-") as temp:
+            root = Path(temp)
+            source = root / "source"
+            source.write_bytes(b"tampered")
+            venv = root / ".venv"
+            (venv / "bin").mkdir(parents=True)
+            target = venv / "bin/python"
+            target.symlink_to(source)
+            with self.assertRaisesRegex(RuntimeError, "interpreter.*drift"):
+                M.pin_interpreter_in_venv(
+                    venv, {"resolvedPath": str(source), "sha256": "sha256:" + "0" * 64}
+                )
+            self.assertTrue(target.is_symlink())
+
+    def test_actual_artifact_wrapper_refuses_external_python_for_local_generation(self):
+        # Black-box wrapper test: a marker alone cannot turn an external
+        # interpreter symlink into generation-owned immutable executable bytes.
+        import shutil
+        import subprocess
+        with tempfile.TemporaryDirectory(prefix="artifact-wrapper-placement-") as temp:
+            generation = Path(temp) / "generation"
+            (generation / "bin").mkdir(parents=True)
+            (generation / ".venv/bin").mkdir(parents=True)
+            wrapper = generation / "bin/python"
+            shutil.copy2(ROOT / "scripts/artifact_python_wrapper.py", wrapper)
+            wrapper.chmod(0o755)
+            (generation / ".venv/bin/python").symlink_to("/bin/sh")
+            binding = {
+                "schemaVersion": 1,
+                "kind": "artifact-python-generation-binding",
+                "wrapperSha256": "sha256:" + M.sha(wrapper),
+                "venvTreeDigest": W.tree_digest(generation / ".venv"),
+                "pythonExecutableSha256": "sha256:" + M.sha(Path("/bin/sh").resolve()),
+                "interpreterPlacement": "generation-local-executable-copy-v1",
+            }
+            (generation / "binding.json").write_text(json.dumps(binding))
+            result = subprocess.run(
+                [str(wrapper), "-c", "print(123)"],
+                capture_output=True, text=True, timeout=10, check=False,
+            )
+            self.assertEqual(result.returncode, 126, result.stderr)
+            self.assertIn("placement drift", result.stderr)
+
+
 if __name__=='__main__':unittest.main()

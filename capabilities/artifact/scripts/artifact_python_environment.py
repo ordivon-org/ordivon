@@ -101,8 +101,34 @@ def dependency_probe(python:Path,expected:dict[str,str])->dict[str,Any]:
     return value
 
 
+def pin_interpreter_in_venv(venv:Path,python:dict[str,str])->Path:
+    """Pin verified CPython bytes inside the generation, not a mutable mise symlink."""
+    executable=venv/'bin/python'
+    expected=python['sha256']
+    if not executable.is_symlink():
+        if executable.is_file() and 'sha256:'+sha(executable)==expected:
+            return executable
+        raise RuntimeError('Artifact interpreter drift: uv Python is neither the expected copy nor symlink')
+    source=executable.resolve(strict=True)
+    if str(source)!=python['resolvedPath'] or 'sha256:'+sha(source)!=expected:
+        raise RuntimeError('Artifact interpreter source identity drift')
+    temporary=executable.parent/'.python-immutable-staging'
+    if temporary.exists() or temporary.is_symlink():
+        raise RuntimeError('Artifact interpreter staging destination already exists')
+    try:
+        shutil.copy2(source,temporary)
+        if 'sha256:'+sha(temporary)!=expected:
+            raise RuntimeError('Artifact interpreter source drift during copy')
+        os.replace(temporary,executable)
+    finally:
+        if temporary.exists():temporary.unlink()
+    if executable.is_symlink() or 'sha256:'+sha(executable)!=expected:
+        raise RuntimeError('Artifact interpreter copied bytes drift')
+    return executable
+
+
 def generation_spec(lock:dict[str,Any],project:dict[str,str],python:dict[str,str])->dict[str,Any]:
-    return {'schemaVersion':1,'lockSha256':'sha256:'+sha(LOCK_PATH),'wrapperSha256':'sha256:'+sha(WRAPPER_SOURCE),'pythonRuntime':lock['pythonRuntime'],'pythonPackages':lock['pythonPackages'],'uvProjectPyprojectSha256':project['pyprojectSha256'],'uvLockSha256':project['uvLockSha256'],'pythonExecutableResolvedPath':python['resolvedPath'],'pythonExecutableSha256':python['sha256']}
+    return {'schemaVersion':1,'lockSha256':'sha256:'+sha(LOCK_PATH),'wrapperSha256':'sha256:'+sha(WRAPPER_SOURCE),'pythonRuntime':lock['pythonRuntime'],'pythonPackages':lock['pythonPackages'],'uvProjectPyprojectSha256':project['pyprojectSha256'],'uvLockSha256':project['uvLockSha256'],'pythonExecutableResolvedPath':python['resolvedPath'],'pythonExecutableSha256':python['sha256'],'interpreterPlacement':'generation-local-executable-copy-v1'}
 
 
 def probe_wrapper(wrapper:Path)->dict[str,Any]:
@@ -133,7 +159,7 @@ def build_generation(base:Path,lock:dict[str,Any],project:dict[str,str],python:d
         venv=staging/'.venv';env={**os.environ,'UV_PROJECT_ENVIRONMENT':str(venv),'PYTHONDONTWRITEBYTECODE':'1'}
         sync=run([str(UV),'sync','--frozen','--offline','--no-dev','--python',str(SYSTEM_PYTHON),'--project',project['project']],env=env,timeout=180)
         if sync.returncode:raise RuntimeError('offline frozen Artifact Python uv sync failed: '+sync.stderr[-5000:])
-        observed=dependency_probe(venv/'bin/python',lock['pythonPackages'])
+        observed=dependency_probe(pin_interpreter_in_venv(venv,python),lock['pythonPackages'])
         provenance=staging/'provenance';provenance.mkdir();shutil.copy2(ROOT/lock['uvProject']['path']/'pyproject.toml',provenance/'pyproject.toml');shutil.copy2(ROOT/lock['uvProject']['path']/'uv.lock',provenance/'uv.lock')
         make_read_only(venv);venv_digest=tree_digest(venv)
         bindir=staging/'bin';bindir.mkdir();wrapper=bindir/'python';shutil.copy2(WRAPPER_SOURCE,wrapper);os.chmod(wrapper,0o755)
