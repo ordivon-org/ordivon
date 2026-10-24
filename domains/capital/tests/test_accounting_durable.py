@@ -149,3 +149,37 @@ def test_terminal_contradiction_never_repairs_ledger():
     )
     assert result.standing is LedgerReconciliationStanding.CONTRADICTION_NO_REPAIR
     assert result.ledger_repair_allowed is False
+
+
+@pytest.mark.parametrize(
+    "invalid_standing",
+    ["RESERVED", "RELEASED", "CONSUMED", "UNKNOWN", None, 17],
+)
+def test_history_rejects_untyped_or_unknown_reservation_standing(invalid_standing) -> None:
+    """Raw/malformed states cannot become terminal accounting authority."""
+    with pytest.raises(AccountingMappingError, match="ReservationStanding"):
+        DurableReservationHistory(
+            binding=binding(),
+            standing=invalid_standing,
+            resolution_ref="effect:reconciliation",
+        )
+
+
+def test_raw_released_state_cannot_be_interpreted_as_consumed() -> None:
+    """Prevent an invalid string standing from matching a POST resolution."""
+    with pytest.raises(AccountingMappingError, match="ReservationStanding"):
+        history = DurableReservationHistory(
+            binding=binding(),
+            standing="RELEASED",  # type: ignore[arg-type]
+            resolution_ref="effect:wrong-action",
+        )
+        result = reconcile_durable_history(
+            history=history,
+            pending=pending_obs(),
+            resolution=terminal_obs(
+                AccountingOperation.POST_PENDING_TRANSFER,
+                "effect:wrong-action",
+            ),
+        )
+        if result.standing is LedgerReconciliationStanding.MATCH:
+            pytest.fail("raw RELEASED was interpreted as consumed")
