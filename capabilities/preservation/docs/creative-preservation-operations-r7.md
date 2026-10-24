@@ -232,3 +232,13 @@ R7 does not claim:
 Those claims require separate evidence and should not be inferred from this local operations graduation.
 
 Machine-readable verdict: `artifacts/creative-preservation/operations-r7/acceptance-r7.json`.
+
+## 2026-10-25 currentness / CEGAR regression evidence (not an R7 historical retraction)
+
+**Observed live FAIL**: `ordivon-preservation-fixity-r7.service` was failed, because host-native Fixity could not connect to its configured local Storage Service at `127.0.0.1:62081`. The Archivematica Storage Service container was running, but Docker inspection showed `HostConfig.PortBindings={}` and `NetworkSettings.Ports={"8000/tcp":null}`. The active container's `com.docker.compose.project.config_files` listed only the upstream Archivematica Compose and the clamav overlay, **not** this Preservation-owned R10 overlay.
+
+**Refined owner-native contract**: the Preservation source overlay now declares `127.0.0.1:62081:8000` on `archivematica-storage-service` and its existing source verifier rejects an absent, wrong-port or all-interface mapping under both normal and `python -O` execution. Reusing Docker Compose's native port publication is preferred over a new ad hoc forwarding daemon or retry loop. The unchanged provider still owns Storage Service semantics.
+
+**Deployment qualification is separate and presently UNKNOWN**. Source acceptance proves only that the checked overlay has the declared configuration. Recovery of the actual scheduled Fixity consumer requires the deployment owner to combine this overlay with the live upstream profile and independently verify: Docker's current bound port is precisely the loopback contract, the provider is ready at the endpoint, the actual Fixity client authenticates and scans the intended AIPs, and the timer/service records a successful owner-native run. The existing live container was **not recreated** as part of this source refinement. Do not mask a data-integrity failure by disabling the timer, skipping scans, or treating a running container as API readiness. Do not infer retention/replica safety solely from this source check.
+
+**CEGAR scope**: a service existing in Compose is an abstraction of the service graph, but it is insufficient to establish that a host-native consumer can reach the provider. The concrete counterexample refines the producer/consumer edge to require exact bind address, port and deployed composition evidence. This does not prove that a later network change or Storage Service failure is impossible.

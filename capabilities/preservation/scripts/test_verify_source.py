@@ -23,22 +23,41 @@ spec = importlib.util.spec_from_file_location("preservation_source", sys.argv[1]
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 module.BOUNDARY = Path(sys.argv[2])
-if len(sys.argv) > 3 and sys.argv[3] == "drop-storage-service":
+if len(sys.argv) > 3:
+    mode = sys.argv[3]
     original_load = module.yaml.safe_load
-    def without_required_storage(stream):
+    def candidate_with_injected_compose_fault(stream):
         compose = original_load(stream)
-        compose["services"].pop("archivematica-storage-service", None)
+        service = compose["services"].get("archivematica-storage-service")
+        if mode == "drop-storage-service":
+            compose["services"].pop("archivematica-storage-service", None)
+        elif mode == "omit-host-port":
+            service.pop("ports", None)
+        elif mode == "expose-public-interface":
+            service["ports"] = ["0.0.0.0:62081:8000"]
+        elif mode == "wrong-host-port":
+            service["ports"] = ["127.0.0.1:62082:8000"]
+        else:
+            raise ValueError("unknown injected fault " + mode)
         return compose
-    module.yaml.safe_load = without_required_storage
+    module.yaml.safe_load = candidate_with_injected_compose_fault
 raise SystemExit(module.main())
 """
 
 
 class SourceBoundaryContractTests(unittest.TestCase):
-    def verify(self, data: dict, *, optimized: bool, drop_storage: bool = False) -> subprocess.CompletedProcess[str]:
+    def verify(
+        self,
+        data: dict,
+        *,
+        optimized: bool,
+        drop_storage: bool = False,
+        injected_fault: str | None = None,
+    ) -> subprocess.CompletedProcess[str]:
         with tempfile.TemporaryDirectory() as directory:
             boundary = Path(directory) / "SOURCE_BOUNDARY.json"
             boundary.write_text(json.dumps(data), encoding="utf-8")
+            fault = "drop-storage-service" if drop_storage else injected_fault
             return subprocess.run(
                 [
                     sys.executable,
@@ -47,7 +66,7 @@ class SourceBoundaryContractTests(unittest.TestCase):
                     RUN_VERIFIER,
                     str(SCRIPT),
                     str(boundary),
-                    *(["drop-storage-service"] if drop_storage else []),
+                    *([fault] if fault else []),
                 ],
                 capture_output=True,
                 text=True,
@@ -98,6 +117,17 @@ class SourceBoundaryContractTests(unittest.TestCase):
                     result.returncode, 0,
                     "missing Archivematica storage service silently accepted",
                 )
+
+    def test_host_fixity_port_binding_rejects_absence_exposure_and_mismatch(self) -> None:
+        # CEGAR A0: a named running Compose service may lack a published route.
+        # A1: reject missing, world-exposed and mismatched host port contracts.
+        valid = json.loads(BOUNDARY.read_text(encoding="utf-8"))
+        for case in ("omit-host-port", "expose-public-interface", "wrong-host-port"):
+            for optimized in (False, True):
+                with self.subTest(case=case, optimized=optimized):
+                    result = self.verify(valid, optimized=optimized, injected_fault=case)
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn("loopback 127.0.0.1:62081", result.stderr)
 
     def test_rejects_invalid_authority_and_identity_in_optimized_python(self) -> None:
         valid = json.loads(BOUNDARY.read_text(encoding="utf-8"))
