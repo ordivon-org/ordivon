@@ -77,11 +77,20 @@
     - name: Materialize provider-owned Python environment
       ansible.builtin.command:
         argv:
-          - /usr/bin/uv
+          - /usr/bin/mise
+          - -C
+          - "{{ playbook_dir }}/.."
+          - exec
+          - --
+          - uv
           - venv
           - "{{ ppt_master_release_root }}/.venv-exp"
           - --python
           - /usr/bin/python3
+      environment:
+        MISE_AUTO_INSTALL: 'false'
+        MISE_EXEC_AUTO_INSTALL: 'false'
+        MISE_OFFLINE: '1'
       args:
         creates: "{{ ppt_master_python }}"
 
@@ -94,13 +103,22 @@
     - name: Install provider-owned Python requirements with uv
       ansible.builtin.command:
         argv:
-          - /usr/bin/uv
+          - /usr/bin/mise
+          - -C
+          - "{{ playbook_dir }}/.."
+          - exec
+          - --
+          - uv
           - pip
           - install
           - --python
           - "{{ ppt_master_python }}"
           - -r
           - "{{ ppt_master_release_root }}/requirements.txt"
+      environment:
+        MISE_AUTO_INSTALL: 'false'
+        MISE_EXEC_AUTO_INSTALL: 'false'
+        MISE_OFFLINE: '1'
       when: not ppt_master_requirements_marker_stat.stat.exists
 
     - name: Record successful requirements realization for this immutable release

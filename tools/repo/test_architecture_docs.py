@@ -793,6 +793,30 @@ def test_retired_hux_milestone_history_has_no_live_harness_consumer() -> None:
     module.validate_formal_issue_census(census, plans)
 
 
+def test_git01_exact_committed_tree_secret_scanner_preserves_current_ci_and_local_scopes() -> None:
+    """Only the historic committed-source scan is reused; do not narrow current CI."""
+    census, plans = formal_issue_inputs()
+    issue = next(row for row in census["issues"] if row["id"] == "GIT-01")
+    selected = {row["localCommit"]: row for row in issue["consumerSelections"]}
+    old = "334d0eb75adb297b676b35b39808c9bac661ec76"
+    row = selected[old]
+    assert row["owner"] == "tools/repo"
+    assert row["disposition"] == "SKIP_DUPLICATE_CHERRY_PICK"
+    assert row["evidenceScope"] == "NATIVE_CONSUMER_PASS"
+    assert row["sourceQualification"]["branchDeletionAllowed"] is False
+    assert row["verifiedEqualChangedBlobs"] is True
+    assert set(row["verifiedEqualChangedPaths"]) == {
+        "tools/repo/check_tracked_secrets.sh",
+        "tools/repo/test_tracked_secrets.py",
+    }
+    assert "equalChangedBlobOids" not in row
+    assert "run: tools/repo/check_tracked_secrets.sh" in (ROOT / ".github/workflows/ci.yml").read_text()
+    root_mise = (ROOT / "mise.toml").read_text()
+    assert 'gitleaks git --no-banner' in root_mise
+    assert 'gitleaks dir --no-banner' in root_mise
+    module.validate_formal_issue_census(census, plans)
+
+
 def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
     """A Git-only commit cannot be called unique without a source-bound consumer comparison."""
     census, plans = formal_issue_inputs()

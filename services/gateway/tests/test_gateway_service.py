@@ -674,3 +674,18 @@ def test_execution_cancel_rejects_mismatched_runtime_job_identity(owner_id: str)
     with pytest.raises(GatewayError, match="mismatched job identity"):
         asyncio.run(GatewayService(caller).execution_cancel(ref))
     assert caller.calls == [(owner_id, "job.cancel", {"schemaVersion": 1, "jobId": "job-expected"})]
+
+
+def test_explicit_empty_routes_do_not_expand_gateway_capabilities() -> None:
+    """An explicit deny-all projection must not silently become default authority."""
+    service = GatewayService(FakeOwnerCaller(), routes={})
+    assert service.system_describe().capabilities == []
+
+
+def test_gateway_rejects_mismatched_route_and_capability_identity() -> None:
+    """A route's advertised capability must match its dictionary key."""
+    from ordivon_gateway.routes import default_routes
+
+    route = default_routes()["execution.linux"]
+    with pytest.raises(GatewayError, match="route identity"):
+        GatewayService(FakeOwnerCaller(), routes={"execution.windows": route})

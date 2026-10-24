@@ -8,6 +8,8 @@ client_target=network-v2-claude-client.target
 client_netns=network-v2-claude-client-netns.service
 client_bridge=network-v2-claude-client-bridge.service
 client_proxy=http://10.252.247.1:19482
+# All Claude provider probes share one deadline; an upstream outage must not multiply retries.
+readiness_deadline=$((SECONDS + 90))
 
 for unit in "$egress_target" "$proxy" "$relay" "$client_target" "$client_netns" "$client_bridge"; do
   systemctl is-active --quiet "$unit"
@@ -19,7 +21,10 @@ ip netns exec nv2-browserless-prod ss -ltn '( sport = :19482 )' | grep -F '10.25
 # Internet attempt must fail even if a child process ignores proxy environment variables.
 test -z "$(ip netns exec nv2-claude-client ip -4 route show default)"
 test -z "$(ip netns exec nv2-claude-client ip -6 route show default)"
-if ip netns exec nv2-claude-client curl -q -4 --noproxy '*' -I -fsS --connect-timeout 2 --max-time 5 https://api.anthropic.com/ >/dev/null 2>&1; then
+remaining=$((readiness_deadline - SECONDS))
+((remaining > 0)) || { echo 'Claude readiness total deadline expired' >&2; exit 1; }
+max_time=$((remaining < 5 ? remaining : 5))
+if ip netns exec nv2-claude-client curl -q -4 --noproxy '*' -I -fsS --connect-timeout 2 --max-time "$max_time" https://api.anthropic.com/ >/dev/null 2>&1; then
   echo 'ERROR: isolated Claude client acquired direct Internet reachability' >&2
   exit 40
 fi
@@ -27,17 +32,20 @@ fi
 # Probe the exact namespace-local HTTPS consumer, not merely proxy replies.
 # Anonymous 401/403 can prove transport, never credential admission.
 proxy_head_code() {
-  local url=$1 header_file="" code="" connect="" tls="" receipt=""
+  local url=$1 header_file="" code="" connect="" tls="" receipt="" remaining max_time
   if [ "$#" -ge 2 ]; then header_file=$2; fi
   for _attempt in 1 2 3; do
+    remaining=$((readiness_deadline - SECONDS))
+    ((remaining > 0)) || return 1
+    max_time=$((remaining < 20 ? remaining : 20))
     if [ -n "$header_file" ]; then
       receipt=$(ip netns exec nv2-claude-client curl -q -4 -x "$client_proxy" \
-        --noproxy '' -I -sS --connect-timeout 8 --max-time 20 \
+        --noproxy '' -I -sS --connect-timeout 8 --max-time "$max_time" \
         --dump-header "$header_file" -o /dev/null \
         -w '%{http_code}|%{http_connect}|%{time_appconnect}' "$url") || receipt=""
     else
       receipt=$(ip netns exec nv2-claude-client curl -q -4 -x "$client_proxy" \
-        --noproxy '' -I -sS --connect-timeout 8 --max-time 20 \
+        --noproxy '' -I -sS --connect-timeout 8 --max-time "$max_time" \
         -o /dev/null -w '%{http_code}|%{http_connect}|%{time_appconnect}' \
         "$url") || receipt=""
     fi
@@ -51,6 +59,7 @@ proxy_head_code() {
         fi
         ;;
     esac
+    ((SECONDS < readiness_deadline)) || return 1
     sleep 1
   done
   return 1
@@ -62,6 +71,7 @@ headers=$(mktemp)
 trap 'rm -f "$headers"' EXIT
 ok=0
 for _attempt in 1 2 3; do
+  ((SECONDS < readiness_deadline)) || break
   if install_code=$(proxy_head_code https://claude.ai/install.sh "$headers") \
     && [[ "$install_code" =~ ^30[1278]$ ]] \
     && grep -Eqi '^location: https://downloads\.claude\.ai/' "$headers"; then
@@ -73,7 +83,10 @@ done
 test "$ok" = 1
 
 # Unknown destinations are refused by the Claude egress policy.
-if ip netns exec nv2-claude-client curl -q -x "$client_proxy" --noproxy '' -I -fsS --connect-timeout 3 --max-time 8 https://example.com/ >/dev/null 2>&1; then
+remaining=$((readiness_deadline - SECONDS))
+((remaining > 0)) || { echo 'Claude readiness total deadline expired' >&2; exit 1; }
+max_time=$((remaining < 8 ? remaining : 8))
+if ip netns exec nv2-claude-client curl -q -x "$client_proxy" --noproxy '' -I -fsS --connect-timeout 3 --max-time "$max_time" https://example.com/ >/dev/null 2>&1; then
   echo 'ERROR: unknown destination escaped Claude allowlist' >&2
   exit 41
 fi
@@ -81,4 +94,5 @@ fi
 # The underlying Surfshark namespace itself also has no IPv6 default route.
 test -z "$(ip netns exec nv2-browserless-prod ip -6 route show default)"
 
+((SECONDS < readiness_deadline)) || { echo 'Claude readiness total deadline expired' >&2; exit 1; }
 printf '{"schemaVersion":1,"kind":"ordivon.network-v2.claude-readiness","standing":"READY","apiHttpStatus":%s,"clientProxy":"%s","directInternet":"BLOCKED","unknownDestination":"REJECTED","ipv6DefaultRoute":false,"directFallback":false}\n' "$api_code" "$client_proxy"
