@@ -138,7 +138,7 @@ contract_ref = "packages/composition/README.md"
 [[seams]]
 from_owner = "web"
 to_owner = "security"
-source_glob = "apps/web/mise.toml"
+source_glob = "apps/web/package.json"
 allowed_fragment = "platform/security/contracts/agent-request-verifier-v1"
 kind = "PUBLIC_PACKAGE_DEPENDENCY"
 contract_ref = "platform/security/contracts/agent-request-verifier-v1/README.md"

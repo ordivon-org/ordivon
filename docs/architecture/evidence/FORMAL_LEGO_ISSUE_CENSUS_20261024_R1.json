@@ -914,6 +914,86 @@
           ]
         },
         {
+          "localCommit": "ee1f938010915f348ce96413a06d7407d5434efe",
+          "pairedRevertCommit": "82239de6a1731b1f54f59166b06e95f9003fcd15",
+          "owner": "services/harness",
+          "consumer": "The Oct 19 transient rendered-turn observer altered windows_user_browser_chatgpt.ps1 and its old controller test, then its direct child reverted those two changed files and the full repository Git tree, before any durable Main consumer admission. Current Harness still owns the Windows user-browser driver, agent-automation release binding and corresponding provider/identity contracts; do not delete or replace the modern driver. Only the obsolete transient observer patch pair is skipped.",
+          "remoteWitness": "Entire frozen Git source tree ee1f93801091^ and 82239de6a173 is exactly c6ae0ba390a6e37d69ee403395547cc6318f7992. Git original pair differs on precisely two Harness paths, but final full-tree delta is empty. Current Harness native 31 native tests PASS across test_user_browser_gateway_controller.py, test_agent_automation_release_monorepo.py and test_agent_automation_mcp_deploy.py. Real Windows UI/ChatGPT turn and historical network effects remain UNKNOWN.",
+          "evidenceScope": "EXACT_GIT_BLOBS",
+          "disposition": "SKIP_CANCELLED_HISTORY_PAIR",
+          "beforeTreeOid": "c6ae0ba390a6e37d69ee403395547cc6318f7992",
+          "afterTreeOid": "c6ae0ba390a6e37d69ee403395547cc6318f7992",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+            "patchRelation": "INVERSE_DIRECT_CHILD",
+            "tipRelation": "CURRENT_BROWSER_OWNER_RETAINED",
+            "consumerStanding": "CURRENT_OWNER_COVERED",
+            "branchDeletionAllowed": false,
+            "historicalRuntimeParity": "UNKNOWN"
+          }
+        },
+        {
+          "localCommit": "d6f0d184dec98746704291ce74639b38fa645d8e",
+          "owner": "packages/composition",
+          "consumer": "Historical browser-network binding input-sequence validator and tests are absent at both current local Main and protected Main tips. No in-tree caller uses compile_browser_network_binding. Production Browserless instead consumes a Network v2 namespace, graduated receipt generation and service state through the existing Harness deployment Owner; there is no requirement to revive the old list-valued Composition API.",
+          "remoteWitness": "Native Git diff/source tree check: the two historic Composition paths are absent in both tips (local Main 13704d0cac9, protected Main 4db6ce847677). Current services/harness/scripts/browserless_podman_deploy.py::resolve_network_binding requires network-v2, PRODUCTION_CUTOVER_PASS, generationDigest, actual namespace and active service; current native services/harness/tests/test_browserless_podman_deploy.py: 16 unittest PASS. No live namespace/service effect was exercised; unknown external imports are not proven absent.",
+          "evidenceScope": "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN",
+          "disposition": "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+            "historicalSourceState": "BOTH_TIPS_ABSENT",
+            "consumerStanding": "NO_IN_TREE_CONSUMER_EXTERNAL_UNKNOWN",
+            "branchDeletionAllowed": false
+          },
+          "changedPaths": [
+            "packages/composition/src/ordivon_composition/browser_network_binding_r1.py",
+            "packages/composition/tests/test_browser_network_binding_r1.py"
+          ]
+        },
+        {
+          "localCommit": "37ca61f5e7862c40174eff8b59e6b25d741eba61",
+          "owner": "services/runtime",
+          "consumer": "Windows native release CLI obtains workspace identity from the already durable release Effect; it does not admit a second caller-provided --workspace-id value",
+          "remoteWitness": "services/runtime/crates/ordivon-runtime-core/src/bin/ordivon-runtime-windows-deploy.rs::preflight(PlanReceipt.workspace_id=effect.workspace_id) and apply(EffectRequest.workspace_id=&plan.workspace_id); cargo test --locked -p ordivon-runtime-core --features operator-tools --bin ordivon-runtime-windows-deploy deployer_cli_keeps_workspace_identity_in_durable_effect_only: 1/1 PASS",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceCut": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "4b630ed360901d44ae2bea725fc53722225b460a"
+          }
+        },
+        {
+          "localCommit": "334d0eb75adb297b676b35b39808c9bac661ec76",
+          "owner": "tools/repo",
+          "consumer": "The local historical patch introduced an exact committed-tree secret scan and native positive/negative controls. Current protected Main keeps both historical scanner and native unittest bytes exactly, invokes the scanner in GitHub CI, AND additionally runs Git history plus local working-directory scans through the root mise task. The script/test effect is fully consumed but the broader root task is intentionally not overwritten with the old, narrower historical version.",
+          "remoteWitness": "Original historical Git blob/mode for tools/repo/check_tracked_secrets.sh and test_tracked_secrets.py equals current protected Main; python3 -m unittest tools/repo/test_tracked_secrets.py: 3/3 PASS, including mismatched GITHUB_SHA refusal, scan exclusion of untracked artifacts, and positive scan-failure propagation. .github/workflows/ci.yml invokes tools/repo/check_tracked_secrets.sh; root mise repo:secrets:verify retains current Git-history and developer working-tree coverage. No source-only equivalence or credential leak assertion for untested external runners.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "cd8483681948ab55624af45e4cdbc67694602d96",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "cd8483681948ab55624af45e4cdbc67694602d96",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "EXACT_SCRIPT_AND_TEST_BLOBS_WITH_NEWER_ROOT_TASK_BEHAVIOR",
+            "consumerStanding": "CURRENT_CI_COMMITTED_SOURCE_SCANNER_WITH_ADDITIONAL_HISTORY_AND_LOCAL_SCAN",
+            "branchDeletionAllowed": false,
+            "historicalRuntimeParity": "SCOPED_ONLY"
+          },
+          "changedPaths": [
+            "mise.toml",
+            "tools/repo/check_github_governance.py",
+            "tools/repo/check_tracked_secrets.sh",
+            "tools/repo/test_tracked_secrets.py"
+          ],
+          "verifiedEqualChangedBlobs": true,
+          "verifiedEqualChangedPaths": [
+            "tools/repo/check_tracked_secrets.sh",
+            "tools/repo/test_tracked_secrets.py"
+          ]
+        },
+        {
           "localCommit": "e9547525bae3fd0a86f60a160a1a536ce7451c0a",
           "owner": "capabilities/artifact",
           "consumer": "Six native Artifact verifier profiles emit the historical SHA-256 of UTF-8 JSON with sorted keys, compact separators, and ensure_ascii=False, preserving float/Unicode number semantics and key-permutation invariance without a new digest provider.",

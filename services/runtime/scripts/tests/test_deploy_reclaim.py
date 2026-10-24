@@ -2216,6 +2216,67 @@ class DeployReclaimTests(unittest.TestCase):
         with self.assertRaises(Exception):
             module["nonnegative_float"]("nan")
 
+    def test_reclaim_skips_terminal_tombstones_without_dropping_stale_or_unknown(self) -> None:
+        scripts_path = str(REPO / "scripts")
+        sys.path.insert(0, scripts_path)
+        try:
+            module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-reclaim"))
+        finally:
+            sys.path.remove(scripts_path)
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            records = root / "workspace-records"
+            workspaces = root / "workspaces"
+            records.mkdir()
+            workspaces.mkdir()
+            for name, state in (
+                ("closed-gone", "closed"),
+                ("closed-residual", "closed"),
+                ("stale-open", "open"),
+            ):
+                (records / f"{name}.json").write_text(
+                    json.dumps({
+                        "schemaVersion": 1,
+                        "workspaceId": name,
+                        "state": state,
+                    }),
+                    encoding="utf-8",
+                )
+            (workspaces / "closed-residual").mkdir()
+            (records / "broken.json").write_text("{not JSON", encoding="utf-8")
+            (records / "symlink.json").symlink_to(records / "closed-gone.json")
+            globals_ = module["inspect_workspaces"].__globals__
+            original_registry = globals_["registry_projection"]
+            original_sha = globals_["sha256_file"]
+            sha_calls = []
+            def tracked_sha(path):
+                sha_calls.append(path.stem)
+                return original_sha(path)
+            globals_["registry_projection"] = lambda _db, _timeout: {
+                "migrationVersion": 6, "activeWorkspaces": []
+            }
+            globals_["sha256_file"] = tracked_sha
+            try:
+                results = module["inspect_workspaces"](
+                    argparse.Namespace(
+                        database=root / "unused.sqlite3",
+                        busy_timeout_ms=1000,
+                        runtime_store_root=root,
+                        workspace_root=None,
+                        measure_bytes=False,
+                    ),
+                )
+            finally:
+                globals_["registry_projection"] = original_registry
+                globals_["sha256_file"] = original_sha
+            by_id = {c["workspaceId"]: c["classification"] for c in results["candidates"]}
+            self.assertNotIn("closed-gone", by_id)
+            self.assertNotIn("closed-gone", sha_calls)
+            self.assertEqual(by_id["closed-residual"], "unknown")
+            self.assertEqual(by_id["stale-open"], "stale_record")
+            self.assertEqual(by_id["broken"], "unknown")
+            self.assertEqual(by_id["symlink"], "unknown")
+
     def test_reclaim_inspect_cli_accepts_bounded_workspace_selection(self) -> None:
         scripts_path = str(REPO / "scripts")
         sys.path.insert(0, scripts_path)
