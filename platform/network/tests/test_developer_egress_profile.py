@@ -809,3 +809,28 @@ def test_retired_model_provider_history_uses_existing_n05_consumer() -> None:
     assert "83fb2956e051ad9c27c091e96631a842f8eebcc7" in evidence
     assert "7b51fd3e033f964db551c127e2e910ae3bc88ef8" in evidence
     assert "tests/test_developer_egress_profile.py" in evidence
+
+
+
+def test_historical_capability_router_is_not_an_admitted_network_consumer() -> None:
+    # Existing N05 owner-native CDC: commit uniqueness cannot resurrect a
+    # retired standalone route DAG or grant network authority.
+    root = Path(__file__).resolve().parents[1]
+    retired = (
+        "scripts/network_capability_router.py",
+        "config/network-capability-routes.json",
+        "tests/test_network_capability_router.py",
+        "docs/NETWORK_CAPABILITY_ROUTER_R1.md",
+    )
+    assert all(not (root / name).exists() for name in retired)
+    assert (root / "consumers/developer-egress/profile.sh").is_file()
+    plan = json.loads((root / "planning/lego-plan-r1.json").read_text())
+    owner = next(item for item in plan["nodes"] if item["id"] == "N05")
+    evidence = " ".join(owner["evidence"])
+    for commit in (
+        "329f86db80dd", "086793c4174d", "08c485070671", "cb750b696b57",
+        "d6388e91d7ea", "a9fadabd8f5c", "6840c27fd6ae", "e31280f36b2e",
+    ):
+        assert commit in evidence
+    assert "NO_CURRENT_CONSUMER" in evidence
+    assert "NOT_PROVEN_EQUIVALENT" in evidence
