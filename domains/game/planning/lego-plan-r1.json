@@ -73,7 +73,7 @@
       ],
       "acceptance": [
         "Experiment outcomes remain scoped to their hypothesis and evidence.",
-        "Game production-smoke accepts only exact Workstation-v2 equipment provider identities; legacy/wrong providers are UNAVAILABLE, never product standing."
+        "Current Game equipment resolution accepts only exact Workstation-v2 provider identities; legacy/wrong bindings remain UNAVAILABLE, and frozen historical production-smoke receipts retain their original source bytes."
       ]
     },
     {

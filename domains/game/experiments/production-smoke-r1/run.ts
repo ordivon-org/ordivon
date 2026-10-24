@@ -29,7 +29,7 @@ function execute(executable: string, args: string[], cwd = project) {
 
 const engine = resolveGameEquipment("engine.project.execute");
 assert.equal(engine.state, "AVAILABLE", JSON.stringify(engine));
-assert.equal(engine.binding.provider, "workstation.v2.professional-software");
+assert.equal(engine.binding.provider, "workstation.professional-software");
 const godot = engine.binding.executable as string;
 assert.ok(existsSync(godot), godot);
 
