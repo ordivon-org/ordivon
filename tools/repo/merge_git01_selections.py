@@ -30,7 +30,7 @@ def _proofs(issue: dict) -> dict[str, dict]:
     if not isinstance(rows, list):
         raise MergeConflict("consumerSelections must be an array")
     claims: dict[str, dict] = {}
-    historical_members: set[str] = set()
+    claimed_history: set[str] = set()
     for row in rows:
         if not isinstance(row, dict):
             raise MergeConflict("claim must be an object")
@@ -59,10 +59,14 @@ def _proofs(issue: dict) -> dict[str, dict]:
                     for member in cohort
                 )
                 or len(cohort) != len(set(cohort))
-                or not historical_members.isdisjoint(cohort)
             ):
                 raise MergeConflict(f"{sha}: invalid historicalCohort overlap or identity")
-            historical_members.update(cohort)
+        # A representative may belong to its own cohort, but a different row
+        # cannot re-claim that same historical source as a standalone commit.
+        footprint = {sha, *row.get("historicalCohort", [])}
+        if not claimed_history.isdisjoint(footprint):
+            raise MergeConflict(f"{sha}: historicalCohort identity overlap")
+        claimed_history.update(footprint)
         claims[sha] = row
     return claims
 
