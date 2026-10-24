@@ -140,6 +140,12 @@ class OfficialMcpClient:
             ) as client:
                 result = await client.call_tool(name, arguments)
         content = result.structured_content
+        if result.is_error and not isinstance(content, dict):
+            # Official MCP 2.x permits text-only Tool errors; this is a
+            # provider failure, not a broken JSON-RPC or transport envelope.
+            error_result = result.model_dump(mode="json", by_alias=True, exclude_none=True)
+            validate_json_value(error_result)
+            return True, error_result
         if not isinstance(content, dict):
             raise ToolBridgeError(
                 f"MCP Tool {name} omitted structured object content",

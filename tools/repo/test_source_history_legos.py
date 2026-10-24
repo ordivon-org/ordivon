@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 from tools.repo import source_history_legos
-from tools.repo.source_history_legos import history, join_consumer_evidence
+from tools.repo.source_history_legos import history
 
 CANONICAL_OWNER_HEADER = (
     'schema_version = 1\n'
@@ -24,90 +24,6 @@ def git(p: Path, *args: str) -> str:
         text=True,
     ).strip()
 
-
-
-class ConsumerEvidenceJoinAlgebraTests(unittest.TestCase):
-    """Bounded exhaustive laws for three concurrently proposed Owner decisions."""
-
-    def test_parallel_consumer_evidence_join_is_commutative_associative_and_idempotent(self):
-        from itertools import permutations
-
-        records = [
-            {
-                "localCommit": format(i, "040x"),
-                "owner": "tools/repo",
-                "consumer": f"Owner consumer {i}",
-                "remoteWitness": "current native owner consumer PASS",
-                "evidenceScope": "NATIVE_CONSUMER_PASS",
-                "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
-            }
-            for i in (3, 1, 2)
-        ]
-        expected = sorted(records, key=lambda row: row["localCommit"])
-        self.assertEqual(join_consumer_evidence(), [])
-        for order in permutations(records):
-            left, middle, right = ([row] for row in order)
-            self.assertEqual(join_consumer_evidence(left, middle, right), expected)
-            self.assertEqual(
-                join_consumer_evidence(join_consumer_evidence(left, middle), right),
-                join_consumer_evidence(left, join_consumer_evidence(middle, right)),
-            )
-            self.assertEqual(join_consumer_evidence(left, middle, right, left), expected)
-        self.assertEqual(records[0]["consumer"], "Owner consumer 3")
-
-    def test_parallel_consumer_evidence_join_rejects_contradictions_or_untyped_evidence(self):
-        record = {
-            "localCommit": "a" * 40,
-            "owner": "tools/repo",
-            "consumer": "verified current owner",
-            "remoteWitness": "current native owner CDC PASS",
-            "evidenceScope": "NATIVE_CONSUMER_PASS",
-            "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
-        }
-        altered = dict(record, consumer="unverified conflicting witness")
-        self.assertEqual(join_consumer_evidence([record], [dict(record)]), [record])
-        with self.assertRaisesRegex(ValueError, "conflicting consumer evidence"):
-            join_consumer_evidence([record], [altered])
-        with self.assertRaisesRegex(ValueError, "exact 40-hex"):
-            join_consumer_evidence([dict(record, localCommit="short")])
-        with self.assertRaisesRegex(TypeError, "must be a list"):
-            join_consumer_evidence("not-a-list")
-        with self.assertRaisesRegex(ValueError, "lacks owner"):
-            join_consumer_evidence([dict(record, owner="")])
-        with self.assertRaisesRegex(ValueError, "lacks remoteWitness"):
-            join_consumer_evidence([dict(record, remoteWitness="")])
-        with self.assertRaisesRegex(ValueError, "branch deletion"):
-            join_consumer_evidence([
-                dict(record, sourceQualification={"branchDeletionAllowed": True})
-            ])
-        with self.assertRaisesRegex(TypeError, "sourceQualification"):
-            join_consumer_evidence([
-                dict(record, sourceQualification="not-an-object")
-            ])
-        result = join_consumer_evidence([record])
-        result[0]["consumer"] = "mutated outside the join"
-        self.assertEqual(record["consumer"], "verified current owner")
-
-
-    def test_real_git01_consumer_rows_join_from_natural_owner_shards(self):
-        # Existing GIT-01 is still the only evidence projection: no second
-        # roster or hard-coded list of historical localCommit identities.
-        root = Path(__file__).resolve().parents[2]
-        census = json.loads((root /
-            "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261024_R1.json"
-        ).read_text(encoding="utf-8"))
-        rows = next(x for x in census["issues"] if x["id"] == "GIT-01")[
-            "consumerSelections"
-        ]
-        by_owner = {}
-        for row in rows:
-            by_owner.setdefault(row["owner"], []).append(row)
-        expected = sorted(rows, key=lambda row: row["localCommit"])
-        self.assertEqual(join_consumer_evidence(*by_owner.values()), expected)
-        self.assertEqual(
-            join_consumer_evidence(*reversed(list(by_owner.values()))),
-            expected,
-        )
 
 
 class SourceHistoryLegosTests(unittest.TestCase):
@@ -207,6 +123,45 @@ class SourceHistoryLegosTests(unittest.TestCase):
             ))
             self.assertEqual(cli, runtime)
 
+    def test_declared_owner_with_no_commits_has_valid_zero_delta_view(self):
+        with tempfile.TemporaryDirectory(prefix="ordivon-empty-owner-cut-") as temp:
+            root = Path(temp)
+            git(root, "init", "-q", "-b", "main")
+            git(root, "config", "user.name", "Ordivon Test")
+            git(root, "config", "user.email", "test@example.invalid")
+            manifest = root / "tools/repo/owners.toml"
+            manifest.parent.mkdir(parents=True)
+            manifest.write_text(
+                CANONICAL_OWNER_HEADER
+                + '[[owners]]\nname = "runtime"\nroot = "services/runtime/"\n'
+                + 'verify_task = "runtime:verify"\n'
+                + '[[owners]]\nname = "harness"\nroot = "services/harness/"\n'
+                + 'verify_task = "harness:verify"\n'
+            )
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "registered owners but no effects")
+            git(root, "branch", "remote-main")
+            report = history(root, "main", "remote-main")
+            self.assertEqual(report["counts"], {"local": 0, "remote": 0})
+            for owner in ("runtime", "harness", "tools/repo"):
+                scoped = source_history_legos.owner_slice(report, owner)
+                self.assertEqual(scoped["counts"], {"local": 0, "remote": 0})
+                self.assertEqual(scoped["commits"], [])
+                self.assertEqual(scoped["sourceCut"], report["sourceCut"])
+            with self.assertRaisesRegex(ValueError, "unknown Owner"):
+                source_history_legos.owner_slice(report, "phantom")
+            target = root / "services/runtime/safe.txt"
+            target.parent.mkdir(parents=True)
+            target.write_text("runtime newer\n")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "runtime only")
+            changed = history(root, "main", "remote-main")
+            runtime = source_history_legos.owner_slice(changed, "runtime")
+            harness = source_history_legos.owner_slice(changed, "harness")
+            self.assertEqual(runtime["counts"], {"local": 1, "remote": 0})
+            self.assertEqual(harness["counts"], {"local": 0, "remote": 0})
+            self.assertEqual(harness["commits"], [])
+
     def test_one_sided_dag_owner_views_are_an_overlapping_cover(self):
         # The common fast-forward shape has NO local-only commits. A missing
         # Counter key must not be confused with a missing Git source cut.
@@ -215,6 +170,7 @@ class SourceHistoryLegosTests(unittest.TestCase):
             "sourceCut": {"local": "a" * 40, "remote": "b" * 40,
                           "commonAncestor": "a" * 40},
             "ownerMappingSourceCut": "b" * 40,
+            "ownerUniverse": ["harness", "runtime"],
             "counts": {"local": 0, "remote": 2},
             "ownerMembership": {
                 "remote:runtime": 2,

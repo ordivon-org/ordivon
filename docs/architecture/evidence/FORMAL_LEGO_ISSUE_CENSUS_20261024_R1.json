@@ -1707,6 +1707,150 @@
             "consumerStanding": "NO_IN_TREE_CONSUMER_EXTERNAL_UNKNOWN",
             "branchDeletionAllowed": false
           }
+        },
+        {
+          "localCommit": "0c89916e54f67edf1dae244ea983f9a0b2167225",
+          "owner": "services/harness",
+          "consumer": "The production Temporal worker deploy must reject in-place dependency upgrade while a worker remains active before provisioning changes. Current Harness owner deployer apply() owns the admission fence, not the old commit identity.",
+          "remoteWitness": "services/harness/scripts/temporal_agent_automation_deploy.py plus tests/test_temporal_agent_automation_deploy.py. Frozen native Git --cherry-mark marks local patch equivalent; current Harness locked offline owner test 6/6 PASS, including active-worker gate, single runtime-version snapshot and canonical service. No real worker restart or live deployment performed.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "0cd09c67af8fd4dc04f38174b856089c9b5ae6ce",
+            "patchRelation": "PATCH_ID_EQUIVALENT",
+            "consumerStanding": "CURRENT_OWNER_CDC_TEST_PASS_NO_LIVE_DEPLOY",
+            "tipRelation": "PATCH_EQUIVALENT_BUT_NO_WHOLE_BRANCH_EQUIVALENCE",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "0cd09c67af8fd4dc04f38174b856089c9b5ae6ce"
+        },
+        {
+          "localCommit": "2e60fee31923aa7267f6160936b0dcc4d1f4b2a9",
+          "owner": "services/runtime",
+          "consumer": "Current Runtime MCP probe must reject incomplete SSE terminal replies, duplicated terminal responses and duplicated/malformed tool catalog entries. Native Runtime probe keeps the bounded fail-closed protocol semantics, so old historical parser must not be replayed.",
+          "remoteWitness": "services/runtime/scripts/mcp_probe.py plus scripts/tests/test_mcp_probe.py. Frozen native Git --cherry-mark marks local patch equivalent; current actual Runtime Python unittest discover -p test_mcp_probe.py 14/14 PASS. A local uv --locked shortcut failed because Runtime has no uv.lock; running the existing stdlib native test with mise exec confirmed the oracle without creating any lock.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "0cd09c67af8fd4dc04f38174b856089c9b5ae6ce",
+            "patchRelation": "PATCH_ID_EQUIVALENT",
+            "consumerStanding": "CURRENT_OWNER_CDC_TEST_PASS_NOT_REMOTE_PROVIDER_HANDSHAKE",
+            "tipRelation": "PATCH_EQUIVALENT_BUT_NO_WHOLE_BRANCH_EQUIVALENCE",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "0cd09c67af8fd4dc04f38174b856089c9b5ae6ce"
+        },
+        {
+          "localCommit": "3a22e683d438c7025963579eb98cf0edfffbd8e1",
+          "owner": "platform/workstation",
+          "consumer": "Current agent automation session continuity must not mutate an admitted deployment while its release fence is closed. Current Workstation owner carries one immutable release/lease gate, not the historical patch path.",
+          "remoteWitness": "platform/workstation/workstation/agent_automation_carrier.py and tests/test_workstation_agent_automation_carrier.py. Frozen Git --cherry-mark marks local patch equivalent; Workstation owner locked offline source/lease tests 6/6 PASS, including HOLD_CLOSED and cross-process release fence. No live Windows/systemd launch acceptance claimed.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "0cd09c67af8fd4dc04f38174b856089c9b5ae6ce",
+            "patchRelation": "PATCH_ID_EQUIVALENT",
+            "consumerStanding": "CURRENT_OWNER_CDC_TEST_PASS_NO_LIVE_RELEASE",
+            "tipRelation": "PATCH_EQUIVALENT_BUT_NO_WHOLE_BRANCH_EQUIVALENCE",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "0cd09c67af8fd4dc04f38174b856089c9b5ae6ce"
+        },
+        {
+          "localCommit": "2dadc4c2eb7a8ab6d2c8eeac34709a9a32a94028",
+          "owner": "platform/security",
+          "consumer": "Security policy verification must use one owner-managed native OPA executable and cannot depend on Docker daemon, temporary policy staging or a second OPA version lock. The historical source implementation used scripts.opa_provider, now retired, while current Security owner selects newer OPA 1.21.4 via mise.",
+          "remoteWitness": "Current protected platform/security/mise.toml pins OPA 1.21.4 and invokes MISE_OFFLINE=1 MISE_AUTO_INSTALL=false mise exec -- opa test; providers.lock.json has no competing OPA/ciContainer. Existing native test_opa_container_gate.py asserts single owner and no Docker; native owner mise run verify PASS with 34/34 Rego tests after only adding fail-on-empty. Entire 2dad historic provider code and its removed old tests are not required.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "97ebe3828c482cbeb7f58df4e6da614615017c56",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "NEWER_NATIVE_OWNER_WITH_SCOPED_CONSUMER_EQUIVALENCE",
+            "consumerStanding": "CURRENT_OWNER_COVERED_WITH_LIMITED_SCOPE",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "97ebe3828c482cbeb7f58df4e6da614615017c56",
+          "changedPaths": [
+            "platform/security/mise.toml",
+            "platform/security/tests/test_opa_provider_lock.py"
+          ]
+        },
+        {
+          "localCommit": "3d93b188d1022d58040c297f735dd548d8eb076e",
+          "owner": "platform/security",
+          "consumer": "Security native OPA policy Golden Path must fail closed on an empty test suite. The historical local-only CI patch used --fail-on-empty but its old nested GitHub workflow was retired; preserve only this necessary verification effect in the current owner-managed mise security:verify command, not old Docker/CI duplication.",
+          "remoteWitness": "Against frozen protected Main 97ebe3828c482cbeb7f58df4e6da614615017c56, current platform/security/mise.toml had opa test -v policies without --fail-on-empty. Repro using installed OPA 1.21.4 and a zero-test policy file: default opa test exit 0; --fail-on-empty exit 1. Existing test_opa_container_gate.py native owner test first RED before fix, then GREEN. Candidate owner mise run verify PASS including 34/34 real OPA policies; exact protected GitHub CI still required.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "PORT_REQUIRED_OWNER_EFFECT",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "97ebe3828c482cbeb7f58df4e6da614615017c56",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "ONE_VERIFICATION_EFFECT_PORTED_IN_CANDIDATE_NOT_OLD_WORKFLOW",
+            "consumerStanding": "CANDIDATE_OWNER_NATIVE_PASS_PROTECTED_CI_PENDING",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "97ebe3828c482cbeb7f58df4e6da614615017c56",
+          "changedPaths": [
+            "platform/security/.github/workflows/security.yml",
+            "platform/security/tests/test_security_workflow_native_opa.py"
+          ]
+        },
+        {
+          "localCommit": "488dd04e14472addaaa8b760c0a197f021f0ba7b",
+          "owner": "services/runtime",
+          "consumer": "Runtime native Owner verification should not duplicate expensive qualification via lifecycle unit or transactional reference model; preserve one extended verification contract and explicit nonqualifying lifecycle inner-loop.",
+          "remoteWitness": "Official scripts/owner-environment test and focused lifecycle/operational tests SUCCEEDED at protected 0a99bf0e43e9. Current Runtime owner toolchain and operator script are authoritative; do not bring back old Cargo/mise/systemd pinned bytes. Ignored privileged integration tests remain outside proof scope.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "0a99bf0e43e9686b4904ca6b734cba723024eeb6",
+            "tipRelation": "CURRENT_LIFECYCLE_OWNER_CONTRACT_COVERS_PATCH_EQUIVALENT_EFFECT",
+            "patchRelation": "PATCH_ID_EQUIVALENT",
+            "consumerStanding": "CURRENT_OWNER_NATIVE_TEST_WITH_PRIVILEGED_LIVE_HOLD",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "0a99bf0e43e9686b4904ca6b734cba723024eeb6"
+        },
+        {
+          "localCommit": "86fc060603cdf0e4d9d6cf3eabffbaaebf0e587e",
+          "owner": "services/runtime",
+          "consumer": "Runtime lifecycle inspect must accept typed Host owner runtime:workspace:<id> references, reject invalid references, and deduplicate identical selections with Workspace ID values.",
+          "remoteWitness": "Original owner-workspace-reference parser and dedup negative tests remain live on source cut 0a99bf0e43e9; official Runtime owner-environment test-lifecycle and full test SUCCEEDED after correct inspector materialization. No production Host-to-Runtime admission asserted.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "0a99bf0e43e9686b4904ca6b734cba723024eeb6",
+            "tipRelation": "CURRENT_LIFECYCLE_OWNER_CONTRACT_COVERS_PATCH_EQUIVALENT_EFFECT",
+            "patchRelation": "PATCH_ID_EQUIVALENT",
+            "consumerStanding": "CURRENT_OWNER_NATIVE_TEST_WITH_PRIVILEGED_LIVE_HOLD",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "0a99bf0e43e9686b4904ca6b734cba723024eeb6"
+        },
+        {
+          "localCommit": "bafd53345257358548039fa095de44dfd89c36a1",
+          "owner": "services/runtime",
+          "consumer": "Runtime lifecycle inspect and reclaim CLI must consume only the bounded, explicitly requested Workspace selection without scanning or affecting unrelated workspaces.",
+          "remoteWitness": "Original Runtime lifecycle inspect/reclaim test methods remain live on exact source cut 0a99bf0e43e9; official scripts/owner-environment test-lifecycle PASS after compiling Runtime inspect helper, then full scripts/owner-environment test SUCCEEDED. No real Workspace close performed.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "0a99bf0e43e9686b4904ca6b734cba723024eeb6",
+            "tipRelation": "CURRENT_LIFECYCLE_OWNER_CONTRACT_COVERS_PATCH_EQUIVALENT_EFFECT",
+            "patchRelation": "PATCH_ID_EQUIVALENT",
+            "consumerStanding": "CURRENT_OWNER_NATIVE_TEST_WITH_PRIVILEGED_LIVE_HOLD",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "0a99bf0e43e9686b4904ca6b734cba723024eeb6"
         }
       ],
       "consumerBlockedSelections": [
