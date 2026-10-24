@@ -623,14 +623,18 @@
             "cfdbc893ba8f351579e3d8bda8896efecf40a567",
             "812f768254704d70aac987948d0fee72fade4d64",
             "c1108ebc9820066d830e1699e7887c31860228b3",
-            "a5e14b5ec8bc6848a12b382a1b22acbabb6dccfa"
+            "a5e14b5ec8bc6848a12b382a1b22acbabb6dccfa",
+            "ba9732f8bcc7348c73d570509ebdc2fdf4b30fcf",
+            "a1768d039268f1396439bfef8605a7700935c617",
+            "709816a1f89ce2a4811d7162a658f2f6f84018d9",
+            "61de83cb01b71793301907862840e3176f169b3a"
           ],
           "owner": "tools/repo",
           "consumer": "Retired document-currentness reporting, historical live-view and one-shot first-contact evaluation had zero current file/entrypoint consumers in both exact Main trees. Existing architecture documentation validator and native repository CI remain the effective consumers; do not reintroduce the old helpers.",
-          "remoteWitness": "Exact main 13704d0cac9e + origin/main bb8c591851a4: both trees lack document_currentness.py, living_view.py, first_contact_eval_receipt.py, first_contact_eval_matrix.py and their former test entrypoints; git grep -F on eight historical path names returns zero tracked references; tools/repo/check_architecture_docs.py; tools/repo/test_architecture_docs.py::test_retired_repository_status_projections_stay_absent (negative RED + GREEN)",
+          "remoteWitness": "Exact main 13704d0cac9e + origin/main bb8c591851a4: both trees lack document_currentness.py, living_view.py, first_contact_eval_receipt.py, first_contact_eval_matrix.py and their former test entrypoints; git grep -F on eight historical path names returns zero tracked references; tools/repo/check_architecture_docs.py; tools/repo/test_architecture_docs.py::test_retired_repository_status_projections_stay_absent (negative RED + GREEN) Additional nonmerge edits ba9732f8, a1768d03, 709816a1, 61de83cb target only the already-retired document_currentness.py and its retired tests. At protected SourceCut 97ebe3828c482cbeb7f58df4e6da614615017c56 both targets remain absent, existing tools/repo/test_architecture_docs.py current owner test refuses their reintroduction. No new standalone report or authority claimed.",
           "evidenceScope": "NATIVE_CONSUMER_PASS",
           "disposition": "SKIP_RETIRED_UNCONSUMED",
-          "evaluatedRemoteMain": "bb8c591851a4c9f0a34763bc1a5fde365030cba4"
+          "evaluatedRemoteMain": "97ebe3828c482cbeb7f58df4e6da614615017c56"
         },
         {
           "localCommit": "329f86db80dde3fe6764504f43d3b3e0d7d0de92",
@@ -1147,6 +1151,478 @@
           "evidenceScope": "NATIVE_CONSUMER_PASS",
           "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
           "evaluatedRemoteMain": "4b630ed360901d44ae2bea725fc53722225b460a"
+        },
+        {
+          "localCommit": "dcd9702fbee31237ecbce6820327dda8bdad5f7f",
+          "historicalCohort": [
+            "dcd9702fbee31237ecbce6820327dda8bdad5f7f"
+          ],
+          "owner": "meta/next",
+          "consumer": "Historical DWC CoA lowering responsibility. The legacy DW06 CoA-to-Cognitive-Circuit lowering docs/scripts/acceptance are absent. This does not establish equivalence to any current security or formal contract owner. No current tracked in-tree execution/test consumer for its exact removed source identity. Do not restore historical providers or represent absence as whole-domain behavioral equivalence.",
+          "remoteWitness": "Exact frozen local Main 13704d0cac9e113b395f2d5a21b5bf8119aa04a5 vs protected Main 97ebe3828c482cbeb7f58df4e6da614615017c56: git diff-tree changed-path identity yields 8 unique files, all ABSENT from both final Git trees; git grep current meta/next/scripts, tests and owner entrypoints finds no historical module/path references. For retained R1 Social Fabric, meta/next/tests/test_social_fabric_r1.py native 8/8 PASS, current authority catalog native check PASS (176 records/181 observations), but no DWC or incident live deployment proof. Historical source path/no-consumer is source-qualified, not external process/user equivalence.",
+          "evidenceScope": "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN",
+          "disposition": "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "97ebe3828c482cbeb7f58df4e6da614615017c56",
+            "tipRelation": "BOTH_TIPS_ABSENT",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "consumerStanding": "NO_IN_TREE_CONSUMER_EXTERNAL_UNKNOWN",
+            "branchDeletionAllowed": false,
+            "nativeScope": "Social Fabric R1 8/8 PASS; Next Authority catalog PASS; other historical DWC and Incident live behavior UNKNOWN"
+          },
+          "retiredPaths": [
+            "meta/next/docs/DWC_COA_LOWERING_R1_20261001.md",
+            "meta/next/evidence/acceptance/dwc-coa-r1-acceptance-20261001.json",
+            "meta/next/evidence/acceptance/dwc-coa-r1-contract-bindings-20261001.json",
+            "meta/next/evidence/acceptance/dwc-coa-r1-lowering-20261001.json",
+            "meta/next/evidence/acceptance/dwc-coa-r1-source-bundle-20261001.json",
+            "meta/next/scripts/build_dwc_coa_acceptance_r1.py",
+            "meta/next/scripts/dwc_coa_compiler_r1.py",
+            "meta/next/tests/test_dwc_coa_compiler_r1.py"
+          ]
+        },
+        {
+          "localCommit": "b81ae9d0bf9ffe77726e4fb95ba1d89b44e3d363",
+          "historicalCohort": [
+            "b81ae9d0bf9ffe77726e4fb95ba1d89b44e3d363",
+            "ba339f80c0c3730b9770f092e0566fae24e71488"
+          ],
+          "owner": "meta/next",
+          "consumer": "Historical DWC operator UX responsibility. The former DW11 operator UX projection and live-owner acceptance bundle are absent. This is a different responsibility from CoA lowering, so the two are not conflated. No current tracked in-tree execution/test consumer for its exact removed source identity. Do not restore historical providers or represent absence as whole-domain behavioral equivalence.",
+          "remoteWitness": "Exact frozen local Main 13704d0cac9e113b395f2d5a21b5bf8119aa04a5 vs protected Main 97ebe3828c482cbeb7f58df4e6da614615017c56: git diff-tree changed-path identity yields 7 unique files, all ABSENT from both final Git trees; git grep current meta/next/scripts, tests and owner entrypoints finds no historical module/path references. For retained R1 Social Fabric, meta/next/tests/test_social_fabric_r1.py native 8/8 PASS, current authority catalog native check PASS (176 records/181 observations), but no DWC or incident live deployment proof. Historical source path/no-consumer is source-qualified, not external process/user equivalence.",
+          "evidenceScope": "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN",
+          "disposition": "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "97ebe3828c482cbeb7f58df4e6da614615017c56",
+            "tipRelation": "BOTH_TIPS_ABSENT",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "consumerStanding": "NO_IN_TREE_CONSUMER_EXTERNAL_UNKNOWN",
+            "branchDeletionAllowed": false,
+            "nativeScope": "Social Fabric R1 8/8 PASS; Next Authority catalog PASS; other historical DWC and Incident live behavior UNKNOWN"
+          },
+          "retiredPaths": [
+            "meta/next/docs/DWC_OPERATOR_UX_R1_20261001.md",
+            "meta/next/evidence/acceptance/dwc-operator-ux-r1-acceptance-20261001.json",
+            "meta/next/evidence/acceptance/dwc-operator-ux-r1-live-owner-bundle-20261001.json",
+            "meta/next/evidence/acceptance/dwc-operator-ux-r1-live-owner-wiring-20261001.json",
+            "meta/next/evidence/acceptance/dwc-operator-ux-r1-reentry-fixture-20261001.json",
+            "meta/next/scripts/dwc_operator_ux_r1.py",
+            "meta/next/tests/test_dwc_operator_ux_r1.py"
+          ]
+        },
+        {
+          "localCommit": "832468936934e03aa2b8f67836182a8543b124a6",
+          "historicalCohort": [
+            "832468936934e03aa2b8f67836182a8543b124a6",
+            "1c20627bce9ab12bda2e92917962c4c233da6d88"
+          ],
+          "owner": "meta/next",
+          "consumer": "Historical Social Fabric R2 crossdisciplinary responsibility. The retired R2 coordination/closure scripts, tests, docs and acceptance are absent; the current independent R1 source meta/next/scripts/social_fabric_r1.py and 8 native tests preserve a separate Social Fabric responsibility, not a proven R2 equivalence. No current tracked in-tree execution/test consumer for its exact removed source identity. Do not restore historical providers or represent absence as whole-domain behavioral equivalence.",
+          "remoteWitness": "Exact frozen local Main 13704d0cac9e113b395f2d5a21b5bf8119aa04a5 vs protected Main 97ebe3828c482cbeb7f58df4e6da614615017c56: git diff-tree changed-path identity yields 16 unique files, all ABSENT from both final Git trees; git grep current meta/next/scripts, tests and owner entrypoints finds no historical module/path references. For retained R1 Social Fabric, meta/next/tests/test_social_fabric_r1.py native 8/8 PASS, current authority catalog native check PASS (176 records/181 observations), but no DWC or incident live deployment proof. Historical source path/no-consumer is source-qualified, not external process/user equivalence.",
+          "evidenceScope": "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN",
+          "disposition": "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "97ebe3828c482cbeb7f58df4e6da614615017c56",
+            "tipRelation": "BOTH_TIPS_ABSENT",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "consumerStanding": "NO_IN_TREE_CONSUMER_EXTERNAL_UNKNOWN",
+            "branchDeletionAllowed": false,
+            "nativeScope": "Social Fabric R1 8/8 PASS; Next Authority catalog PASS; other historical DWC and Incident live behavior UNKNOWN"
+          },
+          "retiredPaths": [
+            "meta/next/docs/ORDIVON_SOCIAL_FABRIC_CLOSEOUT_R1_20260924.md",
+            "meta/next/docs/ORDIVON_SOCIAL_FABRIC_COORDINATION_R2_20260923.md",
+            "meta/next/docs/ORDIVON_SOCIAL_FABRIC_CROSSDISCIPLINARY_R1_20260923.md",
+            "meta/next/evidence/acceptance/social-fabric-cascade-measurement-r1-20260924.json",
+            "meta/next/evidence/acceptance/social-fabric-concurrency-gap-measurement-r1-20260924.json",
+            "meta/next/evidence/acceptance/social-fabric-gate79-decisions-r1-20260924.json",
+            "meta/next/evidence/acceptance/social-fabric-gate79-r1-20260924.json",
+            "meta/next/evidence/acceptance/social-fabric-wave7-dogfood-r1-20260924.json",
+            "meta/next/evidence/acceptance/social-fabric-wave7-preflight-dogfood-r1-20260924.json",
+            "meta/next/planning/ordivon-social-fabric-crossdisciplinary-r1-20260923.json",
+            "meta/next/planning/ordivon-social-fabric-crossdisciplinary-r2-20260923.json",
+            "meta/next/scripts/social_fabric_closeout_r1.py",
+            "meta/next/scripts/social_fabric_coordination_r2.py",
+            "meta/next/tests/test_social_fabric_closeout_r1.py",
+            "meta/next/tests/test_social_fabric_commitment_r3.py",
+            "meta/next/tests/test_social_fabric_coordination_r2.py"
+          ]
+        },
+        {
+          "localCommit": "0dcead882cec69318243326858a13fa48989a772",
+          "historicalCohort": [
+            "0dcead882cec69318243326858a13fa48989a772"
+          ],
+          "owner": "meta/next",
+          "consumer": "Historical Incident case profile R1 responsibility. Historical one-off incident case profile docs/plan/tests/receipt are absent at both tips; no in-tree current profile consumer. External retention/provenance obligations remain UNKNOWN. No current tracked in-tree execution/test consumer for its exact removed source identity. Do not restore historical providers or represent absence as whole-domain behavioral equivalence.",
+          "remoteWitness": "Exact frozen local Main 13704d0cac9e113b395f2d5a21b5bf8119aa04a5 vs protected Main 97ebe3828c482cbeb7f58df4e6da614615017c56: git diff-tree changed-path identity yields 5 unique files, all ABSENT from both final Git trees; git grep current meta/next/scripts, tests and owner entrypoints finds no historical module/path references. For retained R1 Social Fabric, meta/next/tests/test_social_fabric_r1.py native 8/8 PASS, current authority catalog native check PASS (176 records/181 observations), but no DWC or incident live deployment proof. Historical source path/no-consumer is source-qualified, not external process/user equivalence.",
+          "evidenceScope": "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN",
+          "disposition": "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "97ebe3828c482cbeb7f58df4e6da614615017c56",
+            "tipRelation": "BOTH_TIPS_ABSENT",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "consumerStanding": "NO_IN_TREE_CONSUMER_EXTERNAL_UNKNOWN",
+            "branchDeletionAllowed": false,
+            "nativeScope": "Social Fabric R1 8/8 PASS; Next Authority catalog PASS; other historical DWC and Incident live behavior UNKNOWN"
+          },
+          "retiredPaths": [
+            "meta/next/docs/INCIDENT_CASE_PROFILE_R1.md",
+            "meta/next/evidence/acceptance/incident-case-profile-r1-acceptance-20260923.json",
+            "meta/next/evidence/analysis/incident-case-profile-r1-dogfood-20260923.json",
+            "meta/next/planning/incident-case-profile-r1.json",
+            "meta/next/tests/test_incident_case_profile_r1.py"
+          ]
+        },
+        {
+          "localCommit": "02396d926aeaf96a8b35ca85d18c3bdbdd1d678d",
+          "owner": "services/runtime",
+          "consumer": "Runtime cache retention measurement must treat an entry/queued directory deleted concurrently between scandir and stat as no retained bytes, but permissions and other I/O faults remain incomplete (never green). The modern owner contract also covers queued-directory races absent in the original commit.",
+          "remoteWitness": "Protected services/runtime/scripts/ordivon-runtime-cache has FileNotFoundError guards for scanned entries and queued directories; the owner tests/test_cache_vanishing_entry.py has all four negative and positive race examples. Native python3 -m unittest discover -s services/runtime/scripts/tests -p test_cache_vanishing_entry.py: 4/4 PASS on d375287686b7; producer and test blobs have evolved, not whole-commit equivalence.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "dec3223590bc5dc616fc32adb91412d90583a428",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "dec3223590bc5dc616fc32adb91412d90583a428",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "EVOLVED_PRODUCTION_AND_STRONGER_NATIVE_CDC",
+            "consumerStanding": "CURRENT_COMPONENT_CONSUMED_WITH_EXPLICIT_SCOPE",
+            "branchDeletionAllowed": false
+          },
+          "changedPaths": [
+            "services/runtime/scripts/ordivon-runtime-cache",
+            "services/runtime/scripts/tests/test_cache_vanishing_entry.py"
+          ]
+        },
+        {
+          "localCommit": "02cc68566c0c467641bc9b2f3e483705a18209b4",
+          "owner": "platform/workstation",
+          "consumer": "Cloudflare provider manifest and frozen pnpm importer lock consume identical current Wrangler 4.152.0, TypeScript 7.0.2, and @types/node 26.6.5 pin identities; do not replay the historical whole package manifest because engines.node and other consumer settings have since evolved.",
+          "remoteWitness": "Historical and current provider package.json devDependencies agree on wrangler=4.152.0, typescript=7.0.2 and @types/node=26.6.5, all matching the actual importers root specifiers in the current two-document pnpm-lock.yaml. This is an offline source/lock selection check, NOT a Cloudflare provider CI, deployment, or whole-blob proof.",
+          "evidenceScope": "EXACT_OWNER_LOCKED_COMPONENTS_NO_LIVE_PROVIDER",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "dec3223590bc5dc616fc32adb91412d90583a428",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "dec3223590bc5dc616fc32adb91412d90583a428",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "PARTIAL_TIP_LOCK_COMPONENT_IDENTITY",
+            "consumerStanding": "CURRENT_COMPONENT_CONSUMED_WITH_EXPLICIT_SCOPE",
+            "branchDeletionAllowed": false
+          },
+          "changedPaths": [
+            "platform/workstation/providers/cloudflare/package.json",
+            "platform/workstation/providers/cloudflare/pnpm-lock.yaml"
+          ]
+        },
+        {
+          "localCommit": "24b713eb03a5fcea76b3cc6dc4cf61ba984f0467",
+          "owner": "capabilities/artifact",
+          "consumer": "Artifact Temporal Worker deployment must refuse restart while a matching canonical Artifact workflow is running, or if Temporal visibility cannot be proven, before any installed unit/state side effects. Current owner consumes canonical ARTIFACT_WORKFLOW and existing locked carrier rather than replaying the historical patch.",
+          "remoteWitness": "Native Git --cherry-mark classified exact patch-id equivalent on frozen local/remote DAG. Current capabilities/artifact/scripts/artifact_temporal_deploy.py::ensure_no_running_artifact_workflows and apply block before systemctl; current tests/test_artifact_temporal_contract.py contains both real workflow visibility and before-mutation negatives. Two owner tests + carrier-integrity related unit 3/3 PASS via UV_OFFLINE=1 MISE_OFFLINE=1 mise exec -- uv run --offline --locked python -m pytest.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "d375287686b7ad7f04b1f5ef181bff846ac9cc94",
+            "patchRelation": "PATCH_ID_EQUIVALENT",
+            "tipRelation": "CURRENT_OWNER_NATIVE_CDC_NOT_FULL_BRANCH_EQUIVALENCE",
+            "consumerStanding": "CURRENT_OWNER_COVERED_WITH_LIMITED_SCOPE",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "d375287686b7ad7f04b1f5ef181bff846ac9cc94",
+          "changedPaths": [
+            "capabilities/artifact/scripts/artifact_temporal_deploy.py",
+            "capabilities/artifact/tests/test_artifact_temporal_contract.py"
+          ]
+        },
+        {
+          "localCommit": "3ee4459aa418737ea745764fc0d9c385d1d77955",
+          "owner": "services/runtime",
+          "consumer": "Runtime native Rust lock must resolve schemars 1.2.3 with the same checksum, supporting executable State/Schema consumer compilation; duplicate Cargo.lock edit is not a distinct dependency LEGO.",
+          "remoteWitness": "services/runtime/Cargo.lock package schemars version 1.2.3 checksum ab508826f74a77ca9d5aba6ff19b522583ee3eaf28a19384ff3d0e5835fadf6e equals historical exact package stanza; cargo test --locked -p ordivon-runtime-core durable_cancel_and_deadline_edges_are_present_in_attempt_transition_graph PASS. Full Cargo.lock Git blobs differ.",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "7bf5f1d89da65e5ce8420910065d8c822cc6c4e3",
+            "tipRelation": "DIFFERENT_GIT_FILE_BLOBS_SELECTED_EFFECT_COVERED",
+            "consumerStanding": "CURRENT_OWNER_COVERED_AT_SOURCECUT",
+            "branchDeletionAllowed": false,
+            "representation": "type",
+            "scope": "ONLY_NAMED_CONSUMER_EFFECT_NOT_WHOLE_COMMIT_EQUIVALENCE"
+          }
+        },
+        {
+          "localCommit": "40479e09d849401f5cfd4297fbe43db0372fe011",
+          "owner": "ROOT_UNOWNED",
+          "consumer": "Historical apps/agent native coding MCP patch test depends on removed provider; no current in-tree caller uses its old workspace.patch shim. Historical tests were not replayed.",
+          "remoteWitness": "Native git/local+protected source path comparison at 78895b2291830be75fa472f3621fc24ebd2e67f3; git grep finds no former module entrypoints. Browserless Network v2 Owner has existing native tests; modern behavior is not claimed equivalent to historic Composition or Agent APIs; no live/external consumer absence demonstrated.",
+          "evidenceScope": "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN",
+          "disposition": "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "78895b2291830be75fa472f3621fc24ebd2e67f3",
+            "historicalSourceState": "BOTH_TIPS_ABSENT",
+            "consumerStanding": "NO_IN_TREE_CONSUMER_EXTERNAL_UNKNOWN",
+            "branchDeletionAllowed": false
+          },
+          "changedPaths": [
+            "apps/agent/tests/test_native_coding_runtime_mcp_port_r1.py",
+            "apps/agent/src/ordivon_agent/native_coding_runtime_mcp_port_r1.py"
+          ]
+        },
+        {
+          "localCommit": "47ecd35d70c8ce71ab9c6f54eaf3a51e6d2682c8",
+          "owner": "platform/security",
+          "consumer": "Historical uv/Ruff Security producer is already absorbed by the native Security owner, including locked uv sync, Python 3.15.1, current Ruff and owner-pinned OPA 1.21.4. Keep current threat-binding/admission policy and shellcheck; do not replay removed nested Security workflow or lower versions.",
+          "remoteWitness": "platform/security/mise.toml::tasks.verify; platform/security/tests/test_owner_uv_lock_freshness.py; platform/security/tests/test_opa_container_gate.py; current uv lock --check PASS, native mise run verify PASS, OPA 34/34 PASS. Historical pyproject.toml and uv.lock exact final right-cut blob identities.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_OLDER_SOURCECUT",
+          "evaluatedRemoteMain": "97ebe3828c482cbeb7f58df4e6da614615017c56",
+          "verifiedEqualChangedPaths": [
+            "platform/security/pyproject.toml",
+            "platform/security/uv.lock"
+          ],
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "97ebe3828c482cbeb7f58df4e6da614615017c56",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "PARTIAL_OBJECT_IDENTITY_CURRENT_OWNER_LOCKED",
+            "consumerStanding": "CURRENT_VERIFIED_OWNER_NO_HISTORICAL_REPLAY",
+            "branchDeletionAllowed": false,
+            "inferenceBoundary": "Native owner test and current lock freshness verify scoped consumer. Git partial identity does not prove entire historical commit equivalence, deployment, or wholesale branch retirement."
+          }
+        },
+        {
+          "localCommit": "492efb2d28a3b136794eb648e5610468636394ed",
+          "owner": "tools/repo",
+          "consumer": "Preflight every required uv and pnpm lock in mixed-language owners before side effects, retaining current single workspace-ready contract.",
+          "remoteWitness": "tools/repo/workspace-ready and tools/repo/test_workspace_ready.py::test_mixed_technology_owner_requires_every_lock_before_side_effects, test_absent_python_lock_fails_before_mise_preflight_or_install, test_absent_pnpm_lock_fails_before_mise_preflight_or_install; current 38 native unittest PASS.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "4b630ed360901d44ae2bea725fc53722225b460a",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "CURRENT_NATIVE_CONSUMER_WITH_DIFFERENT_GIT_BLOBS",
+            "consumerStanding": "CURRENT_OWNER_COVERED_BY_NATIVE_FAULT_TESTS",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "4b630ed360901d44ae2bea725fc53722225b460a",
+          "changedPaths": [
+            "tools/repo/test_workspace_ready.py",
+            "tools/repo/workspace-ready"
+          ]
+        },
+        {
+          "localCommit": "557e436d19b79fb6983c5c8fdc4e3965d0e25ddd",
+          "owner": "domains/game",
+          "consumer": "One local historical patch edited @types/node and two owner-lockfiles in domains/game and apps/web; both currently resolve @types/node 26.6.5. Game current manifest and pnpm-lock are exact historical committed blobs. Web manifest and lock differ due to later unrelated dependency changes but retain the required Node typing; no whole-file replay or older lock selection.",
+          "remoteWitness": "protected Main d375287686b7ad7f04b1f5ef181bff846ac9cc94: pnpm-lock and package.json Game end-state exact historical Git blob; Web and Game devDependencies @types/node=26.6.5. Native Game pnpm typecheck PASS; Web mise run verify installs Security agent-request-verifier-v1 via its owner before pnpm typecheck, then all 12 Web node-native tests PASS. Direct tsc without Security owner setup had failed oauth4webapi import and is not the native Web verification contract.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "d375287686b7ad7f04b1f5ef181bff846ac9cc94",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "d375287686b7ad7f04b1f5ef181bff846ac9cc94",
+            "consumerOwners": [
+              "apps/web",
+              "domains/game"
+            ],
+            "branchDeletionAllowed": false,
+            "scope": "historical type declaration effect only, not complete commit or external consumer equivalence"
+          }
+        },
+        {
+          "localCommit": "70732958bee4737b3c269c4239eb7c334726a7a5",
+          "owner": "platform/workstation",
+          "consumer": "The workstation Nix flake consumes Home Manager release-26.05 at rev 24f8f8e786f87d6a818e1746cb2389bf922afdab with exact narHash; the remote lock replaces an older nixpkgs source. Preserve the selected Home Manager component but never cherry-pick the older entire historical flake.lock.",
+          "remoteWitness": "Historical and protected current Home Manager nodes match exact rev and narHash. Historical nixpkgs rev d58a46e3bc02d91ebe04667f8397752a749c0024 lastModified 1789009968, protected nixpkgs rev cd4ea8d57de16f4810bc5f14207bac45fbf19f67 lastModified 1792503283; source identity comparison only; native Nix build not claimed.",
+          "evidenceScope": "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF",
+          "disposition": "SKIP_OLDER_PIN",
+          "evaluatedRemoteMain": "dec3223590bc5dc616fc32adb91412d90583a428",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "dec3223590bc5dc616fc32adb91412d90583a428",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "PARTIAL_TIP_HM_COMPONENT_IDENTITY_NEWER_NIXPKGS",
+            "consumerStanding": "CURRENT_COMPONENT_CONSUMED_WITH_EXPLICIT_SCOPE",
+            "branchDeletionAllowed": false
+          },
+          "changedPaths": [
+            "platform/workstation/workstation/nix/flake.lock"
+          ]
+        },
+        {
+          "localCommit": "96a5d01aa5dca87ba0a8be0721ae51d2499a88dc",
+          "owner": "tools/repo",
+          "consumer": "Reject concurrent npm and pnpm lockfiles at one package consumer before any mise install or network effect; current CLI also rejects npm-only drift.",
+          "remoteWitness": "tools/repo/workspace-ready and tools/repo/test_workspace_ready.py::test_mixed_npm_and_pnpm_locks_fail_before_any_tool_or_network_effect, test_native_npm_nested_consumer_is_rejected_before_side_effects; current 38 native unittest PASS.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "4b630ed360901d44ae2bea725fc53722225b460a",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "CURRENT_NATIVE_CONSUMER_WITH_DIFFERENT_GIT_BLOBS",
+            "consumerStanding": "CURRENT_OWNER_COVERED_BY_NATIVE_FAULT_TESTS",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "4b630ed360901d44ae2bea725fc53722225b460a",
+          "changedPaths": [
+            "tools/repo/test_workspace_ready.py",
+            "tools/repo/workspace-ready"
+          ]
+        },
+        {
+          "localCommit": "993ed44db090a7d2f002800ce6fe075bd2eb0b5a",
+          "owner": "capabilities/distribution",
+          "consumer": "Distribution native uv 0.13.5 and Ruff consumer remain present and current; its old local lock is not exact current and should not replace Distribution v2 reconciliation and effect-proof semantics.",
+          "remoteWitness": "capabilities/distribution/mise.toml::tasks.verify; capabilities/distribution/pyproject.toml exact right-cut blob; current uv lock --check PASS, mise run verify PASS including reconciliation ambiguity fault matrix, pinned OPA 4/4 and native historical provider-read proof.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_OLDER_SOURCECUT",
+          "evaluatedRemoteMain": "97ebe3828c482cbeb7f58df4e6da614615017c56",
+          "verifiedEqualChangedPaths": [
+            "capabilities/distribution/pyproject.toml"
+          ],
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "97ebe3828c482cbeb7f58df4e6da614615017c56",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "PARTIAL_OBJECT_IDENTITY_CURRENT_OWNER_LOCKED",
+            "consumerStanding": "CURRENT_VERIFIED_OWNER_NO_HISTORICAL_REPLAY",
+            "branchDeletionAllowed": false,
+            "inferenceBoundary": "Native owner test and current lock freshness verify scoped consumer. Git partial identity does not prove entire historical commit equivalence, deployment, or wholesale branch retirement."
+          }
+        },
+        {
+          "localCommit": "abbeace5d271f506f72413517c42a5b7320d966e",
+          "owner": "tools/repo",
+          "consumer": "Use local offline uv/pnpm caches before any network/VPN fallback, and only request existing network provider when lock materialization fails offline.",
+          "remoteWitness": "tools/repo/workspace-ready and tools/repo/test_workspace_ready.py::test_cached_pnpm_dependencies_bootstrap_without_vpn_or_provider, test_offline_python_cache_bootstrap_without_vpn_or_provider, test_missing_pnpm_cache_uses_existing_network_provider_as_fallback; current 38 native unittest PASS.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "4b630ed360901d44ae2bea725fc53722225b460a",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "CURRENT_NATIVE_CONSUMER_WITH_DIFFERENT_GIT_BLOBS",
+            "consumerStanding": "CURRENT_OWNER_COVERED_BY_NATIVE_FAULT_TESTS",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "4b630ed360901d44ae2bea725fc53722225b460a",
+          "changedPaths": [
+            "tools/repo/test_workspace_ready.py",
+            "tools/repo/workspace-ready"
+          ]
+        },
+        {
+          "localCommit": "b066c82c8d4701e36d8b6eac448bc3fc34d747aa",
+          "owner": "capabilities/artifact",
+          "consumer": "Artifact Python runtime generation must pin verified interpreter executable bytes inside the generation, rather than retain an external mutable mise symlink; the wrapper must reject a foreign interpreter. This responsibility moved from historical Workstation equipment to the Artifact natural Owner.",
+          "remoteWitness": "Current capabilities/artifact/scripts/artifact_python_environment.py pin_interpreter_in_venv and artifact_python_wrapper.py own this behavior. Native Artifact test_artifact_python_environment 14/14 PASS, including Python v1->v2 external source drift, wrong digest, wrapper rejection. The old Workstation file is absent; do not restore old carrier.",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "d375287686b7ad7f04b1f5ef181bff846ac9cc94",
+            "patchRelation": "PATCH_DISTINCT_OR_UNKNOWN",
+            "currentConsumerSelection": "CURRENT_ARTIFACT_OWNER_CDC_SUCCEEDS_HISTORICAL_PROVIDER_RELOCATED",
+            "branchDeletionAllowed": false,
+            "acceptanceLimit": "NAMED_CONSUMER_EFFECT_ONLY_NO_WHOLE_TREE_EQUIVALENCE_NO_EXTERNAL_CONSUMER_CLAIM"
+          }
+        },
+        {
+          "localCommit": "c58210700da85f061c9dd5bac69c712d381d7428",
+          "owner": "tools/repo",
+          "consumer": "Workspace execution must reject nested Node packageManager/pnpm version drift before installation, choosing the nearest parent mise owner; retired check_workspace_environment.py is not a required second registry.",
+          "remoteWitness": "Current tools/repo/workspace-ready and tools/repo/test_workspace_ready.py cover inherited owner pnpm and explicit wrong version before side effects; 38/38 native unittest PASS, including nested Security packages and old pnpm auto-switch rejection. Historical separate checker and test absent from protected Main.",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "d375287686b7ad7f04b1f5ef181bff846ac9cc94",
+            "patchRelation": "PATCH_DISTINCT_OR_UNKNOWN",
+            "currentConsumerSelection": "CURRENT_REPO_WORKSPACE_READY_CDC_SUPERSEDES_OLD_CHECKER",
+            "branchDeletionAllowed": false,
+            "acceptanceLimit": "NAMED_CONSUMER_EFFECT_ONLY_NO_WHOLE_TREE_EQUIVALENCE_NO_EXTERNAL_CONSUMER_CLAIM"
+          }
+        },
+        {
+          "localCommit": "ce973c944d5835c32d559a856fa55b070968aea5",
+          "owner": "services/host",
+          "consumer": "The current Host Work/Social Work Fabric implementation and owner-local plan retain the essential Schema 9 legacy Task/Board retirement contract, immutable archive identity, recovery posture, and zero-legacy table/module/MCP assertions. The original time-stamped acceptance receipt is absent in both final Main trees and has no in-tree runtime consumer; do not replay its historical patch or delete current Host authority.",
+          "remoteWitness": "services/host/planning/social-work-fabric-r1.json::legacyRetirement + services/host/tests/test_social_work_fabric_architecture.py + tests/test_mcp_surface.py; source-native Host uv run --locked --offline pytest: 9 PASS, 1 SKIP. Current plan records historical restoration PASS and schema9 zero-legacy claims; this run did not re-test database migration/archive restore, public Gateway ingress, or active Work production state.",
+          "evidenceScope": "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN",
+          "disposition": "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "5ee2f28dd58593c9d68293f91ad94ac03760379e",
+            "pathFinalRelation": "TWO_IDENTICAL_ONE_BOTH_ABSENT",
+            "retiredHistoricalReceiptPath": "meta/next/evidence/acceptance/social-work-fabric-r1-legacy-retirement-live-20260924.json",
+            "identicalTipModeBlobs": {
+              "services/host/docs/SOCIAL_WORK_FABRIC_R1.md": {
+                "mode": "100644",
+                "blob": "dfdf171a93bb332c1b8a83251fbf37207c53f03b"
+              },
+              "services/host/planning/social-work-fabric-r1.json": {
+                "mode": "100644",
+                "blob": "600e520e5493c985ea3df3b953d8e8432b96b286"
+              }
+            },
+            "branchDeletionAllowed": false,
+            "liveDatabaseReverified": false,
+            "archiveRestoreReverified": false
+          }
+        },
+        {
+          "localCommit": "dd3163920cb40ceac52a42a12f7cbdf4f455976a",
+          "owner": "capabilities/media",
+          "consumer": "Media uv 0.13.5 and native locked Ruff/Python consumer are already present in current production source. The historical lock is different because media has since evolved; preserve current package and pinned pnpm rather than replay older lock.",
+          "remoteWitness": "capabilities/media/mise.toml::tasks.verify; capabilities/media/pyproject.toml exact right-cut blob; current uv lock --check PASS; real pnpm frozen JS dependency install, Ruff, 170 Python tests and Vite build PASS.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_OLDER_SOURCECUT",
+          "evaluatedRemoteMain": "97ebe3828c482cbeb7f58df4e6da614615017c56",
+          "verifiedEqualChangedPaths": [
+            "capabilities/media/pyproject.toml"
+          ],
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "97ebe3828c482cbeb7f58df4e6da614615017c56",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "PARTIAL_OBJECT_IDENTITY_CURRENT_OWNER_LOCKED",
+            "consumerStanding": "CURRENT_VERIFIED_OWNER_NO_HISTORICAL_REPLAY",
+            "branchDeletionAllowed": false,
+            "inferenceBoundary": "Native owner test and current lock freshness verify scoped consumer. Git partial identity does not prove entire historical commit equivalence, deployment, or wholesale branch retirement."
+          }
+        },
+        {
+          "localCommit": "e66aaa1eabcb21b02b58e139b687162dac0e930f",
+          "owner": "services/runtime",
+          "consumer": "Local-only nonmerge added a historical RuntimeDispatchR1 trace acceptance plus four now-retired architecture census artifacts. Current Runtime owner supersedes that acceptance with schema-v2 stable-seam/currentness and negative provider guarantee; it is not a full Rust/TLA refinement proof.",
+          "remoteWitness": "Exact Git acceptance blobs old 1dda9c9fd4a1 vs protected bd91be10978ae; services/runtime/scripts/verify_formal_trace.py + mise run formal:verify PASS on protected 7bf5f1d89da6 with TLC 2.19, 25 generated / 20 distinct states, depth 9 and no errors. Four historic census doc paths absent on both frozen Main tips.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_OLDER_SOURCECUT",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "7bf5f1d89da65e5ce8420910065d8c822cc6c4e3",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "branchDeletionAllowed": false,
+            "tipRelation": "NEWER_NATIVE_FORMAL_ACCEPTANCE_AND_RETIRED_HISTORIC_CENSUS_DOCS",
+            "consumerStanding": "CURRENT_RUNTIME_FORMAL_GATE_VERIFIED"
+          },
+          "retiredSourcePaths": [
+            "docs/architecture/DATA_LEARNING_SYSTEM_CENSUS_R1.md",
+            "docs/architecture/VERIFICATION_ASSURANCE_FORMAL_CENSUS_R1.md",
+            "docs/architecture/data-learning-system-census-r1.json",
+            "docs/architecture/verification-assurance-formal-census-r1.json"
+          ]
         },
         {
           "localCommit": "2dadc4c2eb7a8ab6d2c8eeac34709a9a32a94028",

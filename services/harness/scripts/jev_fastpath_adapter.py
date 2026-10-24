@@ -156,7 +156,7 @@ def _dpapi_unprotect(path_text: str) -> str:
 def _provider_environment(
     env: Mapping[str, str] | None = None, *, require_text: bool = False
 ) -> dict[str, str]:
-    resolved = dict(env or os.environ)
+    resolved = dict(os.environ if env is None else env)
     bindings = (
         ("TYPESAFE_API_KEY", "ORDIVON_JEV_TYPESAFE_DPAPI_FILE"),
         ("TEXT_MODEL_API_KEY", "ORDIVON_JEV_TEXT_MODEL_DPAPI_FILE"),
@@ -218,7 +218,7 @@ def _python_utf8_mode() -> bool:
 
 
 def managed_chrome_readiness(env: Mapping[str, str] | None = None) -> dict[str, Any]:
-    env = env or os.environ
+    env = os.environ if env is None else env
     path = str(env.get("ORDIVON_JEV_CHROME_PATH") or "")
     profile = str(env.get("ORDIVON_JEV_CHROME_PROFILE") or "")
     raw_port = str(env.get("ORDIVON_JEV_CDP_PORT") or "9333")
@@ -242,7 +242,7 @@ def _launch_managed_chrome(env: Mapping[str, str] | None = None) -> dict[str, An
     This runs after credential admission and before the durable browser-action fence.
     The regular user Chrome profile is never inspected or reused.
     """
-    env = env or os.environ
+    env = os.environ if env is None else env
     if env.get("BU_CDP_URL") or env.get("BU_CDP_WS"):
         return None
     ready = managed_chrome_readiness(env)
@@ -328,7 +328,7 @@ def _cleanup_managed_chrome(launch: Mapping[str, Any] | None) -> None:
 
 
 def provider_readiness(env: Mapping[str, str] | None = None, *, require_text: bool = False) -> dict[str, Any]:
-    env = env or os.environ
+    env = os.environ if env is None else env
     packages: dict[str, str | None] = {}
     for package in ("jev-ultrafast", "browser-harness"):
         try:
@@ -510,7 +510,7 @@ def execute_request(
     agent_factory: Callable[..., Any] | None = None,
 ) -> dict[str, Any]:
     request = validate_request(raw)
-    env = env or os.environ
+    env = os.environ if env is None else env
     replay = _replay_or_unknown(request, state_root)
     if replay is not None:
         return replay

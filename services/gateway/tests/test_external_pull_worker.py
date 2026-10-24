@@ -4,11 +4,13 @@ import asyncio
 import base64
 import hashlib
 import json
+import sqlite3
 from dataclasses import dataclass
 
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
+import ordivon_gateway.external_worker as worker_module
 from ordivon_gateway.external_worker import (
     ExternalPullWorkerTransport,
     WorkerAuthError,
@@ -536,3 +538,88 @@ def test_expired_attempt_cannot_transition_an_unrelated_operation(tmp_path, star
     assert transport.get(original.operation_id).state == (
         "reconcile_required" if started else "queued"
     )
+
+
+def test_terminal_completion_replay_requires_the_original_admitted_attempt(tmp_path) -> None:
+    clock = Clock()
+    transport = ExternalPullWorkerTransport(
+        tmp_path / "workers.sqlite3", clock_ms=clock, lease_ms=1_000
+    )
+    for worker_id in ("owner", "other"):
+        _, public_key = keypair()
+        transport.enroll(
+            worker_id=worker_id,
+            provider_id="muse",
+            generation=1,
+            public_key_b64=public_key,
+            capabilities=["muse.shell.echo"],
+        )
+    transport.submit(
+        capability="muse.shell.echo",
+        request_id="req-terminal-replay-scope",
+        parcel={"action": "echo"},
+    )
+    claim = transport.claim("owner", generation=1)
+    assert claim is not None
+    transport.started(
+        worker_id="owner",
+        generation=1,
+        operation_id=claim["operation_id"],
+        attempt_id=claim["attempt_id"],
+        lease_id=claim["lease_id"],
+    )
+    kwargs = dict(
+        worker_id="owner",
+        generation=1,
+        operation_id=claim["operation_id"],
+        attempt_id=claim["attempt_id"],
+        lease_id=claim["lease_id"],
+        exit_code=0,
+        result={"text": "same"},
+        artifacts=[],
+    )
+    completed = transport.complete(**kwargs)
+    # Replays are scoped to the worker and original committed Attempt, not
+    # just to a caller who knows the result bytes or terminal operation id.
+    for override in (
+        {"worker_id": "other"},
+        {"attempt_id": "xatt-foreign"},
+        {"lease_id": "xlease-foreign"},
+        {"generation": 999},
+    ):
+        with pytest.raises((WorkerAuthError, WorkerConflict)):
+            transport.complete(**{**kwargs, **override})
+    # The original worker may retry the exact receipt after its lease deadline.
+    # Terminal status is immutable; expiry must not break legitimate replay.
+    clock.now += 1_001
+    assert transport.complete(**kwargs) == completed
+
+
+def test_external_pull_worker_releases_sqlite_connections_on_success_and_failure(
+    tmp_path, monkeypatch
+) -> None:
+    opened = []
+    real_connect = sqlite3.connect
+
+    class ObservedConnection(sqlite3.Connection):
+        explicitly_closed = False
+
+        def close(self) -> None:
+            self.explicitly_closed = True
+            super().close()
+
+    def observed_connect(*args, **kwargs):
+        db = real_connect(*args, **kwargs, factory=ObservedConnection)
+        opened.append(db)
+        return db
+
+    monkeypatch.setattr(worker_module.sqlite3, "connect", observed_connect)
+    transport = ExternalPullWorkerTransport(tmp_path / "external-worker.sqlite3")
+
+    with pytest.raises(RuntimeError, match="expected abort"):
+        with transport._connect() as db:
+            db.execute("SELECT 1")
+            raise RuntimeError("expected abort")
+
+    assert opened
+    assert all(db.explicitly_closed for db in opened)
