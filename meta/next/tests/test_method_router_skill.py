@@ -88,7 +88,10 @@ def test_cegar_retired_msr_method_routes_real_spurious_and_unknown() -> None:
     router = (ROUTER / "references" / "representation-first.md").read_text(
         encoding="utf-8"
     )
-    assert "Minimum Sufficient Representation: RETIRED" in charter
+    assert (
+        "Minimum Sufficient Representation (MSR) as a **DEFAULT**: RETIRED" in charter
+    )
+    assert "optional, consumer-scoped Skill LEGO" in charter
     assert "Counterexample-Guided Abstraction Refinement (CEGAR)" in charter
     assert "No global minimality or sufficiency certificate" in charter
     assert "REAL_COUNTEREXAMPLE" in charter
