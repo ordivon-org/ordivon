@@ -18,6 +18,18 @@ OWNER_GRAPH_PLANS = (
 )
 
 
+def test_host_legacy_agent_service_cursor_proposal_is_retired() -> None:
+    """An old proposed LEGO is not an owner merely because its R1 row survived."""
+    legacy = json.loads((ROOT / OWNER_GRAPH_PLANS[1]).read_text(encoding="utf-8"))
+    current = json.loads(
+        (ROOT / "services/host/planning/lego-plan-r3.json").read_text(encoding="utf-8")
+    )
+    assert any(row["id"] == "U01" and row["name"] == "ScopeBoundCursor" for row in current["retained"])
+    assert all(node["id"] != "O05" for node in legacy["nodes"])
+    assert all(slice_["id"] != "OS1" for slice_ in legacy["slices"])
+    assert legacy["gaps"] == []
+
+
 @pytest.mark.parametrize("relative", OWNER_GRAPH_PLANS)
 def test_owner_slice_relation_is_closed(relative: str) -> None:
     module.validate_owner_lego_graph(json.loads((ROOT / relative).read_text(encoding="utf-8")))
