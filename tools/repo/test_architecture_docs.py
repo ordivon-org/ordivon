@@ -918,6 +918,24 @@ def test_formal_registry_sources_bound_before_loading(
         module._source_bound_file(source, relative, label)
 
 
+def test_git01_environment_preflight_history_reuses_current_native_consumers() -> None:
+    """Three local non-merge commits have current fail-closed owner consumers."""
+    census, plans = formal_issue_inputs()
+    issue = next(x for x in census["issues"] if x["id"] == "GIT-01")
+    selected = {x["localCommit"][:12]: x for x in issue["consumerSelections"]}
+    for sha in ("abbeace5d271", "96a5d01aa5dc", "492efb2d28a3"):
+        row = selected[sha]
+        assert row["owner"] == "tools/repo"
+        assert row["evidenceScope"] == "NATIVE_CONSUMER_PASS"
+        assert row["disposition"] == "SKIP_DUPLICATE_CHERRY_PICK"
+        assert row["sourceQualification"]["patchRelation"] == "PATCH_DISTINCT_UNQUALIFIED"
+        assert row["sourceQualification"]["branchDeletionAllowed"] is False
+        assert "tools/repo/workspace-ready" in row["changedPaths"]
+        assert "tools/repo/test_workspace_ready.py" in row["changedPaths"]
+        assert row["consumer"] and row["remoteWitness"]
+    module.validate_formal_issue_census(census, plans)
+
+
 def test_git01_graph_projection_has_exact_repository_owner_lego_registration() -> None:
     """The executable GIT-01 graph belongs to repo mechanics, not the census."""
     census, plans = formal_issue_inputs()

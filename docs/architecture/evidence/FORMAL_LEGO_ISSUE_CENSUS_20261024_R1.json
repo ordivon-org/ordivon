@@ -885,6 +885,69 @@
             "platform/network/consumers/developer-egress/profile.sh",
             "platform/network/tests/test_developer_egress_profile.py"
           ]
+        },
+        {
+          "localCommit": "abbeace5d271f506f72413517c42a5b7320d966e",
+          "owner": "tools/repo",
+          "consumer": "Use local offline uv/pnpm caches before any network/VPN fallback, and only request existing network provider when lock materialization fails offline.",
+          "remoteWitness": "tools/repo/workspace-ready and tools/repo/test_workspace_ready.py::test_cached_pnpm_dependencies_bootstrap_without_vpn_or_provider, test_offline_python_cache_bootstrap_without_vpn_or_provider, test_missing_pnpm_cache_uses_existing_network_provider_as_fallback; current 38 native unittest PASS.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "4b630ed360901d44ae2bea725fc53722225b460a",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "CURRENT_NATIVE_CONSUMER_WITH_DIFFERENT_GIT_BLOBS",
+            "consumerStanding": "CURRENT_OWNER_COVERED_BY_NATIVE_FAULT_TESTS",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "4b630ed360901d44ae2bea725fc53722225b460a",
+          "changedPaths": [
+            "tools/repo/test_workspace_ready.py",
+            "tools/repo/workspace-ready"
+          ]
+        },
+        {
+          "localCommit": "96a5d01aa5dca87ba0a8be0721ae51d2499a88dc",
+          "owner": "tools/repo",
+          "consumer": "Reject concurrent npm and pnpm lockfiles at one package consumer before any mise install or network effect; current CLI also rejects npm-only drift.",
+          "remoteWitness": "tools/repo/workspace-ready and tools/repo/test_workspace_ready.py::test_mixed_npm_and_pnpm_locks_fail_before_any_tool_or_network_effect, test_native_npm_nested_consumer_is_rejected_before_side_effects; current 38 native unittest PASS.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "4b630ed360901d44ae2bea725fc53722225b460a",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "CURRENT_NATIVE_CONSUMER_WITH_DIFFERENT_GIT_BLOBS",
+            "consumerStanding": "CURRENT_OWNER_COVERED_BY_NATIVE_FAULT_TESTS",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "4b630ed360901d44ae2bea725fc53722225b460a",
+          "changedPaths": [
+            "tools/repo/test_workspace_ready.py",
+            "tools/repo/workspace-ready"
+          ]
+        },
+        {
+          "localCommit": "492efb2d28a3b136794eb648e5610468636394ed",
+          "owner": "tools/repo",
+          "consumer": "Preflight every required uv and pnpm lock in mixed-language owners before side effects, retaining current single workspace-ready contract.",
+          "remoteWitness": "tools/repo/workspace-ready and tools/repo/test_workspace_ready.py::test_mixed_technology_owner_requires_every_lock_before_side_effects, test_absent_python_lock_fails_before_mise_preflight_or_install, test_absent_pnpm_lock_fails_before_mise_preflight_or_install; current 38 native unittest PASS.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "4b630ed360901d44ae2bea725fc53722225b460a",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "CURRENT_NATIVE_CONSUMER_WITH_DIFFERENT_GIT_BLOBS",
+            "consumerStanding": "CURRENT_OWNER_COVERED_BY_NATIVE_FAULT_TESTS",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "4b630ed360901d44ae2bea725fc53722225b460a",
+          "changedPaths": [
+            "tools/repo/test_workspace_ready.py",
+            "tools/repo/workspace-ready"
+          ]
         }
       ],
       "consumerBlockedSelections": [
