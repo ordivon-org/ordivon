@@ -65,7 +65,9 @@
       "sharedRefs": [],
       "evidence": [
         "README.md",
-        "experiments/README.md"
+        "experiments/README.md",
+        "experiments/production-smoke-r1/run.ts",
+        "test/equipment-surface.test.ts"
       ],
       "dependencies": [],
       "mustNotOwn": [
@@ -73,7 +75,7 @@
       ],
       "acceptance": [
         "Experiment outcomes remain scoped to their hypothesis and evidence.",
-        "Current Game equipment resolution accepts only exact Workstation-v2 provider identities; legacy/wrong bindings remain UNAVAILABLE, and frozen historical production-smoke receipts retain their original source bytes."
+        "Game equipment resolution and production cold-start admit only source-matched Workstation v2 professional-software/managed-external provider identities; legacy and mismatched bindings remain UNAVAILABLE, and frozen historical production-smoke receipts preserve original source bytes."
       ]
     },
     {

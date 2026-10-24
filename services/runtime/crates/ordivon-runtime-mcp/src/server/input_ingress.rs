@@ -123,7 +123,7 @@ fn ingress_stage_size_digest(
         }
         digest.update(&buffer[..read]);
     }
-    Ok((observed, format!("sha256:{:x}", digest.finalize())))
+    Ok((observed, format!("sha256:{}", hex::encode(digest.finalize()))))
 }
 
 async fn ingress_pinned_https_get(

@@ -748,6 +748,34 @@ def test_formal_issue_skill_symlink_cannot_escape_source_cut(tmp_path: Path) -> 
         module.validate_formal_issue_census(census, plans, root=tmp_path)
 
 
+def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
+    """A Git-only commit cannot be called unique without a source-bound consumer comparison."""
+    census, plans = formal_issue_inputs()
+    issue = next(item for item in census["issues"] if item["id"] == "GIT-01")
+    source = issue["consumerSourceCut"]
+    assert source["localMain"] == "13704d0cac9e113b395f2d5a21b5bf8119aa04a5"
+    assert source["remoteMain"] == "4f83f744e424c1c5ed583c3b60fc473d29f1efe9"
+    candidates = issue["consumerSelections"]
+    assert {item["localCommit"][:10] for item in candidates} == {
+        "13704d0cac", "35b7e06ffd", "4a2555f42e", "0dcfbb750f",
+        "a6af91c187", "63d3c48172", "0abd90d3ba",
+        "b13052b5da", "fd2082905f", "e140571445",
+    }
+    for item in candidates:
+        assert len(item["localCommit"]) == 40
+        assert item["owner"]
+        assert item["consumer"]
+        assert item["remoteWitness"]
+        assert item["disposition"] in {"SKIP_DUPLICATE_CHERRY_PICK", "SKIP_OLDER_PIN"}
+        assert item["evidenceScope"] in {
+            "NATIVE_CONSUMER_PASS", "EXACT_GIT_BLOBS",
+            "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF",
+        }
+        if item["evidenceScope"] == "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF":
+            assert item["disposition"] == "SKIP_OLDER_PIN"
+    module.validate_formal_issue_census(census, plans)
+
+
 def test_formal_issue_owner_plan_cannot_escape_source_cut(tmp_path: Path) -> None:
     """A plausible LEGO plan outside the candidate checkout is not an owner link."""
     census, plans = formal_issue_inputs()
@@ -810,3 +838,69 @@ def test_formal_registry_sources_bound_before_loading(
     local.symlink_to(external)
     with pytest.raises(module.ArchitectureDocsError, match=f"{label} escapes SourceCut"):
         module._source_bound_file(source, relative, label)
+
+
+def test_git02_unadmitted_historical_finance_and_network_consumers_remain_source_bound() -> None:
+    """Historical CDC success must not invent current consumers or authorize deletion."""
+    census, plans = formal_issue_inputs()
+    issue = next(row for row in census["issues"] if row["id"] == "GIT-02")
+    candidates = issue["historicalUnadmittedOwnerConsumers"]
+    assert {row["historicalCommit"] for row in candidates} == {
+        "1df72119bc2a04cc6b1f93501d068873546f934f",
+        "5f4d4759b2809a5ccc57174e3e110eb6926f135d",
+    }
+    assert {row["owner"] for row in candidates} == {"domains/capital", "platform/network"}
+    assert {row["historicalNativeTestResult"] for row in candidates} == {"12_PASSED"}
+    for row in candidates:
+        assert row["modernConsumerAdmitted"] is False
+        assert row["branchRetirement"] == "NOT_PROVEN"
+        assert row["selection"] == "PRESERVE_HISTORICAL_SOURCE_NO_WHOLE_COMMIT_CHERRY_PICK"
+        assert row["historicalTestSourceCut"] == row["historicalCommit"]
+        assert row["protectedMainSourceCut"] == "e74e94a298077432df589e58c61a9b1499a28c5c"
+        assert row["behaviorScope"].strip()
+        assert row["missingCurrentConsumerEvidence"].strip()
+        assert all(not (ROOT / path).exists() for path in row["historicOnlyFiles"])
+    module.validate_formal_issue_census(census, plans)
+
+
+def test_git02_gateway_historical_branch_is_consumer_scoped_not_mass_deletable() -> None:
+    """Branch-tip difference is not a consumer-qualified reason to cherry-pick or delete."""
+    census, plans = formal_issue_inputs()
+    issue = next(row for row in census["issues"] if row["id"] == "GIT-02")
+    source = issue["historicalGatewaySourceCut"]
+    assert source["historicalHead"] == "bb26e32ed40e4c37534ae6f367fbdf747317682c"
+    assert source["protectedMain"] == "4379351658e7ffaad9c1510e0c7579e449e82438"
+    assert source["classification"] == "OWNER_CONSUMER_COVERAGE_NOT_BRANCH_EQUIVALENCE"
+    assert source["branchRetirement"] == "NOT_PROVEN"
+    selected = issue["historicalGatewayConsumerSelections"]
+    assert {entry["historicalCommit"] for entry in selected} == {
+        "8d22cda4f0a2e789f80c43c28720df3879fdaf7f",
+        "bb26e32ed40e4c37534ae6f367fbdf747317682c",
+    }
+    assert issue["registration"]["state"] == "UNREGISTERED"
+    for entry in selected:
+        assert entry["owner"] == "services/gateway"
+        assert entry["status"] == "CONSUMER_COVERED_DO_NOT_CHERRY_PICK_WHOLE_COMMIT"
+        assert entry["evidenceScope"] == "NATIVE_CONSUMER_TESTS_ONLY"
+        assert entry["historicalObligation"].strip()
+        assert entry["remoteConsumer"].strip()
+        for path in entry["remoteTestPaths"]:
+            assert path.startswith("services/gateway/tests/")
+            assert (ROOT / path).is_file()
+    module.validate_formal_issue_census(census, plans)
+
+
+def test_git02_unique_codex_oauth_discovery_history_is_not_relabelled_redundant() -> None:
+    """A passing historical consumer absent from Main is a preservation candidate."""
+    census, plans = formal_issue_inputs()
+    issue = next(row for row in census["issues"] if row["id"] == "GIT-02")
+    entry = issue["historicalCodexOAuthSourceCut"]
+    assert entry["historicalCommit"] == "228d789a752386ebe31a3706925bfaf5f665ad94"
+    assert entry["candidateStatus"] == "PRESERVE_SOURCE_PENDING_CONSUMER_ADMISSION"
+    assert entry["historyDisposition"] == "NO_CHERRY_PICK_OR_DELETE_AUTHORIZED"
+    assert entry["sourceUniqueAtCut"] is True
+    assert entry["nativeFixtureProof"] == "23_OFFLINE_SOURCECUT_TESTS_PASS"
+    assert entry["scope"] == "DISCOVERY_ONLY_NO_CREDENTIALS_OR_LIVE_GATEWAY"
+    assert entry["protectedConsumerAdmitted"] is False
+    assert issue["registration"]["state"] == "UNREGISTERED"
+    module.validate_formal_issue_census(census, plans)

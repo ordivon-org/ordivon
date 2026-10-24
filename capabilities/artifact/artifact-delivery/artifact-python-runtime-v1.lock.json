@@ -16,15 +16,15 @@
     "python-pptx": "1.0.2",
     "referencing": "0.37.0",
     "rpds-py": "2026.6.3",
-    "temporalio": "1.32.0",
+    "temporalio": "1.34.0",
     "types-protobuf": "7.35.1.20260906",
     "typing-extensions": "4.16.0",
     "XlsxWriter": "3.2.9"
   },
   "uvProject": {
     "path": "artifact-delivery/python-uv",
-    "pyprojectSha256": "sha256:8e1aaa5dfac052d3b270d7f4e6b14a0f841a5df47c3dc941cd0beafa86915fd2",
-    "uvLockSha256": "sha256:9e4bb741d751366b19ca9bf1f66d646d28dbb975fdcd0af2b043fcccb5c13cdf"
+    "pyprojectSha256": "sha256:60091c8a39093d736f665d9befdd2b1f4849da805a8031c401c1c9c2fe2e3cc6",
+    "uvLockSha256": "sha256:6713ec63628ecd9c2a2c0a3d3d6a21902486f7a7eff1a78e2b7105b75d92c76a"
   },
   "stableRoot": "/root/.local/share/ordivon-workstation/artifact-python-v1",
   "stablePython": "/root/.local/share/ordivon-workstation/artifact-python-v1/current/bin/python",

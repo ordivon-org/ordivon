@@ -65,6 +65,93 @@
       "observation": "Exact Git graph for local main 13704d0cac9e and protected origin/main ac5139d5cd54: 2300 local-only and 378 remote-only commits from 80c17a363521. Among 1546 local non-merge commits compared by Git patch-id, 26 have exact patch equivalents and 1520 have no exact equivalents. Patch distinctness does not imply consumer-level functional uniqueness.",
       "evidence": "Observed 2026-10-23T23:39:03Z: git merge-base main origin/main; git rev-list --left-right --count main...origin/main; git cherry -v origin/main main; git status --porcelain (clean). Exact identities: local 13704d0cac9e113b395f2d5a21b5bf8119aa04a5, remote ac5139d5cd54004ccd4acca89e71930c68afe6af, base 80c17a3635219fa00c91ee9ea00700918bd14df4. No merge/reset/cherry-pick/rebase/delete performed.",
       "decision": "Do not fast-forward or reset a non-ancestor local main. Select only source-bound local deltas that preserve actual consumer behavior via owner-native contracts; do not equate Git SHA or patch uniqueness with unique LEGO capability.",
+      "consumerSourceCut": {
+        "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+        "remoteMain": "4f83f744e424c1c5ed583c3b60fc473d29f1efe9",
+        "relation": "BEHAVIORAL_CONSUMER_COVERAGE_NOT_COMMIT_EQUIVALENCE"
+      },
+      "consumerSelections": [
+        {
+          "localCommit": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+          "owner": "tools/repo",
+          "consumer": "ConvergencePlan root toolchain changes retain all-owner verification; retired calendar exception is absent",
+          "remoteWitness": "tools/repo/convergence_plan.py::build_plan + tools/repo/test_convergence_plan.py::test_cross_cutting_change_requires_all_owner_verification",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK"
+        },
+        {
+          "localCommit": "35b7e06ffd401f56d974627097f6e7c0543d59ed",
+          "owner": "services/runtime",
+          "consumer": "Workspace reclaim rejects boolean lastActivityMs before cleanup effects",
+          "remoteWitness": "services/runtime/scripts/ordivon-runtime-reclaim + services/runtime/scripts/tests/test_deploy_reclaim.py::test_reclaim_apply_uses_recent_registry_activity_for_minimum_age",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK"
+        },
+        {
+          "localCommit": "4a2555f42e6d2edfdc184e0b831f15050c08f375",
+          "owner": "services/harness",
+          "consumer": "Pinned Temporal SDK and release compatibility require temporalio 1.34.0",
+          "remoteWitness": "services/harness/config/agent-automation-temporal-requirements.txt + services/harness/scripts/agent_automation_release.py + services/harness/tests/test_temporal_agent_automation_contract.py",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK"
+        },
+        {
+          "localCommit": "0dcfbb750f4a017b07ab7cd7e035cbece7e6c9eb",
+          "owner": "domains/game",
+          "consumer": "WeaponSpec.pierce and bounded distinct-enemy projectile behavior",
+          "remoteWitness": "domains/game/kits/room-action-r0/src/lib.rs::projectile_pierce_is_backward_compatible_json_and_validated + src/main.rs::configured_piercing_shot_hits_two_foes_once_each_then_is_spent",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK"
+        },
+        {
+          "localCommit": "a6af91c187ef363af3729fc685ab76755f11044e",
+          "owner": "services/host",
+          "consumer": "Repeated Host release materialization rejects drifted tracked Git blobs or executable modes before effects",
+          "remoteWitness": "services/host/packaging/install_release.sh::verify_release_source + services/host/tests/test_release_packaging.py::test_install_release_extracts_host_subtree_from_monorepo",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK"
+        },
+        {
+          "localCommit": "63d3c481720e6498ddf305696189b2824aab68c4",
+          "owner": "platform/workstation",
+          "consumer": "Failed Temporal PostgreSQL stop preserves restore scratch and PGDATA instead of deleting unknown effect evidence",
+          "remoteWitness": "platform/workstation/scripts/temporal_pgbackrest_restore_smoke.sh + platform/workstation/tests/test_temporal_restore_stop_failure.py",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK"
+        },
+        {
+          "localCommit": "0abd90d3ba18f680268b2184981cad36d6261185",
+          "owner": "services/gateway",
+          "consumer": "Pinned Windows ACL preflight preserves native candidate release access guards; both source and existing regression file are byte-identical",
+          "remoteWitness": "Exact Git blobs: services/gateway/packaging/windows/protect_candidate_acl.ps1 + services/gateway/tests/test_windows_acl_preflight.py",
+          "evidenceScope": "EXACT_GIT_BLOBS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK"
+        },
+        {
+          "localCommit": "b13052b5dac74107b21139a4ca298f0fdc6ff616",
+          "owner": "tools/repo",
+          "consumer": "GitHub main CI and Runtime release both consume the same official mise-action v5.2.2 immutable SHA, and native governance verifies the pin",
+          "remoteWitness": ".github/workflows/ci.yml + .github/workflows/runtime-release.yml + tools/repo/check_github_governance.py::main (SHA 8418fedb1110381a0d3ba51a7a415d7c1b884550)",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK"
+        },
+        {
+          "localCommit": "fd2082905f36602d80bb024f606103228e42ecb4",
+          "owner": "capabilities/artifact",
+          "consumer": "Artifact Python release carrier pins protobuf 7.36.2 and the official release SBOM action is v0.24.3; native artifact environment tests verify the carrier",
+          "remoteWitness": "capabilities/artifact/artifact-delivery/python-uv/pyproject.toml + artifact-python-runtime-v1.lock.json + capabilities/artifact/tests/test_artifact_python_environment.py (11 PASS); .github/workflows/runtime-release.yml",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK"
+        },
+        {
+          "localCommit": "e1405714453450b6792c67cb7ea1b72ed19bc717",
+          "owner": "platform/workstation",
+          "consumer": "Older Nixpkgs revision is superseded by later upstream nixos-26.05 source cut; the hazardous RStudio package is already absent from native home.nix",
+          "remoteWitness": "platform/workstation/workstation/nix/flake.lock :: nixpkgs lastModified 1792503283 > historical 1792030654; platform/workstation/workstation/nix/nix/home.nix (no rstudio)",
+          "evidenceScope": "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF",
+          "disposition": "SKIP_OLDER_PIN"
+        }
+      ],
       "formalObligation": "The selected source must be an explicit source cut and each chosen change must preserve owner CDC.",
       "consumers": "Git source, CI, all downstream consumers",
       "representation": {
@@ -103,6 +190,102 @@
       "registration": {
         "state": "UNREGISTERED",
         "reason": "Owner-local LEGO slice and consumer acceptance are not yet evidenced; census observation is not registration."
+      },
+      "historicalUnadmittedOwnerConsumers": [
+        {
+          "historicalCommit": "1df72119bc2a04cc6b1f93501d068873546f934f",
+          "historicalParent": "9397d126b23e226b2d34f2ddab4024a49792c234",
+          "owner": "domains/capital",
+          "historicalTestSourceCut": "1df72119bc2a04cc6b1f93501d068873546f934f",
+          "protectedMainSourceCut": "e74e94a298077432df589e58c61a9b1499a28c5c",
+          "historicOnlyFiles": [
+            "domains/capital/src/ordivon_capital/portfolio/human_finance_baseline.py",
+            "domains/capital/tests/test_finance_lego_consumption_r7.py"
+          ],
+          "behaviorScope": "Caller-supplied scenario-only read-only Human cash projections: money and dated flow conservation, reserve-floor, forged provider event rejection, permutation invariance and Hypothesis stateful trajectories. No live account or external financial writes.",
+          "historicalNativeTestResult": "12_PASSED",
+          "historicalTestWitness": "Isolated git archive of exact historical capital src, historical consumer test and golden fixture; PYTHONPATH=historic src; current pytest==9.1.1 and latest resolved Hypothesis; 12 passed in 0.59 seconds.",
+          "modernConsumerAdmitted": false,
+          "missingCurrentConsumerEvidence": "Historical human_finance_baseline module and stateful consumer test are absent in protected Main; current Capital architecture instead has counterfactual, live market, accounting and controlled execution Owners. No present consumer requested restoration of the old interface.",
+          "selection": "PRESERVE_HISTORICAL_SOURCE_NO_WHOLE_COMMIT_CHERRY_PICK",
+          "branchRetirement": "NOT_PROVEN"
+        },
+        {
+          "historicalCommit": "5f4d4759b2809a5ccc57174e3e110eb6926f135d",
+          "historicalParent": "955f23473113d1f3f3fd515bd2cbdf40f2f4747c",
+          "owner": "platform/network",
+          "historicalTestSourceCut": "5f4d4759b2809a5ccc57174e3e110eb6926f135d",
+          "protectedMainSourceCut": "e74e94a298077432df589e58c61a9b1499a28c5c",
+          "historicOnlyFiles": [
+            "platform/network/tests/test_consumer_observability_fault_classes.py",
+            "platform/network/acceptance/observability/scoped-consumer-blackbox.sh",
+            "platform/network/config/prometheus/consumer.rules.yml",
+            "platform/network/scripts/observability-sourcecut-preflight.py"
+          ],
+          "behaviorScope": "Offline scoped Blackbox/Prometheus consumer probes, absence/error/TLS alerts, proxy-bound endpoints and sourcecut drift preflight; no provider token, live carrier cutover, DNS or runtime systemd mutation.",
+          "historicalNativeTestResult": "12_PASSED",
+          "historicalTestWitness": "Isolated git archive of exact historical Taskfile, network config, preflight and native tests; latest installed blackbox/promtool parser plus current pytest==9.1.1; 12 tests passed in 1.58 seconds.",
+          "modernConsumerAdmitted": false,
+          "missingCurrentConsumerEvidence": "Historical Blackbox target/rules and test files are absent in protected Main; old static proxy endpoints and model-provider alerts are not current consumption evidence and must not be resurrected automatically.",
+          "selection": "PRESERVE_HISTORICAL_SOURCE_NO_WHOLE_COMMIT_CHERRY_PICK",
+          "branchRetirement": "NOT_PROVEN"
+        }
+      ],
+      "historicalGatewaySourceCut": {
+        "historicalHead": "bb26e32ed40e4c37534ae6f367fbdf747317682c",
+        "protectedMain": "4379351658e7ffaad9c1510e0c7579e449e82438",
+        "classification": "OWNER_CONSUMER_COVERAGE_NOT_BRANCH_EQUIVALENCE",
+        "branchRetirement": "NOT_PROVEN",
+        "sourceComparison": "Two historical branch-only commits, not the full three-dot divergence. 18 affected historical paths; five identical blobs at this protected source cut, thirteen differing. Modern differences and untested Windows host effects remain unqualified.",
+        "realizationBoundary": "Native Linux verification of owner source/contract tests only; actual Windows service start, ACL realization and activation not demonstrated."
+      },
+      "historicalGatewayConsumerSelections": [
+        {
+          "historicalCommit": "8d22cda4f0a2e789f80c43c28720df3879fdaf7f",
+          "owner": "services/gateway",
+          "historicalObligation": "Windows Gateway carrier candidate is provisioned from an immutable exact full SHA with locked Python, an executable, mechanical release receipt, and MCP tool surface verification.",
+          "remoteConsumer": "Protected Main gateway Windows installer and release verifier bind release source SHA, managed Python/uv lock, manifest package version/tool list and immutable receipt. Original branch files differ on thirteen of eighteen paths; no whole-file/commit equivalence claim.",
+          "remoteTestPaths": [
+            "services/gateway/tests/test_windows_release_contract.py",
+            "services/gateway/tests/test_windows_activation_contract.py"
+          ],
+          "status": "CONSUMER_COVERED_DO_NOT_CHERRY_PICK_WHOLE_COMMIT",
+          "evidenceScope": "NATIVE_CONSUMER_TESTS_ONLY"
+        },
+        {
+          "historicalCommit": "bb26e32ed40e4c37534ae6f367fbdf747317682c",
+          "owner": "services/gateway",
+          "historicalObligation": "Windows carrier credential materialization requires stopped candidate, protected service SID ACL and digest-only receipt, service materialization must reject missing runtime bearer paths.",
+          "remoteConsumer": "Protected Main gateway Windows credential/service materializers and source-bound native tests preserve the named preflight, least-privilege credential and service lifecycle obligations; actual Windows execution and untested historical behaviors remain UNKNOWN.",
+          "remoteTestPaths": [
+            "services/gateway/tests/test_windows_credential_contract.py",
+            "services/gateway/tests/test_windows_service_contract.py",
+            "services/gateway/tests/test_windows_acl_preflight.py",
+            "services/gateway/tests/test_windows_local_identity.py"
+          ],
+          "status": "CONSUMER_COVERED_DO_NOT_CHERRY_PICK_WHOLE_COMMIT",
+          "evidenceScope": "NATIVE_CONSUMER_TESTS_ONLY"
+        }
+      ],
+      "historicalCodexOAuthSourceCut": {
+        "historicalCommit": "228d789a752386ebe31a3706925bfaf5f665ad94",
+        "historicalParent": "955f23473113d1f3f3fd515bd2cbdf40f2f4747c",
+        "protectedMain": "4379351658e7ffaad9c1510e0c7579e449e82438",
+        "owner": "platform/network",
+        "sourceUniqueAtCut": true,
+        "historicalSourcePaths": [
+          "platform/network/consumers/codex/oauth_discovery.py",
+          "platform/network/tests/test_codex_mcp_oauth_discovery.py"
+        ],
+        "sourceWitness": "Both historical files are present in the exact Git commit, but absent in protected Main at this fixed source cut; unlike unrelated branch divergence they represent one unique historical consumer delta.",
+        "scope": "DISCOVERY_ONLY_NO_CREDENTIALS_OR_LIVE_GATEWAY",
+        "consumerContract": "Read-only RFC 9728 protected-resource OAuth challenge, RFC 8414 authorization server issuer, exact host/source allowlist, PKCE S256, no login, token exchange, direct proxy bypass or Gateway MCP call.",
+        "nativeFixtureProof": "23_OFFLINE_SOURCECUT_TESTS_PASS",
+        "nativeFixtureCommand": "git archive exact commit of Taskfile.yml, consumers/codex and test_codex_mcp_oauth_discovery.py to isolated temporary directory; uv run --with pytest==9.1.1 python -m pytest -q isolated historical test file",
+        "protectedConsumerAdmitted": false,
+        "candidateStatus": "PRESERVE_SOURCE_PENDING_CONSUMER_ADMISSION",
+        "historyDisposition": "NO_CHERRY_PICK_OR_DELETE_AUTHORIZED",
+        "reason": "Historical source/fixture tests demonstrate a bounded source capability; no current source/consumer demand establishes whether it should be integrated, retired or replaced. Old hardcoded network/issuer routes are not production admission. Preserve Git history, no direct old dependency/route reuse."
       }
     },
     {

@@ -40,7 +40,14 @@ def main()->int:
     if tree_digest(venv)!=binding.get('venvTreeDigest'):raise RuntimeError('Artifact Python uv environment bytes drifted')
     venv_python=venv/'bin/python'
     resolved=venv_python.resolve(strict=True)
-    if str(resolved)!=binding.get('pythonExecutableResolvedPath') or 'sha256:'+_sha(resolved)!=binding.get('pythonExecutableSha256'):raise RuntimeError('Artifact Python interpreter bytes drifted')
+    if binding.get('interpreterPlacement')=='generation-local-executable-copy-v1':
+        if venv_python.is_symlink() or resolved!=venv_python.absolute():
+            raise RuntimeError('Artifact Python generation-local interpreter placement drifted')
+    elif str(resolved)!=binding.get('pythonExecutableResolvedPath'):
+        # Legacy generations remain SHA-checked until retired.
+        raise RuntimeError('Artifact Python interpreter path drifted')
+    if 'sha256:'+_sha(resolved)!=binding.get('pythonExecutableSha256'):
+        raise RuntimeError('Artifact Python interpreter bytes drifted')
     expected=dict(binding['pythonPackages'])
     code=("import json,platform;from importlib.metadata import version;import lxml.etree,pptx,PIL,jsonschema,xlsxwriter,opentelemetry.sdk,temporalio;"
           f"names={json.dumps(sorted(expected))};"
