@@ -865,17 +865,13 @@ def validate_repository(root: Path = ROOT) -> None:
     if trace_acceptance.get("status") != "ACCEPTED_DEPLOYED_ON_DEMAND":
         raise ArchitectureDocsError("persistent trace backend lacks accepted live evidence")
 
-    # Independent obligations: finite typed node/slice closure is not the
-    # predecessor DAG law; a valid STATE cycle must not be rejected as a
-    # scheduling dependency.  Preserve both existing source-bound consumers.
+    # Two independent mature graph obligations apply to every registered Owner,
+    # whether or not a time-scoped issue census happens to mention its plan.
+    # Only DEPENDENCY is a prerequisite; STATE/OBSERVATION feedback may cycle.
     for relative in OWNER_LEGO_PLANS:
-        validate_owner_lego_graph(_load_json(root / relative))
-
-    # Host R1 dependencies have a consumer even without an issue-census row.
-    validate_owner_lego_dependencies(
-        _load_json(root / "services/host/planning/lego-plan-r1.json"),
-        "services/host",
-    )
+        plan = _load_json(root / relative)
+        validate_owner_lego_graph(plan)
+        validate_owner_lego_dependencies(plan, relative.split("/planning/", 1)[0])
 
     issue_evidence_dir = root / "docs" / "architecture" / "evidence"
     for census_path in issue_evidence_dir.glob("FORMAL_LEGO_ISSUE_CENSUS_*_R*.json"):

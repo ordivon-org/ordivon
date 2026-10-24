@@ -7,6 +7,7 @@ import json
 import re
 import sys
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -1832,7 +1833,7 @@ def test_formal_r21_host_existing_typed_dependencies_form_nontrivial_frontiers()
     plan = json.loads((ROOT / "services/host/planning/lego-plan-r1.json").read_text())
     nodes, fronts = module.validate_owner_lego_dependencies(plan, "services/host")
     depth = {node: d for d, front in enumerate(fronts) for node in front}
-    assert len(nodes) == 5
+    assert nodes == {"O01", "O02", "O03", "O04"}
     assert depth["O04"] < depth["O01"]
     assert depth["O04"] < depth["O02"]
     assert any(e["from"] == "O02" and e["to"] == "O03" and e["type"] == "DATA"
@@ -1961,3 +1962,35 @@ def test_r21_single_six_role_contract_enforced_at_repository_admission() -> None
                 "services/host/tests/test_unverified_nonexistent_contract.py",
             )
         )
+
+
+@pytest.mark.parametrize(
+    ("relative", "target", "predecessor"),
+    [
+        ("services/runtime/planning/lego-plan-r1.json", "R00", "R01"),
+        ("services/harness/planning/lego-plan-r1.json", "H05", "H01"),
+        ("platform/network/planning/lego-plan-r1.json", "N05", "N02"),
+    ],
+)
+def test_r21_repository_always_checks_core_owner_prerequisites(
+    relative: str, target: str, predecessor: str
+) -> None:
+    """An Owner's validity is independent of time-scoped issue registrations."""
+    plan = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+    node = next(row for row in plan["nodes"] if row["id"] == target)
+    # Close the existing typed predecessor path into an invalid cycle.
+    node["dependencies"].append(predecessor)
+    loader = module._load_json
+
+    def mutated_owner(path: Path):
+        if Path(path) == ROOT / relative:
+            return plan
+        return loader(path)
+
+    # Disable only the optional census consumer to prove the main admission
+    # gate itself checks every registered native Owner.
+    with patch.object(module, "_load_json", side_effect=mutated_owner), patch.object(
+        module, "validate_formal_issue_census", return_value=None
+    ):
+        with pytest.raises(module.ArchitectureDocsError, match="cyclic LEGO dependencies"):
+            module.validate_repository(ROOT)
