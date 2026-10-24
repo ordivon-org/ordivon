@@ -108,7 +108,9 @@
         "consumers/developer-egress/profile.sh",
         "tests/test_developer_egress_profile.py",
         "Historical consumer selection, source-bound: local 83fb2956e051ad9c27c091e96631a842f8eebcc7 (legacy consumers/model-provider/ready.sh TLS/proxy readiness) versus protected Main 7b51fd3e033f964db551c127e2e910ae3bc88ef8. The legacy script is absent; tools/repo/workspace-ready consumes consumers/developer-egress/profile.sh instead. tests/test_developer_egress_profile.py exercises proxy routing/fail-closed behavior; legacy TLS readiness semantic parity and live provider reachability remain UNPROVED. No legacy daemon may be resurrected based on commit uniqueness alone.",
-        "Historical merge consumer selection: local Main merge 77c36033da05586dbd965d407f35bf2fece578ef (parents 7b2603ebbfcf5513ea2f015a6f50f3f2407d6969, 628029537f4201847599bd187e2985fdd1e2a329) was a Discord user-read Provider resolution, with 10 result paths distinct from both parents under Network/Workstation; observed against protected main a56afcf30aafd8d5bcd0f41adb950504f5724267. NO_CURRENT_CONSUMER: platform/network/consumers/discord/systemd/network-v2-discord-egress.service and platform/workstation/workstation/discord_user_provider.py are absent; the selected Network owner profiles remain existing active consumers (developer-egress/browserless/etc). Do not cherry-pick the merged historical daemon solely due SHA/merge path uniqueness. Discord user-read parity, archived data, live authentication and egress are UNPROVED; preserve source Git ancestry pending explicit Owner consumer admission."
+        "Historical merge consumer selection: local Main merge 77c36033da05586dbd965d407f35bf2fece578ef (parents 7b2603ebbfcf5513ea2f015a6f50f3f2407d6969, 628029537f4201847599bd187e2985fdd1e2a329) was a Discord user-read Provider resolution, with 10 result paths distinct from both parents under Network/Workstation; observed against protected main a56afcf30aafd8d5bcd0f41adb950504f5724267. NO_CURRENT_CONSUMER: platform/network/consumers/discord/systemd/network-v2-discord-egress.service and platform/workstation/workstation/discord_user_provider.py are absent; the selected Network owner profiles remain existing active consumers (developer-egress/browserless/etc). Do not cherry-pick the merged historical daemon solely due SHA/merge path uniqueness. Discord user-read parity, archived data, live authentication and egress are UNPROVED; preserve source Git ancestry pending explicit Owner consumer admission.",
+        "consumers/claude/ready.sh",
+        "tests/test_claude_egress_readiness_consumer.py"
       ],
       "dependencies": [],
       "mustNotOwn": [
@@ -116,7 +118,8 @@
       ],
       "acceptance": [
         "Adding a profile does not redefine generic Network acceptance.",
-        "Cold Workspace dependency consumers reuse the existing developer-egress profile; absent or unsafe egress fails closed without a second tunnel."
+        "Cold Workspace dependency consumers reuse the existing developer-egress profile; absent or unsafe egress fails closed without a second tunnel.",
+        "Claude's existing namespace-local proxy readiness accepts only a valid upstream HTTP CONNECT, completed TLS handshake, and qualified API/installer status; denies malformed, gateway and redirect failures."
       ]
     }
   ],

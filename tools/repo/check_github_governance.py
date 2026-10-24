@@ -79,6 +79,9 @@ def main() -> int:
     assert renovate.get("lockFileMaintenance", {}).get("enabled") is True, (
         "Renovate must refresh uv.lock files"
     )
+    assert renovate.get("lockFileMaintenance", {}).get("automerge", False) is False, (
+        "Renovate uv.lock maintenance must not bypass consumer verification"
+    )
     assert renovate.get("automerge", False) is False, (
         "Python dependency upgrades require consumer verification"
     )
