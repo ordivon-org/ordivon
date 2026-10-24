@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import ast
 import fcntl
 import hashlib
@@ -15,7 +16,7 @@ import tempfile
 import time
 import threading
 import unittest
-from contextlib import closing, contextmanager
+from contextlib import closing, contextmanager, nullcontext
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from unittest.mock import patch
@@ -2152,6 +2153,58 @@ class DeployReclaimTests(unittest.TestCase):
                 inspect(Path("/secret/registry.sqlite3"), 5000, "registry")
         self.assertNotIn("/secret/", str(failure.exception))
         self.assertEqual(executed.call_args.kwargs.get("timeout"), 15.0)
+
+    def test_reclaim_apply_rejects_boolean_registry_activity_before_any_effect(self) -> None:
+        # Historical local commit 35b7e06ffd40 exposed an owner safety oracle
+        # missing from remote tests. The live provider already rejects bool,
+        # so preserve only the consumer test, not the historical implementation.
+        scripts_path = str(REPO / "scripts")
+        sys.path.insert(0, scripts_path)
+        try:
+            module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-reclaim"))
+        finally:
+            sys.path.remove(scripts_path)
+        globals_ = module["apply_reclaim"].__globals__
+        candidate = {
+            "workspaceId": "fake",
+            "classification": "closable",
+            "createdUnixMs": 1,
+        }
+
+        def forbidden_receipt(_root: Path) -> Path:
+            raise AssertionError("invalid registry activity reached receipt creation")
+
+        with tempfile.TemporaryDirectory() as temp:
+            args = argparse.Namespace(
+                confirm_policy="RECLAIM_ELIGIBLE_WORKSPACES",
+                classifications=["closable"],
+                workspace_ids=["fake"],
+                minimum_age_hours=0.0,
+                lock_file=Path(temp) / "lock",
+                receipt_root=Path(temp) / "receipts",
+                database=Path(temp) / "registry.sqlite3",
+                busy_timeout_ms=1000,
+            )
+            for raw_last_activity in (True, False):
+                with self.subTest(raw_last_activity=raw_last_activity):
+                    replacements = {
+                        "exclusive_lock": lambda _path: nullcontext(),
+                        "inspect_workspaces": lambda *_args, **_kwargs: {
+                            "candidates": [candidate]
+                        },
+                        "registry_workspace_projection": lambda *_args, **_kwargs: {
+                            "workspace": {
+                                "workspaceId": "fake",
+                                "activeJobIds": [],
+                                "lastActivityMs": raw_last_activity,
+                            }
+                        },
+                        "reclaim_receipt": forbidden_receipt,
+                    }
+                    with patch.dict(globals_, replacements):
+                        with self.assertRaisesRegex(RuntimeError, "invalid lastActivityMs"):
+                            module["apply_reclaim"](args)
+                    self.assertFalse((Path(temp) / "receipts").exists())
 
     def test_reclaim_numeric_bounds_follow_sqlite_and_finite_policy_values(self) -> None:
         module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-reclaim"))
