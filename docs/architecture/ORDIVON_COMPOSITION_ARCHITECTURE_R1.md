@@ -119,33 +119,19 @@ A new public Gateway capability is admitted only when all are true:
 Architecture documentation does not prove implementation conformance. The machine-readable LEGO graph and repository checks provide mechanical regression gates; owner-native tests and live end-to-end evidence remain required for implementation acceptance.
 
 
-## LEGO 2.1 mathematical kernel (method, not new authority)
+## LEGO 2.1: one canonical identity, optional mathematics
 
-**Status:** proposed representation profile over current natural-owner contracts.
-This is NOT a new deployed LEGO version, runtime registry, scheduler, or
-authorization grant.
+The sole canonical six-part LEGO identity is specified in
+[Agent Concepts — Formal-First × LEGO-First](AGENT_CONCEPTS_FORMAL_LEGO_RESEARCH_20261024.md):
+identity, responsibility, inputs, outputs, contract, and acceptance.
 
-For a bounded real consumer X:
-
-    LEGO_X = (Owner, Input, Output, Assumption, Guarantee,
-              State, Transition, Effect, Dependencies, Verification)
-
-Use only coordinates required to choose, verify, replace, or retire that LEGO.
-Unknown consumers and unverified equivalence are UNKNOWN, not UNUSED.
-
-Mature operators used instead of new algorithms:
-
-- Types/constraints: existing Rust type checks and JSON Schema Draft 2020-12.
-- Dependency partial order: Python graphlib.TopologicalSorter for finite
-  declared DAGs, and reachability-antichain tests for parallel starts. Other
-  DATA/OBSERVATION/state-machine graphs may contain cycles.
-- Assume/guarantee: the producer's tested guarantee discharges the specific
-  consumer assumption at each explicit cross-owner edge. Matching fields
-  or path names alone do not constitute proof.
-- State: current bounded Runtime TLA+ and owner-native replay/fault injection.
-  Physical completion is not automatically semantic success.
-- Substitution: retain consumer-observable effects and failure semantics
-  in the specified context, or report UNKNOWN instead of deleting.
+**This architecture document does not define another LEGO tuple.**
+For a named consumer, use only the existing mathematical interpretation
+needed to decide that contract: Rust/JSON Schema types, standard-library
+graphlib for finite dependency DAGs, existing TLA+/TLC transitions and
+source-scoped assume-guarantee/trace-refinement evidence. A partial graph,
+verified model, Skill or document grants no execution or domain authority.
+UNKNOWN consumers and substitution effects require further evidence.
 
 | Owner | Owned truth | Mature native verifier | Not implied |
 | --- | --- | --- | --- |
