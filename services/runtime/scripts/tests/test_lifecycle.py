@@ -72,6 +72,31 @@ def init_repository(path: Path) -> str:
 
 
 class LifecycleTests(unittest.TestCase):
+
+    def test_default_retention_requires_owner_disposition_for_dirty_workspaces(self) -> None:
+        """Automatic lifecycle sweep must not force-close unapproved dirty source."""
+        policy = self.module["DEFAULT_POLICY"]
+        packaged = json.loads(
+            (REPO / "packaging/systemd/ordivon-workspace-retention.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        for source in (policy, packaged):
+            for name in ("ephemeral", "review"):
+                with self.subTest(source="default" if source is policy else "installed", cls=name):
+                    definition = source["classes"][name]
+                    self.assertIs(definition["forceCloseDirtyAfterRetention"], False)
+                    self.assertIs(definition["forceCloseAfterMaxLifetime"], False)
+                    self.assertEqual(definition["retentionHours"], 24)
+                    old = int(time.time() * 1000) - 100 * 3_600_000
+                    standing = self.module["_policy_standing_from_registry"](
+                        {"classification": "blocked_dirty", "createdUnixMs": old, **definition},
+                        {"lastActivityMs": old},
+                    )
+                    self.assertIs(standing["policyEligible"], False)
+                    self.assertTrue(standing["hardLifetimeExpired"])
+
+
     def test_reclaim_timeout_diagnostics_follow_real_argv_without_secret_traceback(self) -> None:
         # Both real producers invoke: [sys.executable, reclaim_program(), phase, ...].
         import traceback
@@ -2238,16 +2263,16 @@ class LifecycleTests(unittest.TestCase):
             )
 
 
-    def test_default_policy_is_disposable_with_idle_and_hard_ttl(self) -> None:
+    def test_default_policy_reclaims_clean_but_preserves_dirty_without_owner_disposition(self) -> None:
         ephemeral = self.module["DEFAULT_POLICY"]["classes"]["ephemeral"]
         self.assertEqual(ephemeral["retentionHours"], 24.0)
         self.assertEqual(ephemeral["dirtyRetentionHours"], 48.0)
         self.assertEqual(ephemeral["maxLifetimeHours"], 48.0)
-        self.assertTrue(ephemeral["forceCloseDirtyAfterRetention"])
+        self.assertFalse(ephemeral["forceCloseDirtyAfterRetention"])
         self.assertTrue(ephemeral["forceCloseUnintegratedAfterRetention"])
-        self.assertTrue(ephemeral["forceCloseAfterMaxLifetime"])
+        self.assertFalse(ephemeral["forceCloseAfterMaxLifetime"])
 
-    def test_packaged_default_policy_is_disposable_with_idle_and_hard_ttl(self) -> None:
+    def test_packaged_default_policy_reclaims_clean_but_preserves_dirty(self) -> None:
         policy = json.loads(
             (REPO / "packaging/systemd/ordivon-workspace-retention.json").read_text(
                 encoding="utf-8"
@@ -2257,9 +2282,9 @@ class LifecycleTests(unittest.TestCase):
         self.assertEqual(ephemeral["retentionHours"], 24)
         self.assertEqual(ephemeral["dirtyRetentionHours"], 48)
         self.assertEqual(ephemeral["maxLifetimeHours"], 48)
-        self.assertTrue(ephemeral["forceCloseDirtyAfterRetention"])
+        self.assertFalse(ephemeral["forceCloseDirtyAfterRetention"])
         self.assertTrue(ephemeral["forceCloseUnintegratedAfterRetention"])
-        self.assertTrue(ephemeral["forceCloseAfterMaxLifetime"])
+        self.assertFalse(ephemeral["forceCloseAfterMaxLifetime"])
 
 
     def test_retention_dirty_preservation_precedes_close_and_is_receipted(self) -> None:
