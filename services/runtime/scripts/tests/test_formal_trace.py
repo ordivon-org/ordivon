@@ -201,6 +201,38 @@ trait Provider {
             for error in self.module.validate(mutated, invariants)
         ))
 
+    def test_formal_binding_cannot_relabel_an_existing_tla_operator(self):
+        """A present symbol is not proof that it denotes the declared contract."""
+        trace, invariants = manifests()
+        aliases = (
+            ("RuntimeDispatch.Dispatch", "Admit"),
+            ("RuntimeDispatch.AtMostOnceDispatchPerAttempt", "NoUnusedAttemptWasDispatched"),
+            ("RuntimeDispatch.AmbiguityRequiresReconciliation", "TerminalAttemptWasDispatched"),
+        )
+        for binding_id, other_existing_operator in aliases:
+            with self.subTest(binding=binding_id, alias=other_existing_operator):
+                mutated = copy.deepcopy(trace)
+                target = next(
+                    item for item in mutated["formalSpecification"]["modelBindings"]
+                    if item["id"] == binding_id
+                )
+                target["symbol"] = other_existing_operator
+                errors = self.module.validate(mutated, invariants)
+                self.assertTrue(
+                    any("formal model binding identity drift" in error for error in errors),
+                    errors,
+                )
+
+    def test_formal_binding_cannot_retype_a_transition_as_an_invariant(self):
+        trace, invariants = manifests()
+        mutated = copy.deepcopy(trace)
+        mutated["formalSpecification"]["modelBindings"][0]["kind"] = "invariant"
+        errors = self.module.validate(mutated, invariants)
+        self.assertTrue(
+            any("formal model binding type drift" in error for error in errors),
+            errors,
+        )
+
     def test_removed_formal_model_binding_fails_closed(self):
         trace, invariants = manifests()
         mutated = copy.deepcopy(trace)

@@ -176,6 +176,18 @@ def validate(trace: dict[str, Any], invariant_manifest: dict[str, Any]) -> list[
         if kind not in {"transition", "invariant"} or not isinstance(symbol, str):
             errors.append(f"invalid formal model binding: {binding!r}")
             continue
+        binding_id = binding.get("id")
+        # A named formal obligation must denote its exact TLA operator, not
+        # merely any operator found in the same checked model.
+        if isinstance(binding_id, str) and binding_id != f"RuntimeDispatch.{symbol}":
+            errors.append(
+                f"formal model binding identity drift: {binding_id!r} cannot bind {symbol!r}"
+            )
+        expected_kind = "transition" if binding_id == "RuntimeDispatch.Dispatch" else "invariant"
+        if kind != expected_kind:
+            errors.append(
+                f"formal model binding type drift: {binding_id!r}: expected {expected_kind}, observed {kind}"
+            )
         if not re.search(rf"(?m)^\s*{re.escape(symbol)}\s*==", module):
             errors.append(f"formal symbol missing from module: {symbol!r}")
 
