@@ -307,10 +307,69 @@ def _runtime_source_identity_error(path: Path) -> str | None:
     return None
 
 
+def _external_rust_module_errors(path: Path, *, test_context: bool) -> list[str]:
+    """Require a qualified direct Rust module declaration for a proof file.
+
+    An external module's #[cfg] belongs to its parent file, not the file that
+    contains the proving fn/impl. This is a fail-closed lexical gate for the
+    named direct module; it does not establish whole-crate feature activation.
+    """
+    if path.name == "mod.rs":
+        module_name = path.parent.name
+        directory = path.parent.parent
+    else:
+        module_name = path.stem
+        directory = path.parent
+    candidates = [directory / "mod.rs", directory.parent / f"{directory.name}.rs"]
+    if directory.name == "src":
+        candidates.extend((directory / "lib.rs", directory / "main.rs"))
+    parents = [candidate for candidate in candidates if candidate != path and candidate.is_file()]
+    if not parents:
+        # Standalone Rust test fixtures have no surrounding crate declaration.
+        return []
+    if len(parents) != 1:
+        return [f"{path.relative_to(ROOT)} has ambiguous external module parents"]
+    parent = parents[0]
+    identity_error = _runtime_source_identity_error(parent)
+    if identity_error:
+        return [identity_error]
+    try:
+        raw = parent.read_text(encoding="utf-8")
+        code = _rust_code_only(raw)
+        declarations = [
+            match.start()
+            for match in re.finditer(rf"\bmod\s+{re.escape(module_name)}\s*;", code)
+        ]
+        # Rust include!("engine/execution.rs") is an owner-local source
+        # composition edge, not a separate mod declaration. Bind the literal
+        # file name to this exact source, never an arbitrary include! symbol.
+        for match in re.finditer(r"\binclude!\s*\(", code):
+            literal = re.match(r'\s*"([^"\n]+)"\s*\)\s*;', raw[match.end():])
+            if literal and parent.parent / literal.group(1) == path:
+                declarations.append(match.start())
+        if len(declarations) != 1:
+            return [
+                f"{path.relative_to(ROOT)} has {len(declarations)} exact external module/include declarations"
+            ]
+        attributes = _attached_rust_attributes(code, declarations[0])
+        if _has_unqualified_cfg(attributes, test_context=test_context):
+            return [f"{path.relative_to(ROOT)} has conditional external module/include declaration"]
+        if any(re.match(r"#\s*\[\s*path\s*=", attr) for attr in attributes):
+            return [f"{path.relative_to(ROOT)} has redirected external module path"]
+        if _conditional_rust_ancestor(code, declarations[0], test_context=test_context):
+            return [f"{path.relative_to(ROOT)} has conditional external ancestor module"]
+    except (OSError, UnicodeError, ValueError) as error:
+        return [f"{path.relative_to(ROOT)} has unreadable external module parent: {error}"]
+    return []
+
+
 def require_owned_method(path: Path, owner_kind: str, owner: str, symbol: str) -> list[str]:
     identity_error = _runtime_source_identity_error(path)
     if identity_error:
         return [identity_error]
+    module_errors = _external_rust_module_errors(path, test_context=False)
+    if module_errors:
+        return module_errors
     try:
         text = path.read_text(encoding="utf-8")
         block = owner_slice(text, owner_kind, owner)
@@ -368,6 +427,9 @@ def require_test_symbol(path: Path, symbol: str, *, require_ignored: bool = Fals
     identity_error = _runtime_source_identity_error(path)
     if identity_error:
         return [identity_error]
+    module_errors = _external_rust_module_errors(path, test_context=True)
+    if module_errors:
+        return module_errors
     try:
         text = path.read_text(encoding="utf-8")
         code = _rust_code_only(text)

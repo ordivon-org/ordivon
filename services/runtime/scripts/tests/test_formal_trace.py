@@ -427,6 +427,81 @@ trait Provider {
             finally:
                 self.module.ROOT = old_root
         self.assertTrue(errors, "nested function falsely admitted as Registry method")
+    def test_external_cfg_disabled_module_cannot_forge_a_proving_test(self):
+        # Real rustc --test compiles zero tests when mod tests; is cfg(any()).
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            parent = root / "mod.rs"
+            child = root / "tests.rs"
+            child.write_text("#[test]\nfn phantom_proof() {}\n", encoding="utf-8")
+            original_root = self.module.ROOT
+            self.module.ROOT = root
+            try:
+                for gate in ('#[cfg(any())]', '#[cfg(feature = "disabled")]'):
+                    with self.subTest(gate=gate):
+                        parent.write_text(f"{gate}\nmod tests;\n", encoding="utf-8")
+                        errors = self.module.require_test_symbol(child, "phantom_proof")
+                        self.assertTrue(
+                            any("external" in error and "conditional" in error for error in errors),
+                            f"cross-file compiler-elided proof falsely admitted: {errors}",
+                        )
+            finally:
+                self.module.ROOT = original_root
+
+    def test_external_cfg_disabled_module_cannot_forge_a_runtime_owner(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "mod.rs").write_text("#[cfg(any())]\nmod owner;\n", encoding="utf-8")
+            source = root / "owner.rs"
+            source.write_text("impl Registry { fn mark_dispatch_issued(&self) {} }\n", encoding="utf-8")
+            original_root = self.module.ROOT
+            self.module.ROOT = root
+            try:
+                errors = self.module.require_owned_method(
+                    source, "impl", "Registry", "mark_dispatch_issued"
+                )
+            finally:
+                self.module.ROOT = original_root
+        self.assertTrue(
+            any("external" in error and "conditional" in error for error in errors),
+            f"cross-file compiler-elided production contract falsely admitted: {errors}",
+        )
+
+    def test_conditional_external_include_cannot_forge_owner_method(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            parent = root / "mod.rs"
+            source = root / "owner.rs"
+            source.write_text("impl Registry { fn reclaim(&self) {} }\n", encoding="utf-8")
+            original_root = self.module.ROOT
+            self.module.ROOT = root
+            try:
+                parent.write_text('#[cfg(any())]\ninclude!("owner.rs");\n', encoding="utf-8")
+                blocked = self.module.require_owned_method(source, "impl", "Registry", "reclaim")
+                self.assertTrue(
+                    any("conditional" in error and "external" in error for error in blocked),
+                    f"disabled include! is not executable owner proof: {blocked}",
+                )
+                parent.write_text('include!("owner.rs");\n', encoding="utf-8")
+                self.assertEqual(
+                    self.module.require_owned_method(source, "impl", "Registry", "reclaim"), []
+                )
+            finally:
+                self.module.ROOT = original_root
+
+    def test_external_cfg_test_module_is_admitted_in_native_test_context(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "mod.rs").write_text("#[cfg(test)]\nmod tests;\n", encoding="utf-8")
+            child = root / "tests.rs"
+            child.write_text("#[test]\nfn active_test() {}\n", encoding="utf-8")
+            original_root = self.module.ROOT
+            self.module.ROOT = root
+            try:
+                errors = self.module.require_test_symbol(child, "active_test")
+            finally:
+                self.module.ROOT = original_root
+        self.assertEqual(errors, [])
 
     def test_cfg_test_only_module_is_valid_when_building_native_tests(self):
         with tempfile.TemporaryDirectory() as temporary:
