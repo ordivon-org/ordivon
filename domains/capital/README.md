@@ -40,6 +40,18 @@ into an isolated configuration and requires rejection under ordinary and optimiz
 Python, then mise run verify checks the owner suite. This does not authorize
 private account access, trading or external financial effects.
 
+**Crypto Public Shadow Product Acceptance LEGO** (`capital.market.crypto-public-shadow-consumer`):
+The natural owner is `scripts/consume_crypto_public_shadow_product_r1.py`.
+Input: frozen ODPS product, SHA-256-bound public observation and ODRL rights policy.
+Output: read-only decision/feedback receipt plus OpenLineage events, **only after**
+all twelve source, privacy, execution, timing and rights conditions hold.
+A false condition must emit no PASS receipt under normal or `python -O` execution.
+The existing consumer acceptance test
+`tests/test_data_product_consumption_crypto_public_shadow.py`
+falsifies source-digest, broker-credential, private-account, financial-write and
+rights-policy mutations in an isolated temp fixture. The gate never grants
+execution authority, trading rights, redistribution or financial effects.
+
 Crypto Public Shadow R2 now passes repeated persistent public streaming through exact Network v2 WS authorities using the mature `websockets` client proxy support. OKX `bbo-tbt` plus Binance market-data-only `@ticker` produced one warm-up and three measured coherent snapshots; all measured source/receive spans remained below the frozen 1200 ms limits. Provider selection is owned by Network v2 `provider-auto`, not by an application-level node/protocol matrix.
 
 Crypto Stream Resilience R3 keeps fail-closed missing/stale/time-divergence semantics and the dual-venue reconnect harness on exact Network v2 WS authorities. Current injected-disconnect qualification passes for both OKX and Binance; observed reconnect latencies were ~16.0 s and ~26.3 s respectively and remain evidence rather than a hidden transport claim. The state is exported through the existing Prometheus/Grafana stack without enabling private/demo/live execution.
