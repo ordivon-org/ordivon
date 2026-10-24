@@ -19,6 +19,7 @@ from jsonschema import Draft202012Validator
 
 from .cognitive_circuit_r1 import (
     CircuitContractError,
+    _load_json,
     canonical_digest,
     compile_manifest,
 )
@@ -27,13 +28,6 @@ ROOT = Path(__file__).resolve().parent
 OBLIGATION_SET_SCHEMA = ROOT / "schemas" / "verification-obligation-set-v1.schema.json"
 BINDING_SET_SCHEMA = ROOT / "schemas" / "verifier-binding-set-v1.schema.json"
 RESOLUTION_SCHEMA = ROOT / "schemas" / "verifier-resolution-v1.schema.json"
-
-
-def _load_json(path: Path) -> dict[str, Any]:
-    value = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(value, dict):
-        raise CircuitContractError(f"{path}: root must be an object")
-    return value
 
 
 def _schema(path: Path) -> dict[str, Any]:

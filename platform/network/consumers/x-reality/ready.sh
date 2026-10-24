@@ -15,14 +15,17 @@ systemctl is-active --quiet "$target"
 systemctl is-active --quiet "$egress"
 ss -ltn '( sport = :19681 )' | grep -q '127.0.0.1:19681'
 code=000
+connect=000
+extra=
 for _ in 1 2 3; do
-  code=$(curl -4 -sS -o /dev/null -w '%{http_code}' --proxy "$proxy" --connect-timeout 5 --max-time 15 https://api.x.com/2/users/me 2>/dev/null || true)
-  [ "$code" = 401 ] && break
+  receipt=$(curl -q -4 --noproxy '' -sS -o /dev/null     -w '%{http_code} %{http_connect}' --proxy "$proxy"     --connect-timeout 5 --max-time 15     https://api.x.com/2/users/me 2>/dev/null) || receipt=
+  read -r code connect extra <<< "$receipt"
+  [[ "$code" == 401 && "$connect" == 200 && -z "$extra" ]] && break
   sleep 1
 done
-[ "$code" = 401 ]
+[[ "$code" == 401 && "$connect" == 200 && -z "$extra" ]]
 set +e
-curl -4 -sS -o /dev/null --proxy "$proxy" --connect-timeout 2 --max-time 5 https://example.com/ >/dev/null 2>&1
+curl -q -4 --noproxy '' -sS -o /dev/null --proxy "$proxy" --connect-timeout 2 --max-time 5 https://example.com/ >/dev/null 2>&1
 unknown_rc=$?
 set -e
 [ "$unknown_rc" -ne 0 ]
