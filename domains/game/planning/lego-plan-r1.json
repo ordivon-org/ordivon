@@ -371,9 +371,12 @@
       "acceptance": [
         "The existing deterministic --no-default-features rule/replay suite works without a native display or Wayland prerequisite.",
         "The real native/playable consumer is built in a declared environment with wayland-client pkg-config dependencies, or reports ENV_BLOCKED rather than test PASS.",
-        "The protected Game owner check binds its Linux native prerequisites to the exact source/lock, while no second game runner or generic Game Core is created."
+        "The protected Game owner check binds its Linux native prerequisites to the exact source/lock, while no second game runner or generic Game Core is created.",
+        "The existing room-action binary emits deterministic validated JSON palettes and seeded recipes without opening a window, and invalid CLI input exits nonzero before starting Bevy."
       ],
-      "evidence": [],
+      "evidence": [
+        "kits/room-action-r0/tests/json_cli.rs"
+      ],
       "blockers": [],
       "nextAction": "Reuse domains/game/kits/room-action-r0/mise.toml and Game owner CI on PR #218; historical failing run 40018090745 is the reproduction source, not current branch truth."
     }

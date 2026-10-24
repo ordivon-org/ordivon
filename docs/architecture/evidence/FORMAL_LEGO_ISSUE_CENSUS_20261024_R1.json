@@ -421,6 +421,42 @@
           ]
         },
         {
+          "localCommit": "3cf5ba6b002d86929c21ec05bd61d2f9296182f8",
+          "owner": "platform/workstation",
+          "consumer": "Every tracked Node package.json rejects duplicate JSON members rather than allowing parser-dependent last-wins authority; current Workstation owner has a stronger native corpus-wide consumer than the local historical Codex-only test, and the old Codex package version must not be restored.",
+          "remoteWitness": "platform/workstation/tests/test_node_manifest_unique_keys.py::test_duplicate_json_member_refuses_to_select_last_wins + test_every_tracked_node_manifest_has_one_authoritative_value_per_key; native uv --locked --offline pytest 2/2 PASS; platform/workstation/workstation/nix/codex-cli/package.json already has no duplicate packageManager key",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc"
+        },
+        {
+          "localCommit": "56ba9c350293bcf1f7ce10f6001a3790596c7097",
+          "owner": "services/runtime",
+          "consumer": "Native Runtime reclaim inspection must stop within 15 seconds and not expose protected Registry coordinates in its timeout diagnostic; current Runtime owns the identical bounded subprocess consumer, without replaying the stale script revision.",
+          "remoteWitness": "services/runtime/scripts/ordivon-runtime-reclaim::runtime_inspection (timeout=RUNTIME_INSPECT_WALL_TIMEOUT_SECONDS) + scripts/tests/test_deploy_reclaim.py::test_reclaim_inspector_timeout_is_bounded_and_hides_authority_paths; native unittest 1/1 PASS",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc"
+        },
+        {
+          "localCommit": "eea3383bb262f47eb945fba41a1775dabdb62b56",
+          "owner": "services/harness",
+          "consumer": "Harness scoped Python compatibility evidence must invalidate across pyproject and uv.lock requirement changes while retaining unaffected evidence; present producer and all seven consumer regressions are exact historical Git blobs.",
+          "remoteWitness": "services/harness/scripts/check_evidence.py + services/harness/tests/test_runtime_python_compatibility_currentness.py; BOTH Git blobs identical local historical commit vs protected Main; native unittest 7/7 PASS",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc"
+        },
+        {
+          "localCommit": "e39ee4485eabdf7dd1cab21b4fce1c978971408c",
+          "owner": "tools/repo",
+          "consumer": "Repository Main publication must reject divergent, stale, dirty, missing and behind protected source before effects; existing published gate and its regression suite are exactly the historical Git blobs, so no extra gate is justified.",
+          "remoteWitness": "tools/repo/migration/check-publication-main.sh + tools/repo/migration/test-check-publication-main.sh; BOTH Git blobs identical local historical commit vs protected Main; native shell regression PASS (sync/ahead/stale/divergent/behind/missing/dirty)",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc"
+        },
+        {
           "localCommit": "d6f0d184dec98746704291ce74639b38fa645d8e",
           "owner": "packages/composition",
           "consumer": "Historical browser-network binding input-sequence validator and tests are absent at both current local Main and protected Main tips. No in-tree caller uses compile_browser_network_binding. Production Browserless instead consumes a Network v2 namespace, graduated receipt generation and service state through the existing Harness deployment Owner; there is no requirement to revive the old list-valued Composition API.",
@@ -542,6 +578,26 @@
           "historicalTestWitness": "Isolated git archive of exact historical Taskfile, network config, preflight and native tests; latest installed blackbox/promtool parser plus current pytest==9.1.1; 12 tests passed in 1.58 seconds.",
           "modernConsumerAdmitted": false,
           "missingCurrentConsumerEvidence": "Historical Blackbox target/rules and test files are absent in protected Main; old static proxy endpoints and model-provider alerts are not current consumption evidence and must not be resurrected automatically.",
+          "selection": "PRESERVE_HISTORICAL_SOURCE_NO_WHOLE_COMMIT_CHERRY_PICK",
+          "branchRetirement": "NOT_PROVEN"
+        },
+        {
+          "historicalCommit": "63f0076e9aea0f5ae22d7e3fc9e8142619420446",
+          "historicalParent": "0e735341599b24504af6b0dee16ce7bac9d2258e",
+          "owner": "apps/web",
+          "historicalTestSourceCut": "63f0076e9aea0f5ae22d7e3fc9e8142619420446",
+          "protectedMainSourceCut": "d6e15f621aad7cdb65fbfe97e712540eebcb6309",
+          "historicOnlyFiles": [
+            "apps/web/src/life.ts",
+            "apps/web/test/life-browser-e2e.ts",
+            "apps/web/test/life-contract.test.ts",
+            "apps/web/test/life-web.test.ts"
+          ],
+          "behaviorScope": "Read-only Human Life activity and habit catalog, HTML route and JSON projection; no persistence, account effects or live external actions. Historical source is self-contained but not a current protected Web route.",
+          "historicalNativeTestResult": "NOT_REEXECUTED_NO_CURRENT_CONSUMER",
+          "historicalTestWitness": "Historical exact commit 63f0076e9aea contains life.ts and three owner tests. Do not claim historical tests PASS; only native Git source-path and current Web import/route absence were observed.",
+          "modernConsumerAdmitted": false,
+          "missingCurrentConsumerEvidence": "At protected source cut d6e15f621aad7cdb65fbfe97e712540eebcb6309, apps/web/src/life.ts and the three historical tests are absent. Native ripgrep in apps/web/src and apps/web/test found no lifeCatalog, renderLifePage, or /api/life/catalog consumer. This proves non-admission at this cut, not that Human Life can never be useful.",
           "selection": "PRESERVE_HISTORICAL_SOURCE_NO_WHOLE_COMMIT_CHERRY_PICK",
           "branchRetirement": "NOT_PROVEN"
         }

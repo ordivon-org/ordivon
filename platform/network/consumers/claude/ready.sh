@@ -19,17 +19,38 @@ ip netns exec nv2-browserless-prod ss -ltn '( sport = :19482 )' | grep -q '10.25
 # Internet attempt must fail even if a child process ignores proxy environment variables.
 test -z "$(ip netns exec nv2-claude-client ip -4 route show default)"
 test -z "$(ip netns exec nv2-claude-client ip -6 route show default)"
-if ip netns exec nv2-claude-client curl -4 -I -fsS --connect-timeout 2 --max-time 5 https://api.anthropic.com/ >/dev/null 2>&1; then
+if ip netns exec nv2-claude-client curl -q -4 --noproxy '*' -I -fsS --connect-timeout 2 --max-time 5 https://api.anthropic.com/ >/dev/null 2>&1; then
   echo 'ERROR: isolated Claude client acquired direct Internet reachability' >&2
   exit 40
 fi
 
+# Probe the exact namespace-local HTTPS consumer, not merely proxy replies.
+# Anonymous 401/403 can prove transport, never credential admission.
 proxy_head_code() {
-  local url=$1 code=000
-  for _ in 1 2 3; do
-    code=$(ip netns exec nv2-claude-client curl -x "$client_proxy" -I -sS --connect-timeout 8 --max-time 20 -o /dev/null -w '%{http_code}' "$url") && {
-      test "$code" != 000 && { printf '%s\n' "$code"; return 0; }
-    }
+  local url=$1 header_file="" code="" connect="" tls="" receipt=""
+  if [ "$#" -ge 2 ]; then header_file=$2; fi
+  for _attempt in 1 2 3; do
+    if [ -n "$header_file" ]; then
+      receipt=$(ip netns exec nv2-claude-client curl -q -4 -x "$client_proxy" \
+        --noproxy '' -I -sS --connect-timeout 8 --max-time 20 \
+        --dump-header "$header_file" -o /dev/null \
+        -w '%{http_code}|%{http_connect}|%{time_appconnect}' "$url") || receipt=""
+    else
+      receipt=$(ip netns exec nv2-claude-client curl -q -4 -x "$client_proxy" \
+        --noproxy '' -I -sS --connect-timeout 8 --max-time 20 \
+        -o /dev/null -w '%{http_code}|%{http_connect}|%{time_appconnect}' \
+        "$url") || receipt=""
+    fi
+    IFS='|' read -r code connect tls <<< "$receipt"
+    case "$code" in
+      2??|3??|400|401|403|404|405)
+        if [[ "$connect" == 200 && "$tls" =~ ^[0-9]+(\.[0-9]+)?$ ]] \
+          && awk -v t="$tls" 'BEGIN { exit !(t > 0) }'; then
+          printf '%s\n' "$code"
+          return 0
+        fi
+        ;;
+    esac
     sleep 1
   done
   return 1
@@ -40,8 +61,10 @@ api_code=$(proxy_head_code https://api.anthropic.com/)
 headers=$(mktemp)
 trap 'rm -f "$headers"' EXIT
 ok=0
-for _ in 1 2 3; do
-  if ip netns exec nv2-claude-client curl -x "$client_proxy" -I -sS --connect-timeout 8 --max-time 20 https://claude.ai/install.sh >"$headers" && grep -Eqi '^location: https://downloads\.claude\.ai/' "$headers"; then
+for _attempt in 1 2 3; do
+  if install_code=$(proxy_head_code https://claude.ai/install.sh "$headers") \
+    && [[ "$install_code" =~ ^30[1278]$ ]] \
+    && grep -Eqi '^location: https://downloads\.claude\.ai/' "$headers"; then
     ok=1
     break
   fi
@@ -50,7 +73,7 @@ done
 test "$ok" = 1
 
 # Unknown destinations are refused by the Claude egress policy.
-if ip netns exec nv2-claude-client curl -x "$client_proxy" -I -fsS --connect-timeout 3 --max-time 8 https://example.com/ >/dev/null 2>&1; then
+if ip netns exec nv2-claude-client curl -q -x "$client_proxy" --noproxy '' -I -fsS --connect-timeout 3 --max-time 8 https://example.com/ >/dev/null 2>&1; then
   echo 'ERROR: unknown destination escaped Claude allowlist' >&2
   exit 41
 fi
