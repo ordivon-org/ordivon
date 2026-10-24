@@ -54,6 +54,9 @@ def test_pnpm_first_path_uses_mise_and_project_package_manager() -> None:
 def test_bash_login_and_nonlogin_match_home_manager_policy() -> None:
     expected_path = "/root/.local/share/mise/shims:/root/tools/bin:/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/lib/wsl/lib:/root/.local/bin:/root/bin"
     probe = r"""printf 'PATH=%s\nEDITOR=%s\nVISUAL=%s\nPROJECTS=%s\nHISTFILE=%s\nHISTSIZE=%s\nHISTFILESIZE=%s\nHISTCONTROL=%s\nNOFILE=%s\nCDF=%s\nFF=%s\nFP=%s\n' "$PATH" "$EDITOR" "$VISUAL" "$PROJECTS" "$HISTFILE" "$HISTSIZE" "$HISTFILESIZE" "$HISTCONTROL" "$(ulimit -Sn)" "$(type -t cdf)" "$(type -t ff)" "$(type -t fp)" """
+    home_policy = (pathlib.Path(__file__).resolve().parents[1] / "workstation/nix/nix/home.nix").read_text()
+    assert f'PATH = "{expected_path}";' in home_policy
+    assert f'export PATH="{expected_path}"' in home_policy
     modes = [
         ["/usr/bin/bash", "--noprofile", "--rcfile", "/root/.bashrc", "-i", "-c", probe],
         ["/usr/bin/bash", "-l", "-i", "-c", probe],
