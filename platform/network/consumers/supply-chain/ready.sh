@@ -50,7 +50,9 @@ elastic_code=$(probe https://docker.elastic.co/v2/ '200|401')
 remaining=$((readiness_deadline - SECONDS))
 ((remaining > 0)) || { echo 'Supply-Chain readiness total deadline expired' >&2; exit 1; }
 max_time=$((remaining < 8 ? remaining : 8))
-if curl -q -4 --noproxy "" -x "$proxy" -I -fsS --connect-timeout 4 --max-time "$max_time" https://example.com/ >/dev/null 2>&1; then
+# Negative policy proof checks transport reachability: HTTP 401/403 from a
+# reachable origin is not a network deny. Do not apply curl --fail (-f).
+if curl -q -4 --noproxy "" -x "$proxy" -I -sS --connect-timeout 4 --max-time "$max_time" https://example.com/ >/dev/null 2>&1; then
   echo 'ERROR: unknown destination escaped Supply-Chain allowlist' >&2
   exit 41
 fi

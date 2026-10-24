@@ -127,7 +127,7 @@ def test_namespace_and_chat_readiness_share_one_deadline(
 
 @pytest.mark.parametrize(
     ("transport", "expected_ready"),
-    (("denied", False), ("valid", True), ("wrong_origin", False)),
+    (("denied", False), ("valid", True), ("wrong_origin", False), ("unknown_http_forbidden", False)),
 )
 def test_supply_chain_requires_connect_and_allowed_origin_status(
     tmp_path: Path, transport: str, expected_ready: bool
@@ -142,11 +142,16 @@ def test_supply_chain_requires_connect_and_allowed_origin_status(
         "curl": (
             "#!/bin/sh\n"
             'printf "%s\n" "$*" >> "$SUPPLY_CURL_RECORD"\n'
-            'case "$*" in *example.com*) exit 7;; esac\n'
+            'case "$*" in *example.com*)\n'
+            '  if [ "$SUPPLY_TEST_TRANSPORT" = unknown_http_forbidden ]; then\n'
+            '    case "$*" in *" -f"*) exit 22;; esac\n'
+            '    exit 0\n'
+            '  fi\n'
+            '  exit 7;; esac\n'
             'case "$SUPPLY_TEST_TRANSPORT" in\n'
             '  denied) printf "200 407";;\n'
             '  wrong_origin) printf "500 200";;\n'
-            '  valid) printf "200 200";;\n'
+            '  valid|unknown_http_forbidden) printf "200 200";;\n'
             'esac\n'
         ),
     }
@@ -183,6 +188,9 @@ def test_supply_chain_requires_connect_and_allowed_origin_status(
         assert proc.returncode != 0, (proc.stdout, proc.stderr, calls)
         assert '"standing":"READY"' not in proc.stdout
         # The first required registry must block all later registry consumers.
-        assert all("registry-1.docker.io" in line for line in calls)
+        if transport == "unknown_http_forbidden":
+            assert any("https://example.com/" in line for line in calls)
+        else:
+            assert all("registry-1.docker.io" in line for line in calls)
     assert all("-q" in line and "--noproxy" in line for line in calls)
     assert all("%{http_connect}" in line for line in calls if "example.com" not in line)
