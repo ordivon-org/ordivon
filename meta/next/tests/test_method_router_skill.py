@@ -78,3 +78,27 @@ def test_representation_first_routes_are_complete_and_non_authoritative() -> Non
         assert needed.lower() in reference.lower()
     assert "owner-native" in charter
     assert "No new framework without residual" in charter
+
+
+def test_cegar_retired_msr_method_routes_real_spurious_and_unknown() -> None:
+    """Navigation contract only, NOT a claim of model/implementation refinement."""
+    charter = (ROOT / "docs" / "META_THINKING_REPRESENTATION_R1.md").read_text(
+        encoding="utf-8"
+    )
+    router = (ROUTER / "references" / "representation-first.md").read_text(
+        encoding="utf-8"
+    )
+    assert (
+        "Minimum Sufficient Representation (MSR) as a **DEFAULT**: RETIRED" in charter
+    )
+    assert "optional, consumer-scoped Skill LEGO" in charter
+    assert "Counterexample-Guided Abstraction Refinement (CEGAR)" in charter
+    assert "No global minimality or sufficiency certificate" in charter
+    assert "REAL_COUNTEREXAMPLE" in charter
+    assert "SPURIOUS_COUNTEREXAMPLE" in charter
+    assert "UNKNOWN" in charter
+    assert "abstract-to-concrete" in charter
+    assert "CEGAR" in router
+    assert "spurious" in router
+    assert "real" in router.lower()
+    assert "owner-native" in charter

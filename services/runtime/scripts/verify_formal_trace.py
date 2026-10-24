@@ -45,6 +45,8 @@ REQUIRED_MODEL_BINDINGS = {
     "RuntimeDispatch.AmbiguityRequiresReconciliation",
     "RuntimeDispatch.TerminalEvidenceIsCommitted",
     "RuntimeDispatch.NoCompetingLiveAttempts",
+    "RuntimeDispatch.NoDetachedLiveAttempt",
+    "RuntimeDispatch.HeldOrphanIsFenced",
 }
 REQUIRED_RUNTIME_INVARIANT_BINDINGS = {"I05", "I11"}
 
@@ -101,8 +103,8 @@ def check_tlc_config_obligations(content: str, claimed_invariants: set[str] | No
         )
     if specification != ["FairSpec"]:
         errors.append(f"TLC config must check FairSpec including fairness, got {specification!r}")
-    if len(retry_bound_sets) != 1 or len(retry_bound_sets[0]) < 2:
-        errors.append("TLC config must bind at least two distinct Attempts to explore explicit retry")
+    if len(retry_bound_sets) != 1 or len(retry_bound_sets[0]) < 3:
+        errors.append("TLC config must bind at least three distinct Attempts to explore consecutive explicit retries")
     for section, required in (
         ("INVARIANTS", REQUIRED_TLC_INVARIANTS),
         ("PROPERTIES", REQUIRED_TLC_PROPERTIES),
@@ -116,6 +118,78 @@ def check_tlc_config_obligations(content: str, claimed_invariants: set[str] | No
 
 def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+
+def _rust_code_only(text: str) -> str:
+    """Preserve code positions, but never treat Rust comments/literals as proof.
+
+    Rust block comments can nest. Keep newlines to preserve attribute adjacency
+    while hiding everything that rustc treats as comments or string content.
+    This is source-identity screening, not a Rust AST or refinement proof.
+    """
+    masked = list(text)
+    n = len(text)
+
+    def hide(start: int, end: int) -> None:
+        for pos in range(start, end):
+            if masked[pos] != "\n":
+                masked[pos] = " "
+
+    i = 0
+    while i < n:
+        start = i
+        if text.startswith("//", i):
+            end = text.find("\n", i)
+            i = n if end == -1 else end
+            hide(start, i)
+        elif text.startswith("/*", i):
+            i += 2
+            depth = 1
+            while i < n and depth:
+                if text.startswith("/*", i):
+                    depth += 1
+                    i += 2
+                elif text.startswith("*/", i):
+                    depth -= 1
+                    i += 2
+                else:
+                    i += 1
+            if depth:
+                raise ValueError("unterminated Rust block comment")
+            hide(start, i)
+        elif (
+            (text[i] == "r" or text.startswith("br", i))
+            and (i == 0 or not (text[i - 1].isalnum() or text[i - 1] == "_"))
+        ):
+            j = i + (2 if text.startswith("br", i) else 1)
+            while j < n and text[j] == "#":
+                j += 1
+            if j < n and text[j] == '"':
+                ending = '"' + text[start + (2 if text.startswith("br", start) else 1) : j]
+                end = text.find(ending, j + 1)
+                if end == -1:
+                    raise ValueError("unterminated Rust raw string")
+                i = end + len(ending)
+                hide(start, i)
+            else:
+                i += 1
+        elif text[i] == '"':
+            i += 1
+            while i < n:
+                if text[i] == "\\":
+                    i += 2
+                elif text[i] == '"':
+                    i += 1
+                    break
+                else:
+                    i += 1
+            else:
+                raise ValueError("unterminated Rust string")
+            hide(start, min(i, n))
+        else:
+            i += 1
+    return "".join(masked)
 
 
 def _matching_brace(text: str, opening: int) -> int:
@@ -140,17 +214,37 @@ def owner_slice(text: str, owner_kind: str, owner: str) -> str:
         )
     else:
         raise ValueError(f"unsupported ownerKind: {owner_kind!r}")
-    match = pattern.search(text)
+    code = _rust_code_only(text)
+    match = pattern.search(code)
     if not match:
         raise ValueError(f"{owner_kind} owner not found: {owner}")
-    opening = text.find("{", match.start(), match.end())
-    closing = _matching_brace(text, opening)
-    return text[match.start() : closing + 1]
+    opening = code.find("{", match.start(), match.end())
+    closing = _matching_brace(code, opening)
+    return code[match.start() : closing + 1]
+
+
+def _runtime_source_identity_error(path: Path) -> str | None:
+    """Proof references must name exact Runtime SourceCut bytes, not aliases."""
+    # Anchor relative names at the canonical Runtime root. A caller may
+    # legitimately mount that root through an outer alias, but a proof
+    # reference must never redirect below the Owner root.
+    try:
+        relative = path.relative_to(ROOT)
+    except ValueError:
+        return f"{path} escapes Runtime source"
+    canonical = ROOT.resolve() / relative
+    resolved = path.resolve()
+    if not resolved.is_relative_to(ROOT.resolve()):
+        return f"{path} escapes Runtime source"
+    if resolved != canonical:
+        return f"{path} is not an exact Runtime source"
+    return None
 
 
 def require_owned_method(path: Path, owner_kind: str, owner: str, symbol: str) -> list[str]:
-    if not path.resolve().is_relative_to(ROOT.resolve()):
-        return [f"{path} escapes Runtime source"]
+    identity_error = _runtime_source_identity_error(path)
+    if identity_error:
+        return [identity_error]
     try:
         block = owner_slice(path.read_text(encoding="utf-8"), owner_kind, owner)
     except (OSError, UnicodeError, ValueError) as error:
@@ -161,13 +255,15 @@ def require_owned_method(path: Path, owner_kind: str, owner: str, symbol: str) -
 
 
 def require_test_symbol(path: Path, symbol: str, *, require_ignored: bool = False) -> list[str]:
-    if not path.resolve().is_relative_to(ROOT.resolve()):
-        return [f"{path} escapes Runtime source"]
+    identity_error = _runtime_source_identity_error(path)
+    if identity_error:
+        return [identity_error]
     try:
         text = path.read_text(encoding="utf-8")
-    except (OSError, UnicodeError) as error:
+        code = _rust_code_only(text)
+    except (OSError, UnicodeError, ValueError) as error:
         return [f"{path.relative_to(ROOT)}::{symbol}: {error}"]
-    match = re.search(rf"(?m)^\s*fn\s+{re.escape(symbol)}\s*\(", text)
+    match = re.search(rf"(?m)^\s*fn\s+{re.escape(symbol)}\s*\(", code)
     if not match:
         return [f"{path.relative_to(ROOT)} missing proving test symbol {symbol!r}"]
     # Test identity is a proof reference: attribute must belong to this function,
@@ -226,8 +322,12 @@ def validate(trace: dict[str, Any], invariant_manifest: dict[str, Any]) -> list[
             errors.append(f"formalSpecification lacks {path_key}/{digest_key}")
             continue
         path = ROOT / relative
-        if not path.resolve().is_relative_to(ROOT.resolve()):
-            errors.append(f"formal source escapes Runtime source: {relative}")
+        identity_error = _runtime_source_identity_error(path)
+        if identity_error:
+            if "escapes Runtime source" in identity_error:
+                errors.append(f"formal source escapes Runtime source: {relative}")
+            else:
+                errors.append(f"formal source {identity_error}: {relative}")
             continue
         if not path.is_file():
             errors.append(f"formal source missing: {relative}")
@@ -442,6 +542,11 @@ def validate(trace: dict[str, Any], invariant_manifest: dict[str, Any]) -> list[
 
 
 def main() -> int:
+    for source in (TRACE, INVARIANTS):
+        error = _runtime_source_identity_error(source)
+        if error:
+            print(f"formal trace: {error}", file=sys.stderr)
+            return 1
     try:
         trace = json.loads(TRACE.read_text(encoding="utf-8"))
         invariant_manifest = json.loads(INVARIANTS.read_text(encoding="utf-8"))

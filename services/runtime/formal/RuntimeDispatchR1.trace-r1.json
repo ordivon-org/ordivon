@@ -6,9 +6,9 @@
   "truthRole": "traceability-gate-not-mechanized-refinement-proof",
   "formalSpecification": {
     "modulePath": "formal/RuntimeDispatchR1.tla",
-    "moduleSha256": "27b366563c34b8890ee10b281c7ebac2733b42c4317f01dced462afb15b2b23d",
+    "moduleSha256": "445293a98b0f6dbd60262efa432874694519599c331de9f80b7050349e4d9553",
     "configPath": "formal/RuntimeDispatchR1.cfg",
-    "configSha256": "220dfc877a072a78301993d1c2c555b6b2d7150bcb3e1a4ace8520474bcfe717",
+    "configSha256": "253a83b509e9a504f7df471653d9d7fe7bcd20e1bfbb06200068b799079a4641",
     "modelBindings": [
       {
         "id": "RuntimeDispatch.Dispatch",
@@ -34,6 +34,16 @@
         "id": "RuntimeDispatch.NoCompetingLiveAttempts",
         "kind": "invariant",
         "symbol": "NoCompetingLiveAttempts"
+      },
+      {
+        "id": "RuntimeDispatch.NoDetachedLiveAttempt",
+        "kind": "invariant",
+        "symbol": "NoDetachedLiveAttempt"
+      },
+      {
+        "id": "RuntimeDispatch.HeldOrphanIsFenced",
+        "kind": "invariant",
+        "symbol": "HeldOrphanIsFenced"
       }
     ]
   },
@@ -100,7 +110,8 @@
       "symbol": "orphaned_terminal_keeps_capacity_reserved",
       "proves": [
         "AttemptLifecycle.singleDispatch",
-        "RuntimeDispatch.AmbiguityRequiresReconciliation"
+        "RuntimeDispatch.AmbiguityRequiresReconciliation",
+        "RuntimeDispatch.HeldOrphanIsFenced"
       ]
     },
     {
@@ -124,7 +135,8 @@
       "path": "crates/ordivon-runtime-core/src/runtime/tests.rs",
       "symbol": "simultaneous_same_key_creates_one_job_and_one_attempt",
       "proves": [
-        "RuntimeDispatch.NoCompetingLiveAttempts"
+        "RuntimeDispatch.NoCompetingLiveAttempts",
+        "RuntimeDispatch.NoDetachedLiveAttempt"
       ]
     }
   ],
@@ -136,7 +148,10 @@
     "Always-on Registry CAS/held-orphan native tests are bounded implementation witnesses; ignored physical integration tests are conditional, unexecuted by normal CI and cannot establish production realization.",
     "TLC bounded terminal-state provenance: terminal Job implies committed reconciliation on its dispatched Attempt; existing Rust owner test separately checks more detailed evidence fields; no mechanized refinement is claimed",
     "bounded pairwise state safety: the lost predecessor and a new admitted retry are distinct, while an unresolved live predecessor cannot overlap a live retry",
-    "always-on native concurrent same-request admission test witnesses one Job/Attempt and one reserved slot under two racing submitters; bounded initial-admission slice only, not a whole Rust-to-model refinement"
+    "always-on native concurrent same-request admission test witnesses one Job/Attempt and one reserved slot under two racing submitters; bounded initial-admission slice only, not a whole Rust-to-model refinement",
+    "bounded identity consistency: every abstract live Attempt is the current Attempt before a second retry could introduce overlap",
+    "abstract held-orphan fence: Runtime may clear the selected Attempt while preserving a reserved orphan that remains recovery-required; no blind retry",
+    "held-orphan reservation is a separate BOOLEAN owner abstraction; a qualifying orphan may arise before or after confirmed dispatch"
   ],
   "nonClaims": [
     "This is not a mechanized refinement proof from Rust semantics to TLA+ semantics.",
@@ -146,7 +161,10 @@
     "This trace does not establish domain semantic completion or exactly-once external effects.",
     "Weak fairness is a model assumption; real scheduling, provider responsiveness, retries, deadlock freedom and domain completion are not proven.",
     "Conditional physical acceptance test identity does not prove that a root/systemd/cgroup test was executed or passed.",
-    "The new NoCompetingLiveAttempts abstract invariant is model-checked but not an always-on Rust proof: physical concurrent-observer and ambiguity-no-redrive integration tests are opt-in."
+    "The new NoCompetingLiveAttempts abstract invariant is model-checked but not an always-on Rust proof: physical concurrent-observer and ambiguity-no-redrive integration tests are opt-in.",
+    "NoDetachedLiveAttempt does not prove Rust/SQLite refinement; admission and held-orphan Rust witnesses are narrower concrete cases.",
+    "The abstract orphanedHeld state is only a bounded projection of a persisted held-orphan reservation. It does not establish persistence/recovery refinement or cross-Job reservation exclusivity.",
+    "The heldReservation Boolean abstracts one Job only; it does not prove global capacity accounting or physical launch occurrence for an Orphaned attempt."
   ],
   "supportingContracts": [
     {

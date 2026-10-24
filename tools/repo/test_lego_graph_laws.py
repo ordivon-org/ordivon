@@ -30,6 +30,19 @@ def test_host_legacy_agent_service_cursor_proposal_is_retired() -> None:
     assert legacy["gaps"] == []
 
 
+def test_network_unconsumed_future_profile_slice_is_retired_without_removing_active_nodes() -> None:
+    # NS1 is an unregistered prospective duplicate of N05's implemented
+    # optional-profile contract. NS2, unlike NS1, has a live issue consumer.
+    plan = json.loads(
+        (ROOT / "platform/network/planning/lego-plan-r1.json").read_text(encoding="utf-8")
+    )
+    assert {item["id"] for item in plan["slices"]} == {"NS2"}
+    assert {"N01", "N05"} <= {item["id"] for item in plan["nodes"]}
+    profile = next(item for item in plan["nodes"] if item["id"] == "N05")
+    assert "Adding a profile does not redefine generic Network acceptance." in profile["acceptance"]
+    module.validate_owner_lego_graph(plan)
+
+
 @pytest.mark.parametrize("relative", OWNER_GRAPH_PLANS)
 def test_owner_slice_relation_is_closed(relative: str) -> None:
     module.validate_owner_lego_graph(json.loads((ROOT / relative).read_text(encoding="utf-8")))

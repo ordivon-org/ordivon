@@ -169,7 +169,7 @@ def runtime_inspection(
 
 def registry_projection(database: Path, busy_timeout_ms: int) -> dict[str, object]:
     value = runtime_inspection(database, busy_timeout_ms, "registry")
-    if not isinstance(value.get("migrationVersion"), int):
+    if type(value.get("migrationVersion")) is not int:
         raise RuntimeError("Runtime registry inspection omitted migrationVersion")
     if not isinstance(value.get("activeWorkspaces"), list):
         raise RuntimeError("Runtime registry inspection omitted activeWorkspaces")
@@ -752,7 +752,7 @@ def candidate(
         result["sourceRepo"] = sourceRepo
     if isinstance(sourceRevision, str):
         result["sourceRevision"] = sourceRevision
-    if isinstance(createdUnixMs, int):
+    if type(createdUnixMs) is int:
         result["createdUnixMs"] = createdUnixMs
     if isinstance(recordDigest, str):
         result["recordDigest"] = recordDigest
@@ -950,11 +950,12 @@ def apply_reclaim(args: argparse.Namespace) -> dict[str, object]:
             reason = "eligible"
             created_ms = item.get("createdUnixMs")
             last_activity_ms: int | None = None
-            minimum_age_basis_ms = created_ms if isinstance(created_ms, int) else None
+            valid_creation = type(created_ms) is int and created_ms >= 0
+            minimum_age_basis_ms = created_ms if valid_creation else None
             if (
                 classification == "closable"
                 and classification in classifications
-                and isinstance(created_ms, int)
+                and valid_creation
             ):
                 registry_workspace = registry_workspace_projection(
                     args.database, args.busy_timeout_ms, workspace_id
@@ -975,7 +976,7 @@ def apply_reclaim(args: argparse.Namespace) -> dict[str, object]:
             if classification not in classifications:
                 eligible = False
                 reason = "classification_not_selected"
-            elif not isinstance(minimum_age_basis_ms, int):
+            elif type(minimum_age_basis_ms) is not int:
                 eligible = False
                 reason = "creation_time_unknown"
             elif minimum_age_basis_ms > cutoff_ms:

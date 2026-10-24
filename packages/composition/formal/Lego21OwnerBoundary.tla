@@ -19,6 +19,7 @@ HostStates == {"open", "accepted"}
 HarnessStates == {"idle", "proposed"}
 NetworkStates == {"unknown", "ready"}
 RuntimeStates == {"idle", "admitted", "running", "ambiguous", "terminal"}
+EvidenceStates == {"none", "matching", "foreign"}
 
 TypeOK ==
     /\ RequiresHarness \in BOOLEAN
@@ -28,7 +29,7 @@ TypeOK ==
     /\ network \in NetworkStates
     /\ runtime \in RuntimeStates
     /\ dispatchCount \in 0..2
-    /\ consumerEvidence \in BOOLEAN
+    /\ consumerEvidence \in EvidenceStates
     /\ admissionInputsWitness \in BOOLEAN
 
 Init ==
@@ -37,7 +38,7 @@ Init ==
     /\ network = "unknown"
     /\ runtime = "idle"
     /\ dispatchCount = 0
-    /\ consumerEvidence = FALSE
+    /\ consumerEvidence = "none"
     /\ admissionInputsWitness = FALSE
 
 NetworkObserve ==
@@ -90,15 +91,17 @@ RuntimeObserveTerminal ==
 
 ConsumerObserve ==
     /\ runtime = "terminal"
-    /\ ~consumerEvidence
-    /\ consumerEvidence' = TRUE
+    /\ consumerEvidence = "none"
+    (* Evidence can belong to this Work or a different consumer. *)
+    /\ consumerEvidence' \in {"matching", "foreign"}
     /\ UNCHANGED <<host, harness, network, runtime, dispatchCount,
                   admissionInputsWitness>>
 
 HostAccept ==
     /\ host = "open"
     /\ runtime = "terminal"
-    /\ consumerEvidence
+    (* A foreign Work's valid result is NOT evidence for this Work. *)
+    /\ consumerEvidence = "matching"
     /\ host' = "accepted"
     /\ UNCHANGED <<harness, network, runtime, dispatchCount, consumerEvidence,
                   admissionInputsWitness>>
@@ -119,7 +122,7 @@ Spec == Init /\ [][Next]_vars
 AtMostOnePhysicalDispatch == dispatchCount <= 1
 
 NoHostAcceptanceFromRuntimeAlone ==
-    host = "accepted" => (runtime = "terminal" /\ consumerEvidence)
+    host = "accepted" => (runtime = "terminal" /\ consumerEvidence = "matching")
 
 (***************************************************************************)
 (* Physical dispatch requires the admission-time witness. Route readiness  *)
@@ -131,10 +134,10 @@ NoDispatchWithoutRequiredInputs ==
     dispatchCount > 0 => admissionInputsWitness
 
 AmbiguityCannotBeTreatedAsCompletion ==
-    runtime = "ambiguous" => (host = "open" /\ ~consumerEvidence /\ dispatchCount = 1)
+    runtime = "ambiguous" => (host = "open" /\ consumerEvidence = "none" /\ dispatchCount = 1)
 
 NoHostAcceptanceWithoutConsumerEvidence ==
-    ~consumerEvidence => host = "open"
+    consumerEvidence # "matching" => host = "open"
 
 (***************************************************************************)
 (* Intentionally FALSE non-vacuity probe, not an admitted safety invariant. *)
@@ -146,5 +149,12 @@ NetworkNeverDegradesAfterAdmission ==
         /\ runtime \in {"admitted", "running", "ambiguous", "terminal"}
         /\ admissionInputsWitness
     )
+
+(***************************************************************************)
+(* Intentionally FALSE reachability probe, not an admitted safety law.    *)
+(* TLC must find an actual foreign consumer witness or the model is empty. *)
+(***************************************************************************)
+ForeignEvidenceIsUnreachable ==
+    consumerEvidence # "foreign"
 
 =============================================================================
