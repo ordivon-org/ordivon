@@ -50,12 +50,24 @@
     - name: Realize the upstream frozen Python environment
       ansible.builtin.command:
         argv:
-          - /usr/bin/uv
+          - /usr/bin/mise
+          - -C
+          - "{{ playbook_dir }}/.."
+          - exec
+          - --
+          - /usr/bin/env
+          - -C
+          - "{{ jev_release }}"
+          - uv
           - sync
           - --frozen
           - --no-dev
           - --python
           - "3.12"
+      environment:
+        MISE_AUTO_INSTALL: 'false'
+        MISE_EXEC_AUTO_INSTALL: 'false'
+        MISE_OFFLINE: '1'
       args:
         chdir: "{{ jev_release }}"
       register: jev_uv_sync
