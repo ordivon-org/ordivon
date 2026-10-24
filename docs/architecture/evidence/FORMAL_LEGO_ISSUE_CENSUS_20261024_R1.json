@@ -329,15 +329,6 @@
           "evidenceScope": "CURRENT_TOOLCHAIN_SUPERSEDES_OLD_LOCK_AND_NATIVE_TEST_PASS",
           "disposition": "SKIP_OLDER_TOOLCHAIN_CHERRY_PICK",
           "evaluatedRemoteMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc"
-        },
-        {
-          "localCommit": "3ab30f2b827ade5313b8bbf56d0df40d345a3ecd",
-          "owner": "domains/game",
-          "consumer": "The historical seeded room recipe responsibility is provided by current Game Room Action kit: seed-repeatable recipe choice, catalog generator replay, JSON round trip and invalid-input fail-closed. Current source files are NOT byte-identical to historical commit and may include substantial newer behavior; selection is limited to these named native consumer properties.",
-          "remoteWitness": "domains/game/kits/room-action-r0/src/lib.rs tests same_seed_reuses_exact_room_recipe_while_different_seeds_vary; catalog_generator_replays_identically_and_composes_across_categories; recipe_json_round_trip_matches_consumed_run; invalid_room_recipe_rejected_before_consumption. SourceCut native mise run rules: 16 PASS. No claim of complete historical commit behavior equivalence.",
-          "evidenceScope": "NAMED_GAME_CONSUMER_PROPERTIES_PASS_NOT_FULL_EQUIVALENCE",
-          "disposition": "SKIP_OLDER_GAME_RECIPE_CHERRY_PICK",
-          "evaluatedRemoteMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc"
         }
       ],
       "formalObligation": "The selected source must be an explicit source cut and each chosen change must preserve owner CDC.",
