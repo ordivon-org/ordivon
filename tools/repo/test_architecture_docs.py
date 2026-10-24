@@ -798,6 +798,7 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             "NO_WHOLE_COMMIT_REPLAY_WITHOUT_PRODUCER_AUTHORITY",
             "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
             "SKIP_CANCELLED_HISTORY_PAIR",
+            "SKIP_OLDER_TOOLCHAIN_CHERRY_PICK",
         }
         assert item["evidenceScope"] in {
             "NATIVE_CONSUMER_PASS", "EXACT_GIT_BLOBS",
@@ -806,6 +807,9 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             "CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT",
             "FROZEN_GATEWAY_CONSUMER_ONLY",
             "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN",
+            "CURRENT_TOOLCHAIN_SUPERSEDES_OLD_LOCK_AND_NATIVE_TEST_PASS",
+            "EXACT_EXECUTABLE_BLOB_WITH_NONWINDOWS_HOLD_ONLY",
+            "EXACT_GIT_BLOB_AND_NATIVE_CONSUMER_PASS",
         }
         if item["evidenceScope"] == "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF":
             assert item["disposition"] == "SKIP_OLDER_PIN"
