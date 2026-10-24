@@ -45,6 +45,8 @@ REQUIRED_MODEL_BINDINGS = {
     "RuntimeDispatch.AmbiguityRequiresReconciliation",
     "RuntimeDispatch.TerminalEvidenceIsCommitted",
     "RuntimeDispatch.NoCompetingLiveAttempts",
+    "RuntimeDispatch.NoDetachedLiveAttempt",
+    "RuntimeDispatch.HeldOrphanIsFenced",
 }
 REQUIRED_RUNTIME_INVARIANT_BINDINGS = {"I05", "I11"}
 
