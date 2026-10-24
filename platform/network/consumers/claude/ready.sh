@@ -12,8 +12,8 @@ client_proxy=http://10.252.247.1:19482
 for unit in "$egress_target" "$proxy" "$relay" "$client_target" "$client_netns" "$client_bridge"; do
   systemctl is-active --quiet "$unit"
 done
-ss -ltn '( sport = :19481 )' | grep -q '127.0.0.1:19481'
-ip netns exec nv2-browserless-prod ss -ltn '( sport = :19482 )' | grep -q '10.252.247.1:19482'
+ss -ltn '( sport = :19481 )' | grep -F '127.0.0.1:19481' >/dev/null
+ip netns exec nv2-browserless-prod ss -ltn '( sport = :19482 )' | grep -F '10.252.247.1:19482' >/dev/null
 
 # The Claude client namespace has only the private inter-namespace link. Any direct
 # Internet attempt must fail even if a child process ignores proxy environment variables.
