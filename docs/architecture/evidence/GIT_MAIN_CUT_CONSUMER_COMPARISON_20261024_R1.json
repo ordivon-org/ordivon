@@ -1857,5 +1857,122 @@
     "a historical branch is safe to delete because one commit was subsumed",
     "local main is authorized to overwrite GitHub main",
     "a canceled or pending CI check is a failed runtime test"
-  ]
+  ],
+  "wholeTreeOwnerQuotient": {
+    "meaning": "tracked tree difference at the exact frozen source cuts, not actionable unique capabilities",
+    "pathChangeTotal": 4244,
+    "direction": {
+      "remoteOnly": 1318,
+      "localOnly": 2082,
+      "differentBytes": 844,
+      "differentType": 0
+    },
+    "ownerCounts": {
+      "artifact": {
+        "DIFFERENT_BYTES": 72,
+        "LOCAL_ONLY_PATH": 41,
+        "REMOTE_ONLY_PATH": 39
+      },
+      "capital": {
+        "DIFFERENT_BYTES": 71,
+        "LOCAL_ONLY_PATH": 168,
+        "REMOTE_ONLY_PATH": 8
+      },
+      "composition": {
+        "DIFFERENT_BYTES": 8,
+        "LOCAL_ONLY_PATH": 7,
+        "REMOTE_ONLY_PATH": 20
+      },
+      "distribution": {
+        "DIFFERENT_BYTES": 9,
+        "REMOTE_ONLY_PATH": 2
+      },
+      "game": {
+        "DIFFERENT_BYTES": 119,
+        "LOCAL_ONLY_PATH": 3,
+        "REMOTE_ONLY_PATH": 1
+      },
+      "gateway": {
+        "DIFFERENT_BYTES": 27,
+        "LOCAL_ONLY_PATH": 7,
+        "REMOTE_ONLY_PATH": 7
+      },
+      "harness": {
+        "DIFFERENT_BYTES": 153,
+        "LOCAL_ONLY_PATH": 66,
+        "REMOTE_ONLY_PATH": 20
+      },
+      "host": {
+        "DIFFERENT_BYTES": 28,
+        "LOCAL_ONLY_PATH": 7,
+        "REMOTE_ONLY_PATH": 13
+      },
+      "media": {
+        "DIFFERENT_BYTES": 32,
+        "LOCAL_ONLY_PATH": 1,
+        "REMOTE_ONLY_PATH": 4
+      },
+      "network": {
+        "DIFFERENT_BYTES": 66,
+        "LOCAL_ONLY_PATH": 148,
+        "REMOTE_ONLY_PATH": 3
+      },
+      "next": {
+        "REMOTE_ONLY_PATH": 1015
+      },
+      "preservation": {
+        "DIFFERENT_BYTES": 3,
+        "LOCAL_ONLY_PATH": 2,
+        "REMOTE_ONLY_PATH": 1
+      },
+      "repo-mechanics-or-unregistered-path": {
+        "DIFFERENT_BYTES": 42,
+        "LOCAL_ONLY_PATH": 1429,
+        "REMOTE_ONLY_PATH": 117
+      },
+      "runtime": {
+        "DIFFERENT_BYTES": 98,
+        "LOCAL_ONLY_PATH": 16,
+        "REMOTE_ONLY_PATH": 18
+      },
+      "security": {
+        "DIFFERENT_BYTES": 26,
+        "LOCAL_ONLY_PATH": 56,
+        "REMOTE_ONLY_PATH": 2
+      },
+      "skills": {
+        "REMOTE_ONLY_PATH": 36
+      },
+      "web": {
+        "DIFFERENT_BYTES": 7,
+        "LOCAL_ONLY_PATH": 4,
+        "REMOTE_ONLY_PATH": 1
+      },
+      "workstation": {
+        "DIFFERENT_BYTES": 83,
+        "LOCAL_ONLY_PATH": 127,
+        "REMOTE_ONLY_PATH": 11
+      }
+    },
+    "dependencyManifestOrLockPathCountByOwner": {
+      "artifact": 4,
+      "capital": 2,
+      "composition": 1,
+      "distribution": 2,
+      "game": 3,
+      "gateway": 2,
+      "harness": 4,
+      "host": 2,
+      "media": 6,
+      "network": 1,
+      "next": 4,
+      "repo-mechanics-or-unregistered-path": 7,
+      "runtime": 4,
+      "security": 5,
+      "skills": 2,
+      "web": 3,
+      "workstation": 9
+    },
+    "disposition": "NO_AUTOMATIC_PORT_OR_DELETE; select with actual Owner consumer proof; preserve latest validated dependency closure"
+  }
 }
