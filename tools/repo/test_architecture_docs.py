@@ -443,6 +443,27 @@ def formal_issue_inputs():
     return census, plans
 
 
+@pytest.mark.parametrize("role", ["protectedGithubMain", "linuxLocalMain", "mergeBase", "researchLocalMain"])
+def test_formal_issue_census_rejects_untyped_git_source_cut(role: str) -> None:
+    census, plans = formal_issue_inputs()
+    census["source"][role] = "not-an-exact-git-oid"
+    with pytest.raises(module.ArchitectureDocsError, match=f"invalid Git source revision: {role}"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issue_census_rejects_missing_protected_source_cut() -> None:
+    census, plans = formal_issue_inputs()
+    del census["source"]["protectedGithubMain"]
+    with pytest.raises(module.ArchitectureDocsError, match="lacks protected Git source revision"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_formal_issue_incremental_source_cut_is_valid() -> None:
+    census, plans = formal_issue_inputs()
+    census["source"] = {"protectedGithubMain": census["source"]["protectedGithubMain"]}
+    module.validate_formal_issue_census(census, plans)
+
+
 def test_formal_issue_census_preserves_existing_owner_legos() -> None:
     census, plans = formal_issue_inputs()
     module.validate_formal_issue_census(census, plans)
