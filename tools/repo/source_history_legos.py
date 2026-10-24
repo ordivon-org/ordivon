@@ -33,7 +33,12 @@ def owners(repo: Path, canonical_revision: str) -> list[tuple[str, str]]:
     manifest = tomllib.loads(
         git(repo, "show", canonical_revision + ":tools/repo/owners.toml")
     )
-    return [(item["root"], item["name"]) for item in manifest["owners"]]
+    # The native Formal Issue owner universe also recognizes tools/repo as
+    # repository mechanics, not as a domain or effect authority. Keep that
+    # existing owner distinct from genuinely unattributed root paths.
+    return [(item["root"], item["name"]) for item in manifest["owners"]] + [
+        ("tools/repo/", "tools/repo"),
+    ]
 
 
 def current_tree(repo: Path, revision: str) -> dict[str, str]:

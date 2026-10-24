@@ -240,5 +240,40 @@ class SourceHistoryLegosTests(unittest.TestCase):
             history(Path(temp), "main", "nonexistent")
 
 
+    def test_repo_mechanics_owner_is_distinct_from_unknown_root(self):
+        # tools/repo is the existing natural owner in Formal Issue Census,
+        # despite not being a domain entry in owners.toml.
+        with tempfile.TemporaryDirectory(prefix="ordivon-history-repo-owner-") as temp:
+            root = Path(temp)
+            git(root, "init", "-q", "-b", "main")
+            git(root, "config", "user.name", "Ordivon Test")
+            git(root, "config", "user.email", "test@example.invalid")
+            manifest = root / "tools/repo/owners.toml"
+            manifest.parent.mkdir(parents=True)
+            manifest.write_text(
+                '[[owners]]\nname = "runtime"\nroot = "services/runtime/"\n'
+            )
+            (root / "README").write_text("base\n")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "base")
+            git(root, "branch", "remote-main")
+
+            local_file = root / "tools/repo/selected_consumer.py"
+            local_file.write_text("consumer = 1\n")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "native repo consumer")
+            local_commit = git(root, "rev-parse", "HEAD")
+
+            git(root, "switch", "-q", "remote-main")
+            (root / "unattributed-root.txt").write_text("remote\n")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "remote independent")
+            report = history(root, "main", "remote-main")
+            row = next(r for r in report["commits"] if r["commit"] == local_commit)
+            self.assertEqual(row["owners"], ["tools/repo"])
+            self.assertEqual(row["consumerQualification"], "UNKNOWN_REQUIRES_OWNER_CDC")
+
+
+
 if __name__ == "__main__":
     unittest.main()
