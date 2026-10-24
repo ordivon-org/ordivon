@@ -912,6 +912,27 @@
             "services/harness/planning/hux-current-baseline-r1.json",
             "services/harness/planning/hux-execution-plan-r1.json"
           ]
+        },
+        {
+          "localCommit": "24b713eb03a5fcea76b3cc6dc4cf61ba984f0467",
+          "owner": "capabilities/artifact",
+          "consumer": "Artifact Temporal Worker deployment must refuse restart while a matching canonical Artifact workflow is running, or if Temporal visibility cannot be proven, before any installed unit/state side effects. Current owner consumes canonical ARTIFACT_WORKFLOW and existing locked carrier rather than replaying the historical patch.",
+          "remoteWitness": "Native Git --cherry-mark classified exact patch-id equivalent on frozen local/remote DAG. Current capabilities/artifact/scripts/artifact_temporal_deploy.py::ensure_no_running_artifact_workflows and apply block before systemctl; current tests/test_artifact_temporal_contract.py contains both real workflow visibility and before-mutation negatives. Two owner tests + carrier-integrity related unit 3/3 PASS via UV_OFFLINE=1 MISE_OFFLINE=1 mise exec -- uv run --offline --locked python -m pytest.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "d375287686b7ad7f04b1f5ef181bff846ac9cc94",
+            "patchRelation": "PATCH_ID_EQUIVALENT",
+            "tipRelation": "CURRENT_OWNER_NATIVE_CDC_NOT_FULL_BRANCH_EQUIVALENCE",
+            "consumerStanding": "CURRENT_OWNER_COVERED_WITH_LIMITED_SCOPE",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "d375287686b7ad7f04b1f5ef181bff846ac9cc94",
+          "changedPaths": [
+            "capabilities/artifact/scripts/artifact_temporal_deploy.py",
+            "capabilities/artifact/tests/test_artifact_temporal_contract.py"
+          ]
         }
       ],
       "consumerBlockedSelections": [
