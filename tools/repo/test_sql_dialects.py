@@ -1,10 +1,14 @@
 """Deliberate counterexamples to the SQL source/dialect gate."""
+import subprocess
+import tempfile
 import unittest
+from pathlib import Path
 
 from tools.repo.check_sql_dialects import (
     OSQUERY_DEFAULT_TIMEOUT_SECONDS,
     OSQUERY_TIMEOUT_SECONDS,
     classify,
+    tracked_sql,
 )
 
 
@@ -20,6 +24,38 @@ class SQLDialectBoundaryTests(unittest.TestCase):
         self.assertEqual(OSQUERY_TIMEOUT_SECONDS["npm_packages.sql"], 120)
         self.assertEqual(OSQUERY_DEFAULT_TIMEOUT_SECONDS, 30)
         self.assertLessEqual(max(OSQUERY_TIMEOUT_SECONDS.values()), 120)
+
+    def test_tracked_sql_symlink_cannot_certify_external_source(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            outside = root / "external-query"
+            outside.write_text("SELECT 1;", encoding="utf-8")
+            repo = root / "repo"
+            repo.mkdir()
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            (repo / "query.sql").symlink_to(outside)
+            subprocess.run(["git", "-C", str(repo), "add", "query.sql"], check=True)
+            with self.assertRaisesRegex(ValueError, "symlink"):
+                tracked_sql(repo)
+
+    def test_tracked_sql_rejects_parent_directory_symlink_drift(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = root / "repo"
+            (repo / "queries").mkdir(parents=True)
+            (repo / "queries" / "sample.sql").write_text("SELECT 1;", encoding="utf-8")
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            subprocess.run(["git", "-C", str(repo), "add", "queries/sample.sql"], check=True)
+            self.assertEqual(tracked_sql(repo), ["queries/sample.sql"])
+
+            (repo / "queries" / "sample.sql").unlink()
+            (repo / "queries").rmdir()
+            outside = root / "elsewhere"
+            outside.mkdir()
+            (outside / "sample.sql").write_text("SELECT 2;", encoding="utf-8")
+            (repo / "queries").symlink_to(outside, target_is_directory=True)
+            with self.assertRaisesRegex(ValueError, "external source"):
+                tracked_sql(repo)
 
     def test_unknown_sql_is_not_certified(self):
         for name in ("domains/game/later.sql", "services/runtime/crates/ordivon-runtime-core/src/runtime/bad.sql"):

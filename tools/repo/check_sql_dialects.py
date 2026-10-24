@@ -45,12 +45,23 @@ def classify(path: str) -> str | None:
 
 
 def tracked_sql(root: Path) -> list[str]:
-    return [
-        p for p in subprocess.check_output(
-            ["git", "-C", str(root), "ls-files", "--", "*.sql"],
-            text=True,
-        ).splitlines() if (root / p).is_file()
-    ]
+    # Git tracks symlink paths too; filesystem is_file() follows those links.
+    # Never read/execute SQL source material outside this repository checkout.
+    tracked = subprocess.check_output(
+        ["git", "-C", str(root), "ls-files", "--", "*.sql"],
+        text=True,
+    ).splitlines()
+    repository = root.resolve()
+    accepted: list[str] = []
+    for path in tracked:
+        source = root / path
+        if source.is_symlink() or (
+            source.is_file() and not source.resolve().is_relative_to(repository)
+        ):
+            raise ValueError(f"tracked SQL symlink or external source: {path}")
+        if source.is_file():
+            accepted.append(path)
+    return accepted
 
 
 def run_bounded(
@@ -174,7 +185,11 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--audit", action="store_true")
     args = parser.parse_args()
-    issues, facts = check(ROOT)
+    try:
+        issues, facts = check(ROOT)
+    except ValueError as exc:
+        print(f"SQL dialect acceptance: NONCOMPLIANT ({exc})")
+        return 2
     for fact in facts:
         print(fact)
     for issue in issues:
