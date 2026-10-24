@@ -302,6 +302,82 @@
             "tipRelation": "SAME_BLOB_AND_MODE",
             "consumerStanding": "CURRENT_OWNER_COVERED"
           }
+        },
+        {
+          "localCommit": "e39ee4485eabdf7dd1cab21b4fce1c978971408c",
+          "owner": "tools/repo",
+          "consumer": "Source-cut Git publication refuses divergent, stale, behind, dirty and missing-tracking main; exact checker and real negative test are already current",
+          "remoteWitness": "tools/repo/migration/check-publication-main.sh + tools/repo/migration/test-check-publication-main.sh; live Bash seven-state publication contract PASS",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_CONSUMED_IMPLEMENTATION",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "branchDeletionAllowed": false,
+            "tipRelation": "PARTIAL_SAME_BLOB_LATER_ROOT_MISE",
+            "consumerStanding": "EXACT_NATIVE_CONSUMER_QUALIFIED"
+          },
+          "evaluatedRemoteMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc",
+          "equalChangedBlobOids": {
+            "tools/repo/migration/check-publication-main.sh": "1afed6c02ffa96898430b1a63833bb557f9daa60",
+            "tools/repo/migration/test-check-publication-main.sh": "4c2e1b3410cd0a67049024db19418478ca4b58f9"
+          }
+        },
+        {
+          "localCommit": "107e6b52c399777e0ee03a36a2c8f321f1962dbe",
+          "owner": "capabilities/artifact",
+          "consumer": "Artifact browser tooling pnpm@12.15.0 manifest and frozen lock already match; historical Python 3.14.9 and uv 0.13.4 would downgrade current 3.15.1/0.13.5",
+          "remoteWitness": "capabilities/artifact/artifact-delivery/node/package.json and pnpm-lock.yaml; native Artifact owner tests 2 PASS; real pnpm frozen offline 76 installed, stale manifest ERR_PNPM_OUTDATED_LOCKFILE",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_OLDER_PIN",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "branchDeletionAllowed": false,
+            "tipRelation": "TWO_LOCKED_BLOBS_SAME_OLDER_MISE_REJECTED",
+            "consumerStanding": "EXACT_NATIVE_CONSUMER_QUALIFIED"
+          },
+          "evaluatedRemoteMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc",
+          "equalChangedBlobOids": {
+            "capabilities/artifact/artifact-delivery/node/package.json": "7fd03fd80fb235da95f27782f4a111df45c69616",
+            "capabilities/artifact/artifact-delivery/node/pnpm-lock.yaml": "304efa45b3dfacf83c0e0a98bc8d5971c9cd6140"
+          }
+        },
+        {
+          "localCommit": "7263f9ea652e4bd1658cf705826cf2635f00ab0d",
+          "owner": "services/runtime",
+          "consumer": "Nested untracked Git worktree digest remains accepted and ordinary nested Gitlink roots rejected through current Runtime source and original Rust owner regression",
+          "remoteWitness": "services/runtime/crates/ordivon-runtime-core/src/universal/workspace/source_state.rs::untracked_nested_git_worktree_is_digestible; native cargo test PASS on current source",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_CONSUMED_IMPLEMENTATION",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "branchDeletionAllowed": false,
+            "tipRelation": "REFACTORED_NATIVE_CONSUMER_VERIFIED",
+            "consumerStanding": "EXACT_NATIVE_CONSUMER_QUALIFIED"
+          },
+          "evaluatedRemoteMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc"
+        },
+        {
+          "localCommit": "2eaaf11fb80460c1cbc72f18b6991dee7c5d9b67",
+          "owner": "tools/repo",
+          "consumer": "Select only historical uv.lock update-owner negative cases and reuse one extracted native checker rather than cherry-pick obsolete provider code",
+          "remoteWitness": "tools/repo/check_github_governance.py::validate_uv_lock_renovate + tools/repo/test_github_governance.py::test_uv_lock_governance_rejects_historical_update_owner_faults; RED AttributeError then GREEN 4/4 unittest plus direct governance PASS",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SELECT_NEGATIVE_CDC",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "branchDeletionAllowed": false,
+            "tipRelation": "SELECTED_HISTORICAL_NEGATIVE_CDC",
+            "consumerStanding": "EXACT_NATIVE_CONSUMER_QUALIFIED"
+          },
+          "evaluatedRemoteMain": "6d44eb7860cff086e27bedd1a59e49415a4c87cc"
         }
       ],
       "formalObligation": "The selected source must be an explicit source cut and each chosen change must preserve owner CDC.",
