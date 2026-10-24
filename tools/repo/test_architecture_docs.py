@@ -675,3 +675,30 @@ def test_formal_issue_skill_symlink_cannot_escape_source_cut(tmp_path: Path) -> 
     (tmp_path / skills[0]).symlink_to(ROOT / skills[0])
     with pytest.raises(module.ArchitectureDocsError, match="unavailable method Skill"):
         module.validate_formal_issue_census(census, plans, root=tmp_path)
+
+
+def test_git02_gateway_historical_branch_is_consumer_scoped_not_mass_deletable() -> None:
+    """Branch-tip difference is not a consumer-qualified reason to cherry-pick or delete."""
+    census, plans = formal_issue_inputs()
+    issue = next(row for row in census["issues"] if row["id"] == "GIT-02")
+    source = issue["historicalGatewaySourceCut"]
+    assert source["historicalHead"] == "bb26e32ed40e4c37534ae6f367fbdf747317682c"
+    assert source["protectedMain"] == "4379351658e7ffaad9c1510e0c7579e449e82438"
+    assert source["classification"] == "OWNER_CONSUMER_COVERAGE_NOT_BRANCH_EQUIVALENCE"
+    assert source["branchRetirement"] == "NOT_PROVEN"
+    selected = issue["historicalGatewayConsumerSelections"]
+    assert {entry["historicalCommit"] for entry in selected} == {
+        "8d22cda4f0a2e789f80c43c28720df3879fdaf7f",
+        "bb26e32ed40e4c37534ae6f367fbdf747317682c",
+    }
+    assert issue["registration"]["state"] == "UNREGISTERED"
+    for entry in selected:
+        assert entry["owner"] == "services/gateway"
+        assert entry["status"] == "CONSUMER_COVERED_DO_NOT_CHERRY_PICK_WHOLE_COMMIT"
+        assert entry["evidenceScope"] == "NATIVE_CONSUMER_TESTS_ONLY"
+        assert entry["historicalObligation"].strip()
+        assert entry["remoteConsumer"].strip()
+        for path in entry["remoteTestPaths"]:
+            assert path.startswith("services/gateway/tests/")
+            assert (ROOT / path).is_file()
+    module.validate_formal_issue_census(census, plans)
