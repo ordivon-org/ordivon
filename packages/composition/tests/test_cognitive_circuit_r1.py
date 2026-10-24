@@ -135,6 +135,70 @@ def test_unknown_method_binding_fails_closed() -> None:
         validate_manifest(manifest)
 
 
+def test_deep_valid_dependency_dag_uses_iterative_owner_graph_operator() -> None:
+    # A legitimate parallelizable owner graph is a finite DAG regardless of
+    # Python's call-stack depth. The already-existing topological operator is
+    # iterative; a second recursive DFS must not reject a valid representation.
+    manifest = valid_manifest()
+    exemplar = manifest["stages"][0]
+    stages = []
+    for index in range(1100):
+        stage = copy.deepcopy(exemplar)
+        stage["id"] = f"stage:chain-{index:04d}"
+        stage["ownerId"] = f"owner-{index:04d}"
+        stage["dependsOn"] = [] if index == 1099 else [f"stage:chain-{index + 1:04d}"]
+        stages.append(stage)
+    manifest["stages"] = stages
+    manifest["edges"] = []
+    manifest["gateRequirements"] = []
+    compiled = compile_manifest(manifest)
+    assert compiled["stageOrder"] == [stage["id"] for stage in reversed(stages)]
+    assert compiled["requiredGateIds"] == []
+
+
+def test_three_stage_graph_operator_matches_exhaustive_topological_oracle() -> None:
+    # Exhaust all 2^6 directed edge subsets on three stages, without a new
+    # model checker or Graph Owner. A legal DAG has some permutation respecting
+    # each dependency; a cyclic graph has none. This oracle is deliberately
+    # independent of the native Kahn implementation.
+    from itertools import permutations
+
+    identifiers = ["stage:a", "stage:b", "stage:c"]
+    edges = [
+        (target, source) for target in identifiers for source in identifiers if source != target
+    ]
+    template = valid_manifest()
+    for mask in range(1 << len(edges)):
+        relations = [edge for index, edge in enumerate(edges) if mask & (1 << index)]
+        manifest = copy.deepcopy(template)
+        stages = []
+        for stage_id in identifiers:
+            stage = copy.deepcopy(template["stages"][0])
+            stage["id"] = stage_id
+            stage["ownerId"] = stage_id.replace("stage:", "owner:")
+            stage["dependsOn"] = [source for target, source in relations if target == stage_id]
+            stages.append(stage)
+        manifest["stages"] = stages
+        manifest["edges"] = []
+        manifest["gateRequirements"] = []
+
+        valid_orders = [
+            ordering
+            for ordering in permutations(identifiers)
+            if all(ordering.index(source) < ordering.index(target) for target, source in relations)
+        ]
+        if not valid_orders:
+            with pytest.raises(CircuitContractError, match="dependency cycle"):
+                compile_manifest(manifest)
+            continue
+
+        compiled = compile_manifest(manifest)
+        assert tuple(compiled["stageOrder"]) in valid_orders
+        reordered = copy.deepcopy(manifest)
+        reordered["stages"].reverse()
+        assert compile_manifest(reordered)["stageOrder"] == compiled["stageOrder"]
+
+
 def test_dependency_cycle_fails_closed() -> None:
     manifest = valid_manifest()
     manifest["stages"][0]["dependsOn"] = ["stage:artifact"]
