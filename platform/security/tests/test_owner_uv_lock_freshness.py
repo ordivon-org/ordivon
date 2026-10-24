@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
@@ -37,10 +38,14 @@ class OwnerUvLockFreshness(unittest.TestCase):
             temp = Path(directory)
             (temp / "pyproject.toml").write_text(without_dev, encoding="utf-8")
             shutil.copy2(ROOT / "uv.lock", temp / "uv.lock")
+            # CI has a different package cache and VIRTUAL_ENV; neither must
+            # decide the oracle for a project manifest / lock inconsistency.
+            env = {k: v for k, v in os.environ.items() if k != "VIRTUAL_ENV"}
+            env["UV_CACHE_DIR"] = str(temp / "isolated-cache")
 
             def uv(*args: str) -> subprocess.CompletedProcess[str]:
                 return subprocess.run(
-                    ["uv", *args], cwd=temp, text=True,
+                    ["uv", *args], cwd=temp, env=env, text=True,
                     capture_output=True, timeout=40, check=False,
                 )
 
@@ -51,8 +56,11 @@ class OwnerUvLockFreshness(unittest.TestCase):
                 "--no-dev", "--no-install-project",
             )
             self.assertEqual(fresh.returncode, 0, fresh.stderr)
-            # Reintroduce the original requirements without refreshing lock.
-            (temp / "pyproject.toml").write_text(original, encoding="utf-8")
+            # Change only the local project identity: no registry packages
+            # need to be downloaded to prove lock drift.
+            stale = without_dev.replace('version = "0.1.0"', 'version = "0.1.1"', 1)
+            self.assertNotEqual(stale, without_dev)
+            (temp / "pyproject.toml").write_text(stale, encoding="utf-8")
             frozen = uv(
                 "sync", "--frozen", "--offline", "--python", "3.15.1",
                 "--no-dev", "--no-install-project",
