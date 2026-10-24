@@ -134,4 +134,52 @@ No new Agent role, new Skill, registry, approval loop, scheduler or formal DSL i
 - Lifecycle subtraction is part of correctness: close clean, unused workspaces; preserve/reconcile dirty, unique contributions and recoverable points before close; do not leave unowned duplicate implementations or orphan PRs by default. Never use a source scan alone as proof of absent external consumers.
 - Move gradually, one verified actual consumer slice at a time, then remove superseded custom code/tests when justified. Reuse existing Cognitive Circuit, Verification Obligation, Runtime, Git and Host boundaries; do not create a universal mathematical gateway, another test regime, new management Agent, second owner or parallel ledger.
 
+### R2.1 mathematical minimum: use mature semantics, not another LEGO runtime
+
+A real consumer-conditioned LEGO can be **viewed**, not globally registered, as
+the partial contract **L = (I, O, A, G, E, V)**. I/O are the owner's actual
+input/output types; A is an explicit assumption (environment, source,
+authority); G is the consumer-observable guarantee and, if stateful, its
+transition relation; E is the already-admitted owner effect scope; V is a
+source-bound verification obligation. No new universal schema is implied.
+
+Composition L2 after L1 is admitted only when L1's outputs satisfy the declared
+inputs of L2; the specific required implication G1 entails A2 is justified;
+effects retain their independent owner authority; and required Composition
+Gates are actually discharged. Without this implication evidence, the
+composition remains UNKNOWN. Free-text assumptions/guarantees are not
+mathematically proved merely because a JSON schema accepted their wording.
+
+| Concrete property | Reuse mature owner/kernel | Evidence limitation |
+| --- | --- | --- |
+| Input/output and finite standing types | Rust types, JSON Schema Draft 2020-12, Harness Run Contract | Type validity is not business acceptance |
+| LEGO dependency order | Python standard-library graphlib.TopologicalSorter in existing Composition Cognitive Circuit | A DAG neither schedules a Work nor grants authority |
+| Assume/guarantee composition | Existing Cognitive Circuit and Verification Obligation R1; current interface compatibility constraints | Qualified verifier must establish the exact support scope |
+| State machines and temporal behavior | Runtime Workspace/Job/Attempt native types and existing RuntimeDispatchR1.tla checked by SANY/TLC | Finite model is not proof of implementation refinement |
+| Durable goal and source identity | Host Work, Harness, owner source-cut evidence and existing consumer CDC | Agent Run success is not Runtime/Host/domain goal completion |
+| Network and environment observations | Network transport/egress readiness native consumer checks | A snapshot never establishes durable global reachability |
+| Finite algebraic/SMT constraints, when necessary | Existing native typed checks first; upstream SMT-LIB/Z3 only for a distinct proved need | SAT/UNSAT applies only to the exact supplied formula |
+
+**Concrete deletion-first slice:** Composition had both bespoke recursive DFS
+cycle detection and a separate manual topological ordering. A reverse DAG
+chain deeper than a bounded Python stack produced RecursionError in an owner
+test. Replace both with standard graphlib, preserving explicit unknown/self
+dependency rejects, deterministic source normalization and existing consumer
+oracles. The deep-chain RED/GREEN test checks that exact behavior, not a
+whole-system mathematical theorem. No new graph engine or scheduler exists.
+
+**Parallel adoption:** Runtime, Host, Harness and Network each independently
+identify their actual consumer, typed boundary, assumption, guarantee, effect
+owner and native oracle. Only the minimal cross-owner contracts enter the
+already-existing Composition seam; no second global LEGO database, shadow
+authority, solver gate, or Agent role is warranted. If an operator is
+fully replaced with native code, retire its custom version and redundant tests
+once the native owner proves the same scoped behavior.
+
+Authorities for the selected mature kernels:
+[Python graphlib](https://docs.python.org/3/library/graphlib.html),
+[JSON Schema Draft 2020-12](https://json-schema.org/draft/2020-12/),
+[TLA+ SANY/TLC](https://lamport.azurewebsites.net/tla/tools.html),
+[Z3 Guide](https://microsoft.github.io/z3guide/).
+
 **Operational stopping rule:** one needed property, one appropriate mature owner/kernel, one scoped verification/effect witness, followed by read-back and cleanup. If none materially improves real consumer outcomes, do not add it.

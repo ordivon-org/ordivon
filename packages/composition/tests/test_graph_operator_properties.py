@@ -6,6 +6,7 @@ adding a second graph engine, third-party orchestrator, or unbounded fuzz task.
 
 import copy
 import random
+import sys
 
 import pytest
 from test_cognitive_circuit_r1 import valid_manifest
@@ -83,3 +84,35 @@ def test_added_cycle_and_unknown_dependency_fail_closed(seed: int):
     unknown["stages"][12]["dependsOn"] = ["stage:missing"]
     with pytest.raises(CircuitContractError, match="depends on unknown stages"):
         compile_manifest(unknown)
+
+
+def test_deep_lego_dependency_chain_uses_mature_nonrecursive_graph_kernel() -> None:
+    """A valid bounded task graph must not inherit Python's call-stack limit."""
+    manifest = valid_manifest()
+    count = max(1200, sys.getrecursionlimit() + 12)
+    manifest["stages"] = [
+        {
+            "id": f"stage:{i:05}",
+            "ownerId": "research",
+            "responsibility": "Independent composable task node.",
+            "dependsOn": [] if i == count - 1 else [f"stage:{i + 1:05}"],
+            "methodBindings": [],
+            "capabilityBindings": [],
+            "inputs": [],
+            "outputs": [],
+        }
+        for i in range(count)
+    ]
+    manifest["edges"] = []
+    manifest["gateRequirements"] = []
+    original_limit = sys.getrecursionlimit()
+    try:
+        # Force a deterministic interpreter boundary independent of test runner
+        # settings (some owners raise the Python recursion limit globally).
+        sys.setrecursionlimit(640)
+        result = compile_manifest(manifest)
+    finally:
+        sys.setrecursionlimit(original_limit)
+    assert len(result["stageOrder"]) == count
+    assert result["stageOrder"][0] == f"stage:{count - 1:05}"
+    assert result["stageOrder"][-1] == "stage:00000"

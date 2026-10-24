@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+from graphlib import CycleError, TopologicalSorter
 from pathlib import Path
 from typing import Any
 
@@ -69,7 +70,8 @@ def _unique_index(rows: list[dict[str, Any]], label: str) -> dict[str, dict[str,
     return result
 
 
-def _check_dag(stages: dict[str, dict[str, Any]]) -> None:
+def _check_dag(stages: dict[str, dict[str, Any]]) -> list[str]:
+    """Return an exact deterministic legal order using Python's graph kernel."""
     known = set(stages)
     for stage_id, stage in stages.items():
         unknown = sorted(set(stage["dependsOn"]) - known)
@@ -78,22 +80,16 @@ def _check_dag(stages: dict[str, dict[str, Any]]) -> None:
         if stage_id in stage["dependsOn"]:
             raise CircuitContractError(f"stage {stage_id} cannot depend on itself")
 
-    visiting: set[str] = set()
-    visited: set[str] = set()
-
-    def visit(stage_id: str) -> None:
-        if stage_id in visited:
-            return
-        if stage_id in visiting:
-            raise CircuitContractError(f"stage dependency cycle includes {stage_id}")
-        visiting.add(stage_id)
-        for dependency in stages[stage_id]["dependsOn"]:
-            visit(dependency)
-        visiting.remove(stage_id)
-        visited.add(stage_id)
-
-    for stage_id in sorted(stages):
-        visit(stage_id)
+    # Sorted keys and predecessor sets make the native Kahn-based order
+    # independent of manifest/per-stage insertion order without a second
+    # bespoke traversal or scheduling algorithm.
+    graph = {
+        stage_id: tuple(sorted(set(stages[stage_id]["dependsOn"]))) for stage_id in sorted(stages)
+    }
+    try:
+        return list(TopologicalSorter(graph).static_order())
+    except CycleError as exc:
+        raise CircuitContractError(f"stage dependency cycle includes {exc.args[1]}") from exc
 
 
 def validate_manifest(value: dict[str, Any]) -> None:
@@ -187,7 +183,7 @@ def compile_manifest(value: dict[str, Any]) -> dict[str, Any]:
         "objectiveRef": value["objectiveRef"],
         "methodBindingIds": sorted(item["id"] for item in value["methodBindings"]),
         "capabilityBindingIds": sorted(item["id"] for item in value["capabilityBindings"]),
-        "stageOrder": _topological_order(value["stages"]),
+        "stageOrder": _check_dag(_unique_index(value["stages"], "stage")),
         "requiredGateIds": required_gate_ids,
         "unresolvedAssumptions": sorted(value["unresolvedAssumptions"]),
         "authorityBoundary": (
@@ -197,30 +193,6 @@ def compile_manifest(value: dict[str, Any]) -> dict[str, Any]:
     }
     compiled["compiledDigest"] = canonical_digest(compiled)
     return compiled
-
-
-def _topological_order(rows: list[dict[str, Any]]) -> list[str]:
-    stages = {row["id"]: row for row in rows}
-    indegree = {stage_id: 0 for stage_id in stages}
-    children: dict[str, list[str]] = {stage_id: [] for stage_id in stages}
-    for stage_id, stage in stages.items():
-        for dependency in stage["dependsOn"]:
-            indegree[stage_id] += 1
-            children[dependency].append(stage_id)
-
-    ready = sorted(stage_id for stage_id, degree in indegree.items() if degree == 0)
-    order: list[str] = []
-    while ready:
-        current = ready.pop(0)
-        order.append(current)
-        for child in sorted(children[current]):
-            indegree[child] -= 1
-            if indegree[child] == 0:
-                ready.append(child)
-                ready.sort()
-    if len(order) != len(stages):
-        raise CircuitContractError("stage dependency graph is not acyclic")
-    return order
 
 
 def validate_gate_result(
