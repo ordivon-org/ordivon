@@ -914,6 +914,45 @@
           ]
         },
         {
+          "localCommit": "ee1f938010915f348ce96413a06d7407d5434efe",
+          "pairedRevertCommit": "82239de6a1731b1f54f59166b06e95f9003fcd15",
+          "owner": "services/harness",
+          "consumer": "The Oct 19 transient rendered-turn observer altered windows_user_browser_chatgpt.ps1 and its old controller test, then its direct child reverted those two changed files and the full repository Git tree, before any durable Main consumer admission. Current Harness still owns the Windows user-browser driver, agent-automation release binding and corresponding provider/identity contracts; do not delete or replace the modern driver. Only the obsolete transient observer patch pair is skipped.",
+          "remoteWitness": "Entire frozen Git source tree ee1f93801091^ and 82239de6a173 is exactly c6ae0ba390a6e37d69ee403395547cc6318f7992. Git original pair differs on precisely two Harness paths, but final full-tree delta is empty. Current Harness native 31 native tests PASS across test_user_browser_gateway_controller.py, test_agent_automation_release_monorepo.py and test_agent_automation_mcp_deploy.py. Real Windows UI/ChatGPT turn and historical network effects remain UNKNOWN.",
+          "evidenceScope": "EXACT_GIT_BLOBS",
+          "disposition": "SKIP_CANCELLED_HISTORY_PAIR",
+          "beforeTreeOid": "c6ae0ba390a6e37d69ee403395547cc6318f7992",
+          "afterTreeOid": "c6ae0ba390a6e37d69ee403395547cc6318f7992",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+            "patchRelation": "INVERSE_DIRECT_CHILD",
+            "tipRelation": "CURRENT_BROWSER_OWNER_RETAINED",
+            "consumerStanding": "CURRENT_OWNER_COVERED",
+            "branchDeletionAllowed": false,
+            "historicalRuntimeParity": "UNKNOWN"
+          }
+        },
+        {
+          "localCommit": "d6f0d184dec98746704291ce74639b38fa645d8e",
+          "owner": "packages/composition",
+          "consumer": "Historical browser-network binding input-sequence validator and tests are absent at both current local Main and protected Main tips. No in-tree caller uses compile_browser_network_binding. Production Browserless instead consumes a Network v2 namespace, graduated receipt generation and service state through the existing Harness deployment Owner; there is no requirement to revive the old list-valued Composition API.",
+          "remoteWitness": "Native Git diff/source tree check: the two historic Composition paths are absent in both tips (local Main 13704d0cac9, protected Main 4db6ce847677). Current services/harness/scripts/browserless_podman_deploy.py::resolve_network_binding requires network-v2, PRODUCTION_CUTOVER_PASS, generationDigest, actual namespace and active service; current native services/harness/tests/test_browserless_podman_deploy.py: 16 unittest PASS. No live namespace/service effect was exercised; unknown external imports are not proven absent.",
+          "evidenceScope": "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN",
+          "disposition": "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "4db6ce847677dfb12ea5faf64cb40441613fa242",
+            "historicalSourceState": "BOTH_TIPS_ABSENT",
+            "consumerStanding": "NO_IN_TREE_CONSUMER_EXTERNAL_UNKNOWN",
+            "branchDeletionAllowed": false
+          },
+          "changedPaths": [
+            "packages/composition/src/ordivon_composition/browser_network_binding_r1.py",
+            "packages/composition/tests/test_browser_network_binding_r1.py"
+          ]
+        },
+        {
           "localCommit": "abbeace5d271f506f72413517c42a5b7320d966e",
           "owner": "tools/repo",
           "consumer": "Use local offline uv/pnpm caches before any network/VPN fallback, and only request existing network provider when lock materialization fails offline.",
