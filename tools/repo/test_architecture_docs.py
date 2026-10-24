@@ -510,6 +510,45 @@ def test_formal_issue_census_rejects_duplicate_problem_identity() -> None:
         module.validate_formal_issue_census(census, plans)
 
 
+@pytest.mark.parametrize(
+    ("fault", "diagnostic"),
+    [
+        ("duplicate", "duplicate GIT-01 consumer commit"),
+        ("short_sha", "invalid GIT-01 consumer SHA"),
+        ("wrong_owner", "undeclared GIT-01 consumer owner"),
+        ("missing_witness", "missing GIT-01 consumer remoteWitness"),
+        ("missing_scope", "missing GIT-01 consumer evidenceScope"),
+        ("unsafe_delete", "GIT-01 evidence cannot authorize branch deletion"),
+        ("bad_cohort", "invalid GIT-01 historical cohort"),
+    ],
+)
+def test_formal_validator_rejects_invalid_git01_consumer_records(
+    fault: str, diagnostic: str
+) -> None:
+    """Fail at the production architecture validator, not only the test harness."""
+    census, plans = formal_issue_inputs()
+    row = next(item for item in census["issues"] if item["id"] == "GIT-01")
+    records = row["consumerSelections"]
+    if fault == "duplicate":
+        records.append(copy.deepcopy(records[0]))
+    elif fault == "short_sha":
+        records[0]["localCommit"] = "abc"
+    elif fault == "wrong_owner":
+        records[0]["owner"] = "unregistered/owner"
+    elif fault == "missing_witness":
+        records[0]["remoteWitness"] = ""
+    elif fault == "missing_scope":
+        records[0].pop("evidenceScope")
+    elif fault == "unsafe_delete":
+        selected = next(item for item in records if "sourceQualification" in item)
+        selected["sourceQualification"]["branchDeletionAllowed"] = True
+    elif fault == "bad_cohort":
+        retired = next(item for item in records if "historicalCohort" in item)
+        retired["historicalCohort"].append(retired["historicalCohort"][0])
+    with pytest.raises(module.ArchitectureDocsError, match=diagnostic):
+        module.validate_formal_issue_census(census, plans)
+
+
 def test_formal_issue_census_cannot_grant_authority() -> None:
     census, plans = formal_issue_inputs()
     census["truthRole"] = "semantic-authority"
@@ -865,6 +904,25 @@ def test_retired_next_historical_owner_cohorts_are_not_reintroduced() -> None:
     # The current Social Fabric Owner is retained, not replaced by old R2.
     assert (ROOT / "meta/next/scripts/social_fabric_r1.py").is_file()
     assert (ROOT / "meta/next/tests/test_social_fabric_r1.py").is_file()
+    module.validate_formal_issue_census(census, plans)
+
+
+def test_git01_network_uv_nonmerge_uses_current_native_route_consumer() -> None:
+    """One absent historic source; native Network verifies the current route."""
+    import tomllib
+
+    census, plans = formal_issue_inputs()
+    issue = next(row for row in census["issues"] if row["id"] == "GIT-01")
+    rows = [row for row in issue["consumerSelections"] if row["localCommit"] == "167112a8e6e1ba7f9af776fe6b85124b60d97cbe"]
+    assert len(rows) == 1
+    selection = rows[0]
+    assert selection["owner"] == "platform/network"
+    assert selection["disposition"] == "SKIP_OLDER_SOURCECUT"
+    assert selection["evidenceScope"] == "NATIVE_CONSUMER_PASS"
+    assert selection["sourceQualification"]["branchDeletionAllowed"] is False
+    owner = tomllib.loads((ROOT / "platform/network/mise.toml").read_text())
+    assert owner["tools"]["uv"] == "0.13.5"
+    assert "ci" in owner["tasks"] and "behavior" in owner["tasks"]
     module.validate_formal_issue_census(census, plans)
 
 

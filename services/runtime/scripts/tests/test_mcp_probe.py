@@ -20,6 +20,8 @@ from mcp_probe import (
     _read_bounded_regular_file_text,
     load_bearer_token,
     load_environment_file,
+    parse_mcp_response,
+    _catalog_result,
 )
 
 
@@ -42,6 +44,62 @@ class _Response:
         return json.dumps({"jsonrpc": "2.0", "id": 1, "result": {}}).encode()
 
 
+class RuntimeProbeWireContractTests(unittest.TestCase):
+    def test_sse_progress_multiline_payload_and_unicode_are_one_response(self) -> None:
+        payload = (
+            b": keepalive\r\n\r\n"
+            b'data: {"jsonrpc":"2.0","method":"notifications/progress"}\r\n\r\n'
+            b'event: message\r\n'
+            b'data: {"jsonrpc":"2.0",\r\n'
+            b'data: "id":7,"result":{"ok":true}}\r\n\r\n'
+        )
+        self.assertEqual(
+            parse_mcp_response("text/event-stream", payload),
+            {"jsonrpc": "2.0", "id": 7, "result": {"ok": True}},
+        )
+        unicode_message = {"jsonrpc": "2.0", "id": 7, "result": {"text": "a\u2028b"}}
+        single_event = b"data: " + json.dumps(unicode_message, ensure_ascii=False).encode() + b"\n\n"
+        self.assertEqual(parse_mcp_response("text/event-stream", single_event), unicode_message)
+
+    def test_sse_notification_without_final_response_is_not_success(self) -> None:
+        notification = b'data: {"jsonrpc":"2.0","method":"notifications/progress"}\n\n'
+        with self.assertRaisesRegex(McpProbeError, "final.*response"):
+            parse_mcp_response("text/event-stream", notification)
+
+    def test_sse_duplicate_terminal_responses_fail_closed(self) -> None:
+        payload = (
+            b'data: {"jsonrpc":"2.0","id":7,"result":{}}\n\n'
+            b'data: {"jsonrpc":"2.0","id":7,"result":{"changed":true}}\n\n'
+        )
+        with self.assertRaisesRegex(McpProbeError, "multiple.*responses"):
+            parse_mcp_response("text/event-stream", payload)
+
+    def test_catalog_probe_rejects_duplicate_and_malformed_provider_tools(self) -> None:
+        class ProbeClient:
+            lifecycle = "legacy"
+            protocol_version = "2025-06-18"
+
+            def __init__(self, tools):
+                self.tools = tools
+
+            def request(self, method):
+                assert method == "tools/list"
+                return {"tools": self.tools}
+
+        lifecycle = {"protocolVersion": "2025-06-18", "serverInfo": {"name": "fixture"}}
+        for tools in (
+            [{"name": "job.observe"}, {"name": "job.observe"}],
+            [{"name": "job.observe"}, {"inputSchema": {"type": "object"}}],
+        ):
+            with self.subTest(tools=tools), self.assertRaises(McpProbeError):
+                _catalog_result(
+                    ProbeClient(tools),
+                    lifecycle,
+                    expected_tool_count=1,
+                    required_tools=("job.observe",),
+                )
+
+
 class RuntimeProbeTransportTests(unittest.TestCase):
     def test_probe_uses_stable_machine_user_agent(self) -> None:
         client = McpClient(
@@ -54,6 +112,23 @@ class RuntimeProbeTransportTests(unittest.TestCase):
         request = opened.call_args.args[0]
         self.assertEqual(request.get_header("User-agent"), PROBE_USER_AGENT)
         self.assertNotIn("Python-urllib", request.get_header("User-agent"))
+
+
+    def test_probe_client_accepts_notification_before_exact_sse_result(self) -> None:
+        class SseResponse(_Response):
+            headers = _Headers({"Content-Type": "text/event-stream"})
+
+            def read(self):
+                return (
+                    b'data: {"jsonrpc":"2.0","method":"notifications/progress"}\n\n'
+                    b'data: {"jsonrpc":"2.0","id":1,"result":{"supportedVersions":[]}}\n\n'
+                )
+
+        client = McpClient(
+            "https://mcp.example.invalid/mcp", "test-token", client_name="consumer"
+        )
+        with mock.patch("mcp_probe.urllib.request.urlopen", return_value=SseResponse()):
+            self.assertEqual(client.request("server/discover", {}), {"supportedVersions": []})
 
 
 class RuntimeCredentialTests(unittest.TestCase):
