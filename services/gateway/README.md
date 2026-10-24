@@ -11,6 +11,15 @@ Gateway owns only:
 
 Gateway never owns Runtime Job/Attempt truth, Host continuity truth, Harness run truth, OAuth/credential authority, Plugin/Skill semantics, or domain completion.
 
+**Execution cancellation identity contract (Gateway B01 / Runtime owner):** the
+`execution.cancel` adapter forwards the exact Runtime Job identity from the
+northbound operation reference. Before returning an `ExecutionReceipt`, it
+must reject a `job.cancel` response identifying any different Job. The same
+rule applies to the Linux and Windows Runtime owners; see
+`tests/test_gateway_service.py::test_execution_cancel_rejects_mismatched_runtime_job_identity`.
+This validates result correlation, not physical process termination or a new
+cancellation authority.
+
 B01 is intentionally small. The public schema avoids fast-moving closed enums such as Runtime execution-context values. Provider-owned context data stays opaque at the Gateway boundary; Gateway only lowers the generic envelope into the owner field and leaves semantic validation to the owner.
 
 For `execution.windows`, Gateway 0.4 accepts either the legacy provider-defined string context or a provider-defined JSON object. A string is forwarded as Runtime `windowsAuthority`; an object is forwarded unchanged as Runtime `windowsContext`. Capability projection prefers Runtime `windowsContexts` when the owner advertises them, so identity/privilege composition remains Runtime-owned rather than duplicated in Gateway.
