@@ -157,13 +157,16 @@ def apply() -> dict:
     # Never mutate importable packages under a currently polling Worker.
     # Stop and drain via the existing release admission fence first; otherwise
     # an in-place pip install can corrupt the live process and its recovery.
-    if current["worker"]["active"] and not current["runtimeVersionsExact"]:
-        raise RuntimeError(
-            "active Temporal worker uses older dependencies; require quiescent "
-            "release activation before provisioning its runtime"
-        )
-    provision_runtime_dependencies()
-    current = plan()
+    if not current["runtimeVersionsExact"]:
+        if current["worker"]["active"]:
+            raise RuntimeError(
+                "active Temporal worker uses older dependencies; require quiescent "
+                "release activation before provisioning its runtime"
+            )
+        # A matching environment is already the desired state: never run pip
+        # against the importable packages of a live worker just to verify it.
+        provision_runtime_dependencies()
+        current = plan()
     if not current["runtimeVersionsExact"]:
         raise RuntimeError(
             f"Temporal worker runtime versions differ from contract: {current['runtimeVersions']}"

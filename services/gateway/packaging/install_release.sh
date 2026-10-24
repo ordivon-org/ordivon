@@ -90,6 +90,10 @@ PYTHON_CHECK
 UV_PYTHON_INSTALL_DIR="$PYTHON_INSTALL_DIR" "$UV" sync --locked --no-dev --python "$PYTHON" --project "$RELEASE"
 chmod -R a+rX "$RELEASE"
 
+# Source manifests are necessary but not enough: execute the installed
+# Gateway package's existing official MCP SDK surface contract before promote.
+"$RELEASE/.venv/bin/python" "$RELEASE/packaging/windows/verify_release.py"
+
 ln -sfn "releases/$COMMIT" "$PREFIX/current.next"
 mv -Tf "$PREFIX/current.next" "$PREFIX/current"
 

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import copy
 import itertools
+import json
+from pathlib import Path
 
 import pytest
 
@@ -128,8 +130,55 @@ def test_evidence_union_refuses_cross_cohort_historical_identity_overlap() -> No
         merge_selections(census(left), census(right))
 
 
+def test_evidence_union_rejects_standalone_commit_inside_another_cohort() -> None:
+    """A source commit must have at most one effective owner claim."""
+    standalone = claim(101)
+    cohort = claim(1)
+    cohort["historicalCohort"] = [standalone["localCommit"]]
+    with pytest.raises(MergeConflict, match="overlap|identity"):
+        merge_selections(census(cohort), census(standalone))
+    with pytest.raises(MergeConflict, match="overlap|identity"):
+        merge_selections(census(standalone), census(cohort))
+
+
+def test_evidence_union_accepts_own_representative_inside_own_cohort() -> None:
+    """The representative and its historical set describe one, not two claims."""
+    group = claim(1)
+    group["historicalCohort"] = [group["localCommit"], f"{101:040x}"]
+    merged = merge_selections(census(), census(group))
+    assert selections(merged) == [group]
+
+
 def test_evidence_union_refuses_duplicate_historical_cohort_members() -> None:
     item = claim(3)
     item["historicalCohort"] = [f"{201:040x}", f"{201:040x}"]
     with pytest.raises(MergeConflict, match="historicalCohort"):
         merge_selections(census(claim(1)), census(item))
+
+
+def test_real_git01_owner_shards_recompose_with_one_canonical_join() -> None:
+    """Only the native merge helper composes parallel Agent evidence."""
+    root = Path(__file__).resolve().parents[2]
+    original = json.loads((
+        root / "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261024_R1.json"
+    ).read_text(encoding="utf-8"))
+    original_rows = selections(original)
+    by_owner: dict[str, list[dict]] = {}
+    for record in original_rows:
+        by_owner.setdefault(record["owner"], []).append(record)
+    assert len(by_owner) > 2
+
+    empty = copy.deepcopy(original)
+    selections(empty).clear()
+    expected = {row["localCommit"]: row for row in original_rows}
+    for owners in (list(by_owner), list(reversed(by_owner))):
+        result = copy.deepcopy(empty)
+        for owner in owners:
+            candidate = copy.deepcopy(empty)
+            selections(candidate).extend(copy.deepcopy(by_owner[owner]))
+            result = merge_selections(result, candidate)
+        actual = {row["localCommit"]: row for row in selections(result)}
+        assert actual == expected
+        assert merge_selections(result, result) == result
+        assert result["registrations"] == original["registrations"]
+    assert selections(original) == original_rows

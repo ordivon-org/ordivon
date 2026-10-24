@@ -326,7 +326,6 @@ def validate_formal_issue_census(
         "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER", "SKIP_CANCELLED_HISTORY_PAIR",
         "SKIP_RETIRED_UNCONSUMED", "SKIP_OLDER_TOOLCHAIN_CHERRY_PICK",
         "SKIP_IDENTICAL_TIP_WITH_NATIVE_CONSUMER",
-        "SELECT_MINIMAL_OWNER_CONSUMER_EFFECT",
     }
     allowed_evidence_scopes = {
         "NATIVE_CONSUMER_PASS", "EXACT_GIT_BLOBS",
@@ -354,6 +353,15 @@ def validate_formal_issue_census(
             raise ArchitectureDocsError("historical Git selections missing")
         identities: set[str] = set()
         cohort_ids: set[str] = set()
+        # One finite partial relation: weak or source-only evidence must not
+        # be upgraded into a different native-consumer verdict by a merge.
+        scope_disposition = {
+            "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF": "SKIP_OLDER_PIN",
+            "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC": "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
+            "CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT": "SKIP_UNCONSUMED_PERMISSION",
+            "EXACT_OWNER_LOCKED_COMPONENTS_NO_LIVE_PROVIDER": "SKIP_DUPLICATE_CHERRY_PICK",
+            "FROZEN_GATEWAY_CONSUMER_ONLY": "NO_WHOLE_COMMIT_REPLAY_WITHOUT_PRODUCER_AUTHORITY",
+        }
         for entry in selections:
             if not isinstance(entry, dict):
                 raise ArchitectureDocsError("historical Git selection must be typed")
@@ -383,6 +391,9 @@ def validate_formal_issue_census(
                 raise ArchitectureDocsError("invalid historical Git disposition")
             if not isinstance(entry.get("evidenceScope"), str) or entry["evidenceScope"] not in allowed_evidence_scopes:
                 raise ArchitectureDocsError("invalid historical Git evidenceScope")
+            expected = scope_disposition.get(entry["evidenceScope"])
+            if expected is not None and entry["disposition"] != expected:
+                raise ArchitectureDocsError("incompatible historical Git evidence and disposition")
             if "evaluatedRemoteMain" in entry and (
                 not isinstance(entry["evaluatedRemoteMain"], str)
                 or not oid_pattern.fullmatch(entry["evaluatedRemoteMain"])
@@ -413,22 +424,6 @@ def validate_formal_issue_census(
                 remote_oid = source_proof.get("protectedMain")
                 if not isinstance(remote_oid, str) or not oid_pattern.fullmatch(remote_oid):
                     raise ArchitectureDocsError("invalid historical Git protected SourceCut")
-            if entry["disposition"] == "SELECT_MINIMAL_OWNER_CONSUMER_EFFECT":
-                paths = entry.get("selectedOwnerEvidence")
-                if (
-                    entry["evidenceScope"] != "NATIVE_CONSUMER_PASS"
-                    or source_proof is None
-                    or source_proof.get("patchRelation") != "LOCAL_NONMERGE_HISTORICAL_EFFECT"
-                    or not isinstance(paths, list)
-                    or not paths
-                    or any(
-                        not isinstance(path, str)
-                        or not path.startswith(entry["owner"] + "/")
-                        or ".." in Path(path).parts
-                        for path in paths
-                    )
-                ):
-                    raise ArchitectureDocsError("invalid selected historical owner effect")
             # A claim of full-tree direct-child cancellation must be coherent.
             # This validates stated OIDs, not their reachability in the Git DAG.
             if entry["disposition"] == "SKIP_CANCELLED_HISTORY_PAIR":
