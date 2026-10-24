@@ -104,8 +104,37 @@ pub(crate) fn workspace_git_common_dir_at(workspace: &Path) -> Result<PathBuf, U
 pub(crate) fn workspace_source_state_digest_at(
     workspace: &Path,
 ) -> Result<String, UniversalExecError> {
+    workspace_source_state_digest_with_unborn_policy(workspace, false)
+}
+
+fn workspace_source_state_digest_with_unborn_policy(
+    workspace: &Path,
+    allow_unborn: bool,
+) -> Result<String, UniversalExecError> {
     let workspace = canonical_directory(workspace, "workspacePath")?;
-    let head_revision = workspace_head_revision_at(&workspace)?;
+    // Only nested Git repositories may have no commit yet. The outer Runtime
+    // Workspace still requires a real committed HEAD.
+    let head_revision = match workspace_head_revision_at(&workspace) {
+        Ok(commit) => commit,
+        Err(error) if allow_unborn && error.code == UniversalExecErrorCode::ToolFailed => {
+            let symbolic = git_output(&workspace, ["symbolic-ref", "-q", "HEAD"])?;
+            let branch = symbolic.trim();
+            if !branch.starts_with("refs/heads/") {
+                return Err(error);
+            }
+            let check = Command::new("git")
+                .arg("-C")
+                .arg(&workspace)
+                .args(["show-ref", "--verify", "--quiet", branch])
+                .output()
+                .map_err(|problem| tool_unavailable("git show-ref", problem))?;
+            if check.status.code() != Some(1) {
+                return Err(error);
+            }
+            format!("unborn-git-head:{branch}")
+        }
+        Err(error) => return Err(error),
+    };
     let staged_index = git_output_bytes(&workspace, ["ls-files", "--stage", "-z"])?;
     let index_flags = git_output_bytes(&workspace, ["ls-files", "-v", "-z"])?;
     let index_digest = sha256_bytes(
@@ -251,7 +280,7 @@ fn workspace_source_entry(
             (
                 "git-worktree".to_string(),
                 0,
-                workspace_source_state_digest_at(&path)?,
+                workspace_source_state_digest_with_unborn_policy(&path, true)?,
             )
         } else if index_mode == Some("160000") {
             (
@@ -375,7 +404,7 @@ fn windows_source_semantics_unchanged(
                 .map_err(|error| io_error(path, "reread source symlink", error))?;
             sha256_bytes(&symlink_target_bytes(&target))
         }
-        "git-worktree" => workspace_source_state_digest_at(path)?,
+        "git-worktree" => workspace_source_state_digest_with_unborn_policy(path, true)?,
         "gitlink-uninitialized" => {
             if is_git_worktree(path)? {
                 return Ok(false);
@@ -509,6 +538,77 @@ mod gitlink_worktree_root_tests {
         fs::remove_dir_all(&root).expect("cleanup fixture");
 
         assert!(digest.starts_with("sha256:"));
+    }
+
+    #[test]
+    fn outer_workspace_unborn_head_is_not_valid_source_revision() {
+        let unique = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "ordivon-unborn-outer-root-{}-{unique}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&root).expect("create outer root");
+        let init = Command::new("git")
+            .arg("-C")
+            .arg(&root)
+            .args(["init", "--quiet"])
+            .status()
+            .expect("init outer root");
+        assert!(init.success());
+        let rejected = workspace_source_state_digest_at(&root)
+            .expect_err("outer Runtime Workspace must have a real committed HEAD");
+        assert_eq!(rejected.code, UniversalExecErrorCode::ToolFailed);
+        fs::remove_dir_all(root).expect("cleanup fixture");
+    }
+
+    #[test]
+    fn unborn_nested_git_repo_is_observable_and_tracks_changes() {
+        let unique = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "ordivon-unborn-source-{}-{unique}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&root).expect("create parent");
+        let run = |cwd: &Path, args: &[&str]| {
+            let output = Command::new("git")
+                .arg("-C")
+                .arg(cwd)
+                .args(args)
+                .output()
+                .expect("git");
+            assert!(
+                output.status.success(),
+                "git failed: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+        };
+        run(&root, &["init", "--quiet"]);
+        run(&root, &["config", "user.name", "Ordivon Test"]);
+        run(&root, &["config", "user.email", "ordivon@example.invalid"]);
+        fs::write(root.join("README.md"), "parent").expect("write parent");
+        run(&root, &["add", "README.md"]);
+        run(&root, &["commit", "--quiet", "-m", "parent"]);
+        let nested = root.join("unborn");
+        fs::create_dir(&nested).expect("create nested");
+        run(&nested, &["init", "--quiet"]);
+        fs::write(nested.join("first.txt"), "first").expect("write nested");
+
+        let first = workspace_source_state_digest_at(&root).expect("digest unborn nested");
+        fs::write(nested.join("first.txt"), "second").expect("change nested");
+        let second = workspace_source_state_digest_at(&root).expect("redigest unborn nested");
+        assert_ne!(first, second);
+
+        // An unborn branch name is part of source identity, even before commit.
+        run(&nested, &["symbolic-ref", "HEAD", "refs/heads/another"]);
+        let third = workspace_source_state_digest_at(&root).expect("digest new unborn branch");
+        assert_ne!(second, third);
+        fs::remove_dir_all(&root).expect("cleanup fixture");
     }
 
     #[test]
