@@ -807,9 +807,9 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             "CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT",
             "FROZEN_GATEWAY_CONSUMER_ONLY",
             "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN",
-            "EXACT_GIT_BLOB_AND_NATIVE_CONSUMER_PASS",
-            "EXACT_EXECUTABLE_BLOB_WITH_NONWINDOWS_HOLD_ONLY",
             "CURRENT_TOOLCHAIN_SUPERSEDES_OLD_LOCK_AND_NATIVE_TEST_PASS",
+            "EXACT_EXECUTABLE_BLOB_WITH_NONWINDOWS_HOLD_ONLY",
+            "EXACT_GIT_BLOB_AND_NATIVE_CONSUMER_PASS",
         }
         if item["evidenceScope"] == "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF":
             assert item["disposition"] == "SKIP_OLDER_PIN"
@@ -937,15 +937,29 @@ def test_git02_unadmitted_historical_finance_and_network_consumers_remain_source
     assert {row["historicalCommit"] for row in candidates} == {
         "1df72119bc2a04cc6b1f93501d068873546f934f",
         "5f4d4759b2809a5ccc57174e3e110eb6926f135d",
+        "63f0076e9aea0f5ae22d7e3fc9e8142619420446",
     }
-    assert {row["owner"] for row in candidates} == {"domains/capital", "platform/network"}
-    assert {row["historicalNativeTestResult"] for row in candidates} == {"12_PASSED"}
+    assert {row["owner"] for row in candidates} == {
+        "domains/capital", "platform/network", "apps/web"
+    }
+    assert {row["historicalNativeTestResult"] for row in candidates} == {
+        "12_PASSED", "NOT_REEXECUTED_NO_CURRENT_CONSUMER"
+    }
     for row in candidates:
         assert row["modernConsumerAdmitted"] is False
         assert row["branchRetirement"] == "NOT_PROVEN"
         assert row["selection"] == "PRESERVE_HISTORICAL_SOURCE_NO_WHOLE_COMMIT_CHERRY_PICK"
         assert row["historicalTestSourceCut"] == row["historicalCommit"]
-        assert row["protectedMainSourceCut"] == "e74e94a298077432df589e58c61a9b1499a28c5c"
+        assert row["protectedMainSourceCut"] in {
+            "e74e94a298077432df589e58c61a9b1499a28c5c",
+            "d6e15f621aad7cdb65fbfe97e712540eebcb6309",
+        }
+        if row["owner"] == "apps/web":
+            assert row["historicalNativeTestResult"] == "NOT_REEXECUTED_NO_CURRENT_CONSUMER"
+            assert row["historicalCommit"] == "63f0076e9aea0f5ae22d7e3fc9e8142619420446"
+            assert all(path.startswith("apps/web/") for path in row["historicOnlyFiles"])
+        else:
+            assert row["historicalNativeTestResult"] == "12_PASSED"
         assert row["behaviorScope"].strip()
         assert row["missingCurrentConsumerEvidence"].strip()
         assert all(not (ROOT / path).exists() for path in row["historicOnlyFiles"])
