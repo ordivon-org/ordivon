@@ -60,7 +60,7 @@ class AgentAdmissionContractTests(unittest.TestCase):
 
     def test_public_contract_denies_ungranted_action_without_effect_projection(self) -> None:
         payload = json.loads(FIXTURE.read_text(encoding="utf-8"))
-        payload["grant"]["allowedActions"] = []
+        payload["grant"]["allowedActions"] = ["article.read"]  # valid grant; comment.create stays unauthorized
         self.assert_outcome(_run(payload), "DENY", "action-not-granted")
 
 
