@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+from graphlib import CycleError, TopologicalSorter
 from pathlib import Path
 from typing import Any
 
@@ -573,6 +574,14 @@ def validate_formal_issue_census(
                 raise ArchitectureDocsError("invalid typed LEGO dependencies")
             if not set(dependencies) <= node_ids:
                 raise ArchitectureDocsError("unknown LEGO dependency")
+        # Reuse Python's standard DAG checker, not an Ordivon graph kernel.
+        # OBSERVATION/CONTROL feedback edges do not share this restriction.
+        try:
+            TopologicalSorter({
+                node["id"]: node.get("dependencies", []) for node in nodes
+            }).prepare()
+        except CycleError as exc:
+            raise ArchitectureDocsError("LEGO dependency cycle") from exc
         edges = plan.get("edges", [])
         if not isinstance(edges, list):
             raise ArchitectureDocsError("LEGO edge relation must be a list")

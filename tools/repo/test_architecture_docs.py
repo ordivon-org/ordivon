@@ -520,6 +520,29 @@ def test_registered_runtime_dependency_must_resolve_to_a_declared_node() -> None
         module.validate_formal_issue_census(census, plans)
 
 
+def test_runtime_lego_dependency_cycle_is_not_a_build_order() -> None:
+    census, plans = formal_issue_inputs()
+    plan = plans["services/runtime/planning/lego-plan-r1.json"]
+    # R01 already depends on R00. A new R00 -> R01 dependency means
+    # neither owner responsibility can be scheduled before the other.
+    root = next(node for node in plan["nodes"] if node["id"] == "R00")
+    root["dependencies"].append("R01")
+    with pytest.raises(module.ArchitectureDocsError, match="LEGO dependency cycle"):
+        module.validate_formal_issue_census(census, plans)
+
+
+def test_observation_feedback_edge_is_not_a_build_dependency_cycle() -> None:
+    census, plans = formal_issue_inputs()
+    plan = plans["platform/network/planning/lego-plan-r1.json"]
+    # Feedback is legal in an observation/control system. Only explicit
+    # dependency relations require a topological build order.
+    plan["edges"].append(
+        {"from": "N03", "to": "N02", "type": "OBSERVATION",
+         "label": "actual measurement feeds classification"}
+    )
+    module.validate_formal_issue_census(census, plans)
+
+
 def test_registered_owner_lego_relation_kinds_are_not_dependency_equivalence() -> None:
     census, plans = formal_issue_inputs()
     # Two independent typed relations between the same nodes are valid;

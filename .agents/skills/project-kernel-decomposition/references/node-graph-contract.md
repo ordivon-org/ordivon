@@ -95,10 +95,12 @@ For an owner-local graph with declared vertices N, typed relationships are
 R subseteq N x Kind x N. Each (source, kind, target) triple identifies one
 relation. Both endpoints must be declared; relation kind/label must be
 nonempty; duplicate triples are redundant. Node dependencies are a separate
-relation D subseteq N x N. Do not equate D and R: Harness CONTROL/EFFECT,
-Network OBSERVATION and Runtime VERIFICATION edges are not interchangeable.
-Do not infer universal acyclicity, authority, dependency, or execution from
-the existence of an arrow.
+relation D subseteq N x N. When D represents required build/admission
+predecessors, it must be acyclic (reuse the language-native topological sorter).
+Do not equate D and R: Harness CONTROL/EFFECT, Network OBSERVATION and
+Runtime VERIFICATION edges are not interchangeable. Feedback cycles in
+OBSERVATION/CONTROL may be legitimate; do not infer authority, dependency,
+execution or universal acyclicity from an arbitrary arrow.
 
 For actual composition L1 -> L2, compatibility is an **obligation**:
 producer guarantees must discharge consumer assumptions under the selected
