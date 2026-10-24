@@ -334,6 +334,26 @@
           }
         },
         {
+          "localCommit": "e51472db167b6571db7c7fa9118f08b1eed7613b",
+          "pairedRevertCommit": "07255e4dfd26d172ebb5e62c5844ff2d661081f8",
+          "owner": "platform/workstation",
+          "consumer": "Current Workstation source and browser consumers do not load a persistent RealChromeBrowserHarnessProvider. The two adjacent historical commits add and revert precisely the same source-tree effect; preserve the existing Browser/Workstation provider, never resurrect the retired parallel service.",
+          "remoteWitness": "Git raw tree of e51472db^ and its direct revert 07255e4 is ad4aab81359fb9de9223023b702137e8d9101344 in both cuts (entire tree, not merely selected path bytes); all four source paths absent in protected Main bb8c591851a4c9f0a34763bc1a5fde365030cba4 and local Main 13704d0cac9e113b395f2d5a21b5bf8119aa04a5; no tracked Workstation consumer reference.",
+          "evidenceScope": "EXACT_GIT_BLOBS",
+          "disposition": "SKIP_CANCELLED_HISTORY_PAIR",
+          "beforeTreeOid": "ad4aab81359fb9de9223023b702137e8d9101344",
+          "afterTreeOid": "ad4aab81359fb9de9223023b702137e8d9101344",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "bb8c591851a4c9f0a34763bc1a5fde365030cba4",
+            "patchRelation": "INVERSE_DIRECT_CHILD",
+            "tipRelation": "BOTH_TIPS_ABSENT",
+            "consumerStanding": "NO_CURRENT_CONSUMER",
+            "branchDeletionAllowed": false,
+            "historicalRuntimeParity": "UNKNOWN"
+          }
+        },
+        {
           "localCommit": "ac558a911eaad6a2725f51d3d88c2de2605ce540",
           "owner": "services/runtime",
           "consumer": "Source-bound TLA+ external-jar formal wrapper runs through the existing Runtime Python unittest runner. Historical test source is byte-identical to protected consumer; no alternate TLA toolchain or test wrapper to recreate.",
