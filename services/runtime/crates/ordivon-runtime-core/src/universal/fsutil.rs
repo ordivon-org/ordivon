@@ -527,3 +527,30 @@ pub(crate) fn io_error(path: &Path, operation: &str, error: std::io::Error) -> U
         false,
     )
 }
+
+#[cfg(test)]
+mod sha256_wire_contract_tests {
+    use super::{parse_sha256_digest, sha256_bytes};
+
+    #[test]
+    fn published_sha256_wire_digest_matches_independent_known_vectors() {
+        assert_eq!(
+            sha256_bytes(b""),
+            "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        );
+        assert_eq!(
+            sha256_bytes(b"abc"),
+            "sha256:ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
+    }
+
+    #[test]
+    fn digest_parser_preserves_canonical_lowercase_wire_format() {
+        let wire = sha256_bytes(b"abc");
+        assert_eq!(
+            parse_sha256_digest(&wire).map(hex::encode),
+            Some(wire[7..].to_owned())
+        );
+        assert_eq!(parse_sha256_digest(&wire.to_uppercase()), None);
+    }
+}

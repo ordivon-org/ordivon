@@ -123,7 +123,7 @@ GATE_SCHEMA_VERSION = 2
 WORKER_RUNTIME_VERSIONS = {
     "temporalio": "1.34.0",
     "rfc8785": "0.1.4",
-    "mcp": "2.2.0",
+    "mcp": "2.3.0",
     "httpx": "0.28.1",
 }
 PLAYWRIGHT_RUNTIME_VERSIONS = {

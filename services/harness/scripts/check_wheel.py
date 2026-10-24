@@ -197,7 +197,7 @@ def validate_archive(wheel: Path) -> str:
     expected_requirements = {
         "httpx==0.28.1",
         "jsonschema<5,>=4.26",
-        'mcp==2.2.0; extra == "mcp"',
+        'mcp==2.3.0; extra == "mcp"',
     }
     if set(requirements) != expected_requirements:
         fail(
@@ -316,7 +316,7 @@ def install_smoke(wheel: Path, version: str) -> dict[str, object]:
             ).stdout
         )
         if mcp_probe != {
-            "mcpVersion": "2.2.0",
+            "mcpVersion": "2.3.0",
             "officialClient": True,
             "pluginComposition": True,
         }:
