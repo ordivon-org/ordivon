@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import tomllib
 import unittest
 
 RUNTIME_ROOT = Path(__file__).resolve().parents[2]
@@ -22,6 +23,20 @@ class FocusedVerificationContractTests(unittest.TestCase):
         self.assertEqual(contract["selectorEnv"], "RUNTIME_TEST_EXPR")
         self.assertEqual(contract["zeroMatchStanding"], "FAIL_CLOSED")
         self.assertIn("matched(selector) >= 1", contract["formalObligation"])
+
+    def test_nextest_source_is_official_version_matched_and_checksum_pinned(self) -> None:
+        """The root CI toolchain must not require a third-party release proxy."""
+        mise = tomllib.loads((RUNTIME_ROOT / "mise.toml").read_text(encoding="utf-8"))
+        nextest = mise["tools"]["http:cargo-nextest"]
+        version = nextest["version"]
+        artifact = nextest["platforms"]["linux-x64"]
+        expected_url = (
+            "https://github.com/nextest-rs/nextest/releases/download/"
+            f"cargo-nextest-{version}/cargo-nextest-{version}-x86_64-unknown-linux-gnu.tar.gz"
+        )
+        self.assertEqual(artifact["url"], expected_url)
+        self.assertRegex(artifact["checksum"], r"^sha256:[0-9a-f]{64}$")
+        self.assertGreater(artifact["size"], 0)
 
     @staticmethod
     def run_focused(selector: str) -> subprocess.CompletedProcess[str]:

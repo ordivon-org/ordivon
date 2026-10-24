@@ -353,14 +353,53 @@ def history(repo: Path, left: str, right: str) -> dict:
     }
 
 
+def owner_slice(projection: dict, owner: str) -> dict:
+    """Project one current Owner without inventing retirement authority.
+
+    Owner membership overlaps for commits touching several Owners. Therefore
+    a collection of Owner views is a cover, not a disjoint Git partition.
+    """
+    records = projection["commits"]
+    names = {name for item in records for name in item["owners"]}
+    if owner not in names:
+        raise ValueError(f"unknown Owner in source history: {owner!r}")
+    global_counts = collections.Counter(item["side"] for item in records)
+    if {side: global_counts[side] for side in ("local", "remote")} != projection["counts"]:
+        raise ValueError("source-history global DAG coverage mismatch")
+
+    picked = [item for item in records if owner in item["owners"]]
+    counts = collections.Counter(item["side"] for item in picked)
+    per_side = {side: counts[side] for side in ("local", "remote")}
+    for side, count in per_side.items():
+        expected = projection["ownerMembership"].get(side + ":" + owner, 0)
+        if count != expected:
+            raise ValueError("source-history Owner membership mismatch")
+
+    return {
+        "kind": "ordivon.source-history-lego-owner-view",
+        "truthRole": projection["truthRole"],
+        "sourceCut": projection["sourceCut"],
+        "ownerMappingSourceCut": projection["ownerMappingSourceCut"],
+        "owner": owner,
+        "counts": per_side,
+        "unfilteredCounts": projection["counts"],
+        "warning": projection["warning"]
+        + " Owner views overlap; they are not a disjoint partition.",
+        "commits": picked,
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", type=Path, default=Path("."))
     parser.add_argument("--left", default="main")
     parser.add_argument("--right", default="origin/main")
+    parser.add_argument("--owner", help="Restrict output to one natural Owner")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     report = history(args.repo.resolve(), args.left, args.right)
+    if args.owner:
+        report = owner_slice(report, args.owner)
     payload = json.dumps(report, ensure_ascii=True, separators=(",", ":")) + "\n"
     if args.output:
         args.output.write_text(payload, encoding="utf-8")
