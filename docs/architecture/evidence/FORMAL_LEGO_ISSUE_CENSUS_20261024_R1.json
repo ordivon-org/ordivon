@@ -143,7 +143,63 @@
           "selection": "PRESERVE_HISTORICAL_SOURCE_NO_WHOLE_COMMIT_CHERRY_PICK",
           "branchRetirement": "NOT_PROVEN"
         }
-      ]
+      ],
+      "historicalGatewaySourceCut": {
+        "historicalHead": "bb26e32ed40e4c37534ae6f367fbdf747317682c",
+        "protectedMain": "4379351658e7ffaad9c1510e0c7579e449e82438",
+        "classification": "OWNER_CONSUMER_COVERAGE_NOT_BRANCH_EQUIVALENCE",
+        "branchRetirement": "NOT_PROVEN",
+        "sourceComparison": "Two historical branch-only commits, not the full three-dot divergence. 18 affected historical paths; five identical blobs at this protected source cut, thirteen differing. Modern differences and untested Windows host effects remain unqualified.",
+        "realizationBoundary": "Native Linux verification of owner source/contract tests only; actual Windows service start, ACL realization and activation not demonstrated."
+      },
+      "historicalGatewayConsumerSelections": [
+        {
+          "historicalCommit": "8d22cda4f0a2e789f80c43c28720df3879fdaf7f",
+          "owner": "services/gateway",
+          "historicalObligation": "Windows Gateway carrier candidate is provisioned from an immutable exact full SHA with locked Python, an executable, mechanical release receipt, and MCP tool surface verification.",
+          "remoteConsumer": "Protected Main gateway Windows installer and release verifier bind release source SHA, managed Python/uv lock, manifest package version/tool list and immutable receipt. Original branch files differ on thirteen of eighteen paths; no whole-file/commit equivalence claim.",
+          "remoteTestPaths": [
+            "services/gateway/tests/test_windows_release_contract.py",
+            "services/gateway/tests/test_windows_activation_contract.py"
+          ],
+          "status": "CONSUMER_COVERED_DO_NOT_CHERRY_PICK_WHOLE_COMMIT",
+          "evidenceScope": "NATIVE_CONSUMER_TESTS_ONLY"
+        },
+        {
+          "historicalCommit": "bb26e32ed40e4c37534ae6f367fbdf747317682c",
+          "owner": "services/gateway",
+          "historicalObligation": "Windows carrier credential materialization requires stopped candidate, protected service SID ACL and digest-only receipt, service materialization must reject missing runtime bearer paths.",
+          "remoteConsumer": "Protected Main gateway Windows credential/service materializers and source-bound native tests preserve the named preflight, least-privilege credential and service lifecycle obligations; actual Windows execution and untested historical behaviors remain UNKNOWN.",
+          "remoteTestPaths": [
+            "services/gateway/tests/test_windows_credential_contract.py",
+            "services/gateway/tests/test_windows_service_contract.py",
+            "services/gateway/tests/test_windows_acl_preflight.py",
+            "services/gateway/tests/test_windows_local_identity.py"
+          ],
+          "status": "CONSUMER_COVERED_DO_NOT_CHERRY_PICK_WHOLE_COMMIT",
+          "evidenceScope": "NATIVE_CONSUMER_TESTS_ONLY"
+        }
+      ],
+      "historicalCodexOAuthSourceCut": {
+        "historicalCommit": "228d789a752386ebe31a3706925bfaf5f665ad94",
+        "historicalParent": "955f23473113d1f3f3fd515bd2cbdf40f2f4747c",
+        "protectedMain": "4379351658e7ffaad9c1510e0c7579e449e82438",
+        "owner": "platform/network",
+        "sourceUniqueAtCut": true,
+        "historicalSourcePaths": [
+          "platform/network/consumers/codex/oauth_discovery.py",
+          "platform/network/tests/test_codex_mcp_oauth_discovery.py"
+        ],
+        "sourceWitness": "Both historical files are present in the exact Git commit, but absent in protected Main at this fixed source cut; unlike unrelated branch divergence they represent one unique historical consumer delta.",
+        "scope": "DISCOVERY_ONLY_NO_CREDENTIALS_OR_LIVE_GATEWAY",
+        "consumerContract": "Read-only RFC 9728 protected-resource OAuth challenge, RFC 8414 authorization server issuer, exact host/source allowlist, PKCE S256, no login, token exchange, direct proxy bypass or Gateway MCP call.",
+        "nativeFixtureProof": "23_OFFLINE_SOURCECUT_TESTS_PASS",
+        "nativeFixtureCommand": "git archive exact commit of Taskfile.yml, consumers/codex and test_codex_mcp_oauth_discovery.py to isolated temporary directory; uv run --with pytest==9.1.1 python -m pytest -q isolated historical test file",
+        "protectedConsumerAdmitted": false,
+        "candidateStatus": "PRESERVE_SOURCE_PENDING_CONSUMER_ADMISSION",
+        "historyDisposition": "NO_CHERRY_PICK_OR_DELETE_AUTHORIZED",
+        "reason": "Historical source/fixture tests demonstrate a bounded source capability; no current source/consumer demand establishes whether it should be integrated, retired or replaced. Old hardcoded network/issuer routes are not production admission. Preserve Git history, no direct old dependency/route reuse."
+      }
     },
     {
       "id": "WS-01",
