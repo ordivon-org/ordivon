@@ -12,7 +12,6 @@ _TERMINAL_TOOL_EVENTS = {
     "tool_call_observed": "observed",
     "tool_call_rejected": "rejected",
     "tool_call_unknown": "unknown",
-    "tool_call_cancel_requested": "cancel-requested",
     "tool_call_cancelled": "cancelled",
 }
 
@@ -41,10 +40,20 @@ class OpenTelemetryHarnessEventSink:
         self.tracer = tracer or trace.get_tracer("ordivon-harness-caller")
         self._pending: dict[str, _PendingToolSpan] = {}
         self._terminal_calls: set[str] = set()
+        self._stopped = False
 
     def __call__(self, event: HarnessRunEvent) -> None:
+        if self._stopped:
+            return
         if event.kind == "tool_call_dispatched":
             self._start_dispatched(event)
+            return
+        if event.kind == "tool_call_cancel_requested":
+            self._mark_cancel_requested(event)
+            return
+        if event.kind == "run_stopped":
+            self._close_unresolved(event)
+            self._stopped = True
             return
         if event.kind == "tool_call_reconciled":
             # A recovered durable Tool result is an observation, not a redispatch.
@@ -81,6 +90,35 @@ class OpenTelemetryHarnessEventSink:
             start_time=event.occurred_at_ms * 1_000_000,
         )
         self._pending[call_id] = _PendingToolSpan(span, tool_name, step_id, runtime_job_ref)
+
+    def _mark_cancel_requested(self, event: HarnessRunEvent) -> None:
+        # Cancellation intent does not establish physical Runtime termination.
+        call_id = _text(event.payload.get("toolCallId"))
+        tool_name = _text(event.payload.get("toolName"))
+        pending = self._pending.get(call_id) if call_id is not None else None
+        if pending is None or pending.tool_name != tool_name:
+            return
+        step_id = _text(event.payload.get("stepId"))
+        if step_id is not None and pending.step_id != step_id:
+            return
+        runtime_job_ref = _text(event.payload.get("runtimeJobRef"))
+        if (
+            runtime_job_ref is not None
+            and pending.runtime_job_ref is not None
+            and pending.runtime_job_ref != runtime_job_ref
+        ):
+            return
+        pending.span.set_attribute("ordivon.harness.tool.cancel_requested", True)
+
+    def _close_unresolved(self, event: HarnessRunEvent) -> None:
+        # The Run has stopped. Do not invent physical Tool completion.
+        for call_id, pending in self._pending.items():
+            pending.span.set_attribute("ordivon.harness.tool.status", "unknown")
+            pending.span.set_attribute("error.type", "tool_unknown")
+            pending.span.set_status(Status(StatusCode.ERROR))
+            pending.span.end(end_time=event.occurred_at_ms * 1_000_000)
+            self._terminal_calls.add(call_id)
+        self._pending.clear()
 
     def _finish(self, event: HarnessRunEvent, status: str, *, reconciled: bool = False) -> None:
         call_id = _text(event.payload.get("toolCallId"))
