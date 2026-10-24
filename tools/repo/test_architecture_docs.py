@@ -849,6 +849,7 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             "SKIP_RETIRED_UNCONSUMED",
             "SKIP_OLDER_TOOLCHAIN_CHERRY_PICK",
             "SKIP_IDENTICAL_TIP_WITH_NATIVE_CONSUMER",
+            "PORT_MINIMAL_REQUIRED_CONSUMER_CONTRACT",
         }
         assert item["evidenceScope"] in {
             "NATIVE_CONSUMER_PASS", "EXACT_GIT_BLOBS",
@@ -865,6 +866,17 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
         if item["evidenceScope"] == "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC":
             assert item["disposition"] == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
             assert item["sourceQualification"]["branchDeletionAllowed"] is False
+        if item["disposition"] == "PORT_MINIMAL_REQUIRED_CONSUMER_CONTRACT":
+            assert item["owner"] == "capabilities/media"
+            assert item["evidenceScope"] == "NATIVE_CONSUMER_PASS"
+            qualification = item["sourceQualification"]
+            assert qualification["localMain"] == source["localMain"]
+            assert len(qualification["protectedMain"]) == 40
+            assert qualification["kind"] == "non-merge"
+            assert qualification["patchRelation"] == "PATCH_DISTINCT_UNQUALIFIED"
+            assert qualification["branchDeletionAllowed"] is False
+            assert qualification["consumerContract"] == "inputSchema validation before Owner dispatch"
+            assert len(qualification["changedPathIdentities"]) == 2
         if item["evidenceScope"] == "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF":
             assert item["disposition"] == "SKIP_OLDER_PIN"
         if item["localCommit"].startswith(("ecca6ad", "86298d7", "9c8e37d", "fcf5fc6")):
