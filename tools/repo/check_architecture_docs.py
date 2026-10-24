@@ -273,6 +273,20 @@ def validate_formal_issue_census(
     if census.get("truthRole") != "time-scoped-audit-evidence-not-registry-or-admission":
         raise ArchitectureDocsError("issue census must remain non-authoritative")
 
+    # Preserve the exact Git object-ID boundary on evidence source cuts;
+    # this does NOT establish object reachability or consumer acceptance.
+    source = census.get("source")
+    if not isinstance(source, dict):
+        raise ArchitectureDocsError("issue census lacks Git source cut")
+    if "protectedGithubMain" not in source:
+        raise ArchitectureDocsError("issue census lacks protected Git source revision")
+    for role in ("protectedGithubMain", "linuxLocalMain", "mergeBase", "researchLocalMain"):
+        if role not in source:  # Incremental evidence may declare a narrower cut.
+            continue
+        oid = source[role]
+        if not isinstance(oid, str) or re.fullmatch(r"[0-9a-f]{40}", oid) is None:
+            raise ArchitectureDocsError(f"invalid Git source revision: {role}")
+
     issues = census.get("issues")
     if not isinstance(issues, list) or not issues:
         raise ArchitectureDocsError("issue census must contain typed issues")
