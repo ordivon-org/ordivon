@@ -3,6 +3,7 @@ import hashlib
 import importlib.util
 import json
 import struct
+import subprocess
 import tempfile
 import unittest
 import zlib
@@ -208,9 +209,31 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
         self.assertEqual(receipt['artifactVerification']['networkNamespace'],'UNSHARED')
         for value in receipt['artifactOwnedAuthorities'].values():
             path=ROOT/value['relativePath'];self.assertEqual(sha(path),value['sha256'],value['relativePath'])
-        game=GAME_ROOT
-        for key in ('harness','acceptedReproducibilityBoundary'):
-            value=receipt['producerEvidence'][key];self.assertEqual(sha(game/value['relativePath']),value['sha256'],value['relativePath'])
+        # This is frozen September 2026 release evidence, not current Game
+        # source acceptance. Verify that the exact historical producer bytes
+        # remain reachable in Git; never rewrite the receipt's digest to
+        # claim an unbuilt current release passed Artifact verification.
+        harness=receipt['producerEvidence']['harness']
+        self.assertEqual(harness['relativePath'],'experiments/production-smoke-r1/run.ts')
+        source_path=(GAME_ROOT.relative_to(MONOREPO_ROOT)/harness['relativePath']).as_posix()
+        revisions=subprocess.check_output(
+            ['git','-C',str(MONOREPO_ROOT),'log','--format=%H','HEAD','--',source_path],
+            text=True,timeout=25,
+        ).splitlines()
+        self.assertTrue(revisions,'frozen Game producer has no retained Git history')
+        digests={
+            hashlib.sha256(subprocess.check_output(
+                ['git','-C',str(MONOREPO_ROOT),'show',f'{revision}:{source_path}'],
+                timeout=15,
+            )).hexdigest()
+            for revision in revisions
+        }
+        self.assertIn(harness['sha256'],digests,'historical Game producer bytes must be retained')
+        self.assertNotIn('0'*64,digests,'invalid witness must not qualify frozen evidence')
+        # The unchanged recorded reproducibility boundary is independently
+        # current to this checkout; producer source version is historical.
+        boundary=receipt['producerEvidence']['acceptedReproducibilityBoundary']
+        self.assertEqual(sha(GAME_ROOT/boundary['relativePath']),boundary['sha256'],boundary['relativePath'])
         self.assertEqual(receipt['producerEvidence']['currentRuntimeProof']['firstBuildSha256'],receipt['externalSubject']['sha256'])
         self.assertEqual(receipt['producerEvidence']['currentRuntimeProof']['secondBuildSha256'],receipt['externalSubject']['sha256'])
         self.assertIn('Steam or other store upload/release',receipt['boundary']['notEstablished'])
