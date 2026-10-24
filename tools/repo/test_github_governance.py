@@ -94,7 +94,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                 )
 
     def test_historical_uv_lock_update_authority_failures_remain_rejected(self) -> None:
-        """Local-only 2eaaf11f: prove the current Renovate owner rejects three real drift modes."""
+        """Local-only 2eaaf11f: prove the current Renovate owner rejects historical drift modes."""
         baseline = json.loads((ROOT / "renovate.json").read_text(encoding="utf-8"))
         valid = self.run_contract(invalid=False, optimized=False)
         self.assertEqual(valid.returncode, 0, valid.stdout + valid.stderr)
@@ -108,6 +108,11 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             ("missing_pep621", mutated("enabledManagers", []), "Renovate must own Python PEP 621"),
             ("lock_maintenance_off", mutated("lockFileMaintenance", {"enabled": False}), "Renovate must refresh uv.lock"),
             ("automerge_without_owner_cdc", mutated("automerge", True), "Python dependency upgrades require consumer verification"),
+            (
+                "lock_maintenance_automerge_without_cdc",
+                mutated("lockFileMaintenance", {"enabled": True, "automerge": True}),
+                "Renovate uv.lock maintenance must not bypass consumer verification",
+            ),
         )
         for name, override, marker in fault_cases:
             with self.subTest(name=name):
