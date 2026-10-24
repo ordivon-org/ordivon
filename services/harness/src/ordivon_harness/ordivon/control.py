@@ -36,6 +36,14 @@ class RunDeadline:
     expires_at_ms: int
     monotonic_ms: Callable[[], int]
 
+    def __post_init__(self) -> None:
+        # The loop also constructs this value directly; factory checks alone
+        # cannot maintain the typed monotonic-deadline invariant.
+        if type(self.expires_at_ms) is not int:
+            raise ValueError("Run deadline expiry must be an exact integer")
+        if not callable(self.monotonic_ms):
+            raise ValueError("Run deadline clock must be callable")
+
     @classmethod
     def after(
         cls,
