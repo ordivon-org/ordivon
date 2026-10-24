@@ -72,7 +72,8 @@
         "product selection"
       ],
       "acceptance": [
-        "Experiment outcomes remain scoped to their hypothesis and evidence."
+        "Experiment outcomes remain scoped to their hypothesis and evidence.",
+        "Game production-smoke accepts only exact Workstation-v2 equipment provider identities; legacy/wrong providers are UNAVAILABLE, never product standing."
       ]
     },
     {

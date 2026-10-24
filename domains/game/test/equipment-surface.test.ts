@@ -21,7 +21,7 @@ test("Tiled is requested as professional software without a caller-supplied exec
     writeFileSync(tool, `#!/usr/bin/env python3
 import json,sys
 open(${JSON.stringify(log)},"w").write(json.dumps(sys.argv[1:]))
-print(json.dumps({"schemaVersion":1,"kind":"ordivon.workstation-equipment-binding","state":"AVAILABLE","equipmentId":"professional:tiled:tiled","executable":"/exact/tiled","bindingDigest":"sha256:${"a".repeat(64)}"}))
+print(json.dumps({"schemaVersion":1,"kind":"ordivon.workstation-equipment-binding","state":"AVAILABLE","equipmentId":"professional:tiled:tiled","provider":"workstation.v2.professional-software","executable":"/exact/tiled","bindingDigest":"sha256:${"a".repeat(64)}"}))
 `);
     chmodSync(tool, 0o755);
     const value = resolveGameEquipment("level.topology.author", { ORDIVON_EQUIPMENT_BINDING: tool });
@@ -43,7 +43,7 @@ test("Aseprite is requested as managed equipment without caller-supplied executa
     writeFileSync(tool, `#!/usr/bin/env python3
 import json,sys
 open(${JSON.stringify(log)},"w").write(json.dumps(sys.argv[1:]))
-print(json.dumps({"schemaVersion":1,"kind":"ordivon.workstation-equipment-binding","state":"AVAILABLE","equipmentId":"game-aseprite-e1","executable":"/managed/aseprite"}))
+print(json.dumps({"schemaVersion":1,"kind":"ordivon.workstation-equipment-binding","state":"AVAILABLE","equipmentId":"game-aseprite-e1","provider":"workstation.v2.managed-external","executable":"/managed/aseprite"}))
 `);
     chmodSync(tool, 0o755);
     const value = resolveGameEquipment("sprite.source.author", { ORDIVON_EQUIPMENT_BINDING: tool });
@@ -61,7 +61,7 @@ test("Inkscape is requested as managed equipment without an overlay executable c
     writeFileSync(tool, `#!/usr/bin/env python3
 import json,sys
 open(${JSON.stringify(log)},"w").write(json.dumps(sys.argv[1:]))
-print(json.dumps({"schemaVersion":1,"kind":"ordivon.workstation-equipment-binding","state":"AVAILABLE","equipmentId":"game-inkscape-e1","executable":"/managed/inkscape"}))
+print(json.dumps({"schemaVersion":1,"kind":"ordivon.workstation-equipment-binding","state":"AVAILABLE","equipmentId":"game-inkscape-e1","provider":"workstation.v2.managed-external","executable":"/managed/inkscape"}))
 `);
     chmodSync(tool, 0o755);
     const value = resolveGameEquipment("vector.asset.author", { ORDIVON_EQUIPMENT_BINDING: tool });
@@ -79,7 +79,7 @@ test("Blender 3D authoring requests Workstation Windows professional software wi
     writeFileSync(tool, `#!/usr/bin/env python3
 import json,sys
 open(${JSON.stringify(log)},"w").write(json.dumps(sys.argv[1:]))
-print(json.dumps({"schemaVersion":1,"kind":"ordivon.workstation-equipment-binding","state":"AVAILABLE","equipmentId":"professional:blender:blender","provider":"workstation.professional-software","executionTarget":"windows_native","executable":"/mnt/c/Users/example/AppData/Local/Programs/Blender-5.2-Portable/blender.exe","executableDigest":"sha256:${"d".repeat(64)}"}))
+print(json.dumps({"schemaVersion":1,"kind":"ordivon.workstation-equipment-binding","state":"AVAILABLE","equipmentId":"professional:blender:blender","provider":"workstation.v2.professional-software","executionTarget":"windows_native","executable":"/mnt/c/Users/example/AppData/Local/Programs/Blender-5.2-Portable/blender.exe","executableDigest":"sha256:${"d".repeat(64)}"}))
 `);
     chmodSync(tool, 0o755);
     const value = resolveGameEquipment("model3d.source.author", { ORDIVON_EQUIPMENT_BINDING: tool });
@@ -101,7 +101,7 @@ test("RenderDoc is requested as professional software without a caller-supplied 
     writeFileSync(tool, `#!/usr/bin/env python3
 import json,sys
 open(${JSON.stringify(log)},"w").write(json.dumps(sys.argv[1:]))
-print(json.dumps({"schemaVersion":1,"kind":"ordivon.workstation-equipment-binding","state":"AVAILABLE","equipmentId":"professional:renderdoc:renderdoccmd","executable":"/exact/renderdoccmd","bindingDigest":"sha256:${"c".repeat(64)}"}))
+print(json.dumps({"schemaVersion":1,"kind":"ordivon.workstation-equipment-binding","state":"AVAILABLE","equipmentId":"professional:renderdoc:renderdoccmd","provider":"workstation.v2.professional-software","executable":"/exact/renderdoccmd","bindingDigest":"sha256:${"c".repeat(64)}"}))
 `);
     chmodSync(tool, 0o755);
     const value = resolveGameEquipment("gpu.frame.inspect", { ORDIVON_EQUIPMENT_BINDING: tool });
@@ -121,7 +121,7 @@ test("Godot engine execution requests Workstation professional software without 
     writeFileSync(tool, `#!/usr/bin/env python3
 import json,sys
 open(${JSON.stringify(log)},"w").write(json.dumps(sys.argv[1:]))
-print(json.dumps({"schemaVersion":1,"kind":"ordivon.workstation-equipment-binding","state":"AVAILABLE","equipmentId":"professional:godot:godot","provider":"workstation.professional-software","executable":"/exact/godot","executableDigest":"sha256:${"b".repeat(64)}"}))
+print(json.dumps({"schemaVersion":1,"kind":"ordivon.workstation-equipment-binding","state":"AVAILABLE","equipmentId":"professional:godot:godot","provider":"workstation.v2.professional-software","executable":"/exact/godot","executableDigest":"sha256:${"b".repeat(64)}"}))
 `);
     chmodSync(tool, 0o755);
     const value = resolveGameEquipment("engine.project.execute", { ORDIVON_EQUIPMENT_BINDING: tool });
@@ -131,6 +131,21 @@ print(json.dumps({"schemaVersion":1,"kind":"ordivon.workstation-equipment-bindin
     const args = JSON.parse(readFileSync(log, "utf8"));
     assert.deepEqual(args, ["professional", "--software-id", "godot", "--launcher", "godot"]);
     assert.ok(!args.some((item: string) => item.includes("/usr/bin/godot")));
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("a stale Workstation provider cannot be promoted to AVAILABLE for Godot", () => {
+  const root = mkdtempSync(join(tmpdir(), "game-provider-drift-"));
+  try {
+    const tool = join(root, "equipment-binding");
+    writeFileSync(tool, `#!/usr/bin/env python3
+import json
+print(json.dumps({"schemaVersion":1,"kind":"ordivon.workstation-equipment-binding","state":"AVAILABLE","equipmentId":"professional:godot:godot","provider":"workstation.professional-software","executable":"/old/godot"}))
+`);
+    chmodSync(tool, 0o755);
+    const value = resolveGameEquipment("engine.project.execute", { ORDIVON_EQUIPMENT_BINDING: tool });
+    assert.equal(value.state, "UNAVAILABLE");
+    assert.match(value.reason ?? "", /provider mismatch/);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 

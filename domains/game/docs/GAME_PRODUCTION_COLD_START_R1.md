@@ -16,7 +16,7 @@ pnpm e2e:production-smoke
 The harness under `experiments/production-smoke-r1/`:
 
 1. resolves `engine.project.execute` through the current `equipment-binding` contract;
-2. requires an exact `workstation.professional-software` Godot binding;
+2. requires an exact `workstation.v2.professional-software` Godot binding;
 3. binds and hashes the exact `linux_release.x86_64` export template;
 4. copies only the repository-owned project source files into a fresh temporary project;
 5. executes the source project successfully;
