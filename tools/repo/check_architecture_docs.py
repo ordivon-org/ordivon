@@ -298,15 +298,35 @@ def validate_owner_lego_dependencies(
     edges = plan.get("edges", [])
     if not isinstance(edges, list):
         raise ArchitectureDocsError(f"{owner}: owner LEGO edges missing")
+    # Every typed relation must be over declared vertices, regardless of
+    # whether it is a scheduling prerequisite.  Only DEPENDENCY participates
+    # in the DAG; STATE/DATA/CONTROL/etc. may have legitimate feedback cycles.
+    typed_relations: set[tuple[str, str, str]] = set()
     for edge in edges:
         if not isinstance(edge, dict):
             raise ArchitectureDocsError(f"{owner}: untyped LEGO edge")
-        if edge.get("type") != "DEPENDENCY":
-            continue
+        kind = edge.get("type")
+        if not isinstance(kind, str) or not kind.strip():
+            raise ArchitectureDocsError(f"{owner}: untyped LEGO edge kind")
+        # Text labels are documentation, not part of the mathematical edge
+        # identity (source, kind, target).  They are optional; reject only an
+        # explicitly invalid label rather than adding mandatory metadata.
+        if "label" in edge and (
+            not isinstance(edge["label"], str) or not edge["label"].strip()
+        ):
+            raise ArchitectureDocsError(f"{owner}: untyped LEGO edge label")
         source, target = edge.get("from"), edge.get("to")
-        if not isinstance(source, str) or not isinstance(target, str) or source not in node_ids or target not in node_ids:
-            raise ArchitectureDocsError(f"{owner}: unknown LEGO dependency edge")
-        graph[target].add(source)
+        if (
+            not isinstance(source, str) or source not in node_ids
+            or not isinstance(target, str) or target not in node_ids
+        ):
+            raise ArchitectureDocsError(f"{owner}: unknown LEGO typed edge endpoint")
+        relation = (source, kind, target)
+        if relation in typed_relations:
+            raise ArchitectureDocsError(f"{owner}: duplicate LEGO typed edge")
+        typed_relations.add(relation)
+        if kind == "DEPENDENCY":
+            graph[target].add(source)
     sorter = TopologicalSorter(graph)
     try:
         sorter.prepare()

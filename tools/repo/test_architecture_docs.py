@@ -1854,6 +1854,52 @@ def test_formal_r21_nonprerequisite_feedback_is_not_silently_scheduled() -> None
 
 
 @pytest.mark.parametrize(
+    ("mutation", "expected"),
+    [
+        ("dangling_data", "unknown LEGO typed edge endpoint"),
+        ("duplicate_control", "duplicate LEGO typed edge"),
+        ("missing_kind", "untyped LEGO edge"),
+        ("missing_label", "untyped LEGO edge label"),
+        ("non_object", "untyped LEGO edge"),
+    ],
+)
+def test_owner_lego21_all_typed_relations_are_closed_and_unique(
+    mutation: str, expected: str
+) -> None:
+    # A DATA/CONTROL/STATE link is not a scheduling prerequisite, but it is
+    # still a relation over current declared vertices.
+    original = json.loads((
+        ROOT / "services/harness/planning/lego-plan-r1.json"
+    ).read_text(encoding="utf-8"))
+    edges = original["edges"]
+    if mutation == "dangling_data":
+        edges[0]["to"] = "__NEVER_DECLARED__"
+    elif mutation == "duplicate_control":
+        edges.append(copy.deepcopy(edges[1]))
+    elif mutation == "missing_kind":
+        edges[0]["type"] = " "
+    elif mutation == "missing_label":
+        edges[0]["label"] = ""
+    elif mutation == "non_object":
+        edges.append("NOT_AN_EDGE")
+    with pytest.raises(module.ArchitectureDocsError, match=expected):
+        module.validate_owner_lego_dependencies(original, "services/harness")
+
+
+def test_lego21_distinct_types_on_same_endpoints_and_state_cycle_are_valid() -> None:
+    plan = json.loads((
+        ROOT / "services/harness/planning/lego-plan-r1.json"
+    ).read_text(encoding="utf-8"))
+    edge = copy.deepcopy(plan["edges"][0])
+    edge["type"] = "STATE"
+    plan["edges"].append(edge)
+    edge2 = copy.deepcopy(edge)
+    edge2["from"], edge2["to"] = edge2["to"], edge2["from"]
+    plan["edges"].append(edge2)
+    module.validate_owner_lego_dependencies(plan, "services/harness")
+
+
+@pytest.mark.parametrize(
     ("owner", "cycle_a", "cycle_b"),
     [
         ("services/runtime/planning/lego-plan-r1.json", "R00", "R01"),
