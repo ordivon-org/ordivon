@@ -160,18 +160,46 @@ class MemoryRuntime:
             }
         if name == "workspace.patch":
             request_id = arguments.get("clientRequestId")
-            assert isinstance(request_id, str)
+            if not isinstance(request_id, str) or not request_id:
+                raise ValueError("patch clientRequestId must be a nonempty string")
+            request_digest = canonical_digest(arguments)
             if request_id in self.receipts:
-                return copy.deepcopy(self.receipts[request_id])
+                receipt = self.receipts[request_id]
+                if receipt["requestDigest"] != request_digest:
+                    raise HarnessRuntimeToolRejected(
+                        name,
+                        HarnessRuntimeErrorDetail(
+                            code="revision_mismatch",
+                            message="same patch request identity changed payload",
+                            commit_state="not_committed",
+                            retryable=False,
+                            field="clientRequestId",
+                        ),
+                    )
+                return {**copy.deepcopy(receipt), "replayed": True}
             files = arguments.get("files")
             if not isinstance(files, list) or not files:
                 raise AssertionError("patch omitted files")
             prepared: list[tuple[str, str, str]] = []
             patched_files: list[dict[str, JsonValue]] = []
+            seen_paths: set[str] = set()
             for file in files:
-                assert isinstance(file, dict)
+                if not isinstance(file, dict):
+                    raise ValueError("patch file entry must be an object")
                 path = file["relativePath"]
-                assert isinstance(path, str)
+                if not isinstance(path, str):
+                    raise ValueError("patch path must be a string")
+                if path in seen_paths:
+                    raise HarnessRuntimeToolRejected(
+                        name,
+                        HarnessRuntimeErrorDetail(
+                            code="invalid_argument",
+                            message="patch file has more than one producer",
+                            commit_state="not_started",
+                            field="files",
+                        ),
+                    )
+                seen_paths.add(path)
                 before = self.files[path]
                 before_digest = sha(before)
                 if file.get("expectedDigest") != before_digest:
@@ -212,8 +240,23 @@ class MemoryRuntime:
                             ),
                         )
                     resolved.append((a, b, replacement))
+                # Accepted edits form a set of pairwise disjoint half-open
+                # intervals; equal start positions (including insertions) are
+                # ambiguous and require a separate explicit edit.
+                ordered = sorted(resolved)
+                for previous, current in zip(ordered, ordered[1:]):
+                    if current[0] < previous[1] or current[0] == previous[0]:
+                        raise HarnessRuntimeToolRejected(
+                            name,
+                            HarnessRuntimeErrorDetail(
+                                code="invalid_argument",
+                                message="patch edit intervals overlap",
+                                commit_state="not_started",
+                                field="files.edits.range",
+                            ),
+                        )
                 after = before
-                for a, b, replacement in sorted(resolved, reverse=True):
+                for a, b, replacement in reversed(ordered):
                     after = after[:a] + replacement + after[b:]
                 prepared.append((path, before, after))
                 patched_files.append(
@@ -229,7 +272,7 @@ class MemoryRuntime:
             receipt = {
                 "operationId": "patch:live-ab:" + request_id[-16:],
                 "clientRequestId": request_id,
-                "requestDigest": canonical_digest(arguments),
+                "requestDigest": request_digest,
                 "replayed": False,
                 "patch": {"files": patched_files, "diff": "", "diffTruncated": False},
             }
