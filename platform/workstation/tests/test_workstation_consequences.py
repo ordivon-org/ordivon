@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import pathlib
+import re
 import subprocess
 import tomllib
 
@@ -52,7 +53,20 @@ def test_pnpm_first_path_uses_mise_and_project_package_manager() -> None:
 
 
 def test_bash_login_and_nonlogin_match_home_manager_policy() -> None:
-    expected_path = "/root/.local/share/mise/shims:/root/tools/bin:/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/lib/wsl/lib:/root/.local/bin:/root/bin"
+    # The candidate Home Manager source defines one value; both Bash modes
+    # and both Nix consumers must share it.
+    nix = (pathlib.Path(__file__).resolve().parents[1]
+           / "workstation/nix/nix/home.nix").read_text()
+    matches = re.findall(r'(?m)^\s*interactiveShellPath = "([^"]+)";$', nix)
+    assert len(matches) == 1, "Home Manager must define one interactive PATH"
+    assert nix.count("PATH = interactiveShellPath;") == 1
+    assert nix.count('export PATH="' + '$' + '{interactiveShellPath}"') == 1
+    expected_path = matches[0]
+    parts = expected_path.split(":")
+    assert parts[:3] == [
+        "/root/.local/share/mise/shims", "/root/tools/bin", "/root/.cargo/bin"
+    ]
+    assert all(parts) and len(parts) == len(set(parts)), parts
     probe = r"""printf 'PATH=%s\nEDITOR=%s\nVISUAL=%s\nPROJECTS=%s\nHISTFILE=%s\nHISTSIZE=%s\nHISTFILESIZE=%s\nHISTCONTROL=%s\nNOFILE=%s\nCDF=%s\nFF=%s\nFP=%s\n' "$PATH" "$EDITOR" "$VISUAL" "$PROJECTS" "$HISTFILE" "$HISTSIZE" "$HISTFILESIZE" "$HISTCONTROL" "$(ulimit -Sn)" "$(type -t cdf)" "$(type -t ff)" "$(type -t fp)" """
     modes = [
         ["/usr/bin/bash", "--noprofile", "--rcfile", "/root/.bashrc", "-i", "-c", probe],
