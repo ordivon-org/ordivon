@@ -75,6 +75,23 @@ The finite Attempts model is not an actual Runtime retry quota. The model
 does not prove real-world deadlock freedom, reconciliation progress, bound on
 completion time, external effect idempotency, or Rust-to-TLA refinement.
 
+## CEGAR-inspired negative control: prove this invariant is falsifiable
+
+The Runtime Owner's existing `mise run formal:verify` also executes
+`scripts/tla-formal falsify` on an ephemeral **copy** of the same TLA+ model.
+It introduces exactly one forbidden transition: admit a replacement Attempt
+while an earlier physical dispatch is still ambiguous. The pinned upstream
+TLC must return a **named** `NoCompetingLiveAttempts` counterexample.
+Successful Java exit, model syntax errors, unrelated failed invariants,
+an unknown outcome or an absent counterexample all **fail closed**.
+
+This is a model-level negative control, not proof that the Rust implementation
+has such a transition and not a complete CEGAR abstraction-refinement cycle.
+A real Runtime defect must be shown feasible in its concrete state/authority
+boundary before using the trace as implementation evidence. An abstraction
+refinement is justified only after proving the abstract trace spurious and
+preserving concrete behaviors. No new solver, model, registry or state is added.
+
 ## Reproducible toolchain gate
 
 The command-line checker is pinned in `formal/toolchain.lock.json`. The repository does

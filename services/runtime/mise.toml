@@ -65,4 +65,6 @@ if [[ "${ORDIVON_TLA_TOOLS_JAR+x}" != x && ! -f "$local_jar" ]]; then
   scripts/tla-formal bootstrap
 fi
 scripts/tla-formal check
+# An intentionally unsafe abstract retry MUST produce the named TLC violation.
+scripts/tla-formal falsify
 """
