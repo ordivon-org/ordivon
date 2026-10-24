@@ -135,3 +135,10 @@ No new Agent role, new Skill, registry, approval loop, scheduler or formal DSL i
 - Move gradually, one verified actual consumer slice at a time, then remove superseded custom code/tests when justified. Reuse existing Cognitive Circuit, Verification Obligation, Runtime, Git and Host boundaries; do not create a universal mathematical gateway, another test regime, new management Agent, second owner or parallel ledger.
 
 **Operational stopping rule:** one needed property, one appropriate mature owner/kernel, one scoped verification/effect witness, followed by read-back and cleanup. If none materially improves real consumer outcomes, do not add it.
+
+
+### R2.1 live-observation contract algebra pilot (2026-10-25)
+
+The existing optional Pacti 0.3.1 shadow now also provides a task-local mathematical operation on supplied typed Harness grant snapshots and Runtime status.config.maxRuntimeMs observations. It uses actual Pacti polyhedral composition and refinement; the result binds both supplied inputs by canonical digest. This is a semantic dependency in the original verification-obligation seam, not a new registration format, execution authority, proof kernel, or production package dependency.
+
+The former frozen example grantMaxMs=300000 / runtimeMaxMs=900000 is not a claim about deployed Runtime: Runtime max_runtime_ms is configuration-dependent. The native pilot tests supplied typed owner-style projections, including a negative smaller-runtime model and missing, zero or boolean Runtime observation counterexamples. Runtime and Harness natural owners, not a Next cross-owner file scan, own source and API conformity. A positive result means ONLY that the two SUPPLIED owner-bound numeric models are compatible in Pacti. Runtime observation authentication/currentness, time-of-check/time-of-use continuity, implementation-to-model refinement, actual effect admission and domain goal acceptance remain unproven. Keep Runtime's own fail-closed timeout admission authoritative.

@@ -77,3 +77,60 @@ def test_frozen_pacti_shadow_acceptance_preserves_boundaries() -> None:
     assert run["gateResult"]["standing"] == "SATISFIED"
     assert run["projection"]["mechanicalClosure"] is True
     assert run["projection"]["domainAcceptanceEstablished"] is False
+
+
+def test_owner_timeout_envelope_fails_closed_on_unknown_or_invalid_status() -> None:
+    import pytest
+    from ordivon_composition import CircuitContractError
+
+    from scripts.pacti_timeout_obligation_r1 import evaluate_owner_timeout_envelope
+
+    grant = {
+        "schemaVersion": 1,
+        "kind": "ordivon.plugin-gateway-execution-grant",
+        "maxTimeoutMs": 300_000,
+    }
+    for report in (
+        {},
+        {"config": {}},
+        {"config": {"maxRuntimeMs": True}},
+        {"config": {"maxRuntimeMs": 0}},
+    ):
+        with pytest.raises(CircuitContractError, match="runtime.config.maxRuntimeMs"):
+            evaluate_owner_timeout_envelope(grant, report)
+    with pytest.raises(CircuitContractError, match="Harness owner grant"):
+        evaluate_owner_timeout_envelope(
+            {
+                "schemaVersion": True,
+                "kind": "ordivon.plugin-gateway-execution-grant",
+                "maxTimeoutMs": 300_000,
+            },
+            {"config": {"maxRuntimeMs": 900_000}},
+        )
+    with pytest.raises(CircuitContractError, match="Harness owner grant"):
+        evaluate_owner_timeout_envelope(
+            {"maxTimeoutMs": 300_000}, {"config": {"maxRuntimeMs": 900_000}}
+        )
+
+
+def test_owner_timeout_envelope_uses_real_pacti_and_scopes_live_claims() -> None:
+    from scripts.pacti_timeout_obligation_r1 import evaluate_owner_timeout_envelope
+
+    grant = {
+        "schemaVersion": 1,
+        "kind": "ordivon.plugin-gateway-execution-grant",
+        "maxTimeoutMs": 300_000,
+    }
+    # This is a supplied owner-style status projection, not a claim to have
+    # queried any deployed Runtime. The active Runtime may differ.
+    adequate = {"config": {"maxRuntimeMs": 86_400_000}}
+    insufficient = {"config": {"maxRuntimeMs": 60_000}}
+    good = evaluate_owner_timeout_envelope(grant, adequate)
+    bad = evaluate_owner_timeout_envelope(grant, insufficient)
+    assert good["modelStanding"] == "COMPATIBLE"
+    assert bad["modelStanding"] == "INCOMPATIBLE"
+    assert good["observationDigest"] != bad["observationDigest"]
+    assert good["pactiVersion"] == bad["pactiVersion"] == "0.3.1"
+    assert "freshness" in good["nonClaims"][0]
+    assert "does not prove" in good["nonClaims"][1]
+    assert "never grants" in good["nonClaims"][2]
