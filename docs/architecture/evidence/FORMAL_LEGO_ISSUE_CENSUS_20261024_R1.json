@@ -933,6 +933,27 @@
             "capabilities/artifact/scripts/artifact_temporal_deploy.py",
             "capabilities/artifact/tests/test_artifact_temporal_contract.py"
           ]
+        },
+        {
+          "localCommit": "b066c82c8d4701e36d8b6eac448bc3fc34d747aa",
+          "owner": "capabilities/artifact",
+          "consumer": "The former Workstation Artifact Python provider required published immutable generation-owned interpreter bytes, not a mutable external mise executable symlink. Current Artifact-owned Python environment and wrapper preserve the same scoped source-drift, hash, and placement refusals. The retired Workstation provider path is no longer the natural consumer.",
+          "remoteWitness": "Historical 2 Workstation paths absent at exact protected source. Current capabilities/artifact/scripts/artifact_python_environment.py::pin_interpreter_in_venv and artifact_python_wrapper.py::run consume copied verified CPython bytes under immutable generation, and tests/test_artifact_python_environment.py contains 3 scoped native negative/positive consumer tests (3/3 PASS under offline locked Artifact owner). Distinct Git patch/paths do not certify full provider behavioral equivalence or installed host rollout.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "d375287686b7ad7f04b1f5ef181bff846ac9cc94",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "MIGRATED_NATURAL_OWNER_PROVIDER_COVERED_BY_NATIVE_CDC_ONLY",
+            "consumerStanding": "CURRENT_OWNER_COVERED_WITH_LIMITED_SCOPE",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "d375287686b7ad7f04b1f5ef181bff846ac9cc94",
+          "changedPaths": [
+            "platform/workstation/tests/test_artifact_toolchain_materialization_owner.py",
+            "platform/workstation/workstation/providers/artifact_toolchain/python_environment.py"
+          ]
         }
       ],
       "consumerBlockedSelections": [
