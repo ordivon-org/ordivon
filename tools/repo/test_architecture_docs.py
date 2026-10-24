@@ -919,6 +919,10 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             assert item["sourceQualification"]["tipRelation"] == "PARTIAL_TIP_LOCK_COMPONENT_IDENTITY"
             assert item["sourceQualification"]["branchDeletionAllowed"] is False
             assert item["owner"] == "platform/workstation"
+        if item["disposition"] == "SKIP_IDENTICAL_TIP_WITH_NATIVE_CONSUMER":
+            assert item["evidenceScope"] == "EXACT_GIT_BLOB_AND_NATIVE_CONSUMER_PASS"
+            assert item["sourceQualification"]["branchDeletionAllowed"] is False
+            assert "LIVE" not in item["sourceQualification"].get("consumerStanding", "")
         if item["evidenceScope"] == "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC":
             assert item["disposition"] == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
             assert item["sourceQualification"]["branchDeletionAllowed"] is False
