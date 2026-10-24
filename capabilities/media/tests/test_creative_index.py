@@ -47,6 +47,44 @@ class CreativeIndexTests(unittest.TestCase):
             ["shared", "shared"],
         )
 
+    def test_owner_metadata_exhaustive_small_graph_model(self) -> None:
+        """Check all ordered 0/1/2-edge graphs up to three owner nodes."""
+        from itertools import islice, product
+
+        cases = 0
+        for count in range(1, 4):
+            options = [()] + [(i,) for i in range(count)]
+            options += list(product(range(count), repeat=2))
+            for edges in product(options, repeat=count):
+                nodes = [{"profileId": f"node-{i}"} for i in range(count)]
+                for i, children in enumerate(edges):
+                    nodes[i]["source"] = [nodes[child] for child in children]
+
+                def oracle(i: int, active: frozenset[int]) -> list[str]:
+                    if i in active:
+                        raise ValueError("cycle in owner graph")
+                    path = active | {i}
+                    result = [f"node-{i}"]
+                    for child in edges[i]:
+                        result.extend(oracle(child, path))
+                    return result
+
+                cases += 1
+                try:
+                    expected = oracle(0, frozenset())
+                except ValueError:
+                    # Every node emits a label; the bound ensures a broken
+                    # cycle guard cannot turn this test into an infinite run.
+                    with self.assertRaisesRegex(ValueError, "cycle"):
+                        list(islice(_walk_values(nodes[0], "profileId"), 256))
+                else:
+                    self.assertEqual(
+                        list(_walk_values(nodes[0], "profileId")),
+                        expected,
+                        (count, edges),
+                    )
+        self.assertEqual(cases, 3 + 7**2 + 13**3)
+
     def test_media_only_projection_contains_equipment_capabilities_and_works(self) -> None:
         index = build_creative_index(ROOT)
         nodes = {row["id"]: row for row in index["nodes"]}
