@@ -1349,15 +1349,12 @@ impl Runtime {
         match disposition {
             SupervisorRecoveryDisposition::Running => Ok(()),
             SupervisorRecoveryDisposition::Terminal(state) => {
-                let reason_code = match (observation.unit_state, intent) {
-                    (SupervisorUnitState::NotFound, TerminationIntent::StopRequested) => {
-                        "STOP_REQUESTED_PROCESS_TREE_GONE"
-                    }
-                    (SupervisorUnitState::NotFound, TerminationIntent::DeadlineExceeded) => {
-                        "DEADLINE_EXCEEDED"
-                    }
-                    _ => "SUPERVISOR_TERMINAL_FALLBACK",
-                };
+                let reason_code = linux_supervisor_terminal_reason(
+                    observation.unit_state,
+                    intent,
+                    state,
+                    observation.result.as_deref(),
+                );
                 self.commit_observed_control_terminal(
                     attempt,
                     state,
@@ -1499,4 +1496,83 @@ impl Runtime {
         append_terminal_evidence_for_commit(&self.registry, attempt, terminal)
     }
 
+}
+
+
+// This is the same consumer's durable reason-code contract, not a second
+// lifecycle. Keep the terminal outcome and its control evidence consistent.
+fn linux_supervisor_terminal_reason(
+    unit_state: SupervisorUnitState,
+    intent: TerminationIntent,
+    state: AttemptState,
+    result: Option<&str>,
+) -> &'static str {
+    match (unit_state, intent) {
+        (SupervisorUnitState::NotFound, TerminationIntent::StopRequested) => {
+            "STOP_REQUESTED_PROCESS_TREE_GONE"
+        }
+        (SupervisorUnitState::NotFound, TerminationIntent::DeadlineExceeded) => {
+            "DEADLINE_EXCEEDED"
+        }
+        (SupervisorUnitState::Terminal, TerminationIntent::Natural)
+            if result == Some("timeout") && state == AttemptState::TimedOut =>
+        {
+            // Consumer-visible control evidence must agree with systemd's
+            // RuntimeMaxSec deadline; an unrelated failure stays a fallback.
+            "DEADLINE_EXCEEDED"
+        }
+        _ => "SUPERVISOR_TERMINAL_FALLBACK",
+    }
+}
+
+#[cfg(test)]
+mod linux_supervisor_terminal_reason_contract_tests {
+    use super::*;
+
+    #[test]
+    fn native_timeout_reason_matches_timed_out_state_and_stop_precedence() {
+        for (unit, intent, state, result, expected) in [
+            (
+                SupervisorUnitState::Terminal,
+                TerminationIntent::Natural,
+                AttemptState::TimedOut,
+                Some("timeout"),
+                "DEADLINE_EXCEEDED",
+            ),
+            (
+                SupervisorUnitState::Terminal,
+                TerminationIntent::Natural,
+                AttemptState::Failed,
+                Some("exit-code"),
+                "SUPERVISOR_TERMINAL_FALLBACK",
+            ),
+            (
+                SupervisorUnitState::NotFound,
+                TerminationIntent::StopRequested,
+                AttemptState::Cancelled,
+                None,
+                "STOP_REQUESTED_PROCESS_TREE_GONE",
+            ),
+            (
+                SupervisorUnitState::NotFound,
+                TerminationIntent::DeadlineExceeded,
+                AttemptState::TimedOut,
+                None,
+                "DEADLINE_EXCEEDED",
+            ),
+            (
+                SupervisorUnitState::Terminal,
+                TerminationIntent::StopRequested,
+                AttemptState::Cancelled,
+                Some("timeout"),
+                "SUPERVISOR_TERMINAL_FALLBACK",
+            ),
+        ] {
+            assert_eq!(
+                linux_supervisor_terminal_reason(unit, intent, state, result),
+                expected,
+                "unit={unit:?}, intent={intent:?}, state={state:?}"
+            );
+        }
+    }
 }
