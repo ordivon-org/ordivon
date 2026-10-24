@@ -448,6 +448,31 @@ def test_formal_issue_census_preserves_existing_owner_legos() -> None:
     module.validate_formal_issue_census(census, plans)
 
 
+def test_workspace_lifecycle_issue_binds_existing_runtime_state_lego() -> None:
+    census, plans = formal_issue_inputs()
+    issue = next(issue for issue in census["issues"] if issue["id"] == "WS-01")
+    assert issue["naturalOwner"] == "services/runtime"
+    assert issue["registration"] == {
+        "state": "LINKED",
+        "ownerPlan": "services/runtime/planning/lego-plan-r1.json",
+        "slice": "RW1",
+    }
+    runtime_plan = plans[issue["registration"]["ownerPlan"]]
+    runtime_slice = next(
+        slice_ for slice_ in runtime_plan["slices"] if slice_["id"] == "RW1"
+    )
+    assert "R02" in runtime_slice["nodeIds"]
+    module.validate_formal_issue_census(census, plans)
+
+def test_runtime_workspace_lego_unknown_slice_state_is_rejected() -> None:
+    census, plans = formal_issue_inputs()
+    runtime_plan = plans["services/runtime/planning/lego-plan-r1.json"]
+    slice_ = next(x for x in runtime_plan["slices"] if x["id"] == "RW1")
+    slice_["status"] = "UNKNOWN"
+    with pytest.raises(module.ArchitectureDocsError, match="unknown state"):
+        module.validate_formal_issue_census(census, plans)
+
+
 def test_formal_issue_census_rejects_unbound_lego_node() -> None:
     census, plans = formal_issue_inputs()
     owner_plan = census["registrations"][0]["ownerPlan"]

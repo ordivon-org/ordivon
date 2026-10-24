@@ -49,6 +49,11 @@
       "ownerPlan": "platform/network/planning/lego-plan-r1.json",
       "slice": "NS2",
       "scope": "verification proposal only"
+    },
+    {
+      "ownerPlan": "services/runtime/planning/lego-plan-r1.json",
+      "slice": "RW1",
+      "scope": "verification proposal only; R02 lifecycle CAS with remaining downstream acceptance UNKNOWN"
     }
   ],
   "issues": [
@@ -120,8 +125,9 @@
         "selectionReason": "Lifecycle/hold/recovery are state transitions, not filesystem age heuristics."
       },
       "registration": {
-        "state": "UNREGISTERED",
-        "reason": "Owner-local LEGO slice and consumer acceptance are not yet evidenced; census observation is not registration."
+        "state": "LINKED",
+        "ownerPlan": "services/runtime/planning/lego-plan-r1.json",
+        "slice": "RW1"
       }
     },
     {

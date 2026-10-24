@@ -350,7 +350,7 @@ def validate_formal_issue_census(
         clauses = slice_.get("acceptance")
         if not isinstance(clauses, list) or not clauses or not all(isinstance(c, str) and c.strip() for c in clauses):
             raise ArchitectureDocsError(f"LEGO slice {slice_id} needs falsifiable acceptance")
-        if slice_.get("status") not in {"PROPOSED", "IMPLEMENTED", "VERIFIED", "RETIRED"}:
+        if slice_.get("status") not in {"PROPOSED", "IMPLEMENTED", "VERIFIED", "RETIRED", "COMPLETE"}:
             raise ArchitectureDocsError(f"LEGO slice {slice_id} has unknown state")
 
 
