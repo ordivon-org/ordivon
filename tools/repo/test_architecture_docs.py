@@ -510,83 +510,6 @@ def test_formal_issue_census_rejects_duplicate_problem_identity() -> None:
         module.validate_formal_issue_census(census, plans)
 
 
-@pytest.mark.parametrize(
-    ("fault", "diagnostic"),
-    [
-        ("duplicate", "duplicate GIT-01 consumer commit"),
-        ("short_sha", "invalid GIT-01 consumer SHA"),
-        ("wrong_owner", "undeclared GIT-01 consumer owner"),
-        ("missing_witness", "missing GIT-01 consumer remoteWitness"),
-        ("missing_scope", "missing GIT-01 consumer evidenceScope"),
-        ("unsafe_delete", "GIT-01 evidence cannot authorize branch deletion"),
-        ("bad_cohort", "invalid GIT-01 historical cohort"),
-    ],
-)
-def test_formal_validator_rejects_invalid_git01_consumer_records(
-    fault: str, diagnostic: str
-) -> None:
-    """Fail at the production architecture validator, not only the test harness."""
-    census, plans = formal_issue_inputs()
-    row = next(item for item in census["issues"] if item["id"] == "GIT-01")
-    records = row["consumerSelections"]
-    if fault == "duplicate":
-        records.append(copy.deepcopy(records[0]))
-    elif fault == "short_sha":
-        records[0]["localCommit"] = "abc"
-    elif fault == "wrong_owner":
-        records[0]["owner"] = "unregistered/owner"
-    elif fault == "missing_witness":
-        records[0]["remoteWitness"] = ""
-    elif fault == "missing_scope":
-        records[0].pop("evidenceScope")
-    elif fault == "unsafe_delete":
-        selected = next(item for item in records if "sourceQualification" in item)
-        selected["sourceQualification"]["branchDeletionAllowed"] = True
-    elif fault == "bad_cohort":
-        retired = next(item for item in records if "historicalCohort" in item)
-        retired["historicalCohort"].append(retired["historicalCohort"][0])
-    with pytest.raises(module.ArchitectureDocsError, match=diagnostic):
-        module.validate_formal_issue_census(census, plans)
-
-
-@pytest.mark.parametrize(
-    "fault",
-    [
-        "missing_revert",
-        "bad_revert_sha",
-        "same_commit",
-        "missing_before_tree",
-        "unequal_trees",
-        "wrong_patch_relation",
-    ],
-)
-def test_git01_cancelled_pair_requires_equal_typed_full_trees(fault: str) -> None:
-    """A cancelled pair must carry an internally consistent full-tree witness."""
-    census, plans = formal_issue_inputs()
-    selections = next(
-        issue["consumerSelections"] for issue in census["issues"]
-        if issue["id"] == "GIT-01"
-    )
-    witness = next(
-        row for row in selections if row["disposition"] == "SKIP_CANCELLED_HISTORY_PAIR"
-    )
-    source = witness["sourceQualification"]
-    if fault == "missing_revert":
-        witness.pop("pairedRevertCommit")
-    elif fault == "bad_revert_sha":
-        witness["pairedRevertCommit"] = "not-an-object-id"
-    elif fault == "same_commit":
-        witness["pairedRevertCommit"] = witness["localCommit"]
-    elif fault == "missing_before_tree":
-        witness.pop("beforeTreeOid")
-    elif fault == "unequal_trees":
-        witness["afterTreeOid"] = "0" * 40
-    elif fault == "wrong_patch_relation":
-        source["patchRelation"] = "UNQUALIFIED"
-    with pytest.raises(module.ArchitectureDocsError, match="cancelled pair tree proof"):
-        module.validate_formal_issue_census(census, plans)
-
-
 def test_formal_issue_census_cannot_grant_authority() -> None:
     census, plans = formal_issue_inputs()
     census["truthRole"] = "semantic-authority"
@@ -945,6 +868,67 @@ def test_retired_next_historical_owner_cohorts_are_not_reintroduced() -> None:
     module.validate_formal_issue_census(census, plans)
 
 
+@pytest.mark.parametrize(
+    ("mutation", "expected_error"),
+    [
+        ("duplicate", "duplicate historical Git selection"),
+        ("bad_sha", "invalid historical Git SHA"),
+        ("unknown_owner", "undeclared historical Git owner"),
+        ("unhashable_owner", "undeclared historical Git owner"),
+        ("unowned_with_implementation_authority", "undeclared historical Git owner"),
+        ("missing_consumer", "historical Git selection missing consumer"),
+        ("unknown_disposition", "invalid historical Git disposition"),
+        ("unknown_evidence", "invalid historical Git evidenceScope"),
+        ("retirement", "historical Git selection cannot authorize branch deletion"),
+        ("missing_retirement_flag", "historical Git selection cannot authorize branch deletion"),
+        ("wrong_local_cut", "historical Git selection local SourceCut mismatch"),
+        ("bad_cohort", "invalid historical Git cohort"),
+        ("bad_remote_cut", "invalid historical Git protected SourceCut"),
+    ],
+)
+def test_git01_formal_selection_type_invariants_fail_closed(
+    mutation: str, expected_error: str
+) -> None:
+    """Parallel history cohorts cannot silently change type or deletion authority."""
+    import copy
+
+    census, plans = formal_issue_inputs()
+    census = copy.deepcopy(census)
+    issue = next(item for item in census["issues"] if item["id"] == "GIT-01")
+    row = next(
+        item for item in issue["consumerSelections"]
+        if isinstance(item.get("sourceQualification"), dict)
+    )
+    if mutation == "duplicate":
+        issue["consumerSelections"].append(copy.deepcopy(row))
+    elif mutation == "bad_sha":
+        row["localCommit"] = "not-a-sha"
+    elif mutation == "unknown_owner":
+        row["owner"] = "UNKNOWN_OWNER_NOT_IN_MANIFEST"
+    elif mutation == "unowned_with_implementation_authority":
+        row["owner"] = "ROOT_UNOWNED"
+    elif mutation == "unhashable_owner":
+        row["owner"] = ["tools/repo"]
+    elif mutation == "missing_consumer":
+        row["consumer"] = ""
+    elif mutation == "unknown_disposition":
+        row["disposition"] = "SAFE_TO_DELETE_EVERYTHING"
+    elif mutation == "unknown_evidence":
+        row["evidenceScope"] = "PRODUCTION_IS_PROVEN_BY_GIT_SHA"
+    elif mutation == "retirement":
+        row["sourceQualification"]["branchDeletionAllowed"] = True
+    elif mutation == "missing_retirement_flag":
+        row["sourceQualification"].pop("branchDeletionAllowed")
+    elif mutation == "wrong_local_cut":
+        row["sourceQualification"]["localMain"] = "f" * 40
+    elif mutation == "bad_cohort":
+        row["historicalCohort"] = [row["localCommit"], row["localCommit"]]
+    elif mutation == "bad_remote_cut":
+        row["sourceQualification"]["protectedMain"] = "wrong"
+    with pytest.raises(module.ArchitectureDocsError, match=expected_error):
+        module.validate_formal_issue_census(census, plans)
+
+
 def test_git01_network_uv_nonmerge_uses_current_native_route_consumer() -> None:
     """One absent historic source; native Network verifies the current route."""
     import tomllib
@@ -962,6 +946,34 @@ def test_git01_network_uv_nonmerge_uses_current_native_route_consumer() -> None:
     assert owner["tools"]["uv"] == "0.13.5"
     assert "ci" in owner["tasks"] and "behavior" in owner["tasks"]
     module.validate_formal_issue_census(census, plans)
+
+
+@pytest.mark.parametrize(
+    ("mutation", "error"),
+    [
+        ("overlap_cohort", "invalid historical Git cohort"),
+        ("selected_blocked", "historical Git selected and blocked collision"),
+        ("numeric_retirement", "historical Git selection cannot authorize branch deletion"),
+    ],
+)
+def test_git01_owner_proof_union_cannot_silently_weaken_preexisting_guards(
+    mutation: str, error: str
+) -> None:
+    census, plans = formal_issue_inputs()
+    issue = next(x for x in census["issues"] if x["id"] == "GIT-01")
+    rows = issue["consumerSelections"]
+    if mutation == "overlap_cohort":
+        cases = [x for x in rows if "historicalCohort" in x]
+        assert len(cases) >= 2
+        cases[1]["historicalCohort"].append(cases[0]["historicalCohort"][0])
+    elif mutation == "selected_blocked":
+        issue["consumerBlockedSelections"][0]["localCommit"] = rows[0]["localCommit"]
+    elif mutation == "numeric_retirement":
+        rows[0]["branchDeletionAllowed"] = 1
+    else:
+        raise AssertionError(mutation)
+    with pytest.raises(module.ArchitectureDocsError, match=error):
+        module.validate_formal_issue_census(census, plans)
 
 
 def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
@@ -1691,3 +1703,40 @@ def test_git01_workstation_cloudflare_gateway_tunnel_historical_correction() -> 
     gateway = source.split('resource "cloudflare_dns_record" "gateway_mcp" {', 1)[1].split("\n}", 1)[0]
     assert 'content = "${local.native_tunnel_id}.cfargotunnel.com"' in gateway
     module.validate_formal_issue_census(census, plans)
+
+@pytest.mark.parametrize(
+    "fault",
+    [
+        "missing_revert",
+        "bad_revert_sha",
+        "same_commit",
+        "missing_before_tree",
+        "unequal_trees",
+        "wrong_patch_relation",
+    ],
+)
+def test_git01_cancelled_pair_requires_equal_typed_full_trees(fault: str) -> None:
+    """A cancelled pair must carry an internally consistent full-tree witness."""
+    census, plans = formal_issue_inputs()
+    selections = next(
+        issue["consumerSelections"] for issue in census["issues"]
+        if issue["id"] == "GIT-01"
+    )
+    witness = next(
+        row for row in selections if row["disposition"] == "SKIP_CANCELLED_HISTORY_PAIR"
+    )
+    source = witness["sourceQualification"]
+    if fault == "missing_revert":
+        witness.pop("pairedRevertCommit")
+    elif fault == "bad_revert_sha":
+        witness["pairedRevertCommit"] = "not-an-object-id"
+    elif fault == "same_commit":
+        witness["pairedRevertCommit"] = witness["localCommit"]
+    elif fault == "missing_before_tree":
+        witness.pop("beforeTreeOid")
+    elif fault == "unequal_trees":
+        witness["afterTreeOid"] = "0" * 40
+    elif fault == "wrong_patch_relation":
+        source["patchRelation"] = "UNQUALIFIED"
+    with pytest.raises(module.ArchitectureDocsError, match="cancelled pair tree proof"):
+        module.validate_formal_issue_census(census, plans)

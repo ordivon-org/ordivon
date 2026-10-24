@@ -37,6 +37,23 @@ class RichPerceptionTest(unittest.TestCase):
         self.assertEqual(_correlation([1.0], [2.0]), 0.0)
         self.assertEqual(_correlation([1.0, 2.0], [3.0]), 0.0)
 
+    def test_correlation_rejects_nonfinite_numeric_profiles_before_pearson(self) -> None:
+        # FiniteFloat is the entry contract; NaN must never be a coupling score.
+        for bad in (float("nan"), float("inf"), float("-inf")):
+            with self.subTest(bad=repr(bad)):
+                with self.assertRaises(ValueError):
+                    _correlation([1.0, bad, 3.0], [3.0, 2.0, 1.0])
+                with self.assertRaises(ValueError):
+                    _correlation([3.0, 2.0, 1.0], [1.0, bad, 3.0])
+
+    def test_canonical_digest_rejects_non_json_finite_numbers(self) -> None:
+        # A digest cannot authorize a projection with non-RFC-8259 JSON numbers.
+        for bad in (float("nan"), float("inf"), float("-inf")):
+            with self.subTest(bad=repr(bad)):
+                with self.assertRaises(ValueError):
+                    canonical_digest({"projection": {"coupling": bad}})
+        self.assertEqual(canonical_digest({"coupling": 0.5}), canonical_digest({"coupling": 0.5}))
+
     def test_article_features_preserve_structure_without_raw_body(self) -> None:
         body = (
             "A precise opening explains the mechanism. "
