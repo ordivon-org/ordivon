@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-repository-mechanics-source-history-r1",
+    "purpose": "Represent divergent Git history as read-only source-cut-bound typed LEGO records; never infer semantic consumer acceptance or authorize main reset/branch deletion.",
+    "sourceEvidence": [
+      "tools/repo/owners.toml",
+      "tools/repo/source_history_legos.py",
+      "tools/repo/test_source_history_legos.py"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "RG1_SOURCE",
+      "label": "SourceHistoryGraphProjection",
+      "kind": "repository_source_graph",
+      "responsibility": "Project exact local/remote Git commit DAG, patch relation, canonical owner mapping and path evidence, including merge deltas distinct from all parents.",
+      "authority": "Git object graph and existing tools/repo/owners.toml",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "source_history_legos.py",
+        "test_source_history_legos.py"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "commit promotion",
+        "protected Main mutation",
+        "consumer behavior equality",
+        "branch retirement without separate proof"
+      ],
+      "acceptance": [
+        "Every represented commit binds immutable left/right SourceCut identities and one canonical natural Owner projection, or the operator fails closed.",
+        "Independent merge-result path changes remain visible and consumerQualification is UNKNOWN_REQUIRES_OWNER_CDC without separate Owner contract proof.",
+        "The existing native test_source_history_legos.py and repository CI pass on the candidate source cut."
+      ],
+      "nextAction": "Per-Owner Consumer-Driven Contract qualification of surviving divergent histories; no redundant Git scanner."
+    }
+  ],
+  "slices": [
+    {
+      "id": "RG1",
+      "label": "DivergentMainSourceHistory",
+      "nodeIds": [
+        "RG1_SOURCE"
+      ],
+      "status": "IMPLEMENTED",
+      "acceptance": [
+        "Native Git projection covers both exclusive DAG sides and refuses ambiguous common ancestors rather than selecting arbitrary lineage.",
+        "Projected equality may skip redundant cherry-picks for exact source paths, never approve deletion or imply behavior equality.",
+        "Owner-native test_source_history_legos.py validates NUL-delimited paths, merge paths, source-bound owners and fail-closed edges."
+      ],
+      "blockers": [
+        "Consumer semantic equivalence remains UNKNOWN until corresponding natural-Owner CDC is proven."
+      ],
+      "nextAction": "Select and test only novel consumer behavior in recorded Git cuts."
+    }
+  ]
+}
