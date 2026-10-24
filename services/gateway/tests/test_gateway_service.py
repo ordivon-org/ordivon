@@ -608,3 +608,54 @@ def test_gateway_mcp_preserves_runtime_recovery_error_as_structured_tool_error()
             assert result.structured_content["gatewayOwnerTool"] == "workspace.exec"
 
     asyncio.run(scenario())
+
+
+# FORMAL/LEGO GatewayRuntimeTerminalBit: Runtime is sole physical terminality
+# authority; false-like JSON text/numbers and a missing bit cannot become True.
+@pytest.mark.parametrize("invalid_bit", ["false", 1, None])
+def test_execution_submit_refuses_nonboolean_owner_terminality(invalid_bit: object) -> None:
+    caller = FakeOwnerCaller()
+    caller.responses[("runtime.linux", "workspace.exec")] = {
+        "jobId": "job-typed",
+        "status": "working",
+        "executionTerminal": invalid_bit,
+    }
+    with pytest.raises(GatewayError, match="boolean executionTerminal"):
+        asyncio.run(
+            GatewayService(caller).execution_submit(
+                capability="execution.linux",
+                request_id="typed-term",
+                workspace_id="ws-typed",
+                executable="/usr/bin/true",
+                args=[],
+            )
+        )
+
+
+@pytest.mark.parametrize("invalid_bit", ["false", 1, None])
+def test_execution_get_refuses_nonboolean_owner_terminality(invalid_bit: object) -> None:
+    caller = FakeOwnerCaller()
+    caller.responses[("runtime.linux", "job.observe")] = {
+        "jobId": "job-typed",
+        "status": "working",
+        "executionTerminal": invalid_bit,
+        "artifactsAvailable": False,
+        "artifacts": [],
+    }
+    with pytest.raises(GatewayError, match="boolean executionTerminal"):
+        asyncio.run(GatewayService(caller).execution_get("ordivon-exec:v1:runtime.linux:job-typed"))
+    assert [tool for _, tool, _ in caller.calls] == ["job.observe"]
+
+
+@pytest.mark.parametrize("invalid_bit", ["false", 1, None])
+def test_execution_cancel_refuses_nonboolean_owner_terminality(invalid_bit: object) -> None:
+    caller = FakeOwnerCaller()
+    caller.responses[("runtime.linux", "job.cancel")] = {
+        "jobId": "job-typed",
+        "status": "unknown",
+        "executionTerminal": invalid_bit,
+    }
+    with pytest.raises(GatewayError, match="boolean executionTerminal"):
+        asyncio.run(
+            GatewayService(caller).execution_cancel("ordivon-exec:v1:runtime.linux:job-typed")
+        )
