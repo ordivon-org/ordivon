@@ -11,9 +11,9 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-from heapq import heappop, heappush, heapify
 import json
 from graphlib import CycleError, TopologicalSorter
+from heapq import heapify, heappop, heappush
 from pathlib import Path
 from typing import Any
 
