@@ -101,7 +101,7 @@ class AttentionStore:
         limit: int = 200,
         max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
     ) -> dict[str, Any]:
-        if not 1 <= limit <= 500:
+        if type(limit) is not int or not 1 <= limit <= 500:
             raise ValueError("limit must be in [1,500]")
         if (after_target_kind is None) != (after_target_ref is None):
             raise ValueError("after_target_kind and after_target_ref must be supplied together")
@@ -188,9 +188,9 @@ class AttentionStore:
         limit: int = 100,
         max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
     ) -> dict[str, Any]:
-        if after_sequence < 0:
-            raise ValueError("after_sequence must be non-negative")
-        if not 1 <= limit <= 500:
+        if type(after_sequence) is not int or after_sequence < 0:
+            raise ValueError("after_sequence must be non-negative integer")
+        if type(limit) is not int or not 1 <= limit <= 500:
             raise ValueError("limit must be in [1,500]")
         validate_max_bytes(max_bytes)
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
@@ -288,7 +288,7 @@ class AttentionStore:
         limit: int = 100,
         max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
     ) -> dict[str, Any]:
-        if not 1 <= limit <= 500:
+        if type(limit) is not int or not 1 <= limit <= 500:
             raise ValueError("limit must be in [1,500]")
         validate_max_bytes(max_bytes)
         if after_sequence is None:
@@ -299,8 +299,8 @@ class AttentionStore:
                     "SELECT cursor FROM attention_cursors WHERE actor_ref=%s", (actor_ref,)
                 ).fetchone()
                 after_sequence = 0 if row is None else int(row["cursor"])
-        if after_sequence < 0:
-            raise ValueError("after_sequence must be non-negative")
+        if type(after_sequence) is not int or after_sequence < 0:
+            raise ValueError("after_sequence must be non-negative integer")
 
         effective_limit = limit
         while True:
