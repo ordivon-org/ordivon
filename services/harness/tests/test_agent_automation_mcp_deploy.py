@@ -208,6 +208,21 @@ class DeployTests(unittest.TestCase):
         self.assertNotIn("ordivon-host-mcp.service", unit)
         self.assertNotIn("ordivon-runtime.service", unit)
 
+    def test_gateway_effect_credential_belongs_to_temporal_worker_not_mcp(self):
+        """MCP transport must not inherit the Gateway credential used by effects."""
+        mcp = (ROOT / "systemd/ordivon-agent-automation-mcp.service").read_text()
+        worker = (ROOT / "systemd/ordivon-agent-temporal-worker.service").read_text()
+        self.assertNotIn("LoadCredential=gateway-local-bearer:", mcp)
+        self.assertNotIn("ORDIVON_AGENT_GATEWAY_BEARER_TOKEN_FILE", mcp)
+        self.assertIn(
+            "LoadCredential=gateway-local-bearer:/etc/ordivon/gateway/local-client-bearer",
+            worker,
+        )
+        self.assertIn(
+            "Environment=ORDIVON_AGENT_GATEWAY_BEARER_TOKEN_FILE=%d/gateway-local-bearer",
+            worker,
+        )
+
     def test_declared_path_tool_bootstraps_repo_scripts_when_materialized(self):
         import subprocess
         import tempfile
