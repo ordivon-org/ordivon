@@ -32,4 +32,4 @@ tokio-util = "0.7"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 tower-http = { version = "0.7", features = ["limit"] }
-uuid = { version = "=1.24.0", features = ["serde", "v7"] }
+uuid = { version = "=1.29.0", features = ["serde", "v7"] }
