@@ -15,23 +15,45 @@ expected=$(awk -F '\t' -v site="$site" '$1==site{print $2; exit}' "$MANIFEST")
 test -n "$expected"
 test "$endpoint" = "$expected"
 probe_code() {
-  local url=$1 code=000
+  local url=$1 receipt='' code='' connect='' extra=''
   for _ in 1 2 3; do
-    code=$(curl -4 -x "$PROXY" -I -sS --connect-timeout 6 --max-time 15 -o /dev/null -w '%{http_code}' "$url" 2>/dev/null || true)
-    test "$code" != 000 && { printf '%s' "$code"; return 0; }
+    # For HTTPS over an HTTP proxy, application status alone does not
+    # establish the tunnel. Both statuses belong to this one curl effect.
+    receipt=$(curl -q -4 --noproxy '' -x "$PROXY" -I -sS \
+      --connect-timeout 6 --max-time 15 -o /dev/null \
+      -w '%{http_code} %{http_connect}' "$url") || receipt=
+    read -r code connect extra <<< "$receipt"
+    if [[ "$connect" == 200 && -z "$extra" \
+      && "$code" =~ ^(2[0-9]{2}|3[0-9]{2}|400|401|403|404|405)$ ]]; then
+      printf '%s' "$code"
+      return 0
+    fi
     sleep 1
   done
   return 1
 }
+
 openai=$(probe_code https://api.openai.com/v1/models)
 registry=$(probe_code https://registry-1.docker.io/v2/)
 anthropic=$(probe_code https://api.anthropic.com/)
 okx_json=$(mktemp)
 trap 'rm -f "$okx_json"' EXIT
 for _ in 1 2 3; do
-  curl -4 -fsS -x "$PROXY" --connect-timeout 6 --max-time 15 https://openapi.okx.com/api/v5/public/time -o "$okx_json" 2>/dev/null || true
-  jq -e '.code=="0" and (.data|type)=="array" and (.data|length>=1)' "$okx_json" >/dev/null 2>&1 && break
+  receipt=$(curl -q -4 --noproxy '' -fsS -x "$PROXY" \
+    --connect-timeout 6 --max-time 15 \
+    -w '%{http_code} %{http_connect}' \
+    https://openapi.okx.com/api/v5/public/time -o "$okx_json" 2>/dev/null) || receipt=
+  read -r code connect extra <<< "$receipt"
+  if [[ "$code" == 200 && "$connect" == 200 && -z "$extra" ]] \
+    && jq -e '.code=="0" and (.data|type)=="array" and (.data|length>=1)' "$okx_json" >/dev/null 2>&1; then
+    break
+  fi
   sleep 1
 done
+[[ "$code" == 200 && "$connect" == 200 && -z "$extra" ]] || {
+  echo 'Shared provider OKX CONNECT/origin proof failed' >&2
+  exit 1
+}
 jq -e '.code=="0" and (.data|type)=="array" and (.data|length>=1)' "$okx_json" >/dev/null
+
 printf '{"schemaVersion":1,"kind":"ordivon.network-v2.shared-provider-readiness","standing":"READY","providerSite":"%s","endpoint":"%s","openaiHttp":%s,"registryHttp":%s,"anthropicHttp":%s,"okx":"PASS"}\n' "$site" "$endpoint" "$openai" "$registry" "$anthropic"
