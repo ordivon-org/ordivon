@@ -122,16 +122,37 @@ def load_bearer_token(environment: dict[str, str]) -> str:
 
 
 def parse_mcp_response(content_type: str, body: bytes) -> dict[str, Any]:
-    text = body.decode("utf-8")
-    if "text/event-stream" in content_type:
-        events = [line[5:].strip() for line in text.splitlines() if line.startswith("data:")]
-        if not events:
-            raise McpProbeError("MCP returned an empty event stream")
-        text = events[-1]
-    value = json.loads(text)
-    if not isinstance(value, dict):
-        raise McpProbeError("MCP response is not an object")
-    return value
+    if "text/event-stream" not in content_type:
+        value = json.loads(body.decode("utf-8"))
+        if not isinstance(value, dict):
+            raise McpProbeError("MCP response is not an object")
+        return value
+
+    # WHATWG event framing: CRLF/CR/LF delimit SSE lines, not Unicode
+    # U+2028; multiple data fields belong to one event, not separate JSON.
+    text = body.decode("utf-8-sig").replace("\r\n", "\n").replace("\r", "\n")
+    data_lines: list[str] = []
+    final: dict[str, Any] | None = None
+    for line in [*text.split("\n"), ""]:
+        if not line:
+            if not data_lines:
+                continue
+            value = json.loads("\n".join(data_lines))
+            data_lines.clear()
+            if not isinstance(value, dict):
+                raise McpProbeError("MCP SSE event is not an object")
+            if "id" not in value:
+                continue  # Progress notifications are not the Tool result.
+            if final is not None:
+                raise McpProbeError("MCP SSE stream contained multiple final responses")
+            final = value
+        elif not line.startswith(":"):
+            field, sep, value = line.partition(":")
+            if field == "data":
+                data_lines.append(value[1:] if sep and value.startswith(" ") else value)
+    if final is None:
+        raise McpProbeError("MCP SSE stream omitted final JSON-RPC response")
+    return final
 
 
 @dataclass
@@ -267,9 +288,17 @@ def _catalog_result(
     tools = client.request("tools/list").get("tools")
     if not isinstance(tools, list):
         raise McpProbeError("MCP tools/list lacks a tools array")
-    names = sorted(
-        {str(tool.get("name")) for tool in tools if isinstance(tool, dict) and isinstance(tool.get("name"), str)}
-    )
+    names: list[str] = []
+    seen: set[str] = set()
+    for tool in tools:
+        if not isinstance(tool, dict) or not isinstance(tool.get("name"), str) or not tool["name"]:
+            raise McpProbeError("MCP tool catalog contains an invalid tool entry")
+        name = tool["name"]
+        if name in seen:
+            raise McpProbeError(f"MCP tool catalog contains duplicate tool name: {name}")
+        seen.add(name)
+        names.append(name)
+    names.sort()
     if expected_tool_count is not None and len(names) != expected_tool_count:
         raise McpProbeError(f"MCP tool count {len(names)} does not equal expected {expected_tool_count}")
     missing = sorted(set(required_tools) - set(names))
