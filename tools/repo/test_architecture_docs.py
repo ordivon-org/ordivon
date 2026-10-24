@@ -702,3 +702,19 @@ def test_git02_gateway_historical_branch_is_consumer_scoped_not_mass_deletable()
             assert path.startswith("services/gateway/tests/")
             assert (ROOT / path).is_file()
     module.validate_formal_issue_census(census, plans)
+
+
+def test_git02_unique_codex_oauth_discovery_history_is_not_relabelled_redundant() -> None:
+    """A passing historical consumer absent from Main is a preservation candidate."""
+    census, plans = formal_issue_inputs()
+    issue = next(row for row in census["issues"] if row["id"] == "GIT-02")
+    entry = issue["historicalCodexOAuthSourceCut"]
+    assert entry["historicalCommit"] == "228d789a752386ebe31a3706925bfaf5f665ad94"
+    assert entry["candidateStatus"] == "PRESERVE_SOURCE_PENDING_CONSUMER_ADMISSION"
+    assert entry["historyDisposition"] == "NO_CHERRY_PICK_OR_DELETE_AUTHORIZED"
+    assert entry["sourceUniqueAtCut"] is True
+    assert entry["nativeFixtureProof"] == "23_OFFLINE_SOURCECUT_TESTS_PASS"
+    assert entry["scope"] == "DISCOVERY_ONLY_NO_CREDENTIALS_OR_LIVE_GATEWAY"
+    assert entry["protectedConsumerAdmitted"] is False
+    assert issue["registration"]["state"] == "UNREGISTERED"
+    module.validate_formal_issue_census(census, plans)
