@@ -184,5 +184,71 @@ class OwnerVerificationExecutionTests(unittest.TestCase):
         self.assertEqual(called, ["first:verify", "fail:verify"])
 
 
+class OwnerSelectorFailClosedRegression(unittest.TestCase):
+    """Run the actual protected GitHub Actions shell, not a Python stand-in."""
+
+    @staticmethod
+    def selection_shell():
+        import textwrap
+        path = Path(__file__).resolve().parents[2] / ".github/workflows/ci.yml"
+        workflow = path.read_text(encoding="utf-8")
+        start = workflow.index("      - name: Select affected owners\n")
+        end = workflow.index("      - name: Verify affected owners\n", start)
+        section = workflow[start:end]
+        assert section.count("        run: |\n") == 1
+        return textwrap.dedent(section.split("        run: |\n", 1)[1])
+
+    def run_selection(self, event, program):
+        import os
+        import subprocess
+        with tempfile.TemporaryDirectory() as scratch:
+            folder = Path(scratch)
+            fake = folder / "python3"
+            fake.write_text("#!/bin/sh\n" + program, encoding="utf-8")
+            fake.chmod(0o755)
+            env = {
+                **os.environ,
+                "PATH": str(folder) + os.pathsep + os.environ["PATH"],
+                "EVENT_NAME": event,
+                "PR_BASE": "a" * 40,
+                "PR_HEAD": "b" * 40,
+                "RUNNER_TEMP": str(folder),
+                "GITHUB_OUTPUT": str(folder / "output"),
+                "GITHUB_STEP_SUMMARY": str(folder / "summary"),
+            }
+            return subprocess.run(
+                ["/usr/bin/bash", "-c", self.selection_shell()],
+                cwd=Path(__file__).resolve().parents[2],
+                env=env,
+                capture_output=True,
+                text=True,
+                timeout=12,
+            )
+
+    def test_failing_owner_selector_never_becomes_empty_green_scope(self):
+        stub = (
+            'if [ "$1" = "tools/repo/convergence_plan.py" ]; then\n'
+            '  echo \'{"verificationOwners":["runtime"],"queueVerifyTasks":["runtime:verify"]}\'\n'
+            '  exit 0\n'
+            'fi\n'
+            'exit 29\n'
+        )
+        for event in ("workflow_dispatch", "pull_request"):
+            with self.subTest(event=event):
+                outcome = self.run_selection(event, stub)
+                self.assertNotEqual(outcome.returncode, 0, outcome.stdout+outcome.stderr)
+
+    def test_selected_owner_without_executable_queue_task_is_rejected(self):
+        stub = (
+            'if [ "$1" = "tools/repo/convergence_plan.py" ]; then\n'
+            '  echo \'{"verificationOwners":["runtime"],"queueVerifyTasks":[]}\'\n'
+            '  exit 0\n'
+            'fi\n'
+            'exec /usr/bin/python3 "$@"\n'
+        )
+        result = self.run_selection("pull_request", stub)
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+
+
 if __name__ == "__main__":
     unittest.main()
