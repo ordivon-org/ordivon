@@ -104,14 +104,18 @@
       "state": "IMPLEMENTED",
       "sharedRefs": [],
       "evidence": [
-        "README.md"
+        "README.md",
+        "consumers/developer-egress/profile.sh",
+        "tests/test_developer_egress_profile.py",
+        "Historical consumer selection, source-bound: local 83fb2956e051ad9c27c091e96631a842f8eebcc7 (legacy consumers/model-provider/ready.sh TLS/proxy readiness) versus protected Main 7b51fd3e033f964db551c127e2e910ae3bc88ef8. The legacy script is absent; tools/repo/workspace-ready consumes consumers/developer-egress/profile.sh instead. tests/test_developer_egress_profile.py exercises proxy routing/fail-closed behavior; legacy TLS readiness semantic parity and live provider reachability remain UNPROVED. No legacy daemon may be resurrected based on commit uniqueness alone."
       ],
       "dependencies": [],
       "mustNotOwn": [
         "generic core authority transfer"
       ],
       "acceptance": [
-        "Adding a profile does not redefine generic Network acceptance."
+        "Adding a profile does not redefine generic Network acceptance.",
+        "Cold Workspace dependency consumers reuse the existing developer-egress profile; absent or unsafe egress fails closed without a second tunnel."
       ]
     }
   ],

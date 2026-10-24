@@ -19,13 +19,13 @@ class RepositoryBoundaryTests(unittest.TestCase):
         self.assertIn("httpx==0.28.1", requirements)
         self.assertIn("jsonschema>=4.26,<5", requirements)
         self.assertFalse(any("ordivon-protocol" in requirement for requirement in requirements))
-        self.assertEqual(project["project"].get("optional-dependencies"), {"mcp": ["mcp==2.2.0"]})
+        self.assertEqual(project["project"].get("optional-dependencies"), {"mcp": ["mcp==2.3.0"]})
         self.assertEqual(
             project.get("dependency-groups"),
             {
                 "dev": ["ruff==0.17.2"],
                 "test": [
-                    "mcp==2.2.0",
+                    "mcp==2.3.0",
                     "uvicorn==0.52.1",
                     "playwright==1.63.0",
                     "rfc8785==0.1.4",

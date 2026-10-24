@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.formal-lego-issue-census-evidence",
+  "truthRole": "time-scoped-audit-evidence-not-registry-or-admission",
+  "observedAt": "2026-10-24",
+  "source": {
+    "protectedGithubMain": "83ca43a85bdb1e155dc7048d2961fa901ed97520",
+    "parentEvidence": "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261024_R1.json"
+  },
+  "representation": {
+    "problemType": "typed-issue",
+    "consumerGraph": "source-to-test-to-native-owner-to-observed-GitHub-check",
+    "constraint": "a previous failure is not a current failure without an equivalent exact source and consumer",
+    "stateMachine": [
+      "OBSERVED_HISTORICAL_FAILURE",
+      "REPRODUCED_ON_CANDIDATE",
+      "CANDIDATE_FIX",
+      "OWNER_VERIFIED",
+      "PROTECTED_CI_VERIFIED"
+    ],
+    "unknownRule": "absence of a current passing/failed oracle remains UNKNOWN",
+    "equivalence": "same tested tree, owner contract, environment assumptions and test oracle are necessary for evidence reuse",
+    "compression": "reuse owner plans and native tests, do not create a second registry or runner"
+  },
+  "registrations": [
+    {
+      "ownerPlan": "services/runtime/planning/lego-plan-r1.json",
+      "slice": "RW8",
+      "scope": "Runtime concurrency verification proposal only"
+    },
+    {
+      "ownerPlan": "domains/game/planning/lego-plan-r1.json",
+      "slice": "GS5",
+      "scope": "Game native dependency/consumer verification proposal only"
+    }
+  ],
+  "issues": [
+    {
+      "id": "RUNTIME-CI-01",
+      "problemClass": "CI_EXECUTION",
+      "naturalOwner": "services/runtime",
+      "standing": "HISTORICAL_FAIL_CURRENT_UNVERIFIED",
+      "observation": "PR #231 earlier owner verification source failed the Runtime sixteen-admission concurrency test (387 passed, 1 failed, 41 ignored). A later PR #231 check passed; this older event is not a live bug claim.",
+      "evidence": "GitHub Actions run 40028281009 root-verification; test runtime::tests::process_local_registry_write_gate_serializes_sixteen_concurrent_admissions; PR #231 newer green status observed 2026-10-24",
+      "decision": "Reuse R04/R01 and native test. Only reopen implementation if the exact candidate reproduces contention.",
+      "formalObligation": "For admitted concurrent local writers, process-local registry writes must serialize or fail with declared bounded outcomes; do not infer current status from an old CI run.",
+      "consumers": "Runtime registry SQLite admission, Runtime Job source identity, protected GitHub queue",
+      "consumerPaths": [
+        "services/runtime/crates/ordivon-runtime-core/src/runtime/tests.rs",
+        "services/runtime/mise.toml",
+        ".github/workflows/ci.yml"
+      ],
+      "representation": {
+        "primary": "causal",
+        "supporting": [
+          "state-machine"
+        ],
+        "methodSkill": ".agents/skills/causal-intervention/SKILL.md",
+        "requiredWitness": "Replay exact failing sixteen-admission Runtime test on pinned source/environment and distinguish SQLite lock contention from a stale queue assertion; require owner-native run before promotion.",
+        "selectionReason": "One historical failing CI run is only an observation. A controlled source-bound reproduction is required to attribute cause; state transitions supply the secondary safety/liveness contract."
+      },
+      "registration": {
+        "state": "LINKED",
+        "ownerPlan": "services/runtime/planning/lego-plan-r1.json",
+        "slice": "RW8"
+      }
+    },
+    {
+      "id": "GAME-CI-01",
+      "problemClass": "ENVIRONMENT_CONTRACT",
+      "naturalOwner": "domains/game",
+      "standing": "HISTORICAL_ENV_BLOCK_CURRENT_UNVERIFIED",
+      "observation": "PR #218 earlier native Bevy consumer compilation failed because wayland-client.pc was absent from the Linux pkg-config search path. A newer PR head is under qualification; this older failure does not establish present failure.",
+      "evidence": "GitHub Actions run 40018090745; wayland-sys-0.31.11 missing wayland-client; PR #218 branch kits/room-action-r0/mise.toml",
+      "decision": "Use Game's existing rules (no-default-features) and native/playable verify surfaces, with explicit environment dependencies; do not silence the native consumer.",
+      "formalObligation": "VerifiedNativeConsumer implies all declared system dependencies are available and actual ECS/playable build executed; GPU-free rule PASS alone cannot prove native client PASS.",
+      "consumers": "Game room-action-r0 library, Bevy native executable, Game owner CI",
+      "consumerPaths": [
+        "domains/game/kits/room-action-r0/Cargo.toml",
+        "domains/game/kits/room-action-r0/mise.toml",
+        "domains/game/mise.toml"
+      ],
+      "representation": {
+        "primary": "constraint",
+        "supporting": [
+          "causal"
+        ],
+        "methodSkill": null,
+        "requiredWitness": "Check exact Bevy native Linux package/pkg-config closure and repeat owner-native ECS/build consumer under the candidate source; do not substitute rules-only headless tests.",
+        "selectionReason": "Missing wayland-client.pc is a native environment prerequisite mismatch, not evidence of invalid game behavior; change only the environment contract after cause isolation."
+      },
+      "registration": {
+        "state": "LINKED",
+        "ownerPlan": "domains/game/planning/lego-plan-r1.json",
+        "slice": "GS5"
+      }
+    }
+  ],
+  "verification": {
+    "state": "PROPOSED",
+    "meaning": "Structural reference integrity can pass without proving Runtime concurrency safety or native Game consumer correctness"
+  }
+}

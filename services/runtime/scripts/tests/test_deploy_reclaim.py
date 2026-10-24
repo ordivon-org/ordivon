@@ -18,6 +18,7 @@ import unittest
 from contextlib import closing, contextmanager
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from unittest.mock import patch
 
 
 REPO = Path(__file__).resolve().parents[2]
@@ -2123,6 +2124,34 @@ class DeployReclaimTests(unittest.TestCase):
         for invalid in ("0", "-1", "inf", "nan"):
             with self.assertRaises(Exception):
                 module["positive_float"](invalid)
+
+    def test_reclaim_inspector_timeout_is_bounded_and_hides_authority_paths(self) -> None:
+        scripts_path = str(REPO / "scripts")
+        sys.path.insert(0, scripts_path)
+        try:
+            module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-reclaim"))
+        finally:
+            sys.path.remove(scripts_path)
+        inspect = module["runtime_inspection"]
+        with (
+            patch.dict(inspect.__globals__, {
+                "runtime_inspect_binary": lambda: Path("/usr/bin/true")
+            }),
+            patch.object(
+                subprocess,
+                "run",
+                side_effect=subprocess.TimeoutExpired(
+                    cmd=["inspector", "--database", "/secret/registry.sqlite3"],
+                    timeout=15.0,
+                ),
+            ) as executed,
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError, "Runtime inspection exceeded 15s wall timeout"
+            ) as failure:
+                inspect(Path("/secret/registry.sqlite3"), 5000, "registry")
+        self.assertNotIn("/secret/", str(failure.exception))
+        self.assertEqual(executed.call_args.kwargs.get("timeout"), 15.0)
 
     def test_reclaim_numeric_bounds_follow_sqlite_and_finite_policy_values(self) -> None:
         module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-reclaim"))

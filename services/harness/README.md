@@ -93,6 +93,17 @@ Other owners keep their own meaning:
 
 A Host may call Harness, but Host is not a Harness dependency and does not store Harness Run state. Harness may return a `CompletionProposal`; that proposal is **not** Host Task completion or domain truth.
 
+**Typed Tool/Run state LEGO** (`harness.direct-protocol-enum-boundary`): direct
+construction of a Tool Step Intent, Tool Step Receipt, or Run Snapshot accepts
+only the Owner's existing `HarnessRecoveryConsequence`,
+`HarnessToolStepStatus`, and `HarnessRunPauseReason` enum members. A raw
+string must never bypass CANCEL_REQUESTED Runtime Job binding,
+EFFECT_DISPATCH_PENDING active-intent fencing, or recovery classification.
+Implementation: `src/ordivon_harness/protocol.py`. Native negative consumers:
+`tests/test_p0_sqlite_tool_store.py`, including `python -O` fault cases;
+acceptance: `mise run verify`. This is Harness bounded-Run continuity, not
+external-effect truth and not a new status registry.
+
 ## One normal Run
 
 ```text

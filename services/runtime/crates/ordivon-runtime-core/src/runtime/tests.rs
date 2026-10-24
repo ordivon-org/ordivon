@@ -9816,12 +9816,43 @@ mod registry_reference_model_properties {
         }
     }
 
-    proptest! {
-        #![proptest_config(ProptestConfig {
+    // One reference state machine, 512 attempts in either execution mode.
+    // A bounded sharded owner runner assigns 8 independent 64-case RNG seeds.
+    // Direct cargo test without shard controls still executes all 512 cases.
+    fn reference_model_config() -> ProptestConfig {
+        let mut config = ProptestConfig {
             cases: 512,
             max_shrink_iters: 16_384,
-            .. ProptestConfig::default()
-        })]
+            ..ProptestConfig::default()
+        };
+        match std::env::var("ORDIVON_REFERENCE_MODEL_SHARD_INDEX") {
+            Ok(raw) => {
+                let index: u32 = raw.parse().expect("shard index must be u32");
+                let count: u32 = std::env::var("ORDIVON_REFERENCE_MODEL_SHARD_COUNT")
+                    .expect("shard count required")
+                    .parse()
+                    .expect("shard count must be u32");
+                assert!(matches!(count, 2 | 4 | 8 | 16));
+                assert!(index < count, "shard index out of range");
+                config.cases = 512 / count;
+                config.rng_seed =
+                    proptest::test_runner::RngSeed::Fixed(0x0D10_2026_0000 + u64::from(index));
+            }
+            Err(std::env::VarError::NotPresent) => {
+                assert!(
+                    std::env::var_os("ORDIVON_REFERENCE_MODEL_SHARD_COUNT").is_none(),
+                    "shard count without shard index"
+                );
+            }
+            Err(std::env::VarError::NotUnicode(_)) => {
+                panic!("shard index is not Unicode")
+            }
+        }
+        config
+    }
+
+    proptest! {
+        #![proptest_config(reference_model_config())]
 
         #[test]
         fn request_identity_and_terminal_winner_match_reference_model(

@@ -81,18 +81,29 @@ class Gh:
         events: tuple[str, ...],
         workflow_name: str | None,
     ) -> ProviderSnapshot:
+        if limit < 1:
+            raise ValueError("CI observation limit must be positive")
         owner, repo = self.repo.split("/", 1)
         runs_by_id: dict[int, dict[str, Any]] = {}
-        per_page = min(max(limit, 1), 100)
+        per_page = min(limit, 100)
         for event in events:
-            payload = self.api(
-                f"repos/{owner}/{repo}/actions/runs?event={event}&per_page={per_page}"
-            )
-            rows = payload.get("workflow_runs", [])
-            if workflow_name:
-                rows = [row for row in rows if row.get("name") == workflow_name]
-            for row in rows[:limit]:
-                runs_by_id[int(row["id"])] = row
+            matched = 0
+            page = 1
+            while matched < limit:
+                payload = self.api(
+                    f"repos/{owner}/{repo}/actions/runs?event={event}&per_page={per_page}&page={page}"
+                )
+                rows = payload.get("workflow_runs", [])
+                for row in rows:
+                    if workflow_name and row.get("name") != workflow_name:
+                        continue
+                    runs_by_id[int(row["id"])] = row
+                    matched += 1
+                    if matched == limit:
+                        break
+                if len(rows) < per_page:
+                    break
+                page += 1
 
         runs = sorted(
             runs_by_id.values(),
@@ -101,9 +112,21 @@ class Gh:
         jobs: dict[str, list[dict[str, Any]]] = {}
         for run in runs:
             run_id = str(run["id"])
-            jobs[run_id] = self.api(
-                f"repos/{owner}/{repo}/actions/runs/{run_id}/jobs?per_page=100"
-            ).get("jobs", [])
+            jobs_for_run: list[dict[str, Any]] = []
+            page = 1
+            while True:
+                payload = self.api(
+                    f"repos/{owner}/{repo}/actions/runs/{run_id}/jobs?per_page=100&page={page}"
+                )
+                batch = payload.get("jobs", [])
+                jobs_for_run.extend(batch)
+                if len(batch) < 100 or (
+                    isinstance(payload.get("total_count"), int)
+                    and len(jobs_for_run) >= payload["total_count"]
+                ):
+                    break
+                page += 1
+            jobs[run_id] = jobs_for_run
         return ProviderSnapshot(self.repo, runs, jobs)
 
 

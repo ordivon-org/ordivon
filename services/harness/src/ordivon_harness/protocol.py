@@ -494,6 +494,8 @@ class HarnessToolStepIntent:
         _digest(self.runtime_arguments_digest, "Runtime arguments digest")
         _text(self.client_request_id, "Runtime client request identity", max_bytes=300)
         _integer(self.created_at_ms, "Tool Step Intent time")
+        if not isinstance(self.recovery_consequence, HarnessRecoveryConsequence):
+            raise HarnessProtocolError("Tool Step Intent consequence is invalid")
 
     @property
     def digest(self) -> str:
@@ -603,6 +605,8 @@ class HarnessToolStepReceipt:
             _digest(self.previous_receipt_digest, "previous Tool Step Receipt digest")
         if type(self.reconciled) is not bool:
             raise HarnessProtocolError("Tool Step Receipt reconciled must be boolean")
+        if not isinstance(self.status, HarnessToolStepStatus):
+            raise HarnessProtocolError("Tool Step Receipt status is invalid")
         _integer(self.created_at_ms, "Tool Step Receipt time")
         if (
             self.status is HarnessToolStepStatus.REJECTED
@@ -853,6 +857,8 @@ class HarnessRunSnapshot:
             raise HarnessProtocolError("active Tool Step Intent digests must be unique")
         validate_json_value(self.remaining_budget)
         _integer(self.created_at_ms, "Harness Run Snapshot time")
+        if not isinstance(self.pause_reason, HarnessRunPauseReason):
+            raise HarnessProtocolError("Harness Run Snapshot pause reason is invalid")
         if (
             self.pause_reason is HarnessRunPauseReason.EFFECT_DISPATCH_PENDING
             and not self.active_tool_step_intent_digests

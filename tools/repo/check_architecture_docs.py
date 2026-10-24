@@ -253,6 +253,17 @@ def validate_current_document(text: str) -> None:
 
 
 
+def _source_bound_file(root: Path, relative_path: str, label: str) -> Path:
+    """Require registered architecture input bytes to belong to this SourceCut."""
+    relative = Path(relative_path)
+    if not relative_path or relative.is_absolute() or ".." in relative.parts:
+        raise ArchitectureDocsError(f"invalid {label} path")
+    expected = root.resolve() / relative
+    if not expected.is_file() or expected.resolve() != expected:
+        raise ArchitectureDocsError(f"{label} escapes SourceCut")
+    return expected
+
+
 def validate_formal_issue_census(
     census: dict[str, Any], plans: dict[str, dict[str, Any]], *, root: Path = ROOT
 ) -> None:
@@ -265,7 +276,11 @@ def validate_formal_issue_census(
     issues = census.get("issues")
     if not isinstance(issues, list) or not issues:
         raise ArchitectureDocsError("issue census must contain typed issues")
-    owner_manifest = tomllib.loads((root / "tools/repo/owners.toml").read_text(encoding="utf-8"))
+    owner_manifest = tomllib.loads(
+        _source_bound_file(root, "tools/repo/owners.toml", "owner manifest").read_text(
+            encoding="utf-8"
+        )
+    )
     known_owners = {row["root"].removesuffix("/") for row in owner_manifest["owners"]}
     known_owners.add("tools/repo")  # Repository mechanics, not a domain owner.
     issue_ids: set[str] = set()
@@ -305,14 +320,22 @@ def validate_formal_issue_census(
         ):
             raise ArchitectureDocsError(f"issue {issue_id} invalid supporting representation")
         skill = rep.get("methodSkill")
-        if skill is not None and (
-            not isinstance(skill, str)
-            or not skill.startswith(".agents/skills/")
-            or not skill.endswith("/SKILL.md")
-            or ".." in Path(skill).parts
-            or not (ROOT / skill).is_file()
-        ):
-            raise ArchitectureDocsError(f"issue {issue_id} references unavailable method Skill")
+        if skill is not None:
+            if (
+                not isinstance(skill, str)
+                or not skill.startswith(".agents/skills/")
+                or not skill.endswith("/SKILL.md")
+                or ".." in Path(skill).parts
+            ):
+                raise ArchitectureDocsError(f"issue {issue_id} references unavailable method Skill")
+            # The exact source cut supplied to the validator owns its Skills.
+            # A same-named Skill in another checkout or via a symlink is not evidence.
+            candidate_skill = root / skill
+            if (
+                not candidate_skill.is_file()
+                or not candidate_skill.resolve().is_relative_to(root.resolve())
+            ):
+                raise ArchitectureDocsError(f"issue {issue_id} references unavailable method Skill")
         for field in ("requiredWitness", "selectionReason"):
             if not isinstance(rep.get(field), str) or not rep[field].strip():
                 raise ArchitectureDocsError(f"issue {issue_id} missing {field}")
@@ -327,9 +350,7 @@ def validate_formal_issue_census(
         plan_path, slice_id = ref.get("ownerPlan"), ref.get("slice")
         if not isinstance(plan_path, str) or not isinstance(slice_id, str) or not slice_id:
             raise ArchitectureDocsError("LEGO registration identity missing")
-        path = Path(plan_path)
-        if path.is_absolute() or ".." in path.parts or not plan_path:
-            raise ArchitectureDocsError("invalid owner-local LEGO path")
+        _source_bound_file(root, plan_path, "owner-local LEGO plan")
         if (plan_path, slice_id) in seen:
             raise ArchitectureDocsError("duplicate owner-local LEGO link")
         seen.add((plan_path, slice_id))
@@ -350,7 +371,7 @@ def validate_formal_issue_census(
         clauses = slice_.get("acceptance")
         if not isinstance(clauses, list) or not clauses or not all(isinstance(c, str) and c.strip() for c in clauses):
             raise ArchitectureDocsError(f"LEGO slice {slice_id} needs falsifiable acceptance")
-        if slice_.get("status") not in {"PROPOSED", "IMPLEMENTED", "VERIFIED", "RETIRED"}:
+        if slice_.get("status") not in {"PROPOSED", "IMPLEMENTED", "VERIFIED", "RETIRED", "COMPLETE"}:
             raise ArchitectureDocsError(f"LEGO slice {slice_id} has unknown state")
 
 
@@ -452,7 +473,9 @@ def validate_repository(root: Path = ROOT) -> None:
 
     issue_evidence_dir = root / "docs" / "architecture" / "evidence"
     for census_path in issue_evidence_dir.glob("FORMAL_LEGO_ISSUE_CENSUS_*_R*.json"):
-        census = _load_json(census_path)
+        census = _load_json(
+            _source_bound_file(root, str(census_path.relative_to(root)), "formal issue census")
+        )
         plans: dict[str, dict[str, Any]] = {}
         for ref in census.get("registrations", []):
             if not isinstance(ref, dict) or not isinstance(ref.get("ownerPlan"), str):
@@ -460,7 +483,9 @@ def validate_repository(root: Path = ROOT) -> None:
             relative = Path(ref["ownerPlan"])
             if relative.is_absolute() or ".." in relative.parts:
                 raise ArchitectureDocsError("invalid owner-local LEGO path")
-            plans[ref["ownerPlan"]] = _load_json(root / relative)
+            plans[ref["ownerPlan"]] = _load_json(
+                _source_bound_file(root, ref["ownerPlan"], "owner-local LEGO plan")
+            )
         validate_formal_issue_census(census, plans, root=root)
 
     for path, marker in HISTORICAL.items():

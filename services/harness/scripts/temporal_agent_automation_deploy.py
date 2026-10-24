@@ -25,7 +25,7 @@ PRODUCTION_ADDRESS = "127.0.0.1:17233"
 EXPECTED_RUNTIME_VERSIONS = {
     "temporalio": "1.34.0",
     "rfc8785": "0.1.4",
-    "mcp": "2.2.0",
+    "mcp": "2.3.0",
     "httpx": "0.28.1",
     "pythonVersion": "3.15.1",
     "sqliteVersion": "3.54.0",
@@ -134,6 +134,14 @@ def apply() -> dict:
         raise RuntimeError("Temporal CLI exact binary is unavailable")
     if not current["temporalSdkPresent"]:
         raise RuntimeError("Temporal SDK venv is unavailable")
+    # Never mutate importable packages under a currently polling Worker.
+    # Stop and drain via the existing release admission fence first; otherwise
+    # an in-place pip install can corrupt the live process and its recovery.
+    if current["worker"]["active"] and not current["runtimeVersionsExact"]:
+        raise RuntimeError(
+            "active Temporal worker uses older dependencies; require quiescent "
+            "release activation before provisioning its runtime"
+        )
     provision_runtime_dependencies()
     current = plan()
     if not current["runtimeVersionsExact"]:

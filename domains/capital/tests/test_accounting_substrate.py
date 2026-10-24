@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from ordivon_capital.accounting.substrate import (
+    AccountingInstruction,
     AccountingMappingError,
     AccountingOperation,
     CapitalReservationBinding,
@@ -89,3 +90,29 @@ def test_accounting_records_cannot_smuggle_domain_truth():
     ensure_accounting_only({"amount": 1, "account": 2})
     with pytest.raises(AccountingMappingError, match="non-accounting domain"):
         ensure_accounting_only({"amount": 1, "legalOwnership": True})
+
+
+@pytest.mark.parametrize(
+    "invalid_operation",
+    ["PENDING", "POST_PENDING_TRANSFER", "VOID_PENDING_TRANSFER", "UNKNOWN", None, 17],
+)
+def test_instruction_rejects_untyped_or_unknown_accounting_operations(invalid_operation):
+    """A raw VOID must not sidestep the zero-amount rule by failing identity checks."""
+    with pytest.raises(AccountingMappingError, match="AccountingOperation"):
+        AccountingInstruction(
+            operation=invalid_operation,
+            transfer_id=501,
+            debit_account_id=101,
+            credit_account_id=202,
+            amount=700,
+            pending_id=450,
+        )
+
+
+def test_resolution_helper_rejects_raw_void_before_emitting_transfer() -> None:
+    with pytest.raises(AccountingMappingError, match="AccountingOperation"):
+        resolution_instruction(
+            binding=binding(),
+            operation="VOID_PENDING_TRANSFER",  # type: ignore[arg-type]
+            resolution_ref="effect:untyped-void",
+        )

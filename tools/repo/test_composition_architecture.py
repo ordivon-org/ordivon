@@ -65,3 +65,26 @@ def test_on_demand_node_cannot_enter_critical_path() -> None:
     value["criticalPath"].append(on_demand)
     with pytest.raises(module.CompositionArchitectureError, match="on-demand"):
         module.validate_graph(value)
+
+def test_initial_parallel_set_rejects_duplicate_nodes() -> None:
+    value = load_graph()
+    value["initialParallelSet"].append(value["initialParallelSet"][0])
+    with pytest.raises(module.CompositionArchitectureError, match="duplicate initialParallelSet"):
+        module.validate_graph(value)
+
+
+@pytest.mark.parametrize("dependent", ["G02", "P01"])
+def test_initial_parallel_set_must_be_dependency_antichain(dependent: str) -> None:
+    value = load_graph()
+    # G02 depends directly on G01; P01 depends on G01 transitively.
+    assert "G01" in value["initialParallelSet"]
+    value["initialParallelSet"].append(dependent)
+    with pytest.raises(module.CompositionArchitectureError, match="parallel dependency"):
+        module.validate_graph(value)
+
+
+def test_on_demand_node_cannot_be_initial_parallel_work() -> None:
+    value = load_graph()
+    value["initialParallelSet"] = ["O01"]
+    with pytest.raises(module.CompositionArchitectureError, match="on-demand"):
+        module.validate_graph(value)

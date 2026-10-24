@@ -170,7 +170,7 @@ The live cutover was accepted on 2026-09-12 with both modes through the producti
 
 ## Temporal durable execution
 
-The stateless compiler remains the source of the derived execution plan, while the existing Temporal substrate now owns durable ordering, retries, cancellation and recovery. Artifact E2E does not introduce a second scheduler or an Artifact-specific workflow state machine. The production workflow is `ordivon.artifact.delivery` on `temporalio 1.32.0` and executes the following activity boundary:
+The stateless compiler remains the source of the derived execution plan, while the existing Temporal substrate now owns durable ordering, retries, cancellation and recovery. Artifact E2E does not introduce a second scheduler or an Artifact-specific workflow state machine. The production workflow is `ordivon.artifact.delivery` using the SDK pinned by `artifact-delivery/artifact-python-runtime-v1.lock.json` and executes the following activity boundary:
 
 ```text
 prepare → build → verify → [wait for public trust material] → verify-trust → package

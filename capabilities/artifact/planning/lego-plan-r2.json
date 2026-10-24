@@ -242,27 +242,33 @@
       "id": "X02",
       "label": "ToolchainEnvironment",
       "kind": "externalize",
-      "responsibility": "Probe and manage execution-tool availability and environment facts.",
+      "responsibility": "Probe execution-tool availability and materialize source-digest-checked, generation-local Python interpreter bytes for the existing Artifact carrier; reject immutable-generation source drift.",
       "currentEvidence": [
         "scripts/artifact_delivery_toolchain_doctor.py",
         "scripts/artifact_python_environment.py",
         "artifact-delivery/artifact-python-runtime-v1.lock.json",
         "artifact-delivery/python-uv/pyproject.toml",
         "artifact-delivery/python-uv/uv.lock",
-        "tests/test_artifact_python_currentness_contract.py"
+        "tests/test_artifact_python_currentness_contract.py",
+        "artifact-delivery/openxml-nix/flake.lock",
+        "artifact-delivery/openxml-runtime-v1.lock.json",
+        "tests/test_artifact_openxml_environment.py"
       ],
       "state": "OPERATIONAL_CURRENTNESS_CONTRACTED",
       "acceptance": [
         "Artifact Python carrier has one version authority: mise Python, runtime-lock pythonRuntime, pyproject requires-python and uv.lock requires-python agree.",
         "Python and uv executables are selected through Artifact owner mise (or explicit bounded overrides), not hard-coded versioned installation paths.",
         "A carrier plan must fail closed when the declared Python authority, uv project digests or selected owner tools drift.",
-        "Python-carrier currentness does not own GeoPackage SQLite CLI currentness; that remains a separate geospatial provider responsibility."
+        "Python-carrier currentness does not own GeoPackage SQLite CLI currentness; that remains a separate geospatial provider responsibility.",
+        "OpenXML Nix flake revision, nixpkgs NAR hash, and exact flake.lock SHA-256 agree with the one Artifact runtime lock; mismatches fail before Nix execution.",
+        "Current stable upstream .NET 8 SDK 8.0.426 is the required patch. The selected nixos-26.05 and nixpkgs-unstable providers currently expose 8.0.425, so an unpatched provider must fail closed rather than publish a stale SDK."
       ],
       "mustNotOwn": [
         "GeoPackage SQLite provider version",
         "machine-wide Python desired state",
         "Artifact semantic standing",
-        "Workstation node-local materialization policy beyond declared carrier requirements"
+        "Workstation node-local materialization policy beyond declared carrier requirements",
+        "Upstream Nixpkgs SDK packaging or .NET upstream release authority"
       ],
       "replacementContract": "A replacement must preserve one Artifact-owned Python/uv version authority, exact uv-project digest checks, selected-tool readback, stable carrier identity, and explicit separation from unrelated external SQLite providers."
     },

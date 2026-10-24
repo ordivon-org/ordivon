@@ -356,50 +356,47 @@ class ExternalPullWorkerTransport:
             return self._operation_from_row(db, row) if row is not None else None
 
     def _reap_expired(self, db: sqlite3.Connection, now: int) -> None:
-        expired = db.execute(
+        # The caller holds BEGIN IMMEDIATE. Preserve the claimed/started safety
+        # boundary with a fixed number of set-based SQLite transitions.
+        db.execute(
             """
-            SELECT attempt_id, operation_id, state FROM attempts
-            WHERE state IN ('claimed','started') AND lease_expires_ms < ?
+            UPDATE operations
+            SET state='queued', active_attempt_id=NULL, updated_at_ms=?
+            WHERE terminal=0 AND desired_state='run'
+              AND (operation_id, active_attempt_id) IN (
+                SELECT operation_id, attempt_id FROM attempts
+                WHERE state='claimed' AND lease_expires_ms < ?
+              )
+            """,
+            (now, now),
+        )
+        # Started attempts can have external effects. Never make them claimable.
+        db.execute(
+            """
+            UPDATE operations
+            SET state='reconcile_required', updated_at_ms=?
+            WHERE terminal=0 AND desired_state='run'
+              AND (operation_id, active_attempt_id) IN (
+                SELECT operation_id, attempt_id FROM attempts
+                WHERE state='started' AND lease_expires_ms < ?
+              )
+            """,
+            (now, now),
+        )
+        db.execute(
+            """
+            UPDATE attempts SET state='expired_unstarted'
+            WHERE state='claimed' AND lease_expires_ms < ?
             """,
             (now,),
-        ).fetchall()
-        for row in expired:
-            if row["state"] == "claimed":
-                # No started acknowledgement exists, so the transport may safely
-                # make the parcel claimable again. Workers must acknowledge started
-                # before performing external effects.
-                db.execute(
-                    "UPDATE attempts SET state='expired_unstarted' WHERE attempt_id=?",
-                    (row["attempt_id"],),
-                )
-                db.execute(
-                    """
-                    UPDATE operations
-                    SET state='queued', active_attempt_id=NULL, updated_at_ms=?
-                    WHERE operation_id=? AND terminal=0 AND desired_state='run'
-                      AND active_attempt_id=?
-                    """,
-                    (now, row["operation_id"], row["attempt_id"]),
-                )
-                continue
-
-            # A started attempt may already have produced external side effects.
-            # Lease loss therefore means execution truth is unknown, not that the
-            # operation is safe to duplicate. Fence new attempts until the same
-            # execution is reconciled or returns a terminal result.
-            db.execute(
-                "UPDATE attempts SET state='reconcile_required' WHERE attempt_id=?",
-                (row["attempt_id"],),
-            )
-            db.execute(
-                """
-                UPDATE operations
-                SET state='reconcile_required', updated_at_ms=?
-                WHERE operation_id=? AND terminal=0 AND desired_state='run'
-                  AND active_attempt_id=?
-                """,
-                (now, row["operation_id"], row["attempt_id"]),
-            )
+        )
+        db.execute(
+            """
+            UPDATE attempts SET state='reconcile_required'
+            WHERE state='started' AND lease_expires_ms < ?
+            """,
+            (now,),
+        )
 
     def claim(self, worker_id: str, *, generation: int) -> dict[str, Any] | None:
         now = self._clock_ms()

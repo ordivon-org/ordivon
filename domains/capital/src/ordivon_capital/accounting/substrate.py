@@ -65,6 +65,8 @@ class AccountingInstruction:
     pending_id: int = 0
 
     def __post_init__(self) -> None:
+        if not isinstance(self.operation, AccountingOperation):
+            raise AccountingMappingError("operation must be an AccountingOperation")
         _require_u128_nonzero("transfer_id", self.transfer_id)
         _require_u128_nonzero("debit_account_id", self.debit_account_id)
         _require_u128_nonzero("credit_account_id", self.credit_account_id)
@@ -80,10 +82,7 @@ class AccountingInstruction:
         else:
             if self.pending_id == 0:
                 raise AccountingMappingError("resolution requires pending_id")
-        if (
-            self.operation is AccountingOperation.VOID_PENDING_TRANSFER
-            and self.amount != 0
-        ):
+        if self.operation is AccountingOperation.VOID_PENDING_TRANSFER and self.amount != 0:
             raise AccountingMappingError("void pending transfer amount must be zero")
 
 
@@ -105,6 +104,8 @@ def resolution_instruction(
 ) -> AccountingInstruction | None:
     if operation is None:
         return None
+    if not isinstance(operation, AccountingOperation):
+        raise AccountingMappingError("operation must be an AccountingOperation")
     if operation not in {
         AccountingOperation.POST_PENDING_TRANSFER,
         AccountingOperation.VOID_PENDING_TRANSFER,
@@ -113,14 +114,8 @@ def resolution_instruction(
     if not resolution_ref.strip():
         raise AccountingMappingError("resolution_ref required")
     if resolution_ref == binding.reservation_ref:
-        raise AccountingMappingError(
-            "resolution identity must differ from reservation identity"
-        )
-    amount = (
-        0
-        if operation is AccountingOperation.VOID_PENDING_TRANSFER
-        else binding.amount
-    )
+        raise AccountingMappingError("resolution identity must differ from reservation identity")
+    amount = 0 if operation is AccountingOperation.VOID_PENDING_TRANSFER else binding.amount
     return AccountingInstruction(
         operation=operation,
         transfer_id=stable_accounting_id(
@@ -161,8 +156,7 @@ def ensure_accounting_only(record: dict[str, Any]) -> None:
     leaked = sorted(forbidden.intersection(record))
     if leaked:
         raise AccountingMappingError(
-            "accounting state cannot carry non-accounting domain fields: "
-            + ", ".join(leaked)
+            "accounting state cannot carry non-accounting domain fields: " + ", ".join(leaked)
         )
 
 

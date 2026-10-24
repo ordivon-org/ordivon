@@ -65,14 +65,17 @@
       "sharedRefs": [],
       "evidence": [
         "README.md",
-        "experiments/README.md"
+        "experiments/README.md",
+        "experiments/production-smoke-r1/run.ts",
+        "test/equipment-surface.test.ts"
       ],
       "dependencies": [],
       "mustNotOwn": [
         "product selection"
       ],
       "acceptance": [
-        "Experiment outcomes remain scoped to their hypothesis and evidence."
+        "Experiment outcomes remain scoped to their hypothesis and evidence.",
+        "Game production cold-start accepts only the actual Workstation v2 professional-software provider identity, rejecting legacy bindings before invoking Godot."
       ]
     },
     {
@@ -355,6 +358,24 @@
         "test/game-causal-lag-horizon-r6.test.ts"
       ],
       "blockers": []
+    },
+    {
+      "id": "GS5",
+      "objective": "Qualify the native Bevy room-action LEGO consumer separately from GPU-free deterministic game rules; reject missing Linux build prerequisites without weakening rules, replay or ECS assertions.",
+      "status": "PROPOSED",
+      "nodeIds": [
+        "G01",
+        "G03",
+        "G05"
+      ],
+      "acceptance": [
+        "The existing deterministic --no-default-features rule/replay suite works without a native display or Wayland prerequisite.",
+        "The real native/playable consumer is built in a declared environment with wayland-client pkg-config dependencies, or reports ENV_BLOCKED rather than test PASS.",
+        "The protected Game owner check binds its Linux native prerequisites to the exact source/lock, while no second game runner or generic Game Core is created."
+      ],
+      "evidence": [],
+      "blockers": [],
+      "nextAction": "Reuse domains/game/kits/room-action-r0/mise.toml and Game owner CI on PR #218; historical failing run 40018090745 is the reproduction source, not current branch truth."
     }
   ],
   "gaps": [

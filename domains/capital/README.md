@@ -40,6 +40,18 @@ into an isolated configuration and requires rejection under ordinary and optimiz
 Python, then mise run verify checks the owner suite. This does not authorize
 private account access, trading or external financial effects.
 
+**Crypto Public Shadow Product Acceptance LEGO** (`capital.market.crypto-public-shadow-consumer`):
+The natural owner is `scripts/consume_crypto_public_shadow_product_r1.py`.
+Input: frozen ODPS product, SHA-256-bound public observation and ODRL rights policy.
+Output: read-only decision/feedback receipt plus OpenLineage events, **only after**
+all twelve source, privacy, execution, timing and rights conditions hold.
+A false condition must emit no PASS receipt under normal or `python -O` execution.
+The existing consumer acceptance test
+`tests/test_data_product_consumption_crypto_public_shadow.py`
+falsifies source-digest, broker-credential, private-account, financial-write and
+rights-policy mutations in an isolated temp fixture. The gate never grants
+execution authority, trading rights, redistribution or financial effects.
+
 Crypto Public Shadow R2 now passes repeated persistent public streaming through exact Network v2 WS authorities using the mature `websockets` client proxy support. OKX `bbo-tbt` plus Binance market-data-only `@ticker` produced one warm-up and three measured coherent snapshots; all measured source/receive spans remained below the frozen 1200 ms limits. Provider selection is owned by Network v2 `provider-auto`, not by an application-level node/protocol matrix.
 
 Crypto Stream Resilience R3 keeps fail-closed missing/stale/time-divergence semantics and the dual-venue reconnect harness on exact Network v2 WS authorities. Current injected-disconnect qualification passes for both OKX and Binance; observed reconnect latencies were ~16.0 s and ~26.3 s respectively and remain evidence rather than a hidden transport claim. The state is exported through the existing Prometheus/Grafana stack without enabling private/demo/live execution.
@@ -47,7 +59,28 @@ Clock timing qualification now passes: Windows w32time is synchronized to qualif
 
 Composition policy: prefer authoritative standards, mature implementations, and provider-native truth over local mechanisms. ISO/FIX/ISO 20022 and workload-applicable external identity/reporting standards define semantics where needed; LEAN/Nautilus/venue APIs/TigerBeetle/OPA/MLflow/Pandera/Parquet/DuckDB/OpenLineage/OTel/Prometheus own their respective mechanics. Ordivon Capital retains only narrow composition, policy-input/enforcement, evidence, data-quality, and reconciliation seams that no natural owner can establish alone. Custom mechanisms require a demonstrated substitution failure. Machine-readable ownership is tracked in `config/external_owner_census.json`; see `docs/COMPOSITION_FIRST_2026-09-14.md`.
 
+**Typed accounting-operation LEGO** (capital.accounting.typed-operation): existing
+AccountingInstruction and resolution_instruction own the enum boundary.
+Inputs must use AccountingOperation members, never raw strings or unknown values;
+a raw VOID cannot bypass its zero-amount invariant. Consumers are the existing
+reservation/POST/VOID construction paths, with executable negative evidence in
+tests/test_accounting_substrate.py and owner acceptance via mise run verify.
+This is a local accounting contract, not a live financial-write authority.
+
 TigerBeetle Capital Substrate R1 passes the base mechanical integration and R3.1 composes Reservation -> PENDING, RETAIN -> no mutation, RELEASE -> VOID_PENDING_TRANSFER, and CONSUME -> POST_PENDING_TRANSFER. R3.2 now passes durable restart/reconciliation on one intact data file: a pending reservation survived the first process restart, a consumed reservation survived the second, exact replay returned `EXISTS` without reopening pending state, and exact terminal semantic history reconciled `MATCH`. If provider terminal history is missing or stale, the result is retain/recovery (`PROVIDER_INCOMPLETE_RETAIN` / `CONTRADICTION_RETAIN`) with provider repair forbidden; terminal Capital accounting history is never resurrected from provider state. The bounded harness deletes its data file afterward, so no long-running canonical ledger or external financial write is admitted.
+
+**SQLite accounting smoke verification LEGO**: the existing disposable
+SQLite scripts run-sqlite-accounting-durable-restart-smoke-r1 and
+run-nonlive-capital-effect-matrix own one responsibility: prove local
+state transitions, durable reopen, reconciliation and exact replay before
+issuing a PASS receipt. Inputs are synthetic accounting instructions and
+a disposable SQLite file; outputs are the existing JSON receipts.
+Consumers are scripts/run-r0-r5-closure and
+scripts/run-capital-trading-fullpath-closure respectively.
+Necessary writes and checks execute identically with ordinary Python
+and python -O. The native tests/test_accounting_smoke_optimizer_contract.py
+verifies actual entrypoint equivalence and distinct pending/consume
+observables. No live funds or provider write authority is used.
 
 Crypto FIX Projection R4 now passes: the four already-qualified Nautilus mechanics-only Spot orders project through sessionless QuickFIX/n FIX 4.4 `NewOrderSingle` semantics with ClientOrderId→ClOrdID identity continuity, venue `ExDestination`, Market order type and IOC TIF. No credential, FIX session, private account read or external financial write is admitted.
 
@@ -85,6 +118,33 @@ Golden Path (no provider account, synthetic data, no order):
 `mise run //domains/capital:verify`, including
 `tests/test_factor_lego_consumer_contract.py`. This only demonstrates current
 mechanical consumer boundaries; it is not evidence of positive investment Edge.
+
+## Non-live and private-read admission LEGO
+
+The existing Capital policy-checker LEGO uses these three Owner scripts:
+- scripts/check-demo-execution-preflight
+- scripts/check-nonlive-credential-provisioning
+- scripts/check-private-reality-readonly-preflight
+
+Their actual consumers are scripts/run-capital-trading-fullpath-closure
+and scripts/run-r0-r5-closure. Their contracts are unchanged: no
+live/external writes, unauthorized demo/testnet order submission or
+private-account access, and no group/world-readable credential files.
+An invalid policy or file permission must produce a nonzero exit under
+both normal Python and optimized Python. The native falsifier is
+tests/test_nonlive_policy_optimized_contract.py with isolated synthetic
+JSON and dummy files. This mechanical boundary does not authorize live
+financial effects or prove external provider behavior.
+
+The same Owner contract also covers scripts/check-nonlive-effect-authority,
+scripts/check-private-reality-credential-bindings, and
+scripts/check-clock-quality-gate. Consumers include non-live effect
+reconciliation, R0-R5 private-read binding, and public shadow/stream
+resilience clock qualification. In addition to optimization independence,
+the bindings checker must reject forbidden private-account, trading or
+external-write flags even in ordinary Python; credential file modes and
+clock-forgery declarations are negative-tested with synthetic fixtures.
+No provider resources or live effects are admitted by this proof.
 
 ## Verification boundary
 

@@ -482,7 +482,8 @@
       "evidence": [
         "scripts/ordivon-runtime-deploy",
         "scripts/ordivon-runtime-status",
-        "scripts/ordivon-runtime-lifecycle"
+        "scripts/ordivon-runtime-lifecycle",
+        "crates/ordivon-runtime-core/src/bin/ordivon-runtime-windows-deploy.rs"
       ],
       "dependencies": [
         "R12",
@@ -495,7 +496,8 @@
       "acceptance": [
         "Operator scripts shrink by moving proven shared mechanics into owner-local libraries, not by hiding behavior in a generic framework.",
         "Release receipt and rollback compatibility remain exact.",
-        "Fast health stays bounded by active state rather than historical Registry size."
+        "Fast health stays bounded by active state rather than historical Registry size.",
+        "Windows structured release freezes and validates source_repo/required_ref authority in the same receipt/cutover/rollback circuit as candidate artifacts; the owner-native deployer tests reject missing/invalid bindings and preserve unrelated env bytes."
       ],
       "nextAction": "Extract pure receipt/fence/status projection helpers first; leave CLI orchestration intact until parity is proven."
     },
@@ -934,6 +936,24 @@
         "RW6"
       ],
       "nextAction": "Delete only code whose replacement has current acceptance evidence."
+    },
+    {
+      "id": "RW8",
+      "objective": "Falsify process-local concurrent admission serialization and bounded registry-state progress using the Runtime's existing lock, SQLite and formal-test contracts; distinguish a historical failing CI source cut from current verified behavior.",
+      "status": "PROPOSED",
+      "nodeIds": [
+        "R00",
+        "R01",
+        "R04"
+      ],
+      "acceptance": [
+        "Given sixteen concurrent admissions to one source-bound Runtime registry, the original failure-shaped test completes with all admitted outcomes and no SQLite contention error.",
+        "The matching owner-native test reports its exact source revision and exit status, including at least one intentional contention or failure-injection negative control.",
+        "Prior GitHub CI failure is not promoted to current failure or current PASS without execution on the exact candidate source; no second admission/lock service is introduced."
+      ],
+      "evidence": [],
+      "blockers": [],
+      "nextAction": "Use the existing runtime::tests::process_local_registry_write_gate_serializes_sixteen_concurrent_admissions test and Runtime formal trace verifier; compare current source against CI run 40028281009. Do not duplicate the lock implementation."
     }
   ],
   "gaps": [

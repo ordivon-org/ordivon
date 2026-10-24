@@ -327,7 +327,10 @@ class _HttpxPostHandle:
             return None
         if self._error is not None:
             raise self._error
-        assert self._result is not None
+        if self._result is None:
+            raise AgentTurnAdapterError(
+                "DeepSeek request completed without a response or recorded failure"
+            )
         return self._result
 
     def cancel(self) -> None:
