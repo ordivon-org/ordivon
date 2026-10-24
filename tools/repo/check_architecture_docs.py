@@ -276,7 +276,11 @@ def validate_formal_issue_census(
     issues = census.get("issues")
     if not isinstance(issues, list) or not issues:
         raise ArchitectureDocsError("issue census must contain typed issues")
-    owner_manifest = tomllib.loads((root / "tools/repo/owners.toml").read_text(encoding="utf-8"))
+    owner_manifest = tomllib.loads(
+        _source_bound_file(root, "tools/repo/owners.toml", "owner manifest").read_text(
+            encoding="utf-8"
+        )
+    )
     known_owners = {row["root"].removesuffix("/") for row in owner_manifest["owners"]}
     known_owners.add("tools/repo")  # Repository mechanics, not a domain owner.
     issue_ids: set[str] = set()

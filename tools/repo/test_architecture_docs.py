@@ -720,22 +720,30 @@ def test_formal_issue_owner_plan_cannot_escape_source_cut(tmp_path: Path) -> Non
 
 
 
-def test_formal_census_file_is_source_bound_before_loading(tmp_path: Path) -> None:
-    """Do not read a plausible formal issue manifest from outside the checkout."""
+@pytest.mark.parametrize(
+    ("relative", "label"),
+    [
+        ("docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261024_R1.json", "formal issue census"),
+        ("tools/repo/owners.toml", "owner manifest"),
+    ],
+)
+def test_formal_registry_sources_bound_before_loading(
+    tmp_path: Path, relative: str, label: str
+) -> None:
+    """Both census and canonical owner types must come from the candidate tree."""
     source = tmp_path / "source"
-    rel = Path("docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261024_R1.json")
-    local = source / rel
+    local = source / relative
     local.parent.mkdir(parents=True, exist_ok=True)
-    value = FORMAL_ISSUE_CENSUS.read_bytes()
+    value = (ROOT / relative).read_bytes()
     local.write_bytes(value)
-    assert module._source_bound_file(source, str(rel), "formal issue census") == local
+    assert module._source_bound_file(source, relative, label) == local
 
     local.unlink()
-    with pytest.raises(module.ArchitectureDocsError, match="formal issue census escapes SourceCut"):
-        module._source_bound_file(source, str(rel), "formal issue census")
+    with pytest.raises(module.ArchitectureDocsError, match=f"{label} escapes SourceCut"):
+        module._source_bound_file(source, relative, label)
 
-    external = tmp_path / "external-census.json"
+    external = tmp_path / "external-input"
     external.write_bytes(value)
     local.symlink_to(external)
-    with pytest.raises(module.ArchitectureDocsError, match="formal issue census escapes SourceCut"):
-        module._source_bound_file(source, str(rel), "formal issue census")
+    with pytest.raises(module.ArchitectureDocsError, match=f"{label} escapes SourceCut"):
+        module._source_bound_file(source, relative, label)
