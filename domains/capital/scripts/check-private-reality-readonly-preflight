@@ -3,22 +3,26 @@ set -euo pipefail
 repo="$(cd "$(dirname "$0")/.." && pwd)"
 python3 - "$repo/config/private_reality_policy.json" <<'PY'
 import json,sys
+def require(condition, label):
+    if not condition:
+        raise SystemExit("Capital policy rejected: " + str(label))
+
 x=json.load(open(sys.argv[1]))
-assert x['kind']=='ordivon.capital.governance.private-reality-policy'
-assert x['standing']=='OWNER_MANDATE_PRESENT_PERMISSION_NOT_CURRENT'
-assert x['ownerCredentialUseMandate']=='AUTHORIZED_READ_ONLY_PRIVATE_REALITY_OBSERVATION'
-assert x['credentialPermissionStanding']=='PENDING_FRESH_PROVIDER_VERIFICATION'
-assert x['privateAccountDataAdmission']=='NOT_ADMITTED'
+require(x['kind']=='ordivon.capital.governance.private-reality-policy', "x['kind']=='ordivon.capital.governance.private-reality-policy'")
+require(x['standing']=='OWNER_MANDATE_PRESENT_PERMISSION_NOT_CURRENT', "x['standing']=='OWNER_MANDATE_PRESENT_PERMISSION_NOT_CURRENT'")
+require(x['ownerCredentialUseMandate']=='AUTHORIZED_READ_ONLY_PRIVATE_REALITY_OBSERVATION', "x['ownerCredentialUseMandate']=='AUTHORIZED_READ_ONLY_PRIVATE_REALITY_OBSERVATION'")
+require(x['credentialPermissionStanding']=='PENDING_FRESH_PROVIDER_VERIFICATION', "x['credentialPermissionStanding']=='PENDING_FRESH_PROVIDER_VERIFICATION'")
+require(x['privateAccountDataAdmission']=='NOT_ADMITTED', "x['privateAccountDataAdmission']=='NOT_ADMITTED'")
 for k in ('privateAccountDataAllowed','orderCapableCredentialsAllowed','withdrawalCredentialsAllowed','externalFinancialWritesAllowed','secretDiscoveryAllowed'):
-    assert x[k] is False, k
-assert x['venues']['OKX']['requiredPermission']=='Read'
-assert set(x['venues']['OKX']['forbiddenPermissions'])=={'Trade','Withdraw'}
-assert x['venues']['BINANCE']['requiredSecurityType']=='USER_DATA'
-assert x['venues']['BINANCE']['tradePermissionRequired'] is False
-assert x['venues']['BINANCE_USDM']['requiredSecurityType']=='USER_DATA'
-assert x['venues']['BINANCE_USDM']['tradePermissionRequired'] is False
-assert x['venues']['BINANCE_USDM']['permissionStanding']=='PENDING_FRESH_PROVIDER_VERIFICATION'
-assert x['venues']['BINANCE_USDM']['tradFiAgreementAutomationAllowed'] is False
+    require(x[k] is False, k)
+require(x['venues']['OKX']['requiredPermission']=='Read', "x['venues']['OKX']['requiredPermission']=='Read'")
+require(set(x['venues']['OKX']['forbiddenPermissions'])=={'Trade','Withdraw'}, "set(x['venues']['OKX']['forbiddenPermissions'])=={'Trade','Withdraw'}")
+require(x['venues']['BINANCE']['requiredSecurityType']=='USER_DATA', "x['venues']['BINANCE']['requiredSecurityType']=='USER_DATA'")
+require(x['venues']['BINANCE']['tradePermissionRequired'] is False, "x['venues']['BINANCE']['tradePermissionRequired'] is False")
+require(x['venues']['BINANCE_USDM']['requiredSecurityType']=='USER_DATA', "x['venues']['BINANCE_USDM']['requiredSecurityType']=='USER_DATA'")
+require(x['venues']['BINANCE_USDM']['tradePermissionRequired'] is False, "x['venues']['BINANCE_USDM']['tradePermissionRequired'] is False")
+require(x['venues']['BINANCE_USDM']['permissionStanding']=='PENDING_FRESH_PROVIDER_VERIFICATION', "x['venues']['BINANCE_USDM']['permissionStanding']=='PENDING_FRESH_PROVIDER_VERIFICATION'")
+require(x['venues']['BINANCE_USDM']['tradFiAgreementAutomationAllowed'] is False, "x['venues']['BINANCE_USDM']['tradFiAgreementAutomationAllowed'] is False")
 print(json.dumps({'policyStanding':x['standing'],'ownerCredentialUseMandate':x['ownerCredentialUseMandate'],'credentialPermissionStanding':x['credentialPermissionStanding'],'privateAccountDataAdmission':x['privateAccountDataAdmission'],'secretDiscoveryAllowed':False},sort_keys=True))
 PY
 

@@ -236,6 +236,16 @@ class OperationalScriptTests(unittest.TestCase):
         )
         self.assertIn(f"--skip {property_name}", transactional)
         self.assertEqual(verify.count("scripts/owner-environment extended"), 1)
+        owner = (REPO / "scripts/owner-environment").read_text(encoding="utf-8")
+        extended = owner.split("run_extended() {", 1)[1].split("\n}", 1)[0]
+        self.assertIn(
+            "scripts/verify_reference_model_shards.py --shards 8 --parallel 4",
+            extended,
+        )
+        self.assertNotIn(
+            'test --locked -p ordivon-runtime-core request_identity_and_terminal_winner_match_reference_model',
+            extended,
+        )
 
     def test_owner_environment_extended_reuses_a_complete_offline_environment(self) -> None:
         owner = (REPO / "scripts/owner-environment").read_text(encoding="utf-8")

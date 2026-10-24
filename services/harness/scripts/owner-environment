@@ -19,21 +19,41 @@ TXT
 require_uv() { [[ -n "$uv_bin" ]] || { echo 'Harness owner environment requires uv' >&2; exit 1; }; }
 bootstrap() {
   require_uv
-  UV_PROJECT_ENVIRONMENT="$env_dir" "$uv_bin" sync --frozen --group dev --group test
+  UV_PROJECT_ENVIRONMENT="$env_dir" "$uv_bin" sync --locked --group dev --group test
 }
 doctor() {
   [[ -x "$python_bin" ]] || { echo "Harness owner environment is not materialized: $python_bin" >&2; exit 1; }
-  "$python_bin" - <<'PY'
+  "$python_bin" - "$repo/mise.toml" "$repo/pyproject.toml" <<'PY'
 import importlib.metadata as md
 import sys
+import tomllib
+from pathlib import Path
+
 for module in ("ordivon_harness", "anc_canonical", "jsonschema", "pytest", "ruff"):
     __import__(module)
-if sys.version_info[:3] != (3, 15, 1):
-    raise SystemExit(f"Harness requires Python 3.15.1, got {sys.version.split()[0]}")
-if md.version("pytest") != "9.1.1":
-    raise SystemExit("unexpected pytest version")
-if md.version("ruff") != "0.17.2":
-    raise SystemExit("unexpected Ruff version")
+
+mise = tomllib.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+project = tomllib.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))
+expected_python = mise["tools"]["python"]
+if tuple(sys.version_info[:3]) != tuple(int(part) for part in expected_python.split(".")):
+    raise SystemExit(
+        f"Harness requires Python {expected_python}, got {sys.version.split()[0]}"
+    )
+
+def declared_pin(group: str, name: str) -> str:
+    matches = [
+        dependency.removeprefix(name + "==")
+        for dependency in project["dependency-groups"][group]
+        if dependency.startswith(name + "==")
+    ]
+    if len(matches) != 1:
+        raise SystemExit(f"Harness requires exactly one pinned {name} in {group}")
+    return matches[0]
+
+for group, name in (("test", "pytest"), ("dev", "ruff")):
+    if md.version(name) != declared_pin(group, name):
+        label = "Ruff" if name == "ruff" else name
+        raise SystemExit(f"unexpected {label} version")
 print("owner environment doctor: valid profile=test")
 PY
   (cd "$repo" && "$python_bin" scripts/check_dependencies.py)

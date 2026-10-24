@@ -92,6 +92,63 @@ class SQLiteHarnessRunContinuityToolTests(unittest.TestCase):
                 HarnessToolStepIntent.from_dict(encoded)
             store.close()
 
+    def test_direct_intent_requires_typed_recovery_consequence(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store, _continuity, intent = self.prepare(
+                Path(directory) / "state", MutableClock()
+            )
+            try:
+                with self.assertRaisesRegex(
+                    HarnessProtocolError, "Tool Step Intent consequence is invalid"
+                ):
+                    replace(intent, recovery_consequence="observation-only")
+            finally:
+                store.close()
+
+    def test_direct_receipt_requires_typed_status_before_dispatch_projection(self) -> None:
+        receipt = HarnessToolStepReceipt(
+            receipt_id="harness-tool-step-receipt:typed-state",
+            intent_digest=canonical_digest({"intent": 1}),
+            harness_run_id="harness-run:typed-state",
+            tool_call_id="tool-call:typed-state",
+            status=HarnessToolStepStatus.CANCEL_REQUESTED,
+            runtime_job_ref="runtime-job:typed-state",
+            observation_digest=None,
+            reconciled=False,
+            created_at_ms=1,
+        )
+        with self.assertRaisesRegex(
+            HarnessProtocolError, "Tool Step Receipt status is invalid"
+        ):
+            replace(receipt, status="cancel-requested", runtime_job_ref=None)
+
+    def test_direct_snapshot_requires_typed_pause_reason_for_effect_fence(self) -> None:
+        snapshot = HarnessRunSnapshot(
+            snapshot_id="harness-run-snapshot:typed-state",
+            harness_run_id="harness-run:typed-state",
+            assignment_id="assignment:typed-state",
+            assignment_generation=1,
+            assignment_digest=canonical_digest({"assignment": 1}),
+            sequence=1,
+            tool_catalog_digest=canonical_digest({"tools": 1}),
+            requested_model_id="model:typed-state",
+            effective_model_id=None,
+            messages_digest=canonical_digest({"messages": 1}),
+            observation_digests=(),
+            active_tool_step_intent_digests=(canonical_digest({"intent": 1}),),
+            remaining_budget={},
+            pause_reason=HarnessRunPauseReason.EFFECT_DISPATCH_PENDING,
+            created_at_ms=1,
+        )
+        with self.assertRaisesRegex(
+            HarnessProtocolError, "Harness Run Snapshot pause reason is invalid"
+        ):
+            replace(
+                snapshot,
+                pause_reason="effect-dispatch-pending",
+                active_tool_step_intent_digests=(),
+            )
+
     @staticmethod
     def observation(status: str = "observed") -> dict[str, object]:
         return {
