@@ -276,7 +276,7 @@ def main() -> int:
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(rendered)
-    print(json.dumps(result, sort_keys=True))
+    print(json.dumps(qualification_summary(result), sort_keys=True))
     return 0 if result["standing"] == "READ_ONLY_PRIVATE_REALITY_CAPTURED" else 3
 
 
