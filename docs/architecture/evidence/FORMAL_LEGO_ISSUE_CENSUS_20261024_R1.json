@@ -885,6 +885,29 @@
             "platform/network/consumers/developer-egress/profile.sh",
             "platform/network/tests/test_developer_egress_profile.py"
           ]
+        },
+        {
+          "localCommit": "5d29e016a49c707918b00dd4174717b7d847d74f",
+          "owner": "tools/repo",
+          "consumer": "The existing root GitHub governance guard must apply immutable full-SHA external Action references transitively to locally defined Composite Actions, without reviving the legacy checker or adding another policy engine. The current verifier rejects floating uses and invalid composite steps, while accepting pinned SHA and same-repository ./ and $/ references.",
+          "remoteWitness": "tools/repo/check_github_governance.py::main; tools/repo/test_github_governance.py::GovernanceAcceptanceTests.test_local_composite_action_cannot_escape_sha_pin_authority: real mutated local action.yml with external actions/checkout@v7 was incorrectly admitted (RED) and is rejected after minimal native guard (GREEN), while SHA-pinned action and $/ local reference pass; all 5 owner governance unittest PASS on frozen current protected Main; official GitHub composite metadata syntax allows steps[*].uses.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_OLDER_SOURCECUT",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "4b630ed360901d44ae2bea725fc53722225b460a",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "DIFFERENT_CURRENT_GOVERNANCE_IMPLEMENTATION",
+            "consumerStanding": "NECESSARY_EFFECT_ADOPTED_IN_NATIVE_OWNER",
+            "branchDeletionAllowed": false,
+            "externalDeploymentEvidence": "NOT_APPLICABLE_ONLY_REPO_POLICY"
+          },
+          "evaluatedRemoteMain": "4b630ed360901d44ae2bea725fc53722225b460a",
+          "verifiedEqualChangedBlobs": false,
+          "changedPaths": [
+            "tools/repo/check_github_governance.py",
+            "tools/repo/test_github_governance.py"
+          ]
         }
       ],
       "consumerBlockedSelections": [
