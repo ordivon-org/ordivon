@@ -1851,6 +1851,106 @@
             "branchDeletionAllowed": false
           },
           "evaluatedRemoteMain": "0a99bf0e43e9686b4904ca6b734cba723024eeb6"
+        },
+        {
+          "localCommit": "4a1a374ee8305f3a665d5d857da706ba8781b838",
+          "owner": "services/runtime",
+          "consumer": "Runtime Workspace source digest observes nested Git repositories before first commit without admitting an unborn HEAD for the outer Runtime Workspace.",
+          "remoteWitness": "PR #473 merged at 3720ecbf00cc7ef5120dc62c225f093395f8460a. Native Rust RED on Git ambiguous HEAD; GREEN nested untracked-file and unborn-branch digest sensitivity, outer HEAD fail-closed; 5 native boundary tests, Runtime owner test, Clippy, root CI PASS. Existing TLA+ model 20 states PASS but no code refinement claim.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "PORT_REQUIRED_OWNER_EFFECT",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "d0b34215a64ef1394ca1153b37081e1ecc16b184",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "SELECTED_MERGED_OWNER_EFFECT",
+            "consumerStanding": "PROTECTED_MERGED_NATIVE_OWNER_GREEN",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "d0b34215a64ef1394ca1153b37081e1ecc16b184",
+          "changedPaths": [
+            "services/runtime/crates/ordivon-runtime-core/src/universal/workspace/source_state.rs"
+          ]
+        },
+        {
+          "localCommit": "27e2a5512bf3f2bef150d107706fa24980eef548",
+          "owner": "services/harness",
+          "consumer": "Harness GatewayExecutionPort must not consume process terminal results until Gateway deliveryDisposition is committed and recoveryRequired is false, preserving operationRef/nativeId identity.",
+          "remoteWitness": "PR #481 merged at fbf7b272e4a663a45ace092c9b299e5ac4f9ceda. Native RED for terminal reconciliation_required; GREEN 13 Gateway consumer tests and full Harness owner 1116 tests + 134 subtests; root CI 130 PASS. No new Gateway schema.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "PORT_REQUIRED_OWNER_EFFECT",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "d0b34215a64ef1394ca1153b37081e1ecc16b184",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "SELECTED_MERGED_OWNER_EFFECT",
+            "consumerStanding": "PROTECTED_MERGED_NATIVE_OWNER_GREEN",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "d0b34215a64ef1394ca1153b37081e1ecc16b184",
+          "changedPaths": [
+            "services/harness/src/ordivon_harness/gateway_execution_port.py"
+          ]
+        },
+        {
+          "localCommit": "437d2dd1b916f41f41d4f288a876301e47054d1b",
+          "owner": "services/harness",
+          "consumer": "Official MCP HTTP client must preserve legitimate text-only ToolError with isError=true even when structuredContent is absent, and must still require a structured payload for successful tools.",
+          "remoteWitness": "PR #496 merged at 31f3d6d8cd0397693fccd1c458ed5b860478cfdb. Real MCP 2.3 HTTP loopback server/client RED ToolBridgeError PROTOCOL_INVALID; GREEN native text error and subsequent healthy tool; Harness owner 1118 pytest + 134 subtests; root 155 pytest PASS.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "PORT_REQUIRED_OWNER_EFFECT",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "d0b34215a64ef1394ca1153b37081e1ecc16b184",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "SELECTED_MERGED_OWNER_EFFECT",
+            "consumerStanding": "PROTECTED_MERGED_NATIVE_OWNER_GREEN",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "d0b34215a64ef1394ca1153b37081e1ecc16b184",
+          "changedPaths": [
+            "services/harness/src/ordivon_harness/mcp_http_client.py"
+          ]
+        },
+        {
+          "localCommit": "f922190323cab7a1930b87783c1b9df8c427aae7",
+          "owner": "services/gateway",
+          "consumer": "Linux Gateway release installer must execute the installed package's official MCP SDK Tool catalog/version verifier after frozen environment creation and before promoting current.",
+          "remoteWitness": "PR #500 merged at ffebd303171ce0c057a28b2ea9dcb6cd6655f0b5. Native RED missing verifier at promotion; GREEN actual 37-tool official SDK surface, negative wrong-tool-set injection, Gateway owner verify PASS, root 155 pytest PASS.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "PORT_REQUIRED_OWNER_EFFECT",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "d0b34215a64ef1394ca1153b37081e1ecc16b184",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "SELECTED_MERGED_OWNER_EFFECT",
+            "consumerStanding": "PROTECTED_MERGED_NATIVE_OWNER_GREEN",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "d0b34215a64ef1394ca1153b37081e1ecc16b184",
+          "changedPaths": [
+            "services/gateway/packaging/install_release.sh"
+          ]
+        },
+        {
+          "localCommit": "6eaea598242897cbfa8dd30ba72bd321c1cfd326",
+          "owner": "services/harness",
+          "consumer": "Explicit env={} binds an intentionally empty provider credential/Chrome scope and must not inherit ambient process secrets; None alone selects ambient environment.",
+          "remoteWitness": "PR #446 merged at 44c48d841f84c417e616bd8eeb541d213ca7ae5a. Existing provider_environment and five Jev ingress paths use os.environ if env is None else env. Native RED synthetic ambient credential leakage; GREEN explicit empty scope and zero effect; Harness owner queue PASS.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "d0b34215a64ef1394ca1153b37081e1ecc16b184",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "CURRENT_OWNER_COVERS_NECESSARY_CONSUMER",
+            "consumerStanding": "CURRENT_OWNER_COVERED_IN_MERGED_MAIN",
+            "branchDeletionAllowed": false
+          },
+          "evaluatedRemoteMain": "d0b34215a64ef1394ca1153b37081e1ecc16b184",
+          "changedPaths": [
+            "services/harness/scripts/jev_fastpath_adapter.py"
+          ]
         }
       ],
       "consumerBlockedSelections": [
