@@ -23,6 +23,18 @@ class OwnerBoundaryTests(unittest.TestCase):
         self.assertEqual(len(findings), 1)
         return findings[0]
 
+    def test_identical_cross_owner_seam_is_rejected(self) -> None:
+        """A repeated source/consumer relation is one LEGO, never two grants."""
+        import tempfile
+
+        original = MODULE.POLICY.read_text(encoding="utf-8")
+        block = original.split("[[seams]]", 2)[1]
+        with tempfile.TemporaryDirectory() as folder:
+            policy = Path(folder) / "duplicate-seam.toml"
+            policy.write_text(original + "\n[[seams]]" + block, encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "duplicate dependency seam"):
+                MODULE.load_policy(policy)
+
     def test_public_security_contract_is_allowed(self) -> None:
         finding = self.finding(
             "apps/web/src/security-agent-verifier.ts",

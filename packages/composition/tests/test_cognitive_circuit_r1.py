@@ -383,3 +383,76 @@ def test_composition_without_required_evidence_never_claims_mechanical_closure()
     assert projection["standing"] == "COMPOSITION_GATES_OPEN"
     assert projection["mechanicalClosure"] is False
     assert projection["domainAcceptanceEstablished"] is False
+
+
+def test_gate_closure_matches_exhaustive_bounded_status_algebra() -> None:
+    """Exhaust the finite R2.1 Gate algebra against an independent Boolean oracle.
+
+    Enumerate all 4^4 combinations of absent/SATISFIED/UNSATISFIED/UNKNOWN
+    for three required and one optional cross-Owner Gate, both with and without
+    an unresolved assumption. This proves agreement for *this finite schema
+    projection*; it is not a verifier-authenticity or implementation-refinement
+    proof and never establishes domain acceptance.
+    """
+    from itertools import product
+
+    manifest = valid_manifest()
+    original = manifest["gateRequirements"][0]
+    manifest["gateRequirements"] = [
+        dict(
+            original, id=f"gate:bounded-{index}", supportScope=f"scope:{index}", required=index != 3
+        )
+        for index in range(4)
+    ]
+    statuses = ("ABSENT", "SATISFIED", "UNSATISFIED", "UNKNOWN")
+    for unresolved in (False, True):
+        manifest["unresolvedAssumptions"] = (
+            ["independent consumer verdict absent"] if unresolved else []
+        )
+        template = gate_result(manifest)
+        for chosen in product(statuses, repeat=4):
+            results = []
+            for index, status in enumerate(chosen):
+                if status == "ABSENT":
+                    continue
+                witness = dict(template)
+                witness["gateId"] = f"gate:bounded-{index}"
+                witness["supportScope"] = f"scope:{index}"
+                witness["standing"] = status
+                witness["evidenceRefs"] = (
+                    [] if status == "UNKNOWN" else [f"evidence:bounded-{index}"]
+                )
+                results.append(witness)
+
+            projection = evaluate_gate_results(manifest, results)
+            mandatory = chosen[:3]
+            # Independent semantic oracle: FAIL dominates; all mandatory
+            # premises must be positively discharged for a bounded PASS.
+            if "UNSATISFIED" in mandatory:
+                expected = "COMPOSITION_GATES_UNSATISFIED"
+            elif not unresolved and all(v == "SATISFIED" for v in mandatory):
+                expected = "COMPOSITION_GATES_SATISFIED"
+            else:
+                expected = "COMPOSITION_GATES_OPEN"
+
+            assert projection["standing"] == expected, chosen
+            assert projection["mechanicalClosure"] == (expected == "COMPOSITION_GATES_SATISFIED"), (
+                chosen
+            )
+            assert projection["domainAcceptanceEstablished"] is False
+            assert projection["requiredGateIds"] == [
+                "gate:bounded-0",
+                "gate:bounded-1",
+                "gate:bounded-2",
+            ]
+            assert projection["missingGateIds"] == [
+                f"gate:bounded-{i}" for i, status in enumerate(mandatory) if status == "ABSENT"
+            ]
+            for field, status in (
+                ("satisfiedGateIds", "SATISFIED"),
+                ("unsatisfiedGateIds", "UNSATISFIED"),
+                ("unknownGateIds", "UNKNOWN"),
+            ):
+                assert projection[field] == [
+                    f"gate:bounded-{i}" for i, value in enumerate(mandatory) if value == status
+                ]

@@ -42,6 +42,27 @@ task accept:local
 
 Provider and consumer acceptance use their own namespaces and are not generic graduation prerequisites.
 
+### N03 ProbeEvidence: scoped, time-indexed Prometheus observation
+
+The generic core and process-recovery acceptance reuse one native jq
+\`prometheus-singbox-sample.sh\` predicate: exactly one successful Prometheus
+instant-vector API response must include
+\`probe_success{job="blackbox-singbox",instance="127.0.0.1:28080"} == 1\`
+with a numeric sample timestamp. Generic readiness demands a sample no
+more than 20 seconds old; process recovery requires a sample generated
+**after** the recovered process was observed. A historical scrape, the
+wrong job/metric/target, a malformed body or API error cannot witness
+present success.
+
+This repairs an abstraction-to-observation gap: the old free-text
+\`"value" ... "1"\` match accepted unrelated or stale values. Native
+\`tests/test_prometheus_singbox_witness.py\` checks actual Bash consumers
+with fake external effects, including a post-restart temporal
+counterexample. This is bounded evidence about **the Prometheus witness**
+only, not a proof of DNS, all IP families, semantic goal success or a
+live deployed Network path. The real proxy and Blackbox acceptance
+checks remain separate mandatory consumers.
+
 ## Evidence projection
 
 `evidence/current-capabilities.json` is a generated acceptance projection, not hand-authored authority.

@@ -66,9 +66,7 @@ def test_host_work_read_revision_is_exact_positive_integer_before_db(
 
 
 @pytest.mark.parametrize("valid_revision", [1, 2])
-def test_valid_host_work_revision_retains_native_store_path(
-    monkeypatch, valid_revision
-) -> None:
+def test_valid_host_work_revision_retains_native_store_path(monkeypatch, valid_revision) -> None:
     from ordivon_host_v2 import work_store
     from ordivon_host_v2.work_store import WorkStore
 
@@ -164,3 +162,67 @@ def test_work_store_contract_never_claims_priority_assignment_or_effect_authorit
     sql = "\n".join(sql_lines)
     for field in forbidden_sql_fields:
         assert field not in sql
+
+
+def test_work_list_limit_requires_exact_integer_before_db(monkeypatch) -> None:
+    """CEGAR counterexamples: numeric equivalence is not a typed limit."""
+    from decimal import Decimal
+    from fractions import Fraction
+
+    from ordivon_host_v2 import work_store
+    from ordivon_host_v2.work_store import WorkStore
+
+    def forbidden_connection(*_args, **_kwargs):
+        raise AssertionError("invalid Host Work list limit must not reach PostgreSQL")
+
+    monkeypatch.setattr(work_store.psycopg, "connect", forbidden_connection)
+    store = WorkStore("postgresql://unused.invalid/host")
+    invalid_limits = (True, False, 1.0, 2.0, Decimal("1"), Fraction(1, 1), 0, -1, 201)
+    for limit in invalid_limits:
+        with pytest.raises(ValueError, match="limit must be"):
+            store.list_works(limit=limit)
+
+
+def test_work_list_limit_exact_integer_contract_property(monkeypatch) -> None:
+    """Bounded exhaustive predicate plus actual no-database-entry check."""
+    from ordivon_host_v2 import work_store
+    from ordivon_host_v2.work_store import WorkStore
+
+    class ConnectionReached(Exception):
+        pass
+
+    def witness_connection(*_args, **_kwargs):
+        raise ConnectionReached
+
+    monkeypatch.setattr(work_store.psycopg, "connect", witness_connection)
+    store = WorkStore("postgresql://unused.invalid/host")
+    for limit in range(-2, 204):
+        if 1 <= limit <= 200:
+            with pytest.raises(ConnectionReached):
+                store.list_works(limit=limit)
+        else:
+            with pytest.raises(ValueError, match="limit must be"):
+                store.list_works(limit=limit)
+
+
+def test_work_list_limit_property_rejects_noninteger_numeric_aliases(monkeypatch) -> None:
+    """Existing Hypothesis kernel explores the Python numeric abstraction."""
+    from hypothesis import given, settings
+    from hypothesis import strategies as st
+
+    from ordivon_host_v2 import work_store
+    from ordivon_host_v2.work_store import WorkStore
+
+    def forbidden_connection(*_args, **_kwargs):
+        raise AssertionError("noninteger limit must not reach the database")
+
+    monkeypatch.setattr(work_store.psycopg, "connect", forbidden_connection)
+    store = WorkStore("postgresql://unused.invalid/host")
+
+    @settings(max_examples=65, deadline=None)
+    @given(st.one_of(st.booleans(), st.floats(allow_nan=True, allow_infinity=True)))
+    def check_noninteger(limit):
+        with pytest.raises(ValueError, match="limit must be"):
+            store.list_works(limit=limit)
+
+    check_noninteger()

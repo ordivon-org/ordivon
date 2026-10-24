@@ -1,6 +1,6 @@
 ---
 name: recursive-lego-calculus
-description: "Use for real Ordivon LEGO work: question the goal and consumers, delete unneeded responsibilities, express the smallest useful input/output/contract, and compose existing capabilities without adding a new framework. For hard cross-layer reasoning, open the optional formal reference and route to specialist Skills."
+description: "Use for real Ordivon LEGO work: question the goal and consumers, delete unneeded responsibilities, express consumer-qualified input/output/contract, and compose existing capabilities without adding a new framework. For hard cross-layer reasoning, open the optional formal reference and route to specialist Skills."
 compatibility: Cross-platform. Helps Agents simplify and compose real responsibilities; use the formal reference only when necessary. Does not grant authority, execute effects, define domain truth or replace specialist verification.
 metadata:
   ordivon-category: general
@@ -19,16 +19,16 @@ Use whichever of these questions changes the current decision. They are **not** 
 
 1. **Goal.** Name the Human/domain outcome, exact current source, real consumer and natural owner. If the goal itself is doubtful, investigate before building.
 2. **Zero-base.** Pretend the existing file, service, Skill and LEGO do not exist. Trace every consumer through to a real outcome; consumers that exist only to keep each other alive do not justify retention. Prefer deleting the whole chain or using a mature existing provider.
-3. **LEGO.** For a responsibility that remains necessary, name only six things: **identity, one responsibility, inputs, outputs, behavioral contract, acceptance**. Add state, authority, effects, provenance, cost or children only when they change the decision. LEGO is the responsibility, not its file, class, Agent, Skill or Tool.
+3. **LEGO.** For a responsibility that remains necessary, name the six decision-relevant roles: **identity, one responsibility, inputs, outputs, behavioral contract, acceptance**. Add state, authority, effects, provenance, cost or children only when they change the decision. LEGO is the responsibility, not its file, class, Agent, Skill or Tool.
 4. **Compose.** Connect compatible inputs/outputs, assumptions/guarantees, identities and effect boundaries. Reuse a real owner interface; do not duplicate truth or assume a successful subcomponent implies a successful whole. Split or share only if replaceability and consumer outcomes improve.
-5. **Act.** Agents freely choose, compete, cooperate and adapt the smallest relevant Skills and Tools. Execute only through actual owner-authorized boundaries; no permanent role, mandatory workflow, or new LEGO execution service.
-6. **Select.** Observe the changed consumer behavior and the smallest relevant native check. Report PASS, FAIL or UNKNOWN honestly. Keep, replace, merge or delete based on evidence; stop when further decomposition adds glue instead of value.
+5. **Act.** Agents freely choose, compete, cooperate and adapt relevant Skills and Tools; no global minimality guarantee is assumed. Execute only through actual owner-authorized boundaries; no permanent role, mandatory workflow, or new LEGO execution service.
+6. **Select.** Observe changed consumer behavior and the scoped native verification evidence. Report PASS, FAIL or UNKNOWN honestly. Keep, replace, merge or delete based on evidence; stop when further decomposition adds glue instead of value.
 
 For a simple case the entire working note can fit in a sentence and six short fields. Reuse an existing API and its tests; do not create a separate LEGO specification file merely to restate the API.
 
 ### Advanced mode — only if the actual problem requires it
 
-Open references/formal-model.md when a decision depends on representation loss/refinement, complex preconditions or state transitions, formal assume/guarantee reasoning, uncertain verifier-to-goal soundness, probabilistic qualifications, search/optimization or self-refinement. In that case distinguish the real problem specification from the encoded verifier target, use legal operators, preserve model/source identity and provenance, and keep independent evaluators and rollback where needed. A formal-tool PASS proves only its encoded target. Do not run all advanced steps on routine file deletion or ordinary module reuse.
+Open references/formal-model.md when a decision depends on representation loss/refinement, complex preconditions or state transitions, formal assume/guarantee reasoning, counterexamples, uncertain verifier-to-goal soundness, probabilistic qualifications, search/optimization or self-refinement. In that case distinguish the real problem specification from the encoded verifier target, use legal operators, preserve model/source identity and provenance, and keep independent evaluators and rollback where needed. A formal-tool PASS proves only its encoded target. Do not run all advanced steps on routine file deletion or ordinary module reuse.
 
 ## Specialist routing
 
@@ -51,6 +51,21 @@ For algebraic assume/guarantee composition or substitution, prefer an admitted f
 
 Do not activate every lens. Choose only methods/providers that can change the decision.
 
+## Default proof discipline — CEGAR, not MSR
+
+Do **not** optimize for a purported Minimum Sufficient Representation by default.
+Neither minimality nor sufficiency has been established in general; trying to
+prove them may cost more than the task. Start from an adequate *explicitly
+scoped* Owner model; use actual or abstract counterexamples to decide whether
+to fix a real defect or refine a sound abstraction. An abstract counterexample
+is not necessarily a concrete defect; a verifier PASS needs an admitted bridge.
+See `references/formal-model.md` (CEGAR section) for the full conditions.
+
+`minimum-sufficient-representation` is an optional **method Skill LEGO** for
+bounded, consumer-evidenced reductions, not a top-level architectural First,
+required acceptance gate, proof of safety or a reason to delete unique evidence.
+Prefer mature Owner model checkers, type systems and replay for real obligations.
+
 ## Essential distinctions
 
 - Goal and domain truth are not decided by a LEGO; a verifier result does not replace the user's or owner's acceptance.
@@ -62,7 +77,7 @@ Do not activate every lens. Choose only methods/providers that can change the de
 
 ## Output
 
-Report only what changes the action: goal and consumer; whether the capability is needed; the smallest LEGO inputs/outputs/contract; decision to reuse, compose, replace or delete; actual source/owner effect; observed acceptance and unresolved UNKNOWNs. For complex cases include only the additional formal obligations that materially affect acceptance.
+Report only what changes the action: goal and consumer; whether the capability is needed; the justified LEGO inputs/outputs/contract; decision to reuse, compose, replace or delete; actual source/owner effect; observed acceptance and unresolved UNKNOWNs. For complex cases include only the additional formal obligations that materially affect acceptance.
 
 ## Non-claims
 

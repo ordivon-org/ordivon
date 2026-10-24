@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 import unittest
 
 from anc_canonical import canonical_digest
@@ -151,6 +152,76 @@ class HarnessExecutionBindingTests(unittest.TestCase):
         self.assertEqual(request["execution"]["cwdRelative"], "src")
         self.assertEqual(request["execution"]["env"], {"_VALID_9": ""})
         self.assertEqual(request["execution"]["timeoutMs"], 1)
+
+    def test_granted_run_check_numeric_fields_reject_python_equality_aliases(self) -> None:
+        """A grant is a typed assertion, not an integer type witness."""
+        class CheckGrant:
+            allow_opaque_exec = False
+
+            def __init__(self, check: object) -> None:
+                self.check = check
+
+            def allows_path(self, name: str, relative_path: str) -> bool:
+                return True
+
+            def execution_check(self, check_id: str) -> object:
+                if check_id != "owner-native":
+                    raise KeyError(check_id)
+                return self.check
+
+        for field in ("timeout_ms", "stdout_limit_bytes", "stderr_limit_bytes"):
+            for illegal in (True, 1.0, "1"):
+                with self.subTest(field=field, illegal=illegal):
+                    params = {
+                        "executable": "/bin/echo",
+                        "args": ("ok",),
+                        "cwd_relative": ".",
+                        "env": (),
+                        "timeout_ms": 30000,
+                        "stdout_limit_bytes": 8192,
+                        "stderr_limit_bytes": 8192,
+                    }
+                    params[field] = illegal
+                    call = AgentToolCall(
+                        tool_call_id="tool-call:p0-granted-native-check",
+                        name="run_check",
+                        arguments={"checkId": "owner-native"},
+                    )
+                    with self.assertRaises(ToolBridgeError) as caught:
+                        lower_runtime_tool(
+                            call,
+                            step_id="turn-1-bad-check-numeric-type",
+                            execution_binding=binding(),
+                            tool_grant=CheckGrant(SimpleNamespace(**params)),
+                            known_job_ids=frozenset(),
+                            known_artifacts=frozenset(),
+                        )
+                    self.assertEqual(caught.exception.kind, ToolBridgeErrorKind.MODEL_CORRECTABLE)
+
+        legal = SimpleNamespace(
+            executable="/bin/echo",
+            args=("ok",),
+            cwd_relative=".",
+            env=(),
+            timeout_ms=30000,
+            stdout_limit_bytes=8192,
+            stderr_limit_bytes=8192,
+        )
+        operation, request, _ = lower_runtime_tool(
+            AgentToolCall(
+                tool_call_id="tool-call:p0-valid-native-check",
+                name="run_check",
+                arguments={"checkId": "owner-native"},
+            ),
+            step_id="turn-1-valid-check-numeric-type",
+            execution_binding=binding(),
+            tool_grant=CheckGrant(legal),
+            known_job_ids=frozenset(),
+            known_artifacts=frozenset(),
+        )
+        self.assertEqual(operation, "workspace.exec")
+        self.assertEqual(request["execution"]["timeoutMs"], 30000)
+
 
     def test_generic_search_lowering_uses_execution_binding(self) -> None:
         call = AgentToolCall(

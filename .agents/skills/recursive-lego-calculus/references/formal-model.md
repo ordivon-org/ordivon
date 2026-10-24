@@ -123,6 +123,74 @@ Representation selection may minimize
 
 subject to specification preservation, realizability, authority constraints and evidence/reconstruction obligations.
 
+## Counterexample-guided abstraction refinement (CEGAR)
+
+**Method LEGO, not a universal schema or guaranteed terminating optimizer.**
+The task's normative predicate `phi` remains prior to both an abstraction and
+its verifier. Let `C` be a concrete transition system, `A_i` the current
+abstract transition system, `alpha_i` a state/trace abstraction, and
+`gamma_i` its concretization. For safety model checking require an admitted
+**over-approximation simulation**, e.g. `Traces(C) subseteq gamma_i(Traces(A_i))`
+under the *same* declared environment/initial-state assumptions. This is a
+nontrivial obligation, not a consequence of the word "abstraction".
+
+For a scoped safety property `Safe` preserved by concretization:
+
+1. **ABSTRACT:** choose an existing Owner model / representation `A_i`
+   with explicit source cut, assumptions, interface and simulation relation;
+   coarse does not mean globally minimal or sufficient for every use.
+2. **CHECK:** run the *existing* qualified checker on `A_i`. An abstract
+   safety PASS transfers to `C` **only** with the established over-approximation,
+   property mapping, checker soundness and relevant model-to-code bridge.
+   Finite TLC success alone proves bounded-model invariants, not Rust code.
+3. **COUNTEREXAMPLE:** if the checker returns an abstract violating trace
+   `tau_i`, invoke a **concrete feasibility checker/replay** for the relevant
+   Owner and environment, retaining source/configuration/identity. A real,
+   reproducible violating concrete trace is `FAIL` for the specified scope;
+   it is not a pretext to edit the abstract model until the failure disappears.
+4. **REFINE:** if and only if the trace is *proved infeasible* (spurious),
+   refine the abstraction's predicates/state partitions or transition
+   precision to exclude it, while maintaining the concrete simulation.
+   An unknown feasibility result remains `UNKNOWN`, **not** spurious.
+5. **RECHECK:** repeat with a changed abstract-model digest and scoped proof.
+   Bound time/memory/refinement attempts; return `UNKNOWN` if exhausted or
+   if environmental/realization equivalence cannot be established.
+
+Typed result:
+
+`CEGAR(C,phi,A0,budget) in {SAFE(model_scope,evidence), UNSAFE(concrete_trace,evidence), UNKNOWN(reason)}`.
+
+A valid refinement must exclude the *spurious trace* while retaining every
+admitted concrete behavior. Blindly deleting a failing transition is unsound.
+State explosion, undecidability, coarse-to-fine divergence, spurious replay,
+coverage omissions, and time-varying environment may preclude convergence.
+CEGAR is most naturally applied to safety; liveness/fairness, probabilistic
+and hyperproperties need separately qualified abstractions and checkers.
+
+**Ordivon four-Owner example:** the abstract invariant "dispatch implies
+Network is currently READY" is too strong when Network can degrade *after*
+Runtime's justified admission. The candidate trace
+`NetworkObserve -> HarnessPropose -> RuntimeAdmit -> NetworkDegrade -> RuntimeDispatch`
+requires feasibility inspection. If it is a real permitted execution, fix the
+misstated specification/temporal observation by distinguishing immutable
+`admissionInputsWitness` from current Network readiness. Do **not** label
+this real trace "spurious" merely to satisfy TLC. If no concrete feasibility
+bridge exists, mark `UNKNOWN`. Preserve the original safety objective:
+no dispatch without correctly witnessed admission.
+
+**Mature foundation:** Clarke, Grumberg, Jha, Lu, Veith, *Counterexample-
+Guided Abstraction Refinement*, CAV 2000, DOI 10.1007/10722167_15;
+JACM 2003 symbolic-model-checking extension. Reuse the natural Owner's TLC,
+SMT, Rust/Host/Harness CDC, or transport replay; do not create a proprietary
+CEGAR runtime, global counterexample registry, or new acceptance authority.
+
+**MSR distinction:** no `Minimal(rho)`, `Sufficient(rho)`, or their conjunction
+is a default Ordivon proof obligation. Global optimality may be unprovable
+or more expensive to establish than solving the actual task. A compact
+representation is an optional engineering hypothesis; when it removes
+behavior, the soundness/consumer contract and concrete trace determine its
+acceptance, not its apparent size.
+
 ## Generator family
 
 `G_rho={g1,...,gn}` is a compositional vocabulary. It is not called a mathematical basis without independent proofs of independence and completeness.

@@ -1,6 +1,6 @@
-# Meta-Thinking R1 — Minimum Sufficient Representation
+# Meta-Thinking R1 — Counterexample-Guided Reform (CEGAR)
 
-Status: ADOPTED AS COLLABORATION / PROPOSED AS REPO METHOD, **NOT** DEPLOYMENT OR NEW AUTHORITY
+Status: Counterexample-guided reform ADOPTED AS COLLABORATION, NOT deployment or new authority. Minimum Sufficient Representation (MSR) as a **DEFAULT**: RETIRED (2026-10-25). MSR remains an **optional, consumer-scoped Skill LEGO**, not a general minimum/sufficiency/safety theorem. Preserve this source path for existing method-router consumers.
 Date: 2026-10-24
 Coordination: `space:ordivon-meta-thinking-r1:20261024`
 Existing implementations: `meta/next/docs/COMPOSITION_SCIENCE_R1.md`, `meta/next/docs/INNOVATION_LENS_ROUTING_R1.md`, `.agents/skills/method-router`, and each natural owner's tests and formal models.
@@ -9,7 +9,7 @@ Existing implementations: `meta/next/docs/COMPOSITION_SCIENCE_R1.md`, `meta/next
 
 Ordivon's limiting factor is not primarily raw compute. It is the cost of distinguishing necessary states, relations, interactions, ambiguity, and evidence from incidental complexity. Make the *question* simpler before making its *execution* stronger.
 
-For context X and accepted observable behavior B, choose representation R and implementation A to reduce the measured cost of comprehension, state, coupling, operation, verification and maintenance, **subject to** preserving B for X. No universal scalar complexity score or context-free best architecture is asserted.
+For context X and a real consumer behavior B, start with a property-scoped coarse abstraction and existing Owner implementation. Check counterexamples before adding representation detail. Retire unconsumed responsibilities by consumer evidence. No global minimality or sufficiency certificate is required: proving universal minimality and sufficiency could cost more than solving the problem.
 
 ## Reform mandate and boundaries
 
@@ -25,7 +25,7 @@ The existing social Space is long-lived only as a discussion/navigation surface.
 
 A failure may involve all three. Do not confuse a missing observation with hard intrinsic computational difficulty.
 
-## Ten lenses, one minimum method
+## Ten optional lenses, chosen by a falsifying question
 
 See `.agents/skills/method-router/references/representation-first.md` for practical routing and negative checks.
 
@@ -40,7 +40,7 @@ See `.agents/skills/method-router/references/representation-first.md` for practi
 | Declarative-first | Are dependencies, versions and environment explicit? | Implicit machine-specific behavior |
 | Abstraction-first | Can hierarchical summaries preserve required behavior? | Global reasoning across every combination |
 | Causal-first | What controlled intervention distinguishes root causes? | Symptom-driven retry/patch cycles |
-| Compression-first | What minimum source-and-context-bound knowledge predicts correct use? | Stale and repeated procedural knowledge |
+| Compression-first | What source-and-context-bound knowledge predicts correct use? | Stale and repeated procedural knowledge |
 
 Two cross-cutting obligations: **LEGO-first** fixes the replaceable consumer-conditioned unit; **Formal-first** fixes the acceptance predicate, assumptions, guarantees, transitions, and evidence. Neither one is an extra universal truth database.
 
@@ -65,11 +65,57 @@ Only carry fields that actually change the decision. Missing fact = `UNKNOWN` ra
 7. **No new framework without residual:** prefer native type checker, owner tests, TLA+ model, CUE/JSON Schema, DSM/Datalog, or causal test as justified by actual scale.
 8. **Self-subtraction:** remove this meta mechanism if it adds a second source of truth, requires universal manual metadata, or fails to change outcomes.
 
-## Minimal operating loop
+## Counterexample-Guided Abstraction Refinement (CEGAR)
 
-`GOAL -> OBSERVE -> IDENTIFY COMPLEXITY SOURCE -> ELIMINATE/QUOTIENT/CONSTRAIN/DECOUPLE/RESOLVE -> SELECT MATURE LEGO -> OWNER-NATIVE VERIFY -> CONSUMER ACCEPT -> EVOLVE OR RETIRE`.
+**No global minimality or sufficiency certificate.** Classical CEGAR is
+property-scoped safety checking, not a universal optimizer, architecture
+theorem or substitute for consumer acceptance.
 
-Record only actual gaps and counterexamples, not generic reports. Begin with one primary method; use a second only if it supplies independently necessary evidence.
+1. Select one actual Owner, one consumer safety property and an exact
+   SourceCut; start with an existing coarse abstraction.
+2. Check it with a mature Owner-native model checker or contract verifier,
+   where appropriate. A result proves only the encoded property and model.
+3. For a reported trace, perform **abstract-to-concrete** feasibility:
+   link the actions, guards, assumptions, identity and observable physical
+   effects to real Owner transitions where evidence exists.
+   - **REAL_COUNTEREXAMPLE**: a realizable concrete trace violates the
+     consumer property. Repair Owner contract or implementation, preserve the
+     counterexample, and check again.
+   - **SPURIOUS_COUNTEREXAMPLE**: the abstract trace is impossible under
+     the actual declared Owner assumptions. Refine only the missing
+     predicate, guard, abstraction mapping or environment distinction.
+   - **UNKNOWN**: missing evidence or unproved feasibility/refinement;
+     neither promote PASS nor authorize deletion.
+4. A model PASS supports concrete safety only with a justified
+   over-approximation/simulation relation and correct property mapping.
+   Bounded TLC alone does not prove Rust, Host, Harness, Network or goal
+   acceptance. Liveness requires separate fairness/progress obligations.
+5. For ordinary Git deletion, straightforward typed input checks or
+   direct contract tests, do not force a CEGAR workflow; use the owner-native
+   proof/consumer check directly.
+
+Concrete motivation: the existing four-Owner
+`packages/composition/formal/Lego21OwnerBoundary.tla` model had a
+time-indexing issue when Network readiness could degrade after Runtime
+admission. A failing bounded trace against a too-strong readiness invariant
+requires refining *which moment* the property describes; it does not
+prove that a physical Network or Runtime violated its contract. A scoped
+candidate is https://github.com/ordivon-org/ordivon/pull/586 .
+Do not introduce another model, solver, registry, Agent or authority.
+
+Mature references: Clarke et al., CAV 2000,
+https://doi.org/10.1007/10722167_15 ; Microsoft Research SLAM,
+https://www.microsoft.com/en-us/research/project/slam/ .
+
+## Operating loop
+
+`GOAL -> SOURCE CUT / CONSUMER -> PROPERTY-SCOPED ABSTRACTION ->
+CHECK -> CONCRETIZE COUNTEREXAMPLE -> [REPAIR / REFINE / UNKNOWN] ->
+OWNER-NATIVE VERIFY -> CONSUMER ACCEPT -> KEEP / RETIRE`.
+
+Record real counterexamples and only the abstraction distinction needed
+to settle them. No proof of global representational minimality or
+sufficiency is requested.
 
 ## First executable reform candidates
 

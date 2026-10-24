@@ -89,6 +89,20 @@ class TlaFormalExternalJarTests(unittest.TestCase):
         self.assertIn("tla2sany.SANY", observed)
         self.assertIn("tlc2.TLC", observed)
 
+    def test_falsifier_must_see_named_invariant_counterexample_not_just_java_failure(self):
+        # A fake Java process returns success without a counterexample; the
+        # formal Owner gate must reject it rather than count a mere process exit.
+        (self.script.parent.parent / "formal/RuntimeDispatchR1.tla").write_text(
+            "---- MODULE RuntimeDispatchR1 ----\n"
+            "Next ==\n"
+            "    \\/ AdmitExplicitRetry\n"
+            "====\n", encoding="utf-8"
+        )
+        result = self.invoke(command="falsify", jar=self.external)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("counterexample", result.stderr.lower())
+        self.assertIn("NoCompetingLiveAttempts", result.stderr)
+
     def test_digest_mismatch_fails_closed(self):
         bad = self.tmp / "tampered.jar"
         bad.write_bytes(self.external.read_bytes() + b"-changed")

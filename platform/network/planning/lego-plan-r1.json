@@ -67,14 +67,16 @@
       "evidence": [
         "README.md",
         "docs/ACCEPTANCE_MATRIX.md",
-        "evidence/current-capabilities.json"
+        "evidence/current-capabilities.json",
+        "tests/test_prometheus_singbox_witness.py"
       ],
       "dependencies": [],
       "mustNotOwn": [
         "application semantic success"
       ],
       "acceptance": [
-        "Local WSL capability projection is refreshed only after acceptance gates pass."
+        "Local WSL capability projection is refreshed only after acceptance gates pass.",
+        "Prometheus sing-box READY requires a single successful instant-vector response, exact probe_success/job/instance, value 1, and a current timestamp; process-recovery acceptance requires an observation no earlier than the recovered process. Synthetic CDC is not live egress proof."
       ]
     },
     {
@@ -154,21 +156,6 @@
   ],
   "slices": [
     {
-      "id": "NS1",
-      "objective": "Keep future provider/consumer additions optional and evidence-scoped; do not expand generic core without a cross-workload need.",
-      "status": "PROPOSED",
-      "nodeIds": [
-        "N01",
-        "N05"
-      ],
-      "acceptance": [
-        "A new profile can be admitted without changing generic Network graduation unless evidence shows a missing generic mechanism."
-      ],
-      "evidence": [],
-      "blockers": [],
-      "nextAction": "Apply this gate to the next provider/consumer request."
-    },
-    {
       "id": "NS2",
       "objective": "Falsify indirect egress and DNS/control-plane bypass assumptions from real Linux, Windows, WSL and developer-tool consumers.",
       "status": "PROPOSED",
@@ -203,9 +190,9 @@
     "custom network stack"
   ],
   "review": {
-    "sourceRevision": "cacda2ae26ab90484939b5b3461a14786a8f8b39",
-    "updatedAt": "2026-09-18",
-    "standing": "INITIAL",
-    "notes": "Initial project-native LEGO planning projection. It does not replace owner-native architecture or evidence."
+    "sourceRevision": "299ee0449a1b98468d7954df53b20138ee4771ee",
+    "updatedAt": "2026-10-25",
+    "standing": "NS1_UNCONSUMED_RETIRED_NS2_RETAINED",
+    "notes": "Zero-base consumer trace: NS1 was an unregistered proposed future profile slice with no tracked code, test, issue registration or independent outcome consumer. Its optionality constraint is already enforced by retained N05 ProviderConsumerProfiles. Retire only the redundant NS1 projection; preserve N01 and N05 actual responsibilities and NS2 registered Network egress falsification. No runtime policy, route, DNS or readiness effect changed."
   }
 }

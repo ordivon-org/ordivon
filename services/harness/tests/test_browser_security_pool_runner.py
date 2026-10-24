@@ -47,6 +47,55 @@ class BrowserSecurityPoolRunnerTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "digest mismatch"):
                 runner._load_pool_index(index, root)
 
+    def test_pool_index_rejects_duplicate_lkg_authority_before_collection(self) -> None:
+        """A contradictory baseline must not start physical carrier collection."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            index = self.make_index(root)
+            raw = index.read_text(encoding="utf-8")
+            marker = '"standing": "LKG_PER_CARRIER"'
+            self.assertEqual(raw.count(marker), 1)
+            index.write_text(
+                raw.replace(
+                    marker,
+                    '"standing": "NOT_AN_LKG", "standing": "LKG_PER_CARRIER"',
+                ),
+                encoding="utf-8",
+            )
+            with mock.patch.object(
+                runner,
+                "_carrier_observation_lifecycle",
+                side_effect=AssertionError("started real collection with ambiguous index"),
+            ) as lifecycle:
+                with self.assertRaisesRegex(ValueError, "duplicate JSON member"):
+                    runner._run_into(
+                        run_root=root,
+                        run_id="test-run",
+                        security_root=root,
+                        pool_index=index,
+                        python="/usr/bin/python",
+                        config_path=root / "automation.json",
+                    )
+                lifecycle.assert_not_called()
+
+    def test_pool_index_rejects_nested_duplicate_comparison_law(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            index = self.make_index(root)
+            raw = index.read_text(encoding="utf-8")
+            marker = '"sameCarrierCandidateVsSameCarrierLkg": "ALLOWED"'
+            self.assertEqual(raw.count(marker), 1)
+            index.write_text(
+                raw.replace(
+                    marker,
+                    '"sameCarrierCandidateVsSameCarrierLkg": "FORBIDDEN", '
+                    '"sameCarrierCandidateVsSameCarrierLkg": "ALLOWED"',
+                ),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "duplicate JSON member"):
+                runner._load_pool_index(index, root)
+
     def test_pool_index_rejects_path_escape(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "security"
