@@ -992,6 +992,68 @@
             "tools/repo/check_tracked_secrets.sh",
             "tools/repo/test_tracked_secrets.py"
           ]
+        },
+        {
+          "localCommit": "02396d926aeaf96a8b35ca85d18c3bdbdd1d678d",
+          "owner": "services/runtime",
+          "consumer": "Runtime cache retention measurement must treat an entry/queued directory deleted concurrently between scandir and stat as no retained bytes, but permissions and other I/O faults remain incomplete (never green). The modern owner contract also covers queued-directory races absent in the original commit.",
+          "remoteWitness": "Protected services/runtime/scripts/ordivon-runtime-cache has FileNotFoundError guards for scanned entries and queued directories; the owner tests/test_cache_vanishing_entry.py has all four negative and positive race examples. Native python3 -m unittest discover -s services/runtime/scripts/tests -p test_cache_vanishing_entry.py: 4/4 PASS on d375287686b7; producer and test blobs have evolved, not whole-commit equivalence.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "dec3223590bc5dc616fc32adb91412d90583a428",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "dec3223590bc5dc616fc32adb91412d90583a428",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "EVOLVED_PRODUCTION_AND_STRONGER_NATIVE_CDC",
+            "consumerStanding": "CURRENT_COMPONENT_CONSUMED_WITH_EXPLICIT_SCOPE",
+            "branchDeletionAllowed": false
+          },
+          "changedPaths": [
+            "services/runtime/scripts/ordivon-runtime-cache",
+            "services/runtime/scripts/tests/test_cache_vanishing_entry.py"
+          ]
+        },
+        {
+          "localCommit": "02cc68566c0c467641bc9b2f3e483705a18209b4",
+          "owner": "platform/workstation",
+          "consumer": "Cloudflare provider manifest and frozen pnpm importer lock consume identical current Wrangler 4.152.0, TypeScript 7.0.2, and @types/node 26.6.5 pin identities; do not replay the historical whole package manifest because engines.node and other consumer settings have since evolved.",
+          "remoteWitness": "Historical and current provider package.json devDependencies agree on wrangler=4.152.0, typescript=7.0.2 and @types/node=26.6.5, all matching the actual importers root specifiers in the current two-document pnpm-lock.yaml. This is an offline source/lock selection check, NOT a Cloudflare provider CI, deployment, or whole-blob proof.",
+          "evidenceScope": "EXACT_OWNER_LOCKED_COMPONENTS_NO_LIVE_PROVIDER",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "dec3223590bc5dc616fc32adb91412d90583a428",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "dec3223590bc5dc616fc32adb91412d90583a428",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "PARTIAL_TIP_LOCK_COMPONENT_IDENTITY",
+            "consumerStanding": "CURRENT_COMPONENT_CONSUMED_WITH_EXPLICIT_SCOPE",
+            "branchDeletionAllowed": false
+          },
+          "changedPaths": [
+            "platform/workstation/providers/cloudflare/package.json",
+            "platform/workstation/providers/cloudflare/pnpm-lock.yaml"
+          ]
+        },
+        {
+          "localCommit": "70732958bee4737b3c269c4239eb7c334726a7a5",
+          "owner": "platform/workstation",
+          "consumer": "The workstation Nix flake consumes Home Manager release-26.05 at rev 24f8f8e786f87d6a818e1746cb2389bf922afdab with exact narHash; the remote lock replaces an older nixpkgs source. Preserve the selected Home Manager component but never cherry-pick the older entire historical flake.lock.",
+          "remoteWitness": "Historical and protected current Home Manager nodes match exact rev and narHash. Historical nixpkgs rev d58a46e3bc02d91ebe04667f8397752a749c0024 lastModified 1789009968, protected nixpkgs rev cd4ea8d57de16f4810bc5f14207bac45fbf19f67 lastModified 1792503283; source identity comparison only; native Nix build not claimed.",
+          "evidenceScope": "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF",
+          "disposition": "SKIP_OLDER_PIN",
+          "evaluatedRemoteMain": "dec3223590bc5dc616fc32adb91412d90583a428",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "dec3223590bc5dc616fc32adb91412d90583a428",
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "tipRelation": "PARTIAL_TIP_HM_COMPONENT_IDENTITY_NEWER_NIXPKGS",
+            "consumerStanding": "CURRENT_COMPONENT_CONSUMED_WITH_EXPLICIT_SCOPE",
+            "branchDeletionAllowed": false
+          },
+          "changedPaths": [
+            "platform/workstation/workstation/nix/flake.lock"
+          ]
         }
       ],
       "consumerBlockedSelections": [

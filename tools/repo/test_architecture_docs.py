@@ -860,6 +860,7 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             "EXACT_EXECUTABLE_BLOB_WITH_NONWINDOWS_HOLD_ONLY",
             "EXACT_GIT_BLOB_AND_NATIVE_CONSUMER_PASS",
             "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC",
+            "EXACT_OWNER_LOCKED_COMPONENTS_NO_LIVE_PROVIDER",
         }
         if item["evidenceScope"] == "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC":
             assert item["disposition"] == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
@@ -870,6 +871,10 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             assert item["evaluatedRemoteMain"] == "a56afcf30aafd8d5bcd0f41adb950504f5724267"
         if item["localCommit"].startswith(("82c8fa2924", "84baec0ea1", "7a96b238fb", "7c2fa8c4d2")):
             assert item["evaluatedRemoteMain"] == "41a1073703343aad61c3ffacac34edfb91019800"
+        if item["evidenceScope"] == "EXACT_OWNER_LOCKED_COMPONENTS_NO_LIVE_PROVIDER":
+            assert item["disposition"] == "SKIP_DUPLICATE_CHERRY_PICK"
+            assert item["sourceQualification"]["branchDeletionAllowed"] is False
+            assert "NOT a Cloudflare provider CI" in item["remoteWitness"]
         if item["evidenceScope"] == "CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT":
             assert item["disposition"] == "SKIP_UNCONSUMED_PERMISSION"
         if item["localCommit"].startswith(("af6f3f48f1", "8ac2e7f814")):
