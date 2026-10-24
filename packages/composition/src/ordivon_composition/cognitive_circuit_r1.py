@@ -71,42 +71,6 @@ def _unique_index(rows: list[dict[str, Any]], label: str) -> dict[str, dict[str,
     return result
 
 
-def _check_dag(stages: dict[str, dict[str, Any]]) -> list[str]:
-    """Return an exact deterministic legal order using Python's graph kernel."""
-    known = set(stages)
-    for stage_id, stage in stages.items():
-        unknown = sorted(set(stage["dependsOn"]) - known)
-        if unknown:
-            raise CircuitContractError(f"stage {stage_id} depends on unknown stages: {unknown}")
-        if stage_id in stage["dependsOn"]:
-            raise CircuitContractError(f"stage {stage_id} cannot depend on itself")
-
-    # Sorted keys and predecessor sets make the native Kahn-based order
-    # independent of manifest/per-stage insertion order without a second
-    # bespoke traversal or scheduling algorithm.
-    graph = {
-        stage_id: tuple(sorted(set(stages[stage_id]["dependsOn"]))) for stage_id in sorted(stages)
-    }
-    sorter = TopologicalSorter(graph)
-    try:
-        sorter.prepare()
-    except CycleError as exc:
-        raise CircuitContractError(f"stage dependency cycle includes {exc.args[1]}") from exc
-
-    # The published stageOrder is digest-bearing: retain the prior smallest-
-    # ready-first normalization, not graphlib.static_order's ready *batches*.
-    ready = list(sorter.get_ready())
-    heapify(ready)
-    order: list[str] = []
-    while ready:
-        stage_id = heappop(ready)
-        order.append(stage_id)
-        sorter.done(stage_id)
-        for released in sorter.get_ready():
-            heappush(ready, released)
-    return order
-
-
 def validate_manifest(value: dict[str, Any]) -> None:
     _validate_schema(value, MANIFEST_SCHEMA, "cognitive circuit manifest")
 
@@ -117,7 +81,7 @@ def validate_manifest(value: dict[str, Any]) -> None:
     gates = _unique_index(value["gateRequirements"], "gate requirement")
     del edges  # uniqueness is the only direct edge-index property needed below.
 
-    _check_dag(stages)
+    _topological_order(value["stages"])
 
     method_ids = set(methods)
     capability_ids = set(capabilities)
@@ -198,7 +162,7 @@ def compile_manifest(value: dict[str, Any]) -> dict[str, Any]:
         "objectiveRef": value["objectiveRef"],
         "methodBindingIds": sorted(item["id"] for item in value["methodBindings"]),
         "capabilityBindingIds": sorted(item["id"] for item in value["capabilityBindings"]),
-        "stageOrder": _check_dag(_unique_index(value["stages"], "stage")),
+        "stageOrder": _topological_order(value["stages"]),
         "requiredGateIds": required_gate_ids,
         "unresolvedAssumptions": sorted(value["unresolvedAssumptions"]),
         "authorityBoundary": (
@@ -208,6 +172,38 @@ def compile_manifest(value: dict[str, Any]) -> dict[str, Any]:
     }
     compiled["compiledDigest"] = canonical_digest(compiled)
     return compiled
+
+
+def _topological_order(rows: list[dict[str, Any]]) -> list[str]:
+    """Native graphlib DAG proof with stable, lexically prioritized ready nodes."""
+    stages = {row["id"]: row for row in rows}
+    known = set(stages)
+    sorter = TopologicalSorter()
+    for stage_id in sorted(stages):
+        dependencies = stages[stage_id]["dependsOn"]
+        unknown = sorted(set(dependencies) - known)
+        if unknown:
+            raise CircuitContractError(f"stage {stage_id} depends on unknown stages: {unknown}")
+        if stage_id in dependencies:
+            raise CircuitContractError(f"stage {stage_id} cannot depend on itself")
+        sorter.add(stage_id, *sorted(dependencies))
+    try:
+        sorter.prepare()
+    except CycleError as exc:
+        raise CircuitContractError(f"stage dependency cycle includes {exc.args[1][0]}") from exc
+
+    # A priority heap retains the accepted source-independent ordering of
+    # ready nodes; graphlib owns cycle detection and dependency resolution.
+    ready = list(sorter.get_ready())
+    heapify(ready)
+    order: list[str] = []
+    while ready:
+        stage_id = heappop(ready)
+        order.append(stage_id)
+        sorter.done(stage_id)
+        for newly_ready in sorter.get_ready():
+            heappush(ready, newly_ready)
+    return order
 
 
 def validate_gate_result(

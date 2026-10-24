@@ -86,6 +86,21 @@ def test_added_cycle_and_unknown_dependency_fail_closed(seed: int):
         compile_manifest(unknown)
 
 
+def test_ready_successor_precedes_unrelated_late_root() -> None:
+    """Canonical topological priority must survive replacing the DAG engine."""
+    manifest = _manifest_for_seed(0)
+    manifest["stages"] = [
+        {**manifest["stages"][0], "id": "stage:z", "dependsOn": []},
+        {**manifest["stages"][1], "id": "stage:a", "dependsOn": []},
+        {**manifest["stages"][2], "id": "stage:b", "dependsOn": ["stage:a"]},
+    ]
+    assert compile_manifest(manifest)["stageOrder"] == [
+        "stage:a",
+        "stage:b",
+        "stage:z",
+    ]
+
+
 def test_deep_lego_dependency_chain_uses_mature_nonrecursive_graph_kernel() -> None:
     """A valid bounded task graph must not inherit Python's call-stack limit."""
     manifest = valid_manifest()
@@ -116,32 +131,3 @@ def test_deep_lego_dependency_chain_uses_mature_nonrecursive_graph_kernel() -> N
     assert len(result["stageOrder"]) == count
     assert result["stageOrder"][0] == f"stage:{count - 1:05}"
     assert result["stageOrder"][-1] == "stage:00000"
-
-
-def test_existing_circuit_lexicographic_ready_order_is_preserved() -> None:
-    """A canonical graph order is digest-bearing, not just any legal topo order."""
-    manifest = valid_manifest()
-    manifest["stages"] = [
-        {
-            "id": f"stage:{node}",
-            "ownerId": "research",
-            "responsibility": "Deterministic composition operator.",
-            "dependsOn": predecessors,
-            "methodBindings": [],
-            "capabilityBindings": [],
-            "inputs": [],
-            "outputs": [],
-        }
-        for node, predecessors in [
-            ("a", []),
-            ("b", ["stage:a"]),
-            ("c", []),
-        ]
-    ]
-    manifest["edges"] = []
-    manifest["gateRequirements"] = []
-    assert compile_manifest(manifest)["stageOrder"] == [
-        "stage:a",
-        "stage:b",
-        "stage:c",
-    ]

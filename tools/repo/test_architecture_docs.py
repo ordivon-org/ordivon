@@ -1824,3 +1824,50 @@ def test_opa_port_required_without_native_consumer_is_rejected() -> None:
     selected["evidenceScope"] = "EXACT_GIT_BLOBS"
     with pytest.raises(module.ArchitectureDocsError, match="requires native Owner acceptance"):
         module.validate_formal_issue_census(negative, plans)
+
+
+@pytest.mark.parametrize(
+    ("owner", "cycle_a", "cycle_b"),
+    [
+        ("services/runtime/planning/lego-plan-r1.json", "R00", "R01"),
+        ("services/harness/planning/lego-plan-r1.json", "H01", "H02"),
+        ("platform/network/planning/lego-plan-r1.json", "N01", "N02"),
+        ("platform/security/planning/lego-plan-r1.json", "S01", "S02"),
+    ],
+)
+def test_formal_lego21_registered_owner_graph_rejects_cycle(
+    owner: str, cycle_a: str, cycle_b: str
+) -> None:
+    census, plans = formal_issue_inputs()
+    nodes = {node["id"]: node for node in plans[owner]["nodes"]}
+    nodes[cycle_a]["dependencies"] = [cycle_b]
+    nodes[cycle_b]["dependencies"] = [cycle_a]
+    with pytest.raises(module.ArchitectureDocsError, match="cyclic LEGO dependencies"):
+        module.validate_formal_issue_census(census, plans)
+
+
+@pytest.mark.parametrize(
+    ("mutation", "reason"),
+    [
+        ("dangling", "unknown LEGO dependency"),
+        ("duplicate_edge", "duplicate LEGO dependency"),
+        ("duplicate_node", "duplicate LEGO node identity"),
+        ("untyped_dependencies", "untyped LEGO dependencies"),
+    ],
+)
+def test_formal_lego21_runtime_dependency_relation_is_typed(
+    mutation: str, reason: str
+) -> None:
+    census, plans = formal_issue_inputs()
+    nodes = plans["services/runtime/planning/lego-plan-r1.json"]["nodes"]
+    node = next(n for n in nodes if n["id"] == "R01")
+    if mutation == "dangling":
+        node["dependencies"] = ["NONEXISTENT"]
+    elif mutation == "duplicate_edge":
+        node["dependencies"] = ["R00", "R00"]
+    elif mutation == "duplicate_node":
+        nodes.append(copy.deepcopy(nodes[0]))
+    else:
+        node["dependencies"] = "R00"
+    with pytest.raises(module.ArchitectureDocsError, match=reason):
+        module.validate_formal_issue_census(census, plans)
