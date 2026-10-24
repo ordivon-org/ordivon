@@ -22,7 +22,8 @@
       "sharedRefs": [],
       "evidence": [
         "source_history_legos.py",
-        "test_source_history_legos.py"
+        "test_source_history_legos.py",
+        "test_architecture_docs.py::test_retired_repository_status_projections_stay_absent"
       ],
       "dependencies": [],
       "mustNotOwn": [
@@ -35,7 +36,8 @@
         "Every represented commit binds immutable left/right SourceCut identities and one canonical natural Owner projection, or the operator fails closed.",
         "Independent merge-result path changes remain visible and consumerQualification is UNKNOWN_REQUIRES_OWNER_CDC without separate Owner contract proof.",
         "The existing native test_source_history_legos.py and repository CI pass on the candidate source cut.",
-        "Identical unique cross-path Git Blob/mode matches are represented without asserting historical rename intent, path consumer equivalence or automatic deletion; duplicates remain ambiguous."
+        "Identical unique cross-path Git Blob/mode matches are represented without asserting historical rename intent, path consumer equivalence or automatic deletion; duplicates remain ambiguous.",
+        "Retired document currentness, one-off first-contact evaluators and historical live-view tools are not source-of-truth; existing architecture checker remains and a negative CDC rejects their reintroduction."
       ],
       "nextAction": "Per-Owner Consumer-Driven Contract qualification of surviving divergent histories; no redundant Git scanner."
     }

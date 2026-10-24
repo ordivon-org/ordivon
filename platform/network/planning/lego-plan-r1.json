@@ -23,14 +23,16 @@
       "sharedRefs": [],
       "evidence": [
         "README.md",
-        "docs/ARCHITECTURE.md"
+        "docs/ARCHITECTURE.md",
+        "tests/test_shared_provider_carrier.py::test_retired_network_capability_router_stays_retired"
       ],
       "dependencies": [],
       "mustNotOwn": [
         "consumer-domain semantics"
       ],
       "acceptance": [
-        "Generic core stays independent of provider/consumer profiles."
+        "Generic core stays independent of provider/consumer profiles.",
+        "Retired custom Network Capability Router remains absent; native sing-box consumer policy and systemd dependencies own active routes, and owner tests reject reintroduction."
       ]
     },
     {
