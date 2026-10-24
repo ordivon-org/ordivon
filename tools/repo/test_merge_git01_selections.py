@@ -207,6 +207,20 @@ def test_many_pr_evidence_shards_recompose_with_all_permutations() -> None:
     assert selections(base) == [claim(1)]
 
 
+def test_parallel_pr_arrival_order_does_not_change_published_census_bytes() -> None:
+    """Canonical evidence output should not create artificial PR conflicts."""
+    base = census(claim(7), claim(1))
+    shards = [census(claim(4), claim(2)), census(claim(3)), census(claim(5), claim(4))]
+    renderings = []
+    for order in itertools.permutations(shards):
+        result = merge_many_selections(base, list(order))
+        renderings.append(json.dumps(result, sort_keys=True, separators=(",", ":")))
+        assert [row["localCommit"] for row in selections(result)[:2]] == [
+            claim(7)["localCommit"], claim(1)["localCommit"]
+        ]
+    assert len(set(renderings)) == 1, "Equivalent PR shard orders must not change JSON"
+
+
 def test_many_pr_evidence_blocks_conflicting_or_unrelated_shards() -> None:
     base = census(claim(1))
     with pytest.raises(MergeConflict, match="conflicting proof"):

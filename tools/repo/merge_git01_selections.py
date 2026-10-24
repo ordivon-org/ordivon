@@ -104,6 +104,12 @@ def merge_many_selections(current: dict, candidates: list[dict]) -> dict:
     result = current
     for candidate in candidates:
         result = merge_selections(result, candidate)
+    # Preserve Main's existing evidence order but canonicalize every newly
+    # admitted proof. Otherwise parallel PR arrival order changes JSON bytes
+    # even when the selected consumer graph is exactly equivalent.
+    existing = len(_issue(current)["consumerSelections"])
+    selected = _issue(result)["consumerSelections"]
+    selected[existing:] = sorted(selected[existing:], key=lambda row: row["localCommit"])
     return result
 
 
