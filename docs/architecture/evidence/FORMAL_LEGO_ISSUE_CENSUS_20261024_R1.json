@@ -302,6 +302,60 @@
             "tipRelation": "SAME_BLOB_AND_MODE",
             "consumerStanding": "CURRENT_OWNER_COVERED"
           }
+        },
+        {
+          "localCommit": "e39ee4485eabdf7dd1cab21b4fce1c978971408c",
+          "owner": "tools/repo",
+          "consumer": "Current protected-main publication guard rejects dirty, divergent, stale, missing and other unsafe Git states; two historical scripts are exact matching blobs. Do not replay the old root mise task.",
+          "remoteWitness": "tools/repo/migration/check-publication-main.sh + test-check-publication-main.sh both Git blobs equal protected source; native publication script PASS across sync/ahead/stale/divergent/behind/missing/dirty.",
+          "evidenceScope": "EXACT_GIT_BLOBS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "68e4281b78581746a32c4502726a4c6ce7fe8d46"
+        },
+        {
+          "localCommit": "100aee2ec81b7e77f7da439c100f46e89c010c5c",
+          "owner": "platform/security",
+          "consumer": "Pinned OWASP TM-BOM upstream schema remains an exact Git blob, while current validator consumes the digest and refuses tampering before validator execution; do not replay the historical 969-line carrier.",
+          "remoteWitness": "platform/security/schemas/owasp-threat-model-v1.0.2.schema.json byte-identical; scripts/validate_tmbom.sh digest check + tests/test_tmbom_pinned_schema.py native 2/2 PASS.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "68e4281b78581746a32c4502726a4c6ce7fe8d46"
+        },
+        {
+          "localCommit": "e815f92b0ce92f1c42c78bbb30da721e66269e1c",
+          "owner": "tools/repo",
+          "consumer": "Historical nested Security GitHub workflow no longer exists on protected source. Root CI and Runtime release consume immutable mise-action v5.2.2; native GitHub governance enforces ownership. Do not resurrect redundant nested CI.",
+          "remoteWitness": ".github/workflows/ci.yml + runtime-release.yml immutable mise-action SHA 8418fedb1110381a0d3ba51a7a415d7c1b884550; tools/repo/test_github_governance.py native 3/3 PASS; old Security nested workflow absent.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "68e4281b78581746a32c4502726a4c6ce7fe8d46"
+        },
+        {
+          "localCommit": "d521d142682ca667da5a8d97997b5d1157b132a0",
+          "owner": "platform/security",
+          "consumer": "Historical private Security CI and stale-lock check superseded by root pinned CI and Security owner uv sync --locked followed by --frozen verification. Avoid restoring legacy workflow or weaker pin.",
+          "remoteWitness": "platform/security/mise.toml verify uses uv sync --locked --python 3.15.1 + uv run --frozen, native owner pinned Node/pnpm/uv; root GitHub governance 3/3 PASS; obsolete nested workflow absent.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_OLDER_SOURCECUT",
+          "evaluatedRemoteMain": "68e4281b78581746a32c4502726a4c6ce7fe8d46"
+        },
+        {
+          "localCommit": "392531163cf9ab2b68355d39a5730076b7026536",
+          "owner": "platform/workstation",
+          "consumer": "Old local commit implicitly requires /usr/local/bin/codex-vpn. Protected Home Manager instead consumes exact-version pnpm Codex CLI directly; VPN is not a production launch dependency. Do not restore redundant wrapper or forced egress authority.",
+          "remoteWitness": "platform/workstation/workstation/nix/nix/home.nix tools/bin/codex direct out-of-store symlink to versioned upstream package; tests/test_codex_cli_pnpm_contract.py 3/3 native owner PASS.",
+          "evidenceScope": "CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT",
+          "disposition": "SKIP_UNCONSUMED_PERMISSION",
+          "evaluatedRemoteMain": "68e4281b78581746a32c4502726a4c6ce7fe8d46"
+        },
+        {
+          "localCommit": "9ae3d88bbd4bfae6e72494b4157c76c5edc0a983",
+          "owner": "tools/repo",
+          "consumer": "Cross-cutting repo edits select explicit native owner verification; obsolete calendar-specific exception must not be revived. Existing convergence planner remains narrower than replaying historical logic.",
+          "remoteWitness": "tools/repo/convergence_plan.py::build_plan and test_convergence_plan.py::test_cross_cutting_change_requires_all_owner_verification; native convergence planner 13/13 PASS.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "68e4281b78581746a32c4502726a4c6ce7fe8d46"
         }
       ],
       "formalObligation": "The selected source must be an explicit source cut and each chosen change must preserve owner CDC.",
