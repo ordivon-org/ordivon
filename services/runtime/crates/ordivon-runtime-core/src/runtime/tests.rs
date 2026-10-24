@@ -4090,6 +4090,45 @@ fn workspace_get_distinguishes_opening_revision_from_current_head() {
 }
 
 #[test]
+fn workspace_get_invalid_unborn_head_is_a_typed_revision_failure() {
+    let (_sandbox, runtime, executor) =
+        workspace_fixture("workspace-get-unborn-type", "workspace-get-unborn-type");
+    let workspace = executor.workspace_path("workspace-get-unborn-type");
+    // A known git orphan transition leaves its index and source bytes intact.
+    run_git_command(&workspace, &["switch", "--orphan", "unborn-typed-case"]);
+    fs::write(
+        workspace.join("unique-evidence.txt"),
+        "preserve this source\n",
+    )
+    .unwrap();
+    run_git_command(&workspace, &["add", "unique-evidence.txt"]);
+
+    let observed = runtime
+        .get_workspace(&RuntimeWorkspaceGetRequest {
+            schema_version: RUNTIME_SCHEMA_VERSION,
+            workspace_id: "workspace-get-unborn-type".to_string(),
+        })
+        .expect_err("a Git orphan HEAD must not be presented as an open healthy source");
+    assert_eq!(observed.code, RuntimeErrorCode::RevisionNotFound);
+    assert!(workspace.join("unique-evidence.txt").is_file());
+
+    let listed = runtime
+        .list_workspaces(&RuntimeWorkspaceListRequest {
+            schema_version: RUNTIME_SCHEMA_VERSION,
+            limit: 20,
+            cursor: None,
+            include_source_state_digest: false,
+        })
+        .unwrap();
+    assert!(listed.workspaces.is_empty());
+    assert!(listed.issues.iter().any(|issue| {
+        issue.workspace_id == "workspace-get-unborn-type"
+            && issue.stage == RuntimeWorkspaceIssueStage::HeadRevision
+            && issue.code == "REVISION_NOT_FOUND"
+    }));
+}
+
+#[test]
 fn workspace_list_accepts_lexical_alias_for_same_physical_store_root() {
     let (sandbox, _runtime, executor) =
         workspace_fixture("workspace-list-path-alias", "workspace-list-path-alias");

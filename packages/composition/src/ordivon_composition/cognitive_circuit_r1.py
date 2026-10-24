@@ -29,20 +29,42 @@ class CircuitContractError(ValueError):
 
 
 def _canonical_bytes(value: Any) -> bytes:
-    return json.dumps(
-        value,
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=False,
-    ).encode("utf-8")
+    try:
+        return json.dumps(
+            value,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+            allow_nan=False,
+        ).encode("utf-8")
+    except ValueError as exc:
+        raise CircuitContractError("non-JSON numeric value in LEGO evidence digest") from exc
 
 
 def canonical_digest(value: Any) -> str:
     return "sha256:" + hashlib.sha256(_canonical_bytes(value)).hexdigest()
 
 
+def _single_valued_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """RFC 8259 object binding: reject ambiguous repeated keys at any depth."""
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise CircuitContractError(f"duplicate JSON key: {key}")
+        result[key] = value
+    return result
+
+
+def _reject_non_json_constant(value: str) -> None:
+    raise CircuitContractError(f"invalid JSON constant: {value}")
+
+
 def _load_json(path: Path) -> dict[str, Any]:
-    value = json.loads(path.read_text(encoding="utf-8"))
+    value = json.loads(
+        path.read_text(encoding="utf-8"),
+        object_pairs_hook=_single_valued_json_object,
+        parse_constant=_reject_non_json_constant,
+    )
     if not isinstance(value, dict):
         raise CircuitContractError(f"{path}: root must be an object")
     return value

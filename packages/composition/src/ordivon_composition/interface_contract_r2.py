@@ -16,19 +16,12 @@ from typing import Any
 
 from jsonschema import Draft202012Validator
 
-from .cognitive_circuit_r1 import CircuitContractError, canonical_digest
+from .cognitive_circuit_r1 import CircuitContractError, _load_json, canonical_digest
 
 ROOT = Path(__file__).resolve().parent
 OBSERVATION_SCHEMA = ROOT / "schemas" / "interface-contract-observation-v1.schema.json"
 EXPECTATION_SCHEMA = ROOT / "schemas" / "interface-contract-expectation-v1.schema.json"
 RESULT_SCHEMA = ROOT / "schemas" / "interface-compatibility-result-v1.schema.json"
-
-
-def _load_json(path: Path) -> dict[str, Any]:
-    value = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(value, dict):
-        raise CircuitContractError(f"{path}: root must be an object")
-    return value
 
 
 def _schema(path: Path) -> dict[str, Any]:
