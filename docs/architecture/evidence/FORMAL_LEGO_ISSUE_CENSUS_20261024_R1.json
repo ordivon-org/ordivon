@@ -377,24 +377,24 @@
       "id": "CI-03",
       "problemClass": "CI_EXECUTION",
       "naturalOwner": "tools/repo",
-      "standing": "CONFIRMED_FAIL_PENDING_OWNER_PR",
-      "observation": "New open PR #231 fails root-verification for owner-universe-bound convergence plans; this observation does not establish the exact failing assertion.",
-      "evidence": "gh pr view/checks 231; GitHub Actions run 40028281009; files: tools/repo/affected_owners.py, tools/repo/convergence_plan.py, tools/repo/test_convergence_plan.py",
-      "decision": "Fix in existing PR #231; do not fork duplicate owner-universe checker.",
+      "standing": "HISTORICAL_FAIL_CLAIM_REFUTED_OWNER_VERIFIED",
+      "observation": "PR #231 historical CI failure claim is unsupported by its cited run 40028281009: GitHub records completed SUCCESS for root-verification and every reported job step. Owner-universe correction was merged; no current failing assertion reproduced.",
+      "evidence": "GitHub Actions run 40028281009: status=completed, conclusion=success, head=4c5901c77dfc3a540c0ecb849575370286a42e43. PR #231 merged at 2026-10-23T22:28:22Z; source 6dd6364205f33994ffe0d065f93e91286d22beeb: PYTHONPATH=tools/repo python3 -m unittest tools/repo/test_convergence_plan.py -v => 11 passed, 0 failed.",
+      "decision": "Do not remediate a non-reproduced CI failure or fork a verifier. Existing tools/repo convergence owner-universe contract and negative test remain the consumers. New failures require a failing run and exact failing step before classification.",
       "formalObligation": "ConvergenceOwnerSet(plan) subset of DeclaredOwnerUniverse(sourceCut), with strict unknown-owner rejection.",
       "consumers": "Repository CI, affected-owner selection, merge queue",
       "representation": {
-        "primary": "causal",
+        "primary": "type",
         "supporting": [
-          "state-machine"
+          "graph"
         ],
-        "methodSkill": ".agents/skills/causal-intervention/SKILL.md",
-        "requiredWitness": "Replay the exact failed Runtime concurrent-admission test from run 40028281009 separately from dependency download failures.",
-        "selectionReason": "Observed CI failure must be attributed by intervention rather than inferred from PR title."
+        "methodSkill": null,
+        "requiredWitness": "Existing tools/repo/test_convergence_plan.py::test_dependency_graph_rejects_unknown_owner and full owner regression 11/11 PASS; GitHub Actions run 40028281009 conclusion SUCCESS.",
+        "selectionReason": "Canonical owner membership is a type constraint over a declared dependency graph. The cited run has no failed step, so a causal Runtime-admission attribution is unsupported."
       },
       "registration": {
         "state": "UNREGISTERED",
-        "reason": "Owner-local LEGO slice and consumer acceptance are not yet evidenced; census observation is not registration."
+        "reason": "Existing tools/repo owner contract and regression are verified for this source cut; no new LEGO slice or registry is warranted for an unsupported historical CI failure claim."
       }
     },
     {
