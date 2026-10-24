@@ -88,6 +88,83 @@ class SourceHistoryLegosTests(unittest.TestCase):
             self.assertEqual(merges[0]["patchRelation"], "NOT_APPLICABLE")
             self.assertEqual(len(merges[0]["parents"]), 2)
 
+    def test_newline_paths_and_header_like_names_keep_exact_git_identity(self):
+        # Git paths are byte strings: line splitting or C-quoting changes owner identity.
+        with tempfile.TemporaryDirectory(prefix="ordivon-history-weird-path-") as temp:
+            root = Path(temp)
+            git(root, "init", "-q", "-b", "main")
+            git(root, "config", "user.name", "Ordivon Test")
+            git(root, "config", "user.email", "test@example.invalid")
+            manifest = root / "tools/repo/owners.toml"
+            manifest.parent.mkdir(parents=True)
+            manifest.write_text(
+                '[[owners]]\nname = "runtime"\nroot = "services/runtime/"\n'
+            )
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "base")
+            git(root, "branch", "remote-main")
+            expected = [
+                "services/runtime/part\nbroken.txt",
+                "services/runtime/\nleading.txt",
+                "__ORDIVON_HISTORY_RECORD__< " + "0" * 40,
+            ]
+            for name in expected:
+                target = root / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text("x\n")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "unusual paths")
+            left = git(root, "rev-parse", "HEAD")
+            git(root, "switch", "-q", "remote-main")
+            (root / "remote-only").write_text("remote")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "independent remote")
+            result = history(root, "main", "remote-main")
+            record = next(row for row in result["commits"] if row["commit"] == left)
+            self.assertEqual(sorted(record["changedPaths"]), sorted(expected))
+            self.assertEqual(record["owners"], ["ROOT_UNOWNED", "runtime"])
+            self.assertEqual(
+                record["pathRelations"], {"OPPOSITE_TIP_ABSENT": len(expected)}
+            )
+
+    def test_owner_type_universe_is_bound_to_right_source_not_worktree(self):
+        with tempfile.TemporaryDirectory(prefix="ordivon-history-owners-") as temp:
+            root = Path(temp)
+            git(root, "init", "-q", "-b", "main")
+            git(root, "config", "user.name", "Ordivon Test")
+            git(root, "config", "user.email", "test@example.invalid")
+            manifest = root / "tools/repo/owners.toml"
+            manifest.parent.mkdir(parents=True)
+            manifest.write_text(
+                '[[owners]]\nname = "runtime"\nroot = "services/runtime/"\n'
+            )
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "base")
+            git(root, "branch", "remote-main")
+            runtime_file = root / "services/runtime/contract.txt"
+            runtime_file.parent.mkdir(parents=True)
+            runtime_file.write_text("local change\n")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "local runtime owner")
+            left = git(root, "rev-parse", "HEAD")
+            git(root, "switch", "-q", "remote-main")
+            (root / "remote.txt").write_text("remote change\n")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "remote")
+            remote = git(root, "rev-parse", "HEAD")
+            before = history(root, "main", "remote-main")
+            # Workspace materialization may be dirty or checked out at a
+            # different ref. Its manifest must not change historical evidence.
+            manifest.write_text(
+                '[[owners]]\nname = "fake"\nroot = "services/runtime/"\n'
+            )
+            after = history(root, "main", "remote-main")
+            first = next(x for x in before["commits"] if x["commit"] == left)
+            second = next(x for x in after["commits"] if x["commit"] == left)
+            self.assertEqual(first["owners"], ["runtime"])
+            self.assertEqual(second["owners"], ["runtime"])
+            self.assertEqual(after["ownerMappingSourceCut"], remote)
+
     def test_invalid_reference_fails_not_reported_as_empty(self):
         with (
             tempfile.TemporaryDirectory(prefix="ordivon-history-invalid-") as temp,

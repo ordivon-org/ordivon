@@ -11,9 +11,8 @@ import argparse
 import collections
 import json
 import subprocess
-from pathlib import Path
-
 import tomllib
+from pathlib import Path
 
 HEADER = "__ORDIVON_HISTORY_RECORD__"
 
@@ -27,9 +26,10 @@ def git(repo: Path, *args: str) -> str:
     )
 
 
-def owners(repo: Path) -> list[tuple[str, str]]:
-    with (repo / "tools/repo/owners.toml").open("rb") as stream:
-        manifest = tomllib.load(stream)
+def owners(repo: Path, canonical_revision: str) -> list[tuple[str, str]]:
+    # Natural-owner attribution is part of the exact protected-source cut,
+    # not a mutable worktree checkout (which may be on another Git branch).
+    manifest = tomllib.loads(git(repo, "show", canonical_revision + ":tools/repo/owners.toml"))
     return [(item["root"], item["name"]) for item in manifest["owners"]]
 
 
@@ -72,35 +72,63 @@ def history(repo: Path, left: str, right: str) -> dict:
             "changedPaths": [],
         }
 
-    lines = git(
-        repo, "log", "--left-right", "--cherry-mark", "--no-merges",
-        "--no-renames", "--format=" + HEADER + "%m %H", "--name-only", spec,
+    # Git pathnames are NUL-delimited byte strings, not lines. Leading NUL
+    # records and an explicit NUL after each header produce a structural
+    # boundary that a valid Git filename cannot counterfeit (filenames cannot
+    # contain NUL); paths may contain newlines or look exactly like HEADER.
+    raw_paths = subprocess.check_output(
+        [
+            "git", "-C", str(repo), "log", "-z", "--left-right",
+            "--cherry-mark", "--no-merges", "--no-renames",
+            "--format=%x00" + HEADER + "%m %H%x00",
+            "--name-only", spec,
+        ],
+        stderr=subprocess.PIPE,
     )
-    current: dict | None = None
-    for line in lines.splitlines():
-        if line.startswith(HEADER):
-            marker, oid = line[len(HEADER):].split()
-            if oid not in all_commits or all_commits[oid]["kind"] != "patch":
-                raise ValueError("invalid patch marker reference")
-            record = all_commits[oid]
-            if marker == "=":
-                record["patchRelation"] = "PATCH_ID_EQUIVALENT"
-            elif (
-                marker == "<" and record["side"] == "local"
-                or marker == ">" and record["side"] == "remote"
-            ):
-                record["patchRelation"] = "PATCH_DISTINCT_UNQUALIFIED"
-            else:
-                raise ValueError("unexpected cherry mark")
-            current = record
-        elif line and current is not None:
-            current["changedPaths"].append(line)
+    if raw_paths and (not raw_paths.startswith(b"\x00") or not raw_paths.endswith(b"\x00")):
+        raise ValueError("malformed NUL-delimited Git history")
+    fields = raw_paths.split(b"\x00") if raw_paths else []
+    pos = 0
+    while pos < len(fields) - 1:
+        if fields[pos] != b"" or pos + 2 >= len(fields):
+            raise ValueError("malformed Git commit record boundary")
+        header = fields[pos + 1].decode("ascii")
+        if not header.startswith(HEADER) or fields[pos + 2] != b"":
+            raise ValueError("missing Git commit record delimiter")
+        marker, oid = header[len(HEADER):].split()
+        if oid not in all_commits or all_commits[oid]["kind"] != "patch":
+            raise ValueError("invalid patch marker reference")
+        record = all_commits[oid]
+        if marker == "=":
+            record["patchRelation"] = "PATCH_ID_EQUIVALENT"
+        elif (
+            marker == "<" and record["side"] == "local"
+            or marker == ">" and record["side"] == "remote"
+        ):
+            record["patchRelation"] = "PATCH_DISTINCT_UNQUALIFIED"
+        else:
+            raise ValueError("unexpected cherry mark")
+        pos += 3
+        first_path = True
+        while pos < len(fields) and fields[pos] != b"":
+            path = fields[pos]
+            # Git inserts one LF between the header and the first name.
+            # Remove *only* that separator; a genuine leading LF survives.
+            if first_path:
+                if not path.startswith(b"\n"):
+                    raise ValueError("missing Git path separator")
+                path = path[1:]
+                first_path = False
+            if not path:
+                raise ValueError("empty Git path")
+            record["changedPaths"].append(path.decode("utf-8", errors="surrogateescape"))
+            pos += 1
 
     missing = [r["commit"] for r in all_commits.values() if r["patchRelation"] == "UNCLASSIFIED"]
     if missing:
         raise ValueError("missing exact patch classification: " + ",".join(missing[:5]))
 
-    mappings = owners(repo)
+    mappings = owners(repo, right_oid)
     left_tree, right_tree = current_tree(repo, left_oid), current_tree(repo, right_oid)
     counts: collections.Counter[str] = collections.Counter()
     owner_counts: collections.Counter[str] = collections.Counter()
@@ -140,6 +168,7 @@ def history(repo: Path, left: str, right: str) -> dict:
         "truthRole": "derived-readonly-no-retirement-authority",
         "sourceCut": {"local": left_oid, "remote": right_oid, "commonAncestor": base},
         "counts": {"local": expected_left, "remote": expected_right},
+        "ownerMappingSourceCut": right_oid,
         "patchClasses": dict(counts),
         "ownerMembership": dict(owner_counts),
         "warning": "Patch equivalence and tip blob equality do not prove consumer behavior or safe retirement.",
