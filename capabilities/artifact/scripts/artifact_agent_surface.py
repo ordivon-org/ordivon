@@ -16,6 +16,8 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from jsonschema import Draft202012Validator
+
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -277,6 +279,19 @@ def tool_definitions() -> list[dict[str, Any]]:
 
 
 def execute_surface_action(name: str, arguments: Mapping[str, Any]) -> dict[str, Any]:
+    # The published schema is the only validation authority for this surface.
+    tool = next((row for row in tool_definitions() if row["name"] == name), None)
+    if tool is None:
+        raise ValueError(f"unsupported Artifact Agent surface action: {name}")
+    if not isinstance(arguments, Mapping):
+        raise ValueError(f"invalid arguments for {name}: expected an object")
+    instance = dict(arguments)
+    error = next(iter(Draft202012Validator(tool["inputSchema"]).iter_errors(instance)), None)
+    if error is not None:
+        location = "/".join(str(x) for x in error.absolute_path) or "<root>"
+        raise ValueError(f"invalid arguments for {name} at {location}: {error.message}")
+    arguments = instance
+
     if name == "artifact_family_status":
         family_id = arguments.get("familyId")
         return family_status(str(family_id) if family_id is not None else None)
