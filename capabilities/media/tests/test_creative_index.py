@@ -32,6 +32,21 @@ class CreativeIndexTests(unittest.TestCase):
             deep = {"source": [deep]}
         self.assertEqual(_first_string(deep, "profileId"), "retained-owner")
 
+    def test_owner_metadata_cycle_fails_closed_but_shared_child_remains_visible(self) -> None:
+        from itertools import islice
+
+        cyclic = {"profileId": "loop"}
+        cyclic["source"] = [cyclic]
+        # Bound the historical implementation so this red test cannot hang.
+        with self.assertRaisesRegex(ValueError, "cycle"):
+            list(islice(_walk_values(cyclic, "profileId"), 3))
+
+        shared = {"profileId": "shared"}
+        self.assertEqual(
+            list(_walk_values({"source": [shared, shared]}, "profileId")),
+            ["shared", "shared"],
+        )
+
     def test_media_only_projection_contains_equipment_capabilities_and_works(self) -> None:
         index = build_creative_index(ROOT)
         nodes = {row["id"]: row for row in index["nodes"]}
