@@ -1968,7 +1968,7 @@ def test_r21_single_six_role_contract_enforced_at_repository_admission() -> None
     ("relative", "target", "predecessor"),
     [
         ("services/runtime/planning/lego-plan-r1.json", "R00", "R01"),
-        ("services/harness/planning/lego-plan-r1.json", "H05", "H01"),
+        ("services/harness/planning/lego-plan-r1.json", "H01", "H02"),
         ("platform/network/planning/lego-plan-r1.json", "N05", "N02"),
     ],
 )
@@ -1980,6 +1980,12 @@ def test_r21_repository_always_checks_core_owner_prerequisites(
     node = next(row for row in plan["nodes"] if row["id"] == target)
     # Close the existing typed predecessor path into an invalid cycle.
     node["dependencies"].append(predecessor)
+    if relative == "services/harness/planning/lego-plan-r1.json":
+        # H05 had no admitted alternate executor, so its speculative dependency
+        # is retired. Falsify the exact same owner graph verifier by synthesizing
+        # two opposite prerequisites between remaining, real H01/H02 nodes.
+        partner = next(row for row in plan["nodes"] if row["id"] == predecessor)
+        partner["dependencies"].append(target)
     loader = module._load_json
 
     def mutated_owner(path: Path):
