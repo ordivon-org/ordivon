@@ -2177,3 +2177,20 @@ def test_r21_skipped_python_test_class_cannot_witness_owner_acceptance(
         path.write_text(source, encoding="utf-8")
     with pytest.raises(module.ArchitectureDocsError, match="disabled consumer witness"):
         module.validate_r21_lego_vocabulary(document, root=tmp_path)
+
+
+def test_runtime_storage_retention_problem_is_registered_without_deletion_authority() -> None:
+    """Disk pressure is a typed owner problem, not evidence to delete recovery."""
+    census, plans = formal_issue_inputs()
+    issue = next(item for item in census["issues"] if item["id"] == "RECOVERY-01")
+    assert issue["naturalOwner"] == "services/runtime"
+    assert issue["problemClass"] == "RECOVERY_SNAPSHOT_RETENTION_UNPROVEN"
+    assert issue["registration"] == {
+        "state": "LINKED",
+        "ownerPlan": "services/runtime/planning/lego-plan-r1.json",
+        "slice": "RW1",
+    }
+    assert "UNKNOWN" in issue["standing"]
+    assert "no deletion authority" in issue["formalObligation"]
+    assert "held" in issue["formalObligation"].lower()
+    module.validate_formal_issue_census(census, plans)
