@@ -30,6 +30,7 @@ def _proofs(issue: dict) -> dict[str, dict]:
     if not isinstance(rows, list):
         raise MergeConflict("consumerSelections must be an array")
     claims: dict[str, dict] = {}
+    historical_members: set[str] = set()
     for row in rows:
         if not isinstance(row, dict):
             raise MergeConflict("claim must be an object")
@@ -39,8 +40,29 @@ def _proofs(issue: dict) -> dict[str, dict]:
         if sha in claims:
             raise MergeConflict(f"duplicate localCommit {sha}")
         for field in ("owner", "consumer", "remoteWitness", "evidenceScope", "disposition"):
-            if not isinstance(row.get(field), str) or not row[field]:
+            if not isinstance(row.get(field), str) or not row[field].strip():
                 raise MergeConflict(f"{sha}: missing {field}")
+        if "sourceQualification" in row:
+            q = row["sourceQualification"]
+            if not isinstance(q, dict):
+                raise MergeConflict(f"{sha}: invalid sourceQualification")
+            if q.get("branchDeletionAllowed") is not False:
+                raise MergeConflict(f"{sha}: branchDeletionAllowed must be false")
+        if "historicalCohort" in row:
+            cohort = row["historicalCohort"]
+            if (
+                not isinstance(cohort, list)
+                or not cohort
+                or any(
+                    not isinstance(member, str)
+                    or re.fullmatch(r"[0-9a-f]{40}", member) is None
+                    for member in cohort
+                )
+                or len(cohort) != len(set(cohort))
+                or not historical_members.isdisjoint(cohort)
+            ):
+                raise MergeConflict(f"{sha}: invalid historicalCohort overlap or identity")
+            historical_members.update(cohort)
         claims[sha] = row
     return claims
 
@@ -58,6 +80,9 @@ def merge_selections(current: dict, candidate: dict) -> dict:
     result = copy.deepcopy(current)
     rows = _issue(result)["consumerSelections"]
     rows.extend(copy.deepcopy(proposed[sha]) for sha in sorted(proposed.keys() - current_claims.keys()))
+    # Cross-branch cohorts can overlap even when each input is valid alone.
+    # Validate the *joined* evidence before returning a canonical candidate.
+    _proofs(_issue(result))
     return result
 
 
