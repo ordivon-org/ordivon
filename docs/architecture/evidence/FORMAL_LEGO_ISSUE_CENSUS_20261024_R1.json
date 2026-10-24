@@ -887,6 +887,33 @@
           ]
         },
         {
+          "localCommit": "bf1b282ff64fe94a796eaea96366d9e25a243b6f",
+          "historicalCohort": [
+            "591672cd8637ba4fdc68bc3f31ce5a90918cdb71",
+            "bf1b282ff64fe94a796eaea96366d9e25a243b6f"
+          ],
+          "owner": "services/harness",
+          "consumer": "Historical HUX-40 milestone/baseline planning responsibility: prior non-merge commit 591672cd changed two planning files, then bf1b282ff retired all four HUX documents. Both exact Main tips have no HUX plan files, active Harness source/test runner or tracked source references to those plan identities. Current Harness natural Owner has its own lego-plan-r1; absent HUX plans are not executable consumer inputs.",
+          "remoteWitness": "Source local main 13704d0cac9e113b395f2d5a21b5bf8119aa04a5, protected main 78895b2291830be75fa472f3621fc24ebd2e67f3: Git path/mode trees omit the four HUX plan files at both tips; git grep on services/harness and tools/repo finds no references to HUX_EXECUTION_PLAN_R1, hux-execution-plan-r1, HUX_CURRENT_BASELINE_R1, hux-current-baseline-r1. Native tools/repo/test_architecture_docs.py checks negative current source-bound HUX paths; no external automation use or live harness execution is claimed.",
+          "evidenceScope": "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN",
+          "disposition": "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
+          "sourceQualification": {
+            "localMain": "13704d0cac9e113b395f2d5a21b5bf8119aa04a5",
+            "protectedMain": "78895b2291830be75fa472f3621fc24ebd2e67f3",
+            "tipRelation": "BOTH_TIPS_ABSENT",
+            "consumerStanding": "NO_IN_TREE_CONSUMER_EXTERNAL_UNKNOWN",
+            "branchDeletionAllowed": false,
+            "patchRelation": "PATCH_DISTINCT_UNQUALIFIED",
+            "inferenceBoundary": "historical planning file absence only, no external plan consumer proof"
+          },
+          "retiredPaths": [
+            "services/harness/planning/HUX_CURRENT_BASELINE_R1.md",
+            "services/harness/planning/HUX_EXECUTION_PLAN_R1.md",
+            "services/harness/planning/hux-current-baseline-r1.json",
+            "services/harness/planning/hux-execution-plan-r1.json"
+          ]
+        },
+        {
           "localCommit": "ee1f938010915f348ce96413a06d7407d5434efe",
           "pairedRevertCommit": "82239de6a1731b1f54f59166b06e95f9003fcd15",
           "owner": "services/harness",
@@ -1061,6 +1088,24 @@
             "verificationSourceCut": "7bf5f1d89da65e5ce8420910065d8c822cc6c4e3",
             "verificationTransport": "CARGO_TEST_DIRECT_NO_LIVE_DEPLOYMENT"
           }
+        },
+        {
+          "localCommit": "f66021ba318ed8003bb688030b1ba86f5ce5d01f",
+          "owner": "services/harness",
+          "consumer": "Cold-start Harness Owner environment doctor must receive both exact mise.toml and pyproject.toml manifests and verify owner-selected locked Python, Ruff and pytest versions without ambient PATH authority.",
+          "remoteWitness": "Existing services/harness/scripts/owner-environment passes both manifests into the doctor and reads declared pins. Actual locked/offline Owner native tests/test_owner_environment_doctor_contract.py executed through mise uv run --group test --group dev: 7/7 PASS, including real materialized doctor and drift negative tests; historical intermediate script/test must not be cherry-picked.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "4b630ed360901d44ae2bea725fc53722225b460a"
+        },
+        {
+          "localCommit": "c259144afab1a331ef90fee2f47d2328c7d4124e",
+          "owner": "tools/repo",
+          "consumer": "Runtime tagged release must use exact-SHA upstream actions/upload-artifact v7.0.2, with provenance evidence and retention fail-closed; preserve the current GitHub governance pin and do not reintroduce older workflow revisions.",
+          "remoteWitness": ".github/workflows/runtime-release.yml currently uses actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 (v7.0.2); Owner native test_github_governance.py using root mise uv --with pyyaml 6.0.3: 4/4 PASS, plus repo:ci full governance validation PASS.",
+          "evidenceScope": "NATIVE_CONSUMER_PASS",
+          "disposition": "SKIP_DUPLICATE_CHERRY_PICK",
+          "evaluatedRemoteMain": "4b630ed360901d44ae2bea725fc53722225b460a"
         }
       ],
       "consumerBlockedSelections": [
