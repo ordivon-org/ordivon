@@ -8,6 +8,8 @@ import copy
 import json
 import re
 import sys
+import os
+import tempfile
 from pathlib import Path
 
 
@@ -91,16 +93,31 @@ def merge_selections(current: dict, candidate: dict) -> dict:
     return result
 
 
+def merge_many_selections(current: dict, candidates: list[dict]) -> dict:
+    """Join independently verified Owner shards without constructing a second registry.
+
+    Every candidate must agree on the frozen local-Main identity. Reject an
+    incompatible proof or overlapping cohort before returning any output.
+    """
+    if not candidates:
+        raise MergeConflict("at least one candidate is required")
+    result = current
+    for candidate in candidates:
+        result = merge_selections(result, candidate)
+    return result
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--current", required=True, type=Path)
-    parser.add_argument("--candidate", required=True, type=Path)
+    parser.add_argument("--candidate", required=True, action="append", type=Path,
+                        help="repeat for independent Owner/PR evidence candidates")
     parser.add_argument("--output", type=Path, help="explicit output; omit to print JSON")
     args = parser.parse_args()
     try:
-        merged = merge_selections(
+        merged = merge_many_selections(
             json.loads(args.current.read_text(encoding="utf-8")),
-            json.loads(args.candidate.read_text(encoding="utf-8")),
+            [json.loads(path.read_text(encoding="utf-8")) for path in args.candidate],
         )
     except (MergeConflict, OSError, json.JSONDecodeError) as exc:
         parser.error(str(exc))
@@ -108,7 +125,21 @@ def main() -> int:
     if args.output is None:
         sys.stdout.write(value)
     else:
-        args.output.write_text(value, encoding="utf-8")
+        # Crash-safe publication: never leave a partially written owner census.
+        temp_path: Path | None = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w", encoding="utf-8", dir=args.output.parent,
+                prefix=f".{args.output.name}.", suffix=".tmp", delete=False,
+            ) as handle:
+                temp_path = Path(handle.name)
+                handle.write(value)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temp_path, args.output)
+        finally:
+            if temp_path is not None:
+                temp_path.unlink(missing_ok=True)
         print(f"GIT-01 union: {len(_issue(merged)['consumerSelections'])} proofs", file=sys.stderr)
     return 0
 
