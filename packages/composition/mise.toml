@@ -58,6 +58,18 @@ fi
     exit 1
   fi
   echo "TLC post-admission Network degradation non-vacuity: PASS"
+  # Fail closed if the model no longer exposes the rejected foreign-witness
+  # state: a vacuous safety PASS would otherwise hide a missing adversarial path.
+  if java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config Lego21OwnerBoundary.foreign-evidence-probe.cfg Lego21OwnerBoundary.tla >"$probe_output" 2>&1; then
+    echo "TLC foreign consumer evidence non-vacuity probe unexpectedly passed" >&2
+    exit 1
+  fi
+  if ! grep -Fq "Error: Invariant ForeignEvidenceIsUnreachable is violated." "$probe_output"; then
+    cat "$probe_output" >&2
+    echo "TLC did not confirm foreign consumer evidence is reachable" >&2
+    exit 1
+  fi
+  echo "TLC foreign consumer evidence non-vacuity: PASS"
   rm -f "$probe_output"
   trap - EXIT
 )
