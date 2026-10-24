@@ -1708,3 +1708,40 @@ def test_git01_workstation_cloudflare_gateway_tunnel_historical_correction() -> 
     gateway = source.split('resource "cloudflare_dns_record" "gateway_mcp" {', 1)[1].split("\n}", 1)[0]
     assert 'content = "${local.native_tunnel_id}.cfargotunnel.com"' in gateway
     module.validate_formal_issue_census(census, plans)
+
+@pytest.mark.parametrize(
+    "fault",
+    [
+        "missing_revert",
+        "bad_revert_sha",
+        "same_commit",
+        "missing_before_tree",
+        "unequal_trees",
+        "wrong_patch_relation",
+    ],
+)
+def test_git01_cancelled_pair_requires_equal_typed_full_trees(fault: str) -> None:
+    """A cancelled pair must carry an internally consistent full-tree witness."""
+    census, plans = formal_issue_inputs()
+    selections = next(
+        issue["consumerSelections"] for issue in census["issues"]
+        if issue["id"] == "GIT-01"
+    )
+    witness = next(
+        row for row in selections if row["disposition"] == "SKIP_CANCELLED_HISTORY_PAIR"
+    )
+    source = witness["sourceQualification"]
+    if fault == "missing_revert":
+        witness.pop("pairedRevertCommit")
+    elif fault == "bad_revert_sha":
+        witness["pairedRevertCommit"] = "not-an-object-id"
+    elif fault == "same_commit":
+        witness["pairedRevertCommit"] = witness["localCommit"]
+    elif fault == "missing_before_tree":
+        witness.pop("beforeTreeOid")
+    elif fault == "unequal_trees":
+        witness["afterTreeOid"] = "0" * 40
+    elif fault == "wrong_patch_relation":
+        source["patchRelation"] = "UNQUALIFIED"
+    with pytest.raises(module.ArchitectureDocsError, match="cancelled pair tree proof"):
+        module.validate_formal_issue_census(census, plans)

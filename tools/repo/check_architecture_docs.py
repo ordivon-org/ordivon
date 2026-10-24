@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import json
 import re
+import tomllib
 from pathlib import Path
 from typing import Any
-
-import tomllib
 
 ROOT = Path(__file__).resolve().parents[2]
 CURRENT = ROOT / "docs" / "architecture" / "CURRENT_ARCHITECTURE.md"
@@ -413,6 +412,25 @@ def validate_formal_issue_census(
                 remote_oid = source_proof.get("protectedMain")
                 if not isinstance(remote_oid, str) or not oid_pattern.fullmatch(remote_oid):
                     raise ArchitectureDocsError("invalid historical Git protected SourceCut")
+            # A claim of full-tree direct-child cancellation must be coherent.
+            # This validates stated OIDs, not their reachability in the Git DAG.
+            if entry["disposition"] == "SKIP_CANCELLED_HISTORY_PAIR":
+                revert = entry.get("pairedRevertCommit")
+                before = entry.get("beforeTreeOid")
+                after = entry.get("afterTreeOid")
+                if (
+                    not isinstance(revert, str)
+                    or oid_pattern.fullmatch(revert) is None
+                    or revert == oid
+                    or not isinstance(before, str)
+                    or oid_pattern.fullmatch(before) is None
+                    or not isinstance(after, str)
+                    or oid_pattern.fullmatch(after) is None
+                    or before != after
+                    or source_proof is None
+                    or source_proof.get("patchRelation") != "INVERSE_DIRECT_CHILD"
+                ):
+                    raise ArchitectureDocsError("invalid GIT-01 cancelled pair tree proof")
             if ("branchDeletionAllowed" in entry
                 and entry["branchDeletionAllowed"] is not False
             ):
