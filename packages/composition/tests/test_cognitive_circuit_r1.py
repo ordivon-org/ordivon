@@ -257,6 +257,73 @@ def test_cross_owner_gate_cannot_collapse_to_one_owner() -> None:
         validate_manifest(manifest)
 
 
+def test_lego21_local_gate_proof_never_becomes_whole_graph_proof() -> None:
+    """Scoped Gate evidence and complete edge coverage are distinct claims.
+
+    A legitimate research/artifact consumer can verify one named boundary,
+    while another author-declared Owner edge is outside that evidence scope.
+    Requiring evidence for all edges without a caller contract breaks that
+    consumer. If the second Gate is explicitly required it must be verified.
+    """
+    manifest = valid_manifest()
+    manifest["stages"].append(
+        {
+            "id": "stage:security",
+            "ownerId": "security",
+            "responsibility": "Produce independent scoped security evidence.",
+            "dependsOn": [],
+            "methodBindings": [],
+            "capabilityBindings": [],
+            "inputs": ["objective"],
+            "outputs": ["authority-proof"],
+        }
+    )
+    consumer = manifest["stages"][1]
+    consumer["inputs"].append("authority-proof")
+    consumer["dependsOn"].append("stage:security")
+    manifest["edges"].append(
+        {
+            "id": "edge:security-artifact",
+            "from": {"stageId": "stage:security", "port": "authority-proof"},
+            "to": {"stageId": "stage:artifact", "port": "authority-proof"},
+            "contractRef": "contract:security-authority-proof",
+        }
+    )
+    local = evaluate_gate_results(manifest, [gate_result(manifest)])
+    assert local["mechanicalClosure"] is True
+    assert local["standing"] == "COMPOSITION_GATES_SATISFIED"
+    assert local["requiredGateIds"] == ["gate:claim-evidence-binding"]
+    assert local["domainAcceptanceEstablished"] is False
+
+    obligation = copy.deepcopy(manifest["gateRequirements"][0])
+    obligation.update(
+        {
+            "id": "gate:security-artifact",
+            "producerStageId": "stage:security",
+            "consumerStageId": "stage:artifact",
+            "assumption": "Artifact receives the scoped authorization evidence.",
+            "guarantee": "Security supplies authorization evidence.",
+            "verifierOwnerId": "security",
+            "supportScope": "security/artifact data seam only",
+        }
+    )
+    manifest["gateRequirements"].append(obligation)
+    now_required = evaluate_gate_results(manifest, [gate_result(manifest)])
+    assert now_required["mechanicalClosure"] is False
+    assert now_required["missingGateIds"] == ["gate:security-artifact"]
+
+    first = gate_result(manifest)
+    second = dict(first)
+    second.update(
+        gateId=obligation["id"],
+        verifierOwnerId=obligation["verifierOwnerId"],
+        supportScope=obligation["supportScope"],
+    )
+    both = evaluate_gate_results(manifest, [first, second])
+    assert both["mechanicalClosure"] is True
+    assert both["domainAcceptanceEstablished"] is False
+
+
 def test_satisfied_gate_closes_only_mechanical_composition() -> None:
     manifest = valid_manifest()
     projection = evaluate_gate_results(manifest, [gate_result(manifest)])

@@ -152,8 +152,21 @@ The gate evaluator uses a non-vacuity constraint:
         AND (there are no unresolved assumptions)
 
 Zero required gates produces COMPOSITION_GATES_OPEN, not a successful composition
-proof. UNKNOWN, missing evidence and UNSATISFIED remain distinct. Neither compilation
-nor Boolean closure proves domain acceptance or grants execution permission.
+proof. The quantification is over **caller-authored required Gates**, not over
+every cross-owner edge in the broader stage graph. Formally, let G_req be the
+declared required-gate set and Sat the source-bound SATISFIED verifier results.
+Local mechanical closure requires G_req nonempty, G_req subseteq Sat, and zero
+unresolved assumptions. It does **not** assert that the set of all graph edges
+is contained in G_req; such a whole-graph claim requires its own explicit
+coverage/refinement obligation and real consumer evidence.
+
+An added data edge does not silently enlarge the previous verifier's scope.
+If its seam is needed for this particular task's acceptance, the caller must
+declare another required Gate and discharge that Gate before closure. This
+preserves bounded research/artifact and other owner-local consumers rather
+than inventing globally mandatory verification. UNKNOWN, missing evidence
+and UNSATISFIED remain distinct. Neither compilation nor Boolean closure
+proves domain acceptance or grants execution permission.
 
 For a task where text-only assumptions/guarantees are insufficient, use a
 consumer-selected external mathematical kernel: Pacti for assume-guarantee
