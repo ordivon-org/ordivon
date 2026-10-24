@@ -860,8 +860,14 @@ def test_git_source_comparison_consumes_local_commit_as_owner_lego() -> None:
             "CURRENT_TOOLCHAIN_SUPERSEDES_OLD_LOCK_AND_NATIVE_TEST_PASS",
             "EXACT_EXECUTABLE_BLOB_WITH_NONWINDOWS_HOLD_ONLY",
             "EXACT_GIT_BLOB_AND_NATIVE_CONSUMER_PASS",
+            "EXACT_OWNER_LOCKED_COMPONENTS_NO_LIVE_PROVIDER",
             "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC",
         }
+        if item["evidenceScope"] == "EXACT_OWNER_LOCKED_COMPONENTS_NO_LIVE_PROVIDER":
+            assert item["disposition"] == "SKIP_DUPLICATE_CHERRY_PICK"
+            assert item["sourceQualification"]["tipRelation"] == "PARTIAL_TIP_LOCK_COMPONENT_IDENTITY"
+            assert item["sourceQualification"]["branchDeletionAllowed"] is False
+            assert item["owner"] == "platform/workstation"
         if item["evidenceScope"] == "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC":
             assert item["disposition"] == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
             assert item["sourceQualification"]["branchDeletionAllowed"] is False
@@ -1350,4 +1356,101 @@ def test_git01_retired_standalone_catalog_checker_has_next_owner_consumer() -> N
     assert not (ROOT / "tools/catalog/check_authority_catalog.py").exists()
     assert (ROOT / "meta/next/scripts/check_authority_catalog_r1.py").is_file()
     assert (ROOT / "meta/next/tests/test_authority_catalog.py").is_file()
+    module.validate_formal_issue_census(census, plans)
+
+def test_nonmerge_runtime_formal_history_preserves_stronger_current_acceptance() -> None:
+    """Selected historical nonmerge effects must retain their proof scope."""
+    census, plans = formal_issue_inputs()
+    issue = next(item for item in census["issues"] if item["id"] == "GIT-01")
+    selections = {entry["localCommit"]: entry for entry in issue["consumerSelections"]}
+    accepted = selections["e66aaa1eabcb21b02b58e139b687162dac0e930f"]
+    assert accepted["owner"] == "services/runtime"
+    assert accepted["disposition"] == "SKIP_OLDER_SOURCECUT"
+    assert accepted["evidenceScope"] == "NATIVE_CONSUMER_PASS"
+    assert (ROOT / "services/runtime/formal/RuntimeDispatchR1.trace-r1.acceptance.json").is_file()
+    for entry in (accepted,):
+        proof = entry["sourceQualification"]
+        assert proof["localMain"] == issue["consumerSourceCut"]["localMain"]
+        assert len(proof["protectedMain"]) == 40
+        assert proof["branchDeletionAllowed"] is False
+        assert all(not (ROOT / path).exists() for path in entry["retiredSourcePaths"])
+    module.validate_formal_issue_census(census, plans)
+
+def test_git01_environment_preflight_history_reuses_current_native_consumers() -> None:
+    """Three local non-merge commits have current fail-closed owner consumers."""
+    census, plans = formal_issue_inputs()
+    issue = next(x for x in census["issues"] if x["id"] == "GIT-01")
+    selected = {x["localCommit"][:12]: x for x in issue["consumerSelections"]}
+    for sha in ("abbeace5d271", "96a5d01aa5dc", "492efb2d28a3"):
+        row = selected[sha]
+        assert row["owner"] == "tools/repo"
+        assert row["evidenceScope"] == "NATIVE_CONSUMER_PASS"
+        assert row["disposition"] == "SKIP_DUPLICATE_CHERRY_PICK"
+        assert row["sourceQualification"]["patchRelation"] == "PATCH_DISTINCT_UNQUALIFIED"
+        assert row["sourceQualification"]["branchDeletionAllowed"] is False
+        assert "tools/repo/workspace-ready" in row["changedPaths"]
+        assert "tools/repo/test_workspace_ready.py" in row["changedPaths"]
+        assert row["consumer"] and row["remoteWitness"]
+    module.validate_formal_issue_census(census, plans)
+
+def test_git01_historical_agent_patch_shim_is_not_restored_without_consumer() -> None:
+    """An absent historical provider cannot justify reinstalling a parallel Runtime patch API."""
+    census, plans = formal_issue_inputs()
+    issue = next(item for item in census["issues"] if item["id"] == "GIT-01")
+    rows = {row["localCommit"]: row for row in issue["consumerSelections"]}
+    historical = rows["40479e09d849401f5cfd4297fbe43db0372fe011"]
+    assert historical["owner"] == "ROOT_UNOWNED"
+    assert historical["disposition"] == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
+    assert historical["evidenceScope"] == "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN"
+    assert historical["sourceQualification"]["historicalSourceState"] == "BOTH_TIPS_ABSENT"
+    assert historical["sourceQualification"]["branchDeletionAllowed"] is False
+    assert set(historical["changedPaths"]) == {
+        "apps/agent/tests/test_native_coding_runtime_mcp_port_r1.py",
+        "apps/agent/src/ordivon_agent/native_coding_runtime_mcp_port_r1.py",
+    }
+    assert all(not (ROOT / path).exists() for path in historical["changedPaths"])
+    module.validate_formal_issue_census(census, plans)
+
+def test_host_historical_retirement_snapshot_is_not_a_live_consumer() -> None:
+    """Keep current SWF Owner proof, not the deleted one-off historical receipt."""
+    census, plans = formal_issue_inputs()
+    issue = next(item for item in census["issues"] if item["id"] == "GIT-01")
+    selected = next(
+        item for item in issue["consumerSelections"]
+        if item["localCommit"] == "ce973c944d5835c32d559a856fa55b070968aea5"
+    )
+    assert selected["owner"] == "services/host"
+    assert selected["disposition"] == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"
+    proof = selected["sourceQualification"]
+    assert proof["pathFinalRelation"] == "TWO_IDENTICAL_ONE_BOTH_ABSENT"
+    assert proof["branchDeletionAllowed"] is False
+    assert proof["liveDatabaseReverified"] is False
+    assert proof["archiveRestoreReverified"] is False
+    assert len(proof["identicalTipModeBlobs"]) == 2
+    assert not (ROOT / proof["retiredHistoricalReceiptPath"]).exists()
+    host = json.loads((ROOT / "services/host/planning/social-work-fabric-r1.json").read_text())
+    legacy = host["legacyRetirement"]
+    assert legacy["standing"] == "LIVE_SCHEMA9_RETIRED_PASS"
+    assert legacy["archive"]["restoreVerification"] == "PASS"
+    assert legacy["liveAcceptance"]["legacyActiveTableCount"] == 0
+    assert legacy["liveAcceptance"]["legacyActiveModuleCount"] == 0
+    assert legacy["liveAcceptance"]["legacyMcpToolCount"] == 0
+    module.validate_formal_issue_census(census, plans)
+
+def test_historical_node_types_pin_has_both_current_owner_consumers() -> None:
+    """One historical patch may have multiple natural consumers without a new registry."""
+    census, plans = formal_issue_inputs()
+    git_issue = next(x for x in census["issues"] if x["id"] == "GIT-01")
+    commit = "557e436d19b79fb6983c5c8fdc4e3965d0e25ddd"
+    matches = [x for x in git_issue["consumerSelections"] if x["localCommit"] == commit]
+    assert len(matches) == 1
+    row = matches[0]
+    assert row["disposition"] == "SKIP_DUPLICATE_CHERRY_PICK"
+    assert row["evidenceScope"] == "NATIVE_CONSUMER_PASS"
+    assert row["sourceQualification"]["consumerOwners"] == ["apps/web", "domains/game"]
+    assert row["sourceQualification"]["branchDeletionAllowed"] is False
+    assert row["evaluatedRemoteMain"] == "d375287686b7ad7f04b1f5ef181bff846ac9cc94"
+    for manifest in ("apps/web/package.json", "domains/game/package.json"):
+        data = json.loads((ROOT / manifest).read_text(encoding="utf-8"))
+        assert data["devDependencies"]["@types/node"] == "26.6.5"
     module.validate_formal_issue_census(census, plans)
