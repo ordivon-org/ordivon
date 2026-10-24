@@ -75,10 +75,17 @@ def _build_workspace_exec_request(
         for key, item in environment.items()
     ):
         raise ValueError("Runtime environment must contain trimmed string keys and values")
-    if timeout_ms <= 0:
-        raise ValueError("Runtime timeout must be positive")
-    if stdout_limit_bytes <= 0 or stderr_limit_bytes <= 0:
-        raise ValueError("Runtime output limits must be positive")
+    # Runtime protocol integer identity is not Python numeric comparison:
+    # bool is a subclass of int, and floats can compare equal to integers.
+    if type(timeout_ms) is not int or timeout_ms <= 0:
+        raise ValueError("Runtime timeout must be a positive integer")
+    if (
+        type(stdout_limit_bytes) is not int
+        or type(stderr_limit_bytes) is not int
+        or stdout_limit_bytes <= 0
+        or stderr_limit_bytes <= 0
+    ):
+        raise ValueError("Runtime output limits must be positive integers")
     if wait_ms < 0 or wait_ms > 30_000:
         raise ValueError("Runtime wait must be between 0 and 30000 milliseconds")
     if not 0 <= stdout_tail_bytes <= 65_536 or not 0 <= stderr_tail_bytes <= 65_536:
