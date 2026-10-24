@@ -142,6 +142,9 @@ def test_real_consumer_readiness_fails_closed_for_upstream_faults(tmp_path, faul
 
 def test_existing_production_components_and_authority_remain_unchanged():
     script = SCRIPT.read_text()
+    assert "grep -q" not in script
+    assert "grep -F '127.0.0.1:19481' >/dev/null" in script
+    assert "grep -F '10.252.247.1:19482' >/dev/null" in script
     assert "%{http_connect}" in script
     assert "%{time_appconnect}" in script
     assert "--noproxy" in script

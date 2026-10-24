@@ -62,6 +62,36 @@ def test_live_consumer_drift_refuses_overwrite(tmp_path, which):
     assert drifted.read_bytes() == before
 
 
+
+@pytest.mark.parametrize("area", ["source", "live"])
+@pytest.mark.parametrize("name", [
+    "prometheus/consumer.rules.yml",
+    "blackbox/scoped-consumer.yaml",
+])
+def test_unlisted_monitoring_configs_are_not_accepted(tmp_path, area, name):
+    owner = _load()
+    source, live = tmp_path / "source", tmp_path / "live"
+    _files(source)
+    _files(live)
+    extra = (source if area == "source" else live) / name
+    extra.parent.mkdir(parents=True, exist_ok=True)
+    extra.write_text("groups: []\n")
+    with pytest.raises(ValueError, match="unmanaged monitoring"):
+        owner.verify(source, live)
+    assert extra.read_text() == "groups: []\n"
+
+
+def test_first_install_does_not_ignore_preexisting_monitoring_rules(tmp_path):
+    owner = _load()
+    source, live = tmp_path / "source", tmp_path / "live"
+    _files(source)
+    extra = live / "prometheus/consumer.rules.yml"
+    extra.parent.mkdir(parents=True, exist_ok=True)
+    extra.write_text("groups: []\n")
+    with pytest.raises(ValueError, match="unmanaged monitoring"):
+        owner.verify(source, live)
+
+
 def test_core_install_checks_drift_before_any_live_writes():
     taskfile = (ROOT / "Taskfile.yml").read_text()
     core = taskfile.split("  core:install:", 1)[1].split("  core:verify:", 1)[0]

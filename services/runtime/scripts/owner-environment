@@ -66,18 +66,30 @@ doctor() {
   [[ "$rust" == rustc\ 1.99.1* ]] || { echo "unexpected rustc: $rust" >&2; exit 1; }
   [[ "$cargo" == cargo\ 1.99.1* ]] || { echo "unexpected cargo: $cargo" >&2; exit 1; }
   [[ -x "$python_bin" ]] || { echo "Runtime tooling environment is not materialized: $python_bin" >&2; exit 1; }
-  "$python_bin" - "$python_version" <<'PY'
+  "$python_bin" - "$python_version" "$tooling_lock" <<'PY'
 import importlib.metadata as md
+import re
 import sys
+from pathlib import Path
 try:
     required = tuple(int(part) for part in sys.argv[1].split("."))
 except ValueError:
     raise SystemExit(f"invalid Runtime Python requirement: {sys.argv[1]!r}")
 if len(required) != 3 or sys.version_info[:3] != required:
     raise SystemExit(f"Runtime tooling profile expects Python {sys.argv[1]}, got {sys.version.split()[0]}")
-if md.version('ruff') != '0.15.17':
-    raise SystemExit(f"unexpected Ruff version: {md.version('ruff')}")
-print(f'owner environment doctor: valid profile=test rust=1.99.1 python={sys.argv[1]} ruff=0.15.17')
+# The hash-locked owner artifact is authoritative, not a second version table
+# embedded in the execution script. Ambiguous/unpinned lock bytes fail closed.
+locks = re.findall(r"(?m)^ruff==([0-9]+(?:\.[0-9]+){2})\s*\\$", Path(sys.argv[2]).read_text(encoding="utf-8"))
+if len(locks) != 1:
+    raise SystemExit("Runtime Ruff hash lock must pin exactly one version")
+expected_ruff = locks[0]
+try:
+    actual_ruff = md.version("ruff")
+except md.PackageNotFoundError:
+    raise SystemExit("Runtime Ruff locked package is not installed")
+if actual_ruff != expected_ruff:
+    raise SystemExit(f"unexpected Ruff version: installed={actual_ruff} lock={expected_ruff}")
+print(f"owner environment doctor: valid profile=test rust=1.99.1 python={sys.argv[1]} ruff={expected_ruff}")
 PY
 }
 materialize_runtime_inspect() {
