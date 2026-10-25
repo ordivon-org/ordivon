@@ -50,6 +50,25 @@ class CampaignCensusFreshnessTests(unittest.TestCase):
             self.assertEqual(row["effectGeneration"], 7)
             self.assertEqual(row["updatedAtMs"], 123456789)
 
+    def test_census_reads_exact_filename_with_uri_delimiters(self):
+        spec = self._spec()
+        request = compile_campaign(spec)["A01"]
+        for name in ("campaign?ledger.sqlite", "campaign#ledger.sqlite", "campaign%23ledger.sqlite"):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as d:
+                ledger = Path(d) / name
+                db = sqlite3.connect(ledger)
+                try:
+                    db.execute(
+                        "CREATE TABLE requests (request_id TEXT PRIMARY KEY, request_digest TEXT, standing TEXT, provider_coordinate TEXT, effect_generation INTEGER, updated_at_ms INTEGER)"
+                    )
+                    db.execute("INSERT INTO requests VALUES (?,?,?,?,?,?)", (request.request_id, request.request_digest, "bound", None, 9, 345))
+                    db.commit()
+                finally:
+                    db.close()
+                census = campaign_census(spec, ledger)
+                self.assertEqual(census["materializations"][0]["effectGeneration"], 9)
+                self.assertEqual(census["materializations"][0]["updatedAtMs"], 345)
+
     def test_unrecorded_occurrence_has_no_fabricated_freshness(self):
         spec = self._spec()
         with tempfile.TemporaryDirectory() as d:
