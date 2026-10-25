@@ -1425,6 +1425,25 @@ class BrowserlessAutomationService:
         }
 
     def _turn_effect_row(self, turn_request_id: str) -> dict | None:
+        pg_dsn = os.environ.get("ORDIVON_TURN_EFFECT_POSTGRES_DSN")
+        if pg_dsn:
+            try:
+                from postgres_turn_effects import PostgresTurnEffects
+            except ModuleNotFoundError:
+                from scripts.postgres_turn_effects import PostgresTurnEffects
+
+            record = PostgresTurnEffects(pg_dsn).get(turn_request_id)
+            if record is None:
+                return None
+            return {
+                "promptDigest": record["prompt_digest"],
+                "targetCoordinate": record["target_coordinate"],
+                "state": record["state"],
+                "receipt": (
+                    json.loads(record["receipt_json"]) if record["receipt_json"] else None
+                ),
+                "updatedAtMs": record["updated_at_ms"],
+            }
         path = self.config.turn_ledger
         if not path.exists():
             return None

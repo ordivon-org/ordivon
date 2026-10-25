@@ -1125,12 +1125,12 @@ class PlaywrightRuntimeContractTests(unittest.TestCase):
         self.assertTrue(manifest.is_file())
         self.assertEqual(
             manifest.read_text().splitlines(),
-            ["playwright==1.63.0", "rfc8785==0.1.4"],
+            ["playwright==1.63.0", "rfc8785==0.1.4", "psycopg[binary]==3.3.6"],
         )
 
     def test_release_exposes_playwright_runtime_gate(self):
         self.assertTrue(hasattr(r, "require_playwright_runtime_importable"))
         self.assertEqual(
             r.PLAYWRIGHT_RUNTIME_VERSIONS,
-            {"playwright": "1.63.0", "rfc8785": "0.1.4"},
+            {"playwright": "1.63.0", "rfc8785": "0.1.4", "psycopg": "3.3.6"},
         )

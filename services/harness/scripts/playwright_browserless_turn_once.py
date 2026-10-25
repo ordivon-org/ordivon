@@ -176,14 +176,30 @@ def main() -> int:
     prompt_digest = sha256_bytes(raw)
     target_resource = canonical_chatgpt_resource(a.target_resource)
     target_url = target_resource
-    a.ledger.parent.mkdir(parents=True, exist_ok=True)
-    db = sqlite3.connect(a.ledger)
+    pg_effects = None
+    pg_dsn = os.environ.get("ORDIVON_TURN_EFFECT_POSTGRES_DSN")
+    if pg_dsn:
+        from postgres_turn_effects import PostgresTurnEffects
+
+        pg_effects = PostgresTurnEffects(pg_dsn)
+        db = None
+    else:
+        a.ledger.parent.mkdir(parents=True, exist_ok=True)
+        db = sqlite3.connect(a.ledger)
     try:
-        ensure_schema(db)
-        row = db.execute(
-            "SELECT prompt_digest,target_coordinate,state,receipt_json FROM turn_effects WHERE turn_request_id=?",
-            (a.turn_request_id,),
-        ).fetchone()
+        if pg_effects is not None:
+            prior = pg_effects.get(a.turn_request_id)
+            row = (
+                prior["prompt_digest"], prior["target_coordinate"], prior["state"],
+                prior["receipt_json"],
+            ) if prior is not None else None
+        else:
+            assert db is not None
+            ensure_schema(db)
+            row = db.execute(
+                "SELECT prompt_digest,target_coordinate,state,receipt_json FROM turn_effects WHERE turn_request_id=?",
+                (a.turn_request_id,),
+            ).fetchone()
         if row is not None:
             if row[0] != prompt_digest or canonical_chatgpt_resource(row[1]) != target_resource:
                 raise SystemExit("turn request identity conflict")
@@ -298,37 +314,51 @@ def main() -> int:
                     )
 
                 now = int(time.time() * 1000)
-                db.execute("BEGIN IMMEDIATE")
-                existing = db.execute(
-                    "SELECT prompt_digest,target_coordinate,state,receipt_json FROM turn_effects WHERE turn_request_id=?",
-                    (a.turn_request_id,),
-                ).fetchone()
-                if existing is not None:
-                    db.rollback()
-                    composer.fill("")
-                    if (
-                        existing[0] != prompt_digest
-                        or canonical_chatgpt_resource(existing[1]) != target_resource
-                    ):
-                        raise SystemExit("turn request identity conflict after claim race")
-                    print(
-                        json.dumps(
-                            {
-                                "schemaVersion": 1,
-                                "kind": "ordivon.browserless-turn-race",
-                                "turnRequestId": a.turn_request_id,
-                                "standing": existing[2],
-                                "safeToResend": False,
-                            },
-                            sort_keys=True,
-                        )
+                if pg_effects is not None:
+                    admission = pg_effects.claim_before_send(
+                        a.turn_request_id, prompt_digest, target_resource, now_ms=now
                     )
-                    return 0
-                db.execute(
-                    "INSERT INTO turn_effects(turn_request_id,prompt_digest,target_coordinate,state,receipt_json,updated_at_ms) VALUES (?,?,?,?,?,?)",
-                    (a.turn_request_id, prompt_digest, target_resource, "UNKNOWN", None, now),
-                )
-                db.commit()
+                    if not admission["admittedToSend"]:
+                        composer.fill("")
+                        print(json.dumps({
+                            "schemaVersion": 1, "kind": "ordivon.browserless-turn-race",
+                            "turnRequestId": a.turn_request_id,
+                            "standing": admission["state"], "safeToResend": False,
+                        }, sort_keys=True))
+                        return 0
+                else:
+                    assert db is not None
+                    db.execute("BEGIN IMMEDIATE")
+                    existing = db.execute(
+                        "SELECT prompt_digest,target_coordinate,state,receipt_json FROM turn_effects WHERE turn_request_id=?",
+                        (a.turn_request_id,),
+                    ).fetchone()
+                    if existing is not None:
+                        db.rollback()
+                        composer.fill("")
+                        if (
+                            existing[0] != prompt_digest
+                            or canonical_chatgpt_resource(existing[1]) != target_resource
+                        ):
+                            raise SystemExit("turn request identity conflict after claim race")
+                        print(
+                            json.dumps(
+                                {
+                                    "schemaVersion": 1,
+                                    "kind": "ordivon.browserless-turn-race",
+                                    "turnRequestId": a.turn_request_id,
+                                    "standing": existing[2],
+                                    "safeToResend": False,
+                                },
+                                sort_keys=True,
+                            )
+                        )
+                        return 0
+                    db.execute(
+                        "INSERT INTO turn_effects(turn_request_id,prompt_digest,target_coordinate,state,receipt_json,updated_at_ms) VALUES (?,?,?,?,?,?)",
+                        (a.turn_request_id, prompt_digest, target_resource, "UNKNOWN", None, now),
+                    )
+                    db.commit()
 
                 send.click()
                 try:
@@ -368,16 +398,23 @@ def main() -> int:
                     if composer_cleared and generation_started and target_still_bound
                     else "UNKNOWN"
                 )
-                db.execute(
-                    "UPDATE turn_effects SET state=?,receipt_json=?,updated_at_ms=? WHERE turn_request_id=?",
-                    (
-                        state,
-                        json.dumps(receipt, sort_keys=True),
-                        int(time.time() * 1000),
-                        a.turn_request_id,
-                    ),
-                )
-                db.commit()
+                if pg_effects is not None:
+                    pg_effects.record_after_send(
+                        a.turn_request_id, prompt_digest, target_resource,
+                        state, receipt, now_ms=int(time.time() * 1000)
+                    )
+                else:
+                    assert db is not None
+                    db.execute(
+                        "UPDATE turn_effects SET state=?,receipt_json=?,updated_at_ms=? WHERE turn_request_id=?",
+                        (
+                            state,
+                            json.dumps(receipt, sort_keys=True),
+                            int(time.time() * 1000),
+                            a.turn_request_id,
+                        ),
+                    )
+                    db.commit()
                 a.receipt_out.parent.mkdir(parents=True, exist_ok=True)
                 a.receipt_out.write_text(
                     json.dumps(receipt, sort_keys=True, indent=2) + "\n", encoding="utf-8"
@@ -400,7 +437,8 @@ def main() -> int:
             finally:
                 browser.close()
     finally:
-        db.close()
+        if db is not None:
+            db.close()
 
 
 if __name__ == "__main__":
