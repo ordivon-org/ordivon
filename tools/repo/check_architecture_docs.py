@@ -152,6 +152,26 @@ OWNER_LEGO_PLANS = (
 )
 
 
+def validate_owner_plan_inventory(root: Path) -> None:
+    """Close the current two-level Owner plan layout under native Repo admission.
+
+    This is source-layout currentness, not a universal LEGO registry:
+    unregistered domains may exist without planning files, while any
+    */*/planning/lego-plan-r1.json declaration must be explicitly admitted.
+    """
+    observed = {
+        path.relative_to(root).as_posix()
+        for path in root.glob("*/*/planning/lego-plan-r1.json")
+    }
+    registered = set(OWNER_LEGO_PLANS)
+    if observed != registered:
+        raise ArchitectureDocsError(
+            "Owner LEGO plan inventory drift: "
+            f"unregistered={sorted(observed - registered)}, "
+            f"missing={sorted(registered - observed)}"
+        )
+
+
 def _validated_owner_lego_edges(
     edges: Any, vertices: set[str],
 ) -> list[tuple[str, str, str]]:
@@ -1083,6 +1103,11 @@ def validate_repository(root: Path = ROOT) -> None:
         raise ArchitectureDocsError("Tempo graceful cold-stop budget drifted")
     if trace_acceptance.get("status") != "ACCEPTED_DEPLOYED_ON_DEMAND":
         raise ArchitectureDocsError("persistent trace backend lacks accepted live evidence")
+
+    # A new owner-local plan must not silently bypass the existing formal
+    # checks simply because no historical issue census or hand-picked test
+    # references it. This only covers the declared two-level source layout.
+    validate_owner_plan_inventory(root)
 
     # Two independent mature graph obligations apply to every registered Owner,
     # whether or not a time-scoped issue census happens to mention its plan.
