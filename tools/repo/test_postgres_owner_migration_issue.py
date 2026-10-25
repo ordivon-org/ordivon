@@ -60,3 +60,23 @@ def test_pg_migration_cannot_claim_verified_owner_registration_from_census_only(
     }
     with pytest.raises(module.ArchitectureDocsError):
         module.validate_formal_issue_census(unsupported, _plans())
+
+
+def test_runtime_pg_historical_detail_is_not_automatically_migration_valuable() -> None:
+    """Native issue evidence cannot promote obsolete detail from counts alone."""
+    row = next(x for x in _read()["issues"] if x["id"] == "DB-PG-RUNTIME-20261026")
+    audit = row["latestRetentionAudit"]
+    assert audit["disposition"] == "NOT_ADMITTED_NO_PHYSICAL_CUTOVER_OR_ROW_RETIREMENT"
+    assert audit["observedCounts"]["jobs"] == audit["observedCounts"]["idempotencyKeys"]
+    assert audit["observedCounts"]["stdoutMetadata"] > 0
+    assert audit["observedCounts"]["stderrMetadata"] > 0
+    assert audit["observedCounts"]["terminalJobsObserved"] < audit["observedCounts"]["jobs"]
+    assert "NOT an atomic" in audit["observationScope"]
+    assert "Terminal(Job) does NOT imply RetireHistory(Job)" in audit["formalObligation"]
+    assert "ReplayIdentityStillUnique" in audit["formalObligation"]
+    assert "ExternalEffectStillNonrepeatable" in audit["formalObligation"]
+    assert "OwnerNativePostgresReadbackEquivalent" in audit["formalObligation"]
+    assert len(audit["requiredNativeCounterexamples"]) >= 4
+    for evidence in audit["consumerSourceFiles"]:
+        assert (ROOT / evidence).is_file(), evidence
+    module.validate_formal_issue_census(_read(), _plans())

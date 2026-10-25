@@ -270,6 +270,43 @@
         ],
         "remainingUnknown": "Windows/WSL source-of-truth registry execution, native PG recovery, checkpoint replay and host principal boundaries not established by model/plan alone.",
         "proofScope": "Source presence and already reported Owner-native tests; not live PostgreSQL writer/consumer cutover."
+      },
+      "latestRetentionAudit": {
+        "observedAt": "2026-10-26T04:09:48+08:00",
+        "codeSourceCut": "a4d7d9e5bce18c8259da1383fc0bbbc76caf92de",
+        "readOnlyDatabaseIdentity": "Linux device 2096, inode 1645036, SQLite WAL mode; no cryptographic snapshot/hash qualification",
+        "sourceSizeBytesAtLastObservation": 5411160064,
+        "observationScope": "Aggregation-only, bounded SQLite mode=ro plus PRAGMA query_only; table counts, job resolution and attempt/recovery states were sampled across different times and are NOT an atomic database snapshot or an installed migration receipt.",
+        "observedCounts": {
+          "jobs": 373747,
+          "attempts": 373747,
+          "idempotencyKeys": 373747,
+          "jobEvents": 2991711,
+          "artifactMetadata": 1676344,
+          "stdoutMetadata": 373450,
+          "stderrMetadata": 373450,
+          "terminalJobsObserved": 373746
+        },
+        "consumerSourceFiles": [
+          "services/runtime/crates/ordivon-runtime-core/src/runtime/registry/admission.rs",
+          "services/runtime/crates/ordivon-runtime-core/src/runtime/registry/recovery.rs",
+          "services/runtime/crates/ordivon-runtime-core/src/runtime/registry/lifecycle.rs"
+        ],
+        "valueClassification": {
+          "CURRENT_EXECUTION_AND_RECOVERY": "Keep and transfer all unresolved/held/recovery-relevant operations with actual Runner and PostgreSQL installed-replay attestation; never infer their number solely from historical Job resolutions.",
+          "REPLAY_IDENTITY_AND_EXTERNAL_EFFECT": "Preserve nonrepeatability of principal+client_request_id+operation_digest and external effect receipts; a compact PostgreSQL tombstone is admissible ONLY after owner-native equivalence proves retries cannot create a second side effect.",
+          "HISTORICAL_OUTPUT_DETAIL": "Terminal stdout/stderr, historical events and redundant artifact metadata are preferential retirement candidates when real current consumers, publication and independent-falsification value are absent; do NOT bulk copy merely because history exists.",
+          "PUBLISHED_OR_INDEPENDENT_EVIDENCE": "Preserve exactly evidence with a verifiable current consumer/verification/recovery requirement, not speculative future usefulness."
+        },
+        "formalObligation": "RetireHistory(row,SourceCut) => ExactSourceIdentity AND NoUnfinishedOrRecoveryConsumer AND NoRequiredCurrentGoalConsumer AND ReplayIdentityStillUnique AND ExternalEffectStillNonrepeatable AND SelectedProofConsumersPreserved AND OwnerNativePostgresReadbackEquivalent AND RollbackBeforePgCommitOrForwardOnlyAfterCommit. Terminal(Job) does NOT imply RetireHistory(Job). Absence of a searched reference does NOT alone prove global consumer absence: a declared bounded consumer closure is required.",
+        "requiredNativeCounterexamples": [
+          "Finished Job has an idempotency key: discarding all identity rows causes duplicate external dispatch on same client_request_id.",
+          "Terminal Job still has a published artifact or independent falsifier: empty output history loses currently consumed evidence.",
+          "Current running/held Attempt with no top-level unresolved Job at another sampling time: resolution statistic cannot authorize deletion.",
+          "Source-read-only row counts without one immutable source snapshot and PG parity: physical cutover cannot be claimed."
+        ],
+        "disposition": "NOT_ADMITTED_NO_PHYSICAL_CUTOVER_OR_ROW_RETIREMENT",
+        "nextOwnerWork": "Within Runtime R06/RW12 existing plan and PostgreSQL native Registry implementation, first prove bounded actual consumer graph/replay fence; classify historical stdout/stderr/event detail for exclusion from destination, then retire old source only after verified Windows-first and Linux service cutovers. No SQLite feature/maintenance patches."
       }
     },
     {
