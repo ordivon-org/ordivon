@@ -417,6 +417,28 @@ class DurableSessionAuthority:
                     now,
                 ),
             )
+            # The reservation is the authority for a physical systemd effect.
+            # A successful INSERT does not prove its row survived an AFTER trigger.
+            # Fail before starting browser equipment unless readback is exact.
+            persisted = db.execute(
+                "SELECT * FROM sessions WHERE session_id=?", (session_id,)
+            ).fetchone()
+            expected = {
+                "session_id": session_id,
+                "request_id": request_id,
+                "slot": slot,
+                "lifecycle": "OPENING",
+                "browser_equipment_id": identity["equipmentId"],
+                "browser_product": identity["browserProduct"],
+                "browser_executable_digest": identity["executableDigest"],
+                "created_at_ms": now,
+                "closed_at_ms": None,
+            }
+            if persisted is None or any(
+                persisted[key] != value for key, value in expected.items()
+            ):
+                db.execute("ROLLBACK")
+                raise SessionConflict("human session reservation receipt missing or changed")
             db.execute("COMMIT")
         os.chmod(self.db_path, 0o600)
         try:

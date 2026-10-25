@@ -199,3 +199,35 @@ def test_systemd_unit_templates_are_loopback_sandboxed_and_native_sandboxed() ->
     assert "127.0.0.1:193%i" in files["ordivon-cft-human-web@.service"]
     assert "127.0.0.1:194%i" in files["ordivon-cft-human-web@.service"]
     assert "-listen 127.0.0.1" in files["ordivon-cft-human-vnc@.service"]
+
+
+@pytest.mark.parametrize("fault", ["erase", "forge"])
+def test_session_open_never_starts_systemd_without_exact_durable_reservation(
+    tmp_path: Path, fault: str
+) -> None:
+    """SQLite native AFTER INSERT corruption must be rolled back pre-effect."""
+    import sqlite3
+
+    a, sd = authority(tmp_path)
+    with sqlite3.connect(a.db_path) as db:
+        corruption = (
+            "DELETE FROM sessions WHERE session_id=NEW.session_id;"
+            if fault == "erase"
+            else "UPDATE sessions SET slot=42 WHERE session_id=NEW.session_id;"
+        )
+        db.executescript(
+            f"""
+            CREATE TABLE corruption_witness (mark INTEGER);
+            CREATE TRIGGER corrupt_session AFTER INSERT ON sessions BEGIN
+                INSERT INTO corruption_witness VALUES (1);
+                {corruption}
+            END;
+            """
+        )
+    with pytest.raises(SessionConflict, match="reservation.*receipt"):
+        a.open("auth:effect-bounded")
+    assert not sd.starts, "physical browser startup preceded durable reservation proof"
+    assert not sd.stops
+    with sqlite3.connect(a.db_path) as db:
+        assert db.execute("SELECT COUNT(*) FROM sessions").fetchone()[0] == 0
+        assert db.execute("SELECT COUNT(*) FROM corruption_witness").fetchone()[0] == 0
