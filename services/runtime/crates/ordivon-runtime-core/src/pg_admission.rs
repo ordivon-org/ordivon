@@ -2,6 +2,7 @@
 //! Explicitly opt-in until the full lifecycle/refinement/consumer proof exists.
 use postgres::{Client, IsolationLevel, NoTls};
 use sha2::{Digest, Sha256};
+use std::collections::HashSet;
 use uuid::Uuid;
 
 #[derive(Debug)]
@@ -91,6 +92,58 @@ impl PgAdmissionInput {
     }
 }
 
+/// Required keys and references for the durable PG authority, not merely
+/// a row-correct historical import. The native stage intentionally does not
+/// assert all of these, and must not be promoted as an active write schema.
+fn qualified_schema_constraints(client: &mut Client, schema: &str) -> Result<(), PgAdmissionError> {
+    let rows = client.query(
+        "SELECT r.relname::text,c.contype::text,ARRAY_AGG(a.attname::text ORDER BY k.ordinality) \
+         FROM pg_catalog.pg_constraint c \
+         JOIN pg_catalog.pg_class r ON r.oid=c.conrelid \
+         JOIN pg_catalog.pg_namespace n ON n.oid=r.relnamespace \
+         JOIN LATERAL unnest(c.conkey) WITH ORDINALITY AS k(attnum,ordinality) ON TRUE \
+         JOIN pg_catalog.pg_attribute a ON a.attrelid=r.oid AND a.attnum=k.attnum \
+         WHERE n.nspname=$1 AND c.contype IN ('p','u','f') \
+         GROUP BY r.relname,c.oid,c.contype",
+        &[&schema],
+    )?;
+    let actual: HashSet<(String, String, Vec<String>)> = rows
+        .iter()
+        .map(|row| (row.get(0), row.get(1), row.get(2)))
+        .collect();
+    let required: &[(&str, &str, &[&str])] = &[
+        ("jobs", "p", &["job_id"]),
+        ("jobs", "u", &["principal", "client_request_id"]),
+        ("attempts", "p", &["attempt_id"]),
+        ("attempts", "u", &["job_id", "attempt_number"]),
+        ("attempts", "f", &["job_id"]),
+        ("idempotency_keys", "p", &["principal", "client_request_id"]),
+        ("idempotency_keys", "u", &["job_id"]),
+        ("idempotency_keys", "f", &["job_id"]),
+        ("concurrency_reservations", "p", &["reservation_id"]),
+        ("concurrency_reservations", "u", &["attempt_id"]),
+        ("concurrency_reservations", "f", &["attempt_id"]),
+        ("job_events", "p", &["event_id"]),
+        ("job_events", "u", &["job_id", "event_sequence"]),
+        ("job_events", "f", &["job_id"]),
+        ("job_events", "f", &["attempt_id"]),
+        ("artifacts", "p", &["artifact_id"]),
+        ("artifacts", "f", &["job_id"]),
+        ("artifacts", "f", &["attempt_id"]),
+        ("_stage_control", "p", &["id"]),
+    ];
+    if required.iter().any(|(table, kind, columns)| {
+        !actual.contains(&(
+            (*table).to_owned(),
+            (*kind).to_owned(),
+            columns.iter().map(|name| (*name).to_owned()).collect(),
+        ))
+    }) {
+        return Err(PgAdmissionError::Unqualified);
+    }
+    Ok(())
+}
+
 pub struct PgAdmissionStore {
     client: Client,
 }
@@ -108,6 +161,7 @@ impl PgAdmissionStore {
         if actual.as_deref() != Some(schema) {
             return Err(PgAdmissionError::Unqualified);
         }
+        qualified_schema_constraints(&mut client, schema)?;
         Ok(Self { client })
     }
 
@@ -536,6 +590,27 @@ CREATE TABLE _stage_control(
     }
 
     #[test]
+    fn pg18_rejects_synthetic_writer_without_event_sequence_uniqueness() {
+        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
+            return;
+        };
+        let mut scratch = Scratch::new(&dsn);
+        scratch.qualify();
+        assert!(PgAdmissionStore::connect(&dsn, &scratch.name).is_ok());
+        scratch
+            .admin
+            .batch_execute(
+                "ALTER TABLE job_events DROP CONSTRAINT job_events_job_id_event_sequence_key",
+            )
+            .expect("test-only weakened catalog");
+        assert!(matches!(
+            PgAdmissionStore::connect(&dsn, &scratch.name),
+            Err(PgAdmissionError::Unqualified)
+        ));
+        assert_eq!(scratch.count("jobs"), 0);
+    }
+
+    #[test]
     fn pg18_native_atomic_admission_replay_fence_and_rollback() {
         let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
             return;
@@ -743,16 +818,11 @@ CREATE TABLE _stage_control(
         let permitted: bool = row.get(2);
         assert_eq!(state, "VERIFIED_NON_AUTHORITY");
         assert!(!permitted);
-        let mut store = PgAdmissionStore::connect(&dsn, "rw12_stage_cutover_r1").unwrap();
-        let mut input = payload(
-            "must-never-commit",
-            "job-must-never-commit",
-            "stage-no-writer",
-            1,
-        );
-        input.expected_source_sha256 = source;
+        assert_eq!(source.len(), 64, "staged source identity exists");
+        // A historical row-exact import is not a durable writer schema:
+        // fail at connect before any operation can even be admitted.
         assert!(matches!(
-            store.admit(&input),
+            PgAdmissionStore::connect(&dsn, "rw12_stage_cutover_r1"),
             Err(PgAdmissionError::Unqualified)
         ));
         let after: i64 = inspector
@@ -790,10 +860,7 @@ CREATE TABLE _stage_control(
                 Ok(PgAdmissionOutcome::Existing(_)) => (),
                 Err(PgAdmissionError::Database(error))
                     if error.code()
-                        == Some(&postgres::error::SqlState::T_R_SERIALIZATION_FAILURE) =>
-                {
-                    ()
-                }
+                        == Some(&postgres::error::SqlState::T_R_SERIALIZATION_FAILURE) => {}
                 unexpected => panic!("unsafe concurrent admission result: {unexpected:?}"),
             }
         }
