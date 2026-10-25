@@ -246,7 +246,14 @@ def test_concurrent_reciprocal_work_relations_cannot_commit_cycle() -> None:
         outcomes = sorted(pool.map(add_edge, ((a, b), (b, a))))
     assert outcomes == ["committed", "conflict"]
 
-    edges = store.list_relations(a)["relations"]
+    # Query the native persistent relation directly: do not prove the graph
+    # with a production read facade that has no real consumer.
+    with psycopg.connect(DSN) as conn:
+        edges = conn.execute(
+            "SELECT source_work_ref,target_work_ref FROM work_relations "
+            "WHERE source_work_ref=%s OR target_work_ref=%s",
+            (a, a),
+        ).fetchall()
     assert len(edges) == 1
 
 def test_space_can_link_multiple_works_without_becoming_work_container() -> None:
