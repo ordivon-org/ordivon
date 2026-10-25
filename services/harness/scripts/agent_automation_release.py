@@ -95,6 +95,7 @@ RELEASE_PATHS = (
     "scripts/sqlite_conversation_binding.py",
     "scripts/sqlite_wake_turn_map.py",
     "scripts/postgres_wake_turn_map.py",
+    "scripts/postgres_conversation_binding.py",
     "scripts/standard_identifiers.py",
     "scripts/windows_user_browser_materialization_target.py",
     "scripts/windows_user_browser_chatgpt.ps1",
