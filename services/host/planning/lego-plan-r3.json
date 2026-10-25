@@ -53,12 +53,6 @@
       "name": "BoardSearch",
       "owner": "PostgreSQL FTS",
       "standing": "EXTERNAL_SUBSTRATE"
-    },
-    {
-      "id": "U01",
-      "name": "ScopeBoundCursor",
-      "owner": "Host API contract",
-      "standing": "SMALL_LOCAL_UTILITY"
     }
   ],
   "externalOwners": [
@@ -128,7 +122,8 @@
     "StatusRecentActivityProjection",
     "StatusLeasePlaceholder",
     "ManualJsonbSerialization",
-    "DeadHostStatusModel"
+    "DeadHostStatusModel",
+    "ScopeBoundCursor"
   ],
   "nonSubstitutions": [
     {

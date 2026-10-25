@@ -60,6 +60,10 @@ REQUIRED_TLC_INVARIANTS = {
     "AmbiguityRequiresReconciliation",
     "NoUnusedAttemptWasDispatched",
     "TerminalAttemptWasDispatched",
+    # Preserve RW9 real result provenance and the independent CEGAR
+    # ability to recover a matching observation after foreign evidence.
+    "MatchingResultRequiredForTerminal",
+    "NoForeignResultIsTerminal",
     "ForeignResultDoesNotDisableMatchingRecovery",
 }
 REQUIRED_TLC_PROPERTIES = {"ProgressToFirstDecision"}

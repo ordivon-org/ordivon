@@ -821,6 +821,25 @@ trait Provider {
         self.assertTrue(any("formal model binding set drift" in error for error in errors), errors)
 
 
+    def test_result_provenance_invariants_are_never_dropped_from_tlc_config(self):
+        """An RW9 TLC PASS must check matching-result provenance, not only source hashes."""
+        trace, _ = manifests()
+        config = (ROOT / "formal/RuntimeDispatchR1.cfg").read_text(encoding="utf-8")
+        claimed = {
+            row["symbol"]
+            for row in trace["formalSpecification"]["modelBindings"]
+            if row["kind"] == "invariant"
+        }
+        for name in ("MatchingResultRequiredForTerminal", "NoForeignResultIsTerminal"):
+            with self.subTest(invariant=name):
+                self.assertIn(f"    {name}\n", config)
+                downgraded = config.replace(f"    {name}\n", "")
+                errors = self.module.check_tlc_config_obligations(downgraded, claimed)
+                self.assertTrue(
+                    any(name in error for error in errors),
+                    f"RW9 missing result-provenance TLC invariant was accepted: {name}, {errors}",
+                )
+
     def test_new_model_invariant_cannot_be_claimed_without_a_tlc_check(self):
         # An independently added R2.1 invariant must be checked, not merely
         # named in a proof manifest. No extra schema or proof engine is needed.

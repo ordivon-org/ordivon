@@ -46,6 +46,28 @@ def test_mutated_local_graduation_evidence_never_passes(tmp_path, mutation, fail
     assert failure in result.stderr + result.stdout
 
 
+
+@pytest.mark.parametrize(
+    "revision",
+    ("0000000000000000000000000000000000000000", "UNKNOWN", None, True),
+)
+def test_forged_or_missing_source_revision_cannot_claim_current_graduation(
+    tmp_path, revision
+):
+    """A byte-valid source digest cannot admit a false Git SourceCut identity."""
+    report = tmp_path / "source-bound-network.json"
+    created = invoke("write-local", report)
+    assert created.returncode == 0, (created.stdout, created.stderr)
+    payload = json.loads(report.read_text())
+    assert payload["authority"]["sourceRevision"] not in (None, "UNKNOWN")
+    payload["authority"]["sourceRevision"] = revision
+    report.write_text(json.dumps(payload))
+    result = invoke("verify-local", report)
+    assert result.returncode != 0, (revision, result.stdout, result.stderr)
+    assert "sourceRevision" in result.stderr + result.stdout
+
+
+
 def test_duplicate_network_report_members_rejected_before_graduation(tmp_path):
     report = tmp_path / "local-network.json"
     assert invoke("write-local", report).returncode == 0

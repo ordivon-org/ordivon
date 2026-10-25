@@ -199,3 +199,63 @@ def test_systemd_unit_templates_are_loopback_sandboxed_and_native_sandboxed() ->
     assert "127.0.0.1:193%i" in files["ordivon-cft-human-web@.service"]
     assert "127.0.0.1:194%i" in files["ordivon-cft-human-web@.service"]
     assert "-listen 127.0.0.1" in files["ordivon-cft-human-vnc@.service"]
+
+
+@pytest.mark.parametrize("fault", ["erase", "forge"])
+def test_session_open_never_starts_systemd_without_exact_durable_reservation(
+    tmp_path: Path, fault: str
+) -> None:
+    """SQLite native AFTER INSERT corruption must be rolled back pre-effect."""
+    import sqlite3
+
+    a, sd = authority(tmp_path)
+    with sqlite3.connect(a.db_path) as db:
+        corruption = (
+            "DELETE FROM sessions WHERE session_id=NEW.session_id;"
+            if fault == "erase"
+            else "UPDATE sessions SET slot=42 WHERE session_id=NEW.session_id;"
+        )
+        db.executescript(
+            f"""
+            CREATE TABLE corruption_witness (mark INTEGER);
+            CREATE TRIGGER corrupt_session AFTER INSERT ON sessions BEGIN
+                INSERT INTO corruption_witness VALUES (1);
+                {corruption}
+            END;
+            """
+        )
+    with pytest.raises(SessionConflict, match="reservation.*receipt"):
+        a.open("auth:effect-bounded")
+    assert not sd.starts, "physical browser startup preceded durable reservation proof"
+    assert not sd.stops
+    with sqlite3.connect(a.db_path) as db:
+        assert db.execute("SELECT COUNT(*) FROM sessions").fetchone()[0] == 0
+        assert db.execute("SELECT COUNT(*) FROM corruption_witness").fetchone()[0] == 0
+
+
+def test_session_activation_cannot_report_ready_after_durable_state_corruption(
+    tmp_path: Path,
+) -> None:
+    """Rollback failed ACTIVE transition, compensate physical systemd start."""
+    import sqlite3
+
+    a, sd = authority(tmp_path)
+    with sqlite3.connect(a.db_path) as db:
+        db.executescript(
+            """
+            CREATE TABLE corrupt_activation_witness (marker INTEGER);
+            CREATE TRIGGER corrupt_activation AFTER UPDATE OF lifecycle ON sessions
+            WHEN NEW.lifecycle='ACTIVE'
+            BEGIN
+                INSERT INTO corrupt_activation_witness VALUES (1);
+                UPDATE sessions SET lifecycle='FAILED' WHERE session_id=NEW.session_id;
+            END;
+            """
+        )
+    with pytest.raises(SessionConflict, match="activation.*receipt"):
+        a.open("auth:activation-fault")
+    assert sd.starts == ["ordivon-cft-human-session@41.target"]
+    assert sd.stops == ["ordivon-cft-human-session@41.target"]
+    with sqlite3.connect(a.db_path) as db:
+        assert db.execute("SELECT lifecycle FROM sessions").fetchone()[0] == "FAILED"
+        assert db.execute("SELECT COUNT(*) FROM corrupt_activation_witness").fetchone()[0] == 0

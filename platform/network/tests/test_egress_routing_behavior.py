@@ -150,3 +150,34 @@ def test_terminal_reject_negative_control_is_observable() -> None:
     with _consumer_proxy("x-reality", disable_terminal_reject=True) as (port, observed):
         _connect(port, "example.com:443")
         assert observed.get(timeout=3) == b"CONNECT example.com:443 HTTP/1.1"
+
+
+def test_native_reject_has_no_upstream_effect_even_with_connect_200() -> None:
+    """CEGAR: provider CONNECT status alone is not a route-policy oracle.
+
+    The currently installed native sing-box may acknowledge the HTTP CONNECT
+    before its route-level reject closes the downstream connection. The
+    independent upstream spy must remain empty; do not invent a 403 witness.
+    A future sing-box version changing this signature requires requalification.
+    """
+    curl = shutil.which("curl")
+    assert curl, "Native policy qualification requires curl"
+    with _consumer_proxy("supply-chain") as (port, observed):
+        process = subprocess.run(
+            [
+                curl, "-q", "-4", "-sS", "-I", "--noproxy", "",
+                "-x", f"http://127.0.0.1:{port}",
+                "--connect-timeout", "2", "--max-time", "5",
+                "-o", "/dev/null", "-w", "%{http_code}|%{http_connect}",
+                "https://example.com/",
+            ],
+            capture_output=True, text=True, timeout=8, check=False,
+        )
+        assert process.returncode != 0
+        assert process.stdout == "000|200", (
+            "Provider-native reject signature changed; requalify loaded-policy "
+            "semantics rather than defaulting to generic curl-failure proof",
+            process.returncode, process.stdout, process.stderr,
+        )
+        with pytest.raises(queue.Empty):
+            observed.get(timeout=0.3)

@@ -115,6 +115,13 @@ def verify_local(path: Path):
     for field in ("platform", "platformEvidence", "generic", "externalFidelity", "outsideNetworkBoundary"):
         if json.dumps(report.get(field), sort_keys=True) != json.dumps(expected[field], sort_keys=True):
             failures.append(field)
+    # A matching tree fingerprint does not prove the reported Git SourceCut:
+    # two commits can have the same Network bytes, and this field is material
+    # provenance. Never admit UNKNOWN when Git cannot qualify its revision.
+    actual_revision = report.get("authority", {}).get("sourceRevision")
+    expected_revision = expected["authority"]["sourceRevision"]
+    if expected_revision == "UNKNOWN" or type(actual_revision) is not str or actual_revision != expected_revision:
+        failures.append("sourceRevision")
     if report.get("authority", {}).get("sourceFingerprint") != expected_source: failures.append("sourceFingerprint")
     if report.get("authority", {}).get("platformFingerprint") != plat_digest: failures.append("platformFingerprint")
     if report.get("authority", {}).get("entryPoint") != "task accept:local": failures.append("entryPoint")

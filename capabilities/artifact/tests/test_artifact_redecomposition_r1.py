@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import json
 import unittest
 from pathlib import Path
@@ -28,6 +29,34 @@ class ArtifactRedecompositionR1Tests(unittest.TestCase):
         for node in nodes:
             for relative in node.get("currentEvidence", []):
                 self.assertTrue((ROOT / relative).exists(), (node["id"], relative))
+
+    def _require_referentially_closed(self, plan: dict) -> None:
+        """R2 graph references must denote its own declared, unique vertices."""
+        vertices = {node["id"] for node in plan["nodes"]}
+        slices = [part["id"] for part in plan["slices"]]
+        self.assertEqual(len(slices), len(set(slices)), "duplicate R2 slice identity")
+        for edge in plan["edges"]:
+            self.assertIn(edge["from"], vertices, "R2 edge has no producer vertex")
+            self.assertIn(edge["to"], vertices, "R2 edge has no consumer vertex")
+        for part in plan["slices"]:
+            members = part["nodeIds"]
+            self.assertEqual(len(members), len(set(members)), "duplicate R2 slice member")
+            for member in members:
+                self.assertIn(member, vertices, "R2 slice has no member vertex")
+
+    def test_r2_graph_edges_and_slices_are_referentially_closed(self) -> None:
+        self._require_referentially_closed(self.plan)
+
+    def test_r2_graph_rejects_dangling_edge_and_slice_mutations(self) -> None:
+        for boundary, key, replacement in (
+            ("edges", "to", "MISSING_EDGE_VERTEX"),
+            ("slices", "nodeIds", ["MISSING_SLICE_VERTEX"]),
+        ):
+            with self.subTest(boundary=boundary):
+                changed = copy.deepcopy(self.plan)
+                changed[boundary][0][key] = replacement
+                with self.assertRaisesRegex(AssertionError, "not found"):
+                    self._require_referentially_closed(changed)
 
     def test_kernel_is_exactly_five_semantic_responsibilities(self) -> None:
         kernel = [
