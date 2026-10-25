@@ -138,8 +138,8 @@
       "problemClass": "ENVIRONMENT_CONTRACT",
       "naturalOwner": "services/runtime",
       "standing": "REPRODUCED_TOOL_UNAVAILABLE",
-      "observation": "Windows native target is available but the service token is NT SERVICE\\OrdivonRuntimeR6Candidate. Under limited PowerShell, python --version raised CommandNotFoundException. Our shell script used ErrorActionPreference Continue and eventually returned process exit code 0, so physical Job success did not mean prerequisite success.",
-      "evidence": "Windows Runtime Job job-01a17054-1e5a-7993-bd1e-08049b778334, windows native limit/service execution, 2026-10-25 07:52+08",
+      "observation": "Windows native target is available but the service token is NT SERVICE\\OrdivonRuntimeR6Candidate. Under limited PowerShell, python --version raised CommandNotFoundException. Our shell script used ErrorActionPreference Continue and eventually returned process exit code 0, so physical Job success did not mean prerequisite success. An independent strict-prerequisite negative-control run set PowerShell ErrorActionPreference=Stop, ran Get-Command python -CommandType Application -ErrorAction Stop, and correctly surfaced PROCESS_EXIT_NONZERO exitCode=1 in the same service principal. Thus a consumer script can fail closed today even though Python remains unavailable; no Runtime launcher modification is required to fix this particular false-green shell usage.",
+      "evidence": "Windows Runtime Job job-01a17054-1e5a-7993-bd1e-08049b778334, windows native limit/service execution, 2026-10-25 07:52+08; independent native strict red witness Windows Job job-01a17067-1d3f-7182-a810-7ef9a4073b79 (exit 1, missing executable) 2026-10-25 +08",
       "consumers": "Windows Tool prerequisites; Runtime script runner; actual consuming Python program",
       "formalObligation": "VerifiedPrerequisite(cmd,target,principal) requires a successful probe under the exact execution identity and failure must propagate through the evaluator; JobExitZero does not imply ScriptEveryStepSucceeded or DomainAccepted.",
       "registration": {
@@ -147,7 +147,7 @@
         "ownerPlan": "services/runtime/planning/lego-plan-r1.json",
         "slice": "RW9"
       },
-      "decision": "Reuse PR #632 where it already addresses RW10; do not add another Python shim or claim Runtime misreported its process exit.",
+      "decision": "Do not mistake PowerShell Continue exit-zero behavior for a Runtime ledger bug. Enforce strict error propagation and dependency readiness in Windows consumer scripts; reuse #632 for identity/tool contract; Python installation/active_user parity still UNVERIFIED.",
       "representation": {
         "primary": "causal",
         "supporting": [
