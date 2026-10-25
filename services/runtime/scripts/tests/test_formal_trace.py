@@ -427,6 +427,47 @@ trait Provider {
             finally:
                 self.module.ROOT = old_root
         self.assertTrue(errors, "nested function falsely admitted as Registry method")
+    def test_unnameable_nonmodule_tests_never_grant_compiler_proof(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "lib.rs").write_text("#[cfg(test)]\\nmod tests;\\n", encoding="utf-8")
+            child = root / "tests.rs"
+            original_root = self.module.ROOT
+            self.module.ROOT = root
+            try:
+                for source in (
+                    """const _: () = {
+    #[test]
+    fn ghost_proof() {}
+};
+""",
+                    """fn inert() {
+    #[test]
+    fn ghost_proof() {}
+}
+""",
+                ):
+                    with self.subTest(outer=source.splitlines()[0]):
+                        child.write_text(source, encoding="utf-8")
+                        errors = self.module.require_test_symbol(child, "ghost_proof")
+                        self.assertTrue(
+                            any("unnameable non-module" in error for error in errors),
+                            f"rustc-unregistered test falsely accepted: {errors}",
+                        )
+                child.write_text(
+                    """mod nested {
+    #[test]
+    fn actual_proof() {}
+}
+""",
+                    encoding="utf-8",
+                )
+                self.assertEqual(
+                    self.module.require_test_symbol(child, "actual_proof"), []
+                )
+            finally:
+                self.module.ROOT = original_root
+
     def test_unexpanded_macro_rules_cannot_forge_a_proving_test(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
