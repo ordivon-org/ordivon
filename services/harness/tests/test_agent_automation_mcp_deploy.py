@@ -141,6 +141,121 @@ class DeployTests(unittest.TestCase):
                     "ordivon-agent-automation-mcp.service", b"[Service]\nType=exec\n"
                 )
 
+    def test_mcp_convergence_never_deletes_unresolved_backup_or_staging(self):
+        for ext in ("previous", "staging"):
+            with self.subTest(ext=ext), tempfile.TemporaryDirectory() as td:
+                root = Path(td)
+                venv = root / "active"
+                venv.mkdir()
+                artifact = root / f"active.{ext}"
+                artifact.mkdir()
+                sentinel = artifact / "unique-recovery-record"
+                sentinel.write_text("retain these bytes")
+                c = {
+                    "mcp_runtime_python": str(venv / "bin/python"),
+                    "mcp_python_version": "3.15.1",
+                    "mcp_requirements": "config/agent-automation-mcp-requirements.txt",
+                }
+                with (
+                    patch.object(d, "runtime_check", side_effect=RuntimeError("old runtime")),
+                    patch.object(d, "owner_uv_executable", return_value="/bin/false"),
+                    patch.object(d.subprocess, "run") as run,
+                ):
+                    with self.assertRaisesRegex(RuntimeError, "unresolved MCP runtime"):
+                        d.converge_runtime(c)
+                self.assertEqual(sentinel.read_text(), "retain these bytes")
+                run.assert_not_called()
+
+    def test_mcp_convergence_rejects_missing_explicit_python_before_effects(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            c = {
+                "mcp_runtime_python": str(root / "active" / "bin/python"),
+                "mcp_python_version": "3.15.1",
+                "mcp_python_executable": str(root / "missing-official-python"),
+                "mcp_requirements": "config/agent-automation-mcp-requirements.txt",
+            }
+            with (
+                patch.object(d, "runtime_check", side_effect=RuntimeError("old runtime")),
+                patch.object(d, "owner_uv_executable", return_value="/bin/false"),
+                patch.object(d.subprocess, "run") as run,
+            ):
+                with self.assertRaisesRegex(RuntimeError, "configured MCP Python executable"):
+                    d.converge_runtime(c)
+            run.assert_not_called()
+            self.assertFalse((root / "active.staging").exists())
+            self.assertFalse((root / "active.previous").exists())
+
+    def test_mcp_convergence_keeps_rollback_until_process_consumer_proves_release(self):
+        import subprocess
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            venv = root / "active"
+            old = venv / "bin/python"
+            old.parent.mkdir(parents=True)
+            old.write_text("old version with possible live consumers")
+            c = {
+                "mcp_runtime_python": str(old),
+                "mcp_python_version": "3.15.1",
+                "mcp_requirements": "config/agent-automation-mcp-requirements.txt",
+            }
+
+            def fake_run(args, **_kwargs):
+                if args[1] == "venv":
+                    target = Path(args[-1]) / "bin/python"
+                    target.parent.mkdir(parents=True)
+                    target.write_text("new qualified version")
+                return subprocess.CompletedProcess(args, 0)
+
+            def fake_runtime_check(data):
+                candidate = Path(data["mcp_runtime_python"])
+                if candidate.is_file() and candidate.read_text() == "new qualified version":
+                    return {"pythonVersion": "3.15.1"}
+                raise RuntimeError("previous runtime does not satisfy new contract")
+
+            with (
+                patch.object(d, "runtime_check", side_effect=fake_runtime_check),
+                patch.object(d, "owner_uv_executable", return_value="/bin/false"),
+                patch.object(d.subprocess, "run", side_effect=fake_run),
+            ):
+                result = d.converge_runtime(c)
+            self.assertEqual(result["disposition"], "materialized")
+            self.assertTrue(result["previousRuntimePreserved"])
+            self.assertEqual(old.read_text(), "new qualified version")
+            self.assertEqual(
+                (root / "active.previous/bin/python").read_text(),
+                "old version with possible live consumers",
+            )
+            self.assertFalse((root / "active.staging").exists())
+
+    def test_mcp_convergence_cleans_only_its_failed_new_staging(self):
+        import subprocess
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            c = {
+                "mcp_runtime_python": str(root / "active" / "bin/python"),
+                "mcp_python_version": "3.15.1",
+                "mcp_requirements": "config/agent-automation-mcp-requirements.txt",
+            }
+
+            def failing_venv(args, **_kwargs):
+                staging = Path(args[-1])
+                staging.mkdir()
+                (staging / "partial").write_text("owned by this failed invocation")
+                raise subprocess.CalledProcessError(2, args)
+
+            with (
+                patch.object(d, "runtime_check", side_effect=RuntimeError("old runtime")),
+                patch.object(d, "owner_uv_executable", return_value="/bin/false"),
+                patch.object(d.subprocess, "run", side_effect=failing_venv),
+            ):
+                with self.assertRaises(subprocess.CalledProcessError):
+                    d.converge_runtime(c)
+            self.assertFalse((root / "active.staging").exists())
+            self.assertFalse((root / "active.previous").exists())
+
     def test_private_token_receipt_has_no_secret_derived_digest_and_preserves_existing(self):
         with tempfile.TemporaryDirectory() as td:
             p = Path(td) / "token"
