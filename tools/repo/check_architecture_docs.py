@@ -256,9 +256,20 @@ def validate_owner_lego_graph(plan: dict[str, Any]) -> None:
     # Reuse the stdlib DAG checker; these are planning prerequisites, not
     # executable workflows, and no new scheduler or registry is admitted.
     slice_prerequisites: dict[str, set[str]] = {name: set() for name in slice_states}
+    # Finite planning states are types, not descriptive free text. Unknown
+    # states must not silently bypass blocker/progress admission.
+    lifecycle_states = {
+        "PROPOSED", "IN_PROGRESS", "IMPLEMENTED", "VERIFIED",
+        "COMPLETE", "RETIRED",
+    }
     for row in slices:
         state = row.get("status")
-        if not isinstance(state, str) or not state.startswith("BLOCKED_ON_"):
+        if (
+            not isinstance(state, str)
+            or (state not in lifecycle_states and not state.startswith("BLOCKED_ON_"))
+        ):
+            raise ArchitectureDocsError(f"invalid LEGO slice status: {row['id']}")
+        if not state.startswith("BLOCKED_ON_"):
             continue
         blockers = row.get("blockers")
         if (
