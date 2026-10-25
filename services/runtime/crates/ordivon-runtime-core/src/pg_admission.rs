@@ -479,6 +479,26 @@ pub enum PgCancelOutcome {
     Existing(String),
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub enum PgCancelObservation {
+    Confirmed(String),
+    Inconclusive,
+}
+
+fn cancel_detail(i: &PgCancelIntent) -> String {
+    // The original cancel timestamp is part of the immutable request identity
+    // used for reconciliation after an ambiguous COMMIT.
+    let identity = format!(
+        "pg-cancel-intent\\0{}\\0{}\\0{}",
+        i.expected_source_sha256, i.job_id, i.observed_at_ms
+    );
+    let digest = format!(
+        "sha256:{}",
+        hex::encode(Sha256::digest(identity.as_bytes()))
+    );
+    serde_json::json!({"cancelIntentDigest":digest}).to_string()
+}
+
 impl PgAdmissionStore {
     /// Persist only a cancel/stop intent. Do not infer that a runner has
     /// stopped, release capacity, or resolve an accepted Job without an
@@ -617,7 +637,7 @@ impl PgAdmissionStore {
         } else {
             "CANCEL_INTENT_COMMITTED"
         };
-        let detail = "{}";
+        let detail = cancel_detail(i);
         let digest = format!("sha256:{}", hex::encode(Sha256::digest(detail.as_bytes())));
         tx.execute(
             "INSERT INTO job_events(event_id,job_id,attempt_id,event_sequence,event_type,origin,previous_state,new_state,reason_code,detail_json,detail_digest,observed_at_ms) VALUES($1,$2,$3,$4,'STOP_REQUESTED','SYSTEM_DERIVED',$5,$6,$7,$8,$9,$10)",
@@ -627,6 +647,113 @@ impl PgAdmissionStore {
         // No capacity release, no resolved Job, no runner side effects.
         tx.commit().map_err(|_| PgAdmissionError::UnknownCommit)?;
         Ok(PgCancelOutcome::IntentRecorded(i.job_id.clone()))
+    }
+}
+
+impl PgAdmissionStore {
+    /// Reconcile a lost COMMIT acknowledgement using a NEW qualified PG
+    /// connection. Only an exact durable STOP_REQUESTED event plus coherent
+    /// Job/Attempt/Reservation state proves this particular cancel intent.
+    /// Absence is INCONCLUSIVE, never proof that a mutation did not commit.
+    pub fn observe_cancel_intent(
+        &mut self,
+        i: &PgCancelIntent,
+    ) -> Result<PgCancelObservation, PgAdmissionError> {
+        if i.job_id.is_empty()
+            || i.observed_at_ms < 0
+            || i.expected_source_sha256.len() != 64
+            || !i
+                .expected_source_sha256
+                .bytes()
+                .all(|b| b.is_ascii_hexdigit())
+        {
+            return Err(PgAdmissionError::InvalidInput);
+        }
+        let mut tx = self
+            .client
+            .build_transaction()
+            .isolation_level(IsolationLevel::RepeatableRead)
+            .read_only(true)
+            .start()?;
+        let authority = tx.query_opt(
+            "SELECT state,source_sha256,promotion_allowed FROM _stage_control WHERE id='source'",
+            &[],
+        )?.ok_or(PgAdmissionError::Unqualified)?;
+        let state: String = authority.get(0);
+        let source: String = authority.get(1);
+        let permitted: bool = authority.get(2);
+        if state != "QUALIFIED_WRITER" || !permitted || source != i.expected_source_sha256 {
+            return Err(PgAdmissionError::Unqualified);
+        }
+        let Some(job) = tx.query_opt(
+            "SELECT desired_state,resolution,current_attempt_id FROM jobs WHERE job_id=$1",
+            &[&i.job_id],
+        )?
+        else {
+            return Ok(PgCancelObservation::Inconclusive);
+        };
+        let desired: String = job.get(0);
+        let resolution: Option<String> = job.get(1);
+        let current_attempt: Option<String> = job.get(2);
+        if desired != "cancelled" {
+            return Ok(PgCancelObservation::Inconclusive);
+        }
+        let attempt_id = if resolution.is_some() {
+            tx.query_opt(
+                "SELECT attempt_id FROM attempts WHERE job_id=$1 ORDER BY attempt_number DESC LIMIT 1",
+                &[&i.job_id],
+            )?.map(|row| row.get::<_, String>(0))
+        } else {
+            current_attempt
+        };
+        let Some(attempt_id) = attempt_id else {
+            return Ok(PgCancelObservation::Inconclusive);
+        };
+        let Some(attempt) = tx.query_opt(
+            "SELECT state,termination_intent FROM attempts WHERE attempt_id=$1 AND job_id=$2",
+            &[&attempt_id, &i.job_id],
+        )?
+        else {
+            return Ok(PgCancelObservation::Inconclusive);
+        };
+        let attempt_state: String = attempt.get(0);
+        let intent: String = attempt.get(1);
+        if intent != "stop_requested" {
+            return Ok(PgCancelObservation::Inconclusive);
+        }
+        let Some(reservation) = tx.query_opt(
+            "SELECT state FROM concurrency_reservations WHERE attempt_id=$1",
+            &[&attempt_id],
+        )?
+        else {
+            return Ok(PgCancelObservation::Inconclusive);
+        };
+        let reservation_state: String = reservation.get(0);
+        let coherent = if resolution.as_deref() == Some("orphaned") {
+            attempt_state == "orphaned" && reservation_state == "held_orphaned"
+        } else if resolution.is_some() {
+            matches!(
+                attempt_state.as_str(),
+                "succeeded" | "failed" | "timed_out" | "cancelled" | "lost"
+            ) && reservation_state == "released"
+        } else {
+            matches!(attempt_state.as_str(), "accepted" | "stopping")
+                && reservation_state == "active"
+        };
+        if !coherent {
+            return Ok(PgCancelObservation::Inconclusive);
+        }
+        let detail = cancel_detail(i);
+        let event_digest = format!("sha256:{}", hex::encode(Sha256::digest(detail.as_bytes())));
+        let event_exists: bool = tx.query_one(
+            "SELECT EXISTS(SELECT 1 FROM job_events WHERE job_id=$1 AND attempt_id=$2 AND event_type='STOP_REQUESTED' AND origin='SYSTEM_DERIVED' AND detail_digest=$3 AND detail_json=$4 AND observed_at_ms=$5 AND reason_code IN ('CANCEL_INTENT_AWAITING_DISPATCH_FENCE','CANCEL_INTENT_COMMITTED','ORPHAN_CANCEL_INTENT_COMMITTED'))",
+            &[&i.job_id,&attempt_id,&event_digest,&detail,&i.observed_at_ms],
+        )?.get(0);
+        if !event_exists {
+            return Ok(PgCancelObservation::Inconclusive);
+        }
+        tx.commit().map_err(|_| PgAdmissionError::UnknownCommit)?;
+        Ok(PgCancelObservation::Confirmed(i.job_id.clone()))
     }
 }
 
@@ -1138,6 +1265,72 @@ CREATE TABLE _stage_control(
             .unwrap()
             .get(0);
         assert_eq!(before, after);
+    }
+
+    #[test]
+    fn pg18_cancel_commit_readback_is_exact_and_fail_closed_after_ack_loss() {
+        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
+            return;
+        };
+        let mut scratch = Scratch::new(&dsn);
+        let mut writer = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+        let mut observer = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+        let input = payload("readback-cancel", "job-readback", "ws-readback", 1);
+        let intent = PgCancelIntent {
+            job_id: input.job_id.clone(),
+            observed_at_ms: 1234600,
+            expected_source_sha256: input.expected_source_sha256.clone(),
+        };
+        assert!(matches!(
+            observer.observe_cancel_intent(&intent),
+            Err(PgAdmissionError::Unqualified)
+        ));
+        scratch.qualify();
+        writer.admit(&input).unwrap();
+        assert_eq!(
+            observer.observe_cancel_intent(&intent).unwrap(),
+            PgCancelObservation::Inconclusive
+        );
+        writer.request_cancel_intent(&intent).unwrap();
+        // Reconcile on a separate native PG connection after a simulated
+        // loss of the write-side acknowledgement.
+        assert_eq!(
+            observer.observe_cancel_intent(&intent).unwrap(),
+            PgCancelObservation::Confirmed(input.job_id.clone())
+        );
+        let mut wrong_request = intent.clone();
+        wrong_request.observed_at_ms += 1;
+        assert_eq!(
+            observer.observe_cancel_intent(&wrong_request).unwrap(),
+            PgCancelObservation::Inconclusive
+        );
+        scratch
+            .admin
+            .execute(
+                "UPDATE concurrency_reservations SET state='held_orphaned' WHERE attempt_id=$1",
+                &[&input.attempt_id],
+            )
+            .unwrap();
+        assert_eq!(
+            observer.observe_cancel_intent(&intent).unwrap(),
+            PgCancelObservation::Inconclusive
+        );
+        scratch
+            .admin
+            .execute(
+                "UPDATE concurrency_reservations SET state='active' WHERE attempt_id=$1",
+                &[&input.attempt_id],
+            )
+            .unwrap();
+        scratch.admin.execute(
+            "UPDATE job_events SET detail_digest='sha256:tampered' WHERE job_id=$1 AND event_type='STOP_REQUESTED'",
+            &[&input.job_id],
+        ).unwrap();
+        assert_eq!(
+            observer.observe_cancel_intent(&intent).unwrap(),
+            PgCancelObservation::Inconclusive
+        );
+        assert_eq!(scratch.count("job_events"), 4);
     }
 
     #[test]
