@@ -121,3 +121,36 @@ def test_database_cutover_census_cannot_claim_admission_without_real_owner_effec
     target["latestRequalification"]["cutoverAdmission"] = "ADMITTED"
     with pytest.raises(module.ArchitectureDocsError, match="falsely admits PG cutover"):
         module.validate_formal_issue_census(weakened, plans)
+
+
+def test_oct26_new_cross_owner_frontiers_remain_explicitly_unknown() -> None:
+    """Missing consumer/formal/Skill proofs must not be reclassified as passed by taxonomy."""
+    root = Path(__file__).resolve().parents[2]
+    census = json.loads((root / "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261025_R1.json").read_text(encoding="utf-8"))
+    cases = {
+        "RT-CONSUMER-CLAIM-20261026": "services/runtime",
+        "SKILL-DISCOVERY-SCIENCE-20261026": "platform/skills",
+        "COMPOSITION-IMPLEMENTATION-BRIDGE-20261026": "packages/composition",
+    }
+    plans = {
+        row["ownerPlan"]: json.loads((root / row["ownerPlan"]).read_text(encoding="utf-8"))
+        for row in census["registrations"]
+    }
+    for issue_id, owner in cases.items():
+        issue = next(i for i in census["issues"] if i["id"] == issue_id)
+        assert issue["naturalOwner"] == owner
+        assert issue["registration"]["state"] == "UNREGISTERED"
+        assert issue["requalification"]["proofStanding"] == "UNKNOWN"
+        assert issue["requalification"]["sourceCut"] == "c8cec7d7ee8ebcfcecf1893ac32a894b71051339"
+    module.validate_formal_issue_census(census, plans)
+
+    # Red control: a future agent cannot attach a missing obligation to a
+    # fabricated Owner plan merely by naming an existing verified subsystem.
+    weakened = copy.deepcopy(census)
+    bad = next(i for i in weakened["issues"] if i["id"] == "RT-CONSUMER-CLAIM-20261026")
+    bad["registration"] = {
+        "state": "LINKED", "ownerPlan": "services/runtime/planning/lego-plan-r1.json",
+        "slice": "RW999"
+    }
+    with pytest.raises(module.ArchitectureDocsError, match="unknown owner-local LEGO"):
+        module.validate_formal_issue_census(weakened, plans)

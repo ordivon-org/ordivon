@@ -428,6 +428,93 @@
         "remainingUnknown": "Open PR744 trial ledger requires protected merge, source digest/import reconciliation, append-only/concurrent head proofs and Media consumer switchover.",
         "proofScope": "Source presence and already reported Owner-native tests; not live PostgreSQL writer/consumer cutover."
       }
+    },
+    {
+      "id": "RT-CONSUMER-CLAIM-20261026",
+      "problemClass": "WORKSPACE_CONSUMER_CONTINUITY",
+      "naturalOwner": "services/runtime",
+      "standing": "OBSERVED_CROSS_JOB_CLAIM_GAP_IMPLEMENTATION_UNKNOWN",
+      "observation": "Runtime workspace lifecycle_locks.rs uses operation-scoped WorkspaceLeaseTable, and engine/workspace.rs closes after operation-local checks; this does not represent an explicit durable consumer claim across two Jobs. A separate same-day Host Work records an audit Workspace being closed between two otherwise separate evidence Jobs; its report is an observation, not a native Rust proof.",
+      "evidence": "source c8cec7d7ee8ebcfcecf1893ac32a894b71051339 services/runtime/crates/ordivon-runtime-core/src/runtime/lifecycle_locks.rs and runtime/engine/workspace.rs; Host work:ordivon:formal-lego-cross-system-census-20261026-r1 revision 3",
+      "consumers": "Agent multi-Job investigations and Runtime Workspace cleanup, with source-cut identity and no unpreserved unique data",
+      "formalObligation": "For any admitted consumer claim (w,c,d,t), an otherwise eligible Close(w) must be rejected while claim is live and sourceDigest(w)=d; releasing/expiring a claim must permit eventual bounded closure; concurrent close/admit/recover must preserve terminal receipts and exact source identity. Proof requires a concrete Rust admission/close replay, not a model-only invariant.",
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "Runtime RW1/R02 covers single-operation guarded close, not an explicit durable, fenced cross-Job consumer-claim protocol; do not claim it COMPLETE for this obligation."
+      },
+      "decision": "Register hard missing consumer capability; model lease/claim safety with TLC using real close and Job interleavings, then implement only native Runtime boundary + negative Rust CDC if consumer demand/authority is verified.",
+      "representation": {
+        "primary": "state-machine",
+        "supporting": [
+          "constraint"
+        ],
+        "requiredWitness": "Reproduce consumer claim retained across two Job admissions and hostile CAS close, stale/fenced claim, expired claim, process recovery and source revision drift; extract real Rust-to-model witness.",
+        "selectionReason": "R2.1 requires source-bound, consumer-specific proof and a feasible counterexample/replay; an observed discovery/model gap is not solved by inventing a registry."
+      },
+      "requalification": {
+        "sourceCut": "c8cec7d7ee8ebcfcecf1893ac32a894b71051339",
+        "proofStanding": "UNKNOWN",
+        "observedAt": "2026-10-26T04:50:00+08:00",
+        "scope": "evidence-only issue, not owner-native verification or deploy authority"
+      }
+    },
+    {
+      "id": "SKILL-DISCOVERY-SCIENCE-20261026",
+      "problemClass": "SKILL_DOMAIN_DISCOVERY",
+      "naturalOwner": "platform/skills",
+      "standing": "SEARCH_RECALL_WEAK_CAPABILITY_PRESENCE_UNKNOWN",
+      "observation": "The 2026-10-26 Skills service query for biology genetics molecular biochemistry chemistry physics mathematical proof primarily retrieved 2D/3D game physics and healthcare PHI; formal verification SMT Z3 model checking mathematical algebra retrieved mostly app/security/framework verification descriptions. The existence of underlying tools/knowledge and recall for other queries has NOT been excluded.",
+      "evidence": "2026-10-26 live skills.search catalogRevision sha256:bc71c9cd5d3934302b5528aabf6f1a6002e13de64c21de80984cfbfaf512b08d; two recorded discovery queries",
+      "consumers": "Agent users looking for core biology, chemistry, physics, mathematics and formal methods providers and knowledge entrypoints",
+      "formalObligation": "For a representative benchmark task set Q and admitted correct-provider evidence set Relevant(q), report recall@k / wrong-domain-rate with frozen catalogRevision, policy/eligibility and scored results. If Relevant(q) empty, distinguish inventory insufficiency from ranker insufficiency; discovering unrelated Skill implies neither domain capability nor proof.",
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "No verified native Platform Skills LEGO slice for a source-frozen interdisciplinary task-level recall benchmark; directory size does not prove complete coverage."
+      },
+      "decision": "Build a small adversarial task-level discovery benchmark before adding any new Skill. Reuse credible external mathematics/science indexes or mature provider APIs when measured consumer failure is reproduced.",
+      "representation": {
+        "primary": "graph",
+        "supporting": [
+          "abstraction"
+        ],
+        "requiredWitness": "Demonstrate task-level relevance, eligibility and actual resolution of scientific query to trusted Skill/Tool; include negative controls for misleading game physics and HIPAA hits.",
+        "selectionReason": "R2.1 requires source-bound, consumer-specific proof and a feasible counterexample/replay; an observed discovery/model gap is not solved by inventing a registry."
+      },
+      "requalification": {
+        "sourceCut": "c8cec7d7ee8ebcfcecf1893ac32a894b71051339",
+        "proofStanding": "UNKNOWN",
+        "observedAt": "2026-10-26T04:50:00+08:00",
+        "scope": "evidence-only issue, not owner-native verification or deploy authority"
+      }
+    },
+    {
+      "id": "COMPOSITION-IMPLEMENTATION-BRIDGE-20261026",
+      "problemClass": "CROSS_OWNER_REFINEMENT_BRIDGE",
+      "naturalOwner": "packages/composition",
+      "standing": "ABSTRACT_OWNER_BOUNDARY_PASS_CONCRETE_BRIDGE_UNKNOWN",
+      "observation": "Source includes packages/composition/formal/Lego21OwnerBoundary.tla and native TLC configurations, but the sampled bounded proofs and Host Work do not certify a current exact Rust/Python/Windows cross-owner implementation simulation relation or witnessed consumer behavior for Network readiness, Harness proposal, Host identity and Runtime terminal claims.",
+      "evidence": "source c8cec7d7ee8ebcfcecf1893ac32a894b71051339 packages/composition/formal/Lego21OwnerBoundary.tla; services/runtime/formal/RuntimeDispatchR1.tla; Host work:ordivon:formal-lego-cross-system-census-20261026-r1 revision 3",
+      "consumers": "Runtime Host Harness Network API seams; exact dispatch receipts and consumer-observed effects",
+      "formalObligation": "Under one exact SourceCut and environment, construct an observable refinement/simulation bridge from real Owner traces to the abstract allowed transitions, plus verifier-target-to-goal bridge Bν: ψν(x) ⇒ φ(x). Admit bound/safety assertions only within proven abstraction and translation scope. Failure/UNKNOWN or spurious abstraction counterexamples must remain distinct.",
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "Current Composition Owner formal plan can verify bounded abstract invariants but does not contain an admitted across-implementation bridge for the current four-Owner consumer sequence; do not relabel existing PASS."
+      },
+      "decision": "Select one narrow four-Owner receipt/sourcecut seam, replay matched native trace with adversarial wrong Attempt / stale Network readiness / forged foreign result, then expand by CEGAR only on real counterexamples.",
+      "representation": {
+        "primary": "equivalence",
+        "supporting": [
+          "state-machine"
+        ],
+        "requiredWitness": "SourceDigest+modelDigest+assumptions+checker record and reproducible concrete traces for both passing and violating runs; no fabricated simulation refinement proof.",
+        "selectionReason": "R2.1 requires source-bound, consumer-specific proof and a feasible counterexample/replay; an observed discovery/model gap is not solved by inventing a registry."
+      },
+      "requalification": {
+        "sourceCut": "c8cec7d7ee8ebcfcecf1893ac32a894b71051339",
+        "proofStanding": "UNKNOWN",
+        "observedAt": "2026-10-26T04:50:00+08:00",
+        "scope": "evidence-only issue, not owner-native verification or deploy authority"
+      }
     }
   ],
   "verification": {
