@@ -1539,7 +1539,20 @@ class BrowserlessAutomationService:
         prompt = _continuation_prompt(prompt)
         prompt_digest = "sha256:" + hashlib.sha256(prompt.encode("utf-8")).hexdigest()
         try:
-            mapping = SQLiteWakeTurnMap(self.config.turn_ledger).allocate(
+            pg_dsn = os.environ.get("ORDIVON_WAKE_TURN_POSTGRES_DSN")
+            if pg_dsn:
+                try:
+                    from postgres_wake_turn_map import PostgresWakeTurnMap
+                except ModuleNotFoundError:
+                    from scripts.postgres_wake_turn_map import PostgresWakeTurnMap
+                wake_owner = PostgresWakeTurnMap(pg_dsn)
+                # A legacy source with an active writer is not a safe cutover.
+                # Explicit PG cutover must have retired all SQLite wake writes
+                # and proven identities equal before any new turn can be sent.
+                wake_owner.assert_legacy_sealed(self.config.turn_ledger)
+            else:
+                wake_owner = SQLiteWakeTurnMap(self.config.turn_ledger)
+            mapping = wake_owner.allocate(
                 campaign_ref=campaign_ref,
                 agent_id=agent_id,
                 wake_intent_id=wake_intent_id,
