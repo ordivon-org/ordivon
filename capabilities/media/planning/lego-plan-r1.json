@@ -123,6 +123,34 @@
       "acceptance": [
         "Output identity remains stable independently of publication."
       ]
+    },
+    {
+      "id": "V06",
+      "label": "ExperimentTrialHistory",
+      "kind": "state_authority",
+      "responsibility": "Hold the R6 experiment's append-only, identity-bound event history in PostgreSQL; local SQLite is legacy import evidence, not a second active ledger.",
+      "authority": "Media R6 experimental consumer",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "src/ordivon_studio/research_validity.py",
+        "scripts/run-r6-creative-validity.py",
+        "scripts/migrate-r6-trials.py",
+        "tests/test_research_validity.py::ResearchValidityTest.test_parallel_trial_appends_commit_one_complete_hash_chain",
+        "tests/test_research_validity.py::ResearchValidityTest.test_legacy_sqlite_event_chain_migrates_once_to_pg_without_mutating_source"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "Runtime/Harness job journals",
+        "Host Work and Social records",
+        "legacy SQLite source deletion"
+      ],
+      "acceptance": [
+        "R6 consumer refuses a local SQLite path as the active ledger.",
+        "Concurrent PostgreSQL event writes retain one complete hash chain with source-defined event identity.",
+        "Legacy SQLite migration verifies every source event and commits exact equivalent PostgreSQL history or does not proceed.",
+        "Real PostgreSQL tests run with disposable DSN; an absent DSN does not authorize PostgreSQL acceptance."
+      ]
     }
   ],
   "edges": [
@@ -199,6 +227,25 @@
         "Independent reader evaluation not yet performed."
       ],
       "nextAction": "Mechanical SourceCarrier/Git proofs passed in the current candidate; request independent writing/reader falsification and future source-revision accessibility after merge; do not promote narrative meaning from machine PASS."
+    },
+    {
+      "id": "VS3",
+      "objective": "Qualify R6 Trial History as one PG-native capability LEGO, with a one-time verified SQLite importer instead of dual store authorities.",
+      "status": "IN_PROGRESS",
+      "nodeIds": [
+        "V06"
+      ],
+      "acceptance": [
+        "Media pg:verify runs against disposable PostgreSQL 18 and proves append, concurrent identity, history immutability and migration without implicit skips.",
+        "GitHub protected Owner CI admits the exact source change, and actual historical writers are quiesced before physical cutover."
+      ],
+      "evidence": [
+        "src/ordivon_studio/research_validity.py",
+        "tests/test_research_validity.py",
+        "mise.toml"
+      ],
+      "blockers": [],
+      "nextAction": "Publish the scoped PG change through GitHub required CI; do not remove live SQLite historical files until their read/write consumers and source snapshot hashes are reconciled."
     }
   ],
   "gaps": [
