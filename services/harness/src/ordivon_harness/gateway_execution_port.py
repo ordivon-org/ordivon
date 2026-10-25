@@ -260,6 +260,12 @@ class GatewayExecutionPort:
                     'maxBytes': max_bytes,
                 },
             )
+            observed_operation = _field(payload, 'operation_ref', 'operationRef')
+            if observed_operation != result.operation_ref:
+                raise GatewayExecutionError('Gateway artifact read changed operation identity')
+            observed_offset = payload.get('offset')
+            if type(observed_offset) is not int or observed_offset != offset:
+                raise GatewayExecutionError('Gateway artifact read offset does not match request')
             observed_id = _field(payload, 'artifact_id', 'artifactId')
             if observed_id != artifact_id:
                 raise GatewayExecutionError('Gateway artifact read changed artifact identity')
