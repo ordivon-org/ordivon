@@ -84,8 +84,7 @@ class PostgresConversationBindingStore:
                     created_at_ms BIGINT NOT NULL CHECK(created_at_ms >= 0),
                     PRIMARY KEY(campaign_ref, agent_id),
                     CONSTRAINT cft_binding_digests CHECK (
-                        campaign_ref ~ '^sha256:[0-9a-f]{64}$'
-                        AND evidence_digest ~ '^sha256:[0-9a-f]{64}$'
+                        evidence_digest ~ '^sha256:[0-9a-f]{64}$'
                         AND binding_digest ~ '^sha256:[0-9a-f]{64}$'
                     ),
                     CONSTRAINT cft_binding_uuid7 CHECK (
@@ -103,8 +102,7 @@ class PostgresConversationBindingStore:
                 "ORDER BY ordinal_position"
             ).fetchall()
             expected = [
-                (name, "bigint" if name == "created_at_ms" else "text", "NO")
-                for name in _COLUMNS
+                (name, "bigint" if name == "created_at_ms" else "text", "NO") for name in _COLUMNS
             ]
             if physical != expected:
                 raise ConversationBindingConflict("PostgreSQL binding schema shape differs")
@@ -119,7 +117,9 @@ class PostgresConversationBindingStore:
                 and any(t == "c" and "sha256:" in body for t, body in constraints)
                 and any(t == "c" and "session_id" in body for t, body in constraints)
             ):
-                raise ConversationBindingConflict("PostgreSQL binding native uniqueness/check law absent")
+                raise ConversationBindingConflict(
+                    "PostgreSQL binding native uniqueness/check law absent"
+                )
 
     @staticmethod
     def _canonical_rows(rows: list[dict[str, Any]]) -> list[tuple[Any, ...]]:

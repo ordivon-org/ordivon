@@ -196,9 +196,10 @@ def test_pg_native_before_insert_clock_forgery_fails_before_commit(owner) -> Non
     with pytest.raises(ConversationBindingConflict, match="existing binding"):
         owner.adopt_binding(**payload())
     with psycopg.connect(owner.dsn) as pg:
-        assert pg.execute(
-            "SELECT COUNT(*) FROM ordivon_harness.conversation_bindings"
-        ).fetchone()[0] == 0
+        assert (
+            pg.execute("SELECT COUNT(*) FROM ordivon_harness.conversation_bindings").fetchone()[0]
+            == 0
+        )
 
 
 def test_pg_and_wake_12_concurrent_first_schema_admissions() -> None:
@@ -209,6 +210,7 @@ def test_pg_and_wake_12_concurrent_first_schema_admissions() -> None:
     from threading import Barrier
 
     rendezvous = Barrier(12)
+
     def open_first(index: int) -> None:
         rendezvous.wait(timeout=15)
         if index & 1:
@@ -217,11 +219,13 @@ def test_pg_and_wake_12_concurrent_first_schema_admissions() -> None:
             PostgresConversationBindingStore(
                 DSN, legacy_source=Path("/unused/pg-test.sqlite"), fresh_bootstrap=True
             )
+
     with ThreadPoolExecutor(max_workers=12) as executor:
         list(executor.map(open_first, range(12)))
     with psycopg.connect(DSN) as pg:
         tables = {
-            x[0] for x in pg.execute(
+            x[0]
+            for x in pg.execute(
                 "SELECT table_name FROM information_schema.tables "
                 "WHERE table_schema='ordivon_harness'"
             )
@@ -248,3 +252,19 @@ def test_counterfeit_pg_binding_schema_rejected_before_admission() -> None:
     finally:
         with psycopg.connect(DSN, autocommit=True) as pg:
             pg.execute("DROP SCHEMA ordivon_harness CASCADE")
+
+
+def test_pg_cutover_retains_valid_legacy_non_digest_campaign_reference(owner) -> None:
+    """Refinement preserves the actual legacy _text() acceptance contract.
+
+    The old store allows a trimmed nonempty campaignRef and its canonical
+    digest covers that exact value. PostgreSQL cannot silently forbid a
+    previously admitted source identity during cutover.
+    """
+    legacy = SQLiteConversationBindingStore(owner.legacy_source)
+    request = payload()
+    request["campaign_ref"] = "campaign:historic-role"
+    original = legacy.adopt_binding(**request)
+    imported = owner.retire_legacy_and_import(owner.legacy_source)
+    assert imported["sourceRows"] == 1
+    assert owner.get_binding("campaign:historic-role", request["agent_id"]) == original
