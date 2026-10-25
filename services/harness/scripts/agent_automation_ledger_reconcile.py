@@ -51,7 +51,7 @@ def _read_rows(path: Path) -> list[sqlite3.Row]:
     path = Path(path)
     if not path.is_file():
         raise ValueError("materialization ledger does not exist")
-    db = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+    db = sqlite3.connect(f"{path.absolute().as_uri()}?mode=ro", uri=True)
     db.row_factory = sqlite3.Row
     try:
         exists = db.execute(
