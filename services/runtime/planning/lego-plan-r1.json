@@ -793,10 +793,12 @@
         "planning/tool-necessity-audit-r1.json",
         "crates/ordivon-runtime-mcp/src/server/tests/tool_catalog.rs",
         "cargo test --locked -q -p ordivon-runtime-mcp => 66/66 + 10/10 PASS",
-        "RUNTIME-RESULT-FOREIGN-RECOVERY-01 / EVIDENCE_IDENTITY + ABSTRACTION_RECOVERY: formal/RuntimeDispatchR1.tla, formal/RuntimeDispatchR1.foreign-result-probe.cfg, scripts/tla-formal, scripts/tests/test_formal_trace.py; pinned TLC 3-Attempt green plus reachability and recovery-disabled RED counterexamples"
+        "RUNTIME-RESULT-FOREIGN-RECOVERY-01 / EVIDENCE_IDENTITY + ABSTRACTION_RECOVERY: formal/RuntimeDispatchR1.tla, formal/RuntimeDispatchR1.foreign-result-probe.cfg, scripts/tla-formal, scripts/tests/test_formal_trace.py; pinned TLC 3-Attempt green plus reachability and recovery-disabled RED counterexamples",
+        "DB-PG-MIGRATE-01: PostgreSQL is preferred, current Runtime rusqlite Registry remains the real Job/Attempt consumer; tools/repo/check_sql_dialects.py enforces exact source-bound legacy SQLite direct-call inventory pending an evidence-proven PG cutover."
       ],
       "blockers": [
-        "Actual Rust/SQLite result ingestion and same-Attempt foreign->matching correction are not yet mechanized refinement witnesses; implementation recovery remains UNKNOWN, and abstract ENABLED does not prove eventuality."
+        "Actual Rust/SQLite result ingestion and same-Attempt foreign->matching correction are not yet mechanized refinement witnesses; implementation recovery remains UNKNOWN, and abstract ENABLED does not prove eventuality.",
+        "Replacing Runtime's SQLite registry requires separately proving atomic admission, durable Attempt/Job uniqueness, held-orphaned reservation state, backup/restore identity, idempotent request replay, and cross-process contention on real PostgreSQL; no migration has been executed."
       ],
       "nextAction": "R00 and the R01 baseline gate are complete; continue broader physical test partition opportunistically while RW1 state-contract extraction proceeds behind independently runnable contract and real-system gates."
     },
@@ -1061,6 +1063,35 @@
         "Do not infer protected publication, installed Runtime qualification or exact externally observable Workspace close semantics from local source tests alone."
       ],
       "nextAction": "After owner-native verification and protected PR merge, use same-source installed readback to verify rescue-ref atomicity on live Runtime; leave genuinely dirty/unborn Workspaces retained until exact consumer and candidate proof permits safe closure."
+    },
+    {
+      "id": "RW12",
+      "objective": "Refine the live single-writer Runtime SQLite Registry R06 into PostgreSQL-first durable authority without any dual-writer period, unreplayed committed PG effect, or unverified source cutover. Reuse the existing locked TLA+/TLC kernel before attempting deployment; migrate real rows only with native producer parity.",
+      "status": "PROPOSED",
+      "nodeIds": [
+        "R03",
+        "R06",
+        "R12",
+        "R17"
+      ],
+      "acceptance": [
+        "Bounded cutover model RuntimePgCutoverR1 passes TLC on the currently locked upstream toolchain, checking owner typing, certified promotion, committed PostgreSQL effect preservation and frozen-source parity.",
+        "Two independent bad transitions, one promoting PG before parity certification and one rolling back after an independent PG commit, each yield the exact named TLC invariant violation, exit 12 and nonempty counterexample trace. Tool errors or merely printed labels are not evidence.",
+        "Physical cutover requires source-bound consistency snapshot and revision parity, no overlapping SQLite/PG write authority, a PG-exclusive installed Runtime writer, exact replay/recovery/backup/rollback contracts and active Job/Attempt/Workspace native consumer tests. The bounded TLA+ model never proves these Rust+database obligations.",
+        "PostgreSQL is the target default durable authority. The active 5 GiB SQLite source remains authoritative until a verified PG implementation and readback exists; no blind SQLite rm/mv, pgloader-as-proof, or two-authority mode is admitted."
+      ],
+      "evidence": [
+        "Runtime R06 existing natural Owner Registry and its native transactional and recovery consumers.",
+        "services/runtime/formal/RuntimePgCutoverR1.tla",
+        "services/runtime/formal/RuntimePgCutoverR1.cfg",
+        "services/runtime/scripts/tla-formal check/falsify existing digest-bound TLC execution.",
+        "2026-10-26 00:30+08 observed /var/lib/ordivon/registry/registry.sqlite3 approximately 5.0 GiB and actively modified; Host already uses PostgreSQL, Harness separate legacy SQLite consumers."
+      ],
+      "blockers": [
+        "Installed Runtime PostgreSQL store implementation and exact SQL Schema/CAS transaction mapping not yet implemented or qualified.",
+        "No independent physical cross-database checkpoint, row/digest/cursor parity, bounded dual-read equivalence and provider-effect recovery proof exists."
+      ],
+      "nextAction": "Implement PostgreSQL R06 storage adapter using mature Rust/Postgres provider, qualify transaction and WAL/readback CDC under a paused source and PG target; only then attempt an exact-owner cutover with rollback boundary and installed readback, retaining the original SQLite until legal recovery is proven."
     }
   ],
   "gaps": [

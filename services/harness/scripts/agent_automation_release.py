@@ -155,7 +155,7 @@ def _materialization_ledger_paths(state_root: Path = ADMISSION_ROOT) -> tuple[Pa
 def _materialization_ledger_snapshot(path: Path) -> dict:
     if not path.is_file():
         raise ReleaseError(f"materialization ledger is missing: {path}")
-    db = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+    db = sqlite3.connect(path.absolute().as_uri() + "?mode=ro", uri=True)
     try:
         integrity = db.execute("PRAGMA integrity_check").fetchone()
         if integrity is None or integrity[0] != "ok":
@@ -252,7 +252,7 @@ def prepare_materialization_ledger_migration(state_root: Path = ADMISSION_ROOT) 
     current.parent.mkdir(parents=True, exist_ok=True)
     staging = current.with_name(current.name + ".next")
     staging.unlink(missing_ok=True)
-    source = sqlite3.connect(f"file:{legacy}?mode=ro", uri=True)
+    source = sqlite3.connect(legacy.absolute().as_uri() + "?mode=ro", uri=True)
     destination = sqlite3.connect(staging)
     try:
         source.backup(destination)

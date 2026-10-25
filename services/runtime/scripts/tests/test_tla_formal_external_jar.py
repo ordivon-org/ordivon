@@ -85,7 +85,11 @@ class TlaFormalExternalJarTests(unittest.TestCase):
         result = self.invoke(command="check", jar=self.external)
         self.assertEqual(result.returncode, 0, result.stderr)
         observed = self.java_log.read_text(encoding="utf-8")
-        self.assertEqual(observed.count(str(self.external)), 2)
+        # Two source-bound models, each parsed and checked with the same
+        # externally pinned toolchain; no undeclared local-jar fallback.
+        self.assertEqual(observed.count(str(self.external)), 4)
+        self.assertIn("RuntimeDispatchR1.tla", observed)
+        self.assertIn("RuntimePgCutoverR1.tla", observed)
         self.assertIn("tla2sany.SANY", observed)
         self.assertIn("tlc2.TLC", observed)
 
