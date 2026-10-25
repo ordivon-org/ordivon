@@ -125,7 +125,8 @@
         "scripts/postgres_wake_turn_map.py",
         "tests/test_postgres_wake_turn_map.py",
         "tests/test_browserless_postgres_wake_selection.py",
-        "tests/test_postgres_wake_turn_map.py::test_first_schema_admission_is_serialized_on_disposable_pg"
+        "tests/test_postgres_wake_turn_map.py::test_first_schema_admission_is_serialized_on_disposable_pg",
+        "tests/test_postgres_wake_turn_map.py::test_pg_native_identity_immutability_rejects_mutation"
       ],
       "dependencies": [],
       "mustNotOwn": [
@@ -147,7 +148,8 @@
         "PostgreSQL-first cutover acceptance is consumer equivalence for run/event CAS, leases, unique dedupe and provider receipts under serializable retry, independent data restoration/rollback, production readback and retirement of superseded SQLite authority; a connector or schema alone is not migration.",
         "Migration-source identity: existing Agent Automation Release must snapshot and copy the exact SQLite ledger path through standard-library URI encoding. A literal '#' in a filename or ancestor directory cannot redirect the read to another valid database, and a corrupted named source must never pass by alias. This is interim SQLite source integrity, not PostgreSQL migration completion.",
         "PostgreSQL-first WakeTurn identity cutover: a wakeIntentId maps to exactly one immutable UUIDv7 turnRequestId under native PostgreSQL SERIALIZABLE retry. A previously populated SQLite wake source may be retired only after a quiesced, exclusive-source-lock import proves row-by-row equivalence and installs exact INSERT/UPDATE/DELETE fail-closed triggers. Browserless may use PG only on an explicit DSN, after validating the source seal plus legacy-to-PG identity equality; a missing source requires explicitly qualified fresh bootstrap. Failure must hold without SQLite fallback or provider SEND. This source-level/native PostgreSQL evidence does not prove already-running legacy workers have stopped or an installed deployment has switched.",
-        "PostgreSQL WakeTurn first-schema admission is a single serialized database capability: a transaction-scoped PostgreSQL advisory lock precedes CREATE SCHEMA/TABLE; on an empty disposable database 12-way cold initialization succeeds without pg_namespace UniqueViolation and creates exactly one schema/table."
+        "PostgreSQL WakeTurn first-schema admission is a single serialized database capability: a transaction-scoped PostgreSQL advisory lock precedes CREATE SCHEMA/TABLE; on an empty disposable database 12-way cold initialization succeeds without pg_namespace UniqueViolation and creates exactly one schema/table.",
+        "After PostgreSQL WakeTurn identity admission, the native PostgreSQL owner must reject UPDATE, DELETE and TRUNCATE of the persisted wake identity row, rather than rely only on Agent-side post-write reads. Real PostgreSQL 18 negative controls must show all three illegal mutation/erase attempts fail and the original turn UUIDv7 remains unchanged. Privileged trigger disabling, direct file corruption and DROP TABLE are outside this scoped contract and require owner-role/privilege boundaries; the ProviderClaimR1 abstract TLC result is not a PG implementation refinement proof."
       ]
     }
   ],
