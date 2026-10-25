@@ -329,6 +329,167 @@ trait Provider {
             f"compiler-elided impl falsely admitted as Owner contract: {errors}",
         )
 
+    def test_cfg_elided_method_cannot_claim_runtime_owner_contract(self):
+        # A real impl may contain only a method removed by rustc cfg handling.
+        for attribute in ('#[cfg(any())]', '#[cfg(feature = "nonexistent")]'):
+            with self.subTest(attribute=attribute):
+                with tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary)
+                    source = root / "runtime.rs"
+                    source.write_text(
+                        f"impl Registry {{\n  {attribute}\n"
+                        "  fn mark_dispatch_issued(&self) {}\n}\n",
+                        encoding="utf-8",
+                    )
+                    old_root = self.module.ROOT
+                    self.module.ROOT = root
+                    try:
+                        errors = self.module.require_owned_method(
+                            source, "impl", "Registry", "mark_dispatch_issued"
+                        )
+                    finally:
+                        self.module.ROOT = old_root
+                self.assertTrue(
+                    errors,
+                    f"cfg-elided method falsely admitted as Runtime contract: {attribute}",
+                )
+
+    def test_multiline_cfg_before_test_attribute_does_not_forge_a_witness(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "tests.rs"
+            old_root = self.module.ROOT
+            self.module.ROOT = root
+            try:
+                for gating in (
+                    "#[cfg(\n  any()\n)]",
+                    "#[cfg_attr(\n  all(),\n  ignore\n)]",
+                ):
+                    with self.subTest(gating=gating):
+                        source.write_text(
+                            gating + "\n#[test]\nfn phantom_witness() {}\n",
+                            encoding="utf-8",
+                        )
+                        errors = self.module.require_test_symbol(
+                            source, "phantom_witness"
+                        )
+                        self.assertTrue(
+                            errors,
+                            f"conditional test falsely admitted as always-on: {gating}",
+                        )
+            finally:
+                self.module.ROOT = old_root
+
+    def test_multiline_cfg_attribute_cannot_promote_method_to_proof(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "runtime.rs"
+            source.write_text(
+                "impl Registry {\n"
+                "  #[cfg(\n"
+                "     any()\n"
+                "  )]\n"
+                "  #[allow(dead_code)]\n"
+                "  fn mark_dispatch_issued(&self) {}\n"
+                "}\n",
+                encoding="utf-8",
+            )
+            old_root = self.module.ROOT
+            self.module.ROOT = root
+            try:
+                errors = self.module.require_owned_method(
+                    source, "impl", "Registry", "mark_dispatch_issued"
+                )
+            finally:
+                self.module.ROOT = old_root
+        self.assertTrue(errors, "multiline cfg hid method removal from trace gate")
+
+    def test_nested_rust_function_is_not_an_impl_method(self):
+        # Rust permits nested functions, but Registry::mark_dispatch_issued
+        # does NOT exist here. Textual containment is not an Owner contract.
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "runtime.rs"
+            source.write_text(
+                "impl Registry {\n"
+                "  fn helper(&self) {\n"
+                "    fn mark_dispatch_issued() {}\n"
+                "  }\n"
+                "}\n",
+                encoding="utf-8",
+            )
+            old_root = self.module.ROOT
+            self.module.ROOT = root
+            try:
+                errors = self.module.require_owned_method(
+                    source, "impl", "Registry", "mark_dispatch_issued"
+                )
+            finally:
+                self.module.ROOT = old_root
+        self.assertTrue(errors, "nested function falsely admitted as Registry method")
+    def test_unexpanded_macro_rules_cannot_forge_a_proving_test(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "lib.rs").write_text(
+                "#[cfg(test)]\nmod tests;\n", encoding="utf-8"
+            )
+            child = root / "tests.rs"
+            original_root = self.module.ROOT
+            self.module.ROOT = root
+            try:
+                for opening, closing in (("{", "}"), ("(", ")"), ("[", "]")):
+                    with self.subTest(delimiter=opening):
+                        child.write_text(
+                            f"macro_rules! inert {opening}\n"
+                            "    () => {\n"
+                            "        #[test]\n"
+                            "        fn phantom_proof() {}\n"
+                            "    };\n"
+                            f"{closing}\n",
+                            encoding="utf-8",
+                        )
+                        errors = self.module.require_test_symbol(child, "phantom_proof")
+                        self.assertTrue(
+                            any("unexpanded macro_rules!" in error for error in errors),
+                            f"macro tokens incorrectly granted test proof: {errors}",
+                        )
+                child.write_text(
+                    "macro_rules! inert { () => { #[test] fn fake() {} }; }\n"
+                    "#[test]\nfn active_test() {}\n",
+                    encoding="utf-8",
+                )
+                self.assertEqual(
+                    self.module.require_test_symbol(child, "active_test"), []
+                )
+            finally:
+                self.module.ROOT = original_root
+
+    def test_unexpanded_macro_rules_cannot_forge_an_owner_method(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "mod.rs").write_text("mod owner;\n", encoding="utf-8")
+            child = root / "owner.rs"
+            child.write_text(
+                "macro_rules! inert {\n"
+                "    () => {\n"
+                "        impl Registry { fn phantom_owner(&self) {} }\n"
+                "    };\n"
+                "}\n",
+                encoding="utf-8",
+            )
+            original_root = self.module.ROOT
+            self.module.ROOT = root
+            try:
+                errors = self.module.require_owned_method(
+                    child, "impl", "Registry", "phantom_owner"
+                )
+            finally:
+                self.module.ROOT = original_root
+            self.assertTrue(
+                any("unexpanded macro_rules!" in error for error in errors),
+                f"macro tokens incorrectly granted owner proof: {errors}",
+            )
+
     def test_external_cfg_disabled_module_cannot_forge_a_proving_test(self):
         # Real rustc --test compiles zero tests when mod tests; is cfg(any()).
         with tempfile.TemporaryDirectory() as temporary:

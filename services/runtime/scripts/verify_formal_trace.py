@@ -193,16 +193,34 @@ def _rust_code_only(text: str) -> str:
 
 
 def _attached_rust_attributes(code: str, item_start: int) -> list[str]:
-    """Read lexical attributes attached to an item, not to an earlier sibling."""
+    """Read adjacent Rust attributes, including multiline #[cfg(...)] blocks.
+
+    Work on the comment/string-masked source, never the original raw text.
+    This is conservative identity screening, not a replacement for rustc.
+    """
+    lines = code[:item_start].splitlines()
+    cursor = len(lines) - 1
     attrs: list[str] = []
-    for line in reversed(code[:item_start].splitlines()):
-        stripped = line.strip()
-        if not stripped:
-            continue
-        if stripped.startswith("#[") and stripped.endswith("]"):
-            attrs.append(stripped)
-        else:
+    while cursor >= 0:
+        while cursor >= 0 and not lines[cursor].strip():
+            cursor -= 1
+        if cursor < 0 or not lines[cursor].strip().endswith("]"):
             break
+        begin = cursor
+        bracket_depth = 0
+        while begin >= 0:
+            fragment = lines[begin].strip()
+            bracket_depth += fragment.count("]") - fragment.count("[")
+            if bracket_depth <= 0:
+                break
+            begin -= 1
+        if begin < 0 or bracket_depth != 0:
+            break
+        attribute = " ".join(line.strip() for line in lines[begin : cursor + 1])
+        if not re.fullmatch(r"#\s*\[.*\]", attribute):
+            break
+        attrs.append(attribute)
+        cursor = begin - 1
     return attrs
 
 
@@ -237,6 +255,35 @@ def _conditional_rust_ancestor(
             _attached_rust_attributes(code, match.start()), test_context=test_context
         ):
             return True
+    return False
+
+
+
+def _inside_macro_rules_definition(code: str, witness_start: int) -> bool:
+    """Reject source-only symbols inside macro_rules! bodies.
+
+    Macro token definitions are not Rust items until expanded. A lexical test
+    symbol or impl inside an uninvoked macro is not a compiled/registered
+    witness. This conservative guard does not claim general macro expansion
+    verification; only rustc/native proof can establish generated items.
+    """
+    pairs = {"{": "}", "(": ")", "[": "]"}
+    pattern = r"\bmacro_rules\s*!\s*[A-Za-z_]\w*\s*([{\[(])"
+    for match in re.finditer(pattern, code):
+        if match.start() >= witness_start:
+            break
+        opener = match.group(1)
+        closing = pairs[opener]
+        depth = 0
+        for index in range(match.end() - 1, len(code)):
+            if code[index] == opener:
+                depth += 1
+            elif code[index] == closing:
+                depth -= 1
+                if depth == 0:
+                    if witness_start < index:
+                        return True
+                    break
     return False
 
 
@@ -363,6 +410,8 @@ def require_owned_method(path: Path, owner_kind: str, owner: str, symbol: str) -
                 rf"\bimpl(?:\s*<[^{{>]*>)?\s+{re.escape(owner)}(?:\s*<[^{{>]*>)?\s*{{"
             )
         item = pattern.search(code)
+        if item and _inside_macro_rules_definition(code, item.start()):
+            return [f"{path.relative_to(ROOT)}::{owner} is inside an unexpanded macro_rules! definition"]
         if item and (
             _has_unqualified_cfg(
                 _attached_rust_attributes(code, item.start()), test_context=False
@@ -372,9 +421,37 @@ def require_owned_method(path: Path, owner_kind: str, owner: str, symbol: str) -
             return [f"{path.relative_to(ROOT)}::{owner} has conditional ancestor or Owner cfg"]
     except (OSError, UnicodeError, ValueError) as error:
         return [f"{path.relative_to(ROOT)}::{owner}: {error}"]
-    if not re.search(rf"\bfn\s+{re.escape(symbol)}\s*\(", block):
+    # Methods must be direct children of this impl/trait. A nested Rust
+    # function is legal source, but it is NOT the declared Owner method.
+    # Source masking above removes comments and literals before brace counting.
+    opening = block.find("{")
+    if opening < 0:
+        return [f"{path.relative_to(ROOT)}::{owner} missing owner body"]
+    method_pattern = re.compile(rf"\bfn\s+{re.escape(symbol)}\s*\(")
+    matches = list(method_pattern.finditer(block, opening + 1))
+    if not matches:
         return [f"{path.relative_to(ROOT)}::{owner} missing method symbol {symbol!r}"]
-    return []
+    conditional = False
+    for match in matches:
+        depth = 0
+        for char in block[opening : match.start()]:
+            if char == "{":
+                depth += 1
+            elif char == "}":
+                depth -= 1
+        if depth != 1:
+            continue
+        # A method compiled out by cfg/cfg_attr cannot witness the physical
+        # Runtime seam even when the surrounding impl is always compiled.
+        if _has_unqualified_cfg(
+            _attached_rust_attributes(block, match.start()), test_context=False
+        ):
+            conditional = True
+            continue
+        return []
+    if conditional:
+        return [f"{path.relative_to(ROOT)}::{owner}::{symbol} is a conditional Owner method"]
+    return [f"{path.relative_to(ROOT)}::{owner} missing direct method symbol {symbol!r}"]
 
 
 def require_test_symbol(path: Path, symbol: str, *, require_ignored: bool = False) -> list[str]:
@@ -392,22 +469,18 @@ def require_test_symbol(path: Path, symbol: str, *, require_ignored: bool = Fals
     match = re.search(rf"(?m)^\s*fn\s+{re.escape(symbol)}\s*\(", code)
     if not match:
         return [f"{path.relative_to(ROOT)} missing proving test symbol {symbol!r}"]
+    if _inside_macro_rules_definition(code, match.start()):
+        return [f"{path.relative_to(ROOT)}::{symbol} is inside an unexpanded macro_rules! definition"]
     try:
         if _conditional_rust_ancestor(code, match.start(), test_context=True):
             return [f"{path.relative_to(ROOT)}::{symbol} has conditional ancestor module"]
     except ValueError as error:
         return [f"{path.relative_to(ROOT)}::{symbol}: {error}"]
-    # Test identity is a proof reference: attribute must belong to this function,
-    # not merely appear near it on an earlier function (or in a comment).
-    attributes = []
-    for line in reversed(text[: match.start()].splitlines()):
-        stripped = line.strip()
-        if not stripped:
-            continue
-        if stripped.startswith("#[") and stripped.endswith("]"):
-            attributes.append(stripped)
-            continue
-        break
+    # Test identity is a proof reference: inspect only attributes attached
+    # to this function, including multiline cfg/cfg_attr. Use the same masked
+    # source that located the function; source text in literals/comments is
+    # not an executable test attribute.
+    attributes = _attached_rust_attributes(code, match.start())
     if not any(re.fullmatch(r"#\s*\[\s*test\s*\]", attribute) for attribute in attributes):
         return [f"{path.relative_to(ROOT)}::{symbol} is not marked #[test]"]
     # A source-level #[test] is not always-on evidence if Rust can compile it
@@ -415,7 +488,9 @@ def require_test_symbol(path: Path, symbol: str, *, require_ignored: bool = Fals
     # without proof that its conditional branch is active in the Owner CI cut.
     if any(re.fullmatch(r"#\s*\[\s*cfg(?:_attr)?\s*\(.*\)\s*\]", attr) for attr in attributes):
         return [f"{path.relative_to(ROOT)}::{symbol} is conditionally compiled or ignored, not an always-on proving test"]
-    ignored = any(re.fullmatch(r'#\s*\[\s*ignore(?:\s*=\s*".*")?\s*\]', attribute) for attribute in attributes)
+    # Rust string values were masked above, but a reason-bearing #[ignore]
+    # remains an ignore attribute whether its reason is quoted or blanked.
+    ignored = any(re.fullmatch(r"#\s*\[\s*ignore(?:\s*=\s*.*)?\s*\]", attr) for attr in attributes)
     if ignored and not require_ignored:
         return [f"{path.relative_to(ROOT)}::{symbol} is ignored, not an always-on proving test"]
     if require_ignored and not ignored:
