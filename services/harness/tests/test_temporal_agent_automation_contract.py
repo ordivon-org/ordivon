@@ -164,6 +164,7 @@ class TemporalAgentAutomationContractTests(unittest.TestCase):
                 "rfc8785==0.1.4",
                 "mcp==2.3.0",
                 "httpx==0.28.1",
+                "psycopg==3.3.6",
             ],
         )
 

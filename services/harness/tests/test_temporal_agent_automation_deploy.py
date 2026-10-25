@@ -36,18 +36,19 @@ class TemporalDeployTests(unittest.TestCase):
         expected = deploy.expected_runtime_versions()
         self.assertEqual(expected["temporalio"], "1.34.0")
         self.assertEqual(expected["mcp"], "2.3.0")
+        self.assertEqual(expected["psycopg"], "3.3.6")
         self.assertEqual(expected["pythonVersion"], "3.15.1")
         self.assertEqual(expected["sqliteVersion"], "3.54.0")
         with tempfile.TemporaryDirectory() as tmp:
             freeze = Path(tmp) / "temporal-requirements.txt"
             freeze.write_text(
-                "temporalio==1.35.0\nrfc8785==0.1.4\nmcp==2.3.0\nhttpx==0.28.1\n"
+                "temporalio==1.35.0\nrfc8785==0.1.4\nmcp==2.3.0\nhttpx==0.28.1\npsycopg==3.3.6\n"
             )
             with patch.object(deploy, "REQUIREMENTS", freeze):
                 self.assertEqual(deploy.expected_runtime_versions()["temporalio"], "1.35.0")
                 for invalid in (
-                    "temporalio>=1.35.0\nrfc8785==0.1.4\nmcp==2.3.0\nhttpx==0.28.1\n",
-                    "temporalio==1.35.0\nmcp==2.3.0\nmcp==2.3.1\nhttpx==0.28.1\n",
+                    "temporalio>=1.35.0\nrfc8785==0.1.4\nmcp==2.3.0\nhttpx==0.28.1\npsycopg==3.3.6\n",
+                    "temporalio==1.35.0\nmcp==2.3.0\nmcp==2.3.1\nhttpx==0.28.1\npsycopg==3.3.6\n",
                     "temporalio==1.35.0\nrfc8785==0.1.4\nmcp==2.3.0\nunknown==1\n",
                 ):
                     freeze.write_text(invalid)
