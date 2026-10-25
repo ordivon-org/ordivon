@@ -279,7 +279,7 @@ def _backup_database(connection: sqlite3.Connection, destination: Path) -> None:
 
 
 def _verify_sqlite(path: Path) -> None:
-    connection = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+    connection = sqlite3.connect(path.absolute().as_uri() + "?mode=ro", uri=True)
     try:
         rows = tuple(str(row[0]) for row in connection.execute("PRAGMA quick_check"))
         if rows != ("ok",):
@@ -289,7 +289,7 @@ def _verify_sqlite(path: Path) -> None:
 
 
 def _database_object_refs(path: Path) -> set[tuple[str, str, int]]:
-    connection = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+    connection = sqlite3.connect(path.absolute().as_uri() + "?mode=ro", uri=True)
     try:
         rows = connection.execute(
             "SELECT digest, kind, byte_length FROM object_refs ORDER BY digest"

@@ -2,11 +2,14 @@ from __future__ import annotations
 
 from pathlib import Path
 import stat
+import sqlite3
 import tempfile
 import unittest
 
 from ordivon_harness.sqlite_store import HarnessJournalCorruption, SQLiteHarnessStore
 from ordivon_harness.store_ops import (
+    _verify_sqlite,
+    _database_object_refs,
     backup_harness_store,
     restore_harness_backup,
     verify_harness_backup,
@@ -42,6 +45,43 @@ class HarnessStoreOperationsTests(unittest.TestCase):
                 referenced_objects=(evidence,),
             )
         return contract.harness_run_id, evidence.digest
+
+    def test_readonly_sqlite_uri_binds_exact_reserved_filename(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            wrong = root / "harness"
+            expected = root / "harness#production.sqlite3"
+            for path, identity in ((wrong, "foreign"), (expected, "correct")):
+                with sqlite3.connect(path) as db:
+                    db.execute(
+                        "CREATE TABLE object_refs (digest TEXT, kind TEXT, byte_length INTEGER)"
+                    )
+                    db.execute(
+                        "INSERT INTO object_refs VALUES (?, ?, ?)",
+                        (identity, "receipt", 1),
+                    )
+                    db.commit()
+            self.assertEqual(_database_object_refs(expected), {("correct", "receipt", 1)})
+            self.assertNotEqual(
+                _database_object_refs(expected),
+                _database_object_refs(wrong),
+            )
+            _verify_sqlite(expected)
+
+    def test_readonly_sqlite_uri_rejects_invalid_named_source_not_valid_alias(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with sqlite3.connect(root / "harness") as db:
+                db.execute(
+                    "CREATE TABLE object_refs (digest TEXT, kind TEXT, byte_length INTEGER)"
+                )
+                db.commit()
+            damaged = root / "harness#damaged.sqlite3"
+            damaged.write_bytes(b"this is not a SQLite database")
+            with self.assertRaises(sqlite3.DatabaseError):
+                _verify_sqlite(damaged)
+            with self.assertRaises(sqlite3.DatabaseError):
+                _database_object_refs(damaged)
 
     def test_online_backup_verification_and_independent_restore(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
