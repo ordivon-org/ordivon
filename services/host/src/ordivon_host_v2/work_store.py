@@ -361,33 +361,6 @@ class WorkStore:
             )
             return result
 
-    def list_relations(self, work_ref: str) -> dict[str, Any]:
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
-            conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
-            self._require_work(conn, work_ref)
-            rows = conn.execute(
-                "SELECT source_work_ref,relation,target_work_ref,created_by_actor_ref,created_at "
-                "FROM work_relations WHERE source_work_ref=%s OR target_work_ref=%s "
-                "ORDER BY relation,source_work_ref,target_work_ref",
-                (work_ref, work_ref),
-            ).fetchall()
-            return {
-                "schemaVersion": 1,
-                "kind": "ordivon.host-work-relations",
-                "workRef": work_ref,
-                "relations": [
-                    {
-                        "sourceWorkRef": row["source_work_ref"],
-                        "relation": row["relation"],
-                        "targetWorkRef": row["target_work_ref"],
-                        "createdByActorRef": row["created_by_actor_ref"],
-                        "createdAt": row["created_at"].isoformat(),
-                    }
-                    for row in rows
-                ],
-                "truthBoundary": "Host semantic relations only; foreign owner truth is not evaluated",
-            }
-
     @staticmethod
     def _require_actor(conn: psycopg.Connection[dict[str, Any]], actor_ref: str) -> None:
         if (

@@ -167,7 +167,14 @@ def test_100_agent_30_work_15_space_100_topic_10k_message_society() -> None:
     assert standings[actors[4]] == "left"
     regrouped = social.get_space(spaces[1])
     assert {works[1], works[7], works[19]} <= set(regrouped["subjectRefs"])
-    assert not work_store.list_relations(works[1])["relations"]
+    # The native Work Graph has no relation merely because the Social Space
+    # references this Work; this test does not consume an unused Python facade.
+    with psycopg.connect(DSN) as conn:
+        assert conn.execute(
+            "SELECT count(*) FROM work_relations "
+            "WHERE source_work_ref=%s OR target_work_ref=%s",
+            (works[1], works[1]),
+        ).fetchone()[0] == 0
 
 
 def _topic_rows(dsn: str, topic_refs: list[str]) -> list[dict[str, str]]:

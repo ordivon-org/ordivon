@@ -226,3 +226,11 @@ def test_work_list_limit_property_rejects_noninteger_numeric_aliases(monkeypatch
             store.list_works(limit=limit)
 
     check_noninteger()
+
+
+
+def test_unconsumed_work_relation_query_is_not_production_api() -> None:
+    """Relation cycle law is tested against native SQL, not a test-only facade."""
+    from ordivon_host_v2.work_store import WorkStore
+
+    assert "list_relations" not in vars(WorkStore)
