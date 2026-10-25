@@ -60,6 +60,7 @@ REQUIRED_TLC_INVARIANTS = {
     "AmbiguityRequiresReconciliation",
     "NoUnusedAttemptWasDispatched",
     "TerminalAttemptWasDispatched",
+    "ForeignResultDoesNotDisableMatchingRecovery",
 }
 REQUIRED_TLC_PROPERTIES = {"ProgressToFirstDecision"}
 

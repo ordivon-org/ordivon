@@ -775,16 +775,20 @@
       "acceptance": [
         "Invariant manifest complete.",
         "Contract/property/provider/migration/integration tests independently addressable.",
-        "No public Tool or Registry semantic change."
+        "No public Tool or Registry semantic change.",
+        "For a selected unresolved Attempt, foreign result evidence must not eliminate the legal matching-result observation transition; check the native ENABLED invariant and its named falsifying recovery-disabled mutation."
       ],
       "evidence": [
         "planning/invariants-r1.json",
         "planning/test-taxonomy-r1.json",
         "planning/tool-necessity-audit-r1.json",
         "crates/ordivon-runtime-mcp/src/server/tests/tool_catalog.rs",
-        "cargo test --locked -q -p ordivon-runtime-mcp => 66/66 + 10/10 PASS"
+        "cargo test --locked -q -p ordivon-runtime-mcp => 66/66 + 10/10 PASS",
+        "RUNTIME-RESULT-FOREIGN-RECOVERY-01 / EVIDENCE_IDENTITY + ABSTRACTION_RECOVERY: formal/RuntimeDispatchR1.tla, formal/RuntimeDispatchR1.foreign-result-probe.cfg, scripts/tla-formal, scripts/tests/test_formal_trace.py; pinned TLC 3-Attempt green plus reachability and recovery-disabled RED counterexamples"
       ],
-      "blockers": [],
+      "blockers": [
+        "Actual Rust/SQLite result ingestion and same-Attempt foreign->matching correction are not yet mechanized refinement witnesses; implementation recovery remains UNKNOWN, and abstract ENABLED does not prove eventuality."
+      ],
       "nextAction": "R00 and the R01 baseline gate are complete; continue broader physical test partition opportunistically while RW1 state-contract extraction proceeds behind independently runnable contract and real-system gates."
     },
     {
