@@ -56,17 +56,42 @@ class SQLDialectBoundaryTests(unittest.TestCase):
             0,
         )
 
+    def test_py_sqlite_alias_and_direct_import_cannot_bypass_source_fence(self):
+        self.assertEqual(
+            core_sqlite_direct_calls(
+                "services/runtime/alias.py",
+                "import sqlite3 as sql\nsql.connect('/tmp/ledger.db')\n",
+            ),
+            1,
+        )
+        self.assertEqual(
+            core_sqlite_direct_calls(
+                "services/harness/alias.py",
+                "from sqlite3 import connect as open_db\nopen_db('ledger.db')\n",
+            ),
+            1,
+        )
+
+    def test_python_sqlite_comments_do_not_create_false_backend_calls(self):
+        self.assertEqual(
+            core_sqlite_direct_calls(
+                "services/harness/no_db.py",
+                "# sqlite3.connect('/ignored')\nimport psycopg\npsycopg.connect(dsn)\n",
+            ),
+            0,
+        )
+
     def test_core_sqlite_source_symlink_replacement_fails_closed(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             repo = root / "repo"
             target = repo / "services/runtime/rogue.py"
             target.parent.mkdir(parents=True)
-            target.write_text("import sqlite3\\nsqlite3.connect('fake')\\n", encoding="utf-8")
+            target.write_text("import sqlite3\nsqlite3.connect('fake')\n", encoding="utf-8")
             subprocess.run(["git", "init", "-q", str(repo)], check=True)
             subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
             outside = root / "outside.py"
-            outside.write_text("import sqlite3\\nsqlite3.connect('other')\\n", encoding="utf-8")
+            outside.write_text("import sqlite3\nsqlite3.connect('other')\n", encoding="utf-8")
             target.unlink()
             target.symlink_to(outside)
             with self.assertRaisesRegex(ValueError, "symlink"):

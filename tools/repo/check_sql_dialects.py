@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import importlib.metadata
 import json
 import re
@@ -37,7 +38,7 @@ OSQUERY_DEFAULT_TIMEOUT_SECONDS = 30
 # second database registry. Counts catch new direct SQLite use in old paths.
 # PostgreSQL is preferred for new durable multi-worker stores. A retirement
 # that changes these values must update its exact consumer proof here.
-# This lexical boundary is necessary but NOT a proof that all indirect SQLite
+# This bounded AST/Rust lexical boundary is necessary but NOT proof that all indirect SQLite
 # use has been discovered.
 CORE_SQLITE_LEGACY_CALLS: dict[str, int] = {
     'services/harness/scripts/agent_automation_browserless.py': 1,
@@ -70,9 +71,40 @@ CORE_SQLITE_LEGACY_CALLS: dict[str, int] = {
 
 
 def core_sqlite_direct_calls(path: str, source: str) -> int:
-    """Source-local, bounded evidence of direct SQLite backend API usage."""
+    """Bounded static evidence: Python direct/aliased connect and Rust rusqlite."""
     if path.endswith(".py"):
-        return len(re.findall(r"\bsqlite3\.connect\s*\(", source))
+        tree = ast.parse(source, filename=path)
+        module_names = {"sqlite3"}  # fail closed even for externally injected symbol
+        imported_connects: set[str] = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                module_names.update(
+                    entry.asname or entry.name
+                    for entry in node.names
+                    if entry.name == "sqlite3"
+                )
+            elif isinstance(node, ast.ImportFrom) and node.module == "sqlite3":
+                imported_connects.update(
+                    entry.asname or entry.name
+                    for entry in node.names
+                    if entry.name == "connect"
+                )
+        return sum(
+            isinstance(node, ast.Call)
+            and (
+                (
+                    isinstance(node.func, ast.Attribute)
+                    and node.func.attr == "connect"
+                    and isinstance(node.func.value, ast.Name)
+                    and node.func.value.id in module_names
+                )
+                or (
+                    isinstance(node.func, ast.Name)
+                    and node.func.id in imported_connects
+                )
+            )
+            for node in ast.walk(tree)
+        )
     if path.endswith(".rs"):
         return len(re.findall(r"\brusqlite::", source))
     return 0
@@ -300,7 +332,7 @@ def main() -> int:
     args = parser.parse_args()
     try:
         issues, facts = check(ROOT)
-    except ValueError as exc:
+    except (ValueError, SyntaxError) as exc:
         print(f"SQL dialect acceptance: NONCOMPLIANT ({exc})")
         return 2
     for fact in facts:
