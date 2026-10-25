@@ -74,6 +74,21 @@ class TlaFormalExternalJarTests(unittest.TestCase):
             env=environ, capture_output=True, text=True, timeout=15,
         )
 
+    def test_pg_cutover_parity_distinguishes_content_from_revision(self):
+        model = (
+            SCRIPT.parent.parent / "formal/RuntimePgCutoverR1.tla"
+        ).read_text(encoding="utf-8")
+        cfg = (
+            SCRIPT.parent.parent / "formal/RuntimePgCutoverR1.cfg"
+        ).read_text(encoding="utf-8")
+        runner = SCRIPT.read_text(encoding="utf-8")
+        self.assertIn("sqliteContent", model)
+        self.assertIn("pgContent", model)
+        self.assertIn("pgContent = sqliteContent", model)
+        self.assertIn("VerifiedContentWasFrozen", model)
+        self.assertIn("VerifiedContentWasFrozen", cfg)
+        self.assertIn("TLC PostgreSQL content parity negative control PASS", runner)
+
     def test_external_digest_locked_jar_works_without_workspace_cache(self):
         self.assertFalse(self.cache.exists())
         result = self.invoke(jar=self.external)
