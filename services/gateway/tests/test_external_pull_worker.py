@@ -5,6 +5,7 @@ import base64
 import hashlib
 import json
 import sqlite3
+from contextlib import closing
 from dataclasses import dataclass
 
 import pytest
@@ -372,7 +373,7 @@ def test_transport_migrates_pre_ceiling_worker_schema(tmp_path) -> None:
     import sqlite3
 
     db_path = tmp_path / "workers.sqlite3"
-    with sqlite3.connect(db_path) as db:
+    with closing(sqlite3.connect(db_path)) as db, db:
         db.execute(
             """
             CREATE TABLE workers (

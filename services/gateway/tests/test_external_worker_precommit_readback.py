@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import base64
 import sqlite3
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -120,7 +120,7 @@ def test_complete_must_rollback_attempt_and_artifacts_on_missing_readback(
     after = store.get(op.operation_id)
     assert after.terminal is False
     assert after.state == "started"
-    with sqlite3.connect(store.path) as db:
+    with closing(sqlite3.connect(store.path)) as db, db:
         assert db.execute("SELECT count(*) FROM artifacts").fetchone()[0] == 0
         assert (
             db.execute(

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import closing
 from threading import Barrier
 
 import pytest
@@ -274,7 +275,7 @@ def test_pg_import_rejects_noncanonical_legacy_integer_cells(
     source = tmp_path / "typed#legacy.sqlite3"
     with SQLiteAccountingLedger(source) as legacy:
         assert legacy.create_account(AccountingAccount(101)) == LedgerApplyStatus.CREATED
-    with sqlite3.connect(source) as db:
+    with closing(sqlite3.connect(source)) as db, db:
         db.execute(f"UPDATE accounts SET {column}=? WHERE id=?", (malformed, "101"))
         observed = db.execute(
             f"SELECT typeof({column}),{column} FROM accounts WHERE id='101'"
@@ -315,7 +316,7 @@ def test_pg_import_rejects_noncanonical_legacy_transfer_amount(tmp_path):
             )
             == LedgerApplyStatus.CREATED
         )
-    with sqlite3.connect(source) as db:
+    with closing(sqlite3.connect(source)) as db, db:
         db.execute("UPDATE transfers SET amount=1.75 WHERE id='303'")
         assert db.execute(
             "SELECT typeof(amount), amount FROM transfers WHERE id='303'"
