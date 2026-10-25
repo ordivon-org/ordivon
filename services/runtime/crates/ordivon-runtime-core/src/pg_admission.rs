@@ -431,6 +431,170 @@ impl PgAdmissionStore {
     }
 }
 
+#[derive(Clone)]
+pub struct PgCancelIntent {
+    pub job_id: String,
+    pub observed_at_ms: i64,
+    pub expected_source_sha256: String,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum PgCancelOutcome {
+    IntentRecorded(String),
+    Existing(String),
+}
+
+impl PgAdmissionStore {
+    /// Persist only a cancel/stop intent. Do not infer that a runner has
+    /// stopped, release capacity, or resolve an accepted Job without an
+    /// independently observed dispatch fence and terminal receipt.
+    pub fn request_cancel_intent(
+        &mut self,
+        i: &PgCancelIntent,
+    ) -> Result<PgCancelOutcome, PgAdmissionError> {
+        if i.job_id.is_empty()
+            || i.observed_at_ms < 0
+            || i.expected_source_sha256.len() != 64
+            || !i
+                .expected_source_sha256
+                .bytes()
+                .all(|b| b.is_ascii_hexdigit())
+        {
+            return Err(PgAdmissionError::InvalidInput);
+        }
+
+        let mut tx = self
+            .client
+            .build_transaction()
+            .isolation_level(IsolationLevel::Serializable)
+            .start()?;
+        // Same serialization boundary as admission and terminal CAS.
+        tx.query_one("SELECT pg_advisory_xact_lock($1)", &[&79245017_i64])?;
+        let authority = tx.query_opt(
+            "SELECT state,source_sha256,promotion_allowed FROM _stage_control WHERE id='source' FOR UPDATE",
+            &[],
+        )?.ok_or(PgAdmissionError::Unqualified)?;
+        let state: String = authority.get(0);
+        let source: String = authority.get(1);
+        let permitted: bool = authority.get(2);
+        if state != "QUALIFIED_WRITER" || !permitted || source != i.expected_source_sha256 {
+            return Err(PgAdmissionError::Unqualified);
+        }
+
+        let job = tx.query_opt(
+            "SELECT resolution,desired_state,current_attempt_id FROM jobs WHERE job_id=$1 FOR UPDATE",
+            &[&i.job_id],
+        )?.ok_or(PgAdmissionError::InvalidInput)?;
+        let resolution: Option<String> = job.get(0);
+        let desired: String = job.get(1);
+        let current_attempt: Option<String> = job.get(2);
+
+        if resolution.is_some() && resolution.as_deref() != Some("orphaned") {
+            tx.commit().map_err(|_| PgAdmissionError::UnknownCommit)?;
+            return Ok(PgCancelOutcome::Existing(i.job_id.clone()));
+        }
+        let attempt_id = if resolution.as_deref() == Some("orphaned") {
+            // A resolved orphan has no current_attempt_id; use the latest
+            // durable Attempt and prove the reservation is still held.
+            tx.query_opt(
+                "SELECT attempt_id FROM attempts WHERE job_id=$1 ORDER BY attempt_number DESC LIMIT 1",
+                &[&i.job_id],
+            )?.ok_or(PgAdmissionError::Blocked)?.get::<_, String>(0)
+        } else {
+            current_attempt.ok_or(PgAdmissionError::Blocked)?
+        };
+        let attempt = tx.query_opt(
+            "SELECT state,termination_intent FROM attempts WHERE attempt_id=$1 AND job_id=$2 FOR UPDATE",
+            &[&attempt_id,&i.job_id],
+        )?.ok_or(PgAdmissionError::Blocked)?;
+        let previous: String = attempt.get(0);
+        let stop_intent: String = attempt.get(1);
+
+        // Never treat a lifecycle projection alone as evidence that a
+        // stopped/terminal attempt released its real capacity.
+        let reservation = tx
+            .query_opt(
+                "SELECT state FROM concurrency_reservations WHERE attempt_id=$1 FOR UPDATE",
+                &[&attempt_id],
+            )?
+            .ok_or(PgAdmissionError::Blocked)?;
+        let reservation_state: String = reservation.get(0);
+        let is_orphan = resolution.as_deref() == Some("orphaned");
+        if is_orphan {
+            if previous != "orphaned" || reservation_state != "held_orphaned" {
+                return Err(PgAdmissionError::Blocked);
+            }
+        } else if !matches!(
+            previous.as_str(),
+            "accepted" | "starting" | "running" | "recovering" | "stopping"
+        ) || reservation_state != "active"
+        {
+            return Err(PgAdmissionError::Blocked);
+        }
+
+        if desired == "cancelled"
+            && stop_intent == "stop_requested"
+            && (is_orphan || matches!(previous.as_str(), "accepted" | "stopping"))
+        {
+            tx.commit().map_err(|_| PgAdmissionError::UnknownCommit)?;
+            return Ok(PgCancelOutcome::Existing(i.job_id.clone()));
+        }
+        if !matches!(desired.as_str(), "run" | "cancelled")
+            || !matches!(stop_intent.as_str(), "natural" | "stop_requested")
+        {
+            return Err(PgAdmissionError::Blocked);
+        }
+
+        // First record the Job intent, even when its Attempt has not yet
+        // started. An accepted Attempt stays accepted until dispatch fencing
+        // and terminal ownership prove that early cancellation completed.
+        if desired != "cancelled" {
+            let changed = tx.execute(
+                "UPDATE jobs SET desired_state='cancelled',row_version=row_version+1 WHERE job_id=$1 AND desired_state='run'",
+                &[&i.job_id],
+            )?;
+            if changed != 1 {
+                return Err(PgAdmissionError::Blocked);
+            }
+        }
+        let next_state = if matches!(previous.as_str(), "starting" | "running" | "recovering") {
+            "stopping"
+        } else {
+            previous.as_str()
+        };
+        let changed = tx.execute(
+            "UPDATE attempts SET state=$1,termination_intent='stop_requested',row_version=row_version+1 WHERE attempt_id=$2 AND state=$3 AND termination_intent=$4",
+            &[&next_state,&attempt_id,&previous,&stop_intent],
+        )?;
+        if changed != 1 {
+            return Err(PgAdmissionError::Blocked);
+        }
+        let next_sequence: i64 = tx
+            .query_one(
+                "SELECT COALESCE(MAX(event_sequence),0)+1 FROM job_events WHERE job_id=$1",
+                &[&i.job_id],
+            )?
+            .get(0);
+        let reason = if is_orphan {
+            "ORPHAN_CANCEL_INTENT_COMMITTED"
+        } else if previous == "accepted" {
+            "CANCEL_INTENT_AWAITING_DISPATCH_FENCE"
+        } else {
+            "CANCEL_INTENT_COMMITTED"
+        };
+        let detail = "{}";
+        let digest = format!("sha256:{}", hex::encode(Sha256::digest(detail.as_bytes())));
+        tx.execute(
+            "INSERT INTO job_events(event_id,job_id,attempt_id,event_sequence,event_type,origin,previous_state,new_state,reason_code,detail_json,detail_digest,observed_at_ms) VALUES($1,$2,$3,$4,'STOP_REQUESTED','SYSTEM_DERIVED',$5,$6,$7,$8,$9,$10)",
+            &[&format!("event-{}", Uuid::now_v7()),&i.job_id,&attempt_id,&next_sequence,
+                &previous,&next_state,&reason,&detail,&digest,&i.observed_at_ms],
+        )?;
+        // No capacity release, no resolved Job, no runner side effects.
+        tx.commit().map_err(|_| PgAdmissionError::UnknownCommit)?;
+        Ok(PgCancelOutcome::IntentRecorded(i.job_id.clone()))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -830,6 +994,193 @@ CREATE TABLE _stage_control(
             .unwrap()
             .get(0);
         assert_eq!(before, after);
+    }
+
+    #[test]
+    fn pg18_cancel_intent_is_atomic_replayable_and_never_implies_dispatch_stopped() {
+        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
+            return;
+        };
+        let mut scratch = Scratch::new(&dsn);
+        let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+        let first = payload("cancel-before-dispatch", "job-cancel-accepted", "ws-a", 2);
+        let cancel = PgCancelIntent {
+            job_id: first.job_id.clone(),
+            observed_at_ms: 1234569,
+            expected_source_sha256: first.expected_source_sha256.clone(),
+        };
+        assert!(matches!(
+            store.request_cancel_intent(&cancel),
+            Err(PgAdmissionError::Unqualified)
+        ));
+        scratch.qualify();
+        store.admit(&first).unwrap();
+        assert_eq!(
+            store.request_cancel_intent(&cancel).unwrap(),
+            PgCancelOutcome::IntentRecorded(first.job_id.clone())
+        );
+        assert_eq!(
+            store.request_cancel_intent(&cancel).unwrap(),
+            PgCancelOutcome::Existing(first.job_id.clone())
+        );
+        let row = scratch.admin.query_one(
+            "SELECT j.desired_state,j.resolution,a.state,a.termination_intent,r.state FROM jobs j JOIN attempts a ON a.job_id=j.job_id JOIN concurrency_reservations r ON r.attempt_id=a.attempt_id WHERE j.job_id=$1",
+            &[&first.job_id],
+        ).unwrap();
+        assert_eq!(row.get::<_, String>(0), "cancelled");
+        assert_eq!(row.get::<_, Option<String>>(1), None);
+        assert_eq!(row.get::<_, String>(2), "accepted");
+        assert_eq!(row.get::<_, String>(3), "stop_requested");
+        assert_eq!(row.get::<_, String>(4), "active");
+        assert_eq!(scratch.count("job_events"), 4);
+        assert!(matches!(
+            store.admit(&payload("new-job", "new-job", "ws-a", 2)),
+            Err(PgAdmissionError::Capacity)
+        ));
+        let wrong_source = PgCancelIntent {
+            expected_source_sha256: "b".repeat(64),
+            ..cancel
+        };
+        assert!(matches!(
+            store.request_cancel_intent(&wrong_source),
+            Err(PgAdmissionError::Unqualified)
+        ));
+        assert_eq!(scratch.count("job_events"), 4);
+    }
+
+    #[test]
+    fn pg18_cancel_intent_running_orphan_and_missing_reservation_fences() {
+        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
+            return;
+        };
+        let mut scratch = Scratch::new(&dsn);
+        scratch.qualify();
+        let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+        let running = payload("cancel-running", "job-running", "ws-a", 3);
+        store.admit(&running).unwrap();
+        scratch
+            .admin
+            .execute(
+                "UPDATE attempts SET state='running',row_version=row_version+1 WHERE attempt_id=$1",
+                &[&running.attempt_id],
+            )
+            .unwrap();
+        let cancel = PgCancelIntent {
+            job_id: running.job_id.clone(),
+            observed_at_ms: 1234570,
+            expected_source_sha256: running.expected_source_sha256.clone(),
+        };
+        assert_eq!(
+            store.request_cancel_intent(&cancel).unwrap(),
+            PgCancelOutcome::IntentRecorded(running.job_id.clone())
+        );
+        let state: String = scratch
+            .admin
+            .query_one(
+                "SELECT state FROM attempts WHERE attempt_id=$1",
+                &[&running.attempt_id],
+            )
+            .unwrap()
+            .get(0);
+        assert_eq!(state, "stopping");
+        assert_eq!(
+            store.request_cancel_intent(&cancel).unwrap(),
+            PgCancelOutcome::Existing(running.job_id.clone())
+        );
+        let terminal = PgTerminalNoArtifacts {
+            attempt_id: running.attempt_id.clone(),
+            expected_row_version: 2,
+            terminal_state: "cancelled".into(),
+            result_digest: "sha256:stopped-by-runner".into(),
+            reason_code: "PG_CANCEL_RUNNER_OBSERVED".into(),
+            exit_code: None,
+            finished_at_ms: 1234571,
+            expected_source_sha256: running.expected_source_sha256.clone(),
+        };
+        assert_eq!(
+            store.commit_terminal_no_artifacts(&terminal).unwrap(),
+            PgTerminalOutcome::Committed(running.job_id.clone())
+        );
+        assert_eq!(
+            store.request_cancel_intent(&cancel).unwrap(),
+            PgCancelOutcome::Existing(running.job_id.clone())
+        );
+        let released: String = scratch
+            .admin
+            .query_one(
+                "SELECT state FROM concurrency_reservations WHERE attempt_id=$1",
+                &[&running.attempt_id],
+            )
+            .unwrap()
+            .get(0);
+        assert_eq!(released, "released");
+
+        let orphan = payload("cancel-orphan", "job-orphan", "ws-a", 3);
+        store.admit(&orphan).unwrap();
+        store
+            .commit_terminal_no_artifacts(&PgTerminalNoArtifacts {
+                attempt_id: orphan.attempt_id.clone(),
+                expected_row_version: 0,
+                terminal_state: "orphaned".into(),
+                result_digest: "sha256:orphan".into(),
+                reason_code: "ORPHAN_OBSERVED".into(),
+                exit_code: None,
+                finished_at_ms: 1234572,
+                expected_source_sha256: orphan.expected_source_sha256.clone(),
+            })
+            .unwrap();
+        let orphan_cancel = PgCancelIntent {
+            job_id: orphan.job_id.clone(),
+            observed_at_ms: 1234573,
+            expected_source_sha256: orphan.expected_source_sha256.clone(),
+        };
+        assert_eq!(
+            store.request_cancel_intent(&orphan_cancel).unwrap(),
+            PgCancelOutcome::IntentRecorded(orphan.job_id.clone())
+        );
+        let orphan_row=scratch.admin.query_one(
+            "SELECT j.resolution,j.desired_state,a.state,a.termination_intent,r.state FROM jobs j JOIN attempts a ON a.job_id=j.job_id JOIN concurrency_reservations r ON r.attempt_id=a.attempt_id WHERE j.job_id=$1",
+            &[&orphan.job_id],
+        ).unwrap();
+        assert_eq!(orphan_row.get::<_, String>(0), "orphaned");
+        assert_eq!(orphan_row.get::<_, String>(1), "cancelled");
+        assert_eq!(orphan_row.get::<_, String>(2), "orphaned");
+        assert_eq!(orphan_row.get::<_, String>(3), "stop_requested");
+        assert_eq!(orphan_row.get::<_, String>(4), "held_orphaned");
+        assert_eq!(
+            store.request_cancel_intent(&orphan_cancel).unwrap(),
+            PgCancelOutcome::Existing(orphan.job_id.clone())
+        );
+
+        let invalid = payload("missing-reservation", "job-missing", "ws-b", 3);
+        store.admit(&invalid).unwrap();
+        scratch
+            .admin
+            .execute(
+                "DELETE FROM concurrency_reservations WHERE attempt_id=$1",
+                &[&invalid.attempt_id],
+            )
+            .unwrap();
+        let before = scratch.count("job_events");
+        let failed = PgCancelIntent {
+            job_id: invalid.job_id.clone(),
+            observed_at_ms: 1234574,
+            expected_source_sha256: invalid.expected_source_sha256.clone(),
+        };
+        assert!(matches!(
+            store.request_cancel_intent(&failed),
+            Err(PgAdmissionError::Blocked)
+        ));
+        let desired: String = scratch
+            .admin
+            .query_one(
+                "SELECT desired_state FROM jobs WHERE job_id=$1",
+                &[&invalid.job_id],
+            )
+            .unwrap()
+            .get(0);
+        assert_eq!(desired, "run");
+        assert_eq!(scratch.count("job_events"), before);
     }
 
     #[test]
