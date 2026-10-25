@@ -2825,6 +2825,29 @@ fn workspace_close_unborn_head_is_force_only_and_cannot_fake_source_state() {
     assert_eq!(fenced.code, UniversalExecErrorCode::RevisionMismatch);
     assert!(workspace.join("unique-wip.txt").is_file());
 
+    // A cleaner must not bypass an unreleased consumer merely because
+    // corruption forces Git's recovery/removal path.
+    let no_consumer_release = remove_git_workspace(
+        &config,
+        &WorkspaceCloseRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            force: true,
+            consumer_released: false,
+            expected_source_state_digest: None,
+        },
+    )
+    .unwrap_err();
+    assert_eq!(
+        no_consumer_release.code,
+        UniversalExecErrorCode::WorkspaceStateMismatch
+    );
+    assert_eq!(
+        no_consumer_release.field.as_deref(),
+        Some("consumerReleased")
+    );
+    assert!(workspace.join("unique-wip.txt").is_file());
+
     let recovered = remove_git_workspace(
         &config,
         &WorkspaceCloseRequest {
@@ -2900,6 +2923,29 @@ fn workspace_close_force_recovers_residual_directory_after_git_worktree_metadata
     .unwrap_err();
     assert_eq!(fenced.code, UniversalExecErrorCode::RevisionMismatch);
     assert!(workspace.is_dir());
+
+    // A cleaner must not bypass an unreleased consumer merely because
+    // corruption forces Git's recovery/removal path.
+    let no_consumer_release = remove_git_workspace(
+        &config,
+        &WorkspaceCloseRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            force: true,
+            consumer_released: false,
+            expected_source_state_digest: None,
+        },
+    )
+    .unwrap_err();
+    assert_eq!(
+        no_consumer_release.code,
+        UniversalExecErrorCode::WorkspaceStateMismatch
+    );
+    assert_eq!(
+        no_consumer_release.field.as_deref(),
+        Some("consumerReleased")
+    );
+    assert!(workspace.join("RESIDUAL.txt").is_file());
 
     let recovered = remove_git_workspace(
         &config,
