@@ -173,3 +173,78 @@ def test_tampered_pg_row_rejected_on_get(owner) -> None:
         )
     with pytest.raises(ConversationBindingConflict, match="digest"):
         owner.get_binding(payload()["campaign_ref"], "A01")
+
+
+def test_pg_native_before_insert_clock_forgery_fails_before_commit(owner) -> None:
+    with psycopg.connect(owner.dsn) as pg:
+        pg.execute(
+            """
+            CREATE FUNCTION ordivon_harness.corrupt_binding_insert()
+            RETURNS trigger LANGUAGE plpgsql AS $$
+            BEGIN
+              NEW.created_at_ms = NEW.created_at_ms + 1;
+              RETURN NEW;
+            END;
+            $$
+            """
+        )
+        pg.execute(
+            "CREATE TRIGGER corrupt_binding_insert BEFORE INSERT ON "
+            "ordivon_harness.conversation_bindings FOR EACH ROW "
+            "EXECUTE FUNCTION ordivon_harness.corrupt_binding_insert()"
+        )
+    with pytest.raises(ConversationBindingConflict, match="existing binding"):
+        owner.adopt_binding(**payload())
+    with psycopg.connect(owner.dsn) as pg:
+        assert pg.execute(
+            "SELECT COUNT(*) FROM ordivon_harness.conversation_bindings"
+        ).fetchone()[0] == 0
+
+
+def test_pg_and_wake_12_concurrent_first_schema_admissions() -> None:
+    from postgres_wake_turn_map import PostgresWakeTurnMap
+
+    with psycopg.connect(DSN, autocommit=True) as pg:
+        pg.execute("DROP SCHEMA IF EXISTS ordivon_harness CASCADE")
+    from threading import Barrier
+
+    rendezvous = Barrier(12)
+    def open_first(index: int) -> None:
+        rendezvous.wait(timeout=15)
+        if index & 1:
+            PostgresWakeTurnMap(DSN)
+        else:
+            PostgresConversationBindingStore(
+                DSN, legacy_source=Path("/unused/pg-test.sqlite"), fresh_bootstrap=True
+            )
+    with ThreadPoolExecutor(max_workers=12) as executor:
+        list(executor.map(open_first, range(12)))
+    with psycopg.connect(DSN) as pg:
+        tables = {
+            x[0] for x in pg.execute(
+                "SELECT table_name FROM information_schema.tables "
+                "WHERE table_schema='ordivon_harness'"
+            )
+        }
+    assert {"wake_turn_map", "conversation_bindings"} <= tables
+
+
+def test_counterfeit_pg_binding_schema_rejected_before_admission() -> None:
+    with psycopg.connect(DSN, autocommit=True) as pg:
+        pg.execute("DROP SCHEMA IF EXISTS ordivon_harness CASCADE")
+        pg.execute("CREATE SCHEMA ordivon_harness")
+        pg.execute(
+            "CREATE TABLE ordivon_harness.conversation_bindings ("
+            "campaign_ref TEXT NOT NULL,agent_id TEXT NOT NULL,"
+            "provider_resource TEXT NOT NULL,session_id TEXT NOT NULL,"
+            "evidence_digest TEXT NOT NULL,request_id TEXT NOT NULL,"
+            "binding_digest TEXT NOT NULL,created_at_ms BIGINT NOT NULL)"
+        )
+    try:
+        with pytest.raises(ConversationBindingConflict, match="native uniqueness/check"):
+            PostgresConversationBindingStore(
+                DSN, legacy_source=Path("/unused/pg-test.sqlite"), fresh_bootstrap=True
+            )
+    finally:
+        with psycopg.connect(DSN, autocommit=True) as pg:
+            pg.execute("DROP SCHEMA ordivon_harness CASCADE")

@@ -82,10 +82,44 @@ class PostgresConversationBindingStore:
                     request_id TEXT NOT NULL UNIQUE,
                     binding_digest TEXT NOT NULL,
                     created_at_ms BIGINT NOT NULL CHECK(created_at_ms >= 0),
-                    PRIMARY KEY(campaign_ref, agent_id)
+                    PRIMARY KEY(campaign_ref, agent_id),
+                    CONSTRAINT cft_binding_digests CHECK (
+                        campaign_ref ~ '^sha256:[0-9a-f]{64}$'
+                        AND evidence_digest ~ '^sha256:[0-9a-f]{64}$'
+                        AND binding_digest ~ '^sha256:[0-9a-f]{64}$'
+                    ),
+                    CONSTRAINT cft_binding_uuid7 CHECK (
+                        session_id ~ '^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+                    )
                 )
                 """
             )
+            # CREATE TABLE IF NOT EXISTS is not a source/proof certificate.
+            # A conflicting table with matching columns but absent native
+            # keys/checks can falsely admit non-atomic identities.
+            physical = pg.execute(
+                "SELECT column_name,data_type,is_nullable FROM information_schema.columns "
+                "WHERE table_schema='ordivon_harness' AND table_name='conversation_bindings' "
+                "ORDER BY ordinal_position"
+            ).fetchall()
+            expected = [
+                (name, "bigint" if name == "created_at_ms" else "text", "NO")
+                for name in _COLUMNS
+            ]
+            if physical != expected:
+                raise ConversationBindingConflict("PostgreSQL binding schema shape differs")
+            constraints = pg.execute(
+                "SELECT contype,pg_get_constraintdef(oid) FROM pg_constraint "
+                "WHERE conrelid='ordivon_harness.conversation_bindings'::regclass"
+            ).fetchall()
+            if not (
+                any(t == "p" and "(campaign_ref, agent_id)" in body for t, body in constraints)
+                and any(t == "u" and "(request_id)" in body for t, body in constraints)
+                and any(t == "c" and "created_at_ms" in body for t, body in constraints)
+                and any(t == "c" and "sha256:" in body for t, body in constraints)
+                and any(t == "c" and "session_id" in body for t, body in constraints)
+            ):
+                raise ConversationBindingConflict("PostgreSQL binding native uniqueness/check law absent")
 
     @staticmethod
     def _canonical_rows(rows: list[dict[str, Any]]) -> list[tuple[Any, ...]]:
