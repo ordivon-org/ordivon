@@ -587,6 +587,41 @@ class LifecycleTests(unittest.TestCase):
         with self.assertRaises(Exception):
             self.module["nonnegative_float"]("-1")
 
+    def test_retention_policy_rejects_nonfinite_boolean_and_unrepresentable_hours(self) -> None:
+        """Malformed policy hours must never become a live reclaim/force-close decision."""
+        bad_values = (True, False, float("nan"), float("inf"), float("-inf"), -1, "24", 10**400)
+        for field in ("retentionHours", "dirtyRetentionHours", "maxLifetimeHours"):
+            for bad in bad_values:
+                with self.subTest(field=field, value=repr(bad)):
+                    with tempfile.TemporaryDirectory() as directory:
+                        path = Path(directory) / "retention.json"
+                        path.write_text(
+                            json.dumps({"classes": {"ephemeral": {field: bad}}}),
+                            encoding="utf8",
+                        )
+                        with self.assertRaisesRegex(RuntimeError, field):
+                            self.module["load_policy"](path)
+
+        for good in (None, 0, 0.25, 48, 1_000_000):
+            with self.subTest(valid=good):
+                with tempfile.TemporaryDirectory() as directory:
+                    path = Path(directory) / "retention.json"
+                    path.write_text(
+                        json.dumps({"classes": {"ephemeral": {"retentionHours": good}}}),
+                        encoding="utf8",
+                    )
+                    self.assertEqual(
+                        self.module["load_policy"](path)["classes"]["ephemeral"]["retentionHours"],
+                        good,
+                    )
+
+    def test_retention_policy_rejects_boolean_schema_version(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "retention.json"
+            path.write_text('{"schemaVersion":true}', encoding="utf8")
+            with self.assertRaisesRegex(RuntimeError, "schemaVersion"):
+                self.module["load_policy"](path)
+
     def test_carrier_projection_preserves_physical_and_semantic_boundaries(self) -> None:
         cases = (
             (
