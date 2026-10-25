@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+from contextlib import closing
 import ast
 import json
 import subprocess
@@ -968,7 +970,7 @@ class MaterializationLedgerMigrationTests(unittest.TestCase):
             expected = legacy.with_name("ledger#authoritative.sqlite")
             shutil.copyfile(legacy, wrong)
             shutil.copyfile(legacy, expected)
-            with sqlite3.connect(expected) as db:
+            with closing(sqlite3.connect(expected)) as db, db:
                 db.execute(
                     "INSERT INTO requests VALUES (?,?,?,?,?,?,?,?,?,?)",
                     ("effect:2", "sha256:" + "2" * 64, "{}", "unknown",
@@ -1002,7 +1004,7 @@ class MaterializationLedgerMigrationTests(unittest.TestCase):
             current = legacy.with_name("materialization-ledger.sqlite")
             self.assertEqual(receipt["standing"], "PREPARED")
             self.assertEqual(receipt["requestCount"], 1)
-            with sqlite3.connect(current) as db:
+            with closing(sqlite3.connect(current)) as db, db:
                 self.assertEqual(
                     db.execute("SELECT request_id FROM requests").fetchall(),
                     [("effect:1",)],
