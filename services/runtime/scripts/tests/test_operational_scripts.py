@@ -442,6 +442,46 @@ class OperationalScriptTests(unittest.TestCase):
             self.assertTrue(swapped)
             self.assertEqual((restored / "control/note.txt").read_bytes(), b"ORIGIN")
 
+    def test_restore_never_replaces_concurrently_created_empty_destination(self) -> None:
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "snapshot"
+            source.mkdir()
+            registry = source / "registry.sqlite3"
+            with closing(sqlite3.connect(registry)) as db:
+                db.execute("CREATE TABLE jobs (id TEXT PRIMARY KEY)")
+            manifest = {
+                "schemaVersion": 1,
+                "files": [
+                    {
+                        "path": "registry.sqlite3",
+                        "bytes": registry.stat().st_size,
+                        "digest": restore.sha256_file(registry),
+                    }
+                ],
+            }
+            (source / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+            destination = root / "restored"
+            original_copy = restore.shutil.copy2
+            created = False
+
+            def competing_creator(*args, **kwargs):
+                nonlocal created
+                result = original_copy(*args, **kwargs)
+                if not created:
+                    destination.mkdir()
+                    created = True
+                return result
+
+            with patch.object(restore.shutil, "copy2", side_effect=competing_creator):
+                with self.assertRaises(FileExistsError):
+                    restore.restore_snapshot(source, destination)
+            self.assertTrue(created)
+            self.assertTrue(destination.is_dir())
+            self.assertEqual(list(destination.iterdir()), [])
+
     def test_restore_rejects_digest_mismatch(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
