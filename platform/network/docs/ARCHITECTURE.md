@@ -113,7 +113,7 @@ The reference lane lives under `reference/linux/` and requires a dedicated, priv
 
 The lane proves deterministic packet impairment, a real two-node containerlab topology, and kernel-vs-userspace WireGuard lifecycle behavior. The graduated reference run used a clean immutable Arch Linux KVM base and a disposable qcow2 overlay; the guest shut down cleanly after acceptance and the base digest remained unchanged. A WSL host is rejected by preflight rather than treated as a failed reference implementation.
 
-For CI, the repository carries a GitHub Actions workflow targeting a dedicated self-hosted runner with `[self-hosted, linux, x64, network-e2e]`. The repository currently has no Git remote, so the workflow is a ready contract rather than an executed remote proof.
+The Network reference workflow is currently a **source template** at `platform/network/.github/workflows/network-reference-linux.yml`. Its nested `.github/workflows/` location is not the monorepo-root `.github/workflows/` directory required for GitHub Actions workflow registration. The monorepo has an `origin` remote, but that does not establish an active Network reference workflow, a matching self-hosted runner, or a successful remote execution. Activating this lane requires a separately verified root-workflow integration and runner qualification; until then, this is a reference contract rather than remote execution evidence.
 
 ## Consumer lifecycle boundary
 
