@@ -30,11 +30,6 @@
       "ownerPlan": "tools/repo/planning/lego-plan-r1.json",
       "slice": "RG1",
       "scope": "Exact Git history and currentness, with remote observation distinct from tracked refs"
-    },
-    {
-      "ownerPlan": "services/runtime/planning/lego-plan-r1.json",
-      "slice": "RW9",
-      "scope": "Windows target and native prerequisite qualification"
     }
   ],
   "issues": [
@@ -143,9 +138,8 @@
       "consumers": "Windows Tool prerequisites; Runtime script runner; actual consuming Python program",
       "formalObligation": "VerifiedPrerequisite(cmd,target,principal) requires a successful probe under the exact execution identity and failure must propagate through the evaluator; JobExitZero does not imply ScriptEveryStepSucceeded or DomainAccepted.",
       "registration": {
-        "state": "LINKED",
-        "ownerPlan": "services/runtime/planning/lego-plan-r1.json",
-        "slice": "RW9"
+        "state": "UNREGISTERED",
+        "reason": "The runtime RW9 PROPOSED slice is about existing-runner terminal-result versus UNKNOWN_DISPATCH and does not cover Windows service principal executable readiness. RW6 cross-platform verification is blocked, so binding this issue to RW9 would be a false consumer/proof match; retain unregistered gap pending real Windows owner-native proof."
       },
       "decision": "Do not mistake PowerShell Continue exit-zero behavior for a Runtime ledger bug. Enforce strict error propagation and dependency readiness in Windows consumer scripts; reuse #632 for identity/tool contract; Python installation/active_user parity still UNVERIFIED.",
       "representation": {
@@ -207,6 +201,6 @@
   "verification": {
     "state": "PROPOSED",
     "meaning": "Native repository checker only verifies source-bound typed registration structure; no GitHub merge, disk deletion, Runtime patch or consumer proof follows from a census PASS.",
-    "lastRefinement": "Additional Windows-native sparse allocation and elevated Get-VHD independent physical source evidence bound to observed source/time; no physical mutation and no claim of proven reclaim"
+    "lastRefinement": "Additional Windows-native sparse allocation and elevated Get-VHD independent physical source evidence bound to observed source/time; no physical mutation and no claim of proven reclaim; remove invalid RW9 registration because its terminal-result semantics are not the Windows executable-prerequisite consumer."
   }
 }
