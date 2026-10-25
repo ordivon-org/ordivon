@@ -449,10 +449,19 @@ class DurableSessionAuthority:
                 raise SessionHold("durable human session did not become READY")
             with closing(self._connect()) as db:
                 db.execute("BEGIN IMMEDIATE")
-                db.execute(
+                transition = db.execute(
                     "UPDATE sessions SET lifecycle='ACTIVE' WHERE session_id=? AND lifecycle='OPENING'",
                     (session_id,),
                 )
+                activated = db.execute(
+                    "SELECT * FROM sessions WHERE session_id=?", (session_id,)
+                ).fetchone()
+                exact_active = {**expected, "lifecycle": "ACTIVE"}
+                if transition.rowcount != 1 or activated is None or any(
+                    activated[key] != value for key, value in exact_active.items()
+                ):
+                    db.execute("ROLLBACK")
+                    raise SessionConflict("human session activation receipt missing or changed")
                 db.execute("COMMIT")
             return self._runtime_projection(self._row_by_session(session_id))
         except Exception:

@@ -231,3 +231,31 @@ def test_session_open_never_starts_systemd_without_exact_durable_reservation(
     with sqlite3.connect(a.db_path) as db:
         assert db.execute("SELECT COUNT(*) FROM sessions").fetchone()[0] == 0
         assert db.execute("SELECT COUNT(*) FROM corruption_witness").fetchone()[0] == 0
+
+
+def test_session_activation_cannot_report_ready_after_durable_state_corruption(
+    tmp_path: Path,
+) -> None:
+    """Rollback failed ACTIVE transition, compensate physical systemd start."""
+    import sqlite3
+
+    a, sd = authority(tmp_path)
+    with sqlite3.connect(a.db_path) as db:
+        db.executescript(
+            """
+            CREATE TABLE corrupt_activation_witness (marker INTEGER);
+            CREATE TRIGGER corrupt_activation AFTER UPDATE OF lifecycle ON sessions
+            WHEN NEW.lifecycle='ACTIVE'
+            BEGIN
+                INSERT INTO corrupt_activation_witness VALUES (1);
+                UPDATE sessions SET lifecycle='FAILED' WHERE session_id=NEW.session_id;
+            END;
+            """
+        )
+    with pytest.raises(SessionConflict, match="activation.*receipt"):
+        a.open("auth:activation-fault")
+    assert sd.starts == ["ordivon-cft-human-session@41.target"]
+    assert sd.stops == ["ordivon-cft-human-session@41.target"]
+    with sqlite3.connect(a.db_path) as db:
+        assert db.execute("SELECT lifecycle FROM sessions").fetchone()[0] == "FAILED"
+        assert db.execute("SELECT COUNT(*) FROM corrupt_activation_witness").fetchone()[0] == 0
