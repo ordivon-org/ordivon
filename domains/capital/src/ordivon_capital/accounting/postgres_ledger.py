@@ -73,6 +73,142 @@ class PostgresAccountingLedger:
                         status TEXT NOT NULL CHECK (status IN ('PENDING','POSTED','VOIDED'))
                     )"""
                 )
+                self._verify_schema(db)
+
+    @staticmethod
+    def _verify_schema(db: psycopg.Connection) -> None:
+        """Reject same-name counterfeit tables before admitting accounting effects.
+
+        PostgreSQL pg_catalog is the authoritative type/constraint structure.
+        This validates admission topology; it is not a proof of arbitrary SQL
+        trigger or constraint expressions nor a production deployment receipt.
+        """
+        expected_columns = {
+            "accounts": [
+                ("id", "text", True),
+                ("no_overdraft", "boolean", True),
+                ("debits_pending", "numeric(39,0)", True),
+                ("debits_posted", "numeric(39,0)", True),
+                ("credits_pending", "numeric(39,0)", True),
+                ("credits_posted", "numeric(39,0)", True),
+            ],
+            "transfers": [
+                ("id", "text", True),
+                ("debit_id", "text", True),
+                ("credit_id", "text", True),
+                ("amount", "numeric(39,0)", True),
+                ("pending_id", "text", False),
+                ("operation", "text", True),
+                ("status", "text", True),
+            ],
+        }
+        expected_constraints = {
+            "accounts": {
+                ("p", ("id",)),
+                *{("c", (name,)) for name in (
+                    "debits_pending", "debits_posted", "credits_pending", "credits_posted"
+                )},
+            },
+            "transfers": {
+                ("p", ("id",)),
+                ("f", ("debit_id",)),
+                ("f", ("credit_id",)),
+                ("c", ("amount",)),
+                ("c", ("operation",)),
+                ("c", ("status",)),
+            },
+        }
+        # PostgreSQL 18 native deparser is the constraint expression oracle.
+        # Matching only CHECK count/columns admits weakening like x > -100.
+        # On a future PostgreSQL deparser change this deliberately fails closed
+        # until the exact new server SourceCut is independently qualified.
+        required_checks = {
+            "accounts": {
+                "debits_pending": "CHECK ((debits_pending >= (0)::numeric))",
+                "debits_posted": "CHECK ((debits_posted >= (0)::numeric))",
+                "credits_pending": "CHECK ((credits_pending >= (0)::numeric))",
+                "credits_posted": "CHECK ((credits_posted >= (0)::numeric))",
+            },
+            "transfers": {
+                "amount": "CHECK ((amount >= (0)::numeric))",
+                "operation": (
+                    "CHECK ((operation = ANY (ARRAY['IMMEDIATE'::text, "
+                    "'PENDING'::text, 'POST'::text, 'VOID'::text])))"
+                ),
+                "status": (
+                    "CHECK ((status = ANY (ARRAY['PENDING'::text, "
+                    "'POSTED'::text, 'VOIDED'::text])))"
+                ),
+            },
+        }
+        for table, columns in expected_columns.items():
+            observed = db.execute(
+                """
+                SELECT c.oid, c.relkind, c.relpersistence, c.relrowsecurity, c.relforcerowsecurity,
+                    a.attname, pg_catalog.format_type(a.atttypid, a.atttypmod),
+                    a.attnotnull
+                FROM pg_catalog.pg_namespace n
+                JOIN pg_catalog.pg_class c ON c.relnamespace=n.oid
+                JOIN pg_catalog.pg_attribute a ON a.attrelid=c.oid
+                WHERE n.nspname='ordivon_capital' AND c.relname=%s
+                    AND a.attnum>0 AND NOT a.attisdropped
+                ORDER BY a.attnum
+                """,
+                (table,),
+            ).fetchall()
+            if (
+                len(observed) != len(columns)
+                or [(name, kind, nullable) for _, _, _, _, _, name, kind, nullable in observed]
+                != columns
+                or any(
+                    kind != "r" or durability != "p" or rls or forced
+                    for _, kind, durability, rls, forced, *_ in observed
+                )
+            ):
+                raise RuntimeError(f"PostgreSQL accounting schema mismatch: {table} columns")
+            oid = observed[0][0]
+            constraints = db.execute(
+                """
+                SELECT con.contype, array_agg(att.attname ORDER BY cols.position),
+                    bool_and(con.convalidated), pg_catalog.pg_get_constraintdef(con.oid),
+                    con.confrelid
+                FROM pg_catalog.pg_constraint con
+                JOIN LATERAL unnest(con.conkey) WITH ORDINALITY
+                    AS cols(attnum, position) ON TRUE
+                JOIN pg_catalog.pg_attribute att
+                    ON att.attrelid=con.conrelid AND att.attnum=cols.attnum
+                WHERE con.conrelid=%s AND con.contype IN ('p', 'f', 'c')
+                GROUP BY con.oid, con.contype
+                """,
+                (oid,),
+            ).fetchall()
+            actual = {
+                (kind, tuple(fields)) for kind, fields, valid, _, _ in constraints
+                if valid
+            }
+            if actual != expected_constraints[table] or len(constraints) != len(actual):
+                raise RuntimeError(f"PostgreSQL accounting schema mismatch: {table} constraints")
+            for kind, fields, valid, definition, reference in constraints:
+                if not valid:
+                    raise RuntimeError(f"PostgreSQL accounting schema mismatch: {table} validation")
+                if kind == "c" and definition != required_checks[table][fields[0]]:
+                    raise RuntimeError(f"PostgreSQL accounting schema mismatch: {table} checks")
+                if kind == "f":
+                    parent = db.execute(
+                        "SELECT 'ordivon_capital.accounts'::regclass::oid"
+                    ).fetchone()[0]
+                    if reference != parent:
+                        raise RuntimeError(f"PostgreSQL accounting schema mismatch: {table} foreign key")
+            if db.execute(
+                """
+                SELECT EXISTS(
+                    SELECT 1 FROM pg_catalog.pg_trigger
+                    WHERE tgrelid=%s AND NOT tgisinternal
+                )
+                """,
+                (oid,),
+            ).fetchone()[0]:
+                raise RuntimeError(f"PostgreSQL accounting schema mismatch: {table} triggers")
 
     def close(self) -> None:
         """Connections are owned by each operation; no long-lived SQLite handle."""

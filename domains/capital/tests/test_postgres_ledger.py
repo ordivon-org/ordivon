@@ -328,3 +328,60 @@ def test_pg_import_rejects_noncanonical_legacy_transfer_amount(tmp_path):
             assert pg.execute(
                 f"SELECT count(*) FROM ordivon_capital.{table}"
             ).fetchone()[0] == 0
+
+def test_pg_rejects_counterfeit_existing_accounts_schema():
+    """A same-name table is not proof of the authoritative accounting contract."""
+    assert DSN
+    import psycopg
+
+    with psycopg.connect(DSN, autocommit=True) as db:
+        db.execute("DROP SCHEMA IF EXISTS ordivon_capital CASCADE")
+        db.execute("CREATE SCHEMA ordivon_capital")
+        db.execute(
+            "CREATE TABLE ordivon_capital.accounts(id TEXT PRIMARY KEY)"
+        )
+    try:
+        with pytest.raises(RuntimeError, match="schema"):
+            PostgresAccountingLedger(DSN)
+    finally:
+        with psycopg.connect(DSN, autocommit=True) as db:
+            db.execute("DROP SCHEMA IF EXISTS ordivon_capital CASCADE")
+        # Reestablish a canonical empty schema for other tests.
+        PostgresAccountingLedger(DSN)
+
+def test_pg_rejects_counterfeit_existing_balance_check():
+    """Matching column types and CHECK count do not imply negative-balance safety."""
+    assert DSN
+    import psycopg
+
+    with psycopg.connect(DSN, autocommit=True) as db:
+        db.execute(
+            "ALTER TABLE ordivon_capital.accounts "
+            "DROP CONSTRAINT accounts_debits_pending_check"
+        )
+        db.execute(
+            "ALTER TABLE ordivon_capital.accounts "
+            "ADD CONSTRAINT counterfeit_check CHECK (debits_pending > -100)"
+        )
+    try:
+        with pytest.raises(RuntimeError, match="schema"):
+            PostgresAccountingLedger(DSN)
+    finally:
+        with psycopg.connect(DSN, autocommit=True) as db:
+            db.execute("DROP SCHEMA IF EXISTS ordivon_capital CASCADE")
+        PostgresAccountingLedger(DSN)
+
+def test_pg_rejects_unlogged_accounting_authority():
+    """An unlogged table cannot supply crash-durable accounting receipts."""
+    assert DSN
+    import psycopg
+
+    with psycopg.connect(DSN, autocommit=True) as db:
+        db.execute("ALTER TABLE ordivon_capital.transfers SET UNLOGGED")
+    try:
+        with pytest.raises(RuntimeError, match="schema"):
+            PostgresAccountingLedger(DSN)
+    finally:
+        with psycopg.connect(DSN, autocommit=True) as db:
+            db.execute("DROP SCHEMA IF EXISTS ordivon_capital CASCADE")
+        PostgresAccountingLedger(DSN)

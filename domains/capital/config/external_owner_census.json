@@ -1054,9 +1054,14 @@
           "serializable-scarcity",
           "cold-schema-lock",
           "quiesced-import",
-          "negative-readback-rollback"
+          "negative-readback-rollback",
+          "native-pg-catalog-structure-and-constraint-admission",
+          "reject-counterfeit-account-columns",
+          "reject-weakened-balance-check",
+          "reject-unlogged-non-durable-table"
         ],
-        "standing": "QUALIFIED_DISPOSABLE_PG18_NO_INSTALLED_CUTOVER"
+        "standing": "QUALIFIED_DISPOSABLE_PG18_NO_INSTALLED_CUTOVER",
+        "schemaAdmissionProofBoundary": "PostgreSQL 18.6 pg_catalog names/types, permanent relation persistence, required primary/foreign keys and exact PG18-deparsed CHECK expressions are validated inside the schema-admission transaction under native advisory lock. Real PG counterfeit-table and weakened-check tests were RED before the change and GREEN afterward. This is not a universal SQL-expression proof and cannot certify installed production state."
       }
     },
     {
