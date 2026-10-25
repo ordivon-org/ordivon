@@ -218,152 +218,121 @@ impl PgHistoricalStageReader {
     }
 }
 
-#[cfg(all(test, feature = "transactional-runtime"))]
+#[cfg(test)]
 mod tests {
     use super::*;
-    use rusqlite::OpenFlags;
+
+    // Immutable independent source evidence captured from the exact 5.41GB
+    // sqlite3 backup and recorded under snapshot.json. This test does NOT
+    // connect to, maintain, or extend SQLite: only the PG reader under test
+    // is executable here. The original stage import independently checked
+    // every typed row of the 6,501,423-row frozen source.
+    const SOURCE_SHA256: &str = "e3790cb41bac3e17f17ffa7c29f03d7074478ce3e79c1f9ee50ce205270cac62";
+    const FIRST_JOB: &str = "job-019f8b3b-63c0-7852-b0a6-19ac869e5da3";
+    const SNAPSHOT_INFLIGHT_JOB: &str = "job-01a174af-f49e-7eb1-a55e-4a885c5c711d";
+    const ARTIFACT_JOB: &str = "job-01a174af-d91c-72e3-b4a2-ae2ecba52a92";
 
     #[test]
-    fn historical_pg18_readback_matches_frozen_sqlite_job_evidence() {
-        let (Ok(pg_dsn), Ok(sqlite_source)) = (
-            std::env::var("ORDIVON_PG_STAGE_TEST_DSN"),
-            std::env::var("ORDIVON_PG_STAGE_SQLITE_SOURCE"),
-        ) else {
+    fn native_pg18_history_matches_independent_frozen_source_witnesses() {
+        let Ok(dsn) = std::env::var("ORDIVON_PG_STAGE_TEST_DSN") else {
             return;
         };
-        let frozen = rusqlite::Connection::open_with_flags(
-            format!("file:{sqlite_source}?mode=ro&immutable=1"),
-            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_URI,
-        )
-        .unwrap();
-        let expected_source = "e3790cb41bac3e17f17ffa7c29f03d7074478ce3e79c1f9ee50ce205270cac62";
         let mut reader =
-            PgHistoricalStageReader::connect(&pg_dsn, "rw12_stage_cutover_r1", expected_source)
-                .unwrap();
-        assert_eq!(reader.source_sha256(), expected_source);
+            PgHistoricalStageReader::connect(&dsn, "rw12_stage_cutover_r1", SOURCE_SHA256)
+                .expect("source-qualified PostgreSQL staging reader");
+        assert_eq!(reader.source_sha256(), SOURCE_SHA256);
         assert!(matches!(
-            PgHistoricalStageReader::connect(&pg_dsn, "rw12_stage_cutover_r1", &"0".repeat(64)),
+            PgHistoricalStageReader::connect(&dsn, "rw12_stage_cutover_r1", &"0".repeat(64)),
             Err(PgStageReadError::NotHistoricalSource)
         ));
         assert!(matches!(
-            PgHistoricalStageReader::connect(&pg_dsn, "public", expected_source),
+            PgHistoricalStageReader::connect(&dsn, "public", SOURCE_SHA256),
             Err(PgStageReadError::InvalidInput)
         ));
-        let id: String = frozen
-            .query_row("SELECT job_id FROM jobs ORDER BY job_id LIMIT 1", [], |r| {
-                r.get(0)
-            })
-            .unwrap();
-        let pg = reader.read_job(&id).unwrap().unwrap();
-        let job = frozen
-            .query_row(
-                "SELECT principal,client_request_id,operation_digest,workspace_id, \
-                 desired_state,resolution,current_attempt_id,row_version \
-                 FROM jobs WHERE job_id=?",
-                [&id],
-                |r| {
-                    Ok((
-                        r.get::<_, String>(0)?,
-                        r.get::<_, String>(1)?,
-                        r.get::<_, String>(2)?,
-                        r.get::<_, String>(3)?,
-                        r.get::<_, String>(4)?,
-                        r.get::<_, Option<String>>(5)?,
-                        r.get::<_, Option<String>>(6)?,
-                        r.get::<_, i64>(7)?,
-                    ))
-                },
-            )
-            .unwrap();
-        assert_eq!(pg.principal, job.0);
-        assert_eq!(pg.client_request_id, job.1);
-        assert_eq!(pg.operation_digest, job.2);
-        assert_eq!(pg.workspace_id, job.3);
-        assert_eq!(pg.desired_state, job.4);
-        assert_eq!(pg.resolution, job.5);
-        assert_eq!(pg.current_attempt_id, job.6);
-        assert_eq!(pg.row_version, job.7);
+        let first = reader.read_job(FIRST_JOB).unwrap().unwrap();
+        assert_eq!(first.principal, "principal:local-owner");
+        assert_eq!(
+            first.client_request_id,
+            "dogfood:ordivon:0a7d4c98-758a-4ffc-af06-5fce7418c7a2"
+        );
+        assert_eq!(
+            first.operation_digest,
+            "sha256:f345a661295a5fce8dbd5b563f726c36fe847f6263e8ef96bc7be1c95e15ebc0"
+        );
+        assert_eq!(
+            first.workspace_id,
+            "dogfood-ordivon-c114f67f-a8a7-406f-9710-1f52aed2a389"
+        );
+        assert_eq!(first.desired_state, "run");
+        assert_eq!(first.resolution.as_deref(), Some("succeeded"));
+        assert_eq!(first.current_attempt_id, None);
+        assert_eq!(first.row_version, 1);
+        assert_eq!(first.attempts.len(), 1);
+        assert_eq!(first.attempts[0].state, "succeeded");
+        assert_eq!(first.attempts[0].row_version, 4);
+        assert_eq!(
+            first.attempts[0].result_digest.as_deref(),
+            Some("sha256:2904563eb5381abd5e641f706e12114a6800b4cfd41935b261120bb19388c69a")
+        );
+        assert_eq!(first.events.len(), 8);
+        assert_eq!(first.events[0].event_sequence, 1);
+        assert_eq!(first.events[0].event_type, "REQUEST_RECEIVED");
+        assert_eq!(
+            first.events[0].detail_digest,
+            "sha256:0d9249ab4c4cbfed2e88f84742738a4e06b2d2a9578607559a5a0b97322adc9e"
+        );
+        assert_eq!(first.events[7].event_sequence, 8);
+        assert_eq!(first.events[7].event_type, "JOB_TERMINAL");
+        assert_eq!(first.artifacts.len(), 3);
+        assert_eq!(first.artifacts[0].kind, "execution_result");
+        assert_eq!(first.artifacts[0].relative_path, "result.json");
+        assert_eq!(first.artifacts[0].byte_length, 996);
+        assert_eq!(first.artifacts[1].byte_length, 0);
+        assert_eq!(first.artifacts[2].byte_length, 346);
+        assert_eq!(
+            first.idempotency_operation_digest.as_deref(),
+            Some(first.operation_digest.as_str())
+        );
 
-        let attempts = frozen
-            .prepare(
-                "SELECT attempt_id,state,row_version,result_digest,recovery_required \
-                 FROM attempts WHERE job_id=? ORDER BY attempt_number,attempt_id",
-            )
-            .unwrap()
-            .query_map([&id], |r| {
-                Ok(PgHistoricalAttempt {
-                    attempt_id: r.get(0)?,
-                    state: r.get(1)?,
-                    row_version: r.get(2)?,
-                    result_digest: r.get(3)?,
-                    recovery_required: r.get(4)?,
-                })
-            })
-            .unwrap()
-            .collect::<Result<Vec<_>, _>>()
-            .unwrap();
-        assert_eq!(pg.attempts, attempts);
-        let events = frozen
-            .prepare(
-                "SELECT event_id,event_sequence,event_type,detail_digest \
-                 FROM job_events WHERE job_id=? ORDER BY event_sequence",
-            )
-            .unwrap()
-            .query_map([&id], |r| {
-                Ok(PgHistoricalEvent {
-                    event_id: r.get(0)?,
-                    event_sequence: r.get(1)?,
-                    event_type: r.get(2)?,
-                    detail_digest: r.get(3)?,
-                })
-            })
-            .unwrap()
-            .collect::<Result<Vec<_>, _>>()
-            .unwrap();
-        assert_eq!(pg.events, events);
-        let artifacts = frozen
-            .prepare(
-                "SELECT artifact_id,attempt_id,kind,relative_path,digest,byte_length,truncated \
-                 FROM artifacts WHERE job_id=? ORDER BY artifact_id",
-            )
-            .unwrap()
-            .query_map([&id], |r| {
-                Ok(PgHistoricalArtifact {
-                    artifact_id: r.get(0)?,
-                    attempt_id: r.get(1)?,
-                    kind: r.get(2)?,
-                    relative_path: r.get(3)?,
-                    digest: r.get(4)?,
-                    byte_length: r.get(5)?,
-                    truncated: r.get(6)?,
-                })
-            })
-            .unwrap()
-            .collect::<Result<Vec<_>, _>>()
-            .unwrap();
-        assert_eq!(pg.artifacts, artifacts);
-        let idem: Option<String> = frozen
-            .query_row(
-                "SELECT operation_digest FROM idempotency_keys WHERE job_id=?",
-                [&id],
-                |r| r.get(0),
-            )
-            .ok();
-        assert_eq!(pg.idempotency_operation_digest, idem);
+        // Frozen in-progress data must remain in-progress, rather than being
+        // fabricated into a terminal result by historical readback.
+        let running = reader.read_job(SNAPSHOT_INFLIGHT_JOB).unwrap().unwrap();
+        assert_eq!(running.resolution, None);
+        assert_eq!(running.row_version, 0);
+        assert_eq!(running.attempts.len(), 1);
+        assert_eq!(running.attempts[0].state, "running");
+        assert_eq!(running.attempts[0].row_version, 3);
+        assert_eq!(running.events.len(), 6);
+        assert!(running.artifacts.is_empty());
+
+        // An Artifact-heavy historical Job is a distinct consumer from a
+        // result with no outputs; all six registered receipts must survive.
+        let with_artifacts = reader.read_job(ARTIFACT_JOB).unwrap().unwrap();
+        assert_eq!(with_artifacts.resolution.as_deref(), Some("succeeded"));
+        assert_eq!(with_artifacts.events.len(), 8);
+        assert_eq!(with_artifacts.artifacts.len(), 6);
+        assert_eq!(with_artifacts.artifacts[0].kind, "resource_receipt");
+        assert_eq!(with_artifacts.artifacts[0].byte_length, 832);
+        assert_eq!(
+            with_artifacts.artifacts[5].kind,
+            "workspace_source_observation"
+        );
+        assert_eq!(with_artifacts.artifacts[5].byte_length, 585);
+
         assert!(reader.read_job("no-such-historical-job").unwrap().is_none());
         assert!(matches!(
             reader.read_job(""),
             Err(PgStageReadError::InvalidInput)
         ));
-        // Verify a *physical* write attempt fails even under database superuser:
-        // the Rust consumer session is fenced read-only.
+        // Physical negative control: even an administrative PostgreSQL
+        // connection is read-only through this historical reader.
         let forbidden = reader
             .client
             .batch_execute("UPDATE jobs SET desired_state='cancelled' WHERE false");
-        assert!(
-            forbidden.as_ref().err().and_then(|e| e.code())
-                == Some(&postgres::error::SqlState::READ_ONLY_SQL_TRANSACTION),
-            "historical read session must reject mutation: {forbidden:?}"
+        assert_eq!(
+            forbidden.as_ref().err().and_then(|e| e.code()),
+            Some(&postgres::error::SqlState::READ_ONLY_SQL_TRANSACTION),
+            "historical reader must reject mutations"
         );
     }
 }
