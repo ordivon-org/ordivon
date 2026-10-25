@@ -122,6 +122,15 @@ Evidence must come from the owner appropriate to the claim.
 
 ## Repository direction
 
+The September R1 `planning/lego-plan-r1.json` projection was retired:
+no tracked code, test, Owner registration, or explicit DS1 consumer read it;
+its free-text `BLOCKED` status did not satisfy the canonical typed slice
+grammar. This removes a **non-authoritative planning duplicate**, not any
+provider-write guard. The existing direct-provider-first laws, native
+EffectAuthority oracle, OPA policy and readback tests remain the consumers.
+Git retains historical provenance; external consumers not represented in
+this SourceCut remain UNKNOWN.
+
 This repository should shrink as provider/client standards improve.
 
 A retained custom mechanism must answer:
