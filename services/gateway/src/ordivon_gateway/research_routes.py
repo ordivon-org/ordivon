@@ -1,7 +1,7 @@
-# GENERATED FILE — DO NOT EDIT BY HAND.
-# Source: profiles/research/capability-index/research-capability-index-r1.json
-# Provider bindings: .agents/skills/research-capability-routing/references/research-capability-routing-r1.json
-# indexDigest=sha256:7dc68e6907560cafd4efb98fd75c0d5471390696b82d4ed42c93ecf7e439e9a0 routingProfileDigest=sha256:a375d6e7de1d8ba9b6cffbfa709f68aa4f70fca2b449ba6cfae9387d78f792ea
+# Gateway-owned non-authoritative Research composition projection.
+# The historical generator and its source inputs were retired; this native
+# owner source now binds only current monorepo sourceRefs. Study and provider
+# authorities remain external, and source presence never proves scientific truth.
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -51,9 +51,7 @@ _PROJECTED = [
         "preferred_skills": ["paper-lookup"],
         "semantic_owner": "study.method-and-source-authorities",
         "source_refs": [
-            "catalogs/capabilities/packages/research.md",
             "docs/architecture/RESEARCH_STUDY_AUTHORITY_R1.md",
-            "profiles/research/scholarly-intelligence/SCHOLARLY_INTELLIGENCE_R2.md",
         ],
         "study_types": ["systematic-review", "replication-or-reproduction", "meta-science"],
         "tags": ["research", "literature", "scholarly", "openalex", "crossref", "papers"],
@@ -79,10 +77,8 @@ _PROJECTED = [
         "preferred_skills": ["citation-management"],
         "semantic_owner": "study.bibliographic-policy-and-source-authorities",
         "source_refs": [
-            "catalogs/capabilities/packages/research.md",
             "docs/architecture/RESEARCH_STUDY_AUTHORITY_R1.md",
-            "profiles/research/scholarly-intelligence/SCHOLARLY_INTELLIGENCE_R2.md",
-            "profiles/research/publication/publication-closure-profile-r2.json",
+            "meta/research/publication-closure-profile-r2.json",
         ],
         "study_types": ["all"],
         "tags": ["research", "citation", "doi", "crossref", "bibtex", "csl"],
@@ -108,9 +104,7 @@ _PROJECTED = [
         "preferred_skills": ["experimental-design", "hypothesis-generation"],
         "semantic_owner": "study.method-authority",
         "source_refs": [
-            "catalogs/capabilities/packages/research.md",
             "docs/architecture/RESEARCH_STUDY_AUTHORITY_R1.md",
-            "profiles/research/scholarly-intelligence/SCHOLARLY_INTELLIGENCE_R2.md",
         ],
         "study_types": [
             "empirical-software-engineering",
@@ -141,9 +135,7 @@ _PROJECTED = [
         "preferred_skills": ["statistical-analysis"],
         "semantic_owner": "study.statistical-method-authority",
         "source_refs": [
-            "catalogs/capabilities/packages/research.md",
             "docs/architecture/RESEARCH_STUDY_AUTHORITY_R1.md",
-            "profiles/research/scholarly-intelligence/SCHOLARLY_INTELLIGENCE_R2.md",
         ],
         "study_types": ["all"],
         "tags": ["research", "statistics", "inference", "effect-size", "power", "bayesian"],
@@ -169,9 +161,7 @@ _PROJECTED = [
         "preferred_skills": ["exploratory-data-analysis"],
         "semantic_owner": "study.data-and-method-authority",
         "source_refs": [
-            "catalogs/capabilities/packages/research.md",
             "docs/architecture/RESEARCH_STUDY_AUTHORITY_R1.md",
-            "profiles/research/scholarly-intelligence/SCHOLARLY_INTELLIGENCE_R2.md",
         ],
         "study_types": ["all"],
         "tags": ["research", "eda", "data", "duckdb", "pandas", "polars", "pandera"],
@@ -196,10 +186,8 @@ _PROJECTED = [
         "preferred_skills": ["scientific-visualization"],
         "semantic_owner": "study.figure-and-claim-authority",
         "source_refs": [
-            "catalogs/capabilities/packages/research.md",
             "docs/architecture/RESEARCH_STUDY_AUTHORITY_R1.md",
-            "profiles/research/scholarly-intelligence/SCHOLARLY_INTELLIGENCE_R2.md",
-            "profiles/research/publication/perceptual-conformance-profile-r1.json",
+            "meta/research/publication/perceptual-conformance-profile-r1.json",
         ],
         "study_types": ["all"],
         "tags": ["research", "figure", "visualization", "publication", "matplotlib"],
@@ -226,9 +214,7 @@ _PROJECTED = [
         "preferred_skills": ["peer-review", "scientific-critical-thinking"],
         "semantic_owner": "study-and-review-protocol",
         "source_refs": [
-            "catalogs/capabilities/packages/research.md",
             "docs/architecture/RESEARCH_STUDY_AUTHORITY_R1.md",
-            "profiles/research/scholarly-intelligence/SCHOLARLY_INTELLIGENCE_R2.md",
         ],
         "study_types": ["all"],
         "tags": ["research", "peer-review", "critique", "evidence", "reproducibility"],
@@ -255,9 +241,7 @@ _PROJECTED = [
         "preferred_skills": ["scientific-writing"],
         "semantic_owner": "study.claim-and-manuscript-authority",
         "source_refs": [
-            "catalogs/capabilities/packages/research.md",
             "docs/architecture/RESEARCH_STUDY_AUTHORITY_R1.md",
-            "profiles/research/scholarly-intelligence/SCHOLARLY_INTELLIGENCE_R2.md",
         ],
         "study_types": ["all"],
         "tags": ["research", "writing", "manuscript", "report", "evidence"],
@@ -315,7 +299,6 @@ _PROJECTED = [
         "semantic_owner": "research-profile-verifiers",
         "source_refs": [
             "mise.toml",
-            "profiles/research/scholarly-intelligence/SCHOLARLY_INTELLIGENCE_R2.md",
         ],
         "study_types": ["all"],
         "tags": ["research", "verify", "currentness", "profile", "mise", "uv"],
@@ -342,7 +325,7 @@ _PROJECTED = [
         "preferred_skills": ["research-publication-closure"],
         "semantic_owner": "study.publication-authority",
         "source_refs": [
-            "profiles/research/publication/publication-closure-profile-r2.json",
+            "meta/research/publication-closure-profile-r2.json",
             ".agents/skills/research-publication-closure/SKILL.md",
         ],
         "study_types": ["all"],
@@ -370,7 +353,7 @@ _PROJECTED = [
         "preferred_skills": ["research-publication-perceptual-conformance"],
         "semantic_owner": "publication-perceptual-observer-protocol",
         "source_refs": [
-            "profiles/research/publication/perceptual-conformance-profile-r1.json",
+            "meta/research/publication/perceptual-conformance-profile-r1.json",
             ".agents/skills/research-publication-perceptual-conformance/SKILL.md",
         ],
         "study_types": ["all"],
@@ -397,8 +380,7 @@ _PROJECTED = [
         "preferred_skills": [],
         "semantic_owner": "study",
         "source_refs": [
-            "profiles/research/scholarly-intelligence/SCHOLARLY_INTELLIGENCE_R2.md",
-            "profiles/research/scholarly-intelligence/scholarly-intelligence-profile-v1.schema.json",
+            "docs/architecture/RESEARCH_STUDY_AUTHORITY_R1.md",
         ],
         "study_types": ["all"],
         "tags": [
