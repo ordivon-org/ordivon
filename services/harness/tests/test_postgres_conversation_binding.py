@@ -164,6 +164,50 @@ def test_pg_store_refuses_direct_admission_with_unsealed_legacy(owner) -> None:
         )
 
 
+@pytest.mark.parametrize("forged_names", [False, True])
+def test_weak_pg_check_literals_do_not_count_as_integrity_contract(
+    tmp_path: Path, forged_names: bool
+) -> None:
+    """Real PG counterfeit: weak CHECKs contain the same lexical keywords.
+
+    Exact type, PK, UNIQUE and nonnegative time are insufficient if any
+    arbitrary CHECK mentioning sha256:/session_id is accepted as a certificate.
+    """
+    assert DSN is not None
+    digest_name = "cft_binding_digests" if forged_names else "weak_digest"
+    session_name = "cft_binding_uuid7" if forged_names else "weak_session"
+    with psycopg.connect(DSN) as pg:
+        pg.execute("DROP SCHEMA IF EXISTS ordivon_harness CASCADE")
+        pg.execute("CREATE SCHEMA ordivon_harness")
+        pg.execute(
+            f"""
+            CREATE TABLE ordivon_harness.conversation_bindings(
+                campaign_ref TEXT NOT NULL,
+                agent_id TEXT NOT NULL,
+                provider_resource TEXT NOT NULL,
+                session_id TEXT NOT NULL,
+                evidence_digest TEXT NOT NULL,
+                request_id TEXT NOT NULL UNIQUE,
+                binding_digest TEXT NOT NULL,
+                created_at_ms BIGINT NOT NULL CHECK(created_at_ms >= 0),
+                PRIMARY KEY(campaign_ref,agent_id),
+                CONSTRAINT {digest_name} CHECK(evidence_digest LIKE '%sha256:%'),
+                CONSTRAINT {session_name} CHECK(session_id <> '')
+            )
+            """
+        )
+    try:
+        with pytest.raises(ConversationBindingConflict, match="schema|constraint|law"):
+            PostgresConversationBindingStore(
+                DSN,
+                legacy_source=tmp_path / "never-created.sqlite",
+                fresh_bootstrap=True,
+            )
+    finally:
+        with psycopg.connect(DSN) as pg:
+            pg.execute("DROP SCHEMA IF EXISTS ordivon_harness CASCADE")
+
+
 def test_tampered_pg_row_rejected_on_get(owner) -> None:
     owner.adopt_binding(**payload())
     with psycopg.connect(owner.dsn) as pg:

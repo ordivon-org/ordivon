@@ -106,19 +106,38 @@ class PostgresConversationBindingStore:
             ]
             if physical != expected:
                 raise ConversationBindingConflict("PostgreSQL binding schema shape differs")
-            constraints = pg.execute(
-                "SELECT contype,pg_get_constraintdef(oid) FROM pg_constraint "
+            # Compare PostgreSQL's *actual native constraint definitions*,
+            # not mere substrings of an arbitrary check expression. An
+            # unrelated LIKE '%sha256:%' can include the expected keyword
+            # while admitting invalid digests. These are PG18 source contracts:
+            # a changed PG deparser/DDL must be explicitly requalified.
+            catalog_rows = pg.execute(
+                "SELECT conname,contype,pg_get_constraintdef(oid) "
+                "FROM pg_constraint "
                 "WHERE conrelid='ordivon_harness.conversation_bindings'::regclass"
             ).fetchall()
-            if not (
-                any(t == "p" and "(campaign_ref, agent_id)" in body for t, body in constraints)
-                and any(t == "u" and "(request_id)" in body for t, body in constraints)
-                and any(t == "c" and "created_at_ms" in body for t, body in constraints)
-                and any(t == "c" and "sha256:" in body for t, body in constraints)
-                and any(t == "c" and "session_id" in body for t, body in constraints)
+            contracts = {name: (kind, definition) for name, kind, definition in catalog_rows}
+            expected_contracts = {
+                "conversation_bindings_pkey": ("p", "PRIMARY KEY (campaign_ref, agent_id)"),
+                "conversation_bindings_request_id_key": ("u", "UNIQUE (request_id)"),
+                "conversation_bindings_created_at_ms_check": ("c", "CHECK ((created_at_ms >= 0))"),
+                "cft_binding_digests": (
+                    "c",
+                    "CHECK (((evidence_digest ~ '^sha256:[0-9a-f]{64}$'::text) "
+                    "AND (binding_digest ~ '^sha256:[0-9a-f]{64}$'::text)))",
+                ),
+                "cft_binding_uuid7": (
+                    "c",
+                    "CHECK ((session_id ~ "
+                    "'^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-"
+                    "[89ab][0-9a-f]{3}-[0-9a-f]{12}$'::text))",
+                ),
+            }
+            if any(
+                contracts.get(name) != required for name, required in expected_contracts.items()
             ):
                 raise ConversationBindingConflict(
-                    "PostgreSQL binding native uniqueness/check law absent"
+                    "PostgreSQL binding native uniqueness/check law differs"
                 )
 
     @staticmethod
