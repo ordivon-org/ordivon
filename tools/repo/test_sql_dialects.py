@@ -14,6 +14,7 @@ from tools.repo.check_sql_dialects import (
     tracked_core_sqlite_calls,
     CORE_SQLITE_LEGACY_CALLS,
     ROOT,
+    host_postgres_only_sources,
 )
 
 
@@ -146,6 +147,51 @@ class SQLDialectBoundaryTests(unittest.TestCase):
             (repo / "queries").symlink_to(repo / "other", target_is_directory=True)
             with self.assertRaisesRegex(ValueError, "symlink"):
                 tracked_sql(repo)
+
+    def test_host_postgres_authority_rejects_new_embedded_backend(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            host = root / "services/host/src/ordivon_host_v2"
+            host.mkdir(parents=True)
+            (root / "services/host/migrations").mkdir(parents=True)
+            (host / "social_store.py").write_text(
+                "import psycopg\npsycopg.connect('postgresql://example')\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(host_postgres_only_sources(root), [])
+            for source in (
+                "import sqlite3 as pg\n",
+                "__import__('sqlite3')\n",
+                "from importlib import import_module\nimport_module('aiosqlite')\n",
+                "from sqlite3 import connect\n",
+                "import aiosqlite\n",
+                "dsn = 'sqlite:///tmp/host.db'\n",
+                "from sqlalchemy.dialects import sqlite\n",
+            ):
+                (host / "rogue.py").write_text(source, encoding="utf-8")
+                with self.subTest(source=source):
+                    issues = host_postgres_only_sources(root)
+                    self.assertEqual(len(issues), 1, issues)
+                    self.assertIn("rogue.py", issues[0])
+
+    def test_host_postgres_authority_rejects_vacuous_empty_owner(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "services/host/src").mkdir(parents=True)
+            (root / "services/host/migrations").mkdir(parents=True)
+            self.assertTrue(host_postgres_only_sources(root))
+
+    def test_host_postgres_authority_rejects_symlinked_source(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            host = root / "services/host/src/ordivon_host_v2"
+            host.mkdir(parents=True)
+            outside = root / "external.py"
+            outside.write_text("import sqlite3\n", encoding="utf-8")
+            (host / "rogue.py").symlink_to(outside)
+            self.assertTrue(
+                any("rogue.py" in issue for issue in host_postgres_only_sources(root))
+            )
 
     def test_unknown_sql_is_not_certified(self):
         for name in ("domains/game/later.sql", "services/runtime/crates/ordivon-runtime-core/src/runtime/bad.sql"):

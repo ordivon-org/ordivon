@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import importlib.metadata
 import json
 import re
@@ -188,9 +189,78 @@ def run_bounded(
     )
 
 
+def host_postgres_only_sources(root: Path) -> list[str]:
+    """Fail closed when Host authority introduces a second embedded SQL engine.
+
+    Runtime's node-local Registry and Harness's durable Run store are separate
+    consumers with different crash/replay contracts; this is not their cutover.
+    """
+    issues: list[str] = []
+    has_postgres_client = False
+    forbidden = ("sqlite3", "pysqlite3", "aiosqlite")
+    for base in ("services/host/src", "services/host/migrations"):
+        directory = root / base
+        if not directory.is_dir() or directory.is_symlink():
+            issues.append(f"Host PostgreSQL source directory unavailable: {base}")
+            continue
+        for source in sorted(directory.rglob("*.py")):
+            rel = source.relative_to(root).as_posix()
+            if source.is_symlink() or not source.is_file():
+                issues.append(f"Host PostgreSQL source redirected: {rel}")
+                continue
+            try:
+                tree = ast.parse(source.read_text(encoding="utf-8"), filename=rel)
+            except (SyntaxError, UnicodeError, OSError) as exc:
+                issues.append(f"Host PostgreSQL source unreadable: {rel}: {type(exc).__name__}")
+                continue
+            for node in ast.walk(tree):
+                if (isinstance(node, ast.Call)
+                        and isinstance(node.func, ast.Attribute)
+                        and isinstance(node.func.value, ast.Name)
+                        and node.func.value.id == "psycopg"
+                        and node.func.attr == "connect"):
+                    has_postgres_client = True
+                imports: list[str] = []
+                if isinstance(node, ast.Import):
+                    imports = [alias.name for alias in node.names]
+                elif isinstance(node, ast.ImportFrom):
+                    imports = [node.module or ""] + [
+                        f"{node.module}.{alias.name}" for alias in node.names
+                    ]
+                if any(
+                    name == item or name.startswith(item + ".")
+                    for name in imports
+                    for item in forbidden
+                ) or any("sqlalchemy.dialects.sqlite" in name for name in imports):
+                    issues.append(f"Host PostgreSQL authority forbids embedded SQL import: {rel}")
+                if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                    if "sqlite:" in node.value.lower():
+                        issues.append(f"Host PostgreSQL authority forbids SQLite DSN: {rel}")
+                if isinstance(node, ast.Call) and node.args:
+                    target = node.func
+                    dynamic = (
+                        isinstance(target, ast.Name) and target.id in {"__import__", "import_module"}
+                    ) or (
+                        isinstance(target, ast.Attribute)
+                        and target.attr == "import_module"
+                    )
+                    literal = node.args[0]
+                    if (dynamic and isinstance(literal, ast.Constant)
+                            and isinstance(literal.value, str)
+                            and any(literal.value == name or literal.value.startswith(name + ".")
+                                    for name in forbidden)):
+                        issues.append(f"Host PostgreSQL authority forbids dynamic SQL import: {rel}")
+    if not has_postgres_client:
+        issues.append("Host PostgreSQL authority has no active psycopg.connect consumer")
+    return sorted(set(issues))
+
+
 def check(root: Path) -> tuple[list[str], list[str]]:
     issues: list[str] = []
     facts: list[str] = []
+    issues.extend(host_postgres_only_sources(root))
+    if not issues:
+        facts.append("Host PostgreSQL-only active source authority PASS")
     files = tracked_sql(root)
     legacy_sources = tracked_core_sqlite_calls(root)
     issues.extend(core_sqlite_debt_issues(legacy_sources))
