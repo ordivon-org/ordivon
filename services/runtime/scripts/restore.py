@@ -11,7 +11,8 @@ import shutil
 import sqlite3
 import sys
 import tempfile
-from contextlib import closing
+import stat
+from contextlib import ExitStack, closing, contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -75,6 +76,32 @@ def load_and_verify(source: Path) -> tuple[dict[str, Any], list[tuple[Path, dict
     return manifest, verified
 
 
+@contextmanager
+def pinned_source_entry(source: Path, relative: Path):
+    """Pin Linux snapshot components with native openat no-follow resolution.
+
+    This is narrower than openat2: no cross-mount exclusion is asserted, and
+    other platforms retain their existing static/staging checks.
+    """
+    if not sys.platform.startswith("linux"):
+        yield source / relative
+        return
+    flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC
+    with ExitStack() as stack:
+        parent_fd = os.open(source, flags | os.O_DIRECTORY)
+        stack.callback(os.close, parent_fd)
+        for segment in relative.parts[:-1]:
+            parent_fd = os.open(segment, flags | os.O_DIRECTORY, dir_fd=parent_fd)
+            stack.callback(os.close, parent_fd)
+        file_fd = os.open(relative.name, flags, dir_fd=parent_fd)
+        stack.callback(os.close, file_fd)
+        if not stat.S_ISREG(os.fstat(file_fd).st_mode):
+            raise ValueError(f"snapshot entry is not a regular file: {relative}")
+        # copy2 retains the original mode/timestamps while all data and
+        # metadata reads use the pinned descriptor, not a raceable pathname.
+        yield Path("/proc/self/fd") / str(file_fd)
+
+
 def verify_sqlite(path: Path) -> None:
     uri = f"file:{path}?mode=ro"
     with closing(sqlite3.connect(uri, uri=True)) as database:
@@ -98,10 +125,10 @@ def restore_snapshot(source: Path, destination: Path) -> Path:
     staging = Path(tempfile.mkdtemp(prefix=f".{destination.name}.restore-", dir=destination.parent))
     try:
         for relative, _record in files:
-            source_file = source / relative
             destination_file = staging / relative
             destination_file.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(source_file, destination_file, follow_symlinks=False)
+            with pinned_source_entry(source, relative) as bound_source:
+                shutil.copy2(bound_source, destination_file, follow_symlinks=True)
         (staging / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         # A validated source may change before copy. Reuse the exact manifest
         # verifier against the *staged bytes* before publication; the source
