@@ -790,10 +790,7 @@ CREATE TABLE _stage_control(
                 Ok(PgAdmissionOutcome::Existing(_)) => (),
                 Err(PgAdmissionError::Database(error))
                     if error.code()
-                        == Some(&postgres::error::SqlState::T_R_SERIALIZATION_FAILURE) =>
-                {
-                    ()
-                }
+                        == Some(&postgres::error::SqlState::T_R_SERIALIZATION_FAILURE) => {}
                 unexpected => panic!("unsafe concurrent admission result: {unexpected:?}"),
             }
         }
