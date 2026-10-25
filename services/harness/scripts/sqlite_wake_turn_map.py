@@ -150,8 +150,16 @@ class SQLiteWakeTurnMap:
                     raise WakeTurnConflict(
                         "wake intent identity changed campaign, role, or prompt semantics"
                     )
+                try:
+                    # Even a matching semantic triple cannot authorize a replay
+                    # containing a corrupted durable Turn request identity.
+                    require_uuid7(existing["turn_request_id"], "turnRequestId")
+                except (TypeError, ValueError) as error:
+                    db.execute("ROLLBACK")
+                    raise WakeTurnConflict("wake turn replay receipt invalid") from error
+                receipt = self._receipt(existing, "existing")
                 db.execute("COMMIT")
-                return self._receipt(existing, "existing")
+                return receipt
 
             turn_request_id = require_uuid7(self._uuid7_factory(), "turnRequestId")
             db.execute(
@@ -173,6 +181,19 @@ class SQLiteWakeTurnMap:
                 "SELECT * FROM wake_turn_map WHERE wake_intent_id=?",
                 (wake_intent_id,),
             ).fetchone()
+            # The caller may observe this turn identity only after the exact
+            # persisted row has been read and checked inside its transaction.
+            expected = {
+                "wake_intent_id": wake_intent_id,
+                "campaign_ref": campaign_ref,
+                "agent_id": agent_id,
+                "prompt_digest": prompt_digest,
+                "turn_request_id": turn_request_id,
+                "created_at_ms": now,
+            }
+            if row is None or any(row[key] != value for key, value in expected.items()):
+                db.execute("ROLLBACK")
+                raise WakeTurnConflict("wake turn receipt missing or changed")
+            receipt = self._receipt(row, "created")
             db.execute("COMMIT")
-            assert row is not None
-            return self._receipt(row, "created")
+            return receipt
