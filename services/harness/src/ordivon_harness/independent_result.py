@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field as dataclass_field
 from typing import Any, Callable
 
-from anc_canonical import JsonValue, canonical_digest, validate_json_value
+from anc_canonical import JsonValue, canonical_bytes, canonical_digest, loads_strict, validate_json_value
 
 from .agent_tool_observation import HarnessArtifactReference, HarnessToolObservation
 from .core_contracts import HarnessRunContract
@@ -100,7 +100,9 @@ class IndependentHarnessRunReceipt:
     tool_grant_digest: str
     runtime_job_refs: tuple[str, ...]
     artifact_refs: tuple[HarnessArtifactReference, ...]
-    usage: dict[str, JsonValue]
+    # Observer-facing projection; only _usage_bytes participates in evidence identity.
+    usage: dict[str, JsonValue] = dataclass_field(compare=False)
+    _usage_bytes: bytes = dataclass_field(init=False, repr=False)
     conclusion_digest: str | None = None
 
     def __post_init__(self) -> None:
@@ -131,6 +133,11 @@ class IndependentHarnessRunReceipt:
         if len(refs) != len(set(refs)):
             raise ValueError("Harness Artifact references must be unique")
         validate_json_value(self.usage)
+        # Seal at admission; neither constructor aliases nor readback can
+        # rewrite the canonical receipt or its equality/digest identity.
+        sealed_usage = canonical_bytes(self.usage)
+        object.__setattr__(self, "_usage_bytes", sealed_usage)
+        object.__setattr__(self, "usage", loads_strict(sealed_usage))
         if self.conclusion_digest is not None:
             _digest(self.conclusion_digest, "Harness conclusion digest")
         if self.stop_reason == "completed" and self.conclusion_digest is None:
@@ -160,7 +167,7 @@ class IndependentHarnessRunReceipt:
             "toolGrantDigest": self.tool_grant_digest,
             "runtimeJobRefs": list(self.runtime_job_refs),
             "artifactRefs": [item.to_dict() for item in self.artifact_refs],
-            "usage": self.usage,
+            "usage": loads_strict(self._usage_bytes),
             "conclusionDigest": self.conclusion_digest,
         }
 
@@ -226,7 +233,9 @@ class IndependentCompletionProposal:
     evidence_refs: tuple[str, ...]
     artifact_refs: tuple[str, ...]
     unresolved_unknowns: tuple[str, ...]
-    usage: dict[str, JsonValue]
+    # Observer-facing projection; only _usage_bytes participates in evidence identity.
+    usage: dict[str, JsonValue] = dataclass_field(compare=False)
+    _usage_bytes: bytes = dataclass_field(init=False, repr=False)
     created_at_ms: int
 
     def __post_init__(self) -> None:
@@ -242,6 +251,11 @@ class IndependentCompletionProposal:
         _unique_text(self.artifact_refs, "Completion Artifact reference")
         _unique_text(self.unresolved_unknowns, "Completion unresolved unknown")
         validate_json_value(self.usage)
+        # Seal at admission; neither constructor aliases nor readback can
+        # rewrite the canonical receipt or its equality/digest identity.
+        sealed_usage = canonical_bytes(self.usage)
+        object.__setattr__(self, "_usage_bytes", sealed_usage)
+        object.__setattr__(self, "usage", loads_strict(sealed_usage))
         if type(self.created_at_ms) is not int:
             raise ValueError("Completion Proposal creation time must be an exact integer")
         if self.created_at_ms < 0:
@@ -266,7 +280,7 @@ class IndependentCompletionProposal:
             "evidenceRefs": list(self.evidence_refs),
             "artifactRefs": list(self.artifact_refs),
             "unresolvedUnknowns": list(self.unresolved_unknowns),
-            "usage": self.usage,
+            "usage": loads_strict(self._usage_bytes),
             "createdAtMs": self.created_at_ms,
         }
 

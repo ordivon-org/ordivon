@@ -90,3 +90,48 @@ def test_valid_legacy_proposal_version_one_remains_decodable() -> None:
     encoded["schemaVersion"] = 1
     encoded.pop("unresolvedUnknowns")
     assert IndependentCompletionProposal.from_dict(encoded).unresolved_unknowns == ()
+
+
+@pytest.mark.parametrize("factory", [_receipt, _proposal], ids=["run-receipt", "proposal"])
+def test_receipt_evidence_is_not_rewritten_by_external_usage_alias(factory) -> None:
+    """R2.1: constructor input, public projection and wire snapshot cannot rewrite evidence."""
+    caller_usage = {"nested": {"counts": [1, 2], "present": True}}
+    value = replace(factory(), usage=caller_usage)
+    wire_before = value.to_dict()
+    digest_before = value.digest
+    caller_usage["nested"]["counts"].append(999)
+    assert value.to_dict() == wire_before
+    assert value.digest == digest_before
+
+    value.usage["nested"]["counts"].append(998)
+    assert value.to_dict() == wire_before
+    assert value.digest == digest_before
+
+    serialized = value.to_dict()
+    serialized["usage"]["nested"]["counts"].append(997)
+    assert value.to_dict() == wire_before
+    assert value.digest == digest_before
+
+
+@pytest.mark.parametrize("factory", [_receipt, _proposal], ids=["run-receipt", "proposal"])
+def test_independent_evidence_equality_stays_stable_under_usage_observer_changes(factory) -> None:
+    original = factory()
+    other = replace(original, usage={"nested": {"present": True}})
+    duplicate = replace(original, usage={"nested": {"present": True}})
+    expected_digest = other.digest
+    other.usage["nested"]["present"] = False
+    assert other.digest == expected_digest
+    assert other.to_dict() == duplicate.to_dict()
+    assert other == duplicate
+
+
+@pytest.mark.parametrize("factory", [_receipt, _proposal], ids=["run-receipt", "proposal"])
+def test_decoded_evidence_does_not_alias_persisted_json_usage(factory) -> None:
+    wire = factory().to_dict()
+    wire["usage"] = {"nested": [5, 6]}
+    cls = type(factory())
+    decoded = cls.from_dict(wire)
+    expected = decoded.digest
+    wire["usage"]["nested"].append(7)
+    assert decoded.to_dict()["usage"] == {"nested": [5, 6]}
+    assert decoded.digest == expected
