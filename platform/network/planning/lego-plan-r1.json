@@ -68,7 +68,9 @@
         "README.md",
         "docs/ACCEPTANCE_MATRIX.md",
         "evidence/current-capabilities.json",
-        "tests/test_prometheus_singbox_witness.py"
+        "tests/test_prometheus_singbox_witness.py",
+        "formal/SupplyChainReadinessR1.tla",
+        "tests/test_supply_chain_formal_gate.py"
       ],
       "dependencies": [],
       "mustNotOwn": [
@@ -76,7 +78,8 @@
       ],
       "acceptance": [
         "Local WSL capability projection is refreshed only after acceptance gates pass.",
-        "Prometheus sing-box READY requires a single successful instant-vector response, exact probe_success/job/instance, value 1, and a current timestamp; process-recovery acceptance requires an observation no earlier than the recovered process. Synthetic CDC is not live egress proof."
+        "Prometheus sing-box READY requires a single successful instant-vector response, exact probe_success/job/instance, value 1, and a current timestamp; process-recovery acceptance requires an observation no earlier than the recovered process. Synthetic CDC is not live egress proof.",
+        "Native finite-state TLC checks five exact allowed-origin receipts and separate unknown-target proxy CONNECT=403 before Supply-Chain READY; no live policy proof implied."
       ]
     },
     {
@@ -89,7 +92,9 @@
       "sharedRefs": [],
       "evidence": [
         "README.md",
-        "docs/ACCEPTANCE_MATRIX.md"
+        "docs/ACCEPTANCE_MATRIX.md",
+        "formal/SupplyChainReadinessR1.tla",
+        "tests/test_readiness_shared_budget.py"
       ],
       "dependencies": [],
       "mustNotOwn": [
@@ -97,7 +102,8 @@
       ],
       "acceptance": [
         "DNS/transport/recovery faults have explicit acceptance evidence.",
-        "Network N04 Browserless post-lease typed nonempty namespace equality must fail closed with Python -O; test_browserless_serial_restoration_contract.py falsifies mismatched and missing consumer bindings."
+        "Network N04 Browserless post-lease typed nonempty namespace equality must fail closed with Python -O; test_browserless_serial_restoration_contract.py falsifies mismatched and missing consumer bindings.",
+        "Negative TLC reachability oracles independently cover proxy auth 407, transport failure 000, reached-origin HTTP 403, and shared deadline; concrete Bash tests remain mandatory."
       ]
     },
     {
@@ -178,7 +184,8 @@
       "evidence": [
         "platform/network/tests/test_egress_routing_behavior.py: isolated loopback upstream CONNECT oracle, including a terminal-reject negative control",
         "platform/network/mise.toml: behavior task fails closed without native sing-box; owner CI conditionally exercises native tests when present",
-        "2026-10-25 existing owner CDC platform/network/tests/test_readiness_shared_budget.py: transport failure 000/000 and proxy auth 000/407 previously yielded false READY despite positive allowed-origin probes; explicit denial 000/403 qualifies; origin 403 over CONNECT=200 fails closed. Original stand-alone duplicate test harness retired."
+        "2026-10-25 existing owner CDC platform/network/tests/test_readiness_shared_budget.py: transport failure 000/000 and proxy auth 000/407 previously yielded false READY despite positive allowed-origin probes; explicit denial 000/403 qualifies; origin 403 over CONNECT=200 fails closed. Original stand-alone duplicate test harness retired.",
+        "formal/SupplyChainReadinessR1.tla: bounded official TLC, 5-origin positive receipt + unknown-destination policy denial + shared deadline. NOT a live DNS/VPN/WSL policy proof."
       ],
       "blockers": [
         "This is not a production DNS, VPN, WSL, Windows or compromised inner-layer proof; finish independent live consumer probes before changing NS2 status"

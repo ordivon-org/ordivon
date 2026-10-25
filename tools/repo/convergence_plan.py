@@ -69,6 +69,10 @@ def load_dependency_graph(
                     "harness", "runtime", "services/harness/mise.toml",
                     "../../services/runtime", "services/runtime/formal/README.md",
                 ),
+                (
+                    "network", "runtime", "platform/network/mise.toml",
+                    "../../services/runtime", "services/runtime/formal/README.md",
+                ),
             }
             declared = (
                 left, right, seam.get("source_glob"),

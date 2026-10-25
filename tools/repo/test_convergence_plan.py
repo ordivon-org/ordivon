@@ -121,6 +121,8 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertNotIn("composition", graph["runtime"])
         self.assertNotIn("runtime", graph["harness"])
         self.assertNotIn("harness", graph["runtime"])
+        self.assertNotIn("runtime", graph["network"])
+        self.assertNotIn("network", graph["runtime"])
         # Existing public code/data dependencies must still propagate.
         self.assertIn("composition", graph["next"])
         runtime = MODULE.build_plan(changed_files=["services/runtime/crates/ordivon-runtime-core/src/lib.rs"])

@@ -8,6 +8,7 @@ run = """
 set -euo pipefail
 test -n "$(git ls-files -- '*.sh' | head -1)"
 git ls-files -z -- '*.sh' | xargs -0 shellcheck
+mise run formal:verify
 PYTHONDONTWRITEBYTECODE=1 uv run --no-project --python 3.15.1 --with pytest==9.1.1 \
   python -m pytest -q -p no:cacheprovider tests
 """
@@ -21,3 +22,46 @@ set -euo pipefail
 command -v sing-box >/dev/null || { echo 'sing-box is required for network behavior verification' >&2; exit 2; }
 PYTHONDONTWRITEBYTECODE=1 uv run --no-project --python 3.15.1 --with pytest==9.1.1   python -m pytest -q -p no:cacheprovider tests/test_egress_routing_behavior.py
 '''
+
+[tasks."formal:verify"]
+description = "Native bounded Supply-Chain readiness TLC model and negative controls"
+run = """
+set -euo pipefail
+runtime_root="$(realpath ../../services/runtime)"
+cached_jar="$(python3 - "$runtime_root" <<'PY_JAR'
+import json
+from pathlib import Path
+import sys
+root = Path(sys.argv[1])
+lock = json.loads((root / "formal/toolchain.lock.json").read_text())
+print((root / lock["cacheRelativePath"]).resolve())
+PY_JAR
+)"
+if ! printenv ORDIVON_TLA_TOOLS_JAR >/dev/null; then
+  if [[ ! -f "$cached_jar" ]];then
+    "$runtime_root/scripts/tla-formal" bootstrap
+  fi
+  export ORDIVON_TLA_TOOLS_JAR="$cached_jar"
+fi
+"$runtime_root/scripts/tla-formal" verify
+(
+  cd formal
+  java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tla2sany.SANY SupplyChainReadinessR1.tla
+  java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config SupplyChainReadinessR1.cfg SupplyChainReadinessR1.tla
+  output="$(mktemp)"
+  trap 'rm -f "$output"' EXIT
+  for named in "success:ReadyIsUnreachable" "transport:TransportLossIsUnreachable" "auth:ProxyAuthIsUnreachable" "origin:ReachedOriginForbiddenIsUnreachable" "deadline:DeadlineFailureIsUnreachable";do
+    IFS=: read -r label predicate <<< "$named"
+    if java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config "SupplyChainReadinessR1.$label-probe.cfg" SupplyChainReadinessR1.tla >"$output" 2>&1;then
+      echo "NS2 $label probe unexpectedly passed" >&2
+      exit 1
+    fi
+    if ! grep -Fq "Error: Invariant $predicate is violated." "$output";then
+      cat "$output" >&2
+      echo "NS2 $label probe did not give exact counterexample" >&2
+      exit 1
+    fi
+    echo "NS2 $label counterexample PASS"
+  done
+)
+"""
