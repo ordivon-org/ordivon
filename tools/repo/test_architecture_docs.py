@@ -2290,3 +2290,32 @@ def test_deployed_tool_count_rejects_boolean_numeric_alias() -> None:
             {"defaultNorthbound": {"declaredToolCount": True},
              "hostNorthbound": {"normalTools": ["tool"]}}, {"tool"}
         )
+
+def test_deployed_host_tools_are_an_injective_source_subset() -> None:
+    """A repeated Tool name is not two deployed capabilities or an extra LEGO."""
+    value = graph()
+    source = json.loads(GATEWAY_SURFACE.read_text(encoding="utf-8"))
+    module.validate_deployed_source_tool_relation(value, set(source["tools"]))
+    value["hostNorthbound"]["normalTools"].append(
+        value["hostNorthbound"]["normalTools"][0]
+    )
+    with pytest.raises(module.ArchitectureDocsError, match="duplicate.*normalTools"):
+        module.validate_deployed_source_tool_relation(value, set(source["tools"]))
+
+
+def test_repository_admission_rejects_deployed_host_tool_duplicate() -> None:
+    """The full root architecture contract cannot erase duplicate Tool claims."""
+    deployed = graph()
+    deployed["hostNorthbound"]["normalTools"].append(
+        deployed["hostNorthbound"]["normalTools"][0]
+    )
+    original = module._load_json
+
+    def load_forged(path: Path) -> dict:
+        if path.resolve() == GRAPH:
+            return deployed
+        return original(path)
+
+    with patch.object(module, "_load_json", side_effect=load_forged):
+        with pytest.raises(module.ArchitectureDocsError, match="duplicate.*normalTools"):
+            module.validate_repository(ROOT)

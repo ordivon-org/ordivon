@@ -8,7 +8,11 @@
     "sourceEvidence": [
       "README.md",
       "ARCHITECTURE.md",
-      "docs/authority.md"
+      "docs/authority.md",
+      "scripts/agent_automation_mcp_deploy.py",
+      "tests/test_agent_automation_mcp_deploy.py",
+      "systemd/ordivon-agent-automation-mcp.service",
+      "config/agent-automation.toml"
     ]
   },
   "nodes": [
@@ -149,7 +153,8 @@
     }
   ],
   "gaps": [
-    "2026-10-24 audit: current end-to-end evidence for chained Tool authority and detector-to-stop-to-effect reconciliation is UNKNOWN; see docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261024_R1.json."
+    "2026-10-24 audit: current end-to-end evidence for chained Tool authority and detector-to-stop-to-effect reconciliation is UNKNOWN; see docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261024_R1.json.",
+    "2026-10-25 Harness environment source/loaded-currentness: the existing deployment --check now requires the systemd loaded Type, FragmentPath, absence of DropInPaths and NeedDaemonReload=no to agree with the exact source-owned Unit. Native checker and adversarial owner tests are the acceptance; live installed Python/SQLite, loaded process and consumer restart remain independently UNKNOWN/FAIL until owner release qualification. Do not equate ActiveState=active to source-qualified deployment."
   ],
   "doNotOwn": [
     "Host Task truth",
