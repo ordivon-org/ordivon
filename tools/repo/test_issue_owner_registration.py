@@ -124,31 +124,26 @@ def test_database_cutover_census_cannot_claim_admission_without_real_owner_effec
 
 
 
-def test_oct26_cross_owner_gap_census_retains_unknown_real_consumer_boundaries() -> None:
-    """Source-backed new Problem LEGOs may not pretend to be linked/verified owners."""
+
+
+def test_oct26_distinct_windows_and_gateway_problem_lego_gaps() -> None:
+    """Keep only non-overlapping source-backed issues; forbid forged owner proof."""
     root = Path(__file__).resolve().parents[2]
     census = json.loads((root / "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261025_R1.json").read_text(encoding="utf-8"))
     plans = {r["ownerPlan"]: json.loads((root / r["ownerPlan"]).read_text(encoding="utf-8")) for r in census["registrations"]}
-    new = {
-        x["id"]: x for x in census["issues"] if x["id"] in {
-            "RT-CONSUMER-LEASE-20261026",
-            "FORMAL-IMPLEMENTATION-BRIDGE-20261026",
-            "SKILL-DOMAIN-DISCOVERY-20261026",
-            "WIN-EXEC-CONTEXT-20261026",
-        }
-    }
-    assert len(new) == 4
+    unique_ids = {"WIN-EXEC-CONTEXT-20261026", "GW-SKILLS-ROUTE-20261026"}
+    new = {row["id"]: row for row in census["issues"] if row["id"] in unique_ids}
+    assert set(new) == unique_ids
     for row in new.values():
         assert row["registration"]["state"] == "UNREGISTERED"
         assert row["requalification"]["sourceCut"] == "c8cec7d7ee8ebcfcecf1893ac32a894b71051339"
-        assert row["representation"]["requiredWitness"]
-        assert row["formalObligation"]
+        assert row["representation"]["requiredWitness"] and row["formalObligation"]
     module.validate_formal_issue_census(census, plans)
     fake = copy.deepcopy(census)
-    next(x for x in fake["issues"] if x["id"] == "RT-CONSUMER-LEASE-20261026")["registration"] = {
+    next(x for x in fake["issues"] if x["id"] == "WIN-EXEC-CONTEXT-20261026")["registration"] = {
         "state": "LINKED",
         "ownerPlan": "services/runtime/planning/lego-plan-r1.json",
-        "slice": "NOT_PROVED_R21_IMPLEMENTATION",
+        "slice": "NOT_PROVED_R21_WINDOWS_ENV",
     }
     with pytest.raises(module.ArchitectureDocsError, match="unknown owner-local LEGO"):
         module.validate_formal_issue_census(fake, plans)

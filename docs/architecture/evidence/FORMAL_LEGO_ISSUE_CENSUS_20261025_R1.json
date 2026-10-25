@@ -430,90 +430,6 @@
       }
     },
     {
-      "id": "RT-CONSUMER-LEASE-20261026",
-      "problemClass": "WORKSPACE_CROSS_JOB_CONSUMER_CONTINUITY",
-      "naturalOwner": "services/runtime",
-      "standing": "SOURCE_GUARD_CONFIRMED_CROSS_JOB_CONSUMER_LEASE_UNREPRESENTED",
-      "observation": "At source c8cec7 Runtime close_workspace checks active/held Job IDs and nested Git-authority Workspace dependents; WorkspaceLeaseTable mutex spans one operation, not the Agent work interval. Another Agent previously observed close between two Jobs.",
-      "evidence": "services/runtime/crates/ordivon-runtime-core/src/runtime/engine/workspace.rs::close_workspace; runtime/workspace_state.rs::ensure_workspace_close_allowed; runtime/lifecycle_locks.rs::WorkspaceLeaseTable; native read-only audit Job job-01a174cd-19ea-7013-b716-bc6f659ec485. Prior cross-job closure is Host Work-reported and independently reproducible mechanism, not an independently repeated destructive test.",
-      "consumers": "Agents spanning multiple Runtime Jobs, existing source-bound continuation and recovery, detached Workspace lifecycle and clean Workspace retirement.",
-      "formalObligation": "Invariant CloseAllowed(w,t) => NoActiveJobs(w,t) AND NoValidConsumerClaim(w,t) AND NoDependentGitAuthority(w,t) AND ExpectedSourceStateDigestMatches(w,t); finite claim lifetime with explicit renewal, source/consumer identity and recovery; race/timeout/lease-replay negative CDC must hold, otherwise UNKNOWN. Distinguish claim from Mutex and avoid immortal owner locks.",
-      "decision": "Repair existing Runtime natural Owner close admission with a bounded consumer-continuity witness, not a new scheduler or universal registry; do not force-close foreign active/unique/dirty Workspaces.",
-      "representation": {
-        "primary": "state-machine",
-        "supporting": [
-          "constraint"
-        ],
-        "requiredWitness": "Rust close+claim concurrent CDC including between-Job idle window, claim expiry and ABA/source-digest race; trace-to-model refinement on exact accepted source.",
-        "selectionReason": "One Runtime lifecycle invariant covers many recurring accidental clean Workspace deletions."
-      },
-      "registration": {
-        "state": "UNREGISTERED",
-        "reason": "Registered as source/time-scoped Problem LEGO evidence only; there is no qualified existing Owner-local implementation/refinement slice for this obligation. Do not counterfeit a LINKED/verified acceptance."
-      },
-      "requalification": {
-        "observedAt": "2026-10-26T04:39:32+08:00",
-        "sourceCut": "c8cec7d7ee8ebcfcecf1893ac32a894b71051339",
-        "mode": "native-code-and-external-provider-readonly; no implementation acceptance"
-      }
-    },
-    {
-      "id": "FORMAL-IMPLEMENTATION-BRIDGE-20261026",
-      "problemClass": "FORMAL_IMPLEMENTATION_REFINEMENT_GAP",
-      "naturalOwner": "packages/composition",
-      "standing": "TLC_BOUNDED_ABSTRACT_PASS_OWNER_IMPLEMENTATION_REFINEMENT_UNKNOWN",
-      "observation": "Lego21OwnerBoundary.tla has an abstract ConsumerObserve oracle and explicitly excludes implementation refinement for Rust/Host/Harness/Network; a passing model cannot alone witness that deployed transitions enforce the same acceptance guards.",
-      "evidence": "packages/composition/formal/Lego21OwnerBoundary.tla and README.md at source c8cec7; original native source read Job job-01a174ca-ed48-7e32-9732-7d5821633ced.",
-      "consumers": "Runtime admission/delivery, Host acceptance, Harness proposals, Network readiness, actual domain consumer witnesses and Composition verification decisions.",
-      "formalObligation": "For a bounded concrete source trace τ and declared abstraction map α, each mapped owner effect must be a legal model transition or admitted stutter; mismatched Work/SourceCut/Attempt/authority effects must generate realizable counterexamples. Separate proof of abstract safety, trace refinement, liveness/fairness, and current real consumer acceptance; recheck only when affected source/assumptions change.",
-      "decision": "Extend existing source-bound owner-native trace replay and negative mutation controls; reuse digest-pinned TLC first, optional Kani/SMT only where specific Rust/constraint obligations require them.",
-      "representation": {
-        "primary": "abstraction",
-        "supporting": [
-          "state-machine"
-        ],
-        "requiredWitness": "Frozen Rust/Host/Harness/Network source and executable behavior -> explicit α mapping -> independent golden/RED trace checks plus model invariants; no global formal PASS from TLC alone.",
-        "selectionReason": "A sound implementation bridge reduces repeated testing across all modeled failure classes."
-      },
-      "registration": {
-        "state": "UNREGISTERED",
-        "reason": "Registered as source/time-scoped Problem LEGO evidence only; there is no qualified existing Owner-local implementation/refinement slice for this obligation. Do not counterfeit a LINKED/verified acceptance."
-      },
-      "requalification": {
-        "observedAt": "2026-10-26T04:39:32+08:00",
-        "sourceCut": "c8cec7d7ee8ebcfcecf1893ac32a894b71051339",
-        "mode": "native-code-and-external-provider-readonly; no implementation acceptance"
-      }
-    },
-    {
-      "id": "SKILL-DOMAIN-DISCOVERY-20261026",
-      "problemClass": "SKILL_SCIENCE_INDEX_RECALL_GAP",
-      "naturalOwner": "platform/skills",
-      "standing": "LIVE_CATALOG_EXACT_QUERY_ZERO_MATCHES_DOMAIN_CAPABILITY_ABSENCE_UNKNOWN",
-      "observation": "Native Skills service snapshot sha256:741e6ea6c226583f44d7144348f2e62a339d07e97585dac00f243c20beda6423 returned no skill results for algebra, mathematics, biology or chemistry; physics results pointed to 2D/3D game skills. This is a discovery signal, NOT a proof of absent math/science tools.",
-      "evidence": "Skills service skills_search query values algebra/mathematics/biology/chemistry/physics on catalog sha256:bc71c9cd5d3934302b5528aabf6f1a6002e13de64c21de80984cfbfaf512b08d; source Owner platform/skills, separate from user Skill Catalog population.",
-      "consumers": "Research scientific method, formal operators, simulation, biology/chemistry/physics/mathematics knowledge lookup and Agent Skill/Tool routing.",
-      "formalObligation": "Given a frozen actual task benchmark T, admitted relevant provider set P(T) and Index(T), measure recall, precision and missed-native-tool cases. If index yields empty but actual provider exists, repair discovery mapping. Add/replace Skill only after demonstrating missing capabilities; never infer absence from an empty literal term query.",
-      "decision": "Run representative indexed and semantic task probes against current native service and specialist providers; reuse mature science/maths resources and Owner discovery before writing domain skill collections.",
-      "representation": {
-        "primary": "graph",
-        "supporting": [
-          "equivalence"
-        ],
-        "requiredWitness": "Frozen catalog snapshot + representative task->Skill/Tool candidate edges, negative no-match controls, real routed task acceptance, provenance.",
-        "selectionReason": "Consumer task-to-knowledge/tool routing, not raw number of Skill descriptions, is the target."
-      },
-      "registration": {
-        "state": "UNREGISTERED",
-        "reason": "Registered as source/time-scoped Problem LEGO evidence only; there is no qualified existing Owner-local implementation/refinement slice for this obligation. Do not counterfeit a LINKED/verified acceptance."
-      },
-      "requalification": {
-        "observedAt": "2026-10-26T04:39:32+08:00",
-        "sourceCut": "c8cec7d7ee8ebcfcecf1893ac32a894b71051339",
-        "mode": "native-code-and-external-provider-readonly; no implementation acceptance"
-      }
-    },
-    {
       "id": "WIN-EXEC-CONTEXT-20261026",
       "problemClass": "WINDOWS_EXECUTION_CONTEXT_CAPABILITY_DRIFT",
       "naturalOwner": "services/runtime",
@@ -539,6 +455,34 @@
         "observedAt": "2026-10-26T04:39:32+08:00",
         "sourceCut": "c8cec7d7ee8ebcfcecf1893ac32a894b71051339",
         "mode": "native-code-and-external-provider-readonly; no implementation acceptance"
+      }
+    },
+    {
+      "id": "GW-SKILLS-ROUTE-20261026",
+      "problemClass": "GATEWAY_SKILLS_ROUTE_DISCOVERY_SEAM",
+      "naturalOwner": "services/gateway",
+      "standing": "GATEWAY_SKILLS_OWNER_UNCONFIGURED_WITH_SEPARATELY_LIVE_SKILLS_CATALOG",
+      "observation": "Live Gateway system_describe v0.8.1 reports owner_id=skills configured=false and capability_search query skill matches zero. Independently reachable native Skills service lists 300 APPROVED/scanned-or-audited metadata items in three 100-item pages on the same catalogRevision. This does NOT establish that Gateway routing is required by every Agent or that a currently deployed route is broken.",
+      "evidence": "2026-10-26 live Gateway system_describe/capability_search and native Skills skills_list cursors 0/100/200. CatalogRevision sha256:bc71c9cd5d3934302b5528aabf6f1a6002e13de64c21de80984cfbfaf512b08d. Repo services/gateway/src/ordivon_gateway/research_routes.py refers to skills Owner; services/gateway/tests/test_research_capability_resolution.py contains explicit unconfigured-Owner behavior.",
+      "consumers": "Gateway Research composition routes requesting Skills owner resolution; Agents may still use direct Skills discovery without Gateway. Distinguish these two real consumer paths.",
+      "formalObligation": "For each Gateway capability route requiring Skills owner, bind an actual current configured endpoint, authority identity, provider catalog digest, exact requested Skill and eligible resolution proof. A route with required skills owner configured=false must yield typed unavailable/UNKNOWN rather than silently claiming native Skill admission. If no live route consumer needs it, retire the stale route rather than wire unnecessary infrastructure.",
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "Time-scoped provider topology evidence, not a qualified Gateway consumer-route effect or Owner-local implementation LEGO slice."
+      },
+      "decision": "First run live Gateway Research route consumer CDC and compare direct Skills resolver to gateway topology; remove unused routing only if consumer traversal proves redundancy. No synthetic registry or forced configuration.",
+      "representation": {
+        "primary": "graph",
+        "supporting": [
+          "type"
+        ],
+        "requiredWitness": "Frozen ProviderGraph (Gateway->Skills owner), required route test and live user/agent consumer, exact catalog revision, negative configured=false and stale digest path; verify native owner acceptance.",
+        "selectionReason": "The graph/topology seam is more direct than adding domain Skills for failures caused by a missing route."
+      },
+      "requalification": {
+        "observedAt": "2026-10-26T04:48:00+08:00",
+        "sourceCut": "c8cec7d7ee8ebcfcecf1893ac32a894b71051339",
+        "mode": "provider-only-readonly-source-currentness-unknown"
       }
     }
   ],
