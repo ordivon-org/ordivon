@@ -428,6 +428,118 @@
         "remainingUnknown": "Open PR744 trial ledger requires protected merge, source digest/import reconciliation, append-only/concurrent head proofs and Media consumer switchover.",
         "proofScope": "Source presence and already reported Owner-native tests; not live PostgreSQL writer/consumer cutover."
       }
+    },
+    {
+      "id": "RT-CONSUMER-LEASE-20261026",
+      "problemClass": "WORKSPACE_CROSS_JOB_CONSUMER_CONTINUITY",
+      "naturalOwner": "services/runtime",
+      "standing": "SOURCE_GUARD_CONFIRMED_CROSS_JOB_CONSUMER_LEASE_UNREPRESENTED",
+      "observation": "At source c8cec7 Runtime close_workspace checks active/held Job IDs and nested Git-authority Workspace dependents; WorkspaceLeaseTable mutex spans one operation, not the Agent work interval. Another Agent previously observed close between two Jobs.",
+      "evidence": "services/runtime/crates/ordivon-runtime-core/src/runtime/engine/workspace.rs::close_workspace; runtime/workspace_state.rs::ensure_workspace_close_allowed; runtime/lifecycle_locks.rs::WorkspaceLeaseTable; native read-only audit Job job-01a174cd-19ea-7013-b716-bc6f659ec485. Prior cross-job closure is Host Work-reported and independently reproducible mechanism, not an independently repeated destructive test.",
+      "consumers": "Agents spanning multiple Runtime Jobs, existing source-bound continuation and recovery, detached Workspace lifecycle and clean Workspace retirement.",
+      "formalObligation": "Invariant CloseAllowed(w,t) => NoActiveJobs(w,t) AND NoValidConsumerClaim(w,t) AND NoDependentGitAuthority(w,t) AND ExpectedSourceStateDigestMatches(w,t); finite claim lifetime with explicit renewal, source/consumer identity and recovery; race/timeout/lease-replay negative CDC must hold, otherwise UNKNOWN. Distinguish claim from Mutex and avoid immortal owner locks.",
+      "decision": "Repair existing Runtime natural Owner close admission with a bounded consumer-continuity witness, not a new scheduler or universal registry; do not force-close foreign active/unique/dirty Workspaces.",
+      "representation": {
+        "primary": "state-machine",
+        "supporting": [
+          "constraint"
+        ],
+        "requiredWitness": "Rust close+claim concurrent CDC including between-Job idle window, claim expiry and ABA/source-digest race; trace-to-model refinement on exact accepted source.",
+        "selectionReason": "One Runtime lifecycle invariant covers many recurring accidental clean Workspace deletions."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "Registered as source/time-scoped Problem LEGO evidence only; there is no qualified existing Owner-local implementation/refinement slice for this obligation. Do not counterfeit a LINKED/verified acceptance."
+      },
+      "requalification": {
+        "observedAt": "2026-10-26T04:39:32+08:00",
+        "sourceCut": "c8cec7d7ee8ebcfcecf1893ac32a894b71051339",
+        "mode": "native-code-and-external-provider-readonly; no implementation acceptance"
+      }
+    },
+    {
+      "id": "FORMAL-IMPLEMENTATION-BRIDGE-20261026",
+      "problemClass": "FORMAL_IMPLEMENTATION_REFINEMENT_GAP",
+      "naturalOwner": "packages/composition",
+      "standing": "TLC_BOUNDED_ABSTRACT_PASS_OWNER_IMPLEMENTATION_REFINEMENT_UNKNOWN",
+      "observation": "Lego21OwnerBoundary.tla has an abstract ConsumerObserve oracle and explicitly excludes implementation refinement for Rust/Host/Harness/Network; a passing model cannot alone witness that deployed transitions enforce the same acceptance guards.",
+      "evidence": "packages/composition/formal/Lego21OwnerBoundary.tla and README.md at source c8cec7; original native source read Job job-01a174ca-ed48-7e32-9732-7d5821633ced.",
+      "consumers": "Runtime admission/delivery, Host acceptance, Harness proposals, Network readiness, actual domain consumer witnesses and Composition verification decisions.",
+      "formalObligation": "For a bounded concrete source trace τ and declared abstraction map α, each mapped owner effect must be a legal model transition or admitted stutter; mismatched Work/SourceCut/Attempt/authority effects must generate realizable counterexamples. Separate proof of abstract safety, trace refinement, liveness/fairness, and current real consumer acceptance; recheck only when affected source/assumptions change.",
+      "decision": "Extend existing source-bound owner-native trace replay and negative mutation controls; reuse digest-pinned TLC first, optional Kani/SMT only where specific Rust/constraint obligations require them.",
+      "representation": {
+        "primary": "abstraction",
+        "supporting": [
+          "state-machine"
+        ],
+        "requiredWitness": "Frozen Rust/Host/Harness/Network source and executable behavior -> explicit α mapping -> independent golden/RED trace checks plus model invariants; no global formal PASS from TLC alone.",
+        "selectionReason": "A sound implementation bridge reduces repeated testing across all modeled failure classes."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "Registered as source/time-scoped Problem LEGO evidence only; there is no qualified existing Owner-local implementation/refinement slice for this obligation. Do not counterfeit a LINKED/verified acceptance."
+      },
+      "requalification": {
+        "observedAt": "2026-10-26T04:39:32+08:00",
+        "sourceCut": "c8cec7d7ee8ebcfcecf1893ac32a894b71051339",
+        "mode": "native-code-and-external-provider-readonly; no implementation acceptance"
+      }
+    },
+    {
+      "id": "SKILL-DOMAIN-DISCOVERY-20261026",
+      "problemClass": "SKILL_SCIENCE_INDEX_RECALL_GAP",
+      "naturalOwner": "platform/skills",
+      "standing": "LIVE_CATALOG_EXACT_QUERY_ZERO_MATCHES_DOMAIN_CAPABILITY_ABSENCE_UNKNOWN",
+      "observation": "Native Skills service snapshot sha256:741e6ea6c226583f44d7144348f2e62a339d07e97585dac00f243c20beda6423 returned no skill results for algebra, mathematics, biology or chemistry; physics results pointed to 2D/3D game skills. This is a discovery signal, NOT a proof of absent math/science tools.",
+      "evidence": "Skills service skills_search query values algebra/mathematics/biology/chemistry/physics on catalog sha256:bc71c9cd5d3934302b5528aabf6f1a6002e13de64c21de80984cfbfaf512b08d; source Owner platform/skills, separate from user Skill Catalog population.",
+      "consumers": "Research scientific method, formal operators, simulation, biology/chemistry/physics/mathematics knowledge lookup and Agent Skill/Tool routing.",
+      "formalObligation": "Given a frozen actual task benchmark T, admitted relevant provider set P(T) and Index(T), measure recall, precision and missed-native-tool cases. If index yields empty but actual provider exists, repair discovery mapping. Add/replace Skill only after demonstrating missing capabilities; never infer absence from an empty literal term query.",
+      "decision": "Run representative indexed and semantic task probes against current native service and specialist providers; reuse mature science/maths resources and Owner discovery before writing domain skill collections.",
+      "representation": {
+        "primary": "graph",
+        "supporting": [
+          "equivalence"
+        ],
+        "requiredWitness": "Frozen catalog snapshot + representative task->Skill/Tool candidate edges, negative no-match controls, real routed task acceptance, provenance.",
+        "selectionReason": "Consumer task-to-knowledge/tool routing, not raw number of Skill descriptions, is the target."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "Registered as source/time-scoped Problem LEGO evidence only; there is no qualified existing Owner-local implementation/refinement slice for this obligation. Do not counterfeit a LINKED/verified acceptance."
+      },
+      "requalification": {
+        "observedAt": "2026-10-26T04:39:32+08:00",
+        "sourceCut": "c8cec7d7ee8ebcfcecf1893ac32a894b71051339",
+        "mode": "native-code-and-external-provider-readonly; no implementation acceptance"
+      }
+    },
+    {
+      "id": "WIN-EXEC-CONTEXT-20261026",
+      "problemClass": "WINDOWS_EXECUTION_CONTEXT_CAPABILITY_DRIFT",
+      "naturalOwner": "services/runtime",
+      "standing": "SERVICE_USER_CAPABILITY_AND_EXECUTION_PLAN_PARITY_UNPROVED",
+      "observation": "Windows Runtime windows-main-r6-candidate exposes service and active_user authority contexts, trusted_local only, structuredPlan=false and hostDependencyCommitments=false; Linux exposes structuredPlan/hostDependencyCommitments. Previous native Agent tests find Python/Cargo/gh under active_user mise shims but not default service PATH.",
+      "evidence": "Live 2026-10-26 runtime_describe linux-local and windows-main-r6-candidate; service-vs-active_user Jobs reported by Host Work work:ordivon:formal-lego-cross-system-census-20261026-r1. No Windows registry/identity effect changed.",
+      "consumers": "Windows native Python/Rust/TypeScript jobs, source-bound test toolchains, Agent action selection, security principal and release preflight.",
+      "formalObligation": "Admission must bind executionTarget, selected authority, effective identity, executable full path/digest, PATH/environment dependencies and immutable-input guarantees to committed Job. A changed effective context or missing required capability must fail closed; Linux-equivalent guarantees cannot be claimed if Windows provider lacks a corresponding witness.",
+      "decision": "Specify and test per-execution-context capability/refinement contracts first; avoid duplicative tool installation or changing service user merely to hide discovery mismatch.",
+      "representation": {
+        "primary": "type",
+        "supporting": [
+          "constraint"
+        ],
+        "requiredWitness": "Windows active_user/service native positive and fault-injected negative Jobs for exact PATH, principal, executable digest, missing host dependency, plus cross-target source-bound contract diff.",
+        "selectionReason": "Typed execution authority/capability binding catches an entire class of environment selection errors before dispatch."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "Registered as source/time-scoped Problem LEGO evidence only; there is no qualified existing Owner-local implementation/refinement slice for this obligation. Do not counterfeit a LINKED/verified acceptance."
+      },
+      "requalification": {
+        "observedAt": "2026-10-26T04:39:32+08:00",
+        "sourceCut": "c8cec7d7ee8ebcfcecf1893ac32a894b71051339",
+        "mode": "native-code-and-external-provider-readonly; no implementation acceptance"
+      }
     }
   ],
   "verification": {
