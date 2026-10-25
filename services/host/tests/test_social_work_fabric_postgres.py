@@ -6,7 +6,9 @@ from threading import Barrier
 from time import sleep
 from uuid import uuid4
 
+import psycopg
 import pytest
+from psycopg.types.json import Jsonb
 
 from ordivon_host_v2.errors import ConflictError
 from ordivon_host_v2.social_attention import AttentionStore
@@ -1039,3 +1041,46 @@ def test_r2_schema_indexes_and_cursor_table_exist() -> None:
             conn.execute("SELECT schema_version FROM host_v2_schema WHERE singleton").fetchone()[0]
             == 10
         )
+
+def test_work_read_rejects_postgres_modified_snapshot_payload() -> None:
+    """A persisted Work payload edit must be rejected at each native read, not at doctor."""
+    assert DSN is not None
+    store = WorkStore(DSN)
+    actor, work = refs("snapshot-digest-corrupt")
+    declare_actor(store, actor)
+    store.create_work(
+        WorkCreateInput(work_ref=work, kind="investigation", actor_ref=actor,
+                        initial_snapshot=snapshot("prior-attested")),
+        client_request_id=f"create:{work}",
+    )
+    expected = store.get_work(work)
+    forged = dict(expected["snapshot"])
+    forged["objective"] = "unattested hostile or disk-corrupted snapshot"
+    with psycopg.connect(DSN) as conn:
+        conn.execute(
+            "UPDATE work_snapshots SET payload=%s WHERE work_ref=%s AND revision=1",
+            (Jsonb(forged), work),
+        )
+    with pytest.raises(RuntimeError, match="snapshot payload digest differs"):
+        store.get_work(work)
+
+
+def test_work_read_rejects_postgres_modified_current_pointer_digest() -> None:
+    """An inconsistent current Work digest pointer cannot pass through readback."""
+    assert DSN is not None
+    store = WorkStore(DSN)
+    actor, work = refs("work-current-pointer-corrupt")
+    declare_actor(store, actor)
+    store.create_work(
+        WorkCreateInput(work_ref=work, kind="investigation", actor_ref=actor,
+                        initial_snapshot=snapshot("prior-pointer")),
+        client_request_id=f"create:{work}",
+    )
+    assert store.get_work(work)["revision"] == 1
+    with psycopg.connect(DSN) as conn:
+        conn.execute(
+            "UPDATE works SET current_snapshot_digest=%s WHERE work_ref=%s",
+            ("sha256:" + "0" * 64, work),
+        )
+    with pytest.raises(RuntimeError, match="current Work snapshot pointer digest differs"):
+        store.get_work(work)

@@ -344,7 +344,7 @@ class OperationalScriptTests(unittest.TestCase):
 
             def changed_copy(source, destination, *args, **kwargs):
                 copied = actual_copy(source, destination, *args, **kwargs)
-                if Path(source).name == "note.txt":
+                if Path(destination).name == "note.txt":
                     Path(destination).write_bytes(b"EVIL")
                 return copied
 
@@ -353,6 +353,94 @@ class OperationalScriptTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "digest mismatch"):
                     restore.restore_snapshot(snapshot, restored)
             self.assertFalse(restored.exists())
+
+    def test_restore_parent_symlink_swap_preserves_bound_inode(self) -> None:
+        # Source content equality does not grant authority to fetch the same
+        # bytes through a changed, external directory after admission.
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            snapshot = root / "snapshot"
+            outside = root / "outside"
+            control = snapshot / "control"
+            control.mkdir(parents=True)
+            outside.mkdir()
+            database = snapshot / "registry.sqlite3"
+            with closing(sqlite3.connect(database)) as db:
+                db.execute("CREATE TABLE jobs (id TEXT PRIMARY KEY)")
+            item = control / "note.txt"
+            item.write_bytes(b"IDENTICAL")
+            (outside / "note.txt").write_bytes(b"IDENTICAL")
+            records = [
+                {"path": "registry.sqlite3", "bytes": database.stat().st_size, "digest": restore.sha256_file(database)},
+                {"path": "control/note.txt", "bytes": item.stat().st_size, "digest": restore.sha256_file(item)},
+            ]
+            (snapshot / "manifest.json").write_text(
+                json.dumps({"schemaVersion": 1, "files": records}), encoding="utf-8"
+            )
+            actual_copy = restore.shutil.copy2
+            original_inode = item.stat().st_ino
+            swapped = False
+
+            def swap_before_copy(source, destination, *args, **kwargs):
+                nonlocal swapped
+                if Path(destination).name == "note.txt" and not swapped:
+                    control.rename(snapshot / "original-control")
+                    control.symlink_to(outside, target_is_directory=True)
+                    swapped = True
+                    # Same bytes and digest, yet a pathname-based copy would
+                    # silently switch its source identity to the outsider.
+                    self.assertEqual(os.stat(source).st_ino, original_inode)
+                return actual_copy(source, destination, *args, **kwargs)
+
+            restored = root / "restored"
+            with patch.object(restore.shutil, "copy2", side_effect=swap_before_copy):
+                restore.restore_snapshot(snapshot, restored)
+            self.assertTrue(swapped)
+            self.assertEqual((restored / "control/note.txt").read_bytes(), b"IDENTICAL")
+
+    def test_restore_openat_pins_directory_before_racing_final_lookup(self) -> None:
+        from unittest.mock import patch
+
+        if not sys.platform.startswith("linux"):
+            self.skipTest("directory-fd source pinning is Linux-specific")
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            snapshot = root / "snapshot"
+            control = snapshot / "control"
+            outside = root / "outside"
+            control.mkdir(parents=True)
+            outside.mkdir()
+            database = snapshot / "registry.sqlite3"
+            with closing(sqlite3.connect(database)) as db:
+                db.execute("CREATE TABLE jobs (id TEXT PRIMARY KEY)")
+            item = control / "note.txt"
+            item.write_bytes(b"ORIGIN")
+            (outside / "note.txt").write_bytes(b"EVIL!!")
+            records = [
+                {"path": "registry.sqlite3", "bytes": database.stat().st_size, "digest": restore.sha256_file(database)},
+                {"path": "control/note.txt", "bytes": item.stat().st_size, "digest": restore.sha256_file(item)},
+            ]
+            (snapshot / "manifest.json").write_text(
+                json.dumps({"schemaVersion": 1, "files": records}), encoding="utf-8"
+            )
+            original_open = restore.os.open
+            swapped = False
+
+            def swap_after_parent_fd(path, flags, *args, **kwargs):
+                nonlocal swapped
+                if path == "note.txt" and kwargs.get("dir_fd") is not None and not swapped:
+                    control.rename(snapshot / "original-control")
+                    control.symlink_to(outside, target_is_directory=True)
+                    swapped = True
+                return original_open(path, flags, *args, **kwargs)
+
+            restored = root / "restored"
+            with patch.object(restore.os, "open", side_effect=swap_after_parent_fd):
+                restore.restore_snapshot(snapshot, restored)
+            self.assertTrue(swapped)
+            self.assertEqual((restored / "control/note.txt").read_bytes(), b"ORIGIN")
 
     def test_restore_rejects_digest_mismatch(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

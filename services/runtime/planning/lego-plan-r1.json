@@ -502,7 +502,8 @@
         "Release receipt and rollback compatibility remain exact.",
         "Fast health stays bounded by active state rather than historical Registry size.",
         "Windows structured release freezes and validates source_repo/required_ref authority in the same receipt/cutover/rollback circuit as candidate artifacts; the owner-native deployer tests reject missing/invalid bindings and preserve unrelated env bytes.",
-        "Runtime restore must reject manifest entries escaping through intermediate symlinked parents and boolean-as-integer byte lengths; a pre-copy source verification alone is insufficient, so the staged restore bytes must pass the same manifest digest/length contract before publication."
+        "Runtime restore must reject manifest entries escaping through intermediate symlinked parents and boolean-as-integer byte lengths; a pre-copy source verification alone is insufficient, so the staged restore bytes must pass the same manifest digest/length contract before publication.",
+        "On Linux, Runtime restore opens every snapshot path component relative to a previously opened directory descriptor using O_NOFOLLOW; renaming a validated parent into an external symlink cannot silently substitute an external source inode during copy. A staged-manifest recheck still binds published bytes. Linux fd-root pinning is not a cross-platform or shared-writer filesystem snapshot proof."
       ],
       "nextAction": "Extract pure receipt/fence/status projection helpers first; leave CLI orchestration intact until parity is proven."
     },
@@ -1068,7 +1069,8 @@
     "contained_local remains experimental within its declared reduced-authority boundary.",
     "Windows Long Paths admission evidence remains unimplemented.",
     "No current production need justifies hostile-code isolation, non-systemd Linux, macOS, remote scheduling, generic effects or a provider marketplace inside Runtime.",
-    "2026-10-25 R15 restore operator source-bound CEGAR: immutable snapshot verification and copied staging re-verification exclude intermediate-parent symlink aliases, bool size aliases, and content substitutions between source validation and staging publication. Accepted finite file tests do not prove race-free access against malicious concurrent filesystem writers (requires descriptor-relative/no-follow path witness)."
+    "2026-10-25 R15 restore operator source-bound CEGAR: immutable snapshot verification and copied staging re-verification exclude intermediate-parent symlink aliases, bool size aliases, and content substitutions between source validation and staging publication. Accepted finite file tests do not prove race-free access against malicious concurrent filesystem writers (requires descriptor-relative/no-follow path witness).",
+    "2026-10-25 Linux Runtime R15 source-path currentness: On Linux, Runtime restore opens every snapshot path component relative to a previously opened directory descriptor using O_NOFOLLOW; renaming a validated parent into an external symlink cannot silently substitute an external source inode during copy. A staged-manifest recheck still binds published bytes. Linux fd-root pinning is not a cross-platform or shared-writer filesystem snapshot proof."
   ],
   "doNotOwn": [
     "Host Task truth",
