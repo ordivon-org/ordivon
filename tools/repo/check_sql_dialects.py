@@ -41,6 +41,16 @@ OSQUERY_DEFAULT_TIMEOUT_SECONDS = 30
 # This bounded AST/Rust lexical boundary is necessary but NOT proof that all indirect SQLite
 # use has been discovered.
 SQLITE_LEGACY_SOURCE_CALLS: dict[str, int] = {
+    # Current TypeScript/JavaScript Node SQLite stores were previously invisible
+    # to the source bound Python/Rust-only gate. These are actual imports,
+    # unlike type-only dependencies or tests.
+    'apps/web/src/store.ts': 1,
+    'domains/game/experiments/casefile/src/store.ts': 1,
+    'domains/game/experiments/game-e2e-r5/host-outbox-shadow.ts': 1,
+    'domains/game/experiments/station-zero-v3/src/persistence.ts': 1,
+    'domains/game/products/station-zero-v2/src/storage.ts': 1,
+    'platform/security/labs/agent-admission-rs/src/grant-store.ts': 1,
+    'platform/security/labs/agent-admission-rs/src/principal-store.ts': 1,
     # Other concrete owners previously invisible to the Runtime/Harness-only gate:
     # Gateway pull-worker durability (conditional deployed consumer).
     'services/gateway/src/ordivon_gateway/external_worker.py': 1,
@@ -120,6 +130,28 @@ def sqlite_direct_calls(path: str, source: str) -> int:
         )
     if path.endswith(".rs"):
         return len(re.findall(r"\brusqlite::", source))
+    if path.endswith((".ts", ".tsx", ".js", ".mjs")):
+        # This is a deliberately bounded import census, not full JavaScript
+        # execution or AST analysis. Type-only imports are NOT active DB users.
+        sqlite_modules = r"(?:node:sqlite|bun:sqlite|better-sqlite3|sqlite3|@libsql/client)"
+        import_from = re.compile(
+            r"^\s*import\s+(?!type\b)[^\n;]*?\bfrom\s*['\"]"
+            + sqlite_modules + r"['\"]"
+        )
+        side_effect_import = re.compile(
+            r"^\s*import\s*['\"]" + sqlite_modules + r"['\"]"
+        )
+        dynamic_import = re.compile(
+            r"\b(?:require|import)\s*\(\s*['\"]"
+            + sqlite_modules + r"['\"]\s*\)"
+        )
+        return sum(
+            bool(import_from.search(line))
+            or bool(side_effect_import.search(line))
+            or len(dynamic_import.findall(line))
+            for line in source.splitlines()
+            if not line.lstrip().startswith(("//", "*", "/*"))
+        )
     return 0
 
 
@@ -142,12 +174,12 @@ def sqlite_debt_issues(
 
 
 def tracked_owner_sqlite_calls(root: Path) -> dict[str, int]:
-    """All tracked production Python/Rust: index identity and actual regular bytes."""
+    """All tracked Python/Rust/TS/JS source: verify index and regular bytes."""
     tracked = subprocess.check_output(
         # All tracked Python/Rust source: owner-specific paths can otherwise
         # introduce new durable SQLite unnoticed outside Runtime/Harness.
         ["git", "-C", str(root), "ls-files", "--stage", "-z",
-         "--", "*.py", "*.rs"]
+         "--", "*.py", "*.rs", "*.ts", "*.tsx", "*.js", "*.mjs"]
     )
     result: dict[str, int] = {}
     base = root.resolve()
@@ -159,9 +191,11 @@ def tracked_owner_sqlite_calls(root: Path) -> dict[str, int]:
             raise ValueError("invalid staged SQLite source record")
         mode, _, stage = metadata.split()
         path = name.decode("utf-8", errors="surrogateescape")
-        if not path.endswith((".py", ".rs")) or "/tests/" in path or "/test_" in path:
+        if not path.endswith((".py", ".rs", ".ts", ".tsx", ".js", ".mjs")) or "/tests/" in path or "/test/" in path or "/__tests__/" in path or "/test_" in path:
             continue
-        if path.endswith(("/tests.rs", "/integration_tests.rs", "/summary_query_tests.rs")):
+        if path.endswith(("/tests.rs", "/integration_tests.rs", "/summary_query_tests.rs",
+                          ".test.ts", ".test.tsx", ".spec.ts", ".spec.tsx",
+                          ".test.js", ".spec.js", ".test.mjs", ".spec.mjs")):
             continue
         if mode not in (b"100644", b"100755") or stage != b"0":
             raise ValueError(f"SQLite core source not regular stage-0: {path}")
