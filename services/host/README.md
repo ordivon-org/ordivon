@@ -48,4 +48,4 @@ Production releases are immutable Git-SHA directories with a release-local `.ven
 
 Host v2 intentionally does not restore v1's SQLite Journal/WAL/file-lock machinery, filesystem CAS for normal JSON payloads, separate SQLite Board FTS sidecar, Runtime/Harness/provider proxying, historical cognition execution stack, or a separate ContinuityLens subsystem.
 
-See `docs/SOCIAL_WORK_FABRIC_R1.md` for the current schema-9 collaboration boundary. `docs/HOST_V2_R5_PRODUCTION_CUTOVER.md` and `docs/HOST_V2_R6_CLEANUP.md` remain historical v1→v2/Task-Board-era cutover evidence.
+See `docs/SOCIAL_WORK_FABRIC_R2_SPEC.md` for the active Social Work Fabric contracts and `docs/SOCIAL_WORK_FABRIC_R2_IMPLEMENTATION.md` for source-bound implementation receipts. `docs/SOCIAL_WORK_FABRIC_R1.md`, `docs/HOST_V2_R5_PRODUCTION_CUTOVER.md`, and `docs/HOST_V2_R6_CLEANUP.md` are historical evidence, not current schema or API authority.

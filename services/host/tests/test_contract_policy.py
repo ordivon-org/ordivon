@@ -279,3 +279,11 @@ def test_readme_has_one_tool_inventory_owner() -> None:
     assert surface["tools"] and len(surface["tools"]) == len(set(surface["tools"]))
     assert "[`mcp-surface.json`](mcp-surface.json)" in readme
     assert re.search(r"\b\d+\s+MCP tools?\b", readme) is None
+
+
+def test_readme_current_fabric_contract_does_not_promote_schema_nine_history() -> None:
+    """Keep the historical Social Work Fabric R1 document out of current authority."""
+    doc = (Path(__file__).parents[1] / "README.md").read_text(encoding="utf-8")
+    assert "`docs/SOCIAL_WORK_FABRIC_R2_SPEC.md`" in doc
+    assert "`docs/SOCIAL_WORK_FABRIC_R1.md`" in doc
+    assert "current schema-9" not in doc
