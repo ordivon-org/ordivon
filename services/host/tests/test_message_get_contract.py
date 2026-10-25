@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 import pytest
 
 import ordivon_host_v2.social_store as social_store
+from ordivon_host_v2.canonical import canonical_digest
 from ordivon_host_v2.errors import ConflictError
 from ordivon_host_v2.social_store import SocialStore
 
@@ -47,7 +48,7 @@ class _Conn:
 
 
 def _row():
-    return {
+    row = {
         "sequence": 42,
         "message_ref": "message:test:42",
         "space_ref": "space:test",
@@ -55,10 +56,21 @@ def _row():
         "author_actor_ref": "actor:agent:test",
         "message_kind": "finding",
         "body": "{\"decision\":\"ADMIT\"}",
-        "message_digest": "sha256:" + ("a" * 64),
         "recorded_at_ms": 1234,
         "created_at": datetime(2026, 10, 16, tzinfo=UTC),
     }
+    row["message_digest"] = canonical_digest(
+        {
+            "messageRef": row["message_ref"],
+            "spaceRef": row["space_ref"],
+            "topicRef": row["topic_ref"],
+            "authorActorRef": row["author_actor_ref"],
+            "messageKind": row["message_kind"],
+            "body": row["body"],
+            "recordedAtMs": row["recorded_at_ms"],
+        }
+    )
+    return row
 
 
 def test_get_message_projects_exact_record_and_checks_expected_digest(monkeypatch) -> None:
@@ -67,11 +79,11 @@ def test_get_message_projects_exact_record_and_checks_expected_digest(monkeypatc
     store = SocialStore("postgresql://unused")
 
     result = store.get_message(
-        "message:test:42", expected_digest="sha256:" + ("a" * 64)
+        "message:test:42", expected_digest=conn.row["message_digest"]
     )
 
     assert result["messageRef"] == "message:test:42"
-    assert result["messageDigest"] == "sha256:" + ("a" * 64)
+    assert result["messageDigest"] == conn.row["message_digest"]
     assert result["body"] == "{\"decision\":\"ADMIT\"}"
     assert result["kind"] == "ordivon.host-message-read"
     assert result["truthBoundary"].startswith("exact durable Host message projection")
