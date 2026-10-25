@@ -61,3 +61,29 @@ def test_oct25_dependency_updater_issue_links_existing_rg2_witness() -> None:
     ]
     with pytest.raises(module.ArchitectureDocsError, match="unknown owner-local LEGO"):
         module.validate_formal_issue_census(weakened, plans)
+
+
+def test_oct25_workspace_issue_reuses_rw1_not_incomplete_rw0() -> None:
+    """A native lifecycle guard is not a proof that unique Git work has no consumers."""
+    root = Path(__file__).resolve().parents[2]
+    census = json.loads((root / "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261025_R1.json").read_text(encoding="utf-8"))
+    repo_plan = "tools/repo/planning/lego-plan-r1.json"
+    runtime_plan = "services/runtime/planning/lego-plan-r1.json"
+    plans = {name: json.loads((root / name).read_text(encoding="utf-8")) for name in (repo_plan, runtime_plan)}
+    issue = next(row for row in census["issues"] if row["id"] == "RT-WS-20261025")
+    assert issue["registration"] == {
+        "state": "LINKED", "ownerPlan": runtime_plan, "slice": "RW1",
+    }
+    rw1 = next(row for row in plans[runtime_plan]["slices"] if row["id"] == "RW1")
+    assert rw1["status"] == "COMPLETE" and "R02" in rw1["nodeIds"]
+    assert "UNKNOWN" in issue["requalification"]["residualUnknown"]
+    module.validate_formal_issue_census(census, plans)
+
+    # Negative CEGAR control: an orphaned requalified issue is invalid even
+    # if RG1/RG2 Repo registration still passes unchanged.
+    weakened = copy.deepcopy(census)
+    weakened["registrations"] = [
+        r for r in weakened["registrations"] if r["ownerPlan"] != runtime_plan
+    ]
+    with pytest.raises(module.ArchitectureDocsError, match="unknown owner-local LEGO"):
+        module.validate_formal_issue_census(weakened, plans)
