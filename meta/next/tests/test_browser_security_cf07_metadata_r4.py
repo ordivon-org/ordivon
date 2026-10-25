@@ -32,7 +32,11 @@ class Cf07MetadataSnapshotTests(unittest.TestCase):
         self.assertNotIn("secret-b", str(result))
 
     def test_ledger_snapshot_exact_filename_with_uri_delimiters(self) -> None:
-        for name in ("ledger?data.sqlite", "ledger#data.sqlite", "ledger%23data.sqlite"):
+        for name in (
+            "ledger?data.sqlite",
+            "ledger#data.sqlite",
+            "ledger%23data.sqlite",
+        ):
             with self.subTest(name=name), tempfile.TemporaryDirectory() as directory:
                 ledger = Path(directory) / name
                 db = sqlite3.connect(ledger)
