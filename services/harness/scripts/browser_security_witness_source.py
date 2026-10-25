@@ -41,7 +41,7 @@ def browserless_container_name(endpoint_id: str) -> str:
 def profile_cookie_metadata(path: Path) -> dict[str, int]:
     if not path.is_file():
         return {"cookieRows": 0, "cookieHosts": 0}
-    uri = f"file:{path}?mode=ro"
+    uri = f"{path.absolute().as_uri()}?mode=ro"
     db = sqlite3.connect(uri, uri=True, timeout=2)
     try:
         row = db.execute("SELECT COUNT(*), COUNT(DISTINCT host_key) FROM cookies").fetchone()

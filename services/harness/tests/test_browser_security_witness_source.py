@@ -88,6 +88,19 @@ class BrowserSecurityWitnessSourceTests(unittest.TestCase):
             self.assertEqual(value, {"cookieRows": 3, "cookieHosts": 2})
             self.assertNotIn("secret", json.dumps(value).lower())
 
+    def test_profile_cookie_metadata_preserves_literal_sqlite_filename(self) -> None:
+        for filename in ("Cookies?name", "Cookies#name", "Cookies%23name"):
+            with self.subTest(filename=filename), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory) / filename
+                db = sqlite3.connect(path)
+                try:
+                    db.execute("CREATE TABLE cookies(host_key TEXT, name TEXT, value TEXT)")
+                    db.execute("INSERT INTO cookies VALUES ('host.example','secret','PRIVATE')")
+                    db.commit()
+                finally:
+                    db.close()
+                self.assertEqual(profile_cookie_metadata(path), {"cookieRows": 1, "cookieHosts": 1})
+
     def test_effective_launch_argv_normalizes_only_transient_debug_port(self) -> None:
         argv = [
             "/path/to/chrome",

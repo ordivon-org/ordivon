@@ -163,7 +163,7 @@ def compile_campaign(spec: CampaignLaunchSpec) -> dict[str, CarrierMaterializati
 def _ledger_rows(path: Path) -> dict[str, sqlite3.Row]:
     if not path.exists():
         return {}
-    db = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+    db = sqlite3.connect(f"{path.absolute().as_uri()}?mode=ro", uri=True)
     db.row_factory = sqlite3.Row
     try:
         exists = db.execute(
