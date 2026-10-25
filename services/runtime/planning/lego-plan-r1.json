@@ -966,18 +966,25 @@
         "The exact Owner-native test existing_runner_result_cannot_be_relabelled_as_unknown_dispatch first fails RED on the pre-fix source where result.json precedes control LOST; it becomes GREEN only after a Runtime implementation change.",
         "For an identity-bound completed Runner result, a simultaneous control LOST proposal must converge to Succeeded with no automatic redispatch; foreign Attempt result identity must converge to Orphaned without promoting success.",
         "Native Runtime Core suite, Rust formatting and Clippy remain green under the declared source cut; skipped/ignored physical tests are not PASS.",
-        "TLA+/TLC remains a bounded abstraction; deployment/refinement and real-world completion require independent evidence at the installed Runtime binary and consumer."
+        "TLA+/TLC remains a bounded abstraction; deployment/refinement and real-world completion require independent evidence at the installed Runtime binary and consumer.",
+        "A captured stdout/stderr artifact without a matching, validated Runner result.json cannot promote the exact Attempt from dispatch-unknown/lost into Succeeded. A result bearing foreign Attempt identity must never qualify even when output exists.",
+        "Owner-native `runtime::tests::partial_runner_stdout_without_result_stays_lost_not_success` must PASS; the existing Runner-result precedence consumer remains intact; digest-fenced TLC must exhaustively check MatchingResultRequiredForTerminal and NoForeignResultIsTerminal.",
+        "Both intentionally unsafe abstract transitions—blind retry without reconciliation and stdout-as-terminal-result—must yield the expected named TLC counterexamples. Tool failure, no counterexample, or a different failing invariant is not PASS."
       ],
       "evidence": [
         "Runtime source pre-fix 39ae761e5c53dfc4fd7bd2275552ecb3334e28ff; red/green native test and fix in commit db0c9d3f0a2d312bd204ca35010dcc2aa53d25f4, PR #623.",
         "Forensic Attempt attempt-01a16fc4-33f9-7310-aa8a-e60778df3b8a: result.json COMPLETED exit0 at 2026-10-25T05:15:18+08:00, later control LOST at 05:15:38+08:00. This is a source-bound counterexample candidate, not proven complete production root cause.",
         "services/runtime/crates/ordivon-runtime-core/src/runtime/engine/reconciliation.rs",
-        "services/runtime/crates/ordivon-runtime-core/src/runtime/tests.rs"
+        "services/runtime/crates/ordivon-runtime-core/src/runtime/tests.rs",
+        "2026-10-25 current-source LEGO R2.1 CEGAR: services/runtime/formal/RuntimeDispatchR1.tla distinguishes `outputObserved` from `resultEvidence ∈ {none,foreign,matching}` per Attempt; 4,736 TLC distinct reachable states, no invariant violation on 3 Attempts, with two independent counterexample negative controls. This is bounded model evidence, not mechanized Rust refinement.",
+        "Rust actual-consumer witness: services/runtime/crates/ordivon-runtime-core/src/runtime/tests.rs::partial_runner_stdout_without_result_stays_lost_not_success. `mise run verify` and root `mise run repo:ci` PASS on candidate rebased onto protected main 722d1b6e0d5abf9431c5cf432cf7048e25b39fc0; root architecture tests 273 PASS. Source publication/installed Runtime not implied.",
+        "Current GitHub PR #623 verified MERGED at 2026-10-24T22:39:42Z (head f2b6a0ac3f11da6d0895c0f099eab62038bb47db). The older nextAction asking for its merge is retired as stale."
       ],
       "blockers": [
-        "Protected GitHub CI, installed-binary attribution and production result/registry reconciliation remain independent acceptance gates."
+        "Protected GitHub CI, installed-binary attribution and production result/registry reconciliation remain independent acceptance gates.",
+        "This new model/Rust CDC proves only the scoped stdout-vs-result and attempt identity seams, not general Runtime implementation refinement, installed binary, external provider liveness or domain acceptance."
       ],
-      "nextAction": "Consume PR #623 native verification and independent CI. After merge, bind deployed runtime executable digest and observed Runner/Registry reconciliation under the same exact source; do not replay or reclassify an uncertain historical Attempt merely from this model."
+      "nextAction": "Treat PR #623 as historical merged baseline. For this result-vs-partial-output refinement, qualify the exact current merge-queue candidate with full Runtime native checks and TLC negative controls; then compare the installed Runtime executable SourceCut and observed stdout/result/LOST readback. Do not infer deployed correctness from the bounded model or older PR check."
     },
     {
       "id": "RW10",
