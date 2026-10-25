@@ -6,6 +6,7 @@ postcondition unexpectedly stops providing a receipt. They must not commit.
 from __future__ import annotations
 
 import sqlite3
+import subprocess
 import sys
 from pathlib import Path
 
@@ -50,6 +51,32 @@ def test_sqlite_postcondition_oracle_survives_optimized_python(
 ) -> None:
     with pytest.raises(AssertionError, match="expected"):
         _require_equal(observed, expected)
+
+
+def test_sqlite_receipt_oracle_runs_under_actual_optimized_interpreter() -> None:
+    """A regular pytest invocation is insufficient to qualify Python -O."""
+    proof = (
+        "import runpy, sys\n"
+        "check = runpy.run_path(sys.argv[1])['_require_equal']\n"
+        "check(1, 0)\n"
+    )
+    optimized = subprocess.run(
+        [sys.executable, "-O", "-c", proof, str(Path(__file__).resolve())],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    assert optimized.returncode != 0
+    assert "AssertionError: expected 0, observed 1" in optimized.stderr
+    removed_assert = subprocess.run(
+        [sys.executable, "-O", "-c", "assert False"],
+        capture_output=True,
+        text=True,
+        timeout=10,
+        check=False,
+    )
+    assert removed_assert.returncode == 0
 
 
 def _assert_no_effect_committed(path: Path, expected_rows: int) -> None:
