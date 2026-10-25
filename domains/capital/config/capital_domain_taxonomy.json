@@ -69,6 +69,7 @@
     ],
     "accounting": [
       "durable.py",
+      "postgres_ledger.py",
       "sqlite_ledger.py",
       "substrate.py"
     ]

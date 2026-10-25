@@ -75,3 +75,44 @@ Tool intents and dispatch fences bind the exact Runtime operation and request id
 | unresolved ambiguous external effect | caller plus relevant external authority |
 
 Harness may read externally supplied evidence during reconciliation but does not replace another owner's repair procedure.
+
+## PostgreSQL role-binding cutover (independent H04 subowner)
+
+This procedure concerns only Browserless conversation-role adoption and
+affinity binding. It does not migrate general Harness Journal/CAS, CFT/session/
+materialization ledgers, Runtime Job/Attempt state, or provider sessions.
+PostgreSQL becomes the binding Owner only after exact SQLite identities are
+imported and old write access is retired.
+
+First identify the exact loaded Browserless config.ledger path, stop ALL old
+Browserless binding writers, retain a verified source backup, and provision
+the authenticated and durable PostgreSQL 18 database. This command does not
+stop physical processes, prove quiescence, or contact Provider services.
+
+The one-time cutover reads the old source with an exclusive SQLite writer
+lock, imports identities in a serializable PG transaction, rejects
+conflicting/missing/additional identities on first cutover, and installs
+legacy write-denial triggers before releasing the source lock.
+This is one-time old-authority retirement, not an SQLite repair campaign.
+
+    export ORDIVON_CONVERSATION_BINDING_POSTGRES_DSN='postgresql://...'
+    python scripts/postgres_conversation_binding.py \
+      --legacy-ledger /exact/loaded/materialization-ledger.sqlite \
+      --confirm-old-writers-quiesced
+
+Capture the returned identity digest and row counts as a source-bound receipt.
+The command prints no credentials. After qualifying the source, restart
+Browserless with that DSN. Both the read (conversation_affinity) and write
+(adopt_conversation) select PostgreSQL; every PG admission checks the old
+source seal and exact identity readback without any SQLite fallback.
+For a truly new installation with no legacy ledger ever present, explicit
+ORDIVON_CONVERSATION_BINDING_FRESH_BOOTSTRAP=1 is possible only after
+independently proving that absence. Never set that flag for migration.
+
+Replay of an already-completed cutover accepts PG-only new roles while the
+sealed older identities remain identical; a first migration requires exact
+PG/source equality, not a subset. SQLite and PostgreSQL have no common atomic
+two-database commit here. After ambiguous partial commit, do NOT enable PG
+admission: reconcile and retry until source sealing is proven. Do not resume
+old SQLite writes. Native tests use an isolated disposable PostgreSQL and
+temporary SQLite fixtures, never deployed data.

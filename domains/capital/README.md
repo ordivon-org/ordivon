@@ -69,6 +69,17 @@ This is a local accounting contract, not a live financial-write authority.
 
 TigerBeetle Capital Substrate R1 passes the base mechanical integration and R3.1 composes Reservation -> PENDING, RETAIN -> no mutation, RELEASE -> VOID_PENDING_TRANSFER, and CONSUME -> POST_PENDING_TRANSFER. R3.2 now passes durable restart/reconciliation on one intact data file: a pending reservation survived the first process restart, a consumed reservation survived the second, exact replay returned `EXISTS` without reopening pending state, and exact terminal semantic history reconciled `MATCH`. If provider terminal history is missing or stale, the result is retain/recovery (`PROVIDER_INCOMPLETE_RETAIN` / `CONTRADICTION_RETAIN`) with provider repair forbidden; terminal Capital accounting history is never resurrected from provider state. The bounded harness deletes its data file afterward, so no long-running canonical ledger or external financial write is admitted.
 
+**CAP-PG-SOURCE-TYPE-01 — PostgreSQL migration source fidelity:** SQLite
+INTEGER affinity is not a proof that stored source cells are integers. Before
+producing a migration digest or admitting a PostgreSQL write, the PG importer
+requires an exact integer type for every account balance and transfer amount,
+and an exact {0,1} integer for the overdraft flag; it rejects REAL, TEXT,
+boolean aliases and out-of-range values rather than silently truncating or
+coercing them. Consumer acceptance is a real PostgreSQL 18 native negative
+test with malformed disposable source rows and an empty PG target after
+failure. This is a PostgreSQL-import contract, not a new SQLite repair or a
+claim that source-writer retirement has been completed.
+
 **CAP-DB-MW-01 (TYPE + NATURAL_KEY + SERIALIZATION):** before the
 PostgreSQL-first accounting cutover, two independent SQLite callers must not
 treat an absent-ID read as exclusive admission. The narrow interim ledger
@@ -178,3 +189,28 @@ The split does not weaken the provider gates: provider-bound tests remain tracke
 must pass in the environment that actually owns the required external evidence. It
 prevents local credentials, /root candidate environments, or /opt provider binaries
 from becoming hidden prerequisites of repository CI.
+
+
+**PostgreSQL-first accounting capability (native consumer transition)**.
+The bounded accounting API can now use PostgresAccountingLedger with an
+explicit PostgreSQL DSN; no SQLite fallback is permitted if a PG DSN was
+selected. scripts/run-nonlive-capital-effect-matrix selects this backend
+when ORDIVON_CAPITAL_PG_DSN is supplied. Without a PG DSN it FAILS CLOSED;
+historical disposable SQLite regression tests require the explicit
+ORDIVON_CAPITAL_LEGACY_OFFLINE_SMOKE=1 test-only opt-in. The PG implementation
+uses a transaction-scoped schema-admission lock, PostgreSQL SERIALIZABLE
+transactions with whole-transaction retry, unique account/transfer identities,
+atomic no-overdraft and pending POST/VOID effects, and native restart/replay
+readback. Physical PostgreSQL consumer tests are in tests/test_postgres_ledger.py;
+they require ORDIVON_CAPITAL_PG_TEST_DSN pointing at a disposable
+database, with no production-credential defaults. Existing SQLite is an
+historical migration-source/debt item and must not be extended.
+
+PostgresAccountingLedger.import_quiesced_sqlite performs a read-only
+snapshot and pre-commit exact PG readback into an empty target. It refuses to
+start without explicit independent legacy-producer quiescence; it never edits,
+locks out, or silently deletes the old authority. The receipt says
+VERIFIED_COPY_NOT_CONSUMER_CUTOVER. Installed worker shutdown, deployed PG
+DSN, rollback and final retirement are separate unsatisfied gates; passing
+a disposable test is not production migration. No external financial write
+authority follows from PG accounting.

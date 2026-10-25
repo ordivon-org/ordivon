@@ -19,9 +19,9 @@ def fail(message: str) -> None:
 def main() -> int:
     raw = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     project = raw["project"]
-    expected_dependencies = ["httpx==0.28.1", "jsonschema>=4.26,<5"]
+    expected_dependencies = ["httpx==0.28.1", "psycopg[binary]>=3.3", "jsonschema>=4.26,<5"]
     if project.get("dependencies") != expected_dependencies:
-        fail("base dependencies must contain only HTTPX and jsonschema")
+        fail("base dependencies must contain HTTPX, PostgreSQL wake provider, and jsonschema")
     if project.get("optional-dependencies") != {"mcp": ["mcp==2.3.0"]}:
         fail("Harness may expose only the official MCP v2 standards-adapter extra")
     expected_groups = {
@@ -74,7 +74,7 @@ def main() -> int:
 
     print(
         "dependency contract: valid canonical=owner-local-compat host=absent "
-        "runtime=httpx+jsonschema adapter=mcp2.3 dev=ruff test=agent-mcp+playwright+pytest"
+        "runtime=httpx+psycopg+jsonschema adapter=mcp2.3 dev=ruff test=agent-mcp+playwright+pytest"
     )
     return 0
 

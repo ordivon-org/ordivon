@@ -95,6 +95,8 @@ RELEASE_PATHS = (
     "scripts/sqlite_conversation_binding.py",
     "scripts/sqlite_wake_turn_map.py",
     "scripts/postgres_wake_turn_map.py",
+    "scripts/postgres_conversation_binding.py",
+    "scripts/postgres_turn_effects.py",
     "scripts/standard_identifiers.py",
     "scripts/windows_user_browser_materialization_target.py",
     "scripts/windows_user_browser_chatgpt.ps1",
@@ -131,6 +133,7 @@ WORKER_RUNTIME_VERSIONS = {
 PLAYWRIGHT_RUNTIME_VERSIONS = {
     "playwright": "1.63.0",
     "rfc8785": "0.1.4",
+    "psycopg": "3.3.6",
 }
 
 
@@ -726,7 +729,8 @@ def require_playwright_runtime_importable(release: Path) -> None:
         "import sys,json,importlib.metadata as m;"
         "sys.path.insert(0,sys.argv[1]);"
         "import playwright_browserless_turn_once,playwright_browserless_conversation_output;"
-        "names=['playwright','rfc8785'];"
+        "import postgres_turn_effects;"
+        "names=['playwright','rfc8785','psycopg'];"
         "print(json.dumps({n:m.version(n) for n in names},sort_keys=True))"
     )
     p = run([str(BROWSER_SECURITY_PY), "-c", code, str(scripts)], check=False, timeout=30)

@@ -4,6 +4,7 @@
 This owner is selected only by an explicit PG cutover configuration; it never
 silently creates a fresh identity to stand in for an existing SQLite wake.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -44,7 +45,8 @@ class PostgresWakeTurnMap:
             # admissions. The native transaction lock protects schema+table.
             schema_lock = int.from_bytes(
                 hashlib.sha256(b"ordivon:harness:wake-turn-pg-schema:v1").digest()[:8],
-                "big", signed=True,
+                "big",
+                signed=True,
             )
             db.execute("SELECT pg_advisory_xact_lock(%s)", (schema_lock,))
             db.execute("CREATE SCHEMA IF NOT EXISTS ordivon_harness")
@@ -70,6 +72,38 @@ class PostgresWakeTurnMap:
             )
             # Qualify BOTH tables after CREATE IF NOT EXISTS.
             self._require_pg_schema(db)
+
+            # Wake identity is an append-only, non-deletable ledger fact.
+            # Enforce the contract in PostgreSQL, not just in Agent code.
+            db.execute(
+                """
+                CREATE OR REPLACE FUNCTION ordivon_harness.reject_wake_identity_mutation()
+                RETURNS TRIGGER LANGUAGE plpgsql AS $body$
+                BEGIN
+                    RAISE EXCEPTION 'durable wake turn identity is immutable'
+                        USING ERRCODE = '23514';
+                END
+                $body$
+                """
+            )
+            db.execute(
+                """
+                CREATE OR REPLACE TRIGGER wake_turn_identity_immutable
+                BEFORE UPDATE OR DELETE ON ordivon_harness.wake_turn_map
+                FOR EACH ROW
+                EXECUTE FUNCTION ordivon_harness.reject_wake_identity_mutation()
+                """
+            )
+            # TRUNCATE bypasses row-level DELETE triggers. PG's native
+            # statement-level BEFORE TRUNCATE closes that separate path.
+            db.execute(
+                """
+                CREATE OR REPLACE TRIGGER wake_turn_identity_no_truncate
+                BEFORE TRUNCATE ON ordivon_harness.wake_turn_map
+                FOR EACH STATEMENT
+                EXECUTE FUNCTION ordivon_harness.reject_wake_identity_mutation()
+                """
+            )
 
     @staticmethod
     def _require_pg_schema(db: psycopg.Connection) -> None:
@@ -167,8 +201,13 @@ class PostgresWakeTurnMap:
             for kind, definition, deferrable, validated, index_valid in cutover_constraints
             if not deferrable and validated and index_valid
         }
-        if ("p", "PRIMARY KEY (cutover_id)") not in qualified:
-            raise WakeTurnConflict("PostgreSQL wake cutover schema missing unique marker")
+        required_cutover = {
+            ("p", "PRIMARY KEY (cutover_id)"),
+            ("c", "CHECK ((cutover_id = 'legacy'::text))"),
+            ("c", "CHECK ((state = ANY (ARRAY['PENDING'::text, 'ACTIVE'::text])))"),
+        }
+        if not required_cutover.issubset(qualified):
+            raise WakeTurnConflict("PostgreSQL wake cutover schema constraints missing")
 
     # Shared admission locks allow parallel wake writes; only the one-time
     # migration's exclusive lock blocks writers while a cutover fence is set.
@@ -178,8 +217,7 @@ class PostgresWakeTurnMap:
     def _admit_cutover_state(cls, db: psycopg.Connection) -> None:
         db.execute("SELECT pg_advisory_xact_lock_shared(%s)", (cls._CUTOVER_ADVISORY_KEY,))
         row = db.execute(
-            "SELECT state FROM ordivon_harness.wake_cutover "
-            "WHERE cutover_id='legacy'"
+            "SELECT state FROM ordivon_harness.wake_cutover WHERE cutover_id='legacy'"
         ).fetchone()
         if row is not None:
             state = row["state"] if isinstance(row, dict) else row[0]
@@ -190,18 +228,13 @@ class PostgresWakeTurnMap:
         with psycopg.connect(self.dsn) as pg:
             with pg.transaction():
                 pg.execute("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE")
-                pg.execute(
-                    "SELECT pg_advisory_xact_lock(%s)", (self._CUTOVER_ADVISORY_KEY,)
-                )
+                pg.execute("SELECT pg_advisory_xact_lock(%s)", (self._CUTOVER_ADVISORY_KEY,))
                 row = pg.execute(
-                    "SELECT state FROM ordivon_harness.wake_cutover "
-                    "WHERE cutover_id='legacy'"
+                    "SELECT state FROM ordivon_harness.wake_cutover WHERE cutover_id='legacy'"
                 ).fetchone()
                 if row is not None:  # PENDING resume or ACTIVE identity audit
                     return
-                if pg.execute(
-                    "SELECT 1 FROM ordivon_harness.wake_turn_map LIMIT 1"
-                ).fetchone():
+                if pg.execute("SELECT 1 FROM ordivon_harness.wake_turn_map LIMIT 1").fetchone():
                     raise WakeTurnConflict(
                         "divergent PostgreSQL wake identities: destination already writable"
                     )
@@ -214,9 +247,7 @@ class PostgresWakeTurnMap:
         with psycopg.connect(self.dsn) as pg:
             with pg.transaction():
                 pg.execute("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE")
-                pg.execute(
-                    "SELECT pg_advisory_xact_lock(%s)", (self._CUTOVER_ADVISORY_KEY,)
-                )
+                pg.execute("SELECT pg_advisory_xact_lock(%s)", (self._CUTOVER_ADVISORY_KEY,))
                 row = pg.execute(
                     "SELECT state FROM ordivon_harness.wake_cutover "
                     "WHERE cutover_id='legacy' FOR UPDATE"
@@ -246,8 +277,12 @@ class PostgresWakeTurnMap:
     @staticmethod
     def _canonical_rows(rows: list[dict[str, Any]]) -> list[tuple[Any, ...]]:
         names = (
-            "wake_intent_id", "campaign_ref", "agent_id", "prompt_digest",
-            "turn_request_id", "created_at_ms",
+            "wake_intent_id",
+            "campaign_ref",
+            "agent_id",
+            "prompt_digest",
+            "turn_request_id",
+            "created_at_ms",
         )
         result = []
         for row in rows:
@@ -329,8 +364,8 @@ class PostgresWakeTurnMap:
                                 "SELECT RAISE(ABORT,'wake mapping retired to PostgreSQL'); END"
                             )
                             existing = db.execute(
-                                "SELECT sql FROM sqlite_master "
-                                "WHERE type='trigger' AND name=?", (name,)
+                                "SELECT sql FROM sqlite_master WHERE type='trigger' AND name=?",
+                                (name,),
                             ).fetchone()
                             if existing is not None and existing["sql"] != sql:
                                 raise WakeTurnConflict("legacy wake retirement trigger has drifted")
@@ -342,9 +377,12 @@ class PostgresWakeTurnMap:
                 # has sealed durably and the source/PG identity readback agrees.
                 self.assert_legacy_sealed(source)
                 self._certify_cutover_after_source_commit()
-                digest = "sha256:" + hashlib.sha256(
-                    json.dumps(original, ensure_ascii=False, separators=(",", ":")).encode()
-                ).hexdigest()
+                digest = (
+                    "sha256:"
+                    + hashlib.sha256(
+                        json.dumps(original, ensure_ascii=False, separators=(",", ":")).encode()
+                    ).hexdigest()
+                )
                 return {
                     "schemaVersion": 1,
                     "kind": "ordivon.wake-turn-pg-cutover",
@@ -373,9 +411,8 @@ class PostgresWakeTurnMap:
         db, rows = self._legacy_rows(source)
         with closing(db):
             actual = {
-                row[0]: row[1] for row in db.execute(
-                    "SELECT name,sql FROM sqlite_master WHERE type='trigger'"
-                )
+                row[0]: row[1]
+                for row in db.execute("SELECT name,sql FROM sqlite_master WHERE type='trigger'")
             }
             for operation in ("INSERT", "UPDATE", "DELETE"):
                 name = f"wake_turn_pg_retired_{operation.lower()}"
@@ -385,7 +422,9 @@ class PostgresWakeTurnMap:
                     "SELECT RAISE(ABORT,'wake mapping retired to PostgreSQL'); END"
                 )
                 if actual.get(name) != sql:
-                    raise WakeTurnConflict("legacy wake writer retirement fence is missing or altered")
+                    raise WakeTurnConflict(
+                        "legacy wake writer retirement fence is missing or altered"
+                    )
         canonical = self._canonical_rows(rows)
         with psycopg.connect(self.dsn, row_factory=dict_row) as pg:
             by_id = {x["wake_intent_id"]: x for x in self._postgres_rows(pg)}
@@ -430,8 +469,7 @@ class PostgresWakeTurnMap:
                         db.execute("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE")
                         self._admit_cutover_state(db)
                         existing = db.execute(
-                            "SELECT * FROM ordivon_harness.wake_turn_map "
-                            "WHERE wake_intent_id=%s",
+                            "SELECT * FROM ordivon_harness.wake_turn_map WHERE wake_intent_id=%s",
                             (wake_intent_id,),
                         ).fetchone()
                         if existing is not None:
@@ -443,10 +481,16 @@ class PostgresWakeTurnMap:
                             try:
                                 require_uuid7(existing["turn_request_id"], "turnRequestId")
                             except (TypeError, ValueError) as error:
-                                raise WakeTurnConflict("wake turn replay receipt invalid") from error
+                                raise WakeTurnConflict(
+                                    "wake turn replay receipt invalid"
+                                ) from error
                             return self._receipt(existing, "existing")
                         turn_request_id = require_uuid7(self._uuid7_factory(), "turnRequestId")
-                        now = int(self._now_ms())
+                        now = self._now_ms()
+                        if type(now) is not int or not 0 <= now <= 2**63 - 1:
+                            raise WakeTurnConflict(
+                                "PostgreSQL wake timestamp must be an exact non-negative bigint"
+                            )
                         db.execute(
                             "INSERT INTO ordivon_harness.wake_turn_map "
                             "(wake_intent_id,campaign_ref,agent_id,prompt_digest,"
@@ -455,26 +499,33 @@ class PostgresWakeTurnMap:
                             (wake_intent_id, *semantic, turn_request_id, now),
                         )
                         row = db.execute(
-                            "SELECT * FROM ordivon_harness.wake_turn_map "
-                            "WHERE wake_intent_id=%s",
+                            "SELECT * FROM ordivon_harness.wake_turn_map WHERE wake_intent_id=%s",
                             (wake_intent_id,),
                         ).fetchone()
                         if row is None:
                             raise WakeTurnConflict("PostgreSQL wake durable receipt missing")
-                        observed = tuple(row[k] for k in ("campaign_ref", "agent_id", "prompt_digest"))
+                        observed = tuple(
+                            row[k] for k in ("campaign_ref", "agent_id", "prompt_digest")
+                        )
                         if observed != semantic:
                             raise WakeTurnConflict("wake intent identity changed semantics")
                         try:
                             require_uuid7(row["turn_request_id"], "turnRequestId")
                         except (ValueError, TypeError) as error:
-                            raise WakeTurnConflict("PostgreSQL wake durable receipt invalid") from error
-                        disposition = "created" if row["turn_request_id"] == turn_request_id else "existing"
+                            raise WakeTurnConflict(
+                                "PostgreSQL wake durable receipt invalid"
+                            ) from error
+                        disposition = (
+                            "created" if row["turn_request_id"] == turn_request_id else "existing"
+                        )
                         if disposition == "created" and row["created_at_ms"] != now:
                             raise WakeTurnConflict("PostgreSQL wake receipt time changed")
                         return self._receipt(row, disposition)
             except psycopg.errors.SerializationFailure as error:
                 if attempt == 3:
-                    raise WakeTurnConflict("PostgreSQL wake serializable retry exhausted") from error
+                    raise WakeTurnConflict(
+                        "PostgreSQL wake serializable retry exhausted"
+                    ) from error
             except psycopg.errors.UniqueViolation as error:
                 raise WakeTurnConflict("PostgreSQL wake turn identity collision") from error
         raise AssertionError("unreachable")
