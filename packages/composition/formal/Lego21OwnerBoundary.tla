@@ -21,7 +21,7 @@ NetworkStates == {"unknown", "ready"}
 RuntimeStates == {"idle", "admitted", "running", "ambiguous", "terminal"}
 EvidenceStates == {"none", "matching", "foreign"}
 SourceBindingStates == {"none", "admission-bound", "different-source"}
-ReceiptStates == {"none", "pending", "committed"}
+ReceiptStates == {"none", "pending", "committed", "foreign"}
 
 TypeOK ==
     /\ RequiresHarness \in BOOLEAN
@@ -104,6 +104,16 @@ RuntimeCommitTerminal ==
     /\ UNCHANGED <<host, harness, network, runtime, dispatchCount,
                   consumerEvidence, sourceEvidenceBinding, admissionInputsWitness>>
 
+(* Counterexample input: an externally presented receipt for another Attempt.
+   This is NOT a Runtime-authorized CommitTerminal transition. A boolean
+   "receipt present" abstraction would wrongly allow Host acceptance. *)
+RuntimeObserveForeignReceipt ==
+    /\ runtime = "terminal"
+    /\ terminalReceipt = "pending"
+    /\ terminalReceipt' = "foreign"
+    /\ UNCHANGED <<host, harness, network, runtime, dispatchCount,
+                  consumerEvidence, sourceEvidenceBinding, admissionInputsWitness>>
+
 ConsumerObserve ==
     /\ runtime = "terminal"
     /\ consumerEvidence = "none"
@@ -135,6 +145,7 @@ Next ==
     \/ RuntimeLoseKnowledge
     \/ RuntimeObserveTerminal
     \/ RuntimeCommitTerminal
+    \/ RuntimeObserveForeignReceipt
     \/ ConsumerObserve
     \/ HostAccept
 
@@ -190,6 +201,15 @@ NetworkNeverDegradesAfterAdmission ==
 (***************************************************************************)
 ForeignEvidenceIsUnreachable ==
     consumerEvidence # "foreign"
+
+(* Deliberately false reachability probe: a foreign Attempt receipt must
+   be representable, even while domain evidence matches this Work+SourceCut. *)
+ForeignTerminalReceiptIsUnreachable ==
+    ~(terminalReceipt = "foreign"
+      /\ consumerEvidence = "matching"
+      /\ sourceEvidenceBinding = "admission-bound"
+      /\ host = "open")
+
 
 (* Intentionally false negative oracle: a matching Work can have wrong source. *)
 WrongSourceEvidenceIsUnreachable ==

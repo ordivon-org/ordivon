@@ -103,6 +103,58 @@ fi
     exit 1
   fi
   echo "TLC pending terminal receipt non-vacuity: PASS"
+  # Separate a committed receipt from a foreign Attempt's presented receipt.
+  # Require the model to reach foreign receipt + matching Work/SourceCut,
+  # then let the existing committed-receipt invariant guard Host acceptance.
+  if java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config Lego21OwnerBoundary.foreign-receipt-probe.cfg Lego21OwnerBoundary.tla >"$probe_output" 2>&1; then
+    echo "TLC foreign terminal receipt reachability probe unexpectedly passed" >&2
+    exit 1
+  fi
+  if ! grep -Fq "Error: Invariant ForeignTerminalReceiptIsUnreachable is violated." "$probe_output"; then
+    cat "$probe_output" >&2
+    echo "TLC did not confirm the reachable foreign terminal receipt" >&2
+    exit 1
+  fi
+  if ! grep -Fq 'terminalReceipt = "foreign"' "$probe_output" ||
+     ! grep -Fq 'consumerEvidence = "matching"' "$probe_output" ||
+     ! grep -Fq 'sourceEvidenceBinding = "admission-bound"' "$probe_output"; then
+    cat "$probe_output" >&2
+    echo "TLC foreign-receipt witness lacks matching Work, SourceCut or receipt" >&2
+    exit 1
+  fi
+  echo "TLC foreign terminal receipt non-vacuity: PASS"
+  # Deliberately relax exactly one Host guard in an ephemeral model copy.
+  # The checked counterexample must identify the committed-receipt invariant
+  # and the foreign receipt, not merely a parser failure or another invariant.
+  red_dir="$(mktemp -d)"
+  trap 'rm -f "$probe_output"; rm -rf "$red_dir"' EXIT
+  cp Lego21OwnerBoundary.tla Lego21OwnerBoundary.direct-local.cfg "$red_dir/"
+  python3 - "$red_dir/Lego21OwnerBoundary.tla" <<'PY_FOREIGN_RECEIPT_RED'
+import pathlib
+import sys
+path = pathlib.Path(sys.argv[1])
+source = path.read_text(encoding="utf-8")
+old = '    /' + chr(92) + ' terminalReceipt = "committed"'
+new = '    /' + chr(92) + ' terminalReceipt ' + chr(92) + 'in {"committed", "foreign"}'
+if source.count(old) != 1:
+    raise SystemExit("Host receipt mutation target missing or ambiguous")
+path.write_text(source.replace(old, new, 1), encoding="utf-8")
+PY_FOREIGN_RECEIPT_RED
+  if (
+    cd "$red_dir"
+    java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config Lego21OwnerBoundary.direct-local.cfg Lego21OwnerBoundary.tla
+  ) >"$probe_output" 2>&1; then
+    echo "TLC Host receipt guard mutation unexpectedly passed" >&2
+    exit 1
+  fi
+  if ! grep -Fq "Error: Invariant NoHostAcceptanceWithoutCommittedTerminalReceipt is violated." "$probe_output" ||
+     ! grep -Fq 'terminalReceipt = "foreign"' "$probe_output"; then
+    cat "$probe_output" >&2
+    echo "TLC guard mutation did not produce a named foreign-receipt counterexample" >&2
+    exit 1
+  fi
+  echo "TLC foreign receipt Host-guard mutation negative control: PASS"
+  rm -rf "$red_dir"
   rm -f "$probe_output"
   trap - EXIT
 )
