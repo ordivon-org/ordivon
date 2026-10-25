@@ -447,6 +447,16 @@ class WorkStore:
         payload = snapshot["payload"]
         if not isinstance(payload, dict):
             raise RuntimeError("work snapshot payload is not a PostgreSQL jsonb object")
+        # Runtime Work readback is a consumer of the durable digest contract.
+        # Doctor's whole-history audit cannot justify returning a stale or
+        # corrupted snapshot between audits: bind content to its stored digest.
+        if canonical_digest(payload) != snapshot["snapshot_digest"]:
+            raise RuntimeError("durable Work snapshot payload digest differs")
+        if (
+            target_revision == int(work["current_revision"])
+            and snapshot["snapshot_digest"] != work["current_snapshot_digest"]
+        ):
+            raise RuntimeError("current Work snapshot pointer digest differs")
         return {
             "schemaVersion": 1,
             "kind": "ordivon.host-work",
