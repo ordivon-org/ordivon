@@ -161,11 +161,11 @@
       "id": "STORAGE-ALLOC-20261025",
       "problemClass": "HOST_DISK_PRESSURE",
       "naturalOwner": "platform/workstation",
-      "standing": "NOT_A_CURRENT_CAPACITY_EMERGENCY",
-      "observation": "Windows C: total 322122543104, free 44929273856 bytes; D: total 700605001728, free 82522148864 bytes. Linux /dev/sdd 1007 GiB total, 652 GiB free, 32% used. Guest df is not host sparse VHDX physical allocation evidence; no file deletion was qualified.",
-      "evidence": "Windows Runtime Job job-01a17054-1e5a-7993-bd1e-08049b778334, Linux Runtime Job job-01a17052-335d-76d2-a79a-de95bda6dbbf",
+      "standing": "HOST_VHDX_PHYSICAL_ALLOCATION_OBSERVED_RECOVERY_UNKNOWN",
+      "observation": "Windows C: total 322122543104 free 44929273856 bytes; D: total 700605001728 free 82522148864 bytes. Linux /dev/sdd total 1007GiB, free ~652GiB, used ~304GiB. A Windows native sparse-allocation job directly measured D:\\WSL\\archlinux\\ext4.vhdx logicalGiB=711.447, allocatedGiB=564.003 (Win32 lastError=0) and C:\\OrdivonRecovery\\wsl-swap.vhdx logicalGiB=4.005, allocatedGiB=4.005. Independent elevated Get-VHD observed D:\\WSL\\archlinux\\ext4.vhdx FileSize=763910684672, virtual Size=1099511627776, Attached=true and sparse attribute. These numbers differ by definition: logical file length, virtual upper bound, NTFS allocated extents, and guest filesystem used bytes. They do not prove that 564GiB is deletable or recoverable without preservation-qualified consumer evidence.",
+      "evidence": "Windows native disks Job job-01a17054-1e5a-7993-bd1e-08049b778334; Windows sparse allocation Job job-01a17053-a27d-7b21-828e-72bad474550f; elevated Windows Get-VHD Job job-01a17051-fa21-7982-a3f5-d535c111ce60; Linux df Job job-01a17052-335d-76d2-a79a-de95bda6dbbf, all observed 2026-10-25 around 07:50-08:05+08",
       "consumers": "Windows backing drive and WSL2 guest guest-vs-host reclamation behavior",
-      "formalObligation": "PhysicalAllocated(host,VHDX) and GuestUsed(guest) are distinct measurements; ReclaimSuccess requires the host free-space before/after witness and consumer-safe retention; do not infer host bytes freed from guest trim.",
+      "formalObligation": "GuestFSUsed, VHDLogicalLength, VHDVirtualCapacity, HostAllocatedBytes and HostFreeBytes are distinct typed measurements. ReclaimSuccess requires a bounded validated host-allocation delta after preservation and no lost active consumer; even HostAllocatedBytes>GuestFSUsed does not imply the difference is safe or physically reclaimable.",
       "registration": {
         "state": "UNREGISTERED",
         "reason": "platform/workstation has no owner-local lego-plan-r1.json in the current checked source; reuse native storage recovery owner evidence, do not invent a new registry solely for this observation."
@@ -176,7 +176,7 @@
         "supporting": [
           "state-machine"
         ],
-        "requiredWitness": "Obtain NTFS allocated sparse VHDX data on the same host before any trim/compact; check no unique workspace artifacts at risk and compare host-space delta.",
+        "requiredWitness": "Preserve each required dirty source/effect carrier, prove guest trim actually propagates to the sparse host allocation layer, then compare authoritative NTFS allocated clusters and free bytes before/after the same bounded operation; no destructive compact or backup deletion based solely on sparse allocation size.",
         "selectionReason": "Choose the narrowest existing owner-local representation and a current exact consumer witness; do not infer behavioral semantics from source equality or an old PASS."
       }
     },
@@ -206,6 +206,7 @@
   ],
   "verification": {
     "state": "PROPOSED",
-    "meaning": "Native repository checker only verifies source-bound typed registration structure; no GitHub merge, disk deletion, Runtime patch or consumer proof follows from a census PASS."
+    "meaning": "Native repository checker only verifies source-bound typed registration structure; no GitHub merge, disk deletion, Runtime patch or consumer proof follows from a census PASS.",
+    "lastRefinement": "Additional Windows-native sparse allocation and elevated Get-VHD independent physical source evidence bound to observed source/time; no physical mutation and no claim of proven reclaim"
   }
 }
