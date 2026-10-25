@@ -9,10 +9,69 @@ from tools.repo.check_sql_dialects import (
     OSQUERY_TIMEOUT_SECONDS,
     classify,
     tracked_sql,
+    core_sqlite_direct_calls,
+    core_sqlite_debt_issues,
+    tracked_core_sqlite_calls,
+    CORE_SQLITE_LEGACY_CALLS,
+    ROOT,
 )
 
 
 class SQLDialectBoundaryTests(unittest.TestCase):
+    def test_pg_preferred_sourcecut_matches_existing_core_sqlite_debt(self):
+        current = tracked_core_sqlite_calls(ROOT)
+        self.assertEqual(current, CORE_SQLITE_LEGACY_CALLS)
+        self.assertFalse(core_sqlite_debt_issues(current))
+        self.assertGreater(len(current), 10)
+
+    def test_new_core_sqlite_authority_requires_explicit_consumer_qualification(self):
+        current = dict(CORE_SQLITE_LEGACY_CALLS)
+        current["services/harness/src/unreviewed_sqlite_authority.py"] = 1
+        issues = core_sqlite_debt_issues(current)
+        self.assertEqual(len(issues), 1)
+        self.assertIn("unreviewed_sqlite_authority", issues[0])
+
+    def test_existing_sqlite_authority_growth_cannot_hide_in_old_file(self):
+        current = dict(CORE_SQLITE_LEGACY_CALLS)
+        name = next(iter(current))
+        current[name] += 1
+        self.assertEqual(len(core_sqlite_debt_issues(current)), 1)
+
+    def test_backend_retirement_requires_explicit_sourcebound_debt_update(self):
+        current = dict(CORE_SQLITE_LEGACY_CALLS)
+        current.pop(next(iter(current)))
+        self.assertEqual(len(core_sqlite_debt_issues(current)), 1)
+
+    def test_core_sqlite_writer_detection_does_not_classify_pg(self):
+        self.assertEqual(
+            core_sqlite_direct_calls("services/harness/store.py", "sqlite3.connect(path)"),
+            1,
+        )
+        self.assertEqual(
+            core_sqlite_direct_calls("services/runtime/storage.rs", "rusqlite::Connection"),
+            1,
+        )
+        self.assertEqual(
+            core_sqlite_direct_calls("services/harness/pg.py", "psycopg.connect(dsn)"),
+            0,
+        )
+
+    def test_core_sqlite_source_symlink_replacement_fails_closed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = root / "repo"
+            target = repo / "services/runtime/rogue.py"
+            target.parent.mkdir(parents=True)
+            target.write_text("import sqlite3\\nsqlite3.connect('fake')\\n", encoding="utf-8")
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+            outside = root / "outside.py"
+            outside.write_text("import sqlite3\\nsqlite3.connect('other')\\n", encoding="utf-8")
+            target.unlink()
+            target.symlink_to(outside)
+            with self.assertRaisesRegex(ValueError, "symlink"):
+                tracked_core_sqlite_calls(repo)
+
     def test_known_sql_are_classified(self):
         self.assertEqual(classify("services/runtime/crates/ordivon-runtime-core/migrations/runtime/0001_runtime.sql"), "sqlite")
         self.assertEqual(classify("services/runtime/crates/ordivon-runtime-core/src/runtime/attempt_supervisor_owner_storage.sql"), "sqlite")
