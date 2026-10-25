@@ -360,10 +360,11 @@ impl PgAdmissionStore {
         let digest: Option<String> = current.get(2);
         let version: i64 = current.get(3);
         let job = tx.query_one(
-            "SELECT resolution FROM jobs WHERE job_id=$1 FOR UPDATE",
+            "SELECT resolution,current_attempt_id FROM jobs WHERE job_id=$1 FOR UPDATE",
             &[&job_id],
         )?;
         let job_resolution: Option<String> = job.get(0);
+        let current_attempt: Option<String> = job.get(1);
         // This is strictly the no-Artifact terminal responsibility. Never
         // silently complete a Job with registered Artifact consumers here.
         let has_artifacts: bool = tx
@@ -387,6 +388,14 @@ impl PgAdmissionStore {
                 return Ok(PgTerminalOutcome::Existing(job_id));
             }
             return Err(PgAdmissionError::IdempotencyConflict);
+        }
+        // The Job's current Attempt is the only Attempt allowed to commit a
+        // fresh terminal effect. A superseded Attempt may not resolve the Job,
+        // release another Attempt's capacity, or append terminal events.
+        // Completed exact replay above remains legal after the Job clears
+        // current_attempt_id.
+        if current_attempt.as_deref() != Some(i.attempt_id.as_str()) {
+            return Err(PgAdmissionError::Blocked);
         }
         if version != i.expected_row_version
             || !terminal_transition(&previous, &i.terminal_state)
@@ -801,6 +810,53 @@ CREATE TABLE _stage_control(
             Err(PgAdmissionError::Capacity)
         ));
         assert_eq!(scratch.count("jobs"), 2);
+    }
+
+    #[test]
+    fn pg18_stale_attempt_cannot_terminalize_current_job() {
+        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
+            return;
+        };
+        let mut scratch = Scratch::new(&dsn);
+        scratch.qualify();
+        let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+        let input = payload("stale-terminal", "job-stale-terminal", "workspace-stale", 2);
+        store.admit(&input).unwrap();
+        scratch.admin.execute(
+            "INSERT INTO attempts(attempt_id,job_id,attempt_number,state,termination_intent,launch_token_digest,bundle_path,unit_name,created_at_ms,row_version) VALUES($1,$2,2,'accepted','natural','launch-new','/nonproduction/new','newer.service',$3,0)",
+            &[&"attempt-newer", &input.job_id, &input.created_at_ms],
+        ).unwrap();
+        scratch.admin.execute(
+            "UPDATE jobs SET current_attempt_id='attempt-newer' WHERE job_id=$1",
+            &[&input.job_id],
+        ).unwrap();
+
+        let old_attempt = PgTerminalNoArtifacts {
+            attempt_id: input.attempt_id.clone(),
+            expected_row_version: 0,
+            terminal_state: "failed".into(),
+            result_digest: "sha256:stale".into(),
+            reason_code: "STALE_ATTEMPT".into(),
+            exit_code: Some(5),
+            finished_at_ms: input.created_at_ms + 1,
+            expected_source_sha256: input.expected_source_sha256.clone(),
+        };
+        assert!(matches!(
+            store.commit_terminal_no_artifacts(&old_attempt),
+            Err(PgAdmissionError::Blocked)
+        ));
+        assert_eq!(scratch.count("job_events"), 3, "no stale terminal event");
+        let state: String = scratch.admin.query_one(
+            "SELECT state FROM attempts WHERE attempt_id=$1", &[&input.attempt_id]
+        ).unwrap().get(0);
+        assert_eq!(state, "accepted", "old Attempt must remain unchanged");
+        let job = scratch.admin.query_one(
+            "SELECT resolution,current_attempt_id FROM jobs WHERE job_id=$1",
+            &[&input.job_id]
+        ).unwrap();
+        let resolution: Option<String> = job.get(0);
+        let current: Option<String> = job.get(1);
+        assert_eq!((resolution, current), (None, Some("attempt-newer".into())));
     }
 
     #[test]
