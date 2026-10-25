@@ -71,13 +71,19 @@ def test_foreign_terminal_receipt_is_represented_and_rejected_not_vacuously():
     assert '"foreign"' in model
     assert "RuntimeObserveForeignReceipt" in model
     assert "NoHostAcceptanceWithoutCommittedTerminalReceipt" in model
+    assert "NoHostAcceptanceWithoutAttemptBoundReceipt" in model
+    assert "receiptAttemptBinding" in model
+    assert "RuntimeBindCommittedReceipt" in model
+    assert "NoForeignReceiptBlocksLocalRecovery" in model
     assert "TLC foreign receipt Host-guard mutation negative control: PASS" in formal
-    assert "NoHostAcceptanceWithoutCommittedTerminalReceipt is violated." in formal
+    assert "TLC foreign receipt recovery mutation negative control: PASS" in formal
+    assert "NoForeignReceiptBlocksLocalRecovery is violated." in formal
+    assert "NoHostAcceptanceWithoutAttemptBoundReceipt is violated." in formal
     assert "Host receipt guard mutation unexpectedly passed" in formal
     for config in CONFIGS:
-        assert "NoHostAcceptanceWithoutCommittedTerminalReceipt" in (
-            ROOT / "formal" / config
-        ).read_text(encoding="utf-8")
+        assert "NoHostAcceptanceWithoutAttemptBoundReceipt" in (ROOT / "formal" / config).read_text(
+            encoding="utf-8"
+        )
 
 
 def test_formal_toolchain_is_digest_checked_and_explicitly_admitted():
