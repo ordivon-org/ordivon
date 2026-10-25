@@ -186,11 +186,12 @@ OWNER_LEGO_PLANS = (
 # Other already-consumed Owner versions and named carriers do not share the R1
 # node/edge/slice graph schema. Register their physical source declarations,
 # not a fabricated universal LEGO schema or duplicate Owner implementation.
-OWNER_LEGO_PLAN_PROJECTIONS = (
-    "capabilities/artifact/planning/lego-plan-r2.json",
-    "services/host/planning/lego-plan-r3.json",
-    "services/gateway/planning/lego-plan-windows-carrier-r2.json",
-)
+OWNER_LEGO_PLAN_PROJECTIONS = {
+    "capabilities/artifact/planning/lego-plan-r2.json": 2,
+    "services/host/planning/lego-plan-r3.json": 3,
+    # The named Windows R2 carrier deliberately retains its original schema v1.
+    "services/gateway/planning/lego-plan-windows-carrier-r2.json": 1,
+}
 
 
 def validate_owner_plan_inventory(root: Path) -> None:
@@ -211,6 +212,28 @@ def validate_owner_plan_inventory(root: Path) -> None:
             f"unregistered={sorted(observed - registered)}, "
             f"missing={sorted(registered - observed)}"
         )
+
+
+def validate_owner_plan_projection_carriers(root: Path) -> None:
+    """Validate exact R2/R3 carrier identities without imposing R1 graph laws.
+
+    A registered physical file is not itself valid formal evidence: it must
+    contain canonical JSON and a typed Owner/SourceCut envelope. This is not a
+    claim that arbitrary R2/R3 semantics or real consumers are verified.
+    """
+    for relative, version in OWNER_LEGO_PLAN_PROJECTIONS.items():
+        projection = _load_json(
+            _source_bound_file(root, relative, "registered Owner plan projection")
+        )
+        if type(projection.get("schemaVersion")) is not int or projection["schemaVersion"] != version:
+            raise ArchitectureDocsError(f"Owner plan projection schemaVersion drift: {relative}")
+        if projection.get("kind") != "ordivon.project-lego-plan":
+            raise ArchitectureDocsError(f"Owner plan projection kind drift: {relative}")
+        if not isinstance(projection.get("truthRole"), str) or not projection["truthRole"].strip():
+            raise ArchitectureDocsError(f"Owner plan projection truthRole missing: {relative}")
+        project = projection.get("project")
+        if not isinstance(project, dict) or not isinstance(project.get("id"), str) or not project["id"].strip():
+            raise ArchitectureDocsError(f"Owner plan projection identity missing: {relative}")
 
 
 def _validated_owner_lego_edges(
@@ -1186,6 +1209,7 @@ def validate_repository(root: Path = ROOT) -> None:
     # checks simply because no historical issue census or hand-picked test
     # references it. This only covers the declared two-level source layout.
     validate_owner_plan_inventory(root)
+    validate_owner_plan_projection_carriers(root)
 
     # Two independent mature graph obligations apply to every registered Owner,
     # whether or not a time-scoped issue census happens to mention its plan.

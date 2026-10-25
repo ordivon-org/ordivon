@@ -481,6 +481,35 @@ def test_owner_r2_r3_plan_carriers_are_not_invisible_to_inventory(tmp_path: Path
         missing.write_text("{}", encoding="utf-8")
 
 
+@pytest.mark.parametrize(
+    ("carrier", "field", "bad", "message"),
+    [
+        ("capabilities/artifact/planning/lego-plan-r2.json", "schemaVersion", True, "schemaVersion drift"),
+        ("services/host/planning/lego-plan-r3.json", "schemaVersion", 2, "schemaVersion drift"),
+        ("services/gateway/planning/lego-plan-windows-carrier-r2.json", "schemaVersion", 2, "schemaVersion drift"),
+        ("capabilities/artifact/planning/lego-plan-r2.json", "kind", "other-kind", "kind drift"),
+        ("services/host/planning/lego-plan-r3.json", "truthRole", "", "truthRole missing"),
+        ("services/gateway/planning/lego-plan-windows-carrier-r2.json", "project", {}, "identity missing"),
+    ],
+)
+def test_non_r1_owner_carriers_have_typed_source_envelopes(
+    tmp_path: Path, carrier: str, field: str, bad: object, message: str
+) -> None:
+    # Reuse the actual owner projections rather than inventing a third
+    # universal LEGO document schema for heterogeneous native versions.
+    for relative in module.OWNER_LEGO_PLAN_PROJECTIONS:
+        candidate = tmp_path / relative
+        candidate.parent.mkdir(parents=True, exist_ok=True)
+        candidate.write_bytes((ROOT / relative).read_bytes())
+    module.validate_owner_plan_projection_carriers(tmp_path)
+    target = tmp_path / carrier
+    content = json.loads(target.read_text(encoding="utf-8"))
+    content[field] = bad
+    target.write_text(json.dumps(content), encoding="utf-8")
+    with pytest.raises(module.ArchitectureDocsError, match=message):
+        module.validate_owner_plan_projection_carriers(tmp_path)
+
+
 def test_actual_repository_owner_plan_inventory_is_source_closed() -> None:
     module.validate_owner_plan_inventory(ROOT)
 
