@@ -10,6 +10,7 @@ import sqlite3
 import sys
 import tempfile
 import unittest
+from contextlib import closing
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -47,7 +48,7 @@ class PgStageTests(unittest.TestCase):
         root = Path(self.temp.name)
         self.source = root / "source.sqlite3"
         self.receipt = root / "snapshot.json"
-        with sqlite3.connect(self.source) as db:
+        with closing(sqlite3.connect(self.source)) as db, db:
             db.executescript("""
                 PRAGMA foreign_keys=ON;
                 CREATE TABLE jobs (job_id TEXT PRIMARY KEY NOT NULL,
@@ -67,7 +68,6 @@ class PgStageTests(unittest.TestCase):
             db.execute("INSERT INTO jobs VALUES('j1','sha256:ABC')")
             db.execute("INSERT INTO attempts VALUES('a1','j1',?)", (b"\x00\x01\xff",))
             db.execute("INSERT INTO idempotency_keys VALUES('agent','request','j1')")
-        db.close()
         with self.source.open("rb") as f:
             digest = hashlib.file_digest(f, "sha256").hexdigest()
         self.manifest = {
@@ -106,7 +106,7 @@ class PgStageTests(unittest.TestCase):
         self.source.rename(exact)
         alias = exact.with_name("source")
         shutil.copy2(exact, alias)
-        with sqlite3.connect(alias) as db:
+        with closing(sqlite3.connect(alias)) as db, db:
             db.execute("UPDATE jobs SET operation_digest='FORGED' WHERE job_id='j1'")
         self.source = exact
         migrate(self.source, self.receipt, self.dsn, "rw12_stage_exact_uri")
@@ -117,9 +117,8 @@ class PgStageTests(unittest.TestCase):
         self.assertEqual(observed, "sha256:ABC")
 
     def test_changed_source_fails_before_target_mutation(self) -> None:
-        with sqlite3.connect(self.source) as db:
+        with closing(sqlite3.connect(self.source)) as db, db:
             db.execute("UPDATE jobs SET operation_digest='forged' WHERE job_id='j1'")
-        db.close()
         with self.assertRaisesRegex(ValueError, "snapshot digest"):
             migrate(self.source, self.receipt, self.dsn, "rw12_stage_forged")
 
