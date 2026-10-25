@@ -56,6 +56,64 @@ def configured_dirs(row: dict) -> set[str]:
         return {row["directory"]}
     return set()
 
+def active_rooted_codeowners(source: str) -> dict[str, tuple[str, ...]]:
+    """The repository's literal-root CODEOWNERS profile, not string mentions.
+
+    GitHub treats comments as inert and the LAST matching rule as effective.
+    The root-governance contract accepts only a default '*' rule first and
+    later exact, rooted paths with assigned owners. A new wildcard/pattern
+    grammar requires a source-bound owner test, not a guessed parser.
+    """
+    explicit: dict[str, tuple[str, ...]] = {}
+    for lineno, line in enumerate(source.splitlines(), start=1):
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        fields = line.split()
+        pattern = fields[0]
+        owners = tuple(field for field in fields[1:] if not field.startswith("#"))
+        if not owners or any(
+            not (
+                owner.startswith("@")
+                and len(owner) > 1
+                or "@" in owner
+                and not owner.startswith("@")
+            )
+            for owner in owners
+        ):
+            raise AssertionError(f"CODEOWNERS line {lineno} has no valid owner")
+        if pattern == "*":
+            if explicit:
+                raise AssertionError(
+                    "CODEOWNERS catch-all after explicit roots overrides them"
+                )
+            continue
+        if (
+            not pattern.startswith("/")
+            or any(token in pattern for token in "*?[]!\\")
+            or any(
+                segment in (".", "..", "") for segment in pattern.strip("/").split("/")
+            )
+            or pattern in explicit
+        ):
+            raise AssertionError(
+                f"CODEOWNERS unsupported, ambiguous or duplicate root rule: {pattern}"
+            )
+        # A later broad root may override ownership of an earlier narrower
+        # root. This existing contract forbids ambiguous explicit overlaps;
+        # it does not attempt to reimplement GitHub's complete glob engine.
+        if any(
+            pattern.startswith(existing) or existing.startswith(pattern)
+            for existing in explicit
+            if existing.endswith("/")
+        ):
+            raise AssertionError(
+                f"CODEOWNERS overlapping explicit root rule: {pattern}"
+            )
+        explicit[pattern] = owners
+    return explicit
+
+
 def main() -> int:
     # This verifier uses assertions for its native policy checks. Python -O removes
     # them; fail closed rather than incorrectly certifying an unchecked source tree.
@@ -213,14 +271,22 @@ def main() -> int:
         )
         assert len(refs) == 1, f"{workflow_name} must use one SHA-pinned SBOM action"
     owners = load_owners()
-    codeowners = CODEOWNERS.read_text(encoding="utf-8")
+    # GitHub does not load CODEOWNERS files of 3 MB or more, even if every
+    # textual rule is valid. Verify source bytes rather than false lexical
+    # completeness over a file GitHub would ignore.
+    assert CODEOWNERS.stat().st_size < 3_000_000, "CODEOWNERS exceeds GitHub 3 MB limit"
+    codeowners = active_rooted_codeowners(CODEOWNERS.read_text(encoding="utf-8"))
     for owner in owners:
         root = "/" + owner.root
-        assert (ROOT / owner.root).is_dir(), f"owner root does not exist: {owner.name}={owner.root}"
-        assert root in codeowners, f"missing CODEOWNERS boundary: {root}"
+        assert (ROOT / owner.root).is_dir(), (
+            f"owner root does not exist: {owner.name}={owner.root}"
+        )
+        assert root in codeowners, f"missing active CODEOWNERS boundary: {root}"
 
     for root in ("/.github/", "/tools/repo/", "/mise.toml"):
-        assert root in codeowners, f"missing repository-mechanics CODEOWNERS boundary: {root}"
+        assert root in codeowners, (
+            f"missing active repository-mechanics CODEOWNERS boundary: {root}"
+        )
 
     mise_path = ROOT / "mise.toml"
     mise = mise_path.read_text(encoding="utf-8")
