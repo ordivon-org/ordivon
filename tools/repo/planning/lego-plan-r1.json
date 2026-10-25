@@ -85,7 +85,9 @@
       "acceptance": [
         "Native Git projection covers both exclusive DAG sides and refuses ambiguous common ancestors rather than selecting arbitrary lineage.",
         "Projected equality may skip redundant cherry-picks for exact source paths, never approve deletion or imply behavior equality.",
-        "Owner-native test_source_history_legos.py validates NUL-delimited paths, merge paths, source-bound owners and fail-closed edges."
+        "Owner-native test_source_history_legos.py validates NUL-delimited paths, merge paths, source-bound owners and fail-closed edges.",
+        "A single observed GitHub PR snapshot partitions exact (baseRefOid,headRefOid) candidate pairs; duplicate candidate cuts are diagnosed without inferring consumer equivalence, merge authorization, or deletion. Missing or timezone-naive source time and repeated PR numbers fail closed; only a complete PR inventory may prove no duplicates, although a partial snapshot can expose a concrete duplicate.",
+        "Owner-native test_convergence_pressure.py exercises real observed duplicate #705/#707 source identity and counterexamples for distinct base OIDs, malformed SHA and duplicate PR number."
       ],
       "blockers": [
         "Consumer semantic equivalence remains UNKNOWN until corresponding natural-Owner CDC is proven."
@@ -112,7 +114,8 @@
         "Every continuously validated Owner LEGO plan, including Game and Media plans not necessarily named by a time-scoped issue census, must be source-bound and reject symlink/redirection before native graph admission; prior structurally valid out-of-tree plans cannot impersonate current SourceCut.",
         "The Repo mechanics RG1/RG2/RG3 plan itself is validated by the always-on typed node/slice/edge admission gate, independent of whether historical issue-census links currently name it; missing node kind must fail before a Repo Owner plan can witness another Owner.",
         "The current two-level Owner planning file layout is total against the existing OWNER_LEGO_PLANS admission list: a newly introduced unregistered plan or a disappeared registered plan fails the native SourceCut architecture gate before it can impersonate a validated graph; this is path-layout currentness, not a universal LEGO registry.",
-        "Cross-Owner active source/consumer seam admission must enumerate actual Git index filename bytes through NUL-delimited records; quoted or newline-split ls-files display paths and dropped non-UTF-8 filenames cannot prove absence of a dependency seam. Native checker binds those source paths to owners.toml and existing dependency_contracts.toml, without creating another owner or granting additional seams."
+        "Cross-Owner active source/consumer seam admission must enumerate actual Git index filename bytes through NUL-delimited records; quoted or newline-split ls-files display paths and dropped non-UTF-8 filenames cannot prove absence of a dependency seam. Native checker binds those source paths to owners.toml and existing dependency_contracts.toml, without creating another owner or granting additional seams.",
+        "Repository mechanics Git tracked-manifest identity is the native NUL-delimited file path, not human-readable quoted ls-files display lines: the updater-ownership projection must losslessly preserve newline, quotes, backslashes and legal non-UTF-8 Git path bytes through Unicode surrogateescape before classifying lockfiles. Display-form strings cannot certify missing owners."
       ],
       "blockers": [
         "The formal issue census records evidence from its observed SourceCut; neither slice grants live runtime authority."
@@ -127,7 +130,9 @@
         "renovate.json",
         "tools/repo/check_owner_boundaries.py",
         "tools/repo/test_owner_boundaries.py",
-        "tools/repo/dependency_contracts.toml"
+        "tools/repo/dependency_contracts.toml",
+        "tools/repo/check_github_governance.py",
+        "tools/repo/test_github_governance.py"
       ]
     },
     {

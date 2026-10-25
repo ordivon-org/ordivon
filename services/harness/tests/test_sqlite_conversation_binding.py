@@ -129,3 +129,37 @@ def test_module_has_no_provider_effect_dependencies() -> None:
     text = (ROOT / "scripts/sqlite_conversation_binding.py").read_text()
     for forbidden in ("playwright", "browserless", "send.click", "composer.fill", "TemporalClient"):
         assert forbidden not in text
+
+
+@pytest.mark.parametrize("fault", ["erase", "forge"])
+def test_adoption_is_atomic_with_its_verified_receipt(tmp_path: Path, fault: str) -> None:
+    """Native SQLite trigger must not commit an absent or forged conversation binding."""
+    s = store(tmp_path)
+    with sqlite3.connect(s.path) as db:
+        if fault == "erase":
+            fault_sql = "DELETE FROM conversation_bindings WHERE request_id=NEW.request_id;"
+        else:
+            fault_sql = "UPDATE conversation_bindings SET session_id='FORGED' WHERE request_id=NEW.request_id;"
+        db.executescript(
+            f"""
+            CREATE TABLE corruption_witness (mark INTEGER);
+            CREATE TRIGGER bind_corrupt AFTER INSERT ON conversation_bindings BEGIN
+                INSERT INTO corruption_witness VALUES (1);
+                {fault_sql}
+            END;
+            """
+        )
+    with pytest.raises(ConversationBindingConflict, match="receipt"):
+        adopt(s)
+    with sqlite3.connect(s.path) as db:
+        assert db.execute("SELECT count(*) FROM conversation_bindings").fetchone()[0] == 0
+        assert db.execute("SELECT count(*) FROM corruption_witness").fetchone()[0] == 0
+
+
+def test_replay_rejects_existing_row_with_forged_provider_data(tmp_path: Path) -> None:
+    s = store(tmp_path)
+    adopt(s)
+    with sqlite3.connect(s.path) as db:
+        db.execute("UPDATE conversation_bindings SET session_id='FORGED' WHERE request_id='adoption:1'")
+    with pytest.raises(ConversationBindingConflict, match="receipt"):
+        adopt(s)

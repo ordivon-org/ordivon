@@ -113,8 +113,12 @@ PY_CEX
     ) > "$tmp_dir/result.log" 2>&1
     result=$?
     set -e
-    if [[ "$result" -eq 0 ]] ||
-        ! grep -Fq "Invariant NoCompetingLiveAttempts is violated" "$tmp_dir/result.log"; then
+    # TLC invariant violation has the defined nonzero status 12. A launcher
+    # failure, a copied label, or a parse error is not a counterexample.
+    if [[ "$result" -ne 12 ]] ||
+        ! grep -Fxq "Error: Invariant NoCompetingLiveAttempts is violated." "$tmp_dir/result.log" ||
+        ! grep -Fxq "Error: The behavior up to this point is:" "$tmp_dir/result.log" ||
+        ! grep -Eq '^State [1-9][0-9]*:' "$tmp_dir/result.log"; then
       echo "TLC counterexample negative control FAILED: NoCompetingLiveAttempts did not identify the seeded unsafe retry" >&2
       tail -35 "$tmp_dir/result.log" >&2
       exit 1
@@ -123,6 +127,58 @@ PY_CEX
   )
 }
 
+
+# Rejected foreign results must remain correctable by later matching evidence.
+# Only pinned upstream TLC runs; all negative control files are ephemeral.
+check_foreign_result_recovery_counterexample() {
+  verify_jar
+  (
+    tmp_dir=$(mktemp -d -t ordivon-tlc-foreign-result-XXXXXX)
+    trap 'rm -rf -- "$tmp_dir"' EXIT
+    cp -- "$ROOT/formal/RuntimeDispatchR1.tla" "$tmp_dir/RuntimeDispatchR1.tla"
+    cp -- "$ROOT/formal/RuntimeDispatchR1.cfg" "$tmp_dir/RuntimeDispatchR1.cfg"
+    cp -- "$ROOT/formal/RuntimeDispatchR1.foreign-result-probe.cfg" "$tmp_dir/RuntimeDispatchR1.foreign-result-probe.cfg"
+    set +e
+    (cd "$tmp_dir"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+      -config RuntimeDispatchR1.foreign-result-probe.cfg RuntimeDispatchR1.tla) > "$tmp_dir/reachable.log" 2>&1
+    reachable=$?
+    set -e
+    if [[ "$reachable" -eq 0 ]] ||
+       ! grep -Fq "Error: Invariant ForeignResultIsUnreachable is violated." "$tmp_dir/reachable.log" ||
+       ! grep -Fq '"foreign"' "$tmp_dir/reachable.log"; then
+      echo "TLC foreign result reachability negative control FAILED" >&2
+      tail -45 "$tmp_dir/reachable.log" >&2
+      exit 1
+    fi
+    echo "TLC foreign result observation non-vacuity: PASS"
+    python - "$tmp_dir/RuntimeDispatchR1.tla" <<'PY_FOREIGN_RECOVERY_RED'
+from pathlib import Path
+import sys
+p = Path(sys.argv[1])
+source = p.read_text(encoding="utf-8")
+old = '''    /\\ resultEvidence[currentAttempt] = "foreign"
+    /\\ resultEvidence' = [resultEvidence EXCEPT ![currentAttempt] = "matching"]'''
+new = '''    /\\ resultEvidence[currentAttempt] = "none"
+    /\\ resultEvidence' = [resultEvidence EXCEPT ![currentAttempt] = "matching"]'''
+if source.count(old) != 1:
+    raise SystemExit("Runtime matching recovery mutation target missing or ambiguous")
+p.write_text(source.replace(old, new, 1), encoding="utf-8")
+PY_FOREIGN_RECOVERY_RED
+    set +e
+    (cd "$tmp_dir"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+      -config RuntimeDispatchR1.cfg RuntimeDispatchR1.tla) > "$tmp_dir/mutated.log" 2>&1
+    mutated=$?
+    set -e
+    if [[ "$mutated" -eq 0 ]] ||
+       ! grep -Fq "Error: Invariant ForeignResultDoesNotDisableMatchingRecovery is violated." "$tmp_dir/mutated.log" ||
+       ! grep -Fq '"foreign"' "$tmp_dir/mutated.log"; then
+      echo "TLC foreign result recovery mutation negative control FAILED" >&2
+      tail -45 "$tmp_dir/mutated.log" >&2
+      exit 1
+    fi
+    echo "TLC foreign result recovery mutation negative control PASS"
+  )
+}
 
 # Independently falsify the attempted promotion of stdout into terminal proof.
 # Deliberately weakening one guard must produce an actual named TLC counterexample.
@@ -146,8 +202,10 @@ PY_PARTIAL_CEX
       -config RuntimeDispatchR1.cfg RuntimeDispatchR1.tla ) > "$tmp_dir/result.log" 2>&1
     result=$?
     set -e
-    if [[ "$result" -eq 0 ]] ||
-       ! grep -Fq "Invariant MatchingResultRequiredForTerminal is violated" "$tmp_dir/result.log"; then
+    if [[ "$result" -ne 12 ]] ||
+       ! grep -Fxq "Error: Invariant MatchingResultRequiredForTerminal is violated." "$tmp_dir/result.log" ||
+       ! grep -Fxq "Error: The behavior up to this point is:" "$tmp_dir/result.log" ||
+       ! grep -Eq '^State [1-9][0-9]*:' "$tmp_dir/result.log"; then
       echo "TLC stdout negative control FAILED: no named counterexample" >&2
       tail -35 "$tmp_dir/result.log" >&2
       exit 1
@@ -160,7 +218,7 @@ case "${1:-check}" in
   bootstrap) bootstrap ;;
   verify) verify_jar; echo "TLA+ toolchain digest verification PASS" ;;
   check) check_runtime_dispatch ;;
-  falsify) check_runtime_counterexample; check_partial_output_counterexample ;;
+  falsify) check_runtime_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample ;;
   *)
     echo "usage: scripts/tla-formal [bootstrap|verify|check|falsify]" >&2
     exit 2

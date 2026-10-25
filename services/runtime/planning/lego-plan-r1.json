@@ -781,16 +781,20 @@
       "acceptance": [
         "Invariant manifest complete.",
         "Contract/property/provider/migration/integration tests independently addressable.",
-        "No public Tool or Registry semantic change."
+        "No public Tool or Registry semantic change.",
+        "For a selected unresolved Attempt, foreign result evidence must not eliminate the legal matching-result observation transition; check the native ENABLED invariant and its named falsifying recovery-disabled mutation."
       ],
       "evidence": [
         "planning/invariants-r1.json",
         "planning/test-taxonomy-r1.json",
         "planning/tool-necessity-audit-r1.json",
         "crates/ordivon-runtime-mcp/src/server/tests/tool_catalog.rs",
-        "cargo test --locked -q -p ordivon-runtime-mcp => 66/66 + 10/10 PASS"
+        "cargo test --locked -q -p ordivon-runtime-mcp => 66/66 + 10/10 PASS",
+        "RUNTIME-RESULT-FOREIGN-RECOVERY-01 / EVIDENCE_IDENTITY + ABSTRACTION_RECOVERY: formal/RuntimeDispatchR1.tla, formal/RuntimeDispatchR1.foreign-result-probe.cfg, scripts/tla-formal, scripts/tests/test_formal_trace.py; pinned TLC 3-Attempt green plus reachability and recovery-disabled RED counterexamples"
       ],
-      "blockers": [],
+      "blockers": [
+        "Actual Rust/SQLite result ingestion and same-Attempt foreign->matching correction are not yet mechanized refinement witnesses; implementation recovery remains UNKNOWN, and abstract ENABLED does not prove eventuality."
+      ],
       "nextAction": "R00 and the R01 baseline gate are complete; continue broader physical test partition opportunistically while RW1 state-contract extraction proceeds behind independently runnable contract and real-system gates."
     },
     {
@@ -975,7 +979,8 @@
         "A captured stdout/stderr artifact without a matching, validated Runner result.json cannot promote the exact Attempt from dispatch-unknown/lost into Succeeded. A result bearing foreign Attempt identity must never qualify even when output exists.",
         "Owner-native `runtime::tests::partial_runner_stdout_without_result_stays_lost_not_success` must PASS; the existing Runner-result precedence consumer remains intact; digest-fenced TLC must exhaustively check MatchingResultRequiredForTerminal and NoForeignResultIsTerminal.",
         "Both intentionally unsafe abstract transitions—blind retry without reconciliation and stdout-as-terminal-result—must yield the expected named TLC counterexamples. Tool failure, no counterexample, or a different failing invariant is not PASS.",
-        "The currentness gate rejects a digest-refreshed TLC config if either MatchingResultRequiredForTerminal or NoForeignResultIsTerminal is removed; the two independent name-bound RW9 negative controls remain required before a model PASS can support terminal-result provenance."
+        "The currentness gate rejects a digest-refreshed TLC config if either MatchingResultRequiredForTerminal or NoForeignResultIsTerminal is removed; the two independent name-bound RW9 negative controls remain required before a model PASS can support terminal-result provenance.",
+        "The two bounded TLA+/TLC CEGAR falsifiers cannot PASS merely because a Java launcher exits unsuccessfully and prints an invariant name. Each negative control requires TLC's invariant-violation exit 12, the exact named invariant, and a concrete state-trace receipt; parser/tool failures or names without trace are rejected."
       ],
       "evidence": [
         "Runtime source pre-fix 39ae761e5c53dfc4fd7bd2275552ecb3334e28ff; red/green native test and fix in commit db0c9d3f0a2d312bd204ca35010dcc2aa53d25f4, PR #623.",

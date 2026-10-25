@@ -556,6 +556,79 @@ trait Provider {
             finally:
                 self.module.ROOT = original_root
 
+    def test_unexpanded_macro_invocations_cannot_forge_test_registration(self):
+        """rustc expands inert! to zero items, regardless of invocation delimiters."""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "lib.rs").write_text("#[cfg(test)]\nmod tests;\n", encoding="utf-8")
+            child = root / "tests.rs"
+            before = self.module.ROOT
+            self.module.ROOT = root
+            try:
+                for opener, closer in (("(", ")"), ("[", "]"), ("{", "}")):
+                    with self.subTest(delimiter=opener):
+                        child.write_text(
+                            "macro_rules! inert { ($($token:tt)*) => {}; }\n"
+                            f"inert!{opener}\n"
+                            "    #[test]\n"
+                            "    fn phantom_proof() {}\n"
+                            f"{closer};\n",
+                            encoding="utf-8",
+                        )
+                        errors = self.module.require_test_symbol(child, "phantom_proof")
+                        self.assertTrue(
+                            any("unexpanded macro" in err or "unnameable non-module" in err for err in errors),
+                            f"unregistered rustc macro item falsely admitted: {errors}",
+                        )
+                child.write_text(
+                    "macro_rules! inert { ($($token:tt)*) => {}; }\n"
+                    "inert!(#[test] fn fake() {});\n"
+                    "#[test]\nfn real_proof() {}\n",
+                    encoding="utf-8",
+                )
+                self.assertEqual(self.module.require_test_symbol(child, "real_proof"), [])
+            finally:
+                self.module.ROOT = before
+
+    def test_unexpanded_macro_call_cannot_forge_runtime_owner_method(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "mod.rs").write_text("mod owner;\n", encoding="utf-8")
+            child = root / "owner.rs"
+            previous = self.module.ROOT
+            self.module.ROOT = root
+            try:
+                for left, right in (("(", ")"), ("[", "]"), ("{", "}")):
+                    with self.subTest(opener=left):
+                        child.write_text(
+                            "struct Registry;\n"
+                            "macro_rules! inert { ($($token:tt)*) => {}; }\n"
+                            "impl Registry {\n"
+                            f"    inert!{left} fn phantom_owner(&self) {{}} {right};\n"
+                            "}\n",
+                            encoding="utf-8",
+                        )
+                        errors = self.module.require_owned_method(
+                            child, "impl", "Registry", "phantom_owner"
+                        )
+                        self.assertTrue(
+                            errors, f"macro-only method falsely admitted: {left!r}"
+                        )
+                child.write_text(
+                    "struct Registry;\n"
+                    "macro_rules! inert { ($($token:tt)*) => {}; }\n"
+                    "impl Registry {\n"
+                    "    inert!(fn phantom_owner(&self) {});\n"
+                    "    fn real_owner(&self) {}\n"
+                    "}\n",
+                    encoding="utf-8",
+                )
+                self.assertEqual(
+                    self.module.require_owned_method(child, "impl", "Registry", "real_owner"), []
+                )
+            finally:
+                self.module.ROOT = previous
+
     def test_unexpanded_macro_rules_cannot_forge_an_owner_method(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -851,6 +924,18 @@ trait Provider {
             any("NewlyClaimedFormalInvariant" in error for error in missing),
             missing,
         )
+
+    def test_foreign_result_recovery_is_a_checked_tlc_obligation(self):
+        config = (ROOT / "formal/RuntimeDispatchR1.cfg").read_text(encoding="utf-8")
+        self.assertIn("ForeignResultDoesNotDisableMatchingRecovery", config)
+        weakened = config.replace("    ForeignResultDoesNotDisableMatchingRecovery\n", "")
+        self.assertNotEqual(weakened, config)
+        errors = self.module.check_tlc_config_obligations(weakened)
+        self.assertTrue(any("ForeignResultDoesNotDisableMatchingRecovery" in e for e in errors))
+        native = (ROOT / "scripts/tla-formal").read_text(encoding="utf-8")
+        self.assertIn("check_foreign_result_recovery_counterexample", native)
+        self.assertIn("ForeignResultIsUnreachable is violated.", native)
+        self.assertIn("ForeignResultDoesNotDisableMatchingRecovery is violated.", native)
 
     def test_runtime_model_check_explores_two_explicit_retries(self):
         """An exact hashed two-Attempt source alone cannot qualify consecutive retries."""

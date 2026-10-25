@@ -4,9 +4,9 @@ from __future__ import annotations
 import json
 import re
 import subprocess
-import tomllib
 from pathlib import Path
 
+import tomllib
 import yaml
 from affected_owners import load_owners
 
@@ -17,11 +17,18 @@ RUNTIME_RELEASE_WORKFLOW = ROOT / ".github" / "workflows" / "runtime-release.yml
 CODEOWNERS = ROOT / ".github" / "CODEOWNERS"
 
 def tracked(pattern: str) -> tuple[str, ...]:
+    # Git paths are byte sequences and may contain LF, quotes, or non-UTF-8
+    # bytes. Its default human-readable quoting cannot certify file identity.
+    # Use Git's native NUL-delimited representation, preserving lossless
+    # filesystem byte round-tripping through Python's surrogateescape.
     output = subprocess.check_output(
-        ["git", "-C", str(ROOT), "ls-files", pattern],
-        text=True,
+        ["git", "-C", str(ROOT), "ls-files", "-z", "--", pattern],
     )
-    return tuple(line for line in output.splitlines() if line)
+    return tuple(
+        part.decode("utf-8", errors="surrogateescape")
+        for part in output.split(b"\0")
+        if part
+    )
 
 def dirs_for_lock(pattern: str, filename: str) -> set[str]:
     result: set[str] = set()

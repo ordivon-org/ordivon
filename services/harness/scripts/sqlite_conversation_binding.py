@@ -193,8 +193,22 @@ class SQLiteConversationBindingStore:
                     raise ConversationBindingConflict(
                         "same adoption request identity changed conversation binding"
                     )
+                # A digest column alone cannot attest that immutable replay
+                # fields still equal the original request after external writes.
+                expected_replay = {
+                    "campaign_ref": payload["campaignRef"],
+                    "agent_id": payload["agentId"],
+                    "provider_resource": payload["providerResource"],
+                    "session_id": payload["sessionId"],
+                    "evidence_digest": payload["evidenceDigest"],
+                    "request_id": payload["requestId"],
+                }
+                if any(by_request[key] != value for key, value in expected_replay.items()):
+                    db.execute("ROLLBACK")
+                    raise ConversationBindingConflict("conversation binding replay receipt changed")
+                receipt = self._receipt(by_request)
                 db.execute("COMMIT")
-                return self._receipt(by_request)
+                return receipt
 
             by_role = db.execute(
                 "SELECT * FROM conversation_bindings WHERE campaign_ref=? AND agent_id=?",
@@ -228,9 +242,24 @@ class SQLiteConversationBindingStore:
                 "SELECT * FROM conversation_bindings WHERE request_id=?",
                 (payload["requestId"],),
             ).fetchone()
+            # Validate the exact post-INSERT materialization before committing.
+            # A trigger can remove or mutate the row without making INSERT fail.
+            expected = {
+                "campaign_ref": payload["campaignRef"],
+                "agent_id": payload["agentId"],
+                "provider_resource": payload["providerResource"],
+                "session_id": payload["sessionId"],
+                "evidence_digest": payload["evidenceDigest"],
+                "request_id": payload["requestId"],
+                "binding_digest": binding_digest,
+                "created_at_ms": now,
+            }
+            if row is None or any(row[key] != value for key, value in expected.items()):
+                db.execute("ROLLBACK")
+                raise ConversationBindingConflict("conversation binding receipt missing or changed")
+            receipt = self._receipt(row)
             db.execute("COMMIT")
-            assert row is not None
-            return self._receipt(row)
+            return receipt
 
     def get_binding(self, campaign_ref: str, agent_id: str) -> dict[str, Any] | None:
         campaign_ref = _text(campaign_ref, "campaignRef")

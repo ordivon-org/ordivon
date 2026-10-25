@@ -71,6 +71,49 @@ class PressureControlTests(unittest.TestCase):
         self.assertFalse(decision["action"])
         self.assertEqual(decision["reason"], "NORMAL_ABOVE_SOFT_TRIGGER")
 
+    def test_above_soft_forecast_wakes_preemptive_cache_probe(self):
+        """The 2h hard-floor forecast must not disappear above the 28GiB gate."""
+        now = 20_000_000
+        free = 50 * 1024**3
+        samples = [
+            {"observedAtMs": now - 1800 * 1000, "freeBytes": 68 * 1024**3},
+            {"observedAtMs": now, "freeBytes": free},
+        ]
+        decision = self.decision(free, samples=samples, now=now)
+        self.assertLess(decision["timeToHardFloorSeconds"], self.policy["reactionHorizonSeconds"])
+        self.assertTrue(decision["action"])
+        self.assertEqual(decision["reason"], "TIME_TO_FLOOR_WITHIN_REACTION_HORIZON")
+
+    def test_above_soft_forecast_respects_expensive_probe_cooldown(self):
+        now = 20_000_000
+        free = 50 * 1024**3
+        samples = [
+            {"observedAtMs": now - 1800 * 1000, "freeBytes": 68 * 1024**3},
+            {"observedAtMs": now, "freeBytes": free},
+        ]
+        decision = self.decision(
+            free, samples=samples, now=now,
+            state={"lastExpensiveProbeAtMs": now - 60_000,
+                   "nextExpensiveProbeAfterMs": now + 600 * 1000},
+        )
+        self.assertFalse(decision["action"])
+        self.assertEqual(decision["reason"], "FORECAST_PRESSURE_COOLDOWN")
+
+    def test_above_soft_cooldown_cannot_extend_past_forecast_hard_floor(self):
+        now = 20_000_000
+        free = 50 * 1024**3
+        samples = [
+            {"observedAtMs": now - 1800 * 1000, "freeBytes": 68 * 1024**3},
+            {"observedAtMs": now, "freeBytes": free},
+        ]
+        decision = self.decision(
+            free, samples=samples, now=now,
+            state={"lastExpensiveProbeAtMs": now - 60_000,
+                   "nextExpensiveProbeAfterMs": now + 3600 * 1000},
+        )
+        self.assertTrue(decision["action"])
+        self.assertEqual(decision["reason"], "TIME_TO_FLOOR_WITHIN_REACTION_HORIZON")
+
     def test_hard_floor_forces_action_even_during_cooldown(self):
         decision = self.decision(19 * 1024**3, state={"nextExpensiveProbeAfterMs": 99_000_000})
         self.assertTrue(decision["action"])

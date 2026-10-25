@@ -103,6 +103,49 @@ class TlaFormalExternalJarTests(unittest.TestCase):
         self.assertIn("counterexample", result.stderr.lower())
         self.assertIn("NoCompetingLiveAttempts", result.stderr)
 
+    def test_falsifier_rejects_non_tlc_tool_failure_with_forged_violation_text(self):
+        """A failing Java launcher printing invariant names is not a TLC counterexample."""
+        shutil.copyfile(
+            SCRIPT.parent.parent / "formal/RuntimeDispatchR1.tla",
+            self.script.parent.parent / "formal/RuntimeDispatchR1.tla",
+        )
+        java = self.tmp / "bin/java"
+        java.write_text(
+            "#!/bin/sh\n"
+            "echo 'Invariant NoCompetingLiveAttempts is violated'\n"
+            "echo 'Invariant MatchingResultRequiredForTerminal is violated'\n"
+            "exit 1\n",
+            encoding="utf-8",
+        )
+        java.chmod(0o755)
+        result = self.invoke(command="falsify", jar=self.external)
+        self.assertNotEqual(
+            result.returncode, 0,
+            "a non-TLC launcher failure forged both named counterexamples",
+        )
+        self.assertIn("negative control FAILED", result.stderr)
+
+    def test_falsifier_rejects_name_only_without_a_real_state_trace(self):
+        """Even TLC's expected error status plus matching text cannot forge a trace."""
+        shutil.copyfile(
+            SCRIPT.parent.parent / "formal/RuntimeDispatchR1.tla",
+            self.script.parent.parent / "formal/RuntimeDispatchR1.tla",
+        )
+        java = self.tmp / "bin/java"
+        java.write_text(
+            "#!/bin/sh\n"
+            "echo 'Error: Invariant NoCompetingLiveAttempts is violated.'\n"
+            "echo 'Error: Invariant MatchingResultRequiredForTerminal is violated.'\n"
+            "exit 12\n",
+            encoding="utf-8",
+        )
+        java.chmod(0o755)
+        result = self.invoke(command="falsify", jar=self.external)
+        self.assertNotEqual(
+            result.returncode, 0, "an invariant label without a state trace was admitted"
+        )
+        self.assertIn("negative control FAILED", result.stderr)
+
     def test_digest_mismatch_fails_closed(self):
         bad = self.tmp / "tampered.jar"
         bad.write_bytes(self.external.read_bytes() + b"-changed")

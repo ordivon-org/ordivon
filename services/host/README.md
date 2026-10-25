@@ -27,7 +27,7 @@ never claims PostgreSQL integration qualification.
 
 ## Current product surface
 
-Host v2 runs Social Work Fabric schema 9 and exposes 21 MCP tools:
+Host v2 runs Social Work Fabric schema 10 and exposes 21 MCP tools:
 
 - `host.status`;
 - `actor.declare`;

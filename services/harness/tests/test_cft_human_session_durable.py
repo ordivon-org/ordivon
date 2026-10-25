@@ -259,3 +259,38 @@ def test_session_activation_cannot_report_ready_after_durable_state_corruption(
     with sqlite3.connect(a.db_path) as db:
         assert db.execute("SELECT lifecycle FROM sessions").fetchone()[0] == "FAILED"
         assert db.execute("SELECT COUNT(*) FROM corrupt_activation_witness").fetchone()[0] == 0
+
+
+@pytest.mark.parametrize("fault", ["erase", "forge"])
+def test_close_requires_exact_durable_closed_receipt_after_systemd_stop(
+    tmp_path: Path, fault: str
+) -> None:
+    """SQLite post-UPDATE corruption cannot turn a stopped target into fake CLOSED."""
+    import sqlite3
+
+    owner, sd = authority(tmp_path)
+    owner.open("r1")
+    with sqlite3.connect(owner.db_path) as db:
+        corrupt = (
+            "DELETE FROM sessions WHERE session_id=NEW.session_id;"
+            if fault == "erase"
+            else "UPDATE sessions SET lifecycle='ACTIVE',closed_at_ms=NULL "
+                 "WHERE session_id=NEW.session_id;"
+        )
+        db.executescript(
+            f"""
+            CREATE TABLE corrupted_close_witness (marker INTEGER);
+            CREATE TRIGGER corrupt_close AFTER UPDATE OF lifecycle ON sessions
+            WHEN NEW.lifecycle='CLOSED' BEGIN
+                INSERT INTO corrupted_close_witness VALUES (1);
+                {corrupt}
+            END;
+            """
+        )
+    with pytest.raises(SessionConflict, match="close.*receipt"):
+        owner.close(SESSION_ID)
+    assert sd.stops == ["ordivon-cft-human-session@41.target"]
+    with sqlite3.connect(owner.db_path) as db:
+        assert db.execute("SELECT COUNT(*) FROM corrupted_close_witness").fetchone()[0] == 0
+        row = db.execute("SELECT lifecycle,closed_at_ms FROM sessions").fetchone()
+        assert row == ("ACTIVE", None)
