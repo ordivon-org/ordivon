@@ -241,6 +241,9 @@ def validate_owner_lego_graph(plan: dict[str, Any]) -> None:
     # Do not infer completion from released blockers; the slice stays
     # PROPOSED until its own acceptance evidence exists.
     slice_states = {row["id"]: row.get("status") for row in slices}
+    # Reuse the stdlib DAG checker; these are planning prerequisites, not
+    # executable workflows, and no new scheduler or registry is admitted.
+    slice_prerequisites: dict[str, set[str]] = {name: set() for name in slice_states}
     for row in slices:
         state = row.get("status")
         if not isinstance(state, str) or not state.startswith("BLOCKED_ON_"):
@@ -257,6 +260,11 @@ def validate_owner_lego_graph(plan: dict[str, Any]) -> None:
             raise ArchitectureDocsError(
                 f"invalid LEGO blocking prerequisites: {row['id']}"
             )
+        slice_prerequisites[row["id"]].update(blockers)
+    try:
+        TopologicalSorter(slice_prerequisites).prepare()
+    except CycleError as error:
+        raise ArchitectureDocsError("cyclic LEGO slice blockers") from error
 
     # Typed relations are structural; OBSERVATION/STATE cycles are allowed.
     _validated_owner_lego_edges(plan.get("edges", []), identities)
