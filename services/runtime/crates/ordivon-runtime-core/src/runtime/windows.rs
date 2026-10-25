@@ -1274,6 +1274,39 @@ pub(crate) fn merge_windows_workspace_environment(
         return Ok(environment);
     }
 
+    // Git reads protected safe.directory from system/global files as well
+    // as command scope. Appending an exact workspace trust value cannot
+    // cancel a wildcard loaded earlier via an alternative config file.
+    // Keep the active-user token's observed profile/home as the only profile
+    // input; ordinary service execution retains its own environment policy.
+    const GIT_CONFIG_REDIRECTS: &[&str] = &[
+        "GIT_CONFIG_GLOBAL",
+        "GIT_CONFIG_SYSTEM",
+        "XDG_CONFIG_HOME",
+        "HOME",
+    ];
+    const PROFILE_OVERLAY_REDIRECTS: &[&str] = &[
+        "USERPROFILE",
+        "HOMEDRIVE",
+        "HOMEPATH",
+        "APPDATA",
+        "LOCALAPPDATA",
+    ];
+    if environment.keys().any(|name| {
+        GIT_CONFIG_REDIRECTS
+            .iter()
+            .any(|blocked| name.eq_ignore_ascii_case(blocked))
+    }) || overlay.keys().any(|name| {
+        PROFILE_OVERLAY_REDIRECTS
+            .iter()
+            .any(|blocked| name.eq_ignore_ascii_case(blocked))
+    }) {
+        return Err(RuntimeError::invalid(
+            "active_user Git trust cannot redirect Git config or token-derived profile",
+            "execution.env",
+        ));
+    }
+
     let original = workspace_path.to_string_lossy();
     let visible = if let Some(path) = original.strip_prefix(r"\\?\UNC\") {
         format!(r"\\{path}")
@@ -1341,7 +1374,11 @@ pub(crate) fn merge_windows_workspace_environment(
     for index in 0..count {
         let config_name = format!("GIT_CONFIG_KEY_{index}");
         if environment.iter().any(|(name, value)| {
-            name.eq_ignore_ascii_case(&config_name) && value.eq_ignore_ascii_case("safe.directory")
+            name.eq_ignore_ascii_case(&config_name)
+                && (value.eq_ignore_ascii_case("safe.directory")
+                    || value.eq_ignore_ascii_case("include.path")
+                    || (value.to_ascii_lowercase().starts_with("includeif.")
+                        && value.to_ascii_lowercase().ends_with(".path")))
         }) {
             return Err(RuntimeError::invalid(
                 "active_user Git trust cannot inherit a pre-existing safe.directory override",
@@ -1970,6 +2007,78 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(error.code, RuntimeErrorCode::InvalidRequest);
+    }
+
+    #[test]
+    fn windows_active_user_git_workspace_trust_rejects_external_config_redirection() {
+        // Git's native protected safe.directory wildcard is still effective
+        // when a narrower command-scoped safe.directory is appended later.
+        // A caller-controlled alternate config file must never be mistaken
+        // for this Job's exact-only workspace trust.
+        for key in ["GIT_CONFIG_GLOBAL", "git_config_system"] {
+            let overlay = BTreeMap::from([(
+                key.to_string(),
+                r"C:\Agent\attacker-global.gitconfig".to_string(),
+            )]);
+            let error = merge_windows_workspace_environment(
+                &BTreeMap::new(),
+                &overlay,
+                true,
+                Path::new(r"C:\Ordivon\workspaces\ws-2"),
+            )
+            .unwrap_err();
+            assert_eq!(error.code, RuntimeErrorCode::InvalidRequest, "{key}");
+            assert_eq!(error.field.as_deref(), Some("execution.env"));
+        }
+        // Ambient or caller-supplied Git include/config paths can load an
+        // earlier protected safe.directory=* entry. Appending the scoped
+        // workspace value does not undo that wildcard.
+        for name in ["HOME", "xdg_config_home", "USERPROFILE"] {
+            let overlay = BTreeMap::from([(
+                name.to_string(),
+                r"C:\Agent\alternative-profile".to_string(),
+            )]);
+            let error = merge_windows_workspace_environment(
+                &BTreeMap::new(),
+                &overlay,
+                true,
+                Path::new(r"C:\Ordivon\workspaces\ws-2"),
+            )
+            .unwrap_err();
+            assert_eq!(error.code, RuntimeErrorCode::InvalidRequest, "{name}");
+            assert_eq!(error.field.as_deref(), Some("execution.env"));
+        }
+        for key in ["include.path", "includeIf.gitdir:/.path"] {
+            let overlay = BTreeMap::from([
+                ("GIT_CONFIG_COUNT".to_string(), "1".to_string()),
+                ("GIT_CONFIG_KEY_0".to_string(), key.to_string()),
+                (
+                    "GIT_CONFIG_VALUE_0".to_string(),
+                    r"C:\Agent\attacker-global.gitconfig".to_string(),
+                ),
+            ]);
+            let error = merge_windows_workspace_environment(
+                &BTreeMap::new(),
+                &overlay,
+                true,
+                Path::new(r"C:\Ordivon\workspaces\ws-2"),
+            )
+            .unwrap_err();
+            assert_eq!(error.code, RuntimeErrorCode::InvalidRequest, "{key}");
+        }
+        // Context-specific guarantee: a service payload is not silently
+        // rewritten into active_user Git trust.
+        let service = merge_windows_workspace_environment(
+            &BTreeMap::new(),
+            &BTreeMap::from([(
+                "GIT_CONFIG_GLOBAL".to_string(),
+                r"C:\Agent\allowed-for-service.gitconfig".to_string(),
+            )]),
+            false,
+            Path::new(r"C:\Ordivon\workspaces\ws-2"),
+        )
+        .unwrap();
+        assert!(!service.contains_key("GIT_CONFIG_COUNT"));
     }
 
     #[test]
