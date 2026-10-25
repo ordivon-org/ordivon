@@ -879,7 +879,7 @@
     {
       "id": "RW5",
       "objective": "Thin MCP and operator surfaces over the extracted LEGO composition.",
-      "status": "BLOCKED_ON_RW2_RW4",
+      "status": "BLOCKED_ON_RW4",
       "nodeIds": [
         "R14",
         "R15"
@@ -891,7 +891,6 @@
       ],
       "evidence": [],
       "blockers": [
-        "RW2",
         "RW4"
       ],
       "nextAction": "Migrate one MCP execution Tool and one operator path, prove parity, then expand."
