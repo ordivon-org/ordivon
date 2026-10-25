@@ -505,3 +505,28 @@ def test_owner_project_source_evidence_rejects_traversal_and_duplicate_carriers(
     plan["project"]["sourceEvidence"] = ["README.md", "README.md"]
     with pytest.raises(module.ArchitectureDocsError, match="invalid or duplicate Owner LEGO sourceEvidence"):
         module.validate_owner_lego_source_evidence(ROOT, relative, plan)
+
+
+@pytest.mark.parametrize(
+    "alias",
+    (
+        "services/host/README.md",
+        "./README.md",
+        "docs//HOST_V2_R6_CLEANUP.md",
+    ),
+)
+def test_owner_evidence_alias_cannot_mint_duplicate_provenance(alias: str) -> None:
+    """One SourceCut file must not become independent proofs via spelling aliases."""
+    relative = "services/host/planning/lego-plan-r1.json"
+    plan = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+    plan["project"]["sourceEvidence"].append(alias)
+    with pytest.raises(module.ArchitectureDocsError, match="non-canonical|duplicate"):
+        module.validate_owner_lego_source_evidence(ROOT, relative, plan)
+
+
+def test_owner_evidence_rejects_mixed_absolute_and_relative_representations() -> None:
+    relative = "services/host/planning/lego-plan-r1.json"
+    plan = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+    plan["project"]["sourceEvidence"] = ["README.md", "services/host/README.md"]
+    with pytest.raises(module.ArchitectureDocsError, match="duplicate"):
+        module.validate_owner_lego_source_evidence(ROOT, relative, plan)

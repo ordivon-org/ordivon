@@ -553,12 +553,22 @@ def validate_owner_lego_source_evidence(
     refs = project.get("sourceEvidence") if isinstance(project, dict) else None
     if not isinstance(refs, list) or not refs:
         raise ArchitectureDocsError(f"{owner}: missing Owner LEGO sourceEvidence")
+    # Provenance is one SourceCut path, not one human spelling. An Owner may
+    # express a path relative to its root or as a complete Owner-prefixed
+    # path, but neither may mint a second proof for the same source bytes.
     seen: set[str] = set()
     for ref in refs:
-        if not isinstance(ref, str) or not ref or ref != ref.strip() or ref in seen:
+        if not isinstance(ref, str) or not ref or ref != ref.strip():
             raise ArchitectureDocsError(f"{owner}: invalid or duplicate Owner LEGO sourceEvidence")
-        seen.add(ref)
+        segments = ref.split("/")
+        if ".." in segments:
+            raise ArchitectureDocsError(f"{owner}: invalid Owner LEGO sourceEvidence path")
+        if any(segment in {"", "."} for segment in segments):
+            raise ArchitectureDocsError(f"{owner}: non-canonical Owner LEGO sourceEvidence path")
         path = ref if ref.startswith(f"{owner}/") else f"{owner}/{ref}"
+        if path in seen:
+            raise ArchitectureDocsError(f"{owner}: invalid or duplicate Owner LEGO sourceEvidence path")
+        seen.add(path)
         _source_bound_file(root, path, "Owner LEGO sourceEvidence")
 
 
@@ -894,6 +904,11 @@ def validate_formal_issue_census(
         plan_path, slice_id = ref.get("ownerPlan"), ref.get("slice")
         if not isinstance(plan_path, str) or not isinstance(slice_id, str) or not slice_id:
             raise ArchitectureDocsError("LEGO registration identity missing")
+        # Registration identities are canonical SourceCut paths. Path() would
+        # normalize '/./' and '//' and let aliases masquerade as separate
+        # Owner/slice LEGO witnesses in a multi-agent issue census.
+        if any(segment in {"", ".", ".."} for segment in plan_path.split("/")):
+            raise ArchitectureDocsError("non-canonical owner-local LEGO path")
         _source_bound_file(root, plan_path, "owner-local LEGO plan")
         if (plan_path, slice_id) in seen:
             raise ArchitectureDocsError("duplicate owner-local LEGO link")
