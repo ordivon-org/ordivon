@@ -754,5 +754,46 @@ class SkillCatalogR2IntegrationTests(unittest.TestCase):
 
 
 
+class SkillDiscoveryRelevanceTests(unittest.TestCase):
+    """A broad task query must not become a one-word substring OR query."""
+
+    def test_multiterm_science_query_requires_meaningful_coverage(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "skills"
+            write_skill(
+                root, "chemistry-simulation", "chemistry-simulation",
+                "Simulate molecular chemistry reactions using validated chemistry models.",
+            )
+            write_skill(
+                root, "security-review", "security-review",
+                "Review security response plans and incident analysis.",
+            )
+            write_skill(
+                root, "internet-routing", "internet-routing",
+                "Audit internet transport availability.",
+            )
+            write_skill(
+                root, "method-router", "method-router",
+                "Route a scoped method request to the best provider.",
+            )
+            catalog = SkillCatalog.scan([
+                SkillSource("fixture", root, "user", 1, TrustState.APPROVED)
+            ])
+            science = [record.name for record in catalog.search(
+                "chemistry reactions molecular simulation"
+            )]
+            self.assertEqual(science, ["chemistry-simulation"])
+            self.assertEqual(
+                catalog.search("genetics biology physiology chemistry"), ()
+            )
+            self.assertEqual(catalog.search("net"), ())
+            self.assertEqual(
+                [r.name for r in catalog.search("method router")], ["method-router"]
+            )
+            self.assertEqual(
+                [r.name for r in catalog.search("security")], ["security-review"]
+            )
+
+
 if __name__ == "__main__":
     unittest.main()
