@@ -146,6 +146,8 @@ OWNER_LEGO_PLANS = (
     "services/harness/planning/lego-plan-r1.json",
     "platform/network/planning/lego-plan-r1.json",
     "platform/security/planning/lego-plan-r1.json",
+    "domains/game/planning/lego-plan-r1.json",
+    "capabilities/media/planning/lego-plan-r1.json",
 )
 
 
