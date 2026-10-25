@@ -258,6 +258,35 @@ def _conditional_rust_ancestor(
     return False
 
 
+
+def _inside_macro_rules_definition(code: str, witness_start: int) -> bool:
+    """Reject source-only symbols inside macro_rules! bodies.
+
+    Macro token definitions are not Rust items until expanded. A lexical test
+    symbol or impl inside an uninvoked macro is not a compiled/registered
+    witness. This conservative guard does not claim general macro expansion
+    verification; only rustc/native proof can establish generated items.
+    """
+    pairs = {"{": "}", "(": ")", "[": "]"}
+    pattern = r"\bmacro_rules\s*!\s*[A-Za-z_]\w*\s*([{\[(])"
+    for match in re.finditer(pattern, code):
+        if match.start() >= witness_start:
+            break
+        opener = match.group(1)
+        closing = pairs[opener]
+        depth = 0
+        for index in range(match.end() - 1, len(code)):
+            if code[index] == opener:
+                depth += 1
+            elif code[index] == closing:
+                depth -= 1
+                if depth == 0:
+                    if witness_start < index:
+                        return True
+                    break
+    return False
+
+
 def _matching_brace(text: str, opening: int) -> int:
     depth = 0
     for index in range(opening, len(text)):
@@ -381,6 +410,8 @@ def require_owned_method(path: Path, owner_kind: str, owner: str, symbol: str) -
                 rf"\bimpl(?:\s*<[^{{>]*>)?\s+{re.escape(owner)}(?:\s*<[^{{>]*>)?\s*{{"
             )
         item = pattern.search(code)
+        if item and _inside_macro_rules_definition(code, item.start()):
+            return [f"{path.relative_to(ROOT)}::{owner} is inside an unexpanded macro_rules! definition"]
         if item and (
             _has_unqualified_cfg(
                 _attached_rust_attributes(code, item.start()), test_context=False
@@ -438,6 +469,8 @@ def require_test_symbol(path: Path, symbol: str, *, require_ignored: bool = Fals
     match = re.search(rf"(?m)^\s*fn\s+{re.escape(symbol)}\s*\(", code)
     if not match:
         return [f"{path.relative_to(ROOT)} missing proving test symbol {symbol!r}"]
+    if _inside_macro_rules_definition(code, match.start()):
+        return [f"{path.relative_to(ROOT)}::{symbol} is inside an unexpanded macro_rules! definition"]
     try:
         if _conditional_rust_ancestor(code, match.start(), test_context=True):
             return [f"{path.relative_to(ROOT)}::{symbol} has conditional ancestor module"]
