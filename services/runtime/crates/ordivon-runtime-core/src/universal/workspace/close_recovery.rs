@@ -1,3 +1,23 @@
+// Workspace continuation is one owner-local deletion precondition. Apply it
+// after the path-specific dirty/source diagnostics, but before *every* path
+// that can physically remove an open Workspace. A caller assertion is not
+// cryptographic proof of release; this guards accidental cleaners only.
+fn require_recent_workspace_consumer_release(
+    created_unix_ms: u128,
+    consumer_released: bool,
+) -> Result<(), UniversalExecError> {
+    const CONTINUATION_HOLD_MS: u128 = 24 * 60 * 60 * 1000;
+    if !consumer_released && now_unix_ms()? < created_unix_ms.saturating_add(CONTINUATION_HOLD_MS) {
+        return Err(UniversalExecError::new(
+            UniversalExecErrorCode::WorkspaceStateMismatch,
+            "Workspace is inside the bounded consumer continuation window; explicit consumerReleased is required before close",
+            Some("consumerReleased"),
+            false,
+        ));
+    }
+    Ok(())
+}
+
 pub(crate) fn remove_git_workspace(
     config: &UniversalExecutorConfig,
     request: &WorkspaceCloseRequest,
@@ -131,6 +151,11 @@ pub(crate) fn remove_git_workspace(
             ));
         }
 
+        require_recent_workspace_consumer_release(
+            record.created_unix_ms,
+            request.consumer_released,
+        )?;
+
         let final_head = recover_missing_workspace_head(&record)?;
         if let Some(head) = final_head
             .as_deref()
@@ -186,6 +211,10 @@ pub(crate) fn remove_git_workspace(
                     false,
                 ));
             }
+            require_recent_workspace_consumer_release(
+                record.created_unix_ms,
+                request.consumer_released,
+            )?;
             cleanup_workspace_caches(config, &request.workspace_id)?;
             remove_git_worktree_from_workspace(&recorded, true)?;
             write_closed_workspace_record(&record_path, None)?;
@@ -221,6 +250,11 @@ pub(crate) fn remove_git_workspace(
             ));
         }
     }
+
+    require_recent_workspace_consumer_release(
+        record.created_unix_ms,
+        request.consumer_released,
+    )?;
 
     let final_head = git_output(&recorded, ["rev-parse", "HEAD"])?
         .trim()

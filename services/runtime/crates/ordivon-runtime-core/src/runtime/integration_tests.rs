@@ -406,6 +406,7 @@ fn runtime_transactional_runtime_executes_replays_and_releases_capacity() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: workspace_id.clone(),
             force: true,
+            consumer_released: true,
             expected_source_state_digest: None,
         },
     )
@@ -1129,6 +1130,7 @@ print("WRITE_OK=" + pathlib.Path("contained-output.txt").read_text(), flush=True
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id,
             force: true,
+            consumer_released: true,
             expected_source_state_digest: None,
         },
     )
@@ -1218,6 +1220,7 @@ fn runtime_replays_same_request_after_effect_changes_or_workspace_closure() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: context.workspace_id.clone(),
             force: true,
+            consumer_released: true,
             expected_source_state_digest: None,
         })
         .unwrap();
@@ -1923,6 +1926,7 @@ fn runtime_incremental_observe_and_safe_close_preserve_active_work() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: context.workspace_id.clone(),
             force: true,
+            consumer_released: true,
             expected_source_state_digest: None,
         })
         .unwrap_err();
@@ -1965,6 +1969,7 @@ fn runtime_incremental_observe_and_safe_close_preserve_active_work() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: context.workspace_id.clone(),
             force: true,
+            consumer_released: true,
             expected_source_state_digest: None,
         })
         .unwrap();
@@ -2175,6 +2180,7 @@ fn runtime_interactive_close_blocks_until_exact_job_is_reconciled() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: context.workspace_id.clone(),
             force: true,
+            consumer_released: true,
             expected_source_state_digest: None,
         })
         .unwrap_err();
@@ -2208,6 +2214,7 @@ fn runtime_interactive_close_blocks_until_exact_job_is_reconciled() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: context.workspace_id.clone(),
             force: true,
+            consumer_released: true,
             expected_source_state_digest: None,
         })
         .unwrap();
@@ -3227,6 +3234,7 @@ fn runtime_finance_i8_graduation_matches_canonical_semantics_with_job_owned_inpu
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id,
             force: false,
+            consumer_released: true,
             expected_source_state_digest: None,
         },
     )
