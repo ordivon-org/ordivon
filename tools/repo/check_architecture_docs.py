@@ -301,7 +301,7 @@ def validate_owner_lego_graph(plan: dict[str, Any]) -> None:
             or any(not isinstance(ref, str) or ref not in slice_states for ref in blockers)
             or len(blockers) != len(set(blockers))
             or state != "BLOCKED_ON_" + "_".join(blockers)
-            or any(slice_states[ref] == "COMPLETE" for ref in blockers)
+            or any(slice_states[ref] in {"COMPLETE", "RETIRED"} for ref in blockers)
         ):
             raise ArchitectureDocsError(
                 f"invalid LEGO blocking prerequisites: {row['id']}"

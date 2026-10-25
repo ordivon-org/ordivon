@@ -456,3 +456,26 @@ def test_current_owner_plan_inventory_is_closed_without_another_registry(
 
 def test_actual_repository_owner_plan_inventory_is_source_closed() -> None:
     module.validate_owner_plan_inventory(ROOT)
+
+
+@pytest.mark.parametrize(
+    "relative",
+    (
+        "services/runtime/planning/lego-plan-r1.json",
+        "platform/security/planning/lego-plan-r1.json",
+        "domains/game/planning/lego-plan-r1.json",
+        "capabilities/media/planning/lego-plan-r1.json",
+        "tools/repo/planning/lego-plan-r1.json",
+    ),
+)
+def test_retired_slice_cannot_qualify_an_active_blocking_prerequisite(
+    relative: str,
+) -> None:
+    """A retired producer is not a live unmet prerequisite for an active slice."""
+    plan = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+    producer, consumer = plan["slices"][:2]
+    producer["status"] = "RETIRED"
+    consumer["blockers"] = [producer["id"]]
+    consumer["status"] = f"BLOCKED_ON_{producer['id']}"
+    with pytest.raises(module.ArchitectureDocsError, match="invalid LEGO blocking prerequisites"):
+        module.validate_owner_lego_graph(plan)
