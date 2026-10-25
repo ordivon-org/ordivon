@@ -210,11 +210,6 @@ impl PgAdmissionStore {
         if state != "QUALIFIED_WRITER" || !permitted || source != i.expected_source_sha256 {
             return Err(PgAdmissionError::Unqualified);
         }
-        let pending:bool=tx.query_one(
-            "SELECT EXISTS(SELECT 1 FROM job_runtime_release_effects r JOIN jobs j ON j.job_id=r.job_id WHERE j.resolution IS NULL OR EXISTS(SELECT 1 FROM attempts a JOIN concurrency_reservations c ON c.attempt_id=a.attempt_id WHERE a.job_id=j.job_id AND c.state IN ('active','held_orphaned')))",&[])?.get(0);
-        if pending {
-            return Err(PgAdmissionError::PendingEffect);
-        }
         if let Some(row)=tx.query_opt(
             "SELECT job_id,operation_digest FROM idempotency_keys WHERE principal=$1 AND client_request_id=$2",
             &[&i.principal,&i.client_request_id])? {
@@ -223,6 +218,14 @@ impl PgAdmissionStore {
             if digest!=i.operation_digest {return Err(PgAdmissionError::IdempotencyConflict);}
             tx.commit().map_err(|_|PgAdmissionError::UnknownCommit)?;
             return Ok(PgAdmissionOutcome::Existing(job_id));
+        }
+        // This predicate fences new writer effects, not read-only replay of a
+        // previously committed identity. Resolving the exact idempotency key
+        // must precede transient pending-Effect and capacity admission gates.
+        let pending:bool=tx.query_one(
+            "SELECT EXISTS(SELECT 1 FROM job_runtime_release_effects r JOIN jobs j ON j.job_id=r.job_id WHERE j.resolution IS NULL OR EXISTS(SELECT 1 FROM attempts a JOIN concurrency_reservations c ON c.attempt_id=a.attempt_id WHERE a.job_id=j.job_id AND c.state IN ('active','held_orphaned')))",&[])?.get(0);
+        if pending {
+            return Err(PgAdmissionError::PendingEffect);
         }
         let workspace_count:i64=tx.query_one(
             "SELECT count(*) FROM concurrency_reservations r JOIN attempts a ON a.attempt_id=r.attempt_id JOIN jobs j ON j.job_id=a.job_id WHERE r.state IN ('active','held_orphaned') AND j.workspace_id=$1",
@@ -693,6 +696,44 @@ CREATE TABLE _stage_control(
         assert_eq!(scratch.count("concurrency_reservations"), 1);
         assert_eq!(scratch.count("idempotency_keys"), 1);
         assert_eq!(scratch.count("job_events"), 3);
+        // A previously committed idempotency key is a read-only observation.
+        // An unrelated unfinished release Effect can forbid *new* PG Jobs,
+        // but cannot erase the answer to the original exact replay.
+        scratch
+            .admin
+            .execute(
+                "INSERT INTO job_runtime_release_effects(job_id) VALUES($1)",
+                &[&a.job_id],
+            )
+            .unwrap();
+        assert_eq!(
+            store.admit(&a).unwrap(),
+            PgAdmissionOutcome::Existing(a.job_id.clone())
+        );
+        let mut conflicting_during_effect = a.clone();
+        conflicting_during_effect.operation_digest = "sha256:other-effect".into();
+        assert!(matches!(
+            store.admit(&conflicting_during_effect),
+            Err(PgAdmissionError::IdempotencyConflict)
+        ));
+        assert!(matches!(
+            store.admit(&payload(
+                "new-during-effect",
+                "job-forbidden",
+                "other-ws",
+                2
+            )),
+            Err(PgAdmissionError::PendingEffect)
+        ));
+        assert_eq!(scratch.count("jobs"), 1);
+        assert_eq!(scratch.count("job_events"), 3);
+        scratch
+            .admin
+            .execute(
+                "DELETE FROM job_runtime_release_effects WHERE job_id=$1",
+                &[&a.job_id],
+            )
+            .unwrap();
         let mut conflict = a.clone();
         conflict.operation_digest = "sha256:different-effect".into();
         assert!(matches!(
