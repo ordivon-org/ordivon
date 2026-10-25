@@ -98,6 +98,49 @@ class DeployTests(unittest.TestCase):
             self.assertEqual(observed["sqliteVersion"], "3.54.0")
             self.assertEqual(observed["versions"], versions)
 
+    def test_loaded_mcp_unit_rejects_stale_systemd_projection(self):
+        import subprocess
+
+        unit = "ordivon-agent-automation-mcp.service"
+        source_unit = b"[Service]\nType=exec\nExecStart=/bin/true\n"
+        path = f"/etc/systemd/system/{unit}"
+        current = f"NeedDaemonReload=no\nType=exec\nFragmentPath={path}\nDropInPaths=\n"
+        cases = [
+            (current, False),
+            (current.replace("NeedDaemonReload=no", "NeedDaemonReload=yes"), True),
+            (current.replace("Type=exec", "Type=simple"), True),
+            (current.replace(path, "/tmp/forged.service"), True),
+            (current.replace("DropInPaths=", "DropInPaths=/etc/systemd/system/extra.conf"), True),
+            (current.replace("NeedDaemonReload=no\n", ""), True),
+            (current + "Type=exec\n", True),
+            ("NeedDaemonReload=no\nType=exec\n", True),
+        ]
+        for observation, should_fail in cases:
+            with self.subTest(observation=observation):
+                process = subprocess.CompletedProcess(
+                    ["/usr/bin/systemctl", "show"], 0, stdout=observation
+                )
+                with patch.object(d.subprocess, "run", return_value=process):
+                    if should_fail:
+                        with self.assertRaises(RuntimeError):
+                            d.check_loaded_unit(unit, source_unit)
+                    else:
+                        result = d.check_loaded_unit(unit, source_unit)
+                        self.assertEqual(result["loadedType"], "exec")
+                        self.assertEqual(result["daemonReloadRequired"], False)
+
+    def test_loaded_mcp_unit_rejects_failed_systemctl_readback(self):
+        import subprocess
+
+        process = subprocess.CompletedProcess(
+            ["/usr/bin/systemctl", "show"], 1, stdout="", stderr="failure"
+        )
+        with patch.object(d.subprocess, "run", return_value=process):
+            with self.assertRaises(subprocess.CalledProcessError):
+                d.check_loaded_unit(
+                    "ordivon-agent-automation-mcp.service", b"[Service]\nType=exec\n"
+                )
+
     def test_private_token_receipt_has_no_secret_derived_digest_and_preserves_existing(self):
         with tempfile.TemporaryDirectory() as td:
             p = Path(td) / "token"
@@ -258,7 +301,6 @@ class DeployTests(unittest.TestCase):
             with patch.object(d, "ROOT", root):
                 self.assertEqual(d.source_revision(), commit)
 
-
     def test_mcp_release_includes_its_canonical_uv_tool_pin(self):
         import agent_automation_release as release
 
@@ -276,9 +318,10 @@ class DeployTests(unittest.TestCase):
             process = subprocess.CompletedProcess(
                 ["/usr/bin/mise", "which", "uv"], 0, stdout=str(selected) + "\n"
             )
-            with patch.object(d, "ROOT", root), patch.object(
-                d.subprocess, "run", return_value=process
-            ) as invoked:
+            with (
+                patch.object(d, "ROOT", root),
+                patch.object(d.subprocess, "run", return_value=process) as invoked,
+            ):
                 self.assertEqual(d.owner_uv_executable(), str(selected))
             self.assertEqual(invoked.call_args.args[0], ["/usr/bin/mise", "which", "uv"])
             self.assertEqual(invoked.call_args.kwargs["cwd"], root)
@@ -286,7 +329,7 @@ class DeployTests(unittest.TestCase):
             self.assertEqual(invoked.call_args.kwargs["env"]["MISE_AUTO_INSTALL"], "false")
             source = (ROOT / "scripts/agent_automation_mcp_deploy.py").read_text()
             self.assertNotIn('"/usr/bin/uv"', source)
-            self.assertIn('uv = owner_uv_executable()', source)
+            self.assertIn("uv = owner_uv_executable()", source)
 
     def test_mcp_owner_uv_fails_without_exact_release_pin_or_executable(self):
         import subprocess
@@ -297,8 +340,9 @@ class DeployTests(unittest.TestCase):
             fake = subprocess.CompletedProcess(
                 ["/usr/bin/mise", "which", "uv"], 0, stdout=str(selected) + "\n"
             )
-            with patch.object(d, "ROOT", root), patch.object(
-                d.subprocess, "run", return_value=fake
+            with (
+                patch.object(d, "ROOT", root),
+                patch.object(d.subprocess, "run", return_value=fake),
             ):
                 with self.assertRaisesRegex(RuntimeError, "owner uv"):
                     d.owner_uv_executable()

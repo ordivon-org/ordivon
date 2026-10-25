@@ -250,6 +250,49 @@ def desired(c: dict) -> tuple[bytes, bytes]:
     return conf, unit
 
 
+def check_loaded_unit(unit_name: str, source_unit: bytes) -> dict:
+    """Reject a stale or overlaid systemd projection of the source-owned unit.
+
+    On-disk equality alone does not establish what systemd has loaded.
+    This does not claim that an already-running process has been restarted.
+    """
+    expected_type = [
+        line.split("=", 1)[1]
+        for line in source_unit.decode("utf-8").splitlines()
+        if line.startswith("Type=")
+    ]
+    if len(expected_type) != 1:
+        raise RuntimeError("MCP source unit requires exactly one service Type")
+    keys = ("NeedDaemonReload", "Type", "FragmentPath", "DropInPaths")
+    observation = subprocess.run(
+        ["/usr/bin/systemctl", "show", unit_name, "--property=" + ",".join(keys), "--no-pager"],
+        capture_output=True,
+        text=True,
+        timeout=10,
+        check=True,
+    )
+    if observation.returncode != 0:
+        raise subprocess.CalledProcessError(
+            observation.returncode, observation.args, observation.stdout, observation.stderr
+        )
+    values: dict[str, str] = {}
+    for row in observation.stdout.splitlines():
+        name, sep, value = row.partition("=")
+        if not sep or name not in keys or name in values:
+            raise RuntimeError("invalid systemd loaded MCP unit observation")
+        values[name] = value
+    expected_path = str(Path("/etc/systemd/system") / unit_name)
+    if (
+        set(values) != set(keys)
+        or values["NeedDaemonReload"] != "no"
+        or values["Type"] != expected_type[0]
+        or values["FragmentPath"] != expected_path
+        or values["DropInPaths"]
+    ):
+        raise RuntimeError("loaded MCP unit differs from source-owned systemd contract")
+    return {"loadedType": values["Type"], "daemonReloadRequired": False}
+
+
 def check() -> dict:
     c = cfg()
     conf, unit = desired(c)
@@ -272,7 +315,9 @@ def check() -> dict:
     )
     if not active or not enabled:
         raise RuntimeError("Agent Automation MCP service is not enabled+active")
+    loaded_unit = check_loaded_unit(c["mcp_unit"], unit)
     return {
+        "loadedUnit": loaded_unit,
         "schemaVersion": 1,
         "kind": "ordivon.agent-automation-mcp-deployment",
         "standing": "current",
