@@ -131,7 +131,9 @@
         "tests/test_postgres_conversation_binding.py",
         "tests/test_conversation_binding_pg_selection.py",
         "tests/test_postgres_wake_turn_map.py::test_pg_native_identity_immutability_rejects_mutation",
-        "tests/test_postgres_conversation_binding.py::test_weak_pg_check_literals_do_not_count_as_integrity_contract"
+        "tests/test_postgres_conversation_binding.py::test_weak_pg_check_literals_do_not_count_as_integrity_contract",
+        "formal/ConversationBindingCutoverR1.tla",
+        "tests/test_pg_binding_cutover_formal_gate.py"
       ],
       "dependencies": [],
       "mustNotOwn": [
@@ -158,7 +160,8 @@
         "H04 PostgreSQL ConversationBinding replacement is independently source-path-bound. One existing Browserless consumer selects the same PG store for exact read and adoption; unsealed legacy sources fail closed at both the consumer and direct PG API. PG SERIALIZABLE + exact post-write receipt and source-retired one-time import have 8 disposable-PostgreSQL physical tests, including replay, concurrency, mutation rollback and legacy-after-PG-growth non-vacuity; 4 no-fallback Browserless CDC tests. This proves neither deployed PG cutover nor Runtime/Harness-wide SQLite retirement.",
         "After PostgreSQL WakeTurn identity admission, the native PostgreSQL owner must reject UPDATE, DELETE and TRUNCATE of the persisted wake identity row, rather than rely only on Agent-side post-write reads. Real PostgreSQL 18 negative controls must show all three illegal mutation/erase attempts fail and the original turn UUIDv7 remains unchanged. Privileged trigger disabling, direct file corruption and DROP TABLE are outside this scoped contract and require owner-role/privilege boundaries; the ProviderClaimR1 abstract TLC result is not a PG implementation refinement proof.",
         "PostgreSQL conversation-binding PG native CHECKs preserve the exact legacy accepted campaignRef (nonempty trimmed text) rather than imposing an unproven SHA-256 prefix on existing valid identity; physical PostgreSQL RED/green import of campaign:historic-role must preserve replay with UUIDv7 session, SHA-256 evidence/binding digests and BIGINT checks intact.",
-        "PostgreSQL 18 ConversationBinding schema admission must bind exact native named primary/unique/createdAtMs/digest/UUIDv7 constraint definitions from pg_constraint; keyword-bearing or same-name weak CHECK expressions cannot stand in for the Owner schema. In disposable real PG18, both anonymous and counterfeit-named weak CHECKs are deliberately rejected. This is a bounded native PG structural contract, not proof of deployed PG configuration, schema owner roles, privilege isolation, historical cutover or external effects."
+        "PostgreSQL 18 ConversationBinding schema admission must bind exact native named primary/unique/createdAtMs/digest/UUIDv7 constraint definitions from pg_constraint; keyword-bearing or same-name weak CHECK expressions cannot stand in for the Owner schema. In disposable real PG18, both anonymous and counterfeit-named weak CHECKs are deliberately rejected. This is a bounded native PG structural contract, not proof of deployed PG configuration, schema owner roles, privilege isolation, historical cutover or external effects.",
+        "H04 Capability LEGO: the existing PG ConversationBinding owner and real Browserless read/write consumers; Method LEGO: finite cutover state-machine + CEGAR counterexamples, using Runtime's public upstream TLA+/TLC tool. Native gate verifies PG import and old writer seal are separate states, never admits PG before sealing, preserves legacy IDs across interrupted migration, and permits replay with PG-only growth. Three deliberately false reachability properties prove that admitted PG, interrupted import, and post-growth replay are reachable. A model PASS alone is not installed-PG or SQL transaction proof."
       ]
     }
   ],

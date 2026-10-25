@@ -127,4 +127,27 @@ fi
     echo "Harness $label counterexample: PASS"
   done
 )
+# Reuse official Runtime-owned TLC for the H04 PostgreSQL conversation-binding
+# source-fencing cutover; this is one bounded mathematical relation, not a
+# second database migration executor or proof of deployed PostgreSQL.
+(
+  cd formal
+  java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tla2sany.SANY ConversationBindingCutoverR1.tla
+  java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config ConversationBindingCutoverR1.cfg ConversationBindingCutoverR1.tla
+  cutover_probe="$(mktemp)"
+  trap 'rm -f "$cutover_probe"' EXIT
+  for spec in "admission:PgAdmissionIsUnreachable" "interrupted:InterruptedImportIsUnreachable" "growth:PostCutoverGrowthReplayIsUnreachable";do
+    IFS=: read -r label predicate <<< "$spec"
+    if java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config "ConversationBindingCutoverR1.$label-probe.cfg" ConversationBindingCutoverR1.tla >"$cutover_probe" 2>&1;then
+      echo "H04 $label counterexample unexpectedly absent" >&2
+      exit 1
+    fi
+    if ! grep -Fq "Error: Invariant $predicate is violated." "$cutover_probe";then
+      cat "$cutover_probe" >&2
+      echo "H04 $label probe lacked exact expected counterexample" >&2
+      exit 1
+    fi
+    echo "H04 $label counterexample: PASS"
+  done
+)
 """

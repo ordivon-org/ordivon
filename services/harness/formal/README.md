@@ -51,3 +51,35 @@ metadata-only recovery fencing and content-authorized replay. The 12-worker
 test's explicit privacy premise is already provided by PR #668, not duplicated
 here. The ephemeral result is symbolic: no machine-checked concrete SQLite
 trace refinement or delivery liveness is claimed.
+
+## H04 Conversation Binding PostgreSQL cutover — bounded CEGAR R1
+
+Model: `ConversationBindingCutoverR1.tla` and the three independent
+negative reachability configs. The existing Runtime-owned, SHA-verified
+official TLA+/TLC checker runs through the Harness native
+`formal:verify` task and therefore the existing queue/verify gates.
+
+Representation / explicit assumptions:
+
+- `legacyRows` is a bounded set of source identities; `pgRows` is a
+  bounded set of PG identities (not actual row bytes or SQL constraints).
+- `QuiesceOldWriter` models an **externally qualified** stop of legacy
+  writers. The model cannot establish Windows/WSL process quiescence.
+- `CommitPgImport` and `SealOldWriter` are **two separate durable
+  authorities** with no imaginary atomic cross-database transaction.
+- `LoseMigrationResponse` makes the PG-committed, source-not-yet-sealed
+  gap reachable; PG binding admission remains forbidden in that state.
+- `ReplaySourceCutover` explicitly permits newer PG-only identities
+  **after** sealed source identities remain a subset of PG records.
+- `AdmitPgBinding` requires committed PG import, sealed legacy writer,
+  and qualified old-writer quiescence; no implicit SQLite fallback.
+
+This is a finite safety abstraction, **not** a refinement proof of
+`postgres_conversation_binding.py`, SQL triggers, loaded source path,
+serializable isolation, external writer-stop checks, or deployment. Real
+PostgreSQL 18 consumers in
+`tests/test_postgres_conversation_binding.py` and Browserless no-fallback
+consumers in `tests/test_conversation_binding_pg_selection.py` remain
+independent mandatory evidence. Under CEGAR, a real counterexample takes
+priority over this abstraction even if TLC reports PASS. No additional
+formal engine, source registry, or migration framework is introduced.
