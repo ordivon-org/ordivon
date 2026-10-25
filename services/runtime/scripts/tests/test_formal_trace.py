@@ -329,6 +329,69 @@ trait Provider {
             f"compiler-elided impl falsely admitted as Owner contract: {errors}",
         )
 
+    def test_unexpanded_macro_rules_cannot_forge_a_proving_test(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "lib.rs").write_text(
+                "#[cfg(test)]\nmod tests;\n", encoding="utf-8"
+            )
+            child = root / "tests.rs"
+            original_root = self.module.ROOT
+            self.module.ROOT = root
+            try:
+                for opening, closing in (("{", "}"), ("(", ")"), ("[", "]")):
+                    with self.subTest(delimiter=opening):
+                        child.write_text(
+                            f"macro_rules! inert {opening}\n"
+                            "    () => {\n"
+                            "        #[test]\n"
+                            "        fn phantom_proof() {}\n"
+                            "    };\n"
+                            f"{closing}\n",
+                            encoding="utf-8",
+                        )
+                        errors = self.module.require_test_symbol(child, "phantom_proof")
+                        self.assertTrue(
+                            any("unexpanded macro_rules!" in error for error in errors),
+                            f"macro tokens incorrectly granted test proof: {errors}",
+                        )
+                child.write_text(
+                    "macro_rules! inert { () => { #[test] fn fake() {} }; }\n"
+                    "#[test]\nfn active_test() {}\n",
+                    encoding="utf-8",
+                )
+                self.assertEqual(
+                    self.module.require_test_symbol(child, "active_test"), []
+                )
+            finally:
+                self.module.ROOT = original_root
+
+    def test_unexpanded_macro_rules_cannot_forge_an_owner_method(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "mod.rs").write_text("mod owner;\n", encoding="utf-8")
+            child = root / "owner.rs"
+            child.write_text(
+                "macro_rules! inert {\n"
+                "    () => {\n"
+                "        impl Registry { fn phantom_owner(&self) {} }\n"
+                "    };\n"
+                "}\n",
+                encoding="utf-8",
+            )
+            original_root = self.module.ROOT
+            self.module.ROOT = root
+            try:
+                errors = self.module.require_owned_method(
+                    child, "impl", "Registry", "phantom_owner"
+                )
+            finally:
+                self.module.ROOT = original_root
+            self.assertTrue(
+                any("unexpanded macro_rules!" in error for error in errors),
+                f"macro tokens incorrectly granted owner proof: {errors}",
+            )
+
     def test_external_cfg_disabled_module_cannot_forge_a_proving_test(self):
         # Real rustc --test compiles zero tests when mod tests; is cfg(any()).
         with tempfile.TemporaryDirectory() as temporary:
