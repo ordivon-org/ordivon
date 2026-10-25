@@ -494,16 +494,30 @@ class DurableSessionAuthority:
         with closing(self._connect()) as db:
             db.execute("BEGIN IMMEDIATE")
             current = db.execute(
-                "SELECT lifecycle FROM sessions WHERE session_id=?", (session_id,)
+                "SELECT * FROM sessions WHERE session_id=?", (session_id,)
             ).fetchone()
             if current is None:
                 db.execute("ROLLBACK")
                 raise SessionConflict("human session disappeared during close")
-            if current[0] != "CLOSED":
-                db.execute(
-                    "UPDATE sessions SET lifecycle='CLOSED',closed_at_ms=? WHERE session_id=?",
-                    (now, session_id),
+            if current["lifecycle"] != "CLOSED":
+                transition = db.execute(
+                    "UPDATE sessions SET lifecycle='CLOSED',closed_at_ms=? "
+                    "WHERE session_id=? AND lifecycle=?",
+                    (now, session_id, current["lifecycle"]),
                 )
+                closed = db.execute(
+                    "SELECT * FROM sessions WHERE session_id=?", (session_id,)
+                ).fetchone()
+                expected = {
+                    **dict(current),
+                    "lifecycle": "CLOSED",
+                    "closed_at_ms": now,
+                }
+                if transition.rowcount != 1 or closed is None or any(
+                    closed[key] != value for key, value in expected.items()
+                ):
+                    db.execute("ROLLBACK")
+                    raise SessionConflict("human session close receipt missing or changed")
             db.execute("COMMIT")
         return self._runtime_projection(self._row_by_session(session_id))
 
