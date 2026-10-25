@@ -14,6 +14,7 @@ uv run python scripts/check_runtime_search_profile.py
 uv lock --check
 uv run python -m compileall -q src tests scripts evals
 uv run --locked ruff check src tests scripts
+mise run formal:verify
 # Provider transports reject ambient non-loopback proxies; hermetic
 # unit/queue tests must not inherit the host network proxy.
 env -u HTTPS_PROXY -u https_proxy -u HTTP_PROXY -u http_proxy \
@@ -45,6 +46,7 @@ uv sync --locked
 uv lock --check
 uv run python -m compileall -q src tests scripts evals
 uv run --locked ruff check src tests scripts
+mise run formal:verify
 # Provider transports reject ambient non-loopback proxies; hermetic
 # unit/queue tests must not inherit the host network proxy.
 env -u HTTPS_PROXY -u https_proxy -u HTTP_PROXY -u http_proxy \
@@ -78,4 +80,47 @@ test -x /usr/bin/rg
 uv sync --locked
 uv run python scripts/check_runtime_search_profile.py
 uv run python -W error::ResourceWarning -m pytest -q -m node_qualification tests
+"""
+
+[tasks."formal:verify"]
+description = "Native bounded Provider Call TLC via upstream digest-verified tool"
+run = """
+set -euo pipefail
+runtime_root="$(realpath ../../services/runtime)"
+cached_jar="$(python3 - "$runtime_root" <<'PY_JAR'
+import json
+from pathlib import Path
+import sys
+root = Path(sys.argv[1])
+lock = json.loads((root / "formal/toolchain.lock.json").read_text())
+print((root / lock["cacheRelativePath"]).resolve())
+PY_JAR
+)"
+if ! printenv ORDIVON_TLA_TOOLS_JAR >/dev/null; then
+  if [[ ! -f "$cached_jar" ]]; then
+    "$runtime_root/scripts/tla-formal" bootstrap
+  fi
+  export ORDIVON_TLA_TOOLS_JAR="$cached_jar"
+fi
+"$runtime_root/scripts/tla-formal" verify
+(
+  cd formal
+  java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tla2sany.SANY ProviderClaimR1.tla
+  java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config ProviderClaimR1.cfg ProviderClaimR1.tla
+  probe_output="$(mktemp)"
+  trap 'rm -f "$probe_output"' EXIT
+  for spec in "ack:UnacknowledgedPhysicalCallIsUnreachable" "expiry:ClaimReplacementIsUnreachable" "delivery:DeliveryIsUnreachable"; do
+    IFS=: read -r label predicate <<< "$spec"
+    if java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config "ProviderClaimR1.$label-probe.cfg" ProviderClaimR1.tla >"$probe_output" 2>&1; then
+      echo "Harness $label counterexample probe unexpectedly passed" >&2
+      exit 1
+    fi
+    if ! grep -Fq "Error: Invariant $predicate is violated." "$probe_output"; then
+      cat "$probe_output" >&2
+      echo "Harness $label probe produced no exact counterexample" >&2
+      exit 1
+    fi
+    echo "Harness $label counterexample: PASS"
+  done
+)
 """
