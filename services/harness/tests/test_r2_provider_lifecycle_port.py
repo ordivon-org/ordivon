@@ -186,6 +186,40 @@ class R2ProviderLifecyclePortTests(unittest.TestCase):
         with self.assertRaisesRegex(ProviderLifecycleError, "sha256:<64 lowercase hex>"):
             ProviderCallLifecycle(DurableBridge(), InvalidIdentityAdapter()).request_digest(request())
 
+    def test_durable_admission_rejects_truthy_or_falsey_non_boolean_receipts(self) -> None:
+        class DurableBridge:
+            durable_provider_calls_enabled = True
+
+            def __init__(self, value):
+                self.value = value
+                self.calls = 0
+
+            def begin_provider_call(self, req, *, provider_request_digest):
+                return None
+
+            def admit_provider_call(self, req, *, control):
+                self.calls += 1
+                return self.value
+
+        control = ExecutionControl(
+            CancellationToken(),
+            RunDeadline.after(1000, monotonic_ms=lambda: 0),
+        )
+        for malformed in ("ALLOW", "DENY", 1, 0, {}, [], None):
+            with self.subTest(malformed=malformed):
+                bridge = DurableBridge(malformed)
+                lifecycle = ProviderCallLifecycle(bridge, IdentityAdapter())
+                with self.assertRaisesRegex(
+                    ProviderLifecycleError, "exact boolean"
+                ):
+                    lifecycle.admit(request(), control=control)
+                self.assertEqual(bridge.calls, 1)
+
+        for admitted in (True, False):
+            with self.subTest(admitted=admitted):
+                lifecycle = ProviderCallLifecycle(DurableBridge(admitted), IdentityAdapter())
+                self.assertIs(lifecycle.admit(request(), control=control), admitted)
+
     def test_durable_port_requires_dispatch_admission(self) -> None:
         class BeginOnlyBridge:
             durable_provider_calls_enabled = True
