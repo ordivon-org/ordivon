@@ -155,6 +155,40 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         self.assertNotEqual(duplicate.returncode, 0, duplicate.stdout + duplicate.stderr)
         self.assertIn("Dependabot uv duplicates Renovate pep621 ownership", duplicate.stderr)
 
+    def test_native_git_path_inventory_keeps_newlines_and_non_utf8_bytes(self) -> None:
+        """Git file identity is NUL-delimited bytes, not display lines."""
+        import importlib.util
+        import os
+        from unittest import mock
+
+        sys.path.insert(0, str(SCRIPT.parent))
+        spec = importlib.util.spec_from_file_location("governance_git_bytes_test", SCRIPT)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        governance = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(governance)
+
+        with tempfile.TemporaryDirectory() as folder:
+            repo = Path(folder)
+            subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+            unusual = ["apps/newline\nin-path/Cargo.lock"]
+            if os.name != "nt":
+                unusual.append(os.fsdecode(b"apps/nonutf8-\xff/Cargo.lock"))
+            for name in unusual:
+                path = repo / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("lock", encoding="utf-8")
+            subprocess.run(["git", "-C", str(repo), "add", "--all"], check=True)
+            with mock.patch.object(governance, "ROOT", repo):
+                self.assertEqual(
+                    set(governance.tracked("**/Cargo.lock")),
+                    set(unusual),
+                )
+                self.assertEqual(
+                    governance.dirs_for_lock("**/Cargo.lock", "Cargo.lock"),
+                    {"/" + str(Path(path).parent) for path in unusual},
+                )
+
     def test_local_composite_action_cannot_escape_sha_pin_authority(self) -> None:
         """Reproduce the historic local-only composite Action nested-uses bypass."""
         import importlib.util
