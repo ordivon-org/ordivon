@@ -245,3 +245,16 @@ acceptance rather than replacing them with synthetic model claims.
 **Actual counterexample / negative controls**: Existing Runtime `scripts/tla-formal falsify` also runs a standalone false reachability probe `ForeignResultIsUnreachable` and demands a concrete `foreign` result. Then it intentionally weakens the recovery step in a temporary source copy; TLC must report a named `ForeignResultDoesNotDisableMatchingRecovery` violation with a foreign-result witness. Parser errors or merely nonzero exit do not count. The ordinary three-Attempt TLC model checks the normal safety/progress obligations on its complete finite state space, not just the selected probe state. `verify_formal_trace.py` now requires this new TLC invariant and exact source SHA-256s; source digest refresh alone cannot remove the actual checked invariant.
 
 **Proof boundary**: `ENABLED` proves a legal abstract choice, not fairness, that the environment will eventually deliver valid evidence, or a concrete SQLite/Rust recovery implementation. The existing native Rust `terminal_evidence_requires_result_finish_matching_resolution_and_no_current_attempt` tests the narrower terminal evidence predicate; it is **not** a mechanized refinement proof for `CorrectForeignResultEvidence`. Correctness of consumer-visible recovery remains UNKNOWN pending an exact Rust transition/consumer bridge. Reuse TLA+/TLC rather than adding a new registry, custom solver or speculative Skill. The mature alternative [Apalache](https://github.com/apalache-mc/apalache) uses SMT/Z3/CVC5; no reason to install it for this small bounded model unless a concrete performance/proof limitation arises.
+
+## PostgreSQL R06 installed-writer overlap (CEGAR refinement)
+
+The one-owner enum alone makes dual-writer overlap unrepresentable, even if
+two physical processes exist. RuntimePgCutoverR1 now tracks independent
+SQLite and PostgreSQL writer-activity bits and checks
+NoConcurrentInstalledWriters. Its third ephemeral mutation starts PostgreSQL
+while incorrectly leaving SQLite active and requires the exact named TLC
+state trace. This models two independent writer authorities, but it does
+not attest actual systemd processes, immutable SQLite snapshot bytes,
+PostgreSQL connection identity, application commit parity, or Rust refinement.
+Cutover remains PROPOSED until real native process/source witnesses bind
+these model variables to physical behavior.

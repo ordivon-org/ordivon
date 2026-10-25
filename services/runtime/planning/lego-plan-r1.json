@@ -1076,16 +1076,18 @@
       ],
       "acceptance": [
         "Bounded cutover model RuntimePgCutoverR1 passes TLC on the currently locked upstream toolchain, checking owner typing, certified promotion, committed PostgreSQL effect preservation and frozen-source parity.",
-        "Two independent bad transitions, one promoting PG before parity certification and one rolling back after an independent PG commit, each yield the exact named TLC invariant violation, exit 12 and nonempty counterexample trace. Tool errors or merely printed labels are not evidence.",
+        "Three independent bad transitions: uncertified PG promotion, rollback after a committed PG effect, and PG admission while a separate installed SQLite writer remains active. Each must yield its OWN named TLC invariant violation, exit 12 and nonempty counterexample trace; failures/tool errors without an actual trace are not evidence.",
         "Physical cutover requires source-bound consistency snapshot and revision parity, no overlapping SQLite/PG write authority, a PG-exclusive installed Runtime writer, exact replay/recovery/backup/rollback contracts and active Job/Attempt/Workspace native consumer tests. The bounded TLA+ model never proves these Rust+database obligations.",
-        "PostgreSQL is the target default durable authority. The active 5 GiB SQLite source remains authoritative until a verified PG implementation and readback exists; no blind SQLite rm/mv, pgloader-as-proof, or two-authority mode is admitted."
+        "PostgreSQL is the target default durable authority. The active 5 GiB SQLite source remains authoritative until a verified PG implementation and readback exists; no blind SQLite rm/mv, pgloader-as-proof, or two-authority mode is admitted.",
+        "The single enum owner does not prove no concurrent physical writers. RuntimePgCutoverR1 must represent sqliteWriterActive and pgWriterActive independently and check NoConcurrentInstalledWriters; concrete process/connection authority binding remains separately UNKNOWN until witnessed by Runtime native tests."
       ],
       "evidence": [
         "Runtime R06 existing natural Owner Registry and its native transactional and recovery consumers.",
         "services/runtime/formal/RuntimePgCutoverR1.tla",
         "services/runtime/formal/RuntimePgCutoverR1.cfg",
         "services/runtime/scripts/tla-formal check/falsify existing digest-bound TLC execution.",
-        "2026-10-26 00:30+08 observed /var/lib/ordivon/registry/registry.sqlite3 approximately 5.0 GiB and actively modified; Host already uses PostgreSQL, Harness separate legacy SQLite consumers."
+        "2026-10-26 00:30+08 observed /var/lib/ordivon/registry/registry.sqlite3 approximately 5.0 GiB and actively modified; Host already uses PostgreSQL, Harness separate legacy SQLite consumers.",
+        "services/runtime/scripts/tla-formal falsify: named NoConcurrentInstalledWriters counterexample for a second physical writer admitted despite valid parity."
       ],
       "blockers": [
         "Installed Runtime PostgreSQL store implementation and exact SQL Schema/CAS transaction mapping not yet implemented or qualified.",
