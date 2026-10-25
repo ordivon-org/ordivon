@@ -82,6 +82,17 @@ def test_archive_reduces_actionable_projection_without_mutating_raw_ledger(tmp_p
     assert db.read_bytes() == before
 
 
+
+@pytest.mark.parametrize("basename", ["effect?ledger.sqlite", "effect#ledger.sqlite", "effect%23ledger.sqlite"])
+def test_archive_uses_exact_physical_sqlite_filename(tmp_path: Path, basename: str) -> None:
+    ledger = tmp_path / basename
+    archive = tmp_path / "archive.json"
+    effect = "sha256:" + "f" * 64
+    create_ledger(ledger, [(effect, "unknown")])
+    write_archive(ledger, archive, [observed(effect)], archived_at_ms=300)
+    assert project_archive(ledger, archive)["activeArchivedUnresolved"] == 1
+    assert project_archive(ledger, archive)["actionableUnresolved"] == 0
+
 def test_standing_change_invalidates_archive_and_restores_actionable_backlog(
     tmp_path: Path,
 ) -> None:

@@ -9,10 +9,10 @@ from tools.repo.check_sql_dialects import (
     OSQUERY_TIMEOUT_SECONDS,
     classify,
     tracked_sql,
-    core_sqlite_direct_calls,
-    core_sqlite_debt_issues,
-    tracked_core_sqlite_calls,
-    CORE_SQLITE_LEGACY_CALLS,
+    sqlite_direct_calls,
+    sqlite_debt_issues,
+    tracked_owner_sqlite_calls,
+    SQLITE_LEGACY_SOURCE_CALLS,
     ROOT,
     host_postgres_only_sources,
 )
@@ -20,53 +20,83 @@ from tools.repo.check_sql_dialects import (
 
 class SQLDialectBoundaryTests(unittest.TestCase):
     def test_pg_preferred_sourcecut_matches_existing_core_sqlite_debt(self):
-        current = tracked_core_sqlite_calls(ROOT)
-        self.assertEqual(current, CORE_SQLITE_LEGACY_CALLS)
-        self.assertFalse(core_sqlite_debt_issues(current))
+        current = tracked_owner_sqlite_calls(ROOT)
+        self.assertEqual(current, SQLITE_LEGACY_SOURCE_CALLS)
+        self.assertFalse(sqlite_debt_issues(current))
         self.assertGreater(len(current), 10)
 
+    def test_legacy_debt_includes_unfenced_domain_gateway_and_workstation_owners(self):
+        current = tracked_owner_sqlite_calls(ROOT)
+        # Each is a real tracked and currently differently qualified consumer.
+        for name in (
+            "services/gateway/src/ordivon_gateway/external_worker.py",
+            "domains/capital/src/ordivon_capital/accounting/sqlite_ledger.py",
+            "capabilities/media/src/ordivon_studio/research_validity.py",
+            "platform/workstation/scripts/host_historical_projection.py",
+            "platform/workstation/scripts/host_retirement_snapshot.py",
+            "meta/next/experiments/browser-security-r4/cf07_metadata_snapshot.py",
+            "meta/next/experiments/chaoxing-autosign-mvp/chaoxing_mvp/ledger.py",
+        ):
+            with self.subTest(path=name):
+                self.assertIn(name, current)
+
+    def test_new_sqlite_owner_outside_old_runtime_harness_scope_fails_closed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            extra = root / "services/gateway/src/ordivon_gateway/unaudited.py"
+            extra.parent.mkdir(parents=True)
+            extra.write_text(
+                "import sqlite3\nconn = sqlite3.connect('unreviewed.db')\n",
+                encoding="utf-8",
+            )
+            subprocess.run(["git", "init", "-q", str(root)], check=True)
+            subprocess.run(["git", "-C", str(root), "add", "."], check=True)
+            observed = tracked_owner_sqlite_calls(root)
+            self.assertEqual(observed, {"services/gateway/src/ordivon_gateway/unaudited.py": 1})
+            self.assertTrue(sqlite_debt_issues(observed, {}))
+
     def test_new_core_sqlite_authority_requires_explicit_consumer_qualification(self):
-        current = dict(CORE_SQLITE_LEGACY_CALLS)
+        current = dict(SQLITE_LEGACY_SOURCE_CALLS)
         current["services/harness/src/unreviewed_sqlite_authority.py"] = 1
-        issues = core_sqlite_debt_issues(current)
+        issues = sqlite_debt_issues(current)
         self.assertEqual(len(issues), 1)
         self.assertIn("unreviewed_sqlite_authority", issues[0])
 
     def test_existing_sqlite_authority_growth_cannot_hide_in_old_file(self):
-        current = dict(CORE_SQLITE_LEGACY_CALLS)
+        current = dict(SQLITE_LEGACY_SOURCE_CALLS)
         name = next(iter(current))
         current[name] += 1
-        self.assertEqual(len(core_sqlite_debt_issues(current)), 1)
+        self.assertEqual(len(sqlite_debt_issues(current)), 1)
 
     def test_backend_retirement_requires_explicit_sourcebound_debt_update(self):
-        current = dict(CORE_SQLITE_LEGACY_CALLS)
+        current = dict(SQLITE_LEGACY_SOURCE_CALLS)
         current.pop(next(iter(current)))
-        self.assertEqual(len(core_sqlite_debt_issues(current)), 1)
+        self.assertEqual(len(sqlite_debt_issues(current)), 1)
 
     def test_core_sqlite_writer_detection_does_not_classify_pg(self):
         self.assertEqual(
-            core_sqlite_direct_calls("services/harness/store.py", "sqlite3.connect(path)"),
+            sqlite_direct_calls("services/harness/store.py", "sqlite3.connect(path)"),
             1,
         )
         self.assertEqual(
-            core_sqlite_direct_calls("services/runtime/storage.rs", "rusqlite::Connection"),
+            sqlite_direct_calls("services/runtime/storage.rs", "rusqlite::Connection"),
             1,
         )
         self.assertEqual(
-            core_sqlite_direct_calls("services/harness/pg.py", "psycopg.connect(dsn)"),
+            sqlite_direct_calls("services/harness/pg.py", "psycopg.connect(dsn)"),
             0,
         )
 
     def test_py_sqlite_alias_and_direct_import_cannot_bypass_source_fence(self):
         self.assertEqual(
-            core_sqlite_direct_calls(
+            sqlite_direct_calls(
                 "services/runtime/alias.py",
                 "import sqlite3 as sql\nsql.connect('/tmp/ledger.db')\n",
             ),
             1,
         )
         self.assertEqual(
-            core_sqlite_direct_calls(
+            sqlite_direct_calls(
                 "services/harness/alias.py",
                 "from sqlite3 import connect as open_db\nopen_db('ledger.db')\n",
             ),
@@ -75,7 +105,7 @@ class SQLDialectBoundaryTests(unittest.TestCase):
 
     def test_python_sqlite_comments_do_not_create_false_backend_calls(self):
         self.assertEqual(
-            core_sqlite_direct_calls(
+            sqlite_direct_calls(
                 "services/harness/no_db.py",
                 "# sqlite3.connect('/ignored')\nimport psycopg\npsycopg.connect(dsn)\n",
             ),
@@ -96,7 +126,7 @@ class SQLDialectBoundaryTests(unittest.TestCase):
             target.unlink()
             target.symlink_to(outside)
             with self.assertRaisesRegex(ValueError, "symlink"):
-                tracked_core_sqlite_calls(repo)
+                tracked_owner_sqlite_calls(repo)
 
     def test_known_sql_are_classified(self):
         self.assertEqual(classify("services/runtime/crates/ordivon-runtime-core/migrations/runtime/0001_runtime.sql"), "sqlite")
