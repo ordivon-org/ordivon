@@ -50,10 +50,17 @@ elastic_code=$(probe https://docker.elastic.co/v2/ '200|401')
 remaining=$((readiness_deadline - SECONDS))
 ((remaining > 0)) || { echo 'Supply-Chain readiness total deadline expired' >&2; exit 1; }
 max_time=$((remaining < 8 ? remaining : 8))
-# Negative policy proof checks transport reachability: HTTP 401/403 from a
-# reachable origin is not a network deny. Do not apply curl --fail (-f).
-if curl -q -4 --noproxy "" -x "$proxy" -I -sS --connect-timeout 4 --max-time "$max_time" https://example.com/ >/dev/null 2>&1; then
-  echo 'ERROR: unknown destination escaped Supply-Chain allowlist' >&2
+# A failed curl transport is not proof that the Network allowlist rejected
+# this destination. Demand the HTTP proxy's explicit CONNECT=403 policy denial;
+# CONNECT=000 (DNS/TLS/proxy outage), 407 (proxy auth), and CONNECT=200
+# (origin reachable, even with an application 403) are all insufficient.
+# Do not apply curl --fail: the denial must be parsed from the same attempt.
+deny_receipt=$(curl -q -4 --noproxy "" -x "$proxy" -I -sS \
+  --connect-timeout 4 --max-time "$max_time" -o /dev/null \
+  -w '%{http_code} %{http_connect}' https://example.com/ 2>/dev/null) || deny_receipt="${deny_receipt:-}"
+read -r deny_code deny_connect deny_extra <<< "$deny_receipt"
+if [[ "$deny_connect" != 403 || -n "$deny_extra" ]]; then
+  echo "ERROR: unknown Supply-Chain destination lacks explicit CONNECT denial (http=${deny_code:-000} CONNECT=${deny_connect:-000})" >&2
   exit 41
 fi
 ((SECONDS < readiness_deadline)) || { echo 'Supply-Chain readiness total deadline expired' >&2; exit 1; }
