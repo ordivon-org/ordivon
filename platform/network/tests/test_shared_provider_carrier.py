@@ -89,6 +89,61 @@ def test_provider_switch_uses_wg_quick_compatible_temp_profile_and_restores_targ
     assert 'test "$before_inode" = "$after_inode"' in switch
     assert 'standing:"RECOVERED_SESSION"' in switch
 
+def test_legacy_provider_switch_rejects_m4_before_any_mutation(tmp_path: Path) -> None:
+    """M4-selected state must make old WireGuard control unreachable."""
+    import os
+    import subprocess
+
+    source = (BROWSERLESS / "provider-switch.sh").read_text()
+    mode = tmp_path / "m4-owned-mode.selected"
+    mode.touch()
+    state = tmp_path / "retired-provider-state"
+    script = source.replace(
+        "/etc/network-v2/gluetun/m4-owned-mode.selected", str(mode)
+    ).replace(
+        "/var/lib/network-v2/browserless-provider-switch", str(state)
+    )
+    assert str(mode) in script, "old provider switch has no M4 ownership fence"
+    candidate = tmp_path / "provider-switch.sh"
+    candidate.write_text(script)
+    stub_bin = tmp_path / "bin"
+    stub_bin.mkdir()
+    calls = tmp_path / "foreign-legacy-effects.txt"
+    for executable in ("systemctl", "ip", "install", "wg-quick"):
+        stub = stub_bin / executable
+        stub.write_text(
+            "#!/usr/bin/env bash\n"
+            "printf '%s\\n' \"$0 $*\" >> \"$LEGACY_EFFECT_LOG\"\n"
+            "exit 0\n"
+        )
+        stub.chmod(0o755)
+    result = subprocess.run(
+        ["/usr/bin/bash", str(candidate), "th-bkk"],
+        env={
+            **os.environ,
+            "PATH": f"{stub_bin}:{os.environ.get('PATH', '')}",
+            "LEGACY_EFFECT_LOG": str(calls),
+        },
+        capture_output=True,
+        text=True,
+        timeout=5,
+    )
+    assert result.returncode != 0, result.stdout
+    assert "M4" in result.stderr
+    assert not calls.exists(), "legacy provider operation escaped to the host"
+    assert not state.exists(), "legacy switch created state before checking M4"
+
+
+def test_legacy_carrier_materialization_rejects_m4_before_file_writes() -> None:
+    """The root Taskfile must reject old Carrier materialization in M4 mode."""
+    taskfile = (ROOT / "Taskfile.yml").read_text()
+    materialize = taskfile.split(
+        "  consumer:browserless:provider-carrier:materialize:", 1
+    )[1].split("\n  consumer:", 1)[0]
+    guard = "test ! -e /etc/network-v2/gluetun/m4-owned-mode.selected"
+    assert materialize.index(guard) < materialize.index("install -d")
+
+
 def test_production_path_uses_application_consequence_not_30s_handshake_age():
     script = (BROWSERLESS / "acceptance" / "production-path.sh").read_text()
     assert 'test "$handshake_age" -le 30' not in script
