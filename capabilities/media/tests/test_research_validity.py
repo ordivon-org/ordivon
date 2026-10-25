@@ -50,6 +50,38 @@ class ResearchValidityTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "PostgreSQL DSN"):
                 TrialLedger(Path(temporary) / "legacy.sqlite", search_id="experiment:refuse")
 
+    def test_failed_sqlite_migration_closes_source_handle(self) -> None:
+        """An incomplete PG cutover may not leak a read-only SQLite handle."""
+        from unittest.mock import patch
+
+        migrate = runpy.run_path(
+            str(Path(__file__).resolve().parents[1] / "scripts" / "migrate-r6-trials.py")
+        )["migrate"]
+        with tempfile.TemporaryDirectory() as temporary:
+            db = Path(temporary) / "empty.sqlite"
+            with sqlite3.connect(db) as source:
+                source.execute(
+                    "CREATE TABLE trial_events("
+                    "seq INTEGER PRIMARY KEY, event_id TEXT, search_id TEXT,"
+                    "attempt_id TEXT, candidate_id TEXT, event_type TEXT,"
+                    "payload_json TEXT, prev_hash TEXT, event_hash TEXT)"
+                )
+            real_connect = sqlite3.connect
+            closed: list[bool] = []
+
+            class Tracked(sqlite3.Connection):
+                def close(self) -> None:
+                    closed.append(True)
+                    super().close()
+
+            def track_connect(*args, **kwargs):
+                return real_connect(*args, factory=Tracked, **kwargs)
+
+            with patch("sqlite3.connect", side_effect=track_connect):
+                with self.assertRaisesRegex(ValueError, "legacy SQLite ledger is empty"):
+                    migrate(db, "postgresql://unneeded.test/no-write")
+            self.assertEqual(closed, [True])
+
     @unittest.skipUnless(PG_DSN, "real PostgreSQL test DSN is required")
     def test_trial_ledger_is_hash_chained_and_append_only(self) -> None:
         search_id = f"experiment:test:{uuid4().hex}"

@@ -11,6 +11,7 @@ import argparse
 import json
 import os
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 from urllib.parse import quote
 
@@ -22,7 +23,7 @@ def migrate(source: Path, dsn: str) -> dict[str, object]:
     if not source.is_file() or source.is_symlink():
         raise ValueError("legacy SQLite source must be an existing regular file")
     url = "file:" + quote(str(source.resolve()), safe="/") + "?mode=ro"
-    with sqlite3.connect(url, uri=True) as old:
+    with closing(sqlite3.connect(url, uri=True)) as old:
         old.execute("PRAGMA query_only=ON")
         old.execute("BEGIN")
         if old.execute("PRAGMA quick_check").fetchone()[0] != "ok":
