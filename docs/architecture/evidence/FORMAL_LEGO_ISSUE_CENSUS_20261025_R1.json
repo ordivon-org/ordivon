@@ -35,6 +35,11 @@
       "ownerPlan": "tools/repo/planning/lego-plan-r1.json",
       "slice": "RG2",
       "scope": "Exact source-bound manifest-to-updater natural owner relation; negative CDC rejects zero or duplicate npm/Cargo coverage, without asserting latest stable compatibility."
+    },
+    {
+      "ownerPlan": "services/runtime/planning/lego-plan-r1.json",
+      "slice": "RW1",
+      "scope": "Existing COMPLETE R02 Workspace-state owner and guarded close; external unreferenced-commit consumer preservation remains explicitly unproved."
     }
   ],
   "issues": [
@@ -114,16 +119,17 @@
       "id": "RT-WS-20261025",
       "problemClass": "WORKSPACE_LIFECYCLE",
       "naturalOwner": "services/runtime",
-      "standing": "OBSERVED_CAPACITY_AND_RETENTION",
+      "standing": "RW1_NATIVE_WORKSPACE_GUARDS_REGISTERED_EXTERNAL_CONSUMER_RETENTION_UNKNOWN",
       "observation": "A stable Runtime workspace-list pagination yielded 63 existing Linux workspaces, 33 dirty in the older page and 30 on the newer page (some dirty), before this audit opened its own Workspace. The core Git repository's then-worktree list held 62 entries. Counts are different object universes, not contradictory measurements.",
       "evidence": "Linux Runtime workspace.list paged at 2026-10-25 07:49+08; git worktree list in job-01a17052-335d-76d2-a79a-de95bda6dbbf; fresh own workspace ws-gpt6-20261025-0748-env-formal-census-r1.",
       "consumers": "Runtime Workspace and Job retention; Git branch carrier; disk reclaim",
       "formalObligation": "Close(w) is admissible only if no active/held Job, exact source state digest still matches and no unpreserved unique dirty/unmerged consumer effect is lost. Clean(w) alone is insufficient to prove semantic dispensability.",
       "registration": {
-        "state": "UNREGISTERED",
-        "reason": "Runtime RW0 is IN_PROGRESS, not a qualified owner-local verified registration slice; no valid current Workspace lifecycle cleanup slice was demonstrated. Retain explicit gap until Runtime Owner promotes an appropriate native slice and tests."
+        "state": "LINKED",
+        "ownerPlan": "services/runtime/planning/lego-plan-r1.json",
+        "slice": "RW1"
       },
-      "decision": "Prioritize no-consumer clean closures only after exact postcondition and recovery witness; do not force-close dirty carriers.",
+      "decision": "Reuse Runtime RW1/R02 for exact native lifecycle guards; apply independent Git consumer/ref-preservation qualification before cleaning unique heads. Close clean Workspaces under digest CAS only, never infer losslessness from clean alone.",
       "representation": {
         "primary": "state-machine",
         "supporting": [
@@ -131,6 +137,17 @@
         ],
         "requiredWitness": "Compare active Jobs, clean/dirty projection, current head's reachability from retained refs, untracked bytes and owner acceptance before closure.",
         "selectionReason": "Choose the narrowest existing owner-local representation and a current exact consumer witness; do not infer behavioral semantics from source equality or an old PASS."
+      },
+      "requalification": {
+        "observedAt": "2026-10-25T23:57:00+08:00",
+        "sourceCut": "a71cdfb870b560807c1a5a3c84041b4c17bf29c5",
+        "interpretation": "The historical claim of no qualified Runtime owner-local lifecycle slice is stale for the native Workspace state transition boundary: existing Runtime RW1 is COMPLETE and includes R02 workspace_state.rs; active/held Jobs and Git-authority-dependent children block close, and exact sourceStateDigest CAS is a Runtime close prerequisite. This does NOT itself prove an unreferenced clean Git commit has no external consumer.",
+        "nativeConsumers": [
+          "services/runtime/crates/ordivon-runtime-core/src/runtime/workspace_state.rs::ensure_workspace_close_allowed",
+          "services/runtime/crates/ordivon-runtime-core/src/runtime/tests.rs::workspace_close_preserves_git_authority_owned_by_an_open_child",
+          "tools/repo/test_architecture_docs.py::test_workspace_lifecycle_issue_binds_existing_runtime_state_lego"
+        ],
+        "residualUnknown": "Automatic consumer closure for unreferenced unique Git commits and semantic effects outside the Runtime source-state/active-Job/child-Git-authority fence remains UNKNOWN. No dirty forced deletion."
       }
     },
     {
