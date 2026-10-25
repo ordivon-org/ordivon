@@ -38,10 +38,24 @@ def _install_receipt_erasing_trigger(path: Path, operation: str) -> None:
         )
 
 
+def _require_equal(observed: object, expected: object) -> None:
+    """Never erase the durable-state oracle under Python -O."""
+    if observed != expected:
+        raise AssertionError(f"expected {expected!r}, observed {observed!r}")
+
+
+@pytest.mark.parametrize("observed,expected", [(1, 0), (0, 1)])
+def test_sqlite_postcondition_oracle_survives_optimized_python(
+    observed: int, expected: int
+) -> None:
+    with pytest.raises(AssertionError, match="expected"):
+        _require_equal(observed, expected)
+
+
 def _assert_no_effect_committed(path: Path, expected_rows: int) -> None:
     with sqlite3.connect(path) as db:
-        assert db.execute("SELECT count(*) FROM adversarial_commit_witness").fetchone()[0] == 0
-        assert db.execute("SELECT count(*) FROM requests").fetchone()[0] == expected_rows
+        _require_equal(db.execute("SELECT count(*) FROM adversarial_commit_witness").fetchone()[0], 0)
+        _require_equal(db.execute("SELECT count(*) FROM requests").fetchone()[0], expected_rows)
 
 
 def test_durable_intent_never_commits_without_post_insert_receipt(tmp_path: Path) -> None:
@@ -71,7 +85,7 @@ def test_durable_transition_never_commits_without_readback(tmp_path: Path, trans
             store._claim_effect_attempt(request, now_ms=2)
     _assert_no_effect_committed(db_path, 1)
     with sqlite3.connect(db_path) as db:
-        assert db.execute("SELECT standing FROM requests").fetchone()[0] == MaterializationStanding.PREPARED.value
+        _require_equal(db.execute("SELECT standing FROM requests").fetchone()[0], MaterializationStanding.PREPARED.value)
 
 
 def test_human_resume_claim_cannot_commit_without_receipt(tmp_path: Path) -> None:
@@ -89,7 +103,7 @@ def test_human_resume_claim_cannot_commit_without_receipt(tmp_path: Path) -> Non
         store._claim_human_resume(request, now_ms=3)
     _assert_no_effect_committed(db_path, 1)
     with sqlite3.connect(db_path) as db:
-        assert db.execute("SELECT standing FROM requests").fetchone()[0] == MaterializationStanding.HUMAN_REQUIRED.value
+        _require_equal(db.execute("SELECT standing FROM requests").fetchone()[0], MaterializationStanding.HUMAN_REQUIRED.value)
 
 
 def test_post_update_invalid_receipt_cannot_be_committed(tmp_path: Path) -> None:
@@ -111,4 +125,4 @@ def test_post_update_invalid_receipt_cannot_be_committed(tmp_path: Path) -> None
         store._claim_effect_attempt(request, now_ms=2)
     _assert_no_effect_committed(db_path, 1)
     with sqlite3.connect(db_path) as db:
-        assert db.execute("SELECT standing FROM requests").fetchone()[0] == MaterializationStanding.PREPARED.value
+        _require_equal(db.execute("SELECT standing FROM requests").fetchone()[0], MaterializationStanding.PREPARED.value)
