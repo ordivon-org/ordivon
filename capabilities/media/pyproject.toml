@@ -5,6 +5,7 @@ description = "Asset, timed-text, timeline, and media inspection tools for Ordiv
 requires-python = "==3.15.1"
 dependencies = [
   "jsonschema==4.26.0",
+  "psycopg[binary]>=3,<4",
 ]
 
 [project.optional-dependencies]

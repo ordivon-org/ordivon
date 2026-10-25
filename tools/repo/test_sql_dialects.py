@@ -34,7 +34,7 @@ class SQLDialectBoundaryTests(unittest.TestCase):
             "services/gateway/src/ordivon_gateway/external_worker.py",
             "domains/capital/src/ordivon_capital/accounting/sqlite_ledger.py",
             "domains/capital/src/ordivon_capital/accounting/postgres_ledger.py",
-            "capabilities/media/src/ordivon_studio/research_validity.py",
+            "capabilities/media/scripts/migrate-r6-trials.py",
             "platform/workstation/scripts/host_historical_projection.py",
             "platform/workstation/scripts/host_retirement_snapshot.py",
             "meta/next/experiments/browser-security-r4/cf07_metadata_snapshot.py",
@@ -78,6 +78,15 @@ class SQLDialectBoundaryTests(unittest.TestCase):
             tracked_unsafe_sqlite_file_uris(ROOT, tracked_owner_sqlite_calls(ROOT)),
             [],
         )
+
+    def test_pg_media_retires_ledger_sqlite_but_keeps_verified_importer(self):
+        observed = tracked_owner_sqlite_calls(ROOT)
+        retired = "capabilities/media/src/ordivon_studio/research_validity.py"
+        importer = "capabilities/media/scripts/migrate-r6-trials.py"
+        self.assertNotIn(retired, observed)
+        self.assertNotIn(retired, SQLITE_LEGACY_SOURCE_CALLS)
+        self.assertEqual(observed.get(importer), 1)
+        self.assertEqual(SQLITE_LEGACY_SOURCE_CALLS[importer], 1)
 
     def test_new_sqlite_owner_outside_old_runtime_harness_scope_fails_closed(self):
         with tempfile.TemporaryDirectory() as directory:

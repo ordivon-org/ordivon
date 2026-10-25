@@ -16,3 +16,10 @@ pnpm check
 python -m unittest discover -s media-v2/tests -p 'test_media_v2_owner_tool_resolution.py'
 git ls-files -z -- '*.sh' | xargs -0 -r shellcheck
 """
+
+[tasks."pg:verify"]
+run = """
+set -euo pipefail
+test -n "${ORDIVON_MEDIA_TRIAL_TEST_DSN:-}" || { echo 'PG test DSN required; skipped tests do not qualify' >&2; exit 2; }
+.venv/bin/python -m unittest discover -s tests -p 'test_research_validity.py' -v
+"""
