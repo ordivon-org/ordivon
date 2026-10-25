@@ -258,3 +258,28 @@ not attest actual systemd processes, immutable SQLite snapshot bytes,
 PostgreSQL connection identity, application commit parity, or Rust refinement.
 Cutover remains PROPOSED until real native process/source witnesses bind
 these model variables to physical behavior.
+
+
+## WorkspaceContinuationR1 (2026-10-26)
+
+This separate small bounded TLC model captures the **actual observed**
+cross-command race: a first Runtime Job reaches terminal status, an Agent
+intends to submit a subsequent Job, and a cleaner mistakes idle for released.
+`Close` is permitted only when no Job is running and either (1) the consumer
+asserted release or (2) the bounded hold expired. It preserves two safety
+obligations: no close while a running Job remains, and no close of an
+unreleased fresh Workspace. A deliberately unsafe idle-only close transition
+must produce a named `NoUnreleasedFreshClose` counterexample.
+
+The owner Rust test
+`workspace_continuation_requires_explicit_release_inside_retention_window`
+provides one concrete counterpart to the abstract trace. Mapping
+`age = fresh` to `now < createdUnixMs + 24h`, and `released` to
+`WorkspaceCloseRequest.consumerReleased`, is scoped evidence only,
+**not a mechanized Rust-to-TLA simulation**. The release declaration does
+not authenticate the consumer, prove absence of persistent systemd/Research
+consumers, or guarantee that future Jobs will not be requested. Expiry is a
+bounded operational policy, not a safety theorem about external tasks.
+Existing source-state CAS, dirty guards, Git dependencies, external effect
+recovery, and cross-node lifetime assumptions are outside this small model.
+These bridge and authority obligations remain UNKNOWN.

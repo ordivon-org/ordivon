@@ -76,6 +76,63 @@ check_runtime_pg_cutover() {
       -config RuntimePgCutoverR1.cfg RuntimePgCutoverR1.tla)
 }
 
+# Workspace first Job completion is not task/consumer completion. The
+# existing Runtime Rust implementation has a bounded 24h continuation gate.
+check_workspace_continuation() {
+  verify_jar
+  java -XX:+UseParallelGC -cp "$JAR" tla2sany.SANY "$ROOT/formal/WorkspaceContinuationR1.tla"
+  (cd "$ROOT/formal"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+      -config WorkspaceContinuationR1.cfg WorkspaceContinuationR1.tla)
+}
+
+# CEGAR negative control: a cleaner that checks only "no running Job" may
+# close between two legal commands while the same consumer still has work.
+check_workspace_continuation_counterexample() {
+  verify_jar
+  (
+    tmp_dir=$(mktemp -d -t ordivon-workspace-continuation-falsifier-XXXXXX)
+    trap 'rm -rf -- "$tmp_dir"' EXIT
+    python3 - "$ROOT/formal/WorkspaceContinuationR1.tla" "$tmp_dir/WorkspaceContinuationR1.tla" <<'PY_WS_CEX'
+from pathlib import Path
+import sys
+src = Path(sys.argv[1]).read_text(encoding="utf-8")
+marker = "\nNext ==\n"
+unsafe = r"""UnsafeCloseBetweenCommands ==
+    /\ phase = "open"
+    /\ job = "none"
+    /\ firstDone
+    /\ pending
+    /\ ~released
+    /\ age = "fresh"
+    /\ phase' = "closed"
+    /\ closeReason' = "idle_only"
+    /\ UNCHANGED <<job, pending, released, age, firstDone>>
+
+"""
+assert src.count(marker) == 1, "Workspace model Next source drift"
+Path(sys.argv[2]).write_text(
+    src.replace(marker, unsafe + marker + r"    \/ UnsafeCloseBetweenCommands" + "\n"),
+    encoding="utf-8",
+)
+PY_WS_CEX
+    cp -- "$ROOT/formal/WorkspaceContinuationR1.cfg" "$tmp_dir/"
+    set +e
+    (cd "$tmp_dir"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+        -config WorkspaceContinuationR1.cfg WorkspaceContinuationR1.tla) > "$tmp_dir/result.log" 2>&1
+    status=$?
+    set -e
+    if [[ "$status" -ne 12 ]] ||
+       ! grep -Fxq 'Error: Invariant NoUnreleasedFreshClose is violated.' "$tmp_dir/result.log" ||
+       ! grep -Fxq 'Error: The behavior up to this point is:' "$tmp_dir/result.log" ||
+       ! grep -Eq '^State [1-9][0-9]*:' "$tmp_dir/result.log"; then
+      echo "TLC Workspace early close negative control FAILED" >&2
+      tail -35 "$tmp_dir/result.log" >&2
+      exit 1
+    fi
+    echo "TLC Workspace early close negative control PASS: idle-only closure rejects future consumer"
+  )
+}
+
 # CEGAR non-vacuity: deliberately let a paused SQLite source admit a PG writer
 # without parity certification. TLC must find an actual named state trace.
 check_pg_cutover_counterexample() {
@@ -381,8 +438,8 @@ PY_PARTIAL_CEX
 case "${1:-check}" in
   bootstrap) bootstrap ;;
   verify) verify_jar; echo "TLA+ toolchain digest verification PASS" ;;
-  check) check_runtime_dispatch; check_runtime_pg_cutover ;;
-  falsify) check_runtime_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_pg_cutover_counterexample ;;
+  check) check_runtime_dispatch; check_runtime_pg_cutover; check_workspace_continuation ;;
+  falsify) check_runtime_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_pg_cutover_counterexample; check_workspace_continuation_counterexample ;;
   *)
     echo "usage: scripts/tla-formal [bootstrap|verify|check|falsify]" >&2
     exit 2
