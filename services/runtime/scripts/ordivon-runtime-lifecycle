@@ -252,7 +252,7 @@ def run_json(command: list[str], *, accepted_codes: tuple[int, ...] = (0,)) -> d
     value = json.loads(result.stdout)
     if not isinstance(value, dict):
         raise RuntimeError("command did not return a JSON object")
-    if value.get("schemaVersion") != SCHEMA_VERSION:
+    if type(value.get("schemaVersion")) is not int or value["schemaVersion"] != SCHEMA_VERSION:
         raise RuntimeError("subordinate Runtime tool returned an unsupported schemaVersion")
     return value
 
@@ -327,6 +327,17 @@ def reclaim_inspect(args: argparse.Namespace) -> dict[str, object]:
     return validate_reclaim_inspect(run_json(command))
 
 
+def _valid_retention_hours(value: object) -> bool:
+    # JSON booleans are Python integers. Non-finite floats and integers too
+    # large for the downstream float hours must never reach close eligibility.
+    if type(value) not in (int, float):
+        return False
+    try:
+        return value >= 0 and math.isfinite(float(value))
+    except (OverflowError, ValueError):
+        return False
+
+
 def load_policy(path: Path | None) -> dict[str, object]:
     value = json.loads(json.dumps(DEFAULT_POLICY))
     if path is not None:
@@ -342,7 +353,7 @@ def load_policy(path: Path | None) -> dict[str, object]:
                 value[key] = current
             else:
                 value[key] = loaded_value
-    if value.get("schemaVersion") != SCHEMA_VERSION:
+    if type(value.get("schemaVersion")) is not int or value["schemaVersion"] != SCHEMA_VERSION:
         raise RuntimeError("unsupported retention policy schemaVersion")
     classes = value.get("classes")
     if not isinstance(classes, dict) or not classes:
@@ -351,19 +362,15 @@ def load_policy(path: Path | None) -> dict[str, object]:
         if not isinstance(name, str) or not isinstance(definition, dict):
             raise RuntimeError("retention policy class definitions are invalid")
         hours = definition.get("retentionHours")
-        if hours is not None and (not isinstance(hours, (int, float)) or hours < 0):
+        if hours is not None and not _valid_retention_hours(hours):
             raise RuntimeError(f"retentionHours for {name} must be null or non-negative")
         dirty_hours = definition.get("dirtyRetentionHours")
-        if dirty_hours is not None and (
-            not isinstance(dirty_hours, (int, float)) or dirty_hours < 0
-        ):
+        if dirty_hours is not None and not _valid_retention_hours(dirty_hours):
             raise RuntimeError(
                 f"dirtyRetentionHours for {name} must be null or non-negative"
             )
         max_lifetime = definition.get("maxLifetimeHours")
-        if max_lifetime is not None and (
-            not isinstance(max_lifetime, (int, float)) or max_lifetime < 0
-        ):
+        if max_lifetime is not None and not _valid_retention_hours(max_lifetime):
             raise RuntimeError(
                 f"maxLifetimeHours for {name} must be null or non-negative"
             )
@@ -1757,7 +1764,7 @@ def load_open_record(record_path: Path, workspace_id: str, workspace_path: Path)
         raise RuntimeError("workspace record is not an object")
     if value.get("state") == "closed":
         raise RuntimeError("workspace is already closed")
-    if value.get("schemaVersion") != SCHEMA_VERSION:
+    if type(value.get("schemaVersion")) is not int or value["schemaVersion"] != SCHEMA_VERSION:
         raise RuntimeError("workspace record identity mismatch")
     legacy_workspace_id = value.get("workspaceId")
     if legacy_workspace_id is not None and legacy_workspace_id != workspace_id:
