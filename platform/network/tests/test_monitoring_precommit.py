@@ -195,3 +195,34 @@ def test_core_validation_invokes_cross_config_consumer_gate():
     taskfile = (ROOT / "Taskfile.yml").read_text()
     native = taskfile.split("  core:validate:", 1)[1].split("  provider:surfshark:validate:", 1)[0]
     assert "monitoring-sourcecut-preflight.py --source config --check-edges" in native
+
+@pytest.mark.parametrize(
+    "which",
+    ["blackbox", "prometheus"],
+)
+def test_duplicate_yaml_keys_cannot_launder_a_consumer_edge(tmp_path, which):
+    """Upstream yq accepts duplicates but the typed graph must never do so."""
+    owner = _load()
+    src = tmp_path / "config"
+    src.joinpath("blackbox").mkdir(parents=True)
+    src.joinpath("prometheus").mkdir(parents=True)
+    blackbox = (
+        "modules:\n"
+        "  http_test: {prober: http, timeout: 5s}\n"
+        "  http_test: {prober: tcp, timeout: 5s}\n"
+        if which == "blackbox"
+        else "modules: {http_test: {prober: http, timeout: 5s}}\n"
+    )
+    prometheus = (
+        "scrape_configs:\n"
+        "- job_name: consumer-probe\n"
+        "  metrics_path: /probe\n"
+        "  params: {module: [http_test], module: [http_test]}\n"
+        "  relabel_configs: []\n"
+        if which == "prometheus"
+        else "scrape_configs: []\n"
+    )
+    (src / "blackbox/blackbox.yml").write_text(blackbox)
+    (src / "prometheus/prometheus.yml").write_text(prometheus)
+    with pytest.raises(ValueError, match="duplicate monitoring mapping key"):
+        owner.verify_probe_consumer_edges(src)

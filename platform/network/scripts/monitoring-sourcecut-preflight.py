@@ -28,8 +28,16 @@ def _read_owner_yaml(path: Path) -> dict:
     )
     if result.returncode != 0:
         raise ValueError(f"invalid monitoring YAML: {path}: {result.stderr.strip()}")
+    def no_duplicate_keys(pairs: list[tuple[str, object]]) -> dict:
+        result: dict = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError(f"duplicate monitoring mapping key: {key}")
+            result[key] = value
+        return result
+
     try:
-        parsed = json.loads(result.stdout)
+        parsed = json.loads(result.stdout, object_pairs_hook=no_duplicate_keys)
     except json.JSONDecodeError as exc:
         raise ValueError(f"invalid monitoring JSON projection: {path}") from exc
     if not isinstance(parsed, dict):
