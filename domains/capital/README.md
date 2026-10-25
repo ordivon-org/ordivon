@@ -184,8 +184,9 @@ from becoming hidden prerequisites of repository CI.
 The bounded accounting API can now use PostgresAccountingLedger with an
 explicit PostgreSQL DSN; no SQLite fallback is permitted if a PG DSN was
 selected. scripts/run-nonlive-capital-effect-matrix selects this backend
-when ORDIVON_CAPITAL_PG_DSN is supplied and otherwise keeps the historical
-disposable SQLite smoke path for existing offline CI only. The PG implementation
+when ORDIVON_CAPITAL_PG_DSN is supplied. Without a PG DSN it FAILS CLOSED;
+historical disposable SQLite regression tests require the explicit
+ORDIVON_CAPITAL_LEGACY_OFFLINE_SMOKE=1 test-only opt-in. The PG implementation
 uses a transaction-scoped schema-admission lock, PostgreSQL SERIALIZABLE
 transactions with whole-transaction retry, unique account/transfer identities,
 atomic no-overdraft and pending POST/VOID effects, and native restart/replay

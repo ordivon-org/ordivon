@@ -29,6 +29,7 @@ def run_actual_script(script_name: str, *, optimized: bool):
         os.environ,
         PYTHONOPTIMIZE="1" if optimized else "0",
         PYTHONDONTWRITEBYTECODE="1",
+        ORDIVON_CAPITAL_LEGACY_OFFLINE_SMOKE="1",
     )
     return subprocess.run(
         [str(ROOT / "scripts" / script_name)],
@@ -39,6 +40,19 @@ def run_actual_script(script_name: str, *, optimized: bool):
         timeout=35,
         check=False,
     )
+
+
+def test_pg_first_capital_smoke_refuses_implicit_sqlite_fallback():
+    env = dict(os.environ)
+    env.pop("ORDIVON_CAPITAL_PG_DSN", None)
+    env.pop("ORDIVON_CAPITAL_LEGACY_OFFLINE_SMOKE", None)
+    result = subprocess.run(
+        [str(ROOT / "scripts/run-nonlive-capital-effect-matrix")],
+        cwd=ROOT, env=env, capture_output=True, text=True,
+        timeout=35, check=False,
+    )
+    assert result.returncode != 0
+    assert "PostgreSQL-first Capital accounting requires" in result.stderr
 
 
 @pytest.mark.parametrize("name,expected_standing", SMOKES)
