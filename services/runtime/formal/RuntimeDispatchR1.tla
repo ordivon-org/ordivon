@@ -111,6 +111,17 @@ ObserveResultEvidence ==
          resultEvidence' = [resultEvidence EXCEPT ![currentAttempt] = standing]
     /\ UNCHANGED <<jobState, attemptState, currentAttempt, dispatchCount, reconcileState, heldReservation, outputObserved>>
 
+(* Rejected evidence is an external observation, not a durable
+   incompatibility of the selected Attempt. A later exact matching result
+   may correct it; this is a possible bounded transition, not fairness. *)
+CorrectForeignResultEvidence ==
+    /\ currentAttempt # NoAttempt
+    /\ attemptState[currentAttempt] \in {"running", "ambiguous"}
+    /\ resultEvidence[currentAttempt] = "foreign"
+    /\ resultEvidence' = [resultEvidence EXCEPT ![currentAttempt] = "matching"]
+    /\ UNCHANGED <<jobState, attemptState, currentAttempt, dispatchCount,
+                  reconcileState, heldReservation, outputObserved>>
+
 ObserveTerminalEvidence ==
     /\ currentAttempt # NoAttempt
     /\ attemptState[currentAttempt] \in {"running", "ambiguous"}
@@ -148,6 +159,7 @@ Next ==
     \/ LoseDispatchKnowledge
     \/ PublishPartialOutput
     \/ ObserveResultEvidence
+    \/ CorrectForeignResultEvidence
     \/ ObserveOrphanedHeld
     \/ ReconcileHeldOrphanProvenAbsent
     \/ ObserveTerminalEvidence
@@ -218,6 +230,18 @@ MatchingResultRequiredForTerminal ==
 
 NoForeignResultIsTerminal ==
     \A a \in Attempts: attemptState[a] = "terminal" => resultEvidence[a] = "matching"
+
+(* A rejected foreign result is not a proof that no matching result can
+   later be qualified for the same live Attempt. ENABLED is NOT eventuality. *)
+ForeignResultDoesNotDisableMatchingRecovery ==
+    (currentAttempt # NoAttempt
+     /\ attemptState[currentAttempt] \in {"running", "ambiguous"}
+     /\ resultEvidence[currentAttempt] = "foreign")
+    => ENABLED CorrectForeignResultEvidence
+
+(* Intentionally false reachability probe; not admitted as a safety law. *)
+ForeignResultIsUnreachable ==
+    \A a \in Attempts: resultEvidence[a] # "foreign"
 
 TerminalEvidenceIsCommitted ==
     jobState = "terminal" =>

@@ -852,6 +852,18 @@ trait Provider {
             missing,
         )
 
+    def test_foreign_result_recovery_is_a_checked_tlc_obligation(self):
+        config = (ROOT / "formal/RuntimeDispatchR1.cfg").read_text(encoding="utf-8")
+        self.assertIn("ForeignResultDoesNotDisableMatchingRecovery", config)
+        weakened = config.replace("    ForeignResultDoesNotDisableMatchingRecovery\n", "")
+        self.assertNotEqual(weakened, config)
+        errors = self.module.check_tlc_config_obligations(weakened)
+        self.assertTrue(any("ForeignResultDoesNotDisableMatchingRecovery" in e for e in errors))
+        native = (ROOT / "scripts/tla-formal").read_text(encoding="utf-8")
+        self.assertIn("check_foreign_result_recovery_counterexample", native)
+        self.assertIn("ForeignResultIsUnreachable is violated.", native)
+        self.assertIn("ForeignResultDoesNotDisableMatchingRecovery is violated.", native)
+
     def test_runtime_model_check_explores_two_explicit_retries(self):
         """An exact hashed two-Attempt source alone cannot qualify consecutive retries."""
         trace, invariants = manifests()
