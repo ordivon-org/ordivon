@@ -7,6 +7,7 @@ disposable PostgreSQL test database and per-test temporary legacy fixtures.
 from __future__ import annotations
 
 import os
+import sqlite3
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -312,3 +313,61 @@ def test_pg_cutover_retains_valid_legacy_non_digest_campaign_reference(owner) ->
     imported = owner.retire_legacy_and_import(owner.legacy_source)
     assert imported["sourceRows"] == 1
     assert owner.get_binding("campaign:historic-role", request["agent_id"]) == original
+
+
+def test_browserless_real_pg_owner_requires_explicit_fresh_bootstrap(
+    owner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The production consumer must construct and select a real PG owner."""
+    from tests.test_conversation_adopt import config
+    from agent_automation_browserless import (
+        BrowserlessAutomationConfig,
+        BrowserlessAutomationService,
+    )
+
+    svc = BrowserlessAutomationService(BrowserlessAutomationConfig.from_dict(config(tmp_path)))
+    assert not svc.config.ledger.exists()
+    monkeypatch.setenv("ORDIVON_CONVERSATION_BINDING_POSTGRES_DSN", owner.dsn)
+    monkeypatch.delenv("ORDIVON_CONVERSATION_BINDING_FRESH_BOOTSTRAP", raising=False)
+    with pytest.raises(ConversationBindingConflict, match="absent"):
+        svc._pg_conversation_binding_owner()
+    monkeypatch.setenv("ORDIVON_CONVERSATION_BINDING_FRESH_BOOTSTRAP", "1")
+    selected = svc._pg_conversation_binding_owner()
+    assert isinstance(selected, PostgresConversationBindingStore)
+    assert selected.legacy_source == svc.config.ledger
+    assert selected.get_binding("sha256:" + "a" * 64, "A01") is None
+    assert not svc.config.ledger.exists()
+
+
+def test_browserless_real_pg_owner_adopts_only_after_exact_source_retirement(
+    owner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A real Browserless PG consumer must reject old writes until migration.
+
+    This exercises the production port with a physical disposable PG cluster;
+    no provider SEND or production legacy database is involved.
+    """
+    from tests.test_conversation_adopt import config
+    from agent_automation_browserless import (
+        BrowserlessAutomationConfig,
+        BrowserlessAutomationService,
+    )
+
+    svc = BrowserlessAutomationService(BrowserlessAutomationConfig.from_dict(config(tmp_path)))
+    legacy = SQLiteConversationBindingStore(svc.config.ledger)
+    first = legacy.adopt_binding(**payload())
+    monkeypatch.setenv("ORDIVON_CONVERSATION_BINDING_POSTGRES_DSN", owner.dsn)
+    monkeypatch.delenv("ORDIVON_CONVERSATION_BINDING_FRESH_BOOTSTRAP", raising=False)
+    with pytest.raises(ConversationBindingConflict, match="not retired"):
+        svc._pg_conversation_binding_owner()
+    migration = PostgresConversationBindingStore(
+        owner.dsn, legacy_source=svc.config.ledger
+    ).retire_legacy_and_import(svc.config.ledger)
+    assert migration["standing"] == "source-sealed"
+    assert migration["sourceRows"] == migration["postgresRows"] == 1
+    selected = svc._pg_conversation_binding_owner()
+    assert selected.get_binding(first["campaignRef"], "A01") == first
+    with pytest.raises(sqlite3.IntegrityError, match="retired to PostgreSQL"):
+        legacy.adopt_binding(**payload(role="A02", request="legacy-after-cutover"))
+    pg_new = selected.adopt_binding(**payload(role="A02", request="pg-after-cutover"))
+    assert selected.get_binding(first["campaignRef"], "A02") == pg_new
