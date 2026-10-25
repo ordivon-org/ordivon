@@ -216,7 +216,8 @@
         "MCP/clippy/fmt/diff gate job-01a0ce51-1f86-7013-8881-b91b5c17944c PASS",
         "owner-environment + documentation gate job-01a0ce57-27a8-7d92-ab15-aacb7f69c31a PASS",
         "extended 512-case Registry reference-model job-01a0ce5a-3e07-7af3-9e46-683ad67c56dc PASS",
-        "Registry MAX_MIGRATION_VERSION remains 6; R06 changes no SQL/schema migration and introduces no public MCP Tool change"
+        "Registry MAX_MIGRATION_VERSION remains 6; R06 changes no SQL/schema migration and introduces no public MCP Tool change",
+        "planning/windows-first-postgres-cutover-r1.md"
       ],
       "dependencies": [
         "R02",
@@ -231,7 +232,8 @@
       "acceptance": [
         "Registry schema remains v6 unless an explicit semantic migration is proven necessary.",
         "Performance-only indexes remain reconstructible and outside semantic migrations.",
-        "State modules can be unit-tested against a narrow transactional storage contract."
+        "State modules can be unit-tested against a narrow transactional storage contract.",
+        "Windows-first PostgreSQL Registry replacement: Windows Runtime must preserve Workspace, Job, Attempt, reservation, exact replay, recovery-required and effect-evidence semantics across a quiesced SQLite-v6-to-Postgres migration; validate native PG row identities, referential closure, row versions and single-writer fencing before switching the installed Windows service. The existing TLA+ cutover abstraction cannot substitute for native Rust consumer and installed restart proof."
       ],
       "nextAction": "R06 is closed. Proceed to R07 AuthorityContract, then R08 OperationCircuitCompiler; keep Registry limited to transactional persistence, migration, query/decoding and reconstructible indexes rather than semantic ownership."
     },
@@ -489,7 +491,8 @@
         "scripts/restore.py",
         "scripts/tests/test_operational_scripts.py",
         "scripts/backup.py",
-        "scripts/snapshot_fds.py"
+        "scripts/snapshot_fds.py",
+        "planning/windows-first-postgres-cutover-r1.md"
       ],
       "dependencies": [
         "R12",
@@ -508,7 +511,8 @@
         "On Linux, Runtime restore opens every snapshot path component relative to a previously opened directory descriptor using O_NOFOLLOW; renaming a validated parent into an external symlink cannot silently substitute an external source inode during copy. A staged-manifest recheck still binds published bytes. Linux fd-root pinning is not a cross-platform or shared-writer filesystem snapshot proof.",
         "Runtime restore publication is an expected-absent ownership transition, not ordinary os.replace: if another process creates an empty destination directory after preflight, publication MUST fail without overwriting that directory or committing an unowned restore. On Linux use native renameat2(RENAME_NOREPLACE), on Windows use native os.rename no-overwrite semantics, otherwise fail closed.",
         "Runtime SQLite backup and restored-registry validation must preserve the exact filesystem filename through SQLite read-only URI construction; literal #, ?, and % path bytes cannot become URI fragment/query/percent escape. A valid but different database is a false acceptance even if its integrity_check returns ok. Use stdlib Path.as_uri() for encoded physical path and native consumer-driven counterexamples.",
-        "Runtime snapshot backup and restore share one native Linux pinned_source_entry path-identity kernel: every parent and final file is opened via directory FDs with O_NOFOLLOW, and copy reads the pinned inode from /proc/self/fd. The copy-stage parent-symlink replacement with byte-equal outside content must preserve the original source inode. Non-Linux historical fallback cannot claim the Linux invariant."
+        "Runtime snapshot backup and restore share one native Linux pinned_source_entry path-identity kernel: every parent and final file is opened via directory FDs with O_NOFOLLOW, and copy reads the pinned inode from /proc/self/fd. The copy-stage parent-symlink replacement with byte-equal outside content must preserve the original source inode. Non-Linux historical fallback cannot claim the Linux invariant.",
+        "Windows Runtime with explicit active_user is the sole controller for Linux Runtime migration. First prove Windows Runtime itself runs durably with PostgreSQL through service restart. Then reuse wsl.exe -d archlinux -u root through authorized Windows Runtime Jobs to stop/restart Linux Runtime service ONLY, while WSL and the PostgreSQL server remain running. Do not introduce a second scheduler/controller or route WSL through the limited Windows service principal."
       ],
       "nextAction": "Extract pure receipt/fence/status projection helpers first; leave CLI orchestration intact until parity is proven."
     },
@@ -549,7 +553,8 @@
       "sharedRefs": [],
       "evidence": [
         "scripts/local-acceptance",
-        "scripts/windows-job-launcher-acceptance.py"
+        "scripts/windows-job-launcher-acceptance.py",
+        "planning/windows-first-postgres-cutover-r1.md"
       ],
       "dependencies": [
         "R10",
@@ -566,7 +571,8 @@
         "Linux real-system acceptance binds exact candidate commit and binary digests.",
         "Windows native acceptance proves process-tree ownership and reconstruction for provider changes.",
         "Fault cases cover response loss, provider drift, path drift, cancellation races, crash/restart reconciliation, release rollback and Workspace close CAS.",
-        "No ambiguity case is converted into success or blind redispatch."
+        "No ambiguity case is converted into success or blind redispatch.",
+        "Fail-closed Windows-first PostgreSQL migration acceptance must falsify PG outage, Windows restart/response loss, stale SQLite writer, duplicate external effect replay, identity/count equality with mismatched Job or Attempt bytes, held-orphaned reservations, Linux active-user WSL failure and PG outage during Linux stop. Until exact native and installed evidence exists PG cutover is UNKNOWN, not PASS; after PG accepts new writes reject legacy rollback."
       ],
       "nextAction": "Maintain a seam-specific falsification matrix and require exact evidence for each structural wave."
     },
