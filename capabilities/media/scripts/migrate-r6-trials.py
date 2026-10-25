@@ -71,10 +71,11 @@ def migrate(source: Path, dsn: str) -> dict[str, object]:
                 actual_id = destination.append(attempt_id, candidate_id, event_type, payload)
                 if actual_id != event_id or event_hash != "sha256:" + actual_id.split("://", 1)[1]:
                     raise ValueError("PostgreSQL event identity diverged from SQLite source")
-        if not destination.verify():
-            raise ValueError("destination PostgreSQL hash-chain mismatch")
-        if sum(destination.summary()["eventCounts"].values()) != len(semantic_rows):
-            raise ValueError("destination PostgreSQL event count differs")
+            # Complete independent readback BEFORE committing the copied history.
+            if not destination.verify():
+                raise ValueError("destination PostgreSQL hash-chain mismatch")
+            if sum(destination.summary()["eventCounts"].values()) != len(semantic_rows):
+                raise ValueError("destination PostgreSQL event count differs")
         return {
             "searchId": search_id,
             "events": len(semantic_rows),

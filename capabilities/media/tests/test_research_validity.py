@@ -7,6 +7,7 @@ import sqlite3
 import tempfile
 import unittest
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import closing
 from pathlib import Path
 from uuid import uuid4
 
@@ -169,6 +170,52 @@ class ResearchValidityTest(unittest.TestCase):
             self.assertEqual(db.read_bytes(), before)
             with self.assertRaisesRegex(ValueError, "already contains events"):
                 migrate(db, PG_DSN)
+
+    @unittest.skipUnless(PG_DSN, "real PostgreSQL test DSN is required")
+    def test_migration_readback_rejection_rolls_back_all_events(self) -> None:
+        """Readback acceptance must precede the PostgreSQL commit boundary."""
+        from unittest.mock import patch
+
+        migrate = runpy.run_path(
+            str(Path(__file__).resolve().parents[1] / "scripts" / "migrate-r6-trials.py")
+        )["migrate"]
+        from ordivon_studio.grounded_meaning import canonical_digest
+
+        search_id = f"experiment:rollback:{uuid4().hex}"
+        with tempfile.TemporaryDirectory() as temporary:
+            source_file = Path(temporary) / "legacy.sqlite"
+            with closing(sqlite3.connect(source_file)) as source:
+                source.execute(
+                    "CREATE TABLE trial_events("
+                    "seq INTEGER PRIMARY KEY,event_id TEXT,search_id TEXT,"
+                    "attempt_id TEXT,candidate_id TEXT,event_type TEXT,"
+                    "payload_json TEXT,prev_hash TEXT,event_hash TEXT)"
+                )
+                payload = {"trial": 1}
+                event_hash = canonical_digest(
+                    {
+                        "searchId": search_id, "attemptId": "attempt:1",
+                        "candidateId": "candidate:1", "eventType": "trial.proposed",
+                        "payload": payload, "prevHash": None,
+                    }
+                )
+                source.execute(
+                    "INSERT INTO trial_events VALUES (?,?,?,?,?,?,?,?,?)",
+                    (
+                        1, "trial-event://" + event_hash.removeprefix("sha256:"),
+                        search_id, "attempt:1", "candidate:1", "trial.proposed",
+                        json.dumps(payload), None, event_hash,
+                    ),
+                )
+            with patch.object(TrialLedger, "verify", return_value=False):
+                with self.assertRaisesRegex(ValueError, "hash-chain mismatch"):
+                    migrate(source_file, PG_DSN)
+
+        destination = TrialLedger(PG_DSN, search_id=search_id)
+        try:
+            self.assertEqual(sum(destination.summary()["eventCounts"].values()), 0)
+        finally:
+            destination.close()
 
     def test_visible_search_never_contains_holdout_seed_and_freezes_winner(self) -> None:
         registration = self.registration(budget=300)
