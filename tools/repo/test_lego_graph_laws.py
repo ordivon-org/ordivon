@@ -24,7 +24,10 @@ def test_host_legacy_agent_service_cursor_proposal_is_retired() -> None:
     current = json.loads(
         (ROOT / "services/host/planning/lego-plan-r3.json").read_text(encoding="utf-8")
     )
-    assert any(row["id"] == "U01" and row["name"] == "ScopeBoundCursor" for row in current["retained"])
+    # No real caller imports cursor.py; its R3 retained row was a ghost consumer.
+    assert all(row["id"] != "U01" for row in current["retained"])
+    assert "ScopeBoundCursor" in current["retired"]
+    assert not (ROOT / "services/host/src/ordivon_host_v2/cursor.py").exists()
     assert all(node["id"] != "O05" for node in legacy["nodes"])
     assert all(slice_["id"] != "OS1" for slice_ in legacy["slices"])
     assert legacy["gaps"] == []
