@@ -131,6 +131,12 @@ def _rust_code_only(text: str) -> str:
     """
     masked = list(text)
     n = len(text)
+    # A Rust char or byte-char literal may contain braces. Only match an
+    # actual single-character token; apostrophe-prefixed lifetimes ('a, 'static)
+    # are not literals and must not swallow later source tokens.
+    char_literal = re.compile(
+        r"'(?:\\u\{[0-9A-Fa-f_]+\}|\\x[0-9A-Fa-f]{2}|\\[^\n]|[^'\\\n])'"
+    )
 
     def hide(start: int, end: int) -> None:
         for pos in range(start, end):
@@ -175,6 +181,9 @@ def _rust_code_only(text: str) -> str:
                 hide(start, i)
             else:
                 i += 1
+        elif text[i] == "'" and (character := char_literal.match(text, i)):
+            i = character.end()
+            hide(start, i)
         elif text[i] == '"':
             i += 1
             while i < n:

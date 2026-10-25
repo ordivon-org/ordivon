@@ -1087,7 +1087,7 @@ def validate_repository(root: Path = ROOT) -> None:
     # whether or not a time-scoped issue census happens to mention its plan.
     # Only DEPENDENCY is a prerequisite; STATE/OBSERVATION feedback may cycle.
     for relative in OWNER_LEGO_PLANS:
-        plan = _load_json(root / relative)
+        plan = _load_json(_source_bound_file(root, relative, "registered Owner LEGO plan"))
         validate_owner_lego_graph(plan)
         validate_owner_lego_dependencies(plan, relative.split("/planning/", 1)[0])
 

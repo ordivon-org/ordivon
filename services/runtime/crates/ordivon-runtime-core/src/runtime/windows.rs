@@ -1354,7 +1354,7 @@ pub(crate) fn merge_windows_workspace_environment(
         .map_err(|_| {
             RuntimeError::invalid("invalid Git command configuration count", "execution.env")
         })?;
-    if count > 63 {
+    if count > 62 {
         return Err(RuntimeError::invalid(
             "Git command configuration exceeds bounded workspace environment",
             "execution.env",
@@ -1398,15 +1398,22 @@ pub(crate) fn merge_windows_workspace_environment(
             }
         }
     }
-    let key = format!("GIT_CONFIG_KEY_{count}");
-    let value = format!("GIT_CONFIG_VALUE_{count}");
-    if environment.keys().any(|existing| {
-        existing.eq_ignore_ascii_case(&key) || existing.eq_ignore_ascii_case(&value)
-    }) {
-        return Err(RuntimeError::invalid(
-            "Git command configuration contains an unexpected indexed override",
-            "execution.env",
-        ));
+    // Git safe.directory is multi-valued: appending an exact path alone
+    // does not revoke an inherited protected safe.directory=*. Git's
+    // documented empty value resets that list. Force reset -> exact
+    // workspace at the end of command-scope configuration, retaining any
+    // unrelated caller keys only before the reset.
+    for index in [count, count + 1] {
+        let key = format!("GIT_CONFIG_KEY_{index}");
+        let value = format!("GIT_CONFIG_VALUE_{index}");
+        if environment.keys().any(|existing| {
+            existing.eq_ignore_ascii_case(&key) || existing.eq_ignore_ascii_case(&value)
+        }) {
+            return Err(RuntimeError::invalid(
+                "Git command configuration contains an unexpected indexed override",
+                "execution.env",
+            ));
+        }
     }
     if let Some(existing) = environment
         .keys()
@@ -1415,9 +1422,17 @@ pub(crate) fn merge_windows_workspace_environment(
     {
         environment.remove(&existing);
     }
-    environment.insert("GIT_CONFIG_COUNT".to_string(), (count + 1).to_string());
-    environment.insert(key, "safe.directory".to_string());
-    environment.insert(value, visible);
+    environment.insert("GIT_CONFIG_COUNT".to_string(), (count + 2).to_string());
+    environment.insert(
+        format!("GIT_CONFIG_KEY_{count}"),
+        "safe.directory".to_string(),
+    );
+    environment.insert(format!("GIT_CONFIG_VALUE_{count}"), String::new());
+    environment.insert(
+        format!("GIT_CONFIG_KEY_{}", count + 1),
+        "safe.directory".to_string(),
+    );
+    environment.insert(format!("GIT_CONFIG_VALUE_{}", count + 1), visible);
     Ok(environment)
 }
 
@@ -1911,10 +1926,12 @@ mod tests {
             Path::new(r"\\?\C:\ProgramData\Ordivon\workspaces\ws-1"),
         )
         .unwrap();
-        assert_eq!(env["GIT_CONFIG_COUNT"], "1");
+        assert_eq!(env["GIT_CONFIG_COUNT"], "2");
         assert_eq!(env["GIT_CONFIG_KEY_0"], "safe.directory");
+        assert_eq!(env["GIT_CONFIG_VALUE_0"], ""); // clears earlier protected wildcard
+        assert_eq!(env["GIT_CONFIG_KEY_1"], "safe.directory");
         assert_eq!(
-            env["GIT_CONFIG_VALUE_0"],
+            env["GIT_CONFIG_VALUE_1"],
             r"C:\ProgramData\Ordivon\workspaces\ws-1"
         );
         assert!(!env.values().any(|value| value == "*"));
@@ -1935,11 +1952,13 @@ mod tests {
             Path::new(r"C:\Ordivon\workspaces\ws-2"),
         )
         .unwrap();
-        assert_eq!(env["GIT_CONFIG_COUNT"], "2");
+        assert_eq!(env["GIT_CONFIG_COUNT"], "3");
         assert_eq!(env["GIT_CONFIG_KEY_0"], "color.ui");
         assert_eq!(env["GIT_CONFIG_VALUE_0"], "never");
         assert_eq!(env["GIT_CONFIG_KEY_1"], "safe.directory");
-        assert_eq!(env["GIT_CONFIG_VALUE_1"], r"C:\Ordivon\workspaces\ws-2");
+        assert_eq!(env["GIT_CONFIG_VALUE_1"], "");
+        assert_eq!(env["GIT_CONFIG_KEY_2"], "safe.directory");
+        assert_eq!(env["GIT_CONFIG_VALUE_2"], r"C:\Ordivon\workspaces\ws-2");
 
         let service = merge_windows_workspace_environment(
             &BTreeMap::new(),
@@ -2102,6 +2121,38 @@ mod tests {
             Some("C:\\Windows")
         );
         assert_eq!(merged.get("AgentFlag").map(String::as_str), Some("1"));
+    }
+
+    #[test]
+    fn windows_git_workspace_trust_reserves_bounded_reset_and_exact_slots() {
+        // A valid 62-entry caller prefix leaves precisely two Git-native
+        // command scope slots: an empty reset and one exact Workspace path.
+        let mut overlay = BTreeMap::from([("GIT_CONFIG_COUNT".to_string(), "62".to_string())]);
+        for index in 0..62 {
+            overlay.insert(format!("GIT_CONFIG_KEY_{index}"), "color.ui".to_string());
+            overlay.insert(format!("GIT_CONFIG_VALUE_{index}"), "never".to_string());
+        }
+        let workspace = Path::new(r"C:\Ordivon\workspaces\ws-2");
+        let permitted =
+            merge_windows_workspace_environment(&BTreeMap::new(), &overlay, true, workspace)
+                .unwrap();
+        assert_eq!(permitted["GIT_CONFIG_COUNT"], "64");
+        assert_eq!(permitted["GIT_CONFIG_KEY_62"], "safe.directory");
+        assert_eq!(permitted["GIT_CONFIG_VALUE_62"], "");
+        assert_eq!(permitted["GIT_CONFIG_KEY_63"], "safe.directory");
+        assert_eq!(
+            permitted["GIT_CONFIG_VALUE_63"],
+            r"C:\Ordivon\workspaces\ws-2"
+        );
+
+        overlay.insert("GIT_CONFIG_COUNT".to_string(), "63".to_string());
+        overlay.insert("GIT_CONFIG_KEY_62".to_string(), "color.ui".to_string());
+        overlay.insert("GIT_CONFIG_VALUE_62".to_string(), "never".to_string());
+        let error =
+            merge_windows_workspace_environment(&BTreeMap::new(), &overlay, true, workspace)
+                .unwrap_err();
+        assert_eq!(error.code, RuntimeErrorCode::InvalidRequest);
+        assert_eq!(error.field.as_deref(), Some("execution.env"));
     }
 
     #[test]

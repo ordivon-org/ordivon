@@ -468,6 +468,57 @@ trait Provider {
             finally:
                 self.module.ROOT = original_root
 
+    def test_rust_character_closing_brace_cannot_hide_unregistered_nested_test(self):
+        """Native rustc accepts inner test syntax but does NOT register the test."""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "lib.rs").write_text("#[cfg(test)]\nmod tests;\n", encoding="utf-8")
+            child = root / "tests.rs"
+            original_root = self.module.ROOT
+            self.module.ROOT = root
+            try:
+                for literal in ("'}'", "b'}'"):
+                    with self.subTest(literal=literal):
+                        child.write_text(
+                            "fn invisible() {\n"
+                            f"    let _ch = {literal};\n"
+                            "    #[test]\n"
+                            "    fn ghost_proof() {}\n"
+                            "}\n",
+                            encoding="utf-8",
+                        )
+                        errors = self.module.require_test_symbol(child, "ghost_proof")
+                        self.assertTrue(
+                            any("unnameable non-module" in error for error in errors),
+                            f"unregistered rustc test accepted behind {literal}: {errors}",
+                        )
+            finally:
+                self.module.ROOT = original_root
+
+    def test_rust_character_opening_brace_keeps_real_module_test_nameable(self):
+        """Characters, escapes, and byte characters are never block braces."""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "lib.rs").write_text("#[cfg(test)]\nmod tests;\n", encoding="utf-8")
+            child = root / "tests.rs"
+            child.write_text(
+                "mod nested {\n"
+                "    const OPEN: char = '{';\n"
+                "    const ESCAPED_OPEN: char = '\\u{7b}';\n"
+                "    const BYTE_OPEN: u8 = b'{';\n"
+                "    fn holds_lifetime<'a>(value: &'a str) -> &'a str { value }\n"
+                "    #[test]\n"
+                "    fn real_proof() {}\n"
+                "}\n",
+                encoding="utf-8",
+            )
+            original_root = self.module.ROOT
+            self.module.ROOT = root
+            try:
+                self.assertEqual(self.module.require_test_symbol(child, "real_proof"), [])
+            finally:
+                self.module.ROOT = original_root
+
     def test_unexpanded_macro_rules_cannot_forge_a_proving_test(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

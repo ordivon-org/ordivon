@@ -28,3 +28,26 @@ process safety, external Provider idempotency, domain outcome or liveness.
 A concrete trace-refinement witness remains UNKNOWN and must be tested with
 Owner implementation evidence. Use CEGAR to separate realizable defects
 from spurious abstract counterexamples before refining the model.
+
+
+## Privacy and caller-delivery CEGAR refinement (2026-10-25)
+
+The real twelve-worker CDC exposed durable Provider completion with one physical
+call and zero caller acknowledgements under metadata-only privacy. The older
+model allowed acknowledgement from durableResult alone. CommitResult now
+distinguishes (1) durable digest, (2) content-authorized replayable result,
+and (3) the original caller's ephemeral result envelope. Losing the envelope
+before acknowledgement is a separate transition and does not permit dispatch
+again. DeliverAcknowledgement needs one permitted result source.
+
+Both privacy modes can acknowledge a fresh result. Only content-authorized
+runs may replay after losing the original envelope. Native TLC checks the
+privacy-retention and acknowledgement safety invariants, plus two deliberate
+reachability counterexample probes for fresh metadata-only acknowledgement
+and redacted completed-but-unacknowledged records.
+
+Independent concrete consumers: test_p0_sqlite_agent_loop.py tests
+metadata-only recovery fencing and content-authorized replay. The 12-worker
+test's explicit privacy premise is already provided by PR #668, not duplicated
+here. The ephemeral result is symbolic: no machine-checked concrete SQLite
+trace refinement or delivery liveness is claimed.
