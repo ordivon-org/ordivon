@@ -54,6 +54,21 @@ A LEGO is NOT synonymous with a file, package, agent, tool, skill, runtime objec
 | SDK / framework | Developer integration convenience | Expose or compose existing mechanisms | Reason to replicate same owners |
 | LEGO | Replaceable responsibility, goal conditioned | Be reused/composed when contracts align | Unique executable or a universally required metadata file |
 
+## Optional functional LEGO role projection (revisable)
+
+R2.1 continues to define LEGO by **identity, responsibility, inputs, outputs, contract, acceptance**. These are nonexclusive, consumer-relative roles, **not** a second ontology or executable admission contract. See the native scoped recursive-lego-calculus Skill for the working definitions:
+
+- **Capability / operator:** actual owner Tool/API or algorithm implementation performs bounded computation/read/authorized effects (Git, FFmpeg, Z3, Godot/Bevy).
+- **Method / strategy:** advisory Skill or scientific/engineering method teaches an Agent how to frame, select, compose and validate capabilities (CEGAR, inverse synthesis, experiment design).
+- **Representation:** type, state machine, graph, schema, model.
+- **Contract:** explicit assumptions, guarantees, invariants, compatibility.
+- **Material / resource:** input dataset, asset, game recipe, reusable authored content.
+- **Evidence:** replay, verifier output, proof, refutation, source-bound artifact receipt.
+
+For example, the Game owner can use a method Skill to select a Bevy operator, consume a content recipe and state-machine representation, check a game-rule contract, and retain replay evidence. Media may consume FFmpeg with an editorial method and selected assets. Research may use an experimental-design Skill with DuckDB/Pandera, typed data contracts and reproducibility receipts. None of these terms alone implies a new LEGO owner or that Tool PASS means consumer success.
+
+**Classification evolution:** retain the original native identity and source history; reclassify/add/retire roles only when actual consumer, evidence or composition changes the decision. One package or newly qualified composite may span multiple roles; a final artifact is not a standalone LEGO until it has an independent reusable responsibility and contract. Existing planning kind labels need no migration. Do not duplicate tooling into category-shaped packages, count package files as LEGO instances, or turn these examples into mandatory schema, registry, runtime, Agent or proof gate.
+
 ## Minimal correspondence
 
 Goal → requirements / acceptance

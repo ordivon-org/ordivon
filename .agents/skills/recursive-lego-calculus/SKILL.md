@@ -26,6 +26,23 @@ Use whichever of these questions changes the current decision. They are **not** 
 
 For a simple case the entire working note can fit in a sentence and six short fields. Reuse an existing API and its tests; do not create a separate LEGO specification file merely to restate the API.
 
+### Optional functional LEGO roles — not a type system
+
+The original identity/responsibility/inputs/outputs/contract/acceptance define one LEGO; the following **overlapping and revisable consumer-role lenses** do not replace this contract.
+
+| Role | Contribution | Native carrier |
+| --- | --- | --- |
+| **Capability / operator** | Executes bounded reads, calculations, transformations or authorized effects | Tool/API, Git, FFmpeg, Z3, Bevy |
+| **Method / strategy** | Guides an Agent's representation, selection, composition and testing of capabilities | Skill, CEGAR, experiment design, inverse synthesis |
+| Representation | Makes problems, interfaces, structures or states expressible | types, graphs, schemas, models |
+| Contract | Defines admissible inputs, guarantees, invariants and seams | owner API, assume/guarantee |
+| Material / resource | Provides composable data or authored inputs | dataset, game recipe, media asset |
+| Evidence | Supports or refutes a bounded claim | trace, test, proof result, receipt |
+
+Tool often carries a capability; Skill often carries a method; either package can mix roles. A verifier is an operator, its technique a method, its predicate a contract and the proof output evidence. A produced artifact is **not automatically a reusable LEGO**: the composite becomes a higher-level LEGO only when a real consumer needs its independently replaceable contract. Roles classify a *responsibility in context*, not filenames, and are not asserted to have measured population proportions.
+
+**Update by evidence:** after changes to consumer, interface, method or evidence, revise/merge/split/retire role labels in the existing natural owner and Skill/Tool discovery path. Promote a new role only for a repeated decision-changing distinction. Do not add role metadata to every file, a closed enum, a registry, validator, runtime, extra Agent or universal Skill index. Role assignment gives neither execution authority nor Formal PASS. If roles do not change the decision, omit them.
+
 ### Advanced mode — only if the actual problem requires it
 
 Open references/formal-model.md when a decision depends on representation loss/refinement, complex preconditions or state transitions, formal assume/guarantee reasoning, counterexamples, uncertain verifier-to-goal soundness, probabilistic qualifications, search/optimization or self-refinement. In that case distinguish the real problem specification from the encoded verifier target, use legal operators, preserve model/source identity and provenance, and keep independent evaluators and rollback where needed. A formal-tool PASS proves only its encoded target. Do not run all advanced steps on routine file deletion or ordinary module reuse.
