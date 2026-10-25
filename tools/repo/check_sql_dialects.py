@@ -92,6 +92,9 @@ SQLITE_LEGACY_SOURCE_CALLS: dict[str, int] = {
     'services/runtime/crates/ordivon-runtime-core/src/runtime/registry/query.rs': 9,
     'services/runtime/crates/ordivon-runtime-core/src/runtime/registry_storage.rs': 9,
     'services/runtime/crates/ordivon-runtime-core/src/runtime/repair.rs': 1,
+    # Explicit one-shot read-only source census for PG-selective migration.
+    # This is legacy source debt, never a new SQLite write authority.
+    'services/runtime/scripts/pg_retention_census.py': 1,
     'services/runtime/scripts/backup.py': 2,
     'services/runtime/scripts/mcp_e2e.py': 1,
     'services/runtime/scripts/restore.py': 1,
