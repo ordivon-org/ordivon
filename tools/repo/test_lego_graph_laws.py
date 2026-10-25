@@ -427,3 +427,29 @@ def test_repo_mechanics_owner_plan_is_always_structurally_admitted() -> None:
         pytest.raises(module.ArchitectureDocsError, match="requires a type"),
     ):
         module.validate_repository(ROOT)
+
+def test_current_owner_plan_inventory_is_closed_without_another_registry(
+    tmp_path: Path,
+) -> None:
+    """New plan declarations cannot silently evade registered Owner graph laws."""
+    for relative in module.OWNER_LEGO_PLANS:
+        candidate = tmp_path / relative
+        candidate.parent.mkdir(parents=True, exist_ok=True)
+        candidate.write_text("{}")
+    module.validate_owner_plan_inventory(tmp_path)
+
+    forged = tmp_path / "domains/new-unregistered-owner/planning/lego-plan-r1.json"
+    forged.parent.mkdir(parents=True)
+    forged.write_text("{}")
+    with pytest.raises(module.ArchitectureDocsError, match="unregistered="):
+        module.validate_owner_plan_inventory(tmp_path)
+    forged.unlink()
+
+    missing = tmp_path / module.OWNER_LEGO_PLANS[0]
+    missing.unlink()
+    with pytest.raises(module.ArchitectureDocsError, match="missing="):
+        module.validate_owner_plan_inventory(tmp_path)
+
+
+def test_actual_repository_owner_plan_inventory_is_source_closed() -> None:
+    module.validate_owner_plan_inventory(ROOT)
