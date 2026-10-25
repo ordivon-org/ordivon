@@ -112,7 +112,7 @@ def select_sql(spec: TableSpec, prefix: str = "") -> str:
 
 
 def source_rows(source: Path, spec: TableSpec) -> list[tuple[Any, ...]]:
-    conn = sqlite3.connect(f"file:{source}?mode=ro&immutable=1", uri=True)
+    conn = sqlite3.connect(f"{source.absolute().as_uri()}?mode=ro&immutable=1", uri=True)
     try:
         return [tuple(row) for row in conn.execute(select_sql(spec))]
     finally:
@@ -350,7 +350,7 @@ def main() -> int:
     observed_source_sha = sha256_file(source)
     if observed_source_sha != args.expected_source_sha256:
         raise SystemExit(f"source digest mismatch: expected {args.expected_source_sha256}, observed {observed_source_sha}")
-    quick = sqlite3.connect(f"file:{source}?mode=ro&immutable=1", uri=True)
+    quick = sqlite3.connect(f"{source.absolute().as_uri()}?mode=ro&immutable=1", uri=True)
     try:
         row = quick.execute("PRAGMA quick_check").fetchone()
     finally:

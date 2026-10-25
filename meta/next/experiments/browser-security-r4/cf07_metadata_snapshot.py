@@ -245,7 +245,7 @@ def _ledger_aggregate(path: Path, *, now_ms: int) -> dict[str, object]:
             "standingCounts": {},
         }
     # mode=ro plus a narrow SELECT ensures request_json/detail/provider_coordinate are not read.
-    db = sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=5)
+    db = sqlite3.connect(f"{path.absolute().as_uri()}?mode=ro", uri=True, timeout=5)
     try:
         rows = db.execute(
             "SELECT standing,effect_generation,created_at_ms,updated_at_ms "
