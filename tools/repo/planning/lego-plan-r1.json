@@ -85,7 +85,9 @@
       "acceptance": [
         "Native Git projection covers both exclusive DAG sides and refuses ambiguous common ancestors rather than selecting arbitrary lineage.",
         "Projected equality may skip redundant cherry-picks for exact source paths, never approve deletion or imply behavior equality.",
-        "Owner-native test_source_history_legos.py validates NUL-delimited paths, merge paths, source-bound owners and fail-closed edges."
+        "Owner-native test_source_history_legos.py validates NUL-delimited paths, merge paths, source-bound owners and fail-closed edges.",
+        "A single observed GitHub PR snapshot partitions exact (baseRefOid,headRefOid) candidate pairs; duplicate candidate cuts are diagnosed without inferring consumer equivalence, merge authorization, or deletion. Missing or timezone-naive source time and repeated PR numbers fail closed; only a complete PR inventory may prove no duplicates, although a partial snapshot can expose a concrete duplicate.",
+        "Owner-native test_convergence_pressure.py exercises real observed duplicate #705/#707 source identity and counterexamples for distinct base OIDs, malformed SHA and duplicate PR number."
       ],
       "blockers": [
         "Consumer semantic equivalence remains UNKNOWN until corresponding natural-Owner CDC is proven."
