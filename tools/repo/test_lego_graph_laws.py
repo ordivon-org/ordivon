@@ -335,3 +335,41 @@ def test_owner_slice_known_lifecycle_states_remain_well_typed(status: str) -> No
     plan = json.loads((ROOT / OWNER_GRAPH_PLANS[3]).read_text(encoding="utf-8"))
     plan["slices"][0]["status"] = status
     module.validate_owner_lego_graph(plan)
+
+
+DOMAIN_GRAPH_PLANS = (
+    "domains/game/planning/lego-plan-r1.json",
+    "capabilities/media/planning/lego-plan-r1.json",
+)
+
+
+@pytest.mark.parametrize("relative", DOMAIN_GRAPH_PLANS)
+def test_active_domain_owner_plans_are_covered_by_current_repository_graph_admission(
+    relative: str,
+) -> None:
+    """Mature Owner Graph maths must guard Game/Media without domain-specific solvers."""
+    assert relative in module.OWNER_LEGO_PLANS
+    plan = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+    module.validate_owner_lego_graph(plan)
+    module.validate_owner_lego_dependencies(plan, relative.split("/planning/", 1)[0])
+
+
+@pytest.mark.parametrize("relative", DOMAIN_GRAPH_PLANS)
+def test_active_domain_owner_illegal_status_cannot_masquerade_as_an_admitted_slice(
+    relative: str,
+) -> None:
+    plan = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+    plan["slices"][0]["status"] = "VERFIED"
+    with pytest.raises(module.ArchitectureDocsError, match="invalid LEGO slice status"):
+        module.validate_owner_lego_graph(plan)
+
+
+@pytest.mark.parametrize("relative", DOMAIN_GRAPH_PLANS)
+def test_active_domain_owner_dangling_dependency_fails_current_admission(
+    relative: str,
+) -> None:
+    plan = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+    node = plan["nodes"][0]
+    node["dependencies"].append("__NO_ACTUAL_PRODUCER__")
+    with pytest.raises(module.ArchitectureDocsError, match="unknown LEGO dependency"):
+        module.validate_owner_lego_dependencies(plan, relative.split("/planning/", 1)[0])
