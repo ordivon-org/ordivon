@@ -10,10 +10,10 @@ EXTENDS Naturals
 CONSTANTS RequiresHarness, RequiresNetwork
 
 VARIABLES host, harness, network, runtime, dispatchCount, consumerEvidence,
-          sourceEvidenceBinding, admissionInputsWitness
+          sourceEvidenceBinding, admissionInputsWitness, terminalReceipt
 
 vars == <<host, harness, network, runtime, dispatchCount, consumerEvidence,
-          sourceEvidenceBinding, admissionInputsWitness>>
+          sourceEvidenceBinding, admissionInputsWitness, terminalReceipt>>
 
 HostStates == {"open", "accepted"}
 HarnessStates == {"idle", "proposed"}
@@ -21,6 +21,7 @@ NetworkStates == {"unknown", "ready"}
 RuntimeStates == {"idle", "admitted", "running", "ambiguous", "terminal"}
 EvidenceStates == {"none", "matching", "foreign"}
 SourceBindingStates == {"none", "admission-bound", "different-source"}
+ReceiptStates == {"none", "pending", "committed"}
 
 TypeOK ==
     /\ RequiresHarness \in BOOLEAN
@@ -33,6 +34,7 @@ TypeOK ==
     /\ consumerEvidence \in EvidenceStates
     /\ sourceEvidenceBinding \in SourceBindingStates
     /\ admissionInputsWitness \in BOOLEAN
+    /\ terminalReceipt \in ReceiptStates
 
 Init ==
     /\ host = "open"
@@ -43,24 +45,25 @@ Init ==
     /\ consumerEvidence = "none"
     /\ sourceEvidenceBinding = "none"
     /\ admissionInputsWitness = FALSE
+    /\ terminalReceipt = "none"
 
 NetworkObserve ==
     /\ network = "unknown"
     /\ network' = "ready"
     /\ UNCHANGED <<host, harness, runtime, dispatchCount, consumerEvidence, sourceEvidenceBinding,
-                  admissionInputsWitness>>
+                  admissionInputsWitness, terminalReceipt>>
 
 NetworkDegrade ==
     /\ network = "ready"
     /\ network' = "unknown"
     /\ UNCHANGED <<host, harness, runtime, dispatchCount, consumerEvidence, sourceEvidenceBinding,
-                  admissionInputsWitness>>
+                  admissionInputsWitness, terminalReceipt>>
 
 HarnessPropose ==
     /\ harness = "idle"
     /\ harness' = "proposed"
     /\ UNCHANGED <<host, network, runtime, dispatchCount, consumerEvidence, sourceEvidenceBinding,
-                  admissionInputsWitness>>
+                  admissionInputsWitness, terminalReceipt>>
 
 RuntimeAdmit ==
     /\ runtime = "idle"
@@ -70,7 +73,7 @@ RuntimeAdmit ==
     /\ admissionInputsWitness' =
         /\ (~RequiresHarness \/ harness = "proposed")
         /\ (~RequiresNetwork \/ network = "ready")
-    /\ UNCHANGED <<host, harness, network, dispatchCount, consumerEvidence, sourceEvidenceBinding>>
+    /\ UNCHANGED <<host, harness, network, dispatchCount, consumerEvidence, sourceEvidenceBinding, terminalReceipt>>
 
 RuntimeDispatch ==
     /\ runtime = "admitted"
@@ -78,19 +81,28 @@ RuntimeDispatch ==
     /\ runtime' = "running"
     /\ dispatchCount' = dispatchCount + 1
     /\ UNCHANGED <<host, harness, network, consumerEvidence, sourceEvidenceBinding,
-                  admissionInputsWitness>>
+                  admissionInputsWitness, terminalReceipt>>
 
 RuntimeLoseKnowledge ==
     /\ runtime = "running"
     /\ runtime' = "ambiguous"
     /\ UNCHANGED <<host, harness, network, dispatchCount, consumerEvidence, sourceEvidenceBinding,
-                  admissionInputsWitness>>
+                  admissionInputsWitness, terminalReceipt>>
 
 RuntimeObserveTerminal ==
     /\ runtime \in {"running", "ambiguous"}
     /\ runtime' = "terminal"
+    /\ terminalReceipt' = "pending"
     /\ UNCHANGED <<host, harness, network, dispatchCount, consumerEvidence, sourceEvidenceBinding,
                   admissionInputsWitness>>
+
+(* A durable terminal result is not identical to observing terminal state. *)
+RuntimeCommitTerminal ==
+    /\ runtime = "terminal"
+    /\ terminalReceipt = "pending"
+    /\ terminalReceipt' = "committed"
+    /\ UNCHANGED <<host, harness, network, runtime, dispatchCount,
+                  consumerEvidence, sourceEvidenceBinding, admissionInputsWitness>>
 
 ConsumerObserve ==
     /\ runtime = "terminal"
@@ -101,7 +113,7 @@ ConsumerObserve ==
     (* Abstract admission SourceCut binding; not a live digest check. *)
     /\ sourceEvidenceBinding' \in {"admission-bound", "different-source"}
     /\ UNCHANGED <<host, harness, network, runtime, dispatchCount,
-                  admissionInputsWitness>>
+                  admissionInputsWitness, terminalReceipt>>
 
 HostAccept ==
     /\ host = "open"
@@ -109,9 +121,10 @@ HostAccept ==
     (* A foreign Work's valid result is NOT evidence for this Work. *)
     /\ consumerEvidence = "matching"
     /\ sourceEvidenceBinding = "admission-bound"
+    /\ terminalReceipt = "committed"
     /\ host' = "accepted"
     /\ UNCHANGED <<harness, network, runtime, dispatchCount, consumerEvidence, sourceEvidenceBinding,
-                  admissionInputsWitness>>
+                  admissionInputsWitness, terminalReceipt>>
 
 Next ==
     \/ NetworkObserve
@@ -121,6 +134,7 @@ Next ==
     \/ RuntimeDispatch
     \/ RuntimeLoseKnowledge
     \/ RuntimeObserveTerminal
+    \/ RuntimeCommitTerminal
     \/ ConsumerObserve
     \/ HostAccept
 
@@ -148,6 +162,16 @@ NoHostAcceptanceWithoutConsumerEvidence ==
 
 NoHostAcceptanceWithWrongSource ==
     sourceEvidenceBinding # "admission-bound" => host = "open"
+
+(* Correct Work/SourceCut evidence does not establish a durable Runtime finish. *)
+NoHostAcceptanceWithoutCommittedTerminalReceipt ==
+    host = "accepted" => terminalReceipt = "committed"
+
+(* False reachability assertion: matching source and Work may predate commit. *)
+PendingMatchedTerminalReceiptIsUnreachable ==
+    ~(runtime = "terminal" /\ terminalReceipt = "pending"
+      /\ consumerEvidence = "matching"
+      /\ sourceEvidenceBinding = "admission-bound" /\ host = "open")
 
 (***************************************************************************)
 (* Intentionally FALSE non-vacuity probe, not an admitted safety invariant. *)
