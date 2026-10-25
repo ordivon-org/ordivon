@@ -214,6 +214,13 @@ def initialize_registry(database: Path, *, active_workspace: str | None = None) 
 
 def initialize_git_repository(path: Path, *, remote: bool) -> str:
     subprocess.run(["git", "init", "-q", str(path)], check=True)
+    # Disposable Git fixtures must not spawn detached housekeeping workers
+    # that race TemporaryDirectory cleanup after git push.
+    for key, value in (("gc.auto", "0"), ("maintenance.auto", "false")):
+        subprocess.run(
+            ["git", "-C", str(path), "config", "--local", key, value],
+            check=True,
+        )
     subprocess.run(["git", "-C", str(path), "config", "user.name", "Test"], check=True)
     subprocess.run(
         ["git", "-C", str(path), "config", "user.email", "test@example.invalid"],
@@ -227,6 +234,11 @@ def initialize_git_repository(path: Path, *, remote: bool) -> str:
     if remote:
         remote_path = path.parent / "remote.git"
         subprocess.run(["git", "init", "--bare", "-q", str(remote_path)], check=True)
+        for key, value in (("gc.auto", "0"), ("maintenance.auto", "false")):
+            subprocess.run(
+                ["git", "-C", str(remote_path), "config", "--local", key, value],
+                check=True,
+            )
         subprocess.run(
             ["git", "-C", str(path), "remote", "add", "origin", str(remote_path)],
             check=True,
@@ -463,6 +475,23 @@ def fake_systemctl(root: Path) -> Path:
 
 
 class DeployReclaimTests(unittest.TestCase):
+    def test_temporary_git_fixture_disables_background_maintenance(self) -> None:
+        """Disposable origin must not outlive tempdir via detached Git housekeeping."""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "source"
+            initialize_git_repository(source, remote=True)
+            for repository in (source, root / "remote.git"):
+                for key, expected in (("gc.auto", "0"), ("maintenance.auto", "false")):
+                    observed = subprocess.run(
+                        ["git", "-C", str(repository), "config", "--local", "--get", key],
+                        capture_output=True,
+                        text=True,
+                        check=False,
+                    )
+                    self.assertEqual(observed.returncode, 0)
+                    self.assertEqual(observed.stdout.strip(), expected)
+
     def test_release_source_owner_revision_ignores_sibling_monorepo_commits(self) -> None:
         scripts_path = str(REPO / "scripts")
         sys.path.insert(0, scripts_path)
