@@ -88,24 +88,35 @@ class WorkStore:
             if replay is not None:
                 return replay
             self._require_actor(conn, value.actor_ref)
-            current = conn.execute(
-                "SELECT work_ref,kind,state,current_revision,current_snapshot_digest,created_by_actor_ref,created_at,updated_at "
-                "FROM works WHERE work_ref=%s FOR UPDATE",
-                (value.work_ref,),
+            # PostgreSQL's unique WorkRef arbiter is the creation linearization
+            # point. SELECT-before-INSERT cannot arbitrate concurrent identical
+            # requests: both can observe absence and leak UniqueViolation.
+            # ON CONFLICT waits for the winning transaction and returns no row
+            # only after its complete work+revision-one snapshot is visible.
+            inserted = conn.execute(
+                "INSERT INTO works(work_ref,kind,state,current_revision,current_snapshot_digest,created_by_actor_ref) "
+                "VALUES (%s,%s,'open',1,%s,%s) "
+                "ON CONFLICT (work_ref) DO NOTHING RETURNING work_ref",
+                (value.work_ref, value.kind, snapshot_digest, value.actor_ref),
             ).fetchone()
             admission = "committed"
-            if current is None:
-                conn.execute(
-                    "INSERT INTO works(work_ref,kind,state,current_revision,current_snapshot_digest,created_by_actor_ref) "
-                    "VALUES (%s,%s,'open',1,%s,%s)",
-                    (value.work_ref, value.kind, snapshot_digest, value.actor_ref),
-                )
+            if inserted is not None:
                 conn.execute(
                     "INSERT INTO work_snapshots(work_ref,revision,snapshot_digest,payload,writer_actor_ref) "
                     "VALUES (%s,1,%s,%s,%s)",
                     (value.work_ref, snapshot_digest, Jsonb(payload), value.actor_ref),
                 )
             else:
+                # A conflicting creator may have just committed revision one.
+                # A new READ COMMITTED statement must re-read under row lock;
+                # the first SELECT is not evidence of absence across writers.
+                current = conn.execute(
+                    "SELECT work_ref,kind,state,current_revision,current_snapshot_digest,created_by_actor_ref,created_at,updated_at "
+                    "FROM works WHERE work_ref=%s FOR UPDATE",
+                    (value.work_ref,),
+                ).fetchone()
+                if current is None:
+                    raise RuntimeError("work_ref disappeared after insert conflict")
                 initial = conn.execute(
                     "SELECT snapshot_digest,writer_actor_ref FROM work_snapshots WHERE work_ref=%s AND revision=1",
                     (value.work_ref,),
