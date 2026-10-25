@@ -57,4 +57,32 @@ got="$?"
 set -e
 test "$got" -eq 65
 grep -F 'primary checkout is not synchronized with main' "$tmp/out" >/dev/null
+# SHA-256 is a supported native Git repository object format. A remote's
+# valid 64-digit object name must not be mistaken for a corrupt SHA-1 identity.
+sha256_repo="$tmp/sha256-source"
+sha256_remote="$tmp/sha256-remote.git"
+git init -q -b main --object-format=sha256 "$sha256_repo"
+git -C "$sha256_repo" config user.name "Offline Publication SHA256 CDC"
+git -C "$sha256_repo" config user.email "pub-sha256-cdc@example.invalid"
+printf 'sha256-base\n' > "$sha256_repo/proof.txt"
+git -C "$sha256_repo" add proof.txt
+git -C "$sha256_repo" commit -qm "sha256-base"
+git init -q --bare --object-format=sha256 "$sha256_remote"
+git -C "$sha256_repo" remote add origin "$sha256_remote"
+git -C "$sha256_repo" push -q -u origin main
+previous_repo="$repo"
+repo="$sha256_repo"
+check 0 'publication=SYNCED'
+sha256_peer="$tmp/sha256-peer"
+git clone -q -b main "$sha256_remote" "$sha256_peer"
+git -C "$sha256_peer" config user.name "Offline Publication SHA256 CDC"
+git -C "$sha256_peer" config user.email "pub-sha256-cdc@example.invalid"
+printf 'sha256-remote-advance\n' > "$sha256_peer/new-proof.txt"
+git -C "$sha256_peer" add new-proof.txt
+git -C "$sha256_peer" commit -qm "advance-sha256"
+git -C "$sha256_peer" push -q origin main
+check 23 'publication=TRACKING_REF_STALE'
+git -C "$sha256_repo" fetch -q origin refs/heads/main:refs/remotes/origin/main
+check 21 'publication=LOCAL_BEHIND_REVIEW_AND_FETCH'
+repo="$previous_repo"
 echo 'PASS publication source/main/remote contract: sync, ahead, stale, divergent, behind, missing, dirty'
