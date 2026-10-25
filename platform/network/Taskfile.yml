@@ -98,6 +98,7 @@ tasks:
       - systemctl is-active --quiet network-v2-singbox.service
       - systemctl is-active --quiet network-v2-blackbox.service
       - systemctl is-active --quiet network-v2-prometheus.service
+      - python3 scripts/monitoring-sourcecut-preflight.py --live /etc/network-v2 --check-loaded-prometheus
       - test -n "$(dig +time=2 +tries=1 @127.0.0.1 -p 25353 example.com A +short)"
       - test -n "$(dig +time=2 +tries=1 @127.0.0.1 -p 25353 example.com AAAA +short)"
       - curl --fail --silent --show-error --proxy http://127.0.0.1:28080 --connect-timeout 5 --max-time 15 -o /dev/null https://example.com/
