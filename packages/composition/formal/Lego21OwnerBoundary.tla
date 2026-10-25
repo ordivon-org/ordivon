@@ -10,17 +10,17 @@ EXTENDS Naturals
 CONSTANTS RequiresHarness, RequiresNetwork
 
 VARIABLES host, harness, network, runtime, dispatchCount, consumerEvidence,
-          admissionInputsWitness, terminalReceipt
+          sourceEvidenceBinding, admissionInputsWitness, terminalReceipt
 
 vars == <<host, harness, network, runtime, dispatchCount, consumerEvidence,
-          admissionInputsWitness, terminalReceipt>>
+          sourceEvidenceBinding, admissionInputsWitness, terminalReceipt>>
 
 HostStates == {"open", "accepted"}
 HarnessStates == {"idle", "proposed"}
 NetworkStates == {"unknown", "ready"}
 RuntimeStates == {"idle", "admitted", "running", "ambiguous", "terminal"}
 EvidenceStates == {"none", "matching", "foreign"}
-(* Runtime's observed terminal state is not its durable terminal receipt. *)
+SourceBindingStates == {"none", "admission-bound", "different-source"}
 ReceiptStates == {"none", "pending", "committed"}
 
 TypeOK ==
@@ -32,6 +32,7 @@ TypeOK ==
     /\ runtime \in RuntimeStates
     /\ dispatchCount \in 0..2
     /\ consumerEvidence \in EvidenceStates
+    /\ sourceEvidenceBinding \in SourceBindingStates
     /\ admissionInputsWitness \in BOOLEAN
     /\ terminalReceipt \in ReceiptStates
 
@@ -42,25 +43,26 @@ Init ==
     /\ runtime = "idle"
     /\ dispatchCount = 0
     /\ consumerEvidence = "none"
+    /\ sourceEvidenceBinding = "none"
     /\ admissionInputsWitness = FALSE
     /\ terminalReceipt = "none"
 
 NetworkObserve ==
     /\ network = "unknown"
     /\ network' = "ready"
-    /\ UNCHANGED <<host, harness, runtime, dispatchCount, consumerEvidence,
+    /\ UNCHANGED <<host, harness, runtime, dispatchCount, consumerEvidence, sourceEvidenceBinding,
                   admissionInputsWitness, terminalReceipt>>
 
 NetworkDegrade ==
     /\ network = "ready"
     /\ network' = "unknown"
-    /\ UNCHANGED <<host, harness, runtime, dispatchCount, consumerEvidence,
+    /\ UNCHANGED <<host, harness, runtime, dispatchCount, consumerEvidence, sourceEvidenceBinding,
                   admissionInputsWitness, terminalReceipt>>
 
 HarnessPropose ==
     /\ harness = "idle"
     /\ harness' = "proposed"
-    /\ UNCHANGED <<host, network, runtime, dispatchCount, consumerEvidence,
+    /\ UNCHANGED <<host, network, runtime, dispatchCount, consumerEvidence, sourceEvidenceBinding,
                   admissionInputsWitness, terminalReceipt>>
 
 RuntimeAdmit ==
@@ -71,43 +73,45 @@ RuntimeAdmit ==
     /\ admissionInputsWitness' =
         /\ (~RequiresHarness \/ harness = "proposed")
         /\ (~RequiresNetwork \/ network = "ready")
-    /\ UNCHANGED <<host, harness, network, dispatchCount, consumerEvidence,
-                  terminalReceipt>>
+    /\ UNCHANGED <<host, harness, network, dispatchCount, consumerEvidence, sourceEvidenceBinding, terminalReceipt>>
 
 RuntimeDispatch ==
     /\ runtime = "admitted"
     /\ dispatchCount = 0
     /\ runtime' = "running"
     /\ dispatchCount' = dispatchCount + 1
-    /\ UNCHANGED <<host, harness, network, consumerEvidence,
+    /\ UNCHANGED <<host, harness, network, consumerEvidence, sourceEvidenceBinding,
                   admissionInputsWitness, terminalReceipt>>
 
 RuntimeLoseKnowledge ==
     /\ runtime = "running"
     /\ runtime' = "ambiguous"
-    /\ UNCHANGED <<host, harness, network, dispatchCount, consumerEvidence,
+    /\ UNCHANGED <<host, harness, network, dispatchCount, consumerEvidence, sourceEvidenceBinding,
                   admissionInputsWitness, terminalReceipt>>
 
 RuntimeObserveTerminal ==
     /\ runtime \in {"running", "ambiguous"}
     /\ runtime' = "terminal"
     /\ terminalReceipt' = "pending"
-    /\ UNCHANGED <<host, harness, network, dispatchCount, consumerEvidence,
+    /\ UNCHANGED <<host, harness, network, dispatchCount, consumerEvidence, sourceEvidenceBinding,
                   admissionInputsWitness>>
 
-(* A source/Attempt-bound durable finish is separate from observing terminal. *)
+(* A durable terminal result is not identical to observing terminal state. *)
 RuntimeCommitTerminal ==
     /\ runtime = "terminal"
     /\ terminalReceipt = "pending"
     /\ terminalReceipt' = "committed"
     /\ UNCHANGED <<host, harness, network, runtime, dispatchCount,
-                  consumerEvidence, admissionInputsWitness>>
+                  consumerEvidence, sourceEvidenceBinding, admissionInputsWitness>>
 
 ConsumerObserve ==
     /\ runtime = "terminal"
     /\ consumerEvidence = "none"
+    /\ sourceEvidenceBinding = "none"
     (* Evidence can belong to this Work or a different consumer. *)
     /\ consumerEvidence' \in {"matching", "foreign"}
+    (* Abstract admission SourceCut binding; not a live digest check. *)
+    /\ sourceEvidenceBinding' \in {"admission-bound", "different-source"}
     /\ UNCHANGED <<host, harness, network, runtime, dispatchCount,
                   admissionInputsWitness, terminalReceipt>>
 
@@ -116,9 +120,10 @@ HostAccept ==
     /\ runtime = "terminal"
     (* A foreign Work's valid result is NOT evidence for this Work. *)
     /\ consumerEvidence = "matching"
+    /\ sourceEvidenceBinding = "admission-bound"
     /\ terminalReceipt = "committed"
     /\ host' = "accepted"
-    /\ UNCHANGED <<harness, network, runtime, dispatchCount, consumerEvidence,
+    /\ UNCHANGED <<harness, network, runtime, dispatchCount, consumerEvidence, sourceEvidenceBinding,
                   admissionInputsWitness, terminalReceipt>>
 
 Next ==
@@ -155,16 +160,18 @@ AmbiguityCannotBeTreatedAsCompletion ==
 NoHostAcceptanceWithoutConsumerEvidence ==
     consumerEvidence # "matching" => host = "open"
 
-(* A matching domain response alone cannot promote an uncommitted Runtime
-   terminal observation into accepted Host Work. *)
+NoHostAcceptanceWithWrongSource ==
+    sourceEvidenceBinding # "admission-bound" => host = "open"
+
+(* Correct Work/SourceCut evidence does not establish a durable Runtime finish. *)
 NoHostAcceptanceWithoutCommittedTerminalReceipt ==
     host = "accepted" => terminalReceipt = "committed"
 
-(* Intentionally false non-vacuity probe: the mismatch must be reachable
-   before the durable finish is committed, or the new guard is vacuous. *)
+(* False reachability assertion: matching source and Work may predate commit. *)
 PendingMatchedTerminalReceiptIsUnreachable ==
     ~(runtime = "terminal" /\ terminalReceipt = "pending"
-      /\ consumerEvidence = "matching" /\ host = "open")
+      /\ consumerEvidence = "matching"
+      /\ sourceEvidenceBinding = "admission-bound" /\ host = "open")
 
 (***************************************************************************)
 (* Intentionally FALSE non-vacuity probe, not an admitted safety invariant. *)
@@ -183,5 +190,9 @@ NetworkNeverDegradesAfterAdmission ==
 (***************************************************************************)
 ForeignEvidenceIsUnreachable ==
     consumerEvidence # "foreign"
+
+(* Intentionally false negative oracle: a matching Work can have wrong source. *)
+WrongSourceEvidenceIsUnreachable ==
+    ~(consumerEvidence = "matching" /\ sourceEvidenceBinding = "different-source")
 
 =============================================================================

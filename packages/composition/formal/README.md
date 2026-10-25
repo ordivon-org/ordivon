@@ -125,6 +125,33 @@ a dedicated expected-counterexample config must make TLC find an admitted
 Network degradation. A missing transition or incorrectly restricted model
 therefore fails owner verification instead of silently yielding four PASSes.
 
+
+## Admission SourceCut refinement (2026-10-25)
+
+The older `consumerEvidence = "matching"` classified only Work/consumer identity.
+It could not represent a terminal result for the correct Work whose evidence
+belongs to a **different admission-frozen source revision**. The bounded Owner
+model now also tracks `sourceEvidenceBinding` with `none`,
+`admission-bound`, and `different-source`. `ConsumerObserve` admits both
+source cases independently of Work identity; `HostAccept` requires *both*
+a matching consumer and an admission-bound source. The separate
+`NoHostAcceptanceWithWrongSource` invariant checks this safety obligation.
+
+Four native digest-verified TLC configurations explored **22, 40, 40, 22**
+distinct states without violations (Harness+Network, direct-local,
+direct-egress, Harness-local respectively). The existing Owner formal gate
+requires a negative oracle where the correct Work and wrong SourceCut must be
+reachable; this prevents silently deleting the adversarial abstract state.
+A separate temporary RED guard mutation is needed to validate that the new
+invariant can actually catch an erroneous Host acceptance.
+
+**Truth boundary:** Source binding is a *symbolic classification* supplied by
+an abstract consumer oracle. This model does not hash-check the actual Job
+plan, Git revision, Workspace digest, Host Work, or independent consumer
+receipt. Concrete owner refinement and trustworthy witness production remain
+UNKNOWN until separately qualified by those native owners. A moving Git
+`main` is not the admission-frozen source identity.
+
 ## R2.1 COMP-TERM-01: committed terminal evidence is independent of observed terminal (2026-10-25)
 
 **Typed problem LEGO:** COMP-TERM-01 = {class: STATE / EVIDENCE_QUALIFICATION / CROSS_OWNER, naturalOwner: Composition Formal, consumers: Host Work acceptance and Runtime terminal-result source, standing: FINITE_MODEL_VERIFIED; IMPLEMENTATION_REFINEMENT_UNKNOWN}. Registered here in the existing owner-owned Formal README and native tests; no new global issue registry, scheduler, verifier or proof language.
@@ -138,3 +165,17 @@ therefore fails owner verification instead of silently yielding four PASSes.
 **Proof boundary.** This is a finite abstract state-machine result, NOT a machine proof that live Host/Runtime always preserve the invariant. Model RuntimeCommitTerminal is an abstract owner guarantee, not proof of physical database commit. Concrete follow-up requires exact Work, Attempt, SourceCut, Runtime committed result, and independent domain-acceptance witnesses from their native owners. Semantic task success, fairness/liveness, bounded completion, real network authority, exact-once external effects and Rust-to-TLA refinement remain UNKNOWN. No automatic promotion from a model PASS to production PASS. No generic Minimum Sufficient Representation assumption.
 
 Mathematical LEGO reused: Lamport TLA+ transition systems and TLC; assume-guarantee contract composition; counterexample-guided abstraction refinement (Clarke et al., CAV 2000, DOI 10.1007/10722167_15). No new math engine.
+
+### Combined SourceCut + terminal-receipt owner proof, latest main merge
+
+This is the **combined** independent follow-up to the two separate historical snapshots above; do not add their state counts or claim an unlimited guarantee. Merging the protected PR #638 SourceCut model with COMP-TERM-01 kept both independent Host acceptance guards:
+
+- consumerEvidence must match the Work;
+- sourceEvidenceBinding must be the admission-frozen source;
+- terminalReceipt must be committed.
+
+TLC 2.19, using the existing SHA-256-verified v1.7.4 JAR, enumerated the joint four-Owner finite state graph under four obligation profiles: **32, 60, 60, 32 distinct states** (72, 172, 166, 74 generated respectively). All configured safety invariants passed. The native Composition `mise run verify` still runs Python tests, Ruff, its unchanged existing owner tests, and the owner Formal task. Four named intentionally false reachability probes were verified by TLC: Network readiness loss after admission, foreign Work evidence, wrong admission SourceCut, and matching Work+SourceCut with an uncommitted terminal receipt. The last reaches `consumerEvidence=matching, sourceEvidenceBinding=admission-bound, terminalReceipt=pending` without Host acceptance.
+
+In temporary non-committed model copies, **two independent RED mutations** removed (a) only the committed-receipt guard or (b) only the SourceCut guard. The same TLC independently found their expected named safety violations: Host accepted while receipt was pending, or Host accepted with a different SourceCut. Those tests demonstrate falsifiability of the two guards, not a concrete bug in live Host.
+
+Important proof gap remains: Runtime's already modeled committed-result semantics, concrete Host Work decision rules, Harness provenance, Network carrier readiness, and actual Consumer authenticity must be joined by separate exact-source and owner-native witnesses before claiming any *deployed* refinement. No new stateful services or model-checking frameworks were introduced.
