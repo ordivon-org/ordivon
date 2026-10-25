@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import argparse, datetime as dt, hashlib, json, os, platform, subprocess
+import argparse, datetime as dt, hashlib, json, os, platform, re, subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -106,6 +106,31 @@ def verify_local(path: Path):
     report = json.loads(path.read_text(), object_pairs_hook=unique_object)
     expected = build_local_report()
     failures = []
+    # This is a closed evidence projection, not a bag of optional claims.
+    # Unknown fields are not authenticated by sourceFingerprint and cannot
+    # silently become an authority signal for a downstream consumer.
+    if type(report) is not dict:
+        raise SystemExit("stale/invalid capability report: reportSchema")
+    if set(report) != set(expected):
+        failures.append("reportSchema")
+    authority = report.get("authority") if type(report) is dict else None
+    if type(authority) is not dict:
+        raise SystemExit("stale/invalid capability report: authoritySchema")
+    if set(authority) != set(expected["authority"]):
+        failures.append("authoritySchema")
+
+    accepted_at = authority.get("acceptedAt")
+    # The historical timestamp is informational; it is not a freshness
+    # certificate. Check producer-compatible UTC shape, not an invented TTL.
+    if type(accepted_at) is not str or re.fullmatch(
+        r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+00:00", accepted_at
+    ) is None:
+        failures.append("acceptedAt")
+    else:
+        try:
+            dt.datetime.fromisoformat(accepted_at)
+        except ValueError:
+            failures.append("acceptedAt")
     expected_source = expected["authority"]["sourceFingerprint"]
     plat_digest = expected["authority"]["platformFingerprint"]
     if type(report.get("schemaVersion")) is not int or report["schemaVersion"] != 2: failures.append("schemaVersion")

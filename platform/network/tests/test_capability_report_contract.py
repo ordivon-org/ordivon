@@ -83,3 +83,29 @@ def test_duplicate_network_report_members_rejected_before_graduation(tmp_path):
     result = invoke("verify-local", report)
     assert result.returncode != 0, (result.stdout, result.stderr)
     assert "duplicate" in (result.stdout + result.stderr).lower()
+
+
+@pytest.mark.parametrize(
+    ("field", "injection"),
+    (
+        ("top-level", lambda data: data.update(ready=True)),
+        ("authority", lambda data: data["authority"].update(approvedBy="foreign")),
+        ("authority-type", lambda data: data.update(authority=[])),
+        ("timestamp-invalid-date", lambda data: data["authority"].update(acceptedAt="2026-02-30T08:00:00+00:00")),
+        ("timestamp-type", lambda data: data["authority"].update(acceptedAt=True)),
+        ("timestamp-naive", lambda data: data["authority"].update(acceptedAt="2026-10-26T08:00:00")),
+        ("timestamp-junk", lambda data: data["authority"].update(acceptedAt="yesterday")),
+    ),
+)
+def test_network_report_rejects_unmodelled_claims_and_untyped_provenance(
+    tmp_path: Path, field: str, injection
+) -> None:
+    """A SourceCut digest does not justify foreign claim fields or invalid time evidence."""
+    report = tmp_path / "source-currentness-admission.json"
+    assert invoke("write-local", report).returncode == 0
+    payload = json.loads(report.read_text())
+    injection(payload)
+    report.write_text(json.dumps(payload))
+    result = invoke("verify-local", report)
+    assert result.returncode != 0, (field, result.stdout, result.stderr)
+    assert "stale/invalid capability report" in result.stderr + result.stdout
