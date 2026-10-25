@@ -38,7 +38,7 @@ def _ledger_rows(path: Path) -> dict[str, dict[str, Any]]:
     path = Path(path)
     if not path.is_file():
         raise ReconciliationArchiveError("materialization ledger does not exist")
-    db = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+    db = sqlite3.connect(f"{path.absolute().as_uri()}?mode=ro", uri=True)
     db.row_factory = sqlite3.Row
     try:
         exists = db.execute(
