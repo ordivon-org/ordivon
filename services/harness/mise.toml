@@ -113,7 +113,7 @@ fi
   java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config ProviderClaimR1.cfg ProviderClaimR1.tla
   probe_output="$(mktemp)"
   trap 'rm -f "$probe_output"' EXIT
-  for spec in "ack:UnacknowledgedPhysicalCallIsUnreachable" "expiry:ClaimReplacementIsUnreachable" "delivery:DeliveryIsUnreachable"; do
+  for spec in "ack:UnacknowledgedPhysicalCallIsUnreachable" "expiry:ClaimReplacementIsUnreachable" "delivery:DeliveryIsUnreachable" "privacy-fresh:MetadataOnlyFreshAckIsUnreachable" "privacy-redacted:MetadataOnlyRedactionIsUnreachable"; do
     IFS=: read -r label predicate <<< "$spec"
     if java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config "ProviderClaimR1.$label-probe.cfg" ProviderClaimR1.tla >"$probe_output" 2>&1; then
       echo "Harness $label counterexample probe unexpectedly passed" >&2

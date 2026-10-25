@@ -12,14 +12,17 @@ EXTENDS Naturals
 (***************************************************************************)
 
 CONSTANTS Holders, Nobody
+PrivacyModes == {"metadata-only", "bounded-content"}
 
 CallStates == {"none", "claimed", "dispatching", "unknown", "completed"}
 
 VARIABLES call, holder, generation, expired, admittedHolder,
-          admittedGeneration, physicalCalls, durableResult, acknowledged
+          admittedGeneration, physicalCalls, durableResult, acknowledged,
+          privacyMode, retainedResult, transientResultPresent
 
 vars == <<call, holder, generation, expired, admittedHolder,
-          admittedGeneration, physicalCalls, durableResult, acknowledged>>
+          admittedGeneration, physicalCalls, durableResult, acknowledged,
+          privacyMode, retainedResult, transientResultPresent>>
 
 TypeOK ==
     /\ Holders # {}
@@ -34,6 +37,9 @@ TypeOK ==
     /\ physicalCalls \in 0..2
     /\ durableResult \in BOOLEAN
     /\ acknowledged \in BOOLEAN
+    /\ privacyMode \in PrivacyModes
+    /\ retainedResult \in BOOLEAN
+    /\ transientResultPresent \in BOOLEAN
 
 Init ==
     /\ call = "none"
@@ -45,6 +51,9 @@ Init ==
     /\ physicalCalls = 0
     /\ durableResult = FALSE
     /\ acknowledged = FALSE
+    /\ privacyMode \in PrivacyModes
+    /\ retainedResult = FALSE
+    /\ transientResultPresent = FALSE
 
 Claim ==
     /\ call = "none"
@@ -53,14 +62,16 @@ Claim ==
           /\ generation' = 1
     /\ call' = "claimed"
     /\ UNCHANGED <<expired, admittedHolder, admittedGeneration,
-                  physicalCalls, durableResult, acknowledged>>
+                  physicalCalls, durableResult, acknowledged,
+                  privacyMode, retainedResult, transientResultPresent>>
 
 ExpireClaim ==
     /\ call = "claimed"
     /\ ~expired
     /\ expired' = TRUE
     /\ UNCHANGED <<call, holder, generation, admittedHolder,
-                  admittedGeneration, physicalCalls, durableResult, acknowledged>>
+                  admittedGeneration, physicalCalls, durableResult, acknowledged,
+                  privacyMode, retainedResult, transientResultPresent>>
 
 (* A CLAIMED lease may be replaced; a DISPATCHING call may not.           *)
 ReplaceExpiredClaim ==
@@ -71,7 +82,8 @@ ReplaceExpiredClaim ==
     /\ generation' = 2
     /\ expired' = FALSE
     /\ UNCHANGED <<call, admittedHolder, admittedGeneration,
-                  physicalCalls, durableResult, acknowledged>>
+                  physicalCalls, durableResult, acknowledged,
+                  privacyMode, retainedResult, transientResultPresent>>
 
 AdmitDispatch ==
     /\ call = "claimed"
@@ -80,37 +92,55 @@ AdmitDispatch ==
     /\ admittedHolder' = holder
     /\ admittedGeneration' = generation
     /\ UNCHANGED <<holder, generation, expired,
-                  physicalCalls, durableResult, acknowledged>>
+                  physicalCalls, durableResult, acknowledged,
+                  privacyMode, retainedResult, transientResultPresent>>
 
 PhysicalCall ==
     /\ call = "dispatching"
     /\ physicalCalls = 0
     /\ physicalCalls' = physicalCalls + 1
     /\ UNCHANGED <<call, holder, generation, expired, admittedHolder,
-                  admittedGeneration, durableResult, acknowledged>>
+                  admittedGeneration, durableResult, acknowledged,
+                  privacyMode, retainedResult, transientResultPresent>>
 
 (* A lost response cannot be interpreted as absence of physical effects. *)
 LoseKnowledge ==
     /\ call = "dispatching"
     /\ call' = "unknown"
     /\ UNCHANGED <<holder, generation, expired, admittedHolder,
-                  admittedGeneration, physicalCalls, durableResult, acknowledged>>
+                  admittedGeneration, physicalCalls, durableResult, acknowledged,
+                  privacyMode, retainedResult, transientResultPresent>>
 
 CommitResult ==
     /\ call = "dispatching"
     /\ physicalCalls = 1
     /\ call' = "completed"
     /\ durableResult' = TRUE
+    /\ retainedResult' = (privacyMode = "bounded-content")
+    /\ transientResultPresent' = TRUE
     /\ UNCHANGED <<holder, generation, expired, admittedHolder,
-                  admittedGeneration, physicalCalls, acknowledged>>
+                  admittedGeneration, physicalCalls, acknowledged,
+                  privacyMode>>
 
 DeliverAcknowledgement ==
     /\ call = "completed"
     /\ durableResult
+    /\ (retainedResult \/ transientResultPresent)
     /\ ~acknowledged
     /\ acknowledged' = TRUE
     /\ UNCHANGED <<call, holder, generation, expired, admittedHolder,
-                  admittedGeneration, physicalCalls, durableResult>>
+                  admittedGeneration, physicalCalls, durableResult,
+                  privacyMode, retainedResult, transientResultPresent>>
+
+(* A lost ephemeral result cannot be recovered from metadata-only digest. *)
+LoseTransientResult ==
+    /\ call = "completed"
+    /\ transientResultPresent
+    /\ ~acknowledged
+    /\ transientResultPresent' = FALSE
+    /\ UNCHANGED <<call, holder, generation, expired, admittedHolder,
+                  admittedGeneration, physicalCalls, durableResult,
+                  acknowledged, privacyMode, retainedResult>>
 
 Next ==
     \/ Claim
@@ -121,12 +151,19 @@ Next ==
     \/ LoseKnowledge
     \/ CommitResult
     \/ DeliverAcknowledgement
+    \/ LoseTransientResult
 
 Spec == Init /\ [][Next]_vars
 
 AtMostOnePhysicalCall == physicalCalls <= 1
 CommittedResultNeedsPhysicalEvidence == durableResult => physicalCalls = 1
 NoAckWithoutDurableResult == acknowledged => durableResult
+NoAckWithoutPermittedResult ==
+    acknowledged => (durableResult /\ (retainedResult \/ transientResultPresent))
+NoRetainedContentUnderMetadataOnly ==
+    privacyMode = "metadata-only" => ~retainedResult
+NoResultEvidenceBeforeCommit ==
+    (retainedResult \/ transientResultPresent) => durableResult
 AdmittedTokenMustMatchCurrentClaim ==
     call \in {"dispatching", "unknown", "completed"} =>
       /\ holder = admittedHolder
@@ -148,5 +185,12 @@ ClaimReplacementIsUnreachable ==
     ~(generation = 2 /\ call = "claimed")
 
 DeliveryIsUnreachable == ~acknowledged
+
+(* Both fresh metadata-only acknowledgement and redacted loss must be reachable. *)
+MetadataOnlyFreshAckIsUnreachable ==
+    ~(privacyMode = "metadata-only" /\ acknowledged)
+MetadataOnlyRedactionIsUnreachable ==
+    ~(privacyMode = "metadata-only" /\ durableResult
+      /\ ~transientResultPresent /\ ~acknowledged)
 
 =============================================================================
