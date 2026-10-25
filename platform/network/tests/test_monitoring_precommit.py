@@ -27,6 +27,26 @@ def _files(root: Path, *, blackbox: bytes = b"modules: {}\\n", prometheus: bytes
         destination.write_bytes(data)
 
 
+@pytest.mark.parametrize("root_link", ["source", "live", "dangling-live"])
+def test_monitoring_preflight_rejects_root_symlink_before_install(tmp_path, root_link):
+    """A symlink at the root escapes the two declared monitoring Owner trees."""
+    owner = _load()
+    source, live = tmp_path / "source", tmp_path / "live"
+    if root_link == "source":
+        outside = tmp_path / "outside-source"
+        _files(outside)
+        source.symlink_to(outside, target_is_directory=True)
+    else:
+        _files(source)
+        outside = tmp_path / "outside-live"
+        if root_link == "live":
+            outside.mkdir()
+        live.symlink_to(outside, target_is_directory=True)
+
+    with pytest.raises(ValueError, match="monitoring root"):
+        owner.verify(source, live)
+
+
 def test_first_install_and_idempotent_sourcecut(tmp_path):
     owner = _load()
     source, live = tmp_path / "source", tmp_path / "live"
