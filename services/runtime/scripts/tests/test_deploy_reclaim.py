@@ -1456,7 +1456,10 @@ class DeployReclaimTests(unittest.TestCase):
             fence_path = module["admission_fence_path"](database)
             self.assertEqual(fence_path, root / "admission.lock")
 
+            release_started = threading.Event()
+
             def release_job() -> None:
+                release_started.set()
                 time.sleep(0.15)
                 with closing(sqlite3.connect(database)) as connection:
                     connection.execute("UPDATE jobs SET resolution='succeeded' WHERE job_id='job-active'")
@@ -1464,20 +1467,27 @@ class DeployReclaimTests(unittest.TestCase):
                     connection.commit()
 
             release = threading.Thread(target=release_job)
-            release.start()
             started = time.monotonic()
-            fence = module["acquire_exclusive_admission_fence"](database)
+            release.start()
             try:
-                self.assertEqual(module["wait_for_execution_drain"](database, 2.0), [])
-                competing = fence_path.open("a+")
+                # Keep the bounded drain clock independent of scheduler delay
+                # before the fixture writer has actually entered its thread.
+                self.assertTrue(release_started.wait(timeout=5.0))
+                fence = module["acquire_exclusive_admission_fence"](database)
                 try:
-                    with self.assertRaises(BlockingIOError):
-                        fcntl.flock(competing.fileno(), fcntl.LOCK_SH | fcntl.LOCK_NB)
+                    self.assertEqual(module["wait_for_execution_drain"](database, 5.0), [])
+                    competing = fence_path.open("a+")
+                    try:
+                        with self.assertRaises(BlockingIOError):
+                            fcntl.flock(competing.fileno(), fcntl.LOCK_SH | fcntl.LOCK_NB)
+                    finally:
+                        competing.close()
                 finally:
-                    competing.close()
+                    fence.close()
             finally:
-                fence.close()
-            release.join(timeout=2)
+                # Otherwise a failed assertion can delete TemporaryDirectory
+                # before the writer opens its SQLite connection.
+                release.join()
             self.assertGreaterEqual(time.monotonic() - started, 0.1)
 
     def test_deploy_drain_timeout_reports_remaining_jobs_without_mutation(self) -> None:
