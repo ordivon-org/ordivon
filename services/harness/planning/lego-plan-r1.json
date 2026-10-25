@@ -119,7 +119,8 @@
         "Live A/B MemoryRuntime H04 fixture admits only exact requestId-to-digest replay, disjoint edit intervals, and one producer per file; malformed requests cannot emit a successful effect receipt.",
         "Temporal Worker deployment derives four exact runtime package versions solely from the installed requirements freeze, rejects stale/invalid source projections, and evaluates runtimeVersionsExact using one observed interpreter state per Plan.",
         "Finite model separates at-most-one physical Provider effect, durable result, ambiguous outcome and caller acknowledgement. Live delivery is not entailed by TLC PASS.",
-        "Durable ConversationRelay SQLite materialization transitions validate the exact post-write receipt before COMMIT; missing or malformed readback must ROLLBACK and fail with CarrierConflict. This contract holds for intent, effect attempt, ordinary outcome, and human-resume claim under Python -O, without claiming external provider atomicity."
+        "Durable ConversationRelay SQLite materialization transitions validate the exact post-write receipt before COMMIT; missing or malformed readback must ROLLBACK and fail with CarrierConflict. This contract holds for intent, effect attempt, ordinary outcome, and human-resume claim under Python -O, without claiming external provider atomicity.",
+        "The Python -O qualification requires executable, non-elided SQL-state postconditions for adverse receipt markers and persisted row standings; two deliberately unequal witnesses must still raise AssertionError in both optimized and standard interpreters. A pytest exit-zero without these checks is not durable receipt proof."
       ]
     }
   ],
