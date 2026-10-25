@@ -4,9 +4,11 @@
 from __future__ import annotations
 
 import argparse
+import ctypes
 import hashlib
 import json
 import os
+import errno
 import shutil
 import sqlite3
 import sys
@@ -138,11 +140,35 @@ def restore_snapshot(source: Path, destination: Path) -> Path:
         # check alone does not qualify the actual restore artifact.
         load_and_verify(staging)
         verify_sqlite(staging / "registry.sqlite3")
-        os.replace(staging, destination)
+        publish_restored_directory(staging, destination)
     except Exception:
         shutil.rmtree(staging, ignore_errors=True)
         raise
     return destination
+
+
+def publish_restored_directory(staging: Path, destination: Path) -> None:
+    """Publish a new restore atomically, never replacing another owner.
+
+    The earlier destination.exists() check is only a preflight, not a
+    concurrency fence. Linux uses the kernel RENAME_NOREPLACE primitive.
+    """
+    if sys.platform.startswith("linux"):
+        try:
+            renameat2 = ctypes.CDLL(None, use_errno=True).renameat2
+        except AttributeError as error:
+            raise OSError(errno.ENOSYS, "atomic no-replace rename unavailable") from error
+        renameat2.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
+        renameat2.restype = ctypes.c_int
+        # Native Linux ABI: AT_FDCWD=-100, RENAME_NOREPLACE=1.
+        if renameat2(-100, os.fsencode(staging), -100, os.fsencode(destination), 1) != 0:
+            code = ctypes.get_errno()
+            raise OSError(code, os.strerror(code), str(destination))
+    elif os.name == "nt":
+        # Windows os.rename fails if the target already exists.
+        os.rename(staging, destination)
+    else:
+        raise OSError(errno.ENOSYS, "atomic no-replace directory publication unavailable")
 
 
 def parse_args() -> argparse.Namespace:
