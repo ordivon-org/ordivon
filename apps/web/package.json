@@ -28,7 +28,7 @@
     "@simplewebauthn/browser": "14.0.0",
     "@types/node": "26.6.5",
     "oauth4webapi": "3.8.8",
-    "playwright": "1.63.0",
+    "playwright": "1.64.1",
     "typescript": "7.0.2"
   }
 }
