@@ -3,12 +3,13 @@ from __future__ import annotations
 import ast
 import json
 import math
-from decimal import Decimal
 import re
+from decimal import Decimal
 from graphlib import CycleError, TopologicalSorter
-import tomllib
 from pathlib import Path
 from typing import Any
+
+import tomllib
 
 ROOT = Path(__file__).resolve().parents[2]
 CURRENT = ROOT / "docs" / "architecture" / "CURRENT_ARCHITECTURE.md"
@@ -234,6 +235,28 @@ def validate_owner_lego_graph(plan: dict[str, Any]) -> None:
             raise ArchitectureDocsError(f"unknown LEGO slice node in {identity}")
         if len(refs) != len(set(refs)):
             raise ArchitectureDocsError(f"duplicate LEGO slice node in {identity}")
+
+    # A blocked slice is a derived claim over the *current* declared
+    # prerequisite graph, not a historical reason to keep work blocked.
+    # Do not infer completion from released blockers; the slice stays
+    # PROPOSED until its own acceptance evidence exists.
+    slice_states = {row["id"]: row.get("status") for row in slices}
+    for row in slices:
+        state = row.get("status")
+        if not isinstance(state, str) or not state.startswith("BLOCKED_ON_"):
+            continue
+        blockers = row.get("blockers")
+        if (
+            not isinstance(blockers, list)
+            or not blockers
+            or any(not isinstance(ref, str) or ref not in slice_states for ref in blockers)
+            or len(blockers) != len(set(blockers))
+            or state != "BLOCKED_ON_" + "_".join(blockers)
+            or all(slice_states[ref] == "COMPLETE" for ref in blockers)
+        ):
+            raise ArchitectureDocsError(
+                f"invalid LEGO blocking prerequisites: {row['id']}"
+            )
 
     # Typed relations are structural; OBSERVATION/STATE cycles are allowed.
     _validated_owner_lego_edges(plan.get("edges", []), identities)
@@ -636,18 +659,19 @@ def validate_formal_issue_census(
             if cohort is not None:
                 cohort_ids.update(cohort)
             source_proof = entry.get("sourceQualification")
-            if entry["disposition"] == "PORT_REQUIRED_OWNER_EFFECT":
-                # An actual port is not a skip. File/blob observations alone
-                # cannot establish an accepted native consumer behavior.
-                if (
+            # A port cannot be authorized by a historical blob match.
+            if (
+                entry["disposition"] == "PORT_REQUIRED_OWNER_EFFECT"
+                and (
                     entry["evidenceScope"] != "NATIVE_CONSUMER_PASS"
                     or not isinstance(source_proof, dict)
                     or source_proof.get("branchDeletionAllowed") is not False
-                ):
-                    raise ArchitectureDocsError(
-                        "PORT_REQUIRED_OWNER_EFFECT requires native Owner acceptance "
-                        "and cannot authorize branch deletion"
-                    )
+                )
+            ):
+                raise ArchitectureDocsError(
+                    "PORT_REQUIRED_OWNER_EFFECT requires native Owner acceptance "
+                    "and cannot authorize branch deletion"
+                )
             if source_proof is not None:
                 if not isinstance(source_proof, dict):
                     raise ArchitectureDocsError("invalid historical Git source qualification")

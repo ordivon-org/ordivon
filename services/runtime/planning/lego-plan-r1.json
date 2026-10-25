@@ -862,7 +862,7 @@
     {
       "id": "RW4",
       "objective": "Extract reusable control and evidence LEGO without recreating generic Execution Fabric or Effect infrastructure.",
-      "status": "BLOCKED_ON_RW1_RW2",
+      "status": "PROPOSED",
       "nodeIds": [
         "R12",
         "R13"
@@ -873,10 +873,7 @@
         "Self-release remains operation-specific; opaque commands remain effect-opaque."
       ],
       "evidence": [],
-      "blockers": [
-        "RW1",
-        "RW2"
-      ],
+      "blockers": [],
       "nextAction": "Extract the smallest recurring primitive first and reject any abstraction that requires a second durable lifecycle."
     },
     {
