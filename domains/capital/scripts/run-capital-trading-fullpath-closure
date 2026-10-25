@@ -86,7 +86,7 @@ def main() -> int:
             'liveEndpoint':False,
         },
         'capitalResolution':{
-            'provider':'SQLite 3.53.1 via canonical Python 3.14.7',
+            'provider':c['accountingProvider'],
             'standing':c['standing'],
             'restartCount':c['restartCount'],
             'exactConsumeReplayStatus':c['exactConsumeReplayStatus'],
