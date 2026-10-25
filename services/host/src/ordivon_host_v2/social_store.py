@@ -326,9 +326,9 @@ class SocialStore:
     ) -> dict[str, Any]:
         if direction not in {"outgoing", "incoming", "both"}:
             raise ValueError("direction must be outgoing, incoming, or both")
-        if after_change_sequence < 0:
+        if type(after_change_sequence) is not int or after_change_sequence < 0:
             raise ValueError("after_change_sequence must be non-negative")
-        if not 1 <= limit <= 500:
+        if type(limit) is not int or not 1 <= limit <= 500:
             raise ValueError("limit must be in [1,500]")
         validate_max_bytes(max_bytes)
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
@@ -505,7 +505,12 @@ class SocialStore:
         topic_limit: int = 200,
         max_bytes: int = DEFAULT_SPACE_MAX_BYTES,
     ) -> dict[str, Any]:
-        if not 1 <= participant_limit <= 200 or not 1 <= topic_limit <= 200:
+        if (
+            type(participant_limit) is not int
+            or type(topic_limit) is not int
+            or not 1 <= participant_limit <= 200
+            or not 1 <= topic_limit <= 200
+        ):
             raise ValueError("embedded participant/topic limits must be in [1,200]")
         validate_max_bytes(max_bytes, minimum=MIN_SPACE_MAX_BYTES)
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
@@ -526,7 +531,7 @@ class SocialStore:
         limit: int = 100,
         max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
     ) -> dict[str, Any]:
-        if not 1 <= limit <= 500:
+        if type(limit) is not int or not 1 <= limit <= 500:
             raise ValueError("limit must be in [1,500]")
         validate_max_bytes(max_bytes)
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
@@ -573,7 +578,7 @@ class SocialStore:
         limit: int = 100,
         max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
     ) -> dict[str, Any]:
-        if not 1 <= limit <= 500:
+        if type(limit) is not int or not 1 <= limit <= 500:
             raise ValueError("limit must be in [1,500]")
         validate_max_bytes(max_bytes)
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
@@ -627,7 +632,7 @@ class SocialStore:
         limit: int = 100,
         max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
     ) -> dict[str, Any]:
-        if not 1 <= limit <= 500:
+        if type(limit) is not int or not 1 <= limit <= 500:
             raise ValueError("limit must be in [1,500]")
         validate_max_bytes(max_bytes)
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
@@ -710,7 +715,7 @@ class SocialStore:
         cursor: int,
         client_request_id: str,
     ) -> dict[str, Any]:
-        if cursor < 0:
+        if type(cursor) is not int or cursor < 0:
             raise ValueError("cursor must be non-negative")
         request = {
             "operation": "topic.cursor.ack",
@@ -772,7 +777,7 @@ class SocialStore:
         before_space_ref: str | None = None,
         max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
     ) -> dict[str, Any]:
-        if not 1 <= limit <= 200:
+        if type(limit) is not int or not 1 <= limit <= 200:
             raise ValueError("limit must be in [1,200]")
         if (before_created_at is None) != (before_space_ref is None):
             raise ValueError("before_created_at and before_space_ref must be supplied together")
@@ -888,9 +893,9 @@ class SocialStore:
     ) -> dict[str, Any]:
         if not query.strip():
             raise ValueError("query must be non-empty")
-        if not 1 <= limit <= 200:
+        if type(limit) is not int or not 1 <= limit <= 200:
             raise ValueError("limit must be in [1,200]")
-        if before_sequence is not None and before_sequence < 1:
+        if before_sequence is not None and (type(before_sequence) is not int or before_sequence < 1):
             raise ValueError("before_sequence must be positive")
         validate_max_bytes(max_bytes, minimum=MIN_MESSAGE_COLLECTION_MAX_BYTES)
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
@@ -965,9 +970,9 @@ class SocialStore:
         limit: int = 50,
         max_bytes: int = DEFAULT_MESSAGE_COLLECTION_MAX_BYTES,
     ) -> dict[str, Any]:
-        if not 1 <= limit <= 500:
+        if type(limit) is not int or not 1 <= limit <= 500:
             raise ValueError("limit must be in [1,500]")
-        if after_sequence < 0:
+        if type(after_sequence) is not int or after_sequence < 0:
             raise ValueError("after_sequence must be non-negative")
         validate_max_bytes(max_bytes, minimum=MIN_MESSAGE_COLLECTION_MAX_BYTES)
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
