@@ -63,6 +63,66 @@ def declare_actor(store: WorkStore, actor_ref: str) -> None:
     )
 
 
+def test_work_create_same_semantics_is_linearizable_under_parallel_requests() -> None:
+    """One WorkRef, one durable winner: response loss or parallel retries cannot leak SQL."""
+    assert DSN is not None
+    store = WorkStore(DSN)
+    actor, work = refs("create-cas")
+    declare_actor(store, actor)
+    payload = WorkCreateInput(
+        work_ref=work,
+        kind="investigation",
+        actor_ref=actor,
+        initial_snapshot=snapshot("same-semantics"),
+    )
+    barrier = Barrier(12)
+
+    def create(index: int) -> str:
+        barrier.wait(timeout=15)
+        try:
+            return store.create_work(
+                payload, client_request_id=f"create:{work}:{index}"
+            )["admission"]
+        except Exception as error:
+            return type(error).__name__
+
+    with ThreadPoolExecutor(max_workers=12) as pool:
+        actual = list(pool.map(create, range(12)))
+    assert sorted(actual) == ["committed", *(["existing"] * 11)], actual
+    assert store.get_work(work)["revision"] == 1
+
+
+def test_work_create_parallel_incompatible_snapshots_conflict_as_domain_errors() -> None:
+    """Different first snapshots have exactly one winner, no DB error leakage."""
+    assert DSN is not None
+    store = WorkStore(DSN)
+    actor, work = refs("create-incompatible")
+    declare_actor(store, actor)
+    barrier = Barrier(2)
+
+    def create(frontier: str) -> str:
+        barrier.wait(timeout=15)
+        try:
+            result = store.create_work(
+                WorkCreateInput(
+                    work_ref=work,
+                    kind="investigation",
+                    actor_ref=actor,
+                    initial_snapshot=snapshot(frontier),
+                ),
+                client_request_id=f"create:{work}:{frontier}",
+            )
+            return result["admission"]
+        except ConflictError:
+            return "conflict"
+        except Exception as error:
+            return type(error).__name__
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        actual = list(pool.map(create, ("first", "second")))
+    assert sorted(actual) == ["committed", "conflict"], actual
+
+
 def test_work_snapshot_cas_race_has_one_winner() -> None:
     assert DSN is not None
     store = WorkStore(DSN)
