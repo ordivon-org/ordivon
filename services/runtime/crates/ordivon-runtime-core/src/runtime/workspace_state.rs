@@ -1,8 +1,9 @@
 use super::{RuntimeError, RuntimeErrorCode, RuntimeResult, RuntimeWorkspaceSummary};
-use crate::universal::WorkspaceRecord;
+use crate::universal::{WorkspaceHeadMode, WorkspaceRecord};
 
 pub(crate) struct WorkspaceProjectionFacts {
     pub current_head_revision: String,
+    pub head_mode: WorkspaceHeadMode,
     pub dirty: bool,
     pub source_state_digest: Option<String>,
     pub active_job_ids: Vec<String>,
@@ -18,7 +19,7 @@ pub(crate) fn project_workspace_summary(
         source_revision: record.source_revision.clone(),
         current_head_revision: facts.current_head_revision,
         created_at_ms: u64::try_from(record.created_unix_ms).unwrap_or(u64::MAX),
-        head_mode: "detached".to_string(),
+        head_mode: facts.head_mode.as_str().to_string(),
         dirty: facts.dirty,
         source_state_digest: facts.source_state_digest,
         active_job_ids: facts.active_job_ids,
@@ -90,6 +91,7 @@ mod tests {
             &record(),
             WorkspaceProjectionFacts {
                 current_head_revision: "b".repeat(40),
+                head_mode: WorkspaceHeadMode::Detached,
                 dirty: true,
                 source_state_digest: Some(format!("sha256:{}", "c".repeat(64))),
                 active_job_ids: vec!["job-1".to_string()],

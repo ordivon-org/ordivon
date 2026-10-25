@@ -38,13 +38,13 @@ pub(crate) use types::{
     WorkspaceDiffResult, WorkspaceReadResult, WorkspaceReadSliceResult, WorkspaceRecord,
     WorkspaceWriteRequest, WorkspaceWriteResult,
 };
+#[cfg(any(feature = "transactional-runtime", test))]
+pub use workspace::workspace_source_state_digest;
 pub(crate) use workspace::{
     create_git_workspace_record, load_workspace_record, read_workspace_text, workspace_diff,
 };
 pub use workspace::{read_workspace_content, read_workspace_file, workspace_changes_page};
 pub(crate) use workspace::{remove_git_workspace, write_workspace_text};
-#[cfg(any(feature = "transactional-runtime", test))]
-pub use workspace::{workspace_head_revision, workspace_source_state_digest};
 
 pub(crate) use config::canonical_directory;
 pub(crate) use fsutil::{
@@ -81,7 +81,7 @@ pub(crate) use workspace::workspace_source_state_digest_at;
 pub(crate) use workspace::{
     list_open_workspace_record_inventory, preflight_workspace_write_path, remove_workspace_file,
     resolve_existing_workspace_path, workspace_cleanup_dependents, workspace_git_common_dir_at,
-    workspace_head_and_dirty_at,
+    workspace_head_and_dirty_at, WorkspaceHeadMode,
 };
 #[cfg(feature = "operator-tools")]
 pub(crate) use workspace::{workspace_change_projection_at, workspace_head_revision_at};

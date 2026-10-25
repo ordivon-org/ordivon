@@ -8,11 +8,13 @@
       "id": "I01",
       "name": "WorkspaceLineage",
       "owner": "Runtime Workspace",
-      "rule": "Opening/base sourceRevision and currentHeadRevision are distinct durable/projection facts; reconnect must not reconstruct them from caller memory.",
-      "negative": "Current HEAD must not overwrite opening lineage.",
+      "rule": "Opening/base sourceRevision and currentHeadRevision remain distinct; the live headMode is derived from the same Git status-v2 branch.oid/branch.head observation and is detached iff branch.head=(detached), otherwise branch for a non-empty branch header. A missing header is not proof of detached mode.",
+      "negative": "A live branch HEAD must not be misrepresented as detached, and current Git state must not overwrite immutable opening lineage.",
       "proof": [
         "crates/ordivon-runtime-core/src/runtime/tests.rs::workspace_get_distinguishes_opening_revision_from_current_head",
-        "crates/ordivon-runtime-mcp/src/server/tests/projection_contract.rs::workspace_projection_output_schema_distinguishes_lineage_from_current_head"
+        "crates/ordivon-runtime-mcp/src/server/tests/projection_contract.rs::workspace_projection_output_schema_distinguishes_lineage_from_current_head",
+        "crates/ordivon-runtime-core/src/runtime/tests.rs::workspace_get_and_list_reflect_real_git_head_mode_after_branch_switch",
+        "crates/ordivon-runtime-core/src/universal/tests.rs::workspace_head_and_dirty_probe_combines_detached_head_and_worktree_state"
       ]
     },
     {

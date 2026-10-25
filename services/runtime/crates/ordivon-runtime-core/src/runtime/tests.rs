@@ -4090,6 +4090,55 @@ fn workspace_get_distinguishes_opening_revision_from_current_head() {
 }
 
 #[test]
+fn workspace_get_and_list_reflect_real_git_head_mode_after_branch_switch() {
+    let (_sandbox, runtime, executor) =
+        workspace_fixture("workspace-headmode-reality", "workspace-headmode-reality");
+    let workspace_id = "workspace-headmode-reality";
+    let initial = runtime
+        .get_workspace(&RuntimeWorkspaceGetRequest {
+            schema_version: RUNTIME_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+        })
+        .unwrap();
+    assert_eq!(initial.head_mode, "detached");
+
+    let path = executor.workspace_path(workspace_id);
+    run_git_command(&path, &["switch", "-c", "runtime-headmode-contract"]);
+    let expected_revision = git_output(&path, &["rev-parse", "HEAD"]);
+
+    let observed = runtime
+        .get_workspace(&RuntimeWorkspaceGetRequest {
+            schema_version: RUNTIME_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+        })
+        .unwrap();
+    assert_eq!(observed.current_head_revision, expected_revision);
+    assert_eq!(
+        observed.head_mode, "branch",
+        "get must not falsely report a detached HEAD"
+    );
+
+    let listed = runtime
+        .list_workspaces(&RuntimeWorkspaceListRequest {
+            schema_version: RUNTIME_SCHEMA_VERSION,
+            limit: 20,
+            cursor: None,
+            include_source_state_digest: false,
+        })
+        .unwrap();
+    let item = listed
+        .workspaces
+        .iter()
+        .find(|w| w.workspace_id == workspace_id)
+        .unwrap();
+    assert_eq!(item.current_head_revision, expected_revision);
+    assert_eq!(
+        item.head_mode, "branch",
+        "list must match live Git head mode"
+    );
+}
+
+#[test]
 fn workspace_get_invalid_unborn_head_is_a_typed_revision_failure() {
     let (_sandbox, runtime, executor) =
         workspace_fixture("workspace-get-unborn-type", "workspace-get-unborn-type");

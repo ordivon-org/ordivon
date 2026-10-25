@@ -51,13 +51,12 @@ use crate::universal::{
     load_workspace_record, mutate_workspace, open_directory_nofollow, open_regular_file_beneath,
     remove_git_workspace, rename_path_durable, resolve_workspace_cwd, sha256_bytes, sha256_file,
     sync_directory as sync_universal_directory, workspace_cleanup_dependents,
-    workspace_git_common_dir_at, workspace_head_and_dirty_at, workspace_head_revision,
-    workspace_source_state_digest, write_bytes_atomic, write_json_atomic,
-    CompactWorkspaceOpenResult, GitWorkspaceCreateRequest, RunnerExecutionStep,
-    RunnerHostDependencyCommitment, RunnerInputCommitment, RunnerPayloadConfig, RunnerProgress,
-    RunnerRequest, RunnerResult, RunnerStartEvidence, UniversalExecutorConfig,
-    WorkspaceCloseRequest, WorkspaceCloseResult, WorkspaceDiffRequest, WorkspaceMutateRequest,
-    WorkspaceMutateResult, UNIVERSAL_EXEC_SCHEMA_VERSION,
+    workspace_git_common_dir_at, workspace_head_and_dirty_at, workspace_source_state_digest,
+    write_bytes_atomic, write_json_atomic, CompactWorkspaceOpenResult, GitWorkspaceCreateRequest,
+    RunnerExecutionStep, RunnerHostDependencyCommitment, RunnerInputCommitment,
+    RunnerPayloadConfig, RunnerProgress, RunnerRequest, RunnerResult, RunnerStartEvidence,
+    UniversalExecutorConfig, WorkspaceCloseRequest, WorkspaceCloseResult, WorkspaceDiffRequest,
+    WorkspaceMutateRequest, WorkspaceMutateResult, UNIVERSAL_EXEC_SCHEMA_VERSION,
 };
 
 const RUNNER_REQUEST_FILE: &str = "request.json";
