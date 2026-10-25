@@ -1,4 +1,5 @@
 import importlib.util
+import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
@@ -29,6 +30,24 @@ class Cf07MetadataSnapshotTests(unittest.TestCase):
         self.assertIn("oldestAgeSeconds", result)
         self.assertNotIn("secret-a", str(result))
         self.assertNotIn("secret-b", str(result))
+
+    def test_ledger_snapshot_exact_filename_with_uri_delimiters(self) -> None:
+        for name in ("ledger?data.sqlite", "ledger#data.sqlite", "ledger%23data.sqlite"):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as directory:
+                ledger = Path(directory) / name
+                db = sqlite3.connect(ledger)
+                try:
+                    db.execute(
+                        "CREATE TABLE requests (standing TEXT, effect_generation INTEGER, created_at_ms INTEGER, updated_at_ms INTEGER)"
+                    )
+                    db.execute("INSERT INTO requests VALUES ('unknown', 3, 1000, 2000)")
+                    db.commit()
+                finally:
+                    db.close()
+                result = snapshot._ledger_aggregate(ledger, now_ms=3000)
+                self.assertTrue(result["available"])
+                self.assertEqual(result["totalRequests"], 1)
+                self.assertEqual(result["standingCounts"], {"unknown": 1})
 
     def test_percentile_is_deterministic(self) -> None:
         self.assertEqual(snapshot._percentile([], 0.9), None)

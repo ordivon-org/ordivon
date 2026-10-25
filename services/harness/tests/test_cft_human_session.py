@@ -12,6 +12,18 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/cft_human_session.py"
 
 
+@pytest.mark.parametrize("dirname", ["sessions?root", "sessions#root", "sessions%23root"])
+def test_session_read_only_connection_uses_exact_ledger_dir(tmp_path: Path, dirname: str) -> None:
+    from contextlib import closing
+
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from cft_human_session import DurableSessionAuthority
+
+    owner = DurableSessionAuthority(root=tmp_path / dirname, slots=(41,))
+    with closing(owner._connect(read_only=True)) as db:
+        assert db.execute("SELECT COUNT(*) FROM sessions").fetchone()[0] == 0
+
+
 class CftHumanSessionDoctorTests(unittest.TestCase):
     @pytest.mark.node_qualification
     def test_doctor_projects_standard_session_dependencies_without_mutation(self):
