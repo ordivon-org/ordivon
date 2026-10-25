@@ -5,6 +5,7 @@ import importlib.util
 import sqlite3
 import tempfile
 import unittest
+from contextlib import closing
 from pathlib import Path
 
 SCRIPT = Path(__file__).resolve().parents[1] / "pg_retention_census.py"
@@ -19,7 +20,7 @@ class RetentionCensusTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.path = Path(self.tmp.name) / "runtime#physical?source%.sqlite"
-        with sqlite3.connect(self.path) as c:
+        with closing(sqlite3.connect(self.path)) as c, c:
             c.executescript("""
                 CREATE TABLE jobs(job_id TEXT PRIMARY KEY,resolution TEXT);
                 CREATE TABLE attempts(
@@ -56,7 +57,7 @@ class RetentionCensusTests(unittest.TestCase):
         self.assertEqual(r["admission"], "STOP_UNTIL_CONSUMER_AND_PG_PHYSICAL_PARITY_PROVEN")
 
     def test_terminal_job_with_held_reservation_is_still_live(self) -> None:
-        with sqlite3.connect(self.path) as db:
+        with closing(sqlite3.connect(self.path)) as db, db:
             db.execute("UPDATE concurrency_reservations SET state='held_orphaned' "
                        "WHERE attempt_id='a2'")
         r = mod.census(self.path)
@@ -66,7 +67,7 @@ class RetentionCensusTests(unittest.TestCase):
         self.assertEqual(r["historicalReview"]["terminalJobs"], 1)
 
     def test_recovery_required_terminal_job_is_still_live(self) -> None:
-        with sqlite3.connect(self.path) as db:
+        with closing(sqlite3.connect(self.path)) as db, db:
             db.execute("UPDATE attempts SET recovery_required=1 WHERE attempt_id='a2'")
         r = mod.census(self.path)
         self.assertEqual(
@@ -83,19 +84,19 @@ class RetentionCensusTests(unittest.TestCase):
         self.assertEqual(self.path.read_bytes(), before)
 
     def test_missing_schema_fails_closed(self) -> None:
-        with sqlite3.connect(self.path) as db:
+        with closing(sqlite3.connect(self.path)) as db, db:
             db.execute("DROP TABLE idempotency_keys")
         with self.assertRaisesRegex(mod.SourceUnqualified, "idempotency_keys"):
             mod.census(self.path)
 
     def test_unclassified_new_table_fails_closed(self) -> None:
-        with sqlite3.connect(self.path) as db:
+        with closing(sqlite3.connect(self.path)) as db, db:
             db.execute("CREATE TABLE orphan_future_store(data TEXT)")
         with self.assertRaisesRegex(mod.SourceUnqualified, "unclassified Registry tables"):
             mod.census(self.path)
 
     def test_orphan_attempt_fails_closed(self) -> None:
-        with sqlite3.connect(self.path) as db:
+        with closing(sqlite3.connect(self.path)) as db, db:
             db.execute("INSERT INTO attempts VALUES ('bad','absent','running',0)")
         with self.assertRaisesRegex(mod.SourceUnqualified, "missing parent Jobs"):
             mod.census(self.path)
