@@ -149,10 +149,12 @@
       "acceptance": [
         "FORMAL-02 owner-local plan, census input and owners.toml must be regular source-tree files; symlink and traversal impersonation fail closed.",
         "A valid owner-local plan passes without claiming domain correctness; recheck only on changed source or consumer assumptions.",
-        "For a named source-bound R2.1 Python consumer witness, an unconditional module-level pytest skip/xfail must fail the native AST evidence check even if the test function name exists; conditionally skipped integration tests never imply execution PASS."
+        "For a named source-bound R2.1 Python consumer witness, an unconditional module-level pytest skip/xfail must fail the native AST evidence check even if the test function name exists; conditionally skipped integration tests never imply execution PASS.",
+        "DB-PG-MIGRATE-01: the existing SQL dialect Owner gate records 26 Runtime/Harness source paths and 59 direct SQLite backend API callsites as explicit migration debt, rejects a new unqualified core SQLite authority path or silent API growth, and does not claim PostgreSQL cutover."
       ],
       "blockers": [
-        "The formal issue census records evidence from its observed SourceCut; neither slice grants live runtime authority."
+        "The formal issue census records evidence from its observed SourceCut; neither slice grants live runtime authority.",
+        "Core Runtime Job/Attempt registry and Harness event/automation ledgers remain on SQLite. PostgreSQL transition must preserve same-Attempt identity, CAS/leases, foreign keys, event ordering, restore semantics and source-digest readback; only native owner replay and real PG transaction consumer tests can certify it."
       ],
       "nextAction": "Keep owner-native source-identity and exact CDC tests; do not introduce new authorities."
     }

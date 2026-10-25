@@ -3,6 +3,8 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
+import pytest
+
 from ordivon_capital.accounting.durable import (
     CapitalAccountNamespace,
     CapitalAccountRole,
@@ -169,3 +171,109 @@ def test_sqlite_runtime_and_journal_mode_are_current_canonical_runtime(tmp_path)
     assert mode == "wal"
     assert sync == 2
     ledger.close()
+
+
+@pytest.mark.parametrize("second_amount", [7, 9])
+def test_concurrent_transfer_natural_key_is_atomic_before_pg_cutover(tmp_path, second_amount):
+    """Two independent DB connections must not leak a raw uniqueness failure.
+
+    This qualification remains necessary while the SQLite accounting consumer
+    is being replaced by the PostgreSQL-first store.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier, BrokenBarrierError
+
+    database = tmp_path / "concurrent.sqlite3"
+    with SQLiteAccountingLedger(database) as ledger:
+        assert ledger.create_account(AccountingAccount(101)) is LedgerApplyStatus.CREATED
+        assert ledger.create_account(AccountingAccount(202)) is LedgerApplyStatus.CREATED
+
+    # The old code checks existence before opening a write transaction. Force
+    # both readers to see the same absent ID, rather than hoping for timing.
+    reader_gate = Barrier(2)
+
+    class InterleavedLedger(SQLiteAccountingLedger):
+        def _existing_status(self, **kwargs):
+            seen = super()._existing_status(**kwargs)
+            try:
+                reader_gate.wait(timeout=0.5)
+            except BrokenBarrierError:
+                pass  # After the fix the second reader waits for the writer.
+            return seen
+
+    def write(amount: int):
+        with InterleavedLedger(database) as ledger:
+            return ledger.apply_immediate_transfer(
+                transfer_id=303,
+                debit_account_id=101,
+                credit_account_id=202,
+                amount=amount,
+            )
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        first = pool.submit(write, 7)
+        second = pool.submit(write, second_amount)
+        results = {first.result(timeout=10), second.result(timeout=10)}
+
+    expected_loser = (
+        LedgerApplyStatus.EXISTS
+        if second_amount == 7
+        else LedgerApplyStatus.ID_CONFLICT
+    )
+    assert results == {LedgerApplyStatus.CREATED, expected_loser}
+    with SQLiteAccountingLedger(database) as ledger:
+        transfer = ledger.transfer(303)
+        assert transfer is not None
+        assert transfer.amount in {7, second_amount}
+        assert ledger.account(101).debits_posted == transfer.amount
+        assert ledger.account(202).credits_posted == transfer.amount
+
+
+def test_concurrent_account_create_has_typed_exact_replay(tmp_path):
+    """The absent account row cannot authorize two uncoordinated inserts."""
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier, BrokenBarrierError
+
+    database = tmp_path / "racing-accounts.sqlite3"
+    gate = Barrier(2)
+
+    class CursorProxy:
+        def __init__(self, real):
+            self.real = real
+
+        def fetchone(self):
+            value = self.real.fetchone()
+            try:
+                gate.wait(timeout=0.5)
+            except BrokenBarrierError:
+                pass
+            return value
+
+    class ConnectionProxy:
+        def __init__(self, real):
+            self.real = real
+
+        def execute(self, statement, *args):
+            cur = self.real.execute(statement, *args)
+            if statement.strip().startswith("SELECT no_overdraft FROM accounts"):
+                return CursorProxy(cur)
+            return cur
+
+        def __getattr__(self, name):
+            return getattr(self.real, name)
+
+    def create(no_overdraft: bool):
+        with SQLiteAccountingLedger(database) as ledger:
+            ledger._db = ConnectionProxy(ledger._db)  # noqa: SLF001
+            return ledger.create_account(AccountingAccount(505, no_overdraft))
+
+    # Schema already exists before the workers connect.
+    with SQLiteAccountingLedger(database):
+        pass
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        first = pool.submit(create, True)
+        second = pool.submit(create, True)
+        results = {first.result(timeout=10), second.result(timeout=10)}
+    assert results == {LedgerApplyStatus.CREATED, LedgerApplyStatus.EXISTS}
+    with SQLiteAccountingLedger(database) as ledger:
+        assert ledger.create_account(AccountingAccount(505, False)) is LedgerApplyStatus.ID_CONFLICT
