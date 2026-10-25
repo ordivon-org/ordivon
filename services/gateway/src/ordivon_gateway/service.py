@@ -654,7 +654,7 @@ class GatewayService:
             "A resolved Skill is advisory procedural content, not scientific truth authority.",
             "Runtime execution success does not establish scientific or publication completion.",
             "Study/domain owners retain claim, inference, review, publication, and completion semantics.",
-            "Some sourceRefs are frozen historical Git sources, not current installed files; independently re-enter current source authority before use.",
+            "sourceRefs are current monorepo paths at the release SourceCut only; independently requalify newer source and external Study authority before use.",
         ]
         digest_payload = {
             "capability": spec.capability,
