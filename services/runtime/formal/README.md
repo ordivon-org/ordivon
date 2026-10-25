@@ -246,6 +246,25 @@ acceptance rather than replacing them with synthetic model claims.
 
 **Proof boundary**: `ENABLED` proves a legal abstract choice, not fairness, that the environment will eventually deliver valid evidence, or a concrete SQLite/Rust recovery implementation. The existing native Rust `terminal_evidence_requires_result_finish_matching_resolution_and_no_current_attempt` tests the narrower terminal evidence predicate; it is **not** a mechanized refinement proof for `CorrectForeignResultEvidence`. Correctness of consumer-visible recovery remains UNKNOWN pending an exact Rust transition/consumer bridge. Reuse TLA+/TLC rather than adding a new registry, custom solver or speculative Skill. The mature alternative [Apalache](https://github.com/apalache-mc/apalache) uses SMT/Z3/CVC5; no reason to install it for this small bounded model unless a concrete performance/proof limitation arises.
 
+## PostgreSQL R06 live-consumer admission (independent qualification)
+
+A copied source revision, source/target content parity, and a single installed
+writer still do **not** imply that actual consumers may safely use PostgreSQL.
+The existing cutover TLA+ model now distinguishes copying/verifying from
+QualifyConsumers, which is required before Promote. Commits to the legacy
+source, subsequent copies, and rollback invalidate the qualification. The
+normal TLC config checks PgWriterRequiresQualifiedConsumers, and the
+existing ephemeral negative-control runner deletes just that guard and
+requires a named counterexample state trace.
+
+QualifyConsumers is deliberately an UNVERIFIED external oracle in this
+abstract model. TLC PASS **does not** authenticate a live consumer receipt,
+prove its source seal, demonstrate readback on a real PG instance, or prove
+Rust/Harness application refinement. Actual cutover remains NOT_CUT_OVER
+until the real consumer and effect owner evidence discharges those obligations.
+This is one additional scoped contract in the existing formal owner, not a
+new custom solver or a global LEGO registry.
+
 ## PostgreSQL R06 installed-writer overlap (CEGAR refinement)
 
 The one-owner enum alone makes dual-writer overlap unrepresentable, even if
@@ -259,27 +278,52 @@ PostgreSQL connection identity, application commit parity, or Rust refinement.
 Cutover remains PROPOSED until real native process/source witnesses bind
 these model variables to physical behavior.
 
+## WorkspaceConsumerCloseR1 — bounded continuation guard (2026-10-26)
 
-## WorkspaceContinuationR1 (2026-10-26)
+The existing Runtime WorkspaceLeaseTable is a per-operation mutex, not a
+consumer lease across completed Jobs. A real cross-Job failure occurred:
+open Workspace, finish command, another caller closes clean/idle Workspace,
+then the next valid command receives "workspace is closed". PR #793 proposes
+a consumer-release guard. This model verifies the proposed abstract contract,
+not the current installed Runtime.
 
-This separate small bounded TLC model captures the **actual observed**
-cross-command race: a first Runtime Job reaches terminal status, an Agent
-intends to submit a subsequent Job, and a cleaner mistakes idle for released.
-`Close` is permitted only when no Job is running and either (1) the consumer
-asserted release or (2) the bounded hold expired. It preserves two safety
-obligations: no close while a running Job remains, and no close of an
-unreleased fresh Workspace. A deliberately unsafe idle-only close transition
-must produce a named `NoUnreleasedFreshClose` counterexample.
+The existing upstream-locked TLA+/TLC owner tool is reused by
+mise run formal:verify. Scoped properties:
 
-The owner Rust test
-`workspace_continuation_requires_explicit_release_inside_retention_window`
-provides one concrete counterpart to the abstract trace. Mapping
-`age = fresh` to `now < createdUnixMs + 24h`, and `released` to
-`WorkspaceCloseRequest.consumerReleased`, is scoped evidence only,
-**not a mechanized Rust-to-TLA simulation**. The release declaration does
-not authenticate the consumer, prove absence of persistent systemd/Research
-consumers, or guarantee that future Jobs will not be requested. Expiry is a
-bounded operational policy, not a safety theorem about external tasks.
-Existing source-state CAS, dirty guards, Git dependencies, external effect
-recovery, and cross-node lifetime assumptions are outside this small model.
-These bridge and authority obligations remain UNKNOWN.
+- FreshActiveConsumerCannotBeClosed: inside the 24h fresh-state abstraction,
+  close requires an honest finished-and-released consumer.
+- ClosedHasNoLiveJob and ClosedHasNoGitDependent: existing native close
+  exclusions remain independent of any release.
+- ReleasedAssumesConsumerFinished: an EXTERNAL ASSUMPTION about caller
+  truthfulness, not a cryptographically authenticated capability.
+- ClosedUnreachable is an intentionally false reachability control:
+  an actual named TLC trace proves legitimate closure remains possible.
+- Independent ephemeral mutations remove the fresh-release guard or forge
+  release by an active consumer; each must violate the named fresh-active
+  invariant, or verification fails closed.
+
+Finite model checking does NOT prove Rust-to-TLA refinement, actual
+consumer-completion semantics, multi-consumer authorization, persistent
+claim/recovery/expiry atomicity, clock trust, Windows permissions, or
+the behavior of expired workspaces. PR #793 consumerReleased=true is a
+caller assertion. The spoofed-release counterexample demonstrates that
+the stronger guarantee remains UNKNOWN without authenticated owner state,
+implementation witness, and negative replay. Age expiry is explicitly
+allowed to reclaim without release, preserving bounded liveness.
+
+**Concrete Rust recovery-boundary qualification.** The normal
+`consumerReleased` guard previously sat after Git metadata recovery
+branches that can physically remove an open Workspace. The current
+Runtime close-recovery implementation reuses the same guarded predicate
+before normal close, corrupt Git metadata force recovery, and unborn-HEAD
+force removal; separate native negative CDCs verify the unreleased
+consumer's unique residual files survive. This is implementation-level
+test evidence for specific paths, *not* a general Rust-to-TLA refinement
+proof or an authenticated consumer claim. The previously proposed
+`WorkspaceContinuationR1` abstract model is retired here because the
+currently checked `WorkspaceConsumerCloseR1` already represents
+fresh idle consumer continuity, live Job/Git dependencies, and stronger
+spoofed-release negative controls. Maintain one present-day model for
+this Owner safety obligation, not duplicate finite proof registries.
+
+No second solver, custom formal DSL, new scheduler or global registry is added.

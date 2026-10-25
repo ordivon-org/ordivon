@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import closing
 from pathlib import Path
 import stat
 import sqlite3
@@ -52,7 +53,7 @@ class HarnessStoreOperationsTests(unittest.TestCase):
             wrong = root / "harness"
             expected = root / "harness#production.sqlite3"
             for path, identity in ((wrong, "foreign"), (expected, "correct")):
-                with sqlite3.connect(path) as db:
+                with closing(sqlite3.connect(path)) as db, db:
                     db.execute(
                         "CREATE TABLE object_refs (digest TEXT, kind TEXT, byte_length INTEGER)"
                     )
@@ -71,7 +72,7 @@ class HarnessStoreOperationsTests(unittest.TestCase):
     def test_readonly_sqlite_uri_rejects_invalid_named_source_not_valid_alias(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            with sqlite3.connect(root / "harness") as db:
+            with closing(sqlite3.connect(root / "harness")) as db, db:
                 db.execute(
                     "CREATE TABLE object_refs (digest TEXT, kind TEXT, byte_length INTEGER)"
                 )

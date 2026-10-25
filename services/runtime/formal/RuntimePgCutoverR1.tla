@@ -8,11 +8,11 @@ EXTENDS Naturals
 \* "owner" is one durable writer authority, not two independent booleans.
 VARIABLES owner, sqliteRevision, pgRevision, sqliteContent, pgContent,
           copied, parityVerified, cutoverCertified, pgCommitted, rolledBack,
-          sqliteWriterActive, pgWriterActive
+          sqliteWriterActive, pgWriterActive, consumersQualified
 
 Vars == <<owner, sqliteRevision, pgRevision, sqliteContent, pgContent,
           copied, parityVerified, cutoverCertified, pgCommitted, rolledBack,
-          sqliteWriterActive, pgWriterActive>>
+          sqliteWriterActive, pgWriterActive, consumersQualified>>
 
 Init ==
     /\ owner = "sqlite"
@@ -27,6 +27,7 @@ Init ==
     /\ rolledBack = FALSE
     /\ sqliteWriterActive = TRUE
     /\ pgWriterActive = FALSE
+    /\ consumersQualified = FALSE
 
 SqliteCommit ==
     /\ owner = "sqlite"
@@ -36,6 +37,7 @@ SqliteCommit ==
     /\ sqliteContent' = IF sqliteContent = 0 THEN 1 ELSE 0
     /\ copied' = FALSE
     /\ parityVerified' = FALSE
+    /\ consumersQualified' = FALSE
     /\ UNCHANGED <<owner, pgRevision, pgContent, cutoverCertified,
                    pgCommitted, rolledBack, sqliteWriterActive, pgWriterActive>>
 
@@ -45,6 +47,7 @@ Freeze ==
     /\ owner' = "paused"
     /\ sqliteWriterActive' = FALSE
     /\ parityVerified' = FALSE
+    /\ consumersQualified' = FALSE
     /\ UNCHANGED <<sqliteRevision, pgRevision, sqliteContent, pgContent,
                    copied, cutoverCertified, pgCommitted, rolledBack, pgWriterActive>>
 
@@ -56,6 +59,7 @@ CopySnapshot ==
     /\ pgContent' \in 0..1
     /\ copied' = TRUE
     /\ parityVerified' = FALSE
+    /\ consumersQualified' = FALSE
     /\ UNCHANGED <<owner, sqliteRevision, sqliteContent, cutoverCertified,
                    pgCommitted, rolledBack, sqliteWriterActive, pgWriterActive>>
 
@@ -67,11 +71,28 @@ VerifyParity ==
     /\ parityVerified' = TRUE
     /\ UNCHANGED <<owner, sqliteRevision, pgRevision, sqliteContent,
                    pgContent, copied, cutoverCertified, pgCommitted, rolledBack,
-                   sqliteWriterActive, pgWriterActive>>
+                   sqliteWriterActive, pgWriterActive, consumersQualified>>
+
+\* An independent real-consumer receipt must be qualified before promotion.
+\* This action is explicitly an UNVERIFIED external oracle, not receipt
+\* authentication or implementation refinement.
+QualifyConsumers ==
+    /\ owner = "paused"
+    /\ copied
+    /\ parityVerified
+    /\ pgRevision = sqliteRevision
+    /\ pgContent = sqliteContent
+    /\ ~sqliteWriterActive
+    /\ ~pgWriterActive
+    /\ consumersQualified' = TRUE
+    /\ UNCHANGED <<owner, sqliteRevision, pgRevision, sqliteContent,
+                   pgContent, copied, parityVerified, cutoverCertified,
+                   pgCommitted, rolledBack, sqliteWriterActive, pgWriterActive>>
 
 Promote ==
     /\ owner = "paused"
     /\ parityVerified
+    /\ consumersQualified
     /\ pgRevision = sqliteRevision
     /\ ~sqliteWriterActive
     /\ ~pgWriterActive
@@ -80,7 +101,8 @@ Promote ==
     /\ cutoverCertified' = TRUE
     /\ rolledBack' = FALSE
     /\ UNCHANGED <<sqliteRevision, pgRevision, sqliteContent, pgContent,
-                   copied, parityVerified, pgCommitted, sqliteWriterActive>>
+                   copied, parityVerified, pgCommitted, sqliteWriterActive,
+                   consumersQualified>>
 
 PostgresCommit ==
     /\ owner = "postgres"
@@ -91,7 +113,7 @@ PostgresCommit ==
     /\ pgCommitted' = TRUE
     /\ UNCHANGED <<owner, sqliteRevision, sqliteContent, copied,
                    parityVerified, cutoverCertified, rolledBack,
-                   sqliteWriterActive, pgWriterActive>>
+                   sqliteWriterActive, pgWriterActive, consumersQualified>>
 
 \* Rollback is legal only before the first independent PostgreSQL commit.
 \* Otherwise the former SQLite revision would lose a committed effect.
@@ -105,6 +127,7 @@ Rollback ==
     /\ rolledBack' = TRUE
     /\ copied' = FALSE
     /\ parityVerified' = FALSE
+    /\ consumersQualified' = FALSE
     /\ UNCHANGED <<sqliteRevision, pgRevision, sqliteContent, pgContent,
                    cutoverCertified, pgCommitted>>
 
@@ -113,6 +136,7 @@ Next ==
     \/ Freeze
     \/ CopySnapshot
     \/ VerifyParity
+    \/ QualifyConsumers
     \/ Promote
     \/ PostgresCommit
     \/ Rollback
@@ -130,9 +154,15 @@ TypeOK ==
     /\ rolledBack \in BOOLEAN
     /\ sqliteWriterActive \in BOOLEAN
     /\ pgWriterActive \in BOOLEAN
+    /\ consumersQualified \in BOOLEAN
 
 PostgresRequiresCertifiedCutover ==
     owner = "postgres" => cutoverCertified
+
+\* Copy/readback parity alone cannot authorize a PostgreSQL writer when real
+\* consumers still point at SQLite. Concrete receipt binding remains UNKNOWN.
+PgWriterRequiresQualifiedConsumers ==
+    pgWriterActive => consumersQualified
 
 NoLostPostgresCommit ==
     pgCommitted => owner = "postgres"

@@ -22,7 +22,7 @@ class ArtifactOpenXmlEnvironmentTests(unittest.TestCase):
         self.assertEqual(lock['dotnetPolicy']['sdkMajorMinor'],'8.0')
         self.assertNotIn('equipment',lock)
         self.assertEqual(lock['nixDotnet']['expectedSdkVersion'],'8.0.426')
-        self.assertEqual(lock['nixDotnet']['nixpkgsRevision'],json.loads((ROOT/'artifact-delivery/openxml-nix/flake.lock').read_text())['nodes']['nixpkgs']['locked']['rev'])
+        self.assertEqual(set(lock['nixDotnet']),{'flake','package','expectedSdkVersion'})
         self.assertEqual([(x['id'],x['version']) for x in lock['nugetPackages']],[('DocumentFormat.OpenXml','3.5.1'),('DocumentFormat.OpenXml.Framework','3.5.1'),('System.IO.Packaging','8.0.1')])
         self.assertEqual(lock['sdkRestoreSupportPackages'][0]['id'],'Microsoft.AspNetCore.App.Ref')
     def test_openxml_reconstruction_uses_artifact_owned_nix_not_isolated_equipment(self):
@@ -44,12 +44,15 @@ class ArtifactOpenXmlEnvironmentTests(unittest.TestCase):
         sdk = json.loads(
             (ROOT / 'artifact-delivery/openxml-runtime-v1.lock.json').read_text()
         )['nixDotnet']
-        self.assertEqual(sdk['nixpkgsRevision'], flake['rev'])
-        self.assertEqual(sdk['nixpkgsNarHash'], flake['narHash'])
-        self.assertEqual(
-            sdk['flakeLockSha256'],
-            'sha256:' + hashlib.sha256(raw).hexdigest(),
-        )
+        # A single Nix authority, with the revision, NAR and content digest
+        # derived atomically. The method lock stores only the SDK constraint.
+        self.assertNotIn('nixpkgsRevision',sdk)
+        self.assertNotIn('nixpkgsNarHash',sdk)
+        self.assertNotIn('flakeLockSha256',sdk)
+        authority=M.nix_source_cut(flake_path)
+        self.assertEqual(authority['nixpkgsRevision'],flake['rev'])
+        self.assertEqual(authority['nixpkgsNarHash'],flake['narHash'])
+        self.assertEqual(authority['flakeLockSha256'],'sha256:'+hashlib.sha256(raw).hexdigest())
 
     def test_outdated_nix_sdk_cannot_be_published_even_when_flake_identity_matches(self):
         # The official Nixpkgs 26.05 and unstable SDK providers still resolve
@@ -74,9 +77,72 @@ class ArtifactOpenXmlEnvironmentTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, 'Nix SDK drift'):
                 M.nix_dotnet_status(lock)
 
+    def test_updated_nixpkgs_source_is_derived_without_second_lock_edit(self):
+        lock=M.load_lock()
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d)
+            flake_dir=root/'artifact-delivery/openxml-nix'
+            flake_dir.mkdir(parents=True)
+            data=json.loads((ROOT/'artifact-delivery/openxml-nix/flake.lock').read_text())
+            data['nodes']['nixpkgs']['locked']['rev']='a'*40
+            path=flake_dir/'flake.lock'
+            path.write_text(json.dumps(data))
+            def probe(cmd,**_kwargs):
+                if 'build' in cmd:return subprocess.CompletedProcess(cmd,0,'/nix/store/example-dotnet\n','')
+                if cmd[-1]=='--version':return subprocess.CompletedProcess(cmd,0,'8.0.426\n','')
+                if 'path-info' in cmd:return subprocess.CompletedProcess(cmd,0,json.dumps({'/nix/store/example-dotnet':{'narHash':'sha256-example'}}),'')
+                raise AssertionError('unexpected provider operation')
+            with (
+                patch.object(M,'ROOT',root),
+                patch.object(M,'NIX_FLAKE',flake_dir),
+                patch.object(M,'NIX',Path(__file__).resolve()),
+                patch.object(M,'run',side_effect=probe),
+            ):
+                receipt=M.nix_dotnet_status(lock)
+            self.assertEqual(receipt['nixpkgsRevision'],'a'*40)
+            self.assertEqual(receipt['flakeLockSha256'],'sha256:'+hashlib.sha256(path.read_bytes()).hexdigest())
+
+    def test_nix_source_mutation_during_build_fails_closed(self):
+        lock=M.load_lock()
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);flake_dir=root/'artifact-delivery/openxml-nix'
+            flake_dir.mkdir(parents=True)
+            path=flake_dir/'flake.lock'
+            original=json.loads((ROOT/'artifact-delivery/openxml-nix/flake.lock').read_text())
+            path.write_text(json.dumps(original))
+            def mutate_on_build(cmd,**_kwargs):
+                if 'build' in cmd:
+                    changed=json.loads(path.read_text())
+                    changed['nodes']['nixpkgs']['locked']['rev']='b'*40
+                    path.write_text(json.dumps(changed))
+                    return subprocess.CompletedProcess(cmd,0,'/nix/store/example-dotnet\\n','')
+                raise AssertionError('drift must be detected before dotnet/provenance probes')
+            with (
+                patch.object(M,'ROOT',root),
+                patch.object(M,'NIX_FLAKE',flake_dir),
+                patch.object(M,'NIX',Path(__file__).resolve()),
+                patch.object(M,'run',side_effect=mutate_on_build),
+            ):
+                with self.assertRaisesRegex(RuntimeError,'changed during build'):
+                    M.nix_dotnet_status(lock)
+
+    def test_untrusted_nixpkgs_source_is_rejected_before_build(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);path=root/'flake.lock'
+            data=json.loads((ROOT/'artifact-delivery/openxml-nix/flake.lock').read_text())
+            data['nodes']['nixpkgs']['locked']['url']='https://example.invalid/untrusted'
+            path.write_text(json.dumps(data))
+            with self.assertRaisesRegex(RuntimeError,'upstream authority drift'):
+                M.nix_source_cut(path)
+            path.unlink()
+            path.symlink_to(ROOT/'artifact-delivery/openxml-nix/flake.lock')
+            with self.assertRaisesRegex(RuntimeError,'alias'):
+                M.nix_source_cut(path)
+
     def test_generation_spec_binds_nix_store_and_nar_identity(self):
         lock=json.loads((ROOT/'artifact-delivery/openxml-runtime-v1.lock.json').read_text())
-        dotnet={'storePath':'/nix/store/example-dotnet','narHash':'sha256-example','flakeLockSha256':lock['nixDotnet']['flakeLockSha256'],'nixpkgsRevision':lock['nixDotnet']['nixpkgsRevision'],'observedSdkVersion':'8.0.426'}
+        source=M.nix_source_cut(ROOT/'artifact-delivery/openxml-nix/flake.lock')
+        dotnet={'storePath':'/nix/store/example-dotnet','narHash':'sha256-example','flakeLockSha256':source['flakeLockSha256'],'nixpkgsRevision':source['nixpkgsRevision'],'observedSdkVersion':'8.0.426'}
         with patch.object(M,'source_digests',return_value={'sourceProject':'sha256:p','sourceProgram':'sha256:s'}):
             spec=M.generation_spec(lock,dotnet,[])
         self.assertEqual(spec['dotnetNixStorePath'],'/nix/store/example-dotnet')

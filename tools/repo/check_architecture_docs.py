@@ -4,12 +4,11 @@ import ast
 import json
 import math
 import re
+import tomllib
 from decimal import Decimal
 from graphlib import CycleError, TopologicalSorter
 from pathlib import Path
 from typing import Any
-
-import tomllib
 
 ROOT = Path(__file__).resolve().parents[2]
 CURRENT = ROOT / "docs" / "architecture" / "CURRENT_ARCHITECTURE.md"
@@ -73,6 +72,39 @@ EXPECTED_HOST_NORTHBOUND_TOOLS = {
 class ArchitectureDocsError(ValueError):
     pass
 
+
+# The existing GIT-01 typed decision relation is shared by the read-only
+# evidence union AND the final architecture checker. No second vocabulary.
+GIT01_ALLOWED_DISPOSITIONS = frozenset({
+        "SKIP_DUPLICATE_CHERRY_PICK", "SKIP_OLDER_PIN", "SKIP_OLDER_SOURCECUT",
+        "SKIP_UNCONSUMED_PERMISSION",
+        "NO_WHOLE_COMMIT_REPLAY_WITHOUT_PRODUCER_AUTHORITY",
+        "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER", "SKIP_CANCELLED_HISTORY_PAIR",
+        "SKIP_RETIRED_UNCONSUMED", "SKIP_OLDER_TOOLCHAIN_CHERRY_PICK",
+        "SKIP_IDENTICAL_TIP_WITH_NATIVE_CONSUMER",
+        "PORT_REQUIRED_OWNER_EFFECT",
+})
+GIT01_ALLOWED_EVIDENCE_SCOPES = frozenset({
+        "NATIVE_CONSUMER_PASS", "EXACT_GIT_BLOBS",
+        "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF",
+        "LATEST_STABLE_SOURCE_NO_UPGRADE",
+        "CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT",
+        "FROZEN_GATEWAY_CONSUMER_ONLY",
+        "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN",
+        "CURRENT_TOOLCHAIN_SUPERSEDES_OLD_LOCK_AND_NATIVE_TEST_PASS",
+        "EXACT_EXECUTABLE_BLOB_WITH_NONWINDOWS_HOLD_ONLY",
+        "EXACT_GIT_BLOB_AND_NATIVE_CONSUMER_PASS",
+        "EXACT_OWNER_LOCKED_COMPONENTS_NO_LIVE_PROVIDER",
+        "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC",
+})
+
+GIT01_SCOPE_DISPOSITION = {
+            "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF": "SKIP_OLDER_PIN",
+            "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC": "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
+            "CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT": "SKIP_UNCONSUMED_PERMISSION",
+            "EXACT_OWNER_LOCKED_COMPONENTS_NO_LIVE_PROVIDER": "SKIP_DUPLICATE_CHERRY_PICK",
+            "FROZEN_GATEWAY_CONSUMER_ONLY": "NO_WHOLE_COMMIT_REPLAY_WITHOUT_PRODUCER_AUTHORITY",
+}
 
 def _load_json(path: Path) -> dict[str, Any]:
     """Use unambiguous standard JSON bytes for Owner and evidence registration.
@@ -504,6 +536,32 @@ def _source_bound_file(root: Path, relative_path: str, label: str) -> Path:
     return expected
 
 
+
+def validate_owner_lego_source_evidence(
+    root: Path, relative: str, plan: dict[str, Any],
+) -> None:
+    """Bind an Owner's declared project evidence to existing SourceCut files.
+
+    This checks only project.sourceEvidence, which is explicitly a file list.
+    Node.evidence also contains historical textual observations; treating all
+    of those as paths would create a false authority and false failures.
+    """
+    owner, delimiter, _ = relative.partition("/planning/")
+    if not delimiter:
+        raise ArchitectureDocsError("invalid Owner LEGO plan location")
+    project = plan.get("project")
+    refs = project.get("sourceEvidence") if isinstance(project, dict) else None
+    if not isinstance(refs, list) or not refs:
+        raise ArchitectureDocsError(f"{owner}: missing Owner LEGO sourceEvidence")
+    seen: set[str] = set()
+    for ref in refs:
+        if not isinstance(ref, str) or not ref or ref != ref.strip() or ref in seen:
+            raise ArchitectureDocsError(f"{owner}: invalid or duplicate Owner LEGO sourceEvidence")
+        seen.add(ref)
+        path = ref if ref.startswith(f"{owner}/") else f"{owner}/{ref}"
+        _source_bound_file(root, path, "Owner LEGO sourceEvidence")
+
+
 def validate_owner_lego_dependencies(
     plan: dict[str, Any], owner: str,
 ) -> tuple[set[str], tuple[tuple[str, ...], ...]]:
@@ -641,28 +699,8 @@ def validate_formal_issue_census(
     # Older selections may predate sourceQualification; preserve their bounded
     # claims rather than inventing missing historical proofs.
     oid_pattern = re.compile(r"[0-9a-f]{40}")
-    allowed_dispositions = {
-        "SKIP_DUPLICATE_CHERRY_PICK", "SKIP_OLDER_PIN", "SKIP_OLDER_SOURCECUT",
-        "SKIP_UNCONSUMED_PERMISSION",
-        "NO_WHOLE_COMMIT_REPLAY_WITHOUT_PRODUCER_AUTHORITY",
-        "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER", "SKIP_CANCELLED_HISTORY_PAIR",
-        "SKIP_RETIRED_UNCONSUMED", "SKIP_OLDER_TOOLCHAIN_CHERRY_PICK",
-        "SKIP_IDENTICAL_TIP_WITH_NATIVE_CONSUMER",
-        "PORT_REQUIRED_OWNER_EFFECT",
-    }
-    allowed_evidence_scopes = {
-        "NATIVE_CONSUMER_PASS", "EXACT_GIT_BLOBS",
-        "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF",
-        "LATEST_STABLE_SOURCE_NO_UPGRADE",
-        "CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT",
-        "FROZEN_GATEWAY_CONSUMER_ONLY",
-        "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN",
-        "CURRENT_TOOLCHAIN_SUPERSEDES_OLD_LOCK_AND_NATIVE_TEST_PASS",
-        "EXACT_EXECUTABLE_BLOB_WITH_NONWINDOWS_HOLD_ONLY",
-        "EXACT_GIT_BLOB_AND_NATIVE_CONSUMER_PASS",
-        "EXACT_OWNER_LOCKED_COMPONENTS_NO_LIVE_PROVIDER",
-        "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC",
-    }
+    allowed_dispositions = GIT01_ALLOWED_DISPOSITIONS
+    allowed_evidence_scopes = GIT01_ALLOWED_EVIDENCE_SCOPES
     for issue in issues:
         if issue["id"] != "GIT-01":
             continue
@@ -678,13 +716,7 @@ def validate_formal_issue_census(
         cohort_ids: set[str] = set()
         # One finite partial relation: weak or source-only evidence must not
         # be upgraded into a different native-consumer verdict by a merge.
-        scope_disposition = {
-            "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF": "SKIP_OLDER_PIN",
-            "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC": "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
-            "CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT": "SKIP_UNCONSUMED_PERMISSION",
-            "EXACT_OWNER_LOCKED_COMPONENTS_NO_LIVE_PROVIDER": "SKIP_DUPLICATE_CHERRY_PICK",
-            "FROZEN_GATEWAY_CONSUMER_ONLY": "NO_WHOLE_COMMIT_REPLAY_WITHOUT_PRODUCER_AUTHORITY",
-        }
+        scope_disposition = GIT01_SCOPE_DISPOSITION
         for entry in selections:
             if not isinstance(entry, dict):
                 raise ArchitectureDocsError("historical Git selection must be typed")
@@ -1138,6 +1170,7 @@ def validate_repository(root: Path = ROOT) -> None:
         plan = _load_json(_source_bound_file(root, relative, "registered Owner LEGO plan"))
         validate_owner_lego_graph(plan)
         validate_owner_lego_dependencies(plan, relative.split("/planning/", 1)[0])
+        validate_owner_lego_source_evidence(root, relative, plan)
 
     issue_evidence_dir = root / "docs" / "architecture" / "evidence"
     for census_path in issue_evidence_dir.glob("FORMAL_LEGO_ISSUE_CENSUS_*_R*.json"):

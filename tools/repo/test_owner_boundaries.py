@@ -62,6 +62,52 @@ class OwnerBoundaryTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "duplicate dependency seam"):
                 MODULE.load_policy(policy)
 
+    def test_unused_exception_is_not_rescued_by_unrelated_literal_on_same_path(self) -> None:
+        """Source/Owner/path coincidence is NOT a witness for this exception."""
+        real = next(
+            seam for seam in SEAMS
+            if seam.source_glob == "apps/web/src/security-agent-verifier.ts"
+        )
+        broken = MODULE.Seam(
+            real.from_owner, real.to_owner, real.source_glob,
+            "platform/security/retired-private-api/", real.kind, real.contract_ref,
+        )
+        observed = self.finding(
+            real.source_glob,
+            'from "../../../platform/security/contracts/agent-request-verifier-v1/src/index.ts";',
+        )
+        with self.assertRaisesRegex(AssertionError, "stale dependency seam declarations"):
+            MODULE.validate_consumed_seams((broken,), (observed,))
+
+    def test_ambiguous_policy_exceptions_cannot_double_authorize_one_literal(self) -> None:
+        """Two grants over one literal would hide a redundant permission."""
+        real = next(
+            seam for seam in SEAMS
+            if seam.source_glob == "apps/web/src/security-agent-verifier.ts"
+        )
+        alias = MODULE.Seam(
+            real.from_owner, real.to_owner, real.source_glob,
+            "platform/security/contracts", real.kind, real.contract_ref,
+        )
+        observed = self.finding(
+            real.source_glob,
+            'from "../../../platform/security/contracts/agent-request-verifier-v1/src/index.ts";',
+        )
+        with self.assertRaisesRegex(AssertionError, "ambiguous dependency seam"):
+            MODULE.validate_consumed_seams((real, alias), (observed,))
+
+    def test_current_declared_source_consumers_are_literal_matched(self) -> None:
+        """This is a bounded source-text witness, not live consumer semantics."""
+        findings = []
+        for path in MODULE.tracked_active_files():
+            if MODULE.owner_for_path(path, OWNERS) is None:
+                continue
+            source = (MODULE.ROOT / path).read_text(encoding="utf-8", errors="ignore")
+            findings.extend(MODULE.findings_for_text(path, source, OWNERS))
+        witnessed = MODULE.validate_consumed_seams(SEAMS, tuple(findings))
+        self.assertEqual(set(witnessed), set(SEAMS))
+        self.assertTrue(all(witnessed.values()))
+
     def test_public_security_contract_is_allowed(self) -> None:
         finding = self.finding(
             "apps/web/src/security-agent-verifier.ts",

@@ -1,6 +1,6 @@
 ---
 name: recursive-lego-calculus
-description: "Use for real Ordivon LEGO work: question the goal and consumers, delete unneeded responsibilities, express consumer-qualified input/output/contract, and compose existing capabilities without adding a new framework. For hard cross-layer reasoning, open the optional formal reference and route to specialist Skills."
+description: "Use for real Ordivon LEGO work: question goals and consumers, delete unneeded responsibilities, and compose input/output/contract LEGO. For mathematical contract algebra, assume-guarantee proofs, constraint and state-machine formal verification, or CEGAR counterexample refinement, open the optional formal reference and route to mature tools instead of adding a new framework."
 compatibility: Cross-platform. Helps Agents simplify and compose real responsibilities; use the formal reference only when necessary. Does not grant authority, execute effects, define domain truth or replace specialist verification.
 metadata:
   ordivon-category: general

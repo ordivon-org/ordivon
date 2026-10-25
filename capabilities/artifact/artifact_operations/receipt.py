@@ -43,6 +43,20 @@ def operation_key(operation_kind: str, operation_id: str) -> str:
     return hashlib.sha256(f"{operation_kind}\0{operation_id}".encode()).hexdigest()
 
 
+def _committed_output_path(opdir: Path, relative: object, label: str) -> Path:
+    """Resolve one receipt role/output inside the operation's committed boundary."""
+    if not isinstance(relative, str) or not relative:
+        raise RuntimeError(f"{label} must be a non-empty relative output path")
+    path = Path(relative)
+    if path.is_absolute() or ".." in path.parts or path == Path("."):
+        raise RuntimeError(f"{label} escapes the committed operation path")
+    root = opdir.resolve()
+    target = (root / path).resolve()
+    if not target.is_relative_to(root):
+        raise RuntimeError(f"{label} escapes the committed operation path")
+    return target
+
+
 class ReceiptFence:
     """Generic exactly-once local commit fence for Artifact operations.
 
@@ -59,7 +73,7 @@ class ReceiptFence:
         self, opdir: Path, receipt: dict[str, Any], *, replayed: bool
     ) -> dict[str, Any]:
         roles = {
-            role: operation_file_fact(opdir / rel)
+            role: operation_file_fact(_committed_output_path(opdir, rel, "receipt role"))
             for role, rel in receipt["roles"].items()
         }
         return {
@@ -91,10 +105,25 @@ class ReceiptFence:
             raise RuntimeError(
                 "operationId reuse attempted with different immutable inputs"
             )
-        if not isinstance(receipt.get("outputs"), dict) or not receipt["outputs"]:
+        outputs = receipt.get("outputs")
+        roles = receipt.get("roles")
+        if not isinstance(outputs, dict) or not outputs:
             raise RuntimeError("committed operation receipt has no outputs")
-        for relative, expected in receipt["outputs"].items():
-            actual = operation_file_fact(opdir / relative)
+        if not isinstance(roles, dict) or not roles:
+            raise RuntimeError("committed operation receipt has no roles")
+        if (
+            any(not isinstance(role, str) or not role for role in roles)
+            or set(roles.values()) != set(outputs)
+        ):
+            raise RuntimeError("committed receipt role/output binding mismatch")
+        for role, relative in roles.items():
+            _committed_output_path(opdir, relative, f"receipt role {role}")
+        for relative, expected in outputs.items():
+            if not isinstance(expected, dict):
+                raise RuntimeError("committed receipt output is not a file fact")
+            actual = operation_file_fact(
+                _committed_output_path(opdir, relative, "receipt output")
+            )
             if (
                 actual["sha256"] != expected.get("sha256")
                 or actual["size"] != expected.get("size")
