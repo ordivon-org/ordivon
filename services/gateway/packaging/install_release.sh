@@ -50,8 +50,8 @@ if [ -z "$PYTHON_REQUEST" ]; then
 fi
 
 # A source-qualified interpreter can be supplied only by an explicit
-# version-qualified absolute carrier; never reinterpret the managed wheel as
-# having the latest embedded SQLite library.
+# version-qualified absolute carrier; no unrelated SQLite pin is imposed
+# on the Gateway adapter's normal release.
 RELEASE_PYTHON=${ORDIVON_GATEWAY_RELEASE_PYTHON:-}
 if [ -n "$RELEASE_PYTHON" ]; then
   case "$RELEASE_PYTHON" in
@@ -70,21 +70,16 @@ else
   chmod -R a+rX "$PYTHON_INSTALL_DIR"
 fi
 
-# Critical: the Python interpreter version does NOT prove its embedded SQLite.
-# The current managed CPython 3.15.1 wheel includes SQLite 3.53.1. No old
-# embedded-version exception is authorized, so fail closed before activation.
+# The base Gateway has no SQLite store. Qualify the requested Python
+# interpreter here; an explicitly enabled legacy worker checks its own
+# SQLite dependency at feature admission, without blocking the base Gateway.
 "$PYTHON" - "$PYTHON_REQUEST" <<'PYTHON_CHECK'
-import sqlite3
 import sys
 
 requested = sys.argv[1]
 actual = sys.version.split()[0]
 if actual != requested or actual != "3.15.1":
     raise SystemExit(f"Gateway release Python mismatch: expected {requested}, got {actual}")
-if sqlite3.sqlite_version != "3.54.0":
-    raise SystemExit(
-        f"Gateway embedded SQLite mismatch: expected 3.54.0, got {sqlite3.sqlite_version}"
-    )
 PYTHON_CHECK
 
 UV_PYTHON_INSTALL_DIR="$PYTHON_INSTALL_DIR" "$UV" sync --locked --no-dev --python "$PYTHON" --project "$RELEASE"

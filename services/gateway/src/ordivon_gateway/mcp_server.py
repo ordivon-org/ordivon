@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import sqlite3
 from importlib.metadata import version as package_version
 from typing import Annotated, Any, Literal
 from urllib.parse import urlsplit
@@ -688,13 +689,26 @@ def build_http_app(
     return app
 
 
+def _external_workers_from_env() -> ExternalPullWorkerTransport | None:
+    """Gate the optional legacy SQLite transport at its actual consumer boundary."""
+    external_worker_db = os.environ.get("ORDIVON_GATEWAY_EXTERNAL_WORKER_DB", "").strip()
+    if not external_worker_db:
+        return None
+    if "://" in external_worker_db:
+        raise RuntimeError(
+            "ORDIVON_GATEWAY_EXTERNAL_WORKER_DB is not a PostgreSQL backend; "
+            "do not treat a database DSN as a SQLite filesystem path"
+        )
+    if sqlite3.sqlite_version != "3.54.0":
+        raise RuntimeError(
+            "legacy external worker requires SQLite 3.54.0 until its "
+            "PG consumer cutover is independently qualified"
+        )
+    return ExternalPullWorkerTransport(external_worker_db)
+
+
 def main() -> None:
-    external_worker_db = os.environ.get("ORDIVON_GATEWAY_EXTERNAL_WORKER_DB")
-    external_workers = (
-        ExternalPullWorkerTransport(external_worker_db.strip())
-        if external_worker_db and external_worker_db.strip()
-        else None
-    )
+    external_workers = _external_workers_from_env()
     gateway = GatewayService(McpOwnerCaller.from_env(), external_workers=external_workers)
     server = build_server(gateway)
     transport = os.environ.get("ORDIVON_GATEWAY_TRANSPORT", "stdio")
