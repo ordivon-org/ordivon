@@ -479,3 +479,29 @@ def test_retired_slice_cannot_qualify_an_active_blocking_prerequisite(
     consumer["status"] = f"BLOCKED_ON_{producer['id']}"
     with pytest.raises(module.ArchitectureDocsError, match="invalid LEGO blocking prerequisites"):
         module.validate_owner_lego_graph(plan)
+
+
+
+@pytest.mark.parametrize("relative", module.OWNER_LEGO_PLANS)
+def test_owner_project_source_evidence_is_current_source_bound(relative: str) -> None:
+    plan = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+    module.validate_owner_lego_source_evidence(ROOT, relative, plan)
+
+
+@pytest.mark.parametrize("relative", module.OWNER_LEGO_PLANS)
+def test_owner_project_source_evidence_rejects_retired_paths(relative: str) -> None:
+    plan = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+    plan["project"]["sourceEvidence"][0] = "docs/RETIRED_NONEXISTENT_LEGO_PROOF.md"
+    with pytest.raises(module.ArchitectureDocsError, match="Owner LEGO sourceEvidence escapes SourceCut"):
+        module.validate_owner_lego_source_evidence(ROOT, relative, plan)
+
+
+def test_owner_project_source_evidence_rejects_traversal_and_duplicate_carriers() -> None:
+    relative = "services/runtime/planning/lego-plan-r1.json"
+    plan = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+    plan["project"]["sourceEvidence"][0] = "../../../../README.md"
+    with pytest.raises(module.ArchitectureDocsError, match="invalid Owner LEGO sourceEvidence path"):
+        module.validate_owner_lego_source_evidence(ROOT, relative, plan)
+    plan["project"]["sourceEvidence"] = ["README.md", "README.md"]
+    with pytest.raises(module.ArchitectureDocsError, match="invalid or duplicate Owner LEGO sourceEvidence"):
+        module.validate_owner_lego_source_evidence(ROOT, relative, plan)

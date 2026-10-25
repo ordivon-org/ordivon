@@ -4,12 +4,11 @@ import ast
 import json
 import math
 import re
+import tomllib
 from decimal import Decimal
 from graphlib import CycleError, TopologicalSorter
 from pathlib import Path
 from typing import Any
-
-import tomllib
 
 ROOT = Path(__file__).resolve().parents[2]
 CURRENT = ROOT / "docs" / "architecture" / "CURRENT_ARCHITECTURE.md"
@@ -502,6 +501,32 @@ def _source_bound_file(root: Path, relative_path: str, label: str) -> Path:
     if not expected.is_file() or expected.resolve() != expected:
         raise ArchitectureDocsError(f"{label} escapes SourceCut")
     return expected
+
+
+
+def validate_owner_lego_source_evidence(
+    root: Path, relative: str, plan: dict[str, Any],
+) -> None:
+    """Bind an Owner's declared project evidence to existing SourceCut files.
+
+    This checks only project.sourceEvidence, which is explicitly a file list.
+    Node.evidence also contains historical textual observations; treating all
+    of those as paths would create a false authority and false failures.
+    """
+    owner, delimiter, _ = relative.partition("/planning/")
+    if not delimiter:
+        raise ArchitectureDocsError("invalid Owner LEGO plan location")
+    project = plan.get("project")
+    refs = project.get("sourceEvidence") if isinstance(project, dict) else None
+    if not isinstance(refs, list) or not refs:
+        raise ArchitectureDocsError(f"{owner}: missing Owner LEGO sourceEvidence")
+    seen: set[str] = set()
+    for ref in refs:
+        if not isinstance(ref, str) or not ref or ref != ref.strip() or ref in seen:
+            raise ArchitectureDocsError(f"{owner}: invalid or duplicate Owner LEGO sourceEvidence")
+        seen.add(ref)
+        path = ref if ref.startswith(f"{owner}/") else f"{owner}/{ref}"
+        _source_bound_file(root, path, "Owner LEGO sourceEvidence")
 
 
 def validate_owner_lego_dependencies(
@@ -1138,6 +1163,7 @@ def validate_repository(root: Path = ROOT) -> None:
         plan = _load_json(_source_bound_file(root, relative, "registered Owner LEGO plan"))
         validate_owner_lego_graph(plan)
         validate_owner_lego_dependencies(plan, relative.split("/planning/", 1)[0])
+        validate_owner_lego_source_evidence(root, relative, plan)
 
     issue_evidence_dir = root / "docs" / "architecture" / "evidence"
     for census_path in issue_evidence_dir.glob("FORMAL_LEGO_ISSUE_CENSUS_*_R*.json"):
