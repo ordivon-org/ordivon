@@ -44,6 +44,12 @@ expected={
 }
 path=Path(os.environ["DB"])
 pg_dsn=os.environ.get("ORDIVON_CAPITAL_PG_DSN")
+legacy_offline=os.environ.get("ORDIVON_CAPITAL_LEGACY_OFFLINE_SMOKE")=="1"
+if not pg_dsn and not legacy_offline:
+    raise SystemExit(
+        "PostgreSQL-first Capital accounting requires explicit ORDIVON_CAPITAL_PG_DSN; "
+        "legacy SQLite is permitted only by explicit offline smoke opt-in"
+    )
 def open_ledger():
     # An explicit PG choice never falls back to SQLite on network/SQL failure.
     return PostgresAccountingLedger(pg_dsn) if pg_dsn else SQLiteAccountingLedger(path)
