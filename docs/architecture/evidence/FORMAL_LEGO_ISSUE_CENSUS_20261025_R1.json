@@ -231,6 +231,118 @@
         ],
         "residualUnknown": "Upstream latest stable release and actual owner-native compatibility per dependency remain unverified."
       }
+    },
+    {
+      "id": "DB-PG-RUNTIME-20261026",
+      "problemClass": "DATABASE_AUTHORITY_CONVERGENCE",
+      "naturalOwner": "services/runtime",
+      "standing": "NON_POSTGRES_OWNER_BACKEND_OBSERVED_MIGRATION_UNVERIFIED",
+      "observation": "Runtime SQLite journal/registry uses rusqlite for transactional Job/Attempt/Workspace persistence; it is NOT the Host PostgreSQL Social Fabric.",
+      "evidence": "services/runtime/Cargo.toml::rusqlite; read-only tracked source at a new 2026-10-26 00:30+08 SourceCut. Host PostgreSQL schema10 doctor 6/6 PASS is independent and does not prove this owner.",
+      "consumers": "Runtime Registry/Workspace lifecycle, Job admission, cancellation/recovery, durable SQLite snapshots and installed Runner; migrator must bind attempt identity and preserve UNKNOWN dispatch, not create new effects. Rust durable Registry consumer and native rusqlite transaction lineage.",
+      "formalObligation": "CutoverAdmissible(owner,SourceCut) => FrozenWriterSet AND SnapshotByteComplete AND LogicalMappingBijection AND PostgreSQLUniqueAndCASContracts AND ReplayReconciliationPass AND OwnerNativeRecoveryPass AND RollbackSourceRetained AND ProofBridgeToActualConsumer. A SQL-script PASS does not imply migrated durable authority. Owner-specific: PostgreSQL may replace owner-local durable journal only after full recovery/refinement, exact attempt/Job row provenance, concurrency/CAS, crash-injection and backup/restore CDC.",
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "Typed issue registered in existing evidence census; no Owner-local PostgreSQL cutover/replay/refinement slice has yet met acceptance. Do not mislink Runtime RW9 or Repo RG2 to database implementation."
+      },
+      "decision": "PostgreSQL-first for shared durable authoritative state; do not silently delete old files or cut over active writers before exact restore/replay. A bounded offline synthetic SQLite oracle may remain only while a concrete negative-test consumer justifies it; evaluate retirement rather than an indefinite dual-write shim.",
+      "representation": {
+        "primary": "state-machine",
+        "supporting": [
+          "equivalence"
+        ],
+        "requiredWitness": "One source-state digest + owner-local real consumer + PostgreSQL 18 transaction/constraint receipt, negative concurrent-writer replay, fault injection, old-to-new row/key bijection, rollback fence; retain UNKNOWN until tested.",
+        "selectionReason": "Use the existing Owner state machine plus one equivalence witness rather than a second DB registry or mandatory solver. Preserve source/migration evidence and falsify data loss before PostgreSQL admission."
+      },
+      "requalification": {
+        "observedAt": "2026-10-26T00:32:55+08:00",
+        "sourceCut": "027e1fa1b4609658d8a87a7ca08980e9ff4bd10f",
+        "mode": "read-only-census-and-cutover-obligation-not-live-migration"
+      }
+    },
+    {
+      "id": "DB-PG-HARNESS-20261026",
+      "problemClass": "DATABASE_AUTHORITY_CONVERGENCE",
+      "naturalOwner": "services/harness",
+      "standing": "NON_POSTGRES_OWNER_BACKEND_OBSERVED_MIGRATION_UNVERIFIED",
+      "observation": "Harness SQLiteHarnessStore creates an independent journal/CAS, with SQLite backup and recovery consumers in store_ops.py.",
+      "evidence": "services/harness/src/ordivon_harness/sqlite_store.py::SQLiteHarnessStore; read-only tracked source at a new 2026-10-26 00:30+08 SourceCut. Host PostgreSQL schema10 doctor 6/6 PASS is independent and does not prove this owner.",
+      "consumers": "Harness bounded Run continuity, immutable receipts, store replay, idempotency and materializer transaction integrity; never treat a Provider claim as a Host Message.",
+      "formalObligation": "CutoverAdmissible(owner,SourceCut) => FrozenWriterSet AND SnapshotByteComplete AND LogicalMappingBijection AND PostgreSQLUniqueAndCASContracts AND ReplayReconciliationPass AND OwnerNativeRecoveryPass AND RollbackSourceRetained AND ProofBridgeToActualConsumer. A SQL-script PASS does not imply migrated durable authority. Owner-specific: PostgreSQL design must preserve receipt identity, monotonic CAS, checkpoint/replay, corruption rejection and rollback; use existing Host PostgreSQL transport only after cross-Owner contracts are qualified.",
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "Typed issue registered in existing evidence census; no Owner-local PostgreSQL cutover/replay/refinement slice has yet met acceptance. Do not mislink Runtime RW9 or Repo RG2 to database implementation."
+      },
+      "decision": "PostgreSQL-first for shared durable authoritative state; do not silently delete old files or cut over active writers before exact restore/replay. A bounded offline synthetic SQLite oracle may remain only while a concrete negative-test consumer justifies it; evaluate retirement rather than an indefinite dual-write shim.",
+      "representation": {
+        "primary": "state-machine",
+        "supporting": [
+          "equivalence"
+        ],
+        "requiredWitness": "One source-state digest + owner-local real consumer + PostgreSQL 18 transaction/constraint receipt, negative concurrent-writer replay, fault injection, old-to-new row/key bijection, rollback fence; retain UNKNOWN until tested.",
+        "selectionReason": "Use the existing Owner state machine plus one equivalence witness rather than a second DB registry or mandatory solver. Preserve source/migration evidence and falsify data loss before PostgreSQL admission."
+      },
+      "requalification": {
+        "observedAt": "2026-10-26T00:32:55+08:00",
+        "sourceCut": "027e1fa1b4609658d8a87a7ca08980e9ff4bd10f",
+        "mode": "read-only-census-and-cutover-obligation-not-live-migration"
+      }
+    },
+    {
+      "id": "DB-PG-CAPITAL-20261026",
+      "problemClass": "DATABASE_AUTHORITY_CONVERGENCE",
+      "naturalOwner": "domains/capital",
+      "standing": "NON_POSTGRES_OWNER_BACKEND_OBSERVED_MIGRATION_UNVERIFIED",
+      "observation": "Capital uses SQLite WAL accounting for explicitly disposable, NON_LIVE smoke receipts and synthetic effect-matrix tests; TigerBeetle is separate proven R3 mechanics and no live trade-write authority is admitted.",
+      "evidence": "domains/capital/src/ordivon_capital/accounting/sqlite_ledger.py::SQLiteAccountingLedger; read-only tracked source at a new 2026-10-26 00:30+08 SourceCut. Host PostgreSQL schema10 doctor 6/6 PASS is independent and does not prove this owner.",
+      "consumers": "Non-live accounting smoke scripts run-sqlite-accounting-durable-restart-smoke-r1 and run-nonlive-capital-effect-matrix; source recovery and exact replay.",
+      "formalObligation": "CutoverAdmissible(owner,SourceCut) => FrozenWriterSet AND SnapshotByteComplete AND LogicalMappingBijection AND PostgreSQLUniqueAndCASContracts AND ReplayReconciliationPass AND OwnerNativeRecoveryPass AND RollbackSourceRetained AND ProofBridgeToActualConsumer. A SQL-script PASS does not imply migrated durable authority. Owner-specific: Do not substitute arbitrary PostgreSQL arithmetic for externally proven accounting. Qualify against zero-overdraft, pending/posted/void, exactly-once IDs, two-sided book balance and native TigerBeetle comparison before retirement.",
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "Typed issue registered in existing evidence census; no Owner-local PostgreSQL cutover/replay/refinement slice has yet met acceptance. Do not mislink Runtime RW9 or Repo RG2 to database implementation."
+      },
+      "decision": "PostgreSQL-first for shared durable authoritative state; do not silently delete old files or cut over active writers before exact restore/replay. A bounded offline synthetic SQLite oracle may remain only while a concrete negative-test consumer justifies it; evaluate retirement rather than an indefinite dual-write shim.",
+      "representation": {
+        "primary": "state-machine",
+        "supporting": [
+          "equivalence"
+        ],
+        "requiredWitness": "One source-state digest + owner-local real consumer + PostgreSQL 18 transaction/constraint receipt, negative concurrent-writer replay, fault injection, old-to-new row/key bijection, rollback fence; retain UNKNOWN until tested.",
+        "selectionReason": "Use the existing Owner state machine plus one equivalence witness rather than a second DB registry or mandatory solver. Preserve source/migration evidence and falsify data loss before PostgreSQL admission."
+      },
+      "requalification": {
+        "observedAt": "2026-10-26T00:32:55+08:00",
+        "sourceCut": "027e1fa1b4609658d8a87a7ca08980e9ff4bd10f",
+        "mode": "read-only-census-and-cutover-obligation-not-live-migration"
+      }
+    },
+    {
+      "id": "DB-PG-MEDIA-20261026",
+      "problemClass": "DATABASE_AUTHORITY_CONVERGENCE",
+      "naturalOwner": "capabilities/media",
+      "standing": "NON_POSTGRES_OWNER_BACKEND_OBSERVED_MIGRATION_UNVERIFIED",
+      "observation": "Media R6 TrialLedger uses a local SQLite append-only hash chain with no UPDATE/DELETE triggers and a CLI --ledger path consumed by search/holdout and tests.",
+      "evidence": "capabilities/media/src/ordivon_studio/research_validity.py::TrialLedger; read-only tracked source at a new 2026-10-26 00:30+08 SourceCut. Host PostgreSQL schema10 doctor 6/6 PASS is independent and does not prove this owner.",
+      "consumers": "Media research-validity search and sealed holdout experiment, append-only proof events, hash continuity and CLI artifact references; must not leak sealed seed.",
+      "formalObligation": "CutoverAdmissible(owner,SourceCut) => FrozenWriterSet AND SnapshotByteComplete AND LogicalMappingBijection AND PostgreSQLUniqueAndCASContracts AND ReplayReconciliationPass AND OwnerNativeRecoveryPass AND RollbackSourceRetained AND ProofBridgeToActualConsumer. A SQL-script PASS does not imply migrated durable authority. Owner-specific: PostgreSQL variant must prove append-only on server and per-search serialized CAS heads, exact canonical hash-chain and concurrent-writer order; preserve CLI/source artifact compatibility or qualify explicit migration.",
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "Typed issue registered in existing evidence census; no Owner-local PostgreSQL cutover/replay/refinement slice has yet met acceptance. Do not mislink Runtime RW9 or Repo RG2 to database implementation."
+      },
+      "decision": "PostgreSQL-first for shared durable authoritative state; do not silently delete old files or cut over active writers before exact restore/replay. A bounded offline synthetic SQLite oracle may remain only while a concrete negative-test consumer justifies it; evaluate retirement rather than an indefinite dual-write shim.",
+      "representation": {
+        "primary": "state-machine",
+        "supporting": [
+          "equivalence"
+        ],
+        "requiredWitness": "One source-state digest + owner-local real consumer + PostgreSQL 18 transaction/constraint receipt, negative concurrent-writer replay, fault injection, old-to-new row/key bijection, rollback fence; retain UNKNOWN until tested.",
+        "selectionReason": "Use the existing Owner state machine plus one equivalence witness rather than a second DB registry or mandatory solver. Preserve source/migration evidence and falsify data loss before PostgreSQL admission."
+      },
+      "requalification": {
+        "observedAt": "2026-10-26T00:32:55+08:00",
+        "sourceCut": "027e1fa1b4609658d8a87a7ca08980e9ff4bd10f",
+        "mode": "read-only-census-and-cutover-obligation-not-live-migration"
+      }
     }
   ],
   "verification": {
