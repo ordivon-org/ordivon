@@ -110,6 +110,44 @@ class SQLDialectBoundaryTests(unittest.TestCase):
             self.assertEqual(observed, {"services/gateway/src/ordivon_gateway/unaudited.py": 1})
             self.assertTrue(sqlite_debt_issues(observed, {}))
 
+    def test_real_typescript_sqlite_owners_are_fenced(self):
+        observed = tracked_owner_sqlite_calls(ROOT)
+        for name in (
+            "apps/web/src/store.ts",
+            "domains/game/experiments/casefile/src/store.ts",
+            "domains/game/experiments/game-e2e-r5/host-outbox-shadow.ts",
+            "domains/game/experiments/station-zero-v3/src/persistence.ts",
+            "domains/game/products/station-zero-v2/src/storage.ts",
+            "platform/security/labs/agent-admission-rs/src/grant-store.ts",
+            "platform/security/labs/agent-admission-rs/src/principal-store.ts",
+        ):
+            with self.subTest(path=name):
+                self.assertEqual(observed[name], 1)
+
+    def test_ts_sqlite_import_boundary_excludes_comments_and_type_only_imports(self):
+        cases = (
+            ('import { DatabaseSync } from "node:sqlite";', 1),
+            ('import type { DatabaseSync } from "node:sqlite";', 0),
+            ('// import { DatabaseSync } from "node:sqlite";', 0),
+            ('const mod = require("node:sqlite");', 1),
+            ('import { Client } from "pg";', 0),
+        )
+        for snippet, expected in cases:
+            with self.subTest(snippet=snippet):
+                self.assertEqual(sqlite_direct_calls("apps/web/src/store.ts", snippet), expected)
+
+    def test_new_typescript_sqlite_store_fails_closed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "apps/web/src/new-ledger.ts"
+            source.parent.mkdir(parents=True)
+            source.write_text('import { DatabaseSync } from "node:sqlite";\n', encoding="utf8")
+            subprocess.run(["git", "init", "-q", str(root)], check=True)
+            subprocess.run(["git", "-C", str(root), "add", "."], check=True)
+            actual = tracked_owner_sqlite_calls(root)
+            self.assertEqual(actual, {"apps/web/src/new-ledger.ts": 1})
+            self.assertTrue(sqlite_debt_issues(actual, {}))
+
     def test_new_core_sqlite_authority_requires_explicit_consumer_qualification(self):
         current = dict(SQLITE_LEGACY_SOURCE_CALLS)
         current["services/harness/src/unreviewed_sqlite_authority.py"] = 1
