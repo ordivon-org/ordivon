@@ -131,6 +131,24 @@ Rollback ==
     /\ UNCHANGED <<sqliteRevision, pgRevision, sqliteContent, pgContent,
                    cutoverCertified, pgCommitted>>
 
+\* If PG consumer/readback certification fails after we quiesce SQLite but
+\* BEFORE PG's first commit, abandoning the proposed cutover may restart
+\* the *same* SQLite authority. This is a design transition, not a claim
+\* that the installed Rust Runtime implements a durable fencing protocol.
+AbortPaused ==
+    /\ owner = "paused"
+    /\ ~sqliteWriterActive
+    /\ ~pgWriterActive
+    /\ ~pgCommitted
+    /\ owner' = "sqlite"
+    /\ sqliteWriterActive' = TRUE
+    /\ copied' = FALSE
+    /\ parityVerified' = FALSE
+    /\ consumersQualified' = FALSE
+    /\ rolledBack' = TRUE
+    /\ UNCHANGED <<sqliteRevision, pgRevision, sqliteContent, pgContent,
+                   cutoverCertified, pgCommitted, pgWriterActive>>
+
 Next ==
     \/ SqliteCommit
     \/ Freeze
@@ -140,6 +158,7 @@ Next ==
     \/ Promote
     \/ PostgresCommit
     \/ Rollback
+    \/ AbortPaused
 
 TypeOK ==
     /\ owner \in {"sqlite", "paused", "postgres"}
@@ -178,6 +197,25 @@ PromotedContentWasVerified ==
 
 \* Distinct installed writers expose real overlap hidden by the authority enum.
 NoConcurrentInstalledWriters == ~(sqliteWriterActive /\ pgWriterActive)
+
+
+\* Lifecycle consistency is stronger than merely forbidding two concurrent
+\* writers: a paused authority may have neither; a live one must have exactly
+\* the corresponding process-level writer commitment.
+InstalledWriterMatchesAuthority ==
+    /\ (owner = "sqlite" => sqliteWriterActive /\ ~pgWriterActive)
+    /\ (owner = "paused" => ~sqliteWriterActive /\ ~pgWriterActive)
+    /\ (owner = "postgres" => pgWriterActive /\ ~sqliteWriterActive)
+
+\* Failure/abort must never accidentally reuse copied PG content or old
+\* consumer certification to promote an obsolete source snapshot.
+NoRetainedQualificationOnSqlite ==
+    owner = "sqlite" => ~parityVerified /\ ~consumersQualified
+
+\* A failed PG candidate is a *recoverable design state*, not permanent
+\* self-deadlock from quiescing SQLite. This is enabledness, NOT fairness.
+PrecommitAbortEnabled ==
+    (owner = "paused" /\ ~pgCommitted) => ENABLED AbortPaused
 
 Spec == Init /\ [][Next]_Vars
 
