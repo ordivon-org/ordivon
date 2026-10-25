@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from contextlib import closing
+
 import sqlite3
 import sys
 from pathlib import Path
@@ -111,6 +113,21 @@ def test_invalid_inputs_fail_closed(tmp_path: Path, field: str, value: str) -> N
         allocate(m, **{field: value})
 
 
+
+@pytest.mark.parametrize("basename", ["turn?shadow.sqlite", "turn#shadow.sqlite", "turn%23shadow.sqlite"])
+def test_wake_readback_targets_exact_sqlite_file(tmp_path: Path, basename: str) -> None:
+    """URI control characters must never redirect an actual wake ledger read."""
+    ledger = tmp_path / basename
+    m = SQLiteWakeTurnMap(
+        ledger,
+        uuid7_factory=lambda: TURN_ID,
+        now_ms=lambda: 1_800_000_000_000,
+    )
+    created = allocate(m)
+    assert m.get("wake:task-123:rev-7") == {**created, "disposition": "existing"}
+    with closing(m._connect(read_only=True)) as db:
+        assert db.execute("SELECT count(*) FROM wake_turn_map").fetchone()[0] == 1
+
 def test_read_does_not_create_missing_ledger(tmp_path: Path) -> None:
     ledger = tmp_path / "missing.sqlite"
     m = SQLiteWakeTurnMap.__new__(SQLiteWakeTurnMap)
@@ -129,7 +146,7 @@ def test_module_has_no_provider_or_temporal_effects() -> None:
 def test_wake_allocation_is_atomic_with_verified_turn_identity(tmp_path: Path, fault: str) -> None:
     """Turn identity cannot be committed without exact post-write readback."""
     m = mapping(tmp_path)
-    with sqlite3.connect(m.path) as db:
+    with closing(sqlite3.connect(m.path)) as db, db:
         if fault == "erase":
             fault_sql = "DELETE FROM wake_turn_map WHERE wake_intent_id=NEW.wake_intent_id;"
         else:
@@ -145,7 +162,7 @@ def test_wake_allocation_is_atomic_with_verified_turn_identity(tmp_path: Path, f
         )
     with pytest.raises(WakeTurnConflict, match="receipt"):
         allocate(m)
-    with sqlite3.connect(m.path) as db:
+    with closing(sqlite3.connect(m.path)) as db, db:
         assert db.execute("SELECT count(*) FROM wake_turn_map").fetchone()[0] == 0
         assert db.execute("SELECT count(*) FROM corruption_witness").fetchone()[0] == 0
 
@@ -153,7 +170,7 @@ def test_wake_allocation_is_atomic_with_verified_turn_identity(tmp_path: Path, f
 def test_replay_rejects_existing_row_with_invalid_turn_identity(tmp_path: Path) -> None:
     m = mapping(tmp_path)
     allocate(m)
-    with sqlite3.connect(m.path) as db:
+    with closing(sqlite3.connect(m.path)) as db, db:
         db.execute("UPDATE wake_turn_map SET turn_request_id='FORGED' WHERE wake_intent_id='wake:task-123:rev-7'")
     with pytest.raises(WakeTurnConflict, match="receipt"):
         allocate(m)
