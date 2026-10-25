@@ -45,9 +45,6 @@
   "nixDotnet": {
     "flake": "artifact-delivery/openxml-nix",
     "package": "dotnet-sdk",
-    "expectedSdkVersion": "8.0.426",
-    "nixpkgsRevision": "cd4ea8d57de16f4810bc5f14207bac45fbf19f67",
-    "nixpkgsNarHash": "sha256-vhe2jyvRCgufWPqDuDq1S3t3ypE+ka46IFutV02xKso=",
-    "flakeLockSha256": "sha256:125de19e7c1117d421d945f1948e6c27a660ba74dc0e7f43fd314fc26c85c7c8"
+    "expectedSdkVersion": "8.0.426"
   }
 }
