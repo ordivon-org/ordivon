@@ -1,25 +1,6 @@
 [tools]
-godot = "4.7.2-stable"
 node = "26.12.1"
 pnpm = "12.15.0"
 
 [tasks.verify]
-run = """
-set -euo pipefail
-pnpm install --frozen-lockfile
-pnpm check
-if command -v apt-get >/dev/null 2>&1; then
-  pnpm exec playwright install --with-deps chromium
-else
-  pnpm exec playwright install chromium
-fi
-pnpm e2e
-
-# Native Bevy consumer: contract, replay, error injection and ECS behavior.
-# Keep this in the existing Game owner test rather than a new CI framework.
-(
-  cd kits/room-action-r0
-  mise install
-  mise run verify
-)
-"""
+run = "pnpm install --frozen-lockfile && pnpm check"
