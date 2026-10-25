@@ -113,6 +113,18 @@ def test_plan_ledger_is_read_only_and_redacts_request_payload(tmp_path: Path) ->
     assert ledger.read_bytes() == before
 
 
+
+@pytest.mark.parametrize("basename", ["materialization?ledger.sqlite", "materialization#ledger.sqlite", "materialization%23ledger.sqlite"])
+def test_reconcile_read_uses_exact_physical_ledger_name(tmp_path: Path, basename: str) -> None:
+    ledger = tmp_path / basename
+    create_ledger(ledger, [("effect-from-real-file", "unknown")])
+    before = ledger.read_bytes()
+    value = plan_ledger(ledger)
+    assert value["requestCount"] == 1
+    assert value["requests"][0]["effectId"] == "effect-from-real-file"
+    assert value["requests"][0]["automaticRetryAuthorized"] is False
+    assert ledger.read_bytes() == before
+
 def test_plan_can_be_bounded_to_exact_effect_ids(tmp_path: Path) -> None:
     ledger = tmp_path / "ledger.sqlite"
     create_ledger(ledger, [("effect-a", "unknown"), ("effect-b", "submit-observed")])

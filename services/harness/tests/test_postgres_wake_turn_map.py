@@ -27,6 +27,7 @@ def owner():
         db.execute("DROP TRIGGER IF EXISTS corrupt_wake_insert ON ordivon_harness.wake_turn_map")
         db.execute("DROP FUNCTION IF EXISTS ordivon_harness.corrupt_wake_insert()")
         db.execute("TRUNCATE TABLE ordivon_harness.wake_turn_map")
+        db.execute("DELETE FROM ordivon_harness.wake_cutover")
     return w
 
 
@@ -216,6 +217,128 @@ def test_missing_legacy_source_requires_explicit_fresh_bootstrap(
         owner.assert_legacy_sealed(source)
     owner.assert_legacy_sealed(source, fresh_bootstrap=True)
 
+
+
+def test_sqlite_commit_failure_never_admits_a_postgres_wake(
+    owner: PostgresWakeTurnMap, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A committed PG copy cannot authorize writers before source retirement."""
+    import sqlite3
+    from sqlite_wake_turn_map import SQLiteWakeTurnMap
+
+    source = tmp_path / "wake-origin.sqlite"
+    legacy = SQLiteWakeTurnMap(source)
+    legacy.allocate(**payload())
+    raw = PostgresWakeTurnMap._legacy_rows
+
+    class FailSourceCommit:
+        def __init__(self, db: sqlite3.Connection):
+            self.db = db
+
+        def execute(self, query: str, *args):
+            if query == "COMMIT":
+                raise sqlite3.OperationalError("injected source commit failure")
+            return self.db.execute(query, *args)
+
+        def close(self):
+            self.db.close()
+
+    def failing_rows(path: Path, *, write: bool = False):
+        db, rows = raw(path, write=write)
+        return (FailSourceCommit(db), rows) if write else (db, rows)
+
+    monkeypatch.setattr(PostgresWakeTurnMap, "_legacy_rows", staticmethod(failing_rows))
+    with pytest.raises(sqlite3.OperationalError, match="injected source commit"):
+        owner.retire_legacy_and_import(source)
+    with pytest.raises(WakeTurnConflict, match="pending|not certified"):
+        owner.allocate(**payload("wake:" + "9" * 32))
+    with psycopg.connect(PG_TEST_DSN) as pg:
+        assert pg.execute(
+            "SELECT count(*) FROM ordivon_harness.wake_turn_map"
+        ).fetchone()[0] == 1
+    assert legacy.allocate(**payload("wake:" + "8" * 32))["disposition"] == "created"
+    monkeypatch.undo()
+    proof = owner.retire_legacy_and_import(source)
+    assert proof["migrationStanding"] == "source-sealed"
+    assert owner.allocate(**payload("wake:" + "7" * 32))["disposition"] == "created"
+
+
+def test_explicit_pending_pg_migration_rejects_new_wake_admission(
+    owner: PostgresWakeTurnMap,
+) -> None:
+    with psycopg.connect(PG_TEST_DSN) as pg:
+        pg.execute(
+            "INSERT INTO ordivon_harness.wake_cutover(cutover_id,state) "
+            "VALUES('legacy','PENDING')"
+        )
+    with pytest.raises(WakeTurnConflict, match="pending|not certified"):
+        owner.allocate(**payload())
+    with psycopg.connect(PG_TEST_DSN) as pg:
+        assert pg.execute(
+            "SELECT count(*) FROM ordivon_harness.wake_turn_map"
+        ).fetchone()[0] == 0
+
+
+def test_certification_crash_after_source_seal_recovers_without_dual_writers(
+    owner: PostgresWakeTurnMap, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A post-source-commit failure leaves a replayable PG fence, not admission."""
+    from sqlite_wake_turn_map import SQLiteWakeTurnMap
+
+    source = tmp_path / "wake-crash.sqlite"
+    old = SQLiteWakeTurnMap(source)
+    first = old.allocate(**payload())
+    real = owner._certify_cutover_after_source_commit
+
+    def injected_crash():
+        raise RuntimeError("injected PG activation crash")
+
+    monkeypatch.setattr(owner, "_certify_cutover_after_source_commit", injected_crash)
+    with pytest.raises(RuntimeError, match="injected PG activation crash"):
+        owner.retire_legacy_and_import(source)
+    with psycopg.connect(PG_TEST_DSN) as pg:
+        assert pg.execute(
+            "SELECT state FROM ordivon_harness.wake_cutover WHERE cutover_id='legacy'"
+        ).fetchone()[0] == "PENDING"
+    owner.assert_legacy_sealed(source)
+    with pytest.raises(WakeTurnConflict, match="pending"):
+        owner.allocate(**payload("wake:" + "7" * 32))
+    monkeypatch.setattr(owner, "_certify_cutover_after_source_commit", real)
+    receipt = owner.retire_legacy_and_import(source)
+    assert receipt["migrationStanding"] == "source-sealed"
+    assert owner.get(first["wakeIntentId"])["turnRequestId"] == first["turnRequestId"]
+    assert owner.allocate(**payload("wake:" + "7" * 32))["disposition"] == "created"
+
+
+def test_pending_pg_cutover_rejects_parallel_writers_without_serializing_each_other(
+    owner: PostgresWakeTurnMap,
+) -> None:
+    with psycopg.connect(PG_TEST_DSN) as pg:
+        pg.execute(
+            "INSERT INTO ordivon_harness.wake_cutover(cutover_id,state) "
+            "VALUES('legacy','PENDING')"
+        )
+    with ThreadPoolExecutor(max_workers=12) as pool:
+        results = list(pool.map(
+            lambda index: _pending_alloc_result(
+                owner, "wake:" + f"{index:032x}"
+            ),
+            range(24),
+        ))
+    assert results == ["blocked"] * 24
+    with psycopg.connect(PG_TEST_DSN) as pg:
+        assert pg.execute(
+            "SELECT count(*) FROM ordivon_harness.wake_turn_map"
+        ).fetchone()[0] == 0
+
+
+def _pending_alloc_result(owner: PostgresWakeTurnMap, wake: str) -> str:
+    try:
+        owner.allocate(**payload(wake))
+    except WakeTurnConflict as error:
+        assert "pending" in str(error)
+        return "blocked"
+    return "ADMITTED_UNSAFE"
 
 def test_pg_turn_request_collision_cannot_alias_different_wakes(
     owner: PostgresWakeTurnMap,
