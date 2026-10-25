@@ -435,7 +435,7 @@ def test_current_owner_plan_inventory_is_closed_without_another_registry(
     tmp_path: Path,
 ) -> None:
     """New plan declarations cannot silently evade registered Owner graph laws."""
-    for relative in module.OWNER_LEGO_PLANS:
+    for relative in (*module.OWNER_LEGO_PLANS, *module.OWNER_LEGO_PLAN_PROJECTIONS):
         candidate = tmp_path / relative
         candidate.parent.mkdir(parents=True, exist_ok=True)
         candidate.write_text("{}")
@@ -452,6 +452,33 @@ def test_current_owner_plan_inventory_is_closed_without_another_registry(
     missing.unlink()
     with pytest.raises(module.ArchitectureDocsError, match="missing="):
         module.validate_owner_plan_inventory(tmp_path)
+
+
+def test_owner_r2_r3_plan_carriers_are_not_invisible_to_inventory(tmp_path: Path) -> None:
+    """A newly authored R2/R3 source carrier cannot bypass R1-only glob checks."""
+    for relative in module.OWNER_LEGO_PLANS:
+        candidate = tmp_path / relative
+        candidate.parent.mkdir(parents=True, exist_ok=True)
+        candidate.write_text("{}", encoding="utf-8")
+    for relative in getattr(module, "OWNER_LEGO_PLAN_PROJECTIONS", ()):
+        candidate = tmp_path / relative
+        candidate.parent.mkdir(parents=True, exist_ok=True)
+        candidate.write_text("{}", encoding="utf-8")
+
+    undeclared = tmp_path / "domains/research/planning/lego-plan-r2.json"
+    undeclared.parent.mkdir(parents=True)
+    undeclared.write_text("{}", encoding="utf-8")
+    with pytest.raises(module.ArchitectureDocsError, match="unregistered="):
+        module.validate_owner_plan_inventory(tmp_path)
+    undeclared.unlink()
+
+    # Once a source carrier is registered, its silent deletion must also fail.
+    for relative in module.OWNER_LEGO_PLAN_PROJECTIONS:
+        missing = tmp_path / relative
+        missing.unlink()
+        with pytest.raises(module.ArchitectureDocsError, match="missing="):
+            module.validate_owner_plan_inventory(tmp_path)
+        missing.write_text("{}", encoding="utf-8")
 
 
 def test_actual_repository_owner_plan_inventory_is_source_closed() -> None:
