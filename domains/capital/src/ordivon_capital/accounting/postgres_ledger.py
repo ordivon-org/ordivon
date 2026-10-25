@@ -299,14 +299,34 @@ class PostgresAccountingLedger:
                 "SELECT id,debit_id,credit_id,amount,pending_id,operation,status "
                 "FROM transfers ORDER BY id"
             ).fetchall()
-            # Normalize only mathematical integer fields, not opaque u128 IDs.
+            # A digest of coerced values is not evidence of lossless source
+            # identity. SQLite INTEGER affinity admits REAL/TEXT storage.
+            # Reject malformed source cells before any PG write or digest.
+            def source_integer(value: object, label: str) -> int:
+                if type(value) is not int or not 0 <= value < 2**128:
+                    raise ValueError(f"noncanonical SQLite source integer: {label}")
+                return value
+
+            def source_flag(value: object) -> bool:
+                if type(value) is not int or value not in (0, 1):
+                    raise ValueError("noncanonical SQLite source boolean: no_overdraft")
+                return bool(value)
+
             original_accounts = sorted([
-                (str(a[0]), bool(a[1]), *(int(x) for x in a[2:]))
+                (
+                    str(a[0]),
+                    source_flag(a[1]),
+                    *(source_integer(x, "account balance") for x in a[2:]),
+                )
                 for a in accounts
             ])
             original_transfers = sorted([
-                (str(t[0]),str(t[1]),str(t[2]),int(t[3]),
-                 str(t[4]) if t[4] is not None else None,str(t[5]),str(t[6]))
+                (
+                    str(t[0]), str(t[1]), str(t[2]),
+                    source_integer(t[3], "transfer amount"),
+                    str(t[4]) if t[4] is not None else None,
+                    str(t[5]), str(t[6]),
+                )
                 for t in transfers
             ])
             digest = "sha256:" + hashlib.sha256(

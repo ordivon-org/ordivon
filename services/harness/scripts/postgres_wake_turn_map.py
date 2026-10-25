@@ -377,7 +377,11 @@ class PostgresWakeTurnMap:
                                 raise WakeTurnConflict("wake turn replay receipt invalid") from error
                             return self._receipt(existing, "existing")
                         turn_request_id = require_uuid7(self._uuid7_factory(), "turnRequestId")
-                        now = int(self._now_ms())
+                        now = self._now_ms()
+                        if type(now) is not int or not 0 <= now <= 2**63 - 1:
+                            raise WakeTurnConflict(
+                                "PostgreSQL wake timestamp must be an exact non-negative bigint"
+                            )
                         db.execute(
                             "INSERT INTO ordivon_harness.wake_turn_map "
                             "(wake_intent_id,campaign_ref,agent_id,prompt_digest,"

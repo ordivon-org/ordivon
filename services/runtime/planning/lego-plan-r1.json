@@ -1068,11 +1068,12 @@
     },
     {
       "id": "RW12",
-      "objective": "Refine the live single-writer Runtime SQLite Registry R06 into PostgreSQL-first durable authority without any dual-writer period, unreplayed committed PG effect, or unverified source cutover. Reuse the existing locked TLA+/TLC kernel before attempting deployment; migrate real rows only with native producer parity.",
+      "objective": "Windows-first single-direction Runtime PostgreSQL cutover: qualify the independent Windows PG control end before it drives a bounded Linux Runtime pause/copy/verify/promote. Retire SQLite state and obsolete cutover glue only after each actual consumer has proven PG replacement. Reuse existing R06/R11/R12/R17 and locked TLC; no dual writer, peer leader election, or new switch coordination service.",
       "status": "PROPOSED",
       "nodeIds": [
         "R03",
         "R06",
+        "R11",
         "R12",
         "R17"
       ],
@@ -1081,7 +1082,15 @@
         "Three independent bad transitions: uncertified PG promotion, rollback after a committed PG effect, and PG admission while a separate installed SQLite writer remains active. Each must yield its OWN named TLC invariant violation, exit 12 and nonempty counterexample trace; failures/tool errors without an actual trace are not evidence.",
         "Physical cutover requires source-bound consistency snapshot and revision parity, no overlapping SQLite/PG write authority, a PG-exclusive installed Runtime writer, exact replay/recovery/backup/rollback contracts and active Job/Attempt/Workspace native consumer tests. The bounded TLA+ model never proves these Rust+database obligations.",
         "PostgreSQL is the target default durable authority. The active 5 GiB SQLite source remains authoritative until a verified PG implementation and readback exists; no blind SQLite rm/mv, pgloader-as-proof, or two-authority mode is admitted.",
-        "The single enum owner does not prove no concurrent physical writers. RuntimePgCutoverR1 must represent sqliteWriterActive and pgWriterActive independently and check NoConcurrentInstalledWriters; concrete process/connection authority binding remains separately UNKNOWN until witnessed by Runtime native tests."
+        "The single enum owner does not prove no concurrent physical writers. RuntimePgCutoverR1 must represent sqliteWriterActive and pgWriterActive independently and check NoConcurrentInstalledWriters; concrete process/connection authority binding remains separately UNKNOWN until witnessed by Runtime native tests.",
+        "PHASE W0 PRECONDITION: discover exact Windows SCM identities, both Runtime service candidate data paths, Linux Runtime state sources, active Job/Attempt/Workspace/Release/Artifact consumers and PostgreSQL failure domain. Windows PG must stay available while the Linux Runtime service is paused; if whole WSL termination is in scope, database cannot depend on that WSL instance. Installed PostgreSQL/version/schema/principal/connection availability require real observations, not PATH/port guesses.",
+        "PHASE W1 WINDOWS FIRST: build PostgreSQL R06 storage behind existing Job/Attempt/Reservation/Workspace transaction API in Rust; preserve exact replay idempotency, terminal receipt identity, FK/unique constraints, held reservations, source-revision binding and real Windows SCM crash/restart recovery. Freeze existing Windows SQLite writers, obtain immutable source/cursor/digest baseline, transfer and read back all necessary rows, and promote exactly one PG writer only after CDC and native Windows Owner tests pass.",
+        "PHASE W2 CONTROL READINESS: the PG-backed Windows Runtime must successfully execute/observe/cancel/reconcile on Windows after a real service restart and must demonstrate a bounded, source-bound Linux Runtime control action. Current Session0 LocalSystem wsl.exe failure (WSL_E_LOCAL_SYSTEM_NOT_SUPPORTED) and Session1 active_user success mean active-user continuity must be verified through logout/login, lost session and Windows service restart; if unavailable, Linux cutover is STOP/UNKNOWN rather than silently widening service privileges or inventing a second agent.",
+        "PHASE L1 PAUSE: Windows control source-cuts the Linux Runtime owner, prevents new Linux Job admissions, waits for running owned Attempts or quarantines ambiguity, and records external-effect/terminal receipts. Leave Linux PostgreSQL/Host/other required infrastructure running; stopping the Linux Runtime is not the same operation as terminating WSL.",
+        "PHASE L2 MIGRATE: while Linux writes are frozen, produce independent, replayable source snapshot and consumer counts/digests, import into PostgreSQL in a separate logical Linux Runtime state namespace with explicit database identities, verify transaction/row/attempt/lease/artifact parity, then admit precisely one Linux PG writer. Windows Runtime retains orchestration authority; it never impersonates Linux Job semantics or re-executes an uncertain external effect.",
+        "PHASE L3 RETIRE: after cross-process real-world readback and post-restart recovery acceptance, retire inactive SQLite writers, redundant branches and obsolete switch/dual-database glue by exact consumer-through and native deletion checks. Keep source backups until restore obligations are proven; no blind cleanup and no permanent bidirectional switch manager.",
+        "FORMAL COMPOSITION: refine the existing single-owner RuntimePgCutoverR1 state machine with WindowsPgReady, WindowsControlReady, LinuxQuiesced and LinuxPgReady observations; require LinuxPgReady => WindowsPgReady /\\ WindowsControlReady /\\ LinuxQuiesced /\\ LinuxParityCertified; never have old/new writer authority for the same Runtime simultaneously, and never rollback a committed independent PG effect. Check named counterexamples for early Linux promotion, control-session loss, stale revision, unequal parity, orphaned Attempt and concurrent installed writer. A TLC PASS is scoped to the encoded finite model, not proof of SCM/wsl/Rust/PG physical implementation.",
+        "STOP CONDITIONS: no independent PG availability, nonmatching original SourceCut, unknown unique committed Job/effect, noncanonical session/principal/executable identity, ambiguous Windows-to-Linux control reachability, failed physical parity, multiple live writers, missing Native Owner test or failed GitHub protected CI => do not promote. Record typed UNKNOWN and retain recoverable source until the exact problem is resolved."
       ],
       "evidence": [
         "Runtime R06 existing natural Owner Registry and its native transactional and recovery consumers.",
@@ -1089,13 +1098,20 @@
         "services/runtime/formal/RuntimePgCutoverR1.cfg",
         "services/runtime/scripts/tla-formal check/falsify existing digest-bound TLC execution.",
         "2026-10-26 00:30+08 observed /var/lib/ordivon/registry/registry.sqlite3 approximately 5.0 GiB and actively modified; Host already uses PostgreSQL, Harness separate legacy SQLite consumers.",
-        "services/runtime/scripts/tla-formal falsify: named NoConcurrentInstalledWriters counterexample for a second physical writer admitted despite valid parity."
+        "services/runtime/scripts/tla-formal falsify: named NoConcurrentInstalledWriters counterexample for a second physical writer admitted despite valid parity.",
+        "2026-10-26 source-bound planning audit: Linux GitHub main ed03d791758da418fd8cdb044c28333f270b4743; local Runtime SourceCut 2a64da714d440b72313d441f2a92602075b31299, main...origin/main cache 0/4. RW12 and RuntimePgCutoverR1 already exist; do not create a second migration framework.",
+        "2026-10-26 Windows Runtime physical native read-only under elevated service Session0: OrdivonRuntimeR6Candidate (NT SERVICE/OrdivonRuntimeR6Candidate) RUNNING, OrdivonRuntimeR6ElevatedCandidate RUNNING, PrivilegedBroker RUNNING. Source registry.rs still directly uses rusqlite; no PG listener on localhost:5432 and psql/pg_ctl not found in that service PATH. This does not prove no PG installation outside the sampled context.",
+        "2026-10-26 Windows control prerequisite observed: Windows Session0 LocalSystem wsl.exe failed with WSL_E_LOCAL_SYSTEM_NOT_SUPPORTED on read-only enumeration; active_user Session1 wsl.exe --list --quiet succeeded exit0. Actual Linux control after logout or restart not yet witnessed; do not assume Windows service token automatically inherits user WSL access.",
+        "Ordivon Recursive LEGO Calculus R2.1 original identity / responsibility / input / output / contract / acceptance retained; capability LEGO=Windows Runtime PG persist + authorized OS control, method LEGO=source-bound zero-base consumer selection + scoped CEGAR. No new special role enum, coordinator, registry or mandatory agent."
       ],
       "blockers": [
         "Installed Runtime PostgreSQL store implementation and exact SQL Schema/CAS transaction mapping not yet implemented or qualified.",
-        "No independent physical cross-database checkpoint, row/digest/cursor parity, bounded dual-read equivalence and provider-effect recovery proof exists."
+        "No independent physical cross-database checkpoint, row/digest/cursor parity, bounded dual-read equivalence and provider-effect recovery proof exists.",
+        "W0: exact Windows PG installation, credentials, isolation and both installed Runtime candidate Registry locations not yet qualified; no physical migration may start before verified independent PG.",
+        "W2: persistent Windows user-session Linux control after logout, reboot and Windows service restart is UNKNOWN; Windows LocalSystem WSL cannot be substituted for active_user.",
+        "L2: physical PostgreSQL storage adapter and cross-OS consumer complete migration/readback/rollback evidence are not yet implemented or accepted."
       ],
-      "nextAction": "Implement PostgreSQL R06 storage adapter using mature Rust/Postgres provider, qualify transaction and WAL/readback CDC under a paused source and PG target; only then attempt an exact-owner cutover with rollback boundary and installed readback, retaining the original SQLite until legal recovery is proven."
+      "nextAction": "Execute W0 SourceCut and independent PG control-plane prerequisites first. Implement R06 PG behind the existing Rust API using native red/green Windows owner contracts; source-fence W1 physical Windows one-way cutover and restart acceptance. Only once Windows PG + source-bound Linux-control proofs are green, perform L1 pause, L2 verified PG import/promotion and L3 consumer-led retirement. Validate the existing TLC negatives and real Windows/Linux provider traces; do not build generic bidirectional switching or dual-write."
     }
   ],
   "gaps": [
