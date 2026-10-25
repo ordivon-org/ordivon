@@ -85,7 +85,8 @@
       ],
       "acceptance": [
         "Unadmitted proposals cannot become tool effects.",
-        "Bounded native TLC Provider claim admission model checks a current claimant generation and expiry replacement before physical dispatch. Executable SQLite refinement is independently scoped."
+        "Bounded native TLC Provider claim admission model checks a current claimant generation and expiry replacement before physical dispatch. Executable SQLite refinement is independently scoped.",
+        "PG WakeTurn admission clocks are exact nonnegative PostgreSQL signed 64-bit integers (type(value) is int and value <= 2**63-1); bool/float/string aliases and overflow fail closed with a typed domain conflict before the durable insert, with native PG counterexamples, independently of the legacy SQLite source."
       ]
     },
     {
