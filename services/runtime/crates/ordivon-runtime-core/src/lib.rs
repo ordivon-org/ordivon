@@ -4,6 +4,8 @@
 //! runner dispatch, process-tree ownership, bounded results and Artifacts,
 //! reconciliation, Runtime inspection, and administrative repair semantics.
 
+#[cfg(feature = "postgres-registry-admission")]
+pub mod pg_admission;
 #[cfg(feature = "transactional-runtime")]
 mod runtime;
 #[cfg(feature = "universal-executor")]
