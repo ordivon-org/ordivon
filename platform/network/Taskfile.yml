@@ -7,6 +7,7 @@ tasks:
       - sing-box check -c config/sing-box/direct.json
       - prometheus-blackbox-exporter --config.file=config/blackbox/blackbox.yml --config.check
       - promtool check config config/prometheus/prometheus.yml
+      - python3 scripts/monitoring-sourcecut-preflight.py --source config --check-edges
       - /usr/bin/systemd-analyze verify systemd/network-v2-r0.target systemd/network-v2-dnsproxy.service systemd/network-v2-singbox.service systemd/network-v2-blackbox.service systemd/network-v2-prometheus.service
 
   provider:surfshark:validate:

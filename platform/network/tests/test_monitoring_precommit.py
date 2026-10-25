@@ -119,3 +119,79 @@ def test_core_install_checks_drift_before_any_live_writes():
     assert guard in core
     assert core.index(guard) < core.index("install -d")
     assert core.index(guard) < core.index("install -m")
+
+
+
+def test_checked_in_monitoring_probes_have_bound_modules_and_targets():
+    owner = _load()
+    assert owner.verify_probe_consumer_edges(ROOT / "config") >= 1
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    [
+        ("unknown-module", "unknown/ambiguous module"),
+        ("missing-module", "unknown/ambiguous module"),
+        ("missing-target", "target not forwarded"),
+        ("dynamic-module", "dynamically overridden module"),
+        ("missing-exporter", "exporter endpoint not bound"),
+        ("duplicate-job", "duplicate Prometheus job name"),
+    ],
+)
+def test_cross_config_monitoring_consumer_counterexamples_fail_closed(
+    tmp_path, mutation, message,
+):
+    """Separate upstream config checks cannot establish this cross-file consumer edge."""
+    import json
+    import subprocess
+
+    owner = _load()
+    source = tmp_path / "config"
+    source.joinpath("blackbox").mkdir(parents=True)
+    source.joinpath("prometheus").mkdir(parents=True)
+    source.joinpath("blackbox/blackbox.yml").write_text(
+        "modules:\n  http_test:\n    prober: http\n    timeout: 5s\n"
+    )
+    job = {
+        "job_name": "consumer-probe",
+        "metrics_path": "/probe",
+        "params": {"module": ["http_test"]},
+        "static_configs": [{"targets": ["https://example.com/"]}],
+        "relabel_configs": [
+            {"source_labels": ["__address__"], "target_label": "__param_target"},
+            {"target_label": "__address__", "replacement": "127.0.0.1:29115"},
+        ],
+    }
+    if mutation == "unknown-module":
+        job["params"]["module"] = ["foreign_module"]
+    elif mutation == "missing-module":
+        job["params"] = {}
+    elif mutation == "missing-target":
+        job["relabel_configs"].pop(0)
+    elif mutation == "dynamic-module":
+        job["relabel_configs"].append(
+            {"target_label": "__param_module", "replacement": "foreign_module"}
+        )
+    elif mutation == "missing-exporter":
+        job["relabel_configs"].pop(1)
+    jobs = [job]
+    if mutation == "duplicate-job":
+        jobs.append(dict(job))
+    source.joinpath("prometheus/prometheus.yml").write_text(
+        json.dumps({"scrape_configs": jobs})
+    )
+    if mutation in {"unknown-module", "missing-target"}:
+        # Independent Prometheus/Blackbox CLI syntax gates do not see the peer config.
+        prom = subprocess.run(
+            ["promtool", "check", "config", str(source / "prometheus/prometheus.yml")],
+            capture_output=True, text=True, check=False,
+        )
+        assert prom.returncode == 0, prom.stderr
+    with pytest.raises(ValueError, match=message):
+        owner.verify_probe_consumer_edges(source)
+
+
+def test_core_validation_invokes_cross_config_consumer_gate():
+    taskfile = (ROOT / "Taskfile.yml").read_text()
+    native = taskfile.split("  core:validate:", 1)[1].split("  provider:surfshark:validate:", 1)[0]
+    assert "monitoring-sourcecut-preflight.py --source config --check-edges" in native

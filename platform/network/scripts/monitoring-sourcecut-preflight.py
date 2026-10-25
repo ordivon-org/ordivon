@@ -8,10 +8,81 @@ changes require a separately qualified migration, never a silent overwrite.
 from __future__ import annotations
 
 import argparse
+import json
+import subprocess
 from pathlib import Path
 
 CONFIGS = ("blackbox/blackbox.yml", "prometheus/prometheus.yml")
 
+
+
+def _read_owner_yaml(path: Path) -> dict:
+    """Reuse upstream yq; do not implement another YAML dialect or parser."""
+    if path.is_symlink() or not path.is_file():
+        raise ValueError(f"invalid monitoring source file: {path}")
+    result = subprocess.run(
+        ["yq", "-o=json", ".", str(path)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise ValueError(f"invalid monitoring YAML: {path}: {result.stderr.strip()}")
+    try:
+        parsed = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"invalid monitoring JSON projection: {path}") from exc
+    if not isinstance(parsed, dict):
+        raise ValueError(f"monitoring YAML must be an object: {path}")
+    return parsed
+
+
+def verify_probe_consumer_edges(source: Path) -> int:
+    """Prove configuration graph edges only; not live Blackbox or consumer effects."""
+    blackbox = _read_owner_yaml(source / CONFIGS[0])
+    prometheus = _read_owner_yaml(source / CONFIGS[1])
+    modules = blackbox.get("modules")
+    jobs = prometheus.get("scrape_configs")
+    if not isinstance(modules, dict) or not isinstance(jobs, list):
+        raise ValueError("missing Blackbox modules or Prometheus scrape_configs")
+    names: set[str] = set()
+    checked = 0
+    for job in jobs:
+        if not isinstance(job, dict):
+            raise ValueError("invalid Prometheus scrape job")
+        name = job.get("job_name")
+        if not isinstance(name, str) or not name or name in names:
+            raise ValueError(f"missing or duplicate Prometheus job name: {name!r}")
+        names.add(name)
+        if job.get("metrics_path", "/metrics") != "/probe":
+            continue
+        checked += 1
+        params = job.get("params")
+        selected = params.get("module") if isinstance(params, dict) else None
+        if (not isinstance(selected, list) or len(selected) != 1
+                or not isinstance(selected[0], str) or selected[0] not in modules):
+            raise ValueError(f"Blackbox probe job {name}: unknown/ambiguous module")
+        relabels = job.get("relabel_configs")
+        if not isinstance(relabels, list) or not all(isinstance(r, dict) for r in relabels):
+            raise ValueError(f"Blackbox probe job {name}: missing relabel configurations")
+        if any(r.get("target_label") == "__param_module" for r in relabels):
+            raise ValueError(f"Blackbox probe job {name}: dynamically overridden module")
+        if not any(
+            r.get("target_label") == "__param_target"
+            and r.get("source_labels") == ["__address__"]
+            for r in relabels
+        ):
+            raise ValueError(f"Blackbox probe job {name}: target not forwarded to probe")
+        if not any(
+            r.get("target_label") == "__address__"
+            and isinstance(r.get("replacement"), str)
+            and bool(r["replacement"])
+            for r in relabels
+        ):
+            raise ValueError(f"Blackbox probe job {name}: exporter endpoint not bound")
+    if not checked:
+        raise ValueError("no Blackbox probe consumers in monitoring source")
+    return checked
 
 def verify(source: Path, live: Path) -> str:
     for label, tree in (("source", source), ("live", live)):
@@ -52,8 +123,14 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", type=Path, default=Path("config"))
     parser.add_argument("--live", type=Path, default=Path("/etc/network-v2"))
+    parser.add_argument("--check-edges", action="store_true",
+                        help="validate exact Prometheus to Blackbox module/target bindings")
     args = parser.parse_args()
     try:
+        if args.check_edges:
+            count = verify_probe_consumer_edges(args.source)
+            print(f"MONITORING_CONSUMER_EDGES=VALID probeJobs={count}")
+            return 0
         standing = verify(args.source, args.live)
     except (ValueError, OSError) as exc:
         parser.exit(4, f"MONITORING_SOURCECUT=BLOCKED {exc}\n")
