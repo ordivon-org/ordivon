@@ -287,6 +287,26 @@ def _inside_macro_rules_definition(code: str, witness_start: int) -> bool:
     return False
 
 
+
+def _test_has_nonmodule_enclosing_scope(code: str, witness_start: int) -> bool:
+    """Fail closed for unnameable Rust tests nested in non-module blocks.
+
+    Inline named modules are valid scopes. Source-only screening still cannot
+    prove actual rustc test registration or execution.
+    """
+    scopes: list[int] = []
+    for index, char in enumerate(code[:witness_start]):
+        if char == "{":
+            scopes.append(index)
+        elif char == "}" and scopes:
+            scopes.pop()
+    for opening in scopes:
+        prefix = code[max(0, opening - 240) : opening]
+        if not re.search(r"\bmod\s+[A-Za-z_]\w*\s*$", prefix):
+            return True
+    return False
+
+
 def _matching_brace(text: str, opening: int) -> int:
     depth = 0
     for index in range(opening, len(text)):
@@ -471,6 +491,8 @@ def require_test_symbol(path: Path, symbol: str, *, require_ignored: bool = Fals
         return [f"{path.relative_to(ROOT)} missing proving test symbol {symbol!r}"]
     if _inside_macro_rules_definition(code, match.start()):
         return [f"{path.relative_to(ROOT)}::{symbol} is inside an unexpanded macro_rules! definition"]
+    if _test_has_nonmodule_enclosing_scope(code, match.start()):
+        return [f"{path.relative_to(ROOT)}::{symbol} has an unnameable non-module test scope"]
     try:
         if _conditional_rust_ancestor(code, match.start(), test_context=True):
             return [f"{path.relative_to(ROOT)}::{symbol} has conditional ancestor module"]
