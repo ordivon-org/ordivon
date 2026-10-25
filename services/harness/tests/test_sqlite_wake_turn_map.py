@@ -123,3 +123,37 @@ def test_module_has_no_provider_or_temporal_effects() -> None:
     text = (ROOT / "scripts/sqlite_wake_turn_map.py").read_text().lower()
     for forbidden in ("playwright", "browserless", "send.click", "temporalclient", "composer.fill"):
         assert forbidden not in text
+
+
+@pytest.mark.parametrize("fault", ["erase", "forge"])
+def test_wake_allocation_is_atomic_with_verified_turn_identity(tmp_path: Path, fault: str) -> None:
+    """Turn identity cannot be committed without exact post-write readback."""
+    m = mapping(tmp_path)
+    with sqlite3.connect(m.path) as db:
+        if fault == "erase":
+            fault_sql = "DELETE FROM wake_turn_map WHERE wake_intent_id=NEW.wake_intent_id;"
+        else:
+            fault_sql = "UPDATE wake_turn_map SET turn_request_id='FORGED' WHERE wake_intent_id=NEW.wake_intent_id;"
+        db.executescript(
+            f"""
+            CREATE TABLE corruption_witness (mark INTEGER);
+            CREATE TRIGGER wake_corrupt AFTER INSERT ON wake_turn_map BEGIN
+                INSERT INTO corruption_witness VALUES (1);
+                {fault_sql}
+            END;
+            """
+        )
+    with pytest.raises(WakeTurnConflict, match="receipt"):
+        allocate(m)
+    with sqlite3.connect(m.path) as db:
+        assert db.execute("SELECT count(*) FROM wake_turn_map").fetchone()[0] == 0
+        assert db.execute("SELECT count(*) FROM corruption_witness").fetchone()[0] == 0
+
+
+def test_replay_rejects_existing_row_with_invalid_turn_identity(tmp_path: Path) -> None:
+    m = mapping(tmp_path)
+    allocate(m)
+    with sqlite3.connect(m.path) as db:
+        db.execute("UPDATE wake_turn_map SET turn_request_id='FORGED' WHERE wake_intent_id='wake:task-123:rev-7'")
+    with pytest.raises(WakeTurnConflict, match="receipt"):
+        allocate(m)
