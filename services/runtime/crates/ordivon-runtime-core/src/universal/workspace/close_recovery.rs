@@ -222,6 +222,24 @@ pub(crate) fn remove_git_workspace(
         }
     }
 
+    // Clean/idle is not evidence that the Workspace's external task consumer
+    // finished. Old cleaners did exactly that, racing a next Runtime Job.
+    // A bounded hold makes those unstated assumptions fail closed, while an
+    // owner that actually completed its task can explicitly relinquish it.
+    // This is a voluntary consumer declaration, not a security capability.
+    const CONTINUATION_HOLD_MS: u128 = 24 * 60 * 60 * 1000;
+    let now = now_unix_ms()?;
+    if !request.consumer_released
+        && now < record.created_unix_ms.saturating_add(CONTINUATION_HOLD_MS)
+    {
+        return Err(UniversalExecError::new(
+            UniversalExecErrorCode::WorkspaceStateMismatch,
+            "Workspace is inside the bounded consumer continuation window; explicit consumerReleased is required before close",
+            Some("consumerReleased"),
+            false,
+        ));
+    }
+
     let final_head = git_output(&recorded, ["rev-parse", "HEAD"])?
         .trim()
         .to_string();

@@ -254,7 +254,7 @@ def cleanup(client: McpClient | None, workspace_id: str | None, client_request_i
         try:
             client.call_tool(
                 "workspace.close",
-                {"schemaVersion": SCHEMA_VERSION, "workspaceId": workspace_id, "force": True},
+                {"schemaVersion": SCHEMA_VERSION, "workspaceId": workspace_id, "force": True, "consumerReleased": True},
             )
         except Exception:
             pass
@@ -466,6 +466,7 @@ def run_demo(
                     "workspaceId": workspace_id,
                     "force": True,
                     "expectedSourceStateDigest": source_state_digest,
+                    "consumerReleased": True,
                 },
             )
             closed = close.get("removed") is True and close.get("sourceStateDigest") == source_state_digest
