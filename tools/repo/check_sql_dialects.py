@@ -40,7 +40,20 @@ OSQUERY_DEFAULT_TIMEOUT_SECONDS = 30
 # that changes these values must update its exact consumer proof here.
 # This bounded AST/Rust lexical boundary is necessary but NOT proof that all indirect SQLite
 # use has been discovered.
-CORE_SQLITE_LEGACY_CALLS: dict[str, int] = {
+SQLITE_LEGACY_SOURCE_CALLS: dict[str, int] = {
+    # Other concrete owners previously invisible to the Runtime/Harness-only gate:
+    # Gateway pull-worker durability (conditional deployed consumer).
+    'services/gateway/src/ordivon_gateway/external_worker.py': 1,
+    # Capital accounting and Media research have distinct consumer contracts:
+    # do not promote the research executor or test-only ledger to live PG by analogy.
+    'domains/capital/src/ordivon_capital/accounting/sqlite_ledger.py': 1,
+    'capabilities/media/src/ordivon_studio/research_validity.py': 1,
+    # Retired Host v1 historical read/projection tools, not current Host v2 state.
+    'platform/workstation/scripts/host_historical_projection.py': 2,
+    'platform/workstation/scripts/host_retirement_snapshot.py': 3,
+    # Experimental stand-alone local sources, not admitted production PG state.
+    'meta/next/experiments/browser-security-r4/cf07_metadata_snapshot.py': 1,
+    'meta/next/experiments/chaoxing-autosign-mvp/chaoxing_mvp/ledger.py': 1,
     'services/harness/scripts/agent_automation_browserless.py': 1,
     'services/harness/scripts/agent_automation_ledger_reconcile.py': 1,
     'services/harness/scripts/agent_automation_release.py': 3,
@@ -70,7 +83,7 @@ CORE_SQLITE_LEGACY_CALLS: dict[str, int] = {
 }
 
 
-def core_sqlite_direct_calls(path: str, source: str) -> int:
+def sqlite_direct_calls(path: str, source: str) -> int:
     """Bounded static evidence: Python direct/aliased connect and Rust rusqlite."""
     if path.endswith(".py"):
         tree = ast.parse(source, filename=path)
@@ -110,9 +123,9 @@ def core_sqlite_direct_calls(path: str, source: str) -> int:
     return 0
 
 
-def core_sqlite_debt_issues(
+def sqlite_debt_issues(
     observed: dict[str, int],
-    expected: dict[str, int] = CORE_SQLITE_LEGACY_CALLS,
+    expected: dict[str, int] = SQLITE_LEGACY_SOURCE_CALLS,
 ) -> list[str]:
     """Explicit new source/retirement/drift review, never a blanket PG cutover claim."""
     issues = []
@@ -121,18 +134,20 @@ def core_sqlite_debt_issues(
         approved = expected.get(path, 0)
         if actual != approved:
             issues.append(
-                f"unqualified SQLite core backend drift: {path}: "
+                f"unqualified SQLite owner backend drift: {path}: "
                 f"observed={actual}, source-frozen={approved}; "
                 "record owner/consumer and PostgreSQL replacement before accepting"
             )
     return issues
 
 
-def tracked_core_sqlite_calls(root: Path) -> dict[str, int]:
-    """Git-index names + verified regular checkout bytes; no generated scans."""
+def tracked_owner_sqlite_calls(root: Path) -> dict[str, int]:
+    """All tracked production Python/Rust: index identity and actual regular bytes."""
     tracked = subprocess.check_output(
+        # All tracked Python/Rust source: owner-specific paths can otherwise
+        # introduce new durable SQLite unnoticed outside Runtime/Harness.
         ["git", "-C", str(root), "ls-files", "--stage", "-z",
-         "--", "services/runtime", "services/harness"]
+         "--", "*.py", "*.rs"]
     )
     result: dict[str, int] = {}
     base = root.resolve()
@@ -157,7 +172,7 @@ def tracked_core_sqlite_calls(root: Path) -> dict[str, int]:
                 raise ValueError(f"SQLite core source symlink: {path}")
         if not source.is_file() or not source.resolve().is_relative_to(base):
             raise ValueError(f"SQLite core source unavailable/outside checkout: {path}")
-        count = core_sqlite_direct_calls(path, source.read_text(encoding="utf-8"))
+        count = sqlite_direct_calls(path, source.read_text(encoding="utf-8"))
         if count:
             result[path] = count
     return result
@@ -293,10 +308,10 @@ def check(root: Path) -> tuple[list[str], list[str]]:
     if not issues:
         facts.append("Host PostgreSQL-only active source authority PASS")
     files = tracked_sql(root)
-    legacy_sources = tracked_core_sqlite_calls(root)
-    issues.extend(core_sqlite_debt_issues(legacy_sources))
+    legacy_sources = tracked_owner_sqlite_calls(root)
+    issues.extend(sqlite_debt_issues(legacy_sources))
     facts.append(
-        f"core SQLite direct API callsites={sum(legacy_sources.values())}, "
+        f"multi-owner SQLite direct API callsites={sum(legacy_sources.values())}, "
         f"source paths={len(legacy_sources)}; "
         "PostgreSQL durable-owner migration standing=NOT_CUT_OVER"
     )
