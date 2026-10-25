@@ -197,31 +197,56 @@ def payload(wake: str = "wake:" + "a" * 32) -> dict[str, str]:
     }
 
 
-def test_exact_replay_preserves_identity(owner: PostgresWakeTurnMap) -> None:
-    first = owner.allocate(**payload())
-    second = owner.allocate(**payload())
+@pytest.fixture
+def active_owner(owner: PostgresWakeTurnMap) -> PostgresWakeTurnMap:
+    """Only a deliberately ACTIVE disposable PG test DB may mint identities."""
+    with psycopg.connect(owner.dsn) as pg:
+        pg.execute(
+            "INSERT INTO ordivon_harness.wake_cutover(cutover_id,state)"
+            " VALUES('legacy','ACTIVE')"
+        )
+    return owner
+
+
+def test_pg_wake_requires_explicit_active_cutover_before_any_access(
+    owner: PostgresWakeTurnMap,
+) -> None:
+    """A missing PostgreSQL activation witness must not mint a new wake identity."""
+    with pytest.raises(WakeTurnConflict, match="cutover.*ACTIVE|not activated"):
+        owner.allocate(**payload())
+    with pytest.raises(WakeTurnConflict, match="cutover.*ACTIVE|not activated"):
+        owner.get(payload()["wake_intent_id"])
+    with psycopg.connect(owner.dsn) as db:
+        assert db.execute(
+            "SELECT count(*) FROM ordivon_harness.wake_turn_map"
+        ).fetchone()[0] == 0
+
+
+def test_exact_replay_preserves_identity(active_owner: PostgresWakeTurnMap) -> None:
+    first = active_owner.allocate(**payload())
+    second = active_owner.allocate(**payload())
     assert first["disposition"] == "created"
     assert second["disposition"] == "existing"
     assert second["turnRequestId"] == first["turnRequestId"]
-    assert owner.get(payload()["wake_intent_id"]) == second
+    assert active_owner.get(payload()["wake_intent_id"]) == second
 
 
-def test_same_wake_different_semantics_fails_closed(owner: PostgresWakeTurnMap) -> None:
-    owner.allocate(**payload())
+def test_same_wake_different_semantics_fails_closed(active_owner: PostgresWakeTurnMap) -> None:
+    active_owner.allocate(**payload())
     with pytest.raises(WakeTurnConflict, match="semantics"):
-        owner.allocate(**{**payload(), "agent_id": "A02"})
+        active_owner.allocate(**{**payload(), "agent_id": "A02"})
 
 
-def test_concurrent_same_wake_has_one_identity(owner: PostgresWakeTurnMap) -> None:
+def test_concurrent_same_wake_has_one_identity(active_owner: PostgresWakeTurnMap) -> None:
     with ThreadPoolExecutor(max_workers=12) as pool:
-        rows = list(pool.map(lambda _: owner.allocate(**payload()), range(24)))
+        rows = list(pool.map(lambda _: active_owner.allocate(**payload()), range(24)))
     assert len({r["turnRequestId"] for r in rows}) == 1
     assert sum(r["disposition"] == "created" for r in rows) == 1
     with psycopg.connect(PG_TEST_DSN) as db:
         assert db.execute("SELECT count(*) FROM ordivon_harness.wake_turn_map").fetchone()[0] == 1
 
 
-def test_post_write_mutation_is_rolled_back(owner: PostgresWakeTurnMap) -> None:
+def test_post_write_mutation_is_rolled_back(active_owner: PostgresWakeTurnMap) -> None:
     with psycopg.connect(PG_TEST_DSN) as db:
         db.execute(
             """CREATE FUNCTION ordivon_harness.corrupt_wake_insert()
@@ -238,13 +263,13 @@ def test_post_write_mutation_is_rolled_back(owner: PostgresWakeTurnMap) -> None:
             FOR EACH ROW EXECUTE FUNCTION ordivon_harness.corrupt_wake_insert()"""
         )
     with pytest.raises((WakeTurnConflict, psycopg.errors.CheckViolation)):
-        owner.allocate(**payload())
+        active_owner.allocate(**payload())
     with psycopg.connect(PG_TEST_DSN) as db:
         assert db.execute("SELECT count(*) FROM ordivon_harness.wake_turn_map").fetchone()[0] == 0
 
 
-def test_invalid_uuid7_on_durable_replay_fails_closed(owner: PostgresWakeTurnMap) -> None:
-    row = owner.allocate(**payload())
+def test_invalid_uuid7_on_durable_replay_fails_closed(active_owner: PostgresWakeTurnMap) -> None:
+    row = active_owner.allocate(**payload())
     with psycopg.connect(PG_TEST_DSN) as db:
         # Simulate a privileged integrity breach, beyond ordinary DML authority.
         db.execute(
@@ -259,9 +284,9 @@ def test_invalid_uuid7_on_durable_replay_fails_closed(owner: PostgresWakeTurnMap
             "ALTER TABLE ordivon_harness.wake_turn_map ENABLE TRIGGER wake_turn_identity_immutable"
         )
     with pytest.raises(WakeTurnConflict, match="receipt"):
-        owner.allocate(**payload())
+        active_owner.allocate(**payload())
     with pytest.raises(WakeTurnConflict, match="identity"):
-        owner.get(row["wakeIntentId"])
+        active_owner.get(row["wakeIntentId"])
 
 
 def test_legacy_sqlite_import_retirement_and_pg_growth(
@@ -293,18 +318,18 @@ def test_legacy_sqlite_import_retirement_and_pg_growth(
 
 
 def test_divergent_pg_import_does_not_retire_source(
-    owner: PostgresWakeTurnMap, tmp_path: Path
+    active_owner: PostgresWakeTurnMap, tmp_path: Path
 ) -> None:
     from sqlite_wake_turn_map import SQLiteWakeTurnMap
 
     source = tmp_path / "legacy.sqlite"
     legacy = SQLiteWakeTurnMap(source)
     legacy.allocate(**payload())
-    owner.allocate(**{**payload(), "agent_id": "A02"})
+    active_owner.allocate(**{**payload(), "agent_id": "A02"})
     with pytest.raises(WakeTurnConflict, match="divergent"):
-        owner.retire_legacy_and_import(source)
+        active_owner.retire_legacy_and_import(source)
     with pytest.raises(WakeTurnConflict, match="fence"):
-        owner.assert_legacy_sealed(source)
+        active_owner.assert_legacy_sealed(source)
     still_active = legacy.allocate(**payload("wake:" + "d" * 32))
     assert still_active["disposition"] == "created"
 
@@ -484,7 +509,7 @@ def _pending_alloc_result(owner: PostgresWakeTurnMap, wake: str) -> str:
 
 
 def test_pg_turn_request_collision_cannot_alias_different_wakes(
-    owner: PostgresWakeTurnMap,
+    active_owner: PostgresWakeTurnMap,
 ) -> None:
     # A broken ID generator must fail rather than silently rebind another
     # wake intent to the same eventual Provider effect identity.
@@ -501,7 +526,7 @@ def test_pg_turn_request_collision_cannot_alias_different_wakes(
 
 @pytest.mark.parametrize("unsafe_clock", [True, 1.5, -1, 2**63, "1"])
 def test_pg_wake_clock_requires_exact_native_bigint_before_write(
-    owner: PostgresWakeTurnMap,
+    active_owner: PostgresWakeTurnMap,
     unsafe_clock: object,
 ) -> None:
     """Never let an invalid producer clock get coerced or delegated to PG."""
@@ -518,10 +543,10 @@ def test_pg_wake_clock_requires_exact_native_bigint_before_write(
 
 @pytest.mark.parametrize("mutation", ["UPDATE", "DELETE", "TRUNCATE"])
 def test_pg_native_identity_immutability_rejects_mutation(
-    owner: PostgresWakeTurnMap, mutation: str
+    active_owner: PostgresWakeTurnMap, mutation: str
 ) -> None:
     """No admitted wake identity may be rewritten/erased through PG DML."""
-    receipt = owner.allocate(**payload())
+    receipt = active_owner.allocate(**payload())
     with psycopg.connect(PG_TEST_DSN) as db:
         with pytest.raises(
             psycopg.errors.CheckViolation, match="durable wake turn identity is immutable"
@@ -539,4 +564,4 @@ def test_pg_native_identity_immutability_rejects_mutation(
                 )
             else:
                 db.execute("TRUNCATE ordivon_harness.wake_turn_map")
-    assert owner.get(receipt["wakeIntentId"])["turnRequestId"] == receipt["turnRequestId"]
+    assert active_owner.get(receipt["wakeIntentId"])["turnRequestId"] == receipt["turnRequestId"]
