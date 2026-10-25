@@ -2040,6 +2040,44 @@ def test_r21_architecture_cannot_call_an_empty_file_native_consumer_evidence(
         module.validate_r21_lego_vocabulary(document, root=tmp_path)
 
 
+@pytest.mark.parametrize(
+    "placeholder", ("pass", "...", "'placeholder docstring only'")
+)
+def test_r21_noop_python_witness_cannot_claim_native_acceptance(
+    tmp_path: Path, placeholder: str,
+) -> None:
+    """Only a real test body can source-witness Owner acceptance."""
+    import ast
+
+    document = (
+        ROOT / "docs/architecture/AGENT_CONCEPTS_FORMAL_LEGO_RESEARCH_20261024.md"
+    ).read_text(encoding="utf-8")
+    target = "services/host/tests/test_social_work_fabric_postgres.py"
+    for relative in (
+        "services/runtime/scripts/tests/test_mcp_e2e_reconciliation.py",
+        target,
+        "services/harness/tests/test_agent_automation_browserless.py",
+        "platform/network/tests/test_claude_egress_readiness_consumer.py",
+    ):
+        output = tmp_path / relative
+        output.parent.mkdir(parents=True, exist_ok=True)
+        source = (ROOT / relative).read_text(encoding="utf-8")
+        if relative == target:
+            tree = ast.parse(source)
+            witness = next(
+                n for n in tree.body if isinstance(n, ast.FunctionDef)
+                and n.name == "test_work_snapshot_cas_race_has_one_winner"
+            )
+            lines = source.splitlines(keepends=True)
+            lines[witness.body[0].lineno - 1:witness.end_lineno] = [
+                f"    {placeholder}\n"
+            ]
+            source = "".join(lines)
+        output.write_text(source, encoding="utf-8")
+    with pytest.raises(module.ArchitectureDocsError, match="non-executable consumer witness"):
+        module.validate_r21_lego_vocabulary(document, root=tmp_path)
+
+
 def test_r21_duplicate_python_witness_name_is_not_an_unambiguous_proof(
     tmp_path: Path,
 ) -> None:

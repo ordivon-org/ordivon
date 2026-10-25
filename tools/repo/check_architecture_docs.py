@@ -979,6 +979,29 @@ def validate_r21_lego_vocabulary(document: str, *, root: Path = ROOT) -> None:
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name == symbol
         )
+        # A file and a named callable are only source-level evidence.  A
+        # docstring/pass/ellipsis placeholder cannot even attempt the
+        # asserted Owner acceptance witness; do not promote it as runnable.
+        effective_body = [
+            statement for statement in witness.body
+            if not (
+                isinstance(statement, ast.Expr)
+                and isinstance(statement.value, ast.Constant)
+                and isinstance(statement.value.value, str)
+            )
+        ]
+        if not effective_body or all(
+            isinstance(statement, ast.Pass)
+            or (
+                isinstance(statement, ast.Expr)
+                and isinstance(statement.value, ast.Constant)
+                and statement.value.value is Ellipsis
+            )
+            for statement in effective_body
+        ):
+            raise ArchitectureDocsError(
+                f"R2.1 non-executable consumer witness: {relative}::{symbol}"
+            )
         decorators = list(witness.decorator_list)
         if class_name is not None:
             decorators.extend(classes[0].decorator_list)
