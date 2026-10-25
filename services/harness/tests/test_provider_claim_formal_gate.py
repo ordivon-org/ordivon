@@ -18,6 +18,8 @@ def test_harness_queue_and_verify_require_formal_claim_model():
         ("ack", "UnacknowledgedPhysicalCallIsUnreachable"),
         ("expiry", "ClaimReplacementIsUnreachable"),
         ("delivery", "DeliveryIsUnreachable"),
+        ("privacy-fresh", "MetadataOnlyFreshAckIsUnreachable"),
+        ("privacy-redacted", "MetadataOnlyRedactionIsUnreachable"),
     ):
         cfg = ROOT / "formal" / f"ProviderClaimR1.{label}-probe.cfg"
         assert cfg.is_file()
