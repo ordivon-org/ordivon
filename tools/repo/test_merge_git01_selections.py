@@ -103,6 +103,39 @@ def test_legacy_claim_without_optional_evaluated_remote_cut_remains_valid() -> N
     assert "evaluatedRemoteMain" not in selections(merged)[0]
 
 
+@pytest.mark.parametrize("field,bad", [
+    ("disposition", "DELETE_ALL_LOCAL_COMMITS"),
+    ("evidenceScope", "UNQUALIFIED_BUT_PASS"),
+])
+def test_union_rejects_unknown_historical_decision_types(field: str, bad: str) -> None:
+    item = claim(7)
+    item[field] = bad
+    with pytest.raises(MergeConflict, match=field):
+        merge_selections(census(claim(1)), census(item))
+
+
+def test_union_rejects_scope_disposition_contradiction_at_ingress() -> None:
+    item = claim(7)
+    item["evidenceScope"] = "CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT"
+    # Canonical issue checker maps this evidence scope to an exact decision.
+    with pytest.raises(MergeConflict, match="incompatible.*evidence"):
+        merge_selections(census(claim(1)), census(item))
+
+
+def test_port_required_cannot_be_promoted_without_native_witness() -> None:
+    item = claim(7)
+    item["disposition"] = "PORT_REQUIRED_OWNER_EFFECT"
+    with pytest.raises(MergeConflict, match="PORT_REQUIRED_OWNER_EFFECT"):
+        merge_selections(census(claim(1)), census(item))
+
+
+def test_union_rejects_top_level_branch_retirement_claim() -> None:
+    item = claim(7)
+    item["branchDeletionAllowed"] = True
+    with pytest.raises(MergeConflict, match="branchDeletionAllowed"):
+        merge_selections(census(claim(1)), census(item))
+
+
 def test_evidence_union_refuses_unsafe_history_deletion_claim() -> None:
     bad = claim(7)
     bad["sourceQualification"] = {"branchDeletionAllowed": True}
