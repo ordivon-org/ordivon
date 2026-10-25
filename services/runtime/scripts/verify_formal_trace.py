@@ -60,6 +60,10 @@ REQUIRED_TLC_INVARIANTS = {
     "AmbiguityRequiresReconciliation",
     "NoUnusedAttemptWasDispatched",
     "TerminalAttemptWasDispatched",
+    # RW9 result provenance is independent of dispatch and committed-state
+    # evidence: neither a foreign result nor stdout can prove completion.
+    "MatchingResultRequiredForTerminal",
+    "NoForeignResultIsTerminal",
 }
 REQUIRED_TLC_PROPERTIES = {"ProgressToFirstDecision"}
 

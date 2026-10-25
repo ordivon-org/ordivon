@@ -973,7 +973,8 @@
         "TLA+/TLC remains a bounded abstraction; deployment/refinement and real-world completion require independent evidence at the installed Runtime binary and consumer.",
         "A captured stdout/stderr artifact without a matching, validated Runner result.json cannot promote the exact Attempt from dispatch-unknown/lost into Succeeded. A result bearing foreign Attempt identity must never qualify even when output exists.",
         "Owner-native `runtime::tests::partial_runner_stdout_without_result_stays_lost_not_success` must PASS; the existing Runner-result precedence consumer remains intact; digest-fenced TLC must exhaustively check MatchingResultRequiredForTerminal and NoForeignResultIsTerminal.",
-        "Both intentionally unsafe abstract transitions—blind retry without reconciliation and stdout-as-terminal-result—must yield the expected named TLC counterexamples. Tool failure, no counterexample, or a different failing invariant is not PASS."
+        "Both intentionally unsafe abstract transitions—blind retry without reconciliation and stdout-as-terminal-result—must yield the expected named TLC counterexamples. Tool failure, no counterexample, or a different failing invariant is not PASS.",
+        "The currentness gate rejects a digest-refreshed TLC config if either MatchingResultRequiredForTerminal or NoForeignResultIsTerminal is removed; the two independent name-bound RW9 negative controls remain required before a model PASS can support terminal-result provenance."
       ],
       "evidence": [
         "Runtime source pre-fix 39ae761e5c53dfc4fd7bd2275552ecb3334e28ff; red/green native test and fix in commit db0c9d3f0a2d312bd204ca35010dcc2aa53d25f4, PR #623.",
