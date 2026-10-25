@@ -392,7 +392,7 @@
       "id": "R12",
       "label": "ControlPrimitives",
       "kind": "control_primitive_set",
-      "responsibility": "Extract small reusable mechanical controls—fence, reservation, drain, revalidate, CAS, commit, rollback, quarantine, receipt—without creating a generic Effect engine.",
+      "responsibility": "Extract small reusable mechanical controls\u2014fence, reservation, drain, revalidate, CAS, commit, rollback, quarantine, receipt\u2014without creating a generic Effect engine.",
       "authority": "Runtime mechanical control semantics",
       "state": "PROPOSED",
       "sharedRefs": [],
@@ -898,7 +898,9 @@
       "acceptance": [
         "23 public Tools remain strongly typed.",
         "Tool catalog digest stays stable for structural-only work.",
-        "Deploy/status/lifecycle/reclaim/cache lose duplicate mechanics rather than merely moving code."
+        "Deploy/status/lifecycle/reclaim/cache lose duplicate mechanics rather than merely moving code.",
+        "SQLite read-only backup and restore must preserve exact physical filename bytes via standard-library URI encoding: literal #, ?, and % cannot become URI fragment, query or percent escapes. Native consumer tests must reject a valid-but-wrong database alias and invalid named bytes.",
+        "Proof boundary: URI filename identity does not establish inode immutability against concurrent privileged writers. Descriptor-relative pinning remains a separate consumer property."
       ],
       "evidence": [],
       "blockers": [
@@ -979,7 +981,7 @@
         "TLA+/TLC remains a bounded abstraction; deployment/refinement and real-world completion require independent evidence at the installed Runtime binary and consumer.",
         "A captured stdout/stderr artifact without a matching, validated Runner result.json cannot promote the exact Attempt from dispatch-unknown/lost into Succeeded. A result bearing foreign Attempt identity must never qualify even when output exists.",
         "Owner-native `runtime::tests::partial_runner_stdout_without_result_stays_lost_not_success` must PASS; the existing Runner-result precedence consumer remains intact; digest-fenced TLC must exhaustively check MatchingResultRequiredForTerminal and NoForeignResultIsTerminal.",
-        "Both intentionally unsafe abstract transitions—blind retry without reconciliation and stdout-as-terminal-result—must yield the expected named TLC counterexamples. Tool failure, no counterexample, or a different failing invariant is not PASS.",
+        "Both intentionally unsafe abstract transitions\u2014blind retry without reconciliation and stdout-as-terminal-result\u2014must yield the expected named TLC counterexamples. Tool failure, no counterexample, or a different failing invariant is not PASS.",
         "The currentness gate rejects a digest-refreshed TLC config if either MatchingResultRequiredForTerminal or NoForeignResultIsTerminal is removed; the two independent name-bound RW9 negative controls remain required before a model PASS can support terminal-result provenance.",
         "The two bounded TLA+/TLC CEGAR falsifiers cannot PASS merely because a Java launcher exits unsuccessfully and prints an invariant name. Each negative control requires TLC's invariant-violation exit 12, the exact named invariant, and a concrete state-trace receipt; parser/tool failures or names without trace are rejected."
       ],
@@ -988,7 +990,7 @@
         "Forensic Attempt attempt-01a16fc4-33f9-7310-aa8a-e60778df3b8a: result.json COMPLETED exit0 at 2026-10-25T05:15:18+08:00, later control LOST at 05:15:38+08:00. This is a source-bound counterexample candidate, not proven complete production root cause.",
         "services/runtime/crates/ordivon-runtime-core/src/runtime/engine/reconciliation.rs",
         "services/runtime/crates/ordivon-runtime-core/src/runtime/tests.rs",
-        "2026-10-25 current-source LEGO R2.1 CEGAR: services/runtime/formal/RuntimeDispatchR1.tla distinguishes `outputObserved` from `resultEvidence ∈ {none,foreign,matching}` per Attempt; 4,736 TLC distinct reachable states, no invariant violation on 3 Attempts, with two independent counterexample negative controls. This is bounded model evidence, not mechanized Rust refinement.",
+        "2026-10-25 current-source LEGO R2.1 CEGAR: services/runtime/formal/RuntimeDispatchR1.tla distinguishes `outputObserved` from `resultEvidence \u2208 {none,foreign,matching}` per Attempt; 4,736 TLC distinct reachable states, no invariant violation on 3 Attempts, with two independent counterexample negative controls. This is bounded model evidence, not mechanized Rust refinement.",
         "Rust actual-consumer witness: services/runtime/crates/ordivon-runtime-core/src/runtime/tests.rs::partial_runner_stdout_without_result_stays_lost_not_success. `mise run verify` and root `mise run repo:ci` PASS on candidate rebased onto protected main 722d1b6e0d5abf9431c5cf432cf7048e25b39fc0; root architecture tests 273 PASS. Source publication/installed Runtime not implied.",
         "Current GitHub PR #623 verified MERGED at 2026-10-24T22:39:42Z (head f2b6a0ac3f11da6d0895c0f099eab62038bb47db). The older nextAction asking for its merge is retired as stale."
       ],

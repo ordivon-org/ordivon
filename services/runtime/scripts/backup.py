@@ -53,7 +53,7 @@ def copy_regular_tree(source: Path, target: Path, excluded: set[Path]) -> list[d
 
 def sqlite_backup(source: Path, destination: Path) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
-    source_uri = f"file:{source}?mode=ro"
+    source_uri = source.absolute().as_uri() + "?mode=ro"
     with closing(sqlite3.connect(source_uri, uri=True)) as source_db:
         with closing(sqlite3.connect(destination)) as destination_db:
             source_db.backup(destination_db)

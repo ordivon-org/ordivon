@@ -31,6 +31,49 @@ mcp_e2e = load_script("mcp_e2e")
 
 
 class OperationalScriptTests(unittest.TestCase):
+    def test_backup_uri_reserved_filename_never_aliases_a_different_database(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            wrong = root / "registry"
+            expected = root / "registry#production.sqlite3"
+            for path, label in ((wrong, "wrong"), (expected, "expected")):
+                with closing(sqlite3.connect(path)) as db:
+                    db.execute("CREATE TABLE origin (identity TEXT NOT NULL)")
+                    db.execute("INSERT INTO origin VALUES (?)", (label,))
+                    db.commit()
+            target = root / "copy.sqlite3"
+            backup.sqlite_backup(expected, target)
+            with closing(sqlite3.connect(target)) as db:
+                self.assertEqual(
+                    db.execute("SELECT identity FROM origin").fetchall(),
+                    [("expected",)],
+                )
+
+    def test_backup_uri_roundtrips_question_hash_and_percent_in_path(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for i, name in enumerate(("r#archive.sqlite3", "r?query.sqlite3", "r%3Fencoded.sqlite3")):
+                expected = root / name
+                with closing(sqlite3.connect(expected)) as db:
+                    db.execute("CREATE TABLE proof (value INTEGER NOT NULL)")
+                    db.execute("INSERT INTO proof VALUES (?)", (i,))
+                    db.commit()
+                target = root / ("copy-" + str(i) + ".sqlite3")
+                backup.sqlite_backup(expected, target)
+                with closing(sqlite3.connect(target)) as db:
+                    self.assertEqual(db.execute("SELECT value FROM proof").fetchone(), (i,))
+
+    def test_restore_validation_reads_exact_errored_file_not_valid_alias(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            with closing(sqlite3.connect(root / "registry")) as db:
+                db.execute("CREATE TABLE proof(value INTEGER)")
+                db.commit()
+            bad = root / "registry#tampered.sqlite3"
+            bad.write_bytes(b"not a SQLite database")
+            with self.assertRaises(sqlite3.DatabaseError):
+                restore.verify_sqlite(bad)
+
     def test_backup_restore_round_trip(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

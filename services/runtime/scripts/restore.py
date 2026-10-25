@@ -105,7 +105,7 @@ def pinned_source_entry(source: Path, relative: Path):
 
 
 def verify_sqlite(path: Path) -> None:
-    uri = f"file:{path}?mode=ro"
+    uri = path.absolute().as_uri() + "?mode=ro"
     with closing(sqlite3.connect(uri, uri=True)) as database:
         result = database.execute("PRAGMA integrity_check").fetchone()
         if result != ("ok",):
