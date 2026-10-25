@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from enum import StrEnum
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, field_validator
+
+# PostgreSQL owner schema uses non-negative signed bigint millisecond columns.
+POSTGRES_BIGINT_MAX = (1 << 63) - 1
 
 
 class ParticipationStanding(StrEnum):
@@ -86,7 +89,7 @@ class MessageInput(BaseModel):
     author_actor_ref: str = Field(min_length=3, max_length=512)
     message_kind: MessageKind = MessageKind.NOTE
     body: str = Field(min_length=1, max_length=65536)
-    recorded_at_ms: int = Field(ge=0)
+    recorded_at_ms: StrictInt = Field(ge=0, le=POSTGRES_BIGINT_MAX)
 
 
 class MessageRelationInput(BaseModel):
@@ -106,8 +109,8 @@ class CoordinationIntentInput(BaseModel):
     subject_ref: str = Field(min_length=1, max_length=2048)
     operation: str = Field(min_length=1, max_length=512)
     standing: IntentStanding = IntentStanding.ACTIVE
-    observed_at_ms: int = Field(ge=0)
-    expires_at_ms: int | None = Field(default=None, ge=0)
+    observed_at_ms: StrictInt = Field(ge=0, le=POSTGRES_BIGINT_MAX)
+    expires_at_ms: StrictInt | None = Field(default=None, ge=0, le=POSTGRES_BIGINT_MAX)
     work_ref: str | None = Field(default=None, max_length=1024)
     space_ref: str | None = Field(default=None, max_length=1024)
 
