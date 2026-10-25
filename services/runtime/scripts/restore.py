@@ -128,7 +128,10 @@ def restore_snapshot(source: Path, destination: Path) -> Path:
             destination_file = staging / relative
             destination_file.parent.mkdir(parents=True, exist_ok=True)
             with pinned_source_entry(source, relative) as bound_source:
-                shutil.copy2(bound_source, destination_file, follow_symlinks=True)
+                # On non-Linux hosts retain the historical final-symlink
+                # rejection via staged manifest checks; Linux copies from a
+                # verified pinned descriptor through procfs.
+                shutil.copy2(bound_source, destination_file, follow_symlinks=sys.platform.startswith("linux"))
         (staging / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         # A validated source may change before copy. Reuse the exact manifest
         # verifier against the *staged bytes* before publication; the source
