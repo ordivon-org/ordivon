@@ -84,13 +84,18 @@ for _attempt in 1 2 3; do
 done
 test "$ok" = 1
 
-# Unknown destinations are refused by the Claude egress policy.
-# An HTTP 403 from a reachable origin is NOT proof of network-level denial.
+# A curl transport failure cannot prove a destination was blocked by policy.
+# For the installed HTTP proxy, require the same attempt to report an
+# explicit CONNECT=403 and no origin HTTP response; DNS/TLS/proxy outage
+# (CONNECT=000), auth failure (CONNECT=407), and origin HTTP 403 after a
+# successful CONNECT=200 must all fail closed rather than publish READY.
 remaining=$((readiness_deadline - SECONDS))
 ((remaining > 0)) || { echo 'Claude readiness total deadline expired' >&2; exit 1; }
 max_time=$((remaining < 8 ? remaining : 8))
-if ip netns exec nv2-claude-client curl -q -x "$client_proxy" --noproxy '' -I -sS --connect-timeout 3 --max-time "$max_time" https://example.com/ >/dev/null 2>&1; then
-  echo 'ERROR: unknown destination escaped Claude allowlist' >&2
+denial_receipt=$(ip netns exec nv2-claude-client curl -q -x "$client_proxy" --noproxy '' -I -sS   --connect-timeout 3 --max-time "$max_time" -o /dev/null   -w '%{http_code}|%{http_connect}' https://example.com/ 2>/dev/null) || denial_receipt="${denial_receipt:-}"
+IFS='|' read -r denial_http denial_connect denial_extra <<< "$denial_receipt"
+if [[ "$denial_http" != 000 || "$denial_connect" != 403 || -n "$denial_extra" ]]; then
+  echo "ERROR: Claude unknown destination lacks explicit proxy CONNECT denial (http=${denial_http:-000} CONNECT=${denial_connect:-000})" >&2
   exit 41
 fi
 

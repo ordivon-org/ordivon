@@ -40,6 +40,15 @@ exit 75
 printf '%s\n' "$*" >> "$CLAUDE_CURL_RECORD"
 joined=" $* "
 if [[ "$joined" == *"https://example.com/"* ]];then
+  if [[ "$MOCK_CLAUDE_SCENARIO" == valid ]];then
+    printf '000|403'
+    exit 56
+  fi
+  case "$MOCK_CLAUDE_SCENARIO" in
+    unknown_transport_failure) printf '000|000'; exit 28;;
+    unknown_proxy_auth_failure) printf '000|407'; exit 56;;
+    unknown_origin_forbidden) printf '403|200'; exit 0;;
+  esac
   if [[ "$MOCK_CLAUDE_SCENARIO" == unknown_http_forbidden ]];then
     # Curl -f masks an actually reachable origin HTTP 403 as process failure.
     [[ "$joined" == *" -f"* ]] && exit 22
@@ -155,7 +164,13 @@ def test_real_consumer_readiness_fails_closed_for_upstream_faults(tmp_path, faul
     assert not any("--insecure" in line for line in calls)
 
 
-@pytest.mark.parametrize("scenario", ["direct_http_forbidden", "unknown_http_forbidden"])
+@pytest.mark.parametrize("scenario", [
+    "direct_http_forbidden",
+    "unknown_http_forbidden",
+    "unknown_transport_failure",
+    "unknown_proxy_auth_failure",
+    "unknown_origin_forbidden",
+])
 def test_http_denial_is_not_an_isolation_or_allowlist_witness(tmp_path, scenario):
     # A completed TLS exchange with HTTP 403 is a reachable endpoint,
     # even when curl -f turns the 403 into an exit-22 status.
