@@ -115,17 +115,52 @@ def _matches_source_glob(path: str, pattern: str) -> bool:
     )
 
 
-def _allowed(
+def _matching_seams(
     finding: Finding,
     seams: tuple[Seam, ...],
-) -> bool:
-    return any(
-        seam.from_owner == finding.from_owner
+) -> tuple[Seam, ...]:
+    """Bind each exception to one exact source/consumer literal."""
+    return tuple(
+        seam for seam in seams
+        if seam.from_owner == finding.from_owner
         and seam.to_owner == finding.to_owner
         and _matches_source_glob(finding.source_path, seam.source_glob)
         and seam.allowed_fragment in finding.text
-        for seam in seams
     )
+
+
+def _allowed(finding: Finding, seams: tuple[Seam, ...]) -> bool:
+    return bool(_matching_seams(finding, seams))
+
+
+def validate_consumed_seams(
+    seams: tuple[Seam, ...],
+    findings: tuple[Finding, ...],
+) -> dict[Seam, tuple[tuple[str, int], ...]]:
+    """Reject ghost or overlapping Owner permissions via the existing policy.
+
+    This establishes exact source-text use only, not runtime calls or
+    consumer-domain safety; a referenced line may be dead/commented code.
+    """
+    observations: dict[Seam, list[tuple[str, int]]] = {seam: [] for seam in seams}
+    for finding in findings:
+        matches = _matching_seams(finding, seams)
+        if len(matches) > 1:
+            raise AssertionError(
+                "ambiguous dependency seam: multiple exceptions match "
+                f"{finding.source_path}:{finding.line}"
+            )
+        if matches:
+            observations[matches[0]].append((finding.source_path, finding.line))
+    stale = [seam for seam, uses in observations.items() if not uses]
+    if stale:
+        rendered = ", ".join(
+            f"{seam.from_owner}->{seam.to_owner}:{seam.source_glob} "
+            f"[{seam.allowed_fragment}]"
+            for seam in stale
+        )
+        raise AssertionError("stale dependency seam declarations: " + rendered)
+    return {seam: tuple(uses) for seam, uses in observations.items()}
 
 
 def findings_for_text(
@@ -191,36 +226,13 @@ def main() -> int:
             "undeclared active cross-owner source-path seams detected:\n" + rendered
         )
 
-    used = {
-        (item.from_owner, item.to_owner, item.source_path)
-        for item in all_findings
-    }
-    stale: list[Seam] = []
-    for seam in seams:
-        if not any(
-            from_owner == seam.from_owner
-            and to_owner == seam.to_owner
-            and _matches_source_glob(source_path, seam.source_glob)
-            for from_owner, to_owner, source_path in used
-        ):
-            stale.append(seam)
-    if stale:
-        rendered = ", ".join(
-            f"{item.from_owner}->{item.to_owner}:{item.source_glob}" for item in stale
-        )
-        raise AssertionError(f"stale dependency seam declarations: {rendered}")
-
+    # A declared source/consumer permission is admitted only by the same
+    # exact typed matcher used to permit it. Pair+glob alone is insufficient:
+    # it can let obsolete or shadow permissions survive indefinitely.
+    witnessed = validate_consumed_seams(seams, tuple(all_findings))
     kinds: dict[str, int] = {}
-    for finding in all_findings:
-        for seam in seams:
-            if (
-                seam.from_owner == finding.from_owner
-                and seam.to_owner == finding.to_owner
-                and fnmatch.fnmatchcase(finding.source_path, seam.source_glob)
-                and seam.allowed_fragment in finding.text
-            ):
-                kinds[seam.kind] = kinds.get(seam.kind, 0) + 1
-                break
+    for seam, uses in witnessed.items():
+        kinds[seam.kind] = kinds.get(seam.kind, 0) + len(uses)
 
     print(
         "owner boundary literals: valid "
