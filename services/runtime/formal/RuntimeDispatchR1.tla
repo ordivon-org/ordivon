@@ -11,10 +11,11 @@ CONSTANTS Attempts, NoAttempt
 AttemptStates == {"unused", "admitted", "running", "ambiguous", "orphanedHeld", "lost", "terminal"}
 JobStates == {"none", "admitted", "ambiguous", "terminal"}
 ReconcileStates == {"none", "required", "absent", "committed"}
+ResultEvidenceStates == {"none", "foreign", "matching"}
 
-VARIABLES jobState, attemptState, currentAttempt, dispatchCount, reconcileState, heldReservation
+VARIABLES jobState, attemptState, currentAttempt, dispatchCount, reconcileState, heldReservation, outputObserved, resultEvidence
 
-vars == <<jobState, attemptState, currentAttempt, dispatchCount, reconcileState, heldReservation>>
+vars == <<jobState, attemptState, currentAttempt, dispatchCount, reconcileState, heldReservation, outputObserved, resultEvidence>>
 
 TypeOK ==
     /\ Attempts # {}
@@ -25,6 +26,8 @@ TypeOK ==
     /\ dispatchCount \in [Attempts -> 0..2]
     /\ reconcileState \in ReconcileStates
     /\ heldReservation \in BOOLEAN
+    /\ outputObserved \in [Attempts -> BOOLEAN]
+    /\ resultEvidence \in [Attempts -> ResultEvidenceStates]
 
 Init ==
     /\ jobState = "none"
@@ -33,6 +36,8 @@ Init ==
     /\ dispatchCount = [a \in Attempts |-> 0]
     /\ reconcileState = "none"
     /\ heldReservation = FALSE
+    /\ outputObserved = [a \in Attempts |-> FALSE]
+    /\ resultEvidence = [a \in Attempts |-> "none"]
 
 Admit ==
     /\ jobState = "none"
@@ -43,7 +48,7 @@ Admit ==
         /\ currentAttempt' = a
     /\ jobState' = "admitted"
     /\ reconcileState' = "none"
-    /\ UNCHANGED <<dispatchCount, heldReservation>>
+    /\ UNCHANGED <<dispatchCount, heldReservation, outputObserved, resultEvidence>>
 
 Dispatch ==
     /\ jobState = "admitted"
@@ -52,7 +57,7 @@ Dispatch ==
     /\ dispatchCount[currentAttempt] = 0
     /\ attemptState' = [attemptState EXCEPT ![currentAttempt] = "running"]
     /\ dispatchCount' = [dispatchCount EXCEPT ![currentAttempt] = @ + 1]
-    /\ UNCHANGED <<jobState, currentAttempt, reconcileState, heldReservation>>
+    /\ UNCHANGED <<jobState, currentAttempt, reconcileState, heldReservation, outputObserved, resultEvidence>>
 
 LoseDispatchKnowledge ==
     /\ jobState = "admitted"
@@ -61,7 +66,7 @@ LoseDispatchKnowledge ==
     /\ attemptState' = [attemptState EXCEPT ![currentAttempt] = "ambiguous"]
     /\ jobState' = "ambiguous"
     /\ reconcileState' = "required"
-    /\ UNCHANGED <<currentAttempt, dispatchCount, heldReservation>>
+    /\ UNCHANGED <<currentAttempt, dispatchCount, heldReservation, outputObserved, resultEvidence>>
 
 (* A physical orphan has no selected current Attempt, yet its durable *)
 (* held reservation forbids blind admission/retry until proven absent.   *)
@@ -73,7 +78,7 @@ ObserveOrphanedHeld ==
     /\ jobState' = "ambiguous"
     /\ reconcileState' = "required"
     /\ heldReservation' = TRUE
-    /\ UNCHANGED dispatchCount
+    /\ UNCHANGED <<dispatchCount, outputObserved, resultEvidence>>
 
 ReconcileHeldOrphanProvenAbsent ==
     /\ jobState = "ambiguous"
@@ -85,15 +90,35 @@ ReconcileHeldOrphanProvenAbsent ==
     /\ jobState' = "admitted"
     /\ reconcileState' = "absent"
     /\ heldReservation' = FALSE
-    /\ UNCHANGED <<currentAttempt, dispatchCount>>
+    /\ UNCHANGED <<currentAttempt, dispatchCount, outputObserved, resultEvidence>>
+
+
+(* Output bytes exist independently of exact terminal result provenance. *)
+PublishPartialOutput ==
+    /\ jobState = "admitted"
+    /\ currentAttempt # NoAttempt
+    /\ attemptState[currentAttempt] = "running"
+    /\ ~outputObserved[currentAttempt]
+    /\ outputObserved' = [outputObserved EXCEPT ![currentAttempt] = TRUE]
+    /\ UNCHANGED <<jobState, attemptState, currentAttempt, dispatchCount, reconcileState, heldReservation, resultEvidence>>
+
+(* CEGAR: foreign evidence is possible, but cannot authorize this Attempt. *)
+ObserveResultEvidence ==
+    /\ currentAttempt # NoAttempt
+    /\ attemptState[currentAttempt] \in {"running", "ambiguous"}
+    /\ resultEvidence[currentAttempt] = "none"
+    /\ \E standing \in {"foreign", "matching"}:
+         resultEvidence' = [resultEvidence EXCEPT ![currentAttempt] = standing]
+    /\ UNCHANGED <<jobState, attemptState, currentAttempt, dispatchCount, reconcileState, heldReservation, outputObserved>>
 
 ObserveTerminalEvidence ==
     /\ currentAttempt # NoAttempt
     /\ attemptState[currentAttempt] \in {"running", "ambiguous"}
+    /\ resultEvidence[currentAttempt] = "matching"
     /\ attemptState' = [attemptState EXCEPT ![currentAttempt] = "terminal"]
     /\ jobState' = "terminal"
     /\ reconcileState' = "committed"
-    /\ UNCHANGED <<currentAttempt, dispatchCount, heldReservation>>
+    /\ UNCHANGED <<currentAttempt, dispatchCount, heldReservation, outputObserved, resultEvidence>>
 
 ReconcileProvenAbsent ==
     /\ jobState = "ambiguous"
@@ -104,7 +129,7 @@ ReconcileProvenAbsent ==
     /\ jobState' = "admitted"
     /\ currentAttempt' = NoAttempt
     /\ reconcileState' = "absent"
-    /\ UNCHANGED <<dispatchCount, heldReservation>>
+    /\ UNCHANGED <<dispatchCount, heldReservation, outputObserved, resultEvidence>>
 
 AdmitExplicitRetry ==
     /\ jobState = "admitted"
@@ -115,12 +140,14 @@ AdmitExplicitRetry ==
         /\ attemptState' = [attemptState EXCEPT ![a] = "admitted"]
         /\ currentAttempt' = a
     /\ reconcileState' = "none"
-    /\ UNCHANGED <<jobState, dispatchCount, heldReservation>>
+    /\ UNCHANGED <<jobState, dispatchCount, heldReservation, outputObserved, resultEvidence>>
 
 Next ==
     \/ Admit
     \/ Dispatch
     \/ LoseDispatchKnowledge
+    \/ PublishPartialOutput
+    \/ ObserveResultEvidence
     \/ ObserveOrphanedHeld
     \/ ReconcileHeldOrphanProvenAbsent
     \/ ObserveTerminalEvidence
@@ -183,6 +210,14 @@ NoUnusedAttemptWasDispatched ==
 
 TerminalAttemptWasDispatched ==
     \A a \in Attempts : attemptState[a] = "terminal" => dispatchCount[a] = 1
+
+MatchingResultRequiredForTerminal ==
+    jobState = "terminal" =>
+        /\ currentAttempt # NoAttempt
+        /\ resultEvidence[currentAttempt] = "matching"
+
+NoForeignResultIsTerminal ==
+    \A a \in Attempts: attemptState[a] = "terminal" => resultEvidence[a] = "matching"
 
 TerminalEvidenceIsCommitted ==
     jobState = "terminal" =>
