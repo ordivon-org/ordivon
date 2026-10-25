@@ -107,7 +107,8 @@
         "The read-only Git publication source-cut gate accepts only a native object-format-qualified remote OID (40 SHA-1, 64 SHA-256), distinguishes cached tracking from live remote, and never treats matching local/tracking refs alone as publication proof.",
         "A primary-main source certificate must reject tracked Git index concealment flags (assume-unchanged/skip-worktree) even if native diff, status, and index-tree equality appear clean; a concealed-byte source is not an eligible Git publication witness.",
         "Every registered Owner planning slice uses a recognized finite lifecycle status or a fully qualified BLOCKED_ON_* prerequisite expression; unknown/typo states are rejected at the existing native architecture admission gate, including slices with no census consumer.",
-        "Game and Media active Owner LEGO planning graphs are admitted through the existing repository-native node/edge/type and graphlib dependency verification on every root architecture check; invalid domain slice status and dangling producer edges are tested negatively, without a new domain registry or solver. Distribution legacy DS1=BLOCKED remains explicitly outside this gate until its owner evidence is qualified, not silently translated."
+        "Game and Media active Owner LEGO planning graphs are admitted through the existing repository-native node/edge/type and graphlib dependency verification on every root architecture check; invalid domain slice status and dangling producer edges are tested negatively, without a new domain registry or solver. Distribution legacy DS1=BLOCKED remains explicitly outside this gate until its owner evidence is qualified, not silently translated.",
+        "Dependency updater ownership is an exact manifest-to-owner relation: a nested npm/Cargo manifest is covered by a parent updater only if its path from the actual package-manager workspace root full-matches a declared workspace member pattern; suffix-only pattern matches must not certify fake consumers. Every tracked manifest has exactly one updater owner under this bounded source cut."
       ],
       "blockers": [
         "The formal issue census records evidence from its observed SourceCut; neither slice grants live runtime authority."
@@ -116,7 +117,10 @@
       "evidence": [
         "tools/repo/migration/check-publication-main.sh",
         "tools/repo/migration/check-primary-main.sh",
-        "tools/repo/migration/test-check-publication-main.sh"
+        "tools/repo/migration/test-check-publication-main.sh",
+        "tools/repo/test_dependency_update_ownership.py",
+        ".github/dependabot.yml",
+        "renovate.json"
       ]
     },
     {

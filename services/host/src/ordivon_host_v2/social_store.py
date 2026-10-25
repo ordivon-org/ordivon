@@ -56,23 +56,30 @@ class SocialStore:
             if replay is not None:
                 return replay
             self._require_actor(conn, value.actor_ref)
-            current = conn.execute(
-                "SELECT space_ref,purpose,created_by_actor_ref,created_at FROM spaces "
-                "WHERE space_ref=%s FOR UPDATE",
-                (value.space_ref,),
+            # The unique space_ref constraint linearizes parallel first creates.
+            # SELECT-before-INSERT allows multiple writers to observe absence.
+            inserted = conn.execute(
+                "INSERT INTO spaces(space_ref,purpose,created_by_actor_ref) VALUES (%s,%s,%s) "
+                "ON CONFLICT (space_ref) DO NOTHING RETURNING space_ref",
+                (value.space_ref, value.purpose, value.actor_ref),
             ).fetchone()
             admission = "committed"
-            if current is None:
-                conn.execute(
-                    "INSERT INTO spaces(space_ref,purpose,created_by_actor_ref) VALUES (%s,%s,%s)",
-                    (value.space_ref, value.purpose, value.actor_ref),
-                )
+            if inserted is not None:
                 for subject_ref in sorted(value.subject_refs):
                     conn.execute(
                         "INSERT INTO space_subjects(space_ref,subject_ref) VALUES (%s,%s)",
                         (value.space_ref, subject_ref),
                     )
             else:
+                # Conflict arbitration waits for the complete original
+                # transaction, including its subject rows, to commit.
+                current = conn.execute(
+                    "SELECT space_ref,purpose,created_by_actor_ref,created_at FROM spaces "
+                    "WHERE space_ref=%s FOR UPDATE",
+                    (value.space_ref,),
+                ).fetchone()
+                if current is None:
+                    raise RuntimeError("space_ref disappeared after insert conflict")
                 subjects = [
                     row["subject_ref"]
                     for row in conn.execute(
@@ -401,10 +408,6 @@ class SocialStore:
                 self._require_work(conn, value.work_ref)
             if value.space_ref is not None:
                 self._require_space(conn, value.space_ref)
-            current = conn.execute(
-                "SELECT * FROM coordination_intents WHERE intent_ref=%s FOR UPDATE",
-                (value.intent_ref,),
-            ).fetchone()
             immutable = (
                 value.actor_ref,
                 value.subject_ref,
@@ -412,24 +415,34 @@ class SocialStore:
                 value.space_ref,
                 value.operation,
             )
-            if current is None:
-                conn.execute(
-                    "INSERT INTO coordination_intents(intent_ref,actor_ref,subject_ref,work_ref,space_ref,"
-                    "operation,standing,observed_at_ms,expires_at_ms) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-                    (
-                        value.intent_ref,
-                        value.actor_ref,
-                        value.subject_ref,
-                        value.work_ref,
-                        value.space_ref,
-                        value.operation,
-                        value.standing.value,
-                        value.observed_at_ms,
-                        value.expires_at_ms,
-                    ),
-                )
+            # Two observers of an absent intent_ref must not both INSERT.
+            # The same natural-key arbiter used by Work/Space is enough.
+            inserted = conn.execute(
+                "INSERT INTO coordination_intents(intent_ref,actor_ref,subject_ref,work_ref,space_ref,"
+                "operation,standing,observed_at_ms,expires_at_ms) "
+                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) "
+                "ON CONFLICT (intent_ref) DO NOTHING RETURNING intent_ref",
+                (
+                    value.intent_ref,
+                    value.actor_ref,
+                    value.subject_ref,
+                    value.work_ref,
+                    value.space_ref,
+                    value.operation,
+                    value.standing.value,
+                    value.observed_at_ms,
+                    value.expires_at_ms,
+                ),
+            ).fetchone()
+            if inserted is not None:
                 admission = "committed"
             else:
+                current = conn.execute(
+                    "SELECT * FROM coordination_intents WHERE intent_ref=%s FOR UPDATE",
+                    (value.intent_ref,),
+                ).fetchone()
+                if current is None:
+                    raise RuntimeError("intent_ref disappeared after insert conflict")
                 existing_immutable = (
                     current["actor_ref"],
                     current["subject_ref"],

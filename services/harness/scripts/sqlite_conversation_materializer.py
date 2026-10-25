@@ -136,6 +136,27 @@ class SQLiteConversationMaterializer:
             detail=row["detail"],
         )
 
+    @classmethod
+    def _commit_verified_receipt(
+        cls, db: sqlite3.Connection, row: sqlite3.Row | None
+    ) -> CarrierMaterializationReceipt:
+        """Only commit a ledger transition after validating its observable receipt.
+
+        SQLite may complete an INSERT/UPDATE even if the post-write row is removed
+        or corrupted by an external trigger. An assertion after COMMIT cannot
+        protect that state transition, and Python -O removes it entirely.
+        """
+        if row is None:
+            db.execute("ROLLBACK")
+            raise CarrierConflict("materialization receipt missing before commit")
+        try:
+            receipt = cls._receipt(row)
+        except (ValueError, TypeError, KeyError) as error:
+            db.execute("ROLLBACK")
+            raise CarrierConflict("materialization receipt invalid before commit") from error
+        db.execute("COMMIT")
+        return receipt
+
     def _record_intent(self, request: CarrierMaterializationRequest, *, now_ms: int) -> sqlite3.Row:
         payload = self._request_json(request)
         with closing(self._connect()) as db:
@@ -169,8 +190,7 @@ class SQLiteConversationMaterializer:
                 ):
                     db.execute("ROLLBACK")
                     raise CarrierConflict("same durable materialization identity changed request")
-            db.execute("COMMIT")
-            assert row is not None
+            self._commit_verified_receipt(db, row)
             return row
 
     def _apply(
@@ -196,8 +216,7 @@ class SQLiteConversationMaterializer:
             }
             if current in terminal:
                 # Terminal standing is immutable; process replacement reads it rather than replacing it.
-                db.execute("COMMIT")
-                return self._receipt(row)
+                return self._commit_verified_receipt(db, row)
             if (
                 current is MaterializationStanding.SUBMIT_OBSERVED
                 and observation.standing is MaterializationStanding.PRE_EFFECT_FAILED
@@ -224,9 +243,7 @@ class SQLiteConversationMaterializer:
             updated = db.execute(
                 "SELECT * FROM requests WHERE request_id=?", (request.request_id,)
             ).fetchone()
-            db.execute("COMMIT")
-            assert updated is not None
-            return self._receipt(updated)
+            return self._commit_verified_receipt(db, updated)
 
     def _claim_effect_attempt(
         self, request: CarrierMaterializationRequest, *, now_ms: int
@@ -255,8 +272,7 @@ class SQLiteConversationMaterializer:
                 MaterializationStanding.PREPARED,
                 MaterializationStanding.PRE_EFFECT_FAILED,
             }:
-                db.execute("COMMIT")
-                return False, self._receipt(row)
+                return False, self._commit_verified_receipt(db, row)
             db.execute(
                 """
                 UPDATE requests
@@ -281,9 +297,7 @@ class SQLiteConversationMaterializer:
             claimed = db.execute(
                 "SELECT * FROM requests WHERE request_id=?", (request.request_id,)
             ).fetchone()
-            db.execute("COMMIT")
-            assert claimed is not None
-            return True, self._receipt(claimed)
+            return True, self._commit_verified_receipt(db, claimed)
 
     def materialize(
         self, request: CarrierMaterializationRequest, *, now_ms: int | None = None
@@ -332,8 +346,7 @@ class SQLiteConversationMaterializer:
                 MaterializationStanding(row["standing"])
                 is not MaterializationStanding.HUMAN_REQUIRED
             ):
-                db.execute("COMMIT")
-                return False, self._receipt(row)
+                return False, self._commit_verified_receipt(db, row)
             db.execute(
                 """
                 UPDATE requests
@@ -354,9 +367,7 @@ class SQLiteConversationMaterializer:
             claimed = db.execute(
                 "SELECT * FROM requests WHERE request_id=?", (request.request_id,)
             ).fetchone()
-            db.execute("COMMIT")
-            assert claimed is not None
-            return True, self._receipt(claimed)
+            return True, self._commit_verified_receipt(db, claimed)
 
     def resume_human(
         self, request: CarrierMaterializationRequest, *, now_ms: int | None = None

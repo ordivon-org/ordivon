@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 import pytest
@@ -130,7 +131,24 @@ def _assert_host_r3_partition(plan: dict) -> None:
     retired = plan["retired"]
     external = plan["externalOwners"]
     distinct_nonempty([x["id"] for x in kept], "retained id")
+    # Match the repository's existing canonical LEGO ID grammar: exact ASCII
+    # identity, rather than presentation-equivalent Unicode graph vertices.
+    if any(re.fullmatch(r"[A-Za-z][A-Za-z0-9._-]*", x["id"]) is None for x in kept):
+        raise ValueError("noncanonical retained id")
     distinct_nonempty([x["name"] for x in kept], "retained name")
+    # Closed Host R3 responsibility classification; do not allow a new
+    # unreviewed standing to pretend a retained LEGO has qualified consumers.
+    standing_kinds = {
+        "IRREDUCIBLE_SEMANTIC_RESIDUE",
+        "THIN_DOMAIN_CONTRACT",
+        "REPLACEABLE_PROJECTION",
+        "EXTERNAL_SUBSTRATE",
+        "SMALL_LOCAL_UTILITY",
+    }
+    if any(
+        not isinstance(x.get("standing"), str) or x["standing"] not in standing_kinds for x in kept
+    ):
+        raise ValueError("untyped retained standing")
     if any(not isinstance(x["owner"], str) or not x["owner"].strip() for x in kept):
         raise ValueError("untyped retained owner")
     distinct_nonempty(retired, "retired name")
@@ -163,6 +181,36 @@ def test_host_r3_rejects_retained_and_retired_collisions() -> None:
     duplicate["retained"].append(copy.deepcopy(duplicate["retained"][0]))
     with pytest.raises(ValueError, match="duplicate retained"):
         _assert_host_r3_partition(duplicate)
+
+
+@pytest.mark.parametrize(
+    "alias", ["K" + chr(0x200D) + "01", chr(0xFF2B) + "01", "K01" + chr(0x200B)]
+)
+def test_host_r3_rejects_noncanonical_retained_identity(alias: str) -> None:
+    """CEGAR: visually equivalent but byte-distinct IDs cannot split one Host LEGO."""
+    import copy
+    import json
+
+    plan = json.loads((Path(__file__).parents[1] / "planning" / "lego-plan-r3.json").read_text())
+    modified = copy.deepcopy(plan)
+    modified["retained"].append(
+        {**modified["retained"][0], "id": alias, "name": "ShadowContinuityTaskLedger"}
+    )
+    with pytest.raises(ValueError, match="noncanonical retained id"):
+        _assert_host_r3_partition(modified)
+
+
+@pytest.mark.parametrize("invalid_standing", ["UNVERIFIED", None, True])
+def test_host_r3_rejects_unknown_responsibility_standing(invalid_standing: object) -> None:
+    """R3 standing is a closed type, not an arbitrary string/Boolean label."""
+    import copy
+    import json
+
+    plan = json.loads((Path(__file__).parents[1] / "planning" / "lego-plan-r3.json").read_text())
+    modified = copy.deepcopy(plan)
+    modified["retained"][0]["standing"] = invalid_standing
+    with pytest.raises(ValueError, match="untyped retained standing"):
+        _assert_host_r3_partition(modified)
 
 
 def test_host_r3_rejects_duplicate_external_responsibility() -> None:
