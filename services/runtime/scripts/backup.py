@@ -15,6 +15,8 @@ from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
 
+from snapshot_fds import pinned_source_entry
+
 
 def sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
@@ -40,7 +42,10 @@ def copy_regular_tree(source: Path, target: Path, excluded: set[Path]) -> list[d
         if not path.is_file():
             raise ValueError(f"refusing unsupported filesystem entry: {path}")
         destination.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(path, destination)
+        # Revalidate through an OS-bound file descriptor immediately before
+        # copy: a formerly regular parent may now be an outside symlink.
+        with pinned_source_entry(source, relative) as bound_source:
+            shutil.copy2(bound_source, destination, follow_symlinks=sys.platform.startswith("linux"))
         files.append(
             {
                 "path": str(Path("control") / relative),
