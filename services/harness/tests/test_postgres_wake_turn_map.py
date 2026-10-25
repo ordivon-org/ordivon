@@ -1,4 +1,5 @@
 """PostgreSQL 18 physical cutover contract; run with disposable PG test DSN."""
+
 from __future__ import annotations
 
 import os
@@ -16,7 +17,9 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from postgres_wake_turn_map import PostgresWakeTurnMap, WakeTurnConflict  # noqa: E402
 
 PG_TEST_DSN = os.environ.get("ORDIVON_PG_WAKE_TEST_DSN")
-pytestmark = pytest.mark.skipif(not PG_TEST_DSN, reason="disposable PostgreSQL database not provisioned")
+pytestmark = pytest.mark.skipif(
+    not PG_TEST_DSN, reason="disposable PostgreSQL database not provisioned"
+)
 
 
 @pytest.fixture
@@ -65,6 +68,123 @@ def test_first_schema_admission_is_serialized_on_disposable_pg() -> None:
             "WHERE table_schema='ordivon_harness' AND table_name='wake_turn_map'"
         ).fetchone()[0]
     assert count == 1
+
+
+def test_pg_existing_table_without_unique_turn_identity_is_rejected() -> None:
+    """PostgreSQL IF NOT EXISTS does not qualify a preexisting malformed table."""
+    dsn = os.environ.get("ORDIVON_PG_WAKE_BOOTSTRAP_TEST_DSN")
+    if not dsn:
+        pytest.skip("disposable PG schema-admission database not provisioned")
+    with psycopg.connect(dsn, autocommit=True) as db:
+        db.execute("DROP SCHEMA IF EXISTS ordivon_harness CASCADE")
+        db.execute("CREATE SCHEMA ordivon_harness")
+        db.execute(
+            """CREATE TABLE ordivon_harness.wake_turn_map(
+                wake_intent_id TEXT PRIMARY KEY,
+                campaign_ref TEXT NOT NULL,
+                agent_id TEXT NOT NULL,
+                prompt_digest TEXT NOT NULL,
+                turn_request_id TEXT NOT NULL,
+                created_at_ms BIGINT NOT NULL CHECK (created_at_ms >= 0)
+            )"""
+        )
+    with pytest.raises(WakeTurnConflict, match="schema|constraint|unique"):
+        PostgresWakeTurnMap(dsn)
+
+
+@pytest.mark.parametrize(
+    "timestamp_type,check_clause",
+    (
+        ("TEXT", "CHECK (length(created_at_ms) > 0)"),
+        ("BIGINT", ""),
+    ),
+)
+def test_pg_existing_schema_with_wrong_timestamp_contract_is_rejected(
+    timestamp_type: str,
+    check_clause: str,
+) -> None:
+    dsn = os.environ.get("ORDIVON_PG_WAKE_BOOTSTRAP_TEST_DSN")
+    if not dsn:
+        pytest.skip("disposable PG schema-admission database not provisioned")
+    with psycopg.connect(dsn, autocommit=True) as db:
+        db.execute("DROP SCHEMA IF EXISTS ordivon_harness CASCADE")
+        db.execute("CREATE SCHEMA ordivon_harness")
+        db.execute(
+            "CREATE TABLE ordivon_harness.wake_turn_map("
+            "wake_intent_id TEXT PRIMARY KEY,"
+            "campaign_ref TEXT NOT NULL,"
+            "agent_id TEXT NOT NULL,"
+            "prompt_digest TEXT NOT NULL,"
+            "turn_request_id TEXT NOT NULL UNIQUE,"
+            f"created_at_ms {timestamp_type} NOT NULL {check_clause})"
+        )
+    with pytest.raises(WakeTurnConflict, match="schema|constraint"):
+        PostgresWakeTurnMap(dsn)
+
+
+def test_pg_existing_cutover_table_without_single_marker_identity_is_rejected() -> None:
+    """A counterfeit cutover table must not allow two conflicting state rows."""
+    dsn = os.environ.get("ORDIVON_PG_WAKE_BOOTSTRAP_TEST_DSN")
+    if not dsn:
+        pytest.skip("disposable PG schema-admission database not provisioned")
+    with psycopg.connect(dsn, autocommit=True) as db:
+        db.execute("DROP SCHEMA IF EXISTS ordivon_harness CASCADE")
+        db.execute("CREATE SCHEMA ordivon_harness")
+        db.execute(
+            """CREATE TABLE ordivon_harness.wake_turn_map(
+                wake_intent_id TEXT PRIMARY KEY,
+                campaign_ref TEXT NOT NULL,
+                agent_id TEXT NOT NULL,
+                prompt_digest TEXT NOT NULL,
+                turn_request_id TEXT NOT NULL UNIQUE,
+                created_at_ms BIGINT NOT NULL CHECK (created_at_ms >= 0)
+            )"""
+        )
+        db.execute(
+            """CREATE TABLE ordivon_harness.wake_cutover(
+                cutover_id TEXT NOT NULL,
+                state TEXT NOT NULL
+            )"""
+        )
+    with pytest.raises(WakeTurnConflict, match="schema|constraint|cutover"):
+        PostgresWakeTurnMap(dsn)
+
+
+@pytest.mark.parametrize(
+    "identity_check,state_check",
+    (
+        ("", "CHECK (state IN ('PENDING','ACTIVE'))"),
+        ("CHECK (cutover_id = 'legacy')", ""),
+    ),
+)
+def test_pg_cutover_requires_exact_state_machine_constraints(
+    identity_check: str,
+    state_check: str,
+) -> None:
+    """Primary-key identity alone cannot certify the PostgreSQL cutover state."""
+    dsn = os.environ.get("ORDIVON_PG_WAKE_BOOTSTRAP_TEST_DSN")
+    if not dsn:
+        pytest.skip("disposable PostgreSQL bootstrap DB required")
+    with psycopg.connect(dsn, autocommit=True) as pg:
+        pg.execute("DROP SCHEMA IF EXISTS ordivon_harness CASCADE")
+        pg.execute("CREATE SCHEMA ordivon_harness")
+        pg.execute(
+            """CREATE TABLE ordivon_harness.wake_turn_map(
+               wake_intent_id TEXT PRIMARY KEY,
+               campaign_ref TEXT NOT NULL,
+               agent_id TEXT NOT NULL,
+               prompt_digest TEXT NOT NULL,
+               turn_request_id TEXT NOT NULL UNIQUE,
+               created_at_ms BIGINT NOT NULL CHECK (created_at_ms >= 0)
+            )"""
+        )
+        pg.execute(
+            "CREATE TABLE ordivon_harness.wake_cutover("
+            f"cutover_id TEXT PRIMARY KEY {identity_check},"
+            f"state TEXT NOT NULL {state_check})"
+        )
+    with pytest.raises(WakeTurnConflict, match="cutover|schema|constraint"):
+        PostgresWakeTurnMap(dsn)
 
 
 def payload(wake: str = "wake:" + "a" * 32) -> dict[str, str]:
@@ -126,20 +246,26 @@ def test_invalid_uuid7_on_durable_replay_fails_closed(owner: PostgresWakeTurnMap
     row = owner.allocate(**payload())
     with psycopg.connect(PG_TEST_DSN) as db:
         # Simulate a privileged integrity breach, beyond ordinary DML authority.
-        db.execute("ALTER TABLE ordivon_harness.wake_turn_map DISABLE TRIGGER wake_turn_identity_immutable")
+        db.execute(
+            "ALTER TABLE ordivon_harness.wake_turn_map DISABLE TRIGGER wake_turn_identity_immutable"
+        )
         db.execute(
             "UPDATE ordivon_harness.wake_turn_map "
             "SET turn_request_id='FORGED' WHERE wake_intent_id=%s",
             (row["wakeIntentId"],),
         )
-        db.execute("ALTER TABLE ordivon_harness.wake_turn_map ENABLE TRIGGER wake_turn_identity_immutable")
+        db.execute(
+            "ALTER TABLE ordivon_harness.wake_turn_map ENABLE TRIGGER wake_turn_identity_immutable"
+        )
     with pytest.raises(WakeTurnConflict, match="receipt"):
         owner.allocate(**payload())
     with pytest.raises(WakeTurnConflict, match="identity"):
         owner.get(row["wakeIntentId"])
 
 
-def test_legacy_sqlite_import_retirement_and_pg_growth(owner: PostgresWakeTurnMap, tmp_path: Path) -> None:
+def test_legacy_sqlite_import_retirement_and_pg_growth(
+    owner: PostgresWakeTurnMap, tmp_path: Path
+) -> None:
     import sqlite3
 
     from sqlite_wake_turn_map import SQLiteWakeTurnMap
@@ -165,7 +291,9 @@ def test_legacy_sqlite_import_retirement_and_pg_growth(owner: PostgresWakeTurnMa
     owner.assert_legacy_sealed(source)  # PG-only rows are permitted after cutover.
 
 
-def test_divergent_pg_import_does_not_retire_source(owner: PostgresWakeTurnMap, tmp_path: Path) -> None:
+def test_divergent_pg_import_does_not_retire_source(
+    owner: PostgresWakeTurnMap, tmp_path: Path
+) -> None:
     from sqlite_wake_turn_map import SQLiteWakeTurnMap
 
     source = tmp_path / "legacy.sqlite"
@@ -190,12 +318,16 @@ def test_tampering_pg_after_cutover_fails_consumer_readback(
     old = legacy.allocate(**payload())
     owner.retire_legacy_and_import(source)
     with psycopg.connect(PG_TEST_DSN) as db:
-        db.execute("ALTER TABLE ordivon_harness.wake_turn_map DISABLE TRIGGER wake_turn_identity_immutable")
         db.execute(
-            "UPDATE ordivon_harness.wake_turn_map SET agent_id='FORGED' "
-            "WHERE wake_intent_id=%s", (old["wakeIntentId"],)
+            "ALTER TABLE ordivon_harness.wake_turn_map DISABLE TRIGGER wake_turn_identity_immutable"
         )
-        db.execute("ALTER TABLE ordivon_harness.wake_turn_map ENABLE TRIGGER wake_turn_identity_immutable")
+        db.execute(
+            "UPDATE ordivon_harness.wake_turn_map SET agent_id='FORGED' WHERE wake_intent_id=%s",
+            (old["wakeIntentId"],),
+        )
+        db.execute(
+            "ALTER TABLE ordivon_harness.wake_turn_map ENABLE TRIGGER wake_turn_identity_immutable"
+        )
     with pytest.raises(WakeTurnConflict, match="differs"):
         owner.assert_legacy_sealed(source)
 
@@ -233,7 +365,6 @@ def test_missing_legacy_source_requires_explicit_fresh_bootstrap(
     owner.assert_legacy_sealed(source, fresh_bootstrap=True)
 
 
-
 def test_sqlite_commit_failure_never_admits_a_postgres_wake(
     owner: PostgresWakeTurnMap, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -268,9 +399,7 @@ def test_sqlite_commit_failure_never_admits_a_postgres_wake(
     with pytest.raises(WakeTurnConflict, match="pending|not certified"):
         owner.allocate(**payload("wake:" + "9" * 32))
     with psycopg.connect(PG_TEST_DSN) as pg:
-        assert pg.execute(
-            "SELECT count(*) FROM ordivon_harness.wake_turn_map"
-        ).fetchone()[0] == 1
+        assert pg.execute("SELECT count(*) FROM ordivon_harness.wake_turn_map").fetchone()[0] == 1
     assert legacy.allocate(**payload("wake:" + "8" * 32))["disposition"] == "created"
     monkeypatch.undo()
     proof = owner.retire_legacy_and_import(source)
@@ -283,15 +412,12 @@ def test_explicit_pending_pg_migration_rejects_new_wake_admission(
 ) -> None:
     with psycopg.connect(PG_TEST_DSN) as pg:
         pg.execute(
-            "INSERT INTO ordivon_harness.wake_cutover(cutover_id,state) "
-            "VALUES('legacy','PENDING')"
+            "INSERT INTO ordivon_harness.wake_cutover(cutover_id,state) VALUES('legacy','PENDING')"
         )
     with pytest.raises(WakeTurnConflict, match="pending|not certified"):
         owner.allocate(**payload())
     with psycopg.connect(PG_TEST_DSN) as pg:
-        assert pg.execute(
-            "SELECT count(*) FROM ordivon_harness.wake_turn_map"
-        ).fetchone()[0] == 0
+        assert pg.execute("SELECT count(*) FROM ordivon_harness.wake_turn_map").fetchone()[0] == 0
 
 
 def test_certification_crash_after_source_seal_recovers_without_dual_writers(
@@ -312,9 +438,12 @@ def test_certification_crash_after_source_seal_recovers_without_dual_writers(
     with pytest.raises(RuntimeError, match="injected PG activation crash"):
         owner.retire_legacy_and_import(source)
     with psycopg.connect(PG_TEST_DSN) as pg:
-        assert pg.execute(
-            "SELECT state FROM ordivon_harness.wake_cutover WHERE cutover_id='legacy'"
-        ).fetchone()[0] == "PENDING"
+        assert (
+            pg.execute(
+                "SELECT state FROM ordivon_harness.wake_cutover WHERE cutover_id='legacy'"
+            ).fetchone()[0]
+            == "PENDING"
+        )
     owner.assert_legacy_sealed(source)
     with pytest.raises(WakeTurnConflict, match="pending"):
         owner.allocate(**payload("wake:" + "7" * 32))
@@ -330,21 +459,18 @@ def test_pending_pg_cutover_rejects_parallel_writers_without_serializing_each_ot
 ) -> None:
     with psycopg.connect(PG_TEST_DSN) as pg:
         pg.execute(
-            "INSERT INTO ordivon_harness.wake_cutover(cutover_id,state) "
-            "VALUES('legacy','PENDING')"
+            "INSERT INTO ordivon_harness.wake_cutover(cutover_id,state) VALUES('legacy','PENDING')"
         )
     with ThreadPoolExecutor(max_workers=12) as pool:
-        results = list(pool.map(
-            lambda index: _pending_alloc_result(
-                owner, "wake:" + f"{index:032x}"
-            ),
-            range(24),
-        ))
+        results = list(
+            pool.map(
+                lambda index: _pending_alloc_result(owner, "wake:" + f"{index:032x}"),
+                range(24),
+            )
+        )
     assert results == ["blocked"] * 24
     with psycopg.connect(PG_TEST_DSN) as pg:
-        assert pg.execute(
-            "SELECT count(*) FROM ordivon_harness.wake_turn_map"
-        ).fetchone()[0] == 0
+        assert pg.execute("SELECT count(*) FROM ordivon_harness.wake_turn_map").fetchone()[0] == 0
 
 
 def _pending_alloc_result(owner: PostgresWakeTurnMap, wake: str) -> str:
@@ -354,6 +480,7 @@ def _pending_alloc_result(owner: PostgresWakeTurnMap, wake: str) -> str:
         assert "pending" in str(error)
         return "blocked"
     return "ADMITTED_UNSAFE"
+
 
 def test_pg_turn_request_collision_cannot_alias_different_wakes(
     owner: PostgresWakeTurnMap,
@@ -373,7 +500,8 @@ def test_pg_turn_request_collision_cannot_alias_different_wakes(
 
 @pytest.mark.parametrize("unsafe_clock", [True, 1.5, -1, 2**63, "1"])
 def test_pg_wake_clock_requires_exact_native_bigint_before_write(
-    owner: PostgresWakeTurnMap, unsafe_clock: object,
+    owner: PostgresWakeTurnMap,
+    unsafe_clock: object,
 ) -> None:
     """Never let an invalid producer clock get coerced or delegated to PG."""
     assert PG_TEST_DSN is not None
@@ -384,9 +512,7 @@ def test_pg_wake_clock_requires_exact_native_bigint_before_write(
     with pytest.raises(WakeTurnConflict, match="timestamp"):
         candidate.allocate(**payload())
     with psycopg.connect(PG_TEST_DSN) as db:
-        assert db.execute(
-            "SELECT count(*) FROM ordivon_harness.wake_turn_map"
-        ).fetchone()[0] == 0
+        assert db.execute("SELECT count(*) FROM ordivon_harness.wake_turn_map").fetchone()[0] == 0
 
 
 @pytest.mark.parametrize("mutation", ["UPDATE", "DELETE", "TRUNCATE"])
@@ -402,12 +528,13 @@ def test_pg_native_identity_immutability_rejects_mutation(
             if mutation == "UPDATE":
                 db.execute(
                     "UPDATE ordivon_harness.wake_turn_map SET agent_id='FORGED' "
-                    "WHERE wake_intent_id=%s", (receipt["wakeIntentId"],)
+                    "WHERE wake_intent_id=%s",
+                    (receipt["wakeIntentId"],),
                 )
             elif mutation == "DELETE":
                 db.execute(
                     "DELETE FROM ordivon_harness.wake_turn_map WHERE wake_intent_id=%s",
-                    (receipt["wakeIntentId"],)
+                    (receipt["wakeIntentId"],),
                 )
             else:
                 db.execute("TRUNCATE ordivon_harness.wake_turn_map")
