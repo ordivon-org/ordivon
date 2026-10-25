@@ -181,12 +181,18 @@ def test_cross_config_monitoring_consumer_counterexamples_fail_closed(
         json.dumps({"scrape_configs": jobs})
     )
     if mutation in {"unknown-module", "missing-target"}:
-        # Independent Prometheus/Blackbox CLI syntax gates do not see the peer config.
-        prom = subprocess.run(
-            ["promtool", "check", "config", str(source / "prometheus/prometheus.yml")],
-            capture_output=True, text=True, check=False,
-        )
-        assert prom.returncode == 0, prom.stderr
+        # On the live native owner, independently demonstrate that promtool
+        # accepts this syntax but cannot validate foreign Blackbox edges.
+        # Portable GitHub Network CI does not install promtool, and the
+        # graph-negative oracle below must run regardless.
+        import shutil
+
+        if shutil.which("promtool"):
+            prom = subprocess.run(
+                ["promtool", "check", "config", str(source / "prometheus/prometheus.yml")],
+                capture_output=True, text=True, check=False,
+            )
+            assert prom.returncode == 0, prom.stderr
     with pytest.raises(ValueError, match=message):
         owner.verify_probe_consumer_edges(source)
 
