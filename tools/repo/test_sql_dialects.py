@@ -33,6 +33,8 @@ class SQLDialectBoundaryTests(unittest.TestCase):
         for name in (
             "services/gateway/src/ordivon_gateway/external_worker.py",
             "domains/capital/src/ordivon_capital/accounting/sqlite_ledger.py",
+            "domains/capital/src/ordivon_capital/accounting/postgres_ledger.py",
+            "capabilities/media/scripts/migrate-r6-trials.py",
             "platform/workstation/scripts/host_historical_projection.py",
             "platform/workstation/scripts/host_retirement_snapshot.py",
             "meta/next/experiments/browser-security-r4/cf07_metadata_snapshot.py",

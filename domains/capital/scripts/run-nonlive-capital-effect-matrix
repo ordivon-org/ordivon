@@ -8,6 +8,7 @@ PYTHONPATH="$repo/src" DB="$tmp/nonlive-accounting.sqlite3" \
   "$repo/.venv/bin/python" - <<'PY'
 import json
 import os
+import sys
 from pathlib import Path
 
 from ordivon_capital.accounting.durable import (
@@ -21,6 +22,7 @@ from ordivon_capital.accounting.durable import (
     reconcile_durable_history,
 )
 from ordivon_capital.accounting.sqlite_ledger import LedgerApplyStatus, SQLiteAccountingLedger
+from ordivon_capital.accounting.postgres_ledger import PostgresAccountingLedger
 from ordivon_capital.accounting.substrate import (
     AccountingAccount,
     AccountingOperation,
@@ -41,11 +43,15 @@ expected={
     "UNKNOWN_AFTER_SUBMISSION":"NO_MUTATION",
 }
 path=Path(os.environ["DB"])
+pg_dsn=os.environ.get("ORDIVON_CAPITAL_PG_DSN")
+def open_ledger():
+    # An explicit PG choice never falls back to SQLite on network/SQL failure.
+    return PostgresAccountingLedger(pg_dsn) if pg_dsn else SQLiteAccountingLedger(path)
 fund=AccountingAccount(stable_accounting_id("ordivon-capital:nonlive-effect","funding"))
 namespaces={}
 bindings={}
 
-with SQLiteAccountingLedger(path) as ledger:
+with open_ledger() as ledger:
     require(ledger.create_account(fund) is LedgerApplyStatus.CREATED, "ledger.create_account(fund) is LedgerApplyStatus.CREATED")
     for scenario in expected:
         ns=CapitalAccountNamespace("owner:qualification",f"parcel:nonlive:{scenario.lower()}")
@@ -78,9 +84,9 @@ with SQLiteAccountingLedger(path) as ledger:
         require(instruction is not None, "instruction is not None")
         require(ledger.apply_instruction(instruction) is LedgerApplyStatus.CREATED, "ledger.apply_instruction(instruction) is LedgerApplyStatus.CREATED")
 
-# Reopen the same SQLite database and reconcile exact durable state.
+# Reopen the same authoritative database and reconcile exact durable state.
 results={}
-with SQLiteAccountingLedger(path) as ledger:
+with open_ledger() as ledger:
     for scenario,resolution_name in expected.items():
         ns=namespaces[scenario]
         binding=bindings[scenario]
@@ -164,9 +170,9 @@ print(json.dumps({
     "kind":"ordivon.capital.trading.nonlive-capital-effect-matrix",
     "standing":"PASS_NONLIVE_EFFECT_TO_CAPITAL_RESTART_MATRIX",
     "sourceEffectContract":"CURRENT_RECONCILIATION_DISPOSITION_CONTRACT",
-    "accountingProvider":"SQLite",
-    "sqliteVersion":"3.53.1",
-    "python":"3.14.7",
+    "accountingProvider":"PostgreSQL" if pg_dsn else "SQLite",
+    "sqliteVersion":None if pg_dsn else "3.53.1",
+    "python":sys.version.split()[0],
     "restartCount":1,
     "scenarios":results,
     "exactConsumeReplayStatus":replay_status.value,

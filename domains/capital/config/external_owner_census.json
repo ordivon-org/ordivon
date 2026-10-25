@@ -62,10 +62,10 @@
     {
       "id": "accounting-mechanics",
       "ownerClass": "IMPLEMENTATION_OWNER",
-      "owner": "SQLite 3.53.1 via canonical Python 3.14.7 stdlib sqlite3",
-      "currentStanding": "ADMITTED_FOR_BOUNDED_SINGLE_HOST_WAL_ACCOUNTING",
-      "applicability": "ACID_WAL_TRANSACTION_MECHANICS_ONLY_NOT_SETTLEMENT_LEGAL_OWNERSHIP_OR_DISTRIBUTED_CONSENSUS",
-      "source": "https://sqlite.org/"
+      "owner": "PostgreSQL 18.6 via psycopg 3 (native qualified consumer)",
+      "currentStanding": "NATIVE_PG_NONLIVE_CONSUMER_QUALIFIED_INSTALLED_CUTOVER_PENDING",
+      "applicability": "NATIVE_SERIALIZABLE_TRANSACTION_ACID_ACCOUNTING_ONLY_NOT_SETTLEMENT_OR_EXTERNAL_FUNDS",
+      "source": "https://www.postgresql.org/docs/current/transaction-iso.html"
     },
     {
       "id": "financial-reporting",
@@ -300,6 +300,7 @@
       "sourcePatterns": [
         "src/ordivon_capital/accounting/substrate.py",
         "src/ordivon_capital/accounting/durable.py",
+        "src/ordivon_capital/accounting/postgres_ledger.py",
         "src/ordivon_capital/accounting/sqlite_ledger.py"
       ],
       "ownerClasses": [
@@ -307,13 +308,15 @@
         "ORDIVON_GLUE"
       ],
       "externalOwners": [
-        "SQLite 3.53.1 via Python stdlib sqlite3 for ACID/WAL mechanics",
-        "TigerBeetle 0.17.9 as historical/future distributed challenger"
+        "PostgreSQL 18.6 native SERIALIZABLE, uniqueness, transactional DDL and advisory locks",
+        "SQLite historical read-only migration source and legacy offline CI only",
+        "TigerBeetle 0.17.9 historical/future distributed challenger"
       ],
-      "localStanding": "THIN_SQLITE_SCHEMA_AND_RESERVATION_BINDING",
-      "localResponsibility": "bind bounded capital reservation/post/void/idempotency semantics onto SQLite transactions and reconcile durable local history; do not implement a database, distributed replication, settlement finality, or legal ownership",
+      "localStanding": "PG_NATIVE_ACCOUNTING_CONSUMER_QUALIFIED_LEGACY_SOURCE_RETIRED_PENDING_INSTALLED_CUTOVER",
+      "localResponsibility": "Bind capital reservation/post/void/idempotency onto native PostgreSQL SERIALIZABLE transactions with 40001 whole-transaction retries, exact U128 source identity and pre-commit migration readback. Nonlive matrix selects PostgreSQL only on explicit DSN. Legacy SQLite remains historical/offline test input, not a new production authority. No external fund movement or installed PG cutover is entailed.",
       "admittedMechanicsOwners": [
-        "SQLite 3.53.1 via canonical Python 3.14.7 stdlib sqlite3"
+        "PostgreSQL 18.6 physically tested disposable cluster: native PG SERIALIZABLE with advisory transaction admission",
+        "SQLite 3.54 historical/offline regression only, not an expansion target"
       ],
       "candidateMechanics": [
         "TigerBeetle 0.17.9 for a future distributed/replicated accounting contract"
@@ -1038,9 +1041,23 @@
           "cluster recovery"
         ]
       },
-      "standing": "SQLITE_COMPOSITION_PREFERRED_FOR_CURRENT_BOUNDED_CONTRACT",
+      "standing": "HISTORICAL_SQLITE_VS_TIGERBEETLE_ONLY_PG_NATIVE_CUTOVER_PENDING",
       "tigerBeetleOwnerAdmitted": false,
-      "decision": "Use SQLite WAL/FULL as the mature ACID primitive for the current single-host bounded accounting contract. Keep TigerBeetle 0.17.9 as a challenger for a future contract that actually requires replication, cluster recovery, or high-throughput transaction mechanics."
+      "decision": "Original 400-step SQLite-vs-TigerBeetle comparison remains historical evidence, not a current SQLite preference. Native PostgreSQL ledger qualified on ephemeral PostgreSQL 18: account/transfer identity, whole SERIALIZABLE retry, no-overdraft concurrency, exact pending/POST/VOID, restart, read-only SQLite import before COMMIT with mismatch rollback, and non-live effect-matrix consumer on explicit PG DSN. Installed PG cutover, legacy producer shutdown, rollback and retirement are NOT proved.",
+      "nativePostgresQualification": {
+        "consumer": "src/ordivon_capital/accounting/postgres_ledger.py",
+        "tests": "tests/test_postgres_ledger.py",
+        "operations": [
+          "unique-account",
+          "replay",
+          "reserve-post-void",
+          "serializable-scarcity",
+          "cold-schema-lock",
+          "quiesced-import",
+          "negative-readback-rollback"
+        ],
+        "standing": "QUALIFIED_DISPOSABLE_PG18_NO_INSTALLED_CUTOVER"
+      }
     },
     {
       "contractId": "bounded-us-equity-execution-feasibility",

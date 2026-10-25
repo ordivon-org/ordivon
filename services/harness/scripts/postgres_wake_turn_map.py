@@ -69,6 +69,38 @@ class PostgresWakeTurnMap:
                 """
             )
 
+            # Wake identity is an append-only, non-deletable ledger fact.
+            # Enforce the contract in PostgreSQL, not just in Agent code.
+            db.execute(
+                """
+                CREATE OR REPLACE FUNCTION ordivon_harness.reject_wake_identity_mutation()
+                RETURNS TRIGGER LANGUAGE plpgsql AS $body$
+                BEGIN
+                    RAISE EXCEPTION 'durable wake turn identity is immutable'
+                        USING ERRCODE = '23514';
+                END
+                $body$
+                """
+            )
+            db.execute(
+                """
+                CREATE OR REPLACE TRIGGER wake_turn_identity_immutable
+                BEFORE UPDATE OR DELETE ON ordivon_harness.wake_turn_map
+                FOR EACH ROW
+                EXECUTE FUNCTION ordivon_harness.reject_wake_identity_mutation()
+                """
+            )
+            # TRUNCATE bypasses row-level DELETE triggers. PG's native
+            # statement-level BEFORE TRUNCATE closes that separate path.
+            db.execute(
+                """
+                CREATE OR REPLACE TRIGGER wake_turn_identity_no_truncate
+                BEFORE TRUNCATE ON ordivon_harness.wake_turn_map
+                FOR EACH STATEMENT
+                EXECUTE FUNCTION ordivon_harness.reject_wake_identity_mutation()
+                """
+            )
+
     # Shared admission locks allow parallel wake writes; only the one-time
     # migration's exclusive lock blocks writers while a cutover fence is set.
     _CUTOVER_ADVISORY_KEY = 57163519194018

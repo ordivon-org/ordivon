@@ -54,9 +54,14 @@ SQLITE_LEGACY_SOURCE_CALLS: dict[str, int] = {
     # Other concrete owners previously invisible to the Runtime/Harness-only gate:
     # Gateway pull-worker durability (conditional deployed consumer).
     'services/gateway/src/ordivon_gateway/external_worker.py': 1,
-    # Capital accounting is still SQLite; Media R6 durable history is PostgreSQL.
+    # Capital accounting and Media research have distinct consumer contracts:
+    # do not promote the research executor or test-only ledger to live PG by analogy.
     'domains/capital/src/ordivon_capital/accounting/sqlite_ledger.py': 1,
-    # Historical read-only SQLite import remains a concrete Media PG consumer.
+    # One-shot, read-only historical source copy into qualified PostgreSQL.
+    # This is debt scheduled for retirement after installed producer quiescence,
+    # NOT a new SQLite accounting authority or permitted write path.
+    'domains/capital/src/ordivon_capital/accounting/postgres_ledger.py': 1,
+    # Media has migrated durable TrialLedger to PostgreSQL; remaining SQLite is one-shot read-only import.
     'capabilities/media/scripts/migrate-r6-trials.py': 1,
     # Retired Host v1 historical read/projection tools, not current Host v2 state.
     'platform/workstation/scripts/host_historical_projection.py': 2,

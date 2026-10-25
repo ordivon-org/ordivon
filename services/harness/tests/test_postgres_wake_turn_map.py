@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-psycopg = pytest.importorskip("psycopg", reason="PG provider is owned by the Temporal worker")
+import psycopg  # PostgreSQL wake is a selected production owner: no silent skip.
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -26,8 +26,18 @@ def owner():
     with psycopg.connect(PG_TEST_DSN) as db:
         db.execute("DROP TRIGGER IF EXISTS corrupt_wake_insert ON ordivon_harness.wake_turn_map")
         db.execute("DROP FUNCTION IF EXISTS ordivon_harness.corrupt_wake_insert()")
+        # This is a disposable test database. Only the privileged fixture may
+        # disable TRUNCATE's production identity-retention guard to reset it.
+        db.execute(
+            "ALTER TABLE ordivon_harness.wake_turn_map "
+            "DISABLE TRIGGER wake_turn_identity_no_truncate"
+        )
         db.execute("TRUNCATE TABLE ordivon_harness.wake_turn_map")
         db.execute("DELETE FROM ordivon_harness.wake_cutover")
+        db.execute(
+            "ALTER TABLE ordivon_harness.wake_turn_map "
+            "ENABLE TRIGGER wake_turn_identity_no_truncate"
+        )
     return w
 
 
@@ -106,7 +116,7 @@ def test_post_write_mutation_is_rolled_back(owner: PostgresWakeTurnMap) -> None:
             AFTER INSERT ON ordivon_harness.wake_turn_map
             FOR EACH ROW EXECUTE FUNCTION ordivon_harness.corrupt_wake_insert()"""
         )
-    with pytest.raises(WakeTurnConflict, match="semantics"):
+    with pytest.raises((WakeTurnConflict, psycopg.errors.CheckViolation)):
         owner.allocate(**payload())
     with psycopg.connect(PG_TEST_DSN) as db:
         assert db.execute("SELECT count(*) FROM ordivon_harness.wake_turn_map").fetchone()[0] == 0
@@ -115,11 +125,14 @@ def test_post_write_mutation_is_rolled_back(owner: PostgresWakeTurnMap) -> None:
 def test_invalid_uuid7_on_durable_replay_fails_closed(owner: PostgresWakeTurnMap) -> None:
     row = owner.allocate(**payload())
     with psycopg.connect(PG_TEST_DSN) as db:
+        # Simulate a privileged integrity breach, beyond ordinary DML authority.
+        db.execute("ALTER TABLE ordivon_harness.wake_turn_map DISABLE TRIGGER wake_turn_identity_immutable")
         db.execute(
             "UPDATE ordivon_harness.wake_turn_map "
             "SET turn_request_id='FORGED' WHERE wake_intent_id=%s",
             (row["wakeIntentId"],),
         )
+        db.execute("ALTER TABLE ordivon_harness.wake_turn_map ENABLE TRIGGER wake_turn_identity_immutable")
     with pytest.raises(WakeTurnConflict, match="receipt"):
         owner.allocate(**payload())
     with pytest.raises(WakeTurnConflict, match="identity"):
@@ -177,10 +190,12 @@ def test_tampering_pg_after_cutover_fails_consumer_readback(
     old = legacy.allocate(**payload())
     owner.retire_legacy_and_import(source)
     with psycopg.connect(PG_TEST_DSN) as db:
+        db.execute("ALTER TABLE ordivon_harness.wake_turn_map DISABLE TRIGGER wake_turn_identity_immutable")
         db.execute(
             "UPDATE ordivon_harness.wake_turn_map SET agent_id='FORGED' "
             "WHERE wake_intent_id=%s", (old["wakeIntentId"],)
         )
+        db.execute("ALTER TABLE ordivon_harness.wake_turn_map ENABLE TRIGGER wake_turn_identity_immutable")
     with pytest.raises(WakeTurnConflict, match="differs"):
         owner.assert_legacy_sealed(source)
 
@@ -354,3 +369,28 @@ def test_pg_turn_request_collision_cannot_alias_different_wakes(
         bad_generator.allocate(**payload("wake:" + "f" * 32))
     with psycopg.connect(PG_TEST_DSN) as db:
         assert db.execute("SELECT count(*) FROM ordivon_harness.wake_turn_map").fetchone()[0] == 1
+
+
+@pytest.mark.parametrize("mutation", ["UPDATE", "DELETE", "TRUNCATE"])
+def test_pg_native_identity_immutability_rejects_mutation(
+    owner: PostgresWakeTurnMap, mutation: str
+) -> None:
+    """No admitted wake identity may be rewritten/erased through PG DML."""
+    receipt = owner.allocate(**payload())
+    with psycopg.connect(PG_TEST_DSN) as db:
+        with pytest.raises(
+            psycopg.errors.CheckViolation, match="durable wake turn identity is immutable"
+        ):
+            if mutation == "UPDATE":
+                db.execute(
+                    "UPDATE ordivon_harness.wake_turn_map SET agent_id='FORGED' "
+                    "WHERE wake_intent_id=%s", (receipt["wakeIntentId"],)
+                )
+            elif mutation == "DELETE":
+                db.execute(
+                    "DELETE FROM ordivon_harness.wake_turn_map WHERE wake_intent_id=%s",
+                    (receipt["wakeIntentId"],)
+                )
+            else:
+                db.execute("TRUNCATE ordivon_harness.wake_turn_map")
+    assert owner.get(receipt["wakeIntentId"])["turnRequestId"] == receipt["turnRequestId"]
