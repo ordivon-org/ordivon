@@ -1,2 +1,3 @@
 playwright==1.63.0
 rfc8785==0.1.4
+psycopg[binary]==3.3.6
