@@ -4,11 +4,11 @@ import hashlib
 import json
 import math
 import random
-import sqlite3
 from collections.abc import Iterable, Mapping, Sequence
-from pathlib import Path
 from statistics import NormalDist
 from typing import Any
+
+import psycopg
 
 from .grounded_meaning import canonical_digest
 
@@ -175,51 +175,81 @@ def build_null_registration(
 
 
 class TrialLedger:
-    """Append-only, hash-chained search history for one Studio experiment.
+    """PostgreSQL append-only experiment history, one serialized hash chain per search.
 
-    This is deliberately local R6 equipment. Finance has an independently evolved consumer with
-    nearly the same research need; R6 does not prematurely move either implementation into a
-    shared repository before the repeated-consumer boundary is demonstrated by practice.
+    SQL storage and transactional lock are natural database capabilities, not a
+    second orchestration service. A source string must be a PostgreSQL DSN.
     """
 
-    def __init__(self, path: str | Path, *, search_id: str):
-        self.path = Path(path)
+    def __init__(self, dsn: str, *, search_id: str):
+        if not isinstance(dsn, str) or not dsn.startswith(("postgresql://", "postgres://")):
+            raise ValueError("TrialLedger requires a PostgreSQL DSN, not a SQLite path")
         self.search_id = _strict_text(search_id, "search_id")
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.db = sqlite3.connect(self.path)
-        self.db.execute("PRAGMA journal_mode=WAL")
-        self.db.execute(
-            """
-            CREATE TABLE IF NOT EXISTS trial_events (
-              seq INTEGER PRIMARY KEY AUTOINCREMENT,
-              event_id TEXT NOT NULL UNIQUE,
-              search_id TEXT NOT NULL,
-              attempt_id TEXT NOT NULL,
-              candidate_id TEXT NOT NULL,
-              event_type TEXT NOT NULL,
-              payload_json TEXT NOT NULL,
-              prev_hash TEXT,
-              event_hash TEXT NOT NULL UNIQUE
+        self.db = psycopg.connect(dsn, autocommit=True)
+        try:
+            self._create_schema()
+        except BaseException:
+            self.db.close()
+            raise
+
+    def _create_schema(self) -> None:
+        with self.db.transaction():
+            # PostgreSQL CREATE SCHEMA IF NOT EXISTS is not a concurrency gate.
+            # Serialize first-time Owner schema admission across connections.
+            schema_key = int.from_bytes(
+                hashlib.sha256(b"ordivon:media-trial:schema:v1").digest()[:8],
+                "big", signed=True,
             )
-            """
-        )
-        self.db.execute("CREATE INDEX IF NOT EXISTS trial_events_search_idx ON trial_events(search_id,seq)")
-        self.db.execute(
-            "CREATE TRIGGER IF NOT EXISTS trial_events_no_update BEFORE UPDATE ON trial_events "
-            "BEGIN SELECT RAISE(ABORT,'trial events are append-only'); END"
-        )
-        self.db.execute(
-            "CREATE TRIGGER IF NOT EXISTS trial_events_no_delete BEFORE DELETE ON trial_events "
-            "BEGIN SELECT RAISE(ABORT,'trial events are append-only'); END"
-        )
-        self.db.commit()
+            self.db.execute("SELECT pg_advisory_xact_lock(%s)", (schema_key,))
+            self.db.execute("CREATE SCHEMA IF NOT EXISTS ordivon_media_trial")
+            self.db.execute("""
+                CREATE TABLE IF NOT EXISTS ordivon_media_trial.trial_events (
+                  seq BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                  event_id TEXT NOT NULL UNIQUE,
+                  search_id TEXT NOT NULL,
+                  attempt_id TEXT NOT NULL,
+                  candidate_id TEXT NOT NULL,
+                  event_type TEXT NOT NULL,
+                  payload_json TEXT NOT NULL,
+                  prev_hash TEXT,
+                  event_hash TEXT NOT NULL UNIQUE
+                )
+            """)
+            self.db.execute(
+                "CREATE INDEX IF NOT EXISTS trial_events_search_idx "
+                "ON ordivon_media_trial.trial_events(search_id,seq)"
+            )
+            self.db.execute("""
+                CREATE OR REPLACE FUNCTION ordivon_media_trial.reject_trial_mutation()
+                RETURNS trigger LANGUAGE plpgsql AS $function$
+                BEGIN
+                    RAISE EXCEPTION 'trial events are append-only' USING ERRCODE = '55000';
+                END;
+                $function$
+            """)
+            self.db.execute("""
+                DO $block$
+                BEGIN
+                  IF NOT EXISTS (
+                    SELECT 1 FROM pg_trigger
+                    WHERE tgrelid = 'ordivon_media_trial.trial_events'::regclass
+                      AND tgname = 'trial_events_no_mutation'
+                      AND NOT tgisinternal
+                  ) THEN
+                    CREATE TRIGGER trial_events_no_mutation
+                    BEFORE UPDATE OR DELETE ON ordivon_media_trial.trial_events
+                    FOR EACH ROW EXECUTE FUNCTION ordivon_media_trial.reject_trial_mutation();
+                  END IF;
+                END $block$
+            """)
 
     def close(self) -> None:
         self.db.close()
 
     def _last_hash(self) -> str | None:
         row = self.db.execute(
-            "SELECT event_hash FROM trial_events WHERE search_id=? ORDER BY seq DESC LIMIT 1", (self.search_id,)
+            "SELECT event_hash FROM ordivon_media_trial.trial_events "
+            "WHERE search_id=%s ORDER BY seq DESC LIMIT 1", (self.search_id,)
         ).fetchone()
         return str(row[0]) if row else None
 
@@ -228,37 +258,40 @@ class TrialLedger:
         _strict_text(candidate_id, "candidate_id")
         if event_type not in EVENT_TYPES:
             raise ValueError(f"unsupported trial event type: {event_type}")
-        previous = self._last_hash()
-        semantic = {
-            "searchId": self.search_id,
-            "attemptId": attempt_id,
-            "candidateId": candidate_id,
-            "eventType": event_type,
-            "payload": dict(payload),
-            "prevHash": previous,
-        }
-        event_hash = canonical_digest(semantic)
-        event_id = "trial-event://" + event_hash.removeprefix("sha256:")
-        self.db.execute(
-            "INSERT INTO trial_events(event_id,search_id,attempt_id,candidate_id,event_type,payload_json,prev_hash,event_hash) VALUES(?,?,?,?,?,?,?,?)",
-            (
-                event_id,
-                self.search_id,
-                attempt_id,
-                candidate_id,
-                event_type,
-                json.dumps(dict(payload), ensure_ascii=False, sort_keys=True, separators=(",", ":")),
-                previous,
-                event_hash,
-            ),
+        key = int.from_bytes(
+            hashlib.sha256(self.search_id.encode("utf-8")).digest()[:8], "big", signed=True
         )
-        self.db.commit()
+        with self.db.transaction():
+            # Serialized per search, including independent concurrent connections.
+            self.db.execute("SELECT pg_advisory_xact_lock(%s)", (key,))
+            previous = self._last_hash()
+            semantic = {
+                "searchId": self.search_id,
+                "attemptId": attempt_id,
+                "candidateId": candidate_id,
+                "eventType": event_type,
+                "payload": dict(payload),
+                "prevHash": previous,
+            }
+            event_hash = canonical_digest(semantic)
+            event_id = "trial-event://" + event_hash.removeprefix("sha256:")
+            self.db.execute(
+                "INSERT INTO ordivon_media_trial.trial_events "
+                "(event_id,search_id,attempt_id,candidate_id,event_type,payload_json,prev_hash,event_hash) "
+                "VALUES(%s,%s,%s,%s,%s,%s,%s,%s)",
+                (
+                    event_id, self.search_id, attempt_id, candidate_id, event_type,
+                    json.dumps(dict(payload), ensure_ascii=False, sort_keys=True, separators=(",", ":")),
+                    previous, event_hash,
+                ),
+            )
         return event_id
 
     def verify(self) -> bool:
         previous: str | None = None
         rows = self.db.execute(
-            "SELECT attempt_id,candidate_id,event_type,payload_json,prev_hash,event_hash FROM trial_events WHERE search_id=? ORDER BY seq",
+            "SELECT attempt_id,candidate_id,event_type,payload_json,prev_hash,event_hash "
+            "FROM ordivon_media_trial.trial_events WHERE search_id=%s ORDER BY seq",
             (self.search_id,),
         )
         for attempt_id, candidate_id, event_type, payload_json, observed_prev, observed_hash in rows:
@@ -281,17 +314,20 @@ class TrialLedger:
         event_counts = {
             str(row[0]): int(row[1])
             for row in self.db.execute(
-                "SELECT event_type,count(*) FROM trial_events WHERE search_id=? GROUP BY event_type", (self.search_id,)
+                "SELECT event_type,count(*) FROM ordivon_media_trial.trial_events "
+                "WHERE search_id=%s GROUP BY event_type", (self.search_id,)
             )
         }
         attempts = int(
             self.db.execute(
-                "SELECT count(DISTINCT attempt_id) FROM trial_events WHERE search_id=?", (self.search_id,)
+                "SELECT count(DISTINCT attempt_id) FROM ordivon_media_trial.trial_events WHERE search_id=%s",
+                (self.search_id,),
             ).fetchone()[0]
         )
         candidates = int(
             self.db.execute(
-                "SELECT count(DISTINCT candidate_id) FROM trial_events WHERE search_id=? AND event_type='trial.proposed'",
+                "SELECT count(DISTINCT candidate_id) FROM ordivon_media_trial.trial_events "
+                "WHERE search_id=%s AND event_type='trial.proposed'",
                 (self.search_id,),
             ).fetchone()[0]
         )

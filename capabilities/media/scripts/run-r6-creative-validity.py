@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 from ordivon_studio.research_validity import (
@@ -39,7 +40,7 @@ def register(args: argparse.Namespace) -> None:
 
 def search(args: argparse.Namespace) -> None:
     registration = read_json(args.registration)
-    ledger = TrialLedger(args.ledger, search_id=str(registration["experimentId"]))
+    ledger = TrialLedger(os.environ.get("ORDIVON_MEDIA_TRIAL_PG_DSN", ""), search_id=str(registration["experimentId"]))
     try:
         winner = run_registered_search(registration, ledger)
     finally:
@@ -61,7 +62,7 @@ def correct(args: argparse.Namespace) -> None:
 
 def holdout(args: argparse.Namespace) -> None:
     registration = read_json(args.registration)
-    ledger = TrialLedger(args.ledger, search_id=str(registration["experimentId"])) if args.ledger else None
+    ledger = TrialLedger(os.environ["ORDIVON_MEDIA_TRIAL_PG_DSN"], search_id=str(registration["experimentId"])) if os.environ.get("ORDIVON_MEDIA_TRIAL_PG_DSN") else None
     try:
         result = evaluate_sealed_holdout(
             registration,
@@ -116,7 +117,6 @@ def parser() -> argparse.ArgumentParser:
 
     item = sub.add_parser("search")
     item.add_argument("--registration", default="out/r6/r6a-registration.json")
-    item.add_argument("--ledger", default="out/r6/r6a-trials.sqlite")
     item.add_argument("--output", default="out/r6/r6a-winner.json")
     item.set_defaults(func=search)
 
@@ -132,7 +132,6 @@ def parser() -> argparse.ArgumentParser:
     item.add_argument("--registration", default="out/r6/r6a-registration.json")
     item.add_argument("--winner", default="out/r6/r6a-winner.json")
     item.add_argument("--holdout-seed", required=True)
-    item.add_argument("--ledger")
     item.add_argument("--output", default="out/r6/r6a-holdout.json")
     item.set_defaults(func=holdout)
 

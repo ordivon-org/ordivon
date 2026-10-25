@@ -21,6 +21,17 @@ Use [`OMPC-v0`](research/media/engineering-consumption/OMPC-v0.md) as an optiona
 
 **Studio is an optional production capability.** A Studio Claim / Production is needed only when authoring, editing, rendering, packaging, or other Studio-owned production work is actually required. Consequential action remains with its external admission/execution owner.
 
+### R6 Trial Ledger — PostgreSQL transition
+
+The R6 search-history ledger now uses PostgreSQL instead of creating new
+SQLite files. Set ORDIVON_MEDIA_TRIAL_PG_DSN for search and optional holdout.
+Stop old SQLite writers before running scripts/migrate-r6-trials.py with
+--sqlite pointing at the legacy file. The importer reads but never deletes
+the source; it checks event count, hashes and destination consistency.
+Old files remain recovery evidence until every real consumer is migrated.
+Run the PG acceptance via mise run pg:verify using a disposable
+ORDIVON_MEDIA_TRIAL_TEST_DSN. Skipped tests do not prove the PG boundary.
+
 ## Studio capability plane
 
 A Runtime fact is true at revision `R`. Studio turns it into a film. Runtime later changes.
