@@ -13,8 +13,6 @@ from uuid import uuid4
 
 import psycopg
 
-PG_DSN = os.environ.get('ORDIVON_MEDIA_TRIAL_TEST_DSN')
-
 from ordivon_studio.research_validity import (
     TrialLedger,
     build_null_registration,
@@ -25,6 +23,8 @@ from ordivon_studio.research_validity import (
     seed_commitment,
     validate_registration,
 )
+
+PG_DSN = os.environ.get("ORDIVON_MEDIA_TRIAL_TEST_DSN")
 
 
 class ResearchValidityTest(unittest.TestCase):
@@ -50,6 +50,44 @@ class ResearchValidityTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             with self.assertRaisesRegex(ValueError, "PostgreSQL DSN"):
                 TrialLedger(Path(temporary) / "legacy.sqlite", search_id="experiment:refuse")
+
+    def test_legacy_migration_rejects_unconsumed_or_live_source_before_any_read(self) -> None:
+        """Without a current consumer and writer-stop attestation do not copy history."""
+        from unittest.mock import patch
+
+        migrate = runpy.run_path(
+            str(Path(__file__).resolve().parents[1] / "scripts" / "migrate-r6-trials.py")
+        )["migrate"]
+        with tempfile.TemporaryDirectory() as temporary:
+            db = Path(temporary) / "unused.sqlite"
+            db.write_bytes(b"synthetic source must never be read")
+            with patch("sqlite3.connect", side_effect=AssertionError("old DB read")):
+                with self.assertRaisesRegex(ValueError, "writers"):
+                    migrate(
+                        db, "postgresql://unused.invalid/no-write",
+                        expected_search_id="search:active",
+                        retention_consumer="registered_search_replay",
+                    )
+                with self.assertRaisesRegex(ValueError, "retention consumer"):
+                    migrate(
+                        db, "postgresql://unused.invalid/no-write",
+                        expected_search_id="search:active",
+                        source_writers_stopped=True,
+                    )
+                with self.assertRaisesRegex(ValueError, "expected search ID"):
+                    migrate(
+                        db, "postgresql://unused.invalid/no-write",
+                        source_writers_stopped=True,
+                        retention_consumer="registered_search_replay",
+                    )
+
+                with self.assertRaisesRegex(ValueError, "retention consumer"):
+                    migrate(
+                        db, "postgresql://unused.invalid/no-write",
+                        expected_search_id="search:active",
+                        source_writers_stopped=True,
+                        retention_consumer="maybe_useful_someday",
+                    )
 
     def test_failed_sqlite_migration_closes_source_handle(self) -> None:
         """An incomplete PG cutover may not leak a read-only SQLite handle."""
@@ -80,7 +118,12 @@ class ResearchValidityTest(unittest.TestCase):
 
             with patch("sqlite3.connect", side_effect=track_connect):
                 with self.assertRaisesRegex(ValueError, "legacy SQLite ledger is empty"):
-                    migrate(db, "postgresql://unneeded.test/no-write")
+                    migrate(
+                        db, "postgresql://unneeded.test/no-write",
+                        expected_search_id="search:empty-fixture",
+                        retention_consumer="registered_search_replay",
+                        source_writers_stopped=True,
+                    )
             self.assertEqual(closed, [True])
 
     @unittest.skipUnless(PG_DSN, "real PostgreSQL test DSN is required")
@@ -164,12 +207,26 @@ class ResearchValidityTest(unittest.TestCase):
             source.commit()
             source.close()
             before = db.read_bytes()
-            result = migrate(db, PG_DSN)
+            with self.assertRaisesRegex(ValueError, "different search ID"):
+                migrate(
+                    db, PG_DSN, expected_search_id=search_id + ":orphan",
+                    retention_consumer="registered_search_replay",
+                    source_writers_stopped=True,
+                )
+            result = migrate(
+                db, PG_DSN, expected_search_id=search_id,
+                retention_consumer="registered_search_replay",
+                source_writers_stopped=True,
+            )
             self.assertEqual(result["events"], 3)
             self.assertTrue(result["destinationChainValid"])
             self.assertEqual(db.read_bytes(), before)
             with self.assertRaisesRegex(ValueError, "already contains events"):
-                migrate(db, PG_DSN)
+                migrate(
+                    db, PG_DSN, expected_search_id=search_id,
+                    retention_consumer="registered_search_replay",
+                    source_writers_stopped=True,
+                )
 
     @unittest.skipUnless(PG_DSN, "real PostgreSQL test DSN is required")
     def test_migration_readback_rejection_rolls_back_all_events(self) -> None:
@@ -212,7 +269,11 @@ class ResearchValidityTest(unittest.TestCase):
                 source.commit()
             with patch.object(TrialLedger, "verify", return_value=False):
                 with self.assertRaisesRegex(ValueError, "hash-chain mismatch"):
-                    migrate(source_file, PG_DSN)
+                    migrate(
+                        source_file, PG_DSN, expected_search_id=search_id,
+                        retention_consumer="registered_search_replay",
+                        source_writers_stopped=True,
+                    )
 
         destination = TrialLedger(PG_DSN, search_id=search_id)
         try:

@@ -3,7 +3,9 @@
 The source file is opened read-only and retained. The destination search must
 be empty, and the complete copy commits in one PostgreSQL transaction only
 after every source hash-chain event has been independently reproduced.
-Quiesce source writers before switching the caller; this is not live CDC.
+A caller must provide the exact current consumer search identity and attest
+source-writer quiescence before any old data read. This is an admission assertion,
+not an independent writer-lock proof. Unconsumed history is not migrated.
 """
 from __future__ import annotations
 
@@ -19,7 +21,23 @@ from ordivon_studio.grounded_meaning import canonical_digest
 from ordivon_studio.research_validity import TrialLedger
 
 
-def migrate(source: Path, dsn: str) -> dict[str, object]:
+def migrate(
+    source: Path,
+    dsn: str,
+    *,
+    expected_search_id: str | None = None,
+    retention_consumer: str | None = None,
+    source_writers_stopped: bool = False,
+) -> dict[str, object]:
+    # Retention is a current-consumer decision, not an automatic copy of all
+    # historical experiments. The caller assertion does not independently
+    # prove every external SQLite writer has stopped.
+    if not source_writers_stopped:
+        raise ValueError("source SQLite writers must be independently stopped before migration")
+    if retention_consumer not in {"registered_search_replay", "sealed_holdout_audit"}:
+        raise ValueError("explicit current retention consumer required for historical events")
+    if not isinstance(expected_search_id, str) or not expected_search_id.strip():
+        raise ValueError("exact expected search ID required for current consumer")
     if not source.is_file() or source.is_symlink():
         raise ValueError("legacy SQLite source must be an existing regular file")
     url = "file:" + quote(str(source.resolve()), safe="/") + "?mode=ro"
@@ -38,6 +56,8 @@ def migrate(source: Path, dsn: str) -> dict[str, object]:
         if len(search_ids) != 1:
             raise ValueError("legacy ledger must contain one exact experiment search ID")
         search_id = next(iter(search_ids))
+        if search_id != expected_search_id:
+            raise ValueError("source contains a different search ID than current consumer")
         expected_prev = None
         semantic_rows = []
         for _, event_id, _, attempt_id, candidate_id, event_type, payload_json, prev_hash, event_hash in rows:
@@ -83,6 +103,9 @@ def migrate(source: Path, dsn: str) -> dict[str, object]:
             "lastHash": expected_prev,
             "destinationChainValid": True,
             "legacySourceRetained": True,
+            "legacySourceDisposition": "PENDING_INDEPENDENT_RETIREMENT_DECISION",
+            "retentionConsumer": retention_consumer,
+            "quiescenceEvidence": "CALLER_ATTESTED_NOT_INDEPENDENTLY_PROVEN",
         }
     finally:
         destination.close()
@@ -91,8 +114,30 @@ def migrate(source: Path, dsn: str) -> dict[str, object]:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Transfer one stopped R6 SQLite history into PostgreSQL.")
     parser.add_argument("--sqlite", required=True, type=Path, help="read-only legacy file")
+    parser.add_argument("--expected-search-id", required=True, help="current consumer's exact search identity")
+    parser.add_argument(
+        "--retention-consumer",
+        required=True,
+        choices=("registered_search_replay", "sealed_holdout_audit"),
+        help="specific current consumer requiring retained history",
+    )
+    parser.add_argument(
+        "--source-writers-stopped",
+        action="store_true",
+        help="operator attests independently stopped legacy SQLite writers",
+    )
     args = parser.parse_args()
-    print(json.dumps(migrate(args.sqlite, os.environ.get("ORDIVON_MEDIA_TRIAL_PG_DSN", "")), sort_keys=True, indent=2))
+    print(json.dumps(
+        migrate(
+            args.sqlite,
+            os.environ.get("ORDIVON_MEDIA_TRIAL_PG_DSN", ""),
+            expected_search_id=args.expected_search_id,
+            retention_consumer=args.retention_consumer,
+            source_writers_stopped=args.source_writers_stopped,
+        ),
+        sort_keys=True,
+        indent=2,
+    ))
     return 0
 
 

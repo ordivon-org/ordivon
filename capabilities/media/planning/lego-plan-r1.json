@@ -149,7 +149,8 @@
         "R6 consumer refuses a local SQLite path as the active ledger.",
         "Concurrent PostgreSQL event writes retain one complete hash chain with source-defined event identity.",
         "Legacy SQLite migration verifies every source event and commits exact equivalent PostgreSQL history or does not proceed.",
-        "Real PostgreSQL tests run with disposable DSN; an absent DSN does not authorize PostgreSQL acceptance."
+        "Real PostgreSQL tests run with disposable DSN; an absent DSN does not authorize PostgreSQL acceptance.",
+        "Legacy trial-history migration is not automatic retention: require a current consumer purpose, exact experiment search identity and independently attested writer-stop before source reads or PG writes; no demonstrated consumer implies no import. The old source remains outside importer deletion authority and requires independent post-cutover retirement."
       ]
     }
   ],

@@ -25,10 +25,24 @@ Use [`OMPC-v0`](research/media/engineering-consumption/OMPC-v0.md) as an optiona
 
 The R6 search-history ledger now uses PostgreSQL instead of creating new
 SQLite files. Set ORDIVON_MEDIA_TRIAL_PG_DSN for search and optional holdout.
-Stop old SQLite writers before running scripts/migrate-r6-trials.py with
---sqlite pointing at the legacy file. The importer reads but never deletes
-the source; it checks event count, hashes and destination consistency.
-Old files remain recovery evidence until every real consumer is migrated.
+The one-time SQLite importer now **defaults to no historical import**.
+Only import a stopped legacy experiment when a current registered-search replay
+or sealed-holdout audit actually consumes its history. Bind the exact consumer
+search ID, selected purpose, and an independently established writer-stop
+condition:
+
+    uv run --project capabilities/media python capabilities/media/scripts/migrate-r6-trials.py \
+      --sqlite /path/to/old-trials.sqlite \
+      --expected-search-id experiment:required-current-search \
+      --retention-consumer registered_search_replay --source-writers-stopped
+
+The stop flag is an **operator assertion**, not automatic proof of all writers'
+quiescence. The importer reads but never deletes the old source, and checks
+identity, full event hashes, count, and PostgreSQL readback. The old file is
+eligible for a *separate* consumer-based retirement decision after verified
+cutover; neither an old file's existence nor hypothetical future usefulness
+is a reason to migrate or retain it indefinitely. If no real consumer needs
+the experiment, do not copy the event chain into PostgreSQL.
 Run the PG acceptance via mise run pg:verify using a disposable
 ORDIVON_MEDIA_TRIAL_TEST_DSN. Skipped tests do not prove the PG boundary.
 
