@@ -115,7 +115,10 @@
         "The Repo mechanics RG1/RG2/RG3 plan itself is validated by the always-on typed node/slice/edge admission gate, independent of whether historical issue-census links currently name it; missing node kind must fail before a Repo Owner plan can witness another Owner.",
         "The current two-level Owner planning file layout is total against the existing OWNER_LEGO_PLANS admission list: a newly introduced unregistered plan or a disappeared registered plan fails the native SourceCut architecture gate before it can impersonate a validated graph; this is path-layout currentness, not a universal LEGO registry.",
         "Repository mechanics Git tracked-manifest identity is the native NUL-delimited file path, not human-readable quoted ls-files display lines: the updater-ownership projection must losslessly preserve newline, quotes, backslashes and legal non-UTF-8 Git path bytes through Unicode surrogateescape before classifying lockfiles. Display-form strings cannot certify missing owners.",
-        "A retired Owner planning slice cannot remain a live blocker for another slice: BLOCKED_ON_* requires an actual non-complete, non-retired declared predecessor. A retired predecessor demands consumer rebind/retirement evidence, not a phantom perpetual BLOCKED claim."
+        "A retired Owner planning slice cannot remain a live blocker for another slice: BLOCKED_ON_* requires an actual non-complete, non-retired declared predecessor. A retired predecessor demands consumer rebind/retirement evidence, not a phantom perpetual BLOCKED claim.",
+        "Explicit GitHub CODEOWNERS Owner membership cannot be certified by substring occurrence in raw text: only active root-anchored literal rules with actual owner assignments count; comments, prefix impersonations, duplicate/overlapping overrides and trailing catch-all rules fail closed under the current deliberately bounded CODEOWNERS profile. GitHub account permissions and required-review settings remain separate operational evidence, not inferred from source presence.",
+        "GitHub CODEOWNERS source membership requires the on-disk CODEOWNERS file to be under the documented 3 MB load limit; even syntactically valid rules in a larger file are not GitHub admission evidence. Source format acceptance remains independent of remote author write permission and branch protection.",
+        "Cross-Owner active source/consumer seam admission must enumerate actual Git index filename bytes through NUL-delimited records; quoted or newline-split ls-files display paths and dropped non-UTF-8 filenames cannot prove absence of a dependency seam. Native checker binds those source paths to owners.toml and existing dependency_contracts.toml, without creating another owner or granting additional seams."
       ],
       "blockers": [
         "The formal issue census records evidence from its observed SourceCut; neither slice grants live runtime authority."
@@ -129,7 +132,11 @@
         ".github/dependabot.yml",
         "renovate.json",
         "tools/repo/check_github_governance.py",
-        "tools/repo/test_github_governance.py"
+        "tools/repo/test_github_governance.py",
+        ".github/CODEOWNERS",
+        "tools/repo/check_owner_boundaries.py",
+        "tools/repo/test_owner_boundaries.py",
+        "tools/repo/dependency_contracts.toml"
       ]
     },
     {
