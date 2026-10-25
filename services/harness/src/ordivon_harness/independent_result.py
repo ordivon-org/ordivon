@@ -110,6 +110,8 @@ class IndependentHarnessRunReceipt:
         _digest(self.contract_digest, "Harness Run Contract digest")
         _text(self.harness_implementation_id, "Harness implementation identity", max_bytes=300)
         _digest(self.system_manifest_digest, "System Manifest digest")
+        if type(self.started_at_ms) is not int or type(self.finished_at_ms) is not int:
+            raise ValueError("independent Harness Run times must be exact integers")
         if self.started_at_ms < 0 or self.finished_at_ms < self.started_at_ms:
             raise ValueError("independent Harness Run times are invalid")
         if self.stop_reason not in {"completed", "stopped", "failed", "unknown"}:
@@ -172,7 +174,7 @@ class IndependentHarnessRunReceipt:
             "runtimeJobRefs", "artifactRefs", "usage", "conclusionDigest",
         }
         _exact(value, expected, "IndependentHarnessRunReceipt")
-        if value["schemaVersion"] != 1 or value["kind"] != "ordivon.independent-harness-run-receipt":
+        if type(value["schemaVersion"]) is not int or value["schemaVersion"] != 1 or value["kind"] != "ordivon.independent-harness-run-receipt":
             raise ValueError("IndependentHarnessRunReceipt version or kind is invalid")
         string_fields = (
             "harnessRunId", "callerId", "callerRunRef", "contractDigest",
@@ -240,6 +242,8 @@ class IndependentCompletionProposal:
         _unique_text(self.artifact_refs, "Completion Artifact reference")
         _unique_text(self.unresolved_unknowns, "Completion unresolved unknown")
         validate_json_value(self.usage)
+        if type(self.created_at_ms) is not int:
+            raise ValueError("Completion Proposal creation time must be an exact integer")
         if self.created_at_ms < 0:
             raise ValueError("Completion Proposal creation time must be non-negative")
 
@@ -269,6 +273,8 @@ class IndependentCompletionProposal:
     @classmethod
     def from_dict(cls, value: dict[str, Any]) -> IndependentCompletionProposal:
         version = value.get("schemaVersion")
+        if type(version) is not int or version not in {1, 2}:
+            raise ValueError("IndependentCompletionProposal version or kind is invalid")
         common = {
             "schemaVersion", "kind", "completionProposalId", "harnessRunId",
             "callerId", "callerRunRef", "contractDigest", "runReceiptDigest",
@@ -277,7 +283,7 @@ class IndependentCompletionProposal:
         }
         expected = common if version == 1 else common | {"unresolvedUnknowns"}
         _exact(value, expected, "IndependentCompletionProposal")
-        if version not in {1, 2} or value["kind"] != "ordivon.independent-completion-proposal":
+        if value["kind"] != "ordivon.independent-completion-proposal":
             raise ValueError("IndependentCompletionProposal version or kind is invalid")
         for field in (
             "completionProposalId", "harnessRunId", "callerId", "callerRunRef",
