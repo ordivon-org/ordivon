@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shutil
 import sqlite3
 import sys
 import tempfile
@@ -97,6 +98,23 @@ class PgStageTests(unittest.TestCase):
                 pg.execute("INSERT INTO rw12_stage_native_accept.attempts VALUES ('a-invalid','missing-job',NULL)")
             with self.assertRaises(psycopg.errors.UniqueViolation):
                 pg.execute("INSERT INTO rw12_stage_native_accept.idempotency_keys VALUES ('agent','request','j1')")
+
+    def test_snapshot_filename_fragment_must_not_alias_a_different_database(self) -> None:
+        # SQLite file: URI syntax treats raw # as a fragment.  Verify the
+        # physical filename, not a different but valid database before #.
+        exact = self.source.with_name("source#snapshot.sqlite3")
+        self.source.rename(exact)
+        alias = exact.with_name("source")
+        shutil.copy2(exact, alias)
+        with sqlite3.connect(alias) as db:
+            db.execute("UPDATE jobs SET operation_digest='FORGED' WHERE job_id='j1'")
+        self.source = exact
+        migrate(self.source, self.receipt, self.dsn, "rw12_stage_exact_uri")
+        with psycopg.connect(self.dsn) as pg:
+            observed = pg.execute(
+                "SELECT operation_digest FROM rw12_stage_exact_uri.jobs WHERE job_id='j1'"
+            ).fetchone()[0]
+        self.assertEqual(observed, "sha256:ABC")
 
     def test_changed_source_fails_before_target_mutation(self) -> None:
         with sqlite3.connect(self.source) as db:

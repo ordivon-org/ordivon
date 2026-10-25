@@ -117,7 +117,7 @@ def migrate(snapshot: Path, receipt: Path, dsn: str, stage_schema: str) -> dict:
     import psycopg
     from psycopg import sql
 
-    con = sqlite3.connect("file:" + str(snapshot) + "?mode=ro&immutable=1", uri=True)
+    con = sqlite3.connect(snapshot.resolve().as_uri() + "?mode=ro&immutable=1", uri=True)
     con.execute("PRAGMA query_only=ON")
     try:
         tables = source_tables(con)
