@@ -13,7 +13,18 @@ live="$(git -C "$repo" ls-remote --exit-code origin refs/heads/main 2>/dev/null)
   echo "publication=REMOTE_UNREACHABLE_OR_BRANCH_MISSING" >&2; exit 24;
 }
 remote_head="${live%%[[:space:]]*}"
-[[ "$remote_head" =~ ^[[:xdigit:]]{40}$ ]] || {
+# The source repository's native Git object format, not a historical
+# SHA-1-only assumption, determines the valid remote commit OID length.
+object_format="$(git -C "$repo" rev-parse --show-object-format=storage 2>/dev/null)" || {
+  echo "publication=REMOTE_IDENTITY_INVALID" >&2; exit 24;
+}
+case "$object_format" in
+  sha1) oid_hex_length=40 ;;
+  sha256) oid_hex_length=64 ;;
+  *) echo "publication=REMOTE_IDENTITY_INVALID" >&2; exit 24 ;;
+esac
+oid_pattern="^[[:xdigit:]]{$oid_hex_length}$"
+[[ "$remote_head" =~ $oid_pattern ]] || {
   echo "publication=REMOTE_IDENTITY_INVALID" >&2; exit 24;
 }
 printf 'localMain=%s\nremoteMain=%s\ntrackedMain=%s\n' "$local_head" "$remote_head" "$tracking"
