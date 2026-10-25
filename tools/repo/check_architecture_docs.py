@@ -417,6 +417,8 @@ def validate_deployed_source_tool_relation(
     ):
         raise ArchitectureDocsError("deployed Host normalTools must be strings")
     deployed_set = set(deployed_tools)
+    if len(deployed_tools) != len(deployed_set):
+        raise ArchitectureDocsError("duplicate deployed Host normalTools")
     missing_from_source = deployed_set - source_tools
     if missing_from_source:
         raise ArchitectureDocsError(
