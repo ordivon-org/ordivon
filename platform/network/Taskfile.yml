@@ -248,6 +248,7 @@ tasks:
     desc: Materialize the internal shared carrier bytes without changing the current WireGuard endpoint
     deps: [consumer:browserless:provider-carrier:validate]
     cmds:
+      - test ! -e /etc/network-v2/gluetun/m4-owned-mode.selected
       - install -d -m 0755 /etc/network-v2/browserless /usr/local/libexec/network-v2
       - install -m 0644 consumers/browserless/config/provider-carrier.json /etc/network-v2/browserless/provider-carrier.json
       - install -m 0644 consumers/browserless/systemd/network-v2-browserless-provider-carrier.service /etc/systemd/system/network-v2-browserless-provider-carrier.service

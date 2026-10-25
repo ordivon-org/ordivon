@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# Exactly one provider transport owns the physical Surfshark identity.
+# The legacy selector must not touch state or restart legacy services while
+# the M4 Gluetun adapter is selected. This is a pre-effect admission fence.
+if [[ -e /etc/network-v2/gluetun/m4-owned-mode.selected ]]; then
+  echo 'M4 Gluetun provider selected; legacy provider switch forbidden' >&2
+  exit 78
+fi
 SITE=${1:-th-bkk}
 NS=nv2-browserless-prod
 WG=network-v2-browserless-wireguard.service

@@ -2254,3 +2254,68 @@ def test_runtime_storage_retention_problem_is_registered_without_deletion_author
     assert "no deletion authority" in issue["formalObligation"]
     assert "held" in issue["formalObligation"].lower()
     module.validate_formal_issue_census(census, plans)
+
+
+@pytest.mark.parametrize("bad_version", [True, 1.0, "1", 2, None])
+def test_deployed_graph_requires_exact_schema_integer(bad_version: object) -> None:
+    value = graph()
+    value["schemaVersion"] = bad_version
+    with pytest.raises(module.ArchitectureDocsError, match="schemaVersion"):
+        module.validate_deployed_graph(value)
+
+
+@pytest.mark.parametrize("bad_version", [True, 1.0, "1", 2, None])
+def test_source_tool_surface_requires_exact_schema_integer(bad_version: object) -> None:
+    manifest = json.loads(GATEWAY_SURFACE.read_text(encoding="utf-8"))
+    manifest["schemaVersion"] = bad_version
+    with pytest.raises(module.ArchitectureDocsError, match="schemaVersion"):
+        module.validate_source_tool_surface(
+            set(manifest["tools"]), manifest, service="ordivon-gateway"
+        )
+
+
+@pytest.mark.parametrize("bad_version", [True, 1.0, "1", 2, None])
+def test_formal_issue_census_requires_exact_schema_integer(bad_version: object) -> None:
+    census = {"schemaVersion": bad_version,
+              "kind": "ordivon.formal-lego-issue-census-evidence",
+              "truthRole": "time-scoped-audit-evidence-not-registry-or-admission"}
+    with pytest.raises(module.ArchitectureDocsError, match="schemaVersion"):
+        module.validate_formal_issue_census(census, {})
+
+
+def test_deployed_tool_count_rejects_boolean_numeric_alias() -> None:
+    current = graph()
+    with pytest.raises(module.ArchitectureDocsError, match="declaredToolCount"):
+        module.validate_deployed_source_tool_relation(
+            {"defaultNorthbound": {"declaredToolCount": True},
+             "hostNorthbound": {"normalTools": ["tool"]}}, {"tool"}
+        )
+
+def test_deployed_host_tools_are_an_injective_source_subset() -> None:
+    """A repeated Tool name is not two deployed capabilities or an extra LEGO."""
+    value = graph()
+    source = json.loads(GATEWAY_SURFACE.read_text(encoding="utf-8"))
+    module.validate_deployed_source_tool_relation(value, set(source["tools"]))
+    value["hostNorthbound"]["normalTools"].append(
+        value["hostNorthbound"]["normalTools"][0]
+    )
+    with pytest.raises(module.ArchitectureDocsError, match="duplicate.*normalTools"):
+        module.validate_deployed_source_tool_relation(value, set(source["tools"]))
+
+
+def test_repository_admission_rejects_deployed_host_tool_duplicate() -> None:
+    """The full root architecture contract cannot erase duplicate Tool claims."""
+    deployed = graph()
+    deployed["hostNorthbound"]["normalTools"].append(
+        deployed["hostNorthbound"]["normalTools"][0]
+    )
+    original = module._load_json
+
+    def load_forged(path: Path) -> dict:
+        if path.resolve() == GRAPH:
+            return deployed
+        return original(path)
+
+    with patch.object(module, "_load_json", side_effect=load_forged):
+        with pytest.raises(module.ArchitectureDocsError, match="duplicate.*normalTools"):
+            module.validate_repository(ROOT)
