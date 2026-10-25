@@ -263,7 +263,7 @@ class DurableSessionAuthority:
 
     def _connect(self, *, read_only: bool = False) -> sqlite3.Connection:
         if read_only:
-            db = sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True, timeout=30)
+            db = sqlite3.connect(f"{self.db_path.absolute().as_uri()}?mode=ro", uri=True, timeout=30)
         else:
             db = sqlite3.connect(self.db_path, timeout=30, isolation_level=None)
             db.execute("PRAGMA journal_mode=DELETE")

@@ -60,6 +60,72 @@ class PostgresWakeTurnMap:
                 )
                 """
             )
+            db.execute(
+                """
+                CREATE TABLE IF NOT EXISTS ordivon_harness.wake_cutover(
+                    cutover_id TEXT PRIMARY KEY CHECK (cutover_id = 'legacy'),
+                    state TEXT NOT NULL CHECK (state IN ('PENDING','ACTIVE'))
+                )
+                """
+            )
+
+    # Shared admission locks allow parallel wake writes; only the one-time
+    # migration's exclusive lock blocks writers while a cutover fence is set.
+    _CUTOVER_ADVISORY_KEY = 57163519194018
+
+    @classmethod
+    def _admit_cutover_state(cls, db: psycopg.Connection) -> None:
+        db.execute("SELECT pg_advisory_xact_lock_shared(%s)", (cls._CUTOVER_ADVISORY_KEY,))
+        row = db.execute(
+            "SELECT state FROM ordivon_harness.wake_cutover "
+            "WHERE cutover_id='legacy'"
+        ).fetchone()
+        if row is not None:
+            state = row["state"] if isinstance(row, dict) else row[0]
+            if state != "ACTIVE":
+                raise WakeTurnConflict("PostgreSQL wake cutover pending; writer not certified")
+
+    def _mark_pending_before_legacy_freeze(self) -> None:
+        with psycopg.connect(self.dsn) as pg:
+            with pg.transaction():
+                pg.execute("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE")
+                pg.execute(
+                    "SELECT pg_advisory_xact_lock(%s)", (self._CUTOVER_ADVISORY_KEY,)
+                )
+                row = pg.execute(
+                    "SELECT state FROM ordivon_harness.wake_cutover "
+                    "WHERE cutover_id='legacy'"
+                ).fetchone()
+                if row is not None:  # PENDING resume or ACTIVE identity audit
+                    return
+                if pg.execute(
+                    "SELECT 1 FROM ordivon_harness.wake_turn_map LIMIT 1"
+                ).fetchone():
+                    raise WakeTurnConflict(
+                        "divergent PostgreSQL wake identities: destination already writable"
+                    )
+                pg.execute(
+                    "INSERT INTO ordivon_harness.wake_cutover "
+                    "(cutover_id,state) VALUES('legacy','PENDING')"
+                )
+
+    def _certify_cutover_after_source_commit(self) -> None:
+        with psycopg.connect(self.dsn) as pg:
+            with pg.transaction():
+                pg.execute("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE")
+                pg.execute(
+                    "SELECT pg_advisory_xact_lock(%s)", (self._CUTOVER_ADVISORY_KEY,)
+                )
+                row = pg.execute(
+                    "SELECT state FROM ordivon_harness.wake_cutover "
+                    "WHERE cutover_id='legacy' FOR UPDATE"
+                ).fetchone()
+                if row is None:
+                    raise WakeTurnConflict("PostgreSQL wake cutover marker disappeared")
+                pg.execute(
+                    "UPDATE ordivon_harness.wake_cutover SET state='ACTIVE' "
+                    "WHERE cutover_id='legacy'"
+                )
 
     @staticmethod
     def _receipt(row: dict[str, Any], disposition: str) -> dict[str, Any]:
@@ -125,8 +191,15 @@ class PostgresWakeTurnMap:
         command, and must atomically roll out the PG-configured consumer afterward.
         This method never contacts a Provider or performs its effects.
         """
-        db, rows = self._legacy_rows(Path(source), write=True)
+        source = Path(source)
+        if not source.is_file():
+            raise WakeTurnConflict("legacy wake source missing")
+        # This PostgreSQL commit is the admission fence. It precedes any copy
+        # and prevents new PG allocations until source retirement is committed.
+        self._mark_pending_before_legacy_freeze()
+        db, rows = self._legacy_rows(source, write=True)
         with closing(db):
+            source_committed = False
             try:
                 original = self._canonical_rows(rows)
                 with psycopg.connect(self.dsn, row_factory=dict_row) as pg:
@@ -163,6 +236,11 @@ class PostgresWakeTurnMap:
                             if existing is None:
                                 db.execute(sql)
                 db.execute("COMMIT")
+                source_committed = True
+                # A PostgreSQL copy is not authority until the legacy source
+                # has sealed durably and the source/PG identity readback agrees.
+                self.assert_legacy_sealed(source)
+                self._certify_cutover_after_source_commit()
                 digest = "sha256:" + hashlib.sha256(
                     json.dumps(original, ensure_ascii=False, separators=(",", ":")).encode()
                 ).hexdigest()
@@ -175,7 +253,8 @@ class PostgresWakeTurnMap:
                     "identityDigest": digest,
                 }
             except Exception:
-                db.execute("ROLLBACK")
+                if not source_committed:
+                    db.execute("ROLLBACK")
                 raise
 
     def assert_legacy_sealed(self, source: Path, *, fresh_bootstrap: bool = False) -> None:
@@ -217,6 +296,7 @@ class PostgresWakeTurnMap:
     def get(self, wake_intent_id: str) -> dict[str, Any] | None:
         wake_intent_id = _text(wake_intent_id, "wakeIntentId")
         with psycopg.connect(self.dsn, row_factory=dict_row) as db:
+            self._admit_cutover_state(db)
             row = db.execute(
                 "SELECT * FROM ordivon_harness.wake_turn_map WHERE wake_intent_id=%s",
                 (wake_intent_id,),
@@ -247,6 +327,7 @@ class PostgresWakeTurnMap:
                 with psycopg.connect(self.dsn, row_factory=dict_row) as db:
                     with db.transaction():
                         db.execute("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE")
+                        self._admit_cutover_state(db)
                         existing = db.execute(
                             "SELECT * FROM ordivon_harness.wake_turn_map "
                             "WHERE wake_intent_id=%s",

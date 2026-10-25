@@ -55,7 +55,7 @@ def listener_present() -> bool:
 
 
 def db_connect(path: Path = DB_PATH) -> sqlite3.Connection:
-    c = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+    c = sqlite3.connect(f"{path.absolute().as_uri()}?mode=ro", uri=True)
     c.row_factory = sqlite3.Row
     return c
 
@@ -146,7 +146,7 @@ def sqlite_backup(destination: Path) -> dict:
     tmp = destination.with_suffix(destination.suffix + ".tmp")
     if tmp.exists():
         tmp.unlink()
-    src = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True)
+    src = sqlite3.connect(f"{DB_PATH.absolute().as_uri()}?mode=ro", uri=True)
     dst = sqlite3.connect(tmp)
     try:
         src.backup(dst)
