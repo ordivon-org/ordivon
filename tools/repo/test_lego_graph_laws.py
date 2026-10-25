@@ -373,3 +373,36 @@ def test_active_domain_owner_dangling_dependency_fails_current_admission(
     node["dependencies"].append("__NO_ACTUAL_PRODUCER__")
     with pytest.raises(module.ArchitectureDocsError, match="unknown LEGO dependency"):
         module.validate_owner_lego_dependencies(plan, relative.split("/planning/", 1)[0])
+
+
+@pytest.mark.parametrize(
+    "relative",
+    (
+        "services/runtime/planning/lego-plan-r1.json",
+        "services/harness/planning/lego-plan-r1.json",
+        "domains/game/planning/lego-plan-r1.json",
+        "capabilities/media/planning/lego-plan-r1.json",
+    ),
+)
+def test_repository_owner_graph_source_bound_before_loading(
+    relative: str,
+) -> None:
+    """An Owner plan must not bypass the same existing SourceCut guard as its census."""
+    from unittest.mock import patch
+
+    original = module._source_bound_file
+
+    def reject_forged_owner_plan(root: Path, path: str, label: str) -> Path:
+        if path == relative:
+            raise module.ArchitectureDocsError(
+                f"registered Owner LEGO plan escapes SourceCut: {relative}"
+            )
+        return original(root, path, label)
+
+    with (
+        patch.object(module, "_source_bound_file", side_effect=reject_forged_owner_plan),
+        pytest.raises(
+            module.ArchitectureDocsError, match="registered Owner LEGO plan escapes SourceCut"
+        ),
+    ):
+        module.validate_repository(ROOT)
