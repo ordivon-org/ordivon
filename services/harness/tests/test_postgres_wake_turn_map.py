@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import closing
 import os
 import sys
 from concurrent.futures import ThreadPoolExecutor
@@ -343,7 +344,7 @@ def test_same_name_forged_retirement_trigger_is_rejected(
     legacy = SQLiteWakeTurnMap(source)
     legacy.allocate(**payload())
     owner.retire_legacy_and_import(source)
-    with sqlite3.connect(source) as db:
+    with closing(sqlite3.connect(source)) as db, db:
         db.execute("DROP TRIGGER wake_turn_pg_retired_insert")
         db.execute(
             "CREATE TRIGGER wake_turn_pg_retired_insert BEFORE INSERT "

@@ -1,6 +1,7 @@
 """Physical PostgreSQL effect ownership tests; use isolated disposable PG DSN."""
 from __future__ import annotations
 
+from contextlib import closing
 import os
 import sqlite3
 import sys
@@ -90,7 +91,7 @@ def test_unclaimed_result_refused(owner: PostgresTurnEffects, tmp_path: Path):
 
 def test_stage_historical_data_never_activates_pg(owner: PostgresTurnEffects, tmp_path: Path):
     path = tmp_path / "turn?origin.sqlite"
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db, db:
         db.execute("CREATE TABLE turn_effects(turn_request_id TEXT PRIMARY KEY,prompt_digest TEXT,target_coordinate TEXT,state TEXT,receipt_json TEXT,updated_at_ms INTEGER)")
         db.execute("INSERT INTO turn_effects VALUES (?,?,?,?,?,?)", ("t-1", "digest", "coordinate", "UNKNOWN", None, 13))
     before = path.read_bytes()
@@ -108,7 +109,7 @@ def test_stage_divergent_pg_fails_without_source_mutation(
     owner: PostgresTurnEffects, tmp_path: Path
 ):
     path = tmp_path / "source.sqlite"
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db, db:
         db.execute("CREATE TABLE turn_effects(turn_request_id TEXT PRIMARY KEY,prompt_digest TEXT,target_coordinate TEXT,state TEXT,receipt_json TEXT,updated_at_ms INTEGER)")
         db.execute("INSERT INTO turn_effects VALUES ('t-1','digest','coordinate','UNKNOWN',NULL,13)")
     with psycopg.connect(DSN) as db:

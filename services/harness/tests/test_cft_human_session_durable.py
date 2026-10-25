@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import closing
 import json
 import stat
 import sys
@@ -209,7 +210,7 @@ def test_session_open_never_starts_systemd_without_exact_durable_reservation(
     import sqlite3
 
     a, sd = authority(tmp_path)
-    with sqlite3.connect(a.db_path) as db:
+    with closing(sqlite3.connect(a.db_path)) as db, db:
         corruption = (
             "DELETE FROM sessions WHERE session_id=NEW.session_id;"
             if fault == "erase"
@@ -228,7 +229,7 @@ def test_session_open_never_starts_systemd_without_exact_durable_reservation(
         a.open("auth:effect-bounded")
     assert not sd.starts, "physical browser startup preceded durable reservation proof"
     assert not sd.stops
-    with sqlite3.connect(a.db_path) as db:
+    with closing(sqlite3.connect(a.db_path)) as db, db:
         assert db.execute("SELECT COUNT(*) FROM sessions").fetchone()[0] == 0
         assert db.execute("SELECT COUNT(*) FROM corruption_witness").fetchone()[0] == 0
 
@@ -240,7 +241,7 @@ def test_session_activation_cannot_report_ready_after_durable_state_corruption(
     import sqlite3
 
     a, sd = authority(tmp_path)
-    with sqlite3.connect(a.db_path) as db:
+    with closing(sqlite3.connect(a.db_path)) as db, db:
         db.executescript(
             """
             CREATE TABLE corrupt_activation_witness (marker INTEGER);
@@ -256,7 +257,7 @@ def test_session_activation_cannot_report_ready_after_durable_state_corruption(
         a.open("auth:activation-fault")
     assert sd.starts == ["ordivon-cft-human-session@41.target"]
     assert sd.stops == ["ordivon-cft-human-session@41.target"]
-    with sqlite3.connect(a.db_path) as db:
+    with closing(sqlite3.connect(a.db_path)) as db, db:
         assert db.execute("SELECT lifecycle FROM sessions").fetchone()[0] == "FAILED"
         assert db.execute("SELECT COUNT(*) FROM corrupt_activation_witness").fetchone()[0] == 0
 
@@ -270,7 +271,7 @@ def test_close_requires_exact_durable_closed_receipt_after_systemd_stop(
 
     owner, sd = authority(tmp_path)
     owner.open("r1")
-    with sqlite3.connect(owner.db_path) as db:
+    with closing(sqlite3.connect(owner.db_path)) as db, db:
         corrupt = (
             "DELETE FROM sessions WHERE session_id=NEW.session_id;"
             if fault == "erase"
@@ -290,7 +291,7 @@ def test_close_requires_exact_durable_closed_receipt_after_systemd_stop(
     with pytest.raises(SessionConflict, match="close.*receipt"):
         owner.close(SESSION_ID)
     assert sd.stops == ["ordivon-cft-human-session@41.target"]
-    with sqlite3.connect(owner.db_path) as db:
+    with closing(sqlite3.connect(owner.db_path)) as db, db:
         assert db.execute("SELECT COUNT(*) FROM corrupted_close_witness").fetchone()[0] == 0
         row = db.execute("SELECT lifecycle,closed_at_ms FROM sessions").fetchone()
         assert row == ("ACTIVE", None)
