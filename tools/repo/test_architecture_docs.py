@@ -537,6 +537,25 @@ def test_formal_issue_census_rejects_duplicate_problem_identity() -> None:
         module.validate_formal_issue_census(census, plans)
 
 
+@pytest.mark.parametrize(
+    "alias",
+    (
+        " GIT-01 ",
+        "GIT-\u200d01",
+        "\uff27IT-01",
+        "   ",
+    ),
+)
+def test_formal_issue_identity_rejects_opaque_aliases(alias: str) -> None:
+    """Problem LEGO references need the same canonical key law as owner LEGO IDs."""
+    census, plans = formal_issue_inputs()
+    mutated = copy.deepcopy(census["issues"][0])
+    mutated["id"] = alias
+    census["issues"].append(mutated)
+    with pytest.raises(module.ArchitectureDocsError, match="non-canonical issue identity"):
+        module.validate_formal_issue_census(census, plans)
+
+
 def test_formal_issue_census_cannot_grant_authority() -> None:
     census, plans = formal_issue_inputs()
     census["truthRole"] = "semantic-authority"
@@ -2178,6 +2197,47 @@ def test_r21_skipped_python_test_class_cannot_witness_owner_acceptance(
     with pytest.raises(module.ArchitectureDocsError, match="disabled consumer witness"):
         module.validate_r21_lego_vocabulary(document, root=tmp_path)
 
+
+
+@pytest.mark.parametrize(
+    ("module_marker", "disabled"),
+    [
+        ('pytestmark = pytest.mark.skip(reason="suite disabled")', True),
+        ('pytestmark = [pytest.mark.skipif(True, reason="manual")]', True),
+        ('pytestmark: object = (pytest.mark.xfail(run=False),)', True),
+        ('pytestmark = []; pytestmark += [pytest.mark.skip(reason="disabled")]', True),
+        ('pytestmark = [pytest.mark.usefixtures("network_fixture")]', False),
+        ('pytestmark = [pytest.mark.skipif(False, reason="runs")]', False),
+    ],
+)
+def test_r21_module_level_pytestmark_must_not_forge_always_on_consumer_witness(
+    tmp_path: Path, module_marker: str, disabled: bool,
+) -> None:
+    """A module-level pytest skip/xfail hides a test even when its def exists."""
+    document = (
+        ROOT / "docs/architecture/AGENT_CONCEPTS_FORMAL_LEGO_RESEARCH_20261024.md"
+    ).read_text(encoding="utf-8")
+    paths = (
+        "services/runtime/scripts/tests/test_mcp_e2e_reconciliation.py",
+        "services/host/tests/test_social_work_fabric_postgres.py",
+        "services/harness/tests/test_agent_automation_browserless.py",
+        "platform/network/tests/test_claude_egress_readiness_consumer.py",
+    )
+    for relative in paths:
+        candidate = tmp_path / relative
+        candidate.parent.mkdir(parents=True, exist_ok=True)
+        source = (ROOT / relative).read_text(encoding="utf-8")
+        if relative.startswith("platform/network/"):
+            assert source.count("import pytest\n") == 1
+            source = source.replace(
+                "import pytest\n", "import pytest\n" + module_marker + "\n", 1
+            )
+        candidate.write_text(source, encoding="utf-8")
+    if disabled:
+        with pytest.raises(module.ArchitectureDocsError, match="disabled.*consumer witness"):
+            module.validate_r21_lego_vocabulary(document, root=tmp_path)
+    else:
+        module.validate_r21_lego_vocabulary(document, root=tmp_path)
 
 def test_runtime_storage_retention_problem_is_registered_without_deletion_authority() -> None:
     """Disk pressure is a typed owner problem, not evidence to delete recovery."""

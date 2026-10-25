@@ -54,7 +54,8 @@
         "check_architecture_docs.py",
         "test_architecture_docs.py::test_formal_issue_census_rejects_undeclared_natural_owner",
         "test_architecture_docs.py::test_issue_owner_source_cut_is_explicit",
-        "test_architecture_docs.py::test_formal_issue_owner_plan_cannot_escape_source_cut"
+        "test_architecture_docs.py::test_formal_issue_owner_plan_cannot_escape_source_cut",
+        "test_lego_graph_laws.py::test_blocked_slice_dependency_cycle_is_rejected"
       ],
       "dependencies": [],
       "mustNotOwn": [
@@ -66,7 +67,9 @@
       "acceptance": [
         "An issue with an undeclared or prefix-spoofed naturalOwner is rejected under exact canonical owners.toml.",
         "A symlink-redirected owner plan, census input or owner manifest is rejected before it can impersonate the source-owned artifact.",
-        "The existing repo architecture tests and check_architecture_docs.py pass without a new owner discovery mechanism."
+        "The existing repo architecture tests and check_architecture_docs.py pass without a new owner discovery mechanism.",
+        "Typed LEGO slice blockers must form a well-founded prerequisite DAG; self-cycles and mutual deadlocks fail the current Owner source-bound graph gate.",
+        "Every BLOCKED_ON prerequisite is currently unresolved; a partly completed blocker set is invalid even when another predecessor remains open."
       ],
       "nextAction": "Reuse existing native source-bound validator; no duplicate graph, custom DSL, or new proof runtime."
     }
@@ -98,7 +101,9 @@
       "status": "IMPLEMENTED",
       "acceptance": [
         "TYPE-01 binds its actual consumer to a declared owners.toml root or tools/repo; undeclared and prefix-impersonator owners fail the native contract.",
-        "The canonical Owner list remains the only classification source; no new validation registry or account-specific owner system."
+        "The canonical Owner list remains the only classification source; no new validation registry or account-specific owner system.",
+        "Self and mutual BLOCKED_ON prerequisite cycles are rejected via existing graphlib.TopologicalSorter; non-prerequisite feedback remains legal.",
+        "Every BLOCKED_ON prerequisite is currently unresolved; a partly completed blocker set is invalid even when another predecessor remains open."
       ],
       "blockers": [
         "The formal issue census records evidence from its observed SourceCut; neither slice grants live runtime authority."
@@ -114,7 +119,8 @@
       "status": "IMPLEMENTED",
       "acceptance": [
         "FORMAL-02 owner-local plan, census input and owners.toml must be regular source-tree files; symlink and traversal impersonation fail closed.",
-        "A valid owner-local plan passes without claiming domain correctness; recheck only on changed source or consumer assumptions."
+        "A valid owner-local plan passes without claiming domain correctness; recheck only on changed source or consumer assumptions.",
+        "For a named source-bound R2.1 Python consumer witness, an unconditional module-level pytest skip/xfail must fail the native AST evidence check even if the test function name exists; conditionally skipped integration tests never imply execution PASS."
       ],
       "blockers": [
         "The formal issue census records evidence from its observed SourceCut; neither slice grants live runtime authority."

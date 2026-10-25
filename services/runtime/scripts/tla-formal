@@ -92,7 +92,7 @@ BlindRetryWithoutReconciliation ==
         /\ currentAttempt' = a
     /\ jobState' = "admitted"
     /\ reconcileState' = "none"
-    /\ UNCHANGED <<dispatchCount, heldReservation>>
+    /\ UNCHANGED <<dispatchCount, heldReservation, outputObserved, resultEvidence>>
 
 '''
 assert source.count("Next ==\n") == 1, "counterexample mutation source drift"
@@ -123,11 +123,44 @@ PY_CEX
   )
 }
 
+
+# Independently falsify the attempted promotion of stdout into terminal proof.
+# Deliberately weakening one guard must produce an actual named TLC counterexample.
+check_partial_output_counterexample() {
+  verify_jar
+  (
+    tmp_dir=$(mktemp -d -t ordivon-tlc-stdout-falsifier-XXXXXX)
+    trap 'rm -rf -- "$tmp_dir"' EXIT
+    python - "$ROOT/formal/RuntimeDispatchR1.tla" "$tmp_dir/RuntimeDispatchR1.tla" <<'PY_PARTIAL_CEX'
+from pathlib import Path
+import sys
+source = Path(sys.argv[1]).read_text(encoding="utf-8")
+old = '    /\\ resultEvidence[currentAttempt] = "matching"\n    /\\ attemptState\' = [attemptState EXCEPT ![currentAttempt] = "terminal"]'
+new = '    /\\ (resultEvidence[currentAttempt] = "matching" \\/ outputObserved[currentAttempt])\n    /\\ attemptState\' = [attemptState EXCEPT ![currentAttempt] = "terminal"]'
+assert source.count(old) == 1, "stdout-as-success mutation target drift"
+Path(sys.argv[2]).write_text(source.replace(old, new), encoding="utf-8")
+PY_PARTIAL_CEX
+    cp -- "$ROOT/formal/RuntimeDispatchR1.cfg" "$tmp_dir/RuntimeDispatchR1.cfg"
+    set +e
+    ( cd "$tmp_dir"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+      -config RuntimeDispatchR1.cfg RuntimeDispatchR1.tla ) > "$tmp_dir/result.log" 2>&1
+    result=$?
+    set -e
+    if [[ "$result" -eq 0 ]] ||
+       ! grep -Fq "Invariant MatchingResultRequiredForTerminal is violated" "$tmp_dir/result.log"; then
+      echo "TLC stdout negative control FAILED: no named counterexample" >&2
+      tail -35 "$tmp_dir/result.log" >&2
+      exit 1
+    fi
+    echo "TLC stdout negative control PASS: partial output cannot authorize terminal"
+  )
+}
+
 case "${1:-check}" in
   bootstrap) bootstrap ;;
   verify) verify_jar; echo "TLA+ toolchain digest verification PASS" ;;
   check) check_runtime_dispatch ;;
-  falsify) check_runtime_counterexample ;;
+  falsify) check_runtime_counterexample; check_partial_output_counterexample ;;
   *)
     echo "usage: scripts/tla-formal [bootstrap|verify|check|falsify]" >&2
     exit 2

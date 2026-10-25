@@ -248,3 +248,44 @@ def test_blocked_slice_requires_unresolved_registered_prerequisite(
     target["status"] = status
     with pytest.raises(module.ArchitectureDocsError, match="invalid LEGO blocking prerequisites"):
         module.validate_owner_lego_graph(plan)
+
+
+
+@pytest.mark.parametrize("cycle", ("self", "mutual"))
+def test_blocked_slice_dependency_cycle_is_rejected(cycle: str) -> None:
+    """A valid-looking incomplete blocker cannot justify circular deadlock."""
+    plan = json.loads((ROOT / OWNER_GRAPH_PLANS[0]).read_text(encoding="utf-8"))
+    by_id = {item["id"]: item for item in plan["slices"]}
+    if cycle == "self":
+        by_id["RW4"]["status"] = "BLOCKED_ON_RW4"
+        by_id["RW4"]["blockers"] = ["RW4"]
+    else:
+        by_id["RW5"]["status"] = "BLOCKED_ON_RW6"
+        by_id["RW5"]["blockers"] = ["RW6"]
+        by_id["RW6"]["status"] = "BLOCKED_ON_RW5"
+        by_id["RW6"]["blockers"] = ["RW5"]
+    with pytest.raises(module.ArchitectureDocsError, match="cyclic LEGO slice blockers"):
+        module.validate_owner_lego_graph(plan)
+
+
+def test_blocked_slice_rejects_partially_completed_prerequisite() -> None:
+    """Every asserted BLOCKED_ON prerequisite must still be unresolved."""
+    plan = json.loads((ROOT / OWNER_GRAPH_PLANS[0]).read_text(encoding="utf-8"))
+    slices = {item["id"]: item for item in plan["slices"]}
+    assert slices["RW2"]["status"] == "COMPLETE"
+    assert slices["RW4"]["status"] != "COMPLETE"
+    slices["RW5"]["blockers"] = ["RW2", "RW4"]
+    slices["RW5"]["status"] = "BLOCKED_ON_RW2_RW4"
+    with pytest.raises(module.ArchitectureDocsError, match="invalid LEGO blocking prerequisites"):
+        module.validate_owner_lego_graph(plan)
+
+
+def test_registered_runtime_blockers_contain_only_unresolved_prerequisites() -> None:
+    """Do not keep a completed milestone masquerading as a present blocker."""
+    plan = json.loads((ROOT / OWNER_GRAPH_PLANS[0]).read_text(encoding="utf-8"))
+    status = {item["id"]: item["status"] for item in plan["slices"]}
+    for item in plan["slices"]:
+        if item["status"].startswith("BLOCKED_ON_"):
+            assert item["blockers"]
+            assert all(status[dep] != "COMPLETE" for dep in item["blockers"])
+    module.validate_owner_lego_graph(plan)

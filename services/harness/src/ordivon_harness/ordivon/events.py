@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
-from anc_canonical import JsonValue, canonical_digest, validate_json_value
+from anc_canonical import JsonValue, canonical_bytes, canonical_digest, loads_strict, validate_json_value
 
 _EVENT_KINDS = {
     "run_started",
@@ -38,12 +38,32 @@ _EVENT_KINDS = {
 }
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, init=False)
 class HarnessRunEvent:
     sequence: int
     kind: str
     occurred_at_ms: int
-    payload: dict[str, JsonValue]
+    _payload_bytes: bytes = field(repr=False)
+
+    def __init__(
+        self, sequence: int, kind: str, occurred_at_ms: int,
+        payload: dict[str, JsonValue],
+    ) -> None:
+        # Store exact canonical JSON bytes, not a caller/sink-owned mutable graph.
+        # Reading payload yields a separate view, so no observer can rewrite
+        # the original event, its persisted representation, or its digest.
+        validate_json_value(payload)
+        object.__setattr__(self, "sequence", sequence)
+        object.__setattr__(self, "kind", kind)
+        object.__setattr__(self, "occurred_at_ms", occurred_at_ms)
+        object.__setattr__(self, "_payload_bytes", canonical_bytes(payload))
+        self.__post_init__()
+
+    @property
+    def payload(self) -> dict[str, JsonValue]:
+        value = loads_strict(self._payload_bytes)
+        assert isinstance(value, dict)  # Validated at event construction.
+        return value
 
     def __post_init__(self) -> None:
         if type(self.sequence) is not int or type(self.occurred_at_ms) is not int:
@@ -54,7 +74,7 @@ class HarnessRunEvent:
             raise ValueError(f"unsupported Harness event kind: {self.kind}")
         if self.occurred_at_ms < 0:
             raise ValueError("Harness event time must be non-negative")
-        validate_json_value(self.payload)
+        # Payload was validated and atomically sealed in the constructor.
 
     def to_dict(self) -> dict[str, JsonValue]:
         return {

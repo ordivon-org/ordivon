@@ -3,13 +3,61 @@
 from __future__ import annotations
 
 import json
+import subprocess
 import tomllib
 import unittest
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+def _dependency_update_owner_violations(root, ecosystem, manifests, watch_roots):
+    """Exact manifest -> updater root relation; only proved workspace members inherit."""
+    if ecosystem not in {"npm", "cargo"}:
+        raise ValueError(f"unsupported ecosystem: {ecosystem}")
+    violations = {}
+    for manifest in manifests:
+        parent = PurePosixPath(manifest).parent
+        consumers = []
+        for declared in watch_roots:
+            if not declared.startswith("/"):
+                continue
+            owner = PurePosixPath(declared.lstrip("/"))
+            if parent == owner:
+                consumers.append(declared)
+                continue
+            try:
+                relative = parent.relative_to(owner)
+            except ValueError:
+                continue
+            # Nested manifests only inherit a watcher through a real package
+            # manager workspace, not merely because a parent directory exists.
+            if ecosystem == "npm":
+                workspace = root / str(owner) / "pnpm-workspace.yaml"
+                if not workspace.is_file():
+                    continue
+                data = yaml.safe_load(workspace.read_text(encoding="utf-8")) or {}
+                patterns = data.get("packages", [])
+            else:
+                workspace = root / str(owner) / "Cargo.toml"
+                if not workspace.is_file():
+                    continue
+                patterns = tomllib.loads(workspace.read_text(encoding="utf-8")).get(
+                    "workspace", {}
+                ).get("members", [])
+            # This Owner's tracked manifests use fixed or one-level package
+            # patterns; do not incorrectly infer coverage from a broad parent.
+            if any(
+                not pattern.startswith("!")
+                and relative.match(pattern)
+                for pattern in patterns
+            ):
+                consumers.append(declared)
+        if len(consumers) != 1:
+            violations[manifest] = consumers
+    return violations
 
 
 class DependencyUpdateOwnershipTests(unittest.TestCase):
@@ -70,6 +118,49 @@ class DependencyUpdateOwnershipTests(unittest.TestCase):
         )
         self.assertFalse(renovate.get("automerge", False))
         self.assertLessEqual(renovate["prConcurrentLimit"], 4)
+
+    def test_all_tracked_npm_and_cargo_manifests_have_one_update_owner(self):
+        """Every new dependency manifest must have exactly one real updater."""
+        config = yaml.safe_load((ROOT / ".github/dependabot.yml").read_text(encoding="utf-8"))
+        by_ecosystem = {row["package-ecosystem"]: row for row in config["updates"]}
+        tracked = [
+            path for path in subprocess.check_output(
+                ["git", "ls-files", "-z"], cwd=ROOT,
+            ).decode("utf-8").split("\0") if path
+        ]
+        for ecosystem, name in (("npm", "package.json"), ("cargo", "Cargo.toml")):
+            manifests = [path for path in tracked if Path(path).name == name]
+            self.assertTrue(manifests, ecosystem)
+            violations = _dependency_update_owner_violations(
+                ROOT, ecosystem, manifests, by_ecosystem[ecosystem]["directories"],
+            )
+            self.assertEqual(violations, {}, f"{ecosystem} owner holes/duplications: {violations}")
+
+    def test_update_owner_cover_rejects_new_orphan_and_duplicate_paths(self):
+        """Negative controls: unregistered manifests or ambiguous watchers cannot pass."""
+        config = yaml.safe_load((ROOT / ".github/dependabot.yml").read_text(encoding="utf-8"))
+        by_ecosystem = {row["package-ecosystem"]: row for row in config["updates"]}
+        for ecosystem, path in (
+            ("npm", "domains/research/unadmitted/package.json"),
+            ("cargo", "domains/research/unadmitted/Cargo.toml"),
+        ):
+            actual = _dependency_update_owner_violations(
+                ROOT, ecosystem, [path], by_ecosystem[ecosystem]["directories"],
+            )
+            self.assertEqual(actual, {path: []})
+        # A directory beneath a valid watcher is not automatically a valid
+        # workspace package (media admits only apps/* and packages/*).
+        nested = "capabilities/media/apps/unknown/nested/package.json"
+        self.assertEqual(
+            _dependency_update_owner_violations(
+                ROOT, "npm", [nested], by_ecosystem["npm"]["directories"],
+            ),
+            {nested: []},
+        )
+        duplicate = _dependency_update_owner_violations(
+            ROOT, "npm", ["domains/game/package.json"], ["/domains/game", "/domains/game"],
+        )
+        self.assertEqual(duplicate, {"domains/game/package.json": ["/domains/game", "/domains/game"]})
 
     def test_same_name_groups_preserve_separate_owner_locks(self):
         config = yaml.safe_load((ROOT / ".github/dependabot.yml").read_text(encoding="utf-8"))
