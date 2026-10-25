@@ -44,10 +44,10 @@ SQLITE_LEGACY_SOURCE_CALLS: dict[str, int] = {
     # Other concrete owners previously invisible to the Runtime/Harness-only gate:
     # Gateway pull-worker durability (conditional deployed consumer).
     'services/gateway/src/ordivon_gateway/external_worker.py': 1,
-    # Capital accounting and Media research have distinct consumer contracts:
-    # do not promote the research executor or test-only ledger to live PG by analogy.
+    # Capital accounting remains SQLite; Media durable trial history uses PG.
     'domains/capital/src/ordivon_capital/accounting/sqlite_ledger.py': 1,
-    'capabilities/media/src/ordivon_studio/research_validity.py': 1,
+    # Real SQLite consumer: one-shot read-only import into the PG Media ledger.
+    'capabilities/media/scripts/migrate-r6-trials.py': 1,
     # Retired Host v1 historical read/projection tools, not current Host v2 state.
     'platform/workstation/scripts/host_historical_projection.py': 2,
     'platform/workstation/scripts/host_retirement_snapshot.py': 3,

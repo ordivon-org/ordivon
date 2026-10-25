@@ -31,7 +31,6 @@ class SQLDialectBoundaryTests(unittest.TestCase):
         for name in (
             "services/gateway/src/ordivon_gateway/external_worker.py",
             "domains/capital/src/ordivon_capital/accounting/sqlite_ledger.py",
-            "capabilities/media/src/ordivon_studio/research_validity.py",
             "platform/workstation/scripts/host_historical_projection.py",
             "platform/workstation/scripts/host_retirement_snapshot.py",
             "meta/next/experiments/browser-security-r4/cf07_metadata_snapshot.py",
@@ -39,6 +38,24 @@ class SQLDialectBoundaryTests(unittest.TestCase):
         ):
             with self.subTest(path=name):
                 self.assertIn(name, current)
+
+    def test_media_pg_owner_retirement_preserves_only_actual_sqlite_import_consumer(self):
+        """Durable Media events are PG; retain only the one-shot SQLite source reader."""
+        observed = tracked_owner_sqlite_calls(ROOT)
+        self.assertNotIn(
+            "capabilities/media/src/ordivon_studio/research_validity.py", observed,
+        )
+        self.assertEqual(
+            observed.get("capabilities/media/scripts/migrate-r6-trials.py"), 1,
+        )
+        self.assertNotIn(
+            "capabilities/media/src/ordivon_studio/research_validity.py",
+            SQLITE_LEGACY_SOURCE_CALLS,
+        )
+        self.assertEqual(
+            SQLITE_LEGACY_SOURCE_CALLS["capabilities/media/scripts/migrate-r6-trials.py"],
+            1,
+        )
 
     def test_new_sqlite_owner_outside_old_runtime_harness_scope_fails_closed(self):
         with tempfile.TemporaryDirectory() as directory:
