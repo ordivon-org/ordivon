@@ -81,6 +81,37 @@ def test_monitoring_validation_fails_closed(path, value, match):
         monitoring_table(evidence)
 
 
+@pytest.mark.parametrize("consumer", ["monitoring", "r17_provenance"])
+def test_active_evidence_sha256_does_not_read_whole_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, consumer: str
+) -> None:
+    """Consumer-bound negative check: evidence hashing must be bounded-memory."""
+    import hashlib
+    import runpy
+
+    path = tmp_path / "evidence.bin"
+    payload = b"source-qualified-evidence" * 1024 + b"end"
+    path.write_bytes(payload)
+    expected = hashlib.sha256(payload).hexdigest()
+    if consumer == "monitoring":
+        from ordivon_capital.research.monitoring_persistence import _sha256
+    else:
+        r17 = (
+            Path(__file__).resolve().parents[1] / "tools/qualification/parquet_duckdb_owner_r17.py"
+        )
+        _sha256 = runpy.run_path(str(r17))["_sha256"]
+
+    original = Path.read_bytes
+
+    def reject_whole_file_read(self: Path) -> bytes:
+        if self == path:
+            raise AssertionError("hashing evidence must not buffer complete source")
+        return original(self)
+
+    monkeypatch.setattr(Path, "read_bytes", reject_whole_file_read)
+    assert _sha256(path) == expected
+
+
 @pytest.mark.provider_qualification
 def test_persist_monitoring_evidence_parquet_duckdb_manifest(tmp_path):
     evidence_path = tmp_path / "evidence.json"
