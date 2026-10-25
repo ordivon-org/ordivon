@@ -246,6 +246,25 @@ acceptance rather than replacing them with synthetic model claims.
 
 **Proof boundary**: `ENABLED` proves a legal abstract choice, not fairness, that the environment will eventually deliver valid evidence, or a concrete SQLite/Rust recovery implementation. The existing native Rust `terminal_evidence_requires_result_finish_matching_resolution_and_no_current_attempt` tests the narrower terminal evidence predicate; it is **not** a mechanized refinement proof for `CorrectForeignResultEvidence`. Correctness of consumer-visible recovery remains UNKNOWN pending an exact Rust transition/consumer bridge. Reuse TLA+/TLC rather than adding a new registry, custom solver or speculative Skill. The mature alternative [Apalache](https://github.com/apalache-mc/apalache) uses SMT/Z3/CVC5; no reason to install it for this small bounded model unless a concrete performance/proof limitation arises.
 
+## PostgreSQL R06 live-consumer admission (independent qualification)
+
+A copied source revision, source/target content parity, and a single installed
+writer still do **not** imply that actual consumers may safely use PostgreSQL.
+The existing cutover TLA+ model now distinguishes copying/verifying from
+QualifyConsumers, which is required before Promote. Commits to the legacy
+source, subsequent copies, and rollback invalidate the qualification. The
+normal TLC config checks PgWriterRequiresQualifiedConsumers, and the
+existing ephemeral negative-control runner deletes just that guard and
+requires a named counterexample state trace.
+
+QualifyConsumers is deliberately an UNVERIFIED external oracle in this
+abstract model. TLC PASS **does not** authenticate a live consumer receipt,
+prove its source seal, demonstrate readback on a real PG instance, or prove
+Rust/Harness application refinement. Actual cutover remains NOT_CUT_OVER
+until the real consumer and effect owner evidence discharges those obligations.
+This is one additional scoped contract in the existing formal owner, not a
+new custom solver or a global LEGO registry.
+
 ## PostgreSQL R06 installed-writer overlap (CEGAR refinement)
 
 The one-owner enum alone makes dual-writer overlap unrepresentable, even if

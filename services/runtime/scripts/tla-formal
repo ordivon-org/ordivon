@@ -94,7 +94,8 @@ unsafe = r"""UnsafePromoteWithoutParity ==
     /\ cutoverCertified' = FALSE
     /\ pgWriterActive' = TRUE
     /\ UNCHANGED <<sqliteRevision, pgRevision, copied, parityVerified,
-                   sqliteContent, pgContent, pgCommitted, rolledBack, sqliteWriterActive>>
+                   sqliteContent, pgContent, pgCommitted, rolledBack,
+                   sqliteWriterActive, consumersQualified>>
 
 """
 assert source.count(marker) == 1, "pg-cutover Next source drift"
@@ -132,7 +133,8 @@ unsafe = r"""UnsafeRollbackAfterPgCommit ==
     /\ sqliteWriterActive' = TRUE
     /\ pgWriterActive' = FALSE
     /\ UNCHANGED <<sqliteRevision, pgRevision, copied, parityVerified,
-                   sqliteContent, pgContent, cutoverCertified, pgCommitted, rolledBack>>
+                   sqliteContent, pgContent, cutoverCertified, pgCommitted,
+                   rolledBack, consumersQualified>>
 
 """
 assert source.count(marker) == 1, "pg-cutover rollback mutation source drift"
@@ -165,8 +167,8 @@ from pathlib import Path
 import sys
 source = Path(sys.argv[1]).read_text(encoding="utf-8")
 guard = r"    /\ pgContent = sqliteContent" + "\n"
-assert source.count(guard) == 1, "PG content parity guard ambiguous or missing"
-Path(sys.argv[2]).write_text(source.replace(guard, ""), encoding="utf-8")
+assert source.count(guard) == 2, "PG parity and consumer qualification guards drift"
+Path(sys.argv[2]).write_text(source.replace(guard, "", 1), encoding="utf-8")
 PY_PG_CONTENT
     cp -- "$ROOT/formal/RuntimePgCutoverR1.cfg" "$tmp_dir/content/RuntimePgCutoverR1.cfg"
     set +e
@@ -204,7 +206,7 @@ unsafe = r"""UnsafeConcurrentInstalledWriters ==
     /\ cutoverCertified' = TRUE
     /\ rolledBack' = FALSE
     /\ UNCHANGED <<sqliteRevision, pgRevision, copied, parityVerified,
-                   pgCommitted, sqliteContent, pgContent>>
+                   pgCommitted, sqliteContent, pgContent, consumersQualified>>
 
 """
 assert source.count(marker) == 1, "PG overlapping writers source drift"
@@ -228,6 +230,61 @@ PY_PG_OVERLAP
       exit 1
     fi
     echo "TLC PostgreSQL two-writer negative control PASS: leaked SQLite writer rejected"
+    # The legal certified PG path must actually be reachable; otherwise
+    # absence of an illegal promotion could be a vacuous proof.
+    mkdir "$tmp_dir/reachable"
+    python - "$ROOT/formal/RuntimePgCutoverR1.tla" "$tmp_dir/reachable/RuntimePgCutoverR1.tla" <<'PY_PG_REACH'
+from pathlib import Path
+import sys
+source = Path(sys.argv[1]).read_text(encoding="utf-8")
+marker = "Spec == Init"
+assert source.count(marker) == 1, "PG reachability source drift"
+predicate = 'QualifiedPgIsUnreachable == owner # "postgres"\n\n'
+Path(sys.argv[2]).write_text(source.replace(marker, predicate + marker), encoding="utf-8")
+PY_PG_REACH
+    cp -- "$ROOT/formal/RuntimePgCutoverR1.cfg" "$tmp_dir/reachable/RuntimePgCutoverR1.cfg"
+    printf '\nINVARIANT QualifiedPgIsUnreachable\n' >> "$tmp_dir/reachable/RuntimePgCutoverR1.cfg"
+    set +e
+    (cd "$tmp_dir/reachable"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+      -config RuntimePgCutoverR1.cfg RuntimePgCutoverR1.tla) > "$tmp_dir/reachable/result.log" 2>&1
+    result=$?
+    set -e
+    if [[ "$result" -ne 12 ]] ||
+       ! grep -Fxq 'Error: Invariant QualifiedPgIsUnreachable is violated.' "$tmp_dir/reachable/result.log" ||
+       ! grep -Fq 'consumersQualified = TRUE' "$tmp_dir/reachable/result.log" ||
+       ! grep -Eq '^State [1-9][0-9]*:' "$tmp_dir/reachable/result.log"; then
+      echo "PostgreSQL qualified promotion reachability FAILED (vacuous path or parser issue)" >&2
+      tail -35 "$tmp_dir/reachable/result.log" >&2
+      exit 1
+    fi
+    echo "TLC PostgreSQL qualified promotion reachability PASS: certified consumer path exists"
+
+    # CEGAR-inspired non-vacuity: copied rows are insufficient without a
+    # separately qualified live-consumer cutover witness.
+    mkdir "$tmp_dir/consumer"
+    python - "$ROOT/formal/RuntimePgCutoverR1.tla" "$tmp_dir/consumer/RuntimePgCutoverR1.tla" <<'PY_PG_CONSUMER'
+from pathlib import Path
+import sys
+source = Path(sys.argv[1]).read_text(encoding="utf-8")
+guard = r"    /\ consumersQualified" + "\n"
+assert source.count(guard) == 1, "PG consumer admission guard drift"
+Path(sys.argv[2]).write_text(source.replace(guard, "", 1), encoding="utf-8")
+PY_PG_CONSUMER
+    cp -- "$ROOT/formal/RuntimePgCutoverR1.cfg" "$tmp_dir/consumer/RuntimePgCutoverR1.cfg"
+    set +e
+    (cd "$tmp_dir/consumer"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+      -config RuntimePgCutoverR1.cfg RuntimePgCutoverR1.tla) > "$tmp_dir/consumer/result.log" 2>&1
+    result=$?
+    set -e
+    if [[ "$result" -ne 12 ]] ||
+       ! grep -Fxq 'Error: Invariant PgWriterRequiresQualifiedConsumers is violated.' "$tmp_dir/consumer/result.log" ||
+       ! grep -Fxq 'Error: The behavior up to this point is:' "$tmp_dir/consumer/result.log" ||
+       ! grep -Eq '^State [1-9][0-9]*:' "$tmp_dir/consumer/result.log"; then
+      echo "PostgreSQL consumer cutover negative control FAILED: missing named TLC state trace" >&2
+      tail -35 "$tmp_dir/consumer/result.log" >&2
+      exit 1
+    fi
+    echo "TLC PostgreSQL consumer cutover negative control PASS: unqualified writer cannot promote"
   )
 }
 
