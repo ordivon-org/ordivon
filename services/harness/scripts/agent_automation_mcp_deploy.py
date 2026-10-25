@@ -187,60 +187,75 @@ def converge_runtime(c: dict) -> dict:
         return value
     except Exception:
         pass
-    uv = owner_uv_executable()
+
     py = Path(c["mcp_runtime_python"])
     venv = py.parent.parent
     staging = venv.parent / (venv.name + ".staging")
     backup = venv.parent / (venv.name + ".previous")
-    shutil.rmtree(staging, ignore_errors=True)
-    shutil.rmtree(backup, ignore_errors=True)
-    subprocess.run(
-        [
-            uv,
-            "venv",
-            "--offline",
-            "--no-python-downloads",
-            "--python",
-            str(c.get("mcp_python_executable", c["mcp_python_version"])),
-            str(staging),
-        ],
-        check=True,
-        timeout=60,
-    )
-    requirements = ROOT / str(c["mcp_requirements"])
-    subprocess.run(
-        [
-            uv,
-            "pip",
-            "install",
-            "--offline",
-            "--python",
-            str(staging / "bin/python"),
-            "-r",
-            str(requirements),
-        ],
-        check=True,
-        timeout=120,
-    )
-    staged = dict(c)
-    staged["mcp_runtime_python"] = str(staging / "bin/python")
-    runtime_check(staged)
-    had_live = venv.exists()
-    if had_live:
-        os.replace(venv, backup)
+    # Recovery/staging may have unique consumers from an interrupted attempt.
+    # Do not silently remove artifacts owned by an earlier deployment.
+    if staging.exists() or backup.exists():
+        raise RuntimeError("unresolved MCP runtime staging or recovery artifact")
+    interpreter = c.get("mcp_python_executable")
+    if interpreter is not None and (
+        not isinstance(interpreter, str)
+        or not Path(interpreter).is_absolute()
+        or not Path(interpreter).is_file()
+        or not os.access(interpreter, os.X_OK)
+    ):
+        raise RuntimeError("configured MCP Python executable is unavailable")
+
+    uv = owner_uv_executable()
     try:
-        os.replace(staging, venv)
-        value = runtime_check(c)
-    except Exception:
-        shutil.rmtree(venv, ignore_errors=True)
-        if had_live and backup.exists():
-            os.replace(backup, venv)
-        raise
-    else:
-        shutil.rmtree(backup, ignore_errors=True)
+        subprocess.run(
+            [
+                uv,
+                "venv",
+                "--offline",
+                "--no-python-downloads",
+                "--python",
+                str(interpreter if interpreter is not None else c["mcp_python_version"]),
+                str(staging),
+            ],
+            check=True,
+            timeout=60,
+        )
+        requirements = ROOT / str(c["mcp_requirements"])
+        subprocess.run(
+            [
+                uv,
+                "pip",
+                "install",
+                "--offline",
+                "--python",
+                str(staging / "bin/python"),
+                "-r",
+                str(requirements),
+            ],
+            check=True,
+            timeout=120,
+        )
+        staged = dict(c)
+        staged["mcp_runtime_python"] = str(staging / "bin/python")
+        runtime_check(staged)
+        had_live = venv.exists()
+        if had_live:
+            os.replace(venv, backup)
+        try:
+            os.replace(staging, venv)
+            value = runtime_check(c)
+        except Exception:
+            shutil.rmtree(venv, ignore_errors=True)
+            if had_live and backup.exists():
+                os.replace(backup, venv)
+            raise
         value["disposition"] = "materialized"
+        # A validated package is not proof the running service switched.
+        # Defer previous-runtime deletion to an independently qualified consumer.
+        value["previousRuntimePreserved"] = had_live
         return value
     finally:
+        # This attempt owns only its freshly-created staging directory.
         shutil.rmtree(staging, ignore_errors=True)
 
 

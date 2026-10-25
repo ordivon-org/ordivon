@@ -106,7 +106,9 @@
         "Every BLOCKED_ON prerequisite is currently unresolved; a partly completed blocker set is invalid even when another predecessor remains open.",
         "The read-only Git publication source-cut gate accepts only a native object-format-qualified remote OID (40 SHA-1, 64 SHA-256), distinguishes cached tracking from live remote, and never treats matching local/tracking refs alone as publication proof.",
         "Every registered Owner planning slice uses a recognized finite lifecycle status or a fully qualified BLOCKED_ON_* prerequisite expression; unknown/typo states are rejected at the existing native architecture admission gate, including slices with no census consumer.",
-        "Game and Media active Owner LEGO planning graphs are admitted through the existing repository-native node/edge/type and graphlib dependency verification on every root architecture check; invalid domain slice status and dangling producer edges are tested negatively, without a new domain registry or solver. Distribution legacy DS1=BLOCKED remains explicitly outside this gate until its owner evidence is qualified, not silently translated."
+        "Game and Media active Owner LEGO planning graphs are admitted through the existing repository-native node/edge/type and graphlib dependency verification on every root architecture check; invalid domain slice status and dangling producer edges are tested negatively, without a new domain registry or solver. Distribution legacy DS1=BLOCKED remains explicitly outside this gate until its owner evidence is qualified, not silently translated.",
+        "Dependency updater ownership is an exact manifest-to-owner relation: a nested npm/Cargo manifest is covered by a parent updater only if its path from the actual package-manager workspace root full-matches a declared workspace member pattern; suffix-only pattern matches must not certify fake consumers. Every tracked manifest has exactly one updater owner under this bounded source cut.",
+        "Every continuously validated Owner LEGO plan, including Game and Media plans not necessarily named by a time-scoped issue census, must be source-bound and reject symlink/redirection before native graph admission; prior structurally valid out-of-tree plans cannot impersonate current SourceCut."
       ],
       "blockers": [
         "The formal issue census records evidence from its observed SourceCut; neither slice grants live runtime authority."
@@ -114,7 +116,10 @@
       "nextAction": "Keep owner-native source-identity and exact CDC tests; do not introduce new authorities.",
       "evidence": [
         "tools/repo/migration/check-publication-main.sh",
-        "tools/repo/migration/test-check-publication-main.sh"
+        "tools/repo/migration/test-check-publication-main.sh",
+        "tools/repo/test_dependency_update_ownership.py",
+        ".github/dependabot.yml",
+        "renovate.json"
       ]
     },
     {

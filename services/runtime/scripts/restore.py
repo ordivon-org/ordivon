@@ -54,11 +54,15 @@ def load_and_verify(source: Path) -> tuple[dict[str, Any], list[tuple[Path, dict
             raise ValueError(f"duplicate snapshot file record: {relative}")
         seen.add(relative)
         path = source / relative
+        # A final regular file can still be reached through an intermediate
+        # symlink, so bind every path component to the snapshot directory.
+        if any((source / Path(*relative.parts[:i])).is_symlink() for i in range(1, len(relative.parts))):
+            raise ValueError(f"snapshot entry traverses symlink: {relative}")
         if path.is_symlink() or not path.is_file():
             raise ValueError(f"snapshot entry is missing or not a regular file: {relative}")
         expected_bytes = record.get("bytes")
         expected_digest = record.get("digest")
-        if not isinstance(expected_bytes, int) or expected_bytes < 0:
+        if type(expected_bytes) is not int or expected_bytes < 0:
             raise ValueError(f"invalid byte length for {relative}")
         if path.stat().st_size != expected_bytes:
             raise ValueError(f"byte length mismatch for {relative}")
@@ -98,9 +102,11 @@ def restore_snapshot(source: Path, destination: Path) -> Path:
             destination_file = staging / relative
             destination_file.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source_file, destination_file, follow_symlinks=False)
-        (staging / "manifest.json").write_text(
-            json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-        )
+        (staging / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        # A validated source may change before copy. Reuse the exact manifest
+        # verifier against the *staged bytes* before publication; the source
+        # check alone does not qualify the actual restore artifact.
+        load_and_verify(staging)
         verify_sqlite(staging / "registry.sqlite3")
         os.replace(staging, destination)
     except Exception:

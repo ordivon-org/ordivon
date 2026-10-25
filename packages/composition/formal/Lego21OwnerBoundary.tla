@@ -10,10 +10,12 @@ EXTENDS Naturals
 CONSTANTS RequiresHarness, RequiresNetwork
 
 VARIABLES host, harness, network, runtime, dispatchCount, consumerEvidence,
-          sourceEvidenceBinding, admissionInputsWitness, terminalReceipt
+          sourceEvidenceBinding, admissionInputsWitness, terminalReceipt,
+          receiptAttemptBinding
 
 vars == <<host, harness, network, runtime, dispatchCount, consumerEvidence,
-          sourceEvidenceBinding, admissionInputsWitness, terminalReceipt>>
+          sourceEvidenceBinding, admissionInputsWitness, terminalReceipt,
+          receiptAttemptBinding>>
 
 HostStates == {"open", "accepted"}
 HarnessStates == {"idle", "proposed"}
@@ -22,6 +24,7 @@ RuntimeStates == {"idle", "admitted", "running", "ambiguous", "terminal"}
 EvidenceStates == {"none", "matching", "foreign"}
 SourceBindingStates == {"none", "admission-bound", "different-source"}
 ReceiptStates == {"none", "pending", "committed"}
+ReceiptAttemptBindings == {"none", "foreign", "attempt-bound"}
 
 TypeOK ==
     /\ RequiresHarness \in BOOLEAN
@@ -35,6 +38,7 @@ TypeOK ==
     /\ sourceEvidenceBinding \in SourceBindingStates
     /\ admissionInputsWitness \in BOOLEAN
     /\ terminalReceipt \in ReceiptStates
+    /\ receiptAttemptBinding \in ReceiptAttemptBindings
 
 Init ==
     /\ host = "open"
@@ -46,24 +50,25 @@ Init ==
     /\ sourceEvidenceBinding = "none"
     /\ admissionInputsWitness = FALSE
     /\ terminalReceipt = "none"
+    /\ receiptAttemptBinding = "none"
 
 NetworkObserve ==
     /\ network = "unknown"
     /\ network' = "ready"
     /\ UNCHANGED <<host, harness, runtime, dispatchCount, consumerEvidence, sourceEvidenceBinding,
-                  admissionInputsWitness, terminalReceipt>>
+                  admissionInputsWitness, terminalReceipt, receiptAttemptBinding>>
 
 NetworkDegrade ==
     /\ network = "ready"
     /\ network' = "unknown"
     /\ UNCHANGED <<host, harness, runtime, dispatchCount, consumerEvidence, sourceEvidenceBinding,
-                  admissionInputsWitness, terminalReceipt>>
+                  admissionInputsWitness, terminalReceipt, receiptAttemptBinding>>
 
 HarnessPropose ==
     /\ harness = "idle"
     /\ harness' = "proposed"
     /\ UNCHANGED <<host, network, runtime, dispatchCount, consumerEvidence, sourceEvidenceBinding,
-                  admissionInputsWitness, terminalReceipt>>
+                  admissionInputsWitness, terminalReceipt, receiptAttemptBinding>>
 
 RuntimeAdmit ==
     /\ runtime = "idle"
@@ -73,7 +78,7 @@ RuntimeAdmit ==
     /\ admissionInputsWitness' =
         /\ (~RequiresHarness \/ harness = "proposed")
         /\ (~RequiresNetwork \/ network = "ready")
-    /\ UNCHANGED <<host, harness, network, dispatchCount, consumerEvidence, sourceEvidenceBinding, terminalReceipt>>
+    /\ UNCHANGED <<host, harness, network, dispatchCount, consumerEvidence, sourceEvidenceBinding, terminalReceipt, receiptAttemptBinding>>
 
 RuntimeDispatch ==
     /\ runtime = "admitted"
@@ -81,20 +86,20 @@ RuntimeDispatch ==
     /\ runtime' = "running"
     /\ dispatchCount' = dispatchCount + 1
     /\ UNCHANGED <<host, harness, network, consumerEvidence, sourceEvidenceBinding,
-                  admissionInputsWitness, terminalReceipt>>
+                  admissionInputsWitness, terminalReceipt, receiptAttemptBinding>>
 
 RuntimeLoseKnowledge ==
     /\ runtime = "running"
     /\ runtime' = "ambiguous"
     /\ UNCHANGED <<host, harness, network, dispatchCount, consumerEvidence, sourceEvidenceBinding,
-                  admissionInputsWitness, terminalReceipt>>
+                  admissionInputsWitness, terminalReceipt, receiptAttemptBinding>>
 
 RuntimeObserveTerminal ==
     /\ runtime \in {"running", "ambiguous"}
     /\ runtime' = "terminal"
     /\ terminalReceipt' = "pending"
     /\ UNCHANGED <<host, harness, network, dispatchCount, consumerEvidence, sourceEvidenceBinding,
-                  admissionInputsWitness>>
+                  admissionInputsWitness, receiptAttemptBinding>>
 
 (* A durable terminal result is not identical to observing terminal state. *)
 RuntimeCommitTerminal ==
@@ -102,7 +107,32 @@ RuntimeCommitTerminal ==
     /\ terminalReceipt = "pending"
     /\ terminalReceipt' = "committed"
     /\ UNCHANGED <<host, harness, network, runtime, dispatchCount,
-                  consumerEvidence, sourceEvidenceBinding, admissionInputsWitness>>
+                  consumerEvidence, sourceEvidenceBinding, admissionInputsWitness, receiptAttemptBinding>>
+
+(* Counterexample input: an externally presented receipt for another Attempt.
+   This is NOT a Runtime-authorized CommitTerminal transition. A boolean
+   "receipt present" abstraction would wrongly allow Host acceptance. *)
+RuntimeObserveForeignReceipt ==
+    /\ host = "open"
+    /\ runtime = "terminal"
+    /\ terminalReceipt \in {"pending", "committed"}
+    /\ receiptAttemptBinding \in {"none", "attempt-bound"}
+    /\ receiptAttemptBinding' = "foreign"
+    /\ UNCHANGED <<host, harness, network, runtime, dispatchCount,
+                  consumerEvidence, sourceEvidenceBinding, admissionInputsWitness,
+                  terminalReceipt>>
+
+(* Separate authoritative Runtime commit from an adversarial presentation.
+   The actual owner must bind the exact committed Attempt and SourceCut; this
+   abstract transition does not itself prove that implementation bridge. *)
+RuntimeBindCommittedReceipt ==
+    /\ runtime = "terminal"
+    /\ terminalReceipt = "committed"
+    /\ receiptAttemptBinding \in {"none", "foreign"}
+    /\ receiptAttemptBinding' = "attempt-bound"
+    /\ UNCHANGED <<host, harness, network, runtime, dispatchCount,
+                  consumerEvidence, sourceEvidenceBinding, admissionInputsWitness,
+                  terminalReceipt>>
 
 ConsumerObserve ==
     /\ runtime = "terminal"
@@ -113,7 +143,7 @@ ConsumerObserve ==
     (* Abstract admission SourceCut binding; not a live digest check. *)
     /\ sourceEvidenceBinding' \in {"admission-bound", "different-source"}
     /\ UNCHANGED <<host, harness, network, runtime, dispatchCount,
-                  admissionInputsWitness, terminalReceipt>>
+                  admissionInputsWitness, terminalReceipt, receiptAttemptBinding>>
 
 HostAccept ==
     /\ host = "open"
@@ -122,9 +152,10 @@ HostAccept ==
     /\ consumerEvidence = "matching"
     /\ sourceEvidenceBinding = "admission-bound"
     /\ terminalReceipt = "committed"
+    /\ receiptAttemptBinding = "attempt-bound"
     /\ host' = "accepted"
     /\ UNCHANGED <<harness, network, runtime, dispatchCount, consumerEvidence, sourceEvidenceBinding,
-                  admissionInputsWitness, terminalReceipt>>
+                  admissionInputsWitness, terminalReceipt, receiptAttemptBinding>>
 
 Next ==
     \/ NetworkObserve
@@ -135,6 +166,8 @@ Next ==
     \/ RuntimeLoseKnowledge
     \/ RuntimeObserveTerminal
     \/ RuntimeCommitTerminal
+    \/ RuntimeObserveForeignReceipt
+    \/ RuntimeBindCommittedReceipt
     \/ ConsumerObserve
     \/ HostAccept
 
@@ -167,6 +200,18 @@ NoHostAcceptanceWithWrongSource ==
 NoHostAcceptanceWithoutCommittedTerminalReceipt ==
     host = "accepted" => terminalReceipt = "committed"
 
+NoHostAcceptanceWithoutAttemptBoundReceipt ==
+    host = "accepted" => receiptAttemptBinding = "attempt-bound"
+
+(* A foreign presented receipt is untrusted evidence, not an authoritative
+   Runtime commit mutation. Even when an attacker has presented one, the
+   exact source/Attempt-qualified recovery step remains ENABLED. This is a
+   local option invariant, not fairness or eventual recovery. *)
+NoForeignReceiptBlocksLocalRecovery ==
+    (runtime = "terminal" /\ terminalReceipt = "committed"
+      /\ receiptAttemptBinding = "foreign" /\ host = "open")
+    => ENABLED RuntimeBindCommittedReceipt
+
 (* False reachability assertion: matching source and Work may predate commit. *)
 PendingMatchedTerminalReceiptIsUnreachable ==
     ~(runtime = "terminal" /\ terminalReceipt = "pending"
@@ -190,6 +235,16 @@ NetworkNeverDegradesAfterAdmission ==
 (***************************************************************************)
 ForeignEvidenceIsUnreachable ==
     consumerEvidence # "foreign"
+
+(* Deliberately false reachability probe: a foreign Attempt receipt must
+   be representable, even while domain evidence matches this Work+SourceCut. *)
+ForeignTerminalReceiptIsUnreachable ==
+    ~(terminalReceipt = "committed"
+      /\ receiptAttemptBinding = "foreign"
+      /\ consumerEvidence = "matching"
+      /\ sourceEvidenceBinding = "admission-bound"
+      /\ host = "open")
+
 
 (* Intentionally false negative oracle: a matching Work can have wrong source. *)
 WrongSourceEvidenceIsUnreachable ==

@@ -483,7 +483,9 @@
         "scripts/ordivon-runtime-deploy",
         "scripts/ordivon-runtime-status",
         "scripts/ordivon-runtime-lifecycle",
-        "crates/ordivon-runtime-core/src/bin/ordivon-runtime-windows-deploy.rs"
+        "crates/ordivon-runtime-core/src/bin/ordivon-runtime-windows-deploy.rs",
+        "scripts/restore.py",
+        "scripts/tests/test_operational_scripts.py"
       ],
       "dependencies": [
         "R12",
@@ -497,7 +499,8 @@
         "Operator scripts shrink by moving proven shared mechanics into owner-local libraries, not by hiding behavior in a generic framework.",
         "Release receipt and rollback compatibility remain exact.",
         "Fast health stays bounded by active state rather than historical Registry size.",
-        "Windows structured release freezes and validates source_repo/required_ref authority in the same receipt/cutover/rollback circuit as candidate artifacts; the owner-native deployer tests reject missing/invalid bindings and preserve unrelated env bytes."
+        "Windows structured release freezes and validates source_repo/required_ref authority in the same receipt/cutover/rollback circuit as candidate artifacts; the owner-native deployer tests reject missing/invalid bindings and preserve unrelated env bytes.",
+        "Runtime restore must reject manifest entries escaping through intermediate symlinked parents and boolean-as-integer byte lengths; a pre-copy source verification alone is insufficient, so the staged restore bytes must pass the same manifest digest/length contract before publication."
       ],
       "nextAction": "Extract pure receipt/fence/status projection helpers first; leave CLI orchestration intact until parity is proven."
     },
@@ -1001,14 +1004,19 @@
         "Owner-native positive control: exact Windows workspace and PowerShell binary executed under active_user Session 1 with python, uv, gh, cargo, rustc and pnpm observable; negative control: limited service context could not find those names on PATH. An omitted tool from PATH is not proof of uninstallation.",
         "Add source-bound native negative tests for service-to-active_user fallback, absent active session, and unresolved required executable; verify executed token/session and tool identity against admission evidence, preserving privilege and no-unproven-retry boundaries.",
         "Any formal/model-checker PASS is explicitly qualified by real Windows provider evidence and typed principal/context requirements; Host/Git CI passing does not establish this Windows consumer contract.",
-        "RW10 negative/positive CEGAR obligation: test the same user-owned executable under service-token admission and active_user requested context, compare an allowed shared Program Files control, and require typed fail-closed admission unless canonical executable identity and SHA-256 are attested under the requested token AND the per-context allow policy. Do not promote a PowerShell wrapper as proof of direct Python executable identity, and do not widen C:\\Users globally."
+        "RW10 negative/positive CEGAR obligation: test the same user-owned executable under service-token admission and active_user requested context, compare an allowed shared Program Files control, and require typed fail-closed admission unless canonical executable identity and SHA-256 are attested under the requested token AND the per-context allow policy. Do not promote a PowerShell wrapper as proof of direct Python executable identity, and do not widen C:\\Users globally.",
+        "Active-user command-scoped Git trust must reject caller-controlled GIT_CONFIG_GLOBAL/GIT_CONFIG_SYSTEM, HOME/XDG_CONFIG_HOME and token-profile overrides, plus GIT_CONFIG_KEY_* include.path/includeIf.*.path; exact safe.directory cannot neutralize an earlier wildcard loaded from an alternate config. Service-only environment semantics must remain unchanged. This is an environment-injection fence, not a proof about a user-existing Git config or about direct Python shim execution.",
+        "When active_user needs Git access to a service-owned Workspace, its command-scoped protected safe.directory must use Git-native ordered empty reset followed by exactly one Workspace path (with bounded GIT_CONFIG_COUNT capacity), so earlier system/global wildcard entries do not survive the effective trust list. This claim depends on Git protected configuration ordering and actual native launcher use, not a claim that all Git configuration/effects or user tools are fully qualified."
       ],
       "evidence": [
         "Live Windows Runtime node windows-main-r6-candidate on 2026-10-25: limited service read-only job job-01a17038-9b9a-7b53-03b3b2fbbaa7 executed as NT SERVICE/OrdivonRuntimeR6Candidate; Python, uv, gh, cargo, rustc, pnpm NOT_ON_PATH; Git and Node visible.",
         "Same Windows Runtime workspace active_user read-only job job-01a1703b-8370-7ab2-b20c-acb2ec56b20d executed in Session 1 as interactive login principal; Python, uv, gh, cargo, rustc and pnpm resolved from user mise shims.",
         "Source-cut d5feba66df0c963f717b6572b381d11b08f45db1; Runtime execution success is not domain/application acceptance.",
         "2026-10-25 direct Windows Runtime negative counterexample: windows_native active_user execution of login-user-owned Mise Python shim rejects at admission before a Job with canonicalize executable: Access is denied (os error 5); exact shared Program Files Git executable under the same active_user context succeeded, Runtime Job job-01a17057-dcc0-79c3-b670-a2b273089cb4 (exit 0). This proves a context-relative executable admission gap, not uninstalled Python, permission to bypass execution roots, or failure of all Windows active_user jobs.",
-        "Source-bound Rust trace: services/runtime/crates/ordivon-runtime-core/src/runtime/engine/execution.rs resolve_plan validates executable through self.executor before snapshot_windows_runtime_context_for(requested_windows_context); service-side ACL resolution and configured allowed executable roots must be separately falsified against the requested active_user principal."
+        "Source-bound Rust trace: services/runtime/crates/ordivon-runtime-core/src/runtime/engine/execution.rs resolve_plan validates executable through self.executor before snapshot_windows_runtime_context_for(requested_windows_context); service-side ACL resolution and configured allowed executable roots must be separately falsified against the requested active_user principal.",
+        "2026-10-25 native Git counterexample: GIT_CONFIG_GLOBAL pointing to a file containing safe.directory=* combined with later git -c safe.directory=<exact-workspace> projected BOTH trust entries; the latter does not remove the wildcard. Rust native negative test windows_active_user_git_workspace_trust_rejects_external_config_redirection RED job-01a17311-8db0-7823-a761-c440ba19cc3d then GREEN job-01a17313-a196-7c12-aa98-c16f83ef83f0; existing active_user Git environment tests also green. Source Owner: crates/ordivon-runtime-core/src/runtime/windows.rs. No new Git authority or global config edits.",
+        "2026-10-25 physical Windows provider: service limited Session 0 job-01a1730f-459d-7443-90cc-9dcc5df183df showed Python/uv/gh/cargo/rustc/pnpm NOT_ON_PATH; active_user Session 1 job-01a1730f-5d14-7da3-b516-c8cc278fad31 resolved them to user mise shims, all six observed the SAME shim SHA256 prefix 03C555B343B0EE5171E7. Shim digest alone does not attest underlying tool identity/version. No direct user-private executable admission was proven.",
+        "2026-10-25 Git official safe.directory semantics and native Git counterexample: a preceding protected wildcard and a later exact path accumulate, whereas a command-scoped empty safe.directory between them resets the list. Existing Runtime Windows Git environment now encodes two ordered command entries, empty reset then exact path, with 62-entry positive and 63-entry capacity-negative native Rust controls. Source file windows.rs; Linux source-level test proof, Windows deployment still UNKNOWN."
       ],
       "blockers": [
         "Current Windows admission policy, executable path-resolution ownership and provider actor/session attestations require source-bound inspection; no production change is inferred from this planning item."
@@ -1052,7 +1060,8 @@
     "Public interface remains intentionally pre-1.0.",
     "contained_local remains experimental within its declared reduced-authority boundary.",
     "Windows Long Paths admission evidence remains unimplemented.",
-    "No current production need justifies hostile-code isolation, non-systemd Linux, macOS, remote scheduling, generic effects or a provider marketplace inside Runtime."
+    "No current production need justifies hostile-code isolation, non-systemd Linux, macOS, remote scheduling, generic effects or a provider marketplace inside Runtime.",
+    "2026-10-25 R15 restore operator source-bound CEGAR: immutable snapshot verification and copied staging re-verification exclude intermediate-parent symlink aliases, bool size aliases, and content substitutions between source validation and staging publication. Accepted finite file tests do not prove race-free access against malicious concurrent filesystem writers (requires descriptor-relative/no-follow path witness)."
   ],
   "doNotOwn": [
     "Host Task truth",

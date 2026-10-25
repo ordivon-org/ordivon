@@ -108,7 +108,9 @@
         "formal/ProviderClaimR1.tla",
         "tests/test_p0_standalone_runner.py",
         "scripts/sqlite_conversation_materializer.py",
-        "tests/test_sqlite_materializer_transaction_guard.py"
+        "tests/test_sqlite_materializer_transaction_guard.py",
+        "tests/test_p0_sqlite_agent_loop.py",
+        "tests/test_provider_claim_formal_gate.py"
       ],
       "dependencies": [],
       "mustNotOwn": [
@@ -120,6 +122,7 @@
         "Temporal Worker deployment derives four exact runtime package versions solely from the installed requirements freeze, rejects stale/invalid source projections, and evaluates runtimeVersionsExact using one observed interpreter state per Plan.",
         "Finite model separates at-most-one physical Provider effect, durable result, ambiguous outcome and caller acknowledgement. Live delivery is not entailed by TLC PASS.",
         "Durable ConversationRelay SQLite materialization transitions validate the exact post-write receipt before COMMIT; missing or malformed readback must ROLLBACK and fail with CarrierConflict. This contract holds for intent, effect attempt, ordinary outcome, and human-resume claim under Python -O, without claiming external provider atomicity.",
+        "A durable Provider completion digest is not caller acknowledgement: native TLC must prove acknowledgement requires fresh or privacy-authorized retained result, and metadata-only redaction remains independently reachable. Concrete SQLite replay/recovery tests and the separately merged #668 12-worker consumer remain required; bounded model PASS alone does not prove implementation refinement.",
         "The Python -O qualification requires executable, non-elided SQL-state postconditions for adverse receipt markers and persisted row standings; two deliberately unequal witnesses must still raise AssertionError in both optimized and standard interpreters. A pytest exit-zero without these checks is not durable receipt proof."
       ]
     }
@@ -165,7 +168,8 @@
   ],
   "gaps": [
     "2026-10-24 audit: current end-to-end evidence for chained Tool authority and detector-to-stop-to-effect reconciliation is UNKNOWN; see docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261024_R1.json.",
-    "2026-10-25 Harness environment source/loaded-currentness: the existing deployment --check now requires the systemd loaded Type, FragmentPath, absence of DropInPaths and NeedDaemonReload=no to agree with the exact source-owned Unit. Native checker and adversarial owner tests are the acceptance; live installed Python/SQLite, loaded process and consumer restart remain independently UNKNOWN/FAIL until owner release qualification. Do not equate ActiveState=active to source-qualified deployment."
+    "2026-10-25 Harness environment source/loaded-currentness: the existing deployment --check now requires the systemd loaded Type, FragmentPath, absence of DropInPaths and NeedDaemonReload=no to agree with the exact source-owned Unit. Native checker and adversarial owner tests are the acceptance; live installed Python/SQLite, loaded process and consumer restart remain independently UNKNOWN/FAIL until owner release qualification. Do not equate ActiveState=active to source-qualified deployment.",
+    "2026-10-25 Harness rollback consumer gap: previous and staging directories may contain unconsumed recovery artifacts. Existing MCP converge_runtime now rejects preexisting unresolved artifacts, checks an explicit interpreter before effects, removes only this attempt staging, and preserves the old runtime after candidate qualification until independent live process/consumer verification; see scripts/agent_automation_mcp_deploy.py and tests/test_agent_automation_mcp_deploy.py. The post-switch consumer proof and authorized old-backup retirement remain UNKNOWN."
   ],
   "doNotOwn": [
     "Host Task truth",
