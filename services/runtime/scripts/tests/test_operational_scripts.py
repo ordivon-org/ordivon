@@ -188,7 +188,7 @@ class OperationalScriptTests(unittest.TestCase):
         self.assertIn('export CARGO_TARGET_DIR="$acceptance_target_dir"', local_acceptance)
         self.assertIn("cargo metadata --no-deps --format-version 1", local_acceptance)
         self.assertIn('["target_directory"]', local_acceptance)
-        self.assertNotIn('$repo/target/debug/ordivon-runtime-runner', local_acceptance)
+        self.assertNotIn("$repo/target/debug/ordivon-runtime-runner", local_acceptance)
         self.assertIn('metadata["target_directory"]', mcp_e2e)
         self.assertNotIn('repo / "target/debug/ordivon-runtime"', mcp_e2e)
 
@@ -199,7 +199,7 @@ class OperationalScriptTests(unittest.TestCase):
         self.assertIn("metadata --locked --no-deps --format-version 1", owner)
         self.assertIn('inspect_dir="$env_dir/runtime-bin"', owner)
         self.assertIn('install -m 0755 "$source_inspect"', owner)
-        self.assertIn('export ORDIVON_RUNTIME_INSPECT=', owner)
+        self.assertIn("export ORDIVON_RUNTIME_INSPECT=", owner)
         self.assertIn('cmp -s "$source_inspect"', owner)
 
     def test_owner_environment_test_lifecycle_is_public_and_non_qualifying(self) -> None:
@@ -230,9 +230,7 @@ class OperationalScriptTests(unittest.TestCase):
         verify = mise.split("[tasks.verify]", 1)[1]
         property_name = "request_identity_and_terminal_winner_match_reference_model"
         transactional = next(
-            line
-            for line in verify.splitlines()
-            if "cargo test --locked -p ordivon-runtime-core" in line
+            line for line in verify.splitlines() if "cargo test --locked -p ordivon-runtime-core" in line
         )
         self.assertIn(f"--skip {property_name}", transactional)
         self.assertEqual(verify.count("scripts/owner-environment extended"), 1)
@@ -243,7 +241,7 @@ class OperationalScriptTests(unittest.TestCase):
             extended,
         )
         self.assertNotIn(
-            'test --locked -p ordivon-runtime-core request_identity_and_terminal_winner_match_reference_model',
+            "test --locked -p ordivon-runtime-core request_identity_and_terminal_winner_match_reference_model",
             extended,
         )
 
@@ -272,6 +270,90 @@ class OperationalScriptTests(unittest.TestCase):
         self.assertIn("--features systemd-supervisor", acceptance)
         self.assertIn("ORDIVON_RUN_SYSTEMD_SPIKE=1", acceptance)
 
+    def test_restore_rejects_symlinked_manifest_parent(self) -> None:
+        # A final file may be regular even though an intermediate directory
+        # escapes the snapshot through a symlink.
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            snapshot = root / "snapshot"
+            outside = root / "outside"
+            snapshot.mkdir()
+            outside.mkdir()
+            database = snapshot / "registry.sqlite3"
+            with closing(sqlite3.connect(database)) as connection:
+                connection.execute("CREATE TABLE jobs (id TEXT PRIMARY KEY)")
+            private = outside / "external.txt"
+            private.write_text("external consumer secret", encoding="utf-8")
+            (snapshot / "control").mkdir()
+            (snapshot / "control" / "alias").symlink_to(outside, target_is_directory=True)
+            records = [
+                {"path": "registry.sqlite3", "bytes": database.stat().st_size, "digest": restore.sha256_file(database)},
+                {
+                    "path": "control/alias/external.txt",
+                    "bytes": private.stat().st_size,
+                    "digest": restore.sha256_file(private),
+                },
+            ]
+            (snapshot / "manifest.json").write_text(
+                json.dumps({"schemaVersion": 1, "files": records}), encoding="utf-8"
+            )
+            with self.assertRaisesRegex(ValueError, "symlink"):
+                restore.load_and_verify(snapshot)
+            self.assertFalse((root / "restored").exists())
+
+    def test_restore_rejects_boolean_size_alias(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            snapshot = root / "snapshot"
+            snapshot.mkdir()
+            database = snapshot / "registry.sqlite3"
+            with closing(sqlite3.connect(database)) as connection:
+                connection.execute("CREATE TABLE jobs (id TEXT PRIMARY KEY)")
+            witness = snapshot / "witness.txt"
+            witness.write_bytes(b"X")
+            records = [
+                {"path": "registry.sqlite3", "bytes": database.stat().st_size, "digest": restore.sha256_file(database)},
+                {"path": "witness.txt", "bytes": True, "digest": restore.sha256_file(witness)},
+            ]
+            (snapshot / "manifest.json").write_text(
+                json.dumps({"schemaVersion": 1, "files": records}), encoding="utf-8"
+            )
+            with self.assertRaisesRegex(ValueError, "invalid byte length"):
+                restore.load_and_verify(snapshot)
+
+    def test_restore_refuses_source_mutation_between_check_and_copy(self) -> None:
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            snapshot = root / "snapshot"
+            snapshot.mkdir()
+            database = snapshot / "registry.sqlite3"
+            with closing(sqlite3.connect(database)) as connection:
+                connection.execute("CREATE TABLE jobs (id TEXT PRIMARY KEY)")
+            note = snapshot / "note.txt"
+            note.write_bytes(b"GOOD")
+            records = [
+                {"path": "registry.sqlite3", "bytes": database.stat().st_size, "digest": restore.sha256_file(database)},
+                {"path": "note.txt", "bytes": 4, "digest": restore.sha256_file(note)},
+            ]
+            (snapshot / "manifest.json").write_text(
+                json.dumps({"schemaVersion": 1, "files": records}), encoding="utf-8"
+            )
+            actual_copy = restore.shutil.copy2
+
+            def changed_copy(source, destination, *args, **kwargs):
+                copied = actual_copy(source, destination, *args, **kwargs)
+                if Path(source).name == "note.txt":
+                    Path(destination).write_bytes(b"EVIL")
+                return copied
+
+            restored = root / "restored"
+            with patch.object(restore.shutil, "copy2", side_effect=changed_copy):
+                with self.assertRaisesRegex(ValueError, "digest mismatch"):
+                    restore.restore_snapshot(snapshot, restored)
+            self.assertFalse(restored.exists())
+
     def test_restore_rejects_digest_mismatch(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -284,15 +366,15 @@ class OperationalScriptTests(unittest.TestCase):
                 json.dumps(
                     {
                         "schemaVersion": 1,
-                        "files": [{"path": "registry.sqlite3", "bytes": database.stat().st_size, "digest": "sha256:bad"}],
+                        "files": [
+                            {"path": "registry.sqlite3", "bytes": database.stat().st_size, "digest": "sha256:bad"}
+                        ],
                     }
                 ),
                 encoding="utf-8",
             )
             with self.assertRaisesRegex(ValueError, "digest mismatch"):
                 restore.restore_snapshot(snapshot, root / "restored")
-
-
 
 
 if __name__ == "__main__":
