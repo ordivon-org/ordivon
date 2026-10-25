@@ -3,6 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 import tempfile
 
+import pytest
+
 from anc_canonical import canonical_digest
 
 from ordivon_harness.agent_plugin import AgentPluginMcpComponent
@@ -21,10 +23,12 @@ from ordivon_harness.ordivon.model import (
 )
 from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
 from ordivon_harness.plugin_gateway_effect import (
+    GatewayMcpRuntimeAdapter,
     PluginGatewayExecutionBridgeFactory,
     PluginGatewayExecutionGrant,
 )
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from ordivon_harness.runtime_port import HarnessRuntimeClientError
 
 
 class FixedClock:
@@ -134,6 +138,8 @@ class GatewayExecutionFixture:
                 "recovery_required": False,
                 "artifacts_available": False,
                 "artifact_ids": [],
+                "artifact_count": 0,
+                "artifact_projection_complete": True,
             }
         raise AssertionError(f"unexpected Gateway Tool: {name}")
 
@@ -370,3 +376,66 @@ def test_gateway_effect_grant_rejects_ambient_execution_authority() -> None:
     assert "workspaceId" not in schema["properties"]
     assert "requestId" not in schema["properties"]
     assert "context" not in schema["properties"]
+
+@pytest.mark.parametrize(
+    ("mutation", "label"),
+    (
+        (lambda payload: payload.pop("delivery_disposition"), "delivery"),
+        (lambda payload: payload.update(delivery_disposition="definitely"), "delivery"),
+        (lambda payload: payload.update(operation_ref="ordivon-exec:v1:runtime.linux:other"), "operation"),
+        (lambda payload: payload.pop("artifact_projection_complete"), "artifact"),
+        (lambda payload: payload.update(artifact_count=1), "artifact"),
+    ),
+)
+def test_gateway_adapter_rejects_unproven_committed_terminal(mutation, label) -> None:
+    """CEGAR: physical terminal cannot launder missing Gateway delivery/artifact proof."""
+    class ForgedTerminal(GatewayExecutionFixture):
+        def call_tool(self, name, arguments):
+            is_error, payload = super().call_tool(name, arguments)
+            if name == "execution.get":
+                payload["artifact_projection_complete"] = True
+                payload["artifact_count"] = 0
+                mutation(payload)
+            return is_error, payload
+
+    client = ForgedTerminal()
+    adapter = GatewayMcpRuntimeAdapter(
+        AgentPluginMcpComponent(
+            name="ordivon-gateway",
+            transport="streamable-http",
+            url="https://gateway-mcp.ordivon.com/mcp",
+        ),
+        client,
+        _factory(client).execution_grant,
+    )
+    with pytest.raises(HarnessRuntimeClientError, match=label):
+        adapter._observe_operation(client.operation_ref, client.native_id, wait_ms=0)
+
+
+def test_gateway_adapter_waits_for_committed_but_incomplete_artifact_projection() -> None:
+    """A durable physical result is not an exact consumer artifact inventory."""
+    class PendingArtifacts(GatewayExecutionFixture):
+        def call_tool(self, name, arguments):
+            is_error, payload = super().call_tool(name, arguments)
+            if name == "execution.get":
+                payload.update(
+                    artifact_projection_complete=False,
+                    artifact_count=2,
+                    artifact_ids=[],
+                )
+            return is_error, payload
+
+    client = PendingArtifacts()
+    adapter = GatewayMcpRuntimeAdapter(
+        AgentPluginMcpComponent(
+            name="ordivon-gateway",
+            transport="streamable-http",
+            url="https://gateway-mcp.ordivon.com/mcp",
+        ),
+        client,
+        _factory(client).execution_grant,
+    )
+    observed = adapter._observe_operation(client.operation_ref, client.native_id, wait_ms=0)
+    assert observed["deliveryDisposition"] == "reconciliation_required"
+    assert observed["recoveryRequired"] is True
+    assert observed["resultAvailable"] is False

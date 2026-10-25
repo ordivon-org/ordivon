@@ -291,6 +291,10 @@ class GatewayMcpRuntimeAdapter:
             "execution.get",
             {"operationRef": operation_ref, "eventLimit": 10, "waitMs": wait_ms},
         )
+        if _required_text(
+            _gateway_field(observed, "operation_ref", "operationRef"), "operationRef"
+        ) != operation_ref:
+            raise HarnessRuntimeClientError("Gateway observation changed operation identity")
         if (
             _required_text(_gateway_field(observed, "native_id", "nativeId"), "nativeId")
             != native_id
@@ -300,8 +304,10 @@ class GatewayMcpRuntimeAdapter:
         if not isinstance(terminal, bool):
             raise HarnessRuntimeClientError("Gateway observation omitted terminal")
         delivery = _gateway_field(observed, "delivery_disposition", "deliveryDisposition")
-        if not isinstance(delivery, str):
-            delivery = "committed" if terminal else "in_progress"
+        if delivery not in {
+            "committed", "reconciliation_required", "unknown", "in_progress"
+        }:
+            raise HarnessRuntimeClientError("Gateway deliveryDisposition is missing or invalid")
         disposition = _gateway_field(observed, "execution_disposition", "executionDisposition")
         if disposition is not None and not isinstance(disposition, str):
             raise HarnessRuntimeClientError("Gateway executionDisposition is invalid")
@@ -314,9 +320,40 @@ class GatewayMcpRuntimeAdapter:
         if artifact_ids is None:
             artifact_ids = []
         if not isinstance(artifact_ids, list) or any(
-            not isinstance(item, str) for item in artifact_ids
+            not isinstance(item, str) or not item for item in artifact_ids
         ):
             raise HarnessRuntimeClientError("Gateway artifactIds are invalid")
+
+        projection_complete = _gateway_field(
+            observed, "artifact_projection_complete", "artifactProjectionComplete"
+        )
+        artifact_count = _gateway_field(observed, "artifact_count", "artifactCount")
+        if artifact_count is not None and (
+            type(artifact_count) is not int or artifact_count < 0
+        ):
+            raise HarnessRuntimeClientError("Gateway artifactCount is invalid")
+        if terminal and delivery == "committed" and not recovery:
+            if type(projection_complete) is not bool:
+                raise HarnessRuntimeClientError(
+                    "Gateway artifact projection completeness is missing or invalid"
+                )
+            if not projection_complete:
+                # Physical completion and committed delivery are not sufficient
+                # until the exact consumer-visible artifact set is projected.
+                delivery = "reconciliation_required"
+                recovery = True
+            elif artifact_count is not None and artifact_count != len(artifact_ids):
+                raise HarnessRuntimeClientError(
+                    "Gateway artifact count differs from exact artifact identities"
+                )
+        result_available = (
+            terminal
+            and not recovery
+            and (
+                delivery == "unknown"
+                or (delivery == "committed" and projection_complete is True)
+            )
+        )
         return {
             "jobId": native_id,
             "status": _required_text(observed.get("state"), "state"),
@@ -324,7 +361,7 @@ class GatewayMcpRuntimeAdapter:
             "executionDisposition": disposition,
             "deliveryDisposition": delivery,
             "recoveryRequired": recovery,
-            "resultAvailable": terminal,
+            "resultAvailable": result_available,
             "semanticCompletionEvaluated": False,
             "exitCode": _gateway_field(observed, "exit_code", "exitCode"),
             "artifactsAvailable": bool(artifact_ids),
