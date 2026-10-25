@@ -124,3 +124,17 @@ The native `formal:verify` task also checks the model is **non-vacuous**:
 a dedicated expected-counterexample config must make TLC find an admitted
 Network degradation. A missing transition or incorrectly restricted model
 therefore fails owner verification instead of silently yielding four PASSes.
+
+## R2.1 COMP-TERM-01: committed terminal evidence is independent of observed terminal (2026-10-25)
+
+**Typed problem LEGO:** COMP-TERM-01 = {class: STATE / EVIDENCE_QUALIFICATION / CROSS_OWNER, naturalOwner: Composition Formal, consumers: Host Work acceptance and Runtime terminal-result source, standing: FINITE_MODEL_VERIFIED; IMPLEMENTATION_REFINEMENT_UNKNOWN}. Registered here in the existing owner-owned Formal README and native tests; no new global issue registry, scheduler, verifier or proof language.
+
+**Counterexample-guided question.** The former four-Owner composition model represented a terminal Runtime and matching domain evidence, but did not separately represent the durability of the terminal result. A matching Consumer observation does not automatically establish a committed Runtime receipt. Runtime's existing RuntimeDispatchR1 model has a distinct TerminalEvidenceIsCommitted obligation: reuse its assumed meaning at the Composition boundary without copying Runtime private Registry code.
+
+**Refinement.** Add a finite variable terminalReceipt in {none, pending, committed}. RuntimeObserveTerminal marks pending; RuntimeCommitTerminal independently marks committed. HostAccept needs consumerEvidence=matching AND terminalReceipt=committed. Admission/dispatch Network and Harness optionality are unchanged. Safety invariant NoHostAcceptanceWithoutCommittedTerminalReceipt requires host=accepted => terminalReceipt=committed.
+
+**Concrete bounded evidence (native SHA-256-verified TLA+ Tools v1.7.4, TLC 2.19):** Harness+Network 24 distinct / 52 generated states; direct-local 44 / 124; direct-egress 44 / 118; Harness-local 24 / 54. No admitted safety invariant violation. A deliberately false PendingMatchedTerminalReceiptIsUnreachable condition produced an actual TLC trace RuntimeAdmit -> RuntimeDispatch -> RuntimeObserveTerminal -> ConsumerObserve, with terminalReceipt=pending, consumerEvidence=matching, host=open. In a temporary RED copy, removing only HostAccept's committed-receipt guard yielded a named NoHostAcceptanceWithoutCommittedTerminalReceipt violation with host=accepted, terminalReceipt=pending. The temporary mutation was not committed. The existing native formal:verify task now requires the named reachable counterexample as a non-vacuity gate.
+
+**Proof boundary.** This is a finite abstract state-machine result, NOT a machine proof that live Host/Runtime always preserve the invariant. Model RuntimeCommitTerminal is an abstract owner guarantee, not proof of physical database commit. Concrete follow-up requires exact Work, Attempt, SourceCut, Runtime committed result, and independent domain-acceptance witnesses from their native owners. Semantic task success, fairness/liveness, bounded completion, real network authority, exact-once external effects and Rust-to-TLA refinement remain UNKNOWN. No automatic promotion from a model PASS to production PASS. No generic Minimum Sufficient Representation assumption.
+
+Mathematical LEGO reused: Lamport TLA+ transition systems and TLC; assume-guarantee contract composition; counterexample-guided abstraction refinement (Clarke et al., CAV 2000, DOI 10.1007/10722167_15). No new math engine.
