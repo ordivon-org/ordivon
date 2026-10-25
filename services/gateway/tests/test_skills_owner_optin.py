@@ -21,7 +21,9 @@ def test_skills_url_without_bearer_identity_fails_closed(monkeypatch: pytest.Mon
     caller = McpOwnerCaller.from_env()
     assert caller.configuration_error("skills") == "owner authentication is not configured"
     with pytest.raises(OwnerCallError) as failure:
-        asyncio.run(caller.call_tool("skills", "skills.resolve", {"ref": "recursive-lego-calculus"}))
+        asyncio.run(
+            caller.call_tool("skills", "skills.resolve", {"ref": "recursive-lego-calculus"})
+        )
     assert failure.value.error == {
         "code": "OWNER_AUTH_NOT_CONFIGURED",
         "message": "owner authentication is not configured",
