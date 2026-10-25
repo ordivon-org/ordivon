@@ -56,7 +56,8 @@
         "crates/ordivon-runtime-mcp/src/server/tests/tool_catalog.rs",
         "crates/ordivon-runtime-mcp/src/server/tests/projection_contract.rs",
         "mise.toml",
-        "scripts/tests/test_focused_verification_contract.py"
+        "scripts/tests/test_focused_verification_contract.py",
+        "scripts/tests/test_deploy_reclaim.py::DeployReclaimTests.test_disposable_git_fixture_never_schedules_implicit_maintenance"
       ],
       "dependencies": [
         "R00"
@@ -69,7 +70,8 @@
         "Contract tests are runnable independently from provider/system acceptance.",
         "No semantic behavior change is required to complete the split.",
         "Focused verification fails closed when its selector matches zero tests; PASS requires at least one selected test and every selected test to pass.",
-        "The focused verifier reuses pinned cargo-nextest through mise test:focused; Runtime does not add a second custom focused-test runner."
+        "The focused verifier reuses pinned cargo-nextest through mise test:focused; Runtime does not add a second custom focused-test runner.",
+        "CI temporary Git and bare-remote fixtures explicitly disable asynchronous auto-gc/maintenance; the exact test checks both repository configs and the same-source deploy/reclaim CDC. This addresses fixture teardown race risk but does not replace owner environment or protected CI evidence."
       ],
       "nextAction": "Treat R01-V1 as the canonical focused verification LEGO; split additional tests only when a concrete consumer or feedback problem justifies it."
     },
