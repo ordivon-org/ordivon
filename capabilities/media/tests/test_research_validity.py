@@ -98,7 +98,7 @@ class ResearchValidityTest(unittest.TestCase):
         )["migrate"]
         with tempfile.TemporaryDirectory() as temporary:
             db = Path(temporary) / "empty.sqlite"
-            with sqlite3.connect(db) as source:
+            with closing(sqlite3.connect(db)) as source, source:
                 source.execute(
                     "CREATE TABLE trial_events("
                     "seq INTEGER PRIMARY KEY, event_id TEXT, search_id TEXT,"
