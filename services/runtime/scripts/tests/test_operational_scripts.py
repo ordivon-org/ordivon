@@ -31,6 +31,50 @@ mcp_e2e = load_script("mcp_e2e")
 
 
 class OperationalScriptTests(unittest.TestCase):
+    def test_sqlite_backup_uri_preserves_exact_filename_with_reserved_chars(self) -> None:
+        for name in ("registry#history.sqlite3", "registry?select.sqlite3", "registry%3Fraw.sqlite3"):
+            with self.subTest(filename=name), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                original = root / name
+                with closing(sqlite3.connect(original)) as conn:
+                    conn.execute("CREATE TABLE receipts (v TEXT NOT NULL)")
+                    conn.execute("INSERT INTO receipts VALUES ('correct-source')")
+                    conn.commit()
+                copied = root / "backup.sqlite3"
+                backup.sqlite_backup(original, copied)
+                with closing(sqlite3.connect(copied)) as conn:
+                    self.assertEqual(conn.execute("SELECT v FROM receipts").fetchall(), [("correct-source",)])
+                self.assertFalse((root / "registry").exists())
+
+    def test_sqlite_backup_never_accepts_valid_but_wrong_database(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            expected = root / "registry#bound.sqlite3"
+            wrong = root / "registry"
+            for path, identity in ((expected, "admitted"), (wrong, "unrelated")):
+                with closing(sqlite3.connect(path)) as conn:
+                    conn.execute("CREATE TABLE lineage (identity TEXT NOT NULL)")
+                    conn.execute("INSERT INTO lineage VALUES (?)", (identity,))
+                    conn.commit()
+            output = root / "backup.sqlite3"
+            backup.sqlite_backup(expected, output)
+            with closing(sqlite3.connect(output)) as conn:
+                self.assertEqual(
+                    conn.execute("SELECT identity FROM lineage").fetchall(),
+                    [("admitted",)],
+                )
+
+    def test_restore_sqlite_uri_rejects_wrong_database_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            tampered = root / "registry#outside.sqlite3"
+            tampered.write_bytes(b"not a sqlite database")
+            with self.assertRaises(sqlite3.DatabaseError):
+                restore.verify_sqlite(tampered)
+            # A # in the intended filename must never be parsed as a URI
+            # fragment and open/create a different empty SQLite database.
+            self.assertFalse((root / "registry").exists())
+
     def test_backup_restore_round_trip(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
