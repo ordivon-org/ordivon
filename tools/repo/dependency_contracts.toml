@@ -151,6 +151,15 @@ allowed_fragment = "platform/security/contracts/agent-request-verifier-v1"
 kind = "TEST_ONLY_ENVIRONMENT_BINDING"
 contract_ref = "platform/security/contracts/agent-request-verifier-v1/README.md"
 
+# Harness consumes only Runtime's SHA-verified public upstream checker.
+[[seams]]
+from_owner = "harness"
+to_owner = "runtime"
+source_glob = "services/harness/mise.toml"
+allowed_fragment = "../../services/runtime"
+kind = "PUBLIC_PINNED_FORMAL_TOOLCHAIN"
+contract_ref = "services/runtime/formal/README.md"
+
 # Public digest-verified upstream Formal toolchain; not Runtime Job/Attempt state.
 [[seams]]
 from_owner = "composition"

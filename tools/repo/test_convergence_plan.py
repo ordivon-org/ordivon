@@ -119,10 +119,29 @@ class ConvergencePlanTests(unittest.TestCase):
         graph = MODULE.load_dependency_graph()
         self.assertNotIn("runtime", graph["composition"])
         self.assertNotIn("composition", graph["runtime"])
+        self.assertNotIn("runtime", graph["harness"])
+        self.assertNotIn("harness", graph["runtime"])
         # Existing public code/data dependencies must still propagate.
         self.assertIn("composition", graph["next"])
         runtime = MODULE.build_plan(changed_files=["services/runtime/crates/ordivon-runtime-core/src/lib.rs"])
         self.assertEqual(runtime["verificationOwners"], ["runtime"])
+
+    def test_formal_toolchain_exception_rejects_unapproved_consumer_paths(self) -> None:
+        """The tool-only exemption is an exact named file, not owner authority."""
+        policy = MODULE.DEPENDENCY_PATH.read_text(encoding="utf-8")
+        known = 'source_glob = "services/harness/mise.toml"'
+        assert known in policy
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "dependency_contracts.toml"
+            path.write_text(
+                policy.replace(
+                    known,
+                    'source_glob = "services/harness/src/ordivon_harness/standalone.py"',
+                ),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "unapproved upstream toolchain-only seam"):
+                MODULE.load_dependency_graph(path=path)
 
     def test_dependency_graph_rejects_unknown_owner(self) -> None:
         content = """schema_version = 1
