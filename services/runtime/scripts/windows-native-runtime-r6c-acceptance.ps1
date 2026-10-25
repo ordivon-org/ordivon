@@ -1,7 +1,7 @@
 #requires -version 5.1
 [CmdletBinding()]
 param(
-    [ValidateSet('Status', 'AuthorityProfile', 'PrepareFixture', 'CrashRecovery', 'ActiveJobRecovery', 'CancelJob')]
+    [ValidateSet('Status', 'AuthorityProfile', 'WorkspaceCwdAdmission', 'PrepareFixture', 'CrashRecovery', 'ActiveJobRecovery', 'CancelJob')]
     [string]$Mode = 'Status',
 
     [string]$ServiceName = 'OrdivonRuntimeR6Candidate',
@@ -470,6 +470,125 @@ $rid = [int](($integrity.Sid -split '-')[-1])
     }
 }
 
+
+# A source/identity-qualified native consumer acceptance, separate from the
+# launcher-local deny preflight. A succeeded Job is not a successful Workspace
+# operation if the target was silently started in another working directory.
+function Invoke-WorkspaceCwdAdmission {
+    Assert-CurrentTokenIsCandidateServiceIdentity
+    $runtime = Get-RuntimeDescribe -Id 340
+    $windowsNative = @($runtime.targets | Where-Object { $_.target -eq 'windows_native' })[0]
+    if ($null -eq $windowsNative -or
+        @($windowsNative.windowsAuthorities) -notcontains 'active_user') {
+        throw 'candidate has no active_user Windows execution capability.'
+    }
+
+    $repo = Ensure-TestRepository
+    $workspaceId = ('ws-r6c-cwd-identity-' + [Guid]::NewGuid().ToString('N').Substring(0, 14))
+    $opened = Invoke-McpTool -Name 'workspace.open' -Arguments @{
+        schemaVersion = 1
+        workspaceId = $workspaceId
+        sourceRepo = $repo.path
+        sourceRevision = $repo.revision
+    } -Id 341
+    if ([string]$opened.workspaceId -ne $workspaceId) {
+        throw 'candidate returned a different Workspace identity.'
+    }
+
+    try {
+        $powershell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+        $probe = @'
+$id = [Security.Principal.WindowsIdentity]::GetCurrent()
+if ($null -eq $id.User) { throw "target user SID is missing" }
+[ordered]@{
+    userSid = $id.User.Value
+    actualCwd = [IO.Path]::GetFullPath((Get-Location).ProviderPath)
+} | ConvertTo-Json -Compress
+'@
+        function Invoke-CwdIdentityJob([string]$Authority, [int]$Id) {
+            $execution = @{
+                workspaceId = $workspaceId
+                executable = $powershell
+                args = @('-NoProfile', '-NonInteractive', '-Command', $probe)
+                cwdRelative = '.'
+                executionTarget = 'windows_native'
+                windowsAuthority = $Authority
+                timeoutMs = 20000
+                stdoutLimitBytes = 16384
+                stderrLimitBytes = 16384
+            }
+            return Invoke-McpTool -Name 'workspace.exec' -Arguments @{
+                schemaVersion = 1
+                clientRequestId = ('r6c-cwd-' + $Authority + '-' + [Guid]::NewGuid().ToString('N'))
+                execution = $execution
+                waitMs = 30000
+                stdoutTailBytes = 16384
+                stderrTailBytes = 16384
+            } -Id $Id
+        }
+
+        $limited = Invoke-CwdIdentityJob -Authority 'limited' -Id 342
+        if ($limited.executionTerminal -ne $true -or
+            $limited.executionDisposition -ne 'succeeded') {
+            throw 'candidate limited Workspace CWD baseline did not succeed.'
+        }
+        $baseline = ([string]$limited.stdoutTail).Trim() | ConvertFrom-Json
+        $expectedCwd = [IO.Path]::GetFullPath([string]$baseline.actualCwd).TrimEnd('\')
+        if (-not $expectedCwd.EndsWith(('\' + $workspaceId), [StringComparison]::OrdinalIgnoreCase)) {
+            throw 'candidate limited baseline does not end at the opened Workspace identity.'
+        }
+
+        $active = Invoke-CwdIdentityJob -Authority 'active_user' -Id 343
+        if ($active.executionTerminal -ne $true) {
+            throw 'active-user Workspace Job is unresolved; no semantic acceptance.'
+        }
+        if ($active.executionDisposition -ne 'succeeded') {
+            throw ("active-user Workspace execution is not operationally qualified: " +
+                [string]$active.executionDisposition + " jobId=" + [string]$active.jobId)
+        }
+
+        $actual = ([string]$active.stdoutTail).Trim() | ConvertFrom-Json
+        $actualCwd = [IO.Path]::GetFullPath([string]$actual.actualCwd).TrimEnd('\')
+        if (-not [String]::Equals($expectedCwd, $actualCwd, [StringComparison]::OrdinalIgnoreCase)) {
+            throw ("active-user target ran outside the bound Workspace: expectedCwd=" +
+                $expectedCwd + " actualCwd=" + $actualCwd)
+        }
+        if ([String]::Equals([string]$baseline.userSid, [string]$actual.userSid,
+                [StringComparison]::OrdinalIgnoreCase)) {
+            throw 'active-user Workspace job reused the service principal unexpectedly.'
+        }
+
+        return [ordered]@{
+            schemaVersion = 1
+            mode = 'WorkspaceCwdAdmission'
+            workspaceId = $workspaceId
+            limitedJobId = $limited.jobId
+            activeUserJobId = $active.jobId
+            expectedCwd = $expectedCwd
+            actualCwd = $actualCwd
+            activeUserSid = [string]$actual.userSid
+            passed = $true
+        }
+    }
+    finally {
+        # Source-digest CAS, active-Job fence and consumer checks remain Runtime
+        # authority; never force-delete a possibly changed physical Workspace.
+        $state = Invoke-McpTool -Name 'workspace.get' -Arguments @{
+            schemaVersion = 1
+            workspaceId = $workspaceId
+        } -Id 344
+        $closed = Invoke-McpTool -Name 'workspace.close' -Arguments @{
+            schemaVersion = 1
+            workspaceId = $workspaceId
+            expectedSourceStateDigest = [string]$state.sourceStateDigest
+            force = $false
+        } -Id 345
+        if ($closed.closureDisposition -notin @('removed', 'already_closed')) {
+            throw 'candidate test Workspace did not close with an exact source digest.'
+        }
+    }
+}
+
 function Invoke-ActiveJobRecovery {
     if (-not $ApplyFault) {
         throw 'ActiveJobRecovery requires -ApplyFault.'
@@ -601,6 +720,9 @@ switch ($Mode) {
     }
     'AuthorityProfile' {
         (Invoke-AuthorityProfile) | ConvertTo-Json -Depth 16
+    }
+    'WorkspaceCwdAdmission' {
+        (Invoke-WorkspaceCwdAdmission) | ConvertTo-Json -Depth 16
     }
     'PrepareFixture' {
         [IO.Directory]::CreateDirectory($AcceptanceRoot) | Out-Null
