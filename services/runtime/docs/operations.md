@@ -382,11 +382,15 @@ its underlying carrier. Unit-file inspection is read-only, bounded and
 fail-closed for unreadable unit sources. This protects the normal Linux
 lifecycle sweep against one observed cross-owner fault class: a Paper1 systemd
 unit remained installed after its Workspace disappeared and could no longer
-start. It does **not** establish all consumer absence, cover other nodes or
+start. More importantly, the same class of installed unit reference is checked
+in the Rust `workspace.close` physical source-removal path after open identity
+readback, so direct close and the separate low-level reclaim caller cannot
+bypass this host-local boundary simply by omitting lifecycle preflight. Closed
+tombstone replay remains independent of missing old Workspace directories.
+The Rust check does **not** establish all consumer absence, cover other nodes or
 prove freedom from a concurrent unit-file deployment between inspection and
-Runtime close. Direct `workspace.close` and the separate low-level reclaim
-caller have their own authority and are not protected by this lifecycle-only
-external unit inspection.
+Runtime close. It is no substitute for authenticated cross-owner release
+claims and source-bound installation receipts.
 
 The low-level reclaim apply path also re-reads `workspace.get` immediately before deletion. The fresh `currentHeadRevision` must equal the revision classified during planning, the Workspace must still be clean, and the fresh `sourceStateDigest` is passed unchanged to `workspace.close(expectedSourceStateDigest=...)`. This makes the low-level clean/stale removal a compare-and-swap transition rather than a time-of-check/time-of-use guess. The subordinate reclaim receipt is linked from the lifecycle receipt. The same oneshot then runs cache pruning as a separate receipt domain; Workspace retention does not become cache authority. Packaged cache pruning reads `ORDIVON_CACHE_HIGH_WATERMARK_BYTES` and `ORDIVON_CACHE_LOW_WATERMARK_BYTES` from the same Runtime operator environment used by health/status. An explicit `ordivon-runtime-cache prune` invocation may override those values with CLI watermarks; without either an environment file or explicit values, the standalone command retains its 64 GiB / 48 GiB defaults.
 
