@@ -119,3 +119,190 @@ def test_core_install_checks_drift_before_any_live_writes():
     assert guard in core
     assert core.index(guard) < core.index("install -d")
     assert core.index(guard) < core.index("install -m")
+
+
+
+def test_checked_in_monitoring_probes_have_bound_modules_and_targets():
+    owner = _load()
+    assert owner.verify_probe_consumer_edges(ROOT / "config") >= 1
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    [
+        ("unknown-module", "unknown/ambiguous module"),
+        ("missing-module", "unknown/ambiguous module"),
+        ("missing-target", "target not forwarded"),
+        ("dynamic-module", "dynamically overridden module"),
+        ("missing-exporter", "exporter endpoint not bound"),
+        ("duplicate-job", "duplicate Prometheus job name"),
+    ],
+)
+def test_cross_config_monitoring_consumer_counterexamples_fail_closed(
+    tmp_path, mutation, message,
+):
+    """Separate upstream config checks cannot establish this cross-file consumer edge."""
+    import json
+    import subprocess
+
+    owner = _load()
+    source = tmp_path / "config"
+    source.joinpath("blackbox").mkdir(parents=True)
+    source.joinpath("prometheus").mkdir(parents=True)
+    source.joinpath("blackbox/blackbox.yml").write_text(
+        "modules:\n  http_test:\n    prober: http\n    timeout: 5s\n"
+    )
+    job = {
+        "job_name": "consumer-probe",
+        "metrics_path": "/probe",
+        "params": {"module": ["http_test"]},
+        "static_configs": [{"targets": ["https://example.com/"]}],
+        "relabel_configs": [
+            {"source_labels": ["__address__"], "target_label": "__param_target"},
+            {"target_label": "__address__", "replacement": "127.0.0.1:29115"},
+        ],
+    }
+    if mutation == "unknown-module":
+        job["params"]["module"] = ["foreign_module"]
+    elif mutation == "missing-module":
+        job["params"] = {}
+    elif mutation == "missing-target":
+        job["relabel_configs"].pop(0)
+    elif mutation == "dynamic-module":
+        job["relabel_configs"].append(
+            {"target_label": "__param_module", "replacement": "foreign_module"}
+        )
+    elif mutation == "missing-exporter":
+        job["relabel_configs"].pop(1)
+    jobs = [job]
+    if mutation == "duplicate-job":
+        jobs.append(dict(job))
+    source.joinpath("prometheus/prometheus.yml").write_text(
+        json.dumps({"scrape_configs": jobs})
+    )
+    if mutation in {"unknown-module", "missing-target"}:
+        # On the live native owner, independently demonstrate that promtool
+        # accepts this syntax but cannot validate foreign Blackbox edges.
+        # Portable GitHub Network CI does not install promtool, and the
+        # graph-negative oracle below must run regardless.
+        import shutil
+
+        if shutil.which("promtool"):
+            prom = subprocess.run(
+                ["promtool", "check", "config", str(source / "prometheus/prometheus.yml")],
+                capture_output=True, text=True, check=False,
+            )
+            assert prom.returncode == 0, prom.stderr
+    with pytest.raises(ValueError, match=message):
+        owner.verify_probe_consumer_edges(source)
+
+
+def test_core_validation_invokes_cross_config_consumer_gate():
+    taskfile = (ROOT / "Taskfile.yml").read_text()
+    native = taskfile.split("  core:validate:", 1)[1].split("  provider:surfshark:validate:", 1)[0]
+    assert "monitoring-sourcecut-preflight.py --source config --check-edges" in native
+
+@pytest.mark.parametrize(
+    "which",
+    ["blackbox", "prometheus"],
+)
+def test_duplicate_yaml_keys_cannot_launder_a_consumer_edge(tmp_path, which):
+    """Upstream yq accepts duplicates but the typed graph must never do so."""
+    owner = _load()
+    src = tmp_path / "config"
+    src.joinpath("blackbox").mkdir(parents=True)
+    src.joinpath("prometheus").mkdir(parents=True)
+    blackbox = (
+        "modules:\n"
+        "  http_test: {prober: http, timeout: 5s}\n"
+        "  http_test: {prober: tcp, timeout: 5s}\n"
+        if which == "blackbox"
+        else "modules: {http_test: {prober: http, timeout: 5s}}\n"
+    )
+    prometheus = (
+        "scrape_configs:\n"
+        "- job_name: consumer-probe\n"
+        "  metrics_path: /probe\n"
+        "  params: {module: [http_test], module: [http_test]}\n"
+        "  relabel_configs: []\n"
+        if which == "prometheus"
+        else "scrape_configs: []\n"
+    )
+    (src / "blackbox/blackbox.yml").write_text(blackbox)
+    (src / "prometheus/prometheus.yml").write_text(prometheus)
+    with pytest.raises(ValueError, match="duplicate monitoring mapping key"):
+        owner.verify_probe_consumer_edges(src)
+
+@pytest.mark.parametrize(
+    ("mutation", "expected"),
+    [
+        ("remove-job", "loaded Prometheus consumer graph differs"),
+        ("wrong-module", "loaded Prometheus consumer graph differs"),
+        ("wrong-target", "loaded Prometheus consumer graph differs"),
+        ("wrong-exporter", "loaded Prometheus consumer graph differs"),
+        ("missing-rule", "loaded Prometheus consumer graph differs"),
+        ("duplicate-job", "duplicate Prometheus job name"),
+    ],
+)
+def test_loaded_prometheus_binding_rejects_divergence(tmp_path, mutation, expected):
+    """A matching file and active process alone do not certify loaded consumer config."""
+    import copy
+
+    owner = _load()
+    src = tmp_path / "source"
+    _files(src, prometheus=(
+        b"scrape_configs:\n"
+        b"- job_name: blackbox-probe\n"
+        b"  metrics_path: /probe\n"
+        b"  params: {module: [test]}\n"
+        b"  static_configs: [{targets: ['https://example.com/']}]\n"
+        b"  relabel_configs:\n"
+        b"  - {source_labels: [__address__], target_label: __param_target}\n"
+        b"  - {target_label: __address__, replacement: '127.0.0.1:29115'}\n"
+        b"rule_files: [consumer.rules.yml]\n"
+    ))
+    source = owner._read_owner_yaml(src / "prometheus/prometheus.yml")
+    if mutation == "remove-job":
+        source["scrape_configs"] = []
+    elif mutation == "wrong-module":
+        source["scrape_configs"][0]["params"]["module"] = ["foreign"]
+    elif mutation == "wrong-target":
+        source["scrape_configs"][0]["static_configs"][0]["targets"] = ["https://foreign.invalid/"]
+    elif mutation == "wrong-exporter":
+        source["scrape_configs"][0]["relabel_configs"][-1]["replacement"] = "127.0.0.1:9999"
+    elif mutation == "missing-rule":
+        source["rule_files"] = []
+    elif mutation == "duplicate-job":
+        source["scrape_configs"].append(copy.deepcopy(source["scrape_configs"][0]))
+    with pytest.raises(ValueError, match=expected):
+        owner.verify_loaded_prometheus(src, source)
+
+
+def test_loaded_prometheus_normalizes_upstream_defaults_and_rule_paths(tmp_path):
+    import copy
+
+    owner = _load()
+    src = tmp_path / "source"
+    _files(src, prometheus=(
+        b"scrape_configs:\n"
+        b"- job_name: blackbox-probe\n"
+        b"  metrics_path: /probe\n"
+        b"  params: {module: [test]}\n"
+        b"  static_configs: [{targets: ['https://example.com/']}]\n"
+        b"  relabel_configs:\n"
+        b"  - {source_labels: [__address__], target_label: __param_target}\n"
+        b"  - {target_label: __address__, replacement: '127.0.0.1:29115'}\n"
+        b"rule_files: [consumer.rules.yml]\n"
+    ))
+    loaded = copy.deepcopy(owner._read_owner_yaml(src / "prometheus/prometheus.yml"))
+    loaded["rule_files"] = [str(src / "prometheus/consumer.rules.yml")]
+    for rule in loaded["scrape_configs"][0]["relabel_configs"]:
+        rule.update({"action": "replace", "separator": ";"})
+        rule.setdefault("replacement", "$1")
+    assert owner.verify_loaded_prometheus(src, loaded) == 1
+
+
+def test_live_core_verify_checks_loaded_process_not_only_disk():
+    content = (ROOT / "Taskfile.yml").read_text()
+    current = content.split("  core:verify:", 1)[1].split("  core:converge:", 1)[0]
+    assert "monitoring-sourcecut-preflight.py --live /etc/network-v2 --check-loaded-prometheus" in current
