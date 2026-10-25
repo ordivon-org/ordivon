@@ -93,3 +93,31 @@ def test_oct25_workspace_issue_reuses_rw1_not_incomplete_rw0() -> None:
     ]
     with pytest.raises(module.ArchitectureDocsError, match="unknown owner-local LEGO"):
         module.validate_formal_issue_census(weakened, plans)
+
+
+
+def test_database_cutover_census_cannot_claim_admission_without_real_owner_effect() -> None:
+    """CEGAR: passing static source docs must not authorize PostgreSQL cutover."""
+    root = Path(__file__).resolve().parents[2]
+    census = json.loads(
+        (root / "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261025_R1.json")
+        .read_text(encoding="utf-8")
+    )
+    plans = {
+        owner_plan: json.loads((root / owner_plan).read_text(encoding="utf-8"))
+        for owner_plan in {row["ownerPlan"] for row in census["registrations"]}
+    }
+    database = [item for item in census["issues"] if item["problemClass"] == "DATABASE_AUTHORITY_CONVERGENCE"]
+    assert len(database) == 4
+    for issue in database:
+        latest = issue["latestRequalification"]
+        assert latest["cutoverAdmission"] == "NOT_ADMITTED"
+        assert latest["nativeConsumerEvidence"]
+        for path in latest["nativeConsumerEvidence"]:
+            assert (Path(__file__).resolve().parents[2] / path).is_file()
+    module.validate_formal_issue_census(census, plans)
+    weakened = copy.deepcopy(census)
+    target = next(i for i in weakened["issues"] if i["id"] == "DB-PG-CAPITAL-20261026")
+    target["latestRequalification"]["cutoverAdmission"] = "ADMITTED"
+    with pytest.raises(module.ArchitectureDocsError, match="falsely admits PG cutover"):
+        module.validate_formal_issue_census(weakened, plans)

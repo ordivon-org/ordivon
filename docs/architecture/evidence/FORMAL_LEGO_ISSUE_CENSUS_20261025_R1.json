@@ -258,6 +258,18 @@
         "observedAt": "2026-10-26T00:32:55+08:00",
         "sourceCut": "027e1fa1b4609658d8a87a7ca08980e9ff4bd10f",
         "mode": "read-only-census-and-cutover-obligation-not-live-migration"
+      },
+      "latestRequalification": {
+        "observedAt": "2026-10-26T03:34:00+08:00",
+        "sourceCut": "cb80b5017f3ca861f63bf0aa7c0802a958614f62",
+        "standing": "PG_WINDOWS_FIRST_PLAN_PENDING_REAL_RUNTIME_CUTOVER",
+        "cutoverAdmission": "NOT_ADMITTED",
+        "nativeConsumerEvidence": [
+          "services/runtime/crates/ordivon-runtime-core/src/runtime/registry_storage.rs",
+          "services/runtime/planning/lego-plan-r1.json"
+        ],
+        "remainingUnknown": "Windows/WSL source-of-truth registry execution, native PG recovery, checkpoint replay and host principal boundaries not established by model/plan alone.",
+        "proofScope": "Source presence and already reported Owner-native tests; not live PostgreSQL writer/consumer cutover."
       }
     },
     {
@@ -286,6 +298,18 @@
         "observedAt": "2026-10-26T00:32:55+08:00",
         "sourceCut": "027e1fa1b4609658d8a87a7ca08980e9ff4bd10f",
         "mode": "read-only-census-and-cutover-obligation-not-live-migration"
+      },
+      "latestRequalification": {
+        "observedAt": "2026-10-26T03:34:00+08:00",
+        "sourceCut": "cb80b5017f3ca861f63bf0aa7c0802a958614f62",
+        "standing": "PG_PARTIAL_CONSUMERS_PRESENT_SQLITE_ACTIVE_CUTOVER_NOT_PROVEN",
+        "cutoverAdmission": "NOT_ADMITTED",
+        "nativeConsumerEvidence": [
+          "services/harness/scripts/postgres_wake_turn_map.py",
+          "services/harness/scripts/sqlite_conversation_binding.py"
+        ],
+        "remainingUnknown": "Real Harness readers/writers and wake binding still need PG-only consumer readback, dual-state retirement and fault-injection proof.",
+        "proofScope": "Source presence and already reported Owner-native tests; not live PostgreSQL writer/consumer cutover."
       }
     },
     {
@@ -314,6 +338,19 @@
         "observedAt": "2026-10-26T00:32:55+08:00",
         "sourceCut": "027e1fa1b4609658d8a87a7ca08980e9ff4bd10f",
         "mode": "read-only-census-and-cutover-obligation-not-live-migration"
+      },
+      "latestRequalification": {
+        "observedAt": "2026-10-26T03:34:00+08:00",
+        "sourceCut": "cb80b5017f3ca861f63bf0aa7c0802a958614f62",
+        "standing": "PG_NATIVE_IMPL_AND_BOUNDED_TESTS_MERGED_CUTOVER_NOT_PROVEN",
+        "cutoverAdmission": "NOT_ADMITTED",
+        "nativeConsumerEvidence": [
+          "domains/capital/src/ordivon_capital/accounting/postgres_ledger.py",
+          "domains/capital/tests/test_postgres_ledger.py",
+          "domains/capital/tests/test_postgres_trace_refinement.py"
+        ],
+        "remainingUnknown": "Live writer quiescence, source-state mapping, production consumer switch and rollback admission not evidenced by merged PR755 or 36 bounded sequential traces.",
+        "proofScope": "Source presence and already reported Owner-native tests; not live PostgreSQL writer/consumer cutover."
       }
     },
     {
@@ -342,6 +379,17 @@
         "observedAt": "2026-10-26T00:32:55+08:00",
         "sourceCut": "027e1fa1b4609658d8a87a7ca08980e9ff4bd10f",
         "mode": "read-only-census-and-cutover-obligation-not-live-migration"
+      },
+      "latestRequalification": {
+        "observedAt": "2026-10-26T03:34:00+08:00",
+        "sourceCut": "cb80b5017f3ca861f63bf0aa7c0802a958614f62",
+        "standing": "PG_PR_OPEN_SQLITE_SOURCE_CONSUMED_CUTOVER_UNVERIFIED",
+        "cutoverAdmission": "NOT_ADMITTED",
+        "nativeConsumerEvidence": [
+          "capabilities/media/src/ordivon_studio/research_validity.py"
+        ],
+        "remainingUnknown": "Open PR744 trial ledger requires protected merge, source digest/import reconciliation, append-only/concurrent head proofs and Media consumer switchover.",
+        "proofScope": "Source presence and already reported Owner-native tests; not live PostgreSQL writer/consumer cutover."
       }
     }
   ],
