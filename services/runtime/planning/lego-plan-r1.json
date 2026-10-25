@@ -793,10 +793,12 @@
         "planning/tool-necessity-audit-r1.json",
         "crates/ordivon-runtime-mcp/src/server/tests/tool_catalog.rs",
         "cargo test --locked -q -p ordivon-runtime-mcp => 66/66 + 10/10 PASS",
-        "RUNTIME-RESULT-FOREIGN-RECOVERY-01 / EVIDENCE_IDENTITY + ABSTRACTION_RECOVERY: formal/RuntimeDispatchR1.tla, formal/RuntimeDispatchR1.foreign-result-probe.cfg, scripts/tla-formal, scripts/tests/test_formal_trace.py; pinned TLC 3-Attempt green plus reachability and recovery-disabled RED counterexamples"
+        "RUNTIME-RESULT-FOREIGN-RECOVERY-01 / EVIDENCE_IDENTITY + ABSTRACTION_RECOVERY: formal/RuntimeDispatchR1.tla, formal/RuntimeDispatchR1.foreign-result-probe.cfg, scripts/tla-formal, scripts/tests/test_formal_trace.py; pinned TLC 3-Attempt green plus reachability and recovery-disabled RED counterexamples",
+        "DB-PG-MIGRATE-01: PostgreSQL is preferred, current Runtime rusqlite Registry remains the real Job/Attempt consumer; tools/repo/check_sql_dialects.py enforces exact source-bound legacy SQLite direct-call inventory pending an evidence-proven PG cutover."
       ],
       "blockers": [
-        "Actual Rust/SQLite result ingestion and same-Attempt foreign->matching correction are not yet mechanized refinement witnesses; implementation recovery remains UNKNOWN, and abstract ENABLED does not prove eventuality."
+        "Actual Rust/SQLite result ingestion and same-Attempt foreign->matching correction are not yet mechanized refinement witnesses; implementation recovery remains UNKNOWN, and abstract ENABLED does not prove eventuality.",
+        "Replacing Runtime's SQLite registry requires separately proving atomic admission, durable Attempt/Job uniqueness, held-orphaned reservation state, backup/restore identity, idempotent request replay, and cross-process contention on real PostgreSQL; no migration has been executed."
       ],
       "nextAction": "R00 and the R01 baseline gate are complete; continue broader physical test partition opportunistically while RW1 state-contract extraction proceeds behind independently runnable contract and real-system gates."
     },

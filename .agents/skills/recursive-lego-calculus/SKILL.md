@@ -28,6 +28,15 @@ For a simple case the entire working note can fit in a sentence and six short fi
 
 ### Optional functional LEGO roles — not a type system
 
+At the broadest level, Ordivon distinguishes **能力型 LEGO (capability: executable
+operator, API, bounded tool or service responsibility)** and **思想型 LEGO
+(thinking/method: representation, strategy, inference or selection method)**.
+These are two main decision-oriented categories, not a closed or exclusive
+schema: an effective Skill/Tool composite can contain both. Refine into
+consumer-proven subroles only when that split changes substitution, verification
+or selection. All instances still use the same six-part canonical LEGO identity;
+no additional registry, runtime enum, or mandatory metadata is implied.
+
 The original identity/responsibility/inputs/outputs/contract/acceptance define one LEGO; the following **overlapping and revisable consumer-role lenses** do not replace this contract.
 
 | Role | Contribution | Native carrier |

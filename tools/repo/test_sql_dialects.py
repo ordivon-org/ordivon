@@ -9,10 +9,95 @@ from tools.repo.check_sql_dialects import (
     OSQUERY_TIMEOUT_SECONDS,
     classify,
     tracked_sql,
+    core_sqlite_direct_calls,
+    core_sqlite_debt_issues,
+    tracked_core_sqlite_calls,
+    CORE_SQLITE_LEGACY_CALLS,
+    ROOT,
+    host_postgres_only_sources,
 )
 
 
 class SQLDialectBoundaryTests(unittest.TestCase):
+    def test_pg_preferred_sourcecut_matches_existing_core_sqlite_debt(self):
+        current = tracked_core_sqlite_calls(ROOT)
+        self.assertEqual(current, CORE_SQLITE_LEGACY_CALLS)
+        self.assertFalse(core_sqlite_debt_issues(current))
+        self.assertGreater(len(current), 10)
+
+    def test_new_core_sqlite_authority_requires_explicit_consumer_qualification(self):
+        current = dict(CORE_SQLITE_LEGACY_CALLS)
+        current["services/harness/src/unreviewed_sqlite_authority.py"] = 1
+        issues = core_sqlite_debt_issues(current)
+        self.assertEqual(len(issues), 1)
+        self.assertIn("unreviewed_sqlite_authority", issues[0])
+
+    def test_existing_sqlite_authority_growth_cannot_hide_in_old_file(self):
+        current = dict(CORE_SQLITE_LEGACY_CALLS)
+        name = next(iter(current))
+        current[name] += 1
+        self.assertEqual(len(core_sqlite_debt_issues(current)), 1)
+
+    def test_backend_retirement_requires_explicit_sourcebound_debt_update(self):
+        current = dict(CORE_SQLITE_LEGACY_CALLS)
+        current.pop(next(iter(current)))
+        self.assertEqual(len(core_sqlite_debt_issues(current)), 1)
+
+    def test_core_sqlite_writer_detection_does_not_classify_pg(self):
+        self.assertEqual(
+            core_sqlite_direct_calls("services/harness/store.py", "sqlite3.connect(path)"),
+            1,
+        )
+        self.assertEqual(
+            core_sqlite_direct_calls("services/runtime/storage.rs", "rusqlite::Connection"),
+            1,
+        )
+        self.assertEqual(
+            core_sqlite_direct_calls("services/harness/pg.py", "psycopg.connect(dsn)"),
+            0,
+        )
+
+    def test_py_sqlite_alias_and_direct_import_cannot_bypass_source_fence(self):
+        self.assertEqual(
+            core_sqlite_direct_calls(
+                "services/runtime/alias.py",
+                "import sqlite3 as sql\nsql.connect('/tmp/ledger.db')\n",
+            ),
+            1,
+        )
+        self.assertEqual(
+            core_sqlite_direct_calls(
+                "services/harness/alias.py",
+                "from sqlite3 import connect as open_db\nopen_db('ledger.db')\n",
+            ),
+            1,
+        )
+
+    def test_python_sqlite_comments_do_not_create_false_backend_calls(self):
+        self.assertEqual(
+            core_sqlite_direct_calls(
+                "services/harness/no_db.py",
+                "# sqlite3.connect('/ignored')\nimport psycopg\npsycopg.connect(dsn)\n",
+            ),
+            0,
+        )
+
+    def test_core_sqlite_source_symlink_replacement_fails_closed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = root / "repo"
+            target = repo / "services/runtime/rogue.py"
+            target.parent.mkdir(parents=True)
+            target.write_text("import sqlite3\nsqlite3.connect('fake')\n", encoding="utf-8")
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+            outside = root / "outside.py"
+            outside.write_text("import sqlite3\nsqlite3.connect('other')\n", encoding="utf-8")
+            target.unlink()
+            target.symlink_to(outside)
+            with self.assertRaisesRegex(ValueError, "symlink"):
+                tracked_core_sqlite_calls(repo)
+
     def test_known_sql_are_classified(self):
         self.assertEqual(classify("services/runtime/crates/ordivon-runtime-core/migrations/runtime/0001_runtime.sql"), "sqlite")
         self.assertEqual(classify("services/runtime/crates/ordivon-runtime-core/src/runtime/attempt_supervisor_owner_storage.sql"), "sqlite")
@@ -87,6 +172,51 @@ class SQLDialectBoundaryTests(unittest.TestCase):
             (repo / "queries").symlink_to(repo / "other", target_is_directory=True)
             with self.assertRaisesRegex(ValueError, "symlink"):
                 tracked_sql(repo)
+
+    def test_host_postgres_authority_rejects_new_embedded_backend(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            host = root / "services/host/src/ordivon_host_v2"
+            host.mkdir(parents=True)
+            (root / "services/host/migrations").mkdir(parents=True)
+            (host / "social_store.py").write_text(
+                "import psycopg\npsycopg.connect('postgresql://example')\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(host_postgres_only_sources(root), [])
+            for source in (
+                "import sqlite3 as pg\n",
+                "__import__('sqlite3')\n",
+                "from importlib import import_module\nimport_module('aiosqlite')\n",
+                "from sqlite3 import connect\n",
+                "import aiosqlite\n",
+                "dsn = 'sqlite:///tmp/host.db'\n",
+                "from sqlalchemy.dialects import sqlite\n",
+            ):
+                (host / "rogue.py").write_text(source, encoding="utf-8")
+                with self.subTest(source=source):
+                    issues = host_postgres_only_sources(root)
+                    self.assertEqual(len(issues), 1, issues)
+                    self.assertIn("rogue.py", issues[0])
+
+    def test_host_postgres_authority_rejects_vacuous_empty_owner(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "services/host/src").mkdir(parents=True)
+            (root / "services/host/migrations").mkdir(parents=True)
+            self.assertTrue(host_postgres_only_sources(root))
+
+    def test_host_postgres_authority_rejects_symlinked_source(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            host = root / "services/host/src/ordivon_host_v2"
+            host.mkdir(parents=True)
+            outside = root / "external.py"
+            outside.write_text("import sqlite3\n", encoding="utf-8")
+            (host / "rogue.py").symlink_to(outside)
+            self.assertTrue(
+                any("rogue.py" in issue for issue in host_postgres_only_sources(root))
+            )
 
     def test_unknown_sql_is_not_certified(self):
         for name in ("domains/game/later.sql", "services/runtime/crates/ordivon-runtime-core/src/runtime/bad.sql"):

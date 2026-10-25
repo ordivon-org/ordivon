@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import importlib.metadata
 import json
 import re
@@ -30,6 +31,136 @@ OSQUERY_TIMEOUT_SECONDS = {
     "python_packages.sql": 120,
 }
 OSQUERY_DEFAULT_TIMEOUT_SECONDS = 30
+
+
+# Source-frozen migration debt, not permanent approval of these backends.
+# The canonical SQL owner already lives here; reuse it rather than create a
+# second database registry. Counts catch new direct SQLite use in old paths.
+# PostgreSQL is preferred for new durable multi-worker stores. A retirement
+# that changes these values must update its exact consumer proof here.
+# This bounded AST/Rust lexical boundary is necessary but NOT proof that all indirect SQLite
+# use has been discovered.
+CORE_SQLITE_LEGACY_CALLS: dict[str, int] = {
+    'services/harness/scripts/agent_automation_browserless.py': 1,
+    'services/harness/scripts/agent_automation_ledger_reconcile.py': 1,
+    'services/harness/scripts/agent_automation_release.py': 3,
+    'services/harness/scripts/browser_security_witness_source.py': 1,
+    'services/harness/scripts/campaign_materialization.py': 1,
+    'services/harness/scripts/cft_human_session.py': 2,
+    'services/harness/scripts/harness_p0_scale_acceptance.py': 1,
+    'services/harness/scripts/materialization_reconciliation_archive.py': 1,
+    'services/harness/scripts/playwright_browserless_turn_once.py': 1,
+    'services/harness/scripts/sqlite_conversation_binding.py': 3,
+    'services/harness/scripts/sqlite_conversation_materializer.py': 1,
+    'services/harness/scripts/sqlite_wake_turn_map.py': 3,
+    'services/harness/src/ordivon_harness/sqlite_store.py': 2,
+    'services/harness/src/ordivon_harness/store_ops.py': 3,
+    'services/runtime/crates/ordivon-runtime-core/src/runtime/doctor.rs': 1,
+    'services/runtime/crates/ordivon-runtime-core/src/runtime/error.rs': 1,
+    'services/runtime/crates/ordivon-runtime-core/src/runtime/inspection.rs': 1,
+    'services/runtime/crates/ordivon-runtime-core/src/runtime/inspection/operator.rs': 1,
+    'services/runtime/crates/ordivon-runtime-core/src/runtime/registry.rs': 7,
+    'services/runtime/crates/ordivon-runtime-core/src/runtime/registry/lifecycle.rs': 1,
+    'services/runtime/crates/ordivon-runtime-core/src/runtime/registry/query.rs': 9,
+    'services/runtime/crates/ordivon-runtime-core/src/runtime/registry_storage.rs': 9,
+    'services/runtime/crates/ordivon-runtime-core/src/runtime/repair.rs': 1,
+    'services/runtime/scripts/backup.py': 2,
+    'services/runtime/scripts/mcp_e2e.py': 1,
+    'services/runtime/scripts/restore.py': 1,
+}
+
+
+def core_sqlite_direct_calls(path: str, source: str) -> int:
+    """Bounded static evidence: Python direct/aliased connect and Rust rusqlite."""
+    if path.endswith(".py"):
+        tree = ast.parse(source, filename=path)
+        module_names = {"sqlite3"}  # fail closed even for externally injected symbol
+        imported_connects: set[str] = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                module_names.update(
+                    entry.asname or entry.name
+                    for entry in node.names
+                    if entry.name == "sqlite3"
+                )
+            elif isinstance(node, ast.ImportFrom) and node.module == "sqlite3":
+                imported_connects.update(
+                    entry.asname or entry.name
+                    for entry in node.names
+                    if entry.name == "connect"
+                )
+        return sum(
+            isinstance(node, ast.Call)
+            and (
+                (
+                    isinstance(node.func, ast.Attribute)
+                    and node.func.attr == "connect"
+                    and isinstance(node.func.value, ast.Name)
+                    and node.func.value.id in module_names
+                )
+                or (
+                    isinstance(node.func, ast.Name)
+                    and node.func.id in imported_connects
+                )
+            )
+            for node in ast.walk(tree)
+        )
+    if path.endswith(".rs"):
+        return len(re.findall(r"\brusqlite::", source))
+    return 0
+
+
+def core_sqlite_debt_issues(
+    observed: dict[str, int],
+    expected: dict[str, int] = CORE_SQLITE_LEGACY_CALLS,
+) -> list[str]:
+    """Explicit new source/retirement/drift review, never a blanket PG cutover claim."""
+    issues = []
+    for path in sorted(observed.keys() | expected.keys()):
+        actual = observed.get(path, 0)
+        approved = expected.get(path, 0)
+        if actual != approved:
+            issues.append(
+                f"unqualified SQLite core backend drift: {path}: "
+                f"observed={actual}, source-frozen={approved}; "
+                "record owner/consumer and PostgreSQL replacement before accepting"
+            )
+    return issues
+
+
+def tracked_core_sqlite_calls(root: Path) -> dict[str, int]:
+    """Git-index names + verified regular checkout bytes; no generated scans."""
+    tracked = subprocess.check_output(
+        ["git", "-C", str(root), "ls-files", "--stage", "-z",
+         "--", "services/runtime", "services/harness"]
+    )
+    result: dict[str, int] = {}
+    base = root.resolve()
+    for record in tracked.split(b"\0"):
+        if not record:
+            continue
+        metadata, sep, name = record.partition(b"\t")
+        if not sep:
+            raise ValueError("invalid staged SQLite source record")
+        mode, _, stage = metadata.split()
+        path = name.decode("utf-8", errors="surrogateescape")
+        if not path.endswith((".py", ".rs")) or "/tests/" in path or "/test_" in path:
+            continue
+        if path.endswith(("/tests.rs", "/integration_tests.rs", "/summary_query_tests.rs")):
+            continue
+        if mode not in (b"100644", b"100755") or stage != b"0":
+            raise ValueError(f"SQLite core source not regular stage-0: {path}")
+        source = root
+        for part in Path(path).parts:
+            source = source / part
+            if source.is_symlink():
+                raise ValueError(f"SQLite core source symlink: {path}")
+        if not source.is_file() or not source.resolve().is_relative_to(base):
+            raise ValueError(f"SQLite core source unavailable/outside checkout: {path}")
+        count = core_sqlite_direct_calls(path, source.read_text(encoding="utf-8"))
+        if count:
+            result[path] = count
+    return result
 
 
 def classify(path: str) -> str | None:
@@ -89,10 +220,86 @@ def run_bounded(
     )
 
 
+def host_postgres_only_sources(root: Path) -> list[str]:
+    """Fail closed when Host authority introduces a second embedded SQL engine.
+
+    Runtime's node-local Registry and Harness's durable Run store are separate
+    consumers with different crash/replay contracts; this is not their cutover.
+    """
+    issues: list[str] = []
+    has_postgres_client = False
+    forbidden = ("sqlite3", "pysqlite3", "aiosqlite")
+    for base in ("services/host/src", "services/host/migrations"):
+        directory = root / base
+        if not directory.is_dir() or directory.is_symlink():
+            issues.append(f"Host PostgreSQL source directory unavailable: {base}")
+            continue
+        for source in sorted(directory.rglob("*.py")):
+            rel = source.relative_to(root).as_posix()
+            if source.is_symlink() or not source.is_file():
+                issues.append(f"Host PostgreSQL source redirected: {rel}")
+                continue
+            try:
+                tree = ast.parse(source.read_text(encoding="utf-8"), filename=rel)
+            except (SyntaxError, UnicodeError, OSError) as exc:
+                issues.append(f"Host PostgreSQL source unreadable: {rel}: {type(exc).__name__}")
+                continue
+            for node in ast.walk(tree):
+                if (isinstance(node, ast.Call)
+                        and isinstance(node.func, ast.Attribute)
+                        and isinstance(node.func.value, ast.Name)
+                        and node.func.value.id == "psycopg"
+                        and node.func.attr == "connect"):
+                    has_postgres_client = True
+                imports: list[str] = []
+                if isinstance(node, ast.Import):
+                    imports = [alias.name for alias in node.names]
+                elif isinstance(node, ast.ImportFrom):
+                    imports = [node.module or ""] + [
+                        f"{node.module}.{alias.name}" for alias in node.names
+                    ]
+                if any(
+                    name == item or name.startswith(item + ".")
+                    for name in imports
+                    for item in forbidden
+                ) or any("sqlalchemy.dialects.sqlite" in name for name in imports):
+                    issues.append(f"Host PostgreSQL authority forbids embedded SQL import: {rel}")
+                if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                    if "sqlite:" in node.value.lower():
+                        issues.append(f"Host PostgreSQL authority forbids SQLite DSN: {rel}")
+                if isinstance(node, ast.Call) and node.args:
+                    target = node.func
+                    dynamic = (
+                        isinstance(target, ast.Name) and target.id in {"__import__", "import_module"}
+                    ) or (
+                        isinstance(target, ast.Attribute)
+                        and target.attr == "import_module"
+                    )
+                    literal = node.args[0]
+                    if (dynamic and isinstance(literal, ast.Constant)
+                            and isinstance(literal.value, str)
+                            and any(literal.value == name or literal.value.startswith(name + ".")
+                                    for name in forbidden)):
+                        issues.append(f"Host PostgreSQL authority forbids dynamic SQL import: {rel}")
+    if not has_postgres_client:
+        issues.append("Host PostgreSQL authority has no active psycopg.connect consumer")
+    return sorted(set(issues))
+
+
 def check(root: Path) -> tuple[list[str], list[str]]:
     issues: list[str] = []
     facts: list[str] = []
+    issues.extend(host_postgres_only_sources(root))
+    if not issues:
+        facts.append("Host PostgreSQL-only active source authority PASS")
     files = tracked_sql(root)
+    legacy_sources = tracked_core_sqlite_calls(root)
+    issues.extend(core_sqlite_debt_issues(legacy_sources))
+    facts.append(
+        f"core SQLite direct API callsites={sum(legacy_sources.values())}, "
+        f"source paths={len(legacy_sources)}; "
+        "PostgreSQL durable-owner migration standing=NOT_CUT_OVER"
+    )
     grouped: dict[str, list[str]] = {"sqlite": [], "osquery": [], "postgresql": []}
     for path in files:
         dialect = classify(path)
@@ -194,7 +401,7 @@ def main() -> int:
     args = parser.parse_args()
     try:
         issues, facts = check(ROOT)
-    except ValueError as exc:
+    except (ValueError, SyntaxError) as exc:
         print(f"SQL dialect acceptance: NONCOMPLIANT ({exc})")
         return 2
     for fact in facts:

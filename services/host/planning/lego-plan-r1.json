@@ -87,14 +87,17 @@
         "L10"
       ],
       "evidence": [
-        "README.md"
+        "README.md",
+        "tools/repo/check_sql_dialects.py",
+        "tools/repo/test_sql_dialects.py"
       ],
       "dependencies": [],
       "mustNotOwn": [
         "Runtime ledger"
       ],
       "acceptance": [
-        "Restart preserves Host revision identity and task/board continuity."
+        "Restart preserves Host revision identity and task/board continuity.",
+        "Host PostgreSQL authority is source-qualified by the existing Repo SQL dialect gate: active Host service/migration Python sources may not import SQLite engines or define SQLite DSNs; the native negative controls reject a second embedded engine. This says nothing about Runtime/Harness local recovery stores, and does not claim a completed data cutover."
       ]
     }
   ],

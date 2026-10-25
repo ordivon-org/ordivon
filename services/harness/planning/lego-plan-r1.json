@@ -174,8 +174,12 @@
         "Detector observation, stop request, process termination, and external-effect reconciliation are tested separately.",
         "A missing consumer/effect oracle remains UNKNOWN, never promoted to PASS."
       ],
-      "evidence": [],
-      "blockers": [],
+      "evidence": [
+        "DB-PG-MIGRATE-01: Harness SQLiteRunStore, agent automation lease/turn binding and browserless durable ledgers remain existing consumers; PostgreSQL target must pass native event CAS/identity/replay/fault-injection and active-worker cutover before SQLite can be retired."
+      ],
+      "blockers": [
+        "Actual Harness SQLite-to-PostgreSQL data/consumer migration and live-failover contract remain UNKNOWN; database engine replacement is not equivalent to BEGIN IMMEDIATE write serialization."
+      ],
       "nextAction": "Reuse existing Harness action/effect tests with a fault-injected indirect-service consumer; do not add a new admission service."
     }
   ],
