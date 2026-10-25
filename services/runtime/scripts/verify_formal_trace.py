@@ -301,6 +301,41 @@ def _inside_macro_rules_definition(code: str, witness_start: int) -> bool:
 
 
 
+
+def _inside_unexpanded_macro_invocation(code: str, witness_start: int) -> bool:
+    """Do not admit Rust item-looking tokens inside a macro call as proof.
+
+    The macro may erase or transform arbitrary token trees. In particular a
+    parenthesized/bracketed call has no Rust block braces for the ordinary
+    enclosing-scope check to notice. This bounded source guard does not prove
+    that tokens outside a call were registered by rustc.
+    """
+    delimiters = {"(": ")", "[": "]", "{": "}"}
+    closing = set(delimiters.values())
+    pattern = r"\b[A-Za-z_]\w*!\s*([({\[])"
+    for match in re.finditer(pattern, code):
+        if match.start() >= witness_start:
+            break
+        stack: list[str] = []
+        for i in range(match.end() - 1, len(code)):
+            char = code[i]
+            if char in delimiters:
+                stack.append(delimiters[char])
+            elif char in closing:
+                if not stack or stack.pop() != char:
+                    break
+                if not stack:
+                    if witness_start < i:
+                        return True
+                    break
+        else:
+            # An unbalanced source-only macro cannot authorize a witness.
+            if match.end() - 1 < witness_start:
+                return True
+    return False
+
+
+
 def _test_has_nonmodule_enclosing_scope(code: str, witness_start: int) -> bool:
     """Fail closed for unnameable Rust tests nested in non-module blocks.
 
@@ -445,6 +480,8 @@ def require_owned_method(path: Path, owner_kind: str, owner: str, symbol: str) -
         item = pattern.search(code)
         if item and _inside_macro_rules_definition(code, item.start()):
             return [f"{path.relative_to(ROOT)}::{owner} is inside an unexpanded macro_rules! definition"]
+        if item and _inside_unexpanded_macro_invocation(code, item.start()):
+            return [f"{path.relative_to(ROOT)}::{owner} is inside an unexpanded macro invocation"]
         if item and (
             _has_unqualified_cfg(
                 _attached_rust_attributes(code, item.start()), test_context=False
@@ -465,6 +502,10 @@ def require_owned_method(path: Path, owner_kind: str, owner: str, symbol: str) -
     if not matches:
         return [f"{path.relative_to(ROOT)}::{owner} missing method symbol {symbol!r}"]
     conditional = False
+    macro_only = False
+    # The method's source location is not executable proof when an enclosing
+    # invocation may erase its Rust tokens before rustc builds the impl.
+    masked_block = _rust_code_only(block)
     for match in matches:
         depth = 0
         for char in block[opening : match.start()]:
@@ -473,6 +514,12 @@ def require_owned_method(path: Path, owner_kind: str, owner: str, symbol: str) -
             elif char == "}":
                 depth -= 1
         if depth != 1:
+            continue
+        if (
+            _inside_unexpanded_macro_invocation(masked_block, match.start())
+            or _inside_macro_rules_definition(masked_block, match.start())
+        ):
+            macro_only = True
             continue
         # A method compiled out by cfg/cfg_attr cannot witness the physical
         # Runtime seam even when the surrounding impl is always compiled.
@@ -484,6 +531,8 @@ def require_owned_method(path: Path, owner_kind: str, owner: str, symbol: str) -
         return []
     if conditional:
         return [f"{path.relative_to(ROOT)}::{owner}::{symbol} is a conditional Owner method"]
+    if macro_only:
+        return [f"{path.relative_to(ROOT)}::{owner}::{symbol} is inside unexpanded macro tokens"]
     return [f"{path.relative_to(ROOT)}::{owner} missing direct method symbol {symbol!r}"]
 
 
@@ -504,6 +553,8 @@ def require_test_symbol(path: Path, symbol: str, *, require_ignored: bool = Fals
         return [f"{path.relative_to(ROOT)} missing proving test symbol {symbol!r}"]
     if _inside_macro_rules_definition(code, match.start()):
         return [f"{path.relative_to(ROOT)}::{symbol} is inside an unexpanded macro_rules! definition"]
+    if _inside_unexpanded_macro_invocation(code, match.start()):
+        return [f"{path.relative_to(ROOT)}::{symbol} is inside an unexpanded macro invocation"]
     if _test_has_nonmodule_enclosing_scope(code, match.start()):
         return [f"{path.relative_to(ROOT)}::{symbol} has an unnameable non-module test scope"]
     try:
