@@ -1,0 +1,206 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.formal-lego-issue-census-evidence",
+  "truthRole": "time-scoped-audit-evidence-not-registry-or-admission",
+  "observedAt": "2026-10-25T07:50-07:59+08:00",
+  "source": {
+    "protectedGithubMain": "d8954f847250f1ac97adeeb8a4b96fed0254c451",
+    "linuxLocalMain": "c1b4ad253182a11d966a67003d07da69e96e8c89",
+    "researchLocalMain": "098c623d9c38a2fffcf620242f35577d7c827b69",
+    "parentEvidence": "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261024_R2.json",
+    "observationBoundary": "API and Runtime snapshots observed at different instants; never reuse without fresh comparison"
+  },
+  "representation": {
+    "primary": "typed issue relation with current SourceCut",
+    "problemStates": [
+      "OBSERVED",
+      "UNKNOWN",
+      "REPRODUCED",
+      "OWNER_NATIVE_VERIFIED",
+      "PROTECTED_CURRENT_CI_VERIFIED",
+      "CLOSED"
+    ],
+    "provenance": "Owner-local typed LEGO slice; evidence file only, not new registry/admission authority",
+    "CEGAR": "If source-bound abstract counterexample is spurious, refine only the affected identity/environment/consumer relation; if feasible, repair at owner admission and retain executable negative witness",
+    "noFalseGreen": "Native processes, current provider truth, consumer semantics and protected CI must be checked independently",
+    "deletePolicy": "Consumer-proven redundant branches, caches and worktrees retire; unintegrated unique effects retain a recoverable witness until promoted or rejected"
+  },
+  "registrations": [
+    {
+      "ownerPlan": "tools/repo/planning/lego-plan-r1.json",
+      "slice": "RG1",
+      "scope": "Exact Git history and currentness, with remote observation distinct from tracked refs"
+    }
+  ],
+  "issues": [
+    {
+      "id": "GIT-CURRENTNESS-20261025",
+      "problemClass": "SOURCE_CONVERGENCE",
+      "naturalOwner": "tools/repo",
+      "standing": "OBSERVED_SOURCE_STALE",
+      "observation": "At 2026-10-25 07:50+08 the Linux local main and cached origin/main both equaled c1b4ad253182a11d966a67003d07da69e96e8c89 (0/0 locally); direct GitHub protected main was d8954f847250f1ac97adeeb8a4b96fed0254c451. GitHub compare classified the latter 4 commits ahead, 0 behind. Local tracker equality is not current GitHub truth.",
+      "evidence": "Runtime Job job-01a17052-335d-76d2-a79a-de95bda6dbbf; GitHub API branches/main and compare in job-01a1705d-910c-7163-b36d-5fc2058a9d88",
+      "consumers": "Git merge-queue publication; Owner CDC; PR source revisions",
+      "formalObligation": "An admissible publication/evidence claim must bind exact observed remote tip R and proposed parent P, with required ancestor/currentness relation checked at effect admission; CachedOriginMain==LocalMain does not imply RemoteNow==LocalMain.",
+      "registration": {
+        "state": "LINKED",
+        "ownerPlan": "tools/repo/planning/lego-plan-r1.json",
+        "slice": "RG1"
+      },
+      "decision": "Do not reset, cherry-pick, declare convergence or delete branches from stale local tracking refs.",
+      "representation": {
+        "primary": "equivalence",
+        "supporting": [
+          "state-machine"
+        ],
+        "requiredWitness": "Re-read GitHub tip before promoting; compare exact OIDs and check owners' accepted consumers against the proposed final merge SHA.",
+        "selectionReason": "Choose the narrowest existing owner-local representation and a current exact consumer witness; do not infer behavioral semantics from source equality or an old PASS."
+      }
+    },
+    {
+      "id": "GIT-PR-20261025",
+      "problemClass": "PR_CONVERGENCE",
+      "naturalOwner": "tools/repo",
+      "standing": "FOUR_OPEN_REVIEWS",
+      "observation": "The GitHub open PR API returned four: #638 SourceCut evidence, #637 Network symlink fence, #632 Windows identity/tool readiness, #264 WinGet typed candidates. Their mergeable field was UNKNOWN at observation. CI for #638/#637 source tips had successful runs, but merge queue/rebased result is a separate source.",
+      "evidence": "GitHub gh pr list job-01a17054-9049-7bd1-9531-399d843c28c8, gh run list; observed 2026-10-25 about 07:55+08",
+      "consumers": "Protected GitHub main; affected owner consumers and candidate source",
+      "formalObligation": "MergeEligible(PR,S) implies exact candidate source S, current protected source P, required Owner native checks on S and no missing unique consumer effect; unknown mergeability cannot be mapped to PASS.",
+      "registration": {
+        "state": "LINKED",
+        "ownerPlan": "tools/repo/planning/lego-plan-r1.json",
+        "slice": "RG1"
+      },
+      "decision": "Do not mass-merge four PRs or retain older duplicate implementations solely because CI is green.",
+      "representation": {
+        "primary": "constraint",
+        "supporting": [
+          "causal"
+        ],
+        "requiredWitness": "For each PR obtain exact current source SHA and checks after merge-queue candidate is formed; compare unique Owner behavior, then choose latest applicable non-redundant implementation.",
+        "selectionReason": "Choose the narrowest existing owner-local representation and a current exact consumer witness; do not infer behavioral semantics from source equality or an old PASS."
+      }
+    },
+    {
+      "id": "GIT-RESEARCH-20261025",
+      "problemClass": "GIT_REMOTE_REFERENCE",
+      "naturalOwner": "tools/repo",
+      "standing": "MISSING_LOCAL_TRACKING_REF",
+      "observation": "/root/projects/ordivon-research-v2 main=098c623d9c38a2fffcf620242f35577d7c827b69; attempting main...origin/main failed because local origin/main is not resolvable. This is not evidence of remote absence or divergence.",
+      "evidence": "Runtime Job job-01a17052-335d-76d2-a79a-de95bda6dbbf; git rev-list --left-right --count main...origin/main exited with ambiguous argument.",
+      "consumers": "Research scientific outputs; Research Git source and publication provenance",
+      "formalObligation": "UnknownRemoteReference must remain UNKNOWN, not be interpreted as zero remote difference or orphan safe-to-delete; no promotion from absence of a local tracking ref.",
+      "registration": {
+        "state": "LINKED",
+        "ownerPlan": "tools/repo/planning/lego-plan-r1.json",
+        "slice": "RG1"
+      },
+      "decision": "Do not fabricate research origin/main or assume old archive branches lack consumers.",
+      "representation": {
+        "primary": "type",
+        "supporting": [
+          "state-machine"
+        ],
+        "requiredWitness": "Inspect configured research remote and its exact authenticated OIDs before computing DAG or deleting any historical carriers.",
+        "selectionReason": "Choose the narrowest existing owner-local representation and a current exact consumer witness; do not infer behavioral semantics from source equality or an old PASS."
+      }
+    },
+    {
+      "id": "RT-WS-20261025",
+      "problemClass": "WORKSPACE_LIFECYCLE",
+      "naturalOwner": "services/runtime",
+      "standing": "OBSERVED_CAPACITY_AND_RETENTION",
+      "observation": "A stable Runtime workspace-list pagination yielded 63 existing Linux workspaces, 33 dirty in the older page and 30 on the newer page (some dirty), before this audit opened its own Workspace. The core Git repository's then-worktree list held 62 entries. Counts are different object universes, not contradictory measurements.",
+      "evidence": "Linux Runtime workspace.list paged at 2026-10-25 07:49+08; git worktree list in job-01a17052-335d-76d2-a79a-de95bda6dbbf; fresh own workspace ws-gpt6-20261025-0748-env-formal-census-r1.",
+      "consumers": "Runtime Workspace and Job retention; Git branch carrier; disk reclaim",
+      "formalObligation": "Close(w) is admissible only if no active/held Job, exact source state digest still matches and no unpreserved unique dirty/unmerged consumer effect is lost. Clean(w) alone is insufficient to prove semantic dispensability.",
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "Runtime RW0 is IN_PROGRESS, not a qualified owner-local verified registration slice; no valid current Workspace lifecycle cleanup slice was demonstrated. Retain explicit gap until Runtime Owner promotes an appropriate native slice and tests."
+      },
+      "decision": "Prioritize no-consumer clean closures only after exact postcondition and recovery witness; do not force-close dirty carriers.",
+      "representation": {
+        "primary": "state-machine",
+        "supporting": [
+          "constraint"
+        ],
+        "requiredWitness": "Compare active Jobs, clean/dirty projection, current head's reachability from retained refs, untracked bytes and owner acceptance before closure.",
+        "selectionReason": "Choose the narrowest existing owner-local representation and a current exact consumer witness; do not infer behavioral semantics from source equality or an old PASS."
+      }
+    },
+    {
+      "id": "RT-WIN-PATH-20261025",
+      "problemClass": "ENVIRONMENT_CONTRACT",
+      "naturalOwner": "services/runtime",
+      "standing": "REPRODUCED_TOOL_UNAVAILABLE",
+      "observation": "Windows native target is available but the service token is NT SERVICE\\OrdivonRuntimeR6Candidate. Under limited PowerShell, python --version raised CommandNotFoundException. Our shell script used ErrorActionPreference Continue and eventually returned process exit code 0, so physical Job success did not mean prerequisite success. An independent strict-prerequisite negative-control run set PowerShell ErrorActionPreference=Stop, ran Get-Command python -CommandType Application -ErrorAction Stop, and correctly surfaced PROCESS_EXIT_NONZERO exitCode=1 in the same service principal. Thus a consumer script can fail closed today even though Python remains unavailable; no Runtime launcher modification is required to fix this particular false-green shell usage.",
+      "evidence": "Windows Runtime Job job-01a17054-1e5a-7993-bd1e-08049b778334, windows native limit/service execution, 2026-10-25 07:52+08; independent native strict red witness Windows Job job-01a17067-1d3f-7182-a810-7ef9a4073b79 (exit 1, missing executable) 2026-10-25 +08",
+      "consumers": "Windows Tool prerequisites; Runtime script runner; actual consuming Python program",
+      "formalObligation": "VerifiedPrerequisite(cmd,target,principal) requires a successful probe under the exact execution identity and failure must propagate through the evaluator; JobExitZero does not imply ScriptEveryStepSucceeded or DomainAccepted.",
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "The runtime RW9 PROPOSED slice is about existing-runner terminal-result versus UNKNOWN_DISPATCH and does not cover Windows service principal executable readiness. RW6 cross-platform verification is blocked, so binding this issue to RW9 would be a false consumer/proof match; retain unregistered gap pending real Windows owner-native proof."
+      },
+      "decision": "Do not mistake PowerShell Continue exit-zero behavior for a Runtime ledger bug. Enforce strict error propagation and dependency readiness in Windows consumer scripts; reuse #632 for identity/tool contract; Python installation/active_user parity still UNVERIFIED.",
+      "representation": {
+        "primary": "causal",
+        "supporting": [
+          "state-machine"
+        ],
+        "requiredWitness": "Use PowerShell terminating errors and explicit process-exit checks in the native candidate, probe Python availability under both service and intended active_user contexts and run owner Windows CDC.",
+        "selectionReason": "Choose the narrowest existing owner-local representation and a current exact consumer witness; do not infer behavioral semantics from source equality or an old PASS."
+      }
+    },
+    {
+      "id": "STORAGE-ALLOC-20261025",
+      "problemClass": "HOST_DISK_PRESSURE",
+      "naturalOwner": "platform/workstation",
+      "standing": "HOST_VHDX_PHYSICAL_ALLOCATION_OBSERVED_RECOVERY_UNKNOWN",
+      "observation": "Windows C: total 322122543104 free 44929273856 bytes; D: total 700605001728 free 82522148864 bytes. Linux /dev/sdd total 1007GiB, free ~652GiB, used ~304GiB. A Windows native sparse-allocation job directly measured D:\\WSL\\archlinux\\ext4.vhdx logicalGiB=711.447, allocatedGiB=564.003 (Win32 lastError=0) and C:\\OrdivonRecovery\\wsl-swap.vhdx logicalGiB=4.005, allocatedGiB=4.005. Independent elevated Get-VHD observed D:\\WSL\\archlinux\\ext4.vhdx FileSize=763910684672, virtual Size=1099511627776, Attached=true and sparse attribute. These numbers differ by definition: logical file length, virtual upper bound, NTFS allocated extents, and guest filesystem used bytes. They do not prove that 564GiB is deletable or recoverable without preservation-qualified consumer evidence.",
+      "evidence": "Windows native disks Job job-01a17054-1e5a-7993-bd1e-08049b778334; Windows sparse allocation Job job-01a17053-a27d-7b21-828e-72bad474550f; elevated Windows Get-VHD Job job-01a17051-fa21-7982-a3f5-d535c111ce60; Linux df Job job-01a17052-335d-76d2-a79a-de95bda6dbbf, all observed 2026-10-25 around 07:50-08:05+08",
+      "consumers": "Windows backing drive and WSL2 guest guest-vs-host reclamation behavior",
+      "formalObligation": "GuestFSUsed, VHDLogicalLength, VHDVirtualCapacity, HostAllocatedBytes and HostFreeBytes are distinct typed measurements. ReclaimSuccess requires a bounded validated host-allocation delta after preservation and no lost active consumer; even HostAllocatedBytes>GuestFSUsed does not imply the difference is safe or physically reclaimable.",
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "platform/workstation has no owner-local lego-plan-r1.json in the current checked source; reuse native storage recovery owner evidence, do not invent a new registry solely for this observation."
+      },
+      "decision": "No blanket cache deletion, VHDX compaction or Windows drive cleanup authorized by this measurement alone.",
+      "representation": {
+        "primary": "causal",
+        "supporting": [
+          "state-machine"
+        ],
+        "requiredWitness": "Preserve each required dirty source/effect carrier, prove guest trim actually propagates to the sparse host allocation layer, then compare authoritative NTFS allocated clusters and free bytes before/after the same bounded operation; no destructive compact or backup deletion based solely on sparse allocation size.",
+        "selectionReason": "Choose the narrowest existing owner-local representation and a current exact consumer witness; do not infer behavioral semantics from source equality or an old PASS."
+      }
+    },
+    {
+      "id": "DEPS-RENOVATE-20261025",
+      "problemClass": "DEPENDENCY_CONVERGENCE",
+      "naturalOwner": "tools/repo",
+      "standing": "UPDATE_COVERAGE_NOT_ESTABLISHED",
+      "observation": "Root renovate.json has enabledManagers exactly [pep621,mise] and prConcurrentLimit 4; Cargo/npm ecosystems therefore are not managed by this root policy, though those owners have manifests. Four currently open PRs returned no explicitly named Renovate dependency update PR; latest stable compatibility for Cargo/Node remains unverified.",
+      "evidence": "renovate.json at Linux repo SourceCut c1b4ad253182a11d966a67003d07da69e96e8c89, gh pr list at 2026-10-25 07:55+08",
+      "consumers": "Rust/Cargo and TypeScript/Node owner manifests; Python and mise version consumers",
+      "formalObligation": "UpgradeAdmissible(dep,owner) implies VerifiedLatestStable(candidate,registry,time) AND OwnerNativePass(candidate) AND actual consumer compatibility; pin age alone never proves safe deletion or upgraded correctness.",
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "Repository RG1/RG2 owner slices cover source/identity, not actual dependency resolver and per-owner compatibility; no owner-native dependency slice is currently registered."
+      },
+      "decision": "Reject old duplicate dependency PRs; do not equate all packages using newest published version with a verified compatible dependency graph.",
+      "representation": {
+        "primary": "constraint",
+        "supporting": [
+          "causal"
+        ],
+        "requiredWitness": "Compare authoritative release registries against each owner's native manifests and lock files, then select the highest stable compatible verified versions before merging any dependency PR.",
+        "selectionReason": "Choose the narrowest existing owner-local representation and a current exact consumer witness; do not infer behavioral semantics from source equality or an old PASS."
+      }
+    }
+  ],
+  "verification": {
+    "state": "PROPOSED",
+    "meaning": "Native repository checker only verifies source-bound typed registration structure; no GitHub merge, disk deletion, Runtime patch or consumer proof follows from a census PASS.",
+    "lastRefinement": "Additional Windows-native sparse allocation and elevated Get-VHD independent physical source evidence bound to observed source/time; no physical mutation and no claim of proven reclaim; remove invalid RW9 registration because its terminal-result semantics are not the Windows executable-prerequisite consumer."
+  }
+}

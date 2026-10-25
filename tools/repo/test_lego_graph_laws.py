@@ -248,3 +248,21 @@ def test_blocked_slice_requires_unresolved_registered_prerequisite(
     target["status"] = status
     with pytest.raises(module.ArchitectureDocsError, match="invalid LEGO blocking prerequisites"):
         module.validate_owner_lego_graph(plan)
+
+
+
+@pytest.mark.parametrize("cycle", ("self", "mutual"))
+def test_blocked_slice_dependency_cycle_is_rejected(cycle: str) -> None:
+    """A valid-looking incomplete blocker cannot justify circular deadlock."""
+    plan = json.loads((ROOT / OWNER_GRAPH_PLANS[0]).read_text(encoding="utf-8"))
+    by_id = {item["id"]: item for item in plan["slices"]}
+    if cycle == "self":
+        by_id["RW4"]["status"] = "BLOCKED_ON_RW4"
+        by_id["RW4"]["blockers"] = ["RW4"]
+    else:
+        by_id["RW5"]["status"] = "BLOCKED_ON_RW6"
+        by_id["RW5"]["blockers"] = ["RW6"]
+        by_id["RW6"]["status"] = "BLOCKED_ON_RW5"
+        by_id["RW6"]["blockers"] = ["RW5"]
+    with pytest.raises(module.ArchitectureDocsError, match="cyclic LEGO slice blockers"):
+        module.validate_owner_lego_graph(plan)
