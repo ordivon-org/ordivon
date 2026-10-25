@@ -89,6 +89,21 @@ class TlaFormalExternalJarTests(unittest.TestCase):
         self.assertIn("VerifiedContentWasFrozen", cfg)
         self.assertIn("TLC PostgreSQL content parity negative control PASS", runner)
 
+    def test_installed_unit_bound_model_has_scoped_negative_control(self):
+        model = (
+            SCRIPT.parent.parent / "formal/WorkspaceConsumerCloseR1.tla"
+        ).read_text(encoding="utf-8")
+        cfg = (
+            SCRIPT.parent.parent / "formal/WorkspaceConsumerCloseR1.cfg"
+        ).read_text(encoding="utf-8")
+        runner = SCRIPT.read_text(encoding="utf-8")
+        self.assertIn("BindInstalledUnit", model)
+        self.assertIn("UnbindInstalledUnit", model)
+        self.assertIn("ClosedHasNoInstalledUnitConsumer", model)
+        self.assertIn("ClosedHasNoInstalledUnitConsumer", cfg)
+        self.assertIn("installed unit guard source drift", runner)
+        self.assertIn("ClosedHasNoInstalledUnitConsumer unitbound", runner)
+
     def test_external_digest_locked_jar_works_without_workspace_cache(self):
         self.assertFalse(self.cache.exists())
         result = self.invoke(jar=self.external)

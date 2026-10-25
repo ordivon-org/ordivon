@@ -467,7 +467,7 @@ check_workspace_consumer_close_counterexamples() {
   (
     tmp_dir=$(mktemp -d -t ordivon-workspace-close-XXXXXX)
     trap 'rm -rf -- "$tmp_dir"' EXIT
-    for kind in reachability unguarded spoofed; do
+    for kind in reachability unguarded spoofed unitbound; do
       mkdir "$tmp_dir/$kind"
       cp "$ROOT/formal/WorkspaceConsumerCloseR1.tla" "$tmp_dir/$kind/"
       cp "$ROOT/formal/WorkspaceConsumerCloseR1.cfg" "$tmp_dir/$kind/"
@@ -501,12 +501,24 @@ content = cfg.read_text(encoding="utf-8")
 qualification = "INVARIANT ReleasedAssumesConsumerFinished\n"
 assert content.count(qualification) == 1
 cfg.write_text(content.replace(qualification, "", 1), encoding="utf-8")
+
+# Simulate a close that does not inspect a still-installed systemd unit.
+# It must generate an actual trace violating the external consumer invariant,
+# rather than allowing our safety theorem to be vacuously true.
+src = (root / "unitbound" / model).read_text(encoding="utf-8")
+unit_guard = "    /\\ ~gitDependent\n    /\\ ~installedUnitBound\n"
+assert src.count(unit_guard) == 1, "installed unit guard source drift"
+(root / "unitbound" / model).write_text(
+    src.replace(unit_guard, "    /\\ ~gitDependent\n", 1), encoding="utf-8"
+)
 PY_WORKSPACE_CLOSE
     workspace_close_expect_named_counterexample "$tmp_dir/unguarded" \
       WorkspaceConsumerCloseR1.cfg FreshActiveConsumerCannotBeClosed unguarded
     # Scope counterexample: a claimed release is not authenticated consumer truth.
     workspace_close_expect_named_counterexample "$tmp_dir/spoofed" \
       WorkspaceConsumerCloseR1.cfg FreshActiveConsumerCannotBeClosed spoofed
+    workspace_close_expect_named_counterexample "$tmp_dir/unitbound" \
+      WorkspaceConsumerCloseR1.cfg ClosedHasNoInstalledUnitConsumer unitbound
   )
 }
 
