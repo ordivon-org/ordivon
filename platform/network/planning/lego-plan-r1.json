@@ -173,22 +173,27 @@
         "Every sampled path states its DNS resolver, proxy/tunnel, actual egress destination and independent observation.",
         "A precompromised inner execution layer still cannot access an undeclared external endpoint through metrics/auth/package services.",
         "VPN reachability is not accepted as network policy enforcement; failure and recovery are consumer-tested.",
-        "Supply-Chain READY may claim unknownDestination=REJECTED only after a same-attempt HTTP proxy CONNECT=403 denial; generic curl failure, TLS/DNS outage, 407 proxy auth, or reached-origin HTTP 403 are insufficient."
+        "Current supply-chain/ready.sh only emits READY when same-attempt proxy CONNECT=403 is observed. That is a conservative source-path sufficient check, NOT a necessary/provider-general meaning of policy rejection: installed sing-box can reject after CONNECT=200 and TLS reset without forwarding. Arbitrary curl failure, 407, 000, or origin HTTP403 remains insufficient.",
+        "Before admitting another native denial signature to READY, bind the exact loaded proxy policy and an independent upstream no-forwarding witness to the same source, destination and attempt. No generic curl35/HTTP000 or HTTP CONNECT alone is an allowed authority."
       ],
       "evidence": [
         "platform/network/tests/test_egress_routing_behavior.py: isolated loopback upstream CONNECT oracle, including a terminal-reject negative control",
         "platform/network/mise.toml: behavior task fails closed without native sing-box; owner CI conditionally exercises native tests when present",
-        "2026-10-25 existing owner CDC platform/network/tests/test_readiness_shared_budget.py: transport failure 000/000 and proxy auth 000/407 previously yielded false READY despite positive allowed-origin probes; explicit denial 000/403 qualifies; origin 403 over CONNECT=200 fails closed. Original stand-alone duplicate test harness retired."
+        "2026-10-25 existing owner CDC platform/network/tests/test_readiness_shared_budget.py: transport failure 000/000 and proxy auth 000/407 previously yielded false READY despite positive allowed-origin probes; explicit denial 000/403 qualifies; origin 403 over CONNECT=200 fails closed. Original stand-alone duplicate test harness retired.",
+        "tests/test_egress_routing_behavior.py::test_native_reject_has_no_upstream_effect_even_with_connect_200: native sing-box 1.14.3 CONNECT200 + TLS reset, independent upstream spy sees zero forbidden forward; merged PR #707.",
+        "tests/test_egress_routing_behavior.py::test_terminal_reject_negative_control_is_observable: disabled terminal reject forwards forbidden CONNECT to independent spy."
       ],
       "blockers": [
-        "This is not a production DNS, VPN, WSL, Windows or compromised inner-layer proof; finish independent live consumer probes before changing NS2 status"
+        "This is not a production DNS, VPN, WSL, Windows or compromised inner-layer proof; finish independent live consumer probes before changing NS2 status",
+        "Source ready.sh's CONNECT403-only acceptance is known overly conservative for native sing-box 1.14.3; policy rejection exists without this encoded receipt. Loaded deployed policy/source identity, live independent upstream effects, full DNS/WSL/VPN fail-closed guarantee remain UNKNOWN."
       ],
-      "nextAction": "Reuse network owner-native fault tests, then run a real restricted indirect-egress probe without exposing production secrets."
+      "nextAction": "Requalify loaded sing-box policy/source identity and independent destination-level no-forwarding receipt before changing READY; preserve explicit transport-vs-policy failure distinction."
     }
   ],
   "gaps": [
     "2026-10-24 audit: current source-bound independent proof for agent-mediated indirect egress across all consumer paths remains UNKNOWN. See docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261024_R1.json.",
-    "2026-10-25 M4 Gluetun live transport intermittently failed DNS-over-HTTPS upstream requests with repeated VPN healthcheck restarts; Windows direct GitHub and later the same Linux shared proxy succeeded. A proxy CONNECT=200 or running container alone does not prove origin TLS/consumer readiness. No deployed M4 DoH transport fix is claimed."
+    "2026-10-25 M4 Gluetun live transport intermittently failed DNS-over-HTTPS upstream requests with repeated VPN healthcheck restarts; Windows direct GitHub and later the same Linux shared proxy succeeded. A proxy CONNECT=200 or running container alone does not prove origin TLS/consumer readiness. No deployed M4 DoH transport fix is claimed.",
+    "2026-10-25 provider-native CEGAR: merged sing-box spy oracle demonstrates terminal reject may yield CONNECT200, curl35, origin HTTP000 and zero upstream effect. Prior #698 TLC model incorrectly treated CONNECT403 as necessary for policy denial; withdrawn CLOSED before merge, its branch retired. Current ready.sh intentionally remains a fail-closed but potentially false-negative check."
   ],
   "doNotOwn": [
     "Runtime management ingress",
