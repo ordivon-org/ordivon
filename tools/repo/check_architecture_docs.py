@@ -73,6 +73,39 @@ class ArchitectureDocsError(ValueError):
     pass
 
 
+# The existing GIT-01 typed decision relation is shared by the read-only
+# evidence union AND the final architecture checker. No second vocabulary.
+GIT01_ALLOWED_DISPOSITIONS = frozenset({
+        "SKIP_DUPLICATE_CHERRY_PICK", "SKIP_OLDER_PIN", "SKIP_OLDER_SOURCECUT",
+        "SKIP_UNCONSUMED_PERMISSION",
+        "NO_WHOLE_COMMIT_REPLAY_WITHOUT_PRODUCER_AUTHORITY",
+        "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER", "SKIP_CANCELLED_HISTORY_PAIR",
+        "SKIP_RETIRED_UNCONSUMED", "SKIP_OLDER_TOOLCHAIN_CHERRY_PICK",
+        "SKIP_IDENTICAL_TIP_WITH_NATIVE_CONSUMER",
+        "PORT_REQUIRED_OWNER_EFFECT",
+})
+GIT01_ALLOWED_EVIDENCE_SCOPES = frozenset({
+        "NATIVE_CONSUMER_PASS", "EXACT_GIT_BLOBS",
+        "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF",
+        "LATEST_STABLE_SOURCE_NO_UPGRADE",
+        "CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT",
+        "FROZEN_GATEWAY_CONSUMER_ONLY",
+        "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN",
+        "CURRENT_TOOLCHAIN_SUPERSEDES_OLD_LOCK_AND_NATIVE_TEST_PASS",
+        "EXACT_EXECUTABLE_BLOB_WITH_NONWINDOWS_HOLD_ONLY",
+        "EXACT_GIT_BLOB_AND_NATIVE_CONSUMER_PASS",
+        "EXACT_OWNER_LOCKED_COMPONENTS_NO_LIVE_PROVIDER",
+        "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC",
+})
+
+GIT01_SCOPE_DISPOSITION = {
+            "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF": "SKIP_OLDER_PIN",
+            "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC": "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
+            "CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT": "SKIP_UNCONSUMED_PERMISSION",
+            "EXACT_OWNER_LOCKED_COMPONENTS_NO_LIVE_PROVIDER": "SKIP_DUPLICATE_CHERRY_PICK",
+            "FROZEN_GATEWAY_CONSUMER_ONLY": "NO_WHOLE_COMMIT_REPLAY_WITHOUT_PRODUCER_AUTHORITY",
+}
+
 def _load_json(path: Path) -> dict[str, Any]:
     """Use unambiguous standard JSON bytes for Owner and evidence registration.
 
@@ -666,28 +699,8 @@ def validate_formal_issue_census(
     # Older selections may predate sourceQualification; preserve their bounded
     # claims rather than inventing missing historical proofs.
     oid_pattern = re.compile(r"[0-9a-f]{40}")
-    allowed_dispositions = {
-        "SKIP_DUPLICATE_CHERRY_PICK", "SKIP_OLDER_PIN", "SKIP_OLDER_SOURCECUT",
-        "SKIP_UNCONSUMED_PERMISSION",
-        "NO_WHOLE_COMMIT_REPLAY_WITHOUT_PRODUCER_AUTHORITY",
-        "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER", "SKIP_CANCELLED_HISTORY_PAIR",
-        "SKIP_RETIRED_UNCONSUMED", "SKIP_OLDER_TOOLCHAIN_CHERRY_PICK",
-        "SKIP_IDENTICAL_TIP_WITH_NATIVE_CONSUMER",
-        "PORT_REQUIRED_OWNER_EFFECT",
-    }
-    allowed_evidence_scopes = {
-        "NATIVE_CONSUMER_PASS", "EXACT_GIT_BLOBS",
-        "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF",
-        "LATEST_STABLE_SOURCE_NO_UPGRADE",
-        "CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT",
-        "FROZEN_GATEWAY_CONSUMER_ONLY",
-        "IN_TREE_CONSUMER_ABSENCE_EXTERNAL_UNKNOWN",
-        "CURRENT_TOOLCHAIN_SUPERSEDES_OLD_LOCK_AND_NATIVE_TEST_PASS",
-        "EXACT_EXECUTABLE_BLOB_WITH_NONWINDOWS_HOLD_ONLY",
-        "EXACT_GIT_BLOB_AND_NATIVE_CONSUMER_PASS",
-        "EXACT_OWNER_LOCKED_COMPONENTS_NO_LIVE_PROVIDER",
-        "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC",
-    }
+    allowed_dispositions = GIT01_ALLOWED_DISPOSITIONS
+    allowed_evidence_scopes = GIT01_ALLOWED_EVIDENCE_SCOPES
     for issue in issues:
         if issue["id"] != "GIT-01":
             continue
@@ -703,13 +716,7 @@ def validate_formal_issue_census(
         cohort_ids: set[str] = set()
         # One finite partial relation: weak or source-only evidence must not
         # be upgraded into a different native-consumer verdict by a merge.
-        scope_disposition = {
-            "SOURCE_PROVIDER_NEWER_NO_NATIVE_NIX_PROOF": "SKIP_OLDER_PIN",
-            "SOURCE_ABSENCE_ONLY_NO_NATIVE_CDC": "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER",
-            "CURRENT_CONSUMER_ELSEWHERE_NO_OLD_EFFECT": "SKIP_UNCONSUMED_PERMISSION",
-            "EXACT_OWNER_LOCKED_COMPONENTS_NO_LIVE_PROVIDER": "SKIP_DUPLICATE_CHERRY_PICK",
-            "FROZEN_GATEWAY_CONSUMER_ONLY": "NO_WHOLE_COMMIT_REPLAY_WITHOUT_PRODUCER_AUTHORITY",
-        }
+        scope_disposition = GIT01_SCOPE_DISPOSITION
         for entry in selections:
             if not isinstance(entry, dict):
                 raise ArchitectureDocsError("historical Git selection must be typed")
