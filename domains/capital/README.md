@@ -69,6 +69,22 @@ This is a local accounting contract, not a live financial-write authority.
 
 TigerBeetle Capital Substrate R1 passes the base mechanical integration and R3.1 composes Reservation -> PENDING, RETAIN -> no mutation, RELEASE -> VOID_PENDING_TRANSFER, and CONSUME -> POST_PENDING_TRANSFER. R3.2 now passes durable restart/reconciliation on one intact data file: a pending reservation survived the first process restart, a consumed reservation survived the second, exact replay returned `EXISTS` without reopening pending state, and exact terminal semantic history reconciled `MATCH`. If provider terminal history is missing or stale, the result is retain/recovery (`PROVIDER_INCOMPLETE_RETAIN` / `CONTRADICTION_RETAIN`) with provider repair forbidden; terminal Capital accounting history is never resurrected from provider state. The bounded harness deletes its data file afterward, so no long-running canonical ledger or external financial write is admitted.
 
+**CAP-DB-MW-01 (TYPE + NATURAL_KEY + SERIALIZATION):** before the
+PostgreSQL-first accounting cutover, two independent SQLite callers must not
+treat an absent-ID read as exclusive admission. The narrow interim ledger
+uses SQL INSERT ON CONFLICT DO NOTHING RETURNING for Account admission,
+and places Transfer replay/readback inside BEGIN IMMEDIATE together with
+the only permitted balance effects. Native two-connection interleaving
+tests force same-ID replay and conflicting amounts and assert typed
+CREATED/EXISTS/ID_CONFLICT with a single balance mutation; the original
+implementation failed with a raw sqlite3.IntegrityError for both Account
+and Transfer creation. This protects existing non-live consumers, not
+a justification for retaining SQLite after PostgreSQL achieves parity.
+The PostgreSQL cutover still requires exact u128 account identity,
+atomic concurrent no-overdraft / pending POST or VOID, restart/replay
+equivalence, live data inventory and an independently verified migration
+and rollback SourceCut. No external funds or trading authority is implied.
+
 **SQLite accounting smoke verification LEGO**: the existing disposable
 SQLite scripts run-sqlite-accounting-durable-restart-smoke-r1 and
 run-nonlive-capital-effect-matrix own one responsibility: prove local

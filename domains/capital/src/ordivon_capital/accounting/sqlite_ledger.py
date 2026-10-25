@@ -84,22 +84,27 @@ class SQLiteAccountingLedger:
         self.close()
 
     def create_account(self, account: AccountingAccount) -> LedgerApplyStatus:
+        expected = int(account.no_overdraft)
+        # Natural-key admission is owned by the database, not a prior absent
+        # SELECT: concurrent creators otherwise both attempt an INSERT.
+        inserted = self._db.execute(
+            "INSERT INTO accounts(id,no_overdraft) VALUES(?,?) "
+            "ON CONFLICT(id) DO NOTHING RETURNING id",
+            (str(account.account_id), expected),
+        ).fetchone()
+        if inserted is not None:
+            return LedgerApplyStatus.CREATED
         row = self._db.execute(
             "SELECT no_overdraft FROM accounts WHERE id=?",
             (str(account.account_id),),
         ).fetchone()
-        expected = int(account.no_overdraft)
-        if row is not None:
-            return (
-                LedgerApplyStatus.EXISTS
-                if row[0] == expected
-                else LedgerApplyStatus.ID_CONFLICT
-            )
-        self._db.execute(
-            "INSERT INTO accounts(id,no_overdraft) VALUES(?,?)",
-            (str(account.account_id), expected),
+        if row is None:
+            raise RuntimeError("account conflict vanished during readback")
+        return (
+            LedgerApplyStatus.EXISTS
+            if row[0] == expected
+            else LedgerApplyStatus.ID_CONFLICT
         )
-        return LedgerApplyStatus.CREATED
 
     def apply_immediate_transfer(
         self,
@@ -210,19 +215,23 @@ class SQLiteAccountingLedger:
         operation: str,
         pending_id: int,
     ) -> LedgerApplyStatus:
-        existing = self._existing_status(
-            transfer_id=transfer_id,
-            debit_account_id=debit_account_id,
-            credit_account_id=credit_account_id,
-            amount=amount,
-            pending_id=pending_id,
-            operation=operation,
-        )
-        if existing is not None:
-            return existing
-
+        # The absent-ID lookup must be serialized with the subsequent
+        # balance effects and insert. Never decide replay outside this write
+        # transaction: concurrent connections may both observe absence.
         self._db.execute("BEGIN IMMEDIATE")
         try:
+            existing = self._existing_status(
+                transfer_id=transfer_id,
+                debit_account_id=debit_account_id,
+                credit_account_id=credit_account_id,
+                amount=amount,
+                pending_id=pending_id,
+                operation=operation,
+            )
+            if existing is not None:
+                self._db.execute("COMMIT")
+                return existing
+
             if operation in {"IMMEDIATE", "PENDING"}:
                 debit = self.account(debit_account_id)
                 no_overdraft = self._db.execute(
