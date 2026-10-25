@@ -244,6 +244,13 @@ class SQLiteHarnessAgentBridge:
             return False
         retained = self.run_store.mark_provider_call_dispatching(retained)
         self._active_provider_call = retained
+        # The Store may return a previously COMPLETED record idempotently.
+        # A durable result replay is not a fresh physical dispatch grant.
+        if retained.record.status is not HarnessProviderCallStatus.DISPATCHING:
+            raise HarnessProviderCallRecoveryRequired(
+                "Provider Call is not dispatching; a terminal record cannot "
+                "authorize another physical invocation"
+            )
         if control.stop_requested:
             self._record_pre_dispatch_stop(request, retained)
             return False
