@@ -406,3 +406,24 @@ def test_repository_owner_graph_source_bound_before_loading(
         ),
     ):
         module.validate_repository(ROOT)
+
+
+def test_repo_mechanics_owner_plan_is_always_structurally_admitted() -> None:
+    """A Repo Owner projection cannot omit typed node kind even with valid census links."""
+    from unittest.mock import patch
+
+    relative = "tools/repo/planning/lego-plan-r1.json"
+    plan = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+    plan["nodes"][0]["kind"] = ""
+    loader = module._load_json
+
+    def tamper_registered_plan(path: Path):
+        if Path(path) == ROOT / relative:
+            return plan
+        return loader(path)
+
+    with (
+        patch.object(module, "_load_json", side_effect=tamper_registered_plan),
+        pytest.raises(module.ArchitectureDocsError, match="requires a type"),
+    ):
+        module.validate_repository(ROOT)
