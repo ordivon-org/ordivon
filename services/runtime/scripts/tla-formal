@@ -94,7 +94,7 @@ unsafe = r"""UnsafePromoteWithoutParity ==
     /\ cutoverCertified' = FALSE
     /\ pgWriterActive' = TRUE
     /\ UNCHANGED <<sqliteRevision, pgRevision, copied, parityVerified,
-                   pgCommitted, rolledBack, sqliteWriterActive>>
+                   sqliteContent, pgContent, pgCommitted, rolledBack, sqliteWriterActive>>
 
 """
 assert source.count(marker) == 1, "pg-cutover Next source drift"
@@ -132,7 +132,7 @@ unsafe = r"""UnsafeRollbackAfterPgCommit ==
     /\ sqliteWriterActive' = TRUE
     /\ pgWriterActive' = FALSE
     /\ UNCHANGED <<sqliteRevision, pgRevision, copied, parityVerified,
-                   cutoverCertified, pgCommitted, rolledBack>>
+                   sqliteContent, pgContent, cutoverCertified, pgCommitted, rolledBack>>
 
 """
 assert source.count(marker) == 1, "pg-cutover rollback mutation source drift"
@@ -157,6 +157,33 @@ PY_PG_ROLLBACK
     fi
     echo "TLC PostgreSQL rollback negative control PASS: old SQLite cannot consume committed PG effects"
 
+    # CEGAR: the same revision number cannot establish content parity.
+    # A bad verifier that ignores copied content must give a real TLC trace.
+    mkdir "$tmp_dir/content"
+    python - "$ROOT/formal/RuntimePgCutoverR1.tla" "$tmp_dir/content/RuntimePgCutoverR1.tla" <<'PY_PG_CONTENT'
+from pathlib import Path
+import sys
+source = Path(sys.argv[1]).read_text(encoding="utf-8")
+guard = r"    /\ pgContent = sqliteContent" + "\n"
+assert source.count(guard) == 1, "PG content parity guard ambiguous or missing"
+Path(sys.argv[2]).write_text(source.replace(guard, ""), encoding="utf-8")
+PY_PG_CONTENT
+    cp -- "$ROOT/formal/RuntimePgCutoverR1.cfg" "$tmp_dir/content/RuntimePgCutoverR1.cfg"
+    set +e
+    (cd "$tmp_dir/content"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+       -config RuntimePgCutoverR1.cfg RuntimePgCutoverR1.tla) > "$tmp_dir/content/result.log" 2>&1
+    result=$?
+    set -e
+    if [[ "$result" -ne 12 ]] ||
+       ! grep -Fxq 'Error: Invariant VerifiedContentWasFrozen is violated.' "$tmp_dir/content/result.log" ||
+       ! grep -Fxq 'Error: The behavior up to this point is:' "$tmp_dir/content/result.log" ||
+       ! grep -Eq '^State [1-9][0-9]*:' "$tmp_dir/content/result.log"; then
+      echo "PostgreSQL content parity TLC negative control FAILED: missing content-mismatch trace" >&2
+      tail -35 "$tmp_dir/content/result.log" >&2
+      exit 1
+    fi
+    echo "TLC PostgreSQL content parity negative control PASS: revision-equal corrupt copy rejected"
+
     # Refine owner == postgres with two independent installed-writer activities.
     # A lingering SQLite process and a newly admitted PG writer must falsify
     # the actual invariant, even when certification/parity appear legitimate.
@@ -176,7 +203,8 @@ unsafe = r"""UnsafeConcurrentInstalledWriters ==
     /\ sqliteWriterActive' = TRUE
     /\ cutoverCertified' = TRUE
     /\ rolledBack' = FALSE
-    /\ UNCHANGED <<sqliteRevision, pgRevision, copied, parityVerified, pgCommitted>>
+    /\ UNCHANGED <<sqliteRevision, pgRevision, copied, parityVerified,
+                   pgCommitted, sqliteContent, pgContent>>
 
 """
 assert source.count(marker) == 1, "PG overlapping writers source drift"
