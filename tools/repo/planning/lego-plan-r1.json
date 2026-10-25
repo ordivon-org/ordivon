@@ -104,7 +104,8 @@
         "The canonical Owner list remains the only classification source; no new validation registry or account-specific owner system.",
         "Self and mutual BLOCKED_ON prerequisite cycles are rejected via existing graphlib.TopologicalSorter; non-prerequisite feedback remains legal.",
         "Every BLOCKED_ON prerequisite is currently unresolved; a partly completed blocker set is invalid even when another predecessor remains open.",
-        "The read-only Git publication source-cut gate accepts only a native object-format-qualified remote OID (40 SHA-1, 64 SHA-256), distinguishes cached tracking from live remote, and never treats matching local/tracking refs alone as publication proof."
+        "The read-only Git publication source-cut gate accepts only a native object-format-qualified remote OID (40 SHA-1, 64 SHA-256), distinguishes cached tracking from live remote, and never treats matching local/tracking refs alone as publication proof.",
+        "A primary-main source certificate must reject tracked Git index concealment flags (assume-unchanged/skip-worktree) even if native diff, status, and index-tree equality appear clean; a concealed-byte source is not an eligible Git publication witness."
       ],
       "blockers": [
         "The formal issue census records evidence from its observed SourceCut; neither slice grants live runtime authority."
@@ -112,6 +113,7 @@
       "nextAction": "Keep owner-native source-identity and exact CDC tests; do not introduce new authorities.",
       "evidence": [
         "tools/repo/migration/check-publication-main.sh",
+        "tools/repo/migration/check-primary-main.sh",
         "tools/repo/migration/test-check-publication-main.sh"
       ]
     },
