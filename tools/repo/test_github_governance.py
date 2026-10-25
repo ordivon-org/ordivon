@@ -229,6 +229,45 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         self.assertIn("optimized Python", result.stderr)
 
 
+    def test_codeowners_explicit_root_rules_cannot_be_comments_prefixes_or_ownerless(
+        self,
+    ) -> None:
+        """GitHub ignores comments and a later rule can erase explicit ownership."""
+        import importlib.util
+
+        sys.path.insert(0, str(SCRIPT.parent))
+        spec = importlib.util.spec_from_file_location(
+            "github_codeowner_native_gate", SCRIPT
+        )
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        governance = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(governance)
+
+        canonical = (ROOT / ".github/CODEOWNERS").read_text(encoding="utf-8")
+        rule = "/services/runtime/ @zycxfyh"
+        self.assertEqual(canonical.count(rule), 1)
+        defects = {
+            "commented_only": "# " + rule,
+            "prefix_impersonator": "/services/runtime/impersonator/ @zycxfyh",
+            "ownerless": "/services/runtime/",
+            "later_ownerless_override": rule + "\n/services/runtime/",
+            "later_unowned_catchall": rule + "\n*",
+            # GitHub will not load any CODEOWNERS file at/above its 3 MB
+            # limit, regardless of whether its visible root rules are valid.
+            "oversized_ignored_by_github": rule + "\n# " + ("x" * 3_000_000),
+        }
+        with tempfile.TemporaryDirectory() as folder:
+            relocated = Path(folder) / "CODEOWNERS"
+            governance.CODEOWNERS = relocated
+            for name, replacement in defects.items():
+                with self.subTest(name=name):
+                    relocated.write_text(
+                        canonical.replace(rule, replacement), encoding="utf-8"
+                    )
+                    with self.assertRaisesRegex(AssertionError, "CODEOWNERS"):
+                        governance.main()
+
     def test_explicit_codeowner_rules_target_existing_sources(self) -> None:
         """Literal root CODEOWNERS overrides must have real current consumers."""
         source = (ROOT / ".github/CODEOWNERS").read_text(encoding="utf-8")

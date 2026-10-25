@@ -92,8 +92,17 @@ def is_active_path(path: str) -> bool:
 
 
 def tracked_active_files() -> tuple[str, ...]:
-    output = subprocess.check_output(["git", "-C", str(ROOT), "ls-files"], text=True)
-    return tuple(path for path in output.splitlines() if is_active_path(path))
+    # Git paths are byte strings: its default quoted presentation can hide
+    # an active source file from the actual cross-Owner consumer scan.
+    # NUL records preserve embedded newlines and non-UTF-8 path bytes.
+    output = subprocess.check_output(["git", "-C", str(ROOT), "ls-files", "-z"])
+    return tuple(
+        path
+        for part in output.split(b"\0")
+        if part
+        for path in (part.decode("utf-8", errors="surrogateescape"),)
+        if is_active_path(path)
+    )
 
 
 def _matches_source_glob(path: str, pattern: str) -> bool:
