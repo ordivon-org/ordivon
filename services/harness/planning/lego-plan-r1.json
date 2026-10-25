@@ -117,7 +117,8 @@
         "scripts/sqlite_conversation_binding.py",
         "scripts/sqlite_wake_turn_map.py",
         "tests/test_sqlite_conversation_binding.py::test_adoption_is_atomic_with_its_verified_receipt",
-        "tests/test_sqlite_wake_turn_map.py::test_wake_allocation_is_atomic_with_verified_turn_identity"
+        "tests/test_sqlite_wake_turn_map.py::test_wake_allocation_is_atomic_with_verified_turn_identity",
+        "tests/test_p0_store_ops.py::HarnessStoreOperationsTests::test_readonly_sqlite_uri_binds_exact_reserved_filename"
       ],
       "dependencies": [],
       "mustNotOwn": [
@@ -133,7 +134,9 @@
         "The Python -O qualification requires executable, non-elided SQL-state postconditions for adverse receipt markers and persisted row standings; two deliberately unequal witnesses must still raise AssertionError in both optimized and standard interpreters. A pytest exit-zero without these checks is not durable receipt proof.",
         "A CFT human-session open must prove the exact durable OPENING reservation receipt inside its SQLite transaction before any systemd.start: deleted or mutated post-insert reservation rolls back and no physical browser start/stop is attempted. Native SQLite adversarial AFTER INSERT triggers cover deleted rows and wrong slot; external browser readiness and deployed installed state require separate evidence. The OPENING-to-ACTIVE transition must additionally prove exact durable ACTIVE receipt after physical readiness, or roll back and compensate the started systemd target rather than return a false READY.",
         "After systemd.stop of an existing human-session, the CFT CLOSED transition must affect the exact selected lifecycle and preserve all immutable session identity fields with an exact closedAtMs. Native SQLite post-UPDATE row removal or reactivation must ROLLBACK and raise SessionConflict, never emit a successful CLOSED receipt; this source invariant does not make systemd.stop and the SQLite write one atomic physical transaction.",
-        "Conversation-role adoption and wake-intent Turn identity allocation require exact, typed, post-write SQLite receipt readback before COMMIT; a missing or tampered row must roll back with owner Conflict and must not commit any trigger side effect. Exact replays cannot return a forged provider/session or invalid UUIDv7 turn identity. The physical test scope is the two original SQLite stores, not external provider SEND atomicity."
+        "Conversation-role adoption and wake-intent Turn identity allocation require exact, typed, post-write SQLite receipt readback before COMMIT; a missing or tampered row must roll back with owner Conflict and must not commit any trigger side effect. Exact replays cannot return a forged provider/session or invalid UUIDv7 turn identity. The physical test scope is the two original SQLite stores, not external provider SEND atomicity.",
+        "Until HarnessStore has a PostgreSQL-backed replacement qualified by the same lease, revision, event and receipt consumer tests, SQLite backup verification must bind exact filename identity: reserved #/?/% are physical bytes, never query or fragment syntax; valid-but-wrong database aliases must fail consumer equivalence.",
+        "PostgreSQL-first cutover acceptance is consumer equivalence for run/event CAS, leases, unique dedupe and provider receipts under serializable retry, independent data restoration/rollback, production readback and retirement of superseded SQLite authority; a connector or schema alone is not migration."
       ]
     }
   ],
