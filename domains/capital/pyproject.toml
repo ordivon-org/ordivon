@@ -5,6 +5,7 @@ description = "Standards-first Ordivon Capital composition across Markets, Tradi
 requires-python = "==3.15.1"
 dependencies = [
     "websockets==17.1",
+    "psycopg[binary]>=3.3.6,<4",
 ]
 
 [dependency-groups]

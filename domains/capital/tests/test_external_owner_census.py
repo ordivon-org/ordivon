@@ -317,21 +317,21 @@ def test_canonical_architecture_does_not_restore_opa_owner_claim():
     assert "bounded local deterministic policy decisions" in architecture
 
 
-def test_sqlite_owns_current_bounded_accounting_mechanics_not_tigerbeetle():
+def test_postgresql_native_owner_preserves_historical_sqlite_tigerbeetle_evidence():
     owners = {row["id"]: row for row in CENSUS["standardsAndOwners"]}
-    assert owners["accounting-mechanics"]["owner"].startswith("SQLite 3.53.1")
+    assert owners["accounting-mechanics"]["owner"].startswith("PostgreSQL 18.6")
     assert owners["accounting-mechanics"]["ownerClass"] == "IMPLEMENTATION_OWNER"
     assert owners["distributed-accounting-candidate"]["owner"] == "TigerBeetle 0.17.9"
     assert owners["distributed-accounting-candidate"]["ownerClass"] == "IMPLEMENTATION_CANDIDATE"
 
     resp = {row["id"]: row for row in CENSUS["responsibilities"]}
     accounting = resp["capital-accounting-binding"]
-    assert accounting["localStanding"] == "THIN_SQLITE_SCHEMA_AND_RESERVATION_BINDING"
-    assert any(owner.startswith("SQLite 3.53.1") for owner in accounting["externalOwners"])
+    assert accounting["localStanding"] == "PG_NATIVE_ACCOUNTING_CONSUMER_QUALIFIED_LEGACY_SOURCE_RETIRED_PENDING_INSTALLED_CUTOVER"
+    assert any(owner.startswith("PostgreSQL 18.6") for owner in accounting["externalOwners"])
 
     quals = {row["contractId"]: row for row in CENSUS["comparativeQualifications"]}
     q = quals["bounded-capital-accounting-substrate"]
-    assert q["standing"] == "SQLITE_COMPOSITION_PREFERRED_FOR_CURRENT_BOUNDED_CONTRACT"
+    assert q["standing"] == "HISTORICAL_SQLITE_VS_TIGERBEETLE_ONLY_PG_NATIVE_CUTOVER_PENDING"
     assert q["tigerBeetleOwnerAdmitted"] is False
     assert q["evidence"]["randomizedDifferentialSteps"] == 400
     assert q["evidence"]["randomizedStatusMismatches"] == 0

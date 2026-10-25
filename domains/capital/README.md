@@ -178,3 +178,28 @@ The split does not weaken the provider gates: provider-bound tests remain tracke
 must pass in the environment that actually owns the required external evidence. It
 prevents local credentials, /root candidate environments, or /opt provider binaries
 from becoming hidden prerequisites of repository CI.
+
+
+**PostgreSQL-first accounting capability (native consumer transition)**.
+The bounded accounting API can now use PostgresAccountingLedger with an
+explicit PostgreSQL DSN; no SQLite fallback is permitted if a PG DSN was
+selected. scripts/run-nonlive-capital-effect-matrix selects this backend
+when ORDIVON_CAPITAL_PG_DSN is supplied. Without a PG DSN it FAILS CLOSED;
+historical disposable SQLite regression tests require the explicit
+ORDIVON_CAPITAL_LEGACY_OFFLINE_SMOKE=1 test-only opt-in. The PG implementation
+uses a transaction-scoped schema-admission lock, PostgreSQL SERIALIZABLE
+transactions with whole-transaction retry, unique account/transfer identities,
+atomic no-overdraft and pending POST/VOID effects, and native restart/replay
+readback. Physical PostgreSQL consumer tests are in tests/test_postgres_ledger.py;
+they require ORDIVON_CAPITAL_PG_TEST_DSN pointing at a disposable
+database, with no production-credential defaults. Existing SQLite is an
+historical migration-source/debt item and must not be extended.
+
+PostgresAccountingLedger.import_quiesced_sqlite performs a read-only
+snapshot and pre-commit exact PG readback into an empty target. It refuses to
+start without explicit independent legacy-producer quiescence; it never edits,
+locks out, or silently deletes the old authority. The receipt says
+VERIFIED_COPY_NOT_CONSUMER_CUTOVER. Installed worker shutdown, deployed PG
+DSN, rollback and final retirement are separate unsatisfied gates; passing
+a disposable test is not production migration. No external financial write
+authority follows from PG accounting.
