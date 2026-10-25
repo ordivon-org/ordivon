@@ -12,6 +12,8 @@ from tools.repo.check_sql_dialects import (
     sqlite_direct_calls,
     sqlite_debt_issues,
     tracked_owner_sqlite_calls,
+    tracked_unsafe_sqlite_file_uris,
+    unsafe_sqlite_file_uri_interpolations,
     SQLITE_LEGACY_SOURCE_CALLS,
     ROOT,
     host_postgres_only_sources,
@@ -39,6 +41,42 @@ class SQLDialectBoundaryTests(unittest.TestCase):
         ):
             with self.subTest(path=name):
                 self.assertIn(name, current)
+
+    def test_raw_sqlite_file_uri_interpolation_is_rejected_before_pg_cutover(self):
+        self.assertEqual(
+            unsafe_sqlite_file_uri_interpolations(
+                "services/harness/reader.py",
+                'sqlite3.connect(f"file:{path}?mode=ro", uri=True)\n',
+            ),
+            [1],
+        )
+        self.assertEqual(
+            unsafe_sqlite_file_uri_interpolations(
+                "services/harness/reader.py",
+                'sqlite3.connect(f"file:{path}?mode=ro&immutable=1", uri=True)\n',
+            ),
+            [1],
+        )
+        self.assertEqual(
+            unsafe_sqlite_file_uri_interpolations(
+                "services/harness/reader.py",
+                'sqlite3.connect(f"{path.absolute().as_uri()}?mode=ro", uri=True)\n',
+            ),
+            [],
+        )
+        self.assertEqual(
+            unsafe_sqlite_file_uri_interpolations(
+                "services/harness/reader.py",
+                '# f"file:{path}?mode=ro"\n',
+            ),
+            [],
+        )
+
+    def test_existing_sqlite_consumer_source_has_no_unescaped_file_uri(self):
+        self.assertEqual(
+            tracked_unsafe_sqlite_file_uris(ROOT, tracked_owner_sqlite_calls(ROOT)),
+            [],
+        )
 
     def test_new_sqlite_owner_outside_old_runtime_harness_scope_fails_closed(self):
         with tempfile.TemporaryDirectory() as directory:

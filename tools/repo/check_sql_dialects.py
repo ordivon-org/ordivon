@@ -155,6 +155,48 @@ def sqlite_direct_calls(path: str, source: str) -> int:
     return 0
 
 
+
+def unsafe_sqlite_file_uri_interpolations(path: str, source: str) -> list[int]:
+    """Reject interpolating unescaped OS file paths into SQLite file: URIs.
+
+    This is a syntactic fail-closed boundary for the known dangerous idiom,
+    not proof of every possible dynamically constructed URI or filesystem race.
+    """
+    tree = ast.parse(source, filename=path)
+    lines: list[int] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.JoinedStr):
+            continue
+        if not node.values or not isinstance(node.values[0], ast.Constant):
+            continue
+        first = node.values[0].value
+        if (
+            isinstance(first, str)
+            and first.startswith("file:")
+            and any(isinstance(part, ast.FormattedValue) for part in node.values)
+        ):
+            lines.append(node.lineno)
+    return sorted(set(lines))
+
+
+def tracked_unsafe_sqlite_file_uris(root: Path, legacy_sources: dict[str, int]) -> list[str]:
+    """Reuse the actual tracked and source-checked SQLite owner inventory."""
+    issues = []
+    for rel in sorted(legacy_sources):
+        if not rel.endswith(".py"):
+            continue
+        source = root / rel
+        if not source.is_file() or source.is_symlink():
+            raise ValueError(f"unsafe SQLite URI source missing or redirected: {rel}")
+        for line in unsafe_sqlite_file_uri_interpolations(
+            rel, source.read_text(encoding="utf-8")
+        ):
+            issues.append(
+                f"unescaped SQLite file URI path: {rel}:{line}; "
+                "use Path.absolute().as_uri() and add a physical-filename test"
+            )
+    return issues
+
 def sqlite_debt_issues(
     observed: dict[str, int],
     expected: dict[str, int] = SQLITE_LEGACY_SOURCE_CALLS,
@@ -344,6 +386,7 @@ def check(root: Path) -> tuple[list[str], list[str]]:
     files = tracked_sql(root)
     legacy_sources = tracked_owner_sqlite_calls(root)
     issues.extend(sqlite_debt_issues(legacy_sources))
+    issues.extend(tracked_unsafe_sqlite_file_uris(root, legacy_sources))
     facts.append(
         f"multi-owner SQLite direct API callsites={sum(legacy_sources.values())}, "
         f"source paths={len(legacy_sources)}; "
