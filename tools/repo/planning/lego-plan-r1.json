@@ -68,7 +68,8 @@
         "An issue with an undeclared or prefix-spoofed naturalOwner is rejected under exact canonical owners.toml.",
         "A symlink-redirected owner plan, census input or owner manifest is rejected before it can impersonate the source-owned artifact.",
         "The existing repo architecture tests and check_architecture_docs.py pass without a new owner discovery mechanism.",
-        "Typed LEGO slice blockers must form a well-founded prerequisite DAG; self-cycles and mutual deadlocks fail the current Owner source-bound graph gate."
+        "Typed LEGO slice blockers must form a well-founded prerequisite DAG; self-cycles and mutual deadlocks fail the current Owner source-bound graph gate.",
+        "Every BLOCKED_ON prerequisite is currently unresolved; a partly completed blocker set is invalid even when another predecessor remains open."
       ],
       "nextAction": "Reuse existing native source-bound validator; no duplicate graph, custom DSL, or new proof runtime."
     }
@@ -101,7 +102,8 @@
       "acceptance": [
         "TYPE-01 binds its actual consumer to a declared owners.toml root or tools/repo; undeclared and prefix-impersonator owners fail the native contract.",
         "The canonical Owner list remains the only classification source; no new validation registry or account-specific owner system.",
-        "Self and mutual BLOCKED_ON prerequisite cycles are rejected via existing graphlib.TopologicalSorter; non-prerequisite feedback remains legal."
+        "Self and mutual BLOCKED_ON prerequisite cycles are rejected via existing graphlib.TopologicalSorter; non-prerequisite feedback remains legal.",
+        "Every BLOCKED_ON prerequisite is currently unresolved; a partly completed blocker set is invalid even when another predecessor remains open."
       ],
       "blockers": [
         "The formal issue census records evidence from its observed SourceCut; neither slice grants live runtime authority."
