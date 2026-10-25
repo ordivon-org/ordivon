@@ -1,42 +1,16 @@
 from __future__ import annotations
 
 import sqlite3
-from dataclasses import dataclass
-from enum import StrEnum
 from pathlib import Path
 
-from .substrate import AccountingAccount, AccountingInstruction, AccountingOperation
-
-
-class LedgerApplyStatus(StrEnum):
-    CREATED = "CREATED"
-    EXISTS = "EXISTS"
-    ID_CONFLICT = "ID_CONFLICT"
-    EXCEEDS_CREDITS = "EXCEEDS_CREDITS"
-    PENDING_TRANSFER_NOT_FOUND = "PENDING_TRANSFER_NOT_FOUND"
-    PENDING_TRANSFER_ALREADY_POSTED = "PENDING_TRANSFER_ALREADY_POSTED"
-    PENDING_TRANSFER_ALREADY_VOIDED = "PENDING_TRANSFER_ALREADY_VOIDED"
-    PENDING_TRANSFER_AMOUNT_MISMATCH = "PENDING_TRANSFER_AMOUNT_MISMATCH"
-
-
-@dataclass(frozen=True)
-class AccountState:
-    account_id: int
-    debits_pending: int
-    debits_posted: int
-    credits_pending: int
-    credits_posted: int
-
-
-@dataclass(frozen=True)
-class TransferState:
-    transfer_id: int
-    debit_account_id: int
-    credit_account_id: int
-    amount: int
-    pending_id: int
-    operation: str
-    status: str
+from .substrate import (
+    AccountingAccount,
+    AccountingInstruction,
+    AccountingOperation,
+    AccountState,
+    LedgerApplyStatus,
+    TransferState,
+)
 
 
 class SQLiteAccountingLedger:

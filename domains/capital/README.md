@@ -59,6 +59,18 @@ Clock timing qualification now passes: Windows w32time is synchronized to qualif
 
 Composition policy: prefer authoritative standards, mature implementations, and provider-native truth over local mechanisms. ISO/FIX/ISO 20022 and workload-applicable external identity/reporting standards define semantics where needed; LEAN/Nautilus/venue APIs/TigerBeetle/OPA/MLflow/Pandera/Parquet/DuckDB/OpenLineage/OTel/Prometheus own their respective mechanics. Ordivon Capital retains only narrow composition, policy-input/enforcement, evidence, data-quality, and reconciliation seams that no natural owner can establish alone. Custom mechanisms require a demonstrated substitution failure. Machine-readable ownership is tracked in `config/external_owner_census.json`; see `docs/COMPOSITION_FIRST_2026-09-14.md`.
 
+**CAP-DB-TYPE-01 — PostgreSQL-first type/representation contract.**
+The database-neutral Accounting Substrate owns exactly one identity for
+LedgerApplyStatus, AccountState and TransferState, consumed by the
+PostgreSQL-first ledger and by legacy historical import tests. The PostgreSQL
+runtime must import successfully when importing sqlite_ledger is forbidden.
+The existing native negative test
+tests/test_accounting_substrate_type_authority.py proves both this isolation
+and identical enum/data type identities across consumers. These types are
+an existing Thought LEGO (domain law) used by a Capability LEGO (native
+PostgreSQL accounting). The old SQLite data path gains no new features and
+remains a retirement target once real migration/replay consumers are qualified.
+
 **Typed accounting-operation LEGO** (capital.accounting.typed-operation): existing
 AccountingInstruction and resolution_instruction own the enum boundary.
 Inputs must use AccountingOperation members, never raw strings or unknown values;

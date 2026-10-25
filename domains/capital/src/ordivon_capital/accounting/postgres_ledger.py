@@ -10,12 +10,14 @@ from typing import TypeVar
 import psycopg
 from psycopg.errors import DeadlockDetected, SerializationFailure, UniqueViolation
 
-from .sqlite_ledger import (
+from .substrate import (
+    AccountingAccount,
+    AccountingInstruction,
+    AccountingOperation,
     AccountState,
     LedgerApplyStatus,
     TransferState,
 )
-from .substrate import AccountingAccount, AccountingInstruction, AccountingOperation
 
 T = TypeVar("T")
 
