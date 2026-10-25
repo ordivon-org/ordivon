@@ -1,8 +1,4 @@
-"""ACTUAL SQLite smoke consumers must perform the same effects under Python -O.
-
-Both native scripts create only private temporary SQLite databases and never
-contact providers or touch external financial accounts.
-"""
+"""Keep historical isolated smoke, while nonlive effects require real PostgreSQL."""
 import json
 import os
 import subprocess
@@ -17,10 +13,6 @@ SMOKES = [
         "run-sqlite-accounting-durable-restart-smoke-r1",
         "PASS_SQLITE_DURABLE_RESTART_RECONCILIATION",
     ),
-    (
-        "run-nonlive-capital-effect-matrix",
-        "PASS_NONLIVE_EFFECT_TO_CAPITAL_RESTART_MATRIX",
-    ),
 ]
 
 
@@ -29,7 +21,6 @@ def run_actual_script(script_name: str, *, optimized: bool):
         os.environ,
         PYTHONOPTIMIZE="1" if optimized else "0",
         PYTHONDONTWRITEBYTECODE="1",
-        ORDIVON_CAPITAL_LEGACY_OFFLINE_SMOKE="1",
     )
     return subprocess.run(
         [str(ROOT / "scripts" / script_name)],
@@ -45,14 +36,15 @@ def run_actual_script(script_name: str, *, optimized: bool):
 def test_pg_first_capital_smoke_refuses_implicit_sqlite_fallback():
     env = dict(os.environ)
     env.pop("ORDIVON_CAPITAL_PG_DSN", None)
-    env.pop("ORDIVON_CAPITAL_LEGACY_OFFLINE_SMOKE", None)
+    # Even a historical test-only opt-in must never select a second backend.
+    env["ORDIVON_CAPITAL_LEGACY_OFFLINE_SMOKE"] = "1"
     result = subprocess.run(
         [str(ROOT / "scripts/run-nonlive-capital-effect-matrix")],
         cwd=ROOT, env=env, capture_output=True, text=True,
         timeout=35, check=False,
     )
     assert result.returncode != 0
-    assert "PostgreSQL-first Capital accounting requires" in result.stderr
+    assert "PostgreSQL Capital accounting requires explicit" in result.stderr
 
 
 @pytest.mark.parametrize("name,expected_standing", SMOKES)
@@ -69,11 +61,42 @@ def test_real_sqlite_restart_smoke_has_identical_normal_and_optimized_effects(
     assert b == a, "Python -O changed SQLite effects, replay, or reconciliation"
     assert a["standing"] == expected_standing
     assert a["externalFinancialWriteAttempted"] is False
-    if name == "run-nonlive-capital-effect-matrix":
-        assert a["exactConsumeReplayStatus"] == "EXISTS"
-        assert a["scenarios"]["FILL"]["ledgerReconciliation"] == "MATCH"
-        assert a["scenarios"]["UNKNOWN_AFTER_SUBMISSION"]["debitsPending"] == 100
-    else:
-        assert a["exactReservationReplayStatus"] == "EXISTS"
-        assert a["terminalReconciliation"] == "MATCH"
-        assert a["staleLedgerReconciliation"] == "LEDGER_INCOMPLETE_NO_REPAIR"
+    assert a["exactReservationReplayStatus"] == "EXISTS"
+    assert a["terminalReconciliation"] == "MATCH"
+    assert a["staleLedgerReconciliation"] == "LEDGER_INCOMPLETE_NO_REPAIR"
+
+
+@pytest.mark.provider_qualification
+def test_nonlive_effect_matrix_executes_only_on_disposable_postgresql() -> None:
+    """Real effect consumer must use PG across process restart, never a local fallback."""
+    dsn = os.environ.get("ORDIVON_CAPITAL_PG_TEST_DSN")
+    if not dsn:
+        pytest.skip("requires disposable PostgreSQL ORDIVON_CAPITAL_PG_TEST_DSN")
+    import psycopg
+    from psycopg.conninfo import conninfo_to_dict
+
+    # Qualified physical proof can mutate ONLY a purpose-named disposable DB.
+    dbname = conninfo_to_dict(dsn).get("dbname", "")
+    assert dbname.startswith("ordivon_capital_test_"), "refuse non-disposable PG DSN"
+    with psycopg.connect(dsn) as db:
+        assert db.execute("SELECT current_database()").fetchone()[0] == dbname
+    for optimized in (False, True):
+        with psycopg.connect(dsn) as db:
+            db.execute("DROP SCHEMA IF EXISTS ordivon_capital CASCADE")
+        env = dict(
+            os.environ, ORDIVON_CAPITAL_PG_DSN=dsn,
+            PYTHONOPTIMIZE="1" if optimized else "0",
+        )
+        result = subprocess.run(
+            [str(ROOT / "scripts/run-nonlive-capital-effect-matrix")],
+            cwd=ROOT, env=env, capture_output=True, text=True,
+            timeout=35, check=False,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        receipt = json.loads(result.stdout)
+        assert receipt["accountingProvider"] == "PostgreSQL"
+        assert "sqliteVersion" not in receipt
+        assert receipt["exactConsumeReplayStatus"] == "EXISTS"
+        assert receipt["scenarios"]["FILL"]["ledgerReconciliation"] == "MATCH"
+        assert receipt["scenarios"]["UNKNOWN_AFTER_SUBMISSION"]["debitsPending"] == 100
+        assert receipt["externalFinancialWriteAttempted"] is False
