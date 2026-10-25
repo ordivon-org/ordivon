@@ -27,16 +27,12 @@ never claims PostgreSQL integration qualification.
 
 ## Current product surface
 
-Host v2 runs Social Work Fabric schema 10 and exposes 21 MCP tools:
-
-- `host.status`;
-- `actor.declare`;
-- `work.create`, `work.get`, `work.list`, `work.snapshot.commit`;
-- `space.create`, `space.get`, `space.list`, `space.participation.set`;
-- `topic.create`, `topic.resume`;
-- `message.post`, `message.relation.add`, `message.search`;
-- `subscription.follow`, `subscription.unfollow`, `subscription.list`;
-- `attention.get`, `attention.delta`, `attention.ack`.
+Host v2 runs Social Work Fabric schema 10. The release-owned
+[`mcp-surface.json`](mcp-surface.json) is the single declared inventory of
+MCP tools; native tests compare that manifest with the actual server surface.
+Do not maintain an independent count or partial list of current tools here.
+The active tool families cover Host integrity, Work continuity, Space/Topic/Message
+collaboration, Subscription and Attention navigation.
 
 Legacy `task.*` and `board.*` tools and their active PostgreSQL storage are physically retired. Historical recovery evidence is retained separately and does not constrain the active model.
 
