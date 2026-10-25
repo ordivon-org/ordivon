@@ -57,13 +57,24 @@ def load_dependency_graph(
         # Runtime/Composition consumer edge. Admit only its exact declared
         # public toolchain source; other kinds retain conservative closure.
         if seam.get("kind") == "PUBLIC_PINNED_FORMAL_TOOLCHAIN":
-            if (
+            # A public mathematical checker is not a business owner edge.
+            # Permit only literal known consumer files, never an owner-pair
+            # wildcard (which could erase an actual Runtime dependency).
+            approved_tool_consumers = {
+                (
+                    "composition", "runtime", "packages/composition/mise.toml",
+                    "../../services/runtime", "services/runtime/formal/README.md",
+                ),
+                (
+                    "harness", "runtime", "services/harness/mise.toml",
+                    "../../services/runtime", "services/runtime/formal/README.md",
+                ),
+            }
+            declared = (
                 left, right, seam.get("source_glob"),
                 seam.get("allowed_fragment"), seam.get("contract_ref"),
-            ) != (
-                "composition", "runtime", "packages/composition/mise.toml",
-                "../../services/runtime", "services/runtime/formal/README.md",
-            ):
+            )
+            if declared not in approved_tool_consumers:
                 raise ValueError("unapproved upstream toolchain-only seam")
             continue
         graph[left].add(right)

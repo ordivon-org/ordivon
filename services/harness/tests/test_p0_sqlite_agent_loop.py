@@ -12,6 +12,7 @@ from ordivon_harness.core_contracts import (
     HarnessPrivacyPolicy,
     HarnessRunContract,
 )
+from ordivon_harness.ordivon.control import CancellationToken, ExecutionControl, RunDeadline
 from ordivon_harness.ordivon.loop import OrdivonAgentLoop, RunBudget, RunStopCode
 from ordivon_harness.ordivon.model import (
     AgentRunConclusion,
@@ -239,6 +240,31 @@ class SQLiteHarnessAgentLoopTests(unittest.TestCase):
                 )
                 self.assertIsNone(retained.result)
                 self.assertIsNone(retained.result_object)
+
+    def test_completed_provider_call_cannot_readmit_physical_dispatch(self) -> None:
+        # Concrete invariant: a completed durable call is not a new dispatch
+        # token, even if a bridge is reused with an identical request identity.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "state"
+            clock = FixedClock()
+            run_contract = contract("terminal-redispatch")
+            store, continuity = self.initialize(root, run_contract, clock)
+            adapter = ScriptedTurnAdapter((completed_result("terminal-redispatch"),))
+            bridge, outcome = self.run_loop(
+                run_contract, continuity, adapter, clock,
+            )
+            self.assertTrue(outcome.candidate_completed)
+            self.assertEqual(
+                continuity.load_current_provider_call().record.status,
+                HarnessProviderCallStatus.COMPLETED,
+            )
+            control = ExecutionControl(
+                CancellationToken(monotonic_ms=clock),
+                RunDeadline(expires_at_ms=clock() + 10_000, monotonic_ms=clock),
+            )
+            with self.assertRaises(HarnessProviderCallRecoveryRequired):
+                bridge.admit_provider_call(adapter.requests[0], control=control)
+            store.close()
 
     def test_durable_completion_replays_after_bridge_response_loss(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

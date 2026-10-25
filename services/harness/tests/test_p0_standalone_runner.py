@@ -63,7 +63,20 @@ class StandaloneHarnessRunnerTests(unittest.TestCase):
     def test_concurrent_workers_dispatch_one_physical_provider_call(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / "state"
-            run_contract = contract("same-run-race")
+            # This test asserts one acknowledged completion as well as one
+            # physical dispatch. The metadata-only default intentionally
+            # suppresses result retention, so a caller can correctly require
+            # recovery even after one completed Provider call. Select the
+            # existing content-authorized contract for this assertion; keep
+            # metadata-only recovery behavior in its separate owner tests.
+            run_contract = replace(
+                contract("same-run-race"),
+                privacy=HarnessPrivacyPolicy(
+                    content_policy="bounded-private-content",
+                    allow_model_content=True,
+                    allow_tool_content=False,
+                ),
+            )
             with SQLiteHarnessStore.initialize(root) as store:
                 store.create_run(run_contract)
 

@@ -127,7 +127,15 @@ def test_namespace_and_chat_readiness_share_one_deadline(
 
 @pytest.mark.parametrize(
     ("transport", "expected_ready"),
-    (("denied", False), ("valid", True), ("wrong_origin", False), ("unknown_http_forbidden", False)),
+    (
+        ("denied", False),
+        ("valid", True),
+        ("wrong_origin", False),
+        ("unknown_http_forbidden", False),
+        ("unknown_transport_failure", False),
+        ("unknown_proxy_auth_failure", False),
+        ("unknown_origin_forbidden", False),
+    ),
 )
 def test_supply_chain_requires_connect_and_allowed_origin_status(
     tmp_path: Path, transport: str, expected_ready: bool
@@ -143,6 +151,22 @@ def test_supply_chain_requires_connect_and_allowed_origin_status(
             "#!/bin/sh\n"
             'printf "%s\n" "$*" >> "$SUPPLY_CURL_RECORD"\n'
             'case "$*" in *example.com*)\n'
+            '  if [ "$SUPPLY_TEST_TRANSPORT" = valid ]; then\n'
+            '    printf "000 403"\n'
+            '    exit 56\n'
+            '  fi\n'
+            '  if [ "$SUPPLY_TEST_TRANSPORT" = unknown_transport_failure ]; then\n'
+            '    printf "000 000"\n'
+            '    exit 56\n'
+            '  fi\n'
+            '  if [ "$SUPPLY_TEST_TRANSPORT" = unknown_proxy_auth_failure ]; then\n'
+            '    printf "000 407"\n'
+            '    exit 56\n'
+            '  fi\n'
+            '  if [ "$SUPPLY_TEST_TRANSPORT" = unknown_origin_forbidden ]; then\n'
+            '    printf "403 200"\n'
+            '    exit 0\n'
+            '  fi\n'
             '  if [ "$SUPPLY_TEST_TRANSPORT" = unknown_http_forbidden ]; then\n'
             '    case "$*" in *" -f"*) exit 22;; esac\n'
             '    exit 0\n'
@@ -151,7 +175,7 @@ def test_supply_chain_requires_connect_and_allowed_origin_status(
             'case "$SUPPLY_TEST_TRANSPORT" in\n'
             '  denied) printf "200 407";;\n'
             '  wrong_origin) printf "500 200";;\n'
-            '  valid|unknown_http_forbidden) printf "200 200";;\n'
+            '  valid|unknown_*) printf "200 200";;\n'
             'esac\n'
         ),
     }
@@ -188,7 +212,7 @@ def test_supply_chain_requires_connect_and_allowed_origin_status(
         assert proc.returncode != 0, (proc.stdout, proc.stderr, calls)
         assert '"standing":"READY"' not in proc.stdout
         # The first required registry must block all later registry consumers.
-        if transport == "unknown_http_forbidden":
+        if transport.startswith("unknown_"):
             assert any("https://example.com/" in line for line in calls)
         else:
             assert all("registry-1.docker.io" in line for line in calls)

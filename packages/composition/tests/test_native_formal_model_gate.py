@@ -59,6 +59,33 @@ def test_pending_terminal_receipt_has_live_counterexample_and_safety_gate():
         assert "NoHostAcceptanceWithoutCommittedTerminalReceipt" in cfg
 
 
+def test_foreign_terminal_receipt_is_represented_and_rejected_not_vacuously():
+    tasks = tomllib.loads((ROOT / "mise.toml").read_text(encoding="utf-8"))["tasks"]
+    formal = tasks["formal:verify"]["run"]
+    model = (ROOT / "formal" / "Lego21OwnerBoundary.tla").read_text()
+    probe = ROOT / "formal" / "Lego21OwnerBoundary.foreign-receipt-probe.cfg"
+    assert probe.is_file()
+    assert "INVARIANT ForeignTerminalReceiptIsUnreachable" in probe.read_text()
+    assert "Error: Invariant ForeignTerminalReceiptIsUnreachable is violated." in formal
+    assert probe.name in formal
+    assert '"foreign"' in model
+    assert "RuntimeObserveForeignReceipt" in model
+    assert "NoHostAcceptanceWithoutCommittedTerminalReceipt" in model
+    assert "NoHostAcceptanceWithoutAttemptBoundReceipt" in model
+    assert "receiptAttemptBinding" in model
+    assert "RuntimeBindCommittedReceipt" in model
+    assert "NoForeignReceiptBlocksLocalRecovery" in model
+    assert "TLC foreign receipt Host-guard mutation negative control: PASS" in formal
+    assert "TLC foreign receipt recovery mutation negative control: PASS" in formal
+    assert "NoForeignReceiptBlocksLocalRecovery is violated." in formal
+    assert "NoHostAcceptanceWithoutAttemptBoundReceipt is violated." in formal
+    assert "Host receipt guard mutation unexpectedly passed" in formal
+    for config in CONFIGS:
+        assert "NoHostAcceptanceWithoutAttemptBoundReceipt" in (ROOT / "formal" / config).read_text(
+            encoding="utf-8"
+        )
+
+
 def test_formal_toolchain_is_digest_checked_and_explicitly_admitted():
     tasks = tomllib.loads((ROOT / "mise.toml").read_text(encoding="utf-8"))["tasks"]
     formal = tasks["formal:verify"]["run"]
