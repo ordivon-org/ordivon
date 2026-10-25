@@ -958,6 +958,57 @@ class MaterializationLedgerMigrationTests(unittest.TestCase):
         db.close()
         return config, legacy
 
+    def test_snapshot_never_reads_valid_but_wrong_uri_alias(self) -> None:
+        import shutil
+        import sqlite3
+
+        with tempfile.TemporaryDirectory() as td:
+            _config, legacy = self._config_and_legacy_ledger(Path(td))
+            wrong = legacy.with_name("ledger")
+            expected = legacy.with_name("ledger#authoritative.sqlite")
+            shutil.copyfile(legacy, wrong)
+            shutil.copyfile(legacy, expected)
+            with sqlite3.connect(expected) as db:
+                db.execute(
+                    "INSERT INTO requests VALUES (?,?,?,?,?,?,?,?,?,?)",
+                    ("effect:2", "sha256:" + "2" * 64, "{}", "unknown",
+                     None, None, "different receipt", 2, 12, 13),
+                )
+                db.commit()
+            self.assertEqual(r._materialization_ledger_snapshot(expected)["requestCount"], 2)
+            self.assertEqual(r._materialization_ledger_snapshot(wrong)["requestCount"], 1)
+
+    def test_snapshot_rejects_named_corrupt_source_despite_valid_alias(self) -> None:
+        import shutil
+        import sqlite3
+
+        with tempfile.TemporaryDirectory() as td:
+            _config, legacy = self._config_and_legacy_ledger(Path(td))
+            wrong = legacy.with_name("ledger")
+            damaged = legacy.with_name("ledger#tampered.sqlite")
+            shutil.copyfile(legacy, wrong)
+            damaged.write_bytes(b"not a SQLite database")
+            with self.assertRaises(sqlite3.DatabaseError):
+                r._materialization_ledger_snapshot(damaged)
+
+    def test_migration_exactly_copies_ledger_with_hash_in_parent_path(self) -> None:
+        import sqlite3
+
+        with tempfile.TemporaryDirectory() as td:
+            tricky = Path(td) / "release#source"
+            tricky.mkdir()
+            _config, legacy = self._config_and_legacy_ledger(tricky)
+            receipt = r.prepare_materialization_ledger_migration(legacy.parent)
+            current = legacy.with_name("materialization-ledger.sqlite")
+            self.assertEqual(receipt["standing"], "PREPARED")
+            self.assertEqual(receipt["requestCount"], 1)
+            with sqlite3.connect(current) as db:
+                self.assertEqual(
+                    db.execute("SELECT request_id FROM requests").fetchall(),
+                    [("effect:1",)],
+                )
+            r.rollback_materialization_ledger_migration(receipt)
+
     def test_prepare_and_finalize_migrates_one_authoritative_ledger(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             config, legacy = self._config_and_legacy_ledger(Path(td))
