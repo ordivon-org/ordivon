@@ -27,16 +27,12 @@ never claims PostgreSQL integration qualification.
 
 ## Current product surface
 
-Host v2 runs Social Work Fabric schema 10 and exposes 21 MCP tools:
-
-- `host.status`;
-- `actor.declare`;
-- `work.create`, `work.get`, `work.list`, `work.snapshot.commit`;
-- `space.create`, `space.get`, `space.list`, `space.participation.set`;
-- `topic.create`, `topic.resume`;
-- `message.post`, `message.relation.add`, `message.search`;
-- `subscription.follow`, `subscription.unfollow`, `subscription.list`;
-- `attention.get`, `attention.delta`, `attention.ack`.
+Host v2 runs Social Work Fabric schema 10. The release-owned
+[`mcp-surface.json`](mcp-surface.json) is the single declared inventory of
+MCP tools; native tests compare that manifest with the actual server surface.
+Do not maintain an independent count or partial list of current tools here.
+The active tool families cover Host integrity, Work continuity, Space/Topic/Message
+collaboration, Subscription and Attention navigation.
 
 Legacy `task.*` and `board.*` tools and their active PostgreSQL storage are physically retired. Historical recovery evidence is retained separately and does not constrain the active model.
 
@@ -52,4 +48,4 @@ Production releases are immutable Git-SHA directories with a release-local `.ven
 
 Host v2 intentionally does not restore v1's SQLite Journal/WAL/file-lock machinery, filesystem CAS for normal JSON payloads, separate SQLite Board FTS sidecar, Runtime/Harness/provider proxying, historical cognition execution stack, or a separate ContinuityLens subsystem.
 
-See `docs/SOCIAL_WORK_FABRIC_R1.md` for the current schema-9 collaboration boundary. `docs/HOST_V2_R5_PRODUCTION_CUTOVER.md` and `docs/HOST_V2_R6_CLEANUP.md` remain historical v1→v2/Task-Board-era cutover evidence.
+See `docs/SOCIAL_WORK_FABRIC_R2_SPEC.md` for the active Social Work Fabric contracts and `docs/SOCIAL_WORK_FABRIC_R2_IMPLEMENTATION.md` for source-bound implementation receipts. `docs/SOCIAL_WORK_FABRIC_R1.md`, `docs/HOST_V2_R5_PRODUCTION_CUTOVER.md`, and `docs/HOST_V2_R6_CLEANUP.md` are historical evidence, not current schema or API authority.

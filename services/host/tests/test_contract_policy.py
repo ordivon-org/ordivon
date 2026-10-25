@@ -266,3 +266,24 @@ def test_host_lego_r2_unused_projection_retired_r1_and_r3_preserved() -> None:
     owners = {item["owner"] for item in current["externalOwners"]}
     assert "PostgreSQL" in owners
     assert "Pydantic" in owners
+
+
+def test_readme_has_one_tool_inventory_owner() -> None:
+    """CEGAR regression: an old hard-coded tool count is not a second source of truth."""
+    import json
+
+    root = Path(__file__).parents[1]
+    readme = (root / "README.md").read_text(encoding="utf-8")
+    surface = json.loads((root / "mcp-surface.json").read_text(encoding="utf-8"))
+    assert surface["service"] == "ordivon-host-v2"
+    assert surface["tools"] and len(surface["tools"]) == len(set(surface["tools"]))
+    assert "[`mcp-surface.json`](mcp-surface.json)" in readme
+    assert re.search(r"\b\d+\s+MCP tools?\b", readme) is None
+
+
+def test_readme_current_fabric_contract_does_not_promote_schema_nine_history() -> None:
+    """Keep the historical Social Work Fabric R1 document out of current authority."""
+    doc = (Path(__file__).parents[1] / "README.md").read_text(encoding="utf-8")
+    assert "`docs/SOCIAL_WORK_FABRIC_R2_SPEC.md`" in doc
+    assert "`docs/SOCIAL_WORK_FABRIC_R1.md`" in doc
+    assert "current schema-9" not in doc
