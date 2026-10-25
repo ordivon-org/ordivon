@@ -181,9 +181,7 @@ class WindowsUserBrowserAutomationConfig:
             or parsed.username is not None
             or parsed.password is not None
         ):
-            raise ValueError(
-                "windowsUserBrowser.gatewayUrl must be exact loopback HTTP /mcp"
-            )
+            raise ValueError("windowsUserBrowser.gatewayUrl must be exact loopback HTTP /mcp")
         for value, label in (
             (self.workspace_id, "workspaceId"),
             (self.powershell_path, "powershellPath"),
@@ -256,8 +254,13 @@ class BrowserlessAutomationConfig:
     def __post_init__(self) -> None:
         if self.materialization_carrier not in {"browserless", "windows-user-browser"}:
             raise ValueError("materializationCarrier must be browserless or windows-user-browser")
-        if self.materialization_carrier == "windows-user-browser" and self.windows_user_browser is None:
-            raise ValueError("windows-user-browser materialization requires windowsUserBrowser config")
+        if (
+            self.materialization_carrier == "windows-user-browser"
+            and self.windows_user_browser is None
+        ):
+            raise ValueError(
+                "windows-user-browser materialization requires windowsUserBrowser config"
+            )
         if self.human_handoff_mode not in {"self-hosted-vnc", "live-url"}:
             raise ValueError("browserlessHumanHandoffMode must be self-hosted-vnc or live-url")
         if self.human_handoff_ms <= 0:
@@ -534,9 +537,7 @@ def _carrier_lease(config: BrowserlessAutomationConfig, endpoint_id: str, *, blo
 
 
 @contextmanager
-def _user_browser_carrier_lease(
-    config: BrowserlessAutomationConfig, *, blocking: bool
-):
+def _user_browser_carrier_lease(config: BrowserlessAutomationConfig, *, blocking: bool):
     """Serialize the single Normal-Chrome user-browser carrier across processes."""
     lock_root = config.state_root / "carrier-leases"
     lock_root.mkdir(parents=True, exist_ok=True)
@@ -1219,11 +1220,35 @@ class BrowserlessAutomationService:
             "census": census,
         }
 
+    def _pg_conversation_binding_owner(self):
+        """One authoritative PG binding port for both reads and writes."""
+        dsn = os.environ.get("ORDIVON_CONVERSATION_BINDING_POSTGRES_DSN")
+        if not dsn:
+            return None
+        try:
+            from postgres_conversation_binding import PostgresConversationBindingStore
+        except ModuleNotFoundError:
+            from scripts.postgres_conversation_binding import PostgresConversationBindingStore
+        owner = PostgresConversationBindingStore(dsn)
+        owner.assert_legacy_sealed(
+            self.config.ledger,
+            fresh_bootstrap=os.environ.get("ORDIVON_CONVERSATION_BINDING_FRESH_BOOTSTRAP") == "1",
+        )
+        return owner
+
     def conversation_affinity(self, spec_path: Path, campaign_ref: str, agent_id: str) -> dict:
         """Project the preferred existing conversation without provider effects."""
         spec = self.load_spec(spec_path)
         materialization = self._materialization(spec, agent_id)
-        adopted = read_conversation_binding(self.config.ledger, campaign_ref, agent_id)
+        try:
+            pg_owner = self._pg_conversation_binding_owner()
+            adopted = (
+                pg_owner.get_binding(campaign_ref, agent_id)
+                if pg_owner is not None
+                else read_conversation_binding(self.config.ledger, campaign_ref, agent_id)
+            )
+        except ConversationBindingConflict as error:
+            raise BrowserlessAutomationConflict(str(error)) from error
         if adopted is not None:
             try:
                 session = resolve_session(adopted["sessionId"])
@@ -1372,7 +1397,10 @@ class BrowserlessAutomationService:
                 "exact conversation discovery lacks binding evidence"
             )
         try:
-            binding = SQLiteConversationBindingStore(self.config.ledger).adopt_binding(
+            binding_owner = self._pg_conversation_binding_owner()
+            if binding_owner is None:
+                binding_owner = SQLiteConversationBindingStore(self.config.ledger)
+            binding = binding_owner.adopt_binding(
                 campaign_ref=campaign_ref,
                 agent_id=agent_id,
                 provider_resource=resource,
