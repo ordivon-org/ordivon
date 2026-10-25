@@ -2471,5 +2471,68 @@ class LifecycleTests(unittest.TestCase):
             globals_["_attempt_prepared_close"] = original_attempt
 
 
+    def test_durable_systemd_consumer_blocks_only_exact_workspace_path(self) -> None:
+        scanner = self.module["persistent_systemd_unit_consumers"]
+        with tempfile.TemporaryDirectory(prefix="ordivon-systemd-consumer-") as d:
+            root = Path(d) / "system"
+            root.mkdir()
+            service = root / "persistent-consumer.service"
+            service.write_text(
+                "# WorkingDirectory=/var/lib/ordivon/runtime/workspaces/ws-target\n"
+                "WorkingDirectory=/var/lib/ordivon/runtime/workspaces/ws-target-copy\n"
+                "ExecStart=/bin/true\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(scanner("ws-target", (root,)), [])
+            service.write_text(
+                "WorkingDirectory=/var/lib/ordivon/runtime/workspaces/ws-target\n"
+                "ExecStart=/bin/true\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(scanner("ws-target", (root,)), [str(service)])
+            dropin = root / "persistent-consumer.service.d"
+            dropin.mkdir()
+            conf = dropin / "30-rebind.conf"
+            conf.write_text(
+                "ExecStartPre=/bin/test -d /var/lib/ordivon/runtime/workspaces/ws-target/.git\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(scanner("ws-target", (root,)), sorted([str(service), str(conf)]))
+            self.assertEqual(scanner("ws-target-copy", (root,)), [])
+            self.assertEqual(scanner("ws-target", (root / "absent",)), [])
+
+    def test_external_deployment_consumer_fences_lifecycle_close_under_admission(self) -> None:
+        revalidate = self.module["revalidate_prepared_item_under_fence"]
+        global_scope = revalidate.__globals__
+        from unittest.mock import patch
+
+        prepared = self._prepared_r54_candidate("closable")
+        registry = {
+            "workspaceId": "ws-r54",
+            "activeJobIds": [],
+            "lastActivityMs": prepared["lastActivityUnixMs"],
+            "activityMarker": prepared["activityMarker"],
+        }
+        with (
+            patch.dict(global_scope, {
+                "registry_workspace": lambda *_args, **_kwargs: registry,
+                "canonical_head_revision": lambda _item: "c" * 40,
+                "persistent_systemd_unit_consumers": lambda _id: ["/etc/systemd/system/active-consumer.service"],
+            }),
+        ):
+            retained, current_state = revalidate(
+                argparse.Namespace(database=Path("/unused"), busy_timeout_ms=1),
+                prepared,
+            )
+        self.assertEqual(retained["reason"], "workspace_persistent_systemd_consumer")
+        self.assertEqual(retained["externalConsumers"], ["/etc/systemd/system/active-consumer.service"])
+        self.assertEqual(current_state["activeJobIds"], [])
+
+    def test_systemd_consumer_scanner_rejects_identity_ambiguity(self) -> None:
+        scanner = self.module["persistent_systemd_unit_consumers"]
+        for invalid in ("", " ws-target", "ws-target/../other", "ws-target\x00", "ws-target" * 11):
+            with self.subTest(identity=invalid), self.assertRaisesRegex(RuntimeError, "invalid Workspace id"):
+                scanner(invalid, ())
+
 if __name__ == "__main__":
     unittest.main()

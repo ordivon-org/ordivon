@@ -312,3 +312,23 @@ implementation witness, and negative replay. Age expiry is explicitly
 allowed to reclaim without release, preserving bounded liveness.
 
 No second solver, custom formal DSL, new scheduler or global registry is added.
+
+
+### External installed-unit consumer refinement (2026-10-26)
+
+The *existing* `WorkspaceConsumerCloseR1` is extended with
+`installedUnitBound` and independent `BindInstalledUnit` /
+`UnbindInstalledUnit` transitions. No safe `Close` may consume a Workspace
+whose installed Linux systemd unit source still depends on its absolute path;
+`ClosedHasNoInstalledUnitConsumer` is checked in the same upstream TLC
+run. The negative control removes this exact guard in an ephemeral model copy
+and must produce a named counterexample with a real installed-unit binding.
+
+This is a **finite relational abstraction**, not a claim that every outside
+consumer has been discovered. The concrete Rust close path checks installed
+local unit files and refuses the deletion; Python lifecycle supplies
+preflight diagnostic evidence. The model abstracts this to a stable Boolean
+until an external consumer is unbound. Concurrent independent unit deployment,
+systemd symlink target aliasing, other hosts, consumer release authenticity,
+and exact Rust-to-TLA trace refinement remain UNKNOWN and are not admitted by
+passing TLC. Do not use this model as a blanket dirty-workspace deletion proof.

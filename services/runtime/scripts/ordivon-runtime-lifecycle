@@ -36,6 +36,19 @@ RUNTIME_INSPECT_WALL_TIMEOUT_SECONDS = 15.0
 MCP_EFFECT_TIMEOUT_SECONDS = 10.0
 CANONICAL_HEAD_TIMEOUT_SECONDS = 5.0
 TRUSTED_TMP_PRESENTATION_ROOT = Path("/tmp/ordivon-t")
+# Existing systemd unit-file owners are outside Runtime's Job registry. A
+# durable unit referencing a transient Workspace is a concrete external
+# consumer: automatic retirement must first retire/rebind that unit.
+# Read the installed unit-file paths directly; this is a conservative
+# host-local witness, not cross-node proof of all possible consumers.
+PERSISTENT_UNIT_ROOTS = (
+    Path("/etc/systemd/system"),
+    Path("/run/systemd/system"),
+    Path("/usr/lib/systemd/system"),
+)
+PERSISTENT_UNIT_FILE_SUFFIXES = frozenset({
+    ".service", ".timer", ".socket", ".path", ".mount", ".automount", ".conf"
+})
 DEFAULT_POLICY = {
     "schemaVersion": 1,
     "defaultClass": "ephemeral",
@@ -1157,6 +1170,67 @@ def canonical_fast_forward_preserves_integration(
 
     return is_ancestor(workspace_head, expected) and is_ancestor(expected, observed_canonical)
 
+def persistent_systemd_unit_consumers(
+    workspace_id: str,
+    roots: tuple[Path, ...] = PERSISTENT_UNIT_ROOTS,
+) -> list[str]:
+    """Find exact deployed systemd references before a lifecycle close.
+
+    Unit files are not Resource consumers solely because they once existed;
+    a referenced durable unit is a current configured consumer until that
+    deployment binding is removed. A closed/disabled but still installed unit
+    also requires a deliberate retirement decision. Inspect only bounded,
+    non-symlink regular unit sources, not archived evidence or logs.
+
+    This is a bounded *host-local* preclose gate, not proof of universal
+    source-code, Windows, machine-to-machine or in-memory dependencies.
+    """
+    if not isinstance(workspace_id, str):
+        raise RuntimeError("invalid Workspace id for persistent unit inspection")
+    try:
+        workspace_id_from_reference("runtime:workspace:" + workspace_id)
+    except RuntimeError as exc:
+        raise RuntimeError("invalid Workspace id for persistent unit inspection") from exc
+    needle = "/var/lib/ordivon/runtime/workspaces/" + workspace_id
+    matches: list[str] = []
+    for root in roots:
+        if not root.exists():
+            continue
+        if not root.is_dir() or root.is_symlink():
+            raise RuntimeError("installed systemd unit root is not a trusted directory")
+        # The host's installed unit collection is finite; never recursively
+        # follow symlinks from *.wants or drop-in references.
+        for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
+            dirnames[:] = [name for name in dirnames if not (Path(dirpath) / name).is_symlink()]
+            for filename in filenames:
+                source = Path(dirpath) / filename
+                if source.suffix not in PERSISTENT_UNIT_FILE_SUFFIXES or source.is_symlink():
+                    continue
+                try:
+                    if not source.is_file():
+                        raise RuntimeError("installed systemd unit is not a regular file")
+                    if source.stat().st_size > 1024 * 1024:
+                        raise RuntimeError("installed systemd unit exceeds inspection bound")
+                    lines = source.read_text(encoding="utf-8").splitlines()
+                except (OSError, UnicodeError) as exc:
+                    raise RuntimeError("failed to verify installed systemd unit consumer") from exc
+                for line in lines:
+                    value = line.lstrip()
+                    if not value or value[0] in "#;":
+                        continue
+                    start = 0
+                    while (position := value.find(needle, start)) != -1:
+                        after = position + len(needle)
+                        if after == len(value) or value[after] not in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._-":
+                            matches.append(str(source))
+                            break
+                        start = after
+                    else:
+                        continue
+                    break
+    return sorted(set(matches))
+
+
 def revalidate_prepared_item_under_fence(
     args: argparse.Namespace,
     prepared_item: dict[str, object],
@@ -1215,6 +1289,17 @@ def revalidate_prepared_item_under_fence(
                 current_item={**prepared_item, **standing},
                 registry_state=registry_state,
             ), registry_state
+
+    deployed_consumers = persistent_systemd_unit_consumers(workspace_id)
+    if deployed_consumers:
+        retained = retained_after_plan(
+            prepared_item,
+            reason="workspace_persistent_systemd_consumer",
+            current_item={**prepared_item, **standing},
+            registry_state=registry_state,
+        )
+        retained["externalConsumers"] = deployed_consumers
+        return retained, registry_state
 
     currentness = {
         "plannedActivityMarker": prepared_item.get("activityMarker"),
