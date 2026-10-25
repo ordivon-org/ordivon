@@ -295,14 +295,32 @@ def decide(
 
     action = False
     reason = "NORMAL_ABOVE_SOFT_TRIGGER"
+    horizon_breached = time_to_floor is not None and time_to_floor <= int(
+        policy["reactionHorizonSeconds"]
+    )
+    # A 6h zero-yield backoff cannot defer the next probe beyond the
+    # forecast disk hard floor. This is a probe admission condition, not
+    # permission to bypass the reclaim operator's consumer protections.
+    cooldown_outlasts_floor = (
+        horizon_breached
+        and isinstance(next_after, int)
+        and time_to_floor is not None
+        and (next_after - now_ms) >= time_to_floor * 1000
+    )
     if free_bytes <= hard:
         action = True
         reason = "HARD_FLOOR_REACHED"
+    elif horizon_breached and (free_bytes <= soft or cooldown_elapsed or cooldown_outlasts_floor):
+        # A rapidly falling free-space trend is relevant even before the
+        # static soft threshold is crossed. Above soft, honour the existing
+        # bounded expensive-probe cooldown; the actuator still reclaims
+        # Workspaces only below soft after its cache stage.
+        action = True
+        reason = "TIME_TO_FLOOR_WITHIN_REACTION_HORIZON"
+    elif horizon_breached and free_bytes > soft:
+        reason = "FORECAST_PRESSURE_COOLDOWN"
     elif free_bytes <= soft:
-        if time_to_floor is not None and time_to_floor <= int(policy["reactionHorizonSeconds"]):
-            action = True
-            reason = "TIME_TO_FLOOR_WITHIN_REACTION_HORIZON"
-        elif signal_changed and since_probe >= int(policy["eventProbeMinIntervalSeconds"]):
+        if signal_changed and since_probe >= int(policy["eventProbeMinIntervalSeconds"]):
             action = True
             reason = "REGISTRY_ACTIVITY_CHANGED"
         elif since_probe >= int(policy["maxProbeIntervalSeconds"]) and cooldown_elapsed:
