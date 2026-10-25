@@ -214,3 +214,19 @@ VERIFIED_COPY_NOT_CONSUMER_CUTOVER. Installed worker shutdown, deployed PG
 DSN, rollback and final retirement are separate unsatisfied gates; passing
 a disposable test is not production migration. No external financial write
 authority follows from PG accounting.
+
+
+**PG catalog admission guard (CEGAR, physical PostgreSQL 18.6)**.
+PostgresAccountingLedger now refuses a same-name counterfeit accounting
+table before admitting any effect: column types and nullability, permanent
+(crash-recoverable) storage, required key/check structure, exact native PG
+deparsed check conditions, RLS and user-trigger absence are checked under the
+same transaction-scoped schema-admission advisory lock. The native RED
+counterexamples are a missing accounts schema, a weakened negative-balance
+check with identical count, and an UNLOGGED transfers table. The PG 18
+pg_constraint catalog separately represents NOT NULL as type n; the guard
+checks that via pg_attribute.attnotnull and compares other constraints
+independently. The strict PG deparser comparison deliberately fails closed
+after a server upgrade until the actual installed version is requalified.
+These checks do not amount to a proof of arbitrary SQL equivalence or a
+production deployment certificate.
