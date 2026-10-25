@@ -18,7 +18,7 @@ import subprocess
 import tempfile
 import time
 import urllib.parse
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -1401,7 +1401,7 @@ class BrowserlessAutomationService:
         if not path.exists():
             return None
         try:
-            with sqlite3.connect(path) as db:
+            with closing(sqlite3.connect(path)) as db:
                 row = db.execute(
                     "SELECT prompt_digest,target_coordinate,state,receipt_json,updated_at_ms FROM turn_effects WHERE turn_request_id=?",
                     (turn_request_id,),

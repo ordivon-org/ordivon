@@ -13,6 +13,7 @@ from pathlib import Path
 
 
 REPO = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO / "scripts"))
 
 
 def load_script(name: str):
@@ -74,6 +75,39 @@ class OperationalScriptTests(unittest.TestCase):
             # A # in the intended filename must never be parsed as a URI
             # fragment and open/create a different empty SQLite database.
             self.assertFalse((root / "registry").exists())
+
+    def test_backup_parent_swap_preserves_bound_file(self) -> None:
+        from unittest.mock import patch
+
+        if not sys.platform.startswith("linux"):
+            self.skipTest("openat is Linux-only")
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            parent = root / "control"
+            sub = parent / "sub"
+            sub.mkdir(parents=True)
+            other = root / "outside"
+            other.mkdir()
+            item = sub / "sample.txt"
+            item.write_bytes(b"SAME BYTES")
+            (other / "sample.txt").write_bytes(b"SAME BYTES")
+            inode = item.stat().st_ino
+            original_copy = backup.shutil.copy2
+            swapped = False
+
+            def switch_parent(src, dst, *args, **kwargs):
+                nonlocal swapped
+                if Path(dst).name == "sample.txt":
+                    sub.rename(parent / "original-sub")
+                    sub.symlink_to(other, target_is_directory=True)
+                    swapped = True
+                    self.assertEqual(os.stat(src).st_ino, inode)
+                return original_copy(src, dst, *args, **kwargs)
+
+            with patch.object(backup.shutil, "copy2", side_effect=switch_parent):
+                backup.copy_regular_tree(parent, root / "snapshot", set())
+            self.assertTrue(swapped)
+            self.assertEqual((root / "snapshot/sub/sample.txt").read_bytes(), b"SAME BYTES")
 
     def test_backup_restore_round_trip(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

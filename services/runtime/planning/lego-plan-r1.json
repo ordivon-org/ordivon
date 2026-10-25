@@ -488,7 +488,8 @@
         "crates/ordivon-runtime-core/src/bin/ordivon-runtime-windows-deploy.rs",
         "scripts/restore.py",
         "scripts/tests/test_operational_scripts.py",
-        "scripts/backup.py"
+        "scripts/backup.py",
+        "scripts/snapshot_fds.py"
       ],
       "dependencies": [
         "R12",
@@ -506,7 +507,8 @@
         "Runtime restore must reject manifest entries escaping through intermediate symlinked parents and boolean-as-integer byte lengths; a pre-copy source verification alone is insufficient, so the staged restore bytes must pass the same manifest digest/length contract before publication.",
         "On Linux, Runtime restore opens every snapshot path component relative to a previously opened directory descriptor using O_NOFOLLOW; renaming a validated parent into an external symlink cannot silently substitute an external source inode during copy. A staged-manifest recheck still binds published bytes. Linux fd-root pinning is not a cross-platform or shared-writer filesystem snapshot proof.",
         "Runtime restore publication is an expected-absent ownership transition, not ordinary os.replace: if another process creates an empty destination directory after preflight, publication MUST fail without overwriting that directory or committing an unowned restore. On Linux use native renameat2(RENAME_NOREPLACE), on Windows use native os.rename no-overwrite semantics, otherwise fail closed.",
-        "Runtime SQLite backup and restored-registry validation must preserve the exact filesystem filename through SQLite read-only URI construction; literal #, ?, and % path bytes cannot become URI fragment/query/percent escape. A valid but different database is a false acceptance even if its integrity_check returns ok. Use stdlib Path.as_uri() for encoded physical path and native consumer-driven counterexamples."
+        "Runtime SQLite backup and restored-registry validation must preserve the exact filesystem filename through SQLite read-only URI construction; literal #, ?, and % path bytes cannot become URI fragment/query/percent escape. A valid but different database is a false acceptance even if its integrity_check returns ok. Use stdlib Path.as_uri() for encoded physical path and native consumer-driven counterexamples.",
+        "Runtime snapshot backup and restore share one native Linux pinned_source_entry path-identity kernel: every parent and final file is opened via directory FDs with O_NOFOLLOW, and copy reads the pinned inode from /proc/self/fd. The copy-stage parent-symlink replacement with byte-equal outside content must preserve the original source inode. Non-Linux historical fallback cannot claim the Linux invariant."
       ],
       "nextAction": "Extract pure receipt/fence/status projection helpers first; leave CLI orchestration intact until parity is proven."
     },
@@ -1107,7 +1109,8 @@
     "2026-10-25 R15 restore operator source-bound CEGAR: immutable snapshot verification and copied staging re-verification exclude intermediate-parent symlink aliases, bool size aliases, and content substitutions between source validation and staging publication. Accepted finite file tests do not prove race-free access against malicious concurrent filesystem writers (requires descriptor-relative/no-follow path witness).",
     "2026-10-25 Linux Runtime R15 source-path currentness: On Linux, Runtime restore opens every snapshot path component relative to a previously opened directory descriptor using O_NOFOLLOW; renaming a validated parent into an external symlink cannot silently substitute an external source inode during copy. A staged-manifest recheck still binds published bytes. Linux fd-root pinning is not a cross-platform or shared-writer filesystem snapshot proof.",
     "2026-10-25 R15 destination currentness: a concurrent empty-directory creator was previously overwritten by os.replace after destination.exists() precheck (TDD RED), with wrong-owner success. The native expected-absent publish primitive now rejects competitor via RENAME_NOREPLACE; whole-host adversarial mount/ACL races remain outside this test.",
-    "2026-10-25 R15 SQLite URI identity: source/path representation formerly admitted different writable SQLite file when raw # or ? appeared; native backup and restore now use URI-encoded path. This only qualifies filename parsing; does not prove inode immutability against privileged concurrent writers."
+    "2026-10-25 R15 SQLite URI identity: source/path representation formerly admitted different writable SQLite file when raw # or ? appeared; native backup and restore now use URI-encoded path. This only qualifies filename parsing; does not prove inode immutability against privileged concurrent writers.",
+    "2026-10-26 R15 backup/restore path representation consumer closure: copied control-root files previously re-resolved mutable source pathnames between enumeration and copy. The native shared snapshot_fds.py kernel now pins Linux sources for both owner operators. This does NOT prove coherent whole-directory snapshot under simultaneous trusted writes, and does not upgrade non-Linux fallback."
   ],
   "doNotOwn": [
     "Host Task truth",

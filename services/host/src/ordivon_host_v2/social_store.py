@@ -245,6 +245,7 @@ class SocialStore:
                 if row["message_digest"] != message_digest:
                     raise ConflictError("message_ref already exists with different content")
                 admission = "existing"
+            self._verify_message_content_digest(row)
             result = {
                 "schemaVersion": 1,
                 "kind": "ordivon.host-message",
@@ -842,6 +843,25 @@ class SocialStore:
                 "truthBoundary": "compact social-space locator only; participation is not ownership, authority, or assignment",
             }
 
+    @staticmethod
+    def _verify_message_content_digest(row: dict[str, Any]) -> None:
+        # Digest is a claim about all immutable message fields, not an
+        # authoritative pointer by itself. Every consumer-visible read must
+        # bind the stored claim to the actual PostgreSQL row bytes/values.
+        actual = canonical_digest(
+            {
+                "messageRef": row["message_ref"],
+                "spaceRef": row["space_ref"],
+                "topicRef": row["topic_ref"],
+                "authorActorRef": row["author_actor_ref"],
+                "messageKind": row["message_kind"],
+                "body": row["body"],
+                "recordedAtMs": row["recorded_at_ms"],
+            }
+        )
+        if actual != row["message_digest"]:
+            raise RuntimeError("Host message content digest differs from stored claim")
+
     def get_message(
         self,
         message_ref: str,
@@ -857,6 +877,7 @@ class SocialStore:
             ).fetchone()
             if row is None:
                 raise MessageNotFound(message_ref)
+            self._verify_message_content_digest(row)
             if expected_digest is not None and row["message_digest"] != expected_digest:
                 raise ConflictError(
                     f"message digest mismatch: expected {expected_digest}, "
@@ -914,6 +935,8 @@ class SocialStore:
                 (query, space_ref, space_ref, topic_ref, topic_ref, before_sequence, before_sequence, limit + 1),
             ).fetchall()
             sql_more = len(rows) > limit
+            for row in rows[:limit]:
+                self._verify_message_content_digest(row)
             candidates = [
                 {
                     "sequence": int(row["sequence"]),
@@ -979,12 +1002,15 @@ class SocialStore:
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             topic = self._require_topic(conn, topic_ref)
             rows = conn.execute(
-                "SELECT sequence,message_ref,author_actor_ref,message_kind,body,message_digest,"
-                "recorded_at_ms,created_at FROM messages WHERE topic_ref=%s AND sequence>%s "
+                "SELECT sequence,message_ref,space_ref,topic_ref,author_actor_ref,"
+                "message_kind,body,message_digest,recorded_at_ms,created_at "
+                "FROM messages WHERE topic_ref=%s AND sequence>%s "
                 "ORDER BY sequence LIMIT %s",
                 (topic_ref, after_sequence, limit + 1),
             ).fetchall()
             sql_more = len(rows) > limit
+            for row in rows[:limit]:
+                self._verify_message_content_digest(row)
             candidates = [
                 {
                     "sequence": int(row["sequence"]),
