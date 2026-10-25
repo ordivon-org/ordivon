@@ -207,6 +207,9 @@ class ResearchValidityTest(unittest.TestCase):
                         json.dumps(payload), None, event_hash,
                     ),
                 )
+                # closing() releases the handle; SQLite still needs an
+                # explicit transaction commit for the source fixture.
+                source.commit()
             with patch.object(TrialLedger, "verify", return_value=False):
                 with self.assertRaisesRegex(ValueError, "hash-chain mismatch"):
                     migrate(source_file, PG_DSN)
