@@ -47,11 +47,14 @@ def _dependency_update_owner_violations(root, ecosystem, manifests, watch_roots)
                 patterns = tomllib.loads(workspace.read_text(encoding="utf-8")).get(
                     "workspace", {}
                 ).get("members", [])
-            # This Owner's tracked manifests use fixed or one-level package
-            # patterns; do not incorrectly infer coverage from a broad parent.
+            # Dependabot's updater root must cover a declared workspace
+            # member from its *start*, not an arbitrary trailing subtree.
+            # PurePath.match is right-anchored for relative patterns and
+            # wrongly admits vendor/apps/foo as apps/*; full_match uses
+            # owner-relative whole-path matching, including genuine **.
             if any(
                 not pattern.startswith("!")
-                and relative.match(pattern)
+                and relative.full_match(pattern)
                 for pattern in patterns
             ):
                 consumers.append(declared)
@@ -157,6 +160,18 @@ class DependencyUpdateOwnershipTests(unittest.TestCase):
             ),
             {nested: []},
         )
+        # pathlib.PurePath.match uses right-anchored matching for relative
+        # patterns. vendor/apps/rogue must not be treated as apps/* at the
+        # package-manager workspace root, nor vendor/crates as crates/*.
+        for ecosystem, path, declared in (
+            ("npm", "capabilities/media/vendor/apps/rogue/package.json", ["/capabilities/media"]),
+            ("cargo", "services/runtime/vendor/crates/rogue/Cargo.toml", ["/services/runtime"]),
+        ):
+            self.assertEqual(
+                _dependency_update_owner_violations(ROOT, ecosystem, [path], declared),
+                {path: []},
+                f"{ecosystem} relative workspace pattern impersonation",
+            )
         duplicate = _dependency_update_owner_violations(
             ROOT, "npm", ["domains/game/package.json"], ["/domains/game", "/domains/game"],
         )
