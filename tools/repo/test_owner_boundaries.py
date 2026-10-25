@@ -23,6 +23,33 @@ class OwnerBoundaryTests(unittest.TestCase):
         self.assertEqual(len(findings), 1)
         return findings[0]
 
+    def test_tracked_active_owner_paths_are_native_git_byte_records(self) -> None:
+        """A quoted newline filename cannot hide an active cross-owner seam."""
+        import os
+        import subprocess
+        import tempfile
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            subprocess.run(["git", "init", "-q", "-b", "main", folder], check=True)
+            paths = ["apps/web/src/newline\nsource.ts"]
+            if os.name != "nt":
+                paths.append(os.fsdecode(b"apps/web/src/nonutf8-\xff.ts"))
+            for name in paths:
+                target = root / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text('const source = "platform/security";\n', encoding="utf-8")
+            subprocess.run(["git", "-C", folder, "add", "--all"], check=True)
+            with patch.object(MODULE, "ROOT", root):
+                actual = set(MODULE.tracked_active_files())
+                self.assertEqual(actual, set(paths))
+                for name in paths:
+                    source = (root / name).read_text(encoding="utf-8")
+                    observed = MODULE.findings_for_text(name, source, OWNERS)
+                    self.assertEqual(len(observed), 1)
+                    self.assertEqual(observed[0].to_owner, "security")
+
     def test_identical_cross_owner_seam_is_rejected(self) -> None:
         """A repeated source/consumer relation is one LEGO, never two grants."""
         import tempfile
