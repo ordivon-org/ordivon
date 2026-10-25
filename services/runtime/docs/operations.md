@@ -371,6 +371,23 @@ scripts/ordivon-runtime-lifecycle sweep \
 
 The packaged timer runs the Runtime lifecycle service hourly with a small randomized delay. Each run first applies the mature low-level reclaim path to clean `closable` Workspaces at 24 hours, then runs policy-driven lifecycle handling for the remaining classes, then runs cache maintenance. Clean and clean-but-unintegrated carriers become policy-eligible after 24 hours of inactivity; packaged dirty carriers are *not* automatically eligible at 48 hours, and hard lifetime cannot override their owner-disposition requirement. Active or held Jobs and explicitly pinned Workspaces remain protected. Clean-but-unintegrated closures use the Runtime `workspace.close` boundary after source preservation. A dirty close requires an explicit disposition outside the automatic packaged lifecycle; neither case permits direct filesystem deletion. `unknown` and `orphan_directory` identities are not blindly deleted because Runtime cannot prove the target identity; they continue through repair/quarantine. Lifecycle exit 1 is a service failure rather than an accepted systemd success; exit 2 remains the accepted partial-maintenance status.
 
+The lifecycle owner's final close fence also checks installed Linux systemd
+unit sources in `/etc/systemd/system`, `/run/systemd/system`, and
+`/usr/lib/systemd/system` for an exact installed configuration reference to
+the candidate Workspace path. A durable service's `WorkingDirectory`,
+`ExecStart`, `ExecCondition`, or drop-in referencing that Workspace causes
+a `workspace_persistent_systemd_consumer` retention outcome, even when the
+service is disabled; explicitly retire or rebind the unit before reconsidering
+its underlying carrier. Unit-file inspection is read-only, bounded and
+fail-closed for unreadable unit sources. This protects the normal Linux
+lifecycle sweep against one observed cross-owner fault class: a Paper1 systemd
+unit remained installed after its Workspace disappeared and could no longer
+start. It does **not** establish all consumer absence, cover other nodes or
+prove freedom from a concurrent unit-file deployment between inspection and
+Runtime close. Direct `workspace.close` and the separate low-level reclaim
+caller have their own authority and are not protected by this lifecycle-only
+external unit inspection.
+
 The low-level reclaim apply path also re-reads `workspace.get` immediately before deletion. The fresh `currentHeadRevision` must equal the revision classified during planning, the Workspace must still be clean, and the fresh `sourceStateDigest` is passed unchanged to `workspace.close(expectedSourceStateDigest=...)`. This makes the low-level clean/stale removal a compare-and-swap transition rather than a time-of-check/time-of-use guess. The subordinate reclaim receipt is linked from the lifecycle receipt. The same oneshot then runs cache pruning as a separate receipt domain; Workspace retention does not become cache authority. Packaged cache pruning reads `ORDIVON_CACHE_HIGH_WATERMARK_BYTES` and `ORDIVON_CACHE_LOW_WATERMARK_BYTES` from the same Runtime operator environment used by health/status. An explicit `ordivon-runtime-cache prune` invocation may override those values with CLI watermarks; without either an environment file or explicit values, the standalone command retains its 64 GiB / 48 GiB defaults.
 
 The `--confirm-policy` / `--confirm-quarantine` phrases on these root-operated maintenance CLIs are human/operator anti-mistake ceremony, not semantic authority. The actual protection comes from classification, exact Workspace identity, active-Job checks, locks, before/after receipts, and preserved bytes. Future Agent-facing control surfaces should express deliberate intent and affected identities structurally rather than asking an Agent to echo a magic phrase.
