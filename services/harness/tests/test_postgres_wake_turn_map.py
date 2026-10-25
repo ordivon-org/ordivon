@@ -371,6 +371,24 @@ def test_pg_turn_request_collision_cannot_alias_different_wakes(
         assert db.execute("SELECT count(*) FROM ordivon_harness.wake_turn_map").fetchone()[0] == 1
 
 
+@pytest.mark.parametrize("unsafe_clock", [True, 1.5, -1, 2**63, "1"])
+def test_pg_wake_clock_requires_exact_native_bigint_before_write(
+    owner: PostgresWakeTurnMap, unsafe_clock: object,
+) -> None:
+    """Never let an invalid producer clock get coerced or delegated to PG."""
+    assert PG_TEST_DSN is not None
+    candidate = PostgresWakeTurnMap(
+        PG_TEST_DSN,
+        now_ms=lambda: unsafe_clock,  # type: ignore[arg-type,return-value]
+    )
+    with pytest.raises(WakeTurnConflict, match="timestamp"):
+        candidate.allocate(**payload())
+    with psycopg.connect(PG_TEST_DSN) as db:
+        assert db.execute(
+            "SELECT count(*) FROM ordivon_harness.wake_turn_map"
+        ).fetchone()[0] == 0
+
+
 @pytest.mark.parametrize("mutation", ["UPDATE", "DELETE", "TRUNCATE"])
 def test_pg_native_identity_immutability_rejects_mutation(
     owner: PostgresWakeTurnMap, mutation: str
