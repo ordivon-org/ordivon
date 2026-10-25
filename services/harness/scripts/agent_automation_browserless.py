@@ -1229,10 +1229,15 @@ class BrowserlessAutomationService:
             from postgres_conversation_binding import PostgresConversationBindingStore
         except ModuleNotFoundError:
             from scripts.postgres_conversation_binding import PostgresConversationBindingStore
-        owner = PostgresConversationBindingStore(dsn)
+        fresh_bootstrap = os.environ.get("ORDIVON_CONVERSATION_BINDING_FRESH_BOOTSTRAP") == "1"
+        owner = PostgresConversationBindingStore(
+            dsn,
+            legacy_source=self.config.ledger,
+            fresh_bootstrap=fresh_bootstrap,
+        )
         owner.assert_legacy_sealed(
             self.config.ledger,
-            fresh_bootstrap=os.environ.get("ORDIVON_CONVERSATION_BINDING_FRESH_BOOTSTRAP") == "1",
+            fresh_bootstrap=fresh_bootstrap,
         )
         return owner
 
@@ -1439,9 +1444,7 @@ class BrowserlessAutomationService:
                 "promptDigest": record["prompt_digest"],
                 "targetCoordinate": record["target_coordinate"],
                 "state": record["state"],
-                "receipt": (
-                    json.loads(record["receipt_json"]) if record["receipt_json"] else None
-                ),
+                "receipt": (json.loads(record["receipt_json"]) if record["receipt_json"] else None),
                 "updatedAtMs": record["updated_at_ms"],
             }
         path = self.config.turn_ledger
