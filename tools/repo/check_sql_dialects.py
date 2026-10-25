@@ -45,10 +45,6 @@ SQLITE_LEGACY_SOURCE_CALLS: dict[str, int] = {
     # to the source bound Python/Rust-only gate. These are actual imports,
     # unlike type-only dependencies or tests.
     'apps/web/src/store.ts': 1,
-    'domains/game/experiments/casefile/src/store.ts': 1,
-    'domains/game/experiments/game-e2e-r5/host-outbox-shadow.ts': 1,
-    'domains/game/experiments/station-zero-v3/src/persistence.ts': 1,
-    'domains/game/products/station-zero-v2/src/storage.ts': 1,
     'platform/security/labs/agent-admission-rs/src/grant-store.ts': 1,
     'platform/security/labs/agent-admission-rs/src/principal-store.ts': 1,
     # Other concrete owners previously invisible to the Runtime/Harness-only gate:

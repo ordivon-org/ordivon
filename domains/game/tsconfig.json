@@ -3,8 +3,13 @@
     "target": "ES2024",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "lib": ["ES2024", "DOM"],
-    "types": ["node"],
+    "lib": [
+      "ES2024",
+      "DOM"
+    ],
+    "types": [
+      "node"
+    ],
     "strict": true,
     "noEmit": true,
     "allowImportingTsExtensions": true,
@@ -13,5 +18,8 @@
     "exactOptionalPropertyTypes": true,
     "skipLibCheck": false
   },
-  "include": ["tools/**/*.ts", "products/**/*.ts", "experiments/**/*.ts", "scripts/**/*.ts", "test/**/*.ts"]
+  "include": [
+    "scripts/**/*.ts",
+    "test/**/*.ts"
+  ]
 }

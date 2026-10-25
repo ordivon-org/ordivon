@@ -92,21 +92,15 @@ test("human guide defines Pattern to Experience to Probe without making recipes"
 });
 
 
-test("library is discoverable without inflating the domain graph into a second ontology", () => {
+test("mechanism experience is registered in the owner LEGO plan without a second ontology", () => {
   const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
-  const authority = readFileSync(new URL("../docs/authority.md", import.meta.url), "utf8");
   const project = readFileSync(new URL("../.ordivon/project.yaml", import.meta.url), "utf8");
-  const graph = JSON.parse(readFileSync(new URL("../standards/game_domain_package_graph_r1.json", import.meta.url), "utf8")) as any;
-
-  assert.match(readme, /GAME_MECHANISM_EXPERIENCE_LIBRARY_R1\.md/);
+  const plan = JSON.parse(readFileSync(new URL("../planning/lego-plan-r1.json", import.meta.url), "utf8")) as any;
+  const node = plan.nodes.find((x: any) => x.id === "G02");
+  assert.ok(node);
   assert.match(readme, /knowledge:mechanisms/);
-  assert.match(authority, /Mechanism Experience Library/i);
-  assert.match(project, /docs\/GAME_MECHANISM_EXPERIENCE_LIBRARY_R1\.md/);
   assert.match(project, /standards\/game_mechanism_experience_library_r1\.json/);
-  assert.match(project, /scripts\/mechanism-experience-query\.ts/);
-
-  assert.equal(graph.mechanismExperienceLibrary.path, "standards/game_mechanism_experience_library_r1.json");
-  assert.equal(graph.mechanismExperienceLibrary.authority, "ADVISORY_HYPOTHESIS_MEMORY");
-  assert.equal(graph.mechanismExperienceLibrary.canBlockNovelCombination, false);
-  assert.equal(graph.mechanismExperienceLibrary.embeddedInGraph, false);
+  assert.ok(node.evidence.includes("scripts/mechanism-experience-query.ts"));
+  assert.match(node.behavioralContract, /novel compositions/i);
+  assert.equal(plan.nodes.some((x: any) => x.label === "GameFramework"), false);
 });

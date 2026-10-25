@@ -22,6 +22,34 @@ def sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def historical_game_source_digests(relative_path: str) -> set[str]:
+    """Read retired Game producer bytes from Git, never from an active game.
+
+    A removal commit is not a source revision for the removed path. Limit
+    candidates to revisions where the tracked file was added/modified; the
+    frozen Artifact acceptance receipt remains unchanged and historical.
+    """
+    relative = Path(relative_path)
+    if relative.is_absolute() or ".." in relative.parts or not relative.parts:
+        raise ValueError("invalid historical Game source path")
+    source_path = (GAME_ROOT.relative_to(MONOREPO_ROOT) / relative).as_posix()
+    revisions = subprocess.check_output(
+        ["git", "-C", str(MONOREPO_ROOT), "log", "--diff-filter=AM",
+         "--format=%H", "HEAD", "--", source_path],
+        text=True, timeout=25,
+    ).splitlines()
+    if not revisions:
+        raise AssertionError(f"no committed Game source history for {relative_path}")
+    digests = set()
+    for revision in revisions:
+        source = subprocess.check_output(
+            ["git", "-C", str(MONOREPO_ROOT), "show", f"{revision}:{source_path}"],
+            timeout=15,
+        )
+        digests.add(hashlib.sha256(source).hexdigest())
+    return digests
+
+
 def chunk(kind: bytes, payload: bytes) -> bytes:
     return struct.pack(">I", len(payload)) + kind + payload + struct.pack(">I", binascii.crc32(kind + payload) & 0xFFFFFFFF)
 
@@ -133,8 +161,13 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
         self.assertEqual(receipt['standing'],'STANDARD_PASS_TARGET_DIVERGENCE_GAME_FUNCTIONALLY_ACCEPTED')
         self.assertEqual(receipt['gameAcceptance']['standing'],'GAME_FUNCTIONAL_ACCEPTANCE_PASS_TARGET_BOUNDARY_DIVERGENCE_PRESERVED')
         self.assertEqual(receipt['gameAcceptance']['decision'],'ACCEPT_FOR_CURRENT_STATION_ZERO_FUNCTIONAL_CONSUMPTION')
-        game=GAME_ROOT/receipt['gameAcceptance']['relativePath']
-        self.assertEqual(hashlib.sha256(game.read_bytes()).hexdigest(),receipt['gameAcceptance']['sha256'])
+        # Game no longer owns the old Station Zero executable/evidence path.
+        # Recheck its exact historical bytes, not a revived active game.
+        game_evidence = receipt['gameAcceptance']
+        self.assertIn(
+            game_evidence['sha256'],
+            historical_game_source_digests(game_evidence['relativePath']),
+        )
         self.assertEqual(len(receipt['subjects']),3)
         self.assertTrue(all(x['serviceCandidateStatus']=='PASS' for x in receipt['subjects']))
         self.assertTrue(all(x['browserStanding']=='TARGET_SAMPLE_BOUNDARY_DIVERGENCE_OBSERVED' for x in receipt['subjects']))
@@ -215,25 +248,17 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
         # claim an unbuilt current release passed Artifact verification.
         harness=receipt['producerEvidence']['harness']
         self.assertEqual(harness['relativePath'],'experiments/production-smoke-r1/run.ts')
-        source_path=(GAME_ROOT.relative_to(MONOREPO_ROOT)/harness['relativePath']).as_posix()
-        revisions=subprocess.check_output(
-            ['git','-C',str(MONOREPO_ROOT),'log','--format=%H','HEAD','--',source_path],
-            text=True,timeout=25,
-        ).splitlines()
-        self.assertTrue(revisions,'frozen Game producer has no retained Git history')
-        digests={
-            hashlib.sha256(subprocess.check_output(
-                ['git','-C',str(MONOREPO_ROOT),'show',f'{revision}:{source_path}'],
-                timeout=15,
-            )).hexdigest()
-            for revision in revisions
-        }
+        digests=historical_game_source_digests(harness['relativePath'])
         self.assertIn(harness['sha256'],digests,'historical Game producer bytes must be retained')
         self.assertNotIn('0'*64,digests,'invalid witness must not qualify frozen evidence')
         # The unchanged recorded reproducibility boundary is independently
         # current to this checkout; producer source version is historical.
         boundary=receipt['producerEvidence']['acceptedReproducibilityBoundary']
-        self.assertEqual(sha(GAME_ROOT/boundary['relativePath']),boundary['sha256'],boundary['relativePath'])
+        self.assertIn(
+            boundary['sha256'],
+            historical_game_source_digests(boundary['relativePath']),
+            boundary['relativePath'],
+        )
         self.assertEqual(receipt['producerEvidence']['currentRuntimeProof']['firstBuildSha256'],receipt['externalSubject']['sha256'])
         self.assertEqual(receipt['producerEvidence']['currentRuntimeProof']['secondBuildSha256'],receipt['externalSubject']['sha256'])
         self.assertIn('Steam or other store upload/release',receipt['boundary']['notEstablished'])

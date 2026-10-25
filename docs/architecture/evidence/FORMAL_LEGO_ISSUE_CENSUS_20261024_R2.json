@@ -10,7 +10,7 @@
   "representation": {
     "problemType": "typed-issue",
     "consumerGraph": "source-to-test-to-native-owner-to-observed-GitHub-check",
-    "constraint": "a previous failure is not a current failure without an equivalent exact source and consumer",
+    "constraint": "a previous failure is not a current failure without an equivalent exact source and consumer; an old retired owner-slice link cannot be silently rebound to a new Game LEGO.",
     "stateMachine": [
       "OBSERVED_HISTORICAL_FAILURE",
       "REPRODUCED_ON_CANDIDATE",
@@ -27,11 +27,6 @@
       "ownerPlan": "services/runtime/planning/lego-plan-r1.json",
       "slice": "RW8",
       "scope": "Runtime concurrency verification proposal only"
-    },
-    {
-      "ownerPlan": "domains/game/planning/lego-plan-r1.json",
-      "slice": "GS5",
-      "scope": "Game native dependency/consumer verification proposal only"
     }
   ],
   "issues": [
@@ -72,7 +67,7 @@
       "standing": "HISTORICAL_ENV_BLOCK_CURRENT_UNVERIFIED",
       "observation": "PR #218 earlier native Bevy consumer compilation failed because wayland-client.pc was absent from the Linux pkg-config search path. A newer PR head is under qualification; this older failure does not establish present failure.",
       "evidence": "GitHub Actions run 40018090745; wayland-sys-0.31.11 missing wayland-client; PR #218 branch kits/room-action-r0/mise.toml",
-      "decision": "Use Game's existing rules (no-default-features) and native/playable verify surfaces, with explicit environment dependencies; do not silence the native consumer.",
+      "decision": "Historical failed Bevy environment prerequisite only; old room-action source and player games retired. Do not reinstate the old source to reproduce a deleted consumer.",
       "formalObligation": "VerifiedNativeConsumer implies all declared system dependencies are available and actual ECS/playable build executed; GPU-free rule PASS alone cannot prove native client PASS.",
       "consumers": "Game room-action-r0 library, Bevy native executable, Game owner CI",
       "consumerPaths": [
@@ -90,9 +85,8 @@
         "selectionReason": "Missing wayland-client.pc is a native environment prerequisite mismatch, not evidence of invalid game behavior; change only the environment contract after cause isolation."
       },
       "registration": {
-        "state": "LINKED",
-        "ownerPlan": "domains/game/planning/lego-plan-r1.json",
-        "slice": "GS5"
+        "state": "UNREGISTERED",
+        "reason": "Retired legacy Bevy Game source. Historical exact failure remains in Git/source evidence; the old GS5 slice and room-action consumer no longer exist on the current Game owner."
       }
     }
   ],

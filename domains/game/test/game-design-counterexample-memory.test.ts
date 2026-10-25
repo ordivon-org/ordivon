@@ -84,23 +84,15 @@ test("human guide treats failure as contextual evidence rather than anti-pattern
 });
 
 
-test("counterexample memory is discoverable without being embedded as Game law", () => {
+test("counterexamples are registered as reusable Game LEGO, not a domain law", () => {
   const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
-  const authority = readFileSync(new URL("../docs/authority.md", import.meta.url), "utf8");
   const project = readFileSync(new URL("../.ordivon/project.yaml", import.meta.url), "utf8");
-  const domain = JSON.parse(readFileSync(new URL("../standards/game_domain_package_graph_r1.json", import.meta.url), "utf8")) as any;
-
-  assert.match(readme, /GAME_DESIGN_COUNTEREXAMPLE_MEMORY_R1\.md/);
+  const plan = JSON.parse(readFileSync(new URL("../planning/lego-plan-r1.json", import.meta.url), "utf8")) as any;
+  const node = plan.nodes.find((x: any) => x.id === "G04");
+  assert.ok(node);
   assert.match(readme, /knowledge:counterexamples/);
-  assert.match(authority, /Design Counterexample Memory/i);
-  for (const path of [
-    "docs/GAME_DESIGN_COUNTEREXAMPLE_MEMORY_R1.md",
-    "standards/game_design_counterexample_memory_r1.json",
-    "scripts/design-counterexample-query.ts",
-  ]) assert.match(project, new RegExp(path.replaceAll("/", "\\/")));
-
-  assert.equal(domain.designCounterexampleMemory.path, "standards/game_design_counterexample_memory_r1.json");
-  assert.equal(domain.designCounterexampleMemory.embeddedInGraph, false);
-  assert.equal(domain.designCounterexampleMemory.canBlockNovelCombination, false);
-  assert.equal(domain.designCounterexampleMemory.recommendationAuthority, "NONE");
+  assert.match(project, /standards\/game_design_counterexample_memory_r1\.json/);
+  assert.ok(node.evidence.includes("standards/game_design_counterexample_memory_r1.json"));
+  assert.match(node.behavioralContract, /blacklist|recommendation/i);
+  assert.equal(plan.nodes.some((x: any) => x.kind === "product"), false);
 });

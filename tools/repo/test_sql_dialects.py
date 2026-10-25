@@ -107,10 +107,6 @@ class SQLDialectBoundaryTests(unittest.TestCase):
         observed = tracked_owner_sqlite_calls(ROOT)
         for path in (
             "apps/web/src/store.ts",
-            "domains/game/experiments/casefile/src/store.ts",
-            "domains/game/experiments/game-e2e-r5/host-outbox-shadow.ts",
-            "domains/game/experiments/station-zero-v3/src/persistence.ts",
-            "domains/game/products/station-zero-v2/src/storage.ts",
             "platform/security/labs/agent-admission-rs/src/grant-store.ts",
             "platform/security/labs/agent-admission-rs/src/principal-store.ts",
         ):

@@ -32,7 +32,7 @@ Riot, Nintendo, Supercell and other mature studios are useful operating preceden
 - FFmpeg / ImageMagick;
 - Codex and Engineering toolchain;
 - Artifact/Security/Distribution/Network capabilities available for composition;
-- `/root/projects/ordivon/domains/game` contains a real executable product, multiple playable/research surfaces, browser E2E paths, deterministic/replay evidence and extensive game-specific research/lessons.
+- `/root/projects/ordivon/domains/game` contains only reusable source-grounded Game LEGO references, mechanism/counterexample memories and read-only retrieval tools. Older playable games are retired.
 
 Historical Game framework material is evidence/knowledge. Forward reuse should preserve game-specific value while retiring ownership of generic engineering, media, workflow, security or distribution concerns.
 
@@ -46,7 +46,7 @@ The most important unresolved evidence class is often human play: automated exec
 
 ## Acceptance workload
 
-The active first-formal-product workload is **not yet a selected product**. Search at the mechanism-composition level:
+There is no active first-party game. A new product begins only when a real consumer chooses to assemble existing mechanisms. Example discovery:
 
 ```text
 external mechanism/pattern knowledge
