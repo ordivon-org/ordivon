@@ -60,7 +60,7 @@ class SQLiteWakeTurnMap:
 
     def _connect(self, *, read_only: bool = False) -> sqlite3.Connection:
         if read_only:
-            db = sqlite3.connect(f"file:{self.path}?mode=ro", uri=True, timeout=30)
+            db = sqlite3.connect(f"{self.path.absolute().as_uri()}?mode=ro", uri=True, timeout=30)
         else:
             db = sqlite3.connect(self.path, timeout=30, isolation_level=None)
             db.execute("PRAGMA journal_mode=WAL")
@@ -103,7 +103,7 @@ class SQLiteWakeTurnMap:
         wake_intent_id = _text(wake_intent_id, "wakeIntentId")
         if not self.path.is_file():
             return None
-        db = sqlite3.connect(f"file:{self.path}?mode=ro", uri=True, timeout=30)
+        db = sqlite3.connect(f"{self.path.absolute().as_uri()}?mode=ro", uri=True, timeout=30)
         db.row_factory = sqlite3.Row
         try:
             exists = db.execute(

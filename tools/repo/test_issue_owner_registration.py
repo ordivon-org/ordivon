@@ -38,8 +38,14 @@ def test_oct25_dependency_updater_issue_links_existing_rg2_witness() -> None:
     )
     census = json.loads(path.read_text(encoding="utf-8"))
     plan_path = "tools/repo/planning/lego-plan-r1.json"
+    # The census also has a Runtime RW1 registration. Positive graph admission
+    # must supply *every* exact registered Owner projection, not pretend the
+    # Repo RG2 subset constitutes the whole provenance/consumer relation.
     plans = {
-        plan_path: json.loads((path.parents[3] / plan_path).read_text(encoding="utf-8"))
+        owner_plan: json.loads(
+            (path.parents[3] / owner_plan).read_text(encoding="utf-8")
+        )
+        for owner_plan in {row["ownerPlan"] for row in census["registrations"]}
     }
     issue = next(row for row in census["issues"] if row["id"] == "DEPS-RENOVATE-20261025")
     assert issue["registration"] == {

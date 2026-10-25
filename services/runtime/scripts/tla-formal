@@ -67,6 +67,95 @@ check_runtime_dispatch() {
   )
 }
 
+# PostgreSQL-first R06 registry cutover is a separate finite *design* model.
+# It is not evidence that the current SQLite production registry has migrated.
+check_runtime_pg_cutover() {
+  verify_jar
+  java -XX:+UseParallelGC -cp "$JAR" tla2sany.SANY "$ROOT/formal/RuntimePgCutoverR1.tla"
+  (cd "$ROOT/formal"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+      -config RuntimePgCutoverR1.cfg RuntimePgCutoverR1.tla)
+}
+
+# CEGAR non-vacuity: deliberately let a paused SQLite source admit a PG writer
+# without parity certification. TLC must find an actual named state trace.
+check_pg_cutover_counterexample() {
+  verify_jar
+  (
+    tmp_dir=$(mktemp -d -t ordivon-pg-cutover-falsifier-XXXXXX)
+    trap 'rm -rf -- "$tmp_dir"' EXIT
+    python - "$ROOT/formal/RuntimePgCutoverR1.tla" "$tmp_dir/RuntimePgCutoverR1.tla" <<'PY_PG_CEX'
+from pathlib import Path
+import sys
+source = Path(sys.argv[1]).read_text(encoding="utf-8")
+marker = "Next ==\n"
+unsafe = r"""UnsafePromoteWithoutParity ==
+    /\ owner = "paused"
+    /\ owner' = "postgres"
+    /\ cutoverCertified' = FALSE
+    /\ UNCHANGED <<sqliteRevision, pgRevision, copied, parityVerified,
+                   pgCommitted, rolledBack>>
+
+"""
+assert source.count(marker) == 1, "pg-cutover Next source drift"
+Path(sys.argv[2]).write_text(
+    source.replace(marker, unsafe + marker + r"    \/ UnsafePromoteWithoutParity" + "\n"),
+    encoding="utf-8",
+)
+PY_PG_CEX
+    cp -- "$ROOT/formal/RuntimePgCutoverR1.cfg" "$tmp_dir/RuntimePgCutoverR1.cfg"
+    set +e
+    (cd "$tmp_dir"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+       -config RuntimePgCutoverR1.cfg RuntimePgCutoverR1.tla) > "$tmp_dir/result.log" 2>&1
+    result=$?
+    set -e
+    if [[ "$result" -ne 12 ]] ||
+       ! grep -Fxq 'Error: Invariant PostgresRequiresCertifiedCutover is violated.' "$tmp_dir/result.log" ||
+       ! grep -Fxq 'Error: The behavior up to this point is:' "$tmp_dir/result.log" ||
+       ! grep -Eq '^State [1-9][0-9]*:' "$tmp_dir/result.log"; then
+      echo "PostgreSQL cutover TLC negative control FAILED: missing actual named state trace" >&2
+      tail -35 "$tmp_dir/result.log" >&2
+      exit 1
+    fi
+    echo "TLC PostgreSQL cutover negative control PASS: uncertified promotion rejected"
+
+    mkdir "$tmp_dir/rollback"
+    python - "$ROOT/formal/RuntimePgCutoverR1.tla" "$tmp_dir/rollback/RuntimePgCutoverR1.tla" <<'PY_PG_ROLLBACK'
+from pathlib import Path
+import sys
+source = Path(sys.argv[1]).read_text(encoding="utf-8")
+marker = "Next ==\n"
+unsafe = r"""UnsafeRollbackAfterPgCommit ==
+    /\ owner = "postgres"
+    /\ pgCommitted
+    /\ owner' = "sqlite"
+    /\ UNCHANGED <<sqliteRevision, pgRevision, copied, parityVerified,
+                   cutoverCertified, pgCommitted, rolledBack>>
+
+"""
+assert source.count(marker) == 1, "pg-cutover rollback mutation source drift"
+Path(sys.argv[2]).write_text(
+    source.replace(marker, unsafe + marker + r"    \/ UnsafeRollbackAfterPgCommit" + "\n"),
+    encoding="utf-8",
+)
+PY_PG_ROLLBACK
+    cp -- "$ROOT/formal/RuntimePgCutoverR1.cfg" "$tmp_dir/rollback/RuntimePgCutoverR1.cfg"
+    set +e
+    (cd "$tmp_dir/rollback"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+       -config RuntimePgCutoverR1.cfg RuntimePgCutoverR1.tla) > "$tmp_dir/rollback/result.log" 2>&1
+    result=$?
+    set -e
+    if [[ "$result" -ne 12 ]] ||
+       ! grep -Fxq 'Error: Invariant NoLostPostgresCommit is violated.' "$tmp_dir/rollback/result.log" ||
+       ! grep -Fxq 'Error: The behavior up to this point is:' "$tmp_dir/rollback/result.log" ||
+       ! grep -Eq '^State [1-9][0-9]*:' "$tmp_dir/rollback/result.log"; then
+      echo "PostgreSQL rollback TLC negative control FAILED: missing actual lost-commit state trace" >&2
+      tail -35 "$tmp_dir/rollback/result.log" >&2
+      exit 1
+    fi
+    echo "TLC PostgreSQL rollback negative control PASS: old SQLite cannot consume committed PG effects"
+  )
+}
+
 # Non-vacuity control for the existing scoped dispatch invariant: introduce one
 # deliberately forbidden transition in an EPHEMERAL copy of the same source.
 # TLC must return the *named* safety counterexample. Parse/tool/time failures
@@ -217,8 +306,8 @@ PY_PARTIAL_CEX
 case "${1:-check}" in
   bootstrap) bootstrap ;;
   verify) verify_jar; echo "TLA+ toolchain digest verification PASS" ;;
-  check) check_runtime_dispatch ;;
-  falsify) check_runtime_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample ;;
+  check) check_runtime_dispatch; check_runtime_pg_cutover ;;
+  falsify) check_runtime_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_pg_cutover_counterexample ;;
   *)
     echo "usage: scripts/tla-formal [bootstrap|verify|check|falsify]" >&2
     exit 2
