@@ -100,13 +100,46 @@ class TlaFormalExternalJarTests(unittest.TestCase):
         result = self.invoke(command="check", jar=self.external)
         self.assertEqual(result.returncode, 0, result.stderr)
         observed = self.java_log.read_text(encoding="utf-8")
-        # Two source-bound models, each parsed and checked with the same
-        # externally pinned toolchain; no undeclared local-jar fallback.
-        self.assertEqual(observed.count(str(self.external)), 4)
-        self.assertIn("RuntimeDispatchR1.tla", observed)
-        self.assertIn("RuntimePgCutoverR1.tla", observed)
-        self.assertIn("tla2sany.SANY", observed)
-        self.assertIn("tlc2.TLC", observed)
+        # The checker may gain new formal models. Every Java invocation,
+        # not just the first four, must bind the exact external pinned JAR.
+        # Match SANY and TLC model sets rather than assuming a fixed count.
+        arguments = observed.splitlines()
+        starts = [
+            index for index, arg in enumerate(arguments)
+            if arg == "-XX:+UseParallelGC"
+        ]
+        self.assertTrue(starts, "checker made no Java invocations")
+        self.assertEqual(starts[0], 0, "unparsed Java arguments precede invocation")
+        commands = [
+            arguments[start:end]
+            for start, end in zip(starts, starts[1:] + [len(arguments)])
+        ]
+        parsed: list[str] = []
+        checked: list[str] = []
+        for command in commands:
+            self.assertGreaterEqual(len(command), 5, command)
+            self.assertEqual(command[:3], [
+                "-XX:+UseParallelGC", "-cp", str(self.external)
+            ])
+            self.assertTrue(command[-1].endswith(".tla"), command)
+            model = Path(command[-1]).name
+            if command[3] == "tla2sany.SANY":
+                parsed.append(model)
+            elif command[3] == "tlc2.TLC":
+                checked.append(model)
+            else:
+                self.fail(f"unexpected formal Java entrypoint: {command[3]}")
+        self.assertEqual(len(commands), observed.count(str(self.external)))
+        self.assertCountEqual(parsed, checked)
+        self.assertEqual(len(parsed), len(set(parsed)), "duplicate model checking")
+        self.assertGreaterEqual(
+            set(parsed),
+            {
+                "RuntimeDispatchR1.tla",
+                "RuntimePgCutoverR1.tla",
+                "WorkspaceContinuationR1.tla",
+            },
+        )
 
     def test_falsifier_must_see_named_invariant_counterexample_not_just_java_failure(self):
         # A fake Java process returns success without a counterexample; the
