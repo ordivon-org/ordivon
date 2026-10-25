@@ -1419,18 +1419,27 @@ fn workspace_head_and_dirty_probe_combines_detached_head_and_worktree_state() {
     )
     .unwrap();
     let workspace = config.workspace_path(workspace_id);
-    let (head, dirty) = workspace_head_and_dirty_at(&workspace).unwrap();
+    let (head, mode, dirty) = workspace_head_and_dirty_at(&workspace).unwrap();
     assert_eq!(head, expected);
+    assert_eq!(mode, WorkspaceHeadMode::Detached);
     assert!(!dirty);
 
     fs::write(workspace.join("compiler.cache"), "ignored").unwrap();
-    let (head, dirty) = workspace_head_and_dirty_at(&workspace).unwrap();
+    let (head, mode, dirty) = workspace_head_and_dirty_at(&workspace).unwrap();
     assert_eq!(head, expected);
+    assert_eq!(mode, WorkspaceHeadMode::Detached);
     assert!(!dirty);
 
     fs::write(workspace.join("untracked.txt"), "visible").unwrap();
-    let (head, dirty) = workspace_head_and_dirty_at(&workspace).unwrap();
+    let (head, mode, dirty) = workspace_head_and_dirty_at(&workspace).unwrap();
     assert_eq!(head, expected);
+    assert_eq!(mode, WorkspaceHeadMode::Detached);
+    assert!(dirty);
+
+    run_git(&workspace, ["switch", "-c", "head-mode-positive-control"]);
+    let (head, mode, dirty) = workspace_head_and_dirty_at(&workspace).unwrap();
+    assert_eq!(head, expected);
+    assert_eq!(mode, WorkspaceHeadMode::Branch);
     assert!(dirty);
 }
 

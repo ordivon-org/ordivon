@@ -50,6 +50,21 @@ struct ClosedWorkspaceRecord {
     _legacy_removal_result: Option<String>,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum WorkspaceHeadMode {
+    Detached,
+    Branch,
+}
+
+impl WorkspaceHeadMode {
+    pub(crate) const fn as_str(self) -> &'static str {
+        match self {
+            Self::Detached => "detached",
+            Self::Branch => "branch",
+        }
+    }
+}
+
 #[derive(Debug, Default)]
 pub(crate) struct WorkspaceChangeProjection {
     pub(crate) changed: Vec<String>,

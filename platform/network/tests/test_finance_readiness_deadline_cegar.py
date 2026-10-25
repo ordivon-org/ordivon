@@ -30,6 +30,7 @@ def run_ready(
     curl.write_text(
         '#!/bin/sh\n'
         'printf "%s\\n" "$*" >> "$FINANCE_PROBE_LOG"\n'
+        'printf "%s|" "$@" >> "$FINANCE_PROBE_ARGV_LOG"\n'
         + ("sleep 2\n" if probe_delay else "")
         + "printf '%s\\n' '{\"code\":\"0\",\"data\":[{\"ts\":\"1\"}]}'\n",
         encoding="utf-8",
@@ -40,6 +41,9 @@ def run_ready(
         env={
             **os.environ, "BASH_ENV": str(clock),
             "FINANCE_PROBE_LOG": str(logfile),
+            "FINANCE_PROBE_ARGV_LOG": str(tmp_path / "probe-argv.txt"),
+            "NO_PROXY": "*",
+            "no_proxy": "*",
             "PATH": str(tools) + os.pathsep + os.environ.get("PATH", ""),
         },
         capture_output=True, text=True, timeout=6, check=False,
@@ -88,3 +92,16 @@ def test_expired_after_first_success_cannot_publish_ready_or_call_next_owner(
     assert '"standing":"READY"' not in outcome.stdout
     assert len(probes) == 1, probes
     assert "openapi.okx.com" in probes[0]
+
+
+@pytest.mark.parametrize(
+    "mode", ("okx", "binance-usdm", "binance-spot", "binance-wallet", "treasury", "fred")
+)
+def test_finance_readiness_forces_proxy_even_with_ambient_no_proxy(tmp_path: Path, mode: str) -> None:
+    """Physical Finance egress must never inherit a direct-bypass exception."""
+    _, probes = run_ready(tmp_path, "0", advance_clock=False, mode=mode)
+    assert len(probes) == 1, (mode, probes)
+    args = (tmp_path / "probe-argv.txt").read_text().split("|")[:-1]
+    assert args[0] == "-q", (mode, args)  # do not load ambient ~/.curlrc
+    assert "--proxy" in args and "--noproxy" in args, (mode, args)
+    assert args[args.index("--noproxy") + 1] == "", (mode, args)

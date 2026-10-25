@@ -1,6 +1,6 @@
 pub(crate) fn workspace_head_and_dirty_at(
     workspace: &Path,
-) -> Result<(String, bool), UniversalExecError> {
+) -> Result<(String, WorkspaceHeadMode, bool), UniversalExecError> {
     let workspace = canonical_directory(workspace, "workspacePath")?;
     let output = Command::new("git")
         .arg("--no-optional-locks")
@@ -20,6 +20,7 @@ pub(crate) fn workspace_head_and_dirty_at(
         return Err(tool_failed("git status", &output.stderr));
     }
     let mut head_revision = None;
+    let mut head_mode = None;
     let mut dirty = false;
     for raw in output
         .stdout
@@ -36,6 +37,17 @@ pub(crate) fn workspace_head_and_dirty_at(
                 )
             })?;
             head_revision = Some(value);
+        } else if let Some(value) = raw.strip_prefix(b"# branch.head ") {
+            head_mode = Some(match value {
+                b"(detached)" => WorkspaceHeadMode::Detached,
+                b"" => return Err(UniversalExecError::new(
+                    UniversalExecErrorCode::MetadataCorrupt,
+                    "git status returned empty branch.head",
+                    Some("workspaceId"),
+                    false,
+                )),
+                _ => WorkspaceHeadMode::Branch,
+            });
         } else if !raw.starts_with(b"# ") {
             dirty = true;
         }
@@ -56,16 +68,13 @@ pub(crate) fn workspace_head_and_dirty_at(
             false,
         ));
     }
-    Ok((head_revision, dirty))
-}
-
-#[cfg(any(feature = "transactional-runtime", test))]
-pub fn workspace_head_revision(
-    config: &UniversalExecutorConfig,
-    workspace_id: &str,
-) -> Result<String, UniversalExecError> {
-    let record = load_workspace_record(config, workspace_id)?;
-    workspace_head_revision_at(Path::new(&record.workspace_path))
+    let head_mode = head_mode.ok_or_else(|| UniversalExecError::new(
+        UniversalExecErrorCode::MetadataCorrupt,
+        "git status omitted branch.head",
+        Some("workspaceId"),
+        false,
+    ))?;
+    Ok((head_revision, head_mode, dirty))
 }
 
 pub(crate) fn workspace_head_revision_at(workspace: &Path) -> Result<String, UniversalExecError> {

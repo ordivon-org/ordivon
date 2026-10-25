@@ -862,7 +862,7 @@
     {
       "id": "RW4",
       "objective": "Extract reusable control and evidence LEGO without recreating generic Execution Fabric or Effect infrastructure.",
-      "status": "BLOCKED_ON_RW1_RW2",
+      "status": "PROPOSED",
       "nodeIds": [
         "R12",
         "R13"
@@ -873,10 +873,7 @@
         "Self-release remains operation-specific; opaque commands remain effect-opaque."
       ],
       "evidence": [],
-      "blockers": [
-        "RW1",
-        "RW2"
-      ],
+      "blockers": [],
       "nextAction": "Extract the smallest recurring primitive first and reject any abstraction that requires a second durable lifecycle."
     },
     {
@@ -981,6 +978,36 @@
         "Protected GitHub CI, installed-binary attribution and production result/registry reconciliation remain independent acceptance gates."
       ],
       "nextAction": "Consume PR #623 native verification and independent CI. After merge, bind deployed runtime executable digest and observed Runner/Registry reconciliation under the same exact source; do not replay or reclassify an uncertain historical Attempt merely from this model."
+    },
+    {
+      "id": "RW10",
+      "objective": "Bind Windows execution intent to an explicit principal/session/tool-availability precondition. A working active_user developer toolchain must not be silently approximated by service-token PATH or inferred from a successful process exit.",
+      "status": "PROPOSED",
+      "nodeIds": [
+        "R07",
+        "R09",
+        "R11",
+        "R17"
+      ],
+      "acceptance": [
+        "For a Windows task declaring interactive developer-tool requirements, admission must bind the requested windowsAuthority/context and required executable identity; if the requested user session is absent or executable cannot be resolved under that principal, reject/UNKNOWN rather than silently substitute the service account.",
+        "For a service-intended Windows task without developer-tool requirements, the service context remains legal; active_user must not become an unsafe universal default.",
+        "Owner-native positive control: exact Windows workspace and PowerShell binary executed under active_user Session 1 with python, uv, gh, cargo, rustc and pnpm observable; negative control: limited service context could not find those names on PATH. An omitted tool from PATH is not proof of uninstallation.",
+        "Add source-bound native negative tests for service-to-active_user fallback, absent active session, and unresolved required executable; verify executed token/session and tool identity against admission evidence, preserving privilege and no-unproven-retry boundaries.",
+        "Any formal/model-checker PASS is explicitly qualified by real Windows provider evidence and typed principal/context requirements; Host/Git CI passing does not establish this Windows consumer contract.",
+        "RW10 negative/positive CEGAR obligation: test the same user-owned executable under service-token admission and active_user requested context, compare an allowed shared Program Files control, and require typed fail-closed admission unless canonical executable identity and SHA-256 are attested under the requested token AND the per-context allow policy. Do not promote a PowerShell wrapper as proof of direct Python executable identity, and do not widen C:\\Users globally."
+      ],
+      "evidence": [
+        "Live Windows Runtime node windows-main-r6-candidate on 2026-10-25: limited service read-only job job-01a17038-9b9a-7b53-03b3b2fbbaa7 executed as NT SERVICE/OrdivonRuntimeR6Candidate; Python, uv, gh, cargo, rustc, pnpm NOT_ON_PATH; Git and Node visible.",
+        "Same Windows Runtime workspace active_user read-only job job-01a1703b-8370-7ab2-b20c-acb2ec56b20d executed in Session 1 as interactive login principal; Python, uv, gh, cargo, rustc and pnpm resolved from user mise shims.",
+        "Source-cut d5feba66df0c963f717b6572b381d11b08f45db1; Runtime execution success is not domain/application acceptance.",
+        "2026-10-25 direct Windows Runtime negative counterexample: windows_native active_user execution of login-user-owned Mise Python shim rejects at admission before a Job with canonicalize executable: Access is denied (os error 5); exact shared Program Files Git executable under the same active_user context succeeded, Runtime Job job-01a17057-dcc0-79c3-b670-a2b273089cb4 (exit 0). This proves a context-relative executable admission gap, not uninstalled Python, permission to bypass execution roots, or failure of all Windows active_user jobs.",
+        "Source-bound Rust trace: services/runtime/crates/ordivon-runtime-core/src/runtime/engine/execution.rs resolve_plan validates executable through self.executor before snapshot_windows_runtime_context_for(requested_windows_context); service-side ACL resolution and configured allowed executable roots must be separately falsified against the requested active_user principal."
+      ],
+      "blockers": [
+        "Current Windows admission policy, executable path-resolution ownership and provider actor/session attestations require source-bound inspection; no production change is inferred from this planning item."
+      ],
+      "nextAction": "Reuse existing Runtime WindowsNativeProvider and AuthorityContract; add one owner-native contract/CDC with explicit service and active_user counterexamples, use CEGAR only for spurious abstract traces, then implement smallest fail-closed admission guard and verify real user-session and service paths. No second environment registry or wholesale permission relaxation."
     },
     {
       "id": "RW11",

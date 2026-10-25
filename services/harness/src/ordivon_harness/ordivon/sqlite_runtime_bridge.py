@@ -143,11 +143,22 @@ def _find_runtime_jobs_by_client_request(
             return matches
         if not isinstance(next_cursor, dict):
             raise HarnessRuntimeClientError("task.list returned an invalid cursor")
-        typed: dict[str, JsonValue] = {}
-        for key, value in next_cursor.items():
-            if not isinstance(key, str) or not isinstance(value, (str, int)):
-                raise HarnessRuntimeClientError("task.list cursor fields are invalid")
-            typed[key] = value
+        # RuntimeJobListCursor is an exact Rust wire type:
+        # {createdAtMs: u64, jobId: String} with denied unknown fields.
+        # In Python bool is an int subclass; type() is required to avoid
+        # admitting a forged boolean timestamp during lost-response recovery.
+        timestamp = next_cursor.get("createdAtMs")
+        job_id = next_cursor.get("jobId")
+        if (
+            set(next_cursor) != {"createdAtMs", "jobId"}
+            or type(timestamp) is not int
+            or not 0 <= timestamp <= 2**64 - 1
+            or not isinstance(job_id, str)
+            or not job_id
+            or job_id != job_id.strip()
+        ):
+            raise HarnessRuntimeClientError("task.list cursor fields are invalid")
+        typed: dict[str, JsonValue] = {"createdAtMs": timestamp, "jobId": job_id}
         digest = canonical_digest(typed)
         if digest in seen_cursors:
             raise HarnessRuntimeClientError("task.list repeated a pagination cursor")

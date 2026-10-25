@@ -14,6 +14,9 @@ CONFIGS = ("blackbox/blackbox.yml", "prometheus/prometheus.yml")
 
 
 def verify(source: Path, live: Path) -> str:
+    for label, tree in (("source", source), ("live", live)):
+        if tree.is_symlink():
+            raise ValueError(f"unmanaged monitoring root: {label}")
     # The two declared configs are a closed set for this install owner.
     # Extra YAML may be a previously deployed consumer or alert rule.
     for tree in (source, live):

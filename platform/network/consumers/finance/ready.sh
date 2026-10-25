@@ -23,34 +23,34 @@ budget_open() { (( timeout_seconds == 0 || SECONDS - started < timeout_seconds )
 unit_active() { systemctl is-active --quiet "$1"; }
 probe_okx() {
   budget_open || return 1
-  curl -4 -fsS --proxy http://127.0.0.1:19283 --connect-timeout 3 --max-time 8 https://openapi.okx.com/api/v5/public/time |
+  curl -q -4 -fsS --noproxy '' --proxy http://127.0.0.1:19283 --connect-timeout 3 --max-time 8 https://openapi.okx.com/api/v5/public/time |
     jq -e '.code=="0" and (.data|type)=="array" and (.data|length>=1)' >/dev/null
 }
 probe_binance_usdm() {
   budget_open || return 1
-  curl -4 -fsS --proxy http://127.0.0.1:19287 --connect-timeout 3 --max-time 8 https://fapi.binance.com/fapi/v1/time |
+  curl -q -4 -fsS --noproxy '' --proxy http://127.0.0.1:19287 --connect-timeout 3 --max-time 8 https://fapi.binance.com/fapi/v1/time |
     jq -e '(.serverTime|type)=="number"' >/dev/null
 }
 probe_binance_spot() {
   budget_open || return 1
-  curl -4 -fsS --proxy http://127.0.0.1:19284 --connect-timeout 3 --max-time 8 https://data-api.binance.vision/api/v3/time |
+  curl -q -4 -fsS --noproxy '' --proxy http://127.0.0.1:19284 --connect-timeout 3 --max-time 8 https://data-api.binance.vision/api/v3/time |
     jq -e '(.serverTime|type)=="number"' >/dev/null
 }
 probe_binance_wallet() {
   budget_open || return 1
-  curl -4 -fsS --proxy http://127.0.0.1:19290 --connect-timeout 3 --max-time 8 https://api.binance.com/api/v3/time |
+  curl -q -4 -fsS --noproxy '' --proxy http://127.0.0.1:19290 --connect-timeout 3 --max-time 8 https://api.binance.com/api/v3/time |
     jq -e '(.serverTime|type)=="number"' >/dev/null
 }
 probe_treasury() {
   budget_open || return 1
   local out
-  out=$(curl -4 -fsS --proxy http://127.0.0.1:19291 --connect-timeout 5 --max-time 20 'https://home.treasury.gov/robots.txt')
+  out=$(curl -q -4 -fsS --noproxy '' --proxy http://127.0.0.1:19291 --connect-timeout 5 --max-time 20 'https://home.treasury.gov/robots.txt')
   printf '%s' "$out" | grep -qi 'user-agent'
 }
 probe_fred() {
   budget_open || return 1
   local out
-  out=$(curl -4 -fsS --proxy http://127.0.0.1:19292 --connect-timeout 5 --max-time 20 'https://fred.stlouisfed.org/graph/fredgraph.csv?id=DFF&cosd=2026-09-22&coed=2026-09-22')
+  out=$(curl -q -4 -fsS --noproxy '' --proxy http://127.0.0.1:19292 --connect-timeout 5 --max-time 20 'https://fred.stlouisfed.org/graph/fredgraph.csv?id=DFF&cosd=2026-09-22&coed=2026-09-22')
   printf '%s' "$out" | grep -q '^observation_date,DFF'
 }
 probe_selected() {

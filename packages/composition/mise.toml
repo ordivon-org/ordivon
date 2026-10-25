@@ -70,6 +70,39 @@ fi
     exit 1
   fi
   echo "TLC foreign consumer evidence non-vacuity: PASS"
+  if java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config Lego21OwnerBoundary.sourcecut-probe.cfg Lego21OwnerBoundary.tla >"$probe_output" 2>&1; then
+    echo "TLC wrong-source evidence non-vacuity probe unexpectedly passed" >&2
+    exit 1
+  fi
+  if ! grep -Fq "Error: Invariant WrongSourceEvidenceIsUnreachable is violated." "$probe_output"; then
+    cat "$probe_output" >&2
+    echo "TLC did not expose wrong-source evidence" >&2
+    exit 1
+  fi
+  echo "TLC wrong-source evidence non-vacuity: PASS"
+  # Distinguish a terminal state from a durable, committed Runtime receipt.
+  # An actual matching Consumer witness can arrive before that commit; the
+  # Host safety invariant must block acceptance in this reachable state.
+  if java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config Lego21OwnerBoundary.receipt-probe.cfg Lego21OwnerBoundary.tla >"$probe_output" 2>&1; then
+    echo "TLC pending terminal receipt non-vacuity probe unexpectedly passed" >&2
+    exit 1
+  fi
+  if ! grep -Fq "Error: Invariant PendingMatchedTerminalReceiptIsUnreachable is violated." "$probe_output"; then
+    cat "$probe_output" >&2
+    echo "TLC did not confirm pending receipt with matching consumer is reachable" >&2
+    exit 1
+  fi
+  if ! grep -Fq 'terminalReceipt = "pending"' "$probe_output" || ! grep -Fq 'consumerEvidence = "matching"' "$probe_output"; then
+    cat "$probe_output" >&2
+    echo "TLC pending-receipt witness did not contain matching consumer and pending receipt" >&2
+    exit 1
+  fi
+  if ! grep -Fq 'sourceEvidenceBinding = "admission-bound"' "$probe_output"; then
+    cat "$probe_output" >&2
+    echo "TLC pending-receipt witness did not bind the admission SourceCut" >&2
+    exit 1
+  fi
+  echo "TLC pending terminal receipt non-vacuity: PASS"
   rm -f "$probe_output"
   trap - EXIT
 )

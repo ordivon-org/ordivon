@@ -228,3 +228,23 @@ def test_security_owner_direct_dependency_entry_checks_all_non_dependency_edges(
     plan["edges"][0]["to"] = "MISSING_SECURITY_NODE"
     with pytest.raises(module.ArchitectureDocsError, match="unknown LEGO edge endpoint"):
         module.validate_owner_lego_dependencies(plan, "platform/security")
+
+
+@pytest.mark.parametrize(
+    ("blockers", "status"),
+    [
+        (["RW1", "RW2"], "BLOCKED_ON_RW1_RW2"),
+        (["MISSING_SLICE"], "BLOCKED_ON_MISSING_SLICE"),
+        ([], "BLOCKED_ON_RW1"),
+    ],
+)
+def test_blocked_slice_requires_unresolved_registered_prerequisite(
+    blockers: list[str], status: str,
+) -> None:
+    """A supposedly blocked LEGO must have a real, unfinished dependency."""
+    plan = json.loads((ROOT / OWNER_GRAPH_PLANS[0]).read_text(encoding="utf-8"))
+    target = next(row for row in plan["slices"] if row["id"] == "RW4")
+    target["blockers"] = blockers
+    target["status"] = status
+    with pytest.raises(module.ArchitectureDocsError, match="invalid LEGO blocking prerequisites"):
+        module.validate_owner_lego_graph(plan)
