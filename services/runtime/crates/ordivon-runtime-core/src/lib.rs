@@ -6,6 +6,8 @@
 
 #[cfg(feature = "postgres-registry-admission")]
 pub mod pg_admission;
+#[cfg(feature = "postgres-registry-admission")]
+pub mod pg_stage_readback;
 #[cfg(feature = "transactional-runtime")]
 mod runtime;
 #[cfg(feature = "universal-executor")]
