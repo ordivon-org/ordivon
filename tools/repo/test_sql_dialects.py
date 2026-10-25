@@ -41,24 +41,6 @@ class SQLDialectBoundaryTests(unittest.TestCase):
             with self.subTest(path=name):
                 self.assertIn(name, current)
 
-    def test_media_pg_owner_retirement_preserves_only_actual_sqlite_import_consumer(self):
-        """Durable Media events are PG; retain only the one-shot SQLite source reader."""
-        observed = tracked_owner_sqlite_calls(ROOT)
-        self.assertNotIn(
-            "capabilities/media/src/ordivon_studio/research_validity.py", observed,
-        )
-        self.assertEqual(
-            observed.get("capabilities/media/scripts/migrate-r6-trials.py"), 1,
-        )
-        self.assertNotIn(
-            "capabilities/media/src/ordivon_studio/research_validity.py",
-            SQLITE_LEGACY_SOURCE_CALLS,
-        )
-        self.assertEqual(
-            SQLITE_LEGACY_SOURCE_CALLS["capabilities/media/scripts/migrate-r6-trials.py"],
-            1,
-        )
-
     def test_raw_sqlite_file_uri_interpolation_is_rejected_before_pg_cutover(self):
         self.assertEqual(
             unsafe_sqlite_file_uri_interpolations(
@@ -95,6 +77,15 @@ class SQLDialectBoundaryTests(unittest.TestCase):
             [],
         )
 
+    def test_pg_media_retires_ledger_sqlite_but_keeps_verified_importer(self):
+        observed = tracked_owner_sqlite_calls(ROOT)
+        retired = "capabilities/media/src/ordivon_studio/research_validity.py"
+        importer = "capabilities/media/scripts/migrate-r6-trials.py"
+        self.assertNotIn(retired, observed)
+        self.assertNotIn(retired, SQLITE_LEGACY_SOURCE_CALLS)
+        self.assertEqual(observed.get(importer), 1)
+        self.assertEqual(SQLITE_LEGACY_SOURCE_CALLS[importer], 1)
+
     def test_new_sqlite_owner_outside_old_runtime_harness_scope_fails_closed(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -110,9 +101,9 @@ class SQLDialectBoundaryTests(unittest.TestCase):
             self.assertEqual(observed, {"services/gateway/src/ordivon_gateway/unaudited.py": 1})
             self.assertTrue(sqlite_debt_issues(observed, {}))
 
-    def test_real_typescript_sqlite_owners_are_fenced(self):
+    def test_pg_first_debt_accounts_for_typescript_runtime_store_owners(self):
         observed = tracked_owner_sqlite_calls(ROOT)
-        for name in (
+        for path in (
             "apps/web/src/store.ts",
             "domains/game/experiments/casefile/src/store.ts",
             "domains/game/experiments/game-e2e-r5/host-outbox-shadow.ts",
@@ -121,27 +112,35 @@ class SQLDialectBoundaryTests(unittest.TestCase):
             "platform/security/labs/agent-admission-rs/src/grant-store.ts",
             "platform/security/labs/agent-admission-rs/src/principal-store.ts",
         ):
-            with self.subTest(path=name):
-                self.assertEqual(observed[name], 1)
+            with self.subTest(path=path):
+                self.assertEqual(observed[path], 1)
 
-    def test_ts_sqlite_import_boundary_excludes_comments_and_type_only_imports(self):
-        cases = (
-            ('import { DatabaseSync } from "node:sqlite";', 1),
-            ('import type { DatabaseSync } from "node:sqlite";', 0),
-            ('// import { DatabaseSync } from "node:sqlite";', 0),
-            ('const mod = require("node:sqlite");', 1),
-            ('import { Client } from "pg";', 0),
+    def test_ts_node_sqlite_lexical_import_nonvacuity_and_type_only_exclusion(self):
+        src = 'import { DatabaseSync } from "node:sqlite";\n'
+        self.assertEqual(sqlite_direct_calls("apps/web/src/store.ts", src), 1)
+        self.assertEqual(
+            sqlite_direct_calls("apps/web/src/stub.ts", 'import type { DatabaseSync } from "node:sqlite";\n'),
+            0,
         )
-        for snippet, expected in cases:
-            with self.subTest(snippet=snippet):
-                self.assertEqual(sqlite_direct_calls("apps/web/src/store.ts", snippet), expected)
+        self.assertEqual(
+            sqlite_direct_calls("apps/web/src/nope.ts", '// import { DatabaseSync } from "node:sqlite";\n'),
+            0,
+        )
+        self.assertEqual(
+            sqlite_direct_calls("apps/web/src/import.mjs", 'const mod = require("node:sqlite");\n'),
+            1,
+        )
+        self.assertEqual(
+            sqlite_direct_calls("apps/web/src/pg.ts", 'import { Client } from "pg";\n'),
+            0,
+        )
 
-    def test_new_typescript_sqlite_store_fails_closed(self):
+    def test_ts_unfenced_sqlite_store_enters_existing_debt_gate(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             source = root / "apps/web/src/new-ledger.ts"
             source.parent.mkdir(parents=True)
-            source.write_text('import { DatabaseSync } from "node:sqlite";\n', encoding="utf8")
+            source.write_text('import { DatabaseSync } from "node:sqlite";\n', encoding="utf-8")
             subprocess.run(["git", "init", "-q", str(root)], check=True)
             subprocess.run(["git", "-C", str(root), "add", "."], check=True)
             actual = tracked_owner_sqlite_calls(root)

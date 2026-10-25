@@ -22,7 +22,7 @@ REQUIREMENTS = ROOT / "config" / "agent-automation-temporal-requirements.txt"
 TEMPORAL = Path("/opt/ordivon/external/temporal-cli/1.8.3/temporal")
 TEMPORAL_SHA = "76aea8d71fafe2d39c1104bef3ce86c1600d9adbff79953d102f60e535ae1413"
 PRODUCTION_ADDRESS = "127.0.0.1:17233"
-RUNTIME_PACKAGES = ("temporalio", "rfc8785", "mcp", "httpx")
+RUNTIME_PACKAGES = ("temporalio", "rfc8785", "mcp", "httpx", "psycopg")
 RUNTIME_ENVIRONMENT = {"pythonVersion": "3.15.1", "sqliteVersion": "3.54.0"}
 
 

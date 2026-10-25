@@ -41,7 +41,9 @@ OSQUERY_DEFAULT_TIMEOUT_SECONDS = 30
 # This bounded AST/Rust lexical boundary is necessary but NOT proof that all indirect SQLite
 # use has been discovered.
 SQLITE_LEGACY_SOURCE_CALLS: dict[str, int] = {
-    # Real TS/JS SQLite consumers omitted by the former Python/Rust-only gate.
+    # Current TypeScript/JavaScript Node SQLite stores were previously invisible
+    # to the source bound Python/Rust-only gate. These are actual imports,
+    # unlike type-only dependencies or tests.
     'apps/web/src/store.ts': 1,
     'domains/game/experiments/casefile/src/store.ts': 1,
     'domains/game/experiments/game-e2e-r5/host-outbox-shadow.ts': 1,
@@ -52,9 +54,9 @@ SQLITE_LEGACY_SOURCE_CALLS: dict[str, int] = {
     # Other concrete owners previously invisible to the Runtime/Harness-only gate:
     # Gateway pull-worker durability (conditional deployed consumer).
     'services/gateway/src/ordivon_gateway/external_worker.py': 1,
-    # Capital accounting remains SQLite; Media durable trial history uses PG.
+    # Capital accounting is still SQLite; Media R6 durable history is PostgreSQL.
     'domains/capital/src/ordivon_capital/accounting/sqlite_ledger.py': 1,
-    # Real SQLite consumer: one-shot read-only import into the PG Media ledger.
+    # Historical read-only SQLite import remains a concrete Media PG consumer.
     'capabilities/media/scripts/migrate-r6-trials.py': 1,
     # Retired Host v1 historical read/projection tools, not current Host v2 state.
     'platform/workstation/scripts/host_historical_projection.py': 2,
@@ -129,19 +131,24 @@ def sqlite_direct_calls(path: str, source: str) -> int:
     if path.endswith(".rs"):
         return len(re.findall(r"\brusqlite::", source))
     if path.endswith((".ts", ".tsx", ".js", ".mjs")):
-        # Bounded import census; this is not a universal JavaScript AST proof.
-        modules = r"(?:node:sqlite|bun:sqlite|better-sqlite3|sqlite3|@libsql/client)"
+        # This is a deliberately bounded import census, not full JavaScript
+        # execution or AST analysis. Type-only imports are NOT active DB users.
+        sqlite_modules = r"(?:node:sqlite|bun:sqlite|better-sqlite3|sqlite3|@libsql/client)"
         import_from = re.compile(
-            r"^\s*import\s+(?!type\b)[^\n;]*?\bfrom\s*['\"]" + modules + r"['\"]"
+            r"^\s*import\s+(?!type\b)[^\n;]*?\bfrom\s*['\"]"
+            + sqlite_modules + r"['\"]"
         )
-        side_effect = re.compile(r"^\s*import\s*['\"]" + modules + r"['\"]")
-        dynamic = re.compile(
-            r"\b(?:require|import)\s*\(\s*['\"]" + modules + r"['\"]\s*\)"
+        side_effect_import = re.compile(
+            r"^\s*import\s*['\"]" + sqlite_modules + r"['\"]"
+        )
+        dynamic_import = re.compile(
+            r"\b(?:require|import)\s*\(\s*['\"]"
+            + sqlite_modules + r"['\"]\s*\)"
         )
         return sum(
             bool(import_from.search(line))
-            or bool(side_effect.search(line))
-            or len(dynamic.findall(line))
+            or bool(side_effect_import.search(line))
+            or len(dynamic_import.findall(line))
             for line in source.splitlines()
             if not line.lstrip().startswith(("//", "*", "/*"))
         )
@@ -209,7 +216,7 @@ def sqlite_debt_issues(
 
 
 def tracked_owner_sqlite_calls(root: Path) -> dict[str, int]:
-    """All tracked production Python/Rust: index identity and actual regular bytes."""
+    """All tracked Python/Rust/TS/JS source: verify index and regular bytes."""
     tracked = subprocess.check_output(
         # All tracked Python/Rust source: owner-specific paths can otherwise
         # introduce new durable SQLite unnoticed outside Runtime/Harness.

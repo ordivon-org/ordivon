@@ -92,8 +92,9 @@ unsafe = r"""UnsafePromoteWithoutParity ==
     /\ owner = "paused"
     /\ owner' = "postgres"
     /\ cutoverCertified' = FALSE
+    /\ pgWriterActive' = TRUE
     /\ UNCHANGED <<sqliteRevision, pgRevision, copied, parityVerified,
-                   sqliteContent, pgContent, pgCommitted, rolledBack>>
+                   sqliteContent, pgContent, pgCommitted, rolledBack, sqliteWriterActive>>
 
 """
 assert source.count(marker) == 1, "pg-cutover Next source drift"
@@ -128,6 +129,8 @@ unsafe = r"""UnsafeRollbackAfterPgCommit ==
     /\ owner = "postgres"
     /\ pgCommitted
     /\ owner' = "sqlite"
+    /\ sqliteWriterActive' = TRUE
+    /\ pgWriterActive' = FALSE
     /\ UNCHANGED <<sqliteRevision, pgRevision, copied, parityVerified,
                    sqliteContent, pgContent, cutoverCertified, pgCommitted, rolledBack>>
 
@@ -180,6 +183,51 @@ PY_PG_CONTENT
       exit 1
     fi
     echo "TLC PostgreSQL content parity negative control PASS: revision-equal corrupt copy rejected"
+
+    # Refine owner == postgres with two independent installed-writer activities.
+    # A lingering SQLite process and a newly admitted PG writer must falsify
+    # the actual invariant, even when certification/parity appear legitimate.
+    mkdir "$tmp_dir/overlap"
+    python - "$ROOT/formal/RuntimePgCutoverR1.tla" "$tmp_dir/overlap/RuntimePgCutoverR1.tla" <<'PY_PG_OVERLAP'
+from pathlib import Path
+import sys
+source = Path(sys.argv[1]).read_text(encoding="utf-8")
+marker = "Next ==\n"
+unsafe = r"""UnsafeConcurrentInstalledWriters ==
+    /\ owner = "paused"
+    /\ parityVerified
+    /\ ~sqliteWriterActive
+    /\ ~pgWriterActive
+    /\ owner' = "postgres"
+    /\ pgWriterActive' = TRUE
+    /\ sqliteWriterActive' = TRUE
+    /\ cutoverCertified' = TRUE
+    /\ rolledBack' = FALSE
+    /\ UNCHANGED <<sqliteRevision, pgRevision, copied, parityVerified,
+                   pgCommitted, sqliteContent, pgContent>>
+
+"""
+assert source.count(marker) == 1, "PG overlapping writers source drift"
+Path(sys.argv[2]).write_text(
+    source.replace(marker, unsafe + marker + r"    \/ UnsafeConcurrentInstalledWriters" + "\n"),
+    encoding="utf-8",
+)
+PY_PG_OVERLAP
+    cp -- "$ROOT/formal/RuntimePgCutoverR1.cfg" "$tmp_dir/overlap/RuntimePgCutoverR1.cfg"
+    set +e
+    (cd "$tmp_dir/overlap"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+      -config RuntimePgCutoverR1.cfg RuntimePgCutoverR1.tla) > "$tmp_dir/overlap/result.log" 2>&1
+    result=$?
+    set -e
+    if [[ "$result" -ne 12 ]] ||
+       ! grep -Fxq 'Error: Invariant NoConcurrentInstalledWriters is violated.' "$tmp_dir/overlap/result.log" ||
+       ! grep -Fxq 'Error: The behavior up to this point is:' "$tmp_dir/overlap/result.log" ||
+       ! grep -Eq '^State [1-9][0-9]*:' "$tmp_dir/overlap/result.log"; then
+      echo "PostgreSQL two-writer negative control FAILED: no source-bound TLC overlap trace" >&2
+      tail -35 "$tmp_dir/overlap/result.log" >&2
+      exit 1
+    fi
+    echo "TLC PostgreSQL two-writer negative control PASS: leaked SQLite writer rejected"
   )
 }
 
