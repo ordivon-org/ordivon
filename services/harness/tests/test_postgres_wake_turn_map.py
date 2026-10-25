@@ -57,6 +57,85 @@ def test_first_schema_admission_is_serialized_on_disposable_pg() -> None:
     assert count == 1
 
 
+def test_pg_existing_table_without_unique_turn_identity_is_rejected() -> None:
+    """PostgreSQL IF NOT EXISTS does not qualify a preexisting malformed table."""
+    dsn = os.environ.get("ORDIVON_PG_WAKE_BOOTSTRAP_TEST_DSN")
+    if not dsn:
+        pytest.skip("disposable PG schema-admission database not provisioned")
+    with psycopg.connect(dsn, autocommit=True) as db:
+        db.execute("DROP SCHEMA IF EXISTS ordivon_harness CASCADE")
+        db.execute("CREATE SCHEMA ordivon_harness")
+        db.execute(
+            """CREATE TABLE ordivon_harness.wake_turn_map(
+                wake_intent_id TEXT PRIMARY KEY,
+                campaign_ref TEXT NOT NULL,
+                agent_id TEXT NOT NULL,
+                prompt_digest TEXT NOT NULL,
+                turn_request_id TEXT NOT NULL,
+                created_at_ms BIGINT NOT NULL CHECK (created_at_ms >= 0)
+            )"""
+        )
+    with pytest.raises(WakeTurnConflict, match="schema|constraint|unique"):
+        PostgresWakeTurnMap(dsn)
+
+
+@pytest.mark.parametrize(
+    "timestamp_type,check_clause",
+    (
+        ("TEXT", "CHECK (length(created_at_ms) > 0)"),
+        ("BIGINT", ""),
+    ),
+)
+def test_pg_existing_schema_with_wrong_timestamp_contract_is_rejected(
+    timestamp_type: str, check_clause: str,
+) -> None:
+    dsn = os.environ.get("ORDIVON_PG_WAKE_BOOTSTRAP_TEST_DSN")
+    if not dsn:
+        pytest.skip("disposable PG schema-admission database not provisioned")
+    with psycopg.connect(dsn, autocommit=True) as db:
+        db.execute("DROP SCHEMA IF EXISTS ordivon_harness CASCADE")
+        db.execute("CREATE SCHEMA ordivon_harness")
+        db.execute(
+            "CREATE TABLE ordivon_harness.wake_turn_map("
+            "wake_intent_id TEXT PRIMARY KEY,"
+            "campaign_ref TEXT NOT NULL,"
+            "agent_id TEXT NOT NULL,"
+            "prompt_digest TEXT NOT NULL,"
+            "turn_request_id TEXT NOT NULL UNIQUE,"
+            f"created_at_ms {timestamp_type} NOT NULL {check_clause})"
+        )
+    with pytest.raises(WakeTurnConflict, match="schema|constraint"):
+        PostgresWakeTurnMap(dsn)
+
+
+def test_pg_existing_cutover_table_without_single_marker_identity_is_rejected() -> None:
+    """A counterfeit cutover table must not allow two conflicting state rows."""
+    dsn = os.environ.get("ORDIVON_PG_WAKE_BOOTSTRAP_TEST_DSN")
+    if not dsn:
+        pytest.skip("disposable PG schema-admission database not provisioned")
+    with psycopg.connect(dsn, autocommit=True) as db:
+        db.execute("DROP SCHEMA IF EXISTS ordivon_harness CASCADE")
+        db.execute("CREATE SCHEMA ordivon_harness")
+        db.execute(
+            """CREATE TABLE ordivon_harness.wake_turn_map(
+                wake_intent_id TEXT PRIMARY KEY,
+                campaign_ref TEXT NOT NULL,
+                agent_id TEXT NOT NULL,
+                prompt_digest TEXT NOT NULL,
+                turn_request_id TEXT NOT NULL UNIQUE,
+                created_at_ms BIGINT NOT NULL CHECK (created_at_ms >= 0)
+            )"""
+        )
+        db.execute(
+            """CREATE TABLE ordivon_harness.wake_cutover(
+                cutover_id TEXT NOT NULL,
+                state TEXT NOT NULL
+            )"""
+        )
+    with pytest.raises(WakeTurnConflict, match="schema|constraint|cutover"):
+        PostgresWakeTurnMap(dsn)
+
+
 def payload(wake: str = "wake:" + "a" * 32) -> dict[str, str]:
     return {
         "campaign_ref": "sha256:" + "a" * 64,

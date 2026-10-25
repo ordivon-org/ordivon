@@ -68,6 +68,107 @@ class PostgresWakeTurnMap:
                 )
                 """
             )
+            # Qualify BOTH tables after CREATE IF NOT EXISTS.
+            self._require_pg_schema(db)
+
+    @staticmethod
+    def _require_pg_schema(db: psycopg.Connection) -> None:
+        shape = db.execute(
+            """
+            SELECT c.relkind, c.relrowsecurity
+            FROM pg_catalog.pg_class AS c
+            JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace
+            WHERE n.nspname = 'ordivon_harness' AND c.relname = 'wake_turn_map'
+            """
+        ).fetchone()
+        if shape != ("r", False):
+            raise WakeTurnConflict("PostgreSQL wake schema relation is not an ordinary table")
+
+        columns = db.execute(
+            """
+            SELECT a.attname, pg_catalog.format_type(a.atttypid, a.atttypmod),
+                   a.attnotnull, a.atthasdef
+            FROM pg_catalog.pg_attribute AS a
+            WHERE a.attrelid = 'ordivon_harness.wake_turn_map'::regclass
+              AND a.attnum > 0 AND NOT a.attisdropped
+            ORDER BY a.attnum
+            """
+        ).fetchall()
+        expected = [
+            ("wake_intent_id", "text", True, False),
+            ("campaign_ref", "text", True, False),
+            ("agent_id", "text", True, False),
+            ("prompt_digest", "text", True, False),
+            ("turn_request_id", "text", True, False),
+            ("created_at_ms", "bigint", True, False),
+        ]
+        if columns != expected:
+            raise WakeTurnConflict("PostgreSQL wake schema column identity drift")
+
+        constraints = db.execute(
+            """
+            SELECT con.contype, pg_catalog.pg_get_constraintdef(con.oid),
+                   con.condeferrable, con.convalidated,
+                   COALESCE(idx.indisvalid, TRUE)
+            FROM pg_catalog.pg_constraint AS con
+            LEFT JOIN pg_catalog.pg_index AS idx ON idx.indexrelid = con.conindid
+            WHERE con.conrelid = 'ordivon_harness.wake_turn_map'::regclass
+            """
+        ).fetchall()
+        accepted = {
+            (kind, definition)
+            for kind, definition, deferrable, validated, index_valid in constraints
+            if not deferrable and validated and index_valid
+        }
+        if not {
+            ("p", "PRIMARY KEY (wake_intent_id)"),
+            ("u", "UNIQUE (turn_request_id)"),
+            ("c", "CHECK ((created_at_ms >= 0))"),
+        }.issubset(accepted):
+            raise WakeTurnConflict("PostgreSQL wake schema unique identity constraints missing")
+
+        cutover_shape = db.execute(
+            """
+            SELECT c.relkind, c.relrowsecurity
+            FROM pg_catalog.pg_class AS c
+            JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace
+            WHERE n.nspname='ordivon_harness' AND c.relname='wake_cutover'
+            """
+        ).fetchone()
+        if cutover_shape != ("r", False):
+            raise WakeTurnConflict("PostgreSQL wake cutover schema relation drift")
+        cutover_columns = db.execute(
+            """
+            SELECT a.attname, pg_catalog.format_type(a.atttypid,a.atttypmod),
+                   a.attnotnull, a.atthasdef
+            FROM pg_catalog.pg_attribute AS a
+            WHERE a.attrelid='ordivon_harness.wake_cutover'::regclass
+              AND a.attnum>0 AND NOT a.attisdropped
+            ORDER BY a.attnum
+            """
+        ).fetchall()
+        if cutover_columns != [
+            ("cutover_id", "text", True, False),
+            ("state", "text", True, False),
+        ]:
+            raise WakeTurnConflict("PostgreSQL wake cutover schema columns drift")
+        cutover_constraints = db.execute(
+            """
+            SELECT con.contype, pg_catalog.pg_get_constraintdef(con.oid),
+                   con.condeferrable, con.convalidated,
+                   COALESCE(idx.indisvalid,TRUE)
+            FROM pg_catalog.pg_constraint AS con
+            LEFT JOIN pg_catalog.pg_index AS idx ON idx.indexrelid=con.conindid
+            WHERE con.conrelid='ordivon_harness.wake_cutover'::regclass
+            """
+        ).fetchall()
+        qualified = {
+            (kind, definition)
+            for kind, definition, deferrable, validated, index_valid in cutover_constraints
+            if not deferrable and validated and index_valid
+        }
+        if ("p", "PRIMARY KEY (cutover_id)") not in qualified:
+            raise WakeTurnConflict("PostgreSQL wake cutover schema missing unique marker")
 
     # Shared admission locks allow parallel wake writes; only the one-time
     # migration's exclusive lock blocks writers while a cutover fence is set.
