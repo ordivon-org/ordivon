@@ -30,7 +30,9 @@ uv run python scripts/check_docs.py
 uv run python scripts/check_evidence.py
 uv run python scripts/demo_deterministic_run.py
 rm -rf build
-uv build --wheel --out-dir "$tmp"
+# uv sync --locked has already materialized the isolated build backend.
+# Wheel verification must not fetch a second, unbound package from PyPI.
+uv build --offline --wheel --out-dir "$tmp"
 wheel=$(find "$tmp" -maxdepth 1 -type f -name '*.whl' -print -quit)
 test -n "$wheel"
 uv run python scripts/check_wheel.py "$wheel"
@@ -61,7 +63,9 @@ uv run python scripts/check_docs.py
 uv run python scripts/check_evidence.py
 uv run python scripts/demo_deterministic_run.py
 rm -rf build
-uv build --wheel --out-dir "$tmp"
+# uv sync --locked has already materialized the isolated build backend.
+# Wheel verification must not fetch a second, unbound package from PyPI.
+uv build --offline --wheel --out-dir "$tmp"
 wheel=$(find "$tmp" -maxdepth 1 -type f -name '*.whl' -print -quit)
 test -n "$wheel"
 uv run python scripts/check_wheel.py "$wheel"
