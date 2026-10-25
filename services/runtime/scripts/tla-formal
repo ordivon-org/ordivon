@@ -435,11 +435,86 @@ PY_PARTIAL_CEX
   )
 }
 
+check_workspace_consumer_close() {
+  verify_jar
+  java -XX:+UseParallelGC -cp "$JAR" tla2sany.SANY \
+    "$ROOT/formal/WorkspaceConsumerCloseR1.tla"
+  (cd "$ROOT/formal"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+    -config WorkspaceConsumerCloseR1.cfg WorkspaceConsumerCloseR1.tla)
+}
+
+workspace_close_expect_named_counterexample() {
+  local folder="$1" config="$2" property="$3" label="$4"
+  local output="$folder/result.log" result
+  set +e
+  (cd "$folder"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+    -config "$config" WorkspaceConsumerCloseR1.tla) > "$output" 2>&1
+  result=$?
+  set -e
+  if [[ "$result" -ne 12 ]] ||
+      ! grep -Fxq "Error: Invariant $property is violated." "$output" ||
+      ! grep -Fxq 'Error: The behavior up to this point is:' "$output" ||
+      ! grep -Eq '^State [1-9][0-9]*:' "$output"; then
+    echo "Workspace consumer close $label negative control FAILED" >&2
+    tail -45 "$output" >&2
+    exit 1
+  fi
+  echo "Workspace consumer close $label negative control PASS: $property"
+}
+
+check_workspace_consumer_close_counterexamples() {
+  verify_jar
+  (
+    tmp_dir=$(mktemp -d -t ordivon-workspace-close-XXXXXX)
+    trap 'rm -rf -- "$tmp_dir"' EXIT
+    for kind in reachability unguarded spoofed; do
+      mkdir "$tmp_dir/$kind"
+      cp "$ROOT/formal/WorkspaceConsumerCloseR1.tla" "$tmp_dir/$kind/"
+      cp "$ROOT/formal/WorkspaceConsumerCloseR1.cfg" "$tmp_dir/$kind/"
+    done
+    cp "$ROOT/formal/WorkspaceConsumerCloseR1.reachability.cfg" "$tmp_dir/reachability/"
+    workspace_close_expect_named_counterexample "$tmp_dir/reachability" \
+      WorkspaceConsumerCloseR1.reachability.cfg ClosedUnreachable reachable
+
+    python3 - "$tmp_dir" <<'PY_WORKSPACE_CLOSE'
+from pathlib import Path
+import sys
+
+root = Path(sys.argv[1])
+model = "WorkspaceConsumerCloseR1.tla"
+source = (root / "unguarded" / model).read_text(encoding="utf-8")
+guard = '    /\\ (released \\/ age = "expired")\n'
+assert source.count(guard) == 1, "close guard drift"
+(root / "unguarded" / model).write_text(
+    source.replace(guard, "", 1), encoding="utf-8"
+)
+
+source = (root / "spoofed" / model).read_text(encoding="utf-8")
+honest = '    /\\ consumer = "finished"\n    /\\ ~released'
+spoof = '    /\\ consumer = "active"\n    /\\ ~released'
+assert source.count(honest) == 1, "release transition drift"
+(root / "spoofed" / model).write_text(
+    source.replace(honest, spoof, 1), encoding="utf-8"
+)
+cfg = root / "spoofed" / "WorkspaceConsumerCloseR1.cfg"
+content = cfg.read_text(encoding="utf-8")
+qualification = "INVARIANT ReleasedAssumesConsumerFinished\n"
+assert content.count(qualification) == 1
+cfg.write_text(content.replace(qualification, "", 1), encoding="utf-8")
+PY_WORKSPACE_CLOSE
+    workspace_close_expect_named_counterexample "$tmp_dir/unguarded" \
+      WorkspaceConsumerCloseR1.cfg FreshActiveConsumerCannotBeClosed unguarded
+    # Scope counterexample: a claimed release is not authenticated consumer truth.
+    workspace_close_expect_named_counterexample "$tmp_dir/spoofed" \
+      WorkspaceConsumerCloseR1.cfg FreshActiveConsumerCannotBeClosed spoofed
+  )
+}
+
 case "${1:-check}" in
   bootstrap) bootstrap ;;
   verify) verify_jar; echo "TLA+ toolchain digest verification PASS" ;;
-  check) check_runtime_dispatch; check_runtime_pg_cutover ;;
-  falsify) check_runtime_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_pg_cutover_counterexample ;;
+  check) check_runtime_dispatch; check_runtime_pg_cutover; check_workspace_consumer_close ;;
+  falsify) check_runtime_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_pg_cutover_counterexample; check_workspace_consumer_close_counterexamples ;;
   *)
     echo "usage: scripts/tla-formal [bootstrap|verify|check|falsify]" >&2
     exit 2
