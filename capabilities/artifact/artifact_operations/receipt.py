@@ -161,12 +161,15 @@ class ReceiptFence:
                 outputs: dict[str, Any] = {}
                 normalized_roles: dict[str, str] = {}
                 for role, relative in roles.items():
-                    relative_path = Path(relative)
-                    if relative_path.is_absolute() or ".." in relative_path.parts:
+                    if not isinstance(role, str) or not role:
                         raise RuntimeError(
-                            f"invalid operation output role path: {relative}"
+                            "operation output role must be a non-empty string"
                         )
-                    fact = operation_file_fact(final / relative_path)
+                    output_path = _committed_output_path(
+                        final, relative, f"operation output role {role}"
+                    )
+                    relative_path = Path(relative)
+                    fact = operation_file_fact(output_path)
                     normalized_roles[role] = relative_path.as_posix()
                     outputs[relative_path.as_posix()] = {
                         key: fact[key] for key in ("sha256", "size", "name")
