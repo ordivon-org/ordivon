@@ -552,6 +552,10 @@ def validate_formal_issue_census(
         issue_id = issue.get("id")
         if not isinstance(issue_id, str) or not issue_id:
             raise ArchitectureDocsError("issue identity required")
+        # Use the existing Owner LEGO key grammar for Problem LEGO identities.
+        # Unicode confusables and whitespace aliases must not fork one issue.
+        if not _canonical_owner_lego_id(issue_id):
+            raise ArchitectureDocsError("non-canonical issue identity")
         if issue_id in issue_ids:
             raise ArchitectureDocsError(f"duplicate issue identity: {issue_id}")
         issue_ids.add(issue_id)

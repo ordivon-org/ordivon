@@ -537,6 +537,25 @@ def test_formal_issue_census_rejects_duplicate_problem_identity() -> None:
         module.validate_formal_issue_census(census, plans)
 
 
+@pytest.mark.parametrize(
+    "alias",
+    (
+        " GIT-01 ",
+        "GIT-\u200d01",
+        "\uff27IT-01",
+        "   ",
+    ),
+)
+def test_formal_issue_identity_rejects_opaque_aliases(alias: str) -> None:
+    """Problem LEGO references need the same canonical key law as owner LEGO IDs."""
+    census, plans = formal_issue_inputs()
+    mutated = copy.deepcopy(census["issues"][0])
+    mutated["id"] = alias
+    census["issues"].append(mutated)
+    with pytest.raises(module.ArchitectureDocsError, match="non-canonical issue identity"):
+        module.validate_formal_issue_census(census, plans)
+
+
 def test_formal_issue_census_cannot_grant_authority() -> None:
     census, plans = formal_issue_inputs()
     census["truthRole"] = "semantic-authority"
