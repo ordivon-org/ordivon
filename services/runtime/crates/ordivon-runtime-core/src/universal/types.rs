@@ -79,6 +79,10 @@ pub struct WorkspaceCloseRequest {
     pub workspace_id: String,
     #[serde(default)]
     pub force: bool,
+    /// Explicit caller assertion that the task consumer has relinquished
+    /// this Workspace. This is not an identity/authorization proof.
+    #[serde(default)]
+    pub consumer_released: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub expected_source_state_digest: Option<String>,
 }

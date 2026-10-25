@@ -243,6 +243,7 @@ fn workspace_round_trip_is_isolated_and_digest_guarded() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: "workspace-1".to_string(),
             force: true,
+            consumer_released: true,
             expected_source_state_digest: None,
         },
     )
@@ -2331,6 +2332,7 @@ fn workspace_close_rejects_dirty_state_unless_force_is_explicit() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: "workspace-safe-close".to_string(),
             force: false,
+            consumer_released: true,
             expected_source_state_digest: None,
         },
     )
@@ -2346,6 +2348,7 @@ fn workspace_close_rejects_dirty_state_unless_force_is_explicit() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: "workspace-safe-close".to_string(),
             force: true,
+            consumer_released: true,
             expected_source_state_digest: None,
         },
     )
@@ -2369,6 +2372,7 @@ fn workspace_close_distinguishes_already_absent_from_closed_tombstone() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: "workspace-never-created".to_string(),
             force: false,
+            consumer_released: true,
             expected_source_state_digest: None,
         },
     )
@@ -2409,6 +2413,7 @@ fn workspace_close_fences_exact_source_state_and_replays_tombstone() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: workspace_id.to_string(),
             force: true,
+            consumer_released: true,
             expected_source_state_digest: Some(verified),
         },
     )
@@ -2423,6 +2428,7 @@ fn workspace_close_fences_exact_source_state_and_replays_tombstone() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: workspace_id.to_string(),
             force: true,
+            consumer_released: true,
             expected_source_state_digest: Some(current.clone()),
         },
     )
@@ -2440,6 +2446,7 @@ fn workspace_close_fences_exact_source_state_and_replays_tombstone() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: workspace_id.to_string(),
             force: true,
+            consumer_released: true,
             expected_source_state_digest: Some(current.clone()),
         },
     )
@@ -2460,6 +2467,7 @@ fn workspace_close_fences_exact_source_state_and_replays_tombstone() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: workspace_id.to_string(),
             force: true,
+            consumer_released: true,
             expected_source_state_digest: Some(sha256_bytes(b"another-state")),
         },
     )
@@ -2507,6 +2515,7 @@ fn clean_workspace_close_succeeds_without_force() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: workspace_id.to_string(),
             force: false,
+            consumer_released: true,
             expected_source_state_digest: None,
         },
     )
@@ -2541,6 +2550,7 @@ fn closed_workspace_tombstone_omits_redundant_identity_and_rejects_legacy_confli
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: workspace_id.to_string(),
             force: false,
+            consumer_released: true,
             expected_source_state_digest: None,
         },
     )
@@ -2563,6 +2573,7 @@ fn closed_workspace_tombstone_omits_redundant_identity_and_rejects_legacy_confli
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: workspace_id.to_string(),
             force: false,
+            consumer_released: true,
             expected_source_state_digest: None,
         },
     )
@@ -2596,6 +2607,7 @@ fn workspace_close_cache_failure_does_not_commit_closure() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: workspace_id.to_string(),
             force: false,
+            consumer_released: true,
             expected_source_state_digest: None,
         },
     )
@@ -2642,6 +2654,7 @@ fn workspace_close_preserves_changed_head_and_is_idempotent() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: workspace_id.to_string(),
             force: false,
+            consumer_released: true,
             expected_source_state_digest: None,
         },
     )
@@ -2675,6 +2688,7 @@ fn workspace_close_preserves_changed_head_and_is_idempotent() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: workspace_id.to_string(),
             force: false,
+            consumer_released: true,
             expected_source_state_digest: None,
         },
     )
@@ -2741,6 +2755,7 @@ fn workspace_close_recovers_final_head_after_physical_removal() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: workspace_id.to_string(),
             force: false,
+            consumer_released: true,
             expected_source_state_digest: None,
         },
     )
@@ -2788,6 +2803,7 @@ fn workspace_close_unborn_head_is_force_only_and_cannot_fake_source_state() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: workspace_id.to_string(),
             force: false,
+            consumer_released: true,
             expected_source_state_digest: None,
         },
     )
@@ -2801,11 +2817,35 @@ fn workspace_close_unborn_head_is_force_only_and_cannot_fake_source_state() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: workspace_id.to_string(),
             force: true,
+            consumer_released: true,
             expected_source_state_digest: Some(sha256_bytes(b"unprovable-head")),
         },
     )
     .unwrap_err();
     assert_eq!(fenced.code, UniversalExecErrorCode::RevisionMismatch);
+    assert!(workspace.join("unique-wip.txt").is_file());
+
+    // A cleaner must not bypass an unreleased consumer merely because
+    // corruption forces Git's recovery/removal path.
+    let no_consumer_release = remove_git_workspace(
+        &config,
+        &WorkspaceCloseRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            force: true,
+            consumer_released: false,
+            expected_source_state_digest: None,
+        },
+    )
+    .unwrap_err();
+    assert_eq!(
+        no_consumer_release.code,
+        UniversalExecErrorCode::WorkspaceStateMismatch
+    );
+    assert_eq!(
+        no_consumer_release.field.as_deref(),
+        Some("consumerReleased")
+    );
     assert!(workspace.join("unique-wip.txt").is_file());
 
     let recovered = remove_git_workspace(
@@ -2814,6 +2854,7 @@ fn workspace_close_unborn_head_is_force_only_and_cannot_fake_source_state() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: workspace_id.to_string(),
             force: true,
+            consumer_released: true,
             expected_source_state_digest: None,
         },
     )
@@ -2861,6 +2902,7 @@ fn workspace_close_force_recovers_residual_directory_after_git_worktree_metadata
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: workspace_id.to_string(),
             force: false,
+            consumer_released: true,
             expected_source_state_digest: None,
         },
     )
@@ -2874,6 +2916,7 @@ fn workspace_close_force_recovers_residual_directory_after_git_worktree_metadata
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: workspace_id.to_string(),
             force: true,
+            consumer_released: true,
             expected_source_state_digest: Some(sha256_bytes(b"unprovable-state")),
         },
     )
@@ -2881,12 +2924,36 @@ fn workspace_close_force_recovers_residual_directory_after_git_worktree_metadata
     assert_eq!(fenced.code, UniversalExecErrorCode::RevisionMismatch);
     assert!(workspace.is_dir());
 
+    // A cleaner must not bypass an unreleased consumer merely because
+    // corruption forces Git's recovery/removal path.
+    let no_consumer_release = remove_git_workspace(
+        &config,
+        &WorkspaceCloseRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            force: true,
+            consumer_released: false,
+            expected_source_state_digest: None,
+        },
+    )
+    .unwrap_err();
+    assert_eq!(
+        no_consumer_release.code,
+        UniversalExecErrorCode::WorkspaceStateMismatch
+    );
+    assert_eq!(
+        no_consumer_release.field.as_deref(),
+        Some("consumerReleased")
+    );
+    assert!(workspace.join("RESIDUAL.txt").is_file());
+
     let recovered = remove_git_workspace(
         &config,
         &WorkspaceCloseRequest {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: workspace_id.to_string(),
             force: true,
+            consumer_released: true,
             expected_source_state_digest: None,
         },
     )
@@ -2938,6 +3005,7 @@ fn workspace_close_force_recovers_registered_worktree_with_broken_local_metadata
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: workspace_id.to_string(),
             force: true,
+            consumer_released: true,
             expected_source_state_digest: None,
         },
     )
@@ -2978,6 +3046,7 @@ fn workspace_close_repairs_missing_directory_but_rejects_orphan_directory() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: workspace_id.to_string(),
             force: false,
+            consumer_released: true,
             expected_source_state_digest: None,
         },
     )
@@ -3003,6 +3072,7 @@ fn workspace_close_repairs_missing_directory_but_rejects_orphan_directory() {
                 schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
                 workspace_id: orphan_id.to_string(),
                 force: false,
+                consumer_released: true,
                 expected_source_state_digest: None,
             },
         )
@@ -3055,6 +3125,7 @@ fn workspace_close_missing_directory_rejects_recorded_sibling_identity() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: workspace_id.to_string(),
             force: false,
+            consumer_released: true,
             expected_source_state_digest: None,
         },
     )
@@ -3092,6 +3163,7 @@ fn workspace_close_accepts_identity_unknown_orphan_quarantine_tombstone() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: workspace_id.to_string(),
             force: false,
+            consumer_released: true,
             expected_source_state_digest: None,
         },
     )
@@ -3146,6 +3218,7 @@ fn workspace_close_uses_live_git_identity_when_source_record_drifts() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: workspace_id.to_string(),
             force: false,
+            consumer_released: true,
             expected_source_state_digest: None,
         },
     )
@@ -4222,4 +4295,72 @@ fn workspace_write_and_mutation_preflight_reject_dangling_symlink_targets() {
         .unwrap_err();
         assert_eq!(mutation.code, UniversalExecErrorCode::WorkspacePathDenied);
     }
+}
+
+#[test]
+fn workspace_continuation_requires_explicit_release_inside_retention_window() {
+    let sandbox = Sandbox::new("workspace-consumer-continuation");
+    let source = sandbox.root.join("source");
+    init_git_repo(&source);
+    let config = sandbox.config();
+    let workspace_id = "workspace-consumer-continuation";
+    create_git_workspace(
+        &config,
+        &GitWorkspaceCreateRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            source_repo: source.to_string_lossy().into_owned(),
+            source_revision: "HEAD".to_string(),
+        },
+    )
+    .unwrap();
+
+    // Concrete counterexample: first Job finished; a separate cleaner sees
+    // a clean, idle worktree, but the same task still intends a second Job.
+    let close_without_release = WorkspaceCloseRequest {
+        schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+        workspace_id: workspace_id.to_string(),
+        force: false,
+        consumer_released: false,
+        expected_source_state_digest: Some(
+            workspace_source_state_digest(&config, workspace_id).unwrap(),
+        ),
+    };
+    let rejected = remove_git_workspace(&config, &close_without_release).unwrap_err();
+    assert_eq!(
+        rejected.code,
+        UniversalExecErrorCode::WorkspaceStateMismatch
+    );
+    assert_eq!(rejected.field.as_deref(), Some("consumerReleased"));
+    let forced_without_release = remove_git_workspace(
+        &config,
+        &WorkspaceCloseRequest {
+            force: true,
+            ..close_without_release.clone()
+        },
+    )
+    .unwrap_err();
+    assert_eq!(
+        forced_without_release.code,
+        UniversalExecErrorCode::WorkspaceStateMismatch
+    );
+    // Source and identity must remain usable for the next task operation.
+    let still_open = config.workspace_path(workspace_id);
+    assert!(still_open.exists());
+    assert!(still_open.join("README.md").is_file());
+
+    let authorized = WorkspaceCloseRequest {
+        consumer_released: true,
+        ..close_without_release.clone()
+    };
+    let closed = remove_git_workspace(&config, &authorized).unwrap();
+    assert_eq!(
+        closed.closure_disposition,
+        WorkspaceClosureDisposition::Removed
+    );
+    let replay = remove_git_workspace(&config, &close_without_release).unwrap();
+    assert_eq!(
+        replay.closure_disposition,
+        WorkspaceClosureDisposition::AlreadyClosed
+    );
 }

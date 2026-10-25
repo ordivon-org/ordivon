@@ -515,6 +515,62 @@
         "observedAt": "2026-10-26T04:50:00+08:00",
         "scope": "evidence-only issue, not owner-native verification or deploy authority"
       }
+    },
+    {
+      "id": "WIN-EXEC-CONTEXT-20261026",
+      "problemClass": "WINDOWS_EXECUTION_CONTEXT_CAPABILITY_DRIFT",
+      "naturalOwner": "services/runtime",
+      "standing": "SERVICE_USER_CAPABILITY_AND_EXECUTION_PLAN_PARITY_UNPROVED; CURRENT_OWNER_ACCEPTANCE_UNKNOWN",
+      "observation": "Windows Runtime windows-main-r6-candidate exposes service and active_user authority contexts, trusted_local only, structuredPlan=false and hostDependencyCommitments=false; Linux exposes structuredPlan/hostDependencyCommitments. Previous native Agent tests find Python/Cargo/gh under active_user mise shims but not default service PATH.",
+      "evidence": "Live 2026-10-26 runtime_describe linux-local and windows-main-r6-candidate; service-vs-active_user Jobs reported by Host Work work:ordivon:formal-lego-cross-system-census-20261026-r1. No Windows registry/identity effect changed.",
+      "consumers": "Windows native Python/Rust/TypeScript jobs, source-bound test toolchains, Agent action selection, security principal and release preflight.",
+      "formalObligation": "Admission must bind executionTarget, selected authority, effective identity, executable full path/digest, PATH/environment dependencies and immutable-input guarantees to committed Job. A changed effective context or missing required capability must fail closed; Linux-equivalent guarantees cannot be claimed if Windows provider lacks a corresponding witness.",
+      "decision": "Specify and test per-execution-context capability/refinement contracts first; avoid duplicative tool installation or changing service user merely to hide discovery mismatch.",
+      "representation": {
+        "primary": "type",
+        "supporting": [
+          "constraint"
+        ],
+        "requiredWitness": "Windows active_user/service native positive and fault-injected negative Jobs for exact PATH, principal, executable digest, missing host dependency, plus cross-target source-bound contract diff.",
+        "selectionReason": "Typed execution authority/capability binding catches an entire class of environment selection errors before dispatch."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "Registered as source/time-scoped Problem LEGO evidence only; there is no qualified existing Owner-local implementation/refinement slice for this obligation. Do not counterfeit a LINKED/verified acceptance."
+      },
+      "requalification": {
+        "observedAt": "2026-10-26T06:23:00+08:00",
+        "sourceCut": "db6f4e56544de72613992471d449dba85081819a",
+        "mode": "provider-and-repository-source-readonly-no-native-implementation-claim"
+      }
+    },
+    {
+      "id": "GW-SKILLS-ROUTE-20261026",
+      "problemClass": "GATEWAY_SKILLS_ROUTE_DISCOVERY_SEAM",
+      "naturalOwner": "services/gateway",
+      "standing": "GATEWAY_SKILLS_OWNER_UNCONFIGURED_WITH_SEPARATELY_LIVE_SKILLS_CATALOG; CURRENT_OWNER_ACCEPTANCE_UNKNOWN",
+      "observation": "Live Gateway system_describe v0.8.1 reports owner_id=skills configured=false and capability_search query skill matches zero. Independently reachable native Skills service lists 300 APPROVED/scanned-or-audited metadata items in three 100-item pages on the same catalogRevision. This does NOT establish that Gateway routing is required by every Agent or that a currently deployed route is broken.",
+      "evidence": "2026-10-26 live Gateway system_describe/capability_search and native Skills skills_list cursors 0/100/200. CatalogRevision sha256:bc71c9cd5d3934302b5528aabf6f1a6002e13de64c21de80984cfbfaf512b08d. Repo services/gateway/src/ordivon_gateway/research_routes.py refers to skills Owner; services/gateway/tests/test_research_capability_resolution.py contains explicit unconfigured-Owner behavior.",
+      "consumers": "Gateway Research composition routes requesting Skills owner resolution; Agents may still use direct Skills discovery without Gateway. Distinguish these two real consumer paths.",
+      "formalObligation": "For each Gateway capability route requiring Skills owner, bind an actual current configured endpoint, authority identity, provider catalog digest, exact requested Skill and eligible resolution proof. A route with required skills owner configured=false must yield typed unavailable/UNKNOWN rather than silently claiming native Skill admission. If no live route consumer needs it, retire the stale route rather than wire unnecessary infrastructure.",
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "Time-scoped provider topology evidence, not a qualified Gateway consumer-route effect or Owner-local implementation LEGO slice."
+      },
+      "decision": "First run live Gateway Research route consumer CDC and compare direct Skills resolver to gateway topology; remove unused routing only if consumer traversal proves redundancy. No synthetic registry or forced configuration.",
+      "representation": {
+        "primary": "graph",
+        "supporting": [
+          "type"
+        ],
+        "requiredWitness": "Frozen ProviderGraph (Gateway->Skills owner), required route test and live user/agent consumer, exact catalog revision, negative configured=false and stale digest path; verify native owner acceptance.",
+        "selectionReason": "The graph/topology seam is more direct than adding domain Skills for failures caused by a missing route."
+      },
+      "requalification": {
+        "observedAt": "2026-10-26T06:23:00+08:00",
+        "sourceCut": "db6f4e56544de72613992471d449dba85081819a",
+        "mode": "provider-and-repository-source-readonly-no-native-implementation-claim"
+      }
     }
   ],
   "verification": {

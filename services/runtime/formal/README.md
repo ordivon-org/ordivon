@@ -311,4 +311,19 @@ the stronger guarantee remains UNKNOWN without authenticated owner state,
 implementation witness, and negative replay. Age expiry is explicitly
 allowed to reclaim without release, preserving bounded liveness.
 
+**Concrete Rust recovery-boundary qualification.** The normal
+`consumerReleased` guard previously sat after Git metadata recovery
+branches that can physically remove an open Workspace. The current
+Runtime close-recovery implementation reuses the same guarded predicate
+before normal close, corrupt Git metadata force recovery, and unborn-HEAD
+force removal; separate native negative CDCs verify the unreleased
+consumer's unique residual files survive. This is implementation-level
+test evidence for specific paths, *not* a general Rust-to-TLA refinement
+proof or an authenticated consumer claim. The previously proposed
+`WorkspaceContinuationR1` abstract model is retired here because the
+currently checked `WorkspaceConsumerCloseR1` already represents
+fresh idle consumer continuity, live Job/Git dependencies, and stronger
+spoofed-release negative controls. Maintain one present-day model for
+this Owner safety obligation, not duplicate finite proof registries.
+
 No second solver, custom formal DSL, new scheduler or global registry is added.

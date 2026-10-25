@@ -219,10 +219,11 @@ class PostgresWakeTurnMap:
         row = db.execute(
             "SELECT state FROM ordivon_harness.wake_cutover WHERE cutover_id='legacy'"
         ).fetchone()
-        if row is not None:
-            state = row["state"] if isinstance(row, dict) else row[0]
-            if state != "ACTIVE":
-                raise WakeTurnConflict("PostgreSQL wake cutover pending; writer not certified")
+        if row is None:
+            raise WakeTurnConflict("PostgreSQL wake cutover not activated: expected ACTIVE")
+        state = row["state"] if isinstance(row, dict) else row[0]
+        if state != "ACTIVE":
+            raise WakeTurnConflict("PostgreSQL wake cutover pending; writer not certified")
 
     def _mark_pending_before_legacy_freeze(self) -> None:
         with psycopg.connect(self.dsn) as pg:
