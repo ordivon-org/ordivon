@@ -13,6 +13,20 @@ import tempfile
 from pathlib import Path
 
 
+if __package__:
+    from .check_architecture_docs import (
+        GIT01_ALLOWED_DISPOSITIONS,
+        GIT01_ALLOWED_EVIDENCE_SCOPES,
+        GIT01_SCOPE_DISPOSITION,
+    )
+else:
+    from check_architecture_docs import (
+        GIT01_ALLOWED_DISPOSITIONS,
+        GIT01_ALLOWED_EVIDENCE_SCOPES,
+        GIT01_SCOPE_DISPOSITION,
+    )
+
+
 class MergeConflict(ValueError):
     """No automatic choice can safely reconcile these two proof sources."""
 
@@ -44,6 +58,21 @@ def _proofs(issue: dict) -> dict[str, dict]:
         for field in ("owner", "consumer", "remoteWitness", "evidenceScope", "disposition"):
             if not isinstance(row.get(field), str) or not row[field].strip():
                 raise MergeConflict(f"{sha}: missing {field}")
+        if row["disposition"] not in GIT01_ALLOWED_DISPOSITIONS:
+            raise MergeConflict(f"{sha}: invalid disposition")
+        if row["evidenceScope"] not in GIT01_ALLOWED_EVIDENCE_SCOPES:
+            raise MergeConflict(f"{sha}: invalid evidenceScope")
+        expected = GIT01_SCOPE_DISPOSITION.get(row["evidenceScope"])
+        if expected is not None and row["disposition"] != expected:
+            raise MergeConflict(f"{sha}: incompatible historical Git evidence and disposition")
+        if "branchDeletionAllowed" in row and row["branchDeletionAllowed"] is not False:
+            raise MergeConflict(f"{sha}: branchDeletionAllowed must be false")
+        if row["disposition"] == "PORT_REQUIRED_OWNER_EFFECT" and (
+            row["evidenceScope"] != "NATIVE_CONSUMER_PASS"
+            or not isinstance(row.get("sourceQualification"), dict)
+            or row["sourceQualification"].get("branchDeletionAllowed") is not False
+        ):
+            raise MergeConflict(f"{sha}: PORT_REQUIRED_OWNER_EFFECT needs native Owner proof")
         if "sourceQualification" in row:
             q = row["sourceQualification"]
             if not isinstance(q, dict):

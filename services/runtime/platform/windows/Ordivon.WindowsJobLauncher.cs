@@ -1761,6 +1761,46 @@ internal static class OrdivonWindowsJobLauncher
         CloseHandle(handle);
     }
 
+    // Directory.Exists during options parsing uses the service principal.
+    // Check the bound CWD under the selected payload token before native spawn.
+    // This is a preflight, not a substitute for Windows kernel access checks.
+    private static void VerifyWorkingDirectoryUnderExecutionToken(
+        IntPtr executionToken, string workingDirectory, string expectedUserSid)
+    {
+        using (WindowsIdentity targetIdentity = new WindowsIdentity(executionToken))
+        using (WindowsImpersonationContext impersonated = targetIdentity.Impersonate())
+        {
+            if (impersonated == null)
+                throw new InvalidOperationException("cannot impersonate execution identity for CWD admission");
+            using (WindowsIdentity effectiveIdentity = WindowsIdentity.GetCurrent())
+            {
+                if (effectiveIdentity.User == null ||
+                    !String.Equals(effectiveIdentity.User.Value, expectedUserSid, StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException("effective CWD inspection identity differs from selected token");
+            }
+            try
+            {
+                DirectoryInfo directory = new DirectoryInfo(workingDirectory);
+                if (!directory.Exists)
+                    throw new UnauthorizedAccessException("bound working directory is not accessible to payload token");
+                // Enumerate to exercise token-based directory read rather than
+                // accepting a path known only to the service principal.
+                using (IEnumerator<FileSystemInfo> entries = directory.EnumerateFileSystemInfos().GetEnumerator())
+                    entries.MoveNext();
+            }
+            catch (UnauthorizedAccessException error)
+            {
+                throw new InvalidOperationException(
+                    "execution identity cannot enumerate its bound working directory", error);
+            }
+            catch (IOException error)
+            {
+                throw new InvalidOperationException(
+                    "bound working directory inspection failed under execution identity", error);
+            }
+        }
+    }
+
     private static int RunRuntime(Options options)
     {
         IntPtr job = IntPtr.Zero;
@@ -1801,6 +1841,7 @@ internal static class OrdivonWindowsJobLauncher
                 EffectivePayloadPrivilege(options),
                 out tokenEvidence);
             VerifyExpectedExecutionIdentity(options, tokenEvidence);
+            VerifyWorkingDirectoryUnderExecutionToken(executionToken, options.WorkingDirectory, tokenEvidence.UserSid);
             PrepareImmutableInputs(options, tokenEvidence);
             environment = BuildEnvironment(options);
 

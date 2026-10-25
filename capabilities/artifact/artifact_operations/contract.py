@@ -24,7 +24,7 @@ def require_public_file_commitment(value: object, label: str) -> dict[str, Any]:
     if value.get("name") is not None and not isinstance(value["name"], str):
         raise ValueError(f"{label}.name must be a string when present")
     if value.get("size") is not None and (
-        not isinstance(value["size"], int) or value["size"] < 0
+        type(value["size"]) is not int or value["size"] < 0
     ):
         raise ValueError(f"{label}.size must be a non-negative integer when present")
     return value
@@ -92,7 +92,7 @@ def validate_operation_envelope(value: object) -> dict[str, Any]:
     unknown = set(value) - allowed
     if unknown:
         raise ValueError(f"Artifact operation contains unsupported fields: {sorted(unknown)}")
-    if value.get("schemaVersion") != 1:
+    if type(value.get("schemaVersion")) is not int or value["schemaVersion"] != 1:
         raise ValueError("Artifact operation schemaVersion must equal 1")
     if value.get("kind") != OPERATION_KIND:
         raise ValueError(f"Artifact operation kind must equal {OPERATION_KIND}")

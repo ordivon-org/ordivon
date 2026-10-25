@@ -246,6 +246,25 @@ acceptance rather than replacing them with synthetic model claims.
 
 **Proof boundary**: `ENABLED` proves a legal abstract choice, not fairness, that the environment will eventually deliver valid evidence, or a concrete SQLite/Rust recovery implementation. The existing native Rust `terminal_evidence_requires_result_finish_matching_resolution_and_no_current_attempt` tests the narrower terminal evidence predicate; it is **not** a mechanized refinement proof for `CorrectForeignResultEvidence`. Correctness of consumer-visible recovery remains UNKNOWN pending an exact Rust transition/consumer bridge. Reuse TLA+/TLC rather than adding a new registry, custom solver or speculative Skill. The mature alternative [Apalache](https://github.com/apalache-mc/apalache) uses SMT/Z3/CVC5; no reason to install it for this small bounded model unless a concrete performance/proof limitation arises.
 
+## PostgreSQL R06 live-consumer admission (independent qualification)
+
+A copied source revision, source/target content parity, and a single installed
+writer still do **not** imply that actual consumers may safely use PostgreSQL.
+The existing cutover TLA+ model now distinguishes copying/verifying from
+QualifyConsumers, which is required before Promote. Commits to the legacy
+source, subsequent copies, and rollback invalidate the qualification. The
+normal TLC config checks PgWriterRequiresQualifiedConsumers, and the
+existing ephemeral negative-control runner deletes just that guard and
+requires a named counterexample state trace.
+
+QualifyConsumers is deliberately an UNVERIFIED external oracle in this
+abstract model. TLC PASS **does not** authenticate a live consumer receipt,
+prove its source seal, demonstrate readback on a real PG instance, or prove
+Rust/Harness application refinement. Actual cutover remains NOT_CUT_OVER
+until the real consumer and effect owner evidence discharges those obligations.
+This is one additional scoped contract in the existing formal owner, not a
+new custom solver or a global LEGO registry.
+
 ## PostgreSQL R06 installed-writer overlap (CEGAR refinement)
 
 The one-owner enum alone makes dual-writer overlap unrepresentable, even if
@@ -258,3 +277,38 @@ not attest actual systemd processes, immutable SQLite snapshot bytes,
 PostgreSQL connection identity, application commit parity, or Rust refinement.
 Cutover remains PROPOSED until real native process/source witnesses bind
 these model variables to physical behavior.
+
+## WorkspaceConsumerCloseR1 — bounded continuation guard (2026-10-26)
+
+The existing Runtime WorkspaceLeaseTable is a per-operation mutex, not a
+consumer lease across completed Jobs. A real cross-Job failure occurred:
+open Workspace, finish command, another caller closes clean/idle Workspace,
+then the next valid command receives "workspace is closed". PR #793 proposes
+a consumer-release guard. This model verifies the proposed abstract contract,
+not the current installed Runtime.
+
+The existing upstream-locked TLA+/TLC owner tool is reused by
+mise run formal:verify. Scoped properties:
+
+- FreshActiveConsumerCannotBeClosed: inside the 24h fresh-state abstraction,
+  close requires an honest finished-and-released consumer.
+- ClosedHasNoLiveJob and ClosedHasNoGitDependent: existing native close
+  exclusions remain independent of any release.
+- ReleasedAssumesConsumerFinished: an EXTERNAL ASSUMPTION about caller
+  truthfulness, not a cryptographically authenticated capability.
+- ClosedUnreachable is an intentionally false reachability control:
+  an actual named TLC trace proves legitimate closure remains possible.
+- Independent ephemeral mutations remove the fresh-release guard or forge
+  release by an active consumer; each must violate the named fresh-active
+  invariant, or verification fails closed.
+
+Finite model checking does NOT prove Rust-to-TLA refinement, actual
+consumer-completion semantics, multi-consumer authorization, persistent
+claim/recovery/expiry atomicity, clock trust, Windows permissions, or
+the behavior of expired workspaces. PR #793 consumerReleased=true is a
+caller assertion. The spoofed-release counterexample demonstrates that
+the stronger guarantee remains UNKNOWN without authenticated owner state,
+implementation witness, and negative replay. Age expiry is explicitly
+allowed to reclaim without release, preserving bounded liveness.
+
+No second solver, custom formal DSL, new scheduler or global registry is added.

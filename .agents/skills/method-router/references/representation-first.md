@@ -39,6 +39,39 @@ These lenses are neither a priority score nor mandatory data fields for every LE
 - Do not create universal owners or require a universal LEGO registry. Git, Runtime, Host and actual consumer/domain owners keep their respective truth.
 - A type check is not a proof of distributed execution; bounded model checking does not prove implementation equivalence; passing examples do not establish universal equivalence.
 
+## Bind the observation before explaining the failure
+
+A system-state observation is meaningful only relative to its actual subject:
+the node, service instance, effective execution identity, namespace or
+endpoint, source/configuration, observation time, and consumer wherever
+these affect its semantics. This is a diagnostic selection aid, not a
+mandatory field list for every LEGO.
+
+Use the constraint **Observation.Subject == Claim.Subject** with current,
+independent Owner evidence. If the binding is absent or differs, preserve
+UNKNOWN rather than converting another instance's negative observation into
+a remediation permission. Probe the exact consumer-bound instance before
+changing a live service.
+
+Independent counterexamples to unscoped inferences:
+
+- Default 'tailscale status' can fail while separate userspace Tailnet
+  instances are Running via independently named Unix sockets. Bind the
+  intended --socket and consumer; process-name presence does not prove the
+  default control-plane endpoint is healthy.
+- The Windows Runtime service identity may not resolve Python/Cargo/gh on
+  PATH while the supported active-user execution identity can. Bind the
+  execution token and executable path before declaring tools missing.
+- Cached Git origin/main may differ from GitHub's current protected tip.
+  Runtime Workspace opening sourceRevision can differ from
+  currentHeadRevision. Bind the exact SourceCut and admission-time source
+  state before inferring which bytes were executed.
+
+This is an **Agent reasoning guard**, not evidence that a live Owner enforces
+the relation. Safety-critical operations still require native admission gates
+and independent negative consumer checks. Reuse owner APIs/CLIs rather than
+creating a second identity registry or global observation service.
+
 ## Property-scoped CEGAR only when there is an actual verification consumer
 
 Start from the existing coarse model. Check the property, then classify its

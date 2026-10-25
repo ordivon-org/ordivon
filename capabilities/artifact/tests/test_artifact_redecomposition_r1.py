@@ -2,11 +2,31 @@ from __future__ import annotations
 
 import copy
 import json
+import tempfile
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PLAN = ROOT / "planning/lego-plan-r2.json"
+
+
+def _require_owner_evidence_file(root: Path, relative: str) -> None:
+    """A current evidence locator must be an owner-local regular source file."""
+    if not isinstance(relative, str) or not relative or "\\" in relative:
+        raise AssertionError("Artifact LEGO evidence path is not canonical")
+    components = relative.split("/")
+    if any(not component or component in {".", ".."} for component in components):
+        raise AssertionError("Artifact LEGO evidence escapes Owner")
+    candidate = Path(relative)
+    if candidate.is_absolute() or candidate.as_posix() != relative:
+        raise AssertionError("Artifact LEGO evidence path is not canonical")
+    path = root
+    for component in components:
+        path = path / component
+        if path.is_symlink():
+            raise AssertionError("Artifact LEGO evidence symlink is forbidden")
+    if not path.is_file() or not path.resolve().is_relative_to(root.resolve()):
+        raise AssertionError("Artifact LEGO evidence must be an owner-local source file")
 
 
 class ArtifactRedecompositionR1Tests(unittest.TestCase):
@@ -27,8 +47,13 @@ class ArtifactRedecompositionR1Tests(unittest.TestCase):
         ids = [node["id"] for node in nodes]
         self.assertEqual(len(ids), len(set(ids)))
         for node in nodes:
-            for relative in node.get("currentEvidence", []):
-                self.assertTrue((ROOT / relative).exists(), (node["id"], relative))
+            references = node.get("currentEvidence", [])
+            self.assertEqual(len(references), len(set(references)), node["id"])
+            for relative in references:
+                _require_owner_evidence_file(ROOT, relative)
+        # Project-level evidence is the same Owner-local source relation.
+        for relative in self.plan["project"]["evidence"]:
+            _require_owner_evidence_file(ROOT, relative)
 
     def _require_referentially_closed(self, plan: dict) -> None:
         """R2 graph references must denote its own declared, unique vertices."""
@@ -57,6 +82,36 @@ class ArtifactRedecompositionR1Tests(unittest.TestCase):
                 changed[boundary][0][key] = replacement
                 with self.assertRaisesRegex(AssertionError, "not found"):
                     self._require_referentially_closed(changed)
+
+    def test_cross_owner_existing_path_must_not_count_as_artifact_evidence(self) -> None:
+        # A real sibling source file cannot satisfy this Owner's evidence.
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            owner = base / "artifact"
+            sibling = base / "media"
+            owner.mkdir()
+            sibling.mkdir()
+            (sibling / "README.md").write_text("# other Owner", encoding="utf-8")
+            foreign = "../media/README.md"
+            self.assertTrue((owner / foreign).is_file())
+            with self.assertRaisesRegex(AssertionError, "escapes Owner"):
+                _require_owner_evidence_file(owner, foreign)
+
+    def test_source_evidence_rejects_symlink_and_directory_aliases(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            owner = base / "artifact"
+            owner.mkdir()
+            (owner / "good.py").write_text("print('ok')", encoding="utf-8")
+            (base / "outside.py").write_text("print('foreign')", encoding="utf-8")
+            (owner / "alias.py").symlink_to(base / "outside.py")
+            _require_owner_evidence_file(owner, "good.py")
+            for invalid in ("alias.py", ".", "good.py/..", "../outside.py", "missing.py"):
+                with self.subTest(reference=invalid), self.assertRaises(AssertionError):
+                    _require_owner_evidence_file(owner, invalid)
+            (owner / "folder").mkdir()
+            with self.assertRaisesRegex(AssertionError, "source file"):
+                _require_owner_evidence_file(owner, "folder")
 
     def test_kernel_is_exactly_five_semantic_responsibilities(self) -> None:
         kernel = [

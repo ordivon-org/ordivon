@@ -51,15 +51,40 @@ def load_lock()->dict[str,Any]:
     if v.get('schemaVersion')!=1 or v.get('kind')!='artifact-openxml-runtime-lock':raise RuntimeError('OpenXML runtime lock invalid')
     return v
 
+def nix_source_cut(flake_lock:Path)->dict[str,str]:
+    # flake.lock is the one source authority. A second manually synchronized
+    # Nixpkgs revision/NAR/file hash in the method lock adds only drift.
+    import re
+    if not flake_lock.is_file() or flake_lock.is_symlink():
+        raise RuntimeError('Artifact OpenXML Nix lock is absent or an alias')
+    raw=flake_lock.read_bytes()
+    value=json.loads(raw)
+    if value.get('version')!=7 or value.get('root')!='root' or value.get('nodes',{}).get('root',{}).get('inputs',{}).get('nixpkgs')!='nixpkgs':
+        raise RuntimeError('Artifact OpenXML Nix lock root identity drift')
+    source=value['nodes']['nixpkgs']
+    locked=source['locked']
+    original=source['original']
+    for item in (locked,original):
+        if item.get('type')!='git' or item.get('url')!='https://github.com/NixOS/nixpkgs' or item.get('ref')!='nixos-26.05' or item.get('shallow') is not True:
+            raise RuntimeError('Artifact OpenXML Nix upstream authority drift')
+    if not isinstance(locked.get('rev'),str) or not re.fullmatch(r'[0-9a-f]{40}',locked['rev']):
+        raise RuntimeError('Artifact OpenXML Nix revision invalid')
+    if not isinstance(locked.get('narHash'),str) or not re.fullmatch(r'sha256-[A-Za-z0-9+/]{43}=',locked['narHash']):
+        raise RuntimeError('Artifact OpenXML Nix NAR identity invalid')
+    return {'flakeLockSha256':'sha256:'+hashlib.sha256(raw).hexdigest(),
+            'nixpkgsRevision':locked['rev'],'nixpkgsNarHash':locked['narHash']}
+
 def nix_dotnet_status(lock:dict[str,Any])->dict[str,Any]:
     cfg=lock['nixDotnet']; flake=ROOT/cfg['flake']; flake_lock=flake/'flake.lock'
-    if not NIX.is_file() or not flake_lock.is_file():raise RuntimeError('Artifact OpenXML Nix authority is absent')
-    if 'sha256:'+sha(flake_lock)!=cfg['flakeLockSha256']:raise RuntimeError('Artifact OpenXML flake.lock digest drift')
-    locked=json.loads(flake_lock.read_text()).get('nodes',{}).get('nixpkgs',{}).get('locked',{})
-    if locked.get('rev')!=cfg['nixpkgsRevision'] or locked.get('narHash')!=cfg['nixpkgsNarHash']:raise RuntimeError('Artifact OpenXML nixpkgs lock identity drift')
+    if flake.resolve()!=NIX_FLAKE.resolve():
+        raise RuntimeError('Artifact OpenXML foreign Nix flake source')
+    if not NIX.is_file():raise RuntimeError('Artifact OpenXML Nix authority is absent')
+    source=nix_source_cut(flake_lock)
     target=f"path:{flake}#{cfg['package']}"
     built=run([str(NIX),*NIX_FEATURES,'build','--no-link','--print-out-paths',target],timeout=300)
     if built.returncode:raise RuntimeError('Artifact OpenXML Nix closure build failed: '+built.stderr[-4000:])
+    if nix_source_cut(flake_lock)!=source:
+        raise RuntimeError('Artifact OpenXML Nix lock changed during build')
     paths=[line.strip() for line in built.stdout.splitlines() if line.strip().startswith('/nix/store/')]
     if len(paths)!=1:raise RuntimeError(f'Artifact OpenXML Nix closure did not resolve exactly one store path: {paths}')
     store=Path(paths[0]); dotnet=store/'bin/dotnet'
@@ -69,7 +94,10 @@ def nix_dotnet_status(lock:dict[str,Any])->dict[str,Any]:
     if info_proc.returncode:raise RuntimeError('Artifact OpenXML Nix path-info failed: '+info_proc.stderr[-2000:])
     info=json.loads(info_proc.stdout).get(str(store),{}); nar_hash=info.get('narHash')
     if not isinstance(nar_hash,str) or not nar_hash.startswith('sha256-'):raise RuntimeError('Artifact OpenXML Nix narHash missing')
-    return {'storePath':str(store),'narHash':nar_hash,'observedSdkVersion':version,'flakeLockSha256':cfg['flakeLockSha256'],'nixpkgsRevision':cfg['nixpkgsRevision']}
+    if nix_source_cut(flake_lock)!=source:
+        raise RuntimeError('Artifact OpenXML Nix lock changed during verification')
+    return {'storePath':str(store),'narHash':nar_hash,'observedSdkVersion':version,
+            'flakeLockSha256':source['flakeLockSha256'],'nixpkgsRevision':source['nixpkgsRevision']}
 
 def nuget_sources(lock:dict[str,Any])->list[dict[str,str]]:
     result=[]
@@ -111,6 +139,8 @@ def build_generation(base:Path,lock:dict[str,Any],dotnet_authority:dict[str,Any]
         feed=staging/'provenance/nuget';feed.mkdir(parents=True)
         for row in nuget:shutil.copy2(row['path'],feed/Path(row['path']).name)
         shutil.copy2(NIX_FLAKE/'flake.nix',staging/'provenance/openxml-nix-flake.nix');shutil.copy2(NIX_FLAKE/'flake.lock',staging/'provenance/openxml-nix-flake.lock')
+        if 'sha256:'+sha(staging/'provenance/openxml-nix-flake.lock')!=spec['artifactNixFlakeLockSha256']:
+            raise RuntimeError('Artifact OpenXML Nix source drift before materialization')
         source=staging/'source';source.mkdir();shutil.copy2(ROOT/lock['sourceProject'],source/'ArtifactOpenXmlValidator.csproj');shutil.copy2(ROOT/lock['sourceProgram'],source/'Program.cs')
         packages=staging/'packages';obj=staging/'obj';out=staging/'validator';out.mkdir()
         env={**os.environ,'DOTNET_MULTILEVEL_LOOKUP':'0','NUGET_PACKAGES':str(packages),'DOTNET_CLI_HOME':str(staging/'dotnet-home')}

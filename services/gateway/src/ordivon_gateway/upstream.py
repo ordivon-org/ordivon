@@ -289,6 +289,10 @@ class McpOwnerCaller:
                 "url": "ORDIVON_GATEWAY_HOST_URL",
                 "bearer": "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE",
             },
+            "skills": {
+                "url": "ORDIVON_GATEWAY_SKILLS_URL",
+                "bearer": "ORDIVON_GATEWAY_SKILLS_BEARER_TOKEN_FILE",
+            },
         }
         for owner_id, keys in mapping.items():
             url = os.environ.get(str(keys["url"]), "").strip()
@@ -311,7 +315,9 @@ class McpOwnerCaller:
         endpoint = self._owners.get(owner_id)
         if endpoint is None:
             return "owner endpoint is not configured"
-        if owner_id.startswith("runtime.") and not _runtime_identity_configured(endpoint):
+        if (
+            owner_id.startswith("runtime.") or owner_id == "skills"
+        ) and not _runtime_identity_configured(endpoint):
             return "owner authentication is not configured"
         return None
 

@@ -435,7 +435,7 @@ def test_current_owner_plan_inventory_is_closed_without_another_registry(
     tmp_path: Path,
 ) -> None:
     """New plan declarations cannot silently evade registered Owner graph laws."""
-    for relative in module.OWNER_LEGO_PLANS:
+    for relative in (*module.OWNER_LEGO_PLANS, *module.OWNER_LEGO_PLAN_PROJECTIONS):
         candidate = tmp_path / relative
         candidate.parent.mkdir(parents=True, exist_ok=True)
         candidate.write_text("{}")
@@ -452,6 +452,33 @@ def test_current_owner_plan_inventory_is_closed_without_another_registry(
     missing.unlink()
     with pytest.raises(module.ArchitectureDocsError, match="missing="):
         module.validate_owner_plan_inventory(tmp_path)
+
+
+def test_owner_r2_r3_plan_carriers_are_not_invisible_to_inventory(tmp_path: Path) -> None:
+    """A newly authored R2/R3 source carrier cannot bypass R1-only glob checks."""
+    for relative in module.OWNER_LEGO_PLANS:
+        candidate = tmp_path / relative
+        candidate.parent.mkdir(parents=True, exist_ok=True)
+        candidate.write_text("{}", encoding="utf-8")
+    for relative in getattr(module, "OWNER_LEGO_PLAN_PROJECTIONS", ()):
+        candidate = tmp_path / relative
+        candidate.parent.mkdir(parents=True, exist_ok=True)
+        candidate.write_text("{}", encoding="utf-8")
+
+    undeclared = tmp_path / "domains/research/planning/lego-plan-r2.json"
+    undeclared.parent.mkdir(parents=True)
+    undeclared.write_text("{}", encoding="utf-8")
+    with pytest.raises(module.ArchitectureDocsError, match="unregistered="):
+        module.validate_owner_plan_inventory(tmp_path)
+    undeclared.unlink()
+
+    # Once a source carrier is registered, its silent deletion must also fail.
+    for relative in module.OWNER_LEGO_PLAN_PROJECTIONS:
+        missing = tmp_path / relative
+        missing.unlink()
+        with pytest.raises(module.ArchitectureDocsError, match="missing="):
+            module.validate_owner_plan_inventory(tmp_path)
+        missing.write_text("{}", encoding="utf-8")
 
 
 def test_actual_repository_owner_plan_inventory_is_source_closed() -> None:
@@ -479,3 +506,54 @@ def test_retired_slice_cannot_qualify_an_active_blocking_prerequisite(
     consumer["status"] = f"BLOCKED_ON_{producer['id']}"
     with pytest.raises(module.ArchitectureDocsError, match="invalid LEGO blocking prerequisites"):
         module.validate_owner_lego_graph(plan)
+
+
+
+@pytest.mark.parametrize("relative", module.OWNER_LEGO_PLANS)
+def test_owner_project_source_evidence_is_current_source_bound(relative: str) -> None:
+    plan = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+    module.validate_owner_lego_source_evidence(ROOT, relative, plan)
+
+
+@pytest.mark.parametrize("relative", module.OWNER_LEGO_PLANS)
+def test_owner_project_source_evidence_rejects_retired_paths(relative: str) -> None:
+    plan = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+    plan["project"]["sourceEvidence"][0] = "docs/RETIRED_NONEXISTENT_LEGO_PROOF.md"
+    with pytest.raises(module.ArchitectureDocsError, match="Owner LEGO sourceEvidence escapes SourceCut"):
+        module.validate_owner_lego_source_evidence(ROOT, relative, plan)
+
+
+def test_owner_project_source_evidence_rejects_traversal_and_duplicate_carriers() -> None:
+    relative = "services/runtime/planning/lego-plan-r1.json"
+    plan = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+    plan["project"]["sourceEvidence"][0] = "../../../../README.md"
+    with pytest.raises(module.ArchitectureDocsError, match="invalid Owner LEGO sourceEvidence path"):
+        module.validate_owner_lego_source_evidence(ROOT, relative, plan)
+    plan["project"]["sourceEvidence"] = ["README.md", "README.md"]
+    with pytest.raises(module.ArchitectureDocsError, match="invalid or duplicate Owner LEGO sourceEvidence"):
+        module.validate_owner_lego_source_evidence(ROOT, relative, plan)
+
+
+@pytest.mark.parametrize(
+    "alias",
+    (
+        "services/host/README.md",
+        "./README.md",
+        "docs//HOST_V2_R6_CLEANUP.md",
+    ),
+)
+def test_owner_evidence_alias_cannot_mint_duplicate_provenance(alias: str) -> None:
+    """One SourceCut file must not become independent proofs via spelling aliases."""
+    relative = "services/host/planning/lego-plan-r1.json"
+    plan = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+    plan["project"]["sourceEvidence"].append(alias)
+    with pytest.raises(module.ArchitectureDocsError, match="non-canonical|duplicate"):
+        module.validate_owner_lego_source_evidence(ROOT, relative, plan)
+
+
+def test_owner_evidence_rejects_mixed_absolute_and_relative_representations() -> None:
+    relative = "services/host/planning/lego-plan-r1.json"
+    plan = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+    plan["project"]["sourceEvidence"] = ["README.md", "services/host/README.md"]
+    with pytest.raises(module.ArchitectureDocsError, match="duplicate"):
+        module.validate_owner_lego_source_evidence(ROOT, relative, plan)

@@ -155,22 +155,17 @@ def test_research_route_index_has_existing_monorepo_sources_and_explicit_owner_b
         assert spec.completion_owner
         assert spec.source_refs
         assert "scientific truth" in spec.truth_boundary
-        historical_only_refs = {
-            "catalogs/capabilities/packages/research.md",
-            "profiles/research/publication/perceptual-conformance-profile-r1.json",
-            "profiles/research/publication/publication-closure-profile-r2.json",
-            "profiles/research/scholarly-intelligence/SCHOLARLY_INTELLIGENCE_R2.md",
-            "profiles/research/scholarly-intelligence/scholarly-intelligence-profile-v1.schema.json",
-        }
         for source_ref in spec.source_refs:
             if source_ref.startswith("research-v2:"):
+                # Explicit external Study owner: monorepo source presence is
+                # neither required nor a claim of external scientific truth.
+                assert source_ref.removeprefix("research-v2:").strip()
                 continue
-            # The live 0.8.0 Epoch 5 Research source references are frozen.
-            # These five refs are historical, not valid present-day authority.
-            # Do not silently create false current files to turn this green.
-            assert (repo_root / source_ref).exists() or source_ref in historical_only_refs, (
-                f"unqualified missing current source ref: {source_ref}"
-            )
+            source_path = (repo_root / source_ref).resolve()
+            # Native Gateway SourceCut check: no path traversal, symlink to
+            # an external authority or retired/fictional current file.
+            assert source_path.is_relative_to(repo_root.resolve()), source_ref
+            assert source_path.is_file(), f"unqualified missing current source ref: {source_ref}"
         for recipe in spec.invocation_recipes:
             assert recipe.kind in {"skill", "mise-task", "owner-cli"}
             if recipe.kind == "skill":

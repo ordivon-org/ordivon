@@ -5,6 +5,7 @@ postcondition unexpectedly stops providing a receipt. They must not commit.
 """
 from __future__ import annotations
 
+from contextlib import closing
 import sqlite3
 import subprocess
 import sys
@@ -27,7 +28,7 @@ def _request() -> CarrierMaterializationRequest:
 
 
 def _install_receipt_erasing_trigger(path: Path, operation: str) -> None:
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db, db:
         db.executescript(
             f"""
             CREATE TABLE adversarial_commit_witness (marker INTEGER);
@@ -80,7 +81,7 @@ def test_sqlite_receipt_oracle_runs_under_actual_optimized_interpreter() -> None
 
 
 def _assert_no_effect_committed(path: Path, expected_rows: int) -> None:
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db, db:
         _require_equal(db.execute("SELECT count(*) FROM adversarial_commit_witness").fetchone()[0], 0)
         _require_equal(db.execute("SELECT count(*) FROM requests").fetchone()[0], expected_rows)
 
@@ -111,7 +112,7 @@ def test_durable_transition_never_commits_without_readback(tmp_path: Path, trans
         else:
             store._claim_effect_attempt(request, now_ms=2)
     _assert_no_effect_committed(db_path, 1)
-    with sqlite3.connect(db_path) as db:
+    with closing(sqlite3.connect(db_path)) as db, db:
         _require_equal(db.execute("SELECT standing FROM requests").fetchone()[0], MaterializationStanding.PREPARED.value)
 
 
@@ -120,7 +121,7 @@ def test_human_resume_claim_cannot_commit_without_receipt(tmp_path: Path) -> Non
     store = SQLiteConversationMaterializer(db_path, target=object())
     request = _request()
     store._record_intent(request, now_ms=1)
-    with sqlite3.connect(db_path) as db:
+    with closing(sqlite3.connect(db_path)) as db, db:
         db.execute(
             "UPDATE requests SET standing=?,evidence_digest=? WHERE request_id=?",
             (MaterializationStanding.HUMAN_REQUIRED.value, "sha256:" + "c" * 64, request.request_id),
@@ -129,7 +130,7 @@ def test_human_resume_claim_cannot_commit_without_receipt(tmp_path: Path) -> Non
     with pytest.raises(CarrierConflict, match="receipt.*missing"):
         store._claim_human_resume(request, now_ms=3)
     _assert_no_effect_committed(db_path, 1)
-    with sqlite3.connect(db_path) as db:
+    with closing(sqlite3.connect(db_path)) as db, db:
         _require_equal(db.execute("SELECT standing FROM requests").fetchone()[0], MaterializationStanding.HUMAN_REQUIRED.value)
 
 
@@ -138,7 +139,7 @@ def test_post_update_invalid_receipt_cannot_be_committed(tmp_path: Path) -> None
     store = SQLiteConversationMaterializer(db_path, target=object())
     request = _request()
     store._record_intent(request, now_ms=1)
-    with sqlite3.connect(db_path) as db:
+    with closing(sqlite3.connect(db_path)) as db, db:
         db.executescript(
             """
             CREATE TABLE adversarial_commit_witness (marker INTEGER);
@@ -151,5 +152,5 @@ def test_post_update_invalid_receipt_cannot_be_committed(tmp_path: Path) -> None
     with pytest.raises(CarrierConflict, match="receipt.*invalid"):
         store._claim_effect_attempt(request, now_ms=2)
     _assert_no_effect_committed(db_path, 1)
-    with sqlite3.connect(db_path) as db:
+    with closing(sqlite3.connect(db_path)) as db, db:
         _require_equal(db.execute("SELECT standing FROM requests").fetchone()[0], MaterializationStanding.PREPARED.value)

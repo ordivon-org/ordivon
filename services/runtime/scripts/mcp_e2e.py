@@ -21,6 +21,7 @@ import time
 import urllib.error
 import urllib.request
 import uuid
+from contextlib import closing
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -1798,7 +1799,7 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
             {"observation": credential_first, "stdout": credential_first_stdout},
         )
 
-        with sqlite3.connect(root / "registry/registry.sqlite3") as connection:
+        with closing(sqlite3.connect(root / "registry/registry.sqlite3")) as connection, connection:
             row = connection.execute(
                 "SELECT execution_plan_json FROM jobs WHERE job_id=?",
                 (credential_job_id,),

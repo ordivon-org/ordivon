@@ -128,7 +128,13 @@
       "currentEvidence": [
         "artifact_capabilities/dispatch.py",
         "artifact_capabilities/document.py",
-        "artifact_capabilities/presentation"
+        "artifact_capabilities/presentation/__init__.py",
+        "artifact_capabilities/presentation/admission.py",
+        "artifact_capabilities/presentation/canonicalization.py",
+        "artifact_capabilities/presentation/common.py",
+        "artifact_capabilities/presentation/ppt_master.py",
+        "artifact_capabilities/presentation/python_pptx.py",
+        "artifact_capabilities/presentation/reference_projection.py"
       ],
       "mustNotOwn": [
         "Artifact standing"

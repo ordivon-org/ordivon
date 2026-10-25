@@ -108,12 +108,17 @@ class ProviderCallLifecycle:
                 "durable Provider Call bridge omitted dispatch admission"
             )
         try:
-            return bool(self._admit(request, control=control))
+            standing = self._admit(request, control=control)
         except Exception as error:  # noqa: BLE001 - local durable admission boundary.
             raise ProviderLifecycleError(
                 "Provider dispatch admission failed: "
                 f"{type(error).__name__}: {error}"
             ) from error
+        if type(standing) is not bool:
+            raise ProviderLifecycleError(
+                "Provider dispatch admission must return an exact boolean"
+            )
+        return standing
 
     def fail(
         self,

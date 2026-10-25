@@ -123,8 +123,37 @@ def test_database_cutover_census_cannot_claim_admission_without_real_owner_effec
         module.validate_formal_issue_census(weakened, plans)
 
 
+def test_oct26_new_cross_owner_frontiers_remain_explicitly_unknown() -> None:
+    """Missing consumer/formal/Skill proofs must not be reclassified as passed by taxonomy."""
+    root = Path(__file__).resolve().parents[2]
+    census = json.loads((root / "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261025_R1.json").read_text(encoding="utf-8"))
+    cases = {
+        "RT-CONSUMER-CLAIM-20261026": "services/runtime",
+        "SKILL-DISCOVERY-SCIENCE-20261026": "platform/skills",
+        "COMPOSITION-IMPLEMENTATION-BRIDGE-20261026": "packages/composition",
+    }
+    plans = {
+        row["ownerPlan"]: json.loads((root / row["ownerPlan"]).read_text(encoding="utf-8"))
+        for row in census["registrations"]
+    }
+    for issue_id, owner in cases.items():
+        issue = next(i for i in census["issues"] if i["id"] == issue_id)
+        assert issue["naturalOwner"] == owner
+        assert issue["registration"]["state"] == "UNREGISTERED"
+        assert issue["requalification"]["proofStanding"] == "UNKNOWN"
+        assert issue["requalification"]["sourceCut"] == "c8cec7d7ee8ebcfcecf1893ac32a894b71051339"
+    module.validate_formal_issue_census(census, plans)
 
-
+    # Red control: a future agent cannot attach a missing obligation to a
+    # fabricated Owner plan merely by naming an existing verified subsystem.
+    weakened = copy.deepcopy(census)
+    bad = next(i for i in weakened["issues"] if i["id"] == "RT-CONSUMER-CLAIM-20261026")
+    bad["registration"] = {
+        "state": "LINKED", "ownerPlan": "services/runtime/planning/lego-plan-r1.json",
+        "slice": "RW999"
+    }
+    with pytest.raises(module.ArchitectureDocsError, match="unknown owner-local LEGO"):
+        module.validate_formal_issue_census(weakened, plans)
 
 def test_oct26_distinct_windows_and_gateway_problem_lego_gaps() -> None:
     """Keep only non-overlapping source-backed issues; forbid forged owner proof."""
@@ -136,7 +165,7 @@ def test_oct26_distinct_windows_and_gateway_problem_lego_gaps() -> None:
     assert set(new) == unique_ids
     for row in new.values():
         assert row["registration"]["state"] == "UNREGISTERED"
-        assert row["requalification"]["sourceCut"] == "c8cec7d7ee8ebcfcecf1893ac32a894b71051339"
+        assert row["requalification"]["sourceCut"] == "db6f4e56544de72613992471d449dba85081819a"
         assert row["representation"]["requiredWitness"] and row["formalObligation"]
     module.validate_formal_issue_census(census, plans)
     fake = copy.deepcopy(census)

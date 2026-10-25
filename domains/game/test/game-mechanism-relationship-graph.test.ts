@@ -103,15 +103,13 @@ test("generated relationship graph exactly rebuilds from spec plus Experience Li
   assert.deepEqual(buildMechanismRelationshipGraph(), graph);
 });
 
-test("relationship graph is discoverable through navigation but only pointer-linked from the domain graph", () => {
+test("derived relationship graph is linked from owner-native LEGO registration", () => {
   const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
-  const authority = readFileSync(new URL("../docs/authority.md", import.meta.url), "utf8");
   const project = readFileSync(new URL("../.ordivon/project.yaml", import.meta.url), "utf8");
-  const domain = JSON.parse(readFileSync(new URL("../standards/game_domain_package_graph_r1.json", import.meta.url), "utf8")) as any;
-
-  assert.match(readme, /GAME_MECHANISM_RELATIONSHIP_GRAPH_R1\.md/);
+  const plan = JSON.parse(readFileSync(new URL("../planning/lego-plan-r1.json", import.meta.url), "utf8")) as any;
+  const node = plan.nodes.find((x: any) => x.id === "G03");
+  assert.ok(node);
   assert.match(readme, /knowledge:relationships/);
-  assert.match(authority, /Mechanism Relationship Graph/i);
   for (const path of [
     "docs/GAME_MECHANISM_RELATIONSHIP_GRAPH_R1.md",
     "standards/game_mechanism_relationship_spec_r1.json",
@@ -119,8 +117,6 @@ test("relationship graph is discoverable through navigation but only pointer-lin
     "scripts/build-mechanism-relationship-graph.ts",
     "scripts/mechanism-relationship-query.ts",
   ]) assert.match(project, new RegExp(path.replaceAll("/", "\\/")));
-
-  assert.equal(domain.mechanismRelationshipGraph.path, "standards/game_mechanism_relationship_graph_r1.json");
-  assert.equal(domain.mechanismRelationshipGraph.embeddedInGraph, false);
-  assert.equal(domain.mechanismRelationshipGraph.canBlockNovelCombination, false);
+  assert.ok(node.evidence.includes("standards/game_mechanism_relationship_graph_r1.json"));
+  assert.match(node.behavioralContract, /never a closed game ontology/i);
 });

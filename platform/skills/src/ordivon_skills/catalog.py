@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import mimetypes
+import re
 import stat
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -598,25 +599,32 @@ class SkillCatalog:
     ) -> tuple[SkillRecord, ...]:
         if not query.strip() or not (1 <= limit <= 100):
             return ()
-        terms = tuple(dict.fromkeys(term.casefold() for term in query.split() if term.strip()))
+        # Match whole lexical terms, not accidental substrings such as
+        # "net" in "internet". For a multi-term task, one incidental keyword
+        # must not qualify an unrelated Skill for recommendation.
+        terms = tuple(dict.fromkeys(re.findall(r"[^\W_]+", query.casefold())))
+        if not terms:
+            return ()
+        min_coverage = 1 if len(terms) == 1 else max(2, (len(terms) + 1) // 2)
         view = self.effective(context=context, invocation_mode=invocation_mode)
 
-        def score(record: SkillRecord) -> tuple[int, int, str]:
-            name = record.name.casefold()
-            description = record.description.casefold()
-            total = 0
-            for term in terms:
-                if term == name:
-                    total += 100
-                elif term in name:
-                    total += 20
-                if term in description:
-                    total += 5
-            return total, record.source_priority, record.skill_id
+        def score(record: SkillRecord) -> int:
+            name_terms = set(re.findall(r"[^\W_]+", record.name.casefold()))
+            description_terms = set(re.findall(r"[^\W_]+", record.description.casefold()))
+            matched = sum(term in name_terms or term in description_terms for term in terms)
+            if matched < min_coverage:
+                return 0
+            exact_name = tuple(re.findall(r"[^\W_]+", record.name.casefold())) == terms
+            return (
+                (100 if exact_name else 0)
+                + 20 * sum(term in name_terms for term in terms)
+                + 5 * sum(term in description_terms for term in terms)
+            )
 
-        ranked = [record for record in view.records if score(record)[0] > 0]
-        ranked.sort(key=lambda record: (-score(record)[0], -record.source_priority, record.skill_id))
-        return tuple(ranked[:limit])
+        scored = [(score(record), record) for record in view.records]
+        ranked = [(points, record) for points, record in scored if points > 0]
+        ranked.sort(key=lambda row: (-row[0], -row[1].source_priority, row[1].skill_id))
+        return tuple(record for _, record in ranked[:limit])
 
     def read_text(
         self,

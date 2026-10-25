@@ -1,4 +1,5 @@
 """Deliberate counterexamples to the SQL source/dialect gate."""
+import ast
 import subprocess
 import tempfile
 import unittest
@@ -20,7 +21,50 @@ from tools.repo.check_sql_dialects import (
 )
 
 
+def _sqlite_transaction_only_lines(text: str) -> list[int]:
+    """Find direct sqlite3.connect used as a context: transactions != close."""
+    root = ast.parse(text)
+    return [
+        node.lineno
+        for node in ast.walk(root)
+        if isinstance(node, (ast.With, ast.AsyncWith))
+        for item in node.items
+        if isinstance(item.context_expr, ast.Call)
+        and isinstance(item.context_expr.func, ast.Attribute)
+        and isinstance(item.context_expr.func.value, ast.Name)
+        and item.context_expr.func.value.id == "sqlite3"
+        and item.context_expr.func.attr == "connect"
+    ]
+
+
 class SQLDialectBoundaryTests(unittest.TestCase):
+    def test_direct_sqlite_transaction_context_requires_native_close(self):
+        """Owner test code may not mistake transaction commit for fd lifecycle."""
+        tracked = subprocess.check_output(
+            ["git", "ls-files", "-z", "--", "*.py"], cwd=ROOT
+        ).decode("utf-8").split("\0")
+        offenders = []
+        for filename in tracked:
+            # Harness independently owns this exact gate in its native tests.
+            if not filename or filename.startswith("services/harness/"):
+                continue
+            content = (ROOT / filename).read_text(encoding="utf-8")
+            if "sqlite3.connect" not in content:
+                continue
+            for line in _sqlite_transaction_only_lines(content):
+                offenders.append(f"{filename}:{line}")
+        self.assertFalse(offenders, "SQLite contexts do not close handles: " + ", ".join(offenders))
+
+    def test_direct_sqlite_context_guard_is_nonvacuous(self):
+        self.assertEqual(
+            _sqlite_transaction_only_lines("with sqlite3.connect('x') as db:\n    pass\n"), [1]
+        )
+        self.assertEqual(
+            _sqlite_transaction_only_lines(
+                "with closing(sqlite3.connect('x')) as db, db:\n    pass\n"
+            ), []
+        )
+
     def test_pg_preferred_sourcecut_matches_existing_core_sqlite_debt(self):
         current = tracked_owner_sqlite_calls(ROOT)
         self.assertEqual(current, SQLITE_LEGACY_SOURCE_CALLS)
@@ -107,10 +151,6 @@ class SQLDialectBoundaryTests(unittest.TestCase):
         observed = tracked_owner_sqlite_calls(ROOT)
         for path in (
             "apps/web/src/store.ts",
-            "domains/game/experiments/casefile/src/store.ts",
-            "domains/game/experiments/game-e2e-r5/host-outbox-shadow.ts",
-            "domains/game/experiments/station-zero-v3/src/persistence.ts",
-            "domains/game/products/station-zero-v2/src/storage.ts",
             "platform/security/labs/agent-admission-rs/src/grant-store.ts",
             "platform/security/labs/agent-admission-rs/src/principal-store.ts",
         ):

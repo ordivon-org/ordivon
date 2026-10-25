@@ -102,3 +102,20 @@ def test_cegar_retired_msr_method_routes_real_spurious_and_unknown() -> None:
     assert "spurious" in router
     assert "real" in router.lower()
     assert "owner-native" in charter
+
+
+def test_scope_bound_observation_reference_rejects_default_target_inference() -> None:
+    """Advisory Skill currentness only; not a formal runtime authorization proof."""
+    reference = (ROUTER / "references" / "representation-first.md").read_text(
+        encoding="utf-8"
+    )
+    for negative_control in (
+        "Observation.Subject == Claim.Subject",
+        "Default 'tailscale status'",
+        "supported active-user execution identity",
+        "Cached Git origin/main",
+        "currentHeadRevision",
+        "native admission gates",
+    ):
+        assert negative_control in reference
+    assert "not evidence that a live Owner enforces" in reference

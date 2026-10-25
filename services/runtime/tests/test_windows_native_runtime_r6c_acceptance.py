@@ -6,7 +6,7 @@ SCRIPT = ROOT / "scripts" / "windows-native-runtime-r6c-acceptance.ps1"
 
 def test_r6c_acceptance_harness_is_candidate_only_and_faults_are_opt_in():
     text = SCRIPT.read_text(encoding="utf-8")
-    assert "[ValidateSet('Status', 'AuthorityProfile', 'PrepareFixture', 'CrashRecovery', 'ActiveJobRecovery', 'CancelJob')]" in text
+    assert "[ValidateSet('Status', 'AuthorityProfile', 'WorkspaceCwdAdmission', 'PrepareFixture', 'CrashRecovery', 'ActiveJobRecovery', 'CancelJob')]" in text
     assert "[switch]$ApplyFault" in text
     assert "[int]$RecoveryTimeoutSeconds = 90" in text
     assert "[ValidateRange(60, 300)]" in text
@@ -123,3 +123,20 @@ def test_r6c_authority_profile_requires_runtime_to_advertise_both_authorities_fi
     assert "does not advertise required authority" in fn
     assert fn.index("does not advertise required authority") < fn.index("Ensure-TestRepository")
     assert "executionProvider = $windowsNative.executionProvider" in fn
+
+
+def test_native_workspace_cwd_acceptance_rejects_false_success_and_fences_retirement():
+    text = SCRIPT.read_text(encoding="utf-8")
+    fn = text[text.index("function Invoke-WorkspaceCwdAdmission {"):text.index("function Invoke-ActiveJobRecovery {")]
+    assert "Invoke-CwdIdentityJob -Authority 'active_user'" in fn
+    assert "Invoke-CwdIdentityJob -Authority 'limited'" in fn
+    assert "windowsAuthority = $Authority" in fn
+    assert "executionDisposition" in fn
+    assert "actualCwd" in fn
+    assert "expectedCwd" in fn
+    assert "active-user target ran outside the bound Workspace" in fn
+    assert "workspace.get" in fn
+    assert "workspace.close" in fn
+    assert "expectedSourceStateDigest" in fn
+    assert "force = $false" in fn
+    assert "jobId" in fn

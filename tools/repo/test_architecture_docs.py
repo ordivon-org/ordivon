@@ -622,6 +622,24 @@ def test_representation_first_rejects_non_scalar_values_without_crashing() -> No
         module.validate_formal_issue_census(census, plans)
 
 
+@pytest.mark.parametrize("alias_fragment", ("/planning/./", "/planning//"))
+def test_owner_lego_registration_rejects_path_identity_alias(alias_fragment: str) -> None:
+    """Different path spellings must not mint a second source-bound LEGO identity."""
+    census, plans = formal_issue_inputs()
+    registration = census["registrations"][0]
+    original = registration["ownerPlan"]
+    alias = original.replace("/planning/", alias_fragment)
+    assert alias != original
+    registration["ownerPlan"] = alias
+    plans[alias] = plans.pop(original)
+    for issue in census["issues"]:
+        linked = issue.get("registration", {})
+        if linked.get("ownerPlan") == original:
+            linked["ownerPlan"] = alias
+    with pytest.raises(module.ArchitectureDocsError, match="non-canonical owner-local LEGO path"):
+        module.validate_formal_issue_census(census, plans)
+
+
 def test_formal_issue_census_rejects_missing_registration_disposition() -> None:
     census, plans = formal_issue_inputs()
     del census["issues"][0]["registration"]
