@@ -183,19 +183,28 @@ OWNER_LEGO_PLANS = (
     "tools/repo/planning/lego-plan-r1.json",
 )
 
+# Other already-consumed Owner versions and named carriers do not share the R1
+# node/edge/slice graph schema. Register their physical source declarations,
+# not a fabricated universal LEGO schema or duplicate Owner implementation.
+OWNER_LEGO_PLAN_PROJECTIONS = (
+    "capabilities/artifact/planning/lego-plan-r2.json",
+    "services/host/planning/lego-plan-r3.json",
+    "services/gateway/planning/lego-plan-windows-carrier-r2.json",
+)
+
 
 def validate_owner_plan_inventory(root: Path) -> None:
-    """Close the current two-level Owner plan layout under native Repo admission.
+    """Close current two-level Owner plan paths without conflating schema versions.
 
-    This is source-layout currentness, not a universal LEGO registry:
-    unregistered domains may exist without planning files, while any
-    */*/planning/lego-plan-r1.json declaration must be explicitly admitted.
+    This is source-layout currentness, not a universal LEGO registry or an R2
+    semantics proof. R1 graph laws remain scoped to OWNER_LEGO_PLANS; declaring
+    an R2/R3 carrier cannot silently bypass source declaration admission.
     """
     observed = {
         path.relative_to(root).as_posix()
-        for path in root.glob("*/*/planning/lego-plan-r1.json")
+        for path in root.glob("*/*/planning/lego-plan-*.json")
     }
-    registered = set(OWNER_LEGO_PLANS)
+    registered = set(OWNER_LEGO_PLANS) | set(OWNER_LEGO_PLAN_PROJECTIONS)
     if observed != registered:
         raise ArchitectureDocsError(
             "Owner LEGO plan inventory drift: "
