@@ -4825,6 +4825,51 @@ fn runner_binding_converges_exact_duplicate_identity_without_duplicate_event() {
 }
 
 #[test]
+fn partial_runner_stdout_without_result_stays_lost_not_success() {
+    let sandbox = Sandbox::new("partial-output-without-result", 5000);
+    let runtime = Runtime::new(runtime_config(&sandbox)).unwrap();
+    let created = created(
+        sandbox
+            .registry
+            .submit(&request(
+                &sandbox,
+                "request:partial-output-without-result",
+                1,
+            ))
+            .unwrap(),
+    );
+    let ready = sandbox
+        .registry
+        .mark_bundle_ready(&created.attempt.attempt_id, 0, &digest(b"bundle"), 10)
+        .unwrap();
+    let attempt = sandbox
+        .registry
+        .mark_dispatch_issued(&ready.attempt_id, ready.row_version, 11)
+        .unwrap();
+    let bundle = Path::new(&attempt.bundle_path);
+    fs::create_dir_all(bundle).unwrap();
+    fs::write(
+        bundle.join("stdout.log"),
+        b"partial output, no terminal result\n",
+    )
+    .unwrap();
+    assert!(!bundle.join("result.json").exists());
+    let observed = runtime
+        .commit_control_terminal(
+            &attempt,
+            AttemptState::Lost,
+            "DISPATCH_OUTCOME_UNKNOWN",
+            None,
+        )
+        .unwrap();
+    let current = runtime.registry().get_attempt(&attempt.attempt_id).unwrap();
+    assert_eq!(current.state, AttemptState::Lost);
+    assert_eq!(observed.execution_disposition, Some(JobResolution::Lost));
+    assert!(bundle.join("stdout.log").exists());
+    assert!(!bundle.join("result.json").exists());
+}
+
+#[test]
 fn existing_runner_result_cannot_be_relabelled_as_unknown_dispatch() {
     // A completed Runner result wins over stale control LOST; foreign result
     // identity is quarantined rather than silently upgraded to success.
