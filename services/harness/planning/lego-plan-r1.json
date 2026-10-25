@@ -110,7 +110,9 @@
         "scripts/sqlite_conversation_materializer.py",
         "tests/test_sqlite_materializer_transaction_guard.py",
         "tests/test_p0_sqlite_agent_loop.py",
-        "tests/test_provider_claim_formal_gate.py"
+        "tests/test_provider_claim_formal_gate.py",
+        "scripts/cft_human_session.py",
+        "tests/test_cft_human_session_durable.py::test_session_open_never_starts_systemd_without_exact_durable_reservation"
       ],
       "dependencies": [],
       "mustNotOwn": [
@@ -123,7 +125,8 @@
         "Finite model separates at-most-one physical Provider effect, durable result, ambiguous outcome and caller acknowledgement. Live delivery is not entailed by TLC PASS.",
         "Durable ConversationRelay SQLite materialization transitions validate the exact post-write receipt before COMMIT; missing or malformed readback must ROLLBACK and fail with CarrierConflict. This contract holds for intent, effect attempt, ordinary outcome, and human-resume claim under Python -O, without claiming external provider atomicity.",
         "A durable Provider completion digest is not caller acknowledgement: native TLC must prove acknowledgement requires fresh or privacy-authorized retained result, and metadata-only redaction remains independently reachable. Concrete SQLite replay/recovery tests and the separately merged #668 12-worker consumer remain required; bounded model PASS alone does not prove implementation refinement.",
-        "The Python -O qualification requires executable, non-elided SQL-state postconditions for adverse receipt markers and persisted row standings; two deliberately unequal witnesses must still raise AssertionError in both optimized and standard interpreters. A pytest exit-zero without these checks is not durable receipt proof."
+        "The Python -O qualification requires executable, non-elided SQL-state postconditions for adverse receipt markers and persisted row standings; two deliberately unequal witnesses must still raise AssertionError in both optimized and standard interpreters. A pytest exit-zero without these checks is not durable receipt proof.",
+        "A CFT human-session open must prove the exact durable OPENING reservation receipt inside its SQLite transaction before any systemd.start: deleted or mutated post-insert reservation rolls back and no physical browser start/stop is attempted. Native SQLite adversarial AFTER INSERT triggers cover deleted rows and wrong slot; external browser readiness and deployed installed state require separate evidence. The OPENING-to-ACTIVE transition must additionally prove exact durable ACTIVE receipt after physical readiness, or roll back and compensate the started systemd target rather than return a false READY."
       ]
     }
   ],
