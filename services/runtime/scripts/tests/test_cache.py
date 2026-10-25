@@ -56,6 +56,22 @@ def record(runtime: Path, workspace_id: str, source_repo: Path) -> None:
 
 
 class CacheRetentionTests(unittest.TestCase):
+    def test_registry_inspector_timeout_fails_closed_with_fixed_limit(self) -> None:
+        """A wedged native registry probe cannot hold cache retention indefinitely."""
+        module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-cache"))
+        inspector = module["runtime_inspection"]
+        with patch.dict(
+            inspector.__globals__,
+            {"runtime_inspect_binary": lambda: Path("/synthetic/ordivon-runtime-inspect")},
+        ):
+            with patch(
+                "subprocess.run",
+                side_effect=subprocess.TimeoutExpired(["inspector"], 15.0),
+            ) as run:
+                with self.assertRaisesRegex(RuntimeError, "exceeded 15s wall timeout"):
+                    inspector(Path("/synthetic/registry.sqlite3"), "registry")
+                self.assertEqual(run.call_args.kwargs["timeout"], 15.0)
+
     def test_cache_accepts_compact_open_record_identity_from_filename(self) -> None:
         module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-cache"))
         with tempfile.TemporaryDirectory() as temporary:
