@@ -8,7 +8,7 @@ from unittest.mock import Mock
 
 import pytest
 
-pytest.importorskip("psycopg", reason="PG provider is owned by the Temporal worker")
+import psycopg  # noqa: F401  # Selected PostgreSQL owner must be installed in production.
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
