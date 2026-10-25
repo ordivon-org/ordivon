@@ -289,3 +289,26 @@ def test_registered_runtime_blockers_contain_only_unresolved_prerequisites() -> 
             assert item["blockers"]
             assert all(status[dep] != "COMPLETE" for dep in item["blockers"])
     module.validate_owner_lego_graph(plan)
+
+
+@pytest.mark.parametrize("bad_version", [True, 1.0, "1", 2, None])
+@pytest.mark.parametrize("relative", OWNER_GRAPH_PLANS)
+def test_owner_lego_plan_requires_exact_schema_integer(
+    relative: str, bad_version: object
+) -> None:
+    """A future or bool-coerced schema must not be admitted as R2.1."""
+    plan = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+    plan["schemaVersion"] = bad_version
+    with pytest.raises(module.ArchitectureDocsError, match="schemaVersion"):
+        module.validate_owner_lego_graph(plan)
+
+
+@pytest.mark.parametrize("bad_version", [True, 1.0, "1", 2, None])
+def test_direct_owner_dependency_gate_requires_exact_schema_integer(
+    bad_version: object,
+) -> None:
+    """Direct prerequisite consumers must not bypass the typed Owner version."""
+    plan = json.loads((ROOT / OWNER_GRAPH_PLANS[0]).read_text(encoding="utf-8"))
+    plan["schemaVersion"] = bad_version
+    with pytest.raises(module.ArchitectureDocsError, match="schemaVersion"):
+        module.validate_owner_lego_dependencies(plan, OWNER_GRAPH_PLANS[0])

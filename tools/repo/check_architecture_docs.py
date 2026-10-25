@@ -184,12 +184,24 @@ def _canonical_owner_lego_id(identity: str) -> bool:
     return re.fullmatch(r"[A-Za-z][A-Za-z0-9._-]*", identity) is not None
 
 
+def _require_exact_schema_one(value: dict[str, Any], label: str) -> None:
+    """Schema version is an exact integer, not a Python numeric equality.
+
+    `True == 1` and `1.0 == 1` must not grant admission to old R1
+    contracts or historical issue evidence.
+    """
+    observed = value.get("schemaVersion")
+    if type(observed) is not int or observed != 1:
+        raise ArchitectureDocsError(f"{label} schemaVersion must be exact integer 1")
+
+
 def validate_owner_lego_graph(plan: dict[str, Any]) -> None:
     """Check all Owner slices reference typed vertices, including unregistered ones.
 
     Registered dependency DAGs and typed edges have separate existing laws.
     This does not assert behavioral currentness or execution authority.
     """
+    _require_exact_schema_one(plan, "owner LEGO graph")
     if plan.get("kind") != "ordivon.project-lego-plan":
         raise ArchitectureDocsError("owner LEGO graph has unexpected kind")
     if plan.get("truthRole") != "planning-projection-not-project-truth":
@@ -271,8 +283,7 @@ def validate_owner_lego_graph(plan: dict[str, Any]) -> None:
 
 
 def validate_deployed_graph(value: dict[str, Any]) -> None:
-    if value.get("schemaVersion") != 1:
-        raise ArchitectureDocsError("deployed architecture schemaVersion must be 1")
+    _require_exact_schema_one(value, "deployed architecture")
     if value.get("kind") != "ordivon.deployed-architecture":
         raise ArchitectureDocsError("unexpected deployed architecture kind")
     if value.get("status") != "CURRENT_DEPLOYED_BASELINE":
@@ -375,8 +386,7 @@ def gateway_tools(source: str) -> set[str]:
 def validate_source_tool_surface(
     observed_tools: set[str], manifest: dict[str, Any], *, service: str
 ) -> set[str]:
-    if manifest.get("schemaVersion") != 1:
-        raise ArchitectureDocsError(f"{service} source Tool manifest schemaVersion must be 1")
+    _require_exact_schema_one(manifest, f"{service} source Tool manifest")
     if manifest.get("kind") != "ordivon.mcp-tool-surface":
         raise ArchitectureDocsError(f"{service} source Tool manifest kind drifted")
     if manifest.get("service") != service:
@@ -414,8 +424,8 @@ def validate_deployed_source_tool_relation(
             f"{sorted(missing_from_source)}"
         )
     declared_count = default_northbound.get("declaredToolCount")
-    if not isinstance(declared_count, int):
-        raise ArchitectureDocsError("deployed Gateway declaredToolCount must be an integer")
+    if type(declared_count) is not int:
+        raise ArchitectureDocsError("deployed Gateway declaredToolCount must be an exact integer")
     if declared_count < len(deployed_set):
         raise ArchitectureDocsError("deployed Gateway declaredToolCount undercounts deployed Host tools")
     if declared_count > len(source_tools):
@@ -467,6 +477,7 @@ def validate_owner_lego_dependencies(
     syntax in different existing natural-Owner LEGO plans.  DATA, CONTROL,
     EFFECT and OBSERVATION edges are not prerequisite claims.
     """
+    _require_exact_schema_one(plan, "owner LEGO prerequisites")
     nodes = plan.get("nodes")
     if not isinstance(nodes, list):
         raise ArchitectureDocsError("owner-local LEGO nodes missing")
@@ -516,6 +527,7 @@ def validate_formal_issue_census(
     census: dict[str, Any], plans: dict[str, dict[str, Any]], *, root: Path = ROOT
 ) -> None:
     """Check LEGO reference integrity, never implementation or domain acceptance."""
+    _require_exact_schema_one(census, "formal issue census")
     if census.get("kind") != "ordivon.formal-lego-issue-census-evidence":
         raise ArchitectureDocsError("unexpected issue census kind")
     if census.get("truthRole") != "time-scoped-audit-evidence-not-registry-or-admission":
