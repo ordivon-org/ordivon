@@ -406,3 +406,50 @@ def test_repository_owner_graph_source_bound_before_loading(
         ),
     ):
         module.validate_repository(ROOT)
+
+
+def test_repo_mechanics_owner_plan_is_always_structurally_admitted() -> None:
+    """A Repo Owner projection cannot omit typed node kind even with valid census links."""
+    from unittest.mock import patch
+
+    relative = "tools/repo/planning/lego-plan-r1.json"
+    plan = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+    plan["nodes"][0]["kind"] = ""
+    loader = module._load_json
+
+    def tamper_registered_plan(path: Path):
+        if Path(path) == ROOT / relative:
+            return plan
+        return loader(path)
+
+    with (
+        patch.object(module, "_load_json", side_effect=tamper_registered_plan),
+        pytest.raises(module.ArchitectureDocsError, match="requires a type"),
+    ):
+        module.validate_repository(ROOT)
+
+def test_current_owner_plan_inventory_is_closed_without_another_registry(
+    tmp_path: Path,
+) -> None:
+    """New plan declarations cannot silently evade registered Owner graph laws."""
+    for relative in module.OWNER_LEGO_PLANS:
+        candidate = tmp_path / relative
+        candidate.parent.mkdir(parents=True, exist_ok=True)
+        candidate.write_text("{}")
+    module.validate_owner_plan_inventory(tmp_path)
+
+    forged = tmp_path / "domains/new-unregistered-owner/planning/lego-plan-r1.json"
+    forged.parent.mkdir(parents=True)
+    forged.write_text("{}")
+    with pytest.raises(module.ArchitectureDocsError, match="unregistered="):
+        module.validate_owner_plan_inventory(tmp_path)
+    forged.unlink()
+
+    missing = tmp_path / module.OWNER_LEGO_PLANS[0]
+    missing.unlink()
+    with pytest.raises(module.ArchitectureDocsError, match="missing="):
+        module.validate_owner_plan_inventory(tmp_path)
+
+
+def test_actual_repository_owner_plan_inventory_is_source_closed() -> None:
+    module.validate_owner_plan_inventory(ROOT)

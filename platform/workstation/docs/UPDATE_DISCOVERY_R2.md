@@ -104,14 +104,32 @@ successful tool queries. The report carries a categorical reason rather than
 recording raw stderr (which could contain environment-specific addresses or
 other private details). This does not repair VPN/proxy or upstream availability.
 
+## Windows read-only discovery source candidate (2026-10-24)
+
+The native Windows candidate lives under `platform/workstation/windows/`.
+`update_candidate_report.ps1` uses the official WinGet `upgrade`
+**listing** command, plus Windows Update scheduler health, to produce a
+private JSON report; it never invokes installation or reboot operations.
+The parser recognizes the optional `Source` column and preserves package
+ID, current version and available version in their proper fields. Its
+actual PowerShell function is checked by an owner-native fixture.
+
+`install_update_discovery.ps1` is a separate, explicitly admitted Windows
+SYSTEM scheduled-task installer, not part of automatic repository CI or
+release. Before registering a task, it must remove inherited write access
+and reject unexpected explicit allow ACEs on the directory or payload.
+Linux CI validates the source contract; it **does not** claim the SYSTEM
+task is deployed or qualified on this Windows host. Such qualification
+requires native Windows ACL and scheduled-task readback.
+
 ## Remaining frontier / risk tier
 
 - GitHub Dependabot source config must be on the *remote default branch*
   and version updates enabled at GitHub; repository source alone is not proof
   any PR has actually been created.
-- Windows app updates: qualify `winget` using the interactive Windows user
-  identity, or install App Installer through a supported Windows workflow,
-  before introducing a scheduled Windows app checker. Existing Windows Update
+- Windows app updates: the read-only WinGet discovery source candidate
+  exists, but installation requires a native Windows qualification. Automatic
+  upgrades are not authorized by discovery and need a separate release gate. Existing Windows Update
   tasks do not imply all applications are updated.
 - Mise self-update on this node is package-manager controlled; `mise outdated`
   targets project tools and is not a substitute for an OS package upgrade.

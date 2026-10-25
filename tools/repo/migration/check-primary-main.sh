@@ -27,6 +27,15 @@ if ! INDEX_TREE="$(git -C "$REPO" write-tree 2>/dev/null)"; then
 fi
 [ "$INDEX_TREE" = "$HEAD_TREE" ] || fail "index_tree=$INDEX_TREE head_tree=$HEAD_TREE"
 
+# The index/tree relation is not a source-bytes proof while Git is instructed
+# to suppress worktree checks via assume-unchanged or skip-worktree. Reject
+# these exact native index states; neither mutating the index to clear them nor
+# treating a clean porcelain/diff response as proof would be sound.
+tracked_modes="$(git -C "$REPO" ls-files -v --)" || fail "cannot inspect tracked index flags"
+if printf '%s\n' "$tracked_modes" | LC_ALL=C grep -E '^[a-zS]' >/dev/null; then
+  fail "tracked source index hides worktree bytes via assume-unchanged/skip-worktree"
+fi
+
 git -C "$REPO" diff --quiet -- || fail "tracked worktree bytes differ from index"
 git -C "$REPO" diff --cached --quiet -- || fail "index differs from HEAD"
 [ -z "$(git -C "$REPO" ls-files --others --exclude-standard)" ] || fail "untracked paths are present"

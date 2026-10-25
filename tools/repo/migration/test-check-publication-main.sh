@@ -32,6 +32,20 @@ check() {
   test -z "$(git -C "$repo" status --porcelain)"
 }
 check 0 'publication=SYNCED'
+# Negative controls: Git hides source-byte drift behind index flags even
+# when write-tree, diff --quiet and status would otherwise certify main.
+git -C "$repo" update-index --assume-unchanged file.txt
+printf 'undetected-source-change\n' > "$repo/file.txt"
+check 65 'tracked source index hides'
+git -C "$repo" update-index --no-assume-unchanged file.txt
+git -C "$repo" restore --worktree -- file.txt
+check 0 'publication=SYNCED'
+git -C "$repo" update-index --skip-worktree file.txt
+printf 'other-hidden-source-change\n' > "$repo/file.txt"
+check 65 'tracked source index hides'
+git -C "$repo" update-index --no-skip-worktree file.txt
+git -C "$repo" restore --worktree -- file.txt
+check 0 'publication=SYNCED'
 printf 'local-only\n' > "$repo/local.txt"
 git -C "$repo" add local.txt
 git -C "$repo" commit -qm "local"
