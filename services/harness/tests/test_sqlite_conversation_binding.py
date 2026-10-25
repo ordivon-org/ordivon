@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from contextlib import closing
+
 import sqlite3
 import sys
 from pathlib import Path
@@ -90,6 +92,19 @@ def test_get_and_resolve_are_read_only(tmp_path: Path) -> None:
     assert s.path.read_bytes() == before
 
 
+
+@pytest.mark.parametrize("basename", ["materialization?shadow.sqlite", "materialization#shadow.sqlite", "materialization%23shadow.sqlite"])
+def test_binding_readback_targets_exact_sqlite_file(tmp_path: Path, basename: str) -> None:
+    """Never admit an alias file as the conversation identity ledger."""
+    from sqlite_conversation_binding import read_conversation_binding
+
+    s = SQLiteConversationBindingStore(tmp_path / basename)
+    expected = adopt(s)
+    assert read_conversation_binding(s.path, expected["campaignRef"], "A01") == expected
+    assert s.get_binding(expected["campaignRef"], "A01") == expected
+    with closing(s._connect(read_only=True)) as db:
+        assert db.execute("SELECT count(*) FROM conversation_bindings").fetchone()[0] == 1
+
 def test_binding_table_lives_beside_existing_materialization_requests(tmp_path: Path) -> None:
     ledger = tmp_path / "materialization-ledger.sqlite"
     db = sqlite3.connect(ledger)
@@ -135,7 +150,7 @@ def test_module_has_no_provider_effect_dependencies() -> None:
 def test_adoption_is_atomic_with_its_verified_receipt(tmp_path: Path, fault: str) -> None:
     """Native SQLite trigger must not commit an absent or forged conversation binding."""
     s = store(tmp_path)
-    with sqlite3.connect(s.path) as db:
+    with closing(sqlite3.connect(s.path)) as db, db:
         if fault == "erase":
             fault_sql = "DELETE FROM conversation_bindings WHERE request_id=NEW.request_id;"
         else:
@@ -151,7 +166,7 @@ def test_adoption_is_atomic_with_its_verified_receipt(tmp_path: Path, fault: str
         )
     with pytest.raises(ConversationBindingConflict, match="receipt"):
         adopt(s)
-    with sqlite3.connect(s.path) as db:
+    with closing(sqlite3.connect(s.path)) as db, db:
         assert db.execute("SELECT count(*) FROM conversation_bindings").fetchone()[0] == 0
         assert db.execute("SELECT count(*) FROM corruption_witness").fetchone()[0] == 0
 
@@ -159,7 +174,7 @@ def test_adoption_is_atomic_with_its_verified_receipt(tmp_path: Path, fault: str
 def test_replay_rejects_existing_row_with_forged_provider_data(tmp_path: Path) -> None:
     s = store(tmp_path)
     adopt(s)
-    with sqlite3.connect(s.path) as db:
+    with closing(sqlite3.connect(s.path)) as db, db:
         db.execute("UPDATE conversation_bindings SET session_id='FORGED' WHERE request_id='adoption:1'")
     with pytest.raises(ConversationBindingConflict, match="receipt"):
         adopt(s)
