@@ -117,7 +117,8 @@
       "status": "IMPLEMENTED",
       "acceptance": [
         "FORMAL-02 owner-local plan, census input and owners.toml must be regular source-tree files; symlink and traversal impersonation fail closed.",
-        "A valid owner-local plan passes without claiming domain correctness; recheck only on changed source or consumer assumptions."
+        "A valid owner-local plan passes without claiming domain correctness; recheck only on changed source or consumer assumptions.",
+        "For a named source-bound R2.1 Python consumer witness, an unconditional module-level pytest skip/xfail must fail the native AST evidence check even if the test function name exists; conditionally skipped integration tests never imply execution PASS."
       ],
       "blockers": [
         "The formal issue census records evidence from its observed SourceCut; neither slice grants live runtime authority."

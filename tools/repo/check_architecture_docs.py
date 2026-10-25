@@ -857,6 +857,11 @@ def validate_r21_lego_vocabulary(document: str, *, root: Path = ROOT) -> None:
         raise ArchitectureDocsError("R2.1 competing LEGO mathematical definition")
     if r"\mathrm{Semantics}(L)" not in document:
         raise ArchitectureDocsError("R2.1 optional semantics must be distinct from LEGO")
+    disabled = {
+        "unittest.skip", "unittest.skipIf", "unittest.skipUnless",
+        "pytest.mark.skip", "pytest.mark.skipif", "pytest.mark.xfail",
+    }
+
     # The architecture prose names these existing tests as Owner consumers.
     # Mere file existence is a false-green: a removed test body would still
     # allow the R2.1 document to claim an executable native witness.
@@ -883,6 +888,35 @@ def validate_r21_lego_vocabulary(document: str, *, root: Path = ROOT) -> None:
             raise ArchitectureDocsError(
                 f"R2.1 consumer witness invalid Python source: {relative}: {exc}"
             ) from exc
+        # Detect source-provable *module-wide* disabling marks, including
+        # composite pytestmark and augmented assignments.  A dynamic skipif
+        # (e.g. Host's DSN-dependent integration tests) remains conditional
+        # evidence rather than a source-proved permanent disable.
+        for statement in syntax.body:
+            if isinstance(statement, (ast.Assign, ast.AnnAssign, ast.AugAssign)):
+                targets = (
+                    statement.targets if isinstance(statement, ast.Assign)
+                    else [statement.target]
+                )
+                if (
+                    any(isinstance(t, ast.Name) and t.id == "pytestmark" for t in targets)
+                    and any(
+                        (
+                            isinstance(node, ast.Attribute)
+                            and ast.unparse(node) in {"pytest.mark.skip", "pytest.mark.xfail"}
+                        ) or (
+                            isinstance(node, ast.Call)
+                            and ast.unparse(node.func) == "pytest.mark.skipif"
+                            and bool(node.args)
+                            and isinstance(node.args[0], ast.Constant)
+                            and node.args[0].value is True
+                        )
+                        for node in ast.walk(statement.value)
+                    )
+                ):
+                    raise ArchitectureDocsError(
+                        f"R2.1 disabled module consumer witness: {relative}::{symbol}"
+                    )
         if class_name is None:
             scope = syntax.body
         else:
@@ -917,10 +951,6 @@ def validate_r21_lego_vocabulary(document: str, *, root: Path = ROOT) -> None:
         decorators = list(witness.decorator_list)
         if class_name is not None:
             decorators.extend(classes[0].decorator_list)
-        disabled = {
-            "unittest.skip", "unittest.skipIf", "unittest.skipUnless",
-            "pytest.mark.skip", "pytest.mark.skipif", "pytest.mark.xfail",
-        }
         if any(
             ast.unparse(item.func if isinstance(item, ast.Call) else item) in disabled
             for item in decorators
