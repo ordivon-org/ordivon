@@ -4,6 +4,25 @@ from pathlib import Path
 import pytest
 
 
+def test_documented_host_schema_is_equal_to_runtime_and_alembic_head() -> None:
+    """Bind public documentation to the two actual schema authorities, not stale prose."""
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+
+    from ordivon_host_v2.service import REQUIRED_SCHEMA_VERSION
+
+    root = Path(__file__).parents[1]
+    doc = (root / "README.md").read_text(encoding="utf-8")
+    stated = re.findall(r"Host v2 runs Social Work Fabric schema (\d+)", doc)
+    assert len(stated) == 1, "Host README must declare exactly one active schema version"
+    config = Config(str(root / "alembic.ini"))
+    assert config.get_main_option("path_separator") == "os"
+    migrations = ScriptDirectory.from_config(config)
+    head = migrations.get_current_head()
+    assert head is not None and head.isdecimal(), "Alembic needs one numeric HEAD"
+    assert int(stated[0]) == REQUIRED_SCHEMA_VERSION == int(head)
+
+
 def test_historical_alembic_migrations_do_not_import_mutable_runtime_schema() -> None:
     root = Path(__file__).parents[1] / "migrations" / "versions"
     for migration in root.glob("*.py"):
