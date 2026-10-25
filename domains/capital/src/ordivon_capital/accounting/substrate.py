@@ -6,6 +6,37 @@ from enum import StrEnum
 from typing import Any
 
 
+class LedgerApplyStatus(StrEnum):
+    CREATED = "CREATED"
+    EXISTS = "EXISTS"
+    ID_CONFLICT = "ID_CONFLICT"
+    EXCEEDS_CREDITS = "EXCEEDS_CREDITS"
+    PENDING_TRANSFER_NOT_FOUND = "PENDING_TRANSFER_NOT_FOUND"
+    PENDING_TRANSFER_ALREADY_POSTED = "PENDING_TRANSFER_ALREADY_POSTED"
+    PENDING_TRANSFER_ALREADY_VOIDED = "PENDING_TRANSFER_ALREADY_VOIDED"
+    PENDING_TRANSFER_AMOUNT_MISMATCH = "PENDING_TRANSFER_AMOUNT_MISMATCH"
+
+
+@dataclass(frozen=True)
+class AccountState:
+    account_id: int
+    debits_pending: int
+    debits_posted: int
+    credits_pending: int
+    credits_posted: int
+
+
+@dataclass(frozen=True)
+class TransferState:
+    transfer_id: int
+    debit_account_id: int
+    credit_account_id: int
+    amount: int
+    pending_id: int
+    operation: str
+    status: str
+
+
 class AccountingMappingError(ValueError):
     """Invalid bounded accounting mapping."""
 
