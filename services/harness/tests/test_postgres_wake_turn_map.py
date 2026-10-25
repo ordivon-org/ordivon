@@ -30,6 +30,32 @@ def owner():
     return w
 
 
+def test_first_schema_admission_is_serialized_on_disposable_pg() -> None:
+    """Actual PostgreSQL first-admission race: CREATE SCHEMA IF NOT EXISTS alone races."""
+    dsn = os.environ.get("ORDIVON_PG_WAKE_BOOTSTRAP_TEST_DSN")
+    if not dsn:
+        pytest.skip("dedicated PostgreSQL bootstrap-test database not provisioned")
+    from threading import Barrier
+
+    with psycopg.connect(dsn, autocommit=True) as db:
+        db.execute("DROP SCHEMA IF EXISTS ordivon_harness CASCADE")
+    started = Barrier(12)
+
+    def bootstrap(_index: int) -> None:
+        started.wait(timeout=15)
+        PostgresWakeTurnMap(dsn)
+
+    # Twelve independent connections racing fresh schema admission must all succeed.
+    with ThreadPoolExecutor(max_workers=12) as executor:
+        list(executor.map(bootstrap, range(12)))
+    with psycopg.connect(dsn) as db:
+        count = db.execute(
+            "SELECT count(*) FROM information_schema.tables "
+            "WHERE table_schema='ordivon_harness' AND table_name='wake_turn_map'"
+        ).fetchone()[0]
+    assert count == 1
+
+
 def payload(wake: str = "wake:" + "a" * 32) -> dict[str, str]:
     return {
         "campaign_ref": "sha256:" + "a" * 64,

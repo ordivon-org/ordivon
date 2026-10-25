@@ -40,6 +40,13 @@ class PostgresWakeTurnMap:
         self._uuid7_factory = uuid7_factory
         self._now_ms = now_ms
         with psycopg.connect(self.dsn) as db:
+            # PostgreSQL IF NOT EXISTS does not serialize concurrent first
+            # admissions. The native transaction lock protects schema+table.
+            schema_lock = int.from_bytes(
+                hashlib.sha256(b"ordivon:harness:wake-turn-pg-schema:v1").digest()[:8],
+                "big", signed=True,
+            )
+            db.execute("SELECT pg_advisory_xact_lock(%s)", (schema_lock,))
             db.execute("CREATE SCHEMA IF NOT EXISTS ordivon_harness")
             db.execute(
                 """
