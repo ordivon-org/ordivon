@@ -438,6 +438,9 @@ def measure_cache_tree(
 
     if not cache_root.exists():
         return 0, 0
+    # Fail closed if filesystem traversal cannot finish within the budget.
+    # A blocked individual filesystem syscall remains outside this timer.
+    deadline = time.monotonic() + 60.0
     total = 0
     package_bytes = 0
     errors = 0
@@ -448,10 +451,14 @@ def measure_cache_tree(
         (cache_root, None, False)
     ]
     while stack:
+        if time.monotonic() >= deadline:
+            raise RuntimeError("cache retention measurement budget exceeded")
         current, candidate, in_shared = stack.pop()
         try:
             with os.scandir(current) as entries:
                 for entry in entries:
+                    if time.monotonic() >= deadline:
+                        raise RuntimeError("cache retention measurement budget exceeded")
                     try:
                         tracked = candidate_roots.get(entry.path, candidate)
                         shared = in_shared or entry.path == shared_name

@@ -58,6 +58,38 @@ class RootTraversalContract(unittest.TestCase):
             self.assertNotIn(protected, by_path)
             self.assertNotIn(shared, by_path)
 
+    def test_tree_measurement_budget_fails_closed_before_any_reclaim_claim(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            cache = Path(tmp) / "cache"
+            cache.mkdir()
+            (cache / "still-held").write_bytes(b"keep")
+            with patch.object(
+                CACHE["measure_cache_tree"].__globals__["time"],
+                "monotonic",
+                side_effect=[0.0, 61.0],
+            ):
+                with self.assertRaisesRegex(RuntimeError, "measurement budget exceeded"):
+                    CACHE["measure_cache_tree"](cache, {}, cache / "shared")
+            self.assertEqual((cache / "still-held").read_bytes(), b"keep")
+
+
+
+    def test_tree_budget_during_entry_walk_never_returns_partial_bytes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            cache = Path(tmp) / "cache"
+            cache.mkdir()
+            (cache / "materialized").write_bytes(b"keep")
+            with patch.object(
+                CACHE["measure_cache_tree"].__globals__["time"],
+                "monotonic",
+                side_effect=[0.0, 0.0, 61.0],
+            ):
+                with self.assertRaisesRegex(RuntimeError, "measurement budget exceeded"):
+                    CACHE["measure_cache_tree"](cache, {}, cache / "shared")
+            self.assertEqual((cache / "materialized").read_bytes(), b"keep")
+
+
+
 
 if __name__ == "__main__":
     unittest.main()
