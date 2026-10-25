@@ -106,7 +106,9 @@
         "tests/test_agent_automation_jcs_standard.py",
         "tests/test_adaptive_edit_r2_live_ab_runner.py",
         "formal/ProviderClaimR1.tla",
-        "tests/test_p0_standalone_runner.py"
+        "tests/test_p0_standalone_runner.py",
+        "scripts/sqlite_conversation_materializer.py",
+        "tests/test_sqlite_materializer_transaction_guard.py"
       ],
       "dependencies": [],
       "mustNotOwn": [
@@ -116,7 +118,8 @@
         "Lost response does not cause blind duplicate effect.",
         "Live A/B MemoryRuntime H04 fixture admits only exact requestId-to-digest replay, disjoint edit intervals, and one producer per file; malformed requests cannot emit a successful effect receipt.",
         "Temporal Worker deployment derives four exact runtime package versions solely from the installed requirements freeze, rejects stale/invalid source projections, and evaluates runtimeVersionsExact using one observed interpreter state per Plan.",
-        "Finite model separates at-most-one physical Provider effect, durable result, ambiguous outcome and caller acknowledgement. Live delivery is not entailed by TLC PASS."
+        "Finite model separates at-most-one physical Provider effect, durable result, ambiguous outcome and caller acknowledgement. Live delivery is not entailed by TLC PASS.",
+        "Durable ConversationRelay SQLite materialization transitions validate the exact post-write receipt before COMMIT; missing or malformed readback must ROLLBACK and fail with CarrierConflict. This contract holds for intent, effect attempt, ordinary outcome, and human-resume claim under Python -O, without claiming external provider atomicity."
       ]
     }
   ],
