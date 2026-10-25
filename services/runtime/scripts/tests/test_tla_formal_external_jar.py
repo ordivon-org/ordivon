@@ -100,13 +100,24 @@ class TlaFormalExternalJarTests(unittest.TestCase):
         result = self.invoke(command="check", jar=self.external)
         self.assertEqual(result.returncode, 0, result.stderr)
         observed = self.java_log.read_text(encoding="utf-8")
-        # Two source-bound models, each parsed and checked with the same
-        # externally pinned toolchain; no undeclared local-jar fallback.
-        self.assertEqual(observed.count(str(self.external)), 4)
+        # Every invoked parser/model checker must bind the exact locked JAR.
+        # New source-bound models add invocations: a hard-coded total such as
+        # four silently turns a valid new verifier into an unrelated CI FAIL.
+        args = observed.splitlines()
+        modes = [arg for arg in args if arg in ("tla2sany.SANY", "tlc2.TLC")]
+        classpaths = [
+            args[index + 1]
+            for index, arg in enumerate(args[:-1])
+            if arg == "-cp"
+        ]
+        self.assertGreaterEqual(len(modes), 4)
+        self.assertEqual(len(classpaths), len(modes))
+        self.assertEqual(classpaths, [str(self.external)] * len(modes))
+        self.assertGreaterEqual(modes.count("tla2sany.SANY"), 2)
+        self.assertGreaterEqual(modes.count("tlc2.TLC"), 2)
         self.assertIn("RuntimeDispatchR1.tla", observed)
         self.assertIn("RuntimePgCutoverR1.tla", observed)
-        self.assertIn("tla2sany.SANY", observed)
-        self.assertIn("tlc2.TLC", observed)
+        self.assertIn("WorkspaceConsumerCloseR1.tla", observed)
 
     def test_falsifier_must_see_named_invariant_counterexample_not_just_java_failure(self):
         # A fake Java process returns success without a counterexample; the
