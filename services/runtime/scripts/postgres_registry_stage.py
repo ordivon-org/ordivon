@@ -18,8 +18,6 @@ import struct
 import time
 from pathlib import Path
 
-import psycopg
-from psycopg import sql
 
 SAFE_SCHEMA = re.compile(r"^rw12_stage_[a-z0-9_]{1,46}$")
 SQL_TYPES = {"INTEGER": "BIGINT", "TEXT": "TEXT", "BLOB": "BYTEA", "REAL": "DOUBLE PRECISION"}
@@ -79,7 +77,9 @@ def ordered_sqlite_rows(con: sqlite3.Connection, name: str, specs: list[tuple]):
     return con.execute('SELECT * FROM "' + name + '" ORDER BY ' + order), keys
 
 
-def pg_order_keys(keys: list[str], specs: list[tuple]) -> sql.Composed:
+def pg_order_keys(keys: list[str], specs: list[tuple]) -> object:
+    from psycopg import sql
+
     types = {s[1]: s[2].upper() for s in specs}
     values = [
         sql.SQL('{} COLLATE "C"').format(sql.Identifier(key)) if types[key] == "TEXT" else sql.Identifier(key)
@@ -92,12 +92,17 @@ def verify_snapshot(snapshot: Path, manifest: Path) -> dict:
     if not snapshot.is_absolute() or not snapshot.is_file():
         raise ValueError("snapshot must be an existing absolute file")
     receipt = json.loads(manifest.read_text(encoding="utf-8"))
+    counts = receipt.get("rowCounts")
+    with snapshot.open("rb") as handle:
+        file_header = handle.read(16)
     if (
-        receipt.get("kind") != "ordivon-rw12-source-snapshot"
+        file_header != b"SQLite format 3\x00"
+        or receipt.get("kind") != "ordivon-rw12-source-snapshot"
         or receipt.get("complete") is not True
         or receipt.get("snapshotBytes") != snapshot.stat().st_size
         or receipt.get("sha256") != file_digest(snapshot)
-        or not isinstance(receipt.get("rowCounts"), dict)
+        or not isinstance(counts, dict)
+        or not {"jobs", "attempts", "idempotency_keys"}.issubset(counts)
     ):
         raise ValueError("source snapshot digest or identity mismatch")
     return receipt
@@ -107,6 +112,11 @@ def migrate(snapshot: Path, receipt: Path, dsn: str, stage_schema: str) -> dict:
     if not SAFE_SCHEMA.fullmatch(stage_schema):
         raise ValueError("invalid/non-stage PostgreSQL schema name")
     meta = verify_snapshot(snapshot, receipt)
+    # Required only during native PostgreSQL execution, not Runtime's
+    # pure source/contract checks or default unittest discovery.
+    import psycopg
+    from psycopg import sql
+
     con = sqlite3.connect("file:" + str(snapshot) + "?mode=ro&immutable=1", uri=True)
     con.execute("PRAGMA query_only=ON")
     try:

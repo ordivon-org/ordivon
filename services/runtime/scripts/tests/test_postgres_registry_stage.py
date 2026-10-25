@@ -12,9 +12,26 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from postgres_registry_stage import migrate
+from postgres_registry_stage import migrate, row_digest_update
 
-import psycopg
+try:
+    import psycopg
+except ModuleNotFoundError:
+    psycopg = None
+
+
+class PgStagePureLawTests(unittest.TestCase):
+    def test_digest_distinguishes_binary_text_null_and_number(self) -> None:
+        observed = []
+        for row in ((None,), ("",), (b"",), (0,), ("0",), (b"0",)):
+            h = hashlib.sha256()
+            row_digest_update(h, row)
+            observed.append(h.hexdigest())
+        self.assertEqual(len(set(observed)), len(observed))
+
+    def test_nonstage_namespace_rejected_without_pg_client(self) -> None:
+        with self.assertRaisesRegex(ValueError, "invalid/non-stage"):
+            migrate(Path("/nonexistent"), Path("/nonexistent"), "", "public")
 
 
 class PgStageTests(unittest.TestCase):
@@ -22,6 +39,8 @@ class PgStageTests(unittest.TestCase):
         self.dsn = os.environ.get("ORDIVON_RW12_STAGE_TEST_DSN")
         if not self.dsn:
             self.skipTest("disposable native PostgreSQL test DSN is required")
+        if psycopg is None:
+            self.fail("native PostgreSQL tests require psycopg: use uv run --with psycopg[binary]")
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         root = Path(self.temp.name)
