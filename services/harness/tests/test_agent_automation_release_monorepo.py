@@ -171,6 +171,7 @@ def test_modern_conversation_modules_are_carried_by_immutable_release() -> None:
     required = {
         "scripts/chatgpt_conversation_discovery.py",
         "scripts/sqlite_conversation_binding.py",
+        "scripts/postgres_conversation_binding.py",
         "scripts/sqlite_wake_turn_map.py",
     }
     assert required <= set(release.RELEASE_PATHS)

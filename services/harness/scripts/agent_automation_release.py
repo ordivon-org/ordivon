@@ -93,6 +93,7 @@ RELEASE_PATHS = (
     "scripts/sqlite_conversation_materializer.py",
     "scripts/materialization_reconciliation_archive.py",
     "scripts/sqlite_conversation_binding.py",
+    "scripts/postgres_conversation_binding.py",
     "scripts/sqlite_wake_turn_map.py",
     "scripts/postgres_wake_turn_map.py",
     "scripts/standard_identifiers.py",

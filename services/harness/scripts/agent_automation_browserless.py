@@ -1219,11 +1219,32 @@ class BrowserlessAutomationService:
             "census": census,
         }
 
+    def _postgres_conversation_owner(self):
+        """Opt-in PG consumer only after the legacy source is sealed and verified."""
+        dsn = os.environ.get("ORDIVON_CONVERSATION_POSTGRES_DSN")
+        if not dsn:
+            return None
+        try:
+            from postgres_conversation_binding import PostgresConversationBindingStore
+        except ModuleNotFoundError:
+            from scripts.postgres_conversation_binding import PostgresConversationBindingStore
+        owner = PostgresConversationBindingStore(dsn)
+        owner.assert_legacy_sealed(
+            self.config.ledger,
+            fresh_bootstrap=os.environ.get("ORDIVON_CONVERSATION_PG_FRESH_BOOTSTRAP") == "1",
+        )
+        return owner
+
     def conversation_affinity(self, spec_path: Path, campaign_ref: str, agent_id: str) -> dict:
         """Project the preferred existing conversation without provider effects."""
         spec = self.load_spec(spec_path)
         materialization = self._materialization(spec, agent_id)
-        adopted = read_conversation_binding(self.config.ledger, campaign_ref, agent_id)
+        pg_owner = self._postgres_conversation_owner()
+        adopted = (
+            pg_owner.get_binding(campaign_ref, agent_id)
+            if pg_owner is not None
+            else read_conversation_binding(self.config.ledger, campaign_ref, agent_id)
+        )
         if adopted is not None:
             try:
                 session = resolve_session(adopted["sessionId"])
@@ -1372,7 +1393,9 @@ class BrowserlessAutomationService:
                 "exact conversation discovery lacks binding evidence"
             )
         try:
-            binding = SQLiteConversationBindingStore(self.config.ledger).adopt_binding(
+            pg_owner = self._postgres_conversation_owner()
+            binding_owner = pg_owner or SQLiteConversationBindingStore(self.config.ledger)
+            binding = binding_owner.adopt_binding(
                 campaign_ref=campaign_ref,
                 agent_id=agent_id,
                 provider_resource=resource,

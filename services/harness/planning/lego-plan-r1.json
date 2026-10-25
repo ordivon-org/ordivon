@@ -183,13 +183,16 @@
       "acceptance": [
         "No Agent message, Tool response, or chained service call is interpreted as a new authority grant.",
         "Detector observation, stop request, process termination, and external-effect reconciliation are tested separately.",
-        "A missing consumer/effect oracle remains UNKNOWN, never promoted to PASS."
+        "A missing consumer/effect oracle remains UNKNOWN, never promoted to PASS.",
+        "PostgreSQL CFT adoption must preserve (campaignRef, agentId) uniqueness, requestId idempotency, canonical provider/session/evidence identity and precommit readback; migration from SQLite requires legacy writer retirement and exact old-row identity, with no automatic provider effects."
       ],
       "evidence": [
-        "DB-PG-MIGRATE-01: Harness SQLiteRunStore, agent automation lease/turn binding and browserless durable ledgers remain existing consumers; PostgreSQL target must pass native event CAS/identity/replay/fault-injection and active-worker cutover before SQLite can be retired."
+        "DB-PG-MIGRATE-01: Harness SQLiteRunStore, agent automation lease/turn binding and browserless durable ledgers remain existing consumers; PostgreSQL target must pass native event CAS/identity/replay/fault-injection and active-worker cutover before SQLite can be retired.",
+        "DB-PG-CFT-01: PostgreSQL conversation identity consumer with independent campaign-role/request arbiters, exact source-bound migration, serialized native PG admission and CEGAR negative receipts; scripts/postgres_conversation_binding.py with real isolated PostgreSQL 18 tests."
       ],
       "blockers": [
-        "Actual Harness SQLite-to-PostgreSQL data/consumer migration and live-failover contract remain UNKNOWN; database engine replacement is not equivalent to BEGIN IMMEDIATE write serialization."
+        "Actual Harness SQLite-to-PostgreSQL data/consumer migration and live-failover contract remain UNKNOWN; database engine replacement is not equivalent to BEGIN IMMEDIATE write serialization.",
+        "Physical disposable PostgreSQL tests are source-scoped; live Browserless cutover requires quiesced workers, source snapshot, exact PG import, retirement proof and fresh provider consumer acceptance. Cross-database migration is not a distributed atomic commit."
       ],
       "nextAction": "Reuse existing Harness action/effect tests with a fault-injected indirect-service consumer; do not add a new admission service."
     }
