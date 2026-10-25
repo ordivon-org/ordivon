@@ -197,11 +197,12 @@ def validate_archive(wheel: Path) -> str:
     expected_requirements = {
         "httpx==0.28.1",
         "jsonschema<5,>=4.26",
+        "psycopg[binary]>=3.3",
         'mcp==2.3.0; extra == "mcp"',
     }
     if set(requirements) != expected_requirements:
         fail(
-            "wheel dependencies must be exact base HTTPX/jsonschema plus "
+            "wheel dependencies must be exact base HTTPX/psycopg/jsonschema plus "
             f"the official MCP v2 adapter extra: {requirements}"
         )
     if tuple(metadata.get_all("Provides-Extra", [])) != ("mcp",):
@@ -248,6 +249,7 @@ def install_smoke(wheel: Path, version: str) -> dict[str, object]:
         python = root / "bin/python"
         cli = root / "bin/ordivon-harness"
         checked([uv, "pip", "install", "--link-mode", "copy", "--python", str(python), str(wheel)])
+        checked([str(python), "-c", "import psycopg; print(psycopg.__version__)"])
         probe = json.loads(
             checked(
                 [

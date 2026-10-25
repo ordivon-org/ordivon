@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-psycopg = pytest.importorskip("psycopg", reason="PG provider is owned by the Temporal worker")
+import psycopg  # PostgreSQL wake is a selected production owner: no silent skip.
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
