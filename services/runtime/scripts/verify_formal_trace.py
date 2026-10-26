@@ -894,15 +894,28 @@ def project_proving_test_source_impact(
     indexed = set().union(common, *readsets.values())
     runtime_changed = {path for path in changed_paths if path.startswith(prefix)}
     unindexed = runtime_changed - indexed
+    # Root build/toolchain inputs can invalidate the interpretation of every
+    # Runtime source witness even when no Runtime-local path has changed.
+    # This is a deliberately bounded cross-cutting assumption guard, NOT a
+    # claim that every external dependency has been discovered.
+    root_build_inputs = {
+        "Cargo.toml", "Cargo.lock", "rust-toolchain", "rust-toolchain.toml",
+        "mise.toml", "mise.lock",
+    }
+    crosscutting_assumption_changes = {
+        path for path in changed_paths
+        if path in root_build_inputs or path.startswith(".cargo/")
+    }
     rows = []
     for witness_id, readset in sorted(readsets.items()):
         hits = sorted(readset & changed_paths)
-        # The manifest binds named witnesses, not a complete Rust consumer
-        # closure. A file indexed by some *other* witness may still be a
-        # shared callee of this one (Registry::commit_terminal is an example).
-        # Until owner-qualified dependency completeness is supplied, absence
-        # from this declared readset is UNKNOWN, never proof of disjointness.
-        standing = "RECHECK_REQUIRED" if hits else "UNKNOWN" if runtime_changed else "REUSE_CANDIDATE"
+        # Shared Rust callees are not proved closed by the manifest, and
+        # global build inputs can invalidate every witness without local diffs.
+        standing = (
+            "RECHECK_REQUIRED" if hits
+            else "UNKNOWN" if runtime_changed or crosscutting_assumption_changes
+            else "REUSE_CANDIDATE"
+        )
         rows.append({
             "id": witness_id,
             "standing": standing,
@@ -914,8 +927,9 @@ def project_proving_test_source_impact(
         "truthRole": "non-authoritative-exact-git-source-projection",
         "standingByWitness": rows,
         "unindexedRuntimeChanges": sorted(unindexed),
+        "crosscuttingAssumptionChanges": sorted(crosscutting_assumption_changes),
         "changedPaths": sorted(changed_paths),
-        "scope": "Runtime tracked Git source ONLY; no installed/configured/physical/runtime consumer claims",
+        "scope": "Runtime tracked Git source plus declared root build/toolchain assumption guards ONLY; no installed/configured/physical/runtime consumer claims",
         "nonClaims": [
             "REUSE_CANDIDATE is not proof PASS, implementation refinement, or installed acceptance.",
             "Declared source readsets are not demonstrated complete Rust build/runtime dependency closures.",

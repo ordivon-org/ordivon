@@ -1195,6 +1195,38 @@ trait Provider {
         self.assertEqual(statuses["ExecutionProvider.guaranteeNegativeControl"], "RECHECK_REQUIRED")
         self.assertEqual(statuses["RuntimeDispatch.ambiguityHeld"], "UNKNOWN")
 
+    def test_runtime_formal_source_impact_shared_toolchain_changes_unknown(self):
+        """Root build/toolchain inputs can invalidate a local Rust proof witness."""
+        trace, invariants = manifests()
+        for path in (
+            "Cargo.lock",
+            "Cargo.toml",
+            "rust-toolchain.toml",
+            ".cargo/config.toml",
+            "mise.toml",
+        ):
+            with self.subTest(path=path):
+                result = self.module.project_proving_test_source_impact(
+                    trace, invariants, {path}
+                )
+                self.assertEqual(
+                    {row["standing"] for row in result["standingByWitness"]},
+                    {"UNKNOWN"},
+                    result,
+                )
+                self.assertIn(path, result["crosscuttingAssumptionChanges"])
+
+    def test_runtime_formal_source_impact_local_recheck_survives_toolchain_unknown(self):
+        trace, invariants = manifests()
+        changed = {
+            "Cargo.lock",
+            "services/runtime/crates/ordivon-runtime-core/src/runtime/execution_provider.rs",
+        }
+        result = self.module.project_proving_test_source_impact(trace, invariants, changed)
+        statuses = {row["id"]: row["standing"] for row in result["standingByWitness"]}
+        self.assertEqual(statuses["ExecutionProvider.guaranteeNegativeControl"], "RECHECK_REQUIRED")
+        self.assertEqual(statuses["RuntimeDispatch.ambiguityHeld"], "UNKNOWN")
+
     def test_runtime_formal_source_impact_unrelated_repository_change_only_local_hint(self):
         trace, invariants = manifests()
         result = self.module.project_proving_test_source_impact(
