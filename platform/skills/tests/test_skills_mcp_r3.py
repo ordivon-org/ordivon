@@ -87,6 +87,126 @@ class SkillMcpR3Tests(unittest.TestCase):
         self.assertIn("SELF_ROUTING", value["removedRiskTags"])
         self.assertIn("MANDATED_CITATION", value["removedRiskTags"])
 
+    def test_legacy_list_continuation_requires_exact_snapshot_fence(self):
+        td, _base, user, cfg = self.fixture()
+        self.addCleanup(td.cleanup)
+        write_skill(user, "alpha", "Keep independent contract.")
+        write_skill(user, "beta", "Preserve a second witness.")
+        tools = {tool.name: tool for tool in build_server(CatalogProvider(cfg))._tool_manager.list_tools()}
+        list_tool = tools["skills.list"].fn
+
+        first = asyncio.run(list_tool(sourceId="user", limit=1))
+        self.assertFalse(first.is_error)
+        first_data = first.structured_content
+        self.assertEqual(len(first_data["skills"]), 1)
+        self.assertEqual(first_data["nextCursor"], 1)
+
+        # A raw numeric continuation cannot silently join unrelated snapshots.
+        unqualified = asyncio.run(list_tool(sourceId="user", cursor=1, limit=1))
+        self.assertTrue(unqualified.is_error)
+        self.assertEqual(unqualified.structured_content["code"], "SNAPSHOT_FENCE_REQUIRED")
+
+        # Exact same model-visible snapshot permits the next page.
+        matching = asyncio.run(
+            list_tool(
+                sourceId="user",
+                cursor=1,
+                limit=1,
+                expectedSnapshotRevision=first_data["snapshotRevision"],
+            )
+        )
+        self.assertFalse(matching.is_error)
+        self.assertEqual(matching.structured_content["snapshotRevision"], first_data["snapshotRevision"])
+        self.assertEqual(
+            [row["skillId"] for row in first_data["skills"] + matching.structured_content["skills"]],
+            ["user/alpha", "user/beta"],
+        )
+
+        # Adding one NEW member changes the underlying view, even though the
+        # previously-observed skill payload remains unchanged.
+        write_skill(user, "aardvark", "Added before first page alphabetically.")
+        stale = asyncio.run(
+            list_tool(
+                sourceId="user",
+                cursor=1,
+                limit=1,
+                forceRefresh=True,
+                expectedSnapshotRevision=first_data["snapshotRevision"],
+            )
+        )
+        self.assertTrue(stale.is_error)
+        self.assertEqual(stale.structured_content["code"], "SNAPSHOT_STALE")
+
+        # New series is accepted after getting an actual refreshed first page.
+        after = asyncio.run(list_tool(sourceId="user", limit=1, forceRefresh=True))
+        self.assertFalse(after.is_error)
+        self.assertNotEqual(first_data["snapshotRevision"], after.structured_content["snapshotRevision"])
+        continued = asyncio.run(
+            list_tool(
+                sourceId="user",
+                cursor=1,
+                limit=1,
+                expectedSnapshotRevision=after.structured_content["snapshotRevision"],
+            )
+        )
+        self.assertFalse(continued.is_error)
+        self.assertEqual(continued.structured_content["skills"][0]["skillId"], "user/alpha")
+
+    def test_membership_revision_is_not_source_health_revision(self):
+        td, _base, user, cfg = self.fixture()
+        self.addCleanup(td.cleanup)
+        write_skill(user, "alpha", "Visible member unchanged.")
+        write_skill(user, "beta", "Second visible member.")
+        tool = {t.name: t for t in build_server(CatalogProvider(cfg))._tool_manager.list_tools()}[
+            "skills.list"
+        ].fn
+
+        initial = asyncio.run(tool(sourceId="user", limit=1))
+        self.assertFalse(initial.is_error)
+        first = initial.structured_content
+        first_source = next(row for row in first["sources"] if row["sourceId"] == "user")
+        self.assertEqual(first_source["health"], "READY")
+
+        # A malformed extra package changes source scan health without entering
+        # the model-visible member set. Those are independent proof readsets.
+        invalid = user / "invalid"
+        invalid.mkdir(parents=True)
+        (invalid / "SKILL.md").write_text("not a valid Skill manifest\\n", encoding="utf-8")
+
+        degraded = asyncio.run(tool(sourceId="user", limit=1, forceRefresh=True))
+        self.assertFalse(degraded.is_error)
+        latest = degraded.structured_content
+        latest_source = next(row for row in latest["sources"] if row["sourceId"] == "user")
+        self.assertEqual(latest_source["health"], "DEGRADED")
+        self.assertEqual(latest_source["invalid"], 1)
+        self.assertEqual(first["catalogRevision"], latest["catalogRevision"])
+        self.assertEqual(first["snapshotRevision"], latest["snapshotRevision"])
+        self.assertNotEqual(first["sourceStatusRevision"], latest["sourceStatusRevision"])
+
+        stale = asyncio.run(
+            tool(
+                sourceId="user",
+                cursor=1,
+                limit=1,
+                expectedSnapshotRevision=first["snapshotRevision"],
+                expectedSourceStatusRevision=first["sourceStatusRevision"],
+            )
+        )
+        self.assertTrue(stale.is_error)
+        self.assertEqual(stale.structured_content["code"], "SOURCE_STATUS_STALE")
+
+        fresh = asyncio.run(
+            tool(
+                sourceId="user",
+                cursor=1,
+                limit=1,
+                expectedSnapshotRevision=latest["snapshotRevision"],
+                expectedSourceStatusRevision=latest["sourceStatusRevision"],
+            )
+        )
+        self.assertFalse(fresh.is_error)
+        self.assertEqual(fresh.structured_content["skills"][0]["skillId"], "user/beta")
+
     def test_skill_prose_does_not_create_a_bridge_dependency_graph(self):
         td, _base, user, cfg = self.fixture()
         self.addCleanup(td.cleanup)

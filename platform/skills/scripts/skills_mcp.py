@@ -319,13 +319,25 @@ def build_server(provider: CatalogProvider) -> MCPServer:
         forceRefresh: bool = False,
         cursor: int = 0,
         limit: int = 100,
+        expectedSnapshotRevision: str | None = None,
+        expectedSourceStatusRevision: str | None = None,
     ) -> CallToolResult:
         try:
             if cursor < 0 or not (1 <= limit <= 100):
                 raise ValueError("cursor must be non-negative and limit in [1,100]")
+            if cursor > 0 and expectedSnapshotRevision is None:
+                raise SkillCatalogError(
+                    "SNAPSHOT_FENCE_REQUIRED",
+                    "continuing skills.list pagination requires expectedSnapshotRevision",
+                )
             catalog = provider.get(force_refresh=forceRefresh)
             context = provider.context(workspaceId, agentId)
             view = catalog.effective(context=context, invocation_mode="implicit")
+            if (
+                expectedSnapshotRevision is not None
+                and view.snapshot_revision != expectedSnapshotRevision
+            ):
+                raise SkillCatalogError("SNAPSHOT_STALE", "skills.list snapshot changed")
             all_visible_rows = list(view.records)
             rows = list(all_visible_rows)
             if sourceId is not None:
@@ -354,6 +366,17 @@ def build_server(provider: CatalogProvider) -> MCPServer:
                     for status in catalog.source_statuses
                 ],
             }
+            # Membership/content and scan-health are independent Owner facts.
+            # A newly invalid package may degrade source health without changing
+            # the visible member set or its snapshotRevision.
+            value["sourceStatusRevision"] = "sha256:" + hashlib.sha256(
+                json.dumps(value["sources"], sort_keys=True, separators=(",", ":")).encode()
+            ).hexdigest()
+            if (
+                expectedSourceStatusRevision is not None
+                and value["sourceStatusRevision"] != expectedSourceStatusRevision
+            ):
+                raise SkillCatalogError("SOURCE_STATUS_STALE", "skills.list source health changed")
             if cursor + len(page) < len(rows):
                 value["nextCursor"] = cursor + len(page)
             return _result(value)
