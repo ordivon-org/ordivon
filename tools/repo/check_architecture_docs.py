@@ -6,12 +6,11 @@ import hashlib
 import json
 import math
 import re
+import tomllib
 from decimal import Decimal
 from graphlib import CycleError, TopologicalSorter
 from pathlib import Path
 from typing import Any
-
-import tomllib
 
 ROOT = Path(__file__).resolve().parents[2]
 CURRENT = ROOT / "docs" / "architecture" / "CURRENT_ARCHITECTURE.md"
@@ -137,7 +136,8 @@ def _load_json(path: Path, *, source_bytes: bytes | None = None) -> dict[str, An
         return parsed
 
     value = json.loads(
-        source_bytes.decode("utf-8") if source_bytes is not None else path.read_text(encoding="utf-8"),
+        source_bytes.decode("utf-8") if source_bytes is not None
+        else path.read_text(encoding="utf-8"),
         object_pairs_hook=unique_object,
         parse_constant=finite_constant,
         parse_float=representable_float,
@@ -384,25 +384,77 @@ def validate_owner_lego_graph(plan: dict[str, Any]) -> None:
 
 
 
-def project_owner_lego_source_graph(root: Path = ROOT) -> dict[str, Any]:
+def project_owner_lego_source_graph(
+    root: Path = ROOT, *, source_revision: str | None = None,
+) -> dict[str, Any]:
     """Rebuild a *source planning* view; never attest a real LEGO or consumer.
 
     Owner-local IDs have no cross-owner identity. Preserve source paths,
     source byte digests, relation kinds, and declaration carriers; reuse the
     native structural and source guards rather than inventing a graph store.
     """
+    git_tree: dict[str, str] | None = None
+    if source_revision is not None:
+        import subprocess
+        if not re.fullmatch(r"[0-9a-f]{40}", source_revision):
+            raise ArchitectureDocsError("sourceRevision must be exact 40-hex Git commit")
+        try:
+            actual = subprocess.check_output(
+                ["git", "-C", str(root), "rev-parse", "--verify", source_revision + "^{commit}"],
+                stderr=subprocess.PIPE,
+            ).decode("ascii").strip()
+            if actual != source_revision:
+                raise ArchitectureDocsError("Git commit source identity mismatch")
+            # Reuse the existing native Git tree enumeration; no graph database.
+            if __package__:
+                from .source_history_legos import current_tree
+            else:
+                from source_history_legos import current_tree
+            git_tree = current_tree(root, source_revision)
+        except (subprocess.CalledProcessError, UnicodeError) as exc:
+            raise ArchitectureDocsError(f"cannot resolve exact Git SourceCut: {exc}") from exc
+
     source_plans: list[dict[str, str]] = []
+    source_evidence_carriers: dict[str, dict[str, str]] = {}
     vertices: list[dict[str, Any]] = []
     relation_carriers: dict[tuple[str, str, str], set[str]] = {}
     for relative in OWNER_LEGO_PLANS:
-        path = _source_bound_file(root, relative, "registered Owner LEGO plan")
-        before = path.read_bytes()
+        if git_tree is None:
+            path = _source_bound_file(root, relative, "registered Owner LEGO plan")
+            before = path.read_bytes()
+        else:
+            import subprocess
+            path = root / relative
+            blob = git_tree.get(relative, "")
+            mode, kind, oid = (blob.split(":") if blob.count(":") == 2 else ("", "", ""))
+            if kind != "blob" or mode not in {"100644", "100755"}:
+                raise ArchitectureDocsError(f"Owner plan absent/nonregular in Git SourceCut: {relative}")
+            try:
+                before = subprocess.check_output(
+                    ["git", "-C", str(root), "cat-file", "blob", oid], stderr=subprocess.PIPE,
+                )
+            except subprocess.CalledProcessError as exc:
+                raise ArchitectureDocsError(f"cannot read Git SourceCut plan: {relative}") from exc
+        # Both worktree and immutable Git paths parse exactly the bytes witnessed
+        # above: no unbound second read can counterfeit a source-qualified graph.
         plan = _load_json(path, source_bytes=before)
         owner = relative.split("/planning/", 1)[0]
         validate_owner_lego_graph(plan)
         validate_owner_lego_dependencies(plan, owner)
-        validate_owner_lego_source_evidence(root, relative, plan)
-        if path.read_bytes() != before:
+        evidence_paths = validate_owner_lego_source_evidence(
+            root, relative, plan, git_tree=git_tree,
+        )
+        for evidence_path in evidence_paths:
+            if git_tree is None:
+                current = _source_bound_file(root, evidence_path, "Owner LEGO sourceEvidence")
+                carrier = {
+                    "path": evidence_path,
+                    "worktreeSha256": "sha256:" + hashlib.sha256(current.read_bytes()).hexdigest(),
+                }
+            else:
+                carrier = {"path": evidence_path, "gitBlobIdentity": git_tree[evidence_path]}
+            source_evidence_carriers[evidence_path] = carrier
+        if git_tree is None and path.read_bytes() != before:
             raise ArchitectureDocsError(f"Owner source changed during projection: {relative}")
         source_plans.append({
             "path": relative,
@@ -429,8 +481,14 @@ def project_owner_lego_source_graph(root: Path = ROOT) -> dict[str, Any]:
     return {
         "kind": "ordivon.owner-lego-planning-source-projection",
         "truthRole": "DERIVED_READ_ONLY_SOURCE_PLANNING_NOT_LEGO_TRUTH",
-        "sourceCut": "WORKTREE_BYTES_ONLY_GIT_AND_INSTALLED_UNQUALIFIED",
+        "sourceCut": (
+            source_revision if source_revision is not None
+            else "WORKTREE_BYTES_ONLY_GIT_AND_INSTALLED_UNQUALIFIED"
+        ),
         "sourcePlans": source_plans,
+        "sourceEvidenceCarriers": [
+            source_evidence_carriers[path] for path in sorted(source_evidence_carriers)
+        ],
         "vertices": sorted(vertices, key=lambda item: item["ref"]),
         "relations": [
             {"from": source, "type": kind, "to": target, "declaredBy": sorted(carriers)}
@@ -637,7 +695,8 @@ def _source_bound_file(root: Path, relative_path: str, label: str) -> Path:
 
 def validate_owner_lego_source_evidence(
     root: Path, relative: str, plan: dict[str, Any],
-) -> None:
+    *, git_tree: dict[str, str] | None = None,
+) -> set[str]:
     """Bind an Owner's declared project evidence to existing SourceCut files.
 
     This checks only project.sourceEvidence, which is explicitly a file list.
@@ -667,7 +726,14 @@ def validate_owner_lego_source_evidence(
         if path in seen:
             raise ArchitectureDocsError(f"{owner}: invalid or duplicate Owner LEGO sourceEvidence path")
         seen.add(path)
-        _source_bound_file(root, path, "Owner LEGO sourceEvidence")
+        if git_tree is None:
+            _source_bound_file(root, path, "Owner LEGO sourceEvidence")
+        else:
+            identity = git_tree.get(path, "")
+            mode, kind, _ = (identity.split(":") if identity.count(":") == 2 else ("", "", ""))
+            if kind != "blob" or mode not in {"100644", "100755"}:
+                raise ArchitectureDocsError(f"Owner LEGO sourceEvidence absent/nonregular in Git SourceCut: {path}")
+    return seen
 
 
 def validate_owner_lego_dependencies(
@@ -1312,10 +1378,15 @@ def validate_repository(root: Path = ROOT) -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--project-owner-graphs", action="store_true")
+    parser.add_argument("--source-revision", help="exact Git commit for immutable graph projection")
     args = parser.parse_args(argv)
     try:
+        if args.source_revision and not args.project_owner_graphs:
+            raise ArchitectureDocsError("--source-revision requires --project-owner-graphs")
         if args.project_owner_graphs:
-            print(json.dumps(project_owner_lego_source_graph(), sort_keys=True))
+            print(json.dumps(
+                project_owner_lego_source_graph(source_revision=args.source_revision), sort_keys=True,
+            ))
             return 0
         validate_repository()
     except (OSError, json.JSONDecodeError, ArchitectureDocsError) as exc:
