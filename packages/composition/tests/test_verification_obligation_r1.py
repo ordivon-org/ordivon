@@ -1639,3 +1639,43 @@ def test_manifest_impact_bindings_existing_cli_subprocess(tmp_path) -> None:
     assert result["changedLocalGateIds"] == []
     assert result["changedVerifierBindingGateIds"] == ["gate:candidate-contract"]
     assert result["selection"]["standingByObligation"][0]["standing"] == "RECHECK_REQUIRED"
+
+
+def test_manifest_impact_verifier_identity_unaffected_by_other_gate_manifest_digest() -> None:
+    manifest = _two_gate_manifest()
+    successor = copy.deepcopy(manifest)
+    successor["gateRequirements"][0]["guarantee"] = "New producer guarantee."
+    old_proofs = compile_verification_obligations(manifest)
+    new_proofs = compile_verification_obligations(successor)
+
+    def all_bindings(proofs: dict) -> dict:
+        by_gate = {row["gateId"]: row for row in proofs["obligations"]}
+        bundle = _binding_set(proofs, native=True)
+        other = copy.deepcopy(bundle["bindings"][0])
+        other["gateId"] = "gate:unrelated-property"
+        other["obligationDigest"] = by_gate[other["gateId"]]["obligationDigest"]
+        other["verifierOwnerId"] = by_gate[other["gateId"]]["verifierOwnerId"]
+        other["supportScope"] = by_gate[other["gateId"]]["supportScope"]
+        other["verifierRef"]["id"] = "verifier:independent-stable"
+        bundle["bindings"].append(other)
+        return bundle
+
+    before = all_bindings(old_proofs)
+    after = all_bindings(new_proofs)
+    assert old_proofs["obligationSetDigest"] != new_proofs["obligationSetDigest"]
+    assert (
+        old_proofs["obligations"][1]["obligationDigest"]
+        != new_proofs["obligations"][1]["obligationDigest"]
+    )
+    result = select_manifest_gate_impacts(
+        previous_manifest=manifest,
+        current_manifest=successor,
+        previous_binding_set=before,
+        current_binding_set=after,
+    )
+    assert result["changedLocalGateIds"] == ["gate:candidate-contract"]
+    assert result["changedVerifierBindingGateIds"] == []
+    assert {row["id"]: row["standing"] for row in result["selection"]["standingByObligation"]} == {
+        "proof:gate:gate:candidate-contract": "RECHECK_REQUIRED",
+        "proof:gate:gate:unrelated-property": "UNKNOWN",
+    }

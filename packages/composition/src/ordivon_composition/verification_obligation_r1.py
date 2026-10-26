@@ -607,8 +607,20 @@ def select_manifest_gate_impacts(
     if binding_pair:
         previous_resolution = resolve_verifier_bindings(previous, previous_binding_set)
         current_resolution = resolve_verifier_bindings(current, current_binding_set)
-        old_bindings = {row["gateId"]: row for row in previous_resolution["resolvedBindings"]}
-        new_bindings = {row["gateId"]: row for row in current_resolution["resolvedBindings"]}
+
+        # Each binding resolver already checks the exact obligation digest for
+        # its own SourceCut. That digest also includes the whole manifest and
+        # changes for unrelated Gates: it is NOT a verifier-identity delta.
+        # Actual Gate proposition changes are handled by source:gate refs.
+        def verifier_identity(row: dict[str, Any]) -> dict[str, Any]:
+            return {key: value for key, value in row.items() if key != "obligationDigest"}
+
+        old_bindings = {
+            row["gateId"]: verifier_identity(row) for row in previous_resolution["resolvedBindings"]
+        }
+        new_bindings = {
+            row["gateId"]: verifier_identity(row) for row in current_resolution["resolvedBindings"]
+        }
         changed_verifier_gates = sorted(
             gate_id
             for gate_id in all_current
