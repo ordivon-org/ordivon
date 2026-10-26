@@ -15,6 +15,7 @@ import hashlib
 import json
 import re
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -497,7 +498,7 @@ def select_impacted_obligations(
 
     derived_relation_changes: set[str] = set()
     derived_contract_changes: set[str] = set()
-    retired_known_claims: set[str] = set()
+    retired_known_refs: set[str] = set()
     if previous_graph is not None:
         if (
             not isinstance(previous_graph, dict)
@@ -535,7 +536,11 @@ def select_impacted_obligations(
         # retirement cannot be an unindexed dependency of all current proofs.
         # Actual current consumers must declare a new DAG relation, and their
         # changed contracts are still rechecked through the loop below.
-        retired_known_claims = set(prev_claims) - set(claims)
+        # A previous-only Source root or proof node is a known historical
+        # retirement, not an unindexed present-day dependency. Keep the delta
+        # visible, but do not spread its uncertainty to unrelated consumers.
+        # Explicit unknownRefs and changed surviving contracts still flow.
+        retired_known_refs = (prev_roots - roots) | (set(prev_claims) - set(claims))
         derived_relation_changes = roots ^ prev_roots
         for identity in set(claims) | set(prev_claims):
             item = claims.get(identity)
@@ -562,7 +567,9 @@ def select_impacted_obligations(
                 derived_contract_changes.add(identity)
         changed |= derived_relation_changes | derived_contract_changes
 
-    unindexed = sorted((changed | unknown) - (roots | set(claims) | retired_known_claims))
+    # Explicit UNKNOWN must never be silenced by an earlier provenance
+    # witness: it is a new unresolved fact, unlike a known historical Delta.
+    unindexed = sorted(((changed - retired_known_refs) | unknown) - (roots | set(claims)))
     rows = [{"id": root, "dependsOn": []} for root in roots]
     rows += [{"id": identity, "dependsOn": item["dependsOn"]} for identity, item in claims.items()]
     cyclic = _cyclic_proof_members(rows)
@@ -807,6 +814,9 @@ def _parser() -> argparse.ArgumentParser:
     impact_parser = sub.add_parser("select-impact")
     impact_parser.add_argument("git_source_delta", type=Path)
     impact_parser.add_argument("obligations", type=Path)
+    # A caller-supplied JSON report is not native Git evidence. Verify it
+    # against the exact immutable source cuts before using it for scheduling.
+    impact_parser.add_argument("--repo", type=Path, required=True)
     impact_parser.add_argument("--unknown-refs", type=Path)
 
     manifest_parser = sub.add_parser("impact-manifests")
@@ -881,7 +891,48 @@ def main() -> int:
                 raise CircuitContractError(
                     "select-impact cannot promote unqualified Git source evidence"
                 )
-            roots, changes = delta.get("authorityRefs"), delta.get("changedRefs")
+            # Consume the native Git owner's existing query CLI. Composition
+            # is a separate Python package: the repository tools package is
+            # not guaranteed to be importable from its project-only sys.path.
+            # If this checkout-bound executable is unavailable, fail closed.
+            try:
+                cuts = delta.get("sourceCuts")
+                if not isinstance(cuts, dict):
+                    raise ValueError("sourceCuts must specify immutable Git commits")
+                owner_tool = (
+                    Path(__file__).resolve().parents[4] / "tools/repo/source_history_legos.py"
+                )
+                if not owner_tool.is_file():
+                    raise ValueError("Git owner query entrypoint unavailable")
+                native_query = subprocess.run(
+                    [
+                        sys.executable,
+                        str(owner_tool),
+                        "--repo",
+                        str(args.repo),
+                        "--left",
+                        cuts.get("previous"),
+                        "--right",
+                        cuts.get("current"),
+                        "--impact-prefix",
+                        delta.get("queryPrefix"),
+                    ],
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                )
+                if native_query.returncode != 0:
+                    raise ValueError("native Git source query failed")
+                qualified = json.loads(native_query.stdout)
+            except (ValueError, OSError, TypeError) as exc:
+                raise CircuitContractError(
+                    "select-impact requires independently recomputable native Git scope"
+                ) from exc
+            if qualified != delta:
+                raise CircuitContractError(
+                    "select-impact Git report differs from exact native source delta"
+                )
+            roots, changes = qualified["authorityRefs"], qualified["changedRefs"]
             if (
                 not isinstance(roots, list)
                 or not isinstance(changes, list)

@@ -545,8 +545,9 @@ def test_impact_dependency_completeness_change_and_deleted_relation_fail_closed(
         },
     )
     assert "source:runtime" in deleted["derivedRelationChangedRefs"]
-    assert "source:runtime" in deleted["unindexedChangeRefs"]
-    assert set(_statuses(deleted).values()) == {"UNKNOWN"}
+    assert deleted["unindexedChangeRefs"] == []
+    assert _statuses(deleted) == {"proof:p": "REUSE_CANDIDATE"}
+    assert deleted["proofReuseAdmissible"] is False
 
 
 def test_retired_known_unconsumed_obligation_cannot_globally_poison_proof_impact():
@@ -601,6 +602,60 @@ def test_retired_known_unconsumed_obligation_cannot_globally_poison_proof_impact
     assert unresolved["unindexedChangeRefs"] == ["external:unresolved-runtime-consumer"]
     assert _statuses(unresolved) == {"proof:live": "UNKNOWN"}
     assert not unresolved["proofReuseAdmissible"]
+
+
+def test_historical_source_root_retirement_does_not_poison_independent_proof():
+    """A previously indexed, unconsumed root is not an unindexed runtime edge."""
+    independent = {
+        "id": "proof:independent",
+        "dependsOn": ["source:live"],
+        "dependenciesComplete": True,
+    }
+    current = {
+        "authority_refs": ["source:live"],
+        "obligations": [independent],
+        "changed_refs": [],
+    }
+    previous = {
+        "authorityRefs": ["source:retired", "source:live"],
+        "obligations": [independent],
+    }
+    benign = select_impacted_obligations(**current, previous_graph=previous)
+    assert benign["derivedRelationChangedRefs"] == ["source:retired"]
+    assert benign["unindexedChangeRefs"] == []
+    assert _statuses(benign) == {"proof:independent": "REUSE_CANDIDATE"}
+    assert benign["proofReuseAdmissible"] is False
+
+    # If an actual consumer dropped that root, its relation must be RECHECK.
+    former = dict(independent, dependsOn=["source:retired", "source:live"])
+    changed = select_impacted_obligations(
+        **current, previous_graph={**previous, "obligations": [former]}
+    )
+    assert "proof:independent" in changed["derivedRelationChangedRefs"]
+    assert _statuses(changed) == {"proof:independent": "RECHECK_REQUIRED"}
+
+    # A caller's explicit unresolved reference is stronger than the mere
+    # historical retirement; never suppress it as a known old-only node.
+    unknown = select_impacted_obligations(
+        **current, previous_graph=previous, unknown_refs=["source:retired"]
+    )
+    assert unknown["unindexedChangeRefs"] == ["source:retired"]
+    assert _statuses(unknown) == {"proof:independent": "UNKNOWN"}
+    assert unknown["proofReuseAdmissible"] is False
+
+
+def test_explicit_unknown_retired_proof_is_not_suppressed_by_provenance():
+    live = {"id": "proof:live", "dependsOn": ["source:live"], "dependenciesComplete": True}
+    gone = {"id": "proof:retired", "dependsOn": ["source:live"], "dependenciesComplete": True}
+    args = {"authority_refs": ["source:live"], "obligations": [live], "changed_refs": []}
+    prev = {"authorityRefs": ["source:live"], "obligations": [live, gone]}
+    result = select_impacted_obligations(
+        **args, previous_graph=prev, unknown_refs=["proof:retired"]
+    )
+    assert result["derivedRelationChangedRefs"] == ["proof:retired"]
+    assert result["unindexedChangeRefs"] == ["proof:retired"]
+    assert _statuses(result) == {"proof:live": "UNKNOWN"}
+    assert result["proofReuseAdmissible"] is False
 
 
 def test_impact_rejects_malformed_previous_graph_but_refines_prior_cycle():
@@ -1121,6 +1176,7 @@ def test_native_git_source_delta_selects_cas_without_rechecking_tla(tmp_path, mo
     # Agent-native path: existing repo CLI emits the scoped, immutable Git
     # delta; existing Composition CLI consumes it without inventing authority.
     import json
+    import os
     import sys
 
     delta_output = subprocess.check_output(
@@ -1170,6 +1226,8 @@ def test_native_git_source_delta_selects_cas_without_rechecking_tla(tmp_path, mo
                 "select-impact",
                 str(delta_file),
                 str(claims_file),
+                "--repo",
+                str(tmp_path),
             ],
             text=True,
         )
@@ -1179,6 +1237,29 @@ def test_native_git_source_delta_selects_cas_without_rechecking_tla(tmp_path, mo
         "proof:RuntimeDispatch-TLA-model": "REUSE_CANDIDATE",
     }
     assert cli_status["proofReuseAdmissible"] is False
+
+    # Package-only invocation matches CI: Composition is separately installed
+    # and its subprocess does not inherit the monorepo root on sys.path.
+    composition_root = Path(__file__).resolve().parents[1]
+    restricted_env = dict(os.environ, PYTHONPATH=str(composition_root / "src"))
+    package_only = json.loads(
+        subprocess.check_output(
+            [
+                sys.executable,
+                "-m",
+                "ordivon_composition.verification_obligation_r1",
+                "select-impact",
+                str(delta_file),
+                str(claims_file),
+                "--repo",
+                str(tmp_path),
+            ],
+            cwd=composition_root,
+            env=restricted_env,
+            text=True,
+        )
+    )
+    assert package_only == cli_status
 
     # A caller-supplied fake "owner certificate" cannot be promoted by CLI.
     untrusted = dict(cli_delta)
@@ -1192,12 +1273,36 @@ def test_native_git_source_delta_selects_cas_without_rechecking_tla(tmp_path, mo
             "select-impact",
             str(delta_file),
             str(claims_file),
+            "--repo",
+            str(tmp_path),
         ],
         capture_output=True,
         text=True,
     )
     assert denied.returncode != 0
     assert "cannot promote unqualified" in denied.stderr
+    delta_file.write_text(delta_output, encoding="utf8")
+    # A plausible report with correct cuts but missing an actual changed path
+    # cannot be trusted for scheduling merely because proof grants are false.
+    forged_changes = dict(cli_delta)
+    forged_changes["changedRefs"] = []
+    delta_file.write_text(json.dumps(forged_changes), encoding="utf8")
+    omitted = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "ordivon_composition.verification_obligation_r1",
+            "select-impact",
+            str(delta_file),
+            str(claims_file),
+            "--repo",
+            str(tmp_path),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert omitted.returncode != 0
+    assert "differs from exact native source delta" in omitted.stderr
     delta_file.write_text(delta_output, encoding="utf8")
     unknown_file = tmp_path / "unresolved-runtime-edges.json"
     unknown_file.write_text(json.dumps(["runtime:unindexed"]), encoding="utf8")
@@ -1210,6 +1315,8 @@ def test_native_git_source_delta_selects_cas_without_rechecking_tla(tmp_path, mo
                 "select-impact",
                 str(delta_file),
                 str(claims_file),
+                "--repo",
+                str(tmp_path),
                 "--unknown-refs",
                 str(unknown_file),
             ],

@@ -536,6 +536,74 @@ fn formal_dispatch_cas_commits_only_one_event_per_attempt() {
     assert_eq!(count, 1);
 }
 
+#[test]
+fn formal_dispatch_cas_concurrent_contenders_have_one_durable_winner() {
+    // Concrete refinement witness for the bounded TLA I05 property:
+    // multiple concurrent callers with one Accepted Attempt / row version
+    // must not materialize a second DISPATCH_ISSUED event.
+    // This is a native SQLite transaction test, not a universal Rust↔TLA proof.
+    for contenders in [2, 4, 8] {
+        let sandbox = Sandbox::new("formal-dispatch-concurrent-cas", 5_000);
+        let created = created(
+            sandbox
+                .registry
+                .submit(&request(
+                    &sandbox,
+                    &format!("request:formal-dispatch-concurrent-{contenders}"),
+                    1,
+                ))
+                .unwrap(),
+        );
+        let ready = sandbox
+            .registry
+            .mark_bundle_ready(
+                &created.attempt.attempt_id,
+                created.attempt.row_version,
+                &digest(b"concurrent-bundle"),
+                10,
+            )
+            .unwrap();
+        let gate = Arc::new(Barrier::new(contenders + 1));
+        let results = thread::scope(|scope| {
+            let handles: Vec<_> = (0..contenders)
+                .map(|_| {
+                    let gate = Arc::clone(&gate);
+                    let registry = &sandbox.registry;
+                    let id = ready.attempt_id.clone();
+                    scope.spawn(move || {
+                        gate.wait();
+                        registry.mark_dispatch_issued(&id, ready.row_version, 11)
+                    })
+                })
+                .collect();
+            gate.wait();
+            handles
+                .into_iter()
+                .map(|handle| handle.join().unwrap())
+                .collect::<Vec<_>>()
+        });
+        assert_eq!(
+            results.iter().filter(|result| result.is_ok()).count(),
+            1,
+            "{contenders} competing callers must admit exactly one dispatch"
+        );
+        for error in results.into_iter().filter_map(Result::err) {
+            assert_eq!(error.code, RuntimeErrorCode::AttemptStateConflict);
+        }
+        let committed = sandbox.registry.get_attempt(&ready.attempt_id).unwrap();
+        assert_eq!(committed.state, AttemptState::Starting);
+        let connection = Connection::open(&sandbox.registry.config().db_path).unwrap();
+        let count: i64 = connection
+            .query_row(
+                "SELECT COUNT(*) FROM job_events WHERE attempt_id=?1 AND event_type='DISPATCH_ISSUED'",
+                [&ready.attempt_id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 1, "one event for {contenders} concurrent callers");
+    }
+}
+
 fn running_attempt_for_commit_fault(sandbox: &Sandbox, client_request_id: &str) -> AttemptRecord {
     let created = created(
         sandbox

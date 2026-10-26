@@ -875,26 +875,6 @@ class SourceHistoryLegosTests(unittest.TestCase):
             isolated = projection(unrelated, other_cut, other_cut, prefix)
             self.assertNotEqual(first["sourceScopeRef"], isolated["sourceScopeRef"])
             self.assertTrue(set(first["authorityRefs"]).isdisjoint(isolated["authorityRefs"]))
-    def test_source_cut_ignores_git_replace(self):
-        with tempfile.TemporaryDirectory() as td:
-            root = Path(td)
-            git(root, "init", "-q")
-            git(root, "config", "user.name", "Test")
-            git(root, "config", "user.email", "test@example.invalid")
-            (root / "sources").mkdir()
-            p = root / "sources" / "a.txt"
-            p.write_text("original")
-            git(root, "add", ".")
-            git(root, "commit", "-qm", "old")
-            old = git(root, "rev-parse", "HEAD")
-            first = source_history_legos.source_membership_query(root, old, "sources/")
-            p.write_text("different")
-            git(root, "add", ".")
-            git(root, "commit", "-qm", "new")
-            git(root, "replace", old, git(root, "rev-parse", "HEAD"))
-            self.assertEqual(first, source_history_legos.source_membership_query(root, old, "sources/"))
-
-
     def test_source_membership_delta_requires_ancestral_order_for_proof_evolution(self):
         """Opposite Git branches are a comparison, not a previous/current transition."""
         with tempfile.TemporaryDirectory(prefix="ordivon-git-delta-history-") as temp:
@@ -928,6 +908,85 @@ class SourceHistoryLegosTests(unittest.TestCase):
                 query(root, right, left, prefix)
             with self.assertRaisesRegex(ValueError, "ancestry"):
                 query(root, left, ancestor, prefix)
+
+
+    def test_ancestral_source_cuts_ignore_replace_ref_spoof(self):
+        """A replace ref must not turn divergent commits into a valid temporal delta."""
+        with tempfile.TemporaryDirectory(prefix="ordivon-ancestry-spoof-") as td:
+            root = Path(td)
+            git(root, "init", "-q")
+            git(root, "config", "user.name", "Test")
+            git(root, "config", "user.email", "test@example.invalid")
+            (root / "a").write_text("A")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "A")
+            baseline = git(root, "rev-parse", "HEAD")
+            (root / "a").write_text("A2")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "A2")
+            descendant = git(root, "rev-parse", "HEAD")
+            git(root, "checkout", "--orphan", "other")
+            (root / "a").write_text("B")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "B")
+            divergent = git(root, "rev-parse", "HEAD")
+            with self.assertRaisesRegex(ValueError, "ancestry not established"):
+                source_history_legos.require_ancestral_source_cuts(
+                    root, baseline, divergent
+                )
+            git(root, "replace", divergent, descendant)
+            # Without --no-replace-objects Git falsely admits A as ancestor of B.
+            self.assertEqual(
+                subprocess.run(
+                    ["git", "-C", str(root), "merge-base", "--is-ancestor",
+                     baseline, divergent], check=False, capture_output=True
+                ).returncode, 0
+            )
+            with self.assertRaisesRegex(ValueError, "ancestry not established"):
+                source_history_legos.require_ancestral_source_cuts(
+                    root, baseline, divergent
+                )
+
+
+    def test_history_two_cut_projection_ignores_local_git_replace_refs(self):
+        """Exact Git DAG and patch paths must not change under refs/replace."""
+        with tempfile.TemporaryDirectory(prefix="ordivon-history-replace-") as td:
+            root = Path(td)
+            git(root, "init", "-q", "-b", "main")
+            git(root, "config", "user.name", "Ordivon Test")
+            git(root, "config", "user.email", "test@example.invalid")
+            owner = root / "tools/repo/owners.toml"
+            owner.parent.mkdir(parents=True)
+            owner.write_text(
+                CANONICAL_OWNER_HEADER
+                + '[[owners]]\nname = "runtime"\nroot = "services/runtime/"\n'
+                + 'verify_task = "runtime:verify"\n'
+            )
+            path = root / "services/runtime/contract.txt"
+            path.parent.mkdir(parents=True)
+            path.write_text("base\n", encoding="utf-8")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "common ancestor")
+            base = git(root, "rev-parse", "HEAD")
+            path.write_text("left\n", encoding="utf-8")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "left")
+            left = git(root, "rev-parse", "HEAD")
+            git(root, "switch", "-q", "-c", "right", base)
+            path.write_text("right\n", encoding="utf-8")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "right")
+            right = git(root, "rev-parse", "HEAD")
+            initial = source_history_legos.history(root, left, right)
+            self.assertEqual(initial["counts"], {"local": 1, "remote": 1})
+            # Native replacement changes logical Git history without changing
+            # either requested exact source-cut OID.
+            git(root, "replace", left, right)
+            self.assertEqual(source_history_legos.history(root, left, right), initial)
+            # A fresh independent Git replacement must not alter patch classes.
+            git(root, "replace", "-d", left)
+            git(root, "replace", right, left)
+            self.assertEqual(source_history_legos.history(root, left, right), initial)
 
 
 if __name__ == "__main__":
