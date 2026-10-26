@@ -543,10 +543,28 @@ def main() -> None:
     parser.add_argument("--right", default="origin/main")
     parser.add_argument("--owner", help="Restrict output to one natural Owner")
     parser.add_argument("--output", type=Path)
+    parser.add_argument(
+        "--impact-prefix",
+        help="Compute task-local Git source impact for this exact directory; never proof PASS",
+    )
+    parser.add_argument("--max-members", type=int, default=10000)
     args = parser.parse_args()
-    report = history(args.repo.resolve(), args.left, args.right)
-    if args.owner:
-        report = owner_slice(report, args.owner)
+    repo = args.repo.resolve()
+    if args.impact_prefix is not None:
+        if args.owner is not None:
+            parser.error("--owner is only supported for history, not source-impact queries")
+        try:
+            previous = git(repo, "rev-parse", "--verify", args.left + "^{commit}").strip()
+            current = git(repo, "rev-parse", "--verify", args.right + "^{commit}").strip()
+            report = source_membership_delta(
+                repo, previous, current, args.impact_prefix, max_members=args.max_members
+            )
+        except (subprocess.CalledProcessError, ValueError) as exc:
+            parser.error(f"Git source impact is unqualified: {exc}")
+    else:
+        report = history(repo, args.left, args.right)
+        if args.owner:
+            report = owner_slice(report, args.owner)
     payload = json.dumps(report, ensure_ascii=True, separators=(",", ":")) + "\n"
     if args.output:
         args.output.write_text(payload, encoding="utf-8")

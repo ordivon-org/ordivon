@@ -1027,6 +1027,71 @@ def test_native_git_source_delta_selects_cas_without_rechecking_tla(tmp_path, mo
     assert status["proof:unrelated-doc"] == "REUSE_CANDIDATE"
     assert selected["proofReuseAdmissible"] is False
 
+    # Agent-native path: existing repo CLI emits the scoped, immutable Git
+    # delta; existing Composition CLI consumes it without inventing authority.
+    import json
+    import sys
+
+    delta_output = subprocess.check_output(
+        [
+            sys.executable, str(source_repo / "tools/repo/source_history_legos.py"),
+            "--repo", str(tmp_path), "--left", unrelated, "--right", red_cut,
+            "--impact-prefix", prefix,
+        ],
+        text=True,
+    )
+    cli_delta = json.loads(delta_output)
+    assert cli_delta == delta
+    delta_file = tmp_path / "git-delta.json"
+    claims_file = tmp_path / "claims.json"
+    delta_file.write_text(delta_output, encoding="utf8")
+    scope = delta["sourceScopeRef"]
+    claims_file.write_text(json.dumps([
+        {"id": "proof:CAS-implementation",
+         "dependsOn": [scope + ":path:" + cas], "dependenciesComplete": True},
+        {"id": "proof:RuntimeDispatch-TLA-model",
+         "dependsOn": [scope + ":path:" + model], "dependenciesComplete": True},
+    ]), encoding="utf8")
+    cli_status = json.loads(subprocess.check_output(
+        [
+            sys.executable, "-m", "ordivon_composition.verification_obligation_r1",
+            "select-impact", str(delta_file), str(claims_file),
+        ], text=True,
+    ))
+    assert {row["id"]: row["standing"] for row in cli_status["standingByObligation"]} == {
+        "proof:CAS-implementation": "RECHECK_REQUIRED",
+        "proof:RuntimeDispatch-TLA-model": "REUSE_CANDIDATE",
+    }
+    assert cli_status["proofReuseAdmissible"] is False
+
+    # A caller-supplied fake "owner certificate" cannot be promoted by CLI.
+    untrusted = dict(cli_delta)
+    untrusted["proofReuseAdmissible"] = True
+    delta_file.write_text(json.dumps(untrusted), encoding="utf8")
+    denied = subprocess.run(
+        [
+            sys.executable, "-m", "ordivon_composition.verification_obligation_r1",
+            "select-impact", str(delta_file), str(claims_file),
+        ], capture_output=True, text=True,
+    )
+    assert denied.returncode != 0
+    assert "cannot promote unqualified" in denied.stderr
+    delta_file.write_text(delta_output, encoding="utf8")
+    unknown_file = tmp_path / "unresolved-runtime-edges.json"
+    unknown_file.write_text(json.dumps(["runtime:unindexed"]), encoding="utf8")
+    bounded_unknown = json.loads(subprocess.check_output(
+        [
+            sys.executable, "-m", "ordivon_composition.verification_obligation_r1",
+            "select-impact", str(delta_file), str(claims_file),
+            "--unknown-refs", str(unknown_file),
+        ], text=True,
+    ))
+    assert all(
+        row["standing"] in {"RECHECK_REQUIRED", "UNKNOWN"}
+        for row in bounded_unknown["standingByObligation"]
+    )
+    assert bounded_unknown["proofReuseAdmissible"] is False
+
     extra = tmp_path / "services/runtime/providers/new.rs"
     extra.parent.mkdir(parents=True, exist_ok=True)
     extra.write_text("fn new_provider() {}")
