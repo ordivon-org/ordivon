@@ -157,10 +157,14 @@ def source_membership_delta(
     before = source_membership_query(repo, previous_cut, prefix, max_members=max_members)
     after = source_membership_query(repo, current_cut, prefix, max_members=max_members)
 
-    # Local Git authority scope is the canonical Git worktree checkout.
-    # Distinct repositories with an identical path must not share proof refs.
-    # Moving a checkout intentionally invalidates any prior scope binding.
-    source_root = git(repo, "rev-parse", "--show-toplevel").strip()
+    # Git source identity belongs to the shared object store, not the temporary
+    # checkout: linked Agent Workspaces have one common Git directory. Independent
+    # repositories retain distinct identities even when paths/objects match.
+    source_root = str(
+        Path(
+            git(repo, "rev-parse", "--path-format=absolute", "--git-common-dir").strip()
+        ).resolve(strict=True)
+    )
     source_scope_ref = "git:repo:" + hashlib.sha256(
         source_root.encode("utf-8", "surrogateescape")
     ).hexdigest()

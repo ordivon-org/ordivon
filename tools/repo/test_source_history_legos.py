@@ -810,5 +810,35 @@ class SourceHistoryLegosTests(unittest.TestCase):
             assert set(second_scope["authorityRefs"]).isdisjoint(no_change["authorityRefs"])
 
 
+    def test_source_identity_survives_ephemeral_linked_worktree_paths(self):
+        """Same Git object store must preserve source proof IDs across Agent Workspaces."""
+        with tempfile.TemporaryDirectory(prefix="ordivon-git-linked-evidence-") as td:
+            root = Path(td) / "source"
+            linked = Path(td) / "agent-worktree"
+            root.mkdir()
+            git(root, "init", "-q")
+            git(root, "config", "user.name", "Test")
+            git(root, "config", "user.email", "test@example.invalid")
+            folder = root / "providers"
+            folder.mkdir()
+            (folder / "a.rs").write_text("old", encoding="utf8")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "before")
+            old = git(root, "rev-parse", "HEAD")
+            (folder / "a.rs").write_text("new", encoding="utf8")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "after")
+            new = git(root, "rev-parse", "HEAD")
+            git(root, "worktree", "add", "-q", "--detach", str(linked), new)
+            a = source_history_legos.source_membership_delta(root, old, new, "providers/")
+            b = source_history_legos.source_membership_delta(linked, old, new, "providers/")
+            self.assertEqual(a["sourceScopeRef"], b["sourceScopeRef"])
+            self.assertEqual(a["authorityRefs"], b["authorityRefs"])
+            self.assertEqual(a["changedRefs"], b["changedRefs"])
+            self.assertEqual(a["changedValuePaths"], ["providers/a.rs"])
+            self.assertFalse(a["proofReuseAdmissible"])
+            self.assertFalse(b["proofReuseAdmissible"])
+
+
 if __name__ == "__main__":
     unittest.main()
