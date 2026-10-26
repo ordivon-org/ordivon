@@ -664,6 +664,26 @@ def _git_source_changes(base: str, head: str) -> set[str]:
     return {path.decode("utf-8") for path in data.split(b"\x00") if path}
 
 
+def _native_source_cut_snapshot() -> str:
+    """Qualify the existing Git source fence at each native proof boundary.
+
+    One post-run clean checkout is insufficient: a source file or HEAD could
+    change *during* Cargo tests, and later be restored without preserving
+    the meaning of the executed result. This pair of snapshots is a bounded
+    source-currentness guard, not runtime/environment noninterference proof.
+    """
+    import subprocess
+
+    repo = ROOT.parents[1]
+    head = (
+        subprocess.check_output(["git", "-C", str(repo), "rev-parse", "HEAD"], stderr=subprocess.PIPE)
+        .decode("ascii")
+        .strip()
+    )
+    _git_source_changes(head, head)
+    return head
+
+
 def _native_witness_name(witness: dict[str, Any], registered: set[str]) -> str:
     """Require one compiled name at the declared Runtime-core source module."""
     path, symbol = witness["path"], witness["symbol"]
@@ -715,6 +735,7 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
     import os
     import subprocess
 
+    source_cut_before = _native_source_cut_snapshot()
     cargo = [
         "cargo",
         "test",
@@ -825,7 +846,9 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
             raise ValueError(f"native witness prerequisite failed: {command[0]}")
         return process.stdout.strip()
 
-    source_head = provenance(["git", "rev-parse", "HEAD"])
+    source_head = _native_source_cut_snapshot()
+    if source_head != source_cut_before:
+        raise ValueError("native Cargo source revision changed during executed witnesses")
     rust_input_status = provenance(
         [
             "git",
@@ -860,6 +883,9 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
         "conditionalOptInWitnesses": opt_in_rows,
         "typedContractWitnesses": contract_rows,
         "sourceHead": source_head,
+        "sourceCutBefore": source_cut_before,
+        "nativeSourceCutStable": True,
+        "sourceScope": "Runtime Git sources + root toolchain guards before/after Cargo; other build/runtime inputs unresolved",
         "declaredRustInputsClean": not bool(rust_input_status),
         "cargoVersion": cargo_version,
         "rustcVersionVerbose": toolchain,

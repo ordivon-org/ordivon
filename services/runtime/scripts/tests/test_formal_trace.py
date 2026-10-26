@@ -804,6 +804,108 @@ class FormalTraceContractTests(unittest.TestCase):
             finally:
                 self.module.ROOT = original_root
 
+    def test_native_proof_source_cut_preflight_rejects_before_cargo(self):
+        from unittest.mock import patch
+
+        with (
+            patch.object(
+                self.module,
+                "_native_source_cut_snapshot",
+                side_effect=ValueError("unsafe Git index flags"),
+            ),
+            patch("subprocess.run") as forbidden_cargo,
+        ):
+            with self.assertRaisesRegex(ValueError, "unsafe Git index flags"):
+                self.module.qualify_native_witnesses({})
+            forbidden_cargo.assert_not_called()
+
+    def test_native_proof_source_cut_must_remain_same_after_executed_cargo(self):
+        from unittest.mock import patch
+        import subprocess
+
+        trace = {
+            "contractSeams": [],
+            "supportingContracts": [],
+            "provingTests": [],
+            "conditionalAcceptanceTests": [],
+        }
+
+        def mocked_run(cmd, **_kwargs):
+            return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+        with (
+            patch.object(
+                self.module,
+                "_native_source_cut_snapshot",
+                side_effect=["a" * 40, "b" * 40],
+            ),
+            patch("subprocess.run", side_effect=mocked_run) as cargo_runs,
+        ):
+            with self.assertRaisesRegex(ValueError, "source revision changed"):
+                self.module.qualify_native_witnesses(trace)
+            self.assertGreaterEqual(cargo_runs.call_count, 2)
+
+    def test_native_source_cut_snapshot_rejects_dirty_and_hidden_inputs(self):
+        import subprocess
+
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp)
+            runtime = repo / "services/runtime"
+            runtime.mkdir(parents=True)
+            (runtime / "source.rs").write_text("initial source\n", encoding="utf-8")
+            (repo / "mise.toml").write_text("[tools]\n", encoding="utf-8")
+
+            def git(*args):
+                return (
+                    subprocess.run(
+                        ["git", "-C", str(repo), *args],
+                        capture_output=True,
+                        check=True,
+                    )
+                    .stdout.decode()
+                    .strip()
+                )
+
+            git("init", "-q")
+            git("add", ".")
+            git(
+                "-c",
+                "user.name=ProofTest",
+                "-c",
+                "user.email=test@example.invalid",
+                "commit",
+                "-qm",
+                "first source cut",
+            )
+            original_root = self.module.ROOT
+            self.module.ROOT = runtime
+            try:
+                original = self.module._native_source_cut_snapshot()
+                self.assertEqual(original, git("rev-parse", "HEAD"))
+                (repo / "mise.toml").write_text("[tools]\npython = '0.0.0'\n", encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "worktree is dirty"):
+                    self.module._native_source_cut_snapshot()
+                git("update-index", "--skip-worktree", "--", "mise.toml")
+                with self.assertRaisesRegex(ValueError, "unsafe Git index flags"):
+                    self.module._native_source_cut_snapshot()
+                git("update-index", "--no-skip-worktree", "--", "mise.toml")
+                (repo / "mise.toml").write_text("[tools]\n", encoding="utf-8")
+                self.assertEqual(original, self.module._native_source_cut_snapshot())
+                (runtime / "source.rs").write_text("revised source\n", encoding="utf-8")
+                git("add", "services/runtime/source.rs")
+                git(
+                    "-c",
+                    "user.name=ProofTest",
+                    "-c",
+                    "user.email=test@example.invalid",
+                    "commit",
+                    "-qm",
+                    "new source cut",
+                )
+                self.assertNotEqual(original, self.module._native_source_cut_snapshot())
+            finally:
+                self.module.ROOT = original_root
+
     def test_runtime_formal_source_impact_rejects_untrusted_paths_and_git_ref(self):
         trace, invariants = manifests()
         for bad in ("../escape", "/absolute", "services//runtime/file", "services\\runtime\\bad"):
