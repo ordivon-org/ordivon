@@ -76,6 +76,105 @@ check_runtime_pg_cutover() {
       -config RuntimePgCutoverR1.cfg RuntimePgCutoverR1.tla)
 }
 
+# Node-order policy is distinct from the per-node SQL parity/consumer proof.
+# It does NOT prove installed Windows/PG writer qualification.
+check_windows_first_pg_order() {
+  verify_jar
+  java -XX:+UseParallelGC -cp "$JAR" tla2sany.SANY "$ROOT/formal/RuntimeWindowsFirstPgR1.tla"
+  (cd "$ROOT/formal"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+      -config RuntimeWindowsFirstPgR1.cfg RuntimeWindowsFirstPgR1.tla)
+}
+
+check_windows_first_pg_falsifiers() {
+  verify_jar
+  (
+    tmp_dir=$(mktemp -d -t ordivon-winfirst-pg-cegar-XXXXXX)
+    trap 'rm -rf -- "$tmp_dir"' EXIT
+    cp "$ROOT/formal/RuntimeWindowsFirstPgR1.tla" "$tmp_dir/"
+    cp "$ROOT/formal/RuntimeWindowsFirstPgR1.cfg" "$tmp_dir/"
+
+    # Non-vacuity: a Windows-qualified transition MUST allow Linux afterward.
+    printf '\nINVARIANT LinuxNeverPromoted\n' >> "$tmp_dir/RuntimeWindowsFirstPgR1.cfg"
+    set +e
+    (cd "$tmp_dir"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+      -config RuntimeWindowsFirstPgR1.cfg RuntimeWindowsFirstPgR1.tla) \
+      > "$tmp_dir/reachable.log" 2>&1
+    code=$?
+    set -e
+    if [[ "$code" -ne 12 ]] ||
+       ! grep -Fxq 'Error: Invariant LinuxNeverPromoted is violated.' "$tmp_dir/reachable.log" ||
+       ! grep -Eq '^State [1-9][0-9]*:' "$tmp_dir/reachable.log"; then
+      echo "Windows-first PG reachability control FAILED" >&2
+      tail -30 "$tmp_dir/reachable.log" >&2
+      exit 1
+    fi
+    echo 'TLC Windows-first PG qualified promotion reachable PASS'
+
+    python3 - "$ROOT/formal/RuntimeWindowsFirstPgR1.tla" \
+      "$tmp_dir/RuntimeWindowsFirstPgR1.tla" <<'PY_BAD_ORDER'
+from pathlib import Path
+import sys
+source = Path(sys.argv[1]).read_text(encoding='utf-8')
+marker = 'Next ==\n'
+unsafe = r'''UnsafeLinuxPromoteWithoutWindows ==
+    /\ linux = "staged"
+    /\ windows = "sqlite"
+    /\ linux' = "postgres"
+    /\ linuxReceipt' = TRUE
+    /\ UNCHANGED <<windows, windowsReceipt>>
+
+'''
+assert source.count(marker) == 1
+Path(sys.argv[2]).write_text(
+    source.replace(marker, unsafe + marker + r'    \/ UnsafeLinuxPromoteWithoutWindows' + '\n'),
+    encoding='utf-8',
+)
+PY_BAD_ORDER
+    cp "$ROOT/formal/RuntimeWindowsFirstPgR1.cfg" "$tmp_dir/RuntimeWindowsFirstPgR1.cfg"
+    set +e
+    (cd "$tmp_dir"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+      -config RuntimeWindowsFirstPgR1.cfg RuntimeWindowsFirstPgR1.tla) \
+      > "$tmp_dir/unsafe.log" 2>&1
+    code=$?
+    set -e
+    if [[ "$code" -ne 12 ]] ||
+       ! grep -Fxq 'Error: Invariant WindowsBeforeLinuxPg is violated.' "$tmp_dir/unsafe.log" ||
+       ! grep -Eq '^State [1-9][0-9]*:' "$tmp_dir/unsafe.log"; then
+      echo "Windows-first PG Linux-premature-promotion negative control FAILED" >&2
+      tail -30 "$tmp_dir/unsafe.log" >&2
+      exit 1
+    fi
+    echo 'TLC Windows-first PG Linux-premature-promotion rejected PASS'
+
+    # CEGAR: weakening Windows rollback to accept Linux's qualified-but-not-PG
+    # stage leaves Linux holding a now-revoked Windows receipt.
+    python3 - "$ROOT/formal/RuntimeWindowsFirstPgR1.tla" \
+      "$tmp_dir/RuntimeWindowsFirstPgR1.tla" <<'PY_STALE_WIN_RECEIPT'
+from pathlib import Path
+import sys
+source = Path(sys.argv[1]).read_text(encoding='utf-8')
+strong = r'    /\ linux \in {"sqlite", "staged"}'
+weak = r'    /\ linux \notin PgPhases'
+assert source.count(strong) == 1
+Path(sys.argv[2]).write_text(source.replace(strong, weak), encoding='utf-8')
+PY_STALE_WIN_RECEIPT
+    set +e
+    (cd "$tmp_dir"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+      -config RuntimeWindowsFirstPgR1.cfg RuntimeWindowsFirstPgR1.tla) \
+      > "$tmp_dir/stale-windows-receipt.log" 2>&1
+    code=$?
+    set -e
+    if [[ "$code" -ne 12 ]] ||
+       ! grep -Fxq 'Error: Invariant WindowsBeforeLinuxPg is violated.' "$tmp_dir/stale-windows-receipt.log" ||
+       ! grep -Eq '^State [1-9][0-9]*:' "$tmp_dir/stale-windows-receipt.log"; then
+      echo "Windows-first PG stale-Windows-receipt rollback control FAILED" >&2
+      tail -30 "$tmp_dir/stale-windows-receipt.log" >&2
+      exit 1
+    fi
+    echo 'TLC Windows-first PG stale-Windows-receipt rollback rejected PASS'
+  )
+}
+
 # CEGAR non-vacuity: deliberately let a paused SQLite source admit a PG writer
 # without parity certification. TLC must find an actual named state trace.
 check_pg_cutover_counterexample() {
@@ -592,8 +691,8 @@ PY_WORKSPACE_CLOSE
 case "${1:-check}" in
   bootstrap) bootstrap ;;
   verify) verify_jar; echo "TLA+ toolchain digest verification PASS" ;;
-  check) check_runtime_dispatch; check_runtime_pg_cutover; check_workspace_consumer_close ;;
-  falsify) check_runtime_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_pg_cutover_counterexample; check_workspace_consumer_close_counterexamples ;;
+  check) check_runtime_dispatch; check_runtime_pg_cutover; check_windows_first_pg_order; check_workspace_consumer_close ;;
+  falsify) check_runtime_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_pg_cutover_counterexample; check_windows_first_pg_falsifiers; check_workspace_consumer_close_counterexamples ;;
   *)
     echo "usage: scripts/tla-formal [bootstrap|verify|check|falsify]" >&2
     exit 2

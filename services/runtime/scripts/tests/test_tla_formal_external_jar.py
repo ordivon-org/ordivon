@@ -89,6 +89,23 @@ class TlaFormalExternalJarTests(unittest.TestCase):
         self.assertIn("VerifiedContentWasFrozen", cfg)
         self.assertIn("TLC PostgreSQL content parity negative control PASS", runner)
 
+    def test_windows_first_pg_order_needs_owner_receipt_and_falsifiers(self):
+        model = (SCRIPT.parent.parent / "formal/RuntimeWindowsFirstPgR1.tla").read_text(
+            encoding="utf-8"
+        )
+        cfg = (SCRIPT.parent.parent / "formal/RuntimeWindowsFirstPgR1.cfg").read_text(
+            encoding="utf-8"
+        )
+        runner = SCRIPT.read_text(encoding="utf-8")
+        self.assertIn("WindowsBeforeLinuxPg", model)
+        self.assertIn("WindowsBeforeLinuxPg", cfg)
+        self.assertIn("windowsReceipt", model)
+        self.assertIn(r'linux \in {"sqlite", "staged"}', model)
+        self.assertIn("check_windows_first_pg_order", runner)
+        self.assertIn("check_windows_first_pg_falsifiers", runner)
+        self.assertIn("stale-Windows-receipt rollback rejected PASS", runner)
+        self.assertIn("Linux-premature-promotion rejected PASS", runner)
+
     def test_external_digest_locked_jar_works_without_workspace_cache(self):
         self.assertFalse(self.cache.exists())
         result = self.invoke(jar=self.external)
@@ -117,6 +134,7 @@ class TlaFormalExternalJarTests(unittest.TestCase):
         self.assertGreaterEqual(modes.count("tlc2.TLC"), 2)
         self.assertIn("RuntimeDispatchR1.tla", observed)
         self.assertIn("RuntimePgCutoverR1.tla", observed)
+        self.assertIn("RuntimeWindowsFirstPgR1.tla", observed)
         self.assertIn("WorkspaceConsumerCloseR1.tla", observed)
 
     def test_falsifier_must_see_named_invariant_counterexample_not_just_java_failure(self):
