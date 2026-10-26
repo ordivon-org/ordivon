@@ -318,21 +318,32 @@ fn terminal_transition(from: &str, to: &str) -> bool {
 mod kani_transition_proofs {
     use super::terminal_transition;
 
-    // Symbolically enumerate four important input pairs of the *real* Rust
-    // transition function. This is a bounded refinement obligation, not a
-    // claim about arbitrary strings or all installed Runtime transitions.
     #[kani::proof]
     fn proof_pg_terminal_transition_matches_contract() {
-        let was_running: bool = kani::any();
-        let wants_success: bool = kani::any();
-        let from = if was_running { "running" } else { "accepted" };
-        let to = if wants_success {
-            "succeeded"
-        } else {
-            "cancelled"
+        let from_id: u8 = kani::any();
+        let to_id: u8 = kani::any();
+        kani::assume(from_id < 12 && to_id < 12);
+        let state = |id: u8| match id {
+            0 => "accepted",
+            1 => "starting",
+            2 => "running",
+            3 => "stopping",
+            4 => "recovering",
+            5 => "succeeded",
+            6 => "failed",
+            7 => "timed_out",
+            8 => "cancelled",
+            9 => "lost",
+            10 => "orphaned",
+            _ => "unqualified",
         };
-        let allowed_by_contract = was_running || !wants_success;
-        assert_eq!(terminal_transition(from, to), allowed_by_contract);
+        // Independent, finite contract for the declared runtime state alphabet.
+        let expected = match from_id {
+            0 => matches!(to_id, 6 | 8 | 9 | 10),
+            1..=4 => matches!(to_id, 5..=10),
+            _ => false,
+        };
+        assert_eq!(terminal_transition(state(from_id), state(to_id)), expected);
     }
 }
 
