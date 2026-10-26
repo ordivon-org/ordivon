@@ -46,30 +46,23 @@ class FormalTraceContractTests(unittest.TestCase):
         self.assertIn("RuntimeDispatch.NoDetachedLiveAttempt", witnesses)
         self.assertIn("RuntimeDispatch.HeldOrphanIsFenced", witnesses)
         admitted = next(
-            entry for entry in trace["provingTests"]
-            if entry["id"] == "RuntimeDispatch.parallelAdmissionUnique"
+            entry for entry in trace["provingTests"] if entry["id"] == "RuntimeDispatch.parallelAdmissionUnique"
         )
-        orphan = next(
-            entry for entry in trace["provingTests"]
-            if entry["id"] == "RuntimeDispatch.ambiguityHeld"
-        )
+        orphan = next(entry for entry in trace["provingTests"] if entry["id"] == "RuntimeDispatch.ambiguityHeld")
         self.assertIn("RuntimeDispatch.NoDetachedLiveAttempt", admitted["proves"])
         self.assertIn("RuntimeDispatch.HeldOrphanIsFenced", orphan["proves"])
         self.assertNotIn("RuntimeDispatch.NoDetachedLiveAttempt", orphan["proves"])
         self.assertEqual(self.module.validate(trace, invariant_manifest), [])
         modified = copy.deepcopy(trace)
         modified["formalSpecification"]["modelBindings"] = [
-            item for item in modified["formalSpecification"]["modelBindings"]
+            item
+            for item in modified["formalSpecification"]["modelBindings"]
             if item["id"] != "RuntimeDispatch.NoDetachedLiveAttempt"
         ]
         self.assertTrue(any("binding set drift" in err for err in self.module.validate(modified, invariant_manifest)))
 
         config = (ROOT / "formal/RuntimeDispatchR1.cfg").read_text(encoding="utf-8")
-        checked = {
-            row["symbol"]
-            for row in trace["formalSpecification"]["modelBindings"]
-            if row["kind"] == "invariant"
-        }
+        checked = {row["symbol"] for row in trace["formalSpecification"]["modelBindings"] if row["kind"] == "invariant"}
         weaker_config = config.replace("    HeldOrphanIsFenced\n", "")
         self.assertNotEqual(config, weaker_config)
         self.assertTrue(
@@ -80,24 +73,12 @@ class FormalTraceContractTests(unittest.TestCase):
         )
 
     def test_formal_trace_gate_passes_current_runtime_binding(self):
-        self.assertEqual(self.module.main(), 0)
+        # The full native execution is independently covered by Cargo jobs.
+        # This unit test checks the source/schema driver only.
+        from unittest.mock import patch
 
-    def test_owner_slice_is_owner_scoped(self):
-        text = """impl Alpha {
-    fn target() {}
-}
-impl Beta {
-    fn other() {}
-}
-trait Provider {
-    fn realize(&self);
-}
-"""
-        alpha = self.module.owner_slice(text, "impl", "Alpha")
-        provider = self.module.owner_slice(text, "trait", "Provider")
-        self.assertIn("fn target", alpha)
-        self.assertNotIn("fn other", alpha)
-        self.assertIn("fn realize", provider)
+        with patch.object(self.module, "qualify_native_witnesses", return_value={}):
+            self.assertEqual(self.module.main(), 0)
 
     def test_schema_v2_rejects_source_fragment_binding_regression(self):
         trace, invariants = manifests()
@@ -131,644 +112,21 @@ trait Provider {
         errors = self.module.validate(mutated, invariants)
         self.assertTrue(any("references unknown target" in error for error in errors))
 
-    def test_test_annotation_is_bound_to_exact_function(self):
-        # An earlier Rust test attribute may not certify this unannotated function.
-        with tempfile.TemporaryDirectory() as temporary:
-            source = Path(temporary) / "integration_tests.rs"
-            source.write_text("#[test]\nfn existing_test() {}\nfn target() {}\n", encoding="utf-8")
-            original_root = self.module.ROOT
-            self.module.ROOT = Path(temporary)
-            try:
-                errors = self.module.require_test_symbol(source, "target")
-            finally:
-                self.module.ROOT = original_root
-        self.assertTrue(any("is not marked #[test]" in error for error in errors))
-
-    def test_ignored_integration_cannot_claim_always_on_proving_test(self):
-        # A source symbol is not executed evidence when Rust marks it ignored.
-        with tempfile.TemporaryDirectory() as temporary:
-            source = Path(temporary) / "integration_tests.rs"
-            source.write_text(
-                '#[test]\n#[ignore = "requires root and cgroup"]\nfn target() {}\n',
-                encoding="utf-8",
-            )
-            original_root = self.module.ROOT
-            self.module.ROOT = Path(temporary)
-            try:
-                errors = self.module.require_test_symbol(source, "target")
-            finally:
-                self.module.ROOT = original_root
-        self.assertTrue(any("ignored" in error for error in errors), errors)
-
-    def test_rust_block_comment_cannot_forge_an_always_on_test(self):
-        # A textual witness inside a Rust block comment is not compiled or executed.
-        for snippet in (
-            "/*\n#[test]\nfn fabricated_test() {}\n*/\n",
-            "/* outer /* nested */\n#[test]\nfn fabricated_test() {}\n*/\n",
-        ):
-            with self.subTest(snippet=snippet):
-                with tempfile.TemporaryDirectory() as temporary:
-                    source = Path(temporary) / "tests.rs"
-                    source.write_text(snippet, encoding="utf-8")
-                    original_root = self.module.ROOT
-                    self.module.ROOT = Path(temporary)
-                    try:
-                        errors = self.module.require_test_symbol(source, "fabricated_test")
-                    finally:
-                        self.module.ROOT = original_root
-                self.assertTrue(errors, "Comment-only Rust test was accepted as real proof")
-
-    def test_rust_raw_byte_string_cannot_forge_an_always_on_test(self):
-        # A raw byte literal can contain unescaped quotes and Rust-looking lines.
-        source_text = (
-            'const NOTE: &[u8] = br##"literal "interior quote\n'
-            '#[test]\nfn fabricated_test() {}\n"##;\n'
-        )
-        with tempfile.TemporaryDirectory() as temporary:
-            source = Path(temporary) / "tests.rs"
-            source.write_text(source_text, encoding="utf-8")
-            original_root = self.module.ROOT
-            self.module.ROOT = Path(temporary)
-            try:
-                errors = self.module.require_test_symbol(source, "fabricated_test")
-            finally:
-                self.module.ROOT = original_root
-        self.assertTrue(errors, "Raw byte string was accepted as an executable Rust test")
-        self.assertNotIn(
-            "fn fabricated_test", self.module._rust_code_only(source_text)
-        )
-
-    def test_real_owner_survives_comment_delimiters_inside_string(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            source = Path(temporary) / "runtime.rs"
-            source.write_text(
-                'impl Registry { const TEXT: &str = "/* not a comment */"; '
-                'fn valid(&self) {} }\n',
-                encoding="utf-8",
-            )
-            original_root = self.module.ROOT
-            self.module.ROOT = Path(temporary)
-            try:
-                errors = self.module.require_owned_method(
-                    source, "impl", "Registry", "valid"
-                )
-            finally:
-                self.module.ROOT = original_root
-        self.assertEqual(errors, [])
-
-    def test_rust_comment_cannot_forge_a_runtime_owner_method(self):
-        # A matching Rust impl may contain unrelated real functions, not a fake method.
-        source_text = (
-            "impl Registry {\n fn live(&self) {}\n"
-            " /* fn forged_dispatch(&self) {} */\n}\n"
-        )
-        with tempfile.TemporaryDirectory() as temporary:
-            source = Path(temporary) / "runtime.rs"
-            source.write_text(source_text, encoding="utf-8")
-            original_root = self.module.ROOT
-            self.module.ROOT = Path(temporary)
-            try:
-                errors = self.module.require_owned_method(
-                    source, "impl", "Registry", "forged_dispatch"
-                )
-            finally:
-                self.module.ROOT = original_root
-        self.assertTrue(errors, "Comment-only Rust method was accepted as Owner seam")
-
-    def test_rust_comment_cannot_forge_entire_owner(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            source = Path(temporary) / "runtime.rs"
-            source.write_text(
-                "/*\nimpl Registry { fn fabricated(&self) {} }\n*/\n",
-                encoding="utf-8",
-            )
-            original_root = self.module.ROOT
-            self.module.ROOT = Path(temporary)
-            try:
-                errors = self.module.require_owned_method(
-                    source, "impl", "Registry", "fabricated"
-                )
-            finally:
-                self.module.ROOT = original_root
-        self.assertTrue(errors, "Comment-only Rust Owner was accepted as real source")
-
-    def test_conditionally_disabled_rust_tests_are_not_always_on_witnesses(self):
-        # Rust cfg(any()) compiles the test out, even with an adjacent #[test].
-        # A missing Feature similarly means no test ever ran. Neither is an
-        # acceptable always-on proving witness for the Runtime formal model.
-        with tempfile.TemporaryDirectory() as temporary:
-            source = Path(temporary) / "proof_tests.rs"
-            original_root = self.module.ROOT
-            self.module.ROOT = Path(temporary)
-            try:
-                for conditional in (
-                    "#[cfg(any())]",
-                    '#[cfg(feature = "not_necessarily_enabled")]',
-                    "#[cfg_attr(all(), ignore)]",
-                ):
-                    with self.subTest(conditional=conditional):
-                        source.write_text(
-                            f"#[test]\n{conditional}\nfn formal_witness() {{}}\n",
-                            encoding="utf-8",
-                        )
-                        errors = self.module.require_test_symbol(source, "formal_witness")
-                        self.assertTrue(
-                            any("conditionally" in error for error in errors),
-                            errors,
-                        )
-            finally:
-                self.module.ROOT = original_root
-
-    def test_disabled_ancestor_module_cannot_be_a_formal_proving_witness(self):
-        # Compiler-elided module is not an always-on test, even with #[test].
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            source = root / "hidden_tests.rs"
-            original_root = self.module.ROOT
-            self.module.ROOT = root
-            try:
-                for gating in ('#[cfg(any())]', '#[cfg(feature = "not_enabled")]'):
-                    with self.subTest(gating=gating):
-                        source.write_text(
-                            f"{gating}\nmod hidden {{\n"
-                            "    #[test]\n    fn proof_that_does_not_compile() {}\n"
-                            "}\n",
-                            encoding="utf-8",
-                        )
-                        errors = self.module.require_test_symbol(
-                            source, "proof_that_does_not_compile"
-                        )
-                        self.assertTrue(
-                            any("ancestor" in error and "conditional" in error for error in errors),
-                            f"disabled module falsely admitted as proof: {errors}",
-                        )
-            finally:
-                self.module.ROOT = original_root
-
-    def test_disabled_owner_impl_cannot_be_a_formal_contract_witness(self):
-        # Rust cfg(any()) removes the entire impl, despite its textual method.
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            source = root / "owner.rs"
-            source.write_text(
-                "#[cfg(any())]\nimpl Registry {\n"
-                "    fn phantom_dispatch(&self) {}\n"
-                "}\n",
-                encoding="utf-8",
-            )
-            original_root = self.module.ROOT
-            self.module.ROOT = root
-            try:
-                errors = self.module.require_owned_method(
-                    source, "impl", "Registry", "phantom_dispatch"
-                )
-            finally:
-                self.module.ROOT = original_root
-        self.assertTrue(
-            any("ancestor" in error and "conditional" in error for error in errors),
-            f"compiler-elided impl falsely admitted as Owner contract: {errors}",
-        )
-
-    def test_cfg_elided_method_cannot_claim_runtime_owner_contract(self):
-        # A real impl may contain only a method removed by rustc cfg handling.
-        for attribute in ('#[cfg(any())]', '#[cfg(feature = "nonexistent")]'):
-            with self.subTest(attribute=attribute):
-                with tempfile.TemporaryDirectory() as temporary:
-                    root = Path(temporary)
-                    source = root / "runtime.rs"
-                    source.write_text(
-                        f"impl Registry {{\n  {attribute}\n"
-                        "  fn mark_dispatch_issued(&self) {}\n}\n",
-                        encoding="utf-8",
-                    )
-                    old_root = self.module.ROOT
-                    self.module.ROOT = root
-                    try:
-                        errors = self.module.require_owned_method(
-                            source, "impl", "Registry", "mark_dispatch_issued"
-                        )
-                    finally:
-                        self.module.ROOT = old_root
-                self.assertTrue(
-                    errors,
-                    f"cfg-elided method falsely admitted as Runtime contract: {attribute}",
-                )
-
-    def test_multiline_cfg_before_test_attribute_does_not_forge_a_witness(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            source = root / "tests.rs"
-            old_root = self.module.ROOT
-            self.module.ROOT = root
-            try:
-                for gating in (
-                    "#[cfg(\n  any()\n)]",
-                    "#[cfg_attr(\n  all(),\n  ignore\n)]",
-                ):
-                    with self.subTest(gating=gating):
-                        source.write_text(
-                            gating + "\n#[test]\nfn phantom_witness() {}\n",
-                            encoding="utf-8",
-                        )
-                        errors = self.module.require_test_symbol(
-                            source, "phantom_witness"
-                        )
-                        self.assertTrue(
-                            errors,
-                            f"conditional test falsely admitted as always-on: {gating}",
-                        )
-            finally:
-                self.module.ROOT = old_root
-
-    def test_multiline_cfg_attribute_cannot_promote_method_to_proof(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            source = root / "runtime.rs"
-            source.write_text(
-                "impl Registry {\n"
-                "  #[cfg(\n"
-                "     any()\n"
-                "  )]\n"
-                "  #[allow(dead_code)]\n"
-                "  fn mark_dispatch_issued(&self) {}\n"
-                "}\n",
-                encoding="utf-8",
-            )
-            old_root = self.module.ROOT
-            self.module.ROOT = root
-            try:
-                errors = self.module.require_owned_method(
-                    source, "impl", "Registry", "mark_dispatch_issued"
-                )
-            finally:
-                self.module.ROOT = old_root
-        self.assertTrue(errors, "multiline cfg hid method removal from trace gate")
-
-    def test_nested_rust_function_is_not_an_impl_method(self):
-        # Rust permits nested functions, but Registry::mark_dispatch_issued
-        # does NOT exist here. Textual containment is not an Owner contract.
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            source = root / "runtime.rs"
-            source.write_text(
-                "impl Registry {\n"
-                "  fn helper(&self) {\n"
-                "    fn mark_dispatch_issued() {}\n"
-                "  }\n"
-                "}\n",
-                encoding="utf-8",
-            )
-            old_root = self.module.ROOT
-            self.module.ROOT = root
-            try:
-                errors = self.module.require_owned_method(
-                    source, "impl", "Registry", "mark_dispatch_issued"
-                )
-            finally:
-                self.module.ROOT = old_root
-        self.assertTrue(errors, "nested function falsely admitted as Registry method")
-    def test_unnameable_nonmodule_tests_never_grant_compiler_proof(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            (root / "lib.rs").write_text("#[cfg(test)]\\nmod tests;\\n", encoding="utf-8")
-            child = root / "tests.rs"
-            original_root = self.module.ROOT
-            self.module.ROOT = root
-            try:
-                for source in (
-                    """const _: () = {
-    #[test]
-    fn ghost_proof() {}
-};
-""",
-                    """fn inert() {
-    #[test]
-    fn ghost_proof() {}
-}
-""",
-                ):
-                    with self.subTest(outer=source.splitlines()[0]):
-                        child.write_text(source, encoding="utf-8")
-                        errors = self.module.require_test_symbol(child, "ghost_proof")
-                        self.assertTrue(
-                            any("unnameable non-module" in error for error in errors),
-                            f"rustc-unregistered test falsely accepted: {errors}",
-                        )
-                child.write_text(
-                    """mod nested {
-    #[test]
-    fn actual_proof() {}
-}
-""",
-                    encoding="utf-8",
-                )
-                self.assertEqual(
-                    self.module.require_test_symbol(child, "actual_proof"), []
-                )
-            finally:
-                self.module.ROOT = original_root
-
-    def test_rust_character_closing_brace_cannot_hide_unregistered_nested_test(self):
-        """Native rustc accepts inner test syntax but does NOT register the test."""
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            (root / "lib.rs").write_text("#[cfg(test)]\nmod tests;\n", encoding="utf-8")
-            child = root / "tests.rs"
-            original_root = self.module.ROOT
-            self.module.ROOT = root
-            try:
-                for literal in ("'}'", "b'}'"):
-                    with self.subTest(literal=literal):
-                        child.write_text(
-                            "fn invisible() {\n"
-                            f"    let _ch = {literal};\n"
-                            "    #[test]\n"
-                            "    fn ghost_proof() {}\n"
-                            "}\n",
-                            encoding="utf-8",
-                        )
-                        errors = self.module.require_test_symbol(child, "ghost_proof")
-                        self.assertTrue(
-                            any("unnameable non-module" in error for error in errors),
-                            f"unregistered rustc test accepted behind {literal}: {errors}",
-                        )
-            finally:
-                self.module.ROOT = original_root
-
-    def test_rust_character_opening_brace_keeps_real_module_test_nameable(self):
-        """Characters, escapes, and byte characters are never block braces."""
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            (root / "lib.rs").write_text("#[cfg(test)]\nmod tests;\n", encoding="utf-8")
-            child = root / "tests.rs"
-            child.write_text(
-                "mod nested {\n"
-                "    const OPEN: char = '{';\n"
-                "    const ESCAPED_OPEN: char = '\\u{7b}';\n"
-                "    const BYTE_OPEN: u8 = b'{';\n"
-                "    fn holds_lifetime<'a>(value: &'a str) -> &'a str { value }\n"
-                "    #[test]\n"
-                "    fn real_proof() {}\n"
-                "}\n",
-                encoding="utf-8",
-            )
-            original_root = self.module.ROOT
-            self.module.ROOT = root
-            try:
-                self.assertEqual(self.module.require_test_symbol(child, "real_proof"), [])
-            finally:
-                self.module.ROOT = original_root
-
-    def test_unexpanded_macro_rules_cannot_forge_a_proving_test(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            (root / "lib.rs").write_text(
-                "#[cfg(test)]\nmod tests;\n", encoding="utf-8"
-            )
-            child = root / "tests.rs"
-            original_root = self.module.ROOT
-            self.module.ROOT = root
-            try:
-                for opening, closing in (("{", "}"), ("(", ")"), ("[", "]")):
-                    with self.subTest(delimiter=opening):
-                        child.write_text(
-                            f"macro_rules! inert {opening}\n"
-                            "    () => {\n"
-                            "        #[test]\n"
-                            "        fn phantom_proof() {}\n"
-                            "    };\n"
-                            f"{closing}\n",
-                            encoding="utf-8",
-                        )
-                        errors = self.module.require_test_symbol(child, "phantom_proof")
-                        self.assertTrue(
-                            any("unexpanded macro_rules!" in error for error in errors),
-                            f"macro tokens incorrectly granted test proof: {errors}",
-                        )
-                child.write_text(
-                    "macro_rules! inert { () => { #[test] fn fake() {} }; }\n"
-                    "#[test]\nfn active_test() {}\n",
-                    encoding="utf-8",
-                )
-                self.assertEqual(
-                    self.module.require_test_symbol(child, "active_test"), []
-                )
-            finally:
-                self.module.ROOT = original_root
-
-    def test_unexpanded_macro_invocations_cannot_forge_test_registration(self):
-        """rustc expands inert! to zero items, regardless of invocation delimiters."""
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            (root / "lib.rs").write_text("#[cfg(test)]\nmod tests;\n", encoding="utf-8")
-            child = root / "tests.rs"
-            before = self.module.ROOT
-            self.module.ROOT = root
-            try:
-                for opener, closer in (("(", ")"), ("[", "]"), ("{", "}")):
-                    with self.subTest(delimiter=opener):
-                        child.write_text(
-                            "macro_rules! inert { ($($token:tt)*) => {}; }\n"
-                            f"inert!{opener}\n"
-                            "    #[test]\n"
-                            "    fn phantom_proof() {}\n"
-                            f"{closer};\n",
-                            encoding="utf-8",
-                        )
-                        errors = self.module.require_test_symbol(child, "phantom_proof")
-                        self.assertTrue(
-                            any("unexpanded macro" in err or "unnameable non-module" in err for err in errors),
-                            f"unregistered rustc macro item falsely admitted: {errors}",
-                        )
-                child.write_text(
-                    "macro_rules! inert { ($($token:tt)*) => {}; }\n"
-                    "inert!(#[test] fn fake() {});\n"
-                    "#[test]\nfn real_proof() {}\n",
-                    encoding="utf-8",
-                )
-                self.assertEqual(self.module.require_test_symbol(child, "real_proof"), [])
-            finally:
-                self.module.ROOT = before
-
-    def test_unexpanded_macro_call_cannot_forge_runtime_owner_method(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            (root / "mod.rs").write_text("mod owner;\n", encoding="utf-8")
-            child = root / "owner.rs"
-            previous = self.module.ROOT
-            self.module.ROOT = root
-            try:
-                for left, right in (("(", ")"), ("[", "]"), ("{", "}")):
-                    with self.subTest(opener=left):
-                        child.write_text(
-                            "struct Registry;\n"
-                            "macro_rules! inert { ($($token:tt)*) => {}; }\n"
-                            "impl Registry {\n"
-                            f"    inert!{left} fn phantom_owner(&self) {{}} {right};\n"
-                            "}\n",
-                            encoding="utf-8",
-                        )
-                        errors = self.module.require_owned_method(
-                            child, "impl", "Registry", "phantom_owner"
-                        )
-                        self.assertTrue(
-                            errors, f"macro-only method falsely admitted: {left!r}"
-                        )
-                child.write_text(
-                    "struct Registry;\n"
-                    "macro_rules! inert { ($($token:tt)*) => {}; }\n"
-                    "impl Registry {\n"
-                    "    inert!(fn phantom_owner(&self) {});\n"
-                    "    fn real_owner(&self) {}\n"
-                    "}\n",
-                    encoding="utf-8",
-                )
-                self.assertEqual(
-                    self.module.require_owned_method(child, "impl", "Registry", "real_owner"), []
-                )
-            finally:
-                self.module.ROOT = previous
-
-    def test_unexpanded_macro_rules_cannot_forge_an_owner_method(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            (root / "mod.rs").write_text("mod owner;\n", encoding="utf-8")
-            child = root / "owner.rs"
-            child.write_text(
-                "macro_rules! inert {\n"
-                "    () => {\n"
-                "        impl Registry { fn phantom_owner(&self) {} }\n"
-                "    };\n"
-                "}\n",
-                encoding="utf-8",
-            )
-            original_root = self.module.ROOT
-            self.module.ROOT = root
-            try:
-                errors = self.module.require_owned_method(
-                    child, "impl", "Registry", "phantom_owner"
-                )
-            finally:
-                self.module.ROOT = original_root
-            self.assertTrue(
-                any("unexpanded macro_rules!" in error for error in errors),
-                f"macro tokens incorrectly granted owner proof: {errors}",
-            )
-
-    def test_external_cfg_disabled_module_cannot_forge_a_proving_test(self):
-        # Real rustc --test compiles zero tests when mod tests; is cfg(any()).
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            parent = root / "mod.rs"
-            child = root / "tests.rs"
-            child.write_text("#[test]\nfn phantom_proof() {}\n", encoding="utf-8")
-            original_root = self.module.ROOT
-            self.module.ROOT = root
-            try:
-                for gate in ('#[cfg(any())]', '#[cfg(feature = "disabled")]'):
-                    with self.subTest(gate=gate):
-                        parent.write_text(f"{gate}\nmod tests;\n", encoding="utf-8")
-                        errors = self.module.require_test_symbol(child, "phantom_proof")
-                        self.assertTrue(
-                            any("external" in error and "conditional" in error for error in errors),
-                            f"cross-file compiler-elided proof falsely admitted: {errors}",
-                        )
-            finally:
-                self.module.ROOT = original_root
-
-    def test_external_cfg_disabled_module_cannot_forge_a_runtime_owner(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            (root / "mod.rs").write_text("#[cfg(any())]\nmod owner;\n", encoding="utf-8")
-            source = root / "owner.rs"
-            source.write_text("impl Registry { fn mark_dispatch_issued(&self) {} }\n", encoding="utf-8")
-            original_root = self.module.ROOT
-            self.module.ROOT = root
-            try:
-                errors = self.module.require_owned_method(
-                    source, "impl", "Registry", "mark_dispatch_issued"
-                )
-            finally:
-                self.module.ROOT = original_root
-        self.assertTrue(
-            any("external" in error and "conditional" in error for error in errors),
-            f"cross-file compiler-elided production contract falsely admitted: {errors}",
-        )
-
-    def test_conditional_external_include_cannot_forge_owner_method(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            parent = root / "mod.rs"
-            source = root / "owner.rs"
-            source.write_text("impl Registry { fn reclaim(&self) {} }\n", encoding="utf-8")
-            original_root = self.module.ROOT
-            self.module.ROOT = root
-            try:
-                parent.write_text('#[cfg(any())]\ninclude!("owner.rs");\n', encoding="utf-8")
-                blocked = self.module.require_owned_method(source, "impl", "Registry", "reclaim")
-                self.assertTrue(
-                    any("conditional" in error and "external" in error for error in blocked),
-                    f"disabled include! is not executable owner proof: {blocked}",
-                )
-                parent.write_text('include!("owner.rs");\n', encoding="utf-8")
-                self.assertEqual(
-                    self.module.require_owned_method(source, "impl", "Registry", "reclaim"), []
-                )
-            finally:
-                self.module.ROOT = original_root
-
-    def test_external_cfg_test_module_is_admitted_in_native_test_context(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            (root / "mod.rs").write_text("#[cfg(test)]\nmod tests;\n", encoding="utf-8")
-            child = root / "tests.rs"
-            child.write_text("#[test]\nfn active_test() {}\n", encoding="utf-8")
-            original_root = self.module.ROOT
-            self.module.ROOT = root
-            try:
-                errors = self.module.require_test_symbol(child, "active_test")
-            finally:
-                self.module.ROOT = original_root
-        self.assertEqual(errors, [])
-
-    def test_cfg_test_only_module_is_valid_when_building_native_tests(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            source = root / "tests.rs"
-            source.write_text(
-                "#[cfg(test)]\nmod tests {\n"
-                "    #[test]\n    fn real_test_witness() {}\n"
-                "}\n",
-                encoding="utf-8",
-            )
-            original_root = self.module.ROOT
-            self.module.ROOT = root
-            try:
-                errors = self.module.require_test_symbol(source, "real_test_witness")
-            finally:
-                self.module.ROOT = original_root
-        self.assertEqual(errors, [])
-
-    def test_test_annotation_accepts_adjacent_attributes(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            source = Path(temporary) / "integration_tests.rs"
-            source.write_text("#[test]\n#[allow(dead_code)]\nfn target() {}\n", encoding="utf-8")
-            original_root = self.module.ROOT
-            self.module.ROOT = Path(temporary)
-            try:
-                errors = self.module.require_test_symbol(source, "target")
-            finally:
-                self.module.ROOT = original_root
-        self.assertEqual(errors, [])
-
-
     def test_physical_witness_must_be_explicitly_ignored(self):
-        trace, invariants = manifests()
-        mutated = copy.deepcopy(trace)
-        mutated["conditionalAcceptanceTests"][0]["symbol"] = "orphaned_terminal_keeps_capacity_reserved"
-        mutated["conditionalAcceptanceTests"][0]["path"] = "crates/ordivon-runtime-core/src/runtime/tests.rs"
-        errors = self.module.validate(mutated, invariants)
-        self.assertTrue(any("not an explicitly ignored" in error for error in errors), errors)
+        trace, _ = manifests()
+        witness = copy.deepcopy(trace["conditionalAcceptanceTests"][0])
+        name = "runtime::integration_tests::" + witness["symbol"]
+        self.assertEqual(self.module._require_native_test_role(witness, {name}, {name}, require_ignored=True), name)
+        witness["path"] = "crates/ordivon-runtime-core/src/runtime/tests.rs"
+        witness["symbol"] = "orphaned_terminal_keeps_capacity_reserved"
+        always_on = "runtime::tests::orphaned_terminal_keeps_capacity_reserved"
+        with self.assertRaisesRegex(ValueError, "invalid ignored/always-on"):
+            self.module._require_native_test_role(
+                witness,
+                {always_on},
+                set(),
+                require_ignored=True,
+            )
 
     def test_missing_conditional_physical_witness_fails_closed(self):
         trace, invariants = manifests()
@@ -780,10 +138,19 @@ trait Provider {
     def test_conditional_evidence_cannot_replace_always_on_oracle(self):
         trace, invariants = manifests()
         mutated = copy.deepcopy(trace)
-        mutated["provingTests"][0]["path"] = "crates/ordivon-runtime-core/src/runtime/integration_tests.rs"
-        mutated["provingTests"][0]["symbol"] = "runtime_two_observers_do_not_race_dispatch_of_one_accepted_attempt"
+        physical = mutated["conditionalAcceptanceTests"][0]
+        mutated["provingTests"][0]["path"] = physical["path"]
+        mutated["provingTests"][0]["symbol"] = physical["symbol"]
         errors = self.module.validate(mutated, invariants)
-        self.assertTrue(any("ignored, not an always-on" in error for error in errors), errors)
+        self.assertTrue(any("conditional opt-in evidence" in e for e in errors), errors)
+        native = "runtime::integration_tests::" + physical["symbol"]
+        with self.assertRaisesRegex(ValueError, "invalid ignored/always-on"):
+            self.module._require_native_test_role(
+                mutated["provingTests"][0],
+                {native},
+                {native},
+                require_ignored=False,
+            )
 
     def test_changed_formal_model_digest_fails_closed(self):
         trace, invariants = manifests()
@@ -797,10 +164,7 @@ trait Provider {
         trace, invariants = manifests()
         bindings = {item["id"] for item in trace["formalSpecification"]["modelBindings"]}
         self.assertIn("RuntimeDispatch.TerminalEvidenceIsCommitted", bindings)
-        terminal = next(
-            item for item in trace["provingTests"]
-            if item["id"] == "RuntimeDispatch.terminalEvidence"
-        )
+        terminal = next(item for item in trace["provingTests"] if item["id"] == "RuntimeDispatch.terminalEvidence")
         self.assertEqual(
             terminal["path"],
             "crates/ordivon-runtime-core/src/runtime/job_attempt_state.rs",
@@ -816,22 +180,18 @@ trait Provider {
         trace, invariants = manifests()
         mutated = copy.deepcopy(trace)
         mutated["formalSpecification"]["modelBindings"] = [
-            row for row in mutated["formalSpecification"]["modelBindings"]
+            row
+            for row in mutated["formalSpecification"]["modelBindings"]
             if row["id"] != "RuntimeDispatch.TerminalEvidenceIsCommitted"
         ]
-        self.assertTrue(any(
-            "formal model binding set drift" in error
-            for error in self.module.validate(mutated, invariants)
-        ))
+        self.assertTrue(
+            any("formal model binding set drift" in error for error in self.module.validate(mutated, invariants))
+        )
         mutated = copy.deepcopy(trace)
         mutated["provingTests"] = [
-            row for row in mutated["provingTests"]
-            if row["id"] != "RuntimeDispatch.terminalEvidence"
+            row for row in mutated["provingTests"] if row["id"] != "RuntimeDispatch.terminalEvidence"
         ]
-        self.assertTrue(any(
-            "proving test set drift" in error
-            for error in self.module.validate(mutated, invariants)
-        ))
+        self.assertTrue(any("proving test set drift" in error for error in self.module.validate(mutated, invariants)))
 
     def test_formal_binding_cannot_relabel_an_existing_tla_operator(self):
         """A present symbol is not proof that it denotes the declared contract."""
@@ -845,8 +205,7 @@ trait Provider {
             with self.subTest(binding=binding_id, alias=other_existing_operator):
                 mutated = copy.deepcopy(trace)
                 target = next(
-                    item for item in mutated["formalSpecification"]["modelBindings"]
-                    if item["id"] == binding_id
+                    item for item in mutated["formalSpecification"]["modelBindings"] if item["id"] == binding_id
                 )
                 target["symbol"] = other_existing_operator
                 errors = self.module.validate(mutated, invariants)
@@ -880,7 +239,8 @@ trait Provider {
     def test_no_competing_live_attempts_model_binding_cannot_vanish(self):
         trace, invariants = manifests()
         trace["formalSpecification"]["modelBindings"] = [
-            row for row in trace["formalSpecification"]["modelBindings"]
+            row
+            for row in trace["formalSpecification"]["modelBindings"]
             if row["id"] != "RuntimeDispatch.NoCompetingLiveAttempts"
         ]
         errors = self.module.validate(trace, invariants)
@@ -893,16 +253,11 @@ trait Provider {
         errors = self.module.validate(mutated, invariants)
         self.assertTrue(any("formal model binding set drift" in error for error in errors), errors)
 
-
     def test_result_provenance_invariants_are_never_dropped_from_tlc_config(self):
         """An RW9 TLC PASS must check matching-result provenance, not only source hashes."""
         trace, _ = manifests()
         config = (ROOT / "formal/RuntimeDispatchR1.cfg").read_text(encoding="utf-8")
-        claimed = {
-            row["symbol"]
-            for row in trace["formalSpecification"]["modelBindings"]
-            if row["kind"] == "invariant"
-        }
+        claimed = {row["symbol"] for row in trace["formalSpecification"]["modelBindings"] if row["kind"] == "invariant"}
         for name in ("MatchingResultRequiredForTerminal", "NoForeignResultIsTerminal"):
             with self.subTest(invariant=name):
                 self.assertIn(f"    {name}\n", config)
@@ -917,9 +272,7 @@ trait Provider {
         # An independently added R2.1 invariant must be checked, not merely
         # named in a proof manifest. No extra schema or proof engine is needed.
         config = (ROOT / "formal/RuntimeDispatchR1.cfg").read_text(encoding="utf-8")
-        missing = self.module.check_tlc_config_obligations(
-            config, {"NewlyClaimedFormalInvariant"}
-        )
+        missing = self.module.check_tlc_config_obligations(config, {"NewlyClaimedFormalInvariant"})
         self.assertTrue(
             any("NewlyClaimedFormalInvariant" in error for error in missing),
             missing,
@@ -944,10 +297,12 @@ trait Provider {
         self.assertIn("Attempts = {A1, A2, A3}", config)
         downgraded = config.replace("Attempts = {A1, A2, A3}", "Attempts = {A1, A2}")
         self.assertNotEqual(downgraded, config)
-        self.assertTrue(any(
-            "at least three distinct Attempts" in error
-            for error in self.module.check_tlc_config_obligations(downgraded)
-        ))
+        self.assertTrue(
+            any(
+                "at least three distinct Attempts" in error
+                for error in self.module.check_tlc_config_obligations(downgraded)
+            )
+        )
         self.assertEqual(self.module.validate(trace, invariants), [])
 
     def test_tlc_checker_obligations_survive_source_digest_refresh(self):
@@ -973,9 +328,7 @@ trait Provider {
                     alternative.write_text(content, encoding="utf-8")
                     fresh = copy.deepcopy(trace)
                     fresh["formalSpecification"]["configPath"] = str(alternative.relative_to(ROOT))
-                    fresh["formalSpecification"]["configSha256"] = hashlib.sha256(
-                        alternative.read_bytes()
-                    ).hexdigest()
+                    fresh["formalSpecification"]["configSha256"] = hashlib.sha256(alternative.read_bytes()).hexdigest()
                     errors = self.module.validate(fresh, invariants)
                     self.assertTrue(
                         any("TLC config" in error for error in errors),
@@ -1007,9 +360,7 @@ trait Provider {
             replacement = f"{relative}::foreign_proof"
             trace["runtimeInvariantBindings"][0]["requiredProofRefs"] = [replacement]
             entry = next(row for row in invariants["invariants"] if row["id"] == "I05")
-            entry["proof"] = [
-                replacement if ref == original else ref for ref in entry["proof"]
-            ]
+            entry["proof"] = [replacement if ref == original else ref for ref in entry["proof"]]
             errors = self.module.validate(trace, invariants)
             self.assertTrue(any("escapes Runtime source" in error for error in errors), errors)
 
@@ -1082,7 +433,7 @@ trait Provider {
         with tempfile.TemporaryDirectory(dir=ROOT / "formal") as folder:
             alias = Path(folder) / "alias_proof.rs"
             alias.symlink_to(real)
-            errors = self.module.require_test_symbol(alias, witness["symbol"])
+            errors = self.module.require_test_source(alias, witness["symbol"])
             self.assertTrue(
                 any("is not an exact Runtime source" in error for error in errors),
                 errors,
@@ -1095,9 +446,7 @@ trait Provider {
         with tempfile.TemporaryDirectory(dir=ROOT / "formal") as folder:
             alias = Path(folder) / "alias_contract.rs"
             alias.symlink_to(real)
-            errors = self.module.require_owned_method(
-                alias, seam["ownerKind"], seam["owner"], seam["symbol"]
-            )
+            errors = self.module.require_contract_source(alias, seam["ownerKind"], seam["owner"], seam["symbol"])
             self.assertTrue(
                 any("is not an exact Runtime source" in error for error in errors),
                 errors,
@@ -1110,7 +459,7 @@ trait Provider {
             with tempfile.TemporaryDirectory(dir=ROOT) as local:
                 link = Path(local) / "outside.rs"
                 link.symlink_to(target)
-                errors = self.module.require_test_symbol(link, "foreign_proof")
+                errors = self.module.require_test_source(link, "foreign_proof")
                 self.assertTrue(any("escapes Runtime source" in error for error in errors), errors)
 
     def test_empty_proof_references_cannot_vacuously_pass(self):
@@ -1120,7 +469,6 @@ trait Provider {
         errors = self.module.validate(mutated, invariants)
         self.assertTrue(any("has no required proof references" in error for error in errors), errors)
 
-
     def test_ignored_physical_proof_ref_cannot_claim_always_on_invariant(self):
         trace, invariants = manifests()
         mutated = copy.deepcopy(trace)
@@ -1129,7 +477,7 @@ trait Provider {
         ]
         errors = self.module.validate(mutated, invariants)
         self.assertTrue(
-            any("ignored, not an always-on proving test" in error for error in errors),
+            any("uses conditional opt-in proof" in error for error in errors),
             errors,
         )
 
@@ -1137,13 +485,9 @@ trait Provider {
         trace, _ = manifests()
         witness = trace["provingTests"][0]
         native = "runtime::tests::" + witness["symbol"]
-        self.assertEqual(
-            self.module._native_witness_name(witness, {native}), native
-        )
+        self.assertEqual(self.module._native_witness_name(witness, {native}), native)
         with self.assertRaisesRegex(ValueError, "not uniquely registered"):
-            self.module._native_witness_name(
-                witness, {"unrelated::tests::" + witness["symbol"]}
-            )
+            self.module._native_witness_name(witness, {"unrelated::tests::" + witness["symbol"]})
 
     def test_native_witness_anti_vacuity_requires_one_executed_pass(self):
         def summary(passed: int, ignored: int, filtered: int) -> str:
@@ -1151,20 +495,46 @@ trait Provider {
                 f"test result: ok. {passed} passed; 0 failed; {ignored} ignored; "
                 f"0 measured; {filtered} filtered out; finished in 0.00s"
             )
+
         self.module._require_exact_native_pass(summary(1, 0, 415))
-        for bad in (summary(0, 0, 416), summary(0, 1, 415),
-                    summary(2, 0, 414), "test result: FAILED"):
+        for bad in (summary(0, 0, 416), summary(0, 1, 415), summary(2, 0, 414), "test result: FAILED"):
             with self.subTest(bad=bad):
                 with self.assertRaises(ValueError):
                     self.module._require_exact_native_pass(bad)
 
+    def test_native_method_contract_manifest_drift_is_rejected(self):
+        trace, invariants = manifests()
+        changed = copy.deepcopy(trace)
+        changed["contractSeams"][0]["symbol"] = "mark_dispatch_from_text_only"
+        errors = self.module.validate(changed, invariants)
+        self.assertTrue(
+            any("native Rust contract seam identity drift" in error for error in errors),
+            errors,
+        )
 
+    def test_all_four_contracts_bind_only_three_compiler_owned_tests(self):
+        trace, _ = manifests()
+        seams = [*trace["contractSeams"], *trace["supportingContracts"]]
+        self.assertEqual(len(seams), 4)
+        names = [self.module.native_contract_expected(seam) for seam in seams]
+        self.assertEqual(len(set(names)), 3)
+        self.assertTrue(all(name.startswith("runtime::") and "native_formal_" in name for name in names))
+
+    def test_runtime_required_proof_cannot_point_to_undeclared_native_test(self):
+        trace, invariants = manifests()
+        mutated = copy.deepcopy(trace)
+        invariant_id = mutated["runtimeInvariantBindings"][0]["id"]
+        foreign = "crates/ordivon-runtime-core/src/runtime/tests.rs::not_a_declared_compiler_test_witness"
+        mutated["runtimeInvariantBindings"][0]["requiredProofRefs"] = [foreign]
+        for row in invariants["invariants"]:
+            if row["id"] == invariant_id:
+                row["proof"].append(foreign)
+        errors = self.module.validate(mutated, invariants)
+        self.assertTrue(any("lacks declared native proving test" in e for e in errors), errors)
 
     def test_runtime_formal_source_impact_is_selective_for_exact_test_file(self):
         trace, invariants = manifests()
-        changed = {
-            "services/runtime/crates/ordivon-runtime-core/src/runtime/execution_provider.rs"
-        }
+        changed = {"services/runtime/crates/ordivon-runtime-core/src/runtime/execution_provider.rs"}
         result = self.module.project_proving_test_source_impact(trace, invariants, changed)
         statuses = {row["id"]: row["standing"] for row in result["standingByWitness"]}
         self.assertEqual(statuses["ExecutionProvider.guaranteeNegativeControl"], "RECHECK_REQUIRED")
@@ -1177,9 +547,7 @@ trait Provider {
         # Actual Rust: runtime/tests.rs::orphaned_terminal_keeps_capacity_reserved
         # calls Registry::commit_terminal, implemented in registry/lifecycle.rs.
         # This path is indexed by registryDispatchCAS but not ambiguityHeld.
-        changed = {
-            "services/runtime/crates/ordivon-runtime-core/src/runtime/registry/lifecycle.rs"
-        }
+        changed = {"services/runtime/crates/ordivon-runtime-core/src/runtime/registry/lifecycle.rs"}
         result = self.module.project_proving_test_source_impact(trace, invariants, changed)
         statuses = {row["id"]: row["standing"] for row in result["standingByWitness"]}
         self.assertEqual(result["unindexedRuntimeChanges"], [])
@@ -1199,18 +567,13 @@ trait Provider {
             "services/runtime/scripts/tests/test_tla_formal_external_jar.py",
         ):
             with self.subTest(path=path):
-                result = self.module.project_proving_test_source_impact(
-                    trace, invariants, {path}
-                )
+                result = self.module.project_proving_test_source_impact(trace, invariants, {path})
                 self.assertEqual(result["unindexedRuntimeChanges"], [])
                 self.assertEqual(
                     {row["standing"] for row in result["standingByWitness"]},
                     {"RECHECK_REQUIRED"},
                 )
-                self.assertTrue(
-                    all(row["matchedChangedPaths"] == [path]
-                        for row in result["standingByWitness"])
-                )
+                self.assertTrue(all(row["matchedChangedPaths"] == [path] for row in result["standingByWitness"]))
 
     def test_runtime_formal_source_impact_model_change_rechecks_all(self):
         trace, invariants = manifests()
@@ -1254,9 +617,7 @@ trait Provider {
             "mise.toml",
         ):
             with self.subTest(path=path):
-                result = self.module.project_proving_test_source_impact(
-                    trace, invariants, {path}
-                )
+                result = self.module.project_proving_test_source_impact(trace, invariants, {path})
                 self.assertEqual(
                     {row["standing"] for row in result["standingByWitness"]},
                     {"UNKNOWN"},
@@ -1277,9 +638,7 @@ trait Provider {
 
     def test_runtime_formal_source_impact_unrelated_repository_change_only_local_hint(self):
         trace, invariants = manifests()
-        result = self.module.project_proving_test_source_impact(
-            trace, invariants, {"README.md"}
-        )
+        result = self.module.project_proving_test_source_impact(trace, invariants, {"README.md"})
         self.assertEqual(
             {row["standing"] for row in result["standingByWitness"]},
             {"REUSE_CANDIDATE"},
@@ -1303,13 +662,13 @@ trait Provider {
             def git(*args):
                 return subprocess.run(
                     ["git", "-C", str(repo), *args],
-                    check=True, capture_output=True,
+                    check=True,
+                    capture_output=True,
                 ).stdout
 
             git("init", "-q")
             git("add", "--", "services/runtime/a.rs", "services/runtime/core.rs")
-            git("-c", "user.name=FormalTest", "-c", "user.email=test@example.invalid",
-                "commit", "-qm", "initial")
+            git("-c", "user.name=FormalTest", "-c", "user.email=test@example.invalid", "commit", "-qm", "initial")
             commit = git("rev-parse", "HEAD").decode().strip()
             original_root = self.module.ROOT
             self.module.ROOT = repo / "services/runtime"
@@ -1325,8 +684,7 @@ trait Provider {
                         # This is the real Git behavior that invalidated the old
                         # --porcelain-only clean-worktree precondition.
                         self.assertEqual(
-                            git("status", "--porcelain", "--untracked-files=normal",
-                                "--", "services/runtime"),
+                            git("status", "--porcelain", "--untracked-files=normal", "--", "services/runtime"),
                             b"",
                         )
                         with self.assertRaisesRegex(ValueError, "unsafe Git index flags"):
@@ -1354,22 +712,21 @@ trait Provider {
 
             def git(*args):
                 return subprocess.run(
-                    ["git", "-C", str(repo), *args], check=True, capture_output=True,
+                    ["git", "-C", str(repo), *args],
+                    check=True,
+                    capture_output=True,
                 ).stdout
 
             git("init", "-q")
             git("add", ".")
-            git("-c", "user.name=FormalTest", "-c", "user.email=test@example.invalid",
-                "commit", "-qm", "source-cut")
+            git("-c", "user.name=FormalTest", "-c", "user.email=test@example.invalid", "commit", "-qm", "source-cut")
             commit = git("rev-parse", "HEAD").decode().strip()
             previous_root = self.module.ROOT
             self.module.ROOT = repo / "services/runtime"
             try:
                 self.assertEqual(self.module._git_source_changes(commit, commit), set())
                 mise.write_text('[tools]\npython = "0.0.0"\n', encoding="utf-8")
-                self.assertEqual(
-                    git("status", "--porcelain", "--", "services/runtime"), b""
-                )
+                self.assertEqual(git("status", "--porcelain", "--", "services/runtime"), b"")
                 with self.assertRaisesRegex(ValueError, "worktree is dirty"):
                     self.module._git_source_changes(commit, commit)
                 mise.write_text(mise_original, encoding="utf-8")
@@ -1400,15 +757,19 @@ trait Provider {
             (source / "core.rs").write_text("fn baseline() {}\\n", encoding="utf-8")
 
             def git(*args):
-                return subprocess.run(
-                    ["git", "-C", str(repo), *args],
-                    check=True, capture_output=True,
-                ).stdout.decode().strip()
+                return (
+                    subprocess.run(
+                        ["git", "-C", str(repo), *args],
+                        check=True,
+                        capture_output=True,
+                    )
+                    .stdout.decode()
+                    .strip()
+                )
 
             def commit(msg):
                 git("add", ".")
-                git("-c", "user.name=FormalTest", "-c",
-                    "user.email=test@example.invalid", "commit", "-qm", msg)
+                git("-c", "user.name=FormalTest", "-c", "user.email=test@example.invalid", "commit", "-qm", msg)
                 return git("rev-parse", "HEAD")
 
             git("init", "-q")

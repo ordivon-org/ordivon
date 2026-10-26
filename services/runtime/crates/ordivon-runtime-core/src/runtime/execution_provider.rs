@@ -537,4 +537,15 @@ mod local_linux_adapter_tests {
             sha256_file(std::path::Path::new("/usr/bin/true")).unwrap()
         );
     }
+
+    #[test]
+    fn native_formal_execution_provider_spi_contract() {
+        // The generic body is typechecked against the SPI contract even
+        // before choosing any concrete Linux/Windows implementation.
+        #[allow(dead_code)]
+        fn check<T: ExecutionProviderSpi>() {
+            let _: fn(&T, &RuntimeExecutionPlan, &AttemptRecord) -> RuntimeResult<T::Owner> =
+                T::realize;
+        }
+    }
 }
