@@ -134,7 +134,7 @@ async def _qualify_gateway_operation_ref(
         return  # Legacy non-HTTP path; no identity qualification asserted.
     if not isinstance(public_request_id, str) or not public_request_id:
         raise ToolError("verified operation requires original requestId")
-    if not isinstance(capability, str) or not capability.startswith("execution."):
+    if not isinstance(capability, str) or not capability:
         raise ToolError("verified operation requires original capability")
     owner_request_id = _verified_execution_request_id(public_request_id, capability, context)
     try:
