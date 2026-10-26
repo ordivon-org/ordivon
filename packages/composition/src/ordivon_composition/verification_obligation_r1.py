@@ -711,6 +711,9 @@ def _parser() -> argparse.ArgumentParser:
     impact_parser = sub.add_parser("select-impact")
     impact_parser.add_argument("git_source_delta", type=Path)
     impact_parser.add_argument("obligations", type=Path)
+    # A caller-supplied JSON report is not native Git evidence. Verify it
+    # against the exact immutable source cuts before using it for scheduling.
+    impact_parser.add_argument("--repo", type=Path, required=True)
     impact_parser.add_argument("--unknown-refs", type=Path)
 
     manifest_parser = sub.add_parser("impact-manifests")
@@ -774,7 +777,31 @@ def main() -> int:
                 raise CircuitContractError(
                     "select-impact cannot promote unqualified Git source evidence"
                 )
-            roots, changes = delta.get("authorityRefs"), delta.get("changedRefs")
+            # Re-evaluate the complete typed delta using the existing Git
+            # owner projection rather than believing an unauthenticated report.
+            # This protects even non-authoritative REUSE_CANDIDATE scheduling
+            # against omitted or forged changedRefs/source scope metadata.
+            try:
+                from tools.repo.source_history_legos import source_membership_delta
+
+                cuts = delta.get("sourceCuts")
+                if not isinstance(cuts, dict):
+                    raise ValueError("sourceCuts must specify immutable Git commits")
+                qualified = source_membership_delta(
+                    args.repo,
+                    cuts.get("previous"),
+                    cuts.get("current"),
+                    delta.get("queryPrefix"),
+                )
+            except (ValueError, OSError, TypeError, ImportError) as exc:
+                raise CircuitContractError(
+                    "select-impact requires independently recomputable native Git scope"
+                ) from exc
+            if qualified != delta:
+                raise CircuitContractError(
+                    "select-impact Git report differs from exact native source delta"
+                )
+            roots, changes = qualified["authorityRefs"], qualified["changedRefs"]
             if (
                 not isinstance(roots, list)
                 or not isinstance(changes, list)
