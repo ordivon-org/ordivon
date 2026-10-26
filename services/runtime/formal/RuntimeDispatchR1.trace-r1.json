@@ -6,7 +6,7 @@
   "truthRole": "traceability-gate-not-mechanized-refinement-proof",
   "formalSpecification": {
     "modulePath": "formal/RuntimeDispatchR1.tla",
-    "moduleSha256": "cda40a0e1861f67ad58e104bb239036c673cb73838e76ee102599ca06dbac8bb",
+    "moduleSha256": "b954f248d2c9096ddca3af5866ad9087152b591d3f9cb6d76888166f5a4a0f1f",
     "configPath": "formal/RuntimeDispatchR1.cfg",
     "configSha256": "e6beb2c543bb16dffce99523a33453a890be18263af197b085bfa597958b9ae6",
     "modelBindings": [
