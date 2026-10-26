@@ -586,3 +586,44 @@ def test_owner_evidence_rejects_mixed_absolute_and_relative_representations() ->
     plan["project"]["sourceEvidence"] = ["README.md", "services/host/README.md"]
     with pytest.raises(module.ArchitectureDocsError, match="duplicate"):
         module.validate_owner_lego_source_evidence(ROOT, relative, plan)
+
+def test_native_owner_source_projection_is_scoped_and_deterministic() -> None:
+    first = module.project_owner_lego_source_graph(ROOT)
+    assert first == module.project_owner_lego_source_graph(ROOT)
+    assert first["truthRole"] == "DERIVED_READ_ONLY_SOURCE_PLANNING_NOT_LEGO_TRUTH"
+    assert "ACTUAL_CONSUMER" in first["excluded"]["unverifiedFacets"]
+    assert "CROSS_OWNER_RELATION_CLOSURE" in first["excluded"]["unverifiedFacets"]
+    assert all(row["sha256"].startswith("sha256:") for row in first["sourcePlans"])
+    names = {row["ref"] for row in first["vertices"]}
+    assert all(row["from"] in names and row["to"] in names for row in first["relations"])
+    assert len(names) == len(first["vertices"])
+    assert any("NODE_DEPENDENCIES" in row["declaredBy"] for row in first["relations"])
+    assert all("#" in row["ref"] for row in first["vertices"])
+    # The CLI is the existing checker; no persistent graph DB or second registry.
+    assert module.main(["--project-owner-graphs"]) == 0
+
+
+def test_native_owner_source_projection_qualifies_local_ids() -> None:
+    projection = module.project_owner_lego_source_graph(ROOT)
+    owners = {ref.split("#", 1)[0] for ref in (row["ref"] for row in projection["vertices"])}
+    assert set(module.OWNER_LEGO_PLANS) == owners
+    for edge in projection["relations"]:
+        # R1 edges are Owner-local declarations, not invented cross-owner consumers.
+        assert edge["from"].split("#", 1)[0] == edge["to"].split("#", 1)[0]
+
+
+def test_native_owner_source_projection_rejects_unvalidated_node_source(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    original = module._load_json
+    owner = module.OWNER_LEGO_PLANS[0]
+
+    def corrupted(path: Path) -> dict:
+        result = original(path)
+        if path.relative_to(ROOT).as_posix() == owner:
+            result["nodes"][0]["id"] = "invalid identity"
+        return result
+
+    monkeypatch.setattr(module, "_load_json", corrupted)
+    with pytest.raises(module.ArchitectureDocsError, match="non-canonical LEGO node"):
+        module.project_owner_lego_source_graph(ROOT)

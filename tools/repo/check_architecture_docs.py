@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import argparse
+import hashlib
 import ast
 import json
 import math
@@ -379,6 +381,69 @@ def validate_owner_lego_graph(plan: dict[str, Any]) -> None:
     # Typed relations are structural; OBSERVATION/STATE cycles are allowed.
     _validated_owner_lego_edges(plan.get("edges", []), identities)
 
+
+
+def project_owner_lego_source_graph(root: Path = ROOT) -> dict[str, Any]:
+    """Rebuild a *source planning* view; never attest a real LEGO or consumer.
+
+    Owner-local IDs have no cross-owner identity. Preserve source paths,
+    source byte digests, relation kinds, and declaration carriers; reuse the
+    native structural and source guards rather than inventing a graph store.
+    """
+    source_plans: list[dict[str, str]] = []
+    vertices: list[dict[str, Any]] = []
+    relation_carriers: dict[tuple[str, str, str], set[str]] = {}
+    for relative in OWNER_LEGO_PLANS:
+        path = _source_bound_file(root, relative, "registered Owner LEGO plan")
+        before = path.read_bytes()
+        plan = _load_json(path)
+        owner = relative.split("/planning/", 1)[0]
+        validate_owner_lego_graph(plan)
+        validate_owner_lego_dependencies(plan, owner)
+        validate_owner_lego_source_evidence(root, relative, plan)
+        if path.read_bytes() != before:
+            raise ArchitectureDocsError(f"Owner source changed during projection: {relative}")
+        source_plans.append({
+            "path": relative,
+            "sha256": "sha256:" + hashlib.sha256(before).hexdigest(),
+        })
+        ids = {node["id"] for node in plan["nodes"]}
+
+        def ref(local_id: str) -> str:
+            return f"{relative}#{local_id}"
+
+        for node in plan["nodes"]:
+            vertices.append({
+                "ref": ref(node["id"]),
+                "declaredKind": node["kind"],
+                "declaredEvidence": node.get("evidence", []),
+            })
+            for prerequisite in node["dependencies"]:
+                key = (ref(prerequisite), "DEPENDENCY", ref(node["id"]))
+                relation_carriers.setdefault(key, set()).add("NODE_DEPENDENCIES")
+        for source, kind, target in _validated_owner_lego_edges(plan.get("edges", []), ids):
+            key = (ref(source), kind, ref(target))
+            relation_carriers.setdefault(key, set()).add("TYPED_EDGE")
+
+    return {
+        "kind": "ordivon.owner-lego-planning-source-projection",
+        "truthRole": "DERIVED_READ_ONLY_SOURCE_PLANNING_NOT_LEGO_TRUTH",
+        "sourceCut": "WORKTREE_BYTES_ONLY_GIT_AND_INSTALLED_UNQUALIFIED",
+        "sourcePlans": source_plans,
+        "vertices": sorted(vertices, key=lambda item: item["ref"]),
+        "relations": [
+            {"from": source, "type": kind, "to": target, "declaredBy": sorted(carriers)}
+            for (source, kind, target), carriers in sorted(relation_carriers.items())
+        ],
+        "excluded": {
+            "ownerPlanRevisions": sorted(OWNER_LEGO_PLAN_PROJECTIONS),
+            "unverifiedFacets": [
+                "ACTUAL_LEGO_IDENTITY", "ACTUAL_CONSUMER", "FORMAL_PROOF",
+                "CONFIGURED", "INSTALLED", "EXECUTED", "CURRENTNESS",
+                "CROSS_OWNER_RELATION_CLOSURE", "DYNAMIC_DEPENDENCIES",
+            ],
+        },
+    }
 
 def validate_deployed_graph(value: dict[str, Any]) -> None:
     _require_exact_schema_one(value, "deployed architecture")
@@ -1243,8 +1308,14 @@ def validate_repository(root: Path = ROOT) -> None:
             raise ArchitectureDocsError(f"historical architecture file lacks supersession marker: {candidate}")
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--project-owner-graphs", action="store_true")
+    args = parser.parse_args(argv)
     try:
+        if args.project_owner_graphs:
+            print(json.dumps(project_owner_lego_source_graph(), sort_keys=True))
+            return 0
         validate_repository()
     except (OSError, json.JSONDecodeError, ArchitectureDocsError) as exc:
         print(f"architecture documentation drift check failed: {exc}")
