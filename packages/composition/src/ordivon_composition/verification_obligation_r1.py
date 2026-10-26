@@ -815,18 +815,40 @@ def main() -> int:
             # This protects even non-authoritative REUSE_CANDIDATE scheduling
             # against omitted or forged changedRefs/source scope metadata.
             try:
-                from tools.repo.source_history_legos import source_membership_delta
+                import subprocess
+                import sys
 
+                # Composition is an installable package, not a child import
+                # namespace of the repository root. Call the existing Git
+                # source owner CLI through its native interface instead of
+                # depending on a mutable ambient PYTHONPATH.
+                owner_cli = (
+                    Path(__file__).resolve().parents[4] / "tools/repo/source_history_legos.py"
+                )
+                if not owner_cli.is_file():
+                    raise ValueError("Git source owner CLI is unavailable")
                 cuts = delta.get("sourceCuts")
                 if not isinstance(cuts, dict):
                     raise ValueError("sourceCuts must specify immutable Git commits")
-                qualified = source_membership_delta(
-                    args.repo,
-                    cuts.get("previous"),
-                    cuts.get("current"),
-                    delta.get("queryPrefix"),
+                qualified = json.loads(
+                    subprocess.check_output(
+                        [
+                            sys.executable,
+                            str(owner_cli),
+                            "--repo",
+                            str(args.repo),
+                            "--left",
+                            cuts.get("previous"),
+                            "--right",
+                            cuts.get("current"),
+                            "--impact-prefix",
+                            delta.get("queryPrefix"),
+                        ],
+                        text=True,
+                        stderr=subprocess.PIPE,
+                    )
                 )
-            except (ValueError, OSError, TypeError, ImportError) as exc:
+            except (ValueError, OSError, TypeError, subprocess.CalledProcessError) as exc:
                 raise CircuitContractError(
                     "select-impact requires independently recomputable native Git scope"
                 ) from exc

@@ -1649,6 +1649,7 @@ def test_immutable_manifest_sourcecut_ignores_native_git_replace_refs(tmp_path) 
     assert evidence["commit"] == initial_cut
     assert restored == original
 
+
 def test_real_git_delta_rechecks_recursive_proof_cycle_and_rejects_omission(tmp_path):
     """Exact native source changes propagate through an SCC, never via a forged report."""
     import json
