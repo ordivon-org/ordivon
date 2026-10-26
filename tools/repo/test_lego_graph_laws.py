@@ -992,3 +992,118 @@ def test_declared_graph_relation_deletion_invalidates_both_old_and_new_endpoints
     assert refs[0] in result["directChangedRefs"] and refs[1] in result["directChangedRefs"]
     assert result["proofReuseAdmissible"] is False
     assert result["unindexedChangedPaths"] == ["plans/graph.json"]
+
+
+def test_git_qualified_harness_h01_syntax_importers_are_real_source_edges(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import subprocess
+    from tools.repo.source_history_legos import current_tree
+
+    rev = subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+    ).strip()
+    target = "services/harness/src/ordivon_harness/ordivon/events.py"
+    result = module.project_node_python_import_syntax(
+        source_revision=rev,
+        node_ref="services/harness/planning/lego-plan-r1.json#H01",
+        target_source=target,
+    )
+    assert result["targetGitBlobIdentity"] == current_tree(ROOT, rev)[target]
+    assert result["targetPythonModule"] == "ordivon_harness.ordivon.events"
+    imports = {row["sourcePath"]: row for row in result["candidateImporters"]}
+    assert {
+        "services/harness/src/ordivon_harness/ordivon/loop.py",
+        "services/harness/src/ordivon_harness/domain_tools.py",
+        "services/harness/src/ordivon_harness/independent_result.py",
+        "services/harness/tests/test_trace_type_refinement.py",
+    } <= set(imports)
+    assert all(
+        row["gitBlobIdentity"] == current_tree(ROOT, rev)[path]
+        for path, row in imports.items()
+    )
+    trace = imports["services/harness/src/ordivon_harness/ordivon/loop.py"]
+    assert {entry["name"] for entry in trace["importSyntax"]} == {
+        "HarnessRunEvent", "HarnessTrace", "TraceRecorder",
+    }
+    assert all(
+        entry["targetDefinitionStanding"] == "SOURCE_TOP_LEVEL_DEFINED"
+        for entry in trace["importSyntax"]
+    )
+    assert "externalConsumersCovered" in result["scanBoundary"]
+    assert result["scanBoundary"]["externalConsumersCovered"] is False
+    assert "NOT_RUNTIME_CONSUMER_TRUTH" in result["truthRole"]
+
+    # Immutable Git source qualification cannot be replaced with current
+    # mutable checkout bytes or an attractive Agent-generated source snippet.
+    def reject_worktree(*_args, **_kwargs):
+        raise AssertionError("source importer scan attempted mutable worktree read")
+    monkeypatch.setattr(module, "_source_bound_file", reject_worktree)
+    assert module.project_node_python_import_syntax(
+        source_revision=rev,
+        node_ref=result["declaredNodeRef"],
+        target_source=target,
+    ) == result
+
+
+def test_ast_imports_reject_comments_strings_dynamic_and_unresolved_symbols(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import subprocess
+    from tools.repo.source_history_legos import current_tree
+
+    root = tmp_path
+    source = root / "services/harness/src/pkg"
+    source.mkdir(parents=True)
+    (source / "target.py").write_text("class Real: pass\n", encoding="utf-8")
+    (source / "consumer.py").write_text("from .target import Real\n", encoding="utf-8")
+    (source / "__init__.py").write_text("from .target import Real\n", encoding="utf-8")
+    (source / "dead.py").write_text("if False:\n    from .target import Real\n", encoding="utf-8")
+    (source / "comment.py").write_text(
+        "# from .target import Real\n"
+        "comment = 'from .target import Real'\n",
+        encoding="utf-8",
+    )
+    (source / "dynamic.py").write_text(
+        "import importlib\nname='pkg.target'\nimportlib.import_module(name)\n",
+        encoding="utf-8",
+    )
+    (source / "missing.py").write_text("from .target import NotDefined\n", encoding="utf-8")
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(
+            ["git", "-C", str(root), *args], text=True,
+        ).strip()
+    git("init", "-q")
+    git("add", ".")
+    git("-c", "user.name=GraphTest", "-c", "user.email=test@example.invalid",
+        "commit", "-qm", "source")
+    rev = git("rev-parse", "HEAD")
+    target = "services/harness/src/pkg/target.py"
+    plan_ref = "services/harness/planning/lego-plan-r1.json#H01"
+    blob = current_tree(root, rev)[target]
+    def fixture_graph(_root, *, source_revision):
+        assert source_revision == rev
+        return {
+            "vertices": [
+                {"ref": plan_ref, "sourceAnchors": [
+                    {"path": target, "sourceIdentity": blob}
+                ]}
+            ],
+        }
+    monkeypatch.setattr(module, "project_owner_lego_source_graph", fixture_graph)
+    result = module.project_node_python_import_syntax(
+        source_revision=rev, node_ref=plan_ref, target_source=target, root=root,
+    )
+    got = {row["sourcePath"].rsplit("/", 1)[1]: row for row in result["candidateImporters"]}
+    assert set(got) == {"__init__.py", "consumer.py", "dead.py", "missing.py"}
+    assert got["consumer.py"]["importSyntax"][0]["targetDefinitionStanding"] == "SOURCE_TOP_LEVEL_DEFINED"
+    assert got["missing.py"]["importSyntax"][0]["targetDefinitionStanding"] == "UNRESOLVED_OR_REEXPORTED"
+    # Dead imports are still only *syntax*, never EXECUTED consumers.
+    assert got["dead.py"]["qualification"] == "PYTHON_AST_IMPORT_SYNTAX_ONLY_NOT_EXECUTION"
+    assert result["scanBoundary"]["dynamicImportsResolved"] is False
+    with pytest.raises(module.ArchitectureDocsError, match="not node-anchored"):
+        module.project_node_python_import_syntax(
+            source_revision=rev, node_ref=plan_ref,
+            target_source="services/harness/src/pkg/consumer.py", root=root,
+        )
