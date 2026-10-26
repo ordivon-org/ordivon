@@ -1158,10 +1158,13 @@ CREATE TABLE _stage_control(
             "INSERT INTO attempts(attempt_id,job_id,attempt_number,state,termination_intent,launch_token_digest,bundle_path,unit_name,created_at_ms,row_version) VALUES($1,$2,2,'accepted','natural','launch-new','/nonproduction/new','newer.service',$3,0)",
             &[&"attempt-newer", &input.job_id, &input.created_at_ms],
         ).unwrap();
-        scratch.admin.execute(
-            "UPDATE jobs SET current_attempt_id='attempt-newer' WHERE job_id=$1",
-            &[&input.job_id],
-        ).unwrap();
+        scratch
+            .admin
+            .execute(
+                "UPDATE jobs SET current_attempt_id='attempt-newer' WHERE job_id=$1",
+                &[&input.job_id],
+            )
+            .unwrap();
 
         let old_attempt = PgTerminalNoArtifacts {
             attempt_id: input.attempt_id.clone(),
@@ -1178,14 +1181,22 @@ CREATE TABLE _stage_control(
             Err(PgAdmissionError::Blocked)
         ));
         assert_eq!(scratch.count("job_events"), 3, "no stale terminal event");
-        let state: String = scratch.admin.query_one(
-            "SELECT state FROM attempts WHERE attempt_id=$1", &[&input.attempt_id]
-        ).unwrap().get(0);
+        let state: String = scratch
+            .admin
+            .query_one(
+                "SELECT state FROM attempts WHERE attempt_id=$1",
+                &[&input.attempt_id],
+            )
+            .unwrap()
+            .get(0);
         assert_eq!(state, "accepted", "old Attempt must remain unchanged");
-        let job = scratch.admin.query_one(
-            "SELECT resolution,current_attempt_id FROM jobs WHERE job_id=$1",
-            &[&input.job_id]
-        ).unwrap();
+        let job = scratch
+            .admin
+            .query_one(
+                "SELECT resolution,current_attempt_id FROM jobs WHERE job_id=$1",
+                &[&input.job_id],
+            )
+            .unwrap();
         let resolution: Option<String> = job.get(0);
         let current: Option<String> = job.get(1);
         assert_eq!((resolution, current), (None, Some("attempt-newer".into())));
