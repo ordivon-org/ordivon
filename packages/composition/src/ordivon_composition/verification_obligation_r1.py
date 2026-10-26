@@ -240,6 +240,99 @@ def resolve_verifier_bindings(
     return projection
 
 
+def select_impacted_obligations(
+    *,
+    authority_refs: list[str],
+    obligations: list[dict[str, Any]],
+    changed_refs: list[str],
+    unknown_refs: list[str] | None = None,
+) -> dict[str, Any]:
+    """Task-local conservative proof impact projection, never verifier authority.
+
+    Caller-reported dependency completeness is an explicit assumption, not
+    proof of graph closure. REUSE_CANDIDATE is not PASS/current acceptance.
+    """
+
+    def require_refs(values: list[str], label: str) -> set[str]:
+        if not isinstance(values, list) or any(
+            not isinstance(ref, str) or ":" not in ref or not ref.strip() for ref in values
+        ):
+            raise CircuitContractError(f"{label} needs nonempty typed references")
+        if len(values) != len(set(values)):
+            raise CircuitContractError(f"{label} has duplicate references")
+        return set(values)
+
+    roots = require_refs(authority_refs, "authorityRefs")
+    changed = require_refs(changed_refs, "changedRefs")
+    unknown = require_refs(unknown_refs if unknown_refs is not None else [], "unknownRefs")
+    claims: dict[str, dict[str, Any]] = {}
+    for item in obligations:
+        if not isinstance(item, dict) or set(item) != {"id", "dependsOn", "dependenciesComplete"}:
+            raise CircuitContractError("obligation requires id, dependsOn, dependenciesComplete")
+        identity = item["id"]
+        require_refs([identity], "obligation id")
+        require_refs(item["dependsOn"], "dependsOn")
+        if type(item["dependenciesComplete"]) is not bool:
+            raise CircuitContractError("dependenciesComplete must be JSON boolean")
+        if identity in claims or identity in roots:
+            raise CircuitContractError(f"duplicate obligation/source identity: {identity}")
+        claims[identity] = dict(item)
+
+    unindexed = sorted((changed | unknown) - (roots | set(claims)))
+    rows = [{"id": root, "dependsOn": []} for root in roots]
+    rows += [{"id": identity, "dependsOn": item["dependsOn"]} for identity, item in claims.items()]
+    from .cognitive_circuit_r1 import _topological_order
+
+    order = _topological_order(rows)
+    statuses: dict[str, str] = {}
+    for identity in order:
+        if identity in roots:
+            statuses[identity] = (
+                "RECHECK_REQUIRED"
+                if identity in changed
+                else "UNKNOWN"
+                if identity in unknown or unindexed
+                else "REUSE_CANDIDATE"
+            )
+            continue
+        item = claims[identity]
+        upstream = [statuses[ref] for ref in item["dependsOn"]]
+        if identity in changed or "RECHECK_REQUIRED" in upstream:
+            statuses[identity] = "RECHECK_REQUIRED"
+        elif (
+            identity in unknown
+            or unindexed
+            or not item["dependenciesComplete"]
+            or "UNKNOWN" in upstream
+        ):
+            statuses[identity] = "UNKNOWN"
+        else:
+            statuses[identity] = "REUSE_CANDIDATE"
+
+    return {
+        "kind": "ordivon.task-local-obligation-impact",
+        "truthRole": "rebuildable-non-authoritative-selection",
+        "standingByObligation": [
+            {"id": identity, "standing": statuses[identity]} for identity in sorted(claims)
+        ],
+        "unindexedChangeRefs": unindexed,
+        "basisDigest": canonical_digest(
+            {
+                "authorityRefs": sorted(roots),
+                "obligations": sorted(claims.values(), key=lambda x: x["id"]),
+                "changedRefs": sorted(changed),
+                "unknownRefs": sorted(unknown),
+            }
+        ),
+        "nonClaims": [
+            "REUSE_CANDIDATE never claims verifier PASS or current correctness.",
+            "dependenciesComplete is an unproven caller-supplied assertion.",
+            "Unresolved dynamic/foreign dependencies must remain UNKNOWN.",
+            "No verifier execution, effect permission, or domain acceptance.",
+        ],
+    }
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest="command", required=True)

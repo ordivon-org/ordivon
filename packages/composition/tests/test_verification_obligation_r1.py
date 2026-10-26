@@ -8,6 +8,7 @@ from ordivon_composition.cognitive_circuit_r1 import CircuitContractError, canon
 from ordivon_composition.verification_obligation_r1 import (
     compile_verification_obligations,
     resolve_verifier_bindings,
+    select_impacted_obligations,
     validate_obligation_set,
 )
 
@@ -279,3 +280,112 @@ def test_native_specification_reference_is_bound_but_not_interpreted() -> None:
     assert native is not None
     assert native["id"] == "spec:producer-contract-r1"
     assert resolution["executionAuthorityGranted"] is False
+
+
+def _impact(*, graph=None, changed=None, unknown=None):
+    return select_impacted_obligations(
+        authority_refs=["source:runtime", "installed:runtime", "source:host"],
+        obligations=graph
+        if graph is not None
+        else [
+            {"id": "proof:runtime", "dependsOn": ["source:runtime"], "dependenciesComplete": True},
+            {
+                "id": "proof:composite",
+                "dependsOn": ["proof:runtime", "installed:runtime"],
+                "dependenciesComplete": True,
+            },
+            {"id": "proof:host", "dependsOn": ["source:host"], "dependenciesComplete": True},
+        ],
+        changed_refs=changed or [],
+        unknown_refs=unknown or [],
+    )
+
+
+def _statuses(projection):
+    return {r["id"]: r["standing"] for r in projection["standingByObligation"]}
+
+
+def test_impact_selective_delta_preserves_independent_proof_candidate():
+    result = _impact(changed=["source:runtime"])
+    assert _statuses(result) == {
+        "proof:runtime": "RECHECK_REQUIRED",
+        "proof:composite": "RECHECK_REQUIRED",
+        "proof:host": "REUSE_CANDIDATE",
+    }
+    assert result["basisDigest"] == _impact(changed=["source:runtime"])["basisDigest"]
+
+
+def test_impact_unknown_currentness_propagates_without_false_recheck():
+    result = _impact(unknown=["installed:runtime"])
+    assert _statuses(result) == {
+        "proof:runtime": "REUSE_CANDIDATE",
+        "proof:composite": "UNKNOWN",
+        "proof:host": "REUSE_CANDIDATE",
+    }
+
+
+def test_impact_unresolved_dynamic_edges_never_promote_reuse():
+    graph = [
+        {"id": "proof:dynamic", "dependsOn": ["source:runtime"], "dependenciesComplete": False},
+        {"id": "proof:consumer", "dependsOn": ["proof:dynamic"], "dependenciesComplete": True},
+    ]
+    assert _statuses(_impact(graph=graph)) == {
+        "proof:dynamic": "UNKNOWN",
+        "proof:consumer": "UNKNOWN",
+    }
+    assert _statuses(_impact(graph=graph, changed=["source:runtime"])) == {
+        "proof:dynamic": "RECHECK_REQUIRED",
+        "proof:consumer": "RECHECK_REQUIRED",
+    }
+
+
+def test_impact_unindexed_environment_delta_fails_closed():
+    result = _impact(changed=["external:unknown-plugin"])
+    assert result["unindexedChangeRefs"] == ["external:unknown-plugin"]
+    assert set(_statuses(result).values()) == {"UNKNOWN"}
+
+
+def test_impact_rejects_graph_cycles_missing_edges_and_fake_completeness():
+    base = [{"id": "proof:a", "dependsOn": ["source:runtime"], "dependenciesComplete": True}]
+    with pytest.raises(CircuitContractError, match="depends on unknown"):
+        _impact(graph=[{**base[0], "dependsOn": ["source:missing"]}])
+    with pytest.raises(CircuitContractError, match="dependency cycle"):
+        _impact(
+            graph=[
+                {"id": "proof:a", "dependsOn": ["proof:b"], "dependenciesComplete": True},
+                {"id": "proof:b", "dependsOn": ["proof:a"], "dependenciesComplete": True},
+            ]
+        )
+    with pytest.raises(CircuitContractError, match="duplicate"):
+        _impact(graph=base + base)
+    with pytest.raises(CircuitContractError, match="JSON boolean"):
+        _impact(graph=[{**base[0], "dependenciesComplete": "true"}])
+
+
+def test_impact_bounded_dag_family_matches_independent_forward_oracle():
+    from itertools import combinations
+
+    names = ["proof:a", "proof:b", "proof:c"]
+    arcs = [(names[a], names[b]) for a in range(3) for b in range(a + 1, 3)]
+    roots = ["source:a", "source:b", "source:c"]
+    for count in range(4):
+        for chosen in combinations(arcs, count):
+            rows = []
+            for i, identity in enumerate(names):
+                deps = [roots[i]] + [parent for parent, target in chosen if target == identity]
+                rows.append({"id": identity, "dependsOn": deps, "dependenciesComplete": True})
+            for mask in range(8):
+                changed = [r for i, r in enumerate(roots) if mask & (1 << i)]
+                result = select_impacted_obligations(
+                    authority_refs=roots, obligations=rows, changed_refs=changed
+                )
+                impacted = set(changed)
+                for identity in names:
+                    item = next(r for r in rows if r["id"] == identity)
+                    if any(dep in impacted for dep in item["dependsOn"]):
+                        impacted.add(identity)
+                assert {
+                    identity
+                    for identity, status in _statuses(result).items()
+                    if status == "RECHECK_REQUIRED"
+                } == impacted.intersection(names)
