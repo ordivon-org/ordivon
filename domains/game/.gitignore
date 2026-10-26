@@ -34,3 +34,4 @@ Thumbs.db
 experiments/veilwild-r1/godot/.godot/
 experiments/veilwild-r1/build/*
 !experiments/veilwild-r1/build/.gitkeep
+\n# Godot native composition acceptance fixture\ntest/fixtures/native-godot-assembly/.godot/\n

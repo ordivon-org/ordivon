@@ -11,8 +11,10 @@ owners: [ordivon-game]
 # Game LEGO authority
 
 First-party Game products and playable research apparatus: RETIRED.
-Current reusable knowledge responsibilities: planning/lego-plan-r1.json,
-external sources, mechanism experience, relationships and counterexamples.
+Current owner responsibilities: planning/lego-plan-r1.json, source-bound
+external sources/mechanism experience/relationships/counterexamples and
+G06's bounded native-Godot assembly acceptance. G06 is test evidence for
+a real native seam, not a first-party product, framework or generic proof.
 
 Game does not own a generic engine, Mod-loader, workflow service, runtime,
 AI model, state store, or enjoyment authority. A new actual game owns its
