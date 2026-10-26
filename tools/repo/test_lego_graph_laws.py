@@ -603,6 +603,74 @@ def test_native_owner_source_projection_is_scoped_and_deterministic() -> None:
     assert module.main(["--project-owner-graphs"]) == 0
 
 
+def test_native_git_sourcecut_graph_ignores_mutable_worktree_plan(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Git source identity must bind projected node bytes, not only plan hashes."""
+    import subprocess
+
+    sha = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
+    baseline = module.project_owner_lego_source_graph(ROOT, source_revision=sha)
+    assert baseline["sourceCut"] == sha
+    original = module._load_json
+    chosen = module.OWNER_LEGO_PLANS[0]
+
+    def mutable_substitution(path: Path, *, source_bytes=None):
+        result = original(path) if source_bytes is None else original(path, source_bytes=source_bytes)
+        if path.relative_to(ROOT).as_posix() == chosen and source_bytes is None:
+            result["nodes"][0]["id"] = "forged worktree identity"
+        return result
+
+    monkeypatch.setattr(module, "_load_json", mutable_substitution)
+    assert module.project_owner_lego_source_graph(ROOT, source_revision=sha) == baseline
+
+
+def test_git_sourcecut_evidence_carriers_match_exact_git_tree(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import subprocess
+    from tools.repo.source_history_legos import current_tree
+
+    sha = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
+    identity = current_tree(ROOT, sha)
+    projection = module.project_owner_lego_source_graph(ROOT, source_revision=sha)
+    carriers = projection["sourceEvidenceCarriers"]
+    assert carriers
+    assert all(item["gitBlobIdentity"] == identity[item["path"]] for item in carriers)
+    assert len({item["path"] for item in carriers}) == len(carriers)
+    assert "INSTALLED" in projection["excluded"]["unverifiedFacets"]
+
+    # The Git-only mode must remain reconstructable even when the current
+    # worktree is unavailable/untrusted. Do not infer installed source bytes.
+    def refuse_worktree(*_args, **_kwargs):
+        raise AssertionError("immutable Git projection attempted worktree read")
+    monkeypatch.setattr(module, "_source_bound_file", refuse_worktree)
+    assert module.project_owner_lego_source_graph(ROOT, source_revision=sha) == projection
+
+
+def test_git_sourcecut_rejects_unqualified_revision_and_symlink_carrier(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import subprocess
+    from tools.repo import source_history_legos
+
+    sha = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
+    with pytest.raises(module.ArchitectureDocsError, match="exact 40-hex"):
+        module.project_owner_lego_source_graph(ROOT, source_revision="HEAD")
+    with pytest.raises(module.ArchitectureDocsError, match="cannot resolve exact Git"):
+        module.project_owner_lego_source_graph(ROOT, source_revision="0" * 40)
+
+    original = source_history_legos.current_tree
+    plan_path = module.OWNER_LEGO_PLANS[0]
+    def fake_tree(repo: Path, revision: str):
+        result = original(repo, revision)
+        result[plan_path] = "120000:blob:" + "0" * 40
+        return result
+    monkeypatch.setattr(source_history_legos, "current_tree", fake_tree)
+    with pytest.raises(module.ArchitectureDocsError, match="absent/nonregular"):
+        module.project_owner_lego_source_graph(ROOT, source_revision=sha)
+
+
 def test_native_owner_source_projection_qualifies_local_ids() -> None:
     projection = module.project_owner_lego_source_graph(ROOT)
     owners = {ref.split("#", 1)[0] for ref in (row["ref"] for row in projection["vertices"])}
