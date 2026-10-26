@@ -1347,3 +1347,86 @@ def test_python_import_delta_lost_target_is_unknown_not_no_consumer(
     assert result["sourceRelationStanding"] == "UNKNOWN"
     assert result["unresolvedCut"] == "after"
     assert result["proofReuseAdmissible"] is False
+
+
+def test_real_harness_h01_upstream_static_readset_is_git_qualified() -> None:
+    import subprocess
+    from tools.repo.source_history_legos import current_tree
+    sha = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
+    result = module.project_node_python_import_syntax(
+        source_revision=sha,
+        node_ref="services/harness/planning/lego-plan-r1.json#H01",
+        target_source="services/harness/src/ordivon_harness/ordivon/events.py",
+    )
+    tree = current_tree(ROOT, sha)
+    upstream = {row["sourcePath"]: row for row in result["upstreamLocalSourceFiles"]}
+    for path in (
+        "services/harness/src/anc_canonical/__init__.py",
+        "services/harness/src/anc_canonical/canonical.py",
+        "services/harness/src/ordivon_harness/__init__.py",
+        "services/harness/src/ordivon_harness/ordivon/__init__.py",
+    ):
+        assert upstream[path]["gitBlobIdentity"] == tree[path]
+    assert result["upstreamInvalidSyntaxPaths"] == []
+    assert result["upstreamStaticReadsetQualification"].startswith("PARTIAL_GIT_STATIC")
+    assert "dataclasses" in result["externalImportAssumptions"]
+    assert "collections" in result["externalImportAssumptions"]
+    assert "ACTUAL_CONSUMER" not in result["truthRole"]
+
+
+def test_upstream_local_import_dependency_change_invalidates_with_stable_target_and_consumer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import subprocess
+    from tools.repo.source_history_legos import current_tree
+    root = tmp_path
+    src = root / "services/harness/src"
+    pkg = src / "pkg"
+    pkg.mkdir(parents=True)
+    (pkg / "__init__.py").write_text("from .canonical import pack\n", encoding="utf-8")
+    (pkg / "canonical.py").write_text("def pack(x): return x\n", encoding="utf-8")
+    (pkg / "events.py").write_text("from pkg import pack\nclass Event: pass\n", encoding="utf-8")
+    (pkg / "consumer.py").write_text("from .events import Event\n", encoding="utf-8")
+    def git(*args: str) -> str:
+        return subprocess.check_output(["git", "-C", str(root), *args], text=True).strip()
+    git("init", "-q")
+    def commit(msg: str) -> str:
+        git("add", ".")
+        git("-c", "user.name=GraphTest", "-c", "user.email=test@example.invalid",
+            "commit", "-qm", msg)
+        return git("rev-parse", "HEAD")
+    before = commit("baseline")
+    (pkg / "canonical.py").write_text("def pack(x): return (x,)\n", encoding="utf-8")
+    upstream_changed = commit("same event source upstream implementation changes")
+    (pkg / "__init__.py").write_text("from .canonical import pack\n# init source changes\n", encoding="utf-8")
+    init_changed = commit("parent init bytes change")
+    ref = "services/harness/planning/lego-plan-r1.json#H01"
+    target = "services/harness/src/pkg/events.py"
+    def graph(_root: Path, *, source_revision: str):
+        return {"vertices": [{"ref": ref, "sourceAnchors": [{
+            "path": target,
+            "sourceIdentity": current_tree(root, source_revision)[target],
+        }]}]}
+    monkeypatch.setattr(module, "project_owner_lego_source_graph", graph)
+    def inspect(old: str, new: str) -> dict:
+        return module.project_node_python_import_delta(
+            before_revision=old, after_revision=new,
+            node_ref=ref, target_source=target, root=root,
+        )
+    impacted = inspect(before, upstream_changed)
+    assert impacted["targetBlobChanged"] is False
+    assert impacted["changedCandidateImporters"] == []
+    assert impacted["sourceRelationStanding"] == "RECHECK_REQUIRED"
+    assert [r["sourcePath"] for r in impacted["changedUpstreamLocalSourceFiles"]] == [
+        "services/harness/src/pkg/canonical.py",
+    ]
+    assert impacted["proofReuseAdmissible"] is False
+    initializer = inspect(upstream_changed, init_changed)
+    assert initializer["sourceRelationStanding"] == "RECHECK_REQUIRED"
+    assert [r["sourcePath"] for r in initializer["changedUpstreamLocalSourceFiles"]] == [
+        "services/harness/src/pkg/__init__.py",
+    ]
+    same = inspect(init_changed, init_changed)
+    assert same["sourceRelationStanding"] == "NO_DECLARED_SOURCE_RELATION_CHANGE"
+    assert same["changedUpstreamLocalSourceFiles"] == []
+    assert same["proofReuseAdmissible"] is False
