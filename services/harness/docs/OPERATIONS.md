@@ -116,3 +116,35 @@ two-database commit here. After ambiguous partial commit, do NOT enable PG
 admission: reconcile and retry until source sealing is proven. Do not resume
 old SQLite writes. Native tests use an isolated disposable PostgreSQL and
 temporary SQLite fixtures, never deployed data.
+
+
+### PG-first Turn Effects: retire legacy effect writer (explicit operator cutover)
+
+`PostgresTurnEffects.stage_legacy` deliberately stays `PENDING`; it is a copy,
+not an active effect sender. To switch an **existing**, nonempty Turn Effects
+owner, identify the exact Browserless effect ledger configured for that sender;
+stop and reconcile all in-flight Browserless/provider effect workers first,
+verify a source backup, and qualify a separate PostgreSQL 18 database with
+appropriate credentials. Stopping external workers is an independent physical
+obligation: the CLI's confirmation flag is not proof of quiescence.
+
+    export ORDIVON_TURN_EFFECT_POSTGRES_DSN='postgresql://...'
+    python scripts/postgres_turn_effects.py \
+      --legacy-ledger /exact/loaded/turn-effects.sqlite \
+      --confirm-old-writers-quiesced
+
+The cutover command stages a canonical source digest in PG (`PENDING`), locks
+the existing source against writes, rechecks all identities and PG target
+rows, installs exact old-writer rejection barriers, durably commits them,
+then promotes PG to `ACTIVE` only after exact post-seal readback. On an
+interruption between source seal and PG commit, PG remains `PENDING` and no
+new effect SEND is permitted; rerun against the same stage and source after
+reconciling the interruption. After qualification, route the sender and reader
+consumers to the same PG DSN, with no fallback to an old writable ledger.
+The command never contacts Provider services and never authorizes their SEND.
+
+Do **not** point this at a running production sender without verified old
+worker quiescence and consumer deployment coordination. The physical PG tests
+use isolated, disposable PostgreSQL databases and do not certify production
+worker absence or cross-store atomicity. Retire old schema/code only after
+consumer penetration proves there is no remaining durable writer.

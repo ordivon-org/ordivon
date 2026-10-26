@@ -242,6 +242,90 @@ class TrialLedger:
                   END IF;
                 END $block$
             """)
+            # CREATE ... IF NOT EXISTS is not evidence that a pre-existing
+            # database object has the required PostgreSQL semantics.
+            self._verify_schema()
+
+    def _verify_schema(self) -> None:
+        """Admit a real PostgreSQL append-only ledger, not a namesake relation.
+
+        This checks PostgreSQL catalog identity and immutable-data fences at
+        owner connection admission; it is not a substitute for a trusted DB
+        administrator or proof that privileged actors cannot later mutate DDL.
+        """
+        relation = self.db.execute(
+            """
+            SELECT c.relkind, c.relpersistence
+            FROM pg_class c
+            JOIN pg_namespace n ON n.oid=c.relnamespace
+            WHERE n.nspname='ordivon_media_trial' AND c.relname='trial_events'
+            """
+        ).fetchone()
+        if relation != ("r", "p"):
+            raise ValueError("PostgreSQL trial ledger must be one permanent base table")
+
+        columns = self.db.execute(
+            """
+            SELECT a.attname, format_type(a.atttypid,a.atttypmod),
+                   a.attnotnull, a.attidentity
+            FROM pg_attribute a
+            WHERE a.attrelid='ordivon_media_trial.trial_events'::regclass
+              AND a.attnum>0 AND NOT a.attisdropped
+            ORDER BY a.attnum
+            """
+        ).fetchall()
+        expected_columns = (
+            ("seq", "bigint", True, "a"),
+            ("event_id", "text", True, ""),
+            ("search_id", "text", True, ""),
+            ("attempt_id", "text", True, ""),
+            ("candidate_id", "text", True, ""),
+            ("event_type", "text", True, ""),
+            ("payload_json", "text", True, ""),
+            ("prev_hash", "text", False, ""),
+            ("event_hash", "text", True, ""),
+        )
+        if tuple(columns) != expected_columns:
+            raise ValueError("PostgreSQL trial ledger column/identity contract mismatch")
+
+        rows = self.db.execute(
+            """
+            SELECT con.conname, con.contype,
+                   ARRAY(
+                       SELECT attr.attname
+                       FROM unnest(con.conkey) WITH ORDINALITY AS key(attnum, position)
+                       JOIN pg_attribute attr
+                         ON attr.attrelid=con.conrelid AND attr.attnum=key.attnum
+                       ORDER BY key.position
+                   )
+            FROM pg_constraint con
+            WHERE con.conrelid='ordivon_media_trial.trial_events'::regclass
+              AND con.contype IN ('p', 'u')
+            """
+        ).fetchall()
+        constraints = {(name, kind, tuple(keys)) for name, kind, keys in rows}
+        required = {
+            ("trial_events_pkey", "p", ("seq",)),
+            ("trial_events_event_id_key", "u", ("event_id",)),
+            ("trial_events_event_hash_key", "u", ("event_hash",)),
+        }
+        if constraints != required:
+            raise ValueError("PostgreSQL trial ledger event uniqueness/primary-key contract mismatch")
+
+        # tgtype bits: ROW=1, BEFORE=2, DELETE=8, UPDATE=16. Disabled or
+        # differently scoped triggers must never qualify as append-only.
+        trigger = self.db.execute(
+            """
+            SELECT t.tgtype, t.tgenabled, t.tgisinternal,
+                   t.tgfoid='ordivon_media_trial.reject_trial_mutation()'::regprocedure,
+                   t.tgqual IS NULL, t.tgnargs, t.tgconstraint=0
+            FROM pg_trigger t
+            WHERE t.tgrelid='ordivon_media_trial.trial_events'::regclass
+              AND t.tgname='trial_events_no_mutation'
+            """
+        ).fetchone()
+        if trigger != (27, "O", False, True, True, 0, True):
+            raise ValueError("PostgreSQL trial ledger append-only trigger is absent or counterfeit")
 
     def close(self) -> None:
         self.db.close()
