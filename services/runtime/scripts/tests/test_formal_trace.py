@@ -500,15 +500,19 @@ class FormalTraceContractTests(unittest.TestCase):
             toolchain.write_text('[tools]\nrust = "1.99.1"\n', encoding="utf-8")
 
             def git(*args):
-                return subprocess.run(
-                    ["git", "-C", str(repo), *args],
-                    check=True, capture_output=True,
-                ).stdout.decode().strip()
+                return (
+                    subprocess.run(
+                        ["git", "-C", str(repo), *args],
+                        check=True,
+                        capture_output=True,
+                    )
+                    .stdout.decode()
+                    .strip()
+                )
 
             git("init", "-q")
             git("add", ".")
-            git("-c", "user.name=FormalTest", "-c",
-                "user.email=test@example.invalid", "commit", "-qm", "source")
+            git("-c", "user.name=FormalTest", "-c", "user.email=test@example.invalid", "commit", "-qm", "source")
             expected = git("rev-parse", "HEAD")
             prior = self.module.ROOT
             self.module.ROOT = runtime
@@ -550,6 +554,43 @@ class FormalTraceContractTests(unittest.TestCase):
                     self.module.qualify_native_witnesses({})
             finally:
                 self.module.ROOT = previous
+
+    def test_native_cargo_git_preflight_is_before_all_cargo_processes(self):
+        from unittest.mock import patch
+
+        with (
+            patch.object(self.module, "_qualified_native_source_head", side_effect=ValueError("source invalid")),
+            patch("subprocess.run") as forbidden_cargo,
+        ):
+            with self.assertRaisesRegex(ValueError, "source invalid"):
+                self.module.qualify_native_witnesses({})
+            forbidden_cargo.assert_not_called()
+
+    def test_native_cargo_git_source_head_drift_fails_after_execution(self):
+        from unittest.mock import patch
+        import subprocess
+
+        trace = {
+            "contractSeams": [],
+            "supportingContracts": [],
+            "provingTests": [],
+            "conditionalAcceptanceTests": [],
+        }
+
+        def mocked_cargo(command, **_kwargs):
+            return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+        with (
+            patch.object(
+                self.module,
+                "_qualified_native_source_head",
+                side_effect=["a" * 40, "b" * 40],
+            ),
+            patch("subprocess.run", side_effect=mocked_cargo) as cargo,
+        ):
+            with self.assertRaisesRegex(ValueError, "HEAD changed"):
+                self.module.qualify_native_witnesses(trace)
+            self.assertGreaterEqual(cargo.call_count, 2)
 
     def test_native_witness_identity_is_module_and_source_scoped(self):
         trace, _ = manifests()
