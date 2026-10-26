@@ -157,6 +157,17 @@ def source_membership_delta(
     before = source_membership_query(repo, previous_cut, prefix, max_members=max_members)
     after = source_membership_query(repo, current_cut, prefix, max_members=max_members)
 
+    # A proof-evolution delta needs temporally ordered Git SourceCuts.
+    # Side-by-side divergent branch comparison is a different history() query.
+    relation = subprocess.run(
+        ["git", "-C", str(repo), "merge-base", "--is-ancestor", previous_cut, current_cut],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if relation.returncode != 0:
+        raise ValueError("sourceCut ancestry not established for proof-impact evolution")
+
     # A detached Runtime Workspace is a Git *worktree*, not a new source
     # authority. Use the common Git metadata root shared by all worktrees
     # of the same local repository, not --show-toplevel (an ephemeral path).
@@ -236,6 +247,7 @@ def source_membership_delta(
         "proofReuseAdmissible": False,
         "nonClaims": [
             "Complete only for Git path membership and blob/mode under one prefix.",
+            "Previous SourceCut must be a Git ancestor of current SourceCut.",
             "A gitlink is an opaque source member; its internals are not observed.",
             (
                 "The caller must still qualify proof readsets, relevant configuration, "
