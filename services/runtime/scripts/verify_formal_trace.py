@@ -941,6 +941,15 @@ def _git_source_changes(base: str, head: str) -> set[str]:
     actual_head = git("rev-parse", "HEAD").decode().strip()
     if head != actual_head:
         raise ValueError(f"impact HEAD is not checkout HEAD: {head} != {actual_head}")
+    # Git status can hide edited tracked files when the index carries
+    # assume-unchanged or skip-worktree bits. Such flags defeat a source
+    # currentness claim even when --porcelain reports an empty worktree.
+    index_rows = git("ls-files", "-v", "-z", "--", "services/runtime")
+    if any(
+        not row.startswith(b"H ")
+        for row in index_rows.split(b"\x00") if row
+    ):
+        raise ValueError("impact Runtime tracked source has unsafe Git index flags")
     if git("status", "--porcelain", "--untracked-files=normal", "--", "services/runtime"):
         raise ValueError("impact Runtime worktree is dirty; Git source is not current checkout")
     for revision in (base, head):

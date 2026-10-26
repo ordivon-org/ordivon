@@ -1207,6 +1207,56 @@ trait Provider {
         self.assertIn("ONLY", result["scope"])
         self.assertFalse(any("PASS" == row["standing"] for row in result["standingByWitness"]))
 
+    def test_runtime_formal_source_impact_rejects_hidden_dirty_git_index_flags(self):
+        import subprocess
+
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp)
+            (repo / "services/runtime").mkdir(parents=True)
+            source = repo / "services/runtime/core.rs"
+            original = "pub fn original() {}\\n"
+            source.write_text(original, encoding="utf-8")
+            # A clean earlier index entry must not mask a later flagged entry
+            # when ls-files -z emits multiple NUL-delimited records.
+            (repo / "services/runtime/a.rs").write_text("pub fn clean() {}\n", encoding="utf-8")
+
+            def git(*args):
+                return subprocess.run(
+                    ["git", "-C", str(repo), *args],
+                    check=True, capture_output=True,
+                ).stdout
+
+            git("init", "-q")
+            git("add", "--", "services/runtime/a.rs", "services/runtime/core.rs")
+            git("-c", "user.name=FormalTest", "-c", "user.email=test@example.invalid",
+                "commit", "-qm", "initial")
+            commit = git("rev-parse", "HEAD").decode().strip()
+            original_root = self.module.ROOT
+            self.module.ROOT = repo / "services/runtime"
+            try:
+                self.assertEqual(self.module._git_source_changes(commit, commit), set())
+                for enable, disable in (
+                    ("--assume-unchanged", "--no-assume-unchanged"),
+                    ("--skip-worktree", "--no-skip-worktree"),
+                ):
+                    with self.subTest(flag=enable):
+                        git("update-index", enable, "--", "services/runtime/core.rs")
+                        source.write_text("pub fn tampered() {}\\n", encoding="utf-8")
+                        # This is the real Git behavior that invalidated the old
+                        # --porcelain-only clean-worktree precondition.
+                        self.assertEqual(
+                            git("status", "--porcelain", "--untracked-files=normal",
+                                "--", "services/runtime"),
+                            b"",
+                        )
+                        with self.assertRaisesRegex(ValueError, "unsafe Git index flags"):
+                            self.module._git_source_changes(commit, commit)
+                        source.write_text(original, encoding="utf-8")
+                        git("update-index", disable, "--", "services/runtime/core.rs")
+                self.assertEqual(self.module._git_source_changes(commit, commit), set())
+            finally:
+                self.module.ROOT = original_root
+
     def test_runtime_formal_source_impact_rejects_untrusted_paths_and_git_ref(self):
         trace, invariants = manifests()
         for bad in ("../escape", "/absolute", "services//runtime/file", "services\\runtime\\bad"):
