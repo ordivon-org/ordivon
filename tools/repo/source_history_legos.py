@@ -157,8 +157,11 @@ def require_ancestral_source_cuts(repo: Path, previous_cut: str, current_cut: st
     Comparing sibling tips belongs to history analysis or an exact merge-tree
     candidate, not a before/after proof-evolution claim.
     """
-    _require_exact_git_oid(repo, previous_cut)
-    _require_exact_git_oid(repo, current_cut)
+    try:
+        _require_exact_git_oid(repo, previous_cut)
+        _require_exact_git_oid(repo, current_cut)
+    except ValueError as exc:
+        raise ValueError(f"sourceCut ancestry requires exact Git commits: {exc}") from exc
     relation = subprocess.run(
         ["git", "--no-replace-objects", "-C", str(repo), "merge-base", "--is-ancestor", previous_cut, current_cut],
         stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, check=False,
