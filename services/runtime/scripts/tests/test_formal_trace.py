@@ -650,6 +650,55 @@ class FormalTraceContractTests(unittest.TestCase):
         self.assertIn("ONLY", result["scope"])
         self.assertFalse(any("PASS" == row["standing"] for row in result["standingByWitness"]))
 
+    def test_native_witness_source_attestation_rejects_hidden_git_changes(self):
+        """An executable Rust PASS may not launder index-hidden changed source."""
+        import subprocess
+
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp)
+            runtime = repo / "services/runtime"
+            runtime.mkdir(parents=True)
+            code = runtime / "core.rs"
+            config = repo / "mise.toml"
+            code.write_text("pub fn before() {}\\n", encoding="utf-8")
+            config.write_text('[tools]\\npython = "3.15"\\n', encoding="utf-8")
+
+            def git(*args: str) -> bytes:
+                return subprocess.run(
+                    ["git", "-C", str(repo), *args],
+                    check=True, capture_output=True,
+                ).stdout
+
+            git("init", "-q")
+            git("add", ".")
+            git("-c", "user.name=FormalTest", "-c", "user.email=test@example.invalid",
+                "commit", "-qm", "initial")
+            original_root = self.module.ROOT
+            self.module.ROOT = runtime
+            try:
+                for path, flag in (
+                    (code, "--assume-unchanged"),
+                    (code, "--skip-worktree"),
+                    (config, "--skip-worktree"),
+                ):
+                    with self.subTest(path=path.name, flag=flag):
+                        relative = path.relative_to(repo).as_posix()
+                        original = path.read_text(encoding="utf-8")
+                        git("update-index", flag, "--", relative)
+                        path.write_text("different uncommitted contents\\n", encoding="utf-8")
+                        self.assertEqual(
+                            git("status", "--porcelain", "--", relative), b"",
+                        )
+                        with self.assertRaisesRegex(ValueError, "unsafe Git index flags"):
+                            self.module.qualify_native_witnesses({})
+                        path.write_text(original, encoding="utf-8")
+                        git("update-index",
+                            "--no-assume-unchanged" if flag == "--assume-unchanged"
+                            else "--no-skip-worktree",
+                            "--", relative)
+            finally:
+                self.module.ROOT = original_root
+
     def test_runtime_formal_source_impact_rejects_hidden_dirty_git_index_flags(self):
         import subprocess
 

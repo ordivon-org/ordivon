@@ -715,6 +715,15 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
     import os
     import subprocess
 
+    # Reuse Runtime's existing exact Git source/currentness fence before
+    # invoking Cargo. Plain porcelain does not expose index-hidden edits.
+    source_head = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=ROOT,
+        check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        text=True, timeout=20,
+    ).stdout.strip()
+    _git_source_changes(source_head, source_head)
+
     cargo = [
         "cargo",
         "test",
@@ -825,22 +834,13 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
             raise ValueError(f"native witness prerequisite failed: {command[0]}")
         return process.stdout.strip()
 
-    source_head = provenance(["git", "rev-parse", "HEAD"])
-    rust_input_status = provenance(
-        [
-            "git",
-            "status",
-            "--porcelain",
-            "--",
-            "Cargo.toml",
-            "Cargo.lock",
-            "crates",
-        ]
-    )
+    # Re-qualify after native execution. Source drift or hidden tracked
+    # changes cannot be returned as a source-bound Rust witness.
+    if provenance(["git", "rev-parse", "HEAD"]) != source_head:
+        raise ValueError("native source witness HEAD changed during execution")
+    _git_source_changes(source_head, source_head)
     toolchain = provenance(["rustc", "-vV"])
     cargo_version = provenance(["cargo", "--version"])
-    if rust_input_status:
-        raise ValueError("native source witness cannot certify dirty Rust/Cargo inputs")
     rust_env = {
         key: env.get(key, "")
         for key in (
@@ -860,7 +860,7 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
         "conditionalOptInWitnesses": opt_in_rows,
         "typedContractWitnesses": contract_rows,
         "sourceHead": source_head,
-        "declaredRustInputsClean": not bool(rust_input_status),
+        "declaredRustInputsClean": True,
         "cargoVersion": cargo_version,
         "rustcVersionVerbose": toolchain,
         "buildEnvironment": rust_env,
