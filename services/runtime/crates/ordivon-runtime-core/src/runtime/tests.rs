@@ -7063,14 +7063,38 @@ fn cancel_before_dispatch_resolves_without_launch() {
         RuntimeDeliveryDisposition::Committed
     );
     assert_eq!(sandbox.registry.active_reservation_count().unwrap(), 0);
-    assert_eq!(
-        sandbox
-            .registry
-            .get_attempt(&created.attempt.attempt_id)
-            .unwrap()
-            .state,
-        AttemptState::Cancelled
+    let attempt = sandbox
+        .registry
+        .get_attempt(&created.attempt.attempt_id)
+        .unwrap();
+    let job = sandbox.registry.get_job(&created.job.job_id).unwrap();
+    assert_eq!(attempt.state, AttemptState::Cancelled);
+    // The locally committed cancel receipt has result and finish evidence,
+    // but there was no physical dispatch and no selected live Attempt.
+    let synthetic_cancel_digest = format!(
+        "sha256:{}",
+        hex::encode(Sha256::digest(
+            format!(
+                "runtime-cancel-before-dispatch\0{}\0{}",
+                created.job.job_id, created.attempt.attempt_id
+            )
+            .as_bytes(),
+        ))
     );
+    assert_eq!(
+        attempt.result_digest.as_deref(),
+        Some(synthetic_cancel_digest.as_str())
+    );
+    assert!(attempt.finished_at_ms.is_some());
+    assert_eq!(job.resolution, Some(JobResolution::Cancelled));
+    assert_eq!(job.current_attempt_id, None);
+    // A locally committed cancellation is never a dispatch token, even
+    // when a stale observer presents the original Attempt row version.
+    let redispatch = sandbox
+        .registry
+        .mark_dispatch_issued(&attempt.attempt_id, created.attempt.row_version, 21)
+        .unwrap_err();
+    assert_eq!(redispatch.code, RuntimeErrorCode::AttemptStateConflict);
 }
 
 #[test]

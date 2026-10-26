@@ -107,11 +107,14 @@ _RUNTIME_JOB_RESOLUTIONS = (
 def _find_runtime_jobs_by_client_request(
     runtime: HarnessRuntimeClient,
     client_request_id: str,
+    workspace_id: str,
     *,
     max_pages: int = 100,
 ) -> list[dict[str, JsonValue]]:
     if not client_request_id or client_request_id != client_request_id.strip():
         raise ValueError("Runtime clientRequestId is required and trimmed")
+    if not workspace_id or workspace_id != workspace_id.strip():
+        raise ValueError("Runtime Workspace identity is required and trimmed")
     if max_pages < 1:
         raise ValueError("Runtime Job lookup page limit must be positive")
     cursor: dict[str, JsonValue] | None = None
@@ -121,6 +124,7 @@ def _find_runtime_jobs_by_client_request(
         arguments: dict[str, JsonValue] = {
             "limit": 100,
             "clientRequestId": client_request_id,
+            "workspaceId": workspace_id,
         }
         if cursor is not None:
             arguments["cursor"] = cursor
@@ -136,6 +140,10 @@ def _find_runtime_jobs_by_client_request(
             if job.get("clientRequestId") != client_request_id:
                 raise HarnessRuntimeClientError(
                     "filtered task.list returned another clientRequestId"
+                )
+            if job.get("workspaceId") != workspace_id:
+                raise HarnessRuntimeClientError(
+                    "filtered task.list returned a Job from another Workspace"
                 )
             matches.append(job)
         next_cursor = page.get("nextCursor")
@@ -979,6 +987,7 @@ class SQLiteHarnessRuntimeBridge(SQLiteHarnessAgentBridge):
             matches = _find_runtime_jobs_by_client_request(
                 self.runtime,
                 client_request_id,
+                self.execution_binding.workspace_ref,
             )
         except HarnessRuntimeClientError as error:
             return self._unknown_observation(
@@ -1028,6 +1037,10 @@ class SQLiteHarnessRuntimeBridge(SQLiteHarnessAgentBridge):
                 },
             )
             validate_json_value(payload)
+            if payload.get("jobId") != job_id:
+                raise HarnessRuntimeClientError(
+                    "task.observe returned another Job identity during reconciliation"
+                )
         except HarnessRuntimeClientError as error:
             return self._unknown_observation(
                 tool_call_id,

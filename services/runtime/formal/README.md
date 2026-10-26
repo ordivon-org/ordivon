@@ -11,7 +11,9 @@ Scope:
 - one Attempt crosses the physical dispatch boundary at most once;
 - ambiguous dispatch blocks redispatch until reconciliation proves absence;
 - a retry is an explicit new Attempt;
-- terminal evidence belongs to an already-dispatched Attempt.
+- terminal physical result evidence belongs to an already-dispatched Attempt;
+- local cancellation of an accepted, undispatched Attempt is a separate
+  synthetic owner-receipt variant; a cancelled result is not a provider result.
 
 Non-scope:
 
@@ -168,6 +170,24 @@ ExecutionProvider boundary; no new Ordivon DSL, interpreter, global LEGO
 registry, or second test runner is introduced. Model safety, unit-test
 acceptance, optional physical acceptance and domain completion remain separate
 facts.
+
+## Explicit pre-dispatch cancellation representation
+
+Runtime Registry's accepted-Attempt cancellation path commits a local,
+synthetic result digest and a Cancelled Job without any physical dispatch.
+The dispatch-only abstraction omitted this legal concrete transition. The
+model now includes \`CancelAcceptedBeforeDispatch\` and the distinct
+\`resultEvidence = "localCancel"\` tag, with zero dispatch count, released
+reservation, no selected current Attempt and committed terminal standing.
+\`LocalCancellationNeverDispatched\` requires that a local synthetic
+cancellation result cannot impersonate a provider result. Existing
+\`TerminalAttemptWasDispatched\` continues to apply to physical result
+evidence and does not extend to locally cancelled Attempts.
+
+The finite-model proof does not establish installed Runtime behavior,
+SQL/CAS correctness for the production database, or a mechanized forward
+simulation from Rust into this abstraction. Other lifecycle transitions
+remain outside this local mapping and MUST NOT be reported as covered.
 
 ## R2.1 consumer-slice: terminal evidence provenance (TLA+ + Rust)
 
