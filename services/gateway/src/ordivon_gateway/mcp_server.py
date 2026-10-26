@@ -87,7 +87,7 @@ def _verified_execution_request_id(
     """
     try:
         request = context.request_context.request
-    except (ValueError, AttributeError):
+    except ValueError, AttributeError:
         return public_request_id
     scope = getattr(request, "scope", None)
     state = scope.get("state") if isinstance(scope, dict) else None
@@ -95,13 +95,18 @@ def _verified_execution_request_id(
         return public_request_id
     principal = state.get("ordivon_access_principal")
     issuer = state.get("ordivon_access_issuer")
-    if not (isinstance(principal, str) and principal
-            and isinstance(issuer, str) and issuer):
+    if not (isinstance(principal, str) and principal and isinstance(issuer, str) and issuer):
         return public_request_id
     canonical = json.dumps(
-        ["ordivon.gateway-principal-scoped-execution-request.v1",
-         issuer, principal, capability, public_request_id],
-        separators=(",", ":"), ensure_ascii=False,
+        [
+            "ordivon.gateway-principal-scoped-execution-request.v1",
+            issuer,
+            principal,
+            capability,
+            public_request_id,
+        ],
+        separators=(",", ":"),
+        ensure_ascii=False,
     ).encode("utf-8")
     return "request:gw-principal:" + hashlib.sha256(canonical).hexdigest()
 

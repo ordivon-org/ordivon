@@ -130,15 +130,19 @@ def test_different_capability_namespace_and_unqualified_legacy() -> None:
         "req", "execution.linux", _context(server, "principal:cf-access:B")
     )
     # No verified ingress is NOT an attested continuity claim.
-    unqualified = Context(request_context=SimpleNamespace(request=SimpleNamespace(scope={})), mcp_server=server)
+    unqualified = Context(
+        request_context=SimpleNamespace(request=SimpleNamespace(scope={})), mcp_server=server
+    )
     assert _verified_execution_request_id("req", "execution.linux", unqualified) == "req"
     other_issuer = Context(
         request_context=SimpleNamespace(
             request=SimpleNamespace(
-                scope={"state": {
-                    "ordivon_access_principal": "principal:cf-access:A",
-                    "ordivon_access_issuer": "https://different-issuer.example",
-                }}
+                scope={
+                    "state": {
+                        "ordivon_access_principal": "principal:cf-access:A",
+                        "ordivon_access_issuer": "https://different-issuer.example",
+                    }
+                }
             )
         ),
         mcp_server=server,
