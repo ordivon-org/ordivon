@@ -44,8 +44,7 @@ def _immutable_git_manifest(
     """
     relative = path.as_posix()
     if (
-        re.fullmatch(r"[0-9a-f]{40}", commit) is None
-        or path.is_absolute()
+        path.is_absolute()
         or not relative
         or any(part in ("", ".", "..") for part in relative.split("/"))
         or "\\x00" in relative
@@ -65,6 +64,18 @@ def _immutable_git_manifest(
         except (OSError, subprocess.CalledProcessError) as exc:
             raise CircuitContractError("Git source cut or regular blob unavailable") from exc
 
+    # Git supports both SHA-1 (40) and SHA-256 (64) storage formats.
+    # Ask the repository for the actual object format rather than adopting
+    # one hash algorithm as an implicit global LEGO/source-cut type.
+    storage_format = git("rev-parse", "--show-object-format=storage").strip()
+    if storage_format == b"sha1":
+        object_id_width = 40
+    elif storage_format == b"sha256":
+        object_id_width = 64
+    else:
+        raise CircuitContractError("unsupported Git repository object format")
+    if re.fullmatch(rf"[0-9a-f]{{{object_id_width}}}", commit) is None:
+        raise CircuitContractError("source-bound impact needs an exact Git commit object ID")
     if git("cat-file", "-t", commit).strip() != b"commit":
         raise CircuitContractError("Git SourceCut must identify an immutable commit")
     # ls-tree rejects gitlinks, symlinks, missing path, and pathspec ambiguity.
@@ -84,6 +95,7 @@ def _immutable_git_manifest(
     raw = git("cat-file", "blob", commit + ":" + relative)
     return _load_json(path, source_bytes=raw), {
         "commit": commit,
+        "objectFormat": storage_format.decode("ascii"),
         "path": relative,
         "blobId": blob.decode("ascii"),
         "sha256": "sha256:" + hashlib.sha256(raw).hexdigest(),

@@ -1793,3 +1793,85 @@ def test_immutable_manifest_sourcecut_ignores_native_git_replace_refs(tmp_path) 
     restored, evidence = _immutable_git_manifest(repo, initial_cut, Path("manifest.json"))
     assert evidence["commit"] == initial_cut
     assert restored == original
+
+
+def test_git_manifest_sourcecut_uses_repository_object_format(tmp_path) -> None:
+    """Git's storage object format—not a universal 40-digit SHA-1 assumption—sets the cut width."""
+    import json
+    import subprocess
+    from pathlib import Path
+
+    from ordivon_composition.verification_obligation_r1 import _immutable_git_manifest
+
+    for object_format, width in (("sha1", 40), ("sha256", 64)):
+        repo = tmp_path / object_format
+        repo.mkdir()
+
+        def git(*args: str) -> str:
+            return subprocess.check_output(
+                ["git", "--no-replace-objects", "-C", str(repo), *args],
+                text=True,
+            ).strip()
+
+        subprocess.run(
+            ["git", "-C", str(repo), "init", "-q", f"--object-format={object_format}"],
+            check=True,
+        )
+        git("config", "user.name", "Ordivon Source Test")
+        git("config", "user.email", "source@example.invalid")
+        original = _two_gate_manifest()
+        (repo / "manifest.json").write_text(json.dumps(original))
+        git("add", ".")
+        git("commit", "-qm", "initial")
+        old = git("rev-parse", "HEAD")
+        assert len(old) == width
+        read, evidence = _immutable_git_manifest(repo, old, Path("manifest.json"))
+        assert read == original
+        assert evidence["commit"] == old
+        assert evidence["objectFormat"] == object_format
+        with pytest.raises(CircuitContractError, match="exact Git"):
+            _immutable_git_manifest(repo, old[:8], Path("manifest.json"))
+        with pytest.raises(CircuitContractError, match="exact Git"):
+            _immutable_git_manifest(
+                repo, old + "0" * (64 if width == 40 else 40), Path("manifest.json")
+            )
+
+        newer = copy.deepcopy(original)
+        newer["gateRequirements"][0]["guarantee"] += " object-format-independent"
+        (repo / "manifest.json").write_text(json.dumps(newer))
+        git("add", ".")
+        git("commit", "-qm", "newer")
+        new = git("rev-parse", "HEAD")
+        git("replace", old, new)
+        restored, receipt = _immutable_git_manifest(repo, old, Path("manifest.json"))
+        assert restored == original  # SHA256/SHA1 both ignore mutable replacement refs
+        assert receipt["commit"] == old
+        # Verify the public CLI path as consumed by Agents, not just this helper.
+        import sys
+
+        process = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "ordivon_composition.verification_obligation_r1",
+                "impact-manifests",
+                "manifest.json",
+                "manifest.json",
+                "--git-repo",
+                str(repo),
+                "--previous-sourcecut",
+                old,
+                "--current-sourcecut",
+                new,
+            ],
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+        result = json.loads(process.stdout)
+        assert result["changedLocalGateIds"] == ["gate:candidate-contract"]
+        assert result["gitSourceCuts"]["previous"]["commit"] == old
+        assert result["gitSourceCuts"]["current"]["commit"] == new
+        assert result["gitSourceCuts"]["previous"]["objectFormat"] == object_format
+        assert result["gitSourceCuts"]["current"]["objectFormat"] == object_format
+        assert result["proofReuseAdmissible"] is False
