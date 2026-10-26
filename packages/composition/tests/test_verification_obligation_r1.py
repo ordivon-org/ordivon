@@ -954,9 +954,19 @@ def test_native_git_source_delta_selects_cas_without_rechecking_tla(tmp_path, mo
     git("config", "user.name", "Ordivon Contract Test")
     git("config", "user.email", "contract@example.invalid")
     source_cut = "6e3b5e7205108662d3a0fa6cae23aa53411fce3c"
-    cas = "services/runtime/crates/ordivon-runtime-core/src/runtime/registry/lifecycle.rs"
-    model = "services/runtime/formal/RuntimeDispatchR1.tla"
-    other = "services/runtime/formal/README.md"
+    # Consume the existing Runtime owner-facing formal trace manifest,
+    # rather than embedding a second set of owner source paths in Composition.
+    manifest_path = "services/runtime/formal/RuntimeDispatchR1.trace-r1.json"
+    import json
+    manifest = json.loads(subprocess.check_output(
+        ["git", "-C", str(source_repo), "show", f"{source_cut}:{manifest_path}"],
+    ))
+    prefix = Path(manifest_path).parents[1].as_posix() + "/"
+    cas = prefix + next(
+        item["path"] for item in manifest["contractSeams"] if item["id"] == "Registry.dispatchCAS"
+    )
+    model = prefix + manifest["formalSpecification"]["modulePath"]
+    other = prefix + "formal/README.md"
     for item in [cas, model]:
         output = subprocess.check_output(
             ["git", "-C", str(source_repo), "show", f"{source_cut}:{item}"]
@@ -969,8 +979,6 @@ def test_native_git_source_delta_selects_cas_without_rechecking_tla(tmp_path, mo
     git("add", ".")
     git("commit", "-qm", "frozen runtime source")
     baseline = git("rev-parse", "HEAD")
-    prefix = "services/runtime/"
-
     def inspect(old: str, new: str, *, unknown: list[str] | None = None):
         delta = source_membership_delta(tmp_path, old, new, prefix)
         scoped = delta["sourceScopeRef"]
@@ -1092,7 +1100,7 @@ def test_native_git_source_delta_selects_cas_without_rechecking_tla(tmp_path, mo
     )
     assert bounded_unknown["proofReuseAdmissible"] is False
 
-    extra = tmp_path / "services/runtime/providers/new.rs"
+    extra = tmp_path / (prefix + "providers/new.rs")
     extra.parent.mkdir(parents=True, exist_ok=True)
     extra.write_text("fn new_provider() {}")
     git("add", ".")
