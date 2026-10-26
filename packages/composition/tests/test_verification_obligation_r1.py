@@ -545,8 +545,9 @@ def test_impact_dependency_completeness_change_and_deleted_relation_fail_closed(
         },
     )
     assert "source:runtime" in deleted["derivedRelationChangedRefs"]
-    assert "source:runtime" in deleted["unindexedChangeRefs"]
-    assert set(_statuses(deleted).values()) == {"UNKNOWN"}
+    assert deleted["unindexedChangeRefs"] == []
+    assert _statuses(deleted) == {"proof:p": "REUSE_CANDIDATE"}
+    assert deleted["proofReuseAdmissible"] is False
 
 
 def test_retired_known_unconsumed_obligation_cannot_globally_poison_proof_impact():
@@ -601,6 +602,60 @@ def test_retired_known_unconsumed_obligation_cannot_globally_poison_proof_impact
     assert unresolved["unindexedChangeRefs"] == ["external:unresolved-runtime-consumer"]
     assert _statuses(unresolved) == {"proof:live": "UNKNOWN"}
     assert not unresolved["proofReuseAdmissible"]
+
+
+def test_historical_source_root_retirement_does_not_poison_independent_proof():
+    """A previously indexed, unconsumed root is not an unindexed runtime edge."""
+    independent = {
+        "id": "proof:independent",
+        "dependsOn": ["source:live"],
+        "dependenciesComplete": True,
+    }
+    current = {
+        "authority_refs": ["source:live"],
+        "obligations": [independent],
+        "changed_refs": [],
+    }
+    previous = {
+        "authorityRefs": ["source:retired", "source:live"],
+        "obligations": [independent],
+    }
+    benign = select_impacted_obligations(**current, previous_graph=previous)
+    assert benign["derivedRelationChangedRefs"] == ["source:retired"]
+    assert benign["unindexedChangeRefs"] == []
+    assert _statuses(benign) == {"proof:independent": "REUSE_CANDIDATE"}
+    assert benign["proofReuseAdmissible"] is False
+
+    # If an actual consumer dropped that root, its relation must be RECHECK.
+    former = dict(independent, dependsOn=["source:retired", "source:live"])
+    changed = select_impacted_obligations(
+        **current, previous_graph={**previous, "obligations": [former]}
+    )
+    assert "proof:independent" in changed["derivedRelationChangedRefs"]
+    assert _statuses(changed) == {"proof:independent": "RECHECK_REQUIRED"}
+
+    # A caller's explicit unresolved reference is stronger than the mere
+    # historical retirement; never suppress it as a known old-only node.
+    unknown = select_impacted_obligations(
+        **current, previous_graph=previous, unknown_refs=["source:retired"]
+    )
+    assert unknown["unindexedChangeRefs"] == ["source:retired"]
+    assert _statuses(unknown) == {"proof:independent": "UNKNOWN"}
+    assert unknown["proofReuseAdmissible"] is False
+
+
+def test_explicit_unknown_retired_proof_is_not_suppressed_by_provenance():
+    live = {"id": "proof:live", "dependsOn": ["source:live"], "dependenciesComplete": True}
+    gone = {"id": "proof:retired", "dependsOn": ["source:live"], "dependenciesComplete": True}
+    args = {"authority_refs": ["source:live"], "obligations": [live], "changed_refs": []}
+    prev = {"authorityRefs": ["source:live"], "obligations": [live, gone]}
+    result = select_impacted_obligations(
+        **args, previous_graph=prev, unknown_refs=["proof:retired"]
+    )
+    assert result["derivedRelationChangedRefs"] == ["proof:retired"]
+    assert result["unindexedChangeRefs"] == ["proof:retired"]
+    assert _statuses(result) == {"proof:live": "UNKNOWN"}
+    assert result["proofReuseAdmissible"] is False
 
 
 def test_impact_rejects_malformed_previous_graph_but_refines_prior_cycle():
@@ -1248,6 +1303,31 @@ def _two_gate_manifest() -> dict:
     other["id"] = "gate:unrelated-property"
     other["assumption"] = "Separate independent premise."
     other["guarantee"] = "Separate independent guarantee."
+    # Independent source/consumer chain; a second Gate on the SAME consumer
+    # would not be independent and must be invalidated by #851 scope semantics.
+    producer = copy.deepcopy(manifest["stages"][0])
+    producer.update(
+        id="stage:unrelated-producer",
+        ownerId="unrelated-producer",
+        responsibility="Produce independent candidate",
+        outputs=["independent-candidate"],
+    )
+    consumer = copy.deepcopy(manifest["stages"][1])
+    consumer.update(
+        id="stage:unrelated-consumer",
+        ownerId="unrelated-consumer",
+        responsibility="Consume independent candidate",
+        dependsOn=["stage:unrelated-producer"],
+        inputs=["independent-candidate"],
+    )
+    manifest["stages"].extend([producer, consumer])
+    edge = copy.deepcopy(manifest["edges"][0])
+    edge.update(id="edge:unrelated")
+    edge["from"] = {"stageId": producer["id"], "port": "independent-candidate"}
+    edge["to"] = {"stageId": consumer["id"], "port": "independent-candidate"}
+    manifest["edges"].append(edge)
+    other["producerStageId"] = producer["id"]
+    other["consumerStageId"] = consumer["id"]
     manifest["gateRequirements"].append(other)
     return manifest
 
@@ -1286,10 +1366,13 @@ def test_manifest_gate_impact_unqualified_unchanged_stays_unknown() -> None:
 def test_manifest_gate_impact_shared_context_delta_rechecks_all() -> None:
     previous = _two_gate_manifest()
     current = copy.deepcopy(previous)
-    current["stages"][0]["responsibility"] = "Changed shared contract context"
+    current["unresolvedAssumptions"].append("Changed global environmental assumption")
     result = select_manifest_gate_impacts(previous_manifest=previous, current_manifest=current)
     assert result["sharedManifestContextChanged"]
-    assert not result["changedLocalGateIds"]
+    assert set(result["changedLocalGateIds"]) == {
+        "gate:candidate-contract",
+        "gate:unrelated-property",
+    }
     assert set(_gate_impact_statuses(result).values()) == {"RECHECK_REQUIRED"}
 
 
@@ -1358,6 +1441,44 @@ def test_manifest_gate_impact_reuses_existing_cli_command_surface(tmp_path) -> N
     assert _gate_impact_statuses(projection) == {
         "proof:gate:gate:candidate-contract": "RECHECK_REQUIRED",
         "proof:gate:gate:unrelated-property": "UNKNOWN",
+    }
+
+
+def test_manifest_gate_impact_does_not_recheck_on_parallel_stage_change() -> None:
+    previous = _manifest()
+    previous["stages"].append(
+        {
+            "id": "stage:parallel",
+            "ownerId": "parallel",
+            "responsibility": "Independent external branch",
+            "dependsOn": [],
+            "methodBindings": [],
+            "capabilityBindings": [],
+            "inputs": [],
+            "outputs": ["unrelated"],
+        }
+    )
+    current = copy.deepcopy(previous)
+    current["stages"][-1]["responsibility"] = "Independent branch changed"
+    scoped = compare_gate_source_scopes(previous, current)
+    assert scoped["changedGateIds"] == []
+    result = select_manifest_gate_impacts(previous_manifest=previous, current_manifest=current)
+    assert result["sharedManifestContextChanged"] is False
+    assert result["changedLocalGateIds"] == []
+    assert _gate_impact_statuses(result) == {"proof:gate:gate:candidate-contract": "UNKNOWN"}
+
+
+def test_manifest_gate_impact_rechecks_true_scoped_producer_change() -> None:
+    previous = _manifest()
+    current = copy.deepcopy(previous)
+    current["stages"][0]["responsibility"] = "Producer changed"
+    scoped = compare_gate_source_scopes(previous, current)
+    assert scoped["changedGateIds"] == ["gate:candidate-contract"]
+    result = select_manifest_gate_impacts(previous_manifest=previous, current_manifest=current)
+    assert result["sharedManifestContextChanged"] is False
+    assert result["changedLocalGateIds"] == ["gate:candidate-contract"]
+    assert _gate_impact_statuses(result) == {
+        "proof:gate:gate:candidate-contract": "RECHECK_REQUIRED"
     }
 
 
