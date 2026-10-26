@@ -649,6 +649,124 @@ class FormalTraceContractTests(unittest.TestCase):
                 )
                 self.assertTrue(all(row["matchedChangedPaths"] == [path] for row in result["standingByWitness"]))
 
+    def test_compiler_evidence_mixed_language_positive_read_edges(self):
+        """Real rustc emits SQL as well as Rust; all five share one libtest binary."""
+        trace, invariants = manifests()
+        sql = "services/runtime/crates/ordivon-runtime-core/migrations/runtime/0001_runtime.sql"
+        without = self.module.project_proving_test_source_impact(trace, invariants, {sql})
+        self.assertEqual(without["unindexedRuntimeChanges"], [sql])
+        self.assertEqual(
+            {item["standing"] for item in without["standingByWitness"]},
+            {"UNKNOWN"},
+        )
+        with_compiler = self.module.project_proving_test_source_impact(trace, invariants, {sql}, compiler_inputs={sql})
+        self.assertEqual(with_compiler["unindexedRuntimeChanges"], [])
+        self.assertEqual(
+            {item["standing"] for item in with_compiler["standingByWitness"]},
+            {"RECHECK_REQUIRED"},
+        )
+        self.assertTrue(all(item["matchedChangedPaths"] == [sql] for item in with_compiler["standingByWitness"]))
+        self.assertIn("not proof PASS", with_compiler["nonClaims"][0])
+
+    def test_compiler_inputs_do_not_authorize_unknown_negative_dependencies(self):
+        trace, invariants = manifests()
+        known = "services/runtime/crates/core/src/lib.rs"
+        unknown = "services/runtime/crates/core/src/undeclared_dynamic_new.rs"
+        result = self.module.project_proving_test_source_impact(trace, invariants, {unknown}, compiler_inputs={known})
+        self.assertEqual(result["unindexedRuntimeChanges"], [unknown])
+        self.assertEqual(
+            {x["standing"] for x in result["standingByWitness"]},
+            {"UNKNOWN"},
+        )
+        for invalid in ({"/absolute"}, {"services/runtime/../escape"}, {"README.md"}):
+            with self.subTest(invalid=invalid):
+                with self.assertRaisesRegex(ValueError, "compiler inputs"):
+                    self.module.project_proving_test_source_impact(trace, invariants, {known}, compiler_inputs=invalid)
+
+    def test_compiler_libtest_depfile_git_identity_and_escape_controls(self):
+        """A small actual Git SourceCut proves both positive and fail-closed paths."""
+        import subprocess
+
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "services/runtime"
+            rust = root / "crates/ordivon-runtime-core/src/lib.rs"
+            sql = root / "crates/ordivon-runtime-core/migrations/schema.sql"
+            rust.parent.mkdir(parents=True)
+            sql.parent.mkdir(parents=True)
+            rust.write_text("fn original() {}\n", encoding="utf-8")
+            sql.write_text("CREATE TABLE original(id INTEGER);\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(base), "init", "-q"], check=True)
+            subprocess.run(["git", "-C", str(base), "add", "."], check=True)
+            subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(base),
+                    "-c",
+                    "user.name=ProofTest",
+                    "-c",
+                    "user.email=proof@example.invalid",
+                    "commit",
+                    "-qm",
+                    "source cut",
+                ],
+                check=True,
+            )
+            sha = subprocess.check_output(
+                ["git", "-C", str(base), "rev-parse", "HEAD"],
+                text=True,
+            ).strip()
+            bin_path = root / "target/debug/deps/ordivon_runtime_core-fixture"
+            bin_path.parent.mkdir(parents=True)
+            bin_path.write_bytes(b"real-executable-fixture")
+            native_inputs = [
+                "crates/ordivon-runtime-core/src/lib.rs",
+                "crates/ordivon-runtime-core/src/runtime/../../migrations/schema.sql",
+            ]
+            joined = " ".join(native_inputs)
+            depfile = Path(str(bin_path) + ".d")
+            depfile.write_text(
+                f"{depfile}: {joined}\n\n{bin_path}: {joined}\n\n" + "\n".join(f"{p}:" for p in native_inputs) + "\n",
+                encoding="utf-8",
+            )
+            original = self.module.ROOT
+            self.module.ROOT = root
+            try:
+                receipt = self.module._native_libtest_depfile_receipt(bin_path, sha)
+                self.assertEqual(len(receipt["sourcePaths"]), 2)
+                self.assertTrue(any(path.endswith(".sql") for path in receipt["sourcePaths"]))
+                self.assertFalse(receipt["proofReuseAdmissible"])
+                original_sql = sql.read_text(encoding="utf-8")
+                sql.write_text("CREATE TABLE different(id TEXT);\n", encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "physical/Git blob mismatch"):
+                    self.module._native_libtest_depfile_receipt(bin_path, sha)
+                sql.write_text(original_sql, encoding="utf-8")
+                # A broken phony dependency list cannot impersonate rustc.
+                original_depfile = depfile.read_text(encoding="utf-8")
+                depfile.write_text(
+                    original_depfile.replace(
+                        native_inputs[0] + ":",
+                        "foreign.rs:",
+                    ),
+                    encoding="utf-8",
+                )
+                with self.assertRaisesRegex(ValueError, "phony source rules disagree"):
+                    self.module._native_libtest_depfile_receipt(bin_path, sha)
+                depfile.write_text(original_depfile, encoding="utf-8")
+                # An untracked extra include must never be silently certified.
+                depfile.write_text(
+                    depfile.read_text(encoding="utf-8").replace(
+                        "crates/ordivon-runtime-core/src/lib.rs",
+                        "crates/ordivon-runtime-core/src/../../../../outside.rs",
+                    ),
+                    encoding="utf-8",
+                )
+                with self.assertRaisesRegex(ValueError, "outside|absent"):
+                    self.module._native_libtest_depfile_receipt(bin_path, sha)
+            finally:
+                self.module.ROOT = original
+
     def test_runtime_formal_source_impact_model_change_rechecks_all(self):
         trace, invariants = manifests()
         changed = {"services/runtime/formal/RuntimeDispatchR1.tla"}
