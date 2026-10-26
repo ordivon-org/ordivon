@@ -112,3 +112,23 @@ def test_same_work_wrong_source_cut_reachable_and_rejected():
     assert 'sourceEvidenceBinding = "admission-bound"' in model
     assert probe.name in formal
     assert "Error: Invariant WrongSourceEvidenceIsUnreachable is violated." in formal
+
+
+def test_native_formal_rejects_changed_model_and_toolchain_inputs():
+    # A source-level assertion on the existing consumed task. Actual RED and
+    # GREEN acceptance is exercised with a Java shim and a live TLC run.
+    tasks = tomllib.loads((ROOT / "mise.toml").read_text(encoding="utf-8"))["tasks"]
+    script = tasks["formal:verify"]["run"]
+    assert 'formal_cut_before="$(sha256sum "' in script
+    assert 'formal_cut_after="$(sha256sum "' in script
+    assert 'if [[ "$formal_cut_before" != "$formal_cut_after" ]]; then' in script
+    for prerequisite in (
+        "Lego21OwnerBoundary.tla",
+        "Lego21OwnerBoundary.cfg",
+        "Lego21OwnerBoundary.*.cfg",
+        "$ORDIVON_TLA_TOOLS_JAR",
+        "$runtime_root/formal/toolchain.lock.json",
+        "$runtime_root/scripts/tla-formal",
+    ):
+        assert prerequisite in script
+    assert "TLC SourceCut input bytes changed during this verification window: UNKNOWN" in script

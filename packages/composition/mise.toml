@@ -40,6 +40,18 @@ fi
 "$runtime_root/scripts/tla-formal" verify
 (
   cd formal
+  # Local bounded temporal input fence. The Runtime formal tool verifies the
+  # upstream pinned JAR; record the bytes of that artifact, its lock and
+  # invocation, plus all live Composition model/config inputs before SANY/TLC.
+  # This is pre/post byte currentness, NOT an atomic filesystem snapshot,
+  # full JVM dependency closure, or a model-to-implementation refinement.
+  formal_cut_files=(
+    Lego21OwnerBoundary.tla Lego21OwnerBoundary.cfg Lego21OwnerBoundary.*.cfg
+    "$ORDIVON_TLA_TOOLS_JAR"
+    "$runtime_root/formal/toolchain.lock.json"
+    "$runtime_root/scripts/tla-formal"
+  )
+  formal_cut_before="$(sha256sum "${formal_cut_files[@]}")"
   java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tla2sany.SANY Lego21OwnerBoundary.tla
   for cfg in Lego21OwnerBoundary.cfg Lego21OwnerBoundary.direct-local.cfg Lego21OwnerBoundary.direct-egress.cfg Lego21OwnerBoundary.harness-local.cfg; do
     java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config "$cfg" Lego21OwnerBoundary.tla
@@ -184,6 +196,12 @@ PY_FOREIGN_RECOVERY_RED
     exit 1
   fi
   echo "TLC foreign receipt recovery mutation negative control: PASS"
+  formal_cut_after="$(sha256sum "${formal_cut_files[@]}")"
+  if [[ "$formal_cut_before" != "$formal_cut_after" ]]; then
+    echo "TLC SourceCut input bytes changed during this verification window: UNKNOWN" >&2
+    exit 1
+  fi
+  echo "TLC bounded formal input pre/post byte continuity: PASS (non-atomic readset)"
   rm -rf "$red_dir"
   rm -f "$probe_output"
   trap - EXIT
