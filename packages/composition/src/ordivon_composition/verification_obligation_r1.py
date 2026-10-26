@@ -327,7 +327,12 @@ def select_impacted_obligations(
         "basisDigest": canonical_digest(
             {
                 "authorityRefs": sorted(roots),
-                "obligations": sorted(claims.values(), key=lambda x: x["id"]),
+                # dependsOn is a graph prerequisite SET, not an ordered program.
+                # Canonicalize its members so equivalent read-sets share identity.
+                "obligations": [
+                    {**item, "dependsOn": sorted(item["dependsOn"])}
+                    for item in sorted(claims.values(), key=lambda x: x["id"])
+                ],
                 "changedRefs": sorted(changed),
                 "unknownRefs": sorted(unknown),
             }

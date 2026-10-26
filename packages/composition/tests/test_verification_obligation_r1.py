@@ -318,6 +318,30 @@ def test_impact_selective_delta_preserves_independent_proof_candidate():
     assert result["proofAcceptanceEstablished"] is False
 
 
+def test_impact_basis_digest_is_invariant_under_dependency_set_permutation():
+    # A proof's DAG prerequisites are a set, not an ordered execution sequence.
+    def select(depends_on):
+        return select_impacted_obligations(
+            authority_refs=["source:a", "source:b"],
+            obligations=[
+                {
+                    "id": "proof:combined",
+                    "dependsOn": depends_on,
+                    "dependenciesComplete": True,
+                }
+            ],
+            changed_refs=["source:a"],
+        )
+
+    first = select(["source:a", "source:b"])
+    swapped = select(["source:b", "source:a"])
+    changed_graph = select(["source:a"])
+    assert first["standingByObligation"] == swapped["standingByObligation"]
+    assert first["basisDigest"] == swapped["basisDigest"]
+    assert first["basisDigest"] != changed_graph["basisDigest"]
+    assert first["proofReuseAdmissible"] is False
+
+
 def test_impact_unknown_currentness_propagates_without_false_recheck():
     result = _impact(unknown=["installed:runtime"])
     assert _statuses(result) == {
