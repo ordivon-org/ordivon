@@ -8,6 +8,7 @@ from ordivon_composition.cognitive_circuit_r1 import CircuitContractError, canon
 from ordivon_composition.verification_obligation_r1 import (
     compile_verification_obligations,
     resolve_verifier_bindings,
+    select_impacted_obligations,
     validate_obligation_set,
 )
 
@@ -279,3 +280,493 @@ def test_native_specification_reference_is_bound_but_not_interpreted() -> None:
     assert native is not None
     assert native["id"] == "spec:producer-contract-r1"
     assert resolution["executionAuthorityGranted"] is False
+
+
+def _impact(*, graph=None, changed=None, unknown=None):
+    return select_impacted_obligations(
+        authority_refs=["source:runtime", "installed:runtime", "source:host"],
+        obligations=graph
+        if graph is not None
+        else [
+            {"id": "proof:runtime", "dependsOn": ["source:runtime"], "dependenciesComplete": True},
+            {
+                "id": "proof:composite",
+                "dependsOn": ["proof:runtime", "installed:runtime"],
+                "dependenciesComplete": True,
+            },
+            {"id": "proof:host", "dependsOn": ["source:host"], "dependenciesComplete": True},
+        ],
+        changed_refs=changed or [],
+        unknown_refs=unknown or [],
+    )
+
+
+def _statuses(projection):
+    return {r["id"]: r["standing"] for r in projection["standingByObligation"]}
+
+
+def test_impact_selective_delta_preserves_independent_proof_candidate():
+    result = _impact(changed=["source:runtime"])
+    assert _statuses(result) == {
+        "proof:runtime": "RECHECK_REQUIRED",
+        "proof:composite": "RECHECK_REQUIRED",
+        "proof:host": "REUSE_CANDIDATE",
+    }
+    assert result["basisDigest"] == _impact(changed=["source:runtime"])["basisDigest"]
+    assert result["dependencyQualification"] == "CALLER_DECLARED_NOT_OWNER_CERTIFIED"
+    assert result["proofReuseAdmissible"] is False
+    assert result["proofAcceptanceEstablished"] is False
+
+
+def test_impact_basis_digest_is_invariant_under_dependency_set_permutation():
+    # A proof's DAG prerequisites are a set, not an ordered execution sequence.
+    def select(depends_on):
+        return select_impacted_obligations(
+            authority_refs=["source:a", "source:b"],
+            obligations=[
+                {
+                    "id": "proof:combined",
+                    "dependsOn": depends_on,
+                    "dependenciesComplete": True,
+                }
+            ],
+            changed_refs=["source:a"],
+        )
+
+    first = select(["source:a", "source:b"])
+    swapped = select(["source:b", "source:a"])
+    changed_graph = select(["source:a"])
+    assert first["standingByObligation"] == swapped["standingByObligation"]
+    assert first["basisDigest"] == swapped["basisDigest"]
+    assert first["basisDigest"] != changed_graph["basisDigest"]
+    assert first["proofReuseAdmissible"] is False
+
+
+def test_impact_unknown_currentness_propagates_without_false_recheck():
+    result = _impact(unknown=["installed:runtime"])
+    assert _statuses(result) == {
+        "proof:runtime": "REUSE_CANDIDATE",
+        "proof:composite": "UNKNOWN",
+        "proof:host": "REUSE_CANDIDATE",
+    }
+
+
+def test_impact_unresolved_dynamic_edges_never_promote_reuse():
+    graph = [
+        {"id": "proof:dynamic", "dependsOn": ["source:runtime"], "dependenciesComplete": False},
+        {"id": "proof:consumer", "dependsOn": ["proof:dynamic"], "dependenciesComplete": True},
+    ]
+    assert _statuses(_impact(graph=graph)) == {
+        "proof:dynamic": "UNKNOWN",
+        "proof:consumer": "UNKNOWN",
+    }
+    assert _statuses(_impact(graph=graph, changed=["source:runtime"])) == {
+        "proof:dynamic": "RECHECK_REQUIRED",
+        "proof:consumer": "RECHECK_REQUIRED",
+    }
+
+
+def test_impact_unindexed_environment_delta_fails_closed():
+    result = _impact(changed=["external:unknown-plugin"])
+    assert result["unindexedChangeRefs"] == ["external:unknown-plugin"]
+    assert set(_statuses(result).values()) == {"UNKNOWN"}
+
+
+def test_impact_rejects_graph_cycles_missing_edges_and_fake_completeness():
+    base = [{"id": "proof:a", "dependsOn": ["source:runtime"], "dependenciesComplete": True}]
+    with pytest.raises(CircuitContractError, match="depends on unknown"):
+        _impact(graph=[{**base[0], "dependsOn": ["source:missing"]}])
+    with pytest.raises(CircuitContractError, match="dependency cycle"):
+        _impact(
+            graph=[
+                {"id": "proof:a", "dependsOn": ["proof:b"], "dependenciesComplete": True},
+                {"id": "proof:b", "dependsOn": ["proof:a"], "dependenciesComplete": True},
+            ]
+        )
+    with pytest.raises(CircuitContractError, match="duplicate"):
+        _impact(graph=base + base)
+    with pytest.raises(CircuitContractError, match="JSON boolean"):
+        _impact(graph=[{**base[0], "dependenciesComplete": "true"}])
+
+
+def test_impact_bounded_dag_family_matches_independent_forward_oracle():
+    from itertools import combinations
+
+    names = ["proof:a", "proof:b", "proof:c"]
+    arcs = [(names[a], names[b]) for a in range(3) for b in range(a + 1, 3)]
+    roots = ["source:a", "source:b", "source:c"]
+    for count in range(4):
+        for chosen in combinations(arcs, count):
+            rows = []
+            for i, identity in enumerate(names):
+                deps = [roots[i]] + [parent for parent, target in chosen if target == identity]
+                rows.append({"id": identity, "dependsOn": deps, "dependenciesComplete": True})
+            for mask in range(8):
+                changed = [r for i, r in enumerate(roots) if mask & (1 << i)]
+                result = select_impacted_obligations(
+                    authority_refs=roots, obligations=rows, changed_refs=changed
+                )
+                impacted = set(changed)
+                for identity in names:
+                    item = next(r for r in rows if r["id"] == identity)
+                    if any(dep in impacted for dep in item["dependsOn"]):
+                        impacted.add(identity)
+                assert {
+                    identity
+                    for identity, status in _statuses(result).items()
+                    if status == "RECHECK_REQUIRED"
+                } == impacted.intersection(names)
+
+
+def test_impact_unobserved_source_dependency_exposes_a_non_authoritative_reuse_candidate():
+    # Independent review challenge: the *real* readset includes source:runtime,
+    # but a caller incorrectly declares a complete empty readset.
+    # The pure algorithm cannot discover this missing edge. Its candidate
+    # must never become owner-qualified reuse or evidence of a proved property.
+    result = _impact(
+        graph=[{"id": "proof:misdeclared", "dependsOn": [], "dependenciesComplete": True}],
+        changed=["source:runtime"],
+    )
+    assert _statuses(result)["proof:misdeclared"] == "REUSE_CANDIDATE"
+    assert result["proofReuseAdmissible"] is False
+    assert result["proofAcceptanceEstablished"] is False
+
+
+@pytest.mark.parametrize(
+    "alias",
+    (" source:runtime", "source:runtime ", ":runtime", "source:", "source:\u200dghost"),
+)
+@pytest.mark.parametrize("position", ("authority", "changed", "unknown", "id", "dependsOn"))
+def test_impact_rejects_noncanonical_source_or_proof_identity(alias: str, position: str) -> None:
+    # The source change must never bypass propagation through a spelling alias.
+    authority = ["source:runtime"]
+    changed = ["source:runtime"]
+    unknown: list[str] = []
+    obligation = {
+        "id": "proof:runtime",
+        "dependsOn": ["source:runtime"],
+        "dependenciesComplete": True,
+    }
+    if position == "authority":
+        authority.append(alias)
+    elif position == "changed":
+        changed.append(alias)
+    elif position == "unknown":
+        unknown.append(alias)
+    elif position == "id":
+        obligation["id"] = alias
+    else:
+        obligation["dependsOn"] = [alias]
+    with pytest.raises(CircuitContractError, match="nonempty typed references"):
+        select_impacted_obligations(
+            authority_refs=authority,
+            obligations=[obligation],
+            changed_refs=changed,
+            unknown_refs=unknown,
+        )
+
+
+def test_impact_derives_changed_dependency_edges_without_caller_changed_refs():
+    old = [
+        {"id": "proof:p", "dependsOn": ["source:runtime"], "dependenciesComplete": True},
+        {"id": "proof:q", "dependsOn": ["proof:p"], "dependenciesComplete": True},
+        {"id": "proof:host", "dependsOn": ["source:host"], "dependenciesComplete": True},
+    ]
+    new = [dict(row) for row in old]
+    new[0]["dependsOn"] = ["source:runtime", "source:host"]
+    result = select_impacted_obligations(
+        authority_refs=["source:runtime", "source:host"],
+        obligations=new,
+        changed_refs=[],
+        previous_graph={"authorityRefs": ["source:runtime", "source:host"], "obligations": old},
+    )
+    assert result["derivedRelationChangedRefs"] == ["proof:p"]
+    assert _statuses(result) == {
+        "proof:p": "RECHECK_REQUIRED",
+        "proof:q": "RECHECK_REQUIRED",
+        "proof:host": "REUSE_CANDIDATE",
+    }
+    assert result["relationComparisonQualification"].startswith("CALLER_SUPPLIED")
+    assert result["proofReuseAdmissible"] is False
+
+
+def test_impact_relation_permutation_does_not_create_false_change():
+    old = [
+        {
+            "id": "proof:p",
+            "dependsOn": ["source:runtime", "source:host"],
+            "dependenciesComplete": True,
+        }
+    ]
+    current = [dict(old[0], dependsOn=["source:host", "source:runtime"])]
+    args = {
+        "authority_refs": ["source:host", "source:runtime"],
+        "obligations": current,
+        "changed_refs": [],
+    }
+    a = select_impacted_obligations(**args)
+    b = select_impacted_obligations(
+        **args,
+        previous_graph={"authorityRefs": ["source:runtime", "source:host"], "obligations": old},
+    )
+    assert b["derivedRelationChangedRefs"] == []
+    assert b["basisDigest"] == a["basisDigest"]
+    assert _statuses(b)["proof:p"] == "REUSE_CANDIDATE"
+
+
+def test_impact_dependency_completeness_change_and_deleted_relation_fail_closed():
+    old = [{"id": "proof:p", "dependsOn": ["source:runtime"], "dependenciesComplete": True}]
+    current = [dict(old[0], dependenciesComplete=False)]
+    args = {
+        "authority_refs": ["source:runtime"],
+        "changed_refs": [],
+        "previous_graph": {"authorityRefs": ["source:runtime"], "obligations": old},
+    }
+    result = select_impacted_obligations(obligations=current, **args)
+    assert result["derivedRelationChangedRefs"] == ["proof:p"]
+    assert _statuses(result)["proof:p"] == "RECHECK_REQUIRED"
+
+    # A deleted source root cannot disappear silently from a previous-graph witness.
+    deleted = select_impacted_obligations(
+        authority_refs=["source:host"],
+        obligations=[{"id": "proof:p", "dependsOn": ["source:host"], "dependenciesComplete": True}],
+        changed_refs=[],
+        previous_graph={
+            "authorityRefs": ["source:runtime", "source:host"],
+            "obligations": [
+                {"id": "proof:p", "dependsOn": ["source:host"], "dependenciesComplete": True}
+            ],
+        },
+    )
+    assert "source:runtime" in deleted["derivedRelationChangedRefs"]
+    assert "source:runtime" in deleted["unindexedChangeRefs"]
+    assert set(_statuses(deleted).values()) == {"UNKNOWN"}
+
+
+def test_impact_rejects_malformed_or_cyclic_previous_graph():
+    obligation = {"id": "proof:a", "dependsOn": ["source:a"], "dependenciesComplete": True}
+    args = {"authority_refs": ["source:a"], "obligations": [obligation], "changed_refs": []}
+    invalids = [
+        {"authorityRefs": ["source:a"], "obligations": [obligation, obligation]},
+        {
+            "authorityRefs": ["source:a"],
+            "obligations": [
+                {"id": "proof:b", "dependsOn": ["proof:b"], "dependenciesComplete": True}
+            ],
+        },
+        {
+            "authorityRefs": ["source:a"],
+            "obligations": [
+                {"id": "proof:b", "dependsOn": ["source:a"], "dependenciesComplete": "yes"}
+            ],
+        },
+    ]
+    for invalid in invalids:
+        with pytest.raises(CircuitContractError):
+            select_impacted_obligations(**args, previous_graph=invalid)
+
+
+def test_impact_relation_delta_matches_independent_full_graph_closure_randomized():
+    from random import Random
+
+    rng = Random(841842)
+    roots = ["source:a", "source:b", "source:c"]
+    proof_ids = ["proof:a", "proof:b", "proof:c"]
+
+    def graph():
+        result = []
+        for i, identity in enumerate(proof_ids):
+            possible = roots + proof_ids[:i]
+            deps = [p for p in possible if rng.choice([False, True])]
+            rng.shuffle(deps)
+            result.append(
+                {
+                    "id": identity,
+                    "dependsOn": deps,
+                    "dependenciesComplete": rng.choice([False, True]),
+                }
+            )
+        return result
+
+    for _ in range(1200):
+        old = graph()
+        current = graph()
+        projection = select_impacted_obligations(
+            authority_refs=roots,
+            obligations=current,
+            changed_refs=[],
+            previous_graph={"authorityRefs": list(reversed(roots)), "obligations": old},
+        )
+        old_index = {row["id"]: row for row in old}
+        changed_proofs = {
+            row["id"]
+            for row in current
+            if (
+                set(row["dependsOn"]) != set(old_index[row["id"]]["dependsOn"])
+                or row["dependenciesComplete"] != old_index[row["id"]]["dependenciesComplete"]
+            )
+        }
+        impacted = set(changed_proofs)
+        while True:
+            next_impact = impacted | {
+                row["id"] for row in current if any(d in impacted for d in row["dependsOn"])
+            }
+            if next_impact == impacted:
+                break
+            impacted = next_impact
+        actual = {
+            ref for ref, status in _statuses(projection).items() if status == "RECHECK_REQUIRED"
+        }
+        assert actual == impacted
+        assert set(projection["derivedRelationChangedRefs"]) == changed_proofs
+        assert projection["proofReuseAdmissible"] is False
+
+
+def test_impact_real_compiler_guarantee_digest_delta_rechecks_downstream_without_edge_delta():
+    before = compile_verification_obligations(_manifest())
+    weaker = _manifest()
+    weaker["gateRequirements"][0]["guarantee"] = (
+        "Producer may emit a candidate not bound to the required contract."
+    )
+    after = compile_verification_obligations(weaker)
+    original_digest = before["obligations"][0]["obligationDigest"]
+    new_digest = after["obligations"][0]["obligationDigest"]
+    assert original_digest != new_digest
+    assert before["obligations"][0]["gateId"] == after["obligations"][0]["gateId"]
+
+    def graph(digest):
+        return [
+            {
+                "id": "proof:contract",
+                "dependsOn": ["source:producer"],
+                "dependenciesComplete": True,
+                "obligationDigest": digest,
+            },
+            {"id": "proof:consumer", "dependsOn": ["proof:contract"], "dependenciesComplete": True},
+            {"id": "proof:independent", "dependsOn": ["source:host"], "dependenciesComplete": True},
+        ]
+
+    old = graph(original_digest)
+    current = graph(new_digest)
+    result = select_impacted_obligations(
+        authority_refs=["source:producer", "source:host"],
+        obligations=current,
+        changed_refs=[],
+        previous_graph={"authorityRefs": ["source:host", "source:producer"], "obligations": old},
+    )
+    assert result["derivedRelationChangedRefs"] == []
+    assert result["derivedContractChangedRefs"] == ["proof:contract"]
+    assert result["derivedChangedRefs"] == ["proof:contract"]
+    assert _statuses(result) == {
+        "proof:contract": "RECHECK_REQUIRED",
+        "proof:consumer": "RECHECK_REQUIRED",
+        "proof:independent": "REUSE_CANDIDATE",
+    }
+    assert result["proofReuseAdmissible"] is False
+    # Identical exact owner obligation digests yield no false relation change.
+    same = select_impacted_obligations(
+        authority_refs=["source:producer", "source:host"],
+        obligations=current,
+        changed_refs=[],
+        previous_graph={
+            "authorityRefs": ["source:producer", "source:host"],
+            "obligations": graph(new_digest),
+        },
+    )
+    assert same["derivedRelationChangedRefs"] == []
+    assert same["derivedContractChangedRefs"] == []
+
+
+def test_impact_contract_digest_input_downgrade_or_invalid_identity_fails_closed():
+    digest = compile_verification_obligations(_manifest())["obligations"][0]["obligationDigest"]
+    roots = ["source:a"]
+    row = {
+        "id": "proof:a",
+        "dependsOn": roots,
+        "dependenciesComplete": True,
+        "obligationDigest": digest,
+    }
+    args = {"authority_refs": roots, "changed_refs": []}
+    # Removing a previously known content identity is itself a semantic change.
+    downgrade = select_impacted_obligations(
+        **args,
+        obligations=[{k: v for k, v in row.items() if k != "obligationDigest"}],
+        previous_graph={"authorityRefs": roots, "obligations": [row]},
+    )
+    assert downgrade["derivedRelationChangedRefs"] == []
+    assert downgrade["derivedContractChangedRefs"] == ["proof:a"]
+    assert _statuses(downgrade)["proof:a"] == "RECHECK_REQUIRED"
+    assert downgrade["proofReuseAdmissible"] is False
+
+    for bad in ("0" * 64, "sha256:Z" * 9, "sha256:" + "0" * 63, "sha256:" + "0" * 63 + "G"):
+        with pytest.raises(CircuitContractError, match="canonical sha256"):
+            select_impacted_obligations(**args, obligations=[{**row, "obligationDigest": bad}])
+        with pytest.raises(CircuitContractError, match="canonical sha256"):
+            select_impacted_obligations(
+                **args,
+                obligations=[row],
+                previous_graph={
+                    "authorityRefs": roots,
+                    "obligations": [{**row, "obligationDigest": bad}],
+                },
+            )
+
+
+def test_impact_projection_digest_distinguishes_prior_graph_qualification():
+    # Same effective impact is not the same evidence qualification.
+    claim = {"id": "proof:a", "dependsOn": ["source:a"], "dependenciesComplete": True}
+    args = {"authority_refs": ["source:a"], "obligations": [claim], "changed_refs": []}
+    without = select_impacted_obligations(**args)
+    with_equal_prior = select_impacted_obligations(
+        **args, previous_graph={"authorityRefs": ["source:a"], "obligations": [claim]}
+    )
+    assert without["standingByObligation"] == with_equal_prior["standingByObligation"]
+    assert (
+        without["relationComparisonQualification"]
+        != with_equal_prior["relationComparisonQualification"]
+    )
+    assert without["basisDigest"] == with_equal_prior["basisDigest"]
+    assert without["projectionDigest"] != with_equal_prior["projectionDigest"]
+    assert not without["proofReuseAdmissible"] and not with_equal_prior["proofReuseAdmissible"]
+
+
+def test_impact_projection_digest_distinguishes_derived_vs_caller_declared_delta():
+    claim = {"id": "proof:a", "dependsOn": ["source:a"], "dependenciesComplete": True}
+    prior = {"id": "proof:a", "dependsOn": [], "dependenciesComplete": True}
+    args = {"authority_refs": ["source:a"], "obligations": [claim]}
+    caller = select_impacted_obligations(**args, changed_refs=["proof:a"])
+    derived = select_impacted_obligations(
+        **args,
+        changed_refs=[],
+        previous_graph={"authorityRefs": ["source:a"], "obligations": [prior]},
+    )
+    assert caller["standingByObligation"] == derived["standingByObligation"]
+    assert caller["derivedRelationChangedRefs"] != derived["derivedRelationChangedRefs"]
+    assert caller["basisDigest"] == derived["basisDigest"]
+    assert caller["projectionDigest"] != derived["projectionDigest"]
+    assert not caller["proofReuseAdmissible"] and not derived["proofReuseAdmissible"]
+
+
+def test_impact_projection_digest_is_order_insensitive_for_equivalent_readsets():
+    claim = {"id": "proof:a", "dependsOn": ["source:a", "source:b"], "dependenciesComplete": True}
+    a = select_impacted_obligations(
+        authority_refs=["source:a", "source:b"],
+        obligations=[claim],
+        changed_refs=[],
+        previous_graph={
+            "authorityRefs": ["source:a", "source:b"],
+            "obligations": [claim],
+        },
+    )
+    b = select_impacted_obligations(
+        authority_refs=["source:b", "source:a"],
+        obligations=[dict(claim, dependsOn=["source:b", "source:a"])],
+        changed_refs=[],
+        previous_graph={
+            "authorityRefs": ["source:b", "source:a"],
+            "obligations": [dict(claim, dependsOn=["source:b", "source:a"])],
+        },
+    )
+    assert a["basisDigest"] == b["basisDigest"]
+    assert a["projectionDigest"] == b["projectionDigest"]
+    assert a["derivedRelationChangedRefs"] == b["derivedRelationChangedRefs"] == []

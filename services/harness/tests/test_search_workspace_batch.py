@@ -100,6 +100,7 @@ class CrashOnceBatchRuntime(BatchRuntime):
             request_id = arguments.get("clientRequestId")
             assert isinstance(request_id, str)
             self.client_request_id = request_id
+            self.workspace_id = arguments["execution"]["workspaceId"]
             self.crash_once = False
             raise KeyboardInterrupt("simulated process loss after Runtime admission")
         return super().call_tool(name, arguments)

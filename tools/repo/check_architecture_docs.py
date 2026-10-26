@@ -1,14 +1,17 @@
 from __future__ import annotations
 
+import argparse
 import ast
+import hashlib
 import json
 import math
 import re
-import tomllib
 from decimal import Decimal
 from graphlib import CycleError, TopologicalSorter
 from pathlib import Path
 from typing import Any
+
+import tomllib
 
 ROOT = Path(__file__).resolve().parents[2]
 CURRENT = ROOT / "docs" / "architecture" / "CURRENT_ARCHITECTURE.md"
@@ -106,7 +109,7 @@ GIT01_SCOPE_DISPOSITION = {
             "FROZEN_GATEWAY_CONSUMER_ONLY": "NO_WHOLE_COMMIT_REPLAY_WITHOUT_PRODUCER_AUTHORITY",
 }
 
-def _load_json(path: Path) -> dict[str, Any]:
+def _load_json(path: Path, *, source_bytes: bytes | None = None) -> dict[str, Any]:
     """Use unambiguous standard JSON bytes for Owner and evidence registration.
 
     Python's default last-key-wins and NaN extensions are not a sound source
@@ -134,7 +137,7 @@ def _load_json(path: Path) -> dict[str, Any]:
         return parsed
 
     value = json.loads(
-        path.read_text(encoding="utf-8"),
+        source_bytes.decode("utf-8") if source_bytes is not None else path.read_text(encoding="utf-8"),
         object_pairs_hook=unique_object,
         parse_constant=finite_constant,
         parse_float=representable_float,
@@ -379,6 +382,69 @@ def validate_owner_lego_graph(plan: dict[str, Any]) -> None:
     # Typed relations are structural; OBSERVATION/STATE cycles are allowed.
     _validated_owner_lego_edges(plan.get("edges", []), identities)
 
+
+
+def project_owner_lego_source_graph(root: Path = ROOT) -> dict[str, Any]:
+    """Rebuild a *source planning* view; never attest a real LEGO or consumer.
+
+    Owner-local IDs have no cross-owner identity. Preserve source paths,
+    source byte digests, relation kinds, and declaration carriers; reuse the
+    native structural and source guards rather than inventing a graph store.
+    """
+    source_plans: list[dict[str, str]] = []
+    vertices: list[dict[str, Any]] = []
+    relation_carriers: dict[tuple[str, str, str], set[str]] = {}
+    for relative in OWNER_LEGO_PLANS:
+        path = _source_bound_file(root, relative, "registered Owner LEGO plan")
+        before = path.read_bytes()
+        plan = _load_json(path, source_bytes=before)
+        owner = relative.split("/planning/", 1)[0]
+        validate_owner_lego_graph(plan)
+        validate_owner_lego_dependencies(plan, owner)
+        validate_owner_lego_source_evidence(root, relative, plan)
+        if path.read_bytes() != before:
+            raise ArchitectureDocsError(f"Owner source changed during projection: {relative}")
+        source_plans.append({
+            "path": relative,
+            "sha256": "sha256:" + hashlib.sha256(before).hexdigest(),
+        })
+        ids = {node["id"] for node in plan["nodes"]}
+
+        def ref(local_id: str, plan_path: str = relative) -> str:
+            return f"{plan_path}#{local_id}"
+
+        for node in plan["nodes"]:
+            vertices.append({
+                "ref": ref(node["id"]),
+                "declaredKind": node["kind"],
+                "declaredEvidence": node.get("evidence", []),
+            })
+            for prerequisite in node["dependencies"]:
+                key = (ref(prerequisite), "DEPENDENCY", ref(node["id"]))
+                relation_carriers.setdefault(key, set()).add("NODE_DEPENDENCIES")
+        for source, kind, target in _validated_owner_lego_edges(plan.get("edges", []), ids):
+            key = (ref(source), kind, ref(target))
+            relation_carriers.setdefault(key, set()).add("TYPED_EDGE")
+
+    return {
+        "kind": "ordivon.owner-lego-planning-source-projection",
+        "truthRole": "DERIVED_READ_ONLY_SOURCE_PLANNING_NOT_LEGO_TRUTH",
+        "sourceCut": "WORKTREE_BYTES_ONLY_GIT_AND_INSTALLED_UNQUALIFIED",
+        "sourcePlans": source_plans,
+        "vertices": sorted(vertices, key=lambda item: item["ref"]),
+        "relations": [
+            {"from": source, "type": kind, "to": target, "declaredBy": sorted(carriers)}
+            for (source, kind, target), carriers in sorted(relation_carriers.items())
+        ],
+        "excluded": {
+            "ownerPlanRevisions": sorted(OWNER_LEGO_PLAN_PROJECTIONS),
+            "unverifiedFacets": [
+                "ACTUAL_LEGO_IDENTITY", "ACTUAL_CONSUMER", "FORMAL_PROOF",
+                "CONFIGURED", "INSTALLED", "EXECUTED", "CURRENTNESS",
+                "CROSS_OWNER_RELATION_CLOSURE", "DYNAMIC_DEPENDENCIES",
+            ],
+        },
+    }
 
 def validate_deployed_graph(value: dict[str, Any]) -> None:
     _require_exact_schema_one(value, "deployed architecture")
@@ -1243,8 +1309,14 @@ def validate_repository(root: Path = ROOT) -> None:
             raise ArchitectureDocsError(f"historical architecture file lacks supersession marker: {candidate}")
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--project-owner-graphs", action="store_true")
+    args = parser.parse_args(argv)
     try:
+        if args.project_owner_graphs:
+            print(json.dumps(project_owner_lego_source_graph(), sort_keys=True))
+            return 0
         validate_repository()
     except (OSError, json.JSONDecodeError, ArchitectureDocsError) as exc:
         print(f"architecture documentation drift check failed: {exc}")

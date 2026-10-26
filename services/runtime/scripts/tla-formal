@@ -568,6 +568,42 @@ PY_CEX
 }
 
 
+# Native Registry clears jobs.current_attempt_id on terminal commit. Ensure
+# the model is sensitive to a regression that retains a selected pointer.
+# This test changes ONLY an ephemeral copy, and requires a named TLC trace.
+check_terminal_pointer_counterexample() {
+  verify_jar
+  (
+    tmp_dir=$(mktemp -d -t ordivon-tlc-terminal-pointer-XXXXXX)
+    trap 'rm -rf -- "$tmp_dir"' EXIT
+    python3 - "$ROOT/formal/RuntimeDispatchR1.tla" "$tmp_dir/RuntimeDispatchR1.tla" <<'PY_TERMINAL_POINTER_RED'
+from pathlib import Path
+import sys
+source = Path(sys.argv[1]).read_text(encoding="utf-8")
+old = r'''    /\ currentAttempt' = NoAttempt
+    /\ UNCHANGED <<dispatchCount, heldReservation, outputObserved, resultEvidence>>'''
+new = r'''    /\ UNCHANGED <<currentAttempt, dispatchCount, heldReservation, outputObserved, resultEvidence>>'''
+assert source.count(old) == 1, "terminal pointer mutation target drift"
+Path(sys.argv[2]).write_text(source.replace(old, new, 1), encoding="utf-8")
+PY_TERMINAL_POINTER_RED
+    cp -- "$ROOT/formal/RuntimeDispatchR1.cfg" "$tmp_dir/RuntimeDispatchR1.cfg"
+    set +e
+    (cd "$tmp_dir"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+      -config RuntimeDispatchR1.cfg RuntimeDispatchR1.tla) > "$tmp_dir/result.log" 2>&1
+    result=$?
+    set -e
+    if [[ "$result" -ne 12 ]] ||
+       ! grep -Fxq "Error: Invariant TerminalEvidenceIsCommitted is violated." "$tmp_dir/result.log" ||
+       ! grep -Fxq "Error: The behavior up to this point is:" "$tmp_dir/result.log" ||
+       ! grep -Eq '^State [1-9][0-9]*:' "$tmp_dir/result.log"; then
+      echo "TLC terminal pointer negative control FAILED" >&2
+      tail -45 "$tmp_dir/result.log" >&2
+      exit 1
+    fi
+    echo "TLC terminal pointer mapping negative control PASS: stale selected pointer rejected"
+  )
+}
+
 # Rejected foreign results must remain correctable by later matching evidence.
 # Only pinned upstream TLC runs; all negative control files are ephemeral.
 check_foreign_result_recovery_counterexample() {
@@ -734,8 +770,8 @@ case "${1:-check}" in
   verify) verify_jar; echo "TLA+ toolchain digest verification PASS" ;;
   check-dispatch) check_runtime_dispatch ;;
   check) check_runtime_dispatch; check_runtime_pg_cutover; check_windows_first_pg_order; check_workspace_consumer_close ;;
-  falsify-dispatch) check_runtime_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample ;;
-  falsify) check_runtime_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_pg_cutover_counterexample; check_windows_first_pg_falsifiers; check_workspace_consumer_close_counterexamples ;;
+  falsify-dispatch) check_runtime_counterexample; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample ;;
+  falsify) check_runtime_counterexample; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_pg_cutover_counterexample; check_windows_first_pg_falsifiers; check_workspace_consumer_close_counterexamples ;;
   *)
     echo "usage: scripts/tla-formal [bootstrap|verify|check|falsify]" >&2
     exit 2
