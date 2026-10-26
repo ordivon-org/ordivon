@@ -1180,7 +1180,7 @@ trait Provider {
     def test_runtime_formal_source_impact_unrelated_repository_change_only_local_hint(self):
         trace, invariants = manifests()
         result = self.module.project_proving_test_source_impact(
-            trace, invariants, {"domains/game/README.md"}
+            trace, invariants, {"README.md"}
         )
         self.assertEqual(
             {row["standing"] for row in result["standingByWitness"]},
