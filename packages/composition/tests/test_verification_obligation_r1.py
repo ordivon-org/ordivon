@@ -1443,3 +1443,199 @@ def test_manifest_independent_gate_membership_subsets_are_local(
         if after_mask & (1 << i)
     }
     assert _gate_impact_statuses(selected) == expected
+
+
+def test_manifest_impact_binding_verifier_fingerprint_drift_rechecks_without_source_edit() -> None:
+    before_manifest = _manifest()
+    after_manifest = copy.deepcopy(before_manifest)
+    obligation = compile_verification_obligations(before_manifest)
+    before_binding = _binding_set(obligation, native=True)
+    after_binding = copy.deepcopy(before_binding)
+    after_binding["bindings"][0]["verifierRef"]["digest"] = _digest("different-verifier-artifact")
+    result = select_manifest_gate_impacts(
+        previous_manifest=before_manifest,
+        current_manifest=after_manifest,
+        previous_binding_set=before_binding,
+        current_binding_set=after_binding,
+    )
+    assert result["changedLocalGateIds"] == []
+    assert result["changedVerifierBindingGateIds"] == ["gate:candidate-contract"]
+    assert result["proofReuseAdmissible"] is False
+    assert result["verifierBindingComparisonQualification"] == "CALLER_AUTHORED_BINDINGS_ONLY"
+    assert {r["id"]: r["standing"] for r in result["selection"]["standingByObligation"]} == {
+        "proof:gate:gate:candidate-contract": "RECHECK_REQUIRED"
+    }
+
+
+def test_manifest_impact_binding_native_spec_changes_force_recheck() -> None:
+    manifest = _manifest()
+    obligation = compile_verification_obligations(manifest)
+    before = _binding_set(obligation, native=True)
+    after = copy.deepcopy(before)
+    after["bindings"][0]["nativeSpecificationRef"]["digest"] = _digest("new-target-psi")
+    result = select_manifest_gate_impacts(
+        previous_manifest=manifest,
+        current_manifest=copy.deepcopy(manifest),
+        previous_binding_set=before,
+        current_binding_set=after,
+    )
+    assert result["changedVerifierBindingGateIds"] == ["gate:candidate-contract"]
+    assert result["selection"]["standingByObligation"][0]["standing"] == "RECHECK_REQUIRED"
+
+
+def test_manifest_impact_binding_nonsemantic_annotations_do_not_force_recheck() -> None:
+    manifest = _manifest()
+    obligation = compile_verification_obligations(manifest)
+    before = _binding_set(obligation, native=True)
+    after = copy.deepcopy(before)
+    after["nonClaims"].append("Extra task-local audit annotation.")
+    after["bindings"][0]["nonClaims"].append("Another explanatory annotation.")
+    result = select_manifest_gate_impacts(
+        previous_manifest=manifest,
+        current_manifest=copy.deepcopy(manifest),
+        previous_binding_set=before,
+        current_binding_set=after,
+    )
+    assert result["changedVerifierBindingGateIds"] == []
+    assert result["selection"]["standingByObligation"][0]["standing"] == "UNKNOWN"
+
+
+def test_manifest_impact_binding_pair_required_not_one_sided() -> None:
+    manifest = _manifest()
+    obligation = compile_verification_obligations(manifest)
+    with pytest.raises(CircuitContractError, match="both"):
+        select_manifest_gate_impacts(
+            previous_manifest=manifest,
+            current_manifest=copy.deepcopy(manifest),
+            previous_binding_set=_binding_set(obligation),
+        )
+
+
+def test_manifest_impact_binding_removal_rechecks_optional_gate() -> None:
+    manifest = _manifest(required=False)
+    obligation = compile_verification_obligations(manifest)
+    before = _binding_set(obligation, native=True)
+    after = copy.deepcopy(before)
+    after["bindings"] = []
+    result = select_manifest_gate_impacts(
+        previous_manifest=manifest,
+        current_manifest=copy.deepcopy(manifest),
+        previous_binding_set=before,
+        current_binding_set=after,
+    )
+    assert result["changedVerifierBindingGateIds"] == ["gate:candidate-contract"]
+    assert result["selection"]["standingByObligation"][0]["standing"] == "RECHECK_REQUIRED"
+
+
+def test_manifest_impact_binding_drift_is_local_to_named_gate() -> None:
+    manifest = _two_gate_manifest()
+    obligation_set = compile_verification_obligations(manifest)
+    by_gate = {row["gateId"]: row for row in obligation_set["obligations"]}
+    first = _binding_set(obligation_set, native=True)
+    unrelated = copy.deepcopy(first["bindings"][0])
+    unrelated["gateId"] = "gate:unrelated-property"
+    unrelated["obligationDigest"] = by_gate["gate:unrelated-property"]["obligationDigest"]
+    unrelated["verifierOwnerId"] = by_gate["gate:unrelated-property"]["verifierOwnerId"]
+    unrelated["supportScope"] = by_gate["gate:unrelated-property"]["supportScope"]
+    unrelated["verifierRef"]["id"] = "verifier:unrelated"
+    first["bindings"].append(unrelated)
+
+    second = copy.deepcopy(first)
+    second["bindings"][0]["verifierClass"] = "changed-provider"
+    selected = select_manifest_gate_impacts(
+        previous_manifest=manifest,
+        current_manifest=copy.deepcopy(manifest),
+        previous_binding_set=first,
+        current_binding_set=second,
+    )
+    assert selected["changedLocalGateIds"] == []
+    assert selected["changedVerifierBindingGateIds"] == ["gate:candidate-contract"]
+    assert {
+        row["id"]: row["standing"] for row in selected["selection"]["standingByObligation"]
+    } == {
+        "proof:gate:gate:candidate-contract": "RECHECK_REQUIRED",
+        "proof:gate:gate:unrelated-property": "UNKNOWN",
+    }
+
+
+def test_manifest_impact_binding_order_is_a_set_not_a_transition() -> None:
+    manifest = _two_gate_manifest()
+    obligations = compile_verification_obligations(manifest)
+    by_gate = {row["gateId"]: row for row in obligations["obligations"]}
+    before = _binding_set(obligations, native=True)
+    new = copy.deepcopy(before["bindings"][0])
+    new["gateId"] = "gate:unrelated-property"
+    new["obligationDigest"] = by_gate["gate:unrelated-property"]["obligationDigest"]
+    new["verifierOwnerId"] = by_gate["gate:unrelated-property"]["verifierOwnerId"]
+    new["supportScope"] = by_gate["gate:unrelated-property"]["supportScope"]
+    before["bindings"].append(new)
+    after = copy.deepcopy(before)
+    after["bindings"].reverse()
+    result = select_manifest_gate_impacts(
+        previous_manifest=manifest,
+        current_manifest=copy.deepcopy(manifest),
+        previous_binding_set=before,
+        current_binding_set=after,
+    )
+    assert result["changedVerifierBindingGateIds"] == []
+    assert set(row["standing"] for row in result["selection"]["standingByObligation"]) == {
+        "UNKNOWN"
+    }
+
+
+def test_manifest_impact_binding_mismatched_proposition_rejected() -> None:
+    manifest = _manifest()
+    obligations = compile_verification_obligations(manifest)
+    before = _binding_set(obligations, native=True)
+    after = copy.deepcopy(before)
+    after["bindings"][0]["obligationDigest"] = _digest("bogus-proved-proposition")
+    with pytest.raises(CircuitContractError, match="obligation digest mismatch"):
+        select_manifest_gate_impacts(
+            previous_manifest=manifest,
+            current_manifest=copy.deepcopy(manifest),
+            previous_binding_set=before,
+            current_binding_set=after,
+        )
+
+
+def test_manifest_impact_bindings_existing_cli_subprocess(tmp_path) -> None:
+    import json
+    import subprocess
+    import sys
+
+    manifest = _manifest()
+    obligations = compile_verification_obligations(manifest)
+    before = _binding_set(obligations, native=True)
+    after = copy.deepcopy(before)
+    after["bindings"][0]["nativeSpecificationRef"]["digest"] = _digest("native-spec-change")
+    files = {}
+    for name, value in (
+        ("old-manifest", manifest),
+        ("new-manifest", manifest),
+        ("old-bindings", before),
+        ("new-bindings", after),
+    ):
+        p = tmp_path / (name + ".json")
+        p.write_text(json.dumps(value), encoding="utf-8")
+        files[name] = str(p)
+    process = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "ordivon_composition.verification_obligation_r1",
+            "impact-manifests",
+            files["old-manifest"],
+            files["new-manifest"],
+            "--previous-bindings",
+            files["old-bindings"],
+            "--current-bindings",
+            files["new-bindings"],
+        ],
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    result = json.loads(process.stdout)
+    assert result["changedLocalGateIds"] == []
+    assert result["changedVerifierBindingGateIds"] == ["gate:candidate-contract"]
+    assert result["selection"]["standingByObligation"][0]["standing"] == "RECHECK_REQUIRED"

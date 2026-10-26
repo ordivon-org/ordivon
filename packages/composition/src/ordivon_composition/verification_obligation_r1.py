@@ -547,6 +547,8 @@ def select_manifest_gate_impacts(
     *,
     previous_manifest: dict[str, Any],
     current_manifest: dict[str, Any],
+    previous_binding_set: dict[str, Any] | None = None,
+    current_binding_set: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Compare exact task-local manifest property inputs through the existing selector.
 
@@ -592,16 +594,43 @@ def select_manifest_gate_impacts(
     shared_changed = shared_context(previous_manifest) != shared_context(current_manifest)
     local_changed = sorted(set(scoped["changedGateIds"]) | set(added))
 
+    if (previous_binding_set is None) != (current_binding_set is None):
+        raise CircuitContractError("both previous and current verifier binding sets are required")
+
+    # These exact binding resolutions validate a caller-authored claim; they do
+    # not authenticate a verifier installation, execution or proof. Keep the
+    # binding change separate from the Gate's source/contract change.
+    binding_pair = previous_binding_set is not None and current_binding_set is not None
+    changed_verifier_gates: list[str] = []
+    previous_resolution = None
+    current_resolution = None
+    if binding_pair:
+        previous_resolution = resolve_verifier_bindings(previous, previous_binding_set)
+        current_resolution = resolve_verifier_bindings(current, current_binding_set)
+        old_bindings = {row["gateId"]: row for row in previous_resolution["resolvedBindings"]}
+        new_bindings = {row["gateId"]: row for row in current_resolution["resolvedBindings"]}
+        changed_verifier_gates = sorted(
+            gate_id
+            for gate_id in all_current
+            if old_bindings.get(gate_id) != new_bindings.get(gate_id)
+        )
+
     shared_ref = "source:manifest-shared"
 
     def gate_ref(gate_id: str) -> str:
         return f"source:gate:{gate_id}"
 
+    def verifier_ref(gate_id: str) -> str:
+        return f"binding:verifier:{gate_id}"
+
     authority_refs = [shared_ref] + [gate_ref(key) for key in sorted(all_current)]
+    if binding_pair:
+        authority_refs.extend(verifier_ref(key) for key in sorted(all_current))
     obligations = [
         {
             "id": f"proof:gate:{gate_id}",
-            "dependsOn": [shared_ref, gate_ref(gate_id)],
+            "dependsOn": [shared_ref, gate_ref(gate_id)]
+            + ([verifier_ref(gate_id)] if binding_pair else []),
             # A syntactically complete manifest does NOT account for verifier,
             # installed code, authorization, environment or dynamic consumer reads.
             "dependenciesComplete": False,
@@ -609,6 +638,7 @@ def select_manifest_gate_impacts(
         for gate_id in sorted(all_current)
     ]
     changed_refs = [gate_ref(gate_id) for gate_id in local_changed]
+    changed_refs.extend(verifier_ref(gate_id) for gate_id in changed_verifier_gates)
     if shared_changed:
         changed_refs.append(shared_ref)
     selection = select_impacted_obligations(
@@ -616,7 +646,7 @@ def select_manifest_gate_impacts(
         obligations=obligations,
         changed_refs=changed_refs,
     )
-    return {
+    projection = {
         "kind": "ordivon.task-local-manifest-gate-impact",
         "truthRole": "source-manifest-projection-not-proof-admission",
         "previousObligationSetDigest": previous["obligationSetDigest"],
@@ -635,6 +665,20 @@ def select_manifest_gate_impacts(
             "Removed gates need separate actual consumer and proof-retirement qualification.",
         ],
     }
+    if binding_pair:
+        projection.update(
+            {
+                "changedVerifierBindingGateIds": changed_verifier_gates,
+                "previousVerifierResolutionDigest": previous_resolution["resolutionDigest"],
+                "currentVerifierResolutionDigest": current_resolution["resolutionDigest"],
+                "verifierBindingComparisonQualification": "CALLER_AUTHORED_BINDINGS_ONLY",
+            }
+        )
+        projection["nonClaims"].append(
+            "Verifier/artifact/native specification references are caller-authored; "
+            "their digest equality or binding resolution is not a verified runtime readset."
+        )
+    return projection
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -656,6 +700,8 @@ def _parser() -> argparse.ArgumentParser:
     manifest_parser = sub.add_parser("impact-manifests")
     manifest_parser.add_argument("previous_manifest", type=Path)
     manifest_parser.add_argument("current_manifest", type=Path)
+    manifest_parser.add_argument("--previous-bindings", type=Path)
+    manifest_parser.add_argument("--current-bindings", type=Path)
     return parser
 
 
@@ -673,6 +719,12 @@ def main() -> int:
             result = select_manifest_gate_impacts(
                 previous_manifest=_load_json(args.previous_manifest),
                 current_manifest=_load_json(args.current_manifest),
+                previous_binding_set=(
+                    None if args.previous_bindings is None else _load_json(args.previous_bindings)
+                ),
+                current_binding_set=(
+                    None if args.current_bindings is None else _load_json(args.current_bindings)
+                ),
             )
         elif args.command == "select-impact":
             delta = _load_json(args.git_source_delta)
