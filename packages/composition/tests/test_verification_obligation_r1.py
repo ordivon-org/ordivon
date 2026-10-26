@@ -406,3 +406,37 @@ def test_impact_unobserved_source_dependency_exposes_a_non_authoritative_reuse_c
     assert _statuses(result)["proof:misdeclared"] == "REUSE_CANDIDATE"
     assert result["proofReuseAdmissible"] is False
     assert result["proofAcceptanceEstablished"] is False
+
+
+@pytest.mark.parametrize(
+    "alias",
+    (" source:runtime", "source:runtime ", ":runtime", "source:", "source:\u200dghost"),
+)
+@pytest.mark.parametrize("position", ("authority", "changed", "unknown", "id", "dependsOn"))
+def test_impact_rejects_noncanonical_source_or_proof_identity(alias: str, position: str) -> None:
+    # The source change must never bypass propagation through a spelling alias.
+    authority = ["source:runtime"]
+    changed = ["source:runtime"]
+    unknown: list[str] = []
+    obligation = {
+        "id": "proof:runtime",
+        "dependsOn": ["source:runtime"],
+        "dependenciesComplete": True,
+    }
+    if position == "authority":
+        authority.append(alias)
+    elif position == "changed":
+        changed.append(alias)
+    elif position == "unknown":
+        unknown.append(alias)
+    elif position == "id":
+        obligation["id"] = alias
+    else:
+        obligation["dependsOn"] = [alias]
+    with pytest.raises(CircuitContractError, match="nonempty typed references"):
+        select_impacted_obligations(
+            authority_refs=authority,
+            obligations=[obligation],
+            changed_refs=changed,
+            unknown_refs=unknown,
+        )

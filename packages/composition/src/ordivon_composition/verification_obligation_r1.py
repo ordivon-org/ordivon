@@ -255,7 +255,12 @@ def select_impacted_obligations(
 
     def require_refs(values: list[str], label: str) -> set[str]:
         if not isinstance(values, list) or any(
-            not isinstance(ref, str) or ":" not in ref or not ref.strip() for ref in values
+            not isinstance(ref, str)
+            or ":" not in ref
+            or ref != ref.strip()
+            or not ref.isprintable()
+            or not all(ref.split(":", 1))
+            for ref in values
         ):
             raise CircuitContractError(f"{label} needs nonempty typed references")
         if len(values) != len(set(values)):
