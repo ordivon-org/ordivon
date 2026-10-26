@@ -24,9 +24,13 @@ class ConvergencePlanTests(unittest.TestCase):
             changed_files=["services/runtime/crates/ordivon-runtime-core/src/lib.rs"]
         )
         self.assertEqual(plan["directOwners"], ["runtime"])
-        self.assertEqual(plan["verificationOwners"], ["runtime"])
-        self.assertEqual(plan["verifyTasks"], ["runtime:verify"])
-        self.assertEqual(plan["queueVerifyTasks"], ["runtime:verify"])
+        # One test-only Runtime trace consumer must not merge the entire
+        # security/harness/web component into Runtime's business closure.
+        self.assertEqual(plan["verificationOwners"], ["composition", "runtime"])
+        self.assertEqual(plan["taskLocalTestConsumers"], ["composition"])
+        self.assertEqual(plan["verifyTasks"], ["composition:verify", "runtime:verify"])
+        self.assertEqual(plan["queueVerifyTasks"], ["composition:verify", "runtime:verify"])
+        self.assertEqual(plan["scopeIds"], ["owner-component:runtime"])
         self.assertEqual(plan["queueClass"], "SCOPED")
         self.assertEqual(
             plan["independenceClaim"],
@@ -124,7 +128,10 @@ class ConvergencePlanTests(unittest.TestCase):
         # Existing public code/data dependencies must still propagate.
         self.assertIn("composition", graph["next"])
         runtime = MODULE.build_plan(changed_files=["services/runtime/crates/ordivon-runtime-core/src/lib.rs"])
-        self.assertEqual(runtime["verificationOwners"], ["runtime"])
+        # The direct test witness is selected without merging the operational
+        # composition/harness/security/web owner component into Runtime.
+        self.assertEqual(runtime["verificationOwners"], ["composition", "runtime"])
+        self.assertEqual(runtime["taskLocalTestConsumers"], ["composition"])
 
     def test_formal_toolchain_exception_rejects_unapproved_consumer_paths(self) -> None:
         """The tool-only exemption is an exact named file, not owner authority."""
@@ -143,31 +150,26 @@ class ConvergencePlanTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "unapproved upstream toolchain-only seam"):
                 MODULE.load_dependency_graph(path=path)
 
-    def test_pinned_git_source_fixture_does_not_add_live_owner_edge(self) -> None:
-        """A test's immutable source fixture is provenance, not a live consumer."""
-        graph = MODULE.load_dependency_graph()
-        self.assertNotIn("runtime", graph["composition"])
+    def test_test_only_runtime_source_contract_cannot_be_widened_to_wildcard(self) -> None:
         policy = MODULE.DEPENDENCY_PATH.read_text(encoding="utf-8")
-        exact_kind = 'kind = "TEST_ONLY_PINNED_SOURCE_FIXTURE"'
-        self.assertEqual(policy.count(exact_kind), 1)
+        mutations = [
+            (
+                'source_glob = "packages/composition/tests/test_verification_obligation_r1.py"',
+                'source_glob = "packages/composition/**"',
+            ),
+            (
+                'allowed_fragment = "services/runtime/formal/RuntimeDispatchR1.trace-r1.json"',
+                'allowed_fragment = "services/runtime/formal/unqualified.json"',
+            ),
+        ]
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "dependency_contracts.toml"
-            path.write_text(
-                policy.replace(
-                    'allowed_fragment = "services/runtime/formal/RuntimeDispatchR1.trace-r1.json"',
-                    'allowed_fragment = "services/runtime/formal/unqualified.json"',
-                ), encoding="utf-8",
-            )
-            with self.assertRaisesRegex(ValueError, "unapproved immutable-Git"):
-                MODULE.load_dependency_graph(path=path)
-            # Reclassifying the same path as a live test dependency changes
-            # the verification closure, rather than silently granting a skip.
-            path.write_text(
-                policy.replace(exact_kind, 'kind = "TEST_ONLY_SOURCE_CONTRACT"'),
-                encoding="utf-8",
-            )
-            live = MODULE.load_dependency_graph(path=path)
-            self.assertIn("runtime", live["composition"])
+            for original, widened in mutations:
+                self.assertIn(original, policy)
+                path.write_text(policy.replace(original, widened), encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "unapproved test-only source contract"):
+                    MODULE.load_dependency_graph(path=path)
+
 
     def test_dependency_graph_rejects_unknown_owner(self) -> None:
         content = """schema_version = 1

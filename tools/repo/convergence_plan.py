@@ -32,6 +32,7 @@ def _digest(path: Path) -> str:
 def load_dependency_graph(
     owners: tuple[affected_owners.Owner, ...] = affected_owners.OWNERS,
     path: Path = DEPENDENCY_PATH,
+    *, test_only_consumers: list[tuple[str, str]] | None = None,
 ) -> dict[str, set[str]]:
     names = {owner.name for owner in owners}
     graph = {name: set() for name in names}
@@ -76,15 +77,13 @@ def load_dependency_graph(
             if declared not in approved_tool_consumers:
                 raise ValueError("unapproved upstream toolchain-only seam")
             continue
-        if seam.get("kind") == "TEST_ONLY_PINNED_SOURCE_FIXTURE":
-            # A source-cut-pinned test fixture is a provenance reference, not
-            # a dependency on the *current* producer Owner. Reuse the exact
-            # existing boundary declaration but do not invent a live edge.
-            # Only this audited immutable Git fixture is qualified: an
-            # arbitrary TEST_ONLY claim must never erase a real consumer.
-            permitted = (
-                "composition",
-                "runtime",
+        if seam.get("kind") == "TEST_ONLY_SOURCE_CONTRACT":
+            # A Composition test reads live Runtime SourceCut bytes to construct
+            # an immutable *temporary* fixture. The fixture's later immutability
+            # does not erase the native test's current Runtime input dependency.
+            # Keep its directed test obligation, not an undirected business edge.
+            precise = (
+                "composition", "runtime",
                 "packages/composition/tests/test_verification_obligation_r1.py",
                 "services/runtime/formal/RuntimeDispatchR1.trace-r1.json",
                 "services/runtime/formal/RuntimeDispatchR1.trace-r1.json",
@@ -93,8 +92,10 @@ def load_dependency_graph(
                 left, right, seam.get("source_glob"),
                 seam.get("allowed_fragment"), seam.get("contract_ref"),
             )
-            if declared != permitted:
-                raise ValueError("unapproved immutable-Git test-only source seam")
+            if declared != precise:
+                raise ValueError("unapproved test-only source contract")
+            if test_only_consumers is not None:
+                test_only_consumers.append((left, right))
             continue
         graph[left].add(right)
         graph[right].add(left)
@@ -151,14 +152,20 @@ def build_plan(
     direct = affected_owners.owners_for_paths(paths, owners=owners)
     direct_names = tuple(owner.name for owner in direct)
     cross_cutting = _is_cross_cutting(paths)
-    graph = load_dependency_graph(owners=owners, path=dependency_path)
+    test_only_consumers: list[tuple[str, str]] = []
+    graph = load_dependency_graph(
+        owners=owners, path=dependency_path, test_only_consumers=test_only_consumers,
+    )
+    supplemental = tuple(sorted({
+        consumer for consumer, provider in test_only_consumers if provider in direct_names
+    }))
 
     if cross_cutting:
         verification_names = tuple(sorted(owner.name for owner in owners))
         scope_ids = ("owner-component:ALL",)
         queue_class = "CROSS_CUTTING"
     elif direct_names:
-        verification_names = connected_closure(direct_names, graph)
+        verification_names = tuple(sorted(set(connected_closure(direct_names, graph)) | set(supplemental)))
         scope_ids = tuple(
             sorted(
                 {
@@ -196,6 +203,7 @@ def build_plan(
         "changedPaths": list(paths),
         "directOwners": list(direct_names),
         "verificationOwners": list(verification_names),
+        "taskLocalTestConsumers": list(supplemental),
         "verifyTasks": list(verify_tasks),
         "queueVerifyTasks": list(queue_verify_tasks),
         "scopeIds": list(scope_ids),
