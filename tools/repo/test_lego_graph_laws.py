@@ -629,6 +629,7 @@ def test_git_sourcecut_evidence_carriers_match_exact_git_tree(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     import subprocess
+
     from tools.repo.source_history_legos import current_tree
 
     sha = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
@@ -652,6 +653,7 @@ def test_git_sourcecut_rejects_unqualified_revision_and_symlink_carrier(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     import subprocess
+
     from tools.repo import source_history_legos
 
     sha = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()

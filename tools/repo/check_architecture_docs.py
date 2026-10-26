@@ -6,12 +6,11 @@ import hashlib
 import json
 import math
 import re
+import tomllib
 from decimal import Decimal
 from graphlib import CycleError, TopologicalSorter
 from pathlib import Path
 from typing import Any
-
-import tomllib
 
 ROOT = Path(__file__).resolve().parents[2]
 CURRENT = ROOT / "docs" / "architecture" / "CURRENT_ARCHITECTURE.md"
