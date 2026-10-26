@@ -664,6 +664,24 @@ def _git_source_changes(base: str, head: str) -> set[str]:
     return {path.decode("utf-8") for path in data.split(b"\x00") if path}
 
 
+def _qualified_native_source_head() -> str:
+    """Use the same frozen Git checkout guards as Runtime source impact.
+
+    Cargo must not elevate a clean-looking checkout with hidden index flags,
+    dirty root toolchain inputs or untracked Runtime sources into a witness.
+    This checks two observations; it does not claim atomic source immutability.
+    """
+    import subprocess
+
+    repo = ROOT.parents[1]
+    head = subprocess.check_output(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"],
+        stderr=subprocess.PIPE,
+    ).decode("ascii").strip()
+    _git_source_changes(head, head)
+    return head
+
+
 def _native_witness_name(witness: dict[str, Any], registered: set[str]) -> str:
     """Require one compiled name at the declared Runtime-core source module."""
     path, symbol = witness["path"], witness["symbol"]
@@ -727,6 +745,7 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
         "transactional-runtime",
         "--lib",
     ]
+    pre_execution_head = _qualified_native_source_head()
     env = dict(os.environ)
     env["CARGO_TERM_COLOR"] = "never"
     # Retain Runtime's existing build-cache directory descriptor across the
@@ -825,22 +844,11 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
             raise ValueError(f"native witness prerequisite failed: {command[0]}")
         return process.stdout.strip()
 
-    source_head = provenance(["git", "rev-parse", "HEAD"])
-    rust_input_status = provenance(
-        [
-            "git",
-            "status",
-            "--porcelain",
-            "--",
-            "Cargo.toml",
-            "Cargo.lock",
-            "crates",
-        ]
-    )
+    source_head = _qualified_native_source_head()
+    if source_head != pre_execution_head:
+        raise ValueError("native source checkout HEAD changed during Cargo witnesses")
     toolchain = provenance(["rustc", "-vV"])
     cargo_version = provenance(["cargo", "--version"])
-    if rust_input_status:
-        raise ValueError("native source witness cannot certify dirty Rust/Cargo inputs")
     rust_env = {
         key: env.get(key, "")
         for key in (
@@ -860,7 +868,9 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
         "conditionalOptInWitnesses": opt_in_rows,
         "typedContractWitnesses": contract_rows,
         "sourceHead": source_head,
-        "declaredRustInputsClean": not bool(rust_input_status),
+        "declaredRustInputsClean": True,
+        "sourceQualification": "EXACT_GIT_SOURCE_CUT_PRE_AND_POST_NATIVE_CARGO",
+        "sourceSnapshotCompleteness": "PRE_POST_NOT_ATOMIC; EXTERNAL_READSET_UNKNOWN",
         "cargoVersion": cargo_version,
         "rustcVersionVerbose": toolchain,
         "buildEnvironment": rust_env,
