@@ -258,7 +258,11 @@ class FormalTraceContractTests(unittest.TestCase):
         trace, _ = manifests()
         config = (ROOT / "formal/RuntimeDispatchR1.cfg").read_text(encoding="utf-8")
         claimed = {row["symbol"] for row in trace["formalSpecification"]["modelBindings"] if row["kind"] == "invariant"}
-        for name in ("MatchingResultRequiredForTerminal", "NoForeignResultIsTerminal"):
+        for name in (
+            "MatchingResultRequiredForTerminal",
+            "NoForeignResultIsTerminal",
+            "LocalCancellationNeverDispatched",
+        ):
             with self.subTest(invariant=name):
                 self.assertIn(f"    {name}\n", config)
                 downgraded = config.replace(f"    {name}\n", "")

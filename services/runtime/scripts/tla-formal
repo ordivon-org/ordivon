@@ -604,6 +604,65 @@ PY_TERMINAL_POINTER_RED
   )
 }
 
+# Verify that pre-dispatch cancellation is reachable, and that dropping the
+# local-cancel synthetic result fails the named invariant. Only temporary
+# copies are mutated; no second model or verifier is introduced.
+check_local_cancel_evidence_counterexamples() {
+  verify_jar
+  (
+    tmp_dir=$(mktemp -d -t ordivon-local-cancel-XXXXXX)
+    trap 'rm -rf -- "$tmp_dir"' EXIT
+    mkdir -p "$tmp_dir/reachability" "$tmp_dir/missing-receipt"
+    python3 - "$ROOT/formal/RuntimeDispatchR1.tla" "$tmp_dir" <<'PY_LOCAL_CANCEL'
+from pathlib import Path
+import sys
+source=Path(sys.argv[1]).read_text(encoding="utf-8")
+root=Path(sys.argv[2])
+end="============================================================================="
+assert source.count(end)==1, "local cancellation model footer drift"
+probe=r'''
+LocalCancelIsUnreachable ==
+    \A a \in Attempts: attemptState[a] # "cancelledWithoutDispatch"
+
+'''
+(root/"reachability"/"RuntimeDispatchR1.tla").write_text(
+    source.replace(end,probe+end),encoding="utf-8"
+)
+old=r'''    /\ resultEvidence' = [resultEvidence EXCEPT ![currentAttempt] = "localCancel"]'''
+new=r'''    /\ resultEvidence' = [resultEvidence EXCEPT ![currentAttempt] = "none"]'''
+assert source.count(old)==1, "local-cancel result witness drift"
+(root/"missing-receipt"/"RuntimeDispatchR1.tla").write_text(
+    source.replace(old,new,1),encoding="utf-8"
+)
+PY_LOCAL_CANCEL
+    cp -- "$ROOT/formal/RuntimeDispatchR1.cfg" "$tmp_dir/reachability/RuntimeDispatchR1.cfg"
+    cp -- "$ROOT/formal/RuntimeDispatchR1.cfg" "$tmp_dir/missing-receipt/RuntimeDispatchR1.cfg"
+    printf '\nINVARIANT LocalCancelIsUnreachable\n' >> "$tmp_dir/reachability/RuntimeDispatchR1.cfg"
+    local name property result
+    for name in reachability missing-receipt; do
+      if [[ "$name" == reachability ]]; then
+        property=LocalCancelIsUnreachable
+      else
+        property=LocalCancellationNeverDispatched
+      fi
+      set +e
+      (cd "$tmp_dir/$name"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+        -config RuntimeDispatchR1.cfg RuntimeDispatchR1.tla) > "$tmp_dir/$name/result.log" 2>&1
+      result=$?
+      set -e
+      if [[ "$result" -ne 12 ]] ||
+         ! grep -Fxq "Error: Invariant $property is violated." "$tmp_dir/$name/result.log" ||
+         ! grep -Fxq 'Error: The behavior up to this point is:' "$tmp_dir/$name/result.log" ||
+         ! grep -Fq 'CancelAcceptedBeforeDispatch' "$tmp_dir/$name/result.log"; then
+        echo "TLC local-cancel $name negative control FAILED" >&2
+        tail -45 "$tmp_dir/$name/result.log" >&2
+        exit 1
+      fi
+    done
+    echo "TLC local-cancel reachability and synthetic-receipt mutation controls PASS"
+  )
+}
+
 # Rejected foreign results must remain correctable by later matching evidence.
 # Only pinned upstream TLC runs; all negative control files are ephemeral.
 check_foreign_result_recovery_counterexample() {
@@ -770,8 +829,8 @@ case "${1:-check}" in
   verify) verify_jar; echo "TLA+ toolchain digest verification PASS" ;;
   check-dispatch) check_runtime_dispatch ;;
   check) check_runtime_dispatch; check_runtime_pg_cutover; check_windows_first_pg_order; check_workspace_consumer_close ;;
-  falsify-dispatch) check_runtime_counterexample; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample ;;
-  falsify) check_runtime_counterexample; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_pg_cutover_counterexample; check_windows_first_pg_falsifiers; check_workspace_consumer_close_counterexamples ;;
+  falsify-dispatch) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample ;;
+  falsify) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_pg_cutover_counterexample; check_windows_first_pg_falsifiers; check_workspace_consumer_close_counterexamples ;;
   *)
     echo "usage: scripts/tla-formal [bootstrap|verify|check|falsify]" >&2
     exit 2
