@@ -386,7 +386,7 @@ def select_impacted_obligations(
         else:
             statuses[identity] = "REUSE_CANDIDATE"
 
-    return {
+    projection = {
         "kind": "ordivon.task-local-obligation-impact",
         "truthRole": "rebuildable-non-authoritative-selection",
         "standingByObligation": [
@@ -424,6 +424,11 @@ def select_impacted_obligations(
             "No verifier execution, effect permission, or domain acceptance.",
         ],
     }
+    # basisDigest identifies only the effective selection inputs; equal
+    # selection bases must remain reusable despite different historical
+    # comparison provenance. projectionDigest distinguishes those claims.
+    projection["projectionDigest"] = canonical_digest(projection)
+    return projection
 
 
 def _parser() -> argparse.ArgumentParser:

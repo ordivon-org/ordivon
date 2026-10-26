@@ -706,3 +706,63 @@ def test_impact_contract_digest_input_downgrade_or_invalid_identity_fails_closed
                     "obligations": [{**row, "obligationDigest": bad}],
                 },
             )
+
+
+def test_impact_projection_digest_distinguishes_prior_graph_qualification():
+    # Same effective impact is not the same evidence qualification.
+    claim = {"id": "proof:a", "dependsOn": ["source:a"], "dependenciesComplete": True}
+    args = {"authority_refs": ["source:a"], "obligations": [claim], "changed_refs": []}
+    without = select_impacted_obligations(**args)
+    with_equal_prior = select_impacted_obligations(
+        **args, previous_graph={"authorityRefs": ["source:a"], "obligations": [claim]}
+    )
+    assert without["standingByObligation"] == with_equal_prior["standingByObligation"]
+    assert (
+        without["relationComparisonQualification"]
+        != with_equal_prior["relationComparisonQualification"]
+    )
+    assert without["basisDigest"] == with_equal_prior["basisDigest"]
+    assert without["projectionDigest"] != with_equal_prior["projectionDigest"]
+    assert not without["proofReuseAdmissible"] and not with_equal_prior["proofReuseAdmissible"]
+
+
+def test_impact_projection_digest_distinguishes_derived_vs_caller_declared_delta():
+    claim = {"id": "proof:a", "dependsOn": ["source:a"], "dependenciesComplete": True}
+    prior = {"id": "proof:a", "dependsOn": [], "dependenciesComplete": True}
+    args = {"authority_refs": ["source:a"], "obligations": [claim]}
+    caller = select_impacted_obligations(**args, changed_refs=["proof:a"])
+    derived = select_impacted_obligations(
+        **args,
+        changed_refs=[],
+        previous_graph={"authorityRefs": ["source:a"], "obligations": [prior]},
+    )
+    assert caller["standingByObligation"] == derived["standingByObligation"]
+    assert caller["derivedRelationChangedRefs"] != derived["derivedRelationChangedRefs"]
+    assert caller["basisDigest"] == derived["basisDigest"]
+    assert caller["projectionDigest"] != derived["projectionDigest"]
+    assert not caller["proofReuseAdmissible"] and not derived["proofReuseAdmissible"]
+
+
+def test_impact_projection_digest_is_order_insensitive_for_equivalent_readsets():
+    claim = {"id": "proof:a", "dependsOn": ["source:a", "source:b"], "dependenciesComplete": True}
+    a = select_impacted_obligations(
+        authority_refs=["source:a", "source:b"],
+        obligations=[claim],
+        changed_refs=[],
+        previous_graph={
+            "authorityRefs": ["source:a", "source:b"],
+            "obligations": [claim],
+        },
+    )
+    b = select_impacted_obligations(
+        authority_refs=["source:b", "source:a"],
+        obligations=[dict(claim, dependsOn=["source:b", "source:a"])],
+        changed_refs=[],
+        previous_graph={
+            "authorityRefs": ["source:b", "source:a"],
+            "obligations": [dict(claim, dependsOn=["source:b", "source:a"])],
+        },
+    )
+    assert a["basisDigest"] == b["basisDigest"]
+    assert a["projectionDigest"] == b["projectionDigest"]
+    assert a["derivedRelationChangedRefs"] == b["derivedRelationChangedRefs"] == []
