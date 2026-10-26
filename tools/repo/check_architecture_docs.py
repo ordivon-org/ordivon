@@ -605,6 +605,14 @@ def project_owner_lego_source_change(
     relation types are exposed as relation deltas, not invented call edges.
     """
     import subprocess
+    # The same Git temporal-order proof required by source_membership_delta.
+    # A sibling PR diff is not a before/after graph evolution; calculate the
+    # integration merge tree first instead of misattributing target-only edits.
+    if __package__:
+        from .source_history_legos import require_ancestral_source_cuts
+    else:
+        from source_history_legos import require_ancestral_source_cuts
+    require_ancestral_source_cuts(root, before_revision, after_revision)
     before = project_owner_lego_source_graph(root, source_revision=before_revision)
     after = project_owner_lego_source_graph(root, source_revision=after_revision)
     raw = subprocess.check_output(
