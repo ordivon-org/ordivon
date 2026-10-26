@@ -6,11 +6,12 @@ import hashlib
 import json
 import math
 import re
-import tomllib
 from decimal import Decimal
 from graphlib import CycleError, TopologicalSorter
 from pathlib import Path
 from typing import Any
+
+import tomllib
 
 ROOT = Path(__file__).resolve().parents[2]
 CURRENT = ROOT / "docs" / "architecture" / "CURRENT_ARCHITECTURE.md"
@@ -643,10 +644,12 @@ def project_owner_lego_source_change(
         if kind == "DEPENDENCY":
             downstream.setdefault(src, set()).add(dst)
         else:
-            # DATA/CONTROL/EFFECT/etc. are NOT qualified proof prerequisites.
-            # But they can still carry real consumer influence. Escalate to
-            # UNKNOWN along their declared direction, never a reuse claim.
+            # No formal influence polarity is defined for these typed
+            # relations: COMPATIBILITY/IDENTITY can affect either endpoint.
+            # Conservatively propagate UNKNOWN in both directions, never
+            # fabricate a proof prerequisite or a RECHECK_REQUIRED claim.
             potential_edges.setdefault(src, set()).add(dst)
+            potential_edges.setdefault(dst, set()).add(src)
     affected = set(direct)
     frontier = list(direct)
     while frontier:
@@ -698,7 +701,7 @@ def project_owner_lego_source_change(
         "nonClaims": [
             "NO_DECLARED_HIT does not mean the node has no actual or dynamic consumers.",
             "Source anchors establish Git membership, not proof execution or formal refinement.",
-            "Declared DEPENDENCY edges trigger recheck; non-dependency typed relations propagate UNKNOWN, never proof reuse.",
+            "Declared DEPENDENCY edges trigger recheck; other typed relations conservatively propagate bidirectional UNKNOWN until influence polarity is proved.",
             "Unobserved cross-Owner and dynamic consumer paths remain UNKNOWN outside this local projection.",
             "Changed unindexed paths may affect undiscovered consumers; SOURCE selection grants no deletion or runtime authority.",
         ],
