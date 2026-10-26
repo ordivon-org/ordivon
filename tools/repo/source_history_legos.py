@@ -137,6 +137,24 @@ def source_membership_query(
     }
 
 
+def require_ancestral_source_cuts(repo: Path, previous_cut: str, current_cut: str) -> None:
+    """Require a temporal Git DAG relation for sound incremental proof impact.
+
+    Comparing sibling tips belongs to history analysis or an exact merge-tree
+    candidate, not a before/after proof-evolution claim.
+    """
+    import re
+
+    if not all(re.fullmatch(r"[0-9a-f]{40}", cut) for cut in (previous_cut, current_cut)):
+        raise ValueError("sourceCut ancestry requires exact 40-hex Git commits")
+    relation = subprocess.run(
+        ["git", "-C", str(repo), "merge-base", "--is-ancestor", previous_cut, current_cut],
+        stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, check=False,
+    )
+    if relation.returncode != 0:
+        raise ValueError("sourceCut ancestry not established for proof-impact evolution")
+
+
 def source_membership_delta(
     repo: Path, previous_cut: str, current_cut: str, prefix: str, *,
     max_members: int = 10000
@@ -154,19 +172,9 @@ def source_membership_delta(
     import hashlib
     from urllib.parse import quote_from_bytes
 
+    require_ancestral_source_cuts(repo, previous_cut, current_cut)
     before = source_membership_query(repo, previous_cut, prefix, max_members=max_members)
     after = source_membership_query(repo, current_cut, prefix, max_members=max_members)
-
-    # A proof-evolution delta needs temporally ordered Git SourceCuts.
-    # Side-by-side divergent branch comparison is a different history() query.
-    relation = subprocess.run(
-        ["git", "-C", str(repo), "merge-base", "--is-ancestor", previous_cut, current_cut],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.PIPE,
-        check=False,
-    )
-    if relation.returncode != 0:
-        raise ValueError("sourceCut ancestry not established for proof-impact evolution")
 
     # A detached Runtime Workspace is a Git *worktree*, not a new source
     # authority. Use the common Git metadata root shared by all worktrees
