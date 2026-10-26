@@ -47,6 +47,8 @@ class ExternalOperation:
     desired_state: str
     exit_code: int | None
     artifact_ids: list[str]
+    # Existing durable admitted parcel: owner-observed Workspace or UNKNOWN.
+    workspace_id: str | None = None
 
 
 def _canonical_json(value: Any) -> str:
@@ -866,7 +868,12 @@ class ExternalPullWorkerTransport:
                 (row["operation_id"],),
             ).fetchall()
         ]
+        parcel = json.loads(row["parcel_json"])
+        workspace_id = parcel.get("workspace_id") if isinstance(parcel, dict) else None
+        if not isinstance(workspace_id, str) or not workspace_id.strip():
+            workspace_id = None
         return ExternalOperation(
+            workspace_id=workspace_id,
             operation_id=str(row["operation_id"]),
             capability=str(row["capability"]),
             request_id=str(row["request_id"]),

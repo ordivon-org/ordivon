@@ -835,6 +835,7 @@ class GatewayService:
                 resolution="found",
                 operation_ref=_execution_ref("external.pull", operation.operation_id),
                 native_id=operation.operation_id,
+                workspace_id=operation.workspace_id,
             )
         if route is None:
             raise GatewayError(f"unknown capability: {capability}")
@@ -874,6 +875,9 @@ class GatewayService:
                 resolution="absent",
             )
         native_id = _required_str(jobs[0], "jobId")
+        # Do not invent a workspace from the caller's route/grant. The
+        # Runtime list row is the physical identity witness for this lookup.
+        workspace_id = _required_str(jobs[0], "workspaceId")
         return ExecutionResolution(
             request_id=request_id,
             capability=capability,
@@ -881,6 +885,7 @@ class GatewayService:
             resolution="found",
             operation_ref=_execution_ref(route.owner_id, native_id),
             native_id=native_id,
+            workspace_id=workspace_id,
         )
 
     async def execution_get(

@@ -90,6 +90,9 @@ class ExecutionResolution(StrictModel):
     resolution: Literal["found", "absent", "ambiguous"]
     operation_ref: str | None = None
     native_id: str | None = None
+    # Exact Runtime job.list workspace identity. None means unqualified legacy
+    # resolution, not proof that the caller's requested workspace matches.
+    workspace_id: str | None = None
 
 
 class ExecutionObservation(ExecutionReceipt):
