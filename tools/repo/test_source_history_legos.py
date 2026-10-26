@@ -892,5 +892,43 @@ class SourceHistoryLegosTests(unittest.TestCase):
                 query(root, left, ancestor, prefix)
 
 
+    def test_ancestral_source_cuts_ignore_replace_ref_spoof(self):
+        """A replace ref must not turn divergent commits into a valid temporal delta."""
+        with tempfile.TemporaryDirectory(prefix="ordivon-ancestry-spoof-") as td:
+            root = Path(td)
+            git(root, "init", "-q")
+            git(root, "config", "user.name", "Test")
+            git(root, "config", "user.email", "test@example.invalid")
+            (root / "a").write_text("A")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "A")
+            baseline = git(root, "rev-parse", "HEAD")
+            (root / "a").write_text("A2")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "A2")
+            descendant = git(root, "rev-parse", "HEAD")
+            git(root, "checkout", "--orphan", "other")
+            (root / "a").write_text("B")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "B")
+            divergent = git(root, "rev-parse", "HEAD")
+            with self.assertRaisesRegex(ValueError, "ancestry not established"):
+                source_history_legos.require_ancestral_source_cuts(
+                    root, baseline, divergent
+                )
+            git(root, "replace", divergent, descendant)
+            # Without --no-replace-objects Git falsely admits A as ancestor of B.
+            self.assertEqual(
+                subprocess.run(
+                    ["git", "-C", str(root), "merge-base", "--is-ancestor",
+                     baseline, divergent], check=False, capture_output=True
+                ).returncode, 0
+            )
+            with self.assertRaisesRegex(ValueError, "ancestry not established"):
+                source_history_legos.require_ancestral_source_cuts(
+                    root, baseline, divergent
+                )
+
+
 if __name__ == "__main__":
     unittest.main()
