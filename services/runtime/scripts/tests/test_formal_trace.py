@@ -767,6 +767,65 @@ class FormalTraceContractTests(unittest.TestCase):
             finally:
                 self.module.ROOT = original
 
+    def test_compiler_depfile_git_replace_does_not_rewrite_immutable_cut(self):
+        """A local replace ref must not turn commit A into commit B for proof inputs."""
+        import subprocess
+
+        with tempfile.TemporaryDirectory() as temporary:
+            repo = Path(temporary)
+            runtime = repo / "services/runtime"
+            source = runtime / "crates/ordivon-runtime-core/src/lib.rs"
+            source.parent.mkdir(parents=True)
+            source.write_text("fn a() {}\n", encoding="utf-8")
+
+            def git(*args):
+                return (
+                    subprocess.check_output(["git", "-C", str(repo), *args], stderr=subprocess.PIPE)
+                    .decode("utf-8")
+                    .strip()
+                )
+
+            git("init", "-q")
+            git("add", ".")
+            git("-c", "user.name=EvidenceTest", "-c", "user.email=evidence@invalid.test", "commit", "-qm", "cut A")
+            cut_a = git("rev-parse", "HEAD")
+            source.write_text("fn b() {}\n", encoding="utf-8")
+            git("add", ".")
+            git("-c", "user.name=EvidenceTest", "-c", "user.email=evidence@invalid.test", "commit", "-qm", "cut B")
+            cut_b = git("rev-parse", "HEAD")
+            git("replace", cut_a, cut_b)
+            git_path = "services/runtime/crates/ordivon-runtime-core/src/lib.rs"
+            self.assertEqual(
+                git("show", f"{cut_a}:{git_path}"),
+                source.read_text(encoding="utf-8").strip(),
+            )
+            self.assertNotEqual(
+                subprocess.check_output(["git", "--no-replace-objects", "-C", str(repo), "show", f"{cut_a}:{git_path}"])
+                .decode("utf-8")
+                .strip(),
+                source.read_text(encoding="utf-8").strip(),
+            )
+            executable = runtime / "target/debug/deps/ordivon_runtime_core-replaced"
+            executable.parent.mkdir(parents=True)
+            executable.write_bytes(b"fixture-binary")
+            depfile = Path(str(executable) + ".d")
+            inputs = "crates/ordivon-runtime-core/src/lib.rs"
+            depfile.write_text(
+                f"{depfile}: {inputs}\n\n{executable}: {inputs}\n\n{inputs}:\n",
+                encoding="utf-8",
+            )
+            original = self.module.ROOT
+            self.module.ROOT = runtime
+            try:
+                self.assertEqual(
+                    self.module._native_libtest_depfile_receipt(executable, cut_b)["sourceHead"],
+                    cut_b,
+                )
+                with self.assertRaisesRegex(ValueError, "physical/Git blob mismatch"):
+                    self.module._native_libtest_depfile_receipt(executable, cut_a)
+            finally:
+                self.module.ROOT = original
+
     def test_runtime_formal_source_impact_model_change_rechecks_all(self):
         trace, invariants = manifests()
         changed = {"services/runtime/formal/RuntimeDispatchR1.tla"}
