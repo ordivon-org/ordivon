@@ -9,6 +9,7 @@ from ordivon_composition.verification_obligation_r1 import (
     compile_verification_obligations,
     resolve_verifier_bindings,
     select_impacted_obligations,
+    select_manifest_gate_impacts,
     validate_obligation_set,
 )
 
@@ -766,3 +767,122 @@ def test_impact_projection_digest_is_order_insensitive_for_equivalent_readsets()
     assert a["basisDigest"] == b["basisDigest"]
     assert a["projectionDigest"] == b["projectionDigest"]
     assert a["derivedRelationChangedRefs"] == b["derivedRelationChangedRefs"] == []
+
+
+def _two_gate_manifest() -> dict:
+    manifest = _manifest()
+    other = copy.deepcopy(manifest["gateRequirements"][0])
+    other["id"] = "gate:unrelated-property"
+    other["assumption"] = "Separate independent premise."
+    other["guarantee"] = "Separate independent guarantee."
+    manifest["gateRequirements"].append(other)
+    return manifest
+
+
+def _gate_impact_statuses(result: dict) -> dict[str, str]:
+    assert result["selection"]["proofReuseAdmissible"] is False
+    assert result["proofReuseAdmissible"] is False
+    return {row["id"]: row["standing"] for row in result["selection"]["standingByObligation"]}
+
+
+def test_manifest_gate_impact_property_delta_is_automatically_recheck() -> None:
+    previous = _two_gate_manifest()
+    current = copy.deepcopy(previous)
+    current["gateRequirements"][0]["guarantee"] = "Relaxed guarantee"
+    result = select_manifest_gate_impacts(previous_manifest=previous, current_manifest=current)
+    assert result["sharedManifestContextChanged"] is False
+    assert result["changedLocalGateIds"] == ["gate:candidate-contract"]
+    assert result["addedGateIds"] == []
+    assert result["removedGateIds"] == []
+    assert _gate_impact_statuses(result) == {
+        "proof:gate:gate:candidate-contract": "RECHECK_REQUIRED",
+        "proof:gate:gate:unrelated-property": "UNKNOWN",
+    }
+
+
+def test_manifest_gate_impact_unqualified_unchanged_stays_unknown() -> None:
+    previous = _two_gate_manifest()
+    result = select_manifest_gate_impacts(
+        previous_manifest=previous, current_manifest=copy.deepcopy(previous)
+    )
+    assert not result["changedLocalGateIds"]
+    assert not result["sharedManifestContextChanged"]
+    assert set(_gate_impact_statuses(result).values()) == {"UNKNOWN"}
+
+
+def test_manifest_gate_impact_shared_context_delta_rechecks_all() -> None:
+    previous = _two_gate_manifest()
+    current = copy.deepcopy(previous)
+    current["stages"][0]["responsibility"] = "Changed shared contract context"
+    result = select_manifest_gate_impacts(previous_manifest=previous, current_manifest=current)
+    assert result["sharedManifestContextChanged"]
+    assert not result["changedLocalGateIds"]
+    assert set(_gate_impact_statuses(result).values()) == {"RECHECK_REQUIRED"}
+
+
+def test_manifest_gate_impact_gate_membership_add_retire_invalidates_closure() -> None:
+    previous = _manifest()
+    current = copy.deepcopy(previous)
+    more = copy.deepcopy(previous["gateRequirements"][0])
+    more["id"] = "gate:new"
+    current["gateRequirements"].append(more)
+    added = select_manifest_gate_impacts(previous_manifest=previous, current_manifest=current)
+    assert added["addedGateIds"] == ["gate:new"]
+    assert added["sharedManifestContextChanged"] is True
+    assert set(_gate_impact_statuses(added).values()) == {"RECHECK_REQUIRED"}
+
+    retired = select_manifest_gate_impacts(previous_manifest=current, current_manifest=previous)
+    assert retired["removedGateIds"] == ["gate:new"]
+    assert retired["sharedManifestContextChanged"] is True
+    assert set(_gate_impact_statuses(retired).values()) == {"RECHECK_REQUIRED"}
+
+
+def test_manifest_gate_impact_semantic_gate_reorder_is_stable() -> None:
+    previous = _two_gate_manifest()
+    current = copy.deepcopy(previous)
+    current["gateRequirements"].reverse()
+    result = select_manifest_gate_impacts(previous_manifest=previous, current_manifest=current)
+    assert not result["sharedManifestContextChanged"]
+    assert not result["changedLocalGateIds"]
+    assert set(_gate_impact_statuses(result).values()) == {"UNKNOWN"}
+
+
+def test_manifest_gate_impact_rejects_incompatible_circuit_identity() -> None:
+    previous = _manifest()
+    current = copy.deepcopy(previous)
+    current["circuitId"] = "circuit:different-contract"
+    with pytest.raises(CircuitContractError, match="different circuit identities"):
+        select_manifest_gate_impacts(previous_manifest=previous, current_manifest=current)
+
+
+def test_manifest_gate_impact_reuses_existing_cli_command_surface(tmp_path) -> None:
+    import json
+    import subprocess
+    import sys
+
+    previous = _two_gate_manifest()
+    current = copy.deepcopy(previous)
+    current["gateRequirements"][0]["guarantee"] = "Revised guarantee"
+    before = tmp_path / "before.json"
+    after = tmp_path / "after.json"
+    before.write_text(json.dumps(previous), encoding="utf-8")
+    after.write_text(json.dumps(current), encoding="utf-8")
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "ordivon_composition.verification_obligation_r1",
+            "impact-manifests",
+            str(before),
+            str(after),
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    projection = json.loads(completed.stdout)
+    assert projection["changedLocalGateIds"] == ["gate:candidate-contract"]
+    assert _gate_impact_statuses(projection) == {
+        "proof:gate:gate:candidate-contract": "RECHECK_REQUIRED",
+        "proof:gate:gate:unrelated-property": "UNKNOWN",
+    }

@@ -431,6 +431,93 @@ def select_impacted_obligations(
     return projection
 
 
+def select_manifest_gate_impacts(
+    *,
+    previous_manifest: dict[str, Any],
+    current_manifest: dict[str, Any],
+) -> dict[str, Any]:
+    """Compare exact task-local manifest property inputs through the existing selector.
+
+    This handles only the two supplied, already-validated manifest JSON values.
+    It does not certify source provenance, an Owner query/readset, installed
+    currentness, or verifier assumptions outside those manifests. Unchanged
+    gate proofs therefore remain UNKNOWN, never proof-reuse qualified.
+    """
+    previous = compile_verification_obligations(previous_manifest)
+    current = compile_verification_obligations(current_manifest)
+    if previous_manifest["circuitId"] != current_manifest["circuitId"]:
+        raise CircuitContractError("cannot compare different circuit identities")
+
+    previous_gates = {item["gateId"]: item for item in previous["obligations"]}
+    current_gates = {item["gateId"]: item for item in current["obligations"]}
+    all_previous = set(previous_gates)
+    all_current = set(current_gates)
+    added = sorted(all_current - all_previous)
+    removed = sorted(all_previous - all_current)
+
+    def shared_context(manifest: dict[str, Any]) -> str:
+        # All non-Gate inputs are a shared dependency, including stage bindings,
+        # edges, circuit objective, unresolved assumptions and composition metadata.
+        # Gate existence/required-set membership is a negative query dependency:
+        # new or removed required obligations may affect global closure.
+        body = {key: value for key, value in manifest.items() if key != "gateRequirements"}
+        gates = manifest["gateRequirements"]
+        body["gateMembership"] = sorted(item["id"] for item in gates)
+        body["requiredGateMembership"] = sorted(item["id"] for item in gates if item["required"])
+        return canonical_digest(body)
+
+    shared_changed = shared_context(previous_manifest) != shared_context(current_manifest)
+    local_changed = sorted(
+        gate_id
+        for gate_id in all_current
+        if gate_id not in previous_gates
+        or previous_gates[gate_id]["sourceGateDigest"] != current_gates[gate_id]["sourceGateDigest"]
+    )
+
+    shared_ref = "source:manifest-shared"
+
+    def gate_ref(gate_id: str) -> str:
+        return f"source:gate:{gate_id}"
+
+    authority_refs = [shared_ref] + [gate_ref(key) for key in sorted(all_current)]
+    obligations = [
+        {
+            "id": f"proof:gate:{gate_id}",
+            "dependsOn": [shared_ref, gate_ref(gate_id)],
+            # A syntactically complete manifest does NOT account for verifier,
+            # installed code, authorization, environment or dynamic consumer reads.
+            "dependenciesComplete": False,
+        }
+        for gate_id in sorted(all_current)
+    ]
+    changed_refs = [gate_ref(gate_id) for gate_id in local_changed]
+    if shared_changed:
+        changed_refs.append(shared_ref)
+    selection = select_impacted_obligations(
+        authority_refs=authority_refs,
+        obligations=obligations,
+        changed_refs=changed_refs,
+    )
+    return {
+        "kind": "ordivon.task-local-manifest-gate-impact",
+        "truthRole": "source-manifest-projection-not-proof-admission",
+        "previousObligationSetDigest": previous["obligationSetDigest"],
+        "currentObligationSetDigest": current["obligationSetDigest"],
+        "sharedManifestContextChanged": shared_changed,
+        "changedLocalGateIds": local_changed,
+        "addedGateIds": added,
+        "removedGateIds": removed,
+        "selection": selection,
+        "proofReuseAdmissible": False,
+        "nonClaims": [
+            "The manifest objects are caller supplied; source query provenance is not certified.",
+            "The shared context covers only manifest JSON, not external proof inputs.",
+            "An unchanged gate with unresolved verifier/environment deps stays UNKNOWN.",
+            "Removed gates need separate actual consumer and proof-retirement qualification.",
+        ],
+    }
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest="command", required=True)
@@ -441,6 +528,10 @@ def _parser() -> argparse.ArgumentParser:
     resolve_parser = sub.add_parser("resolve-bindings")
     resolve_parser.add_argument("obligation_set", type=Path)
     resolve_parser.add_argument("binding_set", type=Path)
+
+    impact_parser = sub.add_parser("impact-manifests")
+    impact_parser.add_argument("previous_manifest", type=Path)
+    impact_parser.add_argument("current_manifest", type=Path)
     return parser
 
 
@@ -449,6 +540,11 @@ def main() -> int:
     try:
         if args.command == "compile-obligations":
             result = compile_verification_obligations(_load_json(args.manifest))
+        elif args.command == "impact-manifests":
+            result = select_manifest_gate_impacts(
+                previous_manifest=_load_json(args.previous_manifest),
+                current_manifest=_load_json(args.current_manifest),
+            )
         else:
             result = resolve_verifier_bindings(
                 _load_json(args.obligation_set),
