@@ -903,7 +903,7 @@ trait Provider {
             for row in trace["formalSpecification"]["modelBindings"]
             if row["kind"] == "invariant"
         }
-        for name in ("MatchingResultRequiredForTerminal", "NoForeignResultIsTerminal"):
+        for name in ("MatchingResultRequiredForTerminal", "NoForeignResultIsTerminal", "LocalCancellationNeverDispatched"):
             with self.subTest(invariant=name):
                 self.assertIn(f"    {name}\n", config)
                 downgraded = config.replace(f"    {name}\n", "")

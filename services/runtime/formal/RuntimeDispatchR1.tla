@@ -8,10 +8,10 @@ EXTENDS Naturals
 
 CONSTANTS Attempts, NoAttempt
 
-AttemptStates == {"unused", "admitted", "running", "ambiguous", "orphanedHeld", "lost", "terminal"}
+AttemptStates == {"unused", "admitted", "running", "ambiguous", "orphanedHeld", "lost", "terminal", "cancelledWithoutDispatch"}
 JobStates == {"none", "admitted", "ambiguous", "terminal"}
 ReconcileStates == {"none", "required", "absent", "committed"}
-ResultEvidenceStates == {"none", "foreign", "matching"}
+ResultEvidenceStates == {"none", "foreign", "matching", "localCancel"}
 
 VARIABLES jobState, attemptState, currentAttempt, dispatchCount, reconcileState, heldReservation, outputObserved, resultEvidence
 
@@ -122,6 +122,22 @@ CorrectForeignResultEvidence ==
     /\ UNCHANGED <<jobState, attemptState, currentAttempt, dispatchCount,
                   reconcileState, heldReservation, outputObserved>>
 
+(* Native Registry request_cancel accepts this local, synthetic receipt while
+   an Attempt is still accepted; no provider/process result is observed.
+   This is distinct from matching physical execution result evidence. *)
+CancelAcceptedBeforeDispatch ==
+    /\ jobState = "admitted"
+    /\ currentAttempt # NoAttempt
+    /\ attemptState[currentAttempt] = "admitted"
+    /\ dispatchCount[currentAttempt] = 0
+    /\ resultEvidence[currentAttempt] = "none"
+    /\ attemptState' = [attemptState EXCEPT ![currentAttempt] = "cancelledWithoutDispatch"]
+    /\ resultEvidence' = [resultEvidence EXCEPT ![currentAttempt] = "localCancel"]
+    /\ jobState' = "terminal"
+    /\ currentAttempt' = NoAttempt
+    /\ reconcileState' = "committed"
+    /\ UNCHANGED <<dispatchCount, heldReservation, outputObserved>>
+
 ObserveTerminalEvidence ==
     /\ currentAttempt # NoAttempt
     /\ attemptState[currentAttempt] \in {"running", "ambiguous"}
@@ -165,6 +181,7 @@ Next ==
     \/ ObserveOrphanedHeld
     \/ ReconcileHeldOrphanProvenAbsent
     \/ ObserveTerminalEvidence
+    \/ CancelAcceptedBeforeDispatch
     \/ ReconcileProvenAbsent
     \/ AdmitExplicitRetry
 
@@ -225,15 +242,26 @@ NoUnusedAttemptWasDispatched ==
 TerminalAttemptWasDispatched ==
     \A a \in Attempts : attemptState[a] = "terminal" => dispatchCount[a] = 1
 
+(* Terminal provenance is a tagged sum of physical result and local cancellation. *)
 MatchingResultRequiredForTerminal ==
     jobState = "terminal" =>
         /\ currentAttempt = NoAttempt
-        /\ \E a \in Attempts:
-            /\ attemptState[a] = "terminal"
-            /\ resultEvidence[a] = "matching"
+        /\ (\/ \E a \in Attempts:
+                /\ attemptState[a] = "terminal"
+                /\ resultEvidence[a] = "matching"
+            \/ \E a \in Attempts:
+                /\ attemptState[a] = "cancelledWithoutDispatch"
+                /\ resultEvidence[a] = "localCancel")
 
 NoForeignResultIsTerminal ==
-    \A a \in Attempts: attemptState[a] = "terminal" => resultEvidence[a] = "matching"
+    /\ \A a \in Attempts: attemptState[a] = "terminal" => resultEvidence[a] = "matching"
+    /\ \A a \in Attempts: attemptState[a] = "cancelledWithoutDispatch" => resultEvidence[a] = "localCancel"
+
+LocalCancellationNeverDispatched ==
+    \A a \in Attempts: attemptState[a] = "cancelledWithoutDispatch" =>
+        /\ dispatchCount[a] = 0
+        /\ ~outputObserved[a]
+        /\ resultEvidence[a] = "localCancel"
 
 (* A rejected foreign result is not a proof that no matching result can
    later be qualified for the same live Attempt. ENABLED is NOT eventuality. *)
@@ -251,6 +279,7 @@ TerminalEvidenceIsCommitted ==
     jobState = "terminal" =>
         /\ currentAttempt = NoAttempt
         /\ reconcileState = "committed"
-        /\ \E a \in Attempts: attemptState[a] = "terminal"
+        /\ \E a \in Attempts:
+            attemptState[a] \in {"terminal", "cancelledWithoutDispatch"}
 
 =============================================================================
