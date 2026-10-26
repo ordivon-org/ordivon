@@ -34,7 +34,7 @@ def git(repo: Path, *args: str) -> str:
 def owners(repo: Path, canonical_revision: str) -> list[tuple[str, str]]:
     # Natural-owner attribution is part of the exact protected-source cut,
     # not a mutable worktree checkout (which may be on another Git branch).
-    exact_manifest = git(repo, "show", canonical_revision + ":tools/repo/owners.toml")
+    exact_manifest = git(repo, "--no-replace-objects", "show", canonical_revision + ":tools/repo/owners.toml")
     # Reuse the canonical Owner type checker on source-cut bytes; malformed
     # historical roots must not silently misattribute consumer paths.
     with TemporaryDirectory(prefix="ordivon-source-owners-") as temp:
@@ -47,7 +47,7 @@ def owners(repo: Path, canonical_revision: str) -> list[tuple[str, str]]:
 
 def current_tree(repo: Path, revision: str) -> dict[str, str]:
     raw = subprocess.check_output(
-        ["git", "-C", str(repo), "ls-tree", "-rz", "--full-tree", revision]
+        ["git", "--no-replace-objects", "-C", str(repo), "ls-tree", "-rz", "--full-tree", revision]
     )
     result = {}
     for entry in raw.split(b"\x00"):
@@ -91,10 +91,10 @@ def source_membership_query(
     if type(max_members) is not int or max_members < 1:
         raise ValueError("max_members must be a positive integer")
 
-    exact = git(repo, "rev-parse", "--verify", source_cut + "^{commit}").strip()
+    exact = git(repo, "--no-replace-objects", "rev-parse", "--verify", source_cut + "^{commit}").strip()
     if exact != source_cut:
         raise ValueError("sourceCut did not resolve to the exact requested commit")
-    tree_oid = git(repo, "rev-parse", source_cut + "^{tree}").strip()
+    tree_oid = git(repo, "--no-replace-objects", "rev-parse", source_cut + "^{tree}").strip()
     # Reuse Git's existing exhaustive NUL-delimited native tree enumeration.
     tree = current_tree(repo, source_cut)
     parts = prefix[:-1].split("/")
@@ -156,6 +156,17 @@ def source_membership_delta(
 
     before = source_membership_query(repo, previous_cut, prefix, max_members=max_members)
     after = source_membership_query(repo, current_cut, prefix, max_members=max_members)
+
+    # A proof-evolution delta needs temporally ordered Git SourceCuts.
+    # Side-by-side divergent branch comparison is a different history() query.
+    relation = subprocess.run(
+        ["git", "-C", str(repo), "merge-base", "--is-ancestor", previous_cut, current_cut],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if relation.returncode != 0:
+        raise ValueError("sourceCut ancestry not established for proof-impact evolution")
 
     # A detached Runtime Workspace is a Git *worktree*, not a new source
     # authority. Use the common Git metadata root shared by all worktrees
@@ -236,6 +247,7 @@ def source_membership_delta(
         "proofReuseAdmissible": False,
         "nonClaims": [
             "Complete only for Git path membership and blob/mode under one prefix.",
+            "Previous SourceCut must be a Git ancestor of current SourceCut.",
             "A gitlink is an opaque source member; its internals are not observed.",
             (
                 "The caller must still qualify proof readsets, relevant configuration, "

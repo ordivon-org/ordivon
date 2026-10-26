@@ -384,6 +384,75 @@ def validate_owner_lego_graph(plan: dict[str, Any]) -> None:
 
 
 
+
+# A node's historical evidence prose is NOT a consumer/proof assertion.
+# Interpret only syntactically exact file refs against an immutable Git tree
+# (or explicitly labelled worktree bytes); all other prose stays unqualified.
+def _node_declared_source_anchors(
+    root: Path, owner: str, evidence: Any,
+    *, git_tree: dict[str, str] | None,
+) -> tuple[list[dict[str, str]], list[str]]:
+    anchors: list[dict[str, str]] = []
+    unresolved: list[str] = []
+    if not isinstance(evidence, list):
+        return anchors, unresolved
+    seen_paths: set[str] = set()
+    source_suffixes = (".py", ".rs", ".ts", ".tsx", ".toml", ".json",
+                       ".md", ".tla", ".cfg", ".sh", ".rego", ".lock", ".yaml", ".yml")
+    for literal in evidence:
+        if not isinstance(literal, str):
+            continue
+        path_text, marker, symbol = literal.partition("::")
+        if (not re.fullmatch(r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*", path_text)
+                or (marker and not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", symbol))):
+            continue
+        # Owner-relative refs are the native planning convention. Fully
+        # qualified cross-Owner refs retain their root identity.
+        candidates = (
+            [path_text] if path_text.startswith(owner + "/")
+            else [owner + "/" + path_text, path_text]
+        )
+        resolved: str | None = None
+        identity: str | None = None
+        for candidate in candidates:
+            if git_tree is not None:
+                item = git_tree.get(candidate, "")
+                mode, kind, _ = (
+                    item.split(":") if item.count(":") == 2 else ("", "", "")
+                )
+                if kind == "blob" and mode in {"100644", "100755"}:
+                    resolved, identity = candidate, item
+                    break
+            else:
+                try:
+                    source_path = _source_bound_file(root, candidate, "node declared source")
+                except ArchitectureDocsError:
+                    continue
+                resolved = candidate
+                identity = "sha256:" + hashlib.sha256(source_path.read_bytes()).hexdigest()
+                break
+        if resolved is None:
+            if path_text.endswith(source_suffixes):
+                unresolved.append(literal)
+            continue
+        if resolved in seen_paths:
+            # Distinct textual spellings of one file are one source membership.
+            continue
+        seen_paths.add(resolved)
+        anchor: dict[str, str] = {
+            "path": resolved,
+            "sourceIdentity": identity,
+            "qualification": (
+                "GIT_BLOB_MEMBERSHIP_ONLY" if git_tree is not None
+                else "WORKTREE_FILE_BYTES_ONLY"
+            ),
+        }
+        if marker:
+            anchor["declaredSymbolUnverified"] = symbol
+        anchors.append(anchor)
+    return sorted(anchors, key=lambda row: row["path"]), sorted(set(unresolved))
+
+
 def project_owner_lego_source_graph(
     root: Path = ROOT, *, source_revision: str | None = None,
 ) -> dict[str, Any]:
@@ -400,7 +469,7 @@ def project_owner_lego_source_graph(
             raise ArchitectureDocsError("sourceRevision must be exact 40-hex Git commit")
         try:
             actual = subprocess.check_output(
-                ["git", "-C", str(root), "rev-parse", "--verify", source_revision + "^{commit}"],
+                ["git", "--no-replace-objects", "-C", str(root), "rev-parse", "--verify", source_revision + "^{commit}"],
                 stderr=subprocess.PIPE,
             ).decode("ascii").strip()
             if actual != source_revision:
@@ -418,6 +487,7 @@ def project_owner_lego_source_graph(
     source_evidence_carriers: dict[str, dict[str, str]] = {}
     vertices: list[dict[str, Any]] = []
     relation_carriers: dict[tuple[str, str, str], set[str]] = {}
+    node_source_relations: list[dict[str, str]] = []
     for relative in OWNER_LEGO_PLANS:
         if git_tree is None:
             path = _source_bound_file(root, relative, "registered Owner LEGO plan")
@@ -431,7 +501,7 @@ def project_owner_lego_source_graph(
                 raise ArchitectureDocsError(f"Owner plan absent/nonregular in Git SourceCut: {relative}")
             try:
                 before = subprocess.check_output(
-                    ["git", "-C", str(root), "cat-file", "blob", oid], stderr=subprocess.PIPE,
+                    ["git", "--no-replace-objects", "-C", str(root), "cat-file", "blob", oid], stderr=subprocess.PIPE,
                 )
             except subprocess.CalledProcessError as exc:
                 raise ArchitectureDocsError(f"cannot read Git SourceCut plan: {relative}") from exc
@@ -466,11 +536,27 @@ def project_owner_lego_source_graph(
             return f"{plan_path}#{local_id}"
 
         for node in plan["nodes"]:
+            anchors, unresolved = _node_declared_source_anchors(
+                root, owner, node.get("evidence", []), git_tree=git_tree,
+            )
             vertices.append({
                 "ref": ref(node["id"]),
                 "declaredKind": node["kind"],
                 "declaredEvidence": node.get("evidence", []),
+                "sourceAnchors": anchors,
+                "unresolvedSourceEvidence": unresolved,
+                # Source-path membership does not establish total readsets,
+                # actual consumers, test execution or formal refinement.
+                "sourceCoverageStanding": "DECLARED_SOURCE_MEMBERSHIP_PARTIAL",
             })
+            for anchor in anchors:
+                node_source_relations.append({
+                    "from": ref(node["id"]),
+                    "type": "EVIDENCE",
+                    "toSourcePath": anchor["path"],
+                    "sourceIdentity": anchor["sourceIdentity"],
+                    "qualification": anchor["qualification"],
+                })
             for prerequisite in node["dependencies"]:
                 key = (ref(prerequisite), "DEPENDENCY", ref(node["id"]))
                 relation_carriers.setdefault(key, set()).add("NODE_DEPENDENCIES")
@@ -490,6 +576,10 @@ def project_owner_lego_source_graph(
             source_evidence_carriers[path] for path in sorted(source_evidence_carriers)
         ],
         "vertices": sorted(vertices, key=lambda item: item["ref"]),
+        "nodeSourceRelations": sorted(
+            node_source_relations,
+            key=lambda row: (row["from"], row["toSourcePath"]),
+        ),
         "relations": [
             {"from": source, "type": kind, "to": target, "declaredBy": sorted(carriers)}
             for (source, kind, target), carriers in sorted(relation_carriers.items())
@@ -503,6 +593,273 @@ def project_owner_lego_source_graph(
             ],
         },
     }
+
+
+def project_owner_lego_source_change(
+    *, before_revision: str, after_revision: str, root: Path = ROOT,
+) -> dict[str, Any]:
+    """Select DECLARED graph/source requalification over two immutable Git cuts.
+
+    A path/edge change is not itself an actual consumer or proof dependency.
+    Only DEPENDENCY edges have a declared downstream direction; all other
+    relation types are exposed as relation deltas, not invented call edges.
+    """
+    import subprocess
+    before = project_owner_lego_source_graph(root, source_revision=before_revision)
+    after = project_owner_lego_source_graph(root, source_revision=after_revision)
+    raw = subprocess.check_output(
+        ["git", "-C", str(root), "diff", "--no-renames",
+         "--name-only", "-z", before_revision, after_revision, "--"],
+        stderr=subprocess.PIPE,
+    )
+    changed_paths = {path.decode("utf-8") for path in raw.split(b"\x00") if path}
+    old_nodes = {row["ref"]: row for row in before["vertices"]}
+    new_nodes = {row["ref"]: row for row in after["vertices"]}
+    old_edges = {
+        (row["from"], row["type"], row["to"], tuple(row["declaredBy"]))
+        for row in before["relations"]
+    }
+    new_edges = {
+        (row["from"], row["type"], row["to"], tuple(row["declaredBy"]))
+        for row in after["relations"]
+    }
+    changed_edges = old_edges ^ new_edges
+    # All changes to the declared vertex or its exact anchored source blob
+    # trigger direct requalification, even if the Git path remains constant.
+    direct = {
+        ref for ref in set(old_nodes) | set(new_nodes)
+        if old_nodes.get(ref) != new_nodes.get(ref)
+    }
+    direct.update(endpoint for src, _, dst, _ in changed_edges for endpoint in (src, dst))
+    direct.update(
+        ref for ref, node in new_nodes.items()
+        if any(anchor["path"] in changed_paths for anchor in node["sourceAnchors"])
+    )
+    # A removed ancestor can still affect a surviving downstream consumer.
+    # Reuse BOTH historical and target dependency declarations.
+    downstream: dict[str, set[str]] = {}
+    potential_edges: dict[str, set[str]] = {}
+    for src, kind, dst, _ in old_edges | new_edges:
+        if kind == "DEPENDENCY":
+            downstream.setdefault(src, set()).add(dst)
+        else:
+            # DATA/CONTROL/EFFECT/etc. are NOT qualified proof prerequisites.
+            # But they can still carry real consumer influence. Escalate to
+            # UNKNOWN along their declared direction, never a reuse claim.
+            potential_edges.setdefault(src, set()).add(dst)
+    affected = set(direct)
+    frontier = list(direct)
+    while frontier:
+        for dst in downstream.get(frontier.pop(), ()):
+            if dst not in affected:
+                affected.add(dst)
+                frontier.append(dst)
+    potential: set[str] = set()
+    frontier = list(affected)
+    visited = set(frontier)
+    while frontier:
+        source = frontier.pop()
+        for dst in downstream.get(source, set()) | potential_edges.get(source, set()):
+            if dst not in visited:
+                visited.add(dst)
+                frontier.append(dst)
+                if dst not in affected:
+                    potential.add(dst)
+
+    visible_anchors = {
+        anchor["path"] for view in (before, after)
+        for node in view["vertices"] for anchor in node["sourceAnchors"]
+    }
+    plan_paths = {row["path"] for row in before["sourcePlans"] + after["sourcePlans"]}
+    unindexed = changed_paths - visible_anchors - plan_paths
+    rows = []
+    for ref in sorted(new_nodes):
+        owner = ref.split("/planning/", 1)[0]
+        owner_unindexed = any(path.startswith(owner + "/") for path in unindexed)
+        status = (
+            "RECHECK_REQUIRED" if ref in affected
+            else "UNKNOWN" if owner_unindexed or ref in potential
+            else "NO_DECLARED_HIT"
+        )
+        rows.append({"ref": ref, "sourceImpactStanding": status})
+    return {
+        "kind": "ordivon.owner-lego-declared-source-change",
+        "truthRole": "NON_AUTHORITATIVE_GIT_SOURCE_AND_DECLARED_GRAPH_IMPACT_ONLY",
+        "beforeSourceCut": before_revision,
+        "afterSourceCut": after_revision,
+        "changedGitPaths": sorted(changed_paths),
+        "changedDeclaredRelationCount": len(changed_edges),
+        "directChangedRefs": sorted(direct),
+        "potentialRelationInfluenceRefs": sorted(potential),
+        "removedRefs": sorted(set(old_nodes) - set(new_nodes)),
+        "unindexedChangedPaths": sorted(unindexed),
+        "standingByDeclaredNode": rows,
+        "proofReuseAdmissible": False,
+        "nonClaims": [
+            "NO_DECLARED_HIT does not mean the node has no actual or dynamic consumers.",
+            "Source anchors establish Git membership, not proof execution or formal refinement.",
+            "Declared DEPENDENCY edges trigger recheck; non-dependency typed relations propagate UNKNOWN, never proof reuse.",
+            "Unobserved cross-Owner and dynamic consumer paths remain UNKNOWN outside this local projection.",
+            "Changed unindexed paths may affect undiscovered consumers; SOURCE selection grants no deletion or runtime authority.",
+        ],
+    }
+
+
+
+def project_node_python_import_syntax(
+    *, source_revision: str, node_ref: str, target_source: str,
+    root: Path = ROOT,
+) -> dict[str, Any]:
+    """Trace a declared Python node source through native Git + stdlib AST.
+
+    The result describes possible syntactic importers, not proven runtime
+    consumers, dynamic dependencies, or a complete Python import analysis.
+    """
+    import importlib.util
+    import subprocess
+
+    graph = project_owner_lego_source_graph(root, source_revision=source_revision)
+    nodes = {row["ref"]: row for row in graph["vertices"]}
+    if node_ref not in nodes or "/planning/lego-plan-" not in node_ref:
+        raise ArchitectureDocsError("Python import inspection requires registered node ref")
+    owner = node_ref.split("/planning/", 1)[0]
+    allowed = {a["path"]: a for a in nodes[node_ref]["sourceAnchors"]}
+    if target_source not in allowed or not target_source.startswith(owner + "/src/"):
+        raise ArchitectureDocsError("Python import target is not node-anchored Owner src")
+    if not target_source.endswith(".py"):
+        raise ArchitectureDocsError("Python import target must be source Python")
+    if not re.fullmatch(r"[0-9a-f]{40}", source_revision):
+        raise ArchitectureDocsError("Python import SourceCut is not exact Git commit")
+    if __package__:
+        from .source_history_legos import current_tree
+    else:
+        from source_history_legos import current_tree
+
+    tree = current_tree(root, source_revision)
+    if tree.get(target_source) != allowed[target_source]["sourceIdentity"]:
+        raise ArchitectureDocsError("Python import target source identity mismatch")
+
+    prefix = owner + "/src/"
+    rel = target_source[len(prefix):]
+    target_module = rel[:-3].replace("/", ".")
+    if target_module.endswith(".__init__"):
+        target_module = target_module[:-len(".__init__")]
+    if not target_module or "." not in target_module:
+        raise ArchitectureDocsError("Python import target package path is unqualified")
+
+    def read_git_source(path: str) -> str:
+        identity = tree[path]
+        mode, kind, oid = identity.split(":")
+        if kind != "blob" or mode not in {"100644", "100755"}:
+            raise ArchitectureDocsError("nonregular Git Python importer")
+        return subprocess.check_output(
+            ["git", "-C", str(root), "cat-file", "blob", oid],
+            stderr=subprocess.PIPE,
+        ).decode("utf-8")
+
+    try:
+        target_ast = ast.parse(read_git_source(target_source), filename=target_source)
+    except (SyntaxError, UnicodeError) as exc:
+        raise ArchitectureDocsError("Python declared target has invalid source syntax") from exc
+    top_level_defined: set[str] = set()
+    for statement in target_ast.body:
+        if isinstance(statement, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+            top_level_defined.add(statement.name)
+        elif isinstance(statement, ast.Assign):
+            for target in statement.targets:
+                if isinstance(target, ast.Name):
+                    top_level_defined.add(target.id)
+        elif isinstance(statement, ast.AnnAssign) and isinstance(statement.target, ast.Name):
+            top_level_defined.add(statement.target.id)
+
+    possible_importers: list[dict[str, Any]] = []
+    invalid_syntax: list[str] = []
+    scanned = 0
+    search_prefixes = (owner + "/src/", owner + "/tests/")
+    for path in sorted(tree):
+        if not path.endswith(".py") or path == target_source or not path.startswith(search_prefixes):
+            continue
+        scanned += 1
+        try:
+            ast_tree = ast.parse(read_git_source(path), filename=path)
+        except (SyntaxError, UnicodeError):
+            invalid_syntax.append(path)
+            continue
+        # 'tests' do not always form Python packages, hence relative imports
+        # there cannot be safely resolved without more execution context.
+        if path.startswith(prefix):
+            module = path[len(prefix):-3].replace("/", ".")
+            package = (
+                module.removesuffix(".__init__")
+                if path.endswith("/__init__.py") else module.rpartition(".")[0]
+            )
+        else:
+            package = None
+        matches: set[tuple[str, str]] = set()
+        for item in ast.walk(ast_tree):
+            if isinstance(item, ast.Import):
+                for alias in item.names:
+                    if alias.name == target_module:
+                        matches.add(("IMPORT", alias.name))
+            elif isinstance(item, ast.ImportFrom):
+                try:
+                    if item.level:
+                        if package is None:
+                            continue
+                        base = importlib.util.resolve_name(
+                            "." * item.level + (item.module or ""), package
+                        )
+                    else:
+                        base = item.module or ""
+                except ImportError:
+                    continue
+                if base == target_module:
+                    for alias in item.names:
+                        matches.add(("IMPORT_FROM", alias.name))
+                else:
+                    for alias in item.names:
+                        if base + "." + alias.name == target_module:
+                            matches.add(("FROM_PARENT_SUBMODULE", alias.name))
+        if matches:
+            possible_importers.append({
+                "sourcePath": path,
+                "gitBlobIdentity": tree[path],
+                "importSyntax": [
+                    {
+                        "kind": k, "name": n,
+                        "targetDefinitionStanding": (
+                            "SOURCE_TOP_LEVEL_DEFINED" if n in top_level_defined
+                            else "MODULE_SOURCE_PRESENT" if k != "IMPORT_FROM"
+                            else "UNRESOLVED_OR_REEXPORTED"
+                        ),
+                    }
+                    for k, n in sorted(matches)
+                ],
+                "qualification": "PYTHON_AST_IMPORT_SYNTAX_ONLY_NOT_EXECUTION",
+            })
+    return {
+        "kind": "ordivon.owner-lego-python-source-import-syntax",
+        "truthRole": "DERIVED_SOURCE_CANDIDATE_CONSUMERS_NOT_RUNTIME_CONSUMER_TRUTH",
+        "sourceCut": source_revision,
+        "declaredNodeRef": node_ref,
+        "targetSourcePath": target_source,
+        "targetGitBlobIdentity": tree[target_source],
+        "targetPythonModule": target_module,
+        "candidateImporters": possible_importers,
+        "scanBoundary": {
+            "sourceRoots": list(search_prefixes),
+            "pythonFilesParsedOrAttempted": scanned,
+            "invalidSyntaxPaths": invalid_syntax,
+            "dynamicImportsResolved": False,
+            "externalConsumersCovered": False,
+        },
+        "nonClaims": [
+            "An AST import can be conditional, dead, guarded, unused or shadowed.",
+            "Missing static importer is NOT proof of no runtime or cross-Owner consumer.",
+            "Only an exact Git blob is source evidence; test execution, implementation refinement and installed currentness require separate receipts.",
+        ],
+    }
+
 
 def validate_deployed_graph(value: dict[str, Any]) -> None:
     _require_exact_schema_one(value, "deployed architecture")
@@ -1379,13 +1736,36 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--project-owner-graphs", action="store_true")
     parser.add_argument("--source-revision", help="exact Git commit for immutable graph projection")
+    parser.add_argument("--compare-source-revision",
+                        help="earlier immutable Git commit to compare against --source-revision")
+    parser.add_argument("--inspect-python-node", help="registered node ref")
+    parser.add_argument("--python-target-source", help="exact node-anchored Python src file")
     args = parser.parse_args(argv)
     try:
-        if args.source_revision and not args.project_owner_graphs:
-            raise ArchitectureDocsError("--source-revision requires --project-owner-graphs")
+        if args.source_revision and not (args.project_owner_graphs or args.inspect_python_node):
+            raise ArchitectureDocsError("--source-revision requires --project-owner-graphs or --inspect-python-node")
+        if args.compare_source_revision and not args.source_revision:
+            raise ArchitectureDocsError("--compare-source-revision requires --source-revision")
+        if bool(args.inspect_python_node) != bool(args.python_target_source):
+            raise ArchitectureDocsError("Python inspect requires node and source together")
+        if args.inspect_python_node and (not args.source_revision or args.compare_source_revision):
+            raise ArchitectureDocsError("Python inspect requires one exact source revision")
+        if args.inspect_python_node:
+            print(json.dumps(project_node_python_import_syntax(
+                source_revision=args.source_revision,
+                node_ref=args.inspect_python_node,
+                target_source=args.python_target_source,
+            ), sort_keys=True))
+            return 0
         if args.project_owner_graphs:
             print(json.dumps(
-                project_owner_lego_source_graph(source_revision=args.source_revision), sort_keys=True,
+                (
+                    project_owner_lego_source_change(
+                        before_revision=args.compare_source_revision,
+                        after_revision=args.source_revision,
+                    ) if args.compare_source_revision else
+                    project_owner_lego_source_graph(source_revision=args.source_revision)
+                ), sort_keys=True,
             ))
             return 0
         validate_repository()

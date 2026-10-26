@@ -549,7 +549,62 @@ def test_impact_dependency_completeness_change_and_deleted_relation_fail_closed(
     assert set(_statuses(deleted).values()) == {"UNKNOWN"}
 
 
+def test_retired_known_unconsumed_obligation_cannot_globally_poison_proof_impact():
+    """A deleted historical leaf is indexed in the prior graph, not UNKNOWN.
+
+    This is *only* task-local candidate selection. Neither completeness nor
+    proof reuse is admitted from caller-authored graphs. A genuinely missing
+    external ref must still fail closed.
+    """
+    kept = {
+        "id": "proof:live",
+        "dependsOn": ["source:active"],
+        "dependenciesComplete": True,
+    }
+    retired = {
+        "id": "proof:retired",
+        "dependsOn": ["source:other"],
+        "dependenciesComplete": True,
+        "obligationDigest": _digest("retired-historical-proof"),
+    }
+    roots = ["source:active", "source:other"]
+    prior = {"authorityRefs": roots, "obligations": [kept, retired]}
+    params = {"authority_refs": roots, "obligations": [kept], "changed_refs": []}
+
+    outcome = select_impacted_obligations(**params, previous_graph=prior)
+    assert outcome["derivedRelationChangedRefs"] == ["proof:retired"]
+    assert outcome["derivedContractChangedRefs"] == ["proof:retired"]
+    assert outcome["unindexedChangeRefs"] == []
+    assert _statuses(outcome) == {"proof:live": "REUSE_CANDIDATE"}
+    assert not outcome["proofReuseAdmissible"]
+
+    # If the retired proof was actually a prerequisite of the surviving one,
+    # the current contract change itself must remain RECHECK_REQUIRED.
+    previous_consumer = dict(kept, dependsOn=["proof:retired"])
+    consumed = select_impacted_obligations(
+        **params,
+        previous_graph={
+            "authorityRefs": roots,
+            "obligations": [previous_consumer, retired],
+        },
+    )
+    assert "proof:live" in consumed["derivedRelationChangedRefs"]
+    assert _statuses(consumed) == {"proof:live": "RECHECK_REQUIRED"}
+
+    # A foreign source missing from *both* graphs is still unindexed and
+    # correctly contaminates all current reuse candidates with UNKNOWN.
+    unresolved = select_impacted_obligations(
+        **params,
+        previous_graph=prior,
+        unknown_refs=["external:unresolved-runtime-consumer"],
+    )
+    assert unresolved["unindexedChangeRefs"] == ["external:unresolved-runtime-consumer"]
+    assert _statuses(unresolved) == {"proof:live": "UNKNOWN"}
+    assert not unresolved["proofReuseAdmissible"]
+
+
 def test_impact_rejects_malformed_previous_graph_but_refines_prior_cycle():
+
     obligation = {"id": "proof:a", "dependsOn": ["source:a"], "dependenciesComplete": True}
     args = {"authority_refs": ["source:a"], "obligations": [obligation], "changed_refs": []}
     invalids = [
@@ -1524,3 +1579,44 @@ def test_manifest_git_sourcecut_rejects_symlinks(tmp_path) -> None:
 
     with pytest.raises(CircuitContractError, match="regular Git file"):
         _immutable_git_manifest(repo, cut, __import__("pathlib").Path("link.json"))
+
+
+def test_immutable_manifest_sourcecut_ignores_native_git_replace_refs(tmp_path) -> None:
+    """An exact commit ID must not silently alias another commit via Git replace."""
+    import json
+    import subprocess
+    from pathlib import Path
+
+    from ordivon_composition.verification_obligation_r1 import _immutable_git_manifest
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(["git", "-C", str(repo), *args], text=True).strip()
+
+    git("init", "-q")
+    git("config", "user.name", "Test")
+    git("config", "user.email", "test@example.invalid")
+    original = _two_gate_manifest()
+    path = repo / "manifest.json"
+    path.write_text(json.dumps(original), encoding="utf-8")
+    git("add", ".")
+    git("commit", "-qm", "initial")
+    initial_cut = git("rev-parse", "HEAD")
+
+    mutated = copy.deepcopy(original)
+    mutated["gateRequirements"][0]["guarantee"] += " MUTATED"
+    path.write_text(json.dumps(mutated), encoding="utf-8")
+    git("add", ".")
+    git("commit", "-qm", "later")
+    replacement_cut = git("rev-parse", "HEAD")
+    git("replace", initial_cut, replacement_cut)
+
+    # Under Git's default view this is already falsified: show old commit => new blob.
+    substituted = git("show", initial_cut + ":manifest.json")
+    assert json.loads(substituted) == mutated
+
+    restored, evidence = _immutable_git_manifest(repo, initial_cut, Path("manifest.json"))
+    assert evidence["commit"] == initial_cut
+    assert restored == original
