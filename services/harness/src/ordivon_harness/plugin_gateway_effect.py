@@ -142,6 +142,7 @@ class GatewayMcpRuntimeAdapter:
         self.client = client
         self.grant = grant
         self._operation_refs: dict[str, str] = {}
+        self._operation_requests: dict[str, str] = {}
 
     def _call(self, name: str, arguments: dict[str, JsonValue]) -> dict[str, JsonValue]:
         try:
@@ -200,6 +201,7 @@ class GatewayMcpRuntimeAdapter:
         )
         native_id = _required_text(_gateway_field(receipt, "native_id", "nativeId"), "nativeId")
         self._operation_refs[native_id] = operation_ref
+        self._operation_requests[native_id] = request_id
         terminal = _gateway_field(receipt, "terminal", "terminal")
         if terminal is True:
             return self._observe_operation(operation_ref, native_id, wait_ms=0)
@@ -232,9 +234,7 @@ class GatewayMcpRuntimeAdapter:
         # Gateway's own exact identity must be checked before projecting one
         # Runtime-compatible task.list row from the original Harness grant.
         if _gateway_field(resolution, "request_id", "requestId") != request_id:
-            raise HarnessRuntimeClientError(
-                "Gateway execution resolution changed request identity"
-            )
+            raise HarnessRuntimeClientError("Gateway execution resolution changed request identity")
         if resolution.get("capability") != self.grant.capability:
             raise HarnessRuntimeClientError(
                 "Gateway execution resolution changed capability identity"
@@ -258,12 +258,15 @@ class GatewayMcpRuntimeAdapter:
                 "Gateway recovery returned a Job in a different workspace"
             )
         self._operation_refs[native_id] = operation_ref
+        self._operation_requests[native_id] = request_id
         return {
-            "jobs": [{
-                "jobId": native_id,
-                "clientRequestId": request_id,
-                "workspaceId": workspace_id,
-            }],
+            "jobs": [
+                {
+                    "jobId": native_id,
+                    "clientRequestId": request_id,
+                    "workspaceId": workspace_id,
+                }
+            ],
             "nextCursor": None,
         }
 
@@ -273,7 +276,17 @@ class GatewayMcpRuntimeAdapter:
             raise HarnessRuntimeClientError(
                 "Gateway operationRef is unknown; reconcile before cancellation"
             )
-        receipt = self._call("execution.cancel", {"operationRef": operation_ref})
+        request_id = _required_text(
+            self._operation_requests.get(native_id), "original clientRequestId"
+        )
+        receipt = self._call(
+            "execution.cancel",
+            {
+                "operationRef": operation_ref,
+                "requestId": request_id,
+                "capability": self.grant.capability,
+            },
+        )
         if (
             _required_text(_gateway_field(receipt, "native_id", "nativeId"), "nativeId")
             != native_id
@@ -312,13 +325,25 @@ class GatewayMcpRuntimeAdapter:
     def _observe_operation(
         self, operation_ref: str, native_id: str, *, wait_ms: int
     ) -> dict[str, JsonValue]:
+        request_id = _required_text(
+            self._operation_requests.get(native_id), "original clientRequestId"
+        )
         observed = self._call(
             "execution.get",
-            {"operationRef": operation_ref, "eventLimit": 10, "waitMs": wait_ms},
+            {
+                "operationRef": operation_ref,
+                "eventLimit": 10,
+                "waitMs": wait_ms,
+                "requestId": request_id,
+                "capability": self.grant.capability,
+            },
         )
-        if _required_text(
-            _gateway_field(observed, "operation_ref", "operationRef"), "operationRef"
-        ) != operation_ref:
+        if (
+            _required_text(
+                _gateway_field(observed, "operation_ref", "operationRef"), "operationRef"
+            )
+            != operation_ref
+        ):
             raise HarnessRuntimeClientError("Gateway observation changed operation identity")
         if (
             _required_text(_gateway_field(observed, "native_id", "nativeId"), "nativeId")
@@ -329,9 +354,7 @@ class GatewayMcpRuntimeAdapter:
         if not isinstance(terminal, bool):
             raise HarnessRuntimeClientError("Gateway observation omitted terminal")
         delivery = _gateway_field(observed, "delivery_disposition", "deliveryDisposition")
-        if delivery not in {
-            "committed", "reconciliation_required", "unknown", "in_progress"
-        }:
+        if delivery not in {"committed", "reconciliation_required", "unknown", "in_progress"}:
             raise HarnessRuntimeClientError("Gateway deliveryDisposition is missing or invalid")
         disposition = _gateway_field(observed, "execution_disposition", "executionDisposition")
         if disposition is not None and not isinstance(disposition, str):
@@ -353,9 +376,7 @@ class GatewayMcpRuntimeAdapter:
             observed, "artifact_projection_complete", "artifactProjectionComplete"
         )
         artifact_count = _gateway_field(observed, "artifact_count", "artifactCount")
-        if artifact_count is not None and (
-            type(artifact_count) is not int or artifact_count < 0
-        ):
+        if artifact_count is not None and (type(artifact_count) is not int or artifact_count < 0):
             raise HarnessRuntimeClientError("Gateway artifactCount is invalid")
         if terminal and delivery == "committed" and not recovery:
             if type(projection_complete) is not bool:
@@ -374,10 +395,7 @@ class GatewayMcpRuntimeAdapter:
         result_available = (
             terminal
             and not recovery
-            and (
-                delivery == "unknown"
-                or (delivery == "committed" and projection_complete is True)
-            )
+            and (delivery == "unknown" or (delivery == "committed" and projection_complete is True))
         )
         return {
             "jobId": native_id,
