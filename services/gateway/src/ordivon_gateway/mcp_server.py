@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import os
 from importlib.metadata import version as package_version
 from typing import Annotated, Any, Literal
@@ -7,6 +9,7 @@ from urllib.parse import urlsplit
 
 import uvicorn
 from mcp.server import MCPServer
+from mcp.server.mcpserver import Context
 from mcp.server.transport_security import TransportSecuritySettings
 from mcp_types import CallToolResult, TextContent
 from pydantic import Field
@@ -69,6 +72,45 @@ async def _owner_boundary(call) -> Any:
         return _owner_error_result(exc)
 
 
+def _verified_execution_request_id(
+    public_request_id: str,
+    capability: str,
+    context: Context,
+) -> str:
+    """Scope Gateway -> Runtime idempotency to the trusted HTTP ingress identity.
+
+    The original public requestId remains the Harness API identity. A verified
+    principal/issuer pair is the only source allowed to refine its downstream
+    owner lookup namespace; never accept principal/issuer from Tool arguments.
+    Legacy direct/stdio callers without this verified ingress continue to use
+    their existing requestId, with NO claim of cross-principal continuity.
+    """
+    try:
+        request = context.request_context.request
+    except ValueError, AttributeError:
+        return public_request_id
+    scope = getattr(request, "scope", None)
+    state = scope.get("state") if isinstance(scope, dict) else None
+    if not isinstance(state, dict):
+        return public_request_id
+    principal = state.get("ordivon_access_principal")
+    issuer = state.get("ordivon_access_issuer")
+    if not (isinstance(principal, str) and principal and isinstance(issuer, str) and issuer):
+        return public_request_id
+    canonical = json.dumps(
+        [
+            "ordivon.gateway-principal-scoped-execution-request.v1",
+            issuer,
+            principal,
+            capability,
+            public_request_id,
+        ],
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
+    return "request:gw-principal:" + hashlib.sha256(canonical).hexdigest()
+
+
 def build_server(
     service: GatewayService | None = None,
     *,
@@ -128,11 +170,13 @@ def build_server(
         env: dict[str, str] | None = None,
         timeoutMs: int | None = None,
         authorityReferences: list[dict[str, Any]] | None = None,
+        ctx: Context = None,
     ) -> ExecutionReceipt:
+        owner_request_id = _verified_execution_request_id(requestId, capability, ctx)
         return await _owner_boundary(
             gateway.execution_submit(
                 capability=capability,
-                request_id=requestId,
+                request_id=owner_request_id,
                 workspace_id=workspaceId,
                 executable=executable,
                 args=args,
@@ -145,10 +189,18 @@ def build_server(
         )
 
     @server.tool(name="execution.resolve")
-    async def execution_resolve(capability: str, requestId: str) -> ExecutionResolution:
-        return await _owner_boundary(
-            gateway.execution_resolve(capability=capability, request_id=requestId)
+    async def execution_resolve(
+        capability: str, requestId: str, ctx: Context = None
+    ) -> ExecutionResolution:
+        owner_request_id = _verified_execution_request_id(requestId, capability, ctx)
+        result = await _owner_boundary(
+            gateway.execution_resolve(capability=capability, request_id=owner_request_id)
         )
+        # The client never sees the downstream owner namespace. Reproject the
+        # original public requestId only on the exact owner response type.
+        if isinstance(result, ExecutionResolution) and owner_request_id != requestId:
+            return result.model_copy(update={"request_id": requestId})
+        return result
 
     @server.tool(name="execution.get")
     async def execution_get(
