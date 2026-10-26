@@ -11,6 +11,26 @@ metadata:
 
 Useful when an Agent is deciding whether a capability should exist, be deleted, reused, decomposed or composed. For hard cross-layer proof and optimization, the formal reference is optional.
 
+## Adopt mature semantics
+
+Use LEGO as an engineering profile of established modularity and contract-based
+component design. Preserve the six practical roles below; do not invent another
+module calculus or turn every role into a required record.
+
+For a formal task, name the adopted semantic profile: typed signature,
+behavioral assume–guarantee contract, protocol interface, or transition system.
+Keep specification, implementation and verification evidence distinct. Reuse
+that theory's satisfaction, composition and refinement rules with their side
+conditions; interface shape and invariant satisfiability alone do not establish
+safe composition. See references/formal-model.md, “LEGO contract — adopted
+component semantics”, for the exact mapping and sources.
+
+An architectural contract is a legitimate immediate goal. During architecture
+reform, establish the abstract design obligations and track implementation and
+terminal domain acceptance separately; do not require every downstream
+business outcome before improving the kernel. This does not turn a design
+proof into deployed-system acceptance.
+
 ## Practical rule
 
 A LEGO is one **goal-conditioned, replaceable responsibility** with identity, inputs, outputs, behavioral contract and acceptance. It is not a file, Agent, Skill, Tool or required runtime object.

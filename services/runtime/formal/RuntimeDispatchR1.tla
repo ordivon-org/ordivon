@@ -129,7 +129,9 @@ ObserveTerminalEvidence ==
     /\ attemptState' = [attemptState EXCEPT ![currentAttempt] = "terminal"]
     /\ jobState' = "terminal"
     /\ reconcileState' = "committed"
-    /\ UNCHANGED <<currentAttempt, dispatchCount, heldReservation, outputObserved, resultEvidence>>
+    (* SQL commit_terminal clears jobs.current_attempt_id in the same CAS. *)
+    /\ currentAttempt' = NoAttempt
+    /\ UNCHANGED <<dispatchCount, heldReservation, outputObserved, resultEvidence>>
 
 ReconcileProvenAbsent ==
     /\ jobState = "ambiguous"
@@ -225,8 +227,10 @@ TerminalAttemptWasDispatched ==
 
 MatchingResultRequiredForTerminal ==
     jobState = "terminal" =>
-        /\ currentAttempt # NoAttempt
-        /\ resultEvidence[currentAttempt] = "matching"
+        /\ currentAttempt = NoAttempt
+        /\ \E a \in Attempts:
+            /\ attemptState[a] = "terminal"
+            /\ resultEvidence[a] = "matching"
 
 NoForeignResultIsTerminal ==
     \A a \in Attempts: attemptState[a] = "terminal" => resultEvidence[a] = "matching"
@@ -245,8 +249,8 @@ ForeignResultIsUnreachable ==
 
 TerminalEvidenceIsCommitted ==
     jobState = "terminal" =>
-        /\ currentAttempt # NoAttempt
-        /\ attemptState[currentAttempt] = "terminal"
+        /\ currentAttempt = NoAttempt
         /\ reconcileState = "committed"
+        /\ \E a \in Attempts: attemptState[a] = "terminal"
 
 =============================================================================

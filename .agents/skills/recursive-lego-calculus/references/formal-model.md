@@ -195,26 +195,171 @@ acceptance, not its apparent size.
 
 `G_rho={g1,...,gn}` is a compositional vocabulary. It is not called a mathematical basis without independent proofs of independence and completeness.
 
-## LEGO contract
+## LEGO contract — adopted component semantics
 
-`ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)`.
+Treat R2.1 as an application profile of established module/interface and
+contract theories, not a new universal calculus. Preserve the six practical
+roles (identity, responsibility, inputs, outputs, behavioral contract,
+acceptance); these are engineering descriptors, not six mathematical axioms.
 
-All domain-specific compatibility/refinement relations used below MUST be declared; where written `<=`, it denotes the domain's declared refinement/compatibility preorder rather than numeric order.
+### Semantic mapping
 
-Composition is partial:
+| Existing R2.1 coordinate | Adopted interpretation | Required distinction |
+| --- | --- | --- |
+| identity / responsibility | scoped component identity and requirement allocation | identity is not semantic equivalence |
+| I, O | typed signatures / ports with declared direction and visibility | shape compatibility is not behavioral substitutability |
+| S, pre, post, inv | transition systems and Hoare-style obligations | invariant satisfiability is not invariant preservation |
+| behavioral contract | assume–guarantee contract with explicit behavior universe | a specification is distinct from its implementations |
+| compose / unfold | theory-specific composition and hiding / architectural decomposition | hiding is not generally invertible |
+| replacement | contract refinement or contextual/observational relation | declare the relation and its direction |
+| rho, alpha, gamma, beta | abstraction and property-preserving realization relations | arbitrary encoding is not automatically a Galois connection |
+| eff | observable effects and environment/authority assumptions | a proof never grants execution permission |
+| c, epsilon | measured cost / explicitly defined approximation bounds | neither is a universal truth or compatibility metric |
+| prov, acceptance | source-bound evidence and requirement-specific acceptance | metadata and test outcomes are not component semantics |
 
-`compose : L x L ->partial L`.
+The historical tuple
+`ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)`
+remains an optional view of an existing responsibility. It is not a mandatory
+record, new runtime object, or independent mathematical definition of a module.
+Keep existing names and owner APIs; select only the views needed by the obligation.
 
-A candidate `compose(ell2,ell1)` is defined only when:
+### Behavioral assume–guarantee profile
 
-1. `O1 <= I2` under the declared compatibility/refinement relation;
-2. `post1 => pre2` or the corresponding environmental assumption is otherwise discharged;
-3. `inv1 and inv2` are jointly satisfiable;
-4. effect/policy/identity/authority obligations are compatible;
-5. composition-specific seam obligations are discharged.
+For this profile fix a behavior universe `B`, port alignment, and observation
+semantics before comparing contracts. A behavior can be an input/output
+valuation or a trace; do not silently identify the two. Let an implementation
+denote `Beh(M) subseteq B`, and let `C=(A,G)` with `A,G subseteq B`.
+Here `C` is a local contract symbol (not the concrete transition system in
+the CEGAR section).
 
-If defined, the composite must itself expose the LEGO schema. This is type/schema closure only; it is not proof that the realization is correct in the world.
+Satisfaction is the standard behavioral relation:
 
+`M |= C iff Beh(M) intersection A subseteq G`.
+
+Equivalently use the saturated guarantee
+`Ghat = (B minus A) union G`; then
+`M |= C iff Beh(M) subseteq Ghat`.
+
+For contracts on this same universe, use the saturated refinement preorder:
+
+`C_new <=ref C_old iff A_old subseteq A_new and Ghat_new subseteq Ghat_old`.
+
+This admits every previously legal environment and restricts permitted
+implementation behavior. It yields the satisfaction-preservation implication
+`M |= C_new and C_new <=ref C_old => M |= C_old`.
+This statement is about the adopted behavioral contract semantics. Substitution
+inside a system additionally requires the chosen composition's monotonicity,
+port/authority compatibility and the property's preservation hypotheses.
+
+Do not infer realizability from a nonempty `A intersection G`: a component
+may have to choose outputs causally against all legal environment choices.
+Declare input/output control, initial states, time and strategy requirements
+when asking for a realizable reactive implementation. Check non-vacuity
+separately: empty assumptions or absent relevant behaviors can make
+satisfaction vacuous without solving the intended architectural obligation.
+
+### Composition is theory-specific
+
+Use separate, declared operators for sequential, parallel, feedback and hiding
+composition; the old `compose : L x L ->partial L` is only generic notation.
+Compatibility is not a preorder in general. Keep port compatibility,
+contract refinement and observational equivalence as different relations.
+
+For **sequential commands**, under a shared state interpretation and the
+usual Hoare-logic side conditions, use the composition rule
+`{P} f {Q}, {Q} g {R} => {P} f;g {R}`.
+Account for parameter substitution, framing and effects. Partial-correctness
+triples do not establish termination. The old `post1 => pre2` check is a
+sequential seam obligation, not a theorem for arbitrary interacting services.
+
+For the **saturated behavioral contract algebra**, after lifting both
+contracts to a common behavior universe, the parallel contract operation is:
+
+`Ghat_12 = Ghat_1 intersection Ghat_2`
+`A_12 = (A_1 intersection A_2) union (B minus Ghat_12)`
+`C_1 tensor C_2 = (A_12,Ghat_12)`.
+
+This is the standard algebraic operation, not an executable network connector.
+Use its implementation-composition theorem only when concrete wiring,
+synchronization, shared variables and hiding realize the adopted semantics.
+Do not replace it with naive `(A1 and A2, G1 and G2)`, or infer liveness,
+schedulability, causal realizability or permission from this equation.
+
+For **protocol interaction**, an interface-automata profile may express
+input/output/internal actions and use alternating simulation for refinement.
+Its original optimistic compatibility means that a suitable environment
+exists, not that every environment is safe. A translation between interface
+automata and assume–guarantee contracts must identify which operators and
+relations it preserves; naming both theories does not supply that proof.
+
+For **concurrency/feedback**, use a valid assume–guarantee, rely–guarantee or
+temporal composition rule with its side conditions. Circular promises are
+not self-justifying. Invariant checking requires admissible initialization
+and preservation by every admitted transition, including interference.
+Deadlock freedom, fairness and liveness are separate obligations.
+
+### Recursive closure, refinement and realization
+
+A composite may expose a component contract using the selected theory's
+composition/hiding operators. Schema closure alone is not semantic closure.
+`unfold` records the architectural decomposition and its provenance; it is
+not an inverse to information-hiding semantics. Associativity, identity,
+monotonicity and congruence are inherited only where established by that
+theory under its side conditions, never from the LEGO name.
+
+Keep three judgments separate:
+1. the abstract component/architecture satisfies its formal specification;
+2. the implementation refines that abstract specification;
+3. the installed artifact/configuration is the implementation just verified.
+
+For a temporal profile, provide an explicit state/trace mapping and show
+initialization and step correspondence (with stuttering where appropriate).
+Trace inclusion preserves only properties covered by that semantics; fairness,
+liveness and information-flow hyperproperties need their own preservation
+arguments. A sampled execution trace is conformance evidence, not a universal
+implementation-refinement theorem.
+
+### Architectural acceptance and incremental evidence
+
+Architectural requirements are legitimate current goals. Accept an abstract
+design against its declared composition/realizability/refinement obligations;
+record implementation and downstream domain obligations separately. Do not
+block architecture reform on every terminal business outcome, and do not
+present architectural acceptance as completed deployment/domain acceptance.
+
+Bind a verification claim to the property, semantic profile, assumptions,
+model/implementation/configuration identities, checker and evidence used.
+When an input changes, revalidate dependent claims or provide a proved reuse
+argument. Historical proofs remain proofs about their original objects.
+Unknown dependencies require conservative revalidation; digest equality
+alone does not prove dependency completeness.
+
+The existing Interface Contract R2's compatibility, currentness and evidence
+admissibility remain distinct engineering judgments. `EXACT_MATCH` or
+`COMPATIBLE_BY_DECLARATION` is not automatically a behavioral-refinement
+certificate. No new schema, gate per edge, registry or solver is required.
+
+### Mature sources and scope
+
+- Parnas, *On the Criteria To Be Used in Decomposing Systems into Modules*
+  (1972), https://doi.org/10.1145/361598.361623 — decomposition/information hiding.
+- Paulson, *ML for the Working Programmer*, chapter 7,
+  https://www.cl.cam.ac.uk/~lp15/MLbook/PDF/chapter7.pdf — signatures,
+  structures, abstract types and functors; not a distributed-protocol proof.
+- Benveniste et al., *Contracts for System Design* (2018),
+  https://doi.org/10.1561/1000000053 — contract meta-theory and behavioral
+  assume–guarantee algebra; use the selected theory's hypotheses.
+- de Alfaro and Henzinger, *Interface Automata* (2001),
+  https://doi.org/10.1145/503209.503226 — protocol compatibility and
+  alternating refinement with optimistic environment semantics.
+- Abadi and Lamport, *The Existence of Refinement Mappings* (1991),
+  https://doi.org/10.1016/0304-3975(91)90224-P — refinement mappings;
+  mappings and hypotheses must be established for the actual system.
+- Pacti, https://www.pacti.org/docs/getting_started/ — existing tooling
+  for supported contract theories, not an implementation of every theory above.
+
+This reference adopts definitions and specifies proof obligations. Editing it
+does not machine-check these mappings or certify the existing Ordivon code.
 
 ### Scoped evidence is not global graph coverage
 
@@ -238,17 +383,17 @@ acceptance or add redundant Gates merely to match graph cardinality.
 
 ## Encapsulation
 
-A recursive composite may be encapsulated when
+As an optional engineering heuristic, compare measured encapsulation costs using
 
 `G_enc = DeltaC_visible - C_glue - lambda*L_leak - mu*C_diagnose > 0`
 
-and specification preservation, traceability and `unfold` remain available. No monotonic total-complexity claim follows merely from encapsulation.
+Treat the score as a task-local decision aid only: units, weights and measurements must be declared. It is neither a formal admission law nor a necessary condition for encapsulation. Establish specification preservation separately and retain traceability and `unfold`. No monotonic total-complexity claim follows merely from encapsulation.
 
 ## Model and system refinement
 
-`m = Refine_model(ell)` adds inference/prediction/simulation semantics.
+`m = Refine_model(ell)` denotes a proposed modeling transformation adding inference/prediction/simulation semantics; the name alone proves no refinement relation.
 
-`Sigma = Refine_system(m)` adds state space, transition/effect semantics, feedback and recovery contracts.
+`Sigma = Refine_system(m)` denotes a proposed system-description transformation adding state space, transition/effect semantics, feedback and recovery contracts. Qualify either transformation by an explicit relation and preservation argument before calling it a proved refinement.
 
 A concrete configuration `theta in Theta_Sigma` instantiates the system. Keep that system specification/configuration distinct from mutable runtime state:
 
@@ -262,7 +407,7 @@ An operator is partial relative to an instantiated system:
 
 `kappa_(Sigma,theta) : State(Sigma,theta) ->partial State(Sigma,theta)`
 
-with explicit `pre_kappa(Sigma,theta,sigma)` and transition/post obligations.
+with explicit `pre_kappa(Sigma,theta,sigma)` and transition/post obligations. This partial-function notation is the deterministic operator profile. Nondeterministic or concurrent operators require a transition relation (or set-valued semantics), explicit environment/strategy quantification, and legality obligations over the relevant possible successors; the single reached-state rule below does not certify those profiles.
 
 `Pi_legal(Sigma,theta,sigma0)` is defined recursively:
 
@@ -315,7 +460,7 @@ Evidence should support observations, claims, trace, provenance, uncertainty, co
 
 `Atr(e,Sigma,theta,pi) -> {(locus_i,weight_i,support_i)}`.
 
-The abstraction structure is generally a dependency DAG, not a total order. Define `a prec b` to mean that `a` is an upstream prerequisite/refinement dependency of `b`. Let `Broken(e)` be loci whose contracts or assumptions are justified as invalid by current evidence. The repair frontier is
+The proof/abstraction dependency structure may be a DAG, not a total order. Runtime interaction graphs can contain cycles; do not assume they are DAGs. For cyclic dependencies, establish a valid joint/fixed-point argument or treat a strongly connected component as one analysis unit before using the DAG frontier below. Define `a prec b` to mean that `a` is an upstream prerequisite/refinement dependency of `b`. Let `Broken(e)` be loci whose contracts or assumptions are justified as invalid by current evidence. The repair frontier is
 
 `B_min(e) = Min_prec(Broken(e))`.
 
@@ -323,7 +468,7 @@ The abstraction structure is generally a dependency DAG, not a total order. Defi
 
 ## UNKNOWN
 
-`UNKNOWN` means available evidence establishes neither sufficient support for `phi` nor sufficient support for its negation under the declared verifier target/guarantee and bridge obligations.
+`UNKNOWN` means available evidence establishes neither sufficient support for `phi` nor sufficient support for its negation under the declared verifier target/guarantee and bridge obligations. Report checker-local status for `psi_nu` separately from end-to-end status for `phi`: local PASS can coexist with end-to-end UNKNOWN when the representation, implementation or evidence bridge is unestablished.
 
 Allowed continuations include evidence acquisition, verifier change/independent verifier, re-observation, re-representation and external escalation. UNKNOWN is not weak FAIL and does not authorize blind retry.
 
