@@ -555,6 +555,84 @@ class FormalTraceContractTests(unittest.TestCase):
             finally:
                 self.module.ROOT = previous
 
+    def test_single_cargo_native_source_preflight_precedes_compiler(self):
+        from unittest.mock import patch
+
+        with (
+            patch.object(
+                self.module,
+                "_qualified_native_source_head",
+                side_effect=ValueError("source invalid"),
+            ),
+            patch("subprocess.run") as forbidden_cargo,
+        ):
+            with self.assertRaisesRegex(ValueError, "source invalid"):
+                self.module.qualify_native_witnesses({})
+            forbidden_cargo.assert_not_called()
+
+    def test_single_cargo_artifact_rejects_postrun_head_drift(self):
+        """The compiled-once path must still reject source movement after tests."""
+        import os
+        import subprocess
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as temp:
+            runtime = Path(temp) / "services/runtime"
+            library = runtime / "crates/ordivon-runtime-core/src/lib.rs"
+            library.parent.mkdir(parents=True)
+            library.write_text("", encoding="utf-8")
+            binary = runtime / "target/debug/deps/native-proof-test"
+            binary.parent.mkdir(parents=True)
+            binary.write_bytes(b"compiled native fixture")
+            artifact = {
+                "reason": "compiler-artifact",
+                "target": {
+                    "name": "ordivon_runtime_core",
+                    "kind": ["lib"],
+                    "src_path": str(library),
+                },
+                "profile": {"test": True},
+                "features": ["transactional-runtime"],
+                "executable": str(binary),
+            }
+            observed = []
+
+            def fake_run(cmd, **_kwargs):
+                observed.append(tuple(str(x) for x in cmd))
+                if cmd[0] == "cargo" and "--no-run" in cmd:
+                    output = json.dumps(artifact) + "\n"
+                elif cmd[:3] == ["git", "rev-parse", "HEAD"]:
+                    output = "a" * 40 + "\n"
+                else:
+                    output = ""
+                return subprocess.CompletedProcess(cmd, 0, stdout=output, stderr="")
+
+            empty = {
+                "contractSeams": [],
+                "supportingContracts": [],
+                "provingTests": [],
+                "conditionalAcceptanceTests": [],
+            }
+            original_root = self.module.ROOT
+            self.module.ROOT = runtime
+            try:
+                with (
+                    patch.object(
+                        self.module,
+                        "_qualified_native_source_head",
+                        side_effect=["a" * 40, "b" * 40],
+                    ),
+                    patch.object(self.module, "_git_source_changes", return_value=set()),
+                    patch("subprocess.run", side_effect=fake_run),
+                    patch.dict(os.environ, {"CARGO_TARGET_DIR": str(runtime / "target")}),
+                ):
+                    with self.assertRaisesRegex(ValueError, "HEAD changed"):
+                        self.module.qualify_native_witnesses(empty)
+                assert any(command[0] == "cargo" and "--no-run" in command for command in observed)
+                assert any(command[0] == str(binary) for command in observed)
+            finally:
+                self.module.ROOT = original_root
+
     def test_native_witness_identity_is_module_and_source_scoped(self):
         trace, _ = manifests()
         witness = trace["provingTests"][0]

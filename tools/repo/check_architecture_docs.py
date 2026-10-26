@@ -617,7 +617,7 @@ def project_owner_lego_source_change(
     before = project_owner_lego_source_graph(root, source_revision=before_revision)
     after = project_owner_lego_source_graph(root, source_revision=after_revision)
     raw = subprocess.check_output(
-        ["git", "-C", str(root), "diff", "--no-renames",
+        ["git", "--no-replace-objects", "-C", str(root), "diff", "--no-renames",
          "--name-only", "-z", before_revision, after_revision, "--"],
         stderr=subprocess.PIPE,
     )
@@ -753,8 +753,7 @@ def project_node_python_import_syntax(
     prefix = owner + "/src/"
     rel = target_source[len(prefix):]
     target_module = rel[:-3].replace("/", ".")
-    if target_module.endswith(".__init__"):
-        target_module = target_module[:-len(".__init__")]
+    target_module = target_module.removesuffix(".__init__")
     if not target_module or "." not in target_module:
         raise ArchitectureDocsError("Python import target package path is unqualified")
 
@@ -767,6 +766,88 @@ def project_node_python_import_syntax(
             ["git", "-C", str(root), "cat-file", "blob", oid],
             stderr=subprocess.PIPE,
         ).decode("utf-8")
+
+    # Finite, task-local static upstream SOURCE overapproximation.
+    # This is neither Python's executed import graph nor a complete proof
+    # readset: external packages, runtime imports, env and installed versions
+    # remain explicitly outside the Git-only evidence boundary.
+    local_prefix = owner + "/src/"
+    def module_source(module_name: str) -> str | None:
+        if not module_name or any(
+            not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", part)
+            for part in module_name.split(".")
+        ):
+            return None
+        stem = local_prefix + module_name.replace(".", "/")
+        for candidate in (stem + ".py", stem + "/__init__.py"):
+            identity = tree.get(candidate, "")
+            if (identity.startswith("100644:blob:")
+                    or identity.startswith("100755:blob:")):
+                return candidate
+        return None
+
+    def source_package(path: str) -> str:
+        mod = path[len(local_prefix):-3].replace("/", ".")
+        return mod.removesuffix(".__init__") if path.endswith("/__init__.py") else mod.rpartition(".")[0]
+
+    # Python imports execute intermediate package initializers as well.
+    source_parts = target_source[len(local_prefix):].split("/")
+    init_paths = [
+        local_prefix + "/".join(source_parts[:depth]) + "/__init__.py"
+        for depth in range(1, len(source_parts))
+    ]
+    pending = [target_source] + [path for path in init_paths if path in tree]
+    visited: set[str] = set()
+    upstream_invalid: set[str] = set()
+    external_module_assumptions: set[str] = set()
+    while pending:
+        path = pending.pop()
+        if path in visited:
+            continue
+        visited.add(path)
+        if len(visited) > 256:
+            raise ArchitectureDocsError("local Python static source readset exceeded bounded 256 files")
+        try:
+            syntax = ast.parse(read_git_source(path), filename=path)
+        except (SyntaxError, UnicodeError):
+            upstream_invalid.add(path)
+            continue
+        package = source_package(path)
+        for node in ast.walk(syntax):
+            if isinstance(node, ast.Import):
+                imports = [alias.name for alias in node.names]
+            elif isinstance(node, ast.ImportFrom):
+                try:
+                    base = (
+                        importlib.util.resolve_name("." * node.level + (node.module or ""), package)
+                        if node.level else (node.module or "")
+                    )
+                except ImportError:
+                    upstream_invalid.add(path)
+                    continue
+                imports = [base] + [base + "." + alias.name for alias in node.names]
+            else:
+                continue
+            for imported in imports:
+                source = module_source(imported)
+                if source:
+                    pending.append(source)
+                    # Include Python parent package initialization if present.
+                    parts = imported.split(".")
+                    for count in range(1, len(parts)):
+                        parent_source = module_source(".".join(parts[:count]))
+                        if parent_source:
+                            pending.append(parent_source)
+                else:
+                    # A from-imported *symbol* of a local module is not
+                    # another missing package. For genuinely unresolved
+                    # modules retain the external top-level environment cut.
+                    ancestor = imported
+                    while "." in ancestor and module_source(ancestor) is None:
+                        ancestor = ancestor.rpartition(".")[0]
+                    if module_source(ancestor) is None:
+                        external_module_assumptions.add(imported.split(".", 1)[0])
+    upstream_paths = sorted(visited - {target_source})
 
     try:
         target_ast = ast.parse(read_git_source(target_source), filename=target_source)
@@ -856,6 +937,13 @@ def project_node_python_import_syntax(
         "targetSourcePath": target_source,
         "targetGitBlobIdentity": tree[target_source],
         "targetPythonModule": target_module,
+        "upstreamLocalSourceFiles": [
+            {"sourcePath": path, "gitBlobIdentity": tree[path]}
+            for path in upstream_paths
+        ],
+        "upstreamStaticReadsetQualification": "PARTIAL_GIT_STATIC_IMPORTS_NOT_EXECUTED_OR_COMPLETE",
+        "upstreamInvalidSyntaxPaths": sorted(upstream_invalid),
+        "externalImportAssumptions": sorted(external_module_assumptions),
         "candidateImporters": possible_importers,
         "scanBoundary": {
             "sourceRoots": list(search_prefixes),
@@ -946,9 +1034,25 @@ def project_node_python_import_delta(
             })
 
     target_changed = before["targetGitBlobIdentity"] != after["targetGitBlobIdentity"]
+    old_upstream = {
+        row["sourcePath"]: row["gitBlobIdentity"]
+        for row in before["upstreamLocalSourceFiles"]
+    }
+    new_upstream = {
+        row["sourcePath"]: row["gitBlobIdentity"]
+        for row in after["upstreamLocalSourceFiles"]
+    }
+    changed_upstream = [
+        {"sourcePath": path, "beforeGitBlobIdentity": old_upstream.get(path),
+         "afterGitBlobIdentity": new_upstream.get(path)}
+        for path in sorted(set(old_upstream) | set(new_upstream))
+        if old_upstream.get(path) != new_upstream.get(path)
+    ]
     invalid_syntax_paths = sorted(set(
         before["scanBoundary"]["invalidSyntaxPaths"]
         + after["scanBoundary"]["invalidSyntaxPaths"]
+        + before["upstreamInvalidSyntaxPaths"]
+        + after["upstreamInvalidSyntaxPaths"]
     ))
     return {
         "kind": "ordivon.owner-lego-python-import-source-delta",
@@ -961,6 +1065,8 @@ def project_node_python_import_delta(
         "beforeCandidateImporterCount": len(old),
         "afterCandidateImporterCount": len(new),
         "changedCandidateImporters": candidate_changes,
+        "changedUpstreamLocalSourceFiles": changed_upstream,
+        "upstreamReadsetQualification": "PARTIAL_GIT_STATIC_IMPORTS_NOT_EXECUTED_OR_COMPLETE",
         "unchangedCandidateImporterCount": len(set(old) & set(new)) - sum(
             path in old and path in new and old[path] != new[path]
             for path in set(old) & set(new)
@@ -968,7 +1074,7 @@ def project_node_python_import_delta(
         "invalidSyntaxPaths": invalid_syntax_paths,
         "sourceRelationStanding": (
             "UNKNOWN" if invalid_syntax_paths
-            else "RECHECK_REQUIRED" if target_changed or candidate_changes
+            else "RECHECK_REQUIRED" if target_changed or candidate_changes or changed_upstream
             else "NO_DECLARED_SOURCE_RELATION_CHANGE"
         ),
         "proofReuseAdmissible": False,
@@ -976,6 +1082,7 @@ def project_node_python_import_delta(
             "An unchanged static import is not a behavioral equivalence proof.",
             "An importer may also be called dynamically, re-exported or loaded externally.",
             "Changed importer bytes require consumer requalification even if import syntax is stable.",
+            "Source-qualified upstream local static imports are only a partial overapproximation; changed bytes require native contract recheck.",
             "Absence of a changed candidate is not a general proof-cache admission.",
         ],
     }
