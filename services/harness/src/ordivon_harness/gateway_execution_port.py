@@ -130,6 +130,15 @@ class GatewayExecutionPort:
             raise GatewayExecutionAmbiguous(
                 f'Gateway submit response lost; resolution is {standing}; redispatch forbidden'
             ) from error
+        if (
+            _field(resolution, 'request_id', 'requestId') != request.request_id
+            or resolution.get('capability') != request.capability
+            or _field(resolution, 'workspace_id', 'workspaceId') != request.workspace_id
+        ):
+            raise GatewayExecutionAmbiguous(
+                'Gateway submit response lost; recovered request/capability/workspace identity '
+                'does not match the original execution; redispatch forbidden'
+            ) from error
         operation_ref = _required_text(
             _field(resolution, 'operation_ref', 'operationRef'), 'operationRef'
         )

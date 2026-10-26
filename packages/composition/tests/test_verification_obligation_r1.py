@@ -378,13 +378,17 @@ def test_impact_rejects_graph_cycles_missing_edges_and_fake_completeness():
     base = [{"id": "proof:a", "dependsOn": ["source:runtime"], "dependenciesComplete": True}]
     with pytest.raises(CircuitContractError, match="depends on unknown"):
         _impact(graph=[{**base[0], "dependsOn": ["source:missing"]}])
-    with pytest.raises(CircuitContractError, match="dependency cycle"):
-        _impact(
-            graph=[
-                {"id": "proof:a", "dependsOn": ["proof:b"], "dependenciesComplete": True},
-                {"id": "proof:b", "dependsOn": ["proof:a"], "dependenciesComplete": True},
-            ]
-        )
+    # Cyclic proof dependencies are representable, but cannot bootstrap
+    # themselves into verified reuse through caller completeness assertions.
+    recursive = _impact(
+        graph=[
+            {"id": "proof:a", "dependsOn": ["proof:b"], "dependenciesComplete": True},
+            {"id": "proof:b", "dependsOn": ["proof:a"], "dependenciesComplete": True},
+        ]
+    )
+    assert _statuses(recursive) == {"proof:a": "UNKNOWN", "proof:b": "UNKNOWN"}
+    assert recursive["cyclicObligationIds"] == ["proof:a", "proof:b"]
+    assert recursive["proofReuseAdmissible"] is False
     with pytest.raises(CircuitContractError, match="duplicate"):
         _impact(graph=base + base)
     with pytest.raises(CircuitContractError, match="JSON boolean"):
@@ -545,17 +549,66 @@ def test_impact_dependency_completeness_change_and_deleted_relation_fail_closed(
     assert set(_statuses(deleted).values()) == {"UNKNOWN"}
 
 
-def test_impact_rejects_malformed_or_cyclic_previous_graph():
+def test_retired_known_unconsumed_obligation_cannot_globally_poison_proof_impact():
+    """A deleted historical leaf is indexed in the prior graph, not UNKNOWN.
+
+    This is *only* task-local candidate selection. Neither completeness nor
+    proof reuse is admitted from caller-authored graphs. A genuinely missing
+    external ref must still fail closed.
+    """
+    kept = {
+        "id": "proof:live",
+        "dependsOn": ["source:active"],
+        "dependenciesComplete": True,
+    }
+    retired = {
+        "id": "proof:retired",
+        "dependsOn": ["source:other"],
+        "dependenciesComplete": True,
+        "obligationDigest": _digest("retired-historical-proof"),
+    }
+    roots = ["source:active", "source:other"]
+    prior = {"authorityRefs": roots, "obligations": [kept, retired]}
+    params = {"authority_refs": roots, "obligations": [kept], "changed_refs": []}
+
+    outcome = select_impacted_obligations(**params, previous_graph=prior)
+    assert outcome["derivedRelationChangedRefs"] == ["proof:retired"]
+    assert outcome["derivedContractChangedRefs"] == ["proof:retired"]
+    assert outcome["unindexedChangeRefs"] == []
+    assert _statuses(outcome) == {"proof:live": "REUSE_CANDIDATE"}
+    assert not outcome["proofReuseAdmissible"]
+
+    # If the retired proof was actually a prerequisite of the surviving one,
+    # the current contract change itself must remain RECHECK_REQUIRED.
+    previous_consumer = dict(kept, dependsOn=["proof:retired"])
+    consumed = select_impacted_obligations(
+        **params,
+        previous_graph={
+            "authorityRefs": roots,
+            "obligations": [previous_consumer, retired],
+        },
+    )
+    assert "proof:live" in consumed["derivedRelationChangedRefs"]
+    assert _statuses(consumed) == {"proof:live": "RECHECK_REQUIRED"}
+
+    # A foreign source missing from *both* graphs is still unindexed and
+    # correctly contaminates all current reuse candidates with UNKNOWN.
+    unresolved = select_impacted_obligations(
+        **params,
+        previous_graph=prior,
+        unknown_refs=["external:unresolved-runtime-consumer"],
+    )
+    assert unresolved["unindexedChangeRefs"] == ["external:unresolved-runtime-consumer"]
+    assert _statuses(unresolved) == {"proof:live": "UNKNOWN"}
+    assert not unresolved["proofReuseAdmissible"]
+
+
+def test_impact_rejects_malformed_previous_graph_but_refines_prior_cycle():
+
     obligation = {"id": "proof:a", "dependsOn": ["source:a"], "dependenciesComplete": True}
     args = {"authority_refs": ["source:a"], "obligations": [obligation], "changed_refs": []}
     invalids = [
         {"authorityRefs": ["source:a"], "obligations": [obligation, obligation]},
-        {
-            "authorityRefs": ["source:a"],
-            "obligations": [
-                {"id": "proof:b", "dependsOn": ["proof:b"], "dependenciesComplete": True}
-            ],
-        },
         {
             "authorityRefs": ["source:a"],
             "obligations": [
@@ -566,6 +619,19 @@ def test_impact_rejects_malformed_or_cyclic_previous_graph():
     for invalid in invalids:
         with pytest.raises(CircuitContractError):
             select_impacted_obligations(**args, previous_graph=invalid)
+
+    # A historical cycle was a valid declared dependency pattern, not proof
+    # that the old graph was discharged. A new acyclic graph must recheck the
+    # changed relation instead of skipping it or accepting the old cycle.
+    prior_cycle = {
+        "authorityRefs": ["source:a"],
+        "obligations": [{"id": "proof:a", "dependsOn": ["proof:a"], "dependenciesComplete": True}],
+    }
+    result = select_impacted_obligations(**args, previous_graph=prior_cycle)
+    assert result["derivedRelationChangedRefs"] == ["proof:a"]
+    assert _statuses(result) == {"proof:a": "RECHECK_REQUIRED"}
+    assert result["cyclicObligationIds"] == []
+    assert result["proofReuseAdmissible"] is False
 
 
 def test_impact_relation_delta_matches_independent_full_graph_closure_randomized():
@@ -1641,6 +1707,85 @@ def test_manifest_impact_bindings_existing_cli_subprocess(tmp_path) -> None:
     assert result["selection"]["standingByObligation"][0]["standing"] == "RECHECK_REQUIRED"
 
 
+def test_manifest_sourcecut_and_verifier_bindings_compose_without_promoting_authority(
+    tmp_path,
+) -> None:
+    """The existing one CLI must preserve both independent P0 source/readset fences."""
+    import hashlib
+    import json
+    import subprocess
+    import sys
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(
+            ["git", "-c", "maintenance.auto=false", "-C", str(repo), *args],
+            text=True,
+        ).strip()
+
+    git("init", "-q", "-b", "main")
+    git("config", "user.name", "Ordivon P0 Test")
+    git("config", "user.email", "ordivon-test@example.invalid")
+    manifest = _manifest()
+    manifest_bytes = json.dumps(manifest).encode("utf-8")
+    (repo / "manifest.json").write_bytes(manifest_bytes)
+    git("add", ".")
+    git("commit", "-qm", "exact manifest source")
+    source_cut = git("rev-parse", "HEAD")
+
+    proof_set = compile_verification_obligations(manifest)
+    before_bind = _binding_set(proof_set, native=True)
+    after_bind = copy.deepcopy(before_bind)
+    after_bind["bindings"][0]["nativeSpecificationRef"]["digest"] = _digest(
+        "changed-build-qualification"
+    )
+    before_path = tmp_path / "prior-bindings.json"
+    after_path = tmp_path / "current-bindings.json"
+    before_path.write_text(json.dumps(before_bind), encoding="utf-8")
+    after_path.write_text(json.dumps(after_bind), encoding="utf-8")
+    # A current worktree edit MUST NOT change the two pinned Git source inputs.
+    (repo / "manifest.json").write_text("{unparseable local worktree mutation", encoding="utf-8")
+    command = [
+        sys.executable,
+        "-m",
+        "ordivon_composition.verification_obligation_r1",
+        "impact-manifests",
+        "manifest.json",
+        "manifest.json",
+        "--git-repo",
+        str(repo),
+        "--previous-sourcecut",
+        source_cut,
+        "--current-sourcecut",
+        source_cut,
+        "--previous-bindings",
+        str(before_path),
+        "--current-bindings",
+        str(after_path),
+    ]
+    result = subprocess.run(command, text=True, capture_output=True, check=True)
+    selected = json.loads(result.stdout)
+    assert selected["gitSourceCuts"]["previous"]["sha256"] == (
+        "sha256:" + hashlib.sha256(manifest_bytes).hexdigest()
+    )
+    assert selected["gitSourceCuts"]["current"]["sha256"] == (
+        "sha256:" + hashlib.sha256(manifest_bytes).hexdigest()
+    )
+    assert selected["changedLocalGateIds"] == []
+    assert selected["changedVerifierBindingGateIds"] == ["gate:candidate-contract"]
+    assert selected["selection"]["standingByObligation"][0]["standing"] == "RECHECK_REQUIRED"
+    assert selected["proofReuseAdmissible"] is False
+    # One-sided caller-authored verifier binding cannot be read as a proof delta.
+    one_sided = subprocess.run(
+        command[:-2],
+        text=True,
+        capture_output=True,
+    )
+    assert one_sided.returncode != 0
+
+
 def test_manifest_impact_verifier_identity_unaffected_by_other_gate_manifest_digest() -> None:
     manifest = _two_gate_manifest()
     successor = copy.deepcopy(manifest)
@@ -1679,3 +1824,264 @@ def test_manifest_impact_verifier_identity_unaffected_by_other_gate_manifest_dig
         "proof:gate:gate:candidate-contract": "RECHECK_REQUIRED",
         "proof:gate:gate:unrelated-property": "UNKNOWN",
     }
+
+
+def test_recursive_proof_cycle_change_propagates_without_blocking_independent_branch():
+    graph = [
+        {"id": "proof:a", "dependsOn": ["proof:b"], "dependenciesComplete": True},
+        {"id": "proof:b", "dependsOn": ["proof:a"], "dependenciesComplete": True},
+        {"id": "proof:consumer", "dependsOn": ["proof:b"], "dependenciesComplete": True},
+        {"id": "proof:independent", "dependsOn": ["source:host"], "dependenciesComplete": True},
+    ]
+    result = _impact(graph=graph)
+    assert _statuses(result) == {
+        "proof:a": "UNKNOWN",
+        "proof:b": "UNKNOWN",
+        "proof:consumer": "UNKNOWN",
+        "proof:independent": "REUSE_CANDIDATE",
+    }
+    assert result["cyclicObligationIds"] == ["proof:a", "proof:b"]
+    assert _statuses(_impact(graph=graph, changed=["proof:a"])) == {
+        "proof:a": "RECHECK_REQUIRED",
+        "proof:b": "RECHECK_REQUIRED",
+        "proof:consumer": "RECHECK_REQUIRED",
+        "proof:independent": "REUSE_CANDIDATE",
+    }
+
+
+def test_recursive_proof_cycle_current_vs_prior_relation_change_is_not_forgotten():
+    old = [
+        {"id": "proof:a", "dependsOn": ["proof:b"], "dependenciesComplete": True},
+        {"id": "proof:b", "dependsOn": ["proof:a"], "dependenciesComplete": True},
+    ]
+    new = [
+        {"id": "proof:a", "dependsOn": ["source:runtime"], "dependenciesComplete": True},
+        {"id": "proof:b", "dependsOn": ["proof:a"], "dependenciesComplete": True},
+    ]
+    result = select_impacted_obligations(
+        authority_refs=["source:runtime"],
+        obligations=new,
+        changed_refs=[],
+        previous_graph={"authorityRefs": ["source:runtime"], "obligations": old},
+    )
+    assert result["cyclicObligationIds"] == []
+    assert result["derivedRelationChangedRefs"] == ["proof:a"]
+    assert dict((x["id"], x["standing"]) for x in result["standingByObligation"]) == {
+        "proof:a": "RECHECK_REQUIRED",
+        "proof:b": "RECHECK_REQUIRED",
+    }
+    assert result["proofReuseAdmissible"] is False
+
+
+def test_recursive_proof_self_cycle_and_missing_edge_are_not_vacuous():
+    self_cycle = _impact(
+        graph=[{"id": "proof:self", "dependsOn": ["proof:self"], "dependenciesComplete": True}]
+    )
+    assert _statuses(self_cycle) == {"proof:self": "UNKNOWN"}
+    assert self_cycle["cyclicObligationIds"] == ["proof:self"]
+    with pytest.raises(CircuitContractError, match="depends on unknown"):
+        _impact(
+            graph=[
+                {"id": "proof:self", "dependsOn": ["proof:missing"], "dependenciesComplete": True}
+            ]
+        )
+
+
+def test_cyclic_proof_selector_matches_independent_finite_reachability_oracle():
+    # Exhaust all 2**12 declared dependency relations for three proof nodes
+    # over the same three proofs plus one real authority root. Compare the
+    # implementation's monotone lattice fixed point with an independent
+    # reachability-based mathematical oracle.
+    from itertools import product
+
+    root = "source:r"
+    proof_ids = ("proof:a", "proof:b", "proof:c")
+    all_nodes = (root, *proof_ids)
+    for bits in product((False, True), repeat=12):
+        graph = {}
+        for index, identity in enumerate(proof_ids):
+            graph[identity] = tuple(
+                candidate
+                for used, candidate in zip(bits[index * 4 : (index + 1) * 4], all_nodes)
+                if used
+            )
+
+        def ancestors(identity):
+            seen = set()
+            queue = list(graph.get(identity, ()))
+            while queue:
+                candidate = queue.pop()
+                if candidate in seen:
+                    continue
+                seen.add(candidate)
+                queue.extend(graph.get(candidate, ()))
+            return seen
+
+        cyclic = sorted(identity for identity in proof_ids if identity in ancestors(identity))
+        for changed, unknown in (
+            ({root}, set()),
+            ({"proof:b"}, set()),
+            (set(), {"proof:c"}),
+            (set(), set()),
+        ):
+            observed = select_impacted_obligations(
+                authority_refs=[root],
+                obligations=[
+                    {
+                        "id": identity,
+                        "dependsOn": list(graph[identity]),
+                        "dependenciesComplete": True,
+                    }
+                    for identity in proof_ids
+                ],
+                changed_refs=sorted(changed),
+                unknown_refs=sorted(unknown),
+            )
+            result = {item["id"]: item["standing"] for item in observed["standingByObligation"]}
+            expected = {}
+            for identity in proof_ids:
+                visited = ancestors(identity) | {identity}
+                if visited & changed:
+                    expected[identity] = "RECHECK_REQUIRED"
+                elif visited & (unknown | set(cyclic)):
+                    expected[identity] = "UNKNOWN"
+                else:
+                    expected[identity] = "REUSE_CANDIDATE"
+            assert result == expected, (bits, changed, unknown, expected, result)
+            assert observed["cyclicObligationIds"] == cyclic
+            assert observed["proofReuseAdmissible"] is False
+
+
+def test_manifest_git_sourcecuts_bind_exact_prior_current_bytes(tmp_path) -> None:
+    import hashlib
+    import json
+    import subprocess
+    import sys
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    def git(*argv: str) -> str:
+        return subprocess.check_output(["git", "-C", str(repo), *argv], text=True).strip()
+
+    git("init", "-q")
+    git("config", "user.name", "Ordivon Test")
+    git("config", "user.email", "ordivon-test@example.invalid")
+    previous = _two_gate_manifest()
+    path = repo / "manifest.json"
+    original = json.dumps(previous).encode()
+    path.write_bytes(original)
+    git("add", ".")
+    git("commit", "-qm", "original")
+    old = git("rev-parse", "HEAD")
+    current = copy.deepcopy(previous)
+    current["gateRequirements"][0]["guarantee"] += " improved"
+    updated = json.dumps(current).encode()
+    path.write_bytes(updated)
+    git("add", ".")
+    git("commit", "-qm", "updated")
+    new = git("rev-parse", "HEAD")
+    # A mutable checkout is not source truth. It now contradicts both cuts.
+    path.write_text("{invalid JSON but never read by the Git source mode")
+    command = [
+        sys.executable,
+        "-m",
+        "ordivon_composition.verification_obligation_r1",
+        "impact-manifests",
+        "manifest.json",
+        "manifest.json",
+        "--git-repo",
+        str(repo),
+        "--previous-sourcecut",
+        old,
+        "--current-sourcecut",
+        new,
+    ]
+    result = subprocess.run(command, capture_output=True, text=True, check=True)
+    data = json.loads(result.stdout)
+    assert data["changedLocalGateIds"] == ["gate:candidate-contract"]
+    assert data["sharedManifestContextChanged"] is False
+    assert (
+        data["gitSourceCuts"]["previous"]["sha256"]
+        == "sha256:" + hashlib.sha256(original).hexdigest()
+    )
+    assert (
+        data["gitSourceCuts"]["current"]["sha256"]
+        == "sha256:" + hashlib.sha256(updated).hexdigest()
+    )
+    assert data["proofReuseAdmissible"] is False
+    # Immutable source read produces byte-identical projection on replay.
+    replay = subprocess.run(command, capture_output=True, text=True, check=True)
+    assert replay.stdout == result.stdout
+
+    for invalid in (
+        command[:-1],  # missing current cut
+        [*command[:-1], new[:8]],  # abbreviated mutable rev
+        [*command[:4], "../manifest.json", *command[5:]],  # traversal
+        [*command[:4], "missing.json", *command[5:]],  # absent source
+    ):
+        rejected = subprocess.run(invalid, capture_output=True, text=True)
+        assert rejected.returncode != 0
+
+
+def test_manifest_git_sourcecut_rejects_symlinks(tmp_path) -> None:
+    import json
+    import subprocess
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "-C", str(repo), "init", "-q"], check=True)
+    subprocess.run(["git", "-C", str(repo), "config", "user.name", "Ordivon Test"], check=True)
+    subprocess.run(
+        ["git", "-C", str(repo), "config", "user.email", "ordivon-test@example.invalid"], check=True
+    )
+    (repo / "manifest.json").write_text(json.dumps(_two_gate_manifest()))
+    (repo / "link.json").symlink_to("manifest.json")
+    subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+    subprocess.run(["git", "-C", str(repo), "commit", "-qm", "commit"], check=True)
+    cut = subprocess.check_output(["git", "-C", str(repo), "rev-parse", "HEAD"], text=True).strip()
+    from ordivon_composition.verification_obligation_r1 import _immutable_git_manifest
+
+    with pytest.raises(CircuitContractError, match="regular Git file"):
+        _immutable_git_manifest(repo, cut, __import__("pathlib").Path("link.json"))
+
+
+def test_immutable_manifest_sourcecut_ignores_native_git_replace_refs(tmp_path) -> None:
+    """An exact commit ID must not silently alias another commit via Git replace."""
+    import json
+    import subprocess
+    from pathlib import Path
+
+    from ordivon_composition.verification_obligation_r1 import _immutable_git_manifest
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(["git", "-C", str(repo), *args], text=True).strip()
+
+    git("init", "-q")
+    git("config", "user.name", "Test")
+    git("config", "user.email", "test@example.invalid")
+    original = _two_gate_manifest()
+    path = repo / "manifest.json"
+    path.write_text(json.dumps(original), encoding="utf-8")
+    git("add", ".")
+    git("commit", "-qm", "initial")
+    initial_cut = git("rev-parse", "HEAD")
+
+    mutated = copy.deepcopy(original)
+    mutated["gateRequirements"][0]["guarantee"] += " MUTATED"
+    path.write_text(json.dumps(mutated), encoding="utf-8")
+    git("add", ".")
+    git("commit", "-qm", "later")
+    replacement_cut = git("rev-parse", "HEAD")
+    git("replace", initial_cut, replacement_cut)
+
+    # Under Git's default view this is already falsified: show old commit => new blob.
+    substituted = git("show", initial_cut + ":manifest.json")
+    assert json.loads(substituted) == mutated
+
+    restored, evidence = _immutable_git_manifest(repo, initial_cut, Path("manifest.json"))
+    assert evidence["commit"] == initial_cut
+    assert restored == original

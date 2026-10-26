@@ -11,7 +11,10 @@ result contract.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import re
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +31,63 @@ ROOT = Path(__file__).resolve().parent
 OBLIGATION_SET_SCHEMA = ROOT / "schemas" / "verification-obligation-set-v1.schema.json"
 BINDING_SET_SCHEMA = ROOT / "schemas" / "verifier-binding-set-v1.schema.json"
 RESOLUTION_SCHEMA = ROOT / "schemas" / "verifier-resolution-v1.schema.json"
+
+
+def _immutable_git_manifest(
+    repo: Path, commit: str, path: Path
+) -> tuple[dict[str, Any], dict[str, str]]:
+    """Read a regular Git blob at an exact commit; never consult the mutable checkout.
+
+    This establishes only SOURCE bytes, not authenticated consumer evidence or
+    installed/current verifier proof.
+    """
+    relative = path.as_posix()
+    if (
+        re.fullmatch(r"[0-9a-f]{40}", commit) is None
+        or path.is_absolute()
+        or not relative
+        or any(part in ("", ".", "..") for part in relative.split("/"))
+        or "\\x00" in relative
+    ):
+        raise CircuitContractError(
+            "source-bound impact needs an exact Git cut and canonical relative path"
+        )
+
+    def git(*argv: str) -> bytes:
+        try:
+            # Exact SourceCut addresses Git's original objects, not any
+            # mutable refs/replace overlay supplied by the local repository.
+            return subprocess.check_output(
+                ["git", "--no-replace-objects", "-C", str(repo), *argv],
+                stderr=subprocess.PIPE,
+            )
+        except (OSError, subprocess.CalledProcessError) as exc:
+            raise CircuitContractError("Git source cut or regular blob unavailable") from exc
+
+    if git("cat-file", "-t", commit).strip() != b"commit":
+        raise CircuitContractError("Git SourceCut must identify an immutable commit")
+    # ls-tree rejects gitlinks, symlinks, missing path, and pathspec ambiguity.
+    entries = [
+        row
+        for row in git("ls-tree", "-z", "--full-tree", commit, "--", relative).split(b"\x00")
+        if row
+    ]
+    if len(entries) != 1 or b"\t" not in entries[0]:
+        raise CircuitContractError("exact manifest Git path unavailable")
+    meta, name = entries[0].split(b"\t", 1)
+    if name.decode("utf-8", "surrogateescape") != relative:
+        raise CircuitContractError("manifest pathspec did not identify an exact path")
+    mode, kind, blob = meta.split()
+    if kind != b"blob" or mode not in (b"100644", b"100755"):
+        raise CircuitContractError("manifest must be a regular Git file")
+    raw = git("cat-file", "blob", commit + ":" + relative)
+    return _load_json(path, source_bytes=raw), {
+        "commit": commit,
+        "path": relative,
+        "blobId": blob.decode("ascii"),
+        "sha256": "sha256:" + hashlib.sha256(raw).hexdigest(),
+        "truthRole": "git-immutable-source-only-not-proof-reuse",
+    }
 
 
 def _schema(path: Path) -> dict[str, Any]:
@@ -339,6 +399,38 @@ def compare_gate_source_scopes(
     }
 
 
+def _cyclic_proof_members(rows: list[dict[str, Any]]) -> set[str]:
+    """Validate a bounded dependency relation and find cycle members.
+
+    Proof prerequisites may be recursive even when execution Stage order is a
+    DAG. Use exact finite reachability rather than pretending cycles are
+    discharged by caller-asserted dependency completeness. No new graph owner.
+    """
+    graph = {row["id"]: set(row["dependsOn"]) for row in rows}
+    if len(graph) != len(rows):
+        raise CircuitContractError("duplicate proof graph identity")
+    for identity, deps in graph.items():
+        missing = deps - graph.keys()
+        if missing:
+            raise CircuitContractError(
+                f"proof {identity} depends on unknown references: {sorted(missing)}"
+            )
+    cyclic: set[str] = set()
+    for identity in sorted(graph):
+        seen: set[str] = set()
+        frontier = list(graph[identity])
+        while frontier:
+            current = frontier.pop()
+            if current == identity:
+                cyclic.add(identity)
+                break
+            if current in seen:
+                continue
+            seen.add(current)
+            frontier.extend(graph[current] - seen)
+    return cyclic
+
+
 def select_impacted_obligations(
     *,
     authority_refs: list[str],
@@ -405,6 +497,7 @@ def select_impacted_obligations(
 
     derived_relation_changes: set[str] = set()
     derived_contract_changes: set[str] = set()
+    retired_known_claims: set[str] = set()
     if previous_graph is not None:
         if (
             not isinstance(previous_graph, dict)
@@ -430,15 +523,19 @@ def select_impacted_obligations(
                 "dependenciesComplete": item["dependenciesComplete"],
                 "obligationDigest": item.get("obligationDigest"),
             }
-        from .cognitive_circuit_r1 import _topological_order
-
-        _topological_order(
+        _cyclic_proof_members(
             [{"id": root, "dependsOn": []} for root in prev_roots]
             + [
                 {"id": identity, "dependsOn": sorted(item["dependsOn"])}
                 for identity, item in prev_claims.items()
             ]
         )
+        # A prior-only proof identity is *known historical provenance*, not
+        # a missing external source. If no current claim references it, its
+        # retirement cannot be an unindexed dependency of all current proofs.
+        # Actual current consumers must declare a new DAG relation, and their
+        # changed contracts are still rechecked through the loop below.
+        retired_known_claims = set(prev_claims) - set(claims)
         derived_relation_changes = roots ^ prev_roots
         for identity in set(claims) | set(prev_claims):
             item = claims.get(identity)
@@ -465,36 +562,38 @@ def select_impacted_obligations(
                 derived_contract_changes.add(identity)
         changed |= derived_relation_changes | derived_contract_changes
 
-    unindexed = sorted((changed | unknown) - (roots | set(claims)))
+    unindexed = sorted((changed | unknown) - (roots | set(claims) | retired_known_claims))
     rows = [{"id": root, "dependsOn": []} for root in roots]
     rows += [{"id": identity, "dependsOn": item["dependsOn"]} for identity, item in claims.items()]
-    from .cognitive_circuit_r1 import _topological_order
-
-    order = _topological_order(rows)
+    cyclic = _cyclic_proof_members(rows)
+    # Conservative least-fixed-point propagation on the three-element lattice
+    # REUSE_CANDIDATE < UNKNOWN < RECHECK_REQUIRED. A recursive assumption is
+    # UNKNOWN until independently discharged by a separate joint proof; the
+    # caller's dependenciesComplete boolean can never supply that proof.
+    rank = {"REUSE_CANDIDATE": 0, "UNKNOWN": 1, "RECHECK_REQUIRED": 2}
     statuses: dict[str, str] = {}
-    for identity in order:
-        if identity in roots:
-            statuses[identity] = (
-                "RECHECK_REQUIRED"
-                if identity in changed
-                else "UNKNOWN"
-                if identity in unknown or unindexed
-                else "REUSE_CANDIDATE"
-            )
-            continue
-        item = claims[identity]
-        upstream = [statuses[ref] for ref in item["dependsOn"]]
-        if identity in changed or "RECHECK_REQUIRED" in upstream:
-            statuses[identity] = "RECHECK_REQUIRED"
-        elif (
-            identity in unknown
-            or unindexed
-            or not item["dependenciesComplete"]
-            or "UNKNOWN" in upstream
+    for identity in sorted(roots | set(claims)):
+        if identity in changed:
+            status = "RECHECK_REQUIRED"
+        elif identity in unknown or unindexed:
+            status = "UNKNOWN"
+        elif identity in cyclic or (
+            identity in claims and not claims[identity]["dependenciesComplete"]
         ):
-            statuses[identity] = "UNKNOWN"
+            status = "UNKNOWN"
         else:
-            statuses[identity] = "REUSE_CANDIDATE"
+            status = "REUSE_CANDIDATE"
+        statuses[identity] = status
+    while True:
+        progressed = False
+        for identity in sorted(claims):
+            upstream = (statuses[ref] for ref in claims[identity]["dependsOn"])
+            new_rank = max((rank[statuses[identity]], *(rank[x] for x in upstream)))
+            if new_rank > rank[statuses[identity]]:
+                statuses[identity] = ("REUSE_CANDIDATE", "UNKNOWN", "RECHECK_REQUIRED")[new_rank]
+                progressed = True
+        if not progressed:
+            break
 
     projection = {
         "kind": "ordivon.task-local-obligation-impact",
@@ -503,6 +602,7 @@ def select_impacted_obligations(
             {"id": identity, "standing": statuses[identity]} for identity in sorted(claims)
         ],
         "unindexedChangeRefs": unindexed,
+        "cyclicObligationIds": sorted(cyclic),
         "derivedRelationChangedRefs": sorted(derived_relation_changes),
         "derivedContractChangedRefs": sorted(derived_contract_changes),
         "derivedChangedRefs": sorted(derived_relation_changes | derived_contract_changes),
@@ -714,6 +814,9 @@ def _parser() -> argparse.ArgumentParser:
     manifest_parser.add_argument("current_manifest", type=Path)
     manifest_parser.add_argument("--previous-bindings", type=Path)
     manifest_parser.add_argument("--current-bindings", type=Path)
+    manifest_parser.add_argument("--git-repo", type=Path)
+    manifest_parser.add_argument("--previous-sourcecut")
+    manifest_parser.add_argument("--current-sourcecut")
     return parser
 
 
@@ -728,9 +831,30 @@ def main() -> int:
                 _load_json(args.binding_set),
             )
         elif args.command == "impact-manifests":
+            requested = (
+                args.git_repo is not None,
+                args.previous_sourcecut is not None,
+                args.current_sourcecut is not None,
+            )
+            if any(requested) and not all(requested):
+                raise CircuitContractError(
+                    "Git source mode requires repository and both exact commits"
+                )
+            if all(requested):
+                before, before_source = _immutable_git_manifest(
+                    args.git_repo, args.previous_sourcecut, args.previous_manifest
+                )
+                after, after_source = _immutable_git_manifest(
+                    args.git_repo, args.current_sourcecut, args.current_manifest
+                )
+            else:
+                before, after = (
+                    _load_json(args.previous_manifest),
+                    _load_json(args.current_manifest),
+                )
             result = select_manifest_gate_impacts(
-                previous_manifest=_load_json(args.previous_manifest),
-                current_manifest=_load_json(args.current_manifest),
+                previous_manifest=before,
+                current_manifest=after,
                 previous_binding_set=(
                     None if args.previous_bindings is None else _load_json(args.previous_bindings)
                 ),
@@ -738,6 +862,8 @@ def main() -> int:
                     None if args.current_bindings is None else _load_json(args.current_bindings)
                 ),
             )
+            if all(requested):
+                result["gitSourceCuts"] = {"previous": before_source, "current": after_source}
         elif args.command == "select-impact":
             delta = _load_json(args.git_source_delta)
             # The JSON is caller-supplied, not authenticated proof evidence.
