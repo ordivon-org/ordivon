@@ -194,7 +194,7 @@ unsafe = r"""UnsafePromoteWithoutParity ==
     /\ pgWriterActive' = TRUE
     /\ UNCHANGED <<sqliteRevision, pgRevision, copied, parityVerified,
                    sqliteContent, pgContent, pgCommitted, rolledBack,
-                   sqliteWriterActive, consumersQualified>>
+                   sqliteWriterActive, consumersQualified, consumerReceipt>>
 
 """
 assert source.count(marker) == 1, "pg-cutover Next source drift"
@@ -233,7 +233,7 @@ unsafe = r"""UnsafeRollbackAfterPgCommit ==
     /\ pgWriterActive' = FALSE
     /\ UNCHANGED <<sqliteRevision, pgRevision, copied, parityVerified,
                    sqliteContent, pgContent, cutoverCertified, pgCommitted,
-                   rolledBack, consumersQualified>>
+                   rolledBack, consumersQualified, consumerReceipt>>
 
 """
 assert source.count(marker) == 1, "pg-cutover rollback mutation source drift"
@@ -305,7 +305,7 @@ unsafe = r"""UnsafeConcurrentInstalledWriters ==
     /\ cutoverCertified' = TRUE
     /\ rolledBack' = FALSE
     /\ UNCHANGED <<sqliteRevision, pgRevision, copied, parityVerified,
-                   pgCommitted, sqliteContent, pgContent, consumersQualified>>
+                   pgCommitted, sqliteContent, pgContent, consumersQualified, consumerReceipt>>
 
 """
 assert source.count(marker) == 1, "PG overlapping writers source drift"
@@ -385,6 +385,47 @@ PY_PG_CONSUMER
     fi
     echo "TLC PostgreSQL consumer cutover negative control PASS: unqualified writer cannot promote"
 
+    # CEGAR: a self-labelled consumer qualification must be bound to an
+    # independent receipt's source cut, content and issuer. Violating each
+    # field must produce the named model invariant, not parser or tool failure.
+    for label in revision content issuer; do
+      mkdir "$tmp_dir/receipt-$label"
+      python - "$ROOT/formal/RuntimePgCutoverR1.tla" \
+        "$tmp_dir/receipt-$label/RuntimePgCutoverR1.tla" "$label" <<'PY_PG_RECEIPT'
+from pathlib import Path
+import sys
+source=Path(sys.argv[1]).read_text(encoding="utf-8")
+label=sys.argv[3]
+assert label in ("revision","content","issuer")
+value="sqliteRevision" if label=="revision" else "sqliteContent" if label=="content" else '"trusted"'
+guard="    /\\ consumerReceipt."+label+" = "+value+"\n"
+qualification=source.index("QualifyConsumers ==")
+promotion=source.index("Promote ==")
+segment=source[qualification:promotion]
+assert segment.count(guard)==1, "consumer source-cut evidence guard drift"
+source=source[:qualification]+segment.replace(guard,"",1)+source[promotion:]
+Path(sys.argv[2]).write_text(source,encoding="utf-8")
+PY_PG_RECEIPT
+      cp -- "$ROOT/formal/RuntimePgCutoverR1.cfg" "$tmp_dir/receipt-$label/RuntimePgCutoverR1.cfg"
+      set +e
+      (cd "$tmp_dir/receipt-$label"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+        -config RuntimePgCutoverR1.cfg RuntimePgCutoverR1.tla) \
+        > "$tmp_dir/receipt-$label/result.log" 2>&1
+      result=$?
+      set -e
+      if [[ "$result" -ne 12 ]] ||
+         ! grep -Fxq 'Error: Invariant QualifiedConsumersMatchSource is violated.' \
+             "$tmp_dir/receipt-$label/result.log" ||
+         ! grep -Fxq 'Error: The behavior up to this point is:' \
+             "$tmp_dir/receipt-$label/result.log" ||
+         ! grep -Eq '^State [1-9][0-9]*:' "$tmp_dir/receipt-$label/result.log"; then
+        echo "PG source-bound consumer receipt $label falsification FAILED" >&2
+        tail -40 "$tmp_dir/receipt-$label/result.log" >&2
+        exit 1
+      fi
+      echo "PG source-bound consumer receipt negative control PASS ($label)"
+    done
+
     # A failed candidate may abort while paused, but must not hand historical
     # PG consumer qualification back to the resumed SQLite writer. Exercise
     # the forbidden mutation against the same exact PG model and named law.
@@ -405,7 +446,7 @@ unsafe = r"""UnsafeAbortRetainsQualification ==
     /\ rolledBack' = TRUE
     /\ UNCHANGED <<sqliteRevision, pgRevision, sqliteContent, pgContent,
                    copied, parityVerified, cutoverCertified, pgCommitted,
-                   pgWriterActive, consumersQualified>>
+                   pgWriterActive, consumersQualified, consumerReceipt>>
 
 """
 assert source.count(marker) == 1, "PG failed-cutover abort mutation source drift"
