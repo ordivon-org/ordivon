@@ -210,11 +210,6 @@ impl PgAdmissionStore {
         if state != "QUALIFIED_WRITER" || !permitted || source != i.expected_source_sha256 {
             return Err(PgAdmissionError::Unqualified);
         }
-        let pending:bool=tx.query_one(
-            "SELECT EXISTS(SELECT 1 FROM job_runtime_release_effects r JOIN jobs j ON j.job_id=r.job_id WHERE j.resolution IS NULL OR EXISTS(SELECT 1 FROM attempts a JOIN concurrency_reservations c ON c.attempt_id=a.attempt_id WHERE a.job_id=j.job_id AND c.state IN ('active','held_orphaned')))",&[])?.get(0);
-        if pending {
-            return Err(PgAdmissionError::PendingEffect);
-        }
         if let Some(row)=tx.query_opt(
             "SELECT job_id,operation_digest FROM idempotency_keys WHERE principal=$1 AND client_request_id=$2",
             &[&i.principal,&i.client_request_id])? {
@@ -223,6 +218,14 @@ impl PgAdmissionStore {
             if digest!=i.operation_digest {return Err(PgAdmissionError::IdempotencyConflict);}
             tx.commit().map_err(|_|PgAdmissionError::UnknownCommit)?;
             return Ok(PgAdmissionOutcome::Existing(job_id));
+        }
+        // This predicate fences new writer effects, not read-only replay of a
+        // previously committed identity. Resolving the exact idempotency key
+        // must precede transient pending-Effect and capacity admission gates.
+        let pending:bool=tx.query_one(
+            "SELECT EXISTS(SELECT 1 FROM job_runtime_release_effects r JOIN jobs j ON j.job_id=r.job_id WHERE j.resolution IS NULL OR EXISTS(SELECT 1 FROM attempts a JOIN concurrency_reservations c ON c.attempt_id=a.attempt_id WHERE a.job_id=j.job_id AND c.state IN ('active','held_orphaned')))",&[])?.get(0);
+        if pending {
+            return Err(PgAdmissionError::PendingEffect);
         }
         let workspace_count:i64=tx.query_one(
             "SELECT count(*) FROM concurrency_reservations r JOIN attempts a ON a.attempt_id=r.attempt_id JOIN jobs j ON j.job_id=a.job_id WHERE r.state IN ('active','held_orphaned') AND j.workspace_id=$1",
@@ -360,10 +363,11 @@ impl PgAdmissionStore {
         let digest: Option<String> = current.get(2);
         let version: i64 = current.get(3);
         let job = tx.query_one(
-            "SELECT resolution FROM jobs WHERE job_id=$1 FOR UPDATE",
+            "SELECT resolution,current_attempt_id FROM jobs WHERE job_id=$1 FOR UPDATE",
             &[&job_id],
         )?;
         let job_resolution: Option<String> = job.get(0);
+        let current_attempt: Option<String> = job.get(1);
         // This is strictly the no-Artifact terminal responsibility. Never
         // silently complete a Job with registered Artifact consumers here.
         let has_artifacts: bool = tx
@@ -387,6 +391,14 @@ impl PgAdmissionStore {
                 return Ok(PgTerminalOutcome::Existing(job_id));
             }
             return Err(PgAdmissionError::IdempotencyConflict);
+        }
+        // The Job's current Attempt is the only Attempt allowed to commit a
+        // fresh terminal effect. A superseded Attempt may not resolve the Job,
+        // release another Attempt's capacity, or append terminal events.
+        // Completed exact replay above remains legal after the Job clears
+        // current_attempt_id.
+        if current_attempt.as_deref() != Some(i.attempt_id.as_str()) {
+            return Err(PgAdmissionError::Blocked);
         }
         if version != i.expected_row_version
             || !terminal_transition(&previous, &i.terminal_state)
@@ -975,6 +987,44 @@ CREATE TABLE _stage_control(
         assert_eq!(scratch.count("concurrency_reservations"), 1);
         assert_eq!(scratch.count("idempotency_keys"), 1);
         assert_eq!(scratch.count("job_events"), 3);
+        // A previously committed idempotency key is a read-only observation.
+        // An unrelated unfinished release Effect can forbid *new* PG Jobs,
+        // but cannot erase the answer to the original exact replay.
+        scratch
+            .admin
+            .execute(
+                "INSERT INTO job_runtime_release_effects(job_id) VALUES($1)",
+                &[&a.job_id],
+            )
+            .unwrap();
+        assert_eq!(
+            store.admit(&a).unwrap(),
+            PgAdmissionOutcome::Existing(a.job_id.clone())
+        );
+        let mut conflicting_during_effect = a.clone();
+        conflicting_during_effect.operation_digest = "sha256:other-effect".into();
+        assert!(matches!(
+            store.admit(&conflicting_during_effect),
+            Err(PgAdmissionError::IdempotencyConflict)
+        ));
+        assert!(matches!(
+            store.admit(&payload(
+                "new-during-effect",
+                "job-forbidden",
+                "other-ws",
+                2
+            )),
+            Err(PgAdmissionError::PendingEffect)
+        ));
+        assert_eq!(scratch.count("jobs"), 1);
+        assert_eq!(scratch.count("job_events"), 3);
+        scratch
+            .admin
+            .execute(
+                "DELETE FROM job_runtime_release_effects WHERE job_id=$1",
+                &[&a.job_id],
+            )
+            .unwrap();
         let mut conflict = a.clone();
         conflict.operation_digest = "sha256:different-effect".into();
         assert!(matches!(
@@ -1092,6 +1142,64 @@ CREATE TABLE _stage_control(
             Err(PgAdmissionError::Capacity)
         ));
         assert_eq!(scratch.count("jobs"), 2);
+    }
+
+    #[test]
+    fn pg18_stale_attempt_cannot_terminalize_current_job() {
+        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
+            return;
+        };
+        let mut scratch = Scratch::new(&dsn);
+        scratch.qualify();
+        let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+        let input = payload("stale-terminal", "job-stale-terminal", "workspace-stale", 2);
+        store.admit(&input).unwrap();
+        scratch.admin.execute(
+            "INSERT INTO attempts(attempt_id,job_id,attempt_number,state,termination_intent,launch_token_digest,bundle_path,unit_name,created_at_ms,row_version) VALUES($1,$2,2,'accepted','natural','launch-new','/nonproduction/new','newer.service',$3,0)",
+            &[&"attempt-newer", &input.job_id, &input.created_at_ms],
+        ).unwrap();
+        scratch
+            .admin
+            .execute(
+                "UPDATE jobs SET current_attempt_id='attempt-newer' WHERE job_id=$1",
+                &[&input.job_id],
+            )
+            .unwrap();
+
+        let old_attempt = PgTerminalNoArtifacts {
+            attempt_id: input.attempt_id.clone(),
+            expected_row_version: 0,
+            terminal_state: "failed".into(),
+            result_digest: "sha256:stale".into(),
+            reason_code: "STALE_ATTEMPT".into(),
+            exit_code: Some(5),
+            finished_at_ms: input.created_at_ms + 1,
+            expected_source_sha256: input.expected_source_sha256.clone(),
+        };
+        assert!(matches!(
+            store.commit_terminal_no_artifacts(&old_attempt),
+            Err(PgAdmissionError::Blocked)
+        ));
+        assert_eq!(scratch.count("job_events"), 3, "no stale terminal event");
+        let state: String = scratch
+            .admin
+            .query_one(
+                "SELECT state FROM attempts WHERE attempt_id=$1",
+                &[&input.attempt_id],
+            )
+            .unwrap()
+            .get(0);
+        assert_eq!(state, "accepted", "old Attempt must remain unchanged");
+        let job = scratch
+            .admin
+            .query_one(
+                "SELECT resolution,current_attempt_id FROM jobs WHERE job_id=$1",
+                &[&input.job_id],
+            )
+            .unwrap();
+        let resolution: Option<String> = job.get(0);
+        let current: Option<String> = job.get(1);
+        assert_eq!((resolution, current), (None, Some("attempt-newer".into())));
     }
 
     #[test]
