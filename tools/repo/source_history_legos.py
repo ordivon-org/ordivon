@@ -398,6 +398,7 @@ def history(repo: Path, left: str, right: str) -> dict:
             against_parent = subprocess.check_output(
                 [
                     "git",
+                    "--no-replace-objects",
                     "-C",
                     str(repo),
                     "diff-tree",
@@ -511,7 +512,7 @@ def history(repo: Path, left: str, right: str) -> dict:
 
     actual = collections.Counter(r["side"] for r in all_commits.values())
     expected_left, expected_right = [
-        int(n) for n in git(repo, "rev-list", "--left-right", "--count", spec).split()
+        int(n) for n in git(repo, "--no-replace-objects", "rev-list", "--left-right", "--count", spec).split()
     ]
     if actual["local"] != expected_left or actual["remote"] != expected_right:
         raise ValueError("DAG coverage mismatch")
