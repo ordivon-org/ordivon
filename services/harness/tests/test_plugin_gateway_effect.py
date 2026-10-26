@@ -288,6 +288,36 @@ def test_gateway_effect_bridge_commits_intent_and_fence_before_physical_dispatch
         assert submit["requestId"].startswith("request:harness-gateway:")
 
 
+@pytest.mark.parametrize("tamper", ("request_id", "capability"))
+def test_gateway_resolution_mismatched_identity_never_attaches_job(tamper: str) -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        client = GatewayExecutionFixture(response_loss=True)
+        original = client.call_tool
+
+        def mismatched_owner_result(name, arguments):
+            error, payload = original(name, arguments)
+            if name == "execution.resolve":
+                payload = dict(payload)
+                payload[tamper] = "unrelated-owner-result"
+            return error, payload
+
+        client.call_tool = mismatched_owner_result
+        factory = _factory(client)
+        clock = FixedClock()
+        run = HarnessAgentRun.create(
+            Path(directory),
+            _contract(factory),
+            lambda _contract: _adapter(),
+            tool_bridge_factory=factory,
+            clock_ms=clock,
+            monotonic_ms=clock,
+        )
+        result = run.run(())
+        assert result.loop_result.stop_code.value == "runtime_unknown"
+        names = [name for name, _ in client.calls]
+        assert names == ["execution.submit", "execution.resolve"]
+
+
 def test_gateway_effect_bridge_reconciles_response_loss_without_redispatch() -> None:
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory)
