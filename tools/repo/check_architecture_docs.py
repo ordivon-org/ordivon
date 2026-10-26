@@ -469,7 +469,7 @@ def project_owner_lego_source_graph(
             raise ArchitectureDocsError("sourceRevision must be exact 40-hex Git commit")
         try:
             actual = subprocess.check_output(
-                ["git", "-C", str(root), "rev-parse", "--verify", source_revision + "^{commit}"],
+                ["git", "--no-replace-objects", "-C", str(root), "rev-parse", "--verify", source_revision + "^{commit}"],
                 stderr=subprocess.PIPE,
             ).decode("ascii").strip()
             if actual != source_revision:
@@ -501,7 +501,7 @@ def project_owner_lego_source_graph(
                 raise ArchitectureDocsError(f"Owner plan absent/nonregular in Git SourceCut: {relative}")
             try:
                 before = subprocess.check_output(
-                    ["git", "-C", str(root), "cat-file", "blob", oid], stderr=subprocess.PIPE,
+                    ["git", "--no-replace-objects", "-C", str(root), "cat-file", "blob", oid], stderr=subprocess.PIPE,
                 )
             except subprocess.CalledProcessError as exc:
                 raise ArchitectureDocsError(f"cannot read Git SourceCut plan: {relative}") from exc
@@ -701,6 +701,162 @@ def project_owner_lego_source_change(
             "Declared DEPENDENCY edges trigger recheck; non-dependency typed relations propagate UNKNOWN, never proof reuse.",
             "Unobserved cross-Owner and dynamic consumer paths remain UNKNOWN outside this local projection.",
             "Changed unindexed paths may affect undiscovered consumers; SOURCE selection grants no deletion or runtime authority.",
+        ],
+    }
+
+
+
+def project_node_python_import_syntax(
+    *, source_revision: str, node_ref: str, target_source: str,
+    root: Path = ROOT,
+) -> dict[str, Any]:
+    """Trace a declared Python node source through native Git + stdlib AST.
+
+    The result describes possible syntactic importers, not proven runtime
+    consumers, dynamic dependencies, or a complete Python import analysis.
+    """
+    import importlib.util
+    import subprocess
+
+    graph = project_owner_lego_source_graph(root, source_revision=source_revision)
+    nodes = {row["ref"]: row for row in graph["vertices"]}
+    if node_ref not in nodes or "/planning/lego-plan-" not in node_ref:
+        raise ArchitectureDocsError("Python import inspection requires registered node ref")
+    owner = node_ref.split("/planning/", 1)[0]
+    allowed = {a["path"]: a for a in nodes[node_ref]["sourceAnchors"]}
+    if target_source not in allowed or not target_source.startswith(owner + "/src/"):
+        raise ArchitectureDocsError("Python import target is not node-anchored Owner src")
+    if not target_source.endswith(".py"):
+        raise ArchitectureDocsError("Python import target must be source Python")
+    if not re.fullmatch(r"[0-9a-f]{40}", source_revision):
+        raise ArchitectureDocsError("Python import SourceCut is not exact Git commit")
+    if __package__:
+        from .source_history_legos import current_tree
+    else:
+        from source_history_legos import current_tree
+
+    tree = current_tree(root, source_revision)
+    if tree.get(target_source) != allowed[target_source]["sourceIdentity"]:
+        raise ArchitectureDocsError("Python import target source identity mismatch")
+
+    prefix = owner + "/src/"
+    rel = target_source[len(prefix):]
+    target_module = rel[:-3].replace("/", ".")
+    if target_module.endswith(".__init__"):
+        target_module = target_module[:-len(".__init__")]
+    if not target_module or "." not in target_module:
+        raise ArchitectureDocsError("Python import target package path is unqualified")
+
+    def read_git_source(path: str) -> str:
+        identity = tree[path]
+        mode, kind, oid = identity.split(":")
+        if kind != "blob" or mode not in {"100644", "100755"}:
+            raise ArchitectureDocsError("nonregular Git Python importer")
+        return subprocess.check_output(
+            ["git", "-C", str(root), "cat-file", "blob", oid],
+            stderr=subprocess.PIPE,
+        ).decode("utf-8")
+
+    try:
+        target_ast = ast.parse(read_git_source(target_source), filename=target_source)
+    except (SyntaxError, UnicodeError) as exc:
+        raise ArchitectureDocsError("Python declared target has invalid source syntax") from exc
+    top_level_defined: set[str] = set()
+    for statement in target_ast.body:
+        if isinstance(statement, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+            top_level_defined.add(statement.name)
+        elif isinstance(statement, ast.Assign):
+            for target in statement.targets:
+                if isinstance(target, ast.Name):
+                    top_level_defined.add(target.id)
+        elif isinstance(statement, ast.AnnAssign) and isinstance(statement.target, ast.Name):
+            top_level_defined.add(statement.target.id)
+
+    possible_importers: list[dict[str, Any]] = []
+    invalid_syntax: list[str] = []
+    scanned = 0
+    search_prefixes = (owner + "/src/", owner + "/tests/")
+    for path in sorted(tree):
+        if not path.endswith(".py") or path == target_source or not path.startswith(search_prefixes):
+            continue
+        scanned += 1
+        try:
+            ast_tree = ast.parse(read_git_source(path), filename=path)
+        except (SyntaxError, UnicodeError):
+            invalid_syntax.append(path)
+            continue
+        # 'tests' do not always form Python packages, hence relative imports
+        # there cannot be safely resolved without more execution context.
+        if path.startswith(prefix):
+            module = path[len(prefix):-3].replace("/", ".")
+            package = (
+                module.removesuffix(".__init__")
+                if path.endswith("/__init__.py") else module.rpartition(".")[0]
+            )
+        else:
+            package = None
+        matches: set[tuple[str, str]] = set()
+        for item in ast.walk(ast_tree):
+            if isinstance(item, ast.Import):
+                for alias in item.names:
+                    if alias.name == target_module:
+                        matches.add(("IMPORT", alias.name))
+            elif isinstance(item, ast.ImportFrom):
+                try:
+                    if item.level:
+                        if package is None:
+                            continue
+                        base = importlib.util.resolve_name(
+                            "." * item.level + (item.module or ""), package
+                        )
+                    else:
+                        base = item.module or ""
+                except ImportError:
+                    continue
+                if base == target_module:
+                    for alias in item.names:
+                        matches.add(("IMPORT_FROM", alias.name))
+                else:
+                    for alias in item.names:
+                        if base + "." + alias.name == target_module:
+                            matches.add(("FROM_PARENT_SUBMODULE", alias.name))
+        if matches:
+            possible_importers.append({
+                "sourcePath": path,
+                "gitBlobIdentity": tree[path],
+                "importSyntax": [
+                    {
+                        "kind": k, "name": n,
+                        "targetDefinitionStanding": (
+                            "SOURCE_TOP_LEVEL_DEFINED" if n in top_level_defined
+                            else "MODULE_SOURCE_PRESENT" if k != "IMPORT_FROM"
+                            else "UNRESOLVED_OR_REEXPORTED"
+                        ),
+                    }
+                    for k, n in sorted(matches)
+                ],
+                "qualification": "PYTHON_AST_IMPORT_SYNTAX_ONLY_NOT_EXECUTION",
+            })
+    return {
+        "kind": "ordivon.owner-lego-python-source-import-syntax",
+        "truthRole": "DERIVED_SOURCE_CANDIDATE_CONSUMERS_NOT_RUNTIME_CONSUMER_TRUTH",
+        "sourceCut": source_revision,
+        "declaredNodeRef": node_ref,
+        "targetSourcePath": target_source,
+        "targetGitBlobIdentity": tree[target_source],
+        "targetPythonModule": target_module,
+        "candidateImporters": possible_importers,
+        "scanBoundary": {
+            "sourceRoots": list(search_prefixes),
+            "pythonFilesParsedOrAttempted": scanned,
+            "invalidSyntaxPaths": invalid_syntax,
+            "dynamicImportsResolved": False,
+            "externalConsumersCovered": False,
+        },
+        "nonClaims": [
+            "An AST import can be conditional, dead, guarded, unused or shadowed.",
+            "Missing static importer is NOT proof of no runtime or cross-Owner consumer.",
+            "Only an exact Git blob is source evidence; test execution, implementation refinement and installed currentness require separate receipts.",
         ],
     }
 
@@ -1582,12 +1738,25 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--source-revision", help="exact Git commit for immutable graph projection")
     parser.add_argument("--compare-source-revision",
                         help="earlier immutable Git commit to compare against --source-revision")
+    parser.add_argument("--inspect-python-node", help="registered node ref")
+    parser.add_argument("--python-target-source", help="exact node-anchored Python src file")
     args = parser.parse_args(argv)
     try:
-        if args.source_revision and not args.project_owner_graphs:
-            raise ArchitectureDocsError("--source-revision requires --project-owner-graphs")
+        if args.source_revision and not (args.project_owner_graphs or args.inspect_python_node):
+            raise ArchitectureDocsError("--source-revision requires --project-owner-graphs or --inspect-python-node")
         if args.compare_source_revision and not args.source_revision:
             raise ArchitectureDocsError("--compare-source-revision requires --source-revision")
+        if bool(args.inspect_python_node) != bool(args.python_target_source):
+            raise ArchitectureDocsError("Python inspect requires node and source together")
+        if args.inspect_python_node and (not args.source_revision or args.compare_source_revision):
+            raise ArchitectureDocsError("Python inspect requires one exact source revision")
+        if args.inspect_python_node:
+            print(json.dumps(project_node_python_import_syntax(
+                source_revision=args.source_revision,
+                node_ref=args.inspect_python_node,
+                target_source=args.python_target_source,
+            ), sort_keys=True))
+            return 0
         if args.project_owner_graphs:
             print(json.dumps(
                 (

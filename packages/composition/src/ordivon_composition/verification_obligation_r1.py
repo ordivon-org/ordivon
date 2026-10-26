@@ -55,7 +55,12 @@ def _immutable_git_manifest(
 
     def git(*argv: str) -> bytes:
         try:
-            return subprocess.check_output(["git", "-C", str(repo), *argv], stderr=subprocess.PIPE)
+            # Exact SourceCut addresses Git's original objects, not any
+            # mutable refs/replace overlay supplied by the local repository.
+            return subprocess.check_output(
+                ["git", "--no-replace-objects", "-C", str(repo), *argv],
+                stderr=subprocess.PIPE,
+            )
         except (OSError, subprocess.CalledProcessError) as exc:
             raise CircuitContractError("Git source cut or regular blob unavailable") from exc
 
@@ -460,6 +465,7 @@ def select_impacted_obligations(
 
     derived_relation_changes: set[str] = set()
     derived_contract_changes: set[str] = set()
+    retired_known_claims: set[str] = set()
     if previous_graph is not None:
         if (
             not isinstance(previous_graph, dict)
@@ -494,6 +500,12 @@ def select_impacted_obligations(
                 for identity, item in prev_claims.items()
             ]
         )
+        # A prior-only proof identity is *known historical provenance*, not
+        # a missing external source. If no current claim references it, its
+        # retirement cannot be an unindexed dependency of all current proofs.
+        # Actual current consumers must declare a new DAG relation, and their
+        # changed contracts are still rechecked through the loop below.
+        retired_known_claims = set(prev_claims) - set(claims)
         derived_relation_changes = roots ^ prev_roots
         for identity in set(claims) | set(prev_claims):
             item = claims.get(identity)
@@ -520,7 +532,7 @@ def select_impacted_obligations(
                 derived_contract_changes.add(identity)
         changed |= derived_relation_changes | derived_contract_changes
 
-    unindexed = sorted((changed | unknown) - (roots | set(claims)))
+    unindexed = sorted((changed | unknown) - (roots | set(claims) | retired_known_claims))
     rows = [{"id": root, "dependsOn": []} for root in roots]
     rows += [{"id": identity, "dependsOn": item["dependsOn"]} for identity, item in claims.items()]
     from .cognitive_circuit_r1 import _topological_order
