@@ -284,8 +284,7 @@ impl Registry {
                 &owner_digest,
                 attempt.runner_start_digest.as_deref(),
                 start_evidence_digest,
-            )
-            {
+            ) {
                 return Ok(attempt);
             }
             return Err(state_conflict(
@@ -439,7 +438,8 @@ impl Registry {
                         )
                     })?;
                 let attempt = RegistryStorageBoundary::load_attempt(&transaction, &attempt_id)?;
-                let reservation = RegistryStorageBoundary::load_reservation(&transaction, &attempt_id)?;
+                let reservation =
+                    RegistryStorageBoundary::load_reservation(&transaction, &attempt_id)?;
                 if attempt.state != AttemptState::Orphaned
                     || reservation.state != ReservationState::HeldOrphaned
                 {
@@ -834,5 +834,11 @@ impl Registry {
         }
         Ok(load_job_snapshot(&connection, &attempt.job_id)?.projection)
     }
+}
 
+#[cfg(test)]
+#[test]
+fn native_formal_mark_dispatch_issued_contract() {
+    let _: fn(&Registry, &str, u64, u64) -> RuntimeResult<AttemptRecord> =
+        Registry::mark_dispatch_issued;
 }
