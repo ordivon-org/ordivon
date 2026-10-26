@@ -7,8 +7,8 @@ import json
 import subprocess
 import tomllib
 from collections import deque
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 import affected_owners
 
@@ -20,8 +20,7 @@ def _git(*args: str) -> str:
         ["git", *args],
         check=True,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
     )
     return proc.stdout.strip()
 
@@ -76,6 +75,26 @@ def load_dependency_graph(
             )
             if declared not in approved_tool_consumers:
                 raise ValueError("unapproved upstream toolchain-only seam")
+            continue
+        if seam.get("kind") == "TEST_ONLY_PINNED_SOURCE_FIXTURE":
+            # A source-cut-pinned test fixture is a provenance reference, not
+            # a dependency on the *current* producer Owner. Reuse the exact
+            # existing boundary declaration but do not invent a live edge.
+            # Only this audited immutable Git fixture is qualified: an
+            # arbitrary TEST_ONLY claim must never erase a real consumer.
+            permitted = (
+                "composition",
+                "runtime",
+                "packages/composition/tests/test_verification_obligation_r1.py",
+                "services/runtime/formal/RuntimeDispatchR1.trace-r1.json",
+                "services/runtime/formal/RuntimeDispatchR1.trace-r1.json",
+            )
+            declared = (
+                left, right, seam.get("source_glob"),
+                seam.get("allowed_fragment"), seam.get("contract_ref"),
+            )
+            if declared != permitted:
+                raise ValueError("unapproved immutable-Git test-only source seam")
             continue
         graph[left].add(right)
         graph[right].add(left)
