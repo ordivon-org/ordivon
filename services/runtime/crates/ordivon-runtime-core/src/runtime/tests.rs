@@ -7063,14 +7063,18 @@ fn cancel_before_dispatch_resolves_without_launch() {
         RuntimeDeliveryDisposition::Committed
     );
     assert_eq!(sandbox.registry.active_reservation_count().unwrap(), 0);
-    assert_eq!(
-        sandbox
-            .registry
-            .get_attempt(&created.attempt.attempt_id)
-            .unwrap()
-            .state,
-        AttemptState::Cancelled
-    );
+    let attempt = sandbox
+        .registry
+        .get_attempt(&created.attempt.attempt_id)
+        .unwrap();
+    let job = sandbox.registry.get_job(&created.job.job_id).unwrap();
+    assert_eq!(attempt.state, AttemptState::Cancelled);
+    // The locally committed cancel receipt has result and finish evidence,
+    // but there was no physical dispatch and no selected live Attempt.
+    assert!(attempt.result_digest.is_some());
+    assert!(attempt.finished_at_ms.is_some());
+    assert_eq!(job.resolution, Some(JobResolution::Cancelled));
+    assert_eq!(job.current_attempt_id, None);
 }
 
 #[test]
