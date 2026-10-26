@@ -15,6 +15,7 @@ import hashlib
 import json
 import re
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -756,6 +757,9 @@ def _parser() -> argparse.ArgumentParser:
     impact_parser = sub.add_parser("select-impact")
     impact_parser.add_argument("git_source_delta", type=Path)
     impact_parser.add_argument("obligations", type=Path)
+    # A caller-supplied JSON report is not native Git evidence. Verify it
+    # against the exact immutable source cuts before using it for scheduling.
+    impact_parser.add_argument("--repo", type=Path, required=True)
     impact_parser.add_argument("--unknown-refs", type=Path)
 
     manifest_parser = sub.add_parser("impact-manifests")
@@ -819,7 +823,48 @@ def main() -> int:
                 raise CircuitContractError(
                     "select-impact cannot promote unqualified Git source evidence"
                 )
-            roots, changes = delta.get("authorityRefs"), delta.get("changedRefs")
+            # Consume the native Git owner's existing query CLI. Composition
+            # is a separate Python package: the repository tools package is
+            # not guaranteed to be importable from its project-only sys.path.
+            # If this checkout-bound executable is unavailable, fail closed.
+            try:
+                cuts = delta.get("sourceCuts")
+                if not isinstance(cuts, dict):
+                    raise ValueError("sourceCuts must specify immutable Git commits")
+                owner_tool = (
+                    Path(__file__).resolve().parents[4] / "tools/repo/source_history_legos.py"
+                )
+                if not owner_tool.is_file():
+                    raise ValueError("Git owner query entrypoint unavailable")
+                native_query = subprocess.run(
+                    [
+                        sys.executable,
+                        str(owner_tool),
+                        "--repo",
+                        str(args.repo),
+                        "--left",
+                        cuts.get("previous"),
+                        "--right",
+                        cuts.get("current"),
+                        "--impact-prefix",
+                        delta.get("queryPrefix"),
+                    ],
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                )
+                if native_query.returncode != 0:
+                    raise ValueError("native Git source query failed")
+                qualified = json.loads(native_query.stdout)
+            except (ValueError, OSError, TypeError) as exc:
+                raise CircuitContractError(
+                    "select-impact requires independently recomputable native Git scope"
+                ) from exc
+            if qualified != delta:
+                raise CircuitContractError(
+                    "select-impact Git report differs from exact native source delta"
+                )
+            roots, changes = qualified["authorityRefs"], qualified["changedRefs"]
             if (
                 not isinstance(roots, list)
                 or not isinstance(changes, list)

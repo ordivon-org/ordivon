@@ -1176,6 +1176,7 @@ def test_native_git_source_delta_selects_cas_without_rechecking_tla(tmp_path, mo
     # Agent-native path: existing repo CLI emits the scoped, immutable Git
     # delta; existing Composition CLI consumes it without inventing authority.
     import json
+    import os
     import sys
 
     delta_output = subprocess.check_output(
@@ -1225,6 +1226,8 @@ def test_native_git_source_delta_selects_cas_without_rechecking_tla(tmp_path, mo
                 "select-impact",
                 str(delta_file),
                 str(claims_file),
+                "--repo",
+                str(tmp_path),
             ],
             text=True,
         )
@@ -1234,6 +1237,29 @@ def test_native_git_source_delta_selects_cas_without_rechecking_tla(tmp_path, mo
         "proof:RuntimeDispatch-TLA-model": "REUSE_CANDIDATE",
     }
     assert cli_status["proofReuseAdmissible"] is False
+
+    # Package-only invocation matches CI: Composition is separately installed
+    # and its subprocess does not inherit the monorepo root on sys.path.
+    composition_root = Path(__file__).resolve().parents[1]
+    restricted_env = dict(os.environ, PYTHONPATH=str(composition_root / "src"))
+    package_only = json.loads(
+        subprocess.check_output(
+            [
+                sys.executable,
+                "-m",
+                "ordivon_composition.verification_obligation_r1",
+                "select-impact",
+                str(delta_file),
+                str(claims_file),
+                "--repo",
+                str(tmp_path),
+            ],
+            cwd=composition_root,
+            env=restricted_env,
+            text=True,
+        )
+    )
+    assert package_only == cli_status
 
     # A caller-supplied fake "owner certificate" cannot be promoted by CLI.
     untrusted = dict(cli_delta)
@@ -1247,12 +1273,36 @@ def test_native_git_source_delta_selects_cas_without_rechecking_tla(tmp_path, mo
             "select-impact",
             str(delta_file),
             str(claims_file),
+            "--repo",
+            str(tmp_path),
         ],
         capture_output=True,
         text=True,
     )
     assert denied.returncode != 0
     assert "cannot promote unqualified" in denied.stderr
+    delta_file.write_text(delta_output, encoding="utf8")
+    # A plausible report with correct cuts but missing an actual changed path
+    # cannot be trusted for scheduling merely because proof grants are false.
+    forged_changes = dict(cli_delta)
+    forged_changes["changedRefs"] = []
+    delta_file.write_text(json.dumps(forged_changes), encoding="utf8")
+    omitted = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "ordivon_composition.verification_obligation_r1",
+            "select-impact",
+            str(delta_file),
+            str(claims_file),
+            "--repo",
+            str(tmp_path),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert omitted.returncode != 0
+    assert "differs from exact native source delta" in omitted.stderr
     delta_file.write_text(delta_output, encoding="utf8")
     unknown_file = tmp_path / "unresolved-runtime-edges.json"
     unknown_file.write_text(json.dumps(["runtime:unindexed"]), encoding="utf8")
@@ -1265,6 +1315,8 @@ def test_native_git_source_delta_selects_cas_without_rechecking_tla(tmp_path, mo
                 "select-impact",
                 str(delta_file),
                 str(claims_file),
+                "--repo",
+                str(tmp_path),
                 "--unknown-refs",
                 str(unknown_file),
             ],

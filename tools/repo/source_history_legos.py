@@ -267,9 +267,9 @@ def source_membership_delta(
 
 
 def history(repo: Path, left: str, right: str) -> dict:
-    left_oid = git(repo, "rev-parse", "--verify", left + "^{commit}").strip()
-    right_oid = git(repo, "rev-parse", "--verify", right + "^{commit}").strip()
-    bases = git(repo, "merge-base", "--all", left_oid, right_oid).splitlines()
+    left_oid = git(repo, "--no-replace-objects", "rev-parse", "--verify", left + "^{commit}").strip()
+    right_oid = git(repo, "--no-replace-objects", "rev-parse", "--verify", right + "^{commit}").strip()
+    bases = git(repo, "--no-replace-objects", "merge-base", "--all", left_oid, right_oid).splitlines()
     if len(bases) != 1:
         raise ValueError(
             f"ambiguous merge bases: expected one best common ancestor, got {len(bases)}"
@@ -279,7 +279,7 @@ def history(repo: Path, left: str, right: str) -> dict:
     spec = left_oid + "..." + right_oid
     # The full DAG includes merge connectors, which have no single patch ID.
     all_commits: dict[str, dict] = {}
-    raw = git(repo, "log", "--left-right", "--format=%m %H %P", spec)
+    raw = git(repo, "--no-replace-objects", "log", "--left-right", "--format=%m %H %P", spec)
     for line in raw.splitlines():
         mark, oid, *parents = line.split()
         if mark not in ("<", ">"):
@@ -300,6 +300,7 @@ def history(repo: Path, left: str, right: str) -> dict:
     raw_paths = subprocess.check_output(
         [
             "git",
+            "--no-replace-objects",
             "-C",
             str(repo),
             "log",
@@ -369,6 +370,7 @@ def history(repo: Path, left: str, right: str) -> dict:
         raw_merge_paths = subprocess.check_output(
             [
                 "git",
+                "--no-replace-objects",
                 "-C",
                 str(repo),
                 "diff-tree",
@@ -589,8 +591,8 @@ def main() -> None:
         if args.owner is not None:
             parser.error("--owner is only supported for history, not source-impact queries")
         try:
-            previous = git(repo, "rev-parse", "--verify", args.left + "^{commit}").strip()
-            current = git(repo, "rev-parse", "--verify", args.right + "^{commit}").strip()
+            previous = git(repo, "--no-replace-objects", "rev-parse", "--verify", args.left + "^{commit}").strip()
+            current = git(repo, "--no-replace-objects", "rev-parse", "--verify", args.right + "^{commit}").strip()
             report = source_membership_delta(
                 repo, previous, current, args.impact_prefix, max_members=args.max_members
             )
