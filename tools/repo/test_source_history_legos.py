@@ -829,34 +829,52 @@ class SourceHistoryLegosTests(unittest.TestCase):
             git(root, "replace", old, git(root, "rev-parse", "HEAD"))
             self.assertEqual(first, source_history_legos.source_membership_query(root, old, "sources/"))
 
-    def test_source_identity_survives_ephemeral_linked_worktree_paths(self):
-        """Same Git object store must preserve source proof IDs across Agent Workspaces."""
-        with tempfile.TemporaryDirectory(prefix="ordivon-git-linked-evidence-") as td:
-            root = Path(td) / "source"
-            linked = Path(td) / "agent-worktree"
-            root.mkdir()
-            git(root, "init", "-q")
-            git(root, "config", "user.name", "Test")
-            git(root, "config", "user.email", "test@example.invalid")
-            folder = root / "providers"
-            folder.mkdir()
-            (folder / "a.rs").write_text("old", encoding="utf8")
-            git(root, "add", ".")
-            git(root, "commit", "-qm", "before")
-            old = git(root, "rev-parse", "HEAD")
-            (folder / "a.rs").write_text("new", encoding="utf8")
-            git(root, "add", ".")
-            git(root, "commit", "-qm", "after")
-            new = git(root, "rev-parse", "HEAD")
-            git(root, "worktree", "add", "-q", "--detach", str(linked), new)
-            a = source_history_legos.source_membership_delta(root, old, new, "providers/")
-            b = source_history_legos.source_membership_delta(linked, old, new, "providers/")
-            self.assertEqual(a["sourceScopeRef"], b["sourceScopeRef"])
-            self.assertEqual(a["authorityRefs"], b["authorityRefs"])
-            self.assertEqual(a["changedRefs"], b["changedRefs"])
-            self.assertEqual(a["changedValuePaths"], ["providers/a.rs"])
-            self.assertFalse(a["proofReuseAdmissible"])
-            self.assertFalse(b["proofReuseAdmissible"])
+    def test_same_git_common_authority_has_stable_refs_across_worktrees(self):
+        """A Runtime workspace is not a new source authority or proof identity."""
+        with tempfile.TemporaryDirectory(prefix="ordivon-reusable-git-source-") as temp:
+            outer = Path(temp)
+            source = outer / "source"
+            source.mkdir()
+            git(source, "init", "-q", "-b", "main")
+            git(source, "config", "user.name", "Ordivon Test")
+            git(source, "config", "user.email", "test@example.invalid")
+            prefix = "services/runtime/providers/"
+            provider = source / prefix / "cas.rs"
+            provider.parent.mkdir(parents=True)
+            provider.write_text("accepted", encoding="utf-8")
+            git(source, "add", ".")
+            git(source, "commit", "-qm", "exact source")
+            commit = git(source, "rev-parse", "HEAD").strip()
+            nested = outer / "detached-runtime-workspace"
+            git(source, "worktree", "add", "-q", "--detach", str(nested), commit)
+
+            projection = source_history_legos.source_membership_delta
+            first = projection(source, commit, commit, prefix)
+            second = projection(nested, commit, commit, prefix)
+            self.assertEqual(first["memberValuesDigests"], second["memberValuesDigests"])
+            self.assertEqual(first["sourceCuts"], second["sourceCuts"])
+            # This is a single Git repository: the temporary worktree's
+            # physical path must not invalidate an unchanged source claim.
+            self.assertEqual(first["sourceScopeRef"], second["sourceScopeRef"])
+            self.assertEqual(first["authorityRefs"], second["authorityRefs"])
+            self.assertEqual(first["changedRefs"], second["changedRefs"])
+
+            # A different Git repository with identical text/paths is not
+            # automatically the same authority, even when blobs are equal.
+            unrelated = outer / "unrelated"
+            unrelated.mkdir()
+            git(unrelated, "init", "-q", "-b", "main")
+            git(unrelated, "config", "user.name", "Ordivon Test")
+            git(unrelated, "config", "user.email", "test@example.invalid")
+            another = unrelated / prefix / "cas.rs"
+            another.parent.mkdir(parents=True)
+            another.write_text("accepted", encoding="utf-8")
+            git(unrelated, "add", ".")
+            git(unrelated, "commit", "-qm", "same bytes distinct authority")
+            other_cut = git(unrelated, "rev-parse", "HEAD").strip()
+            isolated = projection(unrelated, other_cut, other_cut, prefix)
+            self.assertNotEqual(first["sourceScopeRef"], isolated["sourceScopeRef"])
+            self.assertTrue(set(first["authorityRefs"]).isdisjoint(isolated["authorityRefs"]))
 
 
 if __name__ == "__main__":

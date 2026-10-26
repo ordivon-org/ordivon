@@ -34,7 +34,7 @@ def git(repo: Path, *args: str) -> str:
 def owners(repo: Path, canonical_revision: str) -> list[tuple[str, str]]:
     # Natural-owner attribution is part of the exact protected-source cut,
     # not a mutable worktree checkout (which may be on another Git branch).
-    exact_manifest = git(repo, "show", canonical_revision + ":tools/repo/owners.toml")
+    exact_manifest = git(repo, "--no-replace-objects", "show", canonical_revision + ":tools/repo/owners.toml")
     # Reuse the canonical Owner type checker on source-cut bytes; malformed
     # historical roots must not silently misattribute consumer paths.
     with TemporaryDirectory(prefix="ordivon-source-owners-") as temp:
@@ -157,16 +157,25 @@ def source_membership_delta(
     before = source_membership_query(repo, previous_cut, prefix, max_members=max_members)
     after = source_membership_query(repo, current_cut, prefix, max_members=max_members)
 
-    # Git source identity belongs to the shared object store, not the temporary
-    # checkout: linked Agent Workspaces have one common Git directory. Independent
-    # repositories retain distinct identities even when paths/objects match.
-    source_root = str(
-        Path(
-            git(repo, "rev-parse", "--path-format=absolute", "--git-common-dir").strip()
-        ).resolve(strict=True)
+    # A detached Runtime Workspace is a Git *worktree*, not a new source
+    # authority. Use the common Git metadata root shared by all worktrees
+    # of the same local repository, not --show-toplevel (an ephemeral path).
+    # Distinct clones still remain conservatively distinct authorities.
+    # Consume exact Git path bytes; .strip() would corrupt legitimate
+    # Git repository paths with leading/trailing whitespace/newlines.
+    raw_common = subprocess.check_output(
+        ["git", "-C", str(repo), "rev-parse", "--path-format=absolute", "--git-common-dir"],
+        stderr=subprocess.PIPE,
     )
+    if not raw_common.endswith(b"\n"):
+        raise ValueError("Git common repository path is not newline-delimited")
+    git_common_dir = Path(raw_common[:-1].decode("utf-8", "surrogateescape")).resolve(
+        strict=True
+    )
+    if not git_common_dir.is_dir():
+        raise ValueError("Git common repository path is not a directory")
     source_scope_ref = "git:repo:" + hashlib.sha256(
-        source_root.encode("utf-8", "surrogateescape")
+        str(git_common_dir).encode("utf-8", "surrogateescape")
     ).hexdigest()
 
     def ref(kind: str, name: str) -> str:
@@ -228,8 +237,10 @@ def source_membership_delta(
         "nonClaims": [
             "Complete only for Git path membership and blob/mode under one prefix.",
             "A gitlink is an opaque source member; its internals are not observed.",
-            "The caller must still qualify proof readsets, relevant configuration, "
-            "runtime consumers, dynamic edges and all non-Git assumptions.",
+            (
+                "The caller must still qualify proof readsets, relevant configuration, "
+                "runtime consumers, dynamic edges and all non-Git assumptions."
+            ),
             "changedRefs feeds a selector, never certifies REUSE_CANDIDATE as PASS.",
         ],
     }
