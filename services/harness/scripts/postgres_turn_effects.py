@@ -4,9 +4,12 @@
 The migration path stages legacy evidence but intentionally cannot activate a
 source-backed cutover: provider subprocess quiescence must first be proven.
 """
+
 from __future__ import annotations
 
+import argparse
 import hashlib
+import os
 import json
 import time
 from contextlib import closing
@@ -108,7 +111,8 @@ class PostgresTurnEffects:
                 if marker is None:
                     pg.execute(
                         "INSERT INTO ordivon_harness.turn_effect_cutover VALUES "
-                        "('legacy','PENDING',%s)", (digest,)
+                        "('legacy','PENDING',%s)",
+                        (digest,),
                     )
                 elif marker["source_digest"] != digest:
                     raise TurnEffectConflict("legacy effect source changed after staging")
@@ -117,11 +121,16 @@ class PostgresTurnEffects:
                         "INSERT INTO ordivon_harness.turn_effects "
                         "(turn_request_id,prompt_digest,target_coordinate,state,"
                         "receipt_json,updated_at_ms) VALUES(%s,%s,%s,%s,%s,%s) "
-                        "ON CONFLICT(turn_request_id) DO NOTHING", row
+                        "ON CONFLICT(turn_request_id) DO NOTHING",
+                        row,
                     )
                 names = (
-                    "turn_request_id", "prompt_digest", "target_coordinate",
-                    "state", "receipt_json", "updated_at_ms",
+                    "turn_request_id",
+                    "prompt_digest",
+                    "target_coordinate",
+                    "state",
+                    "receipt_json",
+                    "updated_at_ms",
                 )
                 actual = [
                     self._validate_row(tuple(r[k] for k in names))
@@ -136,6 +145,138 @@ class PostgresTurnEffects:
         if self._legacy_rows(source) != rows:
             raise TurnEffectConflict("legacy effect source changed during staging")
         return {"standing": "PENDING", "rows": len(rows), "sourceDigest": digest}
+
+    @staticmethod
+    def _retirement_sql(operation: str) -> str:
+        """Exact source writer-denial witness; old data are migration inputs only."""
+        return (
+            f"CREATE TRIGGER turn_effect_pg_retired_{operation.lower()} "
+            f"BEFORE {operation} ON turn_effects BEGIN "
+            "SELECT RAISE(ABORT,'turn effects retired to PostgreSQL'); END"
+        )
+
+    def activate_staged_legacy(
+        self, source: Path, *, old_writers_quiesced: bool = False
+    ) -> dict[str, Any]:
+        """Promote source-backed PG only after quiescence, parity, and writer retirement.
+
+        First call stage_legacy(source). The caller must independently stop all
+        old provider workers (including in-flight SENDs). A Boolean declaration
+        is not independent process evidence. A crash after sealing the old source
+        but before PG ACTIVE leaves PG PENDING and is safely replayable here.
+        No old database is repaired or made into a long-lived secondary owner.
+        """
+        if not old_writers_quiesced:
+            raise TurnEffectConflict("old turn-effect writers must be quiesced before cutover")
+        source = Path(source)
+        if not source.is_file() or source.is_symlink():
+            raise TurnEffectConflict("exact legacy effects source missing")
+        legacy = object.__new__(SQLiteWakeTurnMap)
+        legacy.path = source
+        db = legacy._connect(read_only=False)
+        source_committed = False
+        with closing(db):
+            db.execute("BEGIN IMMEDIATE")
+            try:
+                columns = (
+                    "turn_request_id",
+                    "prompt_digest",
+                    "target_coordinate",
+                    "state",
+                    "receipt_json",
+                    "updated_at_ms",
+                )
+                expected = sorted(
+                    self._validate_row(tuple(row))
+                    for row in db.execute(
+                        "SELECT turn_request_id,prompt_digest,target_coordinate,"
+                        "state,receipt_json,updated_at_ms FROM turn_effects "
+                        "ORDER BY turn_request_id"
+                    ).fetchall()
+                )
+                digest = self._digest(expected)
+                existing_triggers = {
+                    name: sql
+                    for name, sql in db.execute(
+                        "SELECT name,sql FROM sqlite_master WHERE type='trigger'"
+                    ).fetchall()
+                }
+                names = [
+                    f"turn_effect_pg_retired_{op.lower()}" for op in ("INSERT", "UPDATE", "DELETE")
+                ]
+                present = [
+                    existing_triggers.get(name) == self._retirement_sql(op)
+                    for name, op in zip(names, ("INSERT", "UPDATE", "DELETE"))
+                ]
+                if any(name in existing_triggers and not ok for name, ok in zip(names, present)):
+                    raise TurnEffectConflict("legacy effect retirement barrier has drifted")
+                if any(present) and not all(present):
+                    raise TurnEffectConflict("legacy effect source has partial retirement barrier")
+                sealed_before = all(present)
+                with psycopg.connect(self.dsn, row_factory=dict_row) as pg:
+                    with pg.transaction():
+                        pg.execute("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE")
+                        pg.execute("SELECT pg_advisory_xact_lock(%s)", (self._LOCK_KEY,))
+                        marker = pg.execute(
+                            "SELECT state,source_digest FROM ordivon_harness.turn_effect_cutover "
+                            "WHERE cutover_id='legacy' FOR UPDATE"
+                        ).fetchone()
+                        if marker is None or marker["source_digest"] != digest:
+                            raise TurnEffectConflict(
+                                "staged effect source changed or was not staged"
+                            )
+                        if marker["state"] not in ("PENDING", "ACTIVE"):
+                            raise TurnEffectConflict("unsupported PG effect promotion standing")
+                        if marker["state"] == "ACTIVE" and not sealed_before:
+                            raise TurnEffectConflict(
+                                "ACTIVE PG effects lack exact legacy source seal"
+                            )
+                        actual = sorted(
+                            self._validate_row(tuple(row[col] for col in columns))
+                            for row in pg.execute(
+                                "SELECT turn_request_id,prompt_digest,target_coordinate,"
+                                "state,receipt_json,updated_at_ms FROM ordivon_harness.turn_effects "
+                                "ORDER BY turn_request_id"
+                            ).fetchall()
+                        )
+                        if marker["state"] == "ACTIVE":
+                            # New PG-only identities may be written after activation.
+                            old_ids = {row[0] for row in expected}
+                            actual = [row for row in actual if row[0] in old_ids]
+                        if actual != expected:
+                            raise TurnEffectConflict("PostgreSQL staged effects differ from source")
+                        if not sealed_before:
+                            for op, name in zip(("INSERT", "UPDATE", "DELETE"), names):
+                                db.execute(self._retirement_sql(op))
+                        db.execute("COMMIT")
+                        source_committed = True
+                        # A completed source retirement is required before PG's
+                        # admission fence changes; failure preserves PENDING.
+                        if self._legacy_rows(source) != expected:
+                            raise TurnEffectConflict("retired legacy effect source changed")
+                        with closing(legacy._connect(read_only=True)) as sealed_db:
+                            observed = dict(
+                                sealed_db.execute(
+                                    "SELECT name,sql FROM sqlite_master WHERE type='trigger'"
+                                ).fetchall()
+                            )
+                            if any(
+                                observed.get(name) != self._retirement_sql(op)
+                                for name, op in zip(names, ("INSERT", "UPDATE", "DELETE"))
+                            ):
+                                raise TurnEffectConflict(
+                                    "legacy turn effect source retirement not durable"
+                                )
+                        if marker["state"] == "PENDING":
+                            pg.execute(
+                                "UPDATE ordivon_harness.turn_effect_cutover SET state='ACTIVE' "
+                                "WHERE cutover_id='legacy' AND state='PENDING'"
+                            )
+                return {"standing": "ACTIVE", "rows": len(expected), "sourceDigest": digest}
+            except BaseException:
+                if not source_committed:
+                    db.execute("ROLLBACK")
+                raise
 
     def activate_empty_fresh(self, legacy_source: Path) -> None:
         """Fresh-only PG bootstrap; refuses to mislabel an existing SQLite authority."""
@@ -161,8 +302,7 @@ class PostgresTurnEffects:
     def _require_active(self, pg: psycopg.Connection) -> None:
         pg.execute("SELECT pg_advisory_xact_lock_shared(%s)", (self._LOCK_KEY,))
         marker = pg.execute(
-            "SELECT state FROM ordivon_harness.turn_effect_cutover "
-            "WHERE cutover_id='legacy'"
+            "SELECT state FROM ordivon_harness.turn_effect_cutover WHERE cutover_id='legacy'"
         ).fetchone()
         if marker is None or marker["state"] != "ACTIVE":
             raise TurnEffectConflict("PG effects cutover PENDING or not certified")
@@ -173,7 +313,7 @@ class PostgresTurnEffects:
                 self._require_active(pg)
                 row = pg.execute(
                     "SELECT * FROM ordivon_harness.turn_effects WHERE turn_request_id=%s",
-                    (turn_id,)
+                    (turn_id,),
                 ).fetchone()
                 return dict(row) if row else None
 
@@ -195,28 +335,43 @@ class PostgresTurnEffects:
                             "INSERT INTO ordivon_harness.turn_effects VALUES "
                             "(%s,%s,%s,'UNKNOWN',NULL,%s) "
                             "ON CONFLICT(turn_request_id) DO NOTHING RETURNING turn_request_id",
-                            (turn_id, prompt, target, now)
+                            (turn_id, prompt, target, now),
                         ).fetchone()
                         row = pg.execute(
-                            "SELECT * FROM ordivon_harness.turn_effects "
-                            "WHERE turn_request_id=%s", (turn_id,)
+                            "SELECT * FROM ordivon_harness.turn_effects WHERE turn_request_id=%s",
+                            (turn_id,),
                         ).fetchone()
-                        if row is None or (row["prompt_digest"], row["target_coordinate"]) != (prompt, target):
+                        if row is None or (row["prompt_digest"], row["target_coordinate"]) != (
+                            prompt,
+                            target,
+                        ):
                             raise TurnEffectConflict("turn effect identity conflict")
                         if inserted is not None and (
                             row["state"] != "UNKNOWN" or row["receipt_json"] is not None
                         ):
                             raise TurnEffectConflict("new PG claim has a forged terminal receipt")
-                        return {"admittedToSend": inserted is not None, "state": row["state"],
-                                "receipt_json": row["receipt_json"], "turnRequestId": turn_id}
+                        return {
+                            "admittedToSend": inserted is not None,
+                            "state": row["state"],
+                            "receipt_json": row["receipt_json"],
+                            "turnRequestId": turn_id,
+                        }
             except psycopg.errors.SerializationFailure as error:
                 if attempt == 4:
-                    raise TurnEffectConflict("effect claim serializable retries exhausted") from error
+                    raise TurnEffectConflict(
+                        "effect claim serializable retries exhausted"
+                    ) from error
         raise AssertionError("unreachable")
 
     def record_after_send(
-        self, turn_id: str, prompt: str, target: str, state: str,
-        receipt: dict[str, Any], *, now_ms: int | None = None
+        self,
+        turn_id: str,
+        prompt: str,
+        target: str,
+        state: str,
+        receipt: dict[str, Any],
+        *,
+        now_ms: int | None = None,
     ) -> dict[str, Any]:
         if state not in ("UNKNOWN", "COMPLETED") or not isinstance(receipt, dict):
             raise TurnEffectConflict("invalid effect outcome")
@@ -229,22 +384,56 @@ class PostgresTurnEffects:
                 self._require_active(pg)
                 row = pg.execute(
                     "SELECT * FROM ordivon_harness.turn_effects "
-                    "WHERE turn_request_id=%s FOR UPDATE", (turn_id,)
+                    "WHERE turn_request_id=%s FOR UPDATE",
+                    (turn_id,),
                 ).fetchone()
-                if row is None or (row["prompt_digest"], row["target_coordinate"]) != (prompt, target):
+                if row is None or (row["prompt_digest"], row["target_coordinate"]) != (
+                    prompt,
+                    target,
+                ):
                     raise TurnEffectConflict("unclaimed or conflicting effect identity")
                 if row["receipt_json"] is None:
                     pg.execute(
                         "UPDATE ordivon_harness.turn_effects SET state=%s,"
                         "receipt_json=%s,updated_at_ms=%s WHERE turn_request_id=%s",
-                        (state, evidence, now, turn_id)
+                        (state, evidence, now, turn_id),
                     )
                 elif row["state"] != state or json.loads(row["receipt_json"]) != receipt:
                     raise TurnEffectConflict("effect receipt cannot be rebound")
                 persisted = pg.execute(
                     "SELECT state,receipt_json FROM ordivon_harness.turn_effects "
-                    "WHERE turn_request_id=%s", (turn_id,)
+                    "WHERE turn_request_id=%s",
+                    (turn_id,),
                 ).fetchone()
                 if persisted["state"] != state or json.loads(persisted["receipt_json"]) != receipt:
                     raise TurnEffectConflict("PG effect durable readback differs")
         return {"state": state, "safeToResend": False, "turnRequestId": turn_id}
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Explicit, source-fenced one-way effect cutover, never a live auto-migration."""
+    parser = argparse.ArgumentParser(
+        description="Qualify and activate source-backed PG turn effects"
+    )
+    parser.add_argument("--legacy-ledger", type=Path, required=True)
+    parser.add_argument("--dsn-env", default="ORDIVON_TURN_EFFECT_POSTGRES_DSN")
+    parser.add_argument("--confirm-old-writers-quiesced", action="store_true")
+    args = parser.parse_args(argv)
+    if not args.confirm_old_writers_quiesced:
+        parser.error("old Browserless/provider effect writers must be proven quiesced")
+    dsn = os.environ.get(args.dsn_env)
+    if not dsn:
+        parser.error(f"missing PostgreSQL DSN in environment variable {args.dsn_env}")
+    owner = PostgresTurnEffects(dsn)
+    # Stage is deliberately non-authoritative. Activation independently
+    # rechecks source parity under a native writer lock.
+    staged = owner.stage_legacy(args.legacy_ledger)
+    receipt = owner.activate_staged_legacy(args.legacy_ledger, old_writers_quiesced=True)
+    if receipt["sourceDigest"] != staged["sourceDigest"]:
+        raise TurnEffectConflict("source identity changed across PG promotion")
+    print(json.dumps(receipt, sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

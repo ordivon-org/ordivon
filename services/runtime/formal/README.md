@@ -311,4 +311,49 @@ the stronger guarantee remains UNKNOWN without authenticated owner state,
 implementation witness, and negative replay. Age expiry is explicitly
 allowed to reclaim without release, preserving bounded liveness.
 
+**Concrete Rust recovery-boundary qualification.** The normal
+`consumerReleased` guard previously sat after Git metadata recovery
+branches that can physically remove an open Workspace. The current
+Runtime close-recovery implementation reuses the same guarded predicate
+before normal close, corrupt Git metadata force recovery, and unborn-HEAD
+force removal; separate native negative CDCs verify the unreleased
+consumer's unique residual files survive. This is implementation-level
+test evidence for specific paths, *not* a general Rust-to-TLA refinement
+proof or an authenticated consumer claim. The previously proposed
+`WorkspaceContinuationR1` abstract model is retired here because the
+currently checked `WorkspaceConsumerCloseR1` already represents
+fresh idle consumer continuity, live Job/Git dependencies, and stronger
+spoofed-release negative controls. Maintain one present-day model for
+this Owner safety obligation, not duplicate finite proof registries.
+
 No second solver, custom formal DSL, new scheduler or global registry is added.
+
+## PostgreSQL R06 failed-cutover abort before PG authority (CEGAR)
+
+**Problem**: freezing the last SQLite writer is not proof that PostgreSQL
+can be promoted. A failed import, parity check, or consumer qualification can
+leave the design in the paused state with no executable escape route. Retrying
+the source writer must not retain copied PG parity/certification evidence.
+
+**Scoped refinement**: RuntimePgCutoverR1 now admits AbortPaused only
+while both installed writer indicators are false and no PG commit exists.
+It returns authority to the same SQLite source and clears copied,
+parityVerified, and consumersQualified before enabling the old writer.
+InstalledWriterMatchesAuthority, NoRetainedQualificationOnSqlite, and
+PrecommitAbortEnabled check writer identity, certification invalidation,
+and a legally enabled abort. These are abstract safety and enabledness
+obligations, not fairness, replay/protocol liveness, or a deployed operation.
+
+**Falsification**: the existing tla-formal falsify gate now admits a
+malicious paused-to-SQLite return which preserves PG consumer qualification,
+and requires TLC to return a concrete named violation. An independent
+reachability probe proves that a certification-free paused state can actually
+return to SQLite before a PG writer starts; a permanently paused model
+must not be accepted as a safe recovery implementation.
+
+**Physical STOP**: No active Rust Registry PG adapter, durable fence,
+installed-process quiescence receipt, current source-final parity, or
+consumer-owned replay proof is supplied by this abstract action. The live
+PG18 staging import remains VERIFIED_NON_AUTHORITY with promotion_allowed
+false. A real service cutover is not authorized by this model and must not
+run before independently authenticated downstream obligations are satisfied.

@@ -59,6 +59,9 @@ SQLITE_LEGACY_SOURCE_CALLS: dict[str, int] = {
     'domains/capital/src/ordivon_capital/accounting/postgres_ledger.py': 1,
     # Media has migrated durable TrialLedger to PostgreSQL; remaining SQLite is one-shot read-only import.
     'capabilities/media/scripts/migrate-r6-trials.py': 1,
+    # RW12 source-only immutable SQLite snapshot importer into a NON-AUTHORITATIVE PG stage.
+    # Retire this one-shot reader after native Rust PostgreSQL consumer promotion.
+    'services/runtime/scripts/postgres_registry_stage.py': 1,
     # Retired Host v1 historical read/projection tools, not current Host v2 state.
     'platform/workstation/scripts/host_historical_projection.py': 2,
     'platform/workstation/scripts/host_retirement_snapshot.py': 3,
@@ -88,6 +91,9 @@ SQLITE_LEGACY_SOURCE_CALLS: dict[str, int] = {
     'services/runtime/crates/ordivon-runtime-core/src/runtime/registry/query.rs': 9,
     'services/runtime/crates/ordivon-runtime-core/src/runtime/registry_storage.rs': 9,
     'services/runtime/crates/ordivon-runtime-core/src/runtime/repair.rs': 1,
+    # Explicit one-shot read-only source census for PG-selective migration.
+    # This is legacy source debt, never a new SQLite write authority.
+    'services/runtime/scripts/pg_retention_census.py': 1,
     'services/runtime/scripts/backup.py': 2,
     'services/runtime/scripts/mcp_e2e.py': 1,
     'services/runtime/scripts/restore.py': 1,

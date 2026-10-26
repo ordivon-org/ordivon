@@ -145,6 +145,46 @@ class ResearchValidityTest(unittest.TestCase):
             ledger.close()
 
     @unittest.skipUnless(PG_DSN, "real PostgreSQL test DSN is required")
+    def test_pg_catalog_rejects_disabled_append_only_trigger(self) -> None:
+        """A PostgreSQL table without its active UPDATE/DELETE fence is not admitted."""
+        ledger = TrialLedger(PG_DSN, search_id=f"experiment:trigger-proof:{uuid4().hex}")
+        try:
+            class RollbackProbe(Exception):
+                pass
+
+            with self.assertRaises(RollbackProbe):
+                with ledger.db.transaction():
+                    ledger.db.execute(
+                        "ALTER TABLE ordivon_media_trial.trial_events "
+                        "DISABLE TRIGGER trial_events_no_mutation"
+                    )
+                    with self.assertRaisesRegex(ValueError, "append-only trigger"):
+                        ledger._verify_schema()
+                    raise RollbackProbe()
+        finally:
+            ledger.close()
+
+    @unittest.skipUnless(PG_DSN, "real PostgreSQL test DSN is required")
+    def test_pg_catalog_rejects_missing_event_hash_uniqueness(self) -> None:
+        """Reused PostgreSQL storage cannot silently weaken event identity."""
+        ledger = TrialLedger(PG_DSN, search_id=f"experiment:constraint-proof:{uuid4().hex}")
+        try:
+            class RollbackProbe(Exception):
+                pass
+
+            with self.assertRaises(RollbackProbe):
+                with ledger.db.transaction():
+                    ledger.db.execute(
+                        "ALTER TABLE ordivon_media_trial.trial_events "
+                        "DROP CONSTRAINT trial_events_event_hash_key"
+                    )
+                    with self.assertRaisesRegex(ValueError, "event uniqueness"):
+                        ledger._verify_schema()
+                    raise RollbackProbe()
+        finally:
+            ledger.close()
+
+    @unittest.skipUnless(PG_DSN, "real PostgreSQL test DSN is required")
     def test_parallel_trial_appends_commit_one_complete_hash_chain(self) -> None:
         search_id = f"experiment:parallel:{uuid4().hex}"
 

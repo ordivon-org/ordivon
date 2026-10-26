@@ -2,15 +2,11 @@
 set -euo pipefail
 repo="$(cd "$(dirname "$0")/.." && pwd)"
 "$repo/scripts/check-language-baseline" >/dev/null
-tmp="$(mktemp -d)"
-trap 'rm -rf "$tmp"' EXIT
-PYTHONPATH="$repo/src" DB="$tmp/nonlive-accounting.sqlite3" \
+PYTHONPATH="$repo/src" \
   "$repo/.venv/bin/python" - <<'PY'
 import json
 import os
 import sys
-from pathlib import Path
-
 from ordivon_capital.accounting.durable import (
     CapitalAccountNamespace,
     CapitalAccountRole,
@@ -21,9 +17,9 @@ from ordivon_capital.accounting.durable import (
     binding_for_namespace,
     reconcile_durable_history,
 )
-from ordivon_capital.accounting.sqlite_ledger import LedgerApplyStatus, SQLiteAccountingLedger
 from ordivon_capital.accounting.postgres_ledger import PostgresAccountingLedger
 from ordivon_capital.accounting.substrate import (
+    LedgerApplyStatus,
     AccountingAccount,
     AccountingOperation,
     reservation_instruction,
@@ -33,7 +29,7 @@ from ordivon_capital.accounting.substrate import (
 
 def require(condition, label):
     if not condition:
-        raise SystemExit("Capital SQLite smoke contract rejected: " + str(label))
+        raise SystemExit("Capital PostgreSQL nonlive contract rejected: " + str(label))
 
 expected={
     "FILL":"POST_PENDING_TRANSFER",
@@ -42,17 +38,12 @@ expected={
     "DENY":"VOID_PENDING_TRANSFER",
     "UNKNOWN_AFTER_SUBMISSION":"NO_MUTATION",
 }
-path=Path(os.environ["DB"])
 pg_dsn=os.environ.get("ORDIVON_CAPITAL_PG_DSN")
-legacy_offline=os.environ.get("ORDIVON_CAPITAL_LEGACY_OFFLINE_SMOKE")=="1"
-if not pg_dsn and not legacy_offline:
-    raise SystemExit(
-        "PostgreSQL-first Capital accounting requires explicit ORDIVON_CAPITAL_PG_DSN; "
-        "legacy SQLite is permitted only by explicit offline smoke opt-in"
-    )
+if not pg_dsn or not pg_dsn.strip():
+    raise SystemExit("PostgreSQL Capital accounting requires explicit ORDIVON_CAPITAL_PG_DSN")
 def open_ledger():
-    # An explicit PG choice never falls back to SQLite on network/SQL failure.
-    return PostgresAccountingLedger(pg_dsn) if pg_dsn else SQLiteAccountingLedger(path)
+    # No alternate durable database is an admissible nonlive consumer backend.
+    return PostgresAccountingLedger(pg_dsn)
 fund=AccountingAccount(stable_accounting_id("ordivon-capital:nonlive-effect","funding"))
 namespaces={}
 bindings={}
@@ -176,8 +167,7 @@ print(json.dumps({
     "kind":"ordivon.capital.trading.nonlive-capital-effect-matrix",
     "standing":"PASS_NONLIVE_EFFECT_TO_CAPITAL_RESTART_MATRIX",
     "sourceEffectContract":"CURRENT_RECONCILIATION_DISPOSITION_CONTRACT",
-    "accountingProvider":"PostgreSQL" if pg_dsn else "SQLite",
-    "sqliteVersion":None if pg_dsn else "3.53.1",
+    "accountingProvider":"PostgreSQL",
     "python":sys.version.split()[0],
     "restartCount":1,
     "scenarios":results,

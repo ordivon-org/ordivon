@@ -118,3 +118,40 @@ def test_unsealed_pg_role_cannot_revert_to_sqlite(
                 adoption_request_id="adoption:123",
                 marker_proof=proof(),
             )
+
+
+@pytest.mark.parametrize("fresh_bootstrap", [False, True])
+def test_pg_binding_real_consumer_passes_exact_legacy_source_and_bootstrap(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, fresh_bootstrap: bool
+) -> None:
+    """PG-enabled consumers must satisfy the real PG constructor contract.
+
+    Using _pg_conversation_binding_owner instead of stubbing the entire method
+    catches a cutover bug even when read/write behavior mocks remain green.
+    """
+    import postgres_conversation_binding as pg_binding
+
+    svc = browserless.BrowserlessAutomationService(
+        browserless.BrowserlessAutomationConfig.from_dict(config(tmp_path))
+    )
+    monkeypatch.setenv("ORDIVON_CONVERSATION_BINDING_POSTGRES_DSN", "postgresql://test/no-effect")
+    if fresh_bootstrap:
+        monkeypatch.setenv("ORDIVON_CONVERSATION_BINDING_FRESH_BOOTSTRAP", "1")
+    else:
+        monkeypatch.delenv("ORDIVON_CONVERSATION_BINDING_FRESH_BOOTSTRAP", raising=False)
+    observed = []
+
+    class PG:
+        def __init__(self, dsn: str, *, legacy_source: Path, fresh_bootstrap: bool = False):
+            observed.append(("open", dsn, legacy_source, fresh_bootstrap))
+
+        def assert_legacy_sealed(self, source: Path, *, fresh_bootstrap: bool = False):
+            observed.append(("sealed", source, fresh_bootstrap))
+
+    monkeypatch.setattr(pg_binding, "PostgresConversationBindingStore", PG)
+    owner = svc._pg_conversation_binding_owner()
+    assert isinstance(owner, PG)
+    assert observed == [
+        ("open", "postgresql://test/no-effect", svc.config.ledger, fresh_bootstrap),
+        ("sealed", svc.config.ledger, fresh_bootstrap),
+    ]
