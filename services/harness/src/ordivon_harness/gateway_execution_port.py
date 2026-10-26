@@ -88,6 +88,9 @@ class GatewayExecutionResult:
     exit_code: int | None
     artifact_ids: tuple[str, ...]
     recovery_required: bool
+    # Preserve the identity that the Gateway verified at submission.
+    request_id: str
+    capability: str
 
 
 class GatewayExecutionPort:
@@ -162,7 +165,12 @@ class GatewayExecutionPort:
         for _ in range(self.max_observations):
             last = self._call(
                 'execution.get',
-                {'operationRef': operation_ref, 'eventLimit': 10},
+                {
+                    'operationRef': operation_ref,
+                    'eventLimit': 10,
+                    'requestId': request.request_id,
+                    'capability': request.capability,
+                },
             )
             if _field(last, 'operation_ref', 'operationRef') != operation_ref:
                 raise GatewayExecutionError('Gateway observation changed operation identity')
@@ -233,6 +241,8 @@ class GatewayExecutionPort:
                     exit_code=exit_code,
                     artifact_ids=tuple(artifact_ids),
                     recovery_required=recovery,
+                    request_id=request.request_id,
+                    capability=request.capability,
                 )
             if terminal is not False:
                 raise GatewayExecutionError('Gateway observation omitted terminal')
@@ -265,6 +275,8 @@ class GatewayExecutionPort:
                 {
                     'operationRef': result.operation_ref,
                     'artifactId': artifact_id,
+                    'requestId': result.request_id,
+                    'capability': result.capability,
                     'offset': offset,
                     'maxBytes': max_bytes,
                 },

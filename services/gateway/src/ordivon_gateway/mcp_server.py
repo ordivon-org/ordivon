@@ -268,7 +268,13 @@ def build_server(
         artifactId: str,
         offset: int = 0,
         maxBytes: int = 1_048_576,
+        requestId: str | None = None,
+        capability: str | None = None,
+        ctx: Context = None,
     ) -> ArtifactChunk:
+        # Artifact bytes have the same original execution owner as observe/cancel.
+        # Reuse the trusted HTTP ingress identity fence before any owner read.
+        await _qualify_gateway_operation_ref(gateway, operationRef, capability, requestId, ctx)
         return await _owner_boundary(
             gateway.artifact_read(operationRef, artifactId, offset=offset, max_bytes=maxBytes)
         )
