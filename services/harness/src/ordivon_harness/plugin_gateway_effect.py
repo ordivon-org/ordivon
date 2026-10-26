@@ -248,12 +248,21 @@ class GatewayMcpRuntimeAdapter:
         operation_ref = _required_text(
             _gateway_field(resolution, "operation_ref", "operationRef"), "operationRef"
         )
+        # Trust the resolved owner's observed Workspace, not the caller's
+        # current grant alone. If that evidence is absent, recovery is UNKNOWN.
+        workspace_id = _required_text(
+            _gateway_field(resolution, "workspace_id", "workspaceId"), "workspaceId"
+        )
+        if workspace_id != self.grant.workspace_id:
+            raise HarnessRuntimeClientError(
+                "Gateway recovery returned a Job in a different workspace"
+            )
         self._operation_refs[native_id] = operation_ref
         return {
             "jobs": [{
                 "jobId": native_id,
                 "clientRequestId": request_id,
-                "workspaceId": self.grant.workspace_id,
+                "workspaceId": workspace_id,
             }],
             "nextCursor": None,
         }

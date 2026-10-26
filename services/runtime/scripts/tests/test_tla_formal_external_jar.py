@@ -137,6 +137,22 @@ class TlaFormalExternalJarTests(unittest.TestCase):
         self.assertIn("RuntimeWindowsFirstPgR1.tla", observed)
         self.assertIn("WorkspaceConsumerCloseR1.tla", observed)
 
+    def test_scoped_dispatch_only_calls_pinned_tlc_and_sany(self):
+        result = self.invoke(command="check-dispatch", jar=self.external)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        observed = self.java_log.read_text(encoding="utf-8")
+        self.assertEqual(observed.count("tla2sany.SANY"), 1)
+        self.assertEqual(observed.count("tlc2.TLC"), 1)
+        self.assertEqual(observed.count(str(self.external)), 2)
+        self.assertIn("RuntimeDispatchR1.tla", observed)
+        self.assertIn("RuntimeDispatchR1.cfg", observed)
+        for unrelated in (
+            "RuntimePgCutoverR1.tla",
+            "RuntimeWindowsFirstPgR1.tla",
+            "WorkspaceConsumerCloseR1.tla",
+        ):
+            self.assertNotIn(unrelated, observed)
+
     def test_falsifier_must_see_named_invariant_counterexample_not_just_java_failure(self):
         # A fake Java process returns success without a counterexample; the
         # formal Owner gate must reject it rather than count a mere process exit.

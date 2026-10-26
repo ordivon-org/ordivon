@@ -109,6 +109,7 @@ class GatewayExecutionFixture:
                 "resolution": "found",
                 "operation_ref": self.operation_ref,
                 "native_id": self.native_id,
+                "workspace_id": "ws-plugin-h2",
             }
         if name == "execution.cancel":
             return False, {
@@ -354,6 +355,38 @@ def test_gateway_effect_bridge_reconciles_response_loss_without_redispatch() -> 
         ]
         assert len(tool_messages) == 1
         assert tool_messages[0]["observation"]["status"] == "observed"
+
+
+@pytest.mark.parametrize("mutation", ("missing_workspace", "wrong_workspace"))
+def test_gateway_recovery_requires_owner_observed_workspace(mutation: str) -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        client = GatewayExecutionFixture(response_loss=True)
+        original_call_tool = client.call_tool
+
+        def forged_resolution(name, arguments):
+            failed, payload = original_call_tool(name, arguments)
+            if name == "execution.resolve":
+                payload = dict(payload)
+                if mutation == "missing_workspace":
+                    payload.pop("workspace_id")
+                else:
+                    payload["workspace_id"] = "ws-different-job"
+            return failed, payload
+
+        client.call_tool = forged_resolution  # type: ignore[method-assign]
+        factory = _factory(client)
+        run = HarnessAgentRun.create(
+            Path(directory),
+            _contract(factory),
+            lambda _contract: _adapter(),
+            tool_bridge_factory=factory,
+            clock_ms=FixedClock(),
+            monotonic_ms=FixedClock(),
+        )
+        result = run.run(())
+        assert result.loop_result.stop_code.value == "runtime_unknown"
+        names = [name for name, _ in client.calls]
+        assert names == ["execution.submit", "execution.resolve"]
 
 
 def test_gateway_effect_bridge_propagates_cooperative_control_cancellation() -> None:

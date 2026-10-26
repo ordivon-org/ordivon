@@ -2302,3 +2302,10 @@ impl Runtime {
     }
 
 }
+
+#[cfg(test)]
+#[test]
+fn native_formal_runtime_dispatch_methods_contract() {
+    let _: fn(&Runtime, &AttemptRecord) -> RuntimeResult<()> = Runtime::ensure_attempt_dispatched;
+    let _: fn(&Runtime, &AttemptRecord) -> RuntimeResult<()> = Runtime::dispatch_attempt;
+}
