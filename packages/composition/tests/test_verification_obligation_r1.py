@@ -597,3 +597,79 @@ def test_impact_relation_delta_matches_independent_full_graph_closure_randomized
         assert actual == impacted
         assert set(projection["derivedRelationChangedRefs"]) == changed_proofs
         assert projection["proofReuseAdmissible"] is False
+
+
+def test_impact_real_compiler_guarantee_digest_delta_rechecks_downstream_without_edge_delta():
+    before = compile_verification_obligations(_manifest())
+    weaker = _manifest()
+    weaker["gateRequirements"][0]["guarantee"] = (
+        "Producer may emit a candidate not bound to the required contract."
+    )
+    after = compile_verification_obligations(weaker)
+    original_digest = before["obligations"][0]["obligationDigest"]
+    new_digest = after["obligations"][0]["obligationDigest"]
+    assert original_digest != new_digest
+    assert before["obligations"][0]["gateId"] == after["obligations"][0]["gateId"]
+
+    def graph(digest):
+        return [
+            {"id": "proof:contract", "dependsOn": ["source:producer"],
+             "dependenciesComplete": True, "obligationDigest": digest},
+            {"id": "proof:consumer", "dependsOn": ["proof:contract"],
+             "dependenciesComplete": True},
+            {"id": "proof:independent", "dependsOn": ["source:host"],
+             "dependenciesComplete": True},
+        ]
+
+    old = graph(original_digest)
+    current = graph(new_digest)
+    result = select_impacted_obligations(
+        authority_refs=["source:producer", "source:host"],
+        obligations=current,
+        changed_refs=[],
+        previous_graph={"authorityRefs": ["source:host", "source:producer"],
+                        "obligations": old},
+    )
+    assert result["derivedRelationChangedRefs"] == ["proof:contract"]
+    assert _statuses(result) == {
+        "proof:contract": "RECHECK_REQUIRED",
+        "proof:consumer": "RECHECK_REQUIRED",
+        "proof:independent": "REUSE_CANDIDATE",
+    }
+    assert result["proofReuseAdmissible"] is False
+    # Identical exact owner obligation digests yield no false relation change.
+    same = select_impacted_obligations(
+        authority_refs=["source:producer", "source:host"],
+        obligations=current,
+        changed_refs=[],
+        previous_graph={"authorityRefs": ["source:producer", "source:host"],
+                        "obligations": graph(new_digest)},
+    )
+    assert same["derivedRelationChangedRefs"] == []
+
+
+def test_impact_contract_digest_input_downgrade_or_invalid_identity_fails_closed():
+    digest = compile_verification_obligations(_manifest())["obligations"][0]["obligationDigest"]
+    roots = ["source:a"]
+    row = {"id": "proof:a", "dependsOn": roots, "dependenciesComplete": True,
+           "obligationDigest": digest}
+    args = {"authority_refs": roots, "changed_refs": []}
+    # Removing a previously known content identity is itself a semantic change.
+    downgrade = select_impacted_obligations(
+        **args,
+        obligations=[{k: v for k, v in row.items() if k != "obligationDigest"}],
+        previous_graph={"authorityRefs": roots, "obligations": [row]},
+    )
+    assert downgrade["derivedRelationChangedRefs"] == ["proof:a"]
+    assert _statuses(downgrade)["proof:a"] == "RECHECK_REQUIRED"
+    assert downgrade["proofReuseAdmissible"] is False
+
+    for bad in ("0"*64, "sha256:Z"*9, "sha256:"+"0"*63, "sha256:"+"0"*63+"G"):
+        with pytest.raises(CircuitContractError, match="canonical sha256"):
+            select_impacted_obligations(
+                **args, obligations=[{**row, "obligationDigest": bad}])
+        with pytest.raises(CircuitContractError, match="canonical sha256"):
+            select_impacted_obligations(
+                **args, obligations=[row],
+                previous_graph={"authorityRefs": roots,
+                                "obligations": [{**row, "obligationDigest": bad}]})

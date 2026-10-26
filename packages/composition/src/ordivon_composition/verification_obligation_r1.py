@@ -252,8 +252,9 @@ def select_impacted_obligations(
 
     Caller-reported dependency completeness is an explicit assumption, not
     proof of graph closure. When prior/current graphs are both supplied, their
-    *declared* relation delta is derived mechanically, not confused with a
-    source-file delta. Prior snapshot provenance and readset completeness
+    *declared* relation and optional owner-obligation-digest delta is derived
+    mechanically, not confused with a source-file delta.
+    Prior snapshot provenance and readset completeness
     remain the caller's independent qualification obligations.
     REUSE_CANDIDATE is not PASS/current acceptance.
     """
@@ -272,13 +273,28 @@ def select_impacted_obligations(
             raise CircuitContractError(f"{label} has duplicate references")
         return set(values)
 
+    def validate_impact_claim(item: Any, label: str) -> None:
+        required = {"id", "dependsOn", "dependenciesComplete"}
+        if not isinstance(item, dict) or not (
+            required <= set(item) <= required | {"obligationDigest"}
+        ):
+            raise CircuitContractError(f"{label} requires id, dependsOn, dependenciesComplete")
+        if "obligationDigest" in item:
+            digest = item["obligationDigest"]
+            if (
+                not isinstance(digest, str)
+                or not digest.startswith("sha256:")
+                or len(digest) != 71
+                or any(ch not in "0123456789abcdef" for ch in digest[7:])
+            ):
+                raise CircuitContractError(f"{label} obligationDigest must be canonical sha256")
+
     roots = require_refs(authority_refs, "authorityRefs")
     changed = require_refs(changed_refs, "changedRefs")
     unknown = require_refs(unknown_refs if unknown_refs is not None else [], "unknownRefs")
     claims: dict[str, dict[str, Any]] = {}
     for item in obligations:
-        if not isinstance(item, dict) or set(item) != {"id", "dependsOn", "dependenciesComplete"}:
-            raise CircuitContractError("obligation requires id, dependsOn, dependenciesComplete")
+        validate_impact_claim(item, "obligation")
         identity = item["id"]
         require_refs([identity], "obligation id")
         require_refs(item["dependsOn"], "dependsOn")
@@ -299,10 +315,7 @@ def select_impacted_obligations(
         prev_roots = require_refs(previous_graph["authorityRefs"], "previous authorityRefs")
         prev_claims: dict[str, dict[str, Any]] = {}
         for item in previous_graph["obligations"]:
-            if not isinstance(item, dict) or set(item) != {
-                "id", "dependsOn", "dependenciesComplete"
-            }:
-                raise CircuitContractError("previous obligation requires id, dependsOn, dependenciesComplete")
+            validate_impact_claim(item, "previous obligation")
             identity = item["id"]
             require_refs([identity], "previous obligation id")
             deps = require_refs(item["dependsOn"], "previous dependsOn")
@@ -313,6 +326,7 @@ def select_impacted_obligations(
             prev_claims[identity] = {
                 "dependsOn": deps,
                 "dependenciesComplete": item["dependenciesComplete"],
+                "obligationDigest": item.get("obligationDigest"),
             }
         from .cognitive_circuit_r1 import _topological_order
 
@@ -328,6 +342,7 @@ def select_impacted_obligations(
                 None if item is None else {
                     "dependsOn": set(item["dependsOn"]),
                     "dependenciesComplete": item["dependenciesComplete"],
+                    "obligationDigest": item.get("obligationDigest"),
                 }
             )
             if current != prev_claims.get(identity):
@@ -398,6 +413,7 @@ def select_impacted_obligations(
             "dependenciesComplete is an unproven caller-supplied assertion.",
             "Unresolved dynamic/foreign dependencies must remain UNKNOWN.",
             "Prior/current graph source authority and completeness are not certified.",
+            "Optional obligationDigest is caller-supplied, not owner-authenticated.",
             "No verifier execution, effect permission, or domain acceptance.",
         ],
     }
