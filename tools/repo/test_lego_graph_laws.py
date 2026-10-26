@@ -877,6 +877,8 @@ def test_declared_source_delta_is_real_git_diff_with_dependency_closure(
             "relations": [
                 {"from": refs[0], "type": "DEPENDENCY", "to": refs[1],
                  "declaredBy": ["NODE_DEPENDENCIES"]},
+                {"from": refs[1], "type": "DATA", "to": refs[2],
+                 "declaredBy": ["TYPED_EDGE"]},
             ],
         }
     monkeypatch.setattr(
@@ -892,8 +894,9 @@ def test_declared_source_delta_is_real_git_diff_with_dependency_closure(
     assert {x["ref"]: x["sourceImpactStanding"] for x in result["standingByDeclaredNode"]} == {
         refs[0]: "RECHECK_REQUIRED",
         refs[1]: "RECHECK_REQUIRED",
-        refs[2]: "NO_DECLARED_HIT",
+        refs[2]: "UNKNOWN",
     }
+    assert result["potentialRelationInfluenceRefs"] == [refs[2]]
     assert result["proofReuseAdmissible"] is False
 
 

@@ -638,9 +638,15 @@ def project_owner_lego_source_change(
     # A removed ancestor can still affect a surviving downstream consumer.
     # Reuse BOTH historical and target dependency declarations.
     downstream: dict[str, set[str]] = {}
+    potential_edges: dict[str, set[str]] = {}
     for src, kind, dst, _ in old_edges | new_edges:
         if kind == "DEPENDENCY":
             downstream.setdefault(src, set()).add(dst)
+        else:
+            # DATA/CONTROL/EFFECT/etc. are NOT qualified proof prerequisites.
+            # But they can still carry real consumer influence. Escalate to
+            # UNKNOWN along their declared direction, never a reuse claim.
+            potential_edges.setdefault(src, set()).add(dst)
     affected = set(direct)
     frontier = list(direct)
     while frontier:
@@ -648,6 +654,17 @@ def project_owner_lego_source_change(
             if dst not in affected:
                 affected.add(dst)
                 frontier.append(dst)
+    potential: set[str] = set()
+    frontier = list(affected)
+    visited = set(frontier)
+    while frontier:
+        source = frontier.pop()
+        for dst in downstream.get(source, set()) | potential_edges.get(source, set()):
+            if dst not in visited:
+                visited.add(dst)
+                frontier.append(dst)
+                if dst not in affected:
+                    potential.add(dst)
 
     visible_anchors = {
         anchor["path"] for view in (before, after)
@@ -661,7 +678,7 @@ def project_owner_lego_source_change(
         owner_unindexed = any(path.startswith(owner + "/") for path in unindexed)
         status = (
             "RECHECK_REQUIRED" if ref in affected
-            else "UNKNOWN" if owner_unindexed
+            else "UNKNOWN" if owner_unindexed or ref in potential
             else "NO_DECLARED_HIT"
         )
         rows.append({"ref": ref, "sourceImpactStanding": status})
@@ -673,6 +690,7 @@ def project_owner_lego_source_change(
         "changedGitPaths": sorted(changed_paths),
         "changedDeclaredRelationCount": len(changed_edges),
         "directChangedRefs": sorted(direct),
+        "potentialRelationInfluenceRefs": sorted(potential),
         "removedRefs": sorted(set(old_nodes) - set(new_nodes)),
         "unindexedChangedPaths": sorted(unindexed),
         "standingByDeclaredNode": rows,
@@ -680,7 +698,8 @@ def project_owner_lego_source_change(
         "nonClaims": [
             "NO_DECLARED_HIT does not mean the node has no actual or dynamic consumers.",
             "Source anchors establish Git membership, not proof execution or formal refinement.",
-            "Only Owner-local declared DEPENDENCY edges propagate; cross-Owner consumers remain UNKNOWN.",
+            "Declared DEPENDENCY edges trigger recheck; non-dependency typed relations propagate UNKNOWN, never proof reuse.",
+            "Unobserved cross-Owner and dynamic consumer paths remain UNKNOWN outside this local projection.",
             "Changed unindexed paths may affect undiscovered consumers; SOURCE selection grants no deletion or runtime authority.",
         ],
     }
