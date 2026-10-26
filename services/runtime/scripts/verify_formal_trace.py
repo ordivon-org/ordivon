@@ -505,10 +505,141 @@ _ROOT_BUILD_INPUTS = frozenset(
 )
 
 
+def _native_libtest_depfile_receipt(executable: Path, source_head: str) -> dict[str, Any]:
+    """Join one Cargo-selected libtest executable's rustc depfile to exact Git blobs.
+
+    This is SOURCE evidence, not a complete build-input/readset proof. Fail
+    closed on ambiguous, escaped, untracked or changed physical inputs.
+    """
+    import os
+    import shlex
+    import subprocess
+
+    if not re.fullmatch(r"[0-9a-f]{40}", source_head):
+        raise ValueError("compiler depfile requires exact Git SourceCut")
+    if not executable.is_file() or executable.is_symlink():
+        raise ValueError("compiler libtest executable must be a regular file")
+    if not executable.name.startswith("ordivon_runtime_core-"):
+        raise ValueError("compiler libtest target identity mismatch")
+    depfile = Path(str(executable) + ".d")
+    if not depfile.is_file() or depfile.is_symlink():
+        raise ValueError("compiler libtest depfile missing or aliased")
+    contents = depfile.read_text(encoding="utf-8")
+    lines = contents.splitlines()
+    if len(lines) < 4 or not lines[0].startswith(str(depfile) + ": "):
+        raise ValueError("compiler depfile target/format mismatch")
+    first_sources = shlex.split(lines[0].split(": ", 1)[1])
+    second = [line for line in lines[1:] if line.startswith(str(executable) + ": ")]
+    if len(second) != 1 or shlex.split(second[0].split(": ", 1)[1]) != first_sources:
+        raise ValueError("compiler depfile libtest target/readset mismatch")
+    if not first_sources or len(first_sources) != len(set(first_sources)) or len(first_sources) > 4096:
+        raise ValueError("compiler depfile source cardinality invalid")
+    phony_rules = [line for line in lines[1:] if line and not line.startswith(str(executable) + ": ")]
+    if sorted(phony_rules) != sorted(f"{source}:" for source in first_sources):
+        raise ValueError("compiler depfile phony source rules disagree")
+    # rustc -Z binary-dep-depinfo is not assumed: generated sources/build.rs,
+    # toolchain and dynamic directory membership remain independent obligations.
+    repo = ROOT.parents[1]
+    rows = []
+    for name in first_sources:
+        if not name.startswith("crates/") or os.path.isabs(name) or "\\" in name:
+            raise ValueError("compiler dependency outside accepted Runtime source")
+        relative = os.path.normpath(name)
+        absolute = ROOT / relative
+        if not relative.startswith("crates/") or not absolute.is_file() or absolute.is_symlink():
+            raise ValueError("compiler dependency absent or outside Runtime source")
+        if absolute.resolve(strict=True) != ROOT.resolve(strict=True) / relative:
+            raise ValueError("compiler source path alias")
+        git_path = "services/runtime/" + relative.replace(os.sep, "/")
+        found = subprocess.run(
+            ["git", "-C", str(repo), "ls-tree", source_head, "--", git_path],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=20,
+        ).stdout.rstrip("\n")
+        parts = found.split("\t", 1)
+        if len(parts) != 2 or parts[1] != git_path:
+            raise ValueError("compiler dependency missing at Git SourceCut")
+        header = parts[0].split()
+        if len(header) != 3 or header[0] not in {"100644", "100755"} or header[1] != "blob":
+            raise ValueError("compiler Git dependency is not a regular blob")
+        committed = subprocess.check_output(
+            ["git", "-C", str(repo), "show", f"{source_head}:{git_path}"],
+            timeout=20,
+        )
+        if hashlib.sha256(absolute.read_bytes()).digest() != hashlib.sha256(committed).digest():
+            raise ValueError("compiler dependency physical/Git blob mismatch")
+        rows.append((git_path, header[2]))
+    if len({path for path, _ in rows}) != len(rows):
+        raise ValueError("compiler depfile source path normalization collision")
+    canonical = json.dumps(sorted(rows), separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    return {
+        "sourceHead": source_head,
+        "executableSha256": hashlib.sha256(executable.read_bytes()).hexdigest(),
+        "depfileSha256": hashlib.sha256(contents.encode("utf-8")).hexdigest(),
+        "sourceGitBlobsDigest": hashlib.sha256(canonical).hexdigest(),
+        "sourcePaths": sorted(path for path, _ in rows),
+        "scope": "one-cargo-libtest-rustc-depfile; external/build/dynamic-completeness-UNKNOWN",
+        "proofReuseAdmissible": False,
+    }
+
+
+def _qualify_current_compiler_readset(source_head: str) -> dict[str, Any]:
+    """Reuse the existing Cargo artifact selector for one bound libtest depfile."""
+    import os
+    import subprocess
+
+    target = os.environ.get("CARGO_TARGET_DIR", "")
+    fds: tuple[int, ...] = ()
+    if target.startswith("/proc/self/fd/") and target.rsplit("/", 1)[1].isdigit():
+        fd = int(target.rsplit("/", 1)[1])
+        os.fstat(fd)
+        fds = (fd,)
+    result = subprocess.run(
+        [
+            "cargo",
+            "test",
+            "--offline",
+            "--locked",
+            "-p",
+            "ordivon-runtime-core",
+            "--no-default-features",
+            "--features",
+            "transactional-runtime",
+            "--lib",
+            "--no-run",
+            "--message-format=json",
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        timeout=180,
+        check=False,
+        env={**os.environ, "CARGO_TERM_COLOR": "never"},
+        pass_fds=fds,
+    )
+    if result.returncode:
+        raise ValueError("native compiler artifact selection failed")
+    artifact = _native_cargo_test_artifact(result.stdout)
+    expected = (ROOT / "crates/ordivon-runtime-core/src/lib.rs").resolve(strict=True)
+    if Path(artifact["target"]["src_path"]).resolve(strict=True) != expected:
+        raise ValueError("Cargo selected unexpected libtest source")
+    binary = Path(artifact["executable"])
+    expected_root = Path(target or str(ROOT / "target")).resolve(strict=True)
+    if not binary.resolve(strict=True).is_relative_to(expected_root):
+        raise ValueError("Cargo libtest artifact outside target directory")
+    receipt = _native_libtest_depfile_receipt(binary, source_head)
+    if _qualified_native_source_head() != source_head:
+        raise ValueError("compiler source changed during Cargo artifact selection")
+    return receipt
+
+
 def project_proving_test_source_impact(
     trace: dict[str, Any],
     invariant_manifest: dict[str, Any],
     changed_paths: set[str],
+    compiler_inputs: set[str] | None = None,
 ) -> dict[str, Any]:
     """Rebuild one Runtime-owned Git-source read-set projection, never proof reuse.
 
@@ -569,6 +700,17 @@ def project_proving_test_source_impact(
         files.update(carriers[target] for target in witness["proves"] if target in carriers)
         readsets[witness["id"]] = files
 
+    if compiler_inputs is not None:
+        if not isinstance(compiler_inputs, set) or any(
+            not isinstance(path, str) or not path.startswith(prefix) or path.startswith("/") or ".." in path.split("/")
+            for path in compiler_inputs
+        ):
+            raise ValueError("compiler inputs must be normalized Runtime Git source paths")
+        # One common Cargo libtest binary hosts all five named Rust witnesses.
+        # This is compiler evidence of *positive* read edges only. Unknown
+        # negative/dynamic dependencies still cannot authorize proof reuse.
+        for files in readsets.values():
+            files.update(compiler_inputs)
     indexed = set().union(common, *readsets.values())
     runtime_changed = {path for path in changed_paths if path.startswith(prefix)}
     unindexed = runtime_changed - indexed
@@ -604,6 +746,9 @@ def project_proving_test_source_impact(
         "truthRole": "non-authoritative-exact-git-source-projection",
         "standingByWitness": rows,
         "unindexedRuntimeChanges": sorted(unindexed),
+        "compilerInputQualification": "ONE_CARGO_LIBTEST_POSITIVE_SOURCE_EDGES"
+        if compiler_inputs is not None
+        else "NOT_OBSERVED",
         "crosscuttingAssumptionChanges": sorted(crosscutting_assumption_changes),
         "changedPaths": sorted(changed_paths),
         "scope": "Runtime tracked Git source plus declared root build/toolchain assumption guards ONLY; no installed/configured/physical/runtime consumer claims",
@@ -761,6 +906,30 @@ def _native_execution_context_digest(context: dict[str, Any]) -> str:
     return f"sha256:{hashlib.sha256(canonical.encode('utf-8')).hexdigest()}"
 
 
+def _native_cargo_build_environment(env: dict[str, str]) -> dict[str, str]:
+    """Observed Cargo/rustc build inputs; not an exhaustive environment closure."""
+    keys = {
+        "RUSTFLAGS",
+        "CARGO_ENCODED_RUSTFLAGS",
+        "RUSTDOCFLAGS",
+        "CARGO_BUILD_RUSTFLAGS",
+        "CARGO_BUILD_RUSTDOCFLAGS",
+        "CARGO_BUILD_TARGET",
+        "RUSTC",
+        "RUSTC_WRAPPER",
+        "RUSTC_WORKSPACE_WRAPPER",
+        "RUSTUP_TOOLCHAIN",
+        "RUSTC_BOOTSTRAP",
+        "CARGO_HOME",
+    }
+    keys.update(
+        key
+        for key in env
+        if key.startswith("CARGO_PROFILE_") or (key.startswith("CARGO_TARGET_") and key.endswith("_RUSTFLAGS"))
+    )
+    return {key: env.get(key, "") for key in sorted(keys)}
+
+
 def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
     """Compile once, execute the exact Cargo-provided binary, bind one native receipt.
 
@@ -892,20 +1061,11 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
 
     if sha256(test_binary) != binary_before:
         raise ValueError("compiled libtest executable changed during verification")
+    compiler_inputs = _native_libtest_depfile_receipt(test_binary, source_head)
     source_head_after = _qualified_native_source_head()
     if source_head_after != pre_execution_head or source_head_after != source_head:
         raise ValueError("native source checkout HEAD changed during Cargo witnesses")
-    rust_env = {
-        key: env.get(key, "")
-        for key in (
-            "RUSTFLAGS",
-            "CARGO_ENCODED_RUSTFLAGS",
-            "RUSTDOCFLAGS",
-            "CARGO_BUILD_TARGET",
-            "RUSTC_WRAPPER",
-            "CARGO_HOME",
-        )
-    }
+    rust_env = _native_cargo_build_environment(env)
     cargo_version = provenance(["cargo", "--version"])
     rustc_version = provenance(["rustc", "-vV"])
     cargo_profile = {
@@ -927,6 +1087,12 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
         "compiledTestArtifactSha256": f"sha256:{binary_before}",
         "compiledTestFeatures": sorted(artifact["features"]),
         "compiledTestProfile": artifact["profile"],
+        # Bind qualified Git source membership/content, not raw depfile
+        # formatting, into the exact proof-evidence identity.
+        "compilerSourceReadset": {
+            "sourceGitBlobsDigest": compiler_inputs["sourceGitBlobsDigest"],
+            "scope": compiler_inputs["scope"],
+        },
     }
     return {
         "kind": "ordivon.runtime-native-test-witness",
@@ -944,6 +1110,7 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
         "cargoProfile": cargo_profile,
         "buildQualificationDigest": _native_execution_context_digest(context),
         "buildQualificationScope": "CAPTURED_SOURCE_TOOLCHAIN_FLAGS_PROFILE_ARTIFACT_ONLY",
+        "compilerSourceEvidence": compiler_inputs,
         "compiledTestArtifact": {
             "sha256": f"sha256:{binary_before}",
             "byteLength": test_binary.stat().st_size,
@@ -965,11 +1132,14 @@ def main(argv: list[str] | None = None) -> int:
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--native-witnesses", action="store_true")
+    parser.add_argument("--impact-compiler", action="store_true")
     parser.add_argument("--impact-base", help="exact Git source base SHA")
     parser.add_argument("--impact-head", help="exact Git source HEAD SHA")
     args = parser.parse_args([] if argv is None else argv)
     if bool(args.impact_base) != bool(args.impact_head):
         parser.error("--impact-base and --impact-head must be supplied together")
+    if args.impact_compiler and not args.impact_base:
+        parser.error("--impact-compiler requires --impact-base and --impact-head")
     if args.native_witnesses and args.impact_base:
         parser.error("--native-witnesses cannot be combined with --impact-base")
     for source in (TRACE, INVARIANTS):
@@ -993,7 +1163,15 @@ def main(argv: list[str] | None = None) -> int:
     if args.impact_base:
         try:
             delta = _git_source_changes(args.impact_base, args.impact_head)
-            projection = project_proving_test_source_impact(trace, invariant_manifest, delta)
+            compiler = _qualify_current_compiler_readset(args.impact_head) if args.impact_compiler else None
+            projection = project_proving_test_source_impact(
+                trace,
+                invariant_manifest,
+                delta,
+                compiler_inputs=set(compiler["sourcePaths"]) if compiler else None,
+            )
+            if compiler:
+                projection["compilerEvidence"] = compiler
         except (OSError, ValueError, __import__("subprocess").CalledProcessError) as error:
             print(f"formal source impact: UNKNOWN ({error})", file=sys.stderr)
             return 1
