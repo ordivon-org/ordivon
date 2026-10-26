@@ -109,6 +109,17 @@ def test_external_pull_execution_round_trip_and_artifact(tmp_path) -> None:
     assert receipt.owner_id == "external.pull"
     assert receipt.state == "queued"
     assert receipt.terminal is False
+    recovered = asyncio.run(
+        service.execution_resolve(
+            capability="muse.shell.echo",
+            request_id="req-muse-1",
+        )
+    )
+    assert recovered.resolution == "found"
+    assert recovered.native_id == receipt.native_id
+    # Recovery Workspace comes from the persisted admission parcel,
+    # not from the current caller's selected grant.
+    assert recovered.workspace_id == "ws-external"
 
     claim = transport.claim("muse-test-r3", generation=1)
     assert claim is not None

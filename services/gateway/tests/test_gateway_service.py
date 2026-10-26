@@ -292,6 +292,7 @@ def test_execution_resolve_projects_request_identity_without_redispatch() -> Non
             {
                 "jobId": "job-resolved",
                 "clientRequestId": "req-resolved",
+                "workspaceId": "ws-resolved",
             }
         ],
         "nextCursor": None,
@@ -307,6 +308,7 @@ def test_execution_resolve_projects_request_identity_without_redispatch() -> Non
     assert resolved.resolution == "found"
     assert resolved.operation_ref == "ordivon-exec:v1:runtime.linux:job-resolved"
     assert resolved.native_id == "job-resolved"
+    assert resolved.workspace_id == "ws-resolved"
     assert caller.calls == [
         (
             "runtime.linux",
@@ -343,6 +345,25 @@ def test_execution_resolve_projects_request_identity_without_redispatch() -> Non
     )
     assert ambiguous.resolution == "ambiguous"
     assert ambiguous.operation_ref is None
+
+
+@pytest.mark.parametrize("workspace", [None, "", 19])
+def test_execution_resolve_rejects_unqualified_runtime_workspace(workspace: object) -> None:
+    caller = FakeOwnerCaller()
+    job = {"jobId": "job-known", "clientRequestId": "req-known"}
+    if workspace is not None:
+        job["workspaceId"] = workspace
+    caller.responses[("runtime.linux", "job.list")] = {
+        "jobs": [job],
+        "nextCursor": None,
+    }
+    with pytest.raises(GatewayError):
+        asyncio.run(
+            GatewayService(caller).execution_resolve(
+                capability="execution.linux",
+                request_id="req-known",
+            )
+        )
 
 
 def test_execution_get_and_cancel_route_by_operation_reference() -> None:
