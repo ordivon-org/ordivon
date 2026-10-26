@@ -943,6 +943,7 @@ fn workspace_headroom_guard_blocks_new_open_but_not_close() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: existing_id.to_string(),
             force: true,
+            consumer_released: true,
             expected_source_state_digest: None,
         })
         .unwrap();
@@ -1128,6 +1129,7 @@ fn projection_and_workspace_guards_do_not_dispatch_accepted_jobs() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: workspace_id.to_string(),
             force: false,
+            consumer_released: true,
             expected_source_state_digest: None,
         })
         .unwrap_err();
@@ -3769,6 +3771,7 @@ fn workspace_close_preserves_git_authority_owned_by_an_open_child() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: parent_id.to_string(),
             force: true,
+            consumer_released: true,
             expected_source_state_digest: None,
         })
         .unwrap_err();
@@ -3785,6 +3788,7 @@ fn workspace_close_preserves_git_authority_owned_by_an_open_child() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: child_id.to_string(),
             force: true,
+            consumer_released: true,
             expected_source_state_digest: None,
         })
         .unwrap();
@@ -3793,6 +3797,7 @@ fn workspace_close_preserves_git_authority_owned_by_an_open_child() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: parent_id.to_string(),
             force: true,
+            consumer_released: true,
             expected_source_state_digest: None,
         })
         .unwrap();
@@ -3862,6 +3867,7 @@ fn workspace_close_preserves_child_git_authority_through_store_alias() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: parent_id.to_string(),
             force: true,
+            consumer_released: true,
             expected_source_state_digest: None,
         })
         .unwrap_err();
@@ -3874,6 +3880,7 @@ fn workspace_close_preserves_child_git_authority_through_store_alias() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: child_id.to_string(),
             force: true,
+            consumer_released: true,
             expected_source_state_digest: None,
         })
         .unwrap();
@@ -3882,6 +3889,7 @@ fn workspace_close_preserves_child_git_authority_through_store_alias() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: parent_id.to_string(),
             force: true,
+            consumer_released: true,
             expected_source_state_digest: None,
         })
         .unwrap();
@@ -3911,6 +3919,7 @@ fn workspace_close_tracks_git_authority_not_source_path_text() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: parent_id.to_string(),
             force: true,
+            consumer_released: true,
             expected_source_state_digest: None,
         })
         .unwrap();
@@ -3924,6 +3933,7 @@ fn workspace_close_tracks_git_authority_not_source_path_text() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: child_id.to_string(),
             force: true,
+            consumer_released: true,
             expected_source_state_digest: None,
         })
         .unwrap();
@@ -3941,6 +3951,7 @@ fn concurrent_workspace_open_and_parent_close_never_create_a_broken_child() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: "workspace-race-bootstrap".to_string(),
             force: true,
+            consumer_released: true,
             expected_source_state_digest: None,
         })
         .unwrap();
@@ -3982,6 +3993,7 @@ fn concurrent_workspace_open_and_parent_close_never_create_a_broken_child() {
                 schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
                 workspace_id: close_parent_id,
                 force: true,
+                consumer_released: true,
                 expected_source_state_digest: None,
             })
         });
@@ -4014,6 +4026,7 @@ fn concurrent_workspace_open_and_parent_close_never_create_a_broken_child() {
                         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
                         workspace_id: child_id.clone(),
                         force: true,
+                        consumer_released: true,
                         expected_source_state_digest: None,
                     })
                     .unwrap();
@@ -4022,6 +4035,7 @@ fn concurrent_workspace_open_and_parent_close_never_create_a_broken_child() {
                         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
                         workspace_id: parent_id.clone(),
                         force: true,
+                        consumer_released: true,
                         expected_source_state_digest: None,
                     })
                     .unwrap();

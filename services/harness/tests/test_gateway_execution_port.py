@@ -264,3 +264,26 @@ def test_committed_terminal_rejects_typed_or_inconsistent_artifact_proof(patch):
 
     with pytest.raises(GatewayExecutionError, match="artifact"):
         GatewayExecutionPort(InvalidArtifactWitness()).execute(request())
+
+@pytest.mark.parametrize(
+    ("mutation", "reason"),
+    (
+        ({"operation_ref": "ordivon-exec:v1:runtime.windows:foreign"}, "operation"),
+        ({"offset": 7}, "offset"),
+    ),
+)
+def test_stdout_readback_rejects_foreign_operation_or_discontinuous_offset(
+    mutation, reason
+):
+    """CEGAR: matching artifactId alone is not a source-bound byte stream."""
+    class ForgedArtifact(FakeGateway):
+        def call_tool(self, name, arguments):
+            is_error, value = super().call_tool(name, arguments)
+            if name == "artifact.read":
+                value.update(mutation)
+            return is_error, value
+
+    port = GatewayExecutionPort(ForgedArtifact())
+    result = port.execute(request())
+    with pytest.raises(GatewayExecutionError, match=reason):
+        port.read_stdout(result)

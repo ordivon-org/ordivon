@@ -154,3 +154,25 @@ def test_oct26_new_cross_owner_frontiers_remain_explicitly_unknown() -> None:
     }
     with pytest.raises(module.ArchitectureDocsError, match="unknown owner-local LEGO"):
         module.validate_formal_issue_census(weakened, plans)
+
+def test_oct26_distinct_windows_and_gateway_problem_lego_gaps() -> None:
+    """Keep only non-overlapping source-backed issues; forbid forged owner proof."""
+    root = Path(__file__).resolve().parents[2]
+    census = json.loads((root / "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261025_R1.json").read_text(encoding="utf-8"))
+    plans = {r["ownerPlan"]: json.loads((root / r["ownerPlan"]).read_text(encoding="utf-8")) for r in census["registrations"]}
+    unique_ids = {"WIN-EXEC-CONTEXT-20261026", "GW-SKILLS-ROUTE-20261026"}
+    new = {row["id"]: row for row in census["issues"] if row["id"] in unique_ids}
+    assert set(new) == unique_ids
+    for row in new.values():
+        assert row["registration"]["state"] == "UNREGISTERED"
+        assert row["requalification"]["sourceCut"] == "db6f4e56544de72613992471d449dba85081819a"
+        assert row["representation"]["requiredWitness"] and row["formalObligation"]
+    module.validate_formal_issue_census(census, plans)
+    fake = copy.deepcopy(census)
+    next(x for x in fake["issues"] if x["id"] == "WIN-EXEC-CONTEXT-20261026")["registration"] = {
+        "state": "LINKED",
+        "ownerPlan": "services/runtime/planning/lego-plan-r1.json",
+        "slice": "NOT_PROVED_R21_WINDOWS_ENV",
+    }
+    with pytest.raises(module.ArchitectureDocsError, match="unknown owner-local LEGO"):
+        module.validate_formal_issue_census(fake, plans)

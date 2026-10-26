@@ -28,6 +28,15 @@ class WorkerConflict(WorkerError):
     pass
 
 
+def require_qualified_legacy_sqlite() -> None:
+    """Qualify only the explicitly selected legacy worker store, not Gateway itself."""
+    if sqlite3.sqlite_version != "3.54.0":
+        raise RuntimeError(
+            "legacy external worker requires SQLite 3.54.0 until its "
+            "PG consumer cutover is independently qualified"
+        )
+
+
 @dataclass(frozen=True)
 class ExternalOperation:
     operation_id: str

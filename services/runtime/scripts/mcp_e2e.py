@@ -2331,7 +2331,7 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
         check("workspace-close-dirty-code", dirty_code == "WORKSPACE_DIRTY", dirty_close)
         closed = client.tool(
             "workspace.close",
-            {"schemaVersion": SCHEMA_VERSION, "workspaceId": workspace_id, "force": True},
+            {"schemaVersion": SCHEMA_VERSION, "workspaceId": workspace_id, "force": True, "consumerReleased": True},
         )
         check(
             "workspace-close",

@@ -97,46 +97,69 @@ impl PgAdmissionInput {
 /// assert all of these, and must not be promoted as an active write schema.
 fn qualified_schema_constraints(client: &mut Client, schema: &str) -> Result<(), PgAdmissionError> {
     let rows = client.query(
-        "SELECT r.relname::text,c.contype::text,ARRAY_AGG(a.attname::text ORDER BY k.ordinality) \
+        "SELECT r.relname::text,c.contype::text,ARRAY_AGG(a.attname::text ORDER BY k.ordinality), \
+         COALESCE(ref_ns.nspname::text,''),COALESCE(ref_rel.relname::text,'') \
          FROM pg_catalog.pg_constraint c \
          JOIN pg_catalog.pg_class r ON r.oid=c.conrelid \
          JOIN pg_catalog.pg_namespace n ON n.oid=r.relnamespace \
+         LEFT JOIN pg_catalog.pg_class ref_rel ON ref_rel.oid=c.confrelid \
+         LEFT JOIN pg_catalog.pg_namespace ref_ns ON ref_ns.oid=ref_rel.relnamespace \
          JOIN LATERAL unnest(c.conkey) WITH ORDINALITY AS k(attnum,ordinality) ON TRUE \
          JOIN pg_catalog.pg_attribute a ON a.attrelid=r.oid AND a.attnum=k.attnum \
          WHERE n.nspname=$1 AND c.contype IN ('p','u','f') \
-         GROUP BY r.relname,c.oid,c.contype",
+           AND c.convalidated AND NOT c.condeferrable \
+         GROUP BY r.relname,c.oid,c.contype,ref_ns.nspname,ref_rel.relname",
         &[&schema],
     )?;
-    let actual: HashSet<(String, String, Vec<String>)> = rows
+    let actual: HashSet<(String, String, Vec<String>, String)> = rows
         .iter()
-        .map(|row| (row.get(0), row.get(1), row.get(2)))
+        .map(|row| {
+            let ref_schema: String = row.get(3);
+            let ref_table: String = row.get(4);
+            (
+                row.get(0),
+                row.get(1),
+                row.get(2),
+                if ref_schema == schema {
+                    ref_table
+                } else {
+                    String::new()
+                },
+            )
+        })
         .collect();
-    let required: &[(&str, &str, &[&str])] = &[
-        ("jobs", "p", &["job_id"]),
-        ("jobs", "u", &["principal", "client_request_id"]),
-        ("attempts", "p", &["attempt_id"]),
-        ("attempts", "u", &["job_id", "attempt_number"]),
-        ("attempts", "f", &["job_id"]),
-        ("idempotency_keys", "p", &["principal", "client_request_id"]),
-        ("idempotency_keys", "u", &["job_id"]),
-        ("idempotency_keys", "f", &["job_id"]),
-        ("concurrency_reservations", "p", &["reservation_id"]),
-        ("concurrency_reservations", "u", &["attempt_id"]),
-        ("concurrency_reservations", "f", &["attempt_id"]),
-        ("job_events", "p", &["event_id"]),
-        ("job_events", "u", &["job_id", "event_sequence"]),
-        ("job_events", "f", &["job_id"]),
-        ("job_events", "f", &["attempt_id"]),
-        ("artifacts", "p", &["artifact_id"]),
-        ("artifacts", "f", &["job_id"]),
-        ("artifacts", "f", &["attempt_id"]),
-        ("_stage_control", "p", &["id"]),
+    let required: &[(&str, &str, &[&str], &str)] = &[
+        ("jobs", "p", &["job_id"], ""),
+        ("jobs", "u", &["principal", "client_request_id"], ""),
+        ("attempts", "p", &["attempt_id"], ""),
+        ("attempts", "u", &["job_id", "attempt_number"], ""),
+        ("attempts", "f", &["job_id"], "jobs"),
+        (
+            "idempotency_keys",
+            "p",
+            &["principal", "client_request_id"],
+            "",
+        ),
+        ("idempotency_keys", "u", &["job_id"], ""),
+        ("idempotency_keys", "f", &["job_id"], "jobs"),
+        ("concurrency_reservations", "p", &["reservation_id"], ""),
+        ("concurrency_reservations", "u", &["attempt_id"], ""),
+        ("concurrency_reservations", "f", &["attempt_id"], "attempts"),
+        ("job_events", "p", &["event_id"], ""),
+        ("job_events", "u", &["job_id", "event_sequence"], ""),
+        ("job_events", "f", &["job_id"], "jobs"),
+        ("job_events", "f", &["attempt_id"], "attempts"),
+        ("artifacts", "p", &["artifact_id"], ""),
+        ("artifacts", "f", &["job_id"], "jobs"),
+        ("artifacts", "f", &["attempt_id"], "attempts"),
+        ("_stage_control", "p", &["id"], ""),
     ];
-    if required.iter().any(|(table, kind, columns)| {
+    if required.iter().any(|(table, kind, columns, target)| {
         !actual.contains(&(
             (*table).to_owned(),
             (*kind).to_owned(),
             columns.iter().map(|name| (*name).to_owned()).collect(),
+            (*target).to_owned(),
         ))
     }) {
         return Err(PgAdmissionError::Unqualified);
@@ -894,6 +917,30 @@ CREATE TABLE _stage_control(
                 "ALTER TABLE job_events DROP CONSTRAINT job_events_job_id_event_sequence_key",
             )
             .expect("test-only weakened catalog");
+        assert!(matches!(
+            PgAdmissionStore::connect(&dsn, &scratch.name),
+            Err(PgAdmissionError::Unqualified)
+        ));
+        assert_eq!(scratch.count("jobs"), 0);
+    }
+
+    #[test]
+    fn pg18_rejects_foreign_key_that_points_at_wrong_pg_target() {
+        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
+            return;
+        };
+        let mut scratch = Scratch::new(&dsn);
+        scratch.qualify();
+        assert!(PgAdmissionStore::connect(&dsn, &scratch.name).is_ok());
+        scratch
+            .admin
+            .batch_execute(
+                "CREATE TABLE unrelated_jobs(job_id text PRIMARY KEY);
+             ALTER TABLE attempts DROP CONSTRAINT attempts_job_id_fkey;
+             ALTER TABLE attempts ADD CONSTRAINT attempts_job_id_fkey
+               FOREIGN KEY(job_id) REFERENCES unrelated_jobs(job_id)",
+            )
+            .expect("test-only misdirected foreign key");
         assert!(matches!(
             PgAdmissionStore::connect(&dsn, &scratch.name),
             Err(PgAdmissionError::Unqualified)

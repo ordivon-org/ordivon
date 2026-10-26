@@ -285,6 +285,85 @@ PY_PG_CONSUMER
       exit 1
     fi
     echo "TLC PostgreSQL consumer cutover negative control PASS: unqualified writer cannot promote"
+
+    # A failed candidate may abort while paused, but must not hand historical
+    # PG consumer qualification back to the resumed SQLite writer. Exercise
+    # the forbidden mutation against the same exact PG model and named law.
+    mkdir "$tmp_dir/abort-stale"
+    python - "$ROOT/formal/RuntimePgCutoverR1.tla" "$tmp_dir/abort-stale/RuntimePgCutoverR1.tla" <<'PY_PG_ABORT_STALE'
+from pathlib import Path
+import sys
+source = Path(sys.argv[1]).read_text(encoding="utf-8")
+marker = "Next ==\n"
+unsafe = r"""UnsafeAbortRetainsQualification ==
+    /\ owner = "paused"
+    /\ consumersQualified
+    /\ ~sqliteWriterActive
+    /\ ~pgWriterActive
+    /\ ~pgCommitted
+    /\ owner' = "sqlite"
+    /\ sqliteWriterActive' = TRUE
+    /\ rolledBack' = TRUE
+    /\ UNCHANGED <<sqliteRevision, pgRevision, sqliteContent, pgContent,
+                   copied, parityVerified, cutoverCertified, pgCommitted,
+                   pgWriterActive, consumersQualified>>
+
+"""
+assert source.count(marker) == 1, "PG failed-cutover abort mutation source drift"
+Path(sys.argv[2]).write_text(
+    source.replace(marker, unsafe + marker + r"    \/ UnsafeAbortRetainsQualification" + "\n"),
+    encoding="utf-8",
+)
+PY_PG_ABORT_STALE
+    cp -- "$ROOT/formal/RuntimePgCutoverR1.cfg" "$tmp_dir/abort-stale/RuntimePgCutoverR1.cfg"
+    set +e
+    (cd "$tmp_dir/abort-stale"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+      -config RuntimePgCutoverR1.cfg RuntimePgCutoverR1.tla) > "$tmp_dir/abort-stale/result.log" 2>&1
+    result=$?
+    set -e
+    if [[ "$result" -ne 12 ]] ||
+       ! grep -Fxq 'Error: Invariant NoRetainedQualificationOnSqlite is violated.' "$tmp_dir/abort-stale/result.log" ||
+       ! grep -Fxq 'Error: The behavior up to this point is:' "$tmp_dir/abort-stale/result.log" ||
+       ! grep -Eq '^State [1-9][0-9]*:' "$tmp_dir/abort-stale/result.log"; then
+      echo "PostgreSQL failed-cutover stale-consumer negative control FAILED" >&2
+      tail -35 "$tmp_dir/abort-stale/result.log" >&2
+      exit 1
+    fi
+    echo "TLC PostgreSQL stale qualification negative control PASS: abort invalidates old consumer evidence"
+
+    # Separate non-vacuity: a safe paused->SQLite abort must be reachable
+    # without first obtaining PG writer authority. Normal safety PASS alone
+    # would also hold in a permanently paused and unusable model.
+    mkdir "$tmp_dir/abort-reachable"
+    python - "$ROOT/formal/RuntimePgCutoverR1.tla" "$tmp_dir/abort-reachable/RuntimePgCutoverR1.tla" <<'PY_PG_ABORT_REACH'
+from pathlib import Path
+import sys
+source = Path(sys.argv[1]).read_text(encoding="utf-8")
+marker = "Spec == Init"
+assert source.count(marker) == 1, "PG aborted-transition reachability source drift"
+predicate = (
+    'PrecommitAbortIsUnreachable == '
+    '~(owner = "sqlite" /\\ rolledBack /\\ ~cutoverCertified)\n\n'
+)
+Path(sys.argv[2]).write_text(source.replace(marker, predicate + marker), encoding="utf-8")
+PY_PG_ABORT_REACH
+    cp -- "$ROOT/formal/RuntimePgCutoverR1.cfg" "$tmp_dir/abort-reachable/RuntimePgCutoverR1.cfg"
+    printf '\nINVARIANT PrecommitAbortIsUnreachable\n' >> "$tmp_dir/abort-reachable/RuntimePgCutoverR1.cfg"
+    set +e
+    (cd "$tmp_dir/abort-reachable"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+      -config RuntimePgCutoverR1.cfg RuntimePgCutoverR1.tla) > "$tmp_dir/abort-reachable/result.log" 2>&1
+    result=$?
+    set -e
+    if [[ "$result" -ne 12 ]] ||
+       ! grep -Fxq 'Error: Invariant PrecommitAbortIsUnreachable is violated.' "$tmp_dir/abort-reachable/result.log" ||
+       ! grep -Fq 'rolledBack = TRUE' "$tmp_dir/abort-reachable/result.log" ||
+       ! grep -Fq 'cutoverCertified = FALSE' "$tmp_dir/abort-reachable/result.log" ||
+       ! grep -Eq '^State [1-9][0-9]*:' "$tmp_dir/abort-reachable/result.log"; then
+      echo "PostgreSQL paused abort reachability FAILED: no actual precommit recovery path" >&2
+      tail -35 "$tmp_dir/abort-reachable/result.log" >&2
+      exit 1
+    fi
+    echo "TLC PostgreSQL paused abort reachability PASS: SQLite recovery before PG writer is real"
   )
 }
 

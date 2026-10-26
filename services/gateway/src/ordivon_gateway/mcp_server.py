@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import sqlite3
 from importlib.metadata import version as package_version
 from typing import Annotated, Any, Literal
 from urllib.parse import urlsplit
@@ -30,7 +29,7 @@ from .contracts import (
     ExecutionResolution,
     SystemDescription,
 )
-from .external_worker import ExternalPullWorkerTransport
+from .external_worker import ExternalPullWorkerTransport, require_qualified_legacy_sqlite
 from .service import GatewayService
 from .upstream import McpOwnerCaller, OwnerCallError
 from .worker_http import attach_worker_routes
@@ -699,11 +698,7 @@ def _external_workers_from_env() -> ExternalPullWorkerTransport | None:
             "ORDIVON_GATEWAY_EXTERNAL_WORKER_DB is not a PostgreSQL backend; "
             "do not treat a database DSN as a SQLite filesystem path"
         )
-    if sqlite3.sqlite_version != "3.54.0":
-        raise RuntimeError(
-            "legacy external worker requires SQLite 3.54.0 until its "
-            "PG consumer cutover is independently qualified"
-        )
+    require_qualified_legacy_sqlite()
     return ExternalPullWorkerTransport(external_worker_db)
 
 
