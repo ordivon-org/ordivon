@@ -378,13 +378,17 @@ def test_impact_rejects_graph_cycles_missing_edges_and_fake_completeness():
     base = [{"id": "proof:a", "dependsOn": ["source:runtime"], "dependenciesComplete": True}]
     with pytest.raises(CircuitContractError, match="depends on unknown"):
         _impact(graph=[{**base[0], "dependsOn": ["source:missing"]}])
-    with pytest.raises(CircuitContractError, match="dependency cycle"):
-        _impact(
-            graph=[
-                {"id": "proof:a", "dependsOn": ["proof:b"], "dependenciesComplete": True},
-                {"id": "proof:b", "dependsOn": ["proof:a"], "dependenciesComplete": True},
-            ]
-        )
+    # Cyclic proof dependencies are representable, but cannot bootstrap
+    # themselves into verified reuse through caller completeness assertions.
+    recursive = _impact(
+        graph=[
+            {"id": "proof:a", "dependsOn": ["proof:b"], "dependenciesComplete": True},
+            {"id": "proof:b", "dependsOn": ["proof:a"], "dependenciesComplete": True},
+        ]
+    )
+    assert _statuses(recursive) == {"proof:a": "UNKNOWN", "proof:b": "UNKNOWN"}
+    assert recursive["cyclicObligationIds"] == ["proof:a", "proof:b"]
+    assert recursive["proofReuseAdmissible"] is False
     with pytest.raises(CircuitContractError, match="duplicate"):
         _impact(graph=base + base)
     with pytest.raises(CircuitContractError, match="JSON boolean"):
@@ -599,17 +603,12 @@ def test_retired_known_unconsumed_obligation_cannot_globally_poison_proof_impact
     assert not unresolved["proofReuseAdmissible"]
 
 
-def test_impact_rejects_malformed_or_cyclic_previous_graph():
+def test_impact_rejects_malformed_previous_graph_but_refines_prior_cycle():
+
     obligation = {"id": "proof:a", "dependsOn": ["source:a"], "dependenciesComplete": True}
     args = {"authority_refs": ["source:a"], "obligations": [obligation], "changed_refs": []}
     invalids = [
         {"authorityRefs": ["source:a"], "obligations": [obligation, obligation]},
-        {
-            "authorityRefs": ["source:a"],
-            "obligations": [
-                {"id": "proof:b", "dependsOn": ["proof:b"], "dependenciesComplete": True}
-            ],
-        },
         {
             "authorityRefs": ["source:a"],
             "obligations": [
@@ -620,6 +619,19 @@ def test_impact_rejects_malformed_or_cyclic_previous_graph():
     for invalid in invalids:
         with pytest.raises(CircuitContractError):
             select_impacted_obligations(**args, previous_graph=invalid)
+
+    # A historical cycle was a valid declared dependency pattern, not proof
+    # that the old graph was discharged. A new acyclic graph must recheck the
+    # changed relation instead of skipping it or accepting the old cycle.
+    prior_cycle = {
+        "authorityRefs": ["source:a"],
+        "obligations": [{"id": "proof:a", "dependsOn": ["proof:a"], "dependenciesComplete": True}],
+    }
+    result = select_impacted_obligations(**args, previous_graph=prior_cycle)
+    assert result["derivedRelationChangedRefs"] == ["proof:a"]
+    assert _statuses(result) == {"proof:a": "RECHECK_REQUIRED"}
+    assert result["cyclicObligationIds"] == []
+    assert result["proofReuseAdmissible"] is False
 
 
 def test_impact_relation_delta_matches_independent_full_graph_closure_randomized():
@@ -1413,6 +1425,132 @@ def test_manifest_gate_impact_rechecks_true_scoped_producer_change() -> None:
     assert _gate_impact_statuses(result) == {
         "proof:gate:gate:candidate-contract": "RECHECK_REQUIRED"
     }
+
+
+def test_recursive_proof_cycle_change_propagates_without_blocking_independent_branch():
+    graph = [
+        {"id": "proof:a", "dependsOn": ["proof:b"], "dependenciesComplete": True},
+        {"id": "proof:b", "dependsOn": ["proof:a"], "dependenciesComplete": True},
+        {"id": "proof:consumer", "dependsOn": ["proof:b"], "dependenciesComplete": True},
+        {"id": "proof:independent", "dependsOn": ["source:host"], "dependenciesComplete": True},
+    ]
+    result = _impact(graph=graph)
+    assert _statuses(result) == {
+        "proof:a": "UNKNOWN",
+        "proof:b": "UNKNOWN",
+        "proof:consumer": "UNKNOWN",
+        "proof:independent": "REUSE_CANDIDATE",
+    }
+    assert result["cyclicObligationIds"] == ["proof:a", "proof:b"]
+    assert _statuses(_impact(graph=graph, changed=["proof:a"])) == {
+        "proof:a": "RECHECK_REQUIRED",
+        "proof:b": "RECHECK_REQUIRED",
+        "proof:consumer": "RECHECK_REQUIRED",
+        "proof:independent": "REUSE_CANDIDATE",
+    }
+
+
+def test_recursive_proof_cycle_current_vs_prior_relation_change_is_not_forgotten():
+    old = [
+        {"id": "proof:a", "dependsOn": ["proof:b"], "dependenciesComplete": True},
+        {"id": "proof:b", "dependsOn": ["proof:a"], "dependenciesComplete": True},
+    ]
+    new = [
+        {"id": "proof:a", "dependsOn": ["source:runtime"], "dependenciesComplete": True},
+        {"id": "proof:b", "dependsOn": ["proof:a"], "dependenciesComplete": True},
+    ]
+    result = select_impacted_obligations(
+        authority_refs=["source:runtime"],
+        obligations=new,
+        changed_refs=[],
+        previous_graph={"authorityRefs": ["source:runtime"], "obligations": old},
+    )
+    assert result["cyclicObligationIds"] == []
+    assert result["derivedRelationChangedRefs"] == ["proof:a"]
+    assert dict((x["id"], x["standing"]) for x in result["standingByObligation"]) == {
+        "proof:a": "RECHECK_REQUIRED",
+        "proof:b": "RECHECK_REQUIRED",
+    }
+    assert result["proofReuseAdmissible"] is False
+
+
+def test_recursive_proof_self_cycle_and_missing_edge_are_not_vacuous():
+    self_cycle = _impact(
+        graph=[{"id": "proof:self", "dependsOn": ["proof:self"], "dependenciesComplete": True}]
+    )
+    assert _statuses(self_cycle) == {"proof:self": "UNKNOWN"}
+    assert self_cycle["cyclicObligationIds"] == ["proof:self"]
+    with pytest.raises(CircuitContractError, match="depends on unknown"):
+        _impact(
+            graph=[
+                {"id": "proof:self", "dependsOn": ["proof:missing"], "dependenciesComplete": True}
+            ]
+        )
+
+
+def test_cyclic_proof_selector_matches_independent_finite_reachability_oracle():
+    # Exhaust all 2**12 declared dependency relations for three proof nodes
+    # over the same three proofs plus one real authority root. Compare the
+    # implementation's monotone lattice fixed point with an independent
+    # reachability-based mathematical oracle.
+    from itertools import product
+
+    root = "source:r"
+    proof_ids = ("proof:a", "proof:b", "proof:c")
+    all_nodes = (root, *proof_ids)
+    for bits in product((False, True), repeat=12):
+        graph = {}
+        for index, identity in enumerate(proof_ids):
+            graph[identity] = tuple(
+                candidate
+                for used, candidate in zip(bits[index * 4 : (index + 1) * 4], all_nodes)
+                if used
+            )
+
+        def ancestors(identity):
+            seen = set()
+            queue = list(graph.get(identity, ()))
+            while queue:
+                candidate = queue.pop()
+                if candidate in seen:
+                    continue
+                seen.add(candidate)
+                queue.extend(graph.get(candidate, ()))
+            return seen
+
+        cyclic = sorted(identity for identity in proof_ids if identity in ancestors(identity))
+        for changed, unknown in (
+            ({root}, set()),
+            ({"proof:b"}, set()),
+            (set(), {"proof:c"}),
+            (set(), set()),
+        ):
+            observed = select_impacted_obligations(
+                authority_refs=[root],
+                obligations=[
+                    {
+                        "id": identity,
+                        "dependsOn": list(graph[identity]),
+                        "dependenciesComplete": True,
+                    }
+                    for identity in proof_ids
+                ],
+                changed_refs=sorted(changed),
+                unknown_refs=sorted(unknown),
+            )
+            result = {item["id"]: item["standing"] for item in observed["standingByObligation"]}
+            expected = {}
+            for identity in proof_ids:
+                visited = ancestors(identity) | {identity}
+                if visited & changed:
+                    expected[identity] = "RECHECK_REQUIRED"
+                elif visited & (unknown | set(cyclic)):
+                    expected[identity] = "UNKNOWN"
+                else:
+                    expected[identity] = "REUSE_CANDIDATE"
+            assert result == expected, (bits, changed, unknown, expected, result)
+            assert observed["cyclicObligationIds"] == cyclic
+            assert observed["proofReuseAdmissible"] is False
 
 
 def test_manifest_git_sourcecuts_bind_exact_prior_current_bytes(tmp_path) -> None:
