@@ -55,7 +55,12 @@ def _immutable_git_manifest(
 
     def git(*argv: str) -> bytes:
         try:
-            return subprocess.check_output(["git", "-C", str(repo), *argv], stderr=subprocess.PIPE)
+            # Exact SourceCut addresses Git's original objects, not any
+            # mutable refs/replace overlay supplied by the local repository.
+            return subprocess.check_output(
+                ["git", "--no-replace-objects", "-C", str(repo), *argv],
+                stderr=subprocess.PIPE,
+            )
         except (OSError, subprocess.CalledProcessError) as exc:
             raise CircuitContractError("Git source cut or regular blob unavailable") from exc
 
