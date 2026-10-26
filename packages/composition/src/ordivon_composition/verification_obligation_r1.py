@@ -339,6 +339,38 @@ def compare_gate_source_scopes(
     }
 
 
+def _cyclic_proof_members(rows: list[dict[str, Any]]) -> set[str]:
+    """Validate a bounded dependency relation and find cycle members.
+
+    Proof prerequisites may be recursive even when execution Stage order is a
+    DAG. Use exact finite reachability rather than pretending cycles are
+    discharged by caller-asserted dependency completeness. No new graph owner.
+    """
+    graph = {row["id"]: set(row["dependsOn"]) for row in rows}
+    if len(graph) != len(rows):
+        raise CircuitContractError("duplicate proof graph identity")
+    for identity, deps in graph.items():
+        missing = deps - graph.keys()
+        if missing:
+            raise CircuitContractError(
+                f"proof {identity} depends on unknown references: {sorted(missing)}"
+            )
+    cyclic: set[str] = set()
+    for identity in sorted(graph):
+        seen: set[str] = set()
+        frontier = list(graph[identity])
+        while frontier:
+            current = frontier.pop()
+            if current == identity:
+                cyclic.add(identity)
+                break
+            if current in seen:
+                continue
+            seen.add(current)
+            frontier.extend(graph[current] - seen)
+    return cyclic
+
+
 def select_impacted_obligations(
     *,
     authority_refs: list[str],
@@ -430,9 +462,7 @@ def select_impacted_obligations(
                 "dependenciesComplete": item["dependenciesComplete"],
                 "obligationDigest": item.get("obligationDigest"),
             }
-        from .cognitive_circuit_r1 import _topological_order
-
-        _topological_order(
+        _cyclic_proof_members(
             [{"id": root, "dependsOn": []} for root in prev_roots]
             + [
                 {"id": identity, "dependsOn": sorted(item["dependsOn"])}
@@ -468,33 +498,35 @@ def select_impacted_obligations(
     unindexed = sorted((changed | unknown) - (roots | set(claims)))
     rows = [{"id": root, "dependsOn": []} for root in roots]
     rows += [{"id": identity, "dependsOn": item["dependsOn"]} for identity, item in claims.items()]
-    from .cognitive_circuit_r1 import _topological_order
-
-    order = _topological_order(rows)
+    cyclic = _cyclic_proof_members(rows)
+    # Conservative least-fixed-point propagation on the three-element lattice
+    # REUSE_CANDIDATE < UNKNOWN < RECHECK_REQUIRED. A recursive assumption is
+    # UNKNOWN until independently discharged by a separate joint proof; the
+    # caller's dependenciesComplete boolean can never supply that proof.
+    rank = {"REUSE_CANDIDATE": 0, "UNKNOWN": 1, "RECHECK_REQUIRED": 2}
     statuses: dict[str, str] = {}
-    for identity in order:
-        if identity in roots:
-            statuses[identity] = (
-                "RECHECK_REQUIRED"
-                if identity in changed
-                else "UNKNOWN"
-                if identity in unknown or unindexed
-                else "REUSE_CANDIDATE"
-            )
-            continue
-        item = claims[identity]
-        upstream = [statuses[ref] for ref in item["dependsOn"]]
-        if identity in changed or "RECHECK_REQUIRED" in upstream:
-            statuses[identity] = "RECHECK_REQUIRED"
-        elif (
-            identity in unknown
-            or unindexed
-            or not item["dependenciesComplete"]
-            or "UNKNOWN" in upstream
+    for identity in sorted(roots | set(claims)):
+        if identity in changed:
+            status = "RECHECK_REQUIRED"
+        elif identity in unknown or unindexed:
+            status = "UNKNOWN"
+        elif identity in cyclic or (
+            identity in claims and not claims[identity]["dependenciesComplete"]
         ):
-            statuses[identity] = "UNKNOWN"
+            status = "UNKNOWN"
         else:
-            statuses[identity] = "REUSE_CANDIDATE"
+            status = "REUSE_CANDIDATE"
+        statuses[identity] = status
+    while True:
+        progressed = False
+        for identity in sorted(claims):
+            upstream = (statuses[ref] for ref in claims[identity]["dependsOn"])
+            new_rank = max((rank[statuses[identity]], *(rank[x] for x in upstream)))
+            if new_rank > rank[statuses[identity]]:
+                statuses[identity] = ("REUSE_CANDIDATE", "UNKNOWN", "RECHECK_REQUIRED")[new_rank]
+                progressed = True
+        if not progressed:
+            break
 
     projection = {
         "kind": "ordivon.task-local-obligation-impact",
@@ -503,6 +535,7 @@ def select_impacted_obligations(
             {"id": identity, "standing": statuses[identity]} for identity in sorted(claims)
         ],
         "unindexedChangeRefs": unindexed,
+        "cyclicObligationIds": sorted(cyclic),
         "derivedRelationChangedRefs": sorted(derived_relation_changes),
         "derivedContractChangedRefs": sorted(derived_contract_changes),
         "derivedChangedRefs": sorted(derived_relation_changes | derived_contract_changes),
