@@ -545,8 +545,9 @@ def test_impact_dependency_completeness_change_and_deleted_relation_fail_closed(
         },
     )
     assert "source:runtime" in deleted["derivedRelationChangedRefs"]
-    assert "source:runtime" in deleted["unindexedChangeRefs"]
-    assert set(_statuses(deleted).values()) == {"UNKNOWN"}
+    assert deleted["unindexedChangeRefs"] == []
+    assert _statuses(deleted) == {"proof:p": "REUSE_CANDIDATE"}
+    assert deleted["proofReuseAdmissible"] is False
 
 
 def test_retired_known_unconsumed_obligation_cannot_globally_poison_proof_impact():
@@ -601,6 +602,60 @@ def test_retired_known_unconsumed_obligation_cannot_globally_poison_proof_impact
     assert unresolved["unindexedChangeRefs"] == ["external:unresolved-runtime-consumer"]
     assert _statuses(unresolved) == {"proof:live": "UNKNOWN"}
     assert not unresolved["proofReuseAdmissible"]
+
+
+def test_historical_source_root_retirement_does_not_poison_independent_proof():
+    """A previously indexed, unconsumed root is not an unindexed runtime edge."""
+    independent = {
+        "id": "proof:independent",
+        "dependsOn": ["source:live"],
+        "dependenciesComplete": True,
+    }
+    current = {
+        "authority_refs": ["source:live"],
+        "obligations": [independent],
+        "changed_refs": [],
+    }
+    previous = {
+        "authorityRefs": ["source:retired", "source:live"],
+        "obligations": [independent],
+    }
+    benign = select_impacted_obligations(**current, previous_graph=previous)
+    assert benign["derivedRelationChangedRefs"] == ["source:retired"]
+    assert benign["unindexedChangeRefs"] == []
+    assert _statuses(benign) == {"proof:independent": "REUSE_CANDIDATE"}
+    assert benign["proofReuseAdmissible"] is False
+
+    # If an actual consumer dropped that root, its relation must be RECHECK.
+    former = dict(independent, dependsOn=["source:retired", "source:live"])
+    changed = select_impacted_obligations(
+        **current, previous_graph={**previous, "obligations": [former]}
+    )
+    assert "proof:independent" in changed["derivedRelationChangedRefs"]
+    assert _statuses(changed) == {"proof:independent": "RECHECK_REQUIRED"}
+
+    # A caller's explicit unresolved reference is stronger than the mere
+    # historical retirement; never suppress it as a known old-only node.
+    unknown = select_impacted_obligations(
+        **current, previous_graph=previous, unknown_refs=["source:retired"]
+    )
+    assert unknown["unindexedChangeRefs"] == ["source:retired"]
+    assert _statuses(unknown) == {"proof:independent": "UNKNOWN"}
+    assert unknown["proofReuseAdmissible"] is False
+
+
+def test_explicit_unknown_retired_proof_is_not_suppressed_by_provenance():
+    live = {"id": "proof:live", "dependsOn": ["source:live"], "dependenciesComplete": True}
+    gone = {"id": "proof:retired", "dependsOn": ["source:live"], "dependenciesComplete": True}
+    args = {"authority_refs": ["source:live"], "obligations": [live], "changed_refs": []}
+    prev = {"authorityRefs": ["source:live"], "obligations": [live, gone]}
+    result = select_impacted_obligations(
+        **args, previous_graph=prev, unknown_refs=["proof:retired"]
+    )
+    assert result["derivedRelationChangedRefs"] == ["proof:retired"]
+    assert result["unindexedChangeRefs"] == ["proof:retired"]
+    assert _statuses(result) == {"proof:live": "UNKNOWN"}
+    assert result["proofReuseAdmissible"] is False
 
 
 def test_impact_rejects_malformed_previous_graph_but_refines_prior_cycle():

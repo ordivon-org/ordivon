@@ -497,7 +497,7 @@ def select_impacted_obligations(
 
     derived_relation_changes: set[str] = set()
     derived_contract_changes: set[str] = set()
-    retired_known_claims: set[str] = set()
+    retired_known_refs: set[str] = set()
     if previous_graph is not None:
         if (
             not isinstance(previous_graph, dict)
@@ -535,7 +535,11 @@ def select_impacted_obligations(
         # retirement cannot be an unindexed dependency of all current proofs.
         # Actual current consumers must declare a new DAG relation, and their
         # changed contracts are still rechecked through the loop below.
-        retired_known_claims = set(prev_claims) - set(claims)
+        # A previous-only Source root or proof node is a known historical
+        # retirement, not an unindexed present-day dependency. Keep the delta
+        # visible, but do not spread its uncertainty to unrelated consumers.
+        # Explicit unknownRefs and changed surviving contracts still flow.
+        retired_known_refs = (prev_roots - roots) | (set(prev_claims) - set(claims))
         derived_relation_changes = roots ^ prev_roots
         for identity in set(claims) | set(prev_claims):
             item = claims.get(identity)
@@ -562,7 +566,9 @@ def select_impacted_obligations(
                 derived_contract_changes.add(identity)
         changed |= derived_relation_changes | derived_contract_changes
 
-    unindexed = sorted((changed | unknown) - (roots | set(claims) | retired_known_claims))
+    # Explicit UNKNOWN must never be silenced by an earlier provenance
+    # witness: it is a new unresolved fact, unlike a known historical Delta.
+    unindexed = sorted(((changed - retired_known_refs) | unknown) - (roots | set(claims)))
     rows = [{"id": root, "dependsOn": []} for root in roots]
     rows += [{"id": identity, "dependsOn": item["dependsOn"]} for identity, item in claims.items()]
     cyclic = _cyclic_proof_members(rows)
