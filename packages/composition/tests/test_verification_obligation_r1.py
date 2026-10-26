@@ -313,6 +313,9 @@ def test_impact_selective_delta_preserves_independent_proof_candidate():
         "proof:host": "REUSE_CANDIDATE",
     }
     assert result["basisDigest"] == _impact(changed=["source:runtime"])["basisDigest"]
+    assert result["dependencyQualification"] == "CALLER_DECLARED_NOT_OWNER_CERTIFIED"
+    assert result["proofReuseAdmissible"] is False
+    assert result["proofAcceptanceEstablished"] is False
 
 
 def test_impact_unknown_currentness_propagates_without_false_recheck():
@@ -389,3 +392,17 @@ def test_impact_bounded_dag_family_matches_independent_forward_oracle():
                     for identity, status in _statuses(result).items()
                     if status == "RECHECK_REQUIRED"
                 } == impacted.intersection(names)
+
+
+def test_impact_unobserved_source_dependency_exposes_a_non_authoritative_reuse_candidate():
+    # Independent review challenge: the *real* readset includes source:runtime,
+    # but a caller incorrectly declares a complete empty readset.
+    # The pure algorithm cannot discover this missing edge. Its candidate
+    # must never become owner-qualified reuse or evidence of a proved property.
+    result = _impact(
+        graph=[{"id": "proof:misdeclared", "dependsOn": [], "dependenciesComplete": True}],
+        changed=["source:runtime"],
+    )
+    assert _statuses(result)["proof:misdeclared"] == "REUSE_CANDIDATE"
+    assert result["proofReuseAdmissible"] is False
+    assert result["proofAcceptanceEstablished"] is False

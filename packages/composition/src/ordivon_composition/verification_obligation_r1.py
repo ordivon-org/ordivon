@@ -316,6 +316,9 @@ def select_impacted_obligations(
             {"id": identity, "standing": statuses[identity]} for identity in sorted(claims)
         ],
         "unindexedChangeRefs": unindexed,
+        "dependencyQualification": "CALLER_DECLARED_NOT_OWNER_CERTIFIED",
+        "proofReuseAdmissible": False,
+        "proofAcceptanceEstablished": False,
         "basisDigest": canonical_digest(
             {
                 "authorityRefs": sorted(roots),
