@@ -1170,6 +1170,8 @@ def test_native_git_source_delta_selects_cas_without_rechecking_tla(tmp_path, mo
                 "select-impact",
                 str(delta_file),
                 str(claims_file),
+                "--repo",
+                str(tmp_path),
             ],
             text=True,
         )
@@ -1192,12 +1194,36 @@ def test_native_git_source_delta_selects_cas_without_rechecking_tla(tmp_path, mo
             "select-impact",
             str(delta_file),
             str(claims_file),
+            "--repo",
+            str(tmp_path),
         ],
         capture_output=True,
         text=True,
     )
     assert denied.returncode != 0
     assert "cannot promote unqualified" in denied.stderr
+    delta_file.write_text(delta_output, encoding="utf8")
+    # A plausible report with correct cuts but missing an actual changed path
+    # cannot be trusted for scheduling merely because proof grants are false.
+    forged_changes = dict(cli_delta)
+    forged_changes["changedRefs"] = []
+    delta_file.write_text(json.dumps(forged_changes), encoding="utf8")
+    omitted = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "ordivon_composition.verification_obligation_r1",
+            "select-impact",
+            str(delta_file),
+            str(claims_file),
+            "--repo",
+            str(tmp_path),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert omitted.returncode != 0
+    assert "differs from exact native source delta" in omitted.stderr
     delta_file.write_text(delta_output, encoding="utf8")
     unknown_file = tmp_path / "unresolved-runtime-edges.json"
     unknown_file.write_text(json.dumps(["runtime:unindexed"]), encoding="utf8")
@@ -1210,6 +1236,8 @@ def test_native_git_source_delta_selects_cas_without_rechecking_tla(tmp_path, mo
                 "select-impact",
                 str(delta_file),
                 str(claims_file),
+                "--repo",
+                str(tmp_path),
                 "--unknown-refs",
                 str(unknown_file),
             ],
@@ -1620,3 +1648,109 @@ def test_immutable_manifest_sourcecut_ignores_native_git_replace_refs(tmp_path) 
     restored, evidence = _immutable_git_manifest(repo, initial_cut, Path("manifest.json"))
     assert evidence["commit"] == initial_cut
     assert restored == original
+
+def test_real_git_delta_rechecks_recursive_proof_cycle_and_rejects_omission(tmp_path):
+    """Exact native source changes propagate through an SCC, never via a forged report."""
+    import json
+    import subprocess
+    import sys
+
+    from tools.repo.source_history_legos import source_membership_delta
+
+    repo = tmp_path / "git-source"
+    repo.mkdir()
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(["git", "-C", str(repo), *args], text=True).strip()
+
+    git("init", "-q", "-b", "main")
+    git("config", "user.name", "Formal Contract Test")
+    git("config", "user.email", "formal@example.invalid")
+    source_dir = repo / "runtime"
+    source_dir.mkdir()
+    (source_dir / "critical.rs").write_text("fn safe() {}")
+    (source_dir / "independent.rs").write_text("fn separate() {}")
+    git("add", ".")
+    git("commit", "-qm", "first cut")
+    first = git("rev-parse", "HEAD")
+    (source_dir / "critical.rs").write_text("fn bypass_critical_guard() {}")
+    git("add", ".")
+    git("commit", "-qm", "changed critical source")
+    second = git("rev-parse", "HEAD")
+
+    observed = source_membership_delta(repo, first, second, "runtime/")
+    scope = observed["sourceScopeRef"]
+    changed_ref = scope + ":path:runtime/critical.rs"
+    independent_ref = scope + ":path:runtime/independent.rs"
+    assert observed["changedRefs"] == [changed_ref]
+    claims = [
+        {
+            "id": "proof:cycle-a",
+            "dependsOn": [changed_ref, "proof:cycle-b"],
+            "dependenciesComplete": True,
+        },
+        {
+            "id": "proof:cycle-b",
+            "dependsOn": ["proof:cycle-a"],
+            "dependenciesComplete": True,
+        },
+        {
+            "id": "proof:downstream",
+            "dependsOn": ["proof:cycle-b"],
+            "dependenciesComplete": True,
+        },
+        {
+            "id": "proof:independent",
+            "dependsOn": [independent_ref],
+            "dependenciesComplete": True,
+        },
+    ]
+    report_file = tmp_path / "delta.json"
+    claims_file = tmp_path / "claims.json"
+    claims_file.write_text(json.dumps(claims))
+
+    def select(report: dict[str, object]) -> subprocess.CompletedProcess[str]:
+        report_file.write_text(json.dumps(report))
+        return subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "ordivon_composition.verification_obligation_r1",
+                "select-impact",
+                str(report_file),
+                str(claims_file),
+                "--repo",
+                str(repo),
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+    accepted = select(observed)
+    assert accepted.returncode == 0, accepted.stderr
+    projection = json.loads(accepted.stdout)
+    assert _statuses(projection) == {
+        "proof:cycle-a": "RECHECK_REQUIRED",
+        "proof:cycle-b": "RECHECK_REQUIRED",
+        "proof:downstream": "RECHECK_REQUIRED",
+        "proof:independent": "REUSE_CANDIDATE",
+    }
+    assert projection["cyclicObligationIds"] == ["proof:cycle-a", "proof:cycle-b"]
+    assert projection["proofReuseAdmissible"] is False
+
+    forged = dict(observed, changedRefs=[])
+    rejected = select(forged)
+    assert rejected.returncode != 0
+    assert "differs from exact native source delta" in rejected.stderr
+
+    unchanged = source_membership_delta(repo, first, first, "runtime/")
+    unchanged_result = select(unchanged)
+    assert unchanged_result.returncode == 0, unchanged_result.stderr
+    unchanged_projection = json.loads(unchanged_result.stdout)
+    assert _statuses(unchanged_projection) == {
+        "proof:cycle-a": "UNKNOWN",
+        "proof:cycle-b": "UNKNOWN",
+        "proof:downstream": "UNKNOWN",
+        "proof:independent": "REUSE_CANDIDATE",
+    }
+    assert unchanged_projection["proofReuseAdmissible"] is False
