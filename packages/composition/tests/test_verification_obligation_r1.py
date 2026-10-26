@@ -1436,12 +1436,12 @@ def test_manifest_gate_impact_gate_membership_add_retire_invalidates_closure() -
     current["gateRequirements"].append(more)
     added = select_manifest_gate_impacts(previous_manifest=previous, current_manifest=current)
     assert added["addedGateIds"] == ["gate:new"]
-    assert added["sharedManifestContextChanged"] is True
+    assert added["sharedManifestContextChanged"] is False
     assert set(_gate_impact_statuses(added).values()) == {"RECHECK_REQUIRED"}
 
     retired = select_manifest_gate_impacts(previous_manifest=current, current_manifest=previous)
     assert retired["removedGateIds"] == ["gate:new"]
-    assert retired["sharedManifestContextChanged"] is True
+    assert retired["sharedManifestContextChanged"] is False
     assert set(_gate_impact_statuses(retired).values()) == {"RECHECK_REQUIRED"}
 
 
@@ -1531,6 +1531,405 @@ def test_manifest_gate_impact_rechecks_true_scoped_producer_change() -> None:
     assert result["changedLocalGateIds"] == ["gate:candidate-contract"]
     assert _gate_impact_statuses(result) == {
         "proof:gate:gate:candidate-contract": "RECHECK_REQUIRED"
+    }
+
+
+def test_manifest_independent_gate_membership_keeps_unrelated_unknown() -> None:
+    # An independent producer/consumer circuit already exists, but it has no Gate
+    # at the older SourceCut. Registering a new Gate on that unrelated chain
+    # must not invalidate every other Gate's source proof obligation.
+    current = _two_gate_manifest()
+    previous = copy.deepcopy(current)
+    previous["gateRequirements"] = previous["gateRequirements"][:1]
+
+    scoped = compare_gate_source_scopes(previous, current)
+    assert scoped["changedGateIds"] == []
+    assert scoped["addedGateIds"] == ["gate:unrelated-property"]
+    selected = select_manifest_gate_impacts(previous_manifest=previous, current_manifest=current)
+    assert selected["sharedManifestContextChanged"] is False
+    assert selected["changedLocalGateIds"] == ["gate:unrelated-property"]
+    assert _gate_impact_statuses(selected) == {
+        "proof:gate:gate:candidate-contract": "UNKNOWN",
+        "proof:gate:gate:unrelated-property": "RECHECK_REQUIRED",
+    }
+
+    retired = select_manifest_gate_impacts(previous_manifest=current, current_manifest=previous)
+    assert retired["removedGateIds"] == ["gate:unrelated-property"]
+    assert retired["sharedManifestContextChanged"] is False
+    assert _gate_impact_statuses(retired) == {"proof:gate:gate:candidate-contract": "UNKNOWN"}
+
+
+def test_manifest_gate_membership_same_consumer_rechecks_existing_proof() -> None:
+    previous = _manifest()
+    current = copy.deepcopy(previous)
+    added = copy.deepcopy(previous["gateRequirements"][0])
+    added["id"] = "gate:new-consumer-premise"
+    current["gateRequirements"].append(added)
+    scoped = compare_gate_source_scopes(previous, current)
+    assert scoped["changedGateIds"] == ["gate:candidate-contract"]
+    out = select_manifest_gate_impacts(previous_manifest=previous, current_manifest=current)
+    assert out["changedLocalGateIds"] == [
+        "gate:candidate-contract",
+        "gate:new-consumer-premise",
+    ]
+    assert out["sharedManifestContextChanged"] is False
+    assert set(_gate_impact_statuses(out).values()) == {"RECHECK_REQUIRED"}
+
+
+@pytest.mark.parametrize(
+    ("before_mask", "after_mask"),
+    [(before, after) for before in range(4) for after in range(4)],
+)
+def test_manifest_independent_gate_membership_subsets_are_local(
+    before_mask: int, after_mask: int
+) -> None:
+    # A bounded differential oracle: four combinations of two independent
+    # consumer-Gate registrations on each side of the SourceCut.
+    complete = _two_gate_manifest()
+    ids = [gate["id"] for gate in complete["gateRequirements"]]
+    before = copy.deepcopy(complete)
+    after = copy.deepcopy(complete)
+    before["gateRequirements"] = [
+        gate for i, gate in enumerate(complete["gateRequirements"]) if before_mask & (1 << i)
+    ]
+    after["gateRequirements"] = [
+        gate for i, gate in enumerate(complete["gateRequirements"]) if after_mask & (1 << i)
+    ]
+    selected = select_manifest_gate_impacts(previous_manifest=before, current_manifest=after)
+    added = [
+        identity
+        for i, identity in enumerate(ids)
+        if after_mask & (1 << i) and not before_mask & (1 << i)
+    ]
+    removed = [
+        identity
+        for i, identity in enumerate(ids)
+        if before_mask & (1 << i) and not after_mask & (1 << i)
+    ]
+    assert selected["addedGateIds"] == added
+    assert selected["removedGateIds"] == removed
+    assert selected["changedLocalGateIds"] == added
+    assert selected["sharedManifestContextChanged"] is False
+    expected = {
+        f"proof:gate:{identity}": ("RECHECK_REQUIRED" if identity in added else "UNKNOWN")
+        for i, identity in enumerate(ids)
+        if after_mask & (1 << i)
+    }
+    assert _gate_impact_statuses(selected) == expected
+
+
+def test_manifest_impact_binding_verifier_fingerprint_drift_rechecks_without_source_edit() -> None:
+    before_manifest = _manifest()
+    after_manifest = copy.deepcopy(before_manifest)
+    obligation = compile_verification_obligations(before_manifest)
+    before_binding = _binding_set(obligation, native=True)
+    after_binding = copy.deepcopy(before_binding)
+    after_binding["bindings"][0]["verifierRef"]["digest"] = _digest("different-verifier-artifact")
+    result = select_manifest_gate_impacts(
+        previous_manifest=before_manifest,
+        current_manifest=after_manifest,
+        previous_binding_set=before_binding,
+        current_binding_set=after_binding,
+    )
+    assert result["changedLocalGateIds"] == []
+    assert result["changedVerifierBindingGateIds"] == ["gate:candidate-contract"]
+    assert result["proofReuseAdmissible"] is False
+    assert result["verifierBindingComparisonQualification"] == "CALLER_AUTHORED_BINDINGS_ONLY"
+    assert {r["id"]: r["standing"] for r in result["selection"]["standingByObligation"]} == {
+        "proof:gate:gate:candidate-contract": "RECHECK_REQUIRED"
+    }
+
+
+def test_manifest_impact_binding_native_spec_changes_force_recheck() -> None:
+    manifest = _manifest()
+    obligation = compile_verification_obligations(manifest)
+    before = _binding_set(obligation, native=True)
+    after = copy.deepcopy(before)
+    after["bindings"][0]["nativeSpecificationRef"]["digest"] = _digest("new-target-psi")
+    result = select_manifest_gate_impacts(
+        previous_manifest=manifest,
+        current_manifest=copy.deepcopy(manifest),
+        previous_binding_set=before,
+        current_binding_set=after,
+    )
+    assert result["changedVerifierBindingGateIds"] == ["gate:candidate-contract"]
+    assert result["selection"]["standingByObligation"][0]["standing"] == "RECHECK_REQUIRED"
+
+
+def test_manifest_impact_binding_nonsemantic_annotations_do_not_force_recheck() -> None:
+    manifest = _manifest()
+    obligation = compile_verification_obligations(manifest)
+    before = _binding_set(obligation, native=True)
+    after = copy.deepcopy(before)
+    after["nonClaims"].append("Extra task-local audit annotation.")
+    after["bindings"][0]["nonClaims"].append("Another explanatory annotation.")
+    result = select_manifest_gate_impacts(
+        previous_manifest=manifest,
+        current_manifest=copy.deepcopy(manifest),
+        previous_binding_set=before,
+        current_binding_set=after,
+    )
+    assert result["changedVerifierBindingGateIds"] == []
+    assert result["selection"]["standingByObligation"][0]["standing"] == "UNKNOWN"
+
+
+def test_manifest_impact_binding_pair_required_not_one_sided() -> None:
+    manifest = _manifest()
+    obligation = compile_verification_obligations(manifest)
+    with pytest.raises(CircuitContractError, match="both"):
+        select_manifest_gate_impacts(
+            previous_manifest=manifest,
+            current_manifest=copy.deepcopy(manifest),
+            previous_binding_set=_binding_set(obligation),
+        )
+
+
+def test_manifest_impact_binding_removal_rechecks_optional_gate() -> None:
+    manifest = _manifest(required=False)
+    obligation = compile_verification_obligations(manifest)
+    before = _binding_set(obligation, native=True)
+    after = copy.deepcopy(before)
+    after["bindings"] = []
+    result = select_manifest_gate_impacts(
+        previous_manifest=manifest,
+        current_manifest=copy.deepcopy(manifest),
+        previous_binding_set=before,
+        current_binding_set=after,
+    )
+    assert result["changedVerifierBindingGateIds"] == ["gate:candidate-contract"]
+    assert result["selection"]["standingByObligation"][0]["standing"] == "RECHECK_REQUIRED"
+
+
+def test_manifest_impact_binding_drift_is_local_to_named_gate() -> None:
+    manifest = _two_gate_manifest()
+    obligation_set = compile_verification_obligations(manifest)
+    by_gate = {row["gateId"]: row for row in obligation_set["obligations"]}
+    first = _binding_set(obligation_set, native=True)
+    unrelated = copy.deepcopy(first["bindings"][0])
+    unrelated["gateId"] = "gate:unrelated-property"
+    unrelated["obligationDigest"] = by_gate["gate:unrelated-property"]["obligationDigest"]
+    unrelated["verifierOwnerId"] = by_gate["gate:unrelated-property"]["verifierOwnerId"]
+    unrelated["supportScope"] = by_gate["gate:unrelated-property"]["supportScope"]
+    unrelated["verifierRef"]["id"] = "verifier:unrelated"
+    first["bindings"].append(unrelated)
+
+    second = copy.deepcopy(first)
+    second["bindings"][0]["verifierClass"] = "changed-provider"
+    selected = select_manifest_gate_impacts(
+        previous_manifest=manifest,
+        current_manifest=copy.deepcopy(manifest),
+        previous_binding_set=first,
+        current_binding_set=second,
+    )
+    assert selected["changedLocalGateIds"] == []
+    assert selected["changedVerifierBindingGateIds"] == ["gate:candidate-contract"]
+    assert {
+        row["id"]: row["standing"] for row in selected["selection"]["standingByObligation"]
+    } == {
+        "proof:gate:gate:candidate-contract": "RECHECK_REQUIRED",
+        "proof:gate:gate:unrelated-property": "UNKNOWN",
+    }
+
+
+def test_manifest_impact_binding_order_is_a_set_not_a_transition() -> None:
+    manifest = _two_gate_manifest()
+    obligations = compile_verification_obligations(manifest)
+    by_gate = {row["gateId"]: row for row in obligations["obligations"]}
+    before = _binding_set(obligations, native=True)
+    new = copy.deepcopy(before["bindings"][0])
+    new["gateId"] = "gate:unrelated-property"
+    new["obligationDigest"] = by_gate["gate:unrelated-property"]["obligationDigest"]
+    new["verifierOwnerId"] = by_gate["gate:unrelated-property"]["verifierOwnerId"]
+    new["supportScope"] = by_gate["gate:unrelated-property"]["supportScope"]
+    before["bindings"].append(new)
+    after = copy.deepcopy(before)
+    after["bindings"].reverse()
+    result = select_manifest_gate_impacts(
+        previous_manifest=manifest,
+        current_manifest=copy.deepcopy(manifest),
+        previous_binding_set=before,
+        current_binding_set=after,
+    )
+    assert result["changedVerifierBindingGateIds"] == []
+    assert set(row["standing"] for row in result["selection"]["standingByObligation"]) == {
+        "UNKNOWN"
+    }
+
+
+def test_manifest_impact_binding_mismatched_proposition_rejected() -> None:
+    manifest = _manifest()
+    obligations = compile_verification_obligations(manifest)
+    before = _binding_set(obligations, native=True)
+    after = copy.deepcopy(before)
+    after["bindings"][0]["obligationDigest"] = _digest("bogus-proved-proposition")
+    with pytest.raises(CircuitContractError, match="obligation digest mismatch"):
+        select_manifest_gate_impacts(
+            previous_manifest=manifest,
+            current_manifest=copy.deepcopy(manifest),
+            previous_binding_set=before,
+            current_binding_set=after,
+        )
+
+
+def test_manifest_impact_bindings_existing_cli_subprocess(tmp_path) -> None:
+    import json
+    import subprocess
+    import sys
+
+    manifest = _manifest()
+    obligations = compile_verification_obligations(manifest)
+    before = _binding_set(obligations, native=True)
+    after = copy.deepcopy(before)
+    after["bindings"][0]["nativeSpecificationRef"]["digest"] = _digest("native-spec-change")
+    files = {}
+    for name, value in (
+        ("old-manifest", manifest),
+        ("new-manifest", manifest),
+        ("old-bindings", before),
+        ("new-bindings", after),
+    ):
+        p = tmp_path / (name + ".json")
+        p.write_text(json.dumps(value), encoding="utf-8")
+        files[name] = str(p)
+    process = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "ordivon_composition.verification_obligation_r1",
+            "impact-manifests",
+            files["old-manifest"],
+            files["new-manifest"],
+            "--previous-bindings",
+            files["old-bindings"],
+            "--current-bindings",
+            files["new-bindings"],
+        ],
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    result = json.loads(process.stdout)
+    assert result["changedLocalGateIds"] == []
+    assert result["changedVerifierBindingGateIds"] == ["gate:candidate-contract"]
+    assert result["selection"]["standingByObligation"][0]["standing"] == "RECHECK_REQUIRED"
+
+
+def test_manifest_sourcecut_and_verifier_bindings_compose_without_promoting_authority(
+    tmp_path,
+) -> None:
+    """The existing one CLI must preserve both independent P0 source/readset fences."""
+    import hashlib
+    import json
+    import subprocess
+    import sys
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(
+            ["git", "-c", "maintenance.auto=false", "-C", str(repo), *args],
+            text=True,
+        ).strip()
+
+    git("init", "-q", "-b", "main")
+    git("config", "user.name", "Ordivon P0 Test")
+    git("config", "user.email", "ordivon-test@example.invalid")
+    manifest = _manifest()
+    manifest_bytes = json.dumps(manifest).encode("utf-8")
+    (repo / "manifest.json").write_bytes(manifest_bytes)
+    git("add", ".")
+    git("commit", "-qm", "exact manifest source")
+    source_cut = git("rev-parse", "HEAD")
+
+    proof_set = compile_verification_obligations(manifest)
+    before_bind = _binding_set(proof_set, native=True)
+    after_bind = copy.deepcopy(before_bind)
+    after_bind["bindings"][0]["nativeSpecificationRef"]["digest"] = _digest(
+        "changed-build-qualification"
+    )
+    before_path = tmp_path / "prior-bindings.json"
+    after_path = tmp_path / "current-bindings.json"
+    before_path.write_text(json.dumps(before_bind), encoding="utf-8")
+    after_path.write_text(json.dumps(after_bind), encoding="utf-8")
+    # A current worktree edit MUST NOT change the two pinned Git source inputs.
+    (repo / "manifest.json").write_text("{unparseable local worktree mutation", encoding="utf-8")
+    command = [
+        sys.executable,
+        "-m",
+        "ordivon_composition.verification_obligation_r1",
+        "impact-manifests",
+        "manifest.json",
+        "manifest.json",
+        "--git-repo",
+        str(repo),
+        "--previous-sourcecut",
+        source_cut,
+        "--current-sourcecut",
+        source_cut,
+        "--previous-bindings",
+        str(before_path),
+        "--current-bindings",
+        str(after_path),
+    ]
+    result = subprocess.run(command, text=True, capture_output=True, check=True)
+    selected = json.loads(result.stdout)
+    assert selected["gitSourceCuts"]["previous"]["sha256"] == (
+        "sha256:" + hashlib.sha256(manifest_bytes).hexdigest()
+    )
+    assert selected["gitSourceCuts"]["current"]["sha256"] == (
+        "sha256:" + hashlib.sha256(manifest_bytes).hexdigest()
+    )
+    assert selected["changedLocalGateIds"] == []
+    assert selected["changedVerifierBindingGateIds"] == ["gate:candidate-contract"]
+    assert selected["selection"]["standingByObligation"][0]["standing"] == "RECHECK_REQUIRED"
+    assert selected["proofReuseAdmissible"] is False
+    # One-sided caller-authored verifier binding cannot be read as a proof delta.
+    one_sided = subprocess.run(
+        command[:-2],
+        text=True,
+        capture_output=True,
+    )
+    assert one_sided.returncode != 0
+
+
+def test_manifest_impact_verifier_identity_unaffected_by_other_gate_manifest_digest() -> None:
+    manifest = _two_gate_manifest()
+    successor = copy.deepcopy(manifest)
+    successor["gateRequirements"][0]["guarantee"] = "New producer guarantee."
+    old_proofs = compile_verification_obligations(manifest)
+    new_proofs = compile_verification_obligations(successor)
+
+    def all_bindings(proofs: dict) -> dict:
+        by_gate = {row["gateId"]: row for row in proofs["obligations"]}
+        bundle = _binding_set(proofs, native=True)
+        other = copy.deepcopy(bundle["bindings"][0])
+        other["gateId"] = "gate:unrelated-property"
+        other["obligationDigest"] = by_gate[other["gateId"]]["obligationDigest"]
+        other["verifierOwnerId"] = by_gate[other["gateId"]]["verifierOwnerId"]
+        other["supportScope"] = by_gate[other["gateId"]]["supportScope"]
+        other["verifierRef"]["id"] = "verifier:independent-stable"
+        bundle["bindings"].append(other)
+        return bundle
+
+    before = all_bindings(old_proofs)
+    after = all_bindings(new_proofs)
+    assert old_proofs["obligationSetDigest"] != new_proofs["obligationSetDigest"]
+    assert (
+        old_proofs["obligations"][1]["obligationDigest"]
+        != new_proofs["obligations"][1]["obligationDigest"]
+    )
+    result = select_manifest_gate_impacts(
+        previous_manifest=manifest,
+        current_manifest=successor,
+        previous_binding_set=before,
+        current_binding_set=after,
+    )
+    assert result["changedLocalGateIds"] == ["gate:candidate-contract"]
+    assert result["changedVerifierBindingGateIds"] == []
+    assert {row["id"]: row["standing"] for row in result["selection"]["standingByObligation"]} == {
+        "proof:gate:gate:candidate-contract": "RECHECK_REQUIRED",
+        "proof:gate:gate:unrelated-property": "UNKNOWN",
     }
 
 
