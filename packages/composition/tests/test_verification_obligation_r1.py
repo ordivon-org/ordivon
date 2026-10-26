@@ -10,6 +10,7 @@ from ordivon_composition.verification_obligation_r1 import (
     compile_verification_obligations,
     resolve_verifier_bindings,
     select_impacted_obligations,
+    select_manifest_gate_impacts,
     validate_obligation_set,
 )
 
@@ -932,3 +933,363 @@ def test_gate_source_delta_retains_independent_local_source_when_parallel_gate_a
     assert delta["unchangedGateIds"] == ["gate:candidate-contract"]
     assert delta["changedGateIds"] == []
     assert delta["proofReuseAdmissible"] is False
+
+
+def test_native_git_source_delta_selects_cas_without_rechecking_tla(tmp_path, monkeypatch):
+    """Real Git and existing Composition selector: red CAS != model-source delta.
+
+    The Git reader owns only SOURCE facts. No acceptance or installed property
+    follows from a REUSE_CANDIDATE returned by this task-local selector.
+    """
+    import subprocess
+    from pathlib import Path
+
+    source_repo = Path(__file__).resolve().parents[3]
+    monkeypatch.syspath_prepend(str(source_repo))
+    from tools.repo.source_history_legos import source_membership_delta
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(["git", "-C", str(tmp_path), *args], text=True).strip()
+
+    git("init", "-q", "-b", "main")
+    git("config", "user.name", "Ordivon Contract Test")
+    git("config", "user.email", "contract@example.invalid")
+    source_cut = "6e3b5e7205108662d3a0fa6cae23aa53411fce3c"
+    # Consume the existing Runtime owner-facing formal trace manifest,
+    # rather than embedding a second set of owner source paths in Composition.
+    manifest_path = "services/runtime/formal/RuntimeDispatchR1.trace-r1.json"
+    import json
+
+    manifest = json.loads(
+        subprocess.check_output(
+            ["git", "-C", str(source_repo), "show", f"{source_cut}:{manifest_path}"],
+        )
+    )
+    prefix = Path(manifest_path).parents[1].as_posix() + "/"
+    cas = prefix + next(
+        item["path"] for item in manifest["contractSeams"] if item["id"] == "Registry.dispatchCAS"
+    )
+    model = prefix + manifest["formalSpecification"]["modulePath"]
+    other = prefix + "formal/README.md"
+    for item in [cas, model]:
+        output = subprocess.check_output(
+            ["git", "-C", str(source_repo), "show", f"{source_cut}:{item}"]
+        )
+        location = tmp_path / item
+        location.parent.mkdir(parents=True, exist_ok=True)
+        location.write_bytes(output)
+    (tmp_path / other).write_text("Unrelated Runtime documentation.")
+    (tmp_path / "README.md").write_text("Outside scoped Git source.")
+    git("add", ".")
+    git("commit", "-qm", "frozen runtime source")
+    baseline = git("rev-parse", "HEAD")
+
+    def inspect(old: str, new: str, *, unknown: list[str] | None = None):
+        delta = source_membership_delta(tmp_path, old, new, prefix)
+        scoped = delta["sourceScopeRef"]
+        claims = [
+            {
+                "id": "proof:CAS-implementation",
+                "dependsOn": [scoped + ":path:" + cas],
+                "dependenciesComplete": True,
+            },
+            {
+                "id": "proof:RuntimeDispatch-TLA-model",
+                "dependsOn": [scoped + ":path:" + model],
+                "dependenciesComplete": True,
+            },
+            {
+                "id": "proof:all-runtime-members",
+                "dependsOn": [delta["membershipRef"]],
+                "dependenciesComplete": True,
+            },
+            {
+                "id": "proof:unrelated-doc",
+                "dependsOn": [scoped + ":path:" + other],
+                "dependenciesComplete": True,
+            },
+        ]
+        result = select_impacted_obligations(
+            authority_refs=delta["authorityRefs"],
+            obligations=claims,
+            changed_refs=delta["changedRefs"],
+            unknown_refs=unknown,
+        )
+        return delta, result, {row["id"]: row["standing"] for row in result["standingByObligation"]}
+
+    (tmp_path / "README.md").write_text("Unrelated Git change.")
+    git("add", ".")
+    git("commit", "-qm", "unrelated change")
+    unrelated = git("rev-parse", "HEAD")
+    _, baseline_selection, baseline_standing = inspect(baseline, unrelated)
+    assert all(v == "REUSE_CANDIDATE" for v in baseline_standing.values())
+    assert not baseline_selection["proofReuseAdmissible"]
+
+    path = tmp_path / cas
+    rust = path.read_bytes()
+    start = rust.index(b"pub(super) fn mark_dispatch_issued(")
+    end = rust.index(b"pub(crate) fn dispatch_issued_at_ms", start)
+    method = rust[start:end]
+    state_guard = (
+        b"if attempt.state != AttemptState::Accepted\\n"
+        b"            || attempt.row_version != expected_row_version\\n"
+        b"            || attempt.bundle_digest.is_none()"
+    ).replace(b"\\n", b"\n")
+    sql_guard = b"AND state='accepted' AND row_version=?2 AND bundle_digest IS NOT NULL"
+    assert method.count(state_guard) == 1 and method.count(sql_guard) == 1
+    red = method.replace(state_guard, b"if attempt.bundle_digest.is_none()")
+    red = red.replace(sql_guard, b"AND (?2 >= 0) AND bundle_digest IS NOT NULL")
+    path.write_bytes(rust[:start] + red + rust[end:])
+    git("add", ".")
+    git("commit", "-qm", "red mutant on exact CAS implementation")
+    red_cut = git("rev-parse", "HEAD")
+    delta, selected, status = inspect(unrelated, red_cut)
+    assert delta["changedValuePaths"] == [cas]
+    assert delta["membershipChanged"] is False
+    assert status["proof:CAS-implementation"] == "RECHECK_REQUIRED"
+    assert status["proof:RuntimeDispatch-TLA-model"] == "REUSE_CANDIDATE"
+    assert status["proof:all-runtime-members"] == "REUSE_CANDIDATE"
+    assert status["proof:unrelated-doc"] == "REUSE_CANDIDATE"
+    assert selected["proofReuseAdmissible"] is False
+
+    # Agent-native path: existing repo CLI emits the scoped, immutable Git
+    # delta; existing Composition CLI consumes it without inventing authority.
+    import json
+    import sys
+
+    delta_output = subprocess.check_output(
+        [
+            sys.executable,
+            str(source_repo / "tools/repo/source_history_legos.py"),
+            "--repo",
+            str(tmp_path),
+            "--left",
+            unrelated,
+            "--right",
+            red_cut,
+            "--impact-prefix",
+            prefix,
+        ],
+        text=True,
+    )
+    cli_delta = json.loads(delta_output)
+    assert cli_delta == delta
+    delta_file = tmp_path / "git-delta.json"
+    claims_file = tmp_path / "claims.json"
+    delta_file.write_text(delta_output, encoding="utf8")
+    scope = delta["sourceScopeRef"]
+    claims_file.write_text(
+        json.dumps(
+            [
+                {
+                    "id": "proof:CAS-implementation",
+                    "dependsOn": [scope + ":path:" + cas],
+                    "dependenciesComplete": True,
+                },
+                {
+                    "id": "proof:RuntimeDispatch-TLA-model",
+                    "dependsOn": [scope + ":path:" + model],
+                    "dependenciesComplete": True,
+                },
+            ]
+        ),
+        encoding="utf8",
+    )
+    cli_status = json.loads(
+        subprocess.check_output(
+            [
+                sys.executable,
+                "-m",
+                "ordivon_composition.verification_obligation_r1",
+                "select-impact",
+                str(delta_file),
+                str(claims_file),
+            ],
+            text=True,
+        )
+    )
+    assert {row["id"]: row["standing"] for row in cli_status["standingByObligation"]} == {
+        "proof:CAS-implementation": "RECHECK_REQUIRED",
+        "proof:RuntimeDispatch-TLA-model": "REUSE_CANDIDATE",
+    }
+    assert cli_status["proofReuseAdmissible"] is False
+
+    # A caller-supplied fake "owner certificate" cannot be promoted by CLI.
+    untrusted = dict(cli_delta)
+    untrusted["proofReuseAdmissible"] = True
+    delta_file.write_text(json.dumps(untrusted), encoding="utf8")
+    denied = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "ordivon_composition.verification_obligation_r1",
+            "select-impact",
+            str(delta_file),
+            str(claims_file),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert denied.returncode != 0
+    assert "cannot promote unqualified" in denied.stderr
+    delta_file.write_text(delta_output, encoding="utf8")
+    unknown_file = tmp_path / "unresolved-runtime-edges.json"
+    unknown_file.write_text(json.dumps(["runtime:unindexed"]), encoding="utf8")
+    bounded_unknown = json.loads(
+        subprocess.check_output(
+            [
+                sys.executable,
+                "-m",
+                "ordivon_composition.verification_obligation_r1",
+                "select-impact",
+                str(delta_file),
+                str(claims_file),
+                "--unknown-refs",
+                str(unknown_file),
+            ],
+            text=True,
+        )
+    )
+    assert all(
+        row["standing"] in {"RECHECK_REQUIRED", "UNKNOWN"}
+        for row in bounded_unknown["standingByObligation"]
+    )
+    assert bounded_unknown["proofReuseAdmissible"] is False
+
+    extra = tmp_path / (prefix + "providers/new.rs")
+    extra.parent.mkdir(parents=True, exist_ok=True)
+    extra.write_text("fn new_provider() {}")
+    git("add", ".")
+    git("commit", "-qm", "new runtime provider appears")
+    added_cut = git("rev-parse", "HEAD")
+    delta, selected, status = inspect(red_cut, added_cut)
+    assert delta["membershipChanged"]
+    assert status["proof:all-runtime-members"] == "RECHECK_REQUIRED"
+    assert status["proof:CAS-implementation"] == "REUSE_CANDIDATE"
+    assert status["proof:RuntimeDispatch-TLA-model"] == "REUSE_CANDIDATE"
+    assert not selected["proofReuseAdmissible"]
+
+    # When a non-Git environmental dependency cannot be enumerated, the
+    # existing selector fails closed instead of laundering stale evidence.
+    _, selected, status = inspect(red_cut, added_cut, unknown=["runtime:ambient-unresolved"])
+    assert all(v == "UNKNOWN" or v == "RECHECK_REQUIRED" for v in status.values())
+    assert selected["proofReuseAdmissible"] is False
+
+
+def _two_gate_manifest() -> dict:
+    manifest = _manifest()
+    other = copy.deepcopy(manifest["gateRequirements"][0])
+    other["id"] = "gate:unrelated-property"
+    other["assumption"] = "Separate independent premise."
+    other["guarantee"] = "Separate independent guarantee."
+    manifest["gateRequirements"].append(other)
+    return manifest
+
+
+def _gate_impact_statuses(result: dict) -> dict[str, str]:
+    assert result["selection"]["proofReuseAdmissible"] is False
+    assert result["proofReuseAdmissible"] is False
+    return {row["id"]: row["standing"] for row in result["selection"]["standingByObligation"]}
+
+
+def test_manifest_gate_impact_property_delta_is_automatically_recheck() -> None:
+    previous = _two_gate_manifest()
+    current = copy.deepcopy(previous)
+    current["gateRequirements"][0]["guarantee"] = "Relaxed guarantee"
+    result = select_manifest_gate_impacts(previous_manifest=previous, current_manifest=current)
+    assert result["sharedManifestContextChanged"] is False
+    assert result["changedLocalGateIds"] == ["gate:candidate-contract"]
+    assert result["addedGateIds"] == []
+    assert result["removedGateIds"] == []
+    assert _gate_impact_statuses(result) == {
+        "proof:gate:gate:candidate-contract": "RECHECK_REQUIRED",
+        "proof:gate:gate:unrelated-property": "UNKNOWN",
+    }
+
+
+def test_manifest_gate_impact_unqualified_unchanged_stays_unknown() -> None:
+    previous = _two_gate_manifest()
+    result = select_manifest_gate_impacts(
+        previous_manifest=previous, current_manifest=copy.deepcopy(previous)
+    )
+    assert not result["changedLocalGateIds"]
+    assert not result["sharedManifestContextChanged"]
+    assert set(_gate_impact_statuses(result).values()) == {"UNKNOWN"}
+
+
+def test_manifest_gate_impact_shared_context_delta_rechecks_all() -> None:
+    previous = _two_gate_manifest()
+    current = copy.deepcopy(previous)
+    current["stages"][0]["responsibility"] = "Changed shared contract context"
+    result = select_manifest_gate_impacts(previous_manifest=previous, current_manifest=current)
+    assert result["sharedManifestContextChanged"]
+    assert not result["changedLocalGateIds"]
+    assert set(_gate_impact_statuses(result).values()) == {"RECHECK_REQUIRED"}
+
+
+def test_manifest_gate_impact_gate_membership_add_retire_invalidates_closure() -> None:
+    previous = _manifest()
+    current = copy.deepcopy(previous)
+    more = copy.deepcopy(previous["gateRequirements"][0])
+    more["id"] = "gate:new"
+    current["gateRequirements"].append(more)
+    added = select_manifest_gate_impacts(previous_manifest=previous, current_manifest=current)
+    assert added["addedGateIds"] == ["gate:new"]
+    assert added["sharedManifestContextChanged"] is True
+    assert set(_gate_impact_statuses(added).values()) == {"RECHECK_REQUIRED"}
+
+    retired = select_manifest_gate_impacts(previous_manifest=current, current_manifest=previous)
+    assert retired["removedGateIds"] == ["gate:new"]
+    assert retired["sharedManifestContextChanged"] is True
+    assert set(_gate_impact_statuses(retired).values()) == {"RECHECK_REQUIRED"}
+
+
+def test_manifest_gate_impact_semantic_gate_reorder_is_stable() -> None:
+    previous = _two_gate_manifest()
+    current = copy.deepcopy(previous)
+    current["gateRequirements"].reverse()
+    result = select_manifest_gate_impacts(previous_manifest=previous, current_manifest=current)
+    assert not result["sharedManifestContextChanged"]
+    assert not result["changedLocalGateIds"]
+    assert set(_gate_impact_statuses(result).values()) == {"UNKNOWN"}
+
+
+def test_manifest_gate_impact_rejects_incompatible_circuit_identity() -> None:
+    previous = _manifest()
+    current = copy.deepcopy(previous)
+    current["circuitId"] = "circuit:different-contract"
+    with pytest.raises(CircuitContractError, match="different circuit identities"):
+        select_manifest_gate_impacts(previous_manifest=previous, current_manifest=current)
+
+
+def test_manifest_gate_impact_reuses_existing_cli_command_surface(tmp_path) -> None:
+    import json
+    import subprocess
+    import sys
+
+    previous = _two_gate_manifest()
+    current = copy.deepcopy(previous)
+    current["gateRequirements"][0]["guarantee"] = "Revised guarantee"
+    before = tmp_path / "before.json"
+    after = tmp_path / "after.json"
+    before.write_text(json.dumps(previous), encoding="utf-8")
+    after.write_text(json.dumps(current), encoding="utf-8")
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "ordivon_composition.verification_obligation_r1",
+            "impact-manifests",
+            str(before),
+            str(after),
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    projection = json.loads(completed.stdout)
+    assert projection["changedLocalGateIds"] == ["gate:candidate-contract"]
+    assert _gate_impact_statuses(projection) == {
+        "proof:gate:gate:candidate-contract": "RECHECK_REQUIRED",
+        "proof:gate:gate:unrelated-property": "UNKNOWN",
+    }

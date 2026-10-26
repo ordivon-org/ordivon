@@ -63,6 +63,174 @@ def current_tree(repo: Path, revision: str) -> dict[str, str]:
 
 
 
+def source_membership_query(
+    repo: Path, source_cut: str, prefix: str, *, max_members: int = 10000
+) -> dict:
+    """Exact Git subtree membership and mode/blob fingerprint, never proof reuse.
+
+    In particular, additions/absence are queries about the *set of paths*.
+    Merely recording the old members' content hashes misses negative
+    dependencies such as "all providers in this namespace satisfy P".
+    This query's closed domain is only one immutable Git source tree.
+    """
+    import hashlib
+    import re
+
+    if not isinstance(source_cut, str) or not re.fullmatch(r"[0-9a-f]{40}", source_cut):
+        raise ValueError("sourceCut must be an exact 40-hex Git commit")
+    if (
+        not isinstance(prefix, str)
+        or not prefix.endswith("/")
+        or (
+            prefix.startswith("/")
+            or chr(92) in prefix
+            or any(part in {"", ".", ".."} for part in prefix[:-1].split("/"))
+        )
+    ):
+        raise ValueError("query prefix must be a canonical non-root directory")
+    if type(max_members) is not int or max_members < 1:
+        raise ValueError("max_members must be a positive integer")
+
+    exact = git(repo, "rev-parse", "--verify", source_cut + "^{commit}").strip()
+    if exact != source_cut:
+        raise ValueError("sourceCut did not resolve to the exact requested commit")
+    tree_oid = git(repo, "rev-parse", source_cut + "^{tree}").strip()
+    # Reuse Git's existing exhaustive NUL-delimited native tree enumeration.
+    tree = current_tree(repo, source_cut)
+    parts = prefix[:-1].split("/")
+    for index in range(1, len(parts) + 1):
+        ancestor = "/".join(parts[:index])
+        if ancestor in tree:
+            # A Git blob, symlink or gitlink is not a directory. In particular
+            # a submodule's member set is NOT inside this parent Git tree.
+            raise ValueError(f"query crosses a non-directory source boundary: {ancestor}")
+    matches = sorted(
+        (path, identity) for path, identity in tree.items() if path.startswith(prefix)
+    )
+    if len(matches) > max_members:
+        raise ValueError("query membership bound exceeded; result is UNKNOWN")
+
+    def digest(value: object) -> str:
+        data = json.dumps(
+            value, ensure_ascii=True, separators=(",", ":"), sort_keys=True
+        )
+        return "sha256:" + hashlib.sha256(data.encode("ascii")).hexdigest()
+
+    paths = [path for path, _ in matches]
+    return {
+        "kind": "ordivon.git-source-membership-query",
+        "truthRole": "exact-immutable-sourcecut-projection-not-consumer-authority",
+        "sourceCut": source_cut,
+        "treeOid": tree_oid,
+        "queryPrefix": prefix,
+        "memberCount": len(matches),
+        "memberSetDigest": digest({"queryPrefix": prefix, "paths": paths}),
+        "memberValuesDigest": digest({"queryPrefix": prefix, "members": matches}),
+        "members": [{"path": path, "gitIdentity": ident} for path, ident in matches],
+        "gitSourceQueryComplete": True,
+        "proofReuseAdmissible": False,
+        "nonClaims": [
+            "Complete means only named Git paths under exact immutable SourceCut.",
+            "It does not qualify Skills visibility or any installed/runtime consumer.",
+            "Source membership/value equality is not semantic or proof equivalence.",
+        ],
+    }
+
+
+def source_membership_delta(
+    repo: Path, previous_cut: str, current_cut: str, prefix: str, *,
+    max_members: int = 10000
+) -> dict:
+    """Exact Git owner evidence for task-local proof impact, never proof approval.
+
+    A proof may depend on one member's bytes/mode, or on the *complete set* of
+    paths in a namespace. Treat these as different dependencies so adding a
+    new provider cannot silently reuse a proof about "all providers" while
+    unrelated neighboring source changes need not invalidate a file-specific
+    proof. Both cuts must be immutable Git commits in the same repository.
+
+    No runtime/configuration/installed/consumer dependency is discovered here.
+    """
+    import hashlib
+    from urllib.parse import quote_from_bytes
+
+    before = source_membership_query(repo, previous_cut, prefix, max_members=max_members)
+    after = source_membership_query(repo, current_cut, prefix, max_members=max_members)
+
+    # Local Git authority scope is the canonical Git worktree checkout.
+    # Distinct repositories with an identical path must not share proof refs.
+    # Moving a checkout intentionally invalidates any prior scope binding.
+    source_root = git(repo, "rev-parse", "--show-toplevel").strip()
+    source_scope_ref = "git:repo:" + hashlib.sha256(
+        source_root.encode("utf-8", "surrogateescape")
+    ).hexdigest()
+
+    def ref(kind: str, name: str) -> str:
+        # Git paths are bytes, and may contain newlines or invalid UTF-8.
+        # Quoting the exact surrogateescape bytes gives unambiguous typed IDs.
+        encoded = quote_from_bytes(name.encode("utf-8", "surrogateescape"), safe="/")
+        return f"{source_scope_ref}:{kind}:{encoded}"
+
+    old = {item["path"]: item["gitIdentity"] for item in before["members"]}
+    new = {item["path"]: item["gitIdentity"] for item in after["members"]}
+    added = sorted(new.keys() - old.keys())
+    removed = sorted(old.keys() - new.keys())
+    changed = sorted(
+        path for path in old.keys() & new.keys() if old[path] != new[path]
+    )
+    member_set_changed = bool(added or removed)
+    values_changed = bool(member_set_changed or changed)
+
+    # Root refs are query identities: consumers can declare one file,
+    # the entire namespace, or both in the existing Composition DAG.
+    membership_ref = ref("members", prefix)
+    file_refs = [
+        ref("path", path) for path in sorted(set(added + removed + changed))
+    ]
+    changed_refs = sorted(
+        file_refs + ([membership_ref] if member_set_changed else [])
+    )
+    authority_refs = sorted(
+        [membership_ref] + [ref("path", path) for path in old.keys() | new.keys()]
+    )
+    if member_set_changed != (before["memberSetDigest"] != after["memberSetDigest"]):
+        raise ValueError("Git membership digest contradicts exact native paths")
+    if values_changed != (before["memberValuesDigest"] != after["memberValuesDigest"]):
+        raise ValueError("Git value digest contradicts exact native objects")
+
+    return {
+        "kind": "ordivon.git-source-membership-delta",
+        "truthRole": "exact-git-source-delta-no-proof-acceptance",
+        "queryPrefix": prefix,
+        "sourceScopeRef": source_scope_ref,
+        "sourceCuts": {"previous": previous_cut, "current": current_cut},
+        "membershipRef": membership_ref,
+        "authorityRefs": authority_refs,
+        "addedPaths": added,
+        "removedPaths": removed,
+        "changedValuePaths": changed,
+        "membershipChanged": member_set_changed,
+        "changedRefs": changed_refs,
+        "memberSetDigests": {
+            "previous": before["memberSetDigest"],
+            "current": after["memberSetDigest"],
+        },
+        "memberValuesDigests": {
+            "previous": before["memberValuesDigest"],
+            "current": after["memberValuesDigest"],
+        },
+        "gitSourceQueryComplete": True,
+        "proofReuseAdmissible": False,
+        "nonClaims": [
+            "Complete only for Git path membership and blob/mode under one prefix.",
+            "A gitlink is an opaque source member; its internals are not observed.",
+            "The caller must still qualify proof readsets, relevant configuration, "
+            "runtime consumers, dynamic edges and all non-Git assumptions.",
+            "changedRefs feeds a selector, never certifies REUSE_CANDIDATE as PASS.",
+        ],
+    }
+
+
 def history(repo: Path, left: str, right: str) -> dict:
     left_oid = git(repo, "rev-parse", "--verify", left + "^{commit}").strip()
     right_oid = git(repo, "rev-parse", "--verify", right + "^{commit}").strip()
@@ -375,10 +543,28 @@ def main() -> None:
     parser.add_argument("--right", default="origin/main")
     parser.add_argument("--owner", help="Restrict output to one natural Owner")
     parser.add_argument("--output", type=Path)
+    parser.add_argument(
+        "--impact-prefix",
+        help="Compute task-local Git source impact for this exact directory; never proof PASS",
+    )
+    parser.add_argument("--max-members", type=int, default=10000)
     args = parser.parse_args()
-    report = history(args.repo.resolve(), args.left, args.right)
-    if args.owner:
-        report = owner_slice(report, args.owner)
+    repo = args.repo.resolve()
+    if args.impact_prefix is not None:
+        if args.owner is not None:
+            parser.error("--owner is only supported for history, not source-impact queries")
+        try:
+            previous = git(repo, "rev-parse", "--verify", args.left + "^{commit}").strip()
+            current = git(repo, "rev-parse", "--verify", args.right + "^{commit}").strip()
+            report = source_membership_delta(
+                repo, previous, current, args.impact_prefix, max_members=args.max_members
+            )
+        except (subprocess.CalledProcessError, ValueError) as exc:
+            parser.error(f"Git source impact is unqualified: {exc}")
+    else:
+        report = history(repo, args.left, args.right)
+        if args.owner:
+            report = owner_slice(report, args.owner)
     payload = json.dumps(report, ensure_ascii=True, separators=(",", ":")) + "\n"
     if args.output:
         args.output.write_text(payload, encoding="utf-8")

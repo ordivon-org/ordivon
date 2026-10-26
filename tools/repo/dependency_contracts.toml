@@ -168,3 +168,14 @@ source_glob = "packages/composition/mise.toml"
 allowed_fragment = "../../services/runtime"
 kind = "PUBLIC_PINNED_FORMAL_TOOLCHAIN"
 contract_ref = "services/runtime/formal/README.md"
+
+
+# P0 bounded source contract: Composition tests derive owner source paths from
+# Runtime's existing trace manifest, not a parallel cross-owner path registry.
+[[seams]]
+from_owner = "composition"
+to_owner = "runtime"
+source_glob = "packages/composition/tests/test_verification_obligation_r1.py"
+allowed_fragment = "services/runtime/formal/RuntimeDispatchR1.trace-r1.json"
+kind = "TEST_ONLY_SOURCE_CONTRACT"
+contract_ref = "services/runtime/formal/RuntimeDispatchR1.trace-r1.json"
