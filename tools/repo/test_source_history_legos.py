@@ -856,6 +856,25 @@ class SourceHistoryLegosTests(unittest.TestCase):
             isolated = projection(unrelated, other_cut, other_cut, prefix)
             self.assertNotEqual(first["sourceScopeRef"], isolated["sourceScopeRef"])
             self.assertTrue(set(first["authorityRefs"]).isdisjoint(isolated["authorityRefs"]))
+    def test_source_cut_ignores_git_replace(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            git(root, "init", "-q")
+            git(root, "config", "user.name", "Test")
+            git(root, "config", "user.email", "test@example.invalid")
+            (root / "sources").mkdir()
+            p = root / "sources" / "a.txt"
+            p.write_text("original")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "old")
+            old = git(root, "rev-parse", "HEAD")
+            first = source_history_legos.source_membership_query(root, old, "sources/")
+            p.write_text("different")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "new")
+            git(root, "replace", old, git(root, "rev-parse", "HEAD"))
+            self.assertEqual(first, source_history_legos.source_membership_query(root, old, "sources/"))
+
 
 
 if __name__ == "__main__":
