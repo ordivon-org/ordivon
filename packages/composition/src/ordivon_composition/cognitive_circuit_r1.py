@@ -59,9 +59,11 @@ def _reject_non_json_constant(value: str) -> None:
     raise CircuitContractError(f"invalid JSON constant: {value}")
 
 
-def _load_json(path: Path) -> dict[str, Any]:
+def _load_json(path: Path, *, source_bytes: bytes | None = None) -> dict[str, Any]:
     value = json.loads(
-        path.read_text(encoding="utf-8"),
+        source_bytes.decode("utf-8")
+        if source_bytes is not None
+        else path.read_text(encoding="utf-8"),
         object_pairs_hook=_single_valued_json_object,
         parse_constant=_reject_non_json_constant,
     )

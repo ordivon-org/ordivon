@@ -1293,3 +1293,97 @@ def test_manifest_gate_impact_reuses_existing_cli_command_surface(tmp_path) -> N
         "proof:gate:gate:candidate-contract": "RECHECK_REQUIRED",
         "proof:gate:gate:unrelated-property": "UNKNOWN",
     }
+
+
+def test_manifest_git_sourcecuts_bind_exact_prior_current_bytes(tmp_path) -> None:
+    import hashlib
+    import json
+    import subprocess
+    import sys
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    def git(*argv: str) -> str:
+        return subprocess.check_output(["git", "-C", str(repo), *argv], text=True).strip()
+
+    git("init", "-q")
+    git("config", "user.name", "Ordivon Test")
+    git("config", "user.email", "ordivon-test@example.invalid")
+    previous = _two_gate_manifest()
+    path = repo / "manifest.json"
+    original = json.dumps(previous).encode()
+    path.write_bytes(original)
+    git("add", ".")
+    git("commit", "-qm", "original")
+    old = git("rev-parse", "HEAD")
+    current = copy.deepcopy(previous)
+    current["gateRequirements"][0]["guarantee"] += " improved"
+    updated = json.dumps(current).encode()
+    path.write_bytes(updated)
+    git("add", ".")
+    git("commit", "-qm", "updated")
+    new = git("rev-parse", "HEAD")
+    # A mutable checkout is not source truth. It now contradicts both cuts.
+    path.write_text("{invalid JSON but never read by the Git source mode")
+    command = [
+        sys.executable,
+        "-m",
+        "ordivon_composition.verification_obligation_r1",
+        "impact-manifests",
+        "manifest.json",
+        "manifest.json",
+        "--git-repo",
+        str(repo),
+        "--previous-sourcecut",
+        old,
+        "--current-sourcecut",
+        new,
+    ]
+    result = subprocess.run(command, capture_output=True, text=True, check=True)
+    data = json.loads(result.stdout)
+    assert data["changedLocalGateIds"] == ["gate:candidate-contract"]
+    assert data["sharedManifestContextChanged"] is False
+    assert (
+        data["gitSourceCuts"]["previous"]["sha256"]
+        == "sha256:" + hashlib.sha256(original).hexdigest()
+    )
+    assert (
+        data["gitSourceCuts"]["current"]["sha256"]
+        == "sha256:" + hashlib.sha256(updated).hexdigest()
+    )
+    assert data["proofReuseAdmissible"] is False
+    # Immutable source read produces byte-identical projection on replay.
+    replay = subprocess.run(command, capture_output=True, text=True, check=True)
+    assert replay.stdout == result.stdout
+
+    for invalid in (
+        command[:-1],  # missing current cut
+        [*command[:-1], new[:8]],  # abbreviated mutable rev
+        [*command[:4], "../manifest.json", *command[5:]],  # traversal
+        [*command[:4], "missing.json", *command[5:]],  # absent source
+    ):
+        rejected = subprocess.run(invalid, capture_output=True, text=True)
+        assert rejected.returncode != 0
+
+
+def test_manifest_git_sourcecut_rejects_symlinks(tmp_path) -> None:
+    import json
+    import subprocess
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "-C", str(repo), "init", "-q"], check=True)
+    subprocess.run(["git", "-C", str(repo), "config", "user.name", "Ordivon Test"], check=True)
+    subprocess.run(
+        ["git", "-C", str(repo), "config", "user.email", "ordivon-test@example.invalid"], check=True
+    )
+    (repo / "manifest.json").write_text(json.dumps(_two_gate_manifest()))
+    (repo / "link.json").symlink_to("manifest.json")
+    subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+    subprocess.run(["git", "-C", str(repo), "commit", "-qm", "commit"], check=True)
+    cut = subprocess.check_output(["git", "-C", str(repo), "rev-parse", "HEAD"], text=True).strip()
+    from ordivon_composition.verification_obligation_r1 import _immutable_git_manifest
+
+    with pytest.raises(CircuitContractError, match="regular Git file"):
+        _immutable_git_manifest(repo, cut, __import__("pathlib").Path("link.json"))

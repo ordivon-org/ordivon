@@ -11,7 +11,10 @@ result contract.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import re
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +31,58 @@ ROOT = Path(__file__).resolve().parent
 OBLIGATION_SET_SCHEMA = ROOT / "schemas" / "verification-obligation-set-v1.schema.json"
 BINDING_SET_SCHEMA = ROOT / "schemas" / "verifier-binding-set-v1.schema.json"
 RESOLUTION_SCHEMA = ROOT / "schemas" / "verifier-resolution-v1.schema.json"
+
+
+def _immutable_git_manifest(
+    repo: Path, commit: str, path: Path
+) -> tuple[dict[str, Any], dict[str, str]]:
+    """Read a regular Git blob at an exact commit; never consult the mutable checkout.
+
+    This establishes only SOURCE bytes, not authenticated consumer evidence or
+    installed/current verifier proof.
+    """
+    relative = path.as_posix()
+    if (
+        re.fullmatch(r"[0-9a-f]{40}", commit) is None
+        or path.is_absolute()
+        or not relative
+        or any(part in ("", ".", "..") for part in relative.split("/"))
+        or "\\x00" in relative
+    ):
+        raise CircuitContractError(
+            "source-bound impact needs an exact Git cut and canonical relative path"
+        )
+
+    def git(*argv: str) -> bytes:
+        try:
+            return subprocess.check_output(["git", "-C", str(repo), *argv], stderr=subprocess.PIPE)
+        except (OSError, subprocess.CalledProcessError) as exc:
+            raise CircuitContractError("Git source cut or regular blob unavailable") from exc
+
+    if git("cat-file", "-t", commit).strip() != b"commit":
+        raise CircuitContractError("Git SourceCut must identify an immutable commit")
+    # ls-tree rejects gitlinks, symlinks, missing path, and pathspec ambiguity.
+    entries = [
+        row
+        for row in git("ls-tree", "-z", "--full-tree", commit, "--", relative).split(b"\x00")
+        if row
+    ]
+    if len(entries) != 1 or b"\t" not in entries[0]:
+        raise CircuitContractError("exact manifest Git path unavailable")
+    meta, name = entries[0].split(b"\t", 1)
+    if name.decode("utf-8", "surrogateescape") != relative:
+        raise CircuitContractError("manifest pathspec did not identify an exact path")
+    mode, kind, blob = meta.split()
+    if kind != b"blob" or mode not in (b"100644", b"100755"):
+        raise CircuitContractError("manifest must be a regular Git file")
+    raw = git("cat-file", "blob", commit + ":" + relative)
+    return _load_json(path, source_bytes=raw), {
+        "commit": commit,
+        "path": relative,
+        "blobId": blob.decode("ascii"),
+        "sha256": "sha256:" + hashlib.sha256(raw).hexdigest(),
+        "truthRole": "git-immutable-source-only-not-proof-reuse",
+    }
 
 
 def _schema(path: Path) -> dict[str, Any]:
@@ -649,6 +704,9 @@ def _parser() -> argparse.ArgumentParser:
     manifest_parser = sub.add_parser("impact-manifests")
     manifest_parser.add_argument("previous_manifest", type=Path)
     manifest_parser.add_argument("current_manifest", type=Path)
+    manifest_parser.add_argument("--git-repo", type=Path)
+    manifest_parser.add_argument("--previous-sourcecut")
+    manifest_parser.add_argument("--current-sourcecut")
     return parser
 
 
@@ -663,10 +721,30 @@ def main() -> int:
                 _load_json(args.binding_set),
             )
         elif args.command == "impact-manifests":
-            result = select_manifest_gate_impacts(
-                previous_manifest=_load_json(args.previous_manifest),
-                current_manifest=_load_json(args.current_manifest),
+            requested = (
+                args.git_repo is not None,
+                args.previous_sourcecut is not None,
+                args.current_sourcecut is not None,
             )
+            if any(requested) and not all(requested):
+                raise CircuitContractError(
+                    "Git source mode requires repository and both exact commits"
+                )
+            if all(requested):
+                before, before_source = _immutable_git_manifest(
+                    args.git_repo, args.previous_sourcecut, args.previous_manifest
+                )
+                after, after_source = _immutable_git_manifest(
+                    args.git_repo, args.current_sourcecut, args.current_manifest
+                )
+            else:
+                before, after = (
+                    _load_json(args.previous_manifest),
+                    _load_json(args.current_manifest),
+                )
+            result = select_manifest_gate_impacts(previous_manifest=before, current_manifest=after)
+            if all(requested):
+                result["gitSourceCuts"] = {"previous": before_source, "current": after_source}
         elif args.command == "select-impact":
             delta = _load_json(args.git_source_delta)
             # The JSON is caller-supplied, not authenticated proof evidence.
