@@ -322,7 +322,9 @@ def select_impacted_obligations(
             if type(item["dependenciesComplete"]) is not bool:
                 raise CircuitContractError("previous dependenciesComplete must be JSON boolean")
             if identity in prev_claims or identity in prev_roots:
-                raise CircuitContractError(f"duplicate previous obligation/source identity: {identity}")
+                raise CircuitContractError(
+                    f"duplicate previous obligation/source identity: {identity}"
+                )
             prev_claims[identity] = {
                 "dependsOn": deps,
                 "dependenciesComplete": item["dependenciesComplete"],
@@ -332,14 +334,18 @@ def select_impacted_obligations(
 
         _topological_order(
             [{"id": root, "dependsOn": []} for root in prev_roots]
-            + [{"id": identity, "dependsOn": sorted(item["dependsOn"])}
-               for identity, item in prev_claims.items()]
+            + [
+                {"id": identity, "dependsOn": sorted(item["dependsOn"])}
+                for identity, item in prev_claims.items()
+            ]
         )
         derived_relation_changes = roots ^ prev_roots
         for identity in set(claims) | set(prev_claims):
             item = claims.get(identity)
             current = (
-                None if item is None else {
+                None
+                if item is None
+                else {
                     "dependsOn": set(item["dependsOn"]),
                     "dependenciesComplete": item["dependenciesComplete"],
                     "obligationDigest": item.get("obligationDigest"),
@@ -390,7 +396,8 @@ def select_impacted_obligations(
         "derivedRelationChangedRefs": sorted(derived_relation_changes),
         "relationComparisonQualification": (
             "CALLER_SUPPLIED_PRIOR_AND_CURRENT_NOT_OWNER_CERTIFIED"
-            if previous_graph is not None else "NOT_REQUESTED"
+            if previous_graph is not None
+            else "NOT_REQUESTED"
         ),
         "dependencyQualification": "CALLER_DECLARED_NOT_OWNER_CERTIFIED",
         "proofReuseAdmissible": False,

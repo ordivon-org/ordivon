@@ -465,6 +465,7 @@ def test_impact_rejects_noncanonical_source_or_proof_identity(alias: str, positi
             unknown_refs=unknown,
         )
 
+
 def test_impact_derives_changed_dependency_edges_without_caller_changed_refs():
     old = [
         {"id": "proof:p", "dependsOn": ["source:runtime"], "dependenciesComplete": True},
@@ -475,7 +476,8 @@ def test_impact_derives_changed_dependency_edges_without_caller_changed_refs():
     new[0]["dependsOn"] = ["source:runtime", "source:host"]
     result = select_impacted_obligations(
         authority_refs=["source:runtime", "source:host"],
-        obligations=new, changed_refs=[],
+        obligations=new,
+        changed_refs=[],
         previous_graph={"authorityRefs": ["source:runtime", "source:host"], "obligations": old},
     )
     assert result["derivedRelationChangedRefs"] == ["proof:p"]
@@ -490,7 +492,11 @@ def test_impact_derives_changed_dependency_edges_without_caller_changed_refs():
 
 def test_impact_relation_permutation_does_not_create_false_change():
     old = [
-        {"id": "proof:p", "dependsOn": ["source:runtime", "source:host"], "dependenciesComplete": True}
+        {
+            "id": "proof:p",
+            "dependsOn": ["source:runtime", "source:host"],
+            "dependenciesComplete": True,
+        }
     ]
     current = [dict(old[0], dependsOn=["source:host", "source:runtime"])]
     args = {
@@ -499,9 +505,10 @@ def test_impact_relation_permutation_does_not_create_false_change():
         "changed_refs": [],
     }
     a = select_impacted_obligations(**args)
-    b = select_impacted_obligations(**args, previous_graph={
-        "authorityRefs": ["source:runtime", "source:host"], "obligations": old
-    })
+    b = select_impacted_obligations(
+        **args,
+        previous_graph={"authorityRefs": ["source:runtime", "source:host"], "obligations": old},
+    )
     assert b["derivedRelationChangedRefs"] == []
     assert b["basisDigest"] == a["basisDigest"]
     assert _statuses(b)["proof:p"] == "REUSE_CANDIDATE"
@@ -510,8 +517,11 @@ def test_impact_relation_permutation_does_not_create_false_change():
 def test_impact_dependency_completeness_change_and_deleted_relation_fail_closed():
     old = [{"id": "proof:p", "dependsOn": ["source:runtime"], "dependenciesComplete": True}]
     current = [dict(old[0], dependenciesComplete=False)]
-    args = {"authority_refs": ["source:runtime"], "changed_refs": [],
-            "previous_graph": {"authorityRefs": ["source:runtime"], "obligations": old}}
+    args = {
+        "authority_refs": ["source:runtime"],
+        "changed_refs": [],
+        "previous_graph": {"authorityRefs": ["source:runtime"], "obligations": old},
+    }
     result = select_impacted_obligations(obligations=current, **args)
     assert result["derivedRelationChangedRefs"] == ["proof:p"]
     assert _statuses(result)["proof:p"] == "RECHECK_REQUIRED"
@@ -523,9 +533,10 @@ def test_impact_dependency_completeness_change_and_deleted_relation_fail_closed(
         changed_refs=[],
         previous_graph={
             "authorityRefs": ["source:runtime", "source:host"],
-            "obligations": [{"id": "proof:p", "dependsOn": ["source:host"],
-                             "dependenciesComplete": True}]
-        }
+            "obligations": [
+                {"id": "proof:p", "dependsOn": ["source:host"], "dependenciesComplete": True}
+            ],
+        },
     )
     assert "source:runtime" in deleted["derivedRelationChangedRefs"]
     assert "source:runtime" in deleted["unindexedChangeRefs"]
@@ -537,12 +548,18 @@ def test_impact_rejects_malformed_or_cyclic_previous_graph():
     args = {"authority_refs": ["source:a"], "obligations": [obligation], "changed_refs": []}
     invalids = [
         {"authorityRefs": ["source:a"], "obligations": [obligation, obligation]},
-        {"authorityRefs": ["source:a"], "obligations": [{
-            "id": "proof:b", "dependsOn": ["proof:b"], "dependenciesComplete": True
-        }]},
-        {"authorityRefs": ["source:a"], "obligations": [{
-            "id": "proof:b", "dependsOn": ["source:a"], "dependenciesComplete": "yes"
-        }]},
+        {
+            "authorityRefs": ["source:a"],
+            "obligations": [
+                {"id": "proof:b", "dependsOn": ["proof:b"], "dependenciesComplete": True}
+            ],
+        },
+        {
+            "authorityRefs": ["source:a"],
+            "obligations": [
+                {"id": "proof:b", "dependsOn": ["source:a"], "dependenciesComplete": "yes"}
+            ],
+        },
     ]
     for invalid in invalids:
         with pytest.raises(CircuitContractError):
@@ -562,8 +579,13 @@ def test_impact_relation_delta_matches_independent_full_graph_closure_randomized
             possible = roots + proof_ids[:i]
             deps = [p for p in possible if rng.choice([False, True])]
             rng.shuffle(deps)
-            result.append({"id": identity, "dependsOn": deps,
-                           "dependenciesComplete": rng.choice([False, True])})
+            result.append(
+                {
+                    "id": identity,
+                    "dependsOn": deps,
+                    "dependenciesComplete": rng.choice([False, True]),
+                }
+            )
         return result
 
     for _ in range(1200):
@@ -577,22 +599,23 @@ def test_impact_relation_delta_matches_independent_full_graph_closure_randomized
         )
         old_index = {row["id"]: row for row in old}
         changed_proofs = {
-            row["id"] for row in current
-            if (set(row["dependsOn"]) != set(old_index[row["id"]]["dependsOn"])
-                or row["dependenciesComplete"] != old_index[row["id"]]["dependenciesComplete"])
+            row["id"]
+            for row in current
+            if (
+                set(row["dependsOn"]) != set(old_index[row["id"]]["dependsOn"])
+                or row["dependenciesComplete"] != old_index[row["id"]]["dependenciesComplete"]
+            )
         }
         impacted = set(changed_proofs)
         while True:
             next_impact = impacted | {
-                row["id"] for row in current
-                if any(d in impacted for d in row["dependsOn"])
+                row["id"] for row in current if any(d in impacted for d in row["dependsOn"])
             }
             if next_impact == impacted:
                 break
             impacted = next_impact
         actual = {
-            ref for ref, status in _statuses(projection).items()
-            if status == "RECHECK_REQUIRED"
+            ref for ref, status in _statuses(projection).items() if status == "RECHECK_REQUIRED"
         }
         assert actual == impacted
         assert set(projection["derivedRelationChangedRefs"]) == changed_proofs
@@ -613,12 +636,14 @@ def test_impact_real_compiler_guarantee_digest_delta_rechecks_downstream_without
 
     def graph(digest):
         return [
-            {"id": "proof:contract", "dependsOn": ["source:producer"],
-             "dependenciesComplete": True, "obligationDigest": digest},
-            {"id": "proof:consumer", "dependsOn": ["proof:contract"],
-             "dependenciesComplete": True},
-            {"id": "proof:independent", "dependsOn": ["source:host"],
-             "dependenciesComplete": True},
+            {
+                "id": "proof:contract",
+                "dependsOn": ["source:producer"],
+                "dependenciesComplete": True,
+                "obligationDigest": digest,
+            },
+            {"id": "proof:consumer", "dependsOn": ["proof:contract"], "dependenciesComplete": True},
+            {"id": "proof:independent", "dependsOn": ["source:host"], "dependenciesComplete": True},
         ]
 
     old = graph(original_digest)
@@ -627,8 +652,7 @@ def test_impact_real_compiler_guarantee_digest_delta_rechecks_downstream_without
         authority_refs=["source:producer", "source:host"],
         obligations=current,
         changed_refs=[],
-        previous_graph={"authorityRefs": ["source:host", "source:producer"],
-                        "obligations": old},
+        previous_graph={"authorityRefs": ["source:host", "source:producer"], "obligations": old},
     )
     assert result["derivedRelationChangedRefs"] == ["proof:contract"]
     assert _statuses(result) == {
@@ -642,8 +666,10 @@ def test_impact_real_compiler_guarantee_digest_delta_rechecks_downstream_without
         authority_refs=["source:producer", "source:host"],
         obligations=current,
         changed_refs=[],
-        previous_graph={"authorityRefs": ["source:producer", "source:host"],
-                        "obligations": graph(new_digest)},
+        previous_graph={
+            "authorityRefs": ["source:producer", "source:host"],
+            "obligations": graph(new_digest),
+        },
     )
     assert same["derivedRelationChangedRefs"] == []
 
@@ -651,8 +677,12 @@ def test_impact_real_compiler_guarantee_digest_delta_rechecks_downstream_without
 def test_impact_contract_digest_input_downgrade_or_invalid_identity_fails_closed():
     digest = compile_verification_obligations(_manifest())["obligations"][0]["obligationDigest"]
     roots = ["source:a"]
-    row = {"id": "proof:a", "dependsOn": roots, "dependenciesComplete": True,
-           "obligationDigest": digest}
+    row = {
+        "id": "proof:a",
+        "dependsOn": roots,
+        "dependenciesComplete": True,
+        "obligationDigest": digest,
+    }
     args = {"authority_refs": roots, "changed_refs": []}
     # Removing a previously known content identity is itself a semantic change.
     downgrade = select_impacted_obligations(
@@ -664,12 +694,15 @@ def test_impact_contract_digest_input_downgrade_or_invalid_identity_fails_closed
     assert _statuses(downgrade)["proof:a"] == "RECHECK_REQUIRED"
     assert downgrade["proofReuseAdmissible"] is False
 
-    for bad in ("0"*64, "sha256:Z"*9, "sha256:"+"0"*63, "sha256:"+"0"*63+"G"):
+    for bad in ("0" * 64, "sha256:Z" * 9, "sha256:" + "0" * 63, "sha256:" + "0" * 63 + "G"):
+        with pytest.raises(CircuitContractError, match="canonical sha256"):
+            select_impacted_obligations(**args, obligations=[{**row, "obligationDigest": bad}])
         with pytest.raises(CircuitContractError, match="canonical sha256"):
             select_impacted_obligations(
-                **args, obligations=[{**row, "obligationDigest": bad}])
-        with pytest.raises(CircuitContractError, match="canonical sha256"):
-            select_impacted_obligations(
-                **args, obligations=[row],
-                previous_graph={"authorityRefs": roots,
-                                "obligations": [{**row, "obligationDigest": bad}]})
+                **args,
+                obligations=[row],
+                previous_graph={
+                    "authorityRefs": roots,
+                    "obligations": [{**row, "obligationDigest": bad}],
+                },
+            )
