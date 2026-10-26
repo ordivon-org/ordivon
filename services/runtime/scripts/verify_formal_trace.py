@@ -996,16 +996,129 @@ def _git_source_changes(base: str, head: str) -> set[str]:
     return {path.decode("utf-8") for path in data.split(b"\x00") if path}
 
 
+def _native_witness_name(witness: dict[str, Any], registered: set[str]) -> str:
+    """Require one compiled name at the declared Runtime-core source module."""
+    path, symbol = witness["path"], witness["symbol"]
+    prefix = "crates/ordivon-runtime-core/src/"
+    if not isinstance(path, str) or not path.startswith(prefix) or not path.endswith(".rs"):
+        raise ValueError("unsupported native witness path")
+    if not isinstance(symbol, str) or not re.fullmatch(r"[A-Za-z_]\w*", symbol):
+        raise ValueError("invalid native witness symbol")
+    module = path[len(prefix):-3].replace("/", "::")
+    matches = {f"{module}::{symbol}", f"{module}::tests::{symbol}"} & registered
+    if len(matches) != 1:
+        raise ValueError(f"native test not uniquely registered for {witness['id']}")
+    return next(iter(matches))
+
+
+def _require_exact_native_pass(output: str) -> None:
+    """Even a successful Cargo exit can mean zero matched Rust tests."""
+    reports = [line for line in output.splitlines() if line.startswith("test result:")]
+    if len(reports) != 1:
+        raise ValueError("native test result missing or ambiguous")
+    match = re.fullmatch(
+        r"test result: ok\. (\d+) passed; (\d+) failed; (\d+) ignored; "
+        r"\d+ measured; \d+ filtered out; finished in .*",
+        reports[0],
+    )
+    if match is None or tuple(map(int, match.groups())) != (1, 0, 0):
+        raise ValueError("native test must execute exactly one PASS and no ignored tests")
+
+
+def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
+    """Bind five declared test identities to actual cargo/libtest executions.
+
+    This deliberately establishes only scoped Rust implementation evidence,
+    NOT Rust-to-TLA refinement, whole-input closure, or installed release truth.
+    """
+    import os
+    import subprocess
+
+    cargo = ["cargo", "test", "--offline", "--locked", "-p", "ordivon-runtime-core",
+             "--no-default-features", "--features", "transactional-runtime", "--lib"]
+    env = dict(os.environ)
+    env["CARGO_TERM_COLOR"] = "never"
+    # Retain Runtime's existing build-cache directory descriptor across the
+    # nested Cargo process when Runtime issued a /proc/self/fd target path.
+    target = env.get("CARGO_TARGET_DIR", "")
+    fds: tuple[int, ...] = ()
+    if target.startswith("/proc/self/fd/") and target.rsplit("/", 1)[1].isdigit():
+        fd = int(target.rsplit("/", 1)[1])
+        os.fstat(fd)
+        fds = (fd,)
+
+    def cargo_check(*args: str) -> subprocess.CompletedProcess[str]:
+        process = subprocess.run(
+            [*cargo, *args], cwd=ROOT, env=env, pass_fds=fds,
+            capture_output=True, text=True, timeout=180, check=False,
+        )
+        if process.returncode:
+            raise ValueError(f"native Cargo failed (exit {process.returncode}): "
+                             f"{process.stderr[-350:]}")
+        return process
+
+    listing = cargo_check("--", "--list")
+    registered = {
+        line.removesuffix(": test")
+        for line in listing.stdout.splitlines() if line.endswith(": test")
+    }
+    witness_rows = []
+    for witness in trace["provingTests"]:
+        name = _native_witness_name(witness, registered)
+        result = cargo_check(name, "--", "--exact")
+        _require_exact_native_pass(result.stdout)
+        witness_rows.append({
+            "id": witness["id"], "nativeName": name, "standing": "EXECUTED_PASS",
+        })
+    def provenance(command: list[str]) -> str:
+        process = subprocess.run(
+            command, cwd=ROOT, env=env, pass_fds=fds,
+            capture_output=True, text=True, timeout=20, check=False,
+        )
+        if process.returncode:
+            raise ValueError(f"native witness prerequisite failed: {command[0]}")
+        return process.stdout.strip()
+
+    source_head = provenance(["git", "rev-parse", "HEAD"])
+    rust_input_status = provenance([
+        "git", "status", "--porcelain", "--", "Cargo.toml", "Cargo.lock", "crates",
+    ])
+    toolchain = provenance(["rustc", "-vV"])
+    cargo_version = provenance(["cargo", "--version"])
+
+    return {
+        "kind": "ordivon.runtime-native-test-witness",
+        "truthRole": "scoped-code-test-evidence-not-formal-refinement",
+        "witnesses": witness_rows,
+        "sourceHead": source_head,
+        "declaredRustInputsClean": not bool(rust_input_status),
+        "cargoVersion": cargo_version,
+        "rustcVersionVerbose": toolchain,
+        "cargoProfile": {
+            "package": "ordivon-runtime-core",
+            "feature": "transactional-runtime",
+            "noDefaultFeatures": True, "lib": True,
+            "locked": True, "offline": True,
+        },
+        "proofReuseAdmissible": False,
+        "modelToImplementationRefinement": "UNKNOWN",
+        "installedCurrentness": "UNKNOWN",
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     import argparse
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--impact-base", help="exact Git source base SHA")
     parser.add_argument("--impact-head", help="exact Git source HEAD SHA")
+    parser.add_argument("--native-witnesses", action="store_true")
     # The current Runtime Python contract also calls main() directly in tests.
     args = parser.parse_args([] if argv is None else argv)
     if bool(args.impact_base) != bool(args.impact_head):
         parser.error("--impact-base and --impact-head must be supplied together")
+    if args.native_witnesses and args.impact_base:
+        parser.error("--native-witnesses cannot be combined with source impact")
     for source in (TRACE, INVARIANTS):
         error = _runtime_source_identity_error(source)
         if error:
@@ -1036,6 +1149,14 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(projection, sort_keys=True))
         return 0
 
+    if args.native_witnesses:
+        try:
+            receipt = qualify_native_witnesses(trace)
+        except (OSError, ValueError, __import__("subprocess").TimeoutExpired) as error:
+            print(f"formal native witness: UNKNOWN ({error})", file=sys.stderr)
+            return 1
+        print(json.dumps(receipt, sort_keys=True))
+        return 0
     print(
         "formal trace: PASS (stable contract/test currentness only; source fragments retired; mechanized refinement NOT claimed)"
     )

@@ -1133,6 +1133,32 @@ trait Provider {
             errors,
         )
 
+    def test_native_witness_identity_is_module_and_source_scoped(self):
+        trace, _ = manifests()
+        witness = trace["provingTests"][0]
+        native = "runtime::tests::" + witness["symbol"]
+        self.assertEqual(
+            self.module._native_witness_name(witness, {native}), native
+        )
+        with self.assertRaisesRegex(ValueError, "not uniquely registered"):
+            self.module._native_witness_name(
+                witness, {"unrelated::tests::" + witness["symbol"]}
+            )
+
+    def test_native_witness_anti_vacuity_requires_one_executed_pass(self):
+        def summary(passed: int, ignored: int, filtered: int) -> str:
+            return (
+                f"test result: ok. {passed} passed; 0 failed; {ignored} ignored; "
+                f"0 measured; {filtered} filtered out; finished in 0.00s"
+            )
+        self.module._require_exact_native_pass(summary(1, 0, 415))
+        for bad in (summary(0, 0, 416), summary(0, 1, 415),
+                    summary(2, 0, 414), "test result: FAILED"):
+            with self.subTest(bad=bad):
+                with self.assertRaises(ValueError):
+                    self.module._require_exact_native_pass(bad)
+
+
 
     def test_runtime_formal_source_impact_is_selective_for_exact_test_file(self):
         trace, invariants = manifests()
