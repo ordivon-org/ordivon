@@ -1363,6 +1363,56 @@ trait Provider {
             finally:
                 self.module.ROOT = previous_root
 
+    def test_runtime_formal_git_impact_requires_ancestor_source_cut(self):
+        """Divergent PR tip diffs must not count target-only changes as PR impact."""
+        import subprocess
+
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp)
+            source = repo / "services/runtime"
+            source.mkdir(parents=True)
+            (source / "core.rs").write_text("fn baseline() {}\\n", encoding="utf-8")
+
+            def git(*args):
+                return subprocess.run(
+                    ["git", "-C", str(repo), *args],
+                    check=True, capture_output=True,
+                ).stdout.decode().strip()
+
+            def commit(msg):
+                git("add", ".")
+                git("-c", "user.name=FormalTest", "-c",
+                    "user.email=test@example.invalid", "commit", "-qm", msg)
+                return git("rev-parse", "HEAD")
+
+            git("init", "-q")
+            root = commit("shared base")
+            git("checkout", "-qb", "target-main")
+            (source / "core.rs").write_text("fn main_only() {}\\n", encoding="utf-8")
+            main_tip = commit("main-only Rust change")
+            git("checkout", "-qb", "candidate-pr", root)
+            (repo / "README.md").write_text("docs-only PR\\n", encoding="utf-8")
+            candidate_tip = commit("PR-only docs change")
+
+            original_root = self.module.ROOT
+            self.module.ROOT = source
+            try:
+                self.assertEqual(
+                    self.module._git_source_changes(root, candidate_tip),
+                    {"README.md"},
+                )
+                self.assertNotEqual(main_tip, candidate_tip)
+                # A direct diff of main vs PR would falsely attribute the
+                # main-only changed Rust source to this docs-only PR.
+                self.assertIn(
+                    "services/runtime/core.rs",
+                    git("diff", "--name-only", main_tip, candidate_tip),
+                )
+                with self.assertRaisesRegex(ValueError, "must be an ancestor"):
+                    self.module._git_source_changes(main_tip, candidate_tip)
+            finally:
+                self.module.ROOT = original_root
+
     def test_runtime_formal_source_impact_rejects_untrusted_paths_and_git_ref(self):
         trace, invariants = manifests()
         for bad in ("../escape", "/absolute", "services//runtime/file", "services\\runtime\\bad"):

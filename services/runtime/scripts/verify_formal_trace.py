@@ -979,6 +979,19 @@ def _git_source_changes(base: str, head: str) -> set[str]:
         raise ValueError("impact Runtime/formal build worktree is dirty; Git source is not current checkout")
     for revision in (base, head):
         git("cat-file", "-e", f"{revision}^{{commit}}")
+    # This mode measures changes FROM a frozen source cut TO this checkout.
+    # Comparing two divergent branch tips incorrectly attributes changes
+    # already on the target main branch to the candidate PR; callers needing
+    # PR integration impact must compare main against an actual merge tree.
+    try:
+        git("merge-base", "--is-ancestor", base, head)
+    except subprocess.CalledProcessError as error:
+        if error.returncode == 1:
+            raise ValueError(
+                "impact base must be an ancestor of checkout HEAD; "
+                "use exact integration merge-tree source cut for divergent PRs"
+            ) from error
+        raise
     data = git("diff", "--no-renames", "--name-only", "-z", base, head, "--")
     return {path.decode("utf-8") for path in data.split(b"\x00") if path}
 
