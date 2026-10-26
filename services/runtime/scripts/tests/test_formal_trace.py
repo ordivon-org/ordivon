@@ -1164,6 +1164,28 @@ trait Provider {
             result["nonClaims"],
         )
 
+    def test_runtime_tlc_checker_source_changes_recheck_all_scoped_witnesses(self):
+        """A model proof consumes the actual checker path, not only TLA bytes."""
+        trace, invariants = manifests()
+        for path in (
+            "services/runtime/formal/toolchain.lock.json",
+            "services/runtime/scripts/tla-formal",
+            "services/runtime/scripts/tests/test_tla_formal_external_jar.py",
+        ):
+            with self.subTest(path=path):
+                result = self.module.project_proving_test_source_impact(
+                    trace, invariants, {path}
+                )
+                self.assertEqual(result["unindexedRuntimeChanges"], [])
+                self.assertEqual(
+                    {row["standing"] for row in result["standingByWitness"]},
+                    {"RECHECK_REQUIRED"},
+                )
+                self.assertTrue(
+                    all(row["matchedChangedPaths"] == [path]
+                        for row in result["standingByWitness"])
+                )
+
     def test_runtime_formal_source_impact_model_change_rechecks_all(self):
         trace, invariants = manifests()
         changed = {"services/runtime/formal/RuntimeDispatchR1.tla"}

@@ -879,6 +879,11 @@ def project_proving_test_source_impact(
         owned("planning/invariants-r1.json"),
         owned("scripts/verify_formal_trace.py"),
         owned("scripts/tests/test_formal_trace.py"),
+        # The formal model evidence is consumed through the pinned TLC runner.
+        # These shared checker inputs are distinct from individual Rust witnesses.
+        owned("formal/toolchain.lock.json"),
+        owned("scripts/tla-formal"),
+        owned("scripts/tests/test_tla_formal_external_jar.py"),
         owned(trace["formalSpecification"]["modulePath"]),
         owned(trace["formalSpecification"]["configPath"]),
     }
