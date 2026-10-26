@@ -4,7 +4,9 @@ import asyncio
 from types import SimpleNamespace
 from typing import Any
 
+import pytest
 from mcp.server.mcpserver import Context
+from mcp.server.mcpserver.exceptions import ToolError
 
 from ordivon_gateway.mcp_server import build_server
 from ordivon_gateway.service import GatewayService
@@ -43,6 +45,21 @@ class PrincipalScopedOwner:
         if tool_name == "job.list":
             job = self.jobs.get(arguments["clientRequestId"])
             return {"jobs": [job] if job else [], "nextCursor": None}
+        if tool_name == "job.observe":
+            return {
+                "jobId": arguments["jobId"],
+                "status": "working",
+                "executionTerminal": False,
+                "deliveryDisposition": "in_progress",
+                "artifacts": [],
+            }
+        if tool_name == "job.cancel":
+            return {
+                "jobId": arguments["jobId"],
+                "status": "cancelled",
+                "executionTerminal": True,
+                "deliveryDisposition": "committed",
+            }
         raise AssertionError(tool_name)
 
 
@@ -99,6 +116,28 @@ def test_verified_principals_cannot_reattach_each_others_request_id() -> None:
         assert resolved_b.structured_content["resolution"] == "absent"
         assert resolved_b.structured_content["request_id"] == req
         assert owner.calls[-1][2]["clientRequestId"] != owner_req_a
+
+        operation_ref = "ordivon-exec:v1:runtime.linux:job-namespace-1"
+        qualified = {
+            "operationRef": operation_ref,
+            "requestId": req,
+            "capability": "execution.linux",
+        }
+        for operation in ("execution.get", "execution.cancel"):
+            before = len(owner.calls)
+            with pytest.raises(ToolError, match="cannot be qualified"):
+                await server.call_tool(operation, qualified, b)
+            assert all(
+                name not in {"job.observe", "job.cancel"} for _, name, _ in owner.calls[before:]
+            )
+            with pytest.raises(ToolError, match="requires original requestId"):
+                await server.call_tool(operation, {"operationRef": operation_ref}, b)
+
+        own_observation = await server.call_tool("execution.get", qualified, a)
+        assert not own_observation.is_error
+        assert own_observation.structured_content["native_id"] == "job-namespace-1"
+        own_cancellation = await server.call_tool("execution.cancel", qualified, a)
+        assert not own_cancellation.is_error
 
         submit_b = await server.call_tool(
             "execution.submit",
