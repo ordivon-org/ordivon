@@ -1157,3 +1157,138 @@ def test_ast_imports_reject_comments_strings_dynamic_and_unresolved_symbols(
             source_revision=rev, node_ref=plan_ref,
             target_source="services/harness/src/pkg/consumer.py", root=root,
         )
+
+
+def test_python_import_delta_real_git_separates_source_and_relation_changes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A consumer can change while its import edge remains byte-for-byte."""
+    import subprocess
+    from tools.repo.source_history_legos import current_tree
+
+    root = tmp_path
+    pkg = root / "services/harness/src/pkg"
+    pkg.mkdir(parents=True)
+    target = pkg / "target.py"
+    consumer = pkg / "consumer.py"
+    unrelated = pkg / "unrelated.py"
+    target.write_text("class Real: pass\n", encoding="utf-8")
+    consumer.write_text("from .target import Real\nanswer = 1\n", encoding="utf-8")
+    unrelated.write_text("answer = 1\n", encoding="utf-8")
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(
+            ["git", "-C", str(root), *args], text=True,
+        ).strip()
+    git("init", "-q")
+    def record(label: str) -> str:
+        git("add", ".")
+        git("-c", "user.name=GraphTest", "-c", "user.email=test@example.invalid",
+            "commit", "-qm", label)
+        return git("rev-parse", "HEAD")
+    base = record("base")
+    consumer.write_text("from .target import Real\nanswer = 2\n", encoding="utf-8")
+    body_changed = record("consumer body changed")
+    consumer.write_text("answer = 2\n", encoding="utf-8")
+    import_removed = record("removed import")
+    consumer.write_text("from .target import Real\nanswer = 2\n", encoding="utf-8")
+    import_added = record("reintroduced import")
+    target.write_text("class Replaced: pass\n", encoding="utf-8")
+    target_changed = record("target contract changed")
+    unrelated.write_text("answer = 3\n", encoding="utf-8")
+    unrelated_changed = record("unrelated source changed")
+    target_rel = "services/harness/src/pkg/target.py"
+    ref = "services/harness/planning/lego-plan-r1.json#H01"
+
+    def source_graph(_root: Path, *, source_revision: str):
+        blob = current_tree(root, source_revision)[target_rel]
+        return {"vertices": [
+            {"ref": ref, "sourceAnchors": [
+                {"path": target_rel, "sourceIdentity": blob},
+            ]},
+        ]}
+    monkeypatch.setattr(module, "project_owner_lego_source_graph", source_graph)
+
+    def change(before: str, after: str) -> dict:
+        return module.project_node_python_import_delta(
+            before_revision=before, after_revision=after,
+            node_ref=ref, target_source=target_rel, root=root,
+        )
+
+    body = change(base, body_changed)
+    assert body["targetBlobChanged"] is False
+    assert body["sourceRelationStanding"] == "RECHECK_REQUIRED"
+    assert body["changedCandidateImporters"][0]["sourceChangeStanding"] == (
+        "IMPORTER_BYTES_CHANGED_RELATION_STABLE"
+    )
+    assert body["changedCandidateImporters"][0]["addedImportSyntax"] == []
+    assert body["changedCandidateImporters"][0]["removedImportSyntax"] == []
+
+    removed = change(body_changed, import_removed)
+    assert removed["afterCandidateImporterCount"] == 0
+    assert removed["sourceRelationStanding"] == "RECHECK_REQUIRED"
+    assert removed["changedCandidateImporters"][0]["removedImportSyntax"][0]["name"] == "Real"
+
+    added = change(import_removed, import_added)
+    assert added["changedCandidateImporters"][0]["addedImportSyntax"][0]["name"] == "Real"
+
+    target_delta = change(import_added, target_changed)
+    assert target_delta["targetBlobChanged"] is True
+    assert target_delta["sourceRelationStanding"] == "RECHECK_REQUIRED"
+    assert target_delta["changedCandidateImporters"][0]["addedImportSyntax"][0][
+        "targetDefinitionStanding"
+    ] == "UNRESOLVED_OR_REEXPORTED"
+
+    unrelated_delta = change(target_changed, unrelated_changed)
+    assert unrelated_delta["sourceRelationStanding"] == "NO_DECLARED_SOURCE_RELATION_CHANGE"
+    assert unrelated_delta["changedCandidateImporters"] == []
+    assert unrelated_delta["proofReuseAdmissible"] is False
+
+    same = change(target_changed, target_changed)
+    assert same["sourceRelationStanding"] == "NO_DECLARED_SOURCE_RELATION_CHANGE"
+
+
+def test_python_import_delta_lost_target_is_unknown_not_no_consumer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import subprocess
+    from tools.repo.source_history_legos import current_tree
+    root = tmp_path
+    folder = root / "services/harness/src/pkg"
+    folder.mkdir(parents=True)
+    source = folder / "target.py"
+    source.write_text("class Real: pass\n", encoding="utf-8")
+    consumer = folder / "consumer.py"
+    consumer.write_text("from .target import Real\n", encoding="utf-8")
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(["git", "-C", str(root), *args], text=True).strip()
+    git("init", "-q")
+    git("add", ".")
+    git("-c", "user.name=GraphTest", "-c", "user.email=test@example.invalid",
+        "commit", "-qm", "base")
+    before = git("rev-parse", "HEAD")
+    source.unlink()
+    git("add", "-A")
+    git("-c", "user.name=GraphTest", "-c", "user.email=test@example.invalid",
+        "commit", "-qm", "target removed")
+    after = git("rev-parse", "HEAD")
+    path = "services/harness/src/pkg/target.py"
+    node = "services/harness/planning/lego-plan-r1.json#H01"
+    def projected(_root: Path, *, source_revision: str):
+        old = source_revision == before
+        return {"vertices": [{
+            "ref": node,
+            "sourceAnchors": (
+                [{"path": path, "sourceIdentity": current_tree(root, before)[path]}]
+                if old else []
+            ),
+        }]}
+    monkeypatch.setattr(module, "project_owner_lego_source_graph", projected)
+    result = module.project_node_python_import_delta(
+        before_revision=before, after_revision=after,
+        node_ref=node, target_source=path, root=root,
+    )
+    assert result["sourceRelationStanding"] == "UNKNOWN"
+    assert result["unresolvedCut"] == "after"
+    assert result["proofReuseAdmissible"] is False
