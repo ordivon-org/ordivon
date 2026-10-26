@@ -157,12 +157,25 @@ def source_membership_delta(
     before = source_membership_query(repo, previous_cut, prefix, max_members=max_members)
     after = source_membership_query(repo, current_cut, prefix, max_members=max_members)
 
-    # Local Git authority scope is the canonical Git worktree checkout.
-    # Distinct repositories with an identical path must not share proof refs.
-    # Moving a checkout intentionally invalidates any prior scope binding.
-    source_root = git(repo, "rev-parse", "--show-toplevel").strip()
+    # A detached Runtime Workspace is a Git *worktree*, not a new source
+    # authority. Use the common Git metadata root shared by all worktrees
+    # of the same local repository, not --show-toplevel (an ephemeral path).
+    # Distinct clones still remain conservatively distinct authorities.
+    # Consume exact Git path bytes; .strip() would corrupt legitimate
+    # Git repository paths with leading/trailing whitespace/newlines.
+    raw_common = subprocess.check_output(
+        ["git", "-C", str(repo), "rev-parse", "--path-format=absolute", "--git-common-dir"],
+        stderr=subprocess.PIPE,
+    )
+    if not raw_common.endswith(b"\n"):
+        raise ValueError("Git common repository path is not newline-delimited")
+    git_common_dir = Path(raw_common[:-1].decode("utf-8", "surrogateescape")).resolve(
+        strict=True
+    )
+    if not git_common_dir.is_dir():
+        raise ValueError("Git common repository path is not a directory")
     source_scope_ref = "git:repo:" + hashlib.sha256(
-        source_root.encode("utf-8", "surrogateescape")
+        str(git_common_dir).encode("utf-8", "surrogateescape")
     ).hexdigest()
 
     def ref(kind: str, name: str) -> str:
@@ -224,8 +237,10 @@ def source_membership_delta(
         "nonClaims": [
             "Complete only for Git path membership and blob/mode under one prefix.",
             "A gitlink is an opaque source member; its internals are not observed.",
-            "The caller must still qualify proof readsets, relevant configuration, "
-            "runtime consumers, dynamic edges and all non-Git assumptions.",
+            (
+                "The caller must still qualify proof readsets, relevant configuration, "
+                "runtime consumers, dynamic edges and all non-Git assumptions."
+            ),
             "changedRefs feeds a selector, never certifies REUSE_CANDIDATE as PASS.",
         ],
     }
