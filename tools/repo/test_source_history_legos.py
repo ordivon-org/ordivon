@@ -933,6 +933,12 @@ class SourceHistoryLegosTests(unittest.TestCase):
             )
             with self.assertRaisesRegex(ValueError, "ancestry"):
                 query(root, left, right, "runtime/")
+            # Historical comparison is a separate consumer of the Git helper:
+            # its merge-base must agree with the literal original commit DAG.
+            self.assertEqual(
+                source_history_legos.git(root, "merge-base", "--all", left, right).strip(),
+                base,
+            )
 
 
 if __name__ == "__main__":

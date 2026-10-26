@@ -24,7 +24,8 @@ HEADER = "__ORDIVON_HISTORY_RECORD__"
 
 def git(repo: Path, *args: str) -> str:
     return subprocess.check_output(
-        ["git", "-C", str(repo), *args],
+        # Exact Git history is the original object DAG, not refs/replace.
+        ["git", "--no-replace-objects", "-C", str(repo), *args],
         text=True,
         errors="surrogateescape",
         stderr=subprocess.PIPE,
