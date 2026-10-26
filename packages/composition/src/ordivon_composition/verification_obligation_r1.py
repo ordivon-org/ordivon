@@ -586,9 +586,10 @@ def select_manifest_gate_impacts(
             }
         )
 
-    shared_changed = shared_context(previous_manifest) != shared_context(current_manifest) or bool(
-        added or removed
-    )
+    # Negative Gate membership is already part of each bounded consumer's
+    # upstreamGates readset in compare_gate_source_scopes. Treating any add/
+    # remove as a global change would invalidate independent Gate branches.
+    shared_changed = shared_context(previous_manifest) != shared_context(current_manifest)
     local_changed = sorted(set(scoped["changedGateIds"]) | set(added))
 
     shared_ref = "source:manifest-shared"

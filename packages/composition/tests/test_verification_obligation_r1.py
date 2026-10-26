@@ -1263,12 +1263,12 @@ def test_manifest_gate_impact_gate_membership_add_retire_invalidates_closure() -
     current["gateRequirements"].append(more)
     added = select_manifest_gate_impacts(previous_manifest=previous, current_manifest=current)
     assert added["addedGateIds"] == ["gate:new"]
-    assert added["sharedManifestContextChanged"] is True
+    assert added["sharedManifestContextChanged"] is False
     assert set(_gate_impact_statuses(added).values()) == {"RECHECK_REQUIRED"}
 
     retired = select_manifest_gate_impacts(previous_manifest=current, current_manifest=previous)
     assert retired["removedGateIds"] == ["gate:new"]
-    assert retired["sharedManifestContextChanged"] is True
+    assert retired["sharedManifestContextChanged"] is False
     assert set(_gate_impact_statuses(retired).values()) == {"RECHECK_REQUIRED"}
 
 
@@ -1359,3 +1359,87 @@ def test_manifest_gate_impact_rechecks_true_scoped_producer_change() -> None:
     assert _gate_impact_statuses(result) == {
         "proof:gate:gate:candidate-contract": "RECHECK_REQUIRED"
     }
+
+
+def test_manifest_independent_gate_membership_keeps_unrelated_unknown() -> None:
+    # An independent producer/consumer circuit already exists, but it has no Gate
+    # at the older SourceCut. Registering a new Gate on that unrelated chain
+    # must not invalidate every other Gate's source proof obligation.
+    current = _two_gate_manifest()
+    previous = copy.deepcopy(current)
+    previous["gateRequirements"] = previous["gateRequirements"][:1]
+
+    scoped = compare_gate_source_scopes(previous, current)
+    assert scoped["changedGateIds"] == []
+    assert scoped["addedGateIds"] == ["gate:unrelated-property"]
+    selected = select_manifest_gate_impacts(previous_manifest=previous, current_manifest=current)
+    assert selected["sharedManifestContextChanged"] is False
+    assert selected["changedLocalGateIds"] == ["gate:unrelated-property"]
+    assert _gate_impact_statuses(selected) == {
+        "proof:gate:gate:candidate-contract": "UNKNOWN",
+        "proof:gate:gate:unrelated-property": "RECHECK_REQUIRED",
+    }
+
+    retired = select_manifest_gate_impacts(previous_manifest=current, current_manifest=previous)
+    assert retired["removedGateIds"] == ["gate:unrelated-property"]
+    assert retired["sharedManifestContextChanged"] is False
+    assert _gate_impact_statuses(retired) == {"proof:gate:gate:candidate-contract": "UNKNOWN"}
+
+
+def test_manifest_gate_membership_same_consumer_rechecks_existing_proof() -> None:
+    previous = _manifest()
+    current = copy.deepcopy(previous)
+    added = copy.deepcopy(previous["gateRequirements"][0])
+    added["id"] = "gate:new-consumer-premise"
+    current["gateRequirements"].append(added)
+    scoped = compare_gate_source_scopes(previous, current)
+    assert scoped["changedGateIds"] == ["gate:candidate-contract"]
+    out = select_manifest_gate_impacts(previous_manifest=previous, current_manifest=current)
+    assert out["changedLocalGateIds"] == [
+        "gate:candidate-contract",
+        "gate:new-consumer-premise",
+    ]
+    assert out["sharedManifestContextChanged"] is False
+    assert set(_gate_impact_statuses(out).values()) == {"RECHECK_REQUIRED"}
+
+
+@pytest.mark.parametrize(
+    ("before_mask", "after_mask"),
+    [(before, after) for before in range(4) for after in range(4)],
+)
+def test_manifest_independent_gate_membership_subsets_are_local(
+    before_mask: int, after_mask: int
+) -> None:
+    # A bounded differential oracle: four combinations of two independent
+    # consumer-Gate registrations on each side of the SourceCut.
+    complete = _two_gate_manifest()
+    ids = [gate["id"] for gate in complete["gateRequirements"]]
+    before = copy.deepcopy(complete)
+    after = copy.deepcopy(complete)
+    before["gateRequirements"] = [
+        gate for i, gate in enumerate(complete["gateRequirements"]) if before_mask & (1 << i)
+    ]
+    after["gateRequirements"] = [
+        gate for i, gate in enumerate(complete["gateRequirements"]) if after_mask & (1 << i)
+    ]
+    selected = select_manifest_gate_impacts(previous_manifest=before, current_manifest=after)
+    added = [
+        identity
+        for i, identity in enumerate(ids)
+        if after_mask & (1 << i) and not before_mask & (1 << i)
+    ]
+    removed = [
+        identity
+        for i, identity in enumerate(ids)
+        if before_mask & (1 << i) and not after_mask & (1 << i)
+    ]
+    assert selected["addedGateIds"] == added
+    assert selected["removedGateIds"] == removed
+    assert selected["changedLocalGateIds"] == added
+    assert selected["sharedManifestContextChanged"] is False
+    expected = {
+        f"proof:gate:{identity}": ("RECHECK_REQUIRED" if identity in added else "UNKNOWN")
+        for i, identity in enumerate(ids)
+        if after_mask & (1 << i)
+    }
+    assert _gate_impact_statuses(selected) == expected
