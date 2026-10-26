@@ -654,7 +654,9 @@ def test_impact_real_compiler_guarantee_digest_delta_rechecks_downstream_without
         changed_refs=[],
         previous_graph={"authorityRefs": ["source:host", "source:producer"], "obligations": old},
     )
-    assert result["derivedRelationChangedRefs"] == ["proof:contract"]
+    assert result["derivedRelationChangedRefs"] == []
+    assert result["derivedContractChangedRefs"] == ["proof:contract"]
+    assert result["derivedChangedRefs"] == ["proof:contract"]
     assert _statuses(result) == {
         "proof:contract": "RECHECK_REQUIRED",
         "proof:consumer": "RECHECK_REQUIRED",
@@ -672,6 +674,7 @@ def test_impact_real_compiler_guarantee_digest_delta_rechecks_downstream_without
         },
     )
     assert same["derivedRelationChangedRefs"] == []
+    assert same["derivedContractChangedRefs"] == []
 
 
 def test_impact_contract_digest_input_downgrade_or_invalid_identity_fails_closed():
@@ -690,7 +693,8 @@ def test_impact_contract_digest_input_downgrade_or_invalid_identity_fails_closed
         obligations=[{k: v for k, v in row.items() if k != "obligationDigest"}],
         previous_graph={"authorityRefs": roots, "obligations": [row]},
     )
-    assert downgrade["derivedRelationChangedRefs"] == ["proof:a"]
+    assert downgrade["derivedRelationChangedRefs"] == []
+    assert downgrade["derivedContractChangedRefs"] == ["proof:a"]
     assert _statuses(downgrade)["proof:a"] == "RECHECK_REQUIRED"
     assert downgrade["proofReuseAdmissible"] is False
 

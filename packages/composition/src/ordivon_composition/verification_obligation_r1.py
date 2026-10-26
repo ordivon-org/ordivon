@@ -305,6 +305,7 @@ def select_impacted_obligations(
         claims[identity] = dict(item)
 
     derived_relation_changes: set[str] = set()
+    derived_contract_changes: set[str] = set()
     if previous_graph is not None:
         if (
             not isinstance(previous_graph, dict)
@@ -351,9 +352,19 @@ def select_impacted_obligations(
                     "obligationDigest": item.get("obligationDigest"),
                 }
             )
-            if current != prev_claims.get(identity):
+            previous = prev_claims.get(identity)
+            if (
+                current is None
+                or previous is None
+                or current["dependsOn"] != previous["dependsOn"]
+                or current["dependenciesComplete"] != previous["dependenciesComplete"]
+            ):
                 derived_relation_changes.add(identity)
-        changed |= derived_relation_changes
+            # A semantic contract change is different from a relation change;
+            # both invalidate the proof, but should remain distinguishable.
+            if (current or {}).get("obligationDigest") != (previous or {}).get("obligationDigest"):
+                derived_contract_changes.add(identity)
+        changed |= derived_relation_changes | derived_contract_changes
 
     unindexed = sorted((changed | unknown) - (roots | set(claims)))
     rows = [{"id": root, "dependsOn": []} for root in roots]
@@ -394,6 +405,8 @@ def select_impacted_obligations(
         ],
         "unindexedChangeRefs": unindexed,
         "derivedRelationChangedRefs": sorted(derived_relation_changes),
+        "derivedContractChangedRefs": sorted(derived_contract_changes),
+        "derivedChangedRefs": sorted(derived_relation_changes | derived_contract_changes),
         "relationComparisonQualification": (
             "CALLER_SUPPLIED_PRIOR_AND_CURRENT_NOT_OWNER_CERTIFIED"
             if previous_graph is not None
