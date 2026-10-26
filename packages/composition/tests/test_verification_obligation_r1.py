@@ -1441,3 +1441,44 @@ def test_manifest_git_sourcecut_rejects_symlinks(tmp_path) -> None:
 
     with pytest.raises(CircuitContractError, match="regular Git file"):
         _immutable_git_manifest(repo, cut, __import__("pathlib").Path("link.json"))
+
+
+def test_immutable_manifest_sourcecut_ignores_native_git_replace_refs(tmp_path) -> None:
+    """An exact commit ID must not silently alias another commit via Git replace."""
+    import json
+    import subprocess
+    from pathlib import Path
+
+    from ordivon_composition.verification_obligation_r1 import _immutable_git_manifest
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(["git", "-C", str(repo), *args], text=True).strip()
+
+    git("init", "-q")
+    git("config", "user.name", "Test")
+    git("config", "user.email", "test@example.invalid")
+    original = _two_gate_manifest()
+    path = repo / "manifest.json"
+    path.write_text(json.dumps(original), encoding="utf-8")
+    git("add", ".")
+    git("commit", "-qm", "initial")
+    initial_cut = git("rev-parse", "HEAD")
+
+    mutated = copy.deepcopy(original)
+    mutated["gateRequirements"][0]["guarantee"] += " MUTATED"
+    path.write_text(json.dumps(mutated), encoding="utf-8")
+    git("add", ".")
+    git("commit", "-qm", "later")
+    replacement_cut = git("rev-parse", "HEAD")
+    git("replace", initial_cut, replacement_cut)
+
+    # Under Git's default view this is already falsified: show old commit => new blob.
+    substituted = git("show", initial_cut + ":manifest.json")
+    assert json.loads(substituted) == mutated
+
+    restored, evidence = _immutable_git_manifest(repo, initial_cut, Path("manifest.json"))
+    assert evidence["commit"] == initial_cut
+    assert restored == original
