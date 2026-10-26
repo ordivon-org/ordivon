@@ -12,7 +12,7 @@ test = [
   "jsonschema>=4.26,<5",
   "playwright>=1,<2",
   "pytest==9.1.1",
-  "z3-solver==5.3.1.0",
+  "z3-solver>=5.3.2.0,<6",
 ]
 quality = [
   "ruff==0.17.2",
@@ -34,7 +34,7 @@ reasoning = [
   "rdflib",
   "unified-planning",
   "up-pyperplan",
-  "z3-solver==5.3.1.0",
+  "z3-solver>=5.3.2.0,<6",
 ]
 
 [tool.uv.sources]
