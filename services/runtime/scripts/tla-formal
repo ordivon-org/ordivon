@@ -732,7 +732,9 @@ PY_WORKSPACE_CLOSE
 case "${1:-check}" in
   bootstrap) bootstrap ;;
   verify) verify_jar; echo "TLA+ toolchain digest verification PASS" ;;
+  check-dispatch) check_runtime_dispatch ;;
   check) check_runtime_dispatch; check_runtime_pg_cutover; check_windows_first_pg_order; check_workspace_consumer_close ;;
+  falsify-dispatch) check_runtime_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample ;;
   falsify) check_runtime_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_pg_cutover_counterexample; check_windows_first_pg_falsifiers; check_workspace_consumer_close_counterexamples ;;
   *)
     echo "usage: scripts/tla-formal [bootstrap|verify|check|falsify]" >&2
