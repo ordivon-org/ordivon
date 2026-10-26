@@ -885,6 +885,9 @@ def test_graph_source_delta_reads_literal_git_paths_not_replacement_tree(
         ).strip()
 
     git("init", "-q")
+    # commit-tree reads repository identity; CI runners have no global user.
+    git("config", "user.name", "Proof")
+    git("config", "user.email", "proof@example.invalid")
     git("add", ".")
     git("-c", "user.name=Proof", "-c", "user.email=proof@example.invalid",
         "commit", "-qm", "before")
