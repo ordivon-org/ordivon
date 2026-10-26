@@ -148,7 +148,8 @@ def require_ancestral_source_cuts(repo: Path, previous_cut: str, current_cut: st
     if not all(re.fullmatch(r"[0-9a-f]{40}", cut) for cut in (previous_cut, current_cut)):
         raise ValueError("sourceCut ancestry requires exact 40-hex Git commits")
     relation = subprocess.run(
-        ["git", "-C", str(repo), "merge-base", "--is-ancestor", previous_cut, current_cut],
+        ["git", "--no-replace-objects", "-C", str(repo),
+         "merge-base", "--is-ancestor", previous_cut, current_cut],
         stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, check=False,
     )
     if relation.returncode != 0:

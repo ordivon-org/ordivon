@@ -908,6 +908,146 @@ def test_declared_graph_impact_refuses_sibling_and_reversed_git_source_cuts(
             )
 
 
+def test_declared_source_evolution_ignores_grafted_git_replace_refs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """git replace --graft cannot forge a temporal proof-impact history."""
+    import subprocess
+
+    repo = tmp_path
+    source = repo / "source.txt"
+    source.write_text("initial\n", encoding="utf-8")
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(
+            ["git", "-C", str(repo), *args], text=True,
+        ).strip()
+
+    def commit(description: str) -> str:
+        git("add", ".")
+        git("-c", "user.name=SourceTest", "-c", "user.email=test@example.invalid",
+            "commit", "-qm", description)
+        return git("rev-parse", "HEAD")
+
+    git("init", "-q")
+    first = commit("base")
+    git("checkout", "-qb", "left")
+    source.write_text("left\n", encoding="utf-8")
+    left = commit("left")
+    git("checkout", "-qb", "right", first)
+    source.write_text("right\n", encoding="utf-8")
+    right = commit("right")
+    git("-c", "user.name=SourceTest", "-c", "user.email=test@example.invalid",
+        "replace", "--graft", left, right)
+    # Git's default graph incorrectly considers right an ancestor of left.
+    assert subprocess.run(
+        ["git", "-C", str(repo), "merge-base", "--is-ancestor", right, left],
+        check=False,
+    ).returncode == 0
+    def forbid_projection(*_args, **_kwargs):
+        raise AssertionError("unsafe projected graph before literal Git ancestry validation")
+    monkeypatch.setattr(module, "project_owner_lego_source_graph", forbid_projection)
+    with pytest.raises(ValueError, match="sourceCut ancestry"):
+        module.project_owner_lego_source_change(
+            before_revision=right, after_revision=left, root=repo,
+        )
+
+
+def test_declared_source_delta_ignores_replaced_tree_bytes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Changed Git paths must come from exact object bytes, not replace refs."""
+    import subprocess
+
+    repo = tmp_path
+    source = repo / "source.txt"
+    source.write_text("base\n", encoding="utf-8")
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(["git", "-C", str(repo), *args], text=True).strip()
+
+    def commit(message: str) -> str:
+        git("add", ".")
+        git("-c", "user.name=SourceTest", "-c", "user.email=test@example.invalid",
+            "commit", "-qm", message)
+        return git("rev-parse", "HEAD")
+
+    git("init", "-q")
+    old = commit("old")
+    source.write_text("new\n", encoding="utf-8")
+    current = commit("current")
+    git("replace", old, current)
+    # Default diff wrongly shows no path change because the old source tree
+    # is replaced with the current tree.
+    assert git("diff", "--name-only", old, current) == ""
+    monkeypatch.setattr(
+        module, "project_owner_lego_source_graph",
+        lambda _root, *, source_revision: {
+            "sourceCut": source_revision, "sourcePlans": [], "vertices": [],
+            "relations": [],
+        },
+    )
+    result = module.project_owner_lego_source_change(
+        before_revision=old, after_revision=current, root=repo,
+    )
+    assert result["changedGitPaths"] == ["source.txt"]
+    assert result["proofReuseAdmissible"] is False
+
+
+def test_exact_git_plan_bytes_ignore_blob_replace_refs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Git object identity must also bind the parsed planning data bytes."""
+    import subprocess
+
+    repo = tmp_path
+    relative = "services/runtime/planning/lego-plan-r1.json"
+    file = repo / relative
+    file.parent.mkdir(parents=True)
+    original_plan = {
+        "nodes": [{"id": "ORIGINAL", "kind": "capability", "dependencies": [],
+                   "evidence": []}], "edges": [],
+    }
+    altered_plan = {
+        "nodes": [{"id": "FORGED", "kind": "capability", "dependencies": [],
+                   "evidence": []}], "edges": [],
+    }
+    original_bytes = json.dumps(original_plan).encode("utf-8")
+    altered_bytes = json.dumps(altered_plan).encode("utf-8")
+    file.write_bytes(original_bytes)
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(["git", "-C", str(repo), *args], text=True).strip()
+
+    git("init", "-q")
+    git("add", ".")
+    git("-c", "user.name=SourceTest", "-c", "user.email=test@example.invalid",
+        "commit", "-qm", "original planning source")
+    source_cut = git("rev-parse", "HEAD")
+    old_blob = git("rev-parse", "HEAD:" + relative)
+    forged_blob = subprocess.run(
+        ["git", "-C", str(repo), "hash-object", "-w", "--stdin"],
+        input=altered_bytes, capture_output=True, check=True,
+    ).stdout.decode("ascii").strip()
+    git("replace", old_blob, forged_blob)
+    # Unqualified cat-file returns fraudulent content at the old blob address.
+    assert subprocess.check_output(
+        ["git", "-C", str(repo), "cat-file", "blob", old_blob]
+    ) == altered_bytes
+    monkeypatch.setattr(module, "OWNER_LEGO_PLANS", (relative,))
+    monkeypatch.setattr(module, "validate_owner_lego_graph", lambda _plan: None)
+    monkeypatch.setattr(
+        module, "validate_owner_lego_dependencies",
+        lambda _plan, _owner: None,
+    )
+    monkeypatch.setattr(
+        module, "validate_owner_lego_source_evidence",
+        lambda *_args, **_kwargs: set(),
+    )
+    graph = module.project_owner_lego_source_graph(repo, source_revision=source_cut)
+    assert [row["ref"].split("#")[1] for row in graph["vertices"]] == ["ORIGINAL"]
+
+
 def test_declared_source_delta_is_real_git_diff_with_dependency_closure(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:

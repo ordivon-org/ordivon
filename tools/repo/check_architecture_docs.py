@@ -617,7 +617,7 @@ def project_owner_lego_source_change(
     before = project_owner_lego_source_graph(root, source_revision=before_revision)
     after = project_owner_lego_source_graph(root, source_revision=after_revision)
     raw = subprocess.check_output(
-        ["git", "-C", str(root), "diff", "--no-renames",
+        ["git", "--no-replace-objects", "-C", str(root), "diff", "--no-renames",
          "--name-only", "-z", before_revision, after_revision, "--"],
         stderr=subprocess.PIPE,
     )
