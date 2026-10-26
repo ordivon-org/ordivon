@@ -137,6 +137,100 @@ def source_membership_query(
     }
 
 
+def source_membership_delta(
+    repo: Path, previous_cut: str, current_cut: str, prefix: str, *,
+    max_members: int = 10000
+) -> dict:
+    """Exact Git owner evidence for task-local proof impact, never proof approval.
+
+    A proof may depend on one member's bytes/mode, or on the *complete set* of
+    paths in a namespace. Treat these as different dependencies so adding a
+    new provider cannot silently reuse a proof about "all providers" while
+    unrelated neighboring source changes need not invalidate a file-specific
+    proof. Both cuts must be immutable Git commits in the same repository.
+
+    No runtime/configuration/installed/consumer dependency is discovered here.
+    """
+    import hashlib
+    from urllib.parse import quote_from_bytes
+
+    before = source_membership_query(repo, previous_cut, prefix, max_members=max_members)
+    after = source_membership_query(repo, current_cut, prefix, max_members=max_members)
+
+    # Local Git authority scope is the canonical Git worktree checkout.
+    # Distinct repositories with an identical path must not share proof refs.
+    # Moving a checkout intentionally invalidates any prior scope binding.
+    source_root = git(repo, "rev-parse", "--show-toplevel").strip()
+    source_scope_ref = "git:repo:" + hashlib.sha256(
+        source_root.encode("utf-8", "surrogateescape")
+    ).hexdigest()
+
+    def ref(kind: str, name: str) -> str:
+        # Git paths are bytes, and may contain newlines or invalid UTF-8.
+        # Quoting the exact surrogateescape bytes gives unambiguous typed IDs.
+        encoded = quote_from_bytes(name.encode("utf-8", "surrogateescape"), safe="/")
+        return f"{source_scope_ref}:{kind}:{encoded}"
+
+    old = {item["path"]: item["gitIdentity"] for item in before["members"]}
+    new = {item["path"]: item["gitIdentity"] for item in after["members"]}
+    added = sorted(new.keys() - old.keys())
+    removed = sorted(old.keys() - new.keys())
+    changed = sorted(
+        path for path in old.keys() & new.keys() if old[path] != new[path]
+    )
+    member_set_changed = bool(added or removed)
+    values_changed = bool(member_set_changed or changed)
+
+    # Root refs are query identities: consumers can declare one file,
+    # the entire namespace, or both in the existing Composition DAG.
+    membership_ref = ref("members", prefix)
+    file_refs = [
+        ref("path", path) for path in sorted(set(added + removed + changed))
+    ]
+    changed_refs = sorted(
+        file_refs + ([membership_ref] if member_set_changed else [])
+    )
+    authority_refs = sorted(
+        [membership_ref] + [ref("path", path) for path in old.keys() | new.keys()]
+    )
+    if member_set_changed != (before["memberSetDigest"] != after["memberSetDigest"]):
+        raise ValueError("Git membership digest contradicts exact native paths")
+    if values_changed != (before["memberValuesDigest"] != after["memberValuesDigest"]):
+        raise ValueError("Git value digest contradicts exact native objects")
+
+    return {
+        "kind": "ordivon.git-source-membership-delta",
+        "truthRole": "exact-git-source-delta-no-proof-acceptance",
+        "queryPrefix": prefix,
+        "sourceScopeRef": source_scope_ref,
+        "sourceCuts": {"previous": previous_cut, "current": current_cut},
+        "membershipRef": membership_ref,
+        "authorityRefs": authority_refs,
+        "addedPaths": added,
+        "removedPaths": removed,
+        "changedValuePaths": changed,
+        "membershipChanged": member_set_changed,
+        "changedRefs": changed_refs,
+        "memberSetDigests": {
+            "previous": before["memberSetDigest"],
+            "current": after["memberSetDigest"],
+        },
+        "memberValuesDigests": {
+            "previous": before["memberValuesDigest"],
+            "current": after["memberValuesDigest"],
+        },
+        "gitSourceQueryComplete": True,
+        "proofReuseAdmissible": False,
+        "nonClaims": [
+            "Complete only for Git path membership and blob/mode under one prefix.",
+            "A gitlink is an opaque source member; its internals are not observed.",
+            "The caller must still qualify proof readsets, relevant configuration, "
+            "runtime consumers, dynamic edges and all non-Git assumptions.",
+            "changedRefs feeds a selector, never certifies REUSE_CANDIDATE as PASS.",
+        ],
+    }
+
+
 def history(repo: Path, left: str, right: str) -> dict:
     left_oid = git(repo, "rev-parse", "--verify", left + "^{commit}").strip()
     right_oid = git(repo, "rev-parse", "--verify", right + "^{commit}").strip()

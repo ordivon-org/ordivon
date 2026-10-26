@@ -723,5 +723,92 @@ class SourceHistoryLegosTests(unittest.TestCase):
                 query(root, git(root, "rev-parse", "HEAD"), "services/", max_members=1)
 
 
+    def test_source_membership_delta_is_selective_and_fails_closed_on_additions(self):
+        """One real Git delta must separate paths from negative namespace reads."""
+        with tempfile.TemporaryDirectory(prefix="ordivon-git-delta-") as temp:
+            root = Path(temp)
+            git(root, "init", "-q", "-b", "main")
+            git(root, "config", "user.name", "Ordivon Test")
+            git(root, "config", "user.email", "test@example.invalid")
+            prefix = "services/runtime/registry/"
+            directory = root / prefix
+            directory.mkdir(parents=True)
+            (directory / "cas.rs").write_text("state == accepted", encoding="utf8")
+            (directory / "unrelated.rs").write_text("unchanged", encoding="utf8")
+            (root / "README").write_text("initial", encoding="utf8")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "base")
+            baseline = git(root, "rev-parse", "HEAD")
+            delta = source_history_legos.source_membership_delta
+            no_change = delta(root, baseline, baseline, prefix)
+            self.assertEqual(no_change["changedRefs"], [])
+            self.assertFalse(no_change["proofReuseAdmissible"])
+            self.assertTrue(no_change["gitSourceQueryComplete"])
+
+            (root / "README").write_text("outside", encoding="utf8")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "unrelated outside")
+            outside = git(root, "rev-parse", "HEAD")
+            self.assertEqual(delta(root, baseline, outside, prefix)["changedRefs"], [])
+
+            (directory / "cas.rs").write_text("true", encoding="utf8")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "regress CAS")
+            weakened = git(root, "rev-parse", "HEAD")
+            changed = delta(root, outside, weakened, prefix)
+            self.assertEqual(changed["changedValuePaths"], [prefix + "cas.rs"])
+            self.assertEqual(changed["addedPaths"], [])
+            self.assertFalse(changed["membershipChanged"])
+            self.assertEqual(
+                changed["changedRefs"], [changed["sourceScopeRef"] + ":path:" + prefix + "cas.rs"]
+            )
+
+            (directory / "new.rs").write_text("failed", encoding="utf8")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "new provider")
+            added = git(root, "rev-parse", "HEAD")
+            new = delta(root, weakened, added, prefix)
+            self.assertEqual(new["addedPaths"], [prefix + "new.rs"])
+            self.assertTrue(new["membershipChanged"])
+            self.assertEqual(
+                new["changedRefs"],
+                sorted([
+                    new["sourceScopeRef"] + ":members:" + prefix,
+                    new["sourceScopeRef"] + ":path:" + prefix + "new.rs",
+                ])
+            )
+
+            # A path containing newlines, colon or percent must not collide
+            # with other typed source dependencies when encoded.
+            (directory / "odd:\\n%.rs").write_text("opaque")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "odd path")
+            escaped = delta(root, added, git(root, "rev-parse", "HEAD"), prefix)
+            self.assertTrue(any("%3A" in item and "%25" in item for item in escaped["changedRefs"]))
+            self.assertEqual(
+                delta(root, baseline, baseline, prefix, max_members=2)["changedRefs"], []
+            )
+            self.assertTrue(set(new["changedRefs"]).issubset(new["authorityRefs"]))
+            self.assertIn(new["membershipRef"], new["authorityRefs"])
+            with self.assertRaisesRegex(ValueError, "membership bound exceeded"):
+                delta(root, baseline, added, prefix, max_members=2)
+            # Two independent Git worktrees with matching relative paths
+            # cannot alias each other's source-root or proof-dependency refs.
+            second = root / "other-repository"
+            second.mkdir()
+            git(second, "init", "-q", "-b", "main")
+            git(second, "config", "user.name", "Ordivon Test")
+            git(second, "config", "user.email", "test@example.invalid")
+            matching = second / prefix / "cas.rs"
+            matching.parent.mkdir(parents=True)
+            matching.write_text("state == accepted", encoding="utf8")
+            git(second, "add", ".")
+            git(second, "commit", "-qm", "same relative path, different source")
+            other_cut = git(second, "rev-parse", "HEAD")
+            second_scope = delta(second, other_cut, other_cut, prefix)
+            assert second_scope["sourceScopeRef"] != no_change["sourceScopeRef"]
+            assert set(second_scope["authorityRefs"]).isdisjoint(no_change["authorityRefs"])
+
+
 if __name__ == "__main__":
     unittest.main()

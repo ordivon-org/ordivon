@@ -932,3 +932,116 @@ def test_gate_source_delta_retains_independent_local_source_when_parallel_gate_a
     assert delta["unchangedGateIds"] == ["gate:candidate-contract"]
     assert delta["changedGateIds"] == []
     assert delta["proofReuseAdmissible"] is False
+def test_native_git_source_delta_selects_cas_without_rechecking_tla(tmp_path, monkeypatch):
+    """Real Git and existing Composition selector: red CAS != model-source delta.
+
+    The Git reader owns only SOURCE facts. No acceptance or installed property
+    follows from a REUSE_CANDIDATE returned by this task-local selector.
+    """
+    import subprocess
+    from pathlib import Path
+
+    source_repo = Path(__file__).resolve().parents[3]
+    monkeypatch.syspath_prepend(str(source_repo))
+    from tools.repo.source_history_legos import source_membership_delta
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(
+            ["git", "-C", str(tmp_path), *args], text=True
+        ).strip()
+
+    git("init", "-q", "-b", "main")
+    git("config", "user.name", "Ordivon Contract Test")
+    git("config", "user.email", "contract@example.invalid")
+    source_cut = "6e3b5e7205108662d3a0fa6cae23aa53411fce3c"
+    cas = "services/runtime/crates/ordivon-runtime-core/src/runtime/registry/lifecycle.rs"
+    model = "services/runtime/formal/RuntimeDispatchR1.tla"
+    other = "services/runtime/formal/README.md"
+    for item in [cas, model]:
+        output = subprocess.check_output(
+            ["git", "-C", str(source_repo), "show", f"{source_cut}:{item}"]
+        )
+        location = tmp_path / item
+        location.parent.mkdir(parents=True, exist_ok=True)
+        location.write_bytes(output)
+    (tmp_path / other).write_text("Unrelated Runtime documentation.")
+    (tmp_path / "README.md").write_text("Outside scoped Git source.")
+    git("add", ".")
+    git("commit", "-qm", "frozen runtime source")
+    baseline = git("rev-parse", "HEAD")
+    prefix = "services/runtime/"
+
+    def inspect(old: str, new: str, *, unknown: list[str] | None = None):
+        delta = source_membership_delta(tmp_path, old, new, prefix)
+        scoped = delta["sourceScopeRef"]
+        claims = [
+            {"id": "proof:CAS-implementation",
+             "dependsOn": [scoped + ":path:" + cas], "dependenciesComplete": True},
+            {"id": "proof:RuntimeDispatch-TLA-model",
+             "dependsOn": [scoped + ":path:" + model], "dependenciesComplete": True},
+            {"id": "proof:all-runtime-members",
+             "dependsOn": [delta["membershipRef"]], "dependenciesComplete": True},
+            {"id": "proof:unrelated-doc",
+             "dependsOn": [scoped + ":path:" + other], "dependenciesComplete": True},
+        ]
+        result = select_impacted_obligations(
+            authority_refs=delta["authorityRefs"], obligations=claims,
+            changed_refs=delta["changedRefs"], unknown_refs=unknown
+        )
+        return delta, result, {
+            row["id"]: row["standing"] for row in result["standingByObligation"]
+        }
+
+    (tmp_path / "README.md").write_text("Unrelated Git change.")
+    git("add", ".")
+    git("commit", "-qm", "unrelated change")
+    unrelated = git("rev-parse", "HEAD")
+    _, baseline_selection, baseline_standing = inspect(baseline, unrelated)
+    assert all(v == "REUSE_CANDIDATE" for v in baseline_standing.values())
+    assert not baseline_selection["proofReuseAdmissible"]
+
+    path = tmp_path / cas
+    rust = path.read_bytes()
+    start = rust.index(b"pub(super) fn mark_dispatch_issued(")
+    end = rust.index(b"pub(crate) fn dispatch_issued_at_ms", start)
+    method = rust[start:end]
+    state_guard = (
+        b"if attempt.state != AttemptState::Accepted\\n"
+        b"            || attempt.row_version != expected_row_version\\n"
+        b"            || attempt.bundle_digest.is_none()"
+    ).replace(b"\\n", b"\n")
+    sql_guard = b"AND state='accepted' AND row_version=?2 AND bundle_digest IS NOT NULL"
+    assert method.count(state_guard) == 1 and method.count(sql_guard) == 1
+    red = method.replace(state_guard, b"if attempt.bundle_digest.is_none()")
+    red = red.replace(sql_guard, b"AND (?2 >= 0) AND bundle_digest IS NOT NULL")
+    path.write_bytes(rust[:start] + red + rust[end:])
+    git("add", ".")
+    git("commit", "-qm", "red mutant on exact CAS implementation")
+    red_cut = git("rev-parse", "HEAD")
+    delta, selected, status = inspect(unrelated, red_cut)
+    assert delta["changedValuePaths"] == [cas]
+    assert delta["membershipChanged"] is False
+    assert status["proof:CAS-implementation"] == "RECHECK_REQUIRED"
+    assert status["proof:RuntimeDispatch-TLA-model"] == "REUSE_CANDIDATE"
+    assert status["proof:all-runtime-members"] == "REUSE_CANDIDATE"
+    assert status["proof:unrelated-doc"] == "REUSE_CANDIDATE"
+    assert selected["proofReuseAdmissible"] is False
+
+    extra = tmp_path / "services/runtime/providers/new.rs"
+    extra.parent.mkdir(parents=True, exist_ok=True)
+    extra.write_text("fn new_provider() {}")
+    git("add", ".")
+    git("commit", "-qm", "new runtime provider appears")
+    added_cut = git("rev-parse", "HEAD")
+    delta, selected, status = inspect(red_cut, added_cut)
+    assert delta["membershipChanged"]
+    assert status["proof:all-runtime-members"] == "RECHECK_REQUIRED"
+    assert status["proof:CAS-implementation"] == "REUSE_CANDIDATE"
+    assert status["proof:RuntimeDispatch-TLA-model"] == "REUSE_CANDIDATE"
+    assert not selected["proofReuseAdmissible"]
+
+    # When a non-Git environmental dependency cannot be enumerated, the
+    # existing selector fails closed instead of laundering stale evidence.
+    _, selected, status = inspect(red_cut, added_cut, unknown=["runtime:ambient-unresolved"])
+    assert all(v == "UNKNOWN" or v == "RECHECK_REQUIRED" for v in status.values())
+    assert selected["proofReuseAdmissible"] is False
