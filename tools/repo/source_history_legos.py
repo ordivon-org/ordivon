@@ -63,6 +63,80 @@ def current_tree(repo: Path, revision: str) -> dict[str, str]:
 
 
 
+def source_membership_query(
+    repo: Path, source_cut: str, prefix: str, *, max_members: int = 10000
+) -> dict:
+    """Exact Git subtree membership and mode/blob fingerprint, never proof reuse.
+
+    In particular, additions/absence are queries about the *set of paths*.
+    Merely recording the old members' content hashes misses negative
+    dependencies such as "all providers in this namespace satisfy P".
+    This query's closed domain is only one immutable Git source tree.
+    """
+    import hashlib
+    import re
+
+    if not isinstance(source_cut, str) or not re.fullmatch(r"[0-9a-f]{40}", source_cut):
+        raise ValueError("sourceCut must be an exact 40-hex Git commit")
+    if (
+        not isinstance(prefix, str)
+        or not prefix.endswith("/")
+        or (
+            prefix.startswith("/")
+            or chr(92) in prefix
+            or any(part in {"", ".", ".."} for part in prefix[:-1].split("/"))
+        )
+    ):
+        raise ValueError("query prefix must be a canonical non-root directory")
+    if type(max_members) is not int or max_members < 1:
+        raise ValueError("max_members must be a positive integer")
+
+    exact = git(repo, "rev-parse", "--verify", source_cut + "^{commit}").strip()
+    if exact != source_cut:
+        raise ValueError("sourceCut did not resolve to the exact requested commit")
+    tree_oid = git(repo, "rev-parse", source_cut + "^{tree}").strip()
+    # Reuse Git's existing exhaustive NUL-delimited native tree enumeration.
+    tree = current_tree(repo, source_cut)
+    parts = prefix[:-1].split("/")
+    for index in range(1, len(parts) + 1):
+        ancestor = "/".join(parts[:index])
+        if ancestor in tree:
+            # A Git blob, symlink or gitlink is not a directory. In particular
+            # a submodule's member set is NOT inside this parent Git tree.
+            raise ValueError(f"query crosses a non-directory source boundary: {ancestor}")
+    matches = sorted(
+        (path, identity) for path, identity in tree.items() if path.startswith(prefix)
+    )
+    if len(matches) > max_members:
+        raise ValueError("query membership bound exceeded; result is UNKNOWN")
+
+    def digest(value: object) -> str:
+        data = json.dumps(
+            value, ensure_ascii=True, separators=(",", ":"), sort_keys=True
+        )
+        return "sha256:" + hashlib.sha256(data.encode("ascii")).hexdigest()
+
+    paths = [path for path, _ in matches]
+    return {
+        "kind": "ordivon.git-source-membership-query",
+        "truthRole": "exact-immutable-sourcecut-projection-not-consumer-authority",
+        "sourceCut": source_cut,
+        "treeOid": tree_oid,
+        "queryPrefix": prefix,
+        "memberCount": len(matches),
+        "memberSetDigest": digest({"queryPrefix": prefix, "paths": paths}),
+        "memberValuesDigest": digest({"queryPrefix": prefix, "members": matches}),
+        "members": [{"path": path, "gitIdentity": ident} for path, ident in matches],
+        "gitSourceQueryComplete": True,
+        "proofReuseAdmissible": False,
+        "nonClaims": [
+            "Complete means only named Git paths under exact immutable SourceCut.",
+            "It does not qualify Skills visibility or any installed/runtime consumer.",
+            "Source membership/value equality is not semantic or proof equivalence.",
+        ],
+    }
+
+
 def history(repo: Path, left: str, right: str) -> dict:
     left_oid = git(repo, "rev-parse", "--verify", left + "^{commit}").strip()
     right_oid = git(repo, "rev-parse", "--verify", right + "^{commit}").strip()

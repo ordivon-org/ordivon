@@ -626,6 +626,102 @@ class SourceHistoryLegosTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "end with"):
                 history(root, "main", "remote-main")
 
+    def test_source_membership_query_separates_membership_and_values(self):
+        """Negative dependencies require querying the namespace, not only old files."""
+        with tempfile.TemporaryDirectory(prefix="ordivon-git-membership-") as temp:
+            root = Path(temp)
+            git(root, "init", "-q", "-b", "main")
+            git(root, "config", "user.name", "Ordivon Test")
+            git(root, "config", "user.email", "test@example.invalid")
+            namespace = root / "services/runtime/providers"
+            namespace.mkdir(parents=True)
+            (namespace / "a.rs").write_text("healthy", encoding="utf-8")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "initial member")
+            initial = git(root, "rev-parse", "HEAD")
+            query = source_history_legos.source_membership_query
+            a = query(root, initial, "services/runtime/providers/")
+            self.assertTrue(a["gitSourceQueryComplete"])
+            self.assertFalse(a["proofReuseAdmissible"])
+            self.assertEqual(a["memberCount"], 1)
+            self.assertEqual(
+                [entry["path"] for entry in a["members"]],
+                ["services/runtime/providers/a.rs"],
+            )
+            (namespace / "a.rs").write_text(
+                "still healthy but different", encoding="utf-8"
+            )
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "change value only")
+            after_value = git(root, "rev-parse", "HEAD")
+            b = query(root, after_value, "services/runtime/providers/")
+            self.assertEqual(a["memberSetDigest"], b["memberSetDigest"])
+            self.assertNotEqual(a["memberValuesDigest"], b["memberValuesDigest"])
+
+            (namespace / "b.rs").write_text("failed", encoding="utf-8")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "add failed provider")
+            after_add = git(root, "rev-parse", "HEAD")
+            c = query(root, after_add, "services/runtime/providers/")
+            self.assertNotEqual(b["memberSetDigest"], c["memberSetDigest"])
+            self.assertNotEqual(b["memberValuesDigest"], c["memberValuesDigest"])
+            self.assertEqual(c["memberCount"], 2)
+            self.assertEqual(a, query(root, initial, "services/runtime/providers/"))
+
+            (namespace / "b.rs").rename(namespace / "renamed.rs")
+            git(root, "add", "-A")
+            git(root, "commit", "-qm", "rename identical object bytes")
+            after_rename = git(root, "rev-parse", "HEAD")
+            d = query(root, after_rename, "services/runtime/providers/")
+            self.assertNotEqual(c["memberSetDigest"], d["memberSetDigest"])
+            self.assertNotEqual(c["memberValuesDigest"], d["memberValuesDigest"])
+            missing_a = query(root, initial, "services/runtime/absent/")
+            missing_b = query(root, initial, "services/runtime/other-absent/")
+            self.assertEqual(missing_a["memberCount"], 0)
+            self.assertEqual(missing_b["memberCount"], 0)
+            self.assertNotEqual(missing_a["memberSetDigest"], missing_b["memberSetDigest"])
+
+    def test_source_membership_scope_rejects_ambiguous_inputs_and_truncation(self):
+        with tempfile.TemporaryDirectory(
+            prefix="ordivon-git-membership-fence-"
+        ) as temp:
+            root = Path(temp)
+            git(root, "init", "-q", "-b", "main")
+            git(root, "config", "user.name", "Ordivon Test")
+            git(root, "config", "user.email", "test@example.invalid")
+            (root / "provider.txt").write_text("one", encoding="utf-8")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "base")
+            commit = git(root, "rev-parse", "HEAD")
+            query = source_history_legos.source_membership_query
+            for bad in (
+                "",
+                "/",
+                "../hidden/",
+                "/absolute/",
+                "services//runtime/",
+                "services/./runtime/",
+                "services\\runtime/",
+            ):
+                with (
+                    self.subTest(prefix=bad),
+                    self.assertRaisesRegex(ValueError, "canonical non-root directory"),
+                ):
+                    query(root, commit, bad)
+            with self.assertRaisesRegex(ValueError, "exact 40-hex"):
+                query(root, "HEAD", "services/runtime/")
+            with self.assertRaisesRegex(ValueError, "non-directory source boundary"):
+                query(root, commit, "provider.txt/nested/")
+            with self.assertRaisesRegex(ValueError, "positive integer"):
+                query(root, commit, "services/runtime/", max_members=0)
+            (root / "services").mkdir()
+            (root / "services" / "a.txt").write_text("a", encoding="utf-8")
+            (root / "services" / "b.txt").write_text("b", encoding="utf-8")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "two members")
+            with self.assertRaisesRegex(ValueError, "membership bound exceeded"):
+                query(root, git(root, "rev-parse", "HEAD"), "services/", max_members=1)
+
 
 if __name__ == "__main__":
     unittest.main()
