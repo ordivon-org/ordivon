@@ -562,7 +562,12 @@ def select_impacted_obligations(
                 derived_contract_changes.add(identity)
         changed |= derived_relation_changes | derived_contract_changes
 
-    unindexed = sorted((changed | unknown) - (roots | set(claims) | retired_known_claims))
+    # Retired *derived changes* are known history. An explicit current
+    # unknownRefs claim must never be erased merely because that name was a
+    # proof in a previous graph: it may describe an unresolved dynamic read.
+    unindexed = sorted(
+        ((changed - retired_known_claims) | unknown) - (roots | set(claims))
+    )
     rows = [{"id": root, "dependsOn": []} for root in roots]
     rows += [{"id": identity, "dependsOn": item["dependsOn"]} for identity, item in claims.items()]
     cyclic = _cyclic_proof_members(rows)

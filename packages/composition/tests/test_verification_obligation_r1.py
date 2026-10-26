@@ -1620,3 +1620,27 @@ def test_immutable_manifest_sourcecut_ignores_native_git_replace_refs(tmp_path) 
     restored, evidence = _immutable_git_manifest(repo, initial_cut, Path("manifest.json"))
     assert evidence["commit"] == initial_cut
     assert restored == original
+
+
+def test_retired_historical_proof_does_not_erase_new_explicit_unknown_ref():
+    """Historical retirement is known; caller's current unknown remains unknown."""
+    active = {"id": "proof:active", "dependsOn": ["source:main"], "dependenciesComplete": True}
+    retired = {"id": "proof:retired", "dependsOn": ["source:main"], "dependenciesComplete": True}
+    common = {
+        "authority_refs": ["source:main"],
+        "obligations": [active],
+        "changed_refs": [],
+        "previous_graph": {
+            "authorityRefs": ["source:main"],
+            "obligations": [active, retired],
+        },
+    }
+    historical_only = select_impacted_obligations(**common)
+    assert _statuses(historical_only)["proof:active"] == "REUSE_CANDIDATE"
+    assert historical_only["unindexedChangeRefs"] == []
+    new_unknown = select_impacted_obligations(
+        **common, unknown_refs=["proof:retired"]
+    )
+    assert _statuses(new_unknown)["proof:active"] == "UNKNOWN"
+    assert new_unknown["unindexedChangeRefs"] == ["proof:retired"]
+    assert new_unknown["proofReuseAdmissible"] is False
