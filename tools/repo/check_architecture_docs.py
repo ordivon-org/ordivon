@@ -6,12 +6,11 @@ import hashlib
 import json
 import math
 import re
+import tomllib
 from decimal import Decimal
 from graphlib import CycleError, TopologicalSorter
 from pathlib import Path
 from typing import Any
-
-import tomllib
 
 ROOT = Path(__file__).resolve().parents[2]
 CURRENT = ROOT / "docs" / "architecture" / "CURRENT_ARCHITECTURE.md"
@@ -753,8 +752,7 @@ def project_node_python_import_syntax(
     prefix = owner + "/src/"
     rel = target_source[len(prefix):]
     target_module = rel[:-3].replace("/", ".")
-    if target_module.endswith(".__init__"):
-        target_module = target_module[:-len(".__init__")]
+    target_module = target_module.removesuffix(".__init__")
     if not target_module or "." not in target_module:
         raise ArchitectureDocsError("Python import target package path is unqualified")
 

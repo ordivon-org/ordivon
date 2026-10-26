@@ -1188,6 +1188,7 @@ def test_git_qualified_harness_h01_syntax_importers_are_real_source_edges(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     import subprocess
+
     from tools.repo.source_history_legos import current_tree
 
     rev = subprocess.check_output(
@@ -1240,6 +1241,7 @@ def test_ast_imports_reject_comments_strings_dynamic_and_unresolved_symbols(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     import subprocess
+
     from tools.repo.source_history_legos import current_tree
 
     root = tmp_path
