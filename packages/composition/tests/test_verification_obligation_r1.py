@@ -1109,6 +1109,7 @@ def test_native_git_source_delta_selects_cas_without_rechecking_tla(tmp_path, mo
     # Agent-native path: existing repo CLI emits the scoped, immutable Git
     # delta; existing Composition CLI consumes it without inventing authority.
     import json
+    import os
     import sys
 
     delta_output = subprocess.check_output(
@@ -1169,6 +1170,29 @@ def test_native_git_source_delta_selects_cas_without_rechecking_tla(tmp_path, mo
         "proof:RuntimeDispatch-TLA-model": "REUSE_CANDIDATE",
     }
     assert cli_status["proofReuseAdmissible"] is False
+
+    # Package-only invocation matches CI: Composition is separately installed
+    # and its subprocess does not inherit the monorepo root on sys.path.
+    composition_root = Path(__file__).resolve().parents[1]
+    restricted_env = dict(os.environ, PYTHONPATH=str(composition_root / "src"))
+    package_only = json.loads(
+        subprocess.check_output(
+            [
+                sys.executable,
+                "-m",
+                "ordivon_composition.verification_obligation_r1",
+                "select-impact",
+                str(delta_file),
+                str(claims_file),
+                "--repo",
+                str(tmp_path),
+            ],
+            cwd=composition_root,
+            env=restricted_env,
+            text=True,
+        )
+    )
+    assert package_only == cli_status
 
     # A caller-supplied fake "owner certificate" cannot be promoted by CLI.
     untrusted = dict(cli_delta)

@@ -15,6 +15,7 @@ import hashlib
 import json
 import re
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -777,23 +778,40 @@ def main() -> int:
                 raise CircuitContractError(
                     "select-impact cannot promote unqualified Git source evidence"
                 )
-            # Re-evaluate the complete typed delta using the existing Git
-            # owner projection rather than believing an unauthenticated report.
-            # This protects even non-authoritative REUSE_CANDIDATE scheduling
-            # against omitted or forged changedRefs/source scope metadata.
+            # Consume the native Git owner's existing query CLI. Composition
+            # is a separate Python package: the repository tools package is
+            # not guaranteed to be importable from its project-only sys.path.
+            # If this checkout-bound executable is unavailable, fail closed.
             try:
-                from tools.repo.source_history_legos import source_membership_delta
-
                 cuts = delta.get("sourceCuts")
                 if not isinstance(cuts, dict):
                     raise ValueError("sourceCuts must specify immutable Git commits")
-                qualified = source_membership_delta(
-                    args.repo,
-                    cuts.get("previous"),
-                    cuts.get("current"),
-                    delta.get("queryPrefix"),
+                owner_tool = (
+                    Path(__file__).resolve().parents[4] / "tools/repo/source_history_legos.py"
                 )
-            except (ValueError, OSError, TypeError, ImportError) as exc:
+                if not owner_tool.is_file():
+                    raise ValueError("Git owner query entrypoint unavailable")
+                native_query = subprocess.run(
+                    [
+                        sys.executable,
+                        str(owner_tool),
+                        "--repo",
+                        str(args.repo),
+                        "--left",
+                        cuts.get("previous"),
+                        "--right",
+                        cuts.get("current"),
+                        "--impact-prefix",
+                        delta.get("queryPrefix"),
+                    ],
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                )
+                if native_query.returncode != 0:
+                    raise ValueError("native Git source query failed")
+                qualified = json.loads(native_query.stdout)
+            except (ValueError, OSError, TypeError) as exc:
                 raise CircuitContractError(
                     "select-impact requires independently recomputable native Git scope"
                 ) from exc
