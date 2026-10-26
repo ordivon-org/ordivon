@@ -1289,6 +1289,58 @@ trait Provider {
             finally:
                 self.module.ROOT = original_root
 
+    def test_runtime_formal_source_impact_rejects_dirty_root_toolchain_and_hidden_flags(self):
+        """A clean Runtime subtree is insufficient for a source-bound Rust witness."""
+        import subprocess
+
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp)
+            (repo / "services/runtime").mkdir(parents=True)
+            (repo / ".cargo").mkdir()
+            (repo / "services/runtime/core.rs").write_text("fn core() {}\n", encoding="utf-8")
+            mise = repo / "mise.toml"
+            mise_original = '[tools]\npython = "3.15.1"\n'
+            mise.write_text(mise_original, encoding="utf-8")
+            config = repo / ".cargo/config.toml"
+            config.write_text("[build]\n", encoding="utf-8")
+
+            def git(*args):
+                return subprocess.run(
+                    ["git", "-C", str(repo), *args], check=True, capture_output=True,
+                ).stdout
+
+            git("init", "-q")
+            git("add", ".")
+            git("-c", "user.name=FormalTest", "-c", "user.email=test@example.invalid",
+                "commit", "-qm", "source-cut")
+            commit = git("rev-parse", "HEAD").decode().strip()
+            previous_root = self.module.ROOT
+            self.module.ROOT = repo / "services/runtime"
+            try:
+                self.assertEqual(self.module._git_source_changes(commit, commit), set())
+                mise.write_text('[tools]\npython = "0.0.0"\n', encoding="utf-8")
+                self.assertEqual(
+                    git("status", "--porcelain", "--", "services/runtime"), b""
+                )
+                with self.assertRaisesRegex(ValueError, "worktree is dirty"):
+                    self.module._git_source_changes(commit, commit)
+                mise.write_text(mise_original, encoding="utf-8")
+
+                git("update-index", "--skip-worktree", "--", "mise.toml")
+                mise.write_text('[tools]\npython = "0.0.0"\n', encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "unsafe Git index flags"):
+                    self.module._git_source_changes(commit, commit)
+                mise.write_text(mise_original, encoding="utf-8")
+                git("update-index", "--no-skip-worktree", "--", "mise.toml")
+
+                config.write_text("[build]\nrustflags = []\n", encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "worktree is dirty"):
+                    self.module._git_source_changes(commit, commit)
+                config.write_text("[build]\n", encoding="utf-8")
+                self.assertEqual(self.module._git_source_changes(commit, commit), set())
+            finally:
+                self.module.ROOT = previous_root
+
     def test_runtime_formal_source_impact_rejects_untrusted_paths_and_git_ref(self):
         trace, invariants = manifests()
         for bad in ("../escape", "/absolute", "services//runtime/file", "services\\runtime\\bad"):

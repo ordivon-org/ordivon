@@ -834,6 +834,15 @@ def validate(trace: dict[str, Any], invariant_manifest: dict[str, Any]) -> list[
     return errors
 
 
+# Build/toolchain inputs outside the Runtime source subtree can invalidate a
+# Runtime proof witness just as Runtime-owned Rust input can. This is a bounded
+# Git read-set guard, NOT complete build/runtime dependency qualification.
+_ROOT_BUILD_INPUTS = frozenset({
+    "Cargo.toml", "Cargo.lock", "rust-toolchain", "rust-toolchain.toml",
+    "mise.toml", "mise.lock",
+})
+
+
 def project_proving_test_source_impact(
     trace: dict[str, Any],
     invariant_manifest: dict[str, Any],
@@ -898,13 +907,9 @@ def project_proving_test_source_impact(
     # Runtime source witness even when no Runtime-local path has changed.
     # This is a deliberately bounded cross-cutting assumption guard, NOT a
     # claim that every external dependency has been discovered.
-    root_build_inputs = {
-        "Cargo.toml", "Cargo.lock", "rust-toolchain", "rust-toolchain.toml",
-        "mise.toml", "mise.lock",
-    }
     crosscutting_assumption_changes = {
         path for path in changed_paths
-        if path in root_build_inputs or path.startswith(".cargo/")
+        if path in _ROOT_BUILD_INPUTS or path.startswith(".cargo/")
     }
     rows = []
     for witness_id, readset in sorted(readsets.items()):
@@ -958,14 +963,15 @@ def _git_source_changes(base: str, head: str) -> set[str]:
     # Git status can hide edited tracked files when the index carries
     # assume-unchanged or skip-worktree bits. Such flags defeat a source
     # currentness claim even when --porcelain reports an empty worktree.
-    index_rows = git("ls-files", "-v", "-z", "--", "services/runtime")
+    source_scope = ("services/runtime", *sorted(_ROOT_BUILD_INPUTS), ".cargo")
+    index_rows = git("ls-files", "-v", "-z", "--", *source_scope)
     if any(
         not row.startswith(b"H ")
         for row in index_rows.split(b"\x00") if row
     ):
-        raise ValueError("impact Runtime tracked source has unsafe Git index flags")
-    if git("status", "--porcelain", "--untracked-files=normal", "--", "services/runtime"):
-        raise ValueError("impact Runtime worktree is dirty; Git source is not current checkout")
+        raise ValueError("impact Runtime/formal build tracked source has unsafe Git index flags")
+    if git("status", "--porcelain", "--untracked-files=normal", "--", *source_scope):
+        raise ValueError("impact Runtime/formal build worktree is dirty; Git source is not current checkout")
     for revision in (base, head):
         git("cat-file", "-e", f"{revision}^{{commit}}")
     data = git("diff", "--no-renames", "--name-only", "-z", base, head, "--")
