@@ -14,6 +14,18 @@ version = "0.9.149"
 [tools."http:cargo-nextest".platforms]
 linux-x64 = { url = "https://github.com/nextest-rs/nextest/releases/download/cargo-nextest-0.9.149/cargo-nextest-0.9.149-x86_64-unknown-linux-gnu.tar.gz", checksum = "sha256:32d1d8c0567b7a80bee2bad8bb09125c846da96bc009b2de11ec08557290c770", size = 12121096 }
 
+[tasks."formal:kani:verify"]
+description = "Check PostgreSQL Attempt terminal transitions against real Rust code with upstream Kani"
+run = """
+set -euo pipefail
+cargo kani setup
+cargo kani -p ordivon-runtime-core --lib --no-default-features --features postgres-registry-admission --harness proof_pg_terminal_transition_matches_contract --default-unwind 32
+"""
+
+# Kani is opt-in so regular Rust checks do not download a large verifier.
+[tasks."formal:kani:verify".tools]
+"cargo:kani-verifier" = { version = "latest", os = ["linux"], locked = true }
+
 [tasks.verify]
 run = """
 set -euo pipefail

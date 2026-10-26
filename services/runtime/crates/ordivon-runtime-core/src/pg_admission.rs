@@ -313,6 +313,29 @@ fn terminal_transition(from: &str, to: &str) -> bool {
         _ => false,
     }
 }
+
+#[cfg(kani)]
+mod kani_transition_proofs {
+    use super::terminal_transition;
+
+    // Symbolically enumerate four important input pairs of the *real* Rust
+    // transition function. This is a bounded refinement obligation, not a
+    // claim about arbitrary strings or all installed Runtime transitions.
+    #[kani::proof]
+    fn proof_pg_terminal_transition_matches_contract() {
+        let was_running: bool = kani::any();
+        let wants_success: bool = kani::any();
+        let from = if was_running { "running" } else { "accepted" };
+        let to = if wants_success {
+            "succeeded"
+        } else {
+            "cancelled"
+        };
+        let allowed_by_contract = was_running || !wants_success;
+        assert_eq!(terminal_transition(from, to), allowed_by_contract);
+    }
+}
+
 impl PgAdmissionStore {
     /// Exact no-Artifact terminal/Job/reservation/event atomicity, no runner or
     /// external output effect. Arbitrary Artifact-bearing terminal commits are
