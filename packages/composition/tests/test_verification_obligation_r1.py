@@ -1303,6 +1303,31 @@ def _two_gate_manifest() -> dict:
     other["id"] = "gate:unrelated-property"
     other["assumption"] = "Separate independent premise."
     other["guarantee"] = "Separate independent guarantee."
+    # Independent source/consumer chain; a second Gate on the SAME consumer
+    # would not be independent and must be invalidated by #851 scope semantics.
+    producer = copy.deepcopy(manifest["stages"][0])
+    producer.update(
+        id="stage:unrelated-producer",
+        ownerId="unrelated-producer",
+        responsibility="Produce independent candidate",
+        outputs=["independent-candidate"],
+    )
+    consumer = copy.deepcopy(manifest["stages"][1])
+    consumer.update(
+        id="stage:unrelated-consumer",
+        ownerId="unrelated-consumer",
+        responsibility="Consume independent candidate",
+        dependsOn=["stage:unrelated-producer"],
+        inputs=["independent-candidate"],
+    )
+    manifest["stages"].extend([producer, consumer])
+    edge = copy.deepcopy(manifest["edges"][0])
+    edge.update(id="edge:unrelated")
+    edge["from"] = {"stageId": producer["id"], "port": "independent-candidate"}
+    edge["to"] = {"stageId": consumer["id"], "port": "independent-candidate"}
+    manifest["edges"].append(edge)
+    other["producerStageId"] = producer["id"]
+    other["consumerStageId"] = consumer["id"]
     manifest["gateRequirements"].append(other)
     return manifest
 
@@ -1341,10 +1366,13 @@ def test_manifest_gate_impact_unqualified_unchanged_stays_unknown() -> None:
 def test_manifest_gate_impact_shared_context_delta_rechecks_all() -> None:
     previous = _two_gate_manifest()
     current = copy.deepcopy(previous)
-    current["stages"][0]["responsibility"] = "Changed shared contract context"
+    current["unresolvedAssumptions"].append("Changed global environmental assumption")
     result = select_manifest_gate_impacts(previous_manifest=previous, current_manifest=current)
     assert result["sharedManifestContextChanged"]
-    assert not result["changedLocalGateIds"]
+    assert set(result["changedLocalGateIds"]) == {
+        "gate:candidate-contract",
+        "gate:unrelated-property",
+    }
     assert set(_gate_impact_statuses(result).values()) == {"RECHECK_REQUIRED"}
 
 
@@ -1413,6 +1441,44 @@ def test_manifest_gate_impact_reuses_existing_cli_command_surface(tmp_path) -> N
     assert _gate_impact_statuses(projection) == {
         "proof:gate:gate:candidate-contract": "RECHECK_REQUIRED",
         "proof:gate:gate:unrelated-property": "UNKNOWN",
+    }
+
+
+def test_manifest_gate_impact_does_not_recheck_on_parallel_stage_change() -> None:
+    previous = _manifest()
+    previous["stages"].append(
+        {
+            "id": "stage:parallel",
+            "ownerId": "parallel",
+            "responsibility": "Independent external branch",
+            "dependsOn": [],
+            "methodBindings": [],
+            "capabilityBindings": [],
+            "inputs": [],
+            "outputs": ["unrelated"],
+        }
+    )
+    current = copy.deepcopy(previous)
+    current["stages"][-1]["responsibility"] = "Independent branch changed"
+    scoped = compare_gate_source_scopes(previous, current)
+    assert scoped["changedGateIds"] == []
+    result = select_manifest_gate_impacts(previous_manifest=previous, current_manifest=current)
+    assert result["sharedManifestContextChanged"] is False
+    assert result["changedLocalGateIds"] == []
+    assert _gate_impact_statuses(result) == {"proof:gate:gate:candidate-contract": "UNKNOWN"}
+
+
+def test_manifest_gate_impact_rechecks_true_scoped_producer_change() -> None:
+    previous = _manifest()
+    current = copy.deepcopy(previous)
+    current["stages"][0]["responsibility"] = "Producer changed"
+    scoped = compare_gate_source_scopes(previous, current)
+    assert scoped["changedGateIds"] == ["gate:candidate-contract"]
+    result = select_manifest_gate_impacts(previous_manifest=previous, current_manifest=current)
+    assert result["sharedManifestContextChanged"] is False
+    assert result["changedLocalGateIds"] == ["gate:candidate-contract"]
+    assert _gate_impact_statuses(result) == {
+        "proof:gate:gate:candidate-contract": "RECHECK_REQUIRED"
     }
 
 

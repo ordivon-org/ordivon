@@ -666,31 +666,36 @@ def select_manifest_gate_impacts(
     if previous_manifest["circuitId"] != current_manifest["circuitId"]:
         raise CircuitContractError("cannot compare different circuit identities")
 
-    previous_gates = {item["gateId"]: item for item in previous["obligations"]}
-    current_gates = {item["gateId"]: item for item in current["obligations"]}
-    all_previous = set(previous_gates)
-    all_current = set(current_gates)
-    added = sorted(all_current - all_previous)
-    removed = sorted(all_previous - all_current)
+    # Reuse the existing R2.1 source-scope operator. Its bounded upstream
+    # closure already understands producer/consumer stages, incoming edges,
+    # method/capability bindings and other premises of the same consumer.
+    # Computing another all-non-Gate hash would invalidate unrelated branches.
+    scoped = compare_gate_source_scopes(previous_manifest, current_manifest)
+    all_current = {item["gateId"] for item in current["obligations"]}
+    added = scoped["addedGateIds"]
+    removed = scoped["removedGateIds"]
 
+    # Actual global context affects every Gate, including negative membership
+    # queries. The scoped comparator separately handles all local source inputs.
     def shared_context(manifest: dict[str, Any]) -> str:
-        # All non-Gate inputs are a shared dependency, including stage bindings,
-        # edges, circuit objective, unresolved assumptions and composition metadata.
-        # Gate existence/required-set membership is a negative query dependency:
-        # new or removed required obligations may affect global closure.
-        body = {key: value for key, value in manifest.items() if key != "gateRequirements"}
-        gates = manifest["gateRequirements"]
-        body["gateMembership"] = sorted(item["id"] for item in gates)
-        body["requiredGateMembership"] = sorted(item["id"] for item in gates if item["required"])
-        return canonical_digest(body)
+        return canonical_digest(
+            {
+                key: manifest[key]
+                for key in (
+                    "schemaVersion",
+                    "kind",
+                    "circuitId",
+                    "objectiveRef",
+                    "unresolvedAssumptions",
+                    "nonClaims",
+                )
+            }
+        )
 
-    shared_changed = shared_context(previous_manifest) != shared_context(current_manifest)
-    local_changed = sorted(
-        gate_id
-        for gate_id in all_current
-        if gate_id not in previous_gates
-        or previous_gates[gate_id]["sourceGateDigest"] != current_gates[gate_id]["sourceGateDigest"]
+    shared_changed = shared_context(previous_manifest) != shared_context(current_manifest) or bool(
+        added or removed
     )
+    local_changed = sorted(set(scoped["changedGateIds"]) | set(added))
 
     shared_ref = "source:manifest-shared"
 
@@ -729,7 +734,8 @@ def select_manifest_gate_impacts(
         "proofReuseAdmissible": False,
         "nonClaims": [
             "The manifest objects are caller supplied; source query provenance is not certified.",
-            "The shared context covers only manifest JSON, not external proof inputs.",
+            "Shared context covers global manifest premises and Gate membership only.",
+            "Gate source deltas reuse existing scoped upstream closure.",
             "An unchanged gate with unresolved verifier/environment deps stays UNKNOWN.",
             "Removed gates need separate actual consumer and proof-retirement qualification.",
         ],
