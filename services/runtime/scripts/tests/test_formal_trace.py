@@ -485,6 +485,76 @@ class FormalTraceContractTests(unittest.TestCase):
             errors,
         )
 
+    def test_native_cargo_witness_rejects_hidden_git_index_and_toolchain_changes(self):
+        """Source impact and Cargo witness admission share Git source guards."""
+        import subprocess
+
+        with tempfile.TemporaryDirectory() as temporary:
+            repo = Path(temporary)
+            runtime = repo / "services/runtime"
+            runtime.mkdir(parents=True)
+            source = runtime / "crates/core.rs"
+            source.parent.mkdir()
+            source.write_text("pub fn sample() {}\n", encoding="utf-8")
+            toolchain = repo / "mise.toml"
+            toolchain.write_text('[tools]\nrust = "1.99.1"\n', encoding="utf-8")
+
+            def git(*args):
+                return (
+                    subprocess.run(
+                        ["git", "-C", str(repo), *args],
+                        check=True,
+                        capture_output=True,
+                    )
+                    .stdout.decode()
+                    .strip()
+                )
+
+            git("init", "-q")
+            git("add", ".")
+            git("-c", "user.name=FormalTest", "-c", "user.email=test@example.invalid", "commit", "-qm", "source")
+            expected = git("rev-parse", "HEAD")
+            prior = self.module.ROOT
+            self.module.ROOT = runtime
+            try:
+                self.assertEqual(self.module._qualified_native_source_head(), expected)
+                for enable, disable in (
+                    ("--skip-worktree", "--no-skip-worktree"),
+                    ("--assume-unchanged", "--no-assume-unchanged"),
+                ):
+                    with self.subTest(flag=enable):
+                        git("update-index", enable, "--", "services/runtime/crates/core.rs")
+                        source.write_text("pub fn hidden_edit() {}\n", encoding="utf-8")
+                        self.assertEqual(
+                            git("status", "--porcelain", "--", "services/runtime"),
+                            "",
+                        )
+                        # Pre-execution admission fails even before Cargo is run.
+                        with self.assertRaisesRegex(ValueError, "unsafe Git index flags"):
+                            self.module.qualify_native_witnesses({})
+                        source.write_text("pub fn sample() {}\n", encoding="utf-8")
+                        git("update-index", disable, "--", "services/runtime/crates/core.rs")
+
+                toolchain.write_text('[tools]\nrust = "9.9.9"\n', encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "worktree is dirty"):
+                    self.module.qualify_native_witnesses({})
+                toolchain.write_text('[tools]\nrust = "1.99.1"\n', encoding="utf-8")
+                self.assertEqual(self.module._qualified_native_source_head(), expected)
+            finally:
+                self.module.ROOT = prior
+
+    def test_native_cargo_witness_missing_git_cut_reports_unknown_before_cargo(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            runtime = Path(temporary) / "services/runtime"
+            runtime.mkdir(parents=True)
+            previous = self.module.ROOT
+            self.module.ROOT = runtime
+            try:
+                with self.assertRaisesRegex(ValueError, "Git SourceCut is unavailable"):
+                    self.module.qualify_native_witnesses({})
+            finally:
+                self.module.ROOT = previous
+
     def test_native_witness_identity_is_module_and_source_scoped(self):
         trace, _ = manifests()
         witness = trace["provingTests"][0]
@@ -812,6 +882,69 @@ class FormalTraceContractTests(unittest.TestCase):
                     self.module.project_proving_test_source_impact(trace, invariants, {bad})
         with self.assertRaisesRegex(ValueError, "exact 40-hex"):
             self.module._git_source_changes("HEAD", "HEAD")
+
+    def test_cargo_compiler_artifact_is_not_inferred_from_filenames(self):
+        import json
+
+        correct = {
+            "reason": "compiler-artifact",
+            "target": {
+                "name": "ordivon_runtime_core",
+                "kind": ["lib"],
+            },
+            "profile": {"test": True, "opt_level": "0"},
+            "features": ["transactional-runtime", "universal-executor"],
+            "executable": "/build/native-test-binary",
+        }
+        self.assertEqual(
+            self.module._native_cargo_test_artifact(json.dumps(correct)),
+            correct,
+        )
+        for mutation in (
+            lambda x: x.update({"reason": "build-script-executed"}),
+            lambda x: x["target"].update({"kind": ["bin"]}),
+            lambda x: x["profile"].update({"test": False}),
+            lambda x: x.update({"features": ["universal-executor"]}),
+            lambda x: x.update({"executable": None}),
+        ):
+            altered = copy.deepcopy(correct)
+            mutation(altered)
+            with self.subTest(altered=altered):
+                with self.assertRaisesRegex(ValueError, "exactly one"):
+                    self.module._native_cargo_test_artifact(json.dumps(altered))
+        with self.assertRaisesRegex(ValueError, "exactly one"):
+            self.module._native_cargo_test_artifact(json.dumps(correct) + "\n" + json.dumps(correct))
+        with self.assertRaisesRegex(ValueError, "exactly one"):
+            self.module._native_cargo_test_artifact("not JSON")
+
+    def test_same_executable_digest_cannot_hide_different_rustc_cfg(self):
+        # Real Cargo experiment: --cfg can change rebuild assumptions without
+        # changing the final binary's bytes. The qualification digest must differ.
+        context = {
+            "sourceHead": "a" * 40,
+            "compiledTestArtifactSha256": "sha256:" + "1" * 64,
+            "compiledTestFeatures": ["transactional-runtime", "universal-executor"],
+            "compiledTestProfile": {"test": True, "opt_level": "0"},
+            "cargoVersion": "cargo 1.99.1",
+            "rustcVersionVerbose": "rustc 1.99.1",
+            "cargoProfile": {"package": "ordivon-runtime-core"},
+            "buildEnvironment": {"RUSTFLAGS": ""},
+        }
+        baseline = self.module._native_execution_context_digest(context)
+        altered = copy.deepcopy(context)
+        altered["buildEnvironment"]["RUSTFLAGS"] = "--cfg ordivon_native_receipt_counterexample"
+        self.assertNotEqual(baseline, self.module._native_execution_context_digest(altered))
+        self.assertEqual(
+            context["compiledTestArtifactSha256"],
+            altered["compiledTestArtifactSha256"],
+        )
+        self.assertEqual(
+            baseline,
+            self.module._native_execution_context_digest(dict(reversed(list(context.items())))),
+        )
+        changed_profile = copy.deepcopy(context)
+        changed_profile["compiledTestProfile"]["test"] = False
+        self.assertNotEqual(baseline, self.module._native_execution_context_digest(changed_profile))
 
 
 if __name__ == "__main__":

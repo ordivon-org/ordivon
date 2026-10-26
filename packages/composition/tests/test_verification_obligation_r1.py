@@ -545,6 +545,60 @@ def test_impact_dependency_completeness_change_and_deleted_relation_fail_closed(
     assert set(_statuses(deleted).values()) == {"UNKNOWN"}
 
 
+def test_retired_known_unconsumed_obligation_cannot_globally_poison_proof_impact():
+    """A deleted historical leaf is indexed in the prior graph, not UNKNOWN.
+
+    This is *only* task-local candidate selection. Neither completeness nor
+    proof reuse is admitted from caller-authored graphs. A genuinely missing
+    external ref must still fail closed.
+    """
+    kept = {
+        "id": "proof:live",
+        "dependsOn": ["source:active"],
+        "dependenciesComplete": True,
+    }
+    retired = {
+        "id": "proof:retired",
+        "dependsOn": ["source:other"],
+        "dependenciesComplete": True,
+        "obligationDigest": _digest("retired-historical-proof"),
+    }
+    roots = ["source:active", "source:other"]
+    prior = {"authorityRefs": roots, "obligations": [kept, retired]}
+    params = {"authority_refs": roots, "obligations": [kept], "changed_refs": []}
+
+    outcome = select_impacted_obligations(**params, previous_graph=prior)
+    assert outcome["derivedRelationChangedRefs"] == ["proof:retired"]
+    assert outcome["derivedContractChangedRefs"] == ["proof:retired"]
+    assert outcome["unindexedChangeRefs"] == []
+    assert _statuses(outcome) == {"proof:live": "REUSE_CANDIDATE"}
+    assert not outcome["proofReuseAdmissible"]
+
+    # If the retired proof was actually a prerequisite of the surviving one,
+    # the current contract change itself must remain RECHECK_REQUIRED.
+    previous_consumer = dict(kept, dependsOn=["proof:retired"])
+    consumed = select_impacted_obligations(
+        **params,
+        previous_graph={
+            "authorityRefs": roots,
+            "obligations": [previous_consumer, retired],
+        },
+    )
+    assert "proof:live" in consumed["derivedRelationChangedRefs"]
+    assert _statuses(consumed) == {"proof:live": "RECHECK_REQUIRED"}
+
+    # A foreign source missing from *both* graphs is still unindexed and
+    # correctly contaminates all current reuse candidates with UNKNOWN.
+    unresolved = select_impacted_obligations(
+        **params,
+        previous_graph=prior,
+        unknown_refs=["external:unresolved-runtime-consumer"],
+    )
+    assert unresolved["unindexedChangeRefs"] == ["external:unresolved-runtime-consumer"]
+    assert _statuses(unresolved) == {"proof:live": "UNKNOWN"}
+    assert not unresolved["proofReuseAdmissible"]
+
+
 def test_impact_rejects_malformed_or_cyclic_previous_graph():
     obligation = {"id": "proof:a", "dependsOn": ["source:a"], "dependenciesComplete": True}
     args = {"authority_refs": ["source:a"], "obligations": [obligation], "changed_refs": []}
@@ -1359,3 +1413,138 @@ def test_manifest_gate_impact_rechecks_true_scoped_producer_change() -> None:
     assert _gate_impact_statuses(result) == {
         "proof:gate:gate:candidate-contract": "RECHECK_REQUIRED"
     }
+
+
+def test_manifest_git_sourcecuts_bind_exact_prior_current_bytes(tmp_path) -> None:
+    import hashlib
+    import json
+    import subprocess
+    import sys
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    def git(*argv: str) -> str:
+        return subprocess.check_output(["git", "-C", str(repo), *argv], text=True).strip()
+
+    git("init", "-q")
+    git("config", "user.name", "Ordivon Test")
+    git("config", "user.email", "ordivon-test@example.invalid")
+    previous = _two_gate_manifest()
+    path = repo / "manifest.json"
+    original = json.dumps(previous).encode()
+    path.write_bytes(original)
+    git("add", ".")
+    git("commit", "-qm", "original")
+    old = git("rev-parse", "HEAD")
+    current = copy.deepcopy(previous)
+    current["gateRequirements"][0]["guarantee"] += " improved"
+    updated = json.dumps(current).encode()
+    path.write_bytes(updated)
+    git("add", ".")
+    git("commit", "-qm", "updated")
+    new = git("rev-parse", "HEAD")
+    # A mutable checkout is not source truth. It now contradicts both cuts.
+    path.write_text("{invalid JSON but never read by the Git source mode")
+    command = [
+        sys.executable,
+        "-m",
+        "ordivon_composition.verification_obligation_r1",
+        "impact-manifests",
+        "manifest.json",
+        "manifest.json",
+        "--git-repo",
+        str(repo),
+        "--previous-sourcecut",
+        old,
+        "--current-sourcecut",
+        new,
+    ]
+    result = subprocess.run(command, capture_output=True, text=True, check=True)
+    data = json.loads(result.stdout)
+    assert data["changedLocalGateIds"] == ["gate:candidate-contract"]
+    assert data["sharedManifestContextChanged"] is False
+    assert (
+        data["gitSourceCuts"]["previous"]["sha256"]
+        == "sha256:" + hashlib.sha256(original).hexdigest()
+    )
+    assert (
+        data["gitSourceCuts"]["current"]["sha256"]
+        == "sha256:" + hashlib.sha256(updated).hexdigest()
+    )
+    assert data["proofReuseAdmissible"] is False
+    # Immutable source read produces byte-identical projection on replay.
+    replay = subprocess.run(command, capture_output=True, text=True, check=True)
+    assert replay.stdout == result.stdout
+
+    for invalid in (
+        command[:-1],  # missing current cut
+        [*command[:-1], new[:8]],  # abbreviated mutable rev
+        [*command[:4], "../manifest.json", *command[5:]],  # traversal
+        [*command[:4], "missing.json", *command[5:]],  # absent source
+    ):
+        rejected = subprocess.run(invalid, capture_output=True, text=True)
+        assert rejected.returncode != 0
+
+
+def test_manifest_git_sourcecut_rejects_symlinks(tmp_path) -> None:
+    import json
+    import subprocess
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "-C", str(repo), "init", "-q"], check=True)
+    subprocess.run(["git", "-C", str(repo), "config", "user.name", "Ordivon Test"], check=True)
+    subprocess.run(
+        ["git", "-C", str(repo), "config", "user.email", "ordivon-test@example.invalid"], check=True
+    )
+    (repo / "manifest.json").write_text(json.dumps(_two_gate_manifest()))
+    (repo / "link.json").symlink_to("manifest.json")
+    subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+    subprocess.run(["git", "-C", str(repo), "commit", "-qm", "commit"], check=True)
+    cut = subprocess.check_output(["git", "-C", str(repo), "rev-parse", "HEAD"], text=True).strip()
+    from ordivon_composition.verification_obligation_r1 import _immutable_git_manifest
+
+    with pytest.raises(CircuitContractError, match="regular Git file"):
+        _immutable_git_manifest(repo, cut, __import__("pathlib").Path("link.json"))
+
+
+def test_immutable_manifest_sourcecut_ignores_native_git_replace_refs(tmp_path) -> None:
+    """An exact commit ID must not silently alias another commit via Git replace."""
+    import json
+    import subprocess
+    from pathlib import Path
+
+    from ordivon_composition.verification_obligation_r1 import _immutable_git_manifest
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(["git", "-C", str(repo), *args], text=True).strip()
+
+    git("init", "-q")
+    git("config", "user.name", "Test")
+    git("config", "user.email", "test@example.invalid")
+    original = _two_gate_manifest()
+    path = repo / "manifest.json"
+    path.write_text(json.dumps(original), encoding="utf-8")
+    git("add", ".")
+    git("commit", "-qm", "initial")
+    initial_cut = git("rev-parse", "HEAD")
+
+    mutated = copy.deepcopy(original)
+    mutated["gateRequirements"][0]["guarantee"] += " MUTATED"
+    path.write_text(json.dumps(mutated), encoding="utf-8")
+    git("add", ".")
+    git("commit", "-qm", "later")
+    replacement_cut = git("rev-parse", "HEAD")
+    git("replace", initial_cut, replacement_cut)
+
+    # Under Git's default view this is already falsified: show old commit => new blob.
+    substituted = git("show", initial_cut + ":manifest.json")
+    assert json.loads(substituted) == mutated
+
+    restored, evidence = _immutable_git_manifest(repo, initial_cut, Path("manifest.json"))
+    assert evidence["commit"] == initial_cut
+    assert restored == original

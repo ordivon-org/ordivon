@@ -38,6 +38,9 @@ class FakeGateway:
                 }
             return False, {
                 'resolution': 'found',
+                'request_id': arguments['requestId'],
+                'capability': arguments['capability'],
+                'workspace_id': request().workspace_id,
                 'operation_ref': 'ordivon-exec:v1:runtime.windows:job-1',
                 'native_id': 'job-1',
             }
@@ -287,3 +290,38 @@ def test_stdout_readback_rejects_foreign_operation_or_discontinuous_offset(
     result = port.execute(request())
     with pytest.raises(GatewayExecutionError, match=reason):
         port.read_stdout(result)
+
+@pytest.mark.parametrize(
+    ("identity_field", "foreign_value"),
+    (
+        ("request_id", "foreign-request"),
+        ("capability", "execution.linux"),
+        ("workspace_id", "ws-foreign-recovery"),
+        ("request_id", None),
+        ("capability", None),
+        ("workspace_id", None),
+    ),
+)
+def test_lost_submit_response_rejects_foreign_gateway_resolution_identity(
+    identity_field, foreign_value
+):
+    """A found Job cannot bind a different original request, route, or Workspace."""
+
+    class ForeignResolution(FakeGateway):
+        def call_tool(self, name, arguments):
+            error, result = super().call_tool(name, arguments)
+            if name == "execution.resolve":
+                result.update(
+                    request_id=arguments["requestId"],
+                    capability=arguments["capability"],
+                    workspace_id=request().workspace_id,
+                )
+                result[identity_field] = foreign_value
+            return error, result
+
+    client = ForeignResolution(lose_submit=True)
+    with pytest.raises(GatewayExecutionAmbiguous, match="identity"):
+        GatewayExecutionPort(client).execute(request())
+    assert [name for name, _ in client.calls] == [
+        "execution.submit", "execution.resolve"
+    ]

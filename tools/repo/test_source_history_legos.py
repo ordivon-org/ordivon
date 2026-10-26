@@ -810,5 +810,125 @@ class SourceHistoryLegosTests(unittest.TestCase):
             assert set(second_scope["authorityRefs"]).isdisjoint(no_change["authorityRefs"])
 
 
+    def test_source_cut_ignores_git_replace(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            git(root, "init", "-q")
+            git(root, "config", "user.name", "Test")
+            git(root, "config", "user.email", "test@example.invalid")
+            (root / "sources").mkdir()
+            p = root / "sources" / "a.txt"
+            p.write_text("original")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "old")
+            old = git(root, "rev-parse", "HEAD")
+            first = source_history_legos.source_membership_query(root, old, "sources/")
+            p.write_text("different")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "new")
+            git(root, "replace", old, git(root, "rev-parse", "HEAD"))
+            self.assertEqual(first, source_history_legos.source_membership_query(root, old, "sources/"))
+
+    def test_same_git_common_authority_has_stable_refs_across_worktrees(self):
+        """A Runtime workspace is not a new source authority or proof identity."""
+        with tempfile.TemporaryDirectory(prefix="ordivon-reusable-git-source-") as temp:
+            outer = Path(temp)
+            source = outer / "source"
+            source.mkdir()
+            git(source, "init", "-q", "-b", "main")
+            git(source, "config", "user.name", "Ordivon Test")
+            git(source, "config", "user.email", "test@example.invalid")
+            prefix = "services/runtime/providers/"
+            provider = source / prefix / "cas.rs"
+            provider.parent.mkdir(parents=True)
+            provider.write_text("accepted", encoding="utf-8")
+            git(source, "add", ".")
+            git(source, "commit", "-qm", "exact source")
+            commit = git(source, "rev-parse", "HEAD").strip()
+            nested = outer / "detached-runtime-workspace"
+            git(source, "worktree", "add", "-q", "--detach", str(nested), commit)
+
+            projection = source_history_legos.source_membership_delta
+            first = projection(source, commit, commit, prefix)
+            second = projection(nested, commit, commit, prefix)
+            self.assertEqual(first["memberValuesDigests"], second["memberValuesDigests"])
+            self.assertEqual(first["sourceCuts"], second["sourceCuts"])
+            # This is a single Git repository: the temporary worktree's
+            # physical path must not invalidate an unchanged source claim.
+            self.assertEqual(first["sourceScopeRef"], second["sourceScopeRef"])
+            self.assertEqual(first["authorityRefs"], second["authorityRefs"])
+            self.assertEqual(first["changedRefs"], second["changedRefs"])
+
+            # A different Git repository with identical text/paths is not
+            # automatically the same authority, even when blobs are equal.
+            unrelated = outer / "unrelated"
+            unrelated.mkdir()
+            git(unrelated, "init", "-q", "-b", "main")
+            git(unrelated, "config", "user.name", "Ordivon Test")
+            git(unrelated, "config", "user.email", "test@example.invalid")
+            another = unrelated / prefix / "cas.rs"
+            another.parent.mkdir(parents=True)
+            another.write_text("accepted", encoding="utf-8")
+            git(unrelated, "add", ".")
+            git(unrelated, "commit", "-qm", "same bytes distinct authority")
+            other_cut = git(unrelated, "rev-parse", "HEAD").strip()
+            isolated = projection(unrelated, other_cut, other_cut, prefix)
+            self.assertNotEqual(first["sourceScopeRef"], isolated["sourceScopeRef"])
+            self.assertTrue(set(first["authorityRefs"]).isdisjoint(isolated["authorityRefs"]))
+    def test_source_cut_ignores_git_replace(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            git(root, "init", "-q")
+            git(root, "config", "user.name", "Test")
+            git(root, "config", "user.email", "test@example.invalid")
+            (root / "sources").mkdir()
+            p = root / "sources" / "a.txt"
+            p.write_text("original")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "old")
+            old = git(root, "rev-parse", "HEAD")
+            first = source_history_legos.source_membership_query(root, old, "sources/")
+            p.write_text("different")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "new")
+            git(root, "replace", old, git(root, "rev-parse", "HEAD"))
+            self.assertEqual(first, source_history_legos.source_membership_query(root, old, "sources/"))
+
+
+    def test_source_membership_delta_requires_ancestral_order_for_proof_evolution(self):
+        """Opposite Git branches are a comparison, not a previous/current transition."""
+        with tempfile.TemporaryDirectory(prefix="ordivon-git-delta-history-") as temp:
+            root = Path(temp)
+            git(root, "init", "-q", "-b", "main")
+            git(root, "config", "user.name", "Ordivon Test")
+            git(root, "config", "user.email", "test@example.invalid")
+            path = root / "services" / "runtime" / "proving" / "a.rs"
+            path.parent.mkdir(parents=True)
+            path.write_text("base", encoding="utf8")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "base")
+            ancestor = git(root, "rev-parse", "HEAD")
+            git(root, "branch", "left")
+            path.write_text("right", encoding="utf8")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "right branch change")
+            right = git(root, "rev-parse", "HEAD")
+            git(root, "checkout", "-q", "left")
+            path.write_text("left", encoding="utf8")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "left branch change")
+            left = git(root, "rev-parse", "HEAD")
+            query = source_history_legos.source_membership_delta
+            prefix = "services/runtime/proving/"
+            self.assertEqual(query(root, ancestor, ancestor, prefix)["changedRefs"], [])
+            self.assertEqual(len(query(root, ancestor, left, prefix)["changedRefs"]), 1)
+            with self.assertRaisesRegex(ValueError, "ancestry"):
+                query(root, left, right, prefix)
+            with self.assertRaisesRegex(ValueError, "ancestry"):
+                query(root, right, left, prefix)
+            with self.assertRaisesRegex(ValueError, "ancestry"):
+                query(root, left, ancestor, prefix)
+
+
 if __name__ == "__main__":
     unittest.main()
