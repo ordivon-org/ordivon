@@ -178,10 +178,21 @@ safety obligation:
 
 ```tla
 jobState = "terminal" =>
-    /\ currentAttempt # NoAttempt
-    /\ attemptState[currentAttempt] = "terminal"
+    /\ currentAttempt = NoAttempt
     /\ reconcileState = "committed"
+    /\ \E a \in Attempts: attemptState[a] = "terminal"
 ```
+
+This model now clears `currentAttempt` at terminal commit to match the
+native Registry's `jobs.current_attempt_id=NULL` transition. The earlier
+model retained a terminal-selected pointer and therefore could not use a
+direct field-to-field Rust refinement mapping. The historical terminal
+Attempt remains in `attemptState[a]` without adding new state variables;
+the independent `MatchingResultRequiredForTerminal` still requires a
+persisted matching-result terminal Attempt. This is a scoped model
+correspondence, NOT a mechanically proved whole-Rust-to-TLA refinement.
+An exact SQL/CAS implementation proof, real test execution and installed
+effects remain separate obligations.
 
 The invariant is deliberately separate from `TerminalAttemptWasDispatched`:
 physical dispatch and committed terminal evidence are different predicates.
