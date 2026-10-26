@@ -1134,5 +1134,70 @@ trait Provider {
         )
 
 
+    def test_runtime_formal_source_impact_is_selective_for_exact_test_file(self):
+        trace, invariants = manifests()
+        changed = {
+            "services/runtime/crates/ordivon-runtime-core/src/runtime/execution_provider.rs"
+        }
+        result = self.module.project_proving_test_source_impact(trace, invariants, changed)
+        statuses = {row["id"]: row["standing"] for row in result["standingByWitness"]}
+        self.assertEqual(statuses["ExecutionProvider.guaranteeNegativeControl"], "RECHECK_REQUIRED")
+        self.assertEqual(statuses["RuntimeDispatch.ambiguityHeld"], "REUSE_CANDIDATE")
+        self.assertEqual(result["unindexedRuntimeChanges"], [])
+        self.assertIn("not proof PASS", result["nonClaims"][0])
+
+    def test_runtime_formal_source_impact_model_change_rechecks_all(self):
+        trace, invariants = manifests()
+        changed = {"services/runtime/formal/RuntimeDispatchR1.tla"}
+        result = self.module.project_proving_test_source_impact(trace, invariants, changed)
+        self.assertTrue(result["standingByWitness"])
+        self.assertEqual(
+            {row["standing"] for row in result["standingByWitness"]},
+            {"RECHECK_REQUIRED"},
+        )
+
+    def test_runtime_formal_source_impact_unknown_unindexed_change_fails_closed(self):
+        trace, invariants = manifests()
+        changed = {"services/runtime/crates/ordivon-runtime-core/src/unknown_new_module.rs"}
+        result = self.module.project_proving_test_source_impact(trace, invariants, changed)
+        self.assertEqual(result["unindexedRuntimeChanges"], sorted(changed))
+        self.assertEqual(
+            {row["standing"] for row in result["standingByWitness"]},
+            {"UNKNOWN"},
+        )
+
+    def test_runtime_formal_source_impact_known_recheck_not_erased_by_unknown(self):
+        trace, invariants = manifests()
+        changed = {
+            "services/runtime/crates/ordivon-runtime-core/src/runtime/execution_provider.rs",
+            "services/runtime/Cargo.lock",
+        }
+        result = self.module.project_proving_test_source_impact(trace, invariants, changed)
+        statuses = {row["id"]: row["standing"] for row in result["standingByWitness"]}
+        self.assertEqual(statuses["ExecutionProvider.guaranteeNegativeControl"], "RECHECK_REQUIRED")
+        self.assertEqual(statuses["RuntimeDispatch.ambiguityHeld"], "UNKNOWN")
+
+    def test_runtime_formal_source_impact_unrelated_repository_change_only_local_hint(self):
+        trace, invariants = manifests()
+        result = self.module.project_proving_test_source_impact(
+            trace, invariants, {"domains/game/README.md"}
+        )
+        self.assertEqual(
+            {row["standing"] for row in result["standingByWitness"]},
+            {"REUSE_CANDIDATE"},
+        )
+        self.assertIn("ONLY", result["scope"])
+        self.assertFalse(any("PASS" == row["standing"] for row in result["standingByWitness"]))
+
+    def test_runtime_formal_source_impact_rejects_untrusted_paths_and_git_ref(self):
+        trace, invariants = manifests()
+        for bad in ("../escape", "/absolute", "services//runtime/file", "services\\runtime\\bad"):
+            with self.subTest(path=bad):
+                with self.assertRaisesRegex(ValueError, "normalized Git paths"):
+                    self.module.project_proving_test_source_impact(trace, invariants, {bad})
+        with self.assertRaisesRegex(ValueError, "exact 40-hex"):
+            self.module._git_source_changes("HEAD", "HEAD")
+
+
 if __name__ == "__main__":
     unittest.main()

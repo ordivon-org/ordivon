@@ -834,7 +834,130 @@ def validate(trace: dict[str, Any], invariant_manifest: dict[str, Any]) -> list[
     return errors
 
 
-def main() -> int:
+def project_proving_test_source_impact(
+    trace: dict[str, Any],
+    invariant_manifest: dict[str, Any],
+    changed_paths: set[str],
+) -> dict[str, Any]:
+    """Rebuild one Runtime-owned Git-source read-set projection, never proof reuse.
+
+    The source read-sets are *declared* by the existing trace manifest, not a
+    compiler-discovered consumer closure. A changed unindexed Runtime source is
+    UNKNOWN, rather than permission to reuse a test or mechanized proof.
+    """
+    prefix = "services/runtime/"
+    if not isinstance(changed_paths, set) or any(
+        not isinstance(path, str)
+        or not path
+        or path.startswith("/")
+        or "\\" in path
+        or any(part in {"", ".", ".."} for part in path.split("/"))
+        for path in changed_paths
+    ):
+        raise ValueError("impact changed paths must be exact normalized Git paths")
+
+    def owned(relative: str) -> str:
+        if not isinstance(relative, str) or not relative or (
+            Path(relative).is_absolute()
+            or any(part in {"", ".", ".."} for part in relative.split("/"))
+            or "\\" in relative
+        ):
+            raise ValueError("non-canonical Runtime source dependency")
+        return prefix + relative
+
+    common = {
+        owned("formal/RuntimeDispatchR1.trace-r1.json"),
+        owned("planning/invariants-r1.json"),
+        owned("scripts/verify_formal_trace.py"),
+        owned("scripts/tests/test_formal_trace.py"),
+        owned(trace["formalSpecification"]["modulePath"]),
+        owned(trace["formalSpecification"]["configPath"]),
+    }
+    for item in invariant_manifest.get("invariants", []):
+        if item.get("id") in REQUIRED_RUNTIME_INVARIANT_BINDINGS:
+            for ref in item.get("proof", []):
+                if isinstance(ref, str) and "::" in ref:
+                    common.add(owned(ref.split("::", 1)[0]))
+
+    carriers = {
+        item["id"]: owned(item["path"])
+        for key in ("contractSeams", "supportingContracts")
+        for item in trace[key]
+    }
+    readsets = {}
+    for witness in trace["provingTests"]:
+        files = set(common)
+        files.add(owned(witness["path"]))
+        files.update(carriers[target] for target in witness["proves"] if target in carriers)
+        readsets[witness["id"]] = files
+
+    indexed = set().union(common, *readsets.values())
+    runtime_changed = {path for path in changed_paths if path.startswith(prefix)}
+    unindexed = runtime_changed - indexed
+    rows = []
+    for witness_id, readset in sorted(readsets.items()):
+        hits = sorted(readset & changed_paths)
+        standing = (
+            "RECHECK_REQUIRED" if hits
+            else "UNKNOWN" if unindexed
+            else "REUSE_CANDIDATE"
+        )
+        rows.append({
+            "id": witness_id,
+            "standing": standing,
+            "matchedChangedPaths": hits,
+            "declaredReadSet": sorted(readset),
+        })
+    return {
+        "kind": "ordivon.runtime-formal-source-impact",
+        "truthRole": "non-authoritative-exact-git-source-projection",
+        "standingByWitness": rows,
+        "unindexedRuntimeChanges": sorted(unindexed),
+        "changedPaths": sorted(changed_paths),
+        "scope": "Runtime tracked Git source ONLY; no installed/configured/physical/runtime consumer claims",
+        "nonClaims": [
+            "REUSE_CANDIDATE is not proof PASS, implementation refinement, or installed acceptance.",
+            "Declared source readsets are not demonstrated complete Rust build/runtime dependency closures.",
+            "Unindexed Runtime changes yield UNKNOWN unless a declared source hit already requires recheck.",
+            "Changes outside Runtime are outside this projection's verified dependency scope.",
+        ],
+    }
+
+
+def _git_source_changes(base: str, head: str) -> set[str]:
+    """Derive exact source deltas from Git itself, not caller-authored changed refs."""
+    import re as _re
+    import subprocess
+
+    if not all(_re.fullmatch(r"[0-9a-f]{40}", x) for x in (base, head)):
+        raise ValueError("impact base/head must be exact 40-hex Git commits")
+    repo = ROOT.parents[1]
+    def git(*args: str) -> bytes:
+        return subprocess.run(
+            ["git", "-C", str(repo), *args],
+            check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        ).stdout
+    actual_head = git("rev-parse", "HEAD").decode().strip()
+    if head != actual_head:
+        raise ValueError(f"impact HEAD is not checkout HEAD: {head} != {actual_head}")
+    if git("status", "--porcelain", "--untracked-files=normal", "--", "services/runtime"):
+        raise ValueError("impact Runtime worktree is dirty; Git source is not current checkout")
+    for revision in (base, head):
+        git("cat-file", "-e", f"{revision}^{{commit}}")
+    data = git("diff", "--no-renames", "--name-only", "-z", base, head, "--")
+    return {path.decode("utf-8") for path in data.split(b"\x00") if path}
+
+
+def main(argv: list[str] | None = None) -> int:
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--impact-base", help="exact Git source base SHA")
+    parser.add_argument("--impact-head", help="exact Git source HEAD SHA")
+    # The current Runtime Python contract also calls main() directly in tests.
+    args = parser.parse_args([] if argv is None else argv)
+    if bool(args.impact_base) != bool(args.impact_head):
+        parser.error("--impact-base and --impact-head must be supplied together")
     for source in (TRACE, INVARIANTS):
         error = _runtime_source_identity_error(source)
         if error:
@@ -853,6 +976,18 @@ def main() -> int:
             print(f"formal trace: {error}", file=sys.stderr)
         return 1
 
+    if args.impact_base:
+        try:
+            delta = _git_source_changes(args.impact_base, args.impact_head)
+            projection = project_proving_test_source_impact(trace, invariant_manifest, delta)
+        except (OSError, ValueError, __import__("subprocess").CalledProcessError) as error:
+            print(f"formal source impact: UNKNOWN ({error})", file=sys.stderr)
+            return 1
+        projection["baseRevision"] = args.impact_base
+        projection["headRevision"] = args.impact_head
+        print(json.dumps(projection, sort_keys=True))
+        return 0
+
     print(
         "formal trace: PASS (stable contract/test currentness only; source fragments retired; mechanized refinement NOT claimed)"
     )
@@ -860,4 +995,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(main(sys.argv[1:]))
