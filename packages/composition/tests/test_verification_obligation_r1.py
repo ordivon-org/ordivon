@@ -545,6 +545,60 @@ def test_impact_dependency_completeness_change_and_deleted_relation_fail_closed(
     assert set(_statuses(deleted).values()) == {"UNKNOWN"}
 
 
+def test_retired_known_unconsumed_obligation_cannot_globally_poison_proof_impact():
+    """A deleted historical leaf is indexed in the prior graph, not UNKNOWN.
+
+    This is *only* task-local candidate selection. Neither completeness nor
+    proof reuse is admitted from caller-authored graphs. A genuinely missing
+    external ref must still fail closed.
+    """
+    kept = {
+        "id": "proof:live",
+        "dependsOn": ["source:active"],
+        "dependenciesComplete": True,
+    }
+    retired = {
+        "id": "proof:retired",
+        "dependsOn": ["source:other"],
+        "dependenciesComplete": True,
+        "obligationDigest": _digest("retired-historical-proof"),
+    }
+    roots = ["source:active", "source:other"]
+    prior = {"authorityRefs": roots, "obligations": [kept, retired]}
+    params = {"authority_refs": roots, "obligations": [kept], "changed_refs": []}
+
+    outcome = select_impacted_obligations(**params, previous_graph=prior)
+    assert outcome["derivedRelationChangedRefs"] == ["proof:retired"]
+    assert outcome["derivedContractChangedRefs"] == ["proof:retired"]
+    assert outcome["unindexedChangeRefs"] == []
+    assert _statuses(outcome) == {"proof:live": "REUSE_CANDIDATE"}
+    assert not outcome["proofReuseAdmissible"]
+
+    # If the retired proof was actually a prerequisite of the surviving one,
+    # the current contract change itself must remain RECHECK_REQUIRED.
+    previous_consumer = dict(kept, dependsOn=["proof:retired"])
+    consumed = select_impacted_obligations(
+        **params,
+        previous_graph={
+            "authorityRefs": roots,
+            "obligations": [previous_consumer, retired],
+        },
+    )
+    assert "proof:live" in consumed["derivedRelationChangedRefs"]
+    assert _statuses(consumed) == {"proof:live": "RECHECK_REQUIRED"}
+
+    # A foreign source missing from *both* graphs is still unindexed and
+    # correctly contaminates all current reuse candidates with UNKNOWN.
+    unresolved = select_impacted_obligations(
+        **params,
+        previous_graph=prior,
+        unknown_refs=["external:unresolved-runtime-consumer"],
+    )
+    assert unresolved["unindexedChangeRefs"] == ["external:unresolved-runtime-consumer"]
+    assert _statuses(unresolved) == {"proof:live": "UNKNOWN"}
+    assert not unresolved["proofReuseAdmissible"]
+
+
 def test_impact_rejects_malformed_or_cyclic_previous_graph():
     obligation = {"id": "proof:a", "dependsOn": ["source:a"], "dependenciesComplete": True}
     args = {"authority_refs": ["source:a"], "obligations": [obligation], "changed_refs": []}
