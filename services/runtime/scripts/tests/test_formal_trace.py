@@ -485,6 +485,72 @@ class FormalTraceContractTests(unittest.TestCase):
             errors,
         )
 
+    def test_native_cargo_witness_rejects_hidden_git_index_and_toolchain_changes(self):
+        """Source impact and Cargo witness admission share Git source guards."""
+        import subprocess
+
+        with tempfile.TemporaryDirectory() as temporary:
+            repo = Path(temporary)
+            runtime = repo / "services/runtime"
+            runtime.mkdir(parents=True)
+            source = runtime / "crates/core.rs"
+            source.parent.mkdir()
+            source.write_text("pub fn sample() {}\n", encoding="utf-8")
+            toolchain = repo / "mise.toml"
+            toolchain.write_text('[tools]\nrust = "1.99.1"\n', encoding="utf-8")
+
+            def git(*args):
+                return subprocess.run(
+                    ["git", "-C", str(repo), *args],
+                    check=True, capture_output=True,
+                ).stdout.decode().strip()
+
+            git("init", "-q")
+            git("add", ".")
+            git("-c", "user.name=FormalTest", "-c",
+                "user.email=test@example.invalid", "commit", "-qm", "source")
+            expected = git("rev-parse", "HEAD")
+            prior = self.module.ROOT
+            self.module.ROOT = runtime
+            try:
+                self.assertEqual(self.module._qualified_native_source_head(), expected)
+                for enable, disable in (
+                    ("--skip-worktree", "--no-skip-worktree"),
+                    ("--assume-unchanged", "--no-assume-unchanged"),
+                ):
+                    with self.subTest(flag=enable):
+                        git("update-index", enable, "--", "services/runtime/crates/core.rs")
+                        source.write_text("pub fn hidden_edit() {}\n", encoding="utf-8")
+                        self.assertEqual(
+                            git("status", "--porcelain", "--", "services/runtime"),
+                            "",
+                        )
+                        # Pre-execution admission fails even before Cargo is run.
+                        with self.assertRaisesRegex(ValueError, "unsafe Git index flags"):
+                            self.module.qualify_native_witnesses({})
+                        source.write_text("pub fn sample() {}\n", encoding="utf-8")
+                        git("update-index", disable, "--", "services/runtime/crates/core.rs")
+
+                toolchain.write_text('[tools]\nrust = "9.9.9"\n', encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "worktree is dirty"):
+                    self.module.qualify_native_witnesses({})
+                toolchain.write_text('[tools]\nrust = "1.99.1"\n', encoding="utf-8")
+                self.assertEqual(self.module._qualified_native_source_head(), expected)
+            finally:
+                self.module.ROOT = prior
+
+    def test_native_cargo_witness_missing_git_cut_reports_unknown_before_cargo(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            runtime = Path(temporary) / "services/runtime"
+            runtime.mkdir(parents=True)
+            previous = self.module.ROOT
+            self.module.ROOT = runtime
+            try:
+                with self.assertRaisesRegex(ValueError, "Git SourceCut is unavailable"):
+                    self.module.qualify_native_witnesses({})
+            finally:
+                self.module.ROOT = previous
+
     def test_native_witness_identity_is_module_and_source_scoped(self):
         trace, _ = manifests()
         witness = trace["provingTests"][0]
