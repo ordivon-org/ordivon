@@ -868,6 +868,46 @@ def test_node_anchor_git_sourcecut_ignores_modified_worktree_and_no_worktree_rea
     monkeypatch.setattr(module, "_source_bound_file", refuse_read)
     assert module.project_owner_lego_source_graph(ROOT, source_revision=sha) == immutable
 
+def test_declared_graph_impact_refuses_sibling_and_reversed_git_source_cuts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A sibling branch comparison cannot be a temporal proof-impact Delta."""
+    import subprocess
+
+    repo = tmp_path
+    source = repo / "source.txt"
+    source.write_text("base\n", encoding="utf-8")
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(
+            ["git", "-C", str(repo), *args], text=True,
+        ).strip()
+
+    def commit(message: str) -> str:
+        git("add", ".")
+        git("-c", "user.name=GraphProof", "-c",
+            "user.email=test@example.invalid", "commit", "-qm", message)
+        return git("rev-parse", "HEAD")
+
+    git("init", "-q")
+    base = commit("base")
+    git("checkout", "-qb", "sibling-a")
+    source.write_text("sibling a\n", encoding="utf-8")
+    a = commit("sibling a")
+    git("checkout", "-qb", "sibling-b", base)
+    source.write_text("sibling b\n", encoding="utf-8")
+    b = commit("sibling b")
+
+    def no_projection(*_args, **_kwargs):
+        raise AssertionError("projecting planning graph before temporal Git guard")
+    monkeypatch.setattr(module, "project_owner_lego_source_graph", no_projection)
+    for before, after in ((a, b), (b, a), (a, base), ("HEAD", b)):
+        with pytest.raises(ValueError, match="sourceCut ancestry"):
+            module.project_owner_lego_source_change(
+                before_revision=before, after_revision=after, root=repo,
+            )
+
+
 def test_declared_source_delta_is_real_git_diff_with_dependency_closure(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:

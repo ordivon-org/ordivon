@@ -875,6 +875,25 @@ class SourceHistoryLegosTests(unittest.TestCase):
             isolated = projection(unrelated, other_cut, other_cut, prefix)
             self.assertNotEqual(first["sourceScopeRef"], isolated["sourceScopeRef"])
             self.assertTrue(set(first["authorityRefs"]).isdisjoint(isolated["authorityRefs"]))
+    def test_source_cut_ignores_git_replace(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            git(root, "init", "-q")
+            git(root, "config", "user.name", "Test")
+            git(root, "config", "user.email", "test@example.invalid")
+            (root / "sources").mkdir()
+            p = root / "sources" / "a.txt"
+            p.write_text("original")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "old")
+            old = git(root, "rev-parse", "HEAD")
+            first = source_history_legos.source_membership_query(root, old, "sources/")
+            p.write_text("different")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "new")
+            git(root, "replace", old, git(root, "rev-parse", "HEAD"))
+            self.assertEqual(first, source_history_legos.source_membership_query(root, old, "sources/"))
+
 
     def test_source_membership_delta_requires_ancestral_order_for_proof_evolution(self):
         """Opposite Git branches are a comparison, not a previous/current transition."""

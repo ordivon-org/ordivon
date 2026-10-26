@@ -282,6 +282,8 @@ def test_gateway_effect_bridge_commits_intent_and_fence_before_physical_dispatch
         assert observed_pre_dispatch["checked"] is True
         names = [name for name, _ in client.calls]
         assert names == ["execution.submit", "execution.get"]
+        assert client.calls[1][1]["requestId"] == client.calls[0][1]["requestId"]
+        assert client.calls[1][1]["capability"] == "execution.linux"
         submit = client.calls[0][1]
         assert submit["capability"] == "execution.linux"
         assert submit["workspaceId"] == "ws-plugin-h2"
@@ -340,6 +342,8 @@ def test_gateway_effect_bridge_reconciles_response_loss_without_redispatch() -> 
         assert result.loop_result.stop_code.value == "candidate_completed"
         names = [name for name, _ in client.calls]
         assert names == ["execution.submit", "execution.resolve", "execution.get"]
+        assert client.calls[2][1]["requestId"] == client.calls[0][1]["requestId"]
+        assert client.calls[2][1]["capability"] == "execution.linux"
         assert names.count("execution.submit") == 1
         assert client.calls[1][1]["requestId"] == client.calls[0][1]["requestId"]
 
@@ -410,6 +414,8 @@ def test_gateway_effect_bridge_propagates_cooperative_control_cancellation() -> 
 
         names = [name for name, _ in client.calls]
         assert names == ["execution.submit", "execution.cancel"]
+        assert client.calls[1][1]["requestId"] == client.calls[0][1]["requestId"]
+        assert client.calls[1][1]["capability"] == "execution.linux"
         assert result.loop_result.stop_code.value == "cancel_unknown"
 
         with SQLiteHarnessStore(root) as store:
@@ -440,18 +446,23 @@ def test_gateway_effect_grant_rejects_ambient_execution_authority() -> None:
     assert "requestId" not in schema["properties"]
     assert "context" not in schema["properties"]
 
+
 @pytest.mark.parametrize(
     ("mutation", "label"),
     (
         (lambda payload: payload.pop("delivery_disposition"), "delivery"),
         (lambda payload: payload.update(delivery_disposition="definitely"), "delivery"),
-        (lambda payload: payload.update(operation_ref="ordivon-exec:v1:runtime.linux:other"), "operation"),
+        (
+            lambda payload: payload.update(operation_ref="ordivon-exec:v1:runtime.linux:other"),
+            "operation",
+        ),
         (lambda payload: payload.pop("artifact_projection_complete"), "artifact"),
         (lambda payload: payload.update(artifact_count=1), "artifact"),
     ),
 )
 def test_gateway_adapter_rejects_unproven_committed_terminal(mutation, label) -> None:
     """CEGAR: physical terminal cannot launder missing Gateway delivery/artifact proof."""
+
     class ForgedTerminal(GatewayExecutionFixture):
         def call_tool(self, name, arguments):
             is_error, payload = super().call_tool(name, arguments)
@@ -471,12 +482,17 @@ def test_gateway_adapter_rejects_unproven_committed_terminal(mutation, label) ->
         client,
         _factory(client).execution_grant,
     )
+    # This focused terminal verifier is invoked directly, bypassing the normal
+    # Gateway submission/recovery step. Supply its otherwise durable request key
+    # explicitly instead of weakening the new fail-closed consumer boundary.
+    adapter._operation_requests[client.native_id] = "request:terminal-falsifier"
     with pytest.raises(HarnessRuntimeClientError, match=label):
         adapter._observe_operation(client.operation_ref, client.native_id, wait_ms=0)
 
 
 def test_gateway_adapter_waits_for_committed_but_incomplete_artifact_projection() -> None:
     """A durable physical result is not an exact consumer artifact inventory."""
+
     class PendingArtifacts(GatewayExecutionFixture):
         def call_tool(self, name, arguments):
             is_error, payload = super().call_tool(name, arguments)
@@ -498,6 +514,7 @@ def test_gateway_adapter_waits_for_committed_but_incomplete_artifact_projection(
         client,
         _factory(client).execution_grant,
     )
+    adapter._operation_requests[client.native_id] = "request:artifact-falsifier"
     observed = adapter._observe_operation(client.operation_ref, client.native_id, wait_ms=0)
     assert observed["deliveryDisposition"] == "reconciliation_required"
     assert observed["recoveryRequired"] is True
