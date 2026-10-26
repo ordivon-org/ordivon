@@ -618,8 +618,8 @@ def test_native_owner_source_projection_rejects_unvalidated_node_source(
     original = module._load_json
     owner = module.OWNER_LEGO_PLANS[0]
 
-    def corrupted(path: Path) -> dict:
-        result = original(path)
+    def corrupted(path: Path, *, source_bytes: bytes | None = None) -> dict:
+        result = original(path, source_bytes=source_bytes)
         if path.relative_to(ROOT).as_posix() == owner:
             result["nodes"][0]["id"] = "invalid identity"
         return result
@@ -627,3 +627,42 @@ def test_native_owner_source_projection_rejects_unvalidated_node_source(
     monkeypatch.setattr(module, "_load_json", corrupted)
     with pytest.raises(module.ArchitectureDocsError, match="non-canonical LEGO node"):
         module.project_owner_lego_source_graph(ROOT)
+
+
+def test_source_snapshot_strict_parser_preserves_captured_bytes_and_guards(tmp_path: Path) -> None:
+    """Exact projection bytes must be parsed by the existing strict Owner parser."""
+    source = tmp_path / "owner.json"
+    source.write_bytes(b'{"value":"B-after-capture"}')
+    # The file can change after capture: do not parse it a second time.
+    assert module._load_json(source, source_bytes=b'{"value":"A-at-capture"}') == {
+        "value": "A-at-capture"
+    }
+    # Avoid trading ABA consistency for an unsafe default JSON decoder.
+    with pytest.raises(module.ArchitectureDocsError, match="duplicate JSON object key"):
+        module._load_json(source, source_bytes=b'{"value":1,"value":2}')
+    with pytest.raises(module.ArchitectureDocsError, match="non-finite JSON constant"):
+        module._load_json(source, source_bytes=b'{"value":NaN}')
+    with pytest.raises(module.ArchitectureDocsError, match="unrepresentable JSON number"):
+        module._load_json(source, source_bytes=b'{"value":1e999}')
+
+
+def test_projection_passes_exact_captured_bytes_into_strict_parser(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The hash input and validator's decoded bytes are identical."""
+    original = module._load_json
+    seen: list[bytes] = []
+
+    def strict_decode(path: Path, *, source_bytes: bytes | None = None) -> dict:
+        if path.relative_to(ROOT).as_posix() in module.OWNER_LEGO_PLANS:
+            assert source_bytes is not None
+            seen.append(source_bytes)
+        return original(path, source_bytes=source_bytes)
+
+    monkeypatch.setattr(module, "_load_json", strict_decode)
+    graph = module.project_owner_lego_source_graph(ROOT)
+    assert len(seen) == len(module.OWNER_LEGO_PLANS)
+    import hashlib
+    assert [x["sha256"] for x in graph["sourcePlans"]] == [
+        "sha256:" + hashlib.sha256(x).hexdigest() for x in seen
+    ]

@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import ast
+import hashlib
 import json
 import math
 import re
-import tomllib
 from decimal import Decimal
 from graphlib import CycleError, TopologicalSorter
 from pathlib import Path
 from typing import Any
+
+import tomllib
 
 ROOT = Path(__file__).resolve().parents[2]
 CURRENT = ROOT / "docs" / "architecture" / "CURRENT_ARCHITECTURE.md"
@@ -108,7 +109,7 @@ GIT01_SCOPE_DISPOSITION = {
             "FROZEN_GATEWAY_CONSUMER_ONLY": "NO_WHOLE_COMMIT_REPLAY_WITHOUT_PRODUCER_AUTHORITY",
 }
 
-def _load_json(path: Path) -> dict[str, Any]:
+def _load_json(path: Path, *, source_bytes: bytes | None = None) -> dict[str, Any]:
     """Use unambiguous standard JSON bytes for Owner and evidence registration.
 
     Python's default last-key-wins and NaN extensions are not a sound source
@@ -136,7 +137,7 @@ def _load_json(path: Path) -> dict[str, Any]:
         return parsed
 
     value = json.loads(
-        path.read_text(encoding="utf-8"),
+        source_bytes.decode("utf-8") if source_bytes is not None else path.read_text(encoding="utf-8"),
         object_pairs_hook=unique_object,
         parse_constant=finite_constant,
         parse_float=representable_float,
@@ -396,7 +397,7 @@ def project_owner_lego_source_graph(root: Path = ROOT) -> dict[str, Any]:
     for relative in OWNER_LEGO_PLANS:
         path = _source_bound_file(root, relative, "registered Owner LEGO plan")
         before = path.read_bytes()
-        plan = _load_json(path)
+        plan = _load_json(path, source_bytes=before)
         owner = relative.split("/planning/", 1)[0]
         validate_owner_lego_graph(plan)
         validate_owner_lego_dependencies(plan, owner)
@@ -409,8 +410,8 @@ def project_owner_lego_source_graph(root: Path = ROOT) -> dict[str, Any]:
         })
         ids = {node["id"] for node in plan["nodes"]}
 
-        def ref(local_id: str) -> str:
-            return f"{relative}#{local_id}"
+        def ref(local_id: str, plan_path: str = relative) -> str:
+            return f"{plan_path}#{local_id}"
 
         for node in plan["nodes"]:
             vertices.append({
