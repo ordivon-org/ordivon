@@ -810,5 +810,53 @@ class SourceHistoryLegosTests(unittest.TestCase):
             assert set(second_scope["authorityRefs"]).isdisjoint(no_change["authorityRefs"])
 
 
+    def test_same_git_common_authority_has_stable_refs_across_worktrees(self):
+        """A Runtime workspace is not a new source authority or proof identity."""
+        with tempfile.TemporaryDirectory(prefix="ordivon-reusable-git-source-") as temp:
+            outer = Path(temp)
+            source = outer / "source"
+            source.mkdir()
+            git(source, "init", "-q", "-b", "main")
+            git(source, "config", "user.name", "Ordivon Test")
+            git(source, "config", "user.email", "test@example.invalid")
+            prefix = "services/runtime/providers/"
+            provider = source / prefix / "cas.rs"
+            provider.parent.mkdir(parents=True)
+            provider.write_text("accepted", encoding="utf-8")
+            git(source, "add", ".")
+            git(source, "commit", "-qm", "exact source")
+            commit = git(source, "rev-parse", "HEAD").strip()
+            nested = outer / "detached-runtime-workspace"
+            git(source, "worktree", "add", "-q", "--detach", str(nested), commit)
+
+            projection = source_history_legos.source_membership_delta
+            first = projection(source, commit, commit, prefix)
+            second = projection(nested, commit, commit, prefix)
+            self.assertEqual(first["memberValuesDigests"], second["memberValuesDigests"])
+            self.assertEqual(first["sourceCuts"], second["sourceCuts"])
+            # This is a single Git repository: the temporary worktree's
+            # physical path must not invalidate an unchanged source claim.
+            self.assertEqual(first["sourceScopeRef"], second["sourceScopeRef"])
+            self.assertEqual(first["authorityRefs"], second["authorityRefs"])
+            self.assertEqual(first["changedRefs"], second["changedRefs"])
+
+            # A different Git repository with identical text/paths is not
+            # automatically the same authority, even when blobs are equal.
+            unrelated = outer / "unrelated"
+            unrelated.mkdir()
+            git(unrelated, "init", "-q", "-b", "main")
+            git(unrelated, "config", "user.name", "Ordivon Test")
+            git(unrelated, "config", "user.email", "test@example.invalid")
+            another = unrelated / prefix / "cas.rs"
+            another.parent.mkdir(parents=True)
+            another.write_text("accepted", encoding="utf-8")
+            git(unrelated, "add", ".")
+            git(unrelated, "commit", "-qm", "same bytes distinct authority")
+            other_cut = git(unrelated, "rev-parse", "HEAD").strip()
+            isolated = projection(unrelated, other_cut, other_cut, prefix)
+            self.assertNotEqual(first["sourceScopeRef"], isolated["sourceScopeRef"])
+            self.assertTrue(set(first["authorityRefs"]).isdisjoint(isolated["authorityRefs"]))
+
+
 if __name__ == "__main__":
     unittest.main()
