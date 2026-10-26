@@ -43,8 +43,7 @@ def _immutable_git_manifest(
     """
     relative = path.as_posix()
     if (
-        not isinstance(commit, str)
-        or re.fullmatch(r"(?:[0-9a-f]{40}|[0-9a-f]{64})", commit) is None
+        re.fullmatch(r"[0-9a-f]{40}", commit) is None
         or path.is_absolute()
         or not relative
         or any(part in ("", ".", "..") for part in relative.split("/"))
@@ -65,11 +64,6 @@ def _immutable_git_manifest(
         except (OSError, subprocess.CalledProcessError) as exc:
             raise CircuitContractError("Git source cut or regular blob unavailable") from exc
 
-    # Git validates the repository's own object format. A 40-digit prefix in
-    # a SHA-256 repo is an abbreviation, not an admitted immutable SourceCut.
-    exact = git("rev-parse", "--verify", commit + "^{commit}").strip()
-    if exact.decode("ascii") != commit:
-        raise CircuitContractError("Git SourceCut must be an exact full commit ID")
     if git("cat-file", "-t", commit).strip() != b"commit":
         raise CircuitContractError("Git SourceCut must identify an immutable commit")
     # ls-tree rejects gitlinks, symlinks, missing path, and pathspec ambiguity.

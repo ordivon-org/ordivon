@@ -1702,39 +1702,6 @@ def test_manifest_git_sourcecut_rejects_symlinks(tmp_path) -> None:
         _immutable_git_manifest(repo, cut, __import__("pathlib").Path("link.json"))
 
 
-def test_immutable_git_manifest_uses_native_sha256_full_sourcecut(tmp_path) -> None:
-    """The Composition proof input must accept exactly Git's full SHA-256 commit."""
-    import json
-    import subprocess
-    from pathlib import Path
-
-    from ordivon_composition.verification_obligation_r1 import _immutable_git_manifest
-
-    repo = tmp_path / "sha256-source"
-    repo.mkdir()
-
-    def git(*args: str) -> str:
-        return subprocess.check_output(["git", "-C", str(repo), *args], text=True).strip()
-
-    git("init", "-q", "--object-format=sha256")
-    git("config", "user.name", "Ordivon Test")
-    git("config", "user.email", "test@example.invalid")
-    original = _two_gate_manifest()
-    (repo / "circuit.json").write_text(json.dumps(original), encoding="utf8")
-    git("add", ".")
-    git("commit", "-qm", "sha256 exact source")
-    commit = git("rev-parse", "HEAD")
-    assert git("rev-parse", "--show-object-format=storage") == "sha256"
-    assert len(commit) == 64
-    observed, evidence = _immutable_git_manifest(repo, commit, Path("circuit.json"))
-    assert observed == original
-    assert evidence["commit"] == commit
-    assert len(evidence["blobId"]) == 64
-    assert evidence["truthRole"] == "git-immutable-source-only-not-proof-reuse"
-    with pytest.raises(CircuitContractError, match="exact full commit"):
-        _immutable_git_manifest(repo, commit[:40], Path("circuit.json"))
-
-
 def test_immutable_manifest_sourcecut_ignores_native_git_replace_refs(tmp_path) -> None:
     """An exact commit ID must not silently alias another commit via Git replace."""
     import json
