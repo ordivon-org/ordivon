@@ -469,7 +469,7 @@ def project_owner_lego_source_graph(
             raise ArchitectureDocsError("sourceRevision must be exact 40-hex Git commit")
         try:
             actual = subprocess.check_output(
-                ["git", "-C", str(root), "rev-parse", "--verify", source_revision + "^{commit}"],
+                ["git", "--no-replace-objects", "-C", str(root), "rev-parse", "--verify", source_revision + "^{commit}"],
                 stderr=subprocess.PIPE,
             ).decode("ascii").strip()
             if actual != source_revision:
@@ -501,7 +501,7 @@ def project_owner_lego_source_graph(
                 raise ArchitectureDocsError(f"Owner plan absent/nonregular in Git SourceCut: {relative}")
             try:
                 before = subprocess.check_output(
-                    ["git", "-C", str(root), "cat-file", "blob", oid], stderr=subprocess.PIPE,
+                    ["git", "--no-replace-objects", "-C", str(root), "cat-file", "blob", oid], stderr=subprocess.PIPE,
                 )
             except subprocess.CalledProcessError as exc:
                 raise ArchitectureDocsError(f"cannot read Git SourceCut plan: {relative}") from exc

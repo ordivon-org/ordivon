@@ -625,6 +625,47 @@ def test_native_git_sourcecut_graph_ignores_mutable_worktree_plan(
     assert module.project_owner_lego_source_graph(ROOT, source_revision=sha) == baseline
 
 
+
+def test_immutable_owner_plan_projection_ignores_local_git_blob_replace(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    """Git replace must not rewrite claims for the same exact commit SHA."""
+    import subprocess
+
+    def git(*args: str, input_bytes: bytes | None = None) -> str:
+        result = subprocess.check_output(
+            ["git", "-c", "maintenance.auto=false", "-C", str(tmp_path), *args],
+            input=input_bytes, stderr=subprocess.PIPE,
+        )
+        return result.decode("ascii").strip()
+
+    git("init", "-q", "-b", "main")
+    git("config", "user.name", "SourceCut Falsifier")
+    git("config", "user.email", "sourcecut@local.invalid")
+    owner_plan = "services/runtime/planning/lego-plan-r1.json"
+    original = (ROOT / owner_plan).read_bytes()
+    plan = json.loads(original)
+    for name in [owner_plan, *plan["project"]["sourceEvidence"]]:
+        path = tmp_path / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes((ROOT / name).read_bytes())
+    git("add", ".")
+    git("commit", "-qm", "immutable owner-plan source cut")
+    source_cut = git("rev-parse", "HEAD")
+    monkeypatch.setattr(module, "OWNER_LEGO_PLANS", (owner_plan,))
+    expected = module.project_owner_lego_source_graph(tmp_path, source_revision=source_cut)
+    old_blob = git("rev-parse", source_cut + ":" + owner_plan)
+    other = json.loads(original)
+    other["nodes"][0]["kind"] = "REPLACEMENT_NOT_PART_OF_GIT_COMMIT"
+    replacement_blob = git(
+        "hash-object", "-w", "--stdin", input_bytes=json.dumps(other).encode()
+    )
+    git("replace", old_blob, replacement_blob)
+    assert git("cat-file", "blob", old_blob) != original.decode()
+    actual = module.project_owner_lego_source_graph(tmp_path, source_revision=source_cut)
+    assert actual == expected
+
+
 def test_git_sourcecut_evidence_carriers_match_exact_git_tree(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
