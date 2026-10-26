@@ -240,6 +240,210 @@ def resolve_verifier_bindings(
     return projection
 
 
+def select_impacted_obligations(
+    *,
+    authority_refs: list[str],
+    obligations: list[dict[str, Any]],
+    changed_refs: list[str],
+    unknown_refs: list[str] | None = None,
+    previous_graph: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Task-local conservative proof impact projection, never verifier authority.
+
+    Caller-reported dependency completeness is an explicit assumption, not
+    proof of graph closure. When prior/current graphs are both supplied, their
+    *declared* relation and optional owner-obligation-digest delta is derived
+    mechanically, not confused with a source-file delta.
+    Prior snapshot provenance and readset completeness
+    remain the caller's independent qualification obligations.
+    REUSE_CANDIDATE is not PASS/current acceptance.
+    """
+
+    def require_refs(values: list[str], label: str) -> set[str]:
+        if not isinstance(values, list) or any(
+            not isinstance(ref, str)
+            or ":" not in ref
+            or ref != ref.strip()
+            or not ref.isprintable()
+            or not all(ref.split(":", 1))
+            for ref in values
+        ):
+            raise CircuitContractError(f"{label} needs nonempty typed references")
+        if len(values) != len(set(values)):
+            raise CircuitContractError(f"{label} has duplicate references")
+        return set(values)
+
+    def validate_impact_claim(item: Any, label: str) -> None:
+        required = {"id", "dependsOn", "dependenciesComplete"}
+        if not isinstance(item, dict) or not (
+            required <= set(item) <= required | {"obligationDigest"}
+        ):
+            raise CircuitContractError(f"{label} requires id, dependsOn, dependenciesComplete")
+        if "obligationDigest" in item:
+            digest = item["obligationDigest"]
+            if (
+                not isinstance(digest, str)
+                or not digest.startswith("sha256:")
+                or len(digest) != 71
+                or any(ch not in "0123456789abcdef" for ch in digest[7:])
+            ):
+                raise CircuitContractError(f"{label} obligationDigest must be canonical sha256")
+
+    roots = require_refs(authority_refs, "authorityRefs")
+    changed = require_refs(changed_refs, "changedRefs")
+    unknown = require_refs(unknown_refs if unknown_refs is not None else [], "unknownRefs")
+    claims: dict[str, dict[str, Any]] = {}
+    for item in obligations:
+        validate_impact_claim(item, "obligation")
+        identity = item["id"]
+        require_refs([identity], "obligation id")
+        require_refs(item["dependsOn"], "dependsOn")
+        if type(item["dependenciesComplete"]) is not bool:
+            raise CircuitContractError("dependenciesComplete must be JSON boolean")
+        if identity in claims or identity in roots:
+            raise CircuitContractError(f"duplicate obligation/source identity: {identity}")
+        claims[identity] = dict(item)
+
+    derived_relation_changes: set[str] = set()
+    derived_contract_changes: set[str] = set()
+    if previous_graph is not None:
+        if (
+            not isinstance(previous_graph, dict)
+            or set(previous_graph) != {"authorityRefs", "obligations"}
+            or not isinstance(previous_graph["obligations"], list)
+        ):
+            raise CircuitContractError("previousGraph needs authorityRefs and obligations")
+        prev_roots = require_refs(previous_graph["authorityRefs"], "previous authorityRefs")
+        prev_claims: dict[str, dict[str, Any]] = {}
+        for item in previous_graph["obligations"]:
+            validate_impact_claim(item, "previous obligation")
+            identity = item["id"]
+            require_refs([identity], "previous obligation id")
+            deps = require_refs(item["dependsOn"], "previous dependsOn")
+            if type(item["dependenciesComplete"]) is not bool:
+                raise CircuitContractError("previous dependenciesComplete must be JSON boolean")
+            if identity in prev_claims or identity in prev_roots:
+                raise CircuitContractError(
+                    f"duplicate previous obligation/source identity: {identity}"
+                )
+            prev_claims[identity] = {
+                "dependsOn": deps,
+                "dependenciesComplete": item["dependenciesComplete"],
+                "obligationDigest": item.get("obligationDigest"),
+            }
+        from .cognitive_circuit_r1 import _topological_order
+
+        _topological_order(
+            [{"id": root, "dependsOn": []} for root in prev_roots]
+            + [
+                {"id": identity, "dependsOn": sorted(item["dependsOn"])}
+                for identity, item in prev_claims.items()
+            ]
+        )
+        derived_relation_changes = roots ^ prev_roots
+        for identity in set(claims) | set(prev_claims):
+            item = claims.get(identity)
+            current = (
+                None
+                if item is None
+                else {
+                    "dependsOn": set(item["dependsOn"]),
+                    "dependenciesComplete": item["dependenciesComplete"],
+                    "obligationDigest": item.get("obligationDigest"),
+                }
+            )
+            previous = prev_claims.get(identity)
+            if (
+                current is None
+                or previous is None
+                or current["dependsOn"] != previous["dependsOn"]
+                or current["dependenciesComplete"] != previous["dependenciesComplete"]
+            ):
+                derived_relation_changes.add(identity)
+            # A semantic contract change is different from a relation change;
+            # both invalidate the proof, but should remain distinguishable.
+            if (current or {}).get("obligationDigest") != (previous or {}).get("obligationDigest"):
+                derived_contract_changes.add(identity)
+        changed |= derived_relation_changes | derived_contract_changes
+
+    unindexed = sorted((changed | unknown) - (roots | set(claims)))
+    rows = [{"id": root, "dependsOn": []} for root in roots]
+    rows += [{"id": identity, "dependsOn": item["dependsOn"]} for identity, item in claims.items()]
+    from .cognitive_circuit_r1 import _topological_order
+
+    order = _topological_order(rows)
+    statuses: dict[str, str] = {}
+    for identity in order:
+        if identity in roots:
+            statuses[identity] = (
+                "RECHECK_REQUIRED"
+                if identity in changed
+                else "UNKNOWN"
+                if identity in unknown or unindexed
+                else "REUSE_CANDIDATE"
+            )
+            continue
+        item = claims[identity]
+        upstream = [statuses[ref] for ref in item["dependsOn"]]
+        if identity in changed or "RECHECK_REQUIRED" in upstream:
+            statuses[identity] = "RECHECK_REQUIRED"
+        elif (
+            identity in unknown
+            or unindexed
+            or not item["dependenciesComplete"]
+            or "UNKNOWN" in upstream
+        ):
+            statuses[identity] = "UNKNOWN"
+        else:
+            statuses[identity] = "REUSE_CANDIDATE"
+
+    projection = {
+        "kind": "ordivon.task-local-obligation-impact",
+        "truthRole": "rebuildable-non-authoritative-selection",
+        "standingByObligation": [
+            {"id": identity, "standing": statuses[identity]} for identity in sorted(claims)
+        ],
+        "unindexedChangeRefs": unindexed,
+        "derivedRelationChangedRefs": sorted(derived_relation_changes),
+        "derivedContractChangedRefs": sorted(derived_contract_changes),
+        "derivedChangedRefs": sorted(derived_relation_changes | derived_contract_changes),
+        "relationComparisonQualification": (
+            "CALLER_SUPPLIED_PRIOR_AND_CURRENT_NOT_OWNER_CERTIFIED"
+            if previous_graph is not None
+            else "NOT_REQUESTED"
+        ),
+        "dependencyQualification": "CALLER_DECLARED_NOT_OWNER_CERTIFIED",
+        "proofReuseAdmissible": False,
+        "proofAcceptanceEstablished": False,
+        "basisDigest": canonical_digest(
+            {
+                "authorityRefs": sorted(roots),
+                # dependsOn is a graph prerequisite SET, not an ordered program.
+                # Canonicalize its members so equivalent read-sets share identity.
+                "obligations": [
+                    {**item, "dependsOn": sorted(item["dependsOn"])}
+                    for item in sorted(claims.values(), key=lambda x: x["id"])
+                ],
+                "changedRefs": sorted(changed),
+                "unknownRefs": sorted(unknown),
+            }
+        ),
+        "nonClaims": [
+            "REUSE_CANDIDATE never claims verifier PASS or current correctness.",
+            "dependenciesComplete is an unproven caller-supplied assertion.",
+            "Unresolved dynamic/foreign dependencies must remain UNKNOWN.",
+            "Prior/current graph source authority and completeness are not certified.",
+            "Optional obligationDigest is caller-supplied, not owner-authenticated.",
+            "No verifier execution, effect permission, or domain acceptance.",
+        ],
+    }
+    # basisDigest identifies only the effective selection inputs; equal
+    # selection bases must remain reusable despite different historical
+    # comparison provenance. projectionDigest distinguishes those claims.
+    projection["projectionDigest"] = canonical_digest(projection)
+    return projection
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest="command", required=True)
