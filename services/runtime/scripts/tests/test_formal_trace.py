@@ -500,15 +500,19 @@ class FormalTraceContractTests(unittest.TestCase):
             toolchain.write_text('[tools]\nrust = "1.99.1"\n', encoding="utf-8")
 
             def git(*args):
-                return subprocess.run(
-                    ["git", "-C", str(repo), *args],
-                    check=True, capture_output=True,
-                ).stdout.decode().strip()
+                return (
+                    subprocess.run(
+                        ["git", "-C", str(repo), *args],
+                        check=True,
+                        capture_output=True,
+                    )
+                    .stdout.decode()
+                    .strip()
+                )
 
             git("init", "-q")
             git("add", ".")
-            git("-c", "user.name=FormalTest", "-c",
-                "user.email=test@example.invalid", "commit", "-qm", "source")
+            git("-c", "user.name=FormalTest", "-c", "user.email=test@example.invalid", "commit", "-qm", "source")
             expected = git("rev-parse", "HEAD")
             prior = self.module.ROOT
             self.module.ROOT = runtime
@@ -878,6 +882,69 @@ class FormalTraceContractTests(unittest.TestCase):
                     self.module.project_proving_test_source_impact(trace, invariants, {bad})
         with self.assertRaisesRegex(ValueError, "exact 40-hex"):
             self.module._git_source_changes("HEAD", "HEAD")
+
+    def test_cargo_compiler_artifact_is_not_inferred_from_filenames(self):
+        import json
+
+        correct = {
+            "reason": "compiler-artifact",
+            "target": {
+                "name": "ordivon_runtime_core",
+                "kind": ["lib"],
+            },
+            "profile": {"test": True, "opt_level": "0"},
+            "features": ["transactional-runtime", "universal-executor"],
+            "executable": "/build/native-test-binary",
+        }
+        self.assertEqual(
+            self.module._native_cargo_test_artifact(json.dumps(correct)),
+            correct,
+        )
+        for mutation in (
+            lambda x: x.update({"reason": "build-script-executed"}),
+            lambda x: x["target"].update({"kind": ["bin"]}),
+            lambda x: x["profile"].update({"test": False}),
+            lambda x: x.update({"features": ["universal-executor"]}),
+            lambda x: x.update({"executable": None}),
+        ):
+            altered = copy.deepcopy(correct)
+            mutation(altered)
+            with self.subTest(altered=altered):
+                with self.assertRaisesRegex(ValueError, "exactly one"):
+                    self.module._native_cargo_test_artifact(json.dumps(altered))
+        with self.assertRaisesRegex(ValueError, "exactly one"):
+            self.module._native_cargo_test_artifact(json.dumps(correct) + "\n" + json.dumps(correct))
+        with self.assertRaisesRegex(ValueError, "exactly one"):
+            self.module._native_cargo_test_artifact("not JSON")
+
+    def test_same_executable_digest_cannot_hide_different_rustc_cfg(self):
+        # Real Cargo experiment: --cfg can change rebuild assumptions without
+        # changing the final binary's bytes. The qualification digest must differ.
+        context = {
+            "sourceHead": "a" * 40,
+            "compiledTestArtifactSha256": "sha256:" + "1" * 64,
+            "compiledTestFeatures": ["transactional-runtime", "universal-executor"],
+            "compiledTestProfile": {"test": True, "opt_level": "0"},
+            "cargoVersion": "cargo 1.99.1",
+            "rustcVersionVerbose": "rustc 1.99.1",
+            "cargoProfile": {"package": "ordivon-runtime-core"},
+            "buildEnvironment": {"RUSTFLAGS": ""},
+        }
+        baseline = self.module._native_execution_context_digest(context)
+        altered = copy.deepcopy(context)
+        altered["buildEnvironment"]["RUSTFLAGS"] = "--cfg ordivon_native_receipt_counterexample"
+        self.assertNotEqual(baseline, self.module._native_execution_context_digest(altered))
+        self.assertEqual(
+            context["compiledTestArtifactSha256"],
+            altered["compiledTestArtifactSha256"],
+        )
+        self.assertEqual(
+            baseline,
+            self.module._native_execution_context_digest(dict(reversed(list(context.items())))),
+        )
+        changed_profile = copy.deepcopy(context)
+        changed_profile["compiledTestProfile"]["test"] = False
+        self.assertNotEqual(baseline, self.module._native_execution_context_digest(changed_profile))
 
 
 if __name__ == "__main__":

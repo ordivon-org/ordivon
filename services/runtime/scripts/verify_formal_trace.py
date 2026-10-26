@@ -675,10 +675,14 @@ def _qualified_native_source_head() -> str:
 
     repo = ROOT.parents[1]
     try:
-        head = subprocess.check_output(
-            ["git", "-C", str(repo), "rev-parse", "HEAD"],
-            stderr=subprocess.PIPE,
-        ).decode("ascii").strip()
+        head = (
+            subprocess.check_output(
+                ["git", "-C", str(repo), "rev-parse", "HEAD"],
+                stderr=subprocess.PIPE,
+            )
+            .decode("ascii")
+            .strip()
+        )
         _git_source_changes(head, head)
     except (subprocess.CalledProcessError, UnicodeError) as error:
         raise ValueError("native witness Git SourceCut is unavailable") from error
@@ -727,11 +731,41 @@ def _require_exact_native_pass(output: str) -> None:
         raise ValueError("native test must execute exactly one PASS and no ignored tests")
 
 
-def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
-    """Bind five declared test identities to actual cargo/libtest executions.
+def _native_cargo_test_artifact(stdout: str) -> dict[str, Any]:
+    """Select one Cargo-emitted compiler artifact, never guess target/deps names."""
+    artifacts = []
+    for line in stdout.splitlines():
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        target = row.get("target", {})
+        if (
+            row.get("reason") == "compiler-artifact"
+            and isinstance(target, dict)
+            and target.get("name") == "ordivon_runtime_core"
+            and target.get("kind") == ["lib"]
+            and row.get("profile", {}).get("test") is True
+            and "transactional-runtime" in row.get("features", [])
+            and isinstance(row.get("executable"), str)
+        ):
+            artifacts.append(row)
+    if len(artifacts) != 1:
+        raise ValueError("Cargo must identify exactly one transactional-runtime libtest binary")
+    return artifacts[0]
 
-    This deliberately establishes only scoped Rust implementation evidence,
-    NOT Rust-to-TLA refinement, whole-input closure, or installed release truth.
+
+def _native_execution_context_digest(context: dict[str, Any]) -> str:
+    """Content identity for captured native build assumptions, not a proof."""
+    canonical = json.dumps(context, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return f"sha256:{hashlib.sha256(canonical.encode('utf-8')).hexdigest()}"
+
+
+def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
+    """Compile once, execute the exact Cargo-provided binary, bind one native receipt.
+
+    The executable and its Cargo target/profile are source-local CODE evidence,
+    not a universal environment readset or a Rust-to-TLA refinement proof.
     """
     import os
     import subprocess
@@ -747,50 +781,74 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
         "--features",
         "transactional-runtime",
         "--lib",
+        "--no-run",
+        "--message-format=json",
     ]
     pre_execution_head = _qualified_native_source_head()
     env = dict(os.environ)
     env["CARGO_TERM_COLOR"] = "never"
-    # Retain Runtime's existing build-cache directory descriptor across the
-    # nested Cargo process when Runtime issued a /proc/self/fd target path.
-    target = env.get("CARGO_TARGET_DIR", "")
+    target_dir = env.get("CARGO_TARGET_DIR", str(ROOT / "target"))
+    # A Runtime-issued target directory may be an fd-bound path. Preserve it
+    # in all child processes, including direct libtest execution.
     fds: tuple[int, ...] = ()
-    if target.startswith("/proc/self/fd/") and target.rsplit("/", 1)[1].isdigit():
-        fd = int(target.rsplit("/", 1)[1])
+    if target_dir.startswith("/proc/self/fd/") and target_dir.rsplit("/", 1)[1].isdigit():
+        fd = int(target_dir.rsplit("/", 1)[1])
         os.fstat(fd)
         fds = (fd,)
 
-    def cargo_check(*args: str) -> subprocess.CompletedProcess[str]:
-        process = subprocess.run(
-            [*cargo, *args],
-            cwd=ROOT,
+    def run(command: list[str], *, timeout: int = 180, workdir: Path = ROOT) -> str:
+        result = subprocess.run(
+            command,
+            cwd=workdir,
             env=env,
             pass_fds=fds,
             capture_output=True,
             text=True,
-            timeout=180,
+            timeout=timeout,
             check=False,
         )
-        if process.returncode:
-            raise ValueError(f"native Cargo failed (exit {process.returncode}): {process.stderr[-350:]}")
-        return process
+        if result.returncode:
+            raise ValueError(f"native witness command failed (exit {result.returncode}): {result.stderr[-350:]}")
+        return result.stdout
 
-    listing = cargo_check("--", "--list")
-    ignored_listing = cargo_check("--", "--ignored", "--list")
-    registered = {line.removesuffix(": test") for line in listing.stdout.splitlines() if line.endswith(": test")}
+    def provenance(command: list[str]) -> str:
+        return run(command, timeout=20).strip()
+
+    source_head = provenance(["git", "rev-parse", "HEAD"])
+    # Reuse the existing Runtime Git readset guard: this includes indexed root
+    # toolchains/.cargo and detects hidden assume-unchanged/skip-worktree flags.
+    _git_source_changes(source_head, source_head)
+
+    manifest_path = ROOT / "crates/ordivon-runtime-core/src/lib.rs"
+    cargo_json = run(cargo)
+    artifact = _native_cargo_test_artifact(cargo_json)
+    if Path(artifact["target"]["src_path"]).resolve() != manifest_path.resolve():
+        raise ValueError("Cargo emitted an unexpected test source module")
+    test_binary = Path(artifact["executable"])
+    if not test_binary.is_file() or not test_binary.resolve().is_relative_to(Path(target_dir).resolve()):
+        raise ValueError("Cargo emitted test binary outside its build target")
+    binary_before = sha256(test_binary)
+
+    def libtest(*args: str) -> str:
+        # Cargo runs each package's tests from the package root.
+        return run(
+            [str(test_binary), *args],
+            workdir=ROOT / "crates/ordivon-runtime-core",
+        )
+
+    registered = {line.removesuffix(": test") for line in libtest("--list").splitlines() if line.endswith(": test")}
     ignored_names = {
-        line.removesuffix(": test") for line in ignored_listing.stdout.splitlines() if line.endswith(": test")
+        line.removesuffix(": test") for line in libtest("--ignored", "--list").splitlines() if line.endswith(": test")
     }
     contract_rows = []
-    qualified_contract_tests: set[str] = set()
+    tested_contract_names: set[str] = set()
     for binding in [*trace["contractSeams"], *trace["supportingContracts"]]:
         native_name = native_contract_expected(binding)
         if native_name not in registered or native_name in ignored_names:
             raise ValueError(f"compiler-owned contract witness absent/ignored: {native_name}")
-        if native_name not in qualified_contract_tests:
-            executed = cargo_check(native_name, "--", "--exact")
-            _require_exact_native_pass(executed.stdout)
-            qualified_contract_tests.add(native_name)
+        if native_name not in tested_contract_names:
+            _require_exact_native_pass(libtest(native_name, "--exact"))
+            tested_contract_names.add(native_name)
         contract_rows.append(
             {
                 "id": binding["id"],
@@ -807,8 +865,7 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
             ignored_names,
             require_ignored=False,
         )
-        result = cargo_check(name, "--", "--exact")
-        _require_exact_native_pass(result.stdout)
+        _require_exact_native_pass(libtest(name, "--exact"))
         witness_rows.append(
             {
                 "id": witness["id"],
@@ -816,6 +873,7 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
                 "standing": "EXECUTED_PASS",
             }
         )
+
     opt_in_rows = []
     for witness in trace["conditionalAcceptanceTests"]:
         name = _require_native_test_role(
@@ -832,26 +890,11 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
             }
         )
 
-    def provenance(command: list[str]) -> str:
-        process = subprocess.run(
-            command,
-            cwd=ROOT,
-            env=env,
-            pass_fds=fds,
-            capture_output=True,
-            text=True,
-            timeout=20,
-            check=False,
-        )
-        if process.returncode:
-            raise ValueError(f"native witness prerequisite failed: {command[0]}")
-        return process.stdout.strip()
-
-    source_head = _qualified_native_source_head()
-    if source_head != pre_execution_head:
+    if sha256(test_binary) != binary_before:
+        raise ValueError("compiled libtest executable changed during verification")
+    source_head_after = _qualified_native_source_head()
+    if source_head_after != pre_execution_head or source_head_after != source_head:
         raise ValueError("native source checkout HEAD changed during Cargo witnesses")
-    toolchain = provenance(["rustc", "-vV"])
-    cargo_version = provenance(["cargo", "--version"])
     rust_env = {
         key: env.get(key, "")
         for key in (
@@ -863,7 +906,28 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
             "CARGO_HOME",
         )
     }
-
+    cargo_version = provenance(["cargo", "--version"])
+    rustc_version = provenance(["rustc", "-vV"])
+    cargo_profile = {
+        "package": "ordivon-runtime-core",
+        "feature": "transactional-runtime",
+        "noDefaultFeatures": True,
+        "lib": True,
+        "locked": True,
+        "offline": True,
+    }
+    # Reuse original R2.1 evidence qualification: an unchanged executable
+    # alone cannot establish unchanged compilation assumptions.
+    context = {
+        "sourceHead": source_head,
+        "cargoVersion": cargo_version,
+        "rustcVersionVerbose": rustc_version,
+        "buildEnvironment": rust_env,
+        "cargoProfile": cargo_profile,
+        "compiledTestArtifactSha256": f"sha256:{binary_before}",
+        "compiledTestFeatures": sorted(artifact["features"]),
+        "compiledTestProfile": artifact["profile"],
+    }
     return {
         "kind": "ordivon.runtime-native-test-witness",
         "truthRole": "scoped-code-test-evidence-not-formal-refinement",
@@ -875,16 +939,21 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
         "sourceQualification": "EXACT_GIT_SOURCE_CUT_PRE_AND_POST_NATIVE_CARGO",
         "sourceSnapshotCompleteness": "PRE_POST_NOT_ATOMIC; EXTERNAL_READSET_UNKNOWN",
         "cargoVersion": cargo_version,
-        "rustcVersionVerbose": toolchain,
+        "rustcVersionVerbose": rustc_version,
         "buildEnvironment": rust_env,
-        "cargoProfile": {
-            "package": "ordivon-runtime-core",
-            "feature": "transactional-runtime",
-            "noDefaultFeatures": True,
-            "lib": True,
-            "locked": True,
-            "offline": True,
+        "cargoProfile": cargo_profile,
+        "buildQualificationDigest": _native_execution_context_digest(context),
+        "buildQualificationScope": "CAPTURED_SOURCE_TOOLCHAIN_FLAGS_PROFILE_ARTIFACT_ONLY",
+        "compiledTestArtifact": {
+            "sha256": f"sha256:{binary_before}",
+            "byteLength": test_binary.stat().st_size,
+            "target": artifact["target"]["name"],
+            "sourceModule": str(manifest_path.relative_to(ROOT)),
+            "features": sorted(artifact["features"]),
+            "profile": artifact["profile"],
         },
+        "artifactCurrentness": "OBSERVED_WITHIN_THIS_NATIVE_EXECUTION_ONLY",
+        "completeBuildDependencies": "UNKNOWN",
         "proofReuseAdmissible": False,
         "modelToImplementationRefinement": "UNKNOWN",
         "installedCurrentness": "UNKNOWN",
