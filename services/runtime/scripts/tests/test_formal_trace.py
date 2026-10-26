@@ -946,6 +946,48 @@ class FormalTraceContractTests(unittest.TestCase):
         changed_profile["compiledTestProfile"]["test"] = False
         self.assertNotEqual(baseline, self.module._native_execution_context_digest(changed_profile))
 
+    def test_cargo_build_configuration_is_part_of_witness_qualification(self):
+        # Native Cargo -vv verified that CARGO_BUILD_RUSTFLAGS is forwarded
+        # to rustc, even though both the source and binary hashes can match.
+        source_env = {
+            "RUSTFLAGS": "",
+            "CARGO_BUILD_RUSTFLAGS": "",
+            "RUSTC_WORKSPACE_WRAPPER": "",
+            "CARGO_PROFILE_TEST_OPT_LEVEL": "0",
+            "CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUSTFLAGS": "",
+            "CARGO_REGISTRIES_CRATES_IO_TOKEN": "never-export-this-secret",
+        }
+        observed = self.module._native_cargo_build_environment(source_env)
+        self.assertNotIn("CARGO_REGISTRIES_CRATES_IO_TOKEN", observed)
+        self.assertNotIn("never-export-this-secret", str(observed))
+        self.assertEqual(observed["CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUSTFLAGS"], "")
+        original = self.module._native_execution_context_digest(
+            {"buildEnvironment": observed, "compiledTestArtifactSha256": "sha256:same"}
+        )
+        mutations = {
+            "CARGO_BUILD_RUSTFLAGS": "--cfg ordivon_r51_native_proof_readset",
+            "RUSTC_WORKSPACE_WRAPPER": "/usr/bin/env",
+            "CARGO_PROFILE_TEST_OPT_LEVEL": "1",
+            "CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUSTFLAGS": "-C opt-level=1",
+        }
+        for key, value in mutations.items():
+            changed_env = dict(source_env)
+            changed_env[key] = value
+            changed = self.module._native_cargo_build_environment(changed_env)
+            with self.subTest(key=key):
+                self.assertNotEqual(
+                    original,
+                    self.module._native_execution_context_digest(
+                        {
+                            "buildEnvironment": changed,
+                            "compiledTestArtifactSha256": "sha256:same",
+                        }
+                    ),
+                )
+        changed_env = dict(source_env)
+        changed_env["CARGO_REGISTRIES_CRATES_IO_TOKEN"] = "different-secret"
+        self.assertEqual(observed, self.module._native_cargo_build_environment(changed_env))
+
 
 if __name__ == "__main__":
     unittest.main()
