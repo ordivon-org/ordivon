@@ -464,3 +464,136 @@ def test_impact_rejects_noncanonical_source_or_proof_identity(alias: str, positi
             changed_refs=changed,
             unknown_refs=unknown,
         )
+
+def test_impact_derives_changed_dependency_edges_without_caller_changed_refs():
+    old = [
+        {"id": "proof:p", "dependsOn": ["source:runtime"], "dependenciesComplete": True},
+        {"id": "proof:q", "dependsOn": ["proof:p"], "dependenciesComplete": True},
+        {"id": "proof:host", "dependsOn": ["source:host"], "dependenciesComplete": True},
+    ]
+    new = [dict(row) for row in old]
+    new[0]["dependsOn"] = ["source:runtime", "source:host"]
+    result = select_impacted_obligations(
+        authority_refs=["source:runtime", "source:host"],
+        obligations=new, changed_refs=[],
+        previous_graph={"authorityRefs": ["source:runtime", "source:host"], "obligations": old},
+    )
+    assert result["derivedRelationChangedRefs"] == ["proof:p"]
+    assert _statuses(result) == {
+        "proof:p": "RECHECK_REQUIRED",
+        "proof:q": "RECHECK_REQUIRED",
+        "proof:host": "REUSE_CANDIDATE",
+    }
+    assert result["relationComparisonQualification"].startswith("CALLER_SUPPLIED")
+    assert result["proofReuseAdmissible"] is False
+
+
+def test_impact_relation_permutation_does_not_create_false_change():
+    old = [
+        {"id": "proof:p", "dependsOn": ["source:runtime", "source:host"], "dependenciesComplete": True}
+    ]
+    current = [dict(old[0], dependsOn=["source:host", "source:runtime"])]
+    args = {
+        "authority_refs": ["source:host", "source:runtime"],
+        "obligations": current,
+        "changed_refs": [],
+    }
+    a = select_impacted_obligations(**args)
+    b = select_impacted_obligations(**args, previous_graph={
+        "authorityRefs": ["source:runtime", "source:host"], "obligations": old
+    })
+    assert b["derivedRelationChangedRefs"] == []
+    assert b["basisDigest"] == a["basisDigest"]
+    assert _statuses(b)["proof:p"] == "REUSE_CANDIDATE"
+
+
+def test_impact_dependency_completeness_change_and_deleted_relation_fail_closed():
+    old = [{"id": "proof:p", "dependsOn": ["source:runtime"], "dependenciesComplete": True}]
+    current = [dict(old[0], dependenciesComplete=False)]
+    args = {"authority_refs": ["source:runtime"], "changed_refs": [],
+            "previous_graph": {"authorityRefs": ["source:runtime"], "obligations": old}}
+    result = select_impacted_obligations(obligations=current, **args)
+    assert result["derivedRelationChangedRefs"] == ["proof:p"]
+    assert _statuses(result)["proof:p"] == "RECHECK_REQUIRED"
+
+    # A deleted source root cannot disappear silently from a previous-graph witness.
+    deleted = select_impacted_obligations(
+        authority_refs=["source:host"],
+        obligations=[{"id": "proof:p", "dependsOn": ["source:host"], "dependenciesComplete": True}],
+        changed_refs=[],
+        previous_graph={
+            "authorityRefs": ["source:runtime", "source:host"],
+            "obligations": [{"id": "proof:p", "dependsOn": ["source:host"],
+                             "dependenciesComplete": True}]
+        }
+    )
+    assert "source:runtime" in deleted["derivedRelationChangedRefs"]
+    assert "source:runtime" in deleted["unindexedChangeRefs"]
+    assert set(_statuses(deleted).values()) == {"UNKNOWN"}
+
+
+def test_impact_rejects_malformed_or_cyclic_previous_graph():
+    obligation = {"id": "proof:a", "dependsOn": ["source:a"], "dependenciesComplete": True}
+    args = {"authority_refs": ["source:a"], "obligations": [obligation], "changed_refs": []}
+    invalids = [
+        {"authorityRefs": ["source:a"], "obligations": [obligation, obligation]},
+        {"authorityRefs": ["source:a"], "obligations": [{
+            "id": "proof:b", "dependsOn": ["proof:b"], "dependenciesComplete": True
+        }]},
+        {"authorityRefs": ["source:a"], "obligations": [{
+            "id": "proof:b", "dependsOn": ["source:a"], "dependenciesComplete": "yes"
+        }]},
+    ]
+    for invalid in invalids:
+        with pytest.raises(CircuitContractError):
+            select_impacted_obligations(**args, previous_graph=invalid)
+
+
+def test_impact_relation_delta_matches_independent_full_graph_closure_randomized():
+    from random import Random
+
+    rng = Random(841842)
+    roots = ["source:a", "source:b", "source:c"]
+    proof_ids = ["proof:a", "proof:b", "proof:c"]
+
+    def graph():
+        result = []
+        for i, identity in enumerate(proof_ids):
+            possible = roots + proof_ids[:i]
+            deps = [p for p in possible if rng.choice([False, True])]
+            rng.shuffle(deps)
+            result.append({"id": identity, "dependsOn": deps,
+                           "dependenciesComplete": rng.choice([False, True])})
+        return result
+
+    for _ in range(1200):
+        old = graph()
+        current = graph()
+        projection = select_impacted_obligations(
+            authority_refs=roots,
+            obligations=current,
+            changed_refs=[],
+            previous_graph={"authorityRefs": list(reversed(roots)), "obligations": old},
+        )
+        old_index = {row["id"]: row for row in old}
+        changed_proofs = {
+            row["id"] for row in current
+            if (set(row["dependsOn"]) != set(old_index[row["id"]]["dependsOn"])
+                or row["dependenciesComplete"] != old_index[row["id"]]["dependenciesComplete"])
+        }
+        impacted = set(changed_proofs)
+        while True:
+            next_impact = impacted | {
+                row["id"] for row in current
+                if any(d in impacted for d in row["dependsOn"])
+            }
+            if next_impact == impacted:
+                break
+            impacted = next_impact
+        actual = {
+            ref for ref, status in _statuses(projection).items()
+            if status == "RECHECK_REQUIRED"
+        }
+        assert actual == impacted
+        assert set(projection["derivedRelationChangedRefs"]) == changed_proofs
+        assert projection["proofReuseAdmissible"] is False

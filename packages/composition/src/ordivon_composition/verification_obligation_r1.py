@@ -246,11 +246,16 @@ def select_impacted_obligations(
     obligations: list[dict[str, Any]],
     changed_refs: list[str],
     unknown_refs: list[str] | None = None,
+    previous_graph: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Task-local conservative proof impact projection, never verifier authority.
 
     Caller-reported dependency completeness is an explicit assumption, not
-    proof of graph closure. REUSE_CANDIDATE is not PASS/current acceptance.
+    proof of graph closure. When prior/current graphs are both supplied, their
+    *declared* relation delta is derived mechanically, not confused with a
+    source-file delta. Prior snapshot provenance and readset completeness
+    remain the caller's independent qualification obligations.
+    REUSE_CANDIDATE is not PASS/current acceptance.
     """
 
     def require_refs(values: list[str], label: str) -> set[str]:
@@ -282,6 +287,52 @@ def select_impacted_obligations(
         if identity in claims or identity in roots:
             raise CircuitContractError(f"duplicate obligation/source identity: {identity}")
         claims[identity] = dict(item)
+
+    derived_relation_changes: set[str] = set()
+    if previous_graph is not None:
+        if (
+            not isinstance(previous_graph, dict)
+            or set(previous_graph) != {"authorityRefs", "obligations"}
+            or not isinstance(previous_graph["obligations"], list)
+        ):
+            raise CircuitContractError("previousGraph needs authorityRefs and obligations")
+        prev_roots = require_refs(previous_graph["authorityRefs"], "previous authorityRefs")
+        prev_claims: dict[str, dict[str, Any]] = {}
+        for item in previous_graph["obligations"]:
+            if not isinstance(item, dict) or set(item) != {
+                "id", "dependsOn", "dependenciesComplete"
+            }:
+                raise CircuitContractError("previous obligation requires id, dependsOn, dependenciesComplete")
+            identity = item["id"]
+            require_refs([identity], "previous obligation id")
+            deps = require_refs(item["dependsOn"], "previous dependsOn")
+            if type(item["dependenciesComplete"]) is not bool:
+                raise CircuitContractError("previous dependenciesComplete must be JSON boolean")
+            if identity in prev_claims or identity in prev_roots:
+                raise CircuitContractError(f"duplicate previous obligation/source identity: {identity}")
+            prev_claims[identity] = {
+                "dependsOn": deps,
+                "dependenciesComplete": item["dependenciesComplete"],
+            }
+        from .cognitive_circuit_r1 import _topological_order
+
+        _topological_order(
+            [{"id": root, "dependsOn": []} for root in prev_roots]
+            + [{"id": identity, "dependsOn": sorted(item["dependsOn"])}
+               for identity, item in prev_claims.items()]
+        )
+        derived_relation_changes = roots ^ prev_roots
+        for identity in set(claims) | set(prev_claims):
+            item = claims.get(identity)
+            current = (
+                None if item is None else {
+                    "dependsOn": set(item["dependsOn"]),
+                    "dependenciesComplete": item["dependenciesComplete"],
+                }
+            )
+            if current != prev_claims.get(identity):
+                derived_relation_changes.add(identity)
+        changed |= derived_relation_changes
 
     unindexed = sorted((changed | unknown) - (roots | set(claims)))
     rows = [{"id": root, "dependsOn": []} for root in roots]
@@ -321,6 +372,11 @@ def select_impacted_obligations(
             {"id": identity, "standing": statuses[identity]} for identity in sorted(claims)
         ],
         "unindexedChangeRefs": unindexed,
+        "derivedRelationChangedRefs": sorted(derived_relation_changes),
+        "relationComparisonQualification": (
+            "CALLER_SUPPLIED_PRIOR_AND_CURRENT_NOT_OWNER_CERTIFIED"
+            if previous_graph is not None else "NOT_REQUESTED"
+        ),
         "dependencyQualification": "CALLER_DECLARED_NOT_OWNER_CERTIFIED",
         "proofReuseAdmissible": False,
         "proofAcceptanceEstablished": False,
@@ -341,6 +397,7 @@ def select_impacted_obligations(
             "REUSE_CANDIDATE never claims verifier PASS or current correctness.",
             "dependenciesComplete is an unproven caller-supplied assertion.",
             "Unresolved dynamic/foreign dependencies must remain UNKNOWN.",
+            "Prior/current graph source authority and completeness are not certified.",
             "No verifier execution, effect permission, or domain acceptance.",
         ],
     }
