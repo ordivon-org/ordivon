@@ -257,13 +257,23 @@ normal TLC config checks PgWriterRequiresQualifiedConsumers, and the
 existing ephemeral negative-control runner deletes just that guard and
 requires a named counterexample state trace.
 
-QualifyConsumers is deliberately an UNVERIFIED external oracle in this
-abstract model. TLC PASS **does not** authenticate a live consumer receipt,
-prove its source seal, demonstrate readback on a real PG instance, or prove
-Rust/Harness application refinement. Actual cutover remains NOT_CUT_OVER
-until the real consumer and effect owner evidence discharges those obligations.
-This is one additional scoped contract in the existing formal owner, not a
-new custom solver or a global LEGO registry.
+The finite model now distinguishes a candidate consumer receipt from a
+qualified consumer. The typed consumerReceipt record carries a symbolic source
+revision, symbolic content identity, and issuer (trusted or foreign).
+ObserveConsumerReceipt nondeterministically produces stale, wrong-content,
+foreign and matching evidence. QualifyConsumers checks all three fields against
+the frozen source before enabling Promote. QualifiedConsumersMatchSource is
+a TLC invariant, and three independent CEGAR mutations delete exactly one
+admission guard each; every mutant must produce the named counterexample and
+a concrete trace. Normal bounded model checking reaches PostgreSQL authority.
+
+The trusted issuer value remains **an unverified external oracle**, not a
+cryptographically authenticated identity. Neither the symbolic source revision
+nor symbolic content value is a real source digest or consumer readback.
+TLC PASS does NOT prove installed source sealing, PostgreSQL transactional
+consumer behavior, or Rust/Harness implementation refinement. Actual cutover
+remains NOT_CUT_OVER until physical consumer and effect Owner evidence discharges
+those obligations. No second registry, solver, or Agent is introduced.
 
 ## PostgreSQL R06 installed-writer overlap (CEGAR refinement)
 

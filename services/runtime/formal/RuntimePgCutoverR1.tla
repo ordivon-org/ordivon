@@ -8,11 +8,13 @@ EXTENDS Naturals
 \* "owner" is one durable writer authority, not two independent booleans.
 VARIABLES owner, sqliteRevision, pgRevision, sqliteContent, pgContent,
           copied, parityVerified, cutoverCertified, pgCommitted, rolledBack,
-          sqliteWriterActive, pgWriterActive, consumersQualified
+          sqliteWriterActive, pgWriterActive, consumersQualified,
+          consumerReceipt
 
 Vars == <<owner, sqliteRevision, pgRevision, sqliteContent, pgContent,
           copied, parityVerified, cutoverCertified, pgCommitted, rolledBack,
-          sqliteWriterActive, pgWriterActive, consumersQualified>>
+          sqliteWriterActive, pgWriterActive, consumersQualified,
+          consumerReceipt>>
 
 Init ==
     /\ owner = "sqlite"
@@ -28,6 +30,9 @@ Init ==
     /\ sqliteWriterActive = TRUE
     /\ pgWriterActive = FALSE
     /\ consumersQualified = FALSE
+    /\ consumerReceipt = [revision |-> 3, content |-> 0, issuer |-> "none"]
+
+ReceiptType == [revision : 0..3, content : 0..1, issuer : {"none", "trusted", "foreign"}]
 
 SqliteCommit ==
     /\ owner = "sqlite"
@@ -38,6 +43,7 @@ SqliteCommit ==
     /\ copied' = FALSE
     /\ parityVerified' = FALSE
     /\ consumersQualified' = FALSE
+    /\ consumerReceipt' = [revision |-> 3, content |-> 0, issuer |-> "none"]
     /\ UNCHANGED <<owner, pgRevision, pgContent, cutoverCertified,
                    pgCommitted, rolledBack, sqliteWriterActive, pgWriterActive>>
 
@@ -48,6 +54,7 @@ Freeze ==
     /\ sqliteWriterActive' = FALSE
     /\ parityVerified' = FALSE
     /\ consumersQualified' = FALSE
+    /\ consumerReceipt' = [revision |-> 3, content |-> 0, issuer |-> "none"]
     /\ UNCHANGED <<sqliteRevision, pgRevision, sqliteContent, pgContent,
                    copied, cutoverCertified, pgCommitted, rolledBack, pgWriterActive>>
 
@@ -60,6 +67,7 @@ CopySnapshot ==
     /\ copied' = TRUE
     /\ parityVerified' = FALSE
     /\ consumersQualified' = FALSE
+    /\ consumerReceipt' = [revision |-> 3, content |-> 0, issuer |-> "none"]
     /\ UNCHANGED <<owner, sqliteRevision, sqliteContent, cutoverCertified,
                    pgCommitted, rolledBack, sqliteWriterActive, pgWriterActive>>
 
@@ -71,23 +79,39 @@ VerifyParity ==
     /\ parityVerified' = TRUE
     /\ UNCHANGED <<owner, sqliteRevision, pgRevision, sqliteContent,
                    pgContent, copied, cutoverCertified, pgCommitted, rolledBack,
-                   sqliteWriterActive, pgWriterActive, consumersQualified>>
+                   sqliteWriterActive, pgWriterActive, consumersQualified, consumerReceipt>>
 
 \* An independent real-consumer receipt must be qualified before promotion.
 \* This action is explicitly an UNVERIFIED external oracle, not receipt
 \* authentication or implementation refinement.
+\* A candidate receipt is independent evidence. The finite issuer label is
+\* an unverified external oracle, NOT actual signature/authentication proof.
+\* Stale revisions, corrupt content and foreign issuers are reachable.
+ObserveConsumerReceipt ==
+    /\ owner = "paused"
+    /\ copied
+    /\ consumerReceipt' \in ReceiptType
+    /\ consumersQualified' = FALSE
+    /\ UNCHANGED <<owner, sqliteRevision, pgRevision, sqliteContent,
+                   pgContent, parityVerified, copied, cutoverCertified,
+                   pgCommitted, rolledBack, sqliteWriterActive, pgWriterActive>>
+
 QualifyConsumers ==
     /\ owner = "paused"
     /\ copied
     /\ parityVerified
     /\ pgRevision = sqliteRevision
     /\ pgContent = sqliteContent
+    /\ consumerReceipt \in ReceiptType
+    /\ consumerReceipt.issuer = "trusted"
+    /\ consumerReceipt.revision = sqliteRevision
+    /\ consumerReceipt.content = sqliteContent
     /\ ~sqliteWriterActive
     /\ ~pgWriterActive
     /\ consumersQualified' = TRUE
     /\ UNCHANGED <<owner, sqliteRevision, pgRevision, sqliteContent,
                    pgContent, copied, parityVerified, cutoverCertified,
-                   pgCommitted, rolledBack, sqliteWriterActive, pgWriterActive>>
+                   pgCommitted, rolledBack, sqliteWriterActive, pgWriterActive, consumerReceipt>>
 
 Promote ==
     /\ owner = "paused"
@@ -102,7 +126,7 @@ Promote ==
     /\ rolledBack' = FALSE
     /\ UNCHANGED <<sqliteRevision, pgRevision, sqliteContent, pgContent,
                    copied, parityVerified, pgCommitted, sqliteWriterActive,
-                   consumersQualified>>
+                   consumersQualified, consumerReceipt>>
 
 PostgresCommit ==
     /\ owner = "postgres"
@@ -113,7 +137,7 @@ PostgresCommit ==
     /\ pgCommitted' = TRUE
     /\ UNCHANGED <<owner, sqliteRevision, sqliteContent, copied,
                    parityVerified, cutoverCertified, rolledBack,
-                   sqliteWriterActive, pgWriterActive, consumersQualified>>
+                   sqliteWriterActive, pgWriterActive, consumersQualified, consumerReceipt>>
 
 \* Rollback is legal only before the first independent PostgreSQL commit.
 \* Otherwise the former SQLite revision would lose a committed effect.
@@ -128,6 +152,7 @@ Rollback ==
     /\ copied' = FALSE
     /\ parityVerified' = FALSE
     /\ consumersQualified' = FALSE
+    /\ consumerReceipt' = [revision |-> 3, content |-> 0, issuer |-> "none"]
     /\ UNCHANGED <<sqliteRevision, pgRevision, sqliteContent, pgContent,
                    cutoverCertified, pgCommitted>>
 
@@ -145,6 +170,7 @@ AbortPaused ==
     /\ copied' = FALSE
     /\ parityVerified' = FALSE
     /\ consumersQualified' = FALSE
+    /\ consumerReceipt' = [revision |-> 3, content |-> 0, issuer |-> "none"]
     /\ rolledBack' = TRUE
     /\ UNCHANGED <<sqliteRevision, pgRevision, sqliteContent, pgContent,
                    cutoverCertified, pgCommitted, pgWriterActive>>
@@ -154,6 +180,7 @@ Next ==
     \/ Freeze
     \/ CopySnapshot
     \/ VerifyParity
+    \/ ObserveConsumerReceipt
     \/ QualifyConsumers
     \/ Promote
     \/ PostgresCommit
@@ -174,12 +201,22 @@ TypeOK ==
     /\ sqliteWriterActive \in BOOLEAN
     /\ pgWriterActive \in BOOLEAN
     /\ consumersQualified \in BOOLEAN
+    /\ consumerReceipt \in ReceiptType
 
 PostgresRequiresCertifiedCutover ==
     owner = "postgres" => cutoverCertified
 
 \* Copy/readback parity alone cannot authorize a PostgreSQL writer when real
 \* consumers still point at SQLite. Concrete receipt binding remains UNKNOWN.
+\* This scoped source/content/issuer binding does not authenticate an actual
+\* consumer receipt or prove the installed application refines this model.
+QualifiedConsumersMatchSource ==
+    consumersQualified =>
+       /\ consumerReceipt \in ReceiptType
+       /\ consumerReceipt.issuer = "trusted"
+       /\ consumerReceipt.revision = sqliteRevision
+       /\ consumerReceipt.content = sqliteContent
+
 PgWriterRequiresQualifiedConsumers ==
     pgWriterActive => consumersQualified
 
