@@ -240,6 +240,105 @@ def resolve_verifier_bindings(
     return projection
 
 
+def _gate_scoped_source_digest(manifest: dict[str, Any], gate_id: str) -> str:
+    """Project a bounded Gate *source* readset; never qualify verifier evidence.
+
+    Include all upstream stage responsibilities and their declared method/tool
+    bindings, incoming typed edges, and the Gates that constrain that upstream
+    closure. This intentionally overapproximates proof dependencies: ambient
+    effects, outside-owner identities and dynamic reads remain unqualified.
+    """
+    stage_by_id = {stage["id"]: stage for stage in manifest["stages"]}
+    gate_by_id = {gate["id"]: gate for gate in manifest["gateRequirements"]}
+    gate = gate_by_id[gate_id]
+    included: set[str] = set()
+    frontier = [gate["producerStageId"], gate["consumerStageId"]]
+    while frontier:
+        stage_id = frontier.pop()
+        if stage_id in included:
+            continue
+        included.add(stage_id)
+        frontier.extend(stage_by_id[stage_id]["dependsOn"])
+    stage_rows = [stage_by_id[key] for key in sorted(included)]
+    method_ids = {method for stage in stage_rows for method in stage["methodBindings"]}
+    capability_ids = {cap for stage in stage_rows for cap in stage["capabilityBindings"]}
+    scoped: dict[str, Any] = {
+        "schemaVersion": manifest["schemaVersion"],
+        "kind": manifest["kind"],
+        "circuitId": manifest["circuitId"],
+        "objectiveRef": manifest["objectiveRef"],
+        "unresolvedAssumptions": sorted(manifest["unresolvedAssumptions"]),
+        "nonClaims": manifest["nonClaims"],
+        "stages": stage_rows,
+        "methodBindings": sorted(
+            (row for row in manifest["methodBindings"] if row["id"] in method_ids),
+            key=lambda row: row["id"],
+        ),
+        "capabilityBindings": sorted(
+            (row for row in manifest["capabilityBindings"] if row["id"] in capability_ids),
+            key=lambda row: row["id"],
+        ),
+        "incomingEdges": sorted(
+            (edge for edge in manifest["edges"] if edge["to"]["stageId"] in included),
+            key=lambda edge: edge["id"],
+        ),
+        "upstreamGates": sorted(
+            (item for item in manifest["gateRequirements"] if item["consumerStageId"] in included),
+            key=lambda item: item["id"],
+        ),
+    }
+    return canonical_digest(scoped)
+
+
+def compare_gate_source_scopes(
+    previous_manifest: dict[str, Any],
+    current_manifest: dict[str, Any],
+) -> dict[str, Any]:
+    """Select changed task-local source Gate IDs from two valid Circuit cuts.
+
+    Feed changedGateIds into the existing obligation impact selector. This
+    comparison *cannot* reuse any verifier PASS: its input is caller-provided
+    manifests, not certified owner query footprints or installed binaries.
+    """
+    previous = compile_manifest(previous_manifest)
+    current = compile_manifest(current_manifest)
+    if previous_manifest["circuitId"] != current_manifest["circuitId"]:
+        raise CircuitContractError("gate source comparison requires the same circuitId")
+    old_gates = {item["id"] for item in previous_manifest["gateRequirements"]}
+    new_gates = {item["id"] for item in current_manifest["gateRequirements"]}
+    common = old_gates & new_gates
+    previous_digests = {
+        identity: _gate_scoped_source_digest(previous_manifest, identity)
+        for identity in sorted(common)
+    }
+    current_digests = {
+        identity: _gate_scoped_source_digest(current_manifest, identity)
+        for identity in sorted(common)
+    }
+    changed = sorted(
+        identity for identity in common if previous_digests[identity] != current_digests[identity]
+    )
+    unchanged = sorted(common - set(changed))
+    added = sorted(new_gates - old_gates)
+    removed = sorted(old_gates - new_gates)
+    return {
+        "kind": "ordivon.task-local-gate-source-delta",
+        "previousManifestDigest": previous["manifestDigest"],
+        "currentManifestDigest": current["manifestDigest"],
+        "changedGateIds": changed,
+        "unchangedGateIds": unchanged,
+        "addedGateIds": added,
+        "removedGateIds": removed,
+        "proofReuseAdmissible": False,
+        "dependencyQualification": "SCOPED_CALLER_MANIFEST_SOURCE_ONLY",
+        "nonClaims": [
+            "Source Gate scope is an explicit overapproximation, not a complete proof readset.",
+            "Verifier outcomes and global Circuit manifest-bound gate results remain unchanged.",
+            "Outside-Owner runtime, environment, dynamic reads and admission are not certified.",
+        ],
+    }
+
+
 def select_impacted_obligations(
     *,
     authority_refs: list[str],

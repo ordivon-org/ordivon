@@ -6,6 +6,7 @@ import pytest
 
 from ordivon_composition.cognitive_circuit_r1 import CircuitContractError, canonical_digest
 from ordivon_composition.verification_obligation_r1 import (
+    compare_gate_source_scopes,
     compile_verification_obligations,
     resolve_verifier_bindings,
     select_impacted_obligations,
@@ -770,3 +771,164 @@ def test_impact_projection_digest_is_order_insensitive_for_equivalent_readsets()
     assert a["basisDigest"] == b["basisDigest"]
     assert a["projectionDigest"] == b["projectionDigest"]
     assert a["derivedRelationChangedRefs"] == b["derivedRelationChangedRefs"] == []
+
+
+def test_gate_source_delta_preserves_independent_parallel_branch() -> None:
+    before = _manifest()
+    before["stages"].append(
+        {
+            "id": "stage:parallel",
+            "ownerId": "parallel",
+            "responsibility": "Independent branch.",
+            "dependsOn": [],
+            "methodBindings": [],
+            "capabilityBindings": [],
+            "inputs": [],
+            "outputs": ["parallel-output"],
+        }
+    )
+    after = copy.deepcopy(before)
+    after["stages"][-1]["responsibility"] = "Independent branch v2."
+    before_set = compile_verification_obligations(before)
+    after_set = compile_verification_obligations(after)
+    # Existing obligationDigest includes the whole manifest, so the old
+    # admission receipt still correctly becomes stale.
+    assert (
+        before_set["obligations"][0]["obligationDigest"]
+        != after_set["obligations"][0]["obligationDigest"]
+    )
+    delta = compare_gate_source_scopes(before, after)
+    assert delta["unchangedGateIds"] == ["gate:candidate-contract"]
+    assert delta["changedGateIds"] == []
+    assert delta["previousManifestDigest"] != delta["currentManifestDigest"]
+    assert delta["proofReuseAdmissible"] is False
+
+
+@pytest.mark.parametrize(
+    "mutation", ["gate", "producer", "consumer", "global_assumption", "incoming_edge"]
+)
+def test_gate_source_delta_detects_every_known_upstream_contract_change(mutation: str) -> None:
+    before = _manifest()
+    after = copy.deepcopy(before)
+    if mutation == "gate":
+        after["gateRequirements"][0]["guarantee"] = "Completely different guarantee."
+    elif mutation == "producer":
+        after["stages"][0]["responsibility"] = "Different producer responsibility."
+    elif mutation == "consumer":
+        after["stages"][1]["responsibility"] = "Different consumer responsibility."
+    elif mutation == "global_assumption":
+        after["unresolvedAssumptions"].append("Network is unavailable.")
+    elif mutation == "incoming_edge":
+        after["edges"][0]["contractRef"] = "contract:candidate-v2"
+    delta = compare_gate_source_scopes(before, after)
+    assert delta["changedGateIds"] == ["gate:candidate-contract"]
+    assert delta["unchangedGateIds"] == []
+    assert delta["proofReuseAdmissible"] is False
+
+
+def test_gate_source_delta_normalizes_independent_order_without_unsafe_acceptance() -> None:
+    before = _manifest()
+    before["stages"].append(
+        {
+            "id": "stage:parallel",
+            "ownerId": "parallel",
+            "responsibility": "Independent.",
+            "dependsOn": [],
+            "methodBindings": [],
+            "capabilityBindings": [],
+            "inputs": [],
+            "outputs": ["parallel"],
+        }
+    )
+    after = copy.deepcopy(before)
+    after["stages"].reverse()
+    delta = compare_gate_source_scopes(before, after)
+    assert delta["changedGateIds"] == []
+    assert delta["unchangedGateIds"] == ["gate:candidate-contract"]
+    assert delta["proofReuseAdmissible"] is False
+
+
+def test_gate_source_delta_rejects_invalid_or_different_circuit() -> None:
+    before = _manifest()
+    after = copy.deepcopy(before)
+    after["circuitId"] = "circuit:different"
+    with pytest.raises(CircuitContractError, match="same circuitId"):
+        compare_gate_source_scopes(before, after)
+    after = copy.deepcopy(before)
+    after["edges"][0]["to"]["port"] = "missing"
+    with pytest.raises(CircuitContractError, match="target port is not declared"):
+        compare_gate_source_scopes(before, after)
+
+
+def test_gate_source_delta_can_feed_existing_impact_selector_without_verdict() -> None:
+    before = _manifest()
+    after = copy.deepcopy(before)
+    after["gateRequirements"][0]["guarantee"] = "Changed."
+    delta = compare_gate_source_scopes(before, after)
+    impact = select_impacted_obligations(
+        authority_refs=["source:runtime"],
+        obligations=[
+            {
+                "id": "gate:candidate-contract",
+                "dependsOn": ["source:runtime"],
+                "dependenciesComplete": True,
+            }
+        ],
+        changed_refs=delta["changedGateIds"],
+    )
+    assert _statuses(impact)["gate:candidate-contract"] == "RECHECK_REQUIRED"
+    assert impact["proofReuseAdmissible"] is False
+
+
+def test_gate_source_delta_detects_new_incoming_proof_requirement() -> None:
+    before = _manifest()
+    after = copy.deepcopy(before)
+    extra = dict(after["gateRequirements"][0])
+    extra["id"] = "gate:additional-consumer-premise"
+    extra["guarantee"] = "Additional exact bound on the same consumer."
+    after["gateRequirements"].append(extra)
+    delta = compare_gate_source_scopes(before, after)
+    assert delta["addedGateIds"] == ["gate:additional-consumer-premise"]
+    assert delta["changedGateIds"] == ["gate:candidate-contract"]
+    assert delta["proofReuseAdmissible"] is False
+
+
+def test_gate_source_delta_retains_independent_local_source_when_parallel_gate_added() -> None:
+    before = _manifest()
+    before["stages"] += [
+        {
+            "id": "stage:parallel-producer",
+            "ownerId": "another-producer",
+            "responsibility": "Unrelated producer.",
+            "dependsOn": [],
+            "methodBindings": [],
+            "capabilityBindings": [],
+            "inputs": [],
+            "outputs": ["parallel-port"],
+        },
+        {
+            "id": "stage:parallel-consumer",
+            "ownerId": "another-consumer",
+            "responsibility": "Unrelated consumer.",
+            "dependsOn": ["stage:parallel-producer"],
+            "methodBindings": [],
+            "capabilityBindings": [],
+            "inputs": ["parallel-port"],
+            "outputs": ["parallel-result"],
+        },
+    ]
+    after = copy.deepcopy(before)
+    after["gateRequirements"].append(
+        {
+            **after["gateRequirements"][0],
+            "id": "gate:parallel",
+            "producerStageId": "stage:parallel-producer",
+            "consumerStageId": "stage:parallel-consumer",
+            "guarantee": "Independent parallel guarantee.",
+        }
+    )
+    delta = compare_gate_source_scopes(before, after)
+    assert delta["addedGateIds"] == ["gate:parallel"]
+    assert delta["unchangedGateIds"] == ["gate:candidate-contract"]
+    assert delta["changedGateIds"] == []
+    assert delta["proofReuseAdmissible"] is False
