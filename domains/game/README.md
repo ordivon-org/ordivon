@@ -35,6 +35,14 @@ Use from this directory:
     pnpm knowledge:counterexample-themes -- --q local
     pnpm check
 
+## Native composition acceptance
+
+G06 in planning/lego-plan-r1.json registers a bounded native-Godot
+assembly verifier, not a new game or engine. Run mise run test:native for
+actual scene/resource configuration, action transitions, native Signal-to-UI
+feedback and resource/scene replacement. The fixture lives at
+test/fixtures/native-godot-assembly. No products or experiments were added.
+
 ## Assembly
 
 Choose a real consumer and target behavior. Reuse mature game engines,

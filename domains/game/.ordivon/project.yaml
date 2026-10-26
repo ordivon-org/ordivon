@@ -31,6 +31,8 @@ managed_paths:
   - scripts/counterexample-synthesis-query.ts
   - scripts/build-mechanism-relationship-graph.ts
   - planning/lego-plan-r1.json
+  - test/fixtures/native-godot-assembly/README.md
+  - test/fixtures/native-godot-assembly/assert.gd
 enforcement: strict
 maintainers: [zycxfyh]
 public_projection: ord

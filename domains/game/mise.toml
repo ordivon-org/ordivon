@@ -4,3 +4,8 @@ pnpm = "12.15.0"
 
 [tasks.verify]
 run = "pnpm install --frozen-lockfile && pnpm check"
+
+
+[tasks."test:native"]
+description = "Run source-bound native Godot composition acceptance (requires installed Godot)"
+run = "godot --headless --path test/fixtures/native-godot-assembly --script res://assert.gd"

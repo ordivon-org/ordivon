@@ -157,6 +157,42 @@
         "generic engine",
         "human enjoyment authority"
       ]
+    },
+    {
+      "id": "G06",
+      "label": "NativeAssemblyAcceptance",
+      "kind": "verifier",
+      "responsibility": "Check a concrete Godot composition of state, actions, event observation and native resource/scene substitution",
+      "authority": "Game source owner and upstream Godot runtime",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "Godot PackedScene",
+        "native Resource configuration",
+        "legal and illegal player actions"
+      ],
+      "outputs": [
+        "playable scene",
+        "test evidence for bounded transitions and component substitution"
+      ],
+      "behavioralContract": "Only the configured finite scene, resource contract and tested native signal/scene seams are validated. No universal game, player-value or third-party script safety proof.",
+      "acceptance": [
+        "Godot 4.7.1 headless fixture boots as a real PackedScene.",
+        "Bounded action exhaustions preserve state invariants and goal behavior.",
+        "Player Resource and alternate presentation PackedScene substitute without changing rules; invalid configuration is rejected atomically."
+      ],
+      "evidence": [
+        "test/fixtures/native-godot-assembly/main.tscn",
+        "test/fixtures/native-godot-assembly/assert.gd",
+        "test/fixtures/native-godot-assembly/configs/player_variant.tres"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "game product",
+        "game engine",
+        "mod platform",
+        "source of human enjoyment authority"
+      ]
     }
   ],
   "edges": [
@@ -228,6 +264,18 @@
       ],
       "acceptance": [
         "Read-only queries execute and do not create new products or proof claims."
+      ]
+    },
+    {
+      "id": "GS3",
+      "objective": "Native Game state/action/observation composition is runnable and independently substitutable at Godot Resource and PackedScene seams.",
+      "status": "COMPLETE",
+      "nodeIds": [
+        "G06"
+      ],
+      "acceptance": [
+        "Native Godot headless acceptance passes and the project main scene boots.",
+        "No old game product or new general-purpose mod framework is added."
       ]
     }
   ]
