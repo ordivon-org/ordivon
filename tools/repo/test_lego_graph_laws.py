@@ -739,6 +739,7 @@ def test_projection_passes_exact_captured_bytes_into_strict_parser(
 
 def test_node_source_anchors_are_exact_immutable_git_membership_not_consumer_proof() -> None:
     import subprocess
+
     from tools.repo.source_history_legos import current_tree
 
     sha = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
@@ -830,6 +831,7 @@ def test_declared_source_delta_is_real_git_diff_with_dependency_closure(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     import subprocess
+
     from tools.repo.source_history_legos import current_tree
 
     repo = tmp_path
@@ -856,7 +858,7 @@ def test_declared_source_delta_is_real_git_diff_with_dependency_closure(
     current = current_tree(repo, after)["services/runtime/docs/runtime.md"]
     assert original != current
 
-    refs = [f"services/runtime/planning/lego-plan-r1.json#{i}" for i in ("R01", "R02", "R03")]
+    refs = [f"services/runtime/planning/lego-plan-r1.json#{i}" for i in ("R01", "R02", "R03", "R04")]
     def graph(sha: str):
         return {
             "kind": "ordivon.owner-lego-planning-source-projection",
@@ -873,11 +875,18 @@ def test_declared_source_delta_is_real_git_diff_with_dependency_closure(
                  "declaredEvidence": [], "sourceAnchors": []},
                 {"ref": refs[2], "declaredKind": "independent",
                  "declaredEvidence": [], "sourceAnchors": []},
+                {"ref": refs[3], "declaredKind": "compatibilityPeer",
+                 "declaredEvidence": [], "sourceAnchors": []},
             ],
             "relations": [
                 {"from": refs[0], "type": "DEPENDENCY", "to": refs[1],
                  "declaredBy": ["NODE_DEPENDENCIES"]},
                 {"from": refs[1], "type": "DATA", "to": refs[2],
+                 "declaredBy": ["TYPED_EDGE"]},
+                # Compatibility has no formally established source-influence
+                # polarity. Source changes in target must conservatively
+                # invalidate the candidate on the "from" end as UNKNOWN.
+                {"from": refs[3], "type": "COMPATIBILITY", "to": refs[0],
                  "declaredBy": ["TYPED_EDGE"]},
             ],
         }
@@ -895,8 +904,9 @@ def test_declared_source_delta_is_real_git_diff_with_dependency_closure(
         refs[0]: "RECHECK_REQUIRED",
         refs[1]: "RECHECK_REQUIRED",
         refs[2]: "UNKNOWN",
+        refs[3]: "UNKNOWN",
     }
-    assert result["potentialRelationInfluenceRefs"] == [refs[2]]
+    assert result["potentialRelationInfluenceRefs"] == [refs[2], refs[3]]
     assert result["proofReuseAdmissible"] is False
 
 
