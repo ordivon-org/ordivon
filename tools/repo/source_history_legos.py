@@ -63,6 +63,22 @@ def current_tree(repo: Path, revision: str) -> dict[str, str]:
 
 
 
+def _require_exact_git_oid(repo: Path, source_cut: str) -> None:
+    """Validate a full, literal commit ID using Git's native object format."""
+    import re
+
+    object_format = git(repo, "rev-parse", "--show-object-format=storage").strip()
+    sizes = {"sha1": 40, "sha256": 64}
+    width = sizes.get(object_format)
+    if width is None:
+        raise ValueError(f"unsupported native Git object format: {object_format}")
+    if (
+        not isinstance(source_cut, str)
+        or re.fullmatch(r"[0-9a-f]{" + str(width) + r"}", source_cut) is None
+    ):
+        raise ValueError(f"sourceCut must be an exact {width}-hex Git commit")
+
+
 def source_membership_query(
     repo: Path, source_cut: str, prefix: str, *, max_members: int = 10000
 ) -> dict:
@@ -74,10 +90,8 @@ def source_membership_query(
     This query's closed domain is only one immutable Git source tree.
     """
     import hashlib
-    import re
 
-    if not isinstance(source_cut, str) or not re.fullmatch(r"[0-9a-f]{40}", source_cut):
-        raise ValueError("sourceCut must be an exact 40-hex Git commit")
+    _require_exact_git_oid(repo, source_cut)
     if (
         not isinstance(prefix, str)
         or not prefix.endswith("/")
@@ -143,10 +157,8 @@ def require_ancestral_source_cuts(repo: Path, previous_cut: str, current_cut: st
     Comparing sibling tips belongs to history analysis or an exact merge-tree
     candidate, not a before/after proof-evolution claim.
     """
-    import re
-
-    if not all(re.fullmatch(r"[0-9a-f]{40}", cut) for cut in (previous_cut, current_cut)):
-        raise ValueError("sourceCut ancestry requires exact 40-hex Git commits")
+    _require_exact_git_oid(repo, previous_cut)
+    _require_exact_git_oid(repo, current_cut)
     relation = subprocess.run(
         ["git", "--no-replace-objects", "-C", str(repo), "merge-base", "--is-ancestor", previous_cut, current_cut],
         stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, check=False,

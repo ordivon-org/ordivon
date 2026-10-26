@@ -968,5 +968,54 @@ class SourceHistoryLegosTests(unittest.TestCase):
                 )
 
 
+    def test_git_sha256_sourcecuts_use_native_full_oid_and_temporal_ancestry(self):
+        """A 64-byte-format object name is not a shortened SHA-1 source cut."""
+        with tempfile.TemporaryDirectory(prefix="ordivon-git-sha256-sourcecut-") as temp:
+            root = Path(temp)
+            git(root, "init", "-q", "--object-format=sha256")
+            git(root, "config", "user.name", "Ordivon Test")
+            git(root, "config", "user.email", "test@example.invalid")
+            namespace = root / "providers"
+            namespace.mkdir()
+            (namespace / "a.rs").write_text("pass", encoding="utf8")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "old")
+            first = git(root, "rev-parse", "HEAD").strip()
+            self.assertEqual(len(first), 64)
+            self.assertEqual(
+                git(root, "rev-parse", "--show-object-format=storage").strip(),
+                "sha256",
+            )
+            query = source_history_legos.source_membership_query
+            before = query(root, first, "providers/")
+            self.assertTrue(before["gitSourceQueryComplete"])
+            self.assertEqual(before["sourceCut"], first)
+            self.assertEqual(before["memberCount"], 1)
+            self.assertFalse(before["proofReuseAdmissible"])
+            with self.assertRaisesRegex(ValueError, "exact 64-hex"):
+                query(root, first[:40], "providers/")
+            with self.assertRaisesRegex(ValueError, "exact 64-hex"):
+                query(root, first.upper(), "providers/")
+            (namespace / "a.rs").write_text("fail", encoding="utf8")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "changed")
+            second = git(root, "rev-parse", "HEAD").strip()
+            change = source_history_legos.source_membership_delta(
+                root, first, second, "providers/"
+            )
+            self.assertEqual(change["changedValuePaths"], ["providers/a.rs"])
+            self.assertFalse(change["membershipChanged"])
+            self.assertEqual(len(change["changedRefs"]), 1)
+            self.assertFalse(change["proofReuseAdmissible"])
+            with self.assertRaisesRegex(ValueError, "exact 64-hex"):
+                source_history_legos.require_ancestral_source_cuts(
+                    root, first[:40], second
+                )
+            with self.assertRaisesRegex(ValueError, "ancestry not established"):
+                source_history_legos.require_ancestral_source_cuts(
+                    root, second, first
+                )
+
+
 if __name__ == "__main__":
     unittest.main()
