@@ -223,10 +223,22 @@ class GatewayMcpRuntimeAdapter:
 
     def _resolve(self, arguments: dict[str, JsonValue]) -> dict[str, JsonValue]:
         request_id = _required_text(arguments.get("clientRequestId"), "clientRequestId")
+        if arguments.get("workspaceId") != self.grant.workspace_id:
+            raise HarnessRuntimeClientError("Gateway resolution changed granted Workspace identity")
         resolution = self._call(
             "execution.resolve",
             {"capability": self.grant.capability, "requestId": request_id},
         )
+        # Gateway's own exact identity must be checked before projecting one
+        # Runtime-compatible task.list row from the original Harness grant.
+        if _gateway_field(resolution, "request_id", "requestId") != request_id:
+            raise HarnessRuntimeClientError(
+                "Gateway execution resolution changed request identity"
+            )
+        if resolution.get("capability") != self.grant.capability:
+            raise HarnessRuntimeClientError(
+                "Gateway execution resolution changed capability identity"
+            )
         state = _required_text(resolution.get("resolution"), "resolution")
         if state == "absent":
             return {"jobs": [], "nextCursor": None}
@@ -238,7 +250,11 @@ class GatewayMcpRuntimeAdapter:
         )
         self._operation_refs[native_id] = operation_ref
         return {
-            "jobs": [{"jobId": native_id, "clientRequestId": request_id}],
+            "jobs": [{
+                "jobId": native_id,
+                "clientRequestId": request_id,
+                "workspaceId": self.grant.workspace_id,
+            }],
             "nextCursor": None,
         }
 

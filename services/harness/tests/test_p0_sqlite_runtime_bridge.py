@@ -159,6 +159,7 @@ class FakeRuntime:
         self.workspace_exec_count = 0
         self.job_id = "job:p0-independent-search-001"
         self.client_request_id: str | None = None
+        self.workspace_id: str | None = None
         self.recovery_observations_remaining = 0
 
     def terminal(self) -> dict[str, JsonValue]:
@@ -189,12 +190,14 @@ class FakeRuntime:
 
     @staticmethod
     def assert_task_list_arguments(arguments: dict[str, JsonValue]) -> None:
-        if set(arguments) - {"limit", "clientRequestId", "cursor"}:
+        if set(arguments) - {"limit", "clientRequestId", "workspaceId", "cursor"}:
             raise AssertionError(f"task.list received unsupported fields: {arguments}")
         if arguments.get("limit") != 100:
             raise AssertionError("task.list limit differs")
         if not isinstance(arguments.get("clientRequestId"), str):
             raise AssertionError("task.list clientRequestId differs")
+        if not isinstance(arguments.get("workspaceId"), str):
+            raise AssertionError("task.list workspaceId differs")
 
     def call_tool(
         self,
@@ -207,6 +210,7 @@ class FakeRuntime:
             request_id = arguments.get("clientRequestId")
             assert isinstance(request_id, str)
             self.client_request_id = request_id
+            self.workspace_id = arguments["execution"]["workspaceId"]
             if self.mode == "loss":
                 raise HarnessRuntimeClientError(
                     "injected transport response loss after Runtime admission"
@@ -234,11 +238,13 @@ class FakeRuntime:
                     {
                         "jobId": self.job_id,
                         "clientRequestId": request_id,
+                        "workspaceId": self.workspace_id,
                         "status": "succeeded",
                     },
                     {
                         "jobId": "job:p0-independent-search-duplicate",
                         "clientRequestId": request_id,
+                        "workspaceId": self.workspace_id,
                         "status": "succeeded",
                     },
                 ]
@@ -247,6 +253,7 @@ class FakeRuntime:
                     {
                         "jobId": self.job_id,
                         "clientRequestId": request_id,
+                        "workspaceId": self.workspace_id,
                         "status": "succeeded",
                     }
                 ]
@@ -839,6 +846,78 @@ class SQLiteHarnessRuntimeBridgeTests(unittest.TestCase):
             self.assertEqual(retained.receipt.status, HarnessToolStepStatus.OBSERVED)
             store.close()
 
+    def test_response_loss_rejects_other_workspace_job_before_observe(self) -> None:
+        class WrongWorkspaceRuntime(FakeRuntime):
+            def call_tool(self, name, arguments):
+                response = super().call_tool(name, arguments)
+                if name == "task.list":
+                    assert len(response["jobs"]) == 1
+                    response["jobs"][0]["workspaceId"] = "ws-foreign"
+                return response
+
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = WrongWorkspaceRuntime("loss")
+            store, _, _, continuity, bridge = self.initialize(
+                Path(directory) / "state", "loss", runtime
+            )
+            value = bound_state()
+            bridge.bind_run_state(
+                messages=value.messages,
+                observations=(),
+                remaining_budget=value.remaining_budget,
+                requested_model_id=value.requested_model_id,
+                effective_model_id=None,
+                active_elapsed_ms=0,
+            )
+            observation = bridge.execute(
+                tool_turn("loss").tool_calls[0],
+                step_id="turn-1-tool-loss",
+            )
+            self.assertEqual(observation.status, "unknown")
+            self.assertEqual(runtime.workspace_exec_count, 1)
+            self.assertNotIn("task.observe", [name for name, _ in runtime.calls])
+            self.assertEqual(
+                continuity.load_current_tool_step().receipt.status,
+                HarnessToolStepStatus.UNKNOWN,
+            )
+            store.close()
+
+    def test_response_loss_rejects_observed_job_identity_mismatch(self) -> None:
+        class WrongObservedRuntime(FakeRuntime):
+            def call_tool(self, name, arguments):
+                result = super().call_tool(name, arguments)
+                if name == "task.observe":
+                    result["jobId"] = "job:unrelated-observation"
+                return result
+
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = WrongObservedRuntime("loss")
+            store, _, _, continuity, bridge = self.initialize(
+                Path(directory) / "state", "loss", runtime
+            )
+            state = bound_state()
+            bridge.bind_run_state(
+                messages=state.messages,
+                observations=(),
+                remaining_budget=state.remaining_budget,
+                requested_model_id=state.requested_model_id,
+                effective_model_id=None,
+                active_elapsed_ms=0,
+            )
+            observation = bridge.execute(
+                tool_turn("loss").tool_calls[0], step_id="turn-1-tool-loss"
+            )
+            self.assertEqual(observation.status, "unknown")
+            self.assertEqual(runtime.workspace_exec_count, 1)
+            self.assertEqual(
+                [name for name, _ in runtime.calls].count("task.observe"), 1
+            )
+            self.assertEqual(
+                continuity.load_current_tool_step().receipt.status,
+                HarnessToolStepStatus.UNKNOWN,
+            )
+            store.close()
+
     def test_zero_or_multiple_reconciliation_matches_are_unknown(self) -> None:
         for mode in ("zero", "multiple"):
             with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
@@ -867,6 +946,7 @@ class SQLiteHarnessRuntimeBridgeTests(unittest.TestCase):
                         request_id = arguments.get("clientRequestId")
                         assert isinstance(request_id, str)
                         runtime.client_request_id = request_id
+                        runtime.workspace_id = arguments["execution"]["workspaceId"]
                         raise HarnessRuntimeClientError("injected response loss")
                     runtime.mode = mode
                     return original(name, arguments)
