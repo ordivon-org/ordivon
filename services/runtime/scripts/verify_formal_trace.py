@@ -1087,6 +1087,12 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
         "compiledTestArtifactSha256": f"sha256:{binary_before}",
         "compiledTestFeatures": sorted(artifact["features"]),
         "compiledTestProfile": artifact["profile"],
+        # Bind qualified Git source membership/content, not raw depfile
+        # formatting, into the exact proof-evidence identity.
+        "compilerSourceReadset": {
+            "sourceGitBlobsDigest": compiler_inputs["sourceGitBlobsDigest"],
+            "scope": compiler_inputs["scope"],
+        },
     }
     return {
         "kind": "ordivon.runtime-native-test-witness",

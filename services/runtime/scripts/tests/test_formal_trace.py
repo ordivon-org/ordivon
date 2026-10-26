@@ -1187,6 +1187,26 @@ class FormalTraceContractTests(unittest.TestCase):
         changed_env["CARGO_REGISTRIES_CRATES_IO_TOKEN"] = "different-secret"
         self.assertEqual(observed, self.module._native_cargo_build_environment(changed_env))
 
+    def test_cargo_source_readset_changes_proof_qualification_identity(self):
+        # Keep the same source cut, compiler, flags and binary; a different
+        # qualified depfile source membership must change proof evidence.
+        context = {
+            "sourceHead": "a" * 40,
+            "compiledTestArtifactSha256": "sha256:" + "f" * 64,
+            "buildEnvironment": {"CARGO_BUILD_RUSTFLAGS": ""},
+            "compilerSourceReadset": {
+                "sourceGitBlobsDigest": "1" * 64,
+                "scope": "one-cargo-libtest-rustc-depfile",
+            },
+        }
+        expected = self.module._native_execution_context_digest(context)
+        altered = copy.deepcopy(context)
+        altered["compilerSourceReadset"]["sourceGitBlobsDigest"] = "2" * 64
+        self.assertNotEqual(expected, self.module._native_execution_context_digest(altered))
+        altered = copy.deepcopy(context)
+        altered["compilerSourceReadset"]["scope"] = "different-source-coverage"
+        self.assertNotEqual(expected, self.module._native_execution_context_digest(altered))
+
 
 if __name__ == "__main__":
     unittest.main()
