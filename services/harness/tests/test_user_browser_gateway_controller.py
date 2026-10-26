@@ -26,6 +26,8 @@ class FakePort:
             exit_code=0,
             artifact_ids=('attempt-1.stdout',),
             recovery_required=False,
+            request_id=request.request_id,
+            capability=request.capability,
         )
 
     def read_stdout(self, _result):

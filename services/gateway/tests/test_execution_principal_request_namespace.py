@@ -53,6 +53,16 @@ class PrincipalScopedOwner:
                 "deliveryDisposition": "in_progress",
                 "artifacts": [],
             }
+        if tool_name == "artifact.read":
+            return {
+                "jobId": arguments["jobId"],
+                "artifactId": arguments["artifactId"],
+                "offset": arguments["offset"],
+                "nextOffset": arguments["offset"] + 3,
+                "eof": True,
+                "digest": "sha256:artifact-owner",
+                "content": "abc",
+            }
         if tool_name == "job.cancel":
             return {
                 "jobId": arguments["jobId"],
@@ -268,3 +278,50 @@ def test_different_capability_namespace_and_unqualified_legacy() -> None:
         if tool.name in {"execution.submit", "execution.resolve"}:
             assert "ctx" not in tool.input_schema.get("properties", {})
             assert "ctx" not in tool.input_schema.get("required", [])
+
+
+def test_verified_http_artifact_read_requires_original_owner_request_identity() -> None:
+    """An operationRef alone must not reveal another verified principal's bytes."""
+    owner = PrincipalScopedOwner()
+    server = build_server(GatewayService(owner))
+    a = _context(server, "principal:cf-access:A")
+    b = _context(server, "principal:cf-access:B")
+    public_request_id = "request:artifact-A"
+
+    async def scenario() -> None:
+        submitted = await server.call_tool(
+            "execution.submit",
+            {
+                "capability": "execution.linux",
+                "requestId": public_request_id,
+                "workspaceId": "ws-same",
+                "executable": "/usr/bin/true",
+                "args": [],
+            },
+            a,
+        )
+        assert not submitted.is_error
+        ref = "ordivon-exec:v1:runtime.linux:job-namespace-1"
+        qualified = {
+            "operationRef": ref,
+            "artifactId": "stdout",
+            "requestId": public_request_id,
+            "capability": "execution.linux",
+        }
+        denied = [
+            (b, qualified),
+            (b, {"operationRef": ref, "artifactId": "stdout"}),
+            (a, {**qualified, "requestId": "request:wrong"}),
+            (a, {**qualified, "capability": "execution.windows"}),
+        ]
+        for context, args in denied:
+            before = len(owner.calls)
+            with pytest.raises(ToolError):
+                await server.call_tool("artifact.read", args, context)
+            assert all(name != "artifact.read" for _, name, _ in owner.calls[before:])
+        good = await server.call_tool("artifact.read", qualified, a)
+        assert not good.is_error
+        assert good.structured_content["content"] == "abc"
+        assert owner.calls[-1][1] == "artifact.read"
+
+    asyncio.run(scenario())
