@@ -539,6 +539,18 @@ class FormalTraceContractTests(unittest.TestCase):
             finally:
                 self.module.ROOT = prior
 
+    def test_native_cargo_witness_missing_git_cut_reports_unknown_before_cargo(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            runtime = Path(temporary) / "services/runtime"
+            runtime.mkdir(parents=True)
+            previous = self.module.ROOT
+            self.module.ROOT = runtime
+            try:
+                with self.assertRaisesRegex(ValueError, "Git SourceCut is unavailable"):
+                    self.module.qualify_native_witnesses({})
+            finally:
+                self.module.ROOT = previous
+
     def test_native_witness_identity_is_module_and_source_scoped(self):
         trace, _ = manifests()
         witness = trace["provingTests"][0]

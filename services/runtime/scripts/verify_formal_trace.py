@@ -674,11 +674,14 @@ def _qualified_native_source_head() -> str:
     import subprocess
 
     repo = ROOT.parents[1]
-    head = subprocess.check_output(
-        ["git", "-C", str(repo), "rev-parse", "HEAD"],
-        stderr=subprocess.PIPE,
-    ).decode("ascii").strip()
-    _git_source_changes(head, head)
+    try:
+        head = subprocess.check_output(
+            ["git", "-C", str(repo), "rev-parse", "HEAD"],
+            stderr=subprocess.PIPE,
+        ).decode("ascii").strip()
+        _git_source_changes(head, head)
+    except (subprocess.CalledProcessError, UnicodeError) as error:
+        raise ValueError("native witness Git SourceCut is unavailable") from error
     return head
 
 
