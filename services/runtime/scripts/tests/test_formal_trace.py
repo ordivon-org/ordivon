@@ -1142,9 +1142,27 @@ trait Provider {
         result = self.module.project_proving_test_source_impact(trace, invariants, changed)
         statuses = {row["id"]: row["standing"] for row in result["standingByWitness"]}
         self.assertEqual(statuses["ExecutionProvider.guaranteeNegativeControl"], "RECHECK_REQUIRED")
-        self.assertEqual(statuses["RuntimeDispatch.ambiguityHeld"], "REUSE_CANDIDATE")
+        self.assertEqual(statuses["RuntimeDispatch.ambiguityHeld"], "UNKNOWN")
         self.assertEqual(result["unindexedRuntimeChanges"], [])
         self.assertIn("not proof PASS", result["nonClaims"][0])
+
+    def test_runtime_formal_indexed_shared_registry_callee_does_not_false_reuse(self):
+        trace, invariants = manifests()
+        # Actual Rust: runtime/tests.rs::orphaned_terminal_keeps_capacity_reserved
+        # calls Registry::commit_terminal, implemented in registry/lifecycle.rs.
+        # This path is indexed by registryDispatchCAS but not ambiguityHeld.
+        changed = {
+            "services/runtime/crates/ordivon-runtime-core/src/runtime/registry/lifecycle.rs"
+        }
+        result = self.module.project_proving_test_source_impact(trace, invariants, changed)
+        statuses = {row["id"]: row["standing"] for row in result["standingByWitness"]}
+        self.assertEqual(result["unindexedRuntimeChanges"], [])
+        self.assertEqual(statuses["RuntimeDispatch.registryDispatchCAS"], "RECHECK_REQUIRED")
+        self.assertEqual(statuses["RuntimeDispatch.ambiguityHeld"], "UNKNOWN")
+        self.assertTrue(
+            any("shared Rust callees" in note for note in result["nonClaims"]),
+            result["nonClaims"],
+        )
 
     def test_runtime_formal_source_impact_model_change_rechecks_all(self):
         trace, invariants = manifests()

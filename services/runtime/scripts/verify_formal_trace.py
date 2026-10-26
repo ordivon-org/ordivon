@@ -897,11 +897,12 @@ def project_proving_test_source_impact(
     rows = []
     for witness_id, readset in sorted(readsets.items()):
         hits = sorted(readset & changed_paths)
-        standing = (
-            "RECHECK_REQUIRED" if hits
-            else "UNKNOWN" if unindexed
-            else "REUSE_CANDIDATE"
-        )
+        # The manifest binds named witnesses, not a complete Rust consumer
+        # closure. A file indexed by some *other* witness may still be a
+        # shared callee of this one (Registry::commit_terminal is an example).
+        # Until owner-qualified dependency completeness is supplied, absence
+        # from this declared readset is UNKNOWN, never proof of disjointness.
+        standing = "RECHECK_REQUIRED" if hits else "UNKNOWN" if runtime_changed else "REUSE_CANDIDATE"
         rows.append({
             "id": witness_id,
             "standing": standing,
@@ -918,7 +919,7 @@ def project_proving_test_source_impact(
         "nonClaims": [
             "REUSE_CANDIDATE is not proof PASS, implementation refinement, or installed acceptance.",
             "Declared source readsets are not demonstrated complete Rust build/runtime dependency closures.",
-            "Unindexed Runtime changes yield UNKNOWN unless a declared source hit already requires recheck.",
+            "A no-hit Runtime source change is UNKNOWN even if its path is indexed by another witness; shared Rust callees are not exhaustively indexed.",
             "Changes outside Runtime are outside this projection's verified dependency scope.",
         ],
     }
