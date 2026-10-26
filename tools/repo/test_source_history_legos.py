@@ -892,5 +892,48 @@ class SourceHistoryLegosTests(unittest.TestCase):
                 query(root, left, ancestor, prefix)
 
 
+    def test_source_evolution_rejects_replacement_grafted_false_ancestry(self):
+        """A Git replace/graft must not fabricate an immutable source DAG edge."""
+        with tempfile.TemporaryDirectory(prefix="ordivon-git-graft-falsifier-") as temp:
+            root = Path(temp)
+            git(root, "init", "-q", "-b", "main")
+            git(root, "config", "user.name", "Ordivon Test")
+            git(root, "config", "user.email", "test@example.invalid")
+            path = root / "runtime" / "model.tla"
+            path.parent.mkdir(parents=True)
+            path.write_text("base", encoding="utf8")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "base")
+            base = git(root, "rev-parse", "HEAD")
+            git(root, "checkout", "-qb", "left")
+            path.write_text("left", encoding="utf8")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "left")
+            left = git(root, "rev-parse", "HEAD")
+            git(root, "checkout", "-qb", "right", base)
+            path.write_text("right", encoding="utf8")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "right")
+            right = git(root, "rev-parse", "HEAD")
+            query = source_history_legos.source_membership_delta
+            with self.assertRaisesRegex(ValueError, "ancestry"):
+                query(root, left, right, "runtime/")
+            git(root, "replace", "--graft", right, left)
+            # Default Git now believes a false ancestor relation, while the
+            # exact original objects still describe two sibling commits.
+            self.assertEqual(
+                subprocess.run(
+                    ["git", "-C", str(root), "merge-base", "--is-ancestor", left, right],
+                    check=False,
+                ).returncode, 0
+            )
+            self.assertNotEqual(
+                subprocess.run(["git", "--no-replace-objects", "-C", str(root), "merge-base",
+                                "--is-ancestor", left, right], check=False).returncode, 0
+            )
+            with self.assertRaisesRegex(ValueError, "ancestry"):
+                query(root, left, right, "runtime/")
+
+
 if __name__ == "__main__":
     unittest.main()
