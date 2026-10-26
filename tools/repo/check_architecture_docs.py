@@ -384,6 +384,75 @@ def validate_owner_lego_graph(plan: dict[str, Any]) -> None:
 
 
 
+
+# A node's historical evidence prose is NOT a consumer/proof assertion.
+# Interpret only syntactically exact file refs against an immutable Git tree
+# (or explicitly labelled worktree bytes); all other prose stays unqualified.
+def _node_declared_source_anchors(
+    root: Path, owner: str, evidence: Any,
+    *, git_tree: dict[str, str] | None,
+) -> tuple[list[dict[str, str]], list[str]]:
+    anchors: list[dict[str, str]] = []
+    unresolved: list[str] = []
+    if not isinstance(evidence, list):
+        return anchors, unresolved
+    seen_paths: set[str] = set()
+    source_suffixes = (".py", ".rs", ".ts", ".tsx", ".toml", ".json",
+                       ".md", ".tla", ".cfg", ".sh", ".rego", ".lock", ".yaml", ".yml")
+    for literal in evidence:
+        if not isinstance(literal, str):
+            continue
+        path_text, marker, symbol = literal.partition("::")
+        if (not re.fullmatch(r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*", path_text)
+                or (marker and not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", symbol))):
+            continue
+        # Owner-relative refs are the native planning convention. Fully
+        # qualified cross-Owner refs retain their root identity.
+        candidates = (
+            [path_text] if path_text.startswith(owner + "/")
+            else [owner + "/" + path_text, path_text]
+        )
+        resolved: str | None = None
+        identity: str | None = None
+        for candidate in candidates:
+            if git_tree is not None:
+                item = git_tree.get(candidate, "")
+                mode, kind, _ = (
+                    item.split(":") if item.count(":") == 2 else ("", "", "")
+                )
+                if kind == "blob" and mode in {"100644", "100755"}:
+                    resolved, identity = candidate, item
+                    break
+            else:
+                try:
+                    source_path = _source_bound_file(root, candidate, "node declared source")
+                except ArchitectureDocsError:
+                    continue
+                resolved = candidate
+                identity = "sha256:" + hashlib.sha256(source_path.read_bytes()).hexdigest()
+                break
+        if resolved is None:
+            if path_text.endswith(source_suffixes):
+                unresolved.append(literal)
+            continue
+        if resolved in seen_paths:
+            # Distinct textual spellings of one file are one source membership.
+            continue
+        seen_paths.add(resolved)
+        anchor: dict[str, str] = {
+            "path": resolved,
+            "sourceIdentity": identity,
+            "qualification": (
+                "GIT_BLOB_MEMBERSHIP_ONLY" if git_tree is not None
+                else "WORKTREE_FILE_BYTES_ONLY"
+            ),
+        }
+        if marker:
+            anchor["declaredSymbolUnverified"] = symbol
+        anchors.append(anchor)
+    return sorted(anchors, key=lambda row: row["path"]), sorted(set(unresolved))
+
+
 def project_owner_lego_source_graph(
     root: Path = ROOT, *, source_revision: str | None = None,
 ) -> dict[str, Any]:
@@ -418,6 +487,7 @@ def project_owner_lego_source_graph(
     source_evidence_carriers: dict[str, dict[str, str]] = {}
     vertices: list[dict[str, Any]] = []
     relation_carriers: dict[tuple[str, str, str], set[str]] = {}
+    node_source_relations: list[dict[str, str]] = []
     for relative in OWNER_LEGO_PLANS:
         if git_tree is None:
             path = _source_bound_file(root, relative, "registered Owner LEGO plan")
@@ -466,11 +536,27 @@ def project_owner_lego_source_graph(
             return f"{plan_path}#{local_id}"
 
         for node in plan["nodes"]:
+            anchors, unresolved = _node_declared_source_anchors(
+                root, owner, node.get("evidence", []), git_tree=git_tree,
+            )
             vertices.append({
                 "ref": ref(node["id"]),
                 "declaredKind": node["kind"],
                 "declaredEvidence": node.get("evidence", []),
+                "sourceAnchors": anchors,
+                "unresolvedSourceEvidence": unresolved,
+                # Source-path membership does not establish total readsets,
+                # actual consumers, test execution or formal refinement.
+                "sourceCoverageStanding": "DECLARED_SOURCE_MEMBERSHIP_PARTIAL",
             })
+            for anchor in anchors:
+                node_source_relations.append({
+                    "from": ref(node["id"]),
+                    "type": "EVIDENCE",
+                    "toSourcePath": anchor["path"],
+                    "sourceIdentity": anchor["sourceIdentity"],
+                    "qualification": anchor["qualification"],
+                })
             for prerequisite in node["dependencies"]:
                 key = (ref(prerequisite), "DEPENDENCY", ref(node["id"]))
                 relation_carriers.setdefault(key, set()).add("NODE_DEPENDENCIES")
@@ -490,6 +576,10 @@ def project_owner_lego_source_graph(
             source_evidence_carriers[path] for path in sorted(source_evidence_carriers)
         ],
         "vertices": sorted(vertices, key=lambda item: item["ref"]),
+        "nodeSourceRelations": sorted(
+            node_source_relations,
+            key=lambda row: (row["from"], row["toSourcePath"]),
+        ),
         "relations": [
             {"from": source, "type": kind, "to": target, "declaredBy": sorted(carriers)}
             for (source, kind, target), carriers in sorted(relation_carriers.items())
@@ -503,6 +593,98 @@ def project_owner_lego_source_graph(
             ],
         },
     }
+
+
+def project_owner_lego_source_change(
+    *, before_revision: str, after_revision: str, root: Path = ROOT,
+) -> dict[str, Any]:
+    """Select DECLARED graph/source requalification over two immutable Git cuts.
+
+    A path/edge change is not itself an actual consumer or proof dependency.
+    Only DEPENDENCY edges have a declared downstream direction; all other
+    relation types are exposed as relation deltas, not invented call edges.
+    """
+    import subprocess
+    before = project_owner_lego_source_graph(root, source_revision=before_revision)
+    after = project_owner_lego_source_graph(root, source_revision=after_revision)
+    raw = subprocess.check_output(
+        ["git", "-C", str(root), "diff", "--no-renames",
+         "--name-only", "-z", before_revision, after_revision, "--"],
+        stderr=subprocess.PIPE,
+    )
+    changed_paths = {path.decode("utf-8") for path in raw.split(b"\x00") if path}
+    old_nodes = {row["ref"]: row for row in before["vertices"]}
+    new_nodes = {row["ref"]: row for row in after["vertices"]}
+    old_edges = {
+        (row["from"], row["type"], row["to"], tuple(row["declaredBy"]))
+        for row in before["relations"]
+    }
+    new_edges = {
+        (row["from"], row["type"], row["to"], tuple(row["declaredBy"]))
+        for row in after["relations"]
+    }
+    changed_edges = old_edges ^ new_edges
+    # All changes to the declared vertex or its exact anchored source blob
+    # trigger direct requalification, even if the Git path remains constant.
+    direct = {
+        ref for ref in set(old_nodes) | set(new_nodes)
+        if old_nodes.get(ref) != new_nodes.get(ref)
+    }
+    direct.update(endpoint for src, _, dst, _ in changed_edges for endpoint in (src, dst))
+    direct.update(
+        ref for ref, node in new_nodes.items()
+        if any(anchor["path"] in changed_paths for anchor in node["sourceAnchors"])
+    )
+    # A removed ancestor can still affect a surviving downstream consumer.
+    # Reuse BOTH historical and target dependency declarations.
+    downstream: dict[str, set[str]] = {}
+    for src, kind, dst, _ in old_edges | new_edges:
+        if kind == "DEPENDENCY":
+            downstream.setdefault(src, set()).add(dst)
+    affected = set(direct)
+    frontier = list(direct)
+    while frontier:
+        for dst in downstream.get(frontier.pop(), ()):
+            if dst not in affected:
+                affected.add(dst)
+                frontier.append(dst)
+
+    visible_anchors = {
+        anchor["path"] for view in (before, after)
+        for node in view["vertices"] for anchor in node["sourceAnchors"]
+    }
+    plan_paths = {row["path"] for row in before["sourcePlans"] + after["sourcePlans"]}
+    unindexed = changed_paths - visible_anchors - plan_paths
+    rows = []
+    for ref in sorted(new_nodes):
+        owner = ref.split("/planning/", 1)[0]
+        owner_unindexed = any(path.startswith(owner + "/") for path in unindexed)
+        status = (
+            "RECHECK_REQUIRED" if ref in affected
+            else "UNKNOWN" if owner_unindexed
+            else "NO_DECLARED_HIT"
+        )
+        rows.append({"ref": ref, "sourceImpactStanding": status})
+    return {
+        "kind": "ordivon.owner-lego-declared-source-change",
+        "truthRole": "NON_AUTHORITATIVE_GIT_SOURCE_AND_DECLARED_GRAPH_IMPACT_ONLY",
+        "beforeSourceCut": before_revision,
+        "afterSourceCut": after_revision,
+        "changedGitPaths": sorted(changed_paths),
+        "changedDeclaredRelationCount": len(changed_edges),
+        "directChangedRefs": sorted(direct),
+        "removedRefs": sorted(set(old_nodes) - set(new_nodes)),
+        "unindexedChangedPaths": sorted(unindexed),
+        "standingByDeclaredNode": rows,
+        "proofReuseAdmissible": False,
+        "nonClaims": [
+            "NO_DECLARED_HIT does not mean the node has no actual or dynamic consumers.",
+            "Source anchors establish Git membership, not proof execution or formal refinement.",
+            "Only Owner-local declared DEPENDENCY edges propagate; cross-Owner consumers remain UNKNOWN.",
+            "Changed unindexed paths may affect undiscovered consumers; SOURCE selection grants no deletion or runtime authority.",
+        ],
+    }
+
 
 def validate_deployed_graph(value: dict[str, Any]) -> None:
     _require_exact_schema_one(value, "deployed architecture")
@@ -1379,13 +1561,23 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--project-owner-graphs", action="store_true")
     parser.add_argument("--source-revision", help="exact Git commit for immutable graph projection")
+    parser.add_argument("--compare-source-revision",
+                        help="earlier immutable Git commit to compare against --source-revision")
     args = parser.parse_args(argv)
     try:
         if args.source_revision and not args.project_owner_graphs:
             raise ArchitectureDocsError("--source-revision requires --project-owner-graphs")
+        if args.compare_source_revision and not args.source_revision:
+            raise ArchitectureDocsError("--compare-source-revision requires --source-revision")
         if args.project_owner_graphs:
             print(json.dumps(
-                project_owner_lego_source_graph(source_revision=args.source_revision), sort_keys=True,
+                (
+                    project_owner_lego_source_change(
+                        before_revision=args.compare_source_revision,
+                        after_revision=args.source_revision,
+                    ) if args.compare_source_revision else
+                    project_owner_lego_source_graph(source_revision=args.source_revision)
+                ), sort_keys=True,
             ))
             return 0
         validate_repository()

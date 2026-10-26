@@ -736,3 +736,215 @@ def test_projection_passes_exact_captured_bytes_into_strict_parser(
     assert [x["sha256"] for x in graph["sourcePlans"]] == [
         "sha256:" + hashlib.sha256(x).hexdigest() for x in seen
     ]
+
+def test_node_source_anchors_are_exact_immutable_git_membership_not_consumer_proof() -> None:
+    import subprocess
+    from tools.repo.source_history_legos import current_tree
+
+    sha = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
+    tree = current_tree(ROOT, sha)
+    projection = module.project_owner_lego_source_graph(ROOT, source_revision=sha)
+    rels = projection["nodeSourceRelations"]
+    assert rels and len(rels) >= 150  # bounded existing Owner plan evidence
+    nodes = {vertex["ref"]: vertex for vertex in projection["vertices"]}
+    assert all(
+        relation["sourceIdentity"] == tree[relation["toSourcePath"]]
+        and relation["qualification"] == "GIT_BLOB_MEMBERSHIP_ONLY"
+        and relation["type"] == "EVIDENCE"
+        and relation["from"] in nodes
+        for relation in rels
+    )
+    assert len({(e["from"], e["toSourcePath"]) for e in rels}) == len(rels)
+    assert set(module.OWNER_LEGO_PLANS) == {
+        row["from"].split("#")[0] for row in rels
+    }
+    assert any(
+        a.get("declaredSymbolUnverified", "").startswith("test_")
+        for node in nodes.values() for a in node["sourceAnchors"]
+    )
+    assert all(
+        row["sourceCoverageStanding"] == "DECLARED_SOURCE_MEMBERSHIP_PARTIAL"
+        for row in nodes.values()
+    )
+    assert any(
+        len(row["declaredEvidence"]) > len(row["sourceAnchors"])
+        for row in nodes.values()
+    )
+    assert "ACTUAL_CONSUMER" in projection["excluded"]["unverifiedFacets"]
+    assert "FORMAL_PROOF" in projection["excluded"]["unverifiedFacets"]
+
+
+def test_node_source_anchors_prefer_owner_context_over_root_alias() -> None:
+    from tools.repo.check_architecture_docs import _node_declared_source_anchors
+
+    owner = "services/host"
+    graph = {
+        "services/host/README.md": "100644:blob:" + "a" * 40,
+        "README.md": "100644:blob:" + "b" * 40,
+        "tools/repo/check_sql_dialects.py": "100644:blob:" + "c" * 40,
+    }
+    anchors, unresolved = _node_declared_source_anchors(
+        ROOT, owner,
+        ["README.md", "tools/repo/check_sql_dialects.py", "not/the/source.py"],
+        git_tree=graph,
+    )
+    assert [x["path"] for x in anchors] == [
+        "services/host/README.md", "tools/repo/check_sql_dialects.py"
+    ]
+    assert unresolved == ["not/the/source.py"]
+
+
+def test_node_source_anchors_do_not_promote_untrusted_evidence_text_or_symbols() -> None:
+    from tools.repo.check_architecture_docs import _node_declared_source_anchors
+    expected = "100644:blob:" + "a" * 40
+    anchors, unresolved = _node_declared_source_anchors(
+        ROOT, "services/runtime",
+        ["tests/proof.py::test_property", "tests/proof.py::fake extra",
+         "../../private.env", "job-xyz passed", "unavailable.rs"],
+        git_tree={"services/runtime/tests/proof.py": expected},
+    )
+    assert anchors == [{
+        "path": "services/runtime/tests/proof.py",
+        "sourceIdentity": expected,
+        "qualification": "GIT_BLOB_MEMBERSHIP_ONLY",
+        "declaredSymbolUnverified": "test_property",
+    }]
+    assert unresolved == ["unavailable.rs"]
+    # No source-level presence is equivalent to a test execution or formal proof.
+
+
+def test_node_anchor_git_sourcecut_ignores_modified_worktree_and_no_worktree_read(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import subprocess
+
+    sha = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
+    immutable = module.project_owner_lego_source_graph(ROOT, source_revision=sha)
+
+    def refuse_read(*_args, **_kwargs):
+        raise AssertionError("read from worktree while projecting an immutable Git source")
+    monkeypatch.setattr(module, "_source_bound_file", refuse_read)
+    assert module.project_owner_lego_source_graph(ROOT, source_revision=sha) == immutable
+
+def test_declared_source_delta_is_real_git_diff_with_dependency_closure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import subprocess
+    from tools.repo.source_history_legos import current_tree
+
+    repo = tmp_path
+    code = repo / "services/runtime/docs/runtime.md"
+    code.parent.mkdir(parents=True)
+    code.write_text("original contract\n", encoding="utf-8")
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(
+            ["git", "-C", str(repo), *args], text=True
+        ).strip()
+
+    git("init", "-q")
+    git("add", ".")
+    git("-c", "user.name=GraphTest", "-c", "user.email=test@example.invalid",
+        "commit", "-qm", "base")
+    before = git("rev-parse", "HEAD")
+    original = current_tree(repo, before)["services/runtime/docs/runtime.md"]
+    code.write_text("revised contract\n", encoding="utf-8")
+    git("add", ".")
+    git("-c", "user.name=GraphTest", "-c", "user.email=test@example.invalid",
+        "commit", "-qm", "changed")
+    after = git("rev-parse", "HEAD")
+    current = current_tree(repo, after)["services/runtime/docs/runtime.md"]
+    assert original != current
+
+    refs = [f"services/runtime/planning/lego-plan-r1.json#{i}" for i in ("R01", "R02", "R03")]
+    def graph(sha: str):
+        return {
+            "kind": "ordivon.owner-lego-planning-source-projection",
+            "sourceCut": sha,
+            "sourcePlans": [{"path": "services/runtime/planning/lego-plan-r1.json",
+                             "sha256": "sha256:" + "1" * 64}],
+            "vertices": [
+                {"ref": refs[0], "declaredKind": "capacity",
+                 "declaredEvidence": ["docs/runtime.md"],
+                 "sourceAnchors": [{"path": "services/runtime/docs/runtime.md",
+                                    "sourceIdentity": original if sha == before else current,
+                                    "qualification": "GIT_BLOB_MEMBERSHIP_ONLY"}]},
+                {"ref": refs[1], "declaredKind": "consumer",
+                 "declaredEvidence": [], "sourceAnchors": []},
+                {"ref": refs[2], "declaredKind": "independent",
+                 "declaredEvidence": [], "sourceAnchors": []},
+            ],
+            "relations": [
+                {"from": refs[0], "type": "DEPENDENCY", "to": refs[1],
+                 "declaredBy": ["NODE_DEPENDENCIES"]},
+            ],
+        }
+    monkeypatch.setattr(
+        module, "project_owner_lego_source_graph",
+        lambda _root, *, source_revision: graph(source_revision),
+    )
+    result = module.project_owner_lego_source_change(
+        before_revision=before, after_revision=after, root=repo,
+    )
+    assert result["changedGitPaths"] == ["services/runtime/docs/runtime.md"]
+    assert result["directChangedRefs"] == [refs[0]]
+    assert result["unindexedChangedPaths"] == []
+    assert {x["ref"]: x["sourceImpactStanding"] for x in result["standingByDeclaredNode"]} == {
+        refs[0]: "RECHECK_REQUIRED",
+        refs[1]: "RECHECK_REQUIRED",
+        refs[2]: "NO_DECLARED_HIT",
+    }
+    assert result["proofReuseAdmissible"] is False
+
+
+def test_declared_graph_relation_deletion_invalidates_both_old_and_new_endpoints(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import subprocess
+
+    repo = tmp_path
+    (repo / "plans").mkdir()
+    record = repo / "plans/graph.json"
+    record.write_text("old", encoding="utf-8")
+    def git(*args: str) -> str:
+        return subprocess.check_output(
+            ["git", "-C", str(repo), *args], text=True,
+        ).strip()
+    git("init", "-q")
+    git("add", ".")
+    git("-c", "user.name=GraphTest", "-c", "user.email=test@example.invalid",
+        "commit", "-qm", "base")
+    before = git("rev-parse", "HEAD")
+    record.write_text("new", encoding="utf-8")
+    git("add", ".")
+    git("-c", "user.name=GraphTest", "-c", "user.email=test@example.invalid",
+        "commit", "-qm", "new")
+    after = git("rev-parse", "HEAD")
+    refs = ["services/runtime/planning/lego-plan-r1.json#" + name for name in ("A", "B", "C")]
+    def graph(sha: str):
+        return {
+            "sourceCut": sha,
+            "sourcePlans": [],
+            "vertices": [
+                {"ref": ref, "declaredKind": "source", "declaredEvidence": [],
+                 "sourceAnchors": []}
+                for ref in refs
+            ],
+            "relations": (
+                [{"from": refs[0], "to": refs[1], "type": "DEPENDENCY",
+                  "declaredBy": ["TYPED_EDGE"]}]
+                if sha == before else []
+            ),
+        }
+    monkeypatch.setattr(
+        module, "project_owner_lego_source_graph",
+        lambda _root, *, source_revision: graph(source_revision),
+    )
+    result = module.project_owner_lego_source_change(
+        before_revision=before, after_revision=after, root=repo,
+    )
+    # Graph-only change: no source anchor can conceal a removed prerequisite.
+    assert result["changedDeclaredRelationCount"] == 1
+    assert refs[0] in result["directChangedRefs"] and refs[1] in result["directChangedRefs"]
+    assert result["proofReuseAdmissible"] is False
+    assert result["unindexedChangedPaths"] == ["plans/graph.json"]
