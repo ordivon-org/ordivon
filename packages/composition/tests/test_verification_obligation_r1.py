@@ -932,6 +932,8 @@ def test_gate_source_delta_retains_independent_local_source_when_parallel_gate_a
     assert delta["unchangedGateIds"] == ["gate:candidate-contract"]
     assert delta["changedGateIds"] == []
     assert delta["proofReuseAdmissible"] is False
+
+
 def test_native_git_source_delta_selects_cas_without_rechecking_tla(tmp_path, monkeypatch):
     """Real Git and existing Composition selector: red CAS != model-source delta.
 
@@ -946,9 +948,7 @@ def test_native_git_source_delta_selects_cas_without_rechecking_tla(tmp_path, mo
     from tools.repo.source_history_legos import source_membership_delta
 
     def git(*args: str) -> str:
-        return subprocess.check_output(
-            ["git", "-C", str(tmp_path), *args], text=True
-        ).strip()
+        return subprocess.check_output(["git", "-C", str(tmp_path), *args], text=True).strip()
 
     git("init", "-q", "-b", "main")
     git("config", "user.name", "Ordivon Contract Test")
@@ -958,9 +958,12 @@ def test_native_git_source_delta_selects_cas_without_rechecking_tla(tmp_path, mo
     # rather than embedding a second set of owner source paths in Composition.
     manifest_path = "services/runtime/formal/RuntimeDispatchR1.trace-r1.json"
     import json
-    manifest = json.loads(subprocess.check_output(
-        ["git", "-C", str(source_repo), "show", f"{source_cut}:{manifest_path}"],
-    ))
+
+    manifest = json.loads(
+        subprocess.check_output(
+            ["git", "-C", str(source_repo), "show", f"{source_cut}:{manifest_path}"],
+        )
+    )
     prefix = Path(manifest_path).parents[1].as_posix() + "/"
     cas = prefix + next(
         item["path"] for item in manifest["contractSeams"] if item["id"] == "Registry.dispatchCAS"
@@ -979,26 +982,39 @@ def test_native_git_source_delta_selects_cas_without_rechecking_tla(tmp_path, mo
     git("add", ".")
     git("commit", "-qm", "frozen runtime source")
     baseline = git("rev-parse", "HEAD")
+
     def inspect(old: str, new: str, *, unknown: list[str] | None = None):
         delta = source_membership_delta(tmp_path, old, new, prefix)
         scoped = delta["sourceScopeRef"]
         claims = [
-            {"id": "proof:CAS-implementation",
-             "dependsOn": [scoped + ":path:" + cas], "dependenciesComplete": True},
-            {"id": "proof:RuntimeDispatch-TLA-model",
-             "dependsOn": [scoped + ":path:" + model], "dependenciesComplete": True},
-            {"id": "proof:all-runtime-members",
-             "dependsOn": [delta["membershipRef"]], "dependenciesComplete": True},
-            {"id": "proof:unrelated-doc",
-             "dependsOn": [scoped + ":path:" + other], "dependenciesComplete": True},
+            {
+                "id": "proof:CAS-implementation",
+                "dependsOn": [scoped + ":path:" + cas],
+                "dependenciesComplete": True,
+            },
+            {
+                "id": "proof:RuntimeDispatch-TLA-model",
+                "dependsOn": [scoped + ":path:" + model],
+                "dependenciesComplete": True,
+            },
+            {
+                "id": "proof:all-runtime-members",
+                "dependsOn": [delta["membershipRef"]],
+                "dependenciesComplete": True,
+            },
+            {
+                "id": "proof:unrelated-doc",
+                "dependsOn": [scoped + ":path:" + other],
+                "dependenciesComplete": True,
+            },
         ]
         result = select_impacted_obligations(
-            authority_refs=delta["authorityRefs"], obligations=claims,
-            changed_refs=delta["changedRefs"], unknown_refs=unknown
+            authority_refs=delta["authorityRefs"],
+            obligations=claims,
+            changed_refs=delta["changedRefs"],
+            unknown_refs=unknown,
         )
-        return delta, result, {
-            row["id"]: row["standing"] for row in result["standingByObligation"]
-        }
+        return delta, result, {row["id"]: row["standing"] for row in result["standingByObligation"]}
 
     (tmp_path / "README.md").write_text("Unrelated Git change.")
     git("add", ".")
@@ -1042,9 +1058,16 @@ def test_native_git_source_delta_selects_cas_without_rechecking_tla(tmp_path, mo
 
     delta_output = subprocess.check_output(
         [
-            sys.executable, str(source_repo / "tools/repo/source_history_legos.py"),
-            "--repo", str(tmp_path), "--left", unrelated, "--right", red_cut,
-            "--impact-prefix", prefix,
+            sys.executable,
+            str(source_repo / "tools/repo/source_history_legos.py"),
+            "--repo",
+            str(tmp_path),
+            "--left",
+            unrelated,
+            "--right",
+            red_cut,
+            "--impact-prefix",
+            prefix,
         ],
         text=True,
     )
@@ -1054,18 +1077,36 @@ def test_native_git_source_delta_selects_cas_without_rechecking_tla(tmp_path, mo
     claims_file = tmp_path / "claims.json"
     delta_file.write_text(delta_output, encoding="utf8")
     scope = delta["sourceScopeRef"]
-    claims_file.write_text(json.dumps([
-        {"id": "proof:CAS-implementation",
-         "dependsOn": [scope + ":path:" + cas], "dependenciesComplete": True},
-        {"id": "proof:RuntimeDispatch-TLA-model",
-         "dependsOn": [scope + ":path:" + model], "dependenciesComplete": True},
-    ]), encoding="utf8")
-    cli_status = json.loads(subprocess.check_output(
-        [
-            sys.executable, "-m", "ordivon_composition.verification_obligation_r1",
-            "select-impact", str(delta_file), str(claims_file),
-        ], text=True,
-    ))
+    claims_file.write_text(
+        json.dumps(
+            [
+                {
+                    "id": "proof:CAS-implementation",
+                    "dependsOn": [scope + ":path:" + cas],
+                    "dependenciesComplete": True,
+                },
+                {
+                    "id": "proof:RuntimeDispatch-TLA-model",
+                    "dependsOn": [scope + ":path:" + model],
+                    "dependenciesComplete": True,
+                },
+            ]
+        ),
+        encoding="utf8",
+    )
+    cli_status = json.loads(
+        subprocess.check_output(
+            [
+                sys.executable,
+                "-m",
+                "ordivon_composition.verification_obligation_r1",
+                "select-impact",
+                str(delta_file),
+                str(claims_file),
+            ],
+            text=True,
+        )
+    )
     assert {row["id"]: row["standing"] for row in cli_status["standingByObligation"]} == {
         "proof:CAS-implementation": "RECHECK_REQUIRED",
         "proof:RuntimeDispatch-TLA-model": "REUSE_CANDIDATE",
@@ -1078,22 +1119,36 @@ def test_native_git_source_delta_selects_cas_without_rechecking_tla(tmp_path, mo
     delta_file.write_text(json.dumps(untrusted), encoding="utf8")
     denied = subprocess.run(
         [
-            sys.executable, "-m", "ordivon_composition.verification_obligation_r1",
-            "select-impact", str(delta_file), str(claims_file),
-        ], capture_output=True, text=True,
+            sys.executable,
+            "-m",
+            "ordivon_composition.verification_obligation_r1",
+            "select-impact",
+            str(delta_file),
+            str(claims_file),
+        ],
+        capture_output=True,
+        text=True,
     )
     assert denied.returncode != 0
     assert "cannot promote unqualified" in denied.stderr
     delta_file.write_text(delta_output, encoding="utf8")
     unknown_file = tmp_path / "unresolved-runtime-edges.json"
     unknown_file.write_text(json.dumps(["runtime:unindexed"]), encoding="utf8")
-    bounded_unknown = json.loads(subprocess.check_output(
-        [
-            sys.executable, "-m", "ordivon_composition.verification_obligation_r1",
-            "select-impact", str(delta_file), str(claims_file),
-            "--unknown-refs", str(unknown_file),
-        ], text=True,
-    ))
+    bounded_unknown = json.loads(
+        subprocess.check_output(
+            [
+                sys.executable,
+                "-m",
+                "ordivon_composition.verification_obligation_r1",
+                "select-impact",
+                str(delta_file),
+                str(claims_file),
+                "--unknown-refs",
+                str(unknown_file),
+            ],
+            text=True,
+        )
+    )
     assert all(
         row["standing"] in {"RECHECK_REQUIRED", "UNKNOWN"}
         for row in bounded_unknown["standingByObligation"]

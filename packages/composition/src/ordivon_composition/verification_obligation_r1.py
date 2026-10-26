@@ -576,27 +576,45 @@ def main() -> int:
             # The JSON is caller-supplied, not authenticated proof evidence.
             # Retain both module contracts: source-only owner projection and
             # Composition's non-authoritative task-local selection.
-            if not isinstance(delta, dict) or delta.get("kind") != "ordivon.git-source-membership-delta":
+            if (
+                not isinstance(delta, dict)
+                or delta.get("kind") != "ordivon.git-source-membership-delta"
+            ):
                 raise CircuitContractError("select-impact needs an exact Git source delta")
-            if delta.get("gitSourceQueryComplete") is not True or delta.get("proofReuseAdmissible") is not False:
-                raise CircuitContractError("select-impact cannot promote unqualified Git source evidence")
+            if (
+                delta.get("gitSourceQueryComplete") is not True
+                or delta.get("proofReuseAdmissible") is not False
+            ):
+                raise CircuitContractError(
+                    "select-impact cannot promote unqualified Git source evidence"
+                )
             roots, changes = delta.get("authorityRefs"), delta.get("changedRefs")
             if (
-                not isinstance(roots, list) or not isinstance(changes, list)
+                not isinstance(roots, list)
+                or not isinstance(changes, list)
                 or any(not isinstance(ref, str) for ref in roots + changes)
                 or not set(changes).issubset(set(roots))
             ):
-                raise CircuitContractError("Git impact changed refs must belong to same scoped authority set")
+                raise CircuitContractError(
+                    "Git impact changed refs must belong to same scoped authority set"
+                )
             obligations = json.loads(args.obligations.read_text(encoding="utf-8"))
             unknown = (
                 json.loads(args.unknown_refs.read_text(encoding="utf-8"))
-                if args.unknown_refs else None
+                if args.unknown_refs
+                else None
             )
-            if not isinstance(obligations, list) or (unknown is not None and not isinstance(unknown, list)):
-                raise CircuitContractError("select-impact obligations and unknown refs must be arrays")
+            if not isinstance(obligations, list) or (
+                unknown is not None and not isinstance(unknown, list)
+            ):
+                raise CircuitContractError(
+                    "select-impact obligations and unknown refs must be arrays"
+                )
             result = select_impacted_obligations(
-                authority_refs=roots, obligations=obligations,
-                changed_refs=changes, unknown_refs=unknown,
+                authority_refs=roots,
+                obligations=obligations,
+                changed_refs=changes,
+                unknown_refs=unknown,
             )
         else:
             raise CircuitContractError(f"unknown verification command: {args.command}")
