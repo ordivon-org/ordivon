@@ -908,6 +908,59 @@ def test_declared_graph_impact_refuses_sibling_and_reversed_git_source_cuts(
             )
 
 
+def test_graph_source_delta_reads_literal_git_paths_not_replacement_tree(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A replace-ref must not hide changed paths in a planning proof delta."""
+    import subprocess
+
+    repo = tmp_path
+    path = repo / "contract.txt"
+    path.write_text("old", encoding="utf-8")
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(
+            ["git", "-C", str(repo), *args], text=True,
+        ).strip()
+
+    git("init", "-q")
+    git("config", "user.name", "Proof")
+    git("config", "user.email", "proof@example.invalid")
+    git("add", ".")
+    git("-c", "user.name=Proof", "-c", "user.email=proof@example.invalid",
+        "commit", "-qm", "before")
+    before = git("rev-parse", "HEAD")
+    path.write_text("new", encoding="utf-8")
+    git("add", ".")
+    git("-c", "user.name=Proof", "-c", "user.email=proof@example.invalid",
+        "commit", "-qm", "after")
+    after = git("rev-parse", "HEAD")
+
+    tree = git("rev-parse", after + "^{tree}")
+    forged = subprocess.check_output(
+        ["git", "-C", str(repo), "commit-tree", tree],
+        input=b"same as after, different source object\n",
+    ).decode("ascii").strip()
+    git("replace", before, forged)
+    assert git("diff", "--name-only", before, after) == ""
+    assert git("--no-replace-objects", "diff", "--name-only", before, after) == "contract.txt"
+
+    def bounded_graph(root: Path, *, source_revision: str):
+        return {
+            "kind": "ordivon.owner-lego-planning-source-projection",
+            "sourceCut": source_revision,
+            "sourcePlans": [], "vertices": [], "relations": [],
+        }
+    monkeypatch.setattr(module, "project_owner_lego_source_graph", bounded_graph)
+    result = module.project_owner_lego_source_change(
+        before_revision=before, after_revision=after, root=repo,
+    )
+    assert result["changedGitPaths"] == ["contract.txt"]
+    assert result["unindexedChangedPaths"] == ["contract.txt"]
+    assert result["proofReuseAdmissible"] is False
+
+
+
 def test_declared_source_delta_is_real_git_diff_with_dependency_closure(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1048,6 +1101,7 @@ def test_git_qualified_harness_h01_syntax_importers_are_real_source_edges(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     import subprocess
+
     from tools.repo.source_history_legos import current_tree
 
     rev = subprocess.check_output(
@@ -1100,6 +1154,7 @@ def test_ast_imports_reject_comments_strings_dynamic_and_unresolved_symbols(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     import subprocess
+
     from tools.repo.source_history_legos import current_tree
 
     root = tmp_path
