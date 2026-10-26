@@ -623,6 +623,9 @@ class FormalTraceContractTests(unittest.TestCase):
                         side_effect=["a" * 40, "b" * 40],
                     ),
                     patch.object(self.module, "_git_source_changes", return_value=set()),
+                    # This test isolates the after-execution HEAD fence; the
+                    # independent depfile contract has its own real fixtures.
+                    patch.object(self.module, "_native_libtest_depfile_receipt", return_value={}),
                     patch("subprocess.run", side_effect=fake_run),
                     patch.dict(os.environ, {"CARGO_TARGET_DIR": str(runtime / "target")}),
                 ):
