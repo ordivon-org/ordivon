@@ -118,3 +118,69 @@ The prior unfiltered paper rerun directory count was much larger because it incl
 2. Assign actual functional facet, evidence lifecycle, source producer, and real consumers separately. UNKNOWN is a first-class result, not a misc category.
 3. Reconcile monorepo branches and independent Research, Paper, Media, OSS and installed Windows/Linux source identities separately. Preserve exact Git cuts and overlap rules.
 4. Do not implement LEGO, change proof programs, move directories, or mutate runtime/Host resources during Phase 1.
+
+
+## Currentness correction and bounded subtraction — R99
+
+Independent exact Git main SourceCut
+5e61ef7b27acbf98fce2374b65f35536ebbaaba5 contained **5,009**
+tracked Git paths. Its registered **18** mechanical verification roots account
+for **4,652** paths; **357** paths were not in those registered roots.
+The native exact-cut inventory found **19** LEGO plan carriers, **187**
+plan node records and **180** declared edges. These numbers are *planning
+records*, not qualified LEGO identities or verified behavior.
+
+At that cut, the inventory reported 94 nodes without a declarative consumer,
+77 without a contract declaration, 111 without a Formal declaration,
+14 without an evidence declaration and 39 requiring schema mapping.
+The counts overlap; NOT_FOUND_IN_DECLARATION must not be upgraded to
+NO_REAL_CONSUMER. Three registered mechanical source scopes
+(control-plugin, distribution, workstation) had no local LEGO plan
+carrier; their absence does not imply that new plans are necessary.
+Repo-root completeness does not cover independent Media, Research, Paper
+and upstream Git cuts; installed Windows/Linux service graphs, remote
+MCP/HTTP providers, dynamic consumers or external business effects also
+remain outside this source-only census. Other snapshots on this page
+retain their separate, explicitly stated historical cuts.
+
+**Bounded, source-only subtraction:** the zero-byte placeholders
+docs/migration/receipts/.gitkeep and services/gateway/tests/.gitkeep
+were present only as Git directory keepers while those same directories
+already contained 59 and 26 other tracked files respectively. Native
+current-source text reference checking found no runtime or test consumer
+of either placeholder. Historical monorepo migration *instructions* and
+old source-inventory *snapshots* mention the first; a prior source
+inventory mentions the second. These historical observations remain
+valid at their own pinned Git cuts, but do not require current empty
+placeholders. The current branch deletes only those two redundant bytes,
+not the receipts, tests, directories, Git history or any real consumer.
+Other .gitkeep files in directories with no other tracked entries are
+intentionally retained: their absence could remove a required directory
+at fresh checkout. No production deletion or Owner/LEGO authority change
+has been performed.
+
+Next disambiguation is SOURCE_FILES => PURPOSE / CONTENT / DYNAMIC_CONSUMER
+=> DEPLOYED_ENVIRONMENT / EXTERNAL_PROVIDER / HISTORICAL_PROVENANCE,
+using exact source cuts and UNKNOWN where a downstream consumer or
+installation cannot be mechanically established. Reuse existing native
+tools/repo/exhaustive_coverage.py and source_content_facets.py; do not
+build another global Registry.
+
+
+At this exact cut, the two competing local proposal manifests are different
+routing **hypotheses**, not different Git source trees: proposal #983
+(949c62de7c98d0de88c1b9f697c46fbf5360ab70) accounts for all 357
+current unassigned files through 17 navigation-only regions; proposal #948
+(32216032707182ece5e62b111f87a9c513348dea) accounts for the same
+357 paths through 14 navigation-only regions plus 24 paths in three added
+source verification roots (LEGO method 2, native Formal 10, Research 12).
+Both yield zero proposed path gaps or overlaps on the same exact 5,009
+path SourceCut; neither is yet a source of installed or semantic truth.
+This crosscut does **not** authorize 3 new Agent approval roles or claim
+these 357 paths have qualified LEGO consumers. Actual missing closure is
+source-to-consumer effect, environment/provider, proof and historical
+provenance across this and independent Git roots.
+
+The inventory's large sourceProblemCounts values (e.g. a physical-move or
+consumer-cutover flag) refer to conservative unproven transitions, not a
+count of confirmed dead code. They are not deletion permissions.
