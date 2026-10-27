@@ -1926,3 +1926,88 @@ def test_agent_native_one_lego_compact_inspection_preserves_source_and_unknown()
         module.inspect_owner_lego_contract(
             source_revision="HEAD", node_ref=ref, root=ROOT
         )
+
+def test_agent_compact_source_impact_keeps_unknown_unindexed_and_finite_proof_scope() -> None:
+    """Omitted NO_DECLARED_HIT rows never become implicit proof-reuse admission."""
+    original = {
+        "kind": "ordivon.owner-lego-declared-source-change",
+        "beforeSourceCut": "a" * 40,
+        "afterSourceCut": "b" * 40,
+        "changedGitPaths": ["extensions/ordivon-control-plane/plugin.json"],
+        "unindexedChangedPaths": ["extensions/ordivon-control-plane/plugin.json"],
+        "proofReuseAdmissible": False,
+        "nonClaims": ["NO_DECLARED_HIT does not prove a consumer unchanged."],
+        "standingByDeclaredNode": [
+            {"ref": "R1", "sourceImpactStanding": "NO_DECLARED_HIT"},
+            {"ref": "R2", "sourceImpactStanding": "UNKNOWN"},
+            {"ref": "R3", "sourceImpactStanding": "RECHECK_REQUIRED"},
+            {"ref": "R4", "sourceImpactStanding": "NO_DECLARED_HIT"},
+        ],
+    }
+    snapshot = copy.deepcopy(original)
+    result = module._select_agent_source_impact(original)
+    assert original == snapshot
+    assert result["proofReuseAdmissible"] is False
+    assert result["unindexedChangedPaths"] == original["unindexedChangedPaths"]
+    assert result["nonClaims"] == original["nonClaims"]
+    assert result["omittedNoDeclaredHitCount"] == 2
+    assert result["omittedStanding"] == "NO_DECLARED_HIT"
+    assert result["sourceImpactProjection"] == "CHANGED_OR_UNKNOWN_ONLY"
+    assert result["standingByDeclaredNode"] == original["standingByDeclaredNode"][1:3]
+    assert result["beforeSourceCut"] == original["beforeSourceCut"]
+    assert result["afterSourceCut"] == original["afterSourceCut"]
+
+
+def test_agent_compact_source_impact_does_not_discard_new_unknown_categories() -> None:
+    sample = {
+        "proofReuseAdmissible": False,
+        "standingByDeclaredNode": [
+            {"ref": "R1", "sourceImpactStanding": "NO_DECLARED_HIT"},
+            {"ref": "R2", "sourceImpactStanding": "SOME_NEW_UNKNOWN"},
+            {"ref": "R3", "sourceImpactStanding": "UNKNOWN"},
+        ],
+    }
+    result = module._select_agent_source_impact(sample)
+    assert [x["ref"] for x in result["standingByDeclaredNode"]] == ["R2", "R3"]
+    assert result["omittedNoDeclaredHitCount"] == 1
+
+
+def test_agent_compact_source_impact_cli_rejects_unqualified_usage(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    for args in (
+        ["--agent-impact"],
+        ["--project-owner-graphs", "--agent-impact"],
+        ["--project-owner-graphs", "--agent-impact", "--source-revision", "x" * 40],
+    ):
+        assert module.main(args) == 2
+        assert "--agent-impact requires" in capsys.readouterr().out
+
+
+def test_agent_compact_source_impact_cli_keeps_exact_native_change(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
+) -> None:
+    sample = {
+        "kind": "ordivon.owner-lego-declared-source-change",
+        "changedGitPaths": ["a.py"],
+        "unindexedChangedPaths": ["a.py"],
+        "proofReuseAdmissible": False,
+        "standingByDeclaredNode": [
+            {"ref": "one", "sourceImpactStanding": "NO_DECLARED_HIT"},
+            {"ref": "two", "sourceImpactStanding": "UNKNOWN"},
+        ],
+    }
+    monkeypatch.setattr(module, "project_owner_lego_source_change", lambda **kw: copy.deepcopy(sample))
+    args = [
+        "--project-owner-graphs", "--source-revision", "b" * 40,
+        "--compare-source-revision", "a" * 40,
+    ]
+    assert module.main(args + ["--agent-impact"]) == 0
+    compact = json.loads(capsys.readouterr().out)
+    assert compact["unindexedChangedPaths"] == ["a.py"]
+    assert compact["proofReuseAdmissible"] is False
+    assert compact["standingByDeclaredNode"] == [{"ref": "two", "sourceImpactStanding": "UNKNOWN"}]
+    assert compact["omittedNoDeclaredHitCount"] == 1
+    assert module.main(args) == 0
+    normal = json.loads(capsys.readouterr().out)
+    assert normal == sample
