@@ -42,17 +42,6 @@ theorem refinement_preserves_implementation {α β : Type}
   · intro x hOldA
     exact hImpl.2 x (hRef.1 x hOldA)
 
-theorem sequential_totality {α β γ : Type}
-    (R : α → β → Prop) (S : β → γ → Prop)
-    (hR : ∀ x, ∃ y, R x y) (hS : ∀ y, ∃ z, S y z) :
-    ∀ x, ∃ z, ∃ y, R x y ∧ S y z := by
-  intro x
-  cases hR x with
-  | intro y hRy =>
-    cases hS y with
-    | intro z hSz =>
-      exact ⟨z, y, hRy, hSz⟩
-
 -- The negative case is mechanically PROVED, not merely hand-waved:
 -- a purely safety-based requirement would accept a component with no output.
 theorem vacuous_safety_is_not_total :
@@ -63,5 +52,73 @@ theorem vacuous_safety_is_not_total :
     exact False.elim h
   · intro h
     exact (h ()).elim (fun _ hf => hf)
+
+
+-- Existing R2.1 contracts compose only when the first component's
+-- output guarantee discharges the second component's input assumption.
+-- This is a standard assume–guarantee compatibility obligation.
+def sequentialContract {α β γ : Type}
+    (first : IOContract α β) (second : IOContract β γ) :
+    IOContract α γ where
+  assume := first.assume
+  guarantee := fun x z =>
+    ∃ y, first.guarantee x y ∧ second.guarantee y z
+
+def sequentialBehavior {α β γ : Type}
+    (R : α → β → Prop) (S : β → γ → Prop) : α → γ → Prop :=
+  fun x z => ∃ y, R x y ∧ S y z
+
+theorem sequential_implements_if_compatible {α β γ : Type}
+    (first : IOContract α β) (second : IOContract β γ)
+    (R : α → β → Prop) (S : β → γ → Prop)
+    (hFirst : Implements first R) (hSecond : Implements second S)
+    (compatible : ∀ x y, first.assume x →
+      first.guarantee x y → second.assume y) :
+    Implements (sequentialContract first second)
+      (sequentialBehavior R S) := by
+  constructor
+  · intro x z hA ⟨y, hR, hS⟩
+    have hG1 := hFirst.1 x y hA hR
+    exact ⟨y, hG1, hSecond.1 y z (compatible x y hA hG1) hS⟩
+  · intro x hA
+    obtain ⟨y, hR⟩ := hFirst.2 x hA
+    have hG1 := hFirst.1 x y hA hR
+    obtain ⟨z, hS⟩ := hSecond.2 y (compatible x y hA hG1)
+    exact ⟨z, y, hR, hS⟩
+
+-- Nonvacuity: two implementations can each satisfy their own contracts,
+-- yet their sequential composition is not total when assumptions conflict.
+theorem incompatible_components_are_not_composable :
+    ∃ (first : IOContract Unit Bool) (second : IOContract Bool Unit)
+      (R : Unit → Bool → Prop) (S : Bool → Unit → Prop),
+      Implements first R ∧ Implements second S ∧
+      ¬ Implements (sequentialContract first second)
+          (sequentialBehavior R S) := by
+  let first : IOContract Unit Bool := {
+    assume := fun _ => True
+    guarantee := fun _ b => b = true
+  }
+  let second : IOContract Bool Unit := {
+    assume := fun b => b = false
+    guarantee := fun _ _ => True
+  }
+  let R : Unit → Bool → Prop := fun _ b => b = true
+  let S : Bool → Unit → Prop := fun b _ => b = false
+  refine ⟨first, second, R, S, ?_, ?_, ?_⟩
+  · constructor
+    · intro _ _ _ h
+      exact h
+    · intro _ _
+      exact ⟨true, rfl⟩
+  · constructor
+    · intro _ _ _ _
+      trivial
+    · intro b hb
+      exact ⟨(), hb⟩
+  · intro h
+    obtain ⟨_, y, hR, hS⟩ := h.2 () trivial
+    have ht : y = true := hR
+    have hf : y = false := hS
+    simp [ht] at hf
 
 end OrdivonR21
