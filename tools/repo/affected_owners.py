@@ -670,6 +670,90 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
         "workstation/inventory/snapshots": "WORKSTATION_HISTORICAL_INVENTORY_SNAPSHOT_SOURCE",
     }
 
+    # Agent-facing interface FORM is a source navigation facet, not an
+    # authority, public SDK guarantee, installed service, or a LEGO identity.
+    # Declare it in the existing exact-cut classifier; no second registry.
+    source_interface_rules = {
+        "AGENT_PLUGIN_MANIFEST": (
+            "extensions/ordivon-control-plane/plugin.json",
+            "platform/skills/plugins/ordivon-skills-bridge/plugin.json",
+        ),
+        "MCP_CONNECTION_CONFIG": (
+            "extensions/ordivon-control-plane/mcp.json",
+            "platform/skills/plugins/ordivon-skills-bridge/mcp.json",
+        ),
+        "SOURCE_SKILL_METHOD": (
+            ".agents/skills/recursive-lego-calculus/SKILL.md",
+        ),
+        "MCP_SERVER_ADAPTER": (
+            "services/gateway/src/ordivon_gateway/mcp_server.py",
+            "services/host/src/ordivon_host_v2/mcp_server.py",
+            "services/host/src/ordivon_host_v2/social_work_mcp.py",
+            "services/runtime/crates/ordivon-runtime-mcp/src/server/",
+            "platform/skills/scripts/skills_mcp.py",
+        ),
+        "MCP_CLIENT_ADAPTER": (
+            "services/harness/src/ordivon_harness/mcp_http_client.py",
+        ),
+        "PUBLIC_MCP_SURFACE_MANIFEST": (
+            "services/gateway/mcp-surface.json",
+            "services/host/mcp-surface.json",
+        ),
+        "HTTP_API_SERVER_ADAPTER": (
+            "services/gateway/src/ordivon_gateway/worker_http.py",
+            "apps/web/src/server.ts",
+        ),
+        "CAPABILITY_ROUTE_ADAPTER": (
+            "services/gateway/src/ordivon_gateway/routes.py",
+            "services/gateway/src/ordivon_gateway/upstream.py",
+        ),
+        "CLI_ENTRY_SOURCE": (
+            "services/harness/src/ordivon_harness/cli.py",
+            "services/harness/src/ordivon_harness/independent_cli.py",
+            "services/runtime/crates/ordivon-runtime-core/src/bin/ordivon-runtime-doctor.rs",
+            "services/runtime/crates/ordivon-runtime-core/src/bin/ordivon-runtime-inspect.rs",
+        ),
+        "INTERNAL_RUNNER_ENTRY_SOURCE": (
+            "services/runtime/crates/ordivon-runtime-core/src/bin/ordivon-runtime-runner.rs",
+        ),
+        "AGENT_PLUGIN_ADAPTER": (
+            "services/harness/src/ordivon_harness/agent_plugin.py",
+            "services/harness/src/ordivon_harness/plugin_mcp.py",
+        ),
+        "TOOL_PROGRAM_SOURCE": (
+            "services/harness/src/ordivon_harness/tool_program.py",
+        ),
+        "PACKAGE_PUBLIC_API_SOURCE": (
+            "services/harness/src/ordivon_harness/api.py",
+        ),
+        "SOURCE_SKILL_CATALOG": (
+            "platform/skills/src/ordivon_skills/catalog.py",
+            "platform/skills/src/ordivon_skills/scanner.py",
+            "platform/skills/src/ordivon_skills/parser.py",
+        ),
+    }
+    all_interface_rules = [
+        (rule, form) for form, rules in source_interface_rules.items()
+        for rule in rules
+    ]
+    if len(all_interface_rules) != len(set(rule for rule, _ in all_interface_rules)):
+        raise ValueError("source interface rules must have unique physical path selectors")
+
+    def source_interface_form(path: str) -> str | None:
+        # Never assign running server semantics to conformance fixtures,
+        # regardless of their residence in a server implementation folder.
+        if path.startswith(
+            "services/runtime/crates/ordivon-runtime-mcp/src/server/tests/"
+        ) or path == "services/runtime/crates/ordivon-runtime-mcp/src/server/tests.rs":
+            return None
+        forms = {
+            form for rule, form in all_interface_rules
+            if matches(path, rule)
+        }
+        if len(forms) > 1:
+            raise ValueError(f"ambiguous source-only interface classification: {path}")
+        return next(iter(forms)) if forms else None
+
     root_by_owner = {o.name: o.root for o in native_owners}
     entries = []
     for path, identity in sorted(tree.items()):
@@ -715,6 +799,7 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
                 source_cell = section
                 source_cell_role = "ROOT_MANIFEST_AND_ENTRYPOINT_FILES"
         file_form = source_file_form(path, identity)
+        interface_form = source_interface_form(path)
         file_form_standing = (
             "GIT_EXECUTABLE_MODE_OBSERVED"
             if file_form == "EXECUTABLE_ENTRYPOINT_FILE"
@@ -743,6 +828,11 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
             "sourceCellRole": source_cell_role,
             "sourceFileForm": file_form,
             "sourceFileFormStanding": file_form_standing,
+            "sourceInterfaceForm": interface_form,
+            "sourceInterfaceStanding": (
+                "SOURCE_ONLY_NOT_INSTALLED_OR_CAPABILITY_ADMITTED"
+                if interface_form is not None else "UNQUALIFIED_AS_PUBLIC_INTERFACE"
+            ),
             "sourceSection": section,
             "sourceSectionRole": section_role,
             "semanticName": semantic_by_owner.get(owner, owner) if owner is not None
@@ -839,6 +929,7 @@ def project_source_classification_delta(
                 "matchedRules", "semanticName", "sourceSection",
                 "sourceSectionRole", "sourceCell", "sourceCellRole",
                 "sourceCellDisplayName", "sourceFileForm", "sourceFileFormStanding",
+                "sourceInterfaceForm", "sourceInterfaceStanding",
                 "classificationLayer",
             ))
         )

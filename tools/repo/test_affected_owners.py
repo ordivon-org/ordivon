@@ -458,6 +458,48 @@ class SourceClassificationTests(unittest.TestCase):
         assert row[".agents/skills/recursive-lego-calculus/SKILL.md"]["classificationLayer"] == "SOURCE_NAVIGATION_ONLY"
         assert row["loose/unplaced.txt"]["semanticName"] is None
 
+    def test_real_source_interface_forms_keep_plugin_client_server_and_tests_distinct(self) -> None:
+        import subprocess
+        root = Path(__file__).resolve().parents[2]
+        cut = subprocess.check_output(
+            ["git", "-C", str(root), "rev-parse", "HEAD"], text=True
+        ).strip()
+        d = MODULE.project_source_classification(root, cut)
+        index = {e["path"]: e for e in d["entries"]}
+        expected = {
+            "extensions/ordivon-control-plane/plugin.json": "AGENT_PLUGIN_MANIFEST",
+            "extensions/ordivon-control-plane/mcp.json": "MCP_CONNECTION_CONFIG",
+            "services/gateway/src/ordivon_gateway/mcp_server.py": "MCP_SERVER_ADAPTER",
+            "services/gateway/mcp-surface.json": "PUBLIC_MCP_SURFACE_MANIFEST",
+            "services/harness/src/ordivon_harness/mcp_http_client.py": "MCP_CLIENT_ADAPTER",
+            "services/host/src/ordivon_host_v2/mcp_server.py": "MCP_SERVER_ADAPTER",
+            "services/runtime/crates/ordivon-runtime-mcp/src/server/handler.rs": "MCP_SERVER_ADAPTER",
+            "services/runtime/crates/ordivon-runtime-core/src/bin/ordivon-runtime-runner.rs": "INTERNAL_RUNNER_ENTRY_SOURCE",
+            "services/harness/src/ordivon_harness/cli.py": "CLI_ENTRY_SOURCE",
+            ".agents/skills/recursive-lego-calculus/SKILL.md": "SOURCE_SKILL_METHOD",
+            "platform/skills/plugins/ordivon-skills-bridge/plugin.json": "AGENT_PLUGIN_MANIFEST",
+            "platform/skills/plugins/ordivon-skills-bridge/mcp.json": "MCP_CONNECTION_CONFIG",
+        }
+        for path, form in expected.items():
+            with self.subTest(path=path):
+                row = index[path]
+                self.assertEqual(row["sourceInterfaceForm"], form)
+                self.assertEqual(
+                    row["sourceInterfaceStanding"],
+                    "SOURCE_ONLY_NOT_INSTALLED_OR_CAPABILITY_ADMITTED",
+                )
+        for path in (
+            "services/runtime/crates/ordivon-runtime-mcp/src/server/tests.rs",
+            "services/runtime/crates/ordivon-runtime-mcp/src/server/tests/tool_catalog.rs",
+            "services/harness/src/ordivon_harness/agent_run.py",
+        ):
+            self.assertIsNone(index[path]["sourceInterfaceForm"])
+            self.assertEqual(index[path]["sourceInterfaceStanding"],
+                             "UNQUALIFIED_AS_PUBLIC_INTERFACE")
+        self.assertEqual(d["summary"]["unassigned"], 0)
+        self.assertEqual(d["summary"]["ambiguous"], 0)
+        self.assertFalse(d["proofReuseAdmissible"])
+
     def test_semantic_name_only_delta_detects_unchanged_source_reclassification(self) -> None:
         # A physical Git blob stays identical, but its Agent-facing meaning
         # changes through the exact manifest: this MUST be part of delta.

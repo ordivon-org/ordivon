@@ -72,6 +72,33 @@ class SourceNameResolutionTests(unittest.TestCase):
             ]
         )
 
+    def test_interface_form_resolver_never_guesses_a_unique_server(self):
+        for idx, value in enumerate(self.cut["entries"][:3]):
+            value["sourceInterfaceForm"] = (
+                "MCP_SERVER_ADAPTER" if idx in (0, 2)
+                else "MCP_CLIENT_ADAPTER"
+            )
+            value["sourceInterfaceStanding"] = (
+                "SOURCE_ONLY_NOT_INSTALLED_OR_CAPABILITY_ADMITTED"
+            )
+        candidates = resolve_source_name(
+            self.cut, name="MCP_SERVER_ADAPTER", field="sourceInterfaceForm"
+        )
+        self.assertEqual(candidates["standing"],
+                         "AMBIGUOUS_MULTIPLE_SOURCE_GROUPS")
+        self.assertEqual(candidates["candidateGroupCount"], 2)
+        self.assertEqual(
+            {x["sourceInterfaceForm"] for x in candidates["candidates"]},
+            {"MCP_SERVER_ADAPTER"},
+        )
+        self.assertFalse(candidates["semanticIdentityQualified"])
+        self.assertFalse(candidates["physicalRenameAdmissible"])
+        scoped = resolve_source_name(
+            self.cut, name="MCP_SERVER_ADAPTER", field="sourceInterfaceForm",
+            scope_prefix="services/runtime/",
+        )
+        self.assertEqual(scoped["standing"], "UNIQUE_SOURCE_GROUP_NOT_LEGO_PROOF")
+
     def test_unique_area_name_groups_many_nested_cells_without_false_collision(self):
         records = source_cut([
             row("services/runtime/src/a.rs", "runtime/src/a", "runtime / src / a",

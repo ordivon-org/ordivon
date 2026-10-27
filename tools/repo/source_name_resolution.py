@@ -28,6 +28,7 @@ SEARCH_FIELDS = frozenset(
         "sourceCellRole",
         "sourceSectionRole",
         "sourceFileForm",
+        "sourceInterfaceForm",
     }
 )
 MAX_RETURNED = 100
@@ -99,6 +100,8 @@ def resolve_source_name(
             {
                 "sourceGroup": key,
                 "sourceCellRole": first.get("sourceCellRole"),
+                "sourceInterfaceForm": first.get("sourceInterfaceForm"),
+                "sourceInterfaceStanding": first.get("sourceInterfaceStanding"),
                 "sourceName": (
                     first.get("semanticName") if field == "semanticName"
                     else first.get("verificationOwner") if field == "verificationOwner"
