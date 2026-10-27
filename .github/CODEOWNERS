@@ -32,7 +32,5 @@
 /.github/ @zycxfyh
 /mise.toml @zycxfyh
 
-# R2.1 physically independent source and verification areas.
-/.agents/skills/recursive-lego-calculus/ @zycxfyh
-/tools/formal/ @zycxfyh
+# Independently consumed Research publication/source contracts.
 /meta/research/ @zycxfyh
