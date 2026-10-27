@@ -86,6 +86,97 @@ class AffectedOwnersTests(unittest.TestCase):
         self.assertNotIn("formalProofStanding", projection)
         self.assertNotIn("actualConsumerClosure", projection)
 
+    def test_deep_source_areas_cover_all_registered_roots_and_expose_flat_hotspots(self) -> None:
+        """Directory groups are source navigation, not LEGO or formal acceptance."""
+        import collections
+        import subprocess
+
+        root = Path(__file__).resolve().parents[2]
+        cut = subprocess.check_output(
+            ["git", "-C", str(root), "rev-parse", "--verify", "HEAD^{commit}"],
+            text=True,
+        ).strip()
+        projection = MODULE.project_source_classification(root, cut)
+        counts = projection["summary"]
+        groups = {a["sourceSubarea"]: a for a in projection["subareas"]}
+        self.assertEqual(len(groups), counts["sourceSubareas"])
+        actual = collections.Counter()
+        missing = []
+        for row in projection["entries"]:
+            name = row["sourceSubarea"]
+            if name is None:
+                missing.append(row["path"])
+                self.assertIn(row["classificationStanding"], {"UNASSIGNED", "AMBIGUOUS"})
+            else:
+                actual[name] += 1
+                self.assertIn(name, groups)
+                self.assertEqual(row["subareaStanding"], groups[name]["standing"])
+                self.assertEqual(groups[name]["consumerQualification"], "UNKNOWN")
+                self.assertEqual(groups[name]["formalQualification"], "UNKNOWN")
+        self.assertEqual(len(missing), counts["unassigned"] + counts["ambiguous"])
+        self.assertEqual(
+            sum(group["pathCount"] for group in groups.values()) + len(missing),
+            counts["trackedPaths"],
+        )
+        self.assertEqual(
+            {name: group["pathCount"] for name, group in groups.items()},
+            dict(actual),
+        )
+        # These are REAL typed physical subdivisions within registered roots:
+        # the top-level 21 source areas must no longer hide these boundaries.
+        for label, min_areas in (
+            ("physical-execution-runtime", 7),
+            ("work-and-collaboration-continuity", 4),
+            ("bounded-agent-run-harness", 8),
+            ("network-connectivity-composition", 4),
+            ("knowledge-and-method-integration", 9),
+        ):
+            areas = [a for a in groups.values() if a["displayName"] == label]
+            self.assertGreaterEqual(len(areas), min_areas)
+        hot = [group for group in groups.values()
+               if group["standing"] == "FLAT_DIRECTORY_NEEDS_SEMANTIC_REVIEW"]
+        self.assertEqual(len(hot), counts["flatHotspotAreas"])
+        self.assertEqual(sum(a["pathCount"] for a in hot), counts["flatHotspotPaths"])
+        self.assertTrue(hot, "an oversized flat source group must remain visible")
+        self.assertFalse(projection["proofReuseAdmissible"])
+        self.assertNotIn("semanticLegoAccepted", projection)
+
+    def test_flat_source_hotspot_cannot_be_hidden_by_subarea_fallback(self) -> None:
+        rows = [{"path": f"services/runtime/tests/test_{i:03}.py"} for i in range(40)]
+        bindings = {row["path"]: ("registered", "physical-execution-runtime",
+                                  "services/runtime/") for row in rows}
+        groups = MODULE._group_source_paths_by_existing_directory(
+            rows, bindings, max_flat_paths=32
+        )
+        self.assertEqual(len(groups), 1)
+        self.assertEqual(groups[0]["pathCount"], 40)
+        self.assertEqual(groups[0]["sourcePrefix"], "services/runtime/tests/")
+        self.assertEqual(groups[0]["groupingKind"], "DIRECTORY_SUBTREE")
+        self.assertEqual(groups[0]["standing"], "FLAT_DIRECTORY_NEEDS_SEMANTIC_REVIEW")
+        self.assertEqual({r["subareaStanding"] for r in rows},
+                         {"FLAT_DIRECTORY_NEEDS_SEMANTIC_REVIEW"})
+        extra = {"path": "unregistered-area/new.py"}
+        groups = MODULE._group_source_paths_by_existing_directory(
+            rows + [extra], bindings, max_flat_paths=32
+        )
+        self.assertIsNone(extra["sourceSubarea"])
+        self.assertEqual(extra["subareaStanding"],
+                         "UNKNOWN_NO_UNIQUE_SOURCE_BOUNDARY")
+        self.assertEqual(sum(group["pathCount"] for group in groups), 40)
+        direct = [{"path": f"services/runtime/tests/test_{i:03}.py"}
+                  for i in range(35)]
+        direct.append({"path": "services/runtime/tests/fixtures/sample.toml"})
+        groups = MODULE._group_source_paths_by_existing_directory(
+            direct,
+            {r["path"]: ("registered", "physical-execution-runtime",
+                         "services/runtime/") for r in direct},
+            max_flat_paths=32,
+        )
+        flat = next(g for g in groups if g["groupingKind"] == "DIRECT_FILES_ONLY")
+        self.assertEqual(flat["pathCount"], 35)
+        self.assertEqual(flat["sourcePrefix"], "services/runtime/tests/")
+        self.assertNotIn("_direct-files", flat["sourcePrefix"])
+
     def test_owner_local_change_selects_only_that_owner(self) -> None:
         self.assertEqual(
             self.names("platform/skills/src/ordivon_skills/catalog.py"),

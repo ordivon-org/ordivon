@@ -186,6 +186,95 @@ def changed_paths(base: str, head: str) -> tuple[str, ...]:
 
 
 
+def _group_source_paths_by_existing_directory(
+    entries: list[dict], bindings: dict[str, tuple[str, str, str]], *,
+    max_flat_paths: int = 32,
+) -> list[dict]:
+    """Navigational directory trie. Never makes a LEGO or consumer claim.
+
+    No new registry: roots and labels come from the existing source-cut
+    owners.toml. The algorithm deliberately emits oversized *flat* areas
+    when the real source tree has no further directory boundary to split.
+    """
+    from collections import defaultdict
+
+    by_carrier: dict[tuple[str, str, str], list[dict]] = defaultdict(list)
+    for entry in entries:
+        binding = bindings.get(entry["path"])
+        entry["sourceSubarea"] = None
+        entry["subareaStanding"] = "UNKNOWN_NO_UNIQUE_SOURCE_BOUNDARY"
+        if binding is not None:
+            by_carrier[binding].append(entry)
+
+    subareas = []
+
+    def add(carrier: tuple[str, str, str], rows: list[dict],
+            segments: tuple[str, ...], *, flat: bool) -> None:
+        kind, label, prefix = carrier
+        # A path is a namespace identifier, not a semantic Responsibility.
+        subpath = "/".join(segments) + ("/" if segments else "")
+        # _direct-files is a synthetic bucket name, never a real Git folder.
+        physical_segments = (
+            segments[:-1] if segments and segments[-1] == "_direct-files"
+            else segments
+        )
+        physical_path = "/".join(physical_segments)
+        physical_prefix = prefix + (physical_path + "/" if physical_path else "")
+        identity = f"{kind}:{label}:{prefix}{subpath}"
+        standing = (
+            "FLAT_DIRECTORY_NEEDS_SEMANTIC_REVIEW" if flat
+            else "PHYSICAL_DIRECTORY_ONLY"
+        )
+        for row in rows:
+            row["sourceSubarea"] = identity
+            row["subareaStanding"] = standing
+        subareas.append({
+            "sourceSubarea": identity,
+            "sourceKind": kind,
+            "displayName": label,
+            "sourcePrefix": physical_prefix,
+            "groupingKind": (
+                "DIRECT_FILES_ONLY" if segments and segments[-1] == "_direct-files"
+                else "DIRECTORY_SUBTREE"
+            ),
+            "pathCount": len(rows),
+            "standing": standing,
+            "semanticLegoQualification": "UNKNOWN",
+            "consumerQualification": "UNKNOWN",
+            "formalQualification": "UNKNOWN",
+        })
+
+    def split(carrier: tuple[str, str, str], rows: list[dict],
+              segments: tuple[str, ...]) -> None:
+        if len(rows) <= max_flat_paths:
+            add(carrier, rows, segments, flat=False)
+            return
+        # Relative path components below the exact matched root.
+        group: dict[str, list[dict]] = defaultdict(list)
+        root = carrier[2]
+        for row in rows:
+            relative = row["path"][len(root):]
+            parts = relative.split("/")
+            if len(parts) <= len(segments) + 1:
+                child = ""
+            else:
+                child = parts[len(segments)]
+            group[child].append(row)
+        if set(group) == {""}:
+            add(carrier, rows, segments, flat=True)
+            return
+        if group.get(""):
+            add(carrier, group[""], segments + ("_direct-files",),
+                flat=len(group[""]) > max_flat_paths)
+        for child in sorted(group):
+            if child:
+                split(carrier, group[child], segments + (child,))
+
+    for carrier, rows in sorted(by_carrier.items()):
+        split(carrier, rows, ())
+    return sorted(subareas, key=lambda row: row["sourceSubarea"])
+
+
 def project_source_classification(repo: Path, source_revision: str) -> dict:
     """Rebuild source navigation; never selects verification or qualifies a LEGO."""
     from collections import Counter
@@ -239,16 +328,30 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
         return path.startswith(rule) if rule.endswith("/") else path == rule
 
     entries = []
+    bindings: dict[str, tuple[str, str, str]] = {}
     for path, identity in sorted(tree.items()):
         # Git path bytes are identity. Do not strip/normalize filenames here.
-        owner = next((o.name for o in native_owners if path.startswith(o.root)), None)
-        matched = []
+        owner_row = next((o for o in native_owners if path.startswith(o.root)), None)
+        owner = owner_row.name if owner_row else None
+        matched_regions = []
         if owner is None:
-            matched = [
-                region["name"] for region in regions
+            matched_regions = [
+                region for region in regions
                 if any(matches(path, rule) for rule in region["paths"])
                 and not any(matches(path, rule) for rule in region.get("exclude", []))
             ]
+        matched = [region["name"] for region in matched_regions]
+        if owner_row is not None:
+            bindings[path] = ("registered", owner_row.semantic_label, owner_row.root)
+        elif len(matched_regions) == 1:
+            region = matched_regions[0]
+            # A source region may have multiple literal roots. Keep that
+            # location distinction instead of accidentally conflating them.
+            prefix = max(
+                (rule for rule in region["paths"] if matches(path, rule)),
+                key=len,
+            )
+            bindings[path] = ("region", region["name"], prefix)
         standing = ("REGISTERED_OWNER_SOURCE" if owner is not None else
                     "DECLARED_SOURCE_REGION" if len(matched) == 1 else
                     "AMBIGUOUS" if matched else "UNASSIGNED")
@@ -259,7 +362,10 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
             "matchedRules": ["owners:" + owner] if owner is not None else
                             ["source_regions:" + name for name in matched],
         })
+    subareas = _group_source_paths_by_existing_directory(entries, bindings)
     counts = Counter(row["classificationStanding"] for row in entries)
+    flat = [area for area in subareas
+            if area["standing"] == "FLAT_DIRECTORY_NEEDS_SEMANTIC_REVIEW"]
     return {
         "kind": "ordivon.repository-source-classification",
         "truthRole": "SOURCE_NAVIGATION_NOT_OWNER_OR_LEGO_QUALIFICATION",
@@ -273,7 +379,11 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
             "registeredOwnerPaths": counts["REGISTERED_OWNER_SOURCE"],
             "declaredRegionPaths": counts["DECLARED_SOURCE_REGION"],
             "unassigned": counts["UNASSIGNED"], "ambiguous": counts["AMBIGUOUS"],
+            "sourceSubareas": len(subareas),
+            "flatHotspotAreas": len(flat),
+            "flatHotspotPaths": sum(row["pathCount"] for row in flat),
         },
+        "subareas": subareas,
         "entries": entries,
     }
 
@@ -303,7 +413,7 @@ def project_source_classification_delta(
             previous is None or current is None
             or any(previous[name] != current[name] for name in (
                 "verificationOwner", "sourceRegion", "classificationStanding",
-                "matchedRules",
+                "matchedRules", "sourceSubarea", "subareaStanding",
             ))
         )
         changes.append({
