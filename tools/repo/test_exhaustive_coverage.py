@@ -131,6 +131,86 @@ class LiveRecursiveCellsTests(unittest.TestCase):
         assert not any("OWNER_PROOF" in cell["problems"] for cell in out["cells"])
 
 
+    def test_exact_path_query_covers_all_source_bytes_once_without_claiming_proof(self) -> None:
+        sha = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+        ).strip()
+        inventory = M.classification(ROOT, sha)
+        exact_paths = [r["path"] for r in inventory["sourcePaths"]]
+        cells = M.active_source_cells(inventory, repo=ROOT, include_member_index=True)
+        memberships = cells["memberCellDigests"]
+        self.assertEqual(set(memberships), set(exact_paths))
+        self.assertEqual(len(memberships), inventory["summary"]["trackedPaths"])
+        self.assertEqual(sum(x["pathCount"] for x in cells["cells"]), len(memberships))
+        self.assertEqual({x["memberGitObjectDigest"] for x in cells["cells"]},
+                         set(memberships.values()))
+        out = M.lookup_source_paths(inventory, repo=ROOT, paths=exact_paths[:32])
+        self.assertEqual(out["sourceCut"], sha)
+        self.assertEqual(out["sourceTree"], inventory["sourceTree"])
+        self.assertEqual(out["lookupCount"], 32)
+        self.assertFalse(out["proofReuseAdmissible"])
+        self.assertEqual({r["query"] for r in out["lookups"]}, set(exact_paths[:32]))
+        actual = {r["path"]: r for r in inventory["sourcePaths"]}
+        for row in out["lookups"]:
+            self.assertEqual(row["standing"], "EXACT_GIT_SOURCE")
+            self.assertEqual(row["sourceIdentity"], actual[row["query"]]["sourceIdentity"])
+            self.assertEqual(row["currentSource"], actual[row["query"]]["currentSource"])
+            self.assertEqual(row["consumerStanding"], "UNKNOWN")
+            self.assertEqual(row["installedStanding"], "UNKNOWN")
+            self.assertEqual(row["formalStanding"], "UNKNOWN")
+            self.assertTrue(row["sourceCell"]["memberGitObjectDigest"].startswith("sha256:"))
+            self.assertTrue(row["agentNavigationLabel"].startswith(
+                row["sourceCell"]["sourceZone"] + " :: "
+            ))
+
+    def test_unknown_exact_path_and_misleading_aliases_fail_closed(self) -> None:
+        sha = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+        ).strip()
+        inventory = M.classification(ROOT, sha)
+        queries = [
+            "extensions/ordivon-control-plane/plugin.json",
+            "meta/next/authorities/records/iso/",
+            "tools/formal/LatentInputReachability.lean",
+            "/etc/ordivon/secret",
+            "meta/next/../tools/repo/exhaustive_coverage.py",
+            "README.md",
+            "README.MD",
+            "",
+        ]
+        out = M.lookup_source_paths(inventory, repo=ROOT, paths=queries)
+        statuses = [x["standing"] for x in out["lookups"]]
+        self.assertEqual(statuses, [
+            "EXACT_GIT_SOURCE", "INVALID_SOURCE_LOCATOR",
+            "NOT_IN_SOURCE_CUT", "INVALID_SOURCE_LOCATOR",
+            "INVALID_SOURCE_LOCATOR", "EXACT_GIT_SOURCE",
+            "NOT_IN_SOURCE_CUT", "INVALID_SOURCE_LOCATOR",
+        ])
+        plugin = out["lookups"][0]
+        self.assertEqual(plugin["carrierType"], "plugin.json")
+        self.assertEqual(plugin["sourceCell"]["sourceZone"], "ROOT:control-plugin")
+        self.assertEqual(plugin["semanticStanding"], "UNKNOWN")
+        self.assertIsNone(out["lookups"][2]["sourceIdentity"])
+
+    def test_path_query_does_not_mutate_default_cell_projection(self) -> None:
+        sha = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+        ).strip()
+        inventory = M.classification(ROOT, sha)
+        before = M.active_source_cells(inventory, repo=ROOT)
+        self.assertNotIn("memberCellDigests", before)
+        query = M.lookup_source_paths(inventory, repo=ROOT, paths=[
+            "tools/repo/exhaustive_coverage.py"
+        ])
+        after = M.active_source_cells(inventory, repo=ROOT)
+        self.assertEqual(before, after)
+        self.assertEqual(query["lookups"][0]["standing"], "EXACT_GIT_SOURCE")
+        with self.assertRaisesRegex(ValueError, "cell limits"):
+            M.lookup_source_paths(inventory, repo=ROOT, paths=["README.md"],
+                                  max_files=0)
+        with self.assertRaisesRegex(ValueError, "1..32"):
+            M.lookup_source_paths(inventory, repo=ROOT, paths=["README.md"] * 33)
+
     def test_live_recursive_cells_reject_unqualified_proposal_or_invalid_limits(self) -> None:
         sha = subprocess.check_output(
             ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
@@ -152,3 +232,108 @@ class LiveRecursiveCellsTests(unittest.TestCase):
         assert out["summary"]["countedPaths"] == len(source["sourcePaths"])
         assert out["summary"]["problemCounts"]["DENSE_CELL_REQUIRES_SUBCLASSIFICATION_REVIEW"] > 0
         assert len(out["cells"]) > out["summary"]["sourceZones"]
+
+
+class PythonStaticConsumerFrontierTests(unittest.TestCase):
+    """Exact Git source import witnesses, not runtime/consumer qualification."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.source = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+        ).strip()
+        cls.frontier = M.static_python_import_frontier(
+            ROOT, cls.source, focus_prefix="services/harness/")
+
+    def test_named_harness_plugin_test_has_actual_source_import_candidate(self) -> None:
+        matching = [x for x in self.frontier["staticCandidateEdges"]
+                    if x["consumerPath"] ==
+                    "services/harness/tests/test_agent_plugin_composition.py"
+                    and x["providerPath"] ==
+                    "services/harness/src/ordivon_harness/agent_plugin.py"]
+        self.assertEqual(len(matching), 1)
+        self.assertEqual(matching[0]["moduleExpression"], "ordivon_harness.agent_plugin")
+        self.assertEqual(matching[0]["runtimeConsumerStanding"], "UNKNOWN")
+        self.assertEqual(matching[0]["agentQueryHandle"],
+                         "python-module:ordivon_harness.agent_plugin")
+        self.assertEqual(matching[0]["consumerSourceRole"],
+                         "TEST_SOURCE_IMPORT_SYNTAX")
+
+    def test_script_import_witness_and_current_risk_boundaries(self) -> None:
+        actual = [x for x in self.frontier["staticCandidateEdges"] if x["consumerPath"] ==
+                  "services/harness/scripts/agent_automation_mcp.py"]
+        providers = {x["providerPath"] for x in actual}
+        self.assertIn("services/harness/scripts/agent_automation_browserless.py", providers)
+        self.assertIn("services/harness/scripts/agent_automation_registry.py", providers)
+        self.assertIn("services/harness/scripts/standard_identifiers.py", providers)
+        self.assertFalse(self.frontier["proofReuseAdmissible"])
+        self.assertFalse(self.frontier["summary"]["zeroStaticEdgesProvesNoConsumers"])
+        self.assertEqual(
+            self.frontier["summary"]["gitPythonPaths"],
+            self.frontier["summary"]["sourceModuleLayoutIndexed"] +
+            self.frontier["summary"]["sourceModuleLayoutUnknown"])
+        self.assertGreater(self.frontier["summary"]["allUnresolvedImportStatements"], 0)
+        self.assertGreater(self.frontier["summary"]["allDynamicSyntaxSites"], 0)
+
+    def test_source_path_lexical_module_is_never_installed_authority(self) -> None:
+        self.assertEqual(
+            M._python_module_path(
+                "services/harness/src/ordivon_harness/agent_plugin.py"),
+            ("ordivon_harness.agent_plugin", "services/harness/src/"))
+        self.assertEqual(
+            M._python_module_path(
+                "services/harness/scripts/agent_automation_browserless.py"),
+            ("agent_automation_browserless", "services/harness/scripts/"))
+        self.assertIsNone(M._python_module_path("services/harness/evidence/claim.json"))
+
+    def test_non_src_python_package_needs_real_init_files(self) -> None:
+        module = "capabilities/artifact/artifact_capabilities/presentation/admission.py"
+        inits = {
+            "capabilities/artifact/artifact_capabilities/__init__.py",
+            "capabilities/artifact/artifact_capabilities/presentation/__init__.py",
+        }
+        self.assertEqual(
+            M._python_module_path(module, inits),
+            ("artifact_capabilities.presentation.admission", "capabilities/artifact/"))
+        self.assertIsNone(M._python_module_path(module, set()))
+        self.assertEqual(
+            M._python_module_path(
+                "capabilities/artifact/artifact_capabilities/presentation/__init__.py",
+                inits),
+            ("artifact_capabilities.presentation", "capabilities/artifact/"))
+        # Without the parent marker, the exact *candidate search root*
+        # changes; neither variant guarantees runtime sys.path resolution.
+        self.assertEqual(
+            M._python_module_path(module, {
+                "capabilities/artifact/artifact_capabilities/presentation/__init__.py"}),
+            ("presentation.admission",
+             "capabilities/artifact/artifact_capabilities/"))
+
+    def test_exact_cut_required_and_invalid_prefix_rejected(self) -> None:
+        with self.assertRaisesRegex(ValueError, "exact"):
+            M.static_python_import_frontier(ROOT, "HEAD")
+        for path in ("", "/services/", "services/../harness/",
+                     "services//harness/", "services/./harness/",
+                     "services" + chr(92) + "harness/"):
+            with self.assertRaisesRegex(ValueError, "canonical"):
+                M.static_python_import_frontier(ROOT, self.source, focus_prefix=path)
+
+    def test_import_frontier_remains_bounded_when_no_prefix_witness(self) -> None:
+        output = M.static_python_import_frontier(
+            ROOT, self.source, focus_prefix="unused/static/no-such-source/")
+        self.assertEqual(output["summary"]["selectedEdges"], 0)
+        self.assertFalse(output["summary"]["zeroStaticEdgesProvesNoConsumers"])
+        self.assertEqual(output["sourceCut"], self.source)
+
+    def test_ambiguous_module_name_fails_closed_without_preferred_owner(self) -> None:
+        out = M.static_python_import_frontier(
+            ROOT, self.source,
+            focus_prefix="domains/capital/tests/test_accounting_substrate_type_authority.py")
+        unresolved = [x for x in out["unresolvedImportStatements"]
+                      if x["standing"] == "AMBIGUOUS_MODULE_CANDIDATES"]
+        self.assertTrue(any(x["expression"] == "ordivon_capital.accounting"
+                            for x in unresolved))
+        self.assertFalse(any(x["moduleExpression"] == "ordivon_capital.accounting"
+                             for x in out["staticCandidateEdges"]))
+        self.assertGreater(out["summary"]["sourceModuleLayoutUnknown"], 0)
+        self.assertFalse(out["summary"]["zeroStaticEdgesProvesNoConsumers"])

@@ -160,6 +160,61 @@ Inspect the content and actual downstream readers of the 23 mixed-format dense g
 
 No filesystem moves, changes to Skill/CLI/provider contracts, role approvals, migrations, or deletion are authorized by this evidence.
 
+## R4 — Agent-facing exact source-path lookup (no new registry)
+
+The native tools/repo/exhaustive_coverage.py already derives full source
+membership and fine recursive cells. An Agent should not parse or
+reinterpret the entire exhaustive projection to locate one file.
+
+Use an immutable Git commit for the Linux source being inspected:
+
+    CUT="$(git rev-parse origin/main)"
+    python3 tools/repo/exhaustive_coverage.py --source-cut "$CUT" \
+      --lookup-path extensions/ordivon-control-plane/plugin.json \
+      --lookup-path tools/repo/exhaustive_coverage.py \
+      --lookup-path services/runtime/src/does-not-exist.rs
+
+This is a source navigation projection, not a new owner, tool dispatcher,
+model, proof registry, file-system relocation or authority naming standard.
+Queries are bounded to 32 files per call. Each matched result returns the same exact Git blob identity as the native
+full census, the actual physical recursive source cell, its short
+agentNavigationLabel, observed file carrier type and explicit unresolved
+semantic, consumer, installed and formal status.
+
+EXACT_GIT_SOURCE means the path exists at that exact commit, not that
+the implementation works. NOT_IN_SOURCE_CUT means the file is missing
+there (it may exist in a PR, a separate Git root or an installed system).
+INVALID_SOURCE_LOCATOR rejects absolute paths, traversal and
+noncanonical source-file locators rather than silently resolving them.
+
+Neither ROOT:control-plugin nor the file name plugin.json proves a
+live control-plane authority. No path name can resolve an unproven
+external effect or actual consumer. Read the semantic evidence of a
+specific LEGO before authorizing a move or concluding proof reuse.
+
+
+### R4 exact-source proposal comparison (no authority change)
+
+This independently repeated the native census with **current Git source**
+d808ff09cf52422ad67ad880d856a8a1bad622b1 and **separate**
+proposed policy source d8c09cd615d07bfd4dbc38be4965aa655d13862d
+(PR #983). The current source has 5,003 tracked paths, of which 4,652
+match one of 18 current registered source roots and 351 are UNASSIGNED.
+The proposed **eight supplemental navigation regions** explain those
+remaining 351, with zero ambiguous or unassigned physical paths in the
+proposal projection. This is a proof of path accounting for these two
+immutable source cuts, not evidence of owner authority, semantic consumer
+relationships, functional identity, installed reachability or approval
+to rename any physical directory. The eight supplemental regions count:
+agent-method 37; architecture contracts/evidence 114; formal/proof
+adapters 10; LEGO specification/calculus 2; migration/historical 115;
+repository config/automation 10; repository engineering 47;
+research profiles/source contracts 16. Total: 351.
+
+For exact path comparisons, supply both --source-cut and --proposal-cut.
+The native lookup returns **currentSource** and **proposedSource**
+separately. The Agent must not use the proposal as installed permission
+or infer a source in one Git checkout is present in another.
 
 ## Agent-first interface carrier distinctions (R1 additive source evidence)
 

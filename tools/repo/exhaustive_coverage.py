@@ -9,6 +9,7 @@ proposal SourceCut, never silently installed into the subject SourceCut.
 from __future__ import annotations
 
 import argparse
+import ast
 import collections
 import hashlib
 import json
@@ -266,7 +267,7 @@ def classification(repo: Path, source: str, proposed: str | None = None) -> dict
 
 def active_source_cells(
     inventory: dict, *, repo: Path, max_files: int = 24, max_depth: int = 6,
-    use_proposal: bool = False,
+    use_proposal: bool = False, include_member_index: bool = False,
 ) -> dict:
     """Compute small, deterministic *physical* source cells on demand.
 
@@ -290,6 +291,7 @@ def active_source_cells(
         zones[zone].append(item)
 
     cells: list[dict] = []
+    member_index: dict[str, str] = {}
     node_problems_by_plan: dict[str, collections.Counter] = collections.defaultdict(collections.Counter)
     for lego in inventory["semanticPlans"]["nodes"]:
         node_problems_by_plan[lego["plan"]].update(lego["problems"])
@@ -343,6 +345,12 @@ def active_source_cells(
             ensure_ascii=True, sort_keys=True,
             separators=(",", ":"),
         ).encode()).hexdigest()
+        if include_member_index:
+            for member in members:
+                path = member["path"]
+                if path in member_index:
+                    raise ValueError(f"source path assigned to multiple cells: {path}")
+                member_index[path] = "sha256:" + member_id
         cells.append({
             "memberGitObjectDigest": "sha256:" + member_id,
             "sourceZone": zone,
@@ -401,10 +409,12 @@ def active_source_cells(
 
     if sum(c["pathCount"] for c in cells) != len(source_paths):
         raise ValueError("source cell cardinality is not complete")
+    if include_member_index and set(member_index) != {p["path"] for p in source_paths}:
+        raise ValueError("source cell index must enumerate every Git path exactly once")
     cells.sort(key=lambda c: (c["sourceZone"], c["physicalPrefix"], c["firstSourcePath"]))
     tallies = collections.Counter(p for c in cells for p in c["problems"])
     observed = collections.Counter(p for c in cells for p in c["observations"])
-    return {
+    result = {
         "kind": "ordivon.source-cell-live-frontier",
         "sourceCut": inventory["sourceCut"],
         "sourceTree": inventory["sourceTree"],
@@ -426,6 +436,292 @@ def active_source_cells(
         },
         "cells": cells,
     }
+    if include_member_index:
+        result["memberCellDigests"] = dict(sorted(member_index.items()))
+    return result
+
+
+def lookup_source_paths(inventory: dict, *, repo: Path,
+                        paths: list[str], max_files: int = 24,
+                        max_depth: int = 6) -> dict:
+    """Bounded exact-file navigation, reusing current native live cell rules.
+
+    Every status is physical/source-only. No alias grants execution authority,
+    installed qualification, a consumer claim or semantic LEGO identity.
+    """
+    if not paths or len(paths) > 32:
+        raise ValueError("lookup accepts 1..32 exact paths per query")
+    cells = active_source_cells(
+        inventory, repo=repo, max_files=max_files, max_depth=max_depth,
+        include_member_index=True,
+    )
+    members = cells.pop("memberCellDigests")
+    by_digest = {c["memberGitObjectDigest"]: c for c in cells["cells"]}
+    indexed = {item["path"]: item for item in inventory["sourcePaths"]}
+    if len(indexed) != len(members) or set(indexed) != set(members):
+        raise ValueError("exact Git source tree and cell membership diverge")
+    findings = []
+    for path in paths:
+        if not path or path.startswith("/") or "\\" in path or \
+                "." in path.split("/") or ".." in path.split("/") or \
+                "//" in path or path.endswith("/"):
+            findings.append({"query": path, "standing": "INVALID_SOURCE_LOCATOR",
+                             "sourceIdentity": None})
+            continue
+        source = indexed.get(path)
+        if source is None:
+            findings.append({"query": path, "standing": "NOT_IN_SOURCE_CUT",
+                             "sourceIdentity": None})
+            continue
+        cell = by_digest[members[path]]
+        zone = cell["sourceZone"]
+        findings.append({
+            "query": path, "standing": "EXACT_GIT_SOURCE",
+            "sourceIdentity": source["sourceIdentity"],
+            "physicalPath": path,
+            "currentSource": source["currentSource"],
+            "proposedSource": source["proposedSource"],
+            "sourceCell": {
+                "sourceZone": zone,
+                "physicalPrefix": cell["physicalPrefix"],
+                "memberGitObjectDigest": cell["memberGitObjectDigest"],
+                "memberCount": cell["pathCount"],
+                "problems": cell["problems"],
+            },
+            # Render-friendly alias. The stable address remains the Git OID/path.
+            "agentNavigationLabel": f"{zone} :: {cell['physicalPrefix']}",
+            "carrierType": source["carrierType"],
+            "sourceProblems": source["problems"],
+            "semanticStanding": "UNKNOWN",
+            "consumerStanding": "UNKNOWN",
+            "installedStanding": "UNKNOWN",
+            "formalStanding": "UNKNOWN",
+        })
+    return {
+        "schemaVersion": 1, "kind": "ordivon.source-cut-exact-path-navigation",
+        "sourceCut": inventory["sourceCut"], "sourceTree": inventory["sourceTree"],
+        "proposalCut": inventory["proposalCut"],
+        "sourcePathDigest": inventory["sourcePathDigest"],
+        "lookupCount": len(findings),
+        "truthBoundary": "one exact Git source cut; paths and cell membership only",
+        "proofReuseAdmissible": False,
+        "lookups": findings,
+    }
+
+
+
+def _python_module_path(
+    path: str, package_init_paths: set[str] | None = None,
+) -> tuple[str, str] | None:
+    """Syntactic module candidate only; not active sys.path or installed code."""
+    if not path.endswith(".py"):
+        return None
+    if "/src/" in path:
+        root, relative = path.split("/src/", 1)
+        root += "/src/"
+    elif "/scripts/" in path:
+        root, relative = path.split("/scripts/", 1)
+        root += "/scripts/"
+    elif path.startswith("tools/repo/"):
+        root, relative = "tools/repo/", path[len("tools/repo/"):]
+    elif package_init_paths:
+        # Python packages with real tracked __init__.py are usable source
+        # naming candidates even without a src/ packaging layout. Discover
+        # only contiguous package segments; implicit namespace packages and
+        # import-time sys.path changes remain unqualified.
+        current = path.rsplit("/", 1)[0] if "/" in path else ""
+        pkg_dirs = []
+        while current and current + "/__init__.py" in package_init_paths:
+            pkg_dirs.insert(0, current.rsplit("/", 1)[-1])
+            current = current.rsplit("/", 1)[0] if "/" in current else ""
+        if not pkg_dirs:
+            return None
+        root = current + "/" if current else ""
+        if path.endswith("/__init__.py"):
+            relative = "/".join(pkg_dirs) + "/__init__.py"
+        else:
+            relative = "/".join(pkg_dirs) + "/" + path.rsplit("/", 1)[-1]
+    else:
+        return None
+    parts = relative[:-3].split("/")
+    if parts[-1] == "__init__":
+        parts.pop()
+    if not parts or not all(p.isidentifier() for p in parts):
+        return None
+    return ".".join(parts), root
+
+
+def static_python_import_frontier(repo: Path, source: str,
+                                  focus_prefix: str | None = None) -> dict:
+    """Exact-Git AST import hints. Never proves actual import/call/consumer closure."""
+    exact_commit(repo, source)
+    if focus_prefix is not None and (
+            not focus_prefix or focus_prefix.startswith("/")
+            or chr(92) in focus_prefix
+            or any(part in ("", ".", "..") for part in
+                   focus_prefix.rstrip("/").split("/"))):
+        raise ValueError("focus prefix is not canonical Git-relative")
+    py = [row for row in tree(repo, source) if row["path"].endswith(".py")]
+    by_module: dict[str, list[tuple[str, str]]] = collections.defaultdict(list)
+    by_path = {}
+    package_inits = {row["path"] for row in py
+                     if row["path"].endswith("/__init__.py")
+                     and row["sourceIdentity"].startswith(
+                         ("100644:blob:", "100755:blob:"))}
+    for row in py:
+        candidate = _python_module_path(row["path"], package_inits)
+        if candidate:
+            by_path[row["path"]] = candidate
+            by_module[candidate[0]].append((row["path"], candidate[1]))
+    # Single Git batch ensures we never follow symlinks, inspect mutable
+    # checkout contents or import the inspected module.
+    valid = [x for x in py if x["sourceIdentity"].startswith(
+        ("100644:blob:", "100755:blob:"))]
+    oids = sorted({row["sourceIdentity"].split(":")[-1] for row in valid})
+    proc = subprocess.run(
+        ["git", "--no-replace-objects", "-C", str(repo), "cat-file", "--batch"],
+        input="".join(oid + "\n" for oid in oids).encode("ascii"),
+        capture_output=True, check=True)
+    by_oid = {}
+    offset = 0
+    for oid in oids:
+        nl = proc.stdout.find(b"\n", offset)
+        if nl < 0:
+            raise ValueError("truncated Git batch header")
+        h = proc.stdout[offset:nl].decode("ascii").split()
+        if len(h) != 3 or h[0] != oid or h[1] != "blob":
+            raise ValueError("unexpected source object in Git batch")
+        size = int(h[2])
+        end = nl + 1 + size
+        if end >= len(proc.stdout) or proc.stdout[end:end + 1] != b"\n":
+            raise ValueError("truncated Git blob or missing terminator")
+        if size <= 196608:
+            by_oid[oid] = proc.stdout[nl + 1:end]
+        offset = end + 1
+    if offset != len(proc.stdout):
+        raise ValueError("trailing Git batch bytes")
+    edge_set = set()
+    unresolved = []
+    dynamic = []
+    skipped = []
+    for row in py:
+        path = row["path"]
+        oid = row["sourceIdentity"].split(":")[-1]
+        if oid not in by_oid:
+            skipped.append({"path": path, "reason": "NONREGULAR_OR_TOO_LARGE_GIT_BLOB"})
+            continue
+        try:
+            root = ast.parse(by_oid[oid].decode("utf-8-sig"), filename=path)
+        except (SyntaxError, UnicodeError, ValueError):
+            skipped.append({"path": path, "reason": "AST_SYNTAX_OR_ENCODING_UNQUALIFIED"})
+            continue
+        caller = by_path.get(path)
+        for node in ast.walk(root):
+            if isinstance(node, ast.Call):
+                name = node.func.id if isinstance(node.func, ast.Name) else (
+                    node.func.attr if isinstance(node.func, ast.Attribute) else None)
+                if name in {"__import__", "import_module", "eval", "exec"}:
+                    dynamic.append({"consumerPath": path, "line": node.lineno,
+                                    "standing": "DYNAMIC_OR_EVALUATION_CALL_SYNTAX_ONLY"})
+            if isinstance(node, ast.Import):
+                targets = [alias.name for alias in node.names]
+                syntax = "ABSOLUTE_IMPORT"
+            elif isinstance(node, ast.ImportFrom):
+                base = node.module or ""
+                syntax = "RELATIVE_FROM_IMPORT" if node.level else "FROM_IMPORT"
+                if node.level:
+                    if not caller:
+                        unresolved.append({"consumerPath": path, "line": node.lineno,
+                                           "expression": base,
+                                           "standing": "RELATIVE_PACKAGE_SCOPE_UNKNOWN"})
+                        continue
+                    pkg = caller[0].split(".")
+                    if not path.endswith("/__init__.py"):
+                        pkg = pkg[:-1]
+                    if node.level > len(pkg):
+                        unresolved.append({"consumerPath": path, "line": node.lineno,
+                                           "expression": base,
+                                           "standing": "RELATIVE_IMPORT_OUTSIDE_CANDIDATE_ROOT"})
+                        continue
+                    base = ".".join([*pkg[:len(pkg) - node.level + 1],
+                                     *([base] if base else [])])
+                targets = [base] if base else []
+                targets.extend(base + "." + alias.name if base else alias.name
+                               for alias in node.names if alias.name != "*")
+            else:
+                continue
+            resolved = False
+            for target in sorted(set(targets)):
+                providers = by_module.get(target, [])
+                if not providers:
+                    continue
+                if caller:
+                    local = [v for v in providers if v[1] == caller[1]]
+                    if local:
+                        providers = local
+                if len(providers) != 1:
+                    unresolved.append({"consumerPath": path, "line": node.lineno,
+                                       "expression": target,
+                                       "standing": "AMBIGUOUS_MODULE_CANDIDATES"})
+                    continue
+                provider, module_root = providers[0]
+                if provider == path:
+                    continue
+                edge_set.add((path, provider, node.lineno, syntax, target, module_root))
+                resolved = True
+            if not resolved:
+                unresolved.append({"consumerPath": path, "line": node.lineno,
+                                   "expression": ",".join(targets) or "(empty)",
+                                   "standing": "UNRESOLVED_OR_EXTERNAL_IMPORT_SYNTAX"})
+    all_edges = sorted(edge_set)
+    counts = (len(all_edges), len(unresolved), len(dynamic))
+    if focus_prefix is not None:
+        all_edges = [e for e in all_edges if
+                     e[0].startswith(focus_prefix) or e[1].startswith(focus_prefix)]
+        unresolved = [e for e in unresolved if e["consumerPath"].startswith(focus_prefix)]
+        dynamic = [e for e in dynamic if e["consumerPath"].startswith(focus_prefix)]
+        skipped = [e for e in skipped if e["path"].startswith(focus_prefix)]
+    return {
+        "kind": "ordivon.phase1.exact-git-python-static-consumer-hints",
+        "sourceCut": source,
+        "sourceTree": git(repo, "rev-parse", f"{source}^{{tree}}").decode().strip(),
+        "focusPrefix": focus_prefix,
+        "truthBoundary": "STATIC_PYTHON_AST_ONLY; no import resolution, executed calls, installed behavior or proof",
+        "proofReuseAdmissible": False,
+        "summary": {
+            "gitPythonPaths": len(py),
+            "sourceModuleLayoutIndexed": len(by_path),
+            "sourceModuleLayoutUnknown": len(py) - len(by_path),
+            "moduleNameCandidates": len(by_module),
+            "ambiguousModuleNames": sum(len(v) > 1 for v in by_module.values()),
+            "allStaticCandidateEdges": counts[0],
+            "allUnresolvedImportStatements": counts[1],
+            "allDynamicSyntaxSites": counts[2],
+            "selectedEdges": len(all_edges),
+            "selectedUnresolved": len(unresolved),
+            "selectedDynamicSyntaxSites": len(dynamic),
+            "skippedSelectedPaths": len(skipped),
+            "zeroStaticEdgesProvesNoConsumers": False,
+        },
+        "unindexedModuleLayoutSamples": [
+            x["path"] for x in py if x["path"] not in by_path
+        ][:20],
+        "staticCandidateEdges": [
+            {"consumerPath": e[0], "providerPath": e[1], "line": e[2],
+             "syntax": e[3], "moduleExpression": e[4], "candidateSearchRoot": e[5],
+             "agentQueryHandle": "python-module:" + e[4],
+             "consumerSourceRole": ("TEST_SOURCE_IMPORT_SYNTAX"
+                                    if "/tests/" in e[0] or
+                                    e[0].rsplit("/", 1)[-1].startswith("test_")
+                                    else "SOURCE_IMPORT_SYNTAX"),
+             "sourceStanding": "STATIC_AST_MODULE_MATCH_ONLY",
+             "runtimeConsumerStanding": "UNKNOWN"}
+            for e in all_edges
+        ],
+        "unresolvedImportStatements": unresolved,
+        "dynamicSyntaxSites": dynamic,
+        "skippedPaths": skipped,
+    }
 
 
 def main() -> int:
@@ -435,15 +731,45 @@ def main() -> int:
     parser.add_argument("--repo", type=Path, default=Path.cwd())
     parser.add_argument("--summary", action="store_true")
     parser.add_argument("--only-problems", action="store_true")
+    parser.add_argument("--static-python-consumers", action="store_true",
+                        help="exact Git AST import candidate references; not live consumers")
+    parser.add_argument("--imports-prefix",
+                        help="show AST import hints touching this canonical source prefix")
     parser.add_argument("--live-cells", action="store_true",
                         help="derive fresh exact-Git recursive source cells; never load saved snapshots")
     parser.add_argument("--use-proposal-cells", action="store_true",
                         help="show proposal-source regions without treating them as current authority")
     parser.add_argument("--cell-max-files", type=int, default=24)
     parser.add_argument("--cell-max-depth", type=int, default=6)
+    parser.add_argument("--lookup-path", action="append", default=[],
+                        help="small exact-Git source/path query; repeat for multiple files")
     args = parser.parse_args()
+    if args.imports_prefix and not args.static_python_consumers:
+        parser.error("imports-prefix requires static-python-consumers")
+    if args.lookup_path and args.static_python_consumers:
+        parser.error("exact source-cell path lookup and static consumer scan are separate modes")
+    if args.lookup_path and (args.live_cells or args.only_problems or args.summary
+                            or args.use_proposal_cells):
+        parser.error("--lookup-path is a distinct small-result mode")
+    if args.static_python_consumers:
+        if args.proposal_cut or args.live_cells or args.only_problems:
+            parser.error("static import hints cannot claim proposed classifications or moves")
+        result = static_python_import_frontier(
+            args.repo, args.source_cut, focus_prefix=args.imports_prefix)
+        if args.summary:
+            result = {k: v for k, v in result.items() if k not in (
+                "staticCandidateEdges", "unresolvedImportStatements",
+                "dynamicSyntaxSites", "skippedPaths",
+                "unindexedModuleLayoutSamples")}
+        print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2))
+        return 0
     result = classification(args.repo, args.source_cut, args.proposal_cut)
-    if args.live_cells:
+    if args.lookup_path:
+        result = lookup_source_paths(
+            result, repo=args.repo, paths=args.lookup_path,
+            max_files=args.cell_max_files, max_depth=args.cell_max_depth,
+        )
+    elif args.live_cells:
         result = active_source_cells(
             result, repo=args.repo, max_files=args.cell_max_files, max_depth=args.cell_max_depth,
             use_proposal=args.use_proposal_cells,
