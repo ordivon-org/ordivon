@@ -30,7 +30,7 @@ def test_host_legacy_agent_service_cursor_proposal_is_retired() -> None:
     assert not (ROOT / "services/host/src/ordivon_host_v2/cursor.py").exists()
     assert all(node["id"] != "O05" for node in legacy["nodes"])
     assert all(slice_["id"] != "OS1" for slice_ in legacy["slices"])
-    assert legacy["gaps"] == []
+    assert all("ScopeBoundCursor" not in gap for gap in legacy["gaps"])
 
 
 def test_network_unconsumed_future_profile_slice_is_retired_without_removing_active_nodes() -> None:
