@@ -1712,5 +1712,527 @@
     "trackedFiles": 4993,
     "unknownGitPaths": 0
   },
-  "truthRole": "REBUILDABLE_BOUNDED_GIT_SCOPE_EVIDENCE_NOT_LEGO_REGISTRY_OR_PROOF"
+  "truthRole": "REBUILDABLE_BOUNDED_GIT_SCOPE_EVIDENCE_NOT_LEGO_REGISTRY_OR_PROOF",
+  "unmergedGitCandidateScope": {
+    "admission": "SOURCE_OVERLAY_ONLY_NOT_MAIN_OR_INSTALLED",
+    "allChangedPathsClassified": true,
+    "authorityBoundary": "No merge, permission, formal proof or runtime effect inferred from PR state",
+    "candidateOnlyPathsAbsentFromComparedMain": [
+      "capabilities/distribution/planning/lego-plan-r1.json",
+      "docs/architecture/LEGO_CORE_AND_SOURCE_TERRITORIES_20261027.md",
+      "docs/architecture/OWNER_BOUNDARIES_AND_AGENT_NAMING_RESEARCH_20261027.md",
+      "docs/architecture/evidence/LEGO_OWNER_TERRITORY_CENSUS_20261027_R1.json",
+      "docs/architecture/evidence/PHASE1_FULLSYSTEM_SOURCE_SCOPE_20261027_R1.json",
+      "meta/next/evidence/acceptance/lego-r21-phase1-owner-source-census-20261027.json",
+      "meta/research/latent-input-state-controllability-r1.md",
+      "packages/composition/tests/test_effect_reconciliation_formal_bridge_r21.py",
+      "platform/workstation/planning/lego-plan-r1.json",
+      "tools/formal/EffectReconciliationR21.lean",
+      "tools/formal/LatentInputReachability.lean"
+    ],
+    "changedFileReferencesAcrossPrs": 101,
+    "limitation": "Open PR listing is a time-scoped snapshot and can change independently of Git sourceCut.",
+    "mainComparisonSourceCut": "631c3c83104e97260b105b9bda73f0f8ec6a6924",
+    "observedAtUtc": "2026-10-27T13:35:09+00:00",
+    "observedOpenPrCount": 31,
+    "overlappingSourcePaths": [
+      {
+        "candidatePrNumbers": [
+          839,
+          838,
+          837
+        ],
+        "sourcePath": "capabilities/artifact/artifact-delivery/node/package.json"
+      },
+      {
+        "candidatePrNumbers": [
+          839,
+          838,
+          837
+        ],
+        "sourcePath": "capabilities/artifact/artifact-delivery/node/pnpm-lock.yaml"
+      },
+      {
+        "candidatePrNumbers": [
+          948,
+          944,
+          941
+        ],
+        "sourcePath": "capabilities/artifact/tests/test_artifact_software_release_elf.py"
+      },
+      {
+        "candidatePrNumbers": [
+          948,
+          941
+        ],
+        "sourcePath": "capabilities/artifact/tests/test_artifact_verify.py"
+      },
+      {
+        "candidatePrNumbers": [
+          976,
+          970
+        ],
+        "sourcePath": "packages/composition/planning/lego-plan-r1.json"
+      },
+      {
+        "candidatePrNumbers": [
+          970,
+          913
+        ],
+        "sourcePath": "packages/composition/src/ordivon_composition/cognitive_circuit_r1.py"
+      },
+      {
+        "candidatePrNumbers": [
+          977,
+          962
+        ],
+        "sourcePath": "packages/composition/tests/test_verification_obligation_r1.py"
+      },
+      {
+        "candidatePrNumbers": [
+          916,
+          915,
+          914
+        ],
+        "sourcePath": "services/runtime/planning/lego-plan-r1.json"
+      },
+      {
+        "candidatePrNumbers": [
+          977,
+          974,
+          972,
+          970,
+          948
+        ],
+        "sourcePath": "tools/formal/RecursiveLegoRefinement.lean"
+      },
+      {
+        "candidatePrNumbers": [
+          976,
+          965
+        ],
+        "sourcePath": "tools/formal/verify.py"
+      },
+      {
+        "candidatePrNumbers": [
+          981,
+          953,
+          948
+        ],
+        "sourcePath": "tools/repo/affected_owners.py"
+      },
+      {
+        "candidatePrNumbers": [
+          974,
+          964,
+          963,
+          941,
+          934,
+          933,
+          916,
+          915
+        ],
+        "sourcePath": "tools/repo/check_architecture_docs.py"
+      },
+      {
+        "candidatePrNumbers": [
+          981,
+          948
+        ],
+        "sourcePath": "tools/repo/owners.toml"
+      },
+      {
+        "candidatePrNumbers": [
+          981,
+          953,
+          948
+        ],
+        "sourcePath": "tools/repo/test_affected_owners.py"
+      },
+      {
+        "candidatePrNumbers": [
+          974,
+          964,
+          963,
+          948,
+          941,
+          933,
+          928,
+          916,
+          915
+        ],
+        "sourcePath": "tools/repo/test_lego_graph_laws.py"
+      }
+    ],
+    "pathReferenceCountsByClass": {
+      "owner:artifact": 12,
+      "owner:composition": 12,
+      "owner:distribution": 1,
+      "owner:gateway": 1,
+      "owner:harness": 1,
+      "owner:host": 1,
+      "owner:media": 6,
+      "owner:next": 2,
+      "owner:runtime": 16,
+      "owner:workstation": 1,
+      "sourceArea:architecture-evidence": 4,
+      "sourceArea:formal-prover-sources": 9,
+      "sourceArea:github-root-policy": 2,
+      "sourceArea:repository-mechanics": 31,
+      "sourceArea:research-profile-source": 1,
+      "sourceArea:shared-root-configuration": 1
+    },
+    "prSourceCuts": [
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          ".github/workflows/ci.yml",
+          "tools/repo/test_github_governance.py"
+        ],
+        "headSourceCut": "ddc2a3dd8c538e7add76aa50b370e2d9f8a52cb1",
+        "number": 982
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "tools/repo/affected_owners.py",
+          "tools/repo/owners.toml",
+          "tools/repo/test_affected_owners.py"
+        ],
+        "headSourceCut": "616f180b8a1673940a77fcb70d340d5315e1e8f9",
+        "number": 981
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "docs/architecture/evidence/PHASE1_FULLSYSTEM_SOURCE_SCOPE_20261027_R1.json"
+        ],
+        "headSourceCut": "b99e21dcdd39d3c12dcea7c69009efe546f92412",
+        "number": 980
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "services/runtime/crates/ordivon-runtime-core/src/runtime/job_attempt_state.rs",
+          "services/runtime/mise.toml"
+        ],
+        "headSourceCut": "39d1cac4589d8dcec55fe1c53d1da59ef1fd9bfc",
+        "number": 979
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "packages/composition/tests/test_verification_obligation_r1.py",
+          "tools/formal/RecursiveLegoRefinement.lean"
+        ],
+        "headSourceCut": "1c97dd75b2d4ba2b8f77c775da4d503a4721e56c",
+        "number": 977
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "packages/composition/planning/lego-plan-r1.json",
+          "packages/composition/tests/test_effect_reconciliation_formal_bridge_r21.py",
+          "tools/formal/EffectReconciliationR21.lean",
+          "tools/formal/verify.py"
+        ],
+        "headSourceCut": "34f8772602bda7f4862d863791da6751e14ea6ea",
+        "number": 976
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "services/gateway/planning/lego-plan-r1.json",
+          "tools/formal/RecursiveLegoRefinement.lean",
+          "tools/repo/check_architecture_docs.py",
+          "tools/repo/test_lego_graph_laws.py"
+        ],
+        "headSourceCut": "9f95d3083f252c857790f4d41cfe6c7b3a85f50a",
+        "number": 974
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "tools/formal/RecursiveLegoRefinement.lean"
+        ],
+        "headSourceCut": "b036e532afd893cabe8bd05aa3363e93589ef3fb",
+        "number": 972
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "packages/composition/planning/lego-plan-r1.json",
+          "packages/composition/src/ordivon_composition/cognitive_circuit_r1.py",
+          "packages/composition/tests/test_cognitive_circuit_r1.py",
+          "tools/formal/RecursiveLegoRefinement.lean"
+        ],
+        "headSourceCut": "458e65a4d713001a71090a55f940308d3373dccd",
+        "number": 970
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "meta/research/latent-input-state-controllability-r1.md",
+          "tools/formal/LatentInputReachability.lean",
+          "tools/formal/verify.py"
+        ],
+        "headSourceCut": "eefa07880ef5bf3a49dbde768e29866510d451b7",
+        "number": 965
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "tools/repo/check_architecture_docs.py",
+          "tools/repo/test_lego_graph_laws.py"
+        ],
+        "headSourceCut": "b050af0e019f9f13b42853080af13be7ae0d77f5",
+        "number": 964
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "tools/repo/check_architecture_docs.py",
+          "tools/repo/test_lego_graph_laws.py"
+        ],
+        "headSourceCut": "515345a6f09d053b71ea06c60912d8fa4f4016ee",
+        "number": 963
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "packages/composition/src/ordivon_composition/verification_obligation_r1.py",
+          "packages/composition/tests/test_verification_obligation_r1.py"
+        ],
+        "headSourceCut": "993a31e1ac519007add6e1659646190c920a6a9e",
+        "number": 962
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "feat/source-territory-classification-20261027",
+        "changedPaths": [
+          "tools/repo/affected_owners.py",
+          "tools/repo/test_affected_owners.py"
+        ],
+        "headSourceCut": "2bc134f6d664a3efcf9fc255921c16691f38ad4e",
+        "number": 953
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          ".github/CODEOWNERS",
+          "capabilities/artifact/tests/test_artifact_software_release_elf.py",
+          "capabilities/artifact/tests/test_artifact_verify.py",
+          "docs/architecture/LEGO_CORE_AND_SOURCE_TERRITORIES_20261027.md",
+          "docs/architecture/evidence/LEGO_OWNER_TERRITORY_CENSUS_20261027_R1.json",
+          "meta/next/tests/test_browser_security_r8.py",
+          "mise.toml",
+          "services/runtime/crates/ordivon-runtime-core/src/runtime/execution_provider.rs",
+          "services/runtime/crates/ordivon-runtime-core/src/runtime/tests.rs",
+          "tools/formal/RecursiveLegoRefinement.lean",
+          "tools/repo/affected_owners.py",
+          "tools/repo/convergence_plan.py",
+          "tools/repo/dependency_contracts.toml",
+          "tools/repo/owners.toml",
+          "tools/repo/planning/lego-plan-r1.json",
+          "tools/repo/test_affected_owners.py",
+          "tools/repo/test_convergence_plan.py",
+          "tools/repo/test_lego_graph_laws.py",
+          "tools/repo/test_owner_boundaries.py"
+        ],
+        "headSourceCut": "a20fafe6d883b6d78b2b4272c3949f978cc2334f",
+        "number": 948
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "docs/architecture/OWNER_BOUNDARIES_AND_AGENT_NAMING_RESEARCH_20261027.md"
+        ],
+        "headSourceCut": "f758c65cfba4103df55eac13749e3db1098f5cd1",
+        "number": 945
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "capabilities/artifact/scripts/artifact_software_release_elf.py",
+          "capabilities/artifact/tests/test_artifact_software_release_elf.py"
+        ],
+        "headSourceCut": "b2d83c330a1bfbaa8950a3346212113ff705b3a5",
+        "number": 944
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "capabilities/media/planning/lego-plan-r1.json",
+          "capabilities/media/src/ordivon_studio/timed_text.py",
+          "capabilities/media/tests/test_timed_text.py"
+        ],
+        "headSourceCut": "de5bc5cf6ca622c1a81231aefd751246b137be52",
+        "number": 942
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "capabilities/artifact/tests/test_artifact_software_release_elf.py",
+          "capabilities/artifact/tests/test_artifact_verify.py",
+          "capabilities/distribution/planning/lego-plan-r1.json",
+          "tools/repo/check_architecture_docs.py",
+          "tools/repo/test_lego_graph_laws.py"
+        ],
+        "headSourceCut": "2a74bf61296330720a62decdae5d6116abcc28c2",
+        "number": 941
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "platform/workstation/planning/lego-plan-r1.json",
+          "tools/repo/check_architecture_docs.py"
+        ],
+        "headSourceCut": "7269bcff35d26c3be459004e33604e5283bf713b",
+        "number": 934
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "services/harness/planning/lego-plan-r1.json",
+          "tools/repo/check_architecture_docs.py",
+          "tools/repo/test_lego_graph_laws.py"
+        ],
+        "headSourceCut": "b17a232026987c862ced552931fd9c5deb2866f2",
+        "number": 933
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "meta/next/evidence/acceptance/lego-r21-phase1-owner-source-census-20261027.json",
+          "services/host/planning/lego-plan-r1.json",
+          "tools/repo/test_lego_graph_laws.py"
+        ],
+        "headSourceCut": "bcdf5f26d410f12a2f0771d2c87a59b37bce835c",
+        "number": 928
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "services/runtime/planning/lego-plan-r1.json",
+          "tools/repo/check_architecture_docs.py",
+          "tools/repo/test_lego_graph_laws.py"
+        ],
+        "headSourceCut": "207af03c97bb80fe607152001824299124c4254c",
+        "number": 916
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "services/runtime/planning/lego-plan-r1.json",
+          "tools/repo/check_architecture_docs.py",
+          "tools/repo/test_lego_graph_laws.py"
+        ],
+        "headSourceCut": "9684fd13afdd228b84659b751161d7d1a401d574",
+        "number": 915
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "services/runtime/planning/lego-plan-r1.json"
+        ],
+        "headSourceCut": "9e01504615d199865fd312772abe040af79ad214",
+        "number": 914
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "packages/composition/pyproject.toml",
+          "packages/composition/src/ordivon_composition/cognitive_circuit_r1.py",
+          "packages/composition/tests/test_source_json_uniqueness.py",
+          "packages/composition/uv.lock"
+        ],
+        "headSourceCut": "6106104391cdfee80cc21bcc50a18d7f9acdc00c",
+        "number": 913
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "capabilities/media/apps/motion-remotion/package.json",
+          "capabilities/media/apps/preview/package.json",
+          "capabilities/media/pnpm-lock.yaml"
+        ],
+        "headSourceCut": "12c685fac99b9ee4f073af2f3a28487fcd006bb7",
+        "number": 840
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "capabilities/artifact/artifact-delivery/node/package.json",
+          "capabilities/artifact/artifact-delivery/node/pnpm-lock.yaml"
+        ],
+        "headSourceCut": "aa3f25cd2529936114a75a2d95eb1f6d57132d09",
+        "number": 839
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "capabilities/artifact/artifact-delivery/node/package.json",
+          "capabilities/artifact/artifact-delivery/node/pnpm-lock.yaml"
+        ],
+        "headSourceCut": "0d5fab0a8244a52e8afe5b53d8d28861b94c1f08",
+        "number": 838
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "capabilities/artifact/artifact-delivery/node/package.json",
+          "capabilities/artifact/artifact-delivery/node/pnpm-lock.yaml"
+        ],
+        "headSourceCut": "b2e7adf919a18a9a573ae71455456f44e9d9f804",
+        "number": 837
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "services/runtime/crates/ordivon-runtime-core/src/universal/workspace/close_recovery.rs",
+          "services/runtime/docs/operations.md",
+          "services/runtime/formal/README.md",
+          "services/runtime/formal/WorkspaceConsumerCloseR1.cfg",
+          "services/runtime/formal/WorkspaceConsumerCloseR1.tla",
+          "services/runtime/scripts/ordivon-runtime-lifecycle",
+          "services/runtime/scripts/tests/test_lifecycle.py",
+          "services/runtime/scripts/tests/test_tla_formal_external_jar.py",
+          "services/runtime/scripts/tla-formal"
+        ],
+        "headSourceCut": "4d6529db704d6d9f0d74ec63519a6e0739dae1df",
+        "number": 817
+      }
+    ],
+    "uniqueSourcePaths": 64
+  }
 }
