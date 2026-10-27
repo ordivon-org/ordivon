@@ -2,6 +2,6 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "ordivon-control-plane",
   "version": "0.2.0",
-  "description": "Portable MCP connection to the Ordivon Gateway northbound surface. Runtime and Host remain authoritative owners behind Gateway.",
+  "description": "Portable Agent Plugin packaging the remote Ordivon Gateway MCP connection; not an executable control plane. Runtime, Host, Harness, and Security keep their own authority.",
   "homepage": "https://ordivon.com"
 }
