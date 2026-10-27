@@ -382,6 +382,45 @@ def test_environment_observation_bridge_scoped_change_and_unknown_do_not_fan_out
     assert delta["proofReuseAdmissible"] is False
 
 
+def test_observation_bridge_declared_env_absent_in_both_is_locally_unknown():
+    # An omitted environment ref present in NEITHER observation envelope
+    # cannot be mistaken for an unchanged qualified environment.
+    delta = classify_observed_environment_delta(
+        previous=[], current=[], required_refs=["installed:pg-writer"]
+    )
+    assert delta["unobservedRequiredRefs"] == ["installed:pg-writer"]
+    assert delta["unknownRefs"] == ["installed:pg-writer"]
+    result = select_impacted_obligations(
+        authority_refs=["installed:pg-writer", "source:independent"],
+        obligations=[
+            {"id": "proof:pg", "dependsOn": ["installed:pg-writer"], "dependenciesComplete": True},
+            {
+                "id": "proof:other",
+                "dependsOn": ["source:independent"],
+                "dependenciesComplete": True,
+            },
+        ],
+        changed_refs=delta["changedRefs"],
+        unknown_refs=delta["unknownRefs"],
+    )
+    assert _statuses(result) == {
+        "proof:pg": "UNKNOWN",
+        "proof:other": "REUSE_CANDIDATE",
+    }
+    assert result["proofReuseAdmissible"] is False
+
+
+def test_observation_bridge_declared_env_duplicate_and_forged_unknown_scope_reject():
+    with pytest.raises(CircuitContractError, match="required environment refs"):
+        classify_observed_environment_delta(
+            previous=[], current=[], required_refs=["installed:pg-writer", "installed:pg-writer"]
+        )
+    with pytest.raises(CircuitContractError, match="required environment refs"):
+        classify_observed_environment_delta(
+            previous=[], current=[], required_refs=["source:cannot-pretend-this-is-observed-env"]
+        )
+
+
 def test_observation_bridge_rejects_effect_same_digest_as_continuity_proof():
     receipt = _env_observation("effect:remote-publish", "f")
     revoked = _env_observation("authority:provider-grant", "d")
@@ -2509,6 +2548,21 @@ def test_agent_cli_impact_observations_reuses_native_selector_without_new_regist
         "proof:network": "RECHECK_REQUIRED",
         "proof:writer": "UNKNOWN",
     }
+    # Even if every observation envelope entirely omits a declared required
+    # environment root, the CLI must report scoped UNKNOWN, not false reuse.
+    previous.write_text(json.dumps({"observations": []}))
+    current.write_text(json.dumps({"observations": []}))
+    missing = subprocess.run(cmd, text=True, capture_output=True, check=True)
+    missing_out = json.loads(missing.stdout)
+    assert missing_out["observationDelta"]["unobservedRequiredRefs"] == [
+        "config:network-proxy",
+        "installed:writer",
+    ]
+    assert _statuses(missing_out["selection"]) == {
+        "proof:network": "UNKNOWN",
+        "proof:writer": "UNKNOWN",
+    }
+    assert missing_out["proofReuseAdmissible"] is False
     graph.write_text(json.dumps({"authorityRefs": []}))
     bad = subprocess.run(cmd, text=True, capture_output=True, check=False)
     assert bad.returncode != 0

@@ -434,6 +434,7 @@ def classify_observed_environment_delta(
     *,
     previous: list[dict[str, Any]],
     current: list[dict[str, Any]],
+    required_refs: list[str] | None = None,
 ) -> dict[str, Any]:
     """Task-local, non-authoritative bridge: scoped observations -> proof impact.
 
@@ -506,8 +507,25 @@ def classify_observed_environment_delta(
 
     before = validate(previous, "previous")
     after = validate(current, "current")
+    if required_refs is not None:
+        if (
+            not isinstance(required_refs, list)
+            or not all(isinstance(ref, str) for ref in required_refs)
+            or len(required_refs) != len(set(required_refs))
+            or any(
+                not ref.isprintable()
+                or ref != ref.strip()
+                or ":" not in ref
+                or not all(ref.split(":", 1))
+                or ref.split(":", 1)[0] not in classes
+                for ref in required_refs
+            )
+        ):
+            raise CircuitContractError("required environment refs need distinct typed identities")
+    required = set(required_refs or [])
+    unobserved = sorted(required - (before.keys() | after.keys()))
     changed: list[str] = []
-    unknown: list[str] = []
+    unknown: list[str] = list(unobserved)
     equal_config: list[str] = []
     for ref in sorted(before.keys() | after.keys()):
         old, new = before.get(ref), after.get(ref)
@@ -535,8 +553,12 @@ def classify_observed_environment_delta(
         "kind": "ordivon.task-local-environment-observation-delta",
         "truthRole": "caller-supplied-observation-bridge-not-authoritative-currentness",
         "changedRefs": changed,
-        "unknownRefs": unknown,
+        "unknownRefs": sorted(unknown),
         "equalConfigurationRefs": equal_config,
+        "unobservedRequiredRefs": unobserved,
+        "requiredScopeQualification": (
+            "CALLER_DECLARED_GRAPH_ONLY" if required_refs is not None else "NOT_BOUND_TO_GRAPH"
+        ),
         "proofReuseAdmissible": False,
         "nonClaims": [
             "A witnessRef names supplied evidence; this bridge does not authenticate it.",
@@ -1019,9 +1041,27 @@ def main() -> int:
                 raise CircuitContractError(
                     "impact-observations requires exact observations envelopes"
                 )
+            # The graph supplies the *known finite* dependency scope. Missing
+            # in both snapshots must not become a false reuse candidate.
+            declared_environment_refs = [
+                ref
+                for ref in graph["authorityRefs"]
+                if isinstance(ref, str)
+                and ref.partition(":")[0]
+                in {
+                    "config",
+                    "environment",
+                    "installed",
+                    "authority",
+                    "provider",
+                    "external",
+                    "effect",
+                }
+            ]
             delta = classify_observed_environment_delta(
                 previous=observed_before["observations"],
                 current=observed_after["observations"],
+                required_refs=declared_environment_refs,
             )
             selected = select_impacted_obligations(
                 authority_refs=graph["authorityRefs"],
