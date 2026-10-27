@@ -22,20 +22,22 @@ def DirectlyAffected {Ref : Type}
     (read changed : Ref → Prop) : Prop :=
   ∃ ref, read ref ∧ changed ref
 
--- Negative-miss-free change detection over ALL actual Ref values yields
--- agreement on an obligation's declared readset when no changed root hits it.
+-- A qualified negative-miss witness is a constructive frame condition:
+-- every *unmarked* Ref has demonstrably equal values across the two worlds.
+-- It is stronger as an evidence interface than treating caller-declared
+-- 'no observed difference' as a full proof of readset closure.
 theorem no_hit_implies_agreement
     {Ref Value : Type}
     (read changed : Ref → Prop)
     (oldEnv newEnv : Ref → Value)
-    (changedCoversDelta : ∀ ref, oldEnv ref ≠ newEnv ref → changed ref)
+    (unchangedIfNotMarked :
+      ∀ ref, ¬ changed ref → oldEnv ref = newEnv ref)
     (noHit : ¬ DirectlyAffected read changed) :
     AgreesOn read oldEnv newEnv := by
-  classical
   intro ref isRead
-  apply Classical.byContradiction
-  intro differs
-  exact noHit ⟨ref, isRead, changedCoversDelta ref differs⟩
+  apply unchangedIfNotMarked ref
+  intro isChanged
+  exact noHit ⟨ref, isRead, isChanged⟩
 
 -- This is the precise boundary at which a changed implementation can be
 -- opaque to a consumer. It does NOT construct the readset or prove
@@ -47,12 +49,13 @@ theorem property_scoped_reuse_if_frame_qualified
     (observe : (Ref → Value) → Observation)
     (consumerProperty : Observation → Prop)
     (readsetComplete : ReadsetDetermines read observe)
-    (changedCoversDelta : ∀ ref, oldEnv ref ≠ newEnv ref → changed ref)
+    (unchangedIfNotMarked :
+      ∀ ref, ¬ changed ref → oldEnv ref = newEnv ref)
     (noHit : ¬ DirectlyAffected read changed)
     (oldProof : consumerProperty (observe oldEnv)) :
     consumerProperty (observe newEnv) := by
   have hAgree :=
-    no_hit_implies_agreement read changed oldEnv newEnv changedCoversDelta noHit
+    no_hit_implies_agreement read changed oldEnv newEnv unchangedIfNotMarked noHit
   have hSame : observe oldEnv = observe newEnv :=
     readsetComplete oldEnv newEnv hAgree
   exact hSame ▸ oldProof
@@ -101,9 +104,12 @@ theorem data_equal_but_effect_changed_is_not_refinement :
 theorem endpoint_snapshots_do_not_prove_continuity :
     ∃ (trace : Fin 3 → Bool),
       trace 0 = trace 2 ∧ trace 1 ≠ trace 0 := by
-  refine ⟨(fun t => if t = 1 then true else false), ?_, ?_⟩
-  · decide
-  · decide
+  refine ⟨(fun t : Fin 3 => match t.val with
+    | 1 => true
+    | _ => false), ?_, ?_⟩
+  · rfl
+  · intro impossible
+    cases impossible
 
 
 -- A SECOND independent counterexample: the readset itself is correct, but
@@ -140,12 +146,12 @@ theorem independent_config_change_preserves_model_property :
         (fun env : Bool → Bool => env true) := by
     intro before after agree
     exact agree true rfl
-  have hCovers :
-      ∀ ref : Bool, oldEnv ref ≠ newEnv ref → ref = false := by
-    intro ref changed
+  have hNoFalseNegative :
+      ∀ ref : Bool, ¬ ref = false → oldEnv ref = newEnv ref := by
+    intro ref notMarked
     cases ref with
-    | false => rfl
-    | true => exact False.elim (changed rfl)
+    | false => exact False.elim (notMarked rfl)
+    | true => rfl
   have hNoHit :
       ¬ DirectlyAffected (fun ref : Bool => ref = true)
         (fun ref => ref = false) := by
@@ -162,7 +168,7 @@ theorem independent_config_change_preserves_model_property :
     (observe := fun env : Bool → Bool => env true)
     (consumerProperty :=
       fun value => value = (fun env : Bool → Bool => env true) oldEnv)
-    hFrame hCovers hNoHit rfl
+    hFrame hNoFalseNegative hNoHit rfl
 
 -- Negative universal statements are themselves kernel-checked: omitting a
 -- required frame or temporal condition is mathematically FALSE, not UNKNOWN.
