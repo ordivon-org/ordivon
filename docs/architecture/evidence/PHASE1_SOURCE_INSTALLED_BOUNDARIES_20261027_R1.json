@@ -1,0 +1,179 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.phase1.installed-source-coverage-observation",
+  "observedDate": "2026-10-27",
+  "subjectSourceCut": "c22a7dac6facdd8636be0d5715be2ef1cb305f18",
+  "truthBoundary": "bounded source-to-installed observations only; not a registry, authorization, runtime memory attestation, formal or installed consumer proof",
+  "aliases": [
+    {
+      "display": "execution.transactional.source",
+      "sourcePath": "services/runtime/",
+      "standing": "SOURCE_PREFIX_NAME_ONLY"
+    },
+    {
+      "display": "execution.transactional.windows-release",
+      "installedService": "OrdivonRuntimeR6Candidate",
+      "standing": "SCM_RELEASE_DECLARATION_PLUS_DISK_DIGEST"
+    },
+    {
+      "display": "execution.transactional.linux-process",
+      "installedService": "ordivon-runtime.service",
+      "standing": "RUNNING_PID_EXECUTABLE_HASH_ONLY"
+    },
+    {
+      "display": "coordination.work-social.linux-process",
+      "installedService": "ordivon-host-v2.service",
+      "standing": "PYTHON_INTERPRETER_NOT_LOADED_CODE"
+    },
+    {
+      "display": "interfaces.capability-routing.linux-process",
+      "installedServices": [
+        "ordivon-gateway.service",
+        "ordivon-gateway-local-r21.service"
+      ],
+      "standing": "SHARED_INTERPRETER_DIGEST_NOT_SHARED_APPLICATION"
+    },
+    {
+      "display": "agent.skills.linux-process",
+      "installedService": "ordivon-skills-mcp.service",
+      "standing": "INTERPRETER_HASH_NOT_SKILL_CONSUMER"
+    }
+  ],
+  "windows": {
+    "runtimeReleaseSourceCommitClaim": "5b8c17c16c3374be607e598bb76bcf9851c3b674",
+    "releaseDirectoryNameMatchesCommit": true,
+    "sourceCommitIsLocalGitObject": true,
+    "releaseManifestDigest": "sha256:942387f9adfac05beb72b203e658411bbf99a5cf5a92bbe46003abba8914ccc0",
+    "sourceOwnerPrefixClaim": "services/runtime",
+    "requiredRefCommitClaim": "867b7f6e3a015d43f316b760790da0f5574f97fe",
+    "manifestArtifactCount": 6,
+    "rehashedReleaseArtifacts": [
+      {
+        "name": "ordivon-runtime-doctor.exe",
+        "sha256": "sha256:2f85b58a25803d0210a0af2dda581b55d589c1c71a150b6ef9803d83b93c88b6",
+        "matchesManifest": true
+      },
+      {
+        "name": "ordivon-runtime-inspect.exe",
+        "sha256": "sha256:524c49adafa62d90fb31d4dfc5264e4a9cf5f003cf05089e9c13b2c6bab60023",
+        "matchesManifest": true
+      },
+      {
+        "name": "ordivon-runtime-windows-deploy.exe",
+        "sha256": "sha256:64770c0b971f11db0718edd32de8ce1d1a979ef8a0899d153fb9d76f3a480b02",
+        "matchesManifest": true
+      },
+      {
+        "name": "ordivon-runtime.exe",
+        "sha256": "sha256:88fbf3543ab56a0fda39c374baad750d5cae12133dffb589e8a4c74c5b0c6cfe",
+        "matchesManifest": true
+      },
+      {
+        "name": "ordivon-windows-job-launcher.exe",
+        "sha256": "sha256:9978b8703ab0892928242489feb67ddd2ce74db22080027a0d771b92653f46b0",
+        "matchesManifest": true
+      },
+      {
+        "name": "ordivon-windows-privileged-broker.exe",
+        "sha256": "sha256:14918c7c2c91414217eacf9eeca64bff178a8d2fdab9d3f5a56a58e44f3b2795",
+        "matchesManifest": true
+      }
+    ],
+    "serviceDeclarations": [
+      {
+        "service": "OrdivonRuntimeR6Candidate",
+        "state": "Running",
+        "pid": 7240,
+        "image": "ordivon-runtime.exe",
+        "matchesReleaseFile": true
+      },
+      {
+        "service": "OrdivonRuntimePrivilegedBroker",
+        "state": "Running",
+        "pid": 6048,
+        "image": "ordivon-windows-privileged-broker.exe",
+        "matchesReleaseFile": true
+      },
+      {
+        "service": "OrdivonGatewayCandidateR5",
+        "state": "Running",
+        "pid": 7276,
+        "image": "shawl.exe",
+        "matchesReleaseFile": false
+      },
+      {
+        "service": "OrdivonPostgreSQL18",
+        "state": "Running",
+        "pid": 7284,
+        "image": "pg_ctl.exe",
+        "matchesReleaseFile": false
+      },
+      {
+        "service": "SunshineService",
+        "state": "Running",
+        "pid": 6136,
+        "image": "sunshinesvc.exe",
+        "matchesReleaseFile": false
+      }
+    ],
+    "allSixDiskDigestMatches": true,
+    "runningProcessMemoryIdentity": "UNKNOWN",
+    "reproducibleBuildFromSourceCut": "UNKNOWN",
+    "consumerBehaviorAcceptance": "UNKNOWN"
+  },
+  "linux": {
+    "runtimeUnit": "ordivon-runtime.service",
+    "runtimePid": 221,
+    "runtimeExecutable": "/usr/local/libexec/ordivon/ordivon-runtime",
+    "runtimeObservedExeSha256": "sha256:6e5d2f0f605fac0dc60a082a1cec101dca5a998975c6abace1aa71e2395c95db",
+    "runnerObservedExeSha256": "sha256:4ec04ea1400797aa3f0b9ab1afde277f9cfd0c51a844390009ee39135fed17a6",
+    "deployedHeadFileClaim": "a432136e8a134039f1f0de1e836f5e2886070b02",
+    "deployedHeadCommitExistsInLocalGit": true,
+    "host": {
+      "unit": "ordivon-host-v2.service",
+      "pid": 1640,
+      "exeIsPythonInterpreter": true,
+      "exeSha256": "sha256:610b28e9e2a4c0dc26e80c0f2b4f9601c379b955cce23755a75212fa984d36ce"
+    },
+    "gateway": {
+      "units": [
+        "ordivon-gateway.service",
+        "ordivon-gateway-local-r21.service"
+      ],
+      "pids": [
+        1653,
+        1644
+      ],
+      "samePythonInterpreterSha256": "sha256:1ca196796bf06633a1124ea103194285b46b777a89ff4bdc34e6c1ff43f03873",
+      "sameApplicationSourceClaim": "UNKNOWN"
+    },
+    "skills": {
+      "unit": "ordivon-skills-mcp.service",
+      "pid": 1353,
+      "exeIsPythonInterpreter": true
+    },
+    "workflowUnits": [
+      "ordivon-agent-temporal-worker.service",
+      "ordivon-artifact-temporal-worker.service",
+      "ordivon-paper1-r4-temporal-worker.service"
+    ],
+    "sourceToLiveExecutableBuildProof": "UNKNOWN",
+    "loadedPythonModuleSourceCut": "UNKNOWN",
+    "consumerAcceptance": "UNKNOWN"
+  },
+  "unobserved": [
+    "Windows running PE memory attestation",
+    "Linux application module release identity",
+    "all other installed node/source edges",
+    "live dynamic consumers, effect rights and formal verification"
+  ],
+  "evidenceRuntimeJobs": [
+    "job-01a17def-2b24-7e32-92b7-972c6331d9e7",
+    "job-01a17df0-16ee-7111-8cea-3d747a3bed19",
+    "job-01a17df0-9a8d-77b3-9dab-a8d15322af12",
+    "job-01a17df2-3bc7-7cc2-9e21-75efd5174dc0",
+    "job-01a17df2-8cc5-7963-a75d-54165bed2816",
+    "job-01a17df2-e158-7150-84df-3d579edc0c34",
+    "job-01a17df3-4dc3-71b3-b681-f5359bf73956"
+  ]
+}

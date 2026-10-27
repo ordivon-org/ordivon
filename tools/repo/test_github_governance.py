@@ -143,6 +143,42 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout.strip(), "host:queue")
 
+    def test_network_shellcheck_uses_mature_root_queue_not_nested_action(self) -> None:
+        """A named YAML under a component is not active root GitHub CI."""
+        import tomllib
+        import yaml
+
+        nested = ROOT / "platform/network/.github/workflows/shellcheck.yml"
+        self.assertFalse(nested.exists(), "redundant undiscovered ShellCheck YAML")
+        manifest = tomllib.loads((ROOT / "tools/repo/owners.toml").read_text())
+        network = [o for o in manifest["owners"] if o["name"] == "network"]
+        self.assertEqual(len(network), 1)
+        self.assertEqual(network[0]["root"], "platform/network/")
+        self.assertEqual(network[0]["verify_task"], "network:ci")
+        root_mise = tomllib.loads((ROOT / "mise.toml").read_text())
+        queue = root_mise["tasks"]["network:ci"]["run"]
+        self.assertIn("cd platform/network", queue)
+        self.assertIn("mise run ci", queue)
+        native = tomllib.loads((ROOT / "platform/network/mise.toml").read_text())
+        self.assertEqual(native["tools"]["shellcheck"], root_mise["tools"]["shellcheck"])
+        checks = native["tasks"]["ci"]["run"]
+        self.assertIn("git ls-files -z -- '*.sh' | xargs -0 shellcheck", checks)
+        self.assertIn("python -m pytest", checks)
+        root_ci = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        steps = root_ci["jobs"]["root-verification"]["steps"]
+        selected = next(x["run"] for x in steps if x.get("name") == "Select affected owners")
+        verified = next(x["run"] for x in steps if x.get("name") == "Verify affected owners")
+        self.assertIn("tools/repo/convergence_plan.py", selected)
+        self.assertIn("queueVerifyTasks", selected)
+        self.assertIn('mise run "$task"', verified)
+        result = subprocess.run(
+            [sys.executable, str(ROOT / "tools/repo/affected_owners.py"),
+             "--changed-file", "platform/network/.github/workflows/shellcheck.yml",
+             "--format", "queue-tasks"],
+            cwd=ROOT, capture_output=True, text=True, timeout=20, check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), "network:ci")
     def test_distribution_queue_replaces_non_discovered_nested_ci(self) -> None:
         """GitHub root workflow invokes the Distribution's native current verification."""
         import tomllib

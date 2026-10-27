@@ -1,0 +1,613 @@
+{
+  "authority": "READ_ONLY_DERIVED_SOURCE_AND_OBSERVATION_NOT_LEGO_NOT_OWNER_NOT_DELETION_PERMISSION",
+  "canonicalReusedTools": [
+    "tools/repo/exhaustive_coverage.py",
+    "tools/repo/source_content_facets.py",
+    "tools/repo/affected_owners.py"
+  ],
+  "consumerCounterexamples": [
+    {
+      "decision": "NO_DELETE_PENDING_RETIREMENT_VS_REPLACEMENT_PROOF",
+      "evidence": "peer observed disabled inactive service with zero literal Git refs, but Host Work work:ordivon:r9-paper1-stable-scientific-replay-consumer:20261026 remains open",
+      "name": "ordivon-paper1-full-replay.service",
+      "surface": "Linux systemd + Work"
+    },
+    {
+      "decision": "NO_DELETE_UNTIL_FALLBACK_CONSUMER_PROVED_ABSENT",
+      "evidence": "peer observed two subordinate service Wants links",
+      "name": "network-v2-browserless-legacy-provider.target",
+      "surface": "Linux systemd fallback target"
+    },
+    {
+      "decision": "MASK_MAY_BE_POLICY_NEGATIVE_FENCE_NOT_EMPTY_UNUSED_SERVICE",
+      "evidence": "peer observed masked /dev/null fragment",
+      "name": "ordivon-finance-mcp.service",
+      "surface": "Linux masked systemd unit"
+    },
+    {
+      "decision": "MASK_MAY_BE_POLICY_NEGATIVE_FENCE_NOT_EMPTY_UNUSED_SERVICE",
+      "evidence": "peer observed masked /dev/null fragment",
+      "name": "ordivon-workstation-mcp.service",
+      "surface": "Linux masked systemd unit"
+    }
+  ],
+  "crosscutFunctionalViews": [
+    {
+      "consumer": "UNKNOWN",
+      "displayName": "agent.execution-coordination",
+      "installed": "NOT_EXHAUSTIVELY_OBSERVED",
+      "sourceWitnesses": [
+        {
+          "count": 729,
+          "examples": [
+            "services/harness/.github/ISSUE_TEMPLATE/bug_report.yml",
+            "services/harness/.github/ISSUE_TEMPLATE/config.yml"
+          ],
+          "prefix": "services/harness/"
+        },
+        {
+          "count": 98,
+          "examples": [
+            "services/host/.github/workflows/ci.yml",
+            "services/host/.gitignore"
+          ],
+          "prefix": "services/host/"
+        },
+        {
+          "count": 83,
+          "examples": [
+            "services/gateway/.python-version",
+            "services/gateway/README.md"
+          ],
+          "prefix": "services/gateway/"
+        }
+      ],
+      "standing": "SOURCE_FILE_PRESENCE_ONLY"
+    },
+    {
+      "consumer": "UNKNOWN",
+      "displayName": "agent.methods",
+      "installed": "NOT_EXHAUSTIVELY_OBSERVED",
+      "sourceWitnesses": [
+        {
+          "count": 39,
+          "examples": [
+            ".agents/skills/artifact-work/SKILL.md",
+            ".agents/skills/artifact-work/references/audio.md"
+          ],
+          "prefix": ".agents/skills/"
+        },
+        {
+          "count": 38,
+          "examples": [
+            "platform/skills/.python-version",
+            "platform/skills/README.md"
+          ],
+          "prefix": "platform/skills/"
+        }
+      ],
+      "standing": "SOURCE_FILE_PRESENCE_ONLY"
+    },
+    {
+      "consumer": "UNKNOWN",
+      "displayName": "artifact.lifecycle",
+      "installed": "NOT_EXHAUSTIVELY_OBSERVED",
+      "sourceWitnesses": [
+        {
+          "count": 426,
+          "examples": [
+            "capabilities/artifact/.github/workflows/ci.yml",
+            "capabilities/artifact/.gitignore"
+          ],
+          "prefix": "capabilities/artifact/"
+        },
+        {
+          "count": 69,
+          "examples": [
+            "capabilities/distribution/.github/workflows/ci.yml",
+            "capabilities/distribution/.gitignore"
+          ],
+          "prefix": "capabilities/distribution/"
+        },
+        {
+          "count": 47,
+          "examples": [
+            "capabilities/preservation/README.md",
+            "capabilities/preservation/SOURCE_BOUNDARY.json"
+          ],
+          "prefix": "capabilities/preservation/"
+        }
+      ],
+      "standing": "SOURCE_FILE_PRESENCE_ONLY"
+    },
+    {
+      "consumer": "UNKNOWN",
+      "displayName": "capital.decision",
+      "installed": "NOT_EXHAUSTIVELY_OBSERVED",
+      "sourceWitnesses": [
+        {
+          "count": 406,
+          "examples": [
+            "domains/capital/.github/workflows/ci.yml",
+            "domains/capital/.gitignore"
+          ],
+          "prefix": "domains/capital/"
+        }
+      ],
+      "standing": "SOURCE_FILE_PRESENCE_ONLY"
+    },
+    {
+      "consumer": "UNKNOWN",
+      "displayName": "data.storage",
+      "installed": "NOT_EXHAUSTIVELY_OBSERVED",
+      "sourceWitnesses": [
+        {
+          "count": 12,
+          "examples": [
+            "services/host/migrations/env.py",
+            "services/host/migrations/script.py.mako"
+          ],
+          "prefix": "services/host/migrations/"
+        },
+        {
+          "count": 12,
+          "examples": [
+            "platform/workstation/observability/README.md",
+            "platform/workstation/observability/gatus/config.yaml"
+          ],
+          "prefix": "platform/workstation/observability/"
+        }
+      ],
+      "standing": "SOURCE_FILE_PRESENCE_ONLY"
+    },
+    {
+      "consumer": "UNKNOWN",
+      "displayName": "external.upstream",
+      "installed": "NOT_EXHAUSTIVELY_OBSERVED",
+      "sourceWitnesses": [
+        {
+          "count": 0,
+          "examples": [],
+          "prefix": "third_party/"
+        },
+        {
+          "count": 0,
+          "examples": [],
+          "prefix": "catalogs/"
+        },
+        {
+          "count": 0,
+          "examples": [],
+          "prefix": "studies/"
+        }
+      ],
+      "standing": "SOURCE_FILE_PRESENCE_ONLY"
+    },
+    {
+      "consumer": "UNKNOWN",
+      "displayName": "game.mechanism-source",
+      "installed": "NOT_EXHAUSTIVELY_OBSERVED",
+      "sourceWitnesses": [
+        {
+          "count": 51,
+          "examples": [
+            "domains/game/.gitignore",
+            "domains/game/.node-version"
+          ],
+          "prefix": "domains/game/"
+        },
+        {
+          "count": 0,
+          "examples": [],
+          "prefix": "packages/game/"
+        }
+      ],
+      "standing": "SOURCE_FILE_PRESENCE_ONLY"
+    },
+    {
+      "consumer": "UNKNOWN",
+      "displayName": "life.human-capability",
+      "installed": "NOT_EXHAUSTIVELY_OBSERVED",
+      "sourceWitnesses": [
+        {
+          "count": 0,
+          "examples": [],
+          "prefix": "domains/life/"
+        },
+        {
+          "count": 0,
+          "examples": [],
+          "prefix": "packages/life/"
+        },
+        {
+          "count": 0,
+          "examples": [],
+          "prefix": "apps/life/"
+        }
+      ],
+      "standing": "SOURCE_FILE_PRESENCE_ONLY"
+    },
+    {
+      "consumer": "UNKNOWN",
+      "displayName": "media.creative",
+      "installed": "NOT_EXHAUSTIVELY_OBSERVED",
+      "sourceWitnesses": [
+        {
+          "count": 582,
+          "examples": [
+            "capabilities/media/.env.example",
+            "capabilities/media/.github/workflows/ci.yml"
+          ],
+          "prefix": "capabilities/media/"
+        }
+      ],
+      "standing": "SOURCE_FILE_PRESENCE_ONLY"
+    },
+    {
+      "consumer": "UNKNOWN",
+      "displayName": "network.egress",
+      "installed": "NOT_EXHAUSTIVELY_OBSERVED",
+      "sourceWitnesses": [
+        {
+          "count": 66,
+          "examples": [
+            "platform/network/consumers/README.md",
+            "platform/network/consumers/browserless/README.md"
+          ],
+          "prefix": "platform/network/consumers/"
+        },
+        {
+          "count": 58,
+          "examples": [
+            "platform/workstation/providers/cloudflare/.gitignore",
+            "platform/workstation/providers/cloudflare/AGENTS.md"
+          ],
+          "prefix": "platform/workstation/providers/"
+        }
+      ],
+      "standing": "SOURCE_FILE_PRESENCE_ONLY"
+    },
+    {
+      "consumer": "UNKNOWN",
+      "displayName": "observability.host",
+      "installed": "NOT_EXHAUSTIVELY_OBSERVED",
+      "sourceWitnesses": [
+        {
+          "count": 12,
+          "examples": [
+            "platform/workstation/observability/README.md",
+            "platform/workstation/observability/gatus/config.yaml"
+          ],
+          "prefix": "platform/workstation/observability/"
+        },
+        {
+          "count": 0,
+          "examples": [],
+          "prefix": "platform/network/monitoring/"
+        }
+      ],
+      "standing": "SOURCE_FILE_PRESENCE_ONLY"
+    },
+    {
+      "consumer": "UNKNOWN",
+      "displayName": "representation.formal",
+      "installed": "NOT_EXHAUSTIVELY_OBSERVED",
+      "sourceWitnesses": [
+        {
+          "count": 2,
+          "examples": [
+            ".agents/skills/recursive-lego-calculus/SKILL.md",
+            ".agents/skills/recursive-lego-calculus/references/formal-model.md"
+          ],
+          "prefix": ".agents/skills/recursive-lego-calculus/"
+        },
+        {
+          "count": 10,
+          "examples": [
+            "tools/formal/Proof.als",
+            "tools/formal/Proof.dfy"
+          ],
+          "prefix": "tools/formal/"
+        },
+        {
+          "count": 54,
+          "examples": [
+            "packages/composition/AGENTS.md",
+            "packages/composition/README.md"
+          ],
+          "prefix": "packages/composition/"
+        }
+      ],
+      "standing": "SOURCE_FILE_PRESENCE_ONLY"
+    },
+    {
+      "consumer": "UNKNOWN",
+      "displayName": "research.scientific",
+      "installed": "NOT_EXHAUSTIVELY_OBSERVED",
+      "sourceWitnesses": [
+        {
+          "count": 12,
+          "examples": [
+            "meta/research/evidence/publication-carrier-paper3-dogfood-r1.json",
+            "meta/research/planning/publication-closure-lego-r1.json"
+          ],
+          "prefix": "meta/research/"
+        },
+        {
+          "count": 3,
+          "examples": [
+            "profiles/research/mechanical-components/research-mechanical-component-r1.schema.json",
+            "profiles/research/tool-qualification/TOOL_QUALIFICATION_R1.md"
+          ],
+          "prefix": "profiles/research/"
+        },
+        {
+          "count": 101,
+          "examples": [
+            "services/harness/research/00-OWNER-BOUNDARY.md",
+            "services/harness/research/05-PROJECT-CONSTITUTION-V1.md"
+          ],
+          "prefix": "services/harness/research/"
+        },
+        {
+          "count": 0,
+          "examples": [],
+          "prefix": "studies/"
+        },
+        {
+          "count": 0,
+          "examples": [],
+          "prefix": "domains/research/"
+        }
+      ],
+      "standing": "SOURCE_FILE_PRESENCE_ONLY"
+    },
+    {
+      "consumer": "UNKNOWN",
+      "displayName": "security.identity-effect",
+      "installed": "NOT_EXHAUSTIVELY_OBSERVED",
+      "sourceWitnesses": [
+        {
+          "count": 173,
+          "examples": [
+            "platform/security/.clusterfuzzlite/Dockerfile",
+            "platform/security/.clusterfuzzlite/build.sh"
+          ],
+          "prefix": "platform/security/"
+        }
+      ],
+      "standing": "SOURCE_FILE_PRESENCE_ONLY"
+    },
+    {
+      "consumer": "UNKNOWN",
+      "displayName": "web.agent-client",
+      "installed": "NOT_EXHAUSTIVELY_OBSERVED",
+      "sourceWitnesses": [
+        {
+          "count": 27,
+          "examples": [
+            "apps/web/.gitignore",
+            "apps/web/README.md"
+          ],
+          "prefix": "apps/web/"
+        },
+        {
+          "count": 0,
+          "examples": [],
+          "prefix": "apps/agent/"
+        }
+      ],
+      "standing": "SOURCE_FILE_PRESENCE_ONLY"
+    },
+    {
+      "consumer": "UNKNOWN",
+      "displayName": "workflow.temporal",
+      "installed": "NOT_EXHAUSTIVELY_OBSERVED",
+      "sourceWitnesses": [
+        {
+          "count": 14,
+          "examples": [
+            "services/harness/systemd/ordivon-agent-automation-mcp.service",
+            "services/harness/systemd/ordivon-agent-temporal-worker.service"
+          ],
+          "prefix": "services/harness/systemd/"
+        },
+        {
+          "count": 5,
+          "examples": [
+            "capabilities/artifact/scripts/artifact_temporal_deploy.py",
+            "capabilities/artifact/scripts/artifact_temporal_launch.py"
+          ],
+          "prefix": "capabilities/artifact/scripts/artifact_temporal"
+        },
+        {
+          "count": 2,
+          "examples": [
+            "capabilities/artifact/systemd/ordivon-artifact-temporal-worker.service",
+            "capabilities/artifact/systemd/ordivon-artifact-v2-zot-r1.container"
+          ],
+          "prefix": "capabilities/artifact/systemd/"
+        }
+      ],
+      "standing": "SOURCE_FILE_PRESENCE_ONLY"
+    }
+  ],
+  "exactLinuxGitSourceCut": "5e61ef7b27acbf98fce2374b65f35536ebbaaba5",
+  "independentPeerDeletionEvidence": [
+    {
+      "pr": "https://github.com/ordivon-org/ordivon/pull/1005",
+      "riskBoundary": "branch source subtraction after exact consumer-negative checks; do not duplicate cleanup",
+      "scope": "two redundant zero-byte .gitkeep placeholders in populated source directories, reported by independent Agent",
+      "standing": "OPEN_REMOTE_ROOT_CI_SUCCESS_NOT_MERGED",
+      "thisReportDeleted": false
+    },
+    {
+      "pr": "https://github.com/ordivon-org/ordivon/pull/1001",
+      "riskBoundary": "zero filename refs does not prove external dynamic consumer absent",
+      "scope": "historical retrospective dependency-auto-update-coverage-r1 document deletion candidate",
+      "standing": "OPEN_REMOTE_ROOT_CI_FAILURE_DO_NOT_MERGE_OR_BYPASS",
+      "thisReportDeleted": false
+    },
+    {
+      "pr": "https://github.com/ordivon-org/ordivon/pull/983",
+      "riskBoundary": "independent Agent reports GitHub potential leak in historical commit scan; do not suppress scanner or expose finding content",
+      "scope": "agent-source naming PR",
+      "standing": "OPEN_ROOT_CI_FAILURE_REPORTED_SECURITY_GATE",
+      "thisReportDeleted": false
+    }
+  ],
+  "kind": "ordivon.phase1.negative-space-cross-plane-source-census",
+  "mutuallyExclusiveNavigationZoneCounts": {
+    "region/architecture-documentation": 118,
+    "region/formal-proof-toolchain-source": 10,
+    "region/lego-semantic-method-source": 2,
+    "region/migration-and-historical-records": 114,
+    "region/other-agent-method-sources": 37,
+    "region/repository-ci-config": 4,
+    "region/repository-integration-tests": 1,
+    "region/repository-mechanics-source": 49,
+    "region/repository-root-config": 6,
+    "region/research-publication-profiles": 12,
+    "region/research-reusable-profiles": 3,
+    "region/retrospective-evidence": 1,
+    "zone/agent-plugin-package": 2,
+    "zone/agent-run-context": 729,
+    "zone/artifact-distribution": 69,
+    "zone/artifact-production": 426,
+    "zone/capability-routing": 83,
+    "zone/connectivity-and-observation": 158,
+    "zone/contract-composition": 54,
+    "zone/creative-production": 582,
+    "zone/durable-collaboration": 98,
+    "zone/endpoint-environment": 274,
+    "zone/human-facing-web": 27,
+    "zone/identity-policy-and-effect-fences": 173,
+    "zone/interactive-game-production": 51,
+    "zone/knowledge-and-problem-framing": 1016,
+    "zone/long-term-preservation": 47,
+    "zone/method-discovery-service": 38,
+    "zone/physical-execution": 419,
+    "zone/quantitative-capital": 406
+  },
+  "nativeUnassignedSourceTerritories": {
+    ".agents/": 39,
+    ".github/": 4,
+    "docs/": 233,
+    "meta/research/": 12,
+    "profiles/research/": 3,
+    "repo-root-config": 6,
+    "tests/": 1,
+    "tools/": 59
+  },
+  "nonMainPlanes": [
+    {
+      "consumption": "NOT_EQUIVALENT_TO_RUNNING_CODE",
+      "name": "host.social-work",
+      "observed": "42 Spaces / 193 Topics / 23 open Work (live Host observation this turn)"
+    },
+    {
+      "consumption": "SOURCE_NOT_ESTABLISHED",
+      "name": "life.human-capability",
+      "observed": "Space space:human-capability-agent-era-r1:20261006; no direct life root in current main"
+    },
+    {
+      "consumption": "DO_NOT_SUM_WITH_MAIN",
+      "name": "research.independent-git",
+      "observed": "multiple independent Research/Paper1/Paper2 Git repos previously surveyed"
+    },
+    {
+      "consumption": "LOADED_APP_VERSION_UNVERIFIED",
+      "name": "workflow.temporal",
+      "observed": "Linux active Temporal worker services and in-tree Harness/Artifact source"
+    },
+    {
+      "consumption": "CROSS_PLANE_NOT_UNIFIED",
+      "name": "observability-and-data",
+      "observed": "Workstation observability source, Linux PostgreSQL/Prometheus process examples, Host PostgreSQL social-state service"
+    },
+    {
+      "consumption": "NO_CURRENT_FIRST_PARTY_GAME_SOURCE_CLAIM",
+      "name": "game.current-product",
+      "observed": "current Game README asserts no current first-party games; mechanism/read-only queries and native assembly verifier remain"
+    },
+    {
+      "consumption": "OUTSIDE_MONOREPO_AND_UNKNOWN_DYNAMIC_CONSUMERS",
+      "name": "external-providers-and-windows",
+      "observed": "Browserless, Cloudflare, Windows Runtime R6 release and OST/Git remote vendor sources partially surveyed"
+    }
+  ],
+  "observedEvidenceJobs": [
+    "job-01a17e31-3ed5-7cd2-9e45-7b6efd6da8d2",
+    "job-01a17e35-09f7-7233-a39b-56035a58c739",
+    "job-01a17e33-aa0d-7ce1-9d30-1e4e31446797"
+  ],
+  "schemaVersion": 1,
+  "sourceSummary": {
+    "denseCells": 45,
+    "nativeUnassigned": 357,
+    "nodesWithoutDeclaredConsumer": 94,
+    "nodesWithoutDeclaredContract": 77,
+    "nodesWithoutDeclaredEvidence": 14,
+    "nodesWithoutDeclaredFormal": 111,
+    "ownerRootMatched": 4652,
+    "planNodes": 187,
+    "plans": 19,
+    "semanticNavigationRegions": 30,
+    "sourceCells": 696,
+    "sourceCellsWithProblems": 91,
+    "tracked": 5009,
+    "unclassifiedRegionCells": 40
+  },
+  "sourceTree": "20b6d9d35a2618d80cd96435b3a7cde0fdd42933",
+  "subtractiveDecision": {
+    "candidates": [
+      {
+        "candidate": "overlapping-Paper1-source-clones",
+        "deleteNow": false,
+        "deleteQualification": "UNKNOWN_CONSUMERS_AND_REPLAY",
+        "evidence": "previous reviewer-risk vs research-v2 HEAD relative-path overlap 2616, same blob 2584 and divergent blob 32"
+      },
+      {
+        "candidate": "paper1-rerun-venv-cache",
+        "deleteNow": false,
+        "deleteQualification": "UNKNOWN_ACTIVE_REPLAY_DEPENDENCY",
+        "evidence": "9008 dependency-environment files from bounded prior physical survey"
+      },
+      {
+        "candidate": "historical-game-products",
+        "deleteNow": false,
+        "deleteQualification": "NOT_CURRENT_LIVE_TREE_DELETION",
+        "evidence": "current domains/game/README.md says no current first-party playable game; old games only Git history"
+      },
+      {
+        "candidate": "historical-catalog-vs-meta-next",
+        "deleteNow": false,
+        "deleteQualification": "UNKNOWN_SOURCE_PROVENANCE_OR_CONSUMER",
+        "evidence": "46 knowledge and 7 capability same relative paths previously had divergent blob witness"
+      },
+      {
+        "candidate": "empty-historical-worktree-parent",
+        "deleteNow": false,
+        "deleteQualification": "UNKNOWN_EXTERNAL_WORKSPACE_LEASE_OR_PATH_REFERENCE",
+        "evidence": "previous observation root/projects/ordivon-worktrees had no immediate children at observation"
+      },
+      {
+        "candidate": "duplicate-phase1-proposal-scripts",
+        "deleteNow": false,
+        "deleteQualification": "CANDIDATE_REUSE_NO_PROVEN_NO_CONSUMER",
+        "evidence": "main already contains exhaustive_coverage.py, affected_owners.py, source_content_facets.py and source-only AST/cross-format hint machinery"
+      }
+    ],
+    "classification": "DELETE_FIRST_WHEN_POSITIVE_NO_CONSUMER_EVIDENCE",
+    "proofBoundary": "zero static matches or duplicate bytes is insufficient to assert no live dynamic/CLI/Skill/CI/Experiment/External consumers",
+    "verifiedDeletionTargets": 0
+  },
+  "unobserved": [
+    "all source-to-installed exact binary/module/source relations",
+    "all dynamic runtime/Space/CLI/Skill/SDK/consumer effects",
+    "all private/external and historical Research consumers",
+    "all external agents/materialization mounts and node leases",
+    "full semantic LEGO/proof correctness"
+  ],
+  "verifiedDeletionTargetsScope": "zero deletions performed by this R7 report; independent peer has OPEN non-merged #1005 candidate tested locally"
+}
