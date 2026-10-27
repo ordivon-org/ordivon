@@ -606,7 +606,8 @@
         "R12",
         "R13",
         "R14",
-        "R15"
+        "R15",
+        "R19"
       ],
       "mustNotOwn": [
         "implementation"
@@ -651,6 +652,53 @@
         "Source complexity decreases without adding a generic Fabric, effect framework or provider registry."
       ],
       "nextAction": "Measure deleted responsibilities and code after each extraction; closure is deletion, not another abstraction layer."
+    },
+    {
+      "id": "R19",
+      "label": "RuntimeFormalTraceQualification",
+      "kind": "verification_structure",
+      "responsibility": "Bounded, fail-closed qualification of RuntimeDispatchR1 model-to-Rust contract seam and proving-test identity before native TLC currentness is reported; reuse existing formal:verify task and never claim a Rust-to-TLA mechanized refinement.",
+      "authority": "Runtime formal verification and source trace projection only; Runtime executes and persists physical truth",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "inputs": [
+        "formal/RuntimeDispatchR1.tla and RuntimeDispatchR1.cfg at exact checked source",
+        "formal/RuntimeDispatchR1.trace-r1.json and planning/invariants-r1.json",
+        "named Rust source interfaces, proving-test identities, toolchain and model inputs"
+      ],
+      "outputs": [
+        "fail-closed acceptance/rejection of named trace-to-contract bindings",
+        "native TLC model-check/falsifier results scoped to the checked model/source inputs",
+        "UNKNOWN for implementation refinement, installed environment and unindexed Rust dependencies"
+      ],
+      "behavioralContract": "Reject missing/wrong RuntimeDispatch model bindings, I05/I11 invariant bindings, required provider support, named proving tests or source-drift witnesses. Run the existing source-qualified formal trace check and native pinned TLC positive/negative controls. Passing traceability and model checks never implies implementation refinement or installed/runtime consumer acceptance.",
+      "evidence": [
+        "scripts/verify_formal_trace.py",
+        "scripts/tests/test_formal_trace.py",
+        "formal/RuntimeDispatchR1.trace-r1.json",
+        "formal/RuntimeDispatchR1.tla",
+        "formal/RuntimeDispatchR1.cfg",
+        "planning/invariants-r1.json",
+        "mise.toml"
+      ],
+      "dependencies": [
+        "R00",
+        "R03",
+        "R09"
+      ],
+      "mustNotOwn": [
+        "new formal calculus",
+        "Rust-to-TLA mechanical refinement proof",
+        "runtime production admission",
+        "automatic proof reuse without qualified dependency closure"
+      ],
+      "acceptance": [
+        "services/runtime/mise.toml formal:verify invokes exactly the existing verifier and pinned TLC model plus named counterexample check.",
+        "Removing any required RuntimeDispatch model/I05/I11/provider/proving-test binding is rejected by the existing native verifier.",
+        "Changing an anchored model/trace source invalidates R19 in the LEGO source impact projection; a clean unrelated source change does not mint proof PASS.",
+        "No new tool, proof authority, duplicated model or additional persistent registry is introduced."
+      ],
+      "nextAction": "Retain R19 as current task-local trace qualification; for an actual Rust implementation refinement, independently prove the concrete transition relation rather than promoting this traceability model pass."
     }
   ],
   "edges": [
@@ -821,6 +869,12 @@
       "to": "R18",
       "type": "DELETION",
       "label": "only proven replacement permits old aggregation deletion"
+    },
+    {
+      "from": "R19",
+      "to": "R17",
+      "type": "VERIFICATION",
+      "label": "bounded native RuntimeDispatch trace and falsification must be checked before cross-plane acceptance; not Rust refinement"
     }
   ],
   "slices": [
@@ -830,7 +884,8 @@
       "status": "IN_PROGRESS",
       "nodeIds": [
         "R00",
-        "R01"
+        "R01",
+        "R19"
       ],
       "acceptance": [
         "Invariant manifest complete.",
