@@ -31,8 +31,12 @@ def qualified_source_cut() -> dict[str, object]:
             ["git", "-C", str(REPO), *args], text=True, stderr=subprocess.PIPE,
         ).strip()
 
+    object_format = git("rev-parse", "--show-object-format=storage")
+    if object_format not in {"sha1", "sha256"}:
+        raise ValueError(f"unsupported Git object format: {object_format}")
+    object_len = 40 if object_format == "sha1" else 64
     head = git("rev-parse", "--verify", "HEAD^{commit}")
-    if re.fullmatch(r"[0-9a-f]{40}", head) is None:
+    if len(head) != object_len or re.fullmatch(r"[0-9a-f]+", head) is None:
         raise ValueError("unqualified formal Git SourceCut")
     blobs: dict[str, str] = {}
     for relative in SOURCE_FILES:
@@ -41,10 +45,10 @@ def qualified_source_cut() -> dict[str, object]:
             raise ValueError(f"missing or nonregular formal source: {relative}")
         record = git("ls-tree", head, "--", relative)
         match = re.fullmatch(
-            r"(100644|100755) blob ([0-9a-f]{40})\t" + re.escape(relative),
+            r"(100644|100755) blob ([0-9a-f]+)\t" + re.escape(relative),
             record,
         )
-        if match is None:
+        if match is None or len(match.group(2)) != object_len:
             raise ValueError(f"nonregular or untracked Git formal source: {relative}")
         committed = match.group(2)
         # Hash actual bytes, not Git index stat/skip-worktree flags.
@@ -52,7 +56,7 @@ def qualified_source_cut() -> dict[str, object]:
         if observed != committed:
             raise ValueError(f"Git formal source differs from SourceCut: {relative}")
         blobs[relative] = committed
-    return {"gitHead": head, "sourceBlobs": blobs}
+    return {"gitHead": head, "gitObjectFormat": object_format, "sourceBlobs": blobs}
 
 
 
@@ -165,6 +169,7 @@ def main() -> None:
         "status": "PASS", "probes": probes, "count": len(probes),
         "sourceQualification": "EXACT_GIT_BLOBS_CHECKED_PRE_AND_POST",
         "sourceCut": source_before["gitHead"],
+        "gitObjectFormat": source_before["gitObjectFormat"],
         "sourceBlobs": source_before["sourceBlobs"],
         "proofReuseAdmissible": False,
         "implementationRefinement": "UNKNOWN",
