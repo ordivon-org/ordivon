@@ -95,6 +95,54 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         self.assertLess(names.index("Repository mechanics"), names.index("Select affected owners"))
         self.assertLess(names.index("Select affected owners"), names.index("Verify affected owners"))
 
+    def test_capital_current_native_verify_replaces_unreachable_nested_ci(self) -> None:
+        """A nested historic workflow is not GitHub Actions for this monorepo.
+
+        Root queue selection and Capital's actual mise task are the only
+        claimed source-level route; this is not a provider/live admission.
+        """
+        import tomllib
+        import yaml
+
+        nested = ROOT / "domains/capital/.github/workflows/ci.yml"
+        self.assertFalse(nested.exists(), "obsolete nested Capital workflow persists")
+        owners = tomllib.loads((ROOT / "tools/repo/owners.toml").read_text())
+        rows = [x for x in owners["owners"] if x["name"] == "capital"]
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["root"], "domains/capital/")
+        self.assertEqual(rows[0]["verify_task"], "capital:verify")
+        self.assertEqual(rows[0].get("queue_verify_task", "capital:verify"), "capital:verify")
+
+        root_tasks = tomllib.loads((ROOT / "mise.toml").read_text())["tasks"]
+        route = root_tasks["capital:verify"]["run"]
+        self.assertIn("cd domains/capital", route)
+        self.assertIn("mise run verify", route)
+        capital_mise = tomllib.loads((ROOT / "domains/capital/mise.toml").read_text())
+        self.assertEqual(capital_mise["tools"]["python"], "3.15.1")
+        verify = capital_mise["tasks"]["verify"]["run"]
+        for check in ("uv lock --check", "uv sync --locked --group test",
+                      "uv run --group test ruff check .", "pytest -m"):
+            self.assertIn(check, verify)
+        self.assertIn("not provider_qualification", verify)
+        self.assertIn("provider_qualification",
+                      capital_mise["tasks"]["verify:provider"]["run"])
+
+        root_ci = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        steps = root_ci["jobs"]["root-verification"]["steps"]
+        selected = next(x["run"] for x in steps if x.get("name") == "Select affected owners")
+        verified = next(x["run"] for x in steps if x.get("name") == "Verify affected owners")
+        self.assertIn("tools/repo/convergence_plan.py", selected)
+        self.assertIn("queueVerifyTasks", selected)
+        self.assertIn("mise run", verified)
+        result = subprocess.run(
+            [sys.executable, str(ROOT / "tools/repo/affected_owners.py"),
+             "--changed-file", "domains/capital/.github/workflows/ci.yml",
+             "--format", "queue-tasks"],
+            cwd=ROOT, capture_output=True, text=True, timeout=20, check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), "capital:verify")
+
     def test_host_queue_replaces_non_discovered_nested_host_ci(self) -> None:
         """Root GitHub Actions must consume the Host's native current queue.
 
