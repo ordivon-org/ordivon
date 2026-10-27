@@ -160,7 +160,6 @@
     "do not infer Cloudflare or ChatGPT challenge causality from these neutral mechanisms",
     "accumulate CF07 telemetry only during operationally necessary preflights; do not manufacture protected-provider traffic"
   ],
-  "previousCoverage": "knowledge/graphs/browser-security-detector-coverage-r8.json",
   "protectedChallengeUsedAsDetectorOracle": false,
   "rootCauseStanding": "OPEN",
   "schemaVersion": 1
