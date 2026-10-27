@@ -552,7 +552,7 @@ def _native_libtest_depfile_receipt(executable: Path, source_head: str) -> dict[
             raise ValueError("compiler source path alias")
         git_path = "services/runtime/" + relative.replace(os.sep, "/")
         found = subprocess.run(
-            ["git", "-C", str(repo), "ls-tree", source_head, "--", git_path],
+            ["git", "--no-replace-objects", "-C", str(repo), "ls-tree", source_head, "--", git_path],
             capture_output=True,
             text=True,
             check=True,
@@ -565,7 +565,7 @@ def _native_libtest_depfile_receipt(executable: Path, source_head: str) -> dict[
         if len(header) != 3 or header[0] not in {"100644", "100755"} or header[1] != "blob":
             raise ValueError("compiler Git dependency is not a regular blob")
         committed = subprocess.check_output(
-            ["git", "-C", str(repo), "show", f"{source_head}:{git_path}"],
+            ["git", "--no-replace-objects", "-C", str(repo), "show", f"{source_head}:{git_path}"],
             timeout=20,
         )
         if hashlib.sha256(absolute.read_bytes()).digest() != hashlib.sha256(committed).digest():
