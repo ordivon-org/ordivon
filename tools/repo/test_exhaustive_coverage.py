@@ -723,3 +723,209 @@ class ShortIdAmbiguityProblemTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(ValueError,"no exact plan node"):
             M.derive_problem_legos(x, repo=ROOT)
+
+
+class ExternalGitRecursiveSourceCellsTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        import tempfile
+        cls.tmp=tempfile.TemporaryDirectory(prefix="ordivon-external-git-fixture-")
+        cls.repo=pathlib.Path(cls.tmp.name)/"repo"
+        cls.repo.mkdir()
+        subprocess.run(["git","init","-q",str(cls.repo)],check=True)
+        for name in ("src/a.rs","src/b.rs","src/c.rs","src/d.rs",
+                     "src/nested/e.rs","src/nested/f.rs","doc.md"):
+            p=cls.repo/name
+            p.parent.mkdir(parents=True,exist_ok=True)
+            p.write_text(name)
+        subprocess.run(["git","-C",str(cls.repo),"add","."],check=True)
+        subprocess.run(["git","-C",str(cls.repo),"-c","user.name=Test",
+                        "-c","user.email=test@localhost","commit","-qm","fixture"],check=True)
+        cls.cut=subprocess.check_output(["git","-C",str(cls.repo),"rev-parse","HEAD"],text=True).strip()
+        cls.tree=subprocess.check_output(["git","-C",str(cls.repo),"rev-parse","HEAD^{tree}"],text=True).strip()
+        cls.sourceCut=subprocess.check_output(["git","-C",str(ROOT),"rev-parse","HEAD"],text=True).strip()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tmp.cleanup()
+
+    def sample(self):
+        frontier={"sourceCut":self.sourceCut}
+        inp={"subjectSourceCut":self.sourceCut,
+             "observations":[
+                 {"plane":"GIT_SOURCE_VIEW","hostScope":"linux",
+                  "locator":"git:fixture","versionIdentity":self.cut+":"+self.tree,
+                  "witnessRef":"git:fixture-test"}]}
+        spec={"kind":"ordivon.phase1.external-git-root-locations",
+              "subjectSourceCut":self.sourceCut,
+              "roots":[{"locator":"git:fixture","rootPath":str(self.repo)}]}
+        return frontier,inp,spec
+
+    def test_exact_git_tree_partition_and_dense_flat_file_group(self):
+        a,b,c=self.sample()
+        out=M.recursive_external_git_cells(a,b,c,max_files=2,max_depth=6)
+        assert out["sourcePathIncidences"]==7
+        assert out["rootCount"]==1
+        assert out["proofReuseAdmissible"] is False
+        root=out["roots"][0]
+        assert root["sourceTree"]==self.tree
+        assert root["sourceCut"]==self.cut
+        assert root["trackedPathCount"]==7
+        assert root["recursiveCellCount"]==len(root["cells"])
+        flat=[x for x in root["cells"] if x["densityStanding"]=="FLAT_DIRECTORY_GIT_ATOMS"]
+        assert flat and any(x["physicalPrefix"]=="src/" for x in flat)
+        items=[a for x in root["cells"] for a in x["sourceAtoms"]]
+        assert len(items)==7==len({x["path"] for x in items})
+        assert all(x["sourceIdentity"].startswith("100644:blob:") for x in items)
+        assert all(x["semanticConsumer"]=="UNKNOWN" for x in root["cells"])
+        assert all(x["invocationStanding"]=="NOT_MAPPED" for x in root["cells"])
+
+    def test_problem_identity_stable_across_content_change(self):
+        a,b,c=self.sample()
+        old=M.recursive_external_git_cells(a,b,c,max_files=2)
+        # commit an edit in exact same source cell without adding any paths
+        (self.repo/"src/a.rs").write_text("changed source")
+        subprocess.run(["git","-C",str(self.repo),"add","."],check=True)
+        subprocess.run(["git","-C",str(self.repo),"-c","user.name=Test",
+                        "-c","user.email=test@localhost","commit","-qm","edit"],check=True)
+        newCut=subprocess.check_output(["git","-C",str(self.repo),"rev-parse","HEAD"],text=True).strip()
+        newTree=subprocess.check_output(["git","-C",str(self.repo),"rev-parse","HEAD^{tree}"],text=True).strip()
+        b["observations"][0]["versionIdentity"]=newCut+":"+newTree
+        new=M.recursive_external_git_cells(a,b,c,max_files=2)
+        old_cells={x["physicalPrefix"]:x for x in old["roots"][0]["cells"]}
+        new_cells={x["physicalPrefix"]:x for x in new["roots"][0]["cells"]}
+        assert set(old_cells)==set(new_cells)
+        assert old_cells["src/"]["problemRef"]==new_cells["src/"]["problemRef"]
+        assert old_cells["src/"]["memberGitObjectDigest"]!=new_cells["src/"]["memberGitObjectDigest"]
+
+    def test_bad_tree_ref_and_scope_rejected(self):
+        a,b,c=self.sample()
+        import copy
+        d=copy.deepcopy(b)
+        d["observations"][0]["versionIdentity"]=self.cut+":"+"0"*40
+        with self.assertRaisesRegex(ValueError,"mismatches"):
+            M.recursive_external_git_cells(a,d,c)
+        d=copy.deepcopy(c)
+        d["roots"][0]["locator"]="git:fictional"
+        with self.assertRaisesRegex(ValueError,"no observed"):
+            M.recursive_external_git_cells(a,b,d)
+        d=copy.deepcopy(c)
+        d["subjectSourceCut"]="0"*40
+        with self.assertRaisesRegex(ValueError,"subject cut"):
+            M.recursive_external_git_cells(a,b,d)
+
+    def test_duplicate_views_are_not_silent_shared_content(self):
+        a,b,c=self.sample()
+        c["roots"].append(dict(c["roots"][0]))
+        with self.assertRaisesRegex(ValueError,"duplicate"):
+            M.recursive_external_git_cells(a,b,c)
+
+    def test_invalid_maximum_and_no_semantic_auto_promotion(self):
+        a,b,c=self.sample()
+        with self.assertRaisesRegex(ValueError,"limits"):
+            M.recursive_external_git_cells(a,b,c,max_files=0)
+        got=M.recursive_external_git_cells(a,b,c)
+        assert got["truthBoundary"].startswith("per-root exact Git")
+        assert "consumers" not in got and "proof" not in got["roots"][0]
+
+
+class NonGitRecursiveMetadataCellsTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        import tempfile
+        cls.tmp=tempfile.TemporaryDirectory(prefix="ordivon-nongit-fixture-")
+        cls.root=pathlib.Path(cls.tmp.name)/"data"
+        cls.root.mkdir()
+        for name in ("runs/a.json","runs/b.json","runs/c.json","runs/d.json",
+                     "runs/deep/e.json","readme.txt"):
+            p=cls.root/name
+            p.parent.mkdir(parents=True,exist_ok=True)
+            p.write_text(name)
+        cls.nested=cls.root/"foreign"
+        cls.nested.mkdir()
+        subprocess.run(["git","init","-q",str(cls.nested)],check=True)
+        (cls.nested/"upstream.c").write_text("foreign Git tracked source")
+        subprocess.run(["git","-C",str(cls.nested),"add","."],check=True)
+        subprocess.run(["git","-C",str(cls.nested),"-c","user.name=Test",
+                        "-c","user.email=test@localhost","commit","-qm","nested"],check=True)
+        (cls.root/"shortcut").symlink_to("runs/a.json")
+        cls.cut=subprocess.check_output(
+            ["git","-C",str(ROOT),"rev-parse","HEAD"],text=True).strip()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tmp.cleanup()
+
+    def inputs(self):
+        frontier={"sourceCut":self.cut}
+        observer={"subjectSourceCut":self.cut,"observations":[
+            {"plane":"NON_GIT_NAMESPACE","hostScope":"linux",
+             "locator":"data:fixture","observedState":"DIRECTORY_OBSERVED",
+             "witnessRef":"oswalk:fixture"}
+        ]}
+        roots={"kind":"ordivon.phase1.non-git-root-locations",
+               "subjectSourceCut":self.cut,
+               "roots":[{"locator":"data:fixture","rootPath":str(self.root)}]}
+        return frontier,observer,roots
+
+    def test_exact_path_partition_skips_nested_git_and_does_not_hash_bytes(self):
+        a,b,c=self.inputs()
+        out=M.recursive_non_git_metadata_cells(a,b,c,max_files=2)
+        assert out["rootCount"]==1
+        assert out["enumeratedPathIncidences"]==7
+        assert out["nestedGitRootsExcluded"]==1
+        assert out["metadataIsContentHash"] is False
+        assert out["filesystemSnapshotAtomicity"]=="UNKNOWN"
+        root=out["roots"][0]
+        assert root["nestedGitRootExclusions"]==["foreign"]
+        items=[f for x in root["cells"] for f in x["observedAtoms"]]
+        assert len(items)==7==len({f["path"] for f in items})
+        assert not any(f["path"].startswith("foreign/") for f in items)
+        assert any(f["form"]=="SYMLINK_NOT_FOLLOWED" for f in items)
+        assert any(x["densityStanding"]=="FLAT_DIRECTORY_PATHS" for x in root["cells"])
+        assert all(x["contentHashStanding"]=="NOT_OBSERVED" for x in root["cells"])
+        assert all(x["deleteOrReplaceStanding"]=="NOT_QUALIFIED" for x in root["cells"])
+
+    def test_problem_identity_stable_meta_witness_changes(self):
+        a,b,c=self.inputs()
+        x=M.recursive_non_git_metadata_cells(a,b,c,max_files=2)
+        (self.root/"runs/a.json").write_text("different string longer")
+        y=M.recursive_non_git_metadata_cells(a,b,c,max_files=2)
+        before={r["physicalPrefix"]:r for r in x["roots"][0]["cells"]}
+        after={r["physicalPrefix"]:r for r in y["roots"][0]["cells"]}
+        assert set(before)==set(after)
+        assert before["runs/"]["problemRef"]==after["runs/"]["problemRef"]
+        assert before["runs/"]["metadataDigest"]!=after["runs/"]["metadataDigest"]
+        assert y["filesystemSnapshotAtomicity"]=="UNKNOWN"
+
+    def test_unborn_nested_git_marker_is_not_a_committed_source_view(self):
+        empty=self.root/"unborn_git"
+        empty.mkdir(exist_ok=True)
+        subprocess.run(["git","init","-q",str(empty)],check=True)
+        a,b,c=self.inputs()
+        result=M.recursive_non_git_metadata_cells(a,b,c,max_files=2)
+        assert result["nestedGitRootsExcluded"]==2
+        assert result["nestedGitRootsWithoutSourceCut"]==1
+        root=result["roots"][0]
+        states={row["nestedRelativeRoot"]:row
+                for row in root["nestedGitRootQualifications"]}
+        assert states["foreign"]["sourceStanding"]=="GIT_COMMIT_PRESENT_SEPARATE_VIEW"
+        assert states["unborn_git"]["exactGitCut"] is None
+        assert states["unborn_git"]["issue"]=="NESTED_GIT_ROOT_SOURCECUT_UNQUALIFIED"
+        assert states["unborn_git"]["deleteOrReplaceStanding"]=="NOT_QUALIFIED"
+
+    def test_invalid_external_path_and_unsupported_content_authority_rejected(self):
+        a,b,c=self.inputs()
+        import copy
+        d=copy.deepcopy(c)
+        d["subjectSourceCut"]="0"*40
+        with self.assertRaisesRegex(ValueError,"common SourceCut"):
+            M.recursive_non_git_metadata_cells(a,b,d)
+        d=copy.deepcopy(c)
+        d["roots"][0]["rootPath"]=str(self.root/"missing")
+        with self.assertRaisesRegex(ValueError,"inaccessible"):
+            M.recursive_non_git_metadata_cells(a,b,d)
+        d=copy.deepcopy(c)
+        d["roots"][0]["locator"]="data:unknown"
+        with self.assertRaisesRegex(ValueError,"observed locator"):
+            M.recursive_non_git_metadata_cells(a,b,d)

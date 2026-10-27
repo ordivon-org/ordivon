@@ -1241,6 +1241,355 @@ def join_cross_plane_observations(problem_frontier: dict, observations: dict) ->
         ],
     }
 
+
+def recursive_external_git_cells(
+    problem_frontier: dict, crossplane_input: dict, root_specs: dict, *,
+    max_files: int = 24, max_depth: int = 6,
+) -> dict:
+    """Recursively partition exact *other Git trees* without inventing LEGO semantics.
+
+    External roots must match a contemporaneous bounded cross-plane observation.
+    Git mode/blob identity proves exact source bytes, not consumers or installation.
+    """
+    if not 1 <= max_files <= 10000 or not 1 <= max_depth <= 12:
+        raise ValueError("external recursive cell limits invalid")
+    if (root_specs.get("kind") != "ordivon.phase1.external-git-root-locations"
+        or root_specs.get("subjectSourceCut") != problem_frontier["sourceCut"]
+        or crossplane_input.get("subjectSourceCut") != problem_frontier["sourceCut"]):
+        raise ValueError("external roots and observations require exact common subject cut")
+    input_roots = root_specs.get("roots")
+    if not isinstance(input_roots, list) or len(input_roots) > 32:
+        raise ValueError("external Git spec needs at most 32 roots")
+    observed = {
+        row["locator"]: row
+        for row in crossplane_input.get("observations", ())
+        if row.get("plane") == "GIT_SOURCE_VIEW" and row.get("hostScope") == "linux"
+    }
+    result = []
+    total_paths = 0
+    total_cells = 0
+    all_problem_refs = set()
+    for spec in input_roots:
+        if not isinstance(spec, dict) or set(spec) != {"locator", "rootPath"}:
+            raise ValueError("external Git locator needs exact source path and label")
+        locator, raw_root = spec["locator"], spec["rootPath"]
+        if locator not in observed or not isinstance(raw_root, str) or not raw_root.startswith("/"):
+            raise ValueError("external Git source root has no observed source view")
+        root = Path(raw_root)
+        if not root.is_dir():
+            raise ValueError("external Git source root not accessible")
+        row = observed[locator]
+        rev, tree_sha = row["versionIdentity"].split(":")
+        exact_commit(root, rev)
+        if git(root, "rev-parse", rev + "^{tree}").decode().strip() != tree_sha:
+            raise ValueError("external Git tree mismatches observed immutable cut")
+        atoms = tree(root, rev)
+        if len(atoms) > 100000:
+            raise ValueError("external Git tree exceeds bounded enumeration")
+        member_refs = set()
+        cells = []
+        def emit(prefix: str, members: list[dict], depth: int) -> None:
+            nonlocal total_cells
+            if not members:
+                raise ValueError("empty recursive Git cell")
+            for a in members:
+                if a["path"] in member_refs:
+                    raise ValueError("external Git atom appears in multiple cells")
+                member_refs.add(a["path"])
+            prefix_id = prefix or "(repo-root)/"
+            digest = hashlib.sha256(json.dumps(
+                [(x["path"], x["sourceIdentity"]) for x in members],
+                ensure_ascii=True, sort_keys=True, separators=(",", ":"),
+            ).encode()).hexdigest()
+            problem_ref = "source-problem:sha256:" + hashlib.sha256(
+                json.dumps(["EXTERNAL_GIT_SOURCE_CELL_UNQUALIFIED", locator, prefix_id],
+                           separators=(",", ":"), ensure_ascii=True).encode()
+            ).hexdigest()
+            if problem_ref in all_problem_refs:
+                # A flat directory with direct files may produce at most one group.
+                raise ValueError("duplicate stable external Git cell problem identity")
+            all_problem_refs.add(problem_ref)
+            direct_only = all("/" not in x["path"][len(prefix):] for x in members)
+            density = (
+                "FLAT_DIRECTORY_GIT_ATOMS" if len(members)>max_files and direct_only
+                else "MAX_DEPTH_REACHED" if len(members)>max_files and depth>=max_depth
+                else "WITHIN_DIRECTORY_CAP"
+            )
+            cells.append({
+                "problemRef": problem_ref,
+                "rootLocator": locator,
+                "physicalPrefix": prefix_id,
+                "depth": depth,
+                "sourcePathCount": len(members),
+                "firstSourcePath": members[0]["path"],
+                "lastSourcePath": members[-1]["path"],
+                "memberGitObjectDigest": "sha256:"+digest,
+                "sourceAtoms": [{"path":a["path"],"sourceIdentity":a["sourceIdentity"]}
+                                for a in members],
+                "densityStanding": density,
+                "issue": "EXTERNAL_GIT_SOURCE_CELL_UNQUALIFIED",
+                "semanticConsumer": "UNKNOWN",
+                "invocationStanding": "NOT_MAPPED",
+                "proofStanding": "UNKNOWN",
+                "installedStanding": "UNKNOWN",
+                "deleteOrReplaceStanding": "NOT_QUALIFIED",
+            })
+            total_cells += 1
+
+        def walk(prefix: str, members: list[dict], depth: int) -> None:
+            direct = []
+            children = collections.defaultdict(list)
+            for a in members:
+                if not a["path"].startswith(prefix):
+                    raise ValueError("external Git recursive prefix mismatch")
+                suffix = a["path"][len(prefix):]
+                if "/" not in suffix:
+                    direct.append(a)
+                else:
+                    child = suffix.split("/", 1)[0]
+                    children[prefix+child+"/"].append(a)
+            if len(members)<=max_files or not children or depth>=max_depth:
+                emit(prefix,members,depth)
+                return
+            if direct:
+                emit(prefix,direct,depth)
+            for child,group in sorted(children.items()):
+                walk(child,group,depth+1)
+
+        walk("",atoms,0) if atoms else None
+        if len(member_refs)!=len(atoms) or set(member_refs)!={a["path"] for a in atoms}:
+            raise ValueError("external Git recursive cells not complete")
+        cells.sort(key=lambda x: (x["physicalPrefix"],x["firstSourcePath"]))
+        result.append({
+            "rootLocator": locator,
+            "sourceCut": rev,
+            "sourceTree": tree_sha,
+            "observationWitnessRef": row["witnessRef"],
+            "trackedPathCount":len(atoms),
+            "recursiveCellCount":len(cells),
+            "denseCellCount":sum(x["densityStanding"]!="WITHIN_DIRECTORY_CAP" for x in cells),
+            "atomCompletenessStanding":"EXACT_IMMUTABLE_GIT_TREE_PATH_COVERAGE",
+            "callSemanticStanding":"UNKNOWN",
+            "cells":cells,
+        })
+        total_paths+=len(atoms)
+    if len({x["rootLocator"] for x in result}) != len(result):
+        raise ValueError("duplicate external Git root locator")
+    return {
+        "kind":"ordivon.phase1.external-git-recursive-source-problem-frontier",
+        "subjectSourceCut":problem_frontier["sourceCut"],
+        "rootCount":len(result),
+        "sourcePathIncidences":total_paths,
+        "sourceCellProblems":total_cells,
+        "pathsMayRepeatAcrossWorktrees":True,
+        "proofReuseAdmissible":False,
+        "truthBoundary":"per-root exact Git tree only; duplicate Worktree versions, consumer and installation UNKNOWN",
+        "roots":result,
+    }
+
+
+def recursive_non_git_metadata_cells(
+    problem_frontier: dict, crossplane_input: dict, root_specs: dict, *,
+    max_files: int = 24, max_depth: int = 6,
+) -> dict:
+    """Bounded non-Git directory metadata partition, NOT a content hash or FS snapshot.
+
+    Stops at *nested Git roots* to avoid treating a separately inventoried Git
+    worktree as ordinary non-Git data. Never follows symlinks or reads contents.
+    """
+    import os
+    import stat
+    if not 1 <= max_files <= 10000 or not 1 <= max_depth <= 12:
+        raise ValueError("non-Git recursive cell limits invalid")
+    if (root_specs.get("kind") != "ordivon.phase1.non-git-root-locations"
+        or root_specs.get("subjectSourceCut") != problem_frontier["sourceCut"]
+        or crossplane_input.get("subjectSourceCut") != problem_frontier["sourceCut"]):
+        raise ValueError("non-Git roots and observations need common SourceCut")
+    specs = root_specs.get("roots")
+    if not isinstance(specs,list) or len(specs) > 32:
+        raise ValueError("non-Git enumeration needs no more than 32 specified roots")
+    observed = {r["locator"]:r for r in crossplane_input.get("observations",())
+                if r.get("plane")=="NON_GIT_NAMESPACE" and r.get("hostScope")=="linux"}
+    roots = []
+    used = set()
+    total_files = 0
+    total_cells = 0
+    total_nested = 0
+    for spec in specs:
+        if not isinstance(spec,dict) or set(spec)!={"locator","rootPath"}:
+            raise ValueError("non-Git root needs exact locator and path")
+        loc,raw = spec["locator"],spec["rootPath"]
+        if loc not in observed or loc in used or not isinstance(raw,str) or not raw.startswith("/"):
+            raise ValueError("non-Git root lacks unique observed locator")
+        used.add(loc)
+        root=Path(raw)
+        if not root.is_dir() or root.is_symlink():
+            raise ValueError("non-Git root inaccessible or symlink")
+        atoms=[]
+        excluded=[]
+        scandir_errors=[]
+        def on_error(error):
+            scandir_errors.append(type(error).__name__)
+        for current,dirs,files in os.walk(root,topdown=True,followlinks=False,onerror=on_error):
+            base=Path(current)
+            if ".git" in dirs:
+                # The parent can itself be an independently versioned Git root.
+                if base != root:
+                    excluded.append(base.relative_to(root).as_posix())
+                    dirs[:]=[]
+                    continue
+                dirs.remove(".git")
+            for entry in sorted(dirs[:]):
+                full=base/entry
+                if full.is_symlink():
+                    dirs.remove(entry)
+                    # A symlink itself is a path atom; never follow its target.
+                    files.append(entry)
+            for name in sorted(files):
+                full=base/name
+                try:
+                    meta=full.lstat()
+                except OSError as e:
+                    scandir_errors.append(type(e).__name__)
+                    continue
+                rel=full.relative_to(root).as_posix()
+                if rel.startswith("../") or rel.startswith("/"):
+                    raise ValueError("non-Git cell path escaped root")
+                form=("REGULAR_FILE" if stat.S_ISREG(meta.st_mode)
+                      else "SYMLINK_NOT_FOLLOWED" if stat.S_ISLNK(meta.st_mode)
+                      else "SPECIAL_ENTRY_UNREAD")
+                atoms.append({
+                    "path":rel,
+                    "mode":stat.S_IMODE(meta.st_mode),
+                    "byteSizeObserved":meta.st_size,
+                    "mtimeNsObserved":meta.st_mtime_ns,
+                    "form":form,
+                })
+                if len(atoms)>100000:
+                    raise ValueError("non-Git root larger than bounded path enumeration")
+        if scandir_errors:
+            # Do not mark unreadable/racing trees as fully inventoried.
+            raise ValueError("non-Git scan incomplete due to filesystem errors")
+        atoms.sort(key=lambda x:x["path"])
+        if len({x["path"] for x in atoms})!=len(atoms):
+            raise ValueError("non-Git path enumerated twice")
+        cells=[]
+        emitted=set()
+        def emit(prefix,members,depth):
+            if not members:
+                raise ValueError("empty non-Git cell")
+            for item in members:
+                if item["path"] in emitted:
+                    raise ValueError("non-Git file included twice")
+                emitted.add(item["path"])
+            pref=prefix or "(repo-root)/"
+            witness=hashlib.sha256(json.dumps(members,sort_keys=True,ensure_ascii=True,
+                                              separators=(",",":")).encode()).hexdigest()
+            idref="source-problem:sha256:"+hashlib.sha256(json.dumps(
+                ["NON_GIT_CONTENT_IDENTITY_UNOBSERVED",loc,pref],separators=(",",":"),
+                ensure_ascii=True).encode()).hexdigest()
+            direct=all("/" not in x["path"][len(prefix):] for x in members)
+            dense=(len(members)>max_files)
+            cells.append({
+                "problemRef":idref,
+                "rootLocator":loc,
+                "physicalPrefix":pref,
+                "depth":depth,
+                "fileCount":len(members),
+                "metadataDigest":"sha256:"+witness,
+                "firstRelativePath":members[0]["path"],
+                "lastRelativePath":members[-1]["path"],
+                "observedAtoms":members,
+                "densityStanding":(
+                    "FLAT_DIRECTORY_PATHS" if dense and direct
+                    else "MAX_DEPTH_REACHED" if dense and depth>=max_depth
+                    else "WITHIN_PATH_CAP"),
+                "issue":"NON_GIT_CONTENT_IDENTITY_UNOBSERVED",
+                "contentHashStanding":"NOT_OBSERVED",
+                "consumerStanding":"UNKNOWN",
+                "invocationStanding":"NOT_MAPPED",
+                "installedStanding":"UNKNOWN",
+                "proofStanding":"UNKNOWN",
+                "deleteOrReplaceStanding":"NOT_QUALIFIED",
+            })
+        def walk(prefix,members,depth):
+            direct=[]
+            children=collections.defaultdict(list)
+            for item in members:
+                if not item["path"].startswith(prefix):
+                    raise ValueError("non-Git cell prefix is invalid")
+                suffix=item["path"][len(prefix):]
+                if "/" not in suffix:
+                    direct.append(item)
+                else:
+                    children[prefix+suffix.split("/",1)[0]+"/"].append(item)
+            if len(members)<=max_files or not children or depth>=max_depth:
+                emit(prefix,members,depth)
+                return
+            if direct:
+                emit(prefix,direct,depth)
+            for child,subset in sorted(children.items()):
+                walk(child,subset,depth+1)
+        if atoms:
+            walk("",atoms,0)
+        if emitted!={x["path"] for x in atoms}:
+            raise ValueError("non-Git metadata cell enumeration lost files")
+        cells.sort(key=lambda x:(x["physicalPrefix"],x["firstRelativePath"]))
+        nested_git = []
+        for nested in sorted(set(excluded)):
+            # A .git marker alone does NOT entail a valid immutable SourceCut.
+            # Never silently count an unborn repository as a Git source view.
+            target = root / nested
+            cmd = subprocess.run(
+                ["git", "--no-replace-objects", "-C", str(target),
+                 "rev-parse", "--verify", "HEAD^{commit}"],
+                capture_output=True, text=True, timeout=10,
+            )
+            cut = cmd.stdout.strip()
+            valid = cmd.returncode == 0 and re.fullmatch(r"[0-9a-f]{40}", cut)
+            nested_git.append({
+                "nestedRelativeRoot": nested,
+                "sourceStanding": ("GIT_COMMIT_PRESENT_SEPARATE_VIEW"
+                                    if valid else "GIT_MARKER_WITH_NO_VERIFIED_HEAD"),
+                "issue": ("SEPARATE_GIT_SOURCE_VIEW_NOT_PART_OF_NON_GIT"
+                          if valid else "NESTED_GIT_ROOT_SOURCECUT_UNQUALIFIED"),
+                "exactGitCut": cut if valid else None,
+                "consumerStanding": "UNKNOWN",
+                "deleteOrReplaceStanding": "NOT_QUALIFIED",
+            })
+        roots.append({
+            "rootLocator":loc,
+            "observationWitnessRef":observed[loc]["witnessRef"],
+            "enumeratedPathCount":len(atoms),
+            "recursiveCellCount":len(cells),
+            "nestedGitRootExclusions":sorted(set(excluded)),
+            "nestedGitRootQualifications":nested_git,
+            "unqualifiedNestedGitHeads":sum(
+                x["exactGitCut"] is None for x in nested_git),
+            "metadataOnlyStanding":"NON_ATOMIC_FILESYSTEM_STAT_OBSERVATIONS",
+            "contentDigestStanding":"NOT_OBSERVED",
+            "sourceToConsumerStanding":"UNKNOWN",
+            "cells":cells,
+        })
+        total_files+=len(atoms)
+        total_cells+=len(cells)
+        total_nested+=len(set(excluded))
+    return {
+        "kind":"ordivon.phase1.non-git-recursive-metadata-problem-frontier",
+        "subjectSourceCut":problem_frontier["sourceCut"],
+        "rootCount":len(roots),
+        "enumeratedPathIncidences":total_files,
+        "recursiveCellProblems":total_cells,
+        "nestedGitRootsExcluded":total_nested,
+        "nestedGitRootsWithoutSourceCut":sum(
+            x["unqualifiedNestedGitHeads"] for x in roots),
+        "metadataIsContentHash":False,
+        "filesystemSnapshotAtomicity":"UNKNOWN",
+        "semanticCallOrImpactProof":"UNKNOWN",
+        "proofReuseAdmissible":False,
+        "roots":sorted(roots,key=lambda x:x["rootLocator"]),
+    }
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-cut", required=True)
@@ -1256,6 +1605,10 @@ def main() -> int:
                         help="exact Git AST import candidate references; not live consumers")
     parser.add_argument("--imports-prefix",
                         help="show AST import hints touching this canonical source prefix")
+    parser.add_argument("--non-git-roots", type=Path,
+                        help="read-only recursive non-Git path metadata; never hashes file contents")
+    parser.add_argument("--external-git-roots", type=Path,
+                        help="read-only recursive exact Git views explicitly matched to observed source roots")
     parser.add_argument("--cross-plane-observations", type=Path,
                         help="join explicitly supplied observation evidence WITHOUT attesting it")
     parser.add_argument("--problem-legos", action="store_true",
@@ -1269,6 +1622,14 @@ def main() -> int:
     parser.add_argument("--lookup-path", action="append", default=[],
                         help="small exact-Git source/path query; repeat for multiple files")
     args = parser.parse_args()
+    if args.non_git_roots and not (args.cross_plane_observations and args.problem_legos):
+        parser.error("--non-git-roots requires problem-legos and cross-plane observations")
+    if args.non_git_roots and args.use_proposal_cells:
+        parser.error("non-Git data cannot be projected into proposed source policy")
+    if args.external_git_roots and not (args.cross_plane_observations and args.problem_legos):
+        parser.error("--external-git-roots requires both --problem-legos and --cross-plane-observations")
+    if args.external_git_roots and args.use_proposal_cells:
+        parser.error("external Git views cannot use proposed source ownership")
     if args.cross_plane_observations and not args.problem_legos:
         parser.error("--cross-plane-observations requires --problem-legos")
     if args.cross_plane_observations and args.use_proposal_cells:
@@ -1325,6 +1686,24 @@ def main() -> int:
         if args.cross_plane_observations:
             parsed = json.loads(args.cross_plane_observations.read_text())
             result["crossPlane"] = join_cross_plane_observations(result, parsed)
+            if args.external_git_roots:
+                results = recursive_external_git_cells(
+                    result, parsed, json.loads(args.external_git_roots.read_text()),
+                    max_files=args.cell_max_files,max_depth=args.cell_max_depth,
+                )
+                result["externalGit"] = results
+                if args.summary:
+                    for row in result["externalGit"]["roots"]:
+                        row.pop("cells")
+            if args.non_git_roots:
+                non_git = recursive_non_git_metadata_cells(
+                    result, parsed, json.loads(args.non_git_roots.read_text()),
+                    max_files=args.cell_max_files, max_depth=args.cell_max_depth,
+                )
+                result["nonGit"] = non_git
+                if args.summary:
+                    for root in non_git["roots"]:
+                        root.pop("cells")
             if args.summary:
                 for field in ("observations", "problems", "candidateRelations"):
                     result["crossPlane"].pop(field)
