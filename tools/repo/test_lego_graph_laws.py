@@ -1214,6 +1214,60 @@ def test_ast_imports_reject_comments_strings_dynamic_and_unresolved_symbols(
         )
 
 
+def test_exact_git_python_importer_evidence_ignores_mutable_git_replace(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The same immutable commit may not produce different consumer edges."""
+    import subprocess
+    from tools.repo.source_history_legos import current_tree
+
+    root = tmp_path
+    pkg = root / "services/harness/src/pkg"
+    pkg.mkdir(parents=True)
+    target = pkg / "target.py"
+    importer = pkg / "consumer.py"
+    target.write_text("class Real: pass\n", encoding="utf-8")
+    importer.write_text("from .target import Real\n", encoding="utf-8")
+
+    def git(*args: str, input_bytes: bytes | None = None) -> str:
+        return subprocess.check_output(
+            ["git", "-C", str(root), *args],
+            input=input_bytes, stderr=subprocess.PIPE,
+        ).decode("ascii").strip()
+
+    git("init", "-q", "-b", "main")
+    git("add", ".")
+    git("-c", "user.name=GraphTest", "-c", "user.email=test@example.invalid",
+        "commit", "-qm", "source consumer")
+    cut = git("rev-parse", "HEAD")
+    source_path = "services/harness/src/pkg/target.py"
+    consumer_path = "services/harness/src/pkg/consumer.py"
+    ref = "services/harness/planning/lego-plan-r1.json#H01"
+    original_blob = current_tree(root, cut)[consumer_path].split(":")[-1]
+    monkeypatch.setattr(
+        module, "project_owner_lego_source_graph",
+        lambda _root, *, source_revision: {"vertices": [{
+            "ref": ref, "sourceAnchors": [{"path": source_path,
+            "sourceIdentity": current_tree(root, source_revision)[source_path]}],
+        }]},
+    )
+    initial = module.project_node_python_import_syntax(
+        source_revision=cut, node_ref=ref, target_source=source_path, root=root,
+    )
+    assert [row["sourcePath"] for row in initial["candidateImporters"]] == [consumer_path]
+    replacement = git("hash-object", "-w", "--stdin",
+                      input_bytes=b"answer = 'not an importer'\n")
+    git("replace", original_blob, replacement)
+    # Show the negative control is real: ambient Git can see new bytes.
+    assert git("cat-file", "blob", original_blob) != (
+        "from .target import Real"
+    )
+    after = module.project_node_python_import_syntax(
+        source_revision=cut, node_ref=ref, target_source=source_path, root=root,
+    )
+    assert after == initial
+
+
 def test_python_import_delta_real_git_separates_source_and_relation_changes(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
