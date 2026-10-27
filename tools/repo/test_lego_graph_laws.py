@@ -1582,3 +1582,53 @@ def test_upstream_local_import_dependency_change_invalidates_with_stable_target_
     assert same["sourceRelationStanding"] == "NO_DECLARED_SOURCE_RELATION_CHANGE"
     assert same["changedUpstreamLocalSourceFiles"] == []
     assert same["proofReuseAdmissible"] is False
+
+
+def test_composition_source_qualified_r21_lego_responsibilities_and_consumers() -> None:
+    """Source-based first materialization: actual CLI/API consumers, not global LEGO truth."""
+    import ast
+
+    relative = "packages/composition/planning/lego-plan-r1.json"
+    plan = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+    assert set(row["id"] for row in plan["nodes"]) == {"C01", "C02", "C03"}
+    module.validate_owner_lego_graph(plan)
+    module.validate_owner_lego_dependencies(plan, "packages/composition")
+    module.validate_owner_lego_source_evidence(ROOT, relative, plan)
+
+    def assert_qualified_scoped_contracts(current: dict) -> None:
+        for node in current["nodes"]:
+            for field in ("responsibility", "inputs", "outputs", "behavioralContract",
+                          "acceptance", "consumerEvidence", "evidence"):
+                assert node.get(field), (node["id"], field)
+            for declared_path in node["consumerEvidence"]:
+                assert (ROOT / "packages/composition" / declared_path).is_file()
+
+    assert_qualified_scoped_contracts(plan)
+    imported = ast.parse(
+        (ROOT / "packages/composition/src/ordivon_composition/verification_obligation_r1.py")
+        .read_text(encoding="utf-8")
+    )
+    assert any(
+        isinstance(stmt, ast.ImportFrom) and stmt.module == "cognitive_circuit_r1"
+        and {"compile_manifest", "canonical_digest"} <=
+        {alias.name for alias in stmt.names}
+        for stmt in ast.walk(imported)
+    )
+    projection = module.project_owner_lego_source_graph(ROOT)
+    for identity in ("C01", "C02", "C03"):
+        vertex = next(
+            v for v in projection["vertices"]
+            if v["ref"] == f"{relative}#{identity}"
+        )
+        assert vertex["sourceAnchors"], identity
+        assert not vertex["unresolvedSourceEvidence"], identity
+        assert vertex["sourceCoverageStanding"] == "DECLARED_SOURCE_MEMBERSHIP_PARTIAL"
+    assert "ACTUAL_CONSUMER" in projection["excluded"]["unverifiedFacets"]
+
+    # Falsification: an incomplete R2.1 responsibility cannot pass this
+    # *scoped* Owner-local qualification, although the structural graph alone
+    # intentionally doesn't impose a universal 11-field schema.
+    altered = copy.deepcopy(plan)
+    altered["nodes"][0]["behavioralContract"] = ""
+    with pytest.raises(AssertionError, match="behavioralContract"):
+        assert_qualified_scoped_contracts(altered)

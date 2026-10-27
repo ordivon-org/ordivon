@@ -1,0 +1,188 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-composition",
+    "purpose": "Compose task-local declared capabilities, interface observations and verification obligations without becoming a source of Runtime, Host, Skills, installed, domain or proof authority.",
+    "sourceEvidence": [
+      "pyproject.toml",
+      "src/ordivon_composition/cognitive_circuit_r1.py",
+      "src/ordivon_composition/interface_contract_r2.py",
+      "src/ordivon_composition/verification_obligation_r1.py",
+      "tests/test_verification_obligation_r1.py"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "C01",
+      "label": "TaskLocalCircuitContract",
+      "kind": "typed_contract_verifier",
+      "responsibility": "Validate and compile one declared task-local stage/port/method/capability graph, then evaluate only its declared required verification gates.",
+      "inputs": [
+        "Task-local circuit manifest: declared stages, typed ports, dependencies, method/capability bindings, verifier gates",
+        "Verifier gate result records bound to the exact compiled manifest"
+      ],
+      "outputs": [
+        "Deterministically compiled stage/gate projection",
+        "Gate standing distinguishing satisfied, missing, unknown, unsatisfied and unresolved assumptions"
+      ],
+      "behavioralContract": "Reject unknown stage/method/capability references, incompatible port wiring, duplicate input producers, cyclic prerequisites, changed manifest bindings and false required-gate closure. A mechanically satisfied gate set is not domain acceptance or concrete implementation refinement.",
+      "authority": "Composition task-local evaluator; does not mint verifier, Runtime, provider, domain or currentness authority",
+      "state": "IMPLEMENTED",
+      "dependencies": [],
+      "mustNotOwn": [
+        "Real provider execution",
+        "Domain acceptance",
+        "Actual consumer coverage outside the caller-declared circuit"
+      ],
+      "evidence": [
+        "src/ordivon_composition/cognitive_circuit_r1.py",
+        "src/ordivon_composition/verification_obligation_r1.py",
+        "src/ordivon_composition/schemas/cognitive-circuit-manifest-v1.schema.json",
+        "pyproject.toml",
+        "tests/test_cognitive_circuit_r1.py"
+      ],
+      "acceptance": [
+        "C02 actually imports the existing C01 compiler/digest/topological contract; the public ordivon-circuit CLI is declared in pyproject.toml. These are SOURCE consumer witnesses, not proof of deployed use.",
+        "Compiled manifest and gate evaluation must reject typed graph/authority/scope mismatches; no required gates or UNKNOWN cannot become COMPOSITION_GATES_SATISFIED.",
+        "A successful task-local gate calculation cannot imply DOMAIN_ACCEPTED."
+      ],
+      "formalObligations": [
+        "Typed stage/port and dependency compatibility",
+        "Behavioral assume-guarantee for any actual cross-owner composition remains consumer-specific"
+      ],
+      "consumerEvidence": [
+        "src/ordivon_composition/verification_obligation_r1.py",
+        "tests/test_cognitive_circuit_r1.py",
+        "pyproject.toml"
+      ]
+    },
+    {
+      "id": "C02",
+      "label": "VerificationObligationImpact",
+      "kind": "verification_projection",
+      "responsibility": "Derive exact task-local verification obligations, resolve declared verifier bindings and conservatively select rechecks following declared dependency/contract/source delta.",
+      "inputs": [
+        "C01 manifest/gates plus declared verification obligations and exact verifier bindings",
+        "Changed/unknown refs; optional previous/current task-local graph and caller-declared source scopes"
+      ],
+      "outputs": [
+        "Digest-bound obligation/binding projections",
+        "RECHECK_REQUIRED, UNKNOWN or REUSE_CANDIDATE statuses with unindexed changes, provenance limits and proof-reuse denial"
+      ],
+      "behavioralContract": "A missing binding, cyclic/missing relation, changed declared contract, unknown currentness or unindexed change never becomes verified proof or current application acceptance. Caller-declared dependency completeness must not be represented as owner-certified readset; REUSE_CANDIDATE is never a qualified proof.",
+      "authority": "Composition task-local impact selector; verifier and source-system facts remain external",
+      "state": "IMPLEMENTED",
+      "dependencies": [
+        "C01"
+      ],
+      "mustNotOwn": [
+        "Actual immutable Git history",
+        "Complete installed and dynamic consumer readset",
+        "Historical verifier proof truth or present-day deployment approval"
+      ],
+      "evidence": [
+        "src/ordivon_composition/verification_obligation_r1.py",
+        "src/ordivon_composition/cognitive_circuit_r1.py",
+        "tests/test_verification_obligation_r1.py",
+        "pyproject.toml"
+      ],
+      "acceptance": [
+        "Existing owner-local test suite checks model/contract change propagation, missing edge, changed dependency and false completeness counterexamples.",
+        "Current projection explicitly emits dependencyQualification=CALLER_DECLARED_NOT_OWNER_CERTIFIED and proofReuseAdmissible=false; upgrading without source/install/consumer qualification is forbidden.",
+        "Public ordivon-verification-obligations CLI exists; no proven external live consumer is implied."
+      ],
+      "formalObligations": [
+        "Conservative dependency-envelope coverage for real dynamic edges",
+        "Owner-qualified source/config/proof digest and currentness bridge before proof reuse"
+      ],
+      "consumerEvidence": [
+        "src/ordivon_composition/__init__.py",
+        "tests/test_verification_obligation_r1.py",
+        "pyproject.toml"
+      ]
+    },
+    {
+      "id": "C03",
+      "label": "InterfaceCompatibilityStanding",
+      "kind": "compatibility_projection",
+      "responsibility": "Compare one consumer expectation with one exact interface observation, separating interface digest compatibility, source currentness and evidence admissibility.",
+      "inputs": [
+        "Task-local circuit-bound interface observation and its source/current version references",
+        "Consumer expectation with required digest, accepted alternates, source kinds and support scope"
+      ],
+      "outputs": [
+        "Typed compatibility, currentness and admissibility standing with exact evidence digest/references"
+      ],
+      "behavioralContract": "Reject circuit identity mismatch, duplicated alternates and unmatched interface identity/digest. Missing live authority version is CURRENTNESS_UNKNOWN, not current. A declared compatible alternate does not prove behavioral refinement, installed truth or domain acceptance.",
+      "authority": "Composition non-authoritative compatibility projection",
+      "state": "IMPLEMENTED",
+      "dependencies": [],
+      "mustNotOwn": [
+        "Owner config refresh",
+        "Actual behavior substitution theorem",
+        "Persistent freshness or domain acceptance"
+      ],
+      "evidence": [
+        "src/ordivon_composition/interface_contract_r2.py",
+        "src/ordivon_composition/schemas/interface-contract-observation-v1.schema.json",
+        "src/ordivon_composition/schemas/interface-contract-expectation-v1.schema.json",
+        "pyproject.toml",
+        "tests/test_interface_contract_core.py"
+      ],
+      "acceptance": [
+        "Public ordivon-interface-contract CLI and exported evaluate_interface are present in current SOURCE.",
+        "Exact currentness and digest mismatch/unknown cases remain distinct, and output explicitly keeps domainAcceptanceEstablished=false.",
+        "Alternate compatibility is declaration-only until independent consumer behavioral refinement evidence exists."
+      ],
+      "formalObligations": [
+        "Version/source authority bridge for currentness",
+        "Behavioral refinement and observability obligations for a real substitution"
+      ],
+      "consumerEvidence": [
+        "src/ordivon_composition/__init__.py",
+        "tests/test_interface_contract_core.py",
+        "pyproject.toml"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "C01",
+      "to": "C02",
+      "type": "DATA",
+      "label": "Declared circuit manifest and verifier gates produce scoped obligations; source import from C02 to C01 is independently inspectable"
+    }
+  ],
+  "slices": [
+    {
+      "id": "CS1",
+      "objective": "Source-qualified consumer/contract baseline for the three existing Composition responsibilities, not a new graph authority.",
+      "status": "IN_PROGRESS",
+      "nodeIds": [
+        "C01",
+        "C02",
+        "C03"
+      ],
+      "acceptance": [
+        "Source-bound plan, compiled code entrypoints and native tests agree on the declared responsibility/contract boundaries.",
+        "Runtime/Host/Gateway/Skills dynamic consumers and installed currentness are separately identified as unqualified unless independently witnessed."
+      ],
+      "blockers": [
+        "Actual dynamically selected and installed cross-owner consumers remain outside this SOURCE-only cut."
+      ],
+      "nextAction": "Test direct source import and CLI consumer witnesses, inspect separate installed owner-currentness; never promote this graph to deployed fact."
+    }
+  ],
+  "gaps": [
+    "C01/C02/C03 are bounded task-local source responsibilities, not global LEGO world coverage.",
+    "SuccessorContractR1 currently has CLI/export/own tests but independent production consumer necessity is unqualified, so it is not promoted to a confirmed semantic LEGO here.",
+    "Runtime/Host/Gateway/Skills execution currentness, complete dynamic consumers, and formal code refinement are UNKNOWN."
+  ],
+  "review": {
+    "standing": "SOURCE_QUALIFIED_LOCAL_RESPONSIBILITIES_ONLY",
+    "sourceCut": "b7e76c6e0c0532a6fe98c39de5794147950f35b0",
+    "claimBoundary": "All semantic fields are scoped to exact files and consumer needs; planned status is not installed/runtime/formal admission."
+  }
+}
