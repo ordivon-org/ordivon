@@ -352,11 +352,20 @@ def main() -> int:
         else:
             result = project_source_classification(Path.cwd(), args.classify_source_revision)
             if args.source_path:
-                paths = sorted({_normalize(path) for path in args.source_path})
+                # Use the independently verified exact-Git query contract from
+                # peer candidate ccd7395; do not create a competing selector.
+                paths = sorted(set(args.source_path))
+                for path in paths:
+                    if not path or path != _normalize(path) or path.startswith("/"):
+                        raise SystemExit("source query requires exact canonical Git path")
                 index = {entry["path"]: entry for entry in result["entries"]}
                 result["entries"] = [index[path] for path in paths if path in index]
-                result["requestedPaths"] = paths
-                result["missingPaths"] = [path for path in paths if path not in index]
+                result["query"] = {
+                    "mode": "EXACT_SOURCE_PATHS_ONLY",
+                    "requested": paths,
+                    "absentFromSourceCut": [path for path in paths if path not in index],
+                    "queryScope": "SOURCE_PATH_PRESENCE_NOT_CONSUMER_PROOF_OR_CI_SELECTION",
+                }
         print(json.dumps(result, sort_keys=True))
         return 0
     if args.classify_source_delta_base or args.source_path:

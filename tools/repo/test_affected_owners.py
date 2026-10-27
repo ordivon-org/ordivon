@@ -444,10 +444,13 @@ class SourceClassificationTests(unittest.TestCase):
         result = json.loads(proc.stdout)
         self.assertEqual(len(result["entries"]), 1)
         self.assertEqual(result["entries"][0]["verificationOwner"], "runtime")
-        self.assertEqual(result["missingPaths"], ["nonexistent/consumer.ts"])
+        self.assertEqual(result["query"]["mode"], "EXACT_SOURCE_PATHS_ONLY")
+        self.assertEqual(result["query"]["absentFromSourceCut"], ["nonexistent/consumer.ts"])
         self.assertFalse(result["proofReuseAdmissible"])
         for invalid in [
             ["--source-path", "../services/runtime/main.rs"],
+            ["--source-path", "./services/runtime/main.rs"],
+            ["--source-path", ""],
             ["--classify-source-delta-base", self.base,
              "--source-path", "services/runtime/main.rs"],
         ]:
