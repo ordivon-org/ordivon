@@ -346,9 +346,12 @@ class SourceClassificationTests(unittest.TestCase):
         by_path = {e["path"]: e for e in self.project(cut)["entries"]}
         assert by_path["services/runtime/README.md"]["sourceFileForm"] == "PROJECT_README"
         assert by_path["services/runtime/Cargo.toml"]["sourceFileForm"] == "RUST_PACKAGE_MANIFEST"
+        assert by_path["services/runtime/Cargo.toml"]["sourceFileFormStanding"] == "FILENAME_OR_EXTENSION_ONLY_NOT_CONTENT_PROVEN"
+        assert by_path["services/runtime/Cargo.toml"]["sourceCellDisplayName"] == "runtime / (root files)"
         assert by_path["services/runtime/Cargo.lock"]["sourceFileForm"] == "RUST_DEPENDENCY_LOCK"
         assert by_path["services/runtime/Cargo.lock"]["sourceCell"] == "runtime/(root-files)"
         assert by_path["services/runtime/config/opaque.blob"]["sourceFileForm"] == "UNQUALIFIED_FILE_FORM"
+        assert by_path["services/runtime/config/opaque.blob"]["sourceFileFormStanding"] == "OPAQUE_FORM_NEEDS_CONTENT_EVIDENCE"
         assert by_path["services/runtime/crates/ordivon-runtime-core/src/lib.rs"]["sourceCell"] == "runtime/crates/ordivon-runtime-core"
         assert by_path["services/runtime/crates/ordivon-runtime-core/src/lib.rs"]["sourceCellRole"] == "RUNTIME_CORE_CRATE_SOURCE"
         assert by_path["domains/capital/wave_b/fixtures/sample.json"]["sourceCellRole"] == "HISTORICAL_PORTFOLIO_TEST_FIXTURE_SOURCE"

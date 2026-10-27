@@ -556,10 +556,35 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
             else:
                 source_cell = section
                 source_cell_role = "ROOT_MANIFEST_AND_ENTRYPOINT_FILES"
+        file_form = source_file_form(path, identity)
+        file_form_standing = (
+            "GIT_EXECUTABLE_MODE_OBSERVED"
+            if file_form == "EXECUTABLE_ENTRYPOINT_FILE"
+            else "OPAQUE_FORM_NEEDS_CONTENT_EVIDENCE"
+            if file_form in {
+                "UNQUALIFIED_FILE_FORM", "EXTENSIONLESS_OPAQUE_SOURCE",
+                "OPAQUE_CARRIER_FILE", "STRUCTURED_DOCUMENT_CARRIER",
+            }
+            else "FILENAME_OR_EXTENSION_ONLY_NOT_CONTENT_PROVEN"
+        )
+        # Display label is navigational: transform existing lexical names;
+        # never substitute it for a responsibility, consumer, or alias identity.
+        source_cell_display = (
+            " / ".join(
+                [semantic_by_owner.get(owner, owner)]
+                + [
+                    segment.replace("_", " ").replace("-", " ")
+                    for segment in source_cell.split("/")[1:]
+                ]
+            )
+            if owner is not None and source_cell is not None else None
+        )
         entries.append({
             "sourceCell": source_cell,
+            "sourceCellDisplayName": source_cell_display,
             "sourceCellRole": source_cell_role,
-            "sourceFileForm": source_file_form(path, identity),
+            "sourceFileForm": file_form,
+            "sourceFileFormStanding": file_form_standing,
             "sourceSection": section,
             "sourceSectionRole": section_role,
             "semanticName": semantic_by_owner.get(owner, owner) if owner is not None
@@ -590,6 +615,14 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
                 row["sourceCell"] for row in entries
                 if row["sourceCellRole"] in named_cells.values()
             }),
+            "opaqueFileFormPaths": sum(
+                row["sourceFileFormStanding"] == "OPAQUE_FORM_NEEDS_CONTENT_EVIDENCE"
+                for row in entries
+            ),
+            "gitExecutableFormPaths": sum(
+                row["sourceFileFormStanding"] == "GIT_EXECUTABLE_MODE_OBSERVED"
+                for row in entries
+            ),
             "unqualifiedSourceFileForms": sum(
                 row["sourceFileForm"] == "UNQUALIFIED_FILE_FORM"
                 for row in entries
