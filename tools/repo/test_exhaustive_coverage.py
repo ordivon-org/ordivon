@@ -513,3 +513,146 @@ class DerivedProblemLegoFrontierTests(unittest.TestCase):
         self.assertNotIn("sourceCells", output)
         self.assertNotIn("problemLegos", output)
         self.assertNotIn("sourcePathCellIndex", output)
+
+
+
+class ExplicitIndependentScopeTests(unittest.TestCase):
+    def test_exact_independent_git_cut_not_mixed_into_subject_repo(self) -> None:
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp).resolve() / "secondary"
+            root.mkdir()
+            subprocess.run(["git", "init", "-q", str(root)], check=True)
+            (root / "src").mkdir()
+            (root / "src" / "main.py").write_text("print(123)\n")
+            subprocess.run(["git", "-C", str(root), "add", "."], check=True)
+            subprocess.run([
+                "git", "-C", str(root), "-c", "user.name=Phase1",
+                "-c", "user.email=phase1@example.invalid",
+                "commit", "-qm", "fixture",
+            ], check=True)
+            other_cut = subprocess.check_output(
+                ["git", "-C", str(root), "rev-parse", "HEAD"],
+                text=True,
+            ).strip()
+            primary_cut = subprocess.check_output(
+                ["git", "-C", str(ROOT), "rev-parse", "HEAD"],
+                text=True,
+            ).strip()
+            out = M.independent_scope_frontier(
+                ROOT, primary_cut,
+                external_git=[f"research-example={root}@{other_cut}"],
+                non_git_data=[],
+            )
+            self.assertEqual(out["sourceCut"], primary_cut)
+            self.assertEqual(out["summary"]["externalGitTrackedPaths"], 1)
+            source = out["observedScopes"][0]
+            self.assertEqual(source["sourceCut"], other_cut)
+            self.assertEqual(source["sourceTree"],
+                             M.git(root, "rev-parse", f"{other_cut}^{{tree}}").decode().strip())
+            self.assertEqual(source["sourceIdentityStanding"], "EXACT_GIT_TREE_ONLY")
+            self.assertEqual(source["labelStanding"],
+                             "CALLER_SCOPED_ALIAS_NOT_GLOBAL_IDENTITY")
+            self.assertEqual(source["ordivonAffiliationStanding"], "UNKNOWN")
+            self.assertEqual(out["summary"]["crossScopeCallsVerified"], 0)
+            self.assertEqual(out["summary"]["installedSourcesBoundToGit"], 0)
+            self.assertEqual(out["pendingScopeProblems"][0]["consumerStanding"], "UNKNOWN")
+            self.assertEqual(out["pendingScopeProblems"][0]["runtimeCallStanding"], "NOT_ESTABLISHED")
+            self.assertFalse(out["proofReuseAdmissible"])
+            # A different Git cut is NOT accepted as the claimed independent identity.
+            with self.assertRaises(ValueError):
+                M.independent_scope_frontier(
+                    ROOT, primary_cut,
+                    external_git=[f"research-example={root}@HEAD"], non_git_data=[],
+                )
+            with self.assertRaises(ValueError):
+                M.independent_scope_frontier(
+                    ROOT, primary_cut,
+                    external_git=[f"research-example={root / 'src'}@{other_cut}"],
+                    non_git_data=[],
+                )
+            with self.assertRaises(ValueError):
+                M.independent_scope_frontier(
+                    ROOT, primary_cut,
+                    external_git=[f"research-example={root}@{other_cut}"],
+                    non_git_data=[f"research-example={pathlib.Path(tmp)}"],
+                )
+
+    def test_non_git_directory_never_gets_fake_content_digest(self) -> None:
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp).resolve() / "corpora"
+            root.mkdir()
+            (root / "dataset").mkdir()
+            (root / "manifest.txt").write_text("data")
+            primary = subprocess.check_output(
+                ["git", "-C", str(ROOT), "rev-parse", "HEAD"],
+                text=True,
+            ).strip()
+            args = dict(external_git=[], non_git_data=[f"paper-corpora={root}"])
+            out = M.independent_scope_frontier(ROOT, primary, **args)
+            self.assertEqual(out["summary"]["nonGitDirectoryLocators"], 1)
+            obj = out["observedScopes"][0]
+            self.assertEqual(obj["directChildEntries"], 2)
+            self.assertEqual(obj["directChildKinds"], {"directory": 1, "file": 1})
+            self.assertEqual(obj["sourceIdentityStanding"], "UNBOUND_NON_GIT_BYTES")
+            self.assertEqual(obj["contentDigestStanding"], "NOT_COMPUTED")
+            self.assertNotIn("sourceCut", obj)
+            self.assertNotIn("sourceTree", obj)
+            self.assertEqual(out["pendingScopeProblems"][0]["kind"],
+                             "NON_GIT_DATA_IDENTITY_REVIEW")
+            with self.assertRaises(ValueError):
+                M.independent_scope_frontier(ROOT, primary, max_entries=1, **args)
+            symlink = pathlib.Path(tmp) / "alias"
+            symlink.symlink_to(root, target_is_directory=True)
+            with self.assertRaises(ValueError):
+                M.independent_scope_frontier(
+                    ROOT, primary, external_git=[],
+                    non_git_data=[f"alias={symlink}"])
+
+    def test_missing_explicit_namespace_and_invalid_mode_fail_closed(self) -> None:
+        sha = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+        ).strip()
+        for gis, datasets in (
+            ([], []),
+            (["missing"], []),
+            ([], ["noncanonical=relative/path"]),
+            ([], ["NOT_CANONICAL=/tmp"]),
+        ):
+            with self.assertRaises(ValueError):
+                M.independent_scope_frontier(
+                    ROOT, sha, external_git=gis, non_git_data=datasets,
+                )
+        p = subprocess.run([
+            "python3", str(ROOT / "tools/repo/exhaustive_coverage.py"),
+            "--source-cut", sha, "--external-git-cut", "fake=/tmp@HEAD",
+            "--repo", str(ROOT),
+        ], capture_output=True, text=True)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("require --scope-census", p.stderr)
+
+
+    def test_scope_census_cli_explicit_git_and_non_git_without_new_registry(self) -> None:
+        import tempfile
+        import json
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = pathlib.Path(tmp).resolve() / "dataset"
+            folder.mkdir()
+            commit = subprocess.check_output(
+                ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+            ).strip()
+            out = subprocess.check_output([
+                "python3", str(ROOT / "tools/repo/exhaustive_coverage.py"),
+                "--source-cut", commit, "--repo", str(ROOT),
+                "--scope-census", "--non-git-root", f"test-corpus={folder}",
+            ], text=True)
+            v = json.loads(out)
+            self.assertEqual(v["summary"]["crossPlaneProblemRecords"], 1)
+            self.assertEqual(v["summary"]["externalGitRoots"], 0)
+            self.assertEqual(v["summary"]["installedSourcesBoundToGit"], 0)
+            self.assertEqual(v["observedScopes"][0]["contentDigestStanding"],
+                             "NOT_COMPUTED")
+            self.assertFalse(v["proofReuseAdmissible"])
+            self.assertNotIn("semanticPlans", v)
+            self.assertNotIn("sourceCells", v)
