@@ -253,11 +253,13 @@
       "behavioralContract": "Never retries, dispatches, grants permission or certifies an external provider effect. Runtime executionTerminal=true, exitCode=0 and deliveryDisposition=committed still require provider-owned effect confirmation. Missing unindexed effect references broaden UNKNOWN through C04 instead of producing an empty impact.",
       "acceptance": [
         "tests/test_effect_reconciliation_r1.py verifies Gateway external.pull started lease expiry, runtime-terminal committed-but-effect-unknown, unrelated proof isolation and absent dynamic effect UNKNOWN.",
-        "Rejects forged native operation identity, false-like JSON terminality/recovery values and malformed caller inputs; CLI preserves same negative behavior."
+        "Rejects forged native operation identity, false-like JSON terminality/recovery values and malformed caller inputs; CLI preserves same negative behavior.",
+        "Native Lean 4.35 kernel-checks tools/formal/EffectReconciliationR21.lean: retry/admission are false, all three routes reachable, execution/delivery observation admits both provider-effect outcomes. An implementation differential test enumerates 16/16 boolean observation partitions against Lean --run projection; this does NOT prove total Python or provider-side refinement."
       ],
       "evidence": [
         "src/ordivon_composition/effect_reconciliation_r1.py",
-        "tests/test_effect_reconciliation_r1.py"
+        "tests/test_effect_reconciliation_r1.py",
+        "tests/test_effect_reconciliation_formal_bridge_r21.py"
       ],
       "dependencies": [
         "C04"
@@ -277,7 +279,8 @@
       ],
       "formalObligations": [
         "A task-local Gateway-shaped JSON record is not an authenticated native owner readback and must not grant effect/retry permission.",
-        "Effect dependency closure is caller declared; a hidden provider read remains UNKNOWN, and source/test evidence cannot prove execution exactly once."
+        "Effect dependency closure is caller declared; a hidden provider read remains UNKNOWN, and source/test evidence cannot prove execution exactly once.",
+        "Lean model proof is limited to four booleans and an independent provider-effect bit; outside-model Gateway JSON validation and selector source graph are actual Python tests, not Lean theorems. Exact Lean source must be admitted in tools/formal/verify.py; no installed or external-effect proof."
       ],
       "qualification": "SOURCE_CONTRACT_IMPLEMENTED_AND_NATIVE_NEGATIVE_TESTS; LIVE_GATEWAY_CONSUMER/INSTALLED/FORMAL_EFFECT_COMPLETION_UNKNOWN"
     }
