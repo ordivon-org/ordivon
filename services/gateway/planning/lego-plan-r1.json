@@ -1,0 +1,428 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-gateway-northbound-semantic-r1",
+    "purpose": "R2.1 source-qualified recursive responsibility boundaries for the existing Gateway MCP northbound contract. The preexisting Gateway Windows carrier R2 remains deployment-oriented and is NOT a second Gateway semantics authority.",
+    "sourceEvidence": [
+      "README.md",
+      "src/ordivon_gateway/service.py",
+      "src/ordivon_gateway/routes.py",
+      "src/ordivon_gateway/mcp_server.py",
+      "tests/test_gateway_service.py"
+    ],
+    "consumerLeadExternalSource": "extensions/ordivon-control-plane/mcp.json"
+  },
+  "nodes": [
+    {
+      "id": "G00",
+      "label": "NorthboundGatewayContract",
+      "kind": "composite_adapter",
+      "responsibility": "Expose a replaceable, non-authoritative MCP northbound interface for existing Runtime, Host and registered capability providers; adapt but never duplicate their semantic truth.",
+      "authority": "Gateway source projection only",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "Authenticated MCP call and explicitly configured owner capability routes."
+      ],
+      "outputs": [
+        "Stable MCP action and typed result/error, with source-qualified natural-owner references."
+      ],
+      "behavioralContract": [
+        "The full Gateway is a composite transport/compatibility seam; its success does not imply physical execution or domain acceptance.",
+        "Routed owner errors, identity and observational uncertainty must not silently become successful capabilities."
+      ],
+      "acceptance": [
+        "The official client configuration selects one Gateway MCP endpoint, while Runtime/Host retain effect and continuity authority.",
+        "Native Gateway tests verify bounded source behavior, not deployed client availability."
+      ],
+      "evidence": [
+        "README.md",
+        "src/ordivon_gateway/mcp_server.py",
+        "src/ordivon_gateway/service.py",
+        "tests/test_gateway_service.py",
+        "extensions/ordivon-control-plane/mcp.json"
+      ],
+      "consumerEvidence": [
+        "extensions/ordivon-control-plane/mcp.json",
+        "src/ordivon_gateway/mcp_server.py"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "Runtime Job/Attempt/Artifact physical truth",
+        "Host Work/Social/Attention continuity truth",
+        "Security IAM/identity source",
+        "Provider outcome or domain completion"
+      ]
+    },
+    {
+      "id": "G01",
+      "label": "CapabilityRouteIdentity",
+      "kind": "routing_contract",
+      "responsibility": "Map public capabilities to explicit natural-owner routes while preventing advertised/target identity substitution and implicit expansion of an empty configuration.",
+      "authority": "Gateway source projection only",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "Configured CapabilityRoute map or None default catalog, source-owned research capability references."
+      ],
+      "outputs": [
+        "Stable capability→owner selection, or rejection of inconsistent map entries."
+      ],
+      "behavioralContract": [
+        "routes=None selects configured defaults; routes={} intentionally exposes no capabilities. A map key unequal to CapabilityRoute.capability is rejected before any dispatch.",
+        "Routing metadata never grants permission, proves owner availability or changes provider-owned execution contexts."
+      ],
+      "acceptance": [
+        "test_explicit_empty_routes_do_not_expand_gateway_capabilities and test_gateway_rejects_mismatched_route_and_capability_identity pass."
+      ],
+      "evidence": [
+        "src/ordivon_gateway/routes.py",
+        "src/ordivon_gateway/service.py",
+        "tests/test_gateway_service.py",
+        "tests/test_research_capability_resolution.py"
+      ],
+      "consumerEvidence": [
+        "src/ordivon_gateway/service.py",
+        "src/ordivon_gateway/mcp_server.py"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "capability admission authorization",
+        "owner deployment health"
+      ]
+    },
+    {
+      "id": "G02",
+      "label": "OwnerCapabilityObservation",
+      "kind": "observation_projection",
+      "responsibility": "Project an on-demand, read-only qualified capability view by observing selected Runtime and Host owners; keep unavailability distinct from missing configuration and never cache owner truth across requests.",
+      "authority": "Gateway source projection only",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "Qualified G01 route selection, configured owner endpoints, owner runtime.describe or host.status responses, bounded observation budget."
+      ],
+      "outputs": [
+        "Deterministically ordered CapabilityProjection with configured/available flags or explicit observation_error."
+      ],
+      "behavioralContract": [
+        "Only read-only observations may fan out with one bounded TaskGroup per request; a failing or timed-out owner remains unavailable/unknown for that observation, never a fabricated success.",
+        "Source-side configured status and actual owner availability are independent; observations are not cached across requests and never authorize effects."
+      ],
+      "acceptance": [
+        "Native capability projection and concurrency tests cover incomplete owner evidence and deterministic ordering; source-only tests do not establish live owner health."
+      ],
+      "evidence": [
+        "src/ordivon_gateway/service.py",
+        "src/ordivon_gateway/contracts.py",
+        "tests/test_capability_projection.py",
+        "tests/test_projection_concurrency.py"
+      ],
+      "consumerEvidence": [
+        "src/ordivon_gateway/mcp_server.py",
+        "src/ordivon_gateway/service.py"
+      ],
+      "dependencies": [
+        "G01"
+      ],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "long-lived owner status cache",
+        "installed service or formal currentness"
+      ]
+    },
+    {
+      "id": "G03",
+      "label": "RuntimeOperationIdentityBridge",
+      "kind": "execution_protocol_adapter",
+      "responsibility": "Lower execution submit/resolve/get/cancel to the selected Runtime owner and preserve exact Job, request and operation reference identity, including terminal and artifact state uncertainty.",
+      "authority": "Gateway source projection only",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "Admitted Runtime execution capability, caller request id / exact public operationRef, provider-defined execution context."
+      ],
+      "outputs": [
+        "Owner-correlated ExecutionReceipt, Resolution or Observation without new Job/Attempt facts."
+      ],
+      "behavioralContract": [
+        "execution.cancel and get route by the exact Runtime owner/native Job from operationRef; reject mismatched returned Job IDs and nonboolean terminality before exposing a receipt.",
+        "A successful Gateway command is not proof that process termination, side effects or domain outcome has occurred; owner-reported recovery errors remain typed."
+      ],
+      "acceptance": [
+        "Native Gateway execution tests reject mismatched cancellation Job, untyped terminality and unqualified workspace; no physical execution correctness claim."
+      ],
+      "evidence": [
+        "src/ordivon_gateway/service.py",
+        "src/ordivon_gateway/contracts.py",
+        "tests/test_gateway_service.py",
+        "tests/test_execution_principal_request_namespace.py"
+      ],
+      "consumerEvidence": [
+        "src/ordivon_gateway/mcp_server.py",
+        "tests/test_gateway_service.py"
+      ],
+      "dependencies": [
+        "G01"
+      ],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "Runtime Job/Attempt authority",
+        "dispatch/replay truth",
+        "Windows privilege decisions"
+      ]
+    },
+    {
+      "id": "G04",
+      "label": "RuntimeArtifactReadReference",
+      "kind": "artifact_reference_adapter",
+      "responsibility": "Route artifact.read to the exact Runtime operation owner while preserving artifact identity and rejecting invented or owner-mismatched artifact evidence.",
+      "authority": "Gateway source projection only",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "Qualified Runtime operationRef and artifactId, existing Runtime artifact.read provider response."
+      ],
+      "outputs": [
+        "Bounded ArtifactChunk or owner-qualified failure."
+      ],
+      "behavioralContract": [
+        "Artifact bytes must be read through the Runtime owner specified by the operation reference; absence of artifact source identity cannot be filled with fabricated IDs.",
+        "Read results do not imply domain validation or release currentness; external.pull artifact semantics are distinct from Runtime artifacts."
+      ],
+      "acceptance": [
+        "Native artifact owner binding and incomplete artifact projection checks pass; no live artifact durability inference."
+      ],
+      "evidence": [
+        "src/ordivon_gateway/service.py",
+        "src/ordivon_gateway/contracts.py",
+        "tests/test_gateway_service.py",
+        "tests/test_capability_authz_middleware.py"
+      ],
+      "consumerEvidence": [
+        "src/ordivon_gateway/mcp_server.py",
+        "src/ordivon_gateway/capability_authz.py"
+      ],
+      "dependencies": [
+        "G03"
+      ],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "Artifact bytes authority",
+        "external.pull artifact policy",
+        "release/domain acceptance"
+      ]
+    },
+    {
+      "id": "G05",
+      "label": "HostContinuityAndCollaborationAdapter",
+      "kind": "host_protocol_adapter",
+      "responsibility": "Expose stable Host Work/Social/Attention operations as thin northbound read/write routing without recreating Host state or reinterpretation of WorkingCheckpoint schema.",
+      "authority": "Gateway source projection only",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "Explicit Host continuation/social tool request and opaque owner-managed checkpoint/message or pagination arguments."
+      ],
+      "outputs": [
+        "Host-owned Work/Social/Attention values, mutation receipts or qualified errors."
+      ],
+      "behavioralContract": [
+        "Host remains sole semantic state owner; Gateway forwards bounded Host arguments and preserves returned identity, cursor and native error semantics.",
+        "Host unavailability is not permission to mint a replacement Host ledger, cursor or workflow state in Gateway."
+      ],
+      "acceptance": [
+        "Native Host-northbound compatibility tests verify exact delegated semantics in a fake-owner lane."
+      ],
+      "evidence": [
+        "src/ordivon_gateway/service.py",
+        "src/ordivon_gateway/contracts.py",
+        "tests/test_gateway_service.py",
+        "tests/test_host_byte_budget_tool_contract.py"
+      ],
+      "consumerEvidence": [
+        "src/ordivon_gateway/mcp_server.py"
+      ],
+      "dependencies": [
+        "G01"
+      ],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "Host Work/Space/Message authoritative write",
+        "duplicated Host checkpoint state"
+      ]
+    },
+    {
+      "id": "G06",
+      "label": "ServerBoundArtifactAuthorizationTarget",
+      "kind": "authorization_target_adapter",
+      "responsibility": "Derive an exact protected Runtime-artifact authorization resource from trusted Gateway operation reference semantics before invoking the existing Security authorizer; reject unknown targets closed.",
+      "authority": "Gateway source projection only",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "Verified ingress request state; artifact.read tool name; exact Runtime operationRef/artifactId; trusted Security policy interface."
+      ],
+      "outputs": [
+        "Qualified CapabilityAuthorizationTarget and Security authorization result or fail-closed error before owner call."
+      ],
+      "behavioralContract": [
+        "Untrusted tool arguments or MCP metadata cannot supply principal authority. A malformed/foreign artifact owner or mismatched Security principal/resource cannot reach a protected owner call.",
+        "Optional narrow PEP does not claim all Gateway methods are authorized; absent Security provider or a denied protected request must not silently allow that protected effect."
+      ],
+      "acceptance": [
+        "Native Security PEP tests cover server-derived resource identity, malformed/foreign references, principal mismatch, denial and unavailable authorizer."
+      ],
+      "evidence": [
+        "src/ordivon_gateway/capability_authz.py",
+        "src/ordivon_gateway/authzen_authorizer.py",
+        "tests/test_capability_authz_middleware.py",
+        "tests/test_authzen_authorizer.py"
+      ],
+      "consumerEvidence": [
+        "src/ordivon_gateway/mcp_server.py",
+        "src/ordivon_gateway/service.py"
+      ],
+      "dependencies": [
+        "G04",
+        "G07"
+      ],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "identity provider source truth",
+        "generic IAM decision engine",
+        "authorization of every method by assumption"
+      ]
+    },
+    {
+      "id": "G07",
+      "label": "IngressPrincipalVerification",
+      "kind": "authentication_adapter",
+      "responsibility": "Verify the declared northbound Cloudflare Access or loopback service identity and inject bounded authenticated request identity for subsequent optional authorization/routing.",
+      "authority": "Gateway source projection only",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "Incoming Gateway request headers, configured verifier issuer/audience/key material or local loopback token file."
+      ],
+      "outputs": [
+        "Verified request principal context or rejection; no raw token disclosure."
+      ],
+      "behavioralContract": [
+        "Unverified assertions, wrong issuer/audience/expiry/subject and invalid loopback bearer must not become authenticated principal.",
+        "Authenticated ingress is distinct from object-level authorization and does not transfer owner execution privileges."
+      ],
+      "acceptance": [
+        "Native ingress tests reject bad claims, enforce loopback-only service bearer and preserve separate remote Cloudflare verification."
+      ],
+      "evidence": [
+        "src/ordivon_gateway/access_auth.py",
+        "src/ordivon_gateway/upstream.py",
+        "tests/test_access_auth.py",
+        "tests/test_upstream_identity.py"
+      ],
+      "consumerEvidence": [
+        "src/ordivon_gateway/mcp_server.py",
+        "src/ordivon_gateway/capability_authz.py"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "external identity provider",
+        "Security policy decision",
+        "Runtime operator privilege"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "G00",
+      "to": "G01",
+      "type": "COMPOSITION",
+      "label": "Gateway composite contains bounded responsibility; not an implementation proof"
+    },
+    {
+      "from": "G00",
+      "to": "G02",
+      "type": "COMPOSITION",
+      "label": "Gateway composite contains bounded responsibility; not an implementation proof"
+    },
+    {
+      "from": "G00",
+      "to": "G03",
+      "type": "COMPOSITION",
+      "label": "Gateway composite contains bounded responsibility; not an implementation proof"
+    },
+    {
+      "from": "G00",
+      "to": "G04",
+      "type": "COMPOSITION",
+      "label": "Gateway composite contains bounded responsibility; not an implementation proof"
+    },
+    {
+      "from": "G00",
+      "to": "G05",
+      "type": "COMPOSITION",
+      "label": "Gateway composite contains bounded responsibility; not an implementation proof"
+    },
+    {
+      "from": "G00",
+      "to": "G06",
+      "type": "COMPOSITION",
+      "label": "Gateway composite contains bounded responsibility; not an implementation proof"
+    },
+    {
+      "from": "G00",
+      "to": "G07",
+      "type": "COMPOSITION",
+      "label": "Gateway composite contains bounded responsibility; not an implementation proof"
+    },
+    {
+      "from": "G01",
+      "to": "G02",
+      "type": "CONTROL",
+      "label": "selection bounds read-only owner observation"
+    },
+    {
+      "from": "G01",
+      "to": "G03",
+      "type": "CONTROL",
+      "label": "capability route selects native Runtime endpoint"
+    },
+    {
+      "from": "G01",
+      "to": "G05",
+      "type": "CONTROL",
+      "label": "host route forwards continuity and collaboration to Host"
+    },
+    {
+      "from": "G03",
+      "to": "G04",
+      "type": "IDENTITY",
+      "label": "artifact reads bind to existing Runtime execution owner and Job identity"
+    },
+    {
+      "from": "G07",
+      "to": "G06",
+      "type": "IDENTITY",
+      "label": "verified ingress principal is an authorization prerequisite, not authorization"
+    },
+    {
+      "from": "G06",
+      "to": "G04",
+      "type": "CONTROL",
+      "label": "optional narrow Security PEP gates Runtime artifact read"
+    }
+  ],
+  "slices": [],
+  "gaps": [
+    "All G00..G07 identities are source-side qualified only. Static plugin MCP configuration is a declared external consumer path; it does not establish live connected client invocation or loaded deployment currentness.",
+    "Gateway Windows R2 is a separate historical deployment carrier. Its GW* task-planning labels, sourceVersion and historical installed observations are not general Gateway LEGO identity or CURRENTNESS authority.",
+    "External.pull worker is optional transport with separate authority and SQLite historical mechanics; do not infer a universal Gateway job store, production authorizer, or mandatory lifecycle.",
+    "Cross-owner dynamic callers and qualified runtime effects remain UNKNOWN until exact installed Gateway, Runtime, Host, Security, external principal and source-cut receipts are bound.",
+    "Proof obligations: G06 cannot access G04 without trusted G07 principal and exact resource, G03 cannot substitute Runtime Job identity, G02 observation never grants G03 execution; abstract positive examples are not an implementation-wide proof."
+  ],
+  "doNotOwn": [
+    "Runtime Job/Attempt/Artifact physical authority",
+    "Host semantic collaboration continuity",
+    "Security IAM and principal source",
+    "external provider/domain acceptance",
+    "second global LEGO registry"
+  ]
+}
