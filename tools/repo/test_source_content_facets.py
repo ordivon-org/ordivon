@@ -57,6 +57,19 @@ class SourceContentFacetTests(unittest.TestCase):
                             and x["consumerStanding"]=="UNKNOWN"
                             for x in seed["specificPathDisplayAliases"]))
 
+    def test_content_grounded_names_do_not_override_legacy_paths(self):
+        seed=json.loads((ROOT / "docs/architecture/evidence/ORDIVON_PHASE1_NAME_SEEDS_20261027_R4.json").read_text())
+        cases=seed["contentObservedNameCounterexamples"]
+        self.assertEqual(len(cases),12)
+        self.assertEqual(len({c["sourcePrefix"] for c in cases}),12)
+        self.assertTrue(all(c["mayRenamePhysicalPath"] is False
+                            and c["consumerStanding"]=="UNKNOWN"
+                            and len(c["baselineWitnessGitBlob"])==40
+                            for c in cases))
+        self.assertTrue(any(c["sourcePrefix"]=="domains/capital/destroyer/"
+                            and "false-positive" in c["proposedDisplayName"]
+                            for c in cases))
+
     def test_external_standards_records_are_not_runtime_authority(self):
         seed=json.loads((ROOT / "docs/architecture/evidence/ORDIVON_PHASE1_NAME_SEEDS_20261027_R4.json").read_text())
         original={x["sourcePrefix"]:x for x in seed["specificPathDisplayAliases"]}

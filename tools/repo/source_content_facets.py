@@ -233,6 +233,45 @@ def compile_projection(repo: Path, cut: str) -> dict:
             "installedStanding":"UNKNOWN",
             "mayPhysicallyRename":False
         })
+    # Independent peer's 12 exact Git blob + literal marker counterexamples
+    # constrain naming errors; they do NOT prove actual runtime consumption.
+    peer_counterexamples=seed["contentObservedNameCounterexamples"]
+    if len(peer_counterexamples)!=12:
+        raise ValueError("the bounded independent source counterexample set must have 12 entries")
+    pathindex={row["path"]:row for row in rows}
+    peer_summary=[]
+    for witness in peer_counterexamples:
+        original=witness["witnessPath"]
+        entry=pathindex.get(original)
+        prior_oid=witness["baselineWitnessGitBlob"]
+        present_oid=entry["blobOid"] if entry is not None else None
+        marker=witness["expectedLiteralContentMarker"].encode("utf8")
+        blob=content.get(present_oid) if present_oid is not None else None
+        status=("WITNESS_NOT_IN_GIT_CUT" if entry is None else
+                "WITNESS_BLOB_CHANGED" if present_oid!=prior_oid else
+                "WITNESS_CONTENT_NOT_READ" if blob is None else
+                "WITNESS_GIT_BLOB_AND_LITERAL_MATCH" if marker in blob else
+                "WITNESS_MARKER_MISSING")
+        prefix=witness["sourcePrefix"]
+        source_count=sum(x["path"].startswith(prefix) for x in rows)
+        other=[x["proposedName"] for x in specific if
+               x["sourcePrefix"]==prefix]
+        peer_summary.append({
+           "sourcePrefix":prefix,
+           "displayCandidate":witness["proposedDisplayName"],
+           "otherDisplayCandidatesSamePrefix":sorted(other),
+           "semanticFalseFriend":witness["misleadingLegacyConflation"],
+           "witnessSourcePath":original,
+           "witnessSourceIdentity":None if entry is None else
+                                   entry["mode"]+":"+entry["blobOid"],
+           "baselineWitnessBlob":prior_oid,
+           "witnessStatus":status,
+           "priorMemberCount":witness["priorPrefixFileCount"],
+           "currentMemberCount":source_count,
+           "consumerStanding":"UNKNOWN",
+           "formalSemanticStanding":"NOT_PROVED",
+           "physicalRenameAllowed":False,
+        })
     dense_summary=[]
     for label in dense:
         name=label["proposedName"];paths=sorted(dense_hits[name])
@@ -259,6 +298,7 @@ def compile_projection(repo: Path, cut: str) -> dict:
        "readStandings":dict(sorted(inspected.items())),"maxBlobSize":maxsize,
        "dense60":dense_summary,
        "specific26":scoped_summary,
+       "contentObservedCounterexamples12":peer_summary,
        "scopedNameSyntaxOnly":True,
        "denseGroupOverlap":dict(ambiguity),
        "r2RecursiveCellClaimsFromPriorSurvey":718,
