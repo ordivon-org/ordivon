@@ -127,6 +127,42 @@ def test_gateway_recursive_source_contracts_are_non_authoritative_and_consumer_b
         module.validate_owner_lego_graph(broken)
 
 
+
+def test_preservation_recursive_profile_bindings_are_source_only_and_fail_closed() -> None:
+    """Qualified local source, storage route and fixity schedule are not AIP truth."""
+    relative = "capabilities/preservation/planning/lego-plan-r1.json"
+    document = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+    module.validate_owner_lego_graph(document)
+    module.validate_owner_lego_dependencies(document, "capabilities/preservation")
+    assert {item["id"] for item in document["nodes"]} == {
+        "PV00", "PV01", "PV02", "PV03",
+    }
+    for node in document["nodes"]:
+        assert all(node[field] for field in (
+            "responsibility", "inputs", "outputs", "behavioralContract", "acceptance",
+            "evidence", "consumerEvidence",
+        ))
+        assert node["state"] == "SOURCE_QUALIFIED_NOT_INSTALLED"
+    assert any(edge["from"] == "PV02" and edge["to"] == "PV03"
+               and edge["type"] == "DEPENDENCY" for edge in document["edges"])
+    boundary = json.loads((ROOT / "capabilities/preservation/SOURCE_BOUNDARY.json")
+                          .read_text(encoding="utf-8"))
+    assert "planning/lego-plan-r1.json" in boundary["includedPaths"]
+    assert "planning/**" not in boundary["includedPaths"]
+    graph = module.project_owner_lego_source_graph(ROOT)
+    for identity in ("PV00", "PV01", "PV02", "PV03"):
+        vertex = next(v for v in graph["vertices"] if v["ref"] == f"{relative}#{identity}")
+        assert vertex["sourceAnchors"] and not vertex["unresolvedSourceEvidence"]
+        assert vertex["sourceCoverageStanding"] == "DECLARED_SOURCE_MEMBERSHIP_PARTIAL"
+    assert "ACTUAL_CONSUMER" in graph["excluded"]["unverifiedFacets"]
+    wrong = copy.deepcopy(document)
+    wrong["edges"].append({
+        "from": "PV03", "to": "PV_NONEXISTENT", "type": "DEPENDENCY",
+    })
+    with pytest.raises(module.ArchitectureDocsError, match="unknown LEGO edge endpoint"):
+        module.validate_owner_lego_graph(wrong)
+
+
 @pytest.mark.parametrize("relative", OWNER_GRAPH_PLANS)
 def test_owner_slice_relation_is_closed(relative: str) -> None:
     module.validate_owner_lego_graph(json.loads((ROOT / relative).read_text(encoding="utf-8")))
