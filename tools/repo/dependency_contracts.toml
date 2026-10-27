@@ -189,3 +189,51 @@ source_glob = "packages/composition/tests/test_verification_obligation_r1.py"
 allowed_fragment = "services/runtime/formal/RuntimeDispatchR1.trace-r1.json"
 kind = "TEST_ONLY_SOURCE_CONTRACT"
 contract_ref = "services/runtime/formal/RuntimeDispatchR1.trace-r1.json"
+
+
+# Exact repository-source consumer: Gateway research routes admit only
+# Research-owned publication closure and perceptual carrier profiles.
+# This is a SOURCE_PATH_CONSUMER seam, not evidence of installed route usage.
+[[seams]]
+from_owner = "gateway"
+to_owner = "research"
+source_glob = "services/gateway/src/ordivon_gateway/research_routes.py"
+allowed_fragment = "meta/research/publication-closure-profile-r2.json"
+kind = "READ_ONLY_DOMAIN_PROFILE_CONSUMER"
+contract_ref = "meta/research/publication-closure-profile-r2.json"
+
+[[seams]]
+from_owner = "gateway"
+to_owner = "research"
+source_glob = "services/gateway/src/ordivon_gateway/research_routes.py"
+allowed_fragment = "meta/research/publication/perceptual-conformance-profile-r1.json"
+kind = "READ_ONLY_DOMAIN_PROFILE_CONSUMER"
+contract_ref = "meta/research/publication/perceptual-conformance-profile-r1.json"
+
+# Artifact publication acceptance tests consume Research venue/profile
+# source only as test fixtures, not as a distribution write authority.
+[[seams]]
+from_owner = "artifact"
+to_owner = "research"
+source_glob = "capabilities/artifact/tests/test_artifact_publication_carrier_r1.py"
+allowed_fragment = "meta/research/venues/fse-2027-research-r1.json"
+kind = "TEST_ONLY_DOMAIN_PROFILE_CONSUMER"
+contract_ref = "meta/research/venues/fse-2027-research-r1.json"
+
+[[seams]]
+from_owner = "artifact"
+to_owner = "research"
+source_glob = "capabilities/artifact/tests/test_artifact_publication_carrier_r1.py"
+allowed_fragment = "meta/research/publication-closure-profile-r1.json"
+kind = "TEST_ONLY_DOMAIN_PROFILE_CONSUMER"
+contract_ref = "meta/research/publication-closure-profile-r1.json"
+
+# Media's published R2.1 study cites the original semantic Skill as evidence.
+# This is a non-executable source citation, not an Agent tool/Skill grant.
+[[seams]]
+from_owner = "media"
+to_owner = "lego-foundation"
+source_glob = "capabilities/media/productions/fishing-fable-lego-study-r1/claims.json"
+allowed_fragment = ".agents/skills/recursive-lego-calculus/SKILL.md"
+kind = "SOURCE_CITATION_NOT_EXECUTION"
+contract_ref = ".agents/skills/recursive-lego-calculus/SKILL.md"
