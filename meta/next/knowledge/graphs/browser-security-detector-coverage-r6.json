@@ -147,7 +147,6 @@
     "test page-visible consequences of residual command-line/target/geometry differences without protected-provider access",
     "use future CF07 longitudinal evidence only for descriptive cadence/history analysis unless an independent causal design is introduced"
   ],
-  "previousCoverage": "knowledge/graphs/browser-security-detector-coverage-r5.json",
   "protectedChallengeUsedAsDetectorOracle": false,
   "rootCauseStanding": "OPEN",
   "schemaVersion": 1
