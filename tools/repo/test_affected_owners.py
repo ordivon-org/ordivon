@@ -171,7 +171,6 @@ class AffectedOwnersTests(unittest.TestCase):
         self.assertEqual(self.names("./services/runtime/src/lib.rs"), ["runtime"])
 
     def test_git_cross_owner_move_selects_both_endpoints(self) -> None:
-        import os
         import subprocess
 
         with tempfile.TemporaryDirectory() as directory:
@@ -179,6 +178,16 @@ class AffectedOwnersTests(unittest.TestCase):
             subprocess.run(["git", "init", "-q", "-b", "main", directory], check=True)
             subprocess.run(["git", "-C", directory, "config", "user.name", "CDC"], check=True)
             subprocess.run(["git", "-C", directory, "config", "user.email", "cdc@example.invalid"], check=True)
+            manifest = root / "tools/repo/owners.toml"
+            manifest.parent.mkdir(parents=True)
+            manifest.write_text(
+                'schema_version = 1\n'
+                'truth_role = "repository-mechanics-only-not-domain-authority"\n'
+                '[[owners]]\nname = "runtime"\nroot = "services/runtime/"\n'
+                'verify_task = "runtime:verify"\n'
+                '[[owners]]\nname = "gateway"\nroot = "services/gateway/"\n'
+                'verify_task = "gateway:verify"\n'
+            )
             source = root / "services/runtime/src/example.txt"
             source.parent.mkdir(parents=True)
             source.write_text("consumer\n")
@@ -191,12 +200,8 @@ class AffectedOwnersTests(unittest.TestCase):
             subprocess.run(["git", "-C", directory, "add", "-A"], check=True)
             subprocess.run(["git", "-C", directory, "commit", "-qm", "move"], check=True)
             after = subprocess.check_output(["git", "-C", directory, "rev-parse", "HEAD"], text=True).strip()
-            previous = Path.cwd()
-            try:
-                os.chdir(root)
-                paths = MODULE.changed_paths(before, after)
-            finally:
-                os.chdir(previous)
+            paths, selected = MODULE.owners_for_revision_range(root, before, after)
+            self.assertEqual({owner.name for owner in selected}, {"runtime", "gateway"})
             self.assertEqual(
                 set(paths),
                 {"services/runtime/src/example.txt", "services/gateway/src/example.txt"},

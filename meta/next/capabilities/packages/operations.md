@@ -24,9 +24,11 @@ Select by problem:
 
 Do not collapse these different responsibilities into a new Ordivon operations daemon or private telemetry ontology.
 
-## Observed local capability
+## Dated observations and execution-node source
 
-Current local implementation/owner record: `capabilities/providers/workstation-v2.md`.
+Execution-node source reference: `capabilities/providers/workstation-v2.md`.
+The observations below describe the dated study; they are not a live installation inventory.
+Current desired state is maintained under `platform/workstation/`.
 
 - Workstation v2 (`/root/projects/ordivon@a003ca18b7e43ea4012d62db8d8d71198d68d961`, owner path `platform/workstation`);
 - Runtime execution/evidence (`/root/projects/ordivon/services/runtime@7741c2e9e53fc4954ce16b692cfe19b27703caee`);
@@ -37,7 +39,7 @@ Current local implementation/owner record: `capabilities/providers/workstation-v
 - systemd;
 - Docker / Podman;
 - accepted OTLP logs+metrics composition in Workstation v2: Vector 0.57.0 receives OTLP gRPC/HTTP; logs flow to Loki 3.6.6; metrics flow as OTLP to Prometheus 3.14.0; node_exporter remains for host metrics;
-- traces are intentionally routed to a deferred blackhole because no trace backend/use-case is currently admitted; no `otelcol`, Jaeger or Tempo executable was observed in the current shell during the 2026-09-14 study;
+- the 2026-09-14 study observed deferred trace storage and no local `otelcol`, Jaeger or Tempo executable; later source now contains Vector-to-Tempo routing and an on-demand observability target under `platform/workstation/observability/`; current activation and useful-query acceptance require fresh provider evidence;
 - no Langfuse or Phoenix executable/Docker image/local project was observed during the 2026-09-14 comparison;
 - PostgreSQL/backup substrate where required.
 
@@ -47,7 +49,10 @@ No generic Operations framework gap is proven.
 
 A real workload that requires durable orchestration across crashes, long timers/waits, retryable Activities or interactive Workflow state may justify activating Temporal. Until such a workload exists, do not create installation/cluster debt merely to satisfy the capability catalog.
 
-A real workload that requires causal trace queries may justify admitting a trace backend or AI-engineering product. For lightweight internal Agent/eval work, Phoenix is the first candidate; for shared production AI engineering with collaborative prompt/eval/annotation workflows, Langfuse is the first candidate. Their overlap is high, so deploy at most one unless distinct measured workloads justify both. See `capabilities/providers/phoenix.md`, `capabilities/providers/langfuse.md`, and `knowledge/lessons/langfuse-phoenix-ai-engineering-platform-kernel.md`. Until such a workload exists, the current deliberate no-trace-storage boundary is valid; do not install tracing infrastructure for diagram completeness.
+A real workload that requires causal trace queries may justify admitting a trace backend or AI-engineering product. For lightweight internal Agent/eval work, Phoenix is the first candidate; for shared production AI engineering with collaborative prompt/eval/annotation workflows, Langfuse is the first candidate. Their overlap is high, so deploy at most one unless distinct measured workloads justify both. See `capabilities/providers/phoenix.md`, `capabilities/providers/langfuse.md`, and `knowledge/lessons/langfuse-phoenix-ai-engineering-platform-kernel.md`. Reuse the existing Workstation trace path when it meets the workload contract.
+The 2026-09-28 observation in `docs/architecture/deployed-architecture-r1.json`
+records Tempo as on-demand and cold by default; it does not prove today's activation.
+Do not introduce another trace backend merely to fill a catalog slot.
 
 Cloud/Kubernetes, scheduler, backup, HA, SLO, secret-management or monitoring components become gaps only when the operated workload actually requires them.
 

@@ -154,21 +154,6 @@ def owners_for_paths(
     return tuple(selected)
 
 
-def changed_paths(base: str, head: str) -> tuple[str, ...]:
-    # Preserve both sides of a cross-owner move, rather than allowing Git's
-    # similarity detection to hide the source owner from verification.
-    proc = subprocess.run(
-        [
-            "git", "diff", "--name-only", "--no-renames", "-z",
-            "--diff-filter=ACDMRTUXB", f"{base}...{head}",
-        ],
-        check=True,
-        stdout=subprocess.PIPE,
-    )
-    return tuple(os.fsdecode(path) for path in proc.stdout.split(b"\0") if path)
-
-
-
 def owners_for_revision_range(
     repo: Path, base: str, head: str
 ) -> tuple[tuple[str, ...], tuple[Owner, ...]]:

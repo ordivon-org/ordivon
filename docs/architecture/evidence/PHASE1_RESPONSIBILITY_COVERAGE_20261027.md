@@ -73,3 +73,51 @@ Runtime Job `job-01a17bad-0d48-7fb2-85c5-c183a451998c`: dedicated temporary Post
 Initial Host verification caught an obsolete exact dependency-set assertion. The regression now retains the required O04→O01/O02 dependency subset while permitting independently evidenced semantic additions; existing graph validation checks endpoints and relation consistency.
 
 Final identity falsification detected historical O05 ScopeBoundCursor reuse. The four additions now use previously unused O09–O12; historical Git plan identities were enumerated before reassignment. The original tombstone regression remains intact. Plan-only identity changes do not invalidate the unchanged implementation test evidence. Final architecture/graph regressions and root repo:ci were rerun: 384 targeted tests and 442 root-gate pytest cases passed, plus root native checks.
+
+## Designed-scope frontier — 2026-10-28 addendum
+
+Inspected main: 5e61ef7b27acbf98fce2374b65f35536ebbaaba5.
+Classification candidate: 949c62de7c98d0de88c1b9f697c46fbf5360ab70.
+The earlier survey's historical SourceCut and acceptance remain separately scoped.
+
+One complete Git tree does not enumerate every responsibility Ordivon is designed
+to consume. Existing exhaustive_coverage.py now exposes coverageDomain and
+coverageQualification in full, recursive-cell and exact-path query results.
+COMPLETE_AT_SOURCECUT applies to the source index, not to the cardinality of a
+returned subset. Designed responsibilities, actual consumer closure, installed
+realization and external-environment coverage remain UNKNOWN.
+
+| Agent-facing scope | Existing evidence | Remaining coverage obligation |
+| --- | --- | --- |
+| Study and domain acceptance | meta/research/publication-closure-profile-r2.json | Actual Study, venue, external-standard and reserved Human decision consumers; profile presence is not scientific acceptance |
+| Identity and credential realization | CURRENT_ARCHITECTURE sections 3/6; Runtime, Security and Workstation | Current principal/provider/effect binding per environment; configured routes are not authorized effects |
+| Durable orchestration and recovery | Workstation Temporal/n8n; Harness Run; Runtime Job/Attempt | Actual workflow consumers, restart/replay and external-effect reconciliation |
+| Browser and operational observation | CURRENT_ARCHITECTURE sections 2/7/9; Workstation observability | Active browser/session capability, trace activation and useful causal-query acceptance |
+| External source and consumers | STRUCTURE_R2 source/runtime topology boundary | Independent repository identity/currentness and real consumer links; matching relative filenames do not prove equivalence |
+| Live state and data lifecycle | Runtime Job/Attempt/Workspace/Artifact and Host Work/Space/Topic/Message APIs | Current instances, retained data, recovery consumers and retirement conditions; source paths do not enumerate durable records |
+
+These are investigation scopes, not new Owners, services or a second registry.
+Reject unnecessary proposals; investigate unknown existing consumers before deletion.
+
+Actual bounded subtraction in this batch:
+
+- Remove affected_owners.changed_paths only on the candidate where the new revision
+  selector serves both CLI and CI. Its sole remaining caller was its own test.
+  Preserve the cross-owner move law through the real revision selector and Git manifests.
+- Remove present-tense no-trace-storage assertions from Operations/Workstation cards.
+  Retain dated observations and use existing Vector/Tempo source for discovery.
+- Retain Research profile R1: an Artifact test still consumes it. R2's existence
+  alone does not justify deleting R1.
+
+No directory migration or production activation is performed. Source aliases
+aid navigation; real consumer and realization obligations determine later moves.
+
+A bounded native read on 2026-10-28 independently confirmed Gateway
+system.describe version 0.8.1 and 17 capability names, including Research
+composition metadata beyond the four core route families. Host host.status
+reported PostgreSQL schema 10; Linux runtime.describe reported its native
+local target configured and available. These observations do not establish
+Windows availability, effect permission, credential continuity or end-to-end
+consumer success. The dated September deployment baseline must not be used as
+a complete current capability inventory. Refresh the native interfaces when
+a decision depends on those facts; do not copy another permanent live catalog.
