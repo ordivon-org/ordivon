@@ -454,6 +454,70 @@ def _node_declared_source_anchors(
     return sorted(anchors, key=lambda row: row["path"]), sorted(set(unresolved))
 
 
+def _declared_r21_semantic_profile(
+    node: dict[str, Any], anchors: list[dict[str, str]],
+) -> dict[str, Any]:
+    """Expose existing R2.1 plan declarations, not new proof/consumer truth.
+
+    Formal references must point to an exact source-anchored file. A declaration
+    and its Git blob identity do not establish property semantics or refinement.
+    """
+    profile: dict[str, Any] = {}
+    for field, output in (("inputs", "declaredInputs"), ("outputs", "declaredOutputs")):
+        if field not in node:
+            continue
+        value = node[field]
+        if not isinstance(value, list) or not value or any(
+            not isinstance(x, str) or not x.strip() for x in value
+        ):
+            raise ArchitectureDocsError(f"LEGO node {node['id']} invalid {field}")
+        profile[output] = value
+    if "behavioralContract" in node:
+        value = node["behavioralContract"]
+        if not isinstance(value, str) or not value.strip():
+            raise ArchitectureDocsError(f"LEGO node {node['id']} invalid behavioralContract")
+        profile["declaredBehavioralContract"] = value
+    if "formalLinks" in node:
+        links = node["formalLinks"]
+        if not isinstance(links, list) or not links:
+            raise ArchitectureDocsError(f"LEGO node {node['id']} invalid formalLinks")
+        by_source = {anchor["path"]: anchor for anchor in anchors}
+        owner = node.get("_ownerForPlanProjection")
+        # Only caller-derived source membership, never caller-supplied proof PASS.
+        qualified: list[dict[str, str]] = []
+        seen: set[tuple[str, str]] = set()
+        for link in links:
+            if not isinstance(link, dict) or any(
+                not isinstance(link.get(k), str) or not link[k].strip()
+                for k in ("ref", "relation", "property", "evidenceRole")
+            ):
+                raise ArchitectureDocsError(f"LEGO node {node['id']} malformed formal link")
+            identity = (link["ref"], link["property"])
+            if identity in seen:
+                raise ArchitectureDocsError(f"LEGO node {node['id']} duplicate formal link")
+            seen.add(identity)
+            # Owner relative paths are resolved only against previously qualified
+            # source anchors, not through ambient filesystem reads.
+            candidates = [link["ref"]]
+            if isinstance(owner, str):
+                candidates.insert(0, owner + "/" + link["ref"])
+            anchor = next((by_source[c] for c in candidates if c in by_source), None)
+            if anchor is None:
+                raise ArchitectureDocsError(f"LEGO node {node['id']} unanchored formal link")
+            qualified.append({
+                "sourcePath": anchor["path"],
+                "sourceIdentity": anchor["sourceIdentity"],
+                "relation": link["relation"],
+                "property": link["property"],
+                "evidenceRole": link["evidenceRole"],
+                "qualification": "SOURCE_ANCHORED_DECLARATION_NOT_FORMAL_PROOF",
+            })
+        profile["declaredFormalLinks"] = qualified
+    if profile:
+        profile["semanticStanding"] = "DECLARED_R21_PROFILE_NOT_BEHAVIORALLY_VERIFIED"
+    return profile
+
+
 def project_owner_lego_source_graph(
     root: Path = ROOT, *, source_revision: str | None = None,
 ) -> dict[str, Any]:
@@ -540,9 +604,15 @@ def project_owner_lego_source_graph(
             anchors, unresolved = _node_declared_source_anchors(
                 root, owner, node.get("evidence", []), git_tree=git_tree,
             )
+            # The immutable Git (or worktree) anchors qualify source membership
+            # only. Exposing a typed R2.1 declaration is not a proof of its truth.
+            profile = _declared_r21_semantic_profile(
+                {**node, "_ownerForPlanProjection": owner}, anchors,
+            )
             vertices.append({
                 "ref": ref(node["id"]),
                 "declaredKind": node["kind"],
+                **profile,
                 "declaredEvidence": node.get("evidence", []),
                 "sourceAnchors": anchors,
                 "unresolvedSourceEvidence": unresolved,
