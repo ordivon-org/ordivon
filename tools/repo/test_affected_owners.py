@@ -430,6 +430,23 @@ class SourceClassificationTests(unittest.TestCase):
         self.assertEqual(row["sourceRegion"], "one")
         self.assertEqual(row["classificationStanding"], "DECLARED_SOURCE_REGION")
 
+    def test_source_cell_names_are_bounded_path_labels_not_new_lego_owners(self) -> None:
+        # One native Runtime systemd source carries a visibly distinct
+        # packaging responsibility, but source naming is not installation,
+        # verification authority or a second LEGO identity.
+        source = self.repo / "services/runtime/packaging/systemd/runtime.service"
+        source.parent.mkdir(parents=True, exist_ok=True)
+        source.write_text("[Service]\\nExecStart=/bin/true\\n")
+        result = self.project(self.commit())
+        row = next(item for item in result["entries"] if item["path"] ==
+                   "services/runtime/packaging/systemd/runtime.service")
+        self.assertEqual(row["sourceCellRole"], "RUNTIME_SYSTEMD_PACKAGING_SOURCE")
+        self.assertEqual(row["verificationOwner"], "runtime")
+        self.assertEqual(row["classificationLayer"], "REPOSITORY_VERIFICATION_REGION")
+        self.assertFalse(result["proofReuseAdmissible"])
+        self.assertNotIn("installed", row)
+        self.assertNotIn("verifiedBy", row)
+
     def test_regions_cannot_acquire_validation_or_authority(self) -> None:
         for field in ["verify_task", "authority"]:
             with self.subTest(field=field):
