@@ -20,8 +20,31 @@ def test_exact_contract_requires_distinct_parquet_producer_and_readback_engine()
     assert contract["externalFinancialWritesAllowed"] is False
 
 
+def test_r17_qualification_uses_current_declared_capital_python_version():
+    import ast
+
+    current = (ROOT / ".python-version").read_text().strip()
+    assert current == "3.15.1"
+    source = (ROOT / "tools/qualification/parquet_duckdb_owner_r17.py").read_text()
+    parsed = ast.parse(source)
+    expected = tuple(map(int, current.split(".")))
+    guarded_versions = []
+    for node in ast.walk(parsed):
+        if isinstance(node, ast.Compare) and isinstance(node.left, ast.Subscript):
+            if (isinstance(node.left.value, ast.Attribute)
+                    and node.left.value.attr == "version_info"
+                    and isinstance(node.left.value.value, ast.Name)
+                    and node.left.value.value.id == "sys"):
+                for comparator in node.comparators:
+                    if isinstance(comparator, ast.Tuple):
+                        values = tuple(v.value for v in comparator.elts
+                                       if isinstance(v, ast.Constant))
+                        guarded_versions.append(values)
+    assert expected in guarded_versions
+
+
 @pytest.mark.provider_qualification
-def test_r17_cross_engine_falsification_latest_pyarrow_python3150():
+def test_r17_cross_engine_falsification_latest_pyarrow_python3151():
     out = subprocess.check_output(
         [str(ROOT / "scripts/run-parquet-duckdb-owner-requalification-r17")],
         cwd=ROOT, text=True,
@@ -29,7 +52,7 @@ def test_r17_cross_engine_falsification_latest_pyarrow_python3150():
     result = json.loads(out)
     assert result["kind"] == "ordivon.capital.research.parquet-owner-requalification-r17"
     assert result["pyarrow"]["version"] == "26.0.0"
-    assert result["pyarrow"]["python3150ExecutableQualification"] == "PASS"
+    assert result["pyarrow"]["python3151ExecutableQualification"] == "PASS"
     assert result["duckdb"]["version"] == "1.5.5"
     assert result["externalFinancialWriteAttempted"] is False
     assert result["externalOwnerAdmitted"] is False
