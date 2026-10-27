@@ -24,7 +24,7 @@ with current Media consumers, not preservation-format authority.
 
 ## Host Fixity consumer binding LEGO (source profile only)
 
-- **Identity:** preservation.host-fixity-source-binding, an existing Compose and systemd profile, not a new scanner/runtime.
+- **Identity:** PV03 ScheduledArtefactualFixityConsumer in the existing Owner-local R2.1 plan; this refines its source consumer binding rather than introducing a second identity, scanner or runtime.
 - **Independent responsibility:** keep a locally routable Archivematica Storage Service source profile connected to the intended one-shot Fixity client and its scheduling Timer.
 - **Inputs:** Owner-tracked R10 Compose overlay, Fixity R7 Service/Timer, credential environment-file reference (not private bytes).
 - **Outputs:** positive or fail-closed source-profile contract standing; no provider effect.

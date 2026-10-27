@@ -82,6 +82,20 @@ class SourceBoundaryContractTests(unittest.TestCase):
                 result = self.verify(valid, optimized=optimized)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def test_owner_local_lego_plan_requires_explicit_manifest_admission(self) -> None:
+        """A newly added planning artifact is normal payload, never a free bypass."""
+        valid = json.loads(BOUNDARY.read_text(encoding="utf-8"))
+        assert "planning/lego-plan-r1.json" in valid["includedPaths"]
+        assert (BOUNDARY.parent / "planning/lego-plan-r1.json").is_file()
+        for optimized in (False, True):
+            with self.subTest(optimized=optimized):
+                altered = copy.deepcopy(valid)
+                altered["includedPaths"].remove("planning/lego-plan-r1.json")
+                result = self.verify(altered, optimized=optimized)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("escaped SOURCE_BOUNDARY", result.stderr)
+                self.assertIn("planning/lego-plan-r1.json", result.stderr)
+
     def test_patterns_do_not_match_across_directory_boundaries(self) -> None:
         import importlib.util
 

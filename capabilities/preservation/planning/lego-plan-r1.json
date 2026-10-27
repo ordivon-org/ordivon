@@ -1,0 +1,233 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-preservation-local-profile-r1",
+    "purpose": "Bind existing local-source acceptance, external Archivematica loopback carrier and independent systemd/Artefactual Fixity consumer into a source-qualified R2.1 decomposition without building a new preservation engine.",
+    "sourceEvidence": [
+      "README.md",
+      "SOURCE_BOUNDARY.json",
+      "scripts/verify_source.py",
+      "scripts/test_verify_source.py",
+      "config/archivematica-preservation-r10.compose.yml",
+      "systemd/ordivon-preservation-fixity-r7.service",
+      "systemd/ordivon-preservation-fixity-r7.timer"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "PV00",
+      "label": "BoundedLocalPreservationProfile",
+      "kind": "local_external_composition",
+      "responsibility": "Compose an explicitly local archival provider profile, source-boundary acceptance, Storage Service loopback ingress and periodic fixity using existing Archivematica, Artefactual Fixity, systemd and Docker Compose providers, without Ordivon owning a preservation runtime.",
+      "authority": "Preservation bounded source profile; provider/systemd retain underlying authority",
+      "state": "SOURCE_QUALIFIED_NOT_INSTALLED",
+      "inputs": [
+        "Local preservation source boundary, external Archivematica/storage/Fixity profiles, local systemd and Compose carrier configuration, archival consumer objective."
+      ],
+      "outputs": [
+        "Locally qualified source carrier and bounded evidence of native provider responsibilities, not a global OAIS or deployed-resilience certificate."
+      ],
+      "behavioralContract": [
+        "Source correctness and local carrier selection are distinct from installed Storage Service availability, scheduled execution, actual AIP fixity and consumer acceptance.",
+        "Upstream providers retain archive, fixity, format and metadata correctness; Ordivon owns no replacement storage engine or metadata ontology."
+      ],
+      "acceptance": [
+        "Preservation Owner verify task and artifact provenance can reconstruct this local source contract from exact Git bytes.",
+        "Actual live fixity and independent failure domain must be independently observed and cannot be inferred from plan PASS."
+      ],
+      "evidence": [
+        "README.md",
+        "SOURCE_BOUNDARY.json",
+        "config/archivematica-preservation-r10.compose.yml",
+        "systemd/ordivon-preservation-fixity-r7.service",
+        "systemd/ordivon-preservation-fixity-r7.timer"
+      ],
+      "consumerEvidence": [
+        "meta/next/evidence/data-lifecycle/preservation-r1/acceptance.json (historical external consumer evidence, not live currentness)",
+        "artifacts/creative-preservation/operations-r7/acceptance-r7.json (historical local owner acceptance)"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "Archival data authority",
+        "OAIS certification",
+        "independent offsite failure domain",
+        "new preservation runtime"
+      ],
+      "sharedRefs": []
+    },
+    {
+      "id": "PV01",
+      "label": "PreservationSourceBoundaryAdmission",
+      "kind": "source_qualification_gate",
+      "responsibility": "Require exact declared preservation source paths and external-owner boundaries, and reject escaped new payload or dangerous local carrier mismatch before claiming source acceptance.",
+      "authority": "Preservation bounded source profile; provider/systemd retain underlying authority",
+      "state": "SOURCE_QUALIFIED_NOT_INSTALLED",
+      "inputs": [
+        "SOURCE_BOUNDARY.json and exact tracked Preservation payload files; configured local Compose and systemd source carrier."
+      ],
+      "outputs": [
+        "Source-only PASS or explicit nonzero boundary/profile rejection; no provider mutation."
+      ],
+      "behavioralContract": [
+        "An unlisted tracked payload, empty inclusion pattern, scope-spanning glob, Creative Library misownership, absent storage-service or world-exposed fixity port must be rejected even under optimized Python.",
+        "The gate observes tracked Git file membership and current worktree configuration; it is not a dynamic installed-system proof."
+      ],
+      "acceptance": [
+        "mise run preservation:verify executes exact entrypoint plus optimized/normal falsification tests.",
+        "The new Owner-local LEGO planning carrier must itself be admitted as an exact tracked SOURCE_BOUNDARY path, not silently exempted from the validator."
+      ],
+      "evidence": [
+        "SOURCE_BOUNDARY.json",
+        "scripts/verify_source.py",
+        "scripts/test_verify_source.py",
+        "README.md"
+      ],
+      "consumerEvidence": [
+        "mise.toml::preservation:verify (repo-native Owner task)",
+        "scripts/test_verify_source.py"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "External Archivematica or Artefactual Fixity semantics"
+      ],
+      "sharedRefs": []
+    },
+    {
+      "id": "PV02",
+      "label": "ArchivematicaStorageLoopbackProfile",
+      "kind": "provider_local_route_contract",
+      "responsibility": "Bind the existing local Archivematica Storage Service Compose overlay to the exact loopback route required by host-native Artefactual Fixity, while delegating actual AIP storage/replication semantics to Archivematica.",
+      "authority": "Preservation bounded source profile; provider/systemd retain underlying authority",
+      "state": "SOURCE_QUALIFIED_NOT_INSTALLED",
+      "inputs": [
+        "External Archivematica 1.18 provider Compose services and host fixity STORAGE_SERVICE_URL consumer at 127.0.0.1:62081."
+      ],
+      "outputs": [
+        "Configured local-only host:container port mapping 127.0.0.1:62081:8000 and local provider carrier declarations."
+      ],
+      "behavioralContract": [
+        "Storage Service must exist with exact localhost:62081→8000 mapping; missing route, public 0.0.0.0 exposure and wrong host port are rejected by native source boundary consumer tests.",
+        "The existence of the Compose service does not establish it is running or reachable; Windows/WSL deployment and independent replica fault domain remain UNKNOWN."
+      ],
+      "acceptance": [
+        "Preservation source verifier plus injected missing, public and wrong-port negative tests PASS.",
+        "Historical AIP storage/fixity evidence is provenance for earlier exact environment only."
+      ],
+      "evidence": [
+        "config/archivematica-preservation-r10.compose.yml",
+        "scripts/verify_source.py",
+        "scripts/test_verify_source.py",
+        "artifacts/creative-preservation/operations-r7/acceptance-r7.json"
+      ],
+      "consumerEvidence": [
+        "systemd/ordivon-preservation-fixity-r7.service",
+        "scripts/test_verify_source.py"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "Archivematica internal storage or AIP transformations",
+        "Docker Compose scheduler authority",
+        "production Archivematica support claim"
+      ],
+      "sharedRefs": []
+    },
+    {
+      "id": "PV03",
+      "label": "ScheduledArtefactualFixityConsumer",
+      "kind": "native_fixity_schedule_contract",
+      "responsibility": "Express the independent host-native scheduled Fixity consumer under systemd, with external Fixity client and Storage Service URL prerequisites; preserve provider-owned scan results instead of inventing local fixity truth.",
+      "authority": "Preservation bounded source profile; provider/systemd retain underlying authority",
+      "state": "SOURCE_QUALIFIED_NOT_INSTALLED",
+      "inputs": [
+        "systemd service and timer units, external Artefactual Fixity pinned binary, secret-file reference, configured Storage Service route and schedule."
+      ],
+      "outputs": [
+        "Source-declared weekly timer trigger and host-native fixity scanall invocation; provider-specific result observed only by external Fixity/Storage Service."
+      ],
+      "behavioralContract": [
+        "The service uses host-native pinned Fixity scanall with systemd timer and local service constraints; it must not be represented as an Ordivon fixity engine.",
+        "A syntactically valid timer or local service exit zero is not proof that actual Storage Service was healthy, that all AIPs were scanned, or that replica survives a second failure domain.",
+        "Native owner source gate now rejects a timer Unit that does not target the Fixity service, a differing Service credential EnvironmentFile versus ConditionPathExists, an absent schedule, or an ExecStart that no longer invokes the same pinned local fixity scanall --force-local client."
+      ],
+      "acceptance": [
+        "Source verifier validates service/timer presence and profile sections; historical owner evidence records earlier native scan and restart, but requires new installed receipts for currentness.",
+        "The native verify_fixity_consumer_binding source consumer and normal/optimized Python falsifiers validate exact Timer/Service/credential/executable relations; no deployed systemd unit, private STORAGE_SERVICE_URL or live fixity conclusion is inferred."
+      ],
+      "evidence": [
+        "systemd/ordivon-preservation-fixity-r7.service",
+        "systemd/ordivon-preservation-fixity-r7.timer",
+        "scripts/verify_source.py",
+        "artifacts/creative-preservation/operations-r7/acceptance-r7.json"
+      ],
+      "consumerEvidence": [
+        "meta/next/evidence/data-lifecycle/preservation-r1/acceptance.json (historical consumer evidence)",
+        "systemd/ordivon-preservation-fixity-r7.timer",
+        "scripts/verify_source.py::verify_fixity_consumer_binding (SOURCE_ONLY)",
+        "scripts/test_verify_source.py::FixityConsumerSourceContractTests (NEGATIVE_OWNER_CONSUMER)"
+      ],
+      "dependencies": [
+        "PV02"
+      ],
+      "mustNotOwn": [
+        "Artefactual Fixity internals",
+        "live scheduler/runtime state",
+        "AIP authenticity or external disaster recovery"
+      ],
+      "sharedRefs": []
+    }
+  ],
+  "edges": [
+    {
+      "from": "PV00",
+      "to": "PV01",
+      "type": "COMPOSITION",
+      "label": "owner-local source boundary acceptance constituent"
+    },
+    {
+      "from": "PV00",
+      "to": "PV02",
+      "type": "COMPOSITION",
+      "label": "configured external Archivematica/Storage Service constituent"
+    },
+    {
+      "from": "PV00",
+      "to": "PV03",
+      "type": "COMPOSITION",
+      "label": "host-native scheduled Fixity consumer constituent"
+    },
+    {
+      "from": "PV01",
+      "to": "PV02",
+      "type": "CONTROL",
+      "label": "source boundary gates trusted claims about local Compose carrier"
+    },
+    {
+      "from": "PV01",
+      "to": "PV03",
+      "type": "CONTROL",
+      "label": "source boundary gates service/timer configuration"
+    },
+    {
+      "from": "PV02",
+      "to": "PV03",
+      "type": "DEPENDENCY",
+      "label": "Fixity host consumer requires qualified loopback Storage Service ingress, source-level only"
+    }
+  ],
+  "slices": [],
+  "gaps": [
+    "SOURCE_BOUNDARY, Compose and systemd source evidence are qualified only for exact Git/worktree source. This plan does not prove provider binaries installed, service running, Fixity result fresh, or independent offsite failure domain.",
+    "Historical preservation operations-r7 and meta/next acceptance receipts are dated September 2026 and bound to other SourceCuts; they identify consumer intent and prior outcomes, not current production acceptance.",
+    "AIP contents, PREMIS/METS, OAIS, E-ARK and recovery truth remain external provider/standard owned. Avoid reimplementing Archivematica, Fixity, systemd scheduling or creating a universal Ordivon preservation ledger.",
+    "Cross-owner meta/next provenance is a consumer lead; current dynamic consumption and installed/FORMAL proof closedness require separate observations."
+  ],
+  "doNotOwn": [
+    "Archivematica Storage Service state",
+    "Artefactual Fixity algorithm",
+    "systemd timing authority",
+    "OAIS/PREMIS/METS/E-ARK semantic standard",
+    "historical evidence as current deployment fact"
+  ]
+}
