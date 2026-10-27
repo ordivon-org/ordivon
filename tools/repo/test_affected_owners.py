@@ -672,6 +672,31 @@ class SourceClassificationTests(unittest.TestCase):
         )
         self.assertFalse(first["proofReuseAdmissible"])
 
+    def test_changed_root_carrier_name_is_reported_without_source_change(self) -> None:
+        from copy import deepcopy
+        from unittest.mock import patch
+
+        p = self.repo / "services/runtime/Cargo.toml"
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text("test synthetic source")
+        cut = self.commit()
+        before = self.project(cut)
+        after = deepcopy(before)
+        after["sourceRevision"] = "e" * 40
+        after["sourceTree"] = "f" * 40
+        row = next(r for r in after["entries"] if r["path"] == "services/runtime/Cargo.toml")
+        row["rootCarrierRole"] = "RECLASSIFIED_NAME_WITH_SAME_SOURCE"
+        with patch.object(MODULE, "project_source_classification",
+                          side_effect=[before, after]):
+            delta = MODULE.project_source_classification_delta(
+                self.repo, before["sourceRevision"], after["sourceRevision"]
+            )
+        changed = next(r for r in delta["changes"] if r["path"] == p.relative_to(self.repo).as_posix())
+        self.assertFalse(changed["sourceChanged"])
+        self.assertTrue(changed["classificationChanged"])
+        self.assertEqual(delta["summary"]["classificationOnlyChanges"], 1)
+        self.assertFalse(delta["proofReuseAdmissible"])
+
     def test_source_cell_names_are_bounded_path_labels_not_new_lego_owners(self) -> None:
         # One native Runtime systemd source carries a visibly distinct
         # packaging responsibility, but source naming is not installation,

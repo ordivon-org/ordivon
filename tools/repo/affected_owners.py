@@ -980,6 +980,8 @@ def project_source_classification_delta(
                 "matchedRules", "semanticName", "sourceSection",
                 "sourceSectionRole", "sourceCell", "sourceCellRole",
                 "sourceCellDisplayName", "sourceFileForm", "sourceFileFormStanding",
+                "rootCarrierClass", "rootCarrierRole",
+                "rootCarrierEvidenceStanding", "rootCarrierDisplayName",
                 "classificationLayer",
             ))
         )
