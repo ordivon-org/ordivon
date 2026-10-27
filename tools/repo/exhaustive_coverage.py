@@ -1169,6 +1169,7 @@ def join_cross_plane_observations(problem_frontier: dict, observations: dict) ->
     allowed_relations = {
         "SHARED_GIT_OBJECT_STORE_OBSERVED",
         "SERVICE_PID_ASSOCIATION_OBSERVED",
+        "SCM_DECLARED_REQUIRED_SERVICE",
         "SOURCE_TEXT_EXTERNAL_PATH_REFERENCE_CANDIDATE",
     }
     edges = []
@@ -1202,6 +1203,12 @@ def join_cross_plane_observations(problem_frontier: dict, observations: dict) ->
             a["plane"] == "GIT_SOURCE_VIEW" and b["plane"] == "NON_GIT_NAMESPACE"
         ):
             raise ValueError("lexical path hint is not a source-to-data relation")
+        if kind == "SCM_DECLARED_REQUIRED_SERVICE" and not (
+            a["plane"] == b["plane"] == "SERVICE_STATUS" and
+            a["hostScope"] == b["hostScope"] == "windows" and
+            a["locator"] != b["locator"]
+        ):
+            raise ValueError("SCM dependency must identify two distinct Windows services")
         edge = (a["observationRef"], b["observationRef"], kind)
         if edge in seen_edges:
             raise ValueError("duplicate candidate relation")

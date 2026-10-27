@@ -618,6 +618,30 @@ class CrossPlaneObservationJoinTests(unittest.TestCase):
             {x["problemRef"] for x in before["problems"]},
             {x["problemRef"] for x in after["problems"]})
 
+    def test_windows_scm_declared_dependency_is_not_runtime_call(self):
+        import copy
+        x=self.source()
+        x["observations"].append({
+            "plane":"SERVICE_STATUS","hostScope":"windows",
+            "locator":"scm:RpcSs","observedState":"RUNNING",
+            "pid":2500,"witnessRef":"test:scm_dependency"})
+        x["candidateRelations"].append({
+            "source":"windows:SERVICE_STATUS:scm:OrdivonRuntimeR6Candidate",
+            "target":"windows:SERVICE_STATUS:scm:RpcSs",
+            "relationKind":"SCM_DECLARED_REQUIRED_SERVICE",
+            "witnessRef":"test:declared_required_service"})
+        result=M.join_cross_plane_observations(self.problems,x)
+        assert result["candidateRelationCount"]==4
+        assert result["proofReuseAdmissible"] is False
+        e=[r for r in result["candidateRelations"] if
+           r["relationKind"]=="SCM_DECLARED_REQUIRED_SERVICE"]
+        assert len(e)==1
+        assert e[0]["consumerAndCallSemantics"]=="UNKNOWN"
+        y=copy.deepcopy(x)
+        y["candidateRelations"][-1]["target"]="linux:GIT_SOURCE_VIEW:git:research_v2"
+        with self.assertRaisesRegex(ValueError,"SCM dependency"):
+            M.join_cross_plane_observations(self.problems,y)
+
     def test_no_fake_consumer_invocation_edge(self):
         x=self.source()
         x["candidateRelations"][2]["relationKind"]="CALLS"
