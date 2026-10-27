@@ -491,6 +491,50 @@ class DerivedProblemLegoFrontierTests(unittest.TestCase):
         self.assertIn("installation", self.result["truthBoundary"])
         self.assertTrue(self.result["summary"]["missingInstalledAndDynamicCallClosure"])
 
+    def test_each_declared_gap_has_one_typed_problem_question(self) -> None:
+        rows = self.result["declarationFieldQuestions"]
+        expected = {(node["nodeRef"], tag) for node in self.inventory["semanticPlans"]["nodes"]
+                    for tag in node["problems"]}
+        actual = {(q["nodeRef"], q["missingDeclarationTag"]) for q in rows}
+        self.assertEqual(actual, expected)
+        self.assertEqual(len(rows), len(expected))
+        self.assertEqual(len(rows), self.result["summary"]["declarationFieldQuestions"])
+        parents = {q["problemRef"] for q in self.result["problemLegos"]}
+        self.assertTrue(all(q["parentProblemRef"] in parents for q in rows))
+        self.assertTrue(all(q["relation"] == "DECLARED_FIELD_NOT_FOUND_NOT_RUNTIME_ABSENCE"
+                            for q in rows))
+        self.assertTrue(all(q["actualConsumerStanding"] == "UNKNOWN" for q in rows))
+
+    def test_structure_mapping_review_covers_every_declared_unrealized_path(self) -> None:
+        rows = self.result["mappingDeclarationReviews"]
+        self.assertEqual(len(rows), self.result["summary"]["mappingDeclarationReviews"])
+        self.assertEqual(len({r["reviewRef"] for r in rows}), len(rows))
+        counts = __import__("collections").Counter()
+        for item in rows:
+            counts[item["problemTag"]] += item["matchedPathCount"]
+            self.assertTrue(item["sourceMembersDigest"].startswith("sha256:"))
+            self.assertTrue(item["sourceCellRefs"])
+            self.assertEqual(item["consumerStanding"], "UNKNOWN")
+            self.assertEqual(item["installedStanding"], "UNKNOWN")
+            self.assertEqual(item["relation"],
+                             "STRUCTURE_DECLARATION_TO_SOURCE_NOT_REALIZED_MOVE")
+        expected = self.inventory["summary"]["sourceProblemCounts"]
+        self.assertEqual(counts["DECLARED_MOVE_CONSUMER_QUALIFICATION_REQUIRED"],
+                         expected["PHYSICAL_MOVE_NOT_REALIZED_OR_CONSUMER_NOT_CUT_OVER"])
+        self.assertEqual(counts["DECLARED_SPLIT_CONSUMER_QUALIFICATION_REQUIRED"],
+                         expected["STRUCTURE_SPLIT_REQUIRES_CONSUMER_WITNESS"])
+
+    def test_cross_plan_repeated_short_ids_are_not_identified_as_same_lego(self) -> None:
+        rows = self.result["crossPlanIdentityScopeReviews"]
+        src = self.inventory["semanticPlans"]["sameLocalIdAcrossPlans"]
+        self.assertEqual({q["localId"] for q in rows}, set(src))
+        self.assertEqual(len(rows), self.result["summary"]["crossPlanIdentityScopeReviews"])
+        self.assertEqual(len({q["reviewRef"] for q in rows}), len(rows))
+        for row in rows:
+            self.assertEqual(row["scopedNodeRefs"], src[row["localId"]])
+            self.assertEqual(row["collisionStanding"],
+                             "REVIEW_REQUIRED_NOT_PROVEN_CONFLICT")
+
     def test_deterministic_and_proposal_is_explicit_not_installed(self) -> None:
         a = self.result
         b = M.derived_problem_legos(self.inventory, repo=ROOT)
@@ -513,3 +557,6 @@ class DerivedProblemLegoFrontierTests(unittest.TestCase):
         self.assertNotIn("sourceCells", output)
         self.assertNotIn("problemLegos", output)
         self.assertNotIn("sourcePathCellIndex", output)
+        self.assertNotIn("declarationFieldQuestions", output)
+        self.assertNotIn("mappingDeclarationReviews", output)
+        self.assertNotIn("crossPlanIdentityScopeReviews", output)

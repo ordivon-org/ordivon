@@ -559,6 +559,92 @@ def derived_problem_legos(
             "remediationStanding": "DEFER_UNTIL_JOINT_CALL_SEMANTICS",
         })
 
+    # A missing declaration is a question about a specific Plan-scoped node,
+    # not a proof that a real consumer/contract/formal artifact is absent.
+    field_questions = []
+    for node in graph["nodes"]:
+        for gap in node["problems"]:
+            field_questions.append({
+                "problemRef": "problem:declared-field:" + node["nodeRef"] + ":" + gap,
+                "parentProblemRef": "problem:declared-node:" + node["nodeRef"],
+                "nodeRef": node["nodeRef"],
+                "missingDeclarationTag": gap,
+                "relation": "DECLARED_FIELD_NOT_FOUND_NOT_RUNTIME_ABSENCE",
+                "actualConsumerStanding": "UNKNOWN",
+                "actualContractStanding": "UNKNOWN",
+                "actualFormalStanding": "UNKNOWN",
+                "remediationStanding": "DEFER_UNTIL_JOINT_CALL_SEMANTICS",
+            })
+
+    # The source's existing Structure R2 plan is a declaration carrier only.
+    # Reuse the same most-specific-prefix rule as classification() instead of
+    # creating competing mapping authority or implying physical migration.
+    structure_path = "docs/architecture/structure-r2-transition-r1.json"
+    structure = read_json(repo, inventory["sourceCut"], structure_path)
+    maps = structure.get("mappings", [])
+    if len({m.get("id") for m in maps}) != len(maps):
+        raise ValueError("structure mapping IDs must be scoped uniquely")
+    mapping_witnesses: dict[tuple[str, str], list[dict]] = collections.defaultdict(list)
+    for path in inventory["sourcePaths"]:
+        matches = [(len(rule), item, rule) for item in maps
+                   for rule in item.get("sourcePaths", []) if is_match(path["path"], rule)]
+        longest = max((x[0] for x in matches), default=0)
+        selected = [(item, rule) for length, item, rule in matches if length == longest]
+        for m, rule in selected:
+            if (m.get("mode") == "move"
+                    and "PHYSICAL_MOVE_NOT_REALIZED_OR_CONSUMER_NOT_CUT_OVER" in path["problems"]):
+                tag = "DECLARED_MOVE_CONSUMER_QUALIFICATION_REQUIRED"
+            elif (len(m.get("targetPaths", [])) != 1
+                  and "STRUCTURE_SPLIT_REQUIRES_CONSUMER_WITNESS" in path["problems"]):
+                tag = "DECLARED_SPLIT_CONSUMER_QUALIFICATION_REQUIRED"
+            else:
+                continue
+            mapping_witnesses[(tag, m["id"])].append(path)
+
+    mapping_by_id = {m["id"]: m for m in maps}
+    mapping_reviews = []
+    for (tag, map_id), rows in sorted(mapping_witnesses.items()):
+        rows.sort(key=lambda x: x["path"])
+        fingerprints = [[p["path"], p["sourceIdentity"]] for p in rows]
+        identity = hashlib.sha256(json.dumps(
+            fingerprints, ensure_ascii=True, sort_keys=True,
+            separators=(",", ":")).encode()).hexdigest()
+        declaration = mapping_by_id[map_id]
+        mapping_reviews.append({
+            "reviewRef": "problem:structure-mapping:" + tag + ":" + map_id,
+            "declarationRef": structure_path + "#" + map_id,
+            "problemTag": tag,
+            "sourcePaths": declaration.get("sourcePaths", []),
+            "targetPaths": declaration.get("targetPaths", []),
+            "declaredMode": declaration.get("mode"),
+            "matchedPathCount": len(rows),
+            "sourceMembersDigest": "sha256:" + identity,
+            "sourceCellRefs": sorted({
+                "source-cell:" + members[row["path"]] for row in rows
+            }),
+            "relation": "STRUCTURE_DECLARATION_TO_SOURCE_NOT_REALIZED_MOVE",
+            "consumerStanding": "UNKNOWN",
+            "installedStanding": "UNKNOWN",
+            "callSemanticsStanding": "NOT_YET_QUALIFIED",
+            "remediationStanding": "DEFER_UNTIL_JOINT_CALL_SEMANTICS",
+        })
+    identity_scope_reviews = [
+        {
+            "reviewRef": "problem:plan-local-id-scope:" + local,
+            "localId": local,
+            "scopedNodeRefs": scoped,
+            "relation": "SHARED_LOCAL_NAME_NOT_SHARED_SEMANTIC_IDENTITY",
+            "collisionStanding": "REVIEW_REQUIRED_NOT_PROVEN_CONFLICT",
+            "consumerStanding": "UNKNOWN",
+            "remediationStanding": "DEFER_UNTIL_JOINT_CALL_SEMANTICS",
+        }
+        for local, scoped in sorted(graph["sameLocalIdAcrossPlans"].items())
+    ]
+    if len({x["problemRef"] for x in field_questions}) != len(field_questions):
+        raise ValueError("duplicate declaration-field identity")
+    if len({x["reviewRef"] for x in mapping_reviews}) != len(mapping_reviews):
+        raise ValueError("duplicate structure review identity")
+
     declared_edges = []
     for e in graph["edges"]:
         qualified = e["standing"] == "LOCAL_ENDPOINTS_IDENTIFIED"
@@ -599,7 +685,13 @@ def derived_problem_legos(
             "crossPlanLocalIdReuse": len(graph["sameLocalIdAcrossPlans"]),
             "crossPlanReuseIsError": False,
             "missingInstalledAndDynamicCallClosure": True,
+            "declarationFieldQuestions": len(field_questions),
+            "mappingDeclarationReviews": len(mapping_reviews),
+            "crossPlanIdentityScopeReviews": len(identity_scope_reviews),
         },
+        "declarationFieldQuestions": field_questions,
+        "mappingDeclarationReviews": mapping_reviews,
+        "crossPlanIdentityScopeReviews": identity_scope_reviews,
         "sourceCells": all_cells,
         "sourcePathCellIndex": {
             path: "source-cell:" + digest for path, digest in members.items()
@@ -1094,7 +1186,10 @@ def main() -> int:
                       if k not in ("sourceCells", "sourcePathCellIndex",
                                    "sourceContainment", "problemLegos",
                                    "declaredPlanEdgesNotActualCalls",
-                                   "sameLocalIdAcrossPlansObservation")}
+                                   "sameLocalIdAcrossPlansObservation",
+                                   "declarationFieldQuestions",
+                                   "mappingDeclarationReviews",
+                                   "crossPlanIdentityScopeReviews")}
     elif args.lookup_path:
         result = lookup_source_paths(
             result, repo=args.repo, paths=args.lookup_path,
