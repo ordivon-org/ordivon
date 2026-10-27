@@ -1,0 +1,232 @@
+{
+  "baselineSourceCut": "d808ff09cf52422ad67ad880d856a8a1bad622b1",
+  "date": "2026-10-27",
+  "fences": [
+    "Mismatch does not prove error or necessary rollback",
+    "Same source bytes do not establish installed behavior",
+    "No credential/environment/ExecStart values recorded",
+    "No systemd drop-in or effective unit state checked",
+    "Navigation alias does not grant Owner or implementation identity",
+    "Other nodes/services not covered"
+  ],
+  "independentRecheckJob": "job-01a17e13-4088-7af3-b8b8-7367f850a757",
+  "kind": "ordivon.phase1.linux-unit-drift-facets",
+  "latestComparedSourceCut": "6b183af2ba7b79f8c984334a38b95d8355eaa891",
+  "peerObservationArtifactDigest": "sha256:f9fbb7ac350459f44e6d36be7ce1ad892dd83abda2105c10ed9bfb299300a7c5",
+  "peerObservationJob": "job-01a17df5-e830-7301-93d4-d4a6aeaeee08",
+  "pr993SourceCandidate": "39f61375042fde1c30d6bfef0eb89abf2c1463de",
+  "rows": [
+    {
+      "agentDisplayAlias": "network.browserless.provider-carrier.installed-fragment",
+      "aliasProof": "PATH_AND_PEER_CONTENT_WITNESS_ONLY",
+      "consumer": "UNKNOWN",
+      "diffClass": "DIRECTIVE_CARDINALITY_CHANGED",
+      "directiveCountDelta": {
+        "ConditionPathExists": 1,
+        "ExecStartPre": 1
+      },
+      "gitSourceUnchangedAcrossThreeCuts": true,
+      "installedDiffersFromGit": true,
+      "installedSha256": "sha256:f733d54efdbaa2115174b8044267aa22b80a7e49bb734c90cc09c2bddf5de29f",
+      "overrideOrDropin": "UNOBSERVED",
+      "semanticEffect": "UNKNOWN",
+      "sourcePath": "platform/network/consumers/browserless/systemd/network-v2-browserless-provider-carrier.service",
+      "sourceSha256": "sha256:5a63bb03f82967e60890720cfc226a4e7dc3d9fbe0013a048904710f5f951841",
+      "unitName": "network-v2-browserless-provider-carrier.service"
+    },
+    {
+      "agentDisplayAlias": "network.browserless.wireguard.installed-fragment",
+      "aliasProof": "PATH_AND_PEER_CONTENT_WITNESS_ONLY",
+      "consumer": "UNKNOWN",
+      "diffClass": "DIRECTIVE_CARDINALITY_CHANGED",
+      "directiveCountDelta": {
+        "ConditionPathExists": 1,
+        "ExecStartPre": 1
+      },
+      "gitSourceUnchangedAcrossThreeCuts": true,
+      "installedDiffersFromGit": true,
+      "installedSha256": "sha256:2f6a9bd475268011fc37682066eb08e63c06083b9497ca5876172205a4c3a14d",
+      "overrideOrDropin": "UNOBSERVED",
+      "semanticEffect": "UNKNOWN",
+      "sourcePath": "platform/network/consumers/browserless/systemd/network-v2-browserless-wireguard.service",
+      "sourceSha256": "sha256:96dc47e4bc5ee4855cc08e29d200501f328548ed0d94077fb5076d5327e6ee41",
+      "unitName": "network-v2-browserless-wireguard.service"
+    },
+    {
+      "agentDisplayAlias": "network.browserless.target.installed-fragment",
+      "aliasProof": "PATH_AND_PEER_CONTENT_WITNESS_ONLY",
+      "consumer": "UNKNOWN",
+      "diffClass": "BYTE_DIFF_SAME_DIRECTIVE_CARDINALITY",
+      "directiveCountDelta": {},
+      "gitSourceUnchangedAcrossThreeCuts": true,
+      "installedDiffersFromGit": true,
+      "installedSha256": "sha256:6ecc3ef1c3cb9ddb0b16da902d5c436b61f2dabcd096dcde212c0e6ee282a13a",
+      "overrideOrDropin": "UNOBSERVED",
+      "semanticEffect": "UNKNOWN",
+      "sourcePath": "platform/network/consumers/browserless/systemd/network-v2-browserless.target",
+      "sourceSha256": "sha256:539ce3a1016a9678ec79ab1181dbdb144a65bb93294c3c145d2bfda00fec8d78",
+      "unitName": "network-v2-browserless.target"
+    },
+    {
+      "agentDisplayAlias": "network.chat-ingress.proxy.installed-fragment",
+      "aliasProof": "PATH_AND_PEER_CONTENT_WITNESS_ONLY",
+      "consumer": "UNKNOWN",
+      "diffClass": "BYTE_DIFF_SAME_DIRECTIVE_CARDINALITY",
+      "directiveCountDelta": {},
+      "gitSourceUnchangedAcrossThreeCuts": true,
+      "installedDiffersFromGit": true,
+      "installedSha256": "sha256:d77df3efbb5029958cfd1834640ab5babf9ee1bb04d90fa193750d4e6503b3d5",
+      "overrideOrDropin": "UNOBSERVED",
+      "semanticEffect": "UNKNOWN",
+      "sourcePath": "platform/network/consumers/chat-ingress/systemd/network-v2-chat-ingress-proxy.service",
+      "sourceSha256": "sha256:88f08b0ed17556ac1249cd355f49b31d4033048e468023cb98310d1e1138e81f",
+      "unitName": "network-v2-chat-ingress-proxy.service"
+    },
+    {
+      "agentDisplayAlias": "network.claude.proxy.installed-fragment",
+      "aliasProof": "PATH_AND_PEER_CONTENT_WITNESS_ONLY",
+      "consumer": "UNKNOWN",
+      "diffClass": "BYTE_DIFF_SAME_DIRECTIVE_CARDINALITY",
+      "directiveCountDelta": {},
+      "gitSourceUnchangedAcrossThreeCuts": true,
+      "installedDiffersFromGit": true,
+      "installedSha256": "sha256:14b052be40fad77f02b8b237cface4c7b817743ccf49321e22f2a435f1df7325",
+      "overrideOrDropin": "UNOBSERVED",
+      "semanticEffect": "UNKNOWN",
+      "sourcePath": "platform/network/consumers/claude/systemd/network-v2-claude-proxy.service",
+      "sourceSha256": "sha256:747b645552423e9bc3a8a7d63a619275519402611e9a067fdba3aaa5dacd159a",
+      "unitName": "network-v2-claude-proxy.service"
+    },
+    {
+      "agentDisplayAlias": "network.finance.egress.installed-fragment",
+      "aliasProof": "PATH_AND_PEER_CONTENT_WITNESS_ONLY",
+      "consumer": "UNKNOWN",
+      "diffClass": "DIRECTIVE_CARDINALITY_CHANGED",
+      "directiveCountDelta": {
+        "After": -1,
+        "Wants": -1
+      },
+      "gitSourceUnchangedAcrossThreeCuts": true,
+      "installedDiffersFromGit": true,
+      "installedSha256": "sha256:47c64519933dcf699b76254f462d4d59f4650396051ad587834dbe8566897a99",
+      "overrideOrDropin": "UNOBSERVED",
+      "semanticEffect": "UNKNOWN",
+      "sourcePath": "platform/network/consumers/finance/systemd/network-v2-finance-egress.service",
+      "sourceSha256": "sha256:980461f981abbd3163bddae725b99571738acd52bdea43e664bef6cab33b0590",
+      "unitName": "network-v2-finance-egress.service"
+    },
+    {
+      "agentDisplayAlias": "network.supply-chain.egress.installed-fragment",
+      "aliasProof": "PATH_AND_PEER_CONTENT_WITNESS_ONLY",
+      "consumer": "UNKNOWN",
+      "diffClass": "DIRECTIVE_CARDINALITY_CHANGED",
+      "directiveCountDelta": {
+        "After": -1,
+        "Wants": -1
+      },
+      "gitSourceUnchangedAcrossThreeCuts": true,
+      "installedDiffersFromGit": true,
+      "installedSha256": "sha256:f310283fb90c88d81b34f646bedf24eb18828dbb1def697f76bff2712595efeb",
+      "overrideOrDropin": "UNOBSERVED",
+      "semanticEffect": "UNKNOWN",
+      "sourcePath": "platform/network/consumers/supply-chain/systemd/network-v2-supply-chain-egress.service",
+      "sourceSha256": "sha256:2b71290e80d98949fea122d94d29c42a026db08f53059935b6f9c1a27893223e",
+      "unitName": "network-v2-supply-chain-egress.service"
+    },
+    {
+      "agentDisplayAlias": "network.x-api.egress.installed-fragment",
+      "aliasProof": "PATH_AND_PEER_CONTENT_WITNESS_ONLY",
+      "consumer": "UNKNOWN",
+      "diffClass": "DIRECTIVE_CARDINALITY_CHANGED",
+      "directiveCountDelta": {
+        "After": -1,
+        "Wants": -1
+      },
+      "gitSourceUnchangedAcrossThreeCuts": true,
+      "installedDiffersFromGit": true,
+      "installedSha256": "sha256:f988a82322b284a387395eecd24cda238a78f00fda9e46b953dc2f5ad396c3dc",
+      "overrideOrDropin": "UNOBSERVED",
+      "semanticEffect": "UNKNOWN",
+      "sourcePath": "platform/network/consumers/x-reality/systemd/network-v2-x-reality-egress.service",
+      "sourceSha256": "sha256:26ebda3da9d3c0d629c1f39175522bf1d9fc44ddbdc64bc4165150aa05103020",
+      "unitName": "network-v2-x-reality-egress.service"
+    },
+    {
+      "agentDisplayAlias": "agent.automation.mcp.installed-fragment",
+      "aliasProof": "PATH_AND_PEER_CONTENT_WITNESS_ONLY",
+      "consumer": "UNKNOWN",
+      "diffClass": "DIRECTIVE_CARDINALITY_CHANGED",
+      "directiveCountDelta": {
+        "Environment": 1,
+        "LoadCredential": 1
+      },
+      "gitSourceUnchangedAcrossThreeCuts": true,
+      "installedDiffersFromGit": true,
+      "installedSha256": "sha256:04363ce1813cc455c49b6ed8005f17fb96159f4c8d2d46aebb0a55556a81d1da",
+      "overrideOrDropin": "UNOBSERVED",
+      "semanticEffect": "UNKNOWN",
+      "sourcePath": "services/harness/systemd/ordivon-agent-automation-mcp.service",
+      "sourceSha256": "sha256:c22bc88f9b661aa0eefcb21035123d98c2dc6cc7a814d6d407eb23deebe5009a",
+      "unitName": "ordivon-agent-automation-mcp.service"
+    },
+    {
+      "agentDisplayAlias": "workflow.agent.temporal-worker.installed-fragment",
+      "aliasProof": "PATH_AND_PEER_CONTENT_WITNESS_ONLY",
+      "consumer": "UNKNOWN",
+      "diffClass": "BYTE_DIFF_SAME_DIRECTIVE_CARDINALITY",
+      "directiveCountDelta": {},
+      "gitSourceUnchangedAcrossThreeCuts": true,
+      "installedDiffersFromGit": true,
+      "installedSha256": "sha256:da39f74c70c0494bcb928c66b61472c3a9f23ea28fc76147e2b83a0ab2ff7c22",
+      "overrideOrDropin": "UNOBSERVED",
+      "semanticEffect": "UNKNOWN",
+      "sourcePath": "services/harness/systemd/ordivon-agent-temporal-worker.service",
+      "sourceSha256": "sha256:4b705b40caf59ac6202f811ec50bc019aea6752859975e9ae62f21fb5f529ec3",
+      "unitName": "ordivon-agent-temporal-worker.service"
+    },
+    {
+      "agentDisplayAlias": "execution.runtime.lifecycle.installed-fragment",
+      "aliasProof": "PATH_AND_PEER_CONTENT_WITNESS_ONLY",
+      "consumer": "UNKNOWN",
+      "diffClass": "DIRECTIVE_CARDINALITY_CHANGED",
+      "directiveCountDelta": {
+        "ExecStart": -1,
+        "SuccessExitStatus": -1
+      },
+      "gitSourceUnchangedAcrossThreeCuts": true,
+      "installedDiffersFromGit": true,
+      "installedSha256": "sha256:803a90ef8ccc70318b6a6e99e7fa5a2fc6afd1f316fabc4580198b1945bd0fa7",
+      "overrideOrDropin": "UNOBSERVED",
+      "semanticEffect": "UNKNOWN",
+      "sourcePath": "services/runtime/packaging/systemd/ordivon-runtime-lifecycle.service",
+      "sourceSha256": "sha256:e30a7a87eb57c6e64d1d47d86e88272e7997ea58d3358a0ee2be0571646ff6ec",
+      "unitName": "ordivon-runtime-lifecycle.service"
+    },
+    {
+      "agentDisplayAlias": "execution.runtime.lifecycle-timer.installed-fragment",
+      "aliasProof": "PATH_AND_PEER_CONTENT_WITNESS_ONLY",
+      "consumer": "UNKNOWN",
+      "diffClass": "BYTE_DIFF_SAME_DIRECTIVE_CARDINALITY",
+      "directiveCountDelta": {},
+      "gitSourceUnchangedAcrossThreeCuts": true,
+      "installedDiffersFromGit": true,
+      "installedSha256": "sha256:874dc7929384790bc14e4ca2590de6246f50f1ad5e0d0f275a55b66440ca4614",
+      "overrideOrDropin": "UNOBSERVED",
+      "semanticEffect": "UNKNOWN",
+      "sourcePath": "services/runtime/packaging/systemd/ordivon-runtime-lifecycle.timer",
+      "sourceSha256": "sha256:063640ef4406d1ee3c6815ff380ff010227514fab0199870f09d724b1cbdb410",
+      "unitName": "ordivon-runtime-lifecycle.timer"
+    }
+  ],
+  "schemaVersion": 1,
+  "scope": "12 previously peer-detected Linux unit fragments, no dynamic service consumers, no runtime effective merged config",
+  "secretValuesEmitted": false,
+  "status": "SOURCE_AND_INSTALLED_FRAGMENT_ONLY",
+  "summary": {
+    "byteDifferentSameKeyCounts": 5,
+    "consumerProven": 0,
+    "driftUnits": 12,
+    "sourceUnchanged": 12,
+    "unitDirectiveKeyCountChanged": 7
+  }
+}
