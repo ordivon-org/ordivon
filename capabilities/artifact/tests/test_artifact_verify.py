@@ -137,6 +137,58 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
             self.assertEqual(result["status"], "FAIL")
             self.assertIn("profile requires an object contract: audio-flac-pcm16-r1", result["failures"])
 
+    def test_flac_object_contract_drift_invalidates_consumer_request_before_verification(self):
+        """R2.1 consumer seam: a changed object contract invalidates a pinned request.
+
+        Artifact owns the request admission/contract digest check, not the
+        Game consumer's acceptance or proof that FLAC decoding has succeeded.
+        Reuse the existing JSON Schema, profile registry and service API.
+        """
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            subject = root / "subject.flac"
+            subject.write_bytes(b"not-a-flac-stream")
+            profile = ROOT / "artifact-delivery/shadow-v2/examples/audio-flac-pcm16-r1-v2.json"
+            original = ROOT / "artifact-delivery/shadow-contracts/audio-flac-pcm16-smoke-r1.json"
+            contract = root / "object-contract.json"
+            contract.write_bytes(original.read_bytes())
+            request = {
+                "schemaVersion": 1,
+                "kind": "artifact-verification-request",
+                "requestId": "test:artifact-contract-drift:r21",
+                "profile": {"id": "audio-flac-pcm16-r1", "path": str(profile), "sha256": sha(profile)},
+                "subject": {"path": str(subject), "sha256": sha(subject)},
+                "objectContract": {"path": str(contract), "sha256": sha(contract)},
+                "evidenceDirectory": str(root / "evidence"),
+                "consumer": {"id": "phase2-contract-impact-negative", "purpose": "stale contract invalidation"},
+            }
+            request_path = root / "request.json"
+            request_path.write_text(json.dumps(request))
+            # Even a syntactically harmless contract change must invalidate the
+            # pre-change source-identity binding before FLAC verification runs.
+            changed = json.loads(contract.read_text())
+            changed["notes"] = "changed after consumer request was pinned"
+            contract.write_text(json.dumps(changed))
+            stale = M.verify_request(request_path)
+            self.assertEqual(stale["status"], "FAIL")
+            self.assertEqual(stale["failures"], ["object contract bytes differ from request digest"])
+            self.assertEqual(stale["requestDigest"], M.canonical_sha256(request))
+            self.assertFalse((root / "evidence").exists())
+
+            # Non-vacuity control: rebind the request to the new contract bytes.
+            # The service must now reach the actual FLAC verifier (which rejects
+            # the deliberately invalid subject), not permanently reject requests.
+            request["objectContract"]["sha256"] = sha(contract)
+            request_path.write_text(json.dumps(request))
+            rebound = M.verify_request(request_path)
+            self.assertEqual(rebound["status"], "FAIL")
+            self.assertNotIn(
+                "object contract bytes differ from request digest",
+                rebound["failures"],
+            )
+            self.assertTrue((root / "evidence" / "verification.json").is_file())
+            self.assertNotEqual(rebound["requestDigest"], stale["requestDigest"])
+
     def test_frozen_game_consumer_smoke_keeps_artifact_owned_authorities_exact(self):
         receipt = json.loads((ROOT / "artifact-delivery/consumer-acceptance/game-station-zero-still-image-r1.json").read_text())
         self.assertEqual(receipt["standing"], "CONSUMER_SMOKE_PASS_SHADOW_PROFILE")
