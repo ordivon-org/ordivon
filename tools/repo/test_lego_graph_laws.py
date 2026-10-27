@@ -1958,6 +1958,47 @@ def test_agent_compact_source_impact_keeps_unknown_unindexed_and_finite_proof_sc
     assert result["afterSourceCut"] == original["afterSourceCut"]
 
 
+def test_agent_source_projection_refines_bounded_formal_filter_and_keeps_future_unknowns() -> None:
+    """Executable bounded model bridge for the native Lean filter law.
+
+    This is NOT a proof of all Python states, runtime consumers or readsets.
+    """
+    import itertools
+
+    standings = (
+        "NO_DECLARED_HIT", "UNKNOWN", "RECHECK_REQUIRED",
+        "SOURCE_CHANGED", "UNRECOGNIZED_FUTURE_STANDING",
+    )
+    for length in range(5):
+        for sequence in itertools.product(standings, repeat=length):
+            rows = [{"ref": f"R{i}", "sourceImpactStanding": standing}
+                    for i, standing in enumerate(sequence)]
+            source = {"proofReuseAdmissible": False, "standingByDeclaredNode": rows}
+            observed = module._select_agent_source_impact(source)
+            expected = [row for row in rows
+                        if row["sourceImpactStanding"] != "NO_DECLARED_HIT"]
+            assert observed["standingByDeclaredNode"] == expected
+            assert observed["omittedNoDeclaredHitCount"] == len(rows) - len(expected)
+            assert observed["proofReuseAdmissible"] is False
+            assert source["standingByDeclaredNode"] == rows
+
+
+def test_agent_source_projection_rejects_forged_reuse_or_missing_qualification() -> None:
+    """Reusing proof without actual closed dependency evidence is forbidden."""
+    for forged in (True, None, 0, "PASS"):
+        with pytest.raises(module.ArchitectureDocsError, match="proofReuseAdmissible=false"):
+            module._select_agent_source_impact({
+                "proofReuseAdmissible": forged,
+                "standingByDeclaredNode": [
+                    {"ref": "R1", "sourceImpactStanding": "NO_DECLARED_HIT"},
+                ],
+            })
+    with pytest.raises(module.ArchitectureDocsError, match="proofReuseAdmissible=false"):
+        module._select_agent_source_impact({
+            "standingByDeclaredNode": [{"ref": "R1", "sourceImpactStanding": "UNKNOWN"}],
+        })
+
+
 def test_agent_compact_source_impact_does_not_discard_new_unknown_categories() -> None:
     sample = {
         "proofReuseAdmissible": False,
