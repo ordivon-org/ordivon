@@ -95,6 +95,54 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         self.assertLess(names.index("Repository mechanics"), names.index("Select affected owners"))
         self.assertLess(names.index("Select affected owners"), names.index("Verify affected owners"))
 
+    def test_host_queue_replaces_non_discovered_nested_host_ci(self) -> None:
+        """Root GitHub Actions must consume the Host's native current queue.
+
+        This is a source-to-CI contract, not an installed Host/service proof.
+        """
+        import tomllib
+        import yaml
+
+        self.assertFalse(
+            (ROOT / "services/host/.github/workflows/ci.yml").exists(),
+            "obsolete owner-local YAML is not discovered as a root Actions workflow"
+        )
+        owners = tomllib.loads((ROOT / "tools/repo/owners.toml").read_text())
+        host = [o for o in owners["owners"] if o["name"] == "host"]
+        self.assertEqual(len(host), 1)
+        self.assertEqual(host[0]["root"], "services/host/")
+        self.assertEqual(host[0]["queue_verify_task"], "host:queue")
+        root = tomllib.loads((ROOT / "mise.toml").read_text())
+        queue = root["tasks"]["host:queue"]["run"]
+        self.assertIn("cd services/host", queue)
+        self.assertIn("mise run queue", queue)
+        host_mise = tomllib.loads((ROOT / "services/host/mise.toml").read_text())
+        self.assertIn("tools/host_queue_verify.sh", host_mise["tasks"]["queue"]["run"])
+        actual = (ROOT / "services/host/tools/host_queue_verify.sh").read_text()
+        for necessary in (
+            "uv lock --check", "uv sync --locked", "uv run ruff check .",
+            "uv run python -m pytest", "alembic upgrade head",
+            "SHOW server_version_num",
+        ):
+            self.assertIn(necessary, actual)
+        workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        steps = workflow["jobs"]["root-verification"]["steps"]
+        selection = next(step["run"] for step in steps if
+                         step.get("name") == "Select affected owners")
+        verification = next(step["run"] for step in steps if
+                            step.get("name") == "Verify affected owners")
+        self.assertIn("tools/repo/convergence_plan.py", selection)
+        self.assertIn("queueVerifyTasks", selection)
+        self.assertIn("mise run", verification)
+        result = subprocess.run(
+            [sys.executable, str(ROOT / "tools/repo/affected_owners.py"),
+             "--changed-file", "services/host/.github/workflows/ci.yml",
+             "--format", "queue-tasks"],
+            cwd=ROOT, capture_output=True, text=True, timeout=20, check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), "host:queue")
+
     def test_runtime_release_attestations_verify_every_subject_and_fail_closed(self) -> None:
         """Exercise official verifier CLI orchestration, not cryptographic trust."""
         import os
