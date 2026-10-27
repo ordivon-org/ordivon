@@ -28,14 +28,16 @@ def historical_game_source_digests(relative_path: str) -> set[str]:
     A removal commit is not a source revision for the removed path. Limit
     candidates to revisions where the tracked file was added/modified; the
     frozen Artifact acceptance receipt remains unchanged and historical.
+    Prior Game experiments may survive under non-main refs; this check is
+    about reachable historical Git bytes, NOT current main source/installation.
     """
     relative = Path(relative_path)
     if relative.is_absolute() or ".." in relative.parts or not relative.parts:
         raise ValueError("invalid historical Game source path")
     source_path = (GAME_ROOT.relative_to(MONOREPO_ROOT) / relative).as_posix()
     revisions = subprocess.check_output(
-        ["git", "-C", str(MONOREPO_ROOT), "log", "--diff-filter=AM",
-         "--format=%H", "HEAD", "--", source_path],
+        ["git", "--no-replace-objects", "-C", str(MONOREPO_ROOT),
+         "log", "--diff-filter=AM", "--format=%H", "--all", "--", source_path],
         text=True, timeout=25,
     ).splitlines()
     if not revisions:

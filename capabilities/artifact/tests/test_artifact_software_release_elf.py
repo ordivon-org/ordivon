@@ -1,6 +1,7 @@
 import hashlib
 import importlib.util
 import json
+import shlex
 import tempfile
 import unittest
 from pathlib import Path
@@ -8,10 +9,12 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 SPEC=importlib.util.spec_from_file_location('artifact_software_release_elf',ROOT/'scripts/artifact_software_release_elf.py')
 M=importlib.util.module_from_spec(SPEC);assert SPEC.loader;SPEC.loader.exec_module(M)
-FIXTURE=Path('/usr/bin/printf')
+# Bash is a real standalone ELF. Runner /usr/bin/printf can be a multicall
+# coreutils shim whose argv0 changes when Bubblewrap mounts it as /tmp/release.
+FIXTURE=Path('/usr/bin/bash').resolve()
 
 def contract(path:Path, *, marker='ELF_RELEASE_TEST_MARKER', interpreter='/lib64/ld-linux-x86-64.so.2'):
- return {'contractVersion':1,'id':'test-linux-elf-release','profileId':'software-release-linux-elf-executable-r1','artifact':{'sha256':hashlib.sha256(path.read_bytes()).hexdigest(),'byteLength':path.stat().st_size,'executable':True},'fileInspection':{'requiredSubstrings':['ELF 64-bit LSB','x86-64']},'elf':{'class':'ELF64','data':"2's complement, little endian",'osAbi':'UNIX - System V','type':'DYN (Position-Independent Executable file)','machine':'Advanced Micro Devices X86-64','interpreter':interpreter},'runtime':{'args':[marker+'\n'],'exitCode':0,'stdoutContains':[marker],'stderrExact':'','timeoutSeconds':10}}
+ return {'contractVersion':1,'id':'test-linux-elf-release','profileId':'software-release-linux-elf-executable-r1','artifact':{'sha256':hashlib.sha256(path.read_bytes()).hexdigest(),'byteLength':path.stat().st_size,'executable':True},'fileInspection':{'requiredSubstrings':['ELF 64-bit LSB','x86-64']},'elf':{'class':'ELF64','data':"2's complement, little endian",'osAbi':'UNIX - System V','type':'DYN (Position-Independent Executable file)','machine':'Advanced Micro Devices X86-64','interpreter':interpreter}, 'runtime':{'args':['-c', "printf '%s\\n' "+shlex.quote(marker)],'exitCode':0,'stdoutContains':[marker],'stderrExact':'','timeoutSeconds':10}}
 
 class LinuxElfReleaseTests(unittest.TestCase):
  def require(self):
@@ -40,6 +43,15 @@ class LinuxElfReleaseTests(unittest.TestCase):
   self.require()
   with tempfile.TemporaryDirectory() as d:
    r=Path(d);c=contract(FIXTURE,marker='ACTUAL_MARKER');c['runtime']['stdoutContains']=['NEVER_EMITTED'];v=M.verify_linux_elf(FIXTURE,self.write_contract(r,c),r/'e');self.assertEqual(v['status'],'FAIL');self.assertEqual(v['elfStructure']['status'],'PASS');self.assertIn('sandbox runtime stdout missing marker: NEVER_EMITTED',v['failures'])
+ def test_fixture_binds_resolved_release_bytes_not_symlink_description(self):
+  self.assertEqual(FIXTURE, Path('/usr/bin/bash').resolve())
+  if not FIXTURE.is_file() or not M.FILE.is_file():self.skipTest('native file/ELF absent')
+  observed=M.run([str(M.FILE),'-b',str(FIXTURE)])
+  self.assertEqual(observed.returncode,0)
+  self.assertIn('ELF 64-bit LSB',observed.stdout.decode('utf-8','replace'))
+  # Verification source is separately digest-bound by a frozen consumer receipt.
+  # Never change its bytes merely to adapt this fixture across GitHub runners.
+
  def test_non_elf_bytes_fail_closed(self):
   self.require()
   with tempfile.TemporaryDirectory() as d:

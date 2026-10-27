@@ -4,7 +4,7 @@
   "truthRole": "planning-projection-not-project-truth",
   "project": {
     "id": "ordivon-repository-mechanics-source-history-r1",
-    "purpose": "Represent divergent Git history as read-only source-cut-bound typed LEGO records; never infer semantic consumer acceptance or authorize main reset/branch deletion.",
+    "purpose": "Represent Git source history, exact-cut source territory identity, and source-bound repository validation as separate read-only responsibilities. No Owner or Source Region is itself proof of LEGO semantics, executable authority, consumer closure, or deletion permission.",
     "sourceEvidence": [
       "tools/repo/owners.toml",
       "tools/repo/source_history_legos.py",
@@ -74,6 +74,58 @@
         "The existing Git SourceCut planning graph delta treats any changed registered planning-carrier bytes as a conservative requalification seed for every declared node on that carrier, including acceptance-only edits invisible in vertex/edge projection; real consumer/currentness proof remains separate."
       ],
       "nextAction": "Reuse existing native source-bound validator; no duplicate graph, custom DSL, or new proof runtime."
+    },
+    {
+      "id": "RG3_REGION",
+      "label": "ExactGitSourceTerritoryProjection",
+      "kind": "repository_source_classification",
+      "responsibility": "Given one immutable native Git SourceCut, read its source-bound owner manifest and classify each tracked path into a registered mechanical verification root, one declared navigation-only source region, AMBIGUOUS or UNASSIGNED. Preserve exact Git path/Blob identity; expose changed membership separately from source bytes.",
+      "authority": "Git commit/tree objects and the source-cut version of tools/repo/owners.toml (SOURCE provenance, not agent or proof authority)",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "inputs": [
+        "Exact Git commit OID",
+        "NUL-delimited Git tree identities",
+        "owner manifest/source_regions at that same revision"
+      ],
+      "outputs": [
+        "SOURCE-only path-to-region projection",
+        "explicit UNKNOWN/AMBIGUOUS rows",
+        "two-cut classification-only/source-changed distinction"
+      ],
+      "behavioralContract": [
+        "A path in a physical verification root projects REGISTERED_OWNER_SOURCE; otherwise exactly one matched source region projects DECLARED_SOURCE_REGION.",
+        "No matched region yields UNASSIGNED; multiple matches yield AMBIGUOUS and no arbitrarily selected identity.",
+        "For the finite 7b859d74ce9fbb1bad4c2f738960422bf800db8c SourceCut, 325 non-owner paths match exactly one of 14 regions; a deliberate overlapping region is satisfiable as a counterexample.",
+        "All outputs preserve proofReuseAdmissible=false; source classification alone cannot establish R2.1 identity, a real consumer closure, live effects or Formal Refinement."
+      ],
+      "evidence": [
+        "affected_owners.py",
+        "test_affected_owners.py",
+        "owners.toml"
+      ],
+      "consumerEvidence": [
+        "Agent-native affected_owners.py --classify-source-revision exact SHA and --source-path",
+        "test_affected_owners.py::test_exact_source_cut_all_nonowner_paths_have_one_qualified_navigation_region"
+      ],
+      "formalStanding": "FINITE_SOURCECUT_QF_BV_MODEL_VERIFIED_IMPLEMENTATION_REFINEMENT_UNKNOWN",
+      "dependencies": [
+        "RG2_OWNER"
+      ],
+      "mustNotOwn": [
+        "independent semantic LEGO certification",
+        "dynamic consumer completeness",
+        "proof or installed validity inferred from a path tag",
+        "new second Source Registry or human Owner approval"
+      ],
+      "acceptance": [
+        "Exact versioned Git OID, manifest identity and tree identity are explicit; old Git revisions are never reclassified using a newer mutable manifest.",
+        "The repository classification delta reports unchanged source bytes independently from changed region labels; it never upgrades proof reuse.",
+        "One bounded Z3 QF_BV source-region coverage model generated from exact 325 paths and 14 literal rules is UNSAT for uncovered/overlapping files; removing the artifact-method exclusion yields SAT (finite model only).",
+        "Repo native source-query negative controls detect ambiguous rule matches, forged region authority/verify_task, historical classification backfill, and a missing/unregistered source path.",
+        "Real Python implementation vs mathematical classification model refinement and dynamic consumer completeness remain UNKNOWN; native Python/CI checks are only falsifiers, not FORMAL proof."
+      ],
+      "nextAction": "Trace consumer and formal proof obligations for Repo classification output, then promote only independently replaceable responsibilities instead of path/file counts."
     }
   ],
   "slices": [
@@ -159,6 +211,29 @@
         "Core Runtime Job/Attempt registry and Harness event/automation ledgers remain on SQLite. PostgreSQL transition must preserve same-Attempt identity, CAS/leases, foreign keys, event ordering, restore semantics and source-digest readback; only native owner replay and real PG transaction consumer tests can certify it."
       ],
       "nextAction": "Keep owner-native source-identity and exact CDC tests; do not introduce new authorities."
+    },
+    {
+      "id": "RG4",
+      "label": "ExactCutSourceTerritoryClassification",
+      "nodeIds": [
+        "RG3_REGION"
+      ],
+      "status": "IMPLEMENTED",
+      "acceptance": [
+        "Source-cut exact Git membership and typed navigation edges remain separate from R2.1 LEGO semantics.",
+        "Finite region coverage is mathematically checked under explicitly enumerated SourceCut inputs; model-to-Python implementation refinement remains UNKNOWN."
+      ],
+      "blockers": [
+        "Real runtime/Agent consumer contracts and installed-environment readsets have not been formally bridged."
+      ],
+      "nextAction": "Qualify semantically independent Repo tooling consumers and cross-repository inputs without manufacturing a global Owner."
+    }
+  ],
+  "edges": [
+    {
+      "from": "RG2_OWNER",
+      "to": "RG3_REGION",
+      "type": "DEPENDENCY"
     }
   ]
 }

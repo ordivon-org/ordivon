@@ -10011,8 +10011,12 @@ fn runtime_capabilities_project_current_affordances_without_input_authority_path
     let sandbox = Sandbox::new("runtime-capabilities", 5_000);
     let input_root = sandbox.root.join("private-input-authority");
     fs::create_dir_all(&input_root).unwrap();
+    // Keep the production non-symlink Runner admission invariant intact even
+    // when the CI toolchain provides /usr/bin/true as a symlink.
+    let mut config = runtime_config(&sandbox);
+    config.executor.runner_path = Some(fs::canonicalize("/usr/bin/true").unwrap());
     let runtime = Runtime::new_with_input_authorities(
-        runtime_config(&sandbox),
+        config,
         vec![InputAuthority {
             name: "finance-state".to_string(),
             root: input_root.clone(),

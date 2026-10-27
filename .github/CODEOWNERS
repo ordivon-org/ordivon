@@ -1,5 +1,6 @@
 * @zycxfyh
 
+
 /meta/next/ @zycxfyh
 
 /packages/composition/ @zycxfyh
@@ -28,3 +29,8 @@
 /tools/repo/ @zycxfyh
 /.github/ @zycxfyh
 /mise.toml @zycxfyh
+
+# R2.1 physically independent source and verification areas.
+/.agents/skills/recursive-lego-calculus/ @zycxfyh
+/tools/formal/ @zycxfyh
+/meta/research/ @zycxfyh

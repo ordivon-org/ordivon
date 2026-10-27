@@ -2,10 +2,36 @@ schema_version = 1
 kind = "ordivon.repo-owner-manifest"
 truth_role = "repository-mechanics-only-not-domain-authority"
 
+# Recursive LEGO R2.1: independent method/contract *source* already consumed
+# by the existing project Skill resolver. This is NOT a second math kernel,
+# proof authority, execution service, or human Agent approver.
+# Repo and formal engines already have independent source interfaces and
+# native consumer verification; declare their existing physical boundaries.
 [[owners]]
 name = "next"
 root = "meta/next/"
 verify_task = "next:verify"
+
+# Semantic foundation is independently verified at its EXISTING source,
+# rather than copying R2.1 mathematics into Repo, Composition or Gateway.
+# Physical .agents/skills packaging is not a proof that methods execute effects.
+# Native theorem provers and proof-oracle binaries are a different owner
+# from the R2.1 logical specification and from product-specific proofs.
+[[owners]]
+name = "formal-toolchain"
+root = "tools/formal/"
+verify_task = "formal:verify"
+queue_verify_task = "formal:source:verify"
+
+[[owners]]
+name = "lego-foundation"
+root = ".agents/skills/recursive-lego-calculus/"
+verify_task = "lego-foundation:verify"
+
+[[owners]]
+name = "research"
+root = "meta/research/"
+verify_task = "research:verify"
 
 [[owners]]
 name = "composition"
@@ -94,3 +120,79 @@ verify_task = "capital:verify"
 name = "web"
 root = "apps/web/"
 verify_task = "web:verify"
+
+# Source navigation for paths outside registered verification owners.
+# These labels grant no authority, LEGO qualification, verify task or CI selection.
+# Historical projections read the regions from that exact Git SourceCut.
+[[source_regions]]
+name = "agent-method-library"
+description = "General, independent method and idea Skills; platform Skills bridge is a separate executable responsibility."
+paths = [".agents/skills/"]
+exclude = [".agents/skills/recursive-lego-calculus/", ".agents/skills/artifact-work/"]
+
+[[source_regions]]
+name = "artifact-method-recipes"
+description = "Portable artifact creation method instructions and references, not an Artifact service or installed proof."
+paths = [".agents/skills/artifact-work/"]
+
+[[source_regions]]
+name = "repository-engineering"
+description = "Git source graph, source selection, boundary checks and repository CLI mechanics."
+paths = ["tools/repo/"]
+exclude = ["tools/repo/migration/", "tools/repo/planning/"]
+
+[[source_regions]]
+name = "repository-migration-operators"
+description = "Historical and current Git publication/migration shell operators; effects require separate contract admission."
+paths = ["tools/repo/migration/"]
+
+[[source_regions]]
+name = "repository-lego-plan-carrier"
+description = "Repo-owned LEGO plan source, not an executable repository tool or independently proven theorem."
+paths = ["tools/repo/planning/"]
+
+[[source_regions]]
+name = "research-contract-profiles"
+description = "Research schemas and qualification profiles; no claim of installed or scientific authority."
+paths = ["profiles/research/"]
+
+[[source_regions]]
+name = "research-profile-conformance"
+description = "Cross-cutting source test consuming research schema profiles, not a research profile itself."
+paths = ["tests/catalogs/"]
+
+[[source_regions]]
+name = "architecture-documentation"
+description = "Architecture descriptions and declared contracts; neither historical source nor current proof by default."
+paths = ["docs/architecture/"]
+exclude = ["docs/architecture/evidence/"]
+
+[[source_regions]]
+name = "architecture-evidence-carriers"
+description = "Architecture issue censuses, receipts and evidence sources; formal/currentness qualification remains separate."
+paths = ["docs/architecture/evidence/"]
+
+[[source_regions]]
+name = "migration-acceptance-records"
+description = "Historical migration acceptance statements; not installed/source currentness without a live bridge."
+paths = ["docs/migration/acceptance/"]
+
+[[source_regions]]
+name = "migration-provenance-receipts"
+description = "Old repository commit maps and Git rewrite evidence; history is not proof of a live consumer."
+paths = ["docs/migration/receipts/"]
+
+[[source_regions]]
+name = "migration-retirement-policies"
+description = "Historical standalone retirement policies; no unconditional deletion permission."
+paths = ["docs/migration/retirement/"]
+
+[[source_regions]]
+name = "retrospective-records"
+description = "Retrospective explanations rather than active execution or formal proof."
+paths = ["docs/retro/"]
+
+[[source_regions]]
+name = "repository-configuration"
+description = "Repository configuration and automation; verification fanout is a separate selector."
+paths = [".github/", ".gitignore", ".gitleaksignore", "AGENTS.md", "README.md", "mise.toml", "renovate.json"]
