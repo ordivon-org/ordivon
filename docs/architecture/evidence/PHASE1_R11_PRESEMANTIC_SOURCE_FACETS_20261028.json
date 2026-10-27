@@ -3191,6 +3191,7 @@
       "trueConsumerScope": "UNKNOWN"
     }
   ],
+  "canonicalRegenerableCLI": "MERGED PR #1062: tools/repo/exhaustive_coverage.py --source-cut <exact SHA> --problem-legos --summary",
   "canonicalSources": [
     "tools/repo/exhaustive_coverage.py::classification",
     "tools/repo/exhaustive_coverage.py::active_source_cells",
@@ -3199,6 +3200,21 @@
     "docs/architecture/evidence/ORDIVON_PHASE1_NAME_SEEDS_20261027_R4.json"
   ],
   "exactGitSourceCut": "4e76f8bd6ebcc65b201ff9253314c2b5a82f08ab",
+  "independentCanonicalCLIVerification": {
+    "issueKindCounts": {
+      "LOCAL_PLAN_MAPPING_REVIEW": 3,
+      "NON_NODE_PLAN_MAPPING_REVIEW": 1,
+      "PLAN_NODE_DECLARATION_ISSUE": 111,
+      "RECURSIVE_SOURCE_CELL_ISSUE": 86
+    },
+    "issueRecords": 201,
+    "nativeGitPaths": 4790,
+    "physicalContainmentLinks": 636,
+    "recursiveCells": 689,
+    "sourceInstalledConsumerClosure": "UNKNOWN",
+    "testedGitCut": "4e76f8bd6ebcc65b201ff9253314c2b5a82f08ab",
+    "unqualifiedPlanDeclaredEdges": 180
+  },
   "kind": "ordivon.phase1.presemantic-navigation-and-source-policy-question-facets",
   "nativeUnassignedNavigationRegions": {
     "region/architecture-documentation": 80,
@@ -5280,7 +5296,6 @@
       "sourceGitIdentity": "100755:blob:9eaeac37638307e8eed03ea44ba989d4c489959f"
     }
   ],
-  "peerRegenerableCLI": "PR #1059 tools/repo/problem_lego_frontier.py; independently verified against exact subject SourceCut: 4790 paths, 689 physical cells, 86 tagged cell problems, 148 plan node questions and 180 declared-local edges",
   "planDeclarationIssueCells": [
     {
       "relatedIssueCodes": [

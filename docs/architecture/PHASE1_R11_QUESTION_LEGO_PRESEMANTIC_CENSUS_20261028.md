@@ -2,7 +2,7 @@
 
 **Status: source-only census and pending questions. No issue is solved, moved, deleted, owner-assigned, registered as a capability, or formal-certified by this projection.**
 
-Machine readout: `evidence/PHASE1_R11_PRESEMANTIC_SOURCE_FACETS_20261028.json` is derived from exact-Git exhaustive_coverage.py and source_content_facets.py, with maxCellFiles=24 and maxCellDepth=6. This JSON is ONLY the missing navigation/dense/structure facets. Peer PR #1059 already provides a regenerable native Problem LEGO CLI over all physical cells and plan nodes, and was independently exercised on this exact SourceCut; no competing classifier, CLI, registry or issue system was created.
+Machine readout: `evidence/PHASE1_R11_PRESEMANTIC_SOURCE_FACETS_20261028.json` is derived from exact-Git exhaustive_coverage.py and source_content_facets.py, with maxCellFiles=24 and maxCellDepth=6. This JSON is ONLY the missing navigation/dense/structure facets. MERGED PR #1062 already provides the canonical regenerable --problem-legos CLI inside tools/repo/exhaustive_coverage.py over all physical cells and plan nodes, and was independently exercised on this exact SourceCut; no competing classifier, CLI, registry or issue system was created.
 
 Exact subject Git SourceCut: `4e76f8bd6ebcc65b201ff9253314c2b5a82f08ab`, SourceTree `67aec1aae85fcd9aa5949cf33f19d21ed7c8e54f`. This evidence file is newer than its subject source cut by construction and must not be misrepresented as live current main.
 
@@ -24,7 +24,7 @@ Among the 590 policy-only Cells, 553 carry planned-move/cutover-not-proven hints
 
 The plan-node denominator has a separate distinction: **111 / 148** nodes lack at least one native declaration field, but the remaining **37 / 148** with all those fields present still have actual consumer, implementation, formal qualification UNKNOWN.
 
-233 unassigned *paths* are not 233 distinct business problems and some share the same 39 UNCLASSIFIED_SOURCE_REGION cells; three such cells carry another problem tag. All 148 plan nodes require qualification, but are not 148 failed running LEGO. The full per-node candidate list and exact 180 declared edges are obtained through the native PR #1059 CLI, NOT recopied as another persistent snapshot. The local names G01, C01 collide across plans; only full plan-path#node-id is safely scoped.
+233 unassigned *paths* are not 233 distinct business problems and some share the same 39 UNCLASSIFIED_SOURCE_REGION cells; three such cells carry another problem tag. All 148 plan nodes require qualification, but are not 148 failed running LEGO. The full 201 source/declaration problem questions (86 Cell issues + 111 gap nodes + 3 roots without plans + 1 non-node Host plan), 636 source-prefix containment relations, and 180 still-unqualified declared edges are obtained through the canonical merged PR #1062 CLI, NOT recopied as another persistent snapshot. The local names G01, C01 collide across plans; only full plan-path#node-id is safely scoped.
 
 ## Native UNASSIGNED source paths mapped to existing navigation regions
 
