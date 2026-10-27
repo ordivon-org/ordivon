@@ -166,7 +166,9 @@ def changed_paths(base: str, head: str) -> tuple[str, ...]:
 
 
 
-def project_source_classification(repo: Path, source_revision: str) -> dict:
+def project_source_classification(
+    repo: Path, source_revision: str, *, only_paths: frozenset[str] | None = None,
+) -> dict:
     """Rebuild source navigation; never selects verification or qualifies a LEGO."""
     from collections import Counter
     from tempfile import TemporaryDirectory
@@ -220,6 +222,10 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
 
     entries = []
     for path, identity in sorted(tree.items()):
+        # Agent point queries inspect only requested entries. Git still owns
+        # exact tree membership; no unchanged source bodies are read/parsed.
+        if only_paths is not None and path not in only_paths:
+            continue
         # Git path bytes are identity. Do not strip/normalize filenames here.
         owner = next((o.name for o in native_owners if path.startswith(o.root)), None)
         matched = []
@@ -257,11 +263,87 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
         "entries": entries,
     }
 
+
+def inspect_source_path(
+    repo: Path, source_revision: str, path: str, *,
+    compare_revision: str | None = None,
+) -> dict:
+    """Agent-bounded SOURCE lookup. Never substitutes for consumer/proof closure.
+
+    Reuses the existing immutable Git projection, typed Owner and Source Region
+    policy. Neither source equality nor unchanged owner routing proves that
+    a deployed effect or any semantic proof remains valid.
+    """
+    if (
+        not isinstance(path, str) or not path or path.startswith("/")
+        or chr(92) in path or chr(0) in path
+        or any(part in {"", ".", ".."} for part in path.split("/"))
+    ):
+        raise ValueError("inspect path must be canonical Git-relative exact bytes")
+
+    def one(cut: str) -> dict:
+        projected = project_source_classification(repo, cut, only_paths=frozenset({path}))
+        item = next((e for e in projected["entries"] if e["path"] == path), None)
+        if item is None:
+            item = {
+                "path": path, "sourceIdentity": None, "verificationOwner": None,
+                "sourceRegion": None, "classificationStanding": "ABSENT_FROM_GIT_SOURCE",
+                "matchedRules": [],
+            }
+        return {
+            "sourceRevision": projected["sourceRevision"],
+            "sourceTree": projected["sourceTree"],
+            "ownerManifestIdentity": projected["ownerManifestIdentity"],
+            "entry": item,
+        }
+
+    now = one(source_revision)
+    result = {
+        "schemaVersion": 1,
+        "kind": "ordivon.agent-source-path-inspection",
+        "truthRole": "IMMUTABLE_SOURCE_NAVIGATION_NOT_SEMANTIC_OR_EFFECT_AUTHORITY",
+        "current": now,
+        "proofReuseAdmissible": False,
+        "semanticEquivalence": "UNKNOWN",
+        "consumerClosure": "UNKNOWN",
+        "installedCurrentness": "UNKNOWN",
+    }
+    if compare_revision is not None:
+        previous = one(compare_revision)
+        a, b = previous["entry"], now["entry"]
+        present_both = (
+            a["sourceIdentity"] is not None and b["sourceIdentity"] is not None
+        )
+        same_source = present_both and a["sourceIdentity"] == b["sourceIdentity"]
+        same_manifest = (
+            previous["ownerManifestIdentity"] == now["ownerManifestIdentity"]
+        )
+        same_scope = all(
+            a[key] == b[key] for key in
+            ("verificationOwner", "sourceRegion", "classificationStanding", "matchedRules")
+        )
+        source_standing = (
+            "UNCHANGED_SOURCE_AND_SCOPE" if same_source and same_manifest and same_scope
+            else "ABSENT_AT_BOTH_CUTS" if a["sourceIdentity"] is None and b["sourceIdentity"] is None
+            else "RECHECK_SOURCE_OR_SCOPE"
+        )
+        result["comparison"] = {
+            "previous": previous,
+            "sameSourceIdentity": same_source,
+            "sameOwnerManifestIdentity": same_manifest,
+            "sameSourceScope": same_scope,
+            "sourceStanding": source_standing,
+            "scope": "Git bytes, tracked membership and policy only",
+        }
+    return result
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Select monorepo owners affected by an exact Git range."
     )
     parser.add_argument("--classify-source-revision", help="exact-cut source navigation; does not select verification")
+    parser.add_argument("--inspect-path", help="return only this exact Git path and source standing")
+    parser.add_argument("--compare-source-revision", help="optional previous exact cut for --inspect-path")
     parser.add_argument("--base")
     parser.add_argument("--head")
     parser.add_argument("--all", action="store_true")
@@ -277,10 +359,21 @@ def _parser() -> argparse.ArgumentParser:
 def main() -> int:
     args = _parser().parse_args()
     if args.classify_source_revision:
-        if args.all or args.base or args.head or args.changed_file or args.format != "json":
+        if (
+            args.all or args.base or args.head or args.changed_file or args.format != "json"
+            or (args.compare_source_revision and not args.inspect_path)
+        ):
             raise SystemExit("source classification cannot be combined with verification selection")
-        print(json.dumps(project_source_classification(Path.cwd(), args.classify_source_revision), sort_keys=True))
+        if args.inspect_path:
+            print(json.dumps(inspect_source_path(
+                Path.cwd(), args.classify_source_revision, args.inspect_path,
+                compare_revision=args.compare_source_revision,
+            ), sort_keys=True))
+        else:
+            print(json.dumps(project_source_classification(Path.cwd(), args.classify_source_revision), sort_keys=True))
         return 0
+    if args.inspect_path or args.compare_source_revision:
+        raise SystemExit("--inspect-path requires --classify-source-revision; comparison requires both")
     if args.all:
         selected = _default_owners()
         paths: tuple[str, ...] = ()

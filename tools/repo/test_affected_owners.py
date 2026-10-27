@@ -394,6 +394,93 @@ class SourceClassificationTests(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertEqual(json.loads(proc.stdout)["sourceRevision"], cut)
 
+    def test_agent_inspection_bounded_and_unchanged_source_does_not_prove_behavior(self) -> None:
+        self.manifest.write_text(self.header + (
+            '\n[[source_regions]]\nname = "lego-core"\n'
+            'paths = [".agents/skills/recursive-lego-calculus/"]\n'
+        ))
+        first = self.commit()
+        # Unrelated tracked blob change cannot force re-understanding this
+        # source *at the source/Owner policy level*. Domain closure is UNKNOWN.
+        (self.repo / "loose/unplaced.txt").write_text("other")
+        second = self.commit()
+        path = ".agents/skills/recursive-lego-calculus/SKILL.md"
+        result = MODULE.inspect_source_path(self.repo, second, path, compare_revision=first)
+        self.assertEqual(result["schemaVersion"], 1)
+        only = MODULE.project_source_classification(self.repo, second, only_paths=frozenset({path}))
+        self.assertEqual(len(only["entries"]), 1)
+        self.assertEqual(result["current"]["entry"], only["entries"][0])
+        self.assertEqual(result["current"]["entry"]["sourceRegion"], "lego-core")
+        self.assertEqual(result["comparison"]["sourceStanding"], "UNCHANGED_SOURCE_AND_SCOPE")
+        self.assertTrue(result["comparison"]["sameSourceIdentity"])
+        self.assertFalse(result["proofReuseAdmissible"])
+        self.assertEqual(result["consumerClosure"], "UNKNOWN")
+        self.assertEqual(result["installedCurrentness"], "UNKNOWN")
+
+    def test_agent_inspection_source_mutation_and_policy_change_recheck(self) -> None:
+        path = ".agents/skills/recursive-lego-calculus/SKILL.md"
+        first = self.base
+        (self.repo / path).write_text("changed")
+        second = self.commit()
+        modified = MODULE.inspect_source_path(self.repo, second, path, compare_revision=first)
+        self.assertEqual(modified["comparison"]["sourceStanding"], "RECHECK_SOURCE_OR_SCOPE")
+        self.assertFalse(modified["comparison"]["sameSourceIdentity"])
+        self.manifest.write_text(self.header + (
+            '\n[[source_regions]]\nname = "lego-core"\n'
+            'paths = [".agents/skills/recursive-lego-calculus/"]\n'
+        ))
+        third = self.commit()
+        policy = MODULE.inspect_source_path(self.repo, third, path, compare_revision=second)
+        self.assertTrue(policy["comparison"]["sameSourceIdentity"])
+        self.assertFalse(policy["comparison"]["sameOwnerManifestIdentity"])
+        self.assertEqual(policy["comparison"]["sourceStanding"], "RECHECK_SOURCE_OR_SCOPE")
+        # The mutated worktree may not rewrite a historical Git answer.
+        self.manifest.write_text("BROKEN TOML")
+        self.assertEqual(MODULE.inspect_source_path(self.repo, third, path), MODULE.inspect_source_path(self.repo, third, path))
+
+    def test_agent_inspection_absent_paths_are_not_claimed_unmodified(self) -> None:
+        gone = "services/runtime/main.rs"
+        first = self.base
+        (self.repo / gone).unlink()
+        second = self.commit()
+        missing = MODULE.inspect_source_path(self.repo, second, gone, compare_revision=first)
+        self.assertEqual(missing["current"]["entry"]["classificationStanding"], "ABSENT_FROM_GIT_SOURCE")
+        self.assertEqual(missing["comparison"]["sourceStanding"], "RECHECK_SOURCE_OR_SCOPE")
+        nowhere = MODULE.inspect_source_path(self.repo, second, "never/existed.txt", compare_revision=first)
+        self.assertEqual(nowhere["comparison"]["sourceStanding"], "ABSENT_AT_BOTH_CUTS")
+        for bad in ("/abs/path", "../escape", "a//b", "a/./b", "a\\b", "", "a" + chr(0)):
+            with self.subTest(bad=repr(bad)), self.assertRaisesRegex(ValueError, "canonical"):
+                MODULE.inspect_source_path(self.repo, second, bad)
+        # Preserve a Git pathname containing a literal newline/space.
+        weird = MODULE.inspect_source_path(self.repo, first, "odd/ leading\npath.txt")
+        self.assertTrue(weird["current"]["entry"]["sourceIdentity"])
+
+    def test_agent_inspection_real_cli_small_output_and_legacy_mode(self) -> None:
+        import json
+        import shutil
+        for name in ("affected_owners.py", "source_history_legos.py"):
+            shutil.copy2(MODULE_PATH.parent / name, self.repo / "tools/repo" / name)
+        cut = self.commit()
+        query = self.subprocess.run(
+            [sys.executable, "tools/repo/affected_owners.py",
+             "--classify-source-revision", cut,
+             "--inspect-path", "services/runtime/main.rs",
+             "--compare-source-revision", self.base],
+            cwd=self.repo, text=True, capture_output=True,
+        )
+        self.assertEqual(query.returncode, 0, query.stderr)
+        result = json.loads(query.stdout)
+        self.assertEqual(result["current"]["entry"]["verificationOwner"], "runtime")
+        self.assertFalse(result["proofReuseAdmissible"])
+        self.assertLess(len(query.stdout), 2500)
+        legacy = self.subprocess.run(
+            [sys.executable, "tools/repo/affected_owners.py",
+             "--classify-source-revision", cut],
+            cwd=self.repo, text=True, capture_output=True,
+        )
+        self.assertEqual(legacy.returncode, 0, legacy.stderr)
+        self.assertEqual(json.loads(legacy.stdout)["sourceRevision"], cut)
+
     def test_mutable_revision_and_symlink_manifest_cannot_witness_classification(self) -> None:
         with self.assertRaisesRegex(ValueError, "exact"):
             self.project("HEAD")
