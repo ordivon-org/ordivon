@@ -1,0 +1,12 @@
+[tools]
+"github:leanprover/lean4" = { version = "4.35.0", asset_pattern = "lean-4.35.0-linux.tar.zst", strip_components = "1" }
+"github:Z3Prover/z3" = { version = "5.3.2", asset_pattern = "z3-5.3.2-x64-glibc-2.39.zip", strip_components = "1", version_prefix = "z3-" }
+"github:cvc5/cvc5" = { version = "1.4.2", asset_pattern = "cvc5-Linux-x86_64-static.zip", strip_components = "1", version_prefix = "cvc5-" }
+"github:informalsystems/quint" = { version = "0.33.0", asset_pattern = "quint-linux-amd64", rename_exe = "quint" }
+"github:verus-lang/verus" = { version = "0.2026.10.26.d17fbd0", asset_pattern = "verus-0.2026.10.26.d17fbd0-x86-linux.zip", strip_components = "1", version_prefix = "release/" }
+"github:dafny-lang/dafny" = { version = "4.11.0", asset_pattern = "dafny-4.11.0-x64-ubuntu-22.04.zip", strip_components = "1" }
+"github:AlloyTools/org.alloytools.alloy" = { version = "6.2.0", asset_pattern = "alloy-6.2.0-linux-amd64.tar.gz", strip_components = "1" }
+"cargo:kani-verifier" = "0.68.0"
+
+[tasks.verify]
+run = "python3 verify.py"

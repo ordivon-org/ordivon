@@ -623,6 +623,9 @@ class FormalTraceContractTests(unittest.TestCase):
                         side_effect=["a" * 40, "b" * 40],
                     ),
                     patch.object(self.module, "_git_source_changes", return_value=set()),
+                    # This test isolates the after-execution HEAD fence; the
+                    # independent depfile contract has its own real fixtures.
+                    patch.object(self.module, "_native_libtest_depfile_receipt", return_value={}),
                     patch("subprocess.run", side_effect=fake_run),
                     patch.dict(os.environ, {"CARGO_TARGET_DIR": str(runtime / "target")}),
                 ):
@@ -726,6 +729,124 @@ class FormalTraceContractTests(unittest.TestCase):
                     {"RECHECK_REQUIRED"},
                 )
                 self.assertTrue(all(row["matchedChangedPaths"] == [path] for row in result["standingByWitness"]))
+
+    def test_compiler_evidence_mixed_language_positive_read_edges(self):
+        """Real rustc emits SQL as well as Rust; all five share one libtest binary."""
+        trace, invariants = manifests()
+        sql = "services/runtime/crates/ordivon-runtime-core/migrations/runtime/0001_runtime.sql"
+        without = self.module.project_proving_test_source_impact(trace, invariants, {sql})
+        self.assertEqual(without["unindexedRuntimeChanges"], [sql])
+        self.assertEqual(
+            {item["standing"] for item in without["standingByWitness"]},
+            {"UNKNOWN"},
+        )
+        with_compiler = self.module.project_proving_test_source_impact(trace, invariants, {sql}, compiler_inputs={sql})
+        self.assertEqual(with_compiler["unindexedRuntimeChanges"], [])
+        self.assertEqual(
+            {item["standing"] for item in with_compiler["standingByWitness"]},
+            {"RECHECK_REQUIRED"},
+        )
+        self.assertTrue(all(item["matchedChangedPaths"] == [sql] for item in with_compiler["standingByWitness"]))
+        self.assertIn("not proof PASS", with_compiler["nonClaims"][0])
+
+    def test_compiler_inputs_do_not_authorize_unknown_negative_dependencies(self):
+        trace, invariants = manifests()
+        known = "services/runtime/crates/core/src/lib.rs"
+        unknown = "services/runtime/crates/core/src/undeclared_dynamic_new.rs"
+        result = self.module.project_proving_test_source_impact(trace, invariants, {unknown}, compiler_inputs={known})
+        self.assertEqual(result["unindexedRuntimeChanges"], [unknown])
+        self.assertEqual(
+            {x["standing"] for x in result["standingByWitness"]},
+            {"UNKNOWN"},
+        )
+        for invalid in ({"/absolute"}, {"services/runtime/../escape"}, {"README.md"}):
+            with self.subTest(invalid=invalid):
+                with self.assertRaisesRegex(ValueError, "compiler inputs"):
+                    self.module.project_proving_test_source_impact(trace, invariants, {known}, compiler_inputs=invalid)
+
+    def test_compiler_libtest_depfile_git_identity_and_escape_controls(self):
+        """A small actual Git SourceCut proves both positive and fail-closed paths."""
+        import subprocess
+
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "services/runtime"
+            rust = root / "crates/ordivon-runtime-core/src/lib.rs"
+            sql = root / "crates/ordivon-runtime-core/migrations/schema.sql"
+            rust.parent.mkdir(parents=True)
+            sql.parent.mkdir(parents=True)
+            rust.write_text("fn original() {}\n", encoding="utf-8")
+            sql.write_text("CREATE TABLE original(id INTEGER);\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(base), "init", "-q"], check=True)
+            subprocess.run(["git", "-C", str(base), "add", "."], check=True)
+            subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(base),
+                    "-c",
+                    "user.name=ProofTest",
+                    "-c",
+                    "user.email=proof@example.invalid",
+                    "commit",
+                    "-qm",
+                    "source cut",
+                ],
+                check=True,
+            )
+            sha = subprocess.check_output(
+                ["git", "-C", str(base), "rev-parse", "HEAD"],
+                text=True,
+            ).strip()
+            bin_path = root / "target/debug/deps/ordivon_runtime_core-fixture"
+            bin_path.parent.mkdir(parents=True)
+            bin_path.write_bytes(b"real-executable-fixture")
+            native_inputs = [
+                "crates/ordivon-runtime-core/src/lib.rs",
+                "crates/ordivon-runtime-core/src/runtime/../../migrations/schema.sql",
+            ]
+            joined = " ".join(native_inputs)
+            depfile = Path(str(bin_path) + ".d")
+            depfile.write_text(
+                f"{depfile}: {joined}\n\n{bin_path}: {joined}\n\n" + "\n".join(f"{p}:" for p in native_inputs) + "\n",
+                encoding="utf-8",
+            )
+            original = self.module.ROOT
+            self.module.ROOT = root
+            try:
+                receipt = self.module._native_libtest_depfile_receipt(bin_path, sha)
+                self.assertEqual(len(receipt["sourcePaths"]), 2)
+                self.assertTrue(any(path.endswith(".sql") for path in receipt["sourcePaths"]))
+                self.assertFalse(receipt["proofReuseAdmissible"])
+                original_sql = sql.read_text(encoding="utf-8")
+                sql.write_text("CREATE TABLE different(id TEXT);\n", encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "physical/Git blob mismatch"):
+                    self.module._native_libtest_depfile_receipt(bin_path, sha)
+                sql.write_text(original_sql, encoding="utf-8")
+                # A broken phony dependency list cannot impersonate rustc.
+                original_depfile = depfile.read_text(encoding="utf-8")
+                depfile.write_text(
+                    original_depfile.replace(
+                        native_inputs[0] + ":",
+                        "foreign.rs:",
+                    ),
+                    encoding="utf-8",
+                )
+                with self.assertRaisesRegex(ValueError, "phony source rules disagree"):
+                    self.module._native_libtest_depfile_receipt(bin_path, sha)
+                depfile.write_text(original_depfile, encoding="utf-8")
+                # An untracked extra include must never be silently certified.
+                depfile.write_text(
+                    depfile.read_text(encoding="utf-8").replace(
+                        "crates/ordivon-runtime-core/src/lib.rs",
+                        "crates/ordivon-runtime-core/src/../../../../outside.rs",
+                    ),
+                    encoding="utf-8",
+                )
+                with self.assertRaisesRegex(ValueError, "outside|absent"):
+                    self.module._native_libtest_depfile_receipt(bin_path, sha)
+            finally:
+                self.module.ROOT = original
 
     def test_runtime_formal_source_impact_model_change_rechecks_all(self):
         trace, invariants = manifests()
@@ -1023,6 +1144,68 @@ class FormalTraceContractTests(unittest.TestCase):
         changed_profile = copy.deepcopy(context)
         changed_profile["compiledTestProfile"]["test"] = False
         self.assertNotEqual(baseline, self.module._native_execution_context_digest(changed_profile))
+
+    def test_cargo_build_configuration_is_part_of_witness_qualification(self):
+        # Native Cargo -vv verified that CARGO_BUILD_RUSTFLAGS is forwarded
+        # to rustc, even though both the source and binary hashes can match.
+        source_env = {
+            "RUSTFLAGS": "",
+            "CARGO_BUILD_RUSTFLAGS": "",
+            "RUSTC_WORKSPACE_WRAPPER": "",
+            "CARGO_PROFILE_TEST_OPT_LEVEL": "0",
+            "CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUSTFLAGS": "",
+            "CARGO_REGISTRIES_CRATES_IO_TOKEN": "never-export-this-secret",
+        }
+        observed = self.module._native_cargo_build_environment(source_env)
+        self.assertNotIn("CARGO_REGISTRIES_CRATES_IO_TOKEN", observed)
+        self.assertNotIn("never-export-this-secret", str(observed))
+        self.assertEqual(observed["CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUSTFLAGS"], "")
+        original = self.module._native_execution_context_digest(
+            {"buildEnvironment": observed, "compiledTestArtifactSha256": "sha256:same"}
+        )
+        mutations = {
+            "CARGO_BUILD_RUSTFLAGS": "--cfg ordivon_r51_native_proof_readset",
+            "RUSTC_WORKSPACE_WRAPPER": "/usr/bin/env",
+            "CARGO_PROFILE_TEST_OPT_LEVEL": "1",
+            "CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUSTFLAGS": "-C opt-level=1",
+        }
+        for key, value in mutations.items():
+            changed_env = dict(source_env)
+            changed_env[key] = value
+            changed = self.module._native_cargo_build_environment(changed_env)
+            with self.subTest(key=key):
+                self.assertNotEqual(
+                    original,
+                    self.module._native_execution_context_digest(
+                        {
+                            "buildEnvironment": changed,
+                            "compiledTestArtifactSha256": "sha256:same",
+                        }
+                    ),
+                )
+        changed_env = dict(source_env)
+        changed_env["CARGO_REGISTRIES_CRATES_IO_TOKEN"] = "different-secret"
+        self.assertEqual(observed, self.module._native_cargo_build_environment(changed_env))
+
+    def test_cargo_source_readset_changes_proof_qualification_identity(self):
+        # Keep the same source cut, compiler, flags and binary; a different
+        # qualified depfile source membership must change proof evidence.
+        context = {
+            "sourceHead": "a" * 40,
+            "compiledTestArtifactSha256": "sha256:" + "f" * 64,
+            "buildEnvironment": {"CARGO_BUILD_RUSTFLAGS": ""},
+            "compilerSourceReadset": {
+                "sourceGitBlobsDigest": "1" * 64,
+                "scope": "one-cargo-libtest-rustc-depfile",
+            },
+        }
+        expected = self.module._native_execution_context_digest(context)
+        altered = copy.deepcopy(context)
+        altered["compilerSourceReadset"]["sourceGitBlobsDigest"] = "2" * 64
+        self.assertNotEqual(expected, self.module._native_execution_context_digest(altered))
+        altered = copy.deepcopy(context)
+        altered["compilerSourceReadset"]["scope"] = "different-source-coverage"
+        self.assertNotEqual(expected, self.module._native_execution_context_digest(altered))
 
 
 if __name__ == "__main__":

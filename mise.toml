@@ -7,6 +7,7 @@ shell = "bash -c"
 [monorepo]
 config_roots = [
   "meta/next",
+  "tools/formal",
   "meta/next/experimental/episode-store-r1",
   "packages/composition",
   "services/runtime",
@@ -312,3 +313,6 @@ set -euo pipefail
 uv run --with pyyaml==6.0.3 python capabilities/preservation/scripts/test_verify_source.py
 uv run --with pyyaml==6.0.3 python capabilities/preservation/scripts/verify_source.py
 """
+
+[tasks."formal:verify"]
+run = "cd tools/formal && mise run verify"

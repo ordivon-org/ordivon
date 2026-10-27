@@ -44,8 +44,7 @@ def _immutable_git_manifest(
     """
     relative = path.as_posix()
     if (
-        re.fullmatch(r"[0-9a-f]{40}", commit) is None
-        or path.is_absolute()
+        path.is_absolute()
         or not relative
         or any(part in ("", ".", "..") for part in relative.split("/"))
         or "\\x00" in relative
@@ -65,6 +64,18 @@ def _immutable_git_manifest(
         except (OSError, subprocess.CalledProcessError) as exc:
             raise CircuitContractError("Git source cut or regular blob unavailable") from exc
 
+    # Git supports both SHA-1 (40) and SHA-256 (64) storage formats.
+    # Ask the repository for the actual object format rather than adopting
+    # one hash algorithm as an implicit global LEGO/source-cut type.
+    storage_format = git("rev-parse", "--show-object-format=storage").strip()
+    if storage_format == b"sha1":
+        object_id_width = 40
+    elif storage_format == b"sha256":
+        object_id_width = 64
+    else:
+        raise CircuitContractError("unsupported Git repository object format")
+    if re.fullmatch(rf"[0-9a-f]{{{object_id_width}}}", commit) is None:
+        raise CircuitContractError("source-bound impact needs an exact Git commit object ID")
     if git("cat-file", "-t", commit).strip() != b"commit":
         raise CircuitContractError("Git SourceCut must identify an immutable commit")
     # ls-tree rejects gitlinks, symlinks, missing path, and pathspec ambiguity.
@@ -84,6 +95,7 @@ def _immutable_git_manifest(
     raw = git("cat-file", "blob", commit + ":" + relative)
     return _load_json(path, source_bytes=raw), {
         "commit": commit,
+        "objectFormat": storage_format.decode("ascii"),
         "path": relative,
         "blobId": blob.decode("ascii"),
         "sha256": "sha256:" + hashlib.sha256(raw).hexdigest(),
@@ -654,6 +666,8 @@ def select_manifest_gate_impacts(
     *,
     previous_manifest: dict[str, Any],
     current_manifest: dict[str, Any],
+    previous_binding_set: dict[str, Any] | None = None,
+    current_binding_set: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Compare exact task-local manifest property inputs through the existing selector.
 
@@ -693,21 +707,61 @@ def select_manifest_gate_impacts(
             }
         )
 
-    shared_changed = shared_context(previous_manifest) != shared_context(current_manifest) or bool(
-        added or removed
-    )
+    # Negative Gate membership is already part of each bounded consumer's
+    # upstreamGates readset in compare_gate_source_scopes. Treating any add/
+    # remove as a global change would invalidate independent Gate branches.
+    shared_changed = shared_context(previous_manifest) != shared_context(current_manifest)
     local_changed = sorted(set(scoped["changedGateIds"]) | set(added))
+
+    if (previous_binding_set is None) != (current_binding_set is None):
+        raise CircuitContractError("both previous and current verifier binding sets are required")
+
+    # These exact binding resolutions validate a caller-authored claim; they do
+    # not authenticate a verifier installation, execution or proof. Keep the
+    # binding change separate from the Gate's source/contract change.
+    binding_pair = previous_binding_set is not None and current_binding_set is not None
+    changed_verifier_gates: list[str] = []
+    previous_resolution = None
+    current_resolution = None
+    if binding_pair:
+        previous_resolution = resolve_verifier_bindings(previous, previous_binding_set)
+        current_resolution = resolve_verifier_bindings(current, current_binding_set)
+
+        # Each binding resolver already checks the exact obligation digest for
+        # its own SourceCut. That digest also includes the whole manifest and
+        # changes for unrelated Gates: it is NOT a verifier-identity delta.
+        # Actual Gate proposition changes are handled by source:gate refs.
+        def verifier_identity(row: dict[str, Any]) -> dict[str, Any]:
+            return {key: value for key, value in row.items() if key != "obligationDigest"}
+
+        old_bindings = {
+            row["gateId"]: verifier_identity(row) for row in previous_resolution["resolvedBindings"]
+        }
+        new_bindings = {
+            row["gateId"]: verifier_identity(row) for row in current_resolution["resolvedBindings"]
+        }
+        changed_verifier_gates = sorted(
+            gate_id
+            for gate_id in all_current
+            if old_bindings.get(gate_id) != new_bindings.get(gate_id)
+        )
 
     shared_ref = "source:manifest-shared"
 
     def gate_ref(gate_id: str) -> str:
         return f"source:gate:{gate_id}"
 
+    def verifier_ref(gate_id: str) -> str:
+        return f"binding:verifier:{gate_id}"
+
     authority_refs = [shared_ref] + [gate_ref(key) for key in sorted(all_current)]
+    if binding_pair:
+        authority_refs.extend(verifier_ref(key) for key in sorted(all_current))
     obligations = [
         {
             "id": f"proof:gate:{gate_id}",
-            "dependsOn": [shared_ref, gate_ref(gate_id)],
+            "dependsOn": [shared_ref, gate_ref(gate_id)]
+            + ([verifier_ref(gate_id)] if binding_pair else []),
             # A syntactically complete manifest does NOT account for verifier,
             # installed code, authorization, environment or dynamic consumer reads.
             "dependenciesComplete": False,
@@ -715,6 +769,7 @@ def select_manifest_gate_impacts(
         for gate_id in sorted(all_current)
     ]
     changed_refs = [gate_ref(gate_id) for gate_id in local_changed]
+    changed_refs.extend(verifier_ref(gate_id) for gate_id in changed_verifier_gates)
     if shared_changed:
         changed_refs.append(shared_ref)
     selection = select_impacted_obligations(
@@ -722,7 +777,7 @@ def select_manifest_gate_impacts(
         obligations=obligations,
         changed_refs=changed_refs,
     )
-    return {
+    projection = {
         "kind": "ordivon.task-local-manifest-gate-impact",
         "truthRole": "source-manifest-projection-not-proof-admission",
         "previousObligationSetDigest": previous["obligationSetDigest"],
@@ -741,6 +796,20 @@ def select_manifest_gate_impacts(
             "Removed gates need separate actual consumer and proof-retirement qualification.",
         ],
     }
+    if binding_pair:
+        projection.update(
+            {
+                "changedVerifierBindingGateIds": changed_verifier_gates,
+                "previousVerifierResolutionDigest": previous_resolution["resolutionDigest"],
+                "currentVerifierResolutionDigest": current_resolution["resolutionDigest"],
+                "verifierBindingComparisonQualification": "CALLER_AUTHORED_BINDINGS_ONLY",
+            }
+        )
+        projection["nonClaims"].append(
+            "Verifier/artifact/native specification references are caller-authored; "
+            "their digest equality or binding resolution is not a verified runtime readset."
+        )
+    return projection
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -765,6 +834,8 @@ def _parser() -> argparse.ArgumentParser:
     manifest_parser = sub.add_parser("impact-manifests")
     manifest_parser.add_argument("previous_manifest", type=Path)
     manifest_parser.add_argument("current_manifest", type=Path)
+    manifest_parser.add_argument("--previous-bindings", type=Path)
+    manifest_parser.add_argument("--current-bindings", type=Path)
     manifest_parser.add_argument("--git-repo", type=Path)
     manifest_parser.add_argument("--previous-sourcecut")
     manifest_parser.add_argument("--current-sourcecut")
@@ -803,7 +874,16 @@ def main() -> int:
                     _load_json(args.previous_manifest),
                     _load_json(args.current_manifest),
                 )
-            result = select_manifest_gate_impacts(previous_manifest=before, current_manifest=after)
+            result = select_manifest_gate_impacts(
+                previous_manifest=before,
+                current_manifest=after,
+                previous_binding_set=(
+                    None if args.previous_bindings is None else _load_json(args.previous_bindings)
+                ),
+                current_binding_set=(
+                    None if args.current_bindings is None else _load_json(args.current_bindings)
+                ),
+            )
             if all(requested):
                 result["gitSourceCuts"] = {"previous": before_source, "current": after_source}
         elif args.command == "select-impact":

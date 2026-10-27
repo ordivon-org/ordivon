@@ -996,7 +996,43 @@ class SourceHistoryLegosTests(unittest.TestCase):
                     root, second, first
                 )
 
-def test_history_two_cut_projection_ignores_local_git_replace_refs(self):
+    def test_history_merge_and_coverage_ignores_git_replace_grafts(self):
+        """Every DAG-count and merge-parent read must share exact Git semantics."""
+        with tempfile.TemporaryDirectory(prefix="ordivon-history-graft-") as td:
+            repo = Path(td)
+            git(repo, "init", "-q", "-b", "main")
+            git(repo, "config", "user.name", "Ordivon Test")
+            git(repo, "config", "user.email", "test@example.invalid")
+            owner = repo / "tools/repo/owners.toml"
+            owner.parent.mkdir(parents=True)
+            owner.write_text(
+                CANONICAL_OWNER_HEADER
+                + '[[owners]]\nname = "runtime"\nroot = "services/runtime/"\n'
+                + 'verify_task = "runtime:verify"\n'
+            )
+            base_file = repo / "services/runtime/base.txt"
+            base_file.parent.mkdir(parents=True)
+            base_file.write_text("base")
+            git(repo, "add", ".")
+            git(repo, "commit", "-qm", "base")
+            base = git(repo, "rev-parse", "HEAD")
+            git(repo, "switch", "-q", "-c", "left")
+            (repo / "services/runtime/left.txt").write_text("left")
+            git(repo, "add", ".")
+            git(repo, "commit", "-qm", "left")
+            left = git(repo, "rev-parse", "HEAD")
+            git(repo, "switch", "-q", "-c", "right", base)
+            (repo / "services/runtime/right.txt").write_text("right")
+            git(repo, "add", ".")
+            git(repo, "commit", "-qm", "right")
+            git(repo, "merge", "-q", "--no-ff", "-m", "merge both", left)
+            merged = git(repo, "rev-parse", "HEAD")
+            initial = source_history_legos.history(repo, left, merged)
+            self.assertTrue(any(c["kind"] == "merge-provenance" for c in initial["commits"]))
+            git(repo, "replace", "--graft", merged, base)
+            self.assertEqual(source_history_legos.history(repo, left, merged), initial)
+
+    def test_history_two_cut_projection_ignores_local_git_replace_refs(self):
         """Exact Git DAG and patch paths must not change under refs/replace."""
         with tempfile.TemporaryDirectory(prefix="ordivon-history-replace-") as td:
             root = Path(td)
