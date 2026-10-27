@@ -85,7 +85,11 @@
         "README.md",
         "tests/test_agent_admission_contract.py",
         "policies/agent_admission_effect_integration_test.rego",
-        "mise.toml"
+        "mise.toml",
+        "contracts/agent-admission-v1/evaluate.py",
+        "policies/agent_admission.rego",
+        "policies/effect_admission.rego",
+        "tests/test_agent_admission_contract.py"
       ],
       "dependencies": [],
       "mustNotOwn": [
@@ -93,6 +97,16 @@
       ],
       "acceptance": [
         "Policy effect is traceable to exact evidence/context."
+      ],
+      "inputs": [
+        "Qualified owner-supplied policy input, normalized Security admission context and selected native OPA/Rego policy."
+      ],
+      "outputs": [
+        "Source-qualified bounded policy decision or explicit policy/evidence error, not external effect truth."
+      ],
+      "behavioralContract": [
+        "A policy decision cannot be upgraded to execution authority, resource acceptance, or proof of a specific Gateway installed consumer.",
+        "S06 and S07 are independently observable agent/principal and effect-admission sub-obligations composed using existing pinned OPA; no proprietary policy engine."
       ]
     },
     {
@@ -115,6 +129,92 @@
       ],
       "acceptance": [
         "Selected providers remain distinct from admitted/accepted coverage."
+      ]
+    },
+    {
+      "id": "S06",
+      "label": "AgentGrantAndPrincipalAdmission",
+      "kind": "typed_policy_decision",
+      "responsibility": "Evaluate the qualified Agent Principal/Grant, action and risk/approval conditions to return ALLOW, DENY or STEP_UP, without executing any external effect.",
+      "authority": "Security policy via mature OPA/Rego; source-only contract",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "Schema-qualified normalized agent admission request, exact principal, action, audience, grant, risk and approval fields."
+      ],
+      "outputs": [
+        "Agent admission outcome ALLOW/DENY/STEP_UP, reason and authorityProjection only when admitted."
+      ],
+      "behavioralContract": [
+        "The pinned OPA Agent Admission must reject unknown/invalid input schema and ungranted actions; STEP_UP and DENY cannot furnish an authority projection usable for effects.",
+        "Successful policy evaluation establishes only the scoped model decision under the exact input and policy bytes; it does not prove caller identity was really verified at ingress."
+      ],
+      "evidence": [
+        "contracts/agent-admission-v1/evaluate.py",
+        "policies/agent_admission.rego",
+        "schemas/agent-admission-input-v0.schema.json",
+        "tests/test_agent_admission_contract.py",
+        "tests/test_agent_admission_schema_boundary.py"
+      ],
+      "consumerEvidence": [
+        "contracts/agent-admission-v1/evaluate.py",
+        "contracts/gateway-capability-authz-v1/evaluate.py",
+        "tests/test_agent_admission_contract.py"
+      ],
+      "dependencies": [
+        "S04"
+      ],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "live identity provider principal truth",
+        "Gateway routing",
+        "effect execution",
+        "external provider acceptance"
+      ],
+      "acceptance": [
+        "Original Security Agent Admission tests verify ALLOW/STEP_UP/DENY and that non-ALLOW returns no effect admission; input schema negative tests fail closed.",
+        "The stand-alone Gateway capability AuthZ v1 reference calls this contract, but cannot be assumed compatible with the current Gateway v2/v3 middleware."
+      ]
+    },
+    {
+      "id": "S07",
+      "label": "EffectAuthorityGateAfterAgentAllow",
+      "kind": "typed_effect_policy",
+      "responsibility": "Run existing OPA effect-admission on the exact authorityProjection only after S06 ALLOW; keep action/resource evidence separate from a physical effect or provider acceptance.",
+      "authority": "Security effect policy via mature OPA/Rego; source-only contract",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "S06 ALLOW authorityProjection (exact actorId, authorityId, authorityDigest, zoneRef and capability) and effect-admission policy."
+      ],
+      "outputs": [
+        "Scoped admitted/non-admitted effect policy result or fail-closed error; no effect result for DENY/STEP_UP."
+      ],
+      "behavioralContract": [
+        "Only S06 ALLOW with a complete authorityProjection can initiate effect-policy evaluation; missing projection under ALLOW must fail rather than fabricate default permission.",
+        "The effect policy decision is not a Runtime receipt, a Gateway execution acknowledgment or confirmation that an external provider changed state."
+      ],
+      "evidence": [
+        "contracts/agent-admission-v1/evaluate.py",
+        "policies/effect_admission.rego",
+        "policies/agent_admission_effect_integration_test.rego",
+        "tests/test_agent_admission_contract.py",
+        "tests/test_agent_admission_schema_boundary.py"
+      ],
+      "consumerEvidence": [
+        "contracts/agent-admission-v1/evaluate.py",
+        "tests/test_agent_admission_contract.py"
+      ],
+      "dependencies": [
+        "S06"
+      ],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "Runtime or provider effect authority",
+        "physical Job/Attempt truth",
+        "independent provider readback"
+      ],
+      "acceptance": [
+        "Security native positive and negative admission tests establish no effect result on DENY/STEP_UP and exact effect request identity on ALLOW.",
+        "Gateway Security v1 evaluator may consume this source decision as a reference, not as a current deployed v2/v3 authorization binding."
       ]
     }
   ],
@@ -142,6 +242,24 @@
       "to": "S05",
       "type": "DATA",
       "label": "standing projection"
+    },
+    {
+      "from": "S04",
+      "to": "S06",
+      "type": "COMPOSITION",
+      "label": "existing policy decision decomposes into independently falsifiable Principal/Grant admission"
+    },
+    {
+      "from": "S04",
+      "to": "S07",
+      "type": "COMPOSITION",
+      "label": "existing decision composes qualified Effect admission without new engine"
+    },
+    {
+      "from": "S06",
+      "to": "S07",
+      "type": "CONTROL",
+      "label": "only S06 ALLOW permits effect policy evaluation with bound authorityProjection"
     }
   ],
   "slices": [
@@ -168,12 +286,15 @@
         "S01",
         "S03",
         "S04",
-        "S05"
+        "S05",
+        "S06",
+        "S07"
       ],
       "acceptance": [
         "For each tested effect path, principal -> Tool -> service -> external resource authority is enumerated and bounded.",
         "Substitution/composition of two locally valid LEGO nodes does not widen effective READ/WRITE/NETWORK/PERSIST/EFFECT sets.",
-        "Existing AS01-AS12/XAS13-XAS18 security lens is reused; no second policy engine or cross-owner authority registry is created."
+        "Existing AS01-AS12/XAS13-XAS18 security lens is reused; no second policy engine or cross-owner authority registry is created.",
+        "S06 ALLOW policy authority and S07 effect admission remain separate from Gateway installed v2/v3 authorization resource identity and Runtime physical effects."
       ],
       "evidence": [
         "tests/test_agent_admission_contract.py",
@@ -185,7 +306,9 @@
   ],
   "gaps": [
     "Selected P0/P1 providers are not automatically active/admitted capabilities.",
-    "2026-10-24 audit: empirical transitive authority coverage for selected real Agent consumers is UNKNOWN, not proof of a missing control; see docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261024_R1.json."
+    "2026-10-24 audit: empirical transitive authority coverage for selected real Agent consumers is UNKNOWN, not proof of a missing control; see docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261024_R1.json.",
+    "2026-10-27 bounded cross-Owner source falsifier: platform/security/contracts/gateway-capability-authz-v1/evaluate.py emits schemaVersion=1 and omits requestedResource, while services/gateway/src/ordivon_gateway/capability_authz.py requires schemaVersion in {2,3} and exact requestedResource==server-derived resource; direct v1 response cannot satisfy current Gateway PEP, even if local Security v1 policy unit tests PASS. The current Gateway also supports a separate standard AuthZEN schemaVersion=3 adapter; no evidence shows retired v1 reference is installed as that adapter. This is source/schema mismatch, NOT evidence of a deployed authorization bypass.",
+    "S06/S07 model and native owner tests do not establish Gateway v2/v3 live policy PDP wiring, dynamic external principal currentness, or verification of effect occurrence."
   ],
   "doNotOwn": [
     "scanner/vulnerability database mechanics",
