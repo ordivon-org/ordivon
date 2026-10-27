@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 from pathlib import Path
 from types import SimpleNamespace
@@ -168,8 +169,9 @@ def test_conforming_owner_uses_first_class_mcp_client(monkeypatch: pytest.Monkey
     )
 
 
+@pytest.mark.parametrize("error_carrier", ["structured", "host_text"])
 def test_host_failure_survives_real_gateway_owner_call_boundary(
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch: pytest.MonkeyPatch, error_carrier: str
 ) -> None:
     """The MCP client's owner error must not turn into a Gateway success."""
 
@@ -206,8 +208,17 @@ def test_host_failure_survives_real_gateway_owner_call_boundary(
             observed.append((name, arguments))
             return SimpleNamespace(
                 is_error=True,
-                structured_content={"error": host_error},
-                content=[],
+                structured_content={"error": host_error} if error_carrier == "structured" else None,
+                content=(
+                    []
+                    if error_carrier == "structured"
+                    else [
+                        SimpleNamespace(
+                            text="Error executing tool work.get: "
+                            + json.dumps(host_error, separators=(",", ":"))
+                        )
+                    ]
+                ),
             )
 
     monkeypatch.setattr(upstream, "create_mcp_http_client", lambda headers=None: FakeHttpContext())
