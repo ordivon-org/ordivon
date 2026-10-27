@@ -118,6 +118,29 @@ def load_dependency_graph(
             if test_only_consumers is not None:
                 test_only_consumers.append((left, right))
             continue
+        if seam.get("kind") == "READ_ONLY_DOMAIN_PROFILE_CONSUMER":
+            # A Gateway route has a directed Research SOURCE-CONFIGURATION
+            # dependency. Requalify Gateway when Research changes; Gateway
+            # edits alone cannot invalidate the independent Research owner.
+            exact = (
+                left, right, seam.get("source_glob"),
+                seam.get("allowed_fragment"), seam.get("contract_ref"),
+            )
+            approved = {
+                ("gateway", "research",
+                 "services/gateway/src/ordivon_gateway/research_routes.py",
+                 "meta/research/publication-closure-profile-r2.json",
+                 "meta/research/publication-closure-profile-r2.json"),
+                ("gateway", "research",
+                 "services/gateway/src/ordivon_gateway/research_routes.py",
+                 "meta/research/publication/perceptual-conformance-profile-r1.json",
+                 "meta/research/publication/perceptual-conformance-profile-r1.json"),
+            }
+            if exact not in approved:
+                raise ValueError("unapproved Research profile source consumer")
+            if source_reference_consumers is not None:
+                source_reference_consumers.append((left, right))
+            continue
         if seam.get("kind") == "TEST_ONLY_DOMAIN_PROFILE_CONSUMER":
             # Artifact reads an R1 Research profile only within native tests.
             # A Research source change should qualify the Artifact test

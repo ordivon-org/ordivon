@@ -37,6 +37,39 @@ class ConvergencePlanTests(unittest.TestCase):
             "NOT_ESTABLISHED_BY_THIS_PROJECTION",
         )
 
+    def test_research_to_gateway_profile_consumer_is_source_directed(self) -> None:
+        changed = MODULE.build_plan(changed_files=[
+            "meta/research/publication-closure-profile-r1.json"
+        ])
+        self.assertIn("gateway", changed["verificationOwners"])
+        self.assertIn("research", changed["verificationOwners"])
+        self.assertIn("artifact", changed["taskLocalTestConsumers"])
+        self.assertIn("gateway", changed["sourceReferenceConsumers"])
+        self.assertNotIn(["gateway", "research"], changed["declaredInteractionEdges"])
+        gateway = MODULE.build_plan(changed_files=[
+            "services/gateway/src/ordivon_gateway/research_routes.py"
+        ])
+        self.assertNotIn("research", gateway["verificationOwners"])
+        artifact = MODULE.build_plan(changed_files=[
+            "capabilities/artifact/README.md"
+        ])
+        self.assertNotIn("research", artifact["verificationOwners"])
+
+    def test_research_profile_unverified_consumer_path_cannot_expand_scope(self) -> None:
+        original = MODULE.DEPENDENCY_PATH.read_text(encoding="utf-8")
+        self.assertIn(
+            'source_glob = "services/gateway/src/ordivon_gateway/research_routes.py"',
+            original,
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "contracts.toml"
+            source.write_text(original.replace(
+                'source_glob = "services/gateway/src/ordivon_gateway/research_routes.py"',
+                'source_glob = "services/gateway/src/ordivon_gateway/other.py"',
+            ), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "unapproved Research profile source consumer"):
+                MODULE.load_dependency_graph(path=source)
+
     def test_next_queue_projection_uses_full_portable_verification(self) -> None:
         plan = MODULE.build_plan(changed_files=["meta/next/README.md"])
         self.assertIn("next:verify", plan["verifyTasks"])
