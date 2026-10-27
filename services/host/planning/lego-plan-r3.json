@@ -13,46 +13,364 @@
   ],
   "retained": [
     {
-      "id": "K01",
-      "name": "ContinuityTaskLedger",
+      "id": "W01",
+      "name": "WorkRevisionLedger",
       "owner": "Host",
-      "standing": "IRREDUCIBLE_SEMANTIC_RESIDUE"
+      "standing": "IRREDUCIBLE_SEMANTIC_RESIDUE",
+      "responsibility": "Persist revisioned, durable semantic Work identity, state and snapshots independent of conversation history.",
+      "inputs": [
+        "namespaced workRef",
+        "actorRef",
+        "initialSnapshot"
+      ],
+      "outputs": [
+        "WorkRef",
+        "revision 1",
+        "durable snapshot"
+      ],
+      "behavioralContract": [
+        "Same request semantics admit idempotent Work creation; conflicting parallel initial snapshots reject; PostgreSQL transaction/lock semantics remain external"
+      ],
+      "acceptance": [
+        "test_work_create_same_semantics_is_linearizable_under_parallel_requests"
+      ],
+      "sourceEvidence": [
+        "src/ordivon_host_v2/social_work.py",
+        "src/ordivon_host_v2/social_store.py",
+        "tests/test_social_work_fabric_postgres.py"
+      ],
+      "consumerEvidence": {
+        "kind": "STATIC_MCP_CONSUMER",
+        "hostTool": "work.create",
+        "producer": "src/ordivon_host_v2/social_work_mcp.py",
+        "gateway": "services/gateway/src/ordivon_gateway/mcp_server.py"
+      },
+      "formalObligations": [
+        "Linearizable create/ref identity under concurrent writes; installed PG currentness UNKNOWN"
+      ],
+      "evidenceStanding": "SOURCE_BOUND_IMPLEMENTATION_AND_TESTS; installed/live/domain/Formal beyond named native tests UNKNOWN"
     },
     {
-      "id": "K02",
-      "name": "CheckpointHistory",
+      "id": "W02",
+      "name": "WorkSnapshotCAS",
       "owner": "Host",
-      "standing": "IRREDUCIBLE_SEMANTIC_RESIDUE"
+      "standing": "IRREDUCIBLE_SEMANTIC_RESIDUE",
+      "responsibility": "Qualify and durably commit one exact Work semantic continuation revision with optimistic compare-and-swap.",
+      "inputs": [
+        "workRef",
+        "expectedRevision",
+        "structured Work snapshot"
+      ],
+      "outputs": [
+        "new Work revision or typed conflict"
+      ],
+      "behavioralContract": [
+        "Concurrent commits to same expected revision must not both succeed; response-loss replay does not fork work identity"
+      ],
+      "acceptance": [
+        "test_work_snapshot_cas_race_has_one_winner",
+        "test_work_snapshot_response_loss_replay_with_new_request_id_is_existing"
+      ],
+      "sourceEvidence": [
+        "src/ordivon_host_v2/social_work_mcp.py",
+        "src/ordivon_host_v2/social_store.py",
+        "tests/test_social_work_fabric_postgres.py"
+      ],
+      "consumerEvidence": {
+        "kind": "STATIC_MCP_CONSUMER",
+        "hostTool": "work.snapshot.commit",
+        "producer": "src/ordivon_host_v2/social_work_mcp.py",
+        "gateway": "services/gateway/src/ordivon_gateway/mcp_server.py"
+      },
+      "formalObligations": [
+        "CAS/concurrency/refinement to DB transaction; installed PG state UNKNOWN"
+      ],
+      "evidenceStanding": "SOURCE_BOUND_IMPLEMENTATION_AND_TESTS; installed/live/domain/Formal beyond named native tests UNKNOWN"
+    },
+    {
+      "id": "W03",
+      "name": "WorkRelationAcyclicity",
+      "owner": "Host",
+      "standing": "THIN_DOMAIN_CONTRACT",
+      "responsibility": "Represent cross-Work parent and dependency semantic edges while rejecting cyclic parenthood.",
+      "inputs": [
+        "workRef",
+        "typed Work relation proposal"
+      ],
+      "outputs": [
+        "bounded Work DAG and relation readback"
+      ],
+      "behavioralContract": [
+        "Self and cross-request parent cycles fail closed; links are not scheduling or acceptance authority"
+      ],
+      "acceptance": [
+        "test_concurrent_reciprocal_work_relations_cannot_commit_cycle",
+        "test_work_parent_cycle_fails_closed"
+      ],
+      "sourceEvidence": [
+        "src/ordivon_host_v2/social_work.py",
+        "src/ordivon_host_v2/social_store.py",
+        "tests/test_social_work_fabric_postgres.py"
+      ],
+      "consumerEvidence": {
+        "kind": "STATIC_MCP_CONSUMER",
+        "hostTool": "work.get",
+        "producer": "src/ordivon_host_v2/social_work_mcp.py",
+        "gateway": "services/gateway/src/ordivon_gateway/mcp_server.py"
+      },
+      "formalObligations": [
+        "Acyclicity under concurrent PG transactions; nonparent relation interpretation remains consumer-specific"
+      ],
+      "evidenceStanding": "SOURCE_BOUND_IMPLEMENTATION_AND_TESTS; installed/live/domain/Formal beyond named native tests UNKNOWN"
+    },
+    {
+      "id": "S01",
+      "name": "SpaceParticipation",
+      "owner": "Host+PostgreSQL",
+      "standing": "THIN_DOMAIN_CONTRACT",
+      "responsibility": "Keep conversation Space scope, subjects and actor participation independent of Work assignment.",
+      "inputs": [
+        "spaceRef",
+        "actorRef",
+        "desired participation"
+      ],
+      "outputs": [
+        "space participation readback"
+      ],
+      "behavioralContract": [
+        "Space is not nested under one Work; participation does not authorize Runtime effects or imply ownership"
+      ],
+      "acceptance": [
+        "test_space_can_link_multiple_works_without_becoming_work_container",
+        "test_desired_state_membership_can_be_reasserted_after_inverse_transition"
+      ],
+      "sourceEvidence": [
+        "src/ordivon_host_v2/social_graph.py",
+        "src/ordivon_host_v2/social_work_mcp.py",
+        "tests/test_social_work_fabric_postgres.py"
+      ],
+      "consumerEvidence": {
+        "kind": "STATIC_MCP_CONSUMER",
+        "hostTool": "space.participation.set",
+        "producer": "src/ordivon_host_v2/social_work_mcp.py",
+        "gateway": "services/gateway/src/ordivon_gateway/mcp_server.py"
+      },
+      "formalObligations": [
+        "Scope membership semantics and concurrency/currentness; authorization is separate"
+      ],
+      "evidenceStanding": "SOURCE_BOUND_IMPLEMENTATION_AND_TESTS; installed/live/domain/Formal beyond named native tests UNKNOWN"
+    },
+    {
+      "id": "M01",
+      "name": "TopicMessageJournal",
+      "owner": "Host+PostgreSQL",
+      "standing": "THIN_DOMAIN_CONTRACT",
+      "responsibility": "Persist structured messages with exact Space, Topic, actor and relation identity.",
+      "inputs": [
+        "SpaceRef",
+        "TopicRef",
+        "author ActorRef",
+        "idempotent messageRef and body"
+      ],
+      "outputs": [
+        "durable MessageRef and ordered Topic message sequence"
+      ],
+      "behavioralContract": [
+        "Reply and mention are typed relations, not untyped chat role; source refs are not domain truth"
+      ],
+      "acceptance": [
+        "test_topic_message_reply_and_mention_are_structured",
+        "test_r2_message_page_respects_canonical_byte_budget"
+      ],
+      "sourceEvidence": [
+        "src/ordivon_host_v2/social_graph.py",
+        "src/ordivon_host_v2/social_store.py",
+        "src/ordivon_host_v2/social_work_mcp.py",
+        "tests/test_social_work_fabric_postgres.py"
+      ],
+      "consumerEvidence": {
+        "kind": "STATIC_MCP_CONSUMER",
+        "hostTool": "message.post",
+        "producer": "src/ordivon_host_v2/social_work_mcp.py",
+        "gateway": "services/gateway/src/ordivon_gateway/mcp_server.py"
+      },
+      "formalObligations": [
+        "Ordered persistence, exact readback and no forged consumer claim"
+      ],
+      "evidenceStanding": "SOURCE_BOUND_IMPLEMENTATION_AND_TESTS; installed/live/domain/Formal beyond named native tests UNKNOWN"
+    },
+    {
+      "id": "T01",
+      "name": "TopicResumeCursor",
+      "owner": "Host",
+      "standing": "IRREDUCIBLE_SEMANTIC_RESIDUE",
+      "responsibility": "Resume an exact Topic message stream using its per-topic cursor, independently of the global Attention change clock.",
+      "inputs": [
+        "actorRef",
+        "topicRef",
+        "Topic message cursor"
+      ],
+      "outputs": [
+        "bounded message replay page and readback cursor"
+      ],
+      "behavioralContract": [
+        "Topic cursor must not be substituted with the global Attention change-sequence cursor"
+      ],
+      "acceptance": [
+        "test_r2_topic_cursor_relation_readback_reasons_and_reentry"
+      ],
+      "sourceEvidence": [
+        "src/ordivon_host_v2/social_work_mcp.py",
+        "src/ordivon_host_v2/social_store.py",
+        "tests/test_social_work_fabric_postgres.py"
+      ],
+      "consumerEvidence": {
+        "kind": "STATIC_MCP_CONSUMER",
+        "hostTool": "topic.resume",
+        "producer": "src/ordivon_host_v2/social_work_mcp.py",
+        "gateway": "services/gateway/src/ordivon_gateway/mcp_server.py"
+      },
+      "formalObligations": [
+        "Cursor monotonicity, exact no-skip semantics under concurrent message append"
+      ],
+      "evidenceStanding": "SOURCE_BOUND_IMPLEMENTATION_AND_TESTS; installed/live/domain/Formal beyond named native tests UNKNOWN"
+    },
+    {
+      "id": "P01",
+      "name": "AttentionChangeProjection",
+      "owner": "Host projection",
+      "standing": "REPLACEABLE_PROJECTION",
+      "responsibility": "Project relevant Social Work change sequences into actor-scoped discover/re-entry navigation.",
+      "inputs": [
+        "actorRef",
+        "global change cursor",
+        "optional attention filters"
+      ],
+      "outputs": [
+        "bounded relevant change page and cursor"
+      ],
+      "behavioralContract": [
+        "Global cursor is not Topic cursor; attention is not ranking, priority or scheduling authority"
+      ],
+      "acceptance": [
+        "test_r2_attention_nonfinal_page_never_jumps_over_relevant_event",
+        "test_r2_attention_empty_interval_advances_to_snapshot_horizon"
+      ],
+      "sourceEvidence": [
+        "src/ordivon_host_v2/social_attention.py",
+        "src/ordivon_host_v2/social_work_mcp.py",
+        "tests/test_social_work_fabric_postgres.py"
+      ],
+      "consumerEvidence": {
+        "kind": "STATIC_MCP_CONSUMER",
+        "hostTool": "attention.delta",
+        "producer": "src/ordivon_host_v2/social_work_mcp.py",
+        "gateway": "services/gateway/src/ordivon_gateway/mcp_server.py"
+      },
+      "formalObligations": [
+        "No missed relevant changes under bounded concurrent commits; installed cursor/replay UNKNOWN"
+      ],
+      "evidenceStanding": "SOURCE_BOUND_IMPLEMENTATION_AND_TESTS; installed/live/domain/Formal beyond named native tests UNKNOWN"
+    },
+    {
+      "id": "P04",
+      "name": "WorkInventory",
+      "owner": "Host projection",
+      "standing": "REPLACEABLE_PROJECTION",
+      "responsibility": "Provide bounded visible Work listing for navigation without interpreting semantic priority or acceptance.",
+      "inputs": [
+        "bounded list request and pagination"
+      ],
+      "outputs": [
+        "Work identity/standing summary page"
+      ],
+      "behavioralContract": [
+        "Listing is not discovery of objective value, task scheduling or consumer acceptance"
+      ],
+      "acceptance": [
+        "Public Host work.list MCP contract and Gateway forwarding exist at current SourceCut"
+      ],
+      "sourceEvidence": [
+        "src/ordivon_host_v2/social_work_mcp.py",
+        "src/ordivon_host_v2/social_contracts.py"
+      ],
+      "consumerEvidence": {
+        "kind": "STATIC_MCP_CONSUMER",
+        "hostTool": "work.list",
+        "producer": "src/ordivon_host_v2/social_work_mcp.py",
+        "gateway": "services/gateway/src/ordivon_gateway/mcp_server.py"
+      },
+      "formalObligations": [
+        "Stable pagination and currentness of selected Work list under concurrent updates"
+      ],
+      "evidenceStanding": "SOURCE_BOUND_IMPLEMENTATION_AND_TESTS; installed/live/domain/Formal beyond named native tests UNKNOWN"
+    },
+    {
+      "id": "P05",
+      "name": "MessageSearchPostgreSQL",
+      "owner": "PostgreSQL",
+      "standing": "EXTERNAL_SUBSTRATE",
+      "responsibility": "Apply PostgreSQL-backed bounded Message search without creating a second Host search index.",
+      "inputs": [
+        "caller query and Space/Topic scope"
+      ],
+      "outputs": [
+        "bounded Message search results"
+      ],
+      "behavioralContract": [
+        "PostgreSQL owns indexing and FTS; Host supplies scope/identity but not independent search storage"
+      ],
+      "acceptance": [
+        "Public Host message.search MCP contract and Gateway forwarding exist at current SourceCut"
+      ],
+      "sourceEvidence": [
+        "src/ordivon_host_v2/social_work_mcp.py",
+        "src/ordivon_host_v2/social_store.py"
+      ],
+      "consumerEvidence": {
+        "kind": "STATIC_MCP_CONSUMER",
+        "hostTool": "message.search",
+        "producer": "src/ordivon_host_v2/social_work_mcp.py",
+        "gateway": "services/gateway/src/ordivon_gateway/mcp_server.py"
+      },
+      "formalObligations": [
+        "Search scope containment and source-to-installed PG index correctness UNKNOWN"
+      ],
+      "evidenceStanding": "SOURCE_BOUND_IMPLEMENTATION_AND_TESTS; installed/live/domain/Formal beyond named native tests UNKNOWN"
     },
     {
       "id": "K03",
       "name": "MutationReplayContract",
       "owner": "Host+PostgreSQL",
-      "standing": "THIN_DOMAIN_CONTRACT"
-    },
-    {
-      "id": "C01",
-      "name": "BoardJournal",
-      "owner": "Host+PostgreSQL",
-      "standing": "THIN_DOMAIN_CONTRACT"
-    },
-    {
-      "id": "P01",
-      "name": "AttentionDelta",
-      "owner": "Host projection",
-      "standing": "REPLACEABLE_PROJECTION"
-    },
-    {
-      "id": "P02",
-      "name": "CompactTaskInventory",
-      "owner": "Host projection",
-      "standing": "REPLACEABLE_PROJECTION"
-    },
-    {
-      "id": "P03",
-      "name": "BoardSearch",
-      "owner": "PostgreSQL FTS",
-      "standing": "EXTERNAL_SUBSTRATE"
+      "standing": "THIN_DOMAIN_CONTRACT",
+      "responsibility": "Preserve exact idempotent mutation identity and replay under response loss across Work and social API effects.",
+      "inputs": [
+        "caller mutation identity and canonical payload"
+      ],
+      "outputs": [
+        "same committed result or typed conflict"
+      ],
+      "behavioralContract": [
+        "Concurrent/replayed identical semantic requests do not duplicate external effect; divergent requests cannot alias"
+      ],
+      "acceptance": [
+        "test_work_snapshot_response_loss_replay_with_new_request_id_is_existing"
+      ],
+      "sourceEvidence": [
+        "src/ordivon_host_v2/social_store.py",
+        "src/ordivon_host_v2/social_work_mcp.py",
+        "tests/test_social_work_fabric_postgres.py"
+      ],
+      "consumerEvidence": {
+        "kind": "STATIC_MCP_CONSUMER",
+        "hostTool": "work.create",
+        "producer": "src/ordivon_host_v2/social_work_mcp.py",
+        "gateway": "services/gateway/src/ordivon_gateway/mcp_server.py"
+      },
+      "formalObligations": [
+        "Semantic idempotency and recovery across DB failover remain separately proven"
+      ],
+      "evidenceStanding": "SOURCE_BOUND_IMPLEMENTATION_AND_TESTS; installed/live/domain/Formal beyond named native tests UNKNOWN"
     }
   ],
   "externalOwners": [
@@ -123,7 +441,12 @@
     "StatusLeasePlaceholder",
     "ManualJsonbSerialization",
     "DeadHostStatusModel",
-    "ScopeBoundCursor"
+    "ScopeBoundCursor",
+    "ContinuityTaskLedger",
+    "CheckpointHistory",
+    "BoardJournal",
+    "CompactTaskInventory",
+    "BoardSearch"
   ],
   "nonSubstitutions": [
     {
@@ -169,5 +492,32 @@
       "mature external owner with lower total coupling"
     ],
     "currentDisposition": "NO_KERNEL_REOPEN"
+  },
+  "historicalIdentityDisposition": {
+    "K01": "RETIRED_LEGACY_TASK_LEDGER; Work is W01/W02, not identity-equivalent",
+    "K02": "RETIRED_LEGACY_CHECKPOINT; Work snapshots use W02",
+    "C01": "RETIRED_LEGACY_BOARD_JOURNAL; social messages are M01",
+    "P02": "RETIRED_TASK_INVENTORY; Work listing is P04",
+    "P03": "RETIRED_BOARD_SEARCH; PostgreSQL message search is P05",
+    "R1_O01_O02_O03": "HISTORICAL_R1_GRAPH_ONLY; active Task/Board schema retired"
+  },
+  "sourceCutReview": {
+    "observedAt": "2026-10-27",
+    "sourceRevision": "75fc00bdec12268bd92ad85c6138b6f1be76bf3d",
+    "basis": [
+      "README.md",
+      "docs/SOCIAL_WORK_FABRIC_R2_SPEC.md",
+      "src/ordivon_host_v2/social_work_mcp.py",
+      "src/ordivon_host_v2/social_store.py",
+      "tests/test_social_work_fabric_postgres.py",
+      "services/gateway/src/ordivon_gateway/mcp_server.py"
+    ],
+    "standing": "GIT_SOURCE_AND_DECLARED_MCP_CONSUMER_ONLY",
+    "nonClaims": [
+      "Live DB service state and installed release are not proven by this SourceCut",
+      "Native Host tests can skip PostgreSQL integration when DSN missing",
+      "Old R3 retained labels are historical, not concurrent active Task/Board truth",
+      "No model checker or proof for these newly mapped Host responsibilities is asserted"
+    ]
   }
 }

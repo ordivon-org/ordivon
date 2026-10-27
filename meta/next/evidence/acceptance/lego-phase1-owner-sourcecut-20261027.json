@@ -111,12 +111,15 @@
         "services/host/planning/lego-plan-r1.json",
         "services/host/planning/lego-plan-r3.json"
       ],
-      "candidatePlanDeltaPaths": [],
+      "candidatePlanDeltaPaths": [
+        "services/host/planning/lego-plan-r1.json",
+        "services/host/planning/lego-plan-r3.json"
+      ],
       "repositoryCoverage": "GIT_TREE_ENUMERATED",
-      "responsibilityCoverage": "NOT_YET_QUALIFIED",
-      "consumerCoverage": "NOT_AUDITED",
-      "semanticCoverage": "LEGACY_PLAN_EXISTENCE_ONLY",
-      "relationCoverage": "NOT_AUDITED",
+      "responsibilityCoverage": "BOUNDED_R2_SOCIAL_WORK_SOURCE_AND_MCP_CONSUMER_PARTIAL",
+      "consumerCoverage": "STATIC_MCP_PRODUCER_AND_GATEWAY_BINDING_PARTIAL",
+      "semanticCoverage": "LEGACY_R1_MARKED_HISTORICAL; CURRENT_R3_REAL_SOCIAL_ROLES_CANDIDATE_NOT_MAIN",
+      "relationCoverage": "HOST_SOCIAL_CURRENT_SOURCE_MCP_ONLY; OTHER_RELATIONS_UNKNOWN",
       "formalCoverage": "NOT_AUDITED",
       "environmentCoverage": "SOURCE_ONLY; CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
     },

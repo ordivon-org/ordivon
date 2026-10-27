@@ -287,3 +287,42 @@ def test_readme_current_fabric_contract_does_not_promote_schema_nine_history() -
     assert "`docs/SOCIAL_WORK_FABRIC_R2_SPEC.md`" in doc
     assert "`docs/SOCIAL_WORK_FABRIC_R1.md`" in doc
     assert "current schema-9" not in doc
+
+
+def test_source_current_host_r3_replaces_retired_task_board_with_real_social_contracts() -> None:
+    """Formal mapping starts from actual social MCP consumers, not old R1 graph labels."""
+    import json
+    from pathlib import Path
+
+    host = Path(__file__).parents[1]
+    repo = host.parents[1]
+    r1 = json.loads((host / "planning/lego-plan-r1.json").read_text())
+    r3 = json.loads((host / "planning/lego-plan-r3.json").read_text())
+    assert {x["id"] for x in r1["nodes"] if x["state"] == "RETIRED"} == {"O01", "O02", "O03"}
+    assert {x["id"] for x in r1["nodes"] if x["state"] == "IMPLEMENTED"} == {"O04"}
+    kept = {r["id"]: r for r in r3["retained"]}
+    assert {"W01", "W02", "W03", "S01", "M01", "T01", "P01", "P04", "P05", "K03"} <= set(kept)
+    assert {"ContinuityTaskLedger", "CheckpointHistory", "BoardJournal", "CompactTaskInventory", "BoardSearch"} <= set(r3["retired"])
+    assert not (set(r3["retired"]) & {r["name"] for r in r3["retained"]})
+    host_surface = (host / "src/ordivon_host_v2/social_work_mcp.py").read_text()
+    gateway_surface = (repo / "services/gateway/src/ordivon_gateway/mcp_server.py").read_text()
+
+    def qualifies_source_route(tool: str, local: str = host_surface, remote: str = gateway_surface) -> bool:
+        return f'@mcp.tool(name="{tool}")' in local and f'@server.tool(name="{tool}")' in remote
+
+    for ref in kept.values():
+        for role in ("responsibility", "inputs", "outputs", "behavioralContract", "acceptance"):
+            assert ref[role], (ref["id"], role)
+        assert ref["formalObligations"] and "UNKNOWN" in ref["evidenceStanding"]
+        assert all((host / path).is_file() for path in ref["sourceEvidence"])
+        consumer = ref["consumerEvidence"]
+        assert consumer["kind"] == "STATIC_MCP_CONSUMER"
+        assert qualifies_source_route(consumer["hostTool"]), ref["id"]
+
+    # A name only in one system, or silently renamed in the Gateway, is not
+    # proof of a current cross-service consumer relationship.
+    assert not qualifies_source_route("task.resume")
+    assert not qualifies_source_route(
+        "topic.resume",
+        remote=gateway_surface.replace('@server.tool(name="topic.resume")', '@server.tool(name="topic.fetch")'),
+    )

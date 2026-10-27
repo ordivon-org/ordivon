@@ -4,7 +4,7 @@
   "truthRole": "planning-projection-not-project-truth",
   "project": {
     "id": "ordivon-host-v2",
-    "purpose": "Own durable external-continuity Tasks, checkpoints, Board collaboration, and exact re-entry navigation without becoming a scheduler, priority authority, Runtime proxy, or domain truth owner.",
+    "purpose": "Historical R1 Host Task/Board planning graph retained as source/graph-law oracle after active Task/Board retirement. Current Social Work Fabric contracts are carried in Host R3 and native source; this R1 projection cannot certify installed Task or Board APIs.",
     "sourceEvidence": [
       "README.md",
       "docs/HOST_V2_R6_CLEANUP.md",
@@ -18,7 +18,7 @@
       "kind": "state_authority",
       "responsibility": "Persist exact Host Task revisions and semantic working checkpoints for external continuity.",
       "authority": "Host",
-      "state": "IMPLEMENTED",
+      "state": "RETIRED",
       "sharedRefs": [
         "L12"
       ],
@@ -27,12 +27,14 @@
       ],
       "dependencies": [],
       "mustNotOwn": [
-        "domain completion",
-        "Runtime currentness"
+        "Runtime currentness",
+        "current Host Work/Space/Topic/Message interfaces",
+        "domain completion"
       ],
       "acceptance": [
         "Exact task.resume can re-enter one revision-fenced continuity point."
-      ]
+      ],
+      "evidenceStanding": "HISTORICAL_TASK_BOARD_SOURCE_ONLY; active Task/Board API retired in Social Work Fabric schema 10"
     },
     {
       "id": "O02",
@@ -40,7 +42,7 @@
       "kind": "state_authority",
       "responsibility": "Persist collaboration records and deterministic Task route anchors without creating priority or ownership.",
       "authority": "Host",
-      "state": "IMPLEMENTED",
+      "state": "RETIRED",
       "sharedRefs": [],
       "evidence": [
         "README.md"
@@ -48,11 +50,13 @@
       "dependencies": [],
       "mustNotOwn": [
         "authenticated identity",
+        "current Host Work/Space/Topic/Message interfaces",
         "task priority"
       ],
       "acceptance": [
         "Board messages remain collaboration records only."
-      ]
+      ],
+      "evidenceStanding": "HISTORICAL_TASK_BOARD_SOURCE_ONLY; active Task/Board API retired in Social Work Fabric schema 10"
     },
     {
       "id": "O03",
@@ -60,7 +64,7 @@
       "kind": "projection",
       "responsibility": "Project bounded Board-sequence deltas into exact Task re-entry navigation.",
       "authority": "Host projection",
-      "state": "IMPLEMENTED",
+      "state": "RETIRED",
       "sharedRefs": [
         "L11"
       ],
@@ -69,12 +73,14 @@
       ],
       "dependencies": [],
       "mustNotOwn": [
+        "current Host Work/Space/Topic/Message interfaces",
         "inbox/unread authority",
         "work admission"
       ],
       "acceptance": [
         "Delta consumer must still resume exact Task before acting."
-      ]
+      ],
+      "evidenceStanding": "HISTORICAL_TASK_BOARD_SOURCE_ONLY; active Task/Board API retired in Social Work Fabric schema 10"
     },
     {
       "id": "O04",
@@ -138,9 +144,9 @@
   ],
   "review": {
     "sourceRevision": "b5cf31f9a1d177576886fe545e870e685a80fc2e",
-    "updatedAt": "2026-09-18",
-    "standing": "INITIAL",
-    "notes": "Initial project-native LEGO planning projection. It does not replace owner-native architecture or evidence."
+    "updatedAt": "2026-10-27",
+    "standing": "HISTORICAL_SUPERSEDED_BY_SOCIAL_WORK_FABRIC_R2",
+    "notes": "Legacy O01/O02/O03 R1 graph nodes are retained only for historical graph/source test consumers; native Host schema 10 and R3 current owner mapping define active Work/Space/Topic/Message/Attention responsibilities. Do not infer current implementation from legacy IMPLEMENTED assertions."
   },
   "sharedCatalog": {
     "catalogId": "agent-architecture-lego-catalog-r1",
