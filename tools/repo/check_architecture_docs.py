@@ -799,6 +799,64 @@ def inspect_owner_source_path(
         ),
     }
 
+def _candidate_source_plan_relocations(
+    before: dict[str, Any], after: dict[str, Any],
+) -> list[dict[str, Any]]:
+    """Report byte-identical moved planning carriers, never semantic identity.
+
+    A moved file changes its source-local plan#node references. Matching the
+    plan bytes does not establish unchanged relative source anchors, consumer
+    topology, effects, environment, or correct cross-Owner replacement.
+    """
+    old = {row["path"]: row["sha256"] for row in before["sourcePlans"]}
+    new = {row["path"]: row["sha256"] for row in after["sourcePlans"]}
+    removed: dict[str, list[str]] = {}
+    added: dict[str, list[str]] = {}
+    for path, digest in old.items():
+        if path not in new:
+            removed.setdefault(digest, []).append(path)
+    for path, digest in new.items():
+        if path not in old:
+            added.setdefault(digest, []).append(path)
+
+    result: list[dict[str, Any]] = []
+    old_refs = {row["ref"] for row in before["vertices"]}
+    new_refs = {row["ref"] for row in after["vertices"]}
+    for digest in sorted(removed.keys() & added.keys()):
+        previous_paths, current_paths = sorted(removed[digest]), sorted(added[digest])
+        common = {
+            "planContentSha256": digest,
+            "semanticIdentityPreserved": "UNKNOWN",
+            "proofReuseAdmissible": False,
+        }
+        if len(previous_paths) != 1 or len(current_paths) != 1:
+            result.append({
+                **common,
+                "previousPlanPaths": previous_paths,
+                "currentPlanPaths": current_paths,
+                "sourceCarrierStanding": "AMBIGUOUS_EXACT_BYTES_RELOCATION",
+            })
+            continue
+        prior, current = previous_paths[0], current_paths[0]
+        suffixes = sorted({
+            ref[len(prior) + 1:] for ref in old_refs
+            if ref.startswith(prior + "#") and current + ref[len(prior):] in new_refs
+        })
+        result.append({
+            "previousPlanPath": prior,
+            "currentPlanPath": current,
+            "planContentSha256": digest,
+            "sourceCarrierStanding": "EXACT_BYTES_RELOCATION_CANDIDATE",
+            "candidateNodeRefPairs": [
+                {"previousRef": prior + "#" + node_id, "currentRef": current + "#" + node_id}
+                for node_id in suffixes
+            ],
+            "semanticIdentityPreserved": "UNKNOWN",
+            "proofReuseAdmissible": False,
+        })
+    return result
+
+
 def project_owner_lego_source_change(
     *, before_revision: str, after_revision: str, root: Path = ROOT,
 ) -> dict[str, Any]:
@@ -916,6 +974,7 @@ def project_owner_lego_source_change(
         "directChangedRefs": sorted(direct),
         "potentialRelationInfluenceRefs": sorted(potential),
         "removedRefs": sorted(set(old_nodes) - set(new_nodes)),
+        "sourceCarrierRelocationCandidates": _candidate_source_plan_relocations(before, after),
         "unindexedChangedPaths": sorted(unindexed),
         "standingByDeclaredNode": rows,
         "proofReuseAdmissible": False,
@@ -923,6 +982,7 @@ def project_owner_lego_source_change(
             "NO_DECLARED_HIT does not mean the node has no actual or dynamic consumers.",
             "Source anchors establish Git membership, not proof execution or formal refinement.",
             "Changed planning-carrier bytes conservatively recheck their nodes, not necessarily their deployed consumers.",
+            "Byte-identical source-carrier relocation candidates are NOT semantic LEGO identity mappings, consumer continuity, or proof reuse.",
             "Declared DEPENDENCY edges trigger recheck; other typed relations conservatively propagate bidirectional UNKNOWN until influence polarity is proved.",
             "Unobserved cross-Owner and dynamic consumer paths remain UNKNOWN outside this local projection.",
             "Changed unindexed paths may affect undiscovered consumers; SOURCE selection grants no deletion or runtime authority.",
