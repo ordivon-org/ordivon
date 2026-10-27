@@ -2633,3 +2633,12 @@ def test_selector_three_level_priority_matches_independent_bounded_path_oracle()
                     cases += 1
 
     assert cases == 4608
+
+
+def test_git_immutable_manifest_rejects_nul_path_before_git() -> None:
+    from pathlib import Path
+
+    from ordivon_composition.verification_obligation_r1 import _immutable_git_manifest
+
+    with pytest.raises(CircuitContractError, match="canonical relative path"):
+        _immutable_git_manifest(Path("."), "0" * 40, Path("manifest" + chr(0) + ".json"))

@@ -46,7 +46,7 @@ def _immutable_git_manifest(
         path.is_absolute()
         or not relative
         or any(part in ("", ".", "..") for part in relative.split("/"))
-        or "\\x00" in relative
+        or "\x00" in relative
     ):
         raise CircuitContractError(
             "source-bound impact needs an exact Git cut and canonical relative path"
