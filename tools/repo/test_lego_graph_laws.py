@@ -1550,3 +1550,51 @@ def test_upstream_local_import_dependency_change_invalidates_with_stable_target_
     assert same["sourceRelationStanding"] == "NO_DECLARED_SOURCE_RELATION_CHANGE"
     assert same["changedUpstreamLocalSourceFiles"] == []
     assert same["proofReuseAdmissible"] is False
+
+
+def test_skills_r21_semantic_node_consumer_source_falsification() -> None:
+    """A new Skills LEGO must point to a real source-defined consumer surface.
+
+    This is a source/symbol negative control, NOT dynamic client/installed proof.
+    """
+    import ast
+    import copy
+
+    plan = json.loads(
+        (ROOT / "platform/skills/planning/lego-plan-r1.json").read_text(encoding="utf-8")
+    )
+
+    def qualify_source_symbols(candidate: dict) -> None:
+        for node in candidate["nodes"]:
+            assert all(node[key] for key in (
+                "id", "responsibility", "inputs", "outputs",
+                "behavioralContract", "acceptance", "formalObligations",
+            ))
+            assert node["actualConsumers"]
+            for consumer in node["actualConsumers"]:
+                relative = Path(consumer["path"])
+                assert not relative.is_absolute() and ".." not in relative.parts
+                path = ROOT / "platform/skills" / relative
+                assert path.is_file()
+                names = {
+                    ast_node.name for ast_node in ast.walk(
+                        ast.parse(path.read_text(encoding="utf-8"))
+                    )
+                    if isinstance(
+                        ast_node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)
+                    )
+                }
+                assert consumer["symbol"] in names, (
+                    f"{node['id']} has no such static consumer entrypoint: "
+                    f"{consumer['path']}::{consumer['symbol']}"
+                )
+                assert consumer["standing"] in {
+                    "SOURCE_STATIC_CALL",
+                    "SOURCE_STATIC_FUNCTION; EXTERNAL_CLIENT_SOURCE_UNRESOLVED",
+                }
+
+    qualify_source_symbols(plan)
+    falsified = copy.deepcopy(plan)
+    falsified["nodes"][3]["actualConsumers"][0]["symbol"] = "NOT_REAL_CONSUMER"
+    with pytest.raises(AssertionError, match="no such static consumer entrypoint"):
+        qualify_source_symbols(falsified)
