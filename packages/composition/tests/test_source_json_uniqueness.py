@@ -5,9 +5,11 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+import rfc8785
 
 from ordivon_composition.cognitive_circuit_r1 import (
     CircuitContractError,
+    _canonical_bytes,
     canonical_digest,
 )
 from ordivon_composition.cognitive_circuit_r1 import (
@@ -56,3 +58,21 @@ def test_in_memory_lego_evidence_digest_rejects_non_json_values(value: float) ->
     """Caller-made representations cannot bypass source JSON constraints."""
     with pytest.raises(CircuitContractError, match="non-JSON numeric"):
         canonical_digest({"evidence": {"weight": value}})
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"version": 1, "source": {"digest": "sha256:" + "a" * 64}, "gate": True},
+        {"number": 1.0, "minus_zero": -0.0},
+        {"\U0001f600": "non-BMP Unicode key", "\ue000": "private-use key"},
+        {"scopes": [{"id": "gate:1", "reason": "valid"}], "kind": "LEGO"},
+    ],
+)
+def test_evidence_digest_reuses_mature_rfc8785_provider(payload: dict) -> None:
+    """Prove the selected JCS semantics, not a Python-specific JSON shortcut."""
+    import hashlib
+
+    exact_bytes = rfc8785.dumps(payload)
+    assert _canonical_bytes(payload) == exact_bytes
+    assert canonical_digest(payload) == "sha256:" + hashlib.sha256(exact_bytes).hexdigest()
