@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import configparser
 import fnmatch
 import json
+import shlex
 import subprocess
 from pathlib import Path, PurePosixPath
 
@@ -55,48 +57,141 @@ def _matches(path: str, pattern: str) -> bool:
     )
 
 
+def verify_fixity_consumer_binding(service_source: str, timer_source: str) -> None:
+    """Qualify exact Git source Service/Timer seam, not installed systemd state.
+
+    systemd owns scheduling and Artefactual owns scanning. This consumer contract
+    only ensures the declared local Fixity profile still routes the timer to
+    the intended one-shot provider client with its named environment file.
+    Actual STORAGE_SERVICE_URL bytes, deployed units and reachability stay UNKNOWN.
+    """
+
+    def unit(source: str, sections: tuple[str, ...]) -> configparser.ConfigParser:
+        result = configparser.ConfigParser(interpolation=None, strict=True)
+        result.optionxform = str
+        try:
+            result.read_string(source)
+        except configparser.Error as exc:
+            raise ValueError(f"invalid Fixity systemd source unit: {exc}") from exc
+        for section in sections:
+            _require(
+                result.has_section(section), f"missing Fixity unit section {section}"
+            )
+        return result
+
+    service = unit(service_source, ("Unit", "Service", "Install"))
+    timer = unit(timer_source, ("Unit", "Timer", "Install"))
+    service_cfg = service["Service"]
+    timer_cfg = timer["Timer"]
+    credential = "/etc/ordivon/fixity-r7.env"
+    _require(
+        service["Unit"].get("ConditionPathExists") == credential
+        and service_cfg.get("EnvironmentFile") == credential,
+        "Fixity source consumer must conditionally read the same credential EnvironmentFile",
+    )
+    _require(
+        service_cfg.get("Type") == "oneshot",
+        "Fixity scanner must remain a one-shot consumer",
+    )
+    _require(
+        timer_cfg.get("Unit") == "ordivon-preservation-fixity-r7.service",
+        "Fixity Timer must schedule its actual named Service, not an unrelated unit",
+    )
+    _require(
+        bool(timer_cfg.get("OnCalendar", "").strip()),
+        "Fixity Timer requires a schedule",
+    )
+    working_dir = service_cfg.get("WorkingDirectory", "")
+    try:
+        argv = shlex.split(service_cfg.get("ExecStart", ""))
+    except ValueError as exc:
+        raise ValueError("invalid Fixity scanner ExecStart") from exc
+    expected_cli = str(Path(working_dir) / ".venv" / "bin" / "fixity")
+    _require(
+        working_dir.startswith("/opt/ordivon/external/fixity/")
+        and len(argv) >= 3
+        and argv[:3] == [expected_cli, "scanall", "--force-local"],
+        "Fixity Service must invoke its pinned local provider scanner from WorkingDirectory",
+    )
+
+
 def main() -> int:
     data = json.loads(BOUNDARY.read_text(encoding="utf-8"))
     _require(data["schemaVersion"] == 1, "unsupported source boundary schema")
-    _require(data["kind"] == "ordivon.preservation-source-boundary", "invalid source boundary kind")
+    _require(
+        data["kind"] == "ordivon.preservation-source-boundary",
+        "invalid source boundary kind",
+    )
     authority = data["authorityBoundary"]
-    _require(authority["runtimeFrameworkOwnedByOrdivon"] is False, "preservation framework is external")
-    _require(authority["localProfileOnly"] is True, "preservation profile must remain local only")
+    _require(
+        authority["runtimeFrameworkOwnedByOrdivon"] is False,
+        "preservation framework is external",
+    )
+    _require(
+        authority["localProfileOnly"] is True,
+        "preservation profile must remain local only",
+    )
 
     included = data.get("includedPaths")
-    _require(isinstance(included, list) and bool(included), "includedPaths must be nonempty")
-    _require(all(isinstance(pattern, str) and pattern for pattern in included), "invalid source path pattern")
+    _require(
+        isinstance(included, list) and bool(included), "includedPaths must be nonempty"
+    )
+    _require(
+        all(isinstance(pattern, str) and pattern for pattern in included),
+        "invalid source path pattern",
+    )
 
     tracked = _tracked_owner_files()
     payload = tracked - CONTROL_FILES
     unmatched = sorted(
-        path for path in payload if not any(_matches(path, pattern) for pattern in included)
+        path
+        for path in payload
+        if not any(_matches(path, pattern) for pattern in included)
     )
-    _require(not unmatched, f"tracked Preservation payload escaped SOURCE_BOUNDARY: {unmatched}")
+    _require(
+        not unmatched,
+        f"tracked Preservation payload escaped SOURCE_BOUNDARY: {unmatched}",
+    )
 
     empty_patterns = sorted(
-        pattern for pattern in included if not any(_matches(path, pattern) for path in payload)
+        pattern
+        for pattern in included
+        if not any(_matches(path, pattern) for path in payload)
     )
-    _require(not empty_patterns, f"SOURCE_BOUNDARY includes empty patterns: {empty_patterns}")
+    _require(
+        not empty_patterns, f"SOURCE_BOUNDARY includes empty patterns: {empty_patterns}"
+    )
 
     creative_library = [
         path
         for path in tracked
         if "creative-library" in path.lower() or "creative_library" in path.lower()
     ]
-    _require(not creative_library, (
-        "Creative Library is Media-owned and must not enter Preservation source: "
-        f"{creative_library}"
-    ))
+    _require(
+        not creative_library,
+        (
+            "Creative Library is Media-owned and must not enter Preservation source: "
+            f"{creative_library}"
+        ),
+    )
 
     compose_path = OWNER_ROOT / "config/archivematica-preservation-r10.compose.yml"
     compose = yaml.safe_load(compose_path.read_text(encoding="utf-8"))
     _require(isinstance(compose, dict), "compose profile must be an object")
     services = compose.get("services")
-    _require(isinstance(services, dict) and bool(services), "compose services must be nonempty")
-    _require("archivematica-storage-service" in services, "required Archivematica storage service is absent")
     _require(
-        all(isinstance(name, str) and isinstance(config, dict) for name, config in services.items()),
+        isinstance(services, dict) and bool(services),
+        "compose services must be nonempty",
+    )
+    _require(
+        "archivematica-storage-service" in services,
+        "required Archivematica storage service is absent",
+    )
+    _require(
+        all(
+            isinstance(name, str) and isinstance(config, dict)
+            for name, config in services.items()
+        ),
         "compose services require names and object configs",
     )
     # A host-native Fixity consumer uses STORAGE_SERVICE_URL at localhost:62081.
@@ -109,16 +204,13 @@ def main() -> int:
         "Fixity host consumer requires exactly loopback 127.0.0.1:62081 -> Storage Service 8000",
     )
 
-    service = (
-        OWNER_ROOT / "systemd/ordivon-preservation-fixity-r7.service"
-    ).read_text(encoding="utf-8")
-    timer = (
-        OWNER_ROOT / "systemd/ordivon-preservation-fixity-r7.timer"
-    ).read_text(encoding="utf-8")
-    for section in ("[Unit]", "[Service]", "[Install]"):
-        _require(section in service, f"missing service section {section}")
-    for section in ("[Unit]", "[Timer]", "[Install]"):
-        _require(section in timer, f"missing timer section {section}")
+    service = (OWNER_ROOT / "systemd/ordivon-preservation-fixity-r7.service").read_text(
+        encoding="utf-8"
+    )
+    timer = (OWNER_ROOT / "systemd/ordivon-preservation-fixity-r7.timer").read_text(
+        encoding="utf-8"
+    )
+    verify_fixity_consumer_binding(service, timer)
 
     print(
         "preservation source profile: valid "

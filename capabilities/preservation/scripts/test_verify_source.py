@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Preservation source-boundary contract, including optimized Python execution."""
+
 from __future__ import annotations
 
 import copy
@@ -114,18 +115,23 @@ class SourceBoundaryContractTests(unittest.TestCase):
             with self.subTest(optimized=optimized):
                 result = self.verify(valid, optimized=optimized, drop_storage=True)
                 self.assertNotEqual(
-                    result.returncode, 0,
+                    result.returncode,
+                    0,
                     "missing Archivematica storage service silently accepted",
                 )
 
-    def test_host_fixity_port_binding_rejects_absence_exposure_and_mismatch(self) -> None:
+    def test_host_fixity_port_binding_rejects_absence_exposure_and_mismatch(
+        self,
+    ) -> None:
         # CEGAR A0: a named running Compose service may lack a published route.
         # A1: reject missing, world-exposed and mismatched host port contracts.
         valid = json.loads(BOUNDARY.read_text(encoding="utf-8"))
         for case in ("omit-host-port", "expose-public-interface", "wrong-host-port"):
             for optimized in (False, True):
                 with self.subTest(case=case, optimized=optimized):
-                    result = self.verify(valid, optimized=optimized, injected_fault=case)
+                    result = self.verify(
+                        valid, optimized=optimized, injected_fault=case
+                    )
                     self.assertNotEqual(result.returncode, 0)
                     self.assertIn("loopback 127.0.0.1:62081", result.stderr)
 
@@ -142,15 +148,94 @@ class SourceBoundaryContractTests(unittest.TestCase):
                 if name == "kind":
                     altered["kind"] = wrong_value
                 elif name == "runtime-owned":
-                    altered["authorityBoundary"]["runtimeFrameworkOwnedByOrdivon"] = wrong_value
+                    altered["authorityBoundary"]["runtimeFrameworkOwnedByOrdivon"] = (
+                        wrong_value
+                    )
                 else:
                     altered["authorityBoundary"]["localProfileOnly"] = wrong_value
                 result = self.verify(altered, optimized=True)
                 self.assertNotEqual(
-                    result.returncode, 0,
+                    result.returncode,
+                    0,
                     f"optimized Python bypassed source-boundary contract: {name}: "
                     f"{result.stdout}{result.stderr}",
                 )
+
+
+# Source-only negative controls: no Docker/Systemd mutation and no reading
+# of private credential environment bytes. Under -O the same verifier must
+# reject a timer silently redirected to a different service.
+FIXITY_SOURCE_CONSUMER = """
+import importlib.util
+import sys
+from pathlib import Path
+spec = importlib.util.spec_from_file_location("preservation_source", sys.argv[1])
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+root = Path(sys.argv[1]).resolve().parents[1]
+service = (root / "systemd/ordivon-preservation-fixity-r7.service").read_text()
+timer = (root / "systemd/ordivon-preservation-fixity-r7.timer").read_text()
+mode = sys.argv[2]
+if mode == "foreign-timer-unit":
+    timer = timer.replace("Unit=ordivon-preservation-fixity-r7.service",
+                          "Unit=unrelated.service")
+elif mode == "wrong-environment":
+    service = service.replace("EnvironmentFile=/etc/ordivon/fixity-r7.env",
+                              "EnvironmentFile=/etc/ordivon/other.env")
+elif mode == "wrong-local-provider":
+    service = service.replace("fixity scanall --force-local",
+                              "fixity scanall --unsafe-external")
+elif mode == "no-schedule":
+    timer = timer.replace("OnCalendar=Sun *-*-* 03:17:00 Asia/Singapore",
+                          "OnCalendar=")
+elif mode != "accepted":
+    raise ValueError("unrecognized synthetic fault mode")
+module.verify_fixity_consumer_binding(service, timer)
+"""
+
+
+class FixityConsumerSourceContractTests(unittest.TestCase):
+    def run_consumer(
+        self,
+        mode: str,
+        *,
+        optimized: bool,
+    ) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [
+                sys.executable,
+                *(["-O"] if optimized else []),
+                "-c",
+                FIXITY_SOURCE_CONSUMER,
+                str(SCRIPT),
+                mode,
+            ],
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=30,
+        )
+
+    def test_exact_source_bound_consumer_is_admitted_without_provider_calls(
+        self,
+    ) -> None:
+        for optimized in (False, True):
+            with self.subTest(optimized=optimized):
+                outcome = self.run_consumer("accepted", optimized=optimized)
+                self.assertEqual(outcome.returncode, 0, outcome.stderr)
+
+    def test_wrong_timer_environment_provider_or_schedule_fail_closed(self) -> None:
+        for fault in (
+            "foreign-timer-unit",
+            "wrong-environment",
+            "wrong-local-provider",
+            "no-schedule",
+        ):
+            for optimized in (False, True):
+                with self.subTest(fault=fault, optimized=optimized):
+                    outcome = self.run_consumer(fault, optimized=optimized)
+                    self.assertNotEqual(outcome.returncode, 0, fault)
+                    self.assertIn("ValueError", outcome.stderr)
 
 
 if __name__ == "__main__":
