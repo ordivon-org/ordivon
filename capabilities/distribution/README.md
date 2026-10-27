@@ -8,7 +8,7 @@ It does not run an admission service or a generic distribution control plane.
 
 Workstation's `accept-n8n-distribution-adapter-smoke.sh` reads
 `evidence/r7-artifact-development-publication-intent.json` as a negative Artifact
-input. Its invocation code extracts intent/account/effect fields and constructs a
+input. Its invocation code extracts intent/effect fields and constructs a
 synthetic CloudEvents 1.0 decision. The n8n workflow checks the blocked branch and
 a separate GitHub GET-only readback branch.
 
