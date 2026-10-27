@@ -319,7 +319,6 @@ def project_r5c_record(record: dict[str, Any]) -> dict[str, Any]:
                 None if run.get("finished_at") is None else str(run["finished_at"])
             ),
             "recoveryRequired": run.get("recovery_required"),
-            "recoveryReasonCode": run.get("recovery_reason_code"),
         },
         "costObservations": {"artifactBytes": artifact_bytes},
         "unresolved": [
