@@ -624,6 +624,36 @@ class CrossPlaneObservationJoinTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"unknown node or asserted"):
             M.join_cross_plane_observations(self.problems,x)
 
+    def test_service_pid_relation_rejects_stopped_or_contradictory_live_states(self):
+        import copy
+        for service_state, process_state in (
+            ("RUNNING", "STOPPED"),
+            ("STOPPED", "RUNNING"),
+            ("STOPPED", "STOPPED"),
+            ("INACTIVE", "ACTIVE"),
+        ):
+            with self.subTest(service=service_state, process=process_state):
+                x = self.source()
+                x["observations"][3]["observedState"] = service_state
+                x["observations"][4]["observedState"] = process_state
+                # Exact equal PID and matching source locator do not establish
+                # a current service/process association in these cases.
+                with self.assertRaisesRegex(ValueError, "active.*association"):
+                    M.join_cross_plane_observations(self.problems, x)
+
+    def test_pid_match_never_proves_incarnation_or_observation_time_overlap(self):
+        x = self.source()
+        v = M.join_cross_plane_observations(self.problems, x)
+        association = next(e for e in v["candidateRelations"] if
+                           e["relationKind"] == "SERVICE_PID_ASSOCIATION_OBSERVED")
+        self.assertEqual(association["temporalOverlapStanding"], "UNKNOWN")
+        self.assertEqual(association["processIncarnationStanding"], "UNKNOWN")
+        self.assertEqual(association["relationGrounding"],
+                         "PID_EQUALITY_AND_LIVE_STATE_ONLY")
+        for n in v["observations"]:
+            self.assertEqual(n["hostNodeIdentityStanding"],
+                             "UNKNOWN_OS_FAMILY_NOT_RUNTIME_NODE")
+
     def test_pid_mismatch_rejected(self):
         x=self.source()
         x["observations"][4]["pid"]=7284

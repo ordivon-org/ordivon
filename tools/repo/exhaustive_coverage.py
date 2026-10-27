@@ -1158,6 +1158,8 @@ def join_cross_plane_observations(problem_frontier: dict, observations: dict) ->
             "proofStanding": "OBSERVATION_INPUT_NOT_INDEPENDENTLY_ATTESTED",
             "semanticConsumerStanding": "UNKNOWN",
             "loadedImplementationStanding": "UNKNOWN",
+            "hostNodeIdentityStanding": "UNKNOWN_OS_FAMILY_NOT_RUNTIME_NODE",
+            "processIncarnationStanding": "UNKNOWN_NOT_WITNESSED",
         }
         nodes[loc] = node
         result_problems.append({
@@ -1192,12 +1194,20 @@ def join_cross_plane_observations(problem_frontier: dict, observations: dict) ->
             a["gitObjectStoreGroup"] == b["gitObjectStoreGroup"] and a != b
         ):
             raise ValueError("object-store relation not grounded in common group")
-        if kind == "SERVICE_PID_ASSOCIATION_OBSERVED" and not (
-            a["plane"] == "SERVICE_STATUS" and b["plane"] == "PROCESS_PID" and
-            a["hostScope"] == b["hostScope"] and a["pid"] and
-            a["pid"] == b["pid"] and b["serviceLocator"] == a["locator"]
-        ):
-            raise ValueError("service-process association lacks observed identity")
+        if kind == "SERVICE_PID_ASSOCIATION_OBSERVED":
+            if not (
+                a["plane"] == "SERVICE_STATUS" and b["plane"] == "PROCESS_PID" and
+                a["hostScope"] == b["hostScope"] and a["pid"] and
+                a["pid"] == b["pid"] and b["serviceLocator"] == a["locator"]
+            ):
+                raise ValueError("service-process association lacks observed identity")
+            if a["observedState"] not in ("RUNNING", "ACTIVE") or (
+                b["observedState"] not in ("RUNNING", "ACTIVE")
+            ):
+                raise ValueError(
+                    "active service-process association cannot be asserted "
+                    "from stopped or contradictory observed states"
+                )
         if kind == "SOURCE_TEXT_EXTERNAL_PATH_REFERENCE_CANDIDATE" and not (
             a["plane"] == "GIT_SOURCE_VIEW" and b["plane"] == "NON_GIT_NAMESPACE"
         ):
@@ -1212,6 +1222,13 @@ def join_cross_plane_observations(problem_frontier: dict, observations: dict) ->
             "relationKind": kind, "witnessRef": row["witnessRef"],
             "consumerAndCallSemantics": "UNKNOWN",
             "formalProofStanding": "UNKNOWN",
+            "relationGrounding": (
+                "PID_EQUALITY_AND_LIVE_STATE_ONLY"
+                if kind == "SERVICE_PID_ASSOCIATION_OBSERVED"
+                else "TYPED_OBSERVATION_CANDIDATE_ONLY"
+            ),
+            "temporalOverlapStanding": "UNKNOWN",
+            "processIncarnationStanding": "UNKNOWN",
         })
     if set(p["problemRef"] for p in result_problems) & set(
         p["problemRef"] for p in problem_frontier["problemLegos"]
