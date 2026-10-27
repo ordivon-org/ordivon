@@ -151,7 +151,6 @@
       "lego-lens-registry-r1.json"
     ],
     "forbiddenLocalPlanningInfrastructure": [
-      "planning/lego-plan-r1.json",
       "schemas/project-lego-plan-r1.schema.json",
       "scripts/check_project_lego_plan_r1.py",
       ".agents/skills/lego-project-planning",
@@ -182,5 +181,20 @@
     "runtimeOrdivonNextWorkspaces": 90,
     "runtimeCoreZeroNamedWorkspaces": 51,
     "interpretation": "Diagnostic baseline only; these counts are not themselves deletion authority."
+  },
+  "sourceProjectionReplacement": {
+    "current": "planning/lego-plan-r1.json",
+    "kind": "ordivon.project-lego-plan",
+    "scope": "R2.1 Git source-only owner-local graph with qualified native consumer contract; not old Next project planning framework",
+    "governance": "tools/repo/check_architecture_docs.py registration, native source graph tests, Next negative consumer tests",
+    "priorRetired": [
+      "schemas/project-lego-plan-r1.schema.json",
+      "scripts/check_project_lego_plan_r1.py",
+      ".agents/skills/lego-project-planning",
+      ".agents/skills/lego-question-compiler"
+    ],
+    "nonClaims": [
+      "not a task scheduler, execution plan compiler, runtime registry, Installed or Formal PASS"
+    ]
   }
 }
