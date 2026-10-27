@@ -1763,7 +1763,7 @@ def test_next_r21_crossdomain_consumers_are_actual_source_symbols() -> None:
 
     def qualify(candidate: dict) -> None:
         assert candidate["kind"] == "ordivon.project-lego-plan"
-        assert {row["id"] for row in candidate["nodes"]} == {"NX01", "NX02", "NX03"}
+        assert {row["id"] for row in candidate["nodes"]} == {"NX01", "NX02", "NX03", "NX04"}
         for node in candidate["nodes"]:
             for key in ("responsibility", "inputs", "outputs", "behavioralContract", "acceptance", "formalObligations"):
                 assert node[key], (node["id"], key)
@@ -1783,10 +1783,14 @@ def test_next_r21_crossdomain_consumers_are_actual_source_symbols() -> None:
                     if isinstance(n, (ast.ImportFrom, ast.Import))
                     for alias in n.names
                 }
-                called = {
-                    n.func.id for n in ast.walk(tree)
-                    if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
-                }
+                called = set()
+                for call in ast.walk(tree):
+                    if not isinstance(call, ast.Call):
+                        continue
+                    if isinstance(call.func, ast.Name):
+                        called.add(call.func.id)
+                    elif isinstance(call.func, ast.Attribute) and isinstance(call.func.value, ast.Name):
+                        called.add(call.func.value.id)
                 for name in row["symbols"]:
                     assert name in defined | imported, (row["path"], name)
                     assert name in called, (row["path"], f"not syntactically called: {name}")

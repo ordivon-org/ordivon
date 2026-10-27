@@ -4,19 +4,79 @@
   "truthRole": "planning-projection-not-project-truth",
   "project": {
     "id": "ordivon-next-cross-domain-seams-r1",
-    "purpose": "First source/consumer-qualified active Next LEGO seam responsibilities. Preserves independent experimental learning plan (not normalized or counted as this graph). No second Registry, no new execution authority.",
+    "purpose": "Source- and consumer-grounded current Next R2.1 responsibilities: external authority discovery and task-local cross-domain binding with two domain-separated machine gate verifiers. Preserve 39-node experimental-learning plan as a different semantic carrier; no global registry or domain authorization.",
     "sourceEvidence": [
       "README.md",
       "scripts/cross_domain_binding_r3.py",
       "scripts/web_security_gate_r3.py",
       "scripts/research_artifact_gate_r3.py",
       "schemas/cross-domain-verification-r3-binding.schema.json",
-      "tests/test_cross_domain_verification_r3.py"
+      "tests/test_cross_domain_verification_r3.py",
+      "scripts/authority_catalog.py",
+      "scripts/check_authority_catalog_r1.py",
+      "tests/test_authority_catalog.py"
     ]
   },
   "nodes": [
     {
       "id": "NX01",
+      "label": "ExternalAuthorityRecordAndObservationCatalog",
+      "kind": "knowledge_projection",
+      "responsibility": "Validate versioned external-authority identity records and independently supplied currentness observations, and derive a disposable, source-provenanced discovery index for task-local method and source selection.",
+      "authority": "Next source and observation index; external institutions own normative truth and permissions",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "versioned authority identity records",
+        "independently supplied authority observations",
+        "bounded lexical authority query"
+      ],
+      "outputs": [
+        "validated source/revision-aware external authority records and a rebuildable discovery projection",
+        "source-qualified failure/UNKNOWN when an observation is missing"
+      ],
+      "behavioralContract": "The index is reproducible from current admitted authority records; it cannot invent task-specific applicability, issue permissions, lift observation freshness to installed execution truth, or overwrite external normative authority.",
+      "acceptance": [
+        "Native check_authority_catalog_r1.py consumes authority_catalog records, validation and index regeneration, and tests exercise deterministic index, discovery and currentness cases."
+      ],
+      "evidence": [
+        "scripts/authority_catalog.py",
+        "scripts/check_authority_catalog_r1.py",
+        "tests/test_authority_catalog.py"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "institutional normative authority",
+        "external provider permission",
+        "a permanent second knowledge registry",
+        "production environment currentness"
+      ],
+      "consumerBindings": [
+        {
+          "path": "scripts/check_authority_catalog_r1.py",
+          "symbols": [
+            "catalog"
+          ],
+          "standing": "SOURCE_STATIC_IMPORT_AND_CALL_NOT_EXECUTED"
+        },
+        {
+          "path": "tests/test_authority_catalog.py",
+          "symbols": [
+            "catalog"
+          ],
+          "standing": "SOURCE_TEST_IMPORT_NOT_INSTALLED"
+        }
+      ],
+      "formalObligations": [
+        "Latest indexed record and observed-currentness inputs must remain distinct from current authority/provider truth.",
+        "Authority candidate existence must not imply consumer-specific applicability, consent or formal satisfaction."
+      ],
+      "replacements": [
+        "Reuse standards-native authority discovery or external KB solutions if they preserve deterministic source/provenance/observation separation."
+      ]
+    },
+    {
+      "id": "NX02",
       "label": "TaskLocalCrossDomainBinding",
       "kind": "typed_binding",
       "responsibility": "Qualify per-task Web/Security and Research/Artifact cross-domain verification bindings and source-file references while keeping all external providers' semantic authority outside Next.",
@@ -82,7 +142,7 @@
       ]
     },
     {
-      "id": "NX02",
+      "id": "NX03",
       "label": "DelegatedWebSecuritySeamGate",
       "kind": "consumer_verification",
       "responsibility": "Qualify a task-local Web delegated-Agent security seam from Web/Security dependency contracts, request/admission/store source and bounded browser E2E receipts without promoting result to production Human presence.",
@@ -107,7 +167,7 @@
         "evidence/acceptance/cross-domain-verification-r3-bindings.json"
       ],
       "dependencies": [
-        "NX01"
+        "NX02"
       ],
       "sharedRefs": [],
       "mustNotOwn": [
@@ -153,7 +213,7 @@
       ]
     },
     {
-      "id": "NX03",
+      "id": "NX04",
       "label": "ResearchArtifactCarrierSeamGate",
       "kind": "consumer_verification",
       "responsibility": "Qualify a task-local Research publication carrier agreement with Artifact mechanics while preserving scientific, human-perceptual, venue and submission authority outside this gate.",
@@ -178,7 +238,7 @@
         "evidence/acceptance/cross-domain-verification-r3-bindings.json"
       ],
       "dependencies": [
-        "NX01"
+        "NX02"
       ],
       "sharedRefs": [],
       "mustNotOwn": [
@@ -226,22 +286,33 @@
   ],
   "edges": [
     {
-      "from": "NX01",
-      "to": "NX02",
+      "from": "NX02",
+      "to": "NX03",
       "type": "DATA"
     },
     {
-      "from": "NX01",
-      "to": "NX03",
+      "from": "NX02",
+      "to": "NX04",
       "type": "DATA"
     }
   ],
   "slices": [
     {
+      "id": "NX_AUTHORITY",
+      "label": "SourceQualifiedExternalAuthorityDiscovery",
+      "nodeIds": [
+        "NX01"
+      ],
+      "status": "IMPLEMENTED",
+      "acceptance": [
+        "Independent authority source/observation catalog consumer identified; no production/installed authority claim."
+      ]
+    },
+    {
       "id": "NX_SOURCE",
       "label": "TaskLocalBinding",
       "nodeIds": [
-        "NX01"
+        "NX02"
       ],
       "status": "IMPLEMENTED",
       "acceptance": [
@@ -252,8 +323,8 @@
       "id": "NX_GATE",
       "label": "BoundedCrossDomainVerifier",
       "nodeIds": [
-        "NX02",
-        "NX03"
+        "NX03",
+        "NX04"
       ],
       "status": "IMPLEMENTED",
       "acceptance": [
@@ -264,6 +335,7 @@
   "nonClaims": [
     "This is a bounded Next cross-domain seam set, NOT total Next owner coverage.",
     "The 39 experimental-learning LEGO records have different truth and lifecycle semantics and are not imported into this R1 graph.",
-    "SOURCE imports, test consumption, Model PASS and installed domain behavior remain separate qualifications."
+    "SOURCE imports, test consumption, Model PASS and installed domain behavior remain separate qualifications.",
+    "External authority discovery and cross-domain binding are separate responsibilities; no invented NX01 to NX02 dependency."
   ]
 }
