@@ -21,17 +21,23 @@ verify_task = "next:verify"
 # from the R2.1 logical specification and from product-specific proofs.
 [[owners]]
 name = "formal-toolchain"
+semantic_label = "native-formal-proof-toolchain"
+semantic_scope = "Pinned external proof kernels, prover fixtures and native proof-tool qualification; not an Ordivon-owned mathematical authority."
 root = "tools/formal/"
 verify_task = "formal:verify"
 queue_verify_task = "formal:source:verify"
 
 [[owners]]
 name = "lego-foundation"
+semantic_label = "recursive-lego-method-foundation"
+semantic_scope = "Canonical R2.1 method/contract Skill source; not a global runtime LEGO registry or service."
 root = ".agents/skills/recursive-lego-calculus/"
 verify_task = "lego-foundation:verify"
 
 [[owners]]
 name = "research"
+semantic_label = "research-publication-qualification-source"
+semantic_scope = "Research publication and qualification source profiles; not a global research scheduler or domain outcome authority."
 root = "meta/research/"
 verify_task = "research:verify"
 
