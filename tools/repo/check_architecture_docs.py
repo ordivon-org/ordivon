@@ -729,12 +729,74 @@ def inspect_owner_lego_contract(
     }
 
 
+
+def _project_native_json_schema_source(
+    root: Path, source_path: str, source_identity: str | None,
+) -> dict[str, Any] | None:
+    """Bounded native JSON carrier hint from an immutable Git regular blob.
+
+    This reads only declared metadata, not a verified schema, consumer or
+    installed Tool/Plugin. Symlinks and gitlinks are never dereferenced.
+    """
+    if not source_path.endswith(".json") or not source_identity:
+        return None
+    mode, kind, oid = (
+        source_identity.split(":") if source_identity.count(":") == 2
+        else ("", "", "")
+    )
+    if (
+        mode not in {"100644", "100755"} or kind != "blob"
+        or re.fullmatch(r"(?:[0-9a-f]{40}|[0-9a-f]{64})", oid) is None
+    ):
+        return None
+    import subprocess
+
+    def cat_file(*args: str) -> bytes:
+        try:
+            return subprocess.check_output(
+                ["git", "--no-replace-objects", "-C", str(root),
+                 "cat-file", *args],
+                stderr=subprocess.PIPE,
+            )
+        except (OSError, subprocess.CalledProcessError) as exc:
+            raise ArchitectureDocsError(
+                "native contract Git blob unavailable at immutable SourceCut"
+            ) from exc
+
+    length = int(cat_file("-s", oid).strip())
+    if length > 65536:
+        return None
+    try:
+        value = json.loads(cat_file("blob", oid))
+    except (ValueError, UnicodeError):
+        return None
+    if not isinstance(value, dict):
+        return None
+    schema = value.get("$schema")
+    if not isinstance(schema, str) or not 0 < len(schema) <= 2048:
+        return None
+
+    result: dict[str, Any] = {
+        "standing": "NATIVE_JSON_SCHEMA_DECLARATION_ONLY",
+        "schemaUri": schema,
+        "sourceIdentity": source_identity,
+    }
+    if isinstance(value.get("name"), str):
+        result["declaredPackageName"] = value["name"]
+    servers = value.get("mcpServers")
+    if isinstance(servers, dict) and len(servers) <= 128 and all(
+        isinstance(name, str) for name in servers
+    ):
+        result["declaredMcpServerKeys"] = sorted(servers)
+    return result
+
 def inspect_owner_source_path(
     *, source_revision: str, source_path: str, root: Path = ROOT,
 ) -> dict[str, Any]:
     """Agent path→owner→declared LEGO lookup; no consumer/proof equivalence."""
     import tomllib
     if (not source_path or source_path.startswith("/") or chr(92) in source_path
+            or chr(0) in source_path
             or any(part in {"", ".", ".."} for part in source_path.split("/"))):
         raise ArchitectureDocsError("inspect requires canonical source path")
     if not re.fullmatch(r"[0-9a-f]{40}", source_revision):
@@ -777,12 +839,32 @@ def inspect_owner_source_path(
         for vertex in graph["vertices"]
         if any(anchor["path"] == source_path for anchor in vertex["sourceAnchors"])
     ]
+    identity = files.get(source_path)
+    mode, kind = (
+        identity.split(":")[:2] if identity and identity.count(":") == 2
+        else ("", "")
+    )
+    if not identity:
+        git_entry_standing = "ABSENT_FROM_GIT_CUT"
+    elif mode in {"100644", "100755"} and kind == "blob":
+        git_entry_standing = "REGULAR_BLOB"
+    elif mode == "120000" and kind == "blob":
+        git_entry_standing = "SYMLINK_BLOB_NOT_TARGET_CONTENT"
+    elif mode == "160000" and kind == "commit":
+        git_entry_standing = "GITLINK_NOT_LOCAL_CONTENT"
+    else:
+        git_entry_standing = "UNKNOWN_NONREGULAR_GIT_ENTRY"
+
     return {
         "kind": "ordivon.owner-source-path-inspection",
         "truthRole": "IMMUTABLE_GIT_AND_DECLARED_ANCHORS_ONLY",
         "sourceCut": source_revision,
         "path": source_path,
-        "sourceIdentity": files.get(source_path),
+        "sourceIdentity": identity,
+        "gitEntryStanding": git_entry_standing,
+        "nativeContractCarrier": _project_native_json_schema_source(
+            root, source_path, identity
+        ),
         "sourceMembershipStanding": (
             "TRACKED_SOURCE" if source_path in files else "ABSENT_AT_SOURCECUT"
         ),
