@@ -72,6 +72,47 @@ class SourceNameResolutionTests(unittest.TestCase):
             ]
         )
 
+    def test_unique_area_name_groups_many_nested_cells_without_false_collision(self):
+        records = source_cut([
+            row("services/runtime/src/a.rs", "runtime/src/a", "runtime / src / a",
+                "runtime"),
+            row("services/runtime/crates/b.rs", "runtime/crates/b",
+                "runtime / crates / b", "runtime"),
+            row("services/harness/src/h.py", "harness/src/h",
+                "harness / src / h", "harness"),
+        ])
+        for item in records["entries"]:
+            item["semanticName"] = (
+                "physical-execution-runtime" if item["verificationOwner"] == "runtime"
+                else "bounded-agent-run-harness"
+            )
+        result = resolve_source_name(records, name="physical-execution-runtime",
+                                     field="semanticName")
+        self.assertEqual(result["standing"], "UNIQUE_SOURCE_GROUP_NOT_LEGO_PROOF")
+        self.assertEqual(result["candidateGroupCount"], 1)
+        self.assertEqual(result["candidates"][0]["sourceGroup"],
+                         "verification-region/runtime")
+        self.assertEqual(result["candidates"][0]["sourceName"],
+                         "physical-execution-runtime")
+        self.assertEqual(result["candidates"][0]["matchedPaths"], 2)
+        self.assertFalse(result["semanticIdentityQualified"])
+
+    def test_section_name_groups_nested_source_cells_but_not_similar_sections(self):
+        records = source_cut([
+            row("services/runtime/crates/a.rs", "runtime/crates/a",
+                "runtime / crates / a", "runtime", section="runtime/crates"),
+            row("services/runtime/crates/b.rs", "runtime/crates/b",
+                "runtime / crates / b", "runtime", section="runtime/crates"),
+            row("services/harness/crates/c.rs", "harness/crates/c",
+                "harness / crates / c", "harness", section="harness/crates"),
+        ])
+        result = resolve_source_name(records, name="runtime/crates",
+                                     field="sourceSection")
+        self.assertEqual(result["candidateGroupCount"], 1)
+        self.assertEqual(result["candidates"][0]["sourceGroup"],
+                         "source-section/runtime/crates")
+        self.assertEqual(result["candidates"][0]["matchedPaths"], 2)
+
     def test_colliding_display_name_must_be_ambiguous(self):
         result = resolve_source_name(
             self.cut, name="Common Tools", field="sourceCellDisplayName"
@@ -189,8 +230,10 @@ class SourceNameResolutionTests(unittest.TestCase):
         )
         output = json.loads(result.stdout)
         self.assertEqual(output["sourceRevision"], cut)
-        self.assertGreater(output["candidateGroupCount"], 1)
-        self.assertEqual(output["standing"], "AMBIGUOUS_MULTIPLE_SOURCE_GROUPS")
+        self.assertEqual(output["candidateGroupCount"], 1)
+        self.assertEqual(output["standing"], "UNIQUE_SOURCE_GROUP_NOT_LEGO_PROOF")
+        self.assertEqual(output["candidates"][0]["sourceGroup"],
+                         "verification-region/runtime")
         self.assertFalse(output["semanticIdentityQualified"])
 
 

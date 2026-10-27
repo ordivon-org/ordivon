@@ -75,13 +75,20 @@ def resolve_source_name(
             continue
         if entry.get(field) != name:
             continue
-        # A cell is only a source grouping identity, not the business owner.
-        # Use the sourceRegion for additional non-owner path groups.
-        key = entry.get("sourceCell") or (
-            f"source-region/{entry['sourceRegion']}"
-            if entry.get("sourceRegion")
-            else f"unplaced-path/{path}"
-        )
+        # Resolve at the level where the queried name is defined. An owner-
+        # area name shared by 29 nested cells is one area, not 29 competing
+        # identities. A section name similarly denotes one source section.
+        # Cell-role and file-form queries still distinguish individual cells.
+        if field in {"semanticName", "verificationOwner"} and entry.get("verificationOwner"):
+            key = f"verification-region/{entry['verificationOwner']}"
+        elif field == "sourceSection" and entry.get("sourceSection"):
+            key = f"source-section/{entry['sourceSection']}"
+        else:
+            key = entry.get("sourceCell") or (
+                f"source-region/{entry['sourceRegion']}"
+                if entry.get("sourceRegion")
+                else f"unplaced-path/{path}"
+            )
         grouped[key].append(entry)
     groups = sorted(grouped)
     candidates = []
@@ -92,8 +99,12 @@ def resolve_source_name(
             {
                 "sourceGroup": key,
                 "sourceCellRole": first.get("sourceCellRole"),
-                "sourceName": first.get("sourceCellDisplayName")
-                or first.get("semanticName"),
+                "sourceName": (
+                    first.get("semanticName") if field == "semanticName"
+                    else first.get("verificationOwner") if field == "verificationOwner"
+                    else first.get("sourceSection") if field == "sourceSection"
+                    else first.get("sourceCellDisplayName") or first.get("semanticName")
+                ),
                 "classificationStanding": first.get("classificationStanding"),
                 "matchedPaths": len(members),
                 "sampleSourceObjects": [
