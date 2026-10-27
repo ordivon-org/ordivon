@@ -2,95 +2,239 @@ schema_version = 1
 kind = "ordivon.repo-owner-manifest"
 truth_role = "repository-mechanics-only-not-domain-authority"
 
+# Recursive LEGO R2.1: independent method/contract *source* already consumed
+# by the existing project Skill resolver. This is NOT a second math kernel,
+# proof authority, execution service, or human Agent approver.
+# Repo and formal engines already have independent source interfaces and
+# native consumer verification; declare their existing physical boundaries.
 [[owners]]
 name = "next"
+semantic_label = "knowledge-and-method-integration"
+semantic_scope = "Problem-solving methods and cross-domain composition research; no global execution, approval or verification authority."
 root = "meta/next/"
 verify_task = "next:verify"
 
+# Semantic foundation is independently verified at its EXISTING source,
+# rather than copying R2.1 mathematics into Repo, Composition or Gateway.
+# Physical .agents/skills packaging is not a proof that methods execute effects.
+# Native theorem provers and proof-oracle binaries are a different owner
+# from the R2.1 logical specification and from product-specific proofs.
+[[owners]]
+name = "formal-toolchain"
+semantic_label = "native-formal-verification-toolchain"
+semantic_scope = "Existing Lean SMT Kani Verus Dafny Alloy and TLA-adjacent verification adapters; not the R2.1 mathematics itself or an Agent approver."
+root = "tools/formal/"
+verify_task = "formal:verify"
+queue_verify_task = "formal:source:verify"
+
+[[owners]]
+name = "lego-foundation"
+semantic_label = "recursive-lego-r21-method-source"
+semantic_scope = "Canonical R2.1 semantic Skill and formal reference source; not a separate execution engine, universal registry or verification approval authority."
+root = ".agents/skills/recursive-lego-calculus/"
+verify_task = "lego-foundation:verify"
+
+[[owners]]
+name = "research"
+semantic_label = "research-publication-qualification"
+semantic_scope = "Research-domain source contracts, publication eligibility and evidence routing; not all external research repositories or domain acceptance."
+root = "meta/research/"
+verify_task = "research:verify"
+
 [[owners]]
 name = "composition"
+semantic_label = "task-local-contract-composition"
+semantic_scope = "Task-local circuit/gate and interface compatibility mechanics; not a universal verifier or natural fact authority."
 root = "packages/composition/"
 verify_task = "composition:verify"
 
 [[owners]]
 name = "control-plugin"
+semantic_label = "agent-plugin-connection-package"
+semantic_scope = "Portable Agent Plugin connection metadata for Ordivon MCP; not a running control plane or controller."
 root = "extensions/ordivon-control-plane/"
 verify_task = "control-plugin:verify"
 
 [[owners]]
 name = "runtime"
+semantic_label = "physical-execution-runtime"
+semantic_scope = "Physical Job, Attempt, Workspace, Artifact execution and recovery; not domain acceptance."
 root = "services/runtime/"
 verify_task = "runtime:verify"
 
 [[owners]]
 name = "host"
+semantic_label = "work-and-collaboration-continuity"
+semantic_scope = "Social Work, Space, Topic and Message continuity service; MCP Server, not an MCP Host application."
 root = "services/host/"
 verify_task = "host:verify"
 queue_verify_task = "host:queue"
 
 [[owners]]
 name = "harness"
+semantic_label = "bounded-agent-run-harness"
+semantic_scope = "Agent run coordination, provider/tool continuity and cognition execution; not physical Runtime Job authority."
 root = "services/harness/"
 verify_task = "harness:verify"
 queue_verify_task = "harness:queue"
 
 [[owners]]
 name = "gateway"
+semantic_label = "northbound-capability-routing"
+semantic_scope = "Northbound route/capability projection and transport adapters; not provider effect or authorization authority."
 root = "services/gateway/"
 verify_task = "gateway:verify"
 
 [[owners]]
 name = "skills"
+semantic_label = "agent-skills-mcp-bridge"
+semantic_scope = "Compatibility discovery and trust bridge for portable Agent Skills; not the canonical Skill authoring source."
 root = "platform/skills/"
 verify_task = "skills:verify"
 
 [[owners]]
 name = "security"
+semantic_label = "security-policy-and-evidence"
+semantic_scope = "Policy decision and security evidence applicability at bounded effect seams; not an independent identity or scanner truth authority."
 root = "platform/security/"
 verify_task = "security:verify"
 
 [[owners]]
 name = "workstation"
+semantic_label = "execution-node-realization"
+semantic_scope = "Execution-node configuration, desired state and observation through mature upstream operations substrates."
 root = "platform/workstation/"
 verify_task = "workstation:ci"
 
 [[owners]]
 name = "network"
+semantic_label = "network-connectivity-composition"
+semantic_scope = "Network transport/DNS/proxy connectivity and workload evidence; not a general network controller."
 root = "platform/network/"
 verify_task = "network:ci"
 
 [[owners]]
 name = "artifact"
+semantic_label = "artifact-build-validation-delivery"
+semantic_scope = "Artifact generation, format validation, packaging and delivery contracts."
 root = "capabilities/artifact/"
 verify_task = "artifact:verify"
 queue_verify_task = "artifact:queue"
 
 [[owners]]
 name = "distribution"
+semantic_label = "external-effect-delivery-safety"
+semantic_scope = "Optional provider delivery and external-effect safety/reconciliation profiles; not a mandatory execution control plane."
 root = "capabilities/distribution/"
 verify_task = "distribution:verify"
 
 [[owners]]
 name = "media"
+semantic_label = "media-authorship-production"
+semantic_scope = "Authored media expression, processing and media-specific projection/production; not all UI/read-model output."
 root = "capabilities/media/"
 verify_task = "media:verify"
 
 [[owners]]
 name = "preservation"
+semantic_label = "preservation-source-evidence"
+semantic_scope = "Standards-native archival/preservation compatibility and source/evidence profiles; not the upstream archive platform."
 root = "capabilities/preservation/"
 verify_task = "preservation:verify"
 
 [[owners]]
 name = "game"
+semantic_label = "game-mechanics-and-composition"
+semantic_scope = "Game mechanics and reusable game composition research; not a retained first-party game catalog."
 root = "domains/game/"
 verify_task = "game:verify"
 
 [[owners]]
 name = "capital"
+semantic_label = "capital-systems-composition"
+semantic_scope = "Capital-domain composition across market, accounting, and other capital systems; not market trading alone."
 root = "domains/capital/"
 verify_task = "capital:verify"
 
 [[owners]]
 name = "web"
+semantic_label = "web-application-interface"
+semantic_scope = "Web application/user interaction surface; not a universal browser or HTTP infrastructure."
 root = "apps/web/"
 verify_task = "web:verify"
+
+# Source navigation for paths outside registered verification owners.
+# These labels grant no authority, LEGO qualification, verify task or CI selection.
+# Historical projections read the regions from that exact Git SourceCut.
+[[source_regions]]
+name = "agent-method-library"
+description = "General, independent method and idea Skills; platform Skills bridge is a separate executable responsibility."
+paths = [".agents/skills/"]
+exclude = [".agents/skills/recursive-lego-calculus/", ".agents/skills/artifact-work/"]
+
+[[source_regions]]
+name = "artifact-method-recipes"
+description = "Portable artifact creation method instructions and references, not an Artifact service or installed proof."
+paths = [".agents/skills/artifact-work/"]
+
+[[source_regions]]
+name = "repository-engineering"
+description = "Git source graph, source selection, boundary checks and repository CLI mechanics."
+paths = ["tools/repo/"]
+exclude = ["tools/repo/migration/", "tools/repo/planning/"]
+
+[[source_regions]]
+name = "repository-migration-operators"
+description = "Historical and current Git publication/migration shell operators; effects require separate contract admission."
+paths = ["tools/repo/migration/"]
+
+[[source_regions]]
+name = "repository-lego-plan-carrier"
+description = "Repo-owned LEGO plan source, not an executable repository tool or independently proven theorem."
+paths = ["tools/repo/planning/"]
+
+[[source_regions]]
+name = "research-contract-profiles"
+description = "Research schemas and qualification profiles; no claim of installed or scientific authority."
+paths = ["profiles/research/"]
+
+[[source_regions]]
+name = "research-profile-conformance"
+description = "Cross-cutting source test consuming research schema profiles, not a research profile itself."
+paths = ["tests/catalogs/"]
+
+[[source_regions]]
+name = "architecture-documentation"
+description = "Architecture descriptions and declared contracts; neither historical source nor current proof by default."
+paths = ["docs/architecture/"]
+exclude = ["docs/architecture/evidence/"]
+
+[[source_regions]]
+name = "architecture-evidence-carriers"
+description = "Architecture issue censuses, receipts and evidence sources; formal/currentness qualification remains separate."
+paths = ["docs/architecture/evidence/"]
+
+[[source_regions]]
+name = "migration-acceptance-records"
+description = "Historical migration acceptance statements; not installed/source currentness without a live bridge."
+paths = ["docs/migration/acceptance/"]
+
+[[source_regions]]
+name = "migration-provenance-receipts"
+description = "Old repository commit maps and Git rewrite evidence; history is not proof of a live consumer."
+paths = ["docs/migration/receipts/"]
+
+[[source_regions]]
+name = "migration-retirement-policies"
+description = "Historical standalone retirement policies; no unconditional deletion permission."
+paths = ["docs/migration/retirement/"]
+
+[[source_regions]]
+name = "retrospective-records"
+description = "Retrospective explanations rather than active execution or formal proof."
+paths = ["docs/retro/"]
+
+[[source_regions]]
+name = "repository-configuration"
+description = "Repository configuration and automation; verification fanout is a separate selector."
+paths = [".github/", ".gitignore", ".gitleaksignore", "AGENTS.md", "README.md", "mise.toml", "renovate.json"]
