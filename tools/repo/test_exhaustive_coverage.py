@@ -412,3 +412,104 @@ class ExactGitCrossFormatReferenceTests(unittest.TestCase):
             M.exact_git_reference_hints(ROOT, self.cut, [target], per_path_limit=0)
         with self.assertRaises(ValueError):
             M.exact_git_reference_hints(ROOT, self.cut, [target], per_path_limit=257)
+
+
+class ProblemLegoCandidateFrontierTests(unittest.TestCase):
+    """Problem LEGO is a queryable source question, not a claimed formal LEGO."""
+
+    def test_problem_candidates_join_exact_cells_and_scoped_plan_nodes(self) -> None:
+        sha = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+        ).strip()
+        inventory = M.classification(ROOT, sha)
+        live = M.active_source_cells(inventory, repo=ROOT, include_member_index=True)
+        first = M.problem_lego_candidates(inventory, repo=ROOT)
+        second = M.problem_lego_candidates(inventory, repo=ROOT)
+        assert first == second
+        assert first["sourceCut"] == sha
+        assert first["sourceTree"] == inventory["sourceTree"]
+        assert first["sourcePathDigest"] == inventory["sourcePathDigest"]
+        assert first["proofReuseAdmissible"] is False
+
+        records = first["problemCandidates"]
+        assert len(records) == first["summary"]["problemCandidates"]
+        assert len(records) == len({r["problemRef"] for r in records})
+        assert records == sorted(records, key=lambda r: r["problemRef"])
+        assert all(r["semanticStanding"] == "PROBLEM_LEGO_CANDIDATE_ONLY" for r in records)
+        for key in ("consumerStanding", "contractStanding", "formalStanding", "installedStanding"):
+            assert all(r[key] == "UNKNOWN" for r in records)
+        assert not any(r["proofReuseAdmissible"] for r in records)
+
+        by_type = first["summary"]["bySubjectKind"]
+        assert by_type["RECURSIVE_PHYSICAL_SOURCE_CELL"] == sum(
+            bool(c["problems"]) for c in live["cells"]
+        )
+        assert by_type["DECLARED_PLAN_NODE"] == sum(
+            bool(n["problems"]) for n in inventory["semanticPlans"]["nodes"]
+        )
+        assert by_type["CROSS_PLAN_LOCAL_ID_ALIAS"] == len(
+            inventory["semanticPlans"]["sameLocalIdAcrossPlans"]
+        )
+        assert by_type["NON_NODE_PLAN_SHAPE"] == len(
+            inventory["semanticPlans"]["opaquePlans"]
+        )
+        assert by_type["SOURCE_ROOT_WITHOUT_LOCAL_PLAN"] == len(
+            inventory["summary"]["registeredRootsWithoutLocalLegoPlan"]
+        )
+
+        source_id_by_path = {
+            r["path"]: r["sourceIdentity"] for r in inventory["sourcePaths"]
+        }
+        for row in records:
+            subject = row["subject"]
+            if subject["kind"] == "DECLARED_PLAN_NODE":
+                path = subject["qualifiedPlanNodeRef"].split("#", 1)[0]
+                assert subject["planSourceIdentity"] == source_id_by_path[path]
+                assert subject["sourceCellDigest"] == live["memberCellDigests"][path]
+            if subject["kind"] == "CROSS_PLAN_LOCAL_ID_ALIAS":
+                assert len(subject["qualifiedRefs"]) > 1
+                assert all(
+                    source_id_by_path[ref.split("#", 1)[0]]
+                    == subject["sourceIdentities"][ref]
+                    for ref in subject["qualifiedRefs"]
+                )
+                assert row["relationToResolve"] == "IDENTIFY_ACTUAL_UNSCOPED_LOOKUP_CONSUMER"
+
+    def test_problem_candidates_are_not_created_from_mixed_formats_alone(self) -> None:
+        sha = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+        ).strip()
+        inventory = M.classification(ROOT, sha)
+        problem = M.problem_lego_candidates(inventory, repo=ROOT)
+        assert not any(
+            "MIXED_FORMAT_CELL_NOT_IN_ITSELF_AN_ERROR" in row["problemKinds"]
+            for row in problem["problemCandidates"]
+        )
+        assert all(
+            kind not in ("DELETE", "VERIFIED", "FORMALLY_PROVEN")
+            for row in problem["problemCandidates"]
+            for kind in row["problemKinds"]
+        )
+
+    def test_problem_candidates_cli_accepts_summary_and_rejects_proposal_substitution(self) -> None:
+        sha = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+        ).strip()
+        program = pathlib.Path(__file__).with_name("exhaustive_coverage.py")
+        cmd = ["python3", str(program), "--repo", str(ROOT),
+               "--source-cut", sha, "--problem-legos"]
+        import json
+        summary = subprocess.run([*cmd, "--summary"], text=True, capture_output=True, check=True)
+        obj = json.loads(summary.stdout)
+        assert "problemCandidates" not in obj
+        assert obj["summary"]["problemCandidates"] > 0
+        bad = subprocess.run([*cmd, "--proposal-cut", sha],
+                             text=True, capture_output=True)
+        assert bad.returncode != 0
+        assert "exact-current-source-only" in bad.stderr
+        for conflict in ("--static-python-consumers", "--reference-path"):
+            extra = ["tools/repo/owners.toml"] if conflict == "--reference-path" else []
+            rejected = subprocess.run([*cmd, conflict, *extra],
+                                      text=True, capture_output=True)
+            assert rejected.returncode != 0
+            assert "exact-current-source-only" in rejected.stderr

@@ -850,6 +850,115 @@ def exact_git_reference_hints(
     }
 
 
+
+def problem_lego_candidates(inventory: dict, *, repo: Path,
+                            max_files: int = 24, max_depth: int = 6) -> dict:
+    """Source-bound questions, NOT verified semantic LEGO or deletion authority.
+
+    Reuse the exact-cut source/plan inventory and the recursive-cell projection;
+    deliberately create no persistent registry, new owner, or inferred consumer.
+    """
+    live = active_source_cells(
+        inventory, repo=repo, max_files=max_files, max_depth=max_depth,
+        include_member_index=True,
+    )
+    member_cells = live["memberCellDigests"]
+    source_ids = {row["path"]: row["sourceIdentity"] for row in inventory["sourcePaths"]}
+    entries: list[dict] = []
+    common = {
+        "semanticStanding": "PROBLEM_LEGO_CANDIDATE_ONLY",
+        "consumerStanding": "UNKNOWN",
+        "contractStanding": "UNKNOWN",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "proofReuseAdmissible": False,
+    }
+
+    def add(ref: str, subject: dict, problems: list[str], relation: str) -> None:
+        entries.append({
+            **common, "problemRef": ref, "subject": subject,
+            "problemKinds": sorted(problems),
+            "relationToResolve": relation,
+        })
+
+    for cell in live["cells"]:
+        if not cell["problems"]:
+            continue
+        digest = cell["memberGitObjectDigest"]
+        add("source-cell:" + digest, {
+            "kind": "RECURSIVE_PHYSICAL_SOURCE_CELL",
+            "sourceZone": cell["sourceZone"],
+            "physicalPrefix": cell["physicalPrefix"],
+            "firstSourcePath": cell["firstSourcePath"],
+            "lastSourcePath": cell["lastSourcePath"],
+            "pathCount": cell["pathCount"],
+            "memberGitObjectDigest": digest,
+        }, cell["problems"], "SOURCE_CLASSIFICATION_AND_CONSUMER")
+
+    for node in inventory["semanticPlans"]["nodes"]:
+        if not node["problems"]:
+            continue
+        add("plan-node:" + node["nodeRef"], {
+            "kind": "DECLARED_PLAN_NODE",
+            "qualifiedPlanNodeRef": node["nodeRef"],
+            "planSourceIdentity": source_ids[node["plan"]],
+            "sourceCellDigest": member_cells[node["plan"]],
+            "presentDeclarationKeys": node["declarations"],
+        }, node["problems"], "DECLARATION_TO_IMPLEMENTATION_TO_CONSUMER")
+
+    for short_id, qualified in inventory["semanticPlans"]["sameLocalIdAcrossPlans"].items():
+        add("unscoped-local-id:" + short_id, {
+            "kind": "CROSS_PLAN_LOCAL_ID_ALIAS",
+            "localId": short_id,
+            "qualifiedRefs": qualified,
+            "sourceIdentities": {ref: source_ids[ref.split("#", 1)[0]] for ref in qualified},
+        }, ["UNSCOPED_ID_LOOKUP_MAY_BE_AMBIGUOUS"],
+            "IDENTIFY_ACTUAL_UNSCOPED_LOOKUP_CONSUMER")
+
+    for item in inventory["semanticPlans"]["opaquePlans"]:
+        add("non-node-plan:" + item["plan"], {
+            "kind": "NON_NODE_PLAN_SHAPE",
+            "plan": item["plan"],
+            "declaredKind": item["kind"],
+            "sourceIdentity": source_ids[item["plan"]],
+        }, ["PLAN_SHAPE_REQUIRES_INDEPENDENT_MAPPING"],
+            "PLAN_SCHEMA_TO_ACTUAL_CONSUMER")
+
+    for root in inventory["summary"]["registeredRootsWithoutLocalLegoPlan"]:
+        add("root-plan-mapping:" + root, {
+            "kind": "SOURCE_ROOT_WITHOUT_LOCAL_PLAN",
+            "sourceZone": "ROOT:" + root,
+        }, ["LOCAL_PLAN_ABSENCE_DOES_NOT_PROVE_LEGO_ABSENCE"],
+            "EXISTING_SOURCE_AND_EXTERNAL_CONSUMER")
+
+    entries.sort(key=lambda row: row["problemRef"])
+    if len(entries) != len({e["problemRef"] for e in entries}):
+        raise ValueError("duplicate qualified problem reference")
+    by_subject = dict(sorted(collections.Counter(
+        e["subject"]["kind"] for e in entries).items()))
+    return {
+        "kind": "ordivon.problem-lego-candidate-source-frontier",
+        "sourceCut": inventory["sourceCut"],
+        "sourceTree": inventory["sourceTree"],
+        "sourcePathDigest": inventory["sourcePathDigest"],
+        "truthBoundary": (
+            "Exact-Git source/plan problem QUESTIONS only; no actual consumer, "
+            "formal proof, installed equivalence, or safe-deletion claim"
+        ),
+        "proofReuseAdmissible": False,
+        "summary": {
+            "trackedPaths": inventory["summary"]["trackedPaths"],
+            "recursiveSourceCells": live["summary"]["cells"],
+            "problemSourceCells": live["summary"]["problemCells"],
+            "planNodes": inventory["summary"]["nodes"],
+            "nodeDeclarationGapFlags": inventory["summary"]["nodeProblems"],
+            "problemCandidates": len(entries),
+            "bySubjectKind": by_subject,
+        },
+        "problemCandidates": entries,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-cut", required=True)
@@ -857,6 +966,8 @@ def main() -> int:
     parser.add_argument("--repo", type=Path, default=Path.cwd())
     parser.add_argument("--summary", action="store_true")
     parser.add_argument("--only-problems", action="store_true")
+    parser.add_argument("--problem-legos", action="store_true",
+                        help="derived source/plan problem candidates, never semantic LEGO proof")
     parser.add_argument("--reference-path", action="append", default=[],
                         help="cross-format Git textual reference witness for exact file path")
     parser.add_argument("--reference-limit", type=int, default=48,
@@ -874,6 +985,11 @@ def main() -> int:
     parser.add_argument("--lookup-path", action="append", default=[],
                         help="small exact-Git source/path query; repeat for multiple files")
     args = parser.parse_args()
+    if args.problem_legos and (
+            args.proposal_cut or args.reference_path or args.lookup_path
+            or args.static_python_consumers or args.imports_prefix
+            or args.live_cells or args.use_proposal_cells or args.only_problems):
+        parser.error("problem-legos is an exact-current-source-only projection")
     if args.reference_path:
         if (args.lookup_path or args.static_python_consumers or args.live_cells
                 or args.proposal_cut or args.use_proposal_cells or args.only_problems
@@ -903,6 +1019,16 @@ def main() -> int:
                 "staticCandidateEdges", "unresolvedImportStatements",
                 "dynamicSyntaxSites", "skippedPaths",
                 "unindexedModuleLayoutSamples")}
+        print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2))
+        return 0
+    if args.problem_legos:
+        source = classification(args.repo, args.source_cut)
+        result = problem_lego_candidates(
+            source, repo=args.repo, max_files=args.cell_max_files,
+            max_depth=args.cell_max_depth,
+        )
+        if args.summary:
+            result.pop("problemCandidates")
         print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2))
         return 0
     result = classification(args.repo, args.source_cut, args.proposal_cut)
