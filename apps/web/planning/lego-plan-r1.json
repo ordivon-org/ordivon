@@ -148,31 +148,30 @@
     },
     {
       "id": "W04",
-      "label": "DelegatedAgentEffectAdmissionAndReplay",
-      "kind": "effect_admission_contract",
-      "responsibility": "Authorize a specific delegated Agent effect by composing Security-owned request verification/admission with an exact Web Grant, effect identity and optional WebAuthn step-up, then preserve exact replay.",
+      "label": "SecurityOwnedAgentAdmissionAdapter",
+      "kind": "cross_owner_admission_adapter",
+      "responsibility": "Consume exact Web-local Grant/effect context and delegate Agent request verification plus Agent/Effect Admission to existing Security-owned contracts; produce scoped decision without owning Security cryptography, Rego or executable effects.",
       "authority": "Web product/session/effect state only; Security/provider cryptographic and policy truth remain external",
       "state": "IMPLEMENTED",
       "inputs": [
-        "verified OAuth/DPoP Agent request; Grant snapshot; proposed effect ID and payload",
-        "Security Agent Admission and Effect Admission decision; optional Principal WebAuthn approval"
+        "Agent method/origin and OAuth/DPoP evidence; Web-local replay guard",
+        "typed exact Grant, effect, risk and optional approval inputs"
       ],
       "outputs": [
-        "committed scoped effect receipt, stable exact replay, or denial/conflict"
+        "typed VerifiedAgent plus Security admission-chain decision or fail-closed rejection"
       ],
-      "behavioralContract": "No verifier implies fail-closed; ambiguous Grants and conflicting replay are rejected; exact replay of an already committed effect remains valid after Grant revocation, while fresh effects are denied; effect-bound STEP_UP consumes one permitted approval.",
+      "behavioralContract": "If Security verifier is absent or returns an invalid decision, admission fails closed. OAuth/DPoP verification and policy are consumed from Security-owned contracts; Web retains only local DPoP replay state and request-to-policy input binding.",
       "acceptance": [
-        "Owner test suite checks exact replay and conflicting payload refusal, ambiguous Grants, missing Security verification, step-up and revocation."
+        "Existing Web tests exercise missing Security verifier rejection and Security verifier boundary; real installation qualification remains UNKNOWN."
       ],
       "evidence": [
-        "src/app.ts",
-        "src/agent-authority.ts",
         "src/security-agent-verifier.ts",
-        "src/store.ts",
-        "test/agent-authority.test.ts"
+        "src/agent-authority.ts",
+        "src/app.ts",
+        "test/agent-authority.test.ts",
+        "test/agent-native-e2e.ts"
       ],
       "dependencies": [
-        "W01",
         "W03"
       ],
       "mustNotOwn": [
@@ -183,14 +182,127 @@
       "sharedRefs": [],
       "consumerBindings": [
         {
-          "path": "apps/web/test/agent-authority.test.ts",
+          "path": "apps/web/src/app.ts",
           "standing": "SOURCE_HANDLER_OR_TEST_NOT_INSTALLED"
+        },
+        {
+          "path": "apps/web/test/agent-authority.test.ts",
+          "standing": "STATIC_TEST_ONLY"
         }
       ],
       "formalObligations": [
-        "Security external verifier/policy behavior must retain own source/installed bindings; canary evidence is not proof of real provider effect or production eligibility."
+        "Cross-Owner psi=>phi and deployed DPoP proof currentness UNKNOWN; Web does not mint Security policy authority."
       ],
       "sourceStanding": "CANARY_IMPLEMENTATION_LOCAL_TESTS; DEPLOYED_CURRENTNESS_UNKNOWN"
+    },
+    {
+      "id": "W05",
+      "label": "EffectBoundStepUpAndReplay",
+      "kind": "transactional_effect_receipt_contract",
+      "responsibility": "Commit exactly scoped canary create/publish mutations under independently admitted Grant/Agent/Effect policy and effect-bound WebAuthn step-up while preserving exact historical replay.",
+      "inputs": [
+        "admitted Agent+Grant+Effect decision",
+        "exact effect digest and receipt identity",
+        "R4 effect-specific WebAuthn step-up approval when required",
+        "prior committed effect state"
+      ],
+      "outputs": [
+        "new committed canary receipt, identical historical replay, or explicit conflict/deny"
+      ],
+      "behavioralContract": "R2 create commits under admitted scope; R4 publish requires step-up approval bound to the exact effect and consumes it once; identical replay preserves previous receipt and conflicting payloads or fresh revoked-grant effects reject.",
+      "evidence": [
+        "src/store.ts",
+        "src/app.ts",
+        "src/webauthn.ts",
+        "test/agent-authority.test.ts",
+        "test/agent-native-e2e.ts"
+      ],
+      "dependencies": [
+        "W01",
+        "W03",
+        "W04"
+      ],
+      "consumerBindings": [
+        {
+          "path": "apps/web/src/app.ts",
+          "standing": "SOURCE_HANDLER_OR_TEST_NOT_INSTALLED"
+        },
+        {
+          "path": "apps/web/test/agent-authority.test.ts",
+          "standing": "STATIC_TEST_ONLY"
+        }
+      ],
+      "acceptance": [
+        "Native Web tests cover exact replay/conflict, R4 approval and revoked Grant historical replay.",
+        "Local canary write != external provider effect, no installed/exactly-once distributed claim."
+      ],
+      "formalObligations": [
+        "Source/transaction behavior does not prove installed WebStore durability, physical provider effects or cross-provider exactly-once."
+      ],
+      "authority": "Web canary identity/grant/receipt source only, not external provider or Security truth",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "production publication or installed provider effect",
+        "Security policy/cryptographic authority",
+        "global LEGO registry"
+      ],
+      "sourceStanding": "SOURCE_AND_CANARY_TESTS_ONLY; DEPLOYED_CURRENTNESS_UNKNOWN"
+    },
+    {
+      "id": "W06",
+      "label": "HumanAndAgentHttpAssembly",
+      "kind": "web_http_consumer_composition",
+      "responsibility": "Compose browser sessions and Agent admission/effects into one Fastify HTTP application while preserving separate authentication and permission rails.",
+      "inputs": [
+        "WebConfig, WebDependencies and native WebStore",
+        "browser cookies, CSRF/Origin and WebAuthn requests",
+        "Agent OAuth/DPoP/Grant/effect requests"
+      ],
+      "outputs": [
+        "HTTP routes and response/error mapping for authenticated browser and Agent operations"
+      ],
+      "behavioralContract": "Browser mutations use opaque session plus same-Origin/CSRF, while Agent mutations use Security-owned DPoP/Grant/admission rather than browser cookie or CSRF; a missing verifier does not admit Agent effects.",
+      "evidence": [
+        "src/app.ts",
+        "src/server.ts",
+        "src/config.ts",
+        "test/app.test.ts",
+        "test/agent-authority.test.ts"
+      ],
+      "dependencies": [
+        "W01",
+        "W02",
+        "W03",
+        "W04",
+        "W05"
+      ],
+      "consumerBindings": [
+        {
+          "path": "apps/web/src/server.ts",
+          "standing": "SOURCE_BOOTSTRAP_ONLY"
+        },
+        {
+          "path": "apps/web/test/app.test.ts",
+          "standing": "STATIC_TEST_ONLY"
+        }
+      ],
+      "acceptance": [
+        "Owner source bootstrap calls createWebApp; native browser and agent tests exercise HTTP route boundaries.",
+        "SOURCE/virtual browser evidence is not public production deployment readiness."
+      ],
+      "formalObligations": [
+        "Cross-owner installed Security/Browser/PG state qualifications UNKNOWN."
+      ],
+      "authority": "Web canary identity/grant/receipt source only, not external provider or Security truth",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "production publication or installed provider effect",
+        "Security policy/cryptographic authority",
+        "global LEGO registry"
+      ],
+      "sourceStanding": "SOURCE_AND_CANARY_TESTS_ONLY; DEPLOYED_CURRENTNESS_UNKNOWN"
     }
   ],
   "edges": [
@@ -213,16 +325,59 @@
       "label": "versioned Grant authorization restricts delegated Agent effect"
     },
     {
+      "from": "W04",
+      "to": "W05",
+      "type": "DEPENDENCY",
+      "label": "admitted Security/Grant decision is a prerequisite to canary effect commit"
+    },
+    {
+      "from": "W03",
+      "to": "W05",
+      "type": "AUTHORITY",
+      "label": "Web-local exact grant controls the scoped effect"
+    },
+    {
       "from": "W01",
-      "to": "W04",
+      "to": "W05",
       "type": "EVIDENCE",
-      "label": "WebAuthn step-up approval can bind a particular high-risk effect"
+      "label": "WebAuthn step-up approval binds exact R4 effect"
+    },
+    {
+      "from": "W01",
+      "to": "W06",
+      "type": "COMPOSITION",
+      "label": "Web app composes the existing native source contract; not a second owner"
+    },
+    {
+      "from": "W02",
+      "to": "W06",
+      "type": "COMPOSITION",
+      "label": "Web app composes the existing native source contract; not a second owner"
+    },
+    {
+      "from": "W03",
+      "to": "W06",
+      "type": "COMPOSITION",
+      "label": "Web app composes the existing native source contract; not a second owner"
+    },
+    {
+      "from": "W04",
+      "to": "W06",
+      "type": "COMPOSITION",
+      "label": "Web app composes the existing native source contract; not a second owner"
+    },
+    {
+      "from": "W05",
+      "to": "W06",
+      "type": "COMPOSITION",
+      "label": "Web app composes the existing native source contract; not a second owner"
     }
   ],
   "slices": [],
   "knownGaps": [
     "Actual canary state uses SQLite; this planning record does not promote it to a permanent database or attest PG cutover.",
     "Security-owned OAuth/DPoP and admission contract are imported via Web adapters; installed verifier and real user/provider authorization remain independently qualified.",
-    "App is explicitly non-production-eligible; E2E virtual CTAP2 is not physical-human-presence evidence."
+    "App is explicitly non-production-eligible; E2E virtual CTAP2 is not physical-human-presence evidence.",
+    "Web-local canary storage still uses SQLite; source plan does not justify ongoing database optimization or certify PostgreSQL cutover."
   ]
 }
