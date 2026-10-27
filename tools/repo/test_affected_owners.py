@@ -328,6 +328,7 @@ class SourceClassificationTests(unittest.TestCase):
         assert row["services/runtime/main.rs"]["semanticName"] == "Execution Runtime"
         assert row["services/runtime/main.rs"]["sourceSection"] == "runtime/(root-files)"
         assert row["services/runtime/main.rs"]["sourceSectionRole"] == "UNQUALIFIED_SECTION"
+        # No automatic promotion of an arbitrary root source into a LEGO type.
         assert row["services/runtime/main.rs"]["classificationLayer"] == "REPOSITORY_VERIFICATION_REGION"
         assert row[".agents/skills/recursive-lego-calculus/SKILL.md"]["semanticName"] == "Agent methods not service routing"
         assert row[".agents/skills/recursive-lego-calculus/SKILL.md"]["verificationOwner"] is None
