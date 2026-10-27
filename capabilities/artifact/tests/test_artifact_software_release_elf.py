@@ -1,6 +1,8 @@
 import hashlib
 import importlib.util
 import json
+import shutil
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -8,15 +10,35 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 SPEC=importlib.util.spec_from_file_location('artifact_software_release_elf',ROOT/'scripts/artifact_software_release_elf.py')
 M=importlib.util.module_from_spec(SPEC);assert SPEC.loader;SPEC.loader.exec_module(M)
-FIXTURE=Path('/usr/bin/printf')
+# The CI runner may provide a multicall coreutils /usr/bin/printf whose
+# behavior depends on argv[0]; the verifier intentionally executes /tmp/release.
+# Compile a tiny name-independent ELF to test the actual release contract.
+FIXTURE_SOURCE = (
+  "#include <stdio.h>\n"
+  "int main(int argc, char **argv) {\n"
+  "  if (argc != 2) return 9;\n"
+  "  return fputs(argv[1], stdout) == EOF ? 10 : 0;\n"
+  "}\n"
+)
 
 def contract(path:Path, *, marker='ELF_RELEASE_TEST_MARKER', interpreter='/lib64/ld-linux-x86-64.so.2'):
  return {'contractVersion':1,'id':'test-linux-elf-release','profileId':'software-release-linux-elf-executable-r1','artifact':{'sha256':hashlib.sha256(path.read_bytes()).hexdigest(),'byteLength':path.stat().st_size,'executable':True},'fileInspection':{'requiredSubstrings':['ELF 64-bit LSB','x86-64']},'elf':{'class':'ELF64','data':"2's complement, little endian",'osAbi':'UNIX - System V','type':'DYN (Position-Independent Executable file)','machine':'Advanced Micro Devices X86-64','interpreter':interpreter},'runtime':{'args':[marker+'\n'],'exitCode':0,'stdoutContains':[marker],'stderrExact':'','timeoutSeconds':10}}
 
 class LinuxElfReleaseTests(unittest.TestCase):
  def require(self):
-  for p in (FIXTURE,M.FILE,M.READELF,M.BWRAP):
+  for p in (M.FILE,M.READELF,M.BWRAP):
    if not p.is_file():self.skipTest(str(p))
+ def make_fixture(self, root:Path)->Path:
+  cc=shutil.which('cc')
+  if not cc:self.skipTest('native C toolchain not present')
+  p=root/'name-independent-elf'
+  compiled=subprocess.run([cc,'-std=c11','-O2','-fPIE','-pie',
+                           '-x','c','-o',str(p),'-'],
+                          input=FIXTURE_SOURCE,text=True,capture_output=True,
+                          check=False,timeout=30)
+  self.assertEqual(compiled.returncode,0,compiled.stderr)
+  self.assertTrue(p.is_file())
+  return p
  def write_contract(self,root:Path,c):
   p=root/'contract.json';p.write_text(json.dumps(c));return p
  def test_binding_digests(self):
@@ -27,19 +49,37 @@ class LinuxElfReleaseTests(unittest.TestCase):
  def test_valid_linux_elf_passes(self):
   self.require()
   with tempfile.TemporaryDirectory() as d:
-   r=Path(d);c=contract(FIXTURE);v=M.verify_linux_elf(FIXTURE,self.write_contract(r,c),r/'e');self.assertEqual(v['status'],'PASS',v);self.assertEqual(v['runtimeReadback']['networkNamespace'],'unshared')
+   r=Path(d);fixture=self.make_fixture(r);c=contract(fixture);v=M.verify_linux_elf(fixture,self.write_contract(r,c),r/'e');self.assertEqual(v['status'],'PASS',v);self.assertEqual(v['runtimeReadback']['networkNamespace'],'unshared')
  def test_wrong_sha_fails_before_external_tools(self):
   self.require()
   with tempfile.TemporaryDirectory() as d:
-   r=Path(d);c=contract(FIXTURE);c['artifact']['sha256']='0'*64;v=M.verify_linux_elf(FIXTURE,self.write_contract(r,c),r/'e');self.assertEqual(v['status'],'FAIL');self.assertIn('release SHA-256 differs from contract',v['failures']);self.assertNotIn('fileInspection',v)
+   r=Path(d);fixture=self.make_fixture(r);c=contract(fixture);c['artifact']['sha256']='0'*64;v=M.verify_linux_elf(fixture,self.write_contract(r,c),r/'e');self.assertEqual(v['status'],'FAIL');self.assertIn('release SHA-256 differs from contract',v['failures']);self.assertNotIn('fileInspection',v)
  def test_wrong_interpreter_fails_structure(self):
   self.require()
   with tempfile.TemporaryDirectory() as d:
-   r=Path(d);c=contract(FIXTURE,interpreter='/wrong/ld.so');v=M.verify_linux_elf(FIXTURE,self.write_contract(r,c),r/'e');self.assertEqual(v['status'],'FAIL');self.assertIn('ELF interpreter differs from contract',v['failures']);self.assertNotIn('runtimeReadback',v)
+   r=Path(d);fixture=self.make_fixture(r);c=contract(fixture,interpreter='/wrong/ld.so');v=M.verify_linux_elf(fixture,self.write_contract(r,c),r/'e');self.assertEqual(v['status'],'FAIL');self.assertIn('ELF interpreter differs from contract',v['failures']);self.assertNotIn('runtimeReadback',v)
  def test_missing_runtime_marker_fails_after_elf_passes(self):
   self.require()
   with tempfile.TemporaryDirectory() as d:
-   r=Path(d);c=contract(FIXTURE,marker='ACTUAL_MARKER');c['runtime']['stdoutContains']=['NEVER_EMITTED'];v=M.verify_linux_elf(FIXTURE,self.write_contract(r,c),r/'e');self.assertEqual(v['status'],'FAIL');self.assertEqual(v['elfStructure']['status'],'PASS');self.assertIn('sandbox runtime stdout missing marker: NEVER_EMITTED',v['failures'])
+   r=Path(d);fixture=self.make_fixture(r);c=contract(fixture,marker='ACTUAL_MARKER');c['runtime']['stdoutContains']=['NEVER_EMITTED'];v=M.verify_linux_elf(fixture,self.write_contract(r,c),r/'e');self.assertEqual(v['status'],'FAIL');self.assertEqual(v['elfStructure']['status'],'PASS');self.assertIn('sandbox runtime stdout missing marker: NEVER_EMITTED',v['failures'])
+ def test_symlink_release_inspects_exact_target_elf_bytes(self):
+  self.require()
+  with tempfile.TemporaryDirectory() as d:
+   r=Path(d);fixture=self.make_fixture(r);link=r/'link-to-release';link.symlink_to(fixture)
+   c=contract(link)
+   v=M.verify_linux_elf(link,self.write_contract(r,c),r/'e')
+   self.assertEqual(v['fileInspection']['status'],'PASS',v)
+   self.assertEqual(v['elfStructure']['status'],'PASS',v)
+   self.assertEqual(v['status'],'PASS',v)
+   self.assertIn('ELF 64-bit LSB',v['fileInspection']['description'])
+ def test_symlink_to_non_elf_bytes_still_fails_closed(self):
+  self.require()
+  with tempfile.TemporaryDirectory() as d:
+   r=Path(d);fake=r/'fake';fake.write_bytes(b'not an elf\\n');fake.chmod(0o755)
+   link=r/'link-to-fake';link.symlink_to(fake)
+   c=contract(link);v=M.verify_linux_elf(link,self.write_contract(r,c),r/'e')
+   self.assertEqual(v['status'],'FAIL',v)
+   self.assertNotEqual(v['fileInspection']['status'],'PASS',v)
  def test_non_elf_bytes_fail_closed(self):
   self.require()
   with tempfile.TemporaryDirectory() as d:
