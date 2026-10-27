@@ -1,0 +1,1919 @@
+{
+  "boundedOtherNamespaceObservations": [
+    {
+      "consumerStanding": "UNKNOWN",
+      "installedStanding": "UNKNOWN",
+      "isAdditiveToMonorepoPaths": false,
+      "observationSourceCut": "350f09b1594f57552c36d3169dba771ec0326337",
+      "observedName": "SillyTavern",
+      "priorObservedTreePaths": 1010,
+      "priorSourceKind": "UPSTREAM_THIRD_PARTY_APPLICATION",
+      "proposedRole": "INDEPENDENT_GIT_TREE",
+      "sourceCut": "ad29cbda62e92f145e44d7a10398a38af22ca986",
+      "sourceNamespace": "INDEPENDENT_LOCAL_GIT"
+    },
+    {
+      "consumerStanding": "UNKNOWN",
+      "installedStanding": "UNKNOWN",
+      "isAdditiveToMonorepoPaths": false,
+      "observationSourceCut": "350f09b1594f57552c36d3169dba771ec0326337",
+      "observedName": "ordivon-media",
+      "priorObservedTreePaths": 550,
+      "priorSourceKind": "INDEPENDENT_CREATIVE_SOURCE",
+      "proposedRole": "INDEPENDENT_GIT_TREE",
+      "sourceCut": "30f6d1228a4270a68cd715ca9a7b17742478958e",
+      "sourceNamespace": "INDEPENDENT_LOCAL_GIT"
+    },
+    {
+      "consumerStanding": "UNKNOWN",
+      "installedStanding": "UNKNOWN",
+      "isAdditiveToMonorepoPaths": false,
+      "observationSourceCut": "350f09b1594f57552c36d3169dba771ec0326337",
+      "observedName": "ordivon-research-v2",
+      "priorObservedTreePaths": 2904,
+      "priorSourceKind": "INDEPENDENT_RESEARCH_SOURCE",
+      "proposedRole": "INDEPENDENT_GIT_TREE",
+      "sourceCut": "098c623d9c38a2fffcf620242f35577d7c827b69",
+      "sourceNamespace": "INDEPENDENT_LOCAL_GIT"
+    },
+    {
+      "consumerStanding": "UNKNOWN",
+      "installedStanding": "UNKNOWN",
+      "isAdditiveToMonorepoPaths": false,
+      "observationSourceCut": "350f09b1594f57552c36d3169dba771ec0326337",
+      "observedName": "ordivon-paper1-emse-r3-frozen",
+      "priorObservedTreePaths": 673,
+      "priorSourceKind": "RESEARCH_FROZEN_PAPER1_SOURCE",
+      "proposedRole": "INDEPENDENT_GIT_TREE",
+      "sourceCut": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+      "sourceNamespace": "INDEPENDENT_LOCAL_GIT"
+    },
+    {
+      "consumerStanding": "UNKNOWN",
+      "installedStanding": "UNKNOWN",
+      "isAdditiveToMonorepoPaths": false,
+      "observationSourceCut": "350f09b1594f57552c36d3169dba771ec0326337",
+      "observedName": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+      "priorObservedTreePaths": 2646,
+      "priorSourceKind": "RESEARCH_HISTORICAL_PAPER1_RISK_SOURCE",
+      "proposedRole": "INDEPENDENT_GIT_TREE",
+      "sourceCut": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+      "sourceNamespace": "INDEPENDENT_LOCAL_GIT"
+    },
+    {
+      "consumerStanding": "UNKNOWN",
+      "installedStanding": "UNKNOWN",
+      "isAdditiveToMonorepoPaths": false,
+      "observationSourceCut": "350f09b1594f57552c36d3169dba771ec0326337",
+      "observedName": "ordivon-paper2",
+      "priorObservedTreePaths": 1940,
+      "priorSourceKind": "INDEPENDENT_PAPER2_SOURCE",
+      "proposedRole": "INDEPENDENT_GIT_TREE",
+      "sourceCut": "a0169766a19194dbcbdf0cf28ca963d89abf5d69",
+      "sourceNamespace": "INDEPENDENT_LOCAL_GIT"
+    },
+    {
+      "consumerStanding": "UNKNOWN",
+      "installedStanding": "UNKNOWN",
+      "isAdditiveToMonorepoPaths": false,
+      "observationSourceCut": "350f09b1594f57552c36d3169dba771ec0326337",
+      "observedName": "ordivon-r21-blind-eval-private-20261001",
+      "priorObservedTreePaths": 20,
+      "priorSourceKind": "BLIND_EVALUATION_PRIVATE_SOURCE",
+      "proposedRole": "INDEPENDENT_GIT_TREE",
+      "sourceCut": "37f7d433ce9917aefba7f2940fef7ead8dc1e235",
+      "sourceNamespace": "INDEPENDENT_LOCAL_GIT"
+    },
+    {
+      "consumerStanding": "UNKNOWN",
+      "installedStanding": "UNKNOWN",
+      "isAdditiveToMonorepoPaths": false,
+      "observationSourceCut": "350f09b1594f57552c36d3169dba771ec0326337",
+      "observedName": "ordivon-r21-blind-eval-public-20261001",
+      "priorObservedTreePaths": 114,
+      "priorSourceKind": "BLIND_EVALUATION_PUBLIC_SOURCE",
+      "proposedRole": "INDEPENDENT_GIT_TREE",
+      "sourceCut": "af66bade40b8cf34d241bb5d89121fd64e288ba8",
+      "sourceNamespace": "INDEPENDENT_LOCAL_GIT"
+    },
+    {
+      "consumerStanding": "UNKNOWN",
+      "installedStanding": "UNKNOWN",
+      "isAdditiveToMonorepoPaths": false,
+      "observationSourceCut": "350f09b1594f57552c36d3169dba771ec0326337",
+      "observedName": "ordivon-sts2mcp",
+      "priorObservedTreePaths": 265,
+      "priorSourceKind": "GAME_MCP_EXTERNAL_ADAPTER_SOURCE",
+      "proposedRole": "INDEPENDENT_GIT_TREE",
+      "sourceCut": "960ffb766f5ec6846eca1caf2f238fb47b6d61da",
+      "sourceNamespace": "INDEPENDENT_LOCAL_GIT"
+    },
+    {
+      "consumerStanding": "UNKNOWN",
+      "installedStanding": "UNKNOWN",
+      "isAdditiveToMonorepoPaths": false,
+      "observationSourceCut": "350f09b1594f57552c36d3169dba771ec0326337",
+      "observedName": "oss-e2-uptime-kuma-7984",
+      "priorObservedTreePaths": 819,
+      "priorSourceKind": "UPSTREAM_OSS_CONTRIBUTION_CHECKOUT",
+      "proposedRole": "INDEPENDENT_GIT_TREE",
+      "sourceCut": "b092505f894d66669b67f46e1da72b51016eceab",
+      "sourceNamespace": "INDEPENDENT_LOCAL_GIT"
+    },
+    {
+      "consumerStanding": "UNKNOWN",
+      "installedStanding": "UNKNOWN",
+      "isAdditiveToMonorepoPaths": false,
+      "observationSourceCut": "350f09b1594f57552c36d3169dba771ec0326337",
+      "observedName": "xby-analysis",
+      "priorObservedTreePaths": 84,
+      "priorSourceKind": "UNQUALIFIED_LOCAL_ANALYSIS_SOURCE",
+      "proposedRole": "INDEPENDENT_GIT_TREE",
+      "sourceCut": "6b79374a30f443bd63f18e859a80e39320b6691c",
+      "sourceNamespace": "INDEPENDENT_LOCAL_GIT"
+    },
+    {
+      "consumerStanding": "UNKNOWN",
+      "installedStanding": "UNKNOWN",
+      "isAdditiveToMonorepoPaths": false,
+      "observationSourceCut": "350f09b1594f57552c36d3169dba771ec0326337",
+      "observedName": "lizardbyte-common-sun5870",
+      "overlapsNonGitParentPhysicalView": true,
+      "priorObservedTreePaths": 0,
+      "priorSourceKind": "OSS_DEPENDENCY_REFERENCE_UNBORN_HEAD",
+      "proposedRole": "UPSTREAM_REFERENCE_OR_OSS_CONTRIBUTION",
+      "sourceCut": null,
+      "sourceNamespace": "NESTED_LOCAL_GIT",
+      "unresolvedHead": true
+    },
+    {
+      "consumerStanding": "UNKNOWN",
+      "installedStanding": "UNKNOWN",
+      "isAdditiveToMonorepoPaths": false,
+      "observationSourceCut": "350f09b1594f57552c36d3169dba771ec0326337",
+      "observedName": "sunshine-5870-src",
+      "overlapsNonGitParentPhysicalView": true,
+      "priorObservedTreePaths": 621,
+      "priorSourceKind": "OSS_CONTRIBUTION_SUNSHINE",
+      "proposedRole": "UPSTREAM_REFERENCE_OR_OSS_CONTRIBUTION",
+      "sourceCut": "1582fffb47eaf80c91dfa282d7346fb7cd6ceb09",
+      "sourceNamespace": "NESTED_LOCAL_GIT",
+      "unresolvedHead": false
+    },
+    {
+      "consumerStanding": "UNKNOWN",
+      "installedStanding": "UNKNOWN",
+      "isAdditiveToMonorepoPaths": false,
+      "observationSourceCut": "350f09b1594f57552c36d3169dba771ec0326337",
+      "observedName": "uptime-kuma-7984-src",
+      "overlapsNonGitParentPhysicalView": true,
+      "priorObservedTreePaths": 819,
+      "priorSourceKind": "OSS_CONTRIBUTION_UPTIME_KUMA",
+      "proposedRole": "UPSTREAM_REFERENCE_OR_OSS_CONTRIBUTION",
+      "sourceCut": "b092505f894d66669b67f46e1da72b51016eceab",
+      "sourceNamespace": "NESTED_LOCAL_GIT",
+      "unresolvedHead": false
+    },
+    {
+      "consumerStanding": "UNKNOWN",
+      "installedStanding": "UNKNOWN",
+      "isAdditiveToMonorepoPaths": false,
+      "observationSourceCut": "350f09b1594f57552c36d3169dba771ec0326337",
+      "observedName": "e4-neovim-42424-source",
+      "overlapsNonGitParentPhysicalView": true,
+      "priorObservedTreePaths": 3940,
+      "priorSourceKind": "OSS_CONTRIBUTION_NEOVIM",
+      "proposedRole": "UPSTREAM_REFERENCE_OR_OSS_CONTRIBUTION",
+      "sourceCut": "9b7ec59580fddf671f7bf922f66ef114a59a51ee",
+      "sourceNamespace": "NESTED_LOCAL_GIT",
+      "unresolvedHead": false
+    },
+    {
+      "consumerStanding": "UNKNOWN",
+      "installedStanding": "UNKNOWN",
+      "isAdditiveToMonorepoPaths": false,
+      "observationSourceCut": "350f09b1594f57552c36d3169dba771ec0326337",
+      "observedName": "cli-anything",
+      "overlapsNonGitParentPhysicalView": true,
+      "priorObservedTreePaths": 1872,
+      "priorSourceKind": "EXTERNAL_CLI_TOOL_REFERENCE",
+      "proposedRole": "UPSTREAM_REFERENCE_OR_OSS_CONTRIBUTION",
+      "sourceCut": "34f519533bc175d2fe287ab8316b0dd99bb9cc43",
+      "sourceNamespace": "NESTED_LOCAL_GIT",
+      "unresolvedHead": false
+    },
+    {
+      "consumerStanding": "UNKNOWN",
+      "installedStanding": "UNKNOWN",
+      "isAdditiveToMonorepoPaths": false,
+      "observationSourceCut": "350f09b1594f57552c36d3169dba771ec0326337",
+      "observedName": "rea",
+      "overlapsNonGitParentPhysicalView": true,
+      "priorObservedTreePaths": 5569,
+      "priorSourceKind": "EXTERNAL_TOOL_OR_ALGORITHM_REFERENCE",
+      "proposedRole": "UPSTREAM_REFERENCE_OR_OSS_CONTRIBUTION",
+      "sourceCut": "8c4f96ef4759fd78da66c4b9726825ca71d7ee0c",
+      "sourceNamespace": "NESTED_LOCAL_GIT",
+      "unresolvedHead": false
+    },
+    {
+      "consumerStanding": "UNKNOWN",
+      "installedStanding": "UNKNOWN",
+      "isAdditiveToMonorepoPaths": false,
+      "observationSourceCut": "350f09b1594f57552c36d3169dba771ec0326337",
+      "observedName": "solidcraft",
+      "overlapsNonGitParentPhysicalView": true,
+      "priorObservedTreePaths": 2302,
+      "priorSourceKind": "EXTERNAL_GAME_LIBRARY_REFERENCE",
+      "proposedRole": "UPSTREAM_REFERENCE_OR_OSS_CONTRIBUTION",
+      "sourceCut": "edf57cec293dcea301201f1d5173b33e16351466",
+      "sourceNamespace": "NESTED_LOCAL_GIT",
+      "unresolvedHead": false
+    },
+    {
+      "consumerStanding": "UNKNOWN",
+      "installedStanding": "UNKNOWN",
+      "isAdditiveToMonorepoPaths": false,
+      "mayContainNestedGit": true,
+      "observationSourceCut": "350f09b1594f57552c36d3169dba771ec0326337",
+      "observedName": "ordivon-corpora",
+      "priorObservedPhysicalFiles": 1500,
+      "priorSourceKind": "OBSERVED_LOCAL_FILES_NOT_TRACKED_SOURCE",
+      "proposedRole": "DATA_CACHE_OR_MIXED_PHYSICAL_ROOT",
+      "sourceCut": null,
+      "sourceNamespace": "UNVERSIONED_LOCAL_PHYSICAL_TREE"
+    },
+    {
+      "consumerStanding": "UNKNOWN",
+      "installedStanding": "UNKNOWN",
+      "isAdditiveToMonorepoPaths": false,
+      "mayContainNestedGit": true,
+      "observationSourceCut": "350f09b1594f57552c36d3169dba771ec0326337",
+      "observedName": "ordivon-upstreams",
+      "priorObservedPhysicalFiles": 9848,
+      "priorSourceKind": "OBSERVED_LOCAL_FILES_NOT_TRACKED_SOURCE",
+      "proposedRole": "DATA_CACHE_OR_MIXED_PHYSICAL_ROOT",
+      "sourceCut": null,
+      "sourceNamespace": "UNVERSIONED_LOCAL_PHYSICAL_TREE"
+    },
+    {
+      "consumerStanding": "UNKNOWN",
+      "installedStanding": "UNKNOWN",
+      "isAdditiveToMonorepoPaths": false,
+      "mayContainNestedGit": true,
+      "observationSourceCut": "350f09b1594f57552c36d3169dba771ec0326337",
+      "observedName": "paper1-successor-rerun-r1-20260928",
+      "priorObservedPhysicalFiles": 9414,
+      "priorSourceKind": "OBSERVED_LOCAL_FILES_NOT_TRACKED_SOURCE",
+      "proposedRole": "DATA_CACHE_OR_MIXED_PHYSICAL_ROOT",
+      "sourceCut": null,
+      "sourceNamespace": "UNVERSIONED_LOCAL_PHYSICAL_TREE"
+    },
+    {
+      "consumerStanding": "UNKNOWN",
+      "installedStanding": "UNKNOWN",
+      "isAdditiveToMonorepoPaths": false,
+      "mayContainNestedGit": true,
+      "observationSourceCut": "350f09b1594f57552c36d3169dba771ec0326337",
+      "observedName": "oss-contrib",
+      "priorObservedPhysicalFiles": 4083,
+      "priorSourceKind": "MIXED_LOCAL_GIT_ROOT_CONTAINER_AND_OSSMATERIAL_PHYSICAL_VIEW",
+      "proposedRole": "DATA_CACHE_OR_MIXED_PHYSICAL_ROOT",
+      "sourceCut": null,
+      "sourceNamespace": "UNVERSIONED_LOCAL_PHYSICAL_TREE"
+    }
+  ],
+  "externalScopeSummary": {
+    "historicalGitRefs": "SEPARATE_AND_UNNORMALIZED",
+    "hostRecords": "POSTGRESQL_RUNTIME_OBSERVATION_REQUIRED",
+    "independentGitRoots": 11,
+    "nestedGitRoots": 7,
+    "overlapRule": "NEVER_SUM_PHYSICAL_PARENT_AND_NESTED_GIT_OR_HISTORICAL_TREE_COUNTS",
+    "remoteProviders": "NO_EXHAUSTIVE_OBSERVATION",
+    "sourceEvidence": "peer local exact source 350f09b1594f57552c36d3169dba771ec0326337",
+    "unversionedRoots": 4,
+    "windowsLinuxInstalled": "SEPARATE_SERVICE_AND_RELEASE_OBSERVATION_REQUIRED"
+  },
+  "kind": "ordivon.phase1.dense-source-naming-overlay",
+  "labels": [
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "DESIGN_AND_CLAIM_DOCS",
+      "candidateFunctionalFacet": "documentation",
+      "candidateName": "architecture-contract-design-snapshots",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": true,
+      "extensionCounts": {
+        ".json": 25,
+        ".md": 42
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "docs/architecture/",
+      "sampleGitPaths": [
+        "docs/architecture/ADMISSION_FABRIC_R1.md",
+        "docs/architecture/OWNER_DEPENDENCY_BOUNDARY_R1.md",
+        "docs/architecture/structure-r2-transition-r1.json"
+      ],
+      "sourceCell": "region/architecture-documentation/@rootfiles",
+      "sourceCount": 67,
+      "sourceSetDigestFromPeerR2": "sha256:0002e0c169bbba8193f1038167432b082b32e7a280bf2ce005f73c9caf35119c"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "OBSERVATION_EVIDENCE",
+      "candidateFunctionalFacet": "documentation",
+      "candidateName": "architecture-convergence-and-proof-evidence-records",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".json": 31,
+        ".jsonl": 6,
+        ".md": 3
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "docs/architecture/evidence/",
+      "sampleGitPaths": [
+        "docs/architecture/evidence/CANONICAL_MAIN_RECONCILIATION_F2EC_R1.json",
+        "docs/architecture/evidence/CONVERGENCE_OWNER_COST_EPISODES_R2.jsonl",
+        "docs/architecture/evidence/PHASE1_RESPONSIBILITY_COVERAGE_20261027.md"
+      ],
+      "sourceCell": "region/architecture-documentation/evidence/",
+      "sourceCount": 40,
+      "sourceSetDigestFromPeerR2": "sha256:d477bbcde01088ed3458a09a55132e26da8126fd8bb9f984f7f6fe6bdae909bb"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "HISTORICAL_ACCEPTANCE",
+      "candidateFunctionalFacet": "documentation",
+      "candidateName": "historical-architecture-migration-acceptance-notes",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".json": 1,
+        ".md": 45
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "docs/migration/acceptance/",
+      "sampleGitPaths": [
+        "docs/migration/acceptance/ARCHITECTURE_CONVERGENCE_A02_MONOREPO_ACCEPTANCE_20260921.md",
+        "docs/migration/acceptance/NETWORK_V2_STANDALONE_RETIREMENT_ACCEPTANCE_20260921.md",
+        "docs/migration/acceptance/architecture-convergence-a02-monorepo-acceptance-20260921.json"
+      ],
+      "sourceCell": "region/migration-and-historical-records/acceptance/",
+      "sourceCount": 46,
+      "sourceSetDigestFromPeerR2": "sha256:7182ddbff8b628095be2a8b705d22848ebbd63e31d382eb64d0ce7b0ac7917da"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "HISTORICAL_RECONCILIATION",
+      "candidateFunctionalFacet": "documentation",
+      "candidateName": "historical-commit-maps-and-migration-receipts",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".commit-map": 27,
+        ".json": 1,
+        ".md": 31,
+        "<none>": 1
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "docs/migration/receipts/",
+      "sampleGitPaths": [
+        "docs/migration/receipts/.gitkeep",
+        "docs/migration/receipts/host.commit-map",
+        "docs/migration/receipts/workstation.update.md"
+      ],
+      "sourceCell": "region/migration-and-historical-records/receipts/",
+      "sourceCount": 60,
+      "sourceSetDigestFromPeerR2": "sha256:c1050facd9254438ad9c1a22fcec99b7bc350966e766834ad1716cf1513ce978"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "REPOSITORY_ENGINEERING_SOURCE",
+      "candidateFunctionalFacet": "documentation",
+      "candidateName": "repository-verification-selection-and-source-tools",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": true,
+      "extensionCounts": {
+        ".py": 31,
+        ".sh": 4,
+        ".sha256": 1,
+        ".toml": 2,
+        "<none>": 1
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "tools/repo/",
+      "sampleGitPaths": [
+        "tools/repo/affected_owners.py",
+        "tools/repo/source_history_legos.py",
+        "tools/repo/workspace-ready"
+      ],
+      "sourceCell": "region/repository-mechanics-source/@rootfiles",
+      "sourceCount": 39,
+      "sourceSetDigestFromPeerR2": "sha256:5b30e515fb7cd0da22776d7ff499b962a65f2c354f12ef38d93cf3b6eed534c5"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "DESIGN_AND_CLAIM_DOCS",
+      "candidateFunctionalFacet": "agent",
+      "candidateName": "agent-harness-design-and-boundary-notes",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": true,
+      "extensionCounts": {
+        ".md": 55
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "services/harness/docs/",
+      "sampleGitPaths": [
+        "services/harness/docs/ADAPTIVE_EDIT_GATEWAY_R2.md",
+        "services/harness/docs/E0-E7-AGENT-MORPHOLOGY-ENGINEERING.md",
+        "services/harness/docs/u4-test-repair-sop-20261015.md"
+      ],
+      "sourceCell": "zone/agent-run-context/docs/@rootfiles",
+      "sourceCount": 55,
+      "sourceSetDigestFromPeerR2": "sha256:fd03c564d3ae8c99fc54c8fc17a19e6812fb5a935e1970a5030c8b8b729b64be"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "OBSERVATION_EVIDENCE",
+      "candidateFunctionalFacet": "agent",
+      "candidateName": "agent-harness-historical-experiment-results",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": true,
+      "extensionCounts": {
+        ".json": 95
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "services/harness/evidence/",
+      "sampleGitPaths": [
+        "services/harness/evidence/adaptive-edit-r2-live-ab-deepseek-flash-20260914.json",
+        "services/harness/evidence/harness-pc12b-multiturn-working-view-fd13fab.json",
+        "services/harness/evidence/ts11-tool-surface-ablation.json"
+      ],
+      "sourceCell": "zone/agent-run-context/evidence/@rootfiles",
+      "sourceCount": 95,
+      "sourceSetDigestFromPeerR2": "sha256:cdbfafda4206b269cf747070ef587caea666ccc01f8de9847cee643a34b30c78"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "OBSERVATION_EVIDENCE",
+      "candidateFunctionalFacet": "agent",
+      "candidateName": "agent-browser-decision-experiment-observations",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": true,
+      "extensionCounts": {
+        ".json": 36
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "services/harness/evidence/system1-decision/",
+      "sampleGitPaths": [
+        "services/harness/evidence/system1-decision/browser-ax-actionspace-duel-r1-20260921.json",
+        "services/harness/evidence/system1-decision/mind2web-context-ablation-r1-20260921.json",
+        "services/harness/evidence/system1-decision/retrieve-rerank-browser-r1-20260921.json"
+      ],
+      "sourceCell": "zone/agent-run-context/evidence/system1-decision/@rootfiles",
+      "sourceCount": 36,
+      "sourceSetDigestFromPeerR2": "sha256:ca6717937e252dfa3c96f0f851fd00bef60a84f9eb4bdd98346487b2154a2ebb"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "RESEARCH_SOURCE",
+      "candidateFunctionalFacet": "agent",
+      "candidateName": "agent-harness-research-and-evaluation-notes",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": true,
+      "extensionCounts": {
+        ".md": 85
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "services/harness/research/",
+      "sampleGitPaths": [
+        "services/harness/research/00-OWNER-BOUNDARY.md",
+        "services/harness/research/139-CAMPAIGN3-REAL-RICH-EFFECT-OWNER-DOGFOOD-V1-RESULT-AND-CLOSEOUT.md",
+        "services/harness/research/README.md"
+      ],
+      "sourceCell": "zone/agent-run-context/research/@rootfiles",
+      "sourceCount": 85,
+      "sourceSetDigestFromPeerR2": "sha256:c109add09df70ab381c9e3ea525c5db5365b4b94e94350c20c2cd9cb105baac1"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "TOOL_SOURCE",
+      "candidateFunctionalFacet": "agent",
+      "candidateName": "agent-harness-operation-and-evaluation-scripts",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".ps1": 2,
+        ".py": 81,
+        "<none>": 2
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "services/harness/scripts/",
+      "sampleGitPaths": [
+        "services/harness/scripts/acceptance_h0_deliberation_authority.py",
+        "services/harness/scripts/check_repository_repair_edit_runtime_receipt.py",
+        "services/harness/scripts/windows_user_browser_materialization_target.py"
+      ],
+      "sourceCell": "zone/agent-run-context/scripts/",
+      "sourceCount": 85,
+      "sourceSetDigestFromPeerR2": "sha256:45d1904279546edeb7a1d11ac3c55af84e1ae39b2b59be952b0af07741bf0a37"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "IMPLEMENTATION_SOURCE",
+      "candidateFunctionalFacet": "agent",
+      "candidateName": "agent-harness-python-package-modules",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": true,
+      "extensionCounts": {
+        ".py": 33
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "services/harness/src/ordivon_harness/",
+      "sampleGitPaths": [
+        "services/harness/src/ordivon_harness/__init__.py",
+        "services/harness/src/ordivon_harness/lsp_workspace_edit.py",
+        "services/harness/src/ordivon_harness/working_view.py"
+      ],
+      "sourceCell": "zone/agent-run-context/src/ordivon_harness/@rootfiles",
+      "sourceCount": 33,
+      "sourceSetDigestFromPeerR2": "sha256:251b91aca5716eebdb512d212ad24fcc26703229553f228711f69c83d906aa37"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "IMPLEMENTATION_SOURCE",
+      "candidateFunctionalFacet": "agent",
+      "candidateName": "agent-harness-ordivon-adapter-modules",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".py": 19
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "services/harness/src/ordivon_harness/ordivon/",
+      "sampleGitPaths": [
+        "services/harness/src/ordivon_harness/ordivon/__init__.py",
+        "services/harness/src/ordivon_harness/ordivon/provider_lifecycle.py",
+        "services/harness/src/ordivon_harness/ordivon/turn_projection.py"
+      ],
+      "sourceCell": "zone/agent-run-context/src/ordivon_harness/ordivon/",
+      "sourceCount": 19,
+      "sourceSetDigestFromPeerR2": "sha256:3d418bda2961bc890eff39fd6ac5943dd4a8193d79a05745deb93f0b52f3464c"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "TEST_SOURCE",
+      "candidateFunctionalFacet": "agent",
+      "candidateName": "agent-harness-scenario-and-boundary-tests",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": true,
+      "extensionCounts": {
+        ".py": 166
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "services/harness/tests/",
+      "sampleGitPaths": [
+        "services/harness/tests/test_adaptive_edit.py",
+        "services/harness/tests/test_hermes_acp_h4_receipt.py",
+        "services/harness/tests/test_windows_user_browser_materialization_target.py"
+      ],
+      "sourceCell": "zone/agent-run-context/tests/@rootfiles",
+      "sourceCount": 166,
+      "sourceSetDigestFromPeerR2": "sha256:2e79d3cc3229f202dfa19f16453da99deba775b25bfd266688e59edb10c59943"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "TOOL_SOURCE",
+      "candidateFunctionalFacet": "delivery",
+      "candidateName": "artifact-distribution-admission-reference-scripts",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".py": 10,
+        ".sh": 10
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "capabilities/distribution/scripts/",
+      "sampleGitPaths": [
+        "capabilities/distribution/scripts/admission.py",
+        "capabilities/distribution/scripts/test-effect-authority-entrypoint.sh",
+        "capabilities/distribution/scripts/test-structure.sh"
+      ],
+      "sourceCell": "zone/artifact-distribution/scripts/",
+      "sourceCount": 20,
+      "sourceSetDigestFromPeerR2": "sha256:ca125f201f819f451116c14a740610698a3a03cb36653281353ecd284bb7d927"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "CONFIGURATION_SOURCE",
+      "candidateFunctionalFacet": "delivery",
+      "candidateName": "artifact-toolchain-bindings-and-pinned-inputs",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": true,
+      "extensionCounts": {
+        ".json": 22,
+        ".toml": 1
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "capabilities/artifact/artifact-delivery/",
+      "sampleGitPaths": [
+        "capabilities/artifact/artifact-delivery/artifact-python-runtime-v1.lock.json",
+        "capabilities/artifact/artifact-delivery/presentation-semantic-svg-source-v1.schema.json",
+        "capabilities/artifact/artifact-delivery/vsa-trust-policy-v1.schema.json"
+      ],
+      "sourceCell": "zone/artifact-production/artifact-delivery/@rootfiles",
+      "sourceCount": 23,
+      "sourceSetDigestFromPeerR2": "sha256:4952cee5e68ee7a8f12a236862d4e2018b15772d3a9c5f7d55eae15c7b92c925"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "EXPERIMENT_DECLARATION",
+      "candidateFunctionalFacet": "delivery",
+      "candidateName": "artifact-format-shadow-binding-records",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".json": 20
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "capabilities/artifact/artifact-delivery/shadow-bindings/",
+      "sampleGitPaths": [
+        "capabilities/artifact/artifact-delivery/shadow-bindings/audio-flac-pcm16-local-r1.json",
+        "capabilities/artifact/artifact-delivery/shadow-bindings/eda-kicad-pcb-local-r1.json",
+        "capabilities/artifact/artifact-delivery/shadow-bindings/web-archive-warc-response-local-r1.json"
+      ],
+      "sourceCell": "zone/artifact-production/artifact-delivery/shadow-bindings/",
+      "sourceCount": 20,
+      "sourceSetDigestFromPeerR2": "sha256:d8e66f791e5bae907661f8041391bff613e8969cacb1406cc85787220656d282"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "EXPERIMENT_DECLARATION",
+      "candidateFunctionalFacet": "delivery",
+      "candidateName": "artifact-shadow-schemas-and-smoke-records",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": true,
+      "extensionCounts": {
+        ".json": 33
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "capabilities/artifact/artifact-delivery/shadow-contracts/",
+      "sampleGitPaths": [
+        "capabilities/artifact/artifact-delivery/shadow-contracts/audio-flac-contract-v1.schema.json",
+        "capabilities/artifact/artifact-delivery/shadow-contracts/eda-kicad-pcb-contract-v1.schema.json",
+        "capabilities/artifact/artifact-delivery/shadow-contracts/web-archive-warc-response-smoke-r1.json"
+      ],
+      "sourceCell": "zone/artifact-production/artifact-delivery/shadow-contracts/@rootfiles",
+      "sourceCount": 33,
+      "sourceSetDigestFromPeerR2": "sha256:348889443fccb91588b94db5ac4144a42565c59f9f376685a6a5d510794047c8"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "EXPERIMENT_DECLARATION",
+      "candidateFunctionalFacet": "delivery",
+      "candidateName": "artifact-shadow-format-profile-candidates",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".json": 20
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "capabilities/artifact/artifact-delivery/shadow-profiles/",
+      "sampleGitPaths": [
+        "capabilities/artifact/artifact-delivery/shadow-profiles/audio-flac-pcm16-r1.json",
+        "capabilities/artifact/artifact-delivery/shadow-profiles/eda-kicad-pcb-gerber-r1.json",
+        "capabilities/artifact/artifact-delivery/shadow-profiles/web-archive-warc-response-r1.json"
+      ],
+      "sourceCell": "zone/artifact-production/artifact-delivery/shadow-profiles/",
+      "sourceCount": 20,
+      "sourceSetDigestFromPeerR2": "sha256:4813f42d950d13740a10cc2b5126ed73cf149445bbc2d4e8621879d50eda065b"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "EXPERIMENT_DECLARATION",
+      "candidateFunctionalFacet": "delivery",
+      "candidateName": "artifact-shadow-v2-example-declarations",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".json": 28
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "capabilities/artifact/artifact-delivery/shadow-v2/examples/",
+      "sampleGitPaths": [
+        "capabilities/artifact/artifact-delivery/shadow-v2/examples/audio-flac-pcm16-r1-v2.json",
+        "capabilities/artifact/artifact-delivery/shadow-v2/examples/message-internet-text-r1-v2.json",
+        "capabilities/artifact/artifact-delivery/shadow-v2/examples/web-r1-v2.json"
+      ],
+      "sourceCell": "zone/artifact-production/artifact-delivery/shadow-v2/examples/",
+      "sourceCount": 28,
+      "sourceSetDigestFromPeerR2": "sha256:cc83752524f6e8cbd0553478f9a9e866859c27d674be274c45a2076f2c18e98d"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "DESIGN_AND_CLAIM_DOCS",
+      "candidateFunctionalFacet": "delivery",
+      "candidateName": "artifact-production-architecture-and-boundary-notes",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".md": 45
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "capabilities/artifact/docs/",
+      "sampleGitPaths": [
+        "capabilities/artifact/docs/ARTIFACT_CAD_ADMISSION_BOUNDARY_R1.md",
+        "capabilities/artifact/docs/ARTIFACT_FAMILY_DESIGN_2D_TILED_R1.md",
+        "capabilities/artifact/docs/artifact-build-delivery-e2e-v1.md"
+      ],
+      "sourceCell": "zone/artifact-production/docs/",
+      "sourceCount": 45,
+      "sourceSetDigestFromPeerR2": "sha256:faf7cdf66fc459fdeda7ce8dbb58b9e3adb00168dcda6af81b040efb55356417"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "TOOL_SOURCE",
+      "candidateFunctionalFacet": "delivery",
+      "candidateName": "artifact-producer-and-inspector-source-scripts",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".cpp": 1,
+        ".ps1": 1,
+        ".py": 41
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "capabilities/artifact/scripts/",
+      "sampleGitPaths": [
+        "capabilities/artifact/scripts/artifact_agent_surface.py",
+        "capabilities/artifact/scripts/artifact_r2_mailbox.py",
+        "capabilities/artifact/scripts/publication_perceptual_verify.py"
+      ],
+      "sourceCell": "zone/artifact-production/scripts/",
+      "sourceCount": 43,
+      "sourceSetDigestFromPeerR2": "sha256:20bab8626832baf15edcfe063d076f2c6485026b3df47f023802dea376f11e21"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "TEST_SOURCE",
+      "candidateFunctionalFacet": "delivery",
+      "candidateName": "artifact-format-producer-and-verifier-tests",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": true,
+      "extensionCounts": {
+        ".py": 62
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "capabilities/artifact/tests/",
+      "sampleGitPaths": [
+        "capabilities/artifact/tests/test_artifact_agent_surface.py",
+        "capabilities/artifact/tests/test_artifact_message.py",
+        "capabilities/artifact/tests/test_artifact_web_archive.py"
+      ],
+      "sourceCell": "zone/artifact-production/tests/@rootfiles",
+      "sourceCount": 62,
+      "sourceSetDigestFromPeerR2": "sha256:2c1a63fc91c3a04f84172dc80e338888ab4089ead23d7714cb011bccab0d7fd7"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "TEST_SOURCE",
+      "candidateFunctionalFacet": "interfaces",
+      "candidateName": "gateway-authentication-routing-and-policy-tests",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".py": 26,
+        "<none>": 1
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "services/gateway/tests/",
+      "sampleGitPaths": [
+        "services/gateway/tests/.gitkeep",
+        "services/gateway/tests/test_latest_runtime_release_carrier.py",
+        "services/gateway/tests/test_windows_service_contract.py"
+      ],
+      "sourceCell": "zone/capability-routing/tests/",
+      "sourceCount": 27,
+      "sourceSetDigestFromPeerR2": "sha256:967c2d8ebddbf10eb0532566cda06b6df6a898e663736a66ef6c5619257886c8"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "DESIGN_AND_CLAIM_DOCS",
+      "candidateFunctionalFacet": "media",
+      "candidateName": "creative-production-architecture-and-capability-notes",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": true,
+      "extensionCounts": {
+        ".md": 22
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "capabilities/media/docs/",
+      "sampleGitPaths": [
+        "capabilities/media/docs/META-SYSTEM-SCOPE-R1.md",
+        "capabilities/media/docs/media-v2-external-first-r1.md",
+        "capabilities/media/docs/technical-baseline.md"
+      ],
+      "sourceCell": "zone/creative-production/docs/@rootfiles",
+      "sourceCount": 22,
+      "sourceSetDigestFromPeerR2": "sha256:6ceb08a78da3129d067687901a5d7a4ad19c53ed25f4672696d0d27b17192dee"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "OBSERVATION_EVIDENCE",
+      "candidateFunctionalFacet": "media",
+      "candidateName": "creative-archive-browser-validation-receipts",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".json": 30
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "capabilities/media/productions/archive-archipelago-001/evidence/",
+      "sampleGitPaths": [
+        "capabilities/media/productions/archive-archipelago-001/evidence/artifact-browser-matrix-r2.json",
+        "capabilities/media/productions/archive-archipelago-001/evidence/consumption-evidence.json",
+        "capabilities/media/productions/archive-archipelago-001/evidence/touch-target-baseline-r4.json"
+      ],
+      "sourceCell": "zone/creative-production/productions/archive-archipelago-001/evidence/",
+      "sourceCount": 30,
+      "sourceSetDigestFromPeerR2": "sha256:0c698d14eb8b37a96b5ca6f6e52eb01c18f71aa8e1234f9e47b068b2f150a242"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "RESEARCH_SOURCE",
+      "candidateFunctionalFacet": "media",
+      "candidateName": "creative-expression-foundations-research-notes",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".md": 92
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "capabilities/media/research/expression/foundations/",
+      "sampleGitPaths": [
+        "capabilities/media/research/expression/foundations/README.md",
+        "capabilities/media/research/expression/foundations/media-foundations-mf7h-20260817.md",
+        "capabilities/media/research/expression/foundations/media-whole-domain-unexplored-space-search-round-a-20260818.md"
+      ],
+      "sourceCell": "zone/creative-production/research/expression/foundations/",
+      "sourceCount": 92,
+      "sourceSetDigestFromPeerR2": "sha256:9d0c21fe6361e745b7fab26052f0751bb3a3b27a233812986ea2e2a8a34cb943"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "TOOL_SOURCE",
+      "candidateFunctionalFacet": "media",
+      "candidateName": "creative-index-audio-and-media-helper-scripts",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".mjs": 1,
+        ".ps1": 1,
+        ".py": 18,
+        "<none>": 1
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "capabilities/media/scripts/",
+      "sampleGitPaths": [
+        "capabilities/media/scripts/build-creative-index.py",
+        "capabilities/media/scripts/require-python-deps.py",
+        "capabilities/media/scripts/synthesize-sapi-cues.ps1"
+      ],
+      "sourceCell": "zone/creative-production/scripts/",
+      "sourceCount": 21,
+      "sourceSetDigestFromPeerR2": "sha256:ffb22433d7aaa32096a19c507da34815e7b841691d245de60c41915bd0f1e834"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "IMPLEMENTATION_SOURCE",
+      "candidateFunctionalFacet": "media",
+      "candidateName": "creative-studio-python-package-modules",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".py": 25
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "capabilities/media/src/ordivon_studio/",
+      "sampleGitPaths": [
+        "capabilities/media/src/ordivon_studio/__init__.py",
+        "capabilities/media/src/ordivon_studio/models.py",
+        "capabilities/media/src/ordivon_studio/video.py"
+      ],
+      "sourceCell": "zone/creative-production/src/ordivon_studio/",
+      "sourceCount": 25,
+      "sourceSetDigestFromPeerR2": "sha256:fcd3ee96d36f13f18a3c1050a12cb2a73cbeaa75d0c74920c1a91650be4a0456"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "TEST_SOURCE",
+      "candidateFunctionalFacet": "media",
+      "candidateName": "creative-studio-evaluation-and-smoke-tests",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".py": 25
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "capabilities/media/tests/",
+      "sampleGitPaths": [
+        "capabilities/media/tests/test_agent_surface.py",
+        "capabilities/media/tests/test_models.py",
+        "capabilities/media/tests/test_video.py"
+      ],
+      "sourceCell": "zone/creative-production/tests/",
+      "sourceCount": 25,
+      "sourceSetDigestFromPeerR2": "sha256:84c79e4affdaa418274e35a2960b6e9d656a7615cfb879a314f370e937286a3c"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "TEST_SOURCE",
+      "candidateFunctionalFacet": "coordination",
+      "candidateName": "host-durable-collaboration-and-transaction-tests",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".py": 30
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "services/host/tests/",
+      "sampleGitPaths": [
+        "services/host/tests/conftest.py",
+        "services/host/tests/test_social_store_exact_integer_contract.py",
+        "services/host/tests/test_work_snapshot_read_refinement.py"
+      ],
+      "sourceCell": "zone/durable-collaboration/tests/",
+      "sourceCount": 30,
+      "sourceSetDigestFromPeerR2": "sha256:32c7f20ebdb476797c4aa91440f3d98b3fda9e3dd646a31c2136fc7aa8d470e2"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "DEPLOYMENT_DECLARATION",
+      "candidateFunctionalFacet": "substrate",
+      "candidateName": "workstation-ansible-provisioning-playbooks",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".ini": 1,
+        ".yml": 19
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "platform/workstation/ansible/",
+      "sampleGitPaths": [
+        "platform/workstation/ansible/bootstrap.yml",
+        "platform/workstation/ansible/postgresql-backup.yml",
+        "platform/workstation/ansible/workstation-windows-jev-fastpath-provider.yml"
+      ],
+      "sourceCell": "zone/endpoint-environment/ansible/",
+      "sourceCount": 20,
+      "sourceSetDigestFromPeerR2": "sha256:7a3c8b77107a1199d32dd6e4f80bc9757c74175117fc36007a5854f30f24d4de"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "DESIGN_AND_CLAIM_DOCS",
+      "candidateFunctionalFacet": "substrate",
+      "candidateName": "workstation-environment-design-and-maintenance-notes",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".md": 28
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "platform/workstation/docs/",
+      "sampleGitPaths": [
+        "platform/workstation/docs/ARCHITECTURE.md",
+        "platform/workstation/docs/OBSERVABILITY_OTLP_ACCEPTANCE.md",
+        "platform/workstation/docs/WORKSTATION_E2E_RETIREMENT.md"
+      ],
+      "sourceCell": "zone/endpoint-environment/docs/",
+      "sourceCount": 28,
+      "sourceSetDigestFromPeerR2": "sha256:e972dfe3f75e5c04cd97ab7666ca1cec50e6ff1542ac504b5f7555df65febc14"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "IMPLEMENTATION_SOURCE",
+      "candidateFunctionalFacet": "substrate",
+      "candidateName": "cloudflare-workstation-provider-typescript-source",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".ts": 19
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "platform/workstation/providers/cloudflare/src/",
+      "sampleGitPaths": [
+        "platform/workstation/providers/cloudflare/src/artifacts.ts",
+        "platform/workstation/providers/cloudflare/src/execution.ts",
+        "platform/workstation/providers/cloudflare/src/version.ts"
+      ],
+      "sourceCell": "zone/endpoint-environment/providers/cloudflare/src/",
+      "sourceCount": 19,
+      "sourceSetDigestFromPeerR2": "sha256:d33726058fe6301f0e728d849342efb9105d330df9df6b098a641d28869ab640"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "TEST_SOURCE",
+      "candidateFunctionalFacet": "substrate",
+      "candidateName": "workstation-package-provider-and-network-tests",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".py": 38
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "platform/workstation/tests/",
+      "sampleGitPaths": [
+        "platform/workstation/tests/test_codex_cli_pnpm_contract.py",
+        "platform/workstation/tests/test_service_profiles.py",
+        "platform/workstation/tests/test_wsl_sparse_guest_health.py"
+      ],
+      "sourceCell": "zone/endpoint-environment/tests/",
+      "sourceCount": 38,
+      "sourceSetDigestFromPeerR2": "sha256:ad4400ff260072ff0d04b64c5ebebb4509f8705e46cec2f63d732d8030cd836a"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "DESIGN_AND_CLAIM_DOCS",
+      "candidateFunctionalFacet": "security",
+      "candidateName": "security-admission-attestation-and-browser-design-notes",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".md": 23
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "platform/security/docs/",
+      "sampleGitPaths": [
+        "platform/security/docs/AGENT-ADMISSION-V0.md",
+        "platform/security/docs/GATEWAY-ADMISSION-R1.md",
+        "platform/security/docs/ZAP-ACTIVE-SCAN-ACCEPTANCE-R1.md"
+      ],
+      "sourceCell": "zone/identity-policy-and-effect-fences/docs/",
+      "sourceCount": 23,
+      "sourceSetDigestFromPeerR2": "sha256:0798ce47f32fd9d0d87da3c31041acc7e10ad9733fff681f92c2a2621721312e"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "TOOL_SOURCE",
+      "candidateFunctionalFacet": "security",
+      "candidateName": "security-policy-gate-and-provenance-helper-scripts",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".py": 16,
+        ".sh": 10
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "platform/security/scripts/",
+      "sampleGitPaths": [
+        "platform/security/scripts/assemble_gate_input.py",
+        "platform/security/scripts/smoke_libvirt_lifecycle.sh",
+        "platform/security/scripts/verify_vsa_cosign.sh"
+      ],
+      "sourceCell": "zone/identity-policy-and-effect-fences/scripts/",
+      "sourceCount": 26,
+      "sourceSetDigestFromPeerR2": "sha256:e425ad4c9279ee1b13bfbb9e32ccb75ede9d54011fd980f8a5344aebf1801217"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "TEST_SOURCE",
+      "candidateFunctionalFacet": "security",
+      "candidateName": "security-admission-and-attestation-contract-tests",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": true,
+      "extensionCounts": {
+        ".py": 20
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "platform/security/tests/",
+      "sampleGitPaths": [
+        "platform/security/tests/test_admission.py",
+        "platform/security/tests/test_gateway_capability_authz_contract.py",
+        "platform/security/tests/test_vex.py"
+      ],
+      "sourceCell": "zone/identity-policy-and-effect-fences/tests/@rootfiles",
+      "sourceCount": 20,
+      "sourceSetDigestFromPeerR2": "sha256:a9859f04a2298536d582d71559f3a80148c2e7063507072d3c238520e5492fa1"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "EXTERNAL_STANDARD_REFERENCE",
+      "candidateFunctionalFacet": "knowledge",
+      "candidateName": "iso-external-standard-reference-records",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".json": 33
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "meta/next/authorities/records/iso/",
+      "sampleGitPaths": [
+        "meta/next/authorities/records/iso/iso-10002-2018.json",
+        "meta/next/authorities/records/iso/iso-21502-2020.json",
+        "meta/next/authorities/records/iso/iso-integrated-management-systems-guide-2026.json"
+      ],
+      "sourceCell": "zone/knowledge-and-problem-framing/authorities/records/iso/",
+      "sourceCount": 33,
+      "sourceSetDigestFromPeerR2": "sha256:bb121b56bcdcc2910218ea885515a0b75a7619468e6e4983b2bb0438e7e11df4"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "PROVIDER_DESCRIPTOR_CANDIDATE",
+      "candidateFunctionalFacet": "knowledge",
+      "candidateName": "external-provider-capability-reference-cards",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".md": 35
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "meta/next/capabilities/providers/",
+      "sampleGitPaths": [
+        "meta/next/capabilities/providers/artifact-v2.md",
+        "meta/next/capabilities/providers/llamaindex.md",
+        "meta/next/capabilities/providers/workstation-v2.md"
+      ],
+      "sourceCell": "zone/knowledge-and-problem-framing/capabilities/providers/",
+      "sourceCount": 35,
+      "sourceSetDigestFromPeerR2": "sha256:5f81163fc12150960187ca05c5002ae109c8d8b7f2724013cadc6526eb79c1da"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "DESIGN_AND_CLAIM_DOCS",
+      "candidateFunctionalFacet": "knowledge",
+      "candidateName": "knowledge-and-agent-interface-architecture-notes",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": true,
+      "extensionCounts": {
+        ".md": 53
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "meta/next/docs/",
+      "sampleGitPaths": [
+        "meta/next/docs/AGENT_PLUGINS_ADOPTION_R1.md",
+        "meta/next/docs/DATA_TEMPORAL_IDENTITY_EVOLUTION_R1.md",
+        "meta/next/docs/VERIFIED_REINTEGRATION_EXTERNAL_OWNER_DOGFOOD_R1.md"
+      ],
+      "sourceCell": "zone/knowledge-and-problem-framing/docs/@rootfiles",
+      "sourceCount": 53,
+      "sourceSetDigestFromPeerR2": "sha256:6206abcd227414cde204ae1c2b5f4666280b1f1ef444d6d3b87094198aad2fb2"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "HISTORICAL_EXPERIMENT_SPEC",
+      "candidateFunctionalFacet": "knowledge",
+      "candidateName": "game-interest-and-experiment-protocol-history",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".json": 26,
+        ".md": 23
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "meta/next/domains/game/",
+      "sampleGitPaths": [
+        "meta/next/domains/game/GAME_AUTONOMOUS_INTEREST_PROTOCOL_R1.md",
+        "meta/next/domains/game/game-autonomous-interest-model-r3.schema.json",
+        "meta/next/domains/game/game-top-motif-bridge-r1.json"
+      ],
+      "sourceCell": "zone/knowledge-and-problem-framing/domains/game/",
+      "sourceCount": 49,
+      "sourceSetDigestFromPeerR2": "sha256:8b0f1b56840856f6da10750b30df20becf82539da33d5c4e54fe0dc3eb7eef49"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "HISTORICAL_ACCEPTANCE",
+      "candidateFunctionalFacet": "knowledge",
+      "candidateName": "historical-system-admission-and-acceptance-records",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": true,
+      "extensionCounts": {
+        ".json": 77,
+        ".md": 1
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "meta/next/evidence/acceptance/",
+      "sampleGitPaths": [
+        "meta/next/evidence/acceptance/admission-fabric-r1-20260922.json",
+        "meta/next/evidence/acceptance/enterprise-operating-model-r1-provider-observation-20260914.json",
+        "meta/next/evidence/acceptance/verified-reintegration-external-methods-r4-20260922.json"
+      ],
+      "sourceCell": "zone/knowledge-and-problem-framing/evidence/acceptance/@rootfiles",
+      "sourceCount": 78,
+      "sourceSetDigestFromPeerR2": "sha256:406bb04c6633122562021f8fa2d5a4ea6d467cd39d91e1b80f838d93afd0cce2"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "OBSERVATION_EVIDENCE",
+      "candidateFunctionalFacet": "knowledge",
+      "candidateName": "browser-provider-security-experiment-records",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".json": 23
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "meta/next/evidence/browser-security/",
+      "sampleGitPaths": [
+        "meta/next/evidence/browser-security/agent-birth-provider-boundary-r1-20260918.json",
+        "meta/next/evidence/browser-security/cloudflare-provider-security-exp-r5-controlled-run2-20260918.json",
+        "meta/next/evidence/browser-security/cloudflare-provider-security-exp-r9-window-placement-run2-20260918.json"
+      ],
+      "sourceCell": "zone/knowledge-and-problem-framing/evidence/browser-security/",
+      "sourceCount": 23,
+      "sourceSetDigestFromPeerR2": "sha256:a73c4be4b4d3fe0df0618c2d99488ef9367d500834ae1e9a62b512f4f02673b2"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "KNOWLEDGE_SNAPSHOT",
+      "candidateFunctionalFacet": "knowledge",
+      "candidateName": "curated-knowledge-relation-snapshot-records",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".json": 31
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "meta/next/knowledge/graphs/",
+      "sampleGitPaths": [
+        "meta/next/knowledge/graphs/agent-architecture-lego-catalog-r1.json",
+        "meta/next/knowledge/graphs/ordivon-agent-service-control-stability-r1.json",
+        "meta/next/knowledge/graphs/zcode-workspace-snapshot-security-lego-r1.json"
+      ],
+      "sourceCell": "zone/knowledge-and-problem-framing/knowledge/graphs/",
+      "sourceCount": 31,
+      "sourceSetDigestFromPeerR2": "sha256:e3e85409e59f506fb520b4c267bfffcf05b9c2ca689bcb5bedfdc0a2cd58f791"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "KNOWLEDGE_LESSON",
+      "candidateFunctionalFacet": "knowledge",
+      "candidateName": "curated-engineering-and-research-lessons",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".md": 83
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "meta/next/knowledge/lessons/",
+      "sampleGitPaths": [
+        "meta/next/knowledge/lessons/agent-architecture-lego-catalog-r1.md",
+        "meta/next/knowledge/lessons/langgraph-agent-state-machine-kernel.md",
+        "meta/next/knowledge/lessons/zcode-workspace-snapshot-security-lego-r1.md"
+      ],
+      "sourceCell": "zone/knowledge-and-problem-framing/knowledge/lessons/",
+      "sourceCount": 83,
+      "sourceSetDigestFromPeerR2": "sha256:0d7d21b915a6423152fdd5c1553457a7c7c51b45328245b05d7cb222e07618a6"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "HISTORICAL_RECONCILIATION",
+      "candidateFunctionalFacet": "knowledge",
+      "candidateName": "historical-capability-and-service-migration-notes",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".md": 48
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "meta/next/migrations/records/",
+      "sampleGitPaths": [
+        "meta/next/migrations/records/agent-birth-to-agent-service-r1.md",
+        "meta/next/migrations/records/interlocus-retirement.md",
+        "meta/next/migrations/records/world-retirement.md"
+      ],
+      "sourceCell": "zone/knowledge-and-problem-framing/migrations/records/",
+      "sourceCount": 48,
+      "sourceSetDigestFromPeerR2": "sha256:9cd30a9871844f1478e6e950395eada5933d9c3024bad273a56f41eeff54a07f"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "PLAN_OR_PROPOSAL",
+      "candidateFunctionalFacet": "knowledge",
+      "candidateName": "knowledge-system-workflow-and-circuit-proposals",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".json": 19,
+        ".md": 4
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "meta/next/planning/",
+      "sampleGitPaths": [
+        "meta/next/planning/README.md",
+        "meta/next/planning/data-lifecycle-census-r6.json",
+        "meta/next/planning/verified-reintegration-external-owner-convergence-r1.json"
+      ],
+      "sourceCell": "zone/knowledge-and-problem-framing/planning/",
+      "sourceCount": 23,
+      "sourceSetDigestFromPeerR2": "sha256:d078340c161ec149c26eb706fd6a30f315d32674be92576022c943c38cb103c9"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "TOOL_SOURCE",
+      "candidateFunctionalFacet": "knowledge",
+      "candidateName": "authority-catalog-and-governance-helper-scripts",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".py": 18,
+        ".sql": 1
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "meta/next/scripts/",
+      "sampleGitPaths": [
+        "meta/next/scripts/authority_catalog.py",
+        "meta/next/scripts/experimental_episode_harness_r1.py",
+        "meta/next/scripts/web_security_gate_r3.py"
+      ],
+      "sourceCell": "zone/knowledge-and-problem-framing/scripts/",
+      "sourceCount": 19,
+      "sourceSetDigestFromPeerR2": "sha256:8b5bc708a1f4b973a0d122454a87cbccd6c541de0247bcd6afa274dd335016ac"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "TEST_SOURCE",
+      "candidateFunctionalFacet": "knowledge",
+      "candidateName": "knowledge-system-admission-and-invariant-tests",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".md": 1,
+        ".py": 30
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "meta/next/tests/",
+      "sampleGitPaths": [
+        "meta/next/tests/README.md",
+        "meta/next/tests/test_data_product_federation.py",
+        "meta/next/tests/test_web_provider_routing_skill.py"
+      ],
+      "sourceCell": "zone/knowledge-and-problem-framing/tests/",
+      "sourceCount": 31,
+      "sourceSetDigestFromPeerR2": "sha256:920741814b5ffbf0da79467d22c874d400cec6d56b507c99fb297335fc324869"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "CONFIGURATION_SOURCE",
+      "candidateFunctionalFacet": "execution",
+      "candidateName": "runtime-package-toolchain-and-root-configuration",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": true,
+      "extensionCounts": {
+        ".lock": 1,
+        ".md": 5,
+        ".toml": 6,
+        ".txt": 2,
+        "<none>": 6
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "services/runtime/",
+      "sampleGitPaths": [
+        "services/runtime/.editorconfig",
+        "services/runtime/Cargo.toml",
+        "services/runtime/rust-toolchain.toml"
+      ],
+      "sourceCell": "zone/physical-execution/@rootfiles",
+      "sourceCount": 20,
+      "sourceSetDigestFromPeerR2": "sha256:0654b85b7ae9e5306dfb4260f1a7986faf3daee8e041cce505159aa116ebd30b"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "IMPLEMENTATION_SOURCE",
+      "candidateFunctionalFacet": "execution",
+      "candidateName": "runtime-core-physical-execution-state-and-storage-source",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": true,
+      "extensionCounts": {
+        ".rs": 24,
+        ".sql": 4
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "services/runtime/crates/ordivon-runtime-core/src/runtime/",
+      "sampleGitPaths": [
+        "services/runtime/crates/ordivon-runtime-core/src/runtime/artifact_release_state.rs",
+        "services/runtime/crates/ordivon-runtime-core/src/runtime/lifecycle_locks.rs",
+        "services/runtime/crates/ordivon-runtime-core/src/runtime/workspace_state.rs"
+      ],
+      "sourceCell": "zone/physical-execution/crates/ordivon-runtime-core/src/runtime/@rootfiles",
+      "sourceCount": 28,
+      "sourceSetDigestFromPeerR2": "sha256:db62dcb133177f77c8a1d5e005bc3fa2b2fef801074623560cfbe1727a098347"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "DESIGN_AND_CLAIM_DOCS",
+      "candidateFunctionalFacet": "execution",
+      "candidateName": "runtime-execution-fabric-design-and-standards-notes",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": true,
+      "extensionCounts": {
+        ".md": 27
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "services/runtime/docs/",
+      "sampleGitPaths": [
+        "services/runtime/docs/AUTHORITY_STANDARD_MIGRATION_R1.md",
+        "services/runtime/docs/agent-ux.md",
+        "services/runtime/docs/status.md"
+      ],
+      "sourceCell": "zone/physical-execution/docs/@rootfiles",
+      "sourceCount": 27,
+      "sourceSetDigestFromPeerR2": "sha256:260274c0b8f54bdb1878b08ce0fdec701bbca1359153b583cd5dd6243b43bb1c"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "RESEARCH_SOURCE",
+      "candidateFunctionalFacet": "execution",
+      "candidateName": "runtime-fundamental-research-and-historical-findings",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".json": 17,
+        ".md": 54
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "services/runtime/research/foundations/",
+      "sampleGitPaths": [
+        "services/runtime/research/foundations/README.md",
+        "services/runtime/research/foundations/RF16-CROSS-DOMAIN-FALSIFICATION-RUNTIME-FOUNDATIONS-V1.md",
+        "services/runtime/research/foundations/RUNTIME-FOUNDATIONS-V1.md"
+      ],
+      "sourceCell": "zone/physical-execution/research/foundations/",
+      "sourceCount": 71,
+      "sourceSetDigestFromPeerR2": "sha256:a250d3d943e6c18e8e89537bdbd909afc0734671d9395ed343ee3e1b204ddc60"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "TOOL_SOURCE",
+      "candidateFunctionalFacet": "execution",
+      "candidateName": "runtime-operator-diagnostics-and-maintenance-scripts",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": true,
+      "extensionCounts": {
+        ".ps1": 1,
+        ".py": 17,
+        "<none>": 11
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "services/runtime/scripts/",
+      "sampleGitPaths": [
+        "services/runtime/scripts/agent_ux_report.py",
+        "services/runtime/scripts/ordivon-runtime-pressure-control",
+        "services/runtime/scripts/windows-native-runtime-r6c-acceptance.ps1"
+      ],
+      "sourceCell": "zone/physical-execution/scripts/@rootfiles",
+      "sourceCount": 29,
+      "sourceSetDigestFromPeerR2": "sha256:88050f212673c32c60946be960eda587a214db5148ed2628beb3c996e35c5d18"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "TEST_SOURCE",
+      "candidateFunctionalFacet": "execution",
+      "candidateName": "runtime-script-admission-and-consistency-tests",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".py": 28
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "services/runtime/scripts/tests/",
+      "sampleGitPaths": [
+        "services/runtime/scripts/tests/test_agent_ux_report.py",
+        "services/runtime/scripts/tests/test_mcp_e2e.py",
+        "services/runtime/scripts/tests/test_tla_formal_external_jar.py"
+      ],
+      "sourceCell": "zone/physical-execution/scripts/tests/",
+      "sourceCount": 28,
+      "sourceSetDigestFromPeerR2": "sha256:9240b7b775ee7124ef00568942f9c841ad5327c1728c29030a98ed893e521b4e"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "CONFIGURATION_SOURCE",
+      "candidateFunctionalFacet": "capital",
+      "candidateName": "capital-provider-and-risk-configuration-records",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".json": 28
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "domains/capital/config/",
+      "sampleGitPaths": [
+        "domains/capital/config/accounting_substrate.json",
+        "domains/capital/config/language_baseline.json",
+        "domains/capital/config/shadow_precommit.json"
+      ],
+      "sourceCell": "zone/quantitative-capital/config/",
+      "sourceCount": 28,
+      "sourceSetDigestFromPeerR2": "sha256:7641488362399f4008d007ea035dcdf54a57e09b35c4c075e4741310642cbd42"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "DESIGN_AND_CLAIM_DOCS",
+      "candidateFunctionalFacet": "capital",
+      "candidateName": "capital-market-data-risk-and-system-design-notes",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".md": 77
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "domains/capital/docs/",
+      "sampleGitPaths": [
+        "domains/capital/docs/ARCHITECTURE.md",
+        "domains/capital/docs/PORTFOLIO_RISK_EXTERNAL_OWNER_AUDIT_R6.md",
+        "domains/capital/docs/WEBSOCKETS_COMPARATIVE_QUALIFICATION_R1.md"
+      ],
+      "sourceCell": "zone/quantitative-capital/docs/",
+      "sourceCount": 77,
+      "sourceSetDigestFromPeerR2": "sha256:62e893b96c37e22134d44b5cd74ed63bbd2bba9c7ea585c7fbc4fbc0c15be0db"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "OBSERVATION_EVIDENCE",
+      "candidateFunctionalFacet": "capital",
+      "candidateName": "capital-evaluation-market-clock-and-audit-evidence",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": true,
+      "extensionCounts": {
+        ".json": 36
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "domains/capital/evidence/",
+      "sampleGitPaths": [
+        "domains/capital/evidence/clock-quality-audit-20260913.json",
+        "domains/capital/evidence/migration-source-v2-r0-r1-20260911.json",
+        "domains/capital/evidence/wave-b-m6-precommit-20260913.json"
+      ],
+      "sourceCell": "zone/quantitative-capital/evidence/@rootfiles",
+      "sourceCount": 36,
+      "sourceSetDigestFromPeerR2": "sha256:6af6adc8d41da610a59ccafc98e94e56a72ca400d1c04290e5de29642c3a2b11"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "TOOL_SOURCE",
+      "candidateFunctionalFacet": "capital",
+      "candidateName": "capital-market-data-capture-and-preflight-commands",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".py": 1,
+        "<none>": 43
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "domains/capital/scripts/",
+      "sampleGitPaths": [
+        "domains/capital/scripts/capture-binance-usdm-private-r1",
+        "domains/capital/scripts/install-nonlive-credential",
+        "domains/capital/scripts/run-websockets-owner-requalification-r17"
+      ],
+      "sourceCell": "zone/quantitative-capital/scripts/",
+      "sourceCount": 44,
+      "sourceSetDigestFromPeerR2": "sha256:6629d5d1526f10572b1cc9740263a5efe6b093767b4c77ee4de4e7e2848e02ef"
+    },
+    {
+      "actualConsumers": "UNKNOWN",
+      "canRenamePhysicalPath": false,
+      "candidateContentRole": "TEST_SOURCE",
+      "candidateFunctionalFacet": "capital",
+      "candidateName": "capital-accounting-provider-and-risk-contract-tests",
+      "currentness": "SOURCECUT_ONLY",
+      "directFilesOnly": false,
+      "extensionCounts": {
+        ".py": 73
+      },
+      "installedState": "UNKNOWN",
+      "mayContainMultipleFunctions": true,
+      "nameQualification": "UNQUALIFIED",
+      "namingEvidence": "PATH_AND_FILENAME_ONLY",
+      "noPermanentOwner": true,
+      "physicalPrefix": "domains/capital/tests/",
+      "sampleGitPaths": [
+        "domains/capital/tests/test_accounting_durable.py",
+        "domains/capital/tests/test_live_test_account_policy.py",
+        "domains/capital/tests/test_websockets_owner_requalification.py"
+      ],
+      "sourceCell": "zone/quantitative-capital/tests/",
+      "sourceCount": 73,
+      "sourceSetDigestFromPeerR2": "sha256:c6255180d1bc6fda86eeabeab25e2d5f5269d7cbc7b9ed3cbc57809861a5dcba"
+    }
+  ],
+  "limits": [
+    "No new source owner, LEGO, registry, proof or filesystem rename",
+    "All names are proposed display aliases subject to file-content and consumer falsification",
+    "Other local Git, installed Windows/Linux, OS, database, provider and unversioned content are separate physical source identities"
+  ],
+  "peerEvidencePath": "docs/architecture/evidence/ORDIVON_PHASE1_FINE_SCOPE_NAMING_20261027_R2.json",
+  "peerSourceCut": "350f09b1594f57552c36d3169dba771ec0326337",
+  "schemaVersion": 1,
+  "sourceCut": "631c3c83104e97260b105b9bda73f0f8ec6a6924",
+  "summary": {
+    "denseCellUniquePaths": 2533,
+    "denseCellsNamed": 60,
+    "mixedFormatCells": 23,
+    "pathsOutsideDenseCells": 2466,
+    "peerDenseCells": 60,
+    "peerRecursiveCells": 718,
+    "physicalRenames": 0,
+    "remainingPeerCellsNotRefinedHere": 658,
+    "semanticQualifications": 0,
+    "sourcePathsInPeer": 4999
+  },
+  "truthRole": "ADVISORY_PATH_AND_FILENAME_NAMING_NOT_LEGO_OR_INSTALLED_AUTHORITY"
+}
