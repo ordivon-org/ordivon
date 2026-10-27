@@ -14,27 +14,17 @@ import json
 from pathlib import Path
 from typing import Any
 
-from jsonschema import Draft202012Validator
-
-from .cognitive_circuit_r1 import CircuitContractError, _load_json, canonical_digest
+from .cognitive_circuit_r1 import (
+    CircuitContractError,
+    _load_json,
+    _validate_schema,
+    canonical_digest,
+)
 
 ROOT = Path(__file__).resolve().parent
 OBSERVATION_SCHEMA = ROOT / "schemas" / "interface-contract-observation-v1.schema.json"
 EXPECTATION_SCHEMA = ROOT / "schemas" / "interface-contract-expectation-v1.schema.json"
 RESULT_SCHEMA = ROOT / "schemas" / "interface-compatibility-result-v1.schema.json"
-
-
-def _schema(path: Path) -> dict[str, Any]:
-    return _load_json(path)
-
-
-def _validate_schema(value: dict[str, Any], schema_path: Path, label: str) -> None:
-    validator = Draft202012Validator(_schema(schema_path))
-    errors = sorted(validator.iter_errors(value), key=lambda item: list(item.absolute_path))
-    if errors:
-        first = errors[0]
-        location = "/".join(str(item) for item in first.absolute_path) or "<root>"
-        raise CircuitContractError(f"{label} schema violation at {location}: {first.message}")
 
 
 def currentness_standing(observation: dict[str, Any]) -> str:
