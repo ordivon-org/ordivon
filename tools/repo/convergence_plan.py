@@ -97,6 +97,45 @@ def load_dependency_graph(
             if test_only_consumers is not None:
                 test_only_consumers.append((left, right))
             continue
+        if seam.get("kind") == "SOURCE_CITATION_NOT_EXECUTION":
+            # A Media study merely cites the canonical LEGO method source.
+            # Treating this as an executable bidirectional dependency would
+            # propagate every Media change into the formal semantic kernel.
+            exact_citation = (
+                "media", "lego-foundation",
+                "capabilities/media/productions/fishing-fable-lego-study-r1/claims.json",
+                ".agents/skills/recursive-lego-calculus/SKILL.md",
+                ".agents/skills/recursive-lego-calculus/SKILL.md",
+            )
+            declared = (
+                left, right, seam.get("source_glob"),
+                seam.get("allowed_fragment"), seam.get("contract_ref"),
+            )
+            if declared != exact_citation:
+                raise ValueError("unapproved source-citation-only seam")
+            continue
+        if seam.get("kind") == "TEST_ONLY_DOMAIN_PROFILE_CONSUMER":
+            # Artifact reads an R1 Research profile only within native tests.
+            # A Research source change should qualify the Artifact test
+            # consumer, without treating Artifact edits as Research runtime
+            # dependencies or merging both production components.
+            if (
+                left != "artifact" or right != "research"
+                or seam.get("source_glob")
+                    != "capabilities/artifact/tests/test_artifact_publication_carrier_r1.py"
+                or (
+                    seam.get("allowed_fragment"), seam.get("contract_ref")
+                ) not in {
+                    ("meta/research/venues/fse-2027-research-r1.json",
+                     "meta/research/venues/fse-2027-research-r1.json"),
+                    ("meta/research/publication-closure-profile-r1.json",
+                     "meta/research/publication-closure-profile-r1.json"),
+                }
+            ):
+                raise ValueError("unapproved Research profile test-only seam")
+            if test_only_consumers is not None:
+                test_only_consumers.append((left, right))
+            continue
         graph[left].add(right)
         graph[right].add(left)
     return graph

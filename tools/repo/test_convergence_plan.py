@@ -55,6 +55,49 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertIn("artifact:verify", plan["verifyTasks"])
         self.assertIn("artifact:queue", plan["queueVerifyTasks"])
 
+    def test_method_study_citation_does_not_create_an_execution_component(self) -> None:
+        graph = MODULE.load_dependency_graph()
+        self.assertNotIn("lego-foundation", graph["media"])
+        self.assertNotIn("media", graph["lego-foundation"])
+        only_core = MODULE.build_plan(
+            changed_files=[".agents/skills/recursive-lego-calculus/SKILL.md"]
+        )
+        self.assertEqual(only_core["verificationOwners"], ["lego-foundation"])
+
+    def test_research_profile_tests_follow_research_not_artifact_runtime(self) -> None:
+        profile = MODULE.build_plan(
+            changed_files=["meta/research/publication-closure-profile-r1.json"]
+        )
+        self.assertIn("artifact", profile["taskLocalTestConsumers"])
+        self.assertIn("gateway", profile["verificationOwners"])
+        artifact = MODULE.build_plan(
+            changed_files=["capabilities/artifact/README.md"]
+        )
+        self.assertNotIn("research", artifact["verificationOwners"])
+        self.assertNotIn("lego-foundation", artifact["verificationOwners"])
+
+    def test_new_source_seam_exemptions_reject_widened_or_forged_paths(self) -> None:
+        policy = MODULE.DEPENDENCY_PATH.read_text(encoding="utf-8")
+        edits = [
+            (
+                'source_glob = "capabilities/media/productions/fishing-fable-lego-study-r1/claims.json"',
+                'source_glob = "capabilities/media/**"',
+                "unapproved source-citation-only seam",
+            ),
+            (
+                'source_glob = "capabilities/artifact/tests/test_artifact_publication_carrier_r1.py"',
+                'source_glob = "capabilities/artifact/src/other.py"',
+                "unapproved Research profile test-only seam",
+            ),
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "dependencies.toml"
+            for original, forged, error in edits:
+                self.assertIn(original, policy)
+                path.write_text(policy.replace(original, forged), encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, error):
+                    MODULE.load_dependency_graph(path=path)
+
     def test_security_change_expands_to_harness_and_web_component(self) -> None:
         plan = MODULE.build_plan(changed_files=["platform/security/README.md"])
         self.assertEqual(
