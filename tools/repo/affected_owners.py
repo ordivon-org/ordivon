@@ -352,7 +352,13 @@ def main() -> int:
         else:
             result = project_source_classification(Path.cwd(), args.classify_source_revision)
             if args.source_path:
-                paths = sorted({_normalize(path) for path in args.source_path})
+                # Git paths are opaque source identities. Do not silently
+                # normalize "./foo", "foo//bar" or whitespace into the
+                # identity of a different tracked file.
+                for path in args.source_path:
+                    if not path or _normalize(path) != path:
+                        raise SystemExit(f"source path must be exact/canonical: {path!r}")
+                paths = sorted(set(args.source_path))
                 index = {entry["path"]: entry for entry in result["entries"]}
                 result["entries"] = [index[path] for path in paths if path in index]
                 result["requestedPaths"] = paths

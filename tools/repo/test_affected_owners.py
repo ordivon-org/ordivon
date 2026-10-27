@@ -448,6 +448,9 @@ class SourceClassificationTests(unittest.TestCase):
         self.assertFalse(result["proofReuseAdmissible"])
         for invalid in [
             ["--source-path", "../services/runtime/main.rs"],
+            ["--source-path", "./services/runtime/main.rs"],
+            ["--source-path", "services//runtime/main.rs"],
+            ["--source-path", ""],
             ["--classify-source-delta-base", self.base,
              "--source-path", "services/runtime/main.rs"],
         ]:
