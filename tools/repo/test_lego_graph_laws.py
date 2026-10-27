@@ -2017,3 +2017,96 @@ def test_agent_native_path_rejects_unqualified_identity_or_mode() -> None:
         "--source-revision", revision, "--compare-source-revision", revision,
     ])
     assert bad_mode == 2
+
+
+def test_agent_native_portable_plugin_manifest_is_a_native_contract_carrier() -> None:
+    """A portable two-file Plugin has a native schema; no extra LEGO plan file."""
+    import subprocess
+
+    cut = subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True
+    ).strip()
+    manifest = module.inspect_owner_source_path(
+        source_revision=cut,
+        source_path="extensions/ordivon-control-plane/plugin.json",
+        root=ROOT,
+    )
+    assert manifest["ownerPartitions"][0]["name"] == "control-plugin"
+    assert manifest["legoDiscoveryStanding"] == "UNKNOWN_UNINDEXED"
+    assert manifest["nativeContractCarrier"] == {
+        "standing": "NATIVE_JSON_SCHEMA_DECLARATION_ONLY",
+        "schemaUri": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+        "sourceIdentity": manifest["sourceIdentity"],
+        "declaredPackageName": "ordivon-control-plane",
+    }
+    assert manifest["proofReuseAdmissible"] is False
+    assert manifest["consumerProofStanding"] == "UNKNOWN"
+    declared = module.inspect_owner_source_path(
+        source_revision=cut,
+        source_path="extensions/ordivon-control-plane/mcp.json",
+        root=ROOT,
+    )
+    assert declared["nativeContractCarrier"]["schemaUri"] == (
+        "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json"
+    )
+    assert declared["nativeContractCarrier"]["declaredMcpServerKeys"] == [
+        "ordivon-gateway"
+    ]
+    assert "DECLARED_ANCHOR_PARTIAL" == declared["legoDiscoveryStanding"]
+    # Native declarative fact and existing R2.1 plan anchor are independent.
+    assert declared["proofReuseAdmissible"] is False
+    assert sorted(p.name for p in (ROOT / "extensions/ordivon-control-plane").iterdir()) == [
+        "mcp.json", "plugin.json"
+    ]
+
+
+def test_agent_native_json_schema_source_query_never_infers_consumers() -> None:
+    """Typed noncarrier and vanished files never become installed authority."""
+    import subprocess
+
+    cut = subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True
+    ).strip()
+    plain = module.inspect_owner_source_path(
+        source_revision=cut,
+        source_path="services/gateway/src/ordivon_gateway/routes.py",
+        root=ROOT,
+    )
+    assert plain["nativeContractCarrier"] is None
+    assert plain["gitEntryStanding"] == "REGULAR_BLOB"
+    missing = module.inspect_owner_source_path(
+        source_revision=cut,
+        source_path="extensions/ordivon-control-plane/missing.json",
+        root=ROOT,
+    )
+    assert missing["nativeContractCarrier"] is None
+    assert missing["gitEntryStanding"] == "ABSENT_FROM_GIT_CUT"
+    assert missing["legoDiscoveryStanding"] == "UNKNOWN_UNINDEXED"
+    assert missing["consumerProofStanding"] == "UNKNOWN"
+    assert missing["proofReuseAdmissible"] is False
+
+
+
+def test_native_schema_hint_refuses_symlink_and_gitlink_bytes() -> None:
+    """A Git tracked symlink is not the regular JSON implementation it targets."""
+    assert module._project_native_json_schema_source(
+        ROOT, "extensions/ordivon-control-plane/plugin.json",
+        "120000:blob:" + "0" * 40,
+    ) is None
+    assert module._project_native_json_schema_source(
+        ROOT, "extensions/ordivon-control-plane/plugin.json",
+        "160000:commit:" + "0" * 40,
+    ) is None
+    assert module._project_native_json_schema_source(
+        ROOT, "extensions/ordivon-control-plane/plugin.json",
+        None,
+    ) is None
+    import subprocess
+    cut = subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+    ).strip()
+    with pytest.raises(module.ArchitectureDocsError, match="canonical"):
+        module.inspect_owner_source_path(
+            source_revision=cut, source_path="extensions/" + chr(0) + "/plugin.json",
+            root=ROOT,
+        )
