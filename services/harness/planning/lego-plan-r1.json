@@ -279,8 +279,8 @@
     {
       "from": "H05",
       "to": "H04",
-      "type": "EFFECT",
-      "label": "qualified Runtime request feeds physical effect binding, not effect authority"
+      "type": "DEPENDENCY",
+      "label": "Harness effect bridge consumes admitted Runtime lowering via concrete sqlite_runtime_bridge; source dependency rechecks on change, not physical-effect proof"
     },
     {
       "from": "H06",
