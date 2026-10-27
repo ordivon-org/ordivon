@@ -46,6 +46,38 @@ def test_network_unconsumed_future_profile_slice_is_retired_without_removing_act
     module.validate_owner_lego_graph(plan)
 
 
+
+def test_network_recursive_consumer_contracts_remain_source_bound_not_installed_truth() -> None:
+    # Three independent consumer-facing seams discovered inside the historical
+    # N02 data-plane / N05 profile coarse nodes. A source witness is not live truth.
+    relative = "platform/network/planning/lego-plan-r1.json"
+    plan = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+    nodes = {row["id"]: row for row in plan["nodes"]}
+    assert nodes["N02"]["behavioralContract"]
+    expected = {
+        "N06": ("N02", "COMPOSITION", "consumers/x-reality/config/egress.json"),
+        "N07": ("N05", "SPECIALIZATION", "consumers/developer-egress/profile.sh"),
+        "N08": ("N02", "OBSERVATION", "consumers/supply-chain/ready.sh"),
+    }
+    for identity, (parent, relation, real_source) in expected.items():
+        node = nodes[identity]
+        for field in ("responsibility", "inputs", "outputs", "behavioralContract",
+                      "acceptance", "consumerEvidence"):
+            assert node[field], (identity, field)
+        assert real_source in node["evidence"]
+        assert (ROOT / "platform/network" / real_source).is_file()
+        assert any(edge["from"] == parent and edge["to"] == identity and
+                   edge["type"] == relation for edge in plan["edges"])
+    view = module.project_owner_lego_source_graph(ROOT)
+    for identity in expected:
+        ref = f"{relative}#{identity}"
+        vertex = next(item for item in view["vertices"] if item["ref"] == ref)
+        assert vertex["sourceAnchors"]
+        assert vertex["sourceCoverageStanding"] == "DECLARED_SOURCE_MEMBERSHIP_PARTIAL"
+        assert not vertex["unresolvedSourceEvidence"]
+    assert "ACTUAL_CONSUMER" in view["excluded"]["unverifiedFacets"]
+
+
 @pytest.mark.parametrize("relative", OWNER_GRAPH_PLANS)
 def test_owner_slice_relation_is_closed(relative: str) -> None:
     module.validate_owner_lego_graph(json.loads((ROOT / relative).read_text(encoding="utf-8")))

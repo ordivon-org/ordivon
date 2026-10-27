@@ -39,19 +39,34 @@
       "id": "N02",
       "label": "DataPlaneComposition",
       "kind": "effect_executor",
-      "responsibility": "Realize DNS/proxy/tunnel/failover using mature external components and isolated topology.",
+      "responsibility": "Compose independently governed Network DNS/proxy/tunnel transport, consumer egress policy, developer CLI environment and readiness obligations; keep OS/provider effects with existing mature mechanisms.",
       "authority": "Network realization",
       "state": "IMPLEMENTED",
       "sharedRefs": [],
       "evidence": [
-        "README.md"
+        "README.md",
+        "config/sing-box/direct.json",
+        "config/blackbox/blackbox.yml",
+        "Taskfile.yml",
+        "tests/test_shared_provider_carrier.py"
       ],
       "dependencies": [],
       "mustNotOwn": [
         "provider remote truth"
       ],
       "acceptance": [
-        "Live unit remains a bounded replaceable composition."
+        "N02 remains a composite responsibility and does not itself assert all child effects succeed. The source-bounded N06, N07 and N08 responsibilities are independently inspectable and cannot be treated as equivalent by file layout.",
+        "Live DNS/tunnel/failover behavior, Windows/WSL deployed routes and runtime-installed continuity require distinct owner-native tests and remain UNKNOWN until observed."
+      ],
+      "inputs": [
+        "Network consumer route requirements and owner-native sing-box/systemd configuration; selected local provider carrier and scoped consumer environment."
+      ],
+      "outputs": [
+        "Configured transport and routing topology consumed by bounded egress adapters; independently obtained evidence or UNKNOWN for actual live egress."
+      ],
+      "behavioralContract": [
+        "A source-level route declaration is not an installed routing guarantee: each policy/transport realization requires its own loaded-config and negative upstream-effect witnesses before production authority is promoted.",
+        "Consumer profile configuration cannot transfer effect authority or infer domain/provider success."
       ]
     },
     {
@@ -130,6 +145,131 @@
         "Claude's existing namespace-local proxy readiness accepts only a valid upstream HTTP CONNECT, completed TLS handshake, and qualified API/installer status; denies malformed, gateway and redirect failures.",
         "If the M4 Gluetun mode marker is selected, the legacy Browserless provider-switch and Taskfile carrier materialization must fail before old WireGuard, DNS, carrier or file effects; source-level guards do not prove installed provider health."
       ]
+    },
+    {
+      "id": "N06",
+      "label": "ConsumerEgressRoutePolicy",
+      "kind": "effect_policy",
+      "responsibility": "For one declared consumer, route only admitted destination/port pairs through the existing shared HTTP carrier; preserve terminal rejection of undeclared outbound effects, independent of HTTP CONNECT success text.",
+      "authority": "Network consumer-specific sing-box policy (not provider or application authority)",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "Selected consumer identity; bounded destination/port; source-qualified consumer egress.json and shared provider-carrier endpoint."
+      ],
+      "outputs": [
+        "Consumer-scoped route/reject decision and corresponding native proxy forwarding behavior."
+      ],
+      "behavioralContract": [
+        "For the x-reality and supply-chain source policies, allowed destinations and exact port may forward through the shared carrier; unlisted destinations and wrong ports must not reach upstream. A CONNECT 200 or curl failure is not itself an upstream no-forwarding witness.",
+        "No claim about deployed loaded policy, broader DNS/WSL bypass protection, or consumer success without source-matched physical evidence."
+      ],
+      "sharedRefs": [],
+      "evidence": [
+        "consumers/x-reality/config/egress.json",
+        "consumers/supply-chain/config/egress.json",
+        "tests/test_egress_routing_behavior.py",
+        "tests/test_x_reality_consumer.py",
+        "Taskfile.yml"
+      ],
+      "consumerEvidence": [
+        "consumers/x-reality/ready.sh",
+        "consumers/supply-chain/ready.sh"
+      ],
+      "dependencies": [
+        "N02"
+      ],
+      "mustNotOwn": [
+        "provider carrier implementation",
+        "remote destination success",
+        "installed policy currentness"
+      ],
+      "acceptance": [
+        "Native sing-box loopback upstream spy forwards declared destination/port only; forbidden/wrong-port target has no upstream effect; mutation removing terminal reject produces a failing negative witness.",
+        "Source-backed tests are not deployed egress verification."
+      ]
+    },
+    {
+      "id": "N07",
+      "label": "DeveloperProxyEnvironment",
+      "kind": "environment_adapter",
+      "responsibility": "Expose an independent, replaceable network environment for login and non-login developer tooling without inheriting unsafe direct-bypass aliases.",
+      "authority": "Developer egress shell environment, not systemd network service or remote provider",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "Shell invocation mode, HTTPS_PROXY/http_proxy aliases, NO_PROXY case aliases, ORDIVON_DEV_VPN and approved local carrier."
+      ],
+      "outputs": [
+        "Normalized proxy and private-exclusion environment variables, or explicit fail-closed nonzero refusal before launching a child."
+      ],
+      "behavioralContract": [
+        "Case aliases are consistent and idempotent; unapproved public CIDRs, wildcard bypass and incompatible managed Runtime EnvironmentFile transport fail closed.",
+        "Explicit ORDIVON_DEV_VPN=off is caller-selected and must not silently become production Runtime VPN authority; materializing the environment alone does not demonstrate live connectivity."
+      ],
+      "sharedRefs": [],
+      "evidence": [
+        "consumers/developer-egress/profile.sh",
+        "tests/test_developer_egress_profile.py",
+        "tools/repo/workspace-ready",
+        "tools/repo/test_workspace_ready.py"
+      ],
+      "consumerEvidence": [
+        "tools/repo/workspace-ready",
+        "tests/test_developer_egress_profile.py"
+      ],
+      "dependencies": [
+        "N05"
+      ],
+      "mustNotOwn": [
+        "network daemon or shared carrier lifecycle",
+        "application API success"
+      ],
+      "acceptance": [
+        "Existing native tests check normalized aliases, exact private exceptions, non-login invocation, rejection of global/public NO_PROXY bypass, and no child execution on failed admission.",
+        "Current installed profile bytes and each downstream CLI consumer identity remain separate CURRENTNESS obligations."
+      ]
+    },
+    {
+      "id": "N08",
+      "label": "ConsumerReadinessVerdict",
+      "kind": "consumer_verifier",
+      "responsibility": "Compute a bounded, consumer-local READY/non-READY decision from current proxy endpoint/allowed-origin observations with one shared retry deadline.",
+      "authority": "Network readiness observation for a named consumer; not the effect provider",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "Named consumer readiness script, current process/socket/proxy observation, upstream probe result, finite deadline."
+      ],
+      "outputs": [
+        "A source-local readiness verdict; nonzero/UNKNOWN when necessary observation is missing, failed or expired."
+      ],
+      "behavioralContract": [
+        "All declared consumers share one readiness deadline; positive allowed-origin probes require consumer-specific transport/status evidence and reject missing or malformed positive observations. Supply-chain additionally requires explicit CONNECT403 for unknown-destination denial and rejects arbitrary transport/proxy-auth failure. Claude's unknown-destination branch currently accepts any nonzero curl result; that branch alone does not distinguish policy rejection from transport failure, so policy-denial attribution remains UNKNOWN.",
+        "A conservative CONNECT403 signature can yield false-negative readiness for some actual sing-box reject policies; live provider/domain success is not entailed."
+      ],
+      "sharedRefs": [],
+      "evidence": [
+        "consumers/supply-chain/ready.sh",
+        "consumers/claude/ready.sh",
+        "consumers/chat-ingress/ready.sh",
+        "tests/test_readiness_shared_budget.py",
+        "tests/test_claude_egress_readiness_consumer.py"
+      ],
+      "consumerEvidence": [
+        "consumers/supply-chain/ready.sh",
+        "consumers/claude/ready.sh",
+        "consumers/chat-ingress/ready.sh"
+      ],
+      "dependencies": [
+        "N02"
+      ],
+      "mustNotOwn": [
+        "actual external origin semantics",
+        "Prometheus historical sample verification N03",
+        "universal denial proof"
+      ],
+      "acceptance": [
+        "Native isolated Bash fake-time test demonstrates a common failure consumes one shared deadline and cannot yield READY.",
+        "Existing consumer tests reject malformed or failed allowed-origin observations; supply-chain tests additionally reject unknown-destination transport, proxy-auth and origin-HTTP403 false positives. Claude tests reject reachable direct/unknown-origin HTTP403, but do not establish that an arbitrary failed unknown-destination probe denotes policy rejection. Installed readiness and true upstream observation require additional receipts."
+      ]
     }
   ],
   "edges": [
@@ -156,6 +296,30 @@
       "to": "N02",
       "type": "DEPENDENCY",
       "label": "optional provider/consumer specialization"
+    },
+    {
+      "from": "N02",
+      "to": "N06",
+      "type": "COMPOSITION",
+      "label": "data-plane composite contains consumer exact-route policy; source evidence only"
+    },
+    {
+      "from": "N05",
+      "to": "N07",
+      "type": "SPECIALIZATION",
+      "label": "developer CLI environment is one independent consumer profile"
+    },
+    {
+      "from": "N02",
+      "to": "N08",
+      "type": "OBSERVATION",
+      "label": "separate per-consumer readiness observes selected data plane"
+    },
+    {
+      "from": "N06",
+      "to": "N04",
+      "type": "FALSIFICATION",
+      "label": "native upstream-spy negative control for forbidden effects"
     }
   ],
   "slices": [
@@ -167,7 +331,10 @@
         "N02",
         "N03",
         "N04",
-        "N05"
+        "N05",
+        "N06",
+        "N07",
+        "N08"
       ],
       "acceptance": [
         "Every sampled path states its DNS resolver, proxy/tunnel, actual egress destination and independent observation.",
@@ -185,7 +352,8 @@
       ],
       "blockers": [
         "This is not a production DNS, VPN, WSL, Windows or compromised inner-layer proof; finish independent live consumer probes before changing NS2 status",
-        "Source ready.sh's CONNECT403-only acceptance is known overly conservative for native sing-box 1.14.3; policy rejection exists without this encoded receipt. Loaded deployed policy/source identity, live independent upstream effects, full DNS/WSL/VPN fail-closed guarantee remain UNKNOWN."
+        "Source ready.sh's CONNECT403-only acceptance is known overly conservative for native sing-box 1.14.3; policy rejection exists without this encoded receipt. Loaded deployed policy/source identity, live independent upstream effects, full DNS/WSL/VPN fail-closed guarantee remain UNKNOWN.",
+        "R2.1 new leaf consumer/environment source observation alone cannot prove installed cross-target route parity or broader deployed Network bypass resistance."
       ],
       "nextAction": "Requalify loaded sing-box policy/source identity and independent destination-level no-forwarding receipt before changing READY; preserve explicit transport-vs-policy failure distinction."
     }
