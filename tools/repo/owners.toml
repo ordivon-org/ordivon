@@ -109,3 +109,37 @@ verify_task = "capital:verify"
 name = "web"
 root = "apps/web/"
 verify_task = "web:verify"
+
+# Source navigation for paths outside registered verification owners.
+# These labels grant no authority, LEGO qualification, verify task or CI selection.
+# Historical projections read the regions from that exact Git SourceCut.
+[[source_regions]]
+name = "agent-method-library"
+description = "Repository method/knowledge Skills; not the platform Skills bridge service."
+paths = [".agents/skills/"]
+exclude = [".agents/skills/recursive-lego-calculus/"]
+
+[[source_regions]]
+name = "repository-engineering"
+description = "Git, source projections, verification selection and repository-native admission."
+paths = ["tools/repo/"]
+
+[[source_regions]]
+name = "research-contract-profiles"
+description = "Research publication/qualification schemas and profile tests; not scientific or execution authority."
+paths = ["meta/research/", "profiles/research/", "tests/catalogs/"]
+
+[[source_regions]]
+name = "architecture-documentation"
+description = "Architecture contracts, explanations and evidence; source classification is not current semantic acceptance."
+paths = ["docs/architecture/"]
+
+[[source_regions]]
+name = "migration-and-historical-records"
+description = "Migration, retirement and retrospective records; no inference of installed currentness."
+paths = ["docs/migration/", "docs/retro/"]
+
+[[source_regions]]
+name = "repository-configuration"
+description = "Repository configuration and automation; verification fanout is a separate selector."
+paths = [".github/", ".gitignore", ".gitleaksignore", "AGENTS.md", "README.md", "mise.toml", "renovate.json"]

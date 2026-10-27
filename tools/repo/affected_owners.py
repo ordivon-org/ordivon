@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from functools import lru_cache
 import os
 import subprocess
 import tomllib
@@ -97,7 +98,17 @@ def _normalize(path: str) -> str:
     return PurePosixPath(value).as_posix()
 
 
-OWNERS: tuple[Owner, ...] = load_owners()
+@lru_cache(maxsize=1)
+def _default_owners() -> tuple[Owner, ...]:
+    return load_owners()
+
+
+def __getattr__(name: str):
+    # Preserve the existing public tuple while exact-cut classification stays
+    # independent of mutable working-tree configuration, including on import.
+    if name == "OWNERS":
+        return _default_owners()
+    raise AttributeError(name)
 
 
 # Verification admission is strict for executable owners. Read-only owner
@@ -114,8 +125,9 @@ EXECUTABLE_OWNER_ROOTS = (
 
 
 def require_registered_execution_paths(
-    paths: Iterable[str], *, owners: tuple[Owner, ...] = OWNERS
+    paths: Iterable[str], *, owners: tuple[Owner, ...] | None = None
 ) -> None:
+    owners = _default_owners() if owners is None else owners
     unregistered = sorted({
         path for raw in paths
         if (path := _normalize(raw)).startswith(EXECUTABLE_OWNER_ROOTS)
@@ -126,8 +138,9 @@ def require_registered_execution_paths(
 
 
 def owners_for_paths(
-    paths: Iterable[str], *, owners: tuple[Owner, ...] = OWNERS
+    paths: Iterable[str], *, owners: tuple[Owner, ...] | None = None
 ) -> tuple[Owner, ...]:
+    owners = _default_owners() if owners is None else owners
     normalized = tuple(_normalize(path) for path in paths if path.strip())
     if any(path in CROSS_CUTTING_PATHS for path in normalized):
         return owners
@@ -152,10 +165,103 @@ def changed_paths(base: str, head: str) -> tuple[str, ...]:
     return tuple(os.fsdecode(path) for path in proc.stdout.split(b"\0") if path)
 
 
+
+def project_source_classification(repo: Path, source_revision: str) -> dict:
+    """Rebuild source navigation; never selects verification or qualifies a LEGO."""
+    from collections import Counter
+    from tempfile import TemporaryDirectory
+
+    try:
+        from tools.repo import source_history_legos as source
+    except ModuleNotFoundError:
+        import source_history_legos as source
+
+    source._require_exact_git_oid(repo, source_revision)
+    exact = source.git(repo, "--no-replace-objects", "rev-parse", "--verify",
+                       source_revision + "^{commit}").strip()
+    if exact != source_revision:
+        raise ValueError("sourceRevision must identify the exact requested commit")
+    tree = source.current_tree(repo, source_revision)
+    manifest_path = "tools/repo/owners.toml"
+    manifest_identity = tree.get(manifest_path, "")
+    if not manifest_identity.startswith(("100644:blob:", "100755:blob:")):
+        raise ValueError("owner manifest must be a regular source-cut file")
+    text = source.git(repo, "--no-replace-objects", "show",
+                      source_revision + ":" + manifest_path)
+    data = tomllib.loads(text)
+    with TemporaryDirectory(prefix="ordivon-source-classification-") as temp:
+        path = Path(temp) / "owners.toml"
+        path.write_text(text, encoding="utf-8", errors="surrogateescape")
+        native_owners = load_owners(path)
+    regions = data.get("source_regions", [])
+    if not isinstance(regions, list):
+        raise ValueError("source regions must be an array")
+    names = set()
+    for region in regions:
+        if not isinstance(region, dict) or set(region) - {"name", "description", "paths", "exclude"}:
+            raise ValueError("source region fields are navigation-only")
+        name = region.get("name")
+        if not isinstance(name, str) or not name.strip() or name in names:
+            raise ValueError("source region names must be nonempty and unique")
+        names.add(name)
+        if not isinstance(region.get("paths"), list) or not region["paths"]:
+            raise ValueError("source region requires literal paths")
+        if not isinstance(region.get("exclude", []), list):
+            raise ValueError("source region exclusions must be literal paths")
+        for rule in region["paths"] + region.get("exclude", []):
+            if not isinstance(rule, str) or not rule:
+                raise ValueError("source region requires nonempty literal paths")
+            normalized = _normalize(rule).rstrip("/") + ("/" if rule.endswith("/") else "")
+            if normalized != rule or rule in {".", "./", "/"}:
+                raise ValueError("source region rule must be canonical and non-root")
+
+    def matches(path: str, rule: str) -> bool:
+        return path.startswith(rule) if rule.endswith("/") else path == rule
+
+    entries = []
+    for path, identity in sorted(tree.items()):
+        # Git path bytes are identity. Do not strip/normalize filenames here.
+        owner = next((o.name for o in native_owners if path.startswith(o.root)), None)
+        matched = []
+        if owner is None:
+            matched = [
+                region["name"] for region in regions
+                if any(matches(path, rule) for rule in region["paths"])
+                and not any(matches(path, rule) for rule in region.get("exclude", []))
+            ]
+        standing = ("REGISTERED_OWNER_SOURCE" if owner is not None else
+                    "DECLARED_SOURCE_REGION" if len(matched) == 1 else
+                    "AMBIGUOUS" if matched else "UNASSIGNED")
+        entries.append({
+            "path": path, "sourceIdentity": identity, "verificationOwner": owner,
+            "sourceRegion": matched[0] if len(matched) == 1 else None,
+            "classificationStanding": standing,
+            "matchedRules": ["owners:" + owner] if owner is not None else
+                            ["source_regions:" + name for name in matched],
+        })
+    counts = Counter(row["classificationStanding"] for row in entries)
+    return {
+        "kind": "ordivon.repository-source-classification",
+        "truthRole": "SOURCE_NAVIGATION_NOT_OWNER_OR_LEGO_QUALIFICATION",
+        "sourceRevision": source_revision,
+        "sourceTree": source.git(repo, "--no-replace-objects", "rev-parse",
+                                 source_revision + "^{tree}").strip(),
+        "ownerManifestIdentity": manifest_identity,
+        "proofReuseAdmissible": False,
+        "summary": {
+            "trackedPaths": len(entries),
+            "registeredOwnerPaths": counts["REGISTERED_OWNER_SOURCE"],
+            "declaredRegionPaths": counts["DECLARED_SOURCE_REGION"],
+            "unassigned": counts["UNASSIGNED"], "ambiguous": counts["AMBIGUOUS"],
+        },
+        "entries": entries,
+    }
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Select monorepo owners affected by an exact Git range."
     )
+    parser.add_argument("--classify-source-revision", help="exact-cut source navigation; does not select verification")
     parser.add_argument("--base")
     parser.add_argument("--head")
     parser.add_argument("--all", action="store_true")
@@ -170,8 +276,13 @@ def _parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     args = _parser().parse_args()
+    if args.classify_source_revision:
+        if args.all or args.base or args.head or args.changed_file or args.format != "json":
+            raise SystemExit("source classification cannot be combined with verification selection")
+        print(json.dumps(project_source_classification(Path.cwd(), args.classify_source_revision), sort_keys=True))
+        return 0
     if args.all:
-        selected = OWNERS
+        selected = _default_owners()
         paths: tuple[str, ...] = ()
     else:
         if args.changed_file:
