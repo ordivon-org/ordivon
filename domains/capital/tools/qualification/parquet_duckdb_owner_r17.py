@@ -1,3 +1,12 @@
+"""Current Parquet producer / DuckDB independent-reader qualification.
+
+Source-role: external provider conformance probe (NOT an Ordivon domain owner,
+provider admission decision, or production financial write interface).
+Executable entry: scripts/run-parquet-duckdb-owner-requalification-r17.
+Prior R16/PyArrow 25 qualification is replaced by this current R17/PyArrow 26
+program; historical source remains recoverable from its original Git commit.
+"""
+
 from __future__ import annotations
 
 import hashlib

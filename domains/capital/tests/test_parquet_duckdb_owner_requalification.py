@@ -20,16 +20,6 @@ def test_exact_contract_requires_distinct_parquet_producer_and_readback_engine()
     assert contract["externalFinancialWritesAllowed"] is False
 
 
-def test_r16_historical_source_kept_immutable():
-    """Do not rewrite 25.0.1 R16 evidence while moving live acceptance to R17."""
-    import hashlib
-    archived = ROOT / "tools/qualification/parquet_duckdb_owner_r16.py"
-    assert hashlib.sha256(archived.read_bytes()).hexdigest() == (
-        "44fee1427550108cb74e90d71276dcdaa8d82343fbc2e215e86c405716068911"
-    )
-    assert '25.0.1' in archived.read_text()
-
-
 @pytest.mark.provider_qualification
 def test_r17_cross_engine_falsification_latest_pyarrow_python3150():
     out = subprocess.check_output(
