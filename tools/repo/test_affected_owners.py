@@ -458,6 +458,71 @@ class SourceClassificationTests(unittest.TestCase):
         assert row[".agents/skills/recursive-lego-calculus/SKILL.md"]["classificationLayer"] == "SOURCE_NAVIGATION_ONLY"
         assert row["loose/unplaced.txt"]["semanticName"] is None
 
+    def test_exact_git_manifest_declared_python_and_rust_entrypoints_not_installed(self) -> None:
+        import subprocess
+        root = Path(__file__).resolve().parents[2]
+        cut = subprocess.check_output(
+            ["git", "-C", str(root), "rev-parse", "HEAD"], text=True
+        ).strip()
+        result = MODULE.project_source_classification(root, cut)
+        index = {row["path"]: row for row in result["entries"]}
+        known = {
+            "capabilities/media/src/ordivon_studio/cli.py": "ordivon-studio",
+            "packages/composition/src/ordivon_composition/cognitive_circuit_r1.py": "ordivon-circuit",
+            "meta/next/experimental/episode-store-r1/src/ordivon_experimental_episode_store/analysis.py": "ordivon-episode-analyze",
+            "services/runtime/crates/ordivon-runtime-core/src/bin/ordivon-runtime-runner.rs": "ordivon-runtime-runner",
+            "services/runtime/crates/ordivon-runtime-core/src/bin/ordivon-runtime-job-fixture.rs": "ordivon-runtime-job-fixture",
+            "services/runtime/crates/ordivon-runtime-mcp/src/main.rs": "ordivon-runtime",
+        }
+        for path, command in known.items():
+            with self.subTest(path=path):
+                row = index[path]
+                self.assertEqual(len(row["sourceDeclaredEntrypoints"]), 1)
+                source = row["sourceDeclaredEntrypoints"][0]
+                self.assertEqual(source["commandName"], command)
+                self.assertEqual(source["standing"],
+                                 "GIT_MANIFEST_DECLARED_NOT_INSTALLED")
+                self.assertTrue(source["manifestSourceIdentity"].startswith(
+                    ("100644:blob:", "100755:blob:")
+                ))
+        self.assertEqual(result["summary"]["unresolvedSourceEntrypoints"], 0)
+        self.assertEqual(result["summary"]["sourceDeclaredEntrypoints"], 17)
+        self.assertFalse(result["proofReuseAdmissible"])
+
+    def test_manifest_command_mapping_changes_classification_without_source_change(self) -> None:
+        src = self.repo / "services/runtime/src/demo"
+        src.mkdir(parents=True)
+        (src / "cli.py").write_text("def main(): pass\n")
+        (src / "other.py").write_text("def main(): pass\n")
+        manifest = self.repo / "services/runtime/pyproject.toml"
+        manifest.write_text('[project.scripts]\ndemo = "demo.cli:main"\n')
+        before = self.commit()
+        index = {r["path"]: r for r in self.project(before)["entries"]}
+        old = index["services/runtime/src/demo/cli.py"]
+        self.assertEqual(old["sourceDeclaredEntrypoints"][0]["commandName"], "demo")
+        manifest.write_text('[project.scripts]\ndemo = "demo.other:main"\n')
+        after = self.commit()
+        delta = MODULE.project_source_classification_delta(self.repo, before, after)
+        old_file = next(e for e in delta["changes"]
+                        if e["path"] == "services/runtime/src/demo/cli.py")
+        self.assertFalse(old_file["sourceChanged"])
+        self.assertTrue(old_file["classificationChanged"])
+        self.assertEqual(old_file["after"]["sourceDeclaredEntrypoints"], [])
+        other = next(e for e in delta["changes"]
+                     if e["path"] == "services/runtime/src/demo/other.py")
+        self.assertFalse(other["sourceChanged"])
+        self.assertTrue(other["classificationChanged"])
+        self.assertFalse(delta["proofReuseAdmissible"])
+        manifest.write_text('[project.scripts]\ndemo = "untracked.cli:main"\n')
+        missing = self.project(self.commit())
+        self.assertEqual(missing["summary"]["unresolvedSourceEntrypoints"], 1)
+        self.assertIsNone(missing["unresolvedSourceEntrypoints"][0]["targetPath"])
+        manifest.write_text("not valid TOML", encoding="utf-8")
+        bad = self.project(self.commit())
+        self.assertEqual(bad["summary"]["unresolvedSourceEntrypoints"], 1)
+        self.assertEqual(bad["unresolvedSourceEntrypoints"][0]["standing"],
+                         "MANIFEST_PARSE_FAILED_SOURCE_ONLY")
+
     def test_real_source_interface_forms_keep_plugin_client_server_and_tests_distinct(self) -> None:
         import subprocess
         root = Path(__file__).resolve().parents[2]

@@ -754,6 +754,68 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
             raise ValueError(f"ambiguous source-only interface classification: {path}")
         return next(iter(forms)) if forms else None
 
+    # The exact versioned manifest, not a guessed filename, declares a command.
+    # This is SOURCE only. No installed/executed/consumer qualification follows.
+    declared_commands: dict[str, list[dict]] = {}
+    unresolved_commands: list[dict] = []
+    for manifest in sorted(tree):
+        if not tree[manifest].startswith(("100644:blob:", "100755:blob:")):
+            continue
+        prefix = manifest.rsplit("/", 1)[0] + "/" if "/" in manifest else ""
+        records = []
+        if manifest.endswith("/pyproject.toml"):
+            try:
+                doc = tomllib.loads(source.git(
+                    repo, "--no-replace-objects", "show", source_revision + ":" + manifest))
+            except tomllib.TOMLDecodeError:
+                unresolved_commands.append({
+                    "manifestPath": manifest, "manifestSourceIdentity": tree[manifest],
+                    "standing": "MANIFEST_PARSE_FAILED_SOURCE_ONLY",
+                })
+                continue
+            for name, spec in sorted(doc.get("project", {}).get("scripts", {}).items()):
+                if not isinstance(name, str) or not isinstance(spec, str):
+                    continue
+                module = spec.split(":", 1)[0]
+                if not module or any(not x.isidentifier() for x in module.split(".")):
+                    records.append((name, "PYTHON_PROJECT_SCRIPT", None))
+                    continue
+                key = module.replace(".", "/")
+                options = [prefix + stem + key + end for stem in ("src/", "")
+                           for end in (".py", "/__main__.py")]
+                resolved_files = [x for x in options if x in tree]
+                records.append((name, "PYTHON_PROJECT_SCRIPT",
+                                resolved_files[0] if len(resolved_files) == 1 else None))
+        elif manifest.endswith("/Cargo.toml"):
+            try:
+                doc = tomllib.loads(source.git(
+                    repo, "--no-replace-objects", "show", source_revision + ":" + manifest))
+            except tomllib.TOMLDecodeError:
+                unresolved_commands.append({
+                    "manifestPath": manifest, "manifestSourceIdentity": tree[manifest],
+                    "standing": "MANIFEST_PARSE_FAILED_SOURCE_ONLY",
+                })
+                continue
+            for row in doc.get("bin", []):
+                if not isinstance(row, dict):
+                    continue
+                name, rel = row.get("name"), row.get("path")
+                if not isinstance(name, str) or not isinstance(rel, str):
+                    continue
+                try:
+                    target = prefix + rel if _normalize(rel) == rel and rel not in {".", "./"} else None
+                except ValueError:
+                    target = None
+                records.append((name, "RUST_CARGO_BIN", target))
+        for name, kind, target in records:
+            entry = {"manifestPath": manifest, "manifestSourceIdentity": tree[manifest],
+                     "commandName": name, "commandKind": kind,
+                     "standing": "GIT_MANIFEST_DECLARED_NOT_INSTALLED"}
+            if target is None or not tree.get(target, "").startswith(("100644:blob:", "100755:blob:")):
+                unresolved_commands.append({**entry, "targetPath": target})
+            else:
+                declared_commands.setdefault(target, []).append(entry)
+
     root_by_owner = {o.name: o.root for o in native_owners}
     entries = []
     for path, identity in sorted(tree.items()):
@@ -800,6 +862,8 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
                 source_cell_role = "ROOT_MANIFEST_AND_ENTRYPOINT_FILES"
         file_form = source_file_form(path, identity)
         interface_form = source_interface_form(path)
+        source_declared = sorted(declared_commands.get(path, []),
+                                 key=lambda d: (d["manifestPath"], d["commandName"]))
         file_form_standing = (
             "GIT_EXECUTABLE_MODE_OBSERVED"
             if file_form == "EXECUTABLE_ENTRYPOINT_FILE"
@@ -829,6 +893,11 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
             "sourceFileForm": file_form,
             "sourceFileFormStanding": file_form_standing,
             "sourceInterfaceForm": interface_form,
+            "sourceDeclaredEntrypoints": source_declared,
+            "sourceDeclaredEntrypointStanding": (
+                "GIT_MANIFEST_DECLARED_NOT_INSTALLED" if source_declared
+                else "NO_SOURCE_MANIFEST_ENTRYPOINT"
+            ),
             "sourceInterfaceStanding": (
                 "SOURCE_ONLY_NOT_INSTALLED_OR_CAPABILITY_ADMITTED"
                 if interface_form is not None else "UNQUALIFIED_AS_PUBLIC_INTERFACE"
@@ -855,7 +924,13 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
         "ownerManifestIdentity": manifest_identity,
         "classifierSourceIdentity": tree.get("tools/repo/affected_owners.py"),
         "proofReuseAdmissible": False,
+        "unresolvedSourceEntrypoints": unresolved_commands,
         "summary": {
+            "sourceDeclaredEntrypoints": sum(
+                len(e["sourceDeclaredEntrypoints"]) for e in entries),
+            "sourceDeclaredEntrypointFiles": sum(
+                bool(e["sourceDeclaredEntrypoints"]) for e in entries),
+            "unresolvedSourceEntrypoints": len(unresolved_commands),
             "distinctOwnerCells": len({
                 row["sourceCell"] for row in entries
                 if row["sourceCell"] is not None
@@ -930,6 +1005,7 @@ def project_source_classification_delta(
                 "sourceSectionRole", "sourceCell", "sourceCellRole",
                 "sourceCellDisplayName", "sourceFileForm", "sourceFileFormStanding",
                 "sourceInterfaceForm", "sourceInterfaceStanding",
+                "sourceDeclaredEntrypoints", "sourceDeclaredEntrypointStanding",
                 "classificationLayer",
             ))
         )
