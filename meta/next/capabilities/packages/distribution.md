@@ -1,54 +1,29 @@
-# Package: Distribution
+# Package profile: Distribution
 
-Last census: 2026-09-13
-Standing: **READY_FOR_REAL_WORK**
+Source: /root/projects/ordivon/capabilities/distribution
 
-Current source owner: /root/projects/ordivon/capabilities/distribution
+## Outcome and actual consumer
 
-## Outcome scope
+A delivery task needs an exact destination/account/payload and provider-owned
+evidence of its result. Provider-native APIs/CLIs and IAM/OAuth are the default.
+No generic Ordivon distribution engine gap is established.
 
-Deliver an exact intended artifact/payload to an exact destination/provider/account and obtain authoritative evidence about the external result.
+The retained local cross-owner consumer is Workstation's n8n acceptance, which
+reads the R7 Artifact fixture as a negative input and constructs a synthetic
+blocked CloudEvent. Its separate positive branch performs GitHub GET/readback.
+It does not use a Distribution admission engine or authorize publication.
 
-Distribution is consequential-effect handling, not merely file copying. Provider acceptance/read-back is distinct from local upload/API success.
+The former custom approval, EffectAuthority, admission and reconciliation stack
+had only its own synthetic tests and is retired. Historical provider receipts
+and optional external-tool probes do not establish current delivery readiness.
 
-## Mature external knowledge owners
+## Task-local acceptance
 
-- provider-native publishing/upload APIs and destination rules;
-- provider-native account, identity and authorization mechanisms;
-- OAuth/OIDC or other established authorization protocols where applicable;
-- OCI Distribution Specification for OCI/content-registry use cases;
-- HTTP/provider idempotency and reconciliation semantics where supported;
-- platform-specific rollout, moderation, withdrawal and publication rules.
+Use the actual provider's authorization and effect identity, retain exact
+payload/account binding, and obtain authoritative readback. Reconcile ambiguous
+outcomes before retry unless native provider idempotency or absence evidence
+makes the retry safe. Select Runtime/workflow/integration capabilities only when
+the concrete task requires them.
 
-There is no benefit in inventing a universal Ordivon transport protocol over mature provider APIs.
-
-## Observed local capability
-
-Existing Distribution v2 (`/root/projects/ordivon-distribution-v2@03ccc562160b`) already provides useful bounded capability/evidence:
-
-- authenticated GitHub observation/read-back proven;
-- durable workflow -> integration-edge paths proven for non-effectful/read-only cases;
-- exact approval ingress exists;
-- exact intent/account/payload binding rules exist;
-- ambiguous-result retry rules are retained;
-- real provider writes remain authority-gated.
-
-Runtime, n8n, Skopeo/OCI tooling and provider-native clients/APIs can be composed as required.
-
-## Concrete current gaps
-
-No generic distribution engine gap is proven.
-
-Each new destination may expose a task-local adapter/authentication/read-back gap. Real writes require explicit effect authority; credentials alone are not sufficient authority.
-
-## Acceptance workload
-
-When a real publish/write is explicitly authorized:
-
-`exact intent + account + payload -> provider-native effect -> provider acceptance/read-back -> reconcile exact occurrence -> retain evidence`
-
-If the external result is ambiguous, do not blindly retry unless provider idempotency or authoritative absence evidence makes the retry safe.
-
-## External references
-
-- OCI Distribution Specification: https://github.com/opencontainers/distribution-spec/blob/main/spec.md
+External reference: OCI Distribution Specification for a real OCI registry use
+case: https://github.com/opencontainers/distribution-spec/blob/main/spec.md

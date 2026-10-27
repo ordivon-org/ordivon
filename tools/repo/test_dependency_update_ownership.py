@@ -65,8 +65,8 @@ def _dependency_update_owner_violations(root, ecosystem, manifests, watch_roots)
 
 class DependencyUpdateOwnershipTests(unittest.TestCase):
     def test_unconsumed_opa_toolchain_pins_are_retired(self):
-        """Capital uses native Python; Artifact binds an external release OPA carrier."""
-        for owner in ("domains/capital", "capabilities/artifact"):
+        """Retired policies do not install OPA; active external carriers stay explicit."""
+        for owner in ("domains/capital", "capabilities/artifact", "capabilities/distribution"):
             manifest = tomllib.loads((ROOT / owner / "mise.toml").read_text(encoding="utf-8"))
             self.assertNotIn("opa", manifest["tools"], f"{owner} must not install unused OPA")
         # Do not confuse an unconsumed Mise version pin with Artifact's actual
@@ -75,13 +75,13 @@ class DependencyUpdateOwnershipTests(unittest.TestCase):
         carrier = (ROOT / "capabilities/artifact/scripts/artifact_oci_package.py").read_text(encoding="utf-8")
         self.assertIn('os.environ.get("ARTIFACT_OPA"', carrier)
         self.assertIn('sha256_file(DEFAULT_OPA)', carrier)
-        for owner in ("platform/security", "capabilities/distribution"):
+        for owner in ("platform/security",):
             manifest = tomllib.loads((ROOT / owner / "mise.toml").read_text(encoding="utf-8"))
             self.assertIn("opa", manifest["tools"])
 
     def test_active_opa_policy_owners_consume_one_current_version(self):
         """Current OPA policy consumers converge; no stale Mise OPA release."""
-        owners = ("platform/security", "capabilities/distribution", "meta/next")
+        owners = ("platform/security", "meta/next")
         versions = {
             owner: tomllib.loads((ROOT / owner / "mise.toml").read_text(encoding="utf-8"))
             ["tools"]["opa"]
