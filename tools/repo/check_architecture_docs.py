@@ -648,6 +648,75 @@ def project_owner_lego_source_graph(
     }
 
 
+
+def inspect_owner_lego_contract(
+    *, source_revision: str, node_ref: str, root: Path = ROOT,
+) -> dict[str, Any]:
+    """Inspect one declared R2.1 contract at an immutable Git cut.
+
+    Existing Repo plan projection stays the only source; this compact query
+    is a read-only *source declaration*, not live consumer or Formal truth.
+    """
+    import subprocess
+
+    if not re.fullmatch(r"[0-9a-f]{40}", source_revision):
+        raise ArchitectureDocsError("inspect requires exact 40-hex SourceCut")
+    # The native graph validates the historical registered plans, typed edges,
+    # and evidence source identities; it must not infer deployed or proof PASS.
+    view = project_owner_lego_source_graph(root, source_revision=source_revision)
+    nodes = {row["ref"]: row for row in view["vertices"]}
+    if node_ref not in nodes:
+        raise ArchitectureDocsError("node ref is not registered at this SourceCut")
+    plan_path, node_id = node_ref.rsplit("#", 1)
+    planned = {row["path"]: row for row in view["sourcePlans"]}
+    if plan_path not in planned:
+        raise ArchitectureDocsError("node plan is not registered at this SourceCut")
+    try:
+        source_bytes = subprocess.check_output(
+            ["git", "--no-replace-objects", "-C", str(root),
+             "show", f"{source_revision}:{plan_path}"],
+            stderr=subprocess.PIPE,
+        )
+    except subprocess.CalledProcessError as exc:
+        raise ArchitectureDocsError("node plan Git source cannot be read") from exc
+    if "sha256:" + hashlib.sha256(source_bytes).hexdigest() != planned[plan_path]["sha256"]:
+        raise ArchitectureDocsError("node plan Git identity differs from validated projection")
+    plan = _load_json(root / plan_path, source_bytes=source_bytes)
+    candidates = [row for row in plan["nodes"] if row["id"] == node_id]
+    if len(candidates) != 1:
+        raise ArchitectureDocsError("node declaration is ambiguous")
+    node = candidates[0]
+    anchors = nodes[node_ref]["sourceAnchors"]
+    declared_relations = [
+        {"from": edge["from"], "type": edge["type"], "to": edge["to"]}
+        for edge in view["relations"]
+        if node_ref in (edge["from"], edge["to"])
+    ]
+    # Preserve absence explicitly, rather than treating an absent optional
+    # field or source anchor as a verified empty behavioral contract.
+    roles = ("id", "responsibility", "inputs", "outputs",
+             "behavioralContract", "acceptance")
+    return {
+        "kind": "ordivon.owner-lego-source-contract-inspection",
+        "truthRole": "SOURCE_PLAN_DECLARATION_ONLY_NOT_RUNTIME_OR_FORMAL_TRUTH",
+        "sourceCut": source_revision,
+        "ref": node_ref,
+        "planIdentity": planned[plan_path],
+        "declaredRoles": {key: node.get(key) for key in roles},
+        "missingRoles": [key for key in roles if not node.get(key)],
+        "declaredKind": node.get("kind"),
+        "declaredState": node.get("state"),
+        "declaredDependencies": node.get("dependencies", []),
+        "declaredConsumerEvidence": node.get("consumerEvidence", []),
+        "declaredFormalObligations": node.get("formalObligations", []),
+        "sourceAnchors": anchors,
+        "unresolvedSourceEvidence": nodes[node_ref]["unresolvedSourceEvidence"],
+        "sourceCoverageStanding": nodes[node_ref]["sourceCoverageStanding"],
+        "incidentRelations": declared_relations,
+        "unverifiedFacets": view["excluded"]["unverifiedFacets"],
+        "proofReuseAdmissible": False,
+    }
+
 def project_owner_lego_source_change(
     *, before_revision: str, after_revision: str, root: Path = ROOT,
 ) -> dict[str, Any]:
@@ -2025,6 +2094,7 @@ def validate_repository(root: Path = ROOT) -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--project-owner-graphs", action="store_true")
+    parser.add_argument("--inspect-owner-lego", help="exact registered plan path#node ID at --source-revision")
     parser.add_argument("--source-revision", help="exact Git commit for immutable graph projection")
     parser.add_argument("--compare-source-revision",
                         help="earlier immutable Git commit to compare against --source-revision")
@@ -2032,14 +2102,23 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--python-target-source", help="exact node-anchored Python src file")
     args = parser.parse_args(argv)
     try:
-        if args.source_revision and not (args.project_owner_graphs or args.inspect_python_node):
-            raise ArchitectureDocsError("--source-revision requires --project-owner-graphs or --inspect-python-node")
+        if args.source_revision and not (args.project_owner_graphs or args.inspect_python_node or args.inspect_owner_lego):
+            raise ArchitectureDocsError("--source-revision requires graph or node inspection")
+        if sum(bool(x) for x in (args.project_owner_graphs, args.inspect_python_node, args.inspect_owner_lego)) > 1:
+            raise ArchitectureDocsError("inspection and projection modes are mutually exclusive")
+        if args.inspect_owner_lego and (not args.source_revision or args.compare_source_revision or args.python_target_source):
+            raise ArchitectureDocsError("Owner LEGO inspection requires one exact SourceCut and no comparison")
         if args.compare_source_revision and not args.source_revision:
             raise ArchitectureDocsError("--compare-source-revision requires --source-revision")
         if bool(args.inspect_python_node) != bool(args.python_target_source):
             raise ArchitectureDocsError("Python inspect requires node and source together")
         if args.inspect_python_node and not args.source_revision:
             raise ArchitectureDocsError("Python inspect requires exact source revision")
+        if args.inspect_owner_lego:
+            print(json.dumps(inspect_owner_lego_contract(
+                source_revision=args.source_revision, node_ref=args.inspect_owner_lego
+            ), sort_keys=True))
+            return 0
         if args.inspect_python_node:
             value = (
                 project_node_python_import_delta(

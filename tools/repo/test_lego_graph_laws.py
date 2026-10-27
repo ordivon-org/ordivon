@@ -1886,3 +1886,43 @@ def test_next_r21_crossdomain_consumers_are_actual_source_symbols() -> None:
     forged["nodes"][1]["consumerBindings"][0]["symbols"] = ["made_up_lego_consumer"]
     with pytest.raises(AssertionError):
         qualify(forged)
+
+
+
+def test_agent_native_one_lego_compact_inspection_preserves_source_and_unknown() -> None:
+    """A consumer can inspect one real LEGO without re-reading the full graph."""
+    import subprocess
+    revision = subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+    ).strip()
+    ref = "services/gateway/planning/lego-plan-r1.json#G06"
+    result = module.inspect_owner_lego_contract(
+        source_revision=revision, node_ref=ref, root=ROOT,
+    )
+    graph = module.project_owner_lego_source_graph(ROOT, source_revision=revision)
+    assert result["ref"] == ref
+    assert result["sourceCut"] == revision
+    assert result["truthRole"] == "SOURCE_PLAN_DECLARATION_ONLY_NOT_RUNTIME_OR_FORMAL_TRUTH"
+    assert result["declaredRoles"]["responsibility"]
+    assert result["declaredRoles"]["behavioralContract"]
+    assert not result["missingRoles"]
+    assert result["sourceAnchors"]
+    assert not result["unresolvedSourceEvidence"]
+    assert "FORMAL_PROOF" in result["unverifiedFacets"]
+    assert "ACTUAL_CONSUMER" in result["unverifiedFacets"]
+    assert "INSTALLED" in result["unverifiedFacets"]
+    assert result["proofReuseAdmissible"] is False
+    assert len(json.dumps(result)) < len(json.dumps(graph)) // 3
+    assert all(ref in (x["from"], x["to"]) for x in result["incidentRelations"])
+
+    for invalid in ("services/gateway/planning/lego-plan-r1.json#NONEXISTENT",
+                    "../../etc/passwd#G06",
+                    "tools/repo/owners.toml#gateway"):
+        with pytest.raises(module.ArchitectureDocsError, match="not registered"):
+            module.inspect_owner_lego_contract(
+                source_revision=revision, node_ref=invalid, root=ROOT
+            )
+    with pytest.raises(module.ArchitectureDocsError, match="exact 40-hex"):
+        module.inspect_owner_lego_contract(
+            source_revision="HEAD", node_ref=ref, root=ROOT
+        )
