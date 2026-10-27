@@ -31,6 +31,25 @@ terminal domain acceptance separately; do not require every downstream
 business outcome before improving the kernel. This does not turn a design
 proof into deployed-system acceptance.
 
+## Mature-provider default — make the next replacement cheaper
+
+Before material design or implementation, **reuse existing candidate evidence**
+and native interfaces; perform a bounded official-standard, mature-project and
+relevant-research search only for remaining unknowns. Stop when a candidate
+can be decided; don't repeat unchanged investigations.
+
+Prefer **delete → internal reuse → mature external provider → compose/configure
+→ thin adapter → upstream contribution → evidenced custom implementation**.
+Evaluate candidates against the same consumer contract and negative tests,
+including license, maintenance, assumptions and effects. Keep frontier work
+isolated; justify custom work by a concrete unmet contract or counterexample.
+
+For each substitution, **retain provider-independent acceptance/proof duties**,
+native or standard interfaces, exact source/assumption evidence and any needed
+rollback and retirement conditions. Reuse these at the next replacement.
+Do not create a universal adapter, new registry, Agent or separate LEGO
+calculus for hypothetical future reuse; verifier PASS is always scoped.
+
 ## Practical rule
 
 A LEGO is one **goal-conditioned, replaceable responsibility** with identity, inputs, outputs, behavioral contract and acceptance. It is not a file, Agent, Skill, Tool or required runtime object.
