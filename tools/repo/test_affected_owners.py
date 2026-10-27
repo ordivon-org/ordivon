@@ -360,6 +360,21 @@ class SourceClassificationTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "source region"):
                     self.project(self.commit())
 
+    def test_real_cli_ignores_malformed_mutable_manifest(self) -> None:
+        import shutil
+        import json
+        for name in ["affected_owners.py", "source_history_legos.py"]:
+            shutil.copy2(MODULE_PATH.parent / name, self.repo / "tools/repo" / name)
+        cut = self.commit()
+        self.manifest.write_text("broken mutable TOML [")
+        proc = self.subprocess.run(
+            [sys.executable, "tools/repo/affected_owners.py",
+             "--classify-source-revision", cut],
+            cwd=self.repo, text=True, capture_output=True,
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(json.loads(proc.stdout)["sourceRevision"], cut)
+
     def test_mutable_revision_and_symlink_manifest_cannot_witness_classification(self) -> None:
         with self.assertRaisesRegex(ValueError, "exact"):
             self.project("HEAD")

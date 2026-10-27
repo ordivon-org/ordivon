@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from functools import lru_cache
 import os
 import subprocess
 import tomllib
@@ -97,7 +98,17 @@ def _normalize(path: str) -> str:
     return PurePosixPath(value).as_posix()
 
 
-OWNERS: tuple[Owner, ...] = load_owners()
+@lru_cache(maxsize=1)
+def _default_owners() -> tuple[Owner, ...]:
+    return load_owners()
+
+
+def __getattr__(name: str):
+    # Preserve the existing public tuple while exact-cut classification stays
+    # independent of mutable working-tree configuration, including on import.
+    if name == "OWNERS":
+        return _default_owners()
+    raise AttributeError(name)
 
 
 # Verification admission is strict for executable owners. Read-only owner
@@ -114,8 +125,9 @@ EXECUTABLE_OWNER_ROOTS = (
 
 
 def require_registered_execution_paths(
-    paths: Iterable[str], *, owners: tuple[Owner, ...] = OWNERS
+    paths: Iterable[str], *, owners: tuple[Owner, ...] | None = None
 ) -> None:
+    owners = _default_owners() if owners is None else owners
     unregistered = sorted({
         path for raw in paths
         if (path := _normalize(raw)).startswith(EXECUTABLE_OWNER_ROOTS)
@@ -126,8 +138,9 @@ def require_registered_execution_paths(
 
 
 def owners_for_paths(
-    paths: Iterable[str], *, owners: tuple[Owner, ...] = OWNERS
+    paths: Iterable[str], *, owners: tuple[Owner, ...] | None = None
 ) -> tuple[Owner, ...]:
+    owners = _default_owners() if owners is None else owners
     normalized = tuple(_normalize(path) for path in paths if path.strip())
     if any(path in CROSS_CUTTING_PATHS for path in normalized):
         return owners
@@ -269,7 +282,7 @@ def main() -> int:
         print(json.dumps(project_source_classification(Path.cwd(), args.classify_source_revision), sort_keys=True))
         return 0
     if args.all:
-        selected = OWNERS
+        selected = _default_owners()
         paths: tuple[str, ...] = ()
     else:
         if args.changed_file:
