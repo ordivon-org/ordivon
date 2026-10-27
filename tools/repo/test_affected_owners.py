@@ -450,6 +450,11 @@ class SourceClassificationTests(unittest.TestCase):
         self.assertEqual(network["sourceCellRole"], "NETWORK_CONSUMER_REQUIREMENT_SOURCE")
         self.assertEqual(network["verificationOwner"], "network")
         self.assertEqual(network["sourceFileForm"], "JSON_STRUCTURED_DATA_SOURCE")
+        # Skill prose, an MCP client manifest, and a Gateway service are not
+        # interchangeable Tool/Skill/Plugin types.
+        portable_method = rows[".agents/skills/recursive-lego-calculus/SKILL.md"]
+        self.assertEqual(portable_method["sourceFileForm"], "AGENT_SKILL_INSTRUCTION_SOURCE")
+        self.assertIsNone(portable_method["verificationOwner"])
         self.assertEqual(rows[paths[1]]["sourceCellRole"], "RUNTIME_MCP_CRATE_SOURCE")
         self.assertEqual(rows[paths[2]]["sourceCellRole"], "UNQUALIFIED_NESTED_CELL")
         self.assertFalse(d["proofReuseAdmissible"])
