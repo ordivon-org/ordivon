@@ -234,6 +234,105 @@ class LiveRecursiveCellsTests(unittest.TestCase):
         assert len(out["cells"]) > out["summary"]["sourceZones"]
 
 
+class Phase1ProblemCandidateTests(unittest.TestCase):
+    """Current Git phase-one triage does not authorize repair or invent LEGO."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cut = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+        ).strip()
+        cls.source = M.classification(ROOT, cls.cut)
+        cls.frontier = M.problem_unit_candidates(cls.source, repo=ROOT)
+
+    def test_covers_every_recursive_source_cell_without_declaring_a_lego(self):
+        out = self.frontier
+        self.assertEqual(out["sourceCut"], self.cut)
+        self.assertEqual(out["sourceTree"], self.source["sourceTree"])
+        self.assertFalse(out["proofReuseAdmissible"])
+        self.assertEqual(out["actionAuthority"], "NONE")
+        self.assertEqual(out["allActualConsumerRelations"], "UNKNOWN")
+        self.assertEqual(out["installedCurrentness"], "UNKNOWN")
+        self.assertEqual(out["formalQualification"], "UNKNOWN")
+        self.assertEqual(
+            sum(x["sourcePathCount"] for x in out["recursiveSourceUnits"]),
+            self.source["summary"]["trackedPaths"],
+        )
+        self.assertEqual(
+            len(out["recursiveSourceUnits"]),
+            out["summary"]["recursivePhysicalCells"],
+        )
+        self.assertTrue(all(
+            x["recursionStanding"] == "GIT_PHYSICAL_PREFIX_ONLY"
+            for x in out["recursiveSourceUnits"]))
+        self.assertTrue(all(
+            x["memberGitObjectDigest"].startswith("sha256:")
+            for x in out["recursiveSourceUnits"]))
+
+    def test_candidate_scope_disjoint_and_existing_problem_tags_preserved(self):
+        out = self.frontier
+        units = out["problemCandidates"]
+        self.assertEqual(len(units), out["summary"]["candidateCount"])
+        self.assertEqual(len({x["problemRef"] for x in units}), len(units))
+        kinds = out["summary"]["candidateKinds"]
+        self.assertEqual(
+            kinds["RECURSIVE_SOURCE_CELL_REVIEW"],
+            out["summary"]["problemTaggedPhysicalCells"],
+        )
+        self.assertEqual(
+            kinds["PLAN_NODE_DECLARATION_REVIEW"],
+            sum(bool(n["problems"]) for n in self.source["semanticPlans"]["nodes"]),
+        )
+        self.assertEqual(
+            kinds["BARE_NODE_ID_SCOPING_REVIEW"],
+            len(self.source["semanticPlans"]["sameLocalIdAcrossPlans"]),
+        )
+        self.assertEqual(
+            kinds["LOCAL_PLAN_SCOPE_REVIEW"],
+            len(self.source["summary"]["registeredRootsWithoutLocalLegoPlan"]),
+        )
+        self.assertEqual(
+            kinds["DECLARED_STRUCTURE_MAPPING_REVIEW"], 25,
+        )
+        self.assertTrue(all(x["labels"] for x in units))
+
+    def test_node_id_is_plan_scoped_and_historical_issue_is_not_current(self):
+        units = self.frontier["problemCandidates"]
+        plan_nodes = [x for x in units if x["kind"] == "PLAN_NODE_DECLARATION_REVIEW"]
+        for node in plan_nodes:
+            self.assertIn(".json#", node["planScopedNodeRef"])
+            self.assertTrue(node["problemRef"].endswith(node["planScopedNodeRef"]))
+        historical = [x for x in units if x["kind"] == "DATED_ISSUE_REVALIDATION"]
+        for unit in historical:
+            self.assertEqual(unit["labels"], [
+                "HISTORICAL_ISSUE_NOT_CURRENTLY_REVALIDATED"])
+        self.assertEqual(
+            len(historical), 16 if
+            "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261025_R1.json"
+            in {p["path"] for p in self.source["sourcePaths"]} else 0
+        )
+
+    def test_mapping_incidence_is_not_exploded_into_per_file_issues(self):
+        units = self.frontier["problemCandidates"]
+        maps = [x for x in units
+                if x["kind"] == "DECLARED_STRUCTURE_MAPPING_REVIEW"]
+        self.assertEqual(len(maps), 25)
+        self.assertTrue(all(x["problemRef"].startswith("structure-map:") for x in maps))
+        self.assertTrue(all(isinstance(x["effectiveCurrentSourcePaths"], int) for x in maps))
+        self.assertTrue(all(
+            x["labels"] == ["SOURCE_TARGET_DECLARATION_NOT_CONSUMER_CUTOVER_PROOF"]
+            for x in maps))
+        self.assertFalse(any("ACTUAL_CONSUMER" in x for x in maps))
+
+    def test_exact_source_is_reproducible_and_invalid_depth_rejected(self):
+        a = self.frontier
+        b = M.problem_unit_candidates(self.source, repo=ROOT)
+        self.assertEqual(a, b)
+        with self.assertRaisesRegex(ValueError, "cell limits"):
+            M.problem_unit_candidates(self.source, repo=ROOT, max_files=0)
+
+
+
 class PythonStaticConsumerFrontierTests(unittest.TestCase):
     """Exact Git source import witnesses, not runtime/consumer qualification."""
 

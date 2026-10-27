@@ -441,6 +441,178 @@ def active_source_cells(
     return result
 
 
+
+
+def problem_unit_candidates(inventory: dict, *, repo: Path,
+                            max_files: int = 24, max_depth: int = 6) -> dict:
+    """Project Phase 1 *questions*, not admitted LEGO or repair work.
+
+    Reuse exact-Git source cells, plan nodes, and structure R2 declarations.
+    Stable query keys are scoped physical paths/plan paths/map IDs, never a
+    globally unique bare node name or a newly persisted issue registry.
+    """
+    cells = active_source_cells(
+        inventory, repo=repo, max_files=max_files, max_depth=max_depth,
+        include_member_index=True)
+    memberships = cells["memberCellDigests"]
+    members = {r["path"]: r for r in inventory["sourcePaths"]}
+    assert set(memberships) == set(members)
+
+    # A complete source-cell index is a recursive PHYSICAL navigation view;
+    # its parents are prefixes, not verified callable or semantic relations.
+    recursive_source_units = [{
+        "sourceCellRef": "source-cell:" + c["sourceZone"] + ":" + c["physicalPrefix"],
+        "sourceZone": c["sourceZone"],
+        "physicalPrefix": c["physicalPrefix"],
+        "depth": c["depth"],
+        "sourcePathCount": c["pathCount"],
+        "memberGitObjectDigest": c["memberGitObjectDigest"],
+        "labels": c["problems"],
+        "sourceCarriers": c["sourceCarriers"],
+        "recursionStanding": "GIT_PHYSICAL_PREFIX_ONLY",
+    } for c in cells["cells"]]
+    source_cell_refs = [c["sourceCellRef"] for c in recursive_source_units]
+    if len(source_cell_refs) != len(set(source_cell_refs)):
+        raise ValueError("source cells have ambiguous physical query handles")
+    assert sum(c["sourcePathCount"] for c in recursive_source_units) == len(members)
+
+    units = []
+    for cell in cells["cells"]:
+        if not cell["problems"]:
+            continue
+        units.append({
+            "problemRef": "source-cell:" + cell["sourceZone"] + ":" + cell["physicalPrefix"],
+            "kind": "RECURSIVE_SOURCE_CELL_REVIEW",
+            "sourceZone": cell["sourceZone"],
+            "sourcePrefix": cell["physicalPrefix"],
+            "sourceCellDigest": cell["memberGitObjectDigest"],
+            "recursiveDepth": cell["depth"],
+            "sourcePathCount": cell["pathCount"],
+            "labels": cell["problems"],
+            "sourceProblemCounts": cell["sourceProblemCounts"],
+            "planDeclarationProblemCounts": cell["planDeclarationProblemCounts"],
+        })
+
+    graph = inventory["semanticPlans"]
+    for node in graph["nodes"]:
+        if not node["problems"]:
+            continue
+        units.append({
+            "problemRef": "plan-node:" + node["nodeRef"],
+            "kind": "PLAN_NODE_DECLARATION_REVIEW",
+            "planScopedNodeRef": node["nodeRef"],
+            "sourceCellDigest": memberships.get(node["plan"]),
+            "labels": node["problems"],
+            "shape": node["shape"],
+            "declarations": node["declarations"],
+        })
+
+    policy = read_policy(repo, inventory["sourceCut"])
+    for root in inventory["summary"]["registeredRootsWithoutLocalLegoPlan"]:
+        matches = [o for o in policy["owners"] if o["name"] == root]
+        if len(matches) != 1:
+            raise ValueError("planless verification root must resolve exactly once")
+        prefix = matches[0]["root"]
+        units.append({
+            "problemRef": "plan-scope:" + prefix,
+            "kind": "LOCAL_PLAN_SCOPE_REVIEW",
+            "sourcePrefix": prefix,
+            "sourcePathCount": sum(p.startswith(prefix) for p in members),
+            "labels": ["LOCAL_PLAN_NOT_DECLARED_NOT_PROOF_OF_MISSING_LEGO"],
+        })
+
+    structure = read_json(
+        repo, inventory["sourceCut"],
+        "docs/architecture/structure-r2-transition-r1.json")
+    for row in structure["mappings"]:
+        source_rules = row.get("sourcePaths", [])
+        # Count effective winners, never infer a target is installed or that
+        # every source path is a separate problem LEGO.
+        effective = 0
+        for path in members:
+            matches = [
+                (len(rule), item["id"]) for item in structure["mappings"]
+                for rule in item.get("sourcePaths", []) if is_match(path, rule)]
+            if matches and any(
+                i == row["id"] and n == max(x[0] for x in matches)
+                for n, i in matches):
+                effective += 1
+        units.append({
+            "problemRef": "structure-map:" + row["id"],
+            "kind": "DECLARED_STRUCTURE_MAPPING_REVIEW",
+            "mappingId": row["id"],
+            "mode": row.get("mode"),
+            "sourcePrefixes": source_rules,
+            "targetPrefixes": row.get("targetPaths", []),
+            "effectiveCurrentSourcePaths": effective,
+            "targetTrackedSourceCounts": {
+                prefix: sum(is_match(p, prefix) for p in members)
+                for prefix in row.get("targetPaths", [])
+            },
+            "labels": ["SOURCE_TARGET_DECLARATION_NOT_CONSUMER_CUTOVER_PROOF"],
+        })
+
+    for local_id, refs in graph["sameLocalIdAcrossPlans"].items():
+        units.append({
+            "problemRef": "scoped-node-name:" + local_id,
+            "kind": "BARE_NODE_ID_SCOPING_REVIEW",
+            "bareLocalId": local_id,
+            "fullyScopedNodeRefs": refs,
+            "labels": ["BARE_LOCAL_ID_COLLISION_NOT_WITHIN_PLAN_DUPLICATE"],
+        })
+
+    # Previously registered issues are historical dated observations. They
+    # are useful search seeds but must never silently become current defects.
+    dated = "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261025_R1.json"
+    if dated in members:
+        historical = read_json(repo, inventory["sourceCut"], dated)
+        for issue in historical.get("issues", []):
+            units.append({
+                "problemRef": "dated-issue:" + dated + "#" + issue["id"],
+                "kind": "DATED_ISSUE_REVALIDATION",
+                "datedEvidencePath": dated,
+                "historicalIssueId": issue["id"],
+                "declaredHistoricalClass": issue.get("problemClass"),
+                "declaredHistoricalStanding": issue.get("standing"),
+                "labels": ["HISTORICAL_ISSUE_NOT_CURRENTLY_REVALIDATED"],
+            })
+
+    refs = [unit["problemRef"] for unit in units]
+    if len(refs) != len(set(refs)):
+        raise ValueError("problem candidate references must be unique")
+    kinds = collections.Counter(u["kind"] for u in units)
+    return {
+        "kind": "ordivon.phase1-readonly-problem-unit-candidates",
+        "sourceCut": inventory["sourceCut"],
+        "sourceTree": inventory["sourceTree"],
+        "sourcePathDigest": inventory["sourcePathDigest"],
+        "truthBoundary": "Git source/dated declarations only; not real issue admission, callable LEGO, or consumer closure",
+        "proofReuseAdmissible": False,
+        "allActualConsumerRelations": "UNKNOWN",
+        "installedCurrentness": "UNKNOWN",
+        "formalQualification": "UNKNOWN",
+        "actionAuthority": "NONE",
+        "summary": {
+            "trackedPaths": len(members),
+            "recursivePhysicalCells": cells["summary"]["cells"],
+            "problemTaggedPhysicalCells": cells["summary"]["problemCells"],
+            "problemTaggedCellsByLabel": cells["summary"]["problemCounts"],
+            "declaredPlanNodes": len(graph["nodes"]),
+            "structureMappingDeclarations": len(structure["mappings"]),
+            "candidateCount": len(units),
+            "candidateKinds": dict(sorted(kinds.items())),
+            "unassignedGitPaths": sum(
+                r["currentSource"]["standing"] != "CLASSIFIED"
+                for r in members.values()),
+            "planningNodeIssues": inventory["summary"]["nodeProblems"],
+            "sourceProblemPathIncidences": inventory["summary"]["sourceProblemCounts"],
+            "candidateIssueOverlapsAllowed": True,
+        },
+        "problemCandidates": units,
+        "recursiveSourceUnits": recursive_source_units,
+    }
+
+
 def lookup_source_paths(inventory: dict, *, repo: Path,
                         paths: list[str], max_files: int = 24,
                         max_depth: int = 6) -> dict:
@@ -865,6 +1037,8 @@ def main() -> int:
                         help="exact Git AST import candidate references; not live consumers")
     parser.add_argument("--imports-prefix",
                         help="show AST import hints touching this canonical source prefix")
+    parser.add_argument("--problem-units", action="store_true",
+                        help="rebuild exact-cut Phase 1 problem LEGO candidates without qualifying or fixing them")
     parser.add_argument("--live-cells", action="store_true",
                         help="derive fresh exact-Git recursive source cells; never load saved snapshots")
     parser.add_argument("--use-proposal-cells", action="store_true",
@@ -877,7 +1051,7 @@ def main() -> int:
     if args.reference_path:
         if (args.lookup_path or args.static_python_consumers or args.live_cells
                 or args.proposal_cut or args.use_proposal_cells or args.only_problems
-                or args.imports_prefix or args.summary):
+                or args.imports_prefix or args.summary or args.problem_units):
             parser.error("reference witness mode is mutually exclusive with projection modes")
         result = exact_git_reference_hints(
             args.repo, args.source_cut, args.reference_path,
@@ -891,10 +1065,11 @@ def main() -> int:
     if args.lookup_path and args.static_python_consumers:
         parser.error("exact source-cell path lookup and static consumer scan are separate modes")
     if args.lookup_path and (args.live_cells or args.only_problems or args.summary
+                            or args.problem_units
                             or args.use_proposal_cells):
         parser.error("--lookup-path is a distinct small-result mode")
     if args.static_python_consumers:
-        if args.proposal_cut or args.live_cells or args.only_problems:
+        if args.proposal_cut or args.live_cells or args.only_problems or args.problem_units:
             parser.error("static import hints cannot claim proposed classifications or moves")
         result = static_python_import_frontier(
             args.repo, args.source_cut, focus_prefix=args.imports_prefix)
@@ -905,7 +1080,20 @@ def main() -> int:
                 "unindexedModuleLayoutSamples")}
         print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2))
         return 0
+    if args.problem_units and (args.live_cells or args.only_problems
+                               or args.use_proposal_cells or args.lookup_path
+                               or args.proposal_cut):
+        parser.error("--problem-units is a separate current-source-only question view")
     result = classification(args.repo, args.source_cut, args.proposal_cut)
+    if args.problem_units:
+        result = problem_unit_candidates(
+            result, repo=args.repo, max_files=args.cell_max_files,
+            max_depth=args.cell_max_depth)
+        if args.summary:
+            result.pop("problemCandidates")
+            result.pop("recursiveSourceUnits")
+        print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2))
+        return 0
     if args.lookup_path:
         result = lookup_source_paths(
             result, repo=args.repo, paths=args.lookup_path,
