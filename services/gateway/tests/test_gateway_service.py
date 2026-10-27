@@ -79,7 +79,9 @@ def test_windows_context_is_dynamic_data_not_gateway_schema_enum() -> None:
             by_name = {tool.name: tool for tool in tools.tools}
             assert client.server_info is not None
             assert client.server_info.name == "ordivon-gateway"
-            assert client.server_info.version == "0.8.1"
+            assert client.server_info.version == __import__(
+                "importlib.metadata", fromlist=["version"]
+            ).version("ordivon-gateway")
             assert set(by_name) == {
                 "system.describe",
                 "capability.describe",
@@ -151,7 +153,9 @@ def test_host_pagination_bounds_are_discoverable_before_owner_call() -> None:
 
 def test_system_description_uses_package_release_identity() -> None:
     service = GatewayService(FakeOwnerCaller())
-    assert service.system_describe().gateway_version == "0.8.1"
+    assert service.system_describe().gateway_version == __import__(
+        "importlib.metadata", fromlist=["version"]
+    ).version("ordivon-gateway")
 
 
 def test_execution_submit_lowers_linux_without_leaking_owner_schema() -> None:

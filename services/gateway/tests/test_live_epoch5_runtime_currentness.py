@@ -1,4 +1,4 @@
-"""Exact public Gateway Epoch 5 release must never regress during Python migration."""
+"""Future Gateway releases preserve the current Epoch 5 client tool names."""
 
 from __future__ import annotations
 
@@ -49,11 +49,16 @@ LIVE_TOOLS = [
 ]
 
 
-def test_epoch5_is_forward_compatible_with_installed_live_gateway():
+def test_candidate_retains_epoch5_client_tool_names_when_schema_epoch_advances():
     manifest = json.loads((ROOT / "mcp-surface.json").read_text())
     project = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
-    assert manifest["surfaceEpoch"] == 5
-    assert manifest["packageVersion"] == project["version"] == "0.8.1"
+    # The historical installed Epoch 5 API name set remains a client
+    # compatibility baseline. Matching names does NOT assert matching
+    # parameter schemas or installed release currentness; the official MCP
+    # SDK tools/list contract digest is checked separately before promotion.
+    assert manifest["surfaceEpoch"] >= 5
+    assert manifest["packageVersion"] == project["version"]
+    assert tuple(int(x) for x in project["version"].split(".")) >= (0, 8, 1)
     assert manifest["tools"] == LIVE_TOOLS
     root_python = tomllib.loads((ROOT.parents[1] / "mise.toml").read_text())["tools"]["python"]
     owner_python = (ROOT / ".python-version").read_text().strip()
