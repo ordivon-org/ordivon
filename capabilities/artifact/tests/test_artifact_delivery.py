@@ -149,6 +149,59 @@ def make_pptx(path: Path, text: str = "正式内容", font: str = "Microsoft YaH
 
 
 class ArtifactDeliveryTests(unittest.TestCase):
+    def test_contract_json_rejects_duplicate_keys_at_all_nesting_levels(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            schema = root / "schema.json"
+            schema.write_text('{"type":"object"}', encoding="utf-8")
+            source = root / "source.json"
+            for payload in (
+                '{"kind":"shadow","kind":"presentation-source"}',
+                '{"kind":"presentation-source","profile":{"id":"old","id":"new"}}',
+            ):
+                with self.subTest(payload=payload):
+                    source.write_text(payload, encoding="utf-8")
+                    result = validate_json_document(source, schema, "presentation-source")
+                    self.assertEqual(result["status"], "FAIL", result)
+                    self.assertEqual(result["jsonSchema"]["status"], "FAIL", result)
+                    self.assertTrue(
+                        any("duplicate JSON key" in failure for failure in result["failures"]),
+                        result,
+                    )
+
+            source.write_text('{"kind":"presentation-source"}', encoding="utf-8")
+            schema.write_text('{"type":"object","type":"array"}', encoding="utf-8")
+            result = validate_json_document(source, schema, "presentation-source")
+            self.assertEqual(result["status"], "FAIL", result)
+            self.assertTrue(
+                any("JSON Schema parse failed: duplicate JSON key" in item for item in result["failures"]),
+                result,
+            )
+
+    def test_presentation_consumer_rejects_ambiguous_source_kind(self) -> None:
+        from artifact_capabilities.presentation.admission import admit_presentation_source
+
+        source_fixture = ROOT / "artifact-delivery/examples/presentation-native-smoke-source-r1.json"
+        original = source_fixture.read_text(encoding="utf-8")
+        self.assertIn('"kind": "presentation-source"', original)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "source.json"
+            path.write_text(
+                original.replace(
+                    '"kind": "presentation-source"',
+                    '"kind": "untrusted-shadow", "kind": "presentation-source"',
+                    1,
+                ),
+                encoding="utf-8",
+            )
+            result, materials, failures = admit_presentation_source(
+                path, validate_json_document=validate_json_document
+            )
+            self.assertEqual(result["status"], "FAIL", result)
+            self.assertEqual(materials, [])
+            self.assertIn("presentation source did not PASS validation", failures)
+            self.assertTrue(any("duplicate JSON key: kind" in item for item in result["failures"]))
+
     def test_profile_declares_no_universal_document_model(self) -> None:
         profile = json.loads((ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json").read_text())
         self.assertEqual(profile["artifactClass"], "presentation")
