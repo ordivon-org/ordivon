@@ -121,3 +121,9 @@ Windows availability, effect permission, credential continuity or end-to-end
 consumer success. The dated September deployment baseline must not be used as
 a complete current capability inventory. Refresh the native interfaces when
 a decision depends on those facts; do not copy another permanent live catalog.
+
+A finite catalog crosscheck found eleven package cards but twelve named families
+across the package index and CAPABILITY_PACKAGES_R1.md. Business Operations was
+the omitted index entry. The index now links the existing section and historical
+ERPNext/Frappe acceptance rather than creating another card, provider or service.
+This fixes discovery documentation; no runtime dispatch failure was demonstrated.
