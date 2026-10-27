@@ -264,5 +264,233 @@ verify_task = "y:verify"
                 MODULE.load_owners(path)
 
 
+
+class SourceClassificationTests(unittest.TestCase):
+    """Exercise real Git cuts; path classification never selects execution authority."""
+
+    def setUp(self) -> None:
+        import subprocess
+        self.subprocess = subprocess
+        self.temp = tempfile.TemporaryDirectory(prefix="ordivon-source-regions-")
+        self.addCleanup(self.temp.cleanup)
+        self.repo = Path(self.temp.name)
+        self.git("init", "-q", "-b", "main")
+        self.git("config", "user.name", "Source Region Test")
+        self.git("config", "user.email", "source-region@example.invalid")
+        self.header = (
+            'schema_version = 1\ntruth_role = "repository-mechanics-only-not-domain-authority"\n'
+            '[[owners]]\nname = "runtime"\nroot = "services/runtime/"\n'
+            'verify_task = "runtime:verify"\n'
+        )
+        self.manifest = self.repo / "tools/repo/owners.toml"
+        self.manifest.parent.mkdir(parents=True)
+        self.manifest.write_text(self.header)
+        for name in ["services/runtime/main.rs", ".agents/skills/recursive-lego-calculus/SKILL.md",
+                     "loose/unplaced.txt", "mise.toml", "odd/ leading\npath.txt"]:
+            p = self.repo / name
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text("source")
+        self.base = self.commit()
+
+    def git(self, *args: str) -> str:
+        return self.subprocess.check_output(
+            ["git", "-c", "maintenance.auto=false", "-c", "gc.auto=0",
+             "-C", str(self.repo), *args], text=True
+        ).strip()
+
+    def commit(self) -> str:
+        self.git("add", ".")
+        self.git("commit", "-qm", "source cut")
+        return self.git("rev-parse", "HEAD")
+
+    def project(self, cut: str) -> dict:
+        fn = getattr(MODULE, "project_source_classification", None)
+        self.assertTrue(callable(fn), "existing Repo CLI must expose exact-cut source classification")
+        return fn(self.repo, cut)
+
+    def test_semantic_names_do_not_become_verification_authorities(self) -> None:
+        # Source presentation changes without changing the actual owner ID
+        # or granting it an additional verification task or runtime authority.
+        src = self.header.replace(
+            'name = "runtime"\n',
+            'name = "runtime"\nsemantic_name = "Execution Runtime"\n'
+        )
+        self.manifest.write_text(
+            src + '\n[[source_regions]]\n'
+            'name = "methods"\n'
+            'description = "Agent methods not service routing"\n'
+            'paths = [".agents/skills/"]\n'
+        )
+        cut = self.commit()
+        projection = self.project(cut)
+        row = {r["path"]: r for r in projection["entries"]}
+        assert row["services/runtime/main.rs"]["verificationOwner"] == "runtime"
+        assert row["services/runtime/main.rs"]["semanticName"] == "Execution Runtime"
+        assert row["services/runtime/main.rs"]["classificationLayer"] == "REPOSITORY_VERIFICATION_REGION"
+        assert row[".agents/skills/recursive-lego-calculus/SKILL.md"]["semanticName"] == "Agent methods not service routing"
+        assert row[".agents/skills/recursive-lego-calculus/SKILL.md"]["verificationOwner"] is None
+        assert row[".agents/skills/recursive-lego-calculus/SKILL.md"]["classificationLayer"] == "SOURCE_NAVIGATION_ONLY"
+        assert row["loose/unplaced.txt"]["semanticName"] is None
+
+    def test_regions_classify_source_without_manufacturing_execution_owner(self) -> None:
+        self.manifest.write_text(self.header + (
+            '\n[[source_regions]]\nname = "lego-core"\n'
+            'paths = [".agents/skills/recursive-lego-calculus/"]\n'
+        ))
+        cut = self.commit()
+        value = self.project(cut)
+        entries = {e["path"]: e for e in value["entries"]}
+        self.assertEqual(entries["services/runtime/main.rs"]["verificationOwner"], "runtime")
+        core = entries[".agents/skills/recursive-lego-calculus/SKILL.md"]
+        self.assertEqual(core["sourceRegion"], "lego-core")
+        self.assertIsNone(core["verificationOwner"])
+        self.assertEqual(core["classificationStanding"], "DECLARED_SOURCE_REGION")
+        self.assertEqual(entries["loose/unplaced.txt"]["classificationStanding"], "UNASSIGNED")
+        # Cross-cutting verification fanout must not masquerade as file ownership.
+        self.assertIsNone(entries["mise.toml"]["verificationOwner"])
+        self.assertEqual(value["sourceRevision"], cut)
+        self.assertFalse(value["proofReuseAdmissible"])
+        old = self.project(self.base)
+        prior = next(e for e in old["entries"] if e["path"] == core["path"])
+        self.assertEqual(prior["classificationStanding"], "UNASSIGNED")
+        # Mutable bytes cannot backfill a historical SourceCut.
+        self.manifest.write_text("broken mutable worktree")
+        self.assertEqual(self.project(cut), value)
+
+    def test_overlapping_regions_remain_ambiguous_and_git_names_are_lossless(self) -> None:
+        self.manifest.write_text(self.header + (
+            '\n[[source_regions]]\nname = "one"\npaths = ["odd/"]\n'
+            '\n[[source_regions]]\nname = "two"\npaths = ["odd/"]\n'
+        ))
+        value = self.project(self.commit())
+        row = next(e for e in value["entries"] if e["path"] == "odd/ leading\npath.txt")
+        self.assertEqual(row["classificationStanding"], "AMBIGUOUS")
+        self.assertIsNone(row["sourceRegion"])
+        self.assertEqual(len(row["matchedRules"]), 2)
+        self.assertEqual(value["summary"]["ambiguous"], 1)
+        self.manifest.write_text(self.manifest.read_text() + 'exclude = ["odd/"]\n')
+        fixed = self.project(self.commit())
+        row = next(e for e in fixed["entries"] if e["path"] == "odd/ leading\npath.txt")
+        self.assertEqual(row["sourceRegion"], "one")
+        self.assertEqual(row["classificationStanding"], "DECLARED_SOURCE_REGION")
+
+    def test_regions_cannot_acquire_validation_or_authority(self) -> None:
+        for field in ["verify_task", "authority"]:
+            with self.subTest(field=field):
+                self.manifest.write_text(self.header + (
+                    '\n[[source_regions]]\nname = "pretender"\npaths = ["loose/"]\n'
+                    + field + ' = "runtime:verify"\n'
+                ))
+                with self.assertRaisesRegex(ValueError, "source region"):
+                    self.project(self.commit())
+
+    def test_incremental_navigation_reports_unmodified_source_reclassified_by_manifest(self) -> None:
+        source = ".agents/skills/recursive-lego-calculus/SKILL.md"
+        self.manifest.write_text(self.header + (
+            '\n[[source_regions]]\nname = "method-core"\n'
+            'paths = [".agents/skills/recursive-lego-calculus/"]\n'
+        ))
+        head = self.commit()
+        delta = MODULE.project_source_classification_delta(self.repo, self.base, head)
+        self.assertFalse(delta["proofReuseAdmissible"])
+        self.assertEqual(delta["beforeRevision"], self.base)
+        self.assertEqual(delta["afterRevision"], head)
+        index = {entry["path"]: entry for entry in delta["changes"]}
+        changed = index[source]
+        self.assertFalse(changed["sourceChanged"])
+        self.assertTrue(changed["classificationChanged"])
+        self.assertEqual(changed["before"]["sourceIdentity"], changed["after"]["sourceIdentity"])
+        self.assertEqual(changed["before"]["classificationStanding"], "UNASSIGNED")
+        self.assertEqual(changed["after"]["sourceRegion"], "method-core")
+        self.assertGreater(delta["summary"]["classificationOnlyChanges"], 0)
+        self.assertNotIn("services/runtime/main.rs", index)
+        # A renaming of the *region* must still invalidate navigation on
+        # immutable, untouched source bytes.
+        self.manifest.write_text(self.manifest.read_text().replace(
+            'name = "method-core"', 'name = "renamed-contract"',
+        ))
+        renamed = MODULE.project_source_classification_delta(self.repo, head, self.commit())
+        changed = next(row for row in renamed["changes"] if row["path"] == source)
+        self.assertTrue(changed["classificationChanged"])
+        self.assertFalse(changed["sourceChanged"])
+        self.assertEqual(changed["after"]["sourceRegion"], "renamed-contract")
+
+    def test_exact_cut_delta_preserves_both_move_endpoints_without_proving_consumers(self) -> None:
+        original = self.repo / "loose/unplaced.txt"
+        destination = self.repo / "loose/moved.txt"
+        original.rename(destination)
+        self.manifest.write_text(self.header + (
+            '\n[[source_regions]]\nname = "loose"\npaths = ["loose/"]\n'
+        ))
+        head = self.commit()
+        value = MODULE.project_source_classification_delta(self.repo, self.base, head)
+        observations = {row["path"]: row for row in value["changes"]}
+        self.assertIsNone(observations["loose/unplaced.txt"]["after"])
+        self.assertIsNone(observations["loose/moved.txt"]["before"])
+        self.assertTrue(observations["loose/moved.txt"]["sourceChanged"])
+        self.assertFalse(value["proofReuseAdmissible"])
+        self.assertNotIn("consumerProof", value)
+        self.assertNotIn("installed", value)
+
+    def test_narrow_cli_reads_only_requested_source_cut_entries(self) -> None:
+        import shutil
+        import json
+        for name in ["affected_owners.py", "source_history_legos.py"]:
+            shutil.copy2(MODULE_PATH.parent / name, self.repo / "tools/repo" / name)
+        base = self.commit()
+        proc = self.subprocess.run(
+            [sys.executable, "tools/repo/affected_owners.py",
+             "--classify-source-revision", base,
+             "--source-path", "services/runtime/main.rs",
+             "--source-path", "nonexistent/consumer.ts"],
+            cwd=self.repo, text=True, capture_output=True,
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        result = json.loads(proc.stdout)
+        self.assertEqual(len(result["entries"]), 1)
+        self.assertEqual(result["entries"][0]["verificationOwner"], "runtime")
+        self.assertEqual(result["query"]["mode"], "EXACT_SOURCE_PATHS_ONLY")
+        self.assertEqual(result["query"]["absentFromSourceCut"], ["nonexistent/consumer.ts"])
+        self.assertFalse(result["proofReuseAdmissible"])
+        for invalid in [
+            ["--source-path", "../services/runtime/main.rs"],
+            ["--source-path", "./services/runtime/main.rs"],
+            ["--source-path", ""],
+            ["--classify-source-delta-base", self.base,
+             "--source-path", "services/runtime/main.rs"],
+        ]:
+            negative = self.subprocess.run(
+                [sys.executable, "tools/repo/affected_owners.py",
+                 "--classify-source-revision", base, *invalid],
+                cwd=self.repo, text=True, capture_output=True,
+            )
+            self.assertNotEqual(negative.returncode, 0)
+
+    def test_real_cli_ignores_malformed_mutable_manifest(self) -> None:
+        import shutil
+        import json
+        for name in ["affected_owners.py", "source_history_legos.py"]:
+            shutil.copy2(MODULE_PATH.parent / name, self.repo / "tools/repo" / name)
+        cut = self.commit()
+        self.manifest.write_text("broken mutable TOML [")
+        proc = self.subprocess.run(
+            [sys.executable, "tools/repo/affected_owners.py",
+             "--classify-source-revision", cut],
+            cwd=self.repo, text=True, capture_output=True,
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(json.loads(proc.stdout)["sourceRevision"], cut)
+
+    def test_mutable_revision_and_symlink_manifest_cannot_witness_classification(self) -> None:
+        with self.assertRaisesRegex(ValueError, "exact"):
+            self.project("HEAD")
+        saved = self.manifest.read_text()
+        self.manifest.unlink()
+        (self.repo / "manifest.toml").write_text(saved)
+        self.manifest.symlink_to("../../manifest.toml")
+        with self.assertRaisesRegex(ValueError, "regular"):
+            self.project(self.commit())
+
+
 if __name__ == "__main__":
     unittest.main()
