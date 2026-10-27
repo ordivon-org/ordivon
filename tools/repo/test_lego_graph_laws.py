@@ -1550,3 +1550,72 @@ def test_upstream_local_import_dependency_change_invalidates_with_stable_target_
     assert same["sourceRelationStanding"] == "NO_DECLARED_SOURCE_RELATION_CHANGE"
     assert same["changedUpstreamLocalSourceFiles"] == []
     assert same["proofReuseAdmissible"] is False
+
+
+@pytest.mark.parametrize(
+    ("owner_plan", "identities", "external_consumer"),
+    [
+        (
+            "packages/composition/planning/lego-plan-r1.json",
+            {"CP01", "CP02", "CP03", "CP04", "CP05"},
+            "meta/next/scripts/pacti_timeout_obligation_r1.py",
+        ),
+        (
+            "platform/skills/planning/lego-plan-r1.json",
+            {"SK01", "SK02", "SK03", "SK04", "SK05"},
+            "services/gateway/src/ordivon_gateway/service.py",
+        ),
+    ],
+)
+def test_phase1_new_owner_plans_bind_real_consumer_source_and_r21_contract(
+    owner_plan: str, identities: set[str], external_consumer: str
+) -> None:
+    """This qualifies *these* declared roles, not every file as a LEGO."""
+    plan = module._load_json(ROOT / owner_plan)
+    module.validate_owner_lego_graph(plan)
+    module.validate_owner_lego_dependencies(
+        plan, owner_plan.split("/planning/", 1)[0]
+    )
+    module.validate_owner_lego_source_evidence(ROOT, owner_plan, plan)
+    assert {node["id"] for node in plan["nodes"]} == identities
+    for node in plan["nodes"]:
+        for field in (
+            "responsibility", "authority", "inputs", "outputs",
+            "behavioralContract", "acceptance", "consumerEvidence",
+            "replacement", "formalObligations",
+        ):
+            assert node.get(field), (owner_plan, node["id"], field)
+        assert node["consumerQualification"]
+        for ref in node["consumerEvidence"]:
+            candidate = ROOT / ref
+            if not candidate.is_file():
+                candidate = ROOT / owner_plan.split("/planning/", 1)[0] / ref
+            assert candidate.is_file(), (node["id"], ref)
+    assert any(
+        external_consumer in n["consumerEvidence"] for n in plan["nodes"]
+    )
+    assert all(n["state"] == "IMPLEMENTED" for n in plan["nodes"])
+    assert all(
+        not n.get("installedVerified") and not n.get("formalVerified")
+        for n in plan["nodes"]
+    )
+
+
+def test_phase1_census_exactly_matches_native_owner_names_without_truth_promotion() -> None:
+    """A bounded source inventory cannot silently upgrade into 18 verified domains."""
+    import tomllib
+
+    manifest = tomllib.loads((ROOT / "tools/repo/owners.toml").read_text())
+    census = module._load_json(
+        ROOT / "meta/next/evidence/acceptance/lego-r21-phase1-owner-source-census-20261027.json"
+    )
+    declared = {x["name"] for x in manifest["owners"]}
+    observed = {x["owner"] for x in census["findings"]}
+    assert observed == declared and len(observed) == 18
+    assert census["truthRole"].endswith("NOT_REGISTRY_OR_SEMANTIC_TRUTH")
+    assert all(
+        x["repositoryCoverage"] == "TRACKED_SOURCE_ENUMERATED"
+        and x["environmentCoverage"] == "SOURCE_ONLY_CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
+        and x["responsibilityCoverage"] != "COMPLETE"
+        for x in census["findings"]
+    )

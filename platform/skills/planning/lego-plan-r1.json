@@ -1,0 +1,290 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-skills-bridge-replaceable-responsibilities-r1",
+    "purpose": "R2.1 owner-local plan for the existing temporary Skills-to-MCP bridge; retain only consumer-needed local responsibilities and upstream standards, not a permanent Skill ontology or Registry.",
+    "sourceEvidence": [
+      "README.md",
+      "docs/SKILL_MCP_R2_REDUCTION_MAP.md",
+      "docs/SKILL_MCP_STANDARDS_ALIGNMENT.md",
+      "pyproject.toml",
+      "systemd/ordivon-skills-mcp.service",
+      "scripts/skills_mcp.py",
+      "src/ordivon_skills/catalog.py"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "SK01",
+      "label": "ScopedSourceTrustBoundary",
+      "kind": "capability_authority_adapter",
+      "responsibility": "Resolve configured user/project standard Skill roots and workspace trust into allowed filesystem scope; prohibit arbitrary caller-selected paths or implicit trusted-project escalation.",
+      "authority": "Skills bridge local config; client/Runtime security retains real privileges",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "SkillsMcpConfig and workspace/context reference"
+      ],
+      "outputs": [
+        "bounded configured sources and project trust flags"
+      ],
+      "behavioralContract": "Unknown workspace or untrusted project must not silently widen filesystem discovery/read authority.",
+      "evidence": [
+        "src/ordivon_skills/config.py",
+        "src/ordivon_skills/model.py",
+        "tests/test_skill_catalog_r2.py",
+        "tests/test_owner_boundary.py"
+      ],
+      "consumerEvidence": [
+        "scripts/skills_mcp.py",
+        "src/ordivon_skills/catalog.py"
+      ],
+      "consumerQualification": "SOURCE_IMPORT_OR_CONSTRUCTOR_PATH; deployed config identity UNKNOWN",
+      "dependencies": [],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "global IAM",
+        "portable Agent Skills specification",
+        "arbitrary execution"
+      ],
+      "acceptance": [
+        "Native source-scope and bad-workspace test cases preserve bounded authority",
+        "No remote caller grants itself new project trust"
+      ],
+      "formalObligations": [
+        "Real deployed config/token and client identity assumptions UNKNOWN"
+      ],
+      "replacement": "Upstream direct Client Skills resolution may supersede this responsibility after equivalent scoped trust acceptance",
+      "nextAction": "Trace exact installed Gateway config and authenticated client consumers."
+    },
+    {
+      "id": "SK02",
+      "label": "HostileSkillPackageScreening",
+      "kind": "capability_security_filter",
+      "responsibility": "Screen candidate local Skill package files for unsafe exposure patterns before advertising/reading them through the compatibility bridge.",
+      "authority": "Skills local source filtering; broader Security remains separate",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "candidate Skill directory and resources"
+      ],
+      "outputs": [
+        "qualified scan result and advisory hazards"
+      ],
+      "behavioralContract": "Bounded quarantine checks, not a complete malicious-content or prompt-injection proof; absence of a scanner finding never means Skill safe.",
+      "evidence": [
+        "src/ordivon_skills/scanner.py",
+        "tests/test_skill_catalog_r2.py",
+        "docs/SKILL_MCP_R2_REDUCTION_MAP.md"
+      ],
+      "consumerEvidence": [
+        "src/ordivon_skills/catalog.py"
+      ],
+      "consumerQualification": "DIRECT_PYTHON_IMPORT_AND_CALL; runtime installed corpus UNKNOWN",
+      "dependencies": [],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "universal malware detection",
+        "Skill dependency ontology",
+        "external vulnerability verdict"
+      ],
+      "acceptance": [
+        "Catalog invokes scan_skill_package under exact root scope",
+        "Negative scanner tests do not warrant general trust certification"
+      ],
+      "formalObligations": [
+        "Coverage against unobserved malicious payloads UNKNOWN"
+      ],
+      "replacement": "Favor mature external scanner where it preserves the specific bridge quarantine contract",
+      "nextAction": "Confirm required scanner checks via real remote consumer read contracts."
+    },
+    {
+      "id": "SK03",
+      "label": "SourceQualifiedSkillLookupAndRead",
+      "kind": "capability_discovery_adapter",
+      "responsibility": "Produce scoped Skill discovery/search, explicit resolution and exact file-content read under snapshot/instruction/package revision fences for clients without native standard loading.",
+      "authority": "Skills owner bridge read projection; upstream Agent Skills asset semantics",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "authorized project/user sources and explicit Skill query/ref; snapshot and digest expectations"
+      ],
+      "outputs": [
+        "bounded visible Skill metadata, resolution and qualified read bytes"
+      ],
+      "behavioralContract": "Invalid/changed package identity, outside-root path or stale snapshot fails closed; lexical discovery and available results do not imply Skill invocation or trust.",
+      "evidence": [
+        "src/ordivon_skills/catalog.py",
+        "src/ordivon_skills/parser.py",
+        "src/ordivon_skills/eligibility.py",
+        "tests/test_skill_catalog_r2.py",
+        "tests/test_skills_mcp_r3.py"
+      ],
+      "consumerEvidence": [
+        "scripts/skills_mcp.py",
+        "docs/SKILL_MCP_R2_REDUCTION_MAP.md"
+      ],
+      "consumerQualification": "MCP_COMPATIBILITY_SERVER_SOURCE; Gateway installed binding UNKNOWN",
+      "dependencies": [
+        "SK01",
+        "SK02"
+      ],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "universal Skill registry",
+        "semantic learned ranking",
+        "portable Skill definition"
+      ],
+      "acceptance": [
+        "Exact source snapshot/package/instruction drift checks are kept native and negative-tested",
+        "Direct client support should allow removing redundant compatibility behavior"
+      ],
+      "formalObligations": [
+        "Client usage/actual runtime trust bridge remains UNKNOWN"
+      ],
+      "replacement": "Delete compatibility functionality after verified real consumer migration to standard native Agent Skills loading",
+      "nextAction": "Bound current Gateway Skills caller behavior and direct-loading retirement requirements."
+    },
+    {
+      "id": "SK04",
+      "label": "LegacyFourToolMcpProjection",
+      "kind": "capability_protocol_adapter",
+      "responsibility": "Project authorized Skill lookup/read into the existing four compatibility tools skills.list/search/resolve/read without claiming new portable Skills semantics.",
+      "authority": "Skills MCP bridge; Gateway owns capability routing",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "authenticated MCP tool call and Skill resolver response"
+      ],
+      "outputs": [
+        "bounded MCP tools/call result and errors"
+      ],
+      "behavioralContract": "Remote calls never grant install/execute privilege; scoped identity and read fences remain mandatory, and no result establishes Skill content trust.",
+      "evidence": [
+        "scripts/skills_mcp.py",
+        "tests/test_skills_mcp_r2.py",
+        "tests/test_skills_mcp_r3.py",
+        "docs/SKILL_MCP_R2_REDUCTION_MAP.md"
+      ],
+      "consumerEvidence": [
+        "services/gateway/src/ordivon_gateway/service.py",
+        "services/gateway/tests/test_skills_owner_optin.py",
+        "scripts/skills_mcp_consumer_readiness.py"
+      ],
+      "consumerQualification": "CROSS_OWNER_GATEWAY_SOURCE_CALL; configured/live Gateway Skills routing UNKNOWN",
+      "dependencies": [
+        "SK01",
+        "SK03"
+      ],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "tool execution",
+        "Skill authoring standard",
+        "permanent universal query service"
+      ],
+      "acceptance": [
+        "Four-tool wire shape preserved in native Skills tests",
+        "Gateway direct skills.resolve source path exists; physical opt-in and caller authority remain independently gated"
+      ],
+      "formalObligations": [
+        "Gateway physical routed result and correct principal binding UNKNOWN"
+      ],
+      "replacement": "Replace when direct client standard Skills/Plugin loading has demonstrated equal consumer behavior",
+      "nextAction": "Trace Gateway runtime opt-in and migrate each actual compatible client."
+    },
+    {
+      "id": "SK05",
+      "label": "StandardSkillsProtocolProjection",
+      "kind": "capability_protocol_adapter",
+      "responsibility": "Expose the standard Skills extension projection via existing protocol types, independent of Ordivon-specific four-tool compatibility naming.",
+      "authority": "Agent Skills/standard protocol; Skills bridge only projects the wire",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "scoped standard Skill inventory and skills/list or skills/get protocol calls"
+      ],
+      "outputs": [
+        "standards-shaped Skills protocol responses"
+      ],
+      "behavioralContract": "Protocol conformance and scope are distinct from semantic Skill correctness; tests cover only source-bound fixtures.",
+      "evidence": [
+        "src/ordivon_skills/sep2640.py",
+        "tests/test_skills_sep2640.py",
+        "scripts/skills_mcp.py",
+        "docs/SKILL_MCP_STANDARDS_ALIGNMENT.md"
+      ],
+      "consumerEvidence": [
+        "scripts/skills_mcp.py",
+        "tests/test_skills_sep2640.py"
+      ],
+      "consumerQualification": "NATIVE_WIRE_SOURCE_TEST_ONLY; installed standards clients UNKNOWN",
+      "dependencies": [
+        "SK01",
+        "SK03"
+      ],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "invented Ordivon Skill wire",
+        "installed client proof",
+        "plugin installation authority"
+      ],
+      "acceptance": [
+        "Native standards wire fixtures and version context tests qualified without expanding four-tool compatibility",
+        "Do not represent this as a separate daemon or semantic registry"
+      ],
+      "formalObligations": [
+        "Live client standards consumption and source-to-installed corresponding evidence UNKNOWN"
+      ],
+      "replacement": "Prefer upstream maintained standards client/server implementation when actual consumer contract is satisfied",
+      "nextAction": "Observe a real configured standards client under authenticated installed Skills deployment."
+    }
+  ],
+  "edges": [
+    {
+      "from": "SK01",
+      "to": "SK03",
+      "type": "DEPENDENCY"
+    },
+    {
+      "from": "SK02",
+      "to": "SK03",
+      "type": "DEPENDENCY"
+    },
+    {
+      "from": "SK01",
+      "to": "SK04",
+      "type": "DEPENDENCY"
+    },
+    {
+      "from": "SK03",
+      "to": "SK04",
+      "type": "DEPENDENCY"
+    },
+    {
+      "from": "SK01",
+      "to": "SK05",
+      "type": "DEPENDENCY"
+    },
+    {
+      "from": "SK03",
+      "to": "SK05",
+      "type": "DEPENDENCY"
+    }
+  ],
+  "slices": [
+    {
+      "id": "SKS01",
+      "label": "QualifiedBridgeSourceResponsibilitySlice",
+      "nodeIds": [
+        "SK01",
+        "SK02",
+        "SK03",
+        "SK04",
+        "SK05"
+      ],
+      "status": "IN_PROGRESS",
+      "acceptance": [
+        "Native bridges and consumer source refs resolve; installed/current client and external semantic proof remain UNKNOWN"
+      ],
+      "blockers": [],
+      "nextAction": "Check live current Skills/Gateway client and remove duplicate compatibility after real consumer cutover."
+    }
+  ]
+}

@@ -1,0 +1,284 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-composition-source-contracts-r1",
+    "purpose": "R2.1 responsibility decomposition of existing non-authoritative task-local Composition APIs. Source- and consumer-scoped architecture, not proof of installed/domain behavior and not another composition engine.",
+    "sourceEvidence": [
+      "README.md",
+      "pyproject.toml",
+      "src/ordivon_composition/__init__.py",
+      "docs/COGNITIVE_CIRCUIT_R1.md",
+      "docs/VERIFICATION_OBLIGATION_R1.md",
+      "docs/INTERFACE_CONTRACT_EVOLUTION_R2.md",
+      "docs/SUCCESSOR_CONTRACT_R1.md"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "CP01",
+      "label": "TaskLocalCircuitContract",
+      "kind": "capability_representation",
+      "responsibility": "Validate an already authored task-local Cognitive Circuit and deterministically compile declared stages, typed port references, declared prerequisite ordering and cross-owner Gate requirements; do not select strategies or execute stages.",
+      "authority": "Composition API; caller/domain owns objective and selected capabilities",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "caller-authored cognitive-circuit-manifest-v1"
+      ],
+      "outputs": [
+        "canonical deterministic circuit projection and non-authoritative validation result"
+      ],
+      "behavioralContract": "Unknown stages/ports, dependency cycles, missing required Gate bindings and malformed identity reject; output ordering is deterministic. Gate closure is not semantic or domain acceptance.",
+      "evidence": [
+        "src/ordivon_composition/cognitive_circuit_r1.py",
+        "src/ordivon_composition/schemas/cognitive-circuit-manifest-v1.schema.json",
+        "tests/test_cognitive_circuit_r1.py",
+        "docs/COGNITIVE_CIRCUIT_R1.md"
+      ],
+      "consumerEvidence": [
+        "src/ordivon_composition/interface_contract_r2.py",
+        "src/ordivon_composition/verification_obligation_r1.py",
+        "src/ordivon_composition/successor_contract_r1.py",
+        "pyproject.toml"
+      ],
+      "consumerQualification": "NATIVE_IMPORTS_AND_CLI_SOURCE_ONLY; external installed consumers UNKNOWN",
+      "dependencies": [],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "planner",
+        "execution authority",
+        "domain acceptance"
+      ],
+      "acceptance": [
+        "validate_manifest and compile_manifest current source/test contracts remain intact; negative malformed and cycle fixtures reject",
+        "Consumer-native CLI/API contract, not a new canonical module ontology"
+      ],
+      "formalObligations": [
+        "Native schema/DAG and Gate non-vacuity established only at bounded source; no abstract model to installed circuit claim"
+      ],
+      "replacement": "Replace only under observed caller-facing manifest acceptance, deterministic projection, Gate and error contract compatibility",
+      "nextAction": "Trace bounded Next and package CLI consumers before any replacement."
+    },
+    {
+      "id": "CP02",
+      "label": "InterfaceContractDecision",
+      "kind": "capability_contract",
+      "responsibility": "Evaluate a supplied interface expectation and observation for shape compatibility, currentness and evidence admissibility without equating any of these judgments with behavioral refinement.",
+      "authority": "Composition interface evaluation API; domain/effect owner retains behavior truth",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "interface-contract expectation and observation",
+        "caller evidence/currentness scope"
+      ],
+      "outputs": [
+        "qualified compatibility and evidence/currentness decisions"
+      ],
+      "behavioralContract": "Separates interface compatibility from live behavior and source-current evidence; match by declaration must never imply substitutability.",
+      "evidence": [
+        "src/ordivon_composition/interface_contract_r2.py",
+        "src/ordivon_composition/schemas/interface-contract-expectation-v1.schema.json",
+        "tests/test_interface_contract_core.py"
+      ],
+      "consumerEvidence": [
+        "src/ordivon_composition/__init__.py",
+        "pyproject.toml",
+        "meta/next/scripts/web_security_gate_r3.py"
+      ],
+      "consumerQualification": "PUBLIC_API_OR_CLI_DECLARED; external dynamic callers UNKNOWN",
+      "dependencies": [
+        "CP01"
+      ],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "actual verifier",
+        "security authorization",
+        "replacement proof"
+      ],
+      "acceptance": [
+        "Native interface contract tests check mismatched expectations and evidence standing",
+        "No promotion from interface compatibility to real behavioral equivalence"
+      ],
+      "formalObligations": [
+        "Concrete producer/consumer observational-refinement bridge UNKNOWN"
+      ],
+      "replacement": "Check same decision distinction, negative fixtures and exact evidence scope",
+      "nextAction": "Investigate exact consumers for compatibility decisions."
+    },
+    {
+      "id": "CP03",
+      "label": "ScopedVerifierObligationBinding",
+      "kind": "capability_contract",
+      "responsibility": "Project existing Gate contracts into immutable task-local verification obligations and validate caller-selected exact verifier binding identities and support scope.",
+      "authority": "Composition source interface; verifier owner decides proof",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "validated Cognitive Circuit and caller-provided verifier bindings"
+      ],
+      "outputs": [
+        "digest-bound scoped obligation set and binding standing"
+      ],
+      "behavioralContract": "Stale obligation digest, foreign Gate, widened support or mismatched owner rejects; a resolved binding never implies verifier execution or success.",
+      "evidence": [
+        "src/ordivon_composition/verification_obligation_r1.py",
+        "src/ordivon_composition/schemas/verification-obligation-set-v1.schema.json",
+        "src/ordivon_composition/schemas/verifier-binding-set-v1.schema.json",
+        "tests/test_verification_obligation_r1.py",
+        "docs/VERIFICATION_OBLIGATION_R1.md"
+      ],
+      "consumerEvidence": [
+        "src/ordivon_composition/__init__.py",
+        "pyproject.toml",
+        "meta/next/scripts/pacti_timeout_obligation_r1.py"
+      ],
+      "consumerQualification": "PACKAGE_API_CLI_AND_DOCUMENTED_NEXT_CALLER; installed/semantic verifier UNKNOWN",
+      "dependencies": [
+        "CP01"
+      ],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "verifier selection",
+        "verifier execution",
+        "global proof",
+        "promotion approval"
+      ],
+      "acceptance": [
+        "Source Gate and obligation digests bound; negative foreign and stale bindings rejected",
+        "No empty-bound-set vacuous accepted domain claim"
+      ],
+      "formalObligations": [
+        "Verifier encoded property psi to required goal phi bridge remains externally owned"
+      ],
+      "replacement": "Preserve exact Gate/binding provenance, support scope and fail-closed negative controls",
+      "nextAction": "Bind selected verifier obligation to real consumer-native proof and implementation context."
+    },
+    {
+      "id": "CP04",
+      "label": "SuccessorCandidateComparisonContract",
+      "kind": "capability_contract",
+      "responsibility": "Validate a caller-authored predecessor/candidate replacement comparison and its explicit verifier-owned succession gate receipts, without generating candidates or promoting replacements.",
+      "authority": "Composition successor contract; natural consumer owns replacement decision",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "predecessor and candidate identities; scoped successor gates and results"
+      ],
+      "outputs": [
+        "successor contract projection and mechanical gate evaluation"
+      ],
+      "behavioralContract": "Insufficient or mismatched Gate evidence cannot grant semantic replacement; no model result implies configured/deployed substitution.",
+      "evidence": [
+        "src/ordivon_composition/successor_contract_r1.py",
+        "src/ordivon_composition/schemas/successor-contract-v1.schema.json",
+        "tests/test_successor_contract_r1.py",
+        "docs/SUCCESSOR_CONTRACT_R1.md"
+      ],
+      "consumerEvidence": [
+        "src/ordivon_composition/__init__.py",
+        "pyproject.toml",
+        "meta/next/evidence/acceptance/rsi-successor-contract-r1-20260922.json"
+      ],
+      "consumerQualification": "SOURCE_API_CLI_AND_HISTORICAL_NEXT_RECEIPT; current live consumers UNKNOWN",
+      "dependencies": [
+        "CP01"
+      ],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "behavioral equivalence theorem",
+        "candidate generation",
+        "Git promotion"
+      ],
+      "acceptance": [
+        "Native successor tests prove only mechanical identity/binding invariants",
+        "Real implementation and configured-owner acceptance remain UNKNOWN"
+      ],
+      "formalObligations": [
+        "Contextual refinement, authority and actual source-to-deployment binding required before safe substitution"
+      ],
+      "replacement": "Preserve honest separation of successor Gate evaluation and domain-authorized rollout",
+      "nextAction": "Trace current admitted successor use versus historical demonstration."
+    },
+    {
+      "id": "CP05",
+      "label": "ProofImpactQualification",
+      "kind": "capability_evidence_analysis",
+      "responsibility": "Select which existing scoped obligations require recheck, could retain evidence, or must remain UNKNOWN when source/contract/verifier-binding inputs change; never declare unproved proof reuse.",
+      "authority": "Composition task-local impact API; Git/owner verifier retain source and proof authority",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "previous and current source-qualified obligations, verifier bindings and observed impact manifests"
+      ],
+      "outputs": [
+        "scoped requalification and conservative reuse candidates"
+      ],
+      "behavioralContract": "Unknown/missing dynamic readsets and unqualified verifier changes cannot be silently treated as unchanged; REUSE_CANDIDATE is not formal PASS.",
+      "evidence": [
+        "src/ordivon_composition/verification_obligation_r1.py",
+        "tests/test_verification_obligation_r1.py"
+      ],
+      "consumerEvidence": [
+        "src/ordivon_composition/__init__.py",
+        "tests/test_verification_obligation_r1.py"
+      ],
+      "consumerQualification": "BOUND_SOURCE_EXPORT_AND_NATIVE_TEST; real cross-domain consumer closure UNKNOWN",
+      "dependencies": [
+        "CP03"
+      ],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "whole-system consumer graph",
+        "installed proof authority",
+        "universal proof cache"
+      ],
+      "acceptance": [
+        "Negative impact deltas do not promote UNKNOWN to PASS",
+        "Same SourceCut and adequate verifier bridge required for reusable proof claim"
+      ],
+      "formalObligations": [
+        "Real dependency readset totality/negative dynamic consumer closure UNKNOWN"
+      ],
+      "replacement": "Preserve three-valued impact semantics with comparable independent negative examples",
+      "nextAction": "Trace actual callers of impact selection across Owners."
+    }
+  ],
+  "edges": [
+    {
+      "from": "CP01",
+      "to": "CP02",
+      "type": "DEPENDENCY"
+    },
+    {
+      "from": "CP01",
+      "to": "CP03",
+      "type": "DEPENDENCY"
+    },
+    {
+      "from": "CP01",
+      "to": "CP04",
+      "type": "DEPENDENCY"
+    },
+    {
+      "from": "CP03",
+      "to": "CP05",
+      "type": "DEPENDENCY"
+    }
+  ],
+  "slices": [
+    {
+      "id": "CPS01",
+      "label": "QualifiedCompositionSourceResponsibilities",
+      "nodeIds": [
+        "CP01",
+        "CP02",
+        "CP03",
+        "CP04",
+        "CP05"
+      ],
+      "status": "IN_PROGRESS",
+      "acceptance": [
+        "All declared source implementations and bounded package API/CLI consumers qualified; external installed callers and formal realization remain separate"
+      ],
+      "blockers": [],
+      "nextAction": "Trace actual runtime/domain consumers for replacement and proof scope."
+    }
+  ]
+}
