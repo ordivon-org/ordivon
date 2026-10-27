@@ -26,6 +26,82 @@ def git(p: Path, *args: str) -> str:
 
 
 
+class AgentCompactSourceImpactTests(unittest.TestCase):
+    def test_unchanged_scope_does_not_promote_proof_and_skips_expensive_members(self):
+        with tempfile.TemporaryDirectory(prefix="ordivon-agent-opaque-source-") as temp:
+            repo = Path(temp)
+            git(repo, "init", "-q", "-b", "main")
+            git(repo, "config", "user.name", "Agent Source CDC")
+            git(repo, "config", "user.email", "cdc@example.invalid")
+            impl = repo / "services/runtime/src/public.py"
+            impl.parent.mkdir(parents=True)
+            impl.write_text("def handle(): return 1\\n")
+            git(repo, "add", ".")
+            git(repo, "commit", "-qm", "original contract")
+            start = git(repo, "rev-parse", "HEAD")
+            unrelated = repo / "services/harness/config.json"
+            unrelated.parent.mkdir(parents=True)
+            unrelated.write_text('{"changed": true}\\n')
+            git(repo, "add", ".")
+            git(repo, "commit", "-qm", "a different consumer changes")
+            mid = git(repo, "rev-parse", "HEAD")
+            cli = Path(__file__).with_name("source_history_legos.py")
+            args = [
+                sys.executable, str(cli), "--repo", str(repo),
+                "--left", start, "--right", mid,
+                "--impact-prefix", "services/runtime/", "--compact-impact",
+            ]
+            compact = json.loads(subprocess.check_output(args, text=True))
+            full_args = args[:-1]
+            full = json.loads(subprocess.check_output(full_args, text=True))
+            self.assertEqual(compact["sourceDisposition"], "SOURCE_SCOPE_UNCHANGED")
+            self.assertFalse(compact["proofReuseAdmissible"])
+            self.assertNotIn("authorityRefs", compact)
+            self.assertEqual(compact["sourceCuts"], full["sourceCuts"])
+            self.assertEqual(compact["sourceSetDigest"], full["memberSetDigests"])
+            self.assertEqual(compact["sourceValueDigest"], full["memberValuesDigests"])
+            self.assertEqual(compact["changedRefs"], [])
+            self.assertIn("runtime_configuration_and_dynamic_dependencies",
+                          compact["missingQualification"])
+            # Another owner changes while the selected source subtree remains
+            # identical: no proof, installed state or consumer closure is asserted.
+            self.assertNotEqual(start, mid)
+            impl.write_text("def handle(): return 2\\n")
+            git(repo, "add", ".")
+            git(repo, "commit", "-qm", "runtime implementation change")
+            end = git(repo, "rev-parse", "HEAD")
+            changed = json.loads(subprocess.check_output(
+                [
+                    sys.executable, str(cli), "--repo", str(repo),
+                    "--left", start, "--right", end,
+                    "--impact-prefix", "services/runtime/", "--compact-impact",
+                ],
+                text=True,
+            ))
+            self.assertEqual(changed["sourceDisposition"], "SOURCE_CHANGE_RECHECK")
+            self.assertEqual(changed["changedValuePaths"], [
+                "services/runtime/src/public.py"
+            ])
+            self.assertFalse(changed["proofReuseAdmissible"])
+
+    def test_compact_source_impact_rejects_fake_proof_and_unqualified_input(self):
+        with self.assertRaisesRegex(ValueError, "qualified non-admitting"):
+            source_history_legos.compact_source_impact({
+                "kind": "ordivon.git-source-membership-delta",
+                "gitSourceQueryComplete": True,
+                "proofReuseAdmissible": True,
+            })
+        with self.assertRaisesRegex(ValueError, "qualified non-admitting"):
+            source_history_legos.compact_source_impact({})
+        cli = Path(__file__).with_name("source_history_legos.py")
+        proc = subprocess.run(
+            [sys.executable, str(cli), "--compact-impact"], text=True,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False,
+        )
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("--compact-impact requires --impact-prefix", proc.stderr)
+
+
 class SourceHistoryLegosTests(unittest.TestCase):
     def test_complete_graph_and_patch_equivalence_no_automatic_retirement(self):
         with tempfile.TemporaryDirectory(prefix="ordivon-history-legos-") as temp:
