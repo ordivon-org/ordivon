@@ -12,9 +12,9 @@
     "observedCommittedSourcePathEntries": 14209,
     "pathAliasesWithDifferentBlobIdentities": 84,
     "scopesWithUnknownSemanticResponsibility": 73,
-    "sourceGroupsWithUnknownLexicalRole": 71,
-    "sourcePathsWithUnknownLexicalRole": 191,
-    "sourceRoleRefinementsExactPinnedGitPaths": 26
+    "sourceGroupsWithUnknownLexicalRole": 68,
+    "sourcePathsWithUnknownLexicalRole": 174,
+    "sourceRoleRefinementsExactPinnedGitPaths": 43
   },
   "crossRepositoryPathAliasCounterexamples": {
     "meaning": "Identical relative path across independent Git roots does not establish semantic identity or currentness; different bytes disprove byte equivalence only.",
@@ -8577,17 +8577,18 @@
       "futureNamespaceEligibility": "PROPOSAL_ONLY_NO_PHYSICAL_MOVES",
       "groupCount": 40,
       "pathBasedRoles": {
-        "AUTOMATION_AND_DEVELOPER_TOOL_SOURCE": 22,
-        "BUILD_OR_PACKAGE_ENTRY_METADATA": 5,
+        "AUTOMATION_AND_DEVELOPER_TOOL_SOURCE": 28,
+        "BUILD_OR_PACKAGE_ENTRY_METADATA": 9,
         "CONTRACT_AND_SCHEMA_SOURCE": 5,
-        "DECLARATIVE_PLAN_SOURCE": 1,
-        "DOCUMENTATION_SOURCE": 25,
+        "DECLARATIVE_PLAN_SOURCE": 2,
+        "DEVELOPER_AUTOMATION_CONFIGURATION": 1,
+        "DOCUMENTATION_SOURCE": 28,
         "DOCUMENTED_ENTRY_OR_AGENT_INSTRUCTION": 2,
         "DOMAIN_DATA_OR_DELIVERABLE_SOURCE": 174,
+        "ENVIRONMENT_CONFIGURATION_SOURCE": 1,
         "HISTORICAL_OR_EVIDENCE_SOURCE": 52,
         "IMPLEMENTATION_SOURCE": 47,
-        "PATH_ROLE_UNQUALIFIED": 17,
-        "POLICY_AND_ADMISSION_SOURCE": 3,
+        "POLICY_AND_ADMISSION_SOURCE": 4,
         "SCIENTIFIC_AND_METHOD_RESEARCH_SOURCE": 161,
         "TEST_AND_EVALUATION_SOURCE": 36
       },
@@ -8623,7 +8624,8 @@
             "YAML_SOURCE": 2
           },
           "observedLayoutRoles": {
-            "PATH_ROLE_UNQUALIFIED": 2
+            "DECLARATIVE_PLAN_SOURCE": 1,
+            "POLICY_AND_ADMISSION_SOURCE": 1
           },
           "sectionPathKey": ".ordivon/@direct-file",
           "sourceArea": "REPOSITORY_SCOPED_SOURCE",
@@ -8639,13 +8641,18 @@
             "KNOWN_ENTRY_FILE:pyproject.toml": 1,
             "KNOWN_ENTRY_FILE:uv.lock": 1,
             "MARKDOWN_TEXT": 2,
-            "UNCLASSIFIED_FILE_FORMAT": 5,
-            "YAML_SOURCE": 1
+            "YAML_SOURCE": 1,
+            "ENVIRONMENT_TEMPLATE": 1,
+            "GIT_IGNORE_RULES": 1,
+            "TOOLCHAIN_VERSION_SELECTOR": 2,
+            "LICENSE_TEXT": 1
           },
           "observedLayoutRoles": {
-            "BUILD_OR_PACKAGE_ENTRY_METADATA": 5,
+            "BUILD_OR_PACKAGE_ENTRY_METADATA": 9,
+            "DEVELOPER_AUTOMATION_CONFIGURATION": 1,
+            "DOCUMENTATION_SOURCE": 3,
             "DOCUMENTED_ENTRY_OR_AGENT_INSTRUCTION": 1,
-            "PATH_ROLE_UNQUALIFIED": 9
+            "ENVIRONMENT_CONFIGURATION_SOURCE": 1
           },
           "sectionPathKey": "@root-file",
           "sourceArea": "REPOSITORY_SCOPED_SOURCE",
@@ -8718,7 +8725,7 @@
             "SHELL_SOURCE": 6
           },
           "observedLayoutRoles": {
-            "PATH_ROLE_UNQUALIFIED": 6
+            "AUTOMATION_AND_DEVELOPER_TOOL_SOURCE": 6
           },
           "sectionPathKey": "media-v2/bin",
           "sourceArea": "REPOSITORY_SCOPED_SOURCE",
@@ -9130,7 +9137,202 @@
       ],
       "sourceRegion": null,
       "sourceRepoName": "ordivon-media",
-      "tree": "ccae1747b73569bead57836e6764f12763cbb710"
+      "tree": "ccae1747b73569bead57836e6764f12763cbb710",
+      "sourceQualifiedFileRoles": {
+        "standing": "STATIC_GIT_SOURCE_ROLE_REFINEMENT_NOT_INSTALLED_OR_CONSUMER_VALIDATION",
+        "sourceRevision": "30f6d1228a4270a68cd715ca9a7b17742478958e",
+        "scope": "Only 17 previously PATH_ROLE_UNQUALIFIED source paths",
+        "files": [
+          {
+            "path": ".env.example",
+            "sourceIdentity": "100644:blob:7aae1ce218e8f4d92746d9b7060ab1c0cd4225f6",
+            "sourceRole": "ENVIRONMENT_CONFIGURATION_SOURCE",
+            "agentReadableName": "studio-local-media-and-provider-env-template",
+            "observedSymbol": "ORDIVON_STUDIO_MEDIA_ROOT",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": ".gitignore",
+            "sourceIdentity": "100644:blob:deed6efd2e9bed8607c64f4bcee343cc444cdc59",
+            "sourceRole": "DEVELOPER_AUTOMATION_CONFIGURATION",
+            "agentReadableName": "studio-git-ignore-policy",
+            "observedSymbol": "node_modules/",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": ".node-version",
+            "sourceIdentity": "100644:blob:fceb4529e54bb04359dd3acf7fe3d085e3364d19",
+            "sourceRole": "BUILD_OR_PACKAGE_ENTRY_METADATA",
+            "agentReadableName": "pinned-node-toolchain-selector",
+            "observedSymbol": "26.9.0",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": ".ordivon/publication.yaml",
+            "sourceIdentity": "100644:blob:003d6f72e54a200bf7da45997277d26908119180",
+            "sourceRole": "DECLARATIVE_PLAN_SOURCE",
+            "agentReadableName": "repository-publication-source-policy",
+            "observedSymbol": "ordivon.repository-publication",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": ".ordivon/rights.yaml",
+            "sourceIdentity": "100644:blob:fd674abda4960c7f46b3a585dc237bd07e123fe4",
+            "sourceRole": "POLICY_AND_ADMISSION_SOURCE",
+            "agentReadableName": "repository-rights-and-license-policy",
+            "observedSymbol": "ordivon.repository-rights",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": ".python-version",
+            "sourceIdentity": "100644:blob:a128d5c0d975a5b333e78950665709c8e2d88597",
+            "sourceRole": "BUILD_OR_PACKAGE_ENTRY_METADATA",
+            "agentReadableName": "pinned-python-toolchain-selector",
+            "observedSymbol": "3.14.7",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": "LICENSE",
+            "sourceIdentity": "100644:blob:261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64",
+            "sourceRole": "DOCUMENTATION_SOURCE",
+            "agentReadableName": "media-repository-license",
+            "observedSymbol": "Apache License",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": "MEDIA.md",
+            "sourceIdentity": "100644:blob:02e351b3c127c07131bb98a7150f245dd13dcb66",
+            "sourceRole": "DOCUMENTATION_SOURCE",
+            "agentReadableName": "media-capability-responsibility-description",
+            "observedSymbol": "Ordivon Media",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": "STUDIO.md",
+            "sourceIdentity": "100644:blob:6e36110f080387c31a30b842868aa5b141c50efa",
+            "sourceRole": "DOCUMENTATION_SOURCE",
+            "agentReadableName": "authored-media-studio-design",
+            "observedSymbol": "Studio design",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": "media-v2/bin/otiotool-pinned.sh",
+            "sourceIdentity": "100755:blob:b27d836bf7ca4bcdd5c918180e43a5f35d1a3972",
+            "sourceRole": "AUTOMATION_AND_DEVELOPER_TOOL_SOURCE",
+            "agentReadableName": "pinned-opentimelineio-cli-launcher",
+            "observedSymbol": "otiotool",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": "media-v2/bin/probe-audio.sh",
+            "sourceIdentity": "100755:blob:33b0a1f3b9aee52b7a857334713285cb2f54c64d",
+            "sourceRole": "AUTOMATION_AND_DEVELOPER_TOOL_SOURCE",
+            "agentReadableName": "audio-profile-inspection-command",
+            "observedSymbol": "probe-audio.sh",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": "media-v2/bin/probe-av.sh",
+            "sourceIdentity": "100755:blob:5cb1efe7621972e0a5b823d0ebd29371f32a3b11",
+            "sourceRole": "AUTOMATION_AND_DEVELOPER_TOOL_SOURCE",
+            "agentReadableName": "av-profile-inspection-command",
+            "observedSymbol": "probe-av.sh",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": "media-v2/bin/probe-otio.sh",
+            "sourceIdentity": "100755:blob:05d0fff404cc29f3ed83df5cb8305649067fb79b",
+            "sourceRole": "AUTOMATION_AND_DEVELOPER_TOOL_SOURCE",
+            "agentReadableName": "otio-timeline-inspection-command",
+            "observedSymbol": "probe-otio.sh",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": "media-v2/bin/probe-timed-text.sh",
+            "sourceIdentity": "100755:blob:6a5e494e7f53b4de6be06f4d9ec1d43f568f982d",
+            "sourceRole": "AUTOMATION_AND_DEVELOPER_TOOL_SOURCE",
+            "agentReadableName": "timed-text-profile-inspection-command",
+            "observedSymbol": "probe-timed-text.sh",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": "media-v2/bin/ttconv-pinned.sh",
+            "sourceIdentity": "100755:blob:35b3b5942880715b4d200892d11c85803f6cf22d",
+            "sourceRole": "AUTOMATION_AND_DEVELOPER_TOOL_SOURCE",
+            "agentReadableName": "pinned-timed-text-converter-launcher",
+            "observedSymbol": "ttconv",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": "pnpm-workspace.yaml",
+            "sourceIdentity": "100644:blob:94d41808ec61f175337c55471b976aded6bf976d",
+            "sourceRole": "BUILD_OR_PACKAGE_ENTRY_METADATA",
+            "agentReadableName": "pnpm-workspace-topology",
+            "observedSymbol": "packages:",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": "tsconfig.json",
+            "sourceIdentity": "100644:blob:7a2aca94331369c99abfc6df43b3621f17a51915",
+            "sourceRole": "BUILD_OR_PACKAGE_ENTRY_METADATA",
+            "agentReadableName": "typescript-compiler-and-module-configuration",
+            "observedSymbol": "compilerOptions",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          }
+        ],
+        "semanticMeaning": "Repository media declarations and inspection scripts are source carriers only; no installed provider or production effect claims."
+      }
     },
     {
       "count": 673,
@@ -16072,12 +16274,12 @@
     "unresolvedCarrierSourcePaths": [],
     "refinementStanding": {
       "originalSourceUnqualifiedPaths": 217,
-      "sourceQualifiedFileRoles": 26,
-      "remainingPathRoleUnqualifiedPaths": 191,
-      "remainingPathRoleUnqualifiedGroups": 71,
+      "sourceQualifiedFileRoles": 43,
+      "remainingPathRoleUnqualifiedPaths": 174,
+      "remainingPathRoleUnqualifiedGroups": 68,
       "originalSemanticResponsibilityUnknownGroups": 73,
-      "qualification": "GIT_PATH_LITERAL_AND_FILE_CARRIER_ONLY; ACTUAL_CONSUMER_CONTRACT_INSTALLED_FORMAL_UNKNOWN",
-      "crosswalk": "26 scoped STS2_MCP sourceQualifiedRootFileRoles paths match exact original Git blobs and do not replace the 217 historical source-carrier observations."
+      "qualification": "EXACT_GIT_SOURCE_ROLE_ONLY; ACTUAL_CONSUMER_CONTRACT_INSTALLED_FORMAL_UNKNOWN",
+      "crosswalk": "17 media plus 26 STS2MCP roles match the original 217 immutable Git blob observations. All 217 source-carrier observations preserved."
     }
   }
 }
