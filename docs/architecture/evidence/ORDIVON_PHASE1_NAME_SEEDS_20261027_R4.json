@@ -281,7 +281,7 @@
       "contentRoleCandidate": "OBSERVATION_EVIDENCE",
       "directOnly": true,
       "functionalFacetCandidate": "agent",
-      "proposedName": "agent-browser-decision-experiment-observations",
+      "proposedName": "agent-browser-decision-duel-analysis-inputs",
       "sourceCell": "zone/agent-run-context/evidence/system1-decision/@rootfiles",
       "sourcePrefix": "services/harness/evidence/system1-decision/"
     },

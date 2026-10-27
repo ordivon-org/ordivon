@@ -198,7 +198,13 @@ def test_phase1_content_scan_exact_source_complete_and_non_authoritative():
     assert len(result["paths"]) == len({x["path"] for x in result["paths"]})
     assert result["summary"]["sourcePathMoves"] == 0
     assert result["summary"]["allFunctionalIdentitiesQualified"] == 0
-    assert len(result["summary"]["allZones"]) == 30
+    # Source regions are materialized only when they contain tracked files.
+    # Eliminating a genuinely obsolete source-only area must not force an
+    # empty synthetic region back into the live source namespace.
+    zones = result["summary"]["allZones"]
+    assert zones and all(count > 0 for count in zones.values())
+    assert sum(zones.values()) == result["summary"]["tracked"]
+    assert len([name for name in zones if name.startswith("zone/")]) == 18
     assert len(result["summary"]["dense60"]) == 60
     assert len(result["summary"]["specific26"]) == 26
     assert all(x["mayPhysicallyRename"] is False and x["consumerStanding"]=="UNKNOWN"
