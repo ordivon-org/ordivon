@@ -379,6 +379,85 @@ class SourceClassificationTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "source region"):
                     self.project(self.commit())
 
+    def test_incremental_navigation_reports_unmodified_source_reclassified_by_manifest(self) -> None:
+        source = ".agents/skills/recursive-lego-calculus/SKILL.md"
+        self.manifest.write_text(self.header + (
+            '\n[[source_regions]]\nname = "method-core"\n'
+            'paths = [".agents/skills/recursive-lego-calculus/"]\n'
+        ))
+        head = self.commit()
+        delta = MODULE.project_source_classification_delta(self.repo, self.base, head)
+        self.assertFalse(delta["proofReuseAdmissible"])
+        self.assertEqual(delta["beforeRevision"], self.base)
+        self.assertEqual(delta["afterRevision"], head)
+        index = {entry["path"]: entry for entry in delta["changes"]}
+        changed = index[source]
+        self.assertFalse(changed["sourceChanged"])
+        self.assertTrue(changed["classificationChanged"])
+        self.assertEqual(changed["before"]["sourceIdentity"], changed["after"]["sourceIdentity"])
+        self.assertEqual(changed["before"]["classificationStanding"], "UNASSIGNED")
+        self.assertEqual(changed["after"]["sourceRegion"], "method-core")
+        self.assertGreater(delta["summary"]["classificationOnlyChanges"], 0)
+        self.assertNotIn("services/runtime/main.rs", index)
+        # A renaming of the *region* must still invalidate navigation on
+        # immutable, untouched source bytes.
+        self.manifest.write_text(self.manifest.read_text().replace(
+            'name = "method-core"', 'name = "renamed-contract"',
+        ))
+        renamed = MODULE.project_source_classification_delta(self.repo, head, self.commit())
+        changed = next(row for row in renamed["changes"] if row["path"] == source)
+        self.assertTrue(changed["classificationChanged"])
+        self.assertFalse(changed["sourceChanged"])
+        self.assertEqual(changed["after"]["sourceRegion"], "renamed-contract")
+
+    def test_exact_cut_delta_preserves_both_move_endpoints_without_proving_consumers(self) -> None:
+        original = self.repo / "loose/unplaced.txt"
+        destination = self.repo / "loose/moved.txt"
+        original.rename(destination)
+        self.manifest.write_text(self.header + (
+            '\n[[source_regions]]\nname = "loose"\npaths = ["loose/"]\n'
+        ))
+        head = self.commit()
+        value = MODULE.project_source_classification_delta(self.repo, self.base, head)
+        observations = {row["path"]: row for row in value["changes"]}
+        self.assertIsNone(observations["loose/unplaced.txt"]["after"])
+        self.assertIsNone(observations["loose/moved.txt"]["before"])
+        self.assertTrue(observations["loose/moved.txt"]["sourceChanged"])
+        self.assertFalse(value["proofReuseAdmissible"])
+        self.assertNotIn("consumerProof", value)
+        self.assertNotIn("installed", value)
+
+    def test_narrow_cli_reads_only_requested_source_cut_entries(self) -> None:
+        import shutil
+        import json
+        for name in ["affected_owners.py", "source_history_legos.py"]:
+            shutil.copy2(MODULE_PATH.parent / name, self.repo / "tools/repo" / name)
+        base = self.commit()
+        proc = self.subprocess.run(
+            [sys.executable, "tools/repo/affected_owners.py",
+             "--classify-source-revision", base,
+             "--source-path", "services/runtime/main.rs",
+             "--source-path", "nonexistent/consumer.ts"],
+            cwd=self.repo, text=True, capture_output=True,
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        result = json.loads(proc.stdout)
+        self.assertEqual(len(result["entries"]), 1)
+        self.assertEqual(result["entries"][0]["verificationOwner"], "runtime")
+        self.assertEqual(result["missingPaths"], ["nonexistent/consumer.ts"])
+        self.assertFalse(result["proofReuseAdmissible"])
+        for invalid in [
+            ["--source-path", "../services/runtime/main.rs"],
+            ["--classify-source-delta-base", self.base,
+             "--source-path", "services/runtime/main.rs"],
+        ]:
+            negative = self.subprocess.run(
+                [sys.executable, "tools/repo/affected_owners.py",
+                 "--classify-source-revision", base, *invalid],
+                cwd=self.repo, text=True, capture_output=True,
+            )
+            self.assertNotEqual(negative.returncode, 0)
+
     def test_real_cli_ignores_malformed_mutable_manifest(self) -> None:
         import shutil
         import json

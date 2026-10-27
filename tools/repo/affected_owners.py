@@ -257,11 +257,75 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
         "entries": entries,
     }
 
+
+def project_source_classification_delta(
+    repo: Path, before_revision: str, after_revision: str,
+) -> dict:
+    """Exact Git-source navigation delta, including unedited reclassified paths.
+
+    In particular, owner/source-region policy changes can affect unchanged
+    file identities. The result is neither consumer impact nor proof reuse.
+    """
+    before = project_source_classification(repo, before_revision)
+    after = project_source_classification(repo, after_revision)
+    older = {item["path"]: item for item in before["entries"]}
+    newer = {item["path"]: item for item in after["entries"]}
+    changes = []
+    for path in sorted(older.keys() | newer.keys()):
+        previous, current = older.get(path), newer.get(path)
+        if previous == current:
+            continue
+        source_changed = (
+            previous is None or current is None
+            or previous["sourceIdentity"] != current["sourceIdentity"]
+        )
+        classification_changed = (
+            previous is None or current is None
+            or any(previous[name] != current[name] for name in (
+                "verificationOwner", "sourceRegion", "classificationStanding",
+                "matchedRules",
+            ))
+        )
+        changes.append({
+            "path": path, "before": previous, "after": current,
+            "sourceChanged": source_changed,
+            "classificationChanged": classification_changed,
+        })
+    return {
+        "kind": "ordivon.repository-source-classification-delta",
+        "truthRole": "SOURCE_NAVIGATION_NOT_CONSUMER_IMPACT_OR_PROOF_REUSE",
+        "beforeRevision": before_revision,
+        "afterRevision": after_revision,
+        "beforeTree": before["sourceTree"],
+        "afterTree": after["sourceTree"],
+        "beforeOwnerManifestIdentity": before["ownerManifestIdentity"],
+        "afterOwnerManifestIdentity": after["ownerManifestIdentity"],
+        "proofReuseAdmissible": False,
+        "summary": {
+            "previousPaths": before["summary"]["trackedPaths"],
+            "currentPaths": after["summary"]["trackedPaths"],
+            "changedEntries": len(changes),
+            "classificationOnlyChanges": sum(
+                item["classificationChanged"] and not item["sourceChanged"]
+                for item in changes
+            ),
+            "unchangedEntries": len(older.keys() & newer.keys()) - sum(
+                item["before"] is not None and item["after"] is not None
+                for item in changes
+            ),
+            "unassigned": after["summary"]["unassigned"],
+            "ambiguous": after["summary"]["ambiguous"],
+        },
+        "changes": changes,
+    }
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Select monorepo owners affected by an exact Git range."
     )
     parser.add_argument("--classify-source-revision", help="exact-cut source navigation; does not select verification")
+    parser.add_argument("--classify-source-delta-base", help="compare exact Git source identity and source-region membership; no consumer/proof-reuse inference")
+    parser.add_argument("--source-path", action="append", default=[], help="restrict exact-cut source navigation output to canonical paths")
     parser.add_argument("--base")
     parser.add_argument("--head")
     parser.add_argument("--all", action="store_true")
@@ -279,8 +343,24 @@ def main() -> int:
     if args.classify_source_revision:
         if args.all or args.base or args.head or args.changed_file or args.format != "json":
             raise SystemExit("source classification cannot be combined with verification selection")
-        print(json.dumps(project_source_classification(Path.cwd(), args.classify_source_revision), sort_keys=True))
+        if args.classify_source_delta_base:
+            if args.source_path:
+                raise SystemExit("source delta must include all reclassified paths")
+            result = project_source_classification_delta(
+                Path.cwd(), args.classify_source_delta_base, args.classify_source_revision
+            )
+        else:
+            result = project_source_classification(Path.cwd(), args.classify_source_revision)
+            if args.source_path:
+                paths = sorted({_normalize(path) for path in args.source_path})
+                index = {entry["path"]: entry for entry in result["entries"]}
+                result["entries"] = [index[path] for path in paths if path in index]
+                result["requestedPaths"] = paths
+                result["missingPaths"] = [path for path in paths if path not in index]
+        print(json.dumps(result, sort_keys=True))
         return 0
+    if args.classify_source_delta_base or args.source_path:
+        raise SystemExit("source query requires --classify-source-revision")
     if args.all:
         selected = _default_owners()
         paths: tuple[str, ...] = ()
