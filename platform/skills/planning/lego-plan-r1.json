@@ -1,0 +1,216 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-skills-owner-r2.1-foundation",
+    "name": "Skills bridge semantic responsibilities",
+    "owner": "Skills",
+    "sourceRoot": "platform/skills",
+    "phase": "P0-A-to-P0-C; source-exact only",
+    "sourceEvidence": [
+      "README.md",
+      "src/ordivon_skills/catalog.py",
+      "src/ordivon_skills/scanner.py",
+      "src/ordivon_skills/eligibility.py",
+      "scripts/skills_mcp.py"
+    ]
+  },
+  "objective": "Discover/qualify/trace three consumer-separated live Skills bridge responsibilities without creating a parallel registry, transport layer or authority. Reuse native Skills source and test contracts.",
+  "nodes": [
+    {
+      "id": "SK01",
+      "label": "SkillSourceAdmission",
+      "kind": "security",
+      "role": "capability",
+      "responsibility": "Interpret configured Agent Skills sources and admit only evidence-scanned, appropriately trusted, context-eligible packages into a bounded candidate inventory; exclude malicious or unsuitable packages without making runtime Tool/Agent permission decisions.",
+      "authority": "Skills source discovery and trust projection, not provider/platform permission",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "SkillSource config with scope/root/priority and discovery bounds",
+        "Skill package SKILL.md/resource bytes and user-audit/explicit-use flags",
+        "Environment eligibility observations"
+      ],
+      "outputs": [
+        "SkillRecord inventory, source scan diagnostics, trust/eligibility standings, source-bound package digests"
+      ],
+      "behavioralContract": [
+        "Quarantined/untrusted packages cannot enter the normal effective view; unknown eligibility is explicitly retained as unknown, not converted to proof of runnable tools.",
+        "Symbolic path escape/symlink and hostile package limits reject package reads at Skills boundary; package digest reflects scanned bytes, not installed execution truth."
+      ],
+      "acceptance": [
+        "Native Skills owner test_skill_catalog_r2.py / test_skills_mcp_r2.py enforce trust, quarantine, filesystem bounds and package digest cases.",
+        "This is a SOURCE/Tool-qualified responsibility, not proof every arbitrary third-party Skill is safe."
+      ],
+      "evidence": [
+        "src/ordivon_skills/catalog.py",
+        "src/ordivon_skills/scanner.py",
+        "src/ordivon_skills/eligibility.py",
+        "src/ordivon_skills/parser.py",
+        "tests/test_skill_catalog_r2.py",
+        "tests/test_skills_mcp_r2.py"
+      ],
+      "consumers": [
+        {
+          "consumer": "SK02",
+          "claim": "Eligible source inventory is filtered before scoped lookup",
+          "evidence": "src/ordivon_skills/catalog.py"
+        }
+      ],
+      "dependencies": [],
+      "environment": {
+        "source": "Configured filesystem and optional plugins, scan snapshot",
+        "installed": "UNKNOWN until Skills deployment and connector identity are observed"
+      },
+      "mustNotOwn": [
+        "Provider IAM/actual tool execution permission",
+        "Agent scheduler or Skill marketplace"
+      ],
+      "formalObligations": [
+        "Completeness of admitted package list is bounded by configured sources and scan errors",
+        "No quarantined Skill can become an effective normal lookup record"
+      ]
+    },
+    {
+      "id": "SK02",
+      "label": "ContextualSkillDiscovery",
+      "kind": "knowledge_projection",
+      "role": "capability",
+      "responsibility": "Project admitted Skill records into context- and invocation-specific discoverable candidates and deterministically resolve one Skill identity under existing precedence rules, preserving snapshot revision and shadowing.",
+      "authority": "Skills catalog read-only derived projection, not a new Skill registry",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "SK01 admitted SkillRecord inventory",
+        "workspaceId/agentId/physical workspace path and explicit-vs-implicit invocation",
+        "search query, requested name or canonical Skill ID, optional expected snapshot revision"
+      ],
+      "outputs": [
+        "Scoped SkillView/search results; canonical SkillResolution with shadowed candidates and snapshot digest; typed stale/not-found/not-visible errors"
+      ],
+      "behavioralContract": [
+        "Untrusted, quarantined, blocked or context-ineligible candidates cannot appear as admitted normal results.",
+        "Resolution is deterministic on one frozen inventory and caller context; stale expected snapshot must fail closed, never silently pick a different version.",
+        "Search uses bounded ranked lexical matching and does not prove semantic LEGO compatibility."
+      ],
+      "acceptance": [
+        "Native catalog and MCP tests check shadowing, context, explicit/implicit eligibility, stale snapshot and unknown identity.",
+        "Discovery/search success does not grant execution authority or assert that a consumer executed an instruction."
+      ],
+      "evidence": [
+        "src/ordivon_skills/catalog.py",
+        "src/ordivon_skills/model.py",
+        "scripts/skills_mcp.py",
+        "tests/test_skill_catalog_r2.py",
+        "tests/test_skills_mcp_r2.py"
+      ],
+      "consumers": [
+        {
+          "consumer": "Skills MCP skills_search/skills_resolve",
+          "claim": "Native exposed read-only discovery contract",
+          "evidence": "scripts/skills_mcp.py"
+        },
+        {
+          "consumer": "SK03",
+          "claim": "Exact skillId, scope and snapshot participate in resource read binding",
+          "evidence": "src/ordivon_skills/catalog.py"
+        }
+      ],
+      "dependencies": [
+        "SK01"
+      ],
+      "environment": {
+        "source": "Exact contextual inventory snapshot and caller invocation mode",
+        "installed": "Gateway/client routing and deployed Skills service require separate Runtime/Connector observations"
+      },
+      "mustNotOwn": [
+        "Global Agent knowledge truth",
+        "Semantic fitness of every search result"
+      ],
+      "formalObligations": [
+        "Snapshot revision equality is necessary before claiming read compatibility with previous resolution"
+      ]
+    },
+    {
+      "id": "SK03",
+      "label": "BoundedSkillResourceRead",
+      "kind": "evidence_binding",
+      "role": "capability",
+      "responsibility": "Read bounded, immutable-source-qualified text resources for an exact admitted Skill identity with explicit instruction digest, package revision and optional context/snapshot fences, providing advisory sanitization with its own provenance.",
+      "authority": "Skills native resource projection; underlying Git/filesystem package remains source owner",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "Canonical skillId and relative resource path",
+        "Optional expected instructionDigest, packageRevision and snapshotRevision",
+        "offset/maxBytes, advisory/raw projection and caller context"
+      ],
+      "outputs": [
+        "Bounded SkillReadResult with SHA-256 evidence of raw/projection bytes, exact package/instruction digests or typed failure"
+      ],
+      "behavioralContract": [
+        "Path traversal, symlink aliases, oversize reads and stale package/instruction/snapshot revisions fail closed.",
+        "Sanitized advisory text cannot be upgraded to a trusted runtime instruction; raw resource bytes remain source evidence only.",
+        "Actual Skill installation and execution are not inferred from successfully reading resource text."
+      ],
+      "acceptance": [
+        "Native catalog tests falsify package drift, path escapes, digest mismatch and projection limits.",
+        "MCP Skills read tests consume the exact read result and error cases, without domain execution acceptance."
+      ],
+      "evidence": [
+        "src/ordivon_skills/catalog.py",
+        "src/ordivon_skills/scanner.py",
+        "src/ordivon_skills/model.py",
+        "scripts/skills_mcp.py",
+        "tests/test_skill_catalog_r2.py",
+        "tests/test_skills_mcp_r2.py"
+      ],
+      "consumers": [
+        {
+          "consumer": "Skills MCP skills_read",
+          "claim": "Read-only bounded resource projection for Agent client",
+          "evidence": "scripts/skills_mcp.py"
+        }
+      ],
+      "dependencies": [
+        "SK01",
+        "SK02"
+      ],
+      "environment": {
+        "source": "Mounted/readable package path, current context and source digests",
+        "installed": "Client runtime/tool execution truth belongs to external consumer"
+      },
+      "mustNotOwn": [
+        "Execute Skill scripts or promote third-party text to high-priority instructions"
+      ],
+      "formalObligations": [
+        "Bounded result must be linked to the exact package and instruction witness; Source evidence is not installed/executed proof"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "SK01",
+      "to": "SK02",
+      "type": "DATA",
+      "label": "admitted source inventory for bounded context selection"
+    },
+    {
+      "from": "SK01",
+      "to": "SK03",
+      "type": "POLICY",
+      "label": "trust/quarantine, package safety remain prerequisites of exact reads"
+    },
+    {
+      "from": "SK02",
+      "to": "SK03",
+      "type": "DATA",
+      "label": "resolved exact identity and source-context fence for bounded reads"
+    }
+  ],
+  "slices": [],
+  "gaps": [
+    "Formal checker has not proven Skills scan/resolve/read code refinement for all OS/races/dynamic clients.",
+    "Installed/configured/executed/consumer currentness is external to this SOURCE-qualified planning projection.",
+    "No claim that these three identities exhaust all Skills implementation details or other Agent Skill consumers."
+  ],
+  "retirementPolicy": "Any responsibility with no distinguishable consumer contract is an internal detail; move to mature Agent Skills/Agent Plugins/MCP standards where they completely satisfy the observed behavior."
+}

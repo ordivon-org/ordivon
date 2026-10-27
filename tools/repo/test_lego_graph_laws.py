@@ -18,6 +18,44 @@ OWNER_GRAPH_PLANS = (
 )
 
 
+def test_skills_native_R21_owner_plan_has_real_consumers_and_bounded_source_evidence() -> None:
+    """No fabricated LE(GO) from Skills files; qualify only three separable responsibilities."""
+    relative = "platform/skills/planning/lego-plan-r1.json"
+    plan = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+    module.validate_owner_lego_graph(plan)
+    module.validate_owner_lego_dependencies(plan, "platform/skills")
+    evidence_paths = module.validate_owner_lego_source_evidence(ROOT, relative, plan)
+    refs = {node["id"]: node for node in plan["nodes"]}
+    assert set(refs) == {"SK01", "SK02", "SK03"}
+    for node in refs.values():
+        assert all(node.get(k) for k in
+                   ("responsibility", "inputs", "outputs", "behavioralContract",
+                    "acceptance", "evidence", "consumers", "environment", "formalObligations"))
+        assert any("scripts/skills_mcp.py" in str(ref) or
+                   "src/ordivon_skills/catalog.py" in str(ref)
+                   for ref in node["evidence"])
+    assert "platform/skills/src/ordivon_skills/catalog.py" in evidence_paths
+    assert "platform/skills/scripts/skills_mcp.py" in evidence_paths
+    assert {tuple((edge["from"], edge["to"])) for edge in plan["edges"]} == {
+        ("SK01", "SK02"), ("SK01", "SK03"), ("SK02", "SK03")
+    }
+    graph = module.project_owner_lego_source_graph(ROOT)
+    skills = [v for v in graph["vertices"] if v["ref"].startswith(relative+"#")]
+    assert len(skills) == 3
+    for entry in skills:
+        assert entry["sourceAnchors"]
+        assert entry["sourceCoverageStanding"] == "DECLARED_SOURCE_MEMBERSHIP_PARTIAL"
+
+
+def test_skills_R21_plan_missing_true_source_is_not_admitted() -> None:
+    relative = "platform/skills/planning/lego-plan-r1.json"
+    plan = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+    damaged = copy.deepcopy(plan)
+    damaged["project"]["sourceEvidence"] = ["src/ordivon_skills/not-a-real-catalog.py"]
+    with pytest.raises(module.ArchitectureDocsError):
+        module.validate_owner_lego_source_evidence(ROOT, relative, damaged)
+
+
 def test_host_legacy_agent_service_cursor_proposal_is_retired() -> None:
     """An old proposed LEGO is not an owner merely because its R1 row survived."""
     legacy = json.loads((ROOT / OWNER_GRAPH_PLANS[1]).read_text(encoding="utf-8"))
