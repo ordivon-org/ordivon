@@ -10,7 +10,8 @@
     "config/archivematica-preservation-r10.compose.yml",
     "docs/creative-preservation-*.md",
     "systemd/ordivon-preservation-fixity-r7.service",
-    "systemd/ordivon-preservation-fixity-r7.timer"
+    "systemd/ordivon-preservation-fixity-r7.timer",
+    "planning/lego-plan-r1.json"
   ],
   "excludedCurrentOwner": {
     "creativeLibrary": "Media-facing presentation/read-model; not included"
