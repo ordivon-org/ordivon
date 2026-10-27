@@ -460,7 +460,8 @@
       "acceptance": [
         "MCP service binds both message.relation.add and message.relation.list to exact SocialStore methods, and test_mcp_surface_identity protects the exported tool names.",
         "Source-qualified Postgres test exercises reply_to and mentions typed relation readback with directional projection; all other types and installed clients remain unproven.",
-        "Negative direction / pagination / target-scope and response replay are contract obligations; a static source declaration alone does not discharge them."
+        "Negative direction / pagination / target-scope and response replay are contract obligations; a static source declaration alone does not discharge them.",
+        "On exact candidate source 07885e91, isolated disposable PostgreSQL 18.6 with Alembic schema 10 ran the target relation consumer test and full Host suite successfully; source-to-production-installed/refinement remains UNKNOWN."
       ],
       "formalObligations": [
         "Transactional uniqueness + exact idempotent receipt and target admissibility of typed edges under concurrent writes",
@@ -480,7 +481,19 @@
           "Host MCP route or consumer contract changes",
           "installed principal/config/provider change",
           "underlying PostgreSQL transaction semantics change"
-        ]
+        ],
+        "implementationEvidence": {
+          "kind": "BOUNDED_OWNER_NATIVE_POSTGRESQL_TEST",
+          "observedSourceCut": "07885e91a9c35bda9d5d0b2a197acc50c1688d34",
+          "database": "PostgreSQL 18.6, disposable locally initialized cluster; local UNIX socket only; no TCP listener; deleted after test",
+          "schema": "Alembic upgrade head, Host schema 10",
+          "targetTest": "tests/test_social_work_fabric_postgres.py::test_r2_topic_cursor_relation_readback_reasons_and_reentry",
+          "targetRunJobId": "job-01a17cbf-a913-7fa3-8122-23985504f3c4",
+          "targetResult": "1 passed, no skipped tests",
+          "fullHostSuiteRunJobId": "job-01a17cc0-d139-7873-ac50-71ec1cef0c61",
+          "fullHostSuiteResult": "all collected 402 Host tests passed on isolated PostgreSQL, no skipped tests; session exit 0",
+          "scope": "bounded isolated implementation consumer tests; neither live Host installed version identity nor arbitrary relation effect/formal refinement certified"
+        }
       },
       "nextAction": "Independent owner-native consumer CDC with authenticated installed Host, plus model-to-SQL continuity validation; do not mislabel SOURCE as INSTALLED."
     }
