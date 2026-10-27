@@ -522,7 +522,11 @@ mod local_linux_adapter_tests {
 
     #[test]
     fn local_linux_provider_snapshot_binds_exact_runner_digest() {
-        let executor = executor(Some("/usr/bin/true"));
+        // CI images may expose /usr/bin/true as a symlink to a multicall
+        // executable. The Runner policy intentionally rejects symlink paths;
+        // select the actual executable in this positive provider fixture.
+        let runner = std::fs::canonicalize("/usr/bin/true").unwrap();
+        let executor = executor(Some(runner.to_str().unwrap()));
         let provider = LocalLinuxProvider::new(RuntimeNodePlatform::Linux, &executor);
         provider
             .validate_plan(&plan(ExecutionTarget::LocalLinux))
@@ -532,10 +536,30 @@ mod local_linux_adapter_tests {
             snapshot.contract,
             ExecutionProviderContract::LocalLinuxRunnerV1
         );
-        assert_eq!(
-            snapshot.executable_digest,
-            sha256_file(std::path::Path::new("/usr/bin/true")).unwrap()
-        );
+        assert_eq!(snapshot.executable_digest, sha256_file(&runner).unwrap());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn local_linux_provider_still_rejects_symlink_runner_paths() {
+        use std::os::unix::fs::symlink;
+        let runner = std::fs::canonicalize("/usr/bin/true").unwrap();
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let alias = std::env::temp_dir().join(format!(
+            "ordivon-runner-symlink-negative-{}-{nonce}",
+            std::process::id()
+        ));
+        symlink(&runner, &alias).unwrap();
+        let executor = executor(Some(alias.to_str().unwrap()));
+        let provider = LocalLinuxProvider::new(RuntimeNodePlatform::Linux, &executor);
+        let outcome = provider.snapshot();
+        std::fs::remove_file(&alias).unwrap();
+        let error = outcome.unwrap_err();
+        assert_eq!(error.code, RuntimeErrorCode::InvalidRequest);
+        assert_eq!(error.field.as_deref(), Some("runnerPath"));
     }
 
     #[test]
