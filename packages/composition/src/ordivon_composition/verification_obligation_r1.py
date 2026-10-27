@@ -589,16 +589,23 @@ def select_impacted_obligations(
         else:
             status = "REUSE_CANDIDATE"
         statuses[identity] = status
-    while True:
-        progressed = False
-        for identity in sorted(claims):
-            upstream = (statuses[ref] for ref in claims[identity]["dependsOn"])
-            new_rank = max((rank[statuses[identity]], *(rank[x] for x in upstream)))
-            if new_rank > rank[statuses[identity]]:
-                statuses[identity] = ("REUSE_CANDIDATE", "UNKNOWN", "RECHECK_REQUIRED")[new_rank]
-                progressed = True
-        if not progressed:
-            break
+    # Standard monotone worklist over the existing declared dependency graph.
+    # Each node can be raised at most twice in the three-element lattice, so
+    # unrelated proof nodes are not repeatedly rescanned on every change.
+    from collections import deque
+
+    dependents: dict[str, set[str]] = {identity: set() for identity in statuses}
+    for identity, claim in claims.items():
+        for dependency in claim["dependsOn"]:
+            dependents[dependency].add(identity)
+
+    pending = deque(sorted(identity for identity, status in statuses.items() if rank[status] > 0))
+    while pending:
+        dependency = pending.popleft()
+        for consumer in sorted(dependents[dependency]):
+            if rank[statuses[dependency]] > rank[statuses[consumer]]:
+                statuses[consumer] = statuses[dependency]
+                pending.append(consumer)
 
     projection = {
         "kind": "ordivon.task-local-obligation-impact",
