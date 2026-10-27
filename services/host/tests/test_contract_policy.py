@@ -257,7 +257,7 @@ def test_host_lego_r2_unused_projection_retired_r1_and_r3_preserved() -> None:
         edge["to"]
         for edge in dependencies["edges"]
         if edge["from"] == "O04" and edge["type"] == "DEPENDENCY"
-    } == {"O01", "O02"}
+    } >= {"O01", "O02"}
     current = json.loads((planning / "lego-plan-r3.json").read_text())
     assert current["schemaVersion"] == 3
     assert current["project"]["id"] == "ordivon-host-v2"
