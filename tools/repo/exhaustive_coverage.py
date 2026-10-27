@@ -166,6 +166,18 @@ def plans(repo: Path, source: str, source_paths: set[str]) -> dict:
             "opaquePlans": opaque, "sameLocalIdAcrossPlans": collisions}
 
 
+def selected_structure_mappings(path: str, placement: dict) -> list[tuple[dict, str]]:
+    """Exact longest source-prefix mapping; a declaration, not a migration."""
+    possible = [
+        (len(rule), mapping, rule)
+        for mapping in placement.get("mappings", [])
+        for rule in mapping.get("sourcePaths", [])
+        if is_match(path, rule)
+    ]
+    best = max((width for width, _, _ in possible), default=0)
+    return [(mapping, rule) for width, mapping, rule in possible if width == best]
+
+
 def classification(repo: Path, source: str, proposed: str | None = None) -> dict:
     exact_commit(repo, source)
     if proposed is not None:
@@ -183,17 +195,9 @@ def classification(repo: Path, source: str, proposed: str | None = None) -> dict
         path = item["path"]
         now = source_partition(path, actual)
         then = source_partition(path, alternative) if alternative else None
-        possible = [
-            (len(rule), x, rule)
-            for x in placement.get("mappings", [])
-            for rule in x.get("sourcePaths", [])
-            if is_match(path, rule)
-        ]
-        # Structure R2 deliberately has broad and narrow nested source rules.
-        # Longest-prefix precedence is a projection policy, not evidence that
-        # a physical move or consumer cutover has occurred.
-        best = max((width for width, _, _ in possible), default=0)
-        selected = [(x, prefix) for width, x, prefix in possible if width == best]
+        # Structure mapping remains declarative; sharing the exact selector
+        # with issue projections preserves the established source digest.
+        selected = selected_structure_mappings(path, placement)
         targets = []
         for x, source_prefix in selected:
             dests = x.get("targetPaths", [])
@@ -439,6 +443,238 @@ def active_source_cells(
     if include_member_index:
         result["memberCellDigests"] = dict(sorted(member_index.items()))
     return result
+
+
+def problem_lego_candidates(
+    inventory: dict, *, repo: Path, max_files: int = 24, max_depth: int = 6,
+) -> dict:
+    """Read-only issue units from the EXISTING exact-Git source and cell projections.
+
+    Each unit identifies a *question to investigate*, not a qualified semantic
+    LEGO, an implementation proposal, deletion authority, or a consumer proof.
+    Physical directory, declaration, and mapping planes stay orthogonal.
+    """
+    cell_projection = active_source_cells(
+        inventory, repo=repo, max_files=max_files, max_depth=max_depth,
+        include_member_index=True)
+    by_path = {item["path"]: item for item in inventory["sourcePaths"]}
+    path_cells = cell_projection["memberCellDigests"]
+    by_cell: dict[str, list[dict]] = collections.defaultdict(list)
+    for path, digest in path_cells.items():
+        by_cell[digest].append(by_path[path])
+    for items in by_cell.values():
+        items.sort(key=lambda x: x["path"])
+    if set(path_cells) != set(by_path):
+        raise ValueError("issue projection missing Git source paths")
+
+    def ref(kind: str, locator: str) -> str:
+        raw = json.dumps([kind, locator], ensure_ascii=True, separators=(",", ":"))
+        return "source-problem:" + hashlib.sha256(raw.encode()).hexdigest()
+
+    def source_witness(items: list[dict]) -> dict:
+        identities = [(x["path"], x["sourceIdentity"]) for x in items]
+        return {
+            "sourcePathCount": len(items),
+            "sourceMembersDigest": "sha256:" + hashlib.sha256(
+                json.dumps(identities, ensure_ascii=True, sort_keys=True,
+                           separators=(",", ":")).encode()).hexdigest(),
+            "firstPath": identities[0][0], "lastPath": identities[-1][0],
+        }
+
+    issues = []
+    slices = []
+    for cell in cell_projection["cells"]:
+        members = by_cell[cell["memberGitObjectDigest"]]
+        locator = cell["sourceZone"] + "|" + cell["physicalPrefix"]
+        for kind in cell["problems"]:
+            if kind == "PLAN_DECLARATION_GAPS_REQUIRE_SEMANTIC_MAPPING":
+                # The actual issue unit belongs to each plan node, not a
+                # duplicate synthetic problem for its containing directory.
+                continue
+            unit = {
+                "problemRef": ref(kind, locator),
+                "problemKind": kind,
+                "subjectKind": "PHYSICAL_SOURCE_CELL",
+                "locator": {
+                    "sourceZone": cell["sourceZone"],
+                    "physicalPrefix": cell["physicalPrefix"],
+                    "cellMemberDigest": cell["memberGitObjectDigest"],
+                },
+                "sourceWitness": source_witness(members),
+                "sourcePaths": [x["path"] for x in members] if kind == "UNCLASSIFIED_SOURCE_REGION" else [],
+                "investigation": (
+                    "Identify an existing source region or justify leaving support navigation unassigned"
+                    if kind == "UNCLASSIFIED_SOURCE_REGION" else
+                    "Decompose differing responsibilities using actual consumers, not only filenames"
+                ),
+                "standing": "SOURCE_PROBLEM_CANDIDATE",
+                "consumerStanding": "UNKNOWN",
+                "installedStanding": "UNKNOWN",
+                "formalStanding": "UNKNOWN",
+            }
+            if kind == "DENSE_CELL_REQUIRES_SUBCLASSIFICATION_REVIEW":
+                # Lexical slices are bounded navigation aids; never promote
+                # a file extension to a functional responsibility.
+                buckets: dict[str, list[dict]] = collections.defaultdict(list)
+                for item in members:
+                    name = item["path"].rsplit("/", 1)[-1]
+                    suffix = ("schema.json" if name.endswith(".schema.json")
+                              else name.rsplit(".", 1)[-1].lower()
+                              if "." in name else "(no-extension)")
+                    buckets[suffix].append(item)
+                slice_refs = []
+                for suffix, same_kind in sorted(buckets.items()):
+                    for start in range(0, len(same_kind), max_files):
+                        chunk = same_kind[start:start + max_files]
+                        chunk_locator = locator + "|" + suffix + "|" + chunk[0]["path"]
+                        slice_ref = ref("LEXICAL_REFINEMENT_SLICE", chunk_locator)
+                        slices.append({
+                            "sliceRef": slice_ref, "parentProblemRef": unit["problemRef"],
+                            "lexicalSuffix": suffix, "sourceWitness": source_witness(chunk),
+                            "sourcePaths": [x["path"] for x in chunk],
+                            "standing": "SOURCE_ONLY_SEMANTIC_QUALIFICATION_NEEDED",
+                            "consumerStanding": "UNKNOWN",
+                        })
+                        slice_refs.append(slice_ref)
+                unit["recursiveSliceRefs"] = slice_refs
+            issues.append(unit)
+
+    for node in inventory["semanticPlans"]["nodes"]:
+        if not node["problems"]:
+            continue
+        plan = node["plan"]
+        if plan not in by_path:
+            raise ValueError("plan node not anchored to an exact Git path")
+        issues.append({
+            "problemRef": ref("PLAN_NODE_DECLARATION_GAP", node["nodeRef"]),
+            "problemKind": "PLAN_NODE_DECLARATION_GAP",
+            "subjectKind": "DECLARED_PLAN_NODE",
+            "locator": {
+                "nodeRef": node["nodeRef"], "planSourcePath": plan,
+                "planSourceIdentity": by_path[plan]["sourceIdentity"],
+                "sourceCellDigest": path_cells[plan],
+                "declarationShape": node["shape"],
+            },
+            "gapPredicates": node["problems"],
+            "declaredFacets": node["declarations"],
+            "standing": "SOURCE_DECLARATION_ONLY",
+            "investigation": "Map each missing facet to observed contract and consumer, or establish that this proposed node is unnecessary",
+            "consumerStanding": "UNKNOWN",
+            "installedStanding": "UNKNOWN",
+            "formalStanding": "UNKNOWN",
+        })
+
+    for opaque in inventory["semanticPlans"]["opaquePlans"]:
+        plan = opaque["plan"]
+        if plan not in by_path:
+            raise ValueError("non-node plan source not anchored to Git")
+        issues.append({
+            "problemRef": ref("NON_NODE_PLAN_SHAPE_REQUIRES_MAPPING", plan),
+            "problemKind": "NON_NODE_PLAN_SHAPE_REQUIRES_MAPPING",
+            "subjectKind": "NON_NODE_PLAN_DECLARATION",
+            "locator": {
+                "planSourcePath": plan, "planSourceIdentity": by_path[plan]["sourceIdentity"],
+                "sourceCellDigest": path_cells[plan], "declaredKind": opaque.get("kind"),
+            },
+            "standing": "PLAN_FORMAT_OBSERVED_SEMANTICS_UNKNOWN",
+            "investigation": "Determine whether this shape has an actual consumer or is solely a historical proposal",
+            "consumerStanding": "UNKNOWN",
+            "installedStanding": "UNKNOWN",
+            "formalStanding": "UNKNOWN",
+        })
+    for local_id, scoped_refs in sorted(
+            inventory["semanticPlans"]["sameLocalIdAcrossPlans"].items()):
+        issues.append({
+            "problemRef": ref("CROSS_PLAN_LOCAL_ID_SCOPE_REVIEW", local_id),
+            "problemKind": "CROSS_PLAN_LOCAL_ID_SCOPE_REVIEW",
+            "subjectKind": "DECLARATION_IDENTITY_COLLISION_REVIEW",
+            "locator": {"localId": local_id, "scopedNodeRefs": scoped_refs},
+            "standing": "LOCAL_IDS_REUSED_NOT_GLOBAL_COLLISION_PROOF",
+            "investigation": "Keep plan-qualified identities; determine whether equal local IDs intentionally denote distinct responsibilities",
+            "consumerStanding": "UNKNOWN",
+            "installedStanding": "UNKNOWN",
+            "formalStanding": "UNKNOWN",
+        })
+
+    mapping_groups: dict[tuple[str, str], list[dict]] = collections.defaultdict(list)
+    mapping_declarations: dict[tuple[str, str], dict] = {}
+    structure = read_json(repo, inventory["sourceCut"],
+                          "docs/architecture/structure-r2-transition-r1.json")
+    for item in inventory["sourcePaths"]:
+        path = item["path"]
+        for declaration, prefix in selected_structure_mappings(path, structure):
+            mapping = {"mapId": declaration.get("id"), "mode": declaration.get("mode"),
+                       "sourcePrefix": prefix, "targetPaths": declaration.get("targetPaths", [])}
+            if ("PHYSICAL_MOVE_NOT_REALIZED_OR_CONSUMER_NOT_CUT_OVER" in item["problems"]
+                    and mapping["mode"] == "move"):
+                kind = "DECLARED_PHYSICAL_MOVE_NEEDS_CONSUMER_WITNESS"
+            elif ("STRUCTURE_SPLIT_REQUIRES_CONSUMER_WITNESS" in item["problems"]
+                  and len(mapping["targetPaths"]) != 1):
+                kind = "DECLARED_SPLIT_NEEDS_CONSUMER_WITNESS"
+            else:
+                continue
+            key = (kind, mapping["mapId"])
+            if key in mapping_declarations and mapping_declarations[key] != mapping:
+                raise ValueError("conflicting structure mapping identity")
+            mapping_declarations[key] = mapping
+            mapping_groups[key].append(item)
+    for (kind, map_id), members in sorted(mapping_groups.items()):
+        members.sort(key=lambda x: x["path"])
+        issues.append({
+            "problemRef": ref(kind, map_id),
+            "problemKind": kind,
+            "subjectKind": "DECLARED_STRUCTURE_MAPPING",
+            "locator": {
+                "mapId": map_id,
+                "declarationSourcePath": "docs/architecture/structure-r2-transition-r1.json",
+                "declarationSourceIdentity": by_path["docs/architecture/structure-r2-transition-r1.json"]["sourceIdentity"],
+                "mapping": mapping_declarations[(kind, map_id)],
+            },
+            "sourceWitness": source_witness(members),
+            "standing": "PLANNED_MAPPING_NOT_VERIFIED_MIGRATION",
+            "investigation": "Prove actual source-to-consumer routing and installed compatibility before any physical move",
+            "consumerStanding": "UNKNOWN",
+            "installedStanding": "UNKNOWN",
+            "formalStanding": "UNKNOWN",
+        })
+
+    issues.sort(key=lambda x: (x["problemKind"], x["problemRef"]))
+    slices.sort(key=lambda x: x["sliceRef"])
+    issue_ids = [p["problemRef"] for p in issues]
+    if len(set(issue_ids)) != len(issue_ids):
+        raise ValueError("nonunique issue refs from exact Git source")
+    slice_ids = [p["sliceRef"] for p in slices]
+    if len(set(slice_ids)) != len(slice_ids):
+        raise ValueError("nonunique recursive slice refs")
+    if set(x["parentProblemRef"] for x in slices) - set(issue_ids):
+        raise ValueError("orphan recursive slice")
+    summary = collections.Counter(x["problemKind"] for x in issues)
+    return {
+        "kind": "ordivon.phase1.source-problem-lego-candidates",
+        "sourceCut": inventory["sourceCut"],
+        "sourceTree": inventory["sourceTree"],
+        "sourcePathDigest": inventory["sourcePathDigest"],
+        "proofReuseAdmissible": False,
+        "truthBoundary": "READ_ONLY_SOURCE_PROBLEM_CANDIDATES; not qualified LEGO, assigned owner, migration authorization, installed truth or actual consumer",
+        "sourceCellsSummary": cell_projection["summary"],
+        "summary": {
+            "problemLegos": len(issues),
+            "byKind": dict(sorted(summary.items())),
+            "recursiveLexicalSlices": len(slices),
+            "planNodesInspected": len(inventory["semanticPlans"]["nodes"]),
+            "mechanicalUnassignedPaths": sum(
+                x["currentSource"]["standing"] != "CLASSIFIED"
+                for x in inventory["sourcePaths"]),
+            "mappedMovePaths": sum(
+                "PHYSICAL_MOVE_NOT_REALIZED_OR_CONSUMER_NOT_CUT_OVER" in x["problems"]
+                for x in inventory["sourcePaths"]),
+            "splitDeclarationPaths": sum(
+                "STRUCTURE_SPLIT_REQUIRES_CONSUMER_WITNESS" in x["problems"]
+                for x in inventory["sourcePaths"]),
+        },
+        "problemLegos": issues,
+        "recursiveSlices": slices,
+    }
 
 
 def lookup_source_paths(inventory: dict, *, repo: Path,
@@ -857,6 +1093,8 @@ def main() -> int:
     parser.add_argument("--repo", type=Path, default=Path.cwd())
     parser.add_argument("--summary", action="store_true")
     parser.add_argument("--only-problems", action="store_true")
+    parser.add_argument("--problem-legos", action="store_true",
+                        help="derive source-only per-cell, plan-node and structure-mapping issue units")
     parser.add_argument("--reference-path", action="append", default=[],
                         help="cross-format Git textual reference witness for exact file path")
     parser.add_argument("--reference-limit", type=int, default=48,
@@ -877,7 +1115,7 @@ def main() -> int:
     if args.reference_path:
         if (args.lookup_path or args.static_python_consumers or args.live_cells
                 or args.proposal_cut or args.use_proposal_cells or args.only_problems
-                or args.imports_prefix or args.summary):
+                or args.imports_prefix or args.summary or args.problem_legos):
             parser.error("reference witness mode is mutually exclusive with projection modes")
         result = exact_git_reference_hints(
             args.repo, args.source_cut, args.reference_path,
@@ -886,6 +1124,10 @@ def main() -> int:
         return 0
     if args.reference_limit != 48:
         parser.error("reference-limit requires reference-path")
+    if args.problem_legos and (args.lookup_path or args.static_python_consumers
+                               or args.use_proposal_cells or args.only_problems
+                               or args.live_cells):
+        parser.error("problem-legos is a distinct source-only issue projection")
     if args.imports_prefix and not args.static_python_consumers:
         parser.error("imports-prefix requires static-python-consumers")
     if args.lookup_path and args.static_python_consumers:
@@ -906,7 +1148,14 @@ def main() -> int:
         print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2))
         return 0
     result = classification(args.repo, args.source_cut, args.proposal_cut)
-    if args.lookup_path:
+    if args.problem_legos:
+        result = problem_lego_candidates(
+            result, repo=args.repo, max_files=args.cell_max_files,
+            max_depth=args.cell_max_depth)
+        if args.summary:
+            result.pop("problemLegos")
+            result.pop("recursiveSlices")
+    elif args.lookup_path:
         result = lookup_source_paths(
             result, repo=args.repo, paths=args.lookup_path,
             max_files=args.cell_max_files, max_depth=args.cell_max_depth,

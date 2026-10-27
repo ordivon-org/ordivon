@@ -234,6 +234,142 @@ class LiveRecursiveCellsTests(unittest.TestCase):
         assert len(out["cells"]) > out["summary"]["sourceZones"]
 
 
+
+class ProblemLegoSourceOnlyTests(unittest.TestCase):
+    """Classification questions, not functional components or repair permission."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cut = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+        ).strip()
+        cls.inventory = M.classification(ROOT, cls.cut)
+        cls.output = M.problem_lego_candidates(cls.inventory, repo=ROOT)
+
+    def test_issue_count_and_standing_are_source_only(self):
+        result = self.output
+        self.assertEqual(result["sourceCut"], self.cut)
+        self.assertFalse(result["proofReuseAdmissible"])
+        self.assertEqual(result["summary"]["problemLegos"], len(result["problemLegos"]))
+        self.assertEqual(result["summary"]["recursiveLexicalSlices"], len(result["recursiveSlices"]))
+        self.assertEqual(len({x["problemRef"] for x in result["problemLegos"]}),
+                         len(result["problemLegos"]))
+        self.assertEqual(len({x["sliceRef"] for x in result["recursiveSlices"]}),
+                         len(result["recursiveSlices"]))
+        for issue in result["problemLegos"]:
+            self.assertEqual(issue["consumerStanding"], "UNKNOWN")
+            self.assertEqual(issue["installedStanding"], "UNKNOWN")
+            self.assertEqual(issue["formalStanding"], "UNKNOWN")
+            self.assertNotIn("VERIFIED_LEGO", issue["standing"])
+            self.assertNotIn("ownerRef", issue)
+
+    def test_exact_unclassified_problem_source_membership_is_nonoverlapping(self):
+        issues = [x for x in self.output["problemLegos"]
+                  if x["problemKind"] == "UNCLASSIFIED_SOURCE_REGION"]
+        grouped = [p for x in issues for p in x["sourcePaths"]]
+        expected = {r["path"] for r in self.inventory["sourcePaths"]
+                    if r["currentSource"]["standing"] != "CLASSIFIED"}
+        self.assertEqual(set(grouped), expected)
+        self.assertEqual(len(grouped), len(set(grouped)))
+        self.assertEqual(len(grouped), self.output["summary"]["mechanicalUnassignedPaths"])
+        self.assertTrue(all(x["subjectKind"] == "PHYSICAL_SOURCE_CELL" for x in issues))
+
+    def test_dense_slices_exhaust_all_dense_members_once(self):
+        current = M.active_source_cells(
+            self.inventory, repo=ROOT, include_member_index=True)
+        dense = {x["memberGitObjectDigest"] for x in current["cells"]
+                 if "DENSE_CELL_REQUIRES_SUBCLASSIFICATION_REVIEW" in x["problems"]}
+        expected = {path for path, digest in current["memberCellDigests"].items()
+                    if digest in dense}
+        actual = [path for sl in self.output["recursiveSlices"]
+                  for path in sl["sourcePaths"]]
+        self.assertEqual(set(actual), expected)
+        self.assertEqual(len(actual), len(set(actual)))
+        self.assertTrue(all(sl["sourceWitness"]["sourcePathCount"] <= 24
+                            for sl in self.output["recursiveSlices"]))
+        self.assertTrue(all(sl["standing"] == "SOURCE_ONLY_SEMANTIC_QUALIFICATION_NEEDED"
+                            for sl in self.output["recursiveSlices"]))
+        parents = {i["problemRef"] for i in self.output["problemLegos"]}
+        self.assertTrue(all(sl["parentProblemRef"] in parents
+                            for sl in self.output["recursiveSlices"]))
+
+    def test_plan_gap_units_are_per_node_not_duplicated_by_parent_cells(self):
+        issues = [x for x in self.output["problemLegos"]
+                  if x["problemKind"] == "PLAN_NODE_DECLARATION_GAP"]
+        source_nodes = {n["nodeRef"]: n for n in self.inventory["semanticPlans"]["nodes"]
+                        if n["problems"]}
+        self.assertEqual({i["locator"]["nodeRef"] for i in issues}, set(source_nodes))
+        self.assertEqual(len(issues), len(source_nodes))
+        for unit in issues:
+            node = source_nodes[unit["locator"]["nodeRef"]]
+            self.assertEqual(unit["gapPredicates"], node["problems"])
+            self.assertEqual(unit["locator"]["planSourcePath"], node["plan"])
+            self.assertEqual(unit["standing"], "SOURCE_DECLARATION_ONLY")
+        self.assertNotIn("PLAN_DECLARATION_GAPS_REQUIRE_SEMANTIC_MAPPING",
+                         self.output["summary"]["byKind"])
+
+    def test_declared_structure_mapping_does_not_claim_performed_moves(self):
+        mapped = [i for i in self.output["problemLegos"]
+                  if i["subjectKind"] == "DECLARED_STRUCTURE_MAPPING"]
+        by_kind = {x["problemKind"] for x in mapped}
+        self.assertEqual(by_kind, {
+            "DECLARED_PHYSICAL_MOVE_NEEDS_CONSUMER_WITNESS",
+            "DECLARED_SPLIT_NEEDS_CONSUMER_WITNESS"})
+        for unit in mapped:
+            self.assertEqual(unit["standing"], "PLANNED_MAPPING_NOT_VERIFIED_MIGRATION")
+            placement = M.read_json(
+                ROOT, self.cut, "docs/architecture/structure-r2-transition-r1.json")
+            self.assertIn(unit["locator"]["mapId"],
+                          {x["id"] for x in placement["mappings"]})
+        self.assertEqual(self.output["summary"]["mappedMovePaths"],
+                         self.inventory["summary"]["sourceProblemCounts"][
+                             "PHYSICAL_MOVE_NOT_REALIZED_OR_CONSUMER_NOT_CUT_OVER"])
+        self.assertEqual(self.output["summary"]["splitDeclarationPaths"],
+                         self.inventory["summary"]["sourceProblemCounts"][
+                             "STRUCTURE_SPLIT_REQUIRES_CONSUMER_WITNESS"])
+
+    def test_opaque_plan_and_cross_plan_local_ids_are_scoped_review_only(self):
+        by_kind = self.output["summary"]["byKind"]
+        self.assertEqual(
+            by_kind.get("NON_NODE_PLAN_SHAPE_REQUIRES_MAPPING", 0),
+            len(self.inventory["semanticPlans"]["opaquePlans"]))
+        self.assertEqual(
+            by_kind.get("CROSS_PLAN_LOCAL_ID_SCOPE_REVIEW", 0),
+            len(self.inventory["semanticPlans"]["sameLocalIdAcrossPlans"]))
+        for issue in self.output["problemLegos"]:
+            if issue["problemKind"] == "CROSS_PLAN_LOCAL_ID_SCOPE_REVIEW":
+                self.assertEqual(issue["standing"],
+                                 "LOCAL_IDS_REUSED_NOT_GLOBAL_COLLISION_PROOF")
+                self.assertGreaterEqual(len(issue["locator"]["scopedNodeRefs"]), 2)
+
+    def test_same_exact_source_has_byte_deterministic_problem_identity(self):
+        other = M.problem_lego_candidates(self.inventory, repo=ROOT)
+        self.assertEqual(self.output, other)
+        narrower = M.problem_lego_candidates(
+            self.inventory, repo=ROOT, max_files=12)
+        # Bounded subdivisions may alter cell identities, but node/map identity
+        # remains source-stable independently of the selected lexical slicing.
+        other_types = {"PLAN_NODE_DECLARATION_GAP",
+                       "DECLARED_PHYSICAL_MOVE_NEEDS_CONSUMER_WITNESS",
+                       "DECLARED_SPLIT_NEEDS_CONSUMER_WITNESS"}
+        self.assertEqual(
+            {x["problemRef"] for x in self.output["problemLegos"]
+             if x["problemKind"] in other_types},
+            {x["problemRef"] for x in narrower["problemLegos"]
+             if x["problemKind"] in other_types})
+        self.assertGreaterEqual(len(narrower["recursiveSlices"]), len(self.output["recursiveSlices"]))
+        self.assertEqual(narrower["summary"]["mechanicalUnassignedPaths"],
+                         self.output["summary"]["mechanicalUnassignedPaths"])
+
+    def test_missing_plan_git_anchor_fails_closed(self):
+        import copy
+        tampered = copy.deepcopy(self.inventory)
+        subject = next(x for x in tampered["semanticPlans"]["nodes"] if x["problems"])
+        subject["plan"] = "fabricated/missing-plan.json"
+        with self.assertRaisesRegex(ValueError, "not anchored"):
+            M.problem_lego_candidates(tampered, repo=ROOT)
+
+
 class PythonStaticConsumerFrontierTests(unittest.TestCase):
     """Exact Git source import witnesses, not runtime/consumer qualification."""
 
