@@ -164,7 +164,7 @@
       ]
     },
     {
-      "id": "O05",
+      "id": "O08",
       "label": "MessageContentReadIntegrity",
       "kind": "consumer_visible_state_contract",
       "parentLEGO": "O02",
@@ -214,7 +214,7 @@
       "nextAction": "Qualify live exact caller/installed Host seam before replacement."
     },
     {
-      "id": "O06",
+      "id": "O09",
       "label": "MessageRelationGraph",
       "kind": "consumer_visible_state_contract",
       "parentLEGO": "O02",
@@ -263,7 +263,7 @@
       "nextAction": "Qualify live exact caller/installed Host seam before replacement."
     },
     {
-      "id": "O07",
+      "id": "O10",
       "label": "TopicCursorContinuity",
       "kind": "consumer_visible_state_contract",
       "parentLEGO": "O02",
@@ -340,36 +340,36 @@
     },
     {
       "from": "O04",
-      "to": "O05",
+      "to": "O08",
       "type": "DEPENDENCY",
       "label": "declared source dependency"
     },
     {
-      "from": "O05",
+      "from": "O08",
       "to": "O02",
       "type": "COMPOSITION",
       "label": "architectural subresponsibility only; not behavioral composition theorem"
     },
     {
       "from": "O04",
-      "to": "O06",
+      "to": "O09",
       "type": "DEPENDENCY",
       "label": "declared source dependency"
     },
     {
-      "from": "O06",
+      "from": "O09",
       "to": "O02",
       "type": "COMPOSITION",
       "label": "architectural subresponsibility only; not behavioral composition theorem"
     },
     {
       "from": "O04",
-      "to": "O07",
+      "to": "O10",
       "type": "DEPENDENCY",
       "label": "declared source dependency"
     },
     {
-      "from": "O07",
+      "from": "O10",
       "to": "O02",
       "type": "COMPOSITION",
       "label": "architectural subresponsibility only; not behavioral composition theorem"
@@ -388,7 +388,7 @@
     "sourceRevision": "b5cf31f9a1d177576886fe545e870e685a80fc2e",
     "updatedAt": "2026-09-18",
     "standing": "INITIAL",
-    "notes": "Original sourceRevision is a historical original-review anchor only; the new O01-O07 source qualifications are tied to current candidate Git source, not historical installed Host truth."
+    "notes": "Original sourceRevision is a historical original-review anchor only; the new O01-O07 source qualifications are tied to current candidate Git source, not historical installed Host truth. Historical O05 ScopeBoundCursor remains RETIRED (Host R3); new O08/O09/O10 MUST NOT inherit O05 identity, approval or consumer facts."
   },
   "sharedCatalog": {
     "catalogId": "agent-architecture-lego-catalog-r1",

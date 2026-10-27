@@ -1661,9 +1661,9 @@ def test_phase1_host_board_subresponsibilities_have_distinct_real_mcp_consumers(
     mcp = (ROOT / "services/host/src/ordivon_host_v2/social_work_mcp.py").read_text()
     nodes = {n["id"]: n for n in plan["nodes"]}
     by_id = {
-        "O05": {"message.post", "message.get", "message.search"},
-        "O06": {"message.relation.add", "message.relation.list"},
-        "O07": {"topic.cursor.get", "topic.cursor.ack", "topic.resume"},
+        "O08": {"message.post", "message.get", "message.search"},
+        "O09": {"message.relation.add", "message.relation.list"},
+        "O10": {"topic.cursor.get", "topic.cursor.ack", "topic.resume"},
     }
     for node_id, methods in by_id.items():
         node = nodes[node_id]
