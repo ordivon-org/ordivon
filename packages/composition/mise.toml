@@ -14,6 +14,7 @@ uv run ruff check src tests
 uv run ruff format --check src tests
 uv run python -m pytest -q
 mise run formal:verify
+mise run formal:effect:verify
 """
 
 # Composition owns the model; Runtime exposes only pinned upstream TLA+ tools.
@@ -207,3 +208,8 @@ PY_FOREIGN_RECOVERY_RED
   trap - EXIT
 )
 """
+
+
+[tasks."formal:effect:verify"]
+description = "Check C06 task-local effect uncertainty invariants using pinned upstream TLC"
+run = "bash scripts/verify_effect_replay_formal.sh ../../services/runtime"
