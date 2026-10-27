@@ -377,3 +377,344 @@ end OrdivonR21.PriorityClosure
 #print axioms OrdivonR21.PriorityClosure.demand_is_downward_closed
 #print axioms OrdivonR21.PriorityClosure.recheck_supersedes_unknown
 #print axioms OrdivonR21.PriorityClosure.unknown_only_not_reuse
+
+
+-- Task-local dependency impact calculus, separate from physical source/install truth.
+-- The direction is prerequisite -> consumer: a changed prerequisite affects the
+-- downstream consumer; unrelated components are not poisoned without a path.
+-- This is a logical model of Composition.select_impacted_obligations, NOT a
+-- mechanized refinement of its Python worklist, nor proof of readset closure.
+namespace OrdivonR21
+
+inductive ImpactReach {α : Type}
+    (dependency : α → α → Prop) (roots : α → Prop) : α → Prop where
+  | origin (x : α) : roots x → ImpactReach dependency roots x
+  | successor (upstream downstream : α) :
+      ImpactReach dependency roots upstream →
+      dependency upstream downstream →
+      ImpactReach dependency roots downstream
+
+-- Sound scheduling must include every changed root and every downstream node.
+theorem impact_includes_changed {α : Type}
+    (dependency : α → α → Prop) (changed : α → Prop)
+    (x : α) (h : changed x) :
+    ImpactReach dependency changed x :=
+  ImpactReach.origin x h
+
+theorem impact_includes_consumer {α : Type}
+    (dependency : α → α → Prop) (changed : α → Prop)
+    (upstream downstream : α)
+    (hu : ImpactReach dependency changed upstream)
+    (hedge : dependency upstream downstream) :
+    ImpactReach dependency changed downstream :=
+  ImpactReach.successor upstream downstream hu hedge
+
+-- Minimality: no smaller impact set can contain all roots and remain closed
+-- under actual declared dependency edges.
+theorem impact_least_forward_closed {α : Type}
+    (dependency : α → α → Prop) (roots admissible : α → Prop)
+    (hroot : ∀ x, roots x → admissible x)
+    (hclosed : ∀ x y, admissible x → dependency x y → admissible y) :
+    ∀ x, ImpactReach dependency roots x → admissible x := by
+  intro x h
+  induction h with
+  | origin y hy => exact hroot y hy
+  | successor a b _ hab ih => exact hclosed a b ih hab
+
+-- An additional dependency never removes an already impacted consumer.
+theorem impact_monotone_in_declared_edges {α : Type}
+    (oldEdges newEdges : α → α → Prop) (roots : α → Prop)
+    (hedge : ∀ x y, oldEdges x y → newEdges x y) :
+    ∀ x, ImpactReach oldEdges roots x → ImpactReach newEdges roots x := by
+  intro x h
+  induction h with
+  | origin y hy => exact ImpactReach.origin y hy
+  | successor a b _ hab ih =>
+      exact ImpactReach.successor a b ih (hedge a b hab)
+
+-- The three-valued result distinguishes RECHECK, UNKNOWN and mere reuse
+-- CANDIDATE. The logical status is not a verifier PASS or proof-admission.
+inductive ImpactStanding where
+  | reuseCandidate | unknown | recheck
+
+def StandsAt {α : Type}
+    (dependency : α → α → Prop)
+    (changed unresolved : α → Prop) (x : α) :
+    ImpactStanding → Prop
+  | .recheck => ImpactReach dependency changed x
+  | .unknown =>
+      ¬ ImpactReach dependency changed x ∧
+        ImpactReach dependency unresolved x
+  | .reuseCandidate =>
+      ¬ ImpactReach dependency changed x ∧
+        ¬ ImpactReach dependency unresolved x
+
+theorem changed_never_reuse_candidate {α : Type}
+    (dependency : α → α → Prop)
+    (changed unresolved : α → Prop)
+    (x : α) (hc : ImpactReach dependency changed x) :
+    ¬ StandsAt dependency changed unresolved x .reuseCandidate := by
+  intro h
+  exact h.1 hc
+
+-- A hard change always dominates UNKNOWN on the same dependency branch.
+theorem recheck_dominates_unknown {α : Type}
+    (dependency : α → α → Prop)
+    (changed unresolved : α → Prop)
+    (x : α) (hc : ImpactReach dependency changed x) :
+    StandsAt dependency changed unresolved x .recheck ∧
+      ¬ StandsAt dependency changed unresolved x .unknown := by
+  constructor
+  · exact hc
+  · intro h
+    exact h.1 hc
+
+theorem unknown_never_reuse_candidate {α : Type}
+    (dependency : α → α → Prop)
+    (changed unresolved : α → Prop)
+    (x : α) (hu : ImpactReach dependency unresolved x) :
+    ¬ StandsAt dependency changed unresolved x .reuseCandidate := by
+  intro h
+  exact h.2 hu
+
+theorem unaffected_branch_is_reuse_candidate_not_proof {α : Type}
+    (dependency : α → α → Prop)
+    (changed unresolved : α → Prop)
+    (x : α)
+    (hc : ¬ ImpactReach dependency changed x)
+    (hu : ¬ ImpactReach dependency unresolved x) :
+    StandsAt dependency changed unresolved x .reuseCandidate :=
+  ⟨hc, hu⟩
+
+-- Closed finite negative oracle: with no edges, changing A does not impact B.
+inductive DisjointLEGO where
+  | a | b
+
+def noDependency : DisjointLEGO → DisjointLEGO → Prop := fun _ _ => False
+
+def changedA : DisjointLEGO → Prop := fun x => x = .a
+
+theorem unrelated_lego_not_impacted :
+    ¬ ImpactReach noDependency changedA DisjointLEGO.b := by
+  intro h
+  have hOnlyA : ∀ x, ImpactReach noDependency changedA x → x = .a := by
+    intro x hx
+    induction hx with
+    | origin y hy => exact hy
+    | successor _ _ _ edge _ => exact False.elim edge
+  have contradiction : DisjointLEGO.b = DisjointLEGO.a := hOnlyA _ h
+  cases contradiction
+
+-- A real typed edge from A to B instead requires rechecking B.
+def aToB : DisjointLEGO → DisjointLEGO → Prop :=
+  fun upstream downstream => upstream = .a ∧ downstream = .b
+
+theorem real_consumer_must_be_rechecked :
+    ImpactReach aToB changedA DisjointLEGO.b := by
+  apply ImpactReach.successor DisjointLEGO.a DisjointLEGO.b
+  · exact ImpactReach.origin DisjointLEGO.a rfl
+  · exact ⟨rfl, rfl⟩
+
+end OrdivonR21
+
+#print axioms OrdivonR21.impact_least_forward_closed
+#print axioms OrdivonR21.impact_monotone_in_declared_edges
+#print axioms OrdivonR21.recheck_dominates_unknown
+#print axioms OrdivonR21.unrelated_lego_not_impacted
+
+-- Machine-checked bridge between the existing two native mathematical models:
+-- Boolean graph reachability (#978) and the three-priority impact demand
+-- (#977). The reversed edge is intentional: PriorityClosure edges point
+-- consumer->prerequisite, ImpactReach edges prerequisite->consumer.
+namespace OrdivonR21.PriorityClosure
+
+private theorem reach_change_roots {Node : Type}
+    (edges : Node → Node → Prop) (fromRoot toRoot : Node → Prop)
+    (hRoot : ∀ n, fromRoot n → toRoot n)
+    {node} (hReach : OrdivonR21.ImpactReach edges fromRoot node) :
+    OrdivonR21.ImpactReach edges toRoot node := by
+  induction hReach with
+  | origin n h => exact OrdivonR21.ImpactReach.origin n (hRoot n h)
+  | successor a b _ hEdge ih =>
+      exact OrdivonR21.ImpactReach.successor a b ih hEdge
+
+theorem demand_iff_typed_impact_reach {Node : Type}
+    (base : Node → Nat) (consumerRequires : Node → Node → Prop)
+    (node : Node) (threshold : Nat) :
+    Demand base consumerRequires node threshold ↔
+      OrdivonR21.ImpactReach
+        (fun prerequisite consumer => consumerRequires consumer prerequisite)
+        (fun n => threshold ≤ base n) node := by
+  constructor
+  · intro hDemand
+    induction hDemand with
+    | seed h => exact OrdivonR21.ImpactReach.origin _ h
+    | consumer hEdge _ ih =>
+        exact OrdivonR21.ImpactReach.successor _ _ ih hEdge
+  · intro hReach
+    induction hReach with
+    | origin _ h => exact Demand.seed h
+    | successor _ _ _ hEdge ih => exact Demand.consumer hEdge ih
+
+theorem demand_reach_respects_root_predicate {Node : Type}
+    (base : Node → Nat) (consumerRequires : Node → Node → Prop)
+    (root : Node → Prop) (threshold : Nat)
+    (hRoot : ∀ n, threshold ≤ base n ↔ root n)
+    (node : Node) :
+    Demand base consumerRequires node threshold ↔
+      OrdivonR21.ImpactReach
+        (fun prerequisite consumer => consumerRequires consumer prerequisite)
+        root node := by
+  constructor
+  · intro h
+    apply reach_change_roots _ (fun n => threshold ≤ base n) root
+      (fun n hn => (hRoot n).mp hn)
+    exact (demand_iff_typed_impact_reach base consumerRequires node threshold).mp h
+  · intro h
+    apply (demand_iff_typed_impact_reach base consumerRequires node threshold).mpr
+    exact reach_change_roots _ root (fun n => threshold ≤ base n)
+      (fun n hn => (hRoot n).mpr hn) h
+
+theorem recheck_is_impact_reach {Node : Type}
+    (base : Node → Nat) (consumerRequires : Node → Node → Prop)
+    (changed : Node → Prop)
+    (hChanged : ∀ node, 2 ≤ base node ↔ changed node)
+    (node : Node) :
+    RecheckDemand base consumerRequires node ↔
+      OrdivonR21.StandsAt
+        (fun prerequisite consumer => consumerRequires consumer prerequisite)
+        changed (fun _ => False) node .recheck := by
+  exact demand_reach_respects_root_predicate base consumerRequires changed 2 hChanged node
+
+
+private theorem impact_reach_union {Node : Type}
+    (edge : Node → Node → Prop) (left right : Node → Prop) (node : Node) :
+    OrdivonR21.ImpactReach edge (fun n => left n ∨ right n) node ↔
+      (OrdivonR21.ImpactReach edge left node ∨
+        OrdivonR21.ImpactReach edge right node) := by
+  constructor
+  · intro h
+    induction h with
+    | origin n h =>
+        cases h with
+        | inl hl => exact Or.inl (OrdivonR21.ImpactReach.origin n hl)
+        | inr hr => exact Or.inr (OrdivonR21.ImpactReach.origin n hr)
+    | successor a b _ hedge ih =>
+        cases ih with
+        | inl hl => exact Or.inl (OrdivonR21.ImpactReach.successor a b hl hedge)
+        | inr hr => exact Or.inr (OrdivonR21.ImpactReach.successor a b hr hedge)
+  · intro h
+    cases h with
+    | inl hl =>
+        exact reach_change_roots edge left (fun n => left n ∨ right n)
+          (fun _ h => Or.inl h) hl
+    | inr hr =>
+        exact reach_change_roots edge right (fun n => left n ∨ right n)
+          (fun _ h => Or.inr h) hr
+
+-- The actual two-source changed/unknown graph status (#978) and the
+-- three-priority status (#977) are definitionally equivalent when and ONLY
+-- when the local rank thresholds faithfully encode the actual source sets.
+-- The two threshold calibration premises are not inferred from agent identity
+-- or unverified dynamic readset completeness.
+theorem unknown_only_iff_typed_impact_standing {Node : Type}
+    (base : Node → Nat) (consumerRequires : Node → Node → Prop)
+    (changed unresolved : Node → Prop)
+    (hTwo : ∀ n, 2 ≤ base n ↔ changed n)
+    (hOne : ∀ n, 1 ≤ base n ↔ changed n ∨ unresolved n)
+    (node : Node) :
+    UnknownOnlyDemand base consumerRequires node ↔
+      OrdivonR21.StandsAt
+        (fun prerequisite consumer => consumerRequires consumer prerequisite)
+        changed unresolved node .unknown := by
+  let reversed := fun prerequisite consumer => consumerRequires consumer prerequisite
+  have hRecheck := demand_reach_respects_root_predicate base consumerRequires changed 2 hTwo node
+  have hMaybe := demand_reach_respects_root_predicate base consumerRequires
+    (fun n => changed n ∨ unresolved n) 1 hOne node
+  have hUnion := impact_reach_union reversed changed unresolved node
+  change (Demand base consumerRequires node 1 ∧ ¬ Demand base consumerRequires node 2) ↔
+    (¬ OrdivonR21.ImpactReach reversed changed node ∧
+      OrdivonR21.ImpactReach reversed unresolved node)
+  constructor
+  · intro h
+    have noChange : ¬ OrdivonR21.ImpactReach reversed changed node := by
+      intro hc
+      exact h.2 (hRecheck.mpr hc)
+    have hOr := hUnion.mp (hMaybe.mp h.1)
+    cases hOr with
+    | inl hc => exact False.elim (noChange hc)
+    | inr hu => exact ⟨noChange, hu⟩
+  · intro h
+    constructor
+    · apply hMaybe.mpr
+      apply hUnion.mpr
+      exact Or.inr h.2
+    · intro hard
+      exact h.1 (hRecheck.mp hard)
+
+theorem reuse_candidate_iff_typed_impact_standing {Node : Type}
+    (base : Node → Nat) (consumerRequires : Node → Node → Prop)
+    (changed unresolved : Node → Prop)
+    (hTwo : ∀ n, 2 ≤ base n ↔ changed n)
+    (hOne : ∀ n, 1 ≤ base n ↔ changed n ∨ unresolved n)
+    (node : Node) :
+    ReuseCandidateDemand base consumerRequires node ↔
+      OrdivonR21.StandsAt
+        (fun prerequisite consumer => consumerRequires consumer prerequisite)
+        changed unresolved node .reuseCandidate := by
+  let reversed := fun prerequisite consumer => consumerRequires consumer prerequisite
+  have hRecheck := demand_reach_respects_root_predicate base consumerRequires changed 2 hTwo node
+  have hMaybe := demand_reach_respects_root_predicate base consumerRequires
+    (fun n => changed n ∨ unresolved n) 1 hOne node
+  have hUnion := impact_reach_union reversed changed unresolved node
+  change (¬ Demand base consumerRequires node 1 ∧ ¬ Demand base consumerRequires node 2) ↔
+    (¬ OrdivonR21.ImpactReach reversed changed node ∧
+      ¬ OrdivonR21.ImpactReach reversed unresolved node)
+  constructor
+  · intro h
+    have noUnion : ¬ OrdivonR21.ImpactReach reversed
+        (fun n => changed n ∨ unresolved n) node := by
+      intro hu
+      exact h.1 (hMaybe.mpr hu)
+    constructor
+    · intro hc
+      exact noUnion (hUnion.mpr (Or.inl hc))
+    · intro hu
+      exact noUnion (hUnion.mpr (Or.inr hu))
+  · intro h
+    constructor
+    · intro hd
+      have hdOr := hUnion.mp (hMaybe.mp hd)
+      cases hdOr with
+      | inl hc => exact h.1 hc
+      | inr hu => exact h.2 hu
+    · intro hd
+      exact h.1 (hRecheck.mp hd)
+
+
+-- Non-vacuity counterexample: if a changed root is NOT assigned priority 2,
+-- mathematical reachability can demand recheck while rank propagation misses it.
+-- Thus the pointwise calibration obligation hTwo is indispensable.
+theorem missing_changed_seed_calibration_breaks_recheck_bridge :
+    ∃ (base : Bool → Nat) (requires : Bool → Bool → Prop)
+      (changed : Bool → Prop) (node : Bool),
+      OrdivonR21.ImpactReach
+        (fun upstream downstream => requires downstream upstream)
+        changed node ∧ ¬ RecheckDemand base requires node := by
+  refine ⟨(fun _ => 0), (fun _ _ => False), (fun n => n = true), true, ?_, ?_⟩
+  · exact OrdivonR21.ImpactReach.origin true rfl
+  · intro hDemand
+    have hImpossible : 2 ≤ (0 : Nat) := by
+      cases hDemand with
+      | seed h => exact h
+      | consumer hEdge _ => exact False.elim hEdge
+    exact (by decide : ¬ (2 ≤ (0 : Nat))) hImpossible
+
+end OrdivonR21.PriorityClosure
+
+#print axioms OrdivonR21.PriorityClosure.demand_iff_typed_impact_reach
+#print axioms OrdivonR21.PriorityClosure.demand_reach_respects_root_predicate
+#print axioms OrdivonR21.PriorityClosure.recheck_is_impact_reach
+#print axioms OrdivonR21.PriorityClosure.unknown_only_iff_typed_impact_standing
+#print axioms OrdivonR21.PriorityClosure.reuse_candidate_iff_typed_impact_standing
+#print axioms OrdivonR21.PriorityClosure.missing_changed_seed_calibration_breaks_recheck_bridge
