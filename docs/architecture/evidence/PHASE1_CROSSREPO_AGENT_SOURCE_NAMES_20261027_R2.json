@@ -1,0 +1,498 @@
+{
+  "baseEvidenceHead": "92bd659dbf404d00847ae388b5defe7e5578278c",
+  "baseEvidencePath": "docs/architecture/evidence/PHASE1_FINE_MULTIREPO_SOURCE_TAXONOMY_20261027_R1.json",
+  "counts": {
+    "allMemberPathsInTheseCells": 46,
+    "independentGitRoots": 6,
+    "legacyUnqualifiedCarrierObservations": 36,
+    "newlyNamedSourceCells": 19
+  },
+  "evidenceGroups": [
+    {
+      "exactGitSourceCut": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+      "gitTree": "746c5e8799a6ad232b003238d8e94773170c1853",
+      "repository": "ordivon-paper1-emse-r3-frozen",
+      "sourceCells": [
+        {
+          "agentSemanticSourceCell": "research.paper1.dvc_tracking_configuration",
+          "dynamicConsumer": "UNKNOWN",
+          "installedCurrentness": "UNKNOWN",
+          "legacyUnknownCarrierCount": 2,
+          "observedMemberCount": 2,
+          "priorUnqualifiedBlobKeys": [
+            {
+              "carrierKind": "SOURCE_CONTROL_OR_FILE_SELECTION_POLICY",
+              "gitBlob": "528f30c71c687de473bbb506c071e902beba6cd9",
+              "sourcePath": ".dvc/.gitignore"
+            },
+            {
+              "carrierKind": "HOST_OR_SERVICE_CONFIGURATION",
+              "gitBlob": "c1372072b229d728ff312a0f2fa368257fb2399f",
+              "sourcePath": ".dvc/config"
+            }
+          ],
+          "proofStanding": "NOT_PROVED",
+          "selectionDefinition": "EXACT_REPO_GIT_CUT_PLUS_SOURCE_SECTION_FROM_PARENT_MANIFEST",
+          "semanticRoleEvidence": "PROPOSED_FROM_SECTION_AND_EXACT_FILE_NAMES_NOT_CONSUMER_PROOF",
+          "sourceSection": ".dvc/@direct-file"
+        },
+        {
+          "agentSemanticSourceCell": "research.paper1.repository_entrypoints_and_toolchain",
+          "dynamicConsumer": "UNKNOWN",
+          "installedCurrentness": "UNKNOWN",
+          "legacyUnknownCarrierCount": 3,
+          "observedMemberCount": 6,
+          "priorUnqualifiedBlobKeys": [
+            {
+              "carrierKind": "SOURCE_CONTROL_OR_FILE_SELECTION_POLICY",
+              "gitBlob": "51973055237895f2d23e65e015793fd302f4b9da",
+              "sourcePath": ".dvcignore"
+            },
+            {
+              "carrierKind": "SOURCE_CONTROL_OR_FILE_SELECTION_POLICY",
+              "gitBlob": "300f0c3ce7d78a3c2fd9b2863c38ca5172bb72a1",
+              "sourcePath": ".gitignore"
+            },
+            {
+              "carrierKind": "TOOLCHAIN_VERSION_SELECTOR",
+              "gitBlob": "e4fba2183587225f216eeada4c78dfab6b2e65f5",
+              "sourcePath": ".python-version"
+            }
+          ],
+          "proofStanding": "NOT_PROVED",
+          "selectionDefinition": "EXACT_REPO_GIT_CUT_PLUS_SOURCE_SECTION_FROM_PARENT_MANIFEST",
+          "semanticRoleEvidence": "PROPOSED_FROM_SECTION_AND_EXACT_FILE_NAMES_NOT_CONSUMER_PROOF",
+          "sourceSection": "@root-file"
+        },
+        {
+          "agentSemanticSourceCell": "research.paper1.artifact_build_and_validation_sources",
+          "dynamicConsumer": "UNKNOWN",
+          "installedCurrentness": "UNKNOWN",
+          "legacyUnknownCarrierCount": 2,
+          "observedMemberCount": 2,
+          "priorUnqualifiedBlobKeys": [
+            {
+              "carrierKind": "PYTHON_SOURCE_MODULE",
+              "gitBlob": "de612a3ce48ad8e9e266ebb632a0357e0dfbd103",
+              "sourcePath": "dogfood/first_paper_r2/artifact_r2/build_r2_artifact.py"
+            },
+            {
+              "carrierKind": "PYTHON_SOURCE_MODULE",
+              "gitBlob": "1b12cdff55bf81c2448cbec6bf83d2c7295ff740",
+              "sourcePath": "dogfood/first_paper_r2/validate_exposure.py"
+            }
+          ],
+          "proofStanding": "NOT_PROVED",
+          "selectionDefinition": "EXACT_REPO_GIT_CUT_PLUS_SOURCE_SECTION_FROM_PARENT_MANIFEST",
+          "semanticRoleEvidence": "PROPOSED_FROM_SECTION_AND_EXACT_FILE_NAMES_NOT_CONSUMER_PROOF",
+          "sourceSection": "dogfood/first_paper_r2"
+        },
+        {
+          "agentSemanticSourceCell": "research.paper1.report_evidence_source",
+          "dynamicConsumer": "UNKNOWN",
+          "installedCurrentness": "UNKNOWN",
+          "legacyUnknownCarrierCount": 1,
+          "observedMemberCount": 1,
+          "priorUnqualifiedBlobKeys": [
+            {
+              "carrierKind": "JSON_STRUCTURED_DECLARATION_OR_DATA",
+              "gitBlob": "c38d84d89ee6f461f0fdaad1325b56f8086f43f6",
+              "sourcePath": "reports/paper1_standard_native_r2.json"
+            }
+          ],
+          "proofStanding": "NOT_PROVED",
+          "selectionDefinition": "EXACT_REPO_GIT_CUT_PLUS_SOURCE_SECTION_FROM_PARENT_MANIFEST",
+          "semanticRoleEvidence": "PROPOSED_FROM_SECTION_AND_EXACT_FILE_NAMES_NOT_CONSUMER_PROOF",
+          "sourceSection": "reports/@direct-file"
+        },
+        {
+          "agentSemanticSourceCell": "research.paper1.requirement_document_source",
+          "dynamicConsumer": "UNKNOWN",
+          "installedCurrentness": "UNKNOWN",
+          "legacyUnknownCarrierCount": 1,
+          "observedMemberCount": 1,
+          "priorUnqualifiedBlobKeys": [
+            {
+              "carrierKind": "STRUCTURED_RESEARCH_DOCUMENT",
+              "gitBlob": "64cd9e006c83fc2a18657474a9d91da4d160cb19",
+              "sourcePath": "requirements/paper1_standard_native_r2.sdoc"
+            }
+          ],
+          "proofStanding": "NOT_PROVED",
+          "selectionDefinition": "EXACT_REPO_GIT_CUT_PLUS_SOURCE_SECTION_FROM_PARENT_MANIFEST",
+          "semanticRoleEvidence": "PROPOSED_FROM_SECTION_AND_EXACT_FILE_NAMES_NOT_CONSUMER_PROOF",
+          "sourceSection": "requirements/@direct-file"
+        }
+      ],
+      "sourceOnlyStanding": "DERIVED_GIT_TREE_SOURCE_PROPOSAL_NOT_CONSUMER"
+    },
+    {
+      "exactGitSourceCut": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+      "gitTree": "37b1f58841aa9b336558b8bbaf80de9b30e708c2",
+      "repository": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+      "sourceCells": [
+        {
+          "agentSemanticSourceCell": "research.paper1_review.dvc_tracking_configuration",
+          "dynamicConsumer": "UNKNOWN",
+          "installedCurrentness": "UNKNOWN",
+          "legacyUnknownCarrierCount": 2,
+          "observedMemberCount": 2,
+          "priorUnqualifiedBlobKeys": [
+            {
+              "carrierKind": "SOURCE_CONTROL_OR_FILE_SELECTION_POLICY",
+              "gitBlob": "528f30c71c687de473bbb506c071e902beba6cd9",
+              "sourcePath": ".dvc/.gitignore"
+            },
+            {
+              "carrierKind": "HOST_OR_SERVICE_CONFIGURATION",
+              "gitBlob": "c1372072b229d728ff312a0f2fa368257fb2399f",
+              "sourcePath": ".dvc/config"
+            }
+          ],
+          "proofStanding": "NOT_PROVED",
+          "selectionDefinition": "EXACT_REPO_GIT_CUT_PLUS_SOURCE_SECTION_FROM_PARENT_MANIFEST",
+          "semanticRoleEvidence": "PROPOSED_FROM_SECTION_AND_EXACT_FILE_NAMES_NOT_CONSUMER_PROOF",
+          "sourceSection": ".dvc/@direct-file"
+        },
+        {
+          "agentSemanticSourceCell": "research.paper1_review.repository_entrypoints_and_toolchain",
+          "dynamicConsumer": "UNKNOWN",
+          "installedCurrentness": "UNKNOWN",
+          "legacyUnknownCarrierCount": 3,
+          "observedMemberCount": 6,
+          "priorUnqualifiedBlobKeys": [
+            {
+              "carrierKind": "SOURCE_CONTROL_OR_FILE_SELECTION_POLICY",
+              "gitBlob": "51973055237895f2d23e65e015793fd302f4b9da",
+              "sourcePath": ".dvcignore"
+            },
+            {
+              "carrierKind": "SOURCE_CONTROL_OR_FILE_SELECTION_POLICY",
+              "gitBlob": "300f0c3ce7d78a3c2fd9b2863c38ca5172bb72a1",
+              "sourcePath": ".gitignore"
+            },
+            {
+              "carrierKind": "TOOLCHAIN_VERSION_SELECTOR",
+              "gitBlob": "a128d5c0d975a5b333e78950665709c8e2d88597",
+              "sourcePath": ".python-version"
+            }
+          ],
+          "proofStanding": "NOT_PROVED",
+          "selectionDefinition": "EXACT_REPO_GIT_CUT_PLUS_SOURCE_SECTION_FROM_PARENT_MANIFEST",
+          "semanticRoleEvidence": "PROPOSED_FROM_SECTION_AND_EXACT_FILE_NAMES_NOT_CONSUMER_PROOF",
+          "sourceSection": "@root-file"
+        },
+        {
+          "agentSemanticSourceCell": "research.paper1_review.artifact_build_and_validation_sources",
+          "dynamicConsumer": "UNKNOWN",
+          "installedCurrentness": "UNKNOWN",
+          "legacyUnknownCarrierCount": 2,
+          "observedMemberCount": 2,
+          "priorUnqualifiedBlobKeys": [
+            {
+              "carrierKind": "PYTHON_SOURCE_MODULE",
+              "gitBlob": "de612a3ce48ad8e9e266ebb632a0357e0dfbd103",
+              "sourcePath": "dogfood/first_paper_r2/artifact_r2/build_r2_artifact.py"
+            },
+            {
+              "carrierKind": "PYTHON_SOURCE_MODULE",
+              "gitBlob": "1b12cdff55bf81c2448cbec6bf83d2c7295ff740",
+              "sourcePath": "dogfood/first_paper_r2/validate_exposure.py"
+            }
+          ],
+          "proofStanding": "NOT_PROVED",
+          "selectionDefinition": "EXACT_REPO_GIT_CUT_PLUS_SOURCE_SECTION_FROM_PARENT_MANIFEST",
+          "semanticRoleEvidence": "PROPOSED_FROM_SECTION_AND_EXACT_FILE_NAMES_NOT_CONSUMER_PROOF",
+          "sourceSection": "dogfood/first_paper_r2"
+        }
+      ],
+      "sourceOnlyStanding": "DERIVED_GIT_TREE_SOURCE_PROPOSAL_NOT_CONSUMER"
+    },
+    {
+      "exactGitSourceCut": "a0169766a19194dbcbdf0cf28ca963d89abf5d69",
+      "gitTree": "cb7883b7156fcc9631b3544c0273d2200b4d30b4",
+      "repository": "ordivon-paper2",
+      "sourceCells": [
+        {
+          "agentSemanticSourceCell": "research.paper2.dvc_tracking_configuration",
+          "dynamicConsumer": "UNKNOWN",
+          "installedCurrentness": "UNKNOWN",
+          "legacyUnknownCarrierCount": 2,
+          "observedMemberCount": 2,
+          "priorUnqualifiedBlobKeys": [
+            {
+              "carrierKind": "SOURCE_CONTROL_OR_FILE_SELECTION_POLICY",
+              "gitBlob": "528f30c71c687de473bbb506c071e902beba6cd9",
+              "sourcePath": ".dvc/.gitignore"
+            },
+            {
+              "carrierKind": "HOST_OR_SERVICE_CONFIGURATION",
+              "gitBlob": "c1372072b229d728ff312a0f2fa368257fb2399f",
+              "sourcePath": ".dvc/config"
+            }
+          ],
+          "proofStanding": "NOT_PROVED",
+          "selectionDefinition": "EXACT_REPO_GIT_CUT_PLUS_SOURCE_SECTION_FROM_PARENT_MANIFEST",
+          "semanticRoleEvidence": "PROPOSED_FROM_SECTION_AND_EXACT_FILE_NAMES_NOT_CONSUMER_PROOF",
+          "sourceSection": ".dvc/@direct-file"
+        },
+        {
+          "agentSemanticSourceCell": "research.paper2.standing_charter_and_repository_documentation",
+          "dynamicConsumer": "UNKNOWN",
+          "installedCurrentness": "UNKNOWN",
+          "legacyUnknownCarrierCount": 4,
+          "observedMemberCount": 5,
+          "priorUnqualifiedBlobKeys": [
+            {
+              "carrierKind": "SOURCE_CONTROL_OR_FILE_SELECTION_POLICY",
+              "gitBlob": "51973055237895f2d23e65e015793fd302f4b9da",
+              "sourcePath": ".dvcignore"
+            },
+            {
+              "carrierKind": "SOURCE_CONTROL_OR_FILE_SELECTION_POLICY",
+              "gitBlob": "a5cde48853b3d53db25d645da555ec45ba96139f",
+              "sourcePath": ".gitignore"
+            },
+            {
+              "carrierKind": "MARKDOWN_METHOD_OR_DOCUMENTATION",
+              "gitBlob": "4065fa4ec04cdbb2503f711cc29bf114ce0bed96",
+              "sourcePath": "CURRENT_STANDING.md"
+            },
+            {
+              "carrierKind": "MARKDOWN_METHOD_OR_DOCUMENTATION",
+              "gitBlob": "759b1659c58eb92e75425557c2555c721da65ee9",
+              "sourcePath": "RESEARCH_CHARTER.md"
+            }
+          ],
+          "proofStanding": "NOT_PROVED",
+          "selectionDefinition": "EXACT_REPO_GIT_CUT_PLUS_SOURCE_SECTION_FROM_PARENT_MANIFEST",
+          "semanticRoleEvidence": "PROPOSED_FROM_SECTION_AND_EXACT_FILE_NAMES_NOT_CONSUMER_PROOF",
+          "sourceSection": "@root-file"
+        }
+      ],
+      "sourceOnlyStanding": "DERIVED_GIT_TREE_SOURCE_PROPOSAL_NOT_CONSUMER"
+    },
+    {
+      "exactGitSourceCut": "37f7d433ce9917aefba7f2940fef7ead8dc1e235",
+      "gitTree": "0f309ce3e0ad2e7459731aab22bc972c3799eb67",
+      "repository": "ordivon-r21-blind-eval-private-20261001",
+      "sourceCells": [
+        {
+          "agentSemanticSourceCell": "evaluation.private.unblinding_policy_source",
+          "dynamicConsumer": "UNKNOWN",
+          "installedCurrentness": "UNKNOWN",
+          "legacyUnknownCarrierCount": 1,
+          "observedMemberCount": 1,
+          "priorUnqualifiedBlobKeys": [
+            {
+              "carrierKind": "JSON_STRUCTURED_DECLARATION_OR_DATA",
+              "gitBlob": "232bd1712b57a170b3c93b80d041f43d51042fb2",
+              "sourcePath": "unblinding-policy-r1.json"
+            }
+          ],
+          "proofStanding": "NOT_PROVED",
+          "selectionDefinition": "EXACT_REPO_GIT_CUT_PLUS_SOURCE_SECTION_FROM_PARENT_MANIFEST",
+          "semanticRoleEvidence": "PROPOSED_FROM_SECTION_AND_EXACT_FILE_NAMES_NOT_CONSUMER_PROOF",
+          "sourceSection": "@root-file"
+        },
+        {
+          "agentSemanticSourceCell": "evaluation.private.freeze_manifest_sources",
+          "dynamicConsumer": "UNKNOWN",
+          "installedCurrentness": "UNKNOWN",
+          "legacyUnknownCarrierCount": 2,
+          "observedMemberCount": 2,
+          "priorUnqualifiedBlobKeys": [
+            {
+              "carrierKind": "JSON_STRUCTURED_DECLARATION_OR_DATA",
+              "gitBlob": "b578addcc517f3f5ec9ed552533aa8c18c807d10",
+              "sourcePath": "manifest/private-freeze-manifest-r1.json"
+            },
+            {
+              "carrierKind": "JSON_STRUCTURED_DECLARATION_OR_DATA",
+              "gitBlob": "6b5d67a37cf81d385d4b3d2819aeeab6410958f3",
+              "sourcePath": "manifest/private-freeze-manifest-r2.json"
+            }
+          ],
+          "proofStanding": "NOT_PROVED",
+          "selectionDefinition": "EXACT_REPO_GIT_CUT_PLUS_SOURCE_SECTION_FROM_PARENT_MANIFEST",
+          "semanticRoleEvidence": "PROPOSED_FROM_SECTION_AND_EXACT_FILE_NAMES_NOT_CONSUMER_PROOF",
+          "sourceSection": "manifest/@direct-file"
+        }
+      ],
+      "sourceOnlyStanding": "DERIVED_GIT_TREE_SOURCE_PROPOSAL_NOT_CONSUMER"
+    },
+    {
+      "exactGitSourceCut": "af66bade40b8cf34d241bb5d89121fd64e288ba8",
+      "gitTree": "921755c8db50a24eb1e013c196692185575e16dd",
+      "repository": "ordivon-r21-blind-eval-public-20261001",
+      "sourceCells": [
+        {
+          "agentSemanticSourceCell": "evaluation.public.arm_k_carrier_source",
+          "dynamicConsumer": "UNKNOWN",
+          "installedCurrentness": "UNKNOWN",
+          "legacyUnknownCarrierCount": 1,
+          "observedMemberCount": 1,
+          "priorUnqualifiedBlobKeys": [
+            {
+              "carrierKind": "JSON_STRUCTURED_DECLARATION_OR_DATA",
+              "gitBlob": "ae90d1a1bb892d22b892bad7db1baf55326f2019",
+              "sourcePath": "arms/arm-k/carrier.json"
+            }
+          ],
+          "proofStanding": "NOT_PROVED",
+          "selectionDefinition": "EXACT_REPO_GIT_CUT_PLUS_SOURCE_SECTION_FROM_PARENT_MANIFEST",
+          "semanticRoleEvidence": "PROPOSED_FROM_SECTION_AND_EXACT_FILE_NAMES_NOT_CONSUMER_PROOF",
+          "sourceSection": "arms/arm-k"
+        },
+        {
+          "agentSemanticSourceCell": "evaluation.public.arm_q_carrier_source",
+          "dynamicConsumer": "UNKNOWN",
+          "installedCurrentness": "UNKNOWN",
+          "legacyUnknownCarrierCount": 1,
+          "observedMemberCount": 1,
+          "priorUnqualifiedBlobKeys": [
+            {
+              "carrierKind": "JSON_STRUCTURED_DECLARATION_OR_DATA",
+              "gitBlob": "e5c7dd6a736eb914a0cc611968f1ba21e39e6973",
+              "sourcePath": "arms/arm-q/carrier.json"
+            }
+          ],
+          "proofStanding": "NOT_PROVED",
+          "selectionDefinition": "EXACT_REPO_GIT_CUT_PLUS_SOURCE_SECTION_FROM_PARENT_MANIFEST",
+          "semanticRoleEvidence": "PROPOSED_FROM_SECTION_AND_EXACT_FILE_NAMES_NOT_CONSUMER_PROOF",
+          "sourceSection": "arms/arm-q"
+        },
+        {
+          "agentSemanticSourceCell": "evaluation.public.arm_v_carrier_source",
+          "dynamicConsumer": "UNKNOWN",
+          "installedCurrentness": "UNKNOWN",
+          "legacyUnknownCarrierCount": 1,
+          "observedMemberCount": 1,
+          "priorUnqualifiedBlobKeys": [
+            {
+              "carrierKind": "JSON_STRUCTURED_DECLARATION_OR_DATA",
+              "gitBlob": "f32aab913f3c76806ef27149754a97a53cb487a6",
+              "sourcePath": "arms/arm-v/carrier.json"
+            }
+          ],
+          "proofStanding": "NOT_PROVED",
+          "selectionDefinition": "EXACT_REPO_GIT_CUT_PLUS_SOURCE_SECTION_FROM_PARENT_MANIFEST",
+          "semanticRoleEvidence": "PROPOSED_FROM_SECTION_AND_EXACT_FILE_NAMES_NOT_CONSUMER_PROOF",
+          "sourceSection": "arms/arm-v"
+        },
+        {
+          "agentSemanticSourceCell": "evaluation.public.shared_skill_library_declaration",
+          "dynamicConsumer": "UNKNOWN",
+          "installedCurrentness": "UNKNOWN",
+          "legacyUnknownCarrierCount": 1,
+          "observedMemberCount": 1,
+          "priorUnqualifiedBlobKeys": [
+            {
+              "carrierKind": "JSON_STRUCTURED_DECLARATION_OR_DATA",
+              "gitBlob": "a5446ddba623c392d1974094e5bacc75adfe7805",
+              "sourcePath": "common/common-skill-library.json"
+            }
+          ],
+          "proofStanding": "NOT_PROVED",
+          "selectionDefinition": "EXACT_REPO_GIT_CUT_PLUS_SOURCE_SECTION_FROM_PARENT_MANIFEST",
+          "semanticRoleEvidence": "PROPOSED_FROM_SECTION_AND_EXACT_FILE_NAMES_NOT_CONSUMER_PROOF",
+          "sourceSection": "common/@direct-file"
+        }
+      ],
+      "sourceOnlyStanding": "DERIVED_GIT_TREE_SOURCE_PROPOSAL_NOT_CONSUMER"
+    },
+    {
+      "exactGitSourceCut": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+      "gitTree": "783bc5a25a50a963ce1ff6689d40d3c8086c46cc",
+      "repository": "ordivon-research-v2",
+      "sourceCells": [
+        {
+          "agentSemanticSourceCell": "research.multistudy.dvc_tracking_configuration",
+          "dynamicConsumer": "UNKNOWN",
+          "installedCurrentness": "UNKNOWN",
+          "legacyUnknownCarrierCount": 2,
+          "observedMemberCount": 2,
+          "priorUnqualifiedBlobKeys": [
+            {
+              "carrierKind": "SOURCE_CONTROL_OR_FILE_SELECTION_POLICY",
+              "gitBlob": "528f30c71c687de473bbb506c071e902beba6cd9",
+              "sourcePath": ".dvc/.gitignore"
+            },
+            {
+              "carrierKind": "HOST_OR_SERVICE_CONFIGURATION",
+              "gitBlob": "c1372072b229d728ff312a0f2fa368257fb2399f",
+              "sourcePath": ".dvc/config"
+            }
+          ],
+          "proofStanding": "NOT_PROVED",
+          "selectionDefinition": "EXACT_REPO_GIT_CUT_PLUS_SOURCE_SECTION_FROM_PARENT_MANIFEST",
+          "semanticRoleEvidence": "PROPOSED_FROM_SECTION_AND_EXACT_FILE_NAMES_NOT_CONSUMER_PROOF",
+          "sourceSection": ".dvc/@direct-file"
+        },
+        {
+          "agentSemanticSourceCell": "research.multistudy.repository_entrypoints_and_toolchain",
+          "dynamicConsumer": "UNKNOWN",
+          "installedCurrentness": "UNKNOWN",
+          "legacyUnknownCarrierCount": 3,
+          "observedMemberCount": 6,
+          "priorUnqualifiedBlobKeys": [
+            {
+              "carrierKind": "SOURCE_CONTROL_OR_FILE_SELECTION_POLICY",
+              "gitBlob": "51973055237895f2d23e65e015793fd302f4b9da",
+              "sourcePath": ".dvcignore"
+            },
+            {
+              "carrierKind": "SOURCE_CONTROL_OR_FILE_SELECTION_POLICY",
+              "gitBlob": "300f0c3ce7d78a3c2fd9b2863c38ca5172bb72a1",
+              "sourcePath": ".gitignore"
+            },
+            {
+              "carrierKind": "TOOLCHAIN_VERSION_SELECTOR",
+              "gitBlob": "a128d5c0d975a5b333e78950665709c8e2d88597",
+              "sourcePath": ".python-version"
+            }
+          ],
+          "proofStanding": "NOT_PROVED",
+          "selectionDefinition": "EXACT_REPO_GIT_CUT_PLUS_SOURCE_SECTION_FROM_PARENT_MANIFEST",
+          "semanticRoleEvidence": "PROPOSED_FROM_SECTION_AND_EXACT_FILE_NAMES_NOT_CONSUMER_PROOF",
+          "sourceSection": "@root-file"
+        },
+        {
+          "agentSemanticSourceCell": "research.multistudy.paper_artifact_build_and_validation_sources",
+          "dynamicConsumer": "UNKNOWN",
+          "installedCurrentness": "UNKNOWN",
+          "legacyUnknownCarrierCount": 2,
+          "observedMemberCount": 2,
+          "priorUnqualifiedBlobKeys": [
+            {
+              "carrierKind": "PYTHON_SOURCE_MODULE",
+              "gitBlob": "de612a3ce48ad8e9e266ebb632a0357e0dfbd103",
+              "sourcePath": "dogfood/first_paper_r2/artifact_r2/build_r2_artifact.py"
+            },
+            {
+              "carrierKind": "PYTHON_SOURCE_MODULE",
+              "gitBlob": "1b12cdff55bf81c2448cbec6bf83d2c7295ff740",
+              "sourcePath": "dogfood/first_paper_r2/validate_exposure.py"
+            }
+          ],
+          "proofStanding": "NOT_PROVED",
+          "selectionDefinition": "EXACT_REPO_GIT_CUT_PLUS_SOURCE_SECTION_FROM_PARENT_MANIFEST",
+          "semanticRoleEvidence": "PROPOSED_FROM_SECTION_AND_EXACT_FILE_NAMES_NOT_CONSUMER_PROOF",
+          "sourceSection": "dogfood/first_paper_r2"
+        }
+      ],
+      "sourceOnlyStanding": "DERIVED_GIT_TREE_SOURCE_PROPOSAL_NOT_CONSUMER"
+    }
+  ],
+  "kind": "ordivon.phase1-crossrepo-research-eval-source-cell-names",
+  "policy": "One physical source cell name does not imply one executable LEGO, installed component, consumer, authority, mathematical theorem or future filesystem move. Names are proposed and may be revised upon source/consumer falsification.",
+  "proofAndEffectStatus": "UNKNOWN_NOT_PROVED",
+  "purpose": "Add source-only human/agent-discoverable names to research/eval frozen Git sections; reuse exact 217 blob observations from existing PR980 manifest without duplicating its carrier-kind classifier or registry.",
+  "schemaVersion": 2,
+  "scopeNonOverlap": [
+    "ordivon-media (peer agent working on it)",
+    "ordivon-sts2mcp (peer agent working on it)",
+    "ordivon.monorepo (PR948/983/989 and other peers)"
+  ],
+  "sourceTruthRole": "GIT_SOURCE_LAYOUT_ONLY_NOT_AGENT_OWNER_OR_RUNNING_LEGO"
+}
