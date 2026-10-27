@@ -182,7 +182,10 @@ def owners_for_revision_range(
 
     after = source.git(repo, "--no-replace-objects", "rev-parse", "--verify",
                        head + "^{commit}").strip()
-    before = source.git(repo, "--no-replace-objects", "merge-base", base, after).strip()
+    bases = source.git(repo, "--no-replace-objects", "merge-base", "--all", base, after).splitlines()
+    if len(bases) != 1:
+        raise ValueError("one unambiguous merge-base is required for revision owner admission")
+    before = bases[0]
     source._require_exact_git_oid(repo, before)
     source._require_exact_git_oid(repo, after)
     old_tree = source.current_tree(repo, before)

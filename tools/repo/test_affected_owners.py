@@ -592,6 +592,17 @@ class SourceClassificationTests(unittest.TestCase):
             cwd=self.repo, text=True, capture_output=True)
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertIn("client", [owner["name"] for owner in json.loads(proc.stdout)["owners"]])
+        # The protected workflow consumes convergence_plan, not only this CLI.
+        shutil.copy2(MODULE_PATH.parent / "convergence_plan.py",
+                     self.repo / "tools/repo/convergence_plan.py")
+        (self.repo / "tools/repo/dependency_contracts.toml").write_text(
+            'schema_version = 1\ntruth_role = "repository-boundary-policy-not-domain-authority"\n')
+        self.manifest.write_text(self.git("show", after + ":tools/repo/owners.toml") + "\n")
+        converged = self.subprocess.run(
+            [sys.executable, "tools/repo/convergence_plan.py", "--base", before, "--head", after],
+            cwd=self.repo, text=True, capture_output=True)
+        self.assertEqual(converged.returncode, 0, converged.stderr)
+        self.assertIn("client", json.loads(converged.stdout)["verificationOwners"])
         with self.assertRaisesRegex(ValueError, "unregistered"):
             MODULE.require_registered_execution_paths(
                 ["extensions/old-client/plugin.json"], owners=tuple(selected.values()))
@@ -622,6 +633,16 @@ class SourceClassificationTests(unittest.TestCase):
         after = self.commit()
         with self.assertRaisesRegex(ValueError, "unregistered"):
             self.revision_owners(before, after)
+
+    def test_criss_cross_merge_base_does_not_choose_one_historical_owner_cut(self):
+        tree = self.git("rev-parse", self.base + "^{tree}")
+        a = self.git("commit-tree", tree, "-p", self.base, "-m", "left")
+        b = self.git("commit-tree", tree, "-p", self.base, "-m", "right")
+        left = self.git("commit-tree", tree, "-p", a, "-p", b, "-m", "left-merge")
+        right = self.git("commit-tree", tree, "-p", b, "-p", a, "-m", "right-merge")
+        self.assertEqual(len(self.git("merge-base", "--all", left, right).splitlines()), 2)
+        with self.assertRaisesRegex(ValueError, "merge-base"):
+            self.revision_owners(left, right)
 
     def test_deleted_owner_identity_is_not_automatically_admitted(self):
         plugin = ('\n[[owners]]\nname = "client"\nroot = "extensions/old-client/"\n'
