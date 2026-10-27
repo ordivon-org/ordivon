@@ -16,10 +16,72 @@ import tomllib
 from pathlib import Path, PurePosixPath
 
 SEED_PATH = "docs/architecture/evidence/ORDIVON_PHASE1_NAME_SEEDS_20261027_R4.json"
-MAX_READ_BYTES = 98304
-BINARY_EXTENSIONS = frozenset({".png",".jpg",".jpeg",".gif",".webp",".svgz",".ico",".wav",".mp3",".mp4",".mkv",".mov",".ogg",".flac",".pdf",".woff",".woff2",".ttf",".otf",".zip",".gz",".tar",".exe",".dll",".so",".bin",".wasm",".jar",".pkl",".sqlite",".db"})
-SOURCE_EXTENSIONS = frozenset({".py",".rs",".ts",".tsx",".js",".mjs",".sh",".ps1",".gd",".lean",".sql",".rego",".cpp",".c",".h"})
+# Most large non-media blobs on the observed SourceCut are <2.4 MiB,
+# e.g. captured JSON evidence, test source and production metadata.
+# A finite 4 MiB bound avoids file-name-based "UNKNOWN" when full
+# declarative syntax can actually be inspected without executing code.
+MAX_READ_BYTES = 4 * 1024 * 1024
+BINARY_EXTENSIONS = frozenset({".png",".jpg",".jpeg",".gif",".webp",".svgz",".ico",".wav",".mp3",".mp4",".mkv",".mov",".ogg",".flac",".pdf",".woff",".woff2",".ttf",".otf",".zip",".gz",".tar",".exe",".dll",".so",".bin",".wasm",".jar",".pkl",".sqlite",".db",".glb",".blend",".gpkg"})
+SOURCE_EXTENSIONS = frozenset({".py",".rs",".ts",".tsx",".js",".mjs",".sh",".ps1",".gd",".lean",".sql",".rego",".cpp",".c",".h",".cs"})
 TOPIC_HINTS = frozenset({"kind","schemaVersion","id","name","type","status","subjectRef","sourceCut","sourceRevision"})
+
+
+# Machine-readable envelope names, not verified business capabilities. This
+# remains a private projection inside the existing scanner, NOT a new registry.
+# Callers must never convert a suffix/filename hint into a LEGO, a consumer,
+# a validated deployment, or a proof.
+SOURCE_ENVELOPE_SUFFIXES = {
+    ".nix": "NIX_DECLARATIVE_CONFIGURATION",
+    ".csproj": "DOTNET_PROJECT_DECLARATION",
+    ".container": "PODMAN_QUADLET_UNIT_TEXT",
+    ".pod": "PODMAN_QUADLET_POD_TEXT",
+    ".step": "CAD_STEP_EXCHANGE_TEXT",
+    ".example": "EXAMPLE_OR_TEMPLATE_TEXT",
+    ".css": "CSS_STYLESHEET_TEXT",
+    ".svg": "SVG_MARKUP_TEXT",
+    ".vtt": "WEBVTT_TIMED_TEXT",
+    ".srt": "SUBRIP_TIMED_TEXT",
+    ".ttml": "TTML_TIMED_TEXT_MARKUP",
+    ".typ": "TYPST_DOCUMENT_SOURCE",
+    ".sha256": "SHA256_CHECKSUM_TEXT",
+    ".sha": "SOURCE_COMMIT_DIGEST_TEXT",
+    ".commit-map": "HISTORICAL_COMMIT_MAPPING_TEXT",
+    ".tres": "GODOT_RESOURCE_DECLARATION",
+    ".tscn": "GODOT_SCENE_DECLARATION",
+    ".godot": "GODOT_PROJECT_DECLARATION",
+    ".xmi": "XMI_MODEL_EXCHANGE_TEXT",
+    ".csv": "CSV_TABULAR_SOURCE",
+    ".tla": "TLA_PLUS_SPECIFICATION_TEXT",
+    ".conf": "SERVICE_CONFIGURATION_TEXT",
+    ".patch": "PATCH_DIFF_TEXT",
+    ".hcl": "HCL_INFRASTRUCTURE_CONFIGURATION",
+    ".tf": "OPENTOFU_TERRAFORM_SOURCE",
+    ".carrier": "FIXTURE_CARRIER_DECLARATION",
+    ".pub": "PUBLIC_KEY_MATERIAL_TEXT",
+    ".env": "ENVIRONMENT_DECLARATION_TEXT",
+    ".jsonc": "COMMENTED_JSON_CONFIGURATION_TEXT",
+    ".j2": "JINJA_TEMPLATE_TEXT",
+    ".mako": "MAKO_TEMPLATE_TEXT",
+    ".typed": "PYTHON_TYPE_MARKER",
+    ".sdoc": "SCHEMA_DOCUMENT_SOURCE_TEXT",
+    ".als": "ALLOY_MODEL_SOURCE_TEXT",
+    ".dfy": "DAFNY_MODEL_SOURCE_TEXT",
+    ".qnt": "QUINT_MODEL_SOURCE_TEXT",
+    ".txt": "PLAIN_TEXT_UNQUALIFIED_ROLE",
+}
+SOURCE_ENVELOPE_BASENAMES = {
+    ".gitignore": "GIT_IGNORE_RULES_TEXT",
+    ".gitleaksignore": "GITLEAKS_IGNORE_RULES_TEXT",
+    ".gitattributes": "GIT_ATTRIBUTES_RULES_TEXT",
+    ".gitkeep": "EMPTY_DIRECTORY_GIT_MARKER",
+    ".python-version": "PYTHON_TOOLCHAIN_VERSION_HINT",
+    ".node-version": "NODE_TOOLCHAIN_VERSION_HINT",
+    ".editorconfig": "EDITOR_CONFIGURATION_TEXT",
+    "CODEOWNERS": "GITHUB_REVIEW_ROUTING_RULES",
+    "LICENSE": "SOFTWARE_LICENSE_TEXT",
+    "Dockerfile": "OCI_BUILD_RECIPE_TEXT",
+    "tofurc": "OPENTOFU_CLI_CONFIGURATION_TEXT",
+}
 
 
 def git(*args: str, repo: Path) -> bytes:
@@ -83,9 +145,23 @@ def batch_contents(repo: Path, oids: list[str], sizes: dict[str,int]) -> dict[st
 
 
 def content_probe(path: str, mode: str, size: int, content: bytes | None) -> dict:
+    if mode == "120000":
+        return {"contentForm":"GIT_SYMLINK_BLOB_ONLY",
+                "readStanding":"SYMLINK_TARGET_NOT_DEREFERENCED",
+                "semanticQualification":"UNKNOWN"}
     ext=PurePosixPath(path).suffix.lower()
     if ext in BINARY_EXTENSIONS:
-        return {"contentForm":"BINARY_OR_MEDIA_FILE","readStanding":"SKIPPED_BINARY"}
+        # File extensions are lexical container hints, not validators. Two
+        # formats have easy deterministic signatures we can inspect when the
+        # immutable Git payload is within the finite read bound.
+        marker={".gpkg":b"SQLite format 3\x00",".glb":b"glTF"}.get(ext)
+        evidence=("NOT_INSPECTED" if content is None else
+                  "OBSERVED_MATCHING_MAGIC" if marker is not None and content.startswith(marker)
+                  else "NOT_CHECKED_FOR_THIS_FORMAT" if marker is None
+                  else "MAGIC_MISMATCH")
+        return {"contentForm":"BINARY_OR_MEDIA_FILE","readStanding":"SKIPPED_BINARY",
+                "carrierSuffix":ext,"containerMagicStanding":evidence,
+                "semanticQualification":"UNKNOWN"}
     if content is None:
         return {"contentForm":"LARGE_OR_UNREAD_FILE","readStanding":"SKIPPED_SIZE_BOUND",
                 "bytes":size}
@@ -95,17 +171,22 @@ def content_probe(path: str, mode: str, size: int, content: bytes | None) -> dic
         return {"contentForm":"OPAQUE_NON_UTF8","readStanding":"OPAQUE_ENCODING"}
     if "\x00" in text:
         return {"contentForm":"OPAQUE_BINARY_BYTES","readStanding":"OPAQUE_ENCODING"}
-    if ext in (".json",".jsonl"):
+    if ext in (".json",".jsonl",".jsonld",".geojson",".otio"):
         try:
-            doc=json.loads(text if ext==".json" else text.splitlines()[0])
+            doc=json.loads(text.splitlines()[0] if ext==".jsonl" else text)
         except (ValueError,IndexError) as e:
             return {"contentForm":"JSON_SYNTAX_UNQUALIFIED","readStanding":"PARSE_FAILURE",
                     "errorClass":type(e).__name__}
         if isinstance(doc,dict):
             wanted={k:doc[k] for k in TOPIC_HINTS if k in doc and isinstance(doc[k],(str,int,bool))}
-            return {"contentForm":"JSON_OBJECT_DECLARATION","readStanding":"SYNTAX_PARSED",
+            role={".jsonl":"JSONL_FIRST_OBJECT_ONLY",".jsonld":"JSON_LD_OBJECT",
+                  ".geojson":"GEOJSON_OBJECT",".otio":"OPENTIMELINEIO_OBJECT"}.get(
+                      ext,"JSON_OBJECT_DECLARATION")
+            return {"contentForm":role,
+                    "readStanding":"FIRST_RECORD_PARSED_ONLY" if ext==".jsonl" else "SYNTAX_PARSED",
                     "claimedFields":dict(sorted(wanted.items()))}
-        return {"contentForm":"JSON_"+type(doc).__name__.upper(),"readStanding":"SYNTAX_PARSED"}
+        return {"contentForm":"JSON_"+type(doc).__name__.upper(),
+                "readStanding":"FIRST_RECORD_PARSED_ONLY" if ext==".jsonl" else "SYNTAX_PARSED"}
     if ext==".py":
         try: mod=ast.parse(text)
         except SyntaxError:
@@ -119,23 +200,37 @@ def content_probe(path: str, mode: str, size: int, content: bytes | None) -> dic
             return {"contentForm":"TOML_CONFIGURATION","readStanding":"PARSE_FAILURE"}
         return {"contentForm":"TOML_CONFIGURATION","readStanding":"SYNTAX_PARSED",
                 "topKeys":list(config)[:8]}
-    if ext==".md":
+    if ext in (".md",".mdx"):
         heads=re.findall(r"(?m)^#{1,3}\s+(.+)$",text)
-        return {"contentForm":"MARKDOWN_DOCUMENT","readStanding":"HEADING_EXTRACTED" if heads else "TEXT_ONLY",
+        return {"contentForm":"MDX_DOCUMENT_UNEXECUTED" if ext==".mdx" else "MARKDOWN_DOCUMENT",
+                "readStanding":"HEADING_EXTRACTED" if heads else "TEXT_ONLY",
                 "headings":heads[:3]}
     if ext in SOURCE_EXTENSIONS:
         syntax={" .lean":"Lean"}.get(" "+ext,ext[1:].upper())
         matches=re.findall(r"(?m)^\s*(?:pub(?:\([^)]*\))?\s+)?(?:async\s+)?(?:fn|def|theorem|lemma|function|class|interface|export\s+(?:function|class|const)|CREATE\s+(?:TABLE|INDEX))\s+([A-Za-z_][\w]*)",text)
         return {"contentForm":"SOURCE_"+syntax,"readStanding":"LEXICAL_ONLY",
                 "declaredSymbols":matches[:6]}
+    if ext in (".html", ".htm"):
+        return {"contentForm":"HTML_MARKUP_UNEXECUTED","readStanding":"TEXT_OBSERVED",
+                "semanticQualification":"UNKNOWN"}
     if text.startswith("#!"):
         return {"contentForm":"SHEBANG_SCRIPT","readStanding":"SHEBANG_OBSERVED",
                 "shebangInterpreter":text.splitlines()[0][:110]}
     if ext in (".yaml",".yml",".xml",".lock",".cfg",".ini",".service",".target",".timer"):
         return {"contentForm":"STRUCTURED_TEXT_OR_CONFIG","readStanding":"TEXT_OBSERVED"}
+    # Known physical document grammars may be identified by filename/suffix,
+    # but NONE are executed or recognized as active installed consumers.
+    filename=PurePosixPath(path).name
+    lexical_form=(SOURCE_ENVELOPE_BASENAMES.get(filename)
+                  or SOURCE_ENVELOPE_SUFFIXES.get(ext))
+    if lexical_form is not None:
+        return {"contentForm":lexical_form,"readStanding":"LEXICAL_SOURCE_FORM_ONLY",
+                "semanticQualification":"UNKNOWN"}
     if not ext and mode=="100755":
-        return {"contentForm":"EXECUTABLE_TEXT_UNKNOWN_LANGUAGE","readStanding":"TEXT_OBSERVED"}
-    return {"contentForm":"TEXT_OTHER_UNKNOWN_FUNCTION","readStanding":"TEXT_OBSERVED"}
+        return {"contentForm":"EXECUTABLE_TEXT_UNKNOWN_LANGUAGE",
+                "readStanding":"TEXT_OBSERVED","semanticQualification":"UNKNOWN"}
+    return {"contentForm":"TEXT_OTHER_UNKNOWN_FUNCTION",
+            "readStanding":"TEXT_OBSERVED","semanticQualification":"UNKNOWN"}
 
 
 def candidate_zone(path: str,zones: list[dict]) -> str:
