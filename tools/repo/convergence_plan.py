@@ -33,6 +33,7 @@ def load_dependency_graph(
     owners: tuple[affected_owners.Owner, ...] = affected_owners.OWNERS,
     path: Path = DEPENDENCY_PATH,
     *, test_only_consumers: list[tuple[str, str]] | None = None,
+    source_reference_consumers: list[tuple[str, str]] | None = None,
 ) -> dict[str, set[str]]:
     names = {owner.name for owner in owners}
     graph = {name: set() for name in names}
@@ -77,6 +78,26 @@ def load_dependency_graph(
             if declared not in approved_tool_consumers:
                 raise ValueError("unapproved upstream toolchain-only seam")
             continue
+        if seam.get("kind") == "EVIDENCE_SOURCE_REFERENCE":
+            # A source citation is a *directed* source-qualification obligation
+            # (provider changed -> consumer recheck). Never join the domains
+            # into an undirected production/business-dependency component.
+            # Admit only the one actually observed current citation.
+            declared = (
+                left, right, seam.get("source_glob"),
+                seam.get("allowed_fragment"), seam.get("contract_ref"),
+            )
+            admitted = (
+                "media", "lego-core",
+                "capabilities/media/productions/fishing-fable-lego-study-r1/claims.json",
+                ".agents/skills/recursive-lego-calculus/SKILL.md",
+                ".agents/skills/recursive-lego-calculus/SKILL.md",
+            )
+            if declared != admitted:
+                raise ValueError("unapproved evidence source reference")
+            if source_reference_consumers is not None:
+                source_reference_consumers.append((left, right))
+            continue
         if seam.get("kind") == "TEST_ONLY_SOURCE_CONTRACT":
             # A Composition test reads live Runtime SourceCut bytes to construct
             # an immutable *temporary* fixture. The fixture's later immutability
@@ -96,23 +117,6 @@ def load_dependency_graph(
                 raise ValueError("unapproved test-only source contract")
             if test_only_consumers is not None:
                 test_only_consumers.append((left, right))
-            continue
-        if seam.get("kind") == "SOURCE_CITATION_NOT_EXECUTION":
-            # A Media study merely cites the canonical LEGO method source.
-            # Treating this as an executable bidirectional dependency would
-            # propagate every Media change into the formal semantic kernel.
-            exact_citation = (
-                "media", "lego-foundation",
-                "capabilities/media/productions/fishing-fable-lego-study-r1/claims.json",
-                ".agents/skills/recursive-lego-calculus/SKILL.md",
-                ".agents/skills/recursive-lego-calculus/SKILL.md",
-            )
-            declared = (
-                left, right, seam.get("source_glob"),
-                seam.get("allowed_fragment"), seam.get("contract_ref"),
-            )
-            if declared != exact_citation:
-                raise ValueError("unapproved source-citation-only seam")
             continue
         if seam.get("kind") == "TEST_ONLY_DOMAIN_PROFILE_CONSUMER":
             # Artifact reads an R1 Research profile only within native tests.
@@ -192,11 +196,16 @@ def build_plan(
     direct_names = tuple(owner.name for owner in direct)
     cross_cutting = _is_cross_cutting(paths)
     test_only_consumers: list[tuple[str, str]] = []
+    source_reference_consumers: list[tuple[str, str]] = []
     graph = load_dependency_graph(
-        owners=owners, path=dependency_path, test_only_consumers=test_only_consumers,
+        owners=owners, path=dependency_path,
+        test_only_consumers=test_only_consumers,
+        source_reference_consumers=source_reference_consumers,
     )
     supplemental = tuple(sorted({
-        consumer for consumer, provider in test_only_consumers if provider in direct_names
+        consumer for consumer, provider in
+        (*test_only_consumers, *source_reference_consumers)
+        if provider in direct_names
     }))
 
     if cross_cutting:
@@ -242,7 +251,14 @@ def build_plan(
         "changedPaths": list(paths),
         "directOwners": list(direct_names),
         "verificationOwners": list(verification_names),
-        "taskLocalTestConsumers": list(supplemental),
+        "taskLocalTestConsumers": sorted({
+            consumer for consumer, provider in test_only_consumers
+            if provider in direct_names
+        }),
+        "sourceReferenceConsumers": sorted({
+            consumer for consumer, provider in source_reference_consumers
+            if provider in direct_names
+        }),
         "verifyTasks": list(verify_tasks),
         "queueVerifyTasks": list(queue_verify_tasks),
         "scopeIds": list(scope_ids),

@@ -54,15 +54,45 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertEqual(len(plan["scopeIds"]), 1)
         self.assertIn("artifact:verify", plan["verifyTasks"])
         self.assertIn("artifact:queue", plan["queueVerifyTasks"])
+        # A citation is never an undirected Media <-> LEGO Core business edge.
+        self.assertNotIn("lego-core:verify", plan["verifyTasks"])
 
-    def test_method_study_citation_does_not_create_an_execution_component(self) -> None:
-        graph = MODULE.load_dependency_graph()
-        self.assertNotIn("lego-foundation", graph["media"])
-        self.assertNotIn("media", graph["lego-foundation"])
-        only_core = MODULE.build_plan(
-            changed_files=[".agents/skills/recursive-lego-calculus/SKILL.md"]
+    def test_media_study_r21_source_citation_is_directional_not_business_coupling(self) -> None:
+        # The Media claims.json provenance citation to R2.1 is source evidence,
+        # not a Media capability calling an executable LEGO Core service.
+        media = MODULE.build_plan(changed_files=[
+            "capabilities/media/productions/fishing-fable-lego-study-r1/claims.json"
+        ])
+        self.assertEqual(media["directOwners"], ["media"])
+        self.assertNotIn("lego-core", media["verificationOwners"])
+        self.assertNotIn(["lego-core", "media"], media["declaredInteractionEdges"])
+
+        core = MODULE.build_plan(changed_files=[
+            ".agents/skills/recursive-lego-calculus/SKILL.md"
+        ])
+        self.assertEqual(core["directOwners"], ["lego-core"])
+        self.assertEqual(core["verificationOwners"], ["lego-core", "media"])
+        self.assertEqual(core["sourceReferenceConsumers"], ["media"])
+        self.assertEqual(core["scopeIds"], ["owner-component:lego-core"])
+
+    def test_source_reference_kind_rejects_widened_fake_contract(self) -> None:
+        source = MODULE.DEPENDENCY_PATH.read_text(encoding="utf-8")
+        invalid = source.replace(
+            'kind = "EVIDENCE_SOURCE_REFERENCE"',
+            'kind = "PUBLIC_PINNED_FORMAL_TOOLCHAIN"',
+            1,
         )
-        self.assertEqual(only_core["verificationOwners"], ["lego-foundation"])
+        self.assertNotEqual(invalid, source)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "dependency_contracts.toml"
+            path.write_text(invalid, encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "unapproved upstream toolchain"):
+                MODULE.build_plan(
+                    changed_files=[
+                        ".agents/skills/recursive-lego-calculus/SKILL.md"
+                    ],
+                    dependency_path=path,
+                )
 
     def test_research_profile_tests_follow_research_not_artifact_runtime(self) -> None:
         profile = MODULE.build_plan(
@@ -74,7 +104,7 @@ class ConvergencePlanTests(unittest.TestCase):
             changed_files=["capabilities/artifact/README.md"]
         )
         self.assertNotIn("research", artifact["verificationOwners"])
-        self.assertNotIn("lego-foundation", artifact["verificationOwners"])
+        self.assertNotIn("lego-core", artifact["verificationOwners"])
 
     def test_new_source_seam_exemptions_reject_widened_or_forged_paths(self) -> None:
         policy = MODULE.DEPENDENCY_PATH.read_text(encoding="utf-8")
@@ -82,7 +112,7 @@ class ConvergencePlanTests(unittest.TestCase):
             (
                 'source_glob = "capabilities/media/productions/fishing-fable-lego-study-r1/claims.json"',
                 'source_glob = "capabilities/media/**"',
-                "unapproved source-citation-only seam",
+                "unapproved evidence source reference",
             ),
             (
                 'source_glob = "capabilities/artifact/tests/test_artifact_publication_carrier_r1.py"',

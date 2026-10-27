@@ -140,16 +140,6 @@ print('FORMAL_SOURCE_ONLY_PASS',source['gitHead'])
 PYFORMAL
 """
 
-[tasks."lego-foundation:verify"]
-run = """
-set -euo pipefail
-# Exact Git-tracked original R2.1 Skill/model identity is the
-# semantic source; checks do not create a new calculus or Registry.
-uv run --with pytest==9.1.1 --with jsonschema==4.26.0 python -m pytest -q tools/repo/test_architecture_docs.py -k recursive_lego_r21_source_digest_matches_current_declared_contract
-cd platform/skills
-mise exec -- uv run --locked python -m pytest -q tests/test_recursive_lego_math_discovery.py
-"""
-
 [tasks."research:verify"]
 run = """
 set -euo pipefail
@@ -361,6 +351,12 @@ set -euo pipefail
 uv run --with pyyaml==6.0.3 python capabilities/preservation/scripts/test_verify_source.py
 uv run --with pyyaml==6.0.3 python capabilities/preservation/scripts/verify_source.py
 """
+
+# Reuse the native installed Skills discovery/qualification tests. R2.1
+# remains the canonical source under .agents; this task does not establish
+# model/refinement or domain-acceptance PASS.
+[tasks."lego-core:verify"]
+run = "mise run skills:verify"
 
 [tasks."formal:verify"]
 run = "cd tools/formal && mise run verify"

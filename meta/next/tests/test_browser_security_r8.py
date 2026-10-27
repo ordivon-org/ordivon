@@ -1,6 +1,5 @@
 import importlib.util
 import json
-import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -52,13 +51,37 @@ class BrowserSecurityR8Tests(unittest.TestCase):
                 r8.require_network_namespace()
 
     def test_cleanup_state_shape_is_boolean_only(self) -> None:
-        with tempfile.TemporaryDirectory():
+        # This is a *shape/negation* test, not an installed Podman cleanup
+        # acceptance. Never query host Podman, X sockets or user profiles from
+        # a portable unit test; actual cleanup is checked by the live canary.
+        with (
+            mock.patch.object(
+                r8.r7.r5, "podman_container_exists", return_value=True
+            ) as podman_exists,
+            mock.patch.object(
+                r8.pathlib.Path, "exists", side_effect=(True, False, True)
+            ) as path_exists,
+        ):
             value = r8._fresh_cleanup_state()
+        podman_exists.assert_called_once_with(r8.canary.CANARY_CONTAINER)
+        self.assertEqual(path_exists.call_count, 3)
         self.assertEqual(
-            set(value),
-            {"containerAbsent", "profileAbsent", "xSocketAbsent", "xauthAbsent"},
+            value,
+            {
+                "containerAbsent": False,
+                "profileAbsent": False,
+                "xSocketAbsent": True,
+                "xauthAbsent": False,
+            },
         )
         self.assertTrue(all(isinstance(v, bool) for v in value.values()))
+
+        with (
+            mock.patch.object(r8.r7.r5, "podman_container_exists", return_value=False),
+            mock.patch.object(r8.pathlib.Path, "exists", return_value=False),
+        ):
+            absent = r8._fresh_cleanup_state()
+        self.assertTrue(all(absent.values()))
 
 
 if __name__ == "__main__":
