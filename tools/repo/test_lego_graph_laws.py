@@ -1653,3 +1653,23 @@ def test_phase1_new_owner_plan_introduction_has_real_git_source_impact() -> None
         if item["ref"].split("#")[0] in paths
     )
     assert result["proofReuseAdmissible"] is False
+
+
+
+def test_phase1_host_r3_cross_owner_gateway_consumers_are_literal_source_routes() -> None:
+    """Check actual Gateway call surface from Repo mechanics, not Host authority."""
+    host = json.loads((ROOT / "services/host/planning/lego-plan-r3.json").read_text())
+    gateway = (ROOT / "services/gateway/src/ordivon_gateway/mcp_server.py").read_text()
+    producer = (ROOT / "services/host/src/ordivon_host_v2/social_work_mcp.py").read_text()
+
+    def exact_route(tool: str, gateway_source: str = gateway) -> bool:
+        return f'@mcp.tool(name="{tool}")' in producer and f'@server.tool(name="{tool}")' in gateway_source
+
+    for node in host["retained"]:
+        tool = node["consumerEvidence"]["hostTool"]
+        assert exact_route(tool), (node["id"], tool)
+    assert not exact_route("task.resume")
+    assert not exact_route(
+        "topic.resume",
+        gateway.replace('@server.tool(name="topic.resume")', '@server.tool(name="topic.fetch")'),
+    )

@@ -295,7 +295,6 @@ def test_source_current_host_r3_replaces_retired_task_board_with_real_social_con
     from pathlib import Path
 
     host = Path(__file__).parents[1]
-    repo = host.parents[1]
     r1 = json.loads((host / "planning/lego-plan-r1.json").read_text())
     r3 = json.loads((host / "planning/lego-plan-r3.json").read_text())
     assert {x["id"] for x in r1["nodes"] if x["state"] == "RETIRED"} == {"O01", "O02", "O03"}
@@ -305,10 +304,9 @@ def test_source_current_host_r3_replaces_retired_task_board_with_real_social_con
     assert {"ContinuityTaskLedger", "CheckpointHistory", "BoardJournal", "CompactTaskInventory", "BoardSearch"} <= set(r3["retired"])
     assert not (set(r3["retired"]) & {r["name"] for r in r3["retained"]})
     host_surface = (host / "src/ordivon_host_v2/social_work_mcp.py").read_text()
-    gateway_surface = (repo / "services/gateway/src/ordivon_gateway/mcp_server.py").read_text()
 
-    def qualifies_source_route(tool: str, local: str = host_surface, remote: str = gateway_surface) -> bool:
-        return f'@mcp.tool(name="{tool}")' in local and f'@server.tool(name="{tool}")' in remote
+    def qualifies_source_route(tool: str, local: str = host_surface) -> bool:
+        return f'@mcp.tool(name="{tool}")' in local
 
     for ref in kept.values():
         for role in ("responsibility", "inputs", "outputs", "behavioralContract", "acceptance"):
@@ -324,5 +322,5 @@ def test_source_current_host_r3_replaces_retired_task_board_with_real_social_con
     assert not qualifies_source_route("task.resume")
     assert not qualifies_source_route(
         "topic.resume",
-        remote=gateway_surface.replace('@server.tool(name="topic.resume")', '@server.tool(name="topic.fetch")'),
+        local=host_surface.replace('@mcp.tool(name="topic.resume")', '@mcp.tool(name="topic.fetch")'),
     )
