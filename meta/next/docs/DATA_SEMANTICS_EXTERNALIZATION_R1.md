@@ -1,7 +1,7 @@
 # Data Semantics Externalization R1
 
 Date: 2026-09-20  
-Applies to: `scripts/data_lifecycle_github_pilot.py` and `evidence/data-lifecycle/github-pilot-r1/`
+Applies to: `evidence/data-lifecycle/github-pilot-r1/` (source-bound dataset contracts and observations).
 
 ## 1. Purpose
 
@@ -110,9 +110,9 @@ Transport may be canonical GitHub raw content or a mirror. A transport is accept
 
 This prevents network routing/CDN choice from changing provenance.
 
-## 7. Executable result
+## 7. Source-bound observation (not a current scheduled producer)
 
-The same frozen data were clean-replayed after externalization.
+The frozen dataset was replayed during the dated experiment. Its bespoke one-time Python pilot has no identified current Git-tracked CLI, task, CI or service consumer at the bounded October 2026 source cut and is retired. The retained ODCS, source-semantic profiles and recorded observations are inspected independently by `tests/test_data_lifecycle_semantics.py`. These data are not evidence of an installed or current live producer.
 
 Results:
 
