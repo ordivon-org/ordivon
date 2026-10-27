@@ -17,7 +17,10 @@
       "tests/test_verification_obligation_r1.py",
       "tests/test_successor_contract_r1.py",
       "src/ordivon_composition/effect_reconciliation_r1.py",
-      "tests/test_effect_reconciliation_r1.py"
+      "tests/test_effect_reconciliation_r1.py",
+      "formal/EffectReplayFence.tla",
+      "formal/EffectReplayFence.cfg",
+      "scripts/verify_effect_replay_formal.sh"
     ]
   },
   "nodes": [
@@ -257,7 +260,10 @@
       ],
       "evidence": [
         "src/ordivon_composition/effect_reconciliation_r1.py",
-        "tests/test_effect_reconciliation_r1.py"
+        "tests/test_effect_reconciliation_r1.py",
+        "formal/EffectReplayFence.tla",
+        "formal/EffectReplayFence.cfg",
+        "scripts/verify_effect_replay_formal.sh"
       ],
       "dependencies": [
         "C04"
@@ -276,10 +282,10 @@
         }
       ],
       "formalObligations": [
-        "A task-local Gateway-shaped JSON record is not an authenticated native owner readback and must not grant effect/retry permission.",
-        "Effect dependency closure is caller declared; a hidden provider read remains UNKNOWN, and source/test evidence cannot prove execution exactly once."
+        "Native pinned TLA+ TLC exhaustively verifies TypeOK, no retry, no effect success claim, exact classified recommendation and known/unindexed impact scope over a declared finite abstract transition system; 3 nonvacuity probes and an unsafe-retry mutation must yield named counterexamples.",
+        "Model satisfaction is NOT implementation refinement or observed effect truth: finite concrete input test covers 72 abstract combinations, but arbitrary Python/real Gateway transport, environment, absent dependencies, and provider effects remain UNKNOWN."
       ],
-      "qualification": "SOURCE_CONTRACT_IMPLEMENTED_AND_NATIVE_NEGATIVE_TESTS; LIVE_GATEWAY_CONSUMER/INSTALLED/FORMAL_EFFECT_COMPLETION_UNKNOWN"
+      "qualification": "FINITE_TLA_MODEL_VERIFIED_WITH_MUTATION_PROBE; SOURCE_FINITE_CORRESPONDENCE_TESTED; IMPLEMENTATION_REFINEMENT_INSTALLED_EFFECT_UNKNOWN"
     }
   ],
   "edges": [
