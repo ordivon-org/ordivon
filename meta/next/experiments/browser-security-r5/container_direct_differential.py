@@ -178,15 +178,21 @@ def normalized_browser_view(value: dict[str, Any]) -> dict[str, Any]:
 
 
 def podman_container_exists(name: str) -> bool:
-    return (
-        subprocess.run(
-            ["/usr/bin/podman", "container", "exists", name],
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=5,
-        ).returncode
-        == 0
+    # Podman exit codes: 0 exists, 1 absent, 125 storage/Podman failure.
+    # Storage errors are UNKNOWN, not evidence that a canary is absent.
+    result = subprocess.run(
+        ["/usr/bin/podman", "container", "exists", name],
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=5,
+    )
+    if result.returncode == 0:
+        return True
+    if result.returncode == 1:
+        return False
+    raise RuntimeError(
+        f"indeterminate Podman container existence (exit {result.returncode})"
     )
 
 
