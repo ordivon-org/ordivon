@@ -1,8 +1,11 @@
 """Opt-in native formal tools smoke and negative oracles, not a new verifier."""
 from __future__ import annotations
 
+import hashlib
 import json
+import os
 import re
+import stat
 import subprocess
 import tempfile
 from pathlib import Path
@@ -11,6 +14,8 @@ ROOT = Path(__file__).resolve().parent
 REPO = ROOT.parents[1]
 # Exact executable proof inputs and their two existing mise manifests.
 # This is a bounded source readset, not a Cargo, plugin or dynamic-tool closure.
+TOOL_NAMES = ("lean", "z3", "cvc5", "verus", "dafny", "kani", "quint", "alloy")
+
 SOURCE_FILES = (
     "mise.toml",
     "tools/formal/mise.toml",
@@ -63,6 +68,28 @@ def qualified_source_cut() -> dict[str, object]:
 
 
 
+def qualified_tool_binaries() -> dict[str, dict[str, str]]:
+    """Resolve upstream tools through mise and bind exact executed entrypoint bytes."""
+    result: dict[str, dict[str, str]] = {}
+    for name in TOOL_NAMES:
+        raw_path = subprocess.check_output(
+            ["mise", "which", name], cwd=ROOT, text=True, stderr=subprocess.PIPE
+        ).strip()
+        version = subprocess.check_output(
+            ["mise", "which", "--version", name], cwd=ROOT,
+            text=True, stderr=subprocess.PIPE
+        ).strip()
+        path = Path(raw_path).resolve(strict=True)
+        if not path.is_file() or not stat.S_ISREG(path.stat().st_mode):
+            raise ValueError(f"not a regular verifier executable: {name}")
+        if not os.access(path, os.X_OK) or not version:
+            raise ValueError(f"verifier executable is unqualified: {name}")
+        with path.open("rb") as handle:
+            checksum = hashlib.file_digest(handle, "sha256").hexdigest()
+        result[name] = {"path": str(path), "version": version, "sha256": checksum}
+    return result
+
+
 def run(label: str, args: list[str], *, input_text: str | None = None,
         expected_rc: int = 0, must_contain: str | None = None,
         timeout: int = 95) -> dict[str, object]:
@@ -81,22 +108,27 @@ def run(label: str, args: list[str], *, input_text: str | None = None,
 
 def main() -> None:
     source_before = qualified_source_cut()
+    tools_before = qualified_tool_binaries()
+
+    def executable(name: str) -> str:
+        return tools_before[name]["path"]
+
     probes: list[dict[str, object]] = []
     source = ROOT / "RecursiveLegoRefinement.lean"
     if re.search(r"\b(sorry|admit|axiom)\b", source.read_text()):
         raise AssertionError("Unproved Lean shortcut in source")
     probes.append(run("Lean kernel R2.1 relational composition",
-                      ["lean", str(source)]))
+                      [executable("lean"), str(source)]))
     with tempfile.TemporaryDirectory(prefix="ordivon-formal-falsifiers-") as d:
         tmp = Path(d)
         bad_lean = tmp / "Invalid.lean"
         bad_lean.write_text("theorem falseClaim (p : Prop) : p := by\n  exact True.intro\n")
-        probes.append(run("Lean rejects false theorem", ["lean", str(bad_lean)],
+        probes.append(run("Lean rejects false theorem", [executable("lean"), str(bad_lean)],
                           expected_rc=1, must_contain="Type mismatch"))
         sat = "(set-logic QF_LIA)\n(declare-const x Int)\n(assert (> x 5))\n(check-sat)\n"
         unsat = sat.replace("(check-sat)", "(assert (< x 3))\n(check-sat)")
-        for name, cmd in (("Z3", ["z3", "-in"]),
-                          ("cvc5", ["cvc5", "--lang", "smt2", "--incremental"])):
+        for name, cmd in (("Z3", [executable("z3"), "-in"]),
+                          ("cvc5", [executable("cvc5"), "--lang", "smt2", "--incremental"])):
             for formula, expected in ((sat, "sat"), (unsat, "unsat")):
                 p = subprocess.run(cmd, check=False, input=formula, text=True,
                                    capture_output=True, timeout=30)
@@ -104,26 +136,26 @@ def main() -> None:
                     raise AssertionError((name, expected, p.stdout, p.stderr))
                 probes.append({"probe": f"{name}: {expected}", "result": "PASS",
                                "rc": p.returncode})
-        probes.append(run("Verus Rust proof", ["verus", str(ROOT / "Proof.rs")],
+        probes.append(run("Verus Rust proof", [executable("verus"), str(ROOT / "Proof.rs")],
                           must_contain="1 verified, 0 errors"))
         bad_verus = tmp / "Invalid.rs"
         bad_verus.write_text(
             "use vstd::prelude::*;\nverus! {\n"
             "proof fn incorrect(x: int) ensures x > x {}\n}\nfn main() {}\n")
         probes.append(run("Verus rejects false postcondition",
-                          ["verus", str(bad_verus)], expected_rc=1,
+                          [executable("verus"), str(bad_verus)], expected_rc=1,
                           must_contain="postcondition not satisfied"))
-        probes.append(run("Dafny method proof", ["dafny", "verify",
+        probes.append(run("Dafny method proof", [executable("dafny"), "verify",
                            str(ROOT / "Proof.dfy")],
                           must_contain="1 verified, 0 errors"))
         bad_dafny = tmp / "Invalid.dfy"
         bad_dafny.write_text("method Inc(x: int) returns (y: int)\n"
                              "  ensures y > x + 10\n{ y := x + 1; }\n")
         probes.append(run("Dafny rejects false postcondition",
-                          ["dafny", "verify", str(bad_dafny)],
+                          [executable("dafny"), "verify", str(bad_dafny)],
                           expected_rc=4, must_contain="1 error"))
         probes.append(run("Kani native Rust bounded proof",
-                          ["kani", str(ROOT / "ProofKani.rs")],
+                          [executable("kani"), str(ROOT / "ProofKani.rs")],
                           must_contain="VERIFICATION:- SUCCESSFUL", timeout=90))
         bad_kani = tmp / "InvalidKani.rs"
         bad_kani.write_text(chr(10).join([
@@ -135,7 +167,7 @@ def main() -> None:
             "",
         ]))
         faulty = subprocess.run(
-            ["kani", str(bad_kani)], check=False, capture_output=True, text=True, timeout=90
+            [executable("kani"), str(bad_kani)], check=False, capture_output=True, text=True, timeout=90
         )
         if faulty.returncode == 0 or "VERIFICATION:- FAILED" not in (
             faulty.stdout + faulty.stderr
@@ -147,16 +179,16 @@ def main() -> None:
         probes.append({"probe": "Kani rejects reachable assertion failure",
                        "result": "PASS", "rc": faulty.returncode})
         probes.append(run("Quint typed state machine",
-                          ["quint", "typecheck", str(ROOT / "Proof.qnt")]))
+                          [executable("quint"), "typecheck", str(ROOT / "Proof.qnt")]))
         bad_quint = tmp / "Invalid.qnt"
         bad_quint.write_text("module Proof {\n  val wrong = 1 + true\n}\n")
-        bad = subprocess.run(["quint", "typecheck", str(bad_quint)], check=False,
+        bad = subprocess.run([executable("quint"), "typecheck", str(bad_quint)], check=False,
                              capture_output=True, text=True, timeout=45)
         if bad.returncode == 0:
             raise AssertionError("Quint accepted an ill-typed integer + boolean")
         probes.append({"probe": "Quint rejects type error", "result": "PASS",
                        "rc": bad.returncode})
-        alloy = subprocess.run(["alloy", "exec", "-o", "-", "-t", "json",
+        alloy = subprocess.run([executable("alloy"), "exec", "-o", "-", "-t", "json",
                                 str(ROOT / "Proof.als")], check=False,
                                capture_output=True, text=True, timeout=95)
         if alloy.returncode or '"instances"' not in alloy.stdout:
@@ -167,6 +199,9 @@ def main() -> None:
     source_after = qualified_source_cut()
     if source_after != source_before:
         raise ValueError("Git formal SourceCut changed during toolchain checks")
+    tools_after = qualified_tool_binaries()
+    if tools_after != tools_before:
+        raise ValueError("mise verifier executable identity changed during checks")
     print(json.dumps({
         "kind": "source-scoped-native-formal-toolchain-check",
         "status": "PASS", "probes": probes, "count": len(probes),
@@ -174,6 +209,8 @@ def main() -> None:
         "sourceCut": source_before["gitHead"],
         "gitObjectFormat": source_before["gitObjectFormat"],
         "sourceBlobs": source_before["sourceBlobs"],
+        "toolQualification": "MISE_RESOLVED_EXECUTABLE_SHA256_PRE_AND_POST",
+        "toolBinaries": tools_before,
         "proofReuseAdmissible": False,
         "implementationRefinement": "UNKNOWN",
         "installedCurrentness": "UNKNOWN",
@@ -183,7 +220,7 @@ def main() -> None:
             "No tool PASS is an installed or domain acceptance witness",
             "SMT answers are cross-solver results for the stated QF_LIA formula only",
             "Git pre/post snapshots cannot exclude transient mutate-and-restore",
-            "Git blob binding does not qualify invoked binaries or dynamic tool inputs",
+            "mise executable SHA-256 binds entrypoints, not their dynamic libraries or plugins",
         ],
     }, indent=2, ensure_ascii=False))
 
