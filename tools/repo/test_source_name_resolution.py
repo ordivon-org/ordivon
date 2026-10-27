@@ -237,5 +237,42 @@ class SourceNameResolutionTests(unittest.TestCase):
         self.assertFalse(output["semanticIdentityQualified"])
 
 
+    def test_current_git_cut_every_declared_area_name_resolves_uniquely(self):
+        import tomllib
+        from affected_owners import project_source_classification
+
+        repo = Path(__file__).resolve().parents[2]
+        cut = subprocess.check_output(
+            ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+        ).strip()
+        manifest_bytes = subprocess.check_output(
+            ["git", "-C", str(repo), "show", f"{cut}:tools/repo/owners.toml"]
+        )
+        manifest = tomllib.loads(manifest_bytes.decode())
+        projection = project_source_classification(repo, cut)
+        for owner in manifest["owners"]:
+            with self.subTest(area=owner["name"]):
+                result = resolve_source_name(
+                    projection, name=owner["semantic_name"], field="semanticName"
+                )
+                self.assertEqual(result["candidateGroupCount"], 1)
+                self.assertEqual(result["standing"],
+                                 "UNIQUE_SOURCE_GROUP_NOT_LEGO_PROOF")
+                self.assertEqual(
+                    result["candidates"][0]["sourceGroup"],
+                    f"verification-region/{owner['name']}",
+                )
+                self.assertFalse(result["semanticIdentityQualified"])
+        for region in manifest.get("source_regions", []):
+            with self.subTest(region=region["name"]):
+                result = resolve_source_name(
+                    projection, name=region["name"], field="sourceRegion"
+                )
+                self.assertEqual(result["candidateGroupCount"], 1)
+                self.assertEqual(result["standing"],
+                                 "UNIQUE_SOURCE_GROUP_NOT_LEGO_PROOF")
+                self.assertFalse(result["physicalRenameAdmissible"])
+
+
 if __name__ == "__main__":
     unittest.main()
