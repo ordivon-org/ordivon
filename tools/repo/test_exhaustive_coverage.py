@@ -232,3 +232,108 @@ class LiveRecursiveCellsTests(unittest.TestCase):
         assert out["summary"]["countedPaths"] == len(source["sourcePaths"])
         assert out["summary"]["problemCounts"]["DENSE_CELL_REQUIRES_SUBCLASSIFICATION_REVIEW"] > 0
         assert len(out["cells"]) > out["summary"]["sourceZones"]
+
+
+class PythonStaticConsumerFrontierTests(unittest.TestCase):
+    """Exact Git source import witnesses, not runtime/consumer qualification."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.source = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+        ).strip()
+        cls.frontier = M.static_python_import_frontier(
+            ROOT, cls.source, focus_prefix="services/harness/")
+
+    def test_named_harness_plugin_test_has_actual_source_import_candidate(self) -> None:
+        matching = [x for x in self.frontier["staticCandidateEdges"]
+                    if x["consumerPath"] ==
+                    "services/harness/tests/test_agent_plugin_composition.py"
+                    and x["providerPath"] ==
+                    "services/harness/src/ordivon_harness/agent_plugin.py"]
+        self.assertEqual(len(matching), 1)
+        self.assertEqual(matching[0]["moduleExpression"], "ordivon_harness.agent_plugin")
+        self.assertEqual(matching[0]["runtimeConsumerStanding"], "UNKNOWN")
+        self.assertEqual(matching[0]["agentQueryHandle"],
+                         "python-module:ordivon_harness.agent_plugin")
+        self.assertEqual(matching[0]["consumerSourceRole"],
+                         "TEST_SOURCE_IMPORT_SYNTAX")
+
+    def test_script_import_witness_and_current_risk_boundaries(self) -> None:
+        actual = [x for x in self.frontier["staticCandidateEdges"] if x["consumerPath"] ==
+                  "services/harness/scripts/agent_automation_mcp.py"]
+        providers = {x["providerPath"] for x in actual}
+        self.assertIn("services/harness/scripts/agent_automation_browserless.py", providers)
+        self.assertIn("services/harness/scripts/agent_automation_registry.py", providers)
+        self.assertIn("services/harness/scripts/standard_identifiers.py", providers)
+        self.assertFalse(self.frontier["proofReuseAdmissible"])
+        self.assertFalse(self.frontier["summary"]["zeroStaticEdgesProvesNoConsumers"])
+        self.assertEqual(
+            self.frontier["summary"]["gitPythonPaths"],
+            self.frontier["summary"]["sourceModuleLayoutIndexed"] +
+            self.frontier["summary"]["sourceModuleLayoutUnknown"])
+        self.assertGreater(self.frontier["summary"]["allUnresolvedImportStatements"], 0)
+        self.assertGreater(self.frontier["summary"]["allDynamicSyntaxSites"], 0)
+
+    def test_source_path_lexical_module_is_never_installed_authority(self) -> None:
+        self.assertEqual(
+            M._python_module_path(
+                "services/harness/src/ordivon_harness/agent_plugin.py"),
+            ("ordivon_harness.agent_plugin", "services/harness/src/"))
+        self.assertEqual(
+            M._python_module_path(
+                "services/harness/scripts/agent_automation_browserless.py"),
+            ("agent_automation_browserless", "services/harness/scripts/"))
+        self.assertIsNone(M._python_module_path("services/harness/evidence/claim.json"))
+
+    def test_non_src_python_package_needs_real_init_files(self) -> None:
+        module = "capabilities/artifact/artifact_capabilities/presentation/admission.py"
+        inits = {
+            "capabilities/artifact/artifact_capabilities/__init__.py",
+            "capabilities/artifact/artifact_capabilities/presentation/__init__.py",
+        }
+        self.assertEqual(
+            M._python_module_path(module, inits),
+            ("artifact_capabilities.presentation.admission", "capabilities/artifact/"))
+        self.assertIsNone(M._python_module_path(module, set()))
+        self.assertEqual(
+            M._python_module_path(
+                "capabilities/artifact/artifact_capabilities/presentation/__init__.py",
+                inits),
+            ("artifact_capabilities.presentation", "capabilities/artifact/"))
+        # Without the parent marker, the exact *candidate search root*
+        # changes; neither variant guarantees runtime sys.path resolution.
+        self.assertEqual(
+            M._python_module_path(module, {
+                "capabilities/artifact/artifact_capabilities/presentation/__init__.py"}),
+            ("presentation.admission",
+             "capabilities/artifact/artifact_capabilities/"))
+
+    def test_exact_cut_required_and_invalid_prefix_rejected(self) -> None:
+        with self.assertRaisesRegex(ValueError, "exact"):
+            M.static_python_import_frontier(ROOT, "HEAD")
+        for path in ("", "/services/", "services/../harness/",
+                     "services//harness/", "services/./harness/",
+                     "services" + chr(92) + "harness/"):
+            with self.assertRaisesRegex(ValueError, "canonical"):
+                M.static_python_import_frontier(ROOT, self.source, focus_prefix=path)
+
+    def test_import_frontier_remains_bounded_when_no_prefix_witness(self) -> None:
+        output = M.static_python_import_frontier(
+            ROOT, self.source, focus_prefix="unused/static/no-such-source/")
+        self.assertEqual(output["summary"]["selectedEdges"], 0)
+        self.assertFalse(output["summary"]["zeroStaticEdgesProvesNoConsumers"])
+        self.assertEqual(output["sourceCut"], self.source)
+
+    def test_ambiguous_module_name_fails_closed_without_preferred_owner(self) -> None:
+        out = M.static_python_import_frontier(
+            ROOT, self.source,
+            focus_prefix="domains/capital/tests/test_accounting_substrate_type_authority.py")
+        unresolved = [x for x in out["unresolvedImportStatements"]
+                      if x["standing"] == "AMBIGUOUS_MODULE_CANDIDATES"]
+        self.assertTrue(any(x["expression"] == "ordivon_capital.accounting"
+                            for x in unresolved))
+        self.assertFalse(any(x["moduleExpression"] == "ordivon_capital.accounting"
+                             for x in out["staticCandidateEdges"]))
+        self.assertGreater(out["summary"]["sourceModuleLayoutUnknown"], 0)
+        self.assertFalse(out["summary"]["zeroStaticEdgesProvesNoConsumers"])
