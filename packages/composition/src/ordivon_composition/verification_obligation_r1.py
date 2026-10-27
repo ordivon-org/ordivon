@@ -430,6 +430,124 @@ def _cyclic_proof_members(rows: list[dict[str, Any]]) -> set[str]:
     return cyclic
 
 
+def classify_observed_environment_delta(
+    *,
+    previous: list[dict[str, Any]],
+    current: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Task-local, non-authoritative bridge: scoped observations -> proof impact.
+
+    This is NOT an environment inventory or a new truth store. Real environment
+    and effect witnesses must come from their natural Runtime/Security/Domain
+    authorities. The bridge qualifies the *shape* of caller-supplied evidence,
+    NOT its issuer, time-continuity, hidden readsets or physical truth.
+    Outputs feed the existing select_impacted_obligations changed/unknown refs.
+
+    Exact observed content equality can be considered a bounded config-source
+    candidate. Equality of installed state, live environment, credentials,
+    external provider or effects does NOT prove temporal continuity, and stays
+    UNKNOWN even when two point-in-time digests match.
+    """
+    classes = frozenset(
+        {
+            "config",
+            "environment",
+            "installed",
+            "authority",
+            "provider",
+            "external",
+            "effect",
+        }
+    )
+
+    def validate(rows: list[dict[str, Any]], label: str) -> dict[str, dict[str, Any]]:
+        if not isinstance(rows, list):
+            raise CircuitContractError(f"{label} observations must be a list")
+        result: dict[str, dict[str, Any]] = {}
+        for row in rows:
+            if not isinstance(row, dict) or set(row) != {
+                "ref",
+                "standing",
+                "valueDigest",
+                "witnessRef",
+            }:
+                raise CircuitContractError(f"{label} requires exact observation fields")
+            ref, standing = row["ref"], row["standing"]
+            if (
+                not isinstance(ref, str)
+                or ref != ref.strip()
+                or not ref.isprintable()
+                or ":" not in ref
+                or not ref.split(":", 1)[1]
+                or ref.split(":", 1)[0] not in classes
+            ):
+                raise CircuitContractError(f"{label} observation needs typed environment ref")
+            if ref in result:
+                raise CircuitContractError(f"duplicate {label} observation: {ref}")
+            digest, witness = row["valueDigest"], row["witnessRef"]
+            if standing == "OBSERVED":
+                if (
+                    not isinstance(digest, str)
+                    or re.fullmatch(r"sha256:[0-9a-f]{64}", digest) is None
+                    or not isinstance(witness, str)
+                    or witness != witness.strip()
+                    or ":" not in witness
+                    or not all(witness.split(":", 1))
+                    or not witness.isprintable()
+                ):
+                    raise CircuitContractError(f"{label} needs observed digest and witnessRef")
+            elif standing == "UNKNOWN":
+                if digest is not None or witness is not None:
+                    raise CircuitContractError(f"{label} UNKNOWN must not invent a witness")
+            else:
+                raise CircuitContractError(f"{label} observation standing unsupported")
+            result[ref] = row
+        return result
+
+    before = validate(previous, "previous")
+    after = validate(current, "current")
+    changed: list[str] = []
+    unknown: list[str] = []
+    equal_config: list[str] = []
+    for ref in sorted(before.keys() | after.keys()):
+        old, new = before.get(ref), after.get(ref)
+        if (
+            old is None
+            or new is None
+            or old["standing"] != "OBSERVED"
+            or new["standing"] != "OBSERVED"
+        ):
+            # Absent from a snapshot is NOT proof that the provider was removed.
+            unknown.append(ref)
+        elif old["valueDigest"] != new["valueDigest"]:
+            changed.append(ref)
+        elif ref.startswith("config:") and old["witnessRef"] != new["witnessRef"]:
+            # Two distinct *claimed* observations are necessary even for
+            # a configuration candidate. Replaying the exact same receipt
+            # cannot establish that the later state was observed at all.
+            # Authenticity and actual observation time remain owner duties.
+            equal_config.append(ref)
+        else:
+            # Point-in-time equality is insufficient for live, temporal
+            # authorities; credential revocation and effects may be unobserved.
+            unknown.append(ref)
+    return {
+        "kind": "ordivon.task-local-environment-observation-delta",
+        "truthRole": "caller-supplied-observation-bridge-not-authoritative-currentness",
+        "changedRefs": changed,
+        "unknownRefs": unknown,
+        "equalConfigurationRefs": equal_config,
+        "proofReuseAdmissible": False,
+        "nonClaims": [
+            "A witnessRef names supplied evidence; this bridge does not authenticate it.",
+            "No exhaustive dynamic dependency discovery or temporal continuity.",
+            "Equal config digests are scoped candidates, not formal proof or live authorization.",
+            "An unindexed changed/unknown ref must reach the existing conservative selector.",
+            "External effects and authorization require native owner receipts and reconciliation.",
+        ],
+    }
+
+
 def select_impacted_obligations(
     *,
     authority_refs: list[str],
@@ -819,6 +937,11 @@ def _parser() -> argparse.ArgumentParser:
     resolve_parser.add_argument("obligation_set", type=Path)
     resolve_parser.add_argument("binding_set", type=Path)
 
+    observed_parser = sub.add_parser("impact-observations")
+    observed_parser.add_argument("previous_observations", type=Path)
+    observed_parser.add_argument("current_observations", type=Path)
+    observed_parser.add_argument("task_local_graph", type=Path)
+
     impact_parser = sub.add_parser("select-impact")
     impact_parser.add_argument("git_source_delta", type=Path)
     impact_parser.add_argument("obligations", type=Path)
@@ -882,6 +1005,37 @@ def main() -> int:
             )
             if all(requested):
                 result["gitSourceCuts"] = {"previous": before_source, "current": after_source}
+        elif args.command == "impact-observations":
+            # Natural owners still own the observations and physical receipts.
+            # This is a task-local, non-executing source-to-proof adapter.
+            graph = _load_json(args.task_local_graph)
+            if not isinstance(graph, dict) or set(graph) != {"authorityRefs", "obligations"}:
+                raise CircuitContractError(
+                    "impact-observations requires task-local authorityRefs and obligations"
+                )
+            observed_before = _load_json(args.previous_observations)
+            observed_after = _load_json(args.current_observations)
+            if set(observed_before) != {"observations"} or set(observed_after) != {"observations"}:
+                raise CircuitContractError(
+                    "impact-observations requires exact observations envelopes"
+                )
+            delta = classify_observed_environment_delta(
+                previous=observed_before["observations"],
+                current=observed_after["observations"],
+            )
+            selected = select_impacted_obligations(
+                authority_refs=graph["authorityRefs"],
+                obligations=graph["obligations"],
+                changed_refs=delta["changedRefs"],
+                unknown_refs=delta["unknownRefs"],
+            )
+            result = {
+                "kind": "ordivon.task-local-environment-effect-impact",
+                "truthRole": "caller-supplied-observations-not-owner-certified",
+                "observationDelta": delta,
+                "selection": selected,
+                "proofReuseAdmissible": False,
+            }
         elif args.command == "select-impact":
             delta = _load_json(args.git_source_delta)
             # The JSON is caller-supplied, not authenticated proof evidence.
