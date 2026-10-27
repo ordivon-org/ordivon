@@ -681,6 +681,11 @@ def test_immutable_owner_plan_projection_ignores_local_git_blob_replace(
         path = tmp_path / name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes((ROOT / name).read_bytes())
+    # Include the immutable registration SourceCut in the synthetic repo:
+    # historical graph queries must not borrow the current process's plan list.
+    registry = tmp_path / "tools/repo/check_architecture_docs.py"
+    registry.parent.mkdir(parents=True, exist_ok=True)
+    registry.write_text(f"OWNER_LEGO_PLANS = ({owner_plan!r},)\n")
     git("add", ".")
     git("commit", "-qm", "immutable owner-plan source cut")
     source_cut = git("rev-parse", "HEAD")
@@ -696,6 +701,15 @@ def test_immutable_owner_plan_projection_ignores_local_git_blob_replace(
     assert git("cat-file", "blob", old_blob) != original.decode()
     actual = module.project_owner_lego_source_graph(tmp_path, source_revision=source_cut)
     assert actual == expected
+
+    # Registration is source-qualified: after a registered plan disappears,
+    # its absence must fail closed rather than being treated as an empty owner.
+    git("replace", "-d", old_blob)
+    git("rm", owner_plan)
+    git("commit", "-qm", "registered LEGO plan absent")
+    missing_cut = git("rev-parse", "HEAD")
+    with pytest.raises(module.ArchitectureDocsError, match="Owner plan absent/nonregular"):
+        module.project_owner_lego_source_graph(tmp_path, source_revision=missing_cut)
 
 
 def test_git_sourcecut_evidence_carriers_match_exact_git_tree(
