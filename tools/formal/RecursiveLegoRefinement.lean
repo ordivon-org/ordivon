@@ -187,3 +187,155 @@ end OrdivonR21
 
 #print axioms OrdivonR21.closed_dependency_frame
 #print axioms OrdivonR21.unlisted_dependency_breaks_frame
+
+namespace OrdivonR21
+
+-- R2.1 task-local environment frame theorem.
+-- This is an ABSTRACT dependency model, not a proof that an Agent's declared
+-- readset is complete, that Python implements it, or that the live environment
+-- satisfies the original theorem's assumptions.
+namespace ScopedEnvironment
+
+variable {Node Env : Type}
+
+-- A proof consumer can use an environment guarantee directly or use another
+-- proof. The edges are typed by their declared logical roles, not file paths.
+inductive Reaches (reads : Node → Env → Prop)
+    (uses : Node → Node → Prop) : Node → Env → Prop where
+  | direct {node env} (edge : reads node env) :
+      Reaches reads uses node env
+  | relay {node child env}
+      (edge : uses node child) (tail : Reaches reads uses child env) :
+      Reaches reads uses node env
+
+-- Uncertain environmental evidence taints exactly the declared dependent
+-- closure; an unrelated proof need not be re-checked *for this root*.
+inductive Impact (reads : Node → Env → Prop)
+    (uses : Node → Node → Prop) (unknown : Env → Prop) :
+    Node → Prop where
+  | direct {node env} (edge : reads node env) (uncertain : unknown env) :
+      Impact reads uses unknown node
+  | relay {node child} (edge : uses node child)
+      (affected : Impact reads uses unknown child) :
+      Impact reads uses unknown node
+
+-- Every inferred impact has a real path within this DECLARED graph.
+theorem impact_has_declared_path
+    (reads : Node → Env → Prop) (uses : Node → Node → Prop)
+    (unknown : Env → Prop) {node : Node}
+    (affected : Impact reads uses unknown node) :
+    ∃ env, Reaches reads uses node env ∧ unknown env := by
+  induction affected with
+  | direct edge uncertain =>
+      exact ⟨_, Reaches.direct edge, uncertain⟩
+  | relay edge _ ih =>
+      obtain ⟨env, path, uncertain⟩ := ih
+      exact ⟨env, Reaches.relay edge path, uncertain⟩
+
+-- Conversely, every root with a declared path is included by propagation.
+theorem declared_path_and_unknown_imply_impact
+    (reads : Node → Env → Prop) (uses : Node → Node → Prop)
+    (unknown : Env → Prop) {node : Node} {env : Env}
+    (path : Reaches reads uses node env) (uncertain : unknown env) :
+    Impact reads uses unknown node := by
+  induction path with
+  | direct edge =>
+      exact Impact.direct edge uncertain
+  | relay edge _ ih =>
+      exact Impact.relay edge (ih uncertain)
+
+theorem impact_iff_declared_reachable_unknown
+    (reads : Node → Env → Prop) (uses : Node → Node → Prop)
+    (unknown : Env → Prop) (node : Node) :
+    Impact reads uses unknown node ↔
+      ∃ env, Reaches reads uses node env ∧ unknown env := by
+  constructor
+  · exact impact_has_declared_path reads uses unknown
+  · rintro ⟨env, path, uncertain⟩
+    exact declared_path_and_unknown_imply_impact reads uses unknown path uncertain
+
+-- Closure cannot be asserted by naming a manifest. It is a theorem PREMISE:
+-- every real direct read and real proof-to-proof consumer edge must be included
+-- in the declared graph. Under those hypotheses, abstract impact is complete
+-- relative to the true graph (not merely a convenient subset of it).
+theorem closed_graph_contains_actual_impact
+    (actualReads declaredReads : Node → Env → Prop)
+    (actualUses declaredUses : Node → Node → Prop)
+    (unknown : Env → Prop)
+    (closedReads : ∀ node env, actualReads node env → declaredReads node env)
+    (closedUses : ∀ node child, actualUses node child → declaredUses node child)
+    {node : Node}
+    (affected : Impact actualReads actualUses unknown node) :
+    Impact declaredReads declaredUses unknown node := by
+  induction affected with
+  | direct edge uncertain =>
+      exact Impact.direct (closedReads _ _ edge) uncertain
+  | relay edge _ ih =>
+      exact Impact.relay (closedUses _ _ edge) ih
+
+-- Stronger frame: if the declared graph is a sound OVER-approximation of
+-- the actual execution footprint, declared non-impact implies actual
+-- non-impact. Without this premise the counterexample below refutes it.
+theorem closed_graph_frame
+    (actualReads declaredReads : Node → Env → Prop)
+    (actualUses declaredUses : Node → Node → Prop)
+    (unknown : Env → Prop) (node : Node)
+    (closedReads : ∀ n e, actualReads n e → declaredReads n e)
+    (closedUses : ∀ n m, actualUses n m → declaredUses n m)
+    (declaredUnaffected : ¬ Impact declaredReads declaredUses unknown node) :
+    ¬ Impact actualReads actualUses unknown node := by
+  intro actualAffected
+  exact declaredUnaffected
+    (closed_graph_contains_actual_impact actualReads declaredReads
+      actualUses declaredUses unknown closedReads closedUses actualAffected)
+
+-- Frame: non-reachable root changes cannot taint this node IF the declared
+-- graph is complete for the relevant effect/observation footprint.
+theorem scoped_frame
+    (reads : Node → Env → Prop) (uses : Node → Node → Prop)
+    (unknown : Env → Prop) (node : Node)
+    (noAffectedPath : ∀ env, Reaches reads uses node env → ¬ unknown env) :
+    ¬ Impact reads uses unknown node := by
+  intro affected
+  obtain ⟨env, path, uncertain⟩ :=
+    impact_has_declared_path reads uses unknown affected
+  exact noAffectedPath env path uncertain
+
+-- Missing from BOTH environment observations still requires local UNKNOWN,
+-- when the graph declares that root and no trustworthy readset-witness exists.
+theorem missing_both_observations_implies_local_impact
+    (reads : Node → Env → Prop) (uses : Node → Node → Prop)
+    (required before after : Env → Prop) {node : Node} {env : Env}
+    (edge : reads node env) (need : required env)
+    (oldAbsent : ¬ before env) (newAbsent : ¬ after env) :
+    Impact reads uses
+      (fun e => required e ∧ ¬ before e ∧ ¬ after e) node := by
+  exact Impact.direct edge ⟨need, oldAbsent, newAbsent⟩
+
+-- A negative control: if the TRUE execution has an undeclared dependency,
+-- its actual affectedness cannot be concluded from the declared graph.
+-- This exhibits why a frame theorem without a readset-closure premise is
+-- not an installed-effect or consumer-equivalence proof.
+theorem missing_dependency_counterexample :
+    ∃ (declared actual : Bool → Bool → Prop) (unknown : Bool → Prop),
+      ¬ Impact declared (fun _ _ => False) unknown true ∧
+      Impact actual (fun _ _ => False) unknown true := by
+  let declared : Bool → Bool → Prop := fun _ _ => False
+  let actual : Bool → Bool → Prop := fun node env =>
+    node = true ∧ env = true
+  let unknown : Bool → Prop := fun env => env = true
+  refine ⟨declared, actual, unknown, ?_, ?_⟩
+  · intro affected
+    obtain ⟨env, path, _⟩ :=
+      impact_has_declared_path declared (fun _ _ => False) unknown affected
+    cases path with
+    | direct edge => exact edge
+    | relay edge _ => exact edge
+  · exact Impact.direct ⟨rfl, rfl⟩ rfl
+
+end ScopedEnvironment
+
+end OrdivonR21
+
+#print axioms OrdivonR21.ScopedEnvironment.closed_graph_frame
+#print axioms OrdivonR21.ScopedEnvironment.missing_dependency_counterexample
