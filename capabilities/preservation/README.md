@@ -22,6 +22,17 @@ failure domain.
 Creative Library is intentionally excluded. It is a presentation/read-model concern
 with current Media consumers, not preservation-format authority.
 
+## Host Fixity consumer binding LEGO (source profile only)
+
+- **Identity:** PV03 ScheduledArtefactualFixityConsumer in the existing Owner-local R2.1 plan; this refines its source consumer binding rather than introducing a second identity, scanner or runtime.
+- **Independent responsibility:** keep a locally routable Archivematica Storage Service source profile connected to the intended one-shot Fixity client and its scheduling Timer.
+- **Inputs:** Owner-tracked R10 Compose overlay, Fixity R7 Service/Timer, credential environment-file reference (not private bytes).
+- **Outputs:** positive or fail-closed source-profile contract standing; no provider effect.
+- **Contract:** Compose must publish only 127.0.0.1:62081:8000. The Timer Unit must name the exact Fixity Service. Service ConditionPathExists and EnvironmentFile must agree on the credential binding. ExecStart must invoke its pinned working-directory fixity scanall --force-local provider.
+- **Consumer:** The existing verify_source.py main path consumes both systemd files and Compose through verify_fixity_consumer_binding; the registered preservation:verify task and Repo Owner verification consume acceptance. Native negative tests exercise ordinary and optimized Python.
+- **Formal/installed boundary:** SOURCE acceptance only. Private STORAGE_SERVICE_URL contents, active Compose overlay, installed Service/Timer, live connectivity, completed fixity and archive acceptance are UNKNOWN without their independent native evidence.
+- **Replacement:** Reuse existing systemd, Docker Compose and Artefactual Fixity. Retire only when no qualified real consumer retains this exact binding.
+
 ## Source-boundary acceptance LEGO
 
 - **Identity:** `preservation.source-boundary-acceptance`; natural owner: Preservation.

@@ -148,10 +148,12 @@
       ],
       "behavioralContract": [
         "The service uses host-native pinned Fixity scanall with systemd timer and local service constraints; it must not be represented as an Ordivon fixity engine.",
-        "A syntactically valid timer or local service exit zero is not proof that actual Storage Service was healthy, that all AIPs were scanned, or that replica survives a second failure domain."
+        "A syntactically valid timer or local service exit zero is not proof that actual Storage Service was healthy, that all AIPs were scanned, or that replica survives a second failure domain.",
+        "Native owner source gate now rejects a timer Unit that does not target the Fixity service, a differing Service credential EnvironmentFile versus ConditionPathExists, an absent schedule, or an ExecStart that no longer invokes the same pinned local fixity scanall --force-local client."
       ],
       "acceptance": [
-        "Source verifier validates service/timer presence and profile sections; historical owner evidence records earlier native scan and restart, but requires new installed receipts for currentness."
+        "Source verifier validates service/timer presence and profile sections; historical owner evidence records earlier native scan and restart, but requires new installed receipts for currentness.",
+        "The native verify_fixity_consumer_binding source consumer and normal/optimized Python falsifiers validate exact Timer/Service/credential/executable relations; no deployed systemd unit, private STORAGE_SERVICE_URL or live fixity conclusion is inferred."
       ],
       "evidence": [
         "systemd/ordivon-preservation-fixity-r7.service",
@@ -161,7 +163,9 @@
       ],
       "consumerEvidence": [
         "meta/next/evidence/data-lifecycle/preservation-r1/acceptance.json (historical consumer evidence)",
-        "systemd/ordivon-preservation-fixity-r7.timer"
+        "systemd/ordivon-preservation-fixity-r7.timer",
+        "scripts/verify_source.py::verify_fixity_consumer_binding (SOURCE_ONLY)",
+        "scripts/test_verify_source.py::FixityConsumerSourceContractTests (NEGATIVE_OWNER_CONSUMER)"
       ],
       "dependencies": [
         "PV02"
