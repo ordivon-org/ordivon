@@ -37,6 +37,9 @@ impl Sandbox {
         self.server_with_runtime_default(10_000)
     }
 
+    // Positive Runner fixtures must use the underlying regular executable: GitHub
+    // Linux images can expose /usr/bin/true as a symlink to a multicall binary.
+    // Production symlink rejection remains enforced and is tested in runtime-core.
     fn server_with_runtime_default(&self, default_runtime_ms: u64) -> RuntimeServer {
         RuntimeServer::new_with_default_runtime_ms(
             ServerConfig {
@@ -52,7 +55,7 @@ impl Sandbox {
                         workspace_root: None,
                         workspace_uid: None,
                         workspace_gid: None,
-                        runner_path: Some(PathBuf::from("/usr/bin/true")),
+                        runner_path: Some(fs::canonicalize("/usr/bin/true").unwrap()),
                         allowed_executable_roots: vec![PathBuf::from("/usr/bin")],
                         max_runtime_ms: 10_000,
                         max_output_bytes: 1024 * 1024,
@@ -95,7 +98,7 @@ impl Sandbox {
                     workspace_root: None,
                     workspace_uid: None,
                     workspace_gid: None,
-                    runner_path: Some(PathBuf::from("/usr/bin/true")),
+                    runner_path: Some(fs::canonicalize("/usr/bin/true").unwrap()),
                     allowed_executable_roots: vec![PathBuf::from("/usr/bin")],
                     max_runtime_ms: 10_000,
                     max_output_bytes: 1024 * 1024,
@@ -977,7 +980,7 @@ print(json.dumps({{
                     workspace_root: None,
                     workspace_uid: None,
                     workspace_gid: None,
-                    runner_path: Some(PathBuf::from("/usr/bin/true")),
+                    runner_path: Some(fs::canonicalize("/usr/bin/true").unwrap()),
                     allowed_executable_roots: vec![PathBuf::from("/usr/bin")],
                     max_runtime_ms: 10_000,
                     max_output_bytes: 1024 * 1024,
@@ -1195,7 +1198,7 @@ fn private_ip_download_host_is_rejected_at_configuration_boundary() {
                 workspace_root: None,
                 workspace_uid: None,
                 workspace_gid: None,
-                runner_path: Some(PathBuf::from("/usr/bin/true")),
+                runner_path: Some(fs::canonicalize("/usr/bin/true").unwrap()),
                 allowed_executable_roots: vec![PathBuf::from("/usr/bin")],
                 max_runtime_ms: 10_000,
                 max_output_bytes: 1024 * 1024,

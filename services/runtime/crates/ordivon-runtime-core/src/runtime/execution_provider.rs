@@ -522,7 +522,11 @@ mod local_linux_adapter_tests {
 
     #[test]
     fn local_linux_provider_snapshot_binds_exact_runner_digest() {
-        let executor = executor(Some("/usr/bin/true"));
+        // The CI host may expose /usr/bin/true as a symlink to a multicall
+        // binary. The production contract correctly rejects runner symlinks;
+        // a positive fixture must select the real, non-symlink executable.
+        let real_runner = std::fs::canonicalize("/usr/bin/true").unwrap();
+        let executor = executor(Some(real_runner.to_str().unwrap()));
         let provider = LocalLinuxProvider::new(RuntimeNodePlatform::Linux, &executor);
         provider
             .validate_plan(&plan(ExecutionTarget::LocalLinux))
@@ -534,8 +538,28 @@ mod local_linux_adapter_tests {
         );
         assert_eq!(
             snapshot.executable_digest,
-            sha256_file(std::path::Path::new("/usr/bin/true")).unwrap()
+            sha256_file(&real_runner).unwrap()
         );
+    }
+
+    #[test]
+    fn local_linux_provider_rejects_symlink_runner_without_relaxing_contract() {
+        use std::os::unix::fs::symlink;
+
+        let real_runner = std::fs::canonicalize("/usr/bin/true").unwrap();
+        let link = std::env::temp_dir().join(format!(
+            "ordivon-provider-symlink-fixture-{}-{}",
+            std::process::id(),
+            uuid::Uuid::now_v7()
+        ));
+        symlink(&real_runner, &link).unwrap();
+        let executor = executor(Some(link.to_str().unwrap()));
+        let provider = LocalLinuxProvider::new(RuntimeNodePlatform::Linux, &executor);
+        let result = provider.snapshot();
+        std::fs::remove_file(&link).unwrap();
+        let error = result.unwrap_err();
+        assert_eq!(error.code, RuntimeErrorCode::InvalidRequest);
+        assert_eq!(error.field.as_deref(), Some("runnerPath"));
     }
 
     #[test]
