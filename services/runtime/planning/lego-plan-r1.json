@@ -248,7 +248,9 @@
         "crates/ordivon-runtime-core/src/runtime/authority_contract.rs plus runtime/engine/admission.rs integration",
         "existing-Job replay resolves before AuthorityContract compilation/current authority reinterpretation",
         "public MCP Tool surface unchanged; Registry semantic schema remains v6; Runtime does not mint Security/provider/domain grants",
-        "current-main runtime:verify PASS job-01a0cf0f-a02a-76b3-8cc0-59f2e5abd896: fmt + owner-environment test + clippy + transactional Runtime + extended Registry reference model + owner-boundary + docs"
+        "current-main runtime:verify PASS job-01a0cf0f-a02a-76b3-8cc0-59f2e5abd896: fmt + owner-environment test + clippy + transactional Runtime + extended Registry reference model + owner-boundary + docs",
+        "crates/ordivon-runtime-core/src/runtime/authority_contract.rs",
+        "crates/ordivon-runtime-core/src/runtime/engine/admission.rs"
       ],
       "dependencies": [
         "R00",
@@ -264,7 +266,17 @@
         "Runtime consumes and enforces authority; it does not invent provider/domain permission.",
         "Replay resolves existing Jobs before current authority/policy reinterpretation exactly as today."
       ],
-      "nextAction": "R07 is closed. Proceed to R08 OperationCircuitCompiler with one existing execution family first; prove exact parity and fail-closed behavior before migrating the remaining families."
+      "nextAction": "R07 is closed. Proceed to R08 OperationCircuitCompiler with one existing execution family first; prove exact parity and fail-closed behavior before migrating the remaining families.",
+      "inputs": [
+        "New Runtime execution-family request with principal, target, execution profile, executable identities and optional input/credential authority names",
+        "Validated immutable-input and Host Dependency bindings scoped to the same request; prior durable Job identity remains outside new-admission compilation"
+      ],
+      "outputs": [
+        "Internal AuthorityContract discriminating ordinary, reduced immutable-input, trusted immutable-input and credential-bound trusted families",
+        "Fail-closed RuntimeError when realization's identity, authority or committed inputs differ from the admitted contract"
+      ],
+      "behavioralContract": "Only compose the authority already present in the typed Runtime request; validate exact family/target/profile/principal/executable/input/host-dependency consistency at realization. Never mint grants or reinterpret an already-committed Job during replay. These checks do not prove provider IAM authorization or any unobserved operating-system effect.",
+      "contractProfile": "r21-source-declared-v1"
     },
     {
       "id": "R08",
@@ -285,7 +297,9 @@
         "credential-bound trusted preserves operator-owned encrypted credential snapshot/materialization and Job-owned ciphertext lifecycle; public requests remain opaque authority/name references with no secret digests or paths",
         "post-integration exact-commit Runtime owner qualification PASS job-01a0d323-f7ca-7351-8f5c-1d01b4877ca6 on 897e504916fca4078847005a4b78198042b1c01b, including Registry reference-model property, Windows deployer, MCP/auth, owner-boundary and documentation gates",
         "public MCP Tool schemas, Registry schema v6, request identity, provider authority, materialization authority and domain/Security semantic ownership unchanged",
-        "runtime self-release remains a separate reconciliable effect and is intentionally not compiled as an effect-opaque execution circuit"
+        "runtime self-release remains a separate reconciliable effect and is intentionally not compiled as an effect-opaque execution circuit",
+        "crates/ordivon-runtime-core/src/runtime/operation_circuit.rs",
+        "crates/ordivon-runtime-core/src/runtime/engine/admission.rs"
       ],
       "dependencies": [
         "R03",
@@ -302,7 +316,17 @@
         "Legacy all-explicit request identity remains replay-compatible.",
         "Compiled plans contain only enforceable facts; metadata without enforcement does not enter operation identity."
       ],
-      "nextAction": "R08 is closed. Proceed to R09 ExecutionProviderSPI by freezing minimal assume/guarantee obligations before extracting either Linux or Windows provider mechanics."
+      "nextAction": "R08 is closed. Proceed to R09 ExecutionProviderSPI by freezing minimal assume/guarantee obligations before extracting either Linux or Windows provider mechanics.",
+      "inputs": [
+        "New typed Runtime JobRunRequest, Workspace/Job admission state, AuthorityContract and execution-family input bindings",
+        "Validated resource budget, provider identity commitment and applicable effect evidence obligations"
+      ],
+      "outputs": [
+        "Internal RuntimeExecutionPlan compiled from the exact admitted execution family without new public schema",
+        "Explicit rejection or unknown state when requested realization cannot be safely bound, instead of fabricated semantic completion"
+      ],
+      "behavioralContract": "Compile all four existing execution families through the existing typed plan and commitment seams, preserve Job exact-replay-before-current-authority-interpretation, and admit only facts enforced by Runtime. This declares internal compilation behavior, not an abstract-to-Rust proof or end-to-end business success.",
+      "contractProfile": "r21-source-declared-v1"
     },
     {
       "id": "R09",
@@ -318,7 +342,9 @@
         "R1 guarantees fail closed on weakening of committed provider identity, physical Attempt ownership, terminal observation, process-tree cancellation, crash/restart reconciliation, or scoped evidence",
         "Linux and Windows provider probes satisfy the same obligations with distinct owner/observation/evidence types; no false OS-mechanism equivalence",
         "full Runtime owner qualification PASS job-01a0d34d-18e1-7140-b577-c34c0c660b4a",
-        "no public Tool/Registry schema change and no dynamic provider registry, marketplace, plugin discovery, cross-node router, or semantic effect authority"
+        "no public Tool/Registry schema change and no dynamic provider registry, marketplace, plugin discovery, cross-node router, or semantic effect authority",
+        "crates/ordivon-runtime-core/src/runtime/execution_provider.rs",
+        "crates/ordivon-runtime-core/src/runtime/engine/execution.rs"
       ],
       "dependencies": [
         "R08"
@@ -333,7 +359,17 @@
         "Provider replacement cannot strengthen caller assumptions or weaken process ownership, evidence, cancellation, or reconciliation guarantees.",
         "No dynamic plugin registry is required for R1."
       ],
-      "nextAction": "R09 is qualified. Integrate under current-main fencing, then proceed to R10 LocalLinuxProvider extraction and exact-candidate real-system systemd/cgroup acceptance."
+      "nextAction": "R09 is qualified. Integrate under current-main fencing, then proceed to R10 LocalLinuxProvider extraction and exact-candidate real-system systemd/cgroup acceptance.",
+      "inputs": [
+        "Typed RuntimeExecutionPlan and AttemptRecord with exact committed provider identity",
+        "Provider-specific realization, observation, cancellation, reconciliation and scoped witness inputs"
+      ],
+      "outputs": [
+        "Static ExecutionProviderSpi capabilities/validate/realize/observe/cancel/reconcile boundary with provider-specific identity and evidence types",
+        "Scoped provider guarantee declarations and fail-closed rejection of weakened declared R1 guarantee flags"
+      ],
+      "behavioralContract": "The six REQUIRED_R1 flags enforce declaration parity for committed provider identity, single Attempt owner, terminal observation, tree cancellation, restart reconciliation and scoped evidence. Boolean declaration parity is NOT a proof that concrete Linux/Windows methods satisfy these guarantees; physical behavior needs independent refinement/real-system witness. No dynamic provider marketplace or cross-node routing.",
+      "contractProfile": "r21-source-declared-v1"
     },
     {
       "id": "R10",

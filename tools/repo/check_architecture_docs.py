@@ -314,6 +314,35 @@ def validate_owner_lego_graph(plan: dict[str, Any]) -> None:
             raise ArchitectureDocsError(f"duplicate LEGO node: {identity}")
         if not isinstance(node.get("kind"), str) or not node["kind"].strip():
             raise ArchitectureDocsError(f"LEGO node {identity} requires a type")
+        # The legacy R1 graph is a planning inventory, not a compulsory
+        # eleven-field universal calculus. But once a node publishes a
+        # behavioral I/O contract, all of its decision-relevant R2.1 roles
+        # must remain nonempty; deleting one cannot silently downgrade a
+        # declared contract to a mere kind/identity label.
+        contract_profile = node.get("contractProfile")
+        if contract_profile is not None and contract_profile != "r21-source-declared-v1":
+            raise ArchitectureDocsError(
+                f"unsupported declared R2.1 contract profile: {identity}"
+            )
+        if contract_profile is not None or any(
+            k in node for k in ("inputs", "outputs", "behavioralContract")
+        ):
+            def nonempty_strings(value: Any) -> bool:
+                return (isinstance(value, list) and bool(value)
+                        and all(isinstance(x, str) and bool(x.strip()) for x in value))
+
+            if not (
+                isinstance(node.get("responsibility"), str)
+                and bool(node["responsibility"].strip())
+                and nonempty_strings(node.get("inputs"))
+                and nonempty_strings(node.get("outputs"))
+                and isinstance(node.get("behavioralContract"), str)
+                and bool(node["behavioralContract"].strip())
+                and nonempty_strings(node.get("acceptance"))
+            ):
+                raise ArchitectureDocsError(
+                    f"incomplete declared R2.1 contract: {identity}"
+                )
         identities.add(identity)
 
     slices = plan.get("slices", [])
@@ -543,6 +572,24 @@ def project_owner_lego_source_graph(
             vertices.append({
                 "ref": ref(node["id"]),
                 "declaredKind": node["kind"],
+                # Git-sourced declarations, not checked behaviors or runtime
+                # claims. Expose them through the EXISTING Agent-readable
+                # planning projection instead of making agents rediscover
+                # unlinked contract text by scanning complete Owner plans.
+                "declaredResponsibility": node.get("responsibility"),
+                "declaredInputs": node.get("inputs"),
+                "declaredOutputs": node.get("outputs"),
+                "declaredBehavioralContract": node.get("behavioralContract"),
+                "declaredContractProfile": node.get("contractProfile"),
+                "declaredAcceptance": node.get("acceptance"),
+                "declaredAuthority": node.get("authority"),
+                "declaredMustNotOwn": node.get("mustNotOwn"),
+                "declaredPlanningState": node.get("state"),
+                "semanticContractStanding": (
+                    "DECLARED_IO_BEHAVIOR_NOT_VERIFIED"
+                    if "behavioralContract" in node
+                    else "NOT_DECLARED_IN_R1_PLANNING"
+                ),
                 "declaredEvidence": node.get("evidence", []),
                 "sourceAnchors": anchors,
                 "unresolvedSourceEvidence": unresolved,
