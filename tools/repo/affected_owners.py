@@ -300,6 +300,14 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
         "tools": "TOOL_SOURCE",
         "root-files": "UNQUALIFIED_SECTION",
     }
+    # Narrow, evidence-grounded names, not inferred from "destroyer"/"wave".
+    # Actual consumers:
+    # domains/capital/docs/V2_DIRECT_MIGRATION_2026-09-13.md
+    # domains/capital/tests/test_wave_b_contract.py
+    source_section_overrides = {
+        "capital/destroyer": "FALSIFICATION_CORPUS_SOURCE",
+        "capital/wave_b": "FROZEN_HISTORICAL_REPLAY_FIXTURE_SOURCE",
+    }
     root_by_owner = {o.name: o.root for o in native_owners}
     entries = []
     for path, identity in sorted(tree.items()):
@@ -325,8 +333,9 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
             tail = path[len(root_by_owner[owner]):]
             section_key = tail.split("/", 1)[0] if "/" in tail else "(root-files)"
             section = f"{owner}/{section_key}"
-            section_role = source_section_roles.get(
-                section_key, "UNQUALIFIED_SECTION"
+            section_role = source_section_overrides.get(
+                section,
+                source_section_roles.get(section_key, "UNQUALIFIED_SECTION"),
             )
         entries.append({
             "sourceSection": section,
