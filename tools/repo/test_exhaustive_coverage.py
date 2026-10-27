@@ -911,3 +911,111 @@ class ExternalAuthorityObservationJoinTests(unittest.TestCase):
             ], cwd=ROOT, capture_output=True, text=True, timeout=12)
             assert proc.returncode != 0
             assert "scope census is separate" in proc.stderr
+
+
+
+class CrossScopeLexicalHintsTests(unittest.TestCase):
+    def _git_cut(self, repo: pathlib.Path, name: str, text: str) -> str:
+        repo.mkdir()
+        subprocess.run(["git", "init", "-q", str(repo)], check=True)
+        (repo / name).write_text(text)
+        subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+        subprocess.run([
+            "git", "-C", str(repo),
+            "-c", "user.name=Phase1", "-c", "user.email=phase1@example.invalid",
+            "commit", "-qm", "fixture",
+        ], check=True)
+        return subprocess.check_output(
+            ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True).strip()
+
+    def test_exact_pinned_git_blob_locator_is_a_hint_not_a_call(self) -> None:
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp).resolve()
+            target = root / "research"
+            main = root / "monorepo"
+            data = root / "corpora"
+            data.mkdir()
+            sub_cut = self._git_cut(target, "info.txt", "not a consumer")
+            cut = self._git_cut(
+                main, "docs.txt",
+                "documentation only: " + str(target) + "\n" +
+                "dataset string: " + str(data) + "\n",
+            )
+            source = M.independent_scope_frontier(
+                main, cut, external_git=[f"research={target}@{sub_cut}"],
+                non_git_data=[f"corpora={data}"],
+            )
+            hints = M.cross_scope_exact_locator_hints(main, source)
+            self.assertEqual(hints["summary"]["gitRootsScanned"], 2)
+            self.assertEqual(hints["summary"]["pairsWithLiteralReferences"], 2)
+            self.assertEqual(hints["summary"]["runtimeCallEdgesVerified"], 0)
+            self.assertFalse(hints["proofReuseAdmissible"])
+            self.assertFalse(hints["summary"]["zeroLexicalHitsProveNoConsumers"])
+            self.assertTrue(all(x["runtimeCallStanding"] == "NOT_ESTABLISHED"
+                                and x["consumerStanding"] == "UNKNOWN"
+                                for x in hints["literalReferencePairsNotCalls"]))
+            w = hints["literalReferencePairsNotCalls"][0]["witnesses"][0]
+            self.assertEqual(w["readerSourceCut"], cut)
+            self.assertEqual(w["readerPath"], "docs.txt")
+            self.assertIn("blob:", w["readerSourceIdentity"])
+            # The results depend on immutable Git, NOT working tree edits.
+            (main / "docs.txt").write_text("changed uncommitted content")
+            self.assertEqual(
+                hints,
+                M.cross_scope_exact_locator_hints(main, source),
+            )
+
+    def test_syntax_generated_path_does_not_prove_missing_consumers(self) -> None:
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp).resolve()
+            target = root / "external"
+            main = root / "main"
+            sub_cut = self._git_cut(target, "info.txt", "data")
+            cut = self._git_cut(
+                main, "code.py",
+                "import os\npath = os.path.join('/root', 'projects', "
+                "'external')\n",
+            )
+            census = M.independent_scope_frontier(
+                main, cut, external_git=[f"external={target}@{sub_cut}"],
+                non_git_data=[],
+            )
+            result = M.cross_scope_exact_locator_hints(main, census)
+            self.assertEqual(result["summary"]["pairsWithLiteralReferences"], 0)
+            self.assertFalse(result["summary"]["zeroLexicalHitsProveNoConsumers"])
+            self.assertEqual(result["summary"]["runtimeCallEdgesVerified"], 0)
+            self.assertFalse(result["proofReuseAdmissible"])
+            with self.assertRaisesRegex(ValueError, "limit"):
+                M.cross_scope_exact_locator_hints(main, census, max_witnesses=0)
+            with self.assertRaisesRegex(ValueError, "scope census"):
+                M.cross_scope_exact_locator_hints(main, {"kind": "bad"})
+
+    def test_cli_fails_closed_for_cross_mode_and_emits_bounded_summary(self) -> None:
+        import tempfile
+        import json
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp).resolve()
+            data = root / "corpora"
+            data.mkdir()
+            commit = subprocess.check_output(
+                ["git", "-C", str(ROOT), "rev-parse", "HEAD"],
+                text=True).strip()
+            cmd = [
+                "python3", str(ROOT / "tools/repo/exhaustive_coverage.py"),
+                "--repo", str(ROOT), "--source-cut", commit,
+                "--scope-census", "--scope-locator-hints", "--summary",
+                "--non-git-root", f"corpora={data}",
+            ]
+            output = json.loads(subprocess.check_output(cmd, text=True))
+            self.assertEqual(output["lexicalSourceHints"]["summary"]["gitRootsScanned"], 1)
+            self.assertNotIn("literalReferencePairsNotCalls",
+                             output["lexicalSourceHints"])
+            self.assertEqual(output["summary"]["crossPlaneProblemRecords"], 1)
+            p = subprocess.run(cmd + ["--problem-legos"], text=True, capture_output=True)
+            self.assertNotEqual(p.returncode, 0)
+            self.assertIn("separate", p.stderr)
+            p = subprocess.run(cmd + ["--scope-witness-limit", "0"],
+                               text=True, capture_output=True)
+            self.assertNotEqual(p.returncode, 0)
