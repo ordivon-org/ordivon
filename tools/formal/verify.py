@@ -22,6 +22,7 @@ SOURCE_FILES = (
     "tools/formal/verify.py",
     "tools/formal/RecursiveLegoRefinement.lean",
     "tools/formal/RecursiveLegoVariationFrame.lean",
+    "tools/formal/EffectReconciliationR21.lean",
     "tools/formal/Proof.rs",
     "tools/formal/Proof.dfy",
     "tools/formal/ProofKani.rs",
@@ -118,7 +119,8 @@ def main() -> None:
     probes: list[dict[str, object]] = []
     source = ROOT / "RecursiveLegoRefinement.lean"
     variation = ROOT / "RecursiveLegoVariationFrame.lean"
-    for proof_file in (source, variation):
+    effect_source = ROOT / "EffectReconciliationR21.lean"
+    for proof_file in (source, variation, effect_source):
         if re.search(r"\b(sorry|admit|axiom)\b", proof_file.read_text()):
             raise AssertionError("Unproved Lean shortcut in source")
     with tempfile.TemporaryDirectory(prefix="ordivon-formal-falsifiers-") as d:
@@ -131,6 +133,8 @@ def main() -> None:
             [executable("lean"), str(variation)],
             env_overlay={"LEAN_PATH": str(tmp)},
         ))
+        probes.append(run("Lean kernel C06 effect reconciliation + nonvacuity",
+                          [executable("lean"), str(effect_source)]))
         bad_lean = tmp / "Invalid.lean"
         bad_lean.write_text("theorem falseClaim (p : Prop) : p := by\n  exact True.intro\n")
         probes.append(run("Lean rejects false theorem", [executable("lean"), str(bad_lean)],
