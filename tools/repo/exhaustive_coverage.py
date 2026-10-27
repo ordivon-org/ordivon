@@ -934,6 +934,28 @@ def derive_problem_legos(
                     why = "MIXED_DIRECT_AND_NESTED_PATHS_REQUIRE_RECHECK"
             else:
                 why = None
+            # Every absent node declaration is a *separate, source-scoped
+            # question*, not an asserted absence of a real consumer/proof.
+            atom_identities = {a["sourcePath"]: a["sourceIdentity"]
+                               for a in source_atoms}
+            plan_obligations = []
+            for node in named_nodes:
+                path = node["plan"]
+                for missing in sorted(node["problems"]):
+                    subref = "source-problem-obligation:sha256:" + hashlib.sha256(
+                        json.dumps([node["nodeRef"], missing],
+                                   ensure_ascii=True, separators=(",", ":")).encode()
+                    ).hexdigest()
+                    plan_obligations.append({
+                        "obligationRef": subref,
+                        "planNodeRef": node["nodeRef"],
+                        "missingDeclaration": missing,
+                        "planSourceIdentity": atom_identities[path],
+                        "standing": "DECLARATION_GAP_NOT_BEHAVIORAL_ABSENCE",
+                        "consumerAndInvocationStanding": "UNKNOWN",
+                    })
+            if len({r["obligationRef"] for r in plan_obligations}) != len(plan_obligations):
+                raise ValueError("duplicate plan gap obligation")
             result.append({
                 "problemRef": problem_ref,
                 "kind": "ordivon.phase1.pending-source-problem-lego",
@@ -948,6 +970,7 @@ def derive_problem_legos(
                 "planNodeDeclaredProblems": {
                     n["nodeRef"]: n["problems"] for n in named_nodes
                 },
+                "planProblemObligations": plan_obligations,
                 "standing": "PROBLEM_DISCOVERED_NOT_YET_RESOLVED",
                 "consumerStanding": "UNKNOWN",
                 "invocationStanding": "NOT_MAPPED",
@@ -982,6 +1005,8 @@ def derive_problem_legos(
                                                if p["issue"] == "DENSE_CELL_REQUIRES_SUBCLASSIFICATION_REVIEW"),
             "unclassifiedSourceAtomIncidences": sum(p["sourcePathCount"] for p in result
                                                if p["issue"] == "UNCLASSIFIED_SOURCE_REGION"),
+            "planGapNodes": sum(len(p["planNodeRefs"]) for p in result),
+            "planGapAtomicObligations": sum(len(p["planProblemObligations"]) for p in result),
         },
         "problemLegos": result,
     }

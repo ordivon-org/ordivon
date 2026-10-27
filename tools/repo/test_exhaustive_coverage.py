@@ -479,6 +479,7 @@ class ProblemLegoDerivedFrontierTests(unittest.TestCase):
             if n["problems"]
         }
         got = {}
+        obligations = {}
         for p in self.frontier["problemLegos"]:
             if p["issue"] == "PLAN_DECLARATION_GAPS_REQUIRE_SEMANTIC_MAPPING":
                 got.update(p["planNodeDeclaredProblems"])
@@ -487,10 +488,25 @@ class ProblemLegoDerivedFrontierTests(unittest.TestCase):
                     assert "#" in ref and ref in expected
                     assert any(a["sourcePath"] == ref.split("#", 1)[0]
                                for a in p["sourceAtoms"])
+                for row in p["planProblemObligations"]:
+                    assert row["planNodeRef"] in p["planNodeRefs"]
+                    assert row["missingDeclaration"] in expected[row["planNodeRef"]]
+                    assert row["planSourceIdentity"] in {
+                        a["sourceIdentity"] for a in p["sourceAtoms"]
+                        if a["sourcePath"] == row["planNodeRef"].split("#", 1)[0]
+                    }
+                    assert row["standing"] == "DECLARATION_GAP_NOT_BEHAVIORAL_ABSENCE"
+                    assert row["consumerAndInvocationStanding"] == "UNKNOWN"
+                    assert row["obligationRef"] not in obligations
+                    obligations[row["obligationRef"]] = row
             else:
                 assert not p["planNodeRefs"]
                 assert not p["planNodeDeclaredProblems"]
+                assert not p["planProblemObligations"]
         assert got == expected
+        assert len(obligations) == sum(len(v) for v in expected.values())
+        assert len(obligations) == self.frontier["summary"]["planGapAtomicObligations"]
+        assert self.frontier["summary"]["planGapNodes"] == len(expected)
 
     def test_repeatable_no_mutation_without_leaking_runtime_trust(self):
         again = M.derive_problem_legos(self.inventory, repo=ROOT)
