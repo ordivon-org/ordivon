@@ -121,4 +121,69 @@ theorem incompatible_components_are_not_composable :
     have hf : y = false := hS
     simp [ht] at hf
 
+
+-- Proof/readset incrementality is a *conditional* theorem. The proposition
+-- depends only on a projection if equal projections make its truth invariant.
+-- This obligation is not established merely by Git object identity.
+def DependsOnlyOn {α ρ : Type} (readset : α → ρ)
+    (goal : α → Prop) : Prop :=
+  ∀ before after, readset before = readset after →
+    (goal before ↔ goal after)
+
+theorem reuse_if_readset_covers_goal {α ρ : Type}
+    (readset : α → ρ) (goal : α → Prop)
+    (hClosed : DependsOnlyOn readset goal)
+    (before after : α)
+    (hSame : readset before = readset after)
+    (hVerified : goal before) : goal after :=
+  (hClosed before after hSame).mp hVerified
+
+-- Adding a needed dependency to the readset cannot weaken soundness.
+-- The reverse (discarding dependencies) is NOT generally valid.
+theorem extending_qualified_readset_preserves_soundness {α ρ δ : Type}
+    (readset : α → ρ) (extra : α → δ) (goal : α → Prop)
+    (hClosed : DependsOnlyOn readset goal) :
+    DependsOnlyOn (fun x => (readset x, extra x)) goal := by
+  intro before after hPair
+  exact hClosed before after (congrArg Prod.fst hPair)
+
+-- Concrete independent counterexample: the immutable *source* input agrees
+-- while an environmental assumption (including a dynamic consumer, plugin,
+-- permission or installed dependency) changes, reversing a required goal.
+structure SourceEnvironment (σ ε : Type) where
+  source : σ
+  environment : ε
+
+def environmentGoal (s : SourceEnvironment Unit Bool) : Prop :=
+  s.environment = true
+
+theorem source_only_readset_is_not_complete :
+    ¬ DependsOnlyOn
+      (fun s : SourceEnvironment Unit Bool => s.source)
+      environmentGoal := by
+  intro hClosed
+  have hOld : environmentGoal ⟨(), true⟩ := rfl
+  have hNew : environmentGoal ⟨(), false⟩ :=
+    (hClosed ⟨(), true⟩ ⟨(), false⟩ rfl).mp hOld
+  simp [environmentGoal] at hNew
+
+-- In this bounded two-field model, an explicit source+environment readset
+-- is complete for this goal. This is NOT a proof of real-world dependency
+-- closure, toolchain identity, installed currentness or actual code refinement.
+theorem source_and_environment_readset_is_complete :
+    DependsOnlyOn
+      (fun s : SourceEnvironment Unit Bool => (s.source, s.environment))
+      environmentGoal := by
+  intro before after hInput
+  have hEnv : before.environment = after.environment := by
+    simpa only using (congrArg Prod.snd hInput)
+  change (before.environment = true ↔ after.environment = true)
+  constructor
+  · intro hBefore
+    rw [← hEnv]
+    exact hBefore
+  · intro hAfter
+    rw [hEnv]
+    exact hAfter
+
 end OrdivonR21
