@@ -180,3 +180,24 @@ def test_exhaustive_coverage_overlapping_roots_fail_closed() -> None:
                 {"name": "runtime", "root": "services/runtime/"},
             ],
         })
+
+
+def test_phase1_content_scan_exact_source_complete_and_non_authoritative():
+    import subprocess
+    import importlib.util
+    module_path = ROOT / "tools" / "repo" / "source_content_facets.py"
+    spec = importlib.util.spec_from_file_location("phase1_source_content", module_path)
+    assert spec is not None and spec.loader is not None
+    scanner = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(scanner)
+    cut = subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True
+    ).strip()
+    result = scanner.compile_projection(ROOT, cut)
+    assert result["summary"]["tracked"] == result["summary"]["accountedFor"]
+    assert len(result["paths"]) == len({x["path"] for x in result["paths"]})
+    assert result["summary"]["sourcePathMoves"] == 0
+    assert result["summary"]["allFunctionalIdentitiesQualified"] == 0
+    assert len(result["summary"]["allZones"]) == 30
+    assert len(result["summary"]["dense60"]) == 60
+    assert all(x["actualConsumers"] == "UNKNOWN" for x in result["paths"])

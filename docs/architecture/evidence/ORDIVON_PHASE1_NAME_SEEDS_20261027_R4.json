@@ -1,0 +1,707 @@
+{
+  "baseGitSourceCut": "631c3c83104e97260b105b9bda73f0f8ec6a6924",
+  "constraints": [
+    "No physical file/owner relocation",
+    "No semantic or functional qualification without consumers",
+    "A nested source region chooses longest physical-prefix only for lexical lookup",
+    "Current SourceCut is always independently enumerated; historical counts remain historical"
+  ],
+  "denseCellAliases": [
+    {
+      "baselineCount": 67,
+      "contentRoleCandidate": "DESIGN_AND_CLAIM_DOCS",
+      "directOnly": true,
+      "functionalFacetCandidate": "documentation",
+      "proposedName": "architecture-contract-design-snapshots",
+      "sourceCell": "region/architecture-documentation/@rootfiles",
+      "sourcePrefix": "docs/architecture/"
+    },
+    {
+      "baselineCount": 40,
+      "contentRoleCandidate": "OBSERVATION_EVIDENCE",
+      "directOnly": false,
+      "functionalFacetCandidate": "documentation",
+      "proposedName": "architecture-convergence-and-proof-evidence-records",
+      "sourceCell": "region/architecture-documentation/evidence/",
+      "sourcePrefix": "docs/architecture/evidence/"
+    },
+    {
+      "baselineCount": 46,
+      "contentRoleCandidate": "HISTORICAL_ACCEPTANCE",
+      "directOnly": false,
+      "functionalFacetCandidate": "documentation",
+      "proposedName": "historical-architecture-migration-acceptance-notes",
+      "sourceCell": "region/migration-and-historical-records/acceptance/",
+      "sourcePrefix": "docs/migration/acceptance/"
+    },
+    {
+      "baselineCount": 60,
+      "contentRoleCandidate": "HISTORICAL_RECONCILIATION",
+      "directOnly": false,
+      "functionalFacetCandidate": "documentation",
+      "proposedName": "historical-commit-maps-and-migration-receipts",
+      "sourceCell": "region/migration-and-historical-records/receipts/",
+      "sourcePrefix": "docs/migration/receipts/"
+    },
+    {
+      "baselineCount": 39,
+      "contentRoleCandidate": "REPOSITORY_ENGINEERING_SOURCE",
+      "directOnly": true,
+      "functionalFacetCandidate": "documentation",
+      "proposedName": "repository-verification-selection-and-source-tools",
+      "sourceCell": "region/repository-mechanics-source/@rootfiles",
+      "sourcePrefix": "tools/repo/"
+    },
+    {
+      "baselineCount": 55,
+      "contentRoleCandidate": "DESIGN_AND_CLAIM_DOCS",
+      "directOnly": true,
+      "functionalFacetCandidate": "agent",
+      "proposedName": "agent-harness-design-and-boundary-notes",
+      "sourceCell": "zone/agent-run-context/docs/@rootfiles",
+      "sourcePrefix": "services/harness/docs/"
+    },
+    {
+      "baselineCount": 95,
+      "contentRoleCandidate": "OBSERVATION_EVIDENCE",
+      "directOnly": true,
+      "functionalFacetCandidate": "agent",
+      "proposedName": "agent-harness-historical-experiment-results",
+      "sourceCell": "zone/agent-run-context/evidence/@rootfiles",
+      "sourcePrefix": "services/harness/evidence/"
+    },
+    {
+      "baselineCount": 36,
+      "contentRoleCandidate": "OBSERVATION_EVIDENCE",
+      "directOnly": true,
+      "functionalFacetCandidate": "agent",
+      "proposedName": "agent-browser-decision-experiment-observations",
+      "sourceCell": "zone/agent-run-context/evidence/system1-decision/@rootfiles",
+      "sourcePrefix": "services/harness/evidence/system1-decision/"
+    },
+    {
+      "baselineCount": 85,
+      "contentRoleCandidate": "RESEARCH_SOURCE",
+      "directOnly": true,
+      "functionalFacetCandidate": "agent",
+      "proposedName": "agent-harness-research-and-evaluation-notes",
+      "sourceCell": "zone/agent-run-context/research/@rootfiles",
+      "sourcePrefix": "services/harness/research/"
+    },
+    {
+      "baselineCount": 85,
+      "contentRoleCandidate": "TOOL_SOURCE",
+      "directOnly": false,
+      "functionalFacetCandidate": "agent",
+      "proposedName": "agent-harness-operation-and-evaluation-scripts",
+      "sourceCell": "zone/agent-run-context/scripts/",
+      "sourcePrefix": "services/harness/scripts/"
+    },
+    {
+      "baselineCount": 33,
+      "contentRoleCandidate": "IMPLEMENTATION_SOURCE",
+      "directOnly": true,
+      "functionalFacetCandidate": "agent",
+      "proposedName": "agent-harness-python-package-modules",
+      "sourceCell": "zone/agent-run-context/src/ordivon_harness/@rootfiles",
+      "sourcePrefix": "services/harness/src/ordivon_harness/"
+    },
+    {
+      "baselineCount": 19,
+      "contentRoleCandidate": "IMPLEMENTATION_SOURCE",
+      "directOnly": false,
+      "functionalFacetCandidate": "agent",
+      "proposedName": "agent-harness-ordivon-adapter-modules",
+      "sourceCell": "zone/agent-run-context/src/ordivon_harness/ordivon/",
+      "sourcePrefix": "services/harness/src/ordivon_harness/ordivon/"
+    },
+    {
+      "baselineCount": 166,
+      "contentRoleCandidate": "TEST_SOURCE",
+      "directOnly": true,
+      "functionalFacetCandidate": "agent",
+      "proposedName": "agent-harness-scenario-and-boundary-tests",
+      "sourceCell": "zone/agent-run-context/tests/@rootfiles",
+      "sourcePrefix": "services/harness/tests/"
+    },
+    {
+      "baselineCount": 20,
+      "contentRoleCandidate": "TOOL_SOURCE",
+      "directOnly": false,
+      "functionalFacetCandidate": "delivery",
+      "proposedName": "artifact-distribution-admission-reference-scripts",
+      "sourceCell": "zone/artifact-distribution/scripts/",
+      "sourcePrefix": "capabilities/distribution/scripts/"
+    },
+    {
+      "baselineCount": 23,
+      "contentRoleCandidate": "CONFIGURATION_SOURCE",
+      "directOnly": true,
+      "functionalFacetCandidate": "delivery",
+      "proposedName": "artifact-toolchain-bindings-and-pinned-inputs",
+      "sourceCell": "zone/artifact-production/artifact-delivery/@rootfiles",
+      "sourcePrefix": "capabilities/artifact/artifact-delivery/"
+    },
+    {
+      "baselineCount": 20,
+      "contentRoleCandidate": "EXPERIMENT_DECLARATION",
+      "directOnly": false,
+      "functionalFacetCandidate": "delivery",
+      "proposedName": "artifact-format-shadow-binding-records",
+      "sourceCell": "zone/artifact-production/artifact-delivery/shadow-bindings/",
+      "sourcePrefix": "capabilities/artifact/artifact-delivery/shadow-bindings/"
+    },
+    {
+      "baselineCount": 33,
+      "contentRoleCandidate": "EXPERIMENT_DECLARATION",
+      "directOnly": true,
+      "functionalFacetCandidate": "delivery",
+      "proposedName": "artifact-shadow-schemas-and-smoke-records",
+      "sourceCell": "zone/artifact-production/artifact-delivery/shadow-contracts/@rootfiles",
+      "sourcePrefix": "capabilities/artifact/artifact-delivery/shadow-contracts/"
+    },
+    {
+      "baselineCount": 20,
+      "contentRoleCandidate": "EXPERIMENT_DECLARATION",
+      "directOnly": false,
+      "functionalFacetCandidate": "delivery",
+      "proposedName": "artifact-shadow-format-profile-candidates",
+      "sourceCell": "zone/artifact-production/artifact-delivery/shadow-profiles/",
+      "sourcePrefix": "capabilities/artifact/artifact-delivery/shadow-profiles/"
+    },
+    {
+      "baselineCount": 28,
+      "contentRoleCandidate": "EXPERIMENT_DECLARATION",
+      "directOnly": false,
+      "functionalFacetCandidate": "delivery",
+      "proposedName": "artifact-shadow-v2-example-declarations",
+      "sourceCell": "zone/artifact-production/artifact-delivery/shadow-v2/examples/",
+      "sourcePrefix": "capabilities/artifact/artifact-delivery/shadow-v2/examples/"
+    },
+    {
+      "baselineCount": 45,
+      "contentRoleCandidate": "DESIGN_AND_CLAIM_DOCS",
+      "directOnly": false,
+      "functionalFacetCandidate": "delivery",
+      "proposedName": "artifact-production-architecture-and-boundary-notes",
+      "sourceCell": "zone/artifact-production/docs/",
+      "sourcePrefix": "capabilities/artifact/docs/"
+    },
+    {
+      "baselineCount": 43,
+      "contentRoleCandidate": "TOOL_SOURCE",
+      "directOnly": false,
+      "functionalFacetCandidate": "delivery",
+      "proposedName": "artifact-producer-and-inspector-source-scripts",
+      "sourceCell": "zone/artifact-production/scripts/",
+      "sourcePrefix": "capabilities/artifact/scripts/"
+    },
+    {
+      "baselineCount": 62,
+      "contentRoleCandidate": "TEST_SOURCE",
+      "directOnly": true,
+      "functionalFacetCandidate": "delivery",
+      "proposedName": "artifact-format-producer-and-verifier-tests",
+      "sourceCell": "zone/artifact-production/tests/@rootfiles",
+      "sourcePrefix": "capabilities/artifact/tests/"
+    },
+    {
+      "baselineCount": 27,
+      "contentRoleCandidate": "TEST_SOURCE",
+      "directOnly": false,
+      "functionalFacetCandidate": "interfaces",
+      "proposedName": "gateway-authentication-routing-and-policy-tests",
+      "sourceCell": "zone/capability-routing/tests/",
+      "sourcePrefix": "services/gateway/tests/"
+    },
+    {
+      "baselineCount": 22,
+      "contentRoleCandidate": "DESIGN_AND_CLAIM_DOCS",
+      "directOnly": true,
+      "functionalFacetCandidate": "media",
+      "proposedName": "creative-production-architecture-and-capability-notes",
+      "sourceCell": "zone/creative-production/docs/@rootfiles",
+      "sourcePrefix": "capabilities/media/docs/"
+    },
+    {
+      "baselineCount": 30,
+      "contentRoleCandidate": "OBSERVATION_EVIDENCE",
+      "directOnly": false,
+      "functionalFacetCandidate": "media",
+      "proposedName": "creative-archive-browser-validation-receipts",
+      "sourceCell": "zone/creative-production/productions/archive-archipelago-001/evidence/",
+      "sourcePrefix": "capabilities/media/productions/archive-archipelago-001/evidence/"
+    },
+    {
+      "baselineCount": 92,
+      "contentRoleCandidate": "RESEARCH_SOURCE",
+      "directOnly": false,
+      "functionalFacetCandidate": "media",
+      "proposedName": "creative-expression-foundations-research-notes",
+      "sourceCell": "zone/creative-production/research/expression/foundations/",
+      "sourcePrefix": "capabilities/media/research/expression/foundations/"
+    },
+    {
+      "baselineCount": 21,
+      "contentRoleCandidate": "TOOL_SOURCE",
+      "directOnly": false,
+      "functionalFacetCandidate": "media",
+      "proposedName": "creative-index-audio-and-media-helper-scripts",
+      "sourceCell": "zone/creative-production/scripts/",
+      "sourcePrefix": "capabilities/media/scripts/"
+    },
+    {
+      "baselineCount": 25,
+      "contentRoleCandidate": "IMPLEMENTATION_SOURCE",
+      "directOnly": false,
+      "functionalFacetCandidate": "media",
+      "proposedName": "creative-studio-python-package-modules",
+      "sourceCell": "zone/creative-production/src/ordivon_studio/",
+      "sourcePrefix": "capabilities/media/src/ordivon_studio/"
+    },
+    {
+      "baselineCount": 25,
+      "contentRoleCandidate": "TEST_SOURCE",
+      "directOnly": false,
+      "functionalFacetCandidate": "media",
+      "proposedName": "creative-studio-evaluation-and-smoke-tests",
+      "sourceCell": "zone/creative-production/tests/",
+      "sourcePrefix": "capabilities/media/tests/"
+    },
+    {
+      "baselineCount": 30,
+      "contentRoleCandidate": "TEST_SOURCE",
+      "directOnly": false,
+      "functionalFacetCandidate": "coordination",
+      "proposedName": "host-durable-collaboration-and-transaction-tests",
+      "sourceCell": "zone/durable-collaboration/tests/",
+      "sourcePrefix": "services/host/tests/"
+    },
+    {
+      "baselineCount": 20,
+      "contentRoleCandidate": "DEPLOYMENT_DECLARATION",
+      "directOnly": false,
+      "functionalFacetCandidate": "substrate",
+      "proposedName": "workstation-ansible-provisioning-playbooks",
+      "sourceCell": "zone/endpoint-environment/ansible/",
+      "sourcePrefix": "platform/workstation/ansible/"
+    },
+    {
+      "baselineCount": 28,
+      "contentRoleCandidate": "DESIGN_AND_CLAIM_DOCS",
+      "directOnly": false,
+      "functionalFacetCandidate": "substrate",
+      "proposedName": "workstation-environment-design-and-maintenance-notes",
+      "sourceCell": "zone/endpoint-environment/docs/",
+      "sourcePrefix": "platform/workstation/docs/"
+    },
+    {
+      "baselineCount": 19,
+      "contentRoleCandidate": "IMPLEMENTATION_SOURCE",
+      "directOnly": false,
+      "functionalFacetCandidate": "substrate",
+      "proposedName": "cloudflare-workstation-provider-typescript-source",
+      "sourceCell": "zone/endpoint-environment/providers/cloudflare/src/",
+      "sourcePrefix": "platform/workstation/providers/cloudflare/src/"
+    },
+    {
+      "baselineCount": 38,
+      "contentRoleCandidate": "TEST_SOURCE",
+      "directOnly": false,
+      "functionalFacetCandidate": "substrate",
+      "proposedName": "workstation-package-provider-and-network-tests",
+      "sourceCell": "zone/endpoint-environment/tests/",
+      "sourcePrefix": "platform/workstation/tests/"
+    },
+    {
+      "baselineCount": 23,
+      "contentRoleCandidate": "DESIGN_AND_CLAIM_DOCS",
+      "directOnly": false,
+      "functionalFacetCandidate": "security",
+      "proposedName": "security-admission-attestation-and-browser-design-notes",
+      "sourceCell": "zone/identity-policy-and-effect-fences/docs/",
+      "sourcePrefix": "platform/security/docs/"
+    },
+    {
+      "baselineCount": 26,
+      "contentRoleCandidate": "TOOL_SOURCE",
+      "directOnly": false,
+      "functionalFacetCandidate": "security",
+      "proposedName": "security-policy-gate-and-provenance-helper-scripts",
+      "sourceCell": "zone/identity-policy-and-effect-fences/scripts/",
+      "sourcePrefix": "platform/security/scripts/"
+    },
+    {
+      "baselineCount": 20,
+      "contentRoleCandidate": "TEST_SOURCE",
+      "directOnly": true,
+      "functionalFacetCandidate": "security",
+      "proposedName": "security-admission-and-attestation-contract-tests",
+      "sourceCell": "zone/identity-policy-and-effect-fences/tests/@rootfiles",
+      "sourcePrefix": "platform/security/tests/"
+    },
+    {
+      "baselineCount": 33,
+      "contentRoleCandidate": "EXTERNAL_STANDARD_REFERENCE",
+      "directOnly": false,
+      "functionalFacetCandidate": "knowledge",
+      "proposedName": "iso-external-standard-reference-records",
+      "sourceCell": "zone/knowledge-and-problem-framing/authorities/records/iso/",
+      "sourcePrefix": "meta/next/authorities/records/iso/"
+    },
+    {
+      "baselineCount": 35,
+      "contentRoleCandidate": "PROVIDER_DESCRIPTOR_CANDIDATE",
+      "directOnly": false,
+      "functionalFacetCandidate": "knowledge",
+      "proposedName": "external-provider-capability-reference-cards",
+      "sourceCell": "zone/knowledge-and-problem-framing/capabilities/providers/",
+      "sourcePrefix": "meta/next/capabilities/providers/"
+    },
+    {
+      "baselineCount": 53,
+      "contentRoleCandidate": "DESIGN_AND_CLAIM_DOCS",
+      "directOnly": true,
+      "functionalFacetCandidate": "knowledge",
+      "proposedName": "knowledge-and-agent-interface-architecture-notes",
+      "sourceCell": "zone/knowledge-and-problem-framing/docs/@rootfiles",
+      "sourcePrefix": "meta/next/docs/"
+    },
+    {
+      "baselineCount": 49,
+      "contentRoleCandidate": "HISTORICAL_EXPERIMENT_SPEC",
+      "directOnly": false,
+      "functionalFacetCandidate": "knowledge",
+      "proposedName": "game-interest-and-experiment-protocol-history",
+      "sourceCell": "zone/knowledge-and-problem-framing/domains/game/",
+      "sourcePrefix": "meta/next/domains/game/"
+    },
+    {
+      "baselineCount": 78,
+      "contentRoleCandidate": "HISTORICAL_ACCEPTANCE",
+      "directOnly": true,
+      "functionalFacetCandidate": "knowledge",
+      "proposedName": "historical-system-admission-and-acceptance-records",
+      "sourceCell": "zone/knowledge-and-problem-framing/evidence/acceptance/@rootfiles",
+      "sourcePrefix": "meta/next/evidence/acceptance/"
+    },
+    {
+      "baselineCount": 23,
+      "contentRoleCandidate": "OBSERVATION_EVIDENCE",
+      "directOnly": false,
+      "functionalFacetCandidate": "knowledge",
+      "proposedName": "browser-provider-security-experiment-records",
+      "sourceCell": "zone/knowledge-and-problem-framing/evidence/browser-security/",
+      "sourcePrefix": "meta/next/evidence/browser-security/"
+    },
+    {
+      "baselineCount": 31,
+      "contentRoleCandidate": "KNOWLEDGE_SNAPSHOT",
+      "directOnly": false,
+      "functionalFacetCandidate": "knowledge",
+      "proposedName": "curated-knowledge-relation-snapshot-records",
+      "sourceCell": "zone/knowledge-and-problem-framing/knowledge/graphs/",
+      "sourcePrefix": "meta/next/knowledge/graphs/"
+    },
+    {
+      "baselineCount": 83,
+      "contentRoleCandidate": "KNOWLEDGE_LESSON",
+      "directOnly": false,
+      "functionalFacetCandidate": "knowledge",
+      "proposedName": "curated-engineering-and-research-lessons",
+      "sourceCell": "zone/knowledge-and-problem-framing/knowledge/lessons/",
+      "sourcePrefix": "meta/next/knowledge/lessons/"
+    },
+    {
+      "baselineCount": 48,
+      "contentRoleCandidate": "HISTORICAL_RECONCILIATION",
+      "directOnly": false,
+      "functionalFacetCandidate": "knowledge",
+      "proposedName": "historical-capability-and-service-migration-notes",
+      "sourceCell": "zone/knowledge-and-problem-framing/migrations/records/",
+      "sourcePrefix": "meta/next/migrations/records/"
+    },
+    {
+      "baselineCount": 23,
+      "contentRoleCandidate": "PLAN_OR_PROPOSAL",
+      "directOnly": false,
+      "functionalFacetCandidate": "knowledge",
+      "proposedName": "knowledge-system-workflow-and-circuit-proposals",
+      "sourceCell": "zone/knowledge-and-problem-framing/planning/",
+      "sourcePrefix": "meta/next/planning/"
+    },
+    {
+      "baselineCount": 19,
+      "contentRoleCandidate": "TOOL_SOURCE",
+      "directOnly": false,
+      "functionalFacetCandidate": "knowledge",
+      "proposedName": "authority-catalog-and-governance-helper-scripts",
+      "sourceCell": "zone/knowledge-and-problem-framing/scripts/",
+      "sourcePrefix": "meta/next/scripts/"
+    },
+    {
+      "baselineCount": 31,
+      "contentRoleCandidate": "TEST_SOURCE",
+      "directOnly": false,
+      "functionalFacetCandidate": "knowledge",
+      "proposedName": "knowledge-system-admission-and-invariant-tests",
+      "sourceCell": "zone/knowledge-and-problem-framing/tests/",
+      "sourcePrefix": "meta/next/tests/"
+    },
+    {
+      "baselineCount": 20,
+      "contentRoleCandidate": "CONFIGURATION_SOURCE",
+      "directOnly": true,
+      "functionalFacetCandidate": "execution",
+      "proposedName": "runtime-package-toolchain-and-root-configuration",
+      "sourceCell": "zone/physical-execution/@rootfiles",
+      "sourcePrefix": "services/runtime/"
+    },
+    {
+      "baselineCount": 28,
+      "contentRoleCandidate": "IMPLEMENTATION_SOURCE",
+      "directOnly": true,
+      "functionalFacetCandidate": "execution",
+      "proposedName": "runtime-core-physical-execution-state-and-storage-source",
+      "sourceCell": "zone/physical-execution/crates/ordivon-runtime-core/src/runtime/@rootfiles",
+      "sourcePrefix": "services/runtime/crates/ordivon-runtime-core/src/runtime/"
+    },
+    {
+      "baselineCount": 27,
+      "contentRoleCandidate": "DESIGN_AND_CLAIM_DOCS",
+      "directOnly": true,
+      "functionalFacetCandidate": "execution",
+      "proposedName": "runtime-execution-fabric-design-and-standards-notes",
+      "sourceCell": "zone/physical-execution/docs/@rootfiles",
+      "sourcePrefix": "services/runtime/docs/"
+    },
+    {
+      "baselineCount": 71,
+      "contentRoleCandidate": "RESEARCH_SOURCE",
+      "directOnly": false,
+      "functionalFacetCandidate": "execution",
+      "proposedName": "runtime-fundamental-research-and-historical-findings",
+      "sourceCell": "zone/physical-execution/research/foundations/",
+      "sourcePrefix": "services/runtime/research/foundations/"
+    },
+    {
+      "baselineCount": 29,
+      "contentRoleCandidate": "TOOL_SOURCE",
+      "directOnly": true,
+      "functionalFacetCandidate": "execution",
+      "proposedName": "runtime-operator-diagnostics-and-maintenance-scripts",
+      "sourceCell": "zone/physical-execution/scripts/@rootfiles",
+      "sourcePrefix": "services/runtime/scripts/"
+    },
+    {
+      "baselineCount": 28,
+      "contentRoleCandidate": "TEST_SOURCE",
+      "directOnly": false,
+      "functionalFacetCandidate": "execution",
+      "proposedName": "runtime-script-admission-and-consistency-tests",
+      "sourceCell": "zone/physical-execution/scripts/tests/",
+      "sourcePrefix": "services/runtime/scripts/tests/"
+    },
+    {
+      "baselineCount": 28,
+      "contentRoleCandidate": "CONFIGURATION_SOURCE",
+      "directOnly": false,
+      "functionalFacetCandidate": "capital",
+      "proposedName": "capital-provider-and-risk-configuration-records",
+      "sourceCell": "zone/quantitative-capital/config/",
+      "sourcePrefix": "domains/capital/config/"
+    },
+    {
+      "baselineCount": 77,
+      "contentRoleCandidate": "DESIGN_AND_CLAIM_DOCS",
+      "directOnly": false,
+      "functionalFacetCandidate": "capital",
+      "proposedName": "capital-market-data-risk-and-system-design-notes",
+      "sourceCell": "zone/quantitative-capital/docs/",
+      "sourcePrefix": "domains/capital/docs/"
+    },
+    {
+      "baselineCount": 36,
+      "contentRoleCandidate": "OBSERVATION_EVIDENCE",
+      "directOnly": true,
+      "functionalFacetCandidate": "capital",
+      "proposedName": "capital-evaluation-market-clock-and-audit-evidence",
+      "sourceCell": "zone/quantitative-capital/evidence/@rootfiles",
+      "sourcePrefix": "domains/capital/evidence/"
+    },
+    {
+      "baselineCount": 44,
+      "contentRoleCandidate": "TOOL_SOURCE",
+      "directOnly": false,
+      "functionalFacetCandidate": "capital",
+      "proposedName": "capital-market-data-capture-and-preflight-commands",
+      "sourceCell": "zone/quantitative-capital/scripts/",
+      "sourcePrefix": "domains/capital/scripts/"
+    },
+    {
+      "baselineCount": 73,
+      "contentRoleCandidate": "TEST_SOURCE",
+      "directOnly": false,
+      "functionalFacetCandidate": "capital",
+      "proposedName": "capital-accounting-provider-and-risk-contract-tests",
+      "sourceCell": "zone/quantitative-capital/tests/",
+      "sourcePrefix": "domains/capital/tests/"
+    }
+  ],
+  "kind": "ordivon.phase1.source-naming-observation-seeds",
+  "priorR2ObservationGitCut": "350f09b1594f57552c36d3169dba771ec0326337",
+  "priorR3ObservationGitCut": "10fc5e244772da792b5c47615f3d08baef0dedb2",
+  "sourceRegions": [
+    {
+      "legacyName": "next",
+      "sourcePrefix": "meta/next/",
+      "sourceRef": "zone/knowledge-and-problem-framing"
+    },
+    {
+      "legacyName": "composition",
+      "sourcePrefix": "packages/composition/",
+      "sourceRef": "zone/contract-composition"
+    },
+    {
+      "legacyName": "control-plugin",
+      "sourcePrefix": "extensions/ordivon-control-plane/",
+      "sourceRef": "zone/agent-plugin-package"
+    },
+    {
+      "legacyName": "runtime",
+      "sourcePrefix": "services/runtime/",
+      "sourceRef": "zone/physical-execution"
+    },
+    {
+      "legacyName": "host",
+      "sourcePrefix": "services/host/",
+      "sourceRef": "zone/durable-collaboration"
+    },
+    {
+      "legacyName": "harness",
+      "sourcePrefix": "services/harness/",
+      "sourceRef": "zone/agent-run-context"
+    },
+    {
+      "legacyName": "gateway",
+      "sourcePrefix": "services/gateway/",
+      "sourceRef": "zone/capability-routing"
+    },
+    {
+      "legacyName": "skills",
+      "sourcePrefix": "platform/skills/",
+      "sourceRef": "zone/method-discovery-service"
+    },
+    {
+      "legacyName": "security",
+      "sourcePrefix": "platform/security/",
+      "sourceRef": "zone/identity-policy-and-effect-fences"
+    },
+    {
+      "legacyName": "workstation",
+      "sourcePrefix": "platform/workstation/",
+      "sourceRef": "zone/endpoint-environment"
+    },
+    {
+      "legacyName": "network",
+      "sourcePrefix": "platform/network/",
+      "sourceRef": "zone/connectivity-and-observation"
+    },
+    {
+      "legacyName": "artifact",
+      "sourcePrefix": "capabilities/artifact/",
+      "sourceRef": "zone/artifact-production"
+    },
+    {
+      "legacyName": "distribution",
+      "sourcePrefix": "capabilities/distribution/",
+      "sourceRef": "zone/artifact-distribution"
+    },
+    {
+      "legacyName": "media",
+      "sourcePrefix": "capabilities/media/",
+      "sourceRef": "zone/creative-production"
+    },
+    {
+      "legacyName": "preservation",
+      "sourcePrefix": "capabilities/preservation/",
+      "sourceRef": "zone/long-term-preservation"
+    },
+    {
+      "legacyName": "game",
+      "sourcePrefix": "domains/game/",
+      "sourceRef": "zone/interactive-game-production"
+    },
+    {
+      "legacyName": "capital",
+      "sourcePrefix": "domains/capital/",
+      "sourceRef": "zone/quantitative-capital"
+    },
+    {
+      "legacyName": "web",
+      "sourcePrefix": "apps/web/",
+      "sourceRef": "zone/human-facing-web"
+    },
+    {
+      "legacyName": null,
+      "sourcePrefix": ".agents/skills/recursive-lego-calculus/",
+      "sourceRef": "region/lego-semantic-method-source"
+    },
+    {
+      "legacyName": null,
+      "sourcePrefix": ".agents/skills/",
+      "sourceRef": "region/other-agent-method-sources"
+    },
+    {
+      "legacyName": null,
+      "sourcePrefix": "tools/formal/",
+      "sourceRef": "region/formal-proof-toolchain-source"
+    },
+    {
+      "legacyName": null,
+      "sourcePrefix": "tools/repo/",
+      "sourceRef": "region/repository-mechanics-source"
+    },
+    {
+      "legacyName": null,
+      "sourcePrefix": "meta/research/",
+      "sourceRef": "region/research-publication-profiles"
+    },
+    {
+      "legacyName": null,
+      "sourcePrefix": "profiles/research/",
+      "sourceRef": "region/research-reusable-profiles"
+    },
+    {
+      "legacyName": null,
+      "sourcePrefix": "docs/architecture/",
+      "sourceRef": "region/architecture-documentation"
+    },
+    {
+      "legacyName": null,
+      "sourcePrefix": "docs/migration/",
+      "sourceRef": "region/migration-and-historical-records"
+    },
+    {
+      "legacyName": null,
+      "sourcePrefix": "docs/retro/",
+      "sourceRef": "region/retrospective-evidence"
+    },
+    {
+      "legacyName": null,
+      "sourcePrefix": ".github/",
+      "sourceRef": "region/repository-ci-config"
+    },
+    {
+      "legacyName": null,
+      "sourcePrefix": "tests/",
+      "sourceRef": "region/repository-integration-tests"
+    },
+    {
+      "legacyName": null,
+      "sourcePrefix": "",
+      "sourceRef": "region/repository-root-config"
+    }
+  ],
+  "truthRole": "NON_AUTHORITATIVE_SOURCE_LABEL_EVIDENCE_NOT_IMPLEMENTATION"
+}
