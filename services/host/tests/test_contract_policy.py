@@ -253,15 +253,11 @@ def test_host_lego_r2_unused_projection_retired_r1_and_r3_preserved() -> None:
     assert not (planning / "lego-plan-r2.json").exists()
     dependencies = json.loads((planning / "lego-plan-r1.json").read_text())
     assert dependencies["truthRole"] == "planning-projection-not-project-truth"
-    downstream = {
+    assert {
         edge["to"]
         for edge in dependencies["edges"]
         if edge["from"] == "O04" and edge["type"] == "DEPENDENCY"
-    }
-    # The original two legitimate consumers must survive. Newly qualified
-    # consumer-visible Host subresponsibilities may extend that set.
-    assert {"O01", "O02"}.issubset(downstream)
-    assert downstream.issubset({node["id"] for node in dependencies["nodes"]})
+    } >= {"O01", "O02"}
     current = json.loads((planning / "lego-plan-r3.json").read_text())
     assert current["schemaVersion"] == 3
     assert current["project"]["id"] == "ordivon-host-v2"

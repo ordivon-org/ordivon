@@ -177,16 +177,18 @@ LEGO_RELATION_KINDS = frozenset({
 })
 
 OWNER_LEGO_PLANS = (
+    "domains/capital/planning/lego-plan-r1.json",
     "packages/composition/planning/lego-plan-r1.json",
-    "platform/skills/planning/lego-plan-r1.json",
     "services/runtime/planning/lego-plan-r1.json",
     "services/host/planning/lego-plan-r1.json",
     "services/harness/planning/lego-plan-r1.json",
     "platform/network/planning/lego-plan-r1.json",
+    "platform/skills/planning/lego-plan-r1.json",
     "platform/security/planning/lego-plan-r1.json",
     "domains/game/planning/lego-plan-r1.json",
     "capabilities/media/planning/lego-plan-r1.json",
     "tools/repo/planning/lego-plan-r1.json",
+    "services/gateway/planning/lego-plan-r1.json",
 )
 
 # Other already-consumed Owner versions and named carriers do not share the R1
@@ -456,51 +458,6 @@ def _node_declared_source_anchors(
     return sorted(anchors, key=lambda row: row["path"]), sorted(set(unresolved))
 
 
-def _registered_r1_owner_plans_at_source_cut(
-    root: Path, git_tree: dict[str, str],
-) -> tuple[str, ...]:
-    """Read *declarations* from the same immutable Git cut, never execute old code.
-
-    When an Owner planning carrier is first introduced/retired, a historical
-    graph must use the historical admission list rather than current module
-    constants. The source bytes are native Git truth; stdlib AST/literal_eval
-    reuses Python's static syntax, not a new Registry or legacy code execution.
-    """
-    import subprocess
-
-    checker = "tools/repo/check_architecture_docs.py"
-    identity = git_tree.get(checker, "")
-    if not re.fullmatch(r"100(?:644|755):blob:[0-9a-f]{40,64}", identity):
-        raise ArchitectureDocsError("historical Owner plan membership requires exact Git checker blob")
-    oid = identity.rsplit(":", 1)[1]
-    try:
-        source = subprocess.check_output(
-            ["git", "--no-replace-objects", "-C", str(root), "cat-file", "blob", oid],
-            stderr=subprocess.PIPE,
-        )
-        syntax = ast.parse(source, filename=checker)
-        assignments = [
-            statement.value
-            for statement in syntax.body
-            if isinstance(statement, ast.Assign)
-            and any(isinstance(target, ast.Name) and target.id == "OWNER_LEGO_PLANS"
-                    for target in statement.targets)
-        ]
-        if len(assignments) != 1:
-            raise ArchitectureDocsError("Git SourceCut has ambiguous R1 Owner plan admission")
-        declared = ast.literal_eval(assignments[0])
-    except (subprocess.CalledProcessError, UnicodeDecodeError, SyntaxError, ValueError) as exc:
-        raise ArchitectureDocsError("cannot parse exact historical R1 plan admission") from exc
-    if not isinstance(declared, tuple) or not declared or any(
-        not isinstance(value, str)
-        or not re.fullmatch(r"[A-Za-z0-9._/-]+/planning/lego-plan-r1[.]json", value)
-        or ".." in Path(value).parts
-        for value in declared
-    ) or len(declared) != len(set(declared)):
-        raise ArchitectureDocsError("historical R1 Owner plans are not a unique canonical tuple")
-    return declared
-
-
 def project_owner_lego_source_graph(
     root: Path = ROOT, *, source_revision: str | None = None,
 ) -> dict[str, Any]:
@@ -531,18 +488,57 @@ def project_owner_lego_source_graph(
         except (subprocess.CalledProcessError, UnicodeError) as exc:
             raise ArchitectureDocsError(f"cannot resolve exact Git SourceCut: {exc}") from exc
 
+    # A SourceCut owns its *then-current* registered R1 plans. Reading a
+    # pre-registration commit through today's expanded list would falsely
+    # demand a plan that did not exist, breaking precisely the LEGO-discovery
+    # increment this projector is meant to report. Reuse the immutable Git
+    # object already enumerated above, never current worktree registration.
+    plan_carriers = OWNER_LEGO_PLANS
+    if git_tree is not None:
+        import subprocess
+        registry_path = "tools/repo/check_architecture_docs.py"
+        identity = git_tree.get(registry_path, "")
+        mode, kind, oid = (
+            identity.split(":") if identity.count(":") == 2 else ("", "", "")
+        )
+        if mode not in {"100644", "100755"} or kind != "blob":
+            raise ArchitectureDocsError("historical LEGO plan registry source missing")
+        try:
+            registration_source = subprocess.check_output(
+                ["git", "--no-replace-objects", "-C", str(root),
+                 "cat-file", "blob", oid], stderr=subprocess.PIPE,
+            )
+            historical_tree = ast.parse(registration_source, filename=registry_path)
+            declarations = [
+                item.value for item in historical_tree.body
+                if isinstance(item, ast.Assign)
+                and any(
+                    isinstance(target, ast.Name) and target.id == "OWNER_LEGO_PLANS"
+                    for target in item.targets
+                )
+            ]
+            if len(declarations) != 1:
+                raise ArchitectureDocsError("historical LEGO plan registration ambiguous")
+            plan_carriers = ast.literal_eval(declarations[0])
+        except (subprocess.CalledProcessError, SyntaxError, ValueError) as exc:
+            raise ArchitectureDocsError("cannot qualify historical LEGO plan registration") from exc
+        if (
+            not isinstance(plan_carriers, tuple) or not plan_carriers
+            or len(set(plan_carriers)) != len(plan_carriers)
+            or any(
+                not isinstance(path, str)
+                or re.fullmatch(r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*/planning/lego-plan-r1\.json", path) is None
+                for path in plan_carriers
+            )
+        ):
+            raise ArchitectureDocsError("historical LEGO plan registration invalid")
+
     source_plans: list[dict[str, str]] = []
     source_evidence_carriers: dict[str, dict[str, str]] = {}
     vertices: list[dict[str, Any]] = []
     relation_carriers: dict[tuple[str, str, str], set[str]] = {}
     node_source_relations: list[dict[str, str]] = []
-    # A past Git cut must use its own immutable Owner-plan admission declaration,
-    # not the current Python module's updated list of source owners.
-    registered_r1 = (
-        _registered_r1_owner_plans_at_source_cut(root, git_tree)
-        if git_tree is not None else OWNER_LEGO_PLANS
-    )
-    for relative in registered_r1:
+    for relative in plan_carriers:
         if git_tree is None:
             path = _source_bound_file(root, relative, "registered Owner LEGO plan")
             before = path.read_bytes()

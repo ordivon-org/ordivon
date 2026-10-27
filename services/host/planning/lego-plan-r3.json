@@ -14,13 +14,13 @@
   "retained": [
     {
       "id": "K01",
-      "name": "ContinuityTaskLedger",
+      "name": "WorkContinuityLedger",
       "owner": "Host",
       "standing": "IRREDUCIBLE_SEMANTIC_RESIDUE"
     },
     {
       "id": "K02",
-      "name": "CheckpointHistory",
+      "name": "CompleteWorkSnapshotHistory",
       "owner": "Host",
       "standing": "IRREDUCIBLE_SEMANTIC_RESIDUE"
     },
@@ -32,7 +32,7 @@
     },
     {
       "id": "C01",
-      "name": "BoardJournal",
+      "name": "SocialSpaceTopicMessageJournal",
       "owner": "Host+PostgreSQL",
       "standing": "THIN_DOMAIN_CONTRACT"
     },
@@ -44,13 +44,13 @@
     },
     {
       "id": "P02",
-      "name": "CompactTaskInventory",
+      "name": "BoundedWorkInventory",
       "owner": "Host projection",
       "standing": "REPLACEABLE_PROJECTION"
     },
     {
       "id": "P03",
-      "name": "BoardSearch",
+      "name": "MessageFullTextSearch",
       "owner": "PostgreSQL FTS",
       "standing": "EXTERNAL_SUBSTRATE"
     }
@@ -128,7 +128,7 @@
   "nonSubstitutions": [
     {
       "candidate": "MCP Tasks extension",
-      "reason": "MCP Tasks model asynchronous request execution handles; Host Tasks model cross-agent semantic continuity, so semantic substitution would collapse bounded contexts."
+      "reason": "MCP Tasks extension models asynchronous request execution; Host Work models durable cross-agent semantic continuity."
     }
   ],
   "nextBoundaries": [
@@ -145,7 +145,7 @@
     {
       "name": "semantic stale/duplicate work judgement",
       "targetOwner": "Goal/domain owner",
-      "rule": "Task age and Goal parallelism are observations, not automatic abandonment or duplicate-work proof"
+      "rule": "Work age and Goal parallelism are observations; semantic abandonment and duplicate-work decisions require current goal evidence."
     }
   ],
   "doNotOwn": [
@@ -169,5 +169,41 @@
       "mature external owner with lower total coupling"
     ],
     "currentDisposition": "NO_KERNEL_REOPEN"
+  },
+  "semanticAlignment": {
+    "sourceRevision": "75fc00bdec12268bd92ad85c6138b6f1be76bf3d",
+    "carrier": "planning/lego-plan-r1.json",
+    "scope": "Current semantic mapping; no deployment claim",
+    "mapping": {
+      "K01": [
+        "O01"
+      ],
+      "K02": [
+        "O09"
+      ],
+      "K03": [
+        "O04",
+        "O09"
+      ],
+      "C01": [
+        "O02",
+        "O10",
+        "O11"
+      ],
+      "P01": [
+        "O03",
+        "O12"
+      ],
+      "P02": [
+        "O01"
+      ],
+      "P03": [
+        "O02",
+        "O10"
+      ]
+    },
+    "retiredVocabulary": [
+      "Task/Checkpoint/Board referred to retired pre-Social-Work-Fabric modules; current Work snapshots and social journal are not claims of old API compatibility."
+    ]
   }
 }

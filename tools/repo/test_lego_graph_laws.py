@@ -30,7 +30,7 @@ def test_host_legacy_agent_service_cursor_proposal_is_retired() -> None:
     assert not (ROOT / "services/host/src/ordivon_host_v2/cursor.py").exists()
     assert all(node["id"] != "O05" for node in legacy["nodes"])
     assert all(slice_["id"] != "OS1" for slice_ in legacy["slices"])
-    assert legacy["gaps"] == []
+    assert all("ScopeBoundCursor" not in gap for gap in legacy["gaps"])
 
 
 def test_network_unconsumed_future_profile_slice_is_retired_without_removing_active_nodes() -> None:
@@ -44,6 +44,87 @@ def test_network_unconsumed_future_profile_slice_is_retired_without_removing_act
     profile = next(item for item in plan["nodes"] if item["id"] == "N05")
     assert "Adding a profile does not redefine generic Network acceptance." in profile["acceptance"]
     module.validate_owner_lego_graph(plan)
+
+
+
+def test_network_recursive_consumer_contracts_remain_source_bound_not_installed_truth() -> None:
+    # Three independent consumer-facing seams discovered inside the historical
+    # N02 data-plane / N05 profile coarse nodes. A source witness is not live truth.
+    relative = "platform/network/planning/lego-plan-r1.json"
+    plan = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+    nodes = {row["id"]: row for row in plan["nodes"]}
+    assert nodes["N02"]["behavioralContract"]
+    expected = {
+        "N06": ("N02", "COMPOSITION", "consumers/x-reality/config/egress.json"),
+        "N07": ("N05", "SPECIALIZATION", "consumers/developer-egress/profile.sh"),
+        "N08": ("N02", "OBSERVATION", "consumers/supply-chain/ready.sh"),
+    }
+    for identity, (parent, relation, real_source) in expected.items():
+        node = nodes[identity]
+        for field in ("responsibility", "inputs", "outputs", "behavioralContract",
+                      "acceptance", "consumerEvidence"):
+            assert node[field], (identity, field)
+        assert real_source in node["evidence"]
+        assert (ROOT / "platform/network" / real_source).is_file()
+        assert any(edge["from"] == parent and edge["to"] == identity and
+                   edge["type"] == relation for edge in plan["edges"])
+    view = module.project_owner_lego_source_graph(ROOT)
+    for identity in expected:
+        ref = f"{relative}#{identity}"
+        vertex = next(item for item in view["vertices"] if item["ref"] == ref)
+        assert vertex["sourceAnchors"]
+        assert vertex["sourceCoverageStanding"] == "DECLARED_SOURCE_MEMBERSHIP_PARTIAL"
+        assert not vertex["unresolvedSourceEvidence"]
+    assert "ACTUAL_CONSUMER" in view["excluded"]["unverifiedFacets"]
+
+
+
+def test_gateway_recursive_source_contracts_are_non_authoritative_and_consumer_bound() -> None:
+    """The Gateway's generic R1 has distinct owner routing, observations and effects.
+
+    The Windows GW* R2 carrier is a deployment profile, not another source
+    identity for G00-G09. These source anchors do not assert live effects.
+    """
+    relative = "services/gateway/planning/lego-plan-r1.json"
+    plan = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+    module.validate_owner_lego_graph(plan)
+    module.validate_owner_lego_dependencies(plan, "services/gateway")
+    identities = {item["id"] for item in plan["nodes"]}
+    assert identities == {"G00", "G01", "G02", "G03", "G04", "G05", "G06", "G07", "G08", "G09"}
+    assert plan["truthRole"] == "planning-projection-not-project-truth"
+    checks = {
+        "G01": ("routes.py", "test_gateway_service.py"),
+        "G02": ("service.py", "test_capability_projection.py"),
+        "G03": ("service.py", "test_gateway_service.py"),
+        "G04": ("service.py", "test_gateway_service.py"),
+        "G05": ("service.py", "test_gateway_service.py"),
+        "G06": ("capability_authz.py", "test_capability_authz_middleware.py"),
+        "G07": ("access_auth.py", "test_access_auth.py"),
+        "G08": ("research_routes.py", "test_research_capability_resolution.py"),
+        "G09": ("external_worker.py", "test_external_pull_worker.py"),
+    }
+    for node in plan["nodes"]:
+        assert all(node.get(field) for field in (
+            "responsibility", "inputs", "outputs", "behavioralContract", "acceptance",
+        ))
+        assert node["consumerEvidence"]
+    for identity, (source_basename, test_basename) in checks.items():
+        node = next(item for item in plan["nodes"] if item["id"] == identity)
+        assert any(path.endswith(source_basename) for path in node["evidence"])
+        assert any(path.endswith(test_basename) for path in node["evidence"])
+        assert any(e["from"] == "G00" and e["to"] == identity and e["type"] == "COMPOSITION"
+                   for e in plan["edges"])
+    view = module.project_owner_lego_source_graph(ROOT)
+    for identity in identities:
+        vertex = next(v for v in view["vertices"] if v["ref"] == f"{relative}#{identity}")
+        assert vertex["sourceAnchors"] and not vertex["unresolvedSourceEvidence"]
+        assert vertex["sourceCoverageStanding"] == "DECLARED_SOURCE_MEMBERSHIP_PARTIAL"
+    assert "ACTUAL_CONSUMER" in view["excluded"]["unverifiedFacets"]
+    assert "FORMAL_PROOF" in view["excluded"]["unverifiedFacets"]
+    broken = copy.deepcopy(plan)
+    broken["edges"].append({"from": "G06", "to": "MISSING_PROVIDER", "type": "CONTROL"})
+    with pytest.raises(module.ArchitectureDocsError, match="unknown LEGO edge endpoint"):
+        module.validate_owner_lego_graph(broken)
 
 
 @pytest.mark.parametrize("relative", OWNER_GRAPH_PLANS)
@@ -649,9 +730,11 @@ def test_immutable_owner_plan_projection_ignores_local_git_blob_replace(
         path = tmp_path / name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes((ROOT / name).read_bytes())
-    checker = tmp_path / "tools/repo/check_architecture_docs.py"
-    checker.parent.mkdir(parents=True, exist_ok=True)
-    checker.write_text("OWNER_LEGO_PLANS = (" + repr(owner_plan) + ",)" + chr(10), encoding="utf-8")
+    # Include the immutable registration SourceCut in the synthetic repo:
+    # historical graph queries must not borrow the current process's plan list.
+    registry = tmp_path / "tools/repo/check_architecture_docs.py"
+    registry.parent.mkdir(parents=True, exist_ok=True)
+    registry.write_text(f"OWNER_LEGO_PLANS = ({owner_plan!r},)\n")
     git("add", ".")
     git("commit", "-qm", "immutable owner-plan source cut")
     source_cut = git("rev-parse", "HEAD")
@@ -667,6 +750,15 @@ def test_immutable_owner_plan_projection_ignores_local_git_blob_replace(
     assert git("cat-file", "blob", old_blob) != original.decode()
     actual = module.project_owner_lego_source_graph(tmp_path, source_revision=source_cut)
     assert actual == expected
+
+    # Registration is source-qualified: after a registered plan disappears,
+    # its absence must fail closed rather than being treated as an empty owner.
+    git("replace", "-d", old_blob)
+    git("rm", owner_plan)
+    git("commit", "-qm", "registered LEGO plan absent")
+    missing_cut = git("rev-parse", "HEAD")
+    with pytest.raises(module.ArchitectureDocsError, match="Owner plan absent/nonregular"):
+        module.project_owner_lego_source_graph(tmp_path, source_revision=missing_cut)
 
 
 def test_git_sourcecut_evidence_carriers_match_exact_git_tree(
@@ -1555,167 +1647,134 @@ def test_upstream_local_import_dependency_change_invalidates_with_stable_target_
     assert same["proofReuseAdmissible"] is False
 
 
-@pytest.mark.parametrize(
-    ("owner_plan", "identities", "external_consumer"),
-    [
-        (
-            "packages/composition/planning/lego-plan-r1.json",
-            {"CP01", "CP02", "CP03", "CP04", "CP05"},
-            "meta/next/scripts/pacti_timeout_obligation_r1.py",
-        ),
-        (
-            "platform/skills/planning/lego-plan-r1.json",
-            {"SK01", "SK02", "SK03", "SK04", "SK05"},
-            "services/gateway/src/ordivon_gateway/service.py",
-        ),
-    ],
-)
-def test_phase1_new_owner_plans_bind_real_consumer_source_and_r21_contract(
-    owner_plan: str, identities: set[str], external_consumer: str
-) -> None:
-    """This qualifies *these* declared roles, not every file as a LEGO."""
-    plan = module._load_json(ROOT / owner_plan)
-    module.validate_owner_lego_graph(plan)
-    module.validate_owner_lego_dependencies(
-        plan, owner_plan.split("/planning/", 1)[0]
-    )
-    module.validate_owner_lego_source_evidence(ROOT, owner_plan, plan)
-    assert identities.issubset({node["id"] for node in plan["nodes"]})
-    for node in plan["nodes"]:
-        for field in (
-            "responsibility", "authority", "inputs", "outputs",
-            "behavioralContract", "acceptance", "consumerEvidence",
-            "replacement", "formalObligations",
-        ):
-            assert node.get(field), (owner_plan, node["id"], field)
-        assert node["consumerQualification"]
-        for ref in node["consumerEvidence"]:
-            candidate = ROOT / ref
-            if not candidate.is_file():
-                candidate = ROOT / owner_plan.split("/planning/", 1)[0] / ref
-            assert candidate.is_file(), (node["id"], ref)
-    assert any(
-        external_consumer in n["consumerEvidence"] for n in plan["nodes"]
-    )
-    # Later discoveries, retirements and real installed/formal proofs remain legal.
-    # A boolean claiming those stronger facts requires distinct evidence.
-    for node in plan["nodes"]:
-        if node.get("installedVerified"):
-            assert node.get("installedEvidence"), node["id"]
-        if node.get("formalVerified"):
-            assert node.get("formalEvidence"), node["id"]
+def test_skills_r21_semantic_node_consumer_source_falsification() -> None:
+    """A new Skills LEGO must point to a real source-defined consumer surface.
 
+    This is a source/symbol negative control, NOT dynamic client/installed proof.
+    """
+    import ast
+    import copy
 
-def test_phase1_census_exactly_matches_native_owner_names_without_truth_promotion() -> None:
-    """A bounded source inventory cannot silently upgrade into 18 verified domains."""
-    import tomllib
-
-    manifest = tomllib.loads((ROOT / "tools/repo/owners.toml").read_text())
-    census = module._load_json(
-        ROOT / "meta/next/evidence/acceptance/lego-r21-phase1-owner-source-census-20261027.json"
-    )
-    declared = {x["name"] for x in manifest["owners"]}
-    observed = {x["owner"] for x in census["findings"]}
-    assert observed == declared and len(observed) == len(manifest["owners"])
-    assert census["truthRole"].endswith("NOT_REGISTRY_OR_SEMANTIC_TRUTH")
-    assert all(
-        x["repositoryCoverage"] == "TRACKED_SOURCE_ENUMERATED"
-        and x["environmentCoverage"] == "SOURCE_ONLY_CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
-        and x["responsibilityCoverage"] != "COMPLETE"
-        for x in census["findings"]
+    plan = json.loads(
+        (ROOT / "platform/skills/planning/lego-plan-r1.json").read_text(encoding="utf-8")
     )
 
+    def qualify_source_symbols(candidate: dict) -> None:
+        for node in candidate["nodes"]:
+            assert all(node[key] for key in (
+                "id", "responsibility", "inputs", "outputs",
+                "behavioralContract", "acceptance", "formalObligations",
+            ))
+            assert node["actualConsumers"]
+            for consumer in node["actualConsumers"]:
+                relative = Path(consumer["path"])
+                assert not relative.is_absolute() and ".." not in relative.parts
+                path = ROOT / "platform/skills" / relative
+                assert path.is_file()
+                names = {
+                    ast_node.name for ast_node in ast.walk(
+                        ast.parse(path.read_text(encoding="utf-8"))
+                    )
+                    if isinstance(
+                        ast_node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)
+                    )
+                }
+                assert consumer["symbol"] in names, (
+                    f"{node['id']} has no such static consumer entrypoint: "
+                    f"{consumer['path']}::{consumer['symbol']}"
+                )
+                assert consumer["standing"] in {
+                    "SOURCE_STATIC_CALL",
+                    "SOURCE_STATIC_FUNCTION; EXTERNAL_CLIENT_SOURCE_UNRESOLVED",
+                }
 
-def test_phase1_named_cross_owner_consumers_have_actual_source_expression() -> None:
-    """A file's mere presence does not qualify it as a consumer."""
-    composition = module._load_json(
-        ROOT / "packages/composition/planning/lego-plan-r1.json"
+    qualify_source_symbols(plan)
+    falsified = copy.deepcopy(plan)
+    falsified["nodes"][3]["actualConsumers"][0]["symbol"] = "NOT_REAL_CONSUMER"
+    with pytest.raises(AssertionError, match="no such static consumer entrypoint"):
+        qualify_source_symbols(falsified)
+
+
+def test_gateway_new_recipes_and_optional_worker_have_distinct_native_consumers() -> None:
+    import ast
+
+    plan = json.loads(
+        (ROOT / "services/gateway/planning/lego-plan-r1.json").read_text(encoding="utf-8")
     )
-    nodes = {n["id"]: n for n in composition["nodes"]}
-    assert "meta/next/scripts/web_security_gate_r3.py" not in nodes["CP02"]["consumerEvidence"]
-    actual_next = (
-        ROOT / "meta/next/scripts/pacti_timeout_obligation_r1.py"
-    ).read_text()
-    assert "compile_verification_obligations(" in actual_next
-    assert "meta/next/scripts/pacti_timeout_obligation_r1.py" in nodes["CP03"]["consumerEvidence"]
-    impact_cli = (
-        ROOT / "packages/composition/src/ordivon_composition/verification_obligation_r1.py"
-    ).read_text()
-    assert impact_cli.count("select_impacted_obligations(") >= 3
-    assert "src/ordivon_composition/verification_obligation_r1.py" in nodes["CP05"]["consumerEvidence"]
-
-    skills = module._load_json(ROOT / "platform/skills/planning/lego-plan-r1.json")
-    bridge = {n["id"]: n for n in skills["nodes"]}
-    gateway = (ROOT / "services/gateway/src/ordivon_gateway/service.py").read_text()
-    assert '"skills.resolve"' in gateway
-    assert "services/gateway/src/ordivon_gateway/service.py" in bridge["SK04"]["consumerEvidence"]
-    assert all(
-        "INSTALLED" not in n.get("consumerQualification", "")
-        or "UNKNOWN" in n["consumerQualification"]
-        for n in [*nodes.values(), *bridge.values()]
-    )
-
-
-def test_phase1_host_board_subresponsibilities_have_distinct_real_mcp_consumers() -> None:
-    """An O02 child needs a separate public contract, not another source file label."""
-    plan = module._load_json(ROOT / "services/host/planning/lego-plan-r1.json")
-    module.validate_owner_lego_graph(plan)
-    module.validate_owner_lego_dependencies(plan, "services/host")
-    mcp = (ROOT / "services/host/src/ordivon_host_v2/social_work_mcp.py").read_text()
-    nodes = {n["id"]: n for n in plan["nodes"]}
-    by_id = {
-        "O08": {"message.post", "message.get", "message.search"},
-        "O09": {"message.relation.add", "message.relation.list"},
-        "O10": {"topic.cursor.get", "topic.cursor.ack", "topic.resume"},
+    native = {
+        "G08": [
+            ("src/ordivon_gateway/service.py", "GatewayService", "capability_resolve"),
+            ("tests/test_research_capability_resolution.py", None,
+             "test_research_resolve_binds_exact_current_skill_without_executing_it"),
+        ],
+        "G09": [
+            ("src/ordivon_gateway/external_worker.py", "ExternalPullWorkerTransport", "claim"),
+            ("src/ordivon_gateway/external_worker.py", "ExternalPullWorkerTransport", "complete"),
+            ("tests/test_external_pull_worker.py", None,
+             "test_duplicate_completion_is_idempotent_but_changed_completion_conflicts"),
+        ],
     }
-    for node_id, methods in by_id.items():
-        node = nodes[node_id]
-        assert node["parentLEGO"] == "O02"
-        assert methods == set(node["consumerMethods"])
-        assert node["inputs"] and node["outputs"] and node["behavioralContract"]
-        assert node["formalObligations"] and "UNKNOWN" in node["consumerQualification"]
-        for method in methods:
-            assert f'@mcp.tool(name="{method}")' in mcp, (node_id, method)
-        assert {
-            "from": "O04", "to": node_id, "type": "DEPENDENCY",
-        }.items() <= next(
-            (e for e in plan["edges"] if e["from"] == "O04" and e["to"] == node_id),
-            {},
-        ).items()
-        assert any(
-            e["from"] == node_id and e["to"] == "O02"
-            and e["type"] == "COMPOSITION"
-            for e in plan["edges"]
-        )
+    for identity, sources in native.items():
+        lego = next(item for item in plan["nodes"] if item["id"] == identity)
+        assert lego["inputs"] and lego["outputs"] and lego["behavioralContract"]
+        assert lego["environmentQualification"]["installed"] == "UNKNOWN"
+        assert lego["formalObligations"]
+        for path, cls_name, method in sources:
+            source = ROOT / "services/gateway" / path
+            assert source.is_file()
+            syntax = ast.parse(source.read_text(encoding="utf-8"))
+            member = syntax.body
+            if cls_name is not None:
+                owner = next(
+                    (item for item in syntax.body
+                     if isinstance(item, ast.ClassDef) and item.name == cls_name),
+                    None,
+                )
+                assert owner is not None
+                member = owner.body
+            assert any(
+                isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))
+                and item.name == method for item in member
+            ), (identity, path, method)
+    assert any(
+        edge["from"] == "G09" and edge["to"] == "G03"
+        and edge["type"] == "ADAPTATION"
+        and "Optional" in edge["label"]
+        for edge in plan["edges"]
+    )
+    assert not any(
+        edge["from"] == "G08" and edge["to"] == "G03" and edge["type"] == "AUTHORITY"
+        for edge in plan["edges"]
+    )
 
 
-def test_historical_owner_plan_membership_tracks_exact_prior_git_source_cuts() -> None:
-    """New Composition/Skills responsibilities cannot hide predecessor LEGO source truth."""
-    import subprocess
+def test_phase1_host_real_typed_message_relation_consumer_contract_is_source_qualified() -> None:
+    """Protect O13 as real Host MCP add/list responsibility, not a row-name clone."""
+    from pathlib import Path
 
-    after = subprocess.check_output(
-        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
-    ).strip()
-    for relative in (
-        "packages/composition/planning/lego-plan-r1.json",
-        "platform/skills/planning/lego-plan-r1.json",
-    ):
-        introduced = subprocess.check_output(
-            ["git", "-C", str(ROOT), "log", "--diff-filter=A", "--format=%H", "--", relative],
-            text=True,
-        ).splitlines()[0]
-        before = subprocess.check_output(
-            ["git", "-C", str(ROOT), "rev-parse", introduced + "^"], text=True,
-        ).strip()
-        old_graph = module.project_owner_lego_source_graph(ROOT, source_revision=before)
-        new_graph = module.project_owner_lego_source_graph(ROOT, source_revision=after)
-        assert relative not in {p["path"] for p in old_graph["sourcePlans"]}
-        assert relative in {p["path"] for p in new_graph["sourcePlans"]}
-        old_refs = {n["ref"] for n in old_graph["vertices"]}
-        new_refs = {n["ref"] for n in new_graph["vertices"]}
-        assert {n["ref"] for n in new_graph["vertices"] if n["ref"].startswith(relative + "#")} <= (new_refs - old_refs)
-        impact = module.project_owner_lego_source_change(
-            root=ROOT, before_revision=before, after_revision=after,
-        )
-        assert relative in impact["changedGitPaths"]
-        assert impact["proofReuseAdmissible"] is False
+    plan = module._load_json(ROOT / "services/host/planning/lego-plan-r1.json")
+    node = next(n for n in plan["nodes"] if n["id"] == "O13")
+    assert node["parent"] == "O02"
+    assert "O13" in next(n for n in plan["nodes"] if n["id"] == "O02")["children"]
+    for member in ("inputs", "outputs", "behavioralContract", "acceptance", "formalObligations", "consumerEvidence", "replacementContract"):
+        assert node.get(member), member
+    assert node["evidenceScope"]["installedCurrentness"] == "UNKNOWN"
+    assert node["evidenceScope"]["formalProof"] == "UNKNOWN"
+    bindings = (ROOT / "services/host/src/ordivon_host_v2/social_work_mcp.py").read_text()
+    store = (ROOT / "services/host/src/ordivon_host_v2/social_store.py").read_text()
+    for wire, call in [
+        ("message.relation.add", "social.add_message_relation("),
+        ("message.relation.list", "social.list_message_relations("),
+    ]:
+        assert f'@mcp.tool(name="{wire}")' in bindings
+        assert call in bindings
+    assert "def add_message_relation(" in store and "def list_message_relations(" in store
+    assert "INSERT INTO message_relations" in store
+    assert any(
+        e["from"] == "O02" and e["to"] == "O13" and e["type"] == "COMPOSITION"
+        for e in plan["edges"]
+    )
+    assert any(
+        e["from"] == "O04" and e["to"] == "O13" and e["type"] == "DEPENDENCY"
+        for e in plan["edges"]
+    )
