@@ -1926,3 +1926,94 @@ def test_agent_native_one_lego_compact_inspection_preserves_source_and_unknown()
         module.inspect_owner_lego_contract(
             source_revision="HEAD", node_ref=ref, root=ROOT
         )
+
+
+def test_agent_native_source_path_to_owner_to_single_contract() -> None:
+    """Path lookup is an exact-source address, not an inferred effect owner."""
+    import subprocess
+
+    revision = subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+    ).strip()
+    path = "services/gateway/src/ordivon_gateway/routes.py"
+    result = module.inspect_owner_source_path(
+        source_revision=revision, source_path=path, root=ROOT,
+    )
+    assert result["sourceCut"] == revision
+    assert result["sourceIdentity"].startswith("100644:blob:")
+    assert result["sourceMembershipStanding"] == "TRACKED_SOURCE"
+    assert [owner["name"] for owner in result["ownerPartitions"]] == ["gateway"]
+    assert result["ownerPartitions"][0]["verifyTask"] == "gateway:verify"
+    assert result["legoDiscoveryStanding"] == "DECLARED_ANCHOR_PARTIAL"
+    assert result["consumerProofStanding"] == "UNKNOWN"
+    assert result["proofReuseAdmissible"] is False
+    assert "ACTUAL_CONSUMER" in result["unverifiedFacets"]
+    assert "FORMAL_PROOF" in result["unverifiedFacets"]
+    assert "INSTALLED" in result["unverifiedFacets"]
+    refs = {item["ref"] for item in result["declaredLegoAnchors"]}
+    assert "services/gateway/planning/lego-plan-r1.json#G01" in refs
+    for ref in refs:
+        detailed = module.inspect_owner_lego_contract(
+            source_revision=revision, node_ref=ref, root=ROOT,
+        )
+        assert detailed["declaredRoles"]["responsibility"]
+        assert detailed["proofReuseAdmissible"] is False
+    assert len(json.dumps(result)) < len(json.dumps(
+        module.project_owner_lego_source_graph(ROOT, source_revision=revision)
+    )) // 3
+
+
+def test_agent_native_unknown_path_does_not_upgrade_no_consumer() -> None:
+    import subprocess
+
+    revision = subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+    ).strip()
+    missing = module.inspect_owner_source_path(
+        source_revision=revision,
+        source_path="services/gateway/src/unseen_dynamic_consumer.py",
+        root=ROOT,
+    )
+    assert missing["sourceIdentity"] is None
+    assert missing["sourceMembershipStanding"] == "ABSENT_AT_SOURCECUT"
+    assert missing["legoDiscoveryStanding"] == "UNKNOWN_UNINDEXED"
+    assert missing["declaredLegoAnchors"] == []
+    assert missing["consumerProofStanding"] == "UNKNOWN"
+    assert missing["ownerPartitions"][0]["name"] == "gateway"
+
+    # The two-file portable Agent Plugin is a Repo partition, not an
+    # autonomous runtime or control-plane authority.
+    plugin = module.inspect_owner_source_path(
+        source_revision=revision,
+        source_path="extensions/ordivon-control-plane/plugin.json",
+        root=ROOT,
+    )
+    assert plugin["ownerPartitions"][0]["name"] == "control-plugin"
+    assert plugin["sourceIdentity"].startswith("100644:blob:")
+    assert plugin["legoDiscoveryStanding"] == "UNKNOWN_UNINDEXED"
+    assert plugin["proofReuseAdmissible"] is False
+
+
+def test_agent_native_path_rejects_unqualified_identity_or_mode() -> None:
+    import subprocess
+
+    revision = subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+    ).strip()
+    for candidate in ("", "/services/gateway/a.py", "../services/runtime/a.py",
+                      "services/gateway/../host/test.py",
+                      "services//gateway/a.py", "services\\gateway\\a.py"):
+        with pytest.raises(module.ArchitectureDocsError, match="canonical"):
+            module.inspect_owner_source_path(
+                source_revision=revision, source_path=candidate, root=ROOT,
+            )
+    with pytest.raises(module.ArchitectureDocsError, match="exact 40-hex"):
+        module.inspect_owner_source_path(
+            source_revision="origin/main",
+            source_path="services/gateway/README.md", root=ROOT,
+        )
+    bad_mode = module.main([
+        "--inspect-owner-path", "services/gateway/README.md",
+        "--source-revision", revision, "--compare-source-revision", revision,
+    ])
+    assert bad_mode == 2
