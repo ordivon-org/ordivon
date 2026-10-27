@@ -88,7 +88,7 @@ See `docs/CAPABILITY_PACKAGES_R1.md` for the current high-frequency Capability P
 
 ## Repository validation
 
-This repository is managed as a non-package Python project. Standard PEP 621 metadata pins `requires-python ==3.14.7` and owns the runtime dependencies; `.python-version` selects the same interpreter, task-local validation dependencies live in dependency groups, and exact resolutions are recorded in `uv.lock`. The virtual-project metadata version `0.0.0` is not a release/versioning authority and the repository is not built or published as a Python package.
+This repository is managed as a non-package Python project. The authoritative `pyproject.toml` PEP 621 metadata pins `requires-python` and owns the runtime dependencies; `.python-version` and `mise.toml` select the interpreter, task-local validation dependencies live in dependency groups, and exact resolutions are recorded in `uv.lock`. The virtual-project metadata version `0.0.0` is not a release/versioning authority and the repository is not built or published as a Python package.
 
 Core validation from a clean checkout:
 

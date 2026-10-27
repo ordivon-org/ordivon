@@ -53,7 +53,7 @@ def resolve_source_name(
         or not scope_prefix
         or scope_prefix.startswith(("/", "./"))
         or not scope_prefix.endswith("/")
-        or ".." in scope_prefix.split("/")
+        or any(part in {"", ".", ".."} for part in scope_prefix[:-1].split("/"))
         or "//" in scope_prefix
         or "\\" in scope_prefix
     ):
@@ -67,6 +67,16 @@ def resolve_source_name(
         )
     if not isinstance(classification.get("sourceRevision"), str):
         raise TypeError("exact sourceRevision identity required")
+
+    if scope_prefix is not None:
+        # Entries enumerate Git leaves, including opaque symlinks and gitlinks.
+        # A leaf on the requested ancestry is not an empty source directory.
+        parts = scope_prefix[:-1].split("/")
+        ancestors = {"/".join(parts[:index]) for index in range(1, len(parts) + 1)}
+        opaque = next((entry["path"] for entry in classification["entries"]
+                       if entry["path"] in ancestors), None)
+        if opaque is not None:
+            raise ValueError(f"scope_prefix crosses a non-directory source boundary: {opaque}")
 
     grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for entry in classification["entries"]:

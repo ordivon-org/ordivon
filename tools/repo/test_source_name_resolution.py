@@ -180,6 +180,45 @@ class SourceNameResolutionTests(unittest.TestCase):
         )
         self.assertFalse(result["proofReuseAdmissible"])
 
+    def test_scope_with_internal_dot_is_rejected_not_reported_absent(self):
+        for scope in ("services/./runtime/", "services/runtime/./"):
+            with self.subTest(scope=scope), self.assertRaisesRegex(ValueError, "canonical"):
+                resolve_source_name(self.cut, name="Common Tools",
+                                    field="sourceCellDisplayName", scope_prefix=scope)
+
+    def test_scope_cannot_cross_git_file_symlink_or_submodule(self):
+        for identity in ("100644:blob:", "120000:blob:", "160000:commit:"):
+            opaque = row("services/link", None, None, None)
+            opaque["sourceIdentity"] = identity + "a" * 40
+            cut = source_cut(self.cut["entries"] + [opaque])
+            with self.subTest(identity=identity), self.assertRaisesRegex(ValueError, "non-directory"):
+                resolve_source_name(cut, name="Common Tools",
+                                    field="sourceCellDisplayName",
+                                    scope_prefix="services/link/child/")
+
+    def test_canonical_empty_scope_and_exact_whitespace_paths_remain_inspectable(self):
+        empty = resolve_source_name(self.cut, name="Common Tools",
+                                    field="sourceCellDisplayName",
+                                    scope_prefix="services/not-present/")
+        self.assertEqual(empty["standing"], "NOT_FOUND")
+        spaced = source_cut([row("odd/ leading/call.py", "odd-cell", "Exact Source", None)])
+        found = resolve_source_name(spaced, name="Exact Source",
+                                    field="sourceCellDisplayName", scope_prefix="odd/ leading/")
+        self.assertEqual(found["candidateGroupCount"], 1)
+
+    def test_cli_rejects_noncanonical_scope_with_usage_error(self):
+        repo = Path(__file__).resolve().parents[2]
+        cut = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip()
+        proc = subprocess.run(
+            [sys.executable, str(repo / "tools/repo/source_name_resolution.py"),
+             "--source-cut", cut, "--repo", str(repo),
+             "--name", "runtime", "--field", "verificationOwner",
+             "--scope-prefix", "services/./runtime/"],
+            cwd=repo, text=True, capture_output=True)
+        self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+        self.assertIn("canonical", proc.stderr)
+        self.assertEqual(proc.stdout, "")
+
     def test_invalid_names_fields_and_source_cut_truth_are_rejected(self):
         for kwargs in (
             {"name": " Common Tools"},
