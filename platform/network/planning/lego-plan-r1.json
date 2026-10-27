@@ -242,7 +242,7 @@
         "A source-local readiness verdict; nonzero/UNKNOWN when necessary observation is missing, failed or expired."
       ],
       "behavioralContract": [
-        "One upstream loss cannot multiply retry windows across origins; an arbitrary curl/HTTP error, status from wrong origin, or proxy-auth failure cannot upgrade to READY.",
+        "All declared consumers share one readiness deadline; positive allowed-origin probes require consumer-specific transport/status evidence and reject missing or malformed positive observations. Supply-chain additionally requires explicit CONNECT403 for unknown-destination denial and rejects arbitrary transport/proxy-auth failure. Claude's unknown-destination branch currently accepts any nonzero curl result; that branch alone does not distinguish policy rejection from transport failure, so policy-denial attribution remains UNKNOWN.",
         "A conservative CONNECT403 signature can yield false-negative readiness for some actual sing-box reject policies; live provider/domain success is not entailed."
       ],
       "sharedRefs": [],
@@ -268,7 +268,7 @@
       ],
       "acceptance": [
         "Native isolated Bash fake-time test demonstrates a common failure consumes one shared deadline and cannot yield READY.",
-        "Native negative transport/origin/proxy-auth cases reject false READY; installed readiness and true upstream observation require additional receipts."
+        "Existing consumer tests reject malformed or failed allowed-origin observations; supply-chain tests additionally reject unknown-destination transport, proxy-auth and origin-HTTP403 false positives. Claude tests reject reachable direct/unknown-origin HTTP403, but do not establish that an arbitrary failed unknown-destination probe denotes policy rejection. Installed readiness and true upstream observation require additional receipts."
       ]
     }
   ],
