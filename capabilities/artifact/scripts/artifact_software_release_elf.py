@@ -52,7 +52,8 @@ def verify_linux_elf(path:Path,contract_path:Path,evidence_dir:Path|None=None)->
   else:res['tools'][n]={'path':str(p.resolve()),'sha256':sha(p)}
  if failures:res['failures']=failures;(ev/'verification.json').write_text(json.dumps(res,indent=2,sort_keys=True)+'\n');return res
  # Independent descriptive view from libmagic/file.
- fp=run([str(FILE),'-b',str(path)]);file_text=fp.stdout.decode('utf-8','replace').strip();(ev/'file.txt').write_text(file_text+'\n')
+ # Bind libmagic to the dereferenced subject bytes already hashed, read by GNU readelf, and mounted into Bubblewrap.
+ fp=run([str(FILE),'-L','-b',str(path)]);file_text=fp.stdout.decode('utf-8','replace').strip();(ev/'file.txt').write_text(file_text+'\n')
  file_fail=[]
  if fp.returncode!=0:file_fail.append('file/libmagic inspection failed')
  for token in c['fileInspection']['requiredSubstrings']:
