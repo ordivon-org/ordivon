@@ -511,6 +511,46 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
         "gateway/src/ordivon_gateway": "GATEWAY_IMPLEMENTATION_PACKAGE_SOURCE",
         "composition/src/ordivon_composition": "COMPOSITION_IMPLEMENTATION_PACKAGE_SOURCE",
         "host/src/ordivon_host_v2": "HOST_V2_IMPLEMENTATION_PACKAGE_SOURCE",
+        # Scoped fallbacks cover source *purpose*, not the identity, quality,
+        # installed state or consumers of individual projects/providers.
+        "media/productions/*": "AUTHORED_MEDIA_PRODUCTION_INSTANCE_SOURCE",
+        "next/experiments/*": "NEXT_EXPERIMENT_INSTANCE_SOURCE",
+        "network/consumers/*": "NETWORK_CONSUMER_REQUIREMENT_SOURCE",
+        "network/acceptance/*": "NETWORK_SCOPED_ACCEPTANCE_SOURCE",
+        "harness/evals/*": "HARNESS_EVALUATION_FIXTURE_SOURCE",
+        "capital/tools/*": "CAPITAL_EXTERNAL_TOOL_INTEGRATION_SOURCE",
+        "artifact/artifact_verifiers/*": "ARTIFACT_FORMAT_VERIFIER_SOURCE",
+        "security/contracts/agent-request-verifier-v1": "SECURITY_REQUEST_VERIFIER_CONTRACT_SOURCE",
+        "security/src/ordivon_security_v2": "SECURITY_POLICY_IMPLEMENTATION_SOURCE",
+        "security/fixtures/browser-security": "BROWSER_SECURITY_TEST_FIXTURE_SOURCE",
+        "security/tests/fixtures": "SECURITY_TEST_FIXTURE_SOURCE",
+        "artifact/artifact_capabilities/publication": "ARTIFACT_PUBLICATION_CAPABILITY_SOURCE",
+        "artifact/artifact_capabilities/presentation": "ARTIFACT_PRESENTATION_CAPABILITY_SOURCE",
+        "artifact/artifact-delivery/consumer-acceptance": "ARTIFACT_CONSUMER_ACCEPTANCE_RECORD_SOURCE",
+        "media/artifacts/creative-library": "MEDIA_CREATIVE_ASSET_RECORD_SOURCE",
+        "game/test/fixtures": "GAME_TEST_FIXTURE_SOURCE",
+        "next/evidence/analysis": "ANALYSIS_EVIDENCE_RECORD_SOURCE",
+        "next/experimental/episode-store-r1": "EXPERIMENTAL_EPISODE_STORE_SOURCE",
+        "next/evidence/agent-campaigns": "AGENT_CAMPAIGN_EVIDENCE_RECORD_SOURCE",
+        "next/data-products/experimental-episode-corpus-r1": "EXPERIMENTAL_EPISODE_DATA_PRODUCT_SOURCE",
+        "network/history/rounds": "NETWORK_HISTORICAL_ACCEPTANCE_RECORD_SOURCE",
+        "network/reference/linux": "NETWORK_LINUX_REFERENCE_SOURCE",
+        "runtime/research/core": "RUNTIME_CORE_RESEARCH_SOURCE",
+        "runtime/research/authority": "RUNTIME_AUTHORITY_RESEARCH_SOURCE",
+        "runtime/packaging/systemd": "RUNTIME_LINUX_SERVICE_PACKAGE_SOURCE",
+        "runtime/packaging/windows": "RUNTIME_WINDOWS_SERVICE_PACKAGE_SOURCE",
+        "gateway/planning/external-pull-worker-r3": "GATEWAY_PULL_WORKER_PLAN_SOURCE",
+        "gateway/systemd/ordivon-gateway.service.d": "GATEWAY_SYSTEMD_DROPIN_TEMPLATE_SOURCE",
+        "host/migrations/versions": "HOST_DATABASE_MIGRATION_SOURCE",
+        "harness/research/experiments": "HARNESS_RESEARCH_EXPERIMENT_SOURCE",
+        "workstation/workstation/nix": "WORKSTATION_NIX_DESIRED_STATE_SOURCE",
+        "workstation/workstation/windows": "WORKSTATION_WINDOWS_DESIRED_STATE_SOURCE",
+        "workstation/inventory/queries": "OSQUERY_INVENTORY_QUERY_SOURCE",
+        "workstation/tofu/agent-birth-handoff": "AGENT_PROVISIONING_SOURCE",
+        "media/media-v2/bin": "MEDIA_V2_LAUNCHER_SOURCE",
+        "media/media-v2/tests": "MEDIA_V2_TEST_SOURCE",
+        "media/play/media-ecology-20260830": "MEDIA_INTERACTIVE_STUDY_SOURCE",
+        "skills/src/ordivon_skills": "SKILLS_DISCOVERY_IMPLEMENTATION_SOURCE",
     }
 
     root_by_owner = {o.name: o.root for o in native_owners}
@@ -548,7 +588,8 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
             if len(parts) > 2:
                 source_cell = f"{section}/{parts[1]}"
                 source_cell_role = named_cells.get(
-                    source_cell, "UNQUALIFIED_NESTED_CELL"
+                    source_cell,
+                    named_cells.get(f"{section}/*", "UNQUALIFIED_NESTED_CELL"),
                 )
             elif len(parts) == 2:
                 source_cell = f"{section}/(direct-files)"
@@ -605,6 +646,7 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
         "sourceTree": source.git(repo, "--no-replace-objects", "rev-parse",
                                  source_revision + "^{tree}").strip(),
         "ownerManifestIdentity": manifest_identity,
+        "classifierSourceIdentity": tree.get("tools/repo/affected_owners.py"),
         "proofReuseAdmissible": False,
         "summary": {
             "distinctOwnerCells": len({
@@ -654,6 +696,10 @@ def project_source_classification_delta(
     """
     before = project_source_classification(repo, before_revision)
     after = project_source_classification(repo, after_revision)
+    # This process uses ONE implementation of the projector for both cuts.
+    # If the projector itself changed, a same-code comparison cannot prove
+    # which historical classifications differed; expose that lost knowledge.
+    classifier_changed = before["classifierSourceIdentity"] != after["classifierSourceIdentity"]
     older = {item["path"]: item for item in before["entries"]}
     newer = {item["path"]: item for item in after["entries"]}
     changes = []
@@ -669,7 +715,10 @@ def project_source_classification_delta(
             previous is None or current is None
             or any(previous[name] != current[name] for name in (
                 "verificationOwner", "sourceRegion", "classificationStanding",
-                "matchedRules",
+                "matchedRules", "semanticName", "sourceSection",
+                "sourceSectionRole", "sourceCell", "sourceCellRole",
+                "sourceCellDisplayName", "sourceFileForm", "sourceFileFormStanding",
+                "classificationLayer",
             ))
         )
         changes.append({
@@ -686,6 +735,15 @@ def project_source_classification_delta(
         "afterTree": after["sourceTree"],
         "beforeOwnerManifestIdentity": before["ownerManifestIdentity"],
         "afterOwnerManifestIdentity": after["ownerManifestIdentity"],
+        "beforeClassifierSourceIdentity": before["classifierSourceIdentity"],
+        "afterClassifierSourceIdentity": after["classifierSourceIdentity"],
+        "classifierSourceChanged": classifier_changed,
+        "requiresWholeClassificationReprojection": classifier_changed,
+        "deltaCompleteness": (
+            "UNKNOWN_SOURCE_CLASSIFIER_IMPLEMENTATION_CHANGED"
+            if classifier_changed else
+            "SAME_CLASSIFIER_VERSION_OBSERVED_SOURCE_DELTA_ONLY"
+        ),
         "proofReuseAdmissible": False,
         "summary": {
             "previousPaths": before["summary"]["trackedPaths"],

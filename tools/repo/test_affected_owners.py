@@ -388,6 +388,72 @@ class SourceClassificationTests(unittest.TestCase):
         assert row[".agents/skills/recursive-lego-calculus/SKILL.md"]["classificationLayer"] == "SOURCE_NAVIGATION_ONLY"
         assert row["loose/unplaced.txt"]["semanticName"] is None
 
+    def test_semantic_name_only_delta_detects_unchanged_source_reclassification(self) -> None:
+        # A physical Git blob stays identical, but its Agent-facing meaning
+        # changes through the exact manifest: this MUST be part of delta.
+        self.manifest.write_text(
+            self.header.replace('name = "runtime"\n',
+                                'name = "runtime"\nsemantic_name = "Execution Runtime"\n')
+        )
+        prior = self.commit()
+        self.manifest.write_text(
+            self.header.replace('name = "runtime"\n',
+                                'name = "runtime"\nsemantic_name = "Runtime Attempt Lifecycle"\n')
+        )
+        current = self.commit()
+        d = MODULE.project_source_classification_delta(self.repo, prior, current)
+        indexed = {row["path"]: row for row in d["changes"]}
+        changed = indexed["services/runtime/main.rs"]
+        self.assertFalse(changed["sourceChanged"])
+        self.assertTrue(changed["classificationChanged"])
+        self.assertEqual(changed["before"]["semanticName"], "Execution Runtime")
+        self.assertEqual(changed["after"]["semanticName"], "Runtime Attempt Lifecycle")
+        self.assertGreaterEqual(d["summary"]["classificationOnlyChanges"], 1)
+        self.assertFalse(d["requiresWholeClassificationReprojection"])
+        self.assertFalse(d["proofReuseAdmissible"])
+
+    def test_source_classifier_code_change_never_claims_complete_historical_delta(self) -> None:
+        # Re-running one *current* Python classifier for two different Git
+        # source cuts cannot reconstruct older source semantics mechanically.
+        classifier = self.repo / "tools/repo/affected_owners.py"
+        classifier.write_text("source classifier v1", encoding="utf-8")
+        prior = self.commit()
+        classifier.write_text("source classifier v2", encoding="utf-8")
+        current = self.commit()
+        d = MODULE.project_source_classification_delta(self.repo, prior, current)
+        self.assertTrue(d["classifierSourceChanged"])
+        self.assertTrue(d["requiresWholeClassificationReprojection"])
+        self.assertEqual(
+            d["deltaCompleteness"], "UNKNOWN_SOURCE_CLASSIFIER_IMPLEMENTATION_CHANGED"
+        )
+        self.assertFalse(d["proofReuseAdmissible"])
+
+    def test_nested_source_cell_names_do_not_certify_actual_consumers_or_deployment(self) -> None:
+        self.manifest.write_text(
+            self.header +
+            '\n[[owners]]\nname = "network"\nroot = "platform/network/"\n'
+            'verify_task = "network:ci"\n'
+        )
+        paths = (
+            "platform/network/consumers/new-agent/requirements.json",
+            "services/runtime/crates/ordivon-runtime-mcp/src/lib.rs",
+            "services/runtime/crates/unseen-third-party/src/lib.rs",
+        )
+        for value in paths:
+            path = self.repo / value
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("source-only", encoding="utf-8")
+        d = self.project(self.commit())
+        rows = {row["path"]: row for row in d["entries"]}
+        network = rows[paths[0]]
+        self.assertEqual(network["sourceCell"], "network/consumers/new-agent")
+        self.assertEqual(network["sourceCellRole"], "NETWORK_CONSUMER_REQUIREMENT_SOURCE")
+        self.assertEqual(network["verificationOwner"], "network")
+        self.assertEqual(network["sourceFileForm"], "JSON_STRUCTURED_DATA_SOURCE")
+        self.assertEqual(rows[paths[1]]["sourceCellRole"], "RUNTIME_MCP_CRATE_SOURCE")
+        self.assertEqual(rows[paths[2]]["sourceCellRole"], "UNQUALIFIED_NESTED_CELL")
+        self.assertFalse(d["proofReuseAdmissible"])
+
     def test_regions_classify_source_without_manufacturing_execution_owner(self) -> None:
         self.manifest.write_text(self.header + (
             '\n[[source_regions]]\nname = "lego-core"\n'
