@@ -87,7 +87,8 @@
       "behavioralContract": "Spaces can link multiple Works; replies stay within a topic; participation is not authorization; message claims remain claims.",
       "children": [
         "O10",
-        "O11"
+        "O11",
+        "O13"
       ]
     },
     {
@@ -409,6 +410,92 @@
           "result": "402 Host tests passed on isolated PostgreSQL 18.6; source code unchanged by subsequent plan identity correction; not exhaustive proof"
         }
       }
+    },
+    {
+      "id": "O13",
+      "label": "TypedMessageRelationContinuity",
+      "kind": "state_authority",
+      "responsibility": "Persist and query explicit typed Message relation edges, with independent client-visible add/list semantics, scoped source/target identity, idempotent receipt, and bounded directional pagination; not a second Message content or topic cursor authority.",
+      "authority": "Host SocialStore over Host PostgreSQL journal only",
+      "state": "IMPLEMENTED",
+      "parent": "O02",
+      "sharedRefs": [],
+      "inputs": [
+        "MessageRelationInput {source_message_ref, relation enum, target_ref, actor_ref} and client_request_id for add",
+        "message_ref, direction, optional relation kind, after_change_sequence, limit, max_bytes for list"
+      ],
+      "outputs": [
+        "Host MessageRelationResponse {admission, sourceMessageRef, relation, targetRef, createdByActorRef, createdAt}",
+        "bounded MessageRelationsResponse read projection with changeSequence and pagination"
+      ],
+      "behavioralContract": "The store requires a real actor and source message, validates the typed target according to relation semantics, and commits the typed edge and exact request receipt atomically in PostgreSQL. Duplicate source/relation/target produces existing rather than a second edge. List is a scoped repeatable-read source/target/typed-kind change-sequence projection with explicit bounds. Relation is collaboration metadata; acknowledges does not prove acceptance, mentions does not assign work.",
+      "dependencies": [
+        "O04"
+      ],
+      "evidence": [
+        "src/ordivon_host_v2/social_graph.py",
+        "src/ordivon_host_v2/social_store.py",
+        "src/ordivon_host_v2/social_work_mcp.py",
+        "tests/test_social_work_fabric_postgres.py::test_r2_topic_cursor_relation_readback_reasons_and_reentry",
+        "tests/test_social_work_fabric_social_graph.py::test_message_reply_is_relation_not_message_kind",
+        "tests/test_mcp_surface_identity.py"
+      ],
+      "consumers": [
+        "MCP message.relation.add and message.relation.list",
+        "SocialStore typed relation persistence and directional read clients",
+        "tests/test_social_work_fabric_postgres.py::test_r2_topic_cursor_relation_readback_reasons_and_reentry"
+      ],
+      "consumerEvidence": [
+        "src/ordivon_host_v2/social_work_mcp.py",
+        "tests/test_social_work_fabric_postgres.py",
+        "tests/test_mcp_surface_identity.py"
+      ],
+      "mustNotOwn": [
+        "authentication/principal credential verification",
+        "domain acceptance or consensus",
+        "Work assignment/priority",
+        "Runtime physical execution authority",
+        "message-content equality or digest proof supplied by O10"
+      ],
+      "acceptance": [
+        "MCP service binds both message.relation.add and message.relation.list to exact SocialStore methods, and test_mcp_surface_identity protects the exported tool names.",
+        "Source-qualified Postgres test exercises reply_to and mentions typed relation readback with directional projection; all other types and installed clients remain unproven.",
+        "Negative direction / pagination / target-scope and response replay are contract obligations; a static source declaration alone does not discharge them.",
+        "On exact candidate source 07885e91, isolated disposable PostgreSQL 18.6 with Alembic schema 10 ran the target relation consumer test and full Host suite successfully; source-to-production-installed/refinement remains UNKNOWN."
+      ],
+      "formalObligations": [
+        "Transactional uniqueness + exact idempotent receipt and target admissibility of typed edges under concurrent writes",
+        "Bounded list ordering, no dropped eligible relation within a declared snapshot/change-sequence horizon",
+        "Source/Postgres schema/model to installed Host binary + authenticated MCP principal bridge remains UNKNOWN",
+        "No inference from social relation labels to domain authority or replacement equivalence"
+      ],
+      "replacementContract": "Substitute only with consumer-verified add/list wire behavior, relation kind and endpoint semantics, idempotent receipts, bounded direction/filter/paging, same PostgreSQL source state and admitted principal; static compatibility is insufficient.",
+      "evidenceScope": {
+        "sourceCut": "719745849d45f179003b40a679fb60517ea260af",
+        "qualification": "SOURCE_AND_BOUNDED_NATIVE_CONSUMER_TESTS",
+        "installedCurrentness": "UNKNOWN",
+        "formalProof": "UNKNOWN",
+        "dynamicConsumerClosure": "UNKNOWN",
+        "invalidatedBy": [
+          "host src/schema/constraints change",
+          "Host MCP route or consumer contract changes",
+          "installed principal/config/provider change",
+          "underlying PostgreSQL transaction semantics change"
+        ],
+        "implementationEvidence": {
+          "kind": "BOUNDED_OWNER_NATIVE_POSTGRESQL_TEST",
+          "observedSourceCut": "07885e91a9c35bda9d5d0b2a197acc50c1688d34",
+          "database": "PostgreSQL 18.6, disposable locally initialized cluster; local UNIX socket only; no TCP listener; deleted after test",
+          "schema": "Alembic upgrade head, Host schema 10",
+          "targetTest": "tests/test_social_work_fabric_postgres.py::test_r2_topic_cursor_relation_readback_reasons_and_reentry",
+          "targetRunJobId": "job-01a17cbf-a913-7fa3-8122-23985504f3c4",
+          "targetResult": "1 passed, no skipped tests",
+          "fullHostSuiteRunJobId": "job-01a17cc0-d139-7873-ac50-71ec1cef0c61",
+          "fullHostSuiteResult": "all collected 402 Host tests passed on isolated PostgreSQL, no skipped tests; session exit 0",
+          "scope": "bounded isolated implementation consumer tests; neither live Host installed version identity nor arbitrary relation effect/formal refinement certified"
+        }
+      },
+      "nextAction": "Independent owner-native consumer CDC with authenticated installed Host, plus model-to-SQL continuity validation; do not mislabel SOURCE as INSTALLED."
     }
   ],
   "edges": [
@@ -495,11 +582,23 @@
       "to": "O03",
       "type": "DATA",
       "label": "committed social rows feed actor-scoped navigation"
+    },
+    {
+      "from": "O04",
+      "to": "O13",
+      "type": "DEPENDENCY",
+      "label": "PostgreSQL durable relation rows and receipt transaction prerequisite"
+    },
+    {
+      "from": "O02",
+      "to": "O13",
+      "type": "COMPOSITION",
+      "label": "SocialJournal recursively contains MessageRelation responsibility; no behavior refinement proof claimed"
     }
   ],
   "slices": [],
   "gaps": [
-    "Work relation DAG, ActorRef declaration, subscription lifecycle, Space participation, message relations, coordination intents and FTS remain under existing parents pending deeper independent contract qualification.",
+    "Work relation DAG, ActorRef declaration, subscription lifecycle, Space participation, coordination intents and FTS remain under existing parents pending deeper independent contract qualification.",
     "Declared relationships are source/consumer candidates; complete dynamic consumer coverage and universal refinement remain UNKNOWN."
   ],
   "doNotOwn": [

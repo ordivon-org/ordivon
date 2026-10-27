@@ -1831,3 +1831,35 @@ def test_gateway_new_recipes_and_optional_worker_have_distinct_native_consumers(
         edge["from"] == "G08" and edge["to"] == "G03" and edge["type"] == "AUTHORITY"
         for edge in plan["edges"]
     )
+
+
+def test_phase1_host_real_typed_message_relation_consumer_contract_is_source_qualified() -> None:
+    """Protect O13 as real Host MCP add/list responsibility, not a row-name clone."""
+    from pathlib import Path
+
+    plan = module._load_json(ROOT / "services/host/planning/lego-plan-r1.json")
+    node = next(n for n in plan["nodes"] if n["id"] == "O13")
+    assert node["parent"] == "O02"
+    assert "O13" in next(n for n in plan["nodes"] if n["id"] == "O02")["children"]
+    for member in ("inputs", "outputs", "behavioralContract", "acceptance", "formalObligations", "consumerEvidence", "replacementContract"):
+        assert node.get(member), member
+    assert node["evidenceScope"]["installedCurrentness"] == "UNKNOWN"
+    assert node["evidenceScope"]["formalProof"] == "UNKNOWN"
+    bindings = (ROOT / "services/host/src/ordivon_host_v2/social_work_mcp.py").read_text()
+    store = (ROOT / "services/host/src/ordivon_host_v2/social_store.py").read_text()
+    for wire, call in [
+        ("message.relation.add", "social.add_message_relation("),
+        ("message.relation.list", "social.list_message_relations("),
+    ]:
+        assert f'@mcp.tool(name="{wire}")' in bindings
+        assert call in bindings
+    assert "def add_message_relation(" in store and "def list_message_relations(" in store
+    assert "INSERT INTO message_relations" in store
+    assert any(
+        e["from"] == "O02" and e["to"] == "O13" and e["type"] == "COMPOSITION"
+        for e in plan["edges"]
+    )
+    assert any(
+        e["from"] == "O04" and e["to"] == "O13" and e["type"] == "DEPENDENCY"
+        for e in plan["edges"]
+    )
