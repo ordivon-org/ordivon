@@ -100,6 +100,94 @@ def _normalize(path: str) -> str:
 OWNERS: tuple[Owner, ...] = load_owners()
 
 
+# Exact Git source area projection. Orthogonal to mechanical verification Owner
+# selection and to the independent R2.1 LEGO contract, consumer and proof graph.
+@dataclass(frozen=True)
+class SourceArea:
+    name: str
+    role: str
+    root: str = ""
+    files: tuple[str, ...] = ()
+
+
+def load_source_areas(manifest: Path = MANIFEST_PATH) -> tuple[SourceArea, ...]:
+    data = tomllib.loads(manifest.read_text(encoding="utf-8"))
+    known_owners = load_owners(manifest)
+    result: list[SourceArea] = []
+    for index, item in enumerate(data.get("source_areas", [])):
+        name, role = item.get("name"), item.get("role")
+        root, files = item.get("root", ""), item.get("files", [])
+        if not isinstance(name, str) or not name or not isinstance(role, str) or not role:
+            raise ValueError(f"source area {index}: missing name/role")
+        if not isinstance(root, str) or not isinstance(files, list) or bool(root) == bool(files):
+            raise ValueError(f"source area {name}: exactly one root or files is required")
+        if root:
+            if not root.endswith("/") or root.startswith("/") or _normalize(root).rstrip("/") + "/" != root:
+                raise ValueError(f"source area {name}: noncanonical root")
+            if any(root.startswith(o.root) or o.root.startswith(root) for o in known_owners):
+                raise ValueError(f"source area {name}: overlaps mechanical Owner")
+        if not all(isinstance(x, str) and x and "/" not in x and _normalize(x) == x for x in files):
+            raise ValueError(f"source area {name}: invalid exact root file")
+        result.append(SourceArea(name, role, root, tuple(files)))
+    names = [x.name for x in result]
+    roots = [x.root for x in result if x.root]
+    files = [y for x in result for y in x.files]
+    if len(names) != len(set(names)) or len(roots) != len(set(roots)) or len(files) != len(set(files)):
+        raise ValueError("source areas contain duplicate names/roots/files")
+    return tuple(result)
+
+
+def source_area_for_path(path: str, *,
+                         owners: tuple[Owner, ...] = OWNERS,
+                         areas: tuple[SourceArea, ...] | None = None) -> tuple[str, str]:
+    """Location/role only. Never LEGO qualification or evidence of consumers."""
+    path = _normalize(path)
+    matching_owner = next((o for o in owners if path.startswith(o.root)), None)
+    if matching_owner:
+        return ("OWNER:" + matching_owner.name, "VERIFICATION_PARTITION_NOT_LEGO")
+    matched = [a for a in (areas if areas is not None else load_source_areas())
+               if path in a.files or (a.root and path.startswith(a.root))]
+    if not matched:
+        return ("UNCLASSIFIED", "UNKNOWN_NOT_FALSE")
+    # Exact root files trump prefixes; nested explicit core beats generic Skill source.
+    matched.sort(key=lambda a: (bool(a.files), len(a.root)), reverse=True)
+    return (matched[0].name, matched[0].role)
+
+
+def tracked_source_area_census(paths: Iterable[str] | None = None) -> dict[str, object]:
+    """Git-index path currentness, explicitly not working-tree or runtime truth."""
+    repo = Path(__file__).resolve().parents[2]
+    if paths is None:
+        raw = subprocess.check_output(["git", "-C", str(repo), "ls-files", "-z"])
+        paths = [p.decode("utf-8", errors="surrogateescape")
+                 for p in raw.split(b"\0") if p]
+    counts: dict[str, int] = {}
+    unknown: list[str] = []
+    for path in paths:
+        area, _role = source_area_for_path(path)
+        counts[area] = counts.get(area, 0) + 1
+        if area == "UNCLASSIFIED":
+            unknown.append(path)
+    head = subprocess.check_output(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+    ).strip()
+    index_equal = subprocess.run(
+        ["git", "-C", str(repo), "diff", "--cached", "--quiet"],
+        check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+    ).returncode == 0
+    return {
+        "kind": "ordivon.repo-source-area-census-r1",
+        "sourceCut": head,
+        "basis": "git-index-path-projection-only",
+        "indexEqualsHead": index_equal,
+        "ownerPartitions": len(OWNERS),
+        "tracked": sum(counts.values()),
+        "byArea": dict(sorted(counts.items())),
+        "unclassifiedPaths": sorted(unknown),
+        "semanticQualification": "SOURCE_SCOPE_ONLY_NOT_LEGO_CONSUMER_OR_FORMAL_PROOF",
+    }
+
+
 # Verification admission is strict for executable owners. Read-only owner
 # discovery stays permissive so unknown paths remain inspectable.
 EXECUTABLE_OWNER_ROOTS = (
@@ -159,6 +247,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--base")
     parser.add_argument("--head")
     parser.add_argument("--all", action="store_true")
+    parser.add_argument("--source-census", action="store_true")
     parser.add_argument("--changed-file", action="append", default=[])
     parser.add_argument(
         "--format",
@@ -170,6 +259,10 @@ def _parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     args = _parser().parse_args()
+    if args.source_census:
+        result = tracked_source_area_census()
+        print(json.dumps(result, sort_keys=True))
+        return 2 if result["unclassifiedPaths"] else 0
     if args.all:
         selected = OWNERS
         paths: tuple[str, ...] = ()

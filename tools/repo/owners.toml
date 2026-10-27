@@ -94,3 +94,57 @@ verify_task = "capital:verify"
 name = "web"
 root = "apps/web/"
 verify_task = "web:verify"
+
+
+# Git source layout facets, NOT Repo Owners, LEGO identities or a Registry.
+# Longest-prefix match only expresses location and carrier role.
+# No new physical path or source is silently classified.
+[[source_areas]]
+name = "lego-calculus-core"
+root = ".agents/skills/recursive-lego-calculus/"
+role = "NORMATIVE_METHOD_SPEC"
+
+[[source_areas]]
+name = "portable-agent-skills"
+root = ".agents/skills/"
+role = "PORTABLE_SKILL_SOURCE"
+
+[[source_areas]]
+name = "repository-mechanics"
+root = "tools/repo/"
+role = "REPOSITORY_MECHANICS"
+
+[[source_areas]]
+name = "formal-tool-adapters"
+root = "tools/formal/"
+role = "MATURE_FORMAL_VERIFIER_ADAPTERS"
+
+[[source_areas]]
+name = "research-publication-seams"
+root = "meta/research/"
+role = "RESEARCH_PUBLICATION_CONTRACT"
+
+[[source_areas]]
+name = "research-tool-profiles"
+root = "profiles/research/"
+role = "RESEARCH_TOOL_QUALIFICATION_PROFILE"
+
+[[source_areas]]
+name = "cross-domain-catalog-tests"
+root = "tests/"
+role = "CROSS_DOMAIN_CONTRACT_TEST"
+
+[[source_areas]]
+name = "architecture-documents"
+root = "docs/"
+role = "SHARED_DOC_EVIDENCE_NOT_FORMAL"
+
+[[source_areas]]
+name = "repository-ci"
+root = ".github/"
+role = "REPOSITORY_CI_CONFIGURATION"
+
+[[source_areas]]
+name = "repository-root-config"
+files = [".gitignore", ".gitleaksignore", "AGENTS.md", "README.md", "mise.toml", "renovate.json"]
+role = "REPOSITORY_ROOT_CONFIGURATION"

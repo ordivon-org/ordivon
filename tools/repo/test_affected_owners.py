@@ -25,6 +25,47 @@ class AffectedOwnersTests(unittest.TestCase):
     def queue_tasks(self, *paths: str) -> list[str]:
         return [owner.queue_task for owner in MODULE.owners_for_paths(paths)]
 
+    def test_lego_core_is_independent_method_source_not_an_execution_owner(self) -> None:
+        self.assertEqual(
+            MODULE.source_area_for_path(".agents/skills/recursive-lego-calculus/references/formal-model.md"),
+            ("lego-calculus-core", "NORMATIVE_METHOD_SPEC"),
+        )
+        self.assertEqual(MODULE.source_area_for_path(".agents/skills/artifact-work/SKILL.md")[0],
+                         "portable-agent-skills")
+
+    def test_source_scope_distinguishes_real_support_lifecycles(self) -> None:
+        cases = {
+            "tools/repo/check_architecture_docs.py": "repository-mechanics",
+            "tools/formal/RecursiveLegoRefinement.lean": "formal-tool-adapters",
+            "meta/research/publication-closure-profile-r1.json": "research-publication-seams",
+            "profiles/research/tool-qualification/TOOL_QUALIFICATION_R1.md": "research-tool-profiles",
+            "tests/catalogs/test_research_tool_and_mechanical_component_contracts.py": "cross-domain-catalog-tests",
+            "docs/architecture/structure-r2-transition-r1.json": "architecture-documents",
+            ".github/workflows/ci.yml": "repository-ci",
+            "mise.toml": "repository-root-config",
+        }
+        for path, area in cases.items():
+            with self.subTest(path=path):
+                self.assertEqual(MODULE.source_area_for_path(path)[0], area)
+        self.assertEqual(MODULE.source_area_for_path("services/runtime/README.md")[0], "OWNER:runtime")
+
+    def test_new_unknown_locations_remain_explicit_unknown(self) -> None:
+        for path in ("tools/new-framework/foo.py", "meta/new-category/foo.json",
+                     "packages/unknown-application/lib.rs", "unknown-root/file.md"):
+            with self.subTest(path=path):
+                self.assertEqual(MODULE.source_area_for_path(path),
+                                 ("UNCLASSIFIED", "UNKNOWN_NOT_FALSE"))
+        report = MODULE.tracked_source_area_census(
+            ["tools/formal/verify.py", "services/runtime/README.md", "tools/new-framework/foo.py"])
+        self.assertEqual(report["unclassifiedPaths"], ["tools/new-framework/foo.py"])
+        self.assertEqual(report["ownerPartitions"], 18)
+
+    def test_source_area_roles_do_not_overlap_registered_owners(self) -> None:
+        areas = MODULE.load_source_areas()
+        self.assertEqual(len(areas), 10)
+        for area in areas:
+            self.assertFalse(any(area.root.startswith(o.root) for o in MODULE.OWNERS))
+
     def test_owner_local_change_selects_only_that_owner(self) -> None:
         self.assertEqual(
             self.names("platform/skills/src/ordivon_skills/catalog.py"),
