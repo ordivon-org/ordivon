@@ -178,6 +178,22 @@ class ArtifactDeliveryTests(unittest.TestCase):
                 result,
             )
 
+    def test_vsa_policy_reuses_unambiguous_core_json_contract(self) -> None:
+        # Trust policy admission must not revive a second last-key-wins validator.
+        self.assertIs(trust_vsa.validate_json_document, validate_json_document)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "policy.json"
+            path.write_text(
+                '{"policyVersion":0,"policyVersion":1,"id":"shadow","signers":[]}',
+                encoding="utf-8",
+            )
+            result = trust_vsa.validate_vsa_trust_policy(path)
+            self.assertEqual(result["status"], "FAIL", result)
+            self.assertTrue(
+                any("duplicate JSON key: policyVersion" in item for item in result["failures"]),
+                result,
+            )
+
     def test_presentation_consumer_rejects_ambiguous_source_kind(self) -> None:
         from artifact_capabilities.presentation.admission import admit_presentation_source
 
