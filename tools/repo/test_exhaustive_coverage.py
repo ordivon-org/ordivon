@@ -412,3 +412,105 @@ class ExactGitCrossFormatReferenceTests(unittest.TestCase):
             M.exact_git_reference_hints(ROOT, self.cut, [target], per_path_limit=0)
         with self.assertRaises(ValueError):
             M.exact_git_reference_hints(ROOT, self.cut, [target], per_path_limit=257)
+
+
+class ProblemLegoDerivedFrontierTests(unittest.TestCase):
+    """Problem LEGO candidates are identities for questions, never execution authority."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.cut = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"],
+            text=True,
+        ).strip()
+        cls.inventory = M.classification(ROOT, cls.cut)
+        cls.cells = M.active_source_cells(
+            cls.inventory, repo=ROOT, include_member_index=True,
+        )
+        cls.frontier = M.derive_problem_legos(cls.inventory, repo=ROOT)
+
+    def test_no_problem_lost_or_duplicated_or_solved(self):
+        f = self.frontier
+        cells = self.cells
+        assert f["sourceCut"] == self.cut
+        assert f["sourceTree"] == self.inventory["sourceTree"]
+        assert f["proofReuseAdmissible"] is False
+        assert f["summary"]["trackedSourcePaths"] == self.inventory["summary"]["trackedPaths"]
+        assert f["summary"]["recursiveSourceCells"] == cells["summary"]["cells"]
+        assert f["summary"]["problemBearingCells"] == cells["summary"]["problemCells"]
+        assert f["summary"]["problemCounts"] == cells["summary"]["problemCounts"]
+        assert f["summary"]["problemLegos"] == sum(
+            len(c["problems"]) for c in cells["cells"]
+        )
+        assert len(f["problemLegos"]) == len({p["problemRef"] for p in f["problemLegos"]})
+        for p in f["problemLegos"]:
+            assert p["kind"] == "ordivon.phase1.pending-source-problem-lego"
+            assert p["standing"] == "PROBLEM_DISCOVERED_NOT_YET_RESOLVED"
+            assert p["consumerStanding"] == p["formalStanding"] == p["installedStanding"] == "UNKNOWN"
+            assert p["invocationStanding"] == "NOT_MAPPED"
+            assert p["replaceOrDeleteStanding"] == "NOT_QUALIFIED"
+
+    def test_source_atoms_are_exact_git_and_density_is_flat_not_fake_semantics(self):
+        actual = {i["path"]: i["sourceIdentity"] for i in self.inventory["sourcePaths"]}
+        by_cell = {x["memberGitObjectDigest"]: x for x in self.cells["cells"]}
+        dense_members = []
+        for p in self.frontier["problemLegos"]:
+            c = by_cell[p["sourceCellDigest"]]
+            assert p["issue"] in c["problems"]
+            assert len(p["sourceAtoms"]) == p["sourcePathCount"] == c["pathCount"]
+            for a in p["sourceAtoms"]:
+                assert actual[a["sourcePath"]] == a["sourceIdentity"]
+                assert self.cells["memberCellDigests"][a["sourcePath"]] == p["sourceCellDigest"]
+                assert a["proposedClassification"] is None
+            if p["issue"] == "DENSE_CELL_REQUIRES_SUBCLASSIFICATION_REVIEW":
+                assert p["densityCause"] in (
+                    "FLAT_DIRECTORY_ATOMIC_SOURCE_FILES",
+                    "RECURSIVE_DEPTH_CAP_REACHED",
+                    "MIXED_DIRECT_AND_NESTED_PATHS_REQUIRE_RECHECK",
+                )
+                dense_members += [a["sourcePath"] for a in p["sourceAtoms"]]
+        assert len(dense_members) == len(set(dense_members))
+        assert len(dense_members) == self.frontier["summary"]["denseSourceAtomIncidences"]
+
+    def test_plan_issue_references_only_actual_problematic_declarations(self):
+        expected = {
+            n["nodeRef"]: n["problems"]
+            for n in self.inventory["semanticPlans"]["nodes"]
+            if n["problems"]
+        }
+        got = {}
+        for p in self.frontier["problemLegos"]:
+            if p["issue"] == "PLAN_DECLARATION_GAPS_REQUIRE_SEMANTIC_MAPPING":
+                got.update(p["planNodeDeclaredProblems"])
+                assert set(p["planNodeRefs"]) == set(p["planNodeDeclaredProblems"])
+                for ref in p["planNodeRefs"]:
+                    assert "#" in ref and ref in expected
+                    assert any(a["sourcePath"] == ref.split("#", 1)[0]
+                               for a in p["sourceAtoms"])
+            else:
+                assert not p["planNodeRefs"]
+                assert not p["planNodeDeclaredProblems"]
+        assert got == expected
+
+    def test_repeatable_no_mutation_without_leaking_runtime_trust(self):
+        again = M.derive_problem_legos(self.inventory, repo=ROOT)
+        assert again == self.frontier
+        assert "decisionsDeferred" in again
+        assert "CONSUMER_AND_INVOCATION_GRAPH" in again["decisionsDeferred"]
+        assert all("consumerEvidence" not in x for x in again["problemLegos"])
+        assert all("invocation" not in x for x in again["problemLegos"])
+
+    def test_tampered_git_blob_identity_rejected(self):
+        import copy
+        corrupted = copy.deepcopy(self.inventory)
+        corrupted["sourcePaths"][0]["sourceIdentity"] = "100644:blob:" + "0" * 40
+        with self.assertRaisesRegex(ValueError, "differ from exact Git"):
+            M.derive_problem_legos(corrupted, repo=ROOT)
+
+    def test_proposal_needs_explicit_exact_source_and_may_not_grant_proof(self):
+        with self.assertRaisesRegex(ValueError, "proposal"):
+            M.derive_problem_legos(self.inventory, repo=ROOT, use_proposal=True)
+
+    def test_invalid_limits_fail_closed(self):
+        with self.assertRaisesRegex(ValueError, "cell limits"):
+            M.derive_problem_legos(self.inventory, repo=ROOT, max_files=0)
