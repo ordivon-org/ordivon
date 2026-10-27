@@ -361,6 +361,36 @@ class SourceClassificationTests(unittest.TestCase):
         assert by_path["services/runtime/Cargo.toml"]["classificationLayer"] == "REPOSITORY_VERIFICATION_REGION"
         assert by_path["services/runtime/Cargo.toml"]["verificationOwner"] == "runtime"
 
+    def test_gap_projection_exposes_unknown_source_cells_without_inventing_authority(self) -> None:
+        # A completely assigned Git tree may still contain unqualified meaning.
+        for name in (
+            "services/runtime/config/opaque.blob",
+            "services/runtime/crates/unseen-third-party/src/lib.rs",
+        ):
+            file = self.repo / name
+            file.parent.mkdir(parents=True, exist_ok=True)
+            file.write_text("unknown")
+        cut = self.commit()
+        result = MODULE.project_source_classification_gaps(self.project(cut))
+        self.assertEqual(result["sourceRevision"], cut)
+        self.assertEqual(result["truthRole"],
+                         "SOURCE_NAVIGATION_GAPS_NOT_SEMANTIC_LEGO_PROOF_OR_INSTALLATION")
+        self.assertEqual(result["semanticCompletion"], "UNKNOWN")
+        self.assertFalse(result["proofReuseAdmissible"])
+        self.assertGreaterEqual(result["gapSummary"]["UNASSIGNED_OR_AMBIGUOUS_PATH"]["paths"], 1)
+        self.assertEqual(result["gapSummary"]["UNQUALIFIED_SECTION"]["paths"], 0)
+        self.assertGreaterEqual(result["gapSummary"]["MIXED_ROOT_CARRIERS"]["paths"], 1)
+        self.assertGreaterEqual(result["gapSummary"]["UNQUALIFIED_NESTED_CELL"]["paths"], 1)
+        self.assertGreaterEqual(result["gapSummary"]["OPAQUE_FILE_FORM"]["paths"], 1)
+        gaps = {(x["gapKind"], x["sourceLocator"]): x for x in result["groups"]}
+        self.assertIn(("UNASSIGNED_OR_AMBIGUOUS_PATH", "loose/unplaced.txt"), gaps)
+        self.assertIn(("MIXED_ROOT_CARRIERS", "runtime/(root-files)"), gaps)
+        self.assertIn(("UNQUALIFIED_NESTED_CELL",
+                       "runtime/crates/unseen-third-party"), gaps)
+        self.assertIn(("OPAQUE_FILE_FORM", "runtime/config/(direct-files)"), gaps)
+        self.assertIn("services/runtime/config/opaque.blob",
+                      gaps[("OPAQUE_FILE_FORM", "runtime/config/(direct-files)")]["sampleGitPaths"])
+
     def test_semantic_names_do_not_become_verification_authorities(self) -> None:
         # Source presentation changes without changing the actual owner ID
         # or granting it an additional verification task or runtime authority.
@@ -380,7 +410,7 @@ class SourceClassificationTests(unittest.TestCase):
         assert row["services/runtime/main.rs"]["verificationOwner"] == "runtime"
         assert row["services/runtime/main.rs"]["semanticName"] == "Execution Runtime"
         assert row["services/runtime/main.rs"]["sourceSection"] == "runtime/(root-files)"
-        assert row["services/runtime/main.rs"]["sourceSectionRole"] == "UNQUALIFIED_SECTION"
+        assert row["services/runtime/main.rs"]["sourceSectionRole"] == "MIXED_ROOT_CARRIER_FORMS_NOT_ONE_RESPONSIBILITY"
         # No automatic promotion of an arbitrary root source into a LEGO type.
         assert row["services/runtime/main.rs"]["classificationLayer"] == "REPOSITORY_VERIFICATION_REGION"
         assert row[".agents/skills/recursive-lego-calculus/SKILL.md"]["semanticName"] == "Agent methods not service routing"

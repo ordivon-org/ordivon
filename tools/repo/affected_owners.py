@@ -298,7 +298,7 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
         "standards": "STANDARD_SOURCE",
         "packaging": "DISTRIBUTION_PACKAGE_SOURCE",
         "tools": "TOOL_SOURCE",
-        "root-files": "UNQUALIFIED_SECTION",
+        "(root-files)": "MIXED_ROOT_CARRIER_FORMS_NOT_ONE_RESPONSIBILITY",
     }
     # Narrow, evidence-grounded names, not inferred from "destroyer"/"wave".
     # Actual consumers:
@@ -579,6 +579,95 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
         "skills/plugins/ordivon-skills-bridge": "SKILLS_MCP_CLIENT_PLUGIN_CONFIGURATION_SOURCE",
         "gateway/systemd/ordivon-gateway.service.d": "GATEWAY_SYSTEMD_DROPIN_TEMPLATE_SOURCE",
         "media/media-v2/bin": "MEDIA_V2_LAUNCHER_SOURCE",
+        # Additional path-grounded second-level source-form locations; no LEGO qualification.
+        "artifact/artifact-delivery/node": "ARTIFACT_NODE_TOOLCHAIN_BINDING_SOURCE",
+        "artifact/planning/prototypes": "ARTIFACT_PROTOTYPE_PLANNING_SOURCE",
+        "media/media-v2/profiles": "MEDIA_V2_PROFILE_SOURCE",
+        "capital/contracts/legacy_protocol_v1": "CAPITAL_HISTORICAL_PROTOCOL_CONTRACT_SOURCE",
+        "capital/data-products/crypto-public-shadow-r2": "CAPITAL_CRYPTO_SHADOW_DATA_PRODUCT_SOURCE",
+        "capital/fixtures/r5_legacy_bounded": "CAPITAL_LEGACY_BOUNDED_FIXTURE_SOURCE",
+        "next/evidence/data-products": "NEXT_DATA_PRODUCT_EVIDENCE_SOURCE",
+        "next/policies/research-adopted-r1": "NEXT_RESEARCH_POLICY_REFERENCE_SOURCE",
+        "network/history/evidence": "NETWORK_HISTORICAL_EVIDENCE_SOURCE",
+        "harness/fixtures/harness-replacement-repository-repair-v1": "HARNESS_REPOSITORY_REPAIR_FIXTURE_SOURCE",
+        "runtime/examples/runtime-demo": "RUNTIME_DEMONSTRATION_EXAMPLE_SOURCE",
+        "runtime/research/engineering": "RUNTIME_ENGINEERING_RESEARCH_SOURCE",
+        "artifact/artifact-delivery/donor-r1": "ARTIFACT_DONOR_MANIFEST_AND_WITNESS_SOURCE",
+        "artifact/artifact-delivery/python-uv": "ARTIFACT_PYTHON_UV_TOOLCHAIN_SOURCE",
+        "artifact/artifact_operations/providers": "ARTIFACT_OPERATION_PROVIDER_MODULE_SOURCE",
+        "media/creative-library/web": "MEDIA_CREATIVE_LIBRARY_WEB_INTERFACE_SOURCE",
+        "media/docs/resolve-compatibility": "MEDIA_RESOLVE_COMPATIBILITY_EVIDENCE_SOURCE",
+        "media/packages/identity": "MEDIA_IDENTITY_TOKEN_PACKAGE_SOURCE",
+        "media/packages/visuals": "MEDIA_VISUAL_COMPONENT_PACKAGE_SOURCE",
+        "capital/evidence/data-products": "CAPITAL_DATA_PRODUCT_CONSUMPTION_EVIDENCE_SOURCE",
+        "harness/.github/ISSUE_TEMPLATE": "HARNESS_GITHUB_ISSUE_TEMPLATE_SOURCE",
+        "harness/.github/workflows": "HARNESS_GITHUB_WORKFLOW_SOURCE",
+        "harness/evidence/browser-security": "HARNESS_BROWSER_SECURITY_OBSERVATION_SOURCE",
+        "harness/fixtures/harness-edit-addressing-repeated-v1": "HARNESS_REPEATED_EDIT_ADDRESSING_FIXTURE_SOURCE",
+        "harness/fixtures/harness-edit-multiregion-v1": "HARNESS_MULTIREGION_EDIT_FIXTURE_SOURCE",
+        "harness/research/fixtures": "HARNESS_RESEARCH_TEST_FIXTURE_SOURCE",
+        "runtime/.github/ISSUE_TEMPLATE": "RUNTIME_GITHUB_ISSUE_TEMPLATE_SOURCE",
+        "runtime/.github/workflows": "RUNTIME_GITHUB_WORKFLOW_SOURCE",
+        "runtime/platform/windows": "RUNTIME_WINDOWS_JOB_BRIDGE_SOURCE",
+        "skills/tests/fixtures": "SKILLS_PLUGIN_SCHEMA_TEST_FIXTURES",
+        "workstation/contracts/asyncapi": "WORKSTATION_ASYNCAPI_CONTRACT_SOURCE",
+        "workstation/systemd/service-profiles": "WORKSTATION_SYSTEMD_PROFILE_SOURCE",
+        "artifact/artifact-delivery/openxml-nix": "ARTIFACT_OPENXML_NIX_TOOLCHAIN_SOURCE",
+        "artifact/artifact-delivery/openxml-validator": "ARTIFACT_OPENXML_VALIDATOR_SOURCE",
+        "artifact/tests/fixtures": "ARTIFACT_TEST_FIXTURE_SOURCE",
+        "harness/docs/superpowers": "HARNESS_HISTORICAL_IMPLEMENTATION_PLAN_SOURCE",
+        "next/docs/superpowers": "NEXT_HISTORICAL_AGENT_METHOD_PLAN_SOURCE",
+        "harness/research/authority": "HARNESS_RESEARCH_AUTHORITY_RECORD_SOURCE",
+        "harness/src/anc_canonical": "HARNESS_CANONICALIZATION_PYTHON_MODULE_SOURCE",
+        "harness/tests/fixtures": "HARNESS_BOUNDARY_TEST_FIXTURE_SOURCE",
+        "host/packaging/systemd": "HOST_SYSTEMD_SERVICE_PACKAGE_SOURCE",
+        "media/.github/workflows": "MEDIA_GITHUB_WORKFLOW_SOURCE",
+        "media/media-v2/migrations": "MEDIA_V2_HISTORICAL_MIGRATION_SOURCE",
+        "network/.github/workflows": "NETWORK_GITHUB_WORKFLOW_SOURCE",
+        "network/capabilities/wireguard": "NETWORK_WIREGUARD_REFERENCE_SOURCE",
+        "next/evidence/experimental-episode": "NEXT_EXPERIMENTAL_EPISODE_EVIDENCE_SOURCE",
+        "security/contracts/agent-admission-v1": "SECURITY_AGENT_ADMISSION_CONTRACT_SOURCE",
+        "security/contracts/gateway-capability-authz-v1": "SECURITY_GATEWAY_AUTHORIZATION_CONTRACT_SOURCE",
+        "security/fixtures/clean": "SECURITY_CLEAN_TEST_FIXTURE_SOURCE",
+        "security/fixtures/smoke": "SECURITY_SMOKE_TEST_FIXTURE_SOURCE",
+        "security/providers/packer": "SECURITY_PACKER_PROVIDER_CONFIGURATION_SOURCE",
+        "workstation/n8n/workflows": "WORKSTATION_N8N_WORKFLOW_SOURCE",
+        "workstation/observability/gatus": "WORKSTATION_GATUS_OBSERVABILITY_SOURCE",
+        "artifact/.github/workflows": "ARTIFACT_GITHUB_WORKFLOW_SOURCE",
+        "artifact/artifact-delivery/policy": "ARTIFACT_DELIVERY_REGO_POLICY_SOURCE",
+        "artifact/artifact-delivery/verification": "ARTIFACT_DELIVERY_JSON_SCHEMA_SOURCE",
+        "artifact/config/zot": "ARTIFACT_ZOT_LOCAL_REGISTRY_CONFIGURATION_SOURCE",
+        "capital/.github/workflows": "CAPITAL_GITHUB_WORKFLOW_SOURCE",
+        "capital/data/derived": "CAPITAL_DERIVED_DATA_DIRECTORY_PLACEHOLDER",
+        "capital/data/raw": "CAPITAL_RAW_DATA_DIRECTORY_PLACEHOLDER",
+        "capital/infra/systemd": "CAPITAL_SYSTEMD_CLOCK_SYNC_DECLARATION",
+        "capital/schema/legacy_protocol_v1": "CAPITAL_HISTORICAL_PROTOCOL_SCHEMA_SOURCE",
+        "distribution/.github/workflows": "DISTRIBUTION_GITHUB_WORKFLOW_SOURCE",
+        "distribution/tests/fixtures": "DISTRIBUTION_PROVIDER_OPENAPI_TEST_FIXTURE",
+        "harness/schemas/agent-automation": "HARNESS_AGENT_AUTOMATION_JSON_SCHEMA_SOURCE",
+        "host/.github/workflows": "HOST_GITHUB_WORKFLOW_SOURCE",
+        "media/artifacts/creative-archive": "MEDIA_CREATIVE_ARCHIVE_HISTORICAL_RECORD_SOURCE",
+        "network/capabilities/failover": "NETWORK_FAILOVER_ACCEPTANCE_SCRIPT_SOURCE",
+        "network/config/blackbox": "NETWORK_BLACKBOX_EXPORTER_CONFIGURATION_SOURCE",
+        "network/config/prometheus": "NETWORK_PROMETHEUS_CONFIGURATION_SOURCE",
+        "network/config/sing-box": "NETWORK_SING_BOX_CONFIGURATION_SOURCE",
+        "network/config/sysctl": "NETWORK_SYSCTL_CONFIGURATION_SOURCE",
+        "network/config/toxiproxy": "NETWORK_TOXIPROXY_CONFIGURATION_SOURCE",
+        "next/.github/workflows": "NEXT_GITHUB_WORKFLOW_SOURCE",
+        "next/authorities/generated": "NEXT_GENERATED_AUTHORITY_INDEX_SOURCE",
+        "next/capabilities/artifact": "NEXT_ARTIFACT_CAPABILITY_DESCRIPTION_SOURCE",
+        "next/capabilities/profiles": "NEXT_CAPABILITY_PROFILE_DECLARATION_SOURCE",
+        "runtime/docs/evidence": "RUNTIME_HISTORICAL_VERIFICATION_RECORD_SOURCE",
+        "runtime/docs/reference": "RUNTIME_TOOL_REFERENCE_DOCUMENT_SOURCE",
+        "runtime/docs/superpowers": "RUNTIME_HISTORICAL_DEVELOPMENT_PLAN_SOURCE",
+        "security/fixtures/agent-admission": "SECURITY_AGENT_ADMISSION_TEST_FIXTURE_SOURCE",
+        "security/profiles/migration": "SECURITY_HISTORICAL_GITLEAKS_MIGRATION_PROFILE_SOURCE",
+        "security/profiles/product": "SECURITY_GITLEAKS_PRODUCT_CONFIGURATION_SOURCE",
+        "security/profiles/zap": "SECURITY_LOCAL_ZAP_PROFILE_SOURCE",
+        "workstation/.github/workflows": "WORKSTATION_GITHUB_WORKFLOW_SOURCE",
+        "workstation/contracts/cloudevents": "WORKSTATION_CLOUDEVENTS_SCHEMA_SOURCE",
+        "workstation/contracts/outbox": "WORKSTATION_POSTGRES_OUTBOX_EXAMPLE_SOURCE",
+        "workstation/inventory/snapshots": "WORKSTATION_HISTORICAL_INVENTORY_SNAPSHOT_SOURCE",
     }
 
     root_by_owner = {o.name: o.root for o in native_owners}
@@ -701,6 +790,10 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
                 row["sourceSection"] for row in entries
                 if row["sourceSection"] is not None
             }),
+            "mixedRootCarrierPaths": sum(
+                row["sourceSectionRole"] == "MIXED_ROOT_CARRIER_FORMS_NOT_ONE_RESPONSIBILITY"
+                for row in entries
+            ),
             "unqualifiedOwnerSectionPaths": sum(
                 row["sourceSectionRole"] == "UNQUALIFIED_SECTION"
                 for row in entries
@@ -791,11 +884,76 @@ def project_source_classification_delta(
         "changes": changes,
     }
 
+def project_source_classification_gaps(classification: dict) -> dict:
+    """Compress real SOURCE-only unknowns for Agent-native classification work.
+
+    Total Git path membership does not prove content role qualification. Keep
+    every unqualified carrier visible without a second truth registry or any
+    physical renames. Source plan/manifest claims are not actual consumers.
+    """
+    grouped: dict[tuple[str, str], dict] = {}
+    reasons = (
+        ("UNASSIGNED_OR_AMBIGUOUS_PATH", "classificationStanding",
+         {"UNASSIGNED", "AMBIGUOUS"}, "path"),
+        ("UNQUALIFIED_SECTION", "sourceSectionRole",
+         {"UNQUALIFIED_SECTION"}, "sourceSection"),
+        ("MIXED_ROOT_CARRIERS", "sourceSectionRole",
+         {"MIXED_ROOT_CARRIER_FORMS_NOT_ONE_RESPONSIBILITY"}, "sourceSection"),
+        ("UNQUALIFIED_NESTED_CELL", "sourceCellRole",
+         {"UNQUALIFIED_NESTED_CELL"}, "sourceCell"),
+        ("OPAQUE_FILE_FORM", "sourceFileFormStanding",
+         {"OPAQUE_FORM_NEEDS_CONTENT_EVIDENCE"}, "sourceCell"),
+    )
+    for entry in classification["entries"]:
+        for reason, prop, values, grouping in reasons:
+            if entry[prop] not in values:
+                continue
+            locator = entry[grouping] or entry["path"]
+            key = (reason, locator)
+            slot = grouped.setdefault(key, {
+                "gapKind": reason,
+                "sourceLocator": locator,
+                "pathCount": 0,
+                "sampleGitPaths": [],
+                "standing": "UNKNOWN_SOURCE_CLASSIFICATION_NOT_LEGO_OR_CONSUMER",
+            })
+            slot["pathCount"] += 1
+            if len(slot["sampleGitPaths"]) < 3:
+                slot["sampleGitPaths"].append(entry["path"])
+    groups = sorted(grouped.values(),
+                    key=lambda g: (g["gapKind"], -g["pathCount"], g["sourceLocator"]))
+    by_kind = {}
+    for reason, _, _, _ in reasons:
+        entries = [r for r in groups if r["gapKind"] == reason]
+        by_kind[reason] = {
+            "groups": len(entries),
+            "paths": sum(row["pathCount"] for row in entries),
+        }
+    return {
+        "kind": "ordivon.repository-source-classification-gap-projection",
+        "sourceRevision": classification["sourceRevision"],
+        "sourceTree": classification["sourceTree"],
+        "ownerManifestIdentity": classification["ownerManifestIdentity"],
+        "classifierSourceIdentity": classification["classifierSourceIdentity"],
+        "truthRole": "SOURCE_NAVIGATION_GAPS_NOT_SEMANTIC_LEGO_PROOF_OR_INSTALLATION",
+        "pathClassification": {
+            "trackedPaths": classification["summary"]["trackedPaths"],
+            "unassigned": classification["summary"]["unassigned"],
+            "ambiguous": classification["summary"]["ambiguous"],
+        },
+        "gapSummary": by_kind,
+        "groups": groups,
+        "proofReuseAdmissible": False,
+        "semanticCompletion": "UNKNOWN",
+    }
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Select monorepo owners affected by an exact Git range."
     )
     parser.add_argument("--classify-source-revision", help="exact-cut source navigation; does not select verification")
+    parser.add_argument("--classification-gaps", action="store_true", help="compact unqualified source sections/cells, mixed roots and opaque file forms")
     parser.add_argument("--classify-source-delta-base", help="compare exact Git source identity and source-region membership; no consumer/proof-reuse inference")
     parser.add_argument("--source-path", action="append", default=[], help="restrict exact-cut source navigation output to canonical paths")
     parser.add_argument("--base")
@@ -816,6 +974,8 @@ def main() -> int:
         if args.all or args.base or args.head or args.changed_file or args.format != "json":
             raise SystemExit("source classification cannot be combined with verification selection")
         if args.classify_source_delta_base:
+            if args.classification_gaps:
+                raise SystemExit("classification gaps require one exact source revision")
             if args.source_path:
                 raise SystemExit("source delta must include all reclassified paths")
             result = project_source_classification_delta(
@@ -823,6 +983,10 @@ def main() -> int:
             )
         else:
             result = project_source_classification(Path.cwd(), args.classify_source_revision)
+            if args.classification_gaps:
+                if args.source_path:
+                    raise SystemExit("classification gap inventory requires full Git tree")
+                result = project_source_classification_gaps(result)
             if args.source_path:
                 # Use the independently verified exact-Git query contract from
                 # peer candidate ccd7395; do not create a competing selector.
@@ -840,7 +1004,7 @@ def main() -> int:
                 }
         print(json.dumps(result, sort_keys=True))
         return 0
-    if args.classify_source_delta_base or args.source_path:
+    if args.classify_source_delta_base or args.source_path or args.classification_gaps:
         raise SystemExit("source query requires --classify-source-revision")
     if args.all:
         selected = _default_owners()
