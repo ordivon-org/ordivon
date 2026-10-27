@@ -187,9 +187,12 @@
         }
       ],
       "formalObligations": [
-        "Actual dynamic consumers, installation/environment closure and downstream proof acceptance remain UNKNOWN."
+        "Actual dynamic consumers, installation/environment closure and downstream proof acceptance remain UNKNOWN.",
+        "Model-level impact transport conservativeness: for every declared row r, compact membership is equivalent to original membership AND standing(r) != NO_DECLARED_HIT. This is checked by the Lean kernel in tools/formal/RecursiveLegoRefinement.lean (compact_iff_non_nohit), not a Composition/Python implementation refinement.",
+        "UNKNOWN and any newly encountered non-NO_DECLARED_HIT status must be preserved by compact transport (Lean compact_keeps_unknown and compact_keeps_arbitrary_future_standing).",
+        "NO_DECLARED_HIT does not imply unchanged dynamic consumers, environmental assumptions, or admissible proof reuse; Lean no_declared_hit_does_not_imply_no_external_change proves a counterexample. Composition selection semantics and Repo transport still require an explicit model-to-source implementation bridge and qualified actual consumer/readset."
       ],
-      "qualification": "SOURCE_CONTRACT_IMPLEMENTED; MODEL/INSTALLED/DOMAIN acceptance not inferred"
+      "qualification": "SOURCE_CONTRACT_IMPLEMENTED; Lean formal verification covers conservative list-projection MODEL ONLY, not C04 implementation refinement, installed/consumer/domain acceptance"
     },
     {
       "id": "C05",

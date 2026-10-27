@@ -121,6 +121,49 @@ theorem incompatible_components_are_not_composable :
     have hf : y = false := hS
     simp [ht] at hf
 
+
+-- Conservative transport projection for the currently deployed Repo
+-- --agent-impact algorithm. This is a theorem about *model rows* only;
+-- Git readset closure, dynamic consumers, source-to-code simulation and
+-- installation are intentionally NOT assumed or proved.
+def compactSourceImpact {α : Type} (standing : α → String)
+    (rows : List α) : List α :=
+  rows.filter (fun row => standing row != "NO_DECLARED_HIT")
+
+theorem compact_iff_non_nohit {α : Type} (standing : α → String)
+    (rows : List α) (row : α) :
+    row ∈ compactSourceImpact standing rows ↔
+      row ∈ rows ∧ standing row ≠ "NO_DECLARED_HIT" := by
+  simp [compactSourceImpact]
+
+theorem compact_keeps_unknown {α : Type} (standing : α → String)
+    (rows : List α) (row : α)
+    (hMem : row ∈ rows)
+    (hUnknown : standing row = "UNKNOWN") :
+    row ∈ compactSourceImpact standing rows := by
+  apply (compact_iff_non_nohit standing rows row).2
+  constructor
+  · exact hMem
+  · simp [hUnknown]
+
+theorem compact_keeps_arbitrary_future_standing {α : Type}
+    (standing : α → String) (rows : List α) (row : α)
+    (hMem : row ∈ rows)
+    (hNotNoHit : standing row ≠ "NO_DECLARED_HIT") :
+    row ∈ compactSourceImpact standing rows :=
+  (compact_iff_non_nohit standing rows row).2 ⟨hMem, hNotNoHit⟩
+
+-- Falsifies the tempting but invalid implication:
+-- an absent *declared* dependency does not establish that an external
+-- dynamic consumer or environment assumption remained unchanged.
+theorem no_declared_hit_does_not_imply_no_external_change :
+    ¬ (∀ (standing : String) (externalChanged : Bool),
+        standing = "NO_DECLARED_HIT" → externalChanged = false) := by
+  intro h
+  have bad : true = false := h "NO_DECLARED_HIT" true rfl
+  cases bad
+
+
 end OrdivonR21
 
 -- Incremental reasoning requires a CLOSED actual dependency scope, not an
