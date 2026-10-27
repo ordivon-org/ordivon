@@ -203,7 +203,7 @@ def StableWithin {δ β : Type}
     (declared : δ → Prop) (before after : δ → β) : Prop :=
   ∀ d, declared d → before d = after d
 
-def DependsOnlyOn {δ β γ : Type}
+def OutputDependsOnlyOn {δ β γ : Type}
     (actual : δ → Prop) (observable : (δ → β) → γ) : Prop :=
   ∀ before after,
     (∀ d, actual d → before d = after d) →
@@ -217,7 +217,7 @@ theorem closed_dependency_frame {δ β γ : Type}
     (before after : δ → β) (observable : (δ → β) → γ)
     (hClosed : DependencyClosed declared actual)
     (hStable : StableWithin declared before after)
-    (hObserves : DependsOnlyOn actual observable) :
+    (hObserves : OutputDependsOnlyOn actual observable) :
     observable before = observable after := by
   apply hObserves before after
   intro d hActual
@@ -231,7 +231,7 @@ theorem unlisted_dependency_breaks_frame :
       (before after : Bool → Bool)
       (observable : (Bool → Bool) → Bool),
       StableWithin declared before after ∧
-      DependsOnlyOn actual observable ∧
+      OutputDependsOnlyOn actual observable ∧
       ¬ DependencyClosed declared actual ∧
       observable before ≠ observable after := by
   refine ⟨(fun d => d = false), (fun d => d = true),
@@ -247,6 +247,49 @@ theorem unlisted_dependency_breaks_frame :
     have hImpossible : true = false := hClosed true rfl
     cases hImpossible
   · decide
+
+-- A SOURCE/API-only equivalence cannot justify LEGO replacement when
+-- environment-visible effects or authority outcomes differ.  This theorem
+-- instantiates the existing IOContract with (public output, observable effect)
+-- rather than creating another module calculus or assuming an Agent Owner.
+-- The candidates are total and have identical public output projections.
+theorem equal_public_outputs_do_not_prove_effect_substitution :
+    ∃ (spec : IOContract Unit (Unit × Bool))
+      (original candidate : Unit → (Unit × Bool) → Prop),
+      Implements spec original ∧
+      (∀ inp out,
+        (∃ effect : Bool, original inp (out, effect)) ↔
+        (∃ effect : Bool, candidate inp (out, effect))) ∧
+      ¬ Implements spec candidate := by
+  let spec : IOContract Unit (Unit × Bool) := {
+    assume := fun _ => True
+    guarantee := fun _ result => result.2 = false
+  }
+  let original : Unit → (Unit × Bool) → Prop :=
+    fun _ result => result.2 = false
+  let candidate : Unit → (Unit × Bool) → Prop :=
+    fun _ result => result.2 = true
+  refine ⟨spec, original, candidate, ?_, ?_, ?_⟩
+  · constructor
+    · intro _ result _ hOriginal
+      exact hOriginal
+    · intro _ _
+      exact ⟨((), false), rfl⟩
+  · intro inp out
+    constructor
+    · intro _
+      exact ⟨true, rfl⟩
+    · intro _
+      exact ⟨false, rfl⟩
+  · intro hCandidate
+    have hContradiction : true = false :=
+      hCandidate.1 () ((), true) True.intro rfl
+    cases hContradiction
+
+-- This countermodel disproves the inference
+-- "same public I/O projection => effect/authority-preserving replacement".
+-- It does NOT assert that any particular Gateway or Runtime implementation
+-- violates its contract: that requires separate model-to-code refinement.
 
 end OrdivonR21
 
