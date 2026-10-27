@@ -1482,6 +1482,111 @@ def independent_scope_frontier(
     }
 
 
+
+def cross_scope_exact_locator_hints(
+    main_repo: Path, scope_frontier: dict, *, max_witnesses: int = 12,
+) -> dict:
+    """Lexical Git file → explicitly named other-root locator, never a call.
+
+    Only exact ABSOLUTE source-locator byte mentions qualify as hints. Unlike
+    runtime import resolution or instrumented execution, Git grep cannot tell
+    whether code reads a path, executes it, or merely documents it.
+    """
+    if not 1 <= max_witnesses <= 64:
+        raise ValueError("cross-scope witness limit must be 1..64")
+    if scope_frontier.get("kind") != "ordivon.phase1.cross-plane-source-scope-observations":
+        raise ValueError("cross-scope hints require native exact-cut scope census")
+    scopes = scope_frontier["observedScopes"]
+    if len(scopes) > 9:
+        raise ValueError("cross-scope lexical survey permits up to nine declared scopes")
+    targets = [
+        (x["scopeRef"], x["observedLocalLocator"].encode("utf-8"))
+        for x in scopes
+    ]
+    subject = scope_frontier["sourceCut"]
+    exact_commit(main_repo, subject)
+    all_sources = [("git-scope:subject@" + subject, main_repo, subject)]
+    for scope in scopes:
+        if scope["scopeKind"] == "INDEPENDENT_GIT_SOURCE_CUT":
+            root = Path(scope["observedLocalLocator"])
+            exact_commit(root, scope["sourceCut"])
+            all_sources.append((scope["scopeRef"], root, scope["sourceCut"]))
+    hits = []
+    scanned = []
+    for reader_ref, root, cut in all_sources:
+        # Binding each hint to its real blob makes the result source-qualified;
+        # no uncommitted worktree data can be included accidentally.
+        blobs = {x["path"]: x["sourceIdentity"] for x in tree(root, cut)}
+        scanned.append({"readerScopeRef": reader_ref, "sourceCut": cut,
+                        "sourceTree": git(root, "rev-parse", f"{cut}^{{tree}}").decode().strip(),
+                        "trackedPaths": len(blobs)})
+        for target_ref, token in targets:
+            if target_ref == reader_ref:
+                continue
+            cmd = ["git", "--no-replace-objects", "-C", str(root),
+                   "grep", "-l", "-z", "-I", "-F", "-e",
+                   token.decode("utf-8"), cut, "--"]
+            proc = subprocess.run(cmd, capture_output=True)
+            if proc.returncode not in (0, 1):
+                raise ValueError("Git grep lexical survey failed closed")
+            prefix = (cut + ":").encode("ascii")
+            paths = []
+            for item in proc.stdout.split(b"\0"):
+                if not item:
+                    continue
+                if not item.startswith(prefix):
+                    raise ValueError("Git grep witness lacks exact source-cut prefix")
+                name = item[len(prefix):].decode("utf-8", "surrogateescape")
+                if name not in blobs:
+                    raise ValueError("Git grep matched file absent from immutable source tree")
+                paths.append(name)
+            if len(paths) != len(set(paths)):
+                raise ValueError("Git grep returned duplicate lexical witnesses")
+            if not paths:
+                continue
+            paths.sort()
+            hits.append({
+                "readerScopeRef": reader_ref,
+                "mentionedScopeRef": target_ref,
+                "referenceKind": "EXACT_ABSOLUTE_LOCATOR_BYTES_IN_GIT_SOURCE",
+                "matchingGitSourceFiles": len(paths),
+                "witnessesTruncated": len(paths) > max_witnesses,
+                "witnesses": [
+                    {"readerPath": name, "readerSourceIdentity": blobs[name],
+                     "readerSourceCut": cut,
+                     "referenceStanding": "LEXICAL_ONLY_NOT_EXECUTED"}
+                    for name in paths[:max_witnesses]
+                ],
+                "consumerStanding": "UNKNOWN",
+                "runtimeCallStanding": "NOT_ESTABLISHED",
+                "deploymentStanding": "UNKNOWN",
+                "formalQualification": "UNKNOWN",
+                "remediationStanding": "DEFER_UNTIL_JOINT_CALL_SEMANTICS",
+            })
+    hits.sort(key=lambda x: (x["readerScopeRef"], x["mentionedScopeRef"]))
+    return {
+        "kind": "ordivon.phase1.exact-cross-scope-lexical-locator-hints",
+        "subjectSourceCut": subject,
+        "truthBoundary": (
+            "Git blob exact absolute path token only; dynamic/string-composed/"
+            "indirect consumers, Windows path aliases, semantic calls, "
+            "installed effects and proofs NOT RESOLVED"
+        ),
+        "summary": {
+            "gitRootsScanned": len(all_sources),
+            "otherScopeLocatorsSearched": len(targets),
+            "pairsWithLiteralReferences": len(hits),
+            "gitFilePairMentions": sum(x["matchingGitSourceFiles"] for x in hits),
+            "zeroLexicalHitsProveNoConsumers": False,
+            "runtimeCallEdgesVerified": 0,
+            "installedSourceEquivalenceVerified": 0,
+        },
+        "scannedGitSources": scanned,
+        "literalReferencePairsNotCalls": hits,
+        "proofReuseAdmissible": False,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-cut", required=True)
@@ -1497,6 +1602,9 @@ def main() -> int:
                         help="observe explicit independent Git and non-Git source scopes")
     parser.add_argument("--scope-git-worktrees", action="store_true",
                         help="read-only Git checkout/index/prunable-worktree observations for explicit Git scopes")
+    parser.add_argument("--scope-locator-hints", action="store_true",
+                        help="Git blob lexical references between pinned roots; NOT runtime calls")
+    parser.add_argument("--scope-witness-limit", type=int, default=12)
     parser.add_argument("--external-git-cut", action="append", default=[],
                         help="label=absolute_git_root@exact_40hex_commit; no installed inference")
     parser.add_argument("--non-git-root", action="append", default=[],
@@ -1529,10 +1637,25 @@ def main() -> int:
             args.repo, args.source_cut, external_git=args.external_git_cut,
             non_git_data=args.non_git_root,
             git_checkout_observations=args.scope_git_worktrees)
+        if args.scope_locator_hints:
+            result["lexicalSourceHints"] = cross_scope_exact_locator_hints(
+                args.repo, result, max_witnesses=args.scope_witness_limit)
+            if args.summary:
+                result["lexicalSourceHints"].pop("literalReferencePairsNotCalls")
+                result["lexicalSourceHints"].pop("scannedGitSources")
+        elif args.scope_witness_limit != 12:
+            parser.error("--scope-witness-limit requires --scope-locator-hints")
+        if args.summary:
+            result.pop("observedScopes")
+            result.pop("crossScopeRelationships")
+            result.pop("pendingScopeProblems")
         print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2))
         return 0
-    if args.external_git_cut or args.non_git_root or args.scope_git_worktrees:
-        parser.error("explicit external scopes and Git checkout observations require --scope-census")
+    if (args.external_git_cut or args.non_git_root or
+            args.scope_git_worktrees or args.scope_locator_hints):
+        parser.error("external scope, Git checkout and lexical hints require --scope-census")
+    if args.scope_witness_limit != 12:
+        parser.error("scope-witness-limit requires scope-census and locator hints")
 
     if args.authority_observations is not None and not args.problem_legos:
         parser.error("--authority-observations requires --problem-legos")
