@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-skills-native-discovery-contract-r1",
+    "purpose": "Describe current Skills-MCP bridge responsibilities evidenced by existing parser, scanner, catalog and MCP service APIs; no universal Skill registry or skill execution authority.",
+    "sourceEvidence": [
+      "README.md",
+      "src/ordivon_skills/catalog.py",
+      "src/ordivon_skills/scanner.py",
+      "scripts/skills_mcp.py",
+      "scripts/skills_mcp_consumer_readiness.py"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "SK01",
+      "label": "SkillPackageInterpretationAndScan",
+      "kind": "verifier",
+      "responsibility": "Read a portable Skill package/frontmatter and report bounded trust/safety/format observations for candidate discovery.",
+      "authority": "Agent Skills specification and existing Skills bridge",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "configured SkillSource and package files or SKILL.md text"
+      ],
+      "outputs": [
+        "parsed metadata and scan/eligibility observations or explicit invalid-package status"
+      ],
+      "behavioralContract": "Package scanners provide advisory and trust-input qualification, not execution authority or a proof that a Skill's instructions are true.",
+      "evidence": [
+        "src/ordivon_skills/parser.py",
+        "src/ordivon_skills/scanner.py",
+        "src/ordivon_skills/eligibility.py",
+        "src/ordivon_skills/catalog.py",
+        "tests/test_skill_catalog_r2.py"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "domain acceptance",
+        "execution or deployment authority",
+        "unverified external consumer completeness"
+      ],
+      "acceptance": [
+        "SkillCatalog imports package parser, scanner and eligibility observations.",
+        "Malformed/untrusted packages may be reported but no external provider execution or global safety proof is established."
+      ]
+    },
+    {
+      "id": "SK02",
+      "label": "ContextualSkillCatalogResolution",
+      "kind": "transform",
+      "responsibility": "Rebuild skill inventory, select one exact context-dependent Skill binding and read its immutable package text under currentness fences.",
+      "authority": "Skills discovery and exact binding authority",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "SkillSource inventory, optional workspace/agent context and exact resolution/search/read request"
+      ],
+      "outputs": [
+        "scoped Skill list, resolution and read result with source/package identities or qualified errors"
+      ],
+      "behavioralContract": "Resolve/search/read are context- and precedence-bound read operations; a skill's advisory text is not formal truth, not a grant and not an effect executor.",
+      "evidence": [
+        "src/ordivon_skills/catalog.py",
+        "src/ordivon_skills/model.py",
+        "src/ordivon_skills/config.py",
+        "scripts/skills_mcp.py",
+        "tests/test_skill_catalog_r2.py"
+      ],
+      "dependencies": [
+        "SK01"
+      ],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "domain acceptance",
+        "execution or deployment authority",
+        "unverified external consumer completeness"
+      ],
+      "acceptance": [
+        "skills_mcp.py imports SkillCatalog and serves its outputs.",
+        "Exact live user-installed package currentness is owned by the actual Skills service and not proven by the source plan."
+      ]
+    },
+    {
+      "id": "SK03",
+      "label": "PortableSkillsMcpPublication",
+      "kind": "interface_adapter",
+      "responsibility": "Expose existing SkillCatalog via the official MCP Python SDK and SEP-2640-compatible read/navigation surfaces.",
+      "authority": "Skills MCP bridge",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "configured CatalogProvider, MCP request and authorization context"
+      ],
+      "outputs": [
+        "MCP Tool/resource responses containing bounded Skill views or scoped errors"
+      ],
+      "behavioralContract": "Protocol transport and permission verification remain owned by official MCP/security mechanisms; publication neither executes a Skill nor makes its advice authoritative.",
+      "evidence": [
+        "scripts/skills_mcp.py",
+        "src/ordivon_skills/sep2640.py",
+        "scripts/skills_mcp_consumer_readiness.py",
+        "tests/test_skills_mcp_r2.py"
+      ],
+      "dependencies": [
+        "SK02"
+      ],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "domain acceptance",
+        "execution or deployment authority",
+        "unverified external consumer completeness"
+      ],
+      "acceptance": [
+        "Existing skills_mcp.py build_server uses CatalogProvider and registered MCP/SEP-2640 handlers.",
+        "skills_mcp_consumer_readiness.py exercises tool/resource consumer readiness, not exhaustive installed consumer acceptance."
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "SK01",
+      "to": "SK02",
+      "type": "DATA",
+      "label": "catalog consumes parser/scanner qualification"
+    },
+    {
+      "from": "SK02",
+      "to": "SK03",
+      "type": "DATA",
+      "label": "MCP publication consumes catalog resolution/read"
+    }
+  ],
+  "slices": [],
+  "gaps": [
+    "Cross-service Agent/ChatGPT Skills consumer identity, installed currentness and complete dynamic consumers are not source-certified by this planning projection.",
+    "The Cloudflare tunnel helper and deployment lifecycle have separate operator and security consumers; further recursive qualification is required before promoting independent LEGO."
+  ],
+  "doNotOwn": [
+    "Skill text normative truth",
+    "Agent reasoning",
+    "execution of arbitrary Skill instructions",
+    "a central universal Skill registry",
+    "MCP protocol implementation"
+  ]
+}

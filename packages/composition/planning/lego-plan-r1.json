@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-composition-actual-consumer-seams-r1",
+    "purpose": "Represent independently consumed, source-visible task-local Composition responsibility seams. Static imports qualify specific code consumers, not their runtime execution or complete behavior.",
+    "sourceEvidence": [
+      "README.md",
+      "src/ordivon_composition/__init__.py",
+      "src/ordivon_composition/cognitive_circuit_r1.py",
+      "src/ordivon_composition/verification_obligation_r1.py"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "CP01",
+      "label": "CognitiveCircuitManifestCompilation",
+      "kind": "typed_contract",
+      "responsibility": "Validate and deterministically compile an explicitly caller-authored task-local Cognitive Circuit manifest into typed stage and Gate structures.",
+      "authority": "Composition source-owned contract",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "caller-authored Cognitive Circuit manifest JSON"
+      ],
+      "outputs": [
+        "schema-checked compiled circuit or explicit CircuitContractError"
+      ],
+      "behavioralContract": "Invalid stage/edge/Gate structure fails closed; successful compilation does not discover capabilities, invoke effects, prove verification or accept the domain result.",
+      "evidence": [
+        "src/ordivon_composition/cognitive_circuit_r1.py",
+        "src/ordivon_composition/__init__.py",
+        "tests/test_cognitive_circuit_r1.py",
+        "meta/next/scripts/research_artifact_gate_r3.py",
+        "meta/next/scripts/pacti_timeout_obligation_r1.py"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "domain acceptance",
+        "execution or deployment authority",
+        "unverified external consumer completeness"
+      ],
+      "acceptance": [
+        "Next research_artifact_gate_r3.py and pacti_timeout_obligation_r1.py import compile_manifest from the public package API.",
+        "Native Composition manifest tests qualify only this structure; external producer semantics remain UNKNOWN."
+      ]
+    },
+    {
+      "id": "CP02",
+      "label": "VerifierOwnedGateResultEvaluation",
+      "kind": "verifier",
+      "responsibility": "Validate verifier-authored Gate results and evaluate their bounded completion standing against one compiled Cognitive Circuit.",
+      "authority": "Composition contract over caller supplied verifier evidence",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "compiled circuit and verifier-owned Gate result JSON"
+      ],
+      "outputs": [
+        "Gate result validation or scoped evaluation standing"
+      ],
+      "behavioralContract": "Gate status reflects the supplied verifier result contract; source compilation or local gate closure never manufactures external verifier evidence or semantic domain acceptance.",
+      "evidence": [
+        "src/ordivon_composition/cognitive_circuit_r1.py",
+        "src/ordivon_composition/__init__.py",
+        "meta/next/scripts/pacti_timeout_obligation_r1.py",
+        "meta/next/tests/test_cross_domain_verification_r3.py"
+      ],
+      "dependencies": [
+        "CP01"
+      ],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "domain acceptance",
+        "execution or deployment authority",
+        "unverified external consumer completeness"
+      ],
+      "acceptance": [
+        "Next pacti_timeout_obligation_r1.py imports evaluate_gate_results and validate_gate_result.",
+        "A real verifier target and assumption-to-goal bridge are separate proof obligations."
+      ]
+    },
+    {
+      "id": "CP03",
+      "label": "TaskLocalVerificationObligationProjection",
+      "kind": "transform",
+      "responsibility": "Compile verifier obligations and bindings from validated task-local Gates and conservatively classify changed or unindexed proof dependencies.",
+      "authority": "Composition source-owned non-authoritative projection",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "task-local circuit manifest, caller-authored verifier bindings or declared change/readset"
+      ],
+      "outputs": [
+        "obligation/binding projection, change standing and explicitly unindexed references"
+      ],
+      "behavioralContract": "No verifier execution or global consumer-discovery authority; dependenciesComplete remains a caller assumption; REUSE_CANDIDATE is not PASS and proofReuseAdmissible is false without external qualification.",
+      "evidence": [
+        "src/ordivon_composition/verification_obligation_r1.py",
+        "src/ordivon_composition/__init__.py",
+        "tests/test_verification_obligation_r1.py",
+        "meta/next/scripts/pacti_timeout_obligation_r1.py"
+      ],
+      "dependencies": [
+        "CP01"
+      ],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "domain acceptance",
+        "execution or deployment authority",
+        "unverified external consumer completeness"
+      ],
+      "acceptance": [
+        "Next pacti_timeout_obligation_r1.py imports compile_verification_obligations and resolve_verifier_bindings.",
+        "Prior/current graph provenance, actual owner readsets and installed-verifier currentness remain separately UNKNOWN."
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "CP01",
+      "to": "CP02",
+      "type": "DATA",
+      "label": "gate-result evaluation consumes compiled circuit identity"
+    },
+    {
+      "from": "CP01",
+      "to": "CP03",
+      "type": "DATA",
+      "label": "obligation compiler consumes existing manifest/gates"
+    }
+  ],
+  "slices": [],
+  "gaps": [
+    "Interface currentness and Successor Contract public APIs exist but specific non-test consumers and independent replaceable responsibilities are not fully qualified in this bounded first batch; do not infer they are absent.",
+    "Source-qualified Python imports are evidence of static consumers, not runtime execution, complete transitive consumer closure, or formal satisfaction.",
+    "No cross-Owner typed behavior/refinement proof is claimed by these owner-local relations."
+  ],
+  "doNotOwn": [
+    "domain goal truth",
+    "verifier runner",
+    "capability registry",
+    "scheduler",
+    "actual Runtime state",
+    "execution permissions"
+  ]
+}

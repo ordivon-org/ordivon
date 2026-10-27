@@ -1550,3 +1550,72 @@ def test_upstream_local_import_dependency_change_invalidates_with_stable_target_
     assert same["sourceRelationStanding"] == "NO_DECLARED_SOURCE_RELATION_CHANGE"
     assert same["changedUpstreamLocalSourceFiles"] == []
     assert same["proofReuseAdmissible"] is False
+
+
+def test_phase1_composition_legos_have_real_external_python_import_consumers() -> None:
+    """Qualify named static consumers; file existence alone is not consumer proof."""
+    import ast
+
+    def imported_symbols(source: str) -> set[str]:
+        tree = ast.parse(source)
+        return {
+            item.name
+            for node in ast.walk(tree)
+            if isinstance(node, ast.ImportFrom) and node.module == "ordivon_composition"
+            for item in node.names
+        }
+
+    next_provider = ROOT / "meta/next/scripts/pacti_timeout_obligation_r1.py"
+    names = imported_symbols(next_provider.read_text(encoding="utf-8"))
+    assert {
+        "compile_manifest",
+        "evaluate_gate_results",
+        "compile_verification_obligations",
+        "resolve_verifier_bindings",
+    } <= names
+    # Merely spelling the method names under a different provider proves nothing.
+    forged = "from unowned_module import compile_manifest, evaluate_gate_results"
+    assert imported_symbols(forged) == set()
+
+    owner = ROOT / "packages/composition/planning/lego-plan-r1.json"
+    plan = json.loads(owner.read_text(encoding="utf-8"))
+    assert {node["id"] for node in plan["nodes"]} == {"CP01", "CP02", "CP03"}
+    assert all(
+        node.get("inputs") and node.get("outputs")
+        and node.get("behavioralContract") and node.get("acceptance")
+        for node in plan["nodes"]
+    )
+    assert plan["truthRole"] == "planning-projection-not-project-truth"
+    module.validate_owner_lego_graph(plan)
+    module.validate_owner_lego_dependencies(plan, "packages/composition")
+
+
+def test_phase1_skills_legos_follow_real_parser_catalog_mcp_consumers() -> None:
+    """Separate AST-readable consumer links from unproven installed/current effects."""
+    import ast
+
+    def imported(source: str) -> set[tuple[int, str | None, str]]:
+        return {
+            (node.level, node.module, item.name)
+            for node in ast.walk(ast.parse(source))
+            if isinstance(node, ast.ImportFrom)
+            for item in node.names
+        }
+
+    catalog = (ROOT / "platform/skills/src/ordivon_skills/catalog.py").read_text(
+        encoding="utf-8"
+    )
+    service = (ROOT / "platform/skills/scripts/skills_mcp.py").read_text(
+        encoding="utf-8"
+    )
+    assert (1, "parser", "parse_skill_frontmatter") in imported(catalog)
+    assert (1, "scanner", "scan_skill_package") in imported(catalog)
+    assert (0, "ordivon_skills", "SkillCatalog") in imported(service)
+    assert (0, "unowned_skills", "SkillCatalog") not in imported(service)
+
+    owner = ROOT / "platform/skills/planning/lego-plan-r1.json"
+    plan = json.loads(owner.read_text(encoding="utf-8"))
+    assert {node["id"] for node in plan["nodes"]} == {"SK01", "SK02", "SK03"}
+    assert all(node.get("inputs") and node.get("outputs") and node.get("behavioralContract") for node in plan["nodes"])
+    module.validate_owner_lego_graph(plan)
+    module.validate_owner_lego_dependencies(plan, "platform/skills")
