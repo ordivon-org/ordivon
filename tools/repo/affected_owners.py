@@ -308,6 +308,101 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
         "capital/destroyer": "FALSIFICATION_CORPUS_SOURCE",
         "capital/wave_b": "FROZEN_HISTORICAL_REPLAY_FIXTURE_SOURCE",
     }
+    # Stable, source-only file forms. These are descriptions of the *carrier*,
+    # not function, consumer, correctness, or a move instruction. Exact
+    # basename precedence avoids labeling every JSON as a schema/contract.
+    exact_file_forms = {
+        "README.md": "PROJECT_README",
+        "AGENTS.md": "AGENT_INSTRUCTIONS",
+        "CONTRIBUTING.md": "CONTRIBUTOR_GUIDE",
+        "SECURITY.md": "SECURITY_POLICY_DOCUMENT",
+        "CHANGELOG.md": "RELEASE_CHANGELOG",
+        "LICENSE": "LICENSE_NOTICE",
+        "LICENSE.md": "LICENSE_NOTICE",
+        "MIGRATION_PROVENANCE.md": "MIGRATION_PROVENANCE_RECORD",
+        "pyproject.toml": "PYTHON_PACKAGE_MANIFEST",
+        "uv.lock": "PYTHON_DEPENDENCY_LOCK",
+        ".python-version": "PYTHON_TOOLCHAIN_VERSION",
+        "Cargo.toml": "RUST_PACKAGE_MANIFEST",
+        "Cargo.lock": "RUST_DEPENDENCY_LOCK",
+        "rust-toolchain.toml": "RUST_TOOLCHAIN_VERSION",
+        "deny.toml": "RUST_DEPENDENCY_POLICY",
+        "package.json": "NODE_PACKAGE_MANIFEST",
+        "pnpm-lock.yaml": "NODE_DEPENDENCY_LOCK",
+        "pnpm-workspace.yaml": "NODE_WORKSPACE_MANIFEST",
+        "tsconfig.json": "TYPESCRIPT_COMPILER_CONFIGURATION",
+        ".node-version": "NODE_TOOLCHAIN_VERSION",
+        "mise.toml": "TASK_TOOLCHAIN_CONFIGURATION",
+        "Taskfile.yml": "TASK_AUTOMATION_CONFIGURATION",
+        ".gitignore": "GIT_IGNORE_RULES",
+        ".gitattributes": "GIT_ATTRIBUTE_RULES",
+        ".editorconfig": "EDITOR_FORMAT_CONFIGURATION",
+        ".gitleaksignore": "SECRET_SCANNER_EXCLUSIONS",
+        ".gitleaks.toml": "SECRET_SCANNER_CONFIGURATION",
+        ".env.example": "ENVIRONMENT_CONFIGURATION_EXAMPLE",
+        "alembic.ini": "DATABASE_MIGRATION_CONFIGURATION",
+        "mcp.json": "MCP_PLUGIN_CONFIGURATION",
+        "mcp-surface.json": "MCP_SURFACE_DECLARATION",
+        "plugin.json": "PLUGIN_PACKAGE_MANIFEST",
+        "composition-v1.json": "DISTRIBUTION_COMPOSITION_DECLARATION",
+        "external-lock.json": "EXTERNAL_RESOURCE_LOCK",
+        "SOURCE_BOUNDARY.json": "SOURCE_BOUNDARY_DECLARATION",
+        "requirements-tooling.lock.txt": "TOOLING_DEPENDENCY_LOCK",
+        "requirements-tooling.txt": "TOOLING_DEPENDENCY_MANIFEST",
+    }
+
+    def source_file_form(path: str) -> str:
+        name = path.rsplit("/", 1)[-1]
+        if name in exact_file_forms:
+            return exact_file_forms[name]
+        if name.endswith(".schema.json"):
+            return "JSON_SCHEMA_SOURCE"
+        if name.endswith((".tla", ".cfg", ".lean", ".smt2", ".als")):
+            return "FORMAL_MODEL_OR_CONFIGURATION_SOURCE"
+        if name.endswith(".md"):
+            return "MARKDOWN_CONTENT_SOURCE"
+        if name.endswith(".json"):
+            return "JSON_STRUCTURED_DATA_SOURCE"
+        if name.endswith((".toml", ".ini")):
+            return "STRUCTURED_CONFIGURATION_SOURCE"
+        if name.endswith((".yaml", ".yml")):
+            return "YAML_CONFIGURATION_OR_DATA_SOURCE"
+        if name.endswith(".py"):
+            return "PYTHON_SOURCE_FILE"
+        if name.endswith(".rs"):
+            return "RUST_SOURCE_FILE"
+        if name.endswith((".ts", ".tsx")):
+            return "TYPESCRIPT_SOURCE_FILE"
+        if name.endswith((".js", ".mjs")):
+            return "JAVASCRIPT_SOURCE_FILE"
+        if name.endswith((".sh", ".bash", ".ps1", ".bat", ".cmd")):
+            return "COMMAND_SCRIPT_SOURCE"
+        if name.endswith((".sql", ".rego")):
+            return "QUERY_OR_POLICY_SOURCE"
+        if name.endswith((".lock", ".lock.json")):
+            return "VERSION_LOCK_SOURCE"
+        if name.endswith(".txt"):
+            return "PLAIN_TEXT_SOURCE"
+        return "UNQUALIFIED_FILE_FORM"
+
+    # Qualify nested lexical source territory names, independently of owner
+    # authority and independently of semantic LEGO composition. No recursive
+    # rescan of physical files: Git remains the only source tree.
+    named_cells = {
+        "next/authorities/observations": "RECORDED_OBSERVATIONS_SOURCE",
+        "next/authorities/records": "AUTHORITY_RECORDS_SOURCE",
+        "next/knowledge/lessons": "KNOWLEDGE_LESSONS_SOURCE",
+        "next/knowledge/graphs": "KNOWLEDGE_GRAPH_SOURCE",
+        "next/domains/game": "GAME_DOMAIN_SOURCE",
+        "runtime/crates/ordivon-runtime-core": "RUNTIME_CORE_CRATE_SOURCE",
+        "artifact/artifact-delivery/shadow-contracts": "ARTIFACT_SHADOW_CONTRACT_SOURCE",
+        "harness/src/ordivon_harness": "HARNESS_IMPLEMENTATION_PACKAGE_SOURCE",
+        "capital/src/ordivon_capital": "CAPITAL_IMPLEMENTATION_PACKAGE_SOURCE",
+        "security/labs/agent-admission-rs": "SECURITY_EXPERIMENT_CRATE_SOURCE",
+        "workstation/providers/cloudflare": "CLOUDFLARE_PROVIDER_CONFIGURATION_SOURCE",
+        "capital/wave_b/fixtures": "HISTORICAL_PORTFOLIO_TEST_FIXTURE_SOURCE",
+    }
+
     root_by_owner = {o.name: o.root for o in native_owners}
     entries = []
     for path, identity in sorted(tree.items()):
@@ -329,15 +424,32 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
         )
         section = None
         section_role = None
+        source_cell = None
+        source_cell_role = None
         if owner is not None:
             tail = path[len(root_by_owner[owner]):]
-            section_key = tail.split("/", 1)[0] if "/" in tail else "(root-files)"
+            parts = tail.split("/")
+            section_key = parts[0] if len(parts) > 1 else "(root-files)"
             section = f"{owner}/{section_key}"
             section_role = source_section_overrides.get(
                 section,
                 source_section_roles.get(section_key, "UNQUALIFIED_SECTION"),
             )
+            if len(parts) > 2:
+                source_cell = f"{section}/{parts[1]}"
+                source_cell_role = named_cells.get(
+                    source_cell, "UNQUALIFIED_NESTED_CELL"
+                )
+            elif len(parts) == 2:
+                source_cell = f"{section}/(direct-files)"
+                source_cell_role = "DIRECT_SECTION_FILES"
+            else:
+                source_cell = section
+                source_cell_role = "ROOT_MANIFEST_AND_ENTRYPOINT_FILES"
         entries.append({
+            "sourceCell": source_cell,
+            "sourceCellRole": source_cell_role,
+            "sourceFileForm": source_file_form(path),
             "sourceSection": section,
             "sourceSectionRole": section_role,
             "semanticName": semantic_by_owner.get(owner, owner) if owner is not None
@@ -360,6 +472,18 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
         "ownerManifestIdentity": manifest_identity,
         "proofReuseAdmissible": False,
         "summary": {
+            "distinctOwnerCells": len({
+                row["sourceCell"] for row in entries
+                if row["sourceCell"] is not None
+            }),
+            "namedNestedCells": len({
+                row["sourceCell"] for row in entries
+                if row["sourceCellRole"] in named_cells.values()
+            }),
+            "unqualifiedSourceFileForms": sum(
+                row["sourceFileForm"] == "UNQUALIFIED_FILE_FORM"
+                for row in entries
+            ),
             "distinctOwnerSections": len({
                 row["sourceSection"] for row in entries
                 if row["sourceSection"] is not None

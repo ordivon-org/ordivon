@@ -323,6 +323,41 @@ class SourceClassificationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "source region description must be a canonical nonempty string"):
             self.project(cut)
 
+    def test_root_file_form_and_nested_cells_are_distinct_source_dimensions(self) -> None:
+        # Physical file form can be known even when business semantics are not.
+        artifacts = [
+            "services/runtime/README.md",
+            "services/runtime/Cargo.toml",
+            "services/runtime/Cargo.lock",
+            "services/runtime/config/opaque.blob",
+            "services/runtime/crates/ordivon-runtime-core/src/lib.rs",
+            "domains/capital/wave_b/fixtures/sample.json",
+            "domains/capital/destroyer/false-green-corpus-v0.json",
+        ]
+        self.manifest.write_text(
+            self.header + '\n[[owners]]\nname = "capital"\n'
+            'root = "domains/capital/"\nverify_task = "capital:verify"\n'
+        )
+        for name in artifacts:
+            p = self.repo / name
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text("test source")
+        cut = self.commit()
+        by_path = {e["path"]: e for e in self.project(cut)["entries"]}
+        assert by_path["services/runtime/README.md"]["sourceFileForm"] == "PROJECT_README"
+        assert by_path["services/runtime/Cargo.toml"]["sourceFileForm"] == "RUST_PACKAGE_MANIFEST"
+        assert by_path["services/runtime/Cargo.lock"]["sourceFileForm"] == "RUST_DEPENDENCY_LOCK"
+        assert by_path["services/runtime/Cargo.lock"]["sourceCell"] == "runtime/(root-files)"
+        assert by_path["services/runtime/config/opaque.blob"]["sourceFileForm"] == "UNQUALIFIED_FILE_FORM"
+        assert by_path["services/runtime/crates/ordivon-runtime-core/src/lib.rs"]["sourceCell"] == "runtime/crates/ordivon-runtime-core"
+        assert by_path["services/runtime/crates/ordivon-runtime-core/src/lib.rs"]["sourceCellRole"] == "RUNTIME_CORE_CRATE_SOURCE"
+        assert by_path["domains/capital/wave_b/fixtures/sample.json"]["sourceCellRole"] == "HISTORICAL_PORTFOLIO_TEST_FIXTURE_SOURCE"
+        assert by_path["domains/capital/destroyer/false-green-corpus-v0.json"]["sourceFileForm"] == "JSON_STRUCTURED_DATA_SOURCE"
+        assert by_path["domains/capital/destroyer/false-green-corpus-v0.json"]["sourceSectionRole"] == "FALSIFICATION_CORPUS_SOURCE"
+        assert self.project(cut)["summary"]["unqualifiedSourceFileForms"] >= 1
+        assert by_path["services/runtime/Cargo.toml"]["classificationLayer"] == "REPOSITORY_VERIFICATION_REGION"
+        assert by_path["services/runtime/Cargo.toml"]["verificationOwner"] == "runtime"
+
     def test_semantic_names_do_not_become_verification_authorities(self) -> None:
         # Source presentation changes without changing the actual owner ID
         # or granting it an additional verification task or runtime authority.
