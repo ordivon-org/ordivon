@@ -637,6 +637,9 @@ def select_impacted_obligations(
                 ],
                 "changedRefs": sorted(changed),
                 "unknownRefs": sorted(unknown),
+                # Historical retirement can change whether a ref is indexed,
+                # even when the caller's current graph and changes match.
+                "unindexedChangeRefs": unindexed,
             }
         ),
         "nonClaims": [
