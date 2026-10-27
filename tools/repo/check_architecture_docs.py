@@ -763,7 +763,7 @@ def project_node_python_import_syntax(
         if kind != "blob" or mode not in {"100644", "100755"}:
             raise ArchitectureDocsError("nonregular Git Python importer")
         return subprocess.check_output(
-            ["git", "-C", str(root), "cat-file", "blob", oid],
+            ["git", "--no-replace-objects", "-C", str(root), "cat-file", "blob", oid],
             stderr=subprocess.PIPE,
         ).decode("utf-8")
 
