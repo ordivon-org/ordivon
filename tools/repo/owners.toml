@@ -4,93 +4,203 @@ truth_role = "repository-mechanics-only-not-domain-authority"
 
 [[owners]]
 name = "next"
+semantic_name = "knowledge-and-method-integration"
 root = "meta/next/"
 verify_task = "next:verify"
 
 [[owners]]
 name = "composition"
+semantic_name = "task-local-contract-composition"
 root = "packages/composition/"
 verify_task = "composition:verify"
 
 [[owners]]
 name = "control-plugin"
+semantic_name = "agent-plugin-connection-package"
 root = "extensions/ordivon-control-plane/"
 verify_task = "control-plugin:verify"
 
 [[owners]]
 name = "runtime"
+semantic_name = "physical-execution-runtime"
 root = "services/runtime/"
 verify_task = "runtime:verify"
 
 [[owners]]
 name = "host"
+semantic_name = "work-and-collaboration-continuity"
 root = "services/host/"
 verify_task = "host:verify"
 queue_verify_task = "host:queue"
 
 [[owners]]
 name = "harness"
+semantic_name = "bounded-agent-run-harness"
 root = "services/harness/"
 verify_task = "harness:verify"
 queue_verify_task = "harness:queue"
 
 [[owners]]
 name = "gateway"
+semantic_name = "northbound-capability-routing"
 root = "services/gateway/"
 verify_task = "gateway:verify"
 
 [[owners]]
 name = "skills"
+semantic_name = "agent-skills-mcp-bridge"
 root = "platform/skills/"
 verify_task = "skills:verify"
 
 [[owners]]
 name = "security"
+semantic_name = "security-policy-and-evidence"
 root = "platform/security/"
 verify_task = "security:verify"
 
 [[owners]]
 name = "workstation"
+semantic_name = "execution-node-realization"
 root = "platform/workstation/"
 verify_task = "workstation:ci"
 
 [[owners]]
 name = "network"
+semantic_name = "network-connectivity-composition"
 root = "platform/network/"
 verify_task = "network:ci"
 
 [[owners]]
 name = "artifact"
+semantic_name = "artifact-build-validation-delivery"
 root = "capabilities/artifact/"
 verify_task = "artifact:verify"
 queue_verify_task = "artifact:queue"
 
 [[owners]]
 name = "distribution"
+semantic_name = "external-effect-delivery-safety"
 root = "capabilities/distribution/"
 verify_task = "distribution:verify"
 
 [[owners]]
 name = "media"
+semantic_name = "media-authorship-production"
 root = "capabilities/media/"
 verify_task = "media:verify"
 
 [[owners]]
 name = "preservation"
+semantic_name = "preservation-source-evidence"
 root = "capabilities/preservation/"
 verify_task = "preservation:verify"
 
 [[owners]]
 name = "game"
+semantic_name = "game-mechanics-and-composition"
 root = "domains/game/"
 verify_task = "game:verify"
 
 [[owners]]
 name = "capital"
+semantic_name = "capital-systems-composition"
 root = "domains/capital/"
 verify_task = "capital:verify"
 
 [[owners]]
 name = "web"
+semantic_name = "web-application-interface"
 root = "apps/web/"
 verify_task = "web:verify"
+
+# Exactly one source-navigation class for every non-owner Git path; these
+# classifications are NOT new verification owners, formal proof, LEGO identity,
+# dynamic dependency closure, or permission to move/delete the source.
+# Source revision consumers must read the manifest from THAT exact Git commit.
+[[source_regions]]
+name = "agent-method-library"
+description = "General, independent method and idea Skills; platform Skills bridge is a separate executable responsibility."
+paths = [".agents/skills/"]
+exclude = [".agents/skills/recursive-lego-calculus/", ".agents/skills/artifact-work/"]
+
+[[source_regions]]
+name = "artifact-method-recipes"
+description = "Portable artifact creation method instructions and references, not an Artifact service or installed proof."
+paths = [".agents/skills/artifact-work/"]
+
+[[source_regions]]
+name = "repository-engineering"
+description = "Git source graph, source selection, boundary checks and repository CLI mechanics."
+paths = ["tools/repo/"]
+exclude = ["tools/repo/migration/", "tools/repo/planning/"]
+
+[[source_regions]]
+name = "repository-migration-operators"
+description = "Historical and current Git publication/migration shell operators; effects require separate contract admission."
+paths = ["tools/repo/migration/"]
+
+[[source_regions]]
+name = "repository-lego-plan-carrier"
+description = "Repo-owned LEGO plan source, not an executable repository tool or independently proven theorem."
+paths = ["tools/repo/planning/"]
+
+[[source_regions]]
+name = "research-contract-profiles"
+description = "Research schemas and qualification profiles; no claim of installed or scientific authority."
+paths = ["profiles/research/"]
+
+[[source_regions]]
+name = "research-profile-conformance"
+description = "Cross-cutting source test consuming research schema profiles, not a research profile itself."
+paths = ["tests/catalogs/"]
+
+[[source_regions]]
+name = "architecture-documentation"
+description = "Architecture descriptions and declared contracts; neither historical source nor current proof by default."
+paths = ["docs/architecture/"]
+exclude = ["docs/architecture/evidence/"]
+
+[[source_regions]]
+name = "architecture-evidence-carriers"
+description = "Architecture issue censuses, receipts and evidence sources; formal/currentness qualification remains separate."
+paths = ["docs/architecture/evidence/"]
+
+[[source_regions]]
+name = "migration-acceptance-records"
+description = "Historical migration acceptance statements; not installed/source currentness without a live bridge."
+paths = ["docs/migration/acceptance/"]
+
+[[source_regions]]
+name = "migration-provenance-receipts"
+description = "Old repository commit maps and Git rewrite evidence; history is not proof of a live consumer."
+paths = ["docs/migration/receipts/"]
+
+[[source_regions]]
+name = "migration-retirement-policies"
+description = "Historical standalone retirement policies; no unconditional deletion permission."
+paths = ["docs/migration/retirement/"]
+
+[[source_regions]]
+name = "retrospective-records"
+description = "Retrospective explanations rather than active execution or formal proof."
+paths = ["docs/retro/"]
+
+[[source_regions]]
+name = "repository-configuration"
+description = "Repository configuration and automation; verification fanout is a separate selector."
+paths = [".github/", ".gitignore", ".gitleaksignore", "AGENTS.md", "README.md", "mise.toml", "renovate.json"]
+
+[[source_regions]]
+name = "lego-r21-mathematical-foundation"
+description = "Recursive LEGO R2.1 normative method and mathematical source; not service, installed or theorem-proof authority."
+paths = [".agents/skills/recursive-lego-calculus/"]
+
+[[source_regions]]
+name = "native-formal-toolchain-source"
+description = "Existing formal model source, actual proof runners and solver adapters; not the sole source of mathematical truth."
+paths = ["tools/formal/"]
+
+[[source_regions]]
+name = "research-qualification-source"
+description = "Research-domain source and qualification records; external research and installed experiments are separate authorities."
+paths = ["meta/research/"]
