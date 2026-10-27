@@ -285,6 +285,48 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout.strip(), "network:ci")
+    def test_distribution_queue_replaces_non_discovered_nested_ci(self) -> None:
+        """GitHub root workflow invokes the Distribution's native current verification."""
+        import tomllib
+        import yaml
+
+        legacy = "capabilities/distribution/.github/workflows/ci.yml"
+        self.assertFalse((ROOT / legacy).exists(),
+                         "old nested CI is not an active GitHub Actions workflow")
+        registered = tomllib.loads((ROOT / "tools/repo/owners.toml").read_text())
+        distribution = [o for o in registered["owners"] if o["name"] == "distribution"]
+        self.assertEqual(len(distribution), 1)
+        self.assertEqual(distribution[0]["root"], "capabilities/distribution/")
+        self.assertEqual(distribution[0]["verify_task"], "distribution:verify")
+        root_tasks = tomllib.loads((ROOT / "mise.toml").read_text())["tasks"]
+        wrapper = root_tasks["distribution:verify"]["run"]
+        self.assertIn("cd capabilities/distribution", wrapper)
+        self.assertIn("mise run verify", wrapper)
+        native = tomllib.loads(
+            (ROOT / "capabilities/distribution/mise.toml").read_text()
+        )["tasks"]["verify"]["run"]
+        for required in (
+            "uv lock --check", "uv sync --locked", "uv run ruff check .",
+            "bash scripts/test-all.sh", "shellcheck",
+        ):
+            self.assertIn(required, native)
+        workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        self.assertIn("merge_group", workflow.get("on", workflow.get(True, {})))
+        steps = workflow["jobs"]["root-verification"]["steps"]
+        select = next(x["run"] for x in steps if
+                      x.get("name") == "Select affected owners")
+        verify = next(x["run"] for x in steps if
+                      x.get("name") == "Verify affected owners")
+        self.assertIn("convergence_plan.py", select)
+        self.assertIn("queueVerifyTasks", select)
+        self.assertIn("mise run", verify)
+        route = subprocess.run(
+            [sys.executable, str(ROOT / "tools/repo/affected_owners.py"),
+             "--changed-file", legacy, "--format", "queue-tasks"],
+            cwd=ROOT, capture_output=True, text=True, timeout=20, check=False,
+        )
+        self.assertEqual(route.returncode, 0, route.stderr)
+        self.assertEqual(route.stdout.strip(), "distribution:verify")
 
     def test_runtime_release_attestations_verify_every_subject_and_fail_closed(self) -> None:
         """Exercise official verifier CLI orchestration, not cryptographic trust."""
@@ -545,6 +587,49 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                     (ROOT / pattern.lstrip("/")).exists(),
                     f"orphan CODEOWNERS rule: {pattern}",
                 )
+
+    def test_artifact_native_verification_replaces_nondiscovered_nested_ci(self) -> None:
+        """Use root GitHub CI plus Artifact's pinned native queue, not nested CI.
+
+        This source routing test is not deployed Artifact/provider verification.
+        """
+        import tomllib
+
+        nested = ROOT / "capabilities/artifact/.github/workflows/ci.yml"
+        self.assertFalse(nested.exists(), "nested owner CI cannot be discovered by root Actions")
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        self.assertIn("  pull_request:", workflow)
+        self.assertIn("  merge_group:", workflow)
+        self.assertIn("root-verification:", workflow)
+        self.assertLess(workflow.index("Select affected owners"), workflow.index("Verify affected owners"))
+        owners = tomllib.loads((ROOT / "tools/repo/owners.toml").read_text(encoding="utf-8"))
+        artifact = [o for o in owners["owners"] if o["name"] == "artifact"]
+        self.assertEqual(len(artifact), 1)
+        self.assertEqual(artifact[0]["root"], "capabilities/artifact/")
+        self.assertEqual(artifact[0]["verify_task"], "artifact:verify")
+        self.assertEqual(artifact[0]["queue_verify_task"], "artifact:queue")
+        root = tomllib.loads((ROOT / "mise.toml").read_text(encoding="utf-8"))
+        for task_name, native in (("artifact:queue", "queue"), ("artifact:verify", "verify")):
+            self.assertIn("cd capabilities/artifact", root["tasks"][task_name]["run"])
+            self.assertIn(f"mise run {native}", root["tasks"][task_name]["run"])
+        artifact_mise = tomllib.loads(
+            (ROOT / "capabilities/artifact/mise.toml").read_text(encoding="utf-8")
+        )
+        for task_name in ("queue", "verify"):
+            native = artifact_mise["tasks"][task_name]["run"]
+            for required in ("uv lock --check", "uv sync --locked", "uv run ruff check",
+                             'uv run python -m pytest -m "not integration"'):
+                self.assertIn(required, native)
+        source_selection = subprocess.run(
+            [sys.executable, str(ROOT / "tools/repo/affected_owners.py"),
+             "--changed-file", "capabilities/artifact/.github/workflows/ci.yml",
+             "--format", "queue-tasks"],
+            cwd=ROOT, capture_output=True, text=True, timeout=25, check=False,
+        )
+        self.assertEqual(source_selection.returncode, 0, source_selection.stderr)
+        self.assertEqual(source_selection.stdout.strip(), "artifact:queue")
+        self.assertIn("--deselect=", artifact_mise["tasks"]["queue"]["run"])
+        self.assertNotIn("--deselect=", artifact_mise["tasks"]["verify"]["run"])
 
 
 if __name__ == "__main__":
