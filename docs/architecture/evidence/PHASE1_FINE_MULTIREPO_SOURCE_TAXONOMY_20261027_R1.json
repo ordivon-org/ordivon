@@ -11,7 +11,10 @@
     "notAutomaticallyOrdivonReposInExistingLocalInventory": 3,
     "observedCommittedSourcePathEntries": 14209,
     "pathAliasesWithDifferentBlobIdentities": 84,
-    "scopesWithUnknownSemanticResponsibility": 73
+    "scopesWithUnknownSemanticResponsibility": 73,
+    "sourceGroupsWithUnknownLexicalRole": 71,
+    "sourcePathsWithUnknownLexicalRole": 191,
+    "sourceRoleRefinementsExactPinnedGitPaths": 26
   },
   "crossRepositoryPathAliasCounterexamples": {
     "meaning": "Identical relative path across independent Git roots does not establish semantic identity or currentness; different bytes disprove byte equivalence only.",
@@ -12108,13 +12111,14 @@
       "futureNamespaceEligibility": "PROPOSAL_ONLY_NO_PHYSICAL_MOVES",
       "groupCount": 23,
       "pathBasedRoles": {
-        "AGENT_METHOD_SOURCE": 15,
-        "AUTOMATION_AND_DEVELOPER_TOOL_SOURCE": 9,
-        "DOCUMENTATION_SOURCE": 30,
+        "AGENT_METHOD_SOURCE": 16,
+        "AUTOMATION_AND_DEVELOPER_TOOL_SOURCE": 10,
+        "BUILD_OR_PACKAGE_ENTRY_METADATA": 3,
+        "DEVELOPER_AUTOMATION_CONFIGURATION": 1,
+        "DOCUMENTATION_SOURCE": 33,
         "DOCUMENTED_ENTRY_OR_AGENT_INSTRUCTION": 2,
-        "IMPLEMENTATION_SOURCE": 4,
+        "IMPLEMENTATION_SOURCE": 21,
         "KNOWLEDGE_AND_REFERENCE_SOURCE": 11,
-        "PATH_ROLE_UNQUALIFIED": 26,
         "TEST_AND_EVALUATION_SOURCE": 25,
         "VENDORED_EXTERNAL_SOURCE": 143
       },
@@ -12139,7 +12143,7 @@
             "MARKDOWN_TEXT": 1
           },
           "observedLayoutRoles": {
-            "PATH_ROLE_UNQUALIFIED": 1
+            "AGENT_METHOD_SOURCE": 1
           },
           "sectionPathKey": ".claude/commands",
           "sourceArea": "REPOSITORY_SCOPED_SOURCE",
@@ -12162,11 +12166,20 @@
             "KNOWN_ENTRY_FILE:AGENTS.md": 1,
             "KNOWN_ENTRY_FILE:README.md": 1,
             "MARKDOWN_TEXT": 2,
-            "UNCLASSIFIED_FILE_FORMAT": 22
+            "CSHARP_SOURCE": 17,
+            "GIT_IGNORE_RULES": 1,
+            "LICENSE_TEXT": 1,
+            "VISUAL_STUDIO_BUILD_SOLUTION": 1,
+            "MSBUILD_PROJECT": 1,
+            "POWERSHELL_SCRIPT": 1
           },
           "observedLayoutRoles": {
+            "AUTOMATION_AND_DEVELOPER_TOOL_SOURCE": 1,
+            "BUILD_OR_PACKAGE_ENTRY_METADATA": 3,
+            "DEVELOPER_AUTOMATION_CONFIGURATION": 1,
+            "DOCUMENTATION_SOURCE": 3,
             "DOCUMENTED_ENTRY_OR_AGENT_INSTRUCTION": 2,
-            "PATH_ROLE_UNQUALIFIED": 25
+            "IMPLEMENTATION_SOURCE": 17
           },
           "sectionPathKey": "@root-file",
           "sourceArea": "REPOSITORY_SCOPED_SOURCE",
@@ -12402,7 +12415,323 @@
       ],
       "sourceRegion": null,
       "sourceRepoName": "ordivon-sts2mcp",
-      "tree": "c5664a1ae48aa3dd6e1971ab2014d6acc444793d"
+      "tree": "c5664a1ae48aa3dd6e1971ab2014d6acc444793d",
+      "sourceQualifiedRootFileRoles": {
+        "standing": "STATIC_GIT_SOURCE_ROLE_REFINEMENT_NOT_INSTALLED_OR_CONSUMER_VALIDATION",
+        "sourceRevision": "960ffb766f5ec6846eca1caf2f238fb47b6d61da",
+        "scope": "Only 26 formerly PATH_ROLE_UNQUALIFIED source paths",
+        "files": [
+          {
+            "path": ".claude/commands/playsts2.md",
+            "sourceIdentity": "100644:blob:b73a0a8796c57ac6f70521a1d51818e1f542efe2",
+            "sourceRole": "AGENT_METHOD_SOURCE",
+            "agentReadableName": "legacy-agent-gameplay-command",
+            "observedSymbol": "Evaluate paths",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": ".gitignore",
+            "sourceIdentity": "100644:blob:825ceaceb64d5ff0947f35651adf9aff0e8008ed",
+            "sourceRole": "DEVELOPER_AUTOMATION_CONFIGURATION",
+            "agentReadableName": "git-ignore-patterns",
+            "observedSymbol": ".mcp.json",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": "CODE_OF_CONDUCT.md",
+            "sourceIdentity": "100644:blob:4e509bab932e7381307eb7b2203611814ec3c397",
+            "sourceRole": "DOCUMENTATION_SOURCE",
+            "agentReadableName": "community-conduct-guidance",
+            "observedSymbol": "Code of Conduct",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": "CONTRIBUTING.md",
+            "sourceIdentity": "100644:blob:ca686e2b43d3ff770eee79810a995cf32a71a888",
+            "sourceRole": "DOCUMENTATION_SOURCE",
+            "agentReadableName": "contribution-instructions",
+            "observedSymbol": "MCP server",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": "CompanionActionLedger.cs",
+            "sourceIdentity": "100644:blob:d6be7da40c2ece0ff5b737ee35099b214946a484",
+            "sourceRole": "IMPLEMENTATION_SOURCE",
+            "agentReadableName": "companion-action-receipt-ledger",
+            "observedSymbol": "CompanionActionLedger",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": "DecisionActionLedger.cs",
+            "sourceIdentity": "100644:blob:79ab137863ede39c9eadd537dc2b6b37248e6373",
+            "sourceRole": "IMPLEMENTATION_SOURCE",
+            "agentReadableName": "strategic-action-claim-ledger",
+            "observedSymbol": "DecisionActionLedger",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": "LICENSE",
+            "sourceIdentity": "100644:blob:68f5c5ce891436fe90adfbf30c000f8fd7a89adb",
+            "sourceRole": "DOCUMENTATION_SOURCE",
+            "agentReadableName": "license-legal-terms",
+            "observedSymbol": "MIT",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": "MainThreadQueueDrainer.cs",
+            "sourceIdentity": "100644:blob:e9707a07cf924a554c8f658932c2051c34ffcbf8",
+            "sourceRole": "IMPLEMENTATION_SOURCE",
+            "agentReadableName": "main-thread-queue-draining",
+            "observedSymbol": "MainThreadQueueDrainer",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": "McpMod.Actions.cs",
+            "sourceIdentity": "100644:blob:2553f3f1ed1645b9538b9dd93218d241123a0337",
+            "sourceRole": "IMPLEMENTATION_SOURCE",
+            "agentReadableName": "game-mutation-action-handlers",
+            "observedSymbol": "ExecuteAction",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": "McpMod.Companion.cs",
+            "sourceIdentity": "100644:blob:f6c81330c38cf692b0ec95fa825226d1ddd6bdfb",
+            "sourceRole": "IMPLEMENTATION_SOURCE",
+            "agentReadableName": "companion-action-observation-handlers",
+            "observedSymbol": "AddCompanionObservation",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": "McpMod.Compendium.cs",
+            "sourceIdentity": "100644:blob:74d6316649bc8a9fbd11ddc1e6c2fb18d19e6580",
+            "sourceRole": "IMPLEMENTATION_SOURCE",
+            "agentReadableName": "profile-compendium-read-handlers",
+            "observedSymbol": "HandleGetCompendium",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": "McpMod.Decision.cs",
+            "sourceIdentity": "100644:blob:572cda4deac331e6c3ed9af1a6aa5f1d656709ba",
+            "sourceRole": "IMPLEMENTATION_SOURCE",
+            "agentReadableName": "strategic-decision-observation-handlers",
+            "observedSymbol": "AddStrategicObservation",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": "McpMod.Formatting.cs",
+            "sourceIdentity": "100644:blob:bb2f709b15217eb9428a99237cfa2c8b545ebb21",
+            "sourceRole": "IMPLEMENTATION_SOURCE",
+            "agentReadableName": "game-state-markdown-projection",
+            "observedSymbol": "FormatAsMarkdown",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": "McpMod.Helpers.cs",
+            "sourceIdentity": "100644:blob:3eb9b3897a9f51c0b69349a74d74d065284c247f",
+            "sourceRole": "IMPLEMENTATION_SOURCE",
+            "agentReadableName": "game-model-access-helpers",
+            "observedSymbol": "SafeGetCardDescription",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": "McpMod.MultiplayerActions.cs",
+            "sourceIdentity": "100644:blob:9c02a6c51f9032a8eae8cd127b861e9104157b13",
+            "sourceRole": "IMPLEMENTATION_SOURCE",
+            "agentReadableName": "multiplayer-action-handlers",
+            "observedSymbol": "ExecuteMultiplayerAction",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": "McpMod.MultiplayerState.cs",
+            "sourceIdentity": "100644:blob:cdbd318d4c6ee4057261a6089500ee838f26080a",
+            "sourceRole": "IMPLEMENTATION_SOURCE",
+            "agentReadableName": "multiplayer-state-read-projection",
+            "observedSymbol": "BuildMultiplayerBattleState",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": "McpMod.Profile.cs",
+            "sourceIdentity": "100644:blob:d429ba86ed87ecd0dfe68bd519abe0ec919e5c01",
+            "sourceRole": "IMPLEMENTATION_SOURCE",
+            "agentReadableName": "profile-read-switch-handlers",
+            "observedSymbol": "HandleGetProfile",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": "McpMod.SettingsUI.cs",
+            "sourceIdentity": "100644:blob:0e6e44a656946d7a7078fece1e2dca6e5858df3f",
+            "sourceRole": "IMPLEMENTATION_SOURCE",
+            "agentReadableName": "game-settings-ui-hooks",
+            "observedSymbol": "InjectInstantModeCheckbox",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": "McpMod.StateBuilder.cs",
+            "sourceIdentity": "100644:blob:86556d917029c2f35f36c83f69768d7d0d510637",
+            "sourceRole": "IMPLEMENTATION_SOURCE",
+            "agentReadableName": "singleplayer-state-read-projection",
+            "observedSymbol": "BuildBattleState",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": "McpMod.Wiki.cs",
+            "sourceIdentity": "100644:blob:da040f770900c0f1532f46a617a7b12fcae27c6b",
+            "sourceRole": "IMPLEMENTATION_SOURCE",
+            "agentReadableName": "discovered-wiki-search-handler",
+            "observedSymbol": "SearchWiki",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": "McpMod.cs",
+            "sourceIdentity": "100644:blob:54d15d2b818d0a9f3a45606ead39cd3a4bcd356a",
+            "sourceRole": "IMPLEMENTATION_SOURCE",
+            "agentReadableName": "game-mod-HTTP-server-and-dispatch",
+            "observedSymbol": "HttpListener",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": "STS2_MCP.csproj",
+            "sourceIdentity": "100644:blob:1a5fb36cab6d3aba1f64aaf4c19e31843a2c8e81",
+            "sourceRole": "BUILD_OR_PACKAGE_ENTRY_METADATA",
+            "agentReadableName": "MSBuild-game-mod-project",
+            "observedSymbol": ".NET",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": "STS2_MCP.sln",
+            "sourceIdentity": "100644:blob:6a7ca418e38d4a223e90e0776f246fc8ac538677",
+            "sourceRole": "BUILD_OR_PACKAGE_ENTRY_METADATA",
+            "agentReadableName": "Visual-Studio-solution",
+            "observedSymbol": "STS2_MCP",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": "StrategicDecisionFingerprint.cs",
+            "sourceIdentity": "100644:blob:0fa30c80e9cbcd376b9f3f6dbaf324ac94be23a9",
+            "sourceRole": "IMPLEMENTATION_SOURCE",
+            "agentReadableName": "strategic-fingerprint-generator",
+            "observedSymbol": "StrategicDecisionFingerprint",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": "build.ps1",
+            "sourceIdentity": "100644:blob:b971a77e7bebbde88ec5d6bb77339a62b473a0e3",
+            "sourceRole": "AUTOMATION_AND_DEVELOPER_TOOL_SOURCE",
+            "agentReadableName": "PowerShell-game-mod-build-installer",
+            "observedSymbol": "dotnet",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          },
+          {
+            "path": "mod_manifest.json",
+            "sourceIdentity": "100644:blob:638fb98f46b5339db8a937e7ac1793c3409a6d90",
+            "sourceRole": "BUILD_OR_PACKAGE_ENTRY_METADATA",
+            "agentReadableName": "game-mod-package-manifest",
+            "observedSymbol": "STS2",
+            "sourceEvidence": "PINNED_GIT_BLOB_LITERAL",
+            "semanticResponsibility": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN"
+          }
+        ],
+        "semanticMeaning": "Source file role not LEGO identity; no installed, formal, or consumer claims"
+      },
+      "staticInstructionConflictCandidates": [
+        {
+          "kind": "STATIC_SOURCE_DIRECTIVE_CONFLICT_CANDIDATE",
+          "sourceCut": "960ffb766f5ec6846eca1caf2f238fb47b6d61da",
+          "methodSource": ".claude/commands/playsts2.md",
+          "constraintSource": "AGENTS.md",
+          "methodSourceIdentity": "100644:blob:b73a0a8796c57ac6f70521a1d51818e1f542efe2",
+          "constraintSourceIdentity": "100644:blob:2a2e11b12557c71bfe3443b989f43e8f40c58fdf",
+          "methodEvidence": [
+            "Evaluate paths",
+            "Sequence cards optimally"
+          ],
+          "constraintEvidence": [
+            "exclusively",
+            "No replacement card"
+          ],
+          "description": "Agent command recommends own tactical gameplay while root guidance reserves game decision policy for pinned FableBot; static directive conflict candidate, not an installed/runtime finding.",
+          "actualConsumer": "UNKNOWN",
+          "runtimePriority": "UNKNOWN",
+          "installedCurrentness": "UNKNOWN"
+        }
+      ]
     }
   ],
   "proposedNamePolicy": "PROPOSED_NAVIGATION_NAME = <exact Git repo>::<existing classified source region>/<source section>. This is NOT a changed physical path, owner authority, LEGO identity or public interface.",
@@ -15740,6 +16069,15 @@
       }
     ],
     "unresolvedCarrierCount": 0,
-    "unresolvedCarrierSourcePaths": []
+    "unresolvedCarrierSourcePaths": [],
+    "refinementStanding": {
+      "originalSourceUnqualifiedPaths": 217,
+      "sourceQualifiedFileRoles": 26,
+      "remainingPathRoleUnqualifiedPaths": 191,
+      "remainingPathRoleUnqualifiedGroups": 71,
+      "originalSemanticResponsibilityUnknownGroups": 73,
+      "qualification": "GIT_PATH_LITERAL_AND_FILE_CARRIER_ONLY; ACTUAL_CONSUMER_CONTRACT_INSTALLED_FORMAL_UNKNOWN",
+      "crosswalk": "26 scoped STS2_MCP sourceQualifiedRootFileRoles paths match exact original Git blobs and do not replace the 217 historical source-carrier observations."
+    }
   }
 }
