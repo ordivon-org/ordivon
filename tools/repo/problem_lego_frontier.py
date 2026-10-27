@@ -103,6 +103,31 @@ def project_problem_legos(
                 "decision": "HOLD_FOR_JOINT_SEMANTIC_CONSUMER_REVIEW",
             })
 
+    # Retain every native file-level structural flag and exact Git mode/blob
+    # identity. These flags are *not* 4,000+ additional semantic Problem LEGO:
+    # a proposed physical move is NOT evidence that a consumer is broken.
+    file_facts = []
+    file_problem_counts: Counter[str] = Counter()
+    file_problem_paths = 0
+    for item in sorted(inventory["sourcePaths"], key=lambda r: r["path"]):
+        file_path = item["path"]
+        digest = index.get(file_path)
+        if digest is None:
+            raise ValueError("Git source path lost its physical cell assignment")
+        flags = list(item["problems"])
+        file_problem_counts.update(flags)
+        file_problem_paths += bool(flags)
+        file_facts.append({
+            "sourcePath": file_path,
+            "sourceIdentity": item["sourceIdentity"],
+            "sourceUnitRef": cell_refs[digest],
+            "currentSource": item["currentSource"],
+            "sourceProblemCodes": flags,
+            "carrierType": item["carrierType"],
+            "consumerStanding": "UNKNOWN",
+            "callSemanticsStanding": "NOT_ASSESSED",
+        })
+
     if len(cell_rows) != frontier["summary"]["cells"] or (
         sum(row["pathCount"] for row in cell_rows)
         != inventory["summary"]["trackedPaths"]
@@ -178,6 +203,9 @@ def project_problem_legos(
     summary = {
         "trackedPaths": len(index),
         "sourceUnits": len(cell_rows),
+        "sourcePathsWithStructuralFlags": file_problem_paths,
+        "sourcePathStructuralFlagCounts": dict(sorted(file_problem_counts.items())),
+        "structuralFlagsAreVerifiedRuntimeFailures": False,
         "sourceProblemCandidates": len(physical_problems),
         "sourceProblemLabelOccurrences": sum(label_counts.values()),
         "multiLabelSourceProblemCandidates": overlapping,
@@ -209,6 +237,7 @@ def project_problem_legos(
         "defaultRemediation": "DEFER_UNTIL_CONSUMER_AND_CALL_SEMANTICS_QUALIFIED",
         "summary": summary,
         "sourceUnits": cell_rows,
+        "sourcePathFacts": file_facts,
         "sourceProblemCandidates": physical_problems,
         "planNodeProblemCandidates": plan_nodes,
         "deferredPlanRelationDeclarations": relation_rows,
@@ -229,7 +258,7 @@ def main() -> int:
         source, repo=args.repo, max_files=args.cell_max_files,
         max_depth=args.cell_max_depth)
     if args.summary:
-        for key in ("sourceUnits", "sourceProblemCandidates",
+        for key in ("sourceUnits", "sourcePathFacts", "sourceProblemCandidates",
                     "planNodeProblemCandidates", "deferredPlanRelationDeclarations"):
             result.pop(key)
     print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2))

@@ -39,6 +39,20 @@ class ProblemLegoFrontierTests(unittest.TestCase):
         self.assertEqual(f["sourceCut"], self.cut)
         self.assertFalse(f["proofReuseAdmissible"])
         self.assertFalse(f["callerOrRuntimeAuthorityInferred"])
+        facts = f["sourcePathFacts"]
+        self.assertEqual(len(facts), len(expected))
+        self.assertEqual({r["sourcePath"] for r in facts}, expected)
+        source_by_path = {r["path"]: r for r in self.inventory["sourcePaths"]}
+        for fact in facts:
+            native = source_by_path[fact["sourcePath"]]
+            self.assertEqual(fact["sourceIdentity"], native["sourceIdentity"])
+            self.assertEqual(fact["sourceProblemCodes"], native["problems"])
+            self.assertEqual(fact["callSemanticsStanding"], "NOT_ASSESSED")
+        self.assertEqual(
+            s["sourcePathsWithStructuralFlags"],
+            sum(bool(x["sourceProblemCodes"]) for x in facts),
+        )
+        self.assertFalse(s["structuralFlagsAreVerifiedRuntimeFailures"])
 
     def test_multilabel_cell_is_one_problem_lego_candidate(self) -> None:
         f = self.frontier
@@ -120,6 +134,7 @@ class ProblemLegoFrontierTests(unittest.TestCase):
         self.assertEqual(x["sourceCut"], self.cut)
         self.assertEqual(x["summary"], self.frontier["summary"])
         self.assertNotIn("sourceUnits", x)
+        self.assertNotIn("sourcePathFacts", x)
         self.assertNotIn("planNodeProblemCandidates", x)
         self.assertFalse(x["proofReuseAdmissible"])
         self.assertEqual(x["defaultRemediation"],
