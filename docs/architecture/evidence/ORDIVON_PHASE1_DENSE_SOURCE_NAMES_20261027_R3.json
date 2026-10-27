@@ -313,6 +313,26 @@
       "nameQualification": "UNQUALIFIED",
       "namingEvidence": "PATH_AND_FILENAME_ONLY",
       "noPermanentOwner": true,
+      "physicalFormPartitions": [
+        {
+          "extension": ".json",
+          "pathCount": 25,
+          "pathSamples": [
+            "docs/architecture/agent-native-measurement-improvement-loop-r1.json",
+            "docs/architecture/structure-r2-transition-r1.json"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": ".md",
+          "pathCount": 42,
+          "pathSamples": [
+            "docs/architecture/ADMISSION_FABRIC_R1.md",
+            "docs/architecture/WINDOWS_AUTHORITY_FACTORIZATION_R1.md"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        }
+      ],
       "physicalPrefix": "docs/architecture/",
       "sampleGitPaths": [
         "docs/architecture/ADMISSION_FABRIC_R1.md",
@@ -341,6 +361,35 @@
       "nameQualification": "UNQUALIFIED",
       "namingEvidence": "PATH_AND_FILENAME_ONLY",
       "noPermanentOwner": true,
+      "physicalFormPartitions": [
+        {
+          "extension": ".json",
+          "pathCount": 31,
+          "pathSamples": [
+            "docs/architecture/evidence/CANONICAL_MAIN_RECONCILIATION_F2EC_R1.json",
+            "docs/architecture/evidence/GIT_MAIN_CUT_CONSUMER_COMPARISON_20261024_R1.json"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": ".jsonl",
+          "pathCount": 6,
+          "pathSamples": [
+            "docs/architecture/evidence/CONVERGENCE_CI_EPISODES_R3.jsonl",
+            "docs/architecture/evidence/CONVERGENCE_QUEUE_EPISODES_R4.jsonl"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": ".md",
+          "pathCount": 3,
+          "pathSamples": [
+            "docs/architecture/evidence/CONVERGENCE_QUEUE_WAVE_A_R1.md",
+            "docs/architecture/evidence/PHASE1_RESPONSIBILITY_COVERAGE_20261027.md"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        }
+      ],
       "physicalPrefix": "docs/architecture/evidence/",
       "sampleGitPaths": [
         "docs/architecture/evidence/CANONICAL_MAIN_RECONCILIATION_F2EC_R1.json",
@@ -368,6 +417,26 @@
       "nameQualification": "UNQUALIFIED",
       "namingEvidence": "PATH_AND_FILENAME_ONLY",
       "noPermanentOwner": true,
+      "physicalFormPartitions": [
+        {
+          "extension": ".json",
+          "pathCount": 1,
+          "pathSamples": [
+            "docs/migration/acceptance/architecture-convergence-a02-monorepo-acceptance-20260921.json",
+            "docs/migration/acceptance/architecture-convergence-a02-monorepo-acceptance-20260921.json"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": ".md",
+          "pathCount": 45,
+          "pathSamples": [
+            "docs/migration/acceptance/ARCHITECTURE_CONVERGENCE_A02_MONOREPO_ACCEPTANCE_20260921.md",
+            "docs/migration/acceptance/WORKSTATION_V2_STANDALONE_RETIREMENT_ACCEPTANCE_20260921.md"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        }
+      ],
       "physicalPrefix": "docs/migration/acceptance/",
       "sampleGitPaths": [
         "docs/migration/acceptance/ARCHITECTURE_CONVERGENCE_A02_MONOREPO_ACCEPTANCE_20260921.md",
@@ -397,6 +466,47 @@
       "nameQualification": "UNQUALIFIED",
       "namingEvidence": "PATH_AND_FILENAME_ONLY",
       "noPermanentOwner": true,
+      "physicalFormPartitions": [
+        {
+          "extension": ".commit-map",
+          "pathCount": 27,
+          "pathSamples": [
+            "docs/migration/receipts/artifact.commit-map",
+            "docs/migration/receipts/workstation.update.commit-map"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": ".json",
+          "pathCount": 1,
+          "pathSamples": [
+            "docs/migration/receipts/skills-m7-live-cutover.json",
+            "docs/migration/receipts/skills-m7-live-cutover.json"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": ".md",
+          "pathCount": 31,
+          "pathSamples": [
+            "docs/migration/receipts/artifact.md",
+            "docs/migration/receipts/workstation.update.md"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": "<none>",
+          "extensionlessShebangPrefixes": {
+            "NO_SHEBANG_OR_BINARY_UNKNOWN": 1
+          },
+          "pathCount": 1,
+          "pathSamples": [
+            "docs/migration/receipts/.gitkeep",
+            "docs/migration/receipts/.gitkeep"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        }
+      ],
       "physicalPrefix": "docs/migration/receipts/",
       "sampleGitPaths": [
         "docs/migration/receipts/.gitkeep",
@@ -427,6 +537,56 @@
       "nameQualification": "UNQUALIFIED",
       "namingEvidence": "PATH_AND_FILENAME_ONLY",
       "noPermanentOwner": true,
+      "physicalFormPartitions": [
+        {
+          "extension": ".py",
+          "pathCount": 31,
+          "pathSamples": [
+            "tools/repo/affected_owners.py",
+            "tools/repo/test_workspace_ready.py"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": ".sh",
+          "pathCount": 4,
+          "pathSamples": [
+            "tools/repo/check_tracked_secrets.sh",
+            "tools/repo/test-check-archived-source-boundary.sh"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": ".sha256",
+          "pathCount": 1,
+          "pathSamples": [
+            "tools/repo/bash-5.3.20.sha256",
+            "tools/repo/bash-5.3.20.sha256"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": ".toml",
+          "pathCount": 2,
+          "pathSamples": [
+            "tools/repo/dependency_contracts.toml",
+            "tools/repo/owners.toml"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": "<none>",
+          "extensionlessShebangPrefixes": {
+            "#!/bin/bash": 1
+          },
+          "pathCount": 1,
+          "pathSamples": [
+            "tools/repo/workspace-ready",
+            "tools/repo/workspace-ready"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        }
+      ],
       "physicalPrefix": "tools/repo/",
       "sampleGitPaths": [
         "tools/repo/affected_owners.py",
@@ -559,6 +719,38 @@
       "nameQualification": "UNQUALIFIED",
       "namingEvidence": "PATH_AND_FILENAME_ONLY",
       "noPermanentOwner": true,
+      "physicalFormPartitions": [
+        {
+          "extension": ".ps1",
+          "pathCount": 2,
+          "pathSamples": [
+            "services/harness/scripts/jev_active_user_launcher.ps1",
+            "services/harness/scripts/windows_user_browser_chatgpt.ps1"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": ".py",
+          "pathCount": 81,
+          "pathSamples": [
+            "services/harness/scripts/acceptance_h0_deliberation_authority.py",
+            "services/harness/scripts/windows_user_browser_materialization_target.py"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": "<none>",
+          "extensionlessShebangPrefixes": {
+            "#!/usr/bin/env bash": 2
+          },
+          "pathCount": 2,
+          "pathSamples": [
+            "services/harness/scripts/local-acceptance",
+            "services/harness/scripts/owner-environment"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        }
+      ],
       "physicalPrefix": "services/harness/scripts/",
       "sampleGitPaths": [
         "services/harness/scripts/acceptance_h0_deliberation_authority.py",
@@ -664,6 +856,26 @@
       "nameQualification": "UNQUALIFIED",
       "namingEvidence": "PATH_AND_FILENAME_ONLY",
       "noPermanentOwner": true,
+      "physicalFormPartitions": [
+        {
+          "extension": ".py",
+          "pathCount": 10,
+          "pathSamples": [
+            "capabilities/distribution/scripts/admission.py",
+            "capabilities/distribution/scripts/test-reconciliation.py"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": ".sh",
+          "pathCount": 10,
+          "pathSamples": [
+            "capabilities/distribution/scripts/test-all.sh",
+            "capabilities/distribution/scripts/test-structure.sh"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        }
+      ],
       "physicalPrefix": "capabilities/distribution/scripts/",
       "sampleGitPaths": [
         "capabilities/distribution/scripts/admission.py",
@@ -691,6 +903,26 @@
       "nameQualification": "UNQUALIFIED",
       "namingEvidence": "PATH_AND_FILENAME_ONLY",
       "noPermanentOwner": true,
+      "physicalFormPartitions": [
+        {
+          "extension": ".json",
+          "pathCount": 22,
+          "pathSamples": [
+            "capabilities/artifact/artifact-delivery/artifact-python-runtime-v1.lock.json",
+            "capabilities/artifact/artifact-delivery/vsa-trust-policy-v1.schema.json"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": ".toml",
+          "pathCount": 1,
+          "pathSamples": [
+            "capabilities/artifact/artifact-delivery/mise.toml",
+            "capabilities/artifact/artifact-delivery/mise.toml"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        }
+      ],
       "physicalPrefix": "capabilities/artifact/artifact-delivery/",
       "sampleGitPaths": [
         "capabilities/artifact/artifact-delivery/artifact-python-runtime-v1.lock.json",
@@ -849,6 +1081,35 @@
       "nameQualification": "UNQUALIFIED",
       "namingEvidence": "PATH_AND_FILENAME_ONLY",
       "noPermanentOwner": true,
+      "physicalFormPartitions": [
+        {
+          "extension": ".cpp",
+          "pathCount": 1,
+          "pathSamples": [
+            "capabilities/artifact/scripts/cad_step_inspect.cpp",
+            "capabilities/artifact/scripts/cad_step_inspect.cpp"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": ".ps1",
+          "pathCount": 1,
+          "pathSamples": [
+            "capabilities/artifact/scripts/powerpoint_render_worker.ps1",
+            "capabilities/artifact/scripts/powerpoint_render_worker.ps1"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": ".py",
+          "pathCount": 41,
+          "pathSamples": [
+            "capabilities/artifact/scripts/artifact_agent_surface.py",
+            "capabilities/artifact/scripts/publication_perceptual_verify.py"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        }
+      ],
       "physicalPrefix": "capabilities/artifact/scripts/",
       "sampleGitPaths": [
         "capabilities/artifact/scripts/artifact_agent_surface.py",
@@ -902,6 +1163,29 @@
       "nameQualification": "UNQUALIFIED",
       "namingEvidence": "PATH_AND_FILENAME_ONLY",
       "noPermanentOwner": true,
+      "physicalFormPartitions": [
+        {
+          "extension": ".py",
+          "pathCount": 26,
+          "pathSamples": [
+            "services/gateway/tests/test_access_auth.py",
+            "services/gateway/tests/test_windows_service_contract.py"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": "<none>",
+          "extensionlessShebangPrefixes": {
+            "NO_SHEBANG_OR_BINARY_UNKNOWN": 1
+          },
+          "pathCount": 1,
+          "pathSamples": [
+            "services/gateway/tests/.gitkeep",
+            "services/gateway/tests/.gitkeep"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        }
+      ],
       "physicalPrefix": "services/gateway/tests/",
       "sampleGitPaths": [
         "services/gateway/tests/.gitkeep",
@@ -1009,6 +1293,47 @@
       "nameQualification": "UNQUALIFIED",
       "namingEvidence": "PATH_AND_FILENAME_ONLY",
       "noPermanentOwner": true,
+      "physicalFormPartitions": [
+        {
+          "extension": ".mjs",
+          "pathCount": 1,
+          "pathSamples": [
+            "capabilities/media/scripts/require-js-deps.mjs",
+            "capabilities/media/scripts/require-js-deps.mjs"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": ".ps1",
+          "pathCount": 1,
+          "pathSamples": [
+            "capabilities/media/scripts/synthesize-sapi-cues.ps1",
+            "capabilities/media/scripts/synthesize-sapi-cues.ps1"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": ".py",
+          "pathCount": 18,
+          "pathSamples": [
+            "capabilities/media/scripts/build-creative-index.py",
+            "capabilities/media/scripts/studio-agent-surface.py"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": "<none>",
+          "extensionlessShebangPrefixes": {
+            "#!/usr/bin/env bash": 1
+          },
+          "pathCount": 1,
+          "pathSamples": [
+            "capabilities/media/scripts/owner-environment",
+            "capabilities/media/scripts/owner-environment"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        }
+      ],
       "physicalPrefix": "capabilities/media/scripts/",
       "sampleGitPaths": [
         "capabilities/media/scripts/build-creative-index.py",
@@ -1114,6 +1439,26 @@
       "nameQualification": "UNQUALIFIED",
       "namingEvidence": "PATH_AND_FILENAME_ONLY",
       "noPermanentOwner": true,
+      "physicalFormPartitions": [
+        {
+          "extension": ".ini",
+          "pathCount": 1,
+          "pathSamples": [
+            "platform/workstation/ansible/inventory.ini",
+            "platform/workstation/ansible/inventory.ini"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": ".yml",
+          "pathCount": 19,
+          "pathSamples": [
+            "platform/workstation/ansible/bootstrap.yml",
+            "platform/workstation/ansible/workstation-windows-jev-fastpath-provider.yml"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        }
+      ],
       "physicalPrefix": "platform/workstation/ansible/",
       "sampleGitPaths": [
         "platform/workstation/ansible/bootstrap.yml",
@@ -1245,6 +1590,26 @@
       "nameQualification": "UNQUALIFIED",
       "namingEvidence": "PATH_AND_FILENAME_ONLY",
       "noPermanentOwner": true,
+      "physicalFormPartitions": [
+        {
+          "extension": ".py",
+          "pathCount": 16,
+          "pathSamples": [
+            "platform/security/scripts/assemble_gate_input.py",
+            "platform/security/scripts/verify_vsa_bundle.py"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": ".sh",
+          "pathCount": 10,
+          "pathSamples": [
+            "platform/security/scripts/scan_product.sh",
+            "platform/security/scripts/verify_vsa_cosign.sh"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        }
+      ],
       "physicalPrefix": "platform/security/scripts/",
       "sampleGitPaths": [
         "platform/security/scripts/assemble_gate_input.py",
@@ -1376,6 +1741,26 @@
       "nameQualification": "UNQUALIFIED",
       "namingEvidence": "PATH_AND_FILENAME_ONLY",
       "noPermanentOwner": true,
+      "physicalFormPartitions": [
+        {
+          "extension": ".json",
+          "pathCount": 26,
+          "pathSamples": [
+            "meta/next/domains/game/game-autonomous-interest-candidate-r2.schema.json",
+            "meta/next/domains/game/game-top-motif-bridge-r1.json"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": ".md",
+          "pathCount": 23,
+          "pathSamples": [
+            "meta/next/domains/game/GAME_AUTONOMOUS_INTEREST_PROTOCOL_R1.md",
+            "meta/next/domains/game/README.md"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        }
+      ],
       "physicalPrefix": "meta/next/domains/game/",
       "sampleGitPaths": [
         "meta/next/domains/game/GAME_AUTONOMOUS_INTEREST_PROTOCOL_R1.md",
@@ -1403,6 +1788,26 @@
       "nameQualification": "UNQUALIFIED",
       "namingEvidence": "PATH_AND_FILENAME_ONLY",
       "noPermanentOwner": true,
+      "physicalFormPartitions": [
+        {
+          "extension": ".json",
+          "pathCount": 77,
+          "pathSamples": [
+            "meta/next/evidence/acceptance/admission-fabric-r1-20260922.json",
+            "meta/next/evidence/acceptance/verified-reintegration-external-methods-r4-20260922.json"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": ".md",
+          "pathCount": 1,
+          "pathSamples": [
+            "meta/next/evidence/acceptance/capability-packages-r1-20260913.md",
+            "meta/next/evidence/acceptance/capability-packages-r1-20260913.md"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        }
+      ],
       "physicalPrefix": "meta/next/evidence/acceptance/",
       "sampleGitPaths": [
         "meta/next/evidence/acceptance/admission-fabric-r1-20260922.json",
@@ -1534,6 +1939,26 @@
       "nameQualification": "UNQUALIFIED",
       "namingEvidence": "PATH_AND_FILENAME_ONLY",
       "noPermanentOwner": true,
+      "physicalFormPartitions": [
+        {
+          "extension": ".json",
+          "pathCount": 19,
+          "pathSamples": [
+            "meta/next/planning/admission-fabric-execution-plan-r1.json",
+            "meta/next/planning/verified-reintegration-external-owner-convergence-r1.json"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": ".md",
+          "pathCount": 4,
+          "pathSamples": [
+            "meta/next/planning/README.md",
+            "meta/next/planning/governance-persistence-ratchet-r1.md"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        }
+      ],
       "physicalPrefix": "meta/next/planning/",
       "sampleGitPaths": [
         "meta/next/planning/README.md",
@@ -1561,6 +1986,26 @@
       "nameQualification": "UNQUALIFIED",
       "namingEvidence": "PATH_AND_FILENAME_ONLY",
       "noPermanentOwner": true,
+      "physicalFormPartitions": [
+        {
+          "extension": ".py",
+          "pathCount": 18,
+          "pathSamples": [
+            "meta/next/scripts/authority_catalog.py",
+            "meta/next/scripts/web_security_gate_r3.py"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": ".sql",
+          "pathCount": 1,
+          "pathSamples": [
+            "meta/next/scripts/experimental_episode_r5c_source_r1.sql",
+            "meta/next/scripts/experimental_episode_r5c_source_r1.sql"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        }
+      ],
       "physicalPrefix": "meta/next/scripts/",
       "sampleGitPaths": [
         "meta/next/scripts/authority_catalog.py",
@@ -1588,6 +2033,26 @@
       "nameQualification": "UNQUALIFIED",
       "namingEvidence": "PATH_AND_FILENAME_ONLY",
       "noPermanentOwner": true,
+      "physicalFormPartitions": [
+        {
+          "extension": ".md",
+          "pathCount": 1,
+          "pathSamples": [
+            "meta/next/tests/README.md",
+            "meta/next/tests/README.md"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": ".py",
+          "pathCount": 30,
+          "pathSamples": [
+            "meta/next/tests/__init__.py",
+            "meta/next/tests/test_web_provider_routing_skill.py"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        }
+      ],
       "physicalPrefix": "meta/next/tests/",
       "sampleGitPaths": [
         "meta/next/tests/README.md",
@@ -1618,6 +2083,56 @@
       "nameQualification": "UNQUALIFIED",
       "namingEvidence": "PATH_AND_FILENAME_ONLY",
       "noPermanentOwner": true,
+      "physicalFormPartitions": [
+        {
+          "extension": ".lock",
+          "pathCount": 1,
+          "pathSamples": [
+            "services/runtime/Cargo.lock",
+            "services/runtime/Cargo.lock"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": ".md",
+          "pathCount": 5,
+          "pathSamples": [
+            "services/runtime/AGENTS.md",
+            "services/runtime/SECURITY.md"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": ".toml",
+          "pathCount": 6,
+          "pathSamples": [
+            "services/runtime/.gitleaks.toml",
+            "services/runtime/rust-toolchain.toml"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": ".txt",
+          "pathCount": 2,
+          "pathSamples": [
+            "services/runtime/requirements-tooling.lock.txt",
+            "services/runtime/requirements-tooling.txt"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": "<none>",
+          "extensionlessShebangPrefixes": {
+            "NO_SHEBANG_OR_BINARY_UNKNOWN": 6
+          },
+          "pathCount": 6,
+          "pathSamples": [
+            "services/runtime/.editorconfig",
+            "services/runtime/LICENSE"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        }
+      ],
       "physicalPrefix": "services/runtime/",
       "sampleGitPaths": [
         "services/runtime/.editorconfig",
@@ -1645,6 +2160,26 @@
       "nameQualification": "UNQUALIFIED",
       "namingEvidence": "PATH_AND_FILENAME_ONLY",
       "noPermanentOwner": true,
+      "physicalFormPartitions": [
+        {
+          "extension": ".rs",
+          "pathCount": 24,
+          "pathSamples": [
+            "services/runtime/crates/ordivon-runtime-core/src/runtime/artifact_release_state.rs",
+            "services/runtime/crates/ordivon-runtime-core/src/runtime/workspace_state.rs"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": ".sql",
+          "pathCount": 4,
+          "pathSamples": [
+            "services/runtime/crates/ordivon-runtime-core/src/runtime/attempt_supervisor_owner_storage.sql",
+            "services/runtime/crates/ordivon-runtime-core/src/runtime/runtime_release_storage.sql"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        }
+      ],
       "physicalPrefix": "services/runtime/crates/ordivon-runtime-core/src/runtime/",
       "sampleGitPaths": [
         "services/runtime/crates/ordivon-runtime-core/src/runtime/artifact_release_state.rs",
@@ -1698,6 +2233,26 @@
       "nameQualification": "UNQUALIFIED",
       "namingEvidence": "PATH_AND_FILENAME_ONLY",
       "noPermanentOwner": true,
+      "physicalFormPartitions": [
+        {
+          "extension": ".json",
+          "pathCount": 17,
+          "pathSamples": [
+            "services/runtime/research/foundations/RF0-CLOSEOUT.json",
+            "services/runtime/research/foundations/RF9-CLOSEOUT.json"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": ".md",
+          "pathCount": 54,
+          "pathSamples": [
+            "services/runtime/research/foundations/README.md",
+            "services/runtime/research/foundations/RUNTIME-FOUNDATIONS-V1.md"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        }
+      ],
       "physicalPrefix": "services/runtime/research/foundations/",
       "sampleGitPaths": [
         "services/runtime/research/foundations/README.md",
@@ -1726,6 +2281,39 @@
       "nameQualification": "UNQUALIFIED",
       "namingEvidence": "PATH_AND_FILENAME_ONLY",
       "noPermanentOwner": true,
+      "physicalFormPartitions": [
+        {
+          "extension": ".ps1",
+          "pathCount": 1,
+          "pathSamples": [
+            "services/runtime/scripts/windows-native-runtime-r6c-acceptance.ps1",
+            "services/runtime/scripts/windows-native-runtime-r6c-acceptance.ps1"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": ".py",
+          "pathCount": 17,
+          "pathSamples": [
+            "services/runtime/scripts/agent_ux_report.py",
+            "services/runtime/scripts/windows-job-launcher-acceptance.py"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": "<none>",
+          "extensionlessShebangPrefixes": {
+            "#!/usr/bin/env bash": 3,
+            "#!/usr/bin/env python3": 8
+          },
+          "pathCount": 11,
+          "pathSamples": [
+            "services/runtime/scripts/local-acceptance",
+            "services/runtime/scripts/tla-formal"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        }
+      ],
       "physicalPrefix": "services/runtime/scripts/",
       "sampleGitPaths": [
         "services/runtime/scripts/agent_ux_report.py",
@@ -1857,6 +2445,31 @@
       "nameQualification": "UNQUALIFIED",
       "namingEvidence": "PATH_AND_FILENAME_ONLY",
       "noPermanentOwner": true,
+      "physicalFormPartitions": [
+        {
+          "extension": ".py",
+          "pathCount": 1,
+          "pathSamples": [
+            "domains/capital/scripts/consume_crypto_public_shadow_product_r1.py",
+            "domains/capital/scripts/consume_crypto_public_shadow_product_r1.py"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        },
+        {
+          "extension": "<none>",
+          "extensionlessShebangPrefixes": {
+            "#!/usr/bin/env bash": 35,
+            "#!/usr/bin/env python3": 7,
+            "#!/usr/bin/python3": 1
+          },
+          "pathCount": 43,
+          "pathSamples": [
+            "domains/capital/scripts/capture-binance-usdm-private-r1",
+            "domains/capital/scripts/run-websockets-owner-requalification-r17"
+          ],
+          "roleTruth": "FILE_EXTENSION_ONLY_NOT_IMPLEMENTATION_OR_SEMANTIC_BEHAVIOR"
+        }
+      ],
       "physicalPrefix": "domains/capital/scripts/",
       "sampleGitPaths": [
         "domains/capital/scripts/capture-binance-usdm-private-r1",
@@ -1906,6 +2519,7 @@
   "summary": {
     "denseCellUniquePaths": 2533,
     "denseCellsNamed": 60,
+    "mixedCellPhysicalFormFamilies": 60,
     "mixedFormatCells": 23,
     "pathsOutsideDenseCells": 2466,
     "peerDenseCells": 60,

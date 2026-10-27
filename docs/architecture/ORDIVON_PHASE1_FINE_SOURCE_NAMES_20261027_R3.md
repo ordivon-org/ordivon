@@ -8,6 +8,7 @@ Classification only. No LEGO decomposition, semantic proofs, source moves, perma
 - Reuses peer SourceCut 350f09b1594f57552c36d3169dba771ec0326337 for its 18 physical zones, 12 supplementary navigation regions, 268 first-level source sections, and 718 recursive source cells. Peer document is a separate local candidate, not presumed merged to the main branch.
 - 60 dense groups independently checked against source tree: 2,533 uniquely covered Git paths and 2,466 paths in the other 658 cells. **23/60 dense groups contain multiple file extension classes.**
 - All 60 candidate names have source-count proof and three actual exact Git path witnesses in the companion JSON. No named cell is reported semantically qualified; no consumer or installed runtime is inferred.
+- All 23 mixed-extension cells are further partitioned into **60 physical file-form subfamilies**; extensionless entries include source-bound shebang observations. These are lexical/encoding distinctions only and do not prove function or execute the scripts.
 - This is finer source classification, not completed system-wide functional semantics: alternative Git repositories, historical refs, Windows source and running services, PostgreSQL and nonGit physical data have different source identities.
 
 ## What the labels distinguish
