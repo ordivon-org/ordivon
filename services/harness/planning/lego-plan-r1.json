@@ -93,7 +93,7 @@
       "id": "H04",
       "label": "EffectBinding",
       "kind": "evidence_binding",
-      "responsibility": "Bind admitted tool intents to physical evidence while preserving ambiguous-effect semantics.",
+      "responsibility": "Compose admitted Harness effect evidence and ambiguity handling over independently qualified WakeTurn, ConversationBinding and human-session lifecycle contracts; do not conflate these distinct durable identities and authority boundaries.",
       "authority": "Harness with Runtime foreign evidence",
       "state": "IMPLEMENTED",
       "sharedRefs": [
@@ -112,28 +112,10 @@
         "tests/test_sqlite_materializer_transaction_guard.py",
         "tests/test_p0_sqlite_agent_loop.py",
         "tests/test_provider_claim_formal_gate.py",
-        "scripts/cft_human_session.py",
-        "tests/test_cft_human_session_durable.py::test_session_open_never_starts_systemd_without_exact_durable_reservation",
-        "tests/test_cft_human_session_durable.py::test_close_requires_exact_durable_closed_receipt_after_systemd_stop",
-        "scripts/sqlite_conversation_binding.py",
-        "scripts/sqlite_wake_turn_map.py",
-        "tests/test_sqlite_conversation_binding.py::test_adoption_is_atomic_with_its_verified_receipt",
-        "tests/test_sqlite_wake_turn_map.py::test_wake_allocation_is_atomic_with_verified_turn_identity",
         "scripts/agent_automation_browserless.py",
         "tests/test_browserless_sqlite_connection_lifetime.py::test_turn_effect_read_releases_native_sqlite_connection",
         "tests/test_p0_store_ops.py::HarnessStoreOperationsTests::test_readonly_sqlite_uri_binds_exact_reserved_filename",
-        "tests/test_agent_automation_release.py::MaterializationLedgerMigrationTests::test_snapshot_never_reads_valid_but_wrong_uri_alias",
-        "scripts/postgres_wake_turn_map.py",
-        "tests/test_postgres_wake_turn_map.py",
-        "tests/test_browserless_postgres_wake_selection.py",
-        "tests/test_postgres_wake_turn_map.py::test_first_schema_admission_is_serialized_on_disposable_pg",
-        "scripts/postgres_conversation_binding.py",
-        "tests/test_postgres_conversation_binding.py",
-        "tests/test_conversation_binding_pg_selection.py",
-        "tests/test_postgres_wake_turn_map.py::test_pg_native_identity_immutability_rejects_mutation",
-        "tests/test_postgres_conversation_binding.py::test_weak_pg_check_literals_do_not_count_as_integrity_contract",
-        "formal/ConversationBindingCutoverR1.tla",
-        "tests/test_pg_binding_cutover_formal_gate.py"
+        "tests/test_agent_automation_release.py::MaterializationLedgerMigrationTests::test_snapshot_never_reads_valid_but_wrong_uri_alias"
       ],
       "dependencies": [],
       "mustNotOwn": [
@@ -147,22 +129,26 @@
         "Durable ConversationRelay SQLite materialization transitions validate the exact post-write receipt before COMMIT; missing or malformed readback must ROLLBACK and fail with CarrierConflict. This contract holds for intent, effect attempt, ordinary outcome, and human-resume claim under Python -O, without claiming external provider atomicity.",
         "A durable Provider completion digest is not caller acknowledgement: native TLC must prove acknowledgement requires fresh or privacy-authorized retained result, and metadata-only redaction remains independently reachable. Concrete SQLite replay/recovery tests and the separately merged #668 12-worker consumer remain required; bounded model PASS alone does not prove implementation refinement.",
         "The Python -O qualification requires executable, non-elided SQL-state postconditions for adverse receipt markers and persisted row standings; two deliberately unequal witnesses must still raise AssertionError in both optimized and standard interpreters. A pytest exit-zero without these checks is not durable receipt proof.",
-        "A CFT human-session open must prove the exact durable OPENING reservation receipt inside its SQLite transaction before any systemd.start: deleted or mutated post-insert reservation rolls back and no physical browser start/stop is attempted. Native SQLite adversarial AFTER INSERT triggers cover deleted rows and wrong slot; external browser readiness and deployed installed state require separate evidence. The OPENING-to-ACTIVE transition must additionally prove exact durable ACTIVE receipt after physical readiness, or roll back and compensate the started systemd target rather than return a false READY.",
-        "After systemd.stop of an existing human-session, the CFT CLOSED transition must affect the exact selected lifecycle and preserve all immutable session identity fields with an exact closedAtMs. Native SQLite post-UPDATE row removal or reactivation must ROLLBACK and raise SessionConflict, never emit a successful CLOSED receipt; this source invariant does not make systemd.stop and the SQLite write one atomic physical transaction.",
         "Conversation-role adoption and wake-intent Turn identity allocation require exact, typed, post-write SQLite receipt readback before COMMIT; a missing or tampered row must roll back with owner Conflict and must not commit any trigger side effect. Exact replays cannot return a forged provider/session or invalid UUIDv7 turn identity. The physical test scope is the two original SQLite stores, not external provider SEND atomicity.",
         "The Browserless turn-effect SQLite read-only reconciliation path must close its native sqlite3.Connection exactly once for both existing row and absent-table cases; SQLite transaction context is not a connection-lifetime owner. A real tracked sqlite3.Connection subclass is the negative/positive resource oracle; this does not close unrelated connections in other callers.",
         "Until HarnessStore has a PostgreSQL-backed replacement qualified by the same lease, revision, event and receipt consumer tests, SQLite backup verification must bind exact filename identity: reserved #/?/% are physical bytes, never query or fragment syntax; valid-but-wrong database aliases must fail consumer equivalence.",
         "PostgreSQL-first cutover acceptance is consumer equivalence for run/event CAS, leases, unique dedupe and provider receipts under serializable retry, independent data restoration/rollback, production readback and retirement of superseded SQLite authority; a connector or schema alone is not migration.",
-        "Migration-source identity: existing Agent Automation Release must snapshot and copy the exact SQLite ledger path through standard-library URI encoding. A literal '#' in a filename or ancestor directory cannot redirect the read to another valid database, and a corrupted named source must never pass by alias. This is interim SQLite source integrity, not PostgreSQL migration completion.",
-        "PostgreSQL-first WakeTurn identity cutover: a wakeIntentId maps to exactly one immutable UUIDv7 turnRequestId under native PostgreSQL SERIALIZABLE retry. A previously populated SQLite wake source may be retired only after a quiesced, exclusive-source-lock import proves row-by-row equivalence and installs exact INSERT/UPDATE/DELETE fail-closed triggers. Browserless may use PG only on an explicit DSN, after validating the source seal plus legacy-to-PG identity equality; a missing source requires explicitly qualified fresh bootstrap. Failure must hold without SQLite fallback or provider SEND. This source-level/native PostgreSQL evidence does not prove already-running legacy workers have stopped or an installed deployment has switched.",
-        "PostgreSQL WakeTurn first-schema admission is a single serialized database capability: a transaction-scoped PostgreSQL advisory lock precedes CREATE SCHEMA/TABLE; on an empty disposable database 12-way cold initialization succeeds without pg_namespace UniqueViolation and creates exactly one schema/table.",
-        "Native PostgreSQL WakeTurn first-admission schema is not certified by CREATE TABLE IF NOT EXISTS alone: existing relation must be a plain table with the exact six typed nonnull columns, an immutable wake primary key, a nondeferrable unique turn identity and a nonnegative BIGINT timestamp check. The PostgreSQL cutover marker also requires a plain two-column non-RLS table with an enforced nondeferrable PRIMARY KEY and exact CHECK constraints on cutover_id='legacy' and state in {'PENDING','ACTIVE'}, preventing counterfeit identity or state transitions. Disposable PostgreSQL tests falsify an existing same-named table missing unique turn identity, using a wrong timestamp type or missing its check, or a cutover marker table missing its primary key; incomplete schema rejects before any WakeTurn write. This only qualifies the current admission transaction and does not establish arbitrary future DDL noninterference or complete SQLite-to-PostgreSQL cutover.",
-        "H04 PostgreSQL ConversationBinding replacement is independently source-path-bound. One existing Browserless consumer selects the same PG store for exact read and adoption; unsealed legacy sources fail closed at both the consumer and direct PG API. PG SERIALIZABLE + exact post-write receipt and source-retired one-time import have 8 disposable-PostgreSQL physical tests, including replay, concurrency, mutation rollback and legacy-after-PG-growth non-vacuity; 4 no-fallback Browserless CDC tests. This proves neither deployed PG cutover nor Runtime/Harness-wide SQLite retirement.",
-        "After PostgreSQL WakeTurn identity admission, the native PostgreSQL owner must reject UPDATE, DELETE and TRUNCATE of the persisted wake identity row, rather than rely only on Agent-side post-write reads. Real PostgreSQL 18 negative controls must show all three illegal mutation/erase attempts fail and the original turn UUIDv7 remains unchanged. Privileged trigger disabling, direct file corruption and DROP TABLE are outside this scoped contract and require owner-role/privilege boundaries; the ProviderClaimR1 abstract TLC result is not a PG implementation refinement proof.",
-        "PostgreSQL conversation-binding PG native CHECKs preserve the exact legacy accepted campaignRef (nonempty trimmed text) rather than imposing an unproven SHA-256 prefix on existing valid identity; physical PostgreSQL RED/green import of campaign:historic-role must preserve replay with UUIDv7 session, SHA-256 evidence/binding digests and BIGINT checks intact.",
-        "PostgreSQL 18 ConversationBinding schema admission must bind exact native named primary/unique/createdAtMs/digest/UUIDv7 constraint definitions from pg_constraint; keyword-bearing or same-name weak CHECK expressions cannot stand in for the Owner schema. In disposable real PG18, both anonymous and counterfeit-named weak CHECKs are deliberately rejected. This is a bounded native PG structural contract, not proof of deployed PG configuration, schema owner roles, privilege isolation, historical cutover or external effects.",
-        "H04 Capability LEGO: the existing PG ConversationBinding owner and real Browserless read/write consumers; Method LEGO: finite cutover state-machine + CEGAR counterexamples, using Runtime's public upstream TLA+/TLC tool. Native gate verifies PG import and old writer seal are separate states, never admits PG before sealing, preserves legacy IDs across interrupted migration, and permits replay with PG-only growth. Three deliberately false reachability properties prove that admitted PG, interrupted import, and post-growth replay are reachable. A model PASS alone is not installed-PG or SQL transaction proof."
-      ]
+        "Migration-source identity: existing Agent Automation Release must snapshot and copy the exact SQLite ledger path through standard-library URI encoding. A literal '#' in a filename or ancestor directory cannot redirect the read to another valid database, and a corrupted named source must never pass by alias. This is interim SQLite source integrity, not PostgreSQL migration completion."
+      ],
+      "inputs": [
+        "Admitted H03 tool intent and exact Harness Run context",
+        "Qualified child receipts or explicit unresolved/ambiguous external effect observations"
+      ],
+      "outputs": [
+        "Scoped evidence-bound outcome, unknown-effect standing or typed rejection; never provider semantic success merely by a durable receipt"
+      ],
+      "behavioralContract": "Composition does not grant authority or erase ambiguity: only H03-admitted intents may lead to effects, native child identity contracts must hold before their receipts can be reused, and a lost response must not cause blind duplicate Provider SEND. The parent contract is not a proof that its child effects or external process transactions are globally atomic.",
+      "unfold": [
+        "H04.WAKE",
+        "H04.CONVERSATION",
+        "H04.SESSION"
+      ],
+      "compositionStanding": "SOURCE_DECLARED; no automatic assume-guarantee or installed refinenement PASS"
     },
     {
       "id": "H07",
@@ -249,6 +235,175 @@
       "effects": [
         "Calls delegated approved WorkingSet handler only after current-source qualification; does not itself own durable state"
       ]
+    },
+    {
+      "id": "H04.WAKE",
+      "label": "WakeTurnIdentity",
+      "kind": "state_authority",
+      "responsibility": "Allocate and durably bind one wakeIntentId to one immutable UUIDv7 turnRequestId, with replay, source-seal and PostgreSQL cutover; no Provider SEND or full Harness Run ownership.",
+      "inputs": [
+        "Campaign/Agent/wakeIntent identity, validated prompt digest, existing immutable wake binding or explicitly qualified bootstrap",
+        "Explicit PostgreSQL DSN and, for legacy data, sealed SQLite source and source-lock/import preconditions"
+      ],
+      "outputs": [
+        "One immutable UUIDv7 turnRequestId binding and durable post-write receipt, or typed conflict",
+        "Read-only binding/replay and source-retirement qualification, not provider delivery"
+      ],
+      "behavioralContract": "For the same wakeIntentId, allocation is replay-idempotent and may not change turnRequestId. Native PostgreSQL SERIALIZABLE admission checks exact schema/type/uniqueness/check constraints, initial cold-schema synchronization and immutable persisted rows. A populated legacy SQLite source is not retired or bypassed until quiesced, sealed, exclusive-lock import proves row equivalence. None of this proves a deployed writer was switched or Provider SEND occurred.",
+      "consumers": [
+        "services/harness/scripts/agent_automation_browserless.py::BrowserlessAutomationService.launch_wake",
+        "services/harness/tests/test_browserless_postgres_wake_selection.py",
+        "services/harness/tests/test_postgres_wake_turn_map.py"
+      ],
+      "environment": [
+        "SOURCE: services/harness/scripts/postgres_wake_turn_map.py",
+        "PG18 native disposable negative tests: source-level only",
+        "INSTALLED/EXECUTED production cutover: UNKNOWN"
+      ],
+      "replacementConditions": [
+        "Maintain identity immutability, exact replay, source seal, PG schema integrity and UUIDv7 consumer contract; verify migration and fail-closed no-fallback before deleting old writer."
+      ],
+      "formalObligations": [
+        "PG SERIALIZABLE and SQL schema enforce receipt/uniqueness in stated scope; installed same-source/no-active-old-writer remains UNKNOWN"
+      ],
+      "authority": "Harness source owner with PostgreSQL/SQLite/systemd/Browserless natural physical authorities as explicitly qualified",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "dependencies": [
+        "H03"
+      ],
+      "mustNotOwn": [
+        "Provider/domain semantic success",
+        "Runtime physical process truth"
+      ],
+      "evidence": [
+        "scripts/sqlite_wake_turn_map.py",
+        "tests/test_sqlite_wake_turn_map.py::test_wake_allocation_is_atomic_with_verified_turn_identity",
+        "scripts/postgres_wake_turn_map.py",
+        "tests/test_postgres_wake_turn_map.py",
+        "tests/test_browserless_postgres_wake_selection.py",
+        "tests/test_postgres_wake_turn_map.py::test_first_schema_admission_is_serialized_on_disposable_pg",
+        "tests/test_postgres_wake_turn_map.py::test_pg_native_identity_immutability_rejects_mutation"
+      ],
+      "acceptance": [
+        "PostgreSQL-first WakeTurn identity cutover: a wakeIntentId maps to exactly one immutable UUIDv7 turnRequestId under native PostgreSQL SERIALIZABLE retry. A previously populated SQLite wake source may be retired only after a quiesced, exclusive-source-lock import proves row-by-row equivalence and installs exact INSERT/UPDATE/DELETE fail-closed triggers. Browserless may use PG only on an explicit DSN, after validating the source seal plus legacy-to-PG identity equality; a missing source requires explicitly qualified fresh bootstrap. Failure must hold without SQLite fallback or provider SEND. This source-level/native PostgreSQL evidence does not prove already-running legacy workers have stopped or an installed deployment has switched.",
+        "PostgreSQL WakeTurn first-schema admission is a single serialized database capability: a transaction-scoped PostgreSQL advisory lock precedes CREATE SCHEMA/TABLE; on an empty disposable database 12-way cold initialization succeeds without pg_namespace UniqueViolation and creates exactly one schema/table.",
+        "Native PostgreSQL WakeTurn first-admission schema is not certified by CREATE TABLE IF NOT EXISTS alone: existing relation must be a plain table with the exact six typed nonnull columns, an immutable wake primary key, a nondeferrable unique turn identity and a nonnegative BIGINT timestamp check. The PostgreSQL cutover marker also requires a plain two-column non-RLS table with an enforced nondeferrable PRIMARY KEY and exact CHECK constraints on cutover_id='legacy' and state in {'PENDING','ACTIVE'}, preventing counterfeit identity or state transitions. Disposable PostgreSQL tests falsify an existing same-named table missing unique turn identity, using a wrong timestamp type or missing its check, or a cutover marker table missing its primary key; incomplete schema rejects before any WakeTurn write. This only qualifies the current admission transaction and does not establish arbitrary future DDL noninterference or complete SQLite-to-PostgreSQL cutover.",
+        "After PostgreSQL WakeTurn identity admission, the native PostgreSQL owner must reject UPDATE, DELETE and TRUNCATE of the persisted wake identity row, rather than rely only on Agent-side post-write reads. Real PostgreSQL 18 negative controls must show all three illegal mutation/erase attempts fail and the original turn UUIDv7 remains unchanged. Privileged trigger disabling, direct file corruption and DROP TABLE are outside this scoped contract and require owner-role/privilege boundaries; the ProviderClaimR1 abstract TLC result is not a PG implementation refinement proof."
+      ],
+      "parent": "H04",
+      "qualification": "SOURCE-BACKED_RESPONSIBILITY_NOT_INSTALLED_VERIFIED"
+    },
+    {
+      "id": "H04.CONVERSATION",
+      "label": "ConversationRoleBinding",
+      "kind": "state_authority",
+      "responsibility": "Bind one campaign/agent identity to an immutable provider session and evidence-digest role with exact replay and one-way sealed legacy-to-PostgreSQL migration; independent of WakeTurn UUID allocation.",
+      "inputs": [
+        "campaignRef, agentId, provider resource/session identity, evidence digest and exact adoption requestId",
+        "PostgreSQL DSN plus qualified legacy source seal or explicit fresh bootstrap"
+      ],
+      "outputs": [
+        "Verified immutable provider/session role binding or typed conflict",
+        "Existing binding read/resolve and source cutover qualification"
+      ],
+      "behavioralContract": "PostgreSQL native named CHECK/PK/unique/digest/UUIDv7 constraints, SERIALIZABLE CAS and exact post-write receipt prevent role mutation or counterfeit binding admission in the tested scope. Existing Browserless read/adopt consumer may select PG only with exact legacy source seal. Native TLC cutover model is separately bounded; not a proof of active installed worker migration or external Provider atomicity.",
+      "consumers": [
+        "services/harness/scripts/agent_automation_browserless.py::BrowserlessAutomationService.conversation_affinity",
+        "services/harness/scripts/agent_automation_browserless.py::BrowserlessAutomationService.adopt_conversation",
+        "services/harness/tests/test_conversation_binding_pg_selection.py",
+        "services/harness/tests/test_postgres_conversation_binding.py"
+      ],
+      "environment": [
+        "SOURCE: services/harness/scripts/postgres_conversation_binding.py",
+        "PG18 disposable native test source-level; installed writer equivalence UNKNOWN"
+      ],
+      "replacementConditions": [
+        "Preserve provider/session identity immutability, legal historical campaignRef domain, exact source seal, consumer replay semantics, atomic PostgreSQL receipt and recoverable rollback before retiring legacy writer."
+      ],
+      "formalObligations": [
+        "Bounded ConversationBindingCutoverR1 TLA+ model and code bridge separated; full model-to-code and deployed PG cutover UNKNOWN"
+      ],
+      "authority": "Harness source owner with PostgreSQL/SQLite/systemd/Browserless natural physical authorities as explicitly qualified",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "dependencies": [
+        "H03"
+      ],
+      "mustNotOwn": [
+        "Provider/domain semantic success",
+        "Runtime physical process truth"
+      ],
+      "evidence": [
+        "scripts/sqlite_conversation_binding.py",
+        "tests/test_sqlite_conversation_binding.py::test_adoption_is_atomic_with_its_verified_receipt",
+        "scripts/postgres_conversation_binding.py",
+        "tests/test_postgres_conversation_binding.py",
+        "tests/test_conversation_binding_pg_selection.py",
+        "tests/test_postgres_conversation_binding.py::test_weak_pg_check_literals_do_not_count_as_integrity_contract",
+        "formal/ConversationBindingCutoverR1.tla",
+        "tests/test_pg_binding_cutover_formal_gate.py"
+      ],
+      "acceptance": [
+        "H04 PostgreSQL ConversationBinding replacement is independently source-path-bound. One existing Browserless consumer selects the same PG store for exact read and adoption; unsealed legacy sources fail closed at both the consumer and direct PG API. PG SERIALIZABLE + exact post-write receipt and source-retired one-time import have 8 disposable-PostgreSQL physical tests, including replay, concurrency, mutation rollback and legacy-after-PG-growth non-vacuity; 4 no-fallback Browserless CDC tests. This proves neither deployed PG cutover nor Runtime/Harness-wide SQLite retirement.",
+        "PostgreSQL conversation-binding PG native CHECKs preserve the exact legacy accepted campaignRef (nonempty trimmed text) rather than imposing an unproven SHA-256 prefix on existing valid identity; physical PostgreSQL RED/green import of campaign:historic-role must preserve replay with UUIDv7 session, SHA-256 evidence/binding digests and BIGINT checks intact.",
+        "PostgreSQL 18 ConversationBinding schema admission must bind exact native named primary/unique/createdAtMs/digest/UUIDv7 constraint definitions from pg_constraint; keyword-bearing or same-name weak CHECK expressions cannot stand in for the Owner schema. In disposable real PG18, both anonymous and counterfeit-named weak CHECKs are deliberately rejected. This is a bounded native PG structural contract, not proof of deployed PG configuration, schema owner roles, privilege isolation, historical cutover or external effects.",
+        "H04 Capability LEGO: the existing PG ConversationBinding owner and real Browserless read/write consumers; Method LEGO: finite cutover state-machine + CEGAR counterexamples, using Runtime's public upstream TLA+/TLC tool. Native gate verifies PG import and old writer seal are separate states, never admits PG before sealing, preserves legacy IDs across interrupted migration, and permits replay with PG-only growth. Three deliberately false reachability properties prove that admitted PG, interrupted import, and post-growth replay are reachable. A model PASS alone is not installed-PG or SQL transaction proof."
+      ],
+      "parent": "H04",
+      "qualification": "SOURCE-BACKED_RESPONSIBILITY_NOT_INSTALLED_VERIFIED"
+    },
+    {
+      "id": "H04.SESSION",
+      "label": "HumanSessionLifecycle",
+      "kind": "state_authority",
+      "responsibility": "Durably reserve, activate, observe and close an exact human Chrome-for-Testing session while delegating process lifecycle to systemd and browser state to Chrome; independent of Provider SEND.",
+      "inputs": [
+        "Exact requestId or sessionId, qualified session slot and browser equipment identity",
+        "SystemdAuthority (external process manager), durable local session state and readiness observation"
+      ],
+      "outputs": [
+        "Durable OPENING/ACTIVE/CLOSED session receipt and read-only currentness, or typed SessionConflict",
+        "Only process start/stop delegation and session projection, not cookie, browser-provider authority or chat outcome"
+      ],
+      "behavioralContract": "Before systemd.start, the exact OPENING reservation row must be committed and verified, otherwise no process start. ACTIVE requires physical readiness plus exact durable receipt or compensating stop. After systemd.stop, CLOSED must preserve session identity and exact closure receipt or fail closed. SQLite and systemd are not one atomic transaction; physical/browser failures remain separately observed.",
+      "consumers": [
+        "services/harness/tests/test_durable_human_control_api.py",
+        "services/harness/tests/test_cft_human_session_durable.py",
+        "services/harness/tests/test_browser_capability_router.py"
+      ],
+      "environment": [
+        "SOURCE: services/harness/scripts/cft_human_session.py",
+        "State store uses existing SQLite lifecycle; not a PostgreSQL migration completion",
+        "INSTALLED systemd/Chrome physical state requires separate Runtime evidence"
+      ],
+      "replacementConditions": [
+        "Preserve exact pre-start reservation, readiness/compensation, process ownership separation, identity-preserving CLOSED and recovery semantics, including negative SQLite trigger tests."
+      ],
+      "formalObligations": [
+        "External systemd/SQLite non-atomic effect boundary; installed contract/refinement UNKNOWN"
+      ],
+      "authority": "Harness source owner with PostgreSQL/SQLite/systemd/Browserless natural physical authorities as explicitly qualified",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "dependencies": [
+        "H03"
+      ],
+      "mustNotOwn": [
+        "Provider/domain semantic success",
+        "Runtime physical process truth"
+      ],
+      "evidence": [
+        "scripts/cft_human_session.py",
+        "tests/test_cft_human_session_durable.py::test_session_open_never_starts_systemd_without_exact_durable_reservation",
+        "tests/test_cft_human_session_durable.py::test_close_requires_exact_durable_closed_receipt_after_systemd_stop"
+      ],
+      "acceptance": [
+        "A CFT human-session open must prove the exact durable OPENING reservation receipt inside its SQLite transaction before any systemd.start: deleted or mutated post-insert reservation rolls back and no physical browser start/stop is attempted. Native SQLite adversarial AFTER INSERT triggers cover deleted rows and wrong slot; external browser readiness and deployed installed state require separate evidence. The OPENING-to-ACTIVE transition must additionally prove exact durable ACTIVE receipt after physical readiness, or roll back and compensate the started systemd target rather than return a false READY.",
+        "After systemd.stop of an existing human-session, the CFT CLOSED transition must affect the exact selected lifecycle and preserve all immutable session identity fields with an exact closedAtMs. Native SQLite post-UPDATE row removal or reactivation must ROLLBACK and raise SessionConflict, never emit a successful CLOSED receipt; this source invariant does not make systemd.stop and the SQLite write one atomic physical transaction."
+      ],
+      "parent": "H04",
+      "qualification": "SOURCE-BACKED_RESPONSIBILITY_NOT_INSTALLED_VERIFIED"
     }
   ],
   "edges": [
@@ -287,6 +442,42 @@
       "to": "H02",
       "type": "STATE",
       "label": "committed selected WorkingSet feeds later model context projection; not itself model context"
+    },
+    {
+      "from": "H04",
+      "to": "H04.WAKE",
+      "type": "COMPOSITION",
+      "label": "R2.1 named recursive child of effect evidence composition; qualified child contract independent; no inferred combined PASS"
+    },
+    {
+      "from": "H04",
+      "to": "H04.CONVERSATION",
+      "type": "COMPOSITION",
+      "label": "R2.1 named recursive child of effect evidence composition; qualified child contract independent; no inferred combined PASS"
+    },
+    {
+      "from": "H04",
+      "to": "H04.SESSION",
+      "type": "COMPOSITION",
+      "label": "R2.1 named recursive child of effect evidence composition; qualified child contract independent; no inferred combined PASS"
+    },
+    {
+      "from": "H04.WAKE",
+      "to": "H04",
+      "type": "IDENTITY",
+      "label": "wakeIntentId to immutable turnRequestId receipt is a distinct accepted effect input"
+    },
+    {
+      "from": "H04.CONVERSATION",
+      "to": "H04",
+      "type": "IDENTITY",
+      "label": "campaign/agent session role is separate from wake UUID and Provider SEND"
+    },
+    {
+      "from": "H04.SESSION",
+      "to": "H04",
+      "type": "EFFECT",
+      "label": "systemd-backed human session is independent physical process effect with compensation"
     }
   ],
   "slices": [
