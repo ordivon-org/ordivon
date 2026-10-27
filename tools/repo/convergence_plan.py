@@ -66,11 +66,6 @@ def load_dependency_graph(
                     "../../services/runtime", "services/runtime/formal/README.md",
                 ),
                 (
-                    "composition", "runtime",
-                    "packages/composition/scripts/verify_effect_replay_formal.sh",
-                    "../../services/runtime", "services/runtime/formal/README.md",
-                ),
-                (
                     "harness", "runtime", "services/harness/mise.toml",
                     "../../services/runtime", "services/runtime/formal/README.md",
                 ),

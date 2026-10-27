@@ -170,17 +170,6 @@ kind = "PUBLIC_PINNED_FORMAL_TOOLCHAIN"
 contract_ref = "services/runtime/formal/README.md"
 
 
-# Source-only dependency: the C06 TLC runner consumes Runtime's pinned
-# upstream theorem-checker distribution and lock, never Runtime's Job/effect
-# semantics. This declaration is source provenance, not proof admission.
-[[seams]]
-from_owner = "composition"
-to_owner = "runtime"
-source_glob = "packages/composition/scripts/verify_effect_replay_formal.sh"
-allowed_fragment = "../../services/runtime"
-kind = "PUBLIC_PINNED_FORMAL_TOOLCHAIN"
-contract_ref = "services/runtime/formal/README.md"
-
 # P0 bounded source contract: Composition tests derive owner source paths from
 # Runtime's existing trace manifest, not a parallel cross-owner path registry.
 [[seams]]

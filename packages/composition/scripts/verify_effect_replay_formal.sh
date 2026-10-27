@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
-runtime_root="$(realpath ../../services/runtime)"
+if [[ "$#" -ne 1 ]]; then echo "exact formal runtime toolchain root required" >&2; exit 2; fi
+runtime_root="$(realpath "$1")"
+[[ -f "$runtime_root/formal/toolchain.lock.json" ]] || { echo "no pinned runtime formal toolchain lock" >&2;exit 2; }
 jar="$(python3 - "$runtime_root" <<'PY'
 import json
 from pathlib import Path

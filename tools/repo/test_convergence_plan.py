@@ -150,24 +150,6 @@ class ConvergencePlanTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "unapproved upstream toolchain-only seam"):
                 MODULE.load_dependency_graph(path=path)
 
-    def test_c06_tlc_toolchain_is_an_exact_source_input_not_business_dependency(self) -> None:
-        graph = MODULE.load_dependency_graph()
-        self.assertNotIn("runtime", graph["composition"])
-        policy = MODULE.DEPENDENCY_PATH.read_text(encoding="utf-8")
-        source = (
-            'source_glob = "packages/composition/scripts/'
-            'verify_effect_replay_formal.sh"'
-        )
-        self.assertIn(source, policy)
-        with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "dependency_contracts.toml"
-            path.write_text(
-                policy.replace(source, 'source_glob = "packages/composition/**"'),
-                encoding="utf-8",
-            )
-            with self.assertRaisesRegex(ValueError, "unapproved upstream toolchain-only seam"):
-                MODULE.load_dependency_graph(path=path)
-
     def test_test_only_runtime_source_contract_cannot_be_widened_to_wildcard(self) -> None:
         policy = MODULE.DEPENDENCY_PATH.read_text(encoding="utf-8")
         mutations = [

@@ -212,4 +212,4 @@ PY_FOREIGN_RECOVERY_RED
 
 [tasks."formal:effect:verify"]
 description = "Check C06 task-local effect uncertainty invariants using pinned upstream TLC"
-run = "bash scripts/verify_effect_replay_formal.sh"
+run = "bash scripts/verify_effect_replay_formal.sh ../../services/runtime"
