@@ -656,3 +656,174 @@ class ExplicitIndependentScopeTests(unittest.TestCase):
             self.assertFalse(v["proofReuseAdmissible"])
             self.assertNotIn("semanticPlans", v)
             self.assertNotIn("sourceCells", v)
+
+class ExternalAuthorityObservationJoinTests(unittest.TestCase):
+    """Cross-authority *candidate* links must not invent call or installed proof."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cut = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True
+        ).strip()
+        cls.frontier = M.derived_problem_legos(M.classification(ROOT, cls.cut), repo=ROOT)
+        cls.sample_problem = cls.frontier["problemLegos"][0]["problemRef"]
+
+    @classmethod
+    def observation(cls, **updates):
+        record = {
+            "authorityRef": "git:root-abcd1234",
+            "subjectRef": "independent-repo",
+            "observationKind": "INDEPENDENT_GIT_SOURCE",
+            "observationRevision": "a" * 40,
+            "witnessRef": "job-12345678",
+            "observedAt": "2026-10-28T06:48:00Z",
+            "candidateProblemRef": cls.sample_problem,
+            "observedFacts": {"trackedPaths": 200, "crossRepoLexicalCandidates": 3},
+        }
+        record.update(updates)
+        return record
+
+    @classmethod
+    def envelope(cls, observations, **updates):
+        blob = {
+            "kind": "ordivon.external-authority-observations-r1",
+            "subjectSourceCut": cls.cut,
+            "observations": observations,
+        }
+        blob.update(updates)
+        return blob
+
+    def test_source_problem_and_external_identity_join_is_nonauthoritative(self):
+        base = self.frontier
+        before = dict(base)
+        joined = M.join_observed_authorities(
+            base, self.envelope([self.observation()])
+        )
+        assert joined["observationJoin"]["summary"]["reportedObservationSubjects"] == 1
+        assert joined["observationJoin"]["summary"]["explicitCandidateAssociations"] == 1
+        assert joined["observationJoin"]["proofReuseAdmissible"] is False
+        assert joined["observationJoin"]["dynamicConsumerClosureEstablished"] is False
+        assert joined["observationJoin"]["deletionAuthorized"] is False
+        assert joined["observationJoin"]["observedSubjects"][0]["evidenceStanding"] == (
+            "CALLER_REPORTED_NOT_AUTHORITY_REVERIFIED"
+        )
+        assert joined["observationJoin"]["candidateAssociations"][0]["relation"] == (
+            "EXPLICIT_CANDIDATE_ASSOCIATION_NOT_AN_INVOKED_EDGE"
+        )
+        assert base == before
+
+    def test_other_authority_same_local_subject_cannot_alias(self):
+        original = self.observation(candidateProblemRef=None)
+        peer = self.observation(
+            authorityRef="non-git:root-bb22",
+            observationKind="NON_GIT_DATA_INVENTORY",
+            observationRevision="inventory-20261028",
+            witnessRef="job-87654321",
+            candidateProblemRef=None,
+        )
+        joined = M.join_observed_authorities(
+            self.frontier, self.envelope([original, peer])
+        )
+        refs = [r["subjectRef"] for r in joined["observationJoin"]["observedSubjects"]]
+        assert len(set(refs)) == 2
+        assert joined["observationJoin"]["summary"]["unassociatedExternalSubjects"] == 2
+
+    def test_source_revision_changes_evidence_not_stable_subject_identity(self):
+        first = M.join_observed_authorities(
+            self.frontier, self.envelope([self.observation()])
+        )["observationJoin"]["observedSubjects"][0]
+        second = M.join_observed_authorities(
+            self.frontier, self.envelope([self.observation(
+                observationRevision="b"*40,
+                observedFacts={"trackedPaths": 201, "crossRepoLexicalCandidates": 3},
+            )])
+        )["observationJoin"]["observedSubjects"][0]
+        assert first["subjectRef"] == second["subjectRef"]
+        assert first["evidenceDigest"] != second["evidenceDigest"]
+        assert second["installedSourceEquivalence"] == "UNKNOWN"
+
+    def test_stale_source_cut_is_refused(self):
+        with self.assertRaisesRegex(ValueError, "SourceCut mismatch"):
+            M.join_observed_authorities(self.frontier, self.envelope(
+                [self.observation()], subjectSourceCut="0"*40
+            ))
+
+    def test_short_id_is_never_promoted_to_scoped_plan_reference(self):
+        with self.assertRaisesRegex(ValueError, "unscoped or unrecognized"):
+            M.join_observed_authorities(self.frontier, self.envelope(
+                [self.observation(candidateProblemRef="G01")]
+            ))
+        short_ids = self.frontier["sameLocalIdAcrossPlansObservation"]
+        assert short_ids
+        first_id = sorted(short_ids)[0]
+        ref = "problem:unscoped-plan-id:" + first_id
+        with self.assertRaisesRegex(ValueError, "syntax witness"):
+            M.join_observed_authorities(self.frontier, self.envelope([
+                self.observation(candidateProblemRef=ref)]))
+        valid = M.join_observed_authorities(self.frontier, self.envelope([
+            self.observation(observationKind="UNSCOPED_PLAN_LOOKUP_CANDIDATE",
+                             candidateProblemRef=ref)]))
+        assert not valid["observationJoin"]["unscopedShortIdQuestions"][0][
+            "bareIdIsAnActualCollision"]
+
+    def test_duplicate_and_fake_evidence_status_rejected(self):
+        with self.assertRaisesRegex(ValueError, "duplicate"):
+            M.join_observed_authorities(self.frontier, self.envelope([
+                self.observation(), self.observation(observationRevision="b"*40)]))
+        with self.assertRaisesRegex(ValueError, "exact scoped"):
+            M.join_observed_authorities(self.frontier, self.envelope([
+                {**self.observation(), "proofStatus": "PASS"}]))
+
+    def test_bounds_and_invalid_authority_provenance_fail_closed(self):
+        with self.assertRaisesRegex(ValueError, "bounded list"):
+            M.join_observed_authorities(
+                self.frontier, self.envelope([self.observation()] * 513))
+        with self.assertRaisesRegex(ValueError, "namespaced"):
+            M.join_observed_authorities(self.frontier, self.envelope([
+                self.observation(authorityRef="unscoped")]))
+        with self.assertRaisesRegex(ValueError, "witness"):
+            M.join_observed_authorities(self.frontier, self.envelope([
+                self.observation(witnessRef="human-says-green")]))
+        with self.assertRaisesRegex(ValueError, "bounded scalar"):
+            M.join_observed_authorities(self.frontier, self.envelope([
+                self.observation(observedFacts={"secret": {"nested": "not bounded"}})]))
+
+    def test_cli_opt_in_and_summary(self):
+        import json
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            file = pathlib.Path(td) / "observations.json"
+            file.write_text(json.dumps(self.envelope([self.observation()])), encoding="utf-8")
+            proc = subprocess.run([
+                "python3", str(ROOT/"tools/repo/exhaustive_coverage.py"),
+                "--source-cut", self.cut,
+                "--problem-legos", "--summary",
+                "--authority-observations", str(file),
+            ], cwd=ROOT, capture_output=True, text=True, timeout=20)
+            assert proc.returncode == 0, proc.stderr
+            payload = json.loads(proc.stdout)
+            assert payload["observationJoin"]["summary"]["reportedObservationSubjects"] == 1
+            assert "observedSubjects" not in payload["observationJoin"]
+            invalid = subprocess.run([
+                "python3", str(ROOT/"tools/repo/exhaustive_coverage.py"),
+                "--source-cut", self.cut,
+                "--authority-observations", str(file),
+            ], cwd=ROOT, capture_output=True, text=True, timeout=12)
+            assert invalid.returncode != 0
+
+    def test_scope_census_and_observations_are_separate_surfaces(self):
+        import json
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            folder = pathlib.Path(td)
+            evidence = folder / "reported.json"
+            evidence.write_text(json.dumps(self.envelope([
+                self.observation(candidateProblemRef=None)])), encoding="utf-8")
+            proc = subprocess.run([
+                "python3", str(ROOT / "tools/repo/exhaustive_coverage.py"),
+                "--source-cut", self.cut,
+                "--scope-census", "--non-git-root", f"test-data={folder}",
+                "--authority-observations", str(evidence),
+            ], cwd=ROOT, capture_output=True, text=True, timeout=12)
+            assert proc.returncode != 0
+            assert "scope census is separate" in proc.stderr
