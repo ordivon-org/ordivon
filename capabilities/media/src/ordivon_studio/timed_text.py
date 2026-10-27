@@ -19,7 +19,7 @@ def _validated_cues(document: dict[str, Any]) -> tuple[int, list[Cue]]:
     if not isinstance(time_base, dict):
         raise ValueError("timeBase must be an object")
     ticks_per_second = time_base.get("ticksPerSecond")
-    if not isinstance(ticks_per_second, int) or ticks_per_second <= 0:
+    if type(ticks_per_second) is not int or ticks_per_second <= 0:
         raise ValueError("ticksPerSecond must be a positive integer")
 
     raw_cues = document.get("cues")
@@ -40,7 +40,7 @@ def _validated_cues(document: dict[str, Any]) -> tuple[int, list[Cue]]:
             raise ValueError("cue id must be a non-empty string")
         if cue_id in seen:
             raise ValueError(f"duplicate cue id: {cue_id}")
-        if not isinstance(start, int) or not isinstance(end, int) or start < 0 or end <= start:
+        if type(start) is not int or type(end) is not int or start < 0 or end <= start:
             raise ValueError(f"invalid cue interval: {cue_id}")
         if start < previous_start:
             raise ValueError(f"cues are not ordered: {cue_id}")
