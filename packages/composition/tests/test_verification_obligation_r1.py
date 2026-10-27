@@ -378,13 +378,17 @@ def test_impact_rejects_graph_cycles_missing_edges_and_fake_completeness():
     base = [{"id": "proof:a", "dependsOn": ["source:runtime"], "dependenciesComplete": True}]
     with pytest.raises(CircuitContractError, match="depends on unknown"):
         _impact(graph=[{**base[0], "dependsOn": ["source:missing"]}])
-    with pytest.raises(CircuitContractError, match="dependency cycle"):
-        _impact(
-            graph=[
-                {"id": "proof:a", "dependsOn": ["proof:b"], "dependenciesComplete": True},
-                {"id": "proof:b", "dependsOn": ["proof:a"], "dependenciesComplete": True},
-            ]
-        )
+    # Cyclic proof dependencies are representable, but cannot bootstrap
+    # themselves into verified reuse through caller completeness assertions.
+    recursive = _impact(
+        graph=[
+            {"id": "proof:a", "dependsOn": ["proof:b"], "dependenciesComplete": True},
+            {"id": "proof:b", "dependsOn": ["proof:a"], "dependenciesComplete": True},
+        ]
+    )
+    assert _statuses(recursive) == {"proof:a": "UNKNOWN", "proof:b": "UNKNOWN"}
+    assert recursive["cyclicObligationIds"] == ["proof:a", "proof:b"]
+    assert recursive["proofReuseAdmissible"] is False
     with pytest.raises(CircuitContractError, match="duplicate"):
         _impact(graph=base + base)
     with pytest.raises(CircuitContractError, match="JSON boolean"):
@@ -541,8 +545,9 @@ def test_impact_dependency_completeness_change_and_deleted_relation_fail_closed(
         },
     )
     assert "source:runtime" in deleted["derivedRelationChangedRefs"]
-    assert "source:runtime" in deleted["unindexedChangeRefs"]
-    assert set(_statuses(deleted).values()) == {"UNKNOWN"}
+    assert deleted["unindexedChangeRefs"] == []
+    assert _statuses(deleted) == {"proof:p": "REUSE_CANDIDATE"}
+    assert deleted["proofReuseAdmissible"] is False
 
 
 def test_retired_known_unconsumed_obligation_cannot_globally_poison_proof_impact():
@@ -599,17 +604,66 @@ def test_retired_known_unconsumed_obligation_cannot_globally_poison_proof_impact
     assert not unresolved["proofReuseAdmissible"]
 
 
-def test_impact_rejects_malformed_or_cyclic_previous_graph():
+def test_historical_source_root_retirement_does_not_poison_independent_proof():
+    """A previously indexed, unconsumed root is not an unindexed runtime edge."""
+    independent = {
+        "id": "proof:independent",
+        "dependsOn": ["source:live"],
+        "dependenciesComplete": True,
+    }
+    current = {
+        "authority_refs": ["source:live"],
+        "obligations": [independent],
+        "changed_refs": [],
+    }
+    previous = {
+        "authorityRefs": ["source:retired", "source:live"],
+        "obligations": [independent],
+    }
+    benign = select_impacted_obligations(**current, previous_graph=previous)
+    assert benign["derivedRelationChangedRefs"] == ["source:retired"]
+    assert benign["unindexedChangeRefs"] == []
+    assert _statuses(benign) == {"proof:independent": "REUSE_CANDIDATE"}
+    assert benign["proofReuseAdmissible"] is False
+
+    # If an actual consumer dropped that root, its relation must be RECHECK.
+    former = dict(independent, dependsOn=["source:retired", "source:live"])
+    changed = select_impacted_obligations(
+        **current, previous_graph={**previous, "obligations": [former]}
+    )
+    assert "proof:independent" in changed["derivedRelationChangedRefs"]
+    assert _statuses(changed) == {"proof:independent": "RECHECK_REQUIRED"}
+
+    # A caller's explicit unresolved reference is stronger than the mere
+    # historical retirement; never suppress it as a known old-only node.
+    unknown = select_impacted_obligations(
+        **current, previous_graph=previous, unknown_refs=["source:retired"]
+    )
+    assert unknown["unindexedChangeRefs"] == ["source:retired"]
+    assert _statuses(unknown) == {"proof:independent": "UNKNOWN"}
+    assert unknown["proofReuseAdmissible"] is False
+
+
+def test_explicit_unknown_retired_proof_is_not_suppressed_by_provenance():
+    live = {"id": "proof:live", "dependsOn": ["source:live"], "dependenciesComplete": True}
+    gone = {"id": "proof:retired", "dependsOn": ["source:live"], "dependenciesComplete": True}
+    args = {"authority_refs": ["source:live"], "obligations": [live], "changed_refs": []}
+    prev = {"authorityRefs": ["source:live"], "obligations": [live, gone]}
+    result = select_impacted_obligations(
+        **args, previous_graph=prev, unknown_refs=["proof:retired"]
+    )
+    assert result["derivedRelationChangedRefs"] == ["proof:retired"]
+    assert result["unindexedChangeRefs"] == ["proof:retired"]
+    assert _statuses(result) == {"proof:live": "UNKNOWN"}
+    assert result["proofReuseAdmissible"] is False
+
+
+def test_impact_rejects_malformed_previous_graph_but_refines_prior_cycle():
+
     obligation = {"id": "proof:a", "dependsOn": ["source:a"], "dependenciesComplete": True}
     args = {"authority_refs": ["source:a"], "obligations": [obligation], "changed_refs": []}
     invalids = [
         {"authorityRefs": ["source:a"], "obligations": [obligation, obligation]},
-        {
-            "authorityRefs": ["source:a"],
-            "obligations": [
-                {"id": "proof:b", "dependsOn": ["proof:b"], "dependenciesComplete": True}
-            ],
-        },
         {
             "authorityRefs": ["source:a"],
             "obligations": [
@@ -620,6 +674,19 @@ def test_impact_rejects_malformed_or_cyclic_previous_graph():
     for invalid in invalids:
         with pytest.raises(CircuitContractError):
             select_impacted_obligations(**args, previous_graph=invalid)
+
+    # A historical cycle was a valid declared dependency pattern, not proof
+    # that the old graph was discharged. A new acyclic graph must recheck the
+    # changed relation instead of skipping it or accepting the old cycle.
+    prior_cycle = {
+        "authorityRefs": ["source:a"],
+        "obligations": [{"id": "proof:a", "dependsOn": ["proof:a"], "dependenciesComplete": True}],
+    }
+    result = select_impacted_obligations(**args, previous_graph=prior_cycle)
+    assert result["derivedRelationChangedRefs"] == ["proof:a"]
+    assert _statuses(result) == {"proof:a": "RECHECK_REQUIRED"}
+    assert result["cyclicObligationIds"] == []
+    assert result["proofReuseAdmissible"] is False
 
 
 def test_impact_relation_delta_matches_independent_full_graph_closure_randomized():
@@ -1109,6 +1176,7 @@ def test_native_git_source_delta_selects_cas_without_rechecking_tla(tmp_path, mo
     # Agent-native path: existing repo CLI emits the scoped, immutable Git
     # delta; existing Composition CLI consumes it without inventing authority.
     import json
+    import os
     import sys
 
     delta_output = subprocess.check_output(
@@ -1158,6 +1226,8 @@ def test_native_git_source_delta_selects_cas_without_rechecking_tla(tmp_path, mo
                 "select-impact",
                 str(delta_file),
                 str(claims_file),
+                "--repo",
+                str(tmp_path),
             ],
             text=True,
         )
@@ -1167,6 +1237,29 @@ def test_native_git_source_delta_selects_cas_without_rechecking_tla(tmp_path, mo
         "proof:RuntimeDispatch-TLA-model": "REUSE_CANDIDATE",
     }
     assert cli_status["proofReuseAdmissible"] is False
+
+    # Package-only invocation matches CI: Composition is separately installed
+    # and its subprocess does not inherit the monorepo root on sys.path.
+    composition_root = Path(__file__).resolve().parents[1]
+    restricted_env = dict(os.environ, PYTHONPATH=str(composition_root / "src"))
+    package_only = json.loads(
+        subprocess.check_output(
+            [
+                sys.executable,
+                "-m",
+                "ordivon_composition.verification_obligation_r1",
+                "select-impact",
+                str(delta_file),
+                str(claims_file),
+                "--repo",
+                str(tmp_path),
+            ],
+            cwd=composition_root,
+            env=restricted_env,
+            text=True,
+        )
+    )
+    assert package_only == cli_status
 
     # A caller-supplied fake "owner certificate" cannot be promoted by CLI.
     untrusted = dict(cli_delta)
@@ -1180,12 +1273,36 @@ def test_native_git_source_delta_selects_cas_without_rechecking_tla(tmp_path, mo
             "select-impact",
             str(delta_file),
             str(claims_file),
+            "--repo",
+            str(tmp_path),
         ],
         capture_output=True,
         text=True,
     )
     assert denied.returncode != 0
     assert "cannot promote unqualified" in denied.stderr
+    delta_file.write_text(delta_output, encoding="utf8")
+    # A plausible report with correct cuts but missing an actual changed path
+    # cannot be trusted for scheduling merely because proof grants are false.
+    forged_changes = dict(cli_delta)
+    forged_changes["changedRefs"] = []
+    delta_file.write_text(json.dumps(forged_changes), encoding="utf8")
+    omitted = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "ordivon_composition.verification_obligation_r1",
+            "select-impact",
+            str(delta_file),
+            str(claims_file),
+            "--repo",
+            str(tmp_path),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert omitted.returncode != 0
+    assert "differs from exact native source delta" in omitted.stderr
     delta_file.write_text(delta_output, encoding="utf8")
     unknown_file = tmp_path / "unresolved-runtime-edges.json"
     unknown_file.write_text(json.dumps(["runtime:unindexed"]), encoding="utf8")
@@ -1198,6 +1315,8 @@ def test_native_git_source_delta_selects_cas_without_rechecking_tla(tmp_path, mo
                 "select-impact",
                 str(delta_file),
                 str(claims_file),
+                "--repo",
+                str(tmp_path),
                 "--unknown-refs",
                 str(unknown_file),
             ],
@@ -1236,6 +1355,31 @@ def _two_gate_manifest() -> dict:
     other["id"] = "gate:unrelated-property"
     other["assumption"] = "Separate independent premise."
     other["guarantee"] = "Separate independent guarantee."
+    # Independent source/consumer chain; a second Gate on the SAME consumer
+    # would not be independent and must be invalidated by #851 scope semantics.
+    producer = copy.deepcopy(manifest["stages"][0])
+    producer.update(
+        id="stage:unrelated-producer",
+        ownerId="unrelated-producer",
+        responsibility="Produce independent candidate",
+        outputs=["independent-candidate"],
+    )
+    consumer = copy.deepcopy(manifest["stages"][1])
+    consumer.update(
+        id="stage:unrelated-consumer",
+        ownerId="unrelated-consumer",
+        responsibility="Consume independent candidate",
+        dependsOn=["stage:unrelated-producer"],
+        inputs=["independent-candidate"],
+    )
+    manifest["stages"].extend([producer, consumer])
+    edge = copy.deepcopy(manifest["edges"][0])
+    edge.update(id="edge:unrelated")
+    edge["from"] = {"stageId": producer["id"], "port": "independent-candidate"}
+    edge["to"] = {"stageId": consumer["id"], "port": "independent-candidate"}
+    manifest["edges"].append(edge)
+    other["producerStageId"] = producer["id"]
+    other["consumerStageId"] = consumer["id"]
     manifest["gateRequirements"].append(other)
     return manifest
 
@@ -1274,10 +1418,13 @@ def test_manifest_gate_impact_unqualified_unchanged_stays_unknown() -> None:
 def test_manifest_gate_impact_shared_context_delta_rechecks_all() -> None:
     previous = _two_gate_manifest()
     current = copy.deepcopy(previous)
-    current["stages"][0]["responsibility"] = "Changed shared contract context"
+    current["unresolvedAssumptions"].append("Changed global environmental assumption")
     result = select_manifest_gate_impacts(previous_manifest=previous, current_manifest=current)
     assert result["sharedManifestContextChanged"]
-    assert not result["changedLocalGateIds"]
+    assert set(result["changedLocalGateIds"]) == {
+        "gate:candidate-contract",
+        "gate:unrelated-property",
+    }
     assert set(_gate_impact_statuses(result).values()) == {"RECHECK_REQUIRED"}
 
 
@@ -1289,12 +1436,12 @@ def test_manifest_gate_impact_gate_membership_add_retire_invalidates_closure() -
     current["gateRequirements"].append(more)
     added = select_manifest_gate_impacts(previous_manifest=previous, current_manifest=current)
     assert added["addedGateIds"] == ["gate:new"]
-    assert added["sharedManifestContextChanged"] is True
+    assert added["sharedManifestContextChanged"] is False
     assert set(_gate_impact_statuses(added).values()) == {"RECHECK_REQUIRED"}
 
     retired = select_manifest_gate_impacts(previous_manifest=current, current_manifest=previous)
     assert retired["removedGateIds"] == ["gate:new"]
-    assert retired["sharedManifestContextChanged"] is True
+    assert retired["sharedManifestContextChanged"] is False
     assert set(_gate_impact_statuses(retired).values()) == {"RECHECK_REQUIRED"}
 
 
@@ -1347,6 +1494,569 @@ def test_manifest_gate_impact_reuses_existing_cli_command_surface(tmp_path) -> N
         "proof:gate:gate:candidate-contract": "RECHECK_REQUIRED",
         "proof:gate:gate:unrelated-property": "UNKNOWN",
     }
+
+
+def test_manifest_gate_impact_does_not_recheck_on_parallel_stage_change() -> None:
+    previous = _manifest()
+    previous["stages"].append(
+        {
+            "id": "stage:parallel",
+            "ownerId": "parallel",
+            "responsibility": "Independent external branch",
+            "dependsOn": [],
+            "methodBindings": [],
+            "capabilityBindings": [],
+            "inputs": [],
+            "outputs": ["unrelated"],
+        }
+    )
+    current = copy.deepcopy(previous)
+    current["stages"][-1]["responsibility"] = "Independent branch changed"
+    scoped = compare_gate_source_scopes(previous, current)
+    assert scoped["changedGateIds"] == []
+    result = select_manifest_gate_impacts(previous_manifest=previous, current_manifest=current)
+    assert result["sharedManifestContextChanged"] is False
+    assert result["changedLocalGateIds"] == []
+    assert _gate_impact_statuses(result) == {"proof:gate:gate:candidate-contract": "UNKNOWN"}
+
+
+def test_manifest_gate_impact_rechecks_true_scoped_producer_change() -> None:
+    previous = _manifest()
+    current = copy.deepcopy(previous)
+    current["stages"][0]["responsibility"] = "Producer changed"
+    scoped = compare_gate_source_scopes(previous, current)
+    assert scoped["changedGateIds"] == ["gate:candidate-contract"]
+    result = select_manifest_gate_impacts(previous_manifest=previous, current_manifest=current)
+    assert result["sharedManifestContextChanged"] is False
+    assert result["changedLocalGateIds"] == ["gate:candidate-contract"]
+    assert _gate_impact_statuses(result) == {
+        "proof:gate:gate:candidate-contract": "RECHECK_REQUIRED"
+    }
+
+
+def test_manifest_independent_gate_membership_keeps_unrelated_unknown() -> None:
+    # An independent producer/consumer circuit already exists, but it has no Gate
+    # at the older SourceCut. Registering a new Gate on that unrelated chain
+    # must not invalidate every other Gate's source proof obligation.
+    current = _two_gate_manifest()
+    previous = copy.deepcopy(current)
+    previous["gateRequirements"] = previous["gateRequirements"][:1]
+
+    scoped = compare_gate_source_scopes(previous, current)
+    assert scoped["changedGateIds"] == []
+    assert scoped["addedGateIds"] == ["gate:unrelated-property"]
+    selected = select_manifest_gate_impacts(previous_manifest=previous, current_manifest=current)
+    assert selected["sharedManifestContextChanged"] is False
+    assert selected["changedLocalGateIds"] == ["gate:unrelated-property"]
+    assert _gate_impact_statuses(selected) == {
+        "proof:gate:gate:candidate-contract": "UNKNOWN",
+        "proof:gate:gate:unrelated-property": "RECHECK_REQUIRED",
+    }
+
+    retired = select_manifest_gate_impacts(previous_manifest=current, current_manifest=previous)
+    assert retired["removedGateIds"] == ["gate:unrelated-property"]
+    assert retired["sharedManifestContextChanged"] is False
+    assert _gate_impact_statuses(retired) == {"proof:gate:gate:candidate-contract": "UNKNOWN"}
+
+
+def test_manifest_gate_membership_same_consumer_rechecks_existing_proof() -> None:
+    previous = _manifest()
+    current = copy.deepcopy(previous)
+    added = copy.deepcopy(previous["gateRequirements"][0])
+    added["id"] = "gate:new-consumer-premise"
+    current["gateRequirements"].append(added)
+    scoped = compare_gate_source_scopes(previous, current)
+    assert scoped["changedGateIds"] == ["gate:candidate-contract"]
+    out = select_manifest_gate_impacts(previous_manifest=previous, current_manifest=current)
+    assert out["changedLocalGateIds"] == [
+        "gate:candidate-contract",
+        "gate:new-consumer-premise",
+    ]
+    assert out["sharedManifestContextChanged"] is False
+    assert set(_gate_impact_statuses(out).values()) == {"RECHECK_REQUIRED"}
+
+
+@pytest.mark.parametrize(
+    ("before_mask", "after_mask"),
+    [(before, after) for before in range(4) for after in range(4)],
+)
+def test_manifest_independent_gate_membership_subsets_are_local(
+    before_mask: int, after_mask: int
+) -> None:
+    # A bounded differential oracle: four combinations of two independent
+    # consumer-Gate registrations on each side of the SourceCut.
+    complete = _two_gate_manifest()
+    ids = [gate["id"] for gate in complete["gateRequirements"]]
+    before = copy.deepcopy(complete)
+    after = copy.deepcopy(complete)
+    before["gateRequirements"] = [
+        gate for i, gate in enumerate(complete["gateRequirements"]) if before_mask & (1 << i)
+    ]
+    after["gateRequirements"] = [
+        gate for i, gate in enumerate(complete["gateRequirements"]) if after_mask & (1 << i)
+    ]
+    selected = select_manifest_gate_impacts(previous_manifest=before, current_manifest=after)
+    added = [
+        identity
+        for i, identity in enumerate(ids)
+        if after_mask & (1 << i) and not before_mask & (1 << i)
+    ]
+    removed = [
+        identity
+        for i, identity in enumerate(ids)
+        if before_mask & (1 << i) and not after_mask & (1 << i)
+    ]
+    assert selected["addedGateIds"] == added
+    assert selected["removedGateIds"] == removed
+    assert selected["changedLocalGateIds"] == added
+    assert selected["sharedManifestContextChanged"] is False
+    expected = {
+        f"proof:gate:{identity}": ("RECHECK_REQUIRED" if identity in added else "UNKNOWN")
+        for i, identity in enumerate(ids)
+        if after_mask & (1 << i)
+    }
+    assert _gate_impact_statuses(selected) == expected
+
+
+def test_manifest_impact_binding_verifier_fingerprint_drift_rechecks_without_source_edit() -> None:
+    before_manifest = _manifest()
+    after_manifest = copy.deepcopy(before_manifest)
+    obligation = compile_verification_obligations(before_manifest)
+    before_binding = _binding_set(obligation, native=True)
+    after_binding = copy.deepcopy(before_binding)
+    after_binding["bindings"][0]["verifierRef"]["digest"] = _digest("different-verifier-artifact")
+    result = select_manifest_gate_impacts(
+        previous_manifest=before_manifest,
+        current_manifest=after_manifest,
+        previous_binding_set=before_binding,
+        current_binding_set=after_binding,
+    )
+    assert result["changedLocalGateIds"] == []
+    assert result["changedVerifierBindingGateIds"] == ["gate:candidate-contract"]
+    assert result["proofReuseAdmissible"] is False
+    assert result["verifierBindingComparisonQualification"] == "CALLER_AUTHORED_BINDINGS_ONLY"
+    assert {r["id"]: r["standing"] for r in result["selection"]["standingByObligation"]} == {
+        "proof:gate:gate:candidate-contract": "RECHECK_REQUIRED"
+    }
+
+
+def test_manifest_impact_binding_native_spec_changes_force_recheck() -> None:
+    manifest = _manifest()
+    obligation = compile_verification_obligations(manifest)
+    before = _binding_set(obligation, native=True)
+    after = copy.deepcopy(before)
+    after["bindings"][0]["nativeSpecificationRef"]["digest"] = _digest("new-target-psi")
+    result = select_manifest_gate_impacts(
+        previous_manifest=manifest,
+        current_manifest=copy.deepcopy(manifest),
+        previous_binding_set=before,
+        current_binding_set=after,
+    )
+    assert result["changedVerifierBindingGateIds"] == ["gate:candidate-contract"]
+    assert result["selection"]["standingByObligation"][0]["standing"] == "RECHECK_REQUIRED"
+
+
+def test_manifest_impact_binding_nonsemantic_annotations_do_not_force_recheck() -> None:
+    manifest = _manifest()
+    obligation = compile_verification_obligations(manifest)
+    before = _binding_set(obligation, native=True)
+    after = copy.deepcopy(before)
+    after["nonClaims"].append("Extra task-local audit annotation.")
+    after["bindings"][0]["nonClaims"].append("Another explanatory annotation.")
+    result = select_manifest_gate_impacts(
+        previous_manifest=manifest,
+        current_manifest=copy.deepcopy(manifest),
+        previous_binding_set=before,
+        current_binding_set=after,
+    )
+    assert result["changedVerifierBindingGateIds"] == []
+    assert result["selection"]["standingByObligation"][0]["standing"] == "UNKNOWN"
+
+
+def test_manifest_impact_binding_pair_required_not_one_sided() -> None:
+    manifest = _manifest()
+    obligation = compile_verification_obligations(manifest)
+    with pytest.raises(CircuitContractError, match="both"):
+        select_manifest_gate_impacts(
+            previous_manifest=manifest,
+            current_manifest=copy.deepcopy(manifest),
+            previous_binding_set=_binding_set(obligation),
+        )
+
+
+def test_manifest_impact_binding_removal_rechecks_optional_gate() -> None:
+    manifest = _manifest(required=False)
+    obligation = compile_verification_obligations(manifest)
+    before = _binding_set(obligation, native=True)
+    after = copy.deepcopy(before)
+    after["bindings"] = []
+    result = select_manifest_gate_impacts(
+        previous_manifest=manifest,
+        current_manifest=copy.deepcopy(manifest),
+        previous_binding_set=before,
+        current_binding_set=after,
+    )
+    assert result["changedVerifierBindingGateIds"] == ["gate:candidate-contract"]
+    assert result["selection"]["standingByObligation"][0]["standing"] == "RECHECK_REQUIRED"
+
+
+def test_manifest_impact_binding_drift_is_local_to_named_gate() -> None:
+    manifest = _two_gate_manifest()
+    obligation_set = compile_verification_obligations(manifest)
+    by_gate = {row["gateId"]: row for row in obligation_set["obligations"]}
+    first = _binding_set(obligation_set, native=True)
+    unrelated = copy.deepcopy(first["bindings"][0])
+    unrelated["gateId"] = "gate:unrelated-property"
+    unrelated["obligationDigest"] = by_gate["gate:unrelated-property"]["obligationDigest"]
+    unrelated["verifierOwnerId"] = by_gate["gate:unrelated-property"]["verifierOwnerId"]
+    unrelated["supportScope"] = by_gate["gate:unrelated-property"]["supportScope"]
+    unrelated["verifierRef"]["id"] = "verifier:unrelated"
+    first["bindings"].append(unrelated)
+
+    second = copy.deepcopy(first)
+    second["bindings"][0]["verifierClass"] = "changed-provider"
+    selected = select_manifest_gate_impacts(
+        previous_manifest=manifest,
+        current_manifest=copy.deepcopy(manifest),
+        previous_binding_set=first,
+        current_binding_set=second,
+    )
+    assert selected["changedLocalGateIds"] == []
+    assert selected["changedVerifierBindingGateIds"] == ["gate:candidate-contract"]
+    assert {
+        row["id"]: row["standing"] for row in selected["selection"]["standingByObligation"]
+    } == {
+        "proof:gate:gate:candidate-contract": "RECHECK_REQUIRED",
+        "proof:gate:gate:unrelated-property": "UNKNOWN",
+    }
+
+
+def test_manifest_impact_binding_order_is_a_set_not_a_transition() -> None:
+    manifest = _two_gate_manifest()
+    obligations = compile_verification_obligations(manifest)
+    by_gate = {row["gateId"]: row for row in obligations["obligations"]}
+    before = _binding_set(obligations, native=True)
+    new = copy.deepcopy(before["bindings"][0])
+    new["gateId"] = "gate:unrelated-property"
+    new["obligationDigest"] = by_gate["gate:unrelated-property"]["obligationDigest"]
+    new["verifierOwnerId"] = by_gate["gate:unrelated-property"]["verifierOwnerId"]
+    new["supportScope"] = by_gate["gate:unrelated-property"]["supportScope"]
+    before["bindings"].append(new)
+    after = copy.deepcopy(before)
+    after["bindings"].reverse()
+    result = select_manifest_gate_impacts(
+        previous_manifest=manifest,
+        current_manifest=copy.deepcopy(manifest),
+        previous_binding_set=before,
+        current_binding_set=after,
+    )
+    assert result["changedVerifierBindingGateIds"] == []
+    assert set(row["standing"] for row in result["selection"]["standingByObligation"]) == {
+        "UNKNOWN"
+    }
+
+
+def test_manifest_impact_binding_mismatched_proposition_rejected() -> None:
+    manifest = _manifest()
+    obligations = compile_verification_obligations(manifest)
+    before = _binding_set(obligations, native=True)
+    after = copy.deepcopy(before)
+    after["bindings"][0]["obligationDigest"] = _digest("bogus-proved-proposition")
+    with pytest.raises(CircuitContractError, match="obligation digest mismatch"):
+        select_manifest_gate_impacts(
+            previous_manifest=manifest,
+            current_manifest=copy.deepcopy(manifest),
+            previous_binding_set=before,
+            current_binding_set=after,
+        )
+
+
+def test_manifest_impact_bindings_existing_cli_subprocess(tmp_path) -> None:
+    import json
+    import subprocess
+    import sys
+
+    manifest = _manifest()
+    obligations = compile_verification_obligations(manifest)
+    before = _binding_set(obligations, native=True)
+    after = copy.deepcopy(before)
+    after["bindings"][0]["nativeSpecificationRef"]["digest"] = _digest("native-spec-change")
+    files = {}
+    for name, value in (
+        ("old-manifest", manifest),
+        ("new-manifest", manifest),
+        ("old-bindings", before),
+        ("new-bindings", after),
+    ):
+        p = tmp_path / (name + ".json")
+        p.write_text(json.dumps(value), encoding="utf-8")
+        files[name] = str(p)
+    process = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "ordivon_composition.verification_obligation_r1",
+            "impact-manifests",
+            files["old-manifest"],
+            files["new-manifest"],
+            "--previous-bindings",
+            files["old-bindings"],
+            "--current-bindings",
+            files["new-bindings"],
+        ],
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    result = json.loads(process.stdout)
+    assert result["changedLocalGateIds"] == []
+    assert result["changedVerifierBindingGateIds"] == ["gate:candidate-contract"]
+    assert result["selection"]["standingByObligation"][0]["standing"] == "RECHECK_REQUIRED"
+
+
+def test_manifest_sourcecut_and_verifier_bindings_compose_without_promoting_authority(
+    tmp_path,
+) -> None:
+    """The existing one CLI must preserve both independent P0 source/readset fences."""
+    import hashlib
+    import json
+    import subprocess
+    import sys
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(
+            ["git", "-c", "maintenance.auto=false", "-C", str(repo), *args],
+            text=True,
+        ).strip()
+
+    git("init", "-q", "-b", "main")
+    git("config", "user.name", "Ordivon P0 Test")
+    git("config", "user.email", "ordivon-test@example.invalid")
+    manifest = _manifest()
+    manifest_bytes = json.dumps(manifest).encode("utf-8")
+    (repo / "manifest.json").write_bytes(manifest_bytes)
+    git("add", ".")
+    git("commit", "-qm", "exact manifest source")
+    source_cut = git("rev-parse", "HEAD")
+
+    proof_set = compile_verification_obligations(manifest)
+    before_bind = _binding_set(proof_set, native=True)
+    after_bind = copy.deepcopy(before_bind)
+    after_bind["bindings"][0]["nativeSpecificationRef"]["digest"] = _digest(
+        "changed-build-qualification"
+    )
+    before_path = tmp_path / "prior-bindings.json"
+    after_path = tmp_path / "current-bindings.json"
+    before_path.write_text(json.dumps(before_bind), encoding="utf-8")
+    after_path.write_text(json.dumps(after_bind), encoding="utf-8")
+    # A current worktree edit MUST NOT change the two pinned Git source inputs.
+    (repo / "manifest.json").write_text("{unparseable local worktree mutation", encoding="utf-8")
+    command = [
+        sys.executable,
+        "-m",
+        "ordivon_composition.verification_obligation_r1",
+        "impact-manifests",
+        "manifest.json",
+        "manifest.json",
+        "--git-repo",
+        str(repo),
+        "--previous-sourcecut",
+        source_cut,
+        "--current-sourcecut",
+        source_cut,
+        "--previous-bindings",
+        str(before_path),
+        "--current-bindings",
+        str(after_path),
+    ]
+    result = subprocess.run(command, text=True, capture_output=True, check=True)
+    selected = json.loads(result.stdout)
+    assert selected["gitSourceCuts"]["previous"]["sha256"] == (
+        "sha256:" + hashlib.sha256(manifest_bytes).hexdigest()
+    )
+    assert selected["gitSourceCuts"]["current"]["sha256"] == (
+        "sha256:" + hashlib.sha256(manifest_bytes).hexdigest()
+    )
+    assert selected["changedLocalGateIds"] == []
+    assert selected["changedVerifierBindingGateIds"] == ["gate:candidate-contract"]
+    assert selected["selection"]["standingByObligation"][0]["standing"] == "RECHECK_REQUIRED"
+    assert selected["proofReuseAdmissible"] is False
+    # One-sided caller-authored verifier binding cannot be read as a proof delta.
+    one_sided = subprocess.run(
+        command[:-2],
+        text=True,
+        capture_output=True,
+    )
+    assert one_sided.returncode != 0
+
+
+def test_manifest_impact_verifier_identity_unaffected_by_other_gate_manifest_digest() -> None:
+    manifest = _two_gate_manifest()
+    successor = copy.deepcopy(manifest)
+    successor["gateRequirements"][0]["guarantee"] = "New producer guarantee."
+    old_proofs = compile_verification_obligations(manifest)
+    new_proofs = compile_verification_obligations(successor)
+
+    def all_bindings(proofs: dict) -> dict:
+        by_gate = {row["gateId"]: row for row in proofs["obligations"]}
+        bundle = _binding_set(proofs, native=True)
+        other = copy.deepcopy(bundle["bindings"][0])
+        other["gateId"] = "gate:unrelated-property"
+        other["obligationDigest"] = by_gate[other["gateId"]]["obligationDigest"]
+        other["verifierOwnerId"] = by_gate[other["gateId"]]["verifierOwnerId"]
+        other["supportScope"] = by_gate[other["gateId"]]["supportScope"]
+        other["verifierRef"]["id"] = "verifier:independent-stable"
+        bundle["bindings"].append(other)
+        return bundle
+
+    before = all_bindings(old_proofs)
+    after = all_bindings(new_proofs)
+    assert old_proofs["obligationSetDigest"] != new_proofs["obligationSetDigest"]
+    assert (
+        old_proofs["obligations"][1]["obligationDigest"]
+        != new_proofs["obligations"][1]["obligationDigest"]
+    )
+    result = select_manifest_gate_impacts(
+        previous_manifest=manifest,
+        current_manifest=successor,
+        previous_binding_set=before,
+        current_binding_set=after,
+    )
+    assert result["changedLocalGateIds"] == ["gate:candidate-contract"]
+    assert result["changedVerifierBindingGateIds"] == []
+    assert {row["id"]: row["standing"] for row in result["selection"]["standingByObligation"]} == {
+        "proof:gate:gate:candidate-contract": "RECHECK_REQUIRED",
+        "proof:gate:gate:unrelated-property": "UNKNOWN",
+    }
+
+
+def test_recursive_proof_cycle_change_propagates_without_blocking_independent_branch():
+    graph = [
+        {"id": "proof:a", "dependsOn": ["proof:b"], "dependenciesComplete": True},
+        {"id": "proof:b", "dependsOn": ["proof:a"], "dependenciesComplete": True},
+        {"id": "proof:consumer", "dependsOn": ["proof:b"], "dependenciesComplete": True},
+        {"id": "proof:independent", "dependsOn": ["source:host"], "dependenciesComplete": True},
+    ]
+    result = _impact(graph=graph)
+    assert _statuses(result) == {
+        "proof:a": "UNKNOWN",
+        "proof:b": "UNKNOWN",
+        "proof:consumer": "UNKNOWN",
+        "proof:independent": "REUSE_CANDIDATE",
+    }
+    assert result["cyclicObligationIds"] == ["proof:a", "proof:b"]
+    assert _statuses(_impact(graph=graph, changed=["proof:a"])) == {
+        "proof:a": "RECHECK_REQUIRED",
+        "proof:b": "RECHECK_REQUIRED",
+        "proof:consumer": "RECHECK_REQUIRED",
+        "proof:independent": "REUSE_CANDIDATE",
+    }
+
+
+def test_recursive_proof_cycle_current_vs_prior_relation_change_is_not_forgotten():
+    old = [
+        {"id": "proof:a", "dependsOn": ["proof:b"], "dependenciesComplete": True},
+        {"id": "proof:b", "dependsOn": ["proof:a"], "dependenciesComplete": True},
+    ]
+    new = [
+        {"id": "proof:a", "dependsOn": ["source:runtime"], "dependenciesComplete": True},
+        {"id": "proof:b", "dependsOn": ["proof:a"], "dependenciesComplete": True},
+    ]
+    result = select_impacted_obligations(
+        authority_refs=["source:runtime"],
+        obligations=new,
+        changed_refs=[],
+        previous_graph={"authorityRefs": ["source:runtime"], "obligations": old},
+    )
+    assert result["cyclicObligationIds"] == []
+    assert result["derivedRelationChangedRefs"] == ["proof:a"]
+    assert dict((x["id"], x["standing"]) for x in result["standingByObligation"]) == {
+        "proof:a": "RECHECK_REQUIRED",
+        "proof:b": "RECHECK_REQUIRED",
+    }
+    assert result["proofReuseAdmissible"] is False
+
+
+def test_recursive_proof_self_cycle_and_missing_edge_are_not_vacuous():
+    self_cycle = _impact(
+        graph=[{"id": "proof:self", "dependsOn": ["proof:self"], "dependenciesComplete": True}]
+    )
+    assert _statuses(self_cycle) == {"proof:self": "UNKNOWN"}
+    assert self_cycle["cyclicObligationIds"] == ["proof:self"]
+    with pytest.raises(CircuitContractError, match="depends on unknown"):
+        _impact(
+            graph=[
+                {"id": "proof:self", "dependsOn": ["proof:missing"], "dependenciesComplete": True}
+            ]
+        )
+
+
+def test_cyclic_proof_selector_matches_independent_finite_reachability_oracle():
+    # Exhaust all 2**12 declared dependency relations for three proof nodes
+    # over the same three proofs plus one real authority root. Compare the
+    # implementation's monotone lattice fixed point with an independent
+    # reachability-based mathematical oracle.
+    from itertools import product
+
+    root = "source:r"
+    proof_ids = ("proof:a", "proof:b", "proof:c")
+    all_nodes = (root, *proof_ids)
+    for bits in product((False, True), repeat=12):
+        graph = {}
+        for index, identity in enumerate(proof_ids):
+            graph[identity] = tuple(
+                candidate
+                for used, candidate in zip(bits[index * 4 : (index + 1) * 4], all_nodes)
+                if used
+            )
+
+        def ancestors(identity):
+            seen = set()
+            queue = list(graph.get(identity, ()))
+            while queue:
+                candidate = queue.pop()
+                if candidate in seen:
+                    continue
+                seen.add(candidate)
+                queue.extend(graph.get(candidate, ()))
+            return seen
+
+        cyclic = sorted(identity for identity in proof_ids if identity in ancestors(identity))
+        for changed, unknown in (
+            ({root}, set()),
+            ({"proof:b"}, set()),
+            (set(), {"proof:c"}),
+            (set(), set()),
+        ):
+            observed = select_impacted_obligations(
+                authority_refs=[root],
+                obligations=[
+                    {
+                        "id": identity,
+                        "dependsOn": list(graph[identity]),
+                        "dependenciesComplete": True,
+                    }
+                    for identity in proof_ids
+                ],
+                changed_refs=sorted(changed),
+                unknown_refs=sorted(unknown),
+            )
+            result = {item["id"]: item["standing"] for item in observed["standingByObligation"]}
+            expected = {}
+            for identity in proof_ids:
+                visited = ancestors(identity) | {identity}
+                if visited & changed:
+                    expected[identity] = "RECHECK_REQUIRED"
+                elif visited & (unknown | set(cyclic)):
+                    expected[identity] = "UNKNOWN"
+                else:
+                    expected[identity] = "REUSE_CANDIDATE"
+            assert result == expected, (bits, changed, unknown, expected, result)
+            assert observed["cyclicObligationIds"] == cyclic
+            assert observed["proofReuseAdmissible"] is False
 
 
 def test_manifest_git_sourcecuts_bind_exact_prior_current_bytes(tmp_path) -> None:
@@ -1482,3 +2192,85 @@ def test_immutable_manifest_sourcecut_ignores_native_git_replace_refs(tmp_path) 
     restored, evidence = _immutable_git_manifest(repo, initial_cut, Path("manifest.json"))
     assert evidence["commit"] == initial_cut
     assert restored == original
+
+
+def test_git_manifest_sourcecut_uses_repository_object_format(tmp_path) -> None:
+    """Git's storage object format—not a universal 40-digit SHA-1 assumption—sets the cut width."""
+    import json
+    import subprocess
+    from pathlib import Path
+
+    from ordivon_composition.verification_obligation_r1 import _immutable_git_manifest
+
+    for object_format, width in (("sha1", 40), ("sha256", 64)):
+        repo = tmp_path / object_format
+        repo.mkdir()
+
+        def git(*args: str) -> str:
+            return subprocess.check_output(
+                ["git", "--no-replace-objects", "-C", str(repo), *args],
+                text=True,
+            ).strip()
+
+        subprocess.run(
+            ["git", "-C", str(repo), "init", "-q", f"--object-format={object_format}"],
+            check=True,
+        )
+        git("config", "user.name", "Ordivon Source Test")
+        git("config", "user.email", "source@example.invalid")
+        original = _two_gate_manifest()
+        (repo / "manifest.json").write_text(json.dumps(original))
+        git("add", ".")
+        git("commit", "-qm", "initial")
+        old = git("rev-parse", "HEAD")
+        assert len(old) == width
+        read, evidence = _immutable_git_manifest(repo, old, Path("manifest.json"))
+        assert read == original
+        assert evidence["commit"] == old
+        assert evidence["objectFormat"] == object_format
+        with pytest.raises(CircuitContractError, match="exact Git"):
+            _immutable_git_manifest(repo, old[:8], Path("manifest.json"))
+        with pytest.raises(CircuitContractError, match="exact Git"):
+            _immutable_git_manifest(
+                repo, old + "0" * (64 if width == 40 else 40), Path("manifest.json")
+            )
+
+        newer = copy.deepcopy(original)
+        newer["gateRequirements"][0]["guarantee"] += " object-format-independent"
+        (repo / "manifest.json").write_text(json.dumps(newer))
+        git("add", ".")
+        git("commit", "-qm", "newer")
+        new = git("rev-parse", "HEAD")
+        git("replace", old, new)
+        restored, receipt = _immutable_git_manifest(repo, old, Path("manifest.json"))
+        assert restored == original  # SHA256/SHA1 both ignore mutable replacement refs
+        assert receipt["commit"] == old
+        # Verify the public CLI path as consumed by Agents, not just this helper.
+        import sys
+
+        process = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "ordivon_composition.verification_obligation_r1",
+                "impact-manifests",
+                "manifest.json",
+                "manifest.json",
+                "--git-repo",
+                str(repo),
+                "--previous-sourcecut",
+                old,
+                "--current-sourcecut",
+                new,
+            ],
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+        result = json.loads(process.stdout)
+        assert result["changedLocalGateIds"] == ["gate:candidate-contract"]
+        assert result["gitSourceCuts"]["previous"]["commit"] == old
+        assert result["gitSourceCuts"]["current"]["commit"] == new
+        assert result["gitSourceCuts"]["previous"]["objectFormat"] == object_format
+        assert result["gitSourceCuts"]["current"]["objectFormat"] == object_format
+        assert result["proofReuseAdmissible"] is False

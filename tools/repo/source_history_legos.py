@@ -137,6 +137,24 @@ def source_membership_query(
     }
 
 
+def require_ancestral_source_cuts(repo: Path, previous_cut: str, current_cut: str) -> None:
+    """Require a temporal Git DAG relation for sound incremental proof impact.
+
+    Comparing sibling tips belongs to history analysis or an exact merge-tree
+    candidate, not a before/after proof-evolution claim.
+    """
+    import re
+
+    if not all(re.fullmatch(r"[0-9a-f]{40}", cut) for cut in (previous_cut, current_cut)):
+        raise ValueError("sourceCut ancestry requires exact 40-hex Git commits")
+    relation = subprocess.run(
+        ["git", "--no-replace-objects", "-C", str(repo), "merge-base", "--is-ancestor", previous_cut, current_cut],
+        stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, check=False,
+    )
+    if relation.returncode != 0:
+        raise ValueError("sourceCut ancestry not established for proof-impact evolution")
+
+
 def source_membership_delta(
     repo: Path, previous_cut: str, current_cut: str, prefix: str, *,
     max_members: int = 10000
@@ -154,19 +172,9 @@ def source_membership_delta(
     import hashlib
     from urllib.parse import quote_from_bytes
 
+    require_ancestral_source_cuts(repo, previous_cut, current_cut)
     before = source_membership_query(repo, previous_cut, prefix, max_members=max_members)
     after = source_membership_query(repo, current_cut, prefix, max_members=max_members)
-
-    # A proof-evolution delta needs temporally ordered Git SourceCuts.
-    # Side-by-side divergent branch comparison is a different history() query.
-    relation = subprocess.run(
-        ["git", "-C", str(repo), "merge-base", "--is-ancestor", previous_cut, current_cut],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.PIPE,
-        check=False,
-    )
-    if relation.returncode != 0:
-        raise ValueError("sourceCut ancestry not established for proof-impact evolution")
 
     # A detached Runtime Workspace is a Git *worktree*, not a new source
     # authority. Use the common Git metadata root shared by all worktrees
@@ -259,9 +267,9 @@ def source_membership_delta(
 
 
 def history(repo: Path, left: str, right: str) -> dict:
-    left_oid = git(repo, "rev-parse", "--verify", left + "^{commit}").strip()
-    right_oid = git(repo, "rev-parse", "--verify", right + "^{commit}").strip()
-    bases = git(repo, "merge-base", "--all", left_oid, right_oid).splitlines()
+    left_oid = git(repo, "--no-replace-objects", "rev-parse", "--verify", left + "^{commit}").strip()
+    right_oid = git(repo, "--no-replace-objects", "rev-parse", "--verify", right + "^{commit}").strip()
+    bases = git(repo, "--no-replace-objects", "merge-base", "--all", left_oid, right_oid).splitlines()
     if len(bases) != 1:
         raise ValueError(
             f"ambiguous merge bases: expected one best common ancestor, got {len(bases)}"
@@ -271,7 +279,7 @@ def history(repo: Path, left: str, right: str) -> dict:
     spec = left_oid + "..." + right_oid
     # The full DAG includes merge connectors, which have no single patch ID.
     all_commits: dict[str, dict] = {}
-    raw = git(repo, "log", "--left-right", "--format=%m %H %P", spec)
+    raw = git(repo, "--no-replace-objects", "log", "--left-right", "--format=%m %H %P", spec)
     for line in raw.splitlines():
         mark, oid, *parents = line.split()
         if mark not in ("<", ">"):
@@ -292,6 +300,7 @@ def history(repo: Path, left: str, right: str) -> dict:
     raw_paths = subprocess.check_output(
         [
             "git",
+            "--no-replace-objects",
             "-C",
             str(repo),
             "log",
@@ -361,6 +370,7 @@ def history(repo: Path, left: str, right: str) -> dict:
         raw_merge_paths = subprocess.check_output(
             [
                 "git",
+                "--no-replace-objects",
                 "-C",
                 str(repo),
                 "diff-tree",
@@ -388,6 +398,7 @@ def history(repo: Path, left: str, right: str) -> dict:
             against_parent = subprocess.check_output(
                 [
                     "git",
+                    "--no-replace-objects",
                     "-C",
                     str(repo),
                     "diff-tree",
@@ -501,7 +512,7 @@ def history(repo: Path, left: str, right: str) -> dict:
 
     actual = collections.Counter(r["side"] for r in all_commits.values())
     expected_left, expected_right = [
-        int(n) for n in git(repo, "rev-list", "--left-right", "--count", spec).split()
+        int(n) for n in git(repo, "--no-replace-objects", "rev-list", "--left-right", "--count", spec).split()
     ]
     if actual["local"] != expected_left or actual["remote"] != expected_right:
         raise ValueError("DAG coverage mismatch")
@@ -581,8 +592,8 @@ def main() -> None:
         if args.owner is not None:
             parser.error("--owner is only supported for history, not source-impact queries")
         try:
-            previous = git(repo, "rev-parse", "--verify", args.left + "^{commit}").strip()
-            current = git(repo, "rev-parse", "--verify", args.right + "^{commit}").strip()
+            previous = git(repo, "--no-replace-objects", "rev-parse", "--verify", args.left + "^{commit}").strip()
+            current = git(repo, "--no-replace-objects", "rev-parse", "--verify", args.right + "^{commit}").strip()
             report = source_membership_delta(
                 repo, previous, current, args.impact_prefix, max_members=args.max_members
             )

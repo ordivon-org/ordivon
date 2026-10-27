@@ -109,6 +109,11 @@ def test_stdout_is_read_by_exact_artifact_identity():
     result = port.execute(request())
     assert port.read_stdout(result) == '{"standing":"bound"}\n'
     assert [name for name, _ in client.calls][-1] == 'artifact.read'
+    calls = {name: arguments for name, arguments in client.calls if name in ('execution.get', 'artifact.read')}
+    assert calls['execution.get']['requestId'] == request().request_id
+    assert calls['execution.get']['capability'] == request().capability
+    assert calls['artifact.read']['requestId'] == request().request_id
+    assert calls['artifact.read']['capability'] == request().capability
 
 
 def test_absent_after_submit_response_loss_is_ambiguous_not_redispatched():

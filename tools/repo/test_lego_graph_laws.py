@@ -868,6 +868,99 @@ def test_node_anchor_git_sourcecut_ignores_modified_worktree_and_no_worktree_rea
     monkeypatch.setattr(module, "_source_bound_file", refuse_read)
     assert module.project_owner_lego_source_graph(ROOT, source_revision=sha) == immutable
 
+def test_declared_graph_impact_refuses_sibling_and_reversed_git_source_cuts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A sibling branch comparison cannot be a temporal proof-impact Delta."""
+    import subprocess
+
+    repo = tmp_path
+    source = repo / "source.txt"
+    source.write_text("base\n", encoding="utf-8")
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(
+            ["git", "-C", str(repo), *args], text=True,
+        ).strip()
+
+    def commit(message: str) -> str:
+        git("add", ".")
+        git("-c", "user.name=GraphProof", "-c",
+            "user.email=test@example.invalid", "commit", "-qm", message)
+        return git("rev-parse", "HEAD")
+
+    git("init", "-q")
+    base = commit("base")
+    git("checkout", "-qb", "sibling-a")
+    source.write_text("sibling a\n", encoding="utf-8")
+    a = commit("sibling a")
+    git("checkout", "-qb", "sibling-b", base)
+    source.write_text("sibling b\n", encoding="utf-8")
+    b = commit("sibling b")
+
+    def no_projection(*_args, **_kwargs):
+        raise AssertionError("projecting planning graph before temporal Git guard")
+    monkeypatch.setattr(module, "project_owner_lego_source_graph", no_projection)
+    for before, after in ((a, b), (b, a), (a, base), ("HEAD", b)):
+        with pytest.raises(ValueError, match="sourceCut ancestry"):
+            module.project_owner_lego_source_change(
+                before_revision=before, after_revision=after, root=repo,
+            )
+
+
+def test_graph_source_delta_reads_literal_git_paths_not_replacement_tree(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A replace-ref must not hide changed paths in a planning proof delta."""
+    import subprocess
+
+    repo = tmp_path
+    path = repo / "contract.txt"
+    path.write_text("old", encoding="utf-8")
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(
+            ["git", "-C", str(repo), *args], text=True,
+        ).strip()
+
+    git("init", "-q")
+    git("config", "user.name", "Proof")
+    git("config", "user.email", "proof@example.invalid")
+    git("add", ".")
+    git("-c", "user.name=Proof", "-c", "user.email=proof@example.invalid",
+        "commit", "-qm", "before")
+    before = git("rev-parse", "HEAD")
+    path.write_text("new", encoding="utf-8")
+    git("add", ".")
+    git("-c", "user.name=Proof", "-c", "user.email=proof@example.invalid",
+        "commit", "-qm", "after")
+    after = git("rev-parse", "HEAD")
+
+    tree = git("rev-parse", after + "^{tree}")
+    forged = subprocess.check_output(
+        ["git", "-C", str(repo), "commit-tree", tree],
+        input=b"same as after, different source object\n",
+    ).decode("ascii").strip()
+    git("replace", before, forged)
+    assert git("diff", "--name-only", before, after) == ""
+    assert git("--no-replace-objects", "diff", "--name-only", before, after) == "contract.txt"
+
+    def bounded_graph(root: Path, *, source_revision: str):
+        return {
+            "kind": "ordivon.owner-lego-planning-source-projection",
+            "sourceCut": source_revision,
+            "sourcePlans": [], "vertices": [], "relations": [],
+        }
+    monkeypatch.setattr(module, "project_owner_lego_source_graph", bounded_graph)
+    result = module.project_owner_lego_source_change(
+        before_revision=before, after_revision=after, root=repo,
+    )
+    assert result["changedGitPaths"] == ["contract.txt"]
+    assert result["unindexedChangedPaths"] == ["contract.txt"]
+    assert result["proofReuseAdmissible"] is False
+
+
+
 def test_declared_source_delta_is_real_git_diff_with_dependency_closure(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1008,6 +1101,7 @@ def test_git_qualified_harness_h01_syntax_importers_are_real_source_edges(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     import subprocess
+
     from tools.repo.source_history_legos import current_tree
 
     rev = subprocess.check_output(
@@ -1060,6 +1154,7 @@ def test_ast_imports_reject_comments_strings_dynamic_and_unresolved_symbols(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     import subprocess
+
     from tools.repo.source_history_legos import current_tree
 
     root = tmp_path
@@ -1117,3 +1212,221 @@ def test_ast_imports_reject_comments_strings_dynamic_and_unresolved_symbols(
             source_revision=rev, node_ref=plan_ref,
             target_source="services/harness/src/pkg/consumer.py", root=root,
         )
+
+
+def test_python_import_delta_real_git_separates_source_and_relation_changes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A consumer can change while its import edge remains byte-for-byte."""
+    import subprocess
+    from tools.repo.source_history_legos import current_tree
+
+    root = tmp_path
+    pkg = root / "services/harness/src/pkg"
+    pkg.mkdir(parents=True)
+    target = pkg / "target.py"
+    consumer = pkg / "consumer.py"
+    unrelated = pkg / "unrelated.py"
+    target.write_text("class Real: pass\n", encoding="utf-8")
+    consumer.write_text("from .target import Real\nanswer = 1\n", encoding="utf-8")
+    unrelated.write_text("answer = 1\n", encoding="utf-8")
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(
+            ["git", "-C", str(root), *args], text=True,
+        ).strip()
+    git("init", "-q")
+    def record(label: str) -> str:
+        git("add", ".")
+        git("-c", "user.name=GraphTest", "-c", "user.email=test@example.invalid",
+            "commit", "-qm", label)
+        return git("rev-parse", "HEAD")
+    base = record("base")
+    consumer.write_text("from .target import Real\nanswer = 2\n", encoding="utf-8")
+    body_changed = record("consumer body changed")
+    consumer.write_text("answer = 2\n", encoding="utf-8")
+    import_removed = record("removed import")
+    consumer.write_text("from .target import Real\nanswer = 2\n", encoding="utf-8")
+    import_added = record("reintroduced import")
+    target.write_text("class Replaced: pass\n", encoding="utf-8")
+    target_changed = record("target contract changed")
+    unrelated.write_text("answer = 3\n", encoding="utf-8")
+    unrelated_changed = record("unrelated source changed")
+    target_rel = "services/harness/src/pkg/target.py"
+    ref = "services/harness/planning/lego-plan-r1.json#H01"
+
+    def source_graph(_root: Path, *, source_revision: str):
+        blob = current_tree(root, source_revision)[target_rel]
+        return {"vertices": [
+            {"ref": ref, "sourceAnchors": [
+                {"path": target_rel, "sourceIdentity": blob},
+            ]},
+        ]}
+    monkeypatch.setattr(module, "project_owner_lego_source_graph", source_graph)
+
+    def change(before: str, after: str) -> dict:
+        return module.project_node_python_import_delta(
+            before_revision=before, after_revision=after,
+            node_ref=ref, target_source=target_rel, root=root,
+        )
+
+    body = change(base, body_changed)
+    assert body["targetBlobChanged"] is False
+    assert body["sourceRelationStanding"] == "RECHECK_REQUIRED"
+    assert body["changedCandidateImporters"][0]["sourceChangeStanding"] == (
+        "IMPORTER_BYTES_CHANGED_RELATION_STABLE"
+    )
+    assert body["changedCandidateImporters"][0]["addedImportSyntax"] == []
+    assert body["changedCandidateImporters"][0]["removedImportSyntax"] == []
+
+    removed = change(body_changed, import_removed)
+    assert removed["afterCandidateImporterCount"] == 0
+    assert removed["sourceRelationStanding"] == "RECHECK_REQUIRED"
+    assert removed["changedCandidateImporters"][0]["removedImportSyntax"][0]["name"] == "Real"
+
+    added = change(import_removed, import_added)
+    assert added["changedCandidateImporters"][0]["addedImportSyntax"][0]["name"] == "Real"
+
+    target_delta = change(import_added, target_changed)
+    assert target_delta["targetBlobChanged"] is True
+    assert target_delta["sourceRelationStanding"] == "RECHECK_REQUIRED"
+    assert target_delta["changedCandidateImporters"][0]["addedImportSyntax"][0][
+        "targetDefinitionStanding"
+    ] == "UNRESOLVED_OR_REEXPORTED"
+
+    unrelated_delta = change(target_changed, unrelated_changed)
+    assert unrelated_delta["sourceRelationStanding"] == "NO_DECLARED_SOURCE_RELATION_CHANGE"
+    assert unrelated_delta["changedCandidateImporters"] == []
+    assert unrelated_delta["proofReuseAdmissible"] is False
+
+    same = change(target_changed, target_changed)
+    assert same["sourceRelationStanding"] == "NO_DECLARED_SOURCE_RELATION_CHANGE"
+
+
+def test_python_import_delta_lost_target_is_unknown_not_no_consumer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import subprocess
+    from tools.repo.source_history_legos import current_tree
+    root = tmp_path
+    folder = root / "services/harness/src/pkg"
+    folder.mkdir(parents=True)
+    source = folder / "target.py"
+    source.write_text("class Real: pass\n", encoding="utf-8")
+    consumer = folder / "consumer.py"
+    consumer.write_text("from .target import Real\n", encoding="utf-8")
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(["git", "-C", str(root), *args], text=True).strip()
+    git("init", "-q")
+    git("add", ".")
+    git("-c", "user.name=GraphTest", "-c", "user.email=test@example.invalid",
+        "commit", "-qm", "base")
+    before = git("rev-parse", "HEAD")
+    source.unlink()
+    git("add", "-A")
+    git("-c", "user.name=GraphTest", "-c", "user.email=test@example.invalid",
+        "commit", "-qm", "target removed")
+    after = git("rev-parse", "HEAD")
+    path = "services/harness/src/pkg/target.py"
+    node = "services/harness/planning/lego-plan-r1.json#H01"
+    def projected(_root: Path, *, source_revision: str):
+        old = source_revision == before
+        return {"vertices": [{
+            "ref": node,
+            "sourceAnchors": (
+                [{"path": path, "sourceIdentity": current_tree(root, before)[path]}]
+                if old else []
+            ),
+        }]}
+    monkeypatch.setattr(module, "project_owner_lego_source_graph", projected)
+    result = module.project_node_python_import_delta(
+        before_revision=before, after_revision=after,
+        node_ref=node, target_source=path, root=root,
+    )
+    assert result["sourceRelationStanding"] == "UNKNOWN"
+    assert result["unresolvedCut"] == "after"
+    assert result["proofReuseAdmissible"] is False
+
+
+def test_real_harness_h01_upstream_static_readset_is_git_qualified() -> None:
+    import subprocess
+    from tools.repo.source_history_legos import current_tree
+    sha = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
+    result = module.project_node_python_import_syntax(
+        source_revision=sha,
+        node_ref="services/harness/planning/lego-plan-r1.json#H01",
+        target_source="services/harness/src/ordivon_harness/ordivon/events.py",
+    )
+    tree = current_tree(ROOT, sha)
+    upstream = {row["sourcePath"]: row for row in result["upstreamLocalSourceFiles"]}
+    for path in (
+        "services/harness/src/anc_canonical/__init__.py",
+        "services/harness/src/anc_canonical/canonical.py",
+        "services/harness/src/ordivon_harness/__init__.py",
+        "services/harness/src/ordivon_harness/ordivon/__init__.py",
+    ):
+        assert upstream[path]["gitBlobIdentity"] == tree[path]
+    assert result["upstreamInvalidSyntaxPaths"] == []
+    assert result["upstreamStaticReadsetQualification"].startswith("PARTIAL_GIT_STATIC")
+    assert "dataclasses" in result["externalImportAssumptions"]
+    assert "collections" in result["externalImportAssumptions"]
+    assert "ACTUAL_CONSUMER" not in result["truthRole"]
+
+
+def test_upstream_local_import_dependency_change_invalidates_with_stable_target_and_consumer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import subprocess
+    from tools.repo.source_history_legos import current_tree
+    root = tmp_path
+    src = root / "services/harness/src"
+    pkg = src / "pkg"
+    pkg.mkdir(parents=True)
+    (pkg / "__init__.py").write_text("from .canonical import pack\n", encoding="utf-8")
+    (pkg / "canonical.py").write_text("def pack(x): return x\n", encoding="utf-8")
+    (pkg / "events.py").write_text("from pkg import pack\nclass Event: pass\n", encoding="utf-8")
+    (pkg / "consumer.py").write_text("from .events import Event\n", encoding="utf-8")
+    def git(*args: str) -> str:
+        return subprocess.check_output(["git", "-C", str(root), *args], text=True).strip()
+    git("init", "-q")
+    def commit(msg: str) -> str:
+        git("add", ".")
+        git("-c", "user.name=GraphTest", "-c", "user.email=test@example.invalid",
+            "commit", "-qm", msg)
+        return git("rev-parse", "HEAD")
+    before = commit("baseline")
+    (pkg / "canonical.py").write_text("def pack(x): return (x,)\n", encoding="utf-8")
+    upstream_changed = commit("same event source upstream implementation changes")
+    (pkg / "__init__.py").write_text("from .canonical import pack\n# init source changes\n", encoding="utf-8")
+    init_changed = commit("parent init bytes change")
+    ref = "services/harness/planning/lego-plan-r1.json#H01"
+    target = "services/harness/src/pkg/events.py"
+    def graph(_root: Path, *, source_revision: str):
+        return {"vertices": [{"ref": ref, "sourceAnchors": [{
+            "path": target,
+            "sourceIdentity": current_tree(root, source_revision)[target],
+        }]}]}
+    monkeypatch.setattr(module, "project_owner_lego_source_graph", graph)
+    def inspect(old: str, new: str) -> dict:
+        return module.project_node_python_import_delta(
+            before_revision=old, after_revision=new,
+            node_ref=ref, target_source=target, root=root,
+        )
+    impacted = inspect(before, upstream_changed)
+    assert impacted["targetBlobChanged"] is False
+    assert impacted["changedCandidateImporters"] == []
+    assert impacted["sourceRelationStanding"] == "RECHECK_REQUIRED"
+    assert [r["sourcePath"] for r in impacted["changedUpstreamLocalSourceFiles"]] == [
+        "services/harness/src/pkg/canonical.py",
+    ]
+    assert impacted["proofReuseAdmissible"] is False
+    initializer = inspect(upstream_changed, init_changed)
+    assert initializer["sourceRelationStanding"] == "RECHECK_REQUIRED"
+    assert [r["sourcePath"] for r in initializer["changedUpstreamLocalSourceFiles"]] == [
+        "services/harness/src/pkg/__init__.py",
+    ]
+    same = inspect(init_changed, init_changed)
+    assert same["sourceRelationStanding"] == "NO_DECLARED_SOURCE_RELATION_CHANGE"
+    assert same["changedUpstreamLocalSourceFiles"] == []
+    assert same["proofReuseAdmissible"] is False

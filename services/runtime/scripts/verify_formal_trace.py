@@ -906,6 +906,30 @@ def _native_execution_context_digest(context: dict[str, Any]) -> str:
     return f"sha256:{hashlib.sha256(canonical.encode('utf-8')).hexdigest()}"
 
 
+def _native_cargo_build_environment(env: dict[str, str]) -> dict[str, str]:
+    """Observed Cargo/rustc build inputs; not an exhaustive environment closure."""
+    keys = {
+        "RUSTFLAGS",
+        "CARGO_ENCODED_RUSTFLAGS",
+        "RUSTDOCFLAGS",
+        "CARGO_BUILD_RUSTFLAGS",
+        "CARGO_BUILD_RUSTDOCFLAGS",
+        "CARGO_BUILD_TARGET",
+        "RUSTC",
+        "RUSTC_WRAPPER",
+        "RUSTC_WORKSPACE_WRAPPER",
+        "RUSTUP_TOOLCHAIN",
+        "RUSTC_BOOTSTRAP",
+        "CARGO_HOME",
+    }
+    keys.update(
+        key
+        for key in env
+        if key.startswith("CARGO_PROFILE_") or (key.startswith("CARGO_TARGET_") and key.endswith("_RUSTFLAGS"))
+    )
+    return {key: env.get(key, "") for key in sorted(keys)}
+
+
 def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
     """Compile once, execute the exact Cargo-provided binary, bind one native receipt.
 
@@ -1041,17 +1065,7 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
     source_head_after = _qualified_native_source_head()
     if source_head_after != pre_execution_head or source_head_after != source_head:
         raise ValueError("native source checkout HEAD changed during Cargo witnesses")
-    rust_env = {
-        key: env.get(key, "")
-        for key in (
-            "RUSTFLAGS",
-            "CARGO_ENCODED_RUSTFLAGS",
-            "RUSTDOCFLAGS",
-            "CARGO_BUILD_TARGET",
-            "RUSTC_WRAPPER",
-            "CARGO_HOME",
-        )
-    }
+    rust_env = _native_cargo_build_environment(env)
     cargo_version = provenance(["cargo", "--version"])
     rustc_version = provenance(["rustc", "-vV"])
     cargo_profile = {
@@ -1073,6 +1087,12 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
         "compiledTestArtifactSha256": f"sha256:{binary_before}",
         "compiledTestFeatures": sorted(artifact["features"]),
         "compiledTestProfile": artifact["profile"],
+        # Bind qualified Git source membership/content, not raw depfile
+        # formatting, into the exact proof-evidence identity.
+        "compilerSourceReadset": {
+            "sourceGitBlobsDigest": compiler_inputs["sourceGitBlobsDigest"],
+            "scope": compiler_inputs["scope"],
+        },
     }
     return {
         "kind": "ordivon.runtime-native-test-witness",

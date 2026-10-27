@@ -606,10 +606,18 @@ def project_owner_lego_source_change(
     relation types are exposed as relation deltas, not invented call edges.
     """
     import subprocess
+    # The same Git temporal-order proof required by source_membership_delta.
+    # A sibling PR diff is not a before/after graph evolution; calculate the
+    # integration merge tree first instead of misattributing target-only edits.
+    if __package__:
+        from .source_history_legos import require_ancestral_source_cuts
+    else:
+        from source_history_legos import require_ancestral_source_cuts
+    require_ancestral_source_cuts(root, before_revision, after_revision)
     before = project_owner_lego_source_graph(root, source_revision=before_revision)
     after = project_owner_lego_source_graph(root, source_revision=after_revision)
     raw = subprocess.check_output(
-        ["git", "-C", str(root), "diff", "--no-renames",
+        ["git", "--no-replace-objects", "-C", str(root), "diff", "--no-renames",
          "--name-only", "-z", before_revision, after_revision, "--"],
         stderr=subprocess.PIPE,
     )
@@ -745,8 +753,7 @@ def project_node_python_import_syntax(
     prefix = owner + "/src/"
     rel = target_source[len(prefix):]
     target_module = rel[:-3].replace("/", ".")
-    if target_module.endswith(".__init__"):
-        target_module = target_module[:-len(".__init__")]
+    target_module = target_module.removesuffix(".__init__")
     if not target_module or "." not in target_module:
         raise ArchitectureDocsError("Python import target package path is unqualified")
 
@@ -759,6 +766,88 @@ def project_node_python_import_syntax(
             ["git", "-C", str(root), "cat-file", "blob", oid],
             stderr=subprocess.PIPE,
         ).decode("utf-8")
+
+    # Finite, task-local static upstream SOURCE overapproximation.
+    # This is neither Python's executed import graph nor a complete proof
+    # readset: external packages, runtime imports, env and installed versions
+    # remain explicitly outside the Git-only evidence boundary.
+    local_prefix = owner + "/src/"
+    def module_source(module_name: str) -> str | None:
+        if not module_name or any(
+            not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", part)
+            for part in module_name.split(".")
+        ):
+            return None
+        stem = local_prefix + module_name.replace(".", "/")
+        for candidate in (stem + ".py", stem + "/__init__.py"):
+            identity = tree.get(candidate, "")
+            if (identity.startswith("100644:blob:")
+                    or identity.startswith("100755:blob:")):
+                return candidate
+        return None
+
+    def source_package(path: str) -> str:
+        mod = path[len(local_prefix):-3].replace("/", ".")
+        return mod.removesuffix(".__init__") if path.endswith("/__init__.py") else mod.rpartition(".")[0]
+
+    # Python imports execute intermediate package initializers as well.
+    source_parts = target_source[len(local_prefix):].split("/")
+    init_paths = [
+        local_prefix + "/".join(source_parts[:depth]) + "/__init__.py"
+        for depth in range(1, len(source_parts))
+    ]
+    pending = [target_source] + [path for path in init_paths if path in tree]
+    visited: set[str] = set()
+    upstream_invalid: set[str] = set()
+    external_module_assumptions: set[str] = set()
+    while pending:
+        path = pending.pop()
+        if path in visited:
+            continue
+        visited.add(path)
+        if len(visited) > 256:
+            raise ArchitectureDocsError("local Python static source readset exceeded bounded 256 files")
+        try:
+            syntax = ast.parse(read_git_source(path), filename=path)
+        except (SyntaxError, UnicodeError):
+            upstream_invalid.add(path)
+            continue
+        package = source_package(path)
+        for node in ast.walk(syntax):
+            if isinstance(node, ast.Import):
+                imports = [alias.name for alias in node.names]
+            elif isinstance(node, ast.ImportFrom):
+                try:
+                    base = (
+                        importlib.util.resolve_name("." * node.level + (node.module or ""), package)
+                        if node.level else (node.module or "")
+                    )
+                except ImportError:
+                    upstream_invalid.add(path)
+                    continue
+                imports = [base] + [base + "." + alias.name for alias in node.names]
+            else:
+                continue
+            for imported in imports:
+                source = module_source(imported)
+                if source:
+                    pending.append(source)
+                    # Include Python parent package initialization if present.
+                    parts = imported.split(".")
+                    for count in range(1, len(parts)):
+                        parent_source = module_source(".".join(parts[:count]))
+                        if parent_source:
+                            pending.append(parent_source)
+                else:
+                    # A from-imported *symbol* of a local module is not
+                    # another missing package. For genuinely unresolved
+                    # modules retain the external top-level environment cut.
+                    ancestor = imported
+                    while "." in ancestor and module_source(ancestor) is None:
+                        ancestor = ancestor.rpartition(".")[0]
+                    if module_source(ancestor) is None:
+                        external_module_assumptions.add(imported.split(".", 1)[0])
+    upstream_paths = sorted(visited - {target_source})
 
     try:
         target_ast = ast.parse(read_git_source(target_source), filename=target_source)
@@ -848,6 +937,13 @@ def project_node_python_import_syntax(
         "targetSourcePath": target_source,
         "targetGitBlobIdentity": tree[target_source],
         "targetPythonModule": target_module,
+        "upstreamLocalSourceFiles": [
+            {"sourcePath": path, "gitBlobIdentity": tree[path]}
+            for path in upstream_paths
+        ],
+        "upstreamStaticReadsetQualification": "PARTIAL_GIT_STATIC_IMPORTS_NOT_EXECUTED_OR_COMPLETE",
+        "upstreamInvalidSyntaxPaths": sorted(upstream_invalid),
+        "externalImportAssumptions": sorted(external_module_assumptions),
         "candidateImporters": possible_importers,
         "scanBoundary": {
             "sourceRoots": list(search_prefixes),
@@ -860,6 +956,134 @@ def project_node_python_import_syntax(
             "An AST import can be conditional, dead, guarded, unused or shadowed.",
             "Missing static importer is NOT proof of no runtime or cross-Owner consumer.",
             "Only an exact Git blob is source evidence; test execution, implementation refinement and installed currentness require separate receipts.",
+        ],
+    }
+
+
+
+def project_node_python_import_delta(
+    *, before_revision: str, after_revision: str,
+    node_ref: str, target_source: str, root: Path = ROOT,
+) -> dict[str, Any]:
+    """Diff one Git-qualified candidate consumer seam, not its runtime truth.
+
+    The same source module can retain all static import syntax while its
+    consumer implementation changes. This must never imply proof reuse.
+    """
+    snapshots: dict[str, dict[str, Any]] = {}
+    for label, revision in (("before", before_revision), ("after", after_revision)):
+        try:
+            snapshots[label] = project_node_python_import_syntax(
+                source_revision=revision, node_ref=node_ref,
+                target_source=target_source, root=root,
+            )
+        except ArchitectureDocsError as exc:
+            # A deleted/retired/reassigned node or a non-parseable target
+            # changes the query boundary: neither "no importers" nor PASS.
+            return {
+                "kind": "ordivon.owner-lego-python-import-source-delta",
+                "beforeSourceCut": before_revision,
+                "afterSourceCut": after_revision,
+                "declaredNodeRef": node_ref,
+                "targetSourcePath": target_source,
+                "sourceRelationStanding": "UNKNOWN",
+                "unresolvedCut": label,
+                "qualificationGap": str(exc),
+                "proofReuseAdmissible": False,
+            }
+
+    before, after = snapshots["before"], snapshots["after"]
+    def index(snapshot: dict[str, Any]) -> dict[str, dict[str, Any]]:
+        return {row["sourcePath"]: row for row in snapshot["candidateImporters"]}
+
+    old, new = index(before), index(after)
+    def syntax(row: dict[str, Any]) -> set[tuple[str, str, str]]:
+        return {
+            (entry["kind"], entry["name"], entry["targetDefinitionStanding"])
+            for entry in row["importSyntax"]
+        }
+
+    candidate_changes: list[dict[str, Any]] = []
+    for path in sorted(set(old) | set(new)):
+        prior, current = old.get(path), new.get(path)
+        prior_syntax = syntax(prior) if prior else set()
+        current_syntax = syntax(current) if current else set()
+        added = current_syntax - prior_syntax
+        removed = prior_syntax - current_syntax
+        source_changed = (
+            prior is None or current is None
+            or prior["gitBlobIdentity"] != current["gitBlobIdentity"]
+        )
+        if added or removed or source_changed:
+            candidate_changes.append({
+                "sourcePath": path,
+                "sourceChangeStanding": (
+                    "STATIC_RELATION_CHANGED" if added or removed
+                    else "IMPORTER_BYTES_CHANGED_RELATION_STABLE"
+                ),
+                "addedImportSyntax": [
+                    {"kind": k, "name": n, "targetDefinitionStanding": q}
+                    for k, n, q in sorted(added)
+                ],
+                "removedImportSyntax": [
+                    {"kind": k, "name": n, "targetDefinitionStanding": q}
+                    for k, n, q in sorted(removed)
+                ],
+                "beforeGitBlobIdentity": prior["gitBlobIdentity"] if prior else None,
+                "afterGitBlobIdentity": current["gitBlobIdentity"] if current else None,
+            })
+
+    target_changed = before["targetGitBlobIdentity"] != after["targetGitBlobIdentity"]
+    old_upstream = {
+        row["sourcePath"]: row["gitBlobIdentity"]
+        for row in before["upstreamLocalSourceFiles"]
+    }
+    new_upstream = {
+        row["sourcePath"]: row["gitBlobIdentity"]
+        for row in after["upstreamLocalSourceFiles"]
+    }
+    changed_upstream = [
+        {"sourcePath": path, "beforeGitBlobIdentity": old_upstream.get(path),
+         "afterGitBlobIdentity": new_upstream.get(path)}
+        for path in sorted(set(old_upstream) | set(new_upstream))
+        if old_upstream.get(path) != new_upstream.get(path)
+    ]
+    invalid_syntax_paths = sorted(set(
+        before["scanBoundary"]["invalidSyntaxPaths"]
+        + after["scanBoundary"]["invalidSyntaxPaths"]
+        + before["upstreamInvalidSyntaxPaths"]
+        + after["upstreamInvalidSyntaxPaths"]
+    ))
+    return {
+        "kind": "ordivon.owner-lego-python-import-source-delta",
+        "truthRole": "TWO_GIT_SOURCE_CUTS_ONLY_NO_CONSUMER_OR_PROOF_AUTHORITY",
+        "beforeSourceCut": before_revision,
+        "afterSourceCut": after_revision,
+        "declaredNodeRef": node_ref,
+        "targetSourcePath": target_source,
+        "targetBlobChanged": target_changed,
+        "beforeCandidateImporterCount": len(old),
+        "afterCandidateImporterCount": len(new),
+        "changedCandidateImporters": candidate_changes,
+        "changedUpstreamLocalSourceFiles": changed_upstream,
+        "upstreamReadsetQualification": "PARTIAL_GIT_STATIC_IMPORTS_NOT_EXECUTED_OR_COMPLETE",
+        "unchangedCandidateImporterCount": len(set(old) & set(new)) - sum(
+            path in old and path in new and old[path] != new[path]
+            for path in set(old) & set(new)
+        ),
+        "invalidSyntaxPaths": invalid_syntax_paths,
+        "sourceRelationStanding": (
+            "UNKNOWN" if invalid_syntax_paths
+            else "RECHECK_REQUIRED" if target_changed or candidate_changes or changed_upstream
+            else "NO_DECLARED_SOURCE_RELATION_CHANGE"
+        ),
+        "proofReuseAdmissible": False,
+        "nonClaims": [
+            "An unchanged static import is not a behavioral equivalence proof.",
+            "An importer may also be called dynamically, re-exported or loaded externally.",
+            "Changed importer bytes require consumer requalification even if import syntax is stable.",
+            "Source-qualified upstream local static imports are only a partial overapproximation; changed bytes require native contract recheck.",
+            "Absence of a changed candidate is not a general proof-cache admission.",
         ],
     }
 
@@ -1751,14 +1975,23 @@ def main(argv: list[str] | None = None) -> int:
             raise ArchitectureDocsError("--compare-source-revision requires --source-revision")
         if bool(args.inspect_python_node) != bool(args.python_target_source):
             raise ArchitectureDocsError("Python inspect requires node and source together")
-        if args.inspect_python_node and (not args.source_revision or args.compare_source_revision):
-            raise ArchitectureDocsError("Python inspect requires one exact source revision")
+        if args.inspect_python_node and not args.source_revision:
+            raise ArchitectureDocsError("Python inspect requires exact source revision")
         if args.inspect_python_node:
-            print(json.dumps(project_node_python_import_syntax(
-                source_revision=args.source_revision,
-                node_ref=args.inspect_python_node,
-                target_source=args.python_target_source,
-            ), sort_keys=True))
+            value = (
+                project_node_python_import_delta(
+                    before_revision=args.compare_source_revision,
+                    after_revision=args.source_revision,
+                    node_ref=args.inspect_python_node,
+                    target_source=args.python_target_source,
+                ) if args.compare_source_revision else
+                project_node_python_import_syntax(
+                    source_revision=args.source_revision,
+                    node_ref=args.inspect_python_node,
+                    target_source=args.python_target_source,
+                )
+            )
+            print(json.dumps(value, sort_keys=True))
             return 0
         if args.project_owner_graphs:
             print(json.dumps(

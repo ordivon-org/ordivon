@@ -10,6 +10,7 @@ from urllib.parse import urlsplit
 import uvicorn
 from mcp.server import MCPServer
 from mcp.server.mcpserver import Context
+from mcp.server.mcpserver.exceptions import ToolError
 from mcp.server.transport_security import TransportSecuritySettings
 from mcp_types import CallToolResult, TextContent
 from pydantic import Field
@@ -33,7 +34,7 @@ from .contracts import (
     SystemDescription,
 )
 from .external_worker import ExternalPullWorkerTransport, require_qualified_legacy_sqlite
-from .service import GatewayService
+from .service import GatewayError, GatewayService
 from .upstream import McpOwnerCaller, OwnerCallError
 from .worker_http import attach_worker_routes
 
@@ -72,31 +73,37 @@ async def _owner_boundary(call) -> Any:
         return _owner_error_result(exc)
 
 
-def _verified_execution_request_id(
-    public_request_id: str,
-    capability: str,
-    context: Context,
-) -> str:
-    """Scope Gateway -> Runtime idempotency to the trusted HTTP ingress identity.
-
-    The original public requestId remains the Harness API identity. A verified
-    principal/issuer pair is the only source allowed to refine its downstream
-    owner lookup namespace; never accept principal/issuer from Tool arguments.
-    Legacy direct/stdio callers without this verified ingress continue to use
-    their existing requestId, with NO claim of cross-principal continuity.
-    """
+def _verified_execution_scope(context: Context | None) -> tuple[str, str] | None:
+    """Request-local authority from the existing verified HTTP ingress, if present."""
     try:
         request = context.request_context.request
     except ValueError, AttributeError:
-        return public_request_id
+        return None
     scope = getattr(request, "scope", None)
     state = scope.get("state") if isinstance(scope, dict) else None
     if not isinstance(state, dict):
-        return public_request_id
+        return None
     principal = state.get("ordivon_access_principal")
     issuer = state.get("ordivon_access_issuer")
     if not (isinstance(principal, str) and principal and isinstance(issuer, str) and issuer):
+        return None
+    return issuer, principal
+
+
+def _verified_execution_request_id(
+    public_request_id: str,
+    capability: str,
+    context: Context | None,
+) -> str:
+    """Scope owner idempotency to verified ingress, not caller-claimed identity.
+
+    Unqualified direct/stdio callers retain their old requestId, with no
+    claim that they have a verified HTTP principal or reattach protection.
+    """
+    verified = _verified_execution_scope(context)
+    if verified is None:
         return public_request_id
+    issuer, principal = verified
     canonical = json.dumps(
         [
             "ordivon.gateway-principal-scoped-execution-request.v1",
@@ -109,6 +116,35 @@ def _verified_execution_request_id(
         ensure_ascii=False,
     ).encode("utf-8")
     return "request:gw-principal:" + hashlib.sha256(canonical).hexdigest()
+
+
+async def _qualify_gateway_operation_ref(
+    gateway: GatewayService,
+    operation_ref: str,
+    capability: str | None,
+    public_request_id: str | None,
+    context: Context | None,
+) -> None:
+    """Use the same actual owner lookup before any observe or cancel effect.
+
+    This composes existing execution.resolve with existing owner job identity
+    instead of treating a caller-supplied operationRef as principal proof.
+    """
+    if _verified_execution_scope(context) is None:
+        return  # Legacy non-HTTP path; no identity qualification asserted.
+    if not isinstance(public_request_id, str) or not public_request_id:
+        raise ToolError("verified operation requires original requestId")
+    if not isinstance(capability, str) or not capability:
+        raise ToolError("verified operation requires original capability")
+    owner_request_id = _verified_execution_request_id(public_request_id, capability, context)
+    try:
+        recovered = await gateway.execution_resolve(
+            capability=capability, request_id=owner_request_id
+        )
+    except GatewayError as exc:
+        raise ToolError("operationRef cannot be qualified for this principal") from exc
+    if recovered.resolution != "found" or recovered.operation_ref != operation_ref:
+        raise ToolError("operationRef cannot be qualified for this principal")
 
 
 def build_server(
@@ -204,14 +240,26 @@ def build_server(
 
     @server.tool(name="execution.get")
     async def execution_get(
-        operationRef: str, eventLimit: int = 10, waitMs: int = 0
+        operationRef: str,
+        eventLimit: int = 10,
+        waitMs: int = 0,
+        requestId: str | None = None,
+        capability: str | None = None,
+        ctx: Context = None,
     ) -> ExecutionObservation:
+        await _qualify_gateway_operation_ref(gateway, operationRef, capability, requestId, ctx)
         return await _owner_boundary(
             gateway.execution_get(operationRef, event_limit=eventLimit, wait_ms=waitMs)
         )
 
     @server.tool(name="execution.cancel")
-    async def execution_cancel(operationRef: str) -> ExecutionReceipt:
+    async def execution_cancel(
+        operationRef: str,
+        requestId: str | None = None,
+        capability: str | None = None,
+        ctx: Context = None,
+    ) -> ExecutionReceipt:
+        await _qualify_gateway_operation_ref(gateway, operationRef, capability, requestId, ctx)
         return await _owner_boundary(gateway.execution_cancel(operationRef))
 
     @server.tool(name="artifact.read")
@@ -220,7 +268,13 @@ def build_server(
         artifactId: str,
         offset: int = 0,
         maxBytes: int = 1_048_576,
+        requestId: str | None = None,
+        capability: str | None = None,
+        ctx: Context = None,
     ) -> ArtifactChunk:
+        # Artifact bytes have the same original execution owner as observe/cancel.
+        # Reuse the trusted HTTP ingress identity fence before any owner read.
+        await _qualify_gateway_operation_ref(gateway, operationRef, capability, requestId, ctx)
         return await _owner_boundary(
             gateway.artifact_read(operationRef, artifactId, offset=offset, max_bytes=maxBytes)
         )

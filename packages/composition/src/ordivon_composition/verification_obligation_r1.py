@@ -15,6 +15,7 @@ import hashlib
 import json
 import re
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -43,8 +44,7 @@ def _immutable_git_manifest(
     """
     relative = path.as_posix()
     if (
-        re.fullmatch(r"[0-9a-f]{40}", commit) is None
-        or path.is_absolute()
+        path.is_absolute()
         or not relative
         or any(part in ("", ".", "..") for part in relative.split("/"))
         or "\\x00" in relative
@@ -64,6 +64,18 @@ def _immutable_git_manifest(
         except (OSError, subprocess.CalledProcessError) as exc:
             raise CircuitContractError("Git source cut or regular blob unavailable") from exc
 
+    # Git supports both SHA-1 (40) and SHA-256 (64) storage formats.
+    # Ask the repository for the actual object format rather than adopting
+    # one hash algorithm as an implicit global LEGO/source-cut type.
+    storage_format = git("rev-parse", "--show-object-format=storage").strip()
+    if storage_format == b"sha1":
+        object_id_width = 40
+    elif storage_format == b"sha256":
+        object_id_width = 64
+    else:
+        raise CircuitContractError("unsupported Git repository object format")
+    if re.fullmatch(rf"[0-9a-f]{{{object_id_width}}}", commit) is None:
+        raise CircuitContractError("source-bound impact needs an exact Git commit object ID")
     if git("cat-file", "-t", commit).strip() != b"commit":
         raise CircuitContractError("Git SourceCut must identify an immutable commit")
     # ls-tree rejects gitlinks, symlinks, missing path, and pathspec ambiguity.
@@ -83,6 +95,7 @@ def _immutable_git_manifest(
     raw = git("cat-file", "blob", commit + ":" + relative)
     return _load_json(path, source_bytes=raw), {
         "commit": commit,
+        "objectFormat": storage_format.decode("ascii"),
         "path": relative,
         "blobId": blob.decode("ascii"),
         "sha256": "sha256:" + hashlib.sha256(raw).hexdigest(),
@@ -399,6 +412,38 @@ def compare_gate_source_scopes(
     }
 
 
+def _cyclic_proof_members(rows: list[dict[str, Any]]) -> set[str]:
+    """Validate a bounded dependency relation and find cycle members.
+
+    Proof prerequisites may be recursive even when execution Stage order is a
+    DAG. Use exact finite reachability rather than pretending cycles are
+    discharged by caller-asserted dependency completeness. No new graph owner.
+    """
+    graph = {row["id"]: set(row["dependsOn"]) for row in rows}
+    if len(graph) != len(rows):
+        raise CircuitContractError("duplicate proof graph identity")
+    for identity, deps in graph.items():
+        missing = deps - graph.keys()
+        if missing:
+            raise CircuitContractError(
+                f"proof {identity} depends on unknown references: {sorted(missing)}"
+            )
+    cyclic: set[str] = set()
+    for identity in sorted(graph):
+        seen: set[str] = set()
+        frontier = list(graph[identity])
+        while frontier:
+            current = frontier.pop()
+            if current == identity:
+                cyclic.add(identity)
+                break
+            if current in seen:
+                continue
+            seen.add(current)
+            frontier.extend(graph[current] - seen)
+    return cyclic
+
+
 def select_impacted_obligations(
     *,
     authority_refs: list[str],
@@ -465,7 +510,7 @@ def select_impacted_obligations(
 
     derived_relation_changes: set[str] = set()
     derived_contract_changes: set[str] = set()
-    retired_known_claims: set[str] = set()
+    retired_known_refs: set[str] = set()
     if previous_graph is not None:
         if (
             not isinstance(previous_graph, dict)
@@ -491,9 +536,7 @@ def select_impacted_obligations(
                 "dependenciesComplete": item["dependenciesComplete"],
                 "obligationDigest": item.get("obligationDigest"),
             }
-        from .cognitive_circuit_r1 import _topological_order
-
-        _topological_order(
+        _cyclic_proof_members(
             [{"id": root, "dependsOn": []} for root in prev_roots]
             + [
                 {"id": identity, "dependsOn": sorted(item["dependsOn"])}
@@ -505,7 +548,11 @@ def select_impacted_obligations(
         # retirement cannot be an unindexed dependency of all current proofs.
         # Actual current consumers must declare a new DAG relation, and their
         # changed contracts are still rechecked through the loop below.
-        retired_known_claims = set(prev_claims) - set(claims)
+        # A previous-only Source root or proof node is a known historical
+        # retirement, not an unindexed present-day dependency. Keep the delta
+        # visible, but do not spread its uncertainty to unrelated consumers.
+        # Explicit unknownRefs and changed surviving contracts still flow.
+        retired_known_refs = (prev_roots - roots) | (set(prev_claims) - set(claims))
         derived_relation_changes = roots ^ prev_roots
         for identity in set(claims) | set(prev_claims):
             item = claims.get(identity)
@@ -532,36 +579,40 @@ def select_impacted_obligations(
                 derived_contract_changes.add(identity)
         changed |= derived_relation_changes | derived_contract_changes
 
-    unindexed = sorted((changed | unknown) - (roots | set(claims) | retired_known_claims))
+    # Explicit UNKNOWN must never be silenced by an earlier provenance
+    # witness: it is a new unresolved fact, unlike a known historical Delta.
+    unindexed = sorted(((changed - retired_known_refs) | unknown) - (roots | set(claims)))
     rows = [{"id": root, "dependsOn": []} for root in roots]
     rows += [{"id": identity, "dependsOn": item["dependsOn"]} for identity, item in claims.items()]
-    from .cognitive_circuit_r1 import _topological_order
-
-    order = _topological_order(rows)
+    cyclic = _cyclic_proof_members(rows)
+    # Conservative least-fixed-point propagation on the three-element lattice
+    # REUSE_CANDIDATE < UNKNOWN < RECHECK_REQUIRED. A recursive assumption is
+    # UNKNOWN until independently discharged by a separate joint proof; the
+    # caller's dependenciesComplete boolean can never supply that proof.
+    rank = {"REUSE_CANDIDATE": 0, "UNKNOWN": 1, "RECHECK_REQUIRED": 2}
     statuses: dict[str, str] = {}
-    for identity in order:
-        if identity in roots:
-            statuses[identity] = (
-                "RECHECK_REQUIRED"
-                if identity in changed
-                else "UNKNOWN"
-                if identity in unknown or unindexed
-                else "REUSE_CANDIDATE"
-            )
-            continue
-        item = claims[identity]
-        upstream = [statuses[ref] for ref in item["dependsOn"]]
-        if identity in changed or "RECHECK_REQUIRED" in upstream:
-            statuses[identity] = "RECHECK_REQUIRED"
-        elif (
-            identity in unknown
-            or unindexed
-            or not item["dependenciesComplete"]
-            or "UNKNOWN" in upstream
+    for identity in sorted(roots | set(claims)):
+        if identity in changed:
+            status = "RECHECK_REQUIRED"
+        elif identity in unknown or unindexed:
+            status = "UNKNOWN"
+        elif identity in cyclic or (
+            identity in claims and not claims[identity]["dependenciesComplete"]
         ):
-            statuses[identity] = "UNKNOWN"
+            status = "UNKNOWN"
         else:
-            statuses[identity] = "REUSE_CANDIDATE"
+            status = "REUSE_CANDIDATE"
+        statuses[identity] = status
+    while True:
+        progressed = False
+        for identity in sorted(claims):
+            upstream = (statuses[ref] for ref in claims[identity]["dependsOn"])
+            new_rank = max((rank[statuses[identity]], *(rank[x] for x in upstream)))
+            if new_rank > rank[statuses[identity]]:
+                statuses[identity] = ("REUSE_CANDIDATE", "UNKNOWN", "RECHECK_REQUIRED")[new_rank]
+                progressed = True
+        if not progressed:
+            break
 
     projection = {
         "kind": "ordivon.task-local-obligation-impact",
@@ -570,6 +621,7 @@ def select_impacted_obligations(
             {"id": identity, "standing": statuses[identity]} for identity in sorted(claims)
         ],
         "unindexedChangeRefs": unindexed,
+        "cyclicObligationIds": sorted(cyclic),
         "derivedRelationChangedRefs": sorted(derived_relation_changes),
         "derivedContractChangedRefs": sorted(derived_contract_changes),
         "derivedChangedRefs": sorted(derived_relation_changes | derived_contract_changes),
@@ -614,6 +666,8 @@ def select_manifest_gate_impacts(
     *,
     previous_manifest: dict[str, Any],
     current_manifest: dict[str, Any],
+    previous_binding_set: dict[str, Any] | None = None,
+    current_binding_set: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Compare exact task-local manifest property inputs through the existing selector.
 
@@ -627,42 +681,87 @@ def select_manifest_gate_impacts(
     if previous_manifest["circuitId"] != current_manifest["circuitId"]:
         raise CircuitContractError("cannot compare different circuit identities")
 
-    previous_gates = {item["gateId"]: item for item in previous["obligations"]}
-    current_gates = {item["gateId"]: item for item in current["obligations"]}
-    all_previous = set(previous_gates)
-    all_current = set(current_gates)
-    added = sorted(all_current - all_previous)
-    removed = sorted(all_previous - all_current)
+    # Reuse the existing R2.1 source-scope operator. Its bounded upstream
+    # closure already understands producer/consumer stages, incoming edges,
+    # method/capability bindings and other premises of the same consumer.
+    # Computing another all-non-Gate hash would invalidate unrelated branches.
+    scoped = compare_gate_source_scopes(previous_manifest, current_manifest)
+    all_current = {item["gateId"] for item in current["obligations"]}
+    added = scoped["addedGateIds"]
+    removed = scoped["removedGateIds"]
 
+    # Actual global context affects every Gate, including negative membership
+    # queries. The scoped comparator separately handles all local source inputs.
     def shared_context(manifest: dict[str, Any]) -> str:
-        # All non-Gate inputs are a shared dependency, including stage bindings,
-        # edges, circuit objective, unresolved assumptions and composition metadata.
-        # Gate existence/required-set membership is a negative query dependency:
-        # new or removed required obligations may affect global closure.
-        body = {key: value for key, value in manifest.items() if key != "gateRequirements"}
-        gates = manifest["gateRequirements"]
-        body["gateMembership"] = sorted(item["id"] for item in gates)
-        body["requiredGateMembership"] = sorted(item["id"] for item in gates if item["required"])
-        return canonical_digest(body)
+        return canonical_digest(
+            {
+                key: manifest[key]
+                for key in (
+                    "schemaVersion",
+                    "kind",
+                    "circuitId",
+                    "objectiveRef",
+                    "unresolvedAssumptions",
+                    "nonClaims",
+                )
+            }
+        )
 
+    # Negative Gate membership is already part of each bounded consumer's
+    # upstreamGates readset in compare_gate_source_scopes. Treating any add/
+    # remove as a global change would invalidate independent Gate branches.
     shared_changed = shared_context(previous_manifest) != shared_context(current_manifest)
-    local_changed = sorted(
-        gate_id
-        for gate_id in all_current
-        if gate_id not in previous_gates
-        or previous_gates[gate_id]["sourceGateDigest"] != current_gates[gate_id]["sourceGateDigest"]
-    )
+    local_changed = sorted(set(scoped["changedGateIds"]) | set(added))
+
+    if (previous_binding_set is None) != (current_binding_set is None):
+        raise CircuitContractError("both previous and current verifier binding sets are required")
+
+    # These exact binding resolutions validate a caller-authored claim; they do
+    # not authenticate a verifier installation, execution or proof. Keep the
+    # binding change separate from the Gate's source/contract change.
+    binding_pair = previous_binding_set is not None and current_binding_set is not None
+    changed_verifier_gates: list[str] = []
+    previous_resolution = None
+    current_resolution = None
+    if binding_pair:
+        previous_resolution = resolve_verifier_bindings(previous, previous_binding_set)
+        current_resolution = resolve_verifier_bindings(current, current_binding_set)
+
+        # Each binding resolver already checks the exact obligation digest for
+        # its own SourceCut. That digest also includes the whole manifest and
+        # changes for unrelated Gates: it is NOT a verifier-identity delta.
+        # Actual Gate proposition changes are handled by source:gate refs.
+        def verifier_identity(row: dict[str, Any]) -> dict[str, Any]:
+            return {key: value for key, value in row.items() if key != "obligationDigest"}
+
+        old_bindings = {
+            row["gateId"]: verifier_identity(row) for row in previous_resolution["resolvedBindings"]
+        }
+        new_bindings = {
+            row["gateId"]: verifier_identity(row) for row in current_resolution["resolvedBindings"]
+        }
+        changed_verifier_gates = sorted(
+            gate_id
+            for gate_id in all_current
+            if old_bindings.get(gate_id) != new_bindings.get(gate_id)
+        )
 
     shared_ref = "source:manifest-shared"
 
     def gate_ref(gate_id: str) -> str:
         return f"source:gate:{gate_id}"
 
+    def verifier_ref(gate_id: str) -> str:
+        return f"binding:verifier:{gate_id}"
+
     authority_refs = [shared_ref] + [gate_ref(key) for key in sorted(all_current)]
+    if binding_pair:
+        authority_refs.extend(verifier_ref(key) for key in sorted(all_current))
     obligations = [
         {
             "id": f"proof:gate:{gate_id}",
-            "dependsOn": [shared_ref, gate_ref(gate_id)],
+            "dependsOn": [shared_ref, gate_ref(gate_id)]
+            + ([verifier_ref(gate_id)] if binding_pair else []),
             # A syntactically complete manifest does NOT account for verifier,
             # installed code, authorization, environment or dynamic consumer reads.
             "dependenciesComplete": False,
@@ -670,6 +769,7 @@ def select_manifest_gate_impacts(
         for gate_id in sorted(all_current)
     ]
     changed_refs = [gate_ref(gate_id) for gate_id in local_changed]
+    changed_refs.extend(verifier_ref(gate_id) for gate_id in changed_verifier_gates)
     if shared_changed:
         changed_refs.append(shared_ref)
     selection = select_impacted_obligations(
@@ -677,7 +777,7 @@ def select_manifest_gate_impacts(
         obligations=obligations,
         changed_refs=changed_refs,
     )
-    return {
+    projection = {
         "kind": "ordivon.task-local-manifest-gate-impact",
         "truthRole": "source-manifest-projection-not-proof-admission",
         "previousObligationSetDigest": previous["obligationSetDigest"],
@@ -690,11 +790,26 @@ def select_manifest_gate_impacts(
         "proofReuseAdmissible": False,
         "nonClaims": [
             "The manifest objects are caller supplied; source query provenance is not certified.",
-            "The shared context covers only manifest JSON, not external proof inputs.",
+            "Shared context covers global manifest premises and Gate membership only.",
+            "Gate source deltas reuse existing scoped upstream closure.",
             "An unchanged gate with unresolved verifier/environment deps stays UNKNOWN.",
             "Removed gates need separate actual consumer and proof-retirement qualification.",
         ],
     }
+    if binding_pair:
+        projection.update(
+            {
+                "changedVerifierBindingGateIds": changed_verifier_gates,
+                "previousVerifierResolutionDigest": previous_resolution["resolutionDigest"],
+                "currentVerifierResolutionDigest": current_resolution["resolutionDigest"],
+                "verifierBindingComparisonQualification": "CALLER_AUTHORED_BINDINGS_ONLY",
+            }
+        )
+        projection["nonClaims"].append(
+            "Verifier/artifact/native specification references are caller-authored; "
+            "their digest equality or binding resolution is not a verified runtime readset."
+        )
+    return projection
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -711,11 +826,16 @@ def _parser() -> argparse.ArgumentParser:
     impact_parser = sub.add_parser("select-impact")
     impact_parser.add_argument("git_source_delta", type=Path)
     impact_parser.add_argument("obligations", type=Path)
+    # A caller-supplied JSON report is not native Git evidence. Verify it
+    # against the exact immutable source cuts before using it for scheduling.
+    impact_parser.add_argument("--repo", type=Path, required=True)
     impact_parser.add_argument("--unknown-refs", type=Path)
 
     manifest_parser = sub.add_parser("impact-manifests")
     manifest_parser.add_argument("previous_manifest", type=Path)
     manifest_parser.add_argument("current_manifest", type=Path)
+    manifest_parser.add_argument("--previous-bindings", type=Path)
+    manifest_parser.add_argument("--current-bindings", type=Path)
     manifest_parser.add_argument("--git-repo", type=Path)
     manifest_parser.add_argument("--previous-sourcecut")
     manifest_parser.add_argument("--current-sourcecut")
@@ -754,7 +874,16 @@ def main() -> int:
                     _load_json(args.previous_manifest),
                     _load_json(args.current_manifest),
                 )
-            result = select_manifest_gate_impacts(previous_manifest=before, current_manifest=after)
+            result = select_manifest_gate_impacts(
+                previous_manifest=before,
+                current_manifest=after,
+                previous_binding_set=(
+                    None if args.previous_bindings is None else _load_json(args.previous_bindings)
+                ),
+                current_binding_set=(
+                    None if args.current_bindings is None else _load_json(args.current_bindings)
+                ),
+            )
             if all(requested):
                 result["gitSourceCuts"] = {"previous": before_source, "current": after_source}
         elif args.command == "select-impact":
@@ -774,7 +903,48 @@ def main() -> int:
                 raise CircuitContractError(
                     "select-impact cannot promote unqualified Git source evidence"
                 )
-            roots, changes = delta.get("authorityRefs"), delta.get("changedRefs")
+            # Consume the native Git owner's existing query CLI. Composition
+            # is a separate Python package: the repository tools package is
+            # not guaranteed to be importable from its project-only sys.path.
+            # If this checkout-bound executable is unavailable, fail closed.
+            try:
+                cuts = delta.get("sourceCuts")
+                if not isinstance(cuts, dict):
+                    raise ValueError("sourceCuts must specify immutable Git commits")
+                owner_tool = (
+                    Path(__file__).resolve().parents[4] / "tools/repo/source_history_legos.py"
+                )
+                if not owner_tool.is_file():
+                    raise ValueError("Git owner query entrypoint unavailable")
+                native_query = subprocess.run(
+                    [
+                        sys.executable,
+                        str(owner_tool),
+                        "--repo",
+                        str(args.repo),
+                        "--left",
+                        cuts.get("previous"),
+                        "--right",
+                        cuts.get("current"),
+                        "--impact-prefix",
+                        delta.get("queryPrefix"),
+                    ],
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                )
+                if native_query.returncode != 0:
+                    raise ValueError("native Git source query failed")
+                qualified = json.loads(native_query.stdout)
+            except (ValueError, OSError, TypeError) as exc:
+                raise CircuitContractError(
+                    "select-impact requires independently recomputable native Git scope"
+                ) from exc
+            if qualified != delta:
+                raise CircuitContractError(
+                    "select-impact Git report differs from exact native source delta"
+                )
+            roots, changes = qualified["authorityRefs"], qualified["changedRefs"]
             if (
                 not isinstance(roots, list)
                 or not isinstance(changes, list)

@@ -195,7 +195,9 @@ def evaluate_successor_gates(
 
     if unsatisfied:
         standing = "SUCCESSOR_GATES_UNSATISFIED"
-    elif missing or unknown or unresolved:
+    elif not required or missing or unknown or unresolved:
+        # Zero required Gates is an empty proof obligation, not verified
+        # successor closure. Preserve the contract as descriptive/open.
         standing = "SUCCESSOR_GATES_OPEN"
     else:
         standing = "SUCCESSOR_GATES_SATISFIED"
@@ -222,8 +224,9 @@ def evaluate_successor_gates(
         "promotionAuthorityEstablished": False,
         "domainImprovementEstablished": False,
         "claimBoundary": (
-            "Mechanical successor closure means only that every required verifier-owned "
-            "gate for this exact predecessor/candidate contract is SATISFIED and no "
+            "Mechanical successor closure requires at least one required verifier-owned "
+            "gate for this exact predecessor/candidate contract to be SATISFIED, all "
+            "other required Gates SATISFIED, and no "
             "contract assumption remains unresolved. Promotion authority and domain "
             "improvement remain with their natural owners."
         ),
