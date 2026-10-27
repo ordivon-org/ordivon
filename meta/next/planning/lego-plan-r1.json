@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-next-current-source-consumer-seams-r1",
+    "purpose": "Source-bound identification of two distinct Next responsibilities actually consumed by native authority/catalog and cross-domain Gate callers. Do not confuse file/source graph membership with runtime verifier or domain acceptance.",
+    "sourceEvidence": [
+      "README.md",
+      "scripts/authority_catalog.py",
+      "scripts/check_authority_catalog_r1.py",
+      "scripts/cross_domain_binding_r3.py"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "NX01",
+      "label": "ExternalAuthorityRecordAndObservationCatalog",
+      "kind": "knowledge_projection",
+      "responsibility": "Validate version-scoped external authority records and independently observed currentness, then derive a disposable discoverability index.",
+      "authority": "Next external knowledge/authority discovery",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "registered authority records and currentness observation JSON"
+      ],
+      "outputs": [
+        "validated authority identity/relation map and rebuildable index or explicit invalid-record error"
+      ],
+      "behavioralContract": "Source/version/observation relations are checked, but authority discovery does not decide task applicability, issue external provider permissions, or establish current normative compliance.",
+      "evidence": [
+        "scripts/authority_catalog.py",
+        "scripts/check_authority_catalog_r1.py",
+        "tests/test_authority_catalog.py",
+        "README.md"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "domain-specific normative verdicts",
+        "provider execution",
+        "installation or dynamic consumer completeness",
+        "unverified external effects"
+      ],
+      "acceptance": [
+        "check_authority_catalog_r1.py imports authority_catalog and invokes existing catalog validation; test_authority_catalog.py exercises the public behavior.",
+        "Currentness is reported only at the represented source/observation scope, not as deployed/provider runtime proof."
+      ]
+    },
+    {
+      "id": "NX02",
+      "label": "TaskLocalCrossDomainBindingQualification",
+      "kind": "typed_contract",
+      "responsibility": "Validate cross-domain verifier/task binding JSON and resolve bounded repository-file references for task-local Gate consumers without becoming a Composition engine.",
+      "authority": "Next caller-local domain binding seam",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "cross-domain binding JSON and repository-root-relative evidence reference"
+      ],
+      "outputs": [
+        "validated binding or canonical contained source-file path; invalid schema or path fails closed"
+      ],
+      "behavioralContract": "JSON Schema Draft 2020-12 and canonical repo containment guard admission; a valid binding cannot make a verifier PASS, prove consumer behavior, or authorize effects.",
+      "evidence": [
+        "scripts/cross_domain_binding_r3.py",
+        "scripts/research_artifact_gate_r3.py",
+        "scripts/web_security_gate_r3.py",
+        "tests/test_cross_domain_verification_r3.py"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "domain-specific normative verdicts",
+        "provider execution",
+        "installation or dynamic consumer completeness",
+        "unverified external effects"
+      ],
+      "acceptance": [
+        "Research Artifact and Web Security Gate sources both import validate_binding and resolve_repo_file, so this responsibility has multiple distinct static consumers.",
+        "Path qualification checks namespace containment and file presence; content provenance and dynamic execution need independent evidence."
+      ]
+    }
+  ],
+  "edges": [],
+  "slices": [],
+  "gaps": [
+    "Next's broader task-local method selection and numerous experimental domain producers were not promoted to independent LEGO without bounded consumer/replaceability evidence.",
+    "No declared edge connects NX01 and NX02: their source-level callers are distinct, so inventing a dependency would misrepresent the architecture.",
+    "All cross-Owner implementation, dynamic consumer, deployed currentness and formal-model refinement relations remain scoped UNKNOWN."
+  ],
+  "doNotOwn": [
+    "universal architecture registry",
+    "domain normative acceptance",
+    "external knowledge ownership",
+    "generic reasoning solver",
+    "Composition verifier execution"
+  ]
+}

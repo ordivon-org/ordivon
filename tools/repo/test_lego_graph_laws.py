@@ -1746,3 +1746,45 @@ def test_gateway_new_recipes_and_optional_worker_have_distinct_native_consumers(
         edge["from"] == "G08" and edge["to"] == "G03" and edge["type"] == "AUTHORITY"
         for edge in plan["edges"]
     )
+def test_phase1_next_owner_has_real_native_contract_consumers() -> None:
+    """Bound existing Next LEGO claims to syntax consumers, not named files alone."""
+    import ast
+
+    owner = ROOT / "meta/next/planning/lego-plan-r1.json"
+    plan = json.loads(owner.read_text(encoding="utf-8"))
+    assert {n["id"] for n in plan["nodes"]} == {"NX01", "NX02"}
+    assert all(
+        n.get("inputs") and n.get("outputs")
+        and n.get("behavioralContract") and n.get("acceptance")
+        for n in plan["nodes"]
+    )
+    module.validate_owner_lego_graph(plan)
+    module.validate_owner_lego_dependencies(plan, "meta/next")
+
+    def imports_external_authority(source: str) -> bool:
+        return any(
+            isinstance(node, ast.Import) and any(alias.name == "authority_catalog" for alias in node.names)
+            for node in ast.walk(ast.parse(source))
+        )
+
+    actual = (ROOT / "meta/next/scripts/check_authority_catalog_r1.py").read_text(
+        encoding="utf-8"
+    )
+    assert imports_external_authority(actual)
+    assert not imports_external_authority("import wrong_authority_catalog")
+
+    def bound_consumer_imports(source: str) -> set[str]:
+        return {
+            alias.name
+            for node in ast.walk(ast.parse(source))
+            if isinstance(node, ast.ImportFrom)
+            and node.module in {"cross_domain_binding_r3", "scripts.cross_domain_binding_r3"}
+            for alias in node.names
+        }
+
+    for script in ("research_artifact_gate_r3.py", "web_security_gate_r3.py"):
+        source = (ROOT / "meta/next/scripts" / script).read_text(encoding="utf-8")
+        assert {"validate_binding", "resolve_repo_file"} <= bound_consumer_imports(source)
+    assert bound_consumer_imports(
+        "from fake_cross_domain_binding_r3 import validate_binding, resolve_repo_file"
+    ) == set()
