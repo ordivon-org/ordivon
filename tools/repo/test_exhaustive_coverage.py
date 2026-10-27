@@ -337,3 +337,78 @@ class PythonStaticConsumerFrontierTests(unittest.TestCase):
                              for x in out["staticCandidateEdges"]))
         self.assertGreater(out["summary"]["sourceModuleLayoutUnknown"], 0)
         self.assertFalse(out["summary"]["zeroStaticEdgesProvesNoConsumers"])
+
+
+class ExactGitCrossFormatReferenceTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.cut = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"],
+            text=True,
+        ).strip()
+
+    def test_artifact_schema_has_json_and_code_lexical_witnesses(self) -> None:
+        target = (
+            "capabilities/artifact/artifact-delivery/shadow-contracts/"
+            "audio-flac-contract-v1.schema.json"
+        )
+        result = M.exact_git_reference_hints(ROOT, self.cut, [target])
+        self.assertEqual(result["sourceCut"], self.cut)
+        self.assertFalse(result["proofReuseAdmissible"])
+        query = result["queries"][0]
+        self.assertTrue(query["basenameUniqueInSource"])
+        hits = query["textualHits"]
+        self.assertTrue(any(h["candidateConsumerPath"] ==
+                            "capabilities/artifact/scripts/artifact_audio.py"
+                            for h in hits))
+        self.assertTrue(any(h["candidateConsumerPath"] ==
+                            "capabilities/artifact/artifact-delivery/donor-r1/manifest.json"
+                            for h in hits))
+        self.assertTrue(all(h["semanticConsumerStanding"] == "UNKNOWN"
+                            for h in hits))
+        self.assertTrue(all(h["installedConsumerStanding"] == "UNKNOWN"
+                            for h in hits))
+        self.assertTrue(all(h["sourceLine"] > 0 for h in hits))
+        self.assertTrue(any(h["candidateConsumerCarrierRole"] ==
+                            "JSON_DECLARATION_LITERAL_REFERENCE" for h in hits))
+        self.assertTrue(any(h["candidateConsumerCarrierRole"] ==
+                            "PYTHON_SOURCE_LITERAL_REFERENCE" for h in hits))
+        self.assertFalse(query["zeroTextualHitsProvesNoConsumers"])
+
+    def test_bounded_limit_does_not_exclude_evidence_without_disclosure(self) -> None:
+        target = (
+            "capabilities/artifact/artifact-delivery/shadow-contracts/"
+            "audio-flac-contract-v1.schema.json"
+        )
+        query = M.exact_git_reference_hints(
+            ROOT, self.cut, [target], per_path_limit=1,
+        )["queries"][0]
+        self.assertTrue(query["truncated"])
+        self.assertGreater(query["totalTextualHits"], 1)
+        self.assertEqual(len(query["textualHits"]), 1)
+
+    def test_absent_path_and_ambiguous_common_basename_do_not_grant_edges(self) -> None:
+        result = M.exact_git_reference_hints(
+            ROOT, self.cut,
+            ["nonexistent/no-such-source.json",
+             "extensions/ordivon-control-plane/plugin.json"],
+        )
+        self.assertEqual(result["queries"][0]["standing"],
+                         "NOT_IN_EXACT_GIT_SOURCE")
+        self.assertFalse(result["queries"][1]["basenameUniqueInSource"])
+        self.assertNotIn("plugin.json", result["queries"][1]["patternsUsed"])
+        self.assertFalse(result["queries"][0]["zeroTextualHitsProvesNoConsumers"])
+
+    def test_bad_cut_invalid_relative_path_and_bounds_fail_closed(self) -> None:
+        target = "capabilities/artifact/scripts/artifact_audio.py"
+        with self.assertRaises(ValueError):
+            M.exact_git_reference_hints(ROOT, "HEAD", [target])
+        for query in ("", "/etc/hosts", "foo/../bar", "foo//bar", "foo/./bar"):
+            with self.assertRaises(ValueError):
+                M.exact_git_reference_hints(ROOT, self.cut, [query])
+        with self.assertRaises(ValueError):
+            M.exact_git_reference_hints(ROOT, self.cut, [target] * 9)
+        with self.assertRaises(ValueError):
+            M.exact_git_reference_hints(ROOT, self.cut, [target], per_path_limit=0)
+        with self.assertRaises(ValueError):
+            M.exact_git_reference_hints(ROOT, self.cut, [target], per_path_limit=257)

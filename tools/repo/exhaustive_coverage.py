@@ -724,6 +724,132 @@ def static_python_import_frontier(repo: Path, source: str,
     }
 
 
+
+def exact_git_reference_hints(
+    repo: Path, source: str, paths: list[str], *, per_path_limit: int = 48,
+) -> dict:
+    """Bounded textual cross-format references from immutable Git source only.
+
+    All hits are lexical observations, NOT fully resolved consumers. Unknown
+    or omitted references cannot justify move/retirement/proof acceptance.
+    """
+    exact_commit(repo, source)
+    if not paths or len(paths) > 8 or not 1 <= per_path_limit <= 256:
+        raise ValueError("reference query requires 1..8 paths, limit 1..256")
+    source_files = tree(repo, source)
+    by_path = {item["path"]: item for item in source_files}
+    basename_count = collections.Counter(item["path"].rsplit("/", 1)[-1]
+                                         for item in source_files)
+    results = []
+    for target in paths:
+        if (not target or target.startswith("/") or "\\" in target
+                or any(piece in ("", ".", "..") for piece in target.split("/"))):
+            raise ValueError("reference path must be canonical relative Git path")
+        source_item = by_path.get(target)
+        if source_item is None:
+            results.append({
+                "queryPath": target, "standing": "NOT_IN_EXACT_GIT_SOURCE",
+                "textualHits": [], "totalTextualHits": 0,
+                "runtimeConsumerStanding": "UNKNOWN",
+                "zeroTextualHitsProvesNoConsumers": False})
+            continue
+        if not source_item["sourceIdentity"].startswith(("100644:blob:", "100755:blob:")):
+            results.append({
+                "queryPath": target, "standing": "NONREGULAR_SOURCE_CARRIER",
+                "sourceIdentity": source_item["sourceIdentity"],
+                "textualHits": [], "totalTextualHits": 0,
+                "runtimeConsumerStanding": "UNKNOWN",
+                "zeroTextualHitsProvesNoConsumers": False})
+            continue
+        base = target.rsplit("/", 1)[-1]
+        suffix = "/".join(target.split("/")[-2:])
+        patterns = [target]
+        if suffix != target:
+            patterns.append(suffix)
+        basename_unique = basename_count[base] == 1
+        if basename_unique and len(base) >= 9:
+            patterns.append(base)
+        args = [
+            "git", "--no-replace-objects", "-C", str(repo),
+            "grep", "--null", "-n", "-I", "-F",
+        ]
+        for pattern in dict.fromkeys(patterns):
+            args.extend(("-e", pattern))
+        args.extend((source, "--"))
+        proc = subprocess.run(args, capture_output=True)
+        if proc.returncode not in (0, 1):
+            raise ValueError("source Git grep failed; cannot project incomplete references")
+        if len(proc.stdout) > 8 * 1024 * 1024:
+            raise ValueError("reference scan exceeds bounded Git output budget")
+        matches = []
+        for line in proc.stdout.split(b"\n"):
+            if not line:
+                continue
+            columns = line.split(b"\0", 2)
+            if len(columns) != 3:
+                raise ValueError("unexpected Git null-delimited lexical witness")
+            locus = columns[0].decode("utf-8", "surrogateescape")
+            if not locus.startswith(source + ":"):
+                raise ValueError("Git grep witness from a different SourceCut")
+            consumer_path = locus[len(source) + 1:]
+            if consumer_path not in by_path:
+                raise ValueError("reference witness outside exact Git source tree")
+            try:
+                line_no = int(columns[1].decode("ascii"))
+            except ValueError as exc:
+                raise ValueError("invalid source line reference") from exc
+            if line_no <= 0:
+                raise ValueError("nonpositive source witness line")
+            content = columns[2].decode("utf-8", "replace")
+            matched = next((p for p in patterns if p in content), None)
+            if matched is None:
+                raise ValueError("Git grep result does not contain query token")
+            if consumer_path == target:
+                continue
+            carrier_role = (
+                "PYTHON_SOURCE_LITERAL_REFERENCE" if consumer_path.endswith(".py")
+                else "SHELL_SOURCE_LITERAL_REFERENCE" if consumer_path.endswith(".sh")
+                else "JSON_DECLARATION_LITERAL_REFERENCE" if consumer_path.endswith(".json")
+                else "DOCUMENT_LITERAL_REFERENCE" if consumer_path.endswith(".md")
+                else "OTHER_TEXT_CARRIER_LITERAL_REFERENCE")
+            matches.append({
+                "candidateConsumerPath": consumer_path,
+                "candidateConsumerCarrierRole": carrier_role,
+                "consumerGitIdentity": by_path[consumer_path]["sourceIdentity"],
+                "sourceLine": line_no,
+                "literalPattern": matched,
+                "patternStanding": (
+                    "EXACT_RELATIVE_PATH_LITERAL" if matched == target
+                    else "TWO_COMPONENT_PATH_LITERAL" if matched == suffix
+                    else "UNIQUE_BASENAME_LITERAL"),
+                "observedLineExcerpt": content[:210],
+                "semanticConsumerStanding": "UNKNOWN",
+                "installedConsumerStanding": "UNKNOWN",
+            })
+        matches.sort(key=lambda r: (r["candidateConsumerPath"], r["sourceLine"]))
+        results.append({
+            "queryPath": target,
+            "standing": "EXACT_GIT_FILE_LEXICAL_REFERENCE_SCAN",
+            "sourceIdentity": source_item["sourceIdentity"],
+            "basenameUniqueInSource": basename_unique,
+            "patternsUsed": list(dict.fromkeys(patterns)),
+            "totalTextualHits": len(matches),
+            "truncated": len(matches) > per_path_limit,
+            "textualHits": matches[:per_path_limit],
+            "runtimeConsumerStanding": "UNKNOWN",
+            "zeroTextualHitsProvesNoConsumers": False,
+        })
+    return {
+        "kind": "ordivon.phase1.cross-format-lexical-reference-candidates",
+        "sourceCut": source,
+        "sourceTree": git(repo, "rev-parse", f"{source}^{{tree}}").decode().strip(),
+        "truthBoundary": "EXACT_GIT_TEXT_REFERENCE_ONLY; import/use/installed/semantic resolution UNKNOWN",
+        "proofReuseAdmissible": False,
+        "pathCount": len(results),
+        "queries": results,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-cut", required=True)
@@ -731,6 +857,10 @@ def main() -> int:
     parser.add_argument("--repo", type=Path, default=Path.cwd())
     parser.add_argument("--summary", action="store_true")
     parser.add_argument("--only-problems", action="store_true")
+    parser.add_argument("--reference-path", action="append", default=[],
+                        help="cross-format Git textual reference witness for exact file path")
+    parser.add_argument("--reference-limit", type=int, default=48,
+                        help="maximum witness lines per source path, 1..256")
     parser.add_argument("--static-python-consumers", action="store_true",
                         help="exact Git AST import candidate references; not live consumers")
     parser.add_argument("--imports-prefix",
@@ -744,6 +874,18 @@ def main() -> int:
     parser.add_argument("--lookup-path", action="append", default=[],
                         help="small exact-Git source/path query; repeat for multiple files")
     args = parser.parse_args()
+    if args.reference_path:
+        if (args.lookup_path or args.static_python_consumers or args.live_cells
+                or args.proposal_cut or args.use_proposal_cells or args.only_problems
+                or args.imports_prefix or args.summary):
+            parser.error("reference witness mode is mutually exclusive with projection modes")
+        result = exact_git_reference_hints(
+            args.repo, args.source_cut, args.reference_path,
+            per_path_limit=args.reference_limit)
+        print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2))
+        return 0
+    if args.reference_limit != 48:
+        parser.error("reference-limit requires reference-path")
     if args.imports_prefix and not args.static_python_consumers:
         parser.error("imports-prefix requires static-python-consumers")
     if args.lookup_path and args.static_python_consumers:
