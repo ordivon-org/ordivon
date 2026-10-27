@@ -40,6 +40,24 @@ class LinuxElfReleaseTests(unittest.TestCase):
   self.require()
   with tempfile.TemporaryDirectory() as d:
    r=Path(d);c=contract(FIXTURE,marker='ACTUAL_MARKER');c['runtime']['stdoutContains']=['NEVER_EMITTED'];v=M.verify_linux_elf(FIXTURE,self.write_contract(r,c),r/'e');self.assertEqual(v['status'],'FAIL');self.assertEqual(v['elfStructure']['status'],'PASS');self.assertIn('sandbox runtime stdout missing marker: NEVER_EMITTED',v['failures'])
+ def test_symlink_release_inspects_exact_target_elf_bytes(self):
+  self.require()
+  with tempfile.TemporaryDirectory() as d:
+   r=Path(d);link=r/'link-to-release';link.symlink_to(FIXTURE)
+   c=contract(link)
+   v=M.verify_linux_elf(link,self.write_contract(r,c),r/'e')
+   self.assertEqual(v['fileInspection']['status'],'PASS',v)
+   self.assertEqual(v['elfStructure']['status'],'PASS',v)
+   self.assertEqual(v['status'],'PASS',v)
+   self.assertIn('ELF 64-bit LSB',v['fileInspection']['description'])
+ def test_symlink_to_non_elf_bytes_still_fails_closed(self):
+  self.require()
+  with tempfile.TemporaryDirectory() as d:
+   r=Path(d);fake=r/'fake';fake.write_bytes(b'not an elf\\n');fake.chmod(0o755)
+   link=r/'link-to-fake';link.symlink_to(fake)
+   c=contract(link);v=M.verify_linux_elf(link,self.write_contract(r,c),r/'e')
+   self.assertEqual(v['status'],'FAIL',v)
+   self.assertNotEqual(v['fileInspection']['status'],'PASS',v)
  def test_non_elf_bytes_fail_closed(self):
   self.require()
   with tempfile.TemporaryDirectory() as d:
