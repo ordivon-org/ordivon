@@ -745,9 +745,19 @@ def inspect_owner_source_path(
     for prefix, name in owners:
         if source_path.startswith(prefix):
             row = registered.get((prefix, name))
+            # Native Git projection also exposes a special Repo-engineering
+            # path fallback that is not an [[owners]] registration. Do not
+            # promote that navigational fallback into an apparent verified
+            # physical Owner merely because it carries a useful CI task.
+            if row is None and (prefix, name) != ("tools/repo/", "tools/repo"):
+                raise ArchitectureDocsError("unregistered source owner projection")
             selected.append({
                 "name": name,
                 "root": prefix,
+                "registrationStanding": (
+                    "REGISTERED_VERIFICATION_OWNER_AT_SOURCECUT" if row
+                    else "REPO_MECHANICS_FALLBACK_NOT_REGISTERED"
+                ),
                 "verifyTask": row["verify_task"] if row else "repo:ci",
                 "queueVerifyTask": (
                     row.get("queue_verify_task", row["verify_task"]) if row
