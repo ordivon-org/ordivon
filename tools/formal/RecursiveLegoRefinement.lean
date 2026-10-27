@@ -121,4 +121,44 @@ theorem incompatible_components_are_not_composable :
     have hf : y = false := hS
     simp [ht] at hf
 
+
+-- Task-local refinement of R2.1 impact obligations: a SOURCE reference
+-- provider -> consumer is directed and must not be inserted into the
+-- undirected business/reachability closure. This proof is over DECLARED
+-- relations only; completeness of dynamic and installed dependencies is not
+-- presumed and must be established separately before evidence reuse.
+def qualifiedSourceImpact {α : Type}
+    (businessReach sourceReads : α → α → Prop)
+    (changed : α → Prop) (target : α) : Prop :=
+  (∃ source, changed source ∧ businessReach source target) ∨
+  (∃ source, changed source ∧ sourceReads source target)
+
+theorem directed_source_requalification_and_no_reverse
+    {α : Type} (businessReach sourceReads : α → α → Prop)
+    (provider consumer : α)
+    (hForward : sourceReads provider consumer)
+    (hNoReverseBusiness : ¬ businessReach consumer provider)
+    (hNoReverseSource : ¬ sourceReads consumer provider) :
+    qualifiedSourceImpact businessReach sourceReads
+      (fun node => node = provider) consumer ∧
+    ¬ qualifiedSourceImpact businessReach sourceReads
+      (fun node => node = consumer) provider := by
+  constructor
+  · right
+    exact ⟨provider, rfl, hForward⟩
+  · intro h
+    rcases h with ⟨source, hs, hb⟩ | ⟨source, hs, hr⟩
+    · subst source
+      exact hNoReverseBusiness hb
+    · subst source
+      exact hNoReverseSource hr
+
+-- Countermodel: a forward reference alone cannot establish absence of a
+-- reverse effect if undeclared business or source edges are possible.
+theorem forward_source_evidence_alone_cannot_prove_noninterference :
+    ¬ (∀ relation : Bool → Bool → Prop,
+        relation false true → ¬ relation true false) := by
+  intro h
+  exact (h (fun _ _ => True) trivial) trivial
+
 end OrdivonR21
