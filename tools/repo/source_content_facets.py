@@ -254,7 +254,7 @@ def compile_projection(repo: Path, cut: str) -> dict:
                 "WITNESS_MARKER_MISSING")
         prefix=witness["sourcePrefix"]
         source_count=sum(x["path"].startswith(prefix) for x in rows)
-        other=[x["proposedName"] for x in specific if
+        other=[x["candidateName"] for x in specific if
                x["sourcePrefix"]==prefix]
         peer_summary.append({
            "sourcePrefix":prefix,
