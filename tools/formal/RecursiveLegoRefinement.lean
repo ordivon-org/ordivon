@@ -122,3 +122,68 @@ theorem incompatible_components_are_not_composable :
     simp [ht] at hf
 
 end OrdivonR21
+
+-- Incremental reasoning requires a CLOSED actual dependency scope, not an
+-- Owner label, source-path lookup, unchanged Git blob, or a caller's guess.
+-- This is a conditional frame rule for pure, deterministic observations.
+-- Real effectful/non-deterministic systems need a separately proved trace
+-- and environment refinement satisfying the explicit extensional premise.
+namespace OrdivonR21
+
+def DependencyClosed {δ : Type}
+    (declared actual : δ → Prop) : Prop :=
+  ∀ d, actual d → declared d
+
+def StableWithin {δ β : Type}
+    (declared : δ → Prop) (before after : δ → β) : Prop :=
+  ∀ d, declared d → before d = after d
+
+def DependsOnlyOn {δ β γ : Type}
+    (actual : δ → Prop) (observable : (δ → β) → γ) : Prop :=
+  ∀ before after,
+    (∀ d, actual d → before d = after d) →
+    observable before = observable after
+
+-- A sound frame conclusion is available ONLY after independently justifying
+-- each premise, including the closure and the implementation's dependency
+-- extensionality. No Agent or Repo Owner identity occurs in the theorem.
+theorem closed_dependency_frame {δ β γ : Type}
+    (declared actual : δ → Prop)
+    (before after : δ → β) (observable : (δ → β) → γ)
+    (hClosed : DependencyClosed declared actual)
+    (hStable : StableWithin declared before after)
+    (hObserves : DependsOnlyOn actual observable) :
+    observable before = observable after := by
+  apply hObserves before after
+  intro d hActual
+  exact hStable d (hClosed d hActual)
+
+-- Counterexample: both source states coincide at EVERY declared dependency,
+-- but a hidden (real) dependency differs, and an actual observable changes.
+-- Therefore "declared scope unchanged" alone cannot justify a reuse PASS.
+theorem unlisted_dependency_breaks_frame :
+    ∃ (declared actual : Bool → Prop)
+      (before after : Bool → Bool)
+      (observable : (Bool → Bool) → Bool),
+      StableWithin declared before after ∧
+      DependsOnlyOn actual observable ∧
+      ¬ DependencyClosed declared actual ∧
+      observable before ≠ observable after := by
+  refine ⟨(fun d => d = false), (fun d => d = true),
+    (fun _ => false), (fun d => d),
+    (fun values => values true), ?_, ?_, ?_, ?_⟩
+  · intro d hd
+    cases d with
+    | false => rfl
+    | true => cases hd
+  · intro old new hSame
+    exact hSame true rfl
+  · intro hClosed
+    have hImpossible : true = false := hClosed true rfl
+    cases hImpossible
+  · decide
+
+end OrdivonR21
+
+#print axioms OrdivonR21.closed_dependency_frame
+#print axioms OrdivonR21.unlisted_dependency_breaks_frame
