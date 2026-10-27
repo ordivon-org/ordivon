@@ -1,0 +1,275 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-composition-r1",
+    "purpose": "Bind the source-implemented task-local LEGO contracts and verifier/consumer seams to the existing Git-backed graph without turning Composition into another execution, proof or domain authority.",
+    "sourceEvidence": [
+      "README.md",
+      "src/ordivon_composition/__init__.py",
+      "src/ordivon_composition/cognitive_circuit_r1.py",
+      "src/ordivon_composition/interface_contract_r2.py",
+      "src/ordivon_composition/verification_obligation_r1.py",
+      "src/ordivon_composition/successor_contract_r1.py",
+      "tests/test_cognitive_circuit_r1.py",
+      "tests/test_interface_contract_core.py",
+      "tests/test_verification_obligation_r1.py",
+      "tests/test_successor_contract_r1.py"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "C01",
+      "label": "CircuitManifestAndGateContract",
+      "kind": "typed_composition_contract",
+      "responsibility": "Validate and deterministically compile a bounded typed DAG manifest; qualify exact verifier-owned gate evidence without claiming domain completion.",
+      "authority": "Composition source contract only, verifier/domain semantic authority remains outside",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "typed circuit manifest, node/gate edges and declared assumptions",
+        "gate-result report and immutable manifest digest"
+      ],
+      "outputs": [
+        "validated deterministic compiled manifest or CircuitContractError",
+        "mechanical gate standing distinct from semantic domain acceptance"
+      ],
+      "behavioralContract": "Manifest has unique typed references, excludes illegal dependency cycles and unresolved assumptions, and rejects mismatched or stale verifier-owned gate evidence; mechanical closure never invents successful domain effects.",
+      "acceptance": [
+        "Contract fixtures check deterministic compilation, stale result rejection, unknown assumptions and malformed/cyclic graph behavior."
+      ],
+      "evidence": [
+        "src/ordivon_composition/cognitive_circuit_r1.py",
+        "tests/test_cognitive_circuit_r1.py"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "domain truth or consumer acceptance",
+        "generic verifier executor or planner",
+        "Runtime/Host deployment/execution authority"
+      ],
+      "consumerBindings": [
+        {
+          "path": "meta/next/scripts/research_artifact_gate_r3.py",
+          "standing": "STATIC_IMPORTED_INTERFACE_NOT_INSTALLED"
+        }
+      ],
+      "formalObligations": [
+        "Nonvacuous contract satisfaction and full model-to-real-execution refinement are not established by DAG validity."
+      ],
+      "qualification": "SOURCE_CONTRACT_IMPLEMENTED; MODEL/INSTALLED/DOMAIN acceptance not inferred"
+    },
+    {
+      "id": "C02",
+      "label": "InterfaceCompatibilityAndAdmissibility",
+      "kind": "consumer_contract",
+      "responsibility": "Evaluate explicitly declared interface compatibility, provenance and evidence currentness independently of provider execution.",
+      "authority": "Composition source contract only, verifier/domain semantic authority remains outside",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "typed provider/consumer interface declaration and mapping",
+        "effect/authority scopes and qualified evidence observation"
+      ],
+      "outputs": [
+        "compatibility, admission and currentness standing with grounded reasons"
+      ],
+      "behavioralContract": "Output distinguishes compatibility, evidence sufficiency and currentness; missing, unknown or stale source does not become proof of actual deployment compatibility.",
+      "acceptance": [
+        "Negative tests reject circuit binding mismatch and ambiguous/stale evidence while preserving distinct compatibility/currentness status."
+      ],
+      "evidence": [
+        "src/ordivon_composition/interface_contract_r2.py",
+        "tests/test_interface_contract_core.py"
+      ],
+      "dependencies": [
+        "C01"
+      ],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "domain truth or consumer acceptance",
+        "generic verifier executor or planner",
+        "Runtime/Host deployment/execution authority"
+      ],
+      "consumerBindings": [
+        {
+          "path": "meta/next/tests/test_interface_contract_r2.py",
+          "operation": "evaluate_interface/currentness_standing via native tests",
+          "standing": "SOURCE_IMPORTED_TEST_CONSUMER_NOT_INSTALLED"
+        }
+      ],
+      "formalObligations": [
+        "Source-verified compatibility result is not assume-guarantee fulfillment by actual Runtime/Host consumers."
+      ],
+      "qualification": "SOURCE_CONTRACT_IMPLEMENTED; MODEL/INSTALLED/DOMAIN acceptance not inferred"
+    },
+    {
+      "id": "C03",
+      "label": "GateProofObligationProjection",
+      "kind": "proof_obligation_projection",
+      "responsibility": "Project declared Composition gates and accepted exact verifier bindings into deterministic task-local proof obligations without discovering or executing verifiers.",
+      "authority": "Composition source contract only, verifier/domain semantic authority remains outside",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "validated compiled manifest, gate requirements and verifier binding declarations"
+      ],
+      "outputs": [
+        "typed gate-specific obligations",
+        "bounded exact verifier bindings or qualified contract errors"
+      ],
+      "behavioralContract": "Obligation identities and source commitments preserve exact manifest/gate scope; a caller cannot claim an arbitrary matching verifier or unsupported goal as accepted evidence.",
+      "acceptance": [
+        "Verification obligation suites reject cross-circuit bindings, malformed identities and unauthorized inferred completeness."
+      ],
+      "evidence": [
+        "src/ordivon_composition/verification_obligation_r1.py",
+        "tests/test_verification_obligation_r1.py"
+      ],
+      "dependencies": [
+        "C01"
+      ],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "domain truth or consumer acceptance",
+        "generic verifier executor or planner",
+        "Runtime/Host deployment/execution authority"
+      ],
+      "consumerBindings": [
+        {
+          "path": "meta/next/scripts/pacti_timeout_obligation_r1.py",
+          "standing": "STATIC_IMPORTED_INTERFACE_NOT_INSTALLED"
+        }
+      ],
+      "formalObligations": [
+        "Source-to-verifier correctness, checker soundness and psi=>phi entailment remain proof obligations."
+      ],
+      "qualification": "SOURCE_CONTRACT_IMPLEMENTED; MODEL/INSTALLED/DOMAIN acceptance not inferred"
+    },
+    {
+      "id": "C04",
+      "label": "SelectiveProofImpact",
+      "kind": "incremental_dependency_impact",
+      "responsibility": "Compare exact bounded SourceCut/contract/proof/assumption changes and propagate typed proof impact while preserving UNKNOWN and conditional reuse standing.",
+      "authority": "Composition source contract only, verifier/domain semantic authority remains outside",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "prior/current scoped graph, proof dependencies, source deltas and external assumption inputs"
+      ],
+      "outputs": [
+        "RECHECK_REQUIRED, UNKNOWN, or non-authoritative REUSE_CANDIDATE by affected gate/obligation",
+        "unindexed and relation-scope warnings"
+      ],
+      "behavioralContract": "Real changed paths/declared negative dependencies must not disappear from effective inputs; cyclic/unknown dependencies fail closed and candidate reuse is never final proof admissibility.",
+      "acceptance": [
+        "Existing graph/impact tests check unindexed source, dynamic edges, relation membership, cycles and independent impact oracle."
+      ],
+      "evidence": [
+        "src/ordivon_composition/verification_obligation_r1.py",
+        "tests/test_verification_obligation_r1.py"
+      ],
+      "dependencies": [
+        "C01",
+        "C03"
+      ],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "domain truth or consumer acceptance",
+        "generic verifier executor or planner",
+        "Runtime/Host deployment/execution authority"
+      ],
+      "consumerBindings": [
+        {
+          "path": "packages/composition/tests/test_verification_obligation_r1.py",
+          "operation": "select_impacted_obligations local test and CLI",
+          "standing": "SOURCE_TEST_AND_CLI_CONSUMER_EXTERNAL_UNKNOWN"
+        }
+      ],
+      "formalObligations": [
+        "Actual dynamic consumers, installation/environment closure and downstream proof acceptance remain UNKNOWN."
+      ],
+      "qualification": "SOURCE_CONTRACT_IMPLEMENTED; MODEL/INSTALLED/DOMAIN acceptance not inferred"
+    },
+    {
+      "id": "C05",
+      "label": "SuccessorGateAndReplacementContract",
+      "kind": "replacement_gate_contract",
+      "responsibility": "Bind exact predecessor/candidate transitions to verifier-owned required gates without claiming global optimality or authorization to promote.",
+      "authority": "Composition source contract only, verifier/domain semantic authority remains outside",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "predecessor identity and candidate identity",
+        "declared change targets, required verifier gates and exact observations"
+      ],
+      "outputs": [
+        "bounded successor contract",
+        "OPEN/CLOSED/FAILED mechanical succession standing"
+      ],
+      "behavioralContract": "Missing, unresolved, stale, self-referential or optional-only gates cannot vacuously satisfy a required successor transition.",
+      "acceptance": [
+        "Tests verify required positive gates, optional-only nonvacuity, self-reference and unknown/negative gate handling."
+      ],
+      "evidence": [
+        "src/ordivon_composition/successor_contract_r1.py",
+        "tests/test_successor_contract_r1.py"
+      ],
+      "dependencies": [
+        "C01"
+      ],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "domain truth or consumer acceptance",
+        "generic verifier executor or planner",
+        "Runtime/Host deployment/execution authority"
+      ],
+      "consumerBindings": [
+        {
+          "path": "packages/composition/tests/test_successor_contract_r1.py",
+          "operation": "compile_successor_contract/evaluate_successor_gates native tests",
+          "standing": "SOURCE_TEST_CONSUMER_DOMAIN_UNKNOWN"
+        }
+      ],
+      "formalObligations": [
+        "Candidate implementation contextual equivalence and external domain acceptance need separate consumer-owned evidence."
+      ],
+      "qualification": "SOURCE_CONTRACT_IMPLEMENTED; MODEL/INSTALLED/DOMAIN acceptance not inferred"
+    }
+  ],
+  "edges": [
+    {
+      "from": "C01",
+      "to": "C02",
+      "type": "EVIDENCE",
+      "label": "exact circuit digest/manifest supplies input for interface checks"
+    },
+    {
+      "from": "C01",
+      "to": "C03",
+      "type": "DATA",
+      "label": "validated manifest/gates generate typed obligations"
+    },
+    {
+      "from": "C01",
+      "to": "C04",
+      "type": "EVIDENCE",
+      "label": "source-bound manifest and exact gate scope support impact analysis"
+    },
+    {
+      "from": "C03",
+      "to": "C04",
+      "type": "DATA",
+      "label": "proof obligation references and dependencies support invalidation"
+    },
+    {
+      "from": "C01",
+      "to": "C05",
+      "type": "EVIDENCE",
+      "label": "exact predecessor/candidate circuit gates require bound evidence"
+    }
+  ],
+  "slices": [],
+  "knownGaps": [
+    "Confirmed imports from meta/next at Git SourceCut; runtime installation and external consumers not attested.",
+    "Refinement from formal verifier target psi to domain target phi not inferred from source-only contract projection.",
+    "Cross-owner dynamic calls and provider native effects remain UNKNOWN outside these local source contracts."
+  ]
+}

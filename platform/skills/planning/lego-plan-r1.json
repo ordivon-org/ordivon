@@ -1,0 +1,453 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-skills-agent-skill-bridge-r1",
+    "purpose": "Source-grounded first recursive R2.1 responsibilities for the existing read-only Skills bridge, without making its catalog a universal LEGO Registry or assuming runtime installation.",
+    "sourceEvidence": [
+      "README.md",
+      "src/ordivon_skills/catalog.py",
+      "src/ordivon_skills/scanner.py",
+      "src/ordivon_skills/sep2640.py",
+      "scripts/skills_mcp.py",
+      "tests/test_skill_catalog_r2.py"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "SK00",
+      "label": "ReadOnlySkillBridge",
+      "kind": "composition",
+      "responsibility": "Expose scoped Skill metadata, exact binding, and revision-fenced advisory resource reads over the existing MCP/SEP-2640 protocols; never run or authorize a Skill.",
+      "authority": "Skills bridge; MCP SDK owns transport protocol",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "MCP skill discovery/resolve/read requests",
+        "configured SkillSource set and caller context"
+      ],
+      "outputs": [
+        "read-only metadata, exact Skill binding, or bounded advisory resource projection"
+      ],
+      "behavioralContract": "Only owner-admitted and context-visible Skills are exposed; requests cannot install, mutate, authorize, or execute a Skill; this composition does not guarantee a Gateway Skills route.",
+      "acceptance": [
+        "Native MCP Skills methods delegate discovery, resolution, and read to the scoped catalog; absent deployment/configuration remains UNKNOWN.",
+        "No Skill contents or declaration confers Runtime Tool execution authority."
+      ],
+      "evidence": [
+        "README.md",
+        "scripts/skills_mcp.py",
+        "tests/test_skills_mcp_r2.py"
+      ],
+      "actualConsumers": [
+        {
+          "path": "scripts/skills_mcp.py",
+          "symbol": "build_server",
+          "standing": "SOURCE_STATIC_FUNCTION; EXTERNAL_CLIENT_SOURCE_UNRESOLVED"
+        }
+      ],
+      "mustNotOwn": [
+        "Agent scheduler",
+        "Skill execution authority",
+        "Gateway Skills route configuration",
+        "new universal Skill registry"
+      ],
+      "dependencies": [
+        "SK01",
+        "SK02",
+        "SK03",
+        "SK04",
+        "SK06"
+      ],
+      "formalObligations": [
+        "A chosen MCP request cannot mutate the catalog or grant Runtime execution authority.",
+        "Qualify active installed service and consumer source match separately from repository contract."
+      ]
+    },
+    {
+      "id": "SK01",
+      "label": "SourceQualifiedSkillInventory",
+      "kind": "representation",
+      "responsibility": "Represent filesystem SkillSource inventories as provenance-bound SkillRecord and source health facts without pretending the inventory is installed Skill truth.",
+      "authority": "Skills source catalog and declared source policy",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "SkillSource locations and trust policy",
+        "filesystem Skill packages"
+      ],
+      "outputs": [
+        "SkillRecord inventory",
+        "source scan health",
+        "catalog revision"
+      ],
+      "behavioralContract": "Inventory admission requires parsed Skill metadata and package-safety observation; source-relative identities and revisions derive from scanned bytes; untrusted/quarantined packages must not silently enter an admitted view.",
+      "acceptance": [
+        "The source catalog records exact source/scope and package identity.",
+        "Quarantined and malformed Skills do not enter the qualified view."
+      ],
+      "evidence": [
+        "src/ordivon_skills/catalog.py",
+        "src/ordivon_skills/config.py",
+        "src/ordivon_skills/model.py",
+        "tests/test_skill_catalog_r2.py"
+      ],
+      "actualConsumers": [
+        {
+          "path": "scripts/skills_mcp.py",
+          "symbol": "CatalogProvider",
+          "standing": "SOURCE_STATIC_CALL"
+        }
+      ],
+      "mustNotOwn": [
+        "installed environment currentness",
+        "Skill semantic correctness",
+        "Runtime execution"
+      ],
+      "dependencies": [
+        "SK05"
+      ],
+      "formalObligations": [
+        "A source/package collision must not silently impersonate a different Skill identity.",
+        "A static file scan is not execution, deployment or safe behavior proof."
+      ]
+    },
+    {
+      "id": "SK02",
+      "label": "ContextScopedSkillDiscovery",
+      "kind": "projection",
+      "responsibility": "Expose a context-scoped, precedence-qualified Skill listing and lexical-search projection without installing, selecting, or executing a Skill.",
+      "authority": "Skills SkillCatalog.view/effective/search",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "workspace/agent context",
+        "implicit invocation policy",
+        "lexical search and optional source/scope filters"
+      ],
+      "outputs": [
+        "visible Skill metadata and context snapshotRevision",
+        "ranked search candidates"
+      ],
+      "behavioralContract": "Implicit list/search omit blocked, quarantined, untrusted or context-inapplicable Skills; duplicate names obey deterministic source/scope precedence; discovery does not confer effect authority.",
+      "acceptance": [
+        "A Skill hidden by context or quarantine does not appear in implicit discovery.",
+        "Search results remain suggestions, not provider admission."
+      ],
+      "evidence": [
+        "src/ordivon_skills/catalog.py",
+        "scripts/skills_mcp.py",
+        "tests/test_skill_catalog_r2.py",
+        "tests/test_skills_mcp_r2.py"
+      ],
+      "actualConsumers": [
+        {
+          "path": "scripts/skills_mcp.py",
+          "symbol": "skills_list",
+          "standing": "SOURCE_STATIC_CALL"
+        },
+        {
+          "path": "scripts/skills_mcp.py",
+          "symbol": "skills_search",
+          "standing": "SOURCE_STATIC_CALL"
+        }
+      ],
+      "mustNotOwn": [
+        "ranking semantic truth",
+        "Skill execution"
+      ],
+      "dependencies": [
+        "SK01"
+      ],
+      "formalObligations": [
+        "Context and invocation mode cannot be silently dropped from discovery.",
+        "Catalog snapshot identity must cover the effective context-visible record set."
+      ]
+    },
+    {
+      "id": "SK03",
+      "label": "ExactSkillResolution",
+      "kind": "identity",
+      "responsibility": "Resolve an explicit Skill identity or a friendly name to one stable effective Skill binding with deterministic precedence and fail-closed snapshot fencing.",
+      "authority": "Skills SkillCatalog.resolve",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "Skill ref or name",
+        "workspace context",
+        "invocation mode",
+        "optional expectedSnapshotRevision"
+      ],
+      "outputs": [
+        "SkillResolution with selected SkillRecord and snapshotRevision",
+        "typed failure"
+      ],
+      "behavioralContract": "Stale snapshot, blocked/quarantined/invisible/unfound records cannot be returned as a successful matching binding; duplicate names use deterministic source precedence.",
+      "acceptance": [
+        "A stale expected snapshot is rejected.",
+        "A canonical Skill ID binds to its exact visible source, not an unrelated same-name Skill."
+      ],
+      "evidence": [
+        "src/ordivon_skills/catalog.py",
+        "scripts/skills_mcp.py",
+        "tests/test_skill_catalog_r2.py"
+      ],
+      "actualConsumers": [
+        {
+          "path": "scripts/skills_mcp.py",
+          "symbol": "skills_resolve",
+          "standing": "SOURCE_STATIC_CALL"
+        }
+      ],
+      "mustNotOwn": [
+        "implicit model selection authority",
+        "Skill execution",
+        "install"
+      ],
+      "dependencies": [
+        "SK01"
+      ],
+      "formalObligations": [
+        "A successful returned binding satisfies scope/trust and expected snapshot assumptions.",
+        "Resolved identity is distinct from execution permission."
+      ]
+    },
+    {
+      "id": "SK04",
+      "label": "RevisionFencedAdvisoryRead",
+      "kind": "evidence_binding",
+      "responsibility": "Read a specified Skill resource under exact package/instruction/snapshot checks and deliver an advisory projection with bounded UTF-8 reads; no script execution.",
+      "authority": "Skills SkillCatalog.read_text",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "Skill ID and relative path",
+        "expected instruction/package/snapshot revisions",
+        "offset and max bytes"
+      ],
+      "outputs": [
+        "SkillReadResult, hashes, projection and next offset",
+        "typed rejection"
+      ],
+      "behavioralContract": "Reject path escape, unsupported media, changed package or instruction identity and stale snapshot; do not elevate Skill text to control-plane authority; file reads remain read-only.",
+      "acceptance": [
+        "A changed SKILL.md/package is rejected even if a previously resolved SkillRef exists.",
+        "Unsafe control-plane/self-routing instructions do not receive implicit authority from a successful read."
+      ],
+      "evidence": [
+        "src/ordivon_skills/catalog.py",
+        "src/ordivon_skills/scanner.py",
+        "scripts/skills_mcp.py",
+        "tests/test_skill_catalog_r2.py"
+      ],
+      "actualConsumers": [
+        {
+          "path": "scripts/skills_mcp.py",
+          "symbol": "skills_read",
+          "standing": "SOURCE_STATIC_CALL"
+        }
+      ],
+      "mustNotOwn": [
+        "executing SKILL.md code",
+        "new Tool grants",
+        "filesystem mutation"
+      ],
+      "dependencies": [
+        "SK01",
+        "SK05"
+      ],
+      "formalObligations": [
+        "Snapshot/bytes fences must reject stale package and hostile resource paths.",
+        "Model-facing projection is not a proof of harmless meaning or authority."
+      ]
+    },
+    {
+      "id": "SK05",
+      "label": "SkillPackageRiskAndEligibility",
+      "kind": "policy",
+      "responsibility": "Assess package hazards and declared environment eligibility before Skill implicit discovery while keeping advisory text separate from execution authority.",
+      "authority": "Skills package scanner and eligibility adapter",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "Skill package bytes/metadata",
+        "declared requirements and context eligibility policy"
+      ],
+      "outputs": [
+        "ScanResult quarantine/warn/risk tags",
+        "eligibility observation and advisory projection"
+      ],
+      "behavioralContract": "Credential-bearing packages fail closed from admitted discovery; risky instructions cannot self-authorize implicit invocation; explicit user selection and audit have separate scoped rules.",
+      "acceptance": [
+        "Credential material is quarantined at the native scanner boundary.",
+        "Implicit discovery remains distinct from explicit Skill selection."
+      ],
+      "evidence": [
+        "src/ordivon_skills/scanner.py",
+        "src/ordivon_skills/eligibility.py",
+        "src/ordivon_skills/catalog.py",
+        "tests/test_skill_catalog_r2.py"
+      ],
+      "actualConsumers": [
+        {
+          "path": "src/ordivon_skills/catalog.py",
+          "symbol": "_scan_source",
+          "standing": "SOURCE_STATIC_CALL"
+        }
+      ],
+      "mustNotOwn": [
+        "sandbox or execution enforcement",
+        "formal proof that all malicious instructions are detected"
+      ],
+      "dependencies": [],
+      "formalObligations": [
+        "Quarantine cannot be weakened through a metadata or routing bypass.",
+        "Scanner rejection coverage is bounded, not a universal prompt-injection proof."
+      ]
+    },
+    {
+      "id": "SK06",
+      "label": "StandardsBoundResourceManifest",
+      "kind": "protocol_adapter",
+      "responsibility": "Project an eligible Skill into SEP-2640-compatible resource metadata and exact advertised-bytes retrieval while deferring MCP transport to its official SDK.",
+      "authority": "Skills SEP-2640 adapter; Agent Skills/MCP standards external",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "SkillRecord and package resource tree",
+        "advertised resource URI"
+      ],
+      "outputs": [
+        "SEP-2640 Skill manifest with resource sizes/digests",
+        "manifest-qualified resource bytes"
+      ],
+      "behavioralContract": "Advertised resources must be regular, package-contained and bounded; reads reject unadvertised, relocated or changed resource bytes; scoped project/workspace Skills cannot be read without matching context.",
+      "acceptance": [
+        "A symlink or resource absent from the manifest fails the native standard resource boundary.",
+        "A changed resource cannot be delivered as an unchanged advertised digest."
+      ],
+      "evidence": [
+        "src/ordivon_skills/sep2640.py",
+        "scripts/skills_mcp.py",
+        "tests/test_skills_sep2640.py"
+      ],
+      "actualConsumers": [
+        {
+          "path": "scripts/skills_mcp.py",
+          "symbol": "standard_skill_resource",
+          "standing": "SOURCE_STATIC_CALL"
+        }
+      ],
+      "mustNotOwn": [
+        "a new MCP server runtime",
+        "standards definitions",
+        "execution"
+      ],
+      "dependencies": [
+        "SK01"
+      ],
+      "formalObligations": [
+        "No manifest-qualified read may resolve outside its admitted Skill package.",
+        "Real external consumer availability and installed currentness remain UNKNOWN."
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "SK05",
+      "to": "SK01",
+      "type": "POLICY"
+    },
+    {
+      "from": "SK01",
+      "to": "SK02",
+      "type": "DEPENDENCY"
+    },
+    {
+      "from": "SK01",
+      "to": "SK03",
+      "type": "DEPENDENCY"
+    },
+    {
+      "from": "SK01",
+      "to": "SK04",
+      "type": "DEPENDENCY"
+    },
+    {
+      "from": "SK01",
+      "to": "SK06",
+      "type": "DEPENDENCY"
+    },
+    {
+      "from": "SK05",
+      "to": "SK04",
+      "type": "POLICY"
+    },
+    {
+      "from": "SK02",
+      "to": "SK00",
+      "type": "COMPOSITION"
+    },
+    {
+      "from": "SK03",
+      "to": "SK00",
+      "type": "COMPOSITION"
+    },
+    {
+      "from": "SK04",
+      "to": "SK00",
+      "type": "COMPOSITION"
+    },
+    {
+      "from": "SK06",
+      "to": "SK00",
+      "type": "COMPOSITION"
+    },
+    {
+      "from": "SK01",
+      "to": "SK00",
+      "type": "COMPOSITION"
+    },
+    {
+      "from": "SK05",
+      "to": "SK00",
+      "type": "COMPOSITION"
+    }
+  ],
+  "slices": [
+    {
+      "id": "SK_DISCOVER",
+      "label": "SourceAndContextQualifiedDiscovery",
+      "nodeIds": [
+        "SK01",
+        "SK02",
+        "SK05"
+      ],
+      "status": "IMPLEMENTED",
+      "acceptance": [
+        "Repo native source and direct MCP consumers are identified; this is not proof of installed matching bytes."
+      ]
+    },
+    {
+      "id": "SK_ACTIVATE",
+      "label": "ExactResolutionAndAdvisoryRead",
+      "nodeIds": [
+        "SK03",
+        "SK04",
+        "SK06",
+        "SK00"
+      ],
+      "status": "IMPLEMENTED",
+      "acceptance": [
+        "Exact resolution, bounded resource read and SEP-2640 delivery are independently named and source-bound; external Gateway route qualification remains UNKNOWN."
+      ]
+    }
+  ],
+  "environmentQualification": {
+    "source": "SOURCE_CODE_INSPECTED",
+    "configured": "UNKNOWN",
+    "installed": "UNKNOWN_EXACT_SOURCE_MATCH",
+    "executed": "NATIVE_MCP_TOOLS_OBSERVED_BUT_NOT_BOUND_TO_THIS_GIT_CUT",
+    "formal": "MODEL_AND_IMPLEMENTATION_REFINEMENT_NOT_ESTABLISHED",
+    "currentness": "SOURCE_CUT_REQUIRED"
+  },
+  "nonClaims": [
+    "Nodes describe responsibility boundaries and source-qualified consumer entrypoints, not mathematical implementation proofs.",
+    "Actual tool-client routing, installed service executable, distributed caller identity and dynamic consumers remain separate owner facts.",
+    "SK00 is an existing MCP surface composition, not a new Registry, plugin system or runtime authority."
+  ]
+}

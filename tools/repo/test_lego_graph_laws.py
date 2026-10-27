@@ -681,6 +681,11 @@ def test_immutable_owner_plan_projection_ignores_local_git_blob_replace(
         path = tmp_path / name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes((ROOT / name).read_bytes())
+    # Include the immutable registration SourceCut in the synthetic repo:
+    # historical graph queries must not borrow the current process's plan list.
+    registry = tmp_path / "tools/repo/check_architecture_docs.py"
+    registry.parent.mkdir(parents=True, exist_ok=True)
+    registry.write_text(f"OWNER_LEGO_PLANS = ({owner_plan!r},)\n")
     git("add", ".")
     git("commit", "-qm", "immutable owner-plan source cut")
     source_cut = git("rev-parse", "HEAD")
@@ -696,6 +701,15 @@ def test_immutable_owner_plan_projection_ignores_local_git_blob_replace(
     assert git("cat-file", "blob", old_blob) != original.decode()
     actual = module.project_owner_lego_source_graph(tmp_path, source_revision=source_cut)
     assert actual == expected
+
+    # Registration is source-qualified: after a registered plan disappears,
+    # its absence must fail closed rather than being treated as an empty owner.
+    git("replace", "-d", old_blob)
+    git("rm", owner_plan)
+    git("commit", "-qm", "registered LEGO plan absent")
+    missing_cut = git("rev-parse", "HEAD")
+    with pytest.raises(module.ArchitectureDocsError, match="Owner plan absent/nonregular"):
+        module.project_owner_lego_source_graph(tmp_path, source_revision=missing_cut)
 
 
 def test_git_sourcecut_evidence_carriers_match_exact_git_tree(
@@ -1584,6 +1598,7 @@ def test_upstream_local_import_dependency_change_invalidates_with_stable_target_
     assert same["proofReuseAdmissible"] is False
 
 
+
 def test_phase1_web_cross_security_effect_and_http_lego_boundaries() -> None:
     """Verify source-semantic roles separately: policy ≠ effect ≠ HTTP rails."""
     plan = json.loads(
@@ -1631,3 +1646,50 @@ def test_phase1_web_cross_security_effect_and_http_lego_boundaries() -> None:
             assert (ROOT / witness["path"]).is_file()
     # This is a source-only claim: CI cannot elevate it to installed/domain PASS.
     assert all("DEPLOYED_CURRENTNESS_UNKNOWN" in n["sourceStanding"] for n in nodes.values())
+
+def test_skills_r21_semantic_node_consumer_source_falsification() -> None:
+    """A new Skills LEGO must point to a real source-defined consumer surface.
+
+    This is a source/symbol negative control, NOT dynamic client/installed proof.
+    """
+    import ast
+    import copy
+
+    plan = json.loads(
+        (ROOT / "platform/skills/planning/lego-plan-r1.json").read_text(encoding="utf-8")
+    )
+
+    def qualify_source_symbols(candidate: dict) -> None:
+        for node in candidate["nodes"]:
+            assert all(node[key] for key in (
+                "id", "responsibility", "inputs", "outputs",
+                "behavioralContract", "acceptance", "formalObligations",
+            ))
+            assert node["actualConsumers"]
+            for consumer in node["actualConsumers"]:
+                relative = Path(consumer["path"])
+                assert not relative.is_absolute() and ".." not in relative.parts
+                path = ROOT / "platform/skills" / relative
+                assert path.is_file()
+                names = {
+                    ast_node.name for ast_node in ast.walk(
+                        ast.parse(path.read_text(encoding="utf-8"))
+                    )
+                    if isinstance(
+                        ast_node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)
+                    )
+                }
+                assert consumer["symbol"] in names, (
+                    f"{node['id']} has no such static consumer entrypoint: "
+                    f"{consumer['path']}::{consumer['symbol']}"
+                )
+                assert consumer["standing"] in {
+                    "SOURCE_STATIC_CALL",
+                    "SOURCE_STATIC_FUNCTION; EXTERNAL_CLIENT_SOURCE_UNRESOLVED",
+                }
+
+    qualify_source_symbols(plan)
+    falsified = copy.deepcopy(plan)
+    falsified["nodes"][3]["actualConsumers"][0]["symbol"] = "NOT_REAL_CONSUMER"
+    with pytest.raises(AssertionError, match="no such static consumer entrypoint"):
+        qualify_source_symbols(falsified)

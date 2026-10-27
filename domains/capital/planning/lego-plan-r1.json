@@ -1,0 +1,386 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-capital",
+    "purpose": "First-level Recursive LEGO R2.1 SOURCE semantics for distinct descriptive, governance, reconciliation and durable accounting responsibilities. No trading or provider grant.",
+    "sourceEvidence": [
+      "README.md",
+      "src/ordivon_capital/risk/portfolio_risk.py",
+      "src/ordivon_capital/governance/policy_decision.py",
+      "src/ordivon_capital/trading/execution_reconciliation.py",
+      "src/ordivon_capital/accounting/durable.py",
+      "tests/test_factor_lego_consumer_contract.py"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "CA01",
+      "label": "PublicMarketSnapshotQualification",
+      "kind": "public_observation",
+      "responsibility": "Evaluate one market public-stream/snapshot observation without access to private accounts or trading effects",
+      "authority": "Capital domain's bounded source contract, not provider execution truth",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "public market stream snapshot with explicit sequence/time/source fields"
+      ],
+      "outputs": [
+        "bounded public stream standing or explicit invalid/unknown result"
+      ],
+      "behavioralContract": "Missing/invalid fields and incorrect source readiness cannot imply a live tradable market; public visibility is not private account or authorization evidence.",
+      "acceptance": [
+        "Owner native public-stream tests reject malformed snapshots and measure source metadata."
+      ],
+      "evidence": [
+        "src/ordivon_capital/markets/crypto_public_streaming.py",
+        "tests/test_crypto_public_streaming.py"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "consumerEvidence": [
+        {
+          "path": "tests/test_crypto_public_streaming.py",
+          "standing": "NATIVE_TEST_STATIC_CONSUMER_ONLY"
+        }
+      ],
+      "mustNotOwn": [
+        "exchange/broker side effects",
+        "investment alpha or profit guarantees",
+        "account execution grant",
+        "provider installed currentness",
+        "private account observation"
+      ],
+      "sourceQualification": "DOMAIN_SOURCE_AND_OWNER_TEST_ONLY",
+      "formalQualification": "ABSTRACT_AND_REAL_PROVIDER_REFINEMENT_UNKNOWN",
+      "effectBoundary": "NON_LIVE_SOURCE_ONLY"
+    },
+    {
+      "id": "CA02",
+      "label": "FactorProxyDependenceMeasurement",
+      "kind": "measurement_contract",
+      "responsibility": "Measure factor-proxy dependence from caller-supplied exact historical observations without claiming causal alpha",
+      "authority": "Capital domain's bounded source contract, not provider execution truth",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "explicit paired asset/proxy histories and observation assumptions"
+      ],
+      "outputs": [
+        "scoped proxy-dependence/factor observatory evidence with qualifications"
+      ],
+      "behavioralContract": "Correlation/proxy exposure is not a forecast, causal factor or execution signal; missing observations remain incomplete.",
+      "acceptance": [
+        "Factor consumer contract and portfolio risk tests differentiate measurement from trading or inferred signals."
+      ],
+      "evidence": [
+        "src/ordivon_capital/risk/portfolio_risk.py",
+        "tests/test_factor_lego_consumer_contract.py"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "consumerEvidence": [
+        {
+          "path": "tests/test_factor_lego_consumer_contract.py",
+          "standing": "NATIVE_TEST_STATIC_CONSUMER_ONLY"
+        }
+      ],
+      "mustNotOwn": [
+        "exchange/broker side effects",
+        "investment alpha or profit guarantees",
+        "account execution grant",
+        "provider installed currentness"
+      ],
+      "sourceQualification": "DOMAIN_SOURCE_AND_OWNER_TEST_ONLY",
+      "formalQualification": "ABSTRACT_AND_REAL_PROVIDER_REFINEMENT_UNKNOWN",
+      "effectBoundary": "NON_LIVE_SOURCE_ONLY"
+    },
+    {
+      "id": "CA03",
+      "label": "PortfolioExposureLedger",
+      "kind": "risk_state_projection",
+      "responsibility": "Build caller-supplied factor-loading and position exposure ledger without converting overlapping exposures into additive risk contributions",
+      "authority": "Capital domain's bounded source contract, not provider execution truth",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "positions, explicit asset loadings and risk-budget assumptions"
+      ],
+      "outputs": [
+        "source-bound portfolio/factor exposure ledger and incomplete budget standing"
+      ],
+      "behavioralContract": "No inferred loadings, no duplicate overlapping exposure as independent risk and no silent UNSET-to-PASS promotion.",
+      "acceptance": [
+        "Owner tests construct exposure ledger from explicit loadings and reject incomplete risk inputs."
+      ],
+      "evidence": [
+        "src/ordivon_capital/risk/portfolio_risk.py",
+        "tests/test_portfolio_risk.py"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "consumerEvidence": [
+        {
+          "path": "tests/test_portfolio_risk.py",
+          "standing": "NATIVE_TEST_STATIC_CONSUMER_ONLY"
+        }
+      ],
+      "mustNotOwn": [
+        "exchange/broker side effects",
+        "investment alpha or profit guarantees",
+        "account execution grant",
+        "provider installed currentness"
+      ],
+      "sourceQualification": "DOMAIN_SOURCE_AND_OWNER_TEST_ONLY",
+      "formalQualification": "ABSTRACT_AND_REAL_PROVIDER_REFINEMENT_UNKNOWN",
+      "effectBoundary": "NON_LIVE_SOURCE_ONLY"
+    },
+    {
+      "id": "CA04",
+      "label": "PortfolioCounterfactualComposition",
+      "kind": "simulation_projection",
+      "responsibility": "Calculate what-if portfolio position changes and evaluate the named constraint gate over an existing exposure ledger",
+      "authority": "Capital domain's bounded source contract, not provider execution truth",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "qualified exposure ledger and proposed hypothetical portfolio delta"
+      ],
+      "outputs": [
+        "counterfactual states and applicable constraint-gate results"
+      ],
+      "behavioralContract": "What-if alternatives are descriptive, not broker instructions, trade rankings or authorization; use explicit deltas and state.",
+      "acceptance": [
+        "Native portfolio counterfactual tests consume exposure-ledger results and reject invalid conditions."
+      ],
+      "evidence": [
+        "src/ordivon_capital/portfolio/portfolio_counterfactuals.py",
+        "tests/test_portfolio_counterfactuals.py"
+      ],
+      "dependencies": [
+        "CA03",
+        "CA05"
+      ],
+      "sharedRefs": [],
+      "consumerEvidence": [
+        {
+          "path": "tests/test_portfolio_counterfactuals.py",
+          "standing": "NATIVE_TEST_STATIC_CONSUMER_ONLY"
+        }
+      ],
+      "mustNotOwn": [
+        "exchange/broker side effects",
+        "investment alpha or profit guarantees",
+        "account execution grant",
+        "provider installed currentness"
+      ],
+      "sourceQualification": "DOMAIN_SOURCE_AND_OWNER_TEST_ONLY",
+      "formalQualification": "ABSTRACT_AND_REAL_PROVIDER_REFINEMENT_UNKNOWN",
+      "effectBoundary": "NON_LIVE_SOURCE_ONLY"
+    },
+    {
+      "id": "CA05",
+      "label": "NonLiveExecutionPolicyAdmission",
+      "kind": "policy_decision",
+      "responsibility": "Evaluate whether one configured Capital execution lane is non-live or otherwise source-policy admissible before permitting any later provider effect",
+      "authority": "Capital domain's bounded source contract, not provider execution truth",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "current lane, source policy, explicit account and permission facts"
+      ],
+      "outputs": [
+        "bounded allow/reject policy decision with reason"
+      ],
+      "behavioralContract": "Unknown/unqualified live-account facts never mean permission; external-write and non-live gates must reject forbidden permission, role or account mode.",
+      "acceptance": [
+        "Native execution-policy tests falsify forbidden live/effect-policy paths and preserve no-order guarantee."
+      ],
+      "evidence": [
+        "src/ordivon_capital/governance/policy_decision.py",
+        "tests/test_execution_policy.py"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "consumerEvidence": [
+        {
+          "path": "tests/test_execution_policy.py",
+          "standing": "NATIVE_TEST_STATIC_CONSUMER_ONLY"
+        }
+      ],
+      "mustNotOwn": [
+        "exchange/broker side effects",
+        "investment alpha or profit guarantees",
+        "account execution grant",
+        "provider installed currentness"
+      ],
+      "sourceQualification": "DOMAIN_SOURCE_AND_OWNER_TEST_ONLY",
+      "formalQualification": "ABSTRACT_AND_REAL_PROVIDER_REFINEMENT_UNKNOWN",
+      "effectBoundary": "NON_LIVE_SOURCE_ONLY"
+    },
+    {
+      "id": "CA06",
+      "label": "AmbiguousExecutionReconciliation",
+      "kind": "provider_observation_interpreter",
+      "responsibility": "Reconcile one prior order intent with provider-observed order/fill standing, leaving outcome UNKNOWN when authoritative evidence is incomplete",
+      "authority": "Capital domain's bounded source contract, not provider execution truth",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "exact client order/intent identity, provider account snapshot and fill evidence"
+      ],
+      "outputs": [
+        "bounded FIX-like standing, fill accounting and safe reservation resolution recommendation"
+      ],
+      "behavioralContract": "Missing order snapshot cannot imply no effect; blind retry/void is not authorized without terminal fully reconciled fills or authoritative negative lookup.",
+      "acceptance": [
+        "Owner native execution-reconciliation tests exercise absent, ambiguous and partial-fill cases with synthetic provider results."
+      ],
+      "evidence": [
+        "src/ordivon_capital/trading/execution_reconciliation.py",
+        "tests/test_execution_reconciliation.py"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "consumerEvidence": [
+        {
+          "path": "tests/test_execution_reconciliation.py",
+          "standing": "NATIVE_TEST_STATIC_CONSUMER_ONLY"
+        }
+      ],
+      "mustNotOwn": [
+        "exchange/broker side effects",
+        "investment alpha or profit guarantees",
+        "account execution grant",
+        "provider installed currentness"
+      ],
+      "sourceQualification": "DOMAIN_SOURCE_AND_OWNER_TEST_ONLY",
+      "formalQualification": "ABSTRACT_AND_REAL_PROVIDER_REFINEMENT_UNKNOWN",
+      "effectBoundary": "NON_LIVE_SOURCE_ONLY"
+    },
+    {
+      "id": "CA07",
+      "label": "DurableCapitalReservationLedger",
+      "kind": "durable_accounting_contract",
+      "responsibility": "Represent durable capital reservation instruction and reconcile historically committed transfer effects across accounting backends",
+      "authority": "Capital domain's bounded source contract, not provider execution truth",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "typed account namespace, reservation binding, durable transfers and observations"
+      ],
+      "outputs": [
+        "type-safe accounting instruction and reconciliation standing with exact operation identity"
+      ],
+      "behavioralContract": "Unknown commit state cannot become available funds; source SQLite and PostgreSQL backends are implementations, not a license to claim live writer switchover.",
+      "acceptance": [
+        "Native accounting substrate/durable tests protect stable identities and replay of synthetic reservations."
+      ],
+      "evidence": [
+        "src/ordivon_capital/accounting/durable.py",
+        "tests/test_accounting_durable.py"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "consumerEvidence": [
+        {
+          "path": "tests/test_accounting_durable.py",
+          "standing": "NATIVE_TEST_STATIC_CONSUMER_ONLY"
+        }
+      ],
+      "mustNotOwn": [
+        "exchange/broker side effects",
+        "investment alpha or profit guarantees",
+        "account execution grant",
+        "provider installed currentness",
+        "cross-environment PG writer cutover"
+      ],
+      "sourceQualification": "DOMAIN_SOURCE_AND_OWNER_TEST_ONLY",
+      "formalQualification": "ABSTRACT_AND_REAL_PROVIDER_REFINEMENT_UNKNOWN",
+      "effectBoundary": "NON_LIVE_SOURCE_ONLY"
+    },
+    {
+      "id": "CA08",
+      "label": "ProspectiveStrategyEvidenceValidation",
+      "kind": "research_validation",
+      "responsibility": "Check whether prospective research results obey the named decision date and post-decision session boundary",
+      "authority": "Capital domain's bounded source contract, not provider execution truth",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "decision instant/timezone, observed post-decision sessions, prospective result evidence"
+      ],
+      "outputs": [
+        "bounded prospective validation standing with explicit missing time periods"
+      ],
+      "behavioralContract": "Historical/backfilled data cannot impersonate true prospective evidence; verification says nothing about live future edge.",
+      "acceptance": [
+        "Native prospective-validation tests reject wrong session/time boundaries."
+      ],
+      "evidence": [
+        "src/ordivon_capital/research/prospective_validation.py",
+        "tests/test_prospective_validation.py"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "consumerEvidence": [
+        {
+          "path": "tests/test_prospective_validation.py",
+          "standing": "NATIVE_TEST_STATIC_CONSUMER_ONLY"
+        }
+      ],
+      "mustNotOwn": [
+        "exchange/broker side effects",
+        "investment alpha or profit guarantees",
+        "account execution grant",
+        "provider installed currentness",
+        "strategy performance endorsement"
+      ],
+      "sourceQualification": "DOMAIN_SOURCE_AND_OWNER_TEST_ONLY",
+      "formalQualification": "ABSTRACT_AND_REAL_PROVIDER_REFINEMENT_UNKNOWN",
+      "effectBoundary": "NON_LIVE_SOURCE_ONLY"
+    }
+  ],
+  "edges": [
+    {
+      "from": "CA03",
+      "to": "CA04",
+      "type": "DEPENDENCY",
+      "label": "counterfactuals consume explicit exposure ledger"
+    },
+    {
+      "from": "CA05",
+      "to": "CA04",
+      "type": "DEPENDENCY",
+      "label": "constraint gate calls Capital policy decision"
+    }
+  ],
+  "slices": [
+    {
+      "id": "CAS1",
+      "label": "PublicMarketsAndDescriptivePortfolioAnalysis",
+      "nodeIds": [
+        "CA01",
+        "CA02",
+        "CA03",
+        "CA04",
+        "CA08"
+      ],
+      "status": "IMPLEMENTED",
+      "acceptance": [
+        "Native source-bound tests verify no inference from observations to trading authority; consumer behavior outside current test set remains UNKNOWN."
+      ]
+    },
+    {
+      "id": "CAS2",
+      "label": "ExecutionSafetyAndAccounting",
+      "nodeIds": [
+        "CA05",
+        "CA06",
+        "CA07"
+      ],
+      "status": "IMPLEMENTED",
+      "acceptance": [
+        "Policy/reconciliation/accounting implementations have separate native tests, but provider account acceptance and Windows/Linux installed state are not claimed."
+      ]
+    }
+  ],
+  "gaps": [
+    "Actual live/restricted provider account state and effect authority are not read or modified by this phase.",
+    "Source/consumer paths are native syntactic evidence only; no full dynamic consumer closure, installed currentness or model-to-code formal proof.",
+    "Remaining Capital interfaces may require deeper independent decomposition; 8 first-level source candidates are not exhaustive or a global LEGO count."
+  ]
+}
