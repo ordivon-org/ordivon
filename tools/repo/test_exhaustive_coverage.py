@@ -517,6 +517,90 @@ class DerivedProblemLegoFrontierTests(unittest.TestCase):
 
 
 class ExplicitIndependentScopeTests(unittest.TestCase):
+    def test_git_object_store_checkout_and_git_cut_must_be_disjoint(self) -> None:
+        """Shared object store != same HEAD; same HEAD != same checkout/index."""
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            parent = pathlib.Path(td).resolve()
+            main = parent / "primary"
+            linked = parent / "linked"
+            clone = parent / "clone"
+            main.mkdir()
+            subprocess.run(["git", "init", "-q", str(main)], check=True)
+            (main / "tracked.txt").write_text("v1\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(main), "add", "--", "tracked.txt"],
+                           check=True)
+            def commit(where, *args):
+                subprocess.run([
+                    "git", "-C", str(where), "-c", "user.name=SourceIdentity",
+                    "-c", "user.email=source-id@example.invalid",
+                    "commit", "-qm", *args,
+                ], check=True)
+            commit(main, "v1")
+            first = subprocess.check_output(
+                ["git", "-C", str(main), "rev-parse", "HEAD"], text=True).strip()
+            subprocess.run(["git", "-C", str(main), "worktree", "add", "-q",
+                            "-b", "source-identity-test", str(linked)],
+                           check=True)
+            commit(linked, "linked-v2", "--allow-empty")
+            second = subprocess.check_output(
+                ["git", "-C", str(linked), "rev-parse", "HEAD"],
+                text=True).strip()
+            self.assertNotEqual(first, second)
+            subprocess.run(["git", "clone", "-q", "--local", str(main),
+                            str(clone)], check=True)
+            clone_cut = subprocess.check_output(
+                ["git", "-C", str(clone), "rev-parse", "HEAD"],
+                text=True).strip()
+            self.assertEqual(first, clone_cut)
+            # Stage a tracked-path disappearance ONLY inside the temporary clone.
+            subprocess.run(["git", "-C", str(clone), "rm", "-q", "--cached",
+                            "--", "tracked.txt"], check=True)
+            primary_cut = subprocess.check_output(
+                ["git", "-C", str(ROOT), "rev-parse", "HEAD"],
+                text=True).strip()
+            observed = M.independent_scope_frontier(
+                ROOT, primary_cut,
+                external_git=[
+                    f"primary={main}@{first}",
+                    f"linked={linked}@{second}",
+                    f"clone={clone}@{clone_cut}",
+                ], non_git_data=[])
+            by_name = {r["label"]:r for r in observed["observedScopes"]}
+            self.assertEqual(
+                by_name["primary"]["localGitObjectStoreRef"],
+                by_name["linked"]["localGitObjectStoreRef"],
+            )
+            self.assertNotEqual(
+                by_name["primary"]["localGitObjectStoreRef"],
+                by_name["clone"]["localGitObjectStoreRef"],
+            )
+            self.assertEqual(len({
+                r["localPhysicalCheckoutRef"] for r in by_name.values()
+            }),3)
+            self.assertEqual(
+                observed["summary"]["observedLocalGitObjectStores"],2)
+            self.assertEqual(
+                observed["summary"]["differentIndexAndPinnedTreeCount"],1)
+            self.assertEqual(by_name["clone"]["trackedPaths"],1)
+            self.assertEqual(by_name["clone"]["indexTrackedPathsObserved"],0)
+            pairs = {frozenset((x["leftScopeRef"],x["rightScopeRef"])):x
+                     for x in observed["observedLocalGitIdentityWitnesses"]}
+            one = pairs[frozenset((by_name["primary"]["scopeRef"],
+                                   by_name["linked"]["scopeRef"]))]
+            two = pairs[frozenset((by_name["primary"]["scopeRef"],
+                                   by_name["clone"]["scopeRef"]))]
+            self.assertTrue(one["sharedLocalObjectStore"])
+            self.assertFalse(one["sharedExactGitCommit"])
+            self.assertFalse(two["sharedLocalObjectStore"])
+            self.assertTrue(two["sharedExactGitCommit"])
+            self.assertTrue(one["checkoutIdentityDistinct"])
+            self.assertTrue(two["checkoutIdentityDistinct"])
+            self.assertEqual(one["actualInstalledOrConsumerEquivalence"],"UNKNOWN")
+            self.assertEqual(two["actualInstalledOrConsumerEquivalence"],"UNKNOWN")
+            self.assertFalse(observed["proofReuseAdmissible"])
+            self.assertEqual(observed["summary"]["installedSourcesBoundToGit"],0)
+
     def test_exact_independent_git_cut_not_mixed_into_subject_repo(self) -> None:
         import tempfile
         with tempfile.TemporaryDirectory() as tmp:

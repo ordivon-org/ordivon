@@ -1203,10 +1203,41 @@ def independent_scope_frontier(
             raise ValueError("external Git scope must be a repository root")
         exact_commit(root, cut)
         paths = tree(root, cut)
+        # Three different identities MUST remain disjoint:
+        # a Git object store, a physical checkout, and a historical Git cut.
+        # Equality of any ONE does not prove installed or consumer equivalence.
+        common_raw = git(root, "rev-parse", "--git-common-dir").decode().strip()
+        common_locator = Path(common_raw)
+        if not common_locator.is_absolute():
+            common_locator = root / common_locator
+        common_locator = common_locator.resolve(strict=True)
+        if not common_locator.is_dir():
+            raise ValueError("Git common object store was not a physical directory")
+        store_ref = "local-git-common-dir:sha256:" + hashlib.sha256(
+            str(common_locator).encode("utf8", "surrogateescape")).hexdigest()
+        checkout_ref = "local-git-checkout:sha256:" + hashlib.sha256(
+            str(root).encode("utf8", "surrogateescape")).hexdigest()
+        observed_head = git(root, "rev-parse", "--verify", "HEAD").decode().strip()
+        # ls-files -z observes the INDEX (including staged deletions), while
+        # tree(root, cut) observes the immutable commit; no git status/refresh
+        # is necessary and neither is automatically an installed consumer.
+        index_entries = git(root, "ls-files", "-z").split(b"\0")
+        index_count = sum(bool(path) for path in index_entries)
         top_levels = collections.Counter(
             x["path"].split("/", 1)[0] for x in paths)
         scopes.append({
             "scopeRef": "git-scope:" + label + "@" + cut,
+            "localGitObjectStoreRef": store_ref,
+            "localPhysicalCheckoutRef": checkout_ref,
+            "commonStoreStanding": "LOCAL_CANONICAL_PATH_EQUALITY_ONLY",
+            "observedCheckoutHead": observed_head,
+            "checkoutHeadObservationStanding": "MUTABLE_NONATOMIC_GIT_HEAD_READ",
+            "indexTrackedPathsObserved": index_count,
+            "indexVsPinnedTreeCountStanding": (
+                "DIFFERENT_PATH_COUNTS_NOT_PROOF_OF_DELETION_SAFE"
+                if index_count != len(paths)
+                else "EQUAL_COUNTS_NOT_INDEX_BYTE_EQUIVALENCE"
+            ),
             "label": label,
             "labelStanding": "CALLER_SCOPED_ALIAS_NOT_GLOBAL_IDENTITY",
             "scopeKind": "INDEPENDENT_GIT_SOURCE_CUT",
@@ -1262,6 +1293,30 @@ def independent_scope_frontier(
             "installedStanding": "UNKNOWN",
         })
     scopes.sort(key=lambda r: r["scopeRef"])
+    git_scopes = [r for r in scopes
+                  if r["scopeKind"] == "INDEPENDENT_GIT_SOURCE_CUT"]
+    git_local_identity_witnesses = []
+    for i, left in enumerate(git_scopes):
+        for right in git_scopes[i+1:]:
+            same_store = (left["localGitObjectStoreRef"] ==
+                          right["localGitObjectStoreRef"])
+            same_commit = left["sourceCut"] == right["sourceCut"]
+            if not (same_store or same_commit):
+                continue
+            git_local_identity_witnesses.append({
+                "leftScopeRef": left["scopeRef"],
+                "rightScopeRef": right["scopeRef"],
+                "sharedLocalObjectStore": same_store,
+                "sharedExactGitCommit": same_commit,
+                "checkoutIdentityDistinct": (
+                    left["localPhysicalCheckoutRef"] !=
+                    right["localPhysicalCheckoutRef"]
+                ),
+                "relationStanding": (
+                    "LOCAL_OBJECT_STORE_OR_GIT_OID_EQUALITY_ONLY_NOT_EXECUTION_CONSUMPTION"
+                ),
+                "actualInstalledOrConsumerEquivalence": "UNKNOWN",
+            })
     scope_problems = [
         {
             "problemRef": "problem:cross-plane-scope:" + row["scopeRef"],
@@ -1293,6 +1348,14 @@ def independent_scope_frontier(
             "externalGitRoots": len(external_git),
             "nonGitDirectoryLocators": len(non_git_data),
             "externalGitTrackedPaths": sum(r.get("trackedPaths", 0) for r in scopes),
+            "observedLocalGitObjectStores": len({
+                r["localGitObjectStoreRef"] for r in git_scopes
+            }),
+            "localGitIdentityEqualityWitnesses": len(git_local_identity_witnesses),
+            "differentIndexAndPinnedTreeCount": sum(
+                r["indexTrackedPathsObserved"] != r["trackedPaths"]
+                for r in git_scopes
+            ),
             "crossPlaneProblemRecords": len(scope_problems),
             "crossScopeCallsVerified": 0,
             "installedSourcesBoundToGit": 0,
@@ -1304,6 +1367,7 @@ def independent_scope_frontier(
             "--reference-path (bounded cross-format lexical witnesses only)",
         ],
         "observedScopes": scopes,
+        "observedLocalGitIdentityWitnesses": git_local_identity_witnesses,
         "pendingScopeProblems": scope_problems,
         "crossScopeRelationships": [
             {"subjectCut": source, "otherScopeRef": row["scopeRef"],
