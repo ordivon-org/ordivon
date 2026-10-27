@@ -1,0 +1,198 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-workstation-node-seams-r1",
+    "purpose": "Materialize the residual verified Workstation owner contracts without reproducing upstream systemd, Ansible, pgBackRest, CloudEvents, rclone, or Runtime semantics.",
+    "sourceEvidence": [
+      "README.md",
+      "workstation/input_authority_ingress.py",
+      "workstation/tool_binding.py",
+      "workstation/nix/nix/home.nix",
+      "contracts/asyncapi/integration-events.asyncapi.yaml",
+      "contracts/cloudevents/ordivon-event.schema.json",
+      "scripts/test-integration-contracts.py",
+      "tests/test_workstation_input_authority_ingress.py",
+      "tests/test_workstation_tool_binding.py",
+      "tests/test_workstation_consequences.py"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "WS01",
+      "label": "ExactSourceInputIngress",
+      "kind": "bounded_external_input_effect",
+      "responsibility": "Accept declared external input authority and source provenance, fetch bounded bytes through native carriers and commit only digest-matching materialization with durable idempotent receipt.",
+      "authority": "Workstation node-local desired-state and materialization evidence; external provider/domain/Runtime truth remains external",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "versioned ingress request, exact source/provenance, expected SHA-256, target authority and relative object",
+        "configured source carriers and owner-authorized target root"
+      ],
+      "outputs": [
+        "immutable digest-qualified local target bytes and receipt, or typed conflict/refusal"
+      ],
+      "behavioralContract": "Reject unsupported/secret-looking provenance fields, unsafe target traversal, oversized/altered bytes and conflicted duplicate request identities; only a source-matching result can commit; Runtime remains the separate executor for later Jobs.",
+      "acceptance": [
+        "Owner ingress tests cover exact source-bound acceptance, conflict/replay, unsafe paths and provider failures; this does not attest downstream Runtime consumption."
+      ],
+      "evidence": [
+        "workstation/input_authority_ingress.py",
+        "tests/test_workstation_input_authority_ingress.py"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "domain semantic completion",
+        "Runtime Job/Attempt execution identity and authority",
+        "provider remote truth",
+        "second scheduler or generic orchestration engine"
+      ],
+      "sharedRefs": [],
+      "consumerBindings": [
+        {
+          "path": "platform/workstation/tests/test_workstation_input_authority_ingress.py",
+          "standing": "SOURCE_OR_TEST_CONSUMER; INSTALLED/DOMAIN_UNKNOWN"
+        }
+      ],
+      "formalObligations": [
+        "Refinement of actual OS file atomicity and Runtime input admission across every provider/storage/mount topology is UNKNOWN."
+      ],
+      "qualification": "SOURCE_CONTRACT_ONLY"
+    },
+    {
+      "id": "WS02",
+      "label": "NodeLocalToolMaterialization",
+      "kind": "declared_tool_binding",
+      "responsibility": "Resolve caller-selected installed Linux/Windows tool/equipment to exact native binary path, digest, observed package version and target without selecting task/domain meaning.",
+      "authority": "Workstation node-local desired-state and materialization evidence; external provider/domain/Runtime truth remains external",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "software/equipment/launcher declaration and node filesystem",
+        "node-native package/file-version provider"
+      ],
+      "outputs": [
+        "source-qualified executable identity and observed version, or typed unavailable/ambiguous failure"
+      ],
+      "behavioralContract": "Binding is stable only for exact observed bytes and node context; unavailable/ambiguous launcher cannot be declared available; Runtime or domain owns physical execution and suitability decisions.",
+      "acceptance": [
+        "Native tool-binding/equipment tests assert wrong-platform, missing/multiple binaries, version UNKNOWN and selection failure behavior."
+      ],
+      "evidence": [
+        "workstation/tool_binding.py",
+        "workstation/equipment_binding.py",
+        "tests/test_workstation_tool_binding.py",
+        "tests/test_equipment_binding_compat.py"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "domain semantic completion",
+        "Runtime Job/Attempt execution identity and authority",
+        "provider remote truth",
+        "second scheduler or generic orchestration engine"
+      ],
+      "sharedRefs": [],
+      "consumerBindings": [
+        {
+          "path": "platform/workstation/tests/test_workstation_tool_binding.py",
+          "standing": "SOURCE_OR_TEST_CONSUMER; INSTALLED/DOMAIN_UNKNOWN"
+        }
+      ],
+      "formalObligations": [
+        "Version/source observation is not an installed/Executed Job guarantee and target path may change after read."
+      ],
+      "qualification": "SOURCE_CONTRACT_ONLY"
+    },
+    {
+      "id": "WS03",
+      "label": "InteractiveShellPathProjection",
+      "kind": "environment_projection",
+      "responsibility": "Compile one owner-local PATH desired-state expression for interactive login and non-login Bash sessions, excluding Runtime job PATH authority.",
+      "authority": "Workstation node-local desired-state and materialization evidence; external provider/domain/Runtime truth remains external",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "Home Manager PATH expression and declared shim/Cargo directories",
+        "login/non-login Bash startup configuration"
+      ],
+      "outputs": [
+        "identical environment PATH projection for both interactive Bash modes"
+      ],
+      "behavioralContract": "A single source expression must feed both Home Manager environment and Bash startup; missing shims or divergence are rejected by an independent expected-value consumer test.",
+      "acceptance": [
+        "Workstation consequence tests compare the actual projected source PATH in both shell modes and reject mismatched expressions."
+      ],
+      "evidence": [
+        "workstation/nix/nix/home.nix",
+        "tests/test_workstation_consequences.py",
+        "README.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "domain semantic completion",
+        "Runtime Job/Attempt execution identity and authority",
+        "provider remote truth",
+        "second scheduler or generic orchestration engine"
+      ],
+      "sharedRefs": [],
+      "consumerBindings": [
+        {
+          "path": "platform/workstation/tests/test_workstation_consequences.py",
+          "standing": "SOURCE_OR_TEST_CONSUMER; INSTALLED/DOMAIN_UNKNOWN"
+        }
+      ],
+      "formalObligations": [
+        "Applying desired-state config does not imply a currently active new interactive session, WSL generation or Runtime execution environment."
+      ],
+      "qualification": "SOURCE_CONTRACT_ONLY"
+    },
+    {
+      "id": "WS04",
+      "label": "CrossOwnerIntegrationEventProfile",
+      "kind": "interface_contract",
+      "responsibility": "Specify CloudEvents 1.0 and AsyncAPI 3.0 schema envelopes for integration handoff between Workstation-owned n8n edge and external Distribution/Host/domain consumers.",
+      "authority": "Workstation node-local desired-state and materialization evidence; external provider/domain/Runtime truth remains external",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "typed integration event payload and external correlation identity",
+        "CloudEvents and AsyncAPI schema with conditional provider readback claims"
+      ],
+      "outputs": [
+        "validated bounded event contract or structured rejection; no broker or provider effect"
+      ],
+      "behavioralContract": "Blocked provider effects cannot assert providerCalled or external effect performed; readback is a read-only GET observation, not a successful write; schemas do not instantiate a new event transport.",
+      "acceptance": [
+        "Existing schema acceptance tests reject false externalEffectPerformed flags and retain externally-owned Distribution semantics."
+      ],
+      "evidence": [
+        "contracts/asyncapi/integration-events.asyncapi.yaml",
+        "contracts/cloudevents/ordivon-event.schema.json",
+        "scripts/test-integration-contracts.py"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "domain semantic completion",
+        "Runtime Job/Attempt execution identity and authority",
+        "provider remote truth",
+        "second scheduler or generic orchestration engine"
+      ],
+      "sharedRefs": [],
+      "consumerBindings": [
+        {
+          "path": "platform/workstation/scripts/test-integration-contracts.py",
+          "standing": "SOURCE_OR_TEST_CONSUMER; INSTALLED/DOMAIN_UNKNOWN"
+        }
+      ],
+      "formalObligations": [
+        "This verifies local envelope shape only; actual n8n/Temporal/Runtime/consumer delivery and domain acceptance remain UNKNOWN."
+      ],
+      "qualification": "SOURCE_CONTRACT_ONLY"
+    }
+  ],
+  "edges": [],
+  "knownGaps": [
+    "Four contracts have distinguishable consumers but no claimed intra-Workstation dependency edge; cross-owner dynamic links require independent evidence.",
+    "Upstream providers (Ansible/systemd/pgBackRest/OPA/CloudEvents/etc.) are capabilities Workstation composes, not new Workstation-specific LEGO implementations.",
+    "Current installed Windows/WSL/Linux environment differs from source-desired state; source projection cannot upgrade to installed/executed currentness.",
+    "Zero discovered consumer is not certified absence; external provider behavior and historical retired paths are not restored."
+  ]
+}
