@@ -1550,3 +1550,73 @@ def test_upstream_local_import_dependency_change_invalidates_with_stable_target_
     assert same["sourceRelationStanding"] == "NO_DECLARED_SOURCE_RELATION_CHANGE"
     assert same["changedUpstreamLocalSourceFiles"] == []
     assert same["proofReuseAdmissible"] is False
+
+
+def test_new_owner_plan_real_git_addition_requalifies_without_widening_absence(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """New qualified responsibilities must be comparable with their pre-plan Git cut."""
+    import subprocess
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(
+            ["git", "--no-replace-objects", "-C", str(tmp_path), *args],
+            stderr=subprocess.PIPE,
+        ).decode().strip()
+
+    git("init", "-q", "-b", "main")
+    git("config", "user.name", "Source Plan Falsifier")
+    git("config", "user.email", "plan-falsifier@local.invalid")
+
+    def add_plan(owner: str, node: str) -> str:
+        path = f"{owner}/planning/lego-plan-r1.json"
+        evidence = tmp_path / owner / "README.md"
+        evidence.parent.mkdir(parents=True, exist_ok=True)
+        evidence.write_text("Bounded implementation responsibility\n")
+        candidate = {
+            "schemaVersion": 1,
+            "kind": "ordivon.project-lego-plan",
+            "truthRole": "planning-projection-not-project-truth",
+            "project": {"id": owner.replace("/", "-"), "sourceEvidence": ["README.md"]},
+            "nodes": [{
+                "id": node, "kind": "bounded_responsibility",
+                "dependencies": [], "evidence": ["README.md"],
+            }],
+            "edges": [],
+        }
+        dst = tmp_path / path
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        dst.write_text(json.dumps(candidate))
+        return path
+
+    old_plan = add_plan("services/runtime", "R01")
+    git("add", ".")
+    git("commit", "-qm", "before new owner plan")
+    old_cut = git("rev-parse", "HEAD")
+    new_plan = add_plan("packages/composition", "C01")
+    git("add", ".")
+    git("commit", "-qm", "add independent owner semantics")
+    new_cut = git("rev-parse", "HEAD")
+    monkeypatch.setattr(module, "OWNER_LEGO_PLANS", (old_plan, new_plan))
+
+    # No caller may turn a missing expected plan into a valid ordinary snapshot.
+    with pytest.raises(module.ArchitectureDocsError, match="absent/nonregular"):
+        module.project_owner_lego_source_graph(tmp_path, source_revision=old_cut)
+
+    delta = module.project_owner_lego_source_change(
+        before_revision=old_cut, after_revision=new_cut, root=tmp_path,
+    )
+    ref = new_plan + "#C01"
+    assert delta["newlyRegisteredSourcePlanPaths"] == [new_plan]
+    assert delta["sourcePlanChangedPaths"] == [new_plan]
+    assert ref in delta["directChangedRefs"]
+    assert {x["ref"]: x["sourceImpactStanding"] for x in delta["standingByDeclaredNode"]}[ref] == "RECHECK_REQUIRED"
+    assert delta["proofReuseAdmissible"] is False
+    # A failed or missing evidence path cannot inherit the new-plan exception.
+    git("rm", "-q", "services/runtime/planning/lego-plan-r1.json")
+    git("commit", "-qm", "break otherwise registered older owner plan")
+    bad_cut = git("rev-parse", "HEAD")
+    with pytest.raises(module.ArchitectureDocsError, match="absent/nonregular"):
+        module.project_owner_lego_source_change(
+            before_revision=old_cut, after_revision=bad_cut, root=tmp_path,
+        )

@@ -458,6 +458,7 @@ def _node_declared_source_anchors(
 
 def project_owner_lego_source_graph(
     root: Path = ROOT, *, source_revision: str | None = None,
+    _historically_absent_plans: frozenset[str] = frozenset(),
 ) -> dict[str, Any]:
     """Rebuild a *source planning* view; never attest a real LEGO or consumer.
 
@@ -500,6 +501,12 @@ def project_owner_lego_source_graph(
             path = root / relative
             blob = git_tree.get(relative, "")
             mode, kind, oid = (blob.split(":") if blob.count(":") == 2 else ("", "", ""))
+            # Only a before-cut projection may omit a plan proven to be
+            # newly ADDED by native Git across an ancestral source change.
+            # Ordinary source graphs remain strict; do not mask deleted,
+            # symlinked, malformed, or arbitrarily missing plans.
+            if not blob and relative in _historically_absent_plans:
+                continue
             if kind != "blob" or mode not in {"100644", "100755"}:
                 raise ArchitectureDocsError(f"Owner plan absent/nonregular in Git SourceCut: {relative}")
             try:
@@ -616,7 +623,24 @@ def project_owner_lego_source_change(
     else:
         from source_history_legos import require_ancestral_source_cuts
     require_ancestral_source_cuts(root, before_revision, after_revision)
-    before = project_owner_lego_source_graph(root, source_revision=before_revision)
+    # A real first-time R2.1 owner plan is absent at its historical cut.
+    # Do not require a past Git tree to contain a future registration.
+    # Derive the ONLY admissible absence from Git's exact added-file delta.
+    added_raw = subprocess.check_output(
+        ["git", "--no-replace-objects", "-C", str(root), "diff",
+         "--no-renames", "--diff-filter=A", "--name-only", "-z",
+         before_revision, after_revision, "--"], stderr=subprocess.PIPE,
+    )
+    added = {p.decode("utf-8") for p in added_raw.split(b"\x00") if p}
+    newly_registered = frozenset(set(OWNER_LEGO_PLANS) & added)
+    if newly_registered:
+        before = project_owner_lego_source_graph(
+            root, source_revision=before_revision,
+            _historically_absent_plans=newly_registered,
+        )
+    else:
+        before = project_owner_lego_source_graph(root, source_revision=before_revision)
+    # The newer/actual registered source cut must always be complete.
     after = project_owner_lego_source_graph(root, source_revision=after_revision)
     raw = subprocess.check_output(
         ["git", "--no-replace-objects", "-C", str(root), "diff", "--no-renames",
@@ -711,6 +735,7 @@ def project_owner_lego_source_change(
         "afterSourceCut": after_revision,
         "changedGitPaths": sorted(changed_paths),
         "sourcePlanChangedPaths": sorted(changed_plan_paths),
+        "newlyRegisteredSourcePlanPaths": sorted(newly_registered),
         "changedDeclaredRelationCount": len(changed_edges),
         "directChangedRefs": sorted(direct),
         "potentialRelationInfluenceRefs": sorted(potential),
