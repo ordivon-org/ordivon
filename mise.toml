@@ -135,7 +135,7 @@ spec.loader.exec_module(module)
 source=module.qualified_source_cut()
 assert source['sourceBlobs'].get('tools/formal/RecursiveLegoRefinement.lean')
 assert len(source['sourceBlobs']) == len(module.SOURCE_FILES)
-assert not any(token in Path('tools/formal/RecursiveLegoRefinement.lean').read_text() for token in ('sorry','admit\n','axiom '))
+assert not any(token in Path('tools/formal/RecursiveLegoRefinement.lean').read_text() for token in ('sorry','admit ','axiom '))
 print('FORMAL_SOURCE_ONLY_PASS',source['gitHead'])
 PYFORMAL
 """
