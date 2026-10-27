@@ -1269,6 +1269,8 @@ def recursive_external_git_cells(
     total_paths = 0
     total_cells = 0
     all_problem_refs = set()
+    group_to_native_store = {}
+    native_store_to_group = {}
     for spec in input_roots:
         if not isinstance(spec, dict) or set(spec) != {"locator", "rootPath"}:
             raise ValueError("external Git locator needs exact source path and label")
@@ -1279,6 +1281,18 @@ def recursive_external_git_cells(
         if not root.is_dir():
             raise ValueError("external Git source root not accessible")
         row = observed[locator]
+        native_common = git(
+            root, "rev-parse", "--path-format=absolute", "--git-common-dir"
+        ).decode().strip()
+        native_store = str(Path(native_common).resolve())
+        group = row.get("gitObjectStoreGroup")
+        if group:
+            if group in group_to_native_store and group_to_native_store[group]!=native_store:
+                raise ValueError("declared same Git object-store group is physically different")
+            if native_store in native_store_to_group and native_store_to_group[native_store]!=group:
+                raise ValueError("one native object store is incorrectly split into groups")
+            group_to_native_store[group]=native_store
+            native_store_to_group[native_store]=group
         rev, tree_sha = row["versionIdentity"].split(":")
         exact_commit(root, rev)
         if git(root, "rev-parse", rev + "^{tree}").decode().strip() != tree_sha:
@@ -1362,6 +1376,9 @@ def recursive_external_git_cells(
         cells.sort(key=lambda x: (x["physicalPrefix"],x["firstSourcePath"]))
         result.append({
             "rootLocator": locator,
+            "observedNativeRoot": str(root.resolve()),
+            "nativeGitObjectStoreDigest": "sha256:" + hashlib.sha256(
+                native_store.encode()).hexdigest(),
             "sourceCut": rev,
             "sourceTree": tree_sha,
             "observationWitnessRef": row["witnessRef"],
@@ -1559,6 +1576,7 @@ def recursive_non_git_metadata_cells(
             })
         roots.append({
             "rootLocator":loc,
+            "observedNativeRoot":str(root.resolve()),
             "observationWitnessRef":observed[loc]["witnessRef"],
             "enumeratedPathCount":len(atoms),
             "recursiveCellCount":len(cells),
@@ -1589,6 +1607,63 @@ def recursive_non_git_metadata_cells(
         "proofReuseAdmissible":False,
         "roots":sorted(roots,key=lambda x:x["rootLocator"]),
     }
+
+
+def cross_validate_nested_git_source_views(external: dict, non_git: dict) -> dict:
+    """Match nested physical roots plus exact Git head, never consumer semantics."""
+    by_root = {r["observedNativeRoot"]:r for r in external["roots"]}
+    if len(by_root)!=len(external["roots"]):
+        raise ValueError("duplicate physical external Git root aliases")
+    relations=[]
+    unresolved=[]
+    for outer in non_git["roots"]:
+        for nested in outer["nestedGitRootQualifications"]:
+            physical = str((Path(outer["observedNativeRoot"]) /
+                            nested["nestedRelativeRoot"]).resolve())
+            matched=by_root.get(physical)
+            if nested["exactGitCut"] is None:
+                issue="NESTED_GIT_ROOT_SOURCECUT_UNQUALIFIED"
+            elif matched is None:
+                issue="NESTED_GIT_VIEW_NOT_IN_OPERATOR_SCOPE"
+            elif matched["sourceCut"]!=nested["exactGitCut"]:
+                issue="NESTED_GIT_SOURCECUT_CHANGED_BETWEEN_OBSERVATIONS"
+            else:
+                key=[outer["rootLocator"],nested["nestedRelativeRoot"],
+                     matched["rootLocator"],matched["sourceCut"]]
+                ref="relation:sha256:"+hashlib.sha256(json.dumps(
+                    ["NONGIT_CONTAINER_EMBEDS_GIT_SOURCE_VIEW",*key],
+                    ensure_ascii=True,separators=(",",":")).encode()).hexdigest()
+                relations.append({
+                    "relationRef":ref,
+                    "fromNamespace":outer["rootLocator"],
+                    "nestedRelativeRoot":nested["nestedRelativeRoot"],
+                    "toGitView":matched["rootLocator"],
+                    "sourceCut":matched["sourceCut"],
+                    "witness":"NATIVE_ROOT_PATH_AND_EXACT_HEAD_EQUALITY",
+                    "semanticConsumerStanding":"UNKNOWN",
+                    "callStanding":"NOT_MAPPED",
+                    "formalProofStanding":"UNKNOWN",
+                })
+                continue
+            unresolved.append({
+                "namespace":outer["rootLocator"],
+                "nestedRelativeRoot":nested["nestedRelativeRoot"],
+                "issue":issue,
+                "consumerStanding":"UNKNOWN",
+                "resolutionStanding":"NOT_QUALIFIED",
+            })
+    if len({x["relationRef"] for x in relations})!=len(relations):
+        raise ValueError("duplicate nested Git physical relation")
+    return {
+        "kind":"ordivon.phase1.nongit-git-source-root-relations",
+        "verifiedRootAndHeadRelations":len(relations),
+        "unresolvedNestedGitRoots":len(unresolved),
+        "relations":sorted(relations,key=lambda x:x["relationRef"]),
+        "problems":sorted(unresolved,key=lambda x:
+                          (x["namespace"],x["nestedRelativeRoot"])),
+        "consumerOrCallGraphAdmissible":False,
+    }
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -1701,6 +1776,13 @@ def main() -> int:
                     max_files=args.cell_max_files, max_depth=args.cell_max_depth,
                 )
                 result["nonGit"] = non_git
+                if args.external_git_roots:
+                    result["nestedGitIdentity"] = cross_validate_nested_git_source_views(
+                        result["externalGit"], result["nonGit"]
+                    )
+                    if args.summary:
+                        result["nestedGitIdentity"].pop("relations")
+                        result["nestedGitIdentity"].pop("problems")
                 if args.summary:
                     for root in non_git["roots"]:
                         root.pop("cells")

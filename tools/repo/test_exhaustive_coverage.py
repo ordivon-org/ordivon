@@ -929,3 +929,78 @@ class NonGitRecursiveMetadataCellsTests(unittest.TestCase):
         d["roots"][0]["locator"]="data:unknown"
         with self.assertRaisesRegex(ValueError,"observed locator"):
             M.recursive_non_git_metadata_cells(a,b,d)
+
+
+class NestedGitPhysicalSourceRelationsTests(unittest.TestCase):
+    def test_nested_git_valid_head_joins_only_on_exact_native_path_and_cut(self):
+        import tempfile, json, copy
+        with tempfile.TemporaryDirectory(prefix="ordivon-nested-source-") as tmp:
+            parent=pathlib.Path(tmp)/"data"
+            repo=parent/"upstream"
+            repo.mkdir(parents=True)
+            subprocess.run(["git","init","-q",str(repo)],check=True)
+            (repo/"source.txt").write_text("source")
+            subprocess.run(["git","-C",str(repo),"add","."],check=True)
+            subprocess.run(["git","-C",str(repo),"-c","user.name=test",
+                            "-c","user.email=test@localhost","commit","-qm","head"],check=True)
+            cut=subprocess.check_output(["git","-C",str(repo),"rev-parse","HEAD"],text=True).strip()
+            tree=subprocess.check_output(["git","-C",str(repo),"rev-parse","HEAD^{tree}"],text=True).strip()
+            source_cut=subprocess.check_output(["git","-C",str(ROOT),"rev-parse","HEAD"],text=True).strip()
+            subject={"sourceCut":source_cut}
+            obs={"subjectSourceCut":source_cut,"observations":[
+                {"plane":"NON_GIT_NAMESPACE","hostScope":"linux","locator":"data:test",
+                 "observedState":"MIXED_NESTED_GIT_OBSERVED","witnessRef":"test:dir"},
+                {"plane":"GIT_SOURCE_VIEW","hostScope":"linux","locator":"git:upstream",
+                 "versionIdentity":cut+":"+tree,"gitObjectStoreGroup":"gitgroup:upstream",
+                 "witnessRef":"test:git"}
+            ]}
+            git_spec={"kind":"ordivon.phase1.external-git-root-locations",
+                      "subjectSourceCut":source_cut,
+                      "roots":[{"locator":"git:upstream","rootPath":str(repo)}]}
+            data_spec={"kind":"ordivon.phase1.non-git-root-locations",
+                       "subjectSourceCut":source_cut,
+                       "roots":[{"locator":"data:test","rootPath":str(parent)}]}
+            external=M.recursive_external_git_cells(subject,obs,git_spec)
+            meta=M.recursive_non_git_metadata_cells(subject,obs,data_spec)
+            rel=M.cross_validate_nested_git_source_views(external,meta)
+            assert rel["verifiedRootAndHeadRelations"]==1
+            assert rel["unresolvedNestedGitRoots"]==0
+            assert rel["relations"][0]["toGitView"]=="git:upstream"
+            assert rel["consumerOrCallGraphAdmissible"] is False
+            assert rel["relations"][0]["semanticConsumerStanding"]=="UNKNOWN"
+            changed=copy.deepcopy(external)
+            changed["roots"][0]["sourceCut"]="0"*40
+            conflict=M.cross_validate_nested_git_source_views(changed,meta)
+            assert conflict["verifiedRootAndHeadRelations"]==0
+            assert conflict["problems"][0]["issue"]=="NESTED_GIT_SOURCECUT_CHANGED_BETWEEN_OBSERVATIONS"
+
+    def test_false_shared_git_object_store_alias_rejected(self):
+        import tempfile
+        with tempfile.TemporaryDirectory(prefix="ordivon-gitgroup-") as tmp:
+            roots=[]
+            observations=[]
+            source_cut=subprocess.check_output(["git","-C",str(ROOT),"rev-parse","HEAD"],text=True).strip()
+            for label in ("one","two"):
+                repo=pathlib.Path(tmp)/label
+                repo.mkdir()
+                subprocess.run(["git","init","-q",str(repo)],check=True)
+                (repo/"file.txt").write_text(label)
+                subprocess.run(["git","-C",str(repo),"add","."],check=True)
+                subprocess.run(["git","-C",str(repo),"-c","user.name=test",
+                                "-c","user.email=test@localhost","commit","-qm","head"],check=True)
+                cut=subprocess.check_output(["git","-C",str(repo),"rev-parse","HEAD"],text=True).strip()
+                tree=subprocess.check_output(["git","-C",str(repo),"rev-parse","HEAD^{tree}"],text=True).strip()
+                roots.append({"locator":"git:"+label,"rootPath":str(repo)})
+                observations.append({
+                    "plane":"GIT_SOURCE_VIEW","hostScope":"linux",
+                    "locator":"git:"+label,"versionIdentity":cut+":"+tree,
+                    "gitObjectStoreGroup":"gitgroup:WRONG_SHARED",
+                    "witnessRef":"test:git",
+                })
+            with self.assertRaisesRegex(ValueError,"physically different"):
+                M.recursive_external_git_cells(
+                    {"sourceCut":source_cut},
+                    {"subjectSourceCut":source_cut,"observations":observations},
+                    {"kind":"ordivon.phase1.external-git-root-locations",
+                     "subjectSourceCut":source_cut,"roots":roots},
+                )
