@@ -122,3 +122,82 @@ theorem incompatible_components_are_not_composable :
     simp [ht] at hf
 
 end OrdivonR21
+
+
+-- Pure, total mathematical readsets for R2.1 contract applicability.
+-- The variables below describe a model; this theorem does NOT establish
+-- which files, services, toolchains, credentials or external effects a real
+-- Ordivon implementation reads. A qualified implementation-to-model bridge
+-- and a complete actual readset are independent proof obligations.
+namespace OrdivonR21
+
+def SameOn {Key Value : Type} (readset : Key → Prop)
+    (before after : Key → Value) : Prop :=
+  ∀ key, readset key → before key = after key
+
+def BehaviorBoundedBy {Key Value Output : Type}
+    (actualReads : Key → Prop) (behavior : (Key → Value) → Output) : Prop :=
+  ∀ before after, SameOn actualReads before after →
+    behavior before = behavior after
+
+-- Once a complete may-read envelope has been separately qualified, an
+-- unchanged envelope is enough to reuse a PURE model result without looking
+-- inside its implementation. This does not upgrade any verifier status.
+theorem opaque_result_preserved_by_complete_readset
+    {Key Value Output : Type}
+    (actualReads declaredMayReads : Key → Prop)
+    (behavior : (Key → Value) → Output)
+    (complete : ∀ key, actualReads key → declaredMayReads key)
+    (bounded : BehaviorBoundedBy actualReads behavior)
+    (before after : Key → Value)
+    (unchanged : SameOn declaredMayReads before after) :
+    behavior before = behavior after := by
+  apply bounded before after
+  intro key hActual
+  exact unchanged key (complete key hActual)
+
+-- Any pure downstream function can consume the preserved output opaquely.
+-- State changes, effects, authorization and installed identity are excluded
+-- from this mathematical theorem; a concrete client must qualify them.
+theorem opaque_pure_consumer_preserves_result
+    {Key Value Output ConsumerOutput : Type}
+    (actualReads declaredMayReads : Key → Prop)
+    (producer : (Key → Value) → Output)
+    (consumer : Output → ConsumerOutput)
+    (complete : ∀ key, actualReads key → declaredMayReads key)
+    (bounded : BehaviorBoundedBy actualReads producer)
+    (before after : Key → Value)
+    (unchanged : SameOn declaredMayReads before after) :
+    consumer (producer before) = consumer (producer after) := by
+  rw [opaque_result_preserved_by_complete_readset
+    actualReads declaredMayReads producer complete bounded before after unchanged]
+
+-- Machine-checked adversarial counterexample: the declared may-read
+-- envelope fails to mention the key TRUE; two worlds agree at key FALSE,
+-- yet their pure outputs differ. Hence mere "unchanged visible files"
+-- cannot justify evidence reuse if a hidden dependency remains.
+theorem hidden_dependency_invalidates_unqualified_reuse :
+    ∃ (declaredMayReads : Bool → Prop)
+      (before after : Bool → Bool)
+      (behavior : (Bool → Bool) → Bool),
+      SameOn declaredMayReads before after ∧
+      behavior before ≠ behavior after := by
+  refine ⟨(fun key => key = false), (fun key => key),
+    (fun _ => false), (fun world => world true), ?_, ?_⟩
+  · intro key hKey
+    cases key with
+    | false => rfl
+    | true => cases hKey
+  · decide
+
+-- Equal carrier bytes do not assert the semantics of environments that
+-- interpret the carrier. A relocation candidate is source evidence only.
+theorem same_carrier_different_environment_can_change_output :
+    ∃ (carrier : Bool) (oldEnv newEnv : Bool → Bool)
+      (interpret : (Bool → Bool) → Bool → Bool),
+      interpret oldEnv carrier ≠ interpret newEnv carrier := by
+  refine ⟨true, (fun _ => false), (fun _ => true),
+    (fun environment bytes => environment bytes), ?_⟩
+  decide
+
+end OrdivonR21
