@@ -234,6 +234,68 @@ class LiveRecursiveCellsTests(unittest.TestCase):
         assert len(out["cells"]) > out["summary"]["sourceZones"]
 
 
+
+class ProblemUnitFrontierTests(unittest.TestCase):
+    def test_problem_units_derive_only_from_native_cells_and_declarations(self):
+        sha = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True
+        ).strip()
+        inventory = M.classification(ROOT, sha)
+        cells = M.active_source_cells(inventory, repo=ROOT)
+        a = M.problem_unit_frontier(inventory, repo=ROOT)
+        b = M.problem_unit_frontier(inventory, repo=ROOT)
+        self.assertEqual(a, b)
+        self.assertEqual(a["sourceCut"], sha)
+        self.assertFalse(a["proofReuseAdmissible"])
+        self.assertEqual(a["summary"]["problemSourceCells"], cells["summary"]["problemCells"])
+        self.assertEqual(a["summary"]["nodesWithDeclarationGaps"], sum(
+            bool(n["problems"]) for n in inventory["semanticPlans"]["nodes"]))
+        self.assertEqual(a["summary"]["problemUnitCandidates"], len(a["problemUnits"]))
+        self.assertEqual(len({u["problemRef"] for u in a["problemUnits"]}),
+                         len(a["problemUnits"]))
+        self.assertTrue(all(u["consumerStanding"] == "UNKNOWN" for u in a["problemUnits"]))
+        self.assertTrue(all(u["formalStanding"] == "UNKNOWN" for u in a["problemUnits"]))
+        self.assertTrue(all(u["acceptanceStanding"] == "UNKNOWN" for u in a["problemUnits"]))
+        self.assertEqual(a["summary"]["crossPlanBareLocalIdAmbiguities"],
+                         len(a["bareLocalIdObservations"]))
+
+    def test_source_cell_and_node_problem_relationship_uses_exact_plan_carrier(self):
+        sha = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True
+        ).strip()
+        inventory = M.classification(ROOT, sha)
+        projection = M.problem_unit_frontier(inventory, repo=ROOT)
+        cells = {x["memberGitObjectDigest"]: x for x in projection["problemUnits"]
+                 if x["scope"] == "SOURCE_CELL"}
+        for node in (x for x in projection["problemUnits"]
+                     if x["scope"] == "DECLARED_NODE"):
+            if node["sourceCellDigest"] in cells:
+                self.assertIn(node["subjectLocator"],
+                              cells[node["sourceCellDigest"]]["linkedDeclaredNodeRefs"])
+            self.assertIn("#", node["subjectLocator"])
+            self.assertTrue(node["planPath"] in node["subjectLocator"])
+        for item in projection["problemUnits"]:
+            self.assertNotIn("executionAuthority", item)
+            self.assertNotIn("replacementApproved", item)
+
+    def test_variable_cell_granularity_does_not_promote_semantic_identity(self):
+        sha = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True
+        ).strip()
+        inventory = M.classification(ROOT, sha)
+        finer = M.problem_unit_frontier(inventory, repo=ROOT,
+                                        max_files=12, max_depth=8)
+        self.assertEqual(finer["sourceCut"], sha)
+        self.assertEqual(finer["summary"]["declaredNodes"],
+                         len(inventory["semanticPlans"]["nodes"]))
+        self.assertEqual(finer["summary"]["nodesWithDeclarationGaps"],
+                         sum(bool(n["problems"]) for n in inventory["semanticPlans"]["nodes"]))
+        self.assertTrue(all(u["standing"].startswith("INVESTIGATION_CANDIDATE")
+                            for u in finer["problemUnits"]))
+        with self.assertRaisesRegex(ValueError, "cell limits"):
+            M.problem_unit_frontier(inventory, repo=ROOT, max_files=0)
+
+
 class PythonStaticConsumerFrontierTests(unittest.TestCase):
     """Exact Git source import witnesses, not runtime/consumer qualification."""
 

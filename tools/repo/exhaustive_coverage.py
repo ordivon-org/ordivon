@@ -441,6 +441,139 @@ def active_source_cells(
     return result
 
 
+
+def problem_unit_frontier(inventory: dict, *, repo: Path,
+                          max_files: int = 24, max_depth: int = 6) -> dict:
+    """Source-bound investigation candidates, derived from existing native facts.
+
+    A problem unit is an unanswered question about a source or declaration.
+    It is NOT a qualified functional LEGO, issue authority, job, consumer, or
+    permission to move/delete a path. Never materialize a parallel registry.
+    """
+    source_cells = active_source_cells(
+        inventory, repo=repo, max_files=max_files, max_depth=max_depth,
+        include_member_index=True,
+    )
+    membership = source_cells.pop("memberCellDigests")
+    graph = inventory["semanticPlans"]
+    nodes_by_cell: dict[str, list[str]] = collections.defaultdict(list)
+    for node in graph["nodes"]:
+        nodes_by_cell[membership[node["plan"]]].append(node["nodeRef"])
+
+    units: list[dict] = []
+
+    def add(scope: str, locator: str, issues: list[str], **facts: object) -> None:
+        identity = hashlib.sha256(json.dumps(
+            [scope, locator], ensure_ascii=True, separators=(",", ":")
+        ).encode()).hexdigest()
+        units.append({
+            "problemRef": "problem:" + identity[:24],
+            "scope": scope,
+            "subjectLocator": locator,
+            "issueCodes": sorted(set(issues)),
+            "standing": "INVESTIGATION_CANDIDATE_NOT_CONFIRMED_DEFECT",
+            "sourceEvidence": "EXACT_GIT_SOURCE_OR_DECLARATION_ONLY",
+            "consumerStanding": "UNKNOWN",
+            "installedStanding": "UNKNOWN",
+            "formalStanding": "UNKNOWN",
+            "acceptanceStanding": "UNKNOWN",
+            **facts,
+        })
+
+    for cell in source_cells["cells"]:
+        if not cell["problems"]:
+            continue
+        locator = cell["sourceZone"] + "::" + cell["physicalPrefix"]
+        add(
+            "SOURCE_CELL", locator, cell["problems"],
+            sourceZone=cell["sourceZone"],
+            physicalPrefix=cell["physicalPrefix"],
+            memberGitObjectDigest=cell["memberGitObjectDigest"],
+            sourcePathCount=cell["pathCount"],
+            firstSourcePath=cell["firstSourcePath"],
+            lastSourcePath=cell["lastSourcePath"],
+            sourceProblemCounts=cell["sourceProblemCounts"],
+            declarationProblemCounts=cell["planDeclarationProblemCounts"],
+            extensionKinds=cell["extensionKinds"],
+            linkedDeclaredNodeRefs=sorted(
+                nodes_by_cell.get(cell["memberGitObjectDigest"], [])
+            ),
+            relationStanding="SAME_GIT_SOURCE_CELL_ONLY",
+        )
+
+    for node in graph["nodes"]:
+        if node["problems"]:
+            add(
+                "DECLARED_NODE", node["nodeRef"], node["problems"],
+                planPath=node["plan"],
+                localId=node["localId"],
+                sourceCellDigest=membership[node["plan"]],
+                presentDeclarationFields=node["declarations"],
+                relationStanding="PLAN_CONTAINS_DECLARED_NODE_ONLY",
+            )
+
+    for root in inventory["summary"]["registeredRootsWithoutLocalLegoPlan"]:
+        add(
+            "SOURCE_ROOT_PLAN_MAPPING", root,
+            ["NO_LOCAL_LEGO_PLAN_DECLARATION_OBSERVED"],
+            sourceZone="ROOT:" + root,
+            sourcePathCount=inventory["summary"]["currentSourceZones"].get(
+                "ROOT:" + root, 0
+            ),
+            qualificationNote=(
+                "Local plan absence does not establish missing contracts, "
+                "owner, or consumers; existing external/API schemas may suffice."
+            ),
+        )
+
+    for plan in graph["opaquePlans"]:
+        add(
+            "NON_NODE_DECLARATION_SHAPE", plan["plan"],
+            ["NON_NODE_PLAN_SHAPE_NEEDS_INTERPRETATION"],
+            planPath=plan["plan"],
+            declaredKind=plan["kind"],
+            sourceCellDigest=membership[plan["plan"]],
+            qualificationNote="Non-node shape is not by itself an invalid plan.",
+        )
+
+    units.sort(key=lambda item: (item["scope"], item["subjectLocator"]))
+    if len({unit["problemRef"] for unit in units}) != len(units):
+        raise ValueError("problem unit identities collide")
+    counts = collections.Counter(unit["scope"] for unit in units)
+    return {
+        "kind": "ordivon.phase1.source-bound-problem-unit-frontier",
+        "schemaVersion": 1,
+        "sourceCut": inventory["sourceCut"],
+        "sourceTree": inventory["sourceTree"],
+        "sourcePathDigest": inventory["sourcePathDigest"],
+        "truthBoundary": (
+            "Task-local generated investigation view; physical/declared sources "
+            "only. NOT semantic LEGO admission, consumer closure, or deletion."
+        ),
+        "proofReuseAdmissible": False,
+        "summary": {
+            "problemUnitCandidates": len(units),
+            "byScope": dict(sorted(counts.items())),
+            "problemSourceCells": source_cells["summary"]["problemCells"],
+            "declaredNodes": len(graph["nodes"]),
+            "nodesWithDeclarationGaps": sum(bool(n["problems"]) for n in graph["nodes"]),
+            "crossPlanBareLocalIdAmbiguities": len(graph["sameLocalIdAcrossPlans"]),
+            "allSourcePaths": inventory["summary"]["trackedPaths"],
+            "unassignedSourcePaths": inventory["summary"]["currentSourceZones"].get(
+                "UNASSIGNED", 0
+            ),
+        },
+        "bareLocalIdObservations": graph["sameLocalIdAcrossPlans"],
+        "nonClaims": [
+            "Units at different scopes can describe the same unknown; counts are not defects.",
+            "A bare local ID repeated in multiple plans is not a collision of plan-scoped IDs.",
+            "Absent declarations do not imply a missing consumer or a necessary implementation.",
+            "No impact, execution call graph, formal proof, or installed source match is established.",
+        ],
+        "problemUnits": units,
+    }
+
+
 def lookup_source_paths(inventory: dict, *, repo: Path,
                         paths: list[str], max_files: int = 24,
                         max_depth: int = 6) -> dict:
@@ -857,6 +990,8 @@ def main() -> int:
     parser.add_argument("--repo", type=Path, default=Path.cwd())
     parser.add_argument("--summary", action="store_true")
     parser.add_argument("--only-problems", action="store_true")
+    parser.add_argument("--problem-units", action="store_true",
+                        help="source-bound problem LEGO candidates (not qualified LEGO or issues)")
     parser.add_argument("--reference-path", action="append", default=[],
                         help="cross-format Git textual reference witness for exact file path")
     parser.add_argument("--reference-limit", type=int, default=48,
@@ -877,7 +1012,7 @@ def main() -> int:
     if args.reference_path:
         if (args.lookup_path or args.static_python_consumers or args.live_cells
                 or args.proposal_cut or args.use_proposal_cells or args.only_problems
-                or args.imports_prefix or args.summary):
+                or args.imports_prefix or args.summary or args.problem_units):
             parser.error("reference witness mode is mutually exclusive with projection modes")
         result = exact_git_reference_hints(
             args.repo, args.source_cut, args.reference_path,
@@ -886,6 +1021,10 @@ def main() -> int:
         return 0
     if args.reference_limit != 48:
         parser.error("reference-limit requires reference-path")
+    if args.problem_units and (args.lookup_path or args.static_python_consumers
+                               or args.live_cells or args.only_problems
+                               or args.use_proposal_cells or args.proposal_cut):
+        parser.error("--problem-units is an independent current-source-only view")
     if args.imports_prefix and not args.static_python_consumers:
         parser.error("imports-prefix requires static-python-consumers")
     if args.lookup_path and args.static_python_consumers:
@@ -906,7 +1045,14 @@ def main() -> int:
         print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2))
         return 0
     result = classification(args.repo, args.source_cut, args.proposal_cut)
-    if args.lookup_path:
+    if args.problem_units:
+        result = problem_unit_frontier(
+            result, repo=args.repo, max_files=args.cell_max_files,
+            max_depth=args.cell_max_depth,
+        )
+        if args.summary:
+            result.pop("problemUnits")
+    elif args.lookup_path:
         result = lookup_source_paths(
             result, repo=args.repo, paths=args.lookup_path,
             max_files=args.cell_max_files, max_depth=args.cell_max_depth,
