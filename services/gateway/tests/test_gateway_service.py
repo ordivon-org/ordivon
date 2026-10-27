@@ -635,6 +635,46 @@ def test_gateway_mcp_preserves_runtime_recovery_error_as_structured_tool_error()
     asyncio.run(scenario())
 
 
+def test_gateway_public_mcp_preserves_host_domain_failure_as_typed_error() -> None:
+    """A Host rejection must stay a failure through the exposed Gateway MCP tool."""
+
+    host_error = {
+        "code": "NOT_FOUND",
+        "kind": "ordivon.host-domain-error",
+        "resourceKind": "work",
+        "resourceRef": "work:absent",
+        "retryable": False,
+        "schemaVersion": 1,
+    }
+
+    class HostFailureCaller(StructuredFailureCaller):
+        async def call_tool(
+            self, owner_id: str, tool_name: str, arguments: dict[str, Any]
+        ) -> dict[str, Any]:
+            assert (owner_id, tool_name) == ("host", "work.get")
+            assert arguments == {"workRef": "work:absent", "revision": None}
+            raise OwnerCallError(
+                "owner tool returned error: host/work.get",
+                owner_id=owner_id,
+                tool_name=tool_name,
+                error=host_error,
+            )
+
+    async def scenario() -> None:
+        async with Client(
+            build_server(GatewayService(HostFailureCaller())),
+            raise_exceptions=False,
+        ) as client:
+            result = await client.call_tool("work.get", {"workRef": "work:absent"})
+            assert result.is_error is True
+            assert result.structured_content is not None
+            assert result.structured_content["error"] == host_error
+            assert result.structured_content["gatewayOwnerId"] == "host"
+            assert result.structured_content["gatewayOwnerTool"] == "work.get"
+
+    asyncio.run(scenario())
+
+
 # FORMAL/LEGO GatewayRuntimeTerminalBit: Runtime is sole physical terminality
 # authority; false-like JSON text/numbers and a missing bit cannot become True.
 @pytest.mark.parametrize("invalid_bit", ["false", 1, None])
