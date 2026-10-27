@@ -1683,6 +1683,55 @@ def test_upstream_local_import_dependency_change_invalidates_with_stable_target_
     assert same["proofReuseAdmissible"] is False
 
 
+
+def test_phase1_web_cross_security_effect_and_http_lego_boundaries() -> None:
+    """Verify source-semantic roles separately: policy ≠ effect ≠ HTTP rails."""
+    plan = json.loads(
+        (ROOT / "apps/web/planning/lego-plan-r1.json").read_text(encoding="utf-8")
+    )
+    nodes = {n["id"]: n for n in plan["nodes"]}
+    assert set(nodes) == {f"W0{i}" for i in range(1, 7)}
+    module.validate_owner_lego_graph(plan)
+    module.validate_owner_lego_dependencies(plan, "apps/web")
+    module.validate_owner_lego_source_evidence(
+        ROOT, "apps/web/planning/lego-plan-r1.json", plan
+    )
+    source = (ROOT / "apps/web/src/app.ts").read_text(encoding="utf-8")
+    server = (ROOT / "apps/web/src/server.ts").read_text(encoding="utf-8")
+    store = (ROOT / "apps/web/src/store.ts").read_text(encoding="utf-8")
+    authority = (ROOT / "apps/web/src/agent-authority.ts").read_text(encoding="utf-8")
+    for observed in (
+        "async function verifiedAgent(", "async function admitAgentEffect(",
+        "store.resolveAgentGrant(", "store.commitAgentCanaryCreate(",
+        "store.commitAgentCanaryPublish(",
+    ):
+        assert observed in source
+    assert "SecurityContractAdmissionEvaluator" in authority
+    for effect in ("commitAgentCanaryCreate(", "commitAgentCanaryPublish(",
+                   "resolveAgentEffectReplay(", "putEffectApproval("):
+        assert effect in store
+    assert 'import { createWebApp } from "./app.ts";' in server
+    assert "await createWebApp(" in server
+
+    assert {"W03", "W04"} <= set(nodes["W05"]["dependencies"])
+    assert {f"W0{i}" for i in range(1, 6)} == set(nodes["W06"]["dependencies"])
+    assert {edge["from"] for edge in plan["edges"]
+            if edge["to"] == "W06" and edge["type"] == "COMPOSITION"} == {
+                f"W0{i}" for i in range(1, 6)
+            }
+    for node in nodes.values():
+        assert all(node.get(key) for key in
+                   ("inputs", "outputs", "behavioralContract", "acceptance", "evidence"))
+        assert "UNKNOWN" in node["sourceStanding"]
+        for witness in node["consumerBindings"]:
+            assert witness["standing"] in {
+                "SOURCE_HANDLER_OR_TEST_NOT_INSTALLED",
+                "SOURCE_BOOTSTRAP_ONLY", "STATIC_TEST_ONLY",
+            }
+            assert (ROOT / witness["path"]).is_file()
+    # This is a source-only claim: CI cannot elevate it to installed/domain PASS.
+    assert all("DEPLOYED_CURRENTNESS_UNKNOWN" in n["sourceStanding"] for n in nodes.values())
+
 def test_skills_r21_semantic_node_consumer_source_falsification() -> None:
     """A new Skills LEGO must point to a real source-defined consumer surface.
 
