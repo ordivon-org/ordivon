@@ -163,6 +163,92 @@
         "PostgreSQL 18 ConversationBinding schema admission must bind exact native named primary/unique/createdAtMs/digest/UUIDv7 constraint definitions from pg_constraint; keyword-bearing or same-name weak CHECK expressions cannot stand in for the Owner schema. In disposable real PG18, both anonymous and counterfeit-named weak CHECKs are deliberately rejected. This is a bounded native PG structural contract, not proof of deployed PG configuration, schema owner roles, privilege isolation, historical cutover or external effects.",
         "H04 Capability LEGO: the existing PG ConversationBinding owner and real Browserless read/write consumers; Method LEGO: finite cutover state-machine + CEGAR counterexamples, using Runtime's public upstream TLA+/TLC tool. Native gate verifies PG import and old writer seal are separate states, never admits PG before sealing, preserves legacy IDs across interrupted migration, and permits replay with PG-only growth. Three deliberately false reachability properties prove that admitted PG, interrupted import, and post-growth replay are reachable. A model PASS alone is not installed-PG or SQL transaction proof."
       ]
+    },
+    {
+      "id": "H05",
+      "label": "RuntimeToolRequestLowering",
+      "kind": "transform",
+      "responsibility": "Translate an admitted model-facing Runtime tool call into an exact native Runtime operation and JSON request while preserving fixed execution binding, Tool Grant path/execution constraints and replay-safe external request identity; multiple existing bridges consume this shared lowering.",
+      "authority": "Harness tool-call translation only; does not grant Runtime execution, access, credentials or physical effects",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "src/ordivon_harness/ordivon/runtime_lowering.py",
+        "src/ordivon_harness/ordivon/sqlite_runtime_bridge.py",
+        "src/ordivon_harness/ordivon/adaptive_edit_bridge.py",
+        "tests/test_p0_execution_binding.py"
+      ],
+      "dependencies": [
+        "H01",
+        "H03"
+      ],
+      "mustNotOwn": [
+        "Runtime Workspace/Job/Attempt authority",
+        "persistent execution state",
+        "new Tool Grant issuance",
+        "Gateway or Runtime execution admission"
+      ],
+      "acceptance": [
+        "Actual lower_runtime_tool uses HarnessExecutionBinding, explicit Tool Grant and known Job/Artifact references; forbidden path, unsupported arguments and non-conforming request types are rejected rather than broadened.",
+        "Two existing concrete consumer adapters invoke the shared translation instead of silently redefining operation schemas.",
+        "Changing the exact lowering source changes the source-membership impact of H05; a passing unit test does not imply installed Runtime effect acceptance."
+      ],
+      "inputs": [
+        "AgentToolCall name/arguments, step_id and HarnessExecutionBinding",
+        "RuntimeToolGrantView, known Job IDs and Artifact references"
+      ],
+      "outputs": [
+        "Runtime operation name, canonical native request payload and optional external request identity, or ToolBridgeError"
+      ],
+      "behavioralContract": "For admitted tool-call families, lower only caller-bound Runtime operations and exact typed request shapes. Preserve workspace identity and deterministic clientRequestId from the original binding; reject unsupported arguments, unauthorized path/exec permissions and missing required referenced facts. Translation itself is effect-opaque and does not independently grant execution.",
+      "environment": [
+        "Harness Python source code; actual Gateway/Runtime installed identity and authorization remain external"
+      ],
+      "effects": [
+        "Construct and validate request only; no direct process execution or state mutation"
+      ]
+    },
+    {
+      "id": "H06",
+      "label": "CognitionMutationAdmission",
+      "kind": "decision_router",
+      "responsibility": "Admit exact proposed WorkingSet mutation or caller-ingress promotion only against current selected cognition and an explicitly installed handler, independently of projecting the model's next context.",
+      "authority": "Harness cognition mutation admission only; durable WorkingSet persistence belongs to supplied handlers and continuity verification",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "src/ordivon_harness/ordivon/cognition_admission.py",
+        "src/ordivon_harness/ordivon/loop.py",
+        "src/ordivon_harness/working_view.py",
+        "tests/test_r2_cognition_admission_kernel.py"
+      ],
+      "dependencies": [
+        "H01"
+      ],
+      "mustNotOwn": [
+        "context projection implementation H02",
+        "durable WorkingSet persistence or Host work authority",
+        "Tool action/effect admission H03/H04"
+      ],
+      "acceptance": [
+        "A proposal cannot mutate a cognition surface absent an installed handler; an old source WorkingSet digest is rejected rather than silently promoting stale state.",
+        "Caller-ingress promotion and ordinary WorkingSet transition remain different actions and return committed selection-change facts.",
+        "Existing loop and native test consumers exercise both positive and negative admission, without a claim that all installed Agent clients consume the kernel."
+      ],
+      "inputs": [
+        "AgentCallerIngressPromotionProposal or AgentWorkingSetTransitionProposal",
+        "expected source WorkingSet digest and model-view digest, installed handler"
+      ],
+      "outputs": [
+        "CognitionAdmission carrying source/committed WorkingSet and selection_changed, or typed rejection"
+      ],
+      "behavioralContract": "Validate the requested cognition mutation surface exists and source digest matches currently selected WorkingSet before invoking a supplied persistence handler. No implicit handler grant or stale transition is permitted; different mutation classes keep distinct evidence/progress semantics.",
+      "environment": [
+        "Harness Python Loop with explicitly supplied WorkingSet/caller-ingress handlers; installed consumer coverage not asserted"
+      ],
+      "effects": [
+        "Calls delegated approved WorkingSet handler only after current-source qualification; does not itself own durable state"
+      ]
     }
   ],
   "edges": [
@@ -183,6 +269,24 @@
       "to": "H04",
       "type": "EFFECT",
       "label": "admitted action binds physical evidence"
+    },
+    {
+      "from": "H03",
+      "to": "H05",
+      "type": "COMPOSITION",
+      "label": "admitted Harness tool action uses bounded Runtime request lowering; source consumer adapters verify"
+    },
+    {
+      "from": "H05",
+      "to": "H04",
+      "type": "EFFECT",
+      "label": "qualified Runtime request feeds physical effect binding, not effect authority"
+    },
+    {
+      "from": "H06",
+      "to": "H02",
+      "type": "STATE",
+      "label": "committed selected WorkingSet feeds later model context projection; not itself model context"
     }
   ],
   "slices": [
