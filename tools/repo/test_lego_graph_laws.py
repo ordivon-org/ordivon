@@ -1555,7 +1555,7 @@ def test_upstream_local_import_dependency_change_invalidates_with_stable_target_
 def test_phase1_composition_skills_real_lego_plans_and_sourcecut_survey() -> None:
     """Qualify concrete Owner-local contracts, not directory/function-to-LEGO counts."""
     new_plans = {
-        "packages/composition/planning/lego-plan-r1.json": {"C01", "C02", "C03", "C04"},
+        "packages/composition/planning/lego-plan-r1.json": {"C01", "C02", "C03", "C04", "C05"},
         "platform/skills/planning/lego-plan-r1.json": {"K01", "K02", "K03", "K04"},
     }
     for relative, identities in new_plans.items():
@@ -1646,7 +1646,7 @@ def test_phase1_new_owner_plan_introduction_has_real_git_source_impact() -> None
     assert paths <= set(result["introducedRegisteredPlanPaths"])
     assert paths <= set(result["sourcePlanChangedPaths"])
     assert len([ref for ref in result["directChangedRefs"]
-                if ref.split("#")[0] in paths]) == 8
+                if ref.split("#")[0] in paths]) == 9
     assert all(
         item["sourceImpactStanding"] == "RECHECK_REQUIRED"
         for item in result["standingByDeclaredNode"]
@@ -1673,3 +1673,67 @@ def test_phase1_host_r3_cross_owner_gateway_consumers_are_literal_source_routes(
         "topic.resume",
         gateway.replace('@server.tool(name="topic.resume")', '@server.tool(name="topic.fetch")'),
     )
+
+def test_phase1_composition_external_consumer_calls_not_just_import_names() -> None:
+    """A lexical import alone does not prove an API is actually called."""
+    import ast
+    import tomllib
+
+    plan = json.loads(
+        (ROOT / "packages/composition/planning/lego-plan-r1.json").read_text()
+    )
+    by_id = {n["id"]: n for n in plan["nodes"]}
+    claims = {
+        "C01": [("meta/next/scripts/web_security_gate_r3.py", "compile_manifest"),
+                ("meta/next/scripts/research_artifact_gate_r3.py", "compile_manifest")],
+        "C02": [("meta/next/scripts/pacti_timeout_obligation_r1.py", "evaluate_gate_results")],
+        "C03": [("meta/next/tests/test_interface_contract_r2.py", "evaluate_interface")],
+        "C04": [("meta/next/scripts/pacti_timeout_obligation_r1.py", "compile_verification_obligations"),
+                ("meta/next/scripts/pacti_timeout_obligation_r1.py", "resolve_verifier_bindings")],
+    }
+
+    def imported_and_called(source: str, api: str) -> bool:
+        tree = ast.parse(source)
+        names = {
+            alias.asname or alias.name
+            for stmt in ast.walk(tree)
+            if isinstance(stmt, ast.ImportFrom)
+            and stmt.module == "ordivon_composition"
+            for alias in stmt.names
+            if alias.name == api
+        }
+        return bool(names) and any(
+            isinstance(stmt, ast.Call)
+            and isinstance(stmt.func, ast.Name)
+            and stmt.func.id in names
+            for stmt in ast.walk(tree)
+        )
+
+    # Adversarial controls: comment/string syntax and an unused real import.
+    assert not imported_and_called(
+        '# from ordivon_composition import compile_manifest\n'
+        'dummy = "compile_manifest({})"\n', "compile_manifest"
+    )
+    assert not imported_and_called(
+        'from ordivon_composition import compile_manifest\n'
+        'unrelated_call()\n', "compile_manifest"
+    )
+    for lego, sites in claims.items():
+        bound = {c["path"] for c in by_id[lego]["consumerEvidence"]}
+        for path, method in sites:
+            assert path in bound, (lego, path)
+            assert imported_and_called(
+                (ROOT / path).read_text(encoding="utf-8"), method
+            ), (lego, path, method)
+
+    cli = tomllib.loads(
+        (ROOT / "packages/composition/pyproject.toml").read_text()
+    )["project"]["scripts"]
+    assert cli["ordivon-verification-obligations"] == (
+        "ordivon_composition.verification_obligation_r1:main"
+    )
+    assert by_id["C05"]["consumerEvidence"] == [{
+        "path": "packages/composition/pyproject.toml",
+        "qualification": "STATIC_SOURCE_CONSUMER_ONLY",
+    }]
+    assert "UNKNOWN" in by_id["C05"]["evidenceStanding"]

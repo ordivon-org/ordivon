@@ -204,6 +204,58 @@
         "No silent stale verifier binding; proof target-to-domain bridge remains UNKNOWN"
       ],
       "evidenceStanding": "SOURCE_BOUND_DECLARATION_ONLY; dynamic consumer, formal implementation, installed status UNKNOWN"
+    },
+    {
+      "id": "C05",
+      "label": "SelectiveProofImpactQualification",
+      "kind": "incremental_proof_impact_selector",
+      "responsibility": "Select exactly affected existing gate/proof obligations for task-local source, verifier binding and proof-relation changes while preserving conservative UNKNOWN and evidence-reuse conditions.",
+      "authority": "Owner-native Composition module, verifier-owned evidence and exact native Git SourceCut (source scope only)",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "src/ordivon_composition/verification_obligation_r1.py",
+        "tests/test_verification_obligation_r1.py",
+        "docs/VERIFICATION_OBLIGATION_R1.md",
+        "pyproject.toml"
+      ],
+      "consumerEvidence": [
+        {
+          "path": "packages/composition/pyproject.toml",
+          "qualification": "STATIC_SOURCE_CONSUMER_ONLY"
+        }
+      ],
+      "inputs": [
+        "paired exact Circuit manifests or bounded proof/obligation roots",
+        "caller-authored old/new verifier binding sets and changed source identifiers",
+        "optional immutable Git source cuts"
+      ],
+      "outputs": [
+        "task-local impact/recheck/unknown/reuse-candidate projection, not a proof acceptance"
+      ],
+      "behavioralContract": [
+        "Scope changed source and verifier identity to dependent gates and proof relations without silently dropping unknown dynamic consumers; exact old/current digest mismatches and unqualified cycles must never authorize proof reuse."
+      ],
+      "dependencies": [
+        "C01",
+        "C04"
+      ],
+      "mustNotOwn": [
+        "global or installed dependency completeness",
+        "verifier execution or formal proof",
+        "proof reuse promotion",
+        "domain truth"
+      ],
+      "acceptance": [
+        "The existing ordivon-verification-obligations CLI binds the module's native main entrypoint; this is a public API/CLI source consumer, not evidence of production invocation.",
+        "Native verification obligation tests check changed gate source, verifier drift, retired roots, unknown dependencies and corresponding negative outcomes.",
+        "Neither an unchanged immutable source scope nor a green model test alone establishes complete dynamic/installed proof currentness."
+      ],
+      "formalObligations": [
+        "Prove source/readset completeness before any authoritative reuse; current source-only impact is not proofReuseAdmissible.",
+        "Prove modeled gate obligations imply relevant real consumer goals before promoting MODEL_VERIFIED."
+      ],
+      "evidenceStanding": "SOURCE_BOUND_DECLARATION_ONLY; static CLI exposure and native tests; dynamic consumer, implementation refinement and installed currentness UNKNOWN"
     }
   ],
   "edges": [
@@ -218,12 +270,25 @@
       "to": "C04",
       "type": "DATA",
       "label": "obligation derivation consumes caller manifest contract"
+    },
+    {
+      "from": "C01",
+      "to": "C05",
+      "type": "DEPENDENCY",
+      "label": "proof impact source scope consumes validated manifest semantics"
+    },
+    {
+      "from": "C04",
+      "to": "C05",
+      "type": "DATA",
+      "label": "proof impact selector consumes task-local verification obligation identities"
     }
   ],
   "slices": [],
   "gaps": [
     "COMPATIBILITY CONTRACT: evidence derived from source imports and tests only; current deployed consumer closure UNKNOWN",
-    "Candidate only: Successor Contract R1 has exported Python API and owner tests, but no production caller outside owner in this SourceCut. Do not qualify as independent deployed LEGO without consumer/replaceability evidence."
+    "Candidate only: Successor Contract R1 has exported Python API and owner tests, but no production caller outside owner in this SourceCut. Do not qualify as independent deployed LEGO without consumer/replaceability evidence.",
+    "C05 proof impact has a native CLI and source-scoped tests, but no qualified complete runtime/installed consumer or proof reuse closure; installed acceptance and domain implication UNKNOWN."
   ],
   "review": {
     "sourceRevision": "75fc00bdec12268bd92ad85c6138b6f1be76bf3d",
