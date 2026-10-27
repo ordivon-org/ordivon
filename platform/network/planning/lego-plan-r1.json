@@ -50,13 +50,17 @@
         "Taskfile.yml",
         "tests/test_shared_provider_carrier.py"
       ],
-      "dependencies": [],
+      "dependencies": [
+        "N09",
+        "N10"
+      ],
       "mustNotOwn": [
         "provider remote truth"
       ],
       "acceptance": [
         "N02 remains a composite responsibility and does not itself assert all child effects succeed. The source-bounded N06, N07 and N08 responsibilities are independently inspectable and cannot be treated as equivalent by file layout.",
-        "Live DNS/tunnel/failover behavior, Windows/WSL deployed routes and runtime-installed continuity require distinct owner-native tests and remain UNKNOWN until observed."
+        "Live DNS/tunnel/failover behavior, Windows/WSL deployed routes and runtime-installed continuity require distinct owner-native tests and remain UNKNOWN until observed.",
+        "N09 DNS resolution and N10 proxy/TUN transport are separate mature-provider realization contracts. Their Git source anchors and interface dependencies are qualification inputs, not proof of deployed connectivity or provider health."
       ],
       "inputs": [
         "Network consumer route requirements and owner-native sing-box/systemd configuration; selected local provider carrier and scoped consumer environment."
@@ -66,7 +70,8 @@
       ],
       "behavioralContract": [
         "A source-level route declaration is not an installed routing guarantee: each policy/transport realization requires its own loaded-config and negative upstream-effect witnesses before production authority is promoted.",
-        "Consumer profile configuration cannot transfer effect authority or infer domain/provider success."
+        "Consumer profile configuration cannot transfer effect authority or infer domain/provider success.",
+        "Configured DNS, proxy and optional TUN are distinct replaceable carrier responsibilities; a resolver answer, healthy process or existing route policy must not alone be promoted to consumer-accepted end-to-end transport."
       ]
     },
     {
@@ -270,6 +275,88 @@
         "Native isolated Bash fake-time test demonstrates a common failure consumes one shared deadline and cannot yield READY.",
         "Existing consumer tests reject malformed or failed allowed-origin observations; supply-chain tests additionally reject unknown-destination transport, proxy-auth and origin-HTTP403 false positives. Claude tests reject reachable direct/unknown-origin HTTP403, but do not establish that an arbitrary failed unknown-destination probe denotes policy rejection. Installed readiness and true upstream observation require additional receipts."
       ]
+    },
+    {
+      "id": "N09",
+      "label": "DnsResolutionCarrier",
+      "kind": "effect_executor",
+      "responsibility": "Provide bounded DNS query resolution and upstream resilience using mature dnsproxy in explicit host or consumer network namespaces, without making provider health, reachability or DNS cache contents a general connectivity guarantee.",
+      "authority": "Network DNS carrier configuration and observed query response only; external resolver truth remains provider-owned",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "systemd/network-v2-dnsproxy.service",
+        "consumers/browserless/systemd/network-v2-browserless-dns.service",
+        "acceptance/dns/upstream-resilience.sh"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "HTTP/SOCKS proxy policy or full-IP tunnel effects",
+        "external resolver/provider truth",
+        "consumer-specific service availability assertion"
+      ],
+      "acceptance": [
+        "dnsproxy systemd service binds configured listening interface, port, parallel upstream and cache without taking over the host network namespace.",
+        "Dedicated upstream-resilience acceptance distinguishes partial upstream failure, valid cached answer, uncached SERVFAIL, cache expiry, and recovery without process restart.",
+        "Consumer-specific Browserless DNS service uses its own namespace and its WireGuard dependency; this is a declared configuration relationship, not installed runtime equivalence."
+      ],
+      "inputs": [
+        "DNS query, selected resolver upstream configuration, namespace and cache policy"
+      ],
+      "outputs": [
+        "observed DNS answer/rcode or transport failure under bounded timeout"
+      ],
+      "behavioralContract": "Within its configured namespace and active process instance, DNS carrier forwards queries to declared upstreams, can serve qualifying cache entries, and does not report an uncached successful resolution when all upstreams fail. The named acceptance script is a scoped negative/positive witness, not a proof for all remote DNS providers.",
+      "environment": [
+        "Linux systemd configured dnsproxy service",
+        "isolated Browserless network namespace variant; installed versions and active instance UNKNOWN"
+      ],
+      "effects": [
+        "local DNS socket listener, upstream DNS requests and bounded DNS cache effects; no arbitrary host-wide default route changes"
+      ]
+    },
+    {
+      "id": "N10",
+      "label": "ProxyTunnelTransportCarrier",
+      "kind": "effect_executor",
+      "responsibility": "Realize separately replaceable proxy/direct transport and optional namespace-isolated TUN/full-IP traffic using mature sing-box, with exact configuration and observed connectivity instead of interpreting process health as traffic success.",
+      "authority": "Network transport configuration and bounded namespace-specific connectivity witness; does not own consumer business reachability claims",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "systemd/network-v2-singbox.service",
+        "acceptance/full-ip/tun-quic.sh",
+        "acceptance/topology/netns.sh",
+        "acceptance/connectivity/direct-chain.sh"
+      ],
+      "dependencies": [
+        "N09"
+      ],
+      "mustNotOwn": [
+        "DNS resolution provider policy",
+        "consumer-specific application/effect acceptance",
+        "permanent host-global routing takeover",
+        "independent installed service currentness from source declarations"
+      ],
+      "acceptance": [
+        "Direct sing-box service requires the configured DNS service, checks its config before start and uses unprivileged service account.",
+        "Optional full-IP/TUN uses a dedicated network namespace, with per-namespace link/routing checks, actual TCP connectivity and HTTP/3 traffic evidence; process/listener alive alone is insufficient.",
+        "Absence of TUN device, capability, endpoint or verified installed service remains UNKNOWN/NOT_ADMITTED, not implicitly converted to an available transport."
+      ],
+      "inputs": [
+        "selected transport profile/config, DNS prerequisite, assigned namespace, accepted network permissions"
+      ],
+      "outputs": [
+        "configured sing-box proxy/direct or isolated TUN transport endpoint plus observed bounded connectivity/acceptance status"
+      ],
+      "behavioralContract": "A configured transport may be admitted only within its declared namespace and mature sing-box configuration. Default direct proxy depends on dnsproxy; optional isolated TUN shall not silently replace host-wide routes. Full-IP/QUIC qualification requires actual IP-family, TCP and HTTP/3 witnesses according to the existing scoped scripts rather than a process liveness check.",
+      "environment": [
+        "Linux systemd sing-box service",
+        "isolated Linux netns optional TUN/QUIC acceptance; production install and provider availability UNKNOWN"
+      ],
+      "effects": [
+        "opens bounded proxy/TUN sockets, namespace routes and carrier-specific traffic; authorized physical side effects require native operator/runtime authority"
+      ]
     }
   ],
   "edges": [
@@ -320,6 +407,24 @@
       "to": "N04",
       "type": "FALSIFICATION",
       "label": "native upstream-spy negative control for forbidden effects"
+    },
+    {
+      "from": "N09",
+      "to": "N10",
+      "type": "DEPENDENCY",
+      "label": "sing-box direct carrier systemd Requires network-v2-dnsproxy.service"
+    },
+    {
+      "from": "N09",
+      "to": "N02",
+      "type": "DEPENDENCY",
+      "label": "composed network data plane consumes configured DNS carrier"
+    },
+    {
+      "from": "N10",
+      "to": "N02",
+      "type": "DEPENDENCY",
+      "label": "composed network data plane consumes configured transport carrier"
     }
   ],
   "slices": [
