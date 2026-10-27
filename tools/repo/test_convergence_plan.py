@@ -55,7 +55,7 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertIn("artifact:verify", plan["verifyTasks"])
         self.assertIn("artifact:queue", plan["queueVerifyTasks"])
         # A citation is never an undirected Media <-> LEGO Core business edge.
-        self.assertNotIn("lego-core:verify", plan["verifyTasks"])
+        self.assertNotIn("lego-foundation:verify", plan["verifyTasks"])
 
     def test_media_study_r21_source_citation_is_directional_not_business_coupling(self) -> None:
         # The Media claims.json provenance citation to R2.1 is source evidence,
@@ -64,16 +64,16 @@ class ConvergencePlanTests(unittest.TestCase):
             "capabilities/media/productions/fishing-fable-lego-study-r1/claims.json"
         ])
         self.assertEqual(media["directOwners"], ["media"])
-        self.assertNotIn("lego-core", media["verificationOwners"])
-        self.assertNotIn(["lego-core", "media"], media["declaredInteractionEdges"])
+        self.assertNotIn("lego-foundation", media["verificationOwners"])
+        self.assertNotIn(["lego-foundation", "media"], media["declaredInteractionEdges"])
 
         core = MODULE.build_plan(changed_files=[
             ".agents/skills/recursive-lego-calculus/SKILL.md"
         ])
-        self.assertEqual(core["directOwners"], ["lego-core"])
-        self.assertEqual(core["verificationOwners"], ["lego-core", "media"])
+        self.assertEqual(core["directOwners"], ["lego-foundation"])
+        self.assertEqual(core["verificationOwners"], ["lego-foundation", "media"])
         self.assertEqual(core["sourceReferenceConsumers"], ["media"])
-        self.assertEqual(core["scopeIds"], ["owner-component:lego-core"])
+        self.assertEqual(core["scopeIds"], ["owner-component:lego-foundation"])
 
     def test_source_reference_kind_rejects_widened_fake_contract(self) -> None:
         source = MODULE.DEPENDENCY_PATH.read_text(encoding="utf-8")
@@ -101,7 +101,9 @@ class ConvergencePlanTests(unittest.TestCase):
         only_core = MODULE.build_plan(
             changed_files=[".agents/skills/recursive-lego-calculus/SKILL.md"]
         )
-        self.assertEqual(only_core["verificationOwners"], ["lego-foundation"])
+        self.assertEqual(only_core["verificationOwners"], ["lego-foundation", "media"])
+        self.assertEqual(only_core["sourceReferenceConsumers"], ["media"])
+        self.assertEqual(only_core["scopeIds"], ["owner-component:lego-foundation"])
 
     def test_research_profile_tests_follow_research_not_artifact_runtime(self) -> None:
         profile = MODULE.build_plan(
@@ -121,7 +123,7 @@ class ConvergencePlanTests(unittest.TestCase):
             (
                 'source_glob = "capabilities/media/productions/fishing-fable-lego-study-r1/claims.json"',
                 'source_glob = "capabilities/media/**"',
-                "unapproved source-citation-only seam",
+                "unapproved evidence source reference",
             ),
             (
                 'source_glob = "capabilities/artifact/tests/test_artifact_publication_carrier_r1.py"',

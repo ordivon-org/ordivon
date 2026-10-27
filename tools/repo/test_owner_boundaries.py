@@ -113,7 +113,7 @@ class OwnerBoundaryTests(unittest.TestCase):
             "capabilities/media/productions/fishing-fable-lego-study-r1/claims.json",
             '"path": ".agents/skills/recursive-lego-calculus/SKILL.md"',
         )
-        self.assertEqual((finding.from_owner, finding.to_owner), ("media", "lego-core"))
+        self.assertEqual((finding.from_owner, finding.to_owner), ("media", "lego-foundation"))
         matches = MODULE._matching_seams(finding, SEAMS)
         self.assertEqual(len(matches), 1)
         self.assertEqual(matches[0].kind, "EVIDENCE_SOURCE_REFERENCE")

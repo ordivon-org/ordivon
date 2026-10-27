@@ -5,18 +5,8 @@ truth_role = "repository-mechanics-only-not-domain-authority"
 # Recursive LEGO R2.1: independent method/contract *source* already consumed
 # by the existing project Skill resolver. This is NOT a second math kernel,
 # proof authority, execution service, or human Agent approver.
-[[owners]]
-name = "lego-core"
-root = ".agents/skills/recursive-lego-calculus/"
-verify_task = "lego-core:verify"
-
 # Repo and formal engines already have independent source interfaces and
 # native consumer verification; declare their existing physical boundaries.
-[[owners]]
-name = "formal"
-root = "tools/formal/"
-verify_task = "formal:verify"
-
 [[owners]]
 name = "next"
 root = "meta/next/"
@@ -148,7 +138,7 @@ paths = ["tools/repo/"]
 [[source_regions]]
 name = "research-contract-profiles"
 description = "Research publication/qualification schemas and profile tests; not scientific or execution authority."
-paths = ["meta/research/", "profiles/research/", "tests/catalogs/"]
+paths = ["profiles/research/", "tests/catalogs/"]
 
 [[source_regions]]
 name = "architecture-documentation"
