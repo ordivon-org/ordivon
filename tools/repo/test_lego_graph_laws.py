@@ -15,6 +15,7 @@ OWNER_GRAPH_PLANS = (
     "services/host/planning/lego-plan-r1.json",
     "services/harness/planning/lego-plan-r1.json",
     "platform/network/planning/lego-plan-r1.json",
+    "platform/skills/planning/lego-plan-r1.json",
 )
 
 

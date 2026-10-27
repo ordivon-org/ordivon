@@ -1,0 +1,207 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-skills-bridge",
+    "purpose": "Represent existing source-qualified discovery, admission, binding, and bounded read as independently consumable LEGO responsibilities; derive all source/installation facts from existing Skills MCP and Git, not another Skill registry.",
+    "sourceEvidence": [
+      "src/ordivon_skills/catalog.py",
+      "scripts/skills_mcp.py",
+      "tests/test_skill_catalog_r2.py",
+      "tests/test_skills_mcp_r3.py"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "SK01",
+      "label": "SkillSourceDiscovery",
+      "kind": "discovery_capability",
+      "responsibility": "Discover candidate Agent Skills from configured source roots and construct source-scoped records without executing untrusted Skill content.",
+      "authority": "Skills configured source and local package file facts only",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "Configured SkillSource roots, validation mode, project and workspace source context."
+      ],
+      "outputs": [
+        "Candidate SkillRecord inventory, source health and diagnostics with exact instruction/package source identity."
+      ],
+      "behavioralContract": [
+        "Missing, inaccessible, invalid or escaped source roots cannot masquerade as valid discovered records. Source scanning has no authority to execute or apply instructions.",
+        "A discovered record is not automatically trusted, visible, installed or invoked."
+      ],
+      "evidence": [
+        "src/ordivon_skills/catalog.py",
+        "src/ordivon_skills/parser.py",
+        "src/ordivon_skills/config.py",
+        "tests/test_skill_catalog_r2.py",
+        "tests/test_owner_boundary.py"
+      ],
+      "consumerEvidence": [
+        "scripts/skills_mcp.py"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "independent Skill content authority",
+        "arbitrary host path discovery"
+      ],
+      "acceptance": [
+        "Existing SkillCatalog.scan tests qualify stable identity, package source and inaccessible-source behavior under exact configured roots.",
+        "Real deployed source selection and current installation remain separate evidence."
+      ]
+    },
+    {
+      "id": "SK02",
+      "label": "SkillTrustEligibilityGate",
+      "kind": "admission_policy",
+      "responsibility": "Qualify candidate Skill visibility by source trust, package scanning, eligibility, invocation mode and scoped user/audited admission without transferring execution authority.",
+      "authority": "Skills discovery/visibility policy; cannot assign Agent or Tool action authority",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "Candidate SkillRecord inventory, audit/user-selection predicates, scanner findings, workspace/Agent context, declared eligibility requirements."
+      ],
+      "outputs": [
+        "Explicit and implicit filtered visible Skill views or qualification rejection with reasons."
+      ],
+      "behavioralContract": [
+        "Quarantined, untrusted or ineligible Skill cannot silently be promoted into implicit invocation. Advisory sanitation may remove textual instructions but cannot relax Tool execution authority.",
+        "Explicit choice is distinct from implicit discovery and must respect source policy."
+      ],
+      "evidence": [
+        "src/ordivon_skills/scanner.py",
+        "src/ordivon_skills/eligibility.py",
+        "src/ordivon_skills/model.py",
+        "tests/test_skill_catalog_r2.py",
+        "tests/test_owner_boundary.py"
+      ],
+      "consumerEvidence": [
+        "src/ordivon_skills/catalog.py",
+        "scripts/skills_mcp.py"
+      ],
+      "dependencies": [
+        "SK01"
+      ],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "Tool authorization",
+        "installed skill freshness proof"
+      ],
+      "acceptance": [
+        "Existing negative scans/visibility tests fail closed on quarantined, blocked, or untrusted Skill records.",
+        "No scan PASS alone is an instruction-authority or domain-correctness claim."
+      ]
+    },
+    {
+      "id": "SK03",
+      "label": "ContextQualifiedSkillBinding",
+      "kind": "selection_capability",
+      "responsibility": "Choose one canonical Skill identity by deterministic source precedence, explicit reference or qualified lexical match under one snapshot/context.",
+      "authority": "Skills catalog selection only, not workload ownership or permission",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "Visible catalog, canonical SkillRef or friendly name, invocation mode, Agent/workspace context, optional expected snapshot revision."
+      ],
+      "outputs": [
+        "Selected canonical SkillRecord and snapshot revision, or exact stale/not-visible/ambiguous admission result."
+      ],
+      "behavioralContract": [
+        "A stale expected snapshot must fail closed; duplicate-friendly-name precedence uses declared deterministic ordering. A source candidate cannot impersonate the winner on the basis of name alone.",
+        "A selected reference is not proof that the client has consumed current Skill bytes."
+      ],
+      "evidence": [
+        "src/ordivon_skills/catalog.py",
+        "tests/test_skill_catalog_r2.py",
+        "tests/test_skills_mcp_r2.py",
+        "tests/test_recursive_lego_math_discovery.py"
+      ],
+      "consumerEvidence": [
+        "scripts/skills_mcp.py"
+      ],
+      "dependencies": [
+        "SK02"
+      ],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "end-to-end Skill instruction validity",
+        "Agent tool execution"
+      ],
+      "acceptance": [
+        "Existing catalog and MCP tests verify exact SkillRef resolution, stable snapshot and stale-snapshot rejection.",
+        "Installed Skill source and selected source match need separate current deployment evidence."
+      ]
+    },
+    {
+      "id": "SK04",
+      "label": "ExactBoundSkillResourceRead",
+      "kind": "resource_read_capability",
+      "responsibility": "Read selected Skill resources only within the source-qualified package boundary, with digest and package revision checks and advisory projection.",
+      "authority": "Skills source-bound read-only filesystem view",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "Canonical selected SkillId, relative package resource path, expected instruction digest, package revision, expected snapshot, byte offset and limit."
+      ],
+      "outputs": [
+        "Bounded read result with exact resource/raw/projection digests and content, or fail-closed stale/path/digest error."
+      ],
+      "behavioralContract": [
+        "Absolute, traversal or escaped resource paths fail closed; instruction bytes and package revision must match declared fences, including a post-read revision check.",
+        "A sanitized advisory text result is not Tool or system instruction authority and does not certify behavioral correctness of the Skill."
+      ],
+      "evidence": [
+        "src/ordivon_skills/catalog.py",
+        "src/ordivon_skills/scanner.py",
+        "scripts/skills_mcp.py",
+        "tests/test_skills_mcp_r3.py",
+        "tests/test_skill_catalog_r2.py"
+      ],
+      "consumerEvidence": [
+        "scripts/skills_mcp.py"
+      ],
+      "dependencies": [
+        "SK03"
+      ],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "filesystem mutation",
+        "semantic correctness of retrieved instructions",
+        "effect authority"
+      ],
+      "acceptance": [
+        "Existing MCP and catalog tests verify exact revision/digest/path bounding and advisory projection behavior.",
+        "LIVE Skills resolver and Git SKILL.md digests may differ; historical source proof is not deployed freshness."
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "SK01",
+      "to": "SK02",
+      "type": "DATA",
+      "label": "candidate source inventory before trust/eligibility qualification"
+    },
+    {
+      "from": "SK02",
+      "to": "SK03",
+      "type": "CONTROL",
+      "label": "admitted view bounds deterministic binding"
+    },
+    {
+      "from": "SK03",
+      "to": "SK04",
+      "type": "IDENTITY",
+      "label": "canonical binding and snapshot context constrain exact read"
+    }
+  ],
+  "slices": [],
+  "gaps": [
+    "Exact installed Skills MCP release is separate from the Git source plan. Agent uses observed skills_resolve/read tools; Git SKILL.md and discovered instruction digest differ on 2026-10-27 and require deployment qualification.",
+    "No source-only claim of complete external MCP/Gateway consumer closure or of Skill text authority; static Skills tests do not establish all dynamic plugin clients."
+  ],
+  "doNotOwn": [
+    "global LEGO registry",
+    "Agent approval hierarchy",
+    "Tool execution authority",
+    "untrusted Skill instructions as privileged code"
+  ]
+}
