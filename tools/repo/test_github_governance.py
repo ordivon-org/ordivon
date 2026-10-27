@@ -143,6 +143,58 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout.strip(), "host:queue")
 
+    def test_media_root_queue_replaces_non_discovered_nested_ci(self) -> None:
+        """Media's live root-queue contract supersedes its old nested CI YAML.
+
+        This checks source/CI consumer parity, not deployed Media effect parity.
+        """
+        import tomllib
+        import yaml
+
+        nested = ROOT / "capabilities/media/.github/workflows/ci.yml"
+        self.assertFalse(nested.exists(), "nested Media CI is not a root GitHub Action")
+        self.assertTrue(
+            (ROOT / "capabilities/media/.github/workflows/codeql.yml").is_file(),
+            "distinct Media CodeQL source must not be deleted as a side effect",
+        )
+        owners = tomllib.loads((ROOT / "tools/repo/owners.toml").read_text())
+        media = [o for o in owners["owners"] if o["name"] == "media"]
+        self.assertEqual(len(media), 1)
+        self.assertEqual(media[0]["root"], "capabilities/media/")
+        self.assertEqual(media[0]["verify_task"], "media:verify")
+        top = tomllib.loads((ROOT / "mise.toml").read_text())
+        route = top["tasks"]["media:verify"]["run"]
+        self.assertIn("cd capabilities/media", route)
+        self.assertIn("mise run verify", route)
+        native = tomllib.loads((ROOT / "capabilities/media/mise.toml").read_text())
+        checks = native["tasks"]["verify"]["run"]
+        for requirement in (
+            "pnpm install --frozen-lockfile",
+            "pnpm bootstrap:python",
+            ".venv/bin/ruff check .",
+            "pnpm check",
+            "python -m unittest discover",
+            "git ls-files -z -- '*.sh' | xargs -0 -r shellcheck",
+        ):
+            self.assertIn(requirement, checks)
+        root_ci = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        steps = root_ci["jobs"]["root-verification"]["steps"]
+        select = next(x["run"] for x in steps if x.get("name") == "Select affected owners")
+        run = next(x["run"] for x in steps if x.get("name") == "Verify affected owners")
+        self.assertIn("tools/repo/convergence_plan.py", select)
+        self.assertIn("queueVerifyTasks", select)
+        self.assertIn('mise run "$task"', run)
+        selected = subprocess.run(
+            [
+                sys.executable, str(ROOT / "tools/repo/affected_owners.py"),
+                "--changed-file", "capabilities/media/.github/workflows/ci.yml",
+                "--format", "queue-tasks",
+            ],
+            cwd=ROOT, capture_output=True, text=True, timeout=20, check=False,
+        )
+        self.assertEqual(selected.returncode, 0, selected.stderr)
+        self.assertEqual(selected.stdout.strip(), "media:verify")
+
     def test_network_shellcheck_uses_mature_root_queue_not_nested_action(self) -> None:
         """A named YAML under a component is not active root GitHub CI."""
         import tomllib
