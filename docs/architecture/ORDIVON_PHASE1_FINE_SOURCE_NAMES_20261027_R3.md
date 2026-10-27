@@ -215,3 +215,48 @@ For exact path comparisons, supply both --source-cut and --proposal-cut.
 The native lookup returns **currentSource** and **proposedSource**
 separately. The Agent must not use the proposal as installed permission
 or infer a source in one Git checkout is present in another.
+
+## R5 — Agent-native source carrier identities are not live activation
+
+Exact Linux Git source cut: c7fd6ae2198ede644cd3a3800c0441ba6ef6ec15.
+The existing native tools/repo/exhaustive_coverage.py now derives
+sourceCarrierRole from exact Git path/basename form while retaining
+carrierType, source Git object, physical zone and explicit UNKNOWN
+semantic/consumer/installed/formal standing. This is a derived view,
+NOT a new registry or an independent authority.
+
+| Source file class | Files | Derived Agent-facing source role |
+|---|---:|---|
+| Root .github/workflows YAML | 2 | REPOSITORY_ROOT_GITHUB_WORKFLOW_SOURCE |
+| Component-local nested .github/workflows YAML | 16 | NESTED_GITHUB_WORKFLOW_SOURCE_NOT_ROOT_DISCOVERED |
+| SKILL.md in .agents/skills | 24 | AGENT_SKILL_INSTRUCTION_SOURCE |
+| plugin.json | 2 | AGENT_PLUGIN_PACKAGE_DESCRIPTOR_SOURCE |
+| mcp.json | 2 | MCP_SERVER_CONFIGURATION_DESCRIPTOR_SOURCE |
+| systemd .service / .timer / .target | 61 | SYSTEMD_UNIT_DECLARATION_SOURCE |
+
+The authenticated GitHub Actions workflow API returned the two tracked
+root workflows and one distinct dynamic/dependabot/dependabot-updates
+workflow. Dynamic Dependabot is platform-created, not a corresponding
+tracked Git .github/workflows file. That live REST observation is not
+a Git-pinned proof of future deployment or GitHub configuration.
+
+The assertion that 18 tracked nested-or-root .github/workflows YAML files
+mean 18 active monorepo GitHub workflows is false. The 16 nested files
+are not automatically discovered as root GitHub Actions, but external
+standalone/copy consumers are still UNKNOWN; this does not authorize
+deletion. A source filename, role, plugin descriptor, MCP config, Skill
+text or systemd unit source is not an installed/running entity.
+
+Agent path query (no path rename, no runtime mutation):
+
+    CUT="$(git rev-parse origin/main)"
+    python3 tools/repo/exhaustive_coverage.py --source-cut "$CUT"       --lookup-path .github/workflows/ci.yml       --lookup-path services/runtime/.github/workflows/ci.yml       --lookup-path extensions/ordivon-control-plane/plugin.json       --lookup-path extensions/ordivon-control-plane/mcp.json
+
+All returned role labels are SOURCE-ONLY, provisional and unprivileged.
+Consumers, current installed process, ambient environment, provider
+registration, and proof obligations remain separate unknowns.
+
+Next discovery objects: the sixteen nested-workflow potential external
+consumers; source-to-installed discrepancies in systemd unit files;
+and exact Plugin/MCP/Skill registration/activation consumers. Assign
+no synthetic owner and perform no physical source move in Phase 1.
