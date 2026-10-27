@@ -123,7 +123,8 @@ verify_task = "control-plugin:verify"
 name = "runtime"
 source_subregions = [
   { name = "runtime-mcp-server-source", paths = ["crates/ordivon-runtime-mcp/src/server/"], description = "Runtime MCP server adapter source, not physical Runner authority.", interface_form = "MCP_SERVER_ADAPTER" },
-  { name = "runtime-native-runner-source", paths = ["crates/ordivon-runtime-core/src/bin/ordivon-runtime-runner.rs"], description = "Rust Runtime Runner executable entry source; actual admitted effects require Runtime authority.", interface_form = "CLI_ENTRY_SOURCE" },
+  { name = "runtime-mcp-server-test-source", paths = ["crates/ordivon-runtime-mcp/src/server/tests.rs", "crates/ordivon-runtime-mcp/src/server/tests/"], description = "Runtime MCP server adapter tests and conformance fixtures, not an active MCP server." },
+  { name = "runtime-native-runner-source", paths = ["crates/ordivon-runtime-core/src/bin/ordivon-runtime-runner.rs"], description = "Trusted Runtime worker process entry source; not a user-facing CLI or an independently admissible execution authority.", interface_form = "INTERNAL_RUNNER_ENTRY_SOURCE" },
   { name = "runtime-native-doctor-cli-source", paths = ["crates/ordivon-runtime-core/src/bin/ordivon-runtime-doctor.rs", "crates/ordivon-runtime-core/src/bin/ordivon-runtime-inspect.rs"], description = "Runtime native inspection and diagnostics command sources, not automatic approval.", interface_form = "CLI_ENTRY_SOURCE" },
   { name = "runtime-rust-implementation", path = "crates/", description = "Native Runtime crates for physical execution lifecycle." },
   { name = "runtime-core-state-engine", path = "crates/ordivon-runtime-core/", description = "Core Job/Attempt/Workspace/Recovery implementation source." },

@@ -578,6 +578,7 @@ class SourceClassificationTests(unittest.TestCase):
             "services/harness/src/ordivon_harness/mcp_http_client.py": "MCP_CLIENT_ADAPTER",
             "services/harness/src/ordivon_harness/cli.py": "CLI_ENTRY_SOURCE",
             "services/runtime/crates/ordivon-runtime-mcp/src/server/handler.rs": "MCP_SERVER_ADAPTER",
+            "services/runtime/crates/ordivon-runtime-core/src/bin/ordivon-runtime-runner.rs": "INTERNAL_RUNNER_ENTRY_SOURCE",
             "platform/skills/plugins/ordivon-skills-bridge/mcp.json": "MCP_CONNECTION_CONFIG",
             "platform/skills/scripts/skills_mcp.py": "MCP_SERVER_ADAPTER",
             "apps/web/src/server.ts": "HTTP_API_SERVER_ADAPTER",
@@ -603,6 +604,15 @@ class SourceClassificationTests(unittest.TestCase):
         self.assertIsNone(
             items["services/harness/src/ordivon_harness/agent_run.py"]["sourceInterfaceForm"],
         )
+        for test_path in (
+            "services/runtime/crates/ordivon-runtime-mcp/src/server/tests.rs",
+            "services/runtime/crates/ordivon-runtime-mcp/src/server/tests/tool_catalog.rs",
+        ):
+            self.assertIsNone(items[test_path]["sourceInterfaceForm"])
+            self.assertEqual(
+                items[test_path]["sourceSubregion"],
+                "runtime-mcp-server-test-source",
+            )
         self.assertFalse(MODULE.project_source_classification(root, cut)["proofReuseAdmissible"])
 
     def test_source_interface_form_rejects_installed_role_and_is_delta_relevant(self) -> None:
