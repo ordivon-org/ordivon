@@ -177,3 +177,6 @@ contains **24 independently checked Git blob anchors** (SourceCut `d808ff09cf524
 | Formal / Owner | Lean theorem source vs source verification selector; neither a correctness approval role nor deployed-behavior proof |
 
 Each entry contains an exact source path, Git blob identity, checked literal anchor, proposed machine-readable name, and a falsifiable `notEquivalentTo` constraint. Consumer, installed and formal status remain **UNKNOWN**. Existing path names and imports remain untouched.
+
+
+The evidence also records **five exact-Git cross-candidate display-name conflicts** between source-only #983 and #948 proposals (Agent Plugin, Workstation, Skills, Gateway and Host). These are **proposed aliases**, not live or installed names, and no original registered verification identifier or path is renamed. In particular, External Control Plane Extension cannot be inferred as a running control plane from plugin.json, and Installed Environment cannot be inferred from provisioning source.

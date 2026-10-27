@@ -1,4 +1,66 @@
 {
+  "crossCandidateNames": {
+    "collisions": [
+      {
+        "currentness": "SOURCE_ONLY",
+        "evidencePrefixOrPath": "extensions/ordivon-control-plane/plugin.json",
+        "existingRefinedCandidateLabel": "agent-plugin-connection-package",
+        "legacyCandidateDisplayName": "External Control Plane Extension",
+        "legacyVerificationArea": "control-plugin",
+        "preferredSourceAreaLabel": "agent-plugin-connection-package",
+        "realConsumerQualified": false,
+        "reason": "An Agent Plugin manifest explicitly says it is not an executable control plane.",
+        "renameDecision": "DISPLAY_ALIAS_CANDIDATE_NO_PATH_MIGRATION"
+      },
+      {
+        "currentness": "SOURCE_ONLY",
+        "evidencePrefixOrPath": "platform/workstation/ansible",
+        "existingRefinedCandidateLabel": "execution-node-realization",
+        "legacyCandidateDisplayName": "Installed Environment and Provisioning",
+        "legacyVerificationArea": "workstation",
+        "preferredSourceAreaLabel": "execution-node-realization",
+        "realConsumerQualified": false,
+        "reason": "A source configuration/provisioning tree is not evidence that it is installed on a particular node.",
+        "renameDecision": "DISPLAY_ALIAS_CANDIDATE_NO_PATH_MIGRATION"
+      },
+      {
+        "currentness": "SOURCE_ONLY",
+        "evidencePrefixOrPath": "platform/skills/src/ordivon_skills/catalog.py",
+        "existingRefinedCandidateLabel": "agent-skills-mcp-bridge",
+        "legacyCandidateDisplayName": "Method Discovery and Binding",
+        "legacyVerificationArea": "skills",
+        "preferredSourceAreaLabel": "agent-skills-mcp-bridge",
+        "realConsumerQualified": false,
+        "reason": "A Skill catalog and MCP bridge are not the same object as a portable Skill method.",
+        "renameDecision": "DISPLAY_ALIAS_CANDIDATE_NO_PATH_MIGRATION"
+      },
+      {
+        "currentness": "SOURCE_ONLY",
+        "evidencePrefixOrPath": "services/gateway/src/ordivon_gateway/routes.py",
+        "existingRefinedCandidateLabel": "northbound-capability-routing",
+        "legacyCandidateDisplayName": "Capability Routing and Access Facade",
+        "legacyVerificationArea": "gateway",
+        "preferredSourceAreaLabel": "northbound-capability-routing",
+        "realConsumerQualified": false,
+        "reason": "A capability route projection is not the downstream Runtime or Host effect admission.",
+        "renameDecision": "DISPLAY_ALIAS_CANDIDATE_NO_PATH_MIGRATION"
+      },
+      {
+        "currentness": "SOURCE_ONLY",
+        "evidencePrefixOrPath": "services/host/src/ordivon_host_v2/social_work_mcp.py",
+        "existingRefinedCandidateLabel": "work-and-collaboration-continuity",
+        "legacyCandidateDisplayName": "Durable Collaboration and Continuity",
+        "legacyVerificationArea": "host",
+        "preferredSourceAreaLabel": "work-and-collaboration-continuity",
+        "realConsumerQualified": false,
+        "reason": "Host service exposing MCP tools is an MCP Server, not a generic MCP Host client application.",
+        "renameDecision": "DISPLAY_ALIAS_CANDIDATE_NO_PATH_MIGRATION"
+      }
+    ],
+    "legacyCandidateCut": "05d1e7736d1f65f779187f14d11a122ea5292bda",
+    "refinedCandidateCut": "7745085ad65cbe20917d1a4031d07d90e0f8ee80",
+    "standing": "CONFLICTING_SOURCE_DISPLAY_ALIASES_NOT_REALIZED_IN_PROTECTED_MAIN"
+  },
   "entries": [
     {
       "agentReadableName": "portable-agent-plugin-package",
