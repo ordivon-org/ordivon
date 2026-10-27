@@ -179,6 +179,48 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout.strip(), "network:ci")
+    def test_distribution_queue_replaces_non_discovered_nested_ci(self) -> None:
+        """GitHub root workflow invokes the Distribution's native current verification."""
+        import tomllib
+        import yaml
+
+        legacy = "capabilities/distribution/.github/workflows/ci.yml"
+        self.assertFalse((ROOT / legacy).exists(),
+                         "old nested CI is not an active GitHub Actions workflow")
+        registered = tomllib.loads((ROOT / "tools/repo/owners.toml").read_text())
+        distribution = [o for o in registered["owners"] if o["name"] == "distribution"]
+        self.assertEqual(len(distribution), 1)
+        self.assertEqual(distribution[0]["root"], "capabilities/distribution/")
+        self.assertEqual(distribution[0]["verify_task"], "distribution:verify")
+        root_tasks = tomllib.loads((ROOT / "mise.toml").read_text())["tasks"]
+        wrapper = root_tasks["distribution:verify"]["run"]
+        self.assertIn("cd capabilities/distribution", wrapper)
+        self.assertIn("mise run verify", wrapper)
+        native = tomllib.loads(
+            (ROOT / "capabilities/distribution/mise.toml").read_text()
+        )["tasks"]["verify"]["run"]
+        for required in (
+            "uv lock --check", "uv sync --locked", "uv run ruff check .",
+            "bash scripts/test-all.sh", "shellcheck",
+        ):
+            self.assertIn(required, native)
+        workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        self.assertIn("merge_group", workflow.get("on", workflow.get(True, {})))
+        steps = workflow["jobs"]["root-verification"]["steps"]
+        select = next(x["run"] for x in steps if
+                      x.get("name") == "Select affected owners")
+        verify = next(x["run"] for x in steps if
+                      x.get("name") == "Verify affected owners")
+        self.assertIn("convergence_plan.py", select)
+        self.assertIn("queueVerifyTasks", select)
+        self.assertIn("mise run", verify)
+        route = subprocess.run(
+            [sys.executable, str(ROOT / "tools/repo/affected_owners.py"),
+             "--changed-file", legacy, "--format", "queue-tasks"],
+            cwd=ROOT, capture_output=True, text=True, timeout=20, check=False,
+        )
+        self.assertEqual(route.returncode, 0, route.stderr)
+        self.assertEqual(route.stdout.strip(), "distribution:verify")
 
     def test_runtime_release_attestations_verify_every_subject_and_fail_closed(self) -> None:
         """Exercise official verifier CLI orchestration, not cryptographic trust."""
