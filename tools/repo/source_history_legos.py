@@ -281,6 +281,63 @@ def source_membership_delta(
     }
 
 
+def compact_source_impact(delta: dict) -> dict:
+    """Agent-oriented bounded SOURCE answer without unnecessary graph expansion.
+
+    Reduce the already-qualified immutable-Git query to the exact changed
+    frontier and source fingerprints. Do not turn absence of Git changes into
+    proof reuse, implementation equivalence, installation or consumer truth.
+    This is a read-only projection of source_membership_delta, not a registry.
+    """
+    if (
+        delta.get("kind") != "ordivon.git-source-membership-delta"
+        or delta.get("gitSourceQueryComplete") is not True
+        or delta.get("proofReuseAdmissible") is not False
+    ):
+        raise ValueError("compact impact requires a qualified non-admitting source delta")
+    changed = bool(
+        delta["addedPaths"] or delta["removedPaths"]
+        or delta["changedValuePaths"] or delta["membershipChanged"]
+        or delta["changedRefs"]
+    )
+    if changed != (
+        delta["memberValuesDigests"]["previous"]
+        != delta["memberValuesDigests"]["current"]
+    ):
+        raise ValueError("source delta identity is inconsistent")
+    return {
+        "kind": "ordivon.git-source-impact-agent-view",
+        "truthRole": "exact-git-source-only-no-proof-reuse",
+        "sourceCuts": delta["sourceCuts"],
+        "sourceScopeRef": delta["sourceScopeRef"],
+        "queryPrefix": delta["queryPrefix"],
+        "sourceDisposition": (
+            "SOURCE_CHANGE_RECHECK" if changed else "SOURCE_SCOPE_UNCHANGED"
+        ),
+        "sourceSetDigest": delta["memberSetDigests"],
+        "sourceValueDigest": delta["memberValuesDigests"],
+        "addedPaths": delta["addedPaths"],
+        "removedPaths": delta["removedPaths"],
+        "changedValuePaths": delta["changedValuePaths"],
+        "changedRefs": delta["changedRefs"],
+        "gitSourceQueryComplete": True,
+        "proofReuseAdmissible": False,
+        "missingQualification": [
+            "public_contract_and_consumer_compatibility",
+            "transitive_source_readset_closure",
+            "runtime_configuration_and_dynamic_dependencies",
+            "installed_release_and_environment_currentness",
+            "authorization_and_external_effects",
+            "formal_evidence_and_proof_checker_assumptions",
+        ],
+        "nonClaims": [
+            "UNCHANGED qualifies ONLY this named Git subtree at two exact commits.",
+            "Source equality is not installed/provider/consumer/proof equivalence.",
+            "The Agent may omit implementation re-reading only under separately qualified consumer obligations.",
+        ],
+    }
+
+
 def history(repo: Path, left: str, right: str) -> dict:
     left_oid = git(repo, "--no-replace-objects", "rev-parse", "--verify", left + "^{commit}").strip()
     right_oid = git(repo, "--no-replace-objects", "rev-parse", "--verify", right + "^{commit}").strip()
@@ -600,9 +657,16 @@ def main() -> None:
         "--impact-prefix",
         help="Compute task-local Git source impact for this exact directory; never proof PASS",
     )
+    parser.add_argument(
+        "--compact-impact",
+        action="store_true",
+        help="Agent-native short Git source delta; never certifies proof/installed reuse",
+    )
     parser.add_argument("--max-members", type=int, default=10000)
     args = parser.parse_args()
     repo = args.repo.resolve()
+    if args.compact_impact and args.impact_prefix is None:
+        parser.error("--compact-impact requires --impact-prefix")
     if args.impact_prefix is not None:
         if args.owner is not None:
             parser.error("--owner is only supported for history, not source-impact queries")
@@ -612,6 +676,8 @@ def main() -> None:
             report = source_membership_delta(
                 repo, previous, current, args.impact_prefix, max_members=args.max_members
             )
+            if args.compact_impact:
+                report = compact_source_impact(report)
         except (subprocess.CalledProcessError, ValueError) as exc:
             parser.error(f"Git source impact is unqualified: {exc}")
     else:
