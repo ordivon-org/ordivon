@@ -307,6 +307,23 @@ def test_satisfied_gate_closes_only_mechanical_composition() -> None:
     assert projection["domainAcceptanceEstablished"] is False
 
 
+def test_caller_reported_gate_satisfaction_is_never_formal_proof() -> None:
+    """Any syntactically valid owner record is insufficient to establish phi."""
+    manifest = valid_manifest()
+    report = gate_result(manifest, "SATISFIED")
+    # This passes current source Schema despite identifying no real checked
+    # theorem, evidence artifact content, trusted checker or refinement.
+    report["evidenceRefs"] = ["evidence:any-unchecked-assertion"]
+    projection = evaluate_gate_results(manifest, [report])
+    assert projection["mechanicalClosure"] is True  # historical reported-only API
+    assert projection["standing"] == "COMPOSITION_GATES_SATISFIED"
+    assert projection["formalProofStanding"] == "UNKNOWN_NOT_CHECKED"
+    assert projection["formalDischargeEstablished"] is False
+    assert projection["proofReuseAdmissible"] is False
+    assert projection["domainAcceptanceEstablished"] is False
+    assert "caller-reported" in projection["claimBoundary"]
+
+
 def test_unknown_or_missing_gate_remains_open() -> None:
     manifest = valid_manifest()
 

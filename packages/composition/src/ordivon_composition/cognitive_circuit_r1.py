@@ -313,12 +313,20 @@ def evaluate_gate_results(
         "unknownGateIds": unknown,
         "missingGateIds": missing,
         "unresolvedAssumptions": unresolved,
+        # SATISFIED is a caller-authored report with a string evidenceRef,
+        # not a kernel-checked proof object. Treat the two independently.
         "mechanicalClosure": standing == "COMPOSITION_GATES_SATISFIED",
+        "formalProofStanding": "UNKNOWN_NOT_CHECKED",
+        "formalDischargeEstablished": False,
+        "proofReuseAdmissible": False,
         "domainAcceptanceEstablished": False,
         "claimBoundary": (
             "Mechanical closure means only that all required task-local composition "
-            "obligations have verifier-owned SATISFIED records and no unresolved "
-            "manifest assumptions remain. It does not establish domain success."
+            "obligations have caller-reported SATISFIED records and no unresolved "
+            "manifest assumptions remain. An owner label, evidenceRef, schema check, "
+            "audit, or CI PASS is not a mathematical or formal verification of the "
+            "underlying guarantee; this projection has checked no proof object, "
+            "model-to-implementation bridge, or installed behavior."
         ),
     }
     projection["projectionDigest"] = canonical_digest(projection)

@@ -125,14 +125,14 @@ theorem incompatible_components_are_not_composable :
 -- Proof/readset incrementality is a *conditional* theorem. The proposition
 -- depends only on a projection if equal projections make its truth invariant.
 -- This obligation is not established merely by Git object identity.
-def DependsOnlyOn {α ρ : Type} (readset : α → ρ)
+def GoalDependsOnlyOn {α ρ : Type} (readset : α → ρ)
     (goal : α → Prop) : Prop :=
   ∀ before after, readset before = readset after →
     (goal before ↔ goal after)
 
 theorem reuse_if_readset_covers_goal {α ρ : Type}
     (readset : α → ρ) (goal : α → Prop)
-    (hClosed : DependsOnlyOn readset goal)
+    (hClosed : GoalDependsOnlyOn readset goal)
     (before after : α)
     (hSame : readset before = readset after)
     (hVerified : goal before) : goal after :=
@@ -142,8 +142,8 @@ theorem reuse_if_readset_covers_goal {α ρ : Type}
 -- The reverse (discarding dependencies) is NOT generally valid.
 theorem extending_qualified_readset_preserves_soundness {α ρ δ : Type}
     (readset : α → ρ) (extra : α → δ) (goal : α → Prop)
-    (hClosed : DependsOnlyOn readset goal) :
-    DependsOnlyOn (fun x => (readset x, extra x)) goal := by
+    (hClosed : GoalDependsOnlyOn readset goal) :
+    GoalDependsOnlyOn (fun x => (readset x, extra x)) goal := by
   intro before after hPair
   exact hClosed before after (congrArg Prod.fst hPair)
 
@@ -158,7 +158,7 @@ def environmentGoal (s : SourceEnvironment Unit Bool) : Prop :=
   s.environment = true
 
 theorem source_only_readset_is_not_complete :
-    ¬ DependsOnlyOn
+    ¬ GoalDependsOnlyOn
       (fun s : SourceEnvironment Unit Bool => s.source)
       environmentGoal := by
   intro hClosed
@@ -171,7 +171,7 @@ theorem source_only_readset_is_not_complete :
 -- is complete for this goal. This is NOT a proof of real-world dependency
 -- closure, toolchain identity, installed currentness or actual code refinement.
 theorem source_and_environment_readset_is_complete :
-    DependsOnlyOn
+    GoalDependsOnlyOn
       (fun s : SourceEnvironment Unit Bool => (s.source, s.environment))
       environmentGoal := by
   intro before after hInput
@@ -185,6 +185,47 @@ theorem source_and_environment_readset_is_complete :
   · intro hAfter
     rw [hEnv]
     exact hAfter
+
+-- Conservative transport projection for the currently deployed Repo
+-- --agent-impact algorithm. This is a theorem about *model rows* only;
+-- Git readset closure, dynamic consumers, source-to-code simulation and
+-- installation are intentionally NOT assumed or proved.
+def compactSourceImpact {α : Type} (standing : α → String)
+    (rows : List α) : List α :=
+  rows.filter (fun row => standing row != "NO_DECLARED_HIT")
+
+theorem compact_iff_non_nohit {α : Type} (standing : α → String)
+    (rows : List α) (row : α) :
+    row ∈ compactSourceImpact standing rows ↔
+      row ∈ rows ∧ standing row ≠ "NO_DECLARED_HIT" := by
+  simp [compactSourceImpact]
+
+theorem compact_keeps_unknown {α : Type} (standing : α → String)
+    (rows : List α) (row : α)
+    (hMem : row ∈ rows)
+    (hUnknown : standing row = "UNKNOWN") :
+    row ∈ compactSourceImpact standing rows := by
+  apply (compact_iff_non_nohit standing rows row).2
+  constructor
+  · exact hMem
+  · simp [hUnknown]
+
+theorem compact_keeps_arbitrary_future_standing {α : Type}
+    (standing : α → String) (rows : List α) (row : α)
+    (hMem : row ∈ rows)
+    (hNotNoHit : standing row ≠ "NO_DECLARED_HIT") :
+    row ∈ compactSourceImpact standing rows :=
+  (compact_iff_non_nohit standing rows row).2 ⟨hMem, hNotNoHit⟩
+
+-- Falsifies the tempting but invalid implication:
+-- an absent *declared* dependency does not establish that an external
+-- dynamic consumer or environment assumption remained unchanged.
+theorem no_declared_hit_does_not_imply_no_external_change :
+    ¬ (∀ (standing : String) (externalChanged : Bool),
+        standing = "NO_DECLARED_HIT" → externalChanged = false) := by
+  intro h
+  have bad : true = false := h "NO_DECLARED_HIT" true rfl
+  cases bad
 
 end OrdivonR21
 
@@ -252,3 +293,36 @@ end OrdivonR21
 
 #print axioms OrdivonR21.closed_dependency_frame
 #print axioms OrdivonR21.unlisted_dependency_breaks_frame
+
+-- A formal counterexample to upgrading reported approval into proof.
+-- Two worlds have IDENTICAL declared verifier status but different underlying
+-- truth. Therefore no decision function reading only that report can be both
+-- sound and complete for the actual claim. This is source-level epistemic
+-- limitation, not a proof that any production verifier is malicious.
+namespace OrdivonR21
+
+structure ReportedGateWorld where
+  callerSaysSatisfied : Bool
+  actualSpecificationHolds : Bool
+
+theorem same_satisfied_report_can_hide_opposite_truth :
+    ∃ (good bad : ReportedGateWorld),
+      good.callerSaysSatisfied = true ∧
+      bad.callerSaysSatisfied = true ∧
+      good.callerSaysSatisfied = bad.callerSaysSatisfied ∧
+      good.actualSpecificationHolds = true ∧
+      bad.actualSpecificationHolds = false := by
+  refine ⟨⟨true, true⟩, ⟨true, false⟩, ?_, ?_, ?_, ?_, ?_⟩ <;> rfl
+
+theorem no_report_only_decider_can_prove_actual_truth
+    (judge : Bool → Bool) :
+    ¬ (∀ world : ReportedGateWorld,
+         judge world.callerSaysSatisfied = world.actualSpecificationHolds) := by
+  intro h
+  have hTrue := h ⟨true, true⟩
+  have hFalse := h ⟨true, false⟩
+  simp only at hTrue hFalse
+  rw [hTrue] at hFalse
+  exact Bool.noConfusion hFalse
+
+end OrdivonR21
