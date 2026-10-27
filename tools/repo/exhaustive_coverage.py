@@ -1251,6 +1251,7 @@ def exact_git_reference_hints(
 def independent_scope_frontier(
     repo: Path, source: str, *, external_git: list[str],
     non_git_data: list[str], max_entries: int = 512,
+    git_checkout_observations: bool = False,
 ) -> dict:
     """Read-only scopes beside one exact Git subject. No membership inference.
 
@@ -1297,7 +1298,7 @@ def independent_scope_frontier(
         paths = tree(root, cut)
         top_levels = collections.Counter(
             x["path"].split("/", 1)[0] for x in paths)
-        scopes.append({
+        scope = {
             "scopeRef": "git-scope:" + label + "@" + cut,
             "label": label,
             "labelStanding": "CALLER_SCOPED_ALIAS_NOT_GLOBAL_IDENTITY",
@@ -1312,7 +1313,52 @@ def independent_scope_frontier(
             "ordivonAffiliationStanding": "UNKNOWN",
             "crossScopeConsumerStanding": "UNKNOWN",
             "installedStanding": "UNKNOWN",
-        })
+        }
+        if git_checkout_observations:
+            # Index, worktree metadata and pinned commit tree are separate
+            # objects. Observe them explicitly, without conflating content
+            # equality, invocation or safe deletion.
+            checkout_sha = git(root, "rev-parse", "--verify", "HEAD").decode().strip()
+            index_paths = [x for x in git(root, "ls-files", "-z").split(bytes([0])) if x]
+            records = git(root, "worktree", "list", "--porcelain").decode(
+                "utf-8", "surrogateescape").split("\n\n")
+            worktrees = []
+            for block in records:
+                lines = block.splitlines()
+                paths_here = [line[len("worktree "):] for line in lines
+                              if line.startswith("worktree ")]
+                if not paths_here:
+                    continue
+                if len(paths_here) != 1:
+                    raise ValueError("ambiguous worktree metadata locator")
+                location = paths_here[0]
+                prunable = any(line.startswith("prunable ") or line == "prunable"
+                               for line in lines)
+                worktrees.append({
+                    "locator": location,
+                    "prunable": prunable,
+                    "pathPresent": os.path.exists(location),
+                })
+            prunable = [w for w in worktrees if w["prunable"]]
+            scope["checkoutObservation"] = {
+                "checkedOutHead": checkout_sha,
+                "checkedOutHeadMatchesSourceCut": checkout_sha == cut,
+                "indexTrackedPaths": len(index_paths),
+                "pinnedCommitTreePaths": len(paths),
+                "indexToCommitCountStanding": (
+                    "COUNTS_EQUAL_CONTENT_NOT_PROVEN" if len(index_paths) == len(paths)
+                    else "COUNT_MISMATCH_NO_SEMANTIC_CONCLUSION"),
+                "linkedWorktreeMetadataRecords": len(worktrees),
+                "prunableWorktreeRecords": len(prunable),
+                "prunableLocationMissingCount": sum(
+                    not w["pathPresent"] for w in prunable),
+                "prunableWorktreeObservations": prunable[:64],
+                "prunableObservationsTruncated": len(prunable) > 64,
+                "indexIdentityStanding": "INDEX_PATH_COUNT_ONLY",
+                "safeCleanupStanding": "NOT_ESTABLISHED",
+                "runtimeConsumerStanding": "UNKNOWN",
+            }
+        scopes.append(scope)
     for raw in non_git_data:
         label, sep, path = raw.partition("=")
         if not sep:
@@ -1371,6 +1417,30 @@ def independent_scope_frontier(
         }
         for row in scopes
     ]
+    if git_checkout_observations:
+        for scope in scopes:
+            state = scope.get("checkoutObservation")
+            if state is None:
+                continue
+            issue_kinds = []
+            if not state["checkedOutHeadMatchesSourceCut"]:
+                issue_kinds.append("CHECKOUT_HEAD_DIFFERS_FROM_PINNED_CUT")
+            if state["indexTrackedPaths"] != state["pinnedCommitTreePaths"]:
+                issue_kinds.append("INDEX_AND_COMMIT_TREE_COUNTS_DIFFER")
+            if state["prunableWorktreeRecords"]:
+                issue_kinds.append("PRUNABLE_WORKTREE_METADATA_REQUIRES_CONSUMER_REVIEW")
+            for kind in issue_kinds:
+                scope_problems.append({
+                    "problemRef": "problem:cross-plane-checkout:" + scope["scopeRef"] + ":" + kind,
+                    "scopeRef": scope["scopeRef"],
+                    "kind": kind,
+                    "issueTags": ["NO_EMPTY_REPO_OR_CLEANUP_CONCLUSION_ALLOWED"],
+                    "consumerStanding": "UNKNOWN",
+                    "installedStanding": "UNKNOWN",
+                    "runtimeCallStanding": "NOT_ESTABLISHED",
+                    "remediationStanding": "DEFER_UNTIL_JOINT_CALL_SEMANTICS",
+                })
+
     return {
         "kind": "ordivon.phase1.cross-plane-source-scope-observations",
         "sourceCut": source,
@@ -1389,6 +1459,13 @@ def independent_scope_frontier(
             "crossScopeCallsVerified": 0,
             "installedSourcesBoundToGit": 0,
             "missingDynamicConsumerClosure": True,
+            "gitCheckoutObservationRequested": git_checkout_observations,
+            "checkoutCountMismatchScopes": sum(
+                x.get("checkoutObservation", {}).get("indexToCommitCountStanding") ==
+                "COUNT_MISMATCH_NO_SEMANTIC_CONCLUSION" for x in scopes),
+            "prunableWorktreeMetadataRecords": sum(
+                x.get("checkoutObservation", {}).get("prunableWorktreeRecords", 0)
+                for x in scopes),
         },
         "relatedNativeQueries": [
             "--problem-legos (main Git source and Plan only)",
@@ -1418,6 +1495,8 @@ def main() -> int:
                         help="derived full source+Plan problem LEGO map; never a registry")
     parser.add_argument("--scope-census", action="store_true",
                         help="observe explicit independent Git and non-Git source scopes")
+    parser.add_argument("--scope-git-worktrees", action="store_true",
+                        help="read-only Git checkout/index/prunable-worktree observations for explicit Git scopes")
     parser.add_argument("--external-git-cut", action="append", default=[],
                         help="label=absolute_git_root@exact_40hex_commit; no installed inference")
     parser.add_argument("--non-git-root", action="append", default=[],
@@ -1448,11 +1527,12 @@ def main() -> int:
             parser.error("scope census is separate from source/call/problem projections")
         result = independent_scope_frontier(
             args.repo, args.source_cut, external_git=args.external_git_cut,
-            non_git_data=args.non_git_root)
+            non_git_data=args.non_git_root,
+            git_checkout_observations=args.scope_git_worktrees)
         print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2))
         return 0
-    if args.external_git_cut or args.non_git_root:
-        parser.error("explicit external scopes require --scope-census")
+    if args.external_git_cut or args.non_git_root or args.scope_git_worktrees:
+        parser.error("explicit external scopes and Git checkout observations require --scope-census")
 
     if args.authority_observations is not None and not args.problem_legos:
         parser.error("--authority-observations requires --problem-legos")

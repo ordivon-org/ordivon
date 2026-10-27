@@ -657,6 +657,65 @@ class ExplicitIndependentScopeTests(unittest.TestCase):
                     ROOT, primary, external_git=[],
                     non_git_data=[f"alias={symlink}"])
 
+    def test_opt_in_checkout_observations_distinguish_commit_index_worktrees(self) -> None:
+        import tempfile
+        import shutil
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp).resolve() / "independent"
+            root.mkdir()
+            def run(*args):
+                return subprocess.check_output(
+                    ["git", "-C", str(root), *args], text=True,
+                    stderr=subprocess.DEVNULL).strip()
+            run("init", "-q")
+            run("config", "user.name", "Fixture")
+            run("config", "user.email", "fixture@example.test")
+            (root / "source.py").write_text("x = 1\n")
+            run("add", "source.py")
+            run("commit", "-qm", "source")
+            pinned = run("rev-parse", "HEAD")
+            orphan = pathlib.Path(tmp).resolve() / "missing-after-worktree"
+            run("worktree", "add", "-q", "-b", "fixture-other", str(orphan), pinned)
+            shutil.rmtree(orphan)
+            # Index is not the Git commit tree. It can be zero even while the
+            # pinned commit contains a real source blob; never classify empty.
+            run("rm", "--cached", "-q", "source.py")
+            main_cut = subprocess.check_output(
+                ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
+            args = dict(external_git=[f"fixture={root}@{pinned}"], non_git_data=[])
+            default = M.independent_scope_frontier(ROOT, main_cut, **args)
+            self.assertNotIn("checkoutObservation", default["observedScopes"][0])
+            observed = M.independent_scope_frontier(
+                ROOT, main_cut, git_checkout_observations=True, **args)
+            scope = observed["observedScopes"][0]
+            state = scope["checkoutObservation"]
+            self.assertEqual(scope["trackedPaths"], 1)
+            self.assertEqual(state["pinnedCommitTreePaths"], 1)
+            self.assertEqual(state["indexTrackedPaths"], 0)
+            self.assertEqual(state["indexToCommitCountStanding"],
+                             "COUNT_MISMATCH_NO_SEMANTIC_CONCLUSION")
+            self.assertEqual(state["checkedOutHead"], pinned)
+            self.assertTrue(state["checkedOutHeadMatchesSourceCut"])
+            self.assertEqual(state["prunableWorktreeRecords"], 1)
+            self.assertEqual(state["prunableLocationMissingCount"], 1)
+            self.assertEqual(state["safeCleanupStanding"], "NOT_ESTABLISHED")
+            kinds = {x["kind"] for x in observed["pendingScopeProblems"]}
+            self.assertIn("INDEX_AND_COMMIT_TREE_COUNTS_DIFFER", kinds)
+            self.assertIn("PRUNABLE_WORKTREE_METADATA_REQUIRES_CONSUMER_REVIEW", kinds)
+            self.assertTrue(all(x["consumerStanding"] == "UNKNOWN"
+                                for x in observed["pendingScopeProblems"]))
+            self.assertEqual(observed["summary"]["installedSourcesBoundToGit"], 0)
+            self.assertEqual(observed["summary"]["crossScopeCallsVerified"], 0)
+
+    def test_checkout_observation_cli_requires_explicit_scope_mode(self) -> None:
+        cut = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
+        cmd = ["python3", str(ROOT / "tools/repo/exhaustive_coverage.py"),
+               "--source-cut", cut, "--repo", str(ROOT), "--scope-git-worktrees"]
+        bad = subprocess.run(cmd, capture_output=True, text=True)
+        self.assertNotEqual(bad.returncode, 0)
+        self.assertIn("require --scope-census", bad.stderr)
+
     def test_missing_explicit_namespace_and_invalid_mode_fail_closed(self) -> None:
         sha = subprocess.check_output(
             ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
