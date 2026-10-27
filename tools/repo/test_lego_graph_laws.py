@@ -18,6 +18,38 @@ OWNER_GRAPH_PLANS = (
 )
 
 
+
+def test_repo_source_territory_is_real_semantic_lego_not_the_entire_file_census() -> None:
+    # One independently callable and version-bound responsibility: exact-cut
+    # classification. Its 325 source members do NOT become 325 LEGO nodes.
+    path = "tools/repo/planning/lego-plan-r1.json"
+    plan = json.loads((ROOT / path).read_text(encoding="utf-8"))
+    module.validate_owner_lego_graph(plan)
+    module.validate_owner_lego_dependencies(plan, "tools/repo")
+    nodes = {node["id"]: node for node in plan["nodes"]}
+    region = nodes["RG3_REGION"]
+    assert region["kind"] == "repository_source_classification"
+    for field in ("responsibility", "inputs", "outputs", "behavioralContract",
+                  "acceptance", "evidence", "consumerEvidence", "mustNotOwn"):
+        assert region[field], field
+    assert region["formalStanding"].endswith("IMPLEMENTATION_REFINEMENT_UNKNOWN")
+    assert {(edge["from"], edge["to"], edge["type"])
+            for edge in plan["edges"]} == {
+                ("RG2_OWNER", "RG3_REGION", "DEPENDENCY"),
+            }
+    assert any(slice_["nodeIds"] == ["RG3_REGION"] for slice_ in plan["slices"])
+    for source in region["evidence"]:
+        assert (ROOT / "tools/repo" / source).is_file()
+    graph = module.project_owner_lego_source_graph(ROOT)
+    vertex = next(row for row in graph["vertices"]
+                  if row["ref"] == f"{path}#RG3_REGION")
+    assert vertex["sourceAnchors"]
+    assert not vertex["unresolvedSourceEvidence"]
+    assert "ACTUAL_CONSUMER" in graph["excluded"]["unverifiedFacets"]
+    assert "FORMAL_PROOF" in graph["excluded"]["unverifiedFacets"]
+
+
+
 def test_host_legacy_agent_service_cursor_proposal_is_retired() -> None:
     """An old proposed LEGO is not an owner merely because its R1 row survived."""
     legacy = json.loads((ROOT / OWNER_GRAPH_PLANS[1]).read_text(encoding="utf-8"))
