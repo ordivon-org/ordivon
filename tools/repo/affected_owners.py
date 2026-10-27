@@ -5,6 +5,7 @@ import argparse
 import json
 from functools import lru_cache
 import os
+import re
 import subprocess
 import tomllib
 from dataclasses import dataclass
@@ -20,6 +21,8 @@ class Owner:
     root: str
     task: str
     queue_task: str
+    semantic_label: str = ""
+    semantic_scope: str = ""
 
 
 def load_owners(path: Path = MANIFEST_PATH) -> tuple[Owner, ...]:
@@ -40,6 +43,16 @@ def load_owners(path: Path = MANIFEST_PATH) -> tuple[Owner, ...]:
         root = row.get("root")
         task = row.get("verify_task")
         queue_task = row.get("queue_verify_task", task)
+        semantic_label = row.get("semantic_label", name)
+        semantic_scope = row.get("semantic_scope", "UNQUALIFIED_SOURCE_AREA")
+        if (
+            not isinstance(semantic_label, str)
+            or re.fullmatch(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*", semantic_label) is None
+            or not isinstance(semantic_scope, str)
+            or not semantic_scope.strip()
+            or any(ord(c) < 32 for c in semantic_scope)
+        ):
+            raise ValueError(f"owner {name}: invalid semantic_label or semantic_scope")
         if not all(isinstance(value, str) and value.strip() for value in (name, root, task, queue_task)):
             raise ValueError(
                 f"owner row {index} requires non-empty name/root/verify_task and optional queue_verify_task"
@@ -49,7 +62,10 @@ def load_owners(path: Path = MANIFEST_PATH) -> tuple[Owner, ...]:
         normalized = _normalize(root).rstrip("/") + "/"
         if normalized != root:
             raise ValueError(f"owner {name}: root is not canonical: {root}")
-        owners.append(Owner(name=name, root=root, task=task, queue_task=queue_task))
+        owners.append(Owner(
+            name=name, root=root, task=task, queue_task=queue_task,
+            semantic_label=semantic_label, semantic_scope=semantic_scope,
+        ))
 
     names = [owner.name for owner in owners]
     roots = [owner.root for owner in owners]
@@ -63,6 +79,10 @@ def load_owners(path: Path = MANIFEST_PATH) -> tuple[Owner, ...]:
     ):
         if len(values) != len(set(values)):
             raise ValueError(f"owner manifest contains duplicate {label}")
+
+    labels = [owner.semantic_label for owner in owners]
+    if len(labels) != len(set(labels)):
+        raise ValueError("owner manifest contains duplicate semantic_label")
 
     for i, left in enumerate(owners):
         for right in owners[i + 1 :]:
@@ -397,12 +417,15 @@ def main() -> int:
             json.dumps(
                 {
                     "changedPaths": list(paths),
+                    "truthRole": "source-navigation-and-verification-routing-only-not-lego-formal-or-approval-authority",
                     "owners": [
                         {
                             "name": owner.name,
                             "root": owner.root,
                             "task": owner.task,
                             "queueTask": owner.queue_task,
+                            "semanticLabel": owner.semantic_label,
+                            "semanticScope": owner.semantic_scope,
                         }
                         for owner in selected
                     ],
