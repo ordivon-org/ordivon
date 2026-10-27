@@ -717,6 +717,77 @@ def inspect_owner_lego_contract(
         "proofReuseAdmissible": False,
     }
 
+
+def inspect_owner_source_path(
+    *, source_revision: str, source_path: str, root: Path = ROOT,
+) -> dict[str, Any]:
+    """Agent path→owner→declared LEGO lookup; no consumer/proof equivalence."""
+    import tomllib
+    if (not source_path or source_path.startswith("/") or chr(92) in source_path
+            or any(part in {"", ".", ".."} for part in source_path.split("/"))):
+        raise ArchitectureDocsError("inspect requires canonical source path")
+    if not re.fullmatch(r"[0-9a-f]{40}", source_revision):
+        raise ArchitectureDocsError("inspect requires exact 40-hex SourceCut")
+    if __package__:
+        from . import source_history_legos
+    else:
+        import source_history_legos
+
+    graph = project_owner_lego_source_graph(root, source_revision=source_revision)
+    files = source_history_legos.current_tree(root, source_revision)
+    owners = source_history_legos.owners(root, source_revision)
+    manifest = tomllib.loads(source_history_legos.git(
+        root, "--no-replace-objects", "show",
+        source_revision + ":tools/repo/owners.toml",
+    ))
+    registered = {(x["root"], x["name"]): x for x in manifest["owners"]}
+    selected = []
+    for prefix, name in owners:
+        if source_path.startswith(prefix):
+            row = registered.get((prefix, name))
+            selected.append({
+                "name": name,
+                "root": prefix,
+                "verifyTask": row["verify_task"] if row else "repo:ci",
+                "queueVerifyTask": (
+                    row.get("queue_verify_task", row["verify_task"]) if row
+                    else "repo:ci"
+                ),
+            })
+    anchored = [
+        {
+            "ref": vertex["ref"],
+            "sourceCoverageStanding": vertex["sourceCoverageStanding"],
+            "sourceWitness": [
+                anchor for anchor in vertex["sourceAnchors"]
+                if anchor["path"] == source_path
+            ],
+        }
+        for vertex in graph["vertices"]
+        if any(anchor["path"] == source_path for anchor in vertex["sourceAnchors"])
+    ]
+    return {
+        "kind": "ordivon.owner-source-path-inspection",
+        "truthRole": "IMMUTABLE_GIT_AND_DECLARED_ANCHORS_ONLY",
+        "sourceCut": source_revision,
+        "path": source_path,
+        "sourceIdentity": files.get(source_path),
+        "sourceMembershipStanding": (
+            "TRACKED_SOURCE" if source_path in files else "ABSENT_AT_SOURCECUT"
+        ),
+        "ownerPartitions": selected,
+        "declaredLegoAnchors": anchored,
+        "legoDiscoveryStanding": (
+            "DECLARED_ANCHOR_PARTIAL" if anchored else "UNKNOWN_UNINDEXED"
+        ),
+        "consumerProofStanding": "UNKNOWN",
+        "unverifiedFacets": graph["excluded"]["unverifiedFacets"],
+        "proofReuseAdmissible": False,
+        "nextOperation": (
+            "inspect-owner-lego" if anchored else "investigate-source-consumers"
+        ),
+    }
+
 def project_owner_lego_source_change(
     *, before_revision: str, after_revision: str, root: Path = ROOT,
 ) -> dict[str, Any]:
@@ -2095,6 +2166,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--project-owner-graphs", action="store_true")
     parser.add_argument("--inspect-owner-lego", help="exact registered plan path#node ID at --source-revision")
+    parser.add_argument("--inspect-owner-path", help="exact source path at --source-revision")
     parser.add_argument("--source-revision", help="exact Git commit for immutable graph projection")
     parser.add_argument("--compare-source-revision",
                         help="earlier immutable Git commit to compare against --source-revision")
@@ -2102,9 +2174,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--python-target-source", help="exact node-anchored Python src file")
     args = parser.parse_args(argv)
     try:
-        if args.source_revision and not (args.project_owner_graphs or args.inspect_python_node or args.inspect_owner_lego):
+        if args.source_revision and not (args.project_owner_graphs or args.inspect_python_node or args.inspect_owner_lego or args.inspect_owner_path):
             raise ArchitectureDocsError("--source-revision requires graph or node inspection")
-        if sum(bool(x) for x in (args.project_owner_graphs, args.inspect_python_node, args.inspect_owner_lego)) > 1:
+        if sum(bool(x) for x in (args.project_owner_graphs, args.inspect_python_node, args.inspect_owner_lego, args.inspect_owner_path)) > 1:
             raise ArchitectureDocsError("inspection and projection modes are mutually exclusive")
         if args.inspect_owner_lego and (not args.source_revision or args.compare_source_revision or args.python_target_source):
             raise ArchitectureDocsError("Owner LEGO inspection requires one exact SourceCut and no comparison")
@@ -2114,6 +2186,14 @@ def main(argv: list[str] | None = None) -> int:
             raise ArchitectureDocsError("Python inspect requires node and source together")
         if args.inspect_python_node and not args.source_revision:
             raise ArchitectureDocsError("Python inspect requires exact source revision")
+        if args.inspect_owner_path:
+            if not args.source_revision or args.compare_source_revision or args.python_target_source:
+                raise ArchitectureDocsError("Owner path inspection requires one exact SourceCut and no comparison")
+            print(json.dumps(inspect_owner_source_path(
+                source_revision=args.source_revision,
+                source_path=args.inspect_owner_path,
+            ), sort_keys=True))
+            return 0
         if args.inspect_owner_lego:
             print(json.dumps(inspect_owner_lego_contract(
                 source_revision=args.source_revision, node_ref=args.inspect_owner_lego
