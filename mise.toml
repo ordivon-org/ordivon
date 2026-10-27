@@ -314,5 +314,11 @@ uv run --with pyyaml==6.0.3 python capabilities/preservation/scripts/test_verify
 uv run --with pyyaml==6.0.3 python capabilities/preservation/scripts/verify_source.py
 """
 
+# Reuse the native installed Skills discovery/qualification tests. R2.1
+# remains the canonical source under .agents; this task does not establish
+# model/refinement or domain-acceptance PASS.
+[tasks."lego-core:verify"]
+run = "mise run skills:verify"
+
 [tasks."formal:verify"]
 run = "cd tools/formal && mise run verify"

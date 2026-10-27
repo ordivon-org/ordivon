@@ -63,6 +63,16 @@ allowed_fragment = "platform/security"
 kind = "E2E_OWNER_LOCATOR"
 contract_ref = "apps/web/README.md"
 
+# Media's writing-method dossier consumes the canonical R2.1 source as
+# provenance; it does not execute a LEGO engine or attest Formal correctness.
+[[seams]]
+from_owner = "media"
+to_owner = "lego-core"
+source_glob = "capabilities/media/productions/fishing-fable-lego-study-r1/claims.json"
+allowed_fragment = ".agents/skills/recursive-lego-calculus/SKILL.md"
+kind = "PUBLIC_SOURCE_CONTRACT"
+contract_ref = ".agents/skills/recursive-lego-calculus/SKILL.md"
+
 [[seams]]
 from_owner = "media"
 to_owner = "artifact"

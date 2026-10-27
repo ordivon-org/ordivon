@@ -49,11 +49,14 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertEqual(plan["directOwners"], ["media"])
         self.assertEqual(
             plan["verificationOwners"],
-            ["artifact", "distribution", "game", "media", "workstation"],
+            ["artifact", "distribution", "game", "lego-core", "media", "workstation"],
         )
         self.assertEqual(len(plan["scopeIds"]), 1)
         self.assertIn("artifact:verify", plan["verifyTasks"])
         self.assertIn("artifact:queue", plan["queueVerifyTasks"])
+        # New Media -> R2.1 method-source binding is source/provenance only;
+        # the existing connected-component planner is conservatively coarse.
+        self.assertIn("lego-core:verify", plan["verifyTasks"])
 
     def test_security_change_expands_to_harness_and_web_component(self) -> None:
         plan = MODULE.build_plan(changed_files=["platform/security/README.md"])

@@ -108,6 +108,26 @@ class OwnerBoundaryTests(unittest.TestCase):
         self.assertEqual(set(witnessed), set(SEAMS))
         self.assertTrue(all(witnessed.values()))
 
+    def test_media_method_source_consumer_uses_canonical_lego_core_without_implied_execution(self) -> None:
+        finding = self.finding(
+            "capabilities/media/productions/fishing-fable-lego-study-r1/claims.json",
+            '"path": ".agents/skills/recursive-lego-calculus/SKILL.md"',
+        )
+        self.assertEqual((finding.from_owner, finding.to_owner), ("media", "lego-core"))
+        matches = MODULE._matching_seams(finding, SEAMS)
+        self.assertEqual(len(matches), 1)
+        self.assertEqual(matches[0].kind, "PUBLIC_SOURCE_CONTRACT")
+        self.assertTrue(matches[0].contract_ref.endswith("recursive-lego-calculus/SKILL.md"))
+        # A related skill or different media caller is not granted this source
+        # provenance seam; static citation is not dynamic consumer/Proof PASS.
+        other = MODULE.findings_for_text(
+            "capabilities/media/scripts/creative_library.py",
+            '"path": ".agents/skills/recursive-lego-calculus/SKILL.md"',
+            OWNERS,
+        )
+        self.assertTrue(other)
+        self.assertFalse(MODULE._allowed(other[0], SEAMS))
+
     def test_public_security_contract_is_allowed(self) -> None:
         finding = self.finding(
             "apps/web/src/security-agent-verifier.ts",

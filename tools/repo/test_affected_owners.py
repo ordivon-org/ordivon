@@ -25,6 +25,25 @@ class AffectedOwnersTests(unittest.TestCase):
     def queue_tasks(self, *paths: str) -> list[str]:
         return [owner.queue_task for owner in MODULE.owners_for_paths(paths)]
 
+    def test_r21_semantic_core_and_native_repo_formal_sources_are_independent_roots(self) -> None:
+        expected = {
+            ".agents/skills/recursive-lego-calculus/references/formal-model.md": "lego-core",
+            "tools/formal/RecursiveLegoRefinement.lean": "formal",
+        }
+        for path, natural_owner in expected.items():
+            self.assertEqual(self.names(path), [natural_owner], path)
+        # Skills runtime/catalog is a different responsibility from canonical
+        # LEGO calculus; a formal verifier is a tool, not a second truth owner.
+        self.assertEqual(self.names("platform/skills/src/ordivon_skills/catalog.py"), ["skills"])
+        self.assertEqual(self.names("packages/composition/src/ordivon_composition/interface_contract_r2.py"), ["composition"])
+        # A method outside canonical R2.1 is not silently promoted into core.
+        self.assertEqual(self.names(".agents/skills/method-router/SKILL.md"), [])
+        self.assertEqual(self.names("meta/research/publication-closure-profile-r2.json"), [])
+        # Repo mechanics are already central cross-cutting Git/Owner tools;
+        # naming their test fixture paths a production Owner would invent
+        # cross-Owner consumers and permission seams.
+        self.assertEqual(self.names("tools/repo/source_history_legos.py"), [])
+
     def test_owner_local_change_selects_only_that_owner(self) -> None:
         self.assertEqual(
             self.names("platform/skills/src/ordivon_skills/catalog.py"),
