@@ -525,6 +525,54 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         self.assertIn("--deselect=", artifact_mise["tasks"]["queue"]["run"])
         self.assertNotIn("--deselect=", artifact_mise["tasks"]["verify"]["run"])
 
+    def test_workstation_native_ci_replaces_nondiscovered_nested_ci(self) -> None:
+        """GitHub current-monorepo CI delegates to current Workstation native CI.
+
+        A standalone extracted Workstation repo or installed Windows runner
+        is a DIFFERENT source namespace and not qualified by this assertion.
+        """
+        import tomllib
+
+        self.assertFalse(
+            (ROOT / "platform/workstation/.github/workflows/ci.yml").exists(),
+            "nested GitHub Actions owner CI is not discovered in this monorepo",
+        )
+        root_workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        self.assertIn("  pull_request:", root_workflow)
+        self.assertIn("  merge_group:", root_workflow)
+        self.assertLess(root_workflow.index("Select affected owners"),
+                        root_workflow.index("Verify affected owners"))
+        owners = tomllib.loads((ROOT / "tools/repo/owners.toml").read_text(encoding="utf-8"))
+        records = [o for o in owners["owners"] if o["name"] == "workstation"]
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0]["root"], "platform/workstation/")
+        self.assertEqual(records[0]["verify_task"], "workstation:ci")
+        root_mise = tomllib.loads((ROOT / "mise.toml").read_text(encoding="utf-8"))
+        for outer, inner in (("workstation:ci", "ci"), ("workstation:verify", "verify")):
+            cmd = root_mise["tasks"][outer]["run"]
+            self.assertIn("cd platform/workstation", cmd)
+            self.assertIn(f"mise run {inner}", cmd)
+        native = tomllib.loads((ROOT / "platform/workstation/mise.toml").read_text(encoding="utf-8"))
+        self.assertEqual(native["tools"]["python"], "3.15.1")
+        self.assertEqual(native["tools"]["pnpm"], "12.15.0")
+        ci = native["tasks"]["ci"]["run"]
+        for required in (
+            "uv lock --check", "uv sync --locked", "uv run ruff check .",
+            "uv run python -m pytest", "pnpm install --frozen-lockfile",
+            "pnpm run ci", "shellcheck",
+        ):
+            self.assertIn(required, ci)
+        self.assertIn("--ignore=tests/test_workstation_consequences.py", ci)
+        self.assertIn("tests/test_workstation_consequences.py", native["tasks"]["verify"]["run"])
+        result = subprocess.run(
+            [sys.executable, str(ROOT / "tools/repo/affected_owners.py"),
+             "--changed-file", "platform/workstation/.github/workflows/ci.yml",
+             "--format", "queue-tasks"],
+            cwd=ROOT, capture_output=True, text=True, timeout=25, check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), "workstation:ci")
+
 
 if __name__ == "__main__":
     unittest.main()
