@@ -1,0 +1,228 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-web-agent-trust-rails-r1",
+    "purpose": "Decompose confirmed website Human/Agent authority and effect-replay responsibilities, with explicit canary scope and cross-Security consumer contracts. No new Web runtime or registry.",
+    "sourceEvidence": [
+      "README.md",
+      "src/app.ts",
+      "src/webauthn.ts",
+      "src/store.ts",
+      "src/agent-authority.ts",
+      "src/security-agent-verifier.ts",
+      "test/app.test.ts",
+      "test/agent-authority.test.ts"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "W01",
+      "label": "WebAuthnPrincipalAndChallenge",
+      "kind": "identity_boundary",
+      "responsibility": "Bind one account/Principal to an authenticated WebAuthn credential/challenge lifecycle by delegating protocol verification to SimpleWebAuthn.",
+      "authority": "Web product/session/effect state only; Security/provider cryptographic and policy truth remain external",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "principal/enrollment context; one-shot challenge and credential records",
+        "browser WebAuthn ceremony result"
+      ],
+      "outputs": [
+        "authenticated Principal identity and consumed challenge or denial"
+      ],
+      "behavioralContract": "Challenge consumption is one-shot; credential and challenge are persisted to the Owner-local store; browser/virtual authenticator proof is not a claim of physical human presence.",
+      "acceptance": [
+        "Owner session/challenge tests verify one-shot behavior and browser E2E evidence scopes without treating canary enrollment as production-ready."
+      ],
+      "evidence": [
+        "src/webauthn.ts",
+        "src/store.ts",
+        "test/app.test.ts",
+        "README.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "WebAuthn cryptographic protocol implementation",
+        "Security Agent OAuth/DPoP verification or Agent admission policy",
+        "production IAM enrollment or deployment acceptance"
+      ],
+      "sharedRefs": [],
+      "consumerBindings": [
+        {
+          "path": "apps/web/src/app.ts",
+          "standing": "SOURCE_HANDLER_OR_TEST_NOT_INSTALLED"
+        }
+      ],
+      "formalObligations": [
+        "Refinement gap: real external authenticator/canary enrollment/production recovery and installed TLS context remain UNKNOWN."
+      ],
+      "sourceStanding": "CANARY_IMPLEMENTATION_LOCAL_TESTS; DEPLOYED_CURRENTNESS_UNKNOWN"
+    },
+    {
+      "id": "W02",
+      "label": "BrowserSessionAndMutationAdmission",
+      "kind": "browser_authorization",
+      "responsibility": "Admit human browser state mutations only under an authenticated opaque session plus CSRF, exact Origin and Fetch-Metadata checks.",
+      "authority": "Web product/session/effect state only; Security/provider cryptographic and policy truth remain external",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "opaque browser session cookie; server-stored hash, session expiry/revocation state",
+        "HTTP method/Origin/CSRF/Fetch-Site and mutation payload"
+      ],
+      "outputs": [
+        "Principal session projection; admitted authenticated mutation or typed denial"
+      ],
+      "behavioralContract": "Session token is not an authority-bearing credential beyond its exact server-bound identity; unsafe browser mutations require same-site and CSRF guards; session idle/absolute expiry, revocation and audit operate independently of Agent DPoP flow.",
+      "acceptance": [
+        "Native web tests verify hashed session tokens, absent-origin/CSRF denial, idle expiration and session revocation."
+      ],
+      "evidence": [
+        "src/app.ts",
+        "src/store.ts",
+        "test/app.test.ts"
+      ],
+      "dependencies": [
+        "W01"
+      ],
+      "mustNotOwn": [
+        "WebAuthn cryptographic protocol implementation",
+        "Security Agent OAuth/DPoP verification or Agent admission policy",
+        "production IAM enrollment or deployment acceptance"
+      ],
+      "sharedRefs": [],
+      "consumerBindings": [
+        {
+          "path": "apps/web/test/app.test.ts",
+          "standing": "SOURCE_HANDLER_OR_TEST_NOT_INSTALLED"
+        }
+      ],
+      "formalObligations": [
+        "A local test-only SQLite-backed session is not evidence of production reliability, or an argument to retain SQLite in long-term persistent architecture."
+      ],
+      "sourceStanding": "CANARY_IMPLEMENTATION_LOCAL_TESTS; DEPLOYED_CURRENTNESS_UNKNOWN"
+    },
+    {
+      "id": "W03",
+      "label": "AgentGrantIssueAndRevocation",
+      "kind": "delegated_grant_contract",
+      "responsibility": "Manage Principal-owned delegated Agent Grants, scope, revocation and remaining-effect budgets without inventing OAuth/DPoP verifier or Security policy.",
+      "authority": "Web product/session/effect state only; Security/provider cryptographic and policy truth remain external",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "WebAuthn-authenticated Principal authorization and grant request",
+        "Agent identity, audience, actions, risk and resource scope"
+      ],
+      "outputs": [
+        "versioned Grant record; revocation and remaining-quota state with consumer-visible standing"
+      ],
+      "behavioralContract": "Issued Grants and revocations bind one Principal/Agent/scope and remain source-owned; revoked Grants block future effects without invalidating already committed historical exact replay.",
+      "acceptance": [
+        "Owner Agent authority tests cover Grant revocation and future-effect denial distinct from historical committed receipts."
+      ],
+      "evidence": [
+        "src/webauthn.ts",
+        "src/store.ts",
+        "src/app.ts",
+        "test/agent-authority.test.ts"
+      ],
+      "dependencies": [
+        "W01"
+      ],
+      "mustNotOwn": [
+        "WebAuthn cryptographic protocol implementation",
+        "Security Agent OAuth/DPoP verification or Agent admission policy",
+        "production IAM enrollment or deployment acceptance"
+      ],
+      "sharedRefs": [],
+      "consumerBindings": [
+        {
+          "path": "apps/web/test/agent-authority.test.ts",
+          "standing": "SOURCE_HANDLER_OR_TEST_NOT_INSTALLED"
+        }
+      ],
+      "formalObligations": [
+        "No generalization from canary Grant scope to live provider IAM or production issuance recovery."
+      ],
+      "sourceStanding": "CANARY_IMPLEMENTATION_LOCAL_TESTS; DEPLOYED_CURRENTNESS_UNKNOWN"
+    },
+    {
+      "id": "W04",
+      "label": "DelegatedAgentEffectAdmissionAndReplay",
+      "kind": "effect_admission_contract",
+      "responsibility": "Authorize a specific delegated Agent effect by composing Security-owned request verification/admission with an exact Web Grant, effect identity and optional WebAuthn step-up, then preserve exact replay.",
+      "authority": "Web product/session/effect state only; Security/provider cryptographic and policy truth remain external",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "verified OAuth/DPoP Agent request; Grant snapshot; proposed effect ID and payload",
+        "Security Agent Admission and Effect Admission decision; optional Principal WebAuthn approval"
+      ],
+      "outputs": [
+        "committed scoped effect receipt, stable exact replay, or denial/conflict"
+      ],
+      "behavioralContract": "No verifier implies fail-closed; ambiguous Grants and conflicting replay are rejected; exact replay of an already committed effect remains valid after Grant revocation, while fresh effects are denied; effect-bound STEP_UP consumes one permitted approval.",
+      "acceptance": [
+        "Owner test suite checks exact replay and conflicting payload refusal, ambiguous Grants, missing Security verification, step-up and revocation."
+      ],
+      "evidence": [
+        "src/app.ts",
+        "src/agent-authority.ts",
+        "src/security-agent-verifier.ts",
+        "src/store.ts",
+        "test/agent-authority.test.ts"
+      ],
+      "dependencies": [
+        "W01",
+        "W03"
+      ],
+      "mustNotOwn": [
+        "WebAuthn cryptographic protocol implementation",
+        "Security Agent OAuth/DPoP verification or Agent admission policy",
+        "production IAM enrollment or deployment acceptance"
+      ],
+      "sharedRefs": [],
+      "consumerBindings": [
+        {
+          "path": "apps/web/test/agent-authority.test.ts",
+          "standing": "SOURCE_HANDLER_OR_TEST_NOT_INSTALLED"
+        }
+      ],
+      "formalObligations": [
+        "Security external verifier/policy behavior must retain own source/installed bindings; canary evidence is not proof of real provider effect or production eligibility."
+      ],
+      "sourceStanding": "CANARY_IMPLEMENTATION_LOCAL_TESTS; DEPLOYED_CURRENTNESS_UNKNOWN"
+    }
+  ],
+  "edges": [
+    {
+      "from": "W01",
+      "to": "W02",
+      "type": "AUTHORITY",
+      "label": "principal and session source identity bounds browser mutations"
+    },
+    {
+      "from": "W01",
+      "to": "W03",
+      "type": "AUTHORITY",
+      "label": "Principal WebAuthn ceremony bounds grant issue/revocation"
+    },
+    {
+      "from": "W03",
+      "to": "W04",
+      "type": "POLICY",
+      "label": "versioned Grant authorization restricts delegated Agent effect"
+    },
+    {
+      "from": "W01",
+      "to": "W04",
+      "type": "EVIDENCE",
+      "label": "WebAuthn step-up approval can bind a particular high-risk effect"
+    }
+  ],
+  "slices": [],
+  "knownGaps": [
+    "Actual canary state uses SQLite; this planning record does not promote it to a permanent database or attest PG cutover.",
+    "Security-owned OAuth/DPoP and admission contract are imported via Web adapters; installed verifier and real user/provider authorization remain independently qualified.",
+    "App is explicitly non-production-eligible; E2E virtual CTAP2 is not physical-human-presence evidence."
+  ]
+}
