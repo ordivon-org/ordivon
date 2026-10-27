@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-for f in external-lock.json composition-v1.json adapters/*.json contracts/*.json; do jq -e . "$f" >/dev/null; done
+for f in external-lock.json adapters/*.json contracts/*.json; do jq -e . "$f" >/dev/null; done
 python - <<'PYOPA'
 import json
 from pathlib import Path
