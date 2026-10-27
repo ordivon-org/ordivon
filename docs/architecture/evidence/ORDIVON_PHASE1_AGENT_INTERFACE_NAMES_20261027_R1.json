@@ -363,5 +363,454 @@
   "sourceCount": 24,
   "sourceCut": "d808ff09cf52422ad67ad880d856a8a1bad622b1",
   "sourceTree": "7ab6b966666f2298b9b9ffcc8b8e3bbd5c484b7a",
-  "truthRole": "SOURCE_AND_LEXICAL_ROLE_PROPOSALS_NOT_SEMANTIC_LEGO_OR_INSTALLED_OR_FORMAL"
+  "truthRole": "SOURCE_AND_LEXICAL_ROLE_PROPOSALS_NOT_SEMANTIC_LEGO_OR_INSTALLED_OR_FORMAL",
+  "wholeSystemSourceBoundarySurvey": {
+    "coveredVerificationScopeCount": 18,
+    "entries": [
+      {
+        "agentReadableName": "standards-reference-source-check",
+        "consumerStanding": "UNKNOWN",
+        "evidenceLiteral": "RECORD_SCHEMA = ROOT",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "notEquivalentTo": "not-installed-IAM-authority",
+        "qualification": "EXACT_GIT_CONTENT_NOT_CONSUMER_OR_RUNTIME",
+        "sourceCarrierRole": "external-standards-record-validator-source",
+        "sourceIdentity": "100644:blob:95ac83ec4f31bc0e47e9f30340820bdc1a8b33a2",
+        "sourcePath": "meta/next/scripts/check_authority_catalog_r1.py",
+        "verificationScopeName": "next"
+      },
+      {
+        "agentReadableName": "standards-identity-claims-schema",
+        "consumerStanding": "UNKNOWN",
+        "evidenceLiteral": "\"kind\": {\"const\": \"ordivon.external-authority-record\"}",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "notEquivalentTo": "not-runtime-execution-right",
+        "qualification": "EXACT_GIT_CONTENT_NOT_CONSUMER_OR_RUNTIME",
+        "sourceCarrierRole": "external-standard-identity-record-schema",
+        "sourceIdentity": "100644:blob:80cee47d4ed22a259e18b77f0a52f0c765793c96",
+        "sourcePath": "meta/next/schemas/external-authority-record-v1.schema.json",
+        "verificationScopeName": "next"
+      },
+      {
+        "agentReadableName": "task-local-composition-graph-evaluator",
+        "consumerStanding": "UNKNOWN",
+        "evidenceLiteral": "Task-local Cognitive Circuit R1",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "notEquivalentTo": "not-domain-completion-or-kernel-proof",
+        "qualification": "EXACT_GIT_CONTENT_NOT_CONSUMER_OR_RUNTIME",
+        "sourceCarrierRole": "composition-gate-compilation-source",
+        "sourceIdentity": "100644:blob:da59d637d13dc3f1d6c74be36c018f0c48fa1d6b",
+        "sourcePath": "packages/composition/src/ordivon_composition/cognitive_circuit_r1.py",
+        "verificationScopeName": "composition"
+      },
+      {
+        "agentReadableName": "task-local-obligation-binding-projector",
+        "consumerStanding": "UNKNOWN",
+        "evidenceLiteral": "Task-local verification-obligation compilation",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "notEquivalentTo": "not-formal-discharge",
+        "qualification": "EXACT_GIT_CONTENT_NOT_CONSUMER_OR_RUNTIME",
+        "sourceCarrierRole": "verification-obligation-binding-compiler-source",
+        "sourceIdentity": "100644:blob:18613a85b7233624606206eba1ce2b2cb4ee48b4",
+        "sourcePath": "packages/composition/src/ordivon_composition/verification_obligation_r1.py",
+        "verificationScopeName": "composition"
+      },
+      {
+        "agentReadableName": "runtime-provider-contract-seam",
+        "consumerStanding": "UNKNOWN",
+        "evidenceLiteral": "Internal execution-provider assume/guarantee seam",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "notEquivalentTo": "not-installed-linux-windows-equivalence",
+        "qualification": "EXACT_GIT_CONTENT_NOT_CONSUMER_OR_RUNTIME",
+        "sourceCarrierRole": "execution-provider-contract-implementation-source",
+        "sourceIdentity": "100644:blob:9512bc2372473ccdd898af2204392aca5e8dba93",
+        "sourcePath": "services/runtime/crates/ordivon-runtime-core/src/runtime/execution_provider.rs",
+        "verificationScopeName": "runtime"
+      },
+      {
+        "agentReadableName": "runtime-job-attempt-state-identity",
+        "consumerStanding": "UNKNOWN",
+        "evidenceLiteral": "enum OperationIdentityBindings",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "notEquivalentTo": "not-authoritative-job-instance-state",
+        "qualification": "EXACT_GIT_CONTENT_NOT_CONSUMER_OR_RUNTIME",
+        "sourceCarrierRole": "runtime-job-attempt-identity-logic-source",
+        "sourceIdentity": "100644:blob:2cd92d300301f4e498169acca55b712995172250",
+        "sourcePath": "services/runtime/crates/ordivon-runtime-core/src/runtime/job_attempt_state.rs",
+        "verificationScopeName": "runtime"
+      },
+      {
+        "agentReadableName": "agent-request-token-verification-contract",
+        "consumerStanding": "UNKNOWN",
+        "evidenceLiteral": "export interface VerifiedAgent",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "notEquivalentTo": "not-verified-current-user",
+        "qualification": "EXACT_GIT_CONTENT_NOT_CONSUMER_OR_RUNTIME",
+        "sourceCarrierRole": "authn-verifier-reusable-contract-source",
+        "sourceIdentity": "100644:blob:8db2c6c072ba1d8244eb92bc9e482612596089a6",
+        "sourcePath": "platform/security/contracts/agent-request-verifier-v1/src/index.ts",
+        "verificationScopeName": "security"
+      },
+      {
+        "agentReadableName": "agent-admission-oauth-laboratory",
+        "consumerStanding": "UNKNOWN",
+        "evidenceLiteral": "export interface OAuthVerifierOptions",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "notEquivalentTo": "not-installed-security-gateway",
+        "qualification": "EXACT_GIT_CONTENT_NOT_CONSUMER_OR_RUNTIME",
+        "sourceCarrierRole": "authn-lab-verifier-source",
+        "sourceIdentity": "100644:blob:22480118ac20933d23074075bcc773440279a434",
+        "sourcePath": "platform/security/labs/agent-admission-rs/src/oauth-verifier.ts",
+        "verificationScopeName": "security"
+      },
+      {
+        "agentReadableName": "edge-cloudflare-lifecycle-command",
+        "consumerStanding": "UNKNOWN",
+        "evidenceLiteral": "Apply Ordivon Edge R2 lifecycle rules",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "notEquivalentTo": "not-executed-current-policy",
+        "qualification": "EXACT_GIT_CONTENT_NOT_CONSUMER_OR_RUNTIME",
+        "sourceCarrierRole": "external-edge-lifecycle-configuration-command-source",
+        "sourceIdentity": "100755:blob:6ac4773472bca395179208cfb9bde089c20ddbe4",
+        "sourcePath": "platform/workstation/providers/cloudflare/scripts/configure_r2_lifecycle.py",
+        "verificationScopeName": "workstation"
+      },
+      {
+        "agentReadableName": "edge-cloudflare-proposed-policy",
+        "consumerStanding": "UNKNOWN",
+        "evidenceLiteral": "\"family\": \"p1.6\"",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "notEquivalentTo": "not-current-installed-edge-policy",
+        "qualification": "EXACT_GIT_CONTENT_NOT_CONSUMER_OR_RUNTIME",
+        "sourceCarrierRole": "external-edge-provider-policy-source",
+        "sourceIdentity": "100644:blob:3f483e213ce95e9959c206a2822eaba915844bde",
+        "sourcePath": "platform/workstation/providers/cloudflare/config/edge-policy.json",
+        "verificationScopeName": "workstation"
+      },
+      {
+        "agentReadableName": "chat-ingress-egress-desired-configuration",
+        "consumerStanding": "UNKNOWN",
+        "evidenceLiteral": "\"kind\": \"ordivon.network-v2.chat-ingress-egress\"",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "notEquivalentTo": "not-observed-live-egress",
+        "qualification": "EXACT_GIT_CONTENT_NOT_CONSUMER_OR_RUNTIME",
+        "sourceCarrierRole": "network-consumer-egress-requirement-source",
+        "sourceIdentity": "100644:blob:64ba1c66f049dad6e57977ff09cf396de703e2d9",
+        "sourcePath": "platform/network/consumers/chat-ingress/config/egress.json",
+        "verificationScopeName": "network"
+      },
+      {
+        "agentReadableName": "network-sing-box-direct-profile",
+        "consumerStanding": "UNKNOWN",
+        "evidenceLiteral": "\"outbounds\"",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "notEquivalentTo": "not-active-network-routing",
+        "qualification": "EXACT_GIT_CONTENT_NOT_CONSUMER_OR_RUNTIME",
+        "sourceCarrierRole": "network-transport-provider-config-source",
+        "sourceIdentity": "100644:blob:f6eec7ecce82c204a73b0dc69b109baa42c2ad73",
+        "sourcePath": "platform/network/config/sing-box/direct.json",
+        "verificationScopeName": "network"
+      },
+      {
+        "agentReadableName": "artifact-agent-intent-command-surface",
+        "consumerStanding": "UNKNOWN",
+        "evidenceLiteral": "Thin Agent-facing semantic surface",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "notEquivalentTo": "not-running-format-verifier",
+        "qualification": "EXACT_GIT_CONTENT_NOT_CONSUMER_OR_RUNTIME",
+        "sourceCarrierRole": "artifact-agent-intent-adapter-source",
+        "sourceIdentity": "100644:blob:e27281c058ae324e4077c4a8185379e3fa67534c",
+        "sourcePath": "capabilities/artifact/scripts/artifact_agent_surface.py",
+        "verificationScopeName": "artifact"
+      },
+      {
+        "agentReadableName": "artifact-kicad-board-verification-source",
+        "consumerStanding": "UNKNOWN",
+        "evidenceLiteral": "Bounded KiCad PCB verification",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "notEquivalentTo": "not-general-electronic-safety-proof",
+        "qualification": "EXACT_GIT_CONTENT_NOT_CONSUMER_OR_RUNTIME",
+        "sourceCarrierRole": "artifact-domain-native-verifier-source",
+        "sourceIdentity": "100644:blob:7b587b9311fde5edbdd0c9fbe2526873822244d1",
+        "sourcePath": "capabilities/artifact/scripts/artifact_eda.py",
+        "verificationScopeName": "artifact"
+      },
+      {
+        "agentReadableName": "distribution-candidate-admission-cli",
+        "consumerStanding": "UNKNOWN",
+        "evidenceLiteral": "class AdmissionError",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "notEquivalentTo": "not-executed-distribution-effect",
+        "qualification": "EXACT_GIT_CONTENT_NOT_CONSUMER_OR_RUNTIME",
+        "sourceCarrierRole": "distribution-admission-contract-command-source",
+        "sourceIdentity": "100644:blob:fc80840d00fb0aba3abca227829cf766c838aa29",
+        "sourcePath": "capabilities/distribution/scripts/admission.py",
+        "verificationScopeName": "distribution"
+      },
+      {
+        "agentReadableName": "distribution-effect-authority-declaration-producer",
+        "consumerStanding": "UNKNOWN",
+        "evidenceLiteral": "class AuthorityProducerError",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "notEquivalentTo": "not-real-external-write-permission",
+        "qualification": "EXACT_GIT_CONTENT_NOT_CONSUMER_OR_RUNTIME",
+        "sourceCarrierRole": "distribution-authority-artifact-producer-source",
+        "sourceIdentity": "100644:blob:abc5a175d0f43a4a79e88aefac84be5e64532519",
+        "sourcePath": "capabilities/distribution/scripts/produce_effect_authority.py",
+        "verificationScopeName": "distribution"
+      },
+      {
+        "agentReadableName": "media-remotion-motion-root",
+        "consumerStanding": "UNKNOWN",
+        "evidenceLiteral": "export function StudioMotionRoot",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "notEquivalentTo": "not-delivered-video-file",
+        "qualification": "EXACT_GIT_CONTENT_NOT_CONSUMER_OR_RUNTIME",
+        "sourceCarrierRole": "media-timeline-composition-source",
+        "sourceIdentity": "100644:blob:accbbe7df2cae7e2757698c05d75db2d40d03fc9",
+        "sourcePath": "capabilities/media/apps/motion-remotion/src/root.tsx",
+        "verificationScopeName": "media"
+      },
+      {
+        "agentReadableName": "media-repository-rights-manifest",
+        "consumerStanding": "UNKNOWN",
+        "evidenceLiteral": "kind: ordivon.repository-rights",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "notEquivalentTo": "not-transfer-of-copyright-or-live-publishing",
+        "qualification": "EXACT_GIT_CONTENT_NOT_CONSUMER_OR_RUNTIME",
+        "sourceCarrierRole": "repository-licensing-claim-source",
+        "sourceIdentity": "100644:blob:fd674abda4960c7f46b3a585dc237bd07e123fe4",
+        "sourcePath": "capabilities/media/.ordivon/rights.yaml",
+        "verificationScopeName": "media"
+      },
+      {
+        "agentReadableName": "preservation-archivematica-compose-desired",
+        "consumerStanding": "UNKNOWN",
+        "evidenceLiteral": "archivematica-storage-service:",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "notEquivalentTo": "not-running-preservation-service",
+        "qualification": "EXACT_GIT_CONTENT_NOT_CONSUMER_OR_RUNTIME",
+        "sourceCarrierRole": "preservation-deployment-config-source",
+        "sourceIdentity": "100644:blob:f1faec521573757ea5a00a1ba7af867962d18ba1",
+        "sourcePath": "capabilities/preservation/config/archivematica-preservation-r10.compose.yml",
+        "verificationScopeName": "preservation"
+      },
+      {
+        "agentReadableName": "preservation-repository-source-boundary",
+        "consumerStanding": "UNKNOWN",
+        "evidenceLiteral": "\"kind\": \"ordivon.preservation-source-boundary\"",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "notEquivalentTo": "not-verified-current-preservation-acceptance",
+        "qualification": "EXACT_GIT_CONTENT_NOT_CONSUMER_OR_RUNTIME",
+        "sourceCarrierRole": "preservation-history-provenance-source",
+        "sourceIdentity": "100644:blob:86192e1671d2b39532702bc72750a5f485150289",
+        "sourcePath": "capabilities/preservation/SOURCE_BOUNDARY.json",
+        "verificationScopeName": "preservation"
+      },
+      {
+        "agentReadableName": "game-mechanism-relationship-static-query",
+        "consumerStanding": "UNKNOWN",
+        "evidenceLiteral": "export type MechanismRelationshipQueryType",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "notEquivalentTo": "not-gameplay-engine-implementation",
+        "qualification": "EXACT_GIT_CONTENT_NOT_CONSUMER_OR_RUNTIME",
+        "sourceCarrierRole": "game-mechanic-query-source",
+        "sourceIdentity": "100644:blob:a1bd270a3a3e6635a100c35720911fadbd8fe7df",
+        "sourcePath": "domains/game/scripts/mechanism-relationship-query.ts",
+        "verificationScopeName": "game"
+      },
+      {
+        "agentReadableName": "game-development-workspace-descriptor",
+        "consumerStanding": "UNKNOWN",
+        "evidenceLiteral": "kind: research-engineering",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "notEquivalentTo": "not-installed-game-process",
+        "qualification": "EXACT_GIT_CONTENT_NOT_CONSUMER_OR_RUNTIME",
+        "sourceCarrierRole": "game-project-metadata-source",
+        "sourceIdentity": "100644:blob:9c83e841c5e81eb13a36e0c7f735362c1a965862",
+        "sourcePath": "domains/game/.ordivon/project.yaml",
+        "verificationScopeName": "game"
+      },
+      {
+        "agentReadableName": "capital-nonlive-external-effects-policy",
+        "consumerStanding": "UNKNOWN",
+        "evidenceLiteral": "\"currentLane\": \"NON_LIVE\"",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "notEquivalentTo": "not-broker-execution-or-real-funds",
+        "qualification": "EXACT_GIT_CONTENT_NOT_CONSUMER_OR_RUNTIME",
+        "sourceCarrierRole": "capital-declared-execution-policy-source",
+        "sourceIdentity": "100644:blob:7a278f99949b27841aae73124eba51003ec9a505",
+        "sourcePath": "domains/capital/config/execution_policy.json",
+        "verificationScopeName": "capital"
+      },
+      {
+        "agentReadableName": "capital-market-trading-risk-accounting-decomposition",
+        "consumerStanding": "UNKNOWN",
+        "evidenceLiteral": "\"kind\": \"ordivon.capital.domain-taxonomy\"",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "notEquivalentTo": "not-formal-statistical-edge-proof",
+        "qualification": "EXACT_GIT_CONTENT_NOT_CONSUMER_OR_RUNTIME",
+        "sourceCarrierRole": "capital-domain-source-taxonomy",
+        "sourceIdentity": "100644:blob:cc99e7de503fdf21ba734d5b1b6ecd608e76779b",
+        "sourcePath": "domains/capital/config/capital_domain_taxonomy.json",
+        "verificationScopeName": "capital"
+      },
+      {
+        "agentReadableName": "web-application-server-source",
+        "consumerStanding": "UNKNOWN",
+        "evidenceLiteral": "createWebApp",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "notEquivalentTo": "not-observed-http-runtime",
+        "qualification": "EXACT_GIT_CONTENT_NOT_CONSUMER_OR_RUNTIME",
+        "sourceCarrierRole": "web-process-entrypoint-source",
+        "sourceIdentity": "100644:blob:0e653e43c157e9d6da851b958fc13f3882f26b40",
+        "sourcePath": "apps/web/src/server.ts",
+        "verificationScopeName": "web"
+      },
+      {
+        "agentReadableName": "web-agent-effect-admission-adapter",
+        "consumerStanding": "UNKNOWN",
+        "evidenceLiteral": "export interface AgentVerificationRequest",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "notEquivalentTo": "not-general-agent-approval-identity",
+        "qualification": "EXACT_GIT_CONTENT_NOT_CONSUMER_OR_RUNTIME",
+        "sourceCarrierRole": "web-agent-admission-implementation-source",
+        "sourceIdentity": "100644:blob:c56a46446002b8c901ace3135436cd22a327a58f",
+        "sourcePath": "apps/web/src/agent-authority.ts",
+        "verificationScopeName": "web"
+      }
+    ],
+    "newGroundedRoleCount": 26,
+    "notes": [
+      "Coverage only means >=1 source carrier per registered verification scope, never all responsibilities within that scope.",
+      "Human/Agent Owner approval is neither present nor required; verificationScopeName is a compatibility routing label only.",
+      "Currentness compares exact Git blobs, not real consumer, installed environment, ability to execute, or mathematical proof.",
+      "New source roles and names are source-derived research labels, not registered LEGOs, physical moves or executable provider discovery."
+    ],
+    "observedGitSourceCarrierCount": 46,
+    "priorEvidenceSourceAnchorsChangedSincePriorCut": 0,
+    "priorEvidenceSourceAnchorsStillCurrent": 20,
+    "registeredVerificationScopeCount": 18,
+    "registeredVerificationScopes": [
+      {
+        "name": "artifact",
+        "newRoleExamples": 2,
+        "previousSourceExamples": 0
+      },
+      {
+        "name": "capital",
+        "newRoleExamples": 2,
+        "previousSourceExamples": 0
+      },
+      {
+        "name": "composition",
+        "newRoleExamples": 2,
+        "previousSourceExamples": 0
+      },
+      {
+        "name": "control-plugin",
+        "newRoleExamples": 0,
+        "previousSourceExamples": 2
+      },
+      {
+        "name": "distribution",
+        "newRoleExamples": 2,
+        "previousSourceExamples": 0
+      },
+      {
+        "name": "game",
+        "newRoleExamples": 2,
+        "previousSourceExamples": 0
+      },
+      {
+        "name": "gateway",
+        "newRoleExamples": 0,
+        "previousSourceExamples": 5
+      },
+      {
+        "name": "harness",
+        "newRoleExamples": 0,
+        "previousSourceExamples": 6
+      },
+      {
+        "name": "host",
+        "newRoleExamples": 0,
+        "previousSourceExamples": 2
+      },
+      {
+        "name": "media",
+        "newRoleExamples": 2,
+        "previousSourceExamples": 0
+      },
+      {
+        "name": "network",
+        "newRoleExamples": 2,
+        "previousSourceExamples": 0
+      },
+      {
+        "name": "next",
+        "newRoleExamples": 2,
+        "previousSourceExamples": 0
+      },
+      {
+        "name": "preservation",
+        "newRoleExamples": 2,
+        "previousSourceExamples": 0
+      },
+      {
+        "name": "runtime",
+        "newRoleExamples": 2,
+        "previousSourceExamples": 0
+      },
+      {
+        "name": "security",
+        "newRoleExamples": 2,
+        "previousSourceExamples": 0
+      },
+      {
+        "name": "skills",
+        "newRoleExamples": 0,
+        "previousSourceExamples": 5
+      },
+      {
+        "name": "web",
+        "newRoleExamples": 2,
+        "previousSourceExamples": 0
+      },
+      {
+        "name": "workstation",
+        "newRoleExamples": 2,
+        "previousSourceExamples": 0
+      }
+    ],
+    "sourceCut": "c7fd6ae2198ede644cd3a3800c0441ba6ef6ec15",
+    "sourceLocationStanding": "EXACT_GIT_SOURCE_ONLY",
+    "sourceTree": "8fedd62ee1146dea6495aba1e5d99e42c8983b28"
+  }
 }
