@@ -708,6 +708,17 @@ def inspect_owner_lego_contract(
         "declaredState": node.get("state"),
         "declaredDependencies": node.get("dependencies", []),
         "declaredConsumerEvidence": node.get("consumerEvidence", []),
+        # Owner-local R1 carriers evolved independently. Absence of a field is
+        # unknown, not positive evidence that the LEGO has zero consumers.
+        # Retain each native claim name; do not pretend an AST/static binding
+        # or declared port is an observed production consumer.
+        "declaredConsumerClaims": {
+            "consumerEvidence": node.get("consumerEvidence"),
+            "actualConsumers": node.get("actualConsumers"),
+            "consumerBindings": node.get("consumerBindings"),
+        },
+        "consumerClaimQualification": "SOURCE_PLAN_DECLARATION_ONLY_NOT_VERIFIED_CONSUMPTION",
+        "consumerClosureStanding": "UNKNOWN",
         "declaredFormalObligations": node.get("formalObligations", []),
         "sourceAnchors": anchors,
         "unresolvedSourceEvidence": nodes[node_ref]["unresolvedSourceEvidence"],
@@ -2244,9 +2255,31 @@ def validate_repository(root: Path = ROOT) -> None:
             raise ArchitectureDocsError(f"historical architecture file lacks supersession marker: {candidate}")
 
 
+def _select_agent_source_impact(change: dict[str, Any]) -> dict[str, Any]:
+    """Reduce read-only Agent context, never strengthen source or proof standing.
+
+    NO_DECLARED_HIT is omitted from the response solely for transport. It is
+    not evidence that code, dynamic consumers, installed services or proof
+    assumptions have remained valid. All UNKNOWN and future standing kinds,
+    changed/unindexed source paths and scoped proof-reuse flags are retained.
+    """
+    rows = change["standingByDeclaredNode"]
+    no_hit = [row for row in rows if row["sourceImpactStanding"] == "NO_DECLARED_HIT"]
+    selected = [row for row in rows if row["sourceImpactStanding"] != "NO_DECLARED_HIT"]
+    return {
+        **change,
+        "sourceImpactProjection": "CHANGED_OR_UNKNOWN_ONLY",
+        "omittedStanding": "NO_DECLARED_HIT",
+        "omittedNoDeclaredHitCount": len(no_hit),
+        "standingByDeclaredNode": selected,
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--project-owner-graphs", action="store_true")
+    parser.add_argument("--agent-impact", action="store_true",
+                        help="compact changed/UNKNOWN source impact for Agent clients; not a proof reuse gate")
     parser.add_argument("--inspect-owner-lego", help="exact registered plan path#node ID at --source-revision")
     parser.add_argument("--inspect-owner-path", help="exact source path at --source-revision")
     parser.add_argument("--source-revision", help="exact Git commit for immutable graph projection")
@@ -2256,6 +2289,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--python-target-source", help="exact node-anchored Python src file")
     args = parser.parse_args(argv)
     try:
+        if args.agent_impact and not (
+            args.project_owner_graphs and args.source_revision
+            and args.compare_source_revision and not args.inspect_python_node
+            and not args.inspect_owner_lego and not args.inspect_owner_path
+        ):
+            raise ArchitectureDocsError(
+                "--agent-impact requires --project-owner-graphs and exact --source-revision "
+                "plus --compare-source-revision, without node inspection"
+            )
         if args.source_revision and not (args.project_owner_graphs or args.inspect_python_node or args.inspect_owner_lego or args.inspect_owner_path):
             raise ArchitectureDocsError("--source-revision requires graph or node inspection")
         if sum(bool(x) for x in (args.project_owner_graphs, args.inspect_python_node, args.inspect_owner_lego, args.inspect_owner_path)) > 1:
@@ -2298,15 +2340,16 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(value, sort_keys=True))
             return 0
         if args.project_owner_graphs:
-            print(json.dumps(
-                (
-                    project_owner_lego_source_change(
-                        before_revision=args.compare_source_revision,
-                        after_revision=args.source_revision,
-                    ) if args.compare_source_revision else
-                    project_owner_lego_source_graph(source_revision=args.source_revision)
-                ), sort_keys=True,
-            ))
+            value = (
+                project_owner_lego_source_change(
+                    before_revision=args.compare_source_revision,
+                    after_revision=args.source_revision,
+                ) if args.compare_source_revision else
+                project_owner_lego_source_graph(source_revision=args.source_revision)
+            )
+            if args.agent_impact:
+                value = _select_agent_source_impact(value)
+            print(json.dumps(value, sort_keys=True))
             return 0
         validate_repository()
     except (OSError, json.JSONDecodeError, ArchitectureDocsError) as exc:
