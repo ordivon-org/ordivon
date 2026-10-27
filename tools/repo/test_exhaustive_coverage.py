@@ -79,6 +79,31 @@ class FullCoverageTests(unittest.TestCase):
         self.assertEqual(M.entrypoint_kind("domains/game/Cargo.toml"), "Cargo.toml")
         self.assertEqual(M.entrypoint_kind(".agents/skills/method/SKILL.md"), "SKILL.md")
         self.assertIsNone(M.entrypoint_kind("README.md"))
+        self.assertEqual(M.entrypoint_kind(".github/workflows/ci.yml"), "ci-workflow")
+        self.assertEqual(M.entrypoint_kind(
+            "services/runtime/.github/workflows/ci.yml"), "ci-workflow-nested")
+        self.assertEqual(M.entrypoint_kind(
+            "extensions/ordivon-control-plane/mcp.json"), "mcp.json")
+        self.assertEqual(M.source_carrier_role(
+            "extensions/ordivon-control-plane/plugin.json"),
+            "AGENT_PLUGIN_PACKAGE_DESCRIPTOR_SOURCE")
+        self.assertEqual(M.source_carrier_role(
+            "extensions/ordivon-control-plane/mcp.json"),
+            "MCP_SERVER_CONFIGURATION_DESCRIPTOR_SOURCE")
+        self.assertEqual(M.source_carrier_role(
+            ".agents/skills/recursive-lego-calculus/SKILL.md"),
+            "AGENT_SKILL_INSTRUCTION_SOURCE")
+        self.assertEqual(M.source_carrier_role(
+            "services/runtime/packaging/systemd/ordivon-runtime.service"),
+            "SYSTEMD_UNIT_DECLARATION_SOURCE")
+        # File names are not platform activations, and nested workflow
+        # definitions are not discovered as root GitHub Actions.
+        self.assertIsNone(M.entrypoint_kind("README.md"))
+        self.assertIsNone(M.source_carrier_role(
+            "services/runtime/docs/not-a-workflow.yml"))
+        self.assertIsNone(M.source_carrier_role(
+            ".github/workflows/examples/example.yml"))
+
 
 
 if __name__ == "__main__":
@@ -131,6 +156,69 @@ class LiveRecursiveCellsTests(unittest.TestCase):
         assert not any("OWNER_PROOF" in cell["problems"] for cell in out["cells"])
 
 
+    def test_carrier_source_cut_distinguishes_root_and_nested_workflows(self) -> None:
+        sha = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+        ).strip()
+        inv = M.classification(ROOT, sha)
+        rows = {r["path"]: r for r in inv["sourcePaths"]}
+        paths = set(rows)
+        # The classifications are source-path assertions, not a live
+        # GitHub workflow list or a promise about another copied repository.
+        root = sorted(p for p in paths
+                      if p.startswith(".github/workflows/")
+                      and p.count("/") == 2
+                      and p.endswith((".yml", ".yaml")))
+        nested = sorted(p for p in paths
+                        if "/.github/workflows/" in p and
+                        p.endswith((".yml", ".yaml")))
+        self.assertGreater(len(root), 0)
+        self.assertGreater(len(nested), 0)
+        for path in root:
+            self.assertEqual(rows[path]["carrierType"], "ci-workflow")
+            self.assertEqual(rows[path]["sourceCarrierRole"],
+                             "REPOSITORY_ROOT_GITHUB_WORKFLOW_SOURCE")
+            self.assertNotIn("NESTED_WORKFLOW_IS_NOT_MONOREPO_ROOT_WORKFLOW",
+                             rows[path]["problems"])
+        for path in nested:
+            self.assertEqual(rows[path]["carrierType"], "ci-workflow-nested")
+            self.assertEqual(rows[path]["sourceCarrierRole"],
+                             "NESTED_GITHUB_WORKFLOW_SOURCE_NOT_ROOT_DISCOVERED")
+            self.assertIn("NESTED_WORKFLOW_IS_NOT_MONOREPO_ROOT_WORKFLOW",
+                          rows[path]["problems"])
+        self.assertEqual(inv["summary"]["carriers"]["ci-workflow"], len(root))
+        self.assertEqual(inv["summary"]["carriers"]["ci-workflow-nested"],
+                         len(nested))
+        for role, count in inv["summary"]["sourceCarrierRoles"].items():
+            self.assertEqual(count, sum(r["sourceCarrierRole"] == role
+                                        for r in inv["sourcePaths"]))
+
+    def test_agent_source_lookup_never_promotes_carrier_into_runtime_authority(self):
+        sha = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+        ).strip()
+        inv = M.classification(ROOT, sha)
+        paths = [
+            ".github/workflows/ci.yml",
+            "services/runtime/.github/workflows/ci.yml",
+            "extensions/ordivon-control-plane/plugin.json",
+            "extensions/ordivon-control-plane/mcp.json",
+            ".agents/skills/recursive-lego-calculus/SKILL.md",
+            "services/runtime/packaging/systemd/ordivon-runtime.service",
+        ]
+        out = M.lookup_source_paths(inv, repo=ROOT, paths=paths)
+        self.assertEqual(len(out["lookups"]), len(paths))
+        for row in out["lookups"]:
+            self.assertEqual(row["standing"], "EXACT_GIT_SOURCE")
+            self.assertNotEqual(row["sourceCarrierRole"], None)
+            self.assertEqual(row["semanticStanding"], "UNKNOWN")
+            self.assertEqual(row["consumerStanding"], "UNKNOWN")
+            self.assertEqual(row["installedStanding"], "UNKNOWN")
+            self.assertEqual(row["formalStanding"], "UNKNOWN")
+        self.assertNotEqual(out["lookups"][0]["sourceCarrierRole"],
+                            out["lookups"][1]["sourceCarrierRole"])
+        self.assertNotEqual(out["lookups"][2]["sourceCarrierRole"],
+                            out["lookups"][3]["sourceCarrierRole"])
     def test_exact_path_query_covers_all_source_bytes_once_without_claiming_proof(self) -> None:
         sha = subprocess.check_output(
             ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,

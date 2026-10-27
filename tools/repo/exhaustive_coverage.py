@@ -97,9 +97,26 @@ def entrypoint_kind(path: str) -> str | None:
         return name
     if name.endswith((".service", ".timer", ".target")):
         return "systemd-unit"
-    if path.startswith(".github/workflows/") and name.endswith((".yml", ".yaml")):
+    if name.endswith((".yml", ".yaml")) and path.startswith(".github/workflows/") and path.count("/") == 2:
         return "ci-workflow"
+    if name.endswith((".yml", ".yaml")) and "/.github/workflows/" in path and path.count("/") >= 3:
+        return "ci-workflow-nested"
+    if name == "mcp.json":
+        return "mcp.json"
     return None
+
+
+def source_carrier_role(path: str) -> str | None:
+    """Source-file *form*, never proof of runtime registration or execution."""
+    kind = entrypoint_kind(path)
+    return {
+        "ci-workflow": "REPOSITORY_ROOT_GITHUB_WORKFLOW_SOURCE",
+        "ci-workflow-nested": "NESTED_GITHUB_WORKFLOW_SOURCE_NOT_ROOT_DISCOVERED",
+        "SKILL.md": "AGENT_SKILL_INSTRUCTION_SOURCE",
+        "plugin.json": "AGENT_PLUGIN_PACKAGE_DESCRIPTOR_SOURCE",
+        "mcp.json": "MCP_SERVER_CONFIGURATION_DESCRIPTOR_SOURCE",
+        "systemd-unit": "SYSTEMD_UNIT_DECLARATION_SOURCE",
+    }.get(kind)
 
 
 def declared_values(node: dict, aliases: tuple[str, ...]) -> list[str]:
@@ -212,8 +229,11 @@ def classification(repo: Path, source: str, proposed: str | None = None) -> dict
         if any(x["mode"] == "move" and x["targetPath"] != path for x in targets):
             problems.append("PHYSICAL_MOVE_NOT_REALIZED_OR_CONSUMER_NOT_CUT_OVER")
         carrier = entrypoint_kind(path)
+        surface = source_carrier_role(path)
         if carrier is not None:
             problems.append("SOURCE_CARRIER_NOT_SEMANTIC_LEGO_PROOF")
+        if carrier == "ci-workflow-nested":
+            problems.append("NESTED_WORKFLOW_IS_NOT_MONOREPO_ROOT_WORKFLOW")
         for problem in problems:
             problem_counts[problem] += 1
         zones[now["classification"] or now["standing"]] += 1
@@ -221,14 +241,16 @@ def classification(repo: Path, source: str, proposed: str | None = None) -> dict
             proposed_zones[then["classification"] or then["standing"]] += 1
         paths_out.append({**item, "currentSource": now,
                           "proposedSource": then, "targetCandidates": targets,
-                          "carrierType": carrier, "problems": problems,
-                          "semanticCompleteness": "UNKNOWN"})
+                          "carrierType": carrier, "sourceCarrierRole": surface,
+                          "problems": problems, "semanticCompleteness": "UNKNOWN"})
     if len(paths_out) != len(pathset):
         raise AssertionError("source inventory must cover exact tracked tree")
     graph = plans(repo, source, pathset)
     node_issue_count = collections.Counter(p for node in graph["nodes"] for p in node["problems"])
     edges = collections.Counter(e["standing"] for e in graph["edges"])
     carriers = collections.Counter(row["carrierType"] for row in paths_out if row["carrierType"])
+    roles = collections.Counter(row["sourceCarrierRole"] for row in paths_out
+                                if row["sourceCarrierRole"])
     roots_without_plan = sorted(
         o["name"] for o in actual.get("owners", [])
         if not any(plan.startswith(o["root"]) for plan in graph["files"])
@@ -253,6 +275,7 @@ def classification(repo: Path, source: str, proposed: str | None = None) -> dict
             "proposalZones": dict(sorted(proposed_zones.items())),
             "sourceProblemCounts": dict(sorted(problem_counts.items())),
             "carriers": dict(sorted(carriers.items())),
+            "sourceCarrierRoles": dict(sorted(roles.items())),
             "plans": len(graph["files"]), "nodes": len(graph["nodes"]),
             "nodeProblems": dict(sorted(node_issue_count.items())),
             "edges": len(graph["edges"]), "edgeStanding": dict(sorted(edges.items())),
@@ -491,6 +514,7 @@ def lookup_source_paths(inventory: dict, *, repo: Path,
             # Render-friendly alias. The stable address remains the Git OID/path.
             "agentNavigationLabel": f"{zone} :: {cell['physicalPrefix']}",
             "carrierType": source["carrierType"],
+            "sourceCarrierRole": source["sourceCarrierRole"],
             "sourceProblems": source["problems"],
             "semanticStanding": "UNKNOWN",
             "consumerStanding": "UNKNOWN",
