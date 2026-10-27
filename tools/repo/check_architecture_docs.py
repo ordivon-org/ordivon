@@ -188,6 +188,7 @@ OWNER_LEGO_PLANS = (
     "domains/game/planning/lego-plan-r1.json",
     "capabilities/media/planning/lego-plan-r1.json",
     "tools/repo/planning/lego-plan-r1.json",
+    "services/gateway/planning/lego-plan-r1.json",
 )
 
 # Other already-consumed Owner versions and named carriers do not share the R1

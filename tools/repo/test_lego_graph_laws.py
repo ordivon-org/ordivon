@@ -78,6 +78,53 @@ def test_network_recursive_consumer_contracts_remain_source_bound_not_installed_
     assert "ACTUAL_CONSUMER" in view["excluded"]["unverifiedFacets"]
 
 
+
+def test_gateway_recursive_source_contracts_are_non_authoritative_and_consumer_bound() -> None:
+    """The Gateway's generic R1 has distinct owner routing, observations and effects.
+
+    The Windows GW* R2 carrier is a deployment profile, not another source
+    identity for G00-G07. These source anchors do not assert live effects.
+    """
+    relative = "services/gateway/planning/lego-plan-r1.json"
+    plan = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+    module.validate_owner_lego_graph(plan)
+    module.validate_owner_lego_dependencies(plan, "services/gateway")
+    identities = {item["id"] for item in plan["nodes"]}
+    assert identities == {"G00", "G01", "G02", "G03", "G04", "G05", "G06", "G07"}
+    assert plan["truthRole"] == "planning-projection-not-project-truth"
+    checks = {
+        "G01": ("routes.py", "test_gateway_service.py"),
+        "G02": ("service.py", "test_capability_projection.py"),
+        "G03": ("service.py", "test_gateway_service.py"),
+        "G04": ("service.py", "test_gateway_service.py"),
+        "G05": ("service.py", "test_gateway_service.py"),
+        "G06": ("capability_authz.py", "test_capability_authz_middleware.py"),
+        "G07": ("access_auth.py", "test_access_auth.py"),
+    }
+    for node in plan["nodes"]:
+        assert all(node.get(field) for field in (
+            "responsibility", "inputs", "outputs", "behavioralContract", "acceptance",
+        ))
+        assert node["consumerEvidence"]
+    for identity, (source_basename, test_basename) in checks.items():
+        node = next(item for item in plan["nodes"] if item["id"] == identity)
+        assert any(path.endswith(source_basename) for path in node["evidence"])
+        assert any(path.endswith(test_basename) for path in node["evidence"])
+        assert any(e["from"] == "G00" and e["to"] == identity and e["type"] == "COMPOSITION"
+                   for e in plan["edges"])
+    view = module.project_owner_lego_source_graph(ROOT)
+    for identity in identities:
+        vertex = next(v for v in view["vertices"] if v["ref"] == f"{relative}#{identity}")
+        assert vertex["sourceAnchors"] and not vertex["unresolvedSourceEvidence"]
+        assert vertex["sourceCoverageStanding"] == "DECLARED_SOURCE_MEMBERSHIP_PARTIAL"
+    assert "ACTUAL_CONSUMER" in view["excluded"]["unverifiedFacets"]
+    assert "FORMAL_PROOF" in view["excluded"]["unverifiedFacets"]
+    broken = copy.deepcopy(plan)
+    broken["edges"].append({"from": "G06", "to": "MISSING_PROVIDER", "type": "CONTROL"})
+    with pytest.raises(module.ArchitectureDocsError, match="unknown LEGO edge endpoint"):
+        module.validate_owner_lego_graph(broken)
+
+
 @pytest.mark.parametrize("relative", OWNER_GRAPH_PLANS)
 def test_owner_slice_relation_is_closed(relative: str) -> None:
     module.validate_owner_lego_graph(json.loads((ROOT / relative).read_text(encoding="utf-8")))
