@@ -399,34 +399,63 @@ def compare_gate_source_scopes(
 
 
 def _cyclic_proof_members(rows: list[dict[str, Any]]) -> set[str]:
-    """Validate a bounded dependency relation and find cycle members.
+    """Find exactly the recursive proof members in O(nodes + edges).
 
-    Proof prerequisites may be recursive even when execution Stage order is a
-    DAG. Use exact finite reachability rather than pretending cycles are
-    discharged by caller-asserted dependency completeness. No new graph owner.
+    Kosaraju's iterative strongly-connected-component traversal avoids the
+    prior per-node reachability scan and Python recursion depth. Recursive
+    proof assumptions remain UNKNOWN, including self-loops; their downstream
+    consumers are handled by the existing impact worklist.
     """
     graph = {row["id"]: set(row["dependsOn"]) for row in rows}
     if len(graph) != len(rows):
         raise CircuitContractError("duplicate proof graph identity")
+    identities = set(graph)  # Materialize once, not once per dependency row.
+    reverse: dict[str, set[str]] = {identity: set() for identity in graph}
     for identity, deps in graph.items():
-        missing = deps - graph.keys()
+        missing = deps - identities
         if missing:
             raise CircuitContractError(
                 f"proof {identity} depends on unknown references: {sorted(missing)}"
             )
+        for dependency in deps:
+            reverse[dependency].add(identity)
+
+    # First DFS pass: postorder in the declared dependency direction.
+    visited: set[str] = set()
+    finish: list[str] = []
+    for root in graph:
+        if root in visited:
+            continue
+        visited.add(root)
+        stack = [(root, iter(graph[root]))]
+        while stack:
+            node, neighbors = stack[-1]
+            dependency = next(neighbors, None)
+            if dependency is None:
+                finish.append(node)
+                stack.pop()
+            elif dependency not in visited:
+                visited.add(dependency)
+                stack.append((dependency, iter(graph[dependency])))
+
+    # Second pass over reversed edges: every component is maximal.
+    assigned: set[str] = set()
     cyclic: set[str] = set()
-    for identity in sorted(graph):
-        seen: set[str] = set()
-        frontier = list(graph[identity])
-        while frontier:
-            current = frontier.pop()
-            if current == identity:
-                cyclic.add(identity)
-                break
-            if current in seen:
-                continue
-            seen.add(current)
-            frontier.extend(graph[current] - seen)
+    for root in reversed(finish):
+        if root in assigned:
+            continue
+        component: set[str] = {root}
+        assigned.add(root)
+        pending = [root]
+        while pending:
+            node = pending.pop()
+            for consumer in reverse[node]:
+                if consumer not in assigned:
+                    assigned.add(consumer)
+                    component.add(consumer)
+                    pending.append(consumer)
+        if len(component) > 1 or root in graph[root]:
+            cyclic.update(component)
     return cyclic
 
 

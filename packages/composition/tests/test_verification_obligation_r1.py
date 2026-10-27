@@ -2633,3 +2633,28 @@ def test_selector_three_level_priority_matches_independent_bounded_path_oracle()
                     cases += 1
 
     assert cases == 4608
+
+
+def test_recursive_proof_detection_scales_to_long_acyclic_and_cyclic_chains() -> None:
+    """A large task-local graph must not require recursive or quadratic walks."""
+    from ordivon_composition.verification_obligation_r1 import _cyclic_proof_members
+
+    count = 6000
+    chain = [
+        {
+            "id": f"proof:chain:{index}",
+            "dependsOn": [] if index == 0 else [f"proof:chain:{index - 1}"],
+        }
+        for index in range(count)
+    ]
+    assert _cyclic_proof_members(chain) == set()
+
+    # The back-edge closes exactly the chain segment [1500..5999].
+    # The earlier prefix is a prerequisite, not part of the cycle.
+    chain[1500]["dependsOn"].append(f"proof:chain:{count - 1}")
+    expected = {f"proof:chain:{index}" for index in range(1500, count)}
+    assert _cyclic_proof_members(chain) == expected
+    # A self-loop is recursive even without a second member.
+    assert _cyclic_proof_members([{"id": "proof:self", "dependsOn": ["proof:self"]}]) == {
+        "proof:self"
+    }
