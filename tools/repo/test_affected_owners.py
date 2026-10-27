@@ -326,6 +326,8 @@ class SourceClassificationTests(unittest.TestCase):
         row = {r["path"]: r for r in projection["entries"]}
         assert row["services/runtime/main.rs"]["verificationOwner"] == "runtime"
         assert row["services/runtime/main.rs"]["semanticName"] == "Execution Runtime"
+        assert row["services/runtime/main.rs"]["sourceSection"] == "runtime/(root-files)"
+        assert row["services/runtime/main.rs"]["sourceSectionRole"] == "UNQUALIFIED_SECTION"
         assert row["services/runtime/main.rs"]["classificationLayer"] == "REPOSITORY_VERIFICATION_REGION"
         assert row[".agents/skills/recursive-lego-calculus/SKILL.md"]["semanticName"] == "Agent methods not service routing"
         assert row[".agents/skills/recursive-lego-calculus/SKILL.md"]["verificationOwner"] is None

@@ -222,6 +222,36 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
     def matches(path: str, rule: str) -> bool:
         return path.startswith(rule) if rule.endswith("/") else path == rule
 
+    # Source placement is nested under existing exact physical owner roots.
+    # These structural roles never certify LEGO semantics or consumer contracts.
+    source_section_roles = {
+        "src": "IMPLEMENTATION_SOURCE", "crates": "IMPLEMENTATION_SOURCE",
+        "packages": "PACKAGE_SOURCE", "apps": "APPLICATION_SOURCE",
+        "tests": "TEST_SOURCE", "test": "TEST_SOURCE",
+        "formal": "FORMAL_SOURCE", "contracts": "CONTRACT_SOURCE",
+        "schemas": "SCHEMA_SOURCE", "schema": "SCHEMA_SOURCE",
+        "docs": "DOCUMENTATION_SOURCE", "planning": "PLANNING_SOURCE",
+        "scripts": "SCRIPT_SOURCE", "evidence": "EVIDENCE_SOURCE",
+        "fixtures": "FIXTURE_SOURCE", "config": "CONFIGURATION_SOURCE",
+        "policies": "POLICY_SOURCE", "policy": "POLICY_SOURCE",
+        "migrations": "MIGRATION_SOURCE", "history": "HISTORY_SOURCE",
+        "research": "RESEARCH_SOURCE", "experiments": "EXPERIMENT_SOURCE",
+        "experimental": "EXPERIMENT_SOURCE", "evals": "EVALUATION_SOURCE",
+        "artifacts": "ARTIFACT_SOURCE", "productions": "PRODUCTION_SOURCE",
+        "data-products": "DATA_PRODUCT_SOURCE", "data": "DATA_SOURCE",
+        "systemd": "SERVICE_INSTALL_SOURCE",
+        "ansible": "PROVISIONING_SOURCE", "tofu": "PROVISIONING_SOURCE",
+        "postgresql": "PERSISTENCE_DEPLOYMENT_SOURCE",
+        "observability": "OBSERVABILITY_SOURCE",
+        "inventory": "INVENTORY_SOURCE",
+        "providers": "PROVIDER_ADAPTER_SOURCE",
+        "adapters": "ADAPTER_SOURCE",
+        "standards": "STANDARD_SOURCE",
+        "packaging": "DISTRIBUTION_PACKAGE_SOURCE",
+        "tools": "TOOL_SOURCE",
+        "root-files": "UNQUALIFIED_SECTION",
+    }
+    root_by_owner = {o.name: o.root for o in native_owners}
     entries = []
     for path, identity in sorted(tree.items()):
         # Git path bytes are identity. Do not strip/normalize filenames here.
@@ -240,7 +270,18 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
             (r.get("description", r["name"]) for r in regions if len(matched) == 1
              and r["name"] == matched[0]), None
         )
+        section = None
+        section_role = None
+        if owner is not None:
+            tail = path[len(root_by_owner[owner]):]
+            section_key = tail.split("/", 1)[0] if "/" in tail else "(root-files)"
+            section = f"{owner}/{section_key}"
+            section_role = source_section_roles.get(
+                section_key, "UNQUALIFIED_SECTION"
+            )
         entries.append({
+            "sourceSection": section,
+            "sourceSectionRole": section_role,
             "semanticName": semantic_by_owner.get(owner, owner) if owner is not None
                             else region_label,
             "classificationLayer": "REPOSITORY_VERIFICATION_REGION" if owner
@@ -261,6 +302,14 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
         "ownerManifestIdentity": manifest_identity,
         "proofReuseAdmissible": False,
         "summary": {
+            "distinctOwnerSections": len({
+                row["sourceSection"] for row in entries
+                if row["sourceSection"] is not None
+            }),
+            "unqualifiedOwnerSectionPaths": sum(
+                row["sourceSectionRole"] == "UNQUALIFIED_SECTION"
+                for row in entries
+            ),
             "trackedPaths": len(entries),
             "registeredOwnerPaths": counts["REGISTERED_OWNER_SOURCE"],
             "declaredRegionPaths": counts["DECLARED_SOURCE_REGION"],
