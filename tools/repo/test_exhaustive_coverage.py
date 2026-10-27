@@ -530,3 +530,150 @@ class ProblemLegoDerivedFrontierTests(unittest.TestCase):
     def test_invalid_limits_fail_closed(self):
         with self.assertRaisesRegex(ValueError, "cell limits"):
             M.derive_problem_legos(self.inventory, repo=ROOT, max_files=0)
+
+
+class CrossPlaneObservationJoinTests(unittest.TestCase):
+    """Cross-plane facts are operator observations, not consumer attestations."""
+
+    @classmethod
+    def setUpClass(cls):
+        import subprocess
+        cls.sha = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
+        cls.problems = M.derive_problem_legos(M.classification(ROOT, cls.sha), repo=ROOT)
+
+    def source(self):
+        return {
+            "schemaVersion": 1,
+            "kind": "ordivon.phase1.cross-plane-observation-input",
+            "subjectSourceCut": self.sha,
+            "observations": [
+                {"plane":"GIT_SOURCE_VIEW","hostScope":"linux","locator":"git:research_v2",
+                 "versionIdentity":"a"*40+":"+"b"*40, "gitObjectStoreGroup":"gitgroup:research",
+                 "witnessRef":"job:test-git-cut"},
+                {"plane":"GIT_SOURCE_VIEW","hostScope":"linux","locator":"git:paper1_frozen",
+                 "versionIdentity":"c"*40+":"+"d"*40, "gitObjectStoreGroup":"gitgroup:research",
+                 "witnessRef":"job:test-worktree-common"},
+                {"plane":"NON_GIT_NAMESPACE","hostScope":"linux","locator":"data:corpora",
+                 "observedState":"DIRECTORY_OBSERVED","witnessRef":"job:test-data-root"},
+                {"plane":"SERVICE_STATUS","hostScope":"windows",
+                 "locator":"scm:OrdivonRuntimeR6Candidate","observedState":"RUNNING",
+                 "pid":7240, "witnessRef":"job:test-cim"},
+                {"plane":"PROCESS_PID","hostScope":"windows","locator":"pid:7240",
+                 "serviceLocator":"scm:OrdivonRuntimeR6Candidate",
+                 "observedState":"RUNNING","pid":7240,"witnessRef":"job:test-process"},
+            ],
+            "candidateRelations": [
+                {"source":"linux:GIT_SOURCE_VIEW:git:research_v2",
+                 "target":"linux:GIT_SOURCE_VIEW:git:paper1_frozen",
+                 "relationKind":"SHARED_GIT_OBJECT_STORE_OBSERVED","witnessRef":"job:test-common"},
+                {"source":"linux:GIT_SOURCE_VIEW:git:research_v2",
+                 "target":"linux:NON_GIT_NAMESPACE:data:corpora",
+                 "relationKind":"SOURCE_TEXT_EXTERNAL_PATH_REFERENCE_CANDIDATE",
+                 "witnessRef":"git:corpus_manifest_source"},
+                {"source":"windows:SERVICE_STATUS:scm:OrdivonRuntimeR6Candidate",
+                 "target":"windows:PROCESS_PID:pid:7240",
+                 "relationKind":"SERVICE_PID_ASSOCIATION_OBSERVED",
+                 "witnessRef":"job:test-cim"},
+            ],
+        }
+
+    def test_preserves_source_problem_namespace_without_promotion(self):
+        inp=self.source()
+        g=M.join_cross_plane_observations(self.problems,inp)
+        self.assertEqual(g["sourceCut"],self.sha)
+        self.assertEqual(g["problemSources"]["gitRecursive"],
+                         self.problems["summary"]["problemLegos"])
+        self.assertEqual(g["observationCount"],5)
+        self.assertEqual(g["candidateRelationCount"],3)
+        self.assertEqual(g["problemSources"]["crossPlaneObserved"],5)
+        self.assertFalse(g["proofReuseAdmissible"])
+        self.assertEqual(len({x["problemRef"] for x in g["problems"]}),5)
+        for node in g["observations"]:
+            self.assertEqual(node["semanticConsumerStanding"],"UNKNOWN")
+            self.assertEqual(node["loadedImplementationStanding"],"UNKNOWN")
+            self.assertEqual(node["proofStanding"],
+                             "OBSERVATION_INPUT_NOT_INDEPENDENTLY_ATTESTED")
+        for p in g["problems"]:
+            self.assertEqual(p["invocationStanding"],"NOT_MAPPED")
+            self.assertEqual(p["deleteOrReplaceStanding"],"NOT_QUALIFIED")
+        for edge in g["candidateRelations"]:
+            self.assertEqual(edge["consumerAndCallSemantics"],"UNKNOWN")
+            self.assertEqual(edge["formalProofStanding"],"UNKNOWN")
+
+    def test_stable_identity_across_service_state_changes(self):
+        import copy
+        a=self.source()
+        b=copy.deepcopy(a)
+        b["observations"][3]["observedState"]="STOPPED"
+        b["observations"][3]["pid"]=None
+        b["observations"][4]["observedState"]="STOPPED"
+        b["candidateRelations"].pop()
+        before=M.join_cross_plane_observations(self.problems,a)
+        after=M.join_cross_plane_observations(self.problems,b)
+        self.assertEqual(
+            {x["observationRef"] for x in before["observations"]},
+            {x["observationRef"] for x in after["observations"]})
+        self.assertEqual(
+            {x["problemRef"] for x in before["problems"]},
+            {x["problemRef"] for x in after["problems"]})
+
+    def test_no_fake_consumer_invocation_edge(self):
+        x=self.source()
+        x["candidateRelations"][2]["relationKind"]="CALLS"
+        with self.assertRaisesRegex(ValueError,"unknown node or asserted"):
+            M.join_cross_plane_observations(self.problems,x)
+
+    def test_pid_mismatch_rejected(self):
+        x=self.source()
+        x["observations"][4]["pid"]=7284
+        with self.assertRaisesRegex(ValueError,"association"):
+            M.join_cross_plane_observations(self.problems,x)
+
+    def test_self_claimed_proof_or_sensitive_fields_rejected(self):
+        x=self.source()
+        x["observations"][0]["proof"]="TRUSTED"
+        with self.assertRaisesRegex(ValueError,"unsupported or sensitive"):
+            M.join_cross_plane_observations(self.problems,x)
+
+    def test_unknown_git_identity_and_duplicate_locator_rejected(self):
+        import copy
+        x=self.source()
+        x["observations"][0]["versionIdentity"]="untracked"
+        with self.assertRaisesRegex(ValueError,"exact commit"):
+            M.join_cross_plane_observations(self.problems,x)
+        y=self.source()
+        y["observations"].append(copy.deepcopy(y["observations"][0]))
+        with self.assertRaisesRegex(ValueError,"duplicate"):
+            M.join_cross_plane_observations(self.problems,y)
+
+    def test_crossplane_input_must_bind_exact_sourcecut(self):
+        x=self.source()
+        x["subjectSourceCut"]="0"*40
+        with self.assertRaisesRegex(ValueError,"SourceCut mismatch"):
+            M.join_cross_plane_observations(self.problems,x)
+
+    def test_wrong_edge_type_rejected_without_claiming_consumption(self):
+        x=self.source()
+        x["candidateRelations"][1]["target"]="windows:PROCESS_PID:pid:7240"
+        with self.assertRaisesRegex(ValueError,"lexical path hint"):
+            M.join_cross_plane_observations(self.problems,x)
+
+
+    def test_cli_crossplane_summary_no_semantic_promotion(self):
+        import json
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            obs = pathlib.Path(tmp) / "observations.json"
+            obs.write_text(json.dumps(self.source()))
+            result = subprocess.run([
+                "python3", str(ROOT / "tools/repo/exhaustive_coverage.py"),
+                "--source-cut", self.sha, "--problem-legos",
+                "--cross-plane-observations", str(obs), "--summary",
+            ], cwd=ROOT, capture_output=True, text=True, check=True, timeout=30)
+            output = json.loads(result.stdout)
+            assert output["crossPlane"]["observationCount"] == 5
+            assert output["crossPlane"]["candidateRelationCount"] == 3
+            assert output["crossPlane"]["proofReuseAdmissible"] is False
+            assert "observations" not in output["crossPlane"]
+            assert "problemLegos" not in output

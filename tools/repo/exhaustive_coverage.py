@@ -1011,6 +1011,191 @@ def derive_problem_legos(
         "problemLegos": result,
     }
 
+
+def join_cross_plane_observations(problem_frontier: dict, observations: dict) -> dict:
+    """Read-only relation hints across observed source/data/process planes.
+
+    Inputs are externally observed snapshots, *not* authenticated attestations.
+    This projects stable observation/problem identities but neither discovers
+    nor authorizes invocations, deletes, deployments or runtime equivalence.
+    """
+    if observations.get("kind") != "ordivon.phase1.cross-plane-observation-input":
+        raise ValueError("not a recognized bounded cross-plane observation input")
+    if observations.get("schemaVersion") != 1:
+        raise ValueError("unsupported cross-plane schema")
+    if observations.get("subjectSourceCut") != problem_frontier["sourceCut"]:
+        raise ValueError("cross-plane observation subject SourceCut mismatch")
+    entries = observations.get("observations")
+    links = observations.get("candidateRelations")
+    if not isinstance(entries, list) or not isinstance(links, list):
+        raise ValueError("cross-plane input must contain typed observation arrays")
+    if len(entries) > 256 or len(links) > 512:
+        raise ValueError("cross-plane bounded input limit exceeded")
+    allowed = {"GIT_SOURCE_VIEW", "NON_GIT_NAMESPACE", "SERVICE_STATUS", "PROCESS_PID"}
+    scopes = {"linux", "windows"}
+    nodes: dict[str, dict] = {}
+    result_problems = []
+    digest = lambda x: hashlib.sha256(json.dumps(
+        x, ensure_ascii=True, sort_keys=True, separators=(",", ":")
+    ).encode()).hexdigest()
+    for item in entries:
+        if not isinstance(item, dict) or set(item) - {
+            "plane", "hostScope", "locator", "versionIdentity",
+            "observedState", "pid", "gitObjectStoreGroup", "witnessRef",
+            "serviceLocator",
+        }:
+            raise ValueError("cross-plane record has unsupported or sensitive fields")
+        plane, host, locator = (item.get(k) for k in
+                                ("plane", "hostScope", "locator"))
+        if plane not in allowed or host not in scopes or not isinstance(locator, str):
+            raise ValueError("cross-plane observation kind/host/locator invalid")
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:@/-]{0,159}", locator):
+            raise ValueError("cross-plane locator must be an explicit scoped token")
+        if item.get("witnessRef") is None or not isinstance(item["witnessRef"], str):
+            raise ValueError("cross-plane observation needs read-only evidence ref")
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:@/-]{0,191}", item["witnessRef"]):
+            raise ValueError("evidence references cannot contain shell/secret text")
+        if plane == "GIT_SOURCE_VIEW":
+            if host != "linux" or not re.fullmatch(
+                r"[0-9a-f]{40}:[0-9a-f]{40}", str(item.get("versionIdentity", ""))
+            ):
+                raise ValueError("Git view needs exact commit and tree digests")
+        elif item.get("versionIdentity") is not None:
+            raise ValueError("non-Git observations cannot claim immutable Git identity")
+        if plane == "NON_GIT_NAMESPACE" and item.get("observedState") not in (
+            "DIRECTORY_OBSERVED", "MIXED_NESTED_GIT_OBSERVED"
+        ):
+            raise ValueError("non-Git namespace needs explicit observation class")
+        if plane in ("SERVICE_STATUS", "PROCESS_PID"):
+            if item.get("observedState") not in (
+                "RUNNING", "STOPPED", "ACTIVE", "INACTIVE"
+            ):
+                raise ValueError("service or process state is not observed")
+            if item.get("pid") is not None and (
+                type(item["pid"]) is not int or not 0 <= item["pid"] <= 2**31-1
+            ):
+                raise ValueError("invalid observed pid")
+            if plane == "PROCESS_PID" and (
+                not item.get("pid") or
+                not isinstance(item.get("serviceLocator"), str)
+            ):
+                raise ValueError("process observation must identify observed service")
+        if item.get("gitObjectStoreGroup") is not None and (
+            plane != "GIT_SOURCE_VIEW" or not re.fullmatch(
+                r"[A-Za-z0-9][A-Za-z0-9._:@/-]{0,159}",
+                str(item["gitObjectStoreGroup"])
+            )
+        ):
+            raise ValueError("object-store grouping applies only to Git views")
+        loc = f"{host}:{plane}:{locator}"
+        if loc in nodes:
+            raise ValueError("duplicate cross-plane observed identity")
+        node_ref = "observation:sha256:" + digest([host, plane, locator])
+        issue = {
+            "GIT_SOURCE_VIEW": "EXTERNAL_GIT_SOURCE_CONSUMER_RELATION_UNKNOWN",
+            "NON_GIT_NAMESPACE": "NON_GIT_CONTENT_IDENTITY_AND_RETENTION_UNKNOWN",
+            "SERVICE_STATUS": "SERVICE_SOURCE_EFFECT_RELATION_UNKNOWN",
+            "PROCESS_PID": "PROCESS_LOADED_IMPLEMENTATION_UNKNOWN",
+        }[plane]
+        problem_ref = "source-problem:sha256:" + digest(
+            ["CROSS_PLANE", issue, node_ref]
+        )
+        node = {
+            "observationRef": node_ref,
+            "hostScope": host,
+            "plane": plane,
+            "locator": locator,
+            "versionIdentity": item.get("versionIdentity"),
+            "observedState": item.get("observedState"),
+            "pid": item.get("pid"),
+            "witnessRef": item["witnessRef"],
+            "gitObjectStoreGroup": item.get("gitObjectStoreGroup"),
+            "serviceLocator": item.get("serviceLocator"),
+            "proofStanding": "OBSERVATION_INPUT_NOT_INDEPENDENTLY_ATTESTED",
+            "semanticConsumerStanding": "UNKNOWN",
+            "loadedImplementationStanding": "UNKNOWN",
+        }
+        nodes[loc] = node
+        result_problems.append({
+            "problemRef": problem_ref, "issue": issue,
+            "observationRef": node_ref, "standing": "PENDING_INVESTIGATION",
+            "consumerStanding": "UNKNOWN", "invocationStanding": "NOT_MAPPED",
+            "formalStanding": "UNKNOWN", "deleteOrReplaceStanding": "NOT_QUALIFIED",
+        })
+    allowed_relations = {
+        "SHARED_GIT_OBJECT_STORE_OBSERVED",
+        "SERVICE_PID_ASSOCIATION_OBSERVED",
+        "SOURCE_TEXT_EXTERNAL_PATH_REFERENCE_CANDIDATE",
+    }
+    edges = []
+    seen_edges = set()
+    for row in links:
+        if not isinstance(row, dict) or set(row) != {
+            "source", "target", "relationKind", "witnessRef"
+        }:
+            raise ValueError("cross-plane relation must have exact witness fields")
+        a, b = nodes.get(row["source"]), nodes.get(row["target"])
+        kind = row["relationKind"]
+        if a is None or b is None or kind not in allowed_relations:
+            raise ValueError("unknown node or asserted semantic relation")
+        if not isinstance(row["witnessRef"], str) or not re.fullmatch(
+            r"[A-Za-z0-9][A-Za-z0-9._:@/-]{0,191}", row["witnessRef"]
+        ):
+            raise ValueError("relation has no safe provenance ref")
+        if kind == "SHARED_GIT_OBJECT_STORE_OBSERVED" and not (
+            a["plane"] == b["plane"] == "GIT_SOURCE_VIEW" and
+            a["gitObjectStoreGroup"] and
+            a["gitObjectStoreGroup"] == b["gitObjectStoreGroup"] and a != b
+        ):
+            raise ValueError("object-store relation not grounded in common group")
+        if kind == "SERVICE_PID_ASSOCIATION_OBSERVED" and not (
+            a["plane"] == "SERVICE_STATUS" and b["plane"] == "PROCESS_PID" and
+            a["hostScope"] == b["hostScope"] and a["pid"] and
+            a["pid"] == b["pid"] and b["serviceLocator"] == a["locator"]
+        ):
+            raise ValueError("service-process association lacks observed identity")
+        if kind == "SOURCE_TEXT_EXTERNAL_PATH_REFERENCE_CANDIDATE" and not (
+            a["plane"] == "GIT_SOURCE_VIEW" and b["plane"] == "NON_GIT_NAMESPACE"
+        ):
+            raise ValueError("lexical path hint is not a source-to-data relation")
+        edge = (a["observationRef"], b["observationRef"], kind)
+        if edge in seen_edges:
+            raise ValueError("duplicate candidate relation")
+        seen_edges.add(edge)
+        edges.append({
+            "relationRef": "relation:sha256:" + digest(edge),
+            "fromObservationRef": edge[0], "toObservationRef": edge[1],
+            "relationKind": kind, "witnessRef": row["witnessRef"],
+            "consumerAndCallSemantics": "UNKNOWN",
+            "formalProofStanding": "UNKNOWN",
+        })
+    if set(p["problemRef"] for p in result_problems) & set(
+        p["problemRef"] for p in problem_frontier["problemLegos"]
+    ):
+        raise ValueError("cross-plane and source problem identity collision")
+    return {
+        "kind": "ordivon.phase1.cross-plane-observed-problem-frontier",
+        "sourceCut": problem_frontier["sourceCut"],
+        "observationBatchDigest": "sha256:" + digest(observations),
+        "truthBoundary": "operator-supplied bounded observations; no verified call/impact/delete authority",
+        "proofReuseAdmissible": False,
+        "problemSources": {
+            "gitRecursive": problem_frontier["summary"]["problemLegos"],
+            "crossPlaneObserved": len(result_problems),
+        },
+        "observationCount": len(nodes),
+        "candidateRelationCount": len(edges),
+        "observations": sorted(nodes.values(), key=lambda n:n["observationRef"]),
+        "problems": sorted(result_problems, key=lambda p:p["problemRef"]),
+        "candidateRelations": sorted(edges, key=lambda e:e["relationRef"]),
+        "laterStagesNotExecuted": [
+            "COMPLETE_DYNAMIC_CONSUMER_DISCOVERY",
+            "INVOCATION_SEMANTICS",
+            "IMPACT_GRAPH",
+            "DELETE_REUSE_COMPOSE_REPAIR",
+        ],
+    }
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-cut", required=True)
@@ -1026,6 +1211,8 @@ def main() -> int:
                         help="exact Git AST import candidate references; not live consumers")
     parser.add_argument("--imports-prefix",
                         help="show AST import hints touching this canonical source prefix")
+    parser.add_argument("--cross-plane-observations", type=Path,
+                        help="join explicitly supplied observation evidence WITHOUT attesting it")
     parser.add_argument("--problem-legos", action="store_true",
                         help="derive exact-Git pending problems from recursive source cells; NO invocation or fixes")
     parser.add_argument("--live-cells", action="store_true",
@@ -1037,6 +1224,15 @@ def main() -> int:
     parser.add_argument("--lookup-path", action="append", default=[],
                         help="small exact-Git source/path query; repeat for multiple files")
     args = parser.parse_args()
+    if args.cross_plane_observations and not args.problem_legos:
+        parser.error("--cross-plane-observations requires --problem-legos")
+    if args.cross_plane_observations and args.use_proposal_cells:
+        parser.error("cross-plane evidence cannot be attached to proposed source authority")
+    if args.cross_plane_observations and (
+        args.lookup_path or args.reference_path or args.static_python_consumers or
+        args.live_cells
+    ):
+        parser.error("cross-plane observation join is exclusive to pending problem projection")
     if args.reference_path:
         if (args.lookup_path or args.static_python_consumers or args.live_cells
                 or args.proposal_cut or args.use_proposal_cells or args.only_problems or args.problem_legos
@@ -1081,6 +1277,12 @@ def main() -> int:
         )
         if args.only_problems:
             result["displaySelection"] = "ALL_DISCOVERED_PROBLEMS_ONLY"
+        if args.cross_plane_observations:
+            parsed = json.loads(args.cross_plane_observations.read_text())
+            result["crossPlane"] = join_cross_plane_observations(result, parsed)
+            if args.summary:
+                for field in ("observations", "problems", "candidateRelations"):
+                    result["crossPlane"].pop(field)
         if args.summary:
             result.pop("problemLegos")
     elif args.live_cells:
