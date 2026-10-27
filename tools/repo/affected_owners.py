@@ -540,7 +540,7 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
         "network/consumers/chat-ingress": "NETWORK_CHAT_INGRESS_CONSUMER_PROFILE_SOURCE",
         "network/consumers/claude": "NETWORK_CLAUDE_CONSUMER_PROFILE_SOURCE",
         "network/consumers/supply-chain": "NETWORK_SUPPLY_CHAIN_CONSUMER_PROFILE_SOURCE",
-        "network/consumers/x-reality": "NETWORK_XRAY_CONSUMER_PROFILE_SOURCE",
+        "network/consumers/x-reality": "NETWORK_X_API_TRANSPORT_CONSUMER_SOURCE",
         "network/history/rounds": "NETWORK_HISTORICAL_ROUND_SOURCE",
         "network/providers/surfshark": "NETWORK_SURFSHARK_PROVIDER_PROFILE_SOURCE",
         "next/data-products/experimental-episode-corpus-r1": "NEXT_EPISODE_CORPUS_DATA_PRODUCT_SOURCE",

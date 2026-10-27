@@ -447,6 +447,26 @@ class SourceClassificationTests(unittest.TestCase):
         self.assertNotIn("installed", row)
         self.assertNotIn("verifiedBy", row)
 
+    def test_x_reality_is_x_api_transport_not_xray_or_oauth_authority(self) -> None:
+        # The native source's README limits this consumer to api.x.com:443
+        # transport; Agent/user OAuth credentials belong to another authority.
+        self.manifest.write_text(self.header + (
+            '\n[[owners]]\nname = "network"\nroot = "platform/network/"\n'
+            'verify_task = "network:ci"\n'
+        ))
+        path = self.repo / "platform/network/consumers/x-reality/config/authority.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text('{"apiHost":"api.x.com"}')
+        result = self.project(self.commit())
+        row = next(r for r in result["entries"] if r["path"] ==
+                   "platform/network/consumers/x-reality/config/authority.json")
+        self.assertEqual(row["sourceCellRole"],
+                         "NETWORK_X_API_TRANSPORT_CONSUMER_SOURCE")
+        self.assertEqual(row["verificationOwner"], "network")
+        self.assertFalse(result["proofReuseAdmissible"])
+        self.assertNotIn("oauth", str(row).lower())
+        self.assertNotIn("installed", row)
+
     def test_regions_cannot_acquire_validation_or_authority(self) -> None:
         for field in ["verify_task", "authority"]:
             with self.subTest(field=field):
