@@ -1,7 +1,8 @@
-# Provider: Workstation v2
+# Provider: Execution Node Realization (Workstation)
 
-- Source repository: `/root/projects/ordivon`\n- Owner path: `platform/workstation`
-- Observed monorepo revision: `a003ca18b7e43ea4012d62db8d8d71198d68d961`
+- Source repository: `/root/projects/ordivon`
+- Owner path: `platform/workstation`
+- Historical source observation: `a003ca18b7e43ea4012d62db8d8d71198d68d961`
 - Role: task-local execution/integration substrate provider
 - Migration mode: canonical modular-monorepo owner; legacy standalone carrier is retirement-only
 
@@ -15,9 +16,9 @@
 - generic PostgreSQL/backup operational substrate;
 - service lifecycle via mature OS/container facilities.
 
-## Current observability realization — 2026-09-14
+## Historical observability observation — 2026-09-14
 
-Workstation v2 has an accepted OTLP ingress without introducing an OpenTelemetry Collector daemon:
+The 2026-09-14 study recorded OTLP ingress without an OpenTelemetry Collector daemon:
 
 ```text
 OTLP gRPC :4317 / HTTP :4318
@@ -27,7 +28,13 @@ Vector 0.57.0
    └─ metrics -> Prometheus 3.14.0 native OTLP receiver
 ```
 
-Traces are explicitly deferred/blackholed because no trace-storage backend has been admitted. This provider must not claim trace observability until a real backend and useful trace query are accepted.
+That study deferred trace storage. Later source defines Vector-to-Tempo forwarding
+in `platform/workstation/observability/vector.yaml`, the Tempo configuration in
+`platform/workstation/observability/tempo.yaml`, and activation through
+`platform/workstation/systemd/ordivon-observability-heavy.target`.
+The dated 2026-09-28 deployment observation records an on-demand, cold-by-default
+posture. Actual activation, health and useful-query acceptance must be read from
+the provider for the current workload; configuration files do not establish them.
 
 ## Boundary
 

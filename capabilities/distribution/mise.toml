@@ -1,15 +1,9 @@
 [tools]
-python = "3.15.1"
-uv = "0.13.5"
 shellcheck = "0.11.0"
-opa = "1.21.4"
 
 [tasks.verify]
 run = """
 set -euo pipefail
-uv lock --check
-uv sync --locked
-uv run ruff check .
-bash scripts/test-all.sh
+bash scripts/test-structure.sh
 git ls-files -z -- '*.sh' | xargs -0 -r shellcheck
 """

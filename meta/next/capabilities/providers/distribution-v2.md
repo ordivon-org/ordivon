@@ -1,23 +1,19 @@
-# Provider: Distribution v2
+# Provider profile: Distribution
 
 - Source: /root/projects/ordivon/capabilities/distribution
-- Current owner path revision: 6cf76a49140d8d928dd4bb73904d38fa6819dac2
-- Historical standalone observation revision: 03ccc562160b
-- Role: provider distribution/effect execution and readback capability provider
-- Migration mode: canonical monorepo owner; standalone Distribution-v2 identity retained only as historical/recovery provenance
+- Role: optional effect-safety guidance, historical provider observations and the
+  R7 Artifact fixture consumed by Workstation's n8n acceptance.
+- The standalone carrier is retired; its identity remains historical provenance.
 
-## Current capability standing
+## Current boundary
 
-- GitHub authenticated observation/readback proven;
-- durable Temporal -> integration-edge paths proven for non-effectful/read-only cases;
-- exact approval ingress exists;
-- real provider writes remain authority-gated and were not performed at the observed standing.
+Distribution has no active approval/authority/admission/reconciliation engine.
+Those reference implementations had only self-tests and were retired.
+Workstation consumes the R7 fixture to construct a synthetic blocked CloudEvent;
+a separate readback branch performs a provider-native GET. This does not prove
+provider-write admission.
 
-## Reusable rules
-
-1. bind one external effect to one exact intent/account/payload occurrence;
-2. reusable credentials do not replace exact effect authority for write/destructive actions;
-3. local execution/upload/scheduler success is not provider acceptance;
-4. ambiguous external outcomes cannot be blindly retried without provider idempotency or authoritative absence evidence.
-
-These rules are candidates for broader effect-management knowledge, not justification for a permanent Distribution layer in Core.
+For real delivery use the destination's native API/CLI, caller IAM/OAuth and
+authoritative readback. Bind exact provider/account/payload occurrences and
+reconcile ambiguous outcomes at the consuming owner. Optional carrier probes and
+historical receipts are observations, not current production qualification.

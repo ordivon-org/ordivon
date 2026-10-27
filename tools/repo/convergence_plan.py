@@ -140,16 +140,22 @@ def build_plan(
         base_revision = None
         head_revision = None
         head_tree = None
+        affected_owners.require_registered_execution_paths(paths, owners=owners)
+        direct = affected_owners.owners_for_paths(paths, owners=owners)
     else:
         if not base or not head:
             raise ValueError("base and head are required when changed_files is empty")
         base_revision = _git("rev-parse", f"{base}^{{commit}}")
         head_revision = _git("rev-parse", f"{head}^{{commit}}")
         head_tree = _git("rev-parse", f"{head_revision}^{{tree}}")
-        paths = affected_owners.changed_paths(base_revision, head_revision)
-
-    affected_owners.require_registered_execution_paths(paths, owners=owners)
-    direct = affected_owners.owners_for_paths(paths, owners=owners)
+        paths, direct = affected_owners.owners_for_revision_range(
+            Path.cwd(), base_revision, head_revision,
+        )
+        # CI runs the checked-out HEAD's tasks. Historical attribution may
+        # admit deleted old roots, never silently substitute another task set.
+        by_name = {owner.name: owner for owner in owners}
+        if any(by_name.get(owner.name) != owner for owner in direct):
+            raise ValueError("checked-out verification owners must match revision HEAD")
     direct_names = tuple(owner.name for owner in direct)
     cross_cutting = _is_cross_cutting(paths)
     test_only_consumers: list[tuple[str, str]] = []

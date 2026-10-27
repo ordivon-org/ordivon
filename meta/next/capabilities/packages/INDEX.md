@@ -17,6 +17,7 @@ This is a working inventory, not an architecture.
 | Distribution | verified delivery to target platform/audience | READY_FOR_REAL_WORK | use provider-native path; consequential writes remain authority-gated |
 | Operations | continuously operating service/system | READY_FOR_REAL_WORK | validate durable execution/recovery on useful real workflows/services |
 | Network | reliable communication and network diagnosis | READY_FOR_REAL_WORK | activate on real path/reachability/performance failures and retain falsification evidence |
+| Business Operations | provider-native business/accounting records and workflows | NEXT_CENSUS | reuse [existing scope and historical ERPNext/Frappe acceptance](../../docs/CAPABILITY_PACKAGES_R1.md#11-business-operations); recheck current provider state for the real workload |
 
 ## Shared disciplines available to every package
 
@@ -28,6 +29,14 @@ Agents, Skills, programs, solvers, databases, workflow engines, APIs, humans and
 
 ## R1 census result
 
-All eleven high-frequency packages have now received the first standards/external-ecosystem/local-capability census. `READY_FOR_REAL_WORK` means enough capability exists to start normal real workloads; it does **not** mean the open-ended field is complete or that every optional tool has been installed.
+The directory contains eleven package cards. This index also links the already
+documented Business Operations family, giving twelve named families across the
+two discovery views without copying another card. Its historical ERPNext/Frappe
+acceptance does not establish current installation or a real customer outcome.
+
+Inventory labels describe the source census, not current provider availability
+or complete designed-system coverage. Before a workload relies on a label,
+check its dated evidence and the actual provider. `READY_FOR_REAL_WORK` does
+not certify an open-ended field or require installing every optional tool.
 
 From this point, installation and package growth are workload-triggered only.

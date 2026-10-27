@@ -240,6 +240,15 @@ def classification(repo: Path, source: str, proposed: str | None = None) -> dict
     return {
         "schemaVersion": 1,
         "kind": "ordivon.source-exhaustive-coverage-projection",
+        "coverageDomain": "TRACKED_PATHS_IN_ONE_EXACT_GIT_TREE",
+        "coverageQualification": {
+            "sourcePathEnumeration": "COMPLETE_AT_SOURCECUT",
+            "designedResponsibilities": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedRealizations": "UNKNOWN",
+            "runtimeStateAndArtifacts": "UNKNOWN",
+            "externalEnvironment": "UNKNOWN",
+        },
         "sourceCut": source,
         "sourceTree": git(repo, "rev-parse", f"{source}^{{tree}}").decode().strip(),
         "proposalCut": proposed,
@@ -416,6 +425,8 @@ def active_source_cells(
     observed = collections.Counter(p for c in cells for p in c["observations"])
     result = {
         "kind": "ordivon.source-cell-live-frontier",
+        "coverageDomain": inventory["coverageDomain"],
+        "coverageQualification": dict(inventory["coverageQualification"]),
         "sourceCut": inventory["sourceCut"],
         "sourceTree": inventory["sourceTree"],
         "proposalCut": inventory["proposalCut"] if use_proposal else None,
@@ -499,6 +510,8 @@ def lookup_source_paths(inventory: dict, *, repo: Path,
         })
     return {
         "schemaVersion": 1, "kind": "ordivon.source-cut-exact-path-navigation",
+        "coverageDomain": inventory["coverageDomain"],
+        "coverageQualification": dict(inventory["coverageQualification"]),
         "sourceCut": inventory["sourceCut"], "sourceTree": inventory["sourceTree"],
         "proposalCut": inventory["proposalCut"],
         "sourcePathDigest": inventory["sourcePathDigest"],

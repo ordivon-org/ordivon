@@ -160,13 +160,17 @@ Do not turn successful one-off work into a new Ordivon methodology by default.
 
 A new local abstraction is admissible only after repeated measured substitution failure in mature external methods/providers.
 
-## References to load only when needed
+## Repository references to load only when needed
 
-- External authority/currentness/evidence boundary: `../../../docs/STANDARD_NATIVE_ENTERPRISE_ENVIRONMENT_R2.md`
-- Company-specific strategy facts/open choices: `../../../docs/COMMERCIAL_STRATEGY_CURRENT_FACTS_R1.md`
-- Current task-local channel falsification: `../../../planning/commercial-channel-experiment-r1.md`
-- Detailed provider/currentness and historical dogfood map: `../../../docs/ENTERPRISE_OPERATING_MODEL_R1.md`
-- Current capability/provider coverage: `../../../docs/CAPABILITY_PACKAGES_R1.md`
-- Commercial migrations: `../../../migrations/records/commercial-practice-externalization-r1.md`, `commercial-practice-externalization-r2.md`, `commercial-practice-externalization-r3.md`, `commercial-strategy-debt-externalization-r1.md`, and `commercial-marketing-externalization-r1.md`
+These paths require the Ordivon source checkout. They are not bundled with a
+standalone copy of this Skill. Read them through the available repository source
+interface; do not infer that a portable installation includes these resources.
+
+- External authority/currentness/evidence boundary: `../../../meta/next/docs/STANDARD_NATIVE_ENTERPRISE_ENVIRONMENT_R2.md`
+- Company-specific strategy facts/open choices: `../../../meta/next/docs/COMMERCIAL_STRATEGY_CURRENT_FACTS_R1.md`
+- Current task-local channel falsification: `../../../meta/next/planning/commercial-channel-experiment-r1.md`
+- Detailed provider/currentness and historical dogfood map: `../../../meta/next/docs/ENTERPRISE_OPERATING_MODEL_R1.md`
+- Current capability/provider coverage: `../../../meta/next/docs/CAPABILITY_PACKAGES_R1.md`
+- Commercial migrations: `../../../meta/next/migrations/records/commercial-practice-externalization-r1.md`, `commercial-practice-externalization-r2.md`, `commercial-practice-externalization-r3.md`, `commercial-strategy-debt-externalization-r1.md`, and `commercial-marketing-externalization-r1.md`
 
 For artifact production/verification, activate `artifact-work` instead of duplicating artifact-family procedure here.

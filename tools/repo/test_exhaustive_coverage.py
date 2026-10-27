@@ -48,6 +48,15 @@ class FullCoverageTests(unittest.TestCase):
                                       text=True).strip()
         p = M.classification(ROOT, sha)
         self.assertFalse(p["proofReuseAdmissible"])
+        self.assertEqual(p["coverageDomain"], "TRACKED_PATHS_IN_ONE_EXACT_GIT_TREE")
+        self.assertEqual(p["coverageQualification"], {
+            "sourcePathEnumeration": "COMPLETE_AT_SOURCECUT",
+            "designedResponsibilities": "UNKNOWN",
+            "actualConsumerClosure": "UNKNOWN",
+            "installedRealizations": "UNKNOWN",
+            "runtimeStateAndArtifacts": "UNKNOWN",
+            "externalEnvironment": "UNKNOWN",
+        })
         self.assertEqual(p["summary"]["trackedPaths"], p["summary"]["accountedForPaths"])
         self.assertEqual(p["summary"]["nodes"], len(p["semanticPlans"]["nodes"]))
         self.assertTrue(all(n["formalQualification"] == "UNKNOWN" for n in p["semanticPlans"]["nodes"]))

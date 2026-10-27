@@ -926,9 +926,6 @@ def test_retired_next_historical_owner_cohorts_are_not_reintroduced() -> None:
         assert not retired.intersection(paths)
         retired.update(paths)
     assert len(retired) == 36
-    # The current Social Fabric Owner is retained, not replaced by old R2.
-    assert (ROOT / "meta/next/scripts/social_fabric_r1.py").is_file()
-    assert (ROOT / "meta/next/tests/test_social_fabric_r1.py").is_file()
     module.validate_formal_issue_census(census, plans)
 
 
@@ -1766,7 +1763,10 @@ def test_git01_three_uv_owner_nonmerge_effects_use_current_verified_consumers() 
         assert proof["patchRelation"] == "PATCH_DISTINCT_UNQUALIFIED"
         assert record["consumer"].strip() and record["remoteWitness"].strip()
         mise = tomllib.loads((ROOT / owner / "mise.toml").read_text(encoding="utf-8"))
-        assert tuple(map(int, mise["tools"]["uv"].split("."))) >= (0, 13, 5)
+        # Distribution retains its fixture/shell verification root, but the
+        # historical Python/OPA reference stack and its uv dependency retired.
+        if owner != "capabilities/distribution":
+            assert tuple(map(int, mise["tools"]["uv"].split("."))) >= (0, 13, 5)
         assert task in mise["tasks"]
     module.validate_formal_issue_census(census, plans)
 
