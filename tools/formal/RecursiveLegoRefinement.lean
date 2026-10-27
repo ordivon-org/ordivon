@@ -188,7 +188,7 @@ theorem source_and_environment_readset_is_complete :
 
 end OrdivonR21
 
--- Incremental reasoning edges a CLOSED actual dependency scope, not an
+-- Incremental reasoning requires a CLOSED actual dependency scope, not an
 -- Owner label, source-path lookup, unchanged Git blob, or a caller's guess.
 -- This is a conditional frame rule for pure, deterministic observations.
 -- Real effectful/non-deterministic systems need a separately proved trace
@@ -203,7 +203,7 @@ def StableWithin {δ β : Type}
     (declared : δ → Prop) (before after : δ → β) : Prop :=
   ∀ d, declared d → before d = after d
 
-def DependencyExtensionality {δ β γ : Type}
+def ObservableDependsOnlyOn {δ β γ : Type}
     (actual : δ → Prop) (observable : (δ → β) → γ) : Prop :=
   ∀ before after,
     (∀ d, actual d → before d = after d) →
@@ -217,7 +217,7 @@ theorem closed_dependency_frame {δ β γ : Type}
     (before after : δ → β) (observable : (δ → β) → γ)
     (hClosed : DependencyClosed declared actual)
     (hStable : StableWithin declared before after)
-    (hObserves : DependencyExtensionality actual observable) :
+    (hObserves : ObservableDependsOnlyOn actual observable) :
     observable before = observable after := by
   apply hObserves before after
   intro d hActual
@@ -231,7 +231,7 @@ theorem unlisted_dependency_breaks_frame :
       (before after : Bool → Bool)
       (observable : (Bool → Bool) → Bool),
       StableWithin declared before after ∧
-      DependencyExtensionality actual observable ∧
+      ObservableDependsOnlyOn actual observable ∧
       ¬ DependencyClosed declared actual ∧
       observable before ≠ observable after := by
   refine ⟨(fun d => d = false), (fun d => d = true),
@@ -252,6 +252,9 @@ end OrdivonR21
 
 #print axioms OrdivonR21.closed_dependency_frame
 #print axioms OrdivonR21.unlisted_dependency_breaks_frame
+
+#print axioms OrdivonR21.reuse_if_readset_covers_goal
+#print axioms OrdivonR21.extending_qualified_readset_preserves_soundness
 
 -- R2.1 incremental selector's task-local *priority* semantics.
 -- This is deliberately separate from the real Python worklist: theorem
