@@ -187,3 +187,36 @@ end OrdivonR21
 
 #print axioms OrdivonR21.closed_dependency_frame
 #print axioms OrdivonR21.unlisted_dependency_breaks_frame
+
+-- A formal counterexample to upgrading reported approval into proof.
+-- Two worlds have IDENTICAL declared verifier status but different underlying
+-- truth. Therefore no decision function reading only that report can be both
+-- sound and complete for the actual claim. This is source-level epistemic
+-- limitation, not a proof that any production verifier is malicious.
+namespace OrdivonR21
+
+structure ReportedGateWorld where
+  callerSaysSatisfied : Bool
+  actualSpecificationHolds : Bool
+
+theorem same_satisfied_report_can_hide_opposite_truth :
+    ∃ (good bad : ReportedGateWorld),
+      good.callerSaysSatisfied = true ∧
+      bad.callerSaysSatisfied = true ∧
+      good.callerSaysSatisfied = bad.callerSaysSatisfied ∧
+      good.actualSpecificationHolds = true ∧
+      bad.actualSpecificationHolds = false := by
+  refine ⟨⟨true, true⟩, ⟨true, false⟩, ?_, ?_, ?_, ?_, ?_⟩ <;> rfl
+
+theorem no_report_only_decider_can_prove_actual_truth
+    (judge : Bool → Bool) :
+    ¬ (∀ world : ReportedGateWorld,
+         judge world.callerSaysSatisfied = world.actualSpecificationHolds) := by
+  intro h
+  have hTrue := h ⟨true, true⟩
+  have hFalse := h ⟨true, false⟩
+  simp only at hTrue hFalse
+  rw [hTrue] at hFalse
+  exact Bool.noConfusion hFalse
+
+end OrdivonR21
