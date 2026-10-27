@@ -215,3 +215,96 @@ For exact path comparisons, supply both --source-cut and --proposal-cut.
 The native lookup returns **currentSource** and **proposedSource**
 separately. The Agent must not use the proposal as installed permission
 or infer a source in one Git checkout is present in another.
+
+## Agent-first interface carrier distinctions (R1 additive source evidence)
+
+An additional exact Git-source census distinguishes interface carriers across Gateway, Host, Harness, Skills, Agent Plugins, Formal and Repo mechanics. The source-bound machine evidence at
+`docs/architecture/evidence/ORDIVON_PHASE1_AGENT_INTERFACE_NAMES_20261027_R1.json`
+contains **24 independently checked Git blob anchors** (SourceCut `d808ff09cf52422ad67ad880d856a8a1bad622b1`). This is a vocabulary overlay on existing source cells, **not** a new owner partition, second registry, proof, live capability index, or permission to move files.
+
+| Misleading broad name | Precise source-level distinctions |
+|---|---|
+| MCP | Server implementation; upstream/client adapter; declarative remote connection; declared Tool surface |
+| Plugin / control plane | Portable Agent Plugin manifest; MCP connection descriptor; Harness plugin admission adapter; actual running service is separate |
+| Tool / CLI / SDK | Command-line entrypoint; typed execution client port; Tool bridge protocol; real provider-side effect remains separate |
+| Skill | Method instruction file; discovery/resolution catalog; eligibility observer; bounded MCP compatibility server |
+| Gateway / Host | Capability route declaration vs transport adaptor; Host social-work MCP server vs an MCP Host *application* |
+| Formal / Owner | Lean theorem source vs source verification selector; neither a correctness approval role nor deployed-behavior proof |
+
+Each entry contains an exact source path, Git blob identity, checked literal anchor, proposed machine-readable name, and a falsifiable `notEquivalentTo` constraint. Consumer, installed and formal status remain **UNKNOWN**. Existing path names and imports remain untouched.
+
+
+The evidence also records **five exact-Git cross-candidate display-name conflicts** between source-only #983 and #948 proposals (Agent Plugin, Workstation, Skills, Gateway and Host). These are **proposed aliases**, not live or installed names, and no original registered verification identifier or path is renamed. In particular, External Control Plane Extension cannot be inferred as a running control plane from plugin.json, and Installed Environment cannot be inferred from provisioning source.
+
+
+### R2 entire verification-scope source sample (not responsibility closure)
+
+The same existing classification evidence now includes an independently
+pinned **18/18 verification-scope source sample** against protected Git SourceCut
+c7fd6ae2198ede644cd3a3800c0441ba6ef6ec15. All **26 new sampled source roles**
+are checked against exact Git blob identities and non-generic content witnesses.
+Together with earlier interface carriers, the survey accounts for
+**46 path observations** within the 18 scopes;
+**20** prior anchors retain identical
+bytes at this newer SourceCut.
+
+This checks sample presence and source naming, **not full source-responsibility
+or consumer closure**. Source areas absent from the earlier MCP/Plugin/Tool
+vocabulary pass now have grounded source-local contrasts:
+
+| Mechanical verification scope | Distinction actually sampled |
+|---|---|
+| Next | external-standard records/schema vs installed identity authority |
+| Composition | task-local composition gate vs actual formal discharge |
+| Runtime | provider contract seam vs committed live process or provider equivalence |
+| Security | reusable authentication contract vs lab verifier and deployed security service |
+| Workstation | Cloudflare lifecycle command vs declared edge policy and installed configuration |
+| Network | consumer egress requirement vs sing-box provider configuration and observed traffic |
+| Artifact | Agent intent CLI vs KiCad-native PCB verification and delivered artifact |
+| Distribution | distribution admission CLI vs authority-record producer and real external write |
+| Media | motion timeline source vs repository rights statement and delivered video |
+| Preservation | Archivematica desired compose vs historical source-boundary provenance |
+| Game | mechanism query vs development project metadata and actual game process |
+| Capital | non-live execution policy vs domain taxonomic source and broker effects |
+| Web | HTTP process entrypoint vs Agent admission code and observed running server |
+
+The original five interface-focused scopes (Control Plugin, Gateway, Host,
+Harness, Skills) retain the 20 unchanged Git source anchors already verified
+in the first survey. This second cut does not reclassify navigation-only
+directories as registered Owners. No Agent approval role, second classifier,
+LEGO inventory, dynamic consumer proof, installed-status inference,
+physical rename or operation is introduced. The pinned old proposal aliases
+remain historical comparisons; the new sample has its own exact SourceCut.
+
+
+### R3 17 navigation-only source regions and three reclassification decisions
+
+Source-subject Git cut: c7fd6ae2198ede644cd3a3800c0441ba6ef6ec15 (5,003 tracked Git entries).
+Proposed 18-root/17-region manifest: 110c22fa99cdc4df11bb74b96186571fc8a276e0.
+Proposed 21-root/14-region manifest: 32216032707182ece5e62b111f87a9c513348dea.
+
+The same source tree is classified *without moving any Git source bytes*:
+
+| Exact Git source group | 18 roots + 17 regions (PR983) | 21 roots + 14 regions (PR948) |
+|---|---:|---:|
+| Existing registered root source | 4,652 | 4,652 |
+| Existing navigation region source | 327 | 327 |
+| LEGO foundation, formal tools, Research source | 24 navigation-only | 24 newly registered Repo verification-scope paths |
+| Unassigned or ambiguous | 0 | 0 |
+
+Precisely three proposed navigation categories change interpretation between the
+two candidate manifests: lego-r21-mathematical-foundation (2 Git paths) becomes
+ROOT:lego-foundation, native-formal-toolchain-source (10) becomes
+ROOT:formal-toolchain, and research-qualification-source (12) becomes
+ROOT:research. This is a **source-scope/routing choice** and must be decided by
+native verification consumers, not an Agent/person approval or LEGO property.
+Changing registered verification scopes is distinct from source naming or
+underlying mathematical correctness.
+
+The existing evidence JSON now contains all **17**
+candidate navigation areas, the exact count and one source identity witness per
+area, plus both manifest SourceCuts and their path-classification crosswalk.
+The other main-root survey covers all 18 mechanical scopes. Neither provides
+complete consumer closure, a certified running service, a formal property proof
+or a license to rename physical directories. Both manifest proposals are still
+separate from the protected main at the audited cut.
