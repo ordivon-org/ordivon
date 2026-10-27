@@ -689,6 +689,79 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
         "workstation/inventory/snapshots": "WORKSTATION_HISTORICAL_INVENTORY_SNAPSHOT_SOURCE",
     }
 
+    # Six historically generic root carriers have *content-inspected*
+    # labels bound to their exact original Git blob. No label survives a
+    # changed object without requalification. This is not a semantic proof.
+    content_bound_root_labels = {
+        "capabilities/media/MEDIA.md": (
+            "02e351b3c127c07131bb98a7150f245dd13dcb66",
+            "MEDIA_SCOPE_CONSTITUTION_DOCUMENT",
+        ),
+        "capabilities/media/STUDIO.md": (
+            "6e36110f080387c31a30b842868aa5b141c50efa",
+            "MEDIA_STUDIO_DESIGN_DOCUMENT",
+        ),
+        "platform/network/STACK.md": (
+            "2fa8ae26927ad3f1d930996fc1eccc85cc32d813",
+            "NETWORK_E2E_STACK_REFERENCE_DOCUMENT",
+        ),
+        "services/harness/ARCHITECTURE.md": (
+            "2301c023bb432017566bbe220dcf14753f372959",
+            "HARNESS_SOURCE_ARCHITECTURE_DOCUMENT",
+        ),
+        "apps/web/agent-native-e2e.sh": (
+            "67fa0294421c9fed817bcd629c2d28115a8e0387",
+            "WEB_AGENT_NATIVE_TEST_SCRIPT",
+        ),
+        "apps/web/browser-e2e.sh": (
+            "6be08b9e52f7fdf7231e6309fd611acd3de26064",
+            "WEB_BROWSER_TEST_SCRIPT",
+        ),
+    }
+    root_carrier_classes = {
+        "PROJECT_README": "DOCUMENTATION_AND_SOURCE_NAVIGATION",
+        "MARKDOWN_CONTENT_SOURCE": "DOCUMENTATION_AND_SOURCE_NAVIGATION",
+        "MIGRATION_PROVENANCE_RECORD": "DOCUMENTATION_AND_SOURCE_NAVIGATION",
+        "RELEASE_CHANGELOG": "DOCUMENTATION_AND_SOURCE_NAVIGATION",
+        "CONTRIBUTOR_GUIDE": "DOCUMENTATION_AND_SOURCE_NAVIGATION",
+        "PYTHON_PACKAGE_MANIFEST": "PACKAGE_AND_COMPOSITION_DECLARATION",
+        "RUST_PACKAGE_MANIFEST": "PACKAGE_AND_COMPOSITION_DECLARATION",
+        "NODE_PACKAGE_MANIFEST": "PACKAGE_AND_COMPOSITION_DECLARATION",
+        "NODE_WORKSPACE_MANIFEST": "PACKAGE_AND_COMPOSITION_DECLARATION",
+        "PLUGIN_PACKAGE_MANIFEST": "PACKAGE_AND_COMPOSITION_DECLARATION",
+        "DISTRIBUTION_COMPOSITION_DECLARATION": "PACKAGE_AND_COMPOSITION_DECLARATION",
+        "PYTHON_DEPENDENCY_LOCK": "DEPENDENCY_LOCK",
+        "RUST_DEPENDENCY_LOCK": "DEPENDENCY_LOCK",
+        "NODE_DEPENDENCY_LOCK": "DEPENDENCY_LOCK",
+        "TOOLING_DEPENDENCY_LOCK": "DEPENDENCY_LOCK",
+        "EXTERNAL_RESOURCE_LOCK": "DEPENDENCY_LOCK",
+        "PYTHON_TOOLCHAIN_VERSION": "BUILD_ENVIRONMENT_CONFIGURATION",
+        "RUST_TOOLCHAIN_VERSION": "BUILD_ENVIRONMENT_CONFIGURATION",
+        "NODE_TOOLCHAIN_VERSION": "BUILD_ENVIRONMENT_CONFIGURATION",
+        "TYPESCRIPT_COMPILER_CONFIGURATION": "BUILD_ENVIRONMENT_CONFIGURATION",
+        "TASK_TOOLCHAIN_CONFIGURATION": "BUILD_ENVIRONMENT_CONFIGURATION",
+        "EDITOR_FORMAT_CONFIGURATION": "BUILD_ENVIRONMENT_CONFIGURATION",
+        "GIT_IGNORE_RULES": "REPOSITORY_CONFIGURATION",
+        "GIT_ATTRIBUTE_RULES": "REPOSITORY_CONFIGURATION",
+        "SECRET_SCANNER_EXCLUSIONS": "REPOSITORY_CONFIGURATION",
+        "SECRET_SCANNER_CONFIGURATION": "REPOSITORY_CONFIGURATION",
+        "AGENT_INSTRUCTIONS": "AGENT_METHOD_INSTRUCTION_CARRIER",
+        "LICENSE_NOTICE": "LEGAL_AND_SECURITY_INFORMATION",
+        "SECURITY_POLICY_DOCUMENT": "LEGAL_AND_SECURITY_INFORMATION",
+        "MCP_SURFACE_DECLARATION": "EXTERNAL_INTERFACE_DECLARATION",
+        "MCP_PLUGIN_CONFIGURATION": "EXTERNAL_INTERFACE_DECLARATION",
+        "SOURCE_BOUNDARY_DECLARATION": "EXTERNAL_INTERFACE_DECLARATION",
+        "ENVIRONMENT_CONFIGURATION_EXAMPLE": "BUILD_ENVIRONMENT_CONFIGURATION",
+        "TASK_AUTOMATION_CONFIGURATION": "SCRIPT_AND_AUTOMATION",
+        "COMMAND_SCRIPT_SOURCE": "SCRIPT_AND_AUTOMATION",
+        "RUST_SOURCE_FILE": "IMPLEMENTATION_ENTRYPOINT_CARRIER",
+        "PYTHON_SOURCE_FILE": "IMPLEMENTATION_ENTRYPOINT_CARRIER",
+        "TYPESCRIPT_SOURCE_FILE": "IMPLEMENTATION_ENTRYPOINT_CARRIER",
+        "DATABASE_MIGRATION_CONFIGURATION": "BUILD_ENVIRONMENT_CONFIGURATION",
+        "TOOLING_DEPENDENCY_MANIFEST": "PACKAGE_AND_COMPOSITION_DECLARATION",
+        "RUST_DEPENDENCY_POLICY": "LEGAL_AND_SECURITY_INFORMATION",
+    }
+
     root_by_owner = {o.name: o.root for o in native_owners}
     entries = []
     for path, identity in sorted(tree.items()):
@@ -758,7 +831,34 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
             )
             if owner is not None and source_cell is not None else None
         )
+        root_carrier_class = None
+        root_carrier_role = None
+        root_carrier_standing = None
+        root_carrier_display = None
+        if owner is not None and section_key == "(root-files)":
+            root_carrier_class = root_carrier_classes.get(
+                file_form, "ROOT_CARRIER_CLASS_UNKNOWN"
+            )
+            root_carrier_role = file_form
+            root_carrier_standing = "FILENAME_ONLY_NOT_CONTENT_PROVEN"
+            pinned = content_bound_root_labels.get(path)
+            if pinned is not None:
+                expected_oid, content_role = pinned
+                if identity == f"100644:blob:{expected_oid}":
+                    root_carrier_role = content_role
+                    root_carrier_standing = "EXACT_GIT_BLOB_CONTENT_WITNESS"
+                else:
+                    root_carrier_standing = "CONTENT_WITNESS_DRIFTED_RECHECK_REQUIRED"
+            root_carrier_display = (
+                f"{semantic_by_owner.get(owner, owner)} / "
+                f"{root_carrier_class.replace('_', ' ').lower()} / "
+                f"{path.rsplit('/', 1)[-1]}"
+            )
         entries.append({
+            "rootCarrierClass": root_carrier_class,
+            "rootCarrierRole": root_carrier_role,
+            "rootCarrierEvidenceStanding": root_carrier_standing,
+            "rootCarrierDisplayName": root_carrier_display,
             "sourceCell": source_cell,
             "sourceCellDisplayName": source_cell_display,
             "sourceCellRole": source_cell_role,
@@ -787,6 +887,26 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
         "classifierSourceIdentity": tree.get("tools/repo/affected_owners.py"),
         "proofReuseAdmissible": False,
         "summary": {
+            "distinctRootCarrierClasses": len(
+                {
+                    e["rootCarrierClass"]
+                    for e in entries
+                    if e["rootCarrierClass"] is not None
+                }
+            ),
+            "rootCarrierPaths": sum(e["rootCarrierClass"] is not None for e in entries),
+            "rootCarrierUnknownClasses": sum(
+                e["rootCarrierClass"] == "ROOT_CARRIER_CLASS_UNKNOWN" for e in entries
+            ),
+            "rootCarrierContentWitnesses": sum(
+                e["rootCarrierEvidenceStanding"] == "EXACT_GIT_BLOB_CONTENT_WITNESS"
+                for e in entries
+            ),
+            "rootCarrierContentDrift": sum(
+                e["rootCarrierEvidenceStanding"]
+                == "CONTENT_WITNESS_DRIFTED_RECHECK_REQUIRED"
+                for e in entries
+            ),
             "distinctOwnerCells": len({
                 row["sourceCell"] for row in entries
                 if row["sourceCell"] is not None

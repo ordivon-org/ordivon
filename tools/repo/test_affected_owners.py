@@ -598,6 +598,80 @@ class SourceClassificationTests(unittest.TestCase):
         self.assertEqual(row["sourceRegion"], "one")
         self.assertEqual(row["classificationStanding"], "DECLARED_SOURCE_REGION")
 
+    def test_root_carriers_are_separate_source_roles_not_one_root_lego(self) -> None:
+        cases = {
+            "services/runtime/README.md": (
+                "PROJECT_README",
+                "DOCUMENTATION_AND_SOURCE_NAVIGATION",
+            ),
+            "services/runtime/Cargo.toml": (
+                "RUST_PACKAGE_MANIFEST",
+                "PACKAGE_AND_COMPOSITION_DECLARATION",
+            ),
+            "services/runtime/Cargo.lock": ("RUST_DEPENDENCY_LOCK", "DEPENDENCY_LOCK"),
+            "services/runtime/mise.toml": (
+                "TASK_TOOLCHAIN_CONFIGURATION",
+                "BUILD_ENVIRONMENT_CONFIGURATION",
+            ),
+            "services/runtime/SECURITY.md": (
+                "SECURITY_POLICY_DOCUMENT",
+                "LEGAL_AND_SECURITY_INFORMATION",
+            ),
+        }
+        for path in cases:
+            f = self.repo / path
+            f.parent.mkdir(parents=True, exist_ok=True)
+            f.write_text("source file")
+        cut = self.commit()
+        d = self.project(cut)
+        rows = {item["path"]: item for item in d["entries"]}
+        for path, (role, category) in cases.items():
+            with self.subTest(path=path):
+                item = rows[path]
+                self.assertEqual(item["rootCarrierRole"], role)
+                self.assertEqual(item["rootCarrierClass"], category)
+                self.assertEqual(
+                    item["rootCarrierEvidenceStanding"],
+                    "FILENAME_ONLY_NOT_CONTENT_PROVEN",
+                )
+                self.assertEqual(
+                    item["sourceSectionRole"],
+                    "MIXED_ROOT_CARRIER_FORMS_NOT_ONE_RESPONSIBILITY",
+                )
+                self.assertEqual(item["verificationOwner"], "runtime")
+                self.assertFalse(d["proofReuseAdmissible"])
+        self.assertEqual(d["summary"]["rootCarrierPaths"], len(cases) + 1)
+        self.assertEqual(
+            rows["services/runtime/main.rs"]["rootCarrierClass"],
+            "IMPLEMENTATION_ENTRYPOINT_CARRIER",
+        )
+        self.assertEqual(d["summary"]["rootCarrierUnknownClasses"], 0)
+
+    def test_content_grounded_root_name_is_revoked_if_same_path_bytes_drift(
+        self,
+    ) -> None:
+        p = self.repo / "capabilities/media/MEDIA.md"
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text("synthetic same-path wrong content")
+        self.manifest.write_text(
+            self.header + '\n[[owners]]\nname = "media"\n'
+            'root = "capabilities/media/"\nverify_task = "media:verify"\n'
+        )
+        first = self.project(self.commit())
+        item = next(
+            r for r in first["entries"] if r["path"] == "capabilities/media/MEDIA.md"
+        )
+        self.assertEqual(item["rootCarrierRole"], "MARKDOWN_CONTENT_SOURCE")
+        self.assertEqual(
+            item["rootCarrierEvidenceStanding"],
+            "CONTENT_WITNESS_DRIFTED_RECHECK_REQUIRED",
+        )
+        self.assertEqual(first["summary"]["rootCarrierContentDrift"], 1)
+        self.assertNotEqual(
+            item["rootCarrierRole"], "MEDIA_SCOPE_CONSTITUTION_DOCUMENT"
+        )
+        self.assertFalse(first["proofReuseAdmissible"])
+
     def test_source_cell_names_are_bounded_path_labels_not_new_lego_owners(self) -> None:
         # One native Runtime systemd source carries a visibly distinct
         # packaging responsibility, but source naming is not installation,
