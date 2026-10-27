@@ -13,7 +13,9 @@ import ast
 import collections
 import hashlib
 import json
+import os
 import re
+import stat
 import subprocess
 import tomllib
 from pathlib import Path
@@ -704,6 +706,138 @@ def derived_problem_legos(
     }
 
 
+
+
+def join_observed_authorities(problem_frontier: dict, evidence: dict) -> dict:
+    """Join caller-supplied *observations* without promoting them to truth.
+
+    No discovery, registry, credentials, network calls or transitive closure.
+    Natural authorities remain the only actual fact providers. A reference
+    to their Job is a reported witness, NOT proof that the report is genuine.
+    """
+    import re
+
+    if evidence.get("kind") != "ordivon.external-authority-observations-r1":
+        raise ValueError("external evidence must use its explicit observation envelope")
+    if evidence.get("subjectSourceCut") != problem_frontier["sourceCut"]:
+        raise ValueError("observation/source SourceCut mismatch")
+    incoming = evidence.get("observations")
+    if not isinstance(incoming, list) or len(incoming) > 512:
+        raise ValueError("external observations must be a bounded list")
+
+    issues = {r["problemRef"] for r in problem_frontier["problemLegos"]}
+    reused = problem_frontier["sameLocalIdAcrossPlansObservation"]
+    short_questions = [
+        {"problemRef": "problem:unscoped-plan-id:" + short_id,
+         "localId": short_id,
+         "scopedCandidates": paths,
+         "standing": "AMBIGUOUS_ONLY_IF_UNSCOPED_LOOKUP_IS_ACTUALLY_CONSUMED",
+         "bareIdIsAnActualCollision": False,
+         "realConsumerStanding": "UNKNOWN"}
+        for short_id, paths in sorted(reused.items())
+    ]
+    known = issues | {q["problemRef"] for q in short_questions}
+    joined = []
+    links = []
+    keys = set()
+    allowed = {"authorityRef", "subjectRef", "observationKind",
+               "observationRevision", "witnessRef", "observedAt",
+               "candidateProblemRef", "observedFacts"}
+    types = {"INDEPENDENT_GIT_SOURCE", "NON_GIT_DATA_INVENTORY",
+             "STATIC_DYNAMIC_CONSUMER_CANDIDATE",
+             "INSTALLED_SERVICE_CONFIGURATION", "ENVIRONMENT_EFFECT_OBSERVED",
+             "UNSCOPED_PLAN_LOOKUP_CANDIDATE"}
+    for item in incoming:
+        if not isinstance(item, dict) or set(item) != allowed:
+            raise ValueError("observation requires exact scoped evidence fields")
+        a, s, kind, revision = (item[k] for k in (
+            "authorityRef", "subjectRef", "observationKind", "observationRevision"))
+        if (not all(isinstance(v, str) and 1 <= len(v) <= 192
+                    for v in (a, s, kind, revision)) or
+                not re.fullmatch(r"[a-z][a-z0-9-]{1,24}:[A-Za-z0-9._:-]+", a) or
+                not re.fullmatch(r"[A-Za-z0-9._:@#/-]+", s) or
+                kind not in types):
+            raise ValueError("invalid namespaced authority/subject/kind/revision")
+        if (not isinstance(item["witnessRef"], str) or
+                not re.fullmatch(r"(job-[A-Za-z0-9-]{8,96}|sha256:[0-9a-f]{64})",
+                                 item["witnessRef"])):
+            raise ValueError("observation lacks bounded witness reference")
+        if not isinstance(item["observedAt"], str) or not re.fullmatch(
+                r"20[0-9]{2}-[01][0-9]-[0-3][0-9]T[0-2][0-9]:[0-5][0-9]:[0-5][0-9]Z",
+                item["observedAt"]):
+            raise ValueError("observation timestamp is not UTC ISO seconds")
+        facts = item["observedFacts"]
+        if (not isinstance(facts, dict) or len(facts) > 32 or
+                any(not isinstance(k, str) or len(k) > 80 or
+                    not (v is None or type(v) in (str, int, float, bool)) or
+                    isinstance(v, str) and len(v) > 320
+                    for k, v in facts.items())):
+            raise ValueError("observation fact payload must be bounded scalar metadata")
+        candidate = item["candidateProblemRef"]
+        if candidate is not None and (not isinstance(candidate, str)
+                                      or candidate not in known):
+            raise ValueError("unscoped or unrecognized Problem LEGO reference")
+        if candidate is not None and candidate.startswith("problem:unscoped-plan-id:"):
+            if kind != "UNSCOPED_PLAN_LOOKUP_CANDIDATE":
+                raise ValueError("bare-ID question requires actual scoped syntax witness")
+        key = (a, s, kind)
+        if key in keys:
+            raise ValueError("duplicate authority/subject/kind observation")
+        keys.add(key)
+        # Revision and witness are deliberately excluded from stable *subject*
+        # identity. Observation digest captures both. Neither implies currentness.
+        ref = "observed-subject:sha256:" + hashlib.sha256(
+            json.dumps(key, separators=(",", ":")).encode()).hexdigest()
+        payload_digest = "sha256:" + hashlib.sha256(
+            json.dumps(item, sort_keys=True, ensure_ascii=True,
+                       separators=(",", ":")).encode()).hexdigest()
+        joined.append({
+            "subjectRef": ref,
+            "authorityRef": a,
+            "authorityLocalRef": s,
+            "observationKind": kind,
+            "observationRevision": revision,
+            "reportedWitnessRef": item["witnessRef"],
+            "observedAt": item["observedAt"],
+            "observedFacts": facts,
+            "evidenceDigest": payload_digest,
+            "evidenceStanding": "CALLER_REPORTED_NOT_AUTHORITY_REVERIFIED",
+            "semanticConsumerStanding": "UNKNOWN",
+            "installedSourceEquivalence": "UNKNOWN",
+            "effectCausality": "UNKNOWN",
+        })
+        if candidate is not None:
+            links.append({
+                "fromSubjectRef": ref,
+                "toProblemRef": candidate,
+                "relation": "EXPLICIT_CANDIDATE_ASSOCIATION_NOT_AN_INVOKED_EDGE",
+                "consumerStanding": "UNKNOWN",
+                "proofStanding": "NOT_ESTABLISHED",
+            })
+    output = dict(problem_frontier)
+    output["observationJoin"] = {
+        "kind": "ordivon.phase1.caller-supplied-cross-authority-evidence-join",
+        "sourceCut": problem_frontier["sourceCut"],
+        "observedSubjects": sorted(joined, key=lambda r: r["subjectRef"]),
+        "candidateAssociations": sorted(links, key=lambda r: (
+            r["toProblemRef"], r["fromSubjectRef"])),
+        "unscopedShortIdQuestions": short_questions,
+        "summary": {
+            "reportedObservationSubjects": len(joined),
+            "explicitCandidateAssociations": len(links),
+            "unassociatedExternalSubjects": len(joined) - len(links),
+            "unscopedIdAmbiguityQuestionsNotCollisions": len(short_questions),
+        },
+        "naturalAuthoritiesWereReadByJoin": False,
+        "installedCurrentnessEstablished": False,
+        "dynamicConsumerClosureEstablished": False,
+        "callSemanticsEstablished": False,
+        "proofReuseAdmissible": False,
+        "deletionAuthorized": False,
+    }
+    return output
+
+
 def lookup_source_paths(inventory: dict, *, repo: Path,
                         paths: list[str], max_files: int = 24,
                         max_depth: int = 6) -> dict:
@@ -1113,6 +1247,164 @@ def exact_git_reference_hints(
     }
 
 
+
+def independent_scope_frontier(
+    repo: Path, source: str, *, external_git: list[str],
+    non_git_data: list[str], max_entries: int = 512,
+) -> dict:
+    """Read-only scopes beside one exact Git subject. No membership inference.
+
+    Git scopes require independently pinned commits. Non-Git directories are
+    locators ONLY; a directory name or stat never becomes a content digest.
+    Installed binary and runtime consumer effects are not observed here.
+    """
+    exact_commit(repo, source)
+    if not external_git and not non_git_data:
+        raise ValueError("external scopes require an explicitly named source")
+    if len(external_git) + len(non_git_data) > 16 or not 1 <= max_entries <= 512:
+        raise ValueError("external scope count/entry limit exceeds bounded survey")
+    label_pattern = re.compile(r"[a-z][a-z0-9._-]{0,47}\Z")
+    labels: set[str] = set()
+    scopes = []
+
+    def qualified_label(label: str) -> str:
+        if not label_pattern.fullmatch(label) or label in labels:
+            raise ValueError("scope label must be unique canonical ASCII identifier")
+        labels.add(label)
+        return label
+
+    def absolute_locator(raw: str) -> Path:
+        path = Path(raw)
+        if not path.is_absolute() or ".." in path.parts or not path.is_dir():
+            raise ValueError("external root must be a present canonical absolute directory")
+        if path.is_symlink() or path.resolve() != path:
+            raise ValueError("external directory locator cannot be a symlink/alias")
+        return path
+
+    for raw in external_git:
+        label, sep, remainder = raw.partition("=")
+        if not sep:
+            raise ValueError("Git scope requires label=absolute_path@exact_git_cut")
+        qualified_label(label)
+        root_name, cut_sep, cut = remainder.rpartition("@")
+        if not cut_sep:
+            raise ValueError("Git scope requires explicit independent Git commit")
+        root = absolute_locator(root_name)
+        top = git(root, "rev-parse", "--show-toplevel").decode().strip()
+        if Path(top).resolve() != root:
+            raise ValueError("external Git scope must be a repository root")
+        exact_commit(root, cut)
+        paths = tree(root, cut)
+        top_levels = collections.Counter(
+            x["path"].split("/", 1)[0] for x in paths)
+        scopes.append({
+            "scopeRef": "git-scope:" + label + "@" + cut,
+            "label": label,
+            "labelStanding": "CALLER_SCOPED_ALIAS_NOT_GLOBAL_IDENTITY",
+            "scopeKind": "INDEPENDENT_GIT_SOURCE_CUT",
+            "observedLocalLocator": str(root),
+            "sourceCut": cut,
+            "sourceTree": git(root, "rev-parse", f"{cut}^{{tree}}").decode().strip(),
+            "trackedPaths": len(paths),
+            "topLevelPaths": dict(sorted(top_levels.items())),
+            "sourceIdentityStanding": "EXACT_GIT_TREE_ONLY",
+            "worktreeCurrentnessStanding": "NOT_OBSERVED",
+            "ordivonAffiliationStanding": "UNKNOWN",
+            "crossScopeConsumerStanding": "UNKNOWN",
+            "installedStanding": "UNKNOWN",
+        })
+    for raw in non_git_data:
+        label, sep, path = raw.partition("=")
+        if not sep:
+            raise ValueError("non-Git source requires label=absolute_directory")
+        qualified_label(label)
+        root = absolute_locator(path)
+        # Avoid promoting a Git repository to an unbound dataset carrier.
+        git_probe = subprocess.run(
+            ["git", "--no-replace-objects", "-C", str(root),
+             "rev-parse", "--show-toplevel"],
+            capture_output=True,
+        )
+        if git_probe.returncode == 0:
+            raise ValueError("non-Git dataset path belongs to a Git worktree")
+        kinds = collections.Counter()
+        entry_count = 0
+        with os.scandir(root) as entries:
+            for entry in entries:
+                entry_count += 1
+                if entry_count > max_entries:
+                    raise ValueError("non-Git directory entry survey exceeded limit")
+                mode = entry.stat(follow_symlinks=False).st_mode
+                kinds["directory" if stat.S_ISDIR(mode) else
+                      "file" if stat.S_ISREG(mode) else
+                      "symlink" if stat.S_ISLNK(mode) else "other"] += 1
+        scopes.append({
+            "scopeRef": "non-git-locator:" + label,
+            "label": label,
+            "labelStanding": "CALLER_SCOPED_ALIAS_NOT_GLOBAL_IDENTITY",
+            "scopeKind": "NON_GIT_DATA_DIRECTORY_OBSERVATION",
+            "observedLocalLocator": str(root),
+            "directChildEntries": entry_count,
+            "directChildKinds": dict(sorted(kinds.items())),
+            "sourceIdentityStanding": "UNBOUND_NON_GIT_BYTES",
+            "contentDigestStanding": "NOT_COMPUTED",
+            "recursiveContentsStanding": "NOT_OBSERVED",
+            "ordivonAffiliationStanding": "UNKNOWN",
+            "crossScopeConsumerStanding": "UNKNOWN",
+            "installedStanding": "UNKNOWN",
+        })
+    scopes.sort(key=lambda r: r["scopeRef"])
+    scope_problems = [
+        {
+            "problemRef": "problem:cross-plane-scope:" + row["scopeRef"],
+            "scopeRef": row["scopeRef"],
+            "kind": ("INDEPENDENT_GIT_CONSUMER_SCOPE_REVIEW"
+                     if row["scopeKind"] == "INDEPENDENT_GIT_SOURCE_CUT"
+                     else "NON_GIT_DATA_IDENTITY_REVIEW"),
+            "issueTags": (["AFFILIATION_AND_DYNAMIC_CONSUMERS_UNQUALIFIED"]
+                          if row["scopeKind"] == "INDEPENDENT_GIT_SOURCE_CUT"
+                          else ["DATASET_CONTENT_DIGEST_AND_CONSUMERS_UNKNOWN"]),
+            "consumerStanding": "UNKNOWN",
+            "installedStanding": "UNKNOWN",
+            "runtimeCallStanding": "NOT_ESTABLISHED",
+            "remediationStanding": "DEFER_UNTIL_JOINT_CALL_SEMANTICS",
+        }
+        for row in scopes
+    ]
+    return {
+        "kind": "ordivon.phase1.cross-plane-source-scope-observations",
+        "sourceCut": source,
+        "sourceTree": git(repo, "rev-parse", f"{source}^{{tree}}").decode().strip(),
+        "truthBoundary": (
+            "exact Git tree objects for explicitly pinned Git roots, "
+            "top-level directory metadata only for non-Git; no consumers, "
+            "deployment, external affiliation, executable effects or proofs"
+        ),
+        "proofReuseAdmissible": False,
+        "summary": {
+            "externalGitRoots": len(external_git),
+            "nonGitDirectoryLocators": len(non_git_data),
+            "externalGitTrackedPaths": sum(r.get("trackedPaths", 0) for r in scopes),
+            "crossPlaneProblemRecords": len(scope_problems),
+            "crossScopeCallsVerified": 0,
+            "installedSourcesBoundToGit": 0,
+            "missingDynamicConsumerClosure": True,
+        },
+        "relatedNativeQueries": [
+            "--problem-legos (main Git source and Plan only)",
+            "--static-python-consumers (static AST/dynamic syntax observations only)",
+            "--reference-path (bounded cross-format lexical witnesses only)",
+        ],
+        "observedScopes": scopes,
+        "pendingScopeProblems": scope_problems,
+        "crossScopeRelationships": [
+            {"subjectCut": source, "otherScopeRef": row["scopeRef"],
+             "relationshipStanding": "UNQUALIFIED_NOT_A_RUNTIME_CALL"}
+            for row in scopes
+        ],
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-cut", required=True)
@@ -1120,8 +1412,16 @@ def main() -> int:
     parser.add_argument("--repo", type=Path, default=Path.cwd())
     parser.add_argument("--summary", action="store_true")
     parser.add_argument("--only-problems", action="store_true")
+    parser.add_argument("--authority-observations", type=Path,
+                        help="optional bounded caller-supplied evidence join; requires --problem-legos")
     parser.add_argument("--problem-legos", action="store_true",
                         help="derived full source+Plan problem LEGO map; never a registry")
+    parser.add_argument("--scope-census", action="store_true",
+                        help="observe explicit independent Git and non-Git source scopes")
+    parser.add_argument("--external-git-cut", action="append", default=[],
+                        help="label=absolute_git_root@exact_40hex_commit; no installed inference")
+    parser.add_argument("--non-git-root", action="append", default=[],
+                        help="label=absolute_non_git_directory; observes immediate entries only")
     parser.add_argument("--reference-path", action="append", default=[],
                         help="cross-format Git textual reference witness for exact file path")
     parser.add_argument("--reference-limit", type=int, default=48,
@@ -1139,6 +1439,23 @@ def main() -> int:
     parser.add_argument("--lookup-path", action="append", default=[],
                         help="small exact-Git source/path query; repeat for multiple files")
     args = parser.parse_args()
+    if args.scope_census:
+        if (args.problem_legos or args.reference_path or args.lookup_path
+                or args.static_python_consumers or args.live_cells or args.proposal_cut
+                or args.use_proposal_cells or args.only_problems or args.imports_prefix
+                or args.reference_limit != 48
+                or args.authority_observations is not None):
+            parser.error("scope census is separate from source/call/problem projections")
+        result = independent_scope_frontier(
+            args.repo, args.source_cut, external_git=args.external_git_cut,
+            non_git_data=args.non_git_root)
+        print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2))
+        return 0
+    if args.external_git_cut or args.non_git_root:
+        parser.error("explicit external scopes require --scope-census")
+
+    if args.authority_observations is not None and not args.problem_legos:
+        parser.error("--authority-observations requires --problem-legos")
     if args.reference_path:
         if (args.lookup_path or args.static_python_consumers or args.live_cells
                 or args.proposal_cut or args.use_proposal_cells or args.only_problems
@@ -1181,7 +1498,20 @@ def main() -> int:
             result, repo=args.repo, max_files=args.cell_max_files,
             max_depth=args.cell_max_depth, use_proposal=args.use_proposal_cells,
         )
+        if args.authority_observations is not None:
+            # Explicit local evidence input, bounded and non-authoritative:
+            # this join never probes/impersonates the named natural authority.
+            if args.authority_observations.stat().st_size > 262144:
+                raise ValueError("authority observation file exceeds 256KiB")
+            evidence = json.loads(args.authority_observations.read_text(encoding="utf-8"))
+            result = join_observed_authorities(result, evidence)
         if args.summary:
+            if "observationJoin" in result:
+                result["observationJoin"] = {
+                    k: v for k, v in result["observationJoin"].items()
+                    if k not in ("observedSubjects", "candidateAssociations",
+                                 "unscopedShortIdQuestions")
+                }
             result = {k: v for k, v in result.items()
                       if k not in ("sourceCells", "sourcePathCellIndex",
                                    "sourceContainment", "problemLegos",
