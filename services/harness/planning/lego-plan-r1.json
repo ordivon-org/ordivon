@@ -165,7 +165,7 @@
       ]
     },
     {
-      "id": "H05",
+      "id": "H07",
       "label": "RuntimeToolRequestLowering",
       "kind": "transform",
       "responsibility": "Translate an admitted model-facing Runtime tool call into an exact native Runtime operation and JSON request while preserving fixed execution binding, Tool Grant path/execution constraints and replay-safe external request identity; multiple existing bridges consume this shared lowering.",
@@ -191,7 +191,7 @@
       "acceptance": [
         "Actual lower_runtime_tool uses HarnessExecutionBinding, explicit Tool Grant and known Job/Artifact references; forbidden path, unsupported arguments and non-conforming request types are rejected rather than broadened.",
         "Two existing concrete consumer adapters invoke the shared translation instead of silently redefining operation schemas.",
-        "Changing the exact lowering source changes the source-membership impact of H05; a passing unit test does not imply installed Runtime effect acceptance."
+        "Changing the exact lowering source changes the source-membership impact of H07; a passing unit test does not imply installed Runtime effect acceptance."
       ],
       "inputs": [
         "AgentToolCall name/arguments, step_id and HarnessExecutionBinding",
@@ -272,12 +272,12 @@
     },
     {
       "from": "H03",
-      "to": "H05",
+      "to": "H07",
       "type": "COMPOSITION",
       "label": "admitted Harness tool action uses bounded Runtime request lowering; source consumer adapters verify"
     },
     {
-      "from": "H05",
+      "from": "H07",
       "to": "H04",
       "type": "DEPENDENCY",
       "label": "Harness effect bridge consumes admitted Runtime lowering via concrete sqlite_runtime_bridge; source dependency rechecks on change, not physical-effect proof"
