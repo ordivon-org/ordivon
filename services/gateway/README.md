@@ -43,7 +43,7 @@ The default external Plugin connects only to Gateway. Gateway exposes normal Hos
 - collaboration list/search/post (compatibility)
 - collaboration publish (preferred write vocabulary; explicit global or continuity scope)
 
-Gateway intentionally does not expose host.status; owner administration and Doctor remain direct-owner recovery/admin concerns.
+Gateway currently exposes `host.status` as a delegated, read-only Host status/integrity observation compatibility Tool. Host owns the returned status and evidence; Gateway does not become Host administration or Doctor/recovery authority. The released `mcp-surface.json` and installed MCP SDK surface determine current Tool availability; source registration alone does not prove deployment.
 
 Checkpoint payloads are opaque objects at the Gateway boundary. Host validates the current WorkingCheckpoint schema; Gateway does not maintain a second Host checkpoint ontology.
 
