@@ -1,0 +1,201 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-skills-discovery-r2-phase1",
+    "purpose": "Source-qualified existing Agent Skills bridge responsibilities: source admission, context discovery and revision-fenced resource read. These are distinct from the Skill content/methods they expose.",
+    "sourceEvidence": [
+      "README.md",
+      "pyproject.toml",
+      "src/ordivon_skills/catalog.py",
+      "src/ordivon_skills/scanner.py",
+      "scripts/skills_mcp.py"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "SK01",
+      "label": "SkillSourceQualification",
+      "kind": "qualification",
+      "state": "IMPLEMENTED",
+      "responsibility": "Find Agent Skills packages within configured sources and preserve package validity, trust, quarantine, visibility and source identity before recommending content.",
+      "authority": "Agent Skills source/provider retains package and trust facts; this bridge only exposes bounded discovery and file access",
+      "inputs": [
+        "configured SkillSource roots, package bytes, Agent Skills frontmatter, trust/eligibility context"
+      ],
+      "outputs": [
+        "typed SkillRecord inventory and source-scoped admission/quarantine status"
+      ],
+      "behavioralContract": "Reject path-unsafe/nonconforming package and quarantine detected credential material; raw inventory remains separate from effective admitted projection. Not a global Skill truth registry.",
+      "acceptance": [
+        "Invalid metadata and hostile packages are not silently promoted as trusted invocation.",
+        "Source inventory distinguishes disabled/ineligible/quarantined from not found."
+      ],
+      "evidence": [
+        "src/ordivon_skills/catalog.py",
+        "src/ordivon_skills/scanner.py",
+        "src/ordivon_skills/parser.py",
+        "tests/test_skill_catalog_r2.py"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "model instruction authority",
+        "Tool invocation permission",
+        "universal Skill registry",
+        "plugin execution runtime"
+      ],
+      "consumerEvidence": [
+        "tests/test_skill_catalog_r2.py::SkillParserTests.test_missing_description_fails_closed",
+        "tests/test_skill_catalog_r2.py::SkillCatalogR2IntegrationTests.test_scanner_quarantines_credential_file_but_preserves_raw_inventory"
+      ],
+      "replacementCondition": "Retain Agent Skills identity, trust, discovery, exact revision fences and path containment; substitute the bridge with a standards-native provider only after matching native consumers and stale-package negatives.",
+      "verificationQualification": "NATIVE_SOURCE_AND_SCOPED_TESTS_ONLY_NOT_GLOBAL_SKILL_EXECUTION_AUTHORITY"
+    },
+    {
+      "id": "SK02",
+      "label": "ContextualSkillDiscovery",
+      "kind": "projection",
+      "state": "IMPLEMENTED",
+      "responsibility": "Project visible effective Skill candidates and source-qualified ranked search for an Agent context, without invoking a Skill.",
+      "authority": "Agent Skills source/provider retains package and trust facts; this bridge only exposes bounded discovery and file access",
+      "inputs": [
+        "SK01 trust-qualified inventory",
+        "workspace/agent context",
+        "explicit or implicit mode",
+        "nonempty lexical search query"
+      ],
+      "outputs": [
+        "context-bound effective SkillView, snapshotRevision and candidate matches"
+      ],
+      "behavioralContract": "Fully-qualified identity is distinguished from name precedence; a missing match, ineligible candidate or source-health gap cannot be converted into an implicit execution recommendation.",
+      "acceptance": [
+        "Search cannot return ineligible/quarantined records as admitted usable Skills.",
+        "Resolution precedence is deterministic and binds the exact snapshot revision."
+      ],
+      "evidence": [
+        "src/ordivon_skills/catalog.py",
+        "scripts/skills_mcp.py",
+        "tests/test_skill_catalog_r2.py",
+        "tests/test_skills_mcp_r3.py"
+      ],
+      "dependencies": [
+        "SK01"
+      ],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "model instruction authority",
+        "Tool invocation permission",
+        "universal Skill registry",
+        "plugin execution runtime"
+      ],
+      "consumerEvidence": [
+        "tests/test_skill_catalog_r2.py::SkillCatalogR2IntegrationTests.test_equal_scope_order_collision_is_deterministic"
+      ],
+      "replacementCondition": "Retain Agent Skills identity, trust, discovery, exact revision fences and path containment; substitute the bridge with a standards-native provider only after matching native consumers and stale-package negatives.",
+      "verificationQualification": "NATIVE_SOURCE_AND_SCOPED_TESTS_ONLY_NOT_GLOBAL_SKILL_EXECUTION_AUTHORITY"
+    },
+    {
+      "id": "SK03",
+      "label": "RevisionFencedSkillRead",
+      "kind": "contract",
+      "state": "IMPLEMENTED",
+      "responsibility": "Resolve and read an exact Skill resource under instruction, package and catalog snapshot revision fences and confined filesystem paths.",
+      "authority": "Agent Skills source/provider retains package and trust facts; this bridge only exposes bounded discovery and file access",
+      "inputs": [
+        "SK02 canonical resolved Skill identity",
+        "relative resource path",
+        "expected instruction/package/snapshot revisions"
+      ],
+      "outputs": [
+        "bounded immutable resource bytes, qualified source read or explicit fail-closed error"
+      ],
+      "behavioralContract": "Snapshot mismatch, file/package revision drift, path escape or symlink escape rejects the read; returned content remains advisory, not executable authority.",
+      "acceptance": [
+        "A stale snapshot or mutated package cannot be silently read as the prior binding.",
+        "A parent-traversing/symlink resource cannot escape the selected Skill root."
+      ],
+      "evidence": [
+        "src/ordivon_skills/catalog.py",
+        "scripts/skills_mcp.py",
+        "tests/test_skill_catalog_r2.py",
+        "tests/test_skills_mcp_r3.py"
+      ],
+      "dependencies": [
+        "SK01",
+        "SK02"
+      ],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "model instruction authority",
+        "Tool invocation permission",
+        "universal Skill registry",
+        "plugin execution runtime"
+      ],
+      "consumerEvidence": [
+        "tests/test_skill_catalog_r2.py::SkillCatalogR2IntegrationTests.test_inventory_preserves_collisions_and_fully_qualified_id_is_exact"
+      ],
+      "replacementCondition": "Retain Agent Skills identity, trust, discovery, exact revision fences and path containment; substitute the bridge with a standards-native provider only after matching native consumers and stale-package negatives.",
+      "verificationQualification": "NATIVE_SOURCE_AND_SCOPED_TESTS_ONLY_NOT_GLOBAL_SKILL_EXECUTION_AUTHORITY"
+    }
+  ],
+  "edges": [
+    {
+      "from": "SK01",
+      "to": "SK02",
+      "type": "DEPENDENCY",
+      "label": "Search consumes source/trust-qualified effective inventory"
+    },
+    {
+      "from": "SK02",
+      "to": "SK03",
+      "type": "DEPENDENCY",
+      "label": "Read consumes exact qualified resolved identity and snapshot"
+    },
+    {
+      "from": "SK01",
+      "to": "SK03",
+      "type": "IDENTITY",
+      "label": "Resource read rechecks original package and instruction identity"
+    }
+  ],
+  "slices": [
+    {
+      "id": "SKS1",
+      "objective": "Existing Skills bridge source qualification, selection, and safe exact resource read have independently described R2.1 contracts and native consumer evidence.",
+      "status": "IMPLEMENTED",
+      "nodeIds": [
+        "SK01",
+        "SK02",
+        "SK03"
+      ],
+      "acceptance": [
+        "Source, trusted manifest and consumer tests resolve to exact Git objects.",
+        "Negative tests demonstrate unsafe package and stale snapshot rejection.",
+        "No new skills index or execution authority is introduced."
+      ],
+      "evidence": [
+        "src/ordivon_skills/catalog.py",
+        "tests/test_skill_catalog_r2.py"
+      ],
+      "blockers": [],
+      "nextAction": "Compare installed Skills exact package revision with source and identify real Agent consumers before any installed/behavioral cross-boundary proof."
+    }
+  ],
+  "gaps": [
+    "This source plan does not establish globally current project-vs-installed Skill package identity.",
+    "Discovery tests cannot prove model agents actually use or understand a Skill.",
+    "The underlying Skill content is a method LEGO only when actual goal and consumers justify it."
+  ],
+  "doNotOwn": [
+    "Skills standard semantics",
+    "a global Skill registry",
+    "domain admission",
+    "model behavior"
+  ],
+  "review": {
+    "basis": "Current protected main Git 75fc00bdec12268bd92ad85c6138b6f1be76bf3d; existing catalog+MCP source and native tests",
+    "proofStanding": "SPECIFIED_AND_SOURCE_IMPL_ONLY_CURRENT_INSTALLED_UNKNOWN"
+  }
+}

@@ -1,0 +1,237 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-composition-r2-phase1",
+    "purpose": "Expose four existing independently consumer-tested composition semantics as R2.1 responsibilities; not new verification machinery or a second owner.",
+    "sourceEvidence": [
+      "README.md",
+      "pyproject.toml",
+      "src/ordivon_composition/cognitive_circuit_r1.py",
+      "src/ordivon_composition/interface_contract_r2.py",
+      "src/ordivon_composition/verification_obligation_r1.py"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "C01",
+      "label": "CircuitManifestContract",
+      "kind": "contract",
+      "state": "IMPLEMENTED",
+      "responsibility": "Compile one bounded typed Composition circuit manifest and reject illegal port/producer/dependency wiring, without executing stages.",
+      "authority": "Composition source contract (Git); execution/consumer truth stays with Runtime, Host, Gateway and domain systems",
+      "inputs": [
+        "task-local manifest with stages, typed ports, edges, method/capability bindings, gate requirements"
+      ],
+      "outputs": [
+        "immutable source-bound compiled circuit projection, stable manifest digest and deterministic DAG stage ordering"
+      ],
+      "behavioralContract": "On admitted manifest, all edge endpoints are declared, one producer feeds each input, cross-stage gate contracts respect owner and prerequisite boundaries, cycles are rejected; compilation neither executes stages nor grants authority.",
+      "acceptance": [
+        "Valid manifest compiles deterministically; dangling ports, multiple producers, same-owner cross-boundary gates, cyclic or missing dependencies fail closed."
+      ],
+      "evidence": [
+        "src/ordivon_composition/cognitive_circuit_r1.py",
+        "src/ordivon_composition/schemas/cognitive-circuit-manifest-v1.schema.json",
+        "tests/test_cognitive_circuit_r1.py",
+        "tests/test_graph_operator_properties.py"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "external verifier execution",
+        "provider observation currentness",
+        "Runtime/Host/domain acceptance"
+      ],
+      "consumerEvidence": [
+        "tests/test_cognitive_circuit_r1.py::test_compile_is_deterministic_and_non_authoritative",
+        "tests/test_cognitive_circuit_r1.py::test_edge_requires_declared_ports_and_dependency"
+      ],
+      "replacementCondition": "Replace only with a manifest compiler preserving the same consumer-visible accepted inputs, rejections, ordering, and digest identity.",
+      "verificationQualification": "NATIVE_SOURCE_AND_SCOPED_TESTS_NOT_INSTALLED_OR_DOMAIN_VERIFIED"
+    },
+    {
+      "id": "C02",
+      "label": "CompositionGateStanding",
+      "kind": "verifier",
+      "state": "IMPLEMENTED",
+      "responsibility": "Derive bounded cross-boundary composition-gate standing from verifier-supplied records scoped to one compiled circuit, without minting verifier/domain facts.",
+      "authority": "Composition source contract (Git); execution/consumer truth stays with Runtime, Host, Gateway and domain systems",
+      "inputs": [
+        "C01 manifest and digest-bound compiled circuit",
+        "declared required gate results with verifier owner, scope and standing"
+      ],
+      "outputs": [
+        "COMPOSITION_GATES_SATISFIED | OPEN | UNSATISFIED projection, identified unresolved/unknown gates"
+      ],
+      "behavioralContract": "Reject wrong circuit, wrong manifest digest, wrong verifier scope and duplicates. Empty required gates, missing/UNKNOWN required gates or unresolved assumptions cannot yield mechanical closure. Closure never equals domain success.",
+      "acceptance": [
+        "Mismatched/stale gate results fail; unknown and missing required gates keep the gate open; domainAcceptanceEstablished is always false."
+      ],
+      "evidence": [
+        "src/ordivon_composition/cognitive_circuit_r1.py",
+        "src/ordivon_composition/schemas/composition-gate-result-v1.schema.json",
+        "tests/test_cognitive_circuit_r1.py",
+        "tests/test_gate_evidence_reference_law.py"
+      ],
+      "dependencies": [
+        "C01"
+      ],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "external verifier execution",
+        "provider observation currentness",
+        "Runtime/Host/domain acceptance"
+      ],
+      "consumerEvidence": [
+        "tests/test_cognitive_circuit_r1.py::test_satisfied_gate_closes_only_mechanical_composition",
+        "tests/test_cognitive_circuit_r1.py::test_unknown_or_missing_gate_remains_open"
+      ],
+      "replacementCondition": "Any replacement must preserve fail-closed scoped evidence and distinguish mechanical closure from domain acceptance.",
+      "verificationQualification": "NATIVE_SOURCE_AND_SCOPED_TESTS_NOT_INSTALLED_OR_DOMAIN_VERIFIED"
+    },
+    {
+      "id": "C03",
+      "label": "InterfaceCompatibilityAndCurrentness",
+      "kind": "interface_evaluator",
+      "state": "IMPLEMENTED",
+      "responsibility": "Compare a consumer's accepted interface contract to one exact source observation; keep compatibility, currentness, evidence admissibility independent.",
+      "authority": "Composition source contract (Git); execution/consumer truth stays with Runtime, Host, Gateway and domain systems",
+      "inputs": [
+        "circuit-bound interface expectation",
+        "source-qualified interface observation and declared accepted alternate digests"
+      ],
+      "outputs": [
+        "interface compatibility, source/currentness standing, evidence admissibility, scoped result digest"
+      ],
+      "behavioralContract": "Exact digest or explicitly accepted alternate is not automatic behavioral refinement. Missing live authority version is UNKNOWN; historical source is inadmissible; same circuit and exact source scope are required.",
+      "acceptance": [
+        "An unknown authority version cannot become current; a stale/mismatched observation is not admitted; a declared compatible interface never establishes domain acceptance."
+      ],
+      "evidence": [
+        "src/ordivon_composition/interface_contract_r2.py",
+        "src/ordivon_composition/schemas/interface-contract-observation-v1.schema.json",
+        "src/ordivon_composition/schemas/interface-contract-expectation-v1.schema.json",
+        "tests/test_interface_contract_core.py"
+      ],
+      "dependencies": [
+        "C01"
+      ],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "external verifier execution",
+        "provider observation currentness",
+        "Runtime/Host/domain acceptance"
+      ],
+      "consumerEvidence": [
+        "tests/test_interface_contract_core.py::test_exact_match_is_point_in_time_and_admissible",
+        "tests/test_interface_contract_core.py::test_unmodeled_git_recency_cannot_mint_currentness"
+      ],
+      "replacementCondition": "Candidate evaluator must preserve independent compatibility/currentness/admissibility judgments, without owner-version fabrication.",
+      "verificationQualification": "NATIVE_SOURCE_AND_SCOPED_TESTS_NOT_INSTALLED_OR_DOMAIN_VERIFIED"
+    },
+    {
+      "id": "C04",
+      "label": "VerificationObligationImpact",
+      "kind": "proof_selection",
+      "state": "IMPLEMENTED",
+      "responsibility": "Compile named circuit-gate proof obligations and conservatively select task-local rechecks for declared changed, retired, contract/relation-mutated or unknown dependencies.",
+      "authority": "Composition source contract (Git); execution/consumer truth stays with Runtime, Host, Gateway and domain systems",
+      "inputs": [
+        "C01 compiled gate manifest",
+        "caller-provided authority refs, obligation dependencies, changed and unknown source/contract refs; optional previous graph"
+      ],
+      "outputs": [
+        "digest-bound obligation set; RECHECK_REQUIRED/UNKNOWN/REUSE_CANDIDATE standings; unindexed changes"
+      ],
+      "behavioralContract": "An unindexed or unknown relation cannot silently establish proof validity. Caller declarations are not owner-certified dependency closure; basis digest and REUSE_CANDIDATE never constitute proof acceptance or admissible reuse.",
+      "acceptance": [
+        "Changing/deleting an obligation, dependency relation, or property creates a conservative recheck/unknown; projection preserves proofReuseAdmissible=false and proofAcceptanceEstablished=false."
+      ],
+      "evidence": [
+        "src/ordivon_composition/verification_obligation_r1.py",
+        "src/ordivon_composition/schemas/verification-obligation-set-v1.schema.json",
+        "tests/test_verification_obligation_r1.py"
+      ],
+      "dependencies": [
+        "C01"
+      ],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "external verifier execution",
+        "provider observation currentness",
+        "Runtime/Host/domain acceptance"
+      ],
+      "consumerEvidence": [
+        "tests/test_verification_obligation_r1.py::test_compile_obligations_is_deterministic_and_gate_compatible",
+        "tests/test_verification_obligation_r1.py::test_impact_unobserved_source_dependency_exposes_a_non_authoritative_reuse_candidate"
+      ],
+      "replacementCondition": "Alternative selector must conservatively cover declared changes and unknowns, bind exact owner-certified readset before any positive proof-reuse claim.",
+      "verificationQualification": "NATIVE_SOURCE_AND_SCOPED_TESTS_NOT_INSTALLED_OR_DOMAIN_VERIFIED"
+    }
+  ],
+  "edges": [
+    {
+      "from": "C01",
+      "to": "C02",
+      "type": "DEPENDENCY",
+      "label": "Gate standing consumes exact compiled circuit and manifest digest"
+    },
+    {
+      "from": "C01",
+      "to": "C03",
+      "type": "DEPENDENCY",
+      "label": "Compatibility evaluator uses canonical circuit/source identity and schema routines"
+    },
+    {
+      "from": "C01",
+      "to": "C04",
+      "type": "DEPENDENCY",
+      "label": "Obligation compiler consumes manifest compilation and gate scopes"
+    },
+    {
+      "from": "C04",
+      "to": "C02",
+      "type": "EVIDENCE",
+      "label": "Both concern required gate identities; projection outputs do not themselves certify one another"
+    }
+  ],
+  "slices": [
+    {
+      "id": "CP1",
+      "objective": "Native Composition circuit, gate, interface and obligation responsibilities have explicit consumer-visible R2.1 roles and exact evidence; no installed/other-Owner correctness upgrade.",
+      "status": "IMPLEMENTED",
+      "nodeIds": [
+        "C01",
+        "C02",
+        "C03",
+        "C04"
+      ],
+      "acceptance": [
+        "All four code anchors resolve to immutable SourceCut Git blobs and have native consumer tests.",
+        "Native scoped tests pass on the candidate source tree.",
+        "Root graph reflects the new nodes and relations without reinterpreting older Owner R2/R3 plans."
+      ],
+      "evidence": [
+        "src/ordivon_composition/cognitive_circuit_r1.py",
+        "src/ordivon_composition/interface_contract_r2.py",
+        "src/ordivon_composition/verification_obligation_r1.py"
+      ],
+      "blockers": [],
+      "nextAction": "Independently qualify dynamic and cross-owner readset/installed evidence before upgrading current proof reuse."
+    }
+  ],
+  "gaps": [
+    "Native tests are exact local CODE evidence, not execution-provider or installed evidence.",
+    "The declared evidence and consumer paths do not establish dynamic consumer closure.",
+    "Retire/unify any stale successor-only responsibilities after negative consumer falsification rather than duplicating them."
+  ],
+  "doNotOwn": [
+    "repository planning truth, generic LEGO registry, domain success, executable permission, verifier proof truth"
+  ],
+  "review": {
+    "basis": "GitHub protected main source cut 75fc00bdec12268bd92ad85c6138b6f1be76bf3d; source-only design and native tests to follow",
+    "proofStanding": "SPECIFIED_AND_NATIVE_SOURCE_IMPL_ONLY_FORMAL_AND_INSTALLED_UNKNOWN"
+  }
+}
