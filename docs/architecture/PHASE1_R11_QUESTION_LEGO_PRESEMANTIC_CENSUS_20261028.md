@@ -92,6 +92,12 @@ Existing Agent-friendly labels are reused only where a physical prefix exactly m
 
 Lexical first-token clusters only partition *names*. They must be tested against consumers and contract differences before any semantic sub-LEGO, split, deletion or classification assertion.
 
+### Density threshold falsification: all 39 current dense cells are flat directories
+
+Exact member-index inspection proves each of the 39 high-density Cells has **zero child-directory members**. Increasing recursion max depth from 6 to 10 therefore changes nothing on this subject Git cut. Adjusting maxFiles changes only the *physical granularity*: threshold 12 gives 757 Cells/80 dense/125 issue-bearing; threshold 24 gives 689/39/86; threshold 48 gives 579/15/36. All variants still cover exactly 4,790 Git files.
+
+Consequently raw density is a **parameter-sensitive reading/navigation question**, not a stable semantic LEGO identity or a defect. Refinement should first consider observed content form, existing Agent label, bounded lexical file groups, and eventually real contract/consumer distinctions — not invent children, move files or lower a magic threshold.
+
 ## Plan declaration mapping counts
 
 | Source plan | Nodes | Missing consumer | Missing contract | Missing formal | Missing evidence |

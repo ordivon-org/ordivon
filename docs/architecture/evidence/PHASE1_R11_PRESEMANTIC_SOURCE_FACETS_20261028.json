@@ -7,6 +7,7 @@
     "DO_NOT_INFER_CONSUMER",
     "DEFER_CALL_SEMANTICS_UNTIL_PEER_INTEGRATION"
   ],
+  "all39HighDensityCellsTerminalDirectoryReason": "ALL_39_FLAT_NO_CHILD_DIRECTORY",
   "allDenseCandidateLexicalSubgroups": [
     {
       "existingAliasCandidates": [],
@@ -5442,7 +5443,58 @@
       "services/gateway/planning/lego-plan-r1.json#G06"
     ]
   },
+  "recursiveSlicingThresholdSensitivity": [
+    {
+      "cells": 757,
+      "dense": 80,
+      "issueBearing": 125,
+      "maxDepth": 6,
+      "maxFiles": 12,
+      "paths": 4790
+    },
+    {
+      "cells": 757,
+      "dense": 80,
+      "issueBearing": 125,
+      "maxDepth": 10,
+      "maxFiles": 12,
+      "paths": 4790
+    },
+    {
+      "cells": 689,
+      "dense": 39,
+      "issueBearing": 86,
+      "maxDepth": 6,
+      "maxFiles": 24,
+      "paths": 4790
+    },
+    {
+      "cells": 689,
+      "dense": 39,
+      "issueBearing": 86,
+      "maxDepth": 10,
+      "maxFiles": 24,
+      "paths": 4790
+    },
+    {
+      "cells": 579,
+      "dense": 15,
+      "issueBearing": 36,
+      "maxDepth": 6,
+      "maxFiles": 48,
+      "paths": 4790
+    },
+    {
+      "cells": 579,
+      "dense": 15,
+      "issueBearing": 36,
+      "maxDepth": 10,
+      "maxFiles": 48,
+      "paths": 4790
+    }
+  ],
   "schemaVersion": 1,
+  "semanticWarning": "Density count is parametrization-dependent and cannot be a stable LEGO identity, nor can larger recursion depth split a truly flat source directory",
   "sourcePolicyOnlyCellTagIncidences": {
     "PHYSICAL_MOVE_NOT_REALIZED_OR_CONSUMER_NOT_CUT_OVER": 553,
     "SOURCE_CARRIER_NOT_SEMANTIC_LEGO_PROOF": 50,
