@@ -187,3 +187,53 @@ end OrdivonR21
 
 #print axioms OrdivonR21.closed_dependency_frame
 #print axioms OrdivonR21.unlisted_dependency_breaks_frame
+
+-- The source-only Agent transport projection can OMIT only declared misses.
+-- This small standard List.filter law is separate from dependency-frame
+-- soundness: it is NOT permission to reuse an implementation proof.
+namespace OrdivonR21
+
+inductive SourceImpactStanding where
+  | noDeclaredHit
+  | unknown
+  | recheckRequired
+  | changed
+  deriving DecidableEq, Repr
+
+def CompactImpact (rows : List SourceImpactStanding) :
+    List SourceImpactStanding :=
+  rows.filter (fun standing => standing != .noDeclaredHit)
+
+theorem agent_impact_preserves_nontrivial_standings
+    (rows : List SourceImpactStanding) (standing : SourceImpactStanding) :
+    standing ∈ CompactImpact rows ↔
+      standing ∈ rows ∧ standing ≠ .noDeclaredHit := by
+  simp [CompactImpact]
+
+theorem agent_impact_cannot_hide_unknown
+    (rows : List SourceImpactStanding)
+    (h : SourceImpactStanding.unknown ∈ rows) :
+    SourceImpactStanding.unknown ∈ CompactImpact rows := by
+  exact (agent_impact_preserves_nontrivial_standings rows
+    .unknown).2 ⟨h, by decide⟩
+
+theorem agent_impact_cannot_hide_recheck
+    (rows : List SourceImpactStanding)
+    (h : SourceImpactStanding.recheckRequired ∈ rows) :
+    SourceImpactStanding.recheckRequired ∈ CompactImpact rows := by
+  exact (agent_impact_preserves_nontrivial_standings rows
+    .recheckRequired).2 ⟨h, by decide⟩
+
+theorem agent_impact_excludes_declared_misses
+    (rows : List SourceImpactStanding) :
+    SourceImpactStanding.noDeclaredHit ∉ CompactImpact rows := by
+  intro h
+  exact ((agent_impact_preserves_nontrivial_standings rows
+    .noDeclaredHit).1 h).2 rfl
+
+end OrdivonR21
+
+#print axioms OrdivonR21.agent_impact_preserves_nontrivial_standings
+#print axioms OrdivonR21.agent_impact_cannot_hide_unknown
+#print axioms OrdivonR21.agent_impact_cannot_hide_recheck
+#print axioms OrdivonR21.agent_impact_excludes_declared_misses
