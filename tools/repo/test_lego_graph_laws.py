@@ -681,6 +681,9 @@ def test_immutable_owner_plan_projection_ignores_local_git_blob_replace(
         path = tmp_path / name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes((ROOT / name).read_bytes())
+    checker = tmp_path / "tools/repo/check_architecture_docs.py"
+    checker.parent.mkdir(parents=True, exist_ok=True)
+    checker.write_text("OWNER_LEGO_PLANS = (" + repr(owner_plan) + ",)" + chr(10), encoding="utf-8")
     git("add", ".")
     git("commit", "-qm", "immutable owner-plan source cut")
     source_cut = git("rev-parse", "HEAD")
@@ -1632,3 +1635,28 @@ def test_composition_source_qualified_r21_lego_responsibilities_and_consumers() 
     altered["nodes"][0]["behavioralContract"] = ""
     with pytest.raises(AssertionError, match="behavioralContract"):
         assert_qualified_scoped_contracts(altered)
+
+
+def test_historical_owner_plan_membership_tracks_actual_immutable_git_cuts() -> None:
+    """Introducing a real R2.1 Owner plan must not corrupt predecessor reconstruction."""
+    import subprocess
+
+    relative = "packages/composition/planning/lego-plan-r1.json"
+    after = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
+    introduced = subprocess.check_output(
+        ["git", "-C", str(ROOT), "log", "--diff-filter=A", "--format=%H",
+         "--", relative], text=True,
+    ).splitlines()[0]
+    before = subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", introduced + "^"], text=True,
+    ).strip()
+    older = module.project_owner_lego_source_graph(ROOT, source_revision=before)
+    newer = module.project_owner_lego_source_graph(ROOT, source_revision=after)
+    assert relative not in {row["path"] for row in older["sourcePlans"]}
+    assert relative in {row["path"] for row in newer["sourcePlans"]}
+    old_refs = {row["ref"] for row in older["vertices"]}
+    new_refs = {row["ref"] for row in newer["vertices"]}
+    assert {f"{relative}#{label}" for label in ("C01", "C02", "C03")} <= new_refs - old_refs
+    impact = module.project_owner_lego_source_change(root=ROOT, before_revision=before, after_revision=after)
+    assert relative in impact["changedGitPaths"]
+    assert not impact["proofReuseAdmissible"]
