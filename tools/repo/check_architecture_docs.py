@@ -458,6 +458,7 @@ def _node_declared_source_anchors(
 
 def project_owner_lego_source_graph(
     root: Path = ROOT, *, source_revision: str | None = None,
+    registered_plan_paths: tuple[str, ...] | None = None,
 ) -> dict[str, Any]:
     """Rebuild a *source planning* view; never attest a real LEGO or consumer.
 
@@ -491,7 +492,7 @@ def project_owner_lego_source_graph(
     vertices: list[dict[str, Any]] = []
     relation_carriers: dict[tuple[str, str, str], set[str]] = {}
     node_source_relations: list[dict[str, str]] = []
-    for relative in OWNER_LEGO_PLANS:
+    for relative in (OWNER_LEGO_PLANS if registered_plan_paths is None else registered_plan_paths):
         if git_tree is None:
             path = _source_bound_file(root, relative, "registered Owner LEGO plan")
             before = path.read_bytes()
@@ -616,7 +617,27 @@ def project_owner_lego_source_change(
     else:
         from source_history_legos import require_ancestral_source_cuts
     require_ancestral_source_cuts(root, before_revision, after_revision)
-    before = project_owner_lego_source_graph(root, source_revision=before_revision)
+    # A newly qualified Owner-local plan exists in AFTER but cannot be opened
+    # from BEFORE. Project that historical cut with only its then-existing
+    # registered carriers. This exception is limited to exact Git additions:
+    # symlinked, missing-in-after and modified old carriers still fail closed.
+    if __package__:
+        from .source_history_legos import current_tree
+    else:
+        from source_history_legos import current_tree
+    old_tree = current_tree(root, before_revision)
+    new_tree = current_tree(root, after_revision)
+    introduced = tuple(
+        path for path in OWNER_LEGO_PLANS
+        if path not in old_tree and path in new_tree
+    )
+    if introduced:
+        before = project_owner_lego_source_graph(
+            root, source_revision=before_revision,
+            registered_plan_paths=tuple(path for path in OWNER_LEGO_PLANS if path not in introduced),
+        )
+    else:
+        before = project_owner_lego_source_graph(root, source_revision=before_revision)
     after = project_owner_lego_source_graph(root, source_revision=after_revision)
     raw = subprocess.check_output(
         ["git", "--no-replace-objects", "-C", str(root), "diff", "--no-renames",
@@ -711,6 +732,7 @@ def project_owner_lego_source_change(
         "afterSourceCut": after_revision,
         "changedGitPaths": sorted(changed_paths),
         "sourcePlanChangedPaths": sorted(changed_plan_paths),
+        "introducedRegisteredPlanPaths": list(introduced),
         "changedDeclaredRelationCount": len(changed_edges),
         "directChangedRefs": sorted(direct),
         "potentialRelationInfluenceRefs": sorted(potential),

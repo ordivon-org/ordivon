@@ -1626,3 +1626,30 @@ def test_phase1_actual_consumers_exist_and_forged_consumers_do_not_qualify() -> 
     gateway = (ROOT / "services/gateway/src/ordivon_gateway/service.py").read_text()
     assert calls_skill_resolve(gateway)
     assert not calls_skill_resolve(gateway.replace('"skills.resolve"', '"skills.describe"'))
+
+
+
+def test_phase1_new_owner_plan_introduction_has_real_git_source_impact() -> None:
+    """Actual ancestors lack the new carrier; only the after-cut can qualify it."""
+    import subprocess
+    base = json.loads(
+        (ROOT / "meta/next/evidence/acceptance/lego-phase1-owner-sourcecut-20261027.json").read_text()
+    )["sourceRevision"]
+    tip = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
+    result = module.project_owner_lego_source_change(
+        before_revision=base, after_revision=tip,
+    )
+    paths = {
+        "packages/composition/planning/lego-plan-r1.json",
+        "platform/skills/planning/lego-plan-r1.json",
+    }
+    assert paths <= set(result["introducedRegisteredPlanPaths"])
+    assert paths <= set(result["sourcePlanChangedPaths"])
+    assert len([ref for ref in result["directChangedRefs"]
+                if ref.split("#")[0] in paths]) == 8
+    assert all(
+        item["sourceImpactStanding"] == "RECHECK_REQUIRED"
+        for item in result["standingByDeclaredNode"]
+        if item["ref"].split("#")[0] in paths
+    )
+    assert result["proofReuseAdmissible"] is False
