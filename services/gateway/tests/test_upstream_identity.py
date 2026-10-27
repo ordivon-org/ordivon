@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 from pathlib import Path
 from types import SimpleNamespace
@@ -166,6 +167,72 @@ def test_conforming_owner_uses_first_class_mcp_client(monkeypatch: pytest.Monkey
             "tracestate": "vendor=value",
         },
     )
+
+
+@pytest.mark.parametrize("error_carrier", ["structured", "host_text"])
+def test_host_failure_survives_real_gateway_owner_call_boundary(
+    monkeypatch: pytest.MonkeyPatch, error_carrier: str
+) -> None:
+    """The MCP client's owner error must not turn into a Gateway success."""
+
+    import ordivon_gateway.upstream as upstream
+
+    host_error = {
+        "code": "NOT_FOUND",
+        "kind": "ordivon.host-domain-error",
+        "resourceKind": "work",
+        "resourceRef": "work:absent",
+        "retryable": False,
+        "schemaVersion": 1,
+    }
+    observed: list[tuple[str, dict[str, object]]] = []
+
+    class FakeHttpContext:
+        async def __aenter__(self):
+            return object()
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+    class FakeClient:
+        def __init__(self, transport, **kwargs):
+            assert kwargs == {"mode": "auto", "raise_exceptions": False}
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def call_tool(self, name, arguments, *, meta=None):
+            observed.append((name, arguments))
+            return SimpleNamespace(
+                is_error=True,
+                structured_content={"error": host_error} if error_carrier == "structured" else None,
+                content=(
+                    []
+                    if error_carrier == "structured"
+                    else [
+                        SimpleNamespace(
+                            text="Error executing tool work.get: "
+                            + json.dumps(host_error, separators=(",", ":"))
+                        )
+                    ]
+                ),
+            )
+
+    monkeypatch.setattr(upstream, "create_mcp_http_client", lambda headers=None: FakeHttpContext())
+    monkeypatch.setattr(upstream, "streamable_http_client", lambda url, http_client=None: object())
+    monkeypatch.setattr(upstream, "Client", FakeClient)
+    caller = McpOwnerCaller({"host": OwnerEndpoint("http://127.0.0.1:8898/mcp")})
+
+    with pytest.raises(OwnerCallError) as raised:
+        asyncio.run(caller.call_tool("host", "work.get", {"workRef": "work:absent"}))
+
+    assert observed == [("work.get", {"workRef": "work:absent"})]
+    assert raised.value.owner_id == "host"
+    assert raised.value.tool_name == "work.get"
+    assert raised.value.error == host_error
 
 
 def test_systemd_credential_projection_accepts_provider_native_group_read(
