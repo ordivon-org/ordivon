@@ -1,0 +1,2456 @@
+{
+  "confirmedNewTerritories": [
+    {
+      "consumer": "platform/skills/tests/test_recursive_lego_math_discovery.py",
+      "nonClaim": "does not perform installed Skill routing or native theorem verification",
+      "owner": "lego-foundation",
+      "responsibility": "R2.1 semantic and mathematical contract source",
+      "sourceRoot": ".agents/skills/recursive-lego-calculus/"
+    },
+    {
+      "consumer": "mise run formal:verify",
+      "nonClaim": "does not define R2.1 LEGO semantics or prove installed consumer acceptance",
+      "owner": "formal-toolchain",
+      "responsibility": "Native proof-tool execution and fail-closed source qualification",
+      "sourceRoot": "tools/formal/"
+    },
+    {
+      "consumers": [
+        "services/gateway/src/ordivon_gateway/research_routes.py",
+        "capabilities/artifact/tests/test_artifact_publication_carrier_r1.py"
+      ],
+      "nonClaim": "does not own Gateway routing or Artifact carrier effects",
+      "owner": "research",
+      "responsibility": "Research publication and perceptual/venue source profiles",
+      "sourceRoot": "meta/research/"
+    }
+  ],
+  "inputs": [
+    "git ls-files -z",
+    "tools/repo/owners.toml",
+    "tools/repo/dependency_contracts.toml"
+  ],
+  "kind": "ordivon.r21.source-placement-census",
+  "nonClaims": [
+    "Files are classified by source authority candidates, not qualified as LEGO solely by location.",
+    "This records a candidate branch, not protected main.",
+    "Historical records and static source paths do not prove production effects.",
+    "The census file itself is omitted because it did not exist in sourceCut."
+  ],
+  "outsideRepoOwnerPaths": [
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/artifact-work/SKILL.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/artifact-work/references/audio.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/artifact-work/references/dataset.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/artifact-work/references/design-3d.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/artifact-work/references/geospatial.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/artifact-work/references/moving-image.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/artifact-work/references/presentation.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/artifact-work/references/software-release.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/artifact-work/references/still-image.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/causal-intervention/SKILL.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/ck-design/SKILL.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/compositional-contracts/SKILL.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/design-structure-matrix/SKILL.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/enterprise-work/SKILL.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/evolutionary-search/SKILL.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/exploration-policy/SKILL.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/feedback-control/SKILL.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/fmea-fta/SKILL.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/information-flow-analysis/SKILL.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/method-router/SKILL.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/method-router/references/method-map.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/method-router/references/representation-first.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/minimum-sufficient-representation/SKILL.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/mobile-app-security/SKILL.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/mobile-app-security/references/top3-upstream-notes.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/organizational-cybernetics/SKILL.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/ppt-master/SKILL.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/project-kernel-decomposition/SKILL.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/project-kernel-decomposition/references/decomposition-contract.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/project-kernel-decomposition/references/node-graph-contract.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/research-publication-closure/SKILL.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/research-publication-perceptual-conformance/SKILL.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/skill-supply-chain-audit/SKILL.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/skill-supply-chain-audit/references/skillspector-contract.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/stpa/SKILL.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/systems-engineering/SKILL.md"
+    },
+    {
+      "candidateNaturalAuthority": "method-library",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "METHOD_SOURCE_LIBRARY",
+      "placementStanding": "PREFIX_OVERLAP_REQUIRES_CONSUMER_MIGRATION",
+      "sourcePath": ".agents/skills/web-provider-routing/SKILL.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-github",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "SHARED_GITHUB_CONTROL",
+      "placementStanding": "SHARED_CROSS_CUTTING",
+      "sourcePath": ".github/CODEOWNERS"
+    },
+    {
+      "candidateNaturalAuthority": "git-github",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "SHARED_GITHUB_CONTROL",
+      "placementStanding": "SHARED_CROSS_CUTTING",
+      "sourcePath": ".github/dependabot.yml"
+    },
+    {
+      "candidateNaturalAuthority": "git-github",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "SHARED_GITHUB_CONTROL",
+      "placementStanding": "SHARED_CROSS_CUTTING",
+      "sourcePath": ".github/workflows/ci.yml"
+    },
+    {
+      "candidateNaturalAuthority": "git-github",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "SHARED_GITHUB_CONTROL",
+      "placementStanding": "SHARED_CROSS_CUTTING",
+      "sourcePath": ".github/workflows/runtime-release.yml"
+    },
+    {
+      "candidateNaturalAuthority": "repository-git-source",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ROOT_SHARED_BUILD_AND_POLICY",
+      "placementStanding": "SHARED_CROSS_CUTTING",
+      "sourcePath": ".gitignore"
+    },
+    {
+      "candidateNaturalAuthority": "repository-git-source",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ROOT_SHARED_BUILD_AND_POLICY",
+      "placementStanding": "SHARED_CROSS_CUTTING",
+      "sourcePath": ".gitleaksignore"
+    },
+    {
+      "candidateNaturalAuthority": "repository-git-source",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ROOT_SHARED_BUILD_AND_POLICY",
+      "placementStanding": "SHARED_CROSS_CUTTING",
+      "sourcePath": "AGENTS.md"
+    },
+    {
+      "candidateNaturalAuthority": "repository-git-source",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ROOT_SHARED_BUILD_AND_POLICY",
+      "placementStanding": "SHARED_CROSS_CUTTING",
+      "sourcePath": "README.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/ADMISSION_FABRIC_R1.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/AGENT_CONCEPTS_FORMAL_LEGO_RESEARCH_20261024.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/AGENT_NATIVE_MEASUREMENT_IMPROVEMENT_LOOP_R1.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/AGENT_NATIVE_WEBSITE_PLATFORM_R1.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/AGENT_PLUGIN_R4_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/ARCHITECTURE_CONVERGENCE_A01R2.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/C03_SKILL_BRIDGE_CONSUMER_CENSUS_R1.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/CONVERGENCE_OBSERVATION_R2.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/CONVERGENCE_QUEUE_R1.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/CONVERGENCE_QUEUE_TELEMETRY_R1.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/CURRENT_ARCHITECTURE.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/D01_COMPATIBILITY_DEBT_RETIREMENT_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/D02_ARCHITECTURE_DOCUMENTATION_CONVERGENCE_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/E01_E02_TRACE_IDENTITY_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/E01_TRACE_CONTEXT_CONTRACT_R1.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/E02_AUTHENTICATED_PRINCIPAL_BOUNDARY_R2.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/EVIDENCE_BOUNDARY_CENSUS_R1.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/GATEWAY_B01_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/GATEWAY_B02_CAPABILITY_PROJECTION_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/GATEWAY_C02_PUBLIC_CUTOVER_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/GATEWAY_CAPABILITY_AUTHZ_CONTRACT_R1.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/GATEWAY_HOST_NORTHBOUND_ACCEPTANCE_20260922.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/GATEWAY_R1_MCP_V2_OWNER_CLIENT_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/GITHUB_MERGE_QUEUE_REMOTE_CUTOVER_ACCEPTANCE_R1.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/HARNESS_QUEUE_PORTABILITY_R1.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/HOST_RELEASE_R03_RECONCILIATION_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/INTENT_FIELD_CENSUS_R1.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/JEV_WINDOWS_ACTIVE_USER_CREDENTIAL_BRIDGE_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/LEARNING_DATA_OWNERSHIP_CENSUS_R1.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/MCP_RELEASE_IDENTITY_CATALOG_FRESHNESS_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/METHOD_ROUTER_B03_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/ORDIVON_COMPOSITION_ARCHITECTURE_EXECUTION_PLAN_R1.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/ORDIVON_COMPOSITION_ARCHITECTURE_R1.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/OWNER_DEPENDENCY_BOUNDARY_R1.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/PERSISTENT_TRACE_BACKEND_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/RESEARCH_PUBLICATION_CLOSURE_R1.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/RESEARCH_PUBLICATION_PERCEPTUAL_CONFORMANCE_R2.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/RESEARCH_STUDY_AUTHORITY_R1.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/STRUCTURE_R2.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/TESTING_UPSTREAM_ADOPTION_R1.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/TOOL_BINDING_B04_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/WINDOWS_AUTHORITY_FACTORIZATION_R1.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/agent-native-measurement-improvement-loop-r1.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/agent-plugin-r4-acceptance-20260921.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/architecture-convergence-a01r2.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/c03-skill-bridge-consumer-census-r1.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/convergence-queue-lego-r1.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/d01-compatibility-debt-retirement-20260921.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/d02-architecture-documentation-convergence-acceptance-20260921.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/deployed-architecture-r1.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/e01-e02-trace-identity-acceptance-20260921.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/e01-trace-context-contract-r1.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/e02-authenticated-principal-boundary-r2.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence-boundary-census-r1.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/CANONICAL_MAIN_RECONCILIATION_F2EC_R1.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/CONVERGENCE_CI_ECONOMIC_ANNOTATIONS_R1.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/CONVERGENCE_CI_ECONOMIC_PROJECTION_R1.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/CONVERGENCE_CI_EPISODES_R3.jsonl"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/CONVERGENCE_CI_EPISODES_R4.jsonl"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/CONVERGENCE_CI_NORMALIZED_R1.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/CONVERGENCE_CI_PR24_PR26_HISTORY_R1.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/CONVERGENCE_CI_PROVIDER_SNAPSHOT_R1.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/CONVERGENCE_CI_PR_RUN_INDEX_R1.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/CONVERGENCE_ECONOMICS_PR40_LOCAL_QUALIFICATION_R1.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/CONVERGENCE_EPISODE_POSTGRES_REPLAY_R3.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/CONVERGENCE_EPISODE_POSTGRES_REPLAY_R4.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/CONVERGENCE_EPISODE_POSTGRES_REPLAY_R5.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/CONVERGENCE_EPISODE_PROJECTION_SUMMARY_R3.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/CONVERGENCE_EPISODE_PROJECTION_SUMMARY_R4.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/CONVERGENCE_OBSERVATION_DATASET_R1.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/CONVERGENCE_OBSERVATION_R2_ACCEPTANCE_R1.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/CONVERGENCE_OWNER_COST_EPISODES_R1.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/CONVERGENCE_OWNER_COST_EPISODES_R1.jsonl"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/CONVERGENCE_OWNER_COST_EPISODES_R2.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/CONVERGENCE_OWNER_COST_EPISODES_R2.jsonl"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/CONVERGENCE_OWNER_COST_EPISODE_PROJECTION_SUMMARY_R1.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/CONVERGENCE_OWNER_COST_EPISODE_PROJECTION_SUMMARY_R2.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/CONVERGENCE_OWNER_COST_F2EC_R1.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/CONVERGENCE_PRESSURE_ASSESSMENT_R2.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/CONVERGENCE_PRESSURE_ASSESSMENT_R3.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/CONVERGENCE_PRESSURE_ASSESSMENT_R4.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/CONVERGENCE_QUEUE_EPISODES_R3.jsonl"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/CONVERGENCE_QUEUE_EPISODES_R4.jsonl"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/CONVERGENCE_QUEUE_NORMALIZED_R2.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/CONVERGENCE_QUEUE_PROJECTION_R2.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/CONVERGENCE_QUEUE_PROVIDER_SNAPSHOT_R2.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/CONVERGENCE_QUEUE_TELEMETRY_BASELINE_R1.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/CONVERGENCE_QUEUE_WAVE_A_R1.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/CONVERGENCE_QUEUE_WAVE_B_R1.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261024_R1.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261024_R2.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261025_R1.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/GIT_MAIN_CUT_CONSUMER_COMPARISON_20261024_R1.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/evidence/PHASE1_RESPONSIBILITY_COVERAGE_20261027.md"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/gateway-b01-acceptance-20260921.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/gateway-c02-public-cutover-acceptance-20260921.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/gateway-host-northbound-acceptance-20260922.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/gateway-single-agent-northbound-acceptance-20260926.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/gateway-swf-northbound-acceptance-20260924.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/host-release-r03-reconciliation-20260921.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/intent-field-census-r1.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/learning-data-ownership-census-r1.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/mcp-release-identity-catalog-freshness-acceptance-20260921.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/ordivon-composition-architecture-lego-r1.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/persistent-trace-backend-acceptance-20260921.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/research-study-authority-r1.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/schemas/convergence-ci-economic-annotation-v1.schema.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/schemas/convergence-ci-observation-v1.schema.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/schemas/convergence-owner-cost-episode-v1.schema.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/schemas/convergence-pressure-assessment-v1.schema.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/schemas/convergence-queue-observation-v1.schema.json"
+    },
+    {
+      "candidateNaturalAuthority": "source-qualified-architecture",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ARCHITECTURE_PROJECTION",
+      "placementStanding": "READ_ONLY_ARCHITECTURE_PROJECTION",
+      "sourcePath": "docs/architecture/structure-r2-transition-r1.json"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/ARCHITECTURE_CONVERGENCE_A02_MONOREPO_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/ARTIFACT_V2_STANDALONE_RETIREMENT_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/CAPITAL_CURRENT_SOURCE_CONVERGENCE_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/CAPITAL_DOMAIN_TAXONOMY_CONVERGENCE_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/CAPITAL_OBSERVABILITY_LEGACY_RETIREMENT_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/CAPITAL_PROTOCOL_IDENTITY_V2_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/CAPITAL_STANDALONE_RETIREMENT_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/CONTROL_LAYER_ROOT_VERIFY_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/CREATIVE_LIBRARY_SLICE_MIGRATION_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/DISTRIBUTION_MONOREPO_IMPORT_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/DISTRIBUTION_OPTIONAL_EFFECT_SOURCE_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/DISTRIBUTION_STANDALONE_RETIREMENT_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/GAME_STANDALONE_RETIREMENT_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/HARNESS_BROWSER_CURRENT_SOURCE_CONVERGENCE_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/HARNESS_CURRENT_SOURCE_SUPERSESSION_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/HARNESS_SECURITY_OWNER_CONSUMER_CUTOVER_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/HOST_LEGACY_IDENTITY_BRIDGE_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/HOST_V2_STANDALONE_RETIREMENT_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/M1_CANARY_SOURCE_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/M2_PLATFORM_CAPABILITY_SOURCE_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/MEDIA_CAPITAL_SOURCE_CARRIER_ALIGNMENT_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/MEDIA_STANDALONE_ARCHIVE_IN_PLACE_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/NETWORK_LEGACY_IDENTITY_BRIDGE_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/NETWORK_V2_STANDALONE_RETIREMENT_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/NEXT_CURRENT_SOURCE_SUPERSESSION_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/NEXT_STANDALONE_RETIREMENT_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/PRESERVATION_MONOREPO_IMPORT_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/PRIMARY_MAIN_INTEGRATION_GUARD_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/RUNTIME_AF67_CURRENT_SOURCE_CONVERGENCE_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/RUNTIME_CURRENT_SOURCE_UPDATE_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/RUNTIME_D361_CURRENT_SOURCE_SUPERSESSION_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/RUNTIME_STANDALONE_RETIREMENT_ACCEPTANCE_20260922.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/SECURITY_LEGACY_IDENTITY_BRIDGE_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/SECURITY_V2_STANDALONE_RETIREMENT_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/SKILLS_M6_OWNER_EXTRACTION_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/SKILLS_M7_LIVE_CUTOVER_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/SOURCE_MIGRATION_STANDING.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/STRUCTURE_R2_S1A_COMPOSITION_EXTRACTION_20260922.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/STRUCTURE_R2_S1B_COMPOSITION_CONSUMER_CUTOVER_20260922.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/STRUCTURE_R2_S2A_CONTROL_PLUGIN_RELOCATION_20260922.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/WAVE3_DOMAIN_SERVICE_SOURCE_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/WORKSTATION_CURRENT_SOURCE_UPDATE_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/WORKSTATION_EDGE_MONOREPO_LIVE_CARRIER_CUTOVER_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/WORKSTATION_LAB_RETIREMENT_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/WORKSTATION_V2_STANDALONE_RETIREMENT_ACCEPTANCE_20260921.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/acceptance/architecture-convergence-a02-monorepo-acceptance-20260921.json"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/.gitkeep"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/artifact.commit-map"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/artifact.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/capital.commit-map"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/capital.identity-bridge.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/capital.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/capital.supersession.commit-map"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/capital.supersession.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/capital.update-18ca785b7cb2b6de4e36a7d5f8db40232554c9a8.commit-map"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/capital.update-18ca785b7cb2b6de4e36a7d5f8db40232554c9a8.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/capital.update-2772faf183fe6c1ad94eef96cee777285d537eef.commit-map"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/capital.update-2772faf183fe6c1ad94eef96cee777285d537eef.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/capital.update-71bf084cc140a210a5ec0ce736afeb82ed03ae69.commit-map"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/capital.update-71bf084cc140a210a5ec0ce736afeb82ed03ae69.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/capital.update-808353c223c41ca370ee43911557dd65882561ae.commit-map"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/capital.update-808353c223c41ca370ee43911557dd65882561ae.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/capital.update-abfa307d85a62debad7534b3726366d38d3b0bac.commit-map"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/capital.update-abfa307d85a62debad7534b3726366d38d3b0bac.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/capital.update.commit-map"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/capital.update.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/creative-library.slice.commit-map"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/creative-library.slice.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/distribution.commit-map"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/distribution.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/game.commit-map"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/game.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/harness.commit-map"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/harness.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/harness.supersession.commit-map"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/harness.supersession.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/host.commit-map"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/host.identity-bridge.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/host.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/media.commit-map"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/media.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/network.commit-map"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/network.identity-bridge.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/network.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/next.commit-map"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/next.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/next.supersession.commit-map"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/next.supersession.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/preservation.commit-map"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/preservation.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/runtime.commit-map"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/runtime.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/runtime.supersession.commit-map"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/runtime.supersession.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/runtime.update-af67ed760a31813562745412c2553b8297a10e67.commit-map"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/runtime.update-af67ed760a31813562745412c2553b8297a10e67.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/runtime.update.commit-map"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/runtime.update.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/security.commit-map"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/security.identity-bridge.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/security.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/skills-m7-live-cutover.json"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/workstation.commit-map"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/workstation.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/workstation.update.commit-map"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/receipts/workstation.update.md"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/retirement/harness-standalone-policy.json"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/retirement/host-v2-standalone-policy.json"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/retirement/media-standalone-policy.json"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/retirement/network-v2-standalone-policy.json"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/retirement/next-standalone-policy.json"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/retirement/runtime-standalone-policy.json"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/retirement/workstation-lab-policy.json"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_EVIDENCE",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/migration/retirement/workstation-v2-standalone-policy.json"
+    },
+    {
+      "candidateNaturalAuthority": "git-provenance",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "HISTORICAL_RETRO",
+      "placementStanding": "RETAIN_HISTORICAL",
+      "sourcePath": "docs/retro/dependency-auto-update-coverage-r1.md"
+    },
+    {
+      "candidateNaturalAuthority": "repository-git-source",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ROOT_SHARED_BUILD_AND_POLICY",
+      "placementStanding": "SHARED_CROSS_CUTTING",
+      "sourcePath": "mise.toml"
+    },
+    {
+      "candidateNaturalAuthority": "research",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "RESEARCH_PUBLIC_SCHEMA",
+      "placementStanding": "DO_NOT_MOVE_BEFORE_PUBLIC_ID_EQUIVALENCE",
+      "sourcePath": "profiles/research/mechanical-components/research-mechanical-component-r1.schema.json"
+    },
+    {
+      "candidateNaturalAuthority": "research",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "RESEARCH_PUBLIC_SCHEMA",
+      "placementStanding": "DO_NOT_MOVE_BEFORE_PUBLIC_ID_EQUIVALENCE",
+      "sourcePath": "profiles/research/tool-qualification/TOOL_QUALIFICATION_R1.md"
+    },
+    {
+      "candidateNaturalAuthority": "research",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "RESEARCH_PUBLIC_SCHEMA",
+      "placementStanding": "DO_NOT_MOVE_BEFORE_PUBLIC_ID_EQUIVALENCE",
+      "sourcePath": "profiles/research/tool-qualification/tool-qualification-packet-r1.schema.json"
+    },
+    {
+      "candidateNaturalAuthority": "repository-git-source",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "ROOT_SHARED_BUILD_AND_POLICY",
+      "placementStanding": "SHARED_CROSS_CUTTING",
+      "sourcePath": "renovate.json"
+    },
+    {
+      "candidateNaturalAuthority": "research",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "CROSS_OWNER_RESEARCH_TEST",
+      "placementStanding": "TEST_PATH_MIGRATION_PENDING",
+      "sourcePath": "tests/catalogs/test_research_tool_and_mechanical_component_contracts.py"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/affected_owners.py"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/bash-5.3.20.sha256"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/check_architecture_docs.py"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/check_archived_source_boundary.py"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/check_composition_architecture.py"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/check_github_governance.py"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/check_owner_boundaries.py"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/check_sql_dialects.py"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/check_structure_r2.py"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/check_tracked_secrets.sh"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/ci_telemetry.py"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/convergence_plan.py"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/convergence_pressure.py"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/dependency_contracts.toml"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/install_latest_stable_bash.sh"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/install_sql_verifiers.sh"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/merge_git01_selections.py"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/migration/check-primary-main.sh"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/migration/check-publication-main.sh"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/migration/integrate-main.sh"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/migration/test-check-publication-main.sh"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/migration/test-integrate-main.sh"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/owners.toml"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/planning/lego-plan-r1.json"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/queue_telemetry.py"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/source_history_legos.py"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/test-check-archived-source-boundary.sh"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/test_affected_owners.py"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/test_architecture_docs.py"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/test_composition_architecture.py"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/test_convergence_plan.py"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/test_convergence_pressure.py"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/test_dependency_update_ownership.py"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/test_github_governance.py"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/test_issue_owner_registration.py"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/test_lego_graph_laws.py"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/test_merge_git01_selections.py"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/test_owner_boundaries.py"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/test_postgres_owner_migration_issue.py"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/test_source_history_legos.py"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/test_sql_dialects.py"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/test_structure_r2.py"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/test_tracked_secrets.py"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/test_workspace_ready.py"
+    },
+    {
+      "candidateNaturalAuthority": "repo-mechanics",
+      "evidenceLevel": "GIT_PATH_CLASS_ONLY_NOT_INDEPENDENT_LEGO",
+      "observedCategory": "REPO_SOURCE_GRAPH_AND_CI",
+      "placementStanding": "UNBOUND_SOURCE_OBSERVER",
+      "sourcePath": "tools/repo/workspace-ready"
+    }
+  ],
+  "owners": [
+    {
+      "name": "next",
+      "root": "meta/next/",
+      "trackedFiles": 1016
+    },
+    {
+      "name": "formal-toolchain",
+      "root": "tools/formal/",
+      "trackedFiles": 9
+    },
+    {
+      "name": "lego-foundation",
+      "root": ".agents/skills/recursive-lego-calculus/",
+      "trackedFiles": 2
+    },
+    {
+      "name": "research",
+      "root": "meta/research/",
+      "trackedFiles": 12
+    },
+    {
+      "name": "composition",
+      "root": "packages/composition/",
+      "trackedFiles": 46
+    },
+    {
+      "name": "control-plugin",
+      "root": "extensions/ordivon-control-plane/",
+      "trackedFiles": 2
+    },
+    {
+      "name": "runtime",
+      "root": "services/runtime/",
+      "trackedFiles": 419
+    },
+    {
+      "name": "host",
+      "root": "services/host/",
+      "trackedFiles": 98
+    },
+    {
+      "name": "harness",
+      "root": "services/harness/",
+      "trackedFiles": 729
+    },
+    {
+      "name": "gateway",
+      "root": "services/gateway/",
+      "trackedFiles": 83
+    },
+    {
+      "name": "skills",
+      "root": "platform/skills/",
+      "trackedFiles": 38
+    },
+    {
+      "name": "security",
+      "root": "platform/security/",
+      "trackedFiles": 173
+    },
+    {
+      "name": "workstation",
+      "root": "platform/workstation/",
+      "trackedFiles": 274
+    },
+    {
+      "name": "network",
+      "root": "platform/network/",
+      "trackedFiles": 158
+    },
+    {
+      "name": "artifact",
+      "root": "capabilities/artifact/",
+      "trackedFiles": 426
+    },
+    {
+      "name": "distribution",
+      "root": "capabilities/distribution/",
+      "trackedFiles": 69
+    },
+    {
+      "name": "media",
+      "root": "capabilities/media/",
+      "trackedFiles": 582
+    },
+    {
+      "name": "preservation",
+      "root": "capabilities/preservation/",
+      "trackedFiles": 47
+    },
+    {
+      "name": "game",
+      "root": "domains/game/",
+      "trackedFiles": 51
+    },
+    {
+      "name": "capital",
+      "root": "domains/capital/",
+      "trackedFiles": 406
+    },
+    {
+      "name": "web",
+      "root": "apps/web/",
+      "trackedFiles": 27
+    }
+  ],
+  "problems": [
+    {
+      "boundedCounterexample": "Tentative repo owner yields 640 literal observations targeting existing owner roots; these are not 640 operational consumers.",
+      "id": "UNPLACED-REPO-MECHANICS",
+      "sourceRoot": "tools/repo/",
+      "standing": "REQUIRES_INDEXER_VS_CONSUMER_RELATION_SPLIT"
+    },
+    {
+      "boundedCounterexample": "A whole-folder method-source owner overlaps the distinct LEGO Foundation subtree under current non-overlapping owner-prefix law.",
+      "id": "UNPLACED-METHOD-SOURCE",
+      "sourceRoot": ".agents/skills/",
+      "standing": "PREFIX_OVERLAP"
+    },
+    {
+      "boundedCounterexample": "Two JSON Schema $id public identifiers include the current profiles/research namespace; do not move on path heuristics.",
+      "id": "UNPLACED-RESEARCH-SCHEMA",
+      "sourceRoot": "profiles/research/",
+      "standing": "PUBLIC_SCHEMA_ID_RELOCATION_UNKNOWN"
+    },
+    {
+      "boundedCounterexample": "Read-only R1 graph is a source plan projection and intentionally excludes installed/executed truth.",
+      "id": "UNPLACED-CROSSOWNER-DYNAMIC",
+      "sourceRoot": "tools/repo/check_architecture_docs.py",
+      "standing": "REAL_CONSUMER_AND_FORMAL_CLOSURE_UNKNOWN"
+    }
+  ],
+  "schemaVersion": 1,
+  "sourceCut": "fced105aa594fbf4e36f9e9e9da9e868648490f2",
+  "summary": {
+    "classes": {
+      "ARCHITECTURE_PROJECTION": 112,
+      "CROSS_OWNER_RESEARCH_TEST": 1,
+      "HISTORICAL_EVIDENCE": 114,
+      "HISTORICAL_RETRO": 1,
+      "METHOD_SOURCE_LIBRARY": 37,
+      "REPO_SOURCE_GRAPH_AND_CI": 45,
+      "RESEARCH_PUBLIC_SCHEMA": 3,
+      "ROOT_SHARED_BUILD_AND_POLICY": 6,
+      "SHARED_GITHUB_CONTROL": 4
+    },
+    "gitTrackedSourceFiles": 4990,
+    "ownerCount": 21,
+    "registeredSourceFiles": 4667,
+    "unassignedSourceFiles": 323
+  },
+  "truthRole": "SOURCE_CUT_BOUNDED_AUDIT_NOT_OWNER_AUTHORITY_OR_LEGO_REGISTRY"
+}
