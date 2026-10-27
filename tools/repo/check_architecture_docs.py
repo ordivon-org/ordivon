@@ -486,6 +486,9 @@ def project_owner_lego_source_graph(
             raise ArchitectureDocsError(f"cannot resolve exact Git SourceCut: {exc}") from exc
 
     source_plans: list[dict[str, str]] = []
+    # Historical Git cuts may predate a newly discovered Owner-local plan.
+    # Explicit absence is source membership truth, not a negative consumer proof.
+    absent_at_source_cut: list[str] = []
     source_evidence_carriers: dict[str, dict[str, str]] = {}
     vertices: list[dict[str, Any]] = []
     relation_carriers: dict[tuple[str, str, str], set[str]] = {}
@@ -497,7 +500,10 @@ def project_owner_lego_source_graph(
         else:
             import subprocess
             path = root / relative
-            blob = git_tree.get(relative, "")
+            blob = git_tree.get(relative)
+            if blob is None:
+                absent_at_source_cut.append(relative)
+                continue
             mode, kind, oid = (blob.split(":") if blob.count(":") == 2 else ("", "", ""))
             if kind != "blob" or mode not in {"100644", "100755"}:
                 raise ArchitectureDocsError(f"Owner plan absent/nonregular in Git SourceCut: {relative}")
@@ -574,6 +580,11 @@ def project_owner_lego_source_graph(
             else "WORKTREE_BYTES_ONLY_GIT_AND_INSTALLED_UNQUALIFIED"
         ),
         "sourcePlans": source_plans,
+        "absentAtSourceCutPlans": sorted(absent_at_source_cut),
+        "sourcePlanScopeStanding": (
+            "HISTORICAL_REGISTERED_PLAN_ABSENT_AT_SOURCE_CUT"
+            if absent_at_source_cut else "ALL_CURRENT_REGISTERED_PLANS_PRESENT_AT_SOURCE_CUT"
+        ) if git_tree is not None else "WORKTREE_REGISTERED_PLAN_PATHS_ONLY",
         "sourceEvidenceCarriers": [
             source_evidence_carriers[path] for path in sorted(source_evidence_carriers)
         ],

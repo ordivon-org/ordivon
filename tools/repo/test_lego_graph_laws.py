@@ -1630,3 +1630,76 @@ def test_skills_r21_semantic_node_consumer_source_falsification() -> None:
     falsified["nodes"][3]["actualConsumers"][0]["symbol"] = "NOT_REAL_CONSUMER"
     with pytest.raises(AssertionError, match="no such static consumer entrypoint"):
         qualify_source_symbols(falsified)
+
+
+def test_harness_h04_recursive_children_have_distinct_real_consumers() -> None:
+    import ast
+
+    plan = json.loads(
+        (ROOT / "services/harness/planning/lego-plan-r1.json").read_text(encoding="utf-8")
+    )
+    parent = next(n for n in plan["nodes"] if n["id"] == "H04")
+    child_ids = set(parent["unfold"])
+    assert child_ids == {"H04.WAKE", "H04.CONVERSATION", "H04.SESSION"}
+    children = [n for n in plan["nodes"] if n["id"] in child_ids]
+    assert len(children) == len(child_ids)
+    for child in children:
+        assert child["parent"] == "H04"
+        assert child["inputs"] and child["outputs"] and child["behavioralContract"]
+        assert child["consumers"] and child["evidence"]
+        assert any(e["from"] == "H04" and e["to"] == child["id"]
+                   and e["type"] == "COMPOSITION" for e in plan["edges"])
+        for path in child["evidence"]:
+            assert (ROOT / "services/harness" / path.split("::")[0]).is_file()
+        for consumer in child["consumers"]:
+            rel, _, symbol = consumer.partition("::")
+            src = ROOT / rel
+            assert src.is_file()
+            if symbol:
+                # Read the real consumer implementation, not a fabricated label.
+                tree = ast.parse(src.read_text(encoding="utf-8"))
+                qualified = symbol.split(".")
+                if len(qualified) > 1:
+                    cls = next(
+                        (item for item in tree.body
+                         if isinstance(item, ast.ClassDef) and item.name == qualified[0]),
+                        None,
+                    )
+                    assert cls is not None, consumer
+                    assert any(isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))
+                               and item.name == qualified[1] for item in cls.body), consumer
+
+def test_recursive_h04_invalid_duplicate_composition_edge_fails_closed() -> None:
+    plan = json.loads(
+        (ROOT / "services/harness/planning/lego-plan-r1.json").read_text(encoding="utf-8")
+    )
+    composition = next(e for e in plan["edges"] if e["type"] == "COMPOSITION")
+    plan["edges"].append(dict(composition))
+    with pytest.raises(module.ArchitectureDocsError, match="duplicate LEGO edge"):
+        module.validate_owner_lego_graph(plan)
+
+
+
+def test_historical_skills_plan_introduction_is_distinguished_from_missing_consumer() -> None:
+    import subprocess
+
+    path = "platform/skills/planning/lego-plan-r1.json"
+    old_cut = "75fc00bdec12268bd92ad85c6138b6f1be76bf3d"
+    new_cut = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+    old = module.project_owner_lego_source_graph(source_revision=old_cut)
+    new = module.project_owner_lego_source_graph(source_revision=new_cut)
+    assert path in old["absentAtSourceCutPlans"]
+    assert path not in new["absentAtSourceCutPlans"]
+    old_refs = {n["ref"] for n in old["vertices"]}
+    new_refs = {n["ref"] for n in new["vertices"]}
+    assert not any(ref.startswith(path + "#") for ref in old_refs)
+    skill_nodes = json.loads((ROOT / path).read_text(encoding="utf-8"))["nodes"]
+    expected = {path + "#" + n["id"] for n in skill_nodes}
+    assert len(expected) >= 4
+    assert expected <= new_refs
+    change = module.project_owner_lego_source_change(
+        before_revision=old_cut, after_revision=new_cut,
+    )
+    assert path in change["sourcePlanChangedPaths"]
+    assert expected <= set(change["directChangedRefs"])
+    assert not change["proofReuseAdmissible"]
