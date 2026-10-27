@@ -7,6 +7,27 @@ name = "next"
 root = "meta/next/"
 verify_task = "next:verify"
 
+# Semantic foundation is independently verified at its EXISTING source,
+# rather than copying R2.1 mathematics into Repo, Composition or Gateway.
+# Physical .agents/skills packaging is not a proof that methods execute effects.
+# Native theorem provers and proof-oracle binaries are a different owner
+# from the R2.1 logical specification and from product-specific proofs.
+[[owners]]
+name = "formal-toolchain"
+root = "tools/formal/"
+verify_task = "formal:verify"
+queue_verify_task = "formal:source:verify"
+
+[[owners]]
+name = "lego-foundation"
+root = ".agents/skills/recursive-lego-calculus/"
+verify_task = "lego-foundation:verify"
+
+[[owners]]
+name = "research"
+root = "meta/research/"
+verify_task = "research:verify"
+
 [[owners]]
 name = "composition"
 root = "packages/composition/"

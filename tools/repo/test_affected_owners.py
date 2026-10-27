@@ -41,6 +41,46 @@ class AffectedOwnersTests(unittest.TestCase):
             ["runtime", "host", "game"],
         )
 
+    def test_formal_toolchain_has_separate_proof_executor_owner(self) -> None:
+        self.assertEqual(self.names("tools/formal/verify.py"), ["formal-toolchain"])
+        self.assertEqual(self.tasks("tools/formal/RecursiveLegoRefinement.lean"), ["formal:verify"])
+        self.assertEqual(self.queue_tasks("tools/formal/Proof.dfy"), ["formal:source:verify"])
+        self.assertEqual(
+            self.names(".agents/skills/recursive-lego-calculus/references/formal-model.md"),
+            ["lego-foundation"],
+        )
+
+    def test_recursive_lego_source_is_an_independent_verified_semantic_owner(self) -> None:
+        self.assertEqual(
+            self.names(".agents/skills/recursive-lego-calculus/references/formal-model.md"),
+            ["lego-foundation"],
+        )
+        self.assertEqual(
+            self.tasks(".agents/skills/recursive-lego-calculus/SKILL.md"),
+            ["lego-foundation:verify"],
+        )
+        # The executable/discovery platform owns Skills routing, not theory.
+        self.assertEqual(
+            self.names("platform/skills/src/ordivon_skills/catalog.py"),
+            ["skills"],
+        )
+
+    def test_research_is_a_distinct_source_owner_with_real_gateway_consumers(self) -> None:
+        self.assertEqual(
+            self.names("meta/research/publication-closure-profile-r2.json"),
+            ["research"],
+        )
+        self.assertEqual(
+            self.tasks("meta/research/publication/perceptual-conformance-profile-r1.json"),
+            ["research:verify"],
+        )
+        # Public JSON $id and shared schema tests are deliberately not
+        # relocated without checking external consumers and compatibility.
+        self.assertEqual(
+            self.names("profiles/research/tool-qualification/tool-qualification-packet-r1.schema.json"),
+            [],
+        )
+
     def test_next_queue_verification_defaults_to_full_verify(self) -> None:
         self.assertEqual(self.tasks("meta/next/README.md"), ["next:verify"])
         self.assertEqual(self.queue_tasks("meta/next/README.md"), ["next:verify"])
