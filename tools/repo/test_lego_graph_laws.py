@@ -1746,3 +1746,68 @@ def test_gateway_new_recipes_and_optional_worker_have_distinct_native_consumers(
         edge["from"] == "G08" and edge["to"] == "G03" and edge["type"] == "AUTHORITY"
         for edge in plan["edges"]
     )
+
+
+def test_distribution_optional_effect_source_contracts_do_not_mint_provider_authority() -> None:
+    import ast
+
+    relative = "capabilities/distribution/planning/lego-plan-r1.json"
+    plan = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+    module.validate_owner_lego_graph(plan)
+    module.validate_owner_lego_dependencies(plan, "capabilities/distribution")
+    nodes = {node["id"]: node for node in plan["nodes"]}
+    assert set(nodes) == {"D00", "D01", "D02", "D03", "D04", "D05"}
+    assert plan["truthRole"] == "planning-projection-not-project-truth"
+    symbols = {
+        "D01": [("scripts/bound_refs.py", "occurrence_ref")],
+        "D02": [("scripts/admission.py", "normalize")],
+        "D03": [("scripts/produce_effect_authority.py", "produce")],
+        "D04": [("scripts/test-admission.py", "opa_action")],
+        "D05": [("scripts/test-reconciliation.py", "decision")],
+    }
+    for identity, node in nodes.items():
+        assert all(node.get(name) for name in (
+            "responsibility", "inputs", "outputs", "behavioralContract",
+            "acceptance", "replacementConditions", "formalObligations",
+            "consumerEvidence",
+        )), identity
+        assert node["qualification"]["INSTALLED"] == "UNKNOWN"
+        assert "EXTERNAL_DYNAMIC_UNKNOWN" in node["qualification"]["CONSUMER"] or (
+            "LIVE_EXTERNAL_UNKNOWN" in node["qualification"]["CONSUMER"]
+        )
+        for witness in node["evidence"] + node["consumerEvidence"]:
+            assert (ROOT / "capabilities/distribution" / witness).is_file(), witness
+        for filename, symbol in symbols.get(identity, []):
+            tree = ast.parse(
+                (ROOT / "capabilities/distribution" / filename).read_text(encoding="utf-8")
+            )
+            assert any(
+                isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))
+                and item.name == symbol for item in tree.body
+            ), (identity, symbol)
+        if identity != "D00":
+            assert any(
+                edge["from"] == "D00" and edge["to"] == identity
+                and edge["type"] == "COMPOSITION" for edge in plan["edges"]
+            )
+    assert not any(
+        edge["to"] == "D05" and edge["type"] == "POLICY"
+        for edge in plan["edges"]
+    ), "preflight must never grant provider retry permission"
+    view = module.project_owner_lego_source_graph(ROOT)
+    for identity in nodes:
+        vertex = next(
+            vertex for vertex in view["vertices"]
+            if vertex["ref"] == f"{relative}#{identity}"
+        )
+        assert vertex["sourceAnchors"]
+        assert not vertex["unresolvedSourceEvidence"]
+        assert vertex["sourceCoverageStanding"] == "DECLARED_SOURCE_MEMBERSHIP_PARTIAL"
+    assert "ACTUAL_CONSUMER" in view["excluded"]["unverifiedFacets"]
+    assert "FORMAL_PROOF" in view["excluded"]["unverifiedFacets"]
+    fake = copy.deepcopy(plan)
+    fake["edges"].append({
+        "from": "D04", "to": "PROVIDER_EXECUTED", "type": "EFFECT",
+    })
+    with pytest.raises(module.ArchitectureDocsError, match="unknown LEGO edge endpoint"):
+        module.validate_owner_lego_graph(fake)

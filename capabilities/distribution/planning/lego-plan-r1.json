@@ -1,0 +1,420 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "distribution-optional-effect-contract-profile-r21",
+    "purpose": "Source/test qualified independent cross-provider reference responsibilities. Provider-native APIs, caller IAM, Runtime and OPA remain external mature LEGO. No invented mandatory Distribution control plane.",
+    "sourceEvidence": [
+      "README.md",
+      "composition-v1.json",
+      "scripts/test-all.sh",
+      "policy/distribution.rego",
+      "policy/reconciliation.rego"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "D00",
+      "label": "OptionalProviderEffectSafetyProfile",
+      "kind": "composition",
+      "authority": "Distribution source contract profile only; caller IAM, Runtime, Provider and domain retain natural authority",
+      "state": "IMPLEMENTED",
+      "responsibility": "Offer an optional cross-provider reference profile for exact effect identity, provider observation, explicit authority, policy admission and reconciliation without becoming a mandatory global Distribution executor.",
+      "inputs": [
+        "Opt-in caller Distribution intent, provider-native observation, optional bound approval and dispatch/readback evidence"
+      ],
+      "outputs": [
+        "Validated reference projection or explicit refusal, bounded policy result, reconciliation standing"
+      ],
+      "behavioralContract": [
+        "The profile composes source contracts only when its consumer chooses it; it neither submits to Provider nor grants IAM privileges, and source-level tests never establish physical publication."
+      ],
+      "acceptance": [
+        "scripts/test-all.sh exercises the source boundary independently of external carrier observation.",
+        "README and composition-v1 preserve provider-native tools and do not require an extra global workflow authority."
+      ],
+      "evidence": [
+        "README.md",
+        "composition-v1.json",
+        "scripts/test-all.sh",
+        "mise.toml"
+      ],
+      "consumerEvidence": [
+        "scripts/test-all.sh",
+        "mise.toml"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "Provider publication truth",
+        "Provider IAM or OAuth credentials",
+        "Temporal/n8n orchestration",
+        "Universal Distribution database"
+      ],
+      "replacementConditions": [
+        "Replace/delete the optional profile when no necessary live consumer exists; otherwise preserve exact local contract and direct Provider/API adoption."
+      ],
+      "formalObligations": [
+        "No verified dynamic/installed caller or domain acceptance; composition safety depends on downstream provider and authority premises."
+      ],
+      "qualification": {
+        "SOURCE": "SOURCE_STATIC_CONTRACT_WITH_TEST_CONSUMER",
+        "CONFIGURED": "UNKNOWN",
+        "INSTALLED": "UNKNOWN",
+        "EXECUTED": "SOURCE_TEST_ONLY",
+        "CONSUMER": "IN_REPO_STATIC_OR_TEST_ONLY; LIVE_EXTERNAL_UNKNOWN",
+        "FORMAL": "OPA_POLICY_TESTS_ONLY_NOT_END_TO_END_PROOF",
+        "CURRENTNESS": "GIT_SOURCE_CUT_ONLY"
+      }
+    },
+    {
+      "id": "D01",
+      "label": "OccurrenceAndObservationContentIdentity",
+      "kind": "contract",
+      "authority": "Distribution source contract profile only; caller IAM, Runtime, Provider and domain retain natural authority",
+      "state": "IMPLEMENTED",
+      "responsibility": "Bind each effect occurrence and provider observation to exact RFC 8785 JCS/SHA-256 references so that payload, account, carrier and relevant artifact changes invalidate old evidence.",
+      "inputs": [
+        "Typed Distribution intent; carrier/provider identity; exact effect payload and optional artifact; provider observation"
+      ],
+      "outputs": [
+        "occurrenceRef, provider_observation_ref, effect_payload_ref and canonical evidence projections"
+      ],
+      "behavioralContract": [
+        "References derive from the actual projected values using mature rfc8785; a digest mismatch is rejected during downstream admission. Digest equality alone is not provider idempotency or effect equality."
+      ],
+      "acceptance": [
+        "scripts/test-admission.py explicitly tests altered content, provider/ref mismatch, and exact identity.",
+        "No raw filename or mutable alias can substitute a bound occurrence digest."
+      ],
+      "evidence": [
+        "scripts/bound_refs.py",
+        "contracts/distribution-intent.schema.json",
+        "contracts/provider-observation.schema.json",
+        "scripts/admission.py",
+        "scripts/test-admission.py"
+      ],
+      "consumerEvidence": [
+        "scripts/admission.py",
+        "scripts/prepare_approval_request.py",
+        "scripts/test-admission.py",
+        "scripts/test-effect-authority-producer.py"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "Universal Provider idempotency",
+        "Authorization decision",
+        "Actual external effect truth"
+      ],
+      "replacementConditions": [
+        "Keep canonical projection and SHA-256 identity compatibility; reuse upstream RFC 8785 instead of custom serializer."
+      ],
+      "formalObligations": [
+        "No cryptographic collision/external-provider realization property proved by repo tests; exact consumer readset changes must invalidate reuse."
+      ],
+      "qualification": {
+        "SOURCE": "SOURCE_STATIC_CONTRACT_WITH_TEST_CONSUMER",
+        "CONFIGURED": "UNKNOWN",
+        "INSTALLED": "UNKNOWN",
+        "EXECUTED": "SOURCE_TEST_ONLY",
+        "CONSUMER": "IN_REPO_STATIC_OR_TEST_ONLY; LIVE_EXTERNAL_UNKNOWN",
+        "FORMAL": "OPA_POLICY_TESTS_ONLY_NOT_END_TO_END_PROOF",
+        "CURRENTNESS": "GIT_SOURCE_CUT_ONLY"
+      }
+    },
+    {
+      "id": "D02",
+      "label": "RuntimeBoundObservationNormalization",
+      "kind": "contract",
+      "authority": "Distribution source contract profile only; caller IAM, Runtime, Provider and domain retain natural authority",
+      "state": "IMPLEMENTED",
+      "responsibility": "Normalize an exact read of caller intent and Runtime-bound provider observation into a bounded policy input while rejecting expired, mismatched or ambient provenance.",
+      "inputs": [
+        "Intent/observation/optional authority JSON satisfying Draft202012 schema, Runtime input root and admitted timestamp"
+      ],
+      "outputs": [
+        "Normalized deterministic admission object or structured fail-closed denial"
+      ],
+      "behavioralContract": [
+        "Each declared occurrence/provider/account/adapter/effect is bound across documents, validity windows checked and missing Runtime-bound input root rejected; null authority remains present=false, not implicitly granted."
+      ],
+      "acceptance": [
+        "scripts/test-bound-entrypoint.sh rejects invocation without ORDIVON_INPUT_ROOT.",
+        "scripts/test-admission.py demonstrates expired and mismatched receipt rejection."
+      ],
+      "evidence": [
+        "scripts/admission.py",
+        "scripts/admission_bound.py",
+        "contracts/admission-envelope.schema.json",
+        "scripts/test-bound-entrypoint.sh",
+        "scripts/test-admission.py"
+      ],
+      "consumerEvidence": [
+        "scripts/admission_bound.py",
+        "scripts/test-bound-entrypoint.sh",
+        "scripts/test-admission.py"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "Runtime file/source authority",
+        "Provider observation issuance",
+        "Authorization grants"
+      ],
+      "replacementConditions": [
+        "Preserve typed bound read, fail-closed source path, temporal scope and exact nullable authority semantics."
+      ],
+      "formalObligations": [
+        "Actual Runtime execBound mounting, identity/visibility and complete dynamic input membership not established by file-level tests."
+      ],
+      "qualification": {
+        "SOURCE": "SOURCE_STATIC_CONTRACT_WITH_TEST_CONSUMER",
+        "CONFIGURED": "UNKNOWN",
+        "INSTALLED": "UNKNOWN",
+        "EXECUTED": "SOURCE_TEST_ONLY",
+        "CONSUMER": "IN_REPO_STATIC_OR_TEST_ONLY; LIVE_EXTERNAL_UNKNOWN",
+        "FORMAL": "OPA_POLICY_TESTS_ONLY_NOT_END_TO_END_PROOF",
+        "CURRENTNESS": "GIT_SOURCE_CUT_ONLY"
+      }
+    },
+    {
+      "id": "D03",
+      "label": "ExplicitEffectApprovalTranslation",
+      "kind": "capability",
+      "authority": "Distribution source contract profile only; caller IAM, Runtime, Provider and domain retain natural authority",
+      "state": "IMPLEMENTED",
+      "responsibility": "Translate caller-presented exact effect approval into a bounded EffectAuthority descriptor only after verifying occurrence and time, without granting approval itself.",
+      "inputs": [
+        "Exact intent occurrence, optional approval request, independently bound approved principal/effect and trusted Runtime input root"
+      ],
+      "outputs": [
+        "Approval request awaiting actual user/authority or typed EffectAuthority / explicit refusal"
+      ],
+      "behavioralContract": [
+        "An approval request is not a grant. Only matched occurrence, principal and validity fields from a separately supplied approval are translated; ambient approval input, payload swaps and stale approval fail closed."
+      ],
+      "acceptance": [
+        "scripts/test-effect-authority-producer.py covers mismatched effect/payload/expiry and forged producer-output controls.",
+        "scripts/test-effect-authority-entrypoint.sh refuses any ambient approval path."
+      ],
+      "evidence": [
+        "scripts/prepare_approval_request.py",
+        "scripts/produce_effect_authority.py",
+        "contracts/effect-approval-request.schema.json",
+        "contracts/effect-approval.schema.json",
+        "contracts/effect-authority.schema.json",
+        "scripts/test-effect-authority-producer.py"
+      ],
+      "consumerEvidence": [
+        "scripts/test-approval-request.py",
+        "scripts/test-effect-authority-producer.py",
+        "scripts/test-effect-authority-entrypoint.sh",
+        "scripts/admission.py"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "IAM policy authority",
+        "Impersonating user approval",
+        "Provider write permission"
+      ],
+      "replacementConditions": [
+        "Prefer external IAM/OAuth/provider-native approval; delete translator if consumer can use existing upstream granted token directly with required bindings."
+      ],
+      "formalObligations": [
+        "No installed authenticated human approval or live effect authorization is inferred; caller provenance must be proved independently."
+      ],
+      "qualification": {
+        "SOURCE": "SOURCE_STATIC_CONTRACT_WITH_TEST_CONSUMER",
+        "CONFIGURED": "UNKNOWN",
+        "INSTALLED": "UNKNOWN",
+        "EXECUTED": "SOURCE_TEST_ONLY",
+        "CONSUMER": "IN_REPO_STATIC_OR_TEST_ONLY; LIVE_EXTERNAL_UNKNOWN",
+        "FORMAL": "OPA_POLICY_TESTS_ONLY_NOT_END_TO_END_PROOF",
+        "CURRENTNESS": "GIT_SOURCE_CUT_ONLY"
+      }
+    },
+    {
+      "id": "D04",
+      "label": "ProviderCapabilityEffectPolicy",
+      "kind": "method",
+      "authority": "Distribution source contract profile only; caller IAM, Runtime, Provider and domain retain natural authority",
+      "state": "IMPLEMENTED",
+      "responsibility": "Determine a bounded preflight/deny/user-action-required outcome using mature OPA/Rego over the verified normalized capability and effect authority envelope.",
+      "inputs": [
+        "D02 normalized provider capability/requirement observation and D03 optional authority descriptor"
+      ],
+      "outputs": [
+        "OPA decision action with reason and externalEffectPerformed=false in preflight"
+      ],
+      "behavioralContract": [
+        "OPA policy may accept read-ready or bounded write preflight only under required provider capability, artifact readiness, explicit effect authority and schema assumptions; no preflight result asserts external effect."
+      ],
+      "acceptance": [
+        "scripts/test-admission.py tests read-ready/write-approval-required/write-bound and multiple denials against OPA.",
+        "policy/distribution.rego never calls a provider or schedules side effects."
+      ],
+      "evidence": [
+        "policy/distribution.rego",
+        "contracts/admission-envelope.schema.json",
+        "scripts/test-admission.py"
+      ],
+      "consumerEvidence": [
+        "scripts/test-admission.py",
+        "scripts/test-all.sh"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "OPA engine implementation",
+        "Provider write execution",
+        "Semantic domain acceptance"
+      ],
+      "replacementConditions": [
+        "Replace policy by an equivalent mature native Provider authorization decision if consumer requires no cross-provider composition; preserve policy input/output and conservative failure cases."
+      ],
+      "formalObligations": [
+        "OPA sample cases pass only scoped finite input classes; absent complete environment/Provider delivery bridge no end-to-end Formal PASS."
+      ],
+      "qualification": {
+        "SOURCE": "SOURCE_STATIC_CONTRACT_WITH_TEST_CONSUMER",
+        "CONFIGURED": "UNKNOWN",
+        "INSTALLED": "UNKNOWN",
+        "EXECUTED": "SOURCE_TEST_ONLY",
+        "CONSUMER": "IN_REPO_STATIC_OR_TEST_ONLY; LIVE_EXTERNAL_UNKNOWN",
+        "FORMAL": "OPA_POLICY_TESTS_ONLY_NOT_END_TO_END_PROOF",
+        "CURRENTNESS": "GIT_SOURCE_CUT_ONLY"
+      }
+    },
+    {
+      "id": "D05",
+      "label": "AmbiguousProviderEffectReconciliation",
+      "kind": "method",
+      "authority": "Distribution source contract profile only; caller IAM, Runtime, Provider and domain retain natural authority",
+      "state": "IMPLEMENTED",
+      "responsibility": "Classify ambiguous provider dispatch/readback and permit retry only under independently qualified provider idempotency or authoritative absence proof.",
+      "inputs": [
+        "Exact occurrence, dispatch standing, provider-native readback and bound retry proof"
+      ],
+      "outputs": [
+        "OPA reconciliation action and explicit retryPermitted boolean"
+      ],
+      "behavioralContract": [
+        "UNKNOWN or ambiguous submission is not absence and not retry permission; provider-present means effect confirmed; ambiguity permits retry only with actual idempotency or independently verified authoritative absence."
+      ],
+      "acceptance": [
+        "scripts/test-reconciliation.py evaluates eight distinct outcome/retry cases.",
+        "policy/reconciliation_test.rego adds native Rego policy counterexamples."
+      ],
+      "evidence": [
+        "policy/reconciliation.rego",
+        "policy/reconciliation_test.rego",
+        "contracts/reconciliation-input.schema.json",
+        "scripts/test-reconciliation.py"
+      ],
+      "consumerEvidence": [
+        "scripts/test-reconciliation.py",
+        "scripts/test-all.sh"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "Provider ledger/replay",
+        "Runtime Job truth",
+        "Guarantee of effect completion"
+      ],
+      "replacementConditions": [
+        "Prefer Provider's own authoritative idempotency/readback; omit this adapter when equivalent real consumer obligations are fully met upstream."
+      ],
+      "formalObligations": [
+        "Provider-native readback and retry proof must be source-bound; UNKNOWN physical effect cannot be upgraded to absence."
+      ],
+      "qualification": {
+        "SOURCE": "SOURCE_STATIC_CONTRACT_WITH_TEST_CONSUMER",
+        "CONFIGURED": "UNKNOWN",
+        "INSTALLED": "UNKNOWN",
+        "EXECUTED": "SOURCE_TEST_ONLY",
+        "CONSUMER": "IN_REPO_STATIC_OR_TEST_ONLY; LIVE_EXTERNAL_UNKNOWN",
+        "FORMAL": "OPA_POLICY_TESTS_ONLY_NOT_END_TO_END_PROOF",
+        "CURRENTNESS": "GIT_SOURCE_CUT_ONLY"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "D00",
+      "to": "D01",
+      "type": "COMPOSITION",
+      "label": "Optional source profile composition; not a mandatory global workflow or implementation proof"
+    },
+    {
+      "from": "D00",
+      "to": "D02",
+      "type": "COMPOSITION",
+      "label": "Optional source profile composition; not a mandatory global workflow or implementation proof"
+    },
+    {
+      "from": "D00",
+      "to": "D03",
+      "type": "COMPOSITION",
+      "label": "Optional source profile composition; not a mandatory global workflow or implementation proof"
+    },
+    {
+      "from": "D00",
+      "to": "D04",
+      "type": "COMPOSITION",
+      "label": "Optional source profile composition; not a mandatory global workflow or implementation proof"
+    },
+    {
+      "from": "D00",
+      "to": "D05",
+      "type": "COMPOSITION",
+      "label": "Optional source profile composition; not a mandatory global workflow or implementation proof"
+    },
+    {
+      "from": "D01",
+      "to": "D02",
+      "type": "IDENTITY",
+      "label": "Source canonical intent/provider ref required before bounded normalization"
+    },
+    {
+      "from": "D01",
+      "to": "D03",
+      "type": "IDENTITY",
+      "label": "Approval binds exact occurrence/effect digest; does not grant IAM"
+    },
+    {
+      "from": "D02",
+      "to": "D04",
+      "type": "DATA",
+      "label": "Only normalized, time-bound provider observation enters OPA"
+    },
+    {
+      "from": "D03",
+      "to": "D04",
+      "type": "POLICY",
+      "label": "Conditionally provided effect authority is not an ambient grant"
+    }
+  ],
+  "slices": [],
+  "gaps": [
+    "No actual external deployed Distribution client, user approval ingress, real Provider write/readback or domain acceptance is attested by tracked sample tests.",
+    "Historical R8 Temporal smoke and R10 Steam local preflight are retired experiments, not reintroduced LEGO.",
+    "No cycle or transitive proof from OPA preflight to physical effects; provider idempotency, installed IAM, source readset and legal retry evidence remain independent.",
+    "Node identities D00-D05 describe optional source contracts only. Do not treat in-repo self-tests as proved live business consumers; negative runtime searches remain bounded not exhaustive."
+  ],
+  "doNotOwn": [
+    "Global Distribution policy/state registry",
+    "Provider physical execution/readback truth",
+    "Runtime / Host natural execution/identity authority",
+    "OPA/JCS math engines or Rego runtime"
+  ],
+  "review": {
+    "sourceRevision": "719745849d45f179003b40a679fb60517ea260af",
+    "qualification": "SOURCE_REFERENCE_CONTRACT_AND_NATIVE_TEST_CONSUMERS_ONLY",
+    "installed": "UNKNOWN",
+    "consumer": "EXTERNAL_DYNAMIC_UNKNOWN"
+  }
+}
