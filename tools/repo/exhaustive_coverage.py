@@ -978,6 +978,47 @@ def derive_problem_legos(
                 "installedStanding": "UNKNOWN",
                 "replaceOrDeleteStanding": "NOT_QUALIFIED",
             })
+    # A bare local ID may be reused in distinct plans without colliding in
+    # the real scoped identity. This is a pending *lookup ambiguity*, not
+    # evidence that either declared LEGO is incorrectly implemented.
+    nodes_by_ref = {node["nodeRef"]: node for node in inventory["semanticPlans"]["nodes"]}
+    source_by_path = {r["path"]: r["sourceIdentity"] for r in inventory["sourcePaths"]}
+    collisions = []
+    for local_id, refs in sorted(
+        inventory["semanticPlans"]["sameLocalIdAcrossPlans"].items()
+    ):
+        if len(refs) < 2 or len(set(refs)) != len(refs):
+            raise ValueError("cross-plan local ID collision is not scoped")
+        members = []
+        for ref in sorted(refs):
+            node = nodes_by_ref.get(ref)
+            if node is None or node["localId"] != local_id:
+                raise ValueError("cross-plan ID has no exact plan node")
+            path = node["plan"]
+            if path not in source_by_path:
+                raise ValueError("cross-plan ID plan has no current Git source")
+            members.append({
+                "scopedNodeRef": ref,
+                "planSourceIdentity": source_by_path[path],
+            })
+        ref = "source-problem:sha256:" + hashlib.sha256(json.dumps(
+            ["CROSS_PLAN_SHORT_ID_AMBIGUITY", local_id],
+            ensure_ascii=True, separators=(",", ":"),
+        ).encode()).hexdigest()
+        if ref in unique_ids:
+            raise ValueError("cross-plan ID and source cell problem collide")
+        unique_ids.add(ref)
+        collisions.append({
+            "problemRef": ref,
+            "issue": "CROSS_PLAN_SHORT_ID_AMBIGUITY",
+            "localId": local_id,
+            "scopedPlanNodes": members,
+            "bareIdConsumerStanding": "UNKNOWN",
+            "semanticOverlapStanding": "UNKNOWN",
+            "scopeDisambiguationStanding": "EXACT_PLAN_PATH_AVAILABLE",
+            "invocationStanding": "NOT_MAPPED",
+            "deleteOrRenameStanding": "NOT_QUALIFIED",
+        })
     issue_counts = collections.Counter(p["issue"] for p in result)
     if dict(sorted(issue_counts.items())) != cells["summary"]["problemCounts"]:
         raise ValueError("problem LEGO projection lost or fabricated an issue")
@@ -1007,8 +1048,11 @@ def derive_problem_legos(
                                                if p["issue"] == "UNCLASSIFIED_SOURCE_REGION"),
             "planGapNodes": sum(len(p["planNodeRefs"]) for p in result),
             "planGapAtomicObligations": sum(len(p["planProblemObligations"]) for p in result),
+            "crossPlanShortIdProblems": len(collisions),
+            "allPendingProblemInstances": len(result) + len(collisions),
         },
         "problemLegos": result,
+        "shortIdAmbiguityProblems": collisions,
     }
 
 
@@ -1181,6 +1225,7 @@ def join_cross_plane_observations(problem_frontier: dict, observations: dict) ->
         "proofReuseAdmissible": False,
         "problemSources": {
             "gitRecursive": problem_frontier["summary"]["problemLegos"],
+            "shortIdAmbiguity": problem_frontier["summary"]["crossPlanShortIdProblems"],
             "crossPlaneObserved": len(result_problems),
         },
         "observationCount": len(nodes),
@@ -1285,6 +1330,7 @@ def main() -> int:
                     result["crossPlane"].pop(field)
         if args.summary:
             result.pop("problemLegos")
+            result.pop("shortIdAmbiguityProblems")
     elif args.live_cells:
         result = active_source_cells(
             result, repo=args.repo, max_files=args.cell_max_files, max_depth=args.cell_max_depth,

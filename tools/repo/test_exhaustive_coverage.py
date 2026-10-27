@@ -677,3 +677,49 @@ class CrossPlaneObservationJoinTests(unittest.TestCase):
             assert output["crossPlane"]["proofReuseAdmissible"] is False
             assert "observations" not in output["crossPlane"]
             assert "problemLegos" not in output
+
+
+class ShortIdAmbiguityProblemTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.sha = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"],
+            text=True).strip()
+        cls.inventory = M.classification(ROOT, cls.sha)
+
+    def test_scoped_refs_match_actual_source_and_local_id(self):
+        result = M.derive_problem_legos(self.inventory, repo=ROOT)
+        expected = self.inventory["semanticPlans"]["sameLocalIdAcrossPlans"]
+        assert result["summary"]["crossPlanShortIdProblems"] == len(expected)
+        assert result["summary"]["allPendingProblemInstances"] == (
+            result["summary"]["problemLegos"] + len(expected))
+        source = {x["path"]: x["sourceIdentity"]
+                  for x in self.inventory["sourcePaths"]}
+        refs = set()
+        for p in result["shortIdAmbiguityProblems"]:
+            assert p["issue"] == "CROSS_PLAN_SHORT_ID_AMBIGUITY"
+            assert p["localId"] in expected
+            assert p["deleteOrRenameStanding"] == "NOT_QUALIFIED"
+            assert p["invocationStanding"] == "NOT_MAPPED"
+            assert p["bareIdConsumerStanding"] == "UNKNOWN"
+            assert p["semanticOverlapStanding"] == "UNKNOWN"
+            assert p["problemRef"] not in refs
+            refs.add(p["problemRef"])
+            assert sorted(n["scopedNodeRef"] for n in p["scopedPlanNodes"]) == sorted(
+                expected[p["localId"]])
+            for node in p["scopedPlanNodes"]:
+                assert "#" in node["scopedNodeRef"]
+                assert node["scopedNodeRef"].endswith("#" + p["localId"])
+                assert node["planSourceIdentity"] == source[
+                    node["scopedNodeRef"].split("#", 1)[0]]
+        assert len(refs) == len(expected)
+        assert refs.isdisjoint({x["problemRef"] for x in result["problemLegos"]})
+
+    def test_invalid_colliding_identity_mapping_rejected(self):
+        import copy
+        x=copy.deepcopy(self.inventory)
+        x["semanticPlans"]["sameLocalIdAcrossPlans"]["G01"][0] = (
+            "services/gateway/planning/lego-plan-r1.json#NOTG01"
+        )
+        with self.assertRaisesRegex(ValueError,"no exact plan node"):
+            M.derive_problem_legos(x, repo=ROOT)
