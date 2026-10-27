@@ -140,3 +140,43 @@ def test_deployed_move_rejects_missing_target_path() -> None:
     mapping["targetPaths"] = ["extensions/missing-control-plugin/"]
     with pytest.raises(module.StructureR2Error, match="deployed move target missing"):
         module.validate_plan(value, repo_root=ROOT)
+
+
+def test_exhaustive_source_cut_has_distinct_semantic_truth_boundary() -> None:
+    """Existing Structure R2 CI consumer: source placement != LEGO proof."""
+    import subprocess
+    spec = importlib.util.spec_from_file_location(
+        "ordivon_exhaustive_coverage",
+        ROOT / "tools" / "repo" / "exhaustive_coverage.py",
+    )
+    assert spec is not None and spec.loader is not None
+    coverage = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(coverage)
+    source_cut = subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True
+    ).strip()
+    result = coverage.classification(ROOT, source_cut)
+    assert result["summary"]["trackedPaths"] == result["summary"]["accountedForPaths"]
+    assert result["summary"]["nodes"] == len(result["semanticPlans"]["nodes"])
+    assert result["summary"]["edges"] == len(result["semanticPlans"]["edges"])
+    assert result["proofReuseAdmissible"] is False
+    assert all(n["formalQualification"] == "UNKNOWN" for n in result["semanticPlans"]["nodes"])
+    assert len({p["path"] for p in result["sourcePaths"]}) == result["summary"]["trackedPaths"]
+
+
+def test_exhaustive_coverage_overlapping_roots_fail_closed() -> None:
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "ordivon_exhaustive_coverage",
+        ROOT / "tools" / "repo" / "exhaustive_coverage.py",
+    )
+    assert spec is not None and spec.loader is not None
+    coverage = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(coverage)
+    with pytest.raises(ValueError, match="overlapping"):
+        coverage.source_partition("services/runtime/main.py", {
+            "owners": [
+                {"name": "all", "root": "services/"},
+                {"name": "runtime", "root": "services/runtime/"},
+            ],
+        })

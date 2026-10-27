@@ -190,4 +190,100 @@ theorem endpoint_equality_cannot_prove_full_time_continuity :
     endpoint_snapshots_do_not_prove_continuity
   exact hMiddle (universal trace hEndpoints)
 
+
+-- FORMAL BRIDGE between the already-proved typed dependency graph and a
+-- consumer-specific property frame. An edge is prerequisite -> consumer;
+-- correctness of this graph against the ACTUAL implementation readset is an
+-- explicit prerequisite, NOT inferred from path/Owner names or test PASS.
+theorem graph_reuse_candidate_excludes_direct_readset_change
+    {Ref : Type}
+    (dependency : Ref → Ref → Prop)
+    (changed unresolved read : Ref → Prop) (consumer : Ref)
+    (readsHaveEdges : ∀ ref, read ref → dependency ref consumer)
+    (candidate : StandsAt dependency changed unresolved consumer
+      .reuseCandidate) :
+    ¬ DirectlyAffected read (fun ref => changed ref ∨ unresolved ref) := by
+  intro hHit
+  obtain ⟨ref, hRead, hVariation⟩ := hHit
+  have hEdge := readsHaveEdges ref hRead
+  cases hVariation with
+  | inl hChanged =>
+      have reached : ImpactReach dependency changed consumer :=
+        ImpactReach.successor ref consumer
+          (ImpactReach.origin ref hChanged) hEdge
+      exact candidate.1 reached
+  | inr hUnresolved =>
+      have reached : ImpactReach dependency unresolved consumer :=
+        ImpactReach.successor ref consumer
+          (ImpactReach.origin ref hUnresolved) hEdge
+      exact candidate.2 reached
+
+-- Under the required semantic implementation/refinement premises,
+-- the (graph-only!) REUSE_CANDIDATE is sufficient for preserving a previously
+-- proved, property-scoped mathematical goal. It is not domain acceptance or
+-- an installed-program guarantee unless every premise is separately proved.
+theorem graph_reuse_preserves_property_if_qualified
+    {Ref Value Observation : Type}
+    (dependency : Ref → Ref → Prop)
+    (changed unresolved read : Ref → Prop) (consumer : Ref)
+    (oldEnv newEnv : Ref → Value)
+    (observe : (Ref → Value) → Observation)
+    (consumerProperty : Observation → Prop)
+    (readsHaveEdges : ∀ ref, read ref → dependency ref consumer)
+    (readsetComplete : ReadsetDetermines read observe)
+    (variationCoversDelta :
+      ∀ ref, ¬ (changed ref ∨ unresolved ref) →
+        oldEnv ref = newEnv ref)
+    (candidate : StandsAt dependency changed unresolved consumer
+      .reuseCandidate)
+    (oldProof : consumerProperty (observe oldEnv)) :
+    consumerProperty (observe newEnv) := by
+  exact property_scoped_reuse_if_frame_qualified
+    read (fun ref => changed ref ∨ unresolved ref)
+    oldEnv newEnv observe consumerProperty
+    readsetComplete variationCoversDelta
+    (graph_reuse_candidate_excludes_direct_readset_change
+      dependency changed unresolved read consumer readsHaveEdges candidate)
+    oldProof
+
+-- Constructive negative witness: the source change IS listed, the readset
+-- IS correct, but the consumer edge is absent. The graph returns a reuse
+-- candidate anyway while the actual observable flips. Thus a proof about
+-- reachable declared nodes cannot prove real read-edge coverage.
+theorem missing_consumer_edge_invalidates_graph_reuse :
+    ∃ (dependency : Bool → Bool → Prop)
+      (changed unresolved read : Bool → Prop)
+      (consumer : Bool)
+      (oldEnv newEnv : Bool → Bool)
+      (observe : (Bool → Bool) → Bool),
+      StandsAt dependency changed unresolved consumer .reuseCandidate ∧
+      ReadsetDetermines read observe ∧
+      (∀ ref, ¬ (changed ref ∨ unresolved ref) →
+        oldEnv ref = newEnv ref) ∧
+      observe oldEnv ≠ observe newEnv := by
+  refine ⟨(fun _ _ => False), (fun ref => ref = true),
+    (fun _ => False), (fun ref => ref = true), false,
+    (fun _ => false), (fun ref => ref),
+    (fun env => env true), ?_, ?_, ?_, ?_⟩
+  · constructor
+    · intro hReach
+      cases hReach with
+      | origin _ hChanged => cases hChanged
+      | successor _ _ _ hEdge => exact False.elim hEdge
+    · intro hReach
+      cases hReach with
+      | origin _ hUnresolved => exact False.elim hUnresolved
+      | successor _ _ _ hEdge => exact False.elim hEdge
+  · intro before after hAgree
+    exact hAgree true rfl
+  · intro ref noVariation
+    cases ref with
+    | false => rfl
+    | true => exact False.elim (noVariation (Or.inl rfl))
+  · decide
+
 end OrdivonR21
+
+#print axioms OrdivonR21.graph_reuse_candidate_excludes_direct_readset_change
+#print axioms OrdivonR21.graph_reuse_preserves_property_if_qualified
+#print axioms OrdivonR21.missing_consumer_edge_invalidates_graph_reuse
