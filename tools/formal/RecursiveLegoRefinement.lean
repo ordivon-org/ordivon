@@ -203,7 +203,7 @@ def StableWithin {δ β : Type}
     (declared : δ → Prop) (before after : δ → β) : Prop :=
   ∀ d, declared d → before d = after d
 
-def OutputDependsOnlyOn {δ β γ : Type}
+def ObservableDependsOnlyOn {δ β γ : Type}
     (actual : δ → Prop) (observable : (δ → β) → γ) : Prop :=
   ∀ before after,
     (∀ d, actual d → before d = after d) →
@@ -217,7 +217,7 @@ theorem closed_dependency_frame {δ β γ : Type}
     (before after : δ → β) (observable : (δ → β) → γ)
     (hClosed : DependencyClosed declared actual)
     (hStable : StableWithin declared before after)
-    (hObserves : OutputDependsOnlyOn actual observable) :
+    (hObserves : ObservableDependsOnlyOn actual observable) :
     observable before = observable after := by
   apply hObserves before after
   intro d hActual
@@ -231,7 +231,7 @@ theorem unlisted_dependency_breaks_frame :
       (before after : Bool → Bool)
       (observable : (Bool → Bool) → Bool),
       StableWithin declared before after ∧
-      OutputDependsOnlyOn actual observable ∧
+      ObservableDependsOnlyOn actual observable ∧
       ¬ DependencyClosed declared actual ∧
       observable before ≠ observable after := by
   refine ⟨(fun d => d = false), (fun d => d = true),
@@ -345,3 +345,6 @@ end OrdivonR21
 #print axioms OrdivonR21.agent_impact_cannot_hide_unknown
 #print axioms OrdivonR21.agent_impact_cannot_hide_recheck
 #print axioms OrdivonR21.agent_impact_excludes_declared_misses
+
+#print axioms OrdivonR21.reuse_if_readset_covers_goal
+#print axioms OrdivonR21.extending_qualified_readset_preserves_soundness

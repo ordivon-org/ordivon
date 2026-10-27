@@ -21,6 +21,7 @@ SOURCE_FILES = (
     "tools/formal/mise.toml",
     "tools/formal/verify.py",
     "tools/formal/RecursiveLegoRefinement.lean",
+    "tools/formal/RecursiveLegoVariationFrame.lean",
     "tools/formal/Proof.rs",
     "tools/formal/Proof.dfy",
     "tools/formal/ProofKani.rs",
@@ -92,9 +93,10 @@ def qualified_tool_binaries() -> dict[str, dict[str, str]]:
 
 def run(label: str, args: list[str], *, input_text: str | None = None,
         expected_rc: int = 0, must_contain: str | None = None,
-        timeout: int = 95) -> dict[str, object]:
+        timeout: int = 95, env_overlay: dict[str, str] | None = None) -> dict[str, object]:
+    command_env = ({**os.environ, **env_overlay} if env_overlay is not None else None)
     p = subprocess.run(args, cwd=ROOT, input=input_text, text=True,
-                       capture_output=True, check=False, timeout=timeout)
+                       capture_output=True, check=False, timeout=timeout, env=command_env)
     combined = p.stdout + "\n" + p.stderr
     if p.returncode != expected_rc or (
         must_contain is not None and must_contain not in combined
@@ -115,12 +117,20 @@ def main() -> None:
 
     probes: list[dict[str, object]] = []
     source = ROOT / "RecursiveLegoRefinement.lean"
-    if re.search(r"\b(sorry|admit|axiom)\b", source.read_text()):
-        raise AssertionError("Unproved Lean shortcut in source")
-    probes.append(run("Lean kernel R2.1 relational composition",
-                      [executable("lean"), str(source)]))
+    variation = ROOT / "RecursiveLegoVariationFrame.lean"
+    for proof_file in (source, variation):
+        if re.search(r"\b(sorry|admit|axiom)\b", proof_file.read_text()):
+            raise AssertionError("Unproved Lean shortcut in source")
     with tempfile.TemporaryDirectory(prefix="ordivon-formal-falsifiers-") as d:
         tmp = Path(d)
+        core_olean = tmp / "RecursiveLegoRefinement.olean"
+        probes.append(run("Lean kernel R2.1 relational composition",
+                          [executable("lean"), "-o", str(core_olean), str(source)]))
+        probes.append(run(
+            "Lean kernel qualified variation frame and countermodels",
+            [executable("lean"), str(variation)],
+            env_overlay={"LEAN_PATH": str(tmp)},
+        ))
         bad_lean = tmp / "Invalid.lean"
         bad_lean.write_text("theorem falseClaim (p : Prop) : p := by\n  exact True.intro\n")
         probes.append(run("Lean rejects false theorem", [executable("lean"), str(bad_lean)],
