@@ -363,6 +363,33 @@ class SourceClassificationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "source region description must be a canonical nonempty string"):
             self.project(cut)
 
+    def test_content_pinned_file_carrier_does_not_infer_by_suffix_after_blob_change(self) -> None:
+        candidates = (
+            "domains/capital/tools/tigerbeetle_0_17_9/replay/run-tigerbeetle-capital-substrate-smoke-r1",
+            "services/runtime/standards/runtime_standard_native_r3.sdoc",
+            "platform/security/tests/fixtures/signed-vsa-r2/subject.carrier",
+        )
+        extra_owners = (
+            '\n[[owners]]\nname = "capital"\nroot = "domains/capital/"\n'
+            'verify_task = "capital:verify"\n'
+            '\n[[owners]]\nname = "security"\nroot = "platform/security/"\n'
+            'verify_task = "security:verify"\n'
+        )
+        self.manifest.write_text(self.header + extra_owners)
+        for name in candidates:
+            path = self.repo / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b"CHANGED_UNRELATED_BYTES")
+        cut = self.commit()
+        d = self.project(cut)
+        by_path = {row["path"]: row for row in d["entries"]}
+        for name in candidates:
+            row = by_path[name]
+            self.assertNotIn("BLOB_PINNED_", row["sourceFileForm"])
+            self.assertEqual(row["sourceFileFormStanding"],
+                             "OPAQUE_FORM_NEEDS_CONTENT_EVIDENCE")
+        self.assertFalse(d["proofReuseAdmissible"])
+
     def test_root_file_form_and_nested_cells_are_distinct_source_dimensions(self) -> None:
         # Physical file form can be known even when business semantics are not.
         artifacts = [

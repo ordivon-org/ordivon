@@ -420,7 +420,26 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
         ".typed": "TYPING_MARKER_FILE",
     }
 
+    # These are exact Git content witnesses, not suffix-only guesses.
+    # A changed source blob intentionally falls back to opaque classification.
+    content_pinned_forms = {
+        ("domains/capital/tools/tigerbeetle_0_17_9/replay/run-tigerbeetle-capital-substrate-smoke-r1",
+         "100644:blob:40a2845237cb883c78cd98f29fc66c82137b4d5a"):
+            "BLOB_PINNED_BASH_SHEBANG_SCRIPT_TEXT",
+        ("domains/capital/tools/tigerbeetle_0_17_9/replay/run-tigerbeetle-reservation-resolution-smoke-r31",
+         "100644:blob:72462722bd5da301f20edc95de3055474a0a8da3"):
+            "BLOB_PINNED_BASH_SHEBANG_SCRIPT_TEXT",
+        ("services/runtime/standards/runtime_standard_native_r3.sdoc",
+         "100644:blob:541cf23df8a96463d047abbf6cc8a263173497d4"):
+            "BLOB_PINNED_SDOC_ASCII_DOCUMENT_TEXT",
+        ("platform/security/tests/fixtures/signed-vsa-r2/subject.carrier",
+         "100644:blob:e6327b166d906fd20f02bfc68371e0a92a358933"):
+            "BLOB_PINNED_ASCII_PAYLOAD_TEST_FIXTURE",
+    }
+
     def source_file_form(path: str, source_identity: str) -> str:
+        if (path, source_identity) in content_pinned_forms:
+            return content_pinned_forms[(path, source_identity)]
         name = path.rsplit("/", 1)[-1]
         if name in exact_file_forms:
             return exact_file_forms[name]
@@ -716,7 +735,9 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
                 source_cell_role = "ROOT_MANIFEST_AND_ENTRYPOINT_FILES"
         file_form = source_file_form(path, identity)
         file_form_standing = (
-            "GIT_EXECUTABLE_MODE_OBSERVED"
+            "EXACT_GIT_BLOB_CONTENT_OBSERVED_NOT_INSTALLED"
+            if file_form.startswith("BLOB_PINNED_")
+            else "GIT_EXECUTABLE_MODE_OBSERVED"
             if file_form == "EXECUTABLE_ENTRYPOINT_FILE"
             else "OPAQUE_FORM_NEEDS_CONTENT_EVIDENCE"
             if file_form in {
