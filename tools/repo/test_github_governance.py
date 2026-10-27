@@ -483,5 +483,59 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                 )
 
 
+    def test_workstation_root_queue_replaces_nested_ci_without_erasing_host_effect_tests(self) -> None:
+        """Current root Actions runs hermetic Workstation CI, not old nested YAML.
+
+        Host consequence/effect checks intentionally remain a separate native
+        verification command; an absent nested workflow never proves them run.
+        """
+        import tomllib
+        import yaml
+
+        path = "platform/workstation/.github/workflows/ci.yml"
+        self.assertFalse((ROOT / path).exists(), "obsolete nested GitHub CI carrier")
+        owners = tomllib.loads((ROOT / "tools/repo/owners.toml").read_text())
+        workstation = [o for o in owners["owners"] if o["name"] == "workstation"]
+        self.assertEqual(len(workstation), 1)
+        self.assertEqual(workstation[0]["root"], "platform/workstation/")
+        self.assertEqual(workstation[0]["verify_task"], "workstation:ci")
+        root_mise = tomllib.loads((ROOT / "mise.toml").read_text())
+        root_run = root_mise["tasks"]["workstation:ci"]["run"]
+        self.assertIn("cd platform/workstation", root_run)
+        self.assertIn("mise run ci", root_run)
+        native = tomllib.loads(
+            (ROOT / "platform/workstation/mise.toml").read_text()
+        )
+        ci = native["tasks"]["ci"]["run"]
+        for expected in (
+            "uv lock --check", "uv sync --locked", "uv run ruff check .",
+            "uv run python -m pytest",
+            "pnpm install --frozen-lockfile", "pnpm run ci",
+            "shellcheck",
+        ):
+            self.assertIn(expected, ci)
+        self.assertIn("--ignore=tests/test_workstation_consequences.py", ci)
+        self.assertIn("tests/test_workstation_consequences.py",
+                      native["tasks"]["verify"]["run"])
+        self.assertIn("ci", native["tasks"]["verify"]["depends"])
+        self.assertEqual(native["tools"]["python"], "3.15.1")
+        workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        steps = workflow["jobs"]["root-verification"]["steps"]
+        select = next(x["run"] for x in steps if
+                      x.get("name") == "Select affected owners")
+        verify = next(x["run"] for x in steps if
+                      x.get("name") == "Verify affected owners")
+        self.assertIn("convergence_plan.py", select)
+        self.assertIn("queueVerifyTasks", select)
+        self.assertIn("mise run", verify)
+        observed = subprocess.run(
+            [sys.executable, str(ROOT / "tools/repo/affected_owners.py"),
+             "--changed-file", path, "--format", "queue-tasks"],
+            cwd=ROOT, capture_output=True, text=True, timeout=20, check=False,
+        )
+        self.assertEqual(observed.returncode, 0, observed.stderr)
+        self.assertEqual(observed.stdout.strip(), "workstation:ci")
+
+
 if __name__ == "__main__":
     unittest.main()
