@@ -44,6 +44,48 @@ class AffectedOwnersTests(unittest.TestCase):
         # cross-Owner consumers and permission seams.
         self.assertEqual(self.names("tools/repo/source_history_legos.py"), [])
 
+    def test_exact_source_cut_all_nonowner_paths_have_one_qualified_navigation_region(self) -> None:
+        import subprocess
+
+        root = Path(__file__).resolve().parents[2]
+        head = subprocess.check_output(
+            ["git", "-C", str(root), "rev-parse", "--verify", "HEAD^{commit}"],
+            text=True,
+        ).strip()
+        projection = MODULE.project_source_classification(root, head)
+        entries = {row["path"]: row for row in projection["entries"]}
+        expected = {
+            ".agents/skills/artifact-work/references/audio.md": "artifact-method-recipes",
+            ".agents/skills/causal-intervention/SKILL.md": "agent-method-library",
+            "tools/repo/affected_owners.py": "repository-engineering",
+            "tools/repo/migration/integrate-main.sh": "repository-migration-operators",
+            "tools/repo/planning/lego-plan-r1.json": "repository-lego-plan-carrier",
+            "profiles/research/tool-qualification/tool-qualification-packet-r1.schema.json": "research-contract-profiles",
+            "tests/catalogs/test_research_tool_and_mechanical_component_contracts.py": "research-profile-conformance",
+            "docs/architecture/OWNER_DEPENDENCY_BOUNDARY_R1.md": "architecture-documentation",
+            "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261024_R1.json": "architecture-evidence-carriers",
+            "docs/migration/acceptance/SOURCE_MIGRATION_STANDING.md": "migration-acceptance-records",
+            "docs/migration/receipts/next.commit-map": "migration-provenance-receipts",
+            "docs/migration/retirement/runtime-standalone-policy.json": "migration-retirement-policies",
+            "docs/retro/dependency-auto-update-coverage-r1.md": "retrospective-records",
+            ".github/workflows/ci.yml": "repository-configuration",
+        }
+        for path, region in expected.items():
+            with self.subTest(path=path):
+                row = entries[path]
+                self.assertEqual(row["sourceRegion"], region)
+                self.assertEqual(row["classificationStanding"], "DECLARED_SOURCE_REGION")
+                self.assertIsNone(row["verificationOwner"])
+        self.assertEqual(projection["summary"]["unassigned"], 0)
+        self.assertEqual(projection["summary"]["ambiguous"], 0)
+        self.assertGreater(projection["summary"]["declaredRegionPaths"], 0)
+        self.assertFalse(projection["proofReuseAdmissible"])
+        self.assertEqual(
+            projection["truthRole"], "SOURCE_NAVIGATION_NOT_OWNER_OR_LEGO_QUALIFICATION",
+        )
+        self.assertNotIn("formalProofStanding", projection)
+        self.assertNotIn("actualConsumerClosure", projection)
+
     def test_owner_local_change_selects_only_that_owner(self) -> None:
         self.assertEqual(
             self.names("platform/skills/src/ordivon_skills/catalog.py"),

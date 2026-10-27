@@ -126,29 +126,71 @@ verify_task = "web:verify"
 # Historical projections read the regions from that exact Git SourceCut.
 [[source_regions]]
 name = "agent-method-library"
-description = "Repository method/knowledge Skills; not the platform Skills bridge service."
+description = "General, independent method and idea Skills; platform Skills bridge is a separate executable responsibility."
 paths = [".agents/skills/"]
-exclude = [".agents/skills/recursive-lego-calculus/"]
+exclude = [".agents/skills/recursive-lego-calculus/", ".agents/skills/artifact-work/"]
+
+[[source_regions]]
+name = "artifact-method-recipes"
+description = "Portable artifact creation method instructions and references, not an Artifact service or installed proof."
+paths = [".agents/skills/artifact-work/"]
 
 [[source_regions]]
 name = "repository-engineering"
-description = "Git, source projections, verification selection and repository-native admission."
+description = "Git source graph, source selection, boundary checks and repository CLI mechanics."
 paths = ["tools/repo/"]
+exclude = ["tools/repo/migration/", "tools/repo/planning/"]
+
+[[source_regions]]
+name = "repository-migration-operators"
+description = "Historical and current Git publication/migration shell operators; effects require separate contract admission."
+paths = ["tools/repo/migration/"]
+
+[[source_regions]]
+name = "repository-lego-plan-carrier"
+description = "Repo-owned LEGO plan source, not an executable repository tool or independently proven theorem."
+paths = ["tools/repo/planning/"]
 
 [[source_regions]]
 name = "research-contract-profiles"
-description = "Research publication/qualification schemas and profile tests; not scientific or execution authority."
-paths = ["profiles/research/", "tests/catalogs/"]
+description = "Research schemas and qualification profiles; no claim of installed or scientific authority."
+paths = ["profiles/research/"]
+
+[[source_regions]]
+name = "research-profile-conformance"
+description = "Cross-cutting source test consuming research schema profiles, not a research profile itself."
+paths = ["tests/catalogs/"]
 
 [[source_regions]]
 name = "architecture-documentation"
-description = "Architecture contracts, explanations and evidence; source classification is not current semantic acceptance."
+description = "Architecture descriptions and declared contracts; neither historical source nor current proof by default."
 paths = ["docs/architecture/"]
+exclude = ["docs/architecture/evidence/"]
 
 [[source_regions]]
-name = "migration-and-historical-records"
-description = "Migration, retirement and retrospective records; no inference of installed currentness."
-paths = ["docs/migration/", "docs/retro/"]
+name = "architecture-evidence-carriers"
+description = "Architecture issue censuses, receipts and evidence sources; formal/currentness qualification remains separate."
+paths = ["docs/architecture/evidence/"]
+
+[[source_regions]]
+name = "migration-acceptance-records"
+description = "Historical migration acceptance statements; not installed/source currentness without a live bridge."
+paths = ["docs/migration/acceptance/"]
+
+[[source_regions]]
+name = "migration-provenance-receipts"
+description = "Old repository commit maps and Git rewrite evidence; history is not proof of a live consumer."
+paths = ["docs/migration/receipts/"]
+
+[[source_regions]]
+name = "migration-retirement-policies"
+description = "Historical standalone retirement policies; no unconditional deletion permission."
+paths = ["docs/migration/retirement/"]
+
+[[source_regions]]
+name = "retrospective-records"
+description = "Retrospective explanations rather than active execution or formal proof."
+paths = ["docs/retro/"]
 
 [[source_regions]]
 name = "repository-configuration"
