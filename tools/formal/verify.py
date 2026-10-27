@@ -28,7 +28,10 @@ def qualified_source_cut() -> dict[str, object]:
     """Bind each used proof file to an exact regular Git blob at current HEAD."""
     def git(*args: str) -> str:
         return subprocess.check_output(
-            ["git", "-C", str(REPO), *args], text=True, stderr=subprocess.PIPE,
+            # Exact SourceCut must read original Git objects, not a mutable
+            # refs/replace overlay that can alias the same commit SHA.
+            ["git", "--no-replace-objects", "-C", str(REPO), *args],
+            text=True, stderr=subprocess.PIPE,
         ).strip()
 
     object_format = git("rev-parse", "--show-object-format=storage")
