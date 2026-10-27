@@ -961,6 +961,72 @@ def test_graph_source_delta_reads_literal_git_paths_not_replacement_tree(
 
 
 
+
+def test_plan_contract_only_change_rechecks_all_declared_lego(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A changed acceptance contract must not disappear from source impact.
+
+    Existing vertex projection omits slices, acceptance and nextAction.
+    If one Git plan changes only there, all of that plan's contracts require
+    requalification even when no vertex or typed edge appears changed.
+    """
+    import hashlib
+    import subprocess
+
+    root = tmp_path
+    plan_path = "tools/repo/planning/lego-plan-r1.json"
+    target = root / plan_path
+    target.parent.mkdir(parents=True)
+    target.write_text('{"acceptance":"old"}\n', encoding="utf-8")
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(
+            ["git", "-C", str(root), *args], text=True,
+        ).strip()
+
+    git("init", "-q")
+    git("add", ".")
+    git("-c", "user.name=GraphTest", "-c",
+        "user.email=test@example.invalid", "commit", "-qm", "before")
+    before = git("rev-parse", "HEAD")
+    target.write_text('{"acceptance":"stronger"}\n', encoding="utf-8")
+    git("add", ".")
+    git("-c", "user.name=GraphTest", "-c",
+        "user.email=test@example.invalid", "commit", "-qm", "after")
+    after = git("rev-parse", "HEAD")
+
+    refs = [f"{plan_path}#{node}" for node in ("RG1_SOURCE", "RG2_OWNER")]
+    def projected(_root: Path, *, source_revision: str) -> dict:
+        assert _root == root
+        plan_bytes = subprocess.check_output([
+            "git", "--no-replace-objects", "-C", str(root), "show",
+            f"{source_revision}:{plan_path}",
+        ])
+        return {
+            "sourceCut": source_revision,
+            "sourcePlans": [{"path": plan_path,
+                             "sha256": "sha256:" + hashlib.sha256(plan_bytes).hexdigest()}],
+            "vertices": [{"ref": ref, "declaredKind": "contract",
+                           "declaredEvidence": [], "sourceAnchors": []}
+                          for ref in refs],
+            "relations": [],
+        }
+
+    monkeypatch.setattr(module, "project_owner_lego_source_graph", projected)
+    delta = module.project_owner_lego_source_change(
+        before_revision=before, after_revision=after, root=root,
+    )
+    assert delta["changedGitPaths"] == [plan_path]
+    assert delta["sourcePlanChangedPaths"] == [plan_path]
+    assert delta["directChangedRefs"] == refs
+    assert {row["ref"]: row["sourceImpactStanding"]
+            for row in delta["standingByDeclaredNode"]} == {
+                ref: "RECHECK_REQUIRED" for ref in refs
+            }
+    assert delta["proofReuseAdmissible"] is False
+
+
 def test_declared_source_delta_is_real_git_diff_with_dependency_closure(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
