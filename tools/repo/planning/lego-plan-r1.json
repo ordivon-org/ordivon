@@ -55,7 +55,8 @@
         "test_architecture_docs.py::test_formal_issue_census_rejects_undeclared_natural_owner",
         "test_architecture_docs.py::test_issue_owner_source_cut_is_explicit",
         "test_architecture_docs.py::test_formal_issue_owner_plan_cannot_escape_source_cut",
-        "test_lego_graph_laws.py::test_blocked_slice_dependency_cycle_is_rejected"
+        "test_lego_graph_laws.py::test_blocked_slice_dependency_cycle_is_rejected",
+        "test_lego_graph_laws.py::test_plan_contract_only_change_rechecks_all_declared_lego"
       ],
       "dependencies": [],
       "mustNotOwn": [
@@ -69,7 +70,8 @@
         "A symlink-redirected owner plan, census input or owner manifest is rejected before it can impersonate the source-owned artifact.",
         "The existing repo architecture tests and check_architecture_docs.py pass without a new owner discovery mechanism.",
         "Typed LEGO slice blockers must form a well-founded prerequisite DAG; self-cycles and mutual deadlocks fail the current Owner source-bound graph gate.",
-        "Every BLOCKED_ON prerequisite is currently unresolved; a partly completed blocker set is invalid even when another predecessor remains open."
+        "Every BLOCKED_ON prerequisite is currently unresolved; a partly completed blocker set is invalid even when another predecessor remains open.",
+        "The existing Git SourceCut planning graph delta treats any changed registered planning-carrier bytes as a conservative requalification seed for every declared node on that carrier, including acceptance-only edits invisible in vertex/edge projection; real consumer/currentness proof remains separate."
       ],
       "nextAction": "Reuse existing native source-bound validator; no duplicate graph, custom DSL, or new proof runtime."
     }

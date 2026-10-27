@@ -658,6 +658,16 @@ def project_owner_lego_source_change(
             # fabricate a proof prerequisite or a RECHECK_REQUIRED claim.
             potential_edges.setdefault(src, set()).add(dst)
             potential_edges.setdefault(dst, set()).add(src)
+    # Plan metadata, slice acceptance, and behavioral obligations are not
+    # all projected into vertex/edge identity. A changed plan is a source
+    # contract change: recheck its declared nodes conservatively, without
+    # claiming that deployed behavior or proofs have changed.
+    plan_paths = {row["path"] for row in before["sourcePlans"] + after["sourcePlans"]}
+    changed_plan_paths = changed_paths & plan_paths
+    direct.update(
+        ref for ref in set(old_nodes) | set(new_nodes)
+        if ref.split("#", 1)[0] in changed_plan_paths
+    )
     affected = set(direct)
     frontier = list(direct)
     while frontier:
@@ -681,7 +691,6 @@ def project_owner_lego_source_change(
         anchor["path"] for view in (before, after)
         for node in view["vertices"] for anchor in node["sourceAnchors"]
     }
-    plan_paths = {row["path"] for row in before["sourcePlans"] + after["sourcePlans"]}
     unindexed = changed_paths - visible_anchors - plan_paths
     rows = []
     for ref in sorted(new_nodes):
@@ -699,6 +708,7 @@ def project_owner_lego_source_change(
         "beforeSourceCut": before_revision,
         "afterSourceCut": after_revision,
         "changedGitPaths": sorted(changed_paths),
+        "sourcePlanChangedPaths": sorted(changed_plan_paths),
         "changedDeclaredRelationCount": len(changed_edges),
         "directChangedRefs": sorted(direct),
         "potentialRelationInfluenceRefs": sorted(potential),
@@ -709,6 +719,7 @@ def project_owner_lego_source_change(
         "nonClaims": [
             "NO_DECLARED_HIT does not mean the node has no actual or dynamic consumers.",
             "Source anchors establish Git membership, not proof execution or formal refinement.",
+            "Changed planning-carrier bytes conservatively recheck their nodes, not necessarily their deployed consumers.",
             "Declared DEPENDENCY edges trigger recheck; other typed relations conservatively propagate bidirectional UNKNOWN until influence polarity is proved.",
             "Unobserved cross-Owner and dynamic consumer paths remain UNKNOWN outside this local projection.",
             "Changed unindexed paths may affect undiscovered consumers; SOURCE selection grants no deletion or runtime authority.",
