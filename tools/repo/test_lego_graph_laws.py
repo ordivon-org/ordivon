@@ -1831,3 +1831,58 @@ def test_gateway_new_recipes_and_optional_worker_have_distinct_native_consumers(
         edge["from"] == "G08" and edge["to"] == "G03" and edge["type"] == "AUTHORITY"
         for edge in plan["edges"]
     )
+
+
+def test_next_r21_crossdomain_consumers_are_actual_source_symbols() -> None:
+    """Qualify declared Next cross-domain consumers against source syntax.
+
+    Names in strings, missing aliases, or fabricated functions must not
+    receive even SOURCE_STATIC qualification. This is not execution proof.
+    """
+    import ast
+    import copy
+
+    plan = json.loads(
+        (ROOT / "meta/next/planning/lego-plan-r1.json").read_text(encoding="utf-8")
+    )
+
+    def qualify(candidate: dict) -> None:
+        assert candidate["kind"] == "ordivon.project-lego-plan"
+        assert {row["id"] for row in candidate["nodes"]} == {"NX01", "NX02", "NX03", "NX04"}
+        for node in candidate["nodes"]:
+            for key in ("responsibility", "inputs", "outputs", "behavioralContract", "acceptance", "formalObligations"):
+                assert node[key], (node["id"], key)
+            assert node["consumerBindings"], node["id"]
+            for row in node["consumerBindings"]:
+                relative = Path(row["path"])
+                assert not relative.is_absolute() and ".." not in relative.parts
+                source = ROOT / "meta/next" / relative
+                tree = ast.parse(source.read_text(encoding="utf-8"))
+                defined = {
+                    n.name for n in ast.walk(tree)
+                    if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+                }
+                imported = {
+                    alias.asname or alias.name.split(".")[0]
+                    for n in ast.walk(tree)
+                    if isinstance(n, (ast.ImportFrom, ast.Import))
+                    for alias in n.names
+                }
+                called = set()
+                for call in ast.walk(tree):
+                    if not isinstance(call, ast.Call):
+                        continue
+                    if isinstance(call.func, ast.Name):
+                        called.add(call.func.id)
+                    elif isinstance(call.func, ast.Attribute) and isinstance(call.func.value, ast.Name):
+                        called.add(call.func.value.id)
+                for name in row["symbols"]:
+                    assert name in defined | imported, (row["path"], name)
+                    assert name in called, (row["path"], f"not syntactically called: {name}")
+                assert "SOURCE" in row["standing"]
+
+    qualify(plan)
+    forged = copy.deepcopy(plan)
+    forged["nodes"][1]["consumerBindings"][0]["symbols"] = ["made_up_lego_consumer"]
+    with pytest.raises(AssertionError):
+        qualify(forged)

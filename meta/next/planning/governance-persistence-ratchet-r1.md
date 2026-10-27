@@ -90,6 +90,8 @@ A fixed dispatch map wrapped in a Registry class is not a registry and should co
 
 The local project LEGO plan schema, validator, rollout carrier, and Question Compiler are retired. They are not replaced by a second Ordivon planning ontology.
 
+**2026-10-27 source-contract qualification:** the former Next-owned executable project-planning framework and its schema/checker/Question Compiler remain forbidden. A new planning/lego-plan-r1.json is admitted only as a Git/Repo-owned, source-qualified R2.1 read-only projection for independently consumed Next tasks (external-authority discovery and Research–Artifact/Web–Security seam verification). Its exact admission lives in the existing Repo Owner graph, its behavior in Next source/tests; it is not a planner, second Registry, or execution authority. The old filename is not evidence of restoring its retired implementation, and no prior historical assertions gain current runtime standing.
+
 Use the natural owner directly:
 
 - software implementation plans: obra-superpowers/writing-plans;
