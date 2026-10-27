@@ -649,6 +649,9 @@ def test_immutable_owner_plan_projection_ignores_local_git_blob_replace(
         path = tmp_path / name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes((ROOT / name).read_bytes())
+    checker = tmp_path / "tools/repo/check_architecture_docs.py"
+    checker.parent.mkdir(parents=True, exist_ok=True)
+    checker.write_text("OWNER_LEGO_PLANS = (" + repr(owner_plan) + ",)" + chr(10), encoding="utf-8")
     git("add", ".")
     git("commit", "-qm", "immutable owner-plan source cut")
     source_cut = git("rev-parse", "HEAD")
@@ -1684,3 +1687,35 @@ def test_phase1_host_board_subresponsibilities_have_distinct_real_mcp_consumers(
             and e["type"] == "COMPOSITION"
             for e in plan["edges"]
         )
+
+
+def test_historical_owner_plan_membership_tracks_exact_prior_git_source_cuts() -> None:
+    """New Composition/Skills responsibilities cannot hide predecessor LEGO source truth."""
+    import subprocess
+
+    after = subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+    ).strip()
+    for relative in (
+        "packages/composition/planning/lego-plan-r1.json",
+        "platform/skills/planning/lego-plan-r1.json",
+    ):
+        introduced = subprocess.check_output(
+            ["git", "-C", str(ROOT), "log", "--diff-filter=A", "--format=%H", "--", relative],
+            text=True,
+        ).splitlines()[0]
+        before = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", introduced + "^"], text=True,
+        ).strip()
+        old_graph = module.project_owner_lego_source_graph(ROOT, source_revision=before)
+        new_graph = module.project_owner_lego_source_graph(ROOT, source_revision=after)
+        assert relative not in {p["path"] for p in old_graph["sourcePlans"]}
+        assert relative in {p["path"] for p in new_graph["sourcePlans"]}
+        old_refs = {n["ref"] for n in old_graph["vertices"]}
+        new_refs = {n["ref"] for n in new_graph["vertices"]}
+        assert {n["ref"] for n in new_graph["vertices"] if n["ref"].startswith(relative + "#")} <= (new_refs - old_refs)
+        impact = module.project_owner_lego_source_change(
+            root=ROOT, before_revision=before, after_revision=after,
+        )
+        assert relative in impact["changedGitPaths"]
+        assert impact["proofReuseAdmissible"] is False
