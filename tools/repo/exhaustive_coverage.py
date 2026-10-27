@@ -1,0 +1,286 @@
+#!/usr/bin/env python3
+"""Exact-Git, exhaustive Ordivon source/semantic declaration inventory.
+
+Read-only derived projection. Does not add owners, authorize actions, certify
+consumers, qualify installed state, or prove any concrete implementation.
+A peer's proposed source-regions are compared as an explicit independent
+proposal SourceCut, never silently installed into the subject SourceCut.
+"""
+from __future__ import annotations
+
+import argparse
+import collections
+import hashlib
+import json
+import re
+import subprocess
+import tomllib
+from pathlib import Path
+
+
+def git(repo: Path, *args: str) -> bytes:
+    p = subprocess.run(["git", "--no-replace-objects", "-C", str(repo), *args],
+                       capture_output=True)
+    if p.returncode:
+        raise ValueError(f"git {args[0]} failed: {p.stderr[:400]!r}")
+    return p.stdout
+
+
+def exact_commit(repo: Path, oid: str) -> str:
+    if not re.fullmatch(r"[0-9a-f]{40}", oid):
+        raise ValueError("source cut must be an exact 40-hex commit")
+    got = git(repo, "rev-parse", "--verify", f"{oid}^{{commit}}").decode().strip()
+    if got != oid:
+        raise ValueError("source cut does not refer to requested commit")
+    return oid
+
+
+def tree(repo: Path, commit: str) -> list[dict]:
+    raw = git(repo, "ls-tree", "-r", "-z", commit)
+    entries = []
+    for item in raw.split(b"\0"):
+        if not item:
+            continue
+        header, name = item.split(b"\t", 1)
+        mode, kind, sha = header.decode("ascii").split(" ")
+        path = name.decode("utf-8", "surrogateescape")
+        entries.append({"path": path, "sourceIdentity": f"{mode}:{kind}:{sha}"})
+    paths = [x["path"] for x in entries]
+    if len(paths) != len(set(paths)):
+        raise ValueError("duplicate Git path")
+    return sorted(entries, key=lambda x: x["path"])
+
+
+def read_json(repo: Path, commit: str, path: str) -> dict:
+    return json.loads(git(repo, "show", f"{commit}:{path}"))
+
+
+def read_policy(repo: Path, commit: str) -> dict:
+    data = tomllib.loads(git(repo, "show", f"{commit}:tools/repo/owners.toml").decode())
+    if data.get("truth_role") != "repository-mechanics-only-not-domain-authority":
+        raise ValueError("incorrect repository source-only role")
+    return data
+
+
+def is_match(path: str, rule: str) -> bool:
+    return path.startswith(rule) if rule.endswith("/") else path == rule
+
+
+def source_matches(path: str, policy: dict) -> list[tuple[str, str]]:
+    hit = [("ROOT", o["name"]) for o in policy.get("owners", [])
+           if path.startswith(o["root"])]
+    # Owner roots are strictly unique physical partitions. A source region
+    # may overlap an owner rule, but never grants additional verification rights.
+    if len(hit) > 1:
+        raise ValueError(f"overlapping registered owner roots for {path}")
+    if hit:
+        return hit
+    return [("REGION", region["name"])
+            for region in policy.get("source_regions", [])
+            if any(is_match(path, rule) for rule in region["paths"])
+            and not any(is_match(path, rule) for rule in region.get("exclude", []))]
+
+
+def source_partition(path: str, policy: dict) -> dict:
+    found = source_matches(path, policy)
+    return {"standing": "CLASSIFIED" if len(found) == 1 else
+            "UNASSIGNED" if not found else "AMBIGUOUS",
+            "classification": f"{found[0][0]}:{found[0][1]}" if len(found) == 1 else None,
+            "matches": [f"{kind}:{name}" for kind, name in found]}
+
+
+def entrypoint_kind(path: str) -> str | None:
+    name = path.rsplit("/", 1)[-1]
+    if name in {"Cargo.toml", "pyproject.toml", "package.json", "Dockerfile",
+                "SKILL.md", "plugin.json", "mise.toml"}:
+        return name
+    if name.endswith((".service", ".timer", ".target")):
+        return "systemd-unit"
+    if path.startswith(".github/workflows/") and name.endswith((".yml", ".yaml")):
+        return "ci-workflow"
+    return None
+
+
+def declared_values(node: dict, aliases: tuple[str, ...]) -> list[str]:
+    return [k for k in aliases if k in node and node[k] not in (None, "", [], {})]
+
+
+FIELDS = {
+    "CONTRACT": ("behavioralContract", "contract", "contracts", "replacementContract"),
+    "CONSUMER": ("consumerEvidence", "consumerBindings", "actualConsumers", "consumers", "consumerRefs"),
+    "FORMAL": ("formalObligations", "proofObligations", "formalEvidence", "formalQualification"),
+    "EVIDENCE": ("evidence", "currentEvidence", "implementationEvidence", "verificationEvidence"),
+}
+
+
+def plans(repo: Path, source: str, source_paths: set[str]) -> dict:
+    selected = sorted(p for p in source_paths if p.endswith(".json")
+                      and "lego-plan" in p.rsplit("/", 1)[-1].lower())
+    rows = []
+    edge_rows = []
+    opaque = []
+    for path in selected:
+        obj = read_json(repo, source, path)
+        nodes = obj.get("nodes")
+        if not isinstance(nodes, list):
+            opaque.append({"plan": path, "standing": "NON_NODE_PLAN_SHAPE", "kind": obj.get("kind")})
+            continue
+        local_ids = set()
+        for node in nodes:
+            if not isinstance(node, dict):
+                raise ValueError(f"{path}: a node is not a JSON object")
+            local = node.get("id")
+            if not isinstance(local, str) or not local:
+                raise ValueError(f"{path}: node ID is missing or empty")
+            if local in local_ids:
+                raise ValueError(f"{path}: duplicate local node ID {local}")
+            local_ids.add(local)
+            shape = ("RESPONSIBILITY_NODE" if all(k in node for k in ("kind", "responsibility"))
+                     else "OTHER_NODE_SHAPE")
+            present = {k: declared_values(node, v) for k, v in FIELDS.items()}
+            gaps = (["SCHEMA_MAPPING_NEEDED"] if shape == "OTHER_NODE_SHAPE" else
+                    [f"{k}_DECLARATION_NOT_FOUND" for k, v in present.items() if not v])
+            rows.append({"nodeRef": path + "#" + local, "localId": local,
+                         "plan": path, "shape": shape, "declarations": present,
+                         "problems": gaps, "formalQualification": "UNKNOWN",
+                         "consumerQualification": "UNKNOWN",
+                         "implementationRefinement": "UNKNOWN"})
+        edges = obj.get("edges")
+        if isinstance(edges, list):
+            for i, edge in enumerate(edges):
+                if not isinstance(edge, dict):
+                    raise ValueError(f"{path}: malformed edge {i}")
+                u, v = edge.get("from"), edge.get("to")
+                edge_rows.append({
+                    "plan": path, "edgeIndex": i, "from": u, "to": v,
+                    "standing": "LOCAL_ENDPOINTS_IDENTIFIED" if u in local_ids and v in local_ids
+                    else "EXTERNAL_OR_UNRESOLVED_ENDPOINT",
+                    "edgeType": edge.get("type"),
+                })
+    seen = collections.defaultdict(list)
+    for node in rows:
+        seen[node["localId"]].append(node["nodeRef"])
+    collisions = {k: sorted(v) for k, v in sorted(seen.items()) if len(v) > 1}
+    return {"files": selected, "nodes": rows, "edges": edge_rows,
+            "opaquePlans": opaque, "sameLocalIdAcrossPlans": collisions}
+
+
+def classification(repo: Path, source: str, proposed: str | None = None) -> dict:
+    exact_commit(repo, source)
+    if proposed is not None:
+        exact_commit(repo, proposed)
+    actual = read_policy(repo, source)
+    alternative = read_policy(repo, proposed) if proposed else None
+    entries = tree(repo, source)
+    pathset = {r["path"] for r in entries}
+    placement = read_json(repo, source, "docs/architecture/structure-r2-transition-r1.json")
+    paths_out = []
+    problem_counts = collections.Counter()
+    zones = collections.Counter()
+    proposed_zones = collections.Counter()
+    for item in entries:
+        path = item["path"]
+        now = source_partition(path, actual)
+        then = source_partition(path, alternative) if alternative else None
+        possible = [
+            (len(rule), x, rule)
+            for x in placement.get("mappings", [])
+            for rule in x.get("sourcePaths", [])
+            if is_match(path, rule)
+        ]
+        # Structure R2 deliberately has broad and narrow nested source rules.
+        # Longest-prefix precedence is a projection policy, not evidence that
+        # a physical move or consumer cutover has occurred.
+        best = max((width for width, _, _ in possible), default=0)
+        selected = [(x, prefix) for width, x, prefix in possible if width == best]
+        targets = []
+        for x, source_prefix in selected:
+            dests = x.get("targetPaths", [])
+            if len(dests) == 1:
+                dest = dests[0] + path[len(source_prefix):] if source_prefix.endswith("/") else dests[0]
+                targets.append({"map": x.get("id"), "mode": x.get("mode"), "targetPath": dest})
+        problems = []
+        if now["standing"] != "CLASSIFIED":
+            problems.append("CURRENT_SOURCE_UNASSIGNED_OR_AMBIGUOUS")
+        if then is not None and then["standing"] != "CLASSIFIED":
+            problems.append("PROPOSED_SOURCE_UNASSIGNED_OR_AMBIGUOUS")
+        if len({(x.get("id"), prefix) for x, prefix in selected}) > 1:
+            problems.append("EQUALLY_SPECIFIC_STRUCTURE_MAPPINGS")
+        if len(selected) == 1 and len(selected[0][0].get("targetPaths", [])) != 1:
+            problems.append("STRUCTURE_SPLIT_REQUIRES_CONSUMER_WITNESS")
+        if any(x["mode"] == "move" and x["targetPath"] != path for x in targets):
+            problems.append("PHYSICAL_MOVE_NOT_REALIZED_OR_CONSUMER_NOT_CUT_OVER")
+        carrier = entrypoint_kind(path)
+        if carrier is not None:
+            problems.append("SOURCE_CARRIER_NOT_SEMANTIC_LEGO_PROOF")
+        for problem in problems:
+            problem_counts[problem] += 1
+        zones[now["classification"] or now["standing"]] += 1
+        if then is not None:
+            proposed_zones[then["classification"] or then["standing"]] += 1
+        paths_out.append({**item, "currentSource": now,
+                          "proposedSource": then, "targetCandidates": targets,
+                          "carrierType": carrier, "problems": problems,
+                          "semanticCompleteness": "UNKNOWN"})
+    if len(paths_out) != len(pathset):
+        raise AssertionError("source inventory must cover exact tracked tree")
+    graph = plans(repo, source, pathset)
+    node_issue_count = collections.Counter(p for node in graph["nodes"] for p in node["problems"])
+    edges = collections.Counter(e["standing"] for e in graph["edges"])
+    carriers = collections.Counter(row["carrierType"] for row in paths_out if row["carrierType"])
+    roots_without_plan = sorted(
+        o["name"] for o in actual.get("owners", [])
+        if not any(plan.startswith(o["root"]) for plan in graph["files"])
+    )
+    # A missing local plan is a mapping frontier, not proof that the domain
+    # contains zero reusable LEGO or has no external contracts.
+    digest = hashlib.sha256(json.dumps(paths_out, ensure_ascii=True, sort_keys=True,
+                                       separators=(",", ":")).encode()).hexdigest()
+    return {
+        "schemaVersion": 1,
+        "kind": "ordivon.source-exhaustive-coverage-projection",
+        "sourceCut": source,
+        "sourceTree": git(repo, "rev-parse", f"{source}^{{tree}}").decode().strip(),
+        "proposalCut": proposed,
+        "truthBoundary": "source-only structural classification; no installed proof, external effect, actual consumer coverage, or permission",
+        "proofReuseAdmissible": False,
+        "sourcePathDigest": "sha256:" + digest,
+        "summary": {
+            "trackedPaths": len(paths_out), "accountedForPaths": len(pathset),
+            "registeredSourceRoots": len(actual.get("owners", [])),
+            "currentSourceZones": dict(sorted(zones.items())),
+            "proposalZones": dict(sorted(proposed_zones.items())),
+            "sourceProblemCounts": dict(sorted(problem_counts.items())),
+            "carriers": dict(sorted(carriers.items())),
+            "plans": len(graph["files"]), "nodes": len(graph["nodes"]),
+            "nodeProblems": dict(sorted(node_issue_count.items())),
+            "edges": len(graph["edges"]), "edgeStanding": dict(sorted(edges.items())),
+            "crossPlanLocalIdCollisions": len(graph["sameLocalIdAcrossPlans"]),
+            "nonNodePlanShapes": len(graph["opaquePlans"]),
+            "registeredRootsWithoutLocalLegoPlan": roots_without_plan,
+        },
+        "sourcePaths": paths_out, "semanticPlans": graph,
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--source-cut", required=True)
+    parser.add_argument("--proposal-cut")
+    parser.add_argument("--repo", type=Path, default=Path.cwd())
+    parser.add_argument("--summary", action="store_true")
+    parser.add_argument("--only-problems", action="store_true")
+    args = parser.parse_args()
+    result = classification(args.repo, args.source_cut, args.proposal_cut)
+    if args.summary:
+        result = {k: v for k, v in result.items() if k not in ("sourcePaths", "semanticPlans")}
+    elif args.only_problems:
+        result["sourcePaths"] = [r for r in result["sourcePaths"] if r["problems"]]
+        result["semanticPlans"]["nodes"] = [
+            n for n in result["semanticPlans"]["nodes"] if n["problems"]]
+    print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
