@@ -15329,6 +15329,319 @@
         "sourceSection": "@root-file"
       }
     ],
+    "boundedStaticSourceReferenceScan": {
+      "actualSourceReferenceOccurrences": 37,
+      "examinedCandidatePaths": 112,
+      "foundReferencedPaths": 12,
+      "interpretation": "FINDING_STRING_IN_GIT_BLOB_DOES_NOT_PROVE_DYNAMIC_CONSUMER_OR_LEGO",
+      "scopeLimitation": "Only full repository-relative literal paths among formerly path-role unknown main-source files; imports with shorter aliases, dynamic references, other repos and deployed consumers not covered.",
+      "sourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+      "sourceReferenceKinds": {
+        "DECLARED_SOURCE_CONFIGURATION_REFERENCE": 4,
+        "DOCUMENTATION_REFERENCE_ONLY": 18,
+        "GITHUB_WORKFLOW_SOURCE_REFERENCE": 2,
+        "SOURCE_CODE_LITERAL_REFERENCE": 1,
+        "SOURCE_TEST_REFERENCE": 12
+      },
+      "staticLiteralEvidence": [
+        {
+          "literalReferenceKind": "DECLARED_SOURCE_CONFIGURATION_REFERENCE",
+          "observingGitLine": 61,
+          "observingGitSourcePath": "tools/repo/dependency_contracts.toml",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "apps/web/agent-native-e2e.sh",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "DOCUMENTATION_REFERENCE_ONLY",
+          "observingGitLine": 44,
+          "observingGitSourcePath": "docs/migration/retirement/workstation-lab-policy.json",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "capabilities/media/creative-library/SOURCE_BOUNDARY.json",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "DOCUMENTATION_REFERENCE_ONLY",
+          "observingGitLine": 29,
+          "observingGitSourcePath": "docs/architecture/evidence/PHASE1_RESPONSIBILITY_COVERAGE_20261027.md",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "capabilities/preservation/SOURCE_BOUNDARY.json",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "DOCUMENTATION_REFERENCE_ONLY",
+          "observingGitLine": 48,
+          "observingGitSourcePath": "docs/migration/retirement/workstation-lab-policy.json",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "capabilities/preservation/SOURCE_BOUNDARY.json",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "SOURCE_TEST_REFERENCE",
+          "observingGitLine": 89,
+          "observingGitSourcePath": "tools/repo/test_affected_owners.py",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "capabilities/preservation/SOURCE_BOUNDARY.json",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "SOURCE_TEST_REFERENCE",
+          "observingGitLine": 148,
+          "observingGitSourcePath": "tools/repo/test_lego_graph_laws.py",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "capabilities/preservation/SOURCE_BOUNDARY.json",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "DOCUMENTATION_REFERENCE_ONLY",
+          "observingGitLine": 17,
+          "observingGitSourcePath": "docs/architecture/evidence/PHASE1_RESPONSIBILITY_COVERAGE_20261027.md",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "extensions/ordivon-control-plane/mcp.json",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "DOCUMENTATION_REFERENCE_ONLY",
+          "observingGitLine": 319,
+          "observingGitSourcePath": "docs/architecture/ordivon-composition-architecture-lego-r1.json",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "extensions/ordivon-control-plane/mcp.json",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "DECLARED_SOURCE_CONFIGURATION_REFERENCE",
+          "observingGitLine": 15,
+          "observingGitSourcePath": "services/gateway/planning/lego-plan-r1.json",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "extensions/ordivon-control-plane/mcp.json",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "DECLARED_SOURCE_CONFIGURATION_REFERENCE",
+          "observingGitLine": 44,
+          "observingGitSourcePath": "services/gateway/planning/lego-plan-r1.json",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "extensions/ordivon-control-plane/mcp.json",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "DECLARED_SOURCE_CONFIGURATION_REFERENCE",
+          "observingGitLine": 47,
+          "observingGitSourcePath": "services/gateway/planning/lego-plan-r1.json",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "extensions/ordivon-control-plane/mcp.json",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "SOURCE_TEST_REFERENCE",
+          "observingGitLine": 2130,
+          "observingGitSourcePath": "tools/repo/test_lego_graph_laws.py",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "extensions/ordivon-control-plane/mcp.json",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "DOCUMENTATION_REFERENCE_ONLY",
+          "observingGitLine": 17,
+          "observingGitSourcePath": "docs/architecture/evidence/PHASE1_RESPONSIBILITY_COVERAGE_20261027.md",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "extensions/ordivon-control-plane/plugin.json",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "DOCUMENTATION_REFERENCE_ONLY",
+          "observingGitLine": 318,
+          "observingGitSourcePath": "docs/architecture/ordivon-composition-architecture-lego-r1.json",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "extensions/ordivon-control-plane/plugin.json",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "SOURCE_TEST_REFERENCE",
+          "observingGitLine": 74,
+          "observingGitSourcePath": "tools/repo/test_affected_owners.py",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "extensions/ordivon-control-plane/plugin.json",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "SOURCE_TEST_REFERENCE",
+          "observingGitLine": 1936,
+          "observingGitSourcePath": "tools/repo/test_lego_graph_laws.py",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "extensions/ordivon-control-plane/plugin.json",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "SOURCE_TEST_REFERENCE",
+          "observingGitLine": 1937,
+          "observingGitSourcePath": "tools/repo/test_lego_graph_laws.py",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "extensions/ordivon-control-plane/plugin.json",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "SOURCE_TEST_REFERENCE",
+          "observingGitLine": 2072,
+          "observingGitSourcePath": "tools/repo/test_lego_graph_laws.py",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "extensions/ordivon-control-plane/plugin.json",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "SOURCE_TEST_REFERENCE",
+          "observingGitLine": 2115,
+          "observingGitSourcePath": "tools/repo/test_lego_graph_laws.py",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "extensions/ordivon-control-plane/plugin.json",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "SOURCE_TEST_REFERENCE",
+          "observingGitLine": 2177,
+          "observingGitSourcePath": "tools/repo/test_lego_graph_laws.py",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "extensions/ordivon-control-plane/plugin.json",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "SOURCE_TEST_REFERENCE",
+          "observingGitLine": 2181,
+          "observingGitSourcePath": "tools/repo/test_lego_graph_laws.py",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "extensions/ordivon-control-plane/plugin.json",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "SOURCE_TEST_REFERENCE",
+          "observingGitLine": 2185,
+          "observingGitSourcePath": "tools/repo/test_lego_graph_laws.py",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "extensions/ordivon-control-plane/plugin.json",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "DOCUMENTATION_REFERENCE_ONLY",
+          "observingGitLine": 1653,
+          "observingGitSourcePath": "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261024_R1.json",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "platform/network/Taskfile.yml",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "SOURCE_CODE_LITERAL_REFERENCE",
+          "observingGitLine": 8,
+          "observingGitSourcePath": "apps/web/agent-native-e2e.sh",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "platform/security/labs/agent-admission-rs/keycloak/realm-agent-admission-lab.json",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "DOCUMENTATION_REFERENCE_ONLY",
+          "observingGitLine": 66,
+          "observingGitSourcePath": "docs/architecture/TESTING_UPSTREAM_ADOPTION_R1.md",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "services/runtime/.config/nextest.toml",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "DOCUMENTATION_REFERENCE_ONLY",
+          "observingGitLine": 1337,
+          "observingGitSourcePath": "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261024_R1.json",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "services/runtime/Cargo.lock",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "DOCUMENTATION_REFERENCE_ONLY",
+          "observingGitLine": 509,
+          "observingGitSourcePath": "docs/architecture/evidence/GIT_MAIN_CUT_CONSUMER_COMPARISON_20261024_R1.json",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "services/runtime/Cargo.lock",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "DOCUMENTATION_REFERENCE_ONLY",
+          "observingGitLine": 1189,
+          "observingGitSourcePath": "docs/architecture/evidence/GIT_MAIN_CUT_CONSUMER_COMPARISON_20261024_R1.json",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "services/runtime/Cargo.lock",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "DOCUMENTATION_REFERENCE_ONLY",
+          "observingGitLine": 1333,
+          "observingGitSourcePath": "docs/architecture/evidence/GIT_MAIN_CUT_CONSUMER_COMPARISON_20261024_R1.json",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "services/runtime/Cargo.lock",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "DOCUMENTATION_REFERENCE_ONLY",
+          "observingGitLine": 1716,
+          "observingGitSourcePath": "docs/architecture/evidence/GIT_MAIN_CUT_CONSUMER_COMPARISON_20261024_R1.json",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "services/runtime/Cargo.lock",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "DOCUMENTATION_REFERENCE_ONLY",
+          "observingGitLine": 57,
+          "observingGitSourcePath": "docs/migration/acceptance/RUNTIME_CURRENT_SOURCE_UPDATE_ACCEPTANCE_20260921.md",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "services/runtime/Cargo.lock",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "DOCUMENTATION_REFERENCE_ONLY",
+          "observingGitLine": 1178,
+          "observingGitSourcePath": "meta/next/docs/superpowers/plans/2026-09-20-monorepo-m0-migration.md",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "services/runtime/Cargo.lock",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "SOURCE_TEST_REFERENCE",
+          "observingGitLine": 934,
+          "observingGitSourcePath": "services/runtime/scripts/tests/test_formal_trace.py",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "services/runtime/Cargo.lock",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "GITHUB_WORKFLOW_SOURCE_REFERENCE",
+          "observingGitLine": 185,
+          "observingGitSourcePath": ".github/workflows/ci.yml",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "services/runtime/deny.toml",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "GITHUB_WORKFLOW_SOURCE_REFERENCE",
+          "observingGitLine": 73,
+          "observingGitSourcePath": ".github/workflows/runtime-release.yml",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "services/runtime/deny.toml",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "DOCUMENTATION_REFERENCE_ONLY",
+          "observingGitLine": 913,
+          "observingGitSourcePath": "docs/architecture/evidence/GIT_MAIN_CUT_CONSUMER_COMPARISON_20261024_R1.json",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "services/runtime/requirements-tooling.lock.txt",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        },
+        {
+          "literalReferenceKind": "DOCUMENTATION_REFERENCE_ONLY",
+          "observingGitLine": 917,
+          "observingGitSourcePath": "docs/architecture/evidence/GIT_MAIN_CUT_CONSUMER_COMPARISON_20261024_R1.json",
+          "observingSourceCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "referencedSourcePath": "services/runtime/requirements-tooling.txt",
+          "runtimeUseQualification": "NOT_PROVEN_BY_STATIC_TEXT_REFERENCE"
+        }
+      ]
+    },
     "examinedGitBlobCount": 217,
     "falsificationCases": [
       {
