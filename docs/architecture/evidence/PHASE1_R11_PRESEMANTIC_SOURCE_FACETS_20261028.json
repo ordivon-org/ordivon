@@ -5693,6 +5693,14 @@
       "modeClaim": "retain",
       "question": "After all local source categories are classified, decide how call identity/refinement/consumers map between original and proposed physical layout; do not move now.",
       "questionRef": "planned-placement:web",
+      "selectedPathCountMeaning": "LONGEST_SOURCE_RULE_PHYSICAL_PROJECTION_NOT_CONSUMER_OR_REALIZED_MOVE",
+      "selectedSourceCutExamples": [
+        "apps/web/.gitignore",
+        "apps/web/README.md",
+        "apps/web/agent-native-e2e.sh",
+        "apps/web/browser-e2e.sh"
+      ],
+      "selectedSourceCutPathCount": 27,
       "selectedSourceExamples": [
         "apps/web/.gitignore",
         "apps/web/README.md",
@@ -5708,7 +5716,8 @@
       "structureMappingID": "web",
       "targetPathClaims": [
         "apps/web/"
-      ]
+      ],
+      "targetResolution": "SOURCE_LAYOUT_RETAIN_CLAIM"
     },
     {
       "action": "CENSUS_ONLY_NO_FIX",
@@ -5717,6 +5726,14 @@
       "modeClaim": "move",
       "question": "After all local source categories are classified, decide how call identity/refinement/consumers map between original and proposed physical layout; do not move now.",
       "questionRef": "planned-placement:gateway",
+      "selectedPathCountMeaning": "LONGEST_SOURCE_RULE_PHYSICAL_PROJECTION_NOT_CONSUMER_OR_REALIZED_MOVE",
+      "selectedSourceCutExamples": [
+        "services/gateway/.python-version",
+        "services/gateway/README.md",
+        "services/gateway/mcp-surface.json",
+        "services/gateway/packaging/enable_local_service_identity.sh"
+      ],
+      "selectedSourceCutPathCount": 80,
       "selectedSourceExamples": [
         "services/gateway/.python-version",
         "services/gateway/README.md",
@@ -5732,7 +5749,8 @@
       "structureMappingID": "gateway",
       "targetPathClaims": [
         "packages/gateway/"
-      ]
+      ],
+      "targetResolution": "FUTURE_SINGLE_TARGET_DECLARATION_NOT_REALIZED"
     },
     {
       "action": "CENSUS_ONLY_NO_FIX",
@@ -5741,6 +5759,14 @@
       "modeClaim": "move",
       "question": "After all local source categories are classified, decide how call identity/refinement/consumers map between original and proposed physical layout; do not move now.",
       "questionRef": "planned-placement:runtime",
+      "selectedPathCountMeaning": "LONGEST_SOURCE_RULE_PHYSICAL_PROJECTION_NOT_CONSUMER_OR_REALIZED_MOVE",
+      "selectedSourceCutExamples": [
+        "services/runtime/.config/nextest.toml",
+        "services/runtime/.editorconfig",
+        "services/runtime/.gitattributes",
+        "services/runtime/.github/CODEOWNERS"
+      ],
+      "selectedSourceCutPathCount": 419,
       "selectedSourceExamples": [
         "services/runtime/.config/nextest.toml",
         "services/runtime/.editorconfig",
@@ -5756,7 +5782,8 @@
       "structureMappingID": "runtime",
       "targetPathClaims": [
         "packages/runtime/"
-      ]
+      ],
+      "targetResolution": "FUTURE_SINGLE_TARGET_DECLARATION_NOT_REALIZED"
     },
     {
       "action": "CENSUS_ONLY_NO_FIX",
@@ -5765,6 +5792,14 @@
       "modeClaim": "move",
       "question": "After all local source categories are classified, decide how call identity/refinement/consumers map between original and proposed physical layout; do not move now.",
       "questionRef": "planned-placement:host",
+      "selectedPathCountMeaning": "LONGEST_SOURCE_RULE_PHYSICAL_PROJECTION_NOT_CONSUMER_OR_REALIZED_MOVE",
+      "selectedSourceCutExamples": [
+        "services/host/.gitignore",
+        "services/host/.python-version",
+        "services/host/README.md",
+        "services/host/alembic.ini"
+      ],
+      "selectedSourceCutPathCount": 97,
       "selectedSourceExamples": [
         "services/host/.gitignore",
         "services/host/.python-version",
@@ -5780,7 +5815,8 @@
       "structureMappingID": "host",
       "targetPathClaims": [
         "packages/host/"
-      ]
+      ],
+      "targetResolution": "FUTURE_SINGLE_TARGET_DECLARATION_NOT_REALIZED"
     },
     {
       "action": "CENSUS_ONLY_NO_FIX",
@@ -5789,6 +5825,14 @@
       "modeClaim": "move",
       "question": "After all local source categories are classified, decide how call identity/refinement/consumers map between original and proposed physical layout; do not move now.",
       "questionRef": "planned-placement:harness",
+      "selectedPathCountMeaning": "LONGEST_SOURCE_RULE_PHYSICAL_PROJECTION_NOT_CONSUMER_OR_REALIZED_MOVE",
+      "selectedSourceCutExamples": [
+        "services/harness/.github/ISSUE_TEMPLATE/bug_report.yml",
+        "services/harness/.github/ISSUE_TEMPLATE/config.yml",
+        "services/harness/.github/ISSUE_TEMPLATE/feature_request.yml",
+        "services/harness/.github/actionlint.yaml"
+      ],
+      "selectedSourceCutPathCount": 696,
       "selectedSourceExamples": [
         "services/harness/.github/ISSUE_TEMPLATE/bug_report.yml",
         "services/harness/.github/ISSUE_TEMPLATE/config.yml",
@@ -5804,7 +5848,8 @@
       "structureMappingID": "harness",
       "targetPathClaims": [
         "packages/harness/"
-      ]
+      ],
+      "targetResolution": "FUTURE_SINGLE_TARGET_DECLARATION_NOT_REALIZED"
     },
     {
       "action": "CENSUS_ONLY_NO_FIX",
@@ -5813,6 +5858,14 @@
       "modeClaim": "move",
       "question": "After all local source categories are classified, decide how call identity/refinement/consumers map between original and proposed physical layout; do not move now.",
       "questionRef": "planned-placement:security",
+      "selectedPathCountMeaning": "LONGEST_SOURCE_RULE_PHYSICAL_PROJECTION_NOT_CONSUMER_OR_REALIZED_MOVE",
+      "selectedSourceCutExamples": [
+        "platform/security/.clusterfuzzlite/Dockerfile",
+        "platform/security/.clusterfuzzlite/build.sh",
+        "platform/security/.clusterfuzzlite/project.yaml",
+        "platform/security/.gitignore"
+      ],
+      "selectedSourceCutPathCount": 173,
       "selectedSourceExamples": [
         "platform/security/.clusterfuzzlite/Dockerfile",
         "platform/security/.clusterfuzzlite/build.sh",
@@ -5828,7 +5881,8 @@
       "structureMappingID": "security",
       "targetPathClaims": [
         "packages/security/"
-      ]
+      ],
+      "targetResolution": "FUTURE_SINGLE_TARGET_DECLARATION_NOT_REALIZED"
     },
     {
       "action": "CENSUS_ONLY_NO_FIX",
@@ -5837,6 +5891,14 @@
       "modeClaim": "move",
       "question": "After all local source categories are classified, decide how call identity/refinement/consumers map between original and proposed physical layout; do not move now.",
       "questionRef": "planned-placement:network",
+      "selectedPathCountMeaning": "LONGEST_SOURCE_RULE_PHYSICAL_PROJECTION_NOT_CONSUMER_OR_REALIZED_MOVE",
+      "selectedSourceCutExamples": [
+        "platform/network/.github/actionlint.yaml",
+        "platform/network/.github/workflows/network-reference-linux.yml",
+        "platform/network/.gitignore",
+        "platform/network/README.md"
+      ],
+      "selectedSourceCutPathCount": 157,
       "selectedSourceExamples": [
         "platform/network/.github/actionlint.yaml",
         "platform/network/.github/workflows/network-reference-linux.yml",
@@ -5852,7 +5914,8 @@
       "structureMappingID": "network",
       "targetPathClaims": [
         "packages/network/"
-      ]
+      ],
+      "targetResolution": "FUTURE_SINGLE_TARGET_DECLARATION_NOT_REALIZED"
     },
     {
       "action": "CENSUS_ONLY_NO_FIX",
@@ -5861,6 +5924,14 @@
       "modeClaim": "move",
       "question": "After all local source categories are classified, decide how call identity/refinement/consumers map between original and proposed physical layout; do not move now.",
       "questionRef": "planned-placement:workstation",
+      "selectedPathCountMeaning": "LONGEST_SOURCE_RULE_PHYSICAL_PROJECTION_NOT_CONSUMER_OR_REALIZED_MOVE",
+      "selectedSourceCutExamples": [
+        "platform/workstation/.github/workflows/ci.yml",
+        "platform/workstation/.gitignore",
+        "platform/workstation/.python-version",
+        "platform/workstation/README.md"
+      ],
+      "selectedSourceCutPathCount": 274,
       "selectedSourceExamples": [
         "platform/workstation/.github/workflows/ci.yml",
         "platform/workstation/.gitignore",
@@ -5876,7 +5947,8 @@
       "structureMappingID": "workstation",
       "targetPathClaims": [
         "deploy/workstation/"
-      ]
+      ],
+      "targetResolution": "FUTURE_SINGLE_TARGET_DECLARATION_NOT_REALIZED"
     },
     {
       "action": "CENSUS_ONLY_NO_FIX",
@@ -5885,6 +5957,14 @@
       "modeClaim": "move",
       "question": "After all local source categories are classified, decide how call identity/refinement/consumers map between original and proposed physical layout; do not move now.",
       "questionRef": "planned-placement:skills-compat",
+      "selectedPathCountMeaning": "LONGEST_SOURCE_RULE_PHYSICAL_PROJECTION_NOT_CONSUMER_OR_REALIZED_MOVE",
+      "selectedSourceCutExamples": [
+        "platform/skills/.python-version",
+        "platform/skills/README.md",
+        "platform/skills/config/skills-mcp-requirements.txt",
+        "platform/skills/config/skills-mcp.example.json"
+      ],
+      "selectedSourceCutPathCount": 38,
       "selectedSourceExamples": [
         "platform/skills/.python-version",
         "platform/skills/README.md",
@@ -5900,7 +5980,8 @@
       "structureMappingID": "skills-compat",
       "targetPathClaims": [
         "extensions/chatgpt-skills-mcp/"
-      ]
+      ],
+      "targetResolution": "FUTURE_SINGLE_TARGET_DECLARATION_NOT_REALIZED"
     },
     {
       "action": "CENSUS_ONLY_NO_FIX",
@@ -5909,6 +5990,14 @@
       "modeClaim": "move",
       "question": "After all local source categories are classified, decide how call identity/refinement/consumers map between original and proposed physical layout; do not move now.",
       "questionRef": "planned-placement:artifact",
+      "selectedPathCountMeaning": "LONGEST_SOURCE_RULE_PHYSICAL_PROJECTION_NOT_CONSUMER_OR_REALIZED_MOVE",
+      "selectedSourceCutExamples": [
+        "capabilities/artifact/.gitignore",
+        "capabilities/artifact/.python-version",
+        "capabilities/artifact/MIGRATION_PROVENANCE.md",
+        "capabilities/artifact/README.md"
+      ],
+      "selectedSourceCutPathCount": 425,
       "selectedSourceExamples": [
         "capabilities/artifact/.gitignore",
         "capabilities/artifact/.python-version",
@@ -5924,7 +6013,8 @@
       "structureMappingID": "artifact",
       "targetPathClaims": [
         "packages/artifact/"
-      ]
+      ],
+      "targetResolution": "FUTURE_SINGLE_TARGET_DECLARATION_NOT_REALIZED"
     },
     {
       "action": "CENSUS_ONLY_NO_FIX",
@@ -5933,6 +6023,14 @@
       "modeClaim": "move",
       "question": "After all local source categories are classified, decide how call identity/refinement/consumers map between original and proposed physical layout; do not move now.",
       "questionRef": "planned-placement:distribution",
+      "selectedPathCountMeaning": "LONGEST_SOURCE_RULE_PHYSICAL_PROJECTION_NOT_CONSUMER_OR_REALIZED_MOVE",
+      "selectedSourceCutExamples": [
+        "capabilities/distribution/.gitignore",
+        "capabilities/distribution/.python-version",
+        "capabilities/distribution/README.md",
+        "capabilities/distribution/adapters/openapi-generator.json"
+      ],
+      "selectedSourceCutPathCount": 68,
       "selectedSourceExamples": [
         "capabilities/distribution/.gitignore",
         "capabilities/distribution/.python-version",
@@ -5948,7 +6046,8 @@
       "structureMappingID": "distribution",
       "targetPathClaims": [
         "packages/distribution/"
-      ]
+      ],
+      "targetResolution": "FUTURE_SINGLE_TARGET_DECLARATION_NOT_REALIZED"
     },
     {
       "action": "CENSUS_ONLY_NO_FIX",
@@ -5957,6 +6056,14 @@
       "modeClaim": "move",
       "question": "After all local source categories are classified, decide how call identity/refinement/consumers map between original and proposed physical layout; do not move now.",
       "questionRef": "planned-placement:media",
+      "selectedPathCountMeaning": "LONGEST_SOURCE_RULE_PHYSICAL_PROJECTION_NOT_CONSUMER_OR_REALIZED_MOVE",
+      "selectedSourceCutExamples": [
+        "capabilities/media/.env.example",
+        "capabilities/media/.github/workflows/ci.yml",
+        "capabilities/media/.github/workflows/codeql.yml",
+        "capabilities/media/.gitignore"
+      ],
+      "selectedSourceCutPathCount": 582,
       "selectedSourceExamples": [
         "capabilities/media/.env.example",
         "capabilities/media/.github/workflows/ci.yml",
@@ -5972,7 +6079,8 @@
       "structureMappingID": "media",
       "targetPathClaims": [
         "packages/media/"
-      ]
+      ],
+      "targetResolution": "FUTURE_SINGLE_TARGET_DECLARATION_NOT_REALIZED"
     },
     {
       "action": "CENSUS_ONLY_NO_FIX",
@@ -5981,6 +6089,14 @@
       "modeClaim": "move",
       "question": "After all local source categories are classified, decide how call identity/refinement/consumers map between original and proposed physical layout; do not move now.",
       "questionRef": "planned-placement:preservation",
+      "selectedPathCountMeaning": "LONGEST_SOURCE_RULE_PHYSICAL_PROJECTION_NOT_CONSUMER_OR_REALIZED_MOVE",
+      "selectedSourceCutExamples": [
+        "capabilities/preservation/README.md",
+        "capabilities/preservation/SOURCE_BOUNDARY.json",
+        "capabilities/preservation/artifacts/creative-preservation/archivematica-r6/acceptance-r6.json",
+        "capabilities/preservation/artifacts/creative-preservation/closeout-r10/closeout-r10.json"
+      ],
+      "selectedSourceCutPathCount": 47,
       "selectedSourceExamples": [
         "capabilities/preservation/README.md",
         "capabilities/preservation/SOURCE_BOUNDARY.json",
@@ -5996,7 +6112,8 @@
       "structureMappingID": "preservation",
       "targetPathClaims": [
         "packages/preservation/"
-      ]
+      ],
+      "targetResolution": "FUTURE_SINGLE_TARGET_DECLARATION_NOT_REALIZED"
     },
     {
       "action": "CENSUS_ONLY_NO_FIX",
@@ -6005,6 +6122,14 @@
       "modeClaim": "move",
       "question": "After all local source categories are classified, decide how call identity/refinement/consumers map between original and proposed physical layout; do not move now.",
       "questionRef": "planned-placement:game",
+      "selectedPathCountMeaning": "LONGEST_SOURCE_RULE_PHYSICAL_PROJECTION_NOT_CONSUMER_OR_REALIZED_MOVE",
+      "selectedSourceCutExamples": [
+        "domains/game/.gitignore",
+        "domains/game/.node-version",
+        "domains/game/.ordivon/project.yaml",
+        "domains/game/AGENTS.md"
+      ],
+      "selectedSourceCutPathCount": 51,
       "selectedSourceExamples": [
         "domains/game/.gitignore",
         "domains/game/.node-version",
@@ -6020,7 +6145,8 @@
       "structureMappingID": "game",
       "targetPathClaims": [
         "packages/game/"
-      ]
+      ],
+      "targetResolution": "FUTURE_SINGLE_TARGET_DECLARATION_NOT_REALIZED"
     },
     {
       "action": "CENSUS_ONLY_NO_FIX",
@@ -6029,6 +6155,14 @@
       "modeClaim": "move",
       "question": "After all local source categories are classified, decide how call identity/refinement/consumers map between original and proposed physical layout; do not move now.",
       "questionRef": "planned-placement:capital",
+      "selectedPathCountMeaning": "LONGEST_SOURCE_RULE_PHYSICAL_PROJECTION_NOT_CONSUMER_OR_REALIZED_MOVE",
+      "selectedSourceCutExamples": [
+        "domains/capital/.gitignore",
+        "domains/capital/.python-version",
+        "domains/capital/README.md",
+        "domains/capital/artifacts/.gitkeep"
+      ],
+      "selectedSourceCutPathCount": 405,
       "selectedSourceExamples": [
         "domains/capital/.gitignore",
         "domains/capital/.python-version",
@@ -6044,7 +6178,8 @@
       "structureMappingID": "capital",
       "targetPathClaims": [
         "packages/capital/"
-      ]
+      ],
+      "targetResolution": "FUTURE_SINGLE_TARGET_DECLARATION_NOT_REALIZED"
     },
     {
       "action": "CENSUS_ONLY_NO_FIX",
@@ -6053,6 +6188,14 @@
       "modeClaim": "split",
       "question": "After all local source categories are classified, decide how call identity/refinement/consumers map between original and proposed physical layout; do not move now.",
       "questionRef": "planned-placement:composition-mechanics",
+      "selectedPathCountMeaning": "LONGEST_SOURCE_RULE_PHYSICAL_PROJECTION_NOT_CONSUMER_OR_REALIZED_MOVE",
+      "selectedSourceCutExamples": [
+        "meta/next/schemas/README.md",
+        "meta/next/schemas/cross-domain-verification-r3-binding.schema.json",
+        "meta/next/schemas/experimental-episode-binding-r1.schema.json",
+        "meta/next/schemas/external-authority-index-v1.schema.json"
+      ],
+      "selectedSourceCutPathCount": 54,
       "selectedSourceExamples": [
         "meta/next/schemas/README.md",
         "meta/next/schemas/cross-domain-verification-r3-binding.schema.json",
@@ -6076,7 +6219,8 @@
       "structureMappingID": "composition-mechanics",
       "targetPathClaims": [
         "packages/composition/"
-      ]
+      ],
+      "targetResolution": "UNIQUE_DECLARED_TARGET_FOR_A_SOURCE_RULE"
     },
     {
       "action": "CENSUS_ONLY_NO_FIX",
@@ -6085,6 +6229,9 @@
       "modeClaim": "move",
       "question": "After all local source categories are classified, decide how call identity/refinement/consumers map between original and proposed physical layout; do not move now.",
       "questionRef": "planned-placement:canonical-skills",
+      "selectedPathCountMeaning": "LONGEST_SOURCE_RULE_PHYSICAL_PROJECTION_NOT_CONSUMER_OR_REALIZED_MOVE",
+      "selectedSourceCutExamples": [],
+      "selectedSourceCutPathCount": 0,
       "selectedSourceExamples": [],
       "sourceRules": [
         {
@@ -6095,7 +6242,8 @@
       "structureMappingID": "canonical-skills",
       "targetPathClaims": [
         ".agents/skills/"
-      ]
+      ],
+      "targetResolution": "FUTURE_SINGLE_TARGET_DECLARATION_NOT_REALIZED"
     },
     {
       "action": "CENSUS_ONLY_NO_FIX",
@@ -6104,6 +6252,9 @@
       "modeClaim": "move",
       "question": "After all local source categories are classified, decide how call identity/refinement/consumers map between original and proposed physical layout; do not move now.",
       "questionRef": "planned-placement:control-plugin",
+      "selectedPathCountMeaning": "LONGEST_SOURCE_RULE_PHYSICAL_PROJECTION_NOT_CONSUMER_OR_REALIZED_MOVE",
+      "selectedSourceCutExamples": [],
+      "selectedSourceCutPathCount": 0,
       "selectedSourceExamples": [],
       "sourceRules": [
         {
@@ -6114,7 +6265,8 @@
       "structureMappingID": "control-plugin",
       "targetPathClaims": [
         "extensions/ordivon-control-plane/"
-      ]
+      ],
+      "targetResolution": "FUTURE_SINGLE_TARGET_DECLARATION_NOT_REALIZED"
     },
     {
       "action": "CENSUS_ONLY_NO_FIX",
@@ -6123,6 +6275,14 @@
       "modeClaim": "move",
       "question": "After all local source categories are classified, decide how call identity/refinement/consumers map between original and proposed physical layout; do not move now.",
       "questionRef": "planned-placement:authority-catalog",
+      "selectedPathCountMeaning": "LONGEST_SOURCE_RULE_PHYSICAL_PROJECTION_NOT_CONSUMER_OR_REALIZED_MOVE",
+      "selectedSourceCutExamples": [
+        "meta/next/authorities/README.md",
+        "meta/next/authorities/generated/authority-index.json",
+        "meta/next/authorities/observations/acm-sigsoft-benchmarking/2026-09-14.json",
+        "meta/next/authorities/observations/acm-sigsoft-data-science/2026-09-14.json"
+      ],
+      "selectedSourceCutPathCount": 359,
       "selectedSourceExamples": [
         "meta/next/authorities/README.md",
         "meta/next/authorities/generated/authority-index.json",
@@ -6138,7 +6298,8 @@
       "structureMappingID": "authority-catalog",
       "targetPathClaims": [
         "catalogs/authorities/"
-      ]
+      ],
+      "targetResolution": "FUTURE_SINGLE_TARGET_DECLARATION_NOT_REALIZED"
     },
     {
       "action": "CENSUS_ONLY_NO_FIX",
@@ -6147,6 +6308,14 @@
       "modeClaim": "move",
       "question": "After all local source categories are classified, decide how call identity/refinement/consumers map between original and proposed physical layout; do not move now.",
       "questionRef": "planned-placement:capability-catalog",
+      "selectedPathCountMeaning": "LONGEST_SOURCE_RULE_PHYSICAL_PROJECTION_NOT_CONSUMER_OR_REALIZED_MOVE",
+      "selectedSourceCutExamples": [
+        "meta/next/capabilities/README.md",
+        "meta/next/capabilities/artifact/README.md",
+        "meta/next/capabilities/packages/INDEX.md",
+        "meta/next/capabilities/packages/README.md"
+      ],
+      "selectedSourceCutPathCount": 51,
       "selectedSourceExamples": [
         "meta/next/capabilities/README.md",
         "meta/next/capabilities/artifact/README.md",
@@ -6162,7 +6331,8 @@
       "structureMappingID": "capability-catalog",
       "targetPathClaims": [
         "catalogs/capabilities/"
-      ]
+      ],
+      "targetResolution": "FUTURE_SINGLE_TARGET_DECLARATION_NOT_REALIZED"
     },
     {
       "action": "CENSUS_ONLY_NO_FIX",
@@ -6171,6 +6341,14 @@
       "modeClaim": "move",
       "question": "After all local source categories are classified, decide how call identity/refinement/consumers map between original and proposed physical layout; do not move now.",
       "questionRef": "planned-placement:knowledge-catalog",
+      "selectedPathCountMeaning": "LONGEST_SOURCE_RULE_PHYSICAL_PROJECTION_NOT_CONSUMER_OR_REALIZED_MOVE",
+      "selectedSourceCutExamples": [
+        "meta/next/knowledge/README.md",
+        "meta/next/knowledge/graphs/agent-architecture-lego-catalog-r1.json",
+        "meta/next/knowledge/graphs/ai-miracle-material-lego-case-r1.json",
+        "meta/next/knowledge/graphs/browser-security-detector-coverage-r6.json"
+      ],
+      "selectedSourceCutPathCount": 107,
       "selectedSourceExamples": [
         "meta/next/knowledge/README.md",
         "meta/next/knowledge/graphs/agent-architecture-lego-catalog-r1.json",
@@ -6186,7 +6364,8 @@
       "structureMappingID": "knowledge-catalog",
       "targetPathClaims": [
         "catalogs/knowledge/"
-      ]
+      ],
+      "targetResolution": "FUTURE_SINGLE_TARGET_DECLARATION_NOT_REALIZED"
     },
     {
       "action": "CENSUS_ONLY_NO_FIX",
@@ -6195,6 +6374,14 @@
       "modeClaim": "move",
       "question": "After all local source categories are classified, decide how call identity/refinement/consumers map between original and proposed physical layout; do not move now.",
       "questionRef": "planned-placement:domain-profiles",
+      "selectedPathCountMeaning": "LONGEST_SOURCE_RULE_PHYSICAL_PROJECTION_NOT_CONSUMER_OR_REALIZED_MOVE",
+      "selectedSourceCutExamples": [
+        "meta/next/domains/README.md",
+        "meta/next/domains/game/GAME_AUTONOMOUS_INTEREST_PROTOCOL_R1.md",
+        "meta/next/domains/game/GAME_AUTONOMOUS_INTEREST_PROTOCOL_R2.md",
+        "meta/next/domains/game/GAME_AUTONOMOUS_INTEREST_PROTOCOL_R3.md"
+      ],
+      "selectedSourceCutPathCount": 50,
       "selectedSourceExamples": [
         "meta/next/domains/README.md",
         "meta/next/domains/game/GAME_AUTONOMOUS_INTEREST_PROTOCOL_R1.md",
@@ -6210,7 +6397,8 @@
       "structureMappingID": "domain-profiles",
       "targetPathClaims": [
         "profiles/domains/"
-      ]
+      ],
+      "targetResolution": "FUTURE_SINGLE_TARGET_DECLARATION_NOT_REALIZED"
     },
     {
       "action": "CENSUS_ONLY_NO_FIX",
@@ -6219,6 +6407,14 @@
       "modeClaim": "split",
       "question": "After all local source categories are classified, decide how call identity/refinement/consumers map between original and proposed physical layout; do not move now.",
       "questionRef": "planned-placement:composition-policies",
+      "selectedPathCountMeaning": "LONGEST_SOURCE_RULE_PHYSICAL_PROJECTION_NOT_CONSUMER_OR_REALIZED_MOVE",
+      "selectedSourceCutExamples": [
+        "meta/next/policies/CONSUMPTION_BOUNDARY_R1.md",
+        "meta/next/policies/EXTERNAL_OWNERSHIP_BOUNDARY.md",
+        "meta/next/policies/README.md",
+        "meta/next/policies/external-ownership-boundary.json"
+      ],
+      "selectedSourceCutPathCount": 8,
       "selectedSourceExamples": [
         "meta/next/policies/CONSUMPTION_BOUNDARY_R1.md",
         "meta/next/policies/EXTERNAL_OWNERSHIP_BOUNDARY.md",
@@ -6234,7 +6430,8 @@
       "structureMappingID": "composition-policies",
       "targetPathClaims": [
         "packages/composition/policies/"
-      ]
+      ],
+      "targetResolution": "UNIQUE_DECLARED_TARGET_FOR_A_SOURCE_RULE"
     },
     {
       "action": "CENSUS_ONLY_NO_FIX",
@@ -6243,6 +6440,14 @@
       "modeClaim": "split",
       "question": "After all local source categories are classified, decide how call identity/refinement/consumers map between original and proposed physical layout; do not move now.",
       "questionRef": "planned-placement:next-residual",
+      "selectedPathCountMeaning": "LONGEST_SOURCE_RULE_PHYSICAL_PROJECTION_NOT_CONSUMER_OR_REALIZED_MOVE",
+      "selectedSourceCutExamples": [
+        "meta/next/.github/workflows/ci.yml",
+        "meta/next/.gitignore",
+        "meta/next/.gitleaksignore",
+        "meta/next/.python-version"
+      ],
+      "selectedSourceCutPathCount": 333,
       "selectedSourceExamples": [],
       "sourceRules": [
         {
@@ -6258,7 +6463,8 @@
         "extensions/",
         "docs/",
         "tests/"
-      ]
+      ],
+      "targetResolution": "MULTIPLE_DECLARED_TARGETS_NO_UNIQUE_TARGET"
     },
     {
       "action": "CENSUS_ONLY_NO_FIX",
@@ -6267,6 +6473,14 @@
       "modeClaim": "split",
       "question": "After all local source categories are classified, decide how call identity/refinement/consumers map between original and proposed physical layout; do not move now.",
       "questionRef": "planned-placement:research-meta",
+      "selectedPathCountMeaning": "LONGEST_SOURCE_RULE_PHYSICAL_PROJECTION_NOT_CONSUMER_OR_REALIZED_MOVE",
+      "selectedSourceCutExamples": [
+        "meta/research/evidence/publication-carrier-paper3-dogfood-r1.json",
+        "meta/research/planning/publication-closure-lego-r1.json",
+        "meta/research/planning/publication-perceptual-conformance-lego-r1.json",
+        "meta/research/publication-closure-profile-r1.json"
+      ],
+      "selectedSourceCutPathCount": 12,
       "selectedSourceExamples": [],
       "sourceRules": [
         {
@@ -6280,8 +6494,30 @@
         "catalogs/authorities/",
         "studies/",
         "tests/"
-      ]
+      ],
+      "targetResolution": "MULTIPLE_DECLARED_TARGETS_NO_UNIQUE_TARGET"
     }
+  ],
+  "structureUnmappedIsNotAnOwnerDefect": true,
+  "structureUnmappedSourceExamples": [
+    ".agents/skills/artifact-work/SKILL.md",
+    ".agents/skills/artifact-work/references/audio.md",
+    ".agents/skills/artifact-work/references/dataset.md",
+    ".agents/skills/artifact-work/references/design-3d.md",
+    ".agents/skills/artifact-work/references/geospatial.md",
+    ".agents/skills/artifact-work/references/moving-image.md",
+    ".agents/skills/artifact-work/references/presentation.md",
+    ".agents/skills/artifact-work/references/software-release.md",
+    ".agents/skills/artifact-work/references/still-image.md",
+    ".agents/skills/causal-intervention/SKILL.md",
+    ".agents/skills/ck-design/SKILL.md",
+    ".agents/skills/compositional-contracts/SKILL.md",
+    ".agents/skills/design-structure-matrix/SKILL.md",
+    ".agents/skills/enterprise-work/SKILL.md",
+    ".agents/skills/evolutionary-search/SKILL.md",
+    ".agents/skills/exploration-policy/SKILL.md",
+    ".agents/skills/feedback-control/SKILL.md",
+    ".agents/skills/fmea-fta/SKILL.md"
   ],
   "summary": {
     "crossPlanLocalIDCollisionGroups": 7,
@@ -6305,6 +6541,15 @@
     "sourcePolicyOnlyCells": 590,
     "sourcePolicyOnlyPaths": 2544,
     "structurePlanningMappings": 25,
+    "structureSourceDispositionCounts": {
+      "MULTI_TARGET_SPLIT_WITHOUT_UNIQUE_CALL_DESTINATION": 345,
+      "NO_STRUCTURE_MAPPING_DECLARED": 277,
+      "RETAIN_SOURCE_LAYOUT_DECLARED": 27,
+      "SINGLE_TARGET_MOVE_DECLARED_NOT_REALIZED": 4079,
+      "SINGLE_TARGET_SPLIT_SOURCE_DECLARED": 62
+    },
+    "structuresWithSelectedSourcePaths": 23,
+    "structuresWithoutSelectedSourcePaths": 2,
     "taggedAndRawFlaggedCells": 85,
     "taggedNoRawFlagCells": 1
   },

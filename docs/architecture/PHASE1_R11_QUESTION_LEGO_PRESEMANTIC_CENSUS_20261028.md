@@ -121,6 +121,20 @@ Aggregate 94 absent consumer, 77 contract, 111 formal, 14 evidence declaration f
 
 Existing classifier marks 4079 source paths with PHYSICAL_MOVE_NOT_REALIZED_OR_CONSUMER_NOT_CUT_OVER and 345 with STRUCTURE_SPLIT_REQUIRES_CONSUMER_WITNESS. These are path-level hypotheses about proposed future layout, not 4424 separate defects, consumers or required moves. All 25 source/path/target/mode claims are preserved in the machine file without applying one.
 
+### Mutually exclusive latest-source Structure R2 disposition
+
+By comparing ALL 25 declared rules and applying **longest-specific-source-rule precedence** to every file in the exact subject Git cut, the source planning frontier closes as follows:
+
+| Planning disposition | Unique Git paths | Call/consumer status |
+| --- | ---: | --- |
+| Planned single-target MOVE, not consumer cutover | 4,079 | UNKNOWN |
+| Planned multi-target SPLIT, no unique call destination | 345 | UNKNOWN |
+| Source SPLIT declaration with one currently selected target | 62 | UNKNOWN |
+| Source location RETAIN declaration | 27 | UNKNOWN |
+| NO matching Structure R2 plan rule | 277 | UNKNOWN, not automatically a missing owner |
+| **Total** | **4,790** | SOURCE_ONLY |
+
+This source-only partition is exhaustive and disjoint; 277 unmatched paths include legitimate already-native source and supporting files, not necessarily mistakes. It is illegal to derive a unique future destination for 345 ambiguous multi-target files; the raw planning rule is the question. The 25 individual declarations and each selected exact Git path count are retained in the evidence, including rules with no selected current source.
 ## Joint invocation semantics questions — explicitly postponed
 
 1. Identity: stable unique reference through Git SourceCut/path/blob, recursive Cell, plan node, installed instance, callable API and actual Agent consumer; names are non-authoritative display candidates.
