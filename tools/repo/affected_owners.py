@@ -347,16 +347,91 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
         "composition-v1.json": "DISTRIBUTION_COMPOSITION_DECLARATION",
         "external-lock.json": "EXTERNAL_RESOURCE_LOCK",
         "SOURCE_BOUNDARY.json": "SOURCE_BOUNDARY_DECLARATION",
+        "CODEOWNERS": "GIT_CHANGE_REVIEW_ROUTING",
+        "Dockerfile": "CONTAINER_BUILD_RECIPE",
+        ".gitkeep": "GIT_DIRECTORY_PLACEHOLDER",
+        "tofurc": "OPENTOFU_CLI_CONFIGURATION",
+        "py.typed": "PYTHON_TYPED_PACKAGE_MARKER",
         "requirements-tooling.lock.txt": "TOOLING_DEPENDENCY_LOCK",
         "requirements-tooling.txt": "TOOLING_DEPENDENCY_MANIFEST",
     }
 
-    def source_file_form(path: str) -> str:
+    known_suffix_forms = {
+        ".service": "SYSTEMD_SERVICE_UNIT",
+        ".target": "SYSTEMD_TARGET_UNIT",
+        ".timer": "SYSTEMD_TIMER_UNIT",
+        ".container": "QUADLET_CONTAINER_UNIT",
+        ".commit-map": "GIT_COMMIT_MAPPING_RECORD",
+        ".conf": "SERVICE_CONFIGURATION_FILE",
+        ".xml": "XML_DOCUMENT_SOURCE",
+        ".xmi": "XML_MODEL_INTERCHANGE_SOURCE",
+        ".mdx": "MARKDOWN_COMPONENT_CONTENT",
+        ".html": "HTML_DOCUMENT_SOURCE",
+        ".css": "CSS_STYLESHEET_SOURCE",
+        ".jsonld": "LINKED_DATA_JSONLD_SOURCE",
+        ".jsonl": "JSON_LINES_RECORD_SOURCE",
+        ".geojson": "GEOSPATIAL_GEOJSON_SOURCE",
+        ".csv": "TABULAR_CSV_DATA_SOURCE",
+        ".tf": "TERRAFORM_CONFIGURATION_SOURCE",
+        ".nix": "NIX_BUILD_SOURCE",
+        ".hcl": "HCL_CONFIGURATION_SOURCE",
+        ".cs": "CSHARP_SOURCE_FILE",
+        ".csproj": "DOTNET_PROJECT_MANIFEST",
+        ".cpp": "CPP_SOURCE_FILE",
+        ".gd": "GODOT_SCRIPT_SOURCE",
+        ".godot": "GODOT_PROJECT_CONFIGURATION",
+        ".tscn": "GODOT_SCENE_RESOURCE",
+        ".tres": "GODOT_RESOURCE",
+        ".png": "PNG_IMAGE_ASSET",
+        ".svg": "SVG_VECTOR_ASSET",
+        ".webp": "WEBP_IMAGE_ASSET",
+        ".jpg": "JPEG_IMAGE_ASSET",
+        ".jpeg": "JPEG_IMAGE_ASSET",
+        ".wav": "WAVE_AUDIO_ASSET",
+        ".flac": "FLAC_AUDIO_ASSET",
+        ".ogg": "OGG_AUDIO_ASSET",
+        ".mkv": "MATROSKA_VIDEO_ASSET",
+        ".mp4": "MP4_VIDEO_ASSET",
+        ".blend": "BLENDER_PROJECT_ASSET",
+        ".glb": "GLB_3D_ASSET",
+        ".gpkg": "GEOPACKAGE_DATA_ASSET",
+        ".step": "CAD_STEP_ASSET",
+        ".otio": "OPENTIMELINEIO_TIMELINE_ASSET",
+        ".vtt": "WEBVTT_TIMED_TEXT",
+        ".srt": "SUBRIP_TIMED_TEXT",
+        ".ttml": "TTML_TIMED_TEXT",
+        ".pdf": "PDF_DOCUMENT_ASSET",
+        ".typ": "TYPST_SOURCE_FILE",
+        ".sha256": "SHA256_DIGEST_RECORD",
+        ".sha": "SHA_DIGEST_RECORD",
+        ".pub": "PUBLIC_KEY_MATERIAL",
+        ".pod": "POD_SPECIFICATION_SOURCE",
+        ".qnt": "QUINT_FORMAL_MODEL",
+        ".dfy": "DAFNY_FORMAL_SOURCE",
+        ".jsonc": "JSON_WITH_COMMENTS_CONFIGURATION",
+        ".j2": "JINJA_TEMPLATE",
+        ".mako": "MAKO_TEMPLATE",
+        ".patch": "PATCH_FILE_SOURCE",
+        ".env": "ENVIRONMENT_CONFIGURATION_FILE",
+        ".example": "EXAMPLE_CONFIGURATION",
+        ".carrier": "OPAQUE_CARRIER_FILE",
+        ".sdoc": "STRUCTURED_DOCUMENT_CARRIER",
+        ".typed": "TYPING_MARKER_FILE",
+    }
+
+    def source_file_form(path: str, source_identity: str) -> str:
         name = path.rsplit("/", 1)[-1]
         if name in exact_file_forms:
             return exact_file_forms[name]
         if name.endswith(".schema.json"):
             return "JSON_SCHEMA_SOURCE"
+        for suffix, form in known_suffix_forms.items():
+            if name.endswith(suffix):
+                return form
+        if "." not in name or name.startswith(".") and name.count(".") == 1:
+            if source_identity.startswith("100755:blob:"):
+                return "EXECUTABLE_ENTRYPOINT_FILE"
+            return "EXTENSIONLESS_OPAQUE_SOURCE"
         if name.endswith((".tla", ".cfg", ".lean", ".smt2", ".als")):
             return "FORMAL_MODEL_OR_CONFIGURATION_SOURCE"
         if name.endswith(".md"):
@@ -401,6 +476,41 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
         "security/labs/agent-admission-rs": "SECURITY_EXPERIMENT_CRATE_SOURCE",
         "workstation/providers/cloudflare": "CLOUDFLARE_PROVIDER_CONFIGURATION_SOURCE",
         "capital/wave_b/fixtures": "HISTORICAL_PORTFOLIO_TEST_FIXTURE_SOURCE",
+        "media/research/expression": "MEDIA_EXPRESSION_RESEARCH_SOURCE",
+        "next/evidence/acceptance": "NEXT_ACCEPTANCE_EVIDENCE_SOURCE",
+        "runtime/research/foundations": "RUNTIME_FOUNDATIONAL_RESEARCH_SOURCE",
+        "media/productions/archive-archipelago-001": "MEDIA_ARCHIVE_ARCHIPELAGO_PRODUCTION",
+        "harness/evidence/system1-decision": "HARNESS_DECISION_EVIDENCE_SOURCE",
+        "next/migrations/records": "NEXT_HISTORICAL_MIGRATION_RECORDS",
+        "runtime/research/programme": "RUNTIME_RESEARCH_PROGRAMME_SOURCE",
+        "next/evidence/data-lifecycle": "NEXT_DATA_LIFECYCLE_EVIDENCE_SOURCE",
+        "next/capabilities/providers": "NEXT_PROVIDER_CAPABILITY_DESCRIPTIONS",
+        "media/productions/live-relay-001": "MEDIA_LIVE_RELAY_PRODUCTION",
+        "preservation/artifacts/creative-preservation": "CREATIVE_PRESERVATION_ARTIFACTS",
+        "artifact/artifact-delivery/shadow-v2": "ARTIFACT_SHADOW_V2_SOURCE",
+        "media/research/media": "MEDIA_RESEARCH_CONTENT_SOURCE",
+        "runtime/scripts/tests": "RUNTIME_SCRIPT_TEST_SOURCE",
+        "media/productions/runtime-introduction": "MEDIA_RUNTIME_INTRODUCTION_PRODUCTION",
+        "media/src/ordivon_studio": "MEDIA_STUDIO_IMPLEMENTATION_SOURCE",
+        "next/evidence/browser-security": "BROWSER_SECURITY_EVIDENCE_SOURCE",
+        "artifact/artifact-delivery/shadow-bindings": "ARTIFACT_SHADOW_BINDING_SOURCE",
+        "artifact/artifact-delivery/shadow-profiles": "ARTIFACT_SHADOW_PROFILE_SOURCE",
+        "network/consumers/finance": "FINANCE_NETWORK_CONSUMER_CONTRACTS",
+        "runtime/crates/ordivon-runtime-mcp": "RUNTIME_MCP_CRATE_SOURCE",
+        "media/productions/ordivon-book-v0": "MEDIA_BOOK_PRODUCTION_SOURCE",
+        "workstation/workstation/providers": "WORKSTATION_PROVIDER_SOURCE",
+        "capital/evidence/acceptance": "CAPITAL_ACCEPTANCE_EVIDENCE_SOURCE",
+        "artifact/artifact-delivery/examples": "ARTIFACT_DELIVERY_EXAMPLES",
+        "artifact/artifact-delivery/golden": "ARTIFACT_GOLDEN_FIXTURE_SOURCE",
+        "harness/evals/fresh_agent_ab": "FRESH_AGENT_EVALUATION_SOURCE",
+        "media/apps/motion-remotion": "REMOTION_MEDIA_APPLICATION",
+        "media/research/equipment": "MEDIA_EQUIPMENT_RESEARCH_SOURCE",
+        "capital/tools/legacy_replay": "CAPITAL_LEGACY_REPLAY_TOOLS",
+        "next/capabilities/packages": "NEXT_PACKAGE_CAPABILITY_DECLARATIONS",
+        "network/consumers/browserless": "BROWSERLESS_NETWORK_CONSUMER_CONTRACTS",
+        "gateway/src/ordivon_gateway": "GATEWAY_IMPLEMENTATION_PACKAGE_SOURCE",
+        "composition/src/ordivon_composition": "COMPOSITION_IMPLEMENTATION_PACKAGE_SOURCE",
+        "host/src/ordivon_host_v2": "HOST_V2_IMPLEMENTATION_PACKAGE_SOURCE",
     }
 
     root_by_owner = {o.name: o.root for o in native_owners}
@@ -449,7 +559,7 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
         entries.append({
             "sourceCell": source_cell,
             "sourceCellRole": source_cell_role,
-            "sourceFileForm": source_file_form(path),
+            "sourceFileForm": source_file_form(path, identity),
             "sourceSection": section,
             "sourceSectionRole": section_role,
             "semanticName": semantic_by_owner.get(owner, owner) if owner is not None
