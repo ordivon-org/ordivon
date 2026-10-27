@@ -2022,6 +2022,94 @@ def validate_repository(root: Path = ROOT) -> None:
             raise ArchitectureDocsError(f"historical architecture file lacks supersession marker: {candidate}")
 
 
+
+def describe_owner_lego_node(
+    *, source_revision: str, node_ref: str,
+    compare_source_revision: str | None = None, root: Path = ROOT,
+) -> dict[str, Any]:
+    """Fetch one exact, immutable R2.1 planning envelope without a new registry.
+
+    The Git-bound source graph is still the source projection; this merely
+    reduces what an Agent must read. NO_DECLARED_HIT is not proof reuse.
+    """
+    if (
+        "#" not in node_ref
+        or not re.fullmatch(
+            r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*/planning/lego-plan-r1\.json#[A-Za-z0-9_.-]+",
+            node_ref,
+        )
+    ):
+        raise ArchitectureDocsError("describe requires exact plan path#node ID")
+    graph = project_owner_lego_source_graph(root, source_revision=source_revision)
+    vertex = next((v for v in graph["vertices"] if v["ref"] == node_ref), None)
+    if vertex is None:
+        raise ArchitectureDocsError(f"LEGO node not in exact source projection: {node_ref}")
+    plan_path, _, node_id = node_ref.partition("#")
+    source_plan = next((p for p in graph["sourcePlans"] if p["path"] == plan_path), None)
+    if source_plan is None:
+        raise ArchitectureDocsError("node plan not registered in exact source cut")
+
+    import subprocess
+    try:
+        plan_bytes = subprocess.check_output(
+            ["git", "--no-replace-objects", "-C", str(root), "show",
+             f"{source_revision}:{plan_path}"],
+            stderr=subprocess.PIPE,
+        )
+    except subprocess.CalledProcessError as exc:
+        raise ArchitectureDocsError("cannot read node's exact source plan") from exc
+    if "sha256:" + hashlib.sha256(plan_bytes).hexdigest() != source_plan["sha256"]:
+        raise ArchitectureDocsError("node plan bytes differ from projected source")
+    plan = _load_json(root / plan_path, source_bytes=plan_bytes)
+    node = next((n for n in plan["nodes"] if n["id"] == node_id), None)
+    if node is None:
+        raise ArchitectureDocsError("node disappeared from immutable plan")
+    result: dict[str, Any] = {
+        "kind": "ordivon.owner-lego-opaque-source-envelope",
+        "truthRole": "GIT_BOUND_DECLARED_CONTRACT_NOT_EXECUTION_OR_PROOF_TRUTH",
+        "sourceCut": source_revision,
+        "nodeRef": node_ref,
+        "planSha256": source_plan["sha256"],
+        "identity": node["id"],
+        "contract": {
+            key: node[key] for key in (
+                "label", "kind", "responsibility", "inputs", "outputs",
+                "behavioralContract", "acceptance", "authority",
+                "state", "dependencies", "consumerBindings", "formalObligations",
+                "mustNotOwn", "qualification",
+            ) if key in node
+        },
+        "sourceAnchors": vertex["sourceAnchors"],
+        "unresolvedSourceEvidence": vertex["unresolvedSourceEvidence"],
+        "declaredIncoming": [e for e in graph["relations"] if e["to"] == node_ref],
+        "declaredOutgoing": [e for e in graph["relations"] if e["from"] == node_ref],
+        "sourceEvidenceStanding": vertex["sourceCoverageStanding"],
+        "proofReuseAdmissible": False,
+        "nonClaims": [
+            "The envelope is a qualified Git planning projection, not an admitted LEGO or installed implementation.",
+            "Declared relations and consumer bindings do not establish actual consumption, contextual substitutability or runtime effects.",
+            "A source impact with no declared hit is not proof reuse; unindexed and dynamic dependencies may remain.",
+        ],
+    }
+    if compare_source_revision is not None:
+        impact = project_owner_lego_source_change(
+            before_revision=compare_source_revision,
+            after_revision=source_revision, root=root,
+        )
+        standing = next(
+            (v["sourceImpactStanding"] for v in impact["standingByDeclaredNode"]
+             if v["ref"] == node_ref), "UNKNOWN"
+        )
+        result["incrementalSourceImpact"] = {
+            "beforeSourceCut": compare_source_revision,
+            "afterSourceCut": source_revision,
+            "sourceImpactStanding": standing,
+            "globalUnindexedChangedPathCount": len(impact["unindexedChangedPaths"]),
+            "globalChangedDeclaredRelationCount": impact["changedDeclaredRelationCount"],
+            "proofReuseAdmissible": False,
+        }
+    return result
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--project-owner-graphs", action="store_true")
@@ -2029,17 +2117,29 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--compare-source-revision",
                         help="earlier immutable Git commit to compare against --source-revision")
     parser.add_argument("--inspect-python-node", help="registered node ref")
+    parser.add_argument("--describe-lego-node", help="exact registered plan path#node; source-only contract envelope")
     parser.add_argument("--python-target-source", help="exact node-anchored Python src file")
     args = parser.parse_args(argv)
     try:
-        if args.source_revision and not (args.project_owner_graphs or args.inspect_python_node):
-            raise ArchitectureDocsError("--source-revision requires --project-owner-graphs or --inspect-python-node")
+        if args.source_revision and not (args.project_owner_graphs or args.inspect_python_node or args.describe_lego_node):
+            raise ArchitectureDocsError("--source-revision requires a source projection or node query")
+        if args.describe_lego_node and (args.inspect_python_node or args.project_owner_graphs):
+            raise ArchitectureDocsError("node queries and full graph projection are mutually exclusive")
+        if args.describe_lego_node and not args.source_revision:
+            raise ArchitectureDocsError("--describe-lego-node requires exact --source-revision")
         if args.compare_source_revision and not args.source_revision:
             raise ArchitectureDocsError("--compare-source-revision requires --source-revision")
         if bool(args.inspect_python_node) != bool(args.python_target_source):
             raise ArchitectureDocsError("Python inspect requires node and source together")
         if args.inspect_python_node and not args.source_revision:
             raise ArchitectureDocsError("Python inspect requires exact source revision")
+        if args.describe_lego_node:
+            print(json.dumps(describe_owner_lego_node(
+                source_revision=args.source_revision,
+                node_ref=args.describe_lego_node,
+                compare_source_revision=args.compare_source_revision,
+            ), sort_keys=True))
+            return 0
         if args.inspect_python_node:
             value = (
                 project_node_python_import_delta(

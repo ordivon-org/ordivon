@@ -2375,3 +2375,76 @@ def test_repository_admission_rejects_deployed_host_tool_duplicate() -> None:
     with patch.object(module, "_load_json", side_effect=load_forged):
         with pytest.raises(module.ArchitectureDocsError, match="duplicate.*normalTools"):
             module.validate_repository(ROOT)
+
+def test_agent_opaque_lego_contract_query_is_exact_and_fail_closed() -> None:
+    """One node, exact Git contract, not a second Registry/Agent brain."""
+    import subprocess
+
+    source_cut = subprocess.check_output(
+        ["git", "--no-replace-objects", "rev-parse", "HEAD"], cwd=ROOT, text=True,
+    ).strip()
+    node_ref = "packages/composition/planning/lego-plan-r1.json#C01"
+    result = module.describe_owner_lego_node(
+        source_revision=source_cut, node_ref=node_ref,
+    )
+    assert result["sourceCut"] == source_cut
+    assert result["nodeRef"] == node_ref
+    assert result["contract"]["responsibility"]
+    assert result["contract"]["behavioralContract"]
+    assert result["contract"]["acceptance"]
+    assert any(
+        anchor["path"].endswith("cognitive_circuit_r1.py")
+        for anchor in result["sourceAnchors"]
+    )
+    assert result["sourceEvidenceStanding"] == "DECLARED_SOURCE_MEMBERSHIP_PARTIAL"
+    assert result["proofReuseAdmissible"] is False
+    assert result["declaredOutgoing"]
+    assert result["truthRole"] == "GIT_BOUND_DECLARED_CONTRACT_NOT_EXECUTION_OR_PROOF_TRUTH"
+
+    same = module.describe_owner_lego_node(
+        source_revision=source_cut,
+        node_ref=node_ref,
+        compare_source_revision=source_cut,
+    )["incrementalSourceImpact"]
+    assert same["sourceImpactStanding"] == "NO_DECLARED_HIT"
+    assert same["proofReuseAdmissible"] is False
+    assert same["globalUnindexedChangedPathCount"] == 0
+
+    for bad_ref in (
+        "packages/composition/planning/lego-plan-r1.json#C404",
+        "packages/composition/planning/lego-plan-r1.json",
+        "../packages/composition/planning/lego-plan-r1.json#C01",
+    ):
+        with pytest.raises(module.ArchitectureDocsError):
+            module.describe_owner_lego_node(
+                source_revision=source_cut, node_ref=bad_ref,
+            )
+
+
+def test_agent_opaque_lego_query_fails_closed_on_unbound_git_revision() -> None:
+    with pytest.raises(module.ArchitectureDocsError):
+        module.describe_owner_lego_node(
+            source_revision="0" * 40,
+            node_ref="packages/composition/planning/lego-plan-r1.json#C01",
+        )
+
+
+def test_agent_opaque_lego_cli_rejects_weak_or_combined_requests(capsys: object) -> None:
+    import subprocess
+
+    source_cut = subprocess.check_output(
+        ["git", "--no-replace-objects", "rev-parse", "HEAD"], cwd=ROOT, text=True,
+    ).strip()
+    node_ref = "packages/composition/planning/lego-plan-r1.json#C01"
+    assert module.main([
+        "--describe-lego-node", node_ref, "--source-revision", source_cut,
+    ]) == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output["nodeRef"] == node_ref
+    assert output["sourceCut"] == source_cut
+    assert module.main(["--describe-lego-node", node_ref]) == 2
+    capsys.readouterr()
+    assert module.main([
+        "--describe-lego-node", node_ref, "--project-owner-graphs",
+        "--source-revision", source_cut,
+    ]) == 2
