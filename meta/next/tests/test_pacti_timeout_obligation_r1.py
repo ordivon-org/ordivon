@@ -170,3 +170,36 @@ def test_pacti_formal_spec_rejects_boolean_schema_version() -> None:
     spec["schemaVersion"] = True
     with pytest.raises(CircuitContractError, match="schemaVersion must equal 1"):
         validate_spec(spec)
+
+
+def test_pacti_algebra_mismatch_requires_actual_provider_exception_type(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A foreign exception named like Pacti must never satisfy a proof gate."""
+    pytest.importorskip("pacti", reason="explicit external Pacti test")
+    import scripts.pacti_timeout_obligation_r1 as verifier
+
+    spec = _spec()
+    native_contract_bundle = verifier._contract_bundle
+
+    class ForeignError(Exception):
+        pass
+
+    # Same apparent string name as Pacti's real error, different type.
+    ForeignError.__name__ = "IncompatibleArgsError"
+
+    class BogusContract:
+        def compose(self, _other: object) -> object:
+            raise ForeignError("unrelated bogus verifier failure")
+
+    def swapped_contract_bundle(grant_max_ms: int, runtime_max_ms: int):
+        if grant_max_ms == spec["deliberateMismatch"]["grantMaxMs"]:
+            return (BogusContract(), BogusContract(), BogusContract(), BogusContract())
+        return native_contract_bundle(grant_max_ms, runtime_max_ms)
+
+    monkeypatch.setattr(verifier, "_contract_bundle", swapped_contract_bundle)
+    with pytest.raises(ForeignError, match="unrelated bogus verifier failure"):
+        verifier.execute_pacti(spec)
+    # The error may not be admitted as a SATISFIED Composition Gate either.
+    with pytest.raises(ForeignError, match="unrelated bogus verifier failure"):
+        verifier.run(spec)
