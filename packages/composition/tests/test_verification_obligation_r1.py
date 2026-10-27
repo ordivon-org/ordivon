@@ -644,6 +644,37 @@ def test_historical_source_root_retirement_does_not_poison_independent_proof():
     assert unknown["proofReuseAdmissible"] is False
 
 
+def test_impact_basis_digest_distinguishes_known_retirement_from_missing_dependency():
+    """A selection cache key must distinguish UNKNOWN from a valid reuse candidate."""
+    live = {
+        "id": "proof:live",
+        "dependsOn": ["source:live"],
+        "dependenciesComplete": True,
+    }
+    retired = {
+        "id": "proof:retired",
+        "dependsOn": ["source:live"],
+        "dependenciesComplete": True,
+    }
+    common = {
+        "authority_refs": ["source:live"],
+        "obligations": [live],
+        "changed_refs": ["proof:retired"],
+    }
+    unresolved = select_impacted_obligations(**common)
+    known_retirement = select_impacted_obligations(
+        **common,
+        previous_graph={"authorityRefs": ["source:live"], "obligations": [live, retired]},
+    )
+    assert _statuses(unresolved) == {"proof:live": "UNKNOWN"}
+    assert _statuses(known_retirement) == {"proof:live": "REUSE_CANDIDATE"}
+    assert unresolved["unindexedChangeRefs"] == ["proof:retired"]
+    assert known_retirement["unindexedChangeRefs"] == []
+    assert unresolved["basisDigest"] != known_retirement["basisDigest"]
+    assert not unresolved["proofReuseAdmissible"]
+    assert not known_retirement["proofReuseAdmissible"]
+
+
 def test_explicit_unknown_retired_proof_is_not_suppressed_by_provenance():
     live = {"id": "proof:live", "dependsOn": ["source:live"], "dependenciesComplete": True}
     gone = {"id": "proof:retired", "dependsOn": ["source:live"], "dependenciesComplete": True}
