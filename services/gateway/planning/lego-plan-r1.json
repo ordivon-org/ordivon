@@ -328,6 +328,117 @@
         "Security policy decision",
         "Runtime operator privilege"
       ]
+    },
+    {
+      "id": "G08",
+      "label": "ExactResearchSkillRecipeResolution",
+      "kind": "source_bound_resolver",
+      "responsibility": "Resolve a named source-owned research capability into an exact scoped Skill/Tool invocation recipe; unlike G01 route identity and G02 availability this returns binding, not execution.",
+      "authority": "Gateway delegated interface/optional local worker; natural downstream owner retains facts",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "Capability name, optional Agent/workspace scope",
+        "Current research recipe and optional qualified Skills Owner view"
+      ],
+      "outputs": [
+        "CapabilityResolution with exact Skill ID and resource binding or typed UNKNOWN/error; no invoked Skill effect"
+      ],
+      "behavioralContract": [
+        "Unsupported ordinary execution capabilities do not falsely acquire a composition resolver.",
+        "Absent/unconfigured Skills Owner remains observation UNKNOWN; a resolved recipe does not run it or grant a Tool capability."
+      ],
+      "acceptance": [
+        "test_research_resolve_binds_exact_current_skill_without_executing_it must preserve source/current Skill identity.",
+        "test_research_resolve_preserves_unknown_skills_owner_as_observation_gap must not invent availability."
+      ],
+      "evidence": [
+        "src/ordivon_gateway/research_routes.py",
+        "src/ordivon_gateway/service.py",
+        "src/ordivon_gateway/mcp_server.py",
+        "tests/test_research_capability_resolution.py"
+      ],
+      "consumerEvidence": [
+        "src/ordivon_gateway/mcp_server.py",
+        "tests/test_research_capability_resolution.py"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "Runtime/Host/Skills semantic truth",
+        "Universal Agent approval or execution authority",
+        "Undeclared installed/currentness guarantees"
+      ],
+      "replacementConditions": [
+        "Preserve exact Skill identity, caller scope, unknown standing and non-executing resolution even if recipe provider changes."
+      ],
+      "formalObligations": [
+        "Bind concrete Skill source digest, caller visibility, effective installed gateway/skill versions before asserting active ability.",
+        "Abstract discovery/resolution does not imply actual Tool/Harness realization."
+      ],
+      "environmentQualification": {
+        "source": "EXACT_SOURCE_CONSUMER_REFERENCES",
+        "configured": "UNKNOWN",
+        "installed": "UNKNOWN",
+        "executed": "SOURCE_TEST_ONLY",
+        "formal": "NOT_ESTABLISHED",
+        "currentness": "SOURCE_CUT_ONLY"
+      }
+    },
+    {
+      "id": "G09",
+      "label": "OptionalExternalPullLeaseAndReplay",
+      "kind": "conditional_attempt_state",
+      "responsibility": "If the optional external.pull worker is configured, own the local operation/request replay and bounded worker lease/generation/attempt transitions separately from Runtime native Job truth.",
+      "authority": "Gateway delegated interface/optional local worker; natural downstream owner retains facts",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "Exact capability/requestId and parcel; qualified Worker enrollment and generation",
+        "Exact lease/attempt/start/completion/artifact readback"
+      ],
+      "outputs": [
+        "ExternalOperation/attempt/lease/artifact receipt or explicit typed conflict/UNKNOWN"
+      ],
+      "behavioralContract": [
+        "Same request with altered parcel fails, expired/revoked generation cannot commit, and a started/ambiguous effect is not auto-dispatched again.",
+        "The current SQLite local ledger is optional historical state, not evidence of installed Postgres cutover or actual external provider success."
+      ],
+      "acceptance": [
+        "test_expired_attempt_cannot_commit_and_operation_is_reclaimed fences expired worker attempts.",
+        "test_duplicate_completion_is_idempotent_but_changed_completion_conflicts distinguishes replay from conflicting effects."
+      ],
+      "evidence": [
+        "src/ordivon_gateway/external_worker.py",
+        "src/ordivon_gateway/worker_http.py",
+        "src/ordivon_gateway/mcp_server.py",
+        "tests/test_external_pull_worker.py",
+        "tests/test_external_worker_precommit_readback.py"
+      ],
+      "consumerEvidence": [
+        "src/ordivon_gateway/service.py",
+        "tests/test_external_pull_worker.py"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "Runtime/Host/Skills semantic truth",
+        "Universal Agent approval or execution authority",
+        "Undeclared installed/currentness guarantees"
+      ],
+      "replacementConditions": [
+        "Retirement/reuse review first: if no real configured consumer then remove the optional legacy carrier; if needed prefer external mature Worker provider or PG and prove migration/lease/replay equivalence."
+      ],
+      "formalObligations": [
+        "Actual configured worker/Provider consumption UNKNOWN.",
+        "Persistent legacy SQLite -> PG cutover equivalence and model-to-installed physical effect proof UNKNOWN."
+      ],
+      "environmentQualification": {
+        "source": "EXACT_SOURCE_CONSUMER_REFERENCES",
+        "configured": "UNKNOWN",
+        "installed": "UNKNOWN",
+        "executed": "SOURCE_TEST_ONLY",
+        "formal": "NOT_ESTABLISHED",
+        "currentness": "SOURCE_CUT_ONLY"
+      }
     }
   ],
   "edges": [
@@ -408,6 +519,24 @@
       "to": "G04",
       "type": "CONTROL",
       "label": "optional narrow Security PEP gates Runtime artifact read"
+    },
+    {
+      "from": "G00",
+      "to": "G08",
+      "type": "COMPOSITION",
+      "label": "Native bounded research resolver; discovery projection does not authorize Skill execution"
+    },
+    {
+      "from": "G00",
+      "to": "G09",
+      "type": "COMPOSITION",
+      "label": "Conditional external pull transport, only if configured; no mandatory scheduler or PG claim"
+    },
+    {
+      "from": "G09",
+      "to": "G03",
+      "type": "ADAPTATION",
+      "label": "Optional external.pull branch; not a substitute for the selected Runtime owner operation identity"
     }
   ],
   "slices": [],
@@ -416,7 +545,9 @@
     "Gateway Windows R2 is a separate historical deployment carrier. Its GW* task-planning labels, sourceVersion and historical installed observations are not general Gateway LEGO identity or CURRENTNESS authority.",
     "External.pull worker is optional transport with separate authority and SQLite historical mechanics; do not infer a universal Gateway job store, production authorizer, or mandatory lifecycle.",
     "Cross-owner dynamic callers and qualified runtime effects remain UNKNOWN until exact installed Gateway, Runtime, Host, Security, external principal and source-cut receipts are bound.",
-    "Proof obligations: G06 cannot access G04 without trusted G07 principal and exact resource, G03 cannot substitute Runtime Job identity, G02 observation never grants G03 execution; abstract positive examples are not an implementation-wide proof."
+    "Proof obligations: G06 cannot access G04 without trusted G07 principal and exact resource, G03 cannot substitute Runtime Job identity, G02 observation never grants G03 execution; abstract positive examples are not an implementation-wide proof.",
+    "G08 Skills resolution uses a source-side recipe and optional natural Skills owner: current verified binding/version and dynamic Agent consumers UNKNOWN.",
+    "G09 bounded native pull attempt is an optional legacy SQLite writer: before any keep/delete/PG cutover, verify actual installed workers and no lost unique records; SOURCE and installed truth are separate."
   ],
   "doNotOwn": [
     "Runtime Job/Attempt/Artifact physical authority",

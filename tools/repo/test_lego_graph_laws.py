@@ -83,14 +83,14 @@ def test_gateway_recursive_source_contracts_are_non_authoritative_and_consumer_b
     """The Gateway's generic R1 has distinct owner routing, observations and effects.
 
     The Windows GW* R2 carrier is a deployment profile, not another source
-    identity for G00-G07. These source anchors do not assert live effects.
+    identity for G00-G09. These source anchors do not assert live effects.
     """
     relative = "services/gateway/planning/lego-plan-r1.json"
     plan = json.loads((ROOT / relative).read_text(encoding="utf-8"))
     module.validate_owner_lego_graph(plan)
     module.validate_owner_lego_dependencies(plan, "services/gateway")
     identities = {item["id"] for item in plan["nodes"]}
-    assert identities == {"G00", "G01", "G02", "G03", "G04", "G05", "G06", "G07"}
+    assert identities == {"G00", "G01", "G02", "G03", "G04", "G05", "G06", "G07", "G08", "G09"}
     assert plan["truthRole"] == "planning-projection-not-project-truth"
     checks = {
         "G01": ("routes.py", "test_gateway_service.py"),
@@ -100,6 +100,8 @@ def test_gateway_recursive_source_contracts_are_non_authoritative_and_consumer_b
         "G05": ("service.py", "test_gateway_service.py"),
         "G06": ("capability_authz.py", "test_capability_authz_middleware.py"),
         "G07": ("access_auth.py", "test_access_auth.py"),
+        "G08": ("research_routes.py", "test_research_capability_resolution.py"),
+        "G09": ("external_worker.py", "test_external_pull_worker.py"),
     }
     for node in plan["nodes"]:
         assert all(node.get(field) for field in (
@@ -1691,3 +1693,56 @@ def test_skills_r21_semantic_node_consumer_source_falsification() -> None:
     falsified["nodes"][3]["actualConsumers"][0]["symbol"] = "NOT_REAL_CONSUMER"
     with pytest.raises(AssertionError, match="no such static consumer entrypoint"):
         qualify_source_symbols(falsified)
+
+
+def test_gateway_new_recipes_and_optional_worker_have_distinct_native_consumers() -> None:
+    import ast
+
+    plan = json.loads(
+        (ROOT / "services/gateway/planning/lego-plan-r1.json").read_text(encoding="utf-8")
+    )
+    native = {
+        "G08": [
+            ("src/ordivon_gateway/service.py", "GatewayService", "capability_resolve"),
+            ("tests/test_research_capability_resolution.py", None,
+             "test_research_resolve_binds_exact_current_skill_without_executing_it"),
+        ],
+        "G09": [
+            ("src/ordivon_gateway/external_worker.py", "ExternalPullWorkerTransport", "claim"),
+            ("src/ordivon_gateway/external_worker.py", "ExternalPullWorkerTransport", "complete"),
+            ("tests/test_external_pull_worker.py", None,
+             "test_duplicate_completion_is_idempotent_but_changed_completion_conflicts"),
+        ],
+    }
+    for identity, sources in native.items():
+        lego = next(item for item in plan["nodes"] if item["id"] == identity)
+        assert lego["inputs"] and lego["outputs"] and lego["behavioralContract"]
+        assert lego["environmentQualification"]["installed"] == "UNKNOWN"
+        assert lego["formalObligations"]
+        for path, cls_name, method in sources:
+            source = ROOT / "services/gateway" / path
+            assert source.is_file()
+            syntax = ast.parse(source.read_text(encoding="utf-8"))
+            member = syntax.body
+            if cls_name is not None:
+                owner = next(
+                    (item for item in syntax.body
+                     if isinstance(item, ast.ClassDef) and item.name == cls_name),
+                    None,
+                )
+                assert owner is not None
+                member = owner.body
+            assert any(
+                isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))
+                and item.name == method for item in member
+            ), (identity, path, method)
+    assert any(
+        edge["from"] == "G09" and edge["to"] == "G03"
+        and edge["type"] == "ADAPTATION"
+        and "Optional" in edge["label"]
+        for edge in plan["edges"]
+    )
+    assert not any(
+        edge["from"] == "G08" and edge["to"] == "G03" and edge["type"] == "AUTHORITY"
+        for edge in plan["edges"]
+    )
