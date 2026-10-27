@@ -1918,3 +1918,346 @@ def test_next_r21_crossdomain_consumers_are_actual_source_symbols() -> None:
     forged["nodes"][1]["consumerBindings"][0]["symbols"] = ["made_up_lego_consumer"]
     with pytest.raises(AssertionError):
         qualify(forged)
+
+
+
+def test_agent_native_one_lego_compact_inspection_preserves_source_and_unknown() -> None:
+    """A consumer can inspect one real LEGO without re-reading the full graph."""
+    import subprocess
+    revision = subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+    ).strip()
+    ref = "services/gateway/planning/lego-plan-r1.json#G06"
+    result = module.inspect_owner_lego_contract(
+        source_revision=revision, node_ref=ref, root=ROOT,
+    )
+    graph = module.project_owner_lego_source_graph(ROOT, source_revision=revision)
+    assert result["ref"] == ref
+    assert result["sourceCut"] == revision
+    assert result["truthRole"] == "SOURCE_PLAN_DECLARATION_ONLY_NOT_RUNTIME_OR_FORMAL_TRUTH"
+    assert result["declaredRoles"]["responsibility"]
+    assert result["declaredRoles"]["behavioralContract"]
+    assert not result["missingRoles"]
+    assert result["sourceAnchors"]
+    assert not result["unresolvedSourceEvidence"]
+    assert "FORMAL_PROOF" in result["unverifiedFacets"]
+    assert "ACTUAL_CONSUMER" in result["unverifiedFacets"]
+    assert "INSTALLED" in result["unverifiedFacets"]
+    assert result["proofReuseAdmissible"] is False
+    assert len(json.dumps(result)) < len(json.dumps(graph)) // 3
+    assert all(ref in (x["from"], x["to"]) for x in result["incidentRelations"])
+
+    for invalid in ("services/gateway/planning/lego-plan-r1.json#NONEXISTENT",
+                    "../../etc/passwd#G06",
+                    "tools/repo/owners.toml#gateway"):
+        with pytest.raises(module.ArchitectureDocsError, match="not registered"):
+            module.inspect_owner_lego_contract(
+                source_revision=revision, node_ref=invalid, root=ROOT
+            )
+    with pytest.raises(module.ArchitectureDocsError, match="exact 40-hex"):
+        module.inspect_owner_lego_contract(
+            source_revision="HEAD", node_ref=ref, root=ROOT
+        )
+
+def test_agent_compact_source_impact_keeps_unknown_unindexed_and_finite_proof_scope() -> None:
+    """Omitted NO_DECLARED_HIT rows never become implicit proof-reuse admission."""
+    original = {
+        "kind": "ordivon.owner-lego-declared-source-change",
+        "beforeSourceCut": "a" * 40,
+        "afterSourceCut": "b" * 40,
+        "changedGitPaths": ["extensions/ordivon-control-plane/plugin.json"],
+        "unindexedChangedPaths": ["extensions/ordivon-control-plane/plugin.json"],
+        "proofReuseAdmissible": False,
+        "nonClaims": ["NO_DECLARED_HIT does not prove a consumer unchanged."],
+        "standingByDeclaredNode": [
+            {"ref": "R1", "sourceImpactStanding": "NO_DECLARED_HIT"},
+            {"ref": "R2", "sourceImpactStanding": "UNKNOWN"},
+            {"ref": "R3", "sourceImpactStanding": "RECHECK_REQUIRED"},
+            {"ref": "R4", "sourceImpactStanding": "NO_DECLARED_HIT"},
+        ],
+    }
+    snapshot = copy.deepcopy(original)
+    result = module._select_agent_source_impact(original)
+    assert original == snapshot
+    assert result["proofReuseAdmissible"] is False
+    assert result["unindexedChangedPaths"] == original["unindexedChangedPaths"]
+    assert result["nonClaims"] == original["nonClaims"]
+    assert result["omittedNoDeclaredHitCount"] == 2
+    assert result["omittedStanding"] == "NO_DECLARED_HIT"
+    assert result["sourceImpactProjection"] == "CHANGED_OR_UNKNOWN_ONLY"
+    assert result["standingByDeclaredNode"] == original["standingByDeclaredNode"][1:3]
+    assert result["beforeSourceCut"] == original["beforeSourceCut"]
+    assert result["afterSourceCut"] == original["afterSourceCut"]
+
+
+def test_agent_compact_source_impact_does_not_discard_new_unknown_categories() -> None:
+    sample = {
+        "proofReuseAdmissible": False,
+        "standingByDeclaredNode": [
+            {"ref": "R1", "sourceImpactStanding": "NO_DECLARED_HIT"},
+            {"ref": "R2", "sourceImpactStanding": "SOME_NEW_UNKNOWN"},
+            {"ref": "R3", "sourceImpactStanding": "UNKNOWN"},
+        ],
+    }
+    result = module._select_agent_source_impact(sample)
+    assert [x["ref"] for x in result["standingByDeclaredNode"]] == ["R2", "R3"]
+    assert result["omittedNoDeclaredHitCount"] == 1
+
+
+def test_agent_compact_source_impact_cli_rejects_unqualified_usage(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    for args in (
+        ["--agent-impact"],
+        ["--project-owner-graphs", "--agent-impact"],
+        ["--project-owner-graphs", "--agent-impact", "--source-revision", "x" * 40],
+    ):
+        assert module.main(args) == 2
+        assert "--agent-impact requires" in capsys.readouterr().out
+
+
+def test_agent_compact_source_impact_cli_keeps_exact_native_change(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
+) -> None:
+    sample = {
+        "kind": "ordivon.owner-lego-declared-source-change",
+        "changedGitPaths": ["a.py"],
+        "unindexedChangedPaths": ["a.py"],
+        "proofReuseAdmissible": False,
+        "standingByDeclaredNode": [
+            {"ref": "one", "sourceImpactStanding": "NO_DECLARED_HIT"},
+            {"ref": "two", "sourceImpactStanding": "UNKNOWN"},
+        ],
+    }
+    monkeypatch.setattr(module, "project_owner_lego_source_change", lambda **kw: copy.deepcopy(sample))
+    args = [
+        "--project-owner-graphs", "--source-revision", "b" * 40,
+        "--compare-source-revision", "a" * 40,
+    ]
+    assert module.main(args + ["--agent-impact"]) == 0
+    compact = json.loads(capsys.readouterr().out)
+    assert compact["unindexedChangedPaths"] == ["a.py"]
+    assert compact["proofReuseAdmissible"] is False
+    assert compact["standingByDeclaredNode"] == [{"ref": "two", "sourceImpactStanding": "UNKNOWN"}]
+    assert compact["omittedNoDeclaredHitCount"] == 1
+    assert module.main(args) == 0
+    normal = json.loads(capsys.readouterr().out)
+    assert normal == sample
+
+def test_agent_native_source_path_to_owner_to_single_contract() -> None:
+    """Path lookup is an exact-source address, not an inferred effect owner."""
+    import subprocess
+
+    revision = subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+    ).strip()
+    path = "services/gateway/src/ordivon_gateway/routes.py"
+    result = module.inspect_owner_source_path(
+        source_revision=revision, source_path=path, root=ROOT,
+    )
+    assert result["sourceCut"] == revision
+    assert result["sourceIdentity"].startswith("100644:blob:")
+    assert result["sourceMembershipStanding"] == "TRACKED_SOURCE"
+    assert [owner["name"] for owner in result["ownerPartitions"]] == ["gateway"]
+    assert result["ownerPartitions"][0]["verifyTask"] == "gateway:verify"
+    assert result["legoDiscoveryStanding"] == "DECLARED_ANCHOR_PARTIAL"
+    assert result["consumerProofStanding"] == "UNKNOWN"
+    assert result["proofReuseAdmissible"] is False
+    assert "ACTUAL_CONSUMER" in result["unverifiedFacets"]
+    assert "FORMAL_PROOF" in result["unverifiedFacets"]
+    assert "INSTALLED" in result["unverifiedFacets"]
+    refs = {item["ref"] for item in result["declaredLegoAnchors"]}
+    assert "services/gateway/planning/lego-plan-r1.json#G01" in refs
+    for ref in refs:
+        detailed = module.inspect_owner_lego_contract(
+            source_revision=revision, node_ref=ref, root=ROOT,
+        )
+        assert detailed["declaredRoles"]["responsibility"]
+        assert detailed["proofReuseAdmissible"] is False
+    assert len(json.dumps(result)) < len(json.dumps(
+        module.project_owner_lego_source_graph(ROOT, source_revision=revision)
+    )) // 3
+
+
+def test_agent_native_unknown_path_does_not_upgrade_no_consumer() -> None:
+    import subprocess
+
+    revision = subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+    ).strip()
+    missing = module.inspect_owner_source_path(
+        source_revision=revision,
+        source_path="services/gateway/src/unseen_dynamic_consumer.py",
+        root=ROOT,
+    )
+    assert missing["sourceIdentity"] is None
+    assert missing["sourceMembershipStanding"] == "ABSENT_AT_SOURCECUT"
+    assert missing["legoDiscoveryStanding"] == "UNKNOWN_UNINDEXED"
+    assert missing["declaredLegoAnchors"] == []
+    assert missing["consumerProofStanding"] == "UNKNOWN"
+    assert missing["ownerPartitions"][0]["name"] == "gateway"
+
+    # The two-file portable Agent Plugin is a Repo partition, not an
+    # autonomous runtime or control-plane authority.
+    plugin = module.inspect_owner_source_path(
+        source_revision=revision,
+        source_path="extensions/ordivon-control-plane/plugin.json",
+        root=ROOT,
+    )
+    assert plugin["ownerPartitions"][0]["name"] == "control-plugin"
+    assert plugin["sourceIdentity"].startswith("100644:blob:")
+    assert plugin["legoDiscoveryStanding"] == "UNKNOWN_UNINDEXED"
+    assert plugin["proofReuseAdmissible"] is False
+
+
+def test_agent_native_path_rejects_unqualified_identity_or_mode() -> None:
+    import subprocess
+
+    revision = subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+    ).strip()
+    for candidate in ("", "/services/gateway/a.py", "../services/runtime/a.py",
+                      "services/gateway/../host/test.py",
+                      "services//gateway/a.py", "services\\gateway\\a.py"):
+        with pytest.raises(module.ArchitectureDocsError, match="canonical"):
+            module.inspect_owner_source_path(
+                source_revision=revision, source_path=candidate, root=ROOT,
+            )
+    with pytest.raises(module.ArchitectureDocsError, match="exact 40-hex"):
+        module.inspect_owner_source_path(
+            source_revision="origin/main",
+            source_path="services/gateway/README.md", root=ROOT,
+        )
+    bad_mode = module.main([
+        "--inspect-owner-path", "services/gateway/README.md",
+        "--source-revision", revision, "--compare-source-revision", revision,
+    ])
+    assert bad_mode == 2
+
+
+def test_agent_native_portable_plugin_manifest_is_a_native_contract_carrier() -> None:
+    """A portable two-file Plugin has a native schema; no extra LEGO plan file."""
+    import subprocess
+
+    cut = subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True
+    ).strip()
+    manifest = module.inspect_owner_source_path(
+        source_revision=cut,
+        source_path="extensions/ordivon-control-plane/plugin.json",
+        root=ROOT,
+    )
+    assert manifest["ownerPartitions"][0]["name"] == "control-plugin"
+    assert manifest["legoDiscoveryStanding"] == "UNKNOWN_UNINDEXED"
+    assert manifest["nativeContractCarrier"] == {
+        "standing": "NATIVE_JSON_SCHEMA_DECLARATION_ONLY",
+        "schemaUri": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+        "sourceIdentity": manifest["sourceIdentity"],
+        "declaredPackageName": "ordivon-control-plane",
+    }
+    assert manifest["proofReuseAdmissible"] is False
+    assert manifest["consumerProofStanding"] == "UNKNOWN"
+    declared = module.inspect_owner_source_path(
+        source_revision=cut,
+        source_path="extensions/ordivon-control-plane/mcp.json",
+        root=ROOT,
+    )
+    assert declared["nativeContractCarrier"]["schemaUri"] == (
+        "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json"
+    )
+    assert declared["nativeContractCarrier"]["declaredMcpServerKeys"] == [
+        "ordivon-gateway"
+    ]
+    assert "DECLARED_ANCHOR_PARTIAL" == declared["legoDiscoveryStanding"]
+    # Native declarative fact and existing R2.1 plan anchor are independent.
+    assert declared["proofReuseAdmissible"] is False
+    assert sorted(p.name for p in (ROOT / "extensions/ordivon-control-plane").iterdir()) == [
+        "mcp.json", "plugin.json"
+    ]
+
+
+def test_agent_native_json_schema_source_query_never_infers_consumers() -> None:
+    """Typed noncarrier and vanished files never become installed authority."""
+    import subprocess
+
+    cut = subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True
+    ).strip()
+    plain = module.inspect_owner_source_path(
+        source_revision=cut,
+        source_path="services/gateway/src/ordivon_gateway/routes.py",
+        root=ROOT,
+    )
+    assert plain["nativeContractCarrier"] is None
+    assert plain["gitEntryStanding"] == "REGULAR_BLOB"
+    missing = module.inspect_owner_source_path(
+        source_revision=cut,
+        source_path="extensions/ordivon-control-plane/missing.json",
+        root=ROOT,
+    )
+    assert missing["nativeContractCarrier"] is None
+    assert missing["gitEntryStanding"] == "ABSENT_FROM_GIT_CUT"
+    assert missing["legoDiscoveryStanding"] == "UNKNOWN_UNINDEXED"
+    assert missing["consumerProofStanding"] == "UNKNOWN"
+    assert missing["proofReuseAdmissible"] is False
+
+
+
+def test_native_schema_hint_refuses_symlink_and_gitlink_bytes() -> None:
+    """A Git tracked symlink is not the regular JSON implementation it targets."""
+    assert module._project_native_json_schema_source(
+        ROOT, "extensions/ordivon-control-plane/plugin.json",
+        "120000:blob:" + "0" * 40,
+    ) is None
+    assert module._project_native_json_schema_source(
+        ROOT, "extensions/ordivon-control-plane/plugin.json",
+        "160000:commit:" + "0" * 40,
+    ) is None
+    assert module._project_native_json_schema_source(
+        ROOT, "extensions/ordivon-control-plane/plugin.json",
+        None,
+    ) is None
+    import subprocess
+    cut = subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+    ).strip()
+    with pytest.raises(module.ArchitectureDocsError, match="canonical"):
+        module.inspect_owner_source_path(
+            source_revision=cut, source_path="extensions/" + chr(0) + "/plugin.json",
+            root=ROOT,
+        )
+
+
+def test_one_lego_inspection_preserves_all_existing_consumer_claim_carriers() -> None:
+    """Three *source declaration* shapes cannot vanish into an empty consumer list."""
+    import subprocess
+
+    cut = subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+    ).strip()
+    cases = [
+        ("platform/skills/planning/lego-plan-r1.json#SK03", "actualConsumers", "skills_resolve"),
+        ("packages/composition/planning/lego-plan-r1.json#C01", "consumerBindings", None),
+        ("services/gateway/planning/lego-plan-r1.json#G01", "consumerEvidence", None),
+    ]
+    for ref, claim_kind, expected_symbol in cases:
+        view = module.inspect_owner_lego_contract(
+            source_revision=cut, node_ref=ref, root=ROOT,
+        )
+        claim = view["declaredConsumerClaims"]
+        assert set(claim) == {"consumerEvidence", "actualConsumers", "consumerBindings"}
+        assert claim[claim_kind], (ref, claim_kind)
+        if expected_symbol:
+            assert any(row.get("symbol") == expected_symbol for row in claim[claim_kind])
+        assert view["consumerClaimQualification"] == "SOURCE_PLAN_DECLARATION_ONLY_NOT_VERIFIED_CONSUMPTION"
+        assert view["consumerClosureStanding"] == "UNKNOWN"
+        assert view["proofReuseAdmissible"] is False
+
+    # Missing and empty evidence are not positive evidence of zero consumers.
+    root = module.inspect_owner_lego_contract(
+        source_revision=cut, node_ref="services/harness/planning/lego-plan-r1.json#H01", root=ROOT,
+    )
+    assert root["declaredConsumerClaims"] == {
+        "consumerEvidence": None, "actualConsumers": None, "consumerBindings": None,
+    }
+    assert root["consumerClosureStanding"] == "UNKNOWN"

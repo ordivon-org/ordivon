@@ -122,43 +122,279 @@ theorem incompatible_components_are_not_composable :
     simp [ht] at hf
 
 
--- Task-local refinement of R2.1 impact obligations: a SOURCE reference
--- provider -> consumer is directed and must not be inserted into the
--- undirected business/reachability closure. This proof is over DECLARED
--- relations only; completeness of dynamic and installed dependencies is not
--- presumed and must be established separately before evidence reuse.
-def qualifiedSourceImpact {α : Type}
-    (businessReach sourceReads : α → α → Prop)
-    (changed : α → Prop) (target : α) : Prop :=
-  (∃ source, changed source ∧ businessReach source target) ∨
-  (∃ source, changed source ∧ sourceReads source target)
+-- Proof/readset incrementality is a *conditional* theorem. The proposition
+-- depends only on a projection if equal projections make its truth invariant.
+-- This obligation is not established merely by Git object identity.
+def DependsOnlyOn {α ρ : Type} (readset : α → ρ)
+    (goal : α → Prop) : Prop :=
+  ∀ before after, readset before = readset after →
+    (goal before ↔ goal after)
 
-theorem directed_source_requalification_and_no_reverse
-    {α : Type} (businessReach sourceReads : α → α → Prop)
-    (provider consumer : α)
-    (hForward : sourceReads provider consumer)
-    (hNoReverseBusiness : ¬ businessReach consumer provider)
-    (hNoReverseSource : ¬ sourceReads consumer provider) :
-    qualifiedSourceImpact businessReach sourceReads
-      (fun node => node = provider) consumer ∧
-    ¬ qualifiedSourceImpact businessReach sourceReads
-      (fun node => node = consumer) provider := by
+theorem reuse_if_readset_covers_goal {α ρ : Type}
+    (readset : α → ρ) (goal : α → Prop)
+    (hClosed : DependsOnlyOn readset goal)
+    (before after : α)
+    (hSame : readset before = readset after)
+    (hVerified : goal before) : goal after :=
+  (hClosed before after hSame).mp hVerified
+
+-- Adding a needed dependency to the readset cannot weaken soundness.
+-- The reverse (discarding dependencies) is NOT generally valid.
+theorem extending_qualified_readset_preserves_soundness {α ρ δ : Type}
+    (readset : α → ρ) (extra : α → δ) (goal : α → Prop)
+    (hClosed : DependsOnlyOn readset goal) :
+    DependsOnlyOn (fun x => (readset x, extra x)) goal := by
+  intro before after hPair
+  exact hClosed before after (congrArg Prod.fst hPair)
+
+-- Concrete independent counterexample: the immutable *source* input agrees
+-- while an environmental assumption (including a dynamic consumer, plugin,
+-- permission or installed dependency) changes, reversing a required goal.
+structure SourceEnvironment (σ ε : Type) where
+  source : σ
+  environment : ε
+
+def environmentGoal (s : SourceEnvironment Unit Bool) : Prop :=
+  s.environment = true
+
+theorem source_only_readset_is_not_complete :
+    ¬ DependsOnlyOn
+      (fun s : SourceEnvironment Unit Bool => s.source)
+      environmentGoal := by
+  intro hClosed
+  have hOld : environmentGoal ⟨(), true⟩ := rfl
+  have hNew : environmentGoal ⟨(), false⟩ :=
+    (hClosed ⟨(), true⟩ ⟨(), false⟩ rfl).mp hOld
+  simp [environmentGoal] at hNew
+
+-- In this bounded two-field model, an explicit source+environment readset
+-- is complete for this goal. This is NOT a proof of real-world dependency
+-- closure, toolchain identity, installed currentness or actual code refinement.
+theorem source_and_environment_readset_is_complete :
+    DependsOnlyOn
+      (fun s : SourceEnvironment Unit Bool => (s.source, s.environment))
+      environmentGoal := by
+  intro before after hInput
+  have hEnv : before.environment = after.environment := by
+    simpa only using (congrArg Prod.snd hInput)
+  change (before.environment = true ↔ after.environment = true)
   constructor
-  · right
-    exact ⟨provider, rfl, hForward⟩
-  · intro h
-    rcases h with ⟨source, hs, hb⟩ | ⟨source, hs, hr⟩
-    · subst source
-      exact hNoReverseBusiness hb
-    · subst source
-      exact hNoReverseSource hr
-
--- Countermodel: a forward reference alone cannot establish absence of a
--- reverse effect if undeclared business or source edges are possible.
-theorem forward_source_evidence_alone_cannot_prove_noninterference :
-    ¬ (∀ relation : Bool → Bool → Prop,
-        relation false true → ¬ relation true false) := by
-  intro h
-  exact (h (fun _ _ => True) trivial) trivial
+  · intro hBefore
+    rw [← hEnv]
+    exact hBefore
+  · intro hAfter
+    rw [hEnv]
+    exact hAfter
 
 end OrdivonR21
+
+-- Incremental reasoning requires a CLOSED actual dependency scope, not an
+-- Owner label, source-path lookup, unchanged Git blob, or a caller's guess.
+-- This is a conditional frame rule for pure, deterministic observations.
+-- Real effectful/non-deterministic systems need a separately proved trace
+-- and environment refinement satisfying the explicit extensional premise.
+namespace OrdivonR21
+
+def DependencyClosed {δ : Type}
+    (declared actual : δ → Prop) : Prop :=
+  ∀ d, actual d → declared d
+
+def StableWithin {δ β : Type}
+    (declared : δ → Prop) (before after : δ → β) : Prop :=
+  ∀ d, declared d → before d = after d
+
+def ObservableDependsOnlyOn {δ β γ : Type}
+    (actual : δ → Prop) (observable : (δ → β) → γ) : Prop :=
+  ∀ before after,
+    (∀ d, actual d → before d = after d) →
+    observable before = observable after
+
+-- A sound frame conclusion is available ONLY after independently justifying
+-- each premise, including the closure and the implementation's dependency
+-- extensionality. No Agent or Repo Owner identity occurs in the theorem.
+theorem closed_dependency_frame {δ β γ : Type}
+    (declared actual : δ → Prop)
+    (before after : δ → β) (observable : (δ → β) → γ)
+    (hClosed : DependencyClosed declared actual)
+    (hStable : StableWithin declared before after)
+    (hObserves : ObservableDependsOnlyOn actual observable) :
+    observable before = observable after := by
+  apply hObserves before after
+  intro d hActual
+  exact hStable d (hClosed d hActual)
+
+-- Counterexample: both source states coincide at EVERY declared dependency,
+-- but a hidden (real) dependency differs, and an actual observable changes.
+-- Therefore "declared scope unchanged" alone cannot justify a reuse PASS.
+theorem unlisted_dependency_breaks_frame :
+    ∃ (declared actual : Bool → Prop)
+      (before after : Bool → Bool)
+      (observable : (Bool → Bool) → Bool),
+      StableWithin declared before after ∧
+      ObservableDependsOnlyOn actual observable ∧
+      ¬ DependencyClosed declared actual ∧
+      observable before ≠ observable after := by
+  refine ⟨(fun d => d = false), (fun d => d = true),
+    (fun _ => false), (fun d => d),
+    (fun values => values true), ?_, ?_, ?_, ?_⟩
+  · intro d hd
+    cases d with
+    | false => rfl
+    | true => cases hd
+  · intro old new hSame
+    exact hSame true rfl
+  · intro hClosed
+    have hImpossible : true = false := hClosed true rfl
+    cases hImpossible
+  · decide
+
+end OrdivonR21
+
+#print axioms OrdivonR21.closed_dependency_frame
+#print axioms OrdivonR21.unlisted_dependency_breaks_frame
+
+#print axioms OrdivonR21.reuse_if_readset_covers_goal
+#print axioms OrdivonR21.extending_qualified_readset_preserves_soundness
+
+-- Task-local dependency impact calculus, separate from physical source/install truth.
+-- The direction is prerequisite -> consumer: a changed prerequisite affects the
+-- downstream consumer; unrelated components are not poisoned without a path.
+-- This is a logical model of Composition.select_impacted_obligations, NOT a
+-- mechanized refinement of its Python worklist, nor proof of readset closure.
+namespace OrdivonR21
+
+inductive ImpactReach {α : Type}
+    (dependency : α → α → Prop) (roots : α → Prop) : α → Prop where
+  | origin (x : α) : roots x → ImpactReach dependency roots x
+  | successor (upstream downstream : α) :
+      ImpactReach dependency roots upstream →
+      dependency upstream downstream →
+      ImpactReach dependency roots downstream
+
+-- Sound scheduling must include every changed root and every downstream node.
+theorem impact_includes_changed {α : Type}
+    (dependency : α → α → Prop) (changed : α → Prop)
+    (x : α) (h : changed x) :
+    ImpactReach dependency changed x :=
+  ImpactReach.origin x h
+
+theorem impact_includes_consumer {α : Type}
+    (dependency : α → α → Prop) (changed : α → Prop)
+    (upstream downstream : α)
+    (hu : ImpactReach dependency changed upstream)
+    (hedge : dependency upstream downstream) :
+    ImpactReach dependency changed downstream :=
+  ImpactReach.successor upstream downstream hu hedge
+
+-- Minimality: no smaller impact set can contain all roots and remain closed
+-- under actual declared dependency edges.
+theorem impact_least_forward_closed {α : Type}
+    (dependency : α → α → Prop) (roots admissible : α → Prop)
+    (hroot : ∀ x, roots x → admissible x)
+    (hclosed : ∀ x y, admissible x → dependency x y → admissible y) :
+    ∀ x, ImpactReach dependency roots x → admissible x := by
+  intro x h
+  induction h with
+  | origin y hy => exact hroot y hy
+  | successor a b _ hab ih => exact hclosed a b ih hab
+
+-- An additional dependency never removes an already impacted consumer.
+theorem impact_monotone_in_declared_edges {α : Type}
+    (oldEdges newEdges : α → α → Prop) (roots : α → Prop)
+    (hedge : ∀ x y, oldEdges x y → newEdges x y) :
+    ∀ x, ImpactReach oldEdges roots x → ImpactReach newEdges roots x := by
+  intro x h
+  induction h with
+  | origin y hy => exact ImpactReach.origin y hy
+  | successor a b _ hab ih =>
+      exact ImpactReach.successor a b ih (hedge a b hab)
+
+-- The three-valued result distinguishes RECHECK, UNKNOWN and mere reuse
+-- CANDIDATE. The logical status is not a verifier PASS or proof-admission.
+inductive ImpactStanding where
+  | reuseCandidate | unknown | recheck
+
+def StandsAt {α : Type}
+    (dependency : α → α → Prop)
+    (changed unresolved : α → Prop) (x : α) :
+    ImpactStanding → Prop
+  | .recheck => ImpactReach dependency changed x
+  | .unknown =>
+      ¬ ImpactReach dependency changed x ∧
+        ImpactReach dependency unresolved x
+  | .reuseCandidate =>
+      ¬ ImpactReach dependency changed x ∧
+        ¬ ImpactReach dependency unresolved x
+
+theorem changed_never_reuse_candidate {α : Type}
+    (dependency : α → α → Prop)
+    (changed unresolved : α → Prop)
+    (x : α) (hc : ImpactReach dependency changed x) :
+    ¬ StandsAt dependency changed unresolved x .reuseCandidate := by
+  intro h
+  exact h.1 hc
+
+-- A hard change always dominates UNKNOWN on the same dependency branch.
+theorem recheck_dominates_unknown {α : Type}
+    (dependency : α → α → Prop)
+    (changed unresolved : α → Prop)
+    (x : α) (hc : ImpactReach dependency changed x) :
+    StandsAt dependency changed unresolved x .recheck ∧
+      ¬ StandsAt dependency changed unresolved x .unknown := by
+  constructor
+  · exact hc
+  · intro h
+    exact h.1 hc
+
+theorem unknown_never_reuse_candidate {α : Type}
+    (dependency : α → α → Prop)
+    (changed unresolved : α → Prop)
+    (x : α) (hu : ImpactReach dependency unresolved x) :
+    ¬ StandsAt dependency changed unresolved x .reuseCandidate := by
+  intro h
+  exact h.2 hu
+
+theorem unaffected_branch_is_reuse_candidate_not_proof {α : Type}
+    (dependency : α → α → Prop)
+    (changed unresolved : α → Prop)
+    (x : α)
+    (hc : ¬ ImpactReach dependency changed x)
+    (hu : ¬ ImpactReach dependency unresolved x) :
+    StandsAt dependency changed unresolved x .reuseCandidate :=
+  ⟨hc, hu⟩
+
+-- Closed finite negative oracle: with no edges, changing A does not impact B.
+inductive DisjointLEGO where
+  | a | b
+
+def noDependency : DisjointLEGO → DisjointLEGO → Prop := fun _ _ => False
+
+def changedA : DisjointLEGO → Prop := fun x => x = .a
+
+theorem unrelated_lego_not_impacted :
+    ¬ ImpactReach noDependency changedA DisjointLEGO.b := by
+  intro h
+  have hOnlyA : ∀ x, ImpactReach noDependency changedA x → x = .a := by
+    intro x hx
+    induction hx with
+    | origin y hy => exact hy
+    | successor _ _ _ edge _ => exact False.elim edge
+  have contradiction : DisjointLEGO.b = DisjointLEGO.a := hOnlyA _ h
+  cases contradiction
+
+-- A real typed edge from A to B instead requires rechecking B.
+def aToB : DisjointLEGO → DisjointLEGO → Prop :=
+  fun upstream downstream => upstream = .a ∧ downstream = .b
+
+theorem real_consumer_must_be_rechecked :
+    ImpactReach aToB changedA DisjointLEGO.b := by
+  apply ImpactReach.successor DisjointLEGO.a DisjointLEGO.b
+  · exact ImpactReach.origin DisjointLEGO.a rfl
+  · exact ⟨rfl, rfl⟩
+
+end OrdivonR21
+
+#print axioms OrdivonR21.impact_least_forward_closed
+#print axioms OrdivonR21.impact_monotone_in_declared_edges
+#print axioms OrdivonR21.recheck_dominates_unknown
+#print axioms OrdivonR21.unrelated_lego_not_impacted

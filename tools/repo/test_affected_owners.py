@@ -316,6 +316,65 @@ class AffectedOwnersTests(unittest.TestCase):
         self.assertEqual(len(tasks), len(set(tasks)))
         self.assertEqual(len(queue_tasks), len(set(queue_tasks)))
 
+    def test_all_existing_source_areas_have_disambiguated_machine_names(self) -> None:
+        areas = MODULE.OWNERS
+        self.assertGreaterEqual(len(areas), 18)
+        self.assertEqual(len({area.semantic_label for area in areas}), len(areas))
+        expected = {
+            "control-plugin": "agent-plugin-connection-package",
+            "host": "work-and-collaboration-continuity",
+            "gateway": "northbound-capability-routing",
+            "skills": "agent-skills-mcp-bridge",
+            "harness": "bounded-agent-run-harness",
+            "capital": "capital-systems-composition",
+        }
+        for name, label in expected.items():
+            actual = next(area for area in areas if area.name == name)
+            self.assertEqual(actual.semantic_label, label)
+            self.assertNotEqual(actual.semantic_scope, "UNQUALIFIED_SOURCE_AREA")
+
+    def test_semantic_names_do_not_change_execution_verification_selection(self) -> None:
+        paths = (
+            "extensions/ordivon-control-plane/plugin.json",
+            "services/gateway/src/ordivon_gateway/service.py",
+            "services/runtime/crates/ordivon-runtime-core/src/lib.rs",
+            "services/host/README.md",
+        )
+        before = MODULE.owners_for_paths(paths)
+        content = MODULE.MANIFEST_PATH.read_text(encoding="utf-8")
+        without_labels = "\n".join(
+            line for line in content.splitlines()
+            if not line.startswith(("semantic_label = ", "semantic_scope = "))
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "owners.toml"
+            path.write_text(without_labels, encoding="utf-8")
+            legacy = MODULE.load_owners(path)
+            after = MODULE.owners_for_paths(paths, owners=legacy)
+        self.assertEqual(
+            [(a.name, a.root, a.task, a.queue_task) for a in before],
+            [(a.name, a.root, a.task, a.queue_task) for a in after],
+        )
+
+    def test_rejects_invalid_semantic_label_and_duplicate_label(self) -> None:
+        content = MODULE.MANIFEST_PATH.read_text(encoding="utf-8")
+        for variant, error in (
+            (content.replace('semantic_label = "knowledge-and-method-integration"',
+                             'semantic_label = "Owner Approved"', 1),
+             "invalid semantic_label"),
+            (content.replace('semantic_label = "work-and-collaboration-continuity"',
+                             'semantic_label = "physical-execution-runtime"', 1),
+             "duplicate semantic_label"),
+            (content.replace('semantic_scope = "Portable Agent Plugin connection metadata',
+                             'semantic_scope = ""\n# Portable Agent Plugin connection metadata', 1),
+             "invalid semantic_label or semantic_scope"),
+        ):
+            with tempfile.TemporaryDirectory() as directory:
+                path = Path(directory) / "owners.toml"
+                path.write_text(variant, encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, error):
+                    MODULE.load_owners(path)
+
     def test_manifest_rejects_duplicate_names(self) -> None:
         content = """schema_version = 1
 kind = "ordivon.repo-owner-manifest"

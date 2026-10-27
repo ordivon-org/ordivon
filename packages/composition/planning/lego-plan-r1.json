@@ -15,7 +15,12 @@
       "tests/test_cognitive_circuit_r1.py",
       "tests/test_interface_contract_core.py",
       "tests/test_verification_obligation_r1.py",
-      "tests/test_successor_contract_r1.py"
+      "tests/test_successor_contract_r1.py",
+      "src/ordivon_composition/effect_reconciliation_r1.py",
+      "tests/test_effect_reconciliation_r1.py",
+      "formal/EffectReplayFence.tla",
+      "formal/EffectReplayFence.cfg",
+      "scripts/verify_effect_replay_formal.sh"
     ]
   },
   "nodes": [
@@ -232,6 +237,55 @@
         "Candidate implementation contextual equivalence and external domain acceptance need separate consumer-owned evidence."
       ],
       "qualification": "SOURCE_CONTRACT_IMPLEMENTED; MODEL/INSTALLED/DOMAIN acceptance not inferred"
+    },
+    {
+      "id": "C06",
+      "label": "ScopedExternalEffectReconciliation",
+      "kind": "effect_reconciliation_qualification",
+      "responsibility": "Constrain a task-local external execution outcome to owner-native observation/reconciliation/domain-effect readbacks and conservatively invalidate only declared dependent proof obligations.",
+      "authority": "NO_VALIDATION_OWNER: correctness claims require scoped mathematical properties and qualified formal verification. Gateway/Runtime/Provider identifiers are observable input origins only, never correctness signoffs; formal model to implementation/environment bridge remains UNKNOWN.",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "Gateway ExecutionObservation-shaped record with exact operationRef/nativeId/ownerId",
+        "expected exact operationRef and current task-local proof dependency graph"
+      ],
+      "outputs": [
+        "OBSERVE_ORIGINAL_OPERATION, RECONCILE_ORIGINAL_OPERATION or VERIFY_DOMAIN_EFFECT_WITH_OWNER readback recommendation",
+        "scoped unknown effect reference with existing C04 proof impact projection; malformed inputs produce CircuitContractError"
+      ],
+      "behavioralContract": "Never retries, dispatches, grants permission or certifies an external provider effect. Runtime executionTerminal=true, exitCode=0 and deliveryDisposition=committed still require provider-owned effect confirmation. Missing unindexed effect references broaden UNKNOWN through C04 instead of producing an empty impact.",
+      "acceptance": [
+        "tests/test_effect_reconciliation_r1.py verifies Gateway external.pull started lease expiry, runtime-terminal committed-but-effect-unknown, unrelated proof isolation and absent dynamic effect UNKNOWN.",
+        "Rejects forged native operation identity, false-like JSON terminality/recovery values and malformed caller inputs; CLI preserves same negative behavior."
+      ],
+      "evidence": [
+        "src/ordivon_composition/effect_reconciliation_r1.py",
+        "tests/test_effect_reconciliation_r1.py",
+        "formal/EffectReplayFence.tla",
+        "formal/EffectReplayFence.cfg",
+        "scripts/verify_effect_replay_formal.sh"
+      ],
+      "dependencies": [
+        "C04"
+      ],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "Gateway/Rust Runtime physical attempt state or Job dispatch",
+        "provider-side effect receipt and durable idempotency/compensation authority",
+        "automatic retry, release, deployment, domain acceptance or formal proof admission"
+      ],
+      "consumerBindings": [
+        {
+          "path": "packages/composition/tests/test_effect_reconciliation_r1.py",
+          "operation": "source import and python -m CLI against Gateway-shaped scenario fixtures",
+          "standing": "SOURCE_NATIVE_TEST_CONSUMER_NOT_INSTALLED_OR_PROVIDER_QUALIFIED"
+        }
+      ],
+      "formalObligations": [
+        "Native pinned TLA+ TLC exhaustively verifies TypeOK, no retry, no effect success claim, exact classified recommendation and known/unindexed impact scope over a declared finite abstract transition system; 3 nonvacuity probes and an unsafe-retry mutation must yield named counterexamples.",
+        "Model satisfaction is NOT implementation refinement or observed effect truth: finite concrete input test covers 72 abstract combinations, but arbitrary Python/real Gateway transport, environment, absent dependencies, and provider effects remain UNKNOWN."
+      ],
+      "qualification": "FINITE_TLA_MODEL_VERIFIED_WITH_MUTATION_PROBE; SOURCE_FINITE_CORRESPONDENCE_TESTED; IMPLEMENTATION_REFINEMENT_INSTALLED_EFFECT_UNKNOWN"
     }
   ],
   "edges": [
@@ -264,12 +318,19 @@
       "to": "C05",
       "type": "EVIDENCE",
       "label": "exact predecessor/candidate circuit gates require bound evidence"
+    },
+    {
+      "from": "C04",
+      "to": "C06",
+      "type": "DATA",
+      "label": "existing selective proof obligation impact supplies scoped UNKNOWN propagation to effect reconciliation"
     }
   ],
   "slices": [],
   "knownGaps": [
     "Confirmed imports from meta/next at Git SourceCut; runtime installation and external consumers not attested.",
     "Refinement from formal verifier target psi to domain target phi not inferred from source-only contract projection.",
-    "Cross-owner dynamic calls and provider native effects remain UNKNOWN outside these local source contracts."
+    "Cross-owner dynamic calls and provider native effects remain UNKNOWN outside these local source contracts.",
+    "C06 consumes only Gateway-shaped, caller supplied observations; no owner-authenticated provider completion receipt or live/installed consumer qualification."
   ]
 }

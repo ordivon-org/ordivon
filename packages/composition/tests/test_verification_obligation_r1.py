@@ -6,6 +6,7 @@ import pytest
 
 from ordivon_composition.cognitive_circuit_r1 import CircuitContractError, canonical_digest
 from ordivon_composition.verification_obligation_r1 import (
+    classify_observed_environment_delta,
     compare_gate_source_scopes,
     compile_verification_obligations,
     resolve_verifier_bindings,
@@ -318,6 +319,178 @@ def test_impact_selective_delta_preserves_independent_proof_candidate():
     assert result["dependencyQualification"] == "CALLER_DECLARED_NOT_OWNER_CERTIFIED"
     assert result["proofReuseAdmissible"] is False
     assert result["proofAcceptanceEstablished"] is False
+
+
+def _env_observation(ref, value, *, known=True, epoch="baseline"):
+    return {
+        "ref": ref,
+        "standing": "OBSERVED" if known else "UNKNOWN",
+        "valueDigest": ("sha256:" + value * 64) if known else None,
+        "witnessRef": f"runtime:observation:{ref}:{epoch}" if known else None,
+    }
+
+
+def test_environment_observation_bridge_scoped_change_and_unknown_do_not_fan_out():
+    old = [
+        _env_observation("config:network-proxy", "a"),
+        _env_observation("installed:postgres-writer", "b"),
+        _env_observation("config:media-renderer", "c"),
+    ]
+    now = [
+        _env_observation("config:network-proxy", "d", epoch="current"),
+        _env_observation("installed:postgres-writer", "b", epoch="current"),
+        _env_observation("config:media-renderer", "c", epoch="current"),
+    ]
+    delta = classify_observed_environment_delta(previous=old, current=now)
+    assert delta["changedRefs"] == ["config:network-proxy"]
+    assert delta["unknownRefs"] == ["installed:postgres-writer"]
+    assert delta["equalConfigurationRefs"] == ["config:media-renderer"]
+    impact = select_impacted_obligations(
+        authority_refs=[
+            "config:network-proxy",
+            "installed:postgres-writer",
+            "config:media-renderer",
+        ],
+        obligations=[
+            {
+                "id": "proof:network",
+                "dependsOn": ["config:network-proxy"],
+                "dependenciesComplete": True,
+            },
+            {
+                "id": "proof:writer",
+                "dependsOn": ["installed:postgres-writer"],
+                "dependenciesComplete": True,
+            },
+            {
+                "id": "proof:media",
+                "dependsOn": ["config:media-renderer"],
+                "dependenciesComplete": True,
+            },
+            {"id": "proof:client", "dependsOn": ["proof:network"], "dependenciesComplete": True},
+        ],
+        changed_refs=delta["changedRefs"],
+        unknown_refs=delta["unknownRefs"],
+    )
+    assert _statuses(impact) == {
+        "proof:network": "RECHECK_REQUIRED",
+        "proof:client": "RECHECK_REQUIRED",
+        "proof:writer": "UNKNOWN",
+        "proof:media": "REUSE_CANDIDATE",
+    }
+    assert impact["proofReuseAdmissible"] is False
+    assert delta["proofReuseAdmissible"] is False
+
+
+def test_observation_bridge_declared_env_absent_in_both_is_locally_unknown():
+    # An omitted environment ref present in NEITHER observation envelope
+    # cannot be mistaken for an unchanged qualified environment.
+    delta = classify_observed_environment_delta(
+        previous=[], current=[], required_refs=["installed:pg-writer"]
+    )
+    assert delta["unobservedRequiredRefs"] == ["installed:pg-writer"]
+    assert delta["unknownRefs"] == ["installed:pg-writer"]
+    result = select_impacted_obligations(
+        authority_refs=["installed:pg-writer", "source:independent"],
+        obligations=[
+            {"id": "proof:pg", "dependsOn": ["installed:pg-writer"], "dependenciesComplete": True},
+            {
+                "id": "proof:other",
+                "dependsOn": ["source:independent"],
+                "dependenciesComplete": True,
+            },
+        ],
+        changed_refs=delta["changedRefs"],
+        unknown_refs=delta["unknownRefs"],
+    )
+    assert _statuses(result) == {
+        "proof:pg": "UNKNOWN",
+        "proof:other": "REUSE_CANDIDATE",
+    }
+    assert result["proofReuseAdmissible"] is False
+
+
+def test_observation_bridge_declared_env_duplicate_and_forged_unknown_scope_reject():
+    with pytest.raises(CircuitContractError, match="required environment refs"):
+        classify_observed_environment_delta(
+            previous=[], current=[], required_refs=["installed:pg-writer", "installed:pg-writer"]
+        )
+    with pytest.raises(CircuitContractError, match="required environment refs"):
+        classify_observed_environment_delta(
+            previous=[], current=[], required_refs=["source:cannot-pretend-this-is-observed-env"]
+        )
+
+
+def test_observation_bridge_rejects_effect_same_digest_as_continuity_proof():
+    receipt = _env_observation("effect:remote-publish", "f")
+    revoked = _env_observation("authority:provider-grant", "d")
+    result = classify_observed_environment_delta(
+        previous=[receipt, revoked],
+        current=[receipt, revoked],
+    )
+    assert result["changedRefs"] == []
+    assert result["unknownRefs"] == ["authority:provider-grant", "effect:remote-publish"]
+    assert result["proofReuseAdmissible"] is False
+    changed = classify_observed_environment_delta(
+        previous=[receipt],
+        current=[_env_observation("effect:remote-publish", "e")],
+    )
+    assert changed["changedRefs"] == ["effect:remote-publish"]
+    assert changed["unknownRefs"] == []
+
+
+def test_repeated_same_configuration_receipt_is_unknown_not_fresh_observation():
+    same = _env_observation("config:proxy", "a")
+    stale = classify_observed_environment_delta(previous=[same], current=[same])
+    assert stale["unknownRefs"] == ["config:proxy"]
+    assert stale["equalConfigurationRefs"] == []
+    # Reusing one receipt at two snapshot labels is not a continuity witness.
+    newer = classify_observed_environment_delta(
+        previous=[same],
+        current=[_env_observation("config:proxy", "a", epoch="new")],
+    )
+    assert newer["equalConfigurationRefs"] == ["config:proxy"]
+    assert newer["proofReuseAdmissible"] is False
+
+
+def test_environment_observation_missing_or_unindexed_fails_closed():
+    old = [_env_observation("external:plugin-provider", "a")]
+    missing = classify_observed_environment_delta(previous=old, current=[])
+    assert missing["unknownRefs"] == ["external:plugin-provider"]
+    # Actual graph has no declared edge for this provider, therefore the
+    # existing projection cannot exclude any proof; no false narrow impact.
+    result = select_impacted_obligations(
+        authority_refs=["config:media-renderer"],
+        obligations=[
+            {
+                "id": "proof:media",
+                "dependsOn": ["config:media-renderer"],
+                "dependenciesComplete": True,
+            }
+        ],
+        changed_refs=[],
+        unknown_refs=missing["unknownRefs"],
+    )
+    assert _statuses(result) == {"proof:media": "UNKNOWN"}
+    assert result["unindexedChangeRefs"] == ["external:plugin-provider"]
+    assert result["proofReuseAdmissible"] is False
+
+
+def test_environment_observation_rejects_forged_digest_duplicate_and_unknown_witness():
+    valid = _env_observation("config:network-proxy", "a")
+    corrupt = [
+        [{**valid, "valueDigest": "sha256:deadbeef"}],
+        [valid, valid],
+        [{**valid, "ref": "not-environment"}],
+        [{**valid, "standing": "UNKNOWN"}],
+    ]
+    for rows in corrupt:
+        with pytest.raises(CircuitContractError):
+            classify_observed_environment_delta(previous=rows, current=[valid])
+    assert classify_observed_environment_delta(
+        previous=[_env_observation("authority:grant", "a", known=False)],
+        current=[_env_observation("authority:grant", "a", known=True)],
+    )["unknownRefs"] == ["authority:grant"]
 
 
 def test_impact_basis_digest_is_invariant_under_dependency_set_permutation():
@@ -2305,3 +2478,92 @@ def test_git_manifest_sourcecut_uses_repository_object_format(tmp_path) -> None:
         assert result["gitSourceCuts"]["previous"]["objectFormat"] == object_format
         assert result["gitSourceCuts"]["current"]["objectFormat"] == object_format
         assert result["proofReuseAdmissible"] is False
+
+
+def test_agent_cli_impact_observations_reuses_native_selector_without_new_registry(
+    tmp_path,
+):
+    import json
+    import subprocess
+    import sys
+
+    previous = tmp_path / "previous.json"
+    current = tmp_path / "current.json"
+    graph = tmp_path / "graph.json"
+    previous.write_text(
+        json.dumps(
+            {
+                "observations": [
+                    _env_observation("config:network-proxy", "a"),
+                    _env_observation("installed:writer", "b"),
+                ]
+            }
+        )
+    )
+    current.write_text(
+        json.dumps(
+            {
+                "observations": [
+                    _env_observation("config:network-proxy", "b", epoch="current"),
+                    _env_observation("installed:writer", "b", epoch="current"),
+                ]
+            }
+        )
+    )
+    graph.write_text(
+        json.dumps(
+            {
+                "authorityRefs": ["config:network-proxy", "installed:writer"],
+                "obligations": [
+                    {
+                        "id": "proof:network",
+                        "dependsOn": ["config:network-proxy"],
+                        "dependenciesComplete": True,
+                    },
+                    {
+                        "id": "proof:writer",
+                        "dependsOn": ["installed:writer"],
+                        "dependenciesComplete": True,
+                    },
+                ],
+            }
+        )
+    )
+    cmd = [
+        sys.executable,
+        "-m",
+        "ordivon_composition.verification_obligation_r1",
+        "impact-observations",
+        str(previous),
+        str(current),
+        str(graph),
+    ]
+    observed = subprocess.run(cmd, text=True, capture_output=True, check=True)
+    result = json.loads(observed.stdout)
+    assert result["kind"] == "ordivon.task-local-environment-effect-impact"
+    assert result["proofReuseAdmissible"] is False
+    assert result["observationDelta"]["changedRefs"] == ["config:network-proxy"]
+    assert result["observationDelta"]["unknownRefs"] == ["installed:writer"]
+    assert _statuses(result["selection"]) == {
+        "proof:network": "RECHECK_REQUIRED",
+        "proof:writer": "UNKNOWN",
+    }
+    # Even if every observation envelope entirely omits a declared required
+    # environment root, the CLI must report scoped UNKNOWN, not false reuse.
+    previous.write_text(json.dumps({"observations": []}))
+    current.write_text(json.dumps({"observations": []}))
+    missing = subprocess.run(cmd, text=True, capture_output=True, check=True)
+    missing_out = json.loads(missing.stdout)
+    assert missing_out["observationDelta"]["unobservedRequiredRefs"] == [
+        "config:network-proxy",
+        "installed:writer",
+    ]
+    assert _statuses(missing_out["selection"]) == {
+        "proof:network": "UNKNOWN",
+        "proof:writer": "UNKNOWN",
+    }
+    assert missing_out["proofReuseAdmissible"] is False
+    graph.write_text(json.dumps({"authorityRefs": []}))
+    bad = subprocess.run(cmd, text=True, capture_output=True, check=False)
+    assert bad.returncode != 0
+    assert "task-local authorityRefs and obligations" in bad.stderr
