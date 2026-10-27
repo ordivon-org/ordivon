@@ -870,6 +870,164 @@ def join_observed_authorities(problem_frontier: dict, evidence: dict) -> dict:
     return output
 
 
+
+
+def source_problem_relation_projection(problem_frontier: dict, imports: dict) -> dict:
+    """Typed source-evidence relations; never infer runtime invocation or proof.
+
+    Uses the existing exact-Git Problem LEGO path->cell index and the existing
+    Python AST candidate readout. Unresolved imports remain bounded counters,
+    not made-up edges or automatically separate semantic LEGO identities.
+    """
+    if (imports.get("sourceCut") != problem_frontier["sourceCut"]
+            or imports.get("sourceTree") != problem_frontier["sourceTree"]):
+        raise ValueError("consumer candidate / Problem LEGO SourceCut mismatch")
+    if imports.get("focusPrefix") is not None:
+        raise ValueError("full source relation projection needs unfiltered AST input")
+    paths = problem_frontier["sourcePathCellIndex"]
+    cells = {c["sourceCellRef"] for c in problem_frontier["sourceCells"]}
+    issue_by_cell = {
+        x["sourceCellRef"]: x["problemRef"]
+        for x in problem_frontier["problemLegos"]
+        if x["kind"] == "RECURSIVE_SOURCE_CELL_ISSUE"
+    }
+    def cell(path: str) -> str:
+        ref = paths.get(path)
+        if ref is None or ref not in cells:
+            raise ValueError("consumer witness path outside exact Git problem index")
+        return ref
+
+    relations = []
+    # Caller/importer -> potential provider. Matches are source syntax only;
+    # no installed module resolution, call, side effect or entrypoint inference.
+    for row in imports["staticCandidateEdges"]:
+        consumer, provider = cell(row["consumerPath"]), cell(row["providerPath"])
+        relations.append({
+            "relation": "STATIC_PYTHON_IMPORT_CANDIDATE_NOT_RUNTIME_CALL",
+            "consumerPath": row["consumerPath"],
+            "providerPath": row["providerPath"],
+            "consumerCellRef": consumer,
+            "providerCellRef": provider,
+            "consumerProblemRef": issue_by_cell.get(consumer),
+            "providerProblemRef": issue_by_cell.get(provider),
+            "line": row["line"],
+            "syntax": row["syntax"],
+            "moduleExpression": row["moduleExpression"],
+            "withinSameSourceCell": consumer == provider,
+            "runtimeCallStanding": "UNKNOWN",
+            "installedConsumerStanding": "UNKNOWN",
+            "effectStanding": "UNKNOWN",
+        })
+    relations.sort(key=lambda x: (x["consumerPath"], x["line"],
+                                  x["providerPath"], x["syntax"]))
+    # Dynamic syntax gives a consumer-side locus, *not* a resolved provider.
+    dynamic = []
+    for row in imports["dynamicSyntaxSites"]:
+        cref = cell(row["consumerPath"])
+        dynamic.append({
+            "relation": "DYNAMIC_SOURCE_SYNTAX_WITHOUT_RESOLVED_PROVIDER",
+            "consumerPath": row["consumerPath"],
+            "consumerCellRef": cref,
+            "consumerProblemRef": issue_by_cell.get(cref),
+            "line": row["line"],
+            "providerRef": None,
+            "runtimeCallStanding": "UNKNOWN",
+            "possibleExternalProvider": "UNKNOWN",
+        })
+    dynamic.sort(key=lambda x: (x["consumerPath"], x["line"]))
+
+    # stdlib/external candidates often produce high counts and are NOT proof
+    # of missing internal consumers. Preserve exact evidence count + digest.
+    unresolved: dict[str, dict] = {}
+    for row in imports["unresolvedImportStatements"]:
+        ref = cell(row["consumerPath"])
+        bucket = unresolved.setdefault(ref, {
+            "consumerCellRef": ref, "consumerProblemRef": issue_by_cell.get(ref),
+            "count": 0, "boundedWitnesses": [],
+            "standing": "UNRESOLVED_SYNTAX_NOT_A_MISSING_PROVIDER_PROOF",
+        })
+        bucket["count"] += 1
+        if len(bucket["boundedWitnesses"]) < 4:
+            bucket["boundedWitnesses"].append({
+                "path": row["consumerPath"], "line": row["line"],
+                "expression": row["expression"][:180],
+            })
+    counts = collections.Counter()
+    for e in relations:
+        for side in ("consumerProblemRef", "providerProblemRef"):
+            if e[side] is not None:
+                counts[e[side]] += 1
+    dynamic_issue_refs = {d["consumerProblemRef"] for d in dynamic
+                          if d["consumerProblemRef"] is not None}
+    declared = problem_frontier["declaredPlanEdgesNotActualCalls"]
+    if any(e["runtimeCallStanding"] != "NOT_ESTABLISHED" for e in declared):
+        raise ValueError("declared Plan relations unexpectedly claim runtime calls")
+    for link in (problem_frontier.get("observationJoin", {})
+                 .get("candidateAssociations", [])):
+        if (link["relation"] != "EXPLICIT_CANDIDATE_ASSOCIATION_NOT_AN_INVOKED_EDGE"
+                or link["proofStanding"] != "NOT_ESTABLISHED"):
+            raise ValueError("reported external candidate was promoted to proof")
+    return {
+        "kind": "ordivon.phase1.exact-source-typed-relation-candidates",
+        "sourceCut": problem_frontier["sourceCut"],
+        "sourceTree": problem_frontier["sourceTree"],
+        "truthBoundary": (
+            "Exact-Git static Python AST, physical source cells and declared Plan "
+            "edges only; consumers, dynamic providers, installed calls and effects "
+            "remain UNKNOWN without independent execution evidence"
+        ),
+        "sourcePathCellIndex": paths,
+        "staticPythonImportCandidates": relations,
+        "dynamicSyntaxUnresolvedProviders": dynamic,
+        "unresolvedImportFacets": sorted(unresolved.values(),
+                                         key=lambda x: x["consumerCellRef"]),
+        "declaredPlanRelationsNotRuntimeCalls": declared,
+        "crossPlanLocalIdReuseNotNecessarilyCollision": (
+            problem_frontier["sameLocalIdAcrossPlansObservation"]
+        ),
+        "reportedExternalCandidateAssociations": (
+            problem_frontier.get("observationJoin", {})
+            .get("candidateAssociations", [])
+        ),
+        "summary": {
+            "indexedSourcePaths": len(paths),
+            "sourceCells": len(cells),
+            "pythonSourcePaths": sum(p.endswith(".py") for p in paths),
+            "rustSourcePathsNotCallAnalyzed": sum(p.endswith(".rs") for p in paths),
+            "typescriptJavascriptSourcePathsNotCallAnalyzed": sum(
+                p.endswith((".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"))
+                for p in paths
+            ),
+            "ProblemLegoRecords": len(problem_frontier["problemLegos"]),
+            "staticImportCandidateEdges": len(relations),
+            "crossCellStaticCandidates": sum(
+                not e["withinSameSourceCell"] for e in relations),
+            "staticImportCandidatesTouchingSourceProblems": sum(
+                e["consumerProblemRef"] is not None or e["providerProblemRef"] is not None
+                for e in relations),
+            "uniqueSourceProblemsInStaticCandidates": len(counts),
+            "dynamicSyntaxSites": len(dynamic),
+            "dynamicSyntaxSitesInProblemCells": sum(
+                e["consumerProblemRef"] is not None for e in dynamic),
+            "unresolvedImportStatements": sum(x["count"] for x in unresolved.values()),
+            "unresolvedImportAffectedCells": len(unresolved),
+            "problemCellsWithDynamicUnknown": len(dynamic_issue_refs),
+            "declaredPlanEdgesNotActualCalls": len(declared),
+            "callerReportedExternalAssociations": len(
+                problem_frontier.get("observationJoin", {})
+                .get("candidateAssociations", [])),
+            "unscopedPlanIdReuseQuestions": len(
+                problem_frontier["sameLocalIdAcrossPlansObservation"]),
+        },
+        "semanticCallClosureEstablished": False,
+        "nonPythonCallCoverage": "NOT_ANALYZED",
+        "installedCurrentnessEstablished": False,
+        "proofReuseAdmissible": False,
+        "impactClosureAdmissible": False,
+        "deletionAuthorized": False,
+    }
+
+
 def lookup_source_paths(inventory: dict, *, repo: Path,
                         paths: list[str], max_files: int = 24,
                         max_depth: int = 6) -> dict:
@@ -1652,6 +1810,8 @@ def main() -> int:
     parser.add_argument("--only-problems", action="store_true")
     parser.add_argument("--authority-observations", type=Path,
                         help="optional bounded caller-supplied evidence join; requires --problem-legos")
+    parser.add_argument("--relation-evidence", action="store_true",
+                        help="typed AST/Plan/source candidate relations, not actual calls")
     parser.add_argument("--problem-legos", action="store_true",
                         help="derived full source+Plan problem LEGO map; never a registry")
     parser.add_argument("--scope-census", action="store_true",
@@ -1687,7 +1847,8 @@ def main() -> int:
                 or args.static_python_consumers or args.live_cells or args.proposal_cut
                 or args.use_proposal_cells or args.only_problems or args.imports_prefix
                 or args.reference_limit != 48
-                or args.authority_observations is not None):
+                or args.authority_observations is not None
+                or args.relation_evidence):
             parser.error("scope census is separate from source/call/problem projections")
         result = independent_scope_frontier(
             args.repo, args.source_cut, external_git=args.external_git_cut,
@@ -1715,6 +1876,10 @@ def main() -> int:
 
     if args.authority_observations is not None and not args.problem_legos:
         parser.error("--authority-observations requires --problem-legos")
+    if args.relation_evidence and not args.problem_legos:
+        parser.error("--relation-evidence requires --problem-legos")
+    if args.relation_evidence and (args.proposal_cut or args.use_proposal_cells):
+        parser.error("source relation evidence must use current native source cells")
     if args.reference_path:
         if (args.lookup_path or args.static_python_consumers or args.live_cells
                 or args.proposal_cut or args.use_proposal_cells or args.only_problems
@@ -1764,7 +1929,19 @@ def main() -> int:
                 raise ValueError("authority observation file exceeds 256KiB")
             evidence = json.loads(args.authority_observations.read_text(encoding="utf-8"))
             result = join_observed_authorities(result, evidence)
-        if args.summary:
+        if args.relation_evidence:
+            result = source_problem_relation_projection(
+                result, static_python_import_frontier(args.repo, args.source_cut)
+            )
+        if args.summary and args.relation_evidence:
+            result = {k: v for k, v in result.items() if k not in (
+                "sourcePathCellIndex", "staticPythonImportCandidates",
+                "dynamicSyntaxUnresolvedProviders", "unresolvedImportFacets",
+                "declaredPlanRelationsNotRuntimeCalls",
+                "crossPlanLocalIdReuseNotNecessarilyCollision",
+                "reportedExternalCandidateAssociations",
+            )}
+        elif args.summary:
             if "observationJoin" in result:
                 result["observationJoin"] = {
                     k: v for k, v in result["observationJoin"].items()
