@@ -159,3 +159,21 @@ These are previously observed carriers, not active installations. Parent filesys
 Inspect the content and actual downstream readers of the 23 mixed-format dense groups first, particularly repo mechanics root, architecture root, legacy migration receipts, runtime root, Harness scripts/evidence, and Next planning/acceptance. Separate truly different meaning only when the file manifest, schema, or current reader establishes a grounded distinction. For other dense groups, check whether a proposed label is dangerously over-specific and retain UNKNOWN when it is. Then repeat on the newer main cut and the independent current Git roots without merging their identity.
 
 No filesystem moves, changes to Skill/CLI/provider contracts, role approvals, migrations, or deletion are authorized by this evidence.
+
+
+## Agent-first interface carrier distinctions (R1 additive source evidence)
+
+An additional exact Git-source census distinguishes interface carriers across Gateway, Host, Harness, Skills, Agent Plugins, Formal and Repo mechanics. The source-bound machine evidence at
+`docs/architecture/evidence/ORDIVON_PHASE1_AGENT_INTERFACE_NAMES_20261027_R1.json`
+contains **24 independently checked Git blob anchors** (SourceCut `d808ff09cf52422ad67ad880d856a8a1bad622b1`). This is a vocabulary overlay on existing source cells, **not** a new owner partition, second registry, proof, live capability index, or permission to move files.
+
+| Misleading broad name | Precise source-level distinctions |
+|---|---|
+| MCP | Server implementation; upstream/client adapter; declarative remote connection; declared Tool surface |
+| Plugin / control plane | Portable Agent Plugin manifest; MCP connection descriptor; Harness plugin admission adapter; actual running service is separate |
+| Tool / CLI / SDK | Command-line entrypoint; typed execution client port; Tool bridge protocol; real provider-side effect remains separate |
+| Skill | Method instruction file; discovery/resolution catalog; eligibility observer; bounded MCP compatibility server |
+| Gateway / Host | Capability route declaration vs transport adaptor; Host social-work MCP server vs an MCP Host *application* |
+| Formal / Owner | Lean theorem source vs source verification selector; neither a correctness approval role nor deployed-behavior proof |
+
+Each entry contains an exact source path, Git blob identity, checked literal anchor, proposed machine-readable name, and a falsifiable `notEquivalentTo` constraint. Consumer, installed and formal status remain **UNKNOWN**. Existing path names and imports remain untouched.
