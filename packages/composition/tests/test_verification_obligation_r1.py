@@ -2567,3 +2567,69 @@ def test_agent_cli_impact_observations_reuses_native_selector_without_new_regist
     bad = subprocess.run(cmd, text=True, capture_output=True, check=False)
     assert bad.returncode != 0
     assert "task-local authorityRefs and obligations" in bad.stderr
+
+
+def test_selector_three_level_priority_matches_independent_bounded_path_oracle() -> None:
+    """Finite falsifier for the Lean least-closed-demand semantics.
+
+    This exhausts 4,608 bounded directed acyclic consumer graphs/input masks;
+    it is NOT a proof that the dynamic implementation has a complete readset.
+    The oracle uses topological path evaluation, NOT the selector's worklist.
+    """
+    from itertools import product
+
+    roots = ["source:network", "installed:postgres"]
+    proofs = ["proof:gateway", "proof:runtime", "proof:consumer"]
+    optional_edges = [(0, 1), (0, 2), (1, 2)]
+    standing = ("REUSE_CANDIDATE", "UNKNOWN", "RECHECK_REQUIRED")
+    cases = 0
+
+    for arc_bits in range(1 << len(optional_edges)):
+        edges = [
+            (low, high)
+            for index, (low, high) in enumerate(optional_edges)
+            if arc_bits & (1 << index)
+        ]
+        for source_binding in product(range(2), repeat=3):
+            for root_priority in product(range(3), repeat=2):
+                old_changed = [roots[i] for i, rank in enumerate(root_priority) if rank == 2]
+                old_unknown = [roots[i] for i, rank in enumerate(root_priority) if rank == 1]
+                for completeness_bits in range(8):
+                    rows = []
+                    oracle = {root: root_priority[index] for index, root in enumerate(roots)}
+                    for index, name in enumerate(proofs):
+                        is_complete = not bool(completeness_bits & (1 << index))
+                        incoming = [proofs[low] for low, high in edges if high == index]
+                        dependencies = [roots[source_binding[index]], *incoming]
+                        rows.append(
+                            {
+                                "id": name,
+                                "dependsOn": dependencies,
+                                "dependenciesComplete": is_complete,
+                            }
+                        )
+                        oracle[name] = max(
+                            [0 if is_complete else 1] + [oracle[d] for d in dependencies]
+                        )
+                    selected = select_impacted_obligations(
+                        authority_refs=roots,
+                        obligations=rows,
+                        changed_refs=old_changed,
+                        unknown_refs=old_unknown,
+                    )
+                    observed = {
+                        row["id"]: row["standing"] for row in selected["standingByObligation"]
+                    }
+                    assert observed == {name: standing[oracle[name]] for name in proofs}, (
+                        edges,
+                        source_binding,
+                        root_priority,
+                        completeness_bits,
+                        observed,
+                        oracle,
+                    )
+                    assert selected["proofReuseAdmissible"] is False
+                    assert selected["proofAcceptanceEstablished"] is False
+                    cases += 1
+
+    assert cases == 4608
