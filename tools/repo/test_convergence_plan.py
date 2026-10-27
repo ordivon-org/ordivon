@@ -42,6 +42,20 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertIn("next:verify", plan["verifyTasks"])
         self.assertIn("next:verify", plan["queueVerifyTasks"])
 
+    def test_method_source_change_selects_actual_directional_consumers_without_global_merge(self) -> None:
+        plan = MODULE.build_plan(
+            changed_files=[".agents/skills/recursive-lego-calculus/SKILL.md"]
+        )
+        self.assertEqual(plan["directOwners"], ["agent-methods"])
+        self.assertEqual(
+            plan["verificationOwners"],
+            ["agent-methods", "gateway", "next", "skills"],
+        )
+        self.assertEqual(plan["taskLocalTestConsumers"], ["gateway", "next", "skills"])
+        self.assertNotIn("game", plan["verificationOwners"])
+        self.assertNotIn("media", plan["verificationOwners"])
+        self.assertNotIn("harness", plan["verificationOwners"])
+
     def test_media_change_expands_to_declared_interaction_component(self) -> None:
         plan = MODULE.build_plan(
             changed_files=["capabilities/media/src/ordivon_studio/agent_surface.py"]

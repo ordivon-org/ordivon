@@ -94,3 +94,16 @@ verify_task = "capital:verify"
 name = "web"
 root = "apps/web/"
 verify_task = "web:verify"
+
+
+# Source-qualified cross-system responsibilities previously invisible to
+# owner-selective CI. These are mechanical roots, not Agent/domain authority.
+[[owners]]
+name = "formal-tooling"
+root = "tools/formal/"
+verify_task = "formal:verify"
+
+[[owners]]
+name = "agent-methods"
+root = ".agents/skills/"
+verify_task = "agent-methods:verify"

@@ -110,7 +110,9 @@ EXECUTABLE_OWNER_ROOTS = (
     "domains/",
     "packages/",
     "extensions/",
+    "tools/",
 )
+CROSS_CUTTING_SOURCE_ROOTS = ("tools/repo/",)
 
 
 def require_registered_execution_paths(
@@ -119,6 +121,7 @@ def require_registered_execution_paths(
     unregistered = sorted({
         path for raw in paths
         if (path := _normalize(raw)).startswith(EXECUTABLE_OWNER_ROOTS)
+        and not any(path.startswith(root) for root in CROSS_CUTTING_SOURCE_ROOTS)
         and not any(path.startswith(owner.root) for owner in owners)
     })
     if unregistered:
@@ -129,13 +132,78 @@ def owners_for_paths(
     paths: Iterable[str], *, owners: tuple[Owner, ...] = OWNERS
 ) -> tuple[Owner, ...]:
     normalized = tuple(_normalize(path) for path in paths if path.strip())
-    if any(path in CROSS_CUTTING_PATHS for path in normalized):
+    if any(
+        path in CROSS_CUTTING_PATHS
+        or any(path.startswith(root) for root in CROSS_CUTTING_SOURCE_ROOTS)
+        for path in normalized
+    ):
         return owners
     selected: list[Owner] = []
     for owner in owners:
         if any(path.startswith(owner.root) for path in normalized):
             selected.append(owner)
     return tuple(selected)
+
+
+def repo_scope_census(
+    paths: Iterable[str], *, owners: tuple[Owner, ...] = OWNERS,
+) -> dict[str, object]:
+    """Rebuild mechanical coverage from Git paths, never invent LEGO identity.
+
+    Every unmatched exact tracked path is visible; docs/config/history are not
+    automatically errors. Grouping is navigational and carries no new authority.
+    """
+    by_owner = {owner.name: 0 for owner in owners}
+    outstanding: dict[str, list[str]] = {}
+    total = 0
+    for raw in paths:
+        path = _normalize(raw)
+        total += 1
+        matches = [owner for owner in owners if path.startswith(owner.root)]
+        if len(matches) == 1:
+            by_owner[matches[0].name] += 1
+        elif len(matches) == 0:
+            parts = path.split("/")
+            area = "/".join(parts[:2]) if len(parts) > 1 else "[repository-root]"
+            outstanding.setdefault(area, []).append(path)
+        else:
+            raise ValueError(f"overlapping registered owner roots at {path}")
+    grouped = [
+        {
+            "area": area,
+            "standing": "UNREGISTERED_REPO_SCOPE_NOT_LEGO_VERDICT",
+            "count": len(items),
+            "examples": sorted(items)[:6],
+        }
+        for area, items in outstanding.items()
+    ]
+    grouped.sort(key=lambda x: (-x["count"], x["area"]))
+    owned_count = sum(by_owner.values())
+    return {
+        "truthRole": "source-cut-mechanical-owner-coverage-not-domain-authority",
+        "registeredOwnerCount": len(owners),
+        "trackedFileCount": total,
+        "matchedTrackedFiles": owned_count,
+        "unmatchedTrackedFiles": total - owned_count,
+        "registeredScopes": [
+            {"owner": o.name, "sourceRoot": o.root, "matchedTrackedFiles": by_owner[o.name]}
+            for o in owners
+        ],
+        "unregisteredAreas": grouped,
+    }
+
+
+def git_tracked_files(source_cut: str) -> tuple[str, tuple[str, ...]]:
+    """Use exact Git object identity, never read moving Worktree for census."""
+    commit = subprocess.run(
+        ["git", "rev-parse", "--verify", f"{source_cut}^{{commit}}"],
+        check=True, capture_output=True, text=True,
+    ).stdout.strip()
+    tree = subprocess.run(
+        ["git", "ls-tree", "-r", "-z", "--name-only", commit],
+        check=True, capture_output=True,
+    ).stdout
+    return commit, tuple(os.fsdecode(name) for name in tree.split(b"\0") if name)
 
 
 def changed_paths(base: str, head: str) -> tuple[str, ...]:
@@ -159,6 +227,8 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--base")
     parser.add_argument("--head")
     parser.add_argument("--all", action="store_true")
+    parser.add_argument("--scope-census", action="store_true")
+    parser.add_argument("--source-cut", default="HEAD")
     parser.add_argument("--changed-file", action="append", default=[])
     parser.add_argument(
         "--format",
@@ -170,6 +240,12 @@ def _parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     args = _parser().parse_args()
+    if args.scope_census:
+        commit, paths = git_tracked_files(args.source_cut)
+        report = repo_scope_census(paths)
+        report["sourceCut"] = commit
+        print(json.dumps(report, sort_keys=True, indent=2))
+        return 0
     if args.all:
         selected = OWNERS
         paths: tuple[str, ...] = ()

@@ -97,6 +97,31 @@ def load_dependency_graph(
             if test_only_consumers is not None:
                 test_only_consumers.append((left, right))
             continue
+        # A lexical path reference is not an undirected runtime dependency.
+        # These R2.1 method-source relations are explicitly weaker than
+        # owner-level operational coupling. External URLs, historic evidence
+        # and retired-path negative tests do not even imply a local consumer.
+        reference_only = {
+            "THIRD_PARTY_URL_NOT_LOCAL_SOURCE_OWNER",
+            "SOURCE_ONLY_METHOD_EVIDENCE_REFERENCE",
+            "TEST_ONLY_RETIRED_METHOD_PATH",
+            "EXTERNAL_USER_SKILL_LOCATOR_ONLY",
+        }
+        directional_method_consumers = {
+            "PORTABLE_SOURCE_QUALIFICATION_ONLY",
+            "PUBLIC_METHOD_SOURCE_REFERENCE_NOT_PROOF",
+            "TEST_ONLY_METHOD_DISCOVERY_CONSUMER",
+        }
+        if seam.get("kind") in reference_only:
+            continue
+        if seam.get("kind") in directional_method_consumers:
+            # Conservative provider-change recheck, not a symmetric
+            # assertion that the method package depends on its client.
+            if right != "agent-methods":
+                raise ValueError("method consumer seam must target portable Agent Skills")
+            if test_only_consumers is not None:
+                test_only_consumers.append((left, right))
+            continue
         graph[left].add(right)
         graph[right].add(left)
     return graph

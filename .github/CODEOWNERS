@@ -28,3 +28,7 @@
 /tools/repo/ @zycxfyh
 /.github/ @zycxfyh
 /mise.toml @zycxfyh
+
+# Portable first-party Agent Skills and native mature formal verifier profile.
+/.agents/skills/ @zycxfyh
+/tools/formal/ @zycxfyh

@@ -183,6 +183,11 @@ mise install
 mise run verify
 """
 
+# Validate portable first-party Agent Skills through the existing Skills
+# catalog/parser/eligibility consumer; no second registry or Skill runtime.
+[tasks."agent-methods:verify"]
+run = "mise run skills:verify"
+
 [tasks."skills:verify"]
 run = """
 set -euo pipefail

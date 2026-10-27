@@ -173,6 +173,8 @@ def findings_for_text(
         return ()
     findings: list[Finding] = []
     for line_number, line in enumerate(text.splitlines(), start=1):
+        if line.lstrip().startswith(("#", "//")):
+            continue  # comments are not executable source-path consumers
         for target in owners:
             if target.name == source.name:
                 continue

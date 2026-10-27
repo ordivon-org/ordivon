@@ -179,3 +179,67 @@ source_glob = "packages/composition/tests/test_verification_obligation_r1.py"
 allowed_fragment = "services/runtime/formal/RuntimeDispatchR1.trace-r1.json"
 kind = "TEST_ONLY_SOURCE_CONTRACT"
 contract_ref = "services/runtime/formal/RuntimeDispatchR1.trace-r1.json"
+
+[[seams]]
+from_owner = "media"
+to_owner = "agent-methods"
+source_glob = "capabilities/media/productions/fishing-fable-lego-study-r1/claims.json"
+allowed_fragment = ".agents/skills/recursive-lego-calculus/SKILL.md"
+kind = "SOURCE_ONLY_METHOD_EVIDENCE_REFERENCE"
+contract_ref = ".agents/skills/recursive-lego-calculus/SKILL.md"
+
+[[seams]]
+from_owner = "game"
+to_owner = "agent-methods"
+source_glob = "domains/game/standards/game_external_knowledge_base_r1.json"
+allowed_fragment = "https://github.com/abagames/agentic-gamedev-skills/blob/main/.agents/skills/"
+kind = "THIRD_PARTY_URL_NOT_LOCAL_SOURCE_OWNER"
+contract_ref = "domains/game/README.md"
+
+[[seams]]
+from_owner = "game"
+to_owner = "agent-methods"
+source_glob = "domains/game/standards/game_external_skill_watchlist_r1.json"
+allowed_fragment = "https://github.com/abagames/agentic-gamedev-skills/blob/main/.agents/skills/"
+kind = "THIRD_PARTY_URL_NOT_LOCAL_SOURCE_OWNER"
+contract_ref = "domains/game/README.md"
+
+[[seams]]
+from_owner = "next"
+to_owner = "agent-methods"
+source_glob = "meta/next/scripts/materialize_agent_plugin.py"
+allowed_fragment = "\"sourceOfTruth\": \".agents/skills\""
+kind = "PORTABLE_SOURCE_QUALIFICATION_ONLY"
+contract_ref = "meta/next/docs/AGENT_PLUGIN_CORE_R3.md"
+
+[[seams]]
+from_owner = "next"
+to_owner = "agent-methods"
+source_glob = "meta/next/tests/test_governance_persistence_r1.py"
+allowed_fragment = ".agents/skills/lego-"
+kind = "TEST_ONLY_RETIRED_METHOD_PATH"
+contract_ref = "meta/next/planning/governance-persistence-ratchet-r1.json"
+
+[[seams]]
+from_owner = "skills"
+to_owner = "agent-methods"
+source_glob = "platform/skills/tests/test_skill_catalog_r2.py"
+allowed_fragment = ".agents/skills"
+kind = "TEST_ONLY_METHOD_DISCOVERY_CONSUMER"
+contract_ref = "platform/skills/docs/SKILL_MCP_STANDARDS_ALIGNMENT.md"
+
+[[seams]]
+from_owner = "gateway"
+to_owner = "agent-methods"
+source_glob = "services/gateway/src/ordivon_gateway/research_routes.py"
+allowed_fragment = ".agents/skills/research-publication-"
+kind = "PUBLIC_METHOD_SOURCE_REFERENCE_NOT_PROOF"
+contract_ref = "services/gateway/README.md"
+
+[[seams]]
+from_owner = "harness"
+to_owner = "agent-methods"
+source_glob = "services/harness/scripts/browserless_podman_deploy.py"
+allowed_fragment = "/root/.agents/skills/browser-use/SKILL.md"
+kind = "EXTERNAL_USER_SKILL_LOCATOR_ONLY"
+contract_ref = "services/harness/README.md"

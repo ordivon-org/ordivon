@@ -69,6 +69,59 @@ class AffectedOwnersTests(unittest.TestCase):
             self.queue_tasks("capabilities/artifact/README.md"), ["artifact:queue"]
         )
 
+    def test_real_cross_system_sources_have_native_owner_verification(self) -> None:
+        self.assertEqual(
+            self.names("tools/repo/source_history_legos.py"),
+            [owner.name for owner in MODULE.OWNERS],
+        )
+        # Repository governance is intrinsically cross-cutting and still
+        # runs the root repo:ci gate instead of claiming exclusive authority.
+        self.assertEqual(self.names("tools/formal/verify.py"), ["formal-tooling"])
+        self.assertEqual(self.tasks("tools/formal/verify.py"), ["formal:verify"])
+        self.assertEqual(
+            self.names(".agents/skills/recursive-lego-calculus/SKILL.md"),
+            ["agent-methods"],
+        )
+        self.assertEqual(
+            self.tasks(".agents/skills/recursive-lego-calculus/SKILL.md"),
+            ["agent-methods:verify"],
+        )
+
+    def test_exact_scope_census_distinguishes_real_owned_and_unregistered_paths(self) -> None:
+        census = MODULE.repo_scope_census(
+            [
+                "tools/repo/source_history_legos.py",
+                "tools/formal/verify.py",
+                ".agents/skills/recursive-lego-calculus/SKILL.md",
+                "meta/research/venues/fse-2027-research-r1.json",
+                "docs/architecture/README.md",
+                "README.md",
+            ]
+        )
+        self.assertEqual(census["matchedTrackedFiles"], 2)
+        self.assertEqual(census["unmatchedTrackedFiles"], 4)
+        areas = {x["area"]: x for x in census["unregisteredAreas"]}
+        self.assertEqual(set(areas), {"tools/repo", "meta/research", "docs/architecture", "[repository-root]"})
+        self.assertEqual(
+            areas["meta/research"]["standing"],
+            "UNREGISTERED_REPO_SCOPE_NOT_LEGO_VERDICT",
+        )
+        self.assertTrue(all(x["count"] == 1 for x in areas.values()))
+
+    def test_unknown_new_executable_tools_scope_fails_closed(self) -> None:
+        with self.assertRaisesRegex(ValueError, "unregistered owner path"):
+            MODULE.require_registered_execution_paths(
+                ["tools/unclassified-future-owner/engine.py"]
+            )
+        # Existing cross-owner Repo mechanics remains admitted.
+        MODULE.require_registered_execution_paths(["tools/repo/check_owner_boundaries.py"])
+
+    def test_unclassified_new_root_path_stays_visible_as_unowned(self) -> None:
+        # Avoid masking absent classification by routing all unknown paths
+        # silently into an accidental global repository owner.
+        self.assertEqual(self.names("tools/unclassified-future-owner/engine.py"), [])
+        self.assertEqual(self.tasks("tools/unclassified-future-owner/engine.py"), [])
+
     def test_control_plugin_is_a_first_class_owner(self) -> None:
         self.assertEqual(
             self.tasks("extensions/ordivon-control-plane/plugin.json"),

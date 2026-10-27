@@ -177,6 +177,18 @@ class OwnerBoundaryTests(unittest.TestCase):
             "meta/next/domains/game/game-autonomous-interest-protocol-r7.json"
         ))
 
+    def test_comment_reference_is_not_admitted_as_cross_owner_consumption(self) -> None:
+        source = (
+            '# documentation: .agents/skills is the portable directory\n'
+            'configured_root = ".agents/skills"\n'
+        )
+        observed = MODULE.findings_for_text(
+            "meta/next/scripts/materialize_agent_plugin.py", source, OWNERS,
+        )
+        self.assertEqual(len(observed), 1)
+        self.assertEqual(observed[0].line, 2)
+        self.assertEqual(observed[0].to_owner, "agent-methods")
+
     def test_real_web_source_is_scanned(self) -> None:
         self.assertTrue(MODULE.is_active_path("apps/web/src/security-agent-verifier.ts"))
 
