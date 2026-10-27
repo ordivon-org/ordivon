@@ -190,6 +190,39 @@ def test_stale_gate_digest_and_anchor_mismatch_fail_closed() -> None:
         evaluate_successor_gates(contract, [wrong_anchor])
 
 
+def test_optional_only_successor_gates_never_claim_vacuous_mechanical_closure() -> None:
+    # A self-referential successor may be described with no required Gate.
+    # An empty set of verified obligations is not a proof of improvement.
+    contract = valid_contract()
+    contract["evaluationGrounding"] = {
+        "mode": "SELF_REFERENTIAL",
+        "anchors": [
+            {
+                "id": "anchor:self-judge",
+                "ownerId": "system:harness-candidate",
+                "ref": "judge:self-v1",
+                "digest": _digest("self-judge"),
+                "relation": "CANDIDATE_OWNED",
+            }
+        ],
+    }
+    contract["gateRequirements"][0]["anchorRefIds"] = ["anchor:self-judge"]
+    contract["gateRequirements"][0]["required"] = False
+
+    no_observations = evaluate_successor_gates(contract, [])
+    assert no_observations["requiredGateIds"] == []
+    assert no_observations["standing"] == "SUCCESSOR_GATES_OPEN"
+    assert no_observations["mechanicalSuccessorClosure"] is False
+
+    optional_evidence = gate_result(contract)
+    optional_evidence["anchorRefIds"] = ["anchor:self-judge"]
+    observed_optional = evaluate_successor_gates(contract, [optional_evidence])
+    assert observed_optional["standing"] == "SUCCESSOR_GATES_OPEN"
+    assert observed_optional["mechanicalSuccessorClosure"] is False
+    assert observed_optional["promotionAuthorityEstablished"] is False
+    assert observed_optional["domainImprovementEstablished"] is False
+
+
 def test_self_referential_contract_is_descriptive_not_externally_grounded() -> None:
     contract = valid_contract()
     contract["evaluationGrounding"] = {
