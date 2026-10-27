@@ -177,6 +177,7 @@ LEGO_RELATION_KINDS = frozenset({
 })
 
 OWNER_LEGO_PLANS = (
+    "apps/web/planning/lego-plan-r1.json",
     "meta/next/planning/lego-plan-r1.json",
     "domains/capital/planning/lego-plan-r1.json",
     "packages/composition/planning/lego-plan-r1.json",
@@ -190,6 +191,7 @@ OWNER_LEGO_PLANS = (
     "capabilities/media/planning/lego-plan-r1.json",
     "tools/repo/planning/lego-plan-r1.json",
     "services/gateway/planning/lego-plan-r1.json",
+    "capabilities/preservation/planning/lego-plan-r1.json",
 )
 
 # Other already-consumed Owner versions and named carriers do not share the R1

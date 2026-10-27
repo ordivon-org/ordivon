@@ -127,6 +127,42 @@ def test_gateway_recursive_source_contracts_are_non_authoritative_and_consumer_b
         module.validate_owner_lego_graph(broken)
 
 
+
+def test_preservation_recursive_profile_bindings_are_source_only_and_fail_closed() -> None:
+    """Qualified local source, storage route and fixity schedule are not AIP truth."""
+    relative = "capabilities/preservation/planning/lego-plan-r1.json"
+    document = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+    module.validate_owner_lego_graph(document)
+    module.validate_owner_lego_dependencies(document, "capabilities/preservation")
+    assert {item["id"] for item in document["nodes"]} == {
+        "PV00", "PV01", "PV02", "PV03",
+    }
+    for node in document["nodes"]:
+        assert all(node[field] for field in (
+            "responsibility", "inputs", "outputs", "behavioralContract", "acceptance",
+            "evidence", "consumerEvidence",
+        ))
+        assert node["state"] == "SOURCE_QUALIFIED_NOT_INSTALLED"
+    assert any(edge["from"] == "PV02" and edge["to"] == "PV03"
+               and edge["type"] == "DEPENDENCY" for edge in document["edges"])
+    boundary = json.loads((ROOT / "capabilities/preservation/SOURCE_BOUNDARY.json")
+                          .read_text(encoding="utf-8"))
+    assert "planning/lego-plan-r1.json" in boundary["includedPaths"]
+    assert "planning/**" not in boundary["includedPaths"]
+    graph = module.project_owner_lego_source_graph(ROOT)
+    for identity in ("PV00", "PV01", "PV02", "PV03"):
+        vertex = next(v for v in graph["vertices"] if v["ref"] == f"{relative}#{identity}")
+        assert vertex["sourceAnchors"] and not vertex["unresolvedSourceEvidence"]
+        assert vertex["sourceCoverageStanding"] == "DECLARED_SOURCE_MEMBERSHIP_PARTIAL"
+    assert "ACTUAL_CONSUMER" in graph["excluded"]["unverifiedFacets"]
+    wrong = copy.deepcopy(document)
+    wrong["edges"].append({
+        "from": "PV03", "to": "PV_NONEXISTENT", "type": "DEPENDENCY",
+    })
+    with pytest.raises(module.ArchitectureDocsError, match="unknown LEGO edge endpoint"):
+        module.validate_owner_lego_graph(wrong)
+
+
 @pytest.mark.parametrize("relative", OWNER_GRAPH_PLANS)
 def test_owner_slice_relation_is_closed(relative: str) -> None:
     module.validate_owner_lego_graph(json.loads((ROOT / relative).read_text(encoding="utf-8")))
@@ -1646,6 +1682,55 @@ def test_upstream_local_import_dependency_change_invalidates_with_stable_target_
     assert same["changedUpstreamLocalSourceFiles"] == []
     assert same["proofReuseAdmissible"] is False
 
+
+
+def test_phase1_web_cross_security_effect_and_http_lego_boundaries() -> None:
+    """Verify source-semantic roles separately: policy ≠ effect ≠ HTTP rails."""
+    plan = json.loads(
+        (ROOT / "apps/web/planning/lego-plan-r1.json").read_text(encoding="utf-8")
+    )
+    nodes = {n["id"]: n for n in plan["nodes"]}
+    assert set(nodes) == {f"W0{i}" for i in range(1, 7)}
+    module.validate_owner_lego_graph(plan)
+    module.validate_owner_lego_dependencies(plan, "apps/web")
+    module.validate_owner_lego_source_evidence(
+        ROOT, "apps/web/planning/lego-plan-r1.json", plan
+    )
+    source = (ROOT / "apps/web/src/app.ts").read_text(encoding="utf-8")
+    server = (ROOT / "apps/web/src/server.ts").read_text(encoding="utf-8")
+    store = (ROOT / "apps/web/src/store.ts").read_text(encoding="utf-8")
+    authority = (ROOT / "apps/web/src/agent-authority.ts").read_text(encoding="utf-8")
+    for observed in (
+        "async function verifiedAgent(", "async function admitAgentEffect(",
+        "store.resolveAgentGrant(", "store.commitAgentCanaryCreate(",
+        "store.commitAgentCanaryPublish(",
+    ):
+        assert observed in source
+    assert "SecurityContractAdmissionEvaluator" in authority
+    for effect in ("commitAgentCanaryCreate(", "commitAgentCanaryPublish(",
+                   "resolveAgentEffectReplay(", "putEffectApproval("):
+        assert effect in store
+    assert 'import { createWebApp } from "./app.ts";' in server
+    assert "await createWebApp(" in server
+
+    assert {"W03", "W04"} <= set(nodes["W05"]["dependencies"])
+    assert {f"W0{i}" for i in range(1, 6)} == set(nodes["W06"]["dependencies"])
+    assert {edge["from"] for edge in plan["edges"]
+            if edge["to"] == "W06" and edge["type"] == "COMPOSITION"} == {
+                f"W0{i}" for i in range(1, 6)
+            }
+    for node in nodes.values():
+        assert all(node.get(key) for key in
+                   ("inputs", "outputs", "behavioralContract", "acceptance", "evidence"))
+        assert "UNKNOWN" in node["sourceStanding"]
+        for witness in node["consumerBindings"]:
+            assert witness["standing"] in {
+                "SOURCE_HANDLER_OR_TEST_NOT_INSTALLED",
+                "SOURCE_BOOTSTRAP_ONLY", "STATIC_TEST_ONLY",
+            }
+            assert (ROOT / witness["path"]).is_file()
+    # This is a source-only claim: CI cannot elevate it to installed/domain PASS.
+    assert all("DEPLOYED_CURRENTNESS_UNKNOWN" in n["sourceStanding"] for n in nodes.values())
 
 def test_skills_r21_semantic_node_consumer_source_falsification() -> None:
     """A new Skills LEGO must point to a real source-defined consumer surface.
