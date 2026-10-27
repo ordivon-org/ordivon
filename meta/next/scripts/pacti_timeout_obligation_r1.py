@@ -245,13 +245,20 @@ def execute_pacti(spec: dict[str, Any]) -> dict[str, Any]:
         mismatch["grantMaxMs"],
         mismatch["runtimeMaxMs"],
     )
+    from pacti.utils.errors import IncompatibleArgsError
+
     mismatch_error_type: str | None = None
     mismatch_error: str | None = None
+    rejected_by_pacti = False
     try:
         bad_grant.compose(bad_gateway).compose(bad_runtime)
-    except Exception as exc:  # Pacti owns the concrete exception hierarchy.
+    except IncompatibleArgsError as exc:
+        # Only Pacti's real typed rejection can discharge this verifier
+        # obligation. Unrelated failures propagate; equal class names do not
+        # establish that an external mathematical provider rejected a model.
         mismatch_error_type = type(exc).__name__
         mismatch_error = str(exc)
+        rejected_by_pacti = True
 
     formal = {
         "pactiVersion": spec["pactiVersion"],
@@ -270,7 +277,7 @@ def execute_pacti(spec: dict[str, Any]) -> dict[str, Any]:
             "runtimeMaxMs": mismatch["runtimeMaxMs"],
             "errorType": mismatch_error_type,
             "error": mismatch_error,
-            "rejected": mismatch_error_type == "IncompatibleArgsError",
+            "rejected": rejected_by_pacti,
         },
     }
     formal["formalResultDigest"] = canonical_digest(formal)
