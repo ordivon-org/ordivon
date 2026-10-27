@@ -399,6 +399,798 @@
     "semanticValidity": "UNKNOWN"
   },
   "kind": "ordivon.phase1-fullsystem-source-scope-census",
+  "localGitRepositorySourceScope": {
+    "candidateOrdivonGitRoots": 9,
+    "candidateOrdivonTrackedSourceEntries": 14083,
+    "notes": [
+      "Local /root/projects only; not all installed, Windows, remote or provider sources.",
+      "Monorepo working repository HEAD is independent of this evidence file SourceCut and candidate PR source root.",
+      "Cross-repository runtime consumer, publish target, operational installation and authority require native evidence; excluded local Git roots are not assumed owned."
+    ],
+    "observedGitRoots": 12,
+    "qualification": "BOUNDED_LOCAL_GIT_PATH_ENUMERATION_ONLY_NOT_MONOREPO_COVERAGE_OR_DOMAIN_CONSUMER",
+    "qualifiedCrossRepositorySourceLiterals": [
+      {
+        "observedLiteral": "repository: ordivon-org/ordivon-media",
+        "sourceGitPath": "capabilities/media/.ordivon/publication.yaml",
+        "standing": "GIT_BLOB_LITERAL_REFERENCE_NOT_INSTALLED_OR_CONSUMER_CLOSURE",
+        "targetRepository": "ordivon-media"
+      },
+      {
+        "observedLiteral": "/root/projects/ordivon-research-v2/profiles/paper1_standard_native_r2.toml",
+        "sourceGitPath": "meta/next/authorities/records/acm-sigsoft/acm-sigsoft-benchmarking.json",
+        "standing": "GIT_BLOB_LITERAL_REFERENCE_NOT_INSTALLED_OR_CONSUMER_CLOSURE",
+        "targetRepository": "ordivon-research-v2"
+      },
+      {
+        "observedLiteral": "\"name\": \"ordivon-paper2\"",
+        "sourceGitPath": "capabilities/media/productions/ordivon-system-constellation-atlas/source/repositories.json",
+        "standing": "GIT_BLOB_LITERAL_REFERENCE_NOT_INSTALLED_OR_CONSUMER_CLOSURE",
+        "targetRepository": "ordivon-paper2"
+      }
+    ],
+    "repositories": [
+      {
+        "consumerClosure": "UNKNOWN",
+        "effectAuthority": "NOT_INFERRED_FROM_LOCAL_REPO",
+        "installedCurrentness": "UNKNOWN",
+        "localRoot": "/root/projects/SillyTavern",
+        "repository": "SillyTavern",
+        "scopeStanding": "NOT_AUTOMATICALLY_ORDIVON",
+        "semanticIdentity": "UNKNOWN_NOT_ESTABLISHED_BY_REPOSITORY_NAME",
+        "sourceCut": "ad29cbda62e92f145e44d7a10398a38af22ca986",
+        "topLevelEntries": [
+          {
+            "entry": "(root-level-files)",
+            "trackedFiles": 28
+          },
+          {
+            "entry": ".gemini",
+            "trackedFiles": 1
+          },
+          {
+            "entry": ".github",
+            "trackedFiles": 25
+          },
+          {
+            "entry": ".vscode",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "backups",
+            "trackedFiles": 1
+          },
+          {
+            "entry": "colab",
+            "trackedFiles": 1
+          },
+          {
+            "entry": "data",
+            "trackedFiles": 1
+          },
+          {
+            "entry": "default",
+            "trackedFiles": 200
+          },
+          {
+            "entry": "docker",
+            "trackedFiles": 3
+          },
+          {
+            "entry": "plugins",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "public",
+            "trackedFiles": 592
+          },
+          {
+            "entry": "src",
+            "trackedFiles": 111
+          },
+          {
+            "entry": "tests",
+            "trackedFiles": 43
+          }
+        ],
+        "trackedFiles": 1010
+      },
+      {
+        "consumerClosure": "UNKNOWN",
+        "effectAuthority": "NOT_INFERRED_FROM_LOCAL_REPO",
+        "installedCurrentness": "UNKNOWN",
+        "localRoot": "/root/projects/ordivon",
+        "repository": "ordivon",
+        "scopeStanding": "CURRENT_ORIGINAL_WORKTREE",
+        "semanticIdentity": "UNKNOWN_NOT_ESTABLISHED_BY_REPOSITORY_NAME",
+        "sourceCut": "cbdd02771c7bc7842c38374854ffee703fb666e4",
+        "topLevelEntries": [
+          {
+            "entry": "(root-level-files)",
+            "trackedFiles": 6
+          },
+          {
+            "entry": ".agents",
+            "trackedFiles": 39
+          },
+          {
+            "entry": ".github",
+            "trackedFiles": 4
+          },
+          {
+            "entry": "apps",
+            "trackedFiles": 26
+          },
+          {
+            "entry": "capabilities",
+            "trackedFiles": 1123
+          },
+          {
+            "entry": "docs",
+            "trackedFiles": 226
+          },
+          {
+            "entry": "domains",
+            "trackedFiles": 455
+          },
+          {
+            "entry": "extensions",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "meta",
+            "trackedFiles": 1027
+          },
+          {
+            "entry": "packages",
+            "trackedFiles": 45
+          },
+          {
+            "entry": "platform",
+            "trackedFiles": 642
+          },
+          {
+            "entry": "profiles",
+            "trackedFiles": 3
+          },
+          {
+            "entry": "services",
+            "trackedFiles": 1327
+          },
+          {
+            "entry": "tests",
+            "trackedFiles": 1
+          },
+          {
+            "entry": "tools",
+            "trackedFiles": 45
+          }
+        ],
+        "trackedFiles": 4971
+      },
+      {
+        "consumerClosure": "UNKNOWN",
+        "effectAuthority": "NOT_INFERRED_FROM_LOCAL_REPO",
+        "installedCurrentness": "UNKNOWN",
+        "localRoot": "/root/projects/ordivon-media",
+        "repository": "ordivon-media",
+        "scopeStanding": "CANDIDATE_ORDIVON_SIBLING_BY_NAME",
+        "semanticIdentity": "UNKNOWN_NOT_ESTABLISHED_BY_REPOSITORY_NAME",
+        "sourceCut": "30f6d1228a4270a68cd715ca9a7b17742478958e",
+        "topLevelEntries": [
+          {
+            "entry": "(root-level-files)",
+            "trackedFiles": 15
+          },
+          {
+            "entry": ".github",
+            "trackedFiles": 3
+          },
+          {
+            "entry": ".ordivon",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "apps",
+            "trackedFiles": 19
+          },
+          {
+            "entry": "docs",
+            "trackedFiles": 25
+          },
+          {
+            "entry": "media-v2",
+            "trackedFiles": 17
+          },
+          {
+            "entry": "packages",
+            "trackedFiles": 6
+          },
+          {
+            "entry": "planning",
+            "trackedFiles": 1
+          },
+          {
+            "entry": "play",
+            "trackedFiles": 8
+          },
+          {
+            "entry": "productions",
+            "trackedFiles": 212
+          },
+          {
+            "entry": "research",
+            "trackedFiles": 170
+          },
+          {
+            "entry": "schemas",
+            "trackedFiles": 5
+          },
+          {
+            "entry": "scripts",
+            "trackedFiles": 19
+          },
+          {
+            "entry": "src",
+            "trackedFiles": 25
+          },
+          {
+            "entry": "tests",
+            "trackedFiles": 23
+          }
+        ],
+        "trackedFiles": 550
+      },
+      {
+        "consumerClosure": "UNKNOWN",
+        "effectAuthority": "NOT_INFERRED_FROM_LOCAL_REPO",
+        "installedCurrentness": "UNKNOWN",
+        "localRoot": "/root/projects/ordivon-paper1-emse-r3-frozen",
+        "repository": "ordivon-paper1-emse-r3-frozen",
+        "scopeStanding": "CANDIDATE_ORDIVON_SIBLING_BY_NAME",
+        "semanticIdentity": "UNKNOWN_NOT_ESTABLISHED_BY_REPOSITORY_NAME",
+        "sourceCut": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+        "topLevelEntries": [
+          {
+            "entry": "(root-level-files)",
+            "trackedFiles": 6
+          },
+          {
+            "entry": ".dvc",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "deployment",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "docs",
+            "trackedFiles": 43
+          },
+          {
+            "entry": "dogfood",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "evals",
+            "trackedFiles": 17
+          },
+          {
+            "entry": "evidence",
+            "trackedFiles": 4
+          },
+          {
+            "entry": "papers",
+            "trackedFiles": 267
+          },
+          {
+            "entry": "profiles",
+            "trackedFiles": 4
+          },
+          {
+            "entry": "publication",
+            "trackedFiles": 12
+          },
+          {
+            "entry": "registry",
+            "trackedFiles": 15
+          },
+          {
+            "entry": "reports",
+            "trackedFiles": 1
+          },
+          {
+            "entry": "requirements",
+            "trackedFiles": 1
+          },
+          {
+            "entry": "research_objects",
+            "trackedFiles": 215
+          },
+          {
+            "entry": "scripts",
+            "trackedFiles": 13
+          },
+          {
+            "entry": "src",
+            "trackedFiles": 1
+          },
+          {
+            "entry": "tests",
+            "trackedFiles": 16
+          },
+          {
+            "entry": "tooling",
+            "trackedFiles": 50
+          },
+          {
+            "entry": "workflows",
+            "trackedFiles": 2
+          }
+        ],
+        "trackedFiles": 673
+      },
+      {
+        "consumerClosure": "UNKNOWN",
+        "effectAuthority": "NOT_INFERRED_FROM_LOCAL_REPO",
+        "installedCurrentness": "UNKNOWN",
+        "localRoot": "/root/projects/ordivon-paper1-r25-reviewer-risk-closure-20260922",
+        "repository": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+        "scopeStanding": "CANDIDATE_ORDIVON_SIBLING_BY_NAME",
+        "semanticIdentity": "UNKNOWN_NOT_ESTABLISHED_BY_REPOSITORY_NAME",
+        "sourceCut": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+        "topLevelEntries": [
+          {
+            "entry": "(root-level-files)",
+            "trackedFiles": 6
+          },
+          {
+            "entry": ".dvc",
+            "trackedFiles": 2
+          },
+          {
+            "entry": ".github",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "data-products",
+            "trackedFiles": 4
+          },
+          {
+            "entry": "deployment",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "discovery",
+            "trackedFiles": 518
+          },
+          {
+            "entry": "docs",
+            "trackedFiles": 125
+          },
+          {
+            "entry": "dogfood",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "evals",
+            "trackedFiles": 17
+          },
+          {
+            "entry": "evidence",
+            "trackedFiles": 7
+          },
+          {
+            "entry": "papers",
+            "trackedFiles": 624
+          },
+          {
+            "entry": "planning",
+            "trackedFiles": 1
+          },
+          {
+            "entry": "profiles",
+            "trackedFiles": 3
+          },
+          {
+            "entry": "publication",
+            "trackedFiles": 12
+          },
+          {
+            "entry": "registry",
+            "trackedFiles": 16
+          },
+          {
+            "entry": "research",
+            "trackedFiles": 988
+          },
+          {
+            "entry": "research_objects",
+            "trackedFiles": 215
+          },
+          {
+            "entry": "scripts",
+            "trackedFiles": 22
+          },
+          {
+            "entry": "src",
+            "trackedFiles": 1
+          },
+          {
+            "entry": "tests",
+            "trackedFiles": 27
+          },
+          {
+            "entry": "tooling",
+            "trackedFiles": 50
+          },
+          {
+            "entry": "workflows",
+            "trackedFiles": 2
+          }
+        ],
+        "trackedFiles": 2646
+      },
+      {
+        "consumerClosure": "UNKNOWN",
+        "effectAuthority": "NOT_INFERRED_FROM_LOCAL_REPO",
+        "installedCurrentness": "UNKNOWN",
+        "localRoot": "/root/projects/ordivon-paper2",
+        "repository": "ordivon-paper2",
+        "scopeStanding": "CANDIDATE_ORDIVON_SIBLING_BY_NAME",
+        "semanticIdentity": "UNKNOWN_NOT_ESTABLISHED_BY_REPOSITORY_NAME",
+        "sourceCut": "a0169766a19194dbcbdf0cf28ca963d89abf5d69",
+        "topLevelEntries": [
+          {
+            "entry": "(root-level-files)",
+            "trackedFiles": 5
+          },
+          {
+            "entry": ".dvc",
+            "trackedFiles": 2
+          },
+          {
+            "entry": ".github",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "campaigns",
+            "trackedFiles": 749
+          },
+          {
+            "entry": "candidates",
+            "trackedFiles": 8
+          },
+          {
+            "entry": "discovery",
+            "trackedFiles": 80
+          },
+          {
+            "entry": "feasibility",
+            "trackedFiles": 3
+          },
+          {
+            "entry": "novelty",
+            "trackedFiles": 9
+          },
+          {
+            "entry": "protocol",
+            "trackedFiles": 9
+          },
+          {
+            "entry": "sampling",
+            "trackedFiles": 97
+          },
+          {
+            "entry": "screening",
+            "trackedFiles": 934
+          },
+          {
+            "entry": "scripts",
+            "trackedFiles": 26
+          },
+          {
+            "entry": "tests",
+            "trackedFiles": 13
+          },
+          {
+            "entry": "tools",
+            "trackedFiles": 3
+          }
+        ],
+        "trackedFiles": 1940
+      },
+      {
+        "consumerClosure": "UNKNOWN",
+        "effectAuthority": "NOT_INFERRED_FROM_LOCAL_REPO",
+        "installedCurrentness": "UNKNOWN",
+        "localRoot": "/root/projects/ordivon-r21-blind-eval-private-20261001",
+        "repository": "ordivon-r21-blind-eval-private-20261001",
+        "scopeStanding": "CANDIDATE_ORDIVON_SIBLING_BY_NAME",
+        "semanticIdentity": "UNKNOWN_NOT_ESTABLISHED_BY_REPOSITORY_NAME",
+        "sourceCut": "37f7d433ce9917aefba7f2940fef7ead8dc1e235",
+        "topLevelEntries": [
+          {
+            "entry": "(root-level-files)",
+            "trackedFiles": 1
+          },
+          {
+            "entry": "corpus",
+            "trackedFiles": 3
+          },
+          {
+            "entry": "identities",
+            "trackedFiles": 3
+          },
+          {
+            "entry": "manifest",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "randomization",
+            "trackedFiles": 1
+          },
+          {
+            "entry": "scoring",
+            "trackedFiles": 5
+          },
+          {
+            "entry": "source-bundles",
+            "trackedFiles": 5
+          }
+        ],
+        "trackedFiles": 20
+      },
+      {
+        "consumerClosure": "UNKNOWN",
+        "effectAuthority": "NOT_INFERRED_FROM_LOCAL_REPO",
+        "installedCurrentness": "UNKNOWN",
+        "localRoot": "/root/projects/ordivon-r21-blind-eval-public-20261001",
+        "repository": "ordivon-r21-blind-eval-public-20261001",
+        "scopeStanding": "CANDIDATE_ORDIVON_SIBLING_BY_NAME",
+        "semanticIdentity": "UNKNOWN_NOT_ESTABLISHED_BY_REPOSITORY_NAME",
+        "sourceCut": "af66bade40b8cf34d241bb5d89121fd64e288ba8",
+        "topLevelEntries": [
+          {
+            "entry": "arms",
+            "trackedFiles": 3
+          },
+          {
+            "entry": "common",
+            "trackedFiles": 1
+          },
+          {
+            "entry": "contracts",
+            "trackedFiles": 3
+          },
+          {
+            "entry": "corpus",
+            "trackedFiles": 1
+          },
+          {
+            "entry": "manifests",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "packets",
+            "trackedFiles": 102
+          },
+          {
+            "entry": "rubric",
+            "trackedFiles": 2
+          }
+        ],
+        "trackedFiles": 114
+      },
+      {
+        "consumerClosure": "UNKNOWN",
+        "effectAuthority": "NOT_INFERRED_FROM_LOCAL_REPO",
+        "installedCurrentness": "UNKNOWN",
+        "localRoot": "/root/projects/ordivon-research-v2",
+        "repository": "ordivon-research-v2",
+        "scopeStanding": "CANDIDATE_ORDIVON_SIBLING_BY_NAME",
+        "semanticIdentity": "UNKNOWN_NOT_ESTABLISHED_BY_REPOSITORY_NAME",
+        "sourceCut": "098c623d9c38a2fffcf620242f35577d7c827b69",
+        "topLevelEntries": [
+          {
+            "entry": "(root-level-files)",
+            "trackedFiles": 7
+          },
+          {
+            "entry": ".dvc",
+            "trackedFiles": 2
+          },
+          {
+            "entry": ".github",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "data-products",
+            "trackedFiles": 4
+          },
+          {
+            "entry": "deployment",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "discovery",
+            "trackedFiles": 518
+          },
+          {
+            "entry": "docs",
+            "trackedFiles": 129
+          },
+          {
+            "entry": "evals",
+            "trackedFiles": 17
+          },
+          {
+            "entry": "evidence",
+            "trackedFiles": 7
+          },
+          {
+            "entry": "papers",
+            "trackedFiles": 629
+          },
+          {
+            "entry": "planning",
+            "trackedFiles": 1
+          },
+          {
+            "entry": "profiles",
+            "trackedFiles": 10
+          },
+          {
+            "entry": "publication",
+            "trackedFiles": 12
+          },
+          {
+            "entry": "registry",
+            "trackedFiles": 16
+          },
+          {
+            "entry": "research",
+            "trackedFiles": 1145
+          },
+          {
+            "entry": "research_objects",
+            "trackedFiles": 230
+          },
+          {
+            "entry": "schemas",
+            "trackedFiles": 1
+          },
+          {
+            "entry": "scripts",
+            "trackedFiles": 11
+          },
+          {
+            "entry": "src",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "studies",
+            "trackedFiles": 82
+          },
+          {
+            "entry": "tests",
+            "trackedFiles": 27
+          },
+          {
+            "entry": "tooling",
+            "trackedFiles": 50
+          }
+        ],
+        "trackedFiles": 2904
+      },
+      {
+        "consumerClosure": "UNKNOWN",
+        "effectAuthority": "NOT_INFERRED_FROM_LOCAL_REPO",
+        "installedCurrentness": "UNKNOWN",
+        "localRoot": "/root/projects/ordivon-sts2mcp",
+        "repository": "ordivon-sts2mcp",
+        "scopeStanding": "CANDIDATE_ORDIVON_SIBLING_BY_NAME",
+        "semanticIdentity": "UNKNOWN_NOT_ESTABLISHED_BY_REPOSITORY_NAME",
+        "sourceCut": "960ffb766f5ec6846eca1caf2f238fb47b6d61da",
+        "topLevelEntries": [
+          {
+            "entry": "(root-level-files)",
+            "trackedFiles": 27
+          },
+          {
+            "entry": ".agents",
+            "trackedFiles": 1
+          },
+          {
+            "entry": ".claude",
+            "trackedFiles": 1
+          },
+          {
+            "entry": ".github",
+            "trackedFiles": 1
+          },
+          {
+            "entry": "docs",
+            "trackedFiles": 30
+          },
+          {
+            "entry": "mcp",
+            "trackedFiles": 4
+          },
+          {
+            "entry": "skills",
+            "trackedFiles": 26
+          },
+          {
+            "entry": "tests",
+            "trackedFiles": 25
+          },
+          {
+            "entry": "third_party",
+            "trackedFiles": 142
+          },
+          {
+            "entry": "tools",
+            "trackedFiles": 8
+          }
+        ],
+        "trackedFiles": 265
+      },
+      {
+        "consumerClosure": "UNKNOWN",
+        "effectAuthority": "NOT_INFERRED_FROM_LOCAL_REPO",
+        "installedCurrentness": "UNKNOWN",
+        "localRoot": "/root/projects/oss-e2-uptime-kuma-7984",
+        "repository": "oss-e2-uptime-kuma-7984",
+        "scopeStanding": "NOT_AUTOMATICALLY_ORDIVON",
+        "semanticIdentity": "UNKNOWN_NOT_ESTABLISHED_BY_REPOSITORY_NAME",
+        "sourceCut": "b092505f894d66669b67f46e1da72b51016eceab",
+        "topLevelEntries": [],
+        "trackedFiles": 0
+      },
+      {
+        "consumerClosure": "UNKNOWN",
+        "effectAuthority": "NOT_INFERRED_FROM_LOCAL_REPO",
+        "installedCurrentness": "UNKNOWN",
+        "localRoot": "/root/projects/xby-analysis",
+        "repository": "xby-analysis",
+        "scopeStanding": "NOT_AUTOMATICALLY_ORDIVON",
+        "semanticIdentity": "UNKNOWN_NOT_ESTABLISHED_BY_REPOSITORY_NAME",
+        "sourceCut": "6b79374a30f443bd63f18e859a80e39320b6691c",
+        "topLevelEntries": [
+          {
+            "entry": "(root-level-files)",
+            "trackedFiles": 4
+          },
+          {
+            "entry": ".github",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "analysis",
+            "trackedFiles": 58
+          },
+          {
+            "entry": "planning",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "scripts",
+            "trackedFiles": 10
+          },
+          {
+            "entry": "tests",
+            "trackedFiles": 6
+          },
+          {
+            "entry": "tools",
+            "trackedFiles": 2
+          }
+        ],
+        "trackedFiles": 84
+      }
+    ]
+  },
   "phase1Decision": "ONLY_SCOPE_BOUNDARIES_ADMITTED; DO_NOT_START_RECURSIVE_LEGO_OR_REAL_EFFECT_MIGRATION_FROM_THIS_DOCUMENT",
   "registeredSourcePartitions": [
     {
