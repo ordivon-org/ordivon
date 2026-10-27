@@ -70,7 +70,7 @@ from_owner = "media"
 to_owner = "lego-core"
 source_glob = "capabilities/media/productions/fishing-fable-lego-study-r1/claims.json"
 allowed_fragment = ".agents/skills/recursive-lego-calculus/SKILL.md"
-kind = "PUBLIC_SOURCE_CONTRACT"
+kind = "EVIDENCE_SOURCE_REFERENCE"
 contract_ref = ".agents/skills/recursive-lego-calculus/SKILL.md"
 
 [[seams]]

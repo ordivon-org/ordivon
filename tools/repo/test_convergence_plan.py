@@ -49,14 +49,50 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertEqual(plan["directOwners"], ["media"])
         self.assertEqual(
             plan["verificationOwners"],
-            ["artifact", "distribution", "game", "lego-core", "media", "workstation"],
+            ["artifact", "distribution", "game", "media", "workstation"],
         )
         self.assertEqual(len(plan["scopeIds"]), 1)
         self.assertIn("artifact:verify", plan["verifyTasks"])
         self.assertIn("artifact:queue", plan["queueVerifyTasks"])
-        # New Media -> R2.1 method-source binding is source/provenance only;
-        # the existing connected-component planner is conservatively coarse.
-        self.assertIn("lego-core:verify", plan["verifyTasks"])
+        # A citation is never an undirected Media <-> LEGO Core business edge.
+        self.assertNotIn("lego-core:verify", plan["verifyTasks"])
+
+    def test_media_study_r21_source_citation_is_directional_not_business_coupling(self) -> None:
+        # The Media claims.json provenance citation to R2.1 is source evidence,
+        # not a Media capability calling an executable LEGO Core service.
+        media = MODULE.build_plan(changed_files=[
+            "capabilities/media/productions/fishing-fable-lego-study-r1/claims.json"
+        ])
+        self.assertEqual(media["directOwners"], ["media"])
+        self.assertNotIn("lego-core", media["verificationOwners"])
+        self.assertNotIn(["lego-core", "media"], media["declaredInteractionEdges"])
+
+        core = MODULE.build_plan(changed_files=[
+            ".agents/skills/recursive-lego-calculus/SKILL.md"
+        ])
+        self.assertEqual(core["directOwners"], ["lego-core"])
+        self.assertEqual(core["verificationOwners"], ["lego-core", "media"])
+        self.assertEqual(core["sourceReferenceConsumers"], ["media"])
+        self.assertEqual(core["scopeIds"], ["owner-component:lego-core"])
+
+    def test_source_reference_kind_rejects_widened_fake_contract(self) -> None:
+        source = MODULE.DEPENDENCY_PATH.read_text(encoding="utf-8")
+        invalid = source.replace(
+            'kind = "EVIDENCE_SOURCE_REFERENCE"',
+            'kind = "PUBLIC_PINNED_FORMAL_TOOLCHAIN"',
+            1,
+        )
+        self.assertNotEqual(invalid, source)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "dependency_contracts.toml"
+            path.write_text(invalid, encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "unapproved upstream toolchain"):
+                MODULE.build_plan(
+                    changed_files=[
+                        ".agents/skills/recursive-lego-calculus/SKILL.md"
+                    ],
+                    dependency_path=path,
+                )
 
     def test_security_change_expands_to_harness_and_web_component(self) -> None:
         plan = MODULE.build_plan(changed_files=["platform/security/README.md"])

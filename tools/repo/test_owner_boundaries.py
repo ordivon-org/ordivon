@@ -116,7 +116,7 @@ class OwnerBoundaryTests(unittest.TestCase):
         self.assertEqual((finding.from_owner, finding.to_owner), ("media", "lego-core"))
         matches = MODULE._matching_seams(finding, SEAMS)
         self.assertEqual(len(matches), 1)
-        self.assertEqual(matches[0].kind, "PUBLIC_SOURCE_CONTRACT")
+        self.assertEqual(matches[0].kind, "EVIDENCE_SOURCE_REFERENCE")
         self.assertTrue(matches[0].contract_ref.endswith("recursive-lego-calculus/SKILL.md"))
         # A related skill or different media caller is not granted this source
         # provenance seam; static citation is not dynamic consumer/Proof PASS.
