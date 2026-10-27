@@ -266,7 +266,7 @@ def classification(repo: Path, source: str, proposed: str | None = None) -> dict
 
 def active_source_cells(
     inventory: dict, *, repo: Path, max_files: int = 24, max_depth: int = 6,
-    use_proposal: bool = False,
+    use_proposal: bool = False, include_member_index: bool = False,
 ) -> dict:
     """Compute small, deterministic *physical* source cells on demand.
 
@@ -290,6 +290,7 @@ def active_source_cells(
         zones[zone].append(item)
 
     cells: list[dict] = []
+    member_index: dict[str, str] = {}
     node_problems_by_plan: dict[str, collections.Counter] = collections.defaultdict(collections.Counter)
     for lego in inventory["semanticPlans"]["nodes"]:
         node_problems_by_plan[lego["plan"]].update(lego["problems"])
@@ -343,6 +344,12 @@ def active_source_cells(
             ensure_ascii=True, sort_keys=True,
             separators=(",", ":"),
         ).encode()).hexdigest()
+        if include_member_index:
+            for member in members:
+                path = member["path"]
+                if path in member_index:
+                    raise ValueError(f"source path assigned to multiple cells: {path}")
+                member_index[path] = "sha256:" + member_id
         cells.append({
             "memberGitObjectDigest": "sha256:" + member_id,
             "sourceZone": zone,
@@ -401,10 +408,12 @@ def active_source_cells(
 
     if sum(c["pathCount"] for c in cells) != len(source_paths):
         raise ValueError("source cell cardinality is not complete")
+    if include_member_index and set(member_index) != {p["path"] for p in source_paths}:
+        raise ValueError("source cell index must enumerate every Git path exactly once")
     cells.sort(key=lambda c: (c["sourceZone"], c["physicalPrefix"], c["firstSourcePath"]))
     tallies = collections.Counter(p for c in cells for p in c["problems"])
     observed = collections.Counter(p for c in cells for p in c["observations"])
-    return {
+    result = {
         "kind": "ordivon.source-cell-live-frontier",
         "sourceCut": inventory["sourceCut"],
         "sourceTree": inventory["sourceTree"],
@@ -426,6 +435,77 @@ def active_source_cells(
         },
         "cells": cells,
     }
+    if include_member_index:
+        result["memberCellDigests"] = dict(sorted(member_index.items()))
+    return result
+
+
+def lookup_source_paths(inventory: dict, *, repo: Path,
+                        paths: list[str], max_files: int = 24,
+                        max_depth: int = 6) -> dict:
+    """Bounded exact-file navigation, reusing current native live cell rules.
+
+    Every status is physical/source-only. No alias grants execution authority,
+    installed qualification, a consumer claim or semantic LEGO identity.
+    """
+    if not paths or len(paths) > 32:
+        raise ValueError("lookup accepts 1..32 exact paths per query")
+    cells = active_source_cells(
+        inventory, repo=repo, max_files=max_files, max_depth=max_depth,
+        include_member_index=True,
+    )
+    members = cells.pop("memberCellDigests")
+    by_digest = {c["memberGitObjectDigest"]: c for c in cells["cells"]}
+    indexed = {item["path"]: item for item in inventory["sourcePaths"]}
+    if len(indexed) != len(members) or set(indexed) != set(members):
+        raise ValueError("exact Git source tree and cell membership diverge")
+    findings = []
+    for path in paths:
+        if not path or path.startswith("/") or "\\" in path or \
+                "." in path.split("/") or ".." in path.split("/") or \
+                "//" in path or path.endswith("/"):
+            findings.append({"query": path, "standing": "INVALID_SOURCE_LOCATOR",
+                             "sourceIdentity": None})
+            continue
+        source = indexed.get(path)
+        if source is None:
+            findings.append({"query": path, "standing": "NOT_IN_SOURCE_CUT",
+                             "sourceIdentity": None})
+            continue
+        cell = by_digest[members[path]]
+        zone = cell["sourceZone"]
+        findings.append({
+            "query": path, "standing": "EXACT_GIT_SOURCE",
+            "sourceIdentity": source["sourceIdentity"],
+            "physicalPath": path,
+            "currentSource": source["currentSource"],
+            "proposedSource": source["proposedSource"],
+            "sourceCell": {
+                "sourceZone": zone,
+                "physicalPrefix": cell["physicalPrefix"],
+                "memberGitObjectDigest": cell["memberGitObjectDigest"],
+                "memberCount": cell["pathCount"],
+                "problems": cell["problems"],
+            },
+            # Render-friendly alias. The stable address remains the Git OID/path.
+            "agentNavigationLabel": f"{zone} :: {cell['physicalPrefix']}",
+            "carrierType": source["carrierType"],
+            "sourceProblems": source["problems"],
+            "semanticStanding": "UNKNOWN",
+            "consumerStanding": "UNKNOWN",
+            "installedStanding": "UNKNOWN",
+            "formalStanding": "UNKNOWN",
+        })
+    return {
+        "schemaVersion": 1, "kind": "ordivon.source-cut-exact-path-navigation",
+        "sourceCut": inventory["sourceCut"], "sourceTree": inventory["sourceTree"],
+        "proposalCut": inventory["proposalCut"],
+        "sourcePathDigest": inventory["sourcePathDigest"],
+        "lookupCount": len(findings),
+        "truthBoundary": "one exact Git source cut; paths and cell membership only",
+        "proofReuseAdmissible": False,
+        "lookups": findings,
+    }
 
 
 def main() -> int:
@@ -441,9 +521,19 @@ def main() -> int:
                         help="show proposal-source regions without treating them as current authority")
     parser.add_argument("--cell-max-files", type=int, default=24)
     parser.add_argument("--cell-max-depth", type=int, default=6)
+    parser.add_argument("--lookup-path", action="append", default=[],
+                        help="small exact-Git source/path query; repeat for multiple files")
     args = parser.parse_args()
+    if args.lookup_path and (args.live_cells or args.only_problems or args.summary
+                            or args.use_proposal_cells):
+        parser.error("--lookup-path is a distinct small-result mode")
     result = classification(args.repo, args.source_cut, args.proposal_cut)
-    if args.live_cells:
+    if args.lookup_path:
+        result = lookup_source_paths(
+            result, repo=args.repo, paths=args.lookup_path,
+            max_files=args.cell_max_files, max_depth=args.cell_max_depth,
+        )
+    elif args.live_cells:
         result = active_source_cells(
             result, repo=args.repo, max_files=args.cell_max_files, max_depth=args.cell_max_depth,
             use_proposal=args.use_proposal_cells,
