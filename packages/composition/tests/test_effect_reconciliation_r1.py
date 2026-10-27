@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+from itertools import product
 
 import pytest
 
@@ -151,3 +152,54 @@ def test_existing_cli_rejects_wrong_operation_and_emits_bounded_impact(tmp_path)
     altered = subprocess.run([*cmd[:-1], OP + "-forged"], capture_output=True, text=True)
     assert altered.returncode != 0
     assert "identity mismatch" in altered.stderr
+
+
+def test_c06_concrete_decision_matches_formal_policy_over_complete_finite_abstraction():
+    """72 classified abstract inputs; test relation, NOT proof of Python refinement.
+
+    The native pinned-TLC EffectReplayFence model exhausts this same input
+    partition. Checking these concrete representative JSON inputs provides a
+    finite correspondence witness, not proof of runtime/provider behavior.
+    """
+    tested = 0
+    for state, terminal, recovery, delivery, indexed in product(
+        ("started", "reconcile_required", "completed"),
+        (False, True),
+        (False, True),
+        ("unknown", "in_progress", "committed"),
+        (False, True),
+    ):
+        record = gateway_observation(
+            state=state,
+            terminal=terminal,
+            recovery=recovery,
+            delivery=delivery,
+        )
+        result = qualify_execution_effect_frontier(
+            observation=record,
+            expected_operation_ref=OP,
+            proof_graph=graph(indexed=indexed),
+        )
+        if recovery or delivery == "unknown" or state == "reconcile_required":
+            expected = "RECONCILE_ORIGINAL_OPERATION"
+        elif not terminal:
+            expected = "OBSERVE_ORIGINAL_OPERATION"
+        else:
+            expected = "VERIFY_DOMAIN_EFFECT_WITH_OWNER"
+        assert result["recommendedNextRead"] == expected
+        assert result["automaticRetryAdmissible"] is False
+        assert result["providerEffectEstablished"] is False
+        assert result["proofReuseAdmissible"] is False
+        expected_standing = (
+            {
+                "proof:write": "UNKNOWN",
+                "proof:consumer": "UNKNOWN",
+                "proof:media": "REUSE_CANDIDATE",
+            }
+            if indexed
+            else {"proof:write": "UNKNOWN", "proof:consumer": "UNKNOWN", "proof:media": "UNKNOWN"}
+        )
+        assert standings(result) == expected_standing
+        assert result["selection"]["unindexedChangeRefs"] == ([] if indexed else [EFFECT])
+        tested += 1
+    assert tested == 72
