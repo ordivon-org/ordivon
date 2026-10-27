@@ -275,3 +275,36 @@ directories as registered Owners. No Agent approval role, second classifier,
 LEGO inventory, dynamic consumer proof, installed-status inference,
 physical rename or operation is introduced. The pinned old proposal aliases
 remain historical comparisons; the new sample has its own exact SourceCut.
+
+
+### R3 17 navigation-only source regions and three reclassification decisions
+
+Source-subject Git cut: c7fd6ae2198ede644cd3a3800c0441ba6ef6ec15 (5,003 tracked Git entries).
+Proposed 18-root/17-region manifest: 110c22fa99cdc4df11bb74b96186571fc8a276e0.
+Proposed 21-root/14-region manifest: 32216032707182ece5e62b111f87a9c513348dea.
+
+The same source tree is classified *without moving any Git source bytes*:
+
+| Exact Git source group | 18 roots + 17 regions (PR983) | 21 roots + 14 regions (PR948) |
+|---|---:|---:|
+| Existing registered root source | 4,652 | 4,652 |
+| Existing navigation region source | 327 | 327 |
+| LEGO foundation, formal tools, Research source | 24 navigation-only | 24 newly registered Repo verification-scope paths |
+| Unassigned or ambiguous | 0 | 0 |
+
+Precisely three proposed navigation categories change interpretation between the
+two candidate manifests: lego-r21-mathematical-foundation (2 Git paths) becomes
+ROOT:lego-foundation, native-formal-toolchain-source (10) becomes
+ROOT:formal-toolchain, and research-qualification-source (12) becomes
+ROOT:research. This is a **source-scope/routing choice** and must be decided by
+native verification consumers, not an Agent/person approval or LEGO property.
+Changing registered verification scopes is distinct from source naming or
+underlying mathematical correctness.
+
+The existing evidence JSON now contains all **17**
+candidate navigation areas, the exact count and one source identity witness per
+area, plus both manifest SourceCuts and their path-classification crosswalk.
+The other main-root survey covers all 18 mechanical scopes. Neither provides
+complete consumer closure, a certified running service, a formal property proof
+or a license to rename physical directories. Both manifest proposals are still
+separate from the protected main at the audited cut.

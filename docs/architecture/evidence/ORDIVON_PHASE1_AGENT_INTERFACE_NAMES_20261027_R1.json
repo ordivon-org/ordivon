@@ -61,6 +61,255 @@
     "refinedCandidateCut": "7745085ad65cbe20917d1a4031d07d90e0f8ee80",
     "standing": "CONFLICTING_SOURCE_DISPLAY_ALIASES_NOT_REALIZED_IN_PROTECTED_MAIN"
   },
+  "crossCandidateNavigationRegionSurvey": {
+    "candidate948Cut": "32216032707182ece5e62b111f87a9c513348dea",
+    "candidate948NavigationRegionCount": 14,
+    "candidate948RegisteredVerificationRoots": 21,
+    "candidate983Cut": "110c22fa99cdc4df11bb74b96186571fc8a276e0",
+    "candidate983NavigationRegionCount": 17,
+    "candidate983RegisteredVerificationRoots": 18,
+    "classificationComparison": {
+      "REGION_TO_REGION": 327,
+      "REGION_TO_ROOT": 24,
+      "ROOT_TO_ROOT": 4652
+    },
+    "noPathsUnassignedOrAmbiguousInEitherProposal": true,
+    "notes": [
+      "21 vs 18 verification area roots is a proposal trade-off, not an Agent Owner permission or proof of semantics.",
+      "A path changing REGION to ROOT is a routing/verification partition change, not automatically a new LEGO, consumer or installed service.",
+      "Neither source proposal is promoted to protected main by this derived comparison.",
+      "No source path relocation or Role/Owner correctness assumption is licensed by these rows."
+    ],
+    "regionMemberCount": 351,
+    "regions": [
+      {
+        "classificationUnder948": {
+          "REGION:agent-method-library": 28
+        },
+        "consumerStanding": "UNKNOWN",
+        "exampleGitObject": "100644:blob:335889c386479b1d667ce50917740a2efdd2d116",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "memberStanding": "ONLY_DERIVED_FROM_983_GIT_MANIFEST_ON_SUBJECT_MAIN",
+        "oneExampleGitSource": ".agents/skills/causal-intervention/SKILL.md",
+        "proposalMemberCount": 28,
+        "proposedRegionName": "agent-method-library"
+      },
+      {
+        "classificationUnder948": {
+          "REGION:artifact-method-recipes": 9
+        },
+        "consumerStanding": "UNKNOWN",
+        "exampleGitObject": "100644:blob:ffe7a8e30c642bc232d468aa33b7a21f10ac2829",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "memberStanding": "ONLY_DERIVED_FROM_983_GIT_MANIFEST_ON_SUBJECT_MAIN",
+        "oneExampleGitSource": ".agents/skills/artifact-work/SKILL.md",
+        "proposalMemberCount": 9,
+        "proposedRegionName": "artifact-method-recipes"
+      },
+      {
+        "classificationUnder948": {
+          "REGION:repository-engineering": 41
+        },
+        "consumerStanding": "UNKNOWN",
+        "exampleGitObject": "100755:blob:316b3c97fce2c1034397ef9b17da241fada9bd69",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "memberStanding": "ONLY_DERIVED_FROM_983_GIT_MANIFEST_ON_SUBJECT_MAIN",
+        "oneExampleGitSource": "tools/repo/affected_owners.py",
+        "proposalMemberCount": 41,
+        "proposedRegionName": "repository-engineering"
+      },
+      {
+        "classificationUnder948": {
+          "REGION:repository-migration-operators": 5
+        },
+        "consumerStanding": "UNKNOWN",
+        "exampleGitObject": "100755:blob:87634696d01c5e7765e0b9a6c0ab6930a2b10207",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "memberStanding": "ONLY_DERIVED_FROM_983_GIT_MANIFEST_ON_SUBJECT_MAIN",
+        "oneExampleGitSource": "tools/repo/migration/check-primary-main.sh",
+        "proposalMemberCount": 5,
+        "proposedRegionName": "repository-migration-operators"
+      },
+      {
+        "classificationUnder948": {
+          "REGION:repository-lego-plan-carrier": 1
+        },
+        "consumerStanding": "UNKNOWN",
+        "exampleGitObject": "100644:blob:d9e36edc57566bce62b699f3612f242511059a90",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "memberStanding": "ONLY_DERIVED_FROM_983_GIT_MANIFEST_ON_SUBJECT_MAIN",
+        "oneExampleGitSource": "tools/repo/planning/lego-plan-r1.json",
+        "proposalMemberCount": 1,
+        "proposedRegionName": "repository-lego-plan-carrier"
+      },
+      {
+        "classificationUnder948": {
+          "REGION:research-contract-profiles": 3
+        },
+        "consumerStanding": "UNKNOWN",
+        "exampleGitObject": "100644:blob:4f6c3156fc729d421828369684acfacf73df5bab",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "memberStanding": "ONLY_DERIVED_FROM_983_GIT_MANIFEST_ON_SUBJECT_MAIN",
+        "oneExampleGitSource": "profiles/research/mechanical-components/research-mechanical-component-r1.schema.json",
+        "proposalMemberCount": 3,
+        "proposedRegionName": "research-contract-profiles"
+      },
+      {
+        "classificationUnder948": {
+          "REGION:research-profile-conformance": 1
+        },
+        "consumerStanding": "UNKNOWN",
+        "exampleGitObject": "100644:blob:670104e348673a518e60b9d1a3f9a2cd077b2705",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "memberStanding": "ONLY_DERIVED_FROM_983_GIT_MANIFEST_ON_SUBJECT_MAIN",
+        "oneExampleGitSource": "tests/catalogs/test_research_tool_and_mechanical_component_contracts.py",
+        "proposalMemberCount": 1,
+        "proposedRegionName": "research-profile-conformance"
+      },
+      {
+        "classificationUnder948": {
+          "REGION:architecture-documentation": 73
+        },
+        "consumerStanding": "UNKNOWN",
+        "exampleGitObject": "100644:blob:8b017ce1238d3033c1ec60209e5a6153c3ab1639",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "memberStanding": "ONLY_DERIVED_FROM_983_GIT_MANIFEST_ON_SUBJECT_MAIN",
+        "oneExampleGitSource": "docs/architecture/ADMISSION_FABRIC_R1.md",
+        "proposalMemberCount": 73,
+        "proposedRegionName": "architecture-documentation"
+      },
+      {
+        "classificationUnder948": {
+          "REGION:architecture-evidence-carriers": 41
+        },
+        "consumerStanding": "UNKNOWN",
+        "exampleGitObject": "100644:blob:3f2b6b8f64a445691f4409e2faae74fa35521e68",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "memberStanding": "ONLY_DERIVED_FROM_983_GIT_MANIFEST_ON_SUBJECT_MAIN",
+        "oneExampleGitSource": "docs/architecture/evidence/CANONICAL_MAIN_RECONCILIATION_F2EC_R1.json",
+        "proposalMemberCount": 41,
+        "proposedRegionName": "architecture-evidence-carriers"
+      },
+      {
+        "classificationUnder948": {
+          "REGION:migration-acceptance-records": 46
+        },
+        "consumerStanding": "UNKNOWN",
+        "exampleGitObject": "100644:blob:a0c6453c91bcda3ee901bf9bddc5c9a6822b8260",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "memberStanding": "ONLY_DERIVED_FROM_983_GIT_MANIFEST_ON_SUBJECT_MAIN",
+        "oneExampleGitSource": "docs/migration/acceptance/ARCHITECTURE_CONVERGENCE_A02_MONOREPO_ACCEPTANCE_20260921.md",
+        "proposalMemberCount": 46,
+        "proposedRegionName": "migration-acceptance-records"
+      },
+      {
+        "classificationUnder948": {
+          "REGION:migration-provenance-receipts": 60
+        },
+        "consumerStanding": "UNKNOWN",
+        "exampleGitObject": "100644:blob:e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "memberStanding": "ONLY_DERIVED_FROM_983_GIT_MANIFEST_ON_SUBJECT_MAIN",
+        "oneExampleGitSource": "docs/migration/receipts/.gitkeep",
+        "proposalMemberCount": 60,
+        "proposedRegionName": "migration-provenance-receipts"
+      },
+      {
+        "classificationUnder948": {
+          "REGION:migration-retirement-policies": 8
+        },
+        "consumerStanding": "UNKNOWN",
+        "exampleGitObject": "100644:blob:5bb0bdc3a25676acc97ea2afd0ebb497a8b129ce",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "memberStanding": "ONLY_DERIVED_FROM_983_GIT_MANIFEST_ON_SUBJECT_MAIN",
+        "oneExampleGitSource": "docs/migration/retirement/harness-standalone-policy.json",
+        "proposalMemberCount": 8,
+        "proposedRegionName": "migration-retirement-policies"
+      },
+      {
+        "classificationUnder948": {
+          "REGION:retrospective-records": 1
+        },
+        "consumerStanding": "UNKNOWN",
+        "exampleGitObject": "100644:blob:582bccaaebbc29a418e01bdad205b7eda080552f",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "memberStanding": "ONLY_DERIVED_FROM_983_GIT_MANIFEST_ON_SUBJECT_MAIN",
+        "oneExampleGitSource": "docs/retro/dependency-auto-update-coverage-r1.md",
+        "proposalMemberCount": 1,
+        "proposedRegionName": "retrospective-records"
+      },
+      {
+        "classificationUnder948": {
+          "REGION:repository-configuration": 10
+        },
+        "consumerStanding": "UNKNOWN",
+        "exampleGitObject": "100644:blob:8694781c478e2f0bccef88a0b7974793275d277d",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "memberStanding": "ONLY_DERIVED_FROM_983_GIT_MANIFEST_ON_SUBJECT_MAIN",
+        "oneExampleGitSource": ".github/CODEOWNERS",
+        "proposalMemberCount": 10,
+        "proposedRegionName": "repository-configuration"
+      },
+      {
+        "classificationUnder948": {
+          "ROOT:lego-foundation": 2
+        },
+        "consumerStanding": "UNKNOWN",
+        "exampleGitObject": "100644:blob:e6bec425e311e7569e05b4a2a25c1cbbe1136f20",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "memberStanding": "ONLY_DERIVED_FROM_983_GIT_MANIFEST_ON_SUBJECT_MAIN",
+        "oneExampleGitSource": ".agents/skills/recursive-lego-calculus/SKILL.md",
+        "proposalMemberCount": 2,
+        "proposedRegionName": "lego-r21-mathematical-foundation"
+      },
+      {
+        "classificationUnder948": {
+          "ROOT:formal-toolchain": 10
+        },
+        "consumerStanding": "UNKNOWN",
+        "exampleGitObject": "100644:blob:d69be973512a64bd5c4da9d883f1df9c7bd200ab",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "memberStanding": "ONLY_DERIVED_FROM_983_GIT_MANIFEST_ON_SUBJECT_MAIN",
+        "oneExampleGitSource": "tools/formal/Proof.als",
+        "proposalMemberCount": 10,
+        "proposedRegionName": "native-formal-toolchain-source"
+      },
+      {
+        "classificationUnder948": {
+          "ROOT:research": 12
+        },
+        "consumerStanding": "UNKNOWN",
+        "exampleGitObject": "100644:blob:8c778d278839aa61942dcf57b04f050f07773bea",
+        "formalStanding": "UNKNOWN",
+        "installedStanding": "UNKNOWN",
+        "memberStanding": "ONLY_DERIVED_FROM_983_GIT_MANIFEST_ON_SUBJECT_MAIN",
+        "oneExampleGitSource": "meta/research/evidence/publication-carrier-paper3-dogfood-r1.json",
+        "proposalMemberCount": 12,
+        "proposedRegionName": "research-qualification-source"
+      }
+    ],
+    "sourceBoundaryStanding": "EXACT_GIT_SOURCE_AND_MANIFEST_ONLY",
+    "sourcePathCount": 5003,
+    "sourcePathsMovedFromNavigationToRegisteredScopeIn948": 24,
+    "sourceRegionsMovedToVerificationScopeIn948": 3,
+    "subjectGitCut": "c7fd6ae2198ede644cd3a3800c0441ba6ef6ec15"
+  },
   "entries": [
     {
       "agentReadableName": "portable-agent-plugin-package",
