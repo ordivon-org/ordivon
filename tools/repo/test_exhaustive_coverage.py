@@ -17,6 +17,28 @@ SPEC.loader.exec_module(M)
 
 
 class FullCoverageTests(unittest.TestCase):
+    def test_directory_placeholders_only_protect_actually_empty_git_directories(self):
+        """Any populated Git directory already persists without an empty .gitkeep.
+
+        This is a subtraction proof for placeholder *source form*, not
+        evidence that the surrounding real files have active consumers.
+        """
+        cut = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+        ).strip()
+        tracked = set(subprocess.check_output(
+            ["git", "-C", str(ROOT), "ls-tree", "-r", "--name-only", cut],
+            text=True,
+        ).splitlines())
+        for path in sorted(p for p in tracked if p.endswith("/.gitkeep")):
+            prefix = path.rsplit("/", 1)[0] + "/"
+            consumers = [other for other in tracked
+                         if other != path and other.startswith(prefix)]
+            self.assertFalse(consumers, (path, consumers[:3]))
+        self.assertIn("docs/migration/receipts/artifact.commit-map", tracked)
+        self.assertIn("services/gateway/tests/test_access_auth.py", tracked)
+        self.assertIn("domains/capital/data/raw/.gitkeep", tracked)
+
     def test_root_only_is_not_evidence_of_semantic_qualification(self):
         now = M.source_partition("services/runtime/src/main.rs", {
             "owners": [{"name": "runtime", "root": "services/runtime/"}]})

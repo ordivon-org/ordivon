@@ -80,3 +80,70 @@ These tools show current exact source physical paths and content syntax. Names d
 - Do not turn JSON kind strings, Markdown headings, package names or declared authority labels into runnable authorization or formal proofs.
 - Keep main Git source, Research, Media, Paper, Game, OSS, unversioned data, Windows/Linux services and installed binaries in separate identity universes.
 - Unknown and conflicting names stay explicit. There is no misc catch-all that hides an unclassified source.
+
+## R6 — Source coverage is not full Ordivon coverage (2026-10-28)
+
+Baseline protected main 5e61ef7b27acbf98fce2374b65f35536ebbaaba5:
+5,009 tracked Git source paths, 18 mechanical verification roots
+covering 4,652. The 357 other tracked paths are OUTSIDE these roots,
+not missing. Pending PR #983 exact policy
+949c62de7c98d0de88c1b9f697c46fbf5360ab70 assigns all 5,009
+source paths to physical navigation regions without ambiguity, but
+does NOT grant an Owner, semantic or installation authority.
+
+The existing canonical exhaustive_coverage.py derives 19 LEGO-plan
+files, 187 declared nodes and 180 locally identified graph edges at
+this exact baseline. Gaps are not disjoint: 94 nodes have no consumer
+declaration, 77 no contract declaration, 111 no formal declaration,
+14 no evidence declaration, and 39 require node-shape schema mapping.
+A missing declaration is NOT a proof of missing runtime consumers.
+
+### Other source and running identity universes
+
+| Identity universe | Verified or peer-bounded observation | Remaining boundary |
+|---|---|---|
+| Main monorepo | 5,009 Git source paths at stated source cut | Semantic consumers, installed correspondence |
+| Separate Research-v2 Git | Peer observed main 098c623d... has 2,904 paths and divergent fcef6d7a... has 3,000; 29 vs 10 exclusive commits | Active research source cut, paper/frozen outputs |
+| Linux installed stable systemd | Peer observed 109 non-transient units; 61 same-name Git source candidates, of which 40 byte equal, 12 byte different, 9 without regular fragment | Effective installed origin, service process, reader |
+| Windows Runtime and release | Separate installed executable manifest/source witnesses in PR #993 | Live Windows service/source identity |
+| PostgreSQL, datasets, OSS and remote providers | Distinct non-monorepo carriers | Consumer and retention evidence |
+| Work/Space, Jobs/Attempts, Git refs/worktrees | Durable runtime/historical objects | Lifecycle and source-to-running-effect closure |
+
+These cannot be safely added to 5,009 as distinct LEGO identities.
+Research source branches can diverge, and one installed unit can
+refer to multiple source files or be generated, templated or transient.
+
+### Actual source subtraction: redundant populated-directory markers
+
+Two zero-byte current-Git directory-preservation placeholders no
+longer preserve an otherwise empty directory:
+
+- docs/migration/receipts/.gitkeep — same Git directory contains 59
+  real tracked files. A historical migration plan and old pinned
+  R3 source classification mention it, but do not require it to
+  execute any present migration.
+- services/gateway/tests/.gitkeep — same Git directory contains 26
+  real tracked test files. The old pinned R3 source classification
+  still records it at its historical source cut.
+
+Both current placeholders are deleted; those historical snapshot
+records stay unchanged and explicitly represent the former SourceCut.
+The other five empty-directory placeholders stay retained.
+A native negative test ensures a current-Git .gitkeep never coexists
+with another real tracked directory member.
+
+The deletion verdict here is limited to directory marker semantics,
+not a claim that other historical records, graph declarations or
+entire domains lack actual consumers. Further deletion needs observed
+reader/build/deployment/retention semantics, a witness and a native
+consumer check. An absent exact-path static reference is not enough.
+
+### Machine naming contract
+
+Keep identity axes distinct:
+(sourceNamespace, exactGitCut, GitPath, blobOid, contentForm,
+candidateRole, actualConsumer, installedInstance, formalStanding).
+
+SOURCE_ONLY and UNKNOWN are deliberate qualification statuses.
+A complete file census is not an end-to-end product/behavior proof;
+a non-executing source label is not permission to remove its carrier.
