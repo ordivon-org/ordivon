@@ -302,6 +302,44 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
         path = Path(temp) / "owners.toml"
         path.write_text(text, encoding="utf-8", errors="surrogateescape")
         native_owners = load_owners(path)
+    subregions: dict[str, list[tuple[str, str, str]]] = {}
+    all_subregion_names: set[str] = set()
+    for owner_row in data["owners"]:
+        owner_name = owner_row["name"]
+        registered = next(o for o in native_owners if o.name == owner_name)
+        rows = owner_row.get("source_subregions", [])
+        if not isinstance(rows, list):
+            raise ValueError("source subregions must be a list")
+        for row in rows:
+            if (not isinstance(row, dict)
+                or set(row) not in (
+                    {"name", "path", "description"},
+                    {"name", "paths", "description"},
+                )):
+                raise ValueError("source subregions allow only name/path(s)/description, never authority or verification")
+            name, description = row["name"], row["description"]
+            relatives = [row["path"]] if "path" in row else row["paths"]
+            if not isinstance(relatives, list) or not relatives:
+                raise ValueError("source subregion paths must be nonempty literal paths")
+            if (not isinstance(name, str) or re.fullmatch(
+                r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*", name
+            ) is None or name in all_subregion_names):
+                raise ValueError("duplicate or invalid source subregion name")
+            if (not isinstance(description, str) or not description.strip()
+                or any(ord(char) < 32 for char in description)):
+                raise ValueError("source subregion requires descriptive text")
+            for relative in relatives:
+                if not isinstance(relative, str) or not relative:
+                    raise ValueError("source subregion path must be literal")
+                normalized = _normalize(relative).rstrip("/") + ("/" if relative.endswith("/") else "")
+                if relative != normalized or relative.startswith("/") or relative in {".", "./", "/"}:
+                    raise ValueError("source subregion requires canonical owner-relative nonroot path")
+                fullpath = registered.root + relative
+                if any(rule == fullpath for rule, _, _ in subregions.get(owner_name, [])):
+                    raise ValueError("duplicate source subregion path")
+                subregions.setdefault(owner_name, []).append((fullpath, name, description))
+            all_subregion_names.add(name)
+
     regions = data.get("source_regions", [])
     if not isinstance(regions, list):
         raise ValueError("source regions must be an array")
@@ -352,18 +390,50 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
                 key=len,
             )
             bindings[path] = ("region", region["name"], prefix)
+        subregion_matches = []
+        if owner is not None:
+            subregion_matches = [
+                (rule, name, scope) for rule, name, scope in subregions.get(owner, [])
+                if matches(path, rule)
+            ]
+        longest = max((len(rule) for rule, _, _ in subregion_matches), default=0)
+        winners = [
+            (rule, name, scope) for rule, name, scope in subregion_matches
+            if len(rule) == longest
+        ]
+        subregion_standing = (
+            "NOT_OWNER_SOURCE" if owner is None else
+            "QUALIFIED_SOURCE_NAVIGATION" if len(winners) == 1 else
+            "AMBIGUOUS_SOURCE_NAVIGATION" if winners else
+            "UNQUALIFIED_OWNER_SUBREGION"
+        )
         standing = ("REGISTERED_OWNER_SOURCE" if owner is not None else
                     "DECLARED_SOURCE_REGION" if len(matched) == 1 else
                     "AMBIGUOUS" if matched else "UNASSIGNED")
+        region_description = matched_regions[0].get("description") if len(matched_regions) == 1 else None
         entries.append({
             "path": path, "sourceIdentity": identity, "verificationOwner": owner,
+            "sourceAreaLabel": owner_row.semantic_label if owner_row is not None else None,
+            "sourceAreaScope": owner_row.semantic_scope if owner_row is not None else None,
             "sourceRegion": matched[0] if len(matched) == 1 else None,
+            "sourceRegionDescription": region_description,
+            "sourceSubregion": winners[0][1] if len(winners) == 1 else None,
+            "sourceSubregionDescription": winners[0][2] if len(winners) == 1 else None,
+            "sourceSubregionAncestors": [
+                name for rule, name, _ in sorted(subregion_matches, key=lambda item: len(item[0]))
+                if len(rule) < longest
+            ] if len(winners) == 1 else [],
+            "sourceSubregionStanding": subregion_standing,
+            "sourceSubregionMatchedRules": [
+                "owners.source_subregions:" + name for _, name, _ in winners
+            ],
             "classificationStanding": standing,
             "matchedRules": ["owners:" + owner] if owner is not None else
                             ["source_regions:" + name for name in matched],
         })
     subareas = _group_source_paths_by_existing_directory(entries, bindings)
     counts = Counter(row["classificationStanding"] for row in entries)
+    subregion_counts = Counter(row["sourceSubregionStanding"] for row in entries)
     flat = [area for area in subareas
             if area["standing"] == "FLAT_DIRECTORY_NEEDS_SEMANTIC_REVIEW"]
     return {
@@ -379,6 +449,10 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
             "registeredOwnerPaths": counts["REGISTERED_OWNER_SOURCE"],
             "declaredRegionPaths": counts["DECLARED_SOURCE_REGION"],
             "unassigned": counts["UNASSIGNED"], "ambiguous": counts["AMBIGUOUS"],
+            "qualifiedOwnerSubregionPaths": subregion_counts["QUALIFIED_SOURCE_NAVIGATION"],
+            "unqualifiedOwnerSubregionPaths": subregion_counts["UNQUALIFIED_OWNER_SUBREGION"],
+            "ambiguousOwnerSubregionPaths": subregion_counts["AMBIGUOUS_SOURCE_NAVIGATION"],
+            "declaredOwnerSubregions": len(all_subregion_names),
             "sourceSubareas": len(subareas),
             "flatHotspotAreas": len(flat),
             "flatHotspotPaths": sum(row["pathCount"] for row in flat),
@@ -414,6 +488,10 @@ def project_source_classification_delta(
             or any(previous[name] != current[name] for name in (
                 "verificationOwner", "sourceRegion", "classificationStanding",
                 "matchedRules", "sourceSubarea", "subareaStanding",
+                "sourceAreaLabel", "sourceAreaScope",
+                "sourceRegionDescription", "sourceSubregion",
+                "sourceSubregionDescription", "sourceSubregionAncestors",
+                "sourceSubregionStanding", "sourceSubregionMatchedRules",
             ))
         )
         changes.append({

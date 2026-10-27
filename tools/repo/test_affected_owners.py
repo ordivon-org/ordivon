@@ -559,6 +559,124 @@ class SourceClassificationTests(unittest.TestCase):
         self.assertTrue(callable(fn), "existing Repo CLI must expose exact-cut source classification")
         return fn(self.repo, cut)
 
+    def test_nested_owner_subregions_prefer_specific_readable_meaning(self) -> None:
+        nested = (
+            'source_subregions = [\n'
+            '  {name = "runtime-source", path = "crates/", description = "Rust crates"},\n'
+            '  {name = "runtime-core", path = "crates/core/", description = "Core state"},\n'
+            ']\n'
+        )
+        self.manifest.write_text(self.header.replace(
+            'name = "runtime"\n', 'name = "runtime"\n' + nested, 1
+        ))
+        for relative in ("crates/core/state.rs", "crates/adapter.rs"):
+            target = self.repo / "services/runtime" / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text("source", encoding="utf-8")
+        new_cut = self.commit()
+        rows = {e["path"]: e for e in self.project(new_cut)["entries"]}
+        self.assertEqual(
+            rows["services/runtime/crates/core/state.rs"]["sourceSubregion"],
+            "runtime-core",
+        )
+        self.assertEqual(
+            rows["services/runtime/crates/adapter.rs"]["sourceSubregion"],
+            "runtime-source",
+        )
+        self.assertEqual(
+            rows["services/runtime/crates/core/state.rs"]["sourceSubregionDescription"],
+            "Core state",
+        )
+        self.assertEqual(
+            rows["services/runtime/crates/core/state.rs"]["sourceSubregionAncestors"],
+            ["runtime-source"],
+        )
+        self.assertEqual(
+            rows["services/runtime/crates/adapter.rs"]["sourceSubregionAncestors"],
+            [],
+        )
+        main = rows["services/runtime/main.rs"]
+        self.assertIsNone(main["sourceSubregion"])
+        self.assertEqual(main["sourceSubregionStanding"], "UNQUALIFIED_OWNER_SUBREGION")
+        self.assertEqual(main["verificationOwner"], "runtime")
+        self.assertFalse(self.project(new_cut)["proofReuseAdmissible"])
+        self.assertEqual(self.project(new_cut)["summary"]["ambiguousOwnerSubregionPaths"], 0)
+        self.assertEqual(self.project(new_cut)["summary"]["qualifiedOwnerSubregionPaths"], 2)
+        self.assertEqual(self.project(new_cut)["summary"]["declaredOwnerSubregions"], 2)
+        previous = self.project(self.base)
+        previous_main = next(e for e in previous["entries"] if e["path"] == "services/runtime/main.rs")
+        self.assertEqual(previous_main["classificationStanding"], main["classificationStanding"])
+        self.assertIsNone(previous_main["sourceSubregion"])
+        # Subregion labels must not select a new task or a different owner.
+        self.assertEqual(
+            MODULE.owners_for_paths(["services/runtime/crates/core/state.rs"])[0].task,
+            "runtime:verify",
+        )
+        renamed = self.manifest.read_text().replace(
+            'name = "runtime-core"', 'name = "runtime-job-lifecycle"', 1
+        )
+        self.manifest.write_text(renamed)
+        after_rename = self.commit()
+        change = MODULE.project_source_classification_delta(self.repo, new_cut, after_rename)
+        state = next(row for row in change["changes"]
+                     if row["path"] == "services/runtime/crates/core/state.rs")
+        self.assertTrue(state["classificationChanged"])
+        self.assertFalse(state["sourceChanged"])
+        self.assertEqual(state["after"]["sourceSubregion"], "runtime-job-lifecycle")
+
+    def test_grouped_literal_paths_are_one_semantic_navigation_not_new_owners(self) -> None:
+        grouped = (
+            'source_subregions = ['
+            '{name = "runtime-package-root", '
+            'paths = ["main.rs", "README.md"], '
+            'description = "Runtime root public package metadata"}'
+            ']\n'
+        )
+        self.manifest.write_text(self.header.replace(
+            'name = "runtime"\n', 'name = "runtime"\n' + grouped, 1
+        ))
+        readme = self.repo / "services/runtime/README.md"
+        readme.write_text("source", encoding="utf-8")
+        cut = self.commit()
+        projection = self.project(cut)
+        index = {e["path"]: e for e in projection["entries"]}
+        self.assertEqual(index["services/runtime/main.rs"]["sourceSubregion"], "runtime-package-root")
+        self.assertEqual(index["services/runtime/README.md"]["sourceSubregion"], "runtime-package-root")
+        self.assertEqual(projection["summary"]["qualifiedOwnerSubregionPaths"], 2)
+        self.assertEqual(projection["summary"]["declaredOwnerSubregions"], 1)
+        self.assertFalse(projection["proofReuseAdmissible"])
+        self.manifest.write_text(self.header.replace(
+            'name = "runtime"\n',
+            'name = "runtime"\nsource_subregions = ['
+            '{name = "bad", paths = [], description = "empty group"}]\n', 1
+        ))
+        with self.assertRaisesRegex(ValueError, "nonempty literal paths"):
+            self.project(self.commit())
+
+    def test_source_subregions_cannot_impersonate_authority_or_escape_owner(self) -> None:
+        cases = (
+            ('{name="sub",path="crates/",description="native",verify_task="runtime:verify"}',
+             "source subregions allow only"),
+            ('{name="sub",path="../host/",description="native"}',
+             "noncanonical repository path"),
+            ('{name="sub",path="/etc/",description="native"}',
+             "noncanonical repository path"),
+            ('{name="BAD Label",path="crates/",description="native"}',
+             "invalid source subregion name"),
+            ('{name="sub",path="crates/",description="native"},'
+             '{name="other",path="crates/",description="also native"}',
+             "duplicate source subregion path"),
+        )
+        for value, expected in cases:
+            with self.subTest(value=value):
+                content = self.header.replace(
+                    'name = "runtime"\n',
+                    'name = "runtime"\nsource_subregions = [' + value + ']\n', 1
+                )
+                self.manifest.write_text(content)
+                with self.assertRaisesRegex(ValueError, expected):
+                    self.project(self.commit())
+
     def test_regions_classify_source_without_manufacturing_execution_owner(self) -> None:
         self.manifest.write_text(self.header + (
             '\n[[source_regions]]\nname = "lego-core"\n'

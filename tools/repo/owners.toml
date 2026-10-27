@@ -9,6 +9,33 @@ truth_role = "repository-mechanics-only-not-domain-authority"
 # native consumer verification; declare their existing physical boundaries.
 [[owners]]
 name = "next"
+source_subregions = [
+  { name = "next-authority-catalog", path = "authorities/", description = "Source-side authority data, not installed provider truth." },
+  { name = "next-authority-observation-records", path = "authorities/observations/", description = "Observations and captures, not authoritative issuer state." },
+  { name = "next-authority-source-records", path = "authorities/records/", description = "Source records and declared identity bindings." },
+  { name = "next-evidence-corpus", path = "evidence/", description = "Historical evidence carriers, not automatic current acceptance." },
+  { name = "next-acceptance-records", path = "evidence/acceptance/", description = "Declared acceptance evidence and scopes." },
+  { name = "next-data-lifecycle-receipts", path = "evidence/data-lifecycle/", description = "Lifecycle receipts and historical data state." },
+  { name = "next-knowledge-source", path = "knowledge/", description = "Methods and knowledge source material." },
+  { name = "next-knowledge-lessons", path = "knowledge/lessons/", description = "Recorded lessons, not executable skills by default." },
+  { name = "next-knowledge-graph-records", path = "knowledge/graphs/", description = "Knowledge graph source and relationship declarations." },
+  { name = "next-capability-metadata", path = "capabilities/", description = "Described capabilities and provider selection data." },
+  { name = "next-provider-catalog", path = "capabilities/providers/", description = "Provider capability records, not installed availability." },
+  { name = "next-domain-profiles", path = "domains/", description = "Domain profile declarations and legacy plans." },
+  { name = "next-experiment-workspaces", path = "experiments/", description = "Experimental source, not production execution." },
+  { name = "next-experimental-corpora", path = "experimental/", description = "Experimental prototype sources and fixtures." },
+  { name = "next-migration-history", path = "migrations/", description = "Migration records and source rewrite history." },
+  { name = "next-conformance-tests", path = "tests/", description = "Tests and negative acceptance fixtures." },
+  { name = "next-source-operations", path = "scripts/", description = "Repository scripts, effects only on explicit execution." },
+  { name = "next-reference-docs", path = "docs/", description = "Descriptive project reference documents." },
+  { name = "next-historical-plans", path = "planning/", description = "Planning carriers, not current deployed capabilities." },
+  { name = "next-declarative-policies", path = "policies/", description = "Task-local declarative policy source." },
+  { name = "next-schema-contracts", path = "schemas/", description = "Schema source, separate from implementation and execution." },
+  { name = "next-data-product-source", path = "data-products/", description = "Data product source declarations and receipts." },
+  { name = "next-next-repository-ci", paths = [".github/"], description = "Next repository workflow source." },
+  { name = "next-root-reference-instructions", paths = ["AGENTS.md", "README.md"], description = "Root package documentation, license and agent instructions; not installed effects." },
+  { name = "next-root-build-and-toolchain-config", paths = [".gitignore", ".gitleaksignore", ".python-version", "mise.toml", "pyproject.toml", "uv.lock"], description = "Root toolchain, lockfile, package and repository configuration sources." },
+]
 semantic_label = "knowledge-and-method-integration"
 semantic_scope = "Problem-solving methods and cross-domain composition research; no global execution, approval or verification authority."
 root = "meta/next/"
@@ -21,6 +48,18 @@ verify_task = "next:verify"
 # from the R2.1 logical specification and from product-specific proofs.
 [[owners]]
 name = "formal-toolchain"
+source_subregions = [
+  { name = "formal-lean-core-calculus", path = "RecursiveLegoRefinement.lean", description = "Lean mechanized mathematical statements, not implementation refinement." },
+  { name = "formal-lean-change-frame", path = "RecursiveLegoVariationFrame.lean", description = "Lean checked change-frame model and counterexamples." },
+  { name = "formal-toolchain-root-reference-instructions", paths = ["README.md"], description = "Root package documentation, license and agent instructions; not installed effects." },
+  { name = "formal-toolchain-root-build-and-toolchain-config", paths = ["mise.toml"], description = "Root toolchain, lockfile, package and repository configuration sources." },
+  { name = "formal-alloy-source", paths = ["Proof.als"], description = "Alloy relational model source." },
+  { name = "formal-dafny-source", paths = ["Proof.dfy"], description = "Dafny verification model source." },
+  { name = "formal-quint-source", paths = ["Proof.qnt"], description = "Quint state/temporal model source." },
+  { name = "formal-rust-source", paths = ["Proof.rs"], description = "Rust model source, not automatically verified." },
+  { name = "formal-kani-model-source", paths = ["ProofKani.rs"], description = "Kani symbolic Rust test harness source." },
+  { name = "formal-native-verifier-driver", paths = ["verify.py"], description = "Existing native prover invocation and source digest checker." },
+]
 semantic_label = "native-formal-verification-toolchain"
 semantic_scope = "Existing Lean SMT Kani Verus Dafny Alloy and TLA-adjacent verification adapters; not the R2.1 mathematics itself or an Agent approver."
 root = "tools/formal/"
@@ -29,6 +68,10 @@ queue_verify_task = "formal:source:verify"
 
 [[owners]]
 name = "lego-foundation"
+source_subregions = [
+  { name = "lego-mathematical-references", path = "references/", description = "Canonical R2.1 mathematical explanation source." },
+  { name = "lego-core-skill-source", paths = ["SKILL.md"], description = "Canonical LEGO R2.1 procedural Skill source, not a proof or registry." },
+]
 semantic_label = "recursive-lego-r21-method-source"
 semantic_scope = "Canonical R2.1 semantic Skill and formal reference source; not a separate execution engine, universal registry or verification approval authority."
 root = ".agents/skills/recursive-lego-calculus/"
@@ -36,6 +79,13 @@ verify_task = "lego-foundation:verify"
 
 [[owners]]
 name = "research"
+source_subregions = [
+  { name = "research-publication-profiles", path = "publication/", description = "Research venue/publication qualification sources." },
+  { name = "research-planning-records", path = "planning/", description = "Research task provenance and plans." },
+  { name = "research-research-publication-evidence", paths = ["evidence/"], description = "Historical Research publication evidence, not venue acceptance." },
+  { name = "research-research-venue-source-profiles", paths = ["venues/"], description = "Venue/publication target qualification profiles." },
+  { name = "research-root-public-manifests", paths = ["publication-closure-profile-r1.json", "publication-closure-profile-r2.json"], description = "Root API, boundary and configuration manifest declarations." },
+]
 semantic_label = "research-publication-qualification"
 semantic_scope = "Research-domain source contracts, publication eligibility and evidence routing; not all external research repositories or domain acceptance."
 root = "meta/research/"
@@ -43,6 +93,16 @@ verify_task = "research:verify"
 
 [[owners]]
 name = "composition"
+source_subregions = [
+  { name = "composition-interface-mechanics", path = "src/", description = "Task-local composition and interface calculus implementation." },
+  { name = "composition-formal-source", path = "formal/", description = "Composition finite models/logic source." },
+  { name = "composition-mechanics-tests", path = "tests/", description = "Composition mechanical tests and negative cases." },
+  { name = "composition-public-reference", path = "docs/", description = "Composition method contract reference." },
+  { name = "composition-composition-planning-source", paths = ["planning/"], description = "Generic task-local composition LEGO plan carrier." },
+  { name = "composition-composition-source-check-scripts", paths = ["scripts/"], description = "Composition native proof invoker source, not proof on its own." },
+  { name = "composition-root-reference-instructions", paths = ["AGENTS.md", "README.md"], description = "Root package documentation, license and agent instructions; not installed effects." },
+  { name = "composition-root-build-and-toolchain-config", paths = ["mise.toml", "pyproject.toml", "uv.lock"], description = "Root toolchain, lockfile, package and repository configuration sources." },
+]
 semantic_label = "task-local-contract-composition"
 semantic_scope = "Task-local circuit/gate and interface compatibility mechanics; not a universal verifier or natural fact authority."
 root = "packages/composition/"
@@ -50,6 +110,10 @@ verify_task = "composition:verify"
 
 [[owners]]
 name = "control-plugin"
+source_subregions = [
+  { name = "control-plugin-package-manifest", path = "plugin.json", description = "Portable Agent Plugin package manifest; not a control plane process." },
+  { name = "control-plugin-mcp-connectivity", path = "mcp.json", description = "MCP tool connection declarations; not a Tool, Skill, or effect authority." },
+]
 semantic_label = "agent-plugin-connection-package"
 semantic_scope = "Portable Agent Plugin connection metadata for Ordivon MCP; not a running control plane or controller."
 root = "extensions/ordivon-control-plane/"
@@ -57,6 +121,27 @@ verify_task = "control-plugin:verify"
 
 [[owners]]
 name = "runtime"
+source_subregions = [
+  { name = "runtime-rust-implementation", path = "crates/", description = "Native Runtime crates for physical execution lifecycle." },
+  { name = "runtime-core-state-engine", path = "crates/ordivon-runtime-core/", description = "Core Job/Attempt/Workspace/Recovery implementation source." },
+  { name = "runtime-mcp-protocol", path = "crates/ordivon-runtime-mcp/", description = "Runtime MCP transport adapter source." },
+  { name = "runtime-research-corpus", path = "research/", description = "Foundational research, not live Runtime authority." },
+  { name = "runtime-release-operators", path = "scripts/", description = "Runtime scripts and source-side runners." },
+  { name = "runtime-formal-model-source", path = "formal/", description = "Runtime math/model source, not installed proof." },
+  { name = "runtime-deployment-packaging", path = "packaging/", description = "Runtime installation/packaging source." },
+  { name = "runtime-external-tests", path = "tests/", description = "Runtime owner-level external tests." },
+  { name = "runtime-planning-history", path = "planning/", description = "Runtime planning carriers and evidence." },
+  { name = "runtime-reference-docs", path = "docs/", description = "Runtime reference and operator instructions." },
+  { name = "runtime-repo-ci-config", paths = [".github/"], description = "Runtime repository governance and verification workflow." },
+  { name = "runtime-historical-execution-receipts", paths = ["evidence/"], description = "Historical Runtime observations and acceptance receipts." },
+  { name = "runtime-example-execution-clients", paths = ["examples/"], description = "Example Runtime invocation code, not deployed consumers." },
+  { name = "runtime-repository-metadata", paths = [".ordivon/"], description = "Runtime project and publication metadata." },
+  { name = "runtime-native-platform-sources", paths = ["platform/"], description = "Runtime platform-specific realization source." },
+  { name = "runtime-standard-reference-records", paths = ["standards/"], description = "Runtime native standard compatibility declarations." },
+  { name = "runtime-test-runner-profiles", paths = [".config/"], description = "Native test runner configuration." },
+  { name = "runtime-root-reference-instructions", paths = ["AGENTS.md", "CHANGELOG.md", "CONTRIBUTING.md", "LICENSE", "README.md", "SECURITY.md", "requirements-tooling.lock.txt", "requirements-tooling.txt"], description = "Root package documentation, license and agent instructions; not installed effects." },
+  { name = "runtime-root-build-and-toolchain-config", paths = [".editorconfig", ".gitattributes", ".gitignore", ".gitleaks.toml", ".gitleaksignore", ".python-version", "Cargo.lock", "Cargo.toml", "deny.toml", "mise.toml", "pyproject.toml", "rust-toolchain.toml"], description = "Root toolchain, lockfile, package and repository configuration sources." },
+]
 semantic_label = "physical-execution-runtime"
 semantic_scope = "Physical Job, Attempt, Workspace, Artifact execution and recovery; not domain acceptance."
 root = "services/runtime/"
@@ -64,6 +149,20 @@ verify_task = "runtime:verify"
 
 [[owners]]
 name = "host"
+source_subregions = [
+  { name = "host-collaboration-implementation", path = "src/", description = "PostgreSQL Work/Space/Message continuity implementation." },
+  { name = "host-database-schema-migrations", path = "migrations/", description = "Host PostgreSQL/Alembic schema migration source." },
+  { name = "host-continuity-tests", path = "tests/", description = "Host source tests and continuity fixtures." },
+  { name = "host-history-carriers", path = "planning/", description = "Host plans and historical source evidence." },
+  { name = "host-host-reference-docs", paths = ["docs/"], description = "Host Work/Space and migration reference material." },
+  { name = "host-host-installation-source", paths = ["packaging/"], description = "Host service installation and qualification scripts." },
+  { name = "host-host-source-operators", paths = ["tools/"], description = "Host source-side verification and migration helpers." },
+  { name = "host-host-repository-ci", paths = [".github/"], description = "Host repository workflow declarations." },
+  { name = "host-host-experimental-studies", paths = ["experiments/"], description = "Bounded host experiment source." },
+  { name = "host-root-reference-instructions", paths = ["README.md"], description = "Root package documentation, license and agent instructions; not installed effects." },
+  { name = "host-root-public-manifests", paths = ["mcp-surface.json"], description = "Root API, boundary and configuration manifest declarations." },
+  { name = "host-root-build-and-toolchain-config", paths = [".gitignore", ".python-version", "alembic.ini", "mise.toml", "pyproject.toml", "uv.lock"], description = "Root toolchain, lockfile, package and repository configuration sources." },
+]
 semantic_label = "work-and-collaboration-continuity"
 semantic_scope = "Social Work, Space, Topic and Message continuity service; MCP Server, not an MCP Host application."
 root = "services/host/"
@@ -72,6 +171,27 @@ queue_verify_task = "host:queue"
 
 [[owners]]
 name = "harness"
+source_subregions = [
+  { name = "harness-agent-run-implementation", path = "src/", description = "Bounded Agent Run implementation, not Runtime physical truth." },
+  { name = "harness-implementation-tests", path = "tests/", description = "Harness source tests and fixtures." },
+  { name = "harness-evidence-carriers", path = "evidence/", description = "Historical evaluation/evidence receipts." },
+  { name = "harness-system1-decision-evidence", path = "evidence/system1-decision/", description = "Decision evaluation evidence, not active policy." },
+  { name = "harness-research-experiments", path = "research/", description = "Harness research and qualification, not installed code." },
+  { name = "harness-evaluation-scenarios", path = "evals/", description = "Reproducible evaluation scenarios and fixtures." },
+  { name = "harness-task-operators", path = "scripts/", description = "Harness source-side operators." },
+  { name = "harness-reference-contracts", path = "docs/", description = "Harness specification and documentation." },
+  { name = "harness-formal-model-source", path = "formal/", description = "Harness formal modeling source, not installed proof result." },
+  { name = "harness-service-realization-source", path = "systemd/", description = "Service deployment and life-cycle scripts." },
+  { name = "harness-configuration-profiles", path = "config/", description = "Run/tool/provider configuration declarations." },
+  { name = "harness-test-fixtures", path = "fixtures/", description = "Test setup, not active business events." },
+  { name = "harness-planning-carriers", path = "planning/", description = "Historical plans and intended interfaces." },
+  { name = "harness-harness-repository-ci", paths = [".github/"], description = "Harness source repository workflows and policies." },
+  { name = "harness-harness-publication-metadata", paths = [".ordivon/"], description = "Harness project metadata and publication declarations." },
+  { name = "harness-harness-browser-containers", paths = ["containers/"], description = "Browserless container source profiles." },
+  { name = "harness-harness-automation-schemas", paths = ["schemas/"], description = "Agent automation source contracts." },
+  { name = "harness-root-reference-instructions", paths = ["ARCHITECTURE.md", "CHANGELOG.md", "CONTRIBUTING.md", "LICENSE", "README.md", "SECURITY.md"], description = "Root package documentation, license and agent instructions; not installed effects." },
+  { name = "harness-root-build-and-toolchain-config", paths = [".gitignore", ".python-version", "mise.toml", "pyproject.toml", "uv.lock"], description = "Root toolchain, lockfile, package and repository configuration sources." },
+]
 semantic_label = "bounded-agent-run-harness"
 semantic_scope = "Agent run coordination, provider/tool continuity and cognition execution; not physical Runtime Job authority."
 root = "services/harness/"
@@ -80,6 +200,16 @@ queue_verify_task = "harness:queue"
 
 [[owners]]
 name = "gateway"
+source_subregions = [
+  { name = "gateway-route-adapter", path = "src/", description = "Northbound MCP capability routing source, not execution authority." },
+  { name = "gateway-deployment-candidates", path = "planning/", description = "Windows deployment candidates, not installed state." },
+  { name = "gateway-installation-scripts", path = "packaging/", description = "Gateway package and release carrier source." },
+  { name = "gateway-gateway-contract-tests", paths = ["tests/"], description = "Gateway routing, authz and provider projection tests." },
+  { name = "gateway-gateway-service-unit-source", paths = ["systemd/"], description = "Gateway service units and installation profile." },
+  { name = "gateway-root-reference-instructions", paths = ["README.md"], description = "Root package documentation, license and agent instructions; not installed effects." },
+  { name = "gateway-root-public-manifests", paths = ["mcp-surface.json"], description = "Root API, boundary and configuration manifest declarations." },
+  { name = "gateway-root-build-and-toolchain-config", paths = [".python-version", "pyproject.toml", "uv.lock"], description = "Root toolchain, lockfile, package and repository configuration sources." },
+]
 semantic_label = "northbound-capability-routing"
 semantic_scope = "Northbound route/capability projection and transport adapters; not provider effect or authorization authority."
 root = "services/gateway/"
@@ -87,6 +217,18 @@ verify_task = "gateway:verify"
 
 [[owners]]
 name = "skills"
+source_subregions = [
+  { name = "skills-bridge-implementation", path = "src/", description = "Portable Agent Skills to MCP compatibility source." },
+  { name = "skills-bridge-tests", path = "tests/", description = "Bridge trust/discovery tests, not Skill source itself." },
+  { name = "skills-plugin-compatibility", path = "plugins/", description = "Plugin compatibility carrier metadata." },
+  { name = "skills-skills-bridge-documents", paths = ["docs/"], description = "Skill bridge contracts and standards comparisons." },
+  { name = "skills-skills-bridge-operators", paths = ["scripts/"], description = "Skill bridge installation and consumer probe scripts." },
+  { name = "skills-skills-bridge-config", paths = ["config/"], description = "Skill bridge requirements and example configurations." },
+  { name = "skills-skills-bridge-plans", paths = ["planning/"], description = "Skills bridge source-side planning carrier." },
+  { name = "skills-skills-bridge-service-unit", paths = ["systemd/"], description = "Skill bridge service definition source." },
+  { name = "skills-root-reference-instructions", paths = ["README.md"], description = "Root package documentation, license and agent instructions; not installed effects." },
+  { name = "skills-root-build-and-toolchain-config", paths = [".python-version", "mise.toml", "pyproject.toml", "uv.lock"], description = "Root toolchain, lockfile, package and repository configuration sources." },
+]
 semantic_label = "agent-skills-mcp-bridge"
 semantic_scope = "Compatibility discovery and trust bridge for portable Agent Skills; not the canonical Skill authoring source."
 root = "platform/skills/"
@@ -94,6 +236,26 @@ verify_task = "skills:verify"
 
 [[owners]]
 name = "security"
+source_subregions = [
+  { name = "security-isolated-laboratories", path = "labs/", description = "Controlled security experiments, not production policy." },
+  { name = "security-public-boundary-contracts", path = "contracts/", description = "Security contracts and admission schemas." },
+  { name = "security-policy-source", path = "policies/", description = "Policy bundles and decision criteria." },
+  { name = "security-local-adapters", path = "src/", description = "Security policy/evidence projection implementation." },
+  { name = "security-source-tests", path = "tests/", description = "Negative security acceptance fixtures." },
+  { name = "security-test-fixtures", path = "fixtures/", description = "Static test fixtures and external sample cases." },
+  { name = "security-source-operations", path = "scripts/", description = "Security qualification and source scripts." },
+  { name = "security-external-provider-adapters", path = "providers/", description = "Mature external scanner/policy engine adapters." },
+  { name = "security-security-reference-docs", paths = ["docs/"], description = "Policy, admission and threat reference descriptions." },
+  { name = "security-fuzz-ci-profiles", paths = [".clusterfuzzlite/"], description = "ClusterFuzzLite build and fuzzing configuration." },
+  { name = "security-security-verification-profiles", paths = ["profiles/"], description = "Provider qualification profiles and scopes." },
+  { name = "security-security-source-schemas", paths = ["schemas/"], description = "Security data contracts and evidence schemas." },
+  { name = "security-security-generated-artifact-placeholders", paths = ["artifacts/"], description = "Artifact placeholders, not proofs." },
+  { name = "security-security-fuzz-harnesses", paths = ["fuzz/"], description = "Isolated fuzz test harness source." },
+  { name = "security-security-planning-records", paths = ["planning/"], description = "Source planning metadata." },
+  { name = "security-security-threat-model-records", paths = ["threat-models/"], description = "Declared threat and assumption models." },
+  { name = "security-root-reference-instructions", paths = ["README.md"], description = "Root package documentation, license and agent instructions; not installed effects." },
+  { name = "security-root-build-and-toolchain-config", paths = [".gitignore", ".python-version", "mise.toml", "pyproject.toml", "uv.lock"], description = "Root toolchain, lockfile, package and repository configuration sources." },
+]
 semantic_label = "security-policy-and-evidence"
 semantic_scope = "Policy decision and security evidence applicability at bounded effect seams; not an independent identity or scanner truth authority."
 root = "platform/security/"
@@ -101,6 +263,33 @@ verify_task = "security:verify"
 
 [[owners]]
 name = "workstation"
+source_subregions = [
+  { name = "workstation-infra-providers", path = "providers/", description = "Native infrastructure provider integration source." },
+  { name = "workstation-node-configuration", path = "workstation/", description = "Workstation node source, not installed state." },
+  { name = "workstation-system-tests", path = "tests/", description = "Execution-node qualification tests." },
+  { name = "workstation-ansible-desired-state", path = "ansible/", description = "Ansible desired-state realization source." },
+  { name = "workstation-observability-configuration", path = "observability/", description = "Observability configuration, upstream tools own telemetry truth." },
+  { name = "workstation-inventory-queries", path = "inventory/", description = "Inventory/read-only host query declarations." },
+  { name = "workstation-infrastructure-declarations", path = "tofu/", description = "OpenTofu-managed infrastructure source." },
+  { name = "workstation-integration-workflows", path = "n8n/", description = "n8n glue workflows, not workflow truth." },
+  { name = "workstation-database-operations", path = "postgresql/", description = "PostgreSQL node backup and operation profiles." },
+  { name = "workstation-windows-realization", path = "windows/", description = "Windows environment realization source." },
+  { name = "workstation-reference-documents", paths = ["docs/"], description = "Node realization documentation and historical architecture." },
+  { name = "workstation-operator-scripts", paths = ["scripts/"], description = "Node diagnostic, bootstrap and deployment operators." },
+  { name = "workstation-transport-contracts", paths = ["contracts/"], description = "Infrastructure integration protocol declarations." },
+  { name = "workstation-service-unit-sources", paths = ["systemd/"], description = "Service realization and lifecycle unit files." },
+  { name = "workstation-host-realization-overlays", paths = ["host/"], description = "Host-local infrastructure configuration." },
+  { name = "workstation-historical-receipts", paths = ["evidence/"], description = "Historical workstation evidence, not installed currentness." },
+  { name = "workstation-grafana-profiles", paths = ["grafana/"], description = "Grafana dashboard and provisioning source." },
+  { name = "workstation-temporal-profiles", paths = ["temporal/"], description = "Temporal orchestration configuration." },
+  { name = "workstation-machine-declarations", paths = ["manifests/"], description = "Deployment source manifests." },
+  { name = "workstation-realization-policies", paths = ["policy/"], description = "Execution node policy configuration." },
+  { name = "workstation-trace-backend-profiles", paths = ["tempo/"], description = "Tracing backend source profiles." },
+  { name = "workstation-workstation-tools", paths = ["tools/"], description = "Node helper source." },
+  { name = "workstation-ci-configuration", paths = [".github/"], description = "Workstation repository workflows." },
+  { name = "workstation-root-reference-instructions", paths = ["README.md"], description = "Root package documentation, license and agent instructions; not installed effects." },
+  { name = "workstation-root-build-and-toolchain-config", paths = [".gitignore", ".python-version", "mise.toml", "pyproject.toml", "uv.lock"], description = "Root toolchain, lockfile, package and repository configuration sources." },
+]
 semantic_label = "execution-node-realization"
 semantic_scope = "Execution-node configuration, desired state and observation through mature upstream operations substrates."
 root = "platform/workstation/"
@@ -108,6 +297,26 @@ verify_task = "workstation:ci"
 
 [[owners]]
 name = "network"
+source_subregions = [
+  { name = "network-consumer-profiles", path = "consumers/", description = "Network consumer-specific requirements and routes." },
+  { name = "network-browserless-consumer", path = "consumers/browserless/", description = "Browserless network boundary profiles." },
+  { name = "network-finance-consumer", path = "consumers/finance/", description = "Finance/venue transport requirements." },
+  { name = "network-provider-adapters", path = "providers/", description = "Network provider selection and qualification." },
+  { name = "network-configurations", path = "config/", description = "DNS/proxy/tunnel configuration source." },
+  { name = "network-acceptance-criteria", path = "acceptance/", description = "Network workload acceptance tests and cases." },
+  { name = "network-platform-reference", path = "reference/", description = "Platform-specific network reference implementation." },
+  { name = "network-historical-receipts", path = "history/", description = "Historical network acceptance snapshots." },
+  { name = "network-source-tests", paths = ["tests/"], description = "Network source checks and bounded negative tests." },
+  { name = "network-network-service-units", paths = ["systemd/"], description = "Network tunnel/proxy/DNS service unit source." },
+  { name = "network-historical-network-receipts", paths = ["evidence/"], description = "Captured network evidence, not current availability." },
+  { name = "network-network-capability-metadata", paths = ["capabilities/"], description = "Network capability and WireGuard profile source." },
+  { name = "network-network-repository-ci", paths = [".github/"], description = "Network repository workflow declarations." },
+  { name = "network-network-reference-docs", paths = ["docs/"], description = "Network architecture and qualification explanations." },
+  { name = "network-network-inspection-tools", paths = ["scripts/"], description = "Source-side network diagnosis scripts." },
+  { name = "network-network-planning-source", paths = ["planning/"], description = "Historical planning carriers." },
+  { name = "network-root-reference-instructions", paths = ["README.md", "STACK.md"], description = "Root package documentation, license and agent instructions; not installed effects." },
+  { name = "network-root-build-and-toolchain-config", paths = [".gitignore", "Taskfile.yml", "mise.toml"], description = "Root toolchain, lockfile, package and repository configuration sources." },
+]
 semantic_label = "network-connectivity-composition"
 semantic_scope = "Network transport/DNS/proxy connectivity and workload evidence; not a general network controller."
 root = "platform/network/"
@@ -115,6 +324,32 @@ verify_task = "network:ci"
 
 [[owners]]
 name = "artifact"
+source_subregions = [
+  { name = "artifact-release-carrier", path = "artifact-delivery/", description = "Artifact delivery formats, profiles and source carriers." },
+  { name = "artifact-shadow-contracts", path = "artifact-delivery/shadow-contracts/", description = "Shadow release contracts, not live publication." },
+  { name = "artifact-shadow-integration", path = "artifact-delivery/shadow-v2/", description = "Shadow integration implementation/acceptance." },
+  { name = "artifact-shadow-bindings", path = "artifact-delivery/shadow-bindings/", description = "Shadow adapter bindings." },
+  { name = "artifact-shadow-profiles", path = "artifact-delivery/shadow-profiles/", description = "Shadow delivery profiles and selection." },
+  { name = "artifact-golden-fixtures", path = "artifact-delivery/golden/", description = "Golden artifact fixture source." },
+  { name = "artifact-consumer-acceptance", path = "artifact-delivery/consumer-acceptance/", description = "Source-side consumer acceptance cases." },
+  { name = "artifact-domain-capabilities", path = "artifact_capabilities/", description = "Format/product capability source." },
+  { name = "artifact-format-verifiers", path = "artifact_verifiers/", description = "Format-native validation adapters and tests." },
+  { name = "artifact-core-source", path = "artifact_core/", description = "Core bounded artifact build behavior." },
+  { name = "artifact-operator-surface", path = "artifact_operations/", description = "Artifact orchestration and effect boundary source." },
+  { name = "artifact-evidence-source", path = "artifact_evidence/", description = "Evidence capture helpers." },
+  { name = "artifact-trust-source", path = "artifact_trust/", description = "Artifact trust and provenance semantics." },
+  { name = "artifact-checking-contracts", path = "artifact_verification/", description = "Artifact verification interface source." },
+  { name = "artifact-source-tests", path = "tests/", description = "Artifact source tests and negative controls." },
+  { name = "artifact-reference-docs", path = "docs/", description = "Artifact format and tooling references." },
+  { name = "artifact-build-scripts", path = "scripts/", description = "Build/delivery scripts; source not installed execution." },
+  { name = "artifact-planning-carriers", path = "planning/", description = "Candidate plans and historical profiles." },
+  { name = "artifact-artifact-bounded-config", paths = ["config/"], description = "Artifact mailbox and registry configuration source." },
+  { name = "artifact-artifact-worker-unit-source", paths = ["systemd/"], description = "Artifact Temporal/Zot service deployment unit declarations." },
+  { name = "artifact-artifact-repository-ci", paths = [".github/"], description = "Artifact repository workflow source." },
+  { name = "artifact-artifact-source-registry-file", paths = ["registry/"], description = "Artifact closure source metadata, not a new registry authority." },
+  { name = "artifact-root-reference-instructions", paths = ["MIGRATION_PROVENANCE.md", "README.md"], description = "Root package documentation, license and agent instructions; not installed effects." },
+  { name = "artifact-root-build-and-toolchain-config", paths = [".gitignore", ".python-version", "mise.toml", "pyproject.toml", "uv.lock"], description = "Root toolchain, lockfile, package and repository configuration sources." },
+]
 semantic_label = "artifact-build-validation-delivery"
 semantic_scope = "Artifact generation, format validation, packaging and delivery contracts."
 root = "capabilities/artifact/"
@@ -123,6 +358,19 @@ queue_verify_task = "artifact:queue"
 
 [[owners]]
 name = "distribution"
+source_subregions = [
+  { name = "distribution-bounded-operators", path = "scripts/", description = "Optional external-effect delivery operators." },
+  { name = "distribution-effect-contracts", path = "contracts/", description = "External-effect/provider contract profiles." },
+  { name = "distribution-historical-receipts", path = "evidence/", description = "External effect delivery records, not provider acceptance." },
+  { name = "distribution-provider-adapters", path = "adapters/", description = "Optional provider-specific adapters." },
+  { name = "distribution-distribution-reference-docs", paths = ["docs/"], description = "External-effect delivery contracts and historical design notes." },
+  { name = "distribution-distribution-policy-rules", paths = ["policy/"], description = "External-effect/Rego policy source, not provider permission." },
+  { name = "distribution-distribution-repository-ci", paths = [".github/"], description = "Distribution repository workflow source." },
+  { name = "distribution-distribution-fixtures", paths = ["tests/"], description = "Source test fixtures." },
+  { name = "distribution-root-reference-instructions", paths = ["README.md"], description = "Root package documentation, license and agent instructions; not installed effects." },
+  { name = "distribution-root-public-manifests", paths = ["composition-v1.json", "external-lock.json"], description = "Root API, boundary and configuration manifest declarations." },
+  { name = "distribution-root-build-and-toolchain-config", paths = [".gitignore", ".python-version", "mise.toml", "pyproject.toml", "uv.lock"], description = "Root toolchain, lockfile, package and repository configuration sources." },
+]
 semantic_label = "external-effect-delivery-safety"
 semantic_scope = "Optional provider delivery and external-effect safety/reconciliation profiles; not a mandatory execution control plane."
 root = "capabilities/distribution/"
@@ -130,6 +378,27 @@ verify_task = "distribution:verify"
 
 [[owners]]
 name = "media"
+source_subregions = [
+  { name = "media-authored-productions", path = "productions/", description = "Authored media production projects, not global read models." },
+  { name = "media-research-reference", path = "research/", description = "Media theory/engineering research sources." },
+  { name = "media-expression-research", path = "research/expression/", description = "Expression research inside media scope." },
+  { name = "media-studio-implementation", path = "src/", description = "Media Studio implementation sources." },
+  { name = "media-local-applications", path = "apps/", description = "Media-specific preview and motion clients." },
+  { name = "media-compatibility-carrier", path = "media-v2/", description = "Historical media-v2 support source." },
+  { name = "media-conformance-tests", path = "tests/", description = "Tests and acceptance fixtures." },
+  { name = "media-reference-docs", path = "docs/", description = "Descriptive media interfaces and standards." },
+  { name = "media-production-operators", path = "scripts/", description = "Media production and assembly operators." },
+  { name = "media-stored-artifacts", path = "artifacts/", description = "Media artifact source pointers, not proof of installed delivery." },
+  { name = "media-library-source", path = "creative-library/", description = "Media-specific Creative Library metadata." },
+  { name = "media-specific-source-packages", path = "packages/", description = "Media-owned package source, not global packages." },
+  { name = "media-play-studies", path = "play/", description = "Playful experimental media studies." },
+  { name = "media-contract-schemas", path = "schemas/", description = "Media-side schema definitions." },
+  { name = "media-media-repository-ci", paths = [".github/"], description = "Media repository workflow source." },
+  { name = "media-media-publication-metadata", paths = [".ordivon/"], description = "Media project publication/rights declarations." },
+  { name = "media-media-planning-source", paths = ["planning/"], description = "Media LEGO planning carrier, not runtime code." },
+  { name = "media-root-reference-instructions", paths = ["LICENSE", "MEDIA.md", "README.md", "STUDIO.md"], description = "Root package documentation, license and agent instructions; not installed effects." },
+  { name = "media-root-build-and-toolchain-config", paths = [".env.example", ".gitignore", ".node-version", ".python-version", "mise.toml", "package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "pyproject.toml", "tsconfig.json", "uv.lock"], description = "Root toolchain, lockfile, package and repository configuration sources." },
+]
 semantic_label = "media-authorship-production"
 semantic_scope = "Authored media expression, processing and media-specific projection/production; not all UI/read-model output."
 root = "capabilities/media/"
@@ -137,6 +406,16 @@ verify_task = "media:verify"
 
 [[owners]]
 name = "preservation"
+source_subregions = [
+  { name = "preservation-archive-evidence", path = "artifacts/", description = "Archival carriers and preservation evidence; not a certified AIP." },
+  { name = "preservation-scheduled-operations", path = "systemd/", description = "Systemd one-shot preservation/fixity timer source." },
+  { name = "preservation-reference-docs", path = "docs/", description = "Standards/profile references." },
+  { name = "preservation-preservation-verification-operators", paths = ["scripts/"], description = "Preservation source checker scripts, not live archive verification." },
+  { name = "preservation-preservation-compose-source", paths = ["config/"], description = "Archivematica local composition source, not installed confirmation." },
+  { name = "preservation-preservation-planning-source", paths = ["planning/"], description = "Preservation source planning carrier." },
+  { name = "preservation-root-reference-instructions", paths = ["README.md"], description = "Root package documentation, license and agent instructions; not installed effects." },
+  { name = "preservation-root-public-manifests", paths = ["SOURCE_BOUNDARY.json"], description = "Root API, boundary and configuration manifest declarations." },
+]
 semantic_label = "preservation-source-evidence"
 semantic_scope = "Standards-native archival/preservation compatibility and source/evidence profiles; not the upstream archive platform."
 root = "capabilities/preservation/"
@@ -144,6 +423,16 @@ verify_task = "preservation:verify"
 
 [[owners]]
 name = "game"
+source_subregions = [
+  { name = "game-engine-standards", path = "standards/", description = "External engine mechanics/profile qualification." },
+  { name = "game-mechanics-tests", path = "test/", description = "Game source test fixtures, not a retained commercial game." },
+  { name = "game-source-operators", path = "scripts/", description = "Game evaluation and bootstrap tooling." },
+  { name = "game-game-design-reference-docs", paths = ["docs/"], description = "Game mechanics and external engine design references." },
+  { name = "game-game-publication-metadata", paths = [".ordivon/"], description = "Game repository metadata, not game runtime." },
+  { name = "game-game-planning-source", paths = ["planning/"], description = "Game LEGO candidate source plans, not shipped games." },
+  { name = "game-root-reference-instructions", paths = ["AGENTS.md", "LICENSE", "README.md"], description = "Root package documentation, license and agent instructions; not installed effects." },
+  { name = "game-root-build-and-toolchain-config", paths = [".gitignore", ".node-version", "mise.toml", "package.json", "pnpm-lock.yaml", "tsconfig.json"], description = "Root toolchain, lockfile, package and repository configuration sources." },
+]
 semantic_label = "game-mechanics-and-composition"
 semantic_scope = "Game mechanics and reusable game composition research; not a retained first-party game catalog."
 root = "domains/game/"
@@ -151,6 +440,30 @@ verify_task = "game:verify"
 
 [[owners]]
 name = "capital"
+source_subregions = [
+  { name = "capital-implementation", path = "src/", description = "Capital-domain implementation source, not live trading permission." },
+  { name = "capital-implementation-tests", path = "tests/", description = "Capital source tests and fixtures." },
+  { name = "capital-evidence-records", path = "evidence/", description = "Capital validation/capture receipts, not broker truth." },
+  { name = "capital-tool-qualifications", path = "tools/", description = "Pinned external tool adaptation/qualification source." },
+  { name = "capital-legacy-replay", path = "tools/legacy_replay/", description = "Legacy replay helpers, not current execution authority." },
+  { name = "capital-configuration", path = "config/", description = "Market/accounting/provider configuration declarations." },
+  { name = "capital-contract-profiles", path = "contracts/", description = "Capital consumer and upstream protocol contracts." },
+  { name = "capital-domain-reference", path = "docs/", description = "Capital research and system documentation." },
+  { name = "capital-domain-operators", path = "scripts/", description = "Capital source scripts and qualification tools." },
+  { name = "capital-data-product-records", path = "data-products/", description = "Market and data product carriers." },
+  { name = "capital-test-fixtures", path = "fixtures/", description = "Bounded regression fixtures, not current venue state." },
+  { name = "capital-capital-schema-records", paths = ["schema/"], description = "Capital data/model schemas, not broker truth." },
+  { name = "capital-capital-data-source-placeholders", paths = ["data/"], description = "Raw/derived data directory source pointers, not captured market facts." },
+  { name = "capital-capital-infrastructure-profiles", paths = ["infra/"], description = "Capital optional infrastructure realization manifests." },
+  { name = "capital-capital-repository-ci", paths = [".github/"], description = "Capital repository verification workflows." },
+  { name = "capital-capital-artifact-placeholders", paths = ["artifacts/"], description = "Output directory placeholders, not delivered artifacts." },
+  { name = "capital-capital-counterexample-records", paths = ["destroyer/"], description = "Capital false-green counterexample corpus." },
+  { name = "capital-capital-example-consumers", paths = ["examples/"], description = "Bounded capital example consumers." },
+  { name = "capital-capital-planning-source", paths = ["planning/"], description = "Capital planning carrier." },
+  { name = "capital-capital-wave-b-fixtures", paths = ["wave_b/"], description = "Wave B bounded test/market replay fixtures." },
+  { name = "capital-root-reference-instructions", paths = ["README.md"], description = "Root package documentation, license and agent instructions; not installed effects." },
+  { name = "capital-root-build-and-toolchain-config", paths = [".gitignore", ".python-version", "mise.toml", "pyproject.toml", "rust-toolchain.toml", "uv.lock"], description = "Root toolchain, lockfile, package and repository configuration sources." },
+]
 semantic_label = "capital-systems-composition"
 semantic_scope = "Capital-domain composition across market, accounting, and other capital systems; not market trading alone."
 root = "domains/capital/"
@@ -158,6 +471,15 @@ verify_task = "capital:verify"
 
 [[owners]]
 name = "web"
+source_subregions = [
+  { name = "web-application-implementation", path = "src/", description = "Web application UI and client source." },
+  { name = "web-application-tests", path = "test/", description = "Web interface tests." },
+  { name = "web-web-test-evidence", paths = ["evidence/"], description = "UI browser/e2e observation records, not current installed UI." },
+  { name = "web-web-planning-source", paths = ["planning/"], description = "Web UI candidate planning carrier." },
+  { name = "web-root-reference-instructions", paths = ["README.md"], description = "Root package documentation, license and agent instructions; not installed effects." },
+  { name = "web-root-source-operators", paths = ["agent-native-e2e.sh", "browser-e2e.sh"], description = "Root executable helper scripts; source navigation, not execution evidence." },
+  { name = "web-root-build-and-toolchain-config", paths = [".gitignore", "mise.toml", "package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "tsconfig.json"], description = "Root toolchain, lockfile, package and repository configuration sources." },
+]
 semantic_label = "web-application-interface"
 semantic_scope = "Web application/user interaction surface; not a universal browser or HTTP infrastructure."
 root = "apps/web/"
