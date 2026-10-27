@@ -1,9 +1,9 @@
 {
   "kind": "ordivon.r21-phase1-bounded-owner-census-evidence",
   "truthRole": "SOURCECUT_BOUND_AUDIT_NOT_REGISTRY_OR_SEMANTIC_TRUTH",
-  "sourceCut": "75fc00bdec12268bd92ad85c6138b6f1be76bf3d",
+  "sourceCut": "719745849d45f179003b40a679fb60517ea260af",
   "ownerManifest": "tools/repo/owners.toml",
-  "boundary": "Audit SourceCut is immutable BASE 75fc00b..., while two newly drafted Owner plans exist only in this candidate PR branch and are NOT part of that base. Each of 18 Owner roots was enumerated at Git path/sample level only; provisional hypotheses are NOT qualified LEGO; real dynamic/installed/formal consumer truth is UNKNOWN.",
+  "boundary": "Current exact inspected MAIN sourceCut is 719745... (Git tree, 4987 tracked paths); the PR candidate may contain O13 not in MAIN. Prior 75fc... counts are historical. Every Owner root has bounded Git path/sample census, NOT full semantic, dynamic consumer, installed or formal proof closure. Existing native plans and distinct R2/R3 carriers remain partial declarations, not demonstrated total LEGO reality.",
   "findings": [
     {
       "owner": "next",
@@ -22,15 +22,15 @@
       "responsibilityCoverage": "FIRST_LAYER_HYPOTHESES_NOT_COMPLETE",
       "consumerSourceExamples": [],
       "consumerCoverage": "UNQUALIFIED",
-      "semanticCoverage": "NO_LEGO_PLAN",
-      "relationCoverage": "PARTIAL_DECLARED_OR_UNKNOWN",
-      "formalCoverage": "NOT_COMPLETE_NO_GLOBAL_BRIDGE",
+      "semanticCoverage": "NO_OWNER_PLAN_ON_INSPECTED_MAIN",
+      "relationCoverage": "UNQUALIFIED",
+      "formalCoverage": "NO_COMPLETE_SOURCE_MODEL_IMPLEMENTATION_ENVIRONMENT_BRIDGE",
       "environmentCoverage": "SOURCE_ONLY_CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
     },
     {
       "owner": "composition",
       "root": "packages/composition/",
-      "trackedFilesEnumerated": 45,
+      "trackedFilesEnumerated": 46,
       "sampleSourceEntrypoints": [
         "packages/composition/src/ordivon_composition/__init__.py",
         "packages/composition/src/ordivon_composition/cognitive_circuit_r1.py",
@@ -38,7 +38,9 @@
         "packages/composition/src/ordivon_composition/successor_contract_r1.py",
         "packages/composition/src/ordivon_composition/verification_obligation_r1.py"
       ],
-      "existingPlanPaths": [],
+      "existingPlanPaths": [
+        "packages/composition/planning/lego-plan-r1.json"
+      ],
       "firstLayerHypotheses": "circuit compilation; interface qualification; verification obligations; successor decisions; proof impact",
       "repositoryCoverage": "TRACKED_SOURCE_ENUMERATED",
       "responsibilityCoverage": "FIRST_LAYER_HYPOTHESES_NOT_COMPLETE",
@@ -47,9 +49,9 @@
         "meta/next/scripts/pacti_timeout_obligation_r1.py"
       ],
       "consumerCoverage": "PARTIAL_SOURCE_IMPORTS_ONLY",
-      "semanticCoverage": "BASE_HAS_NO_PLAN__PR_CANDIDATE_OWNER_LOCAL_SOURCE_QUALIFIED_SEPARATE_CUT",
-      "relationCoverage": "PARTIAL_DECLARED_OR_UNKNOWN",
-      "formalCoverage": "NOT_COMPLETE_NO_GLOBAL_BRIDGE",
+      "semanticCoverage": "DECLARED_PLAN_PARTIAL_NOT_RECURSIVE_COMPLETE",
+      "relationCoverage": "DECLARED_GRAPH_NOT_DYNAMIC_CLOSURE",
+      "formalCoverage": "NO_COMPLETE_SOURCE_MODEL_IMPLEMENTATION_ENVIRONMENT_BRIDGE",
       "environmentCoverage": "SOURCE_ONLY_CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
     },
     {
@@ -61,11 +63,13 @@
       "firstLayerHypotheses": "plugin interface declaration; capability surface binding",
       "repositoryCoverage": "TRACKED_SOURCE_ENUMERATED",
       "responsibilityCoverage": "FIRST_LAYER_HYPOTHESES_NOT_COMPLETE",
-      "consumerSourceExamples": [],
-      "consumerCoverage": "UNQUALIFIED",
-      "semanticCoverage": "NO_LEGO_PLAN",
-      "relationCoverage": "PARTIAL_DECLARED_OR_UNKNOWN",
-      "formalCoverage": "NOT_COMPLETE_NO_GLOBAL_BRIDGE",
+      "consumerSourceExamples": [
+        "extensions/ordivon-control-plane/mcp.json"
+      ],
+      "consumerCoverage": "PLUGIN_CONFIGURATION_DECLARATION_ONLY",
+      "semanticCoverage": "NO_OWNER_PLAN_ON_INSPECTED_MAIN",
+      "relationCoverage": "UNQUALIFIED",
+      "formalCoverage": "NO_COMPLETE_SOURCE_MODEL_IMPLEMENTATION_ENVIRONMENT_BRIDGE",
       "environmentCoverage": "SOURCE_ONLY_CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
     },
     {
@@ -73,11 +77,11 @@
       "root": "services/runtime/",
       "trackedFilesEnumerated": 419,
       "sampleSourceEntrypoints": [
-        "services/runtime/crates/ordivon-runtime-core/migrations/runtime/0001_runtime.sql",
-        "services/runtime/crates/ordivon-runtime-core/migrations/runtime/0002_orphan_recovery.sql",
-        "services/runtime/crates/ordivon-runtime-core/migrations/runtime/0003_terminal_repair.sql",
-        "services/runtime/crates/ordivon-runtime-core/migrations/runtime/0004_orphan_reclaim.sql",
-        "services/runtime/crates/ordivon-runtime-core/migrations/runtime/0005_condition_retirement.sql"
+        "services/runtime/crates/ordivon-runtime-core/src/bin/ordivon-runtime-doctor.rs",
+        "services/runtime/crates/ordivon-runtime-core/src/bin/ordivon-runtime-inspect.rs",
+        "services/runtime/crates/ordivon-runtime-core/src/bin/ordivon-runtime-job-fixture.rs",
+        "services/runtime/crates/ordivon-runtime-core/src/bin/ordivon-runtime-repair.rs",
+        "services/runtime/crates/ordivon-runtime-core/src/bin/ordivon-runtime-runner.rs"
       ],
       "existingPlanPaths": [
         "services/runtime/planning/lego-plan-r1.json"
@@ -87,9 +91,9 @@
       "responsibilityCoverage": "FIRST_LAYER_HYPOTHESES_NOT_COMPLETE",
       "consumerSourceExamples": [],
       "consumerCoverage": "UNQUALIFIED",
-      "semanticCoverage": "EXISTING_PLAN_PARTIAL",
-      "relationCoverage": "PARTIAL_DECLARED_OR_UNKNOWN",
-      "formalCoverage": "NOT_COMPLETE_NO_GLOBAL_BRIDGE",
+      "semanticCoverage": "DECLARED_PLAN_PARTIAL_NOT_RECURSIVE_COMPLETE",
+      "relationCoverage": "DECLARED_GRAPH_NOT_DYNAMIC_CLOSURE",
+      "formalCoverage": "NO_COMPLETE_SOURCE_MODEL_IMPLEMENTATION_ENVIRONMENT_BRIDGE",
       "environmentCoverage": "SOURCE_ONLY_CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
     },
     {
@@ -110,11 +114,14 @@
       "firstLayerHypotheses": "Work/Space/Topic/Message continuity, attention, PostgreSQL journal",
       "repositoryCoverage": "TRACKED_SOURCE_ENUMERATED",
       "responsibilityCoverage": "FIRST_LAYER_HYPOTHESES_NOT_COMPLETE",
-      "consumerSourceExamples": [],
-      "consumerCoverage": "UNQUALIFIED",
-      "semanticCoverage": "EXISTING_PLAN_PARTIAL",
-      "relationCoverage": "PARTIAL_DECLARED_OR_UNKNOWN",
-      "formalCoverage": "NOT_COMPLETE_NO_GLOBAL_BRIDGE",
+      "consumerSourceExamples": [
+        "services/host/src/ordivon_host_v2/social_work_mcp.py",
+        "services/host/tests/test_social_work_fabric_postgres.py"
+      ],
+      "consumerCoverage": "HOST_NATIVE_MCP_TESTS_ONLY_EXTERNAL_INSTALLED_UNKNOWN",
+      "semanticCoverage": "MAIN_HOST_O01_O12_PARTIAL; O13_NEW_ONLY_IN_PR_928_NOT_MAIN",
+      "relationCoverage": "DECLARED_GRAPH_NOT_DYNAMIC_CLOSURE",
+      "formalCoverage": "NO_COMPLETE_SOURCE_MODEL_IMPLEMENTATION_ENVIRONMENT_BRIDGE",
       "environmentCoverage": "SOURCE_ONLY_CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
     },
     {
@@ -136,15 +143,15 @@
       "responsibilityCoverage": "FIRST_LAYER_HYPOTHESES_NOT_COMPLETE",
       "consumerSourceExamples": [],
       "consumerCoverage": "UNQUALIFIED",
-      "semanticCoverage": "EXISTING_PLAN_PARTIAL",
-      "relationCoverage": "PARTIAL_DECLARED_OR_UNKNOWN",
-      "formalCoverage": "NOT_COMPLETE_NO_GLOBAL_BRIDGE",
+      "semanticCoverage": "DECLARED_PLAN_PARTIAL_NOT_RECURSIVE_COMPLETE",
+      "relationCoverage": "DECLARED_GRAPH_NOT_DYNAMIC_CLOSURE",
+      "formalCoverage": "NO_COMPLETE_SOURCE_MODEL_IMPLEMENTATION_ENVIRONMENT_BRIDGE",
       "environmentCoverage": "SOURCE_ONLY_CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
     },
     {
       "owner": "gateway",
       "root": "services/gateway/",
-      "trackedFilesEnumerated": 82,
+      "trackedFilesEnumerated": 83,
       "sampleSourceEntrypoints": [
         "services/gateway/packaging/enable_local_service_identity.sh",
         "services/gateway/packaging/enable_trace_export.sh",
@@ -153,6 +160,7 @@
         "services/gateway/packaging/verify_tool_surface.py"
       ],
       "existingPlanPaths": [
+        "services/gateway/planning/lego-plan-r1.json",
         "services/gateway/planning/lego-plan-windows-carrier-r2.json"
       ],
       "firstLayerHypotheses": "authenticated tool/capability routing and source qualification",
@@ -160,15 +168,15 @@
       "responsibilityCoverage": "FIRST_LAYER_HYPOTHESES_NOT_COMPLETE",
       "consumerSourceExamples": [],
       "consumerCoverage": "UNQUALIFIED",
-      "semanticCoverage": "EXISTING_PLAN_PARTIAL",
-      "relationCoverage": "PARTIAL_DECLARED_OR_UNKNOWN",
-      "formalCoverage": "NOT_COMPLETE_NO_GLOBAL_BRIDGE",
+      "semanticCoverage": "DECLARED_PLAN_PARTIAL_NOT_RECURSIVE_COMPLETE",
+      "relationCoverage": "DECLARED_GRAPH_NOT_DYNAMIC_CLOSURE",
+      "formalCoverage": "NO_COMPLETE_SOURCE_MODEL_IMPLEMENTATION_ENVIRONMENT_BRIDGE",
       "environmentCoverage": "SOURCE_ONLY_CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
     },
     {
       "owner": "skills",
       "root": "platform/skills/",
-      "trackedFilesEnumerated": 37,
+      "trackedFilesEnumerated": 38,
       "sampleSourceEntrypoints": [
         "platform/skills/scripts/cloudflare_skill_route.py",
         "platform/skills/scripts/skills_mcp.py",
@@ -176,7 +184,9 @@
         "platform/skills/src/ordivon_skills/__init__.py",
         "platform/skills/src/ordivon_skills/catalog.py"
       ],
-      "existingPlanPaths": [],
+      "existingPlanPaths": [
+        "platform/skills/planning/lego-plan-r1.json"
+      ],
       "firstLayerHypotheses": "trusted source selection, screening, catalog binding, legacy and standard Skills protocol",
       "repositoryCoverage": "TRACKED_SOURCE_ENUMERATED",
       "responsibilityCoverage": "FIRST_LAYER_HYPOTHESES_NOT_COMPLETE",
@@ -184,10 +194,10 @@
         "services/gateway/src/ordivon_gateway/service.py",
         "services/gateway/tests/test_skills_owner_optin.py"
       ],
-      "consumerCoverage": "PARTIAL_SOURCE_IMPORTS_ONLY",
-      "semanticCoverage": "BASE_HAS_NO_PLAN__PR_CANDIDATE_OWNER_LOCAL_SOURCE_QUALIFIED_SEPARATE_CUT",
-      "relationCoverage": "PARTIAL_DECLARED_OR_UNKNOWN",
-      "formalCoverage": "NOT_COMPLETE_NO_GLOBAL_BRIDGE",
+      "consumerCoverage": "SOURCE_CALLS_ONLY_INSTALLED_UNKNOWN",
+      "semanticCoverage": "DECLARED_PLAN_PARTIAL_NOT_RECURSIVE_COMPLETE",
+      "relationCoverage": "DECLARED_GRAPH_NOT_DYNAMIC_CLOSURE",
+      "formalCoverage": "NO_COMPLETE_SOURCE_MODEL_IMPLEMENTATION_ENVIRONMENT_BRIDGE",
       "environmentCoverage": "SOURCE_ONLY_CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
     },
     {
@@ -209,9 +219,9 @@
       "responsibilityCoverage": "FIRST_LAYER_HYPOTHESES_NOT_COMPLETE",
       "consumerSourceExamples": [],
       "consumerCoverage": "UNQUALIFIED",
-      "semanticCoverage": "EXISTING_PLAN_PARTIAL",
-      "relationCoverage": "PARTIAL_DECLARED_OR_UNKNOWN",
-      "formalCoverage": "NOT_COMPLETE_NO_GLOBAL_BRIDGE",
+      "semanticCoverage": "DECLARED_PLAN_PARTIAL_NOT_RECURSIVE_COMPLETE",
+      "relationCoverage": "DECLARED_GRAPH_NOT_DYNAMIC_CLOSURE",
+      "formalCoverage": "NO_COMPLETE_SOURCE_MODEL_IMPLEMENTATION_ENVIRONMENT_BRIDGE",
       "environmentCoverage": "SOURCE_ONLY_CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
     },
     {
@@ -219,11 +229,11 @@
       "root": "platform/workstation/",
       "trackedFilesEnumerated": 274,
       "sampleSourceEntrypoints": [
-        "platform/workstation/inventory/queries/npm_packages.sql",
-        "platform/workstation/inventory/queries/os_version.sql",
-        "platform/workstation/inventory/queries/python_packages.sql",
-        "platform/workstation/inventory/queries/running_executables.sql",
-        "platform/workstation/inventory/queries/system_identity.sql"
+        "platform/workstation/providers/cloudflare/scripts/check-policy-config.py",
+        "platform/workstation/providers/cloudflare/scripts/configure_r2_lifecycle.py",
+        "platform/workstation/providers/cloudflare/scripts/emit-contract-fixtures.ts",
+        "platform/workstation/providers/cloudflare/scripts/ordivon_cloudflare_tofu_handoff.py",
+        "platform/workstation/providers/cloudflare/scripts/ordivon_edge_client.py"
       ],
       "existingPlanPaths": [],
       "firstLayerHypotheses": "system provisioning, environment and operational observability",
@@ -231,9 +241,9 @@
       "responsibilityCoverage": "FIRST_LAYER_HYPOTHESES_NOT_COMPLETE",
       "consumerSourceExamples": [],
       "consumerCoverage": "UNQUALIFIED",
-      "semanticCoverage": "NO_LEGO_PLAN",
-      "relationCoverage": "PARTIAL_DECLARED_OR_UNKNOWN",
-      "formalCoverage": "NOT_COMPLETE_NO_GLOBAL_BRIDGE",
+      "semanticCoverage": "NO_OWNER_PLAN_ON_INSPECTED_MAIN",
+      "relationCoverage": "UNQUALIFIED",
+      "formalCoverage": "NO_COMPLETE_SOURCE_MODEL_IMPLEMENTATION_ENVIRONMENT_BRIDGE",
       "environmentCoverage": "SOURCE_ONLY_CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
     },
     {
@@ -255,9 +265,9 @@
       "responsibilityCoverage": "FIRST_LAYER_HYPOTHESES_NOT_COMPLETE",
       "consumerSourceExamples": [],
       "consumerCoverage": "UNQUALIFIED",
-      "semanticCoverage": "EXISTING_PLAN_PARTIAL",
-      "relationCoverage": "PARTIAL_DECLARED_OR_UNKNOWN",
-      "formalCoverage": "NOT_COMPLETE_NO_GLOBAL_BRIDGE",
+      "semanticCoverage": "DECLARED_PLAN_PARTIAL_NOT_RECURSIVE_COMPLETE",
+      "relationCoverage": "DECLARED_GRAPH_NOT_DYNAMIC_CLOSURE",
+      "formalCoverage": "NO_COMPLETE_SOURCE_MODEL_IMPLEMENTATION_ENVIRONMENT_BRIDGE",
       "environmentCoverage": "SOURCE_ONLY_CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
     },
     {
@@ -279,9 +289,9 @@
       "responsibilityCoverage": "FIRST_LAYER_HYPOTHESES_NOT_COMPLETE",
       "consumerSourceExamples": [],
       "consumerCoverage": "UNQUALIFIED",
-      "semanticCoverage": "EXISTING_PLAN_PARTIAL",
-      "relationCoverage": "PARTIAL_DECLARED_OR_UNKNOWN",
-      "formalCoverage": "NOT_COMPLETE_NO_GLOBAL_BRIDGE",
+      "semanticCoverage": "DECLARED_PLAN_PARTIAL_NOT_RECURSIVE_COMPLETE",
+      "relationCoverage": "DECLARED_GRAPH_NOT_DYNAMIC_CLOSURE",
+      "formalCoverage": "NO_COMPLETE_SOURCE_MODEL_IMPLEMENTATION_ENVIRONMENT_BRIDGE",
       "environmentCoverage": "SOURCE_ONLY_CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
     },
     {
@@ -299,11 +309,14 @@
       "firstLayerHypotheses": "provider/source admission and distribution-bound references",
       "repositoryCoverage": "TRACKED_SOURCE_ENUMERATED",
       "responsibilityCoverage": "FIRST_LAYER_HYPOTHESES_NOT_COMPLETE",
-      "consumerSourceExamples": [],
-      "consumerCoverage": "UNQUALIFIED",
-      "semanticCoverage": "NO_LEGO_PLAN",
-      "relationCoverage": "PARTIAL_DECLARED_OR_UNKNOWN",
-      "formalCoverage": "NOT_COMPLETE_NO_GLOBAL_BRIDGE",
+      "consumerSourceExamples": [
+        "capabilities/distribution/scripts/test-bound-entrypoint.sh",
+        "capabilities/distribution/scripts/test-admission.py"
+      ],
+      "consumerCoverage": "NATIVE_OWNER_SCRIPT_TESTS_ONLY",
+      "semanticCoverage": "NO_OWNER_PLAN_ON_INSPECTED_MAIN",
+      "relationCoverage": "UNQUALIFIED",
+      "formalCoverage": "NO_COMPLETE_SOURCE_MODEL_IMPLEMENTATION_ENVIRONMENT_BRIDGE",
       "environmentCoverage": "SOURCE_ONLY_CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
     },
     {
@@ -325,9 +338,9 @@
       "responsibilityCoverage": "FIRST_LAYER_HYPOTHESES_NOT_COMPLETE",
       "consumerSourceExamples": [],
       "consumerCoverage": "UNQUALIFIED",
-      "semanticCoverage": "EXISTING_PLAN_PARTIAL",
-      "relationCoverage": "PARTIAL_DECLARED_OR_UNKNOWN",
-      "formalCoverage": "NOT_COMPLETE_NO_GLOBAL_BRIDGE",
+      "semanticCoverage": "DECLARED_PLAN_PARTIAL_NOT_RECURSIVE_COMPLETE",
+      "relationCoverage": "DECLARED_GRAPH_NOT_DYNAMIC_CLOSURE",
+      "formalCoverage": "NO_COMPLETE_SOURCE_MODEL_IMPLEMENTATION_ENVIRONMENT_BRIDGE",
       "environmentCoverage": "SOURCE_ONLY_CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
     },
     {
@@ -335,17 +348,21 @@
       "root": "capabilities/preservation/",
       "trackedFilesEnumerated": 46,
       "sampleSourceEntrypoints": [
+        "capabilities/preservation/scripts/test_verify_source.py",
         "capabilities/preservation/scripts/verify_source.py"
       ],
       "existingPlanPaths": [],
       "firstLayerHypotheses": "storage evidence and fixity",
       "repositoryCoverage": "TRACKED_SOURCE_ENUMERATED",
       "responsibilityCoverage": "FIRST_LAYER_HYPOTHESES_NOT_COMPLETE",
-      "consumerSourceExamples": [],
-      "consumerCoverage": "UNQUALIFIED",
-      "semanticCoverage": "NO_LEGO_PLAN",
-      "relationCoverage": "PARTIAL_DECLARED_OR_UNKNOWN",
-      "formalCoverage": "NOT_COMPLETE_NO_GLOBAL_BRIDGE",
+      "consumerSourceExamples": [
+        "mise.toml",
+        "capabilities/preservation/scripts/test_verify_source.py"
+      ],
+      "consumerCoverage": "NATIVE_REPO_MISE_AND_OWNER_TEST_SOURCE_CALLS_ONLY",
+      "semanticCoverage": "NO_OWNER_PLAN_ON_INSPECTED_MAIN",
+      "relationCoverage": "UNQUALIFIED",
+      "formalCoverage": "NO_COMPLETE_SOURCE_MODEL_IMPLEMENTATION_ENVIRONMENT_BRIDGE",
       "environmentCoverage": "SOURCE_ONLY_CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
     },
     {
@@ -367,15 +384,15 @@
       "responsibilityCoverage": "FIRST_LAYER_HYPOTHESES_NOT_COMPLETE",
       "consumerSourceExamples": [],
       "consumerCoverage": "UNQUALIFIED",
-      "semanticCoverage": "EXISTING_PLAN_PARTIAL",
-      "relationCoverage": "PARTIAL_DECLARED_OR_UNKNOWN",
-      "formalCoverage": "NOT_COMPLETE_NO_GLOBAL_BRIDGE",
+      "semanticCoverage": "DECLARED_PLAN_PARTIAL_NOT_RECURSIVE_COMPLETE",
+      "relationCoverage": "DECLARED_GRAPH_NOT_DYNAMIC_CLOSURE",
+      "formalCoverage": "NO_COMPLETE_SOURCE_MODEL_IMPLEMENTATION_ENVIRONMENT_BRIDGE",
       "environmentCoverage": "SOURCE_ONLY_CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
     },
     {
       "owner": "capital",
       "root": "domains/capital/",
-      "trackedFilesEnumerated": 404,
+      "trackedFilesEnumerated": 406,
       "sampleSourceEntrypoints": [
         "domains/capital/examples/r1_witness_parquet_duckdb.py",
         "domains/capital/scripts/consume_crypto_public_shadow_product_r1.py",
@@ -383,15 +400,17 @@
         "domains/capital/src/ordivon_capital/accounting/__init__.py",
         "domains/capital/src/ordivon_capital/accounting/durable.py"
       ],
-      "existingPlanPaths": [],
+      "existingPlanPaths": [
+        "domains/capital/planning/lego-plan-r1.json"
+      ],
       "firstLayerHypotheses": "market sensors, risk, research, accounting and trading effect",
       "repositoryCoverage": "TRACKED_SOURCE_ENUMERATED",
       "responsibilityCoverage": "FIRST_LAYER_HYPOTHESES_NOT_COMPLETE",
       "consumerSourceExamples": [],
       "consumerCoverage": "UNQUALIFIED",
-      "semanticCoverage": "NO_LEGO_PLAN",
-      "relationCoverage": "PARTIAL_DECLARED_OR_UNKNOWN",
-      "formalCoverage": "NOT_COMPLETE_NO_GLOBAL_BRIDGE",
+      "semanticCoverage": "DECLARED_PLAN_PARTIAL_NOT_RECURSIVE_COMPLETE",
+      "relationCoverage": "DECLARED_GRAPH_NOT_DYNAMIC_CLOSURE",
+      "formalCoverage": "NO_COMPLETE_SOURCE_MODEL_IMPLEMENTATION_ENVIRONMENT_BRIDGE",
       "environmentCoverage": "SOURCE_ONLY_CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
     },
     {
@@ -409,24 +428,32 @@
       "firstLayerHypotheses": "HTTP server, route and client view",
       "repositoryCoverage": "TRACKED_SOURCE_ENUMERATED",
       "responsibilityCoverage": "FIRST_LAYER_HYPOTHESES_NOT_COMPLETE",
-      "consumerSourceExamples": [],
-      "consumerCoverage": "UNQUALIFIED",
-      "semanticCoverage": "NO_LEGO_PLAN",
-      "relationCoverage": "PARTIAL_DECLARED_OR_UNKNOWN",
-      "formalCoverage": "NOT_COMPLETE_NO_GLOBAL_BRIDGE",
+      "consumerSourceExamples": [
+        "apps/web/test/app.test.ts",
+        "apps/web/test/agent-authority.test.ts"
+      ],
+      "consumerCoverage": "NATIVE_HTTP_APP_TEST_CONSUMER_ONLY",
+      "semanticCoverage": "NO_OWNER_PLAN_ON_INSPECTED_MAIN",
+      "relationCoverage": "UNQUALIFIED",
+      "formalCoverage": "NO_COMPLETE_SOURCE_MODEL_IMPLEMENTATION_ENVIRONMENT_BRIDGE",
       "environmentCoverage": "SOURCE_ONLY_CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
     }
   ],
   "crossOwnerSupplementalScopes": [
-    "tools/repo",
-    "tools/formal",
-    "CI/mise",
-    "external providers and installed Windows/Linux"
+    "tools/repo native checker and Git",
+    "tools/formal native verifier tools",
+    ".agents/skills R2.1",
+    "global mise/CI",
+    "external providers, installed Windows/Linux and API principals"
   ],
   "unresolved": [
-    "16 remaining roots need native consumer-conditioned recursive analysis",
-    "Dynamic/external consumer closure unknown",
-    "Installed and formal implementation refinement unknown",
-    "R2/R3 plan projections must not be treated as R1 nodes"
-  ]
+    "All 18 roots need bounded dynamic consumer and installed environment qualification beyond sampled source references",
+    "Unplanned main owners require independently admitted candidate reviews (do not treat OPEN PRs as main)",
+    "Cross-language, reflection, external providers and effect edges remain UNKNOWN",
+    "Host O13 from PR #928 is a newly qualified source-plan candidate, not in this sourceCut; real formal-to-install bridge UNKNOWN",
+    "Registered project plans and Source Graph cover only source-cited instances, not semantic universe"
+  ],
+  "historicalPreviousSourceCut": "75fc00bdec12268bd92ad85c6138b6f1be76bf3d",
+  "repositoryTrackedFileCount": 4987,
+  "ownerCount": 18
 }
