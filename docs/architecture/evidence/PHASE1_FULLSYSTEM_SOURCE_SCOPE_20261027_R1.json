@@ -364,6 +364,40 @@
     "Cross-system research profiles have static consumers; their release/installed consumers and independent study truth need separate evidence.",
     "Cross-region semantic responsibility overlap, orphans and replacement contracts are not established by this source-level partition."
   ],
+  "incrementalSourceScopeObservation": {
+    "addedSourcePaths": [
+      "packages/composition/formal/EffectReplayFence.ReconciliationIsUnreachable.cfg",
+      "packages/composition/formal/EffectReplayFence.TerminalCommittedWithoutEffectIsUnreachable.cfg",
+      "packages/composition/formal/EffectReplayFence.UnindexedUncertaintyIsUnreachable.cfg",
+      "packages/composition/formal/EffectReplayFence.cfg",
+      "packages/composition/formal/EffectReplayFence.tla",
+      "packages/composition/scripts/verify_effect_replay_formal.sh"
+    ],
+    "allAddedSourceAreas": [
+      "owner:composition"
+    ],
+    "comparisonBaseCut": "e913dae74d4a076ddbc35f0d90b2d39478cbf383",
+    "installedCurrentness": "UNKNOWN",
+    "limitation": "Bounded as-of this observed main; does not imply semantic or installed coverage, or bind later source changes.",
+    "modifiedSourceAreas": [
+      "owner:composition",
+      "cross:formal-prover-sources"
+    ],
+    "modifiedSourcePaths": [
+      "packages/composition/mise.toml",
+      "packages/composition/planning/lego-plan-r1.json",
+      "packages/composition/tests/test_effect_reconciliation_r1.py",
+      "tools/formal/RecursiveLegoRefinement.lean"
+    ],
+    "newTrackedFiles": 4999,
+    "observedCurrentCrossSystemSourcePaths": 347,
+    "observedCurrentRegisteredSourcePaths": 4652,
+    "observedMainCut": "631c3c83104e97260b105b9bda73f0f8ec6a6924",
+    "priorTrackedFiles": 4993,
+    "removedSourcePaths": [],
+    "scopeClosure": "ALL_NEW_GIT_SOURCE_PATHS_ROUTE_INTO_EXISTING_COMPOSITION_PREFIX",
+    "semanticValidity": "UNKNOWN"
+  },
   "kind": "ordivon.phase1-fullsystem-source-scope-census",
   "phase1Decision": "ONLY_SCOPE_BOUNDARIES_ADMITTED; DO_NOT_START_RECURSIVE_LEGO_OR_REAL_EFFECT_MIGRATION_FROM_THIS_DOCUMENT",
   "registeredSourcePartitions": [
