@@ -95,6 +95,41 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         self.assertLess(names.index("Repository mechanics"), names.index("Select affected owners"))
         self.assertLess(names.index("Select affected owners"), names.index("Verify affected owners"))
 
+    def test_next_verify_replaces_non_discovered_nested_next_ci(self) -> None:
+        """Native Next verifier, not an undiscovered child GitHub workflow."""
+        import tomllib
+
+        self.assertFalse(
+            (ROOT / "meta/next/.github/workflows/ci.yml").exists(),
+            "nested Next workflow never runs as a root GitHub Action",
+        )
+        manifest = tomllib.loads((ROOT / "tools/repo/owners.toml").read_text())
+        next_owners = [x for x in manifest["owners"] if x["name"] == "next"]
+        self.assertEqual(len(next_owners), 1)
+        self.assertEqual(next_owners[0]["root"], "meta/next/")
+        self.assertEqual(next_owners[0]["verify_task"], "next:verify")
+        root = tomllib.loads((ROOT / "mise.toml").read_text())
+        task = root["tasks"]["next:verify"]["run"]
+        self.assertIn("cd meta/next", task)
+        self.assertIn("mise run verify", task)
+        nested_mise = tomllib.loads((ROOT / "meta/next/mise.toml").read_text())
+        native = nested_mise["tasks"]["verify"]["run"]
+        for expression in (
+            "uv lock --check", "uv sync --locked",
+            "pytest", "ruff check", "ruff format --check",
+            "check_authority_catalog_r1.py", "check_reasoning_waist_r1.py",
+            "bandit", "pip-audit",
+        ):
+            self.assertIn(expression, native)
+        result = subprocess.run(
+            [sys.executable, str(ROOT / "tools/repo/affected_owners.py"),
+             "--changed-file", "meta/next/.github/workflows/ci.yml",
+             "--format", "names"],
+            cwd=ROOT, capture_output=True, text=True, timeout=20, check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), "next")
+
     def test_host_queue_replaces_non_discovered_nested_host_ci(self) -> None:
         """Root GitHub Actions must consume the Host's native current queue.
 
