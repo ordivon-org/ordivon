@@ -95,6 +95,77 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         self.assertLess(names.index("Repository mechanics"), names.index("Select affected owners"))
         self.assertLess(names.index("Select affected owners"), names.index("Verify affected owners"))
 
+    def test_runtime_release_attestations_verify_every_subject_and_fail_closed(self) -> None:
+        """Exercise official verifier CLI orchestration, not cryptographic trust."""
+        import os
+        import yaml
+
+        doc = yaml.safe_load((ROOT / ".github/workflows/runtime-release.yml").read_text())
+        steps = doc["jobs"]["runtime-release"]["steps"]
+        names = [step["name"] for step in steps]
+        title = "Verify signed canonical Runtime release attestations"
+        self.assertIn(title, names)
+        self.assertLess(names.index("Attest canonical Runtime release SPDX SBOM"), names.index(title))
+        self.assertLess(names.index(title), names.index("Retain canonical Runtime release evidence"))
+        step = steps[names.index(title)]
+        self.assertEqual(step["env"]["GH_TOKEN"], "$" + "{{ github.token }}")
+        source_sha = "a" * 40
+        run = step["run"].replace("$" + "{{ steps.release.outputs.repository_commit }}", source_sha)
+        self.assertIn("set -euo pipefail", run)
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            stage = root / "ordivon-runtime-tagged-release" / "attest-subjects"
+            stage.mkdir(parents=True)
+            for i in range(12):
+                (stage / f"component-{i:02d}").write_bytes(bytes([i]))
+            bindir = root / "bin"
+            bindir.mkdir()
+            verifier = bindir / "gh"
+            verifier.write_text(
+                "#!/usr/bin/env python3\n"
+                "import json, os, sys\n"
+                "args = sys.argv[1:]\n"
+                "with open(os.environ['GH_VERIFY_LOG'],'a',encoding='utf8') as f:\n"
+                " f.write(json.dumps(args)+'\\n')\n"
+                "if args[:2] != ['attestation','verify']: sys.exit(90)\n"
+                "if '--predicate-type' in args and os.getenv('REJECT_SBOM')=='yes' "
+                "and 'https://spdx.dev/Document/v2.3' in args: sys.exit(91)\n",
+                encoding="utf-8",
+            )
+            verifier.chmod(0o755)
+            env = dict(os.environ)
+            env.update(
+                RUNNER_TEMP=str(root), GITHUB_REPOSITORY="ordivon-org/ordivon",
+                GITHUB_REF="refs/tags/runtime-v0.1.0", GITHUB_REF_NAME="runtime-v0.1.0",
+                GH_VERIFY_LOG=str(root / "verified.jsonl"),
+                PATH=str(bindir) + os.pathsep + env["PATH"],
+            )
+            command = ["bash", "-c", run]
+            result = subprocess.run(command, cwd=ROOT, env=env, text=True,
+                                    capture_output=True, timeout=25, check=False)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            calls = [
+                json.loads(line) for line in Path(env["GH_VERIFY_LOG"])
+                .read_text(encoding="utf-8").splitlines()
+            ]
+            self.assertEqual(len(calls), 24)
+            targets = {str(path) for path in stage.iterdir()}
+            for predicate in ("https://slsa.dev/provenance/v1", "https://spdx.dev/Document/v2.3"):
+                matches = [x for x in calls if x[x.index("--predicate-type")+1] == predicate]
+                self.assertEqual({x[2] for x in matches}, targets)
+                for argv in matches:
+                    self.assertEqual(argv[argv.index("--source-digest")+1], source_sha)
+                    self.assertEqual(argv[argv.index("--source-ref")+1], env["GITHUB_REF"])
+                    self.assertEqual(
+                        argv[argv.index("--signer-workflow")+1],
+                        "ordivon-org/ordivon/.github/workflows/runtime-release.yml",
+                    )
+            env["REJECT_SBOM"] = "yes"
+            failed = subprocess.run(command, cwd=ROOT, env=env, text=True,
+                                    capture_output=True, timeout=25, check=False)
+            self.assertNotEqual(failed.returncode, 0, "bad SBOM admitted as releasable")
+
     def test_valid_manifest_is_accepted_in_normal_mode(self) -> None:
         result = self.run_contract(invalid=False, optimized=False)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
