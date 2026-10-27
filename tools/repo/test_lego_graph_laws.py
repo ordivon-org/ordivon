@@ -1619,3 +1619,33 @@ def test_phase1_census_exactly_matches_native_owner_names_without_truth_promotio
         and x["responsibilityCoverage"] != "COMPLETE"
         for x in census["findings"]
     )
+
+
+def test_phase1_named_cross_owner_consumers_have_actual_source_expression() -> None:
+    """A file's mere presence does not qualify it as a consumer."""
+    composition = module._load_json(
+        ROOT / "packages/composition/planning/lego-plan-r1.json"
+    )
+    nodes = {n["id"]: n for n in composition["nodes"]}
+    assert "meta/next/scripts/web_security_gate_r3.py" not in nodes["CP02"]["consumerEvidence"]
+    actual_next = (
+        ROOT / "meta/next/scripts/pacti_timeout_obligation_r1.py"
+    ).read_text()
+    assert "compile_verification_obligations(" in actual_next
+    assert "meta/next/scripts/pacti_timeout_obligation_r1.py" in nodes["CP03"]["consumerEvidence"]
+    impact_cli = (
+        ROOT / "packages/composition/src/ordivon_composition/verification_obligation_r1.py"
+    ).read_text()
+    assert impact_cli.count("select_impacted_obligations(") >= 3
+    assert "src/ordivon_composition/verification_obligation_r1.py" in nodes["CP05"]["consumerEvidence"]
+
+    skills = module._load_json(ROOT / "platform/skills/planning/lego-plan-r1.json")
+    bridge = {n["id"]: n for n in skills["nodes"]}
+    gateway = (ROOT / "services/gateway/src/ordivon_gateway/service.py").read_text()
+    assert '"skills.resolve"' in gateway
+    assert "services/gateway/src/ordivon_gateway/service.py" in bridge["SK04"]["consumerEvidence"]
+    assert all(
+        "INSTALLED" not in n.get("consumerQualification", "")
+        or "UNKNOWN" in n["consumerQualification"]
+        for n in [*nodes.values(), *bridge.values()]
+    )

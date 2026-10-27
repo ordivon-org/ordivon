@@ -82,10 +82,9 @@
       ],
       "consumerEvidence": [
         "src/ordivon_composition/__init__.py",
-        "pyproject.toml",
-        "meta/next/scripts/web_security_gate_r3.py"
+        "pyproject.toml"
       ],
-      "consumerQualification": "PUBLIC_API_OR_CLI_DECLARED; external dynamic callers UNKNOWN",
+      "consumerQualification": "PACKAGE_EXPORT_AND_CLI_SOURCE_ONLY; no source proof external web-security file consumes evaluate_interface; installed consumer UNKNOWN",
       "dependencies": [
         "CP01"
       ],
@@ -217,9 +216,11 @@
       ],
       "consumerEvidence": [
         "src/ordivon_composition/__init__.py",
-        "tests/test_verification_obligation_r1.py"
+        "tests/test_verification_obligation_r1.py",
+        "src/ordivon_composition/verification_obligation_r1.py",
+        "pyproject.toml"
       ],
-      "consumerQualification": "BOUND_SOURCE_EXPORT_AND_NATIVE_TEST; real cross-domain consumer closure UNKNOWN",
+      "consumerQualification": "NATIVE_PUBLIC_SELECT_IMPACT_CLI_CALLS; external domain callers UNKNOWN",
       "dependencies": [
         "CP03"
       ],

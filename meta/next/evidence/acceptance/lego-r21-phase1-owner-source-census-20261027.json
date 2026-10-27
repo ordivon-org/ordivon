@@ -3,7 +3,7 @@
   "truthRole": "SOURCECUT_BOUND_AUDIT_NOT_REGISTRY_OR_SEMANTIC_TRUTH",
   "sourceCut": "75fc00bdec12268bd92ad85c6138b6f1be76bf3d",
   "ownerManifest": "tools/repo/owners.toml",
-  "boundary": "All 18 roots enumerated at Git-tracked source level, not fully semantically traced. Hypotheses are not LEGO. Source-only consumers and documented plans do not prove installed, executed, model-refined, or total dynamic consumer coverage.",
+  "boundary": "Audit SourceCut is immutable BASE 75fc00b..., while two newly drafted Owner plans exist only in this candidate PR branch and are NOT part of that base. Each of 18 Owner roots was enumerated at Git path/sample level only; provisional hypotheses are NOT qualified LEGO; real dynamic/installed/formal consumer truth is UNKNOWN.",
   "findings": [
     {
       "owner": "next",
@@ -47,7 +47,7 @@
         "meta/next/scripts/pacti_timeout_obligation_r1.py"
       ],
       "consumerCoverage": "PARTIAL_SOURCE_IMPORTS_ONLY",
-      "semanticCoverage": "NEW_OWNER_LOCAL_SOURCE_QUALIFIED",
+      "semanticCoverage": "BASE_HAS_NO_PLAN__PR_CANDIDATE_OWNER_LOCAL_SOURCE_QUALIFIED_SEPARATE_CUT",
       "relationCoverage": "PARTIAL_DECLARED_OR_UNKNOWN",
       "formalCoverage": "NOT_COMPLETE_NO_GLOBAL_BRIDGE",
       "environmentCoverage": "SOURCE_ONLY_CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
@@ -185,7 +185,7 @@
         "services/gateway/tests/test_skills_owner_optin.py"
       ],
       "consumerCoverage": "PARTIAL_SOURCE_IMPORTS_ONLY",
-      "semanticCoverage": "NEW_OWNER_LOCAL_SOURCE_QUALIFIED",
+      "semanticCoverage": "BASE_HAS_NO_PLAN__PR_CANDIDATE_OWNER_LOCAL_SOURCE_QUALIFIED_SEPARATE_CUT",
       "relationCoverage": "PARTIAL_DECLARED_OR_UNKNOWN",
       "formalCoverage": "NOT_COMPLETE_NO_GLOBAL_BRIDGE",
       "environmentCoverage": "SOURCE_ONLY_CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
