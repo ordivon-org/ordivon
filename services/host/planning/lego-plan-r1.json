@@ -4,101 +4,411 @@
   "truthRole": "planning-projection-not-project-truth",
   "project": {
     "id": "ordivon-host-v2",
-    "purpose": "Own durable external-continuity Tasks, checkpoints, Board collaboration, and exact re-entry navigation without becoming a scheduler, priority authority, Runtime proxy, or domain truth owner.",
+    "purpose": "Host Social Work Fabric schema 10: durable Work snapshots, actor references, Space/Topic/Message collaboration and bounded re-entry navigation.",
     "sourceEvidence": [
       "README.md",
-      "docs/HOST_V2_R6_CLEANUP.md",
-      "docs/HOST_V2_R5_PRODUCTION_CUTOVER.md"
+      "src/ordivon_host_v2/service.py",
+      "src/ordivon_host_v2/social_work.py",
+      "src/ordivon_host_v2/work_store.py",
+      "src/ordivon_host_v2/social_store.py",
+      "src/ordivon_host_v2/social_attention.py",
+      "src/ordivon_host_v2/social_work_mcp.py",
+      "tests/test_social_work_fabric_postgres.py",
+      "tests/test_social_message_digest_postgres.py",
+      "tests/test_social_work_fabric_retirement.py"
     ]
   },
   "nodes": [
     {
       "id": "O01",
-      "label": "TaskContinuity",
+      "label": "WorkContinuity",
       "kind": "state_authority",
-      "responsibility": "Persist exact Host Task revisions and semantic working checkpoints for external continuity.",
+      "responsibility": "Persist Work identity, complete revisioned snapshots and semantic relations for cross-agent re-entry.",
       "authority": "Host",
       "state": "IMPLEMENTED",
       "sharedRefs": [
         "L12"
       ],
       "evidence": [
-        "README.md"
+        "src/ordivon_host_v2/work_store.py",
+        "src/ordivon_host_v2/social_work.py",
+        "tests/test_social_work_fabric_work_graph.py"
       ],
-      "dependencies": [],
+      "dependencies": [
+        "O04"
+      ],
       "mustNotOwn": [
         "domain completion",
         "Runtime currentness"
       ],
       "acceptance": [
-        "Exact task.resume can re-enter one revision-fenced continuity point."
+        "Use the current source and consumer tests referenced by this node; old Task/Board behavior is covered by explicit retirement tests."
+      ],
+      "inputs": [
+        "WorkCreateInput; WorkSnapshotInput; ActorRefInput; exact revision and request identity"
+      ],
+      "outputs": [
+        "WorkResponse; exact historical snapshot or domain conflict"
+      ],
+      "behavioralContract": "Host-local revision and content identities are preserved; ActorRef is a reference, not authenticated identity; no execution or domain acceptance is granted.",
+      "children": [
+        "O09"
       ]
     },
     {
       "id": "O02",
-      "label": "Board",
+      "label": "SocialJournal",
       "kind": "state_authority",
-      "responsibility": "Persist collaboration records and deterministic Task route anchors without creating priority or ownership.",
+      "responsibility": "Persist independent Space/Topic/Message collaboration records and typed relations.",
       "authority": "Host",
       "state": "IMPLEMENTED",
       "sharedRefs": [],
       "evidence": [
-        "README.md"
+        "src/ordivon_host_v2/social_graph.py",
+        "src/ordivon_host_v2/social_store.py",
+        "tests/test_social_work_fabric_social_graph.py"
       ],
-      "dependencies": [],
+      "dependencies": [
+        "O04"
+      ],
       "mustNotOwn": [
         "authenticated identity",
         "task priority"
       ],
       "acceptance": [
-        "Board messages remain collaboration records only."
+        "Use the current source and consumer tests referenced by this node; old Task/Board behavior is covered by explicit retirement tests."
+      ],
+      "inputs": [
+        "SpaceInput; TopicInput; MessageInput; actor and subject references"
+      ],
+      "outputs": [
+        "Social contract records; exact message and bounded topic pages"
+      ],
+      "behavioralContract": "Spaces can link multiple Works; replies stay within a topic; participation is not authorization; message claims remain claims.",
+      "children": [
+        "O10",
+        "O11"
       ]
     },
     {
       "id": "O03",
-      "label": "AttentionDelta",
+      "label": "AttentionReentry",
       "kind": "projection",
-      "responsibility": "Project bounded Board-sequence deltas into exact Task re-entry navigation.",
+      "responsibility": "Project actor-scoped change navigation and topic re-entry from committed Host rows.",
       "authority": "Host projection",
       "state": "IMPLEMENTED",
       "sharedRefs": [
         "L11"
       ],
       "evidence": [
-        "README.md"
+        "src/ordivon_host_v2/social_attention.py",
+        "tests/test_social_work_fabric_attention.py"
       ],
-      "dependencies": [],
+      "dependencies": [
+        "O04"
+      ],
       "mustNotOwn": [
         "inbox/unread authority",
         "work admission"
       ],
       "acceptance": [
-        "Delta consumer must still resume exact Task before acting."
+        "Use the current source and consumer tests referenced by this node; old Task/Board behavior is covered by explicit retirement tests."
+      ],
+      "inputs": [
+        "ActorRef; change cursor; subscriptions; byte and item budgets"
+      ],
+      "outputs": [
+        "AttentionDeltaResponse; AttentionReentryResponse"
+      ],
+      "behavioralContract": "Attention change sequence and topic message sequence are distinct coordinates; projection neither ranks nor schedules.",
+      "children": [
+        "O12"
       ]
     },
     {
       "id": "O04",
       "label": "PostgresJournal",
       "kind": "persistence",
-      "responsibility": "Own Host durable object/revision storage using PostgreSQL and canonical JSON semantics.",
+      "responsibility": "Provide PostgreSQL transactions, schema qualification and RFC8785 JSON identity for Host schema 10.",
       "authority": "Host",
       "state": "IMPLEMENTED",
       "sharedRefs": [
         "L10"
       ],
       "evidence": [
-        "README.md",
-        "tools/repo/check_sql_dialects.py",
-        "tools/repo/test_sql_dialects.py"
+        "src/ordivon_host_v2/service.py",
+        "src/ordivon_host_v2/canonical.py",
+        "migrations/versions/0009_retire_legacy_task_board.py",
+        "migrations/versions/0010_social_work_fabric_r2.py"
       ],
       "dependencies": [],
       "mustNotOwn": [
         "Runtime ledger"
       ],
       "acceptance": [
-        "Restart preserves Host revision identity and task/board continuity.",
-        "Host PostgreSQL authority is source-qualified by the existing Repo SQL dialect gate: active Host service/migration Python sources may not import SQLite engines or define SQLite DSNs; the native negative controls reject a second embedded engine. This says nothing about Runtime/Harness local recovery stores, and does not claim a completed data cutover."
-      ]
+        "Use the current source and consumer tests referenced by this node; old Task/Board behavior is covered by explicit retirement tests."
+      ],
+      "inputs": [
+        "PostgreSQL DSN; Alembic-applied schema; typed Host mutations"
+      ],
+      "outputs": [
+        "Committed rows and receipts; schema/integrity status"
+      ],
+      "behavioralContract": "Alembic owns migration; service startup requires schema 10; Host stores cannot substitute for Runtime ledger or foreign truth.",
+      "children": []
+    },
+    {
+      "id": "O09",
+      "label": "WorkSnapshotCAS",
+      "kind": "state_authority",
+      "responsibility": "Commit and read exact complete Work snapshots under revision fencing.",
+      "authority": "Host",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "dependencies": [
+        "O04"
+      ],
+      "mustNotOwn": [
+        "Runtime execution truth",
+        "domain acceptance"
+      ],
+      "inputs": [
+        "workRef; ActorRef; WorkSnapshotInput; strict positive expectedRevision; state; request identity"
+      ],
+      "outputs": [
+        "WorkResponse with revision, snapshotDigest, snapshot, state and admission; typed conflict"
+      ],
+      "behavioralContract": "Only current open Work advances by one revision. Matching response-loss retry may return existing; terminal Work cannot reopen. Read validates payload digest and current pointer; historical reads do not infer historical state.",
+      "acceptance": [
+        "test_work_snapshot_cas_race_has_one_winner",
+        "test_work_snapshot_response_loss_replay_with_new_request_id_is_existing",
+        "test_work_read_rejects_postgres_modified_snapshot_payload",
+        "test_work_read_rejects_postgres_modified_current_pointer_digest"
+      ],
+      "evidence": [
+        "src/ordivon_host_v2/work_store.py",
+        "src/ordivon_host_v2/social_work.py",
+        "tests/test_social_work_fabric_postgres.py::test_work_snapshot_cas_race_has_one_winner",
+        "tests/test_social_work_fabric_postgres.py::test_work_snapshot_response_loss_replay_with_new_request_id_is_existing",
+        "tests/test_social_work_fabric_postgres.py::test_work_read_rejects_postgres_modified_snapshot_payload",
+        "tests/test_social_work_fabric_postgres.py::test_work_read_rejects_postgres_modified_current_pointer_digest"
+      ],
+      "parent": "O01",
+      "consumers": [
+        "social_work_mcp work.snapshot.commit/work.get",
+        "HostV2.status integrity/history"
+      ],
+      "semanticProfile": "R2.1 state/observation contract; source-qualified, implementation tests are bounded evidence",
+      "formalObligations": [
+        "CAS/history atomicity under concurrency",
+        "non-resurrection of terminal Work",
+        "complete snapshot digest and pointer correspondence"
+      ],
+      "replacementContract": "Preserve revision/content identities, observable replay/conflict behavior and complete history; migrate persisted snapshots before changing substrate.",
+      "evidenceScope": {
+        "sourceCut": "75fc00bdec12268bd92ad85c6138b6f1be76bf3d",
+        "qualification": "SOURCE_CONFIRMED",
+        "formalProof": "UNKNOWN",
+        "installedCurrentness": "UNKNOWN",
+        "invalidatedBy": [
+          "implementation or native contract change",
+          "schema/transaction semantics change",
+          "consumer or environment assumptions change"
+        ],
+        "implementationEvidence": {
+          "kind": "BOUNDED_CONSUMER_TESTS",
+          "jobId": "job-01a17bad-0d48-7fb2-85c5-c183a451998c",
+          "result": "402 Host tests passed on isolated PostgreSQL 18.6; source code unchanged by subsequent plan identity correction; not exhaustive proof"
+        }
+      }
+    },
+    {
+      "id": "O10",
+      "label": "MessageContentIntegrity",
+      "kind": "contract",
+      "responsibility": "Validate actual persisted message content before exposing it through any content consumer.",
+      "authority": "Host",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "dependencies": [
+        "O04"
+      ],
+      "mustNotOwn": [
+        "Runtime execution truth",
+        "domain acceptance"
+      ],
+      "inputs": [
+        "Message row; messageRef; optional expectedDigest"
+      ],
+      "outputs": [
+        "Exact message record or bounded content page; integrity/conflict/not-found failure"
+      ],
+      "behavioralContract": "Recompute RFC8785 identity from actual record fields before comparing optional expected digest. get, search, topic resume and repeated post must reject corrupt content; claims do not become domain facts.",
+      "acceptance": [
+        "tests/test_social_message_digest_postgres.py::test_postgresql_corrupt_message_body_fails_closed_in_all_content_consumers",
+        "tests/test_message_get_contract.py::test_get_message_projects_exact_record_and_checks_expected_digest"
+      ],
+      "evidence": [
+        "src/ordivon_host_v2/social_store.py",
+        "src/ordivon_host_v2/social_contracts.py",
+        "tests/test_social_message_digest_postgres.py",
+        "tests/test_message_get_contract.py"
+      ],
+      "parent": "O02",
+      "consumers": [
+        "SocialStore.get_message/search_messages/resume_topic/post_message",
+        "social_work_mcp message.get/message.search/topic.resume"
+      ],
+      "semanticProfile": "R2.1 state/observation contract; source-qualified, implementation tests are bounded evidence",
+      "formalObligations": [
+        "all content read paths enforce the same committed-byte identity",
+        "expected digest alone cannot authenticate mutated content"
+      ],
+      "replacementContract": "Retain canonical message identity fields and all-consumer integrity checks; storage/search replacement cannot bypass row verification.",
+      "evidenceScope": {
+        "sourceCut": "75fc00bdec12268bd92ad85c6138b6f1be76bf3d",
+        "qualification": "SOURCE_CONFIRMED",
+        "formalProof": "UNKNOWN",
+        "installedCurrentness": "UNKNOWN",
+        "invalidatedBy": [
+          "implementation or native contract change",
+          "schema/transaction semantics change",
+          "consumer or environment assumptions change"
+        ],
+        "implementationEvidence": {
+          "kind": "BOUNDED_CONSUMER_TESTS",
+          "jobId": "job-01a17bad-0d48-7fb2-85c5-c183a451998c",
+          "result": "402 Host tests passed on isolated PostgreSQL 18.6; source code unchanged by subsequent plan identity correction; not exhaustive proof"
+        }
+      }
+    },
+    {
+      "id": "O11",
+      "label": "TopicCursorReentry",
+      "kind": "projection",
+      "responsibility": "Resume a bounded topic conversation from its actor-topic message cursor.",
+      "authority": "Host",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "dependencies": [
+        "O04",
+        "O10"
+      ],
+      "mustNotOwn": [
+        "Runtime execution truth",
+        "domain acceptance"
+      ],
+      "inputs": [
+        "ActorRef; topicRef; message-sequence cursor; item/byte budget"
+      ],
+      "outputs": [
+        "TopicCursorResponse; TopicResumeResponse with next cursor and hasMore"
+      ],
+      "behavioralContract": "Topic cursor names message sequence, distinct from attention change clock. Acknowledgement is monotone and horizon-bounded; conversation paging preserves exact message integrity and canonical byte budget.",
+      "acceptance": [
+        "test_r2_topic_cursor_relation_readback_reasons_and_reentry",
+        "test_r2_message_page_respects_canonical_byte_budget"
+      ],
+      "evidence": [
+        "src/ordivon_host_v2/social_store.py",
+        "src/ordivon_host_v2/social_bounds.py",
+        "tests/test_social_work_fabric_postgres.py::test_r2_topic_cursor_relation_readback_reasons_and_reentry",
+        "tests/test_social_work_fabric_postgres.py::test_r2_message_page_respects_canonical_byte_budget"
+      ],
+      "parent": "O02",
+      "consumers": [
+        "social_work_mcp topic.cursor.get/topic.cursor.ack/topic.resume",
+        "AttentionStore.reentry navigation coordinates"
+      ],
+      "semanticProfile": "R2.1 state/observation contract; source-qualified, implementation tests are bounded evidence",
+      "formalObligations": [
+        "non-regressing actor-topic cursor",
+        "paging does not omit eligible messages",
+        "attention navigation to topic coordinate mapping"
+      ],
+      "replacementContract": "Preserve topic message coordinates, bounds, monotonic acknowledgements and record identity; do not replace with global attention cursor.",
+      "evidenceScope": {
+        "sourceCut": "75fc00bdec12268bd92ad85c6138b6f1be76bf3d",
+        "qualification": "SOURCE_CONFIRMED",
+        "formalProof": "UNKNOWN",
+        "installedCurrentness": "UNKNOWN",
+        "invalidatedBy": [
+          "implementation or native contract change",
+          "schema/transaction semantics change",
+          "consumer or environment assumptions change"
+        ],
+        "implementationEvidence": {
+          "kind": "BOUNDED_CONSUMER_TESTS",
+          "jobId": "job-01a17bad-0d48-7fb2-85c5-c183a451998c",
+          "result": "402 Host tests passed on isolated PostgreSQL 18.6; source code unchanged by subsequent plan identity correction; not exhaustive proof"
+        }
+      }
+    },
+    {
+      "id": "O12",
+      "label": "AttentionChangeHorizon",
+      "kind": "projection",
+      "responsibility": "Route actor-scoped committed changes without skipping unseen relevant events.",
+      "authority": "Host",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "dependencies": [
+        "O04"
+      ],
+      "mustNotOwn": [
+        "Runtime execution truth",
+        "domain acceptance"
+      ],
+      "inputs": [
+        "ActorRef; afterSequence in Host change-clock space; limit 1..500; maxBytes; subscriptions"
+      ],
+      "outputs": [
+        "AttentionDeltaResponse and grouped reentry; monotone attention acknowledgement"
+      ],
+      "behavioralContract": "Read a repeatable-read snapshot horizon. Final/empty pages may advance to the horizon; nonfinal pages cannot jump past relevant changes. Change-clock allocation rolls back transactionally. Attention acknowledgement gives navigation progress only.",
+      "acceptance": [
+        "test_attention_change_clock_serializes_commit_order_and_rollback_has_no_hole",
+        "test_attention_first_ack_concurrency_cannot_regress_cursor",
+        "test_r2_attention_empty_interval_advances_to_snapshot_horizon",
+        "test_r2_attention_nonfinal_page_never_jumps_over_relevant_event"
+      ],
+      "evidence": [
+        "src/ordivon_host_v2/social_attention.py",
+        "migrations/versions/0010_social_work_fabric_r2.py",
+        "tests/test_social_work_fabric_attention.py",
+        "tests/test_social_work_fabric_postgres.py::test_attention_change_clock_serializes_commit_order_and_rollback_has_no_hole",
+        "tests/test_social_work_fabric_postgres.py::test_attention_first_ack_concurrency_cannot_regress_cursor",
+        "tests/test_social_work_fabric_postgres.py::test_r2_attention_empty_interval_advances_to_snapshot_horizon",
+        "tests/test_social_work_fabric_postgres.py::test_r2_attention_nonfinal_page_never_jumps_over_relevant_event"
+      ],
+      "parent": "O03",
+      "consumers": [
+        "social_work_mcp attention.delta/attention.get/attention.ack",
+        "agent reentry consumers"
+      ],
+      "semanticProfile": "R2.1 state/observation contract; source-qualified, implementation tests are bounded evidence",
+      "formalObligations": [
+        "no relevant committed change skipped by pagination",
+        "ack monotonicity under race",
+        "change horizon reflects transaction order"
+      ],
+      "replacementContract": "Preserve change-clock/subscription semantics and navigation coordinates; standard PostgreSQL sequence alone does not supply rollback-safe clock behavior.",
+      "evidenceScope": {
+        "sourceCut": "75fc00bdec12268bd92ad85c6138b6f1be76bf3d",
+        "qualification": "SOURCE_CONFIRMED",
+        "formalProof": "UNKNOWN",
+        "installedCurrentness": "UNKNOWN",
+        "invalidatedBy": [
+          "implementation or native contract change",
+          "schema/transaction semantics change",
+          "consumer or environment assumptions change"
+        ],
+        "implementationEvidence": {
+          "kind": "BOUNDED_CONSUMER_TESTS",
+          "jobId": "job-01a17bad-0d48-7fb2-85c5-c183a451998c",
+          "result": "402 Host tests passed on isolated PostgreSQL 18.6; source code unchanged by subsequent plan identity correction; not exhaustive proof"
+        }
+      }
     }
   ],
   "edges": [
@@ -106,29 +416,92 @@
       "from": "O04",
       "to": "O01",
       "type": "DEPENDENCY",
-      "label": "durable task revisions"
+      "label": "PostgreSQL transaction and schema prerequisite"
     },
     {
       "from": "O04",
       "to": "O02",
       "type": "DEPENDENCY",
-      "label": "durable board sequence"
+      "label": "PostgreSQL transaction and schema prerequisite"
+    },
+    {
+      "from": "O04",
+      "to": "O03",
+      "type": "DEPENDENCY",
+      "label": "PostgreSQL transaction and schema prerequisite"
+    },
+    {
+      "from": "O04",
+      "to": "O09",
+      "type": "DEPENDENCY",
+      "label": "PostgreSQL transaction and schema prerequisite"
+    },
+    {
+      "from": "O04",
+      "to": "O10",
+      "type": "DEPENDENCY",
+      "label": "PostgreSQL transaction and schema prerequisite"
+    },
+    {
+      "from": "O04",
+      "to": "O11",
+      "type": "DEPENDENCY",
+      "label": "PostgreSQL transaction and schema prerequisite"
+    },
+    {
+      "from": "O04",
+      "to": "O12",
+      "type": "DEPENDENCY",
+      "label": "PostgreSQL transaction and schema prerequisite"
+    },
+    {
+      "from": "O01",
+      "to": "O09",
+      "type": "COMPOSITION",
+      "label": "architectural unfold only; no composition proof claimed"
+    },
+    {
+      "from": "O02",
+      "to": "O10",
+      "type": "COMPOSITION",
+      "label": "architectural unfold only; no composition proof claimed"
+    },
+    {
+      "from": "O02",
+      "to": "O11",
+      "type": "COMPOSITION",
+      "label": "architectural unfold only; no composition proof claimed"
+    },
+    {
+      "from": "O03",
+      "to": "O12",
+      "type": "COMPOSITION",
+      "label": "architectural unfold only; no composition proof claimed"
+    },
+    {
+      "from": "O10",
+      "to": "O11",
+      "type": "DEPENDENCY",
+      "label": "topic content must pass message-integrity verification"
+    },
+    {
+      "from": "O11",
+      "to": "O12",
+      "type": "DATA",
+      "label": "actor-topic cursor provides message resume coordinate; not change-clock identity"
     },
     {
       "from": "O02",
       "to": "O03",
       "type": "DATA",
-      "label": "board delta projection"
-    },
-    {
-      "from": "O01",
-      "to": "O03",
-      "type": "IDENTITY",
-      "label": "route delta to exact task revision"
+      "label": "committed social rows feed actor-scoped navigation"
     }
   ],
   "slices": [],
-  "gaps": [],
+  "gaps": [
+    "Work relation DAG, ActorRef declaration, subscription lifecycle, Space participation, message relations, coordination intents and FTS remain under existing parents pending deeper independent contract qualification.",
+    "Declared relationships are source/consumer candidates; complete dynamic consumer coverage and universal refinement remain UNKNOWN."
+  ],
   "doNotOwn": [
     "priority",
     "assignee",
@@ -137,10 +510,13 @@
     "domain truth"
   ],
   "review": {
-    "sourceRevision": "b5cf31f9a1d177576886fe545e870e685a80fc2e",
-    "updatedAt": "2026-09-18",
-    "standing": "INITIAL",
-    "notes": "Initial project-native LEGO planning projection. It does not replace owner-native architecture or evidence."
+    "sourceRevision": "75fc00bdec12268bd92ad85c6138b6f1be76bf3d",
+    "updatedAt": "2026-10-27",
+    "standing": "SOURCE_QUALIFIED_RECURSIVE_DECOMPOSITION",
+    "notes": "Preserve O01-O04 identifiers while correcting retired Task/Board semantics to Social Work Fabric schema 10. O09-O12 have independently observable contracts and existing native consumers; no production state change.",
+    "retiredIdentities": {
+      "O05": "ScopeBoundCursor; remains retired, never reused"
+    }
   },
   "sharedCatalog": {
     "catalogId": "agent-architecture-lego-catalog-r1",

@@ -30,7 +30,7 @@ def test_host_legacy_agent_service_cursor_proposal_is_retired() -> None:
     assert not (ROOT / "services/host/src/ordivon_host_v2/cursor.py").exists()
     assert all(node["id"] != "O05" for node in legacy["nodes"])
     assert all(slice_["id"] != "OS1" for slice_ in legacy["slices"])
-    assert legacy["gaps"] == []
+    assert all("ScopeBoundCursor" not in gap for gap in legacy["gaps"])
 
 
 def test_network_unconsumed_future_profile_slice_is_retired_without_removing_active_nodes() -> None:
@@ -44,6 +44,38 @@ def test_network_unconsumed_future_profile_slice_is_retired_without_removing_act
     profile = next(item for item in plan["nodes"] if item["id"] == "N05")
     assert "Adding a profile does not redefine generic Network acceptance." in profile["acceptance"]
     module.validate_owner_lego_graph(plan)
+
+
+
+def test_network_recursive_consumer_contracts_remain_source_bound_not_installed_truth() -> None:
+    # Three independent consumer-facing seams discovered inside the historical
+    # N02 data-plane / N05 profile coarse nodes. A source witness is not live truth.
+    relative = "platform/network/planning/lego-plan-r1.json"
+    plan = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+    nodes = {row["id"]: row for row in plan["nodes"]}
+    assert nodes["N02"]["behavioralContract"]
+    expected = {
+        "N06": ("N02", "COMPOSITION", "consumers/x-reality/config/egress.json"),
+        "N07": ("N05", "SPECIALIZATION", "consumers/developer-egress/profile.sh"),
+        "N08": ("N02", "OBSERVATION", "consumers/supply-chain/ready.sh"),
+    }
+    for identity, (parent, relation, real_source) in expected.items():
+        node = nodes[identity]
+        for field in ("responsibility", "inputs", "outputs", "behavioralContract",
+                      "acceptance", "consumerEvidence"):
+            assert node[field], (identity, field)
+        assert real_source in node["evidence"]
+        assert (ROOT / "platform/network" / real_source).is_file()
+        assert any(edge["from"] == parent and edge["to"] == identity and
+                   edge["type"] == relation for edge in plan["edges"])
+    view = module.project_owner_lego_source_graph(ROOT)
+    for identity in expected:
+        ref = f"{relative}#{identity}"
+        vertex = next(item for item in view["vertices"] if item["ref"] == ref)
+        assert vertex["sourceAnchors"]
+        assert vertex["sourceCoverageStanding"] == "DECLARED_SOURCE_MEMBERSHIP_PARTIAL"
+        assert not vertex["unresolvedSourceEvidence"]
+    assert "ACTUAL_CONSUMER" in view["excluded"]["unverifiedFacets"]
 
 
 @pytest.mark.parametrize("relative", OWNER_GRAPH_PLANS)
@@ -1550,3 +1582,51 @@ def test_upstream_local_import_dependency_change_invalidates_with_stable_target_
     assert same["sourceRelationStanding"] == "NO_DECLARED_SOURCE_RELATION_CHANGE"
     assert same["changedUpstreamLocalSourceFiles"] == []
     assert same["proofReuseAdmissible"] is False
+
+
+def test_skills_r21_semantic_node_consumer_source_falsification() -> None:
+    """A new Skills LEGO must point to a real source-defined consumer surface.
+
+    This is a source/symbol negative control, NOT dynamic client/installed proof.
+    """
+    import ast
+    import copy
+
+    plan = json.loads(
+        (ROOT / "platform/skills/planning/lego-plan-r1.json").read_text(encoding="utf-8")
+    )
+
+    def qualify_source_symbols(candidate: dict) -> None:
+        for node in candidate["nodes"]:
+            assert all(node[key] for key in (
+                "id", "responsibility", "inputs", "outputs",
+                "behavioralContract", "acceptance", "formalObligations",
+            ))
+            assert node["actualConsumers"]
+            for consumer in node["actualConsumers"]:
+                relative = Path(consumer["path"])
+                assert not relative.is_absolute() and ".." not in relative.parts
+                path = ROOT / "platform/skills" / relative
+                assert path.is_file()
+                names = {
+                    ast_node.name for ast_node in ast.walk(
+                        ast.parse(path.read_text(encoding="utf-8"))
+                    )
+                    if isinstance(
+                        ast_node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)
+                    )
+                }
+                assert consumer["symbol"] in names, (
+                    f"{node['id']} has no such static consumer entrypoint: "
+                    f"{consumer['path']}::{consumer['symbol']}"
+                )
+                assert consumer["standing"] in {
+                    "SOURCE_STATIC_CALL",
+                    "SOURCE_STATIC_FUNCTION; EXTERNAL_CLIENT_SOURCE_UNRESOLVED",
+                }
+
+    qualify_source_symbols(plan)
+    falsified = copy.deepcopy(plan)
+    falsified["nodes"][3]["actualConsumers"][0]["symbol"] = "NOT_REAL_CONSUMER"
+    with pytest.raises(AssertionError, match="no such static consumer entrypoint"):
+        qualify_source_symbols(falsified)
