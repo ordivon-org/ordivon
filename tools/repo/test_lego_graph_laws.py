@@ -1550,3 +1550,79 @@ def test_upstream_local_import_dependency_change_invalidates_with_stable_target_
     assert same["sourceRelationStanding"] == "NO_DECLARED_SOURCE_RELATION_CHANGE"
     assert same["changedUpstreamLocalSourceFiles"] == []
     assert same["proofReuseAdmissible"] is False
+
+
+def test_phase1_composition_skills_real_lego_plans_and_sourcecut_survey() -> None:
+    """Qualify concrete Owner-local contracts, not directory/function-to-LEGO counts."""
+    new_plans = {
+        "packages/composition/planning/lego-plan-r1.json": {"C01", "C02", "C03", "C04"},
+        "platform/skills/planning/lego-plan-r1.json": {"K01", "K02", "K03", "K04"},
+    }
+    for relative, identities in new_plans.items():
+        assert relative in module.OWNER_LEGO_PLANS
+        plan = json.loads((ROOT / relative).read_text())
+        assert {row["id"] for row in plan["nodes"]} == identities
+        module.validate_owner_lego_graph(plan)
+        module.validate_owner_lego_dependencies(plan, relative.split("/planning/")[0])
+        module.validate_owner_lego_source_evidence(ROOT, relative, plan)
+        for row in plan["nodes"]:
+            for role in ("id", "responsibility", "inputs", "outputs", "behavioralContract", "acceptance"):
+                assert row.get(role), (relative, row["id"], role)
+            assert row["formalObligations"] and row["consumerEvidence"]
+            assert "UNKNOWN" in row["evidenceStanding"]
+            for observed in row["consumerEvidence"]:
+                assert observed["qualification"] == "STATIC_SOURCE_CONSUMER_ONLY"
+                assert (ROOT / observed["path"]).is_file()
+
+    census = json.loads(
+        (ROOT / "meta/next/evidence/acceptance/lego-phase1-owner-sourcecut-20261027.json").read_text()
+    )
+    from tools.repo import source_history_legos
+    import tomllib
+    listed = source_history_legos.current_tree(ROOT, census["sourceRevision"])
+    declared = tomllib.loads((ROOT / "tools/repo/owners.toml").read_text())["owners"]
+    assert {row["owner"] for row in census["owners"]} == {row["name"] for row in declared}
+    for row in census["owners"]:
+        prefix = row["ownerRoot"]
+        assert row["sourceFileCount"] == len([p for p in listed if p.startswith(prefix)])
+        assert row["repositoryCoverage"] == "GIT_TREE_ENUMERATED"
+        assert row["formalCoverage"] == "NOT_AUDITED"
+        assert all(s in listed for s in row["sampleSourceEntrypoints"])
+
+
+def test_phase1_actual_consumers_exist_and_forged_consumers_do_not_qualify() -> None:
+    import ast
+
+    def imports_method(source: str, method: str) -> bool:
+        tree = ast.parse(source)
+        return any(
+            isinstance(n, ast.ImportFrom)
+            and n.module == "ordivon_composition"
+            and method in {a.name for a in n.names}
+            for n in ast.walk(tree)
+        )
+
+    web = (ROOT / "meta/next/scripts/web_security_gate_r3.py").read_text()
+    pacti = (ROOT / "meta/next/scripts/pacti_timeout_obligation_r1.py").read_text()
+    assert imports_method(web, "compile_manifest")
+    assert imports_method(pacti, "compile_verification_obligations")
+    assert imports_method(pacti, "resolve_verifier_bindings")
+    assert not imports_method(web.replace("compile_manifest", "unused_manifest"), "compile_manifest")
+
+    def calls_skill_resolve(source: str) -> bool:
+        tree = ast.parse(source)
+        return any(
+            isinstance(n, ast.Call)
+            and isinstance(n.func, ast.Attribute)
+            and n.func.attr == "call_tool"
+            and len(n.args) >= 2
+            and isinstance(n.args[0], ast.Constant)
+            and n.args[0].value == "skills"
+            and isinstance(n.args[1], ast.Constant)
+            and n.args[1].value == "skills.resolve"
+            for n in ast.walk(tree)
+        )
+
+    gateway = (ROOT / "services/gateway/src/ordivon_gateway/service.py").read_text()
+    assert calls_skill_resolve(gateway)
+    assert not calls_skill_resolve(gateway.replace('"skills.resolve"', '"skills.describe"'))

@@ -1,0 +1,459 @@
+{
+  "kind": "ordivon.lego-phase1-owner-sourcecut-survey-evidence",
+  "truthRole": "sourcecut-index-not-lego-registry-or-consumer-proof",
+  "sourceRevision": "75fc00bdec12268bd92ad85c6138b6f1be76bf3d",
+  "ownerManifest": "tools/repo/owners.toml",
+  "method": "Native git ls-tree -r --name-only -z; inspect README and bounded source entrypoints; qualified Owner-local plan deltas separately",
+  "scope": "All 18 registered Repo owner roots; tools/repo cross-system source work independently included in existing repository mechanics plan",
+  "owners": [
+    {
+      "owner": "next",
+      "ownerRoot": "meta/next/",
+      "sourceFileCount": 1015,
+      "readme": "meta/next/README.md",
+      "sampleSourceEntrypoints": [
+        "meta/next/scripts/authority_catalog.py",
+        "meta/next/scripts/check_authority_catalog_r1.py",
+        "meta/next/scripts/check_governance_persistence_r1.py",
+        "meta/next/scripts/check_reasoning_waist_r1.py",
+        "meta/next/scripts/check_standard_native_enterprise_r2.py",
+        "meta/next/scripts/cross_domain_binding_r3.py"
+      ],
+      "previousProjectLegoPlanPaths": [],
+      "candidatePlanDeltaPaths": [],
+      "repositoryCoverage": "GIT_TREE_ENUMERATED",
+      "responsibilityCoverage": "NOT_YET_QUALIFIED",
+      "consumerCoverage": "NOT_AUDITED",
+      "semanticCoverage": "LEGACY_PLAN_EXISTENCE_ONLY",
+      "relationCoverage": "NOT_AUDITED",
+      "formalCoverage": "NOT_AUDITED",
+      "environmentCoverage": "SOURCE_ONLY; CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
+    },
+    {
+      "owner": "composition",
+      "ownerRoot": "packages/composition/",
+      "sourceFileCount": 45,
+      "readme": "packages/composition/README.md",
+      "sampleSourceEntrypoints": [
+        "packages/composition/src/ordivon_composition/__init__.py",
+        "packages/composition/src/ordivon_composition/cognitive_circuit_r1.py",
+        "packages/composition/src/ordivon_composition/interface_contract_r2.py",
+        "packages/composition/src/ordivon_composition/successor_contract_r1.py",
+        "packages/composition/src/ordivon_composition/verification_obligation_r1.py"
+      ],
+      "previousProjectLegoPlanPaths": [],
+      "candidatePlanDeltaPaths": [
+        "packages/composition/planning/lego-plan-r1.json"
+      ],
+      "repositoryCoverage": "GIT_TREE_ENUMERATED",
+      "responsibilityCoverage": "BOUNDED_SOURCE_CONSUMER_PARTIAL",
+      "consumerCoverage": "STATIC_SOURCE_CONSUMER_PARTIAL",
+      "semanticCoverage": "CANDIDATE_R1_OWNER_PLAN_NOT_MAIN",
+      "relationCoverage": "LOCAL_DECLARATION_PARTIAL",
+      "formalCoverage": "NOT_AUDITED",
+      "environmentCoverage": "SOURCE_ONLY; CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
+    },
+    {
+      "owner": "control-plugin",
+      "ownerRoot": "extensions/ordivon-control-plane/",
+      "sourceFileCount": 2,
+      "readme": null,
+      "sampleSourceEntrypoints": [],
+      "previousProjectLegoPlanPaths": [],
+      "candidatePlanDeltaPaths": [],
+      "repositoryCoverage": "GIT_TREE_ENUMERATED",
+      "responsibilityCoverage": "NOT_YET_QUALIFIED",
+      "consumerCoverage": "NOT_AUDITED",
+      "semanticCoverage": "NO_OWNER_LOCAL_PLAN_KNOWN",
+      "relationCoverage": "NOT_AUDITED",
+      "formalCoverage": "NOT_AUDITED",
+      "environmentCoverage": "SOURCE_ONLY; CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
+    },
+    {
+      "owner": "runtime",
+      "ownerRoot": "services/runtime/",
+      "sourceFileCount": 419,
+      "readme": "services/runtime/README.md",
+      "sampleSourceEntrypoints": [
+        "services/runtime/crates/ordivon-runtime-core/Cargo.toml",
+        "services/runtime/crates/ordivon-runtime-core/src/bin/ordivon-runtime-doctor.rs",
+        "services/runtime/crates/ordivon-runtime-core/src/bin/ordivon-runtime-inspect.rs",
+        "services/runtime/crates/ordivon-runtime-core/src/bin/ordivon-runtime-job-fixture.rs",
+        "services/runtime/crates/ordivon-runtime-core/src/bin/ordivon-runtime-repair.rs",
+        "services/runtime/crates/ordivon-runtime-core/src/bin/ordivon-runtime-runner.rs"
+      ],
+      "previousProjectLegoPlanPaths": [
+        "services/runtime/planning/lego-plan-r1.json"
+      ],
+      "candidatePlanDeltaPaths": [],
+      "repositoryCoverage": "GIT_TREE_ENUMERATED",
+      "responsibilityCoverage": "NOT_YET_QUALIFIED",
+      "consumerCoverage": "NOT_AUDITED",
+      "semanticCoverage": "LEGACY_PLAN_EXISTENCE_ONLY",
+      "relationCoverage": "NOT_AUDITED",
+      "formalCoverage": "NOT_AUDITED",
+      "environmentCoverage": "SOURCE_ONLY; CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
+    },
+    {
+      "owner": "host",
+      "ownerRoot": "services/host/",
+      "sourceFileCount": 98,
+      "readme": "services/host/README.md",
+      "sampleSourceEntrypoints": [
+        "services/host/src/ordivon_host_v2/__init__.py",
+        "services/host/src/ordivon_host_v2/canonical.py",
+        "services/host/src/ordivon_host_v2/contracts.py",
+        "services/host/src/ordivon_host_v2/errors.py",
+        "services/host/src/ordivon_host_v2/legacy_cutover.py",
+        "services/host/src/ordivon_host_v2/mcp_server.py"
+      ],
+      "previousProjectLegoPlanPaths": [
+        "services/host/planning/lego-plan-r1.json",
+        "services/host/planning/lego-plan-r3.json"
+      ],
+      "candidatePlanDeltaPaths": [],
+      "repositoryCoverage": "GIT_TREE_ENUMERATED",
+      "responsibilityCoverage": "NOT_YET_QUALIFIED",
+      "consumerCoverage": "NOT_AUDITED",
+      "semanticCoverage": "LEGACY_PLAN_EXISTENCE_ONLY",
+      "relationCoverage": "NOT_AUDITED",
+      "formalCoverage": "NOT_AUDITED",
+      "environmentCoverage": "SOURCE_ONLY; CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
+    },
+    {
+      "owner": "harness",
+      "ownerRoot": "services/harness/",
+      "sourceFileCount": 729,
+      "readme": "services/harness/README.md",
+      "sampleSourceEntrypoints": [
+        "services/harness/scripts/acceptance_h0_deliberation_authority.py",
+        "services/harness/scripts/agent_automation_browserless.py",
+        "services/harness/scripts/agent_automation_browserless_effects.py",
+        "services/harness/scripts/agent_automation_ledger_reconcile.py",
+        "services/harness/scripts/agent_automation_mcp.py",
+        "services/harness/scripts/agent_automation_mcp_deploy.py"
+      ],
+      "previousProjectLegoPlanPaths": [
+        "services/harness/planning/lego-plan-r1.json"
+      ],
+      "candidatePlanDeltaPaths": [],
+      "repositoryCoverage": "GIT_TREE_ENUMERATED",
+      "responsibilityCoverage": "NOT_YET_QUALIFIED",
+      "consumerCoverage": "NOT_AUDITED",
+      "semanticCoverage": "LEGACY_PLAN_EXISTENCE_ONLY",
+      "relationCoverage": "NOT_AUDITED",
+      "formalCoverage": "NOT_AUDITED",
+      "environmentCoverage": "SOURCE_ONLY; CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
+    },
+    {
+      "owner": "gateway",
+      "ownerRoot": "services/gateway/",
+      "sourceFileCount": 82,
+      "readme": "services/gateway/README.md",
+      "sampleSourceEntrypoints": [
+        "services/gateway/src/ordivon_gateway/__init__.py",
+        "services/gateway/src/ordivon_gateway/access_auth.py",
+        "services/gateway/src/ordivon_gateway/audit.py",
+        "services/gateway/src/ordivon_gateway/authzen_authorizer.py",
+        "services/gateway/src/ordivon_gateway/capability_authz.py",
+        "services/gateway/src/ordivon_gateway/contracts.py"
+      ],
+      "previousProjectLegoPlanPaths": [
+        "services/gateway/planning/lego-plan-windows-carrier-r2.json"
+      ],
+      "candidatePlanDeltaPaths": [],
+      "repositoryCoverage": "GIT_TREE_ENUMERATED",
+      "responsibilityCoverage": "NOT_YET_QUALIFIED",
+      "consumerCoverage": "NOT_AUDITED",
+      "semanticCoverage": "LEGACY_PLAN_EXISTENCE_ONLY",
+      "relationCoverage": "NOT_AUDITED",
+      "formalCoverage": "NOT_AUDITED",
+      "environmentCoverage": "SOURCE_ONLY; CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
+    },
+    {
+      "owner": "skills",
+      "ownerRoot": "platform/skills/",
+      "sourceFileCount": 37,
+      "readme": "platform/skills/README.md",
+      "sampleSourceEntrypoints": [
+        "platform/skills/scripts/cloudflare_skill_route.py",
+        "platform/skills/scripts/skills_mcp.py",
+        "platform/skills/scripts/skills_mcp_consumer_readiness.py",
+        "platform/skills/src/ordivon_skills/__init__.py",
+        "platform/skills/src/ordivon_skills/catalog.py",
+        "platform/skills/src/ordivon_skills/config.py"
+      ],
+      "previousProjectLegoPlanPaths": [],
+      "candidatePlanDeltaPaths": [
+        "platform/skills/planning/lego-plan-r1.json"
+      ],
+      "repositoryCoverage": "GIT_TREE_ENUMERATED",
+      "responsibilityCoverage": "BOUNDED_SOURCE_CONSUMER_PARTIAL",
+      "consumerCoverage": "STATIC_SOURCE_CONSUMER_PARTIAL",
+      "semanticCoverage": "CANDIDATE_R1_OWNER_PLAN_NOT_MAIN",
+      "relationCoverage": "LOCAL_DECLARATION_PARTIAL",
+      "formalCoverage": "NOT_AUDITED",
+      "environmentCoverage": "SOURCE_ONLY; CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
+    },
+    {
+      "owner": "security",
+      "ownerRoot": "platform/security/",
+      "sourceFileCount": 173,
+      "readme": "platform/security/README.md",
+      "sampleSourceEntrypoints": [
+        "platform/security/scripts/assemble_gate_input.py",
+        "platform/security/scripts/build_browser_security_witness.py",
+        "platform/security/scripts/build_security_wheel_with_provenance.py",
+        "platform/security/scripts/compare_browser_security_bundles.py",
+        "platform/security/scripts/compare_browser_security_pool.py",
+        "platform/security/scripts/compare_browser_security_witnesses.py"
+      ],
+      "previousProjectLegoPlanPaths": [
+        "platform/security/planning/lego-plan-r1.json"
+      ],
+      "candidatePlanDeltaPaths": [],
+      "repositoryCoverage": "GIT_TREE_ENUMERATED",
+      "responsibilityCoverage": "NOT_YET_QUALIFIED",
+      "consumerCoverage": "NOT_AUDITED",
+      "semanticCoverage": "LEGACY_PLAN_EXISTENCE_ONLY",
+      "relationCoverage": "NOT_AUDITED",
+      "formalCoverage": "NOT_AUDITED",
+      "environmentCoverage": "SOURCE_ONLY; CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
+    },
+    {
+      "owner": "workstation",
+      "ownerRoot": "platform/workstation/",
+      "sourceFileCount": 274,
+      "readme": "platform/workstation/README.md",
+      "sampleSourceEntrypoints": [
+        "platform/workstation/providers/cloudflare/scripts/check-policy-config.py",
+        "platform/workstation/providers/cloudflare/scripts/configure_r2_lifecycle.py",
+        "platform/workstation/providers/cloudflare/scripts/emit-contract-fixtures.ts",
+        "platform/workstation/providers/cloudflare/scripts/ordivon_cloudflare_tofu_handoff.py",
+        "platform/workstation/providers/cloudflare/scripts/ordivon_edge_client.py",
+        "platform/workstation/providers/cloudflare/scripts/ordivon_edge_gc.py"
+      ],
+      "previousProjectLegoPlanPaths": [],
+      "candidatePlanDeltaPaths": [],
+      "repositoryCoverage": "GIT_TREE_ENUMERATED",
+      "responsibilityCoverage": "NOT_YET_QUALIFIED",
+      "consumerCoverage": "NOT_AUDITED",
+      "semanticCoverage": "NO_OWNER_LOCAL_PLAN_KNOWN",
+      "relationCoverage": "NOT_AUDITED",
+      "formalCoverage": "NOT_AUDITED",
+      "environmentCoverage": "SOURCE_ONLY; CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
+    },
+    {
+      "owner": "network",
+      "ownerRoot": "platform/network/",
+      "sourceFileCount": 158,
+      "readme": "platform/network/README.md",
+      "sampleSourceEntrypoints": [
+        "platform/network/consumers/browserless/acceptance/production-path.sh",
+        "platform/network/consumers/browserless/acceptance/serial-browserless.sh",
+        "platform/network/consumers/browserless/production-cutover.sh",
+        "platform/network/consumers/browserless/provider-carrier-ready.sh",
+        "platform/network/consumers/browserless/provider-switch.sh",
+        "platform/network/consumers/chat-ingress/ready.sh"
+      ],
+      "previousProjectLegoPlanPaths": [
+        "platform/network/planning/lego-plan-r1.json"
+      ],
+      "candidatePlanDeltaPaths": [],
+      "repositoryCoverage": "GIT_TREE_ENUMERATED",
+      "responsibilityCoverage": "NOT_YET_QUALIFIED",
+      "consumerCoverage": "NOT_AUDITED",
+      "semanticCoverage": "LEGACY_PLAN_EXISTENCE_ONLY",
+      "relationCoverage": "NOT_AUDITED",
+      "formalCoverage": "NOT_AUDITED",
+      "environmentCoverage": "SOURCE_ONLY; CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
+    },
+    {
+      "owner": "artifact",
+      "ownerRoot": "capabilities/artifact/",
+      "sourceFileCount": 426,
+      "readme": "capabilities/artifact/README.md",
+      "sampleSourceEntrypoints": [
+        "capabilities/artifact/scripts/artifact_agent_surface.py",
+        "capabilities/artifact/scripts/artifact_aseprite.py",
+        "capabilities/artifact/scripts/artifact_audio.py",
+        "capabilities/artifact/scripts/artifact_cad_step.py",
+        "capabilities/artifact/scripts/artifact_dataset.py",
+        "capabilities/artifact/scripts/artifact_delivery_toolchain_doctor.py"
+      ],
+      "previousProjectLegoPlanPaths": [
+        "capabilities/artifact/planning/lego-plan-r2.json"
+      ],
+      "candidatePlanDeltaPaths": [],
+      "repositoryCoverage": "GIT_TREE_ENUMERATED",
+      "responsibilityCoverage": "NOT_YET_QUALIFIED",
+      "consumerCoverage": "NOT_AUDITED",
+      "semanticCoverage": "LEGACY_PLAN_EXISTENCE_ONLY",
+      "relationCoverage": "NOT_AUDITED",
+      "formalCoverage": "NOT_AUDITED",
+      "environmentCoverage": "SOURCE_ONLY; CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
+    },
+    {
+      "owner": "distribution",
+      "ownerRoot": "capabilities/distribution/",
+      "sourceFileCount": 69,
+      "readme": "capabilities/distribution/README.md",
+      "sampleSourceEntrypoints": [
+        "capabilities/distribution/scripts/admission.py",
+        "capabilities/distribution/scripts/admission_bound.py",
+        "capabilities/distribution/scripts/bound_refs.py",
+        "capabilities/distribution/scripts/occurrence_ref.py",
+        "capabilities/distribution/scripts/prepare_approval_request.py",
+        "capabilities/distribution/scripts/produce_effect_authority.py"
+      ],
+      "previousProjectLegoPlanPaths": [],
+      "candidatePlanDeltaPaths": [],
+      "repositoryCoverage": "GIT_TREE_ENUMERATED",
+      "responsibilityCoverage": "NOT_YET_QUALIFIED",
+      "consumerCoverage": "NOT_AUDITED",
+      "semanticCoverage": "NO_OWNER_LOCAL_PLAN_KNOWN",
+      "relationCoverage": "NOT_AUDITED",
+      "formalCoverage": "NOT_AUDITED",
+      "environmentCoverage": "SOURCE_ONLY; CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
+    },
+    {
+      "owner": "media",
+      "ownerRoot": "capabilities/media/",
+      "sourceFileCount": 582,
+      "readme": "capabilities/media/README.md",
+      "sampleSourceEntrypoints": [
+        "capabilities/media/scripts/build-creative-index.py",
+        "capabilities/media/scripts/build_sapi_narration.py",
+        "capabilities/media/scripts/creative_library.py",
+        "capabilities/media/scripts/materialize-python.py",
+        "capabilities/media/scripts/migrate-r6-trials.py",
+        "capabilities/media/scripts/produce-internet-message.py"
+      ],
+      "previousProjectLegoPlanPaths": [
+        "capabilities/media/planning/lego-plan-r1.json"
+      ],
+      "candidatePlanDeltaPaths": [],
+      "repositoryCoverage": "GIT_TREE_ENUMERATED",
+      "responsibilityCoverage": "NOT_YET_QUALIFIED",
+      "consumerCoverage": "NOT_AUDITED",
+      "semanticCoverage": "LEGACY_PLAN_EXISTENCE_ONLY",
+      "relationCoverage": "NOT_AUDITED",
+      "formalCoverage": "NOT_AUDITED",
+      "environmentCoverage": "SOURCE_ONLY; CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
+    },
+    {
+      "owner": "preservation",
+      "ownerRoot": "capabilities/preservation/",
+      "sourceFileCount": 46,
+      "readme": "capabilities/preservation/README.md",
+      "sampleSourceEntrypoints": [
+        "capabilities/preservation/scripts/test_verify_source.py",
+        "capabilities/preservation/scripts/verify_source.py"
+      ],
+      "previousProjectLegoPlanPaths": [],
+      "candidatePlanDeltaPaths": [],
+      "repositoryCoverage": "GIT_TREE_ENUMERATED",
+      "responsibilityCoverage": "NOT_YET_QUALIFIED",
+      "consumerCoverage": "NOT_AUDITED",
+      "semanticCoverage": "NO_OWNER_LOCAL_PLAN_KNOWN",
+      "relationCoverage": "NOT_AUDITED",
+      "formalCoverage": "NOT_AUDITED",
+      "environmentCoverage": "SOURCE_ONLY; CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
+    },
+    {
+      "owner": "game",
+      "ownerRoot": "domains/game/",
+      "sourceFileCount": 51,
+      "readme": "domains/game/README.md",
+      "sampleSourceEntrypoints": [
+        "domains/game/scripts/build-mechanism-relationship-graph.ts",
+        "domains/game/scripts/counterexample-synthesis-query.ts",
+        "domains/game/scripts/design-counterexample-query.ts",
+        "domains/game/scripts/external-knowledge-query.ts",
+        "domains/game/scripts/mechanism-experience-query.ts",
+        "domains/game/scripts/mechanism-relationship-query.ts"
+      ],
+      "previousProjectLegoPlanPaths": [
+        "domains/game/planning/lego-plan-r1.json"
+      ],
+      "candidatePlanDeltaPaths": [],
+      "repositoryCoverage": "GIT_TREE_ENUMERATED",
+      "responsibilityCoverage": "NOT_YET_QUALIFIED",
+      "consumerCoverage": "NOT_AUDITED",
+      "semanticCoverage": "LEGACY_PLAN_EXISTENCE_ONLY",
+      "relationCoverage": "NOT_AUDITED",
+      "formalCoverage": "NOT_AUDITED",
+      "environmentCoverage": "SOURCE_ONLY; CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
+    },
+    {
+      "owner": "capital",
+      "ownerRoot": "domains/capital/",
+      "sourceFileCount": 404,
+      "readme": "domains/capital/README.md",
+      "sampleSourceEntrypoints": [
+        "domains/capital/scripts/consume_crypto_public_shadow_product_r1.py",
+        "domains/capital/src/ordivon_capital/__init__.py",
+        "domains/capital/src/ordivon_capital/accounting/__init__.py",
+        "domains/capital/src/ordivon_capital/accounting/durable.py",
+        "domains/capital/src/ordivon_capital/accounting/postgres_ledger.py",
+        "domains/capital/src/ordivon_capital/accounting/sqlite_ledger.py"
+      ],
+      "previousProjectLegoPlanPaths": [],
+      "candidatePlanDeltaPaths": [],
+      "repositoryCoverage": "GIT_TREE_ENUMERATED",
+      "responsibilityCoverage": "NOT_YET_QUALIFIED",
+      "consumerCoverage": "NOT_AUDITED",
+      "semanticCoverage": "NO_OWNER_LOCAL_PLAN_KNOWN",
+      "relationCoverage": "NOT_AUDITED",
+      "formalCoverage": "NOT_AUDITED",
+      "environmentCoverage": "SOURCE_ONLY; CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
+    },
+    {
+      "owner": "web",
+      "ownerRoot": "apps/web/",
+      "sourceFileCount": 26,
+      "readme": "apps/web/README.md",
+      "sampleSourceEntrypoints": [
+        "apps/web/src/agent-authority.ts",
+        "apps/web/src/app.ts",
+        "apps/web/src/config.ts",
+        "apps/web/src/errors.ts",
+        "apps/web/src/model.ts",
+        "apps/web/src/security-agent-verifier.ts"
+      ],
+      "previousProjectLegoPlanPaths": [],
+      "candidatePlanDeltaPaths": [],
+      "repositoryCoverage": "GIT_TREE_ENUMERATED",
+      "responsibilityCoverage": "NOT_YET_QUALIFIED",
+      "consumerCoverage": "NOT_AUDITED",
+      "semanticCoverage": "NO_OWNER_LOCAL_PLAN_KNOWN",
+      "relationCoverage": "NOT_AUDITED",
+      "formalCoverage": "NOT_AUDITED",
+      "environmentCoverage": "SOURCE_ONLY; CONFIGURED_INSTALLED_EXECUTED_UNKNOWN"
+    }
+  ],
+  "crossSystemUnowned": {
+    "toolsRepoTrackedFiles": 45,
+    "gateSource": "tools/repo/check_architecture_docs.py",
+    "crossOwnerConsumption": "NOT_EXHAUSTIVELY_TRACED"
+  },
+  "limits": [
+    "Source file enumeration is complete for the named immutable Git tree, but static responsibilities, consumers, runtime states and external dependencies are not fully enumerated.",
+    "Sampling a README or entrypoint is not proof of necessary LEGO responsibility or absence of dynamic consumers.",
+    "New Composition/Skills owner plans exist only in the candidate isolated workspace until exact Git promotion; this snapshot never certifies merge, deployed behavior or Formal PASS."
+  ],
+  "knownStructuralGap": {
+    "ownerRootsWithoutLegacyProjectPlan": [
+      "next",
+      "composition",
+      "control-plugin",
+      "skills",
+      "workstation",
+      "distribution",
+      "preservation",
+      "capital",
+      "web"
+    ],
+    "note": "Absence of Owner-local plan does not imply absence of other owner contracts."
+  }
+}

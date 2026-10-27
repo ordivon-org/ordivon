@@ -1,0 +1,246 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-skills-source-census-r2",
+    "purpose": "Filesystem-to-MCP Skill advisory discovery and exact binding; source/consumer truth is distinct from installed Skill visibility.",
+    "sourceEvidence": [
+      "README.md",
+      "src/ordivon_skills/catalog.py",
+      "src/ordivon_skills/scanner.py",
+      "src/ordivon_skills/parser.py",
+      "src/ordivon_skills/model.py",
+      "scripts/skills_mcp.py",
+      "tests/test_skill_catalog_r2.py"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "K01",
+      "label": "SkillPackageAdmission",
+      "kind": "package_contract",
+      "responsibility": "Discover configured Skill sources and parse/scan source packages subject to declared trust, containment and eligibility constraints.",
+      "authority": "Owner-native source API (planning projection only)",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "src/ordivon_skills/catalog.py",
+        "src/ordivon_skills/parser.py",
+        "src/ordivon_skills/scanner.py",
+        "src/ordivon_skills/eligibility.py",
+        "tests/test_skill_catalog_r2.py",
+        "platform/skills/scripts/skills_mcp.py"
+      ],
+      "consumerEvidence": [
+        {
+          "path": "platform/skills/scripts/skills_mcp.py",
+          "qualification": "STATIC_SOURCE_CONSUMER_ONLY"
+        }
+      ],
+      "inputs": [
+        "configured SkillSource roots and package bytes",
+        "invocation context"
+      ],
+      "outputs": [
+        "source health, admitted records and quarantined/error diagnostics"
+      ],
+      "behavioralContract": [
+        "Unsafe paths and hostile packages are rejected or quarantined; no execution or implicit trust upgrade"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "consumer domain truth",
+        "installed execution proof",
+        "new global LEGO registry"
+      ],
+      "acceptance": [
+        "Source catalog and security tests provide adversarial package cases"
+      ],
+      "formalObligations": [
+        "Package provenance/containment and parser soundness under configured filesystem assumptions UNKNOWN"
+      ],
+      "evidenceStanding": "SOURCE_BOUND_DECLARATION_ONLY; dynamic consumer, formal implementation, installed status UNKNOWN"
+    },
+    {
+      "id": "K02",
+      "label": "SkillVisibilitySearch",
+      "kind": "capability_discovery",
+      "responsibility": "Project context-qualified, precedence-resolved visible Skill metadata and ranked search candidates from admitted records.",
+      "authority": "Owner-native source API (planning projection only)",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "src/ordivon_skills/catalog.py",
+        "src/ordivon_skills/model.py",
+        "tests/test_skill_catalog_r2.py",
+        "platform/skills/scripts/skills_mcp.py"
+      ],
+      "consumerEvidence": [
+        {
+          "path": "platform/skills/scripts/skills_mcp.py",
+          "qualification": "STATIC_SOURCE_CONSUMER_ONLY"
+        }
+      ],
+      "inputs": [
+        "admitted records, workspace/Agent invocation context",
+        "search query"
+      ],
+      "outputs": [
+        "snapshotRevision, model-visible records and matching metadata"
+      ],
+      "behavioralContract": [
+        "Visibility is scoped to invocation mode and context; search must not imply execution, installed reachability or automatic Tool authority"
+      ],
+      "dependencies": [
+        "K01"
+      ],
+      "mustNotOwn": [
+        "consumer domain truth",
+        "installed execution proof",
+        "new global LEGO registry"
+      ],
+      "acceptance": [
+        "Native skills.search MCP tool invokes catalog.search and returns snapshot identity"
+      ],
+      "formalObligations": [
+        "Source-snapshot-to-search completeness within configured roots; unknown outside roots"
+      ],
+      "evidenceStanding": "SOURCE_BOUND_DECLARATION_ONLY; dynamic consumer, formal implementation, installed status UNKNOWN"
+    },
+    {
+      "id": "K03",
+      "label": "SkillExactBindingRead",
+      "kind": "binding_service",
+      "responsibility": "Resolve one exact Skill identity and read advisory Skill text under revision and content fences.",
+      "authority": "Owner-native source API (planning projection only)",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "src/ordivon_skills/catalog.py",
+        "src/ordivon_skills/scanner.py",
+        "tests/test_skills_mcp_r3.py",
+        "platform/skills/scripts/skills_mcp.py",
+        "services/gateway/src/ordivon_gateway/service.py"
+      ],
+      "consumerEvidence": [
+        {
+          "path": "platform/skills/scripts/skills_mcp.py",
+          "qualification": "STATIC_SOURCE_CONSUMER_ONLY"
+        },
+        {
+          "path": "services/gateway/src/ordivon_gateway/service.py",
+          "qualification": "STATIC_SOURCE_CONSUMER_ONLY"
+        }
+      ],
+      "inputs": [
+        "Skill reference or canonical skillId",
+        "context and expected snapshot/package/instruction digests"
+      ],
+      "outputs": [
+        "exact Skill binding or source-bound read projection"
+      ],
+      "behavioralContract": [
+        "Missing or stale Skill fails closed; read is bounded advisory content, never code execution or domain authority"
+      ],
+      "dependencies": [
+        "K01"
+      ],
+      "mustNotOwn": [
+        "consumer domain truth",
+        "installed execution proof",
+        "new global LEGO registry"
+      ],
+      "acceptance": [
+        "Gateway capability_resolve directly calls skills.resolve; Skills MCP delegates catalog.resolve/read_text"
+      ],
+      "formalObligations": [
+        "Cross-service snapshot/content drift and installed availability remain separately qualified"
+      ],
+      "evidenceStanding": "SOURCE_BOUND_DECLARATION_ONLY; dynamic consumer, formal implementation, installed status UNKNOWN"
+    },
+    {
+      "id": "K04",
+      "label": "SkillMcpProtocolSurface",
+      "kind": "protocol_adaptation",
+      "responsibility": "Expose bounded Skill search/resolve/read as standard MCP operations while preserving catalog authority and revision fences.",
+      "authority": "Owner-native source API (planning projection only)",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "scripts/skills_mcp.py",
+        "tests/test_skills_mcp_r2.py",
+        "tests/test_skills_mcp_r3.py",
+        "services/gateway/src/ordivon_gateway/service.py"
+      ],
+      "consumerEvidence": [
+        {
+          "path": "services/gateway/src/ordivon_gateway/service.py",
+          "qualification": "STATIC_SOURCE_CONSUMER_ONLY"
+        }
+      ],
+      "inputs": [
+        "MCP tool request and configured catalog view"
+      ],
+      "outputs": [
+        "typed MCP tool response or scoped error"
+      ],
+      "behavioralContract": [
+        "Adapter does not own discovery policy, execute Skills, grant Agent rights or imply downstream completion"
+      ],
+      "dependencies": [
+        "K02",
+        "K03"
+      ],
+      "mustNotOwn": [
+        "consumer domain truth",
+        "installed execution proof",
+        "new global LEGO registry"
+      ],
+      "acceptance": [
+        "Gateway consumes skills.resolve through routed MCP client; tool-level negative tests run"
+      ],
+      "formalObligations": [
+        "Protocol-to-core behavioral refinement and installed MCP release currentness UNKNOWN"
+      ],
+      "evidenceStanding": "SOURCE_BOUND_DECLARATION_ONLY; dynamic consumer, formal implementation, installed status UNKNOWN"
+    }
+  ],
+  "edges": [
+    {
+      "from": "K01",
+      "to": "K02",
+      "type": "DATA",
+      "label": "visible records derive from qualified sources"
+    },
+    {
+      "from": "K01",
+      "to": "K03",
+      "type": "DATA",
+      "label": "exact binding derives from admitted source records"
+    },
+    {
+      "from": "K02",
+      "to": "K04",
+      "type": "REALIZATION",
+      "label": "MCP search surface delegates catalog search"
+    },
+    {
+      "from": "K03",
+      "to": "K04",
+      "type": "REALIZATION",
+      "label": "MCP resolve/read surface delegates exact catalog binding"
+    }
+  ],
+  "slices": [],
+  "gaps": [
+    "R2.1 source Skill .agents/skills/recursive-lego-calculus/SKILL.md exists at current SourceCut, but runtime Skill catalog implicit search did not expose it in this invocation. Missing configured scope/index or eligibility is UNKNOWN, not proof of file absence.",
+    "Installed Skills MCP release may differ from current Git SourceCut; installed qualification is not established by this plan."
+  ],
+  "review": {
+    "sourceRevision": "75fc00bdec12268bd92ad85c6138b6f1be76bf3d",
+    "updatedAt": "2026-10-27",
+    "standing": "INITIAL_SOURCE_CENSUS",
+    "notes": "New verified owner-local R2.1 source/consumer boundary; R1 plan is a projection, not an execution or Formal PASS."
+  }
+}

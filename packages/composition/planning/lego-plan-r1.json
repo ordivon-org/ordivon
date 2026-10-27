@@ -1,0 +1,234 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-composition-source-census-r2",
+    "purpose": "Bounded, reusable task-local composition contracts; exact consumer evidence is static and is not deployed proof.",
+    "sourceEvidence": [
+      "README.md",
+      "src/ordivon_composition/__init__.py",
+      "src/ordivon_composition/cognitive_circuit_r1.py",
+      "src/ordivon_composition/interface_contract_r2.py",
+      "src/ordivon_composition/verification_obligation_r1.py",
+      "tests/test_graph_operator_properties.py"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "C01",
+      "label": "CircuitManifestCompile",
+      "kind": "contract_compiler",
+      "responsibility": "Validate and deterministically compile an explicitly provided cognitive circuit manifest and ordered steps.",
+      "authority": "Owner-native source API (planning projection only)",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "src/ordivon_composition/cognitive_circuit_r1.py",
+        "src/ordivon_composition/__init__.py",
+        "tests/test_cognitive_circuit_r1.py",
+        "meta/next/scripts/web_security_gate_r3.py",
+        "meta/next/scripts/research_artifact_gate_r3.py"
+      ],
+      "consumerEvidence": [
+        {
+          "path": "meta/next/scripts/web_security_gate_r3.py",
+          "qualification": "STATIC_SOURCE_CONSUMER_ONLY"
+        },
+        {
+          "path": "meta/next/scripts/research_artifact_gate_r3.py",
+          "qualification": "STATIC_SOURCE_CONSUMER_ONLY"
+        }
+      ],
+      "inputs": [
+        "caller-supplied task-local manifest"
+      ],
+      "outputs": [
+        "validated and compiled manifest digest and step order"
+      ],
+      "behavioralContract": [
+        "Malformed schema, duplicate identifiers and invalid graph topology are rejected; no capability discovery or execution"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "consumer domain truth",
+        "installed execution proof",
+        "new global LEGO registry"
+      ],
+      "acceptance": [
+        "Static external callers import compile_manifest; owner-native tests include negative manifests"
+      ],
+      "formalObligations": [
+        "Determinism/canonical identity; topological DAG closure; source-to-model refinement UNKNOWN"
+      ],
+      "evidenceStanding": "SOURCE_BOUND_DECLARATION_ONLY; dynamic consumer, formal implementation, installed status UNKNOWN"
+    },
+    {
+      "id": "C02",
+      "label": "GateEvidenceQualification",
+      "kind": "evidence_verifier",
+      "responsibility": "Validate supplied Composition Gate result and evaluate named circuit-bound verification gate closure.",
+      "authority": "Owner-native source API (planning projection only)",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "src/ordivon_composition/cognitive_circuit_r1.py",
+        "tests/test_cognitive_circuit_r1.py",
+        "meta/next/scripts/pacti_timeout_obligation_r1.py",
+        "meta/next/tests/test_cross_domain_verification_r3.py"
+      ],
+      "consumerEvidence": [
+        {
+          "path": "meta/next/scripts/pacti_timeout_obligation_r1.py",
+          "qualification": "STATIC_SOURCE_CONSUMER_ONLY"
+        },
+        {
+          "path": "meta/next/tests/test_cross_domain_verification_r3.py",
+          "qualification": "STATIC_SOURCE_CONSUMER_ONLY"
+        }
+      ],
+      "inputs": [
+        "compiled circuit and caller-supplied gate result"
+      ],
+      "outputs": [
+        "bounded gate evaluation projection"
+      ],
+      "behavioralContract": [
+        "Gate receipts must bind exact circuit and required gate IDs; no domain acceptance or execution"
+      ],
+      "dependencies": [
+        "C01"
+      ],
+      "mustNotOwn": [
+        "consumer domain truth",
+        "installed execution proof",
+        "new global LEGO registry"
+      ],
+      "acceptance": [
+        "Static callers exercise evaluate_gate_results and negative gate validation"
+      ],
+      "formalObligations": [
+        "Source-to-result matching; stale/missing evidence rejection; no DOMAIN_ACCEPTED promotion"
+      ],
+      "evidenceStanding": "SOURCE_BOUND_DECLARATION_ONLY; dynamic consumer, formal implementation, installed status UNKNOWN"
+    },
+    {
+      "id": "C03",
+      "label": "InterfaceCompatibilityQualification",
+      "kind": "interface_verifier",
+      "responsibility": "Compare an observed interface against one exact circuit-bound consumer expectation and classify currentness separately from compatibility.",
+      "authority": "Owner-native source API (planning projection only)",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "src/ordivon_composition/interface_contract_r2.py",
+        "tests/test_interface_contract_core.py",
+        "meta/next/tests/test_interface_contract_r2.py"
+      ],
+      "consumerEvidence": [
+        {
+          "path": "meta/next/tests/test_interface_contract_r2.py",
+          "qualification": "STATIC_SOURCE_CONSUMER_ONLY"
+        }
+      ],
+      "inputs": [
+        "observed interface identity/digest/source kind",
+        "caller expectation and admissible alternatives"
+      ],
+      "outputs": [
+        "compatibility/currentness/evidence-admissibility result"
+      ],
+      "behavioralContract": [
+        "Explicit alternate is only declared compatible; unknown currentness remains UNKNOWN"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "consumer domain truth",
+        "installed execution proof",
+        "new global LEGO registry"
+      ],
+      "acceptance": [
+        "Native interface tests cover stale, current, unknown, malformed, alternate digest cases; external live consumer is UNKNOWN"
+      ],
+      "formalObligations": [
+        "Sound source-kind currentness and verifier-to-consumer bridge UNKNOWN"
+      ],
+      "evidenceStanding": "SOURCE_BOUND_DECLARATION_ONLY; dynamic consumer, formal implementation, installed status UNKNOWN"
+    },
+    {
+      "id": "C04",
+      "label": "VerificationObligationBinding",
+      "kind": "proof_obligation_projection",
+      "responsibility": "Derive exact task-local obligations from an admitted manifest and validate caller-authored verifier bindings, without discovery or verifier execution.",
+      "authority": "Owner-native source API (planning projection only)",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "src/ordivon_composition/verification_obligation_r1.py",
+        "tests/test_verification_obligation_r1.py",
+        "meta/next/scripts/pacti_timeout_obligation_r1.py",
+        "meta/next/tests/test_cross_domain_verification_r3.py"
+      ],
+      "consumerEvidence": [
+        {
+          "path": "meta/next/scripts/pacti_timeout_obligation_r1.py",
+          "qualification": "STATIC_SOURCE_CONSUMER_ONLY"
+        },
+        {
+          "path": "meta/next/tests/test_cross_domain_verification_r3.py",
+          "qualification": "STATIC_SOURCE_CONSUMER_ONLY"
+        }
+      ],
+      "inputs": [
+        "compiled circuit manifest",
+        "caller-authored exact verifier bindings"
+      ],
+      "outputs": [
+        "digest-bound required-gate obligations and binding resolution"
+      ],
+      "behavioralContract": [
+        "Binding must agree with circuit and obligation-set digest; does not grant checker or domain authority"
+      ],
+      "dependencies": [
+        "C01"
+      ],
+      "mustNotOwn": [
+        "consumer domain truth",
+        "installed execution proof",
+        "new global LEGO registry"
+      ],
+      "acceptance": [
+        "Static external callers import compile_verification_obligations and resolve_verifier_bindings"
+      ],
+      "formalObligations": [
+        "No silent stale verifier binding; proof target-to-domain bridge remains UNKNOWN"
+      ],
+      "evidenceStanding": "SOURCE_BOUND_DECLARATION_ONLY; dynamic consumer, formal implementation, installed status UNKNOWN"
+    }
+  ],
+  "edges": [
+    {
+      "from": "C01",
+      "to": "C02",
+      "type": "DATA",
+      "label": "gate evaluation consumes exact manifest/circuit identity"
+    },
+    {
+      "from": "C01",
+      "to": "C04",
+      "type": "DATA",
+      "label": "obligation derivation consumes caller manifest contract"
+    }
+  ],
+  "slices": [],
+  "gaps": [
+    "COMPATIBILITY CONTRACT: evidence derived from source imports and tests only; current deployed consumer closure UNKNOWN",
+    "Candidate only: Successor Contract R1 has exported Python API and owner tests, but no production caller outside owner in this SourceCut. Do not qualify as independent deployed LEGO without consumer/replaceability evidence."
+  ],
+  "review": {
+    "sourceRevision": "75fc00bdec12268bd92ad85c6138b6f1be76bf3d",
+    "updatedAt": "2026-10-27",
+    "standing": "INITIAL_SOURCE_CENSUS",
+    "notes": "New verified owner-local R2.1 source/consumer boundary; R1 plan is a projection, not an execution or Formal PASS."
+  }
+}
