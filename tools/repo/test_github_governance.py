@@ -95,6 +95,111 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         self.assertLess(names.index("Repository mechanics"), names.index("Select affected owners"))
         self.assertLess(names.index("Select affected owners"), names.index("Verify affected owners"))
 
+    def test_formal_source_uses_real_native_kernel_not_approval_owner(self) -> None:
+        """Repo-only CI cannot accept a changed Lean theorem without Lean."""
+        import yaml
+
+        workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        steps = workflow["jobs"]["root-verification"]["steps"]
+        names = [step["name"] for step in steps]
+        name = "Verify native formal proof sources"
+        self.assertIn(name, names)
+        self.assertLess(names.index("Verify affected owners"), names.index(name))
+        self.assertLess(names.index(name), names.index("Runtime supply-chain policy"))
+        runner = steps[names.index(name)]["run"]
+        self.assertIn('"$RUNNER_TEMP/ordivon-convergence-plan.json"', runner)
+        self.assertIn('p.startswith("tools/formal/")', runner)
+        self.assertIn('".github/workflows/ci.yml" in set(paths)', runner)
+        self.assertIn('mise exec -- lean RecursiveLegoRefinement.lean', runner)
+        self.assertIn('mise install github:leanprover/lean4@4.35.0', runner)
+        self.assertIn('mise run formal:verify', runner)
+        self.assertIn('mise install', runner)
+        self.assertNotIn('verifierOwnerId', runner)
+        self.assertNotIn('approve', runner)
+
+    def test_formal_native_gate_routes_exact_paths_and_rejects_bad_plan(self) -> None:
+        """A real shell invocation must not classify invalid source as SKIP."""
+        import os
+        import yaml
+
+        steps = yaml.safe_load(
+            (ROOT / ".github/workflows/ci.yml").read_text()
+        )["jobs"]["root-verification"]["steps"]
+        runner = next(
+            step["run"] for step in steps
+            if step["name"] == "Verify native formal proof sources"
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            shim = bin_dir / "mise"
+            shim.write_text(
+                '#!/bin/sh\n'
+                'printf "%s\\n" "$*" >> "$MISE_INVOCATION_LOG"\n',
+                encoding="utf-8",
+            )
+            shim.chmod(0o755)
+            log = root / "calls"
+            plan = root / "ordivon-convergence-plan.json"
+            env = {
+                **os.environ,
+                "RUNNER_TEMP": str(root),
+                "MISE_INVOCATION_LOG": str(log),
+                "PATH": str(bin_dir) + os.pathsep + os.environ["PATH"],
+            }
+
+            def invoke(value: dict | None) -> tuple[subprocess.CompletedProcess, list[str]]:
+                log.unlink(missing_ok=True)
+                if value is None:
+                    plan.unlink(missing_ok=True)
+                else:
+                    plan.write_text(json.dumps(value), encoding="utf-8")
+                result = subprocess.run(
+                    ["bash", "-c", runner],
+                    cwd=ROOT,
+                    env=env,
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                )
+                calls = log.read_text().splitlines() if log.exists() else []
+                return result, calls
+
+            ordinary, calls = invoke({"changedPaths": ["apps/web/file.ts"]})
+            self.assertEqual(ordinary.returncode, 0, ordinary.stderr)
+            self.assertEqual(calls, [])
+
+            proof, calls = invoke({"changedPaths": ["tools/formal/RecursiveLegoRefinement.lean"]})
+            self.assertEqual(proof.returncode, 0, proof.stderr)
+            self.assertEqual(calls, [
+                "install github:leanprover/lean4@4.35.0",
+                "exec -- lean RecursiveLegoRefinement.lean",
+            ])
+
+            workflow, calls = invoke({"changedPaths": [".github/workflows/ci.yml"]})
+            self.assertEqual(workflow.returncode, 0, workflow.stderr)
+            self.assertEqual(calls, [
+                "install github:leanprover/lean4@4.35.0",
+                "exec -- lean RecursiveLegoRefinement.lean",
+            ])
+
+            rust_proof, calls = invoke({"changedPaths": ["tools/formal/ProofKani.rs"]})
+            self.assertEqual(rust_proof.returncode, 0, rust_proof.stderr)
+            self.assertEqual(calls, ["install", "run formal:verify"])
+
+            tool_manifest, calls = invoke({"changedPaths": ["tools/formal/mise.toml"]})
+            self.assertEqual(tool_manifest.returncode, 0, tool_manifest.stderr)
+            self.assertEqual(calls, ["install", "run formal:verify"])
+
+            malformed, calls = invoke({"changedPaths": None})
+            self.assertNotEqual(malformed.returncode, 0)
+            self.assertEqual(calls, [])
+
+            missing, calls = invoke(None)
+            self.assertEqual(missing.returncode, 0, missing.stderr)
+            self.assertEqual(calls, ["install", "run formal:verify"])
+
     def test_runtime_release_attestations_verify_every_subject_and_fail_closed(self) -> None:
         """Exercise official verifier CLI orchestration, not cryptographic trust."""
         import os

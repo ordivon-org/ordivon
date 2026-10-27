@@ -175,6 +175,64 @@ jobs:
             echo "::endgroup::"
           done < "$RUNNER_TEMP/ordivon-affected-tasks.txt"
 
+      # Mathematically checked definitions are NOT repository Owners. They
+      # still need their actual native verifier on every admitted source change;
+      # CI success for repository mechanics never establishes a Lean theorem.
+      - name: Verify native formal proof sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          plan="$RUNNER_TEMP/ordivon-convergence-plan.json"
+          # Empty/unavailable base cut (including schedule/manual dispatch)
+          # conservatively verifies the complete native formal toolchain.
+          if [[ -f "$plan" ]]; then
+            selection="$(python3 - "$plan" <<'PY_FORMAL_SCOPE'
+          import json
+          import sys
+
+          with open(sys.argv[1], encoding="utf-8") as stream:
+              report = json.load(stream)
+          paths = report.get("changedPaths")
+          if not isinstance(paths, list) or not all(isinstance(p, str) for p in paths):
+              raise SystemExit("invalid exact-cut formal change selection")
+          native = [p for p in paths if p.startswith("tools/formal/")]
+          if any(path != "tools/formal/RecursiveLegoRefinement.lean" for path in native):
+              # The native bundle/toolchain changed; do not guess the proof scope.
+              selection = "FULL"
+          elif native or ".github/workflows/ci.yml" in set(paths):
+              selection = "LEAN"
+          else:
+              selection = "SKIP"
+          print(selection)
+          PY_FORMAL_SCOPE
+            )"
+          else
+            selection="FULL"
+          fi
+          case "$selection" in
+            SKIP)
+              echo "No native formal proof source changed; no proof checked."
+              ;;
+            LEAN)
+              (
+                cd tools/formal
+                mise install github:leanprover/lean4@4.35.0
+                mise exec -- lean RecursiveLegoRefinement.lean
+              )
+              ;;
+            FULL)
+              (
+                cd tools/formal
+                mise install
+              )
+              mise run formal:verify
+              ;;
+            *)
+              echo "Unknown exact-cut formal verification scope" >&2
+              exit 1
+              ;;
+          esac
+
       - name: Runtime supply-chain policy
         if: steps.affected.outputs.runtime == 'true'
         uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2
