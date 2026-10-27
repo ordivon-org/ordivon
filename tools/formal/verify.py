@@ -21,6 +21,7 @@ SOURCE_FILES = (
     "tools/formal/mise.toml",
     "tools/formal/verify.py",
     "tools/formal/RecursiveLegoRefinement.lean",
+    "tools/formal/EffectReconciliationR21.lean",
     "tools/formal/Proof.rs",
     "tools/formal/Proof.dfy",
     "tools/formal/ProofKani.rs",
@@ -119,6 +120,11 @@ def main() -> None:
         raise AssertionError("Unproved Lean shortcut in source")
     probes.append(run("Lean kernel R2.1 relational composition",
                       [executable("lean"), str(source)]))
+    effect_source = ROOT / "EffectReconciliationR21.lean"
+    if re.search(r"\b(sorry|admit|axiom)\b", effect_source.read_text()):
+        raise AssertionError("Unproved Lean shortcut in C06 effect source")
+    probes.append(run("Lean kernel C06 effect reconciliation + nonvacuity",
+                      [executable("lean"), str(effect_source)]))
     with tempfile.TemporaryDirectory(prefix="ordivon-formal-falsifiers-") as d:
         tmp = Path(d)
         bad_lean = tmp / "Invalid.lean"
