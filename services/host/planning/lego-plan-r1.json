@@ -8,7 +8,10 @@
     "sourceEvidence": [
       "README.md",
       "docs/HOST_V2_R6_CLEANUP.md",
-      "docs/HOST_V2_R5_PRODUCTION_CUTOVER.md"
+      "docs/HOST_V2_R5_PRODUCTION_CUTOVER.md",
+      "src/ordivon_host_v2/social_store.py",
+      "src/ordivon_host_v2/social_work_mcp.py",
+      "src/ordivon_host_v2/work_store.py"
     ]
   },
   "nodes": [
@@ -23,7 +26,8 @@
         "L12"
       ],
       "evidence": [
-        "README.md"
+        "README.md",
+        "src/ordivon_host_v2/work_store.py"
       ],
       "dependencies": [],
       "mustNotOwn": [
@@ -32,6 +36,20 @@
       ],
       "acceptance": [
         "Exact task.resume can re-enter one revision-fenced continuity point."
+      ],
+      "inputs": [
+        "work.create/commit_snapshot + expectedRevision"
+      ],
+      "outputs": [
+        "exact Work revision + CAS receipt"
+      ],
+      "behavioralContract": "One revision-fenced durable Work transition; neither content nor process exit establishes domain completion.",
+      "consumerEvidence": [
+        "src/ordivon_host_v2/social_work_mcp.py"
+      ],
+      "sourceQualification": "GIT_SOURCE_AND_NATIVE_MCP_BINDING_ONLY; actual installed build/version UNKNOWN",
+      "formalObligations": [
+        "Exact model-to-source/installed refinement and consumer principal authentication UNKNOWN"
       ]
     },
     {
@@ -43,7 +61,8 @@
       "state": "IMPLEMENTED",
       "sharedRefs": [],
       "evidence": [
-        "README.md"
+        "README.md",
+        "src/ordivon_host_v2/social_store.py"
       ],
       "dependencies": [],
       "mustNotOwn": [
@@ -52,6 +71,20 @@
       ],
       "acceptance": [
         "Board messages remain collaboration records only."
+      ],
+      "inputs": [
+        "Space/Topic/Message/participation operations"
+      ],
+      "outputs": [
+        "durable Board records + relation anchors"
+      ],
+      "behavioralContract": "Board is a composite responsibility with separately consumer-visible message, relation and topic-cursor contracts; Host does not grant caller identity authority.",
+      "consumerEvidence": [
+        "src/ordivon_host_v2/social_work_mcp.py"
+      ],
+      "sourceQualification": "GIT_SOURCE_AND_NATIVE_MCP_BINDING_ONLY; actual installed build/version UNKNOWN",
+      "formalObligations": [
+        "Exact model-to-source/installed refinement and consumer principal authentication UNKNOWN"
       ]
     },
     {
@@ -65,7 +98,8 @@
         "L11"
       ],
       "evidence": [
-        "README.md"
+        "README.md",
+        "src/ordivon_host_v2/social_attention.py"
       ],
       "dependencies": [],
       "mustNotOwn": [
@@ -74,6 +108,20 @@
       ],
       "acceptance": [
         "Delta consumer must still resume exact Task before acting."
+      ],
+      "inputs": [
+        "subscription + actor + high-water sequence"
+      ],
+      "outputs": [
+        "attention delta and ack projection"
+      ],
+      "behavioralContract": "Bounded navigation projection; delta and ack are not Work admission or agent authenticity.",
+      "consumerEvidence": [
+        "src/ordivon_host_v2/social_work_mcp.py"
+      ],
+      "sourceQualification": "GIT_SOURCE_AND_NATIVE_MCP_BINDING_ONLY; actual installed build/version UNKNOWN",
+      "formalObligations": [
+        "Exact model-to-source/installed refinement and consumer principal authentication UNKNOWN"
       ]
     },
     {
@@ -89,7 +137,8 @@
       "evidence": [
         "README.md",
         "tools/repo/check_sql_dialects.py",
-        "tools/repo/test_sql_dialects.py"
+        "tools/repo/test_sql_dialects.py",
+        "src/ordivon_host_v2/work_store.py"
       ],
       "dependencies": [],
       "mustNotOwn": [
@@ -98,7 +147,170 @@
       "acceptance": [
         "Restart preserves Host revision identity and task/board continuity.",
         "Host PostgreSQL authority is source-qualified by the existing Repo SQL dialect gate: active Host service/migration Python sources may not import SQLite engines or define SQLite DSNs; the native negative controls reject a second embedded engine. This says nothing about Runtime/Harness local recovery stores, and does not claim a completed data cutover."
+      ],
+      "inputs": [
+        "Host PostgreSQL transaction commands"
+      ],
+      "outputs": [
+        "durable version/receipt and canonical readback"
+      ],
+      "behavioralContract": "Host-only PostgreSQL transaction authority; does not certify Runtime/Harness cutover.",
+      "consumerEvidence": [
+        "src/ordivon_host_v2/social_work_mcp.py"
+      ],
+      "sourceQualification": "GIT_SOURCE_AND_NATIVE_MCP_BINDING_ONLY; actual installed build/version UNKNOWN",
+      "formalObligations": [
+        "Exact model-to-source/installed refinement and consumer principal authentication UNKNOWN"
       ]
+    },
+    {
+      "id": "O05",
+      "label": "MessageContentReadIntegrity",
+      "kind": "consumer_visible_state_contract",
+      "parentLEGO": "O02",
+      "responsibility": "Write and read digest-bound messages, distinct from social relation graph and user-auth identity.",
+      "authority": "Host Social Work Fabric PostgreSQL",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "inputs": [
+        "message.post/get/search with exact Space/Topic/Actor refs"
+      ],
+      "outputs": [
+        "durable message digest and bounded retrieval"
+      ],
+      "behavioralContract": "Tampered stored body or digest must not silently pass qualified read.",
+      "dependencies": [
+        "O04"
+      ],
+      "evidence": [
+        "src/ordivon_host_v2/social_store.py",
+        "src/ordivon_host_v2/social_graph.py",
+        "src/ordivon_host_v2/social_work_mcp.py",
+        "tests/test_mcp_surface_identity.py"
+      ],
+      "consumerEvidence": [
+        "src/ordivon_host_v2/social_work_mcp.py",
+        "tests/test_mcp_surface_identity.py"
+      ],
+      "consumerMethods": [
+        "message.post",
+        "message.get",
+        "message.search"
+      ],
+      "consumerQualification": "NATIVE_MCP_ROUTING_AND_TEST_ONLY; installed SourceCut/principal binding UNKNOWN",
+      "mustNotOwn": [
+        "Runtime execution authority",
+        "authenticated agent identity",
+        "domain truth"
+      ],
+      "acceptance": [
+        "A native typed Host MCP consumer route and corresponding persistence implementation exist",
+        "External/installed consumers and formal implementation bridge are not inferred from routing"
+      ],
+      "formalObligations": [
+        "Message/transaction/cursor invariant model-to-native-to-installed bridge UNKNOWN"
+      ],
+      "replacement": "Require bounded native consumer CDC and installed PostgreSQL identity/currentness proof",
+      "nextAction": "Qualify live exact caller/installed Host seam before replacement."
+    },
+    {
+      "id": "O06",
+      "label": "MessageRelationGraph",
+      "kind": "consumer_visible_state_contract",
+      "parentLEGO": "O02",
+      "responsibility": "Persist typed message relations with verified endpoint identity, not authority to execute effects.",
+      "authority": "Host Social Work Fabric PostgreSQL",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "inputs": [
+        "message.relation.add/list and exact endpoint identities"
+      ],
+      "outputs": [
+        "bounded typed relation projection"
+      ],
+      "behavioralContract": "Invalid relation endpoint or type must reject.",
+      "dependencies": [
+        "O04"
+      ],
+      "evidence": [
+        "src/ordivon_host_v2/social_store.py",
+        "src/ordivon_host_v2/social_graph.py",
+        "src/ordivon_host_v2/social_work_mcp.py",
+        "tests/test_mcp_surface_identity.py"
+      ],
+      "consumerEvidence": [
+        "src/ordivon_host_v2/social_work_mcp.py",
+        "tests/test_mcp_surface_identity.py"
+      ],
+      "consumerMethods": [
+        "message.relation.add",
+        "message.relation.list"
+      ],
+      "consumerQualification": "NATIVE_MCP_ROUTING_AND_TEST_ONLY; installed SourceCut/principal binding UNKNOWN",
+      "mustNotOwn": [
+        "Runtime execution authority",
+        "authenticated agent identity",
+        "domain truth"
+      ],
+      "acceptance": [
+        "A native typed Host MCP consumer route and corresponding persistence implementation exist",
+        "External/installed consumers and formal implementation bridge are not inferred from routing"
+      ],
+      "formalObligations": [
+        "Message/transaction/cursor invariant model-to-native-to-installed bridge UNKNOWN"
+      ],
+      "replacement": "Require bounded native consumer CDC and installed PostgreSQL identity/currentness proof",
+      "nextAction": "Qualify live exact caller/installed Host seam before replacement."
+    },
+    {
+      "id": "O07",
+      "label": "TopicCursorContinuity",
+      "kind": "consumer_visible_state_contract",
+      "parentLEGO": "O02",
+      "responsibility": "Maintain per-actor topic cursor/ack/resume semantics independent from message content and Attention projection.",
+      "authority": "Host Social Work Fabric PostgreSQL",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "inputs": [
+        "topic.cursor.get/ack and topic.resume with exact actor/topic"
+      ],
+      "outputs": [
+        "bounded cursor and topic projection"
+      ],
+      "behavioralContract": "Cursor and reentry cannot grant Work authority; scope/ordering mismatch rejects.",
+      "dependencies": [
+        "O04"
+      ],
+      "evidence": [
+        "src/ordivon_host_v2/social_store.py",
+        "src/ordivon_host_v2/social_attention.py",
+        "src/ordivon_host_v2/social_work_mcp.py",
+        "tests/test_mcp_surface_identity.py"
+      ],
+      "consumerEvidence": [
+        "src/ordivon_host_v2/social_work_mcp.py",
+        "tests/test_mcp_surface_identity.py"
+      ],
+      "consumerMethods": [
+        "topic.cursor.get",
+        "topic.cursor.ack",
+        "topic.resume"
+      ],
+      "consumerQualification": "NATIVE_MCP_ROUTING_AND_TEST_ONLY; installed SourceCut/principal binding UNKNOWN",
+      "mustNotOwn": [
+        "Runtime execution authority",
+        "authenticated agent identity",
+        "domain truth"
+      ],
+      "acceptance": [
+        "A native typed Host MCP consumer route and corresponding persistence implementation exist",
+        "External/installed consumers and formal implementation bridge are not inferred from routing"
+      ],
+      "formalObligations": [
+        "Message/transaction/cursor invariant model-to-native-to-installed bridge UNKNOWN"
+      ],
+      "replacement": "Require bounded native consumer CDC and installed PostgreSQL identity/currentness proof",
+      "nextAction": "Qualify live exact caller/installed Host seam before replacement."
     }
   ],
   "edges": [
@@ -125,6 +337,42 @@
       "to": "O03",
       "type": "IDENTITY",
       "label": "route delta to exact task revision"
+    },
+    {
+      "from": "O04",
+      "to": "O05",
+      "type": "DEPENDENCY",
+      "label": "declared source dependency"
+    },
+    {
+      "from": "O05",
+      "to": "O02",
+      "type": "COMPOSITION",
+      "label": "architectural subresponsibility only; not behavioral composition theorem"
+    },
+    {
+      "from": "O04",
+      "to": "O06",
+      "type": "DEPENDENCY",
+      "label": "declared source dependency"
+    },
+    {
+      "from": "O06",
+      "to": "O02",
+      "type": "COMPOSITION",
+      "label": "architectural subresponsibility only; not behavioral composition theorem"
+    },
+    {
+      "from": "O04",
+      "to": "O07",
+      "type": "DEPENDENCY",
+      "label": "declared source dependency"
+    },
+    {
+      "from": "O07",
+      "to": "O02",
+      "type": "COMPOSITION",
+      "label": "architectural subresponsibility only; not behavioral composition theorem"
     }
   ],
   "slices": [],
@@ -140,7 +388,7 @@
     "sourceRevision": "b5cf31f9a1d177576886fe545e870e685a80fc2e",
     "updatedAt": "2026-09-18",
     "standing": "INITIAL",
-    "notes": "Initial project-native LEGO planning projection. It does not replace owner-native architecture or evidence."
+    "notes": "Original sourceRevision is a historical original-review anchor only; the new O01-O07 source qualifications are tied to current candidate Git source, not historical installed Host truth."
   },
   "sharedCatalog": {
     "catalogId": "agent-architecture-lego-catalog-r1",

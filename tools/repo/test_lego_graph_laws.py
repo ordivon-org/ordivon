@@ -1651,3 +1651,36 @@ def test_phase1_named_cross_owner_consumers_have_actual_source_expression() -> N
         or "UNKNOWN" in n["consumerQualification"]
         for n in [*nodes.values(), *bridge.values()]
     )
+
+
+def test_phase1_host_board_subresponsibilities_have_distinct_real_mcp_consumers() -> None:
+    """An O02 child needs a separate public contract, not another source file label."""
+    plan = module._load_json(ROOT / "services/host/planning/lego-plan-r1.json")
+    module.validate_owner_lego_graph(plan)
+    module.validate_owner_lego_dependencies(plan, "services/host")
+    mcp = (ROOT / "services/host/src/ordivon_host_v2/social_work_mcp.py").read_text()
+    nodes = {n["id"]: n for n in plan["nodes"]}
+    by_id = {
+        "O05": {"message.post", "message.get", "message.search"},
+        "O06": {"message.relation.add", "message.relation.list"},
+        "O07": {"topic.cursor.get", "topic.cursor.ack", "topic.resume"},
+    }
+    for node_id, methods in by_id.items():
+        node = nodes[node_id]
+        assert node["parentLEGO"] == "O02"
+        assert methods == set(node["consumerMethods"])
+        assert node["inputs"] and node["outputs"] and node["behavioralContract"]
+        assert node["formalObligations"] and "UNKNOWN" in node["consumerQualification"]
+        for method in methods:
+            assert f'@mcp.tool(name="{method}")' in mcp, (node_id, method)
+        assert {
+            "from": "O04", "to": node_id, "type": "DEPENDENCY",
+        }.items() <= next(
+            (e for e in plan["edges"] if e["from"] == "O04" and e["to"] == node_id),
+            {},
+        ).items()
+        assert any(
+            e["from"] == node_id and e["to"] == "O02"
+            and e["type"] == "COMPOSITION"
+            for e in plan["edges"]
+        )
