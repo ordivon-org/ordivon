@@ -37,6 +37,9 @@ def load_owners(path: Path = MANIFEST_PATH) -> tuple[Owner, ...]:
         if not isinstance(row, dict):
             raise ValueError(f"owner row {index} must be a table")
         name = row.get("name")
+        semantic_name = row.get("semantic_name", name)
+        if not isinstance(semantic_name, str) or not semantic_name.strip() or semantic_name != semantic_name.strip():
+            raise ValueError(f"owner row {index} semantic_name must be a canonical nonempty string")
         root = row.get("root")
         task = row.get("verify_task")
         queue_task = row.get("queue_verify_task", task)
@@ -208,6 +211,10 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
         if not isinstance(name, str) or not name.strip() or name in names:
             raise ValueError("source region names must be nonempty and unique")
         names.add(name)
+        description = region.get("description", name)
+        if (not isinstance(description, str)
+                or not description.strip() or description != description.strip()):
+            raise ValueError("source region description must be a canonical nonempty string")
         if not isinstance(region.get("paths"), list) or not region["paths"]:
             raise ValueError("source region requires literal paths")
         if not isinstance(region.get("exclude", []), list):

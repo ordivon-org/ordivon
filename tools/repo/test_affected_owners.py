@@ -308,6 +308,21 @@ class SourceClassificationTests(unittest.TestCase):
         self.assertTrue(callable(fn), "existing Repo CLI must expose exact-cut source classification")
         return fn(self.repo, cut)
 
+    def test_empty_semantic_names_fail_closed_without_affecting_owner_id(self) -> None:
+        self.manifest.write_text(
+            self.header.replace('name = "runtime"\n', 'name = "runtime"\nsemantic_name = ""\n')
+        )
+        cut = self.commit()
+        with self.assertRaisesRegex(ValueError, "semantic_name must be a canonical nonempty string"):
+            self.project(cut)
+        self.manifest.write_text(
+            self.header + '\n[[source_regions]]\n'
+            'name = "methods"\ndescription = ""\npaths = [".agents/skills/"]\n'
+        )
+        cut = self.commit()
+        with self.assertRaisesRegex(ValueError, "source region description must be a canonical nonempty string"):
+            self.project(cut)
+
     def test_semantic_names_do_not_become_verification_authorities(self) -> None:
         # Source presentation changes without changing the actual owner ID
         # or granting it an additional verification task or runtime authority.
