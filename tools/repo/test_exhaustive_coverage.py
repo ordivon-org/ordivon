@@ -412,3 +412,104 @@ class ExactGitCrossFormatReferenceTests(unittest.TestCase):
             M.exact_git_reference_hints(ROOT, self.cut, [target], per_path_limit=0)
         with self.assertRaises(ValueError):
             M.exact_git_reference_hints(ROOT, self.cut, [target], per_path_limit=257)
+
+
+
+class DerivedProblemLegoFrontierTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.sha = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"],
+            text=True,
+        ).strip()
+        cls.inventory = M.classification(ROOT, cls.sha)
+        cls.result = M.derived_problem_legos(cls.inventory, repo=ROOT)
+
+    def test_every_tracked_git_source_is_mapped_to_one_recursive_cell(self) -> None:
+        output = self.result
+        summary = output["summary"]
+        self.assertEqual(output["sourceCut"], self.sha)
+        self.assertEqual(output["sourceTree"], self.inventory["sourceTree"])
+        self.assertFalse(output["proofReuseAdmissible"])
+        self.assertEqual(summary["trackedPaths"], summary["countedPaths"])
+        self.assertEqual(summary["trackedPaths"], len(output["sourcePathCellIndex"]))
+        self.assertEqual(summary["recursiveSourceCells"], len(output["sourceCells"]))
+        refs = {cell["sourceCellRef"] for cell in output["sourceCells"]}
+        self.assertEqual(len(refs), len(output["sourceCells"]))
+        self.assertTrue(set(output["sourcePathCellIndex"].values()) <= refs)
+
+    def test_problem_refs_are_unique_and_bound_to_observed_cells_or_plans(self) -> None:
+        output = self.result
+        refs = {cell["sourceCellRef"] for cell in output["sourceCells"]}
+        problems = output["problemLegos"]
+        self.assertEqual(len({p["problemRef"] for p in problems}), len(problems))
+        self.assertEqual(output["summary"]["issueRecords"], len(problems))
+        self.assertEqual(output["summary"]["issueKinds"].get(
+            "RECURSIVE_SOURCE_CELL_ISSUE"), len([
+                x for x in problems if x["kind"] == "RECURSIVE_SOURCE_CELL_ISSUE"]))
+        self.assertEqual(output["summary"]["issueKinds"].get(
+            "PLAN_NODE_DECLARATION_ISSUE"), len([
+                x for x in self.inventory["semanticPlans"]["nodes"] if x["problems"]]))
+        for problem in problems:
+            if "sourceCellRef" in problem:
+                self.assertIn(problem["sourceCellRef"], refs)
+            self.assertEqual(problem["callSemanticsStanding"], "NOT_YET_QUALIFIED")
+            self.assertEqual(
+                problem["remediationStanding"], "DEFER_UNTIL_JOINT_CALL_SEMANTICS")
+        node_refs = {x["nodeRef"] for x in self.inventory["semanticPlans"]["nodes"]}
+        self.assertTrue(
+            all(x["nodeRef"] in node_refs for x in problems if "nodeRef" in x))
+
+    def test_recursive_edges_are_physical_only_and_plan_edges_never_calls(self) -> None:
+        output = self.result
+        refs = {cell["sourceCellRef"] for cell in output["sourceCells"]}
+        parents = {cell["sourceCellRef"]: cell["parentSourceCellRef"]
+                   for cell in output["sourceCells"]}
+        self.assertEqual(len(output["sourceContainment"]),
+                         output["summary"]["hierarchyRelations"])
+        for edge in output["sourceContainment"]:
+            self.assertIn(edge["child"], refs)
+            self.assertIn(edge["parent"], refs)
+            self.assertEqual(parents[edge["child"]], edge["parent"])
+            self.assertEqual(edge["callStanding"], "NOT_ESTABLISHED")
+            self.assertNotEqual(edge["child"], edge["parent"])
+        self.assertEqual(len(output["declaredPlanEdgesNotActualCalls"]),
+                         output["summary"]["declaredPlanEdges"])
+        self.assertTrue(all(e["runtimeCallStanding"] == "NOT_ESTABLISHED"
+                            and e["effectStanding"] == "UNKNOWN"
+                            for e in output["declaredPlanEdgesNotActualCalls"]))
+        self.assertFalse(output["summary"]["crossPlanReuseIsError"])
+
+    def test_missing_local_plan_is_review_not_authority(self) -> None:
+        recorded = {
+            x["sourceZone"] for x in self.result["problemLegos"]
+            if x["kind"] == "LOCAL_PLAN_MAPPING_REVIEW"
+        }
+        expected = {"ROOT:" + name for name in self.inventory["summary"][
+            "registeredRootsWithoutLocalLegoPlan"]}
+        self.assertEqual(recorded, expected)
+        self.assertIn("installation", self.result["truthBoundary"])
+        self.assertTrue(self.result["summary"]["missingInstalledAndDynamicCallClosure"])
+
+    def test_deterministic_and_proposal_is_explicit_not_installed(self) -> None:
+        a = self.result
+        b = M.derived_problem_legos(self.inventory, repo=ROOT)
+        self.assertEqual(a, b)
+        with self.assertRaisesRegex(ValueError, "exact"):
+            M.classification(ROOT, "HEAD")
+        with self.assertRaisesRegex(ValueError, "proposal"):
+            M.derived_problem_legos(self.inventory, repo=ROOT, use_proposal=True)
+        with self.assertRaises(ValueError):
+            M.derived_problem_legos(self.inventory, repo=ROOT, max_depth=13)
+
+    def test_cli_summary_has_no_hidden_static_snapshot_or_unproved_edges(self) -> None:
+        data = subprocess.check_output([
+            "python3", str(ROOT / "tools/repo/exhaustive_coverage.py"),
+            "--source-cut", self.sha, "--problem-legos", "--summary",
+            "--repo", str(ROOT),
+        ], text=True)
+        output = __import__("json").loads(data)
+        self.assertEqual(output["summary"], self.result["summary"])
+        self.assertNotIn("sourceCells", output)
+        self.assertNotIn("problemLegos", output)
+        self.assertNotIn("sourcePathCellIndex", output)

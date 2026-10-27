@@ -2005,3 +2005,52 @@ print(json.dumps(ast))
 
 if __name__ == "__main__":
     unittest.main()
+
+
+
+@pytest.mark.parametrize("edge", ("profile", "source", "material"))
+def test_delivery_admission_rejects_inconsistent_final_file_fact_digest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, edge: str
+) -> None:
+    """The public Provider must never PASS when its source-bound receipt disagrees."""
+    import hashlib
+
+    from artifact_operations.providers import direct_python
+
+    examples = ROOT / "artifact-delivery" / "examples"
+    original_request = json.loads(
+        (examples / "presentation-native-smoke-request-r1.json").read_text()
+    )
+    for ref in ("profile", "source"):
+        original_request[ref]["path"] = str(
+            (examples / original_request[ref]["path"]).resolve()
+        )
+    material = tmp_path / "material.txt"
+    material.write_bytes(b"phase2-consumer-digest-negative")
+    original_request["materials"] = [{
+        "path": str(material), "sha256": hashlib.sha256(material.read_bytes()).hexdigest()
+    }]
+    request = tmp_path / "request.json"
+    write_json(request, original_request)
+
+    provider = DirectPythonOperationProvider()
+    baseline = provider.validate_delivery_request(request)
+    assert baseline["status"] == "PASS", baseline
+
+    target_paths = {
+        "profile": Path(original_request["profile"]["path"]).resolve(),
+        "source": Path(original_request["source"]["path"]).resolve(),
+        "material": material.resolve(),
+    }
+    genuine_file_fact = direct_python.file_fact
+
+    def diverging_file_fact(path: Path) -> dict[str, object]:
+        fact = genuine_file_fact(path)
+        if path.resolve() == target_paths[edge]:
+            fact["digest"]["sha256"] = "0" * 64
+        return fact
+
+    monkeypatch.setattr(direct_python, "file_fact", diverging_file_fact)
+    result = provider.validate_delivery_request(request)
+    assert result["status"] == "FAIL", result
+    assert any(edge in reason and "digest" in reason for reason in result["failures"]), result

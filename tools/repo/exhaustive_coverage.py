@@ -441,6 +441,177 @@ def active_source_cells(
     return result
 
 
+
+def derived_problem_legos(
+    inventory: dict, *, repo: Path, max_files: int = 24,
+    max_depth: int = 6, use_proposal: bool = False,
+) -> dict:
+    """Derive a complete Phase1 source-to-problem map, NOT an authority registry.
+
+    No source code is executed and declared plan edges are never promoted to
+    verified calls. All answers come from one immutable Git-cut projection.
+    """
+    frontier = active_source_cells(
+        inventory, repo=repo, max_files=max_files, max_depth=max_depth,
+        use_proposal=use_proposal, include_member_index=True,
+    )
+    members = frontier["memberCellDigests"]
+    cells = frontier["cells"]
+    graph = inventory["semanticPlans"]
+    cell_by_key: dict[tuple[str, str], dict] = {}
+    for cell in cells:
+        key = (cell["sourceZone"], cell["physicalPrefix"])
+        if key in cell_by_key:
+            raise ValueError("duplicate physical recursive source cell")
+        cell_by_key[key] = cell
+
+    def cell_ref(cell: dict) -> str:
+        return "source-cell:" + cell["memberGitObjectDigest"]
+
+    hierarchy = []
+    all_cells = []
+    for cell in cells:
+        parent_candidates = [
+            other for other in cells if other["sourceZone"] == cell["sourceZone"]
+            and other is not cell
+            and cell["physicalPrefix"].startswith(other["physicalPrefix"])
+            and len(other["physicalPrefix"]) < len(cell["physicalPrefix"])
+        ]
+        parent = max(parent_candidates, key=lambda x: len(x["physicalPrefix"]),
+                     default=None)
+        if parent is not None:
+            hierarchy.append({
+                "relation": "PHYSICAL_PREFIX_CONTAINS_NOT_SEMANTIC_CALL",
+                "parent": cell_ref(parent), "child": cell_ref(cell),
+                "callStanding": "NOT_ESTABLISHED",
+            })
+        all_cells.append({
+            "sourceCellRef": cell_ref(cell),
+            "sourceZone": cell["sourceZone"],
+            "physicalPrefix": cell["physicalPrefix"],
+            "pathCount": cell["pathCount"],
+            "memberGitObjectDigest": cell["memberGitObjectDigest"],
+            "parentSourceCellRef": cell_ref(parent) if parent is not None else None,
+            "problems": cell["problems"],
+            "sourceProblemCounts": cell["sourceProblemCounts"],
+            "planDeclarationProblemCounts": cell["planDeclarationProblemCounts"],
+            "semanticStanding": cell["semanticStanding"],
+            "consumerStanding": cell["consumerStanding"],
+            "formalStanding": cell["formalStanding"],
+            "installedStanding": cell["installedStanding"],
+        })
+
+    issues: list[dict] = []
+    for cell in cells:
+        if cell["problems"]:
+            issues.append({
+                "problemRef": "problem:cell:" + cell["memberGitObjectDigest"],
+                "kind": "RECURSIVE_SOURCE_CELL_ISSUE",
+                "sourceCellRef": cell_ref(cell),
+                "physicalPrefix": cell["physicalPrefix"],
+                "sourceZone": cell["sourceZone"],
+                "pathCount": cell["pathCount"],
+                "issueTags": cell["problems"],
+                "sourceIssueTags": cell["sourceProblemCounts"],
+                "planIssueTags": cell["planDeclarationProblemCounts"],
+                "consumerStanding": "UNKNOWN",
+                "callSemanticsStanding": "NOT_YET_QUALIFIED",
+                "remediationStanding": "DEFER_UNTIL_JOINT_CALL_SEMANTICS",
+            })
+    for node in graph["nodes"]:
+        if node["problems"]:
+            if node["plan"] not in members:
+                raise ValueError("declared Plan has no exact source cell")
+            issues.append({
+                "problemRef": "problem:declared-node:" + node["nodeRef"],
+                "kind": "PLAN_NODE_DECLARATION_ISSUE",
+                "nodeRef": node["nodeRef"],
+                "sourceCellRef": "source-cell:" + members[node["plan"]],
+                "plan": node["plan"],
+                "issueTags": node["problems"],
+                "declaredFields": node["declarations"],
+                "formalQualification": node["formalQualification"],
+                "consumerQualification": node["consumerQualification"],
+                "implementationRefinement": node["implementationRefinement"],
+                "callSemanticsStanding": "NOT_YET_QUALIFIED",
+                "remediationStanding": "DEFER_UNTIL_JOINT_CALL_SEMANTICS",
+            })
+    for item in graph["opaquePlans"]:
+        if item["plan"] not in members:
+            raise ValueError("non-node Plan has no exact source cell")
+        issues.append({
+            "problemRef": "problem:non-node-plan:" + item["plan"],
+            "kind": "NON_NODE_PLAN_MAPPING_REVIEW",
+            "plan": item["plan"],
+            "sourceCellRef": "source-cell:" + members[item["plan"]],
+            "issueTags": [item["standing"]],
+            "callSemanticsStanding": "NOT_YET_QUALIFIED",
+            "remediationStanding": "DEFER_UNTIL_JOINT_CALL_SEMANTICS",
+        })
+    for name in inventory["summary"]["registeredRootsWithoutLocalLegoPlan"]:
+        issues.append({
+            "problemRef": "problem:root-without-local-plan:" + name,
+            "kind": "LOCAL_PLAN_MAPPING_REVIEW",
+            "sourceZone": "ROOT:" + name,
+            "issueTags": ["NO_LOCAL_PLAN_DOES_NOT_PROVE_MISSING_CONTRACT"],
+            "consumerStanding": "UNKNOWN",
+            "callSemanticsStanding": "NOT_YET_QUALIFIED",
+            "remediationStanding": "DEFER_UNTIL_JOINT_CALL_SEMANTICS",
+        })
+
+    declared_edges = []
+    for e in graph["edges"]:
+        qualified = e["standing"] == "LOCAL_ENDPOINTS_IDENTIFIED"
+        declared_edges.append({
+            "fromNodeRef": f'{e["plan"]}#{e["from"]}' if qualified else None,
+            "toNodeRef": f'{e["plan"]}#{e["to"]}' if qualified else None,
+            "sourcePlan": e["plan"], "edgeIndex": e["edgeIndex"],
+            "declaredEdgeType": e["edgeType"],
+            "declarationStanding": e["standing"],
+            "runtimeCallStanding": "NOT_ESTABLISHED",
+            "effectStanding": "UNKNOWN",
+        })
+    issues.sort(key=lambda item: (item["kind"], item["problemRef"]))
+    counters = collections.Counter(item["kind"] for item in issues)
+    counts = collections.Counter(tag for item in issues for tag in item["issueTags"])
+    return {
+        "kind": "ordivon.phase1.exact-git-derived-problem-legos",
+        "schemaVersion": 1,
+        "sourceCut": inventory["sourceCut"],
+        "sourceTree": inventory["sourceTree"],
+        "sourcePathDigest": inventory["sourcePathDigest"],
+        "proposalCut": frontier["proposalCut"],
+        "projection": frontier["projection"],
+        "truthBoundary": (
+            "physical source and declared Plan structure only; real calls, "
+            "external repos, consumers, installation, effect and formal proof UNKNOWN"
+        ),
+        "proofReuseAdmissible": False,
+        "summary": {
+            "trackedPaths": frontier["summary"]["trackedPaths"],
+            "countedPaths": frontier["summary"]["countedPaths"],
+            "recursiveSourceCells": len(all_cells),
+            "issueRecords": len(issues),
+            "issueKinds": dict(sorted(counters.items())),
+            "issueTagCounts": dict(sorted(counts.items())),
+            "hierarchyRelations": len(hierarchy),
+            "declaredPlanEdges": len(declared_edges),
+            "crossPlanLocalIdReuse": len(graph["sameLocalIdAcrossPlans"]),
+            "crossPlanReuseIsError": False,
+            "missingInstalledAndDynamicCallClosure": True,
+        },
+        "sourceCells": all_cells,
+        "sourcePathCellIndex": {
+            path: "source-cell:" + digest for path, digest in members.items()
+        },
+        "sourceContainment": sorted(
+            hierarchy, key=lambda item: (item["parent"], item["child"])),
+        "problemLegos": issues,
+        "declaredPlanEdgesNotActualCalls": declared_edges,
+        "sameLocalIdAcrossPlansObservation": graph["sameLocalIdAcrossPlans"],
+    }
+
+
 def lookup_source_paths(inventory: dict, *, repo: Path,
                         paths: list[str], max_files: int = 24,
                         max_depth: int = 6) -> dict:
@@ -857,6 +1028,8 @@ def main() -> int:
     parser.add_argument("--repo", type=Path, default=Path.cwd())
     parser.add_argument("--summary", action="store_true")
     parser.add_argument("--only-problems", action="store_true")
+    parser.add_argument("--problem-legos", action="store_true",
+                        help="derived full source+Plan problem LEGO map; never a registry")
     parser.add_argument("--reference-path", action="append", default=[],
                         help="cross-format Git textual reference witness for exact file path")
     parser.add_argument("--reference-limit", type=int, default=48,
@@ -877,7 +1050,7 @@ def main() -> int:
     if args.reference_path:
         if (args.lookup_path or args.static_python_consumers or args.live_cells
                 or args.proposal_cut or args.use_proposal_cells or args.only_problems
-                or args.imports_prefix or args.summary):
+                or args.imports_prefix or args.summary or args.problem_legos):
             parser.error("reference witness mode is mutually exclusive with projection modes")
         result = exact_git_reference_hints(
             args.repo, args.source_cut, args.reference_path,
@@ -886,6 +1059,11 @@ def main() -> int:
         return 0
     if args.reference_limit != 48:
         parser.error("reference-limit requires reference-path")
+    if args.problem_legos and (
+        args.lookup_path or args.static_python_consumers or args.imports_prefix
+        or args.only_problems or args.live_cells
+    ):
+        parser.error("problem-legos is a distinct derived source/Plan projection mode")
     if args.imports_prefix and not args.static_python_consumers:
         parser.error("imports-prefix requires static-python-consumers")
     if args.lookup_path and args.static_python_consumers:
@@ -906,7 +1084,18 @@ def main() -> int:
         print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2))
         return 0
     result = classification(args.repo, args.source_cut, args.proposal_cut)
-    if args.lookup_path:
+    if args.problem_legos:
+        result = derived_problem_legos(
+            result, repo=args.repo, max_files=args.cell_max_files,
+            max_depth=args.cell_max_depth, use_proposal=args.use_proposal_cells,
+        )
+        if args.summary:
+            result = {k: v for k, v in result.items()
+                      if k not in ("sourceCells", "sourcePathCellIndex",
+                                   "sourceContainment", "problemLegos",
+                                   "declaredPlanEdgesNotActualCalls",
+                                   "sameLocalIdAcrossPlansObservation")}
+    elif args.lookup_path:
         result = lookup_source_paths(
             result, repo=args.repo, paths=args.lookup_path,
             max_files=args.cell_max_files, max_depth=args.cell_max_depth,
