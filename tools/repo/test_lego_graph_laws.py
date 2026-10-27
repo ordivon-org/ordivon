@@ -2017,3 +2017,38 @@ def test_agent_native_path_rejects_unqualified_identity_or_mode() -> None:
         "--source-revision", revision, "--compare-source-revision", revision,
     ])
     assert bad_mode == 2
+
+
+def test_one_lego_inspection_preserves_all_existing_consumer_claim_carriers() -> None:
+    """Three *source declaration* shapes cannot vanish into an empty consumer list."""
+    import subprocess
+
+    cut = subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+    ).strip()
+    cases = [
+        ("platform/skills/planning/lego-plan-r1.json#SK03", "actualConsumers", "skills_resolve"),
+        ("packages/composition/planning/lego-plan-r1.json#C01", "consumerBindings", None),
+        ("services/gateway/planning/lego-plan-r1.json#G01", "consumerEvidence", None),
+    ]
+    for ref, claim_kind, expected_symbol in cases:
+        view = module.inspect_owner_lego_contract(
+            source_revision=cut, node_ref=ref, root=ROOT,
+        )
+        claim = view["declaredConsumerClaims"]
+        assert set(claim) == {"consumerEvidence", "actualConsumers", "consumerBindings"}
+        assert claim[claim_kind], (ref, claim_kind)
+        if expected_symbol:
+            assert any(row.get("symbol") == expected_symbol for row in claim[claim_kind])
+        assert view["consumerClaimQualification"] == "SOURCE_PLAN_DECLARATION_ONLY_NOT_VERIFIED_CONSUMPTION"
+        assert view["consumerClosureStanding"] == "UNKNOWN"
+        assert view["proofReuseAdmissible"] is False
+
+    # Missing and empty evidence are not positive evidence of zero consumers.
+    root = module.inspect_owner_lego_contract(
+        source_revision=cut, node_ref="services/harness/planning/lego-plan-r1.json#H01", root=ROOT,
+    )
+    assert root["declaredConsumerClaims"] == {
+        "consumerEvidence": None, "actualConsumers": None, "consumerBindings": None,
+    }
+    assert root["consumerClosureStanding"] == "UNKNOWN"

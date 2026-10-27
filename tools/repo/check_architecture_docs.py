@@ -708,6 +708,17 @@ def inspect_owner_lego_contract(
         "declaredState": node.get("state"),
         "declaredDependencies": node.get("dependencies", []),
         "declaredConsumerEvidence": node.get("consumerEvidence", []),
+        # Owner-local R1 carriers evolved independently. Absence of a field is
+        # unknown, not positive evidence that the LEGO has zero consumers.
+        # Retain each native claim name; do not pretend an AST/static binding
+        # or declared port is an observed production consumer.
+        "declaredConsumerClaims": {
+            "consumerEvidence": node.get("consumerEvidence"),
+            "actualConsumers": node.get("actualConsumers"),
+            "consumerBindings": node.get("consumerBindings"),
+        },
+        "consumerClaimQualification": "SOURCE_PLAN_DECLARATION_ONLY_NOT_VERIFIED_CONSUMPTION",
+        "consumerClosureStanding": "UNKNOWN",
         "declaredFormalObligations": node.get("formalObligations", []),
         "sourceAnchors": anchors,
         "unresolvedSourceEvidence": nodes[node_ref]["unresolvedSourceEvidence"],
