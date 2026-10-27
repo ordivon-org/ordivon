@@ -186,6 +186,26 @@ jobs:
           subject-checksums: ${{ runner.temp }}/ordivon-runtime-tagged-release/subjects.sha256
           sbom-path: ${{ runner.temp }}/ordivon-runtime-tagged-release/sbom.spdx.json
 
+      - name: Verify signed canonical Runtime release attestations
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/ordivon-runtime-tagged-release"
+          mapfile -d '' -t subjects < <(find "$root/attest-subjects" -maxdepth 1 -type f -print0)
+          test "${#subjects[@]}" -eq 12
+          for artifact in "${subjects[@]}"; do
+            for predicate in "https://slsa.dev/provenance/v1" "https://spdx.dev/Document/v2.3"; do
+              gh attestation verify "$artifact" \
+                --repo "$GITHUB_REPOSITORY" \
+                --predicate-type "$predicate" \
+                --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/runtime-release.yml" \
+                --source-digest "${{ steps.release.outputs.repository_commit }}" \
+                --source-ref "$GITHUB_REF" > /dev/null
+            done
+          done
+
       - name: Retain canonical Runtime release evidence
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
