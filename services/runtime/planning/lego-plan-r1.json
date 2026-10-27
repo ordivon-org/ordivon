@@ -108,7 +108,7 @@
       "id": "R03",
       "label": "JobAttemptStateModule",
       "kind": "state_authority",
-      "responsibility": "Extract logical Job identity and physical Attempt-generation lifecycle into explicit state modules.",
+      "responsibility": "Compose distinct logical Job identity/idempotency (R20) and physical Attempt-generation lifecycle/terminal semantics (R21) as one Runtime state authority. Preserve their independent contract boundaries and existing committed Registry consumers.",
       "authority": "Runtime Job/Attempt truth",
       "state": "IMPLEMENTED",
       "sharedRefs": [],
@@ -122,7 +122,9 @@
       ],
       "dependencies": [
         "R00",
-        "R01"
+        "R01",
+        "R20",
+        "R21"
       ],
       "mustNotOwn": [
         "provider implementation",
@@ -441,7 +443,7 @@
       "id": "R12",
       "label": "ControlPrimitives",
       "kind": "control_primitive_set",
-      "responsibility": "Extract small reusable mechanical controls—fence, reservation, drain, revalidate, CAS, commit, rollback, quarantine, receipt—without creating a generic Effect engine.",
+      "responsibility": "Extract small reusable mechanical controls\u2014fence, reservation, drain, revalidate, CAS, commit, rollback, quarantine, receipt\u2014without creating a generic Effect engine.",
       "authority": "Runtime mechanical control semantics",
       "state": "PROPOSED",
       "sharedRefs": [],
@@ -699,6 +701,95 @@
         "No new tool, proof authority, duplicated model or additional persistent registry is introduced."
       ],
       "nextAction": "Retain R19 as current task-local trace qualification; for an actual Rust implementation refinement, independently prove the concrete transition relation rather than promoting this traceability model pass."
+    },
+    {
+      "id": "R20",
+      "label": "JobIdentityContract",
+      "kind": "typed_contract",
+      "responsibility": "Maintain an independently checkable logical Job request identity, effective operation digest and idempotent replay/conflict contract across all execution families, without reinterpreting a previously committed Job using current authority.",
+      "authority": "Runtime logical Job identity, not provider authority or external effect admission",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "crates/ordivon-runtime-core/src/runtime/job_attempt_state.rs",
+        "crates/ordivon-runtime-core/src/runtime/registry/admission.rs",
+        "crates/ordivon-runtime-core/src/runtime/registry/query.rs",
+        "crates/ordivon-runtime-core/src/runtime/artifact_release_state.rs"
+      ],
+      "dependencies": [
+        "R00",
+        "R01"
+      ],
+      "mustNotOwn": [
+        "physical Attempt state transitions",
+        "provider validation and execution",
+        "persistent idempotency index ownership"
+      ],
+      "acceptance": [
+        "Exact replay of the same qualified request returns the previously committed Job identity; incompatible use of one principal/clientRequestId fails with IdempotencyConflict.",
+        "Request identity and effect-bound operation identity are not conflated, and legacy stored request identity is reconstructed only from qualified existing plan content.",
+        "Provider, Host Dependency and Runtime Release identity variants cannot silently weaken or mix effect commitments."
+      ],
+      "nextAction": "Bind actual request-identity consumer readsets and negative replay variants to current SourceCut; promote to IMPLEMENTATION_VERIFIED only for independently verified properties and their explicitly scoped proof obligations.",
+      "inputs": [
+        "SubmitRequest and plan digest",
+        "optional committed provider, Host Dependency and Runtime Release digests",
+        "previously committed request/job identity and idempotency key"
+      ],
+      "outputs": [
+        "validated request_digest and operation_digest, replay match or typed IdempotencyConflict"
+      ],
+      "behavioralContract": "For a principal-scoped clientRequestId, matching qualified request identity replays the same committed Job before current policy interpretation. Distinct request identity is rejected rather than spawning an inconsistent second Job; operation digest remains bound to specified effective provider/input/release commitments.",
+      "environment": [
+        "Runtime Registry admission with committed Job identity, on supported Linux/Windows implementations; actual installed backend not inferred"
+      ],
+      "effects": [
+        "read prior Job identity and select replay or rejection; no runner launch, permission grant or physical Attempt transition"
+      ]
+    },
+    {
+      "id": "R21",
+      "label": "AttemptLifecycleContract",
+      "kind": "state_machine_contract",
+      "responsibility": "Define the physical Attempt generation's admissible transition relation, terminal absorption, deadline/cancel replay, runner/supervisor ownership binding and terminal evidence readiness independently of logical Job identity.",
+      "authority": "Runtime physical Attempt lifecycle and terminal resolution contract, not execution provider or durable writer",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "crates/ordivon-runtime-core/src/runtime/job_attempt_state.rs",
+        "crates/ordivon-runtime-core/src/runtime/registry/lifecycle.rs",
+        "crates/ordivon-runtime-core/src/runtime/reservation_state.rs",
+        "crates/ordivon-runtime-core/src/runtime/doctor.rs"
+      ],
+      "dependencies": [
+        "R00",
+        "R01"
+      ],
+      "mustNotOwn": [
+        "logical Job request/operation identity",
+        "external provider process execution",
+        "physical transaction authority"
+      ],
+      "acceptance": [
+        "Only allowed AttemptState transitions are accepted; terminal states are absorbing, with exact resolutions and evidence-qualification conditions.",
+        "Cancel, deadline, stopping, recovery and physical-owner replay preserve committed state, termination intent and Attempt identity.",
+        "Registry and Reservation consumers reject stale/illegal lifecycle and incomplete terminal evidence rather than incorrectly releasing capacity or resolving Job."
+      ],
+      "nextAction": "Bridge finite lifecycle transition contract to existing TLA/Kani/native Rust checks, explicitly scoped to versioned state alphabet, before claiming general implementation refinement.",
+      "inputs": [
+        "current AttemptState, requested next state and termination intent",
+        "committed runner/supervisor owner digests and terminal evidence"
+      ],
+      "outputs": [
+        "admissible next state or rejection, typed terminal resolution and evidence-ready predicate"
+      ],
+      "behavioralContract": "Terminal Attempt states cannot transition back to live states; starting/running/stopping/recovering transitions, cancellation, deadlines and physical-owner replay follow the encoded AttemptLifecycleContract predicates. Terminal Job resolution and Reservation release require accepted state/evidence commitments.",
+      "environment": [
+        "Runtime Attempt Registry on Linux and Windows, with platform-specific actual process owner/evidence witnesses"
+      ],
+      "effects": [
+        "decides legal state/replay/evidence transitions; does not execute a process or directly mutate the Registry"
+      ]
     }
   ],
   "edges": [
@@ -875,6 +966,36 @@
       "to": "R17",
       "type": "VERIFICATION",
       "label": "bounded native RuntimeDispatch trace and falsification must be checked before cross-plane acceptance; not Rust refinement"
+    },
+    {
+      "from": "R20",
+      "to": "R03",
+      "type": "COMPOSITION",
+      "label": "logical identity and replay form one child of Job/Attempt state authority"
+    },
+    {
+      "from": "R21",
+      "to": "R03",
+      "type": "COMPOSITION",
+      "label": "physical Attempt lifecycle and terminal laws form independent child"
+    },
+    {
+      "from": "R20",
+      "to": "R08",
+      "type": "IDENTITY",
+      "label": "compiled operation plan preserves qualified request and effective operation digests"
+    },
+    {
+      "from": "R21",
+      "to": "R04",
+      "type": "STATE",
+      "label": "Reservation transition and release consume legal Attempt lifecycle and evidence"
+    },
+    {
+      "from": "R21",
+      "to": "R13",
+      "type": "EVIDENCE",
+      "label": "terminal observation readiness constrains future scoped evidence claims"
     }
   ],
   "slices": [
@@ -1089,7 +1210,7 @@
         "TLA+/TLC remains a bounded abstraction; deployment/refinement and real-world completion require independent evidence at the installed Runtime binary and consumer.",
         "A captured stdout/stderr artifact without a matching, validated Runner result.json cannot promote the exact Attempt from dispatch-unknown/lost into Succeeded. A result bearing foreign Attempt identity must never qualify even when output exists.",
         "Owner-native `runtime::tests::partial_runner_stdout_without_result_stays_lost_not_success` must PASS; the existing Runner-result precedence consumer remains intact; digest-fenced TLC must exhaustively check MatchingResultRequiredForTerminal and NoForeignResultIsTerminal.",
-        "Both intentionally unsafe abstract transitions—blind retry without reconciliation and stdout-as-terminal-result—must yield the expected named TLC counterexamples. Tool failure, no counterexample, or a different failing invariant is not PASS.",
+        "Both intentionally unsafe abstract transitions\u2014blind retry without reconciliation and stdout-as-terminal-result\u2014must yield the expected named TLC counterexamples. Tool failure, no counterexample, or a different failing invariant is not PASS.",
         "The currentness gate rejects a digest-refreshed TLC config if either MatchingResultRequiredForTerminal or NoForeignResultIsTerminal is removed; the two independent name-bound RW9 negative controls remain required before a model PASS can support terminal-result provenance.",
         "The two bounded TLA+/TLC CEGAR falsifiers cannot PASS merely because a Java launcher exits unsuccessfully and prints an invariant name. Each negative control requires TLC's invariant-violation exit 12, the exact named invariant, and a concrete state-trace receipt; parser/tool failures or names without trace are rejected."
       ],
@@ -1098,7 +1219,7 @@
         "Forensic Attempt attempt-01a16fc4-33f9-7310-aa8a-e60778df3b8a: result.json COMPLETED exit0 at 2026-10-25T05:15:18+08:00, later control LOST at 05:15:38+08:00. This is a source-bound counterexample candidate, not proven complete production root cause.",
         "services/runtime/crates/ordivon-runtime-core/src/runtime/engine/reconciliation.rs",
         "services/runtime/crates/ordivon-runtime-core/src/runtime/tests.rs",
-        "2026-10-25 current-source LEGO R2.1 CEGAR: services/runtime/formal/RuntimeDispatchR1.tla distinguishes `outputObserved` from `resultEvidence ∈ {none,foreign,matching}` per Attempt; 4,736 TLC distinct reachable states, no invariant violation on 3 Attempts, with two independent counterexample negative controls. This is bounded model evidence, not mechanized Rust refinement.",
+        "2026-10-25 current-source LEGO R2.1 CEGAR: services/runtime/formal/RuntimeDispatchR1.tla distinguishes `outputObserved` from `resultEvidence \u2208 {none,foreign,matching}` per Attempt; 4,736 TLC distinct reachable states, no invariant violation on 3 Attempts, with two independent counterexample negative controls. This is bounded model evidence, not mechanized Rust refinement.",
         "Rust actual-consumer witness: services/runtime/crates/ordivon-runtime-core/src/runtime/tests.rs::partial_runner_stdout_without_result_stays_lost_not_success. `mise run verify` and root `mise run repo:ci` PASS on candidate rebased onto protected main 722d1b6e0d5abf9431c5cf432cf7048e25b39fc0; root architecture tests 273 PASS. Source publication/installed Runtime not implied.",
         "Current GitHub PR #623 verified MERGED at 2026-10-24T22:39:42Z (head f2b6a0ac3f11da6d0895c0f099eab62038bb47db). The older nextAction asking for its merge is retired as stale."
       ],
