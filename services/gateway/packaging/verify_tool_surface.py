@@ -27,6 +27,11 @@ def _load_manifest(path: Path) -> dict[str, Any]:
     if not isinstance(data.get("surfaceEpoch"), int) or data["surfaceEpoch"] < 1:
         raise SystemExit(f"surfaceEpoch must be a positive integer: {path}")
     _version(str(data.get("packageVersion", "")))
+    digest = data.get("contractDigest")
+    if digest is not None and (
+        not isinstance(digest, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", digest)
+    ):
+        raise SystemExit(f"invalid native MCP contractDigest: {path}")
     return data
 
 
@@ -41,6 +46,8 @@ def main() -> None:
     if not candidate_path.is_file():
         raise SystemExit(f"candidate release is missing {candidate_path.name}")
     candidate = _load_manifest(candidate_path)
+    if "contractDigest" not in candidate:
+        raise SystemExit("candidate must carry native MCP tools/list contractDigest")
     project = tomllib.loads(pyproject_path.read_text(encoding="utf-8"))["project"]
     project_version = str(project["version"])
     if project_version != candidate["packageVersion"]:
@@ -58,7 +65,13 @@ def main() -> None:
         raise SystemExit("candidate/current MCP surface service identity differs")
     current_epoch = int(current["surfaceEpoch"])
     candidate_epoch = int(candidate["surfaceEpoch"])
-    tools_changed = current["tools"] != candidate["tools"]
+    # The existing Tool names do not uniquely identify a protocol contract:
+    # MCP defines inputSchema and optional outputSchema per discovered Tool.
+    # Old releases lacking a digest are conservatively treated as changed.
+    tools_changed = (
+        current["tools"] != candidate["tools"]
+        or current.get("contractDigest") != candidate["contractDigest"]
+    )
     if tools_changed:
         if candidate_epoch <= current_epoch:
             raise SystemExit("tool surface changed without advancing surfaceEpoch")
