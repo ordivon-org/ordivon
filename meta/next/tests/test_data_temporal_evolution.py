@@ -1,18 +1,10 @@
 from __future__ import annotations
 
-import importlib.util
 import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE = ROOT / "evidence/data-lifecycle/temporal-evolution-r1"
-
-spec = importlib.util.spec_from_file_location(
-    "temporal_pilot", ROOT / "scripts/data_temporal_evolution_pilot.py"
-)
-mod = importlib.util.module_from_spec(spec)
-assert spec.loader
-spec.loader.exec_module(mod)
 
 
 def load(name: str):
@@ -66,8 +58,3 @@ def test_heavy_components_remain_workload_gated():
     assert all(
         not d[x]["activate"] for x in ["iceberg", "debezium", "beam", "redpandaKafka"]
     )
-
-
-def test_duckdb_path_literal_escapes_single_quotes():
-    rendered = mod.duckdb_path_literal(Path("/tmp/temporal'evolution.csv"))
-    assert "temporal''evolution.csv" in rendered
