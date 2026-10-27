@@ -2136,3 +2136,119 @@ def test_one_lego_inspection_preserves_all_existing_consumer_claim_carriers() ->
         "consumerEvidence": None, "actualConsumers": None, "consumerBindings": None,
     }
     assert root["consumerClosureStanding"] == "UNKNOWN"
+
+
+def test_identical_source_plan_relocation_is_only_source_candidate_not_lego_identity() -> None:
+    digest = "sha256:" + "a" * 64
+    old_path = "services/runtime/planning/old-lego-plan.json"
+    new_path = "packages/lego/planning/new-lego-plan.json"
+    before = {
+        "sourcePlans": [{"path": old_path, "sha256": digest}],
+        "vertices": [{"ref": old_path + "#R01"}, {"ref": old_path + "#R02"}],
+    }
+    after = {
+        "sourcePlans": [{"path": new_path, "sha256": digest}],
+        "vertices": [{"ref": new_path + "#R01"}, {"ref": new_path + "#R02"}],
+    }
+    result = module._candidate_source_plan_relocations(before, after)
+    assert result == [{
+        "previousPlanPath": old_path,
+        "currentPlanPath": new_path,
+        "planContentSha256": digest,
+        "sourceCarrierStanding": "EXACT_BYTES_RELOCATION_CANDIDATE",
+        "candidateNodeRefPairs": [
+            {"previousRef": old_path + "#R01", "currentRef": new_path + "#R01"},
+            {"previousRef": old_path + "#R02", "currentRef": new_path + "#R02"},
+        ],
+        "semanticIdentityPreserved": "UNKNOWN",
+        "proofReuseAdmissible": False,
+    }]
+
+
+def test_source_plan_rename_is_not_inferred_from_similar_names_or_changed_bytes() -> None:
+    old_path = "services/runtime/planning/lego-plan.json"
+    new_path = "packages/lego/planning/lego-plan.json"
+    old = {"sourcePlans": [{"path": old_path, "sha256": "sha256:" + "a" * 64}], "vertices": []}
+    changed = {"sourcePlans": [{"path": new_path, "sha256": "sha256:" + "b" * 64}], "vertices": []}
+    assert module._candidate_source_plan_relocations(old, changed) == []
+    unchanged = {"sourcePlans": [{"path": old_path, "sha256": "sha256:" + "a" * 64}], "vertices": []}
+    assert module._candidate_source_plan_relocations(old, unchanged) == []
+    copy = {"sourcePlans": [
+        {"path": old_path, "sha256": "sha256:" + "a" * 64},
+        {"path": new_path, "sha256": "sha256:" + "a" * 64},
+    ], "vertices": []}
+    assert module._candidate_source_plan_relocations(old, copy) == []
+
+
+def test_same_bytes_multiple_source_plans_report_ambiguous_not_arbitrary_alias() -> None:
+    digest = "sha256:" + "a" * 64
+    old = {"sourcePlans": [
+        {"path": "old/a.json", "sha256": digest},
+        {"path": "old/b.json", "sha256": digest},
+    ], "vertices": []}
+    new = {"sourcePlans": [
+        {"path": "new/c.json", "sha256": digest},
+    ], "vertices": []}
+    result = module._candidate_source_plan_relocations(old, new)
+    assert result == [{
+        "planContentSha256": digest,
+        "previousPlanPaths": ["old/a.json", "old/b.json"],
+        "currentPlanPaths": ["new/c.json"],
+        "sourceCarrierStanding": "AMBIGUOUS_EXACT_BYTES_RELOCATION",
+        "semanticIdentityPreserved": "UNKNOWN",
+        "proofReuseAdmissible": False,
+    }]
+
+
+def test_native_git_plan_move_exposes_candidate_without_reusing_old_lego_proof(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Moving unchanged plan bytes changes source refs, not semantic identity."""
+    import subprocess
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(
+            ["git", "-C", str(tmp_path), *args], text=True,
+        ).strip()
+
+    git("init", "-q")
+    git("config", "user.name", "PlanMove")
+    git("config", "user.email", "plan-move@example.invalid")
+    old = "services/gateway/planning/lego-plan-r1.json"
+    new = "services/harness/planning/lego-plan-r1.json"
+    prior = tmp_path / old
+    prior.parent.mkdir(parents=True)
+    prior.write_text('{"kind":"ordivon.project-lego-plan","responsibility":"unchanged"}\n')
+    git("add", ".")
+    git("commit", "-qm", "before")
+    old_cut = git("rev-parse", "HEAD")
+    current = tmp_path / new
+    current.parent.mkdir(parents=True)
+    prior.rename(current)
+    git("add", "-A")
+    git("commit", "-qm", "after")
+    new_cut = git("rev-parse", "HEAD")
+    digest = "sha256:" + __import__("hashlib").sha256(current.read_bytes()).hexdigest()
+
+    def qualified_source_graph(root: Path, *, source_revision: str) -> dict:
+        path = old if source_revision == old_cut else new
+        return {
+            "sourcePlans": [{"path": path, "sha256": digest}],
+            "vertices": [{"ref": path + "#X01", "sourceAnchors": []}],
+            "relations": [],
+        }
+
+    monkeypatch.setattr(module, "project_owner_lego_source_graph", qualified_source_graph)
+    delta = module.project_owner_lego_source_change(
+        before_revision=old_cut, after_revision=new_cut, root=tmp_path,
+    )
+    assert delta["removedRefs"] == [old + "#X01"]
+    assert new + "#X01" in delta["directChangedRefs"]
+    assert delta["sourceCarrierRelocationCandidates"][0]["sourceCarrierStanding"] == (
+        "EXACT_BYTES_RELOCATION_CANDIDATE"
+    )
+    assert delta["sourceCarrierRelocationCandidates"][0]["candidateNodeRefPairs"] == [{
+        "previousRef": old + "#X01", "currentRef": new + "#X01",
+    }]
+    assert delta["sourceCarrierRelocationCandidates"][0]["semanticIdentityPreserved"] == "UNKNOWN"
+    assert delta["proofReuseAdmissible"] is False
