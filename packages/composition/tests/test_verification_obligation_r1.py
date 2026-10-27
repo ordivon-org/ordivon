@@ -437,6 +437,47 @@ def test_environment_observation_missing_or_unindexed_fails_closed():
     assert result["proofReuseAdmissible"] is False
 
 
+def test_missing_in_both_snapshots_is_unknown_for_declared_environment_root():
+    """Empty input at BOTH times cannot be proof that an installed effect stayed valid."""
+    graph = {
+        "authorityRefs": ["config:media-renderer", "authority:credential"],
+        "obligations": [
+            {
+                "id": "proof:media",
+                "dependsOn": ["config:media-renderer"],
+                "dependenciesComplete": True,
+            },
+            {
+                "id": "proof:grant",
+                "dependsOn": ["authority:credential"],
+                "dependenciesComplete": True,
+            },
+        ],
+    }
+    # The media configuration is genuinely re-observed; the grant has zero
+    # observations across either snapshot even though it is an explicit root.
+    old = [_env_observation("config:media-renderer", "a")]
+    new = [_env_observation("config:media-renderer", "a", epoch="new")]
+    delta = classify_observed_environment_delta(
+        previous=old,
+        current=new,
+        expected_refs=graph["authorityRefs"],
+    )
+    assert delta["unknownRefs"] == ["authority:credential"]
+    assert delta["unobservedRequiredRefs"] == ["authority:credential"]
+    impact = select_impacted_obligations(
+        authority_refs=graph["authorityRefs"],
+        obligations=graph["obligations"],
+        changed_refs=delta["changedRefs"],
+        unknown_refs=delta["unknownRefs"],
+    )
+    assert _statuses(impact) == {
+        "proof:grant": "UNKNOWN",
+        "proof:media": "REUSE_CANDIDATE",
+    }
+    assert not impact["proofReuseAdmissible"]
+
+
 def test_environment_observation_rejects_forged_digest_duplicate_and_unknown_witness():
     valid = _env_observation("config:network-proxy", "a")
     corrupt = [
@@ -2509,6 +2550,40 @@ def test_agent_cli_impact_observations_reuses_native_selector_without_new_regist
         "proof:network": "RECHECK_REQUIRED",
         "proof:writer": "UNKNOWN",
     }
+    # The dependency graph requires a credential even if both snapshots
+    # omit it. Do not let the CLI claim reuse for this declared grant.
+    previous.write_text(json.dumps({"observations": [_env_observation("config:media", "a")]}))
+    current.write_text(
+        json.dumps({"observations": [_env_observation("config:media", "a", epoch="later")]})
+    )
+    graph.write_text(
+        json.dumps(
+            {
+                "authorityRefs": ["config:media", "authority:credential"],
+                "obligations": [
+                    {
+                        "id": "proof:media",
+                        "dependsOn": ["config:media"],
+                        "dependenciesComplete": True,
+                    },
+                    {
+                        "id": "proof:grant",
+                        "dependsOn": ["authority:credential"],
+                        "dependenciesComplete": True,
+                    },
+                ],
+            }
+        )
+    )
+    missing_both = subprocess.run(cmd, text=True, capture_output=True, check=True)
+    missing_result = json.loads(missing_both.stdout)
+    assert missing_result["observationDelta"]["unobservedRequiredRefs"] == ["authority:credential"]
+    assert _statuses(missing_result["selection"]) == {
+        "proof:grant": "UNKNOWN",
+        "proof:media": "REUSE_CANDIDATE",
+    }
+    assert missing_result["proofReuseAdmissible"] is False
+
     graph.write_text(json.dumps({"authorityRefs": []}))
     bad = subprocess.run(cmd, text=True, capture_output=True, check=False)
     assert bad.returncode != 0

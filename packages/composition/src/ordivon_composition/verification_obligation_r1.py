@@ -434,6 +434,7 @@ def classify_observed_environment_delta(
     *,
     previous: list[dict[str, Any]],
     current: list[dict[str, Any]],
+    expected_refs: list[str] | None = None,
 ) -> dict[str, Any]:
     """Task-local, non-authoritative bridge: scoped observations -> proof impact.
 
@@ -506,10 +507,28 @@ def classify_observed_environment_delta(
 
     before = validate(previous, "previous")
     after = validate(current, "current")
+    # Observations alone cannot reveal refs which the caller omitted from
+    # BOTH snapshots. The task-local graph names required observation roots.
+    if expected_refs is not None and (
+        not isinstance(expected_refs, list)
+        or any(
+            not isinstance(ref, str)
+            or ref != ref.strip()
+            or not ref.isprintable()
+            or ":" not in ref
+            or ref.split(":", 1)[0] not in classes
+            or not ref.split(":", 1)[1]
+            for ref in expected_refs
+        )
+        or len(set(expected_refs)) != len(expected_refs)
+    ):
+        raise CircuitContractError("expected environment references must be unique typed refs")
+    expected = set(expected_refs or [])
+    omitted_at_both_cuts = sorted(expected - before.keys() - after.keys())
     changed: list[str] = []
     unknown: list[str] = []
     equal_config: list[str] = []
-    for ref in sorted(before.keys() | after.keys()):
+    for ref in sorted(before.keys() | after.keys() | expected):
         old, new = before.get(ref), after.get(ref)
         if (
             old is None
@@ -536,6 +555,7 @@ def classify_observed_environment_delta(
         "truthRole": "caller-supplied-observation-bridge-not-authoritative-currentness",
         "changedRefs": changed,
         "unknownRefs": unknown,
+        "unobservedRequiredRefs": omitted_at_both_cuts,
         "equalConfigurationRefs": equal_config,
         "proofReuseAdmissible": False,
         "nonClaims": [
@@ -543,6 +563,8 @@ def classify_observed_environment_delta(
             "No exhaustive dynamic dependency discovery or temporal continuity.",
             "Equal config digests are scoped candidates, not formal proof or live authorization.",
             "An unindexed changed/unknown ref must reach the existing conservative selector.",
+            "Caller-declared expected observation roots missing at both cuts remain UNKNOWN.",
+            "Expected roots are caller-authored, not an authenticated complete readset.",
             "External effects and authorization require native owner receipts and reconciliation.",
         ],
     }
@@ -1019,9 +1041,27 @@ def main() -> int:
                 raise CircuitContractError(
                     "impact-observations requires exact observations envelopes"
                 )
+            # Qualify all task-local environment/effect source roots, even
+            # ones omitted from BOTH supplied observation envelopes. Other
+            # root classes have independent source witnesses (not invented).
+            environment_prefixes = {
+                "config",
+                "environment",
+                "installed",
+                "authority",
+                "provider",
+                "external",
+                "effect",
+            }
+            expected_refs = [
+                ref
+                for ref in graph["authorityRefs"]
+                if isinstance(ref, str) and ref.partition(":")[0] in environment_prefixes
+            ]
             delta = classify_observed_environment_delta(
                 previous=observed_before["observations"],
                 current=observed_after["observations"],
+                expected_refs=expected_refs,
             )
             selected = select_impacted_obligations(
                 authority_refs=graph["authorityRefs"],
