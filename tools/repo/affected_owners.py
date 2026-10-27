@@ -169,6 +169,58 @@ def changed_paths(base: str, head: str) -> tuple[str, ...]:
 
 
 
+def owners_for_revision_range(
+    repo: Path, base: str, head: str
+) -> tuple[tuple[str, ...], tuple[Owner, ...]]:
+    """Bind relocation admission to merge-base/HEAD Git trees, not mutable config."""
+    from tempfile import TemporaryDirectory
+
+    try:
+        from tools.repo import source_history_legos as source
+    except ModuleNotFoundError:
+        import source_history_legos as source
+
+    after = source.git(repo, "--no-replace-objects", "rev-parse", "--verify",
+                       head + "^{commit}").strip()
+    before = source.git(repo, "--no-replace-objects", "merge-base", base, after).strip()
+    source._require_exact_git_oid(repo, before)
+    source._require_exact_git_oid(repo, after)
+    old_tree = source.current_tree(repo, before)
+    new_tree = source.current_tree(repo, after)
+
+    def manifest(cut: str, tree: dict) -> tuple[Owner, ...]:
+        name = "tools/repo/owners.toml"
+        if not tree.get(name, "").startswith(("100644:blob:", "100755:blob:")):
+            raise ValueError("revision owner manifest must be a regular Git file")
+        text = source.git(repo, "--no-replace-objects", "show", cut + ":" + name)
+        with TemporaryDirectory(prefix="ordivon-revision-owners-") as temp:
+            path = Path(temp) / "owners.toml"
+            path.write_text(text, encoding="utf-8", errors="surrogateescape")
+            return load_owners(path)
+
+    previous = manifest(before, old_tree)
+    current = manifest(after, new_tree)
+    raw = subprocess.check_output([
+        "git", "--no-replace-objects", "-C", str(repo), "diff", "--name-only",
+        "--no-renames", "-z", "--diff-filter=ACDMRTUXB", before, after,
+    ])
+    paths = tuple(os.fsdecode(p) for p in raw.split(b"\0") if p)
+    current_by_name = {owner.name: owner for owner in current}
+    selected = {owner.name for owner in owners_for_paths(paths, owners=current)}
+    for path in paths:
+        old_matches = [owner for owner in previous
+                       if path in old_tree and path.startswith(owner.root)]
+        new_matches = [owner for owner in current if path.startswith(owner.root)]
+        for owner in old_matches:
+            if owner.name not in current_by_name:
+                raise ValueError(f"retired owner needs explicit verification admission: {owner.name}")
+            selected.add(owner.name)
+        if (path.startswith(EXECUTABLE_OWNER_ROOTS) and not new_matches
+                and not (old_matches and path not in new_tree)):
+            raise ValueError(f"unregistered owner path: {path}")
+    return paths, tuple(owner for owner in current if owner.name in selected)
+
+
 def project_source_classification(repo: Path, source_revision: str) -> dict:
     """Rebuild source navigation; never selects verification or qualifies a LEGO."""
     from collections import Counter
@@ -1158,9 +1210,10 @@ def main() -> int:
         else:
             if not args.base or not args.head:
                 raise SystemExit("--base and --head are required unless --all or --changed-file is used")
-            paths = changed_paths(args.base, args.head)
-        require_registered_execution_paths(paths)
-        selected = owners_for_paths(paths)
+            paths, selected = owners_for_revision_range(Path.cwd(), args.base, args.head)
+        if args.changed_file:
+            require_registered_execution_paths(paths)
+            selected = owners_for_paths(paths)
 
     if args.format == "names":
         for owner in selected:

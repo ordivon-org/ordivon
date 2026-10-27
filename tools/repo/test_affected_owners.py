@@ -556,6 +556,87 @@ class SourceClassificationTests(unittest.TestCase):
         self.assertEqual(rows[paths[2]]["sourceCellRole"], "UNQUALIFIED_NESTED_CELL")
         self.assertFalse(d["proofReuseAdmissible"])
 
+    def revision_owners(self, before, after):
+        fn = getattr(MODULE, "owners_for_revision_range", None)
+        self.assertTrue(callable(fn), "revision admission must observe both exact source cuts")
+        return fn(self.repo, before, after)
+
+    def test_revision_range_admits_moved_root_for_same_surviving_owner(self):
+        plugin = ('\n[[owners]]\nname = "client"\nroot = "extensions/old-client/"\n'
+                  'verify_task = "client:verify"\n')
+        self.manifest.write_text(self.header + plugin)
+        old = self.repo / "extensions/old-client/plugin.json"
+        old.parent.mkdir(parents=True)
+        old.write_text('{"connection":"gateway"}')
+        before = self.commit()
+        new = self.repo / "extensions/gateway-client/plugin.json"
+        new.parent.mkdir(parents=True)
+        old.rename(new)
+        self.manifest.write_text((self.header + plugin).replace("old-client/", "gateway-client/"))
+        after = self.commit()
+        # Dirty config must not change verification routing for an exact range.
+        self.manifest.write_text("invalid mutable TOML [")
+        paths, owners = self.revision_owners(before, after)
+        self.assertIn("extensions/old-client/plugin.json", paths)
+        self.assertIn("extensions/gateway-client/plugin.json", paths)
+        selected = {o.name: o for o in owners}
+        self.assertEqual(selected["client"].root, "extensions/gateway-client/")
+        self.assertEqual(selected["client"].task, "client:verify")
+        import shutil
+        import json
+        for name in ("affected_owners.py", "source_history_legos.py"):
+            shutil.copy2(MODULE_PATH.parent / name, self.repo / "tools/repo" / name)
+        proc = self.subprocess.run(
+            [sys.executable, "tools/repo/affected_owners.py",
+             "--base", before, "--head", after],
+            cwd=self.repo, text=True, capture_output=True)
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertIn("client", [owner["name"] for owner in json.loads(proc.stdout)["owners"]])
+        with self.assertRaisesRegex(ValueError, "unregistered"):
+            MODULE.require_registered_execution_paths(
+                ["extensions/old-client/plugin.json"], owners=tuple(selected.values()))
+
+    def test_old_root_cannot_admit_a_new_path_without_before_membership(self):
+        plugin = ('\n[[owners]]\nname = "client"\nroot = "extensions/old-client/"\n'
+                  'verify_task = "client:verify"\n')
+        self.manifest.write_text(self.header + plugin)
+        before = self.commit()
+        new = self.repo / "extensions/old-client/new-unregistered.json"
+        new.parent.mkdir(parents=True)
+        new.write_text("{}")
+        self.manifest.write_text((self.header + plugin).replace("old-client/", "gateway-client/"))
+        after = self.commit()
+        with self.assertRaisesRegex(ValueError, "unregistered"):
+            self.revision_owners(before, after)
+
+    def test_surviving_modified_path_cannot_borrow_a_former_owner_root(self):
+        plugin = ('\n[[owners]]\nname = "client"\nroot = "extensions/old-client/"\n'
+                  'verify_task = "client:verify"\n')
+        self.manifest.write_text(self.header + plugin)
+        old = self.repo / "extensions/old-client/plugin.json"
+        old.parent.mkdir(parents=True)
+        old.write_text("{}")
+        before = self.commit()
+        old.write_text('{"modified":true}')
+        self.manifest.write_text((self.header + plugin).replace("old-client/", "gateway-client/"))
+        after = self.commit()
+        with self.assertRaisesRegex(ValueError, "unregistered"):
+            self.revision_owners(before, after)
+
+    def test_deleted_owner_identity_is_not_automatically_admitted(self):
+        plugin = ('\n[[owners]]\nname = "client"\nroot = "extensions/old-client/"\n'
+                  'verify_task = "client:verify"\n')
+        self.manifest.write_text(self.header + plugin)
+        old = self.repo / "extensions/old-client/plugin.json"
+        old.parent.mkdir(parents=True)
+        old.write_text("{}")
+        before = self.commit()
+        old.unlink()
+        self.manifest.write_text(self.header)
+        after = self.commit()
+        with self.assertRaisesRegex(ValueError, "retired"):
+            self.revision_owners(before, after)
+
     def test_regions_classify_source_without_manufacturing_execution_owner(self) -> None:
         self.manifest.write_text(self.header + (
             '\n[[source_regions]]\nname = "lego-core"\n'
