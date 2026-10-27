@@ -118,7 +118,9 @@
         "planning/state-responsibility-census-r1.json",
         "crates/ordivon-runtime-core/src/runtime/job_attempt_state.rs",
         "R03-A1 candidate verification: owner-environment test PASS; extended reference-model 1/1 PASS; local-acceptance supervisor 2/2 + Runtime integration 36/36 + MCP/Workspace/Release E2E PASS",
-        "R03-A2 candidate verification: job_attempt_state 9/9; owner-environment test PASS; extended reference-model 1/1 PASS; local-acceptance supervisor 2/2 + Runtime integration 36/36 + MCP/Workspace/Release E2E PASS"
+        "R03-A2 candidate verification: job_attempt_state 9/9; owner-environment test PASS; extended reference-model 1/1 PASS; local-acceptance supervisor 2/2 + Runtime integration 36/36 + MCP/Workspace/Release E2E PASS",
+        "formal/RuntimeDispatchR1.trace-r1.json",
+        "formal/RuntimeDispatchR1.tla"
       ],
       "dependencies": [
         "R00",
@@ -133,7 +135,37 @@
         "Attempt generation and terminalization preserve current ambiguity/lost/orphaned behavior.",
         "Physical provider code depends on Job/Attempt contracts rather than engine internals."
       ],
-      "nextAction": "R03 is closed at the planned A1/A2 seam and R04 ReservationContract is integrated on the verified candidate; proceed to R05 ArtifactAndReleaseStateModule without reopening Job/Attempt ownership."
+      "nextAction": "R03 is closed at the planned A1/A2 seam and R04 ReservationContract is integrated on the verified candidate; proceed to R05 ArtifactAndReleaseStateModule without reopening Job/Attempt ownership.",
+      "inputs": [
+        "SubmitRequest plus committed RuntimeExecutionPlan identity for Job identity qualification",
+        "AttemptState, proposed next AttemptState, and durable attempt/terminal evidence for lifecycle qualification"
+      ],
+      "outputs": [
+        "JobIdentityContract request/operation digests or typed RuntimeError",
+        "AttemptLifecycleContract transition eligibility and terminal evidence completeness (Boolean predicates)"
+      ],
+      "behavioralContract": "Under an admitted Runtime Job/Attempt state and source-bound plan, JobIdentityContract requires the supported identity/digest shape and rejects conflicting request identity; AttemptLifecycleContract permits only declared state transitions, disallows transitions out of terminal states, and never treats incomplete or foreign terminal result evidence as a committed terminal outcome. These executable Rust predicates are not a proof of installed Runtime behavior, external-effect exactly-once, or universal Rust-to-TLA+ refinement.",
+      "formalLinks": [
+        {
+          "ref": "formal/RuntimeDispatchR1.trace-r1.json",
+          "relation": "TRACE_DECLARATION_ONLY",
+          "property": "RuntimeDispatch.TerminalEvidenceIsCommitted",
+          "evidenceRole": "runtime-invariant-to-Rust-test identity; not proof of target-property implication"
+        },
+        {
+          "ref": "formal/RuntimeDispatchR1.tla",
+          "relation": "MODEL_SPECIFICATION",
+          "property": "RuntimeDispatch",
+          "evidenceRole": "bounded abstract behavior, not executable implementation"
+        },
+        {
+          "ref": "crates/ordivon-runtime-core/src/runtime/job_attempt_state.rs",
+          "relation": "RUST_IMPLEMENTATION",
+          "symbol": "AttemptLifecycleContract",
+          "evidenceRole": "typed state predicates and exact source-backed native witness",
+          "property": "AttemptLifecycleContract"
+        }
+      ]
     },
     {
       "id": "R04",
@@ -602,6 +634,50 @@
         "Source complexity decreases without adding a generic Fabric, effect framework or provider registry."
       ],
       "nextAction": "Measure deleted responsibilities and code after each extraction; closure is deletion, not another abstraction layer."
+    },
+    {
+      "id": "R19",
+      "label": "NativeFormalWitnessQualification",
+      "kind": "verification_capability",
+      "responsibility": "Qualify exact compiler-discovered Rust proving-test identities and executed native result receipts for existing RuntimeDispatch R1 trace obligations; reject vacuous or ambiguous matches without representing test-to-property trace declarations as a mechanized Rust-to-TLA+ refinement proof.",
+      "authority": "Runtime source-local formal witness qualification; Cargo/rustc own compiler and test execution facts",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "inputs": [
+        "Existing RuntimeDispatchR1 formal trace manifest with declared test path, symbol and scoped proving target",
+        "Git source cut and Cargo manifest/lock/profile/toolchain compiler-derived native test membership",
+        "Exact libtest output from executing the compiler-discovered test name"
+      ],
+      "outputs": [
+        "Scoped native witness qualification receipts keyed by build/toolchain/source context, or fail-closed rejection",
+        "Explicit model-to-implementation refinement and installed-currentness UNKNOWN; proof reuse remains inadmissible"
+      ],
+      "behavioralContract": "For each declared witness, resolve exactly one runnable native Rust test from Cargo's executable test inventory, require exactly one passed and zero failed/ignored test result, and bind the observed Cargo/build inputs to an exact source-local qualification receipt. Reject absent/mismatched test identities and zero-test success; never infer that an asserted 'proves' label establishes the property's truth, or that compiler/test execution proves installed behavior or a model-to-code simulation relation.",
+      "dependencies": [
+        "R03",
+        "R09"
+      ],
+      "mustNotOwn": [
+        "Runtime Job/Attempt authoritative state",
+        "Git source fact authority",
+        "Cargo/rustc compile truth",
+        "TLA+ model semantic truth",
+        "domain acceptance",
+        "production installed currentness"
+      ],
+      "evidence": [
+        "scripts/verify_formal_trace.py",
+        "scripts/tests/test_formal_trace.py",
+        "formal/RuntimeDispatchR1.trace-r1.json",
+        "crates/ordivon-runtime-core/src/runtime/job_attempt_state.rs",
+        "crates/ordivon-runtime-core/src/runtime/execution_provider.rs"
+      ],
+      "acceptance": [
+        "Existing verify_formal_trace.py --native-witnesses executes five exact Rust tests and produces scoped nonvacuous successful receipts on a source-clean compatible toolchain.",
+        "A non-existent or ignored libtest name and a zero-test cargo success cannot yield native witness PASS.",
+        "A trace manifest 'proves' label remains declaration only, and neither the model-to-code nor installed-currentness claim can become PASS from these receipts."
+      ],
+      "nextAction": "Keep existing qualified witness operator; attach exact evidence to consumer obligations and independently establish any required Rust-to-model behavior refinement before proof reuse. Delete any redundant source-text test scanner only upon bounded consumer-equivalence proof."
     }
   ],
   "edges": [
@@ -772,6 +848,18 @@
       "to": "R18",
       "type": "DELETION",
       "label": "only proven replacement permits old aggregation deletion"
+    },
+    {
+      "from": "R03",
+      "to": "R19",
+      "type": "VERIFICATION",
+      "label": "Job/Attempt terminal predicates require exact native test witness qualification, not a declared 'proves' label"
+    },
+    {
+      "from": "R09",
+      "to": "R19",
+      "type": "VERIFICATION",
+      "label": "Provider R1 replacement guard must be tested by exact compiled Rust witness, not model-only PASS"
     }
   ],
   "slices": [

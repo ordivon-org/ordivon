@@ -645,7 +645,11 @@ def test_immutable_owner_plan_projection_ignores_local_git_blob_replace(
     owner_plan = "services/runtime/planning/lego-plan-r1.json"
     original = (ROOT / owner_plan).read_bytes()
     plan = json.loads(original)
-    for name in [owner_plan, *plan["project"]["sourceEvidence"]]:
+    formal_anchors = {
+        "services/runtime/" + link["ref"]
+        for node in plan["nodes"] for link in node.get("formalLinks", [])
+    }
+    for name in [owner_plan, *plan["project"]["sourceEvidence"], *sorted(formal_anchors)]:
         path = tmp_path / name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes((ROOT / name).read_bytes())
@@ -1484,3 +1488,50 @@ def test_upstream_local_import_dependency_change_invalidates_with_stable_target_
     assert same["sourceRelationStanding"] == "NO_DECLARED_SOURCE_RELATION_CHANGE"
     assert same["changedUpstreamLocalSourceFiles"] == []
     assert same["proofReuseAdmissible"] is False
+
+
+
+def test_runtime_r21_contracts_are_visible_as_unproven_source_projection() -> None:
+    graph = module.project_owner_lego_source_graph()
+    vertices = {v["ref"]: v for v in graph["vertices"]}
+    prefix = "services/runtime/planning/lego-plan-r1.json#"
+    r03 = vertices[prefix + "R03"]
+    r19 = vertices[prefix + "R19"]
+    assert r03["declaredInputs"] and r03["declaredOutputs"]
+    assert "AttemptLifecycleContract" in r03["declaredBehavioralContract"]
+    assert r19["declaredInputs"] and r19["declaredOutputs"]
+    assert r19["semanticStanding"] == "DECLARED_R21_PROFILE_NOT_BEHAVIORALLY_VERIFIED"
+    assert all(
+        link["qualification"] == "SOURCE_ANCHORED_DECLARATION_NOT_FORMAL_PROOF"
+        for link in r03["declaredFormalLinks"]
+    )
+    assert any(
+        link["sourcePath"] == "services/runtime/formal/RuntimeDispatchR1.trace-r1.json"
+        for link in r03["declaredFormalLinks"]
+    )
+    assert all(link["sourceIdentity"] for link in r03["declaredFormalLinks"])
+    assert not any("PASS" in str(v.get("semanticStanding", "")) for v in (r03, r19))
+
+
+def test_r21_formal_declaration_cannot_reference_unanchored_proof_file() -> None:
+    graph = module.project_owner_lego_source_graph()
+    ref = "services/runtime/planning/lego-plan-r1.json#R03"
+    exact = next(v for v in graph["vertices"] if v["ref"] == ref)
+    plan = json.loads((ROOT / OWNER_GRAPH_PLANS[0]).read_text(encoding="utf-8"))
+    r03 = copy.deepcopy(next(n for n in plan["nodes"] if n["id"] == "R03"))
+    r03["_ownerForPlanProjection"] = "services/runtime"
+    r03["formalLinks"][0]["ref"] = "formal/forged-proof-not-in-sources.tla"
+    with pytest.raises(module.ArchitectureDocsError, match="unanchored formal link"):
+        module._declared_r21_semantic_profile(r03, exact["sourceAnchors"])
+
+
+def test_r21_declared_behavior_cannot_be_empty_with_a_formal_link() -> None:
+    graph = module.project_owner_lego_source_graph()
+    ref = "services/runtime/planning/lego-plan-r1.json#R03"
+    exact = next(v for v in graph["vertices"] if v["ref"] == ref)
+    plan = json.loads((ROOT / OWNER_GRAPH_PLANS[0]).read_text(encoding="utf-8"))
+    r03 = copy.deepcopy(next(n for n in plan["nodes"] if n["id"] == "R03"))
+    r03["_ownerForPlanProjection"] = "services/runtime"
+    r03["behavioralContract"] = "   "
+    with pytest.raises(module.ArchitectureDocsError, match="invalid behavioralContract"):
+        module._declared_r21_semantic_profile(r03, exact["sourceAnchors"])
