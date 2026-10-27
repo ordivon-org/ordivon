@@ -265,6 +265,17 @@ class Phase1ProblemCandidateTests(unittest.TestCase):
         self.assertTrue(all(
             x["recursionStanding"] == "GIT_PHYSICAL_PREFIX_ONLY"
             for x in out["recursiveSourceUnits"]))
+        dense = [x for x in out["recursiveSourceUnits"]
+                 if "DENSE_CELL_REQUIRES_SUBCLASSIFICATION_REVIEW" in x["labels"]]
+        self.assertEqual(
+            len(dense), sum(out["summary"]["denseCellConstraints"].values()))
+        self.assertEqual(len(dense),
+                         out["summary"]["problemTaggedCellsByLabel"][
+                             "DENSE_CELL_REQUIRES_SUBCLASSIFICATION_REVIEW"])
+        self.assertTrue(all(x["densityConstraint"] in {
+            "RECURSION_DEPTH_BOUND_NOT_SEMANTIC_LEGO",
+            "FLAT_SIBLINGS_NEED_LATER_SEMANTIC_FACET",
+        } for x in dense))
         self.assertTrue(all(
             x["memberGitObjectDigest"].startswith("sha256:")
             for x in out["recursiveSourceUnits"]))

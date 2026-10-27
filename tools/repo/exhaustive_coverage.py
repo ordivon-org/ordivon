@@ -460,6 +460,33 @@ def problem_unit_candidates(inventory: dict, *, repo: Path,
 
     # A complete source-cell index is a recursive PHYSICAL navigation view;
     # its parents are prefixes, not verified callable or semantic relations.
+    paths_by_cell = collections.defaultdict(list)
+    for source_path, digest in memberships.items():
+        paths_by_cell[digest].append(source_path)
+
+    def dense_constraint(cell: dict) -> str | None:
+        if "DENSE_CELL_REQUIRES_SUBCLASSIFICATION_REVIEW" not in cell["problems"]:
+            return None
+        prefix = cell["physicalPrefix"]
+        members_in_cell = paths_by_cell[cell["memberGitObjectDigest"]]
+        if len(members_in_cell) != cell["pathCount"]:
+            raise ValueError("member digest and recursive cell cardinality disagree")
+        # All direct siblings in one physical directory cannot be split by
+        # increasing recursive path depth. They need later semantic facets;
+        # this observation still does NOT authorize a directory move.
+        has_nested_members = any(
+            "/" in (path if prefix == "(repo-root)/" else path[len(prefix):])
+            for path in members_in_cell
+        )
+        if has_nested_members and cell["depth"] < max_depth:
+            raise ValueError("dense nested physical cell was not recursively split")
+        return ("RECURSION_DEPTH_BOUND_NOT_SEMANTIC_LEGO"
+                if has_nested_members else "FLAT_SIBLINGS_NEED_LATER_SEMANTIC_FACET")
+
+    dense_constraints = collections.Counter(
+        reason for cell in cells["cells"]
+        if (reason := dense_constraint(cell)) is not None
+    )
     recursive_source_units = [{
         "sourceCellRef": "source-cell:" + c["sourceZone"] + ":" + c["physicalPrefix"],
         "sourceZone": c["sourceZone"],
@@ -468,6 +495,7 @@ def problem_unit_candidates(inventory: dict, *, repo: Path,
         "sourcePathCount": c["pathCount"],
         "memberGitObjectDigest": c["memberGitObjectDigest"],
         "labels": c["problems"],
+        "densityConstraint": dense_constraint(c),
         "sourceCarriers": c["sourceCarriers"],
         "recursionStanding": "GIT_PHYSICAL_PREFIX_ONLY",
     } for c in cells["cells"]]
@@ -489,6 +517,7 @@ def problem_unit_candidates(inventory: dict, *, repo: Path,
             "recursiveDepth": cell["depth"],
             "sourcePathCount": cell["pathCount"],
             "labels": cell["problems"],
+            "densityConstraint": dense_constraint(cell),
             "sourceProblemCounts": cell["sourceProblemCounts"],
             "planDeclarationProblemCounts": cell["planDeclarationProblemCounts"],
         })
@@ -597,6 +626,7 @@ def problem_unit_candidates(inventory: dict, *, repo: Path,
             "recursivePhysicalCells": cells["summary"]["cells"],
             "problemTaggedPhysicalCells": cells["summary"]["problemCells"],
             "problemTaggedCellsByLabel": cells["summary"]["problemCounts"],
+            "denseCellConstraints": dict(sorted(dense_constraints.items())),
             "declaredPlanNodes": len(graph["nodes"]),
             "structureMappingDeclarations": len(structure["mappings"]),
             "candidateCount": len(units),
