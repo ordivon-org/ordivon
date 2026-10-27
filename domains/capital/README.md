@@ -26,7 +26,7 @@ Crypto Public Shadow R1 now binds concurrent OKX/Binance public REST capture to 
 
 Crypto Shadow Mechanics R1 also passes local multi-currency Spot OMS mechanics for OKX/Binance using venue-owned tick/step precision; it remains explicitly non-economic and non-live.
 
-Crypto data transport is now venue-specific: OKX uses the qualified Nautilus native public client, while Binance uses its official credential-free REST/WebSocket boundary because Nautilus 2.0.0rc4 still times out during native data-client startup.
+**Current public-data adapter source map (Agent navigation; not an installed-state claim):** The configured primary market-data routes are the official, credential-free REST/WebSocket paths for both venues (`config/crypto_data_adapters.json`: `okx.primaryPublicDataPath=OKX_OFFICIAL_PUBLIC_REST_WS`, `binance.primaryPublicDataPath=BINANCE_OFFICIAL_PUBLIC_REST_WS`). NautilusTrader `2.0.0rc4` is **historical candidate evidence only**: native OKX public QuoteTick qualification passed, while Binance native data-client startup timed out. Neither result selects Nautilus as the current public-data primary, admits private credentials, or authorizes financial writes. Network v2 owns destination-fenced transport; this source statement does not establish which provider is installed or running.
 
 **Public-data adapter policy LEGO** (capital.markets.crypto-public-data-admission):
 Capital owns one responsibility—reject nonpublic or execution-capable adapter
