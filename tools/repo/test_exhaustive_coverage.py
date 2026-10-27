@@ -83,3 +83,72 @@ class FullCoverageTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+
+class LiveRecursiveCellsTests(unittest.TestCase):
+    def test_live_recursive_cells_cover_current_git_without_static_snapshot(self) -> None:
+        sha = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+        ).strip()
+        source = M.classification(ROOT, sha)
+        out = M.active_source_cells(source, repo=ROOT, max_files=24, max_depth=6)
+        assert out["sourceCut"] == sha
+        assert out["sourceTree"] == source["sourceTree"]
+        assert out["proposalCut"] is None
+        assert out["summary"]["trackedPaths"] == out["summary"]["countedPaths"]
+        assert out["summary"]["trackedPaths"] == len(source["sourcePaths"])
+        assert out["summary"]["cells"] == len(out["cells"])
+        assert out["summary"]["cells"] > out["summary"]["sourceZones"]
+        assert out["proofReuseAdmissible"] is False
+        assert all(x["semanticStanding"] == "UNQUALIFIED_SOURCE_CELL" for x in out["cells"])
+        assert all(x["memberGitObjectDigest"].startswith("sha256:") for x in out["cells"])
+        assert all(x["consumerStanding"] == "UNKNOWN" for x in out["cells"])
+        assert all(x["installedStanding"] == "UNKNOWN" for x in out["cells"])
+        assert all(x["formalStanding"] == "UNKNOWN" for x in out["cells"])
+        assert "sourceRepo" not in out and "sourceRepo" not in source
+
+
+    def test_live_recursive_cells_preserve_node_gap_counts_and_unknown_source(self) -> None:
+        sha = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+        ).strip()
+        source = M.classification(ROOT, sha)
+        out = M.active_source_cells(source, repo=ROOT)
+        from collections import Counter
+        source_problems = Counter()
+        plan_problems = Counter()
+        for cell in out["cells"]:
+            source_problems.update(cell["sourceProblemCounts"])
+            plan_problems.update(cell["planDeclarationProblemCounts"])
+        assert dict(source_problems) == source["summary"]["sourceProblemCounts"]
+        assert dict(plan_problems) == source["summary"]["nodeProblems"]
+        assert sum(cell["pathCount"] for cell in out["cells"]
+                   if cell["sourceZone"] == "UNASSIGNED") == sum(
+            p["currentSource"]["standing"] != "CLASSIFIED"
+            for p in source["sourcePaths"]
+        )
+        assert not any("OWNER_PROOF" in cell["problems"] for cell in out["cells"])
+
+
+    def test_live_recursive_cells_reject_unqualified_proposal_or_invalid_limits(self) -> None:
+        sha = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+        ).strip()
+        source = M.classification(ROOT, sha)
+        for files, depth in ((0, 5), (24, 0), (24, 13)):
+            with self.assertRaises(ValueError):
+                M.active_source_cells(source, repo=ROOT, max_files=files, max_depth=depth)
+        with self.assertRaisesRegex(ValueError, "proposal"):
+            M.active_source_cells(source, repo=ROOT, use_proposal=True)
+
+
+    def test_live_recursive_cells_report_dense_unsplittable_as_problem(self) -> None:
+        sha = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+        ).strip()
+        source = M.classification(ROOT, sha)
+        out = M.active_source_cells(source, repo=ROOT, max_files=1, max_depth=1)
+        assert out["summary"]["countedPaths"] == len(source["sourcePaths"])
+        assert out["summary"]["problemCounts"]["DENSE_CELL_REQUIRES_SUBCLASSIFICATION_REVIEW"] > 0
+        assert len(out["cells"]) > out["summary"]["sourceZones"]
