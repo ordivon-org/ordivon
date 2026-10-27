@@ -56,7 +56,10 @@ def admit_delivery_request(
                 failures.append("referenced delivery profile did not PASS validation")
             if profile_result.get("profile", {}).get("id") != profile_ref.get("id"):
                 failures.append("profile id does not match referenced profile bytes")
-            resolved["profile"] = hooks.file_fact(profile_path)
+            profile_fact = hooks.file_fact(profile_path)
+            if profile_fact.get("digest", {}).get("sha256") != profile_ref.get("sha256"):
+                failures.append("profile file fact digest mismatch")
+            resolved["profile"] = profile_fact
         except Exception as error:
             failures.append(f"profile reference error: {error}")
 
@@ -69,7 +72,10 @@ def admit_delivery_request(
             if source_validator is not None:
                 source_result, source_material_results, source_failures = source_validator(source_path)
                 failures.extend(source_failures)
-            resolved["source"] = hooks.file_fact(source_path)
+            source_fact = hooks.file_fact(source_path)
+            if source_fact.get("digest", {}).get("sha256") != source_ref.get("sha256"):
+                failures.append("source file fact digest mismatch")
+            resolved["source"] = source_fact
         except Exception as error:
             failures.append(f"source reference error: {error}")
 
@@ -81,6 +87,8 @@ def admit_delivery_request(
                 if actual != item.get("sha256"):
                     failures.append(f"material digest mismatch: {item.get('path')}")
                 fact = hooks.file_fact(material_path)
+                if fact.get("digest", {}).get("sha256") != item.get("sha256"):
+                    failures.append(f"material file fact digest mismatch: {item.get('path')}")
                 if not any(
                     existing.get("path") == fact.get("path") and existing.get("digest") == fact.get("digest")
                     for existing in material_results
