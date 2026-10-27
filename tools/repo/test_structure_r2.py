@@ -200,4 +200,7 @@ def test_phase1_content_scan_exact_source_complete_and_non_authoritative():
     assert result["summary"]["allFunctionalIdentitiesQualified"] == 0
     assert len(result["summary"]["allZones"]) == 30
     assert len(result["summary"]["dense60"]) == 60
+    assert len(result["summary"]["specific26"]) == 26
+    assert all(x["mayPhysicallyRename"] is False and x["consumerStanding"]=="UNKNOWN"
+               for x in result["summary"]["specific26"])
     assert all(x["actualConsumers"] == "UNKNOWN" for x in result["paths"])

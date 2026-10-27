@@ -164,7 +164,19 @@ def compile_projection(repo: Path, cut: str) -> dict:
         raise ValueError("source naming seed cannot grant functional authority")
     zones=seed["sourceRegions"]
     dense=seed["denseCellAliases"]
-    assert len(dense)==60 and len(zones)==30
+    specific=seed["specificPathDisplayAliases"]
+    if len(dense)!=60 or len(zones)!=30 or len(specific)!=26:
+        raise ValueError("SourceCut must provide 30 zones, 60 dense and 26 specific alias candidates")
+    if len({v["candidateName"] for v in specific})!=26:
+        raise ValueError("duplicate scoped source display aliases")
+    for v in specific:
+        prefix=v.get("sourcePrefix")
+        if (not isinstance(prefix,str) or not prefix.endswith("/")
+                or prefix.startswith("/") or ".." in prefix.split("/")
+                or chr(92) in prefix):
+            raise ValueError("specific alias requires canonical Git source directory")
+        if v.get("semanticQualification")!="UNQUALIFIED" or v.get("canRenamePhysicalPath") is not False:
+            raise ValueError("source-only aliases cannot qualify meaning or authorize renames")
     oids=sorted({x["blobOid"] for x in rows if x["objectType"]=="blob"})
     sizes=batch_sizes(repo,oids)
     eligible=[oid for oid in oids if sizes[oid]<=MAX_READ_BYTES]
@@ -192,6 +204,35 @@ def compile_projection(repo: Path, cut: str) -> dict:
                   "actualConsumers":"UNKNOWN","installedState":"UNKNOWN",
                   "lifecycleCurrentness":"SOURCECUT_ONLY","semanticProof":"NOT_EVALUATED"}
         path_rows.append(observed)
+    # Source-level proposed rename labels are *data*, not a second resolver.
+    # The existing affected_owners/source lookup remains the sole exact-cut
+    # identity selector. These rows add observed *contents* at specific prefixes.
+    scoped_summary=[]
+    for alias in specific:
+        prefix=alias["sourcePrefix"]
+        members=[row for row in path_rows if row["path"].startswith(prefix)]
+        contents=collections.Counter(row["contentProbe"]["contentForm"] for row in members)
+        # A kind field is a syntactic self-description, not verification
+        # of a live authority, producer, consumer or executable behavior.
+        claimed=collections.Counter(
+            str(kind) for row in members
+            if isinstance((kind := row["contentProbe"].get("claimedFields",{}).get("kind")),str)
+        )
+        scoped_summary.append({
+            "oldSourcePrefix":prefix,
+            "proposedAgentDisplayName":alias["candidateName"],
+            "priorSourceCutCount":alias["priorTrackedCount"],
+            "observedCurrentCount":len(members),
+            "sourceCutCountDelta":len(members)-alias["priorTrackedCount"],
+            "observedFileContentForms":dict(sorted(contents.items())),
+            "observedSelfDeclaredKinds":dict(sorted(claimed.items())),
+            "agentNameStanding":"ADVISORY_LEXICAL_AND_SYNTAX_ONLY",
+            "sourceIdentityStanding":"PHYSICAL_GIT_PREFIX_ONLY",
+            "semanticStanding":"UNKNOWN",
+            "consumerStanding":"UNKNOWN",
+            "installedStanding":"UNKNOWN",
+            "mayPhysicallyRename":False
+        })
     dense_summary=[]
     for label in dense:
         name=label["proposedName"];paths=sorted(dense_hits[name])
@@ -216,7 +257,10 @@ def compile_projection(repo: Path, cut: str) -> dict:
        "registeredSourceAreas":len([z for z in zones if z["sourceRef"].startswith("zone/")]),
        "allZones":dict(sorted(zones_count.items())),"contentForms":dict(sorted(content_counts.items())),
        "readStandings":dict(sorted(inspected.items())),"maxBlobSize":maxsize,
-       "dense60":dense_summary,"denseGroupOverlap":dict(ambiguity),
+       "dense60":dense_summary,
+       "specific26":scoped_summary,
+       "scopedNameSyntaxOnly":True,
+       "denseGroupOverlap":dict(ambiguity),
        "r2RecursiveCellClaimsFromPriorSurvey":718,
        "nestedCellsAreNotDisjoint":True,
        "allFunctionalIdentitiesQualified":0,

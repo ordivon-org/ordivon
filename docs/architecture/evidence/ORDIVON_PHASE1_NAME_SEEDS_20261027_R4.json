@@ -703,5 +703,293 @@
       "sourceRef": "region/repository-root-config"
     }
   ],
+  "specificPathDisplayAliases": [
+    {
+      "canRenamePhysicalPath": false,
+      "candidateName": "external-standard-identity-records",
+      "consumerStanding": "UNKNOWN",
+      "evidenceBoundary": "PEER_R2_OBSERVATION_PATH_AND_RECORDED_README_OR_PATH_ONLY",
+      "priorLabelEvidence": "OBSERVED README external source identities",
+      "priorTrackedCount": 176,
+      "semanticQualification": "UNQUALIFIED",
+      "sourceCut": "631c3c83104e97260b105b9bda73f0f8ec6a6924",
+      "sourcePrefix": "meta/next/authorities/records/"
+    },
+    {
+      "canRenamePhysicalPath": false,
+      "candidateName": "external-standard-currentness-observations",
+      "consumerStanding": "UNKNOWN",
+      "evidenceBoundary": "PEER_R2_OBSERVATION_PATH_AND_RECORDED_README_OR_PATH_ONLY",
+      "priorLabelEvidence": "OBSERVED README point-in-time source observations",
+      "priorTrackedCount": 181,
+      "semanticQualification": "UNQUALIFIED",
+      "sourceCut": "631c3c83104e97260b105b9bda73f0f8ec6a6924",
+      "sourcePrefix": "meta/next/authorities/observations/"
+    },
+    {
+      "canRenamePhysicalPath": false,
+      "candidateName": "rebuildable-standard-discovery-index",
+      "consumerStanding": "UNKNOWN",
+      "evidenceBoundary": "PEER_R2_OBSERVATION_PATH_AND_RECORDED_README_OR_PATH_ONLY",
+      "priorLabelEvidence": "OBSERVED README disposable generated index",
+      "priorTrackedCount": 1,
+      "semanticQualification": "UNQUALIFIED",
+      "sourceCut": "631c3c83104e97260b105b9bda73f0f8ec6a6924",
+      "sourcePrefix": "meta/next/authorities/generated/"
+    },
+    {
+      "canRenamePhysicalPath": false,
+      "candidateName": "historical-acceptance-receipts",
+      "consumerStanding": "UNKNOWN",
+      "evidenceBoundary": "PEER_R2_OBSERVATION_PATH_AND_RECORDED_README_OR_PATH_ONLY",
+      "priorLabelEvidence": "OBSERVED evidence README says point-in-time",
+      "priorTrackedCount": 84,
+      "semanticQualification": "UNQUALIFIED",
+      "sourceCut": "631c3c83104e97260b105b9bda73f0f8ec6a6924",
+      "sourcePrefix": "meta/next/evidence/acceptance/"
+    },
+    {
+      "canRenamePhysicalPath": false,
+      "candidateName": "data-lifecycle-historical-observations",
+      "consumerStanding": "UNKNOWN",
+      "evidenceBoundary": "PEER_R2_OBSERVATION_PATH_AND_RECORDED_README_OR_PATH_ONLY",
+      "priorLabelEvidence": "PATH_INFERRED",
+      "priorTrackedCount": 38,
+      "semanticQualification": "UNQUALIFIED",
+      "sourceCut": "631c3c83104e97260b105b9bda73f0f8ec6a6924",
+      "sourcePrefix": "meta/next/evidence/data-lifecycle/"
+    },
+    {
+      "canRenamePhysicalPath": false,
+      "candidateName": "curated-knowledge-lessons",
+      "consumerStanding": "UNKNOWN",
+      "evidenceBoundary": "PEER_R2_OBSERVATION_PATH_AND_RECORDED_README_OR_PATH_ONLY",
+      "priorLabelEvidence": "OBSERVED knowledge README",
+      "priorTrackedCount": 83,
+      "semanticQualification": "UNQUALIFIED",
+      "sourceCut": "631c3c83104e97260b105b9bda73f0f8ec6a6924",
+      "sourcePrefix": "meta/next/knowledge/lessons/"
+    },
+    {
+      "canRenamePhysicalPath": false,
+      "candidateName": "knowledge-relation-history-graphs",
+      "consumerStanding": "UNKNOWN",
+      "evidenceBoundary": "PEER_R2_OBSERVATION_PATH_AND_RECORDED_README_OR_PATH_ONLY",
+      "priorLabelEvidence": "OBSERVED knowledge README may be historical provenance",
+      "priorTrackedCount": 31,
+      "semanticQualification": "UNQUALIFIED",
+      "sourceCut": "631c3c83104e97260b105b9bda73f0f8ec6a6924",
+      "sourcePrefix": "meta/next/knowledge/graphs/"
+    },
+    {
+      "canRenamePhysicalPath": false,
+      "candidateName": "runtime-foundational-research",
+      "consumerStanding": "UNKNOWN",
+      "evidenceBoundary": "PEER_R2_OBSERVATION_PATH_AND_RECORDED_README_OR_PATH_ONLY",
+      "priorLabelEvidence": "OBSERVED runtime research README",
+      "priorTrackedCount": 71,
+      "semanticQualification": "UNQUALIFIED",
+      "sourceCut": "631c3c83104e97260b105b9bda73f0f8ec6a6924",
+      "sourcePrefix": "services/runtime/research/foundations/"
+    },
+    {
+      "canRenamePhysicalPath": false,
+      "candidateName": "runtime-research-programme",
+      "consumerStanding": "UNKNOWN",
+      "evidenceBoundary": "PEER_R2_OBSERVATION_PATH_AND_RECORDED_README_OR_PATH_ONLY",
+      "priorLabelEvidence": "OBSERVED runtime research README",
+      "priorTrackedCount": 39,
+      "semanticQualification": "UNQUALIFIED",
+      "sourceCut": "631c3c83104e97260b105b9bda73f0f8ec6a6924",
+      "sourcePrefix": "services/runtime/research/programme/"
+    },
+    {
+      "canRenamePhysicalPath": false,
+      "candidateName": "runtime-architecture-research",
+      "consumerStanding": "UNKNOWN",
+      "evidenceBoundary": "PEER_R2_OBSERVATION_PATH_AND_RECORDED_README_OR_PATH_ONLY",
+      "priorLabelEvidence": "OBSERVED runtime research README",
+      "priorTrackedCount": 10,
+      "semanticQualification": "UNQUALIFIED",
+      "sourceCut": "631c3c83104e97260b105b9bda73f0f8ec6a6924",
+      "sourcePrefix": "services/runtime/research/core/"
+    },
+    {
+      "canRenamePhysicalPath": false,
+      "candidateName": "agent-run-research-corpus",
+      "consumerStanding": "UNKNOWN",
+      "evidenceBoundary": "PEER_R2_OBSERVATION_PATH_AND_RECORDED_README_OR_PATH_ONLY",
+      "priorLabelEvidence": "OBSERVED harness research contract",
+      "priorTrackedCount": 101,
+      "semanticQualification": "UNQUALIFIED",
+      "sourceCut": "631c3c83104e97260b105b9bda73f0f8ec6a6924",
+      "sourcePrefix": "services/harness/research/"
+    },
+    {
+      "canRenamePhysicalPath": false,
+      "candidateName": "harness-experiment-observation-receipts",
+      "consumerStanding": "UNKNOWN",
+      "evidenceBoundary": "PEER_R2_OBSERVATION_PATH_AND_RECORDED_README_OR_PATH_ONLY",
+      "priorLabelEvidence": "PATH_INFERRED",
+      "priorTrackedCount": 149,
+      "semanticQualification": "UNQUALIFIED",
+      "sourceCut": "631c3c83104e97260b105b9bda73f0f8ec6a6924",
+      "sourcePrefix": "services/harness/evidence/"
+    },
+    {
+      "canRenamePhysicalPath": false,
+      "candidateName": "creative-expression-method-research",
+      "consumerStanding": "UNKNOWN",
+      "evidenceBoundary": "PEER_R2_OBSERVATION_PATH_AND_RECORDED_README_OR_PATH_ONLY",
+      "priorLabelEvidence": "PATH_INFERRED",
+      "priorTrackedCount": 128,
+      "semanticQualification": "UNQUALIFIED",
+      "sourceCut": "631c3c83104e97260b105b9bda73f0f8ec6a6924",
+      "sourcePrefix": "capabilities/media/research/expression/"
+    },
+    {
+      "canRenamePhysicalPath": false,
+      "candidateName": "creative-equipment-provider-research",
+      "consumerStanding": "UNKNOWN",
+      "evidenceBoundary": "PEER_R2_OBSERVATION_PATH_AND_RECORDED_README_OR_PATH_ONLY",
+      "priorLabelEvidence": "PATH_INFERRED",
+      "priorTrackedCount": 13,
+      "semanticQualification": "UNQUALIFIED",
+      "sourceCut": "631c3c83104e97260b105b9bda73f0f8ec6a6924",
+      "sourcePrefix": "capabilities/media/research/equipment/"
+    },
+    {
+      "canRenamePhysicalPath": false,
+      "candidateName": "creative-production-instances",
+      "consumerStanding": "UNKNOWN",
+      "evidenceBoundary": "PEER_R2_OBSERVATION_PATH_AND_RECORDED_README_OR_PATH_ONLY",
+      "priorLabelEvidence": "OBSERVED 13 separate production directories",
+      "priorTrackedCount": 218,
+      "semanticQualification": "UNQUALIFIED",
+      "sourceCut": "631c3c83104e97260b105b9bda73f0f8ec6a6924",
+      "sourcePrefix": "capabilities/media/productions/"
+    },
+    {
+      "canRenamePhysicalPath": false,
+      "candidateName": "artifact-shadow-contract-experiments",
+      "consumerStanding": "UNKNOWN",
+      "evidenceBoundary": "PEER_R2_OBSERVATION_PATH_AND_RECORDED_README_OR_PATH_ONLY",
+      "priorLabelEvidence": "PATH_INFERRED",
+      "priorTrackedCount": 36,
+      "semanticQualification": "UNQUALIFIED",
+      "sourceCut": "631c3c83104e97260b105b9bda73f0f8ec6a6924",
+      "sourcePrefix": "capabilities/artifact/artifact-delivery/shadow-contracts/"
+    },
+    {
+      "canRenamePhysicalPath": false,
+      "candidateName": "artifact-shadow-binding-experiments",
+      "consumerStanding": "UNKNOWN",
+      "evidenceBoundary": "PEER_R2_OBSERVATION_PATH_AND_RECORDED_README_OR_PATH_ONLY",
+      "priorLabelEvidence": "PATH_INFERRED",
+      "priorTrackedCount": 20,
+      "semanticQualification": "UNQUALIFIED",
+      "sourceCut": "631c3c83104e97260b105b9bda73f0f8ec6a6924",
+      "sourcePrefix": "capabilities/artifact/artifact-delivery/shadow-bindings/"
+    },
+    {
+      "canRenamePhysicalPath": false,
+      "candidateName": "artifact-consumer-acceptance-records",
+      "consumerStanding": "UNKNOWN",
+      "evidenceBoundary": "PEER_R2_OBSERVATION_PATH_AND_RECORDED_README_OR_PATH_ONLY",
+      "priorLabelEvidence": "PATH_INFERRED",
+      "priorTrackedCount": 9,
+      "semanticQualification": "UNQUALIFIED",
+      "sourceCut": "631c3c83104e97260b105b9bda73f0f8ec6a6924",
+      "sourcePrefix": "capabilities/artifact/artifact-delivery/consumer-acceptance/"
+    },
+    {
+      "canRenamePhysicalPath": false,
+      "candidateName": "network-consumer-specific-egress-policy",
+      "consumerStanding": "UNKNOWN",
+      "evidenceBoundary": "PEER_R2_OBSERVATION_PATH_AND_RECORDED_README_OR_PATH_ONLY",
+      "priorLabelEvidence": "OBSERVED consumer README",
+      "priorTrackedCount": 66,
+      "semanticQualification": "UNQUALIFIED",
+      "sourceCut": "631c3c83104e97260b105b9bda73f0f8ec6a6924",
+      "sourcePrefix": "platform/network/consumers/"
+    },
+    {
+      "canRenamePhysicalPath": false,
+      "candidateName": "cloudflare-workstation-provider-source",
+      "consumerStanding": "UNKNOWN",
+      "evidenceBoundary": "PEER_R2_OBSERVATION_PATH_AND_RECORDED_README_OR_PATH_ONLY",
+      "priorLabelEvidence": "OBSERVED workstation README",
+      "priorTrackedCount": 58,
+      "semanticQualification": "UNQUALIFIED",
+      "sourceCut": "631c3c83104e97260b105b9bda73f0f8ec6a6924",
+      "sourcePrefix": "platform/workstation/providers/cloudflare/"
+    },
+    {
+      "canRenamePhysicalPath": false,
+      "candidateName": "capital-false-positive-negative-corpus",
+      "consumerStanding": "UNKNOWN",
+      "evidenceBoundary": "PEER_R2_OBSERVATION_PATH_AND_RECORDED_README_OR_PATH_ONLY",
+      "priorLabelEvidence": "OBSERVED false-green-corpus JSON kind",
+      "priorTrackedCount": 1,
+      "semanticQualification": "UNQUALIFIED",
+      "sourceCut": "631c3c83104e97260b105b9bda73f0f8ec6a6924",
+      "sourcePrefix": "domains/capital/destroyer/"
+    },
+    {
+      "canRenamePhysicalPath": false,
+      "candidateName": "capital-wave-research-fixtures",
+      "consumerStanding": "UNKNOWN",
+      "evidenceBoundary": "PEER_R2_OBSERVATION_PATH_AND_RECORDED_README_OR_PATH_ONLY",
+      "priorLabelEvidence": "OBSERVED validation portfolio fixture JSON",
+      "priorTrackedCount": 1,
+      "semanticQualification": "UNQUALIFIED",
+      "sourceCut": "631c3c83104e97260b105b9bda73f0f8ec6a6924",
+      "sourcePrefix": "domains/capital/wave_b/"
+    },
+    {
+      "canRenamePhysicalPath": false,
+      "candidateName": "recursive-lego-procedural-method",
+      "consumerStanding": "UNKNOWN",
+      "evidenceBoundary": "PEER_R2_OBSERVATION_PATH_AND_RECORDED_README_OR_PATH_ONLY",
+      "priorLabelEvidence": "OBSERVED Skill MD",
+      "priorTrackedCount": 2,
+      "semanticQualification": "UNQUALIFIED",
+      "sourceCut": "631c3c83104e97260b105b9bda73f0f8ec6a6924",
+      "sourcePrefix": ".agents/skills/recursive-lego-calculus/"
+    },
+    {
+      "canRenamePhysicalPath": false,
+      "candidateName": "formal-models-and-verifier-toolchain",
+      "consumerStanding": "UNKNOWN",
+      "evidenceBoundary": "PEER_R2_OBSERVATION_PATH_AND_RECORDED_README_OR_PATH_ONLY",
+      "priorLabelEvidence": "OBSERVED formal source directory",
+      "priorTrackedCount": 10,
+      "semanticQualification": "UNQUALIFIED",
+      "sourceCut": "631c3c83104e97260b105b9bda73f0f8ec6a6924",
+      "sourcePrefix": "tools/formal/"
+    },
+    {
+      "canRenamePhysicalPath": false,
+      "candidateName": "main-repo-research-publication-profiles",
+      "consumerStanding": "UNKNOWN",
+      "evidenceBoundary": "PEER_R2_OBSERVATION_PATH_AND_RECORDED_README_OR_PATH_ONLY",
+      "priorLabelEvidence": "PATH not the independent Research repo",
+      "priorTrackedCount": 12,
+      "semanticQualification": "UNQUALIFIED",
+      "sourceCut": "631c3c83104e97260b105b9bda73f0f8ec6a6924",
+      "sourcePrefix": "meta/research/"
+    },
+    {
+      "canRenamePhysicalPath": false,
+      "candidateName": "declarative-agent-plugin-package",
+      "consumerStanding": "UNKNOWN",
+      "evidenceBoundary": "PEER_R2_OBSERVATION_PATH_AND_RECORDED_README_OR_PATH_ONLY",
+      "priorLabelEvidence": "OBSERVED two JSON plugin package files",
+      "priorTrackedCount": 2,
+      "semanticQualification": "UNQUALIFIED",
+      "sourceCut": "631c3c83104e97260b105b9bda73f0f8ec6a6924",
+      "sourcePrefix": "extensions/ordivon-control-plane/"
+    }
+  ],
   "truthRole": "NON_AUTHORITATIVE_SOURCE_LABEL_EVIDENCE_NOT_IMPLEMENTATION"
 }
