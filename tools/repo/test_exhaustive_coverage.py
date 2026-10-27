@@ -131,6 +131,86 @@ class LiveRecursiveCellsTests(unittest.TestCase):
         assert not any("OWNER_PROOF" in cell["problems"] for cell in out["cells"])
 
 
+    def test_exact_path_query_covers_all_source_bytes_once_without_claiming_proof(self) -> None:
+        sha = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+        ).strip()
+        inventory = M.classification(ROOT, sha)
+        exact_paths = [r["path"] for r in inventory["sourcePaths"]]
+        cells = M.active_source_cells(inventory, repo=ROOT, include_member_index=True)
+        memberships = cells["memberCellDigests"]
+        self.assertEqual(set(memberships), set(exact_paths))
+        self.assertEqual(len(memberships), inventory["summary"]["trackedPaths"])
+        self.assertEqual(sum(x["pathCount"] for x in cells["cells"]), len(memberships))
+        self.assertEqual({x["memberGitObjectDigest"] for x in cells["cells"]},
+                         set(memberships.values()))
+        out = M.lookup_source_paths(inventory, repo=ROOT, paths=exact_paths[:32])
+        self.assertEqual(out["sourceCut"], sha)
+        self.assertEqual(out["sourceTree"], inventory["sourceTree"])
+        self.assertEqual(out["lookupCount"], 32)
+        self.assertFalse(out["proofReuseAdmissible"])
+        self.assertEqual({r["query"] for r in out["lookups"]}, set(exact_paths[:32]))
+        actual = {r["path"]: r for r in inventory["sourcePaths"]}
+        for row in out["lookups"]:
+            self.assertEqual(row["standing"], "EXACT_GIT_SOURCE")
+            self.assertEqual(row["sourceIdentity"], actual[row["query"]]["sourceIdentity"])
+            self.assertEqual(row["currentSource"], actual[row["query"]]["currentSource"])
+            self.assertEqual(row["consumerStanding"], "UNKNOWN")
+            self.assertEqual(row["installedStanding"], "UNKNOWN")
+            self.assertEqual(row["formalStanding"], "UNKNOWN")
+            self.assertTrue(row["sourceCell"]["memberGitObjectDigest"].startswith("sha256:"))
+            self.assertTrue(row["agentNavigationLabel"].startswith(
+                row["sourceCell"]["sourceZone"] + " :: "
+            ))
+
+    def test_unknown_exact_path_and_misleading_aliases_fail_closed(self) -> None:
+        sha = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+        ).strip()
+        inventory = M.classification(ROOT, sha)
+        queries = [
+            "extensions/ordivon-control-plane/plugin.json",
+            "meta/next/authorities/records/iso/",
+            "tools/formal/LatentInputReachability.lean",
+            "/etc/ordivon/secret",
+            "meta/next/../tools/repo/exhaustive_coverage.py",
+            "README.md",
+            "README.MD",
+            "",
+        ]
+        out = M.lookup_source_paths(inventory, repo=ROOT, paths=queries)
+        statuses = [x["standing"] for x in out["lookups"]]
+        self.assertEqual(statuses, [
+            "EXACT_GIT_SOURCE", "INVALID_SOURCE_LOCATOR",
+            "NOT_IN_SOURCE_CUT", "INVALID_SOURCE_LOCATOR",
+            "INVALID_SOURCE_LOCATOR", "EXACT_GIT_SOURCE",
+            "NOT_IN_SOURCE_CUT", "INVALID_SOURCE_LOCATOR",
+        ])
+        plugin = out["lookups"][0]
+        self.assertEqual(plugin["carrierType"], "plugin.json")
+        self.assertEqual(plugin["sourceCell"]["sourceZone"], "ROOT:control-plugin")
+        self.assertEqual(plugin["semanticStanding"], "UNKNOWN")
+        self.assertIsNone(out["lookups"][2]["sourceIdentity"])
+
+    def test_path_query_does_not_mutate_default_cell_projection(self) -> None:
+        sha = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+        ).strip()
+        inventory = M.classification(ROOT, sha)
+        before = M.active_source_cells(inventory, repo=ROOT)
+        self.assertNotIn("memberCellDigests", before)
+        query = M.lookup_source_paths(inventory, repo=ROOT, paths=[
+            "tools/repo/exhaustive_coverage.py"
+        ])
+        after = M.active_source_cells(inventory, repo=ROOT)
+        self.assertEqual(before, after)
+        self.assertEqual(query["lookups"][0]["standing"], "EXACT_GIT_SOURCE")
+        with self.assertRaisesRegex(ValueError, "cell limits"):
+            M.lookup_source_paths(inventory, repo=ROOT, paths=["README.md"],
+                                  max_files=0)
+        with self.assertRaisesRegex(ValueError, "1..32"):
+            M.lookup_source_paths(inventory, repo=ROOT, paths=["README.md"] * 33)
+
     def test_live_recursive_cells_reject_unqualified_proposal_or_invalid_limits(self) -> None:
         sha = subprocess.check_output(
             ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
