@@ -482,6 +482,49 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                     f"orphan CODEOWNERS rule: {pattern}",
                 )
 
+    def test_artifact_native_verification_replaces_nondiscovered_nested_ci(self) -> None:
+        """Use root GitHub CI plus Artifact's pinned native queue, not nested CI.
+
+        This source routing test is not deployed Artifact/provider verification.
+        """
+        import tomllib
+
+        nested = ROOT / "capabilities/artifact/.github/workflows/ci.yml"
+        self.assertFalse(nested.exists(), "nested owner CI cannot be discovered by root Actions")
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        self.assertIn("  pull_request:", workflow)
+        self.assertIn("  merge_group:", workflow)
+        self.assertIn("root-verification:", workflow)
+        self.assertLess(workflow.index("Select affected owners"), workflow.index("Verify affected owners"))
+        owners = tomllib.loads((ROOT / "tools/repo/owners.toml").read_text(encoding="utf-8"))
+        artifact = [o for o in owners["owners"] if o["name"] == "artifact"]
+        self.assertEqual(len(artifact), 1)
+        self.assertEqual(artifact[0]["root"], "capabilities/artifact/")
+        self.assertEqual(artifact[0]["verify_task"], "artifact:verify")
+        self.assertEqual(artifact[0]["queue_verify_task"], "artifact:queue")
+        root = tomllib.loads((ROOT / "mise.toml").read_text(encoding="utf-8"))
+        for task_name, native in (("artifact:queue", "queue"), ("artifact:verify", "verify")):
+            self.assertIn("cd capabilities/artifact", root["tasks"][task_name]["run"])
+            self.assertIn(f"mise run {native}", root["tasks"][task_name]["run"])
+        artifact_mise = tomllib.loads(
+            (ROOT / "capabilities/artifact/mise.toml").read_text(encoding="utf-8")
+        )
+        for task_name in ("queue", "verify"):
+            native = artifact_mise["tasks"][task_name]["run"]
+            for required in ("uv lock --check", "uv sync --locked", "uv run ruff check",
+                             'uv run python -m pytest -m "not integration"'):
+                self.assertIn(required, native)
+        source_selection = subprocess.run(
+            [sys.executable, str(ROOT / "tools/repo/affected_owners.py"),
+             "--changed-file", "capabilities/artifact/.github/workflows/ci.yml",
+             "--format", "queue-tasks"],
+            cwd=ROOT, capture_output=True, text=True, timeout=25, check=False,
+        )
+        self.assertEqual(source_selection.returncode, 0, source_selection.stderr)
+        self.assertEqual(source_selection.stdout.strip(), "artifact:queue")
+        self.assertIn("--deselect=", artifact_mise["tasks"]["queue"]["run"])
+        self.assertNotIn("--deselect=", artifact_mise["tasks"]["verify"]["run"])
+
 
 if __name__ == "__main__":
     unittest.main()
