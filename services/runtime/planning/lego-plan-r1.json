@@ -244,6 +244,7 @@
       "state": "IMPLEMENTED",
       "sharedRefs": [],
       "evidence": [
+        "crates/ordivon-runtime-core/src/runtime/authority_contract.rs",
         "AuthorityContract implementation: commit 163db3230483ec932fa8152fb1c9e6bd756e59d5",
         "crates/ordivon-runtime-core/src/runtime/authority_contract.rs plus runtime/engine/admission.rs integration",
         "existing-Job replay resolves before AuthorityContract compilation/current authority reinterpretation",
@@ -264,7 +265,23 @@
         "Runtime consumes and enforces authority; it does not invent provider/domain permission.",
         "Replay resolves existing Jobs before current authority/policy reinterpretation exactly as today."
       ],
-      "nextAction": "R07 is closed. Proceed to R08 OperationCircuitCompiler with one existing execution family first; prove exact parity and fail-closed behavior before migrating the remaining families."
+      "nextAction": "R07 is closed. Proceed to R08 OperationCircuitCompiler with one existing execution family first; prove exact parity and fail-closed behavior before migrating the remaining families.",
+      "inputs": [
+        "typed JobRunRequest / JobRunProposal and execution-family selection",
+        "principal, target/profile, requested input/credential authorities, executable paths and Host Dependency commitments"
+      ],
+      "outputs": [
+        "internal AuthorityContract used by Runtime admission; rejection on unauthorized or inconsistent concrete realization"
+      ],
+      "behavioralContract": "For an admitted execution family, realization must match principal, target/profile, Windows context, executable identity, declared/effective immutable read-only inputs and validated Host Dependencies. A mismatch is rejected; this contract does not grant provider/domain/secret authority. Existing Job replay is resolved before current policy reinterpretation.",
+      "environment": [
+        "local_linux",
+        "windows_native (authority and context checked; this does not prove installed equivalence)"
+      ],
+      "effects": [
+        "reject admission on mismatched authority rather than widening permissions",
+        "no external credentials granted by this internal contract"
+      ]
     },
     {
       "id": "R08",
@@ -275,6 +292,7 @@
       "state": "IMPLEMENTED",
       "sharedRefs": [],
       "evidence": [
+        "crates/ordivon-runtime-core/src/runtime/operation_circuit.rs",
         "ordinary-family OperationCircuitCompiler pilot commit 397dee5ef0caa296283253c03da5f277f4fa2a8d",
         "reduced immutable-input OperationCircuitCompiler slice commit 40c414a3901c4383a9d7d122fe7716effbe8506e",
         "trusted immutable-input OperationCircuitCompiler slice integrated at 645d50cd51c8efe772de762610e045ea112fb78c",
@@ -302,7 +320,22 @@
         "Legacy all-explicit request identity remains replay-compatible.",
         "Compiled plans contain only enforceable facts; metadata without enforcement does not enter operation identity."
       ],
-      "nextAction": "R08 is closed. Proceed to R09 ExecutionProviderSPI by freezing minimal assume/guarantee obligations before extracting either Linux or Windows provider mechanics."
+      "nextAction": "R08 is closed. Proceed to R09 ExecutionProviderSPI by freezing minimal assume/guarantee obligations before extracting either Linux or Windows provider mechanics.",
+      "inputs": [
+        "typed execution request, accepted AuthorityContract and validated existing Job/admission state",
+        "effective immutable input/credential bindings, budget, provider commitment and executable steps"
+      ],
+      "outputs": [
+        "existing RuntimeExecutionPlan / ExecutionProviderSnapshot / SubmitRequest or explicit rejection"
+      ],
+      "behavioralContract": "Across ordinary, reduced immutable-input, trusted immutable-input and credential-bound trusted families, compile only enforceable authority and effect-opaque execution facts into existing Runtime plan structures. Existing-Job replay precedes compilation; do not invent new public/persisted operation identity or shift provider, credential or domain authority.",
+      "environment": [
+        "local_linux",
+        "windows_native (distinct realization commitments; no equivalence claim)"
+      ],
+      "effects": [
+        "prepares a plan; does not execute requested effects or own external resource permissions"
+      ]
     },
     {
       "id": "R09",
@@ -313,6 +346,7 @@
       "state": "IMPLEMENTED",
       "sharedRefs": [],
       "evidence": [
+        "crates/ordivon-runtime-core/src/runtime/execution_provider.rs",
         "private static ExecutionProviderSpi contract commit fd3f166024587e9c943207fc8987cff436f43098",
         "SPI obligations: capabilities, validate, realize, observe, cancel, reconcile",
         "R1 guarantees fail closed on weakening of committed provider identity, physical Attempt ownership, terminal observation, process-tree cancellation, crash/restart reconciliation, or scoped evidence",
@@ -333,7 +367,22 @@
         "Provider replacement cannot strengthen caller assumptions or weaken process ownership, evidence, cancellation, or reconciliation guarantees.",
         "No dynamic plugin registry is required for R1."
       ],
-      "nextAction": "R09 is qualified. Integrate under current-main fencing, then proceed to R10 LocalLinuxProvider extraction and exact-candidate real-system systemd/cgroup acceptance."
+      "nextAction": "R09 is qualified. Integrate under current-main fencing, then proceed to R10 LocalLinuxProvider extraction and exact-candidate real-system systemd/cgroup acceptance.",
+      "inputs": [
+        "compiled RuntimeExecutionPlan, committed ExecutionProviderSnapshot and per-Attempt state",
+        "execution target capabilities and validated observation/cancellation/reconciliation context"
+      ],
+      "outputs": [
+        "typed provider capability/snapshot and validated realization, scoped observation, cancellation and reconciliation results"
+      ],
+      "behavioralContract": "A selected provider must validate and realize the committed plan while preserving provider identity, physical Attempt ownership, scoped terminal observations, process-tree cancellation and crash/restart reconciliation. Linux and Windows provider implementations may have different physical mechanisms; interface compatibility alone does not prove their installation or behavioral equivalence.",
+      "environment": [
+        "local_linux (provider-specific observations)",
+        "windows_native (provider-specific observations; hostDependencyCommitments currently absent)"
+      ],
+      "effects": [
+        "physical execute/observe/cancel/reconcile mediated by selected provider; no cross-node routing or semantic effect acceptance"
+      ]
     },
     {
       "id": "R10",
