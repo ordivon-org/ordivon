@@ -302,7 +302,19 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
         path = Path(temp) / "owners.toml"
         path.write_text(text, encoding="utf-8", errors="surrogateescape")
         native_owners = load_owners(path)
-    subregions: dict[str, list[tuple[str, str, str]]] = {}
+    # A source interface form is NOT an installed endpoint, granted tool
+    # capability, verified protocol conformance, or LEGO identity.
+    SOURCE_INTERFACE_FORMS = frozenset({
+        "AGENT_PLUGIN_MANIFEST", "MCP_CONNECTION_CONFIG",
+        "SOURCE_SKILL_METHOD", "FORMAL_EXECUTION_DRIVER",
+        "MCP_SERVER_ADAPTER", "MCP_CLIENT_ADAPTER",
+        "HTTP_API_SERVER_ADAPTER", "CAPABILITY_ROUTE_ADAPTER",
+        "PUBLIC_MCP_SURFACE_MANIFEST", "DURABLE_SERVICE_SOURCE",
+        "CLI_ENTRY_SOURCE", "AGENT_PLUGIN_ADAPTER",
+        "TOOL_PROGRAM_SOURCE", "PACKAGE_PUBLIC_API_SOURCE",
+        "SOURCE_SKILL_CATALOG",
+    })
+    subregions: dict[str, list[tuple[str, str, str, str | None]]] = {}
     all_subregion_names: set[str] = set()
     for owner_row in data["owners"]:
         owner_name = owner_row["name"]
@@ -315,8 +327,15 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
                 or set(row) not in (
                     {"name", "path", "description"},
                     {"name", "paths", "description"},
+                    {"name", "path", "description", "interface_form"},
+                    {"name", "paths", "description", "interface_form"},
                 )):
-                raise ValueError("source subregions allow only name/path(s)/description, never authority or verification")
+                raise ValueError("source subregions allow only name/path(s)/description/interface_form, never authority or verification")
+            form = row.get("interface_form")
+            if form is not None and (
+                not isinstance(form, str) or form not in SOURCE_INTERFACE_FORMS
+            ):
+                raise ValueError("source interface_form must be a known source-only kind")
             name, description = row["name"], row["description"]
             relatives = [row["path"]] if "path" in row else row["paths"]
             if not isinstance(relatives, list) or not relatives:
@@ -335,9 +354,9 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
                 if relative != normalized or relative.startswith("/") or relative in {".", "./", "/"}:
                     raise ValueError("source subregion requires canonical owner-relative nonroot path")
                 fullpath = registered.root + relative
-                if any(rule == fullpath for rule, _, _ in subregions.get(owner_name, [])):
+                if any(rule == fullpath for rule, _, _, _ in subregions.get(owner_name, [])):
                     raise ValueError("duplicate source subregion path")
-                subregions.setdefault(owner_name, []).append((fullpath, name, description))
+                subregions.setdefault(owner_name, []).append((fullpath, name, description, form))
             all_subregion_names.add(name)
 
     regions = data.get("source_regions", [])
@@ -393,12 +412,12 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
         subregion_matches = []
         if owner is not None:
             subregion_matches = [
-                (rule, name, scope) for rule, name, scope in subregions.get(owner, [])
+                (rule, name, scope, form) for rule, name, scope, form in subregions.get(owner, [])
                 if matches(path, rule)
             ]
-        longest = max((len(rule) for rule, _, _ in subregion_matches), default=0)
+        longest = max((len(rule) for rule, _, _, _ in subregion_matches), default=0)
         winners = [
-            (rule, name, scope) for rule, name, scope in subregion_matches
+            (rule, name, scope, form) for rule, name, scope, form in subregion_matches
             if len(rule) == longest
         ]
         subregion_standing = (
@@ -419,13 +438,19 @@ def project_source_classification(repo: Path, source_revision: str) -> dict:
             "sourceRegionDescription": region_description,
             "sourceSubregion": winners[0][1] if len(winners) == 1 else None,
             "sourceSubregionDescription": winners[0][2] if len(winners) == 1 else None,
+            "sourceInterfaceForm": winners[0][3] if len(winners) == 1 else None,
+            "sourceInterfaceStanding": (
+                "SOURCE_ONLY_NOT_INSTALLED_OR_CAPABILITY_ADMITTED"
+                if len(winners) == 1 and winners[0][3] is not None
+                else "UNQUALIFIED_AS_PUBLIC_INTERFACE"
+            ),
             "sourceSubregionAncestors": [
-                name for rule, name, _ in sorted(subregion_matches, key=lambda item: len(item[0]))
+                name for rule, name, _, _ in sorted(subregion_matches, key=lambda item: len(item[0]))
                 if len(rule) < longest
             ] if len(winners) == 1 else [],
             "sourceSubregionStanding": subregion_standing,
             "sourceSubregionMatchedRules": [
-                "owners.source_subregions:" + name for _, name, _ in winners
+                "owners.source_subregions:" + name for _, name, _, _ in winners
             ],
             "classificationStanding": standing,
             "matchedRules": ["owners:" + owner] if owner is not None else
@@ -492,6 +517,7 @@ def project_source_classification_delta(
                 "sourceRegionDescription", "sourceSubregion",
                 "sourceSubregionDescription", "sourceSubregionAncestors",
                 "sourceSubregionStanding", "sourceSubregionMatchedRules",
+                "sourceInterfaceForm", "sourceInterfaceStanding",
             ))
         )
         changes.append({

@@ -559,6 +559,90 @@ class SourceClassificationTests(unittest.TestCase):
         self.assertTrue(callable(fn), "existing Repo CLI must expose exact-cut source classification")
         return fn(self.repo, cut)
 
+    def test_interface_form_source_cut_is_not_host_or_deployment_truth(self) -> None:
+        import subprocess
+        root = Path(__file__).resolve().parents[2]
+        cut = subprocess.check_output(
+            ["git", "-C", str(root), "rev-parse", "HEAD"], text=True
+        ).strip()
+        items = {
+            row["path"]: row
+            for row in MODULE.project_source_classification(root, cut)["entries"]
+        }
+        expected = {
+            "extensions/ordivon-control-plane/plugin.json": "AGENT_PLUGIN_MANIFEST",
+            "extensions/ordivon-control-plane/mcp.json": "MCP_CONNECTION_CONFIG",
+            ".agents/skills/recursive-lego-calculus/SKILL.md": "SOURCE_SKILL_METHOD",
+            "services/gateway/src/ordivon_gateway/mcp_server.py": "MCP_SERVER_ADAPTER",
+            "services/host/src/ordivon_host_v2/mcp_server.py": "MCP_SERVER_ADAPTER",
+            "services/harness/src/ordivon_harness/mcp_http_client.py": "MCP_CLIENT_ADAPTER",
+            "services/harness/src/ordivon_harness/cli.py": "CLI_ENTRY_SOURCE",
+            "services/runtime/crates/ordivon-runtime-mcp/src/server/handler.rs": "MCP_SERVER_ADAPTER",
+            "platform/skills/plugins/ordivon-skills-bridge/mcp.json": "MCP_CONNECTION_CONFIG",
+            "platform/skills/scripts/skills_mcp.py": "MCP_SERVER_ADAPTER",
+            "apps/web/src/server.ts": "HTTP_API_SERVER_ADAPTER",
+        }
+        for path, form in expected.items():
+            row = items[path]
+            with self.subTest(path=path):
+                self.assertEqual(row["sourceInterfaceForm"], form)
+                self.assertEqual(
+                    row["sourceInterfaceStanding"],
+                    "SOURCE_ONLY_NOT_INSTALLED_OR_CAPABILITY_ADMITTED",
+                )
+                self.assertIsNotNone(row["sourceSubregionDescription"])
+                self.assertEqual(len(row["sourceSubregionMatchedRules"]), 1)
+        self.assertNotEqual(
+            items["extensions/ordivon-control-plane/mcp.json"]["sourceInterfaceForm"],
+            items["services/gateway/src/ordivon_gateway/mcp_server.py"]["sourceInterfaceForm"],
+        )
+        self.assertNotEqual(
+            items["services/harness/src/ordivon_harness/mcp_http_client.py"]["sourceInterfaceForm"],
+            items["services/host/src/ordivon_host_v2/mcp_server.py"]["sourceInterfaceForm"],
+        )
+        self.assertIsNone(
+            items["services/harness/src/ordivon_harness/agent_run.py"]["sourceInterfaceForm"],
+        )
+        self.assertFalse(MODULE.project_source_classification(root, cut)["proofReuseAdmissible"])
+
+    def test_source_interface_form_rejects_installed_role_and_is_delta_relevant(self) -> None:
+        manifest = (
+            'source_subregions = ['
+            '{name="runtime-mcp",path="main.rs",description="MCP server source",'
+            'interface_form="MCP_SERVER_ADAPTER"}]\n'
+        )
+        self.manifest.write_text(self.header.replace(
+            'name = "runtime"\n', 'name = "runtime"\n' + manifest, 1
+        ))
+        before = self.commit()
+        item = next(e for e in self.project(before)["entries"]
+                    if e["path"] == "services/runtime/main.rs")
+        self.assertEqual(item["sourceInterfaceForm"], "MCP_SERVER_ADAPTER")
+        # Same Git source bytes, only the source-interface interpretation changed.
+        self.manifest.write_text(self.manifest.read_text().replace(
+            'interface_form="MCP_SERVER_ADAPTER"',
+            'interface_form="MCP_CLIENT_ADAPTER"',
+        ))
+        after = self.commit()
+        delta = MODULE.project_source_classification_delta(self.repo, before, after)
+        changed = next(x for x in delta["changes"]
+                       if x["path"] == "services/runtime/main.rs")
+        self.assertFalse(changed["sourceChanged"])
+        self.assertTrue(changed["classificationChanged"])
+        self.assertFalse(delta["proofReuseAdmissible"])
+        for forbidden in ("MCP_HOST_APPLICATION", "INSTALLED_VERIFIED", "SDK_AUTHORITY"):
+            with self.subTest(form=forbidden):
+                self.manifest.write_text(self.manifest.read_text().replace(
+                    'interface_form="MCP_CLIENT_ADAPTER"',
+                    'interface_form="' + forbidden + '"',
+                ))
+                with self.assertRaisesRegex(ValueError, "interface_form"):
+                    self.project(self.commit())
+                self.manifest.write_text(self.manifest.read_text().replace(
+                    'interface_form="' + forbidden + '"',
+                    'interface_form="MCP_CLIENT_ADAPTER"',
+                ))
+
     def test_nested_owner_subregions_prefer_specific_readable_meaning(self) -> None:
         nested = (
             'source_subregions = [\n'

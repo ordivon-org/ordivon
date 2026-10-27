@@ -58,7 +58,7 @@ source_subregions = [
   { name = "formal-quint-source", paths = ["Proof.qnt"], description = "Quint state/temporal model source." },
   { name = "formal-rust-source", paths = ["Proof.rs"], description = "Rust model source, not automatically verified." },
   { name = "formal-kani-model-source", paths = ["ProofKani.rs"], description = "Kani symbolic Rust test harness source." },
-  { name = "formal-native-verifier-driver", paths = ["verify.py"], description = "Existing native prover invocation and source digest checker." },
+  { name = "formal-native-verifier-driver", paths = ["verify.py"], description = "Existing native prover invocation and source digest checker.", interface_form = "FORMAL_EXECUTION_DRIVER" },
 ]
 semantic_label = "native-formal-verification-toolchain"
 semantic_scope = "Existing Lean SMT Kani Verus Dafny Alloy and TLA-adjacent verification adapters; not the R2.1 mathematics itself or an Agent approver."
@@ -70,7 +70,7 @@ queue_verify_task = "formal:source:verify"
 name = "lego-foundation"
 source_subregions = [
   { name = "lego-mathematical-references", path = "references/", description = "Canonical R2.1 mathematical explanation source." },
-  { name = "lego-core-skill-source", paths = ["SKILL.md"], description = "Canonical LEGO R2.1 procedural Skill source, not a proof or registry." },
+  { name = "lego-core-skill-source", paths = ["SKILL.md"], description = "Canonical LEGO R2.1 procedural Skill source, not a proof or registry.", interface_form = "SOURCE_SKILL_METHOD" },
 ]
 semantic_label = "recursive-lego-r21-method-source"
 semantic_scope = "Canonical R2.1 semantic Skill and formal reference source; not a separate execution engine, universal registry or verification approval authority."
@@ -111,8 +111,8 @@ verify_task = "composition:verify"
 [[owners]]
 name = "control-plugin"
 source_subregions = [
-  { name = "control-plugin-package-manifest", path = "plugin.json", description = "Portable Agent Plugin package manifest; not a control plane process." },
-  { name = "control-plugin-mcp-connectivity", path = "mcp.json", description = "MCP tool connection declarations; not a Tool, Skill, or effect authority." },
+  { name = "control-plugin-package-manifest", path = "plugin.json", description = "Portable Agent Plugin package manifest; not a control plane process.", interface_form = "AGENT_PLUGIN_MANIFEST" },
+  { name = "control-plugin-mcp-connectivity", path = "mcp.json", description = "MCP tool connection declarations; not a Tool, Skill, or effect authority.", interface_form = "MCP_CONNECTION_CONFIG" },
 ]
 semantic_label = "agent-plugin-connection-package"
 semantic_scope = "Portable Agent Plugin connection metadata for Ordivon MCP; not a running control plane or controller."
@@ -122,6 +122,9 @@ verify_task = "control-plugin:verify"
 [[owners]]
 name = "runtime"
 source_subregions = [
+  { name = "runtime-mcp-server-source", paths = ["crates/ordivon-runtime-mcp/src/server/"], description = "Runtime MCP server adapter source, not physical Runner authority.", interface_form = "MCP_SERVER_ADAPTER" },
+  { name = "runtime-native-runner-source", paths = ["crates/ordivon-runtime-core/src/bin/ordivon-runtime-runner.rs"], description = "Rust Runtime Runner executable entry source; actual admitted effects require Runtime authority.", interface_form = "CLI_ENTRY_SOURCE" },
+  { name = "runtime-native-doctor-cli-source", paths = ["crates/ordivon-runtime-core/src/bin/ordivon-runtime-doctor.rs", "crates/ordivon-runtime-core/src/bin/ordivon-runtime-inspect.rs"], description = "Runtime native inspection and diagnostics command sources, not automatic approval.", interface_form = "CLI_ENTRY_SOURCE" },
   { name = "runtime-rust-implementation", path = "crates/", description = "Native Runtime crates for physical execution lifecycle." },
   { name = "runtime-core-state-engine", path = "crates/ordivon-runtime-core/", description = "Core Job/Attempt/Workspace/Recovery implementation source." },
   { name = "runtime-mcp-protocol", path = "crates/ordivon-runtime-mcp/", description = "Runtime MCP transport adapter source." },
@@ -150,6 +153,9 @@ verify_task = "runtime:verify"
 [[owners]]
 name = "host"
 source_subregions = [
+  { name = "host-mcp-server-source", paths = ["src/ordivon_host_v2/mcp_server.py", "src/ordivon_host_v2/social_work_mcp.py"], description = "Social Work and collaboration MCP server source, not MCP Host application.", interface_form = "MCP_SERVER_ADAPTER" },
+  { name = "host-durable-work-source", paths = ["src/ordivon_host_v2/social_store.py", "src/ordivon_host_v2/service.py"], description = "Host persistence and Work/Space/Message continuity implementation.", interface_form = "DURABLE_SERVICE_SOURCE" },
+  { name = "host-public-mcp-manifest", paths = ["mcp-surface.json"], description = "Declared Host MCP server surface; not installed service proof.", interface_form = "PUBLIC_MCP_SURFACE_MANIFEST" },
   { name = "host-collaboration-implementation", path = "src/", description = "PostgreSQL Work/Space/Message continuity implementation." },
   { name = "host-database-schema-migrations", path = "migrations/", description = "Host PostgreSQL/Alembic schema migration source." },
   { name = "host-continuity-tests", path = "tests/", description = "Host source tests and continuity fixtures." },
@@ -160,7 +166,6 @@ source_subregions = [
   { name = "host-host-repository-ci", paths = [".github/"], description = "Host repository workflow declarations." },
   { name = "host-host-experimental-studies", paths = ["experiments/"], description = "Bounded host experiment source." },
   { name = "host-root-reference-instructions", paths = ["README.md"], description = "Root package documentation, license and agent instructions; not installed effects." },
-  { name = "host-root-public-manifests", paths = ["mcp-surface.json"], description = "Root API, boundary and configuration manifest declarations." },
   { name = "host-root-build-and-toolchain-config", paths = [".gitignore", ".python-version", "alembic.ini", "mise.toml", "pyproject.toml", "uv.lock"], description = "Root toolchain, lockfile, package and repository configuration sources." },
 ]
 semantic_label = "work-and-collaboration-continuity"
@@ -172,6 +177,11 @@ queue_verify_task = "host:queue"
 [[owners]]
 name = "harness"
 source_subregions = [
+  { name = "harness-mcp-client-source", paths = ["src/ordivon_harness/mcp_http_client.py"], description = "Client that consumes remote MCP capabilities; not an MCP Server.", interface_form = "MCP_CLIENT_ADAPTER" },
+  { name = "harness-plugin-mcp-adapter", paths = ["src/ordivon_harness/plugin_mcp.py", "src/ordivon_harness/agent_plugin.py"], description = "Agent Plugin compatibility/connection implementation, not plugin manifest or separate state owner.", interface_form = "AGENT_PLUGIN_ADAPTER" },
+  { name = "harness-local-cli-source", paths = ["src/ordivon_harness/cli.py", "src/ordivon_harness/independent_cli.py"], description = "Harness command-line interfaces for scoped Agent run interactions.", interface_form = "CLI_ENTRY_SOURCE" },
+  { name = "harness-agent-tool-program", paths = ["src/ordivon_harness/tool_program.py"], description = "Tool program execution composition source, distinct from MCP transport.", interface_form = "TOOL_PROGRAM_SOURCE" },
+  { name = "harness-public-python-api", paths = ["src/ordivon_harness/api.py"], description = "Package callable API source, not proof of any public SDK support.", interface_form = "PACKAGE_PUBLIC_API_SOURCE" },
   { name = "harness-agent-run-implementation", path = "src/", description = "Bounded Agent Run implementation, not Runtime physical truth." },
   { name = "harness-implementation-tests", path = "tests/", description = "Harness source tests and fixtures." },
   { name = "harness-evidence-carriers", path = "evidence/", description = "Historical evaluation/evidence receipts." },
@@ -201,13 +211,16 @@ queue_verify_task = "harness:queue"
 [[owners]]
 name = "gateway"
 source_subregions = [
+  { name = "gateway-mcp-server-source", paths = ["src/ordivon_gateway/mcp_server.py"], description = "Northbound MCP server adapter source; neither MCP application Host nor Runtime authority.", interface_form = "MCP_SERVER_ADAPTER" },
+  { name = "gateway-worker-http-source", paths = ["src/ordivon_gateway/worker_http.py"], description = "Optional Worker HTTP ingress implementation, separate from MCP tools.", interface_form = "HTTP_API_SERVER_ADAPTER" },
+  { name = "gateway-route-source", paths = ["src/ordivon_gateway/routes.py", "src/ordivon_gateway/upstream.py"], description = "Northbound service routing and upstream capability adapters; not effect authority.", interface_form = "CAPABILITY_ROUTE_ADAPTER" },
+  { name = "gateway-public-mcp-manifest", paths = ["mcp-surface.json"], description = "Declared MCP Tool catalog source, not installed current Tool availability.", interface_form = "PUBLIC_MCP_SURFACE_MANIFEST" },
   { name = "gateway-route-adapter", path = "src/", description = "Northbound MCP capability routing source, not execution authority." },
   { name = "gateway-deployment-candidates", path = "planning/", description = "Windows deployment candidates, not installed state." },
   { name = "gateway-installation-scripts", path = "packaging/", description = "Gateway package and release carrier source." },
   { name = "gateway-gateway-contract-tests", paths = ["tests/"], description = "Gateway routing, authz and provider projection tests." },
   { name = "gateway-gateway-service-unit-source", paths = ["systemd/"], description = "Gateway service units and installation profile." },
   { name = "gateway-root-reference-instructions", paths = ["README.md"], description = "Root package documentation, license and agent instructions; not installed effects." },
-  { name = "gateway-root-public-manifests", paths = ["mcp-surface.json"], description = "Root API, boundary and configuration manifest declarations." },
   { name = "gateway-root-build-and-toolchain-config", paths = [".python-version", "pyproject.toml", "uv.lock"], description = "Root toolchain, lockfile, package and repository configuration sources." },
 ]
 semantic_label = "northbound-capability-routing"
@@ -218,6 +231,10 @@ verify_task = "gateway:verify"
 [[owners]]
 name = "skills"
 source_subregions = [
+  { name = "skills-bridge-mcp-server-source", paths = ["scripts/skills_mcp.py"], description = "Skill catalog MCP server adapter source; separate from Skill authoring content.", interface_form = "MCP_SERVER_ADAPTER" },
+  { name = "skills-bridge-catalog-source", paths = ["src/ordivon_skills/catalog.py", "src/ordivon_skills/scanner.py", "src/ordivon_skills/parser.py"], description = "Skill source discovery/parser/catalog implementation; not the SKILL.md methods.", interface_form = "SOURCE_SKILL_CATALOG" },
+  { name = "skills-plugin-package-manifest", paths = ["plugins/ordivon-skills-bridge/plugin.json"], description = "Portable Skill-bridge plugin manifest, not an MCP service.", interface_form = "AGENT_PLUGIN_MANIFEST" },
+  { name = "skills-plugin-mcp-connection", paths = ["plugins/ordivon-skills-bridge/mcp.json"], description = "MCP client configuration pointing to Skill-bridge service, not implementation.", interface_form = "MCP_CONNECTION_CONFIG" },
   { name = "skills-bridge-implementation", path = "src/", description = "Portable Agent Skills to MCP compatibility source." },
   { name = "skills-bridge-tests", path = "tests/", description = "Bridge trust/discovery tests, not Skill source itself." },
   { name = "skills-plugin-compatibility", path = "plugins/", description = "Plugin compatibility carrier metadata." },
@@ -472,6 +489,7 @@ verify_task = "capital:verify"
 [[owners]]
 name = "web"
 source_subregions = [
+  { name = "web-http-service-source", paths = ["src/server.ts"], description = "Web application HTTP server source, separate from client UI.", interface_form = "HTTP_API_SERVER_ADAPTER" },
   { name = "web-application-implementation", path = "src/", description = "Web application UI and client source." },
   { name = "web-application-tests", path = "test/", description = "Web interface tests." },
   { name = "web-web-test-evidence", paths = ["evidence/"], description = "UI browser/e2e observation records, not current installed UI." },
