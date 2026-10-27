@@ -263,6 +263,171 @@ def classification(repo: Path, source: str, proposed: str | None = None) -> dict
     }
 
 
+
+def active_source_cells(
+    inventory: dict, *, repo: Path, max_files: int = 24, max_depth: int = 6,
+    use_proposal: bool = False,
+) -> dict:
+    """Compute small, deterministic *physical* source cells on demand.
+
+    The input is one exact-Git classification projection. Cells do not
+    establish semantic LEGO identity, verification authority or a move plan.
+    Never substitute the proposed policy for the source's actual policy.
+    """
+    if max_files < 1 or max_depth < 1 or max_depth > 12:
+        raise ValueError("cell limits must be positive and depth <= 12")
+    if use_proposal and not inventory.get("proposalCut"):
+        raise ValueError("requested proposal cells need exact proposal SourceCut")
+    group_key = "proposedSource" if use_proposal else "currentSource"
+    source_paths = inventory["sourcePaths"]
+    policy_source = inventory["proposalCut"] if use_proposal else inventory["sourceCut"]
+    # These are physical Git directory cells nested under the mechanical
+    # source zones. Zones remain independent of a proposed directory move.
+    zones: dict[str, list[dict]] = collections.defaultdict(list)
+    for item in source_paths:
+        role = item[group_key]
+        zone = role["classification"] if role["standing"] == "CLASSIFIED" else role["standing"]
+        zones[zone].append(item)
+
+    cells: list[dict] = []
+    node_problems_by_plan: dict[str, collections.Counter] = collections.defaultdict(collections.Counter)
+    for lego in inventory["semanticPlans"]["nodes"]:
+        node_problems_by_plan[lego["plan"]].update(lego["problems"])
+
+    def walk(zone: str, directory: str, items: list[dict], level: int) -> None:
+        direct = []
+        children: dict[str, list[dict]] = collections.defaultdict(list)
+        for item in items:
+            path = item["path"]
+            if not path.startswith(directory):
+                raise ValueError("source cell prefix does not contain its member")
+            suffix = path[len(directory):]
+            if "/" not in suffix:
+                direct.append(item)
+            else:
+                child = suffix.split("/", 1)[0]
+                children[directory + child + "/"].append(item)
+        if len(items) <= max_files or not children or level >= max_depth:
+            emit(zone, directory, items, level, dense=len(items) > max_files)
+            return
+        if direct:
+            emit(zone, directory, direct, level, dense=len(direct) > max_files)
+        for child, subset in sorted(children.items()):
+            walk(zone, child, subset, level + 1)
+
+    def emit(zone: str, prefix: str, members: list[dict], level: int, *, dense: bool) -> None:
+        ext = collections.Counter()
+        carriers = collections.Counter()
+        source_problems = collections.Counter()
+        semantic_problems = collections.Counter()
+        for m in members:
+            source_problems.update(m["problems"])
+            semantic_problems.update(node_problems_by_plan[m["path"]])
+            name = m["path"].rsplit("/", 1)[-1]
+            ext[name.rsplit(".", 1)[-1].lower() if "." in name else "(no-extension)"] += 1
+            if m["carrierType"]:
+                carriers[m["carrierType"]] += 1
+        issues = []
+        observations = []
+        if zone in ("UNASSIGNED", "AMBIGUOUS"):
+            issues.append("UNCLASSIFIED_SOURCE_REGION")
+        if dense:
+            issues.append("DENSE_CELL_REQUIRES_SUBCLASSIFICATION_REVIEW")
+        if len(ext) > 1:
+            observations.append("MIXED_FORMAT_CELL_NOT_IN_ITSELF_AN_ERROR")
+        if semantic_problems:
+            issues.append("PLAN_DECLARATION_GAPS_REQUIRE_SEMANTIC_MAPPING")
+        member_id = hashlib.sha256(json.dumps(
+            [(m["path"], m["sourceIdentity"]) for m in sorted(
+                members, key=lambda r: r["path"])],
+            ensure_ascii=True, sort_keys=True,
+            separators=(",", ":"),
+        ).encode()).hexdigest()
+        cells.append({
+            "memberGitObjectDigest": "sha256:" + member_id,
+            "sourceZone": zone,
+            "physicalPrefix": prefix or "(repo-root)/",
+            "depth": level,
+            "pathCount": len(members),
+            "firstSourcePath": min(m["path"] for m in members),
+            "lastSourcePath": max(m["path"] for m in members),
+            "sourceCarriers": dict(sorted(carriers.items())),
+            "sourceProblemCounts": dict(sorted(source_problems.items())),
+            "planDeclarationProblemCounts": dict(sorted(semantic_problems.items())),
+            "extensionKinds": dict(sorted(ext.items())),
+            "problems": issues,
+            "observations": observations,
+            "semanticStanding": "UNQUALIFIED_SOURCE_CELL",
+            "consumerStanding": "UNKNOWN",
+            "installedStanding": "UNKNOWN",
+            "formalStanding": "UNKNOWN",
+        })
+
+    # Select the most specific physical prefix that *belongs to* its source
+    # region. This avoids inventing a new root: configured source-zone policy
+    # is used only as a navigational grouping, not authority.
+    def anchor(zone: str, path: str, policy: dict) -> str:
+        if zone.startswith("ROOT:"):
+            name = zone[len("ROOT:"):]
+            found = [x["root"] for x in policy.get("owners", [])
+                     if x["name"] == name and path.startswith(x["root"])]
+            if len(found) != 1:
+                raise ValueError("owner source region and path do not match")
+            return found[0]
+        if zone.startswith("REGION:"):
+            name = zone[len("REGION:"):]
+            found = [rule for row in policy.get("source_regions", [])
+                     if row["name"] == name
+                     and not any(is_match(path, excluded)
+                                 for excluded in row.get("exclude", []))
+                     for rule in row["paths"] if is_match(path, rule)]
+            if len(found) != 1:
+                raise ValueError("physical region source path does not match")
+            return found[0] if found[0].endswith("/") else ""
+        # Unclassified paths remain visible and grouped by their real top-level
+        # prefix, rather than being implicitly assigned to a fabricated owner.
+        return path.split("/", 1)[0] + "/" if "/" in path else ""
+
+    # Only this exact Git carrier policy is admissible. Caller supplies its
+    # already-validated policy; no filesystem or historical snapshot lookup.
+    exact_commit(repo, inventory["sourceCut"])
+    policy = read_policy(repo, policy_source)
+    for zone, members in sorted(zones.items()):
+        buckets: dict[str, list[dict]] = collections.defaultdict(list)
+        for item in members:
+            buckets[anchor(zone, item["path"], policy)].append(item)
+        for physical_prefix, subset in sorted(buckets.items()):
+            walk(zone, physical_prefix, subset, 0)
+
+    if sum(c["pathCount"] for c in cells) != len(source_paths):
+        raise ValueError("source cell cardinality is not complete")
+    cells.sort(key=lambda c: (c["sourceZone"], c["physicalPrefix"], c["firstSourcePath"]))
+    tallies = collections.Counter(p for c in cells for p in c["problems"])
+    observed = collections.Counter(p for c in cells for p in c["observations"])
+    return {
+        "kind": "ordivon.source-cell-live-frontier",
+        "sourceCut": inventory["sourceCut"],
+        "sourceTree": inventory["sourceTree"],
+        "proposalCut": inventory["proposalCut"] if use_proposal else None,
+        "projection": "PROPOSED_SOURCE_ONLY" if use_proposal else "CURRENT_SOURCE_ONLY",
+        "sourcePathDigest": inventory["sourcePathDigest"],
+        "truthBoundary": "physical Git classification, no LEGO or formal/installed evidence",
+        "proofReuseAdmissible": False,
+        "summary": {
+            "trackedPaths": len(source_paths),
+            "countedPaths": sum(c["pathCount"] for c in cells),
+            "cells": len(cells),
+            "sourceZones": len(zones),
+            "problemCells": sum(bool(c["problems"]) for c in cells),
+            "problemCounts": dict(sorted(tallies.items())),
+            "observationCounts": dict(sorted(observed.items())),
+            "maxCellFiles": max_files,
+            "maxCellDepth": max_depth,
+        },
+        "cells": cells,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-cut", required=True)
@@ -270,9 +435,25 @@ def main() -> int:
     parser.add_argument("--repo", type=Path, default=Path.cwd())
     parser.add_argument("--summary", action="store_true")
     parser.add_argument("--only-problems", action="store_true")
+    parser.add_argument("--live-cells", action="store_true",
+                        help="derive fresh exact-Git recursive source cells; never load saved snapshots")
+    parser.add_argument("--use-proposal-cells", action="store_true",
+                        help="show proposal-source regions without treating them as current authority")
+    parser.add_argument("--cell-max-files", type=int, default=24)
+    parser.add_argument("--cell-max-depth", type=int, default=6)
     args = parser.parse_args()
     result = classification(args.repo, args.source_cut, args.proposal_cut)
-    if args.summary:
+    if args.live_cells:
+        result = active_source_cells(
+            result, repo=args.repo, max_files=args.cell_max_files, max_depth=args.cell_max_depth,
+            use_proposal=args.use_proposal_cells,
+        )
+        if args.only_problems:
+            result["cells"] = [c for c in result["cells"] if c["problems"]]
+            result["displaySelection"] = "ONLY_EXPLICIT_SOURCE_PROBLEMS"
+        if args.summary:
+            result.pop("cells")
+    elif args.summary:
         result = {k: v for k, v in result.items() if k not in ("sourcePaths", "semanticPlans")}
     elif args.only_problems:
         result["sourcePaths"] = [r for r in result["sourcePaths"] if r["problems"]]
