@@ -12415,6 +12415,39 @@
     "removedInRuntimeRelativeToLocal": 23,
     "runtimeObservedCut": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde"
   },
+  "runtimeWorkspaceSourceOverlay": {
+    "importantScopeUnknowns": [
+      "Workspace list excludes closed or unmanaged workspace objects and does not enumerate external providers, processes, credentials, physical service installs or dynamic consumers.",
+      "An open Windows or Linux Workspace is a source/workspace fact; it is not a deployed release, proof certificate or unique semantic LEGO.",
+      "Dirty workspace evidence must be preserved for independent decision; no repair, writer switch, source move or cleanup was performed."
+    ],
+    "linux": {
+      "dirtyWorkspaces": 20,
+      "healthyOpenWorkspaces": 124,
+      "paginationExhausted": true,
+      "sourceRootClassCounts": {
+        "linux-ordivon-main": 123,
+        "linux-ordivon-research-v2": 1
+      }
+    },
+    "linuxVsWindowsCurrentness": "DIVERGENT_CUTS_OBSERVED_NOT_VALIDATED_AS_EQUIVALENT",
+    "standing": "READ_ONLY_BOUNDED_OPEN_WORKSPACE_ENUMERATION_NOT_INSTALLED_CLOSURE",
+    "windows": {
+      "dirtyWorkspaces": 0,
+      "distinctHeadCutCounts": {
+        "2906f575f540be4472b674329fc1dfeef9c4910e": 1,
+        "73196dc2bc076f148e905b688fafa34d40486a9c": 11,
+        "b915e33f5eaaacf91fbe0faf07c2b6eef38b23ae": 1
+      },
+      "healthyOpenWorkspaces": 13,
+      "paginationExhausted": true,
+      "sourceRootClassCounts": {
+        "windows-monorepo-service-source": 12,
+        "windows-runtime-subtree": 1
+      },
+      "sourceRootClassification": "Windows service/workspace source locator only; path obscured in published census; no proof it matches Linux/main or any installed executable"
+    }
+  },
   "samplingAndExclusion": {
     "includeOnlyPaths": "Exact git ls-tree blobs at pinned commit per repo; staged/untracked and installed/dynamic sources excluded",
     "independentExternalSources": "Only currently visible local roots with Ordivon prefix + active Research Runtime cut. Unmanaged Windows/remote/installed/disconnected Git roots remain UNKNOWN.",
