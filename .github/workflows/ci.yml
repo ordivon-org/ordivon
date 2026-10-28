@@ -222,6 +222,11 @@ jobs:
           cd tools/formal
           mise install
           cd ../..
+          # Verus invokes rustup's pinned compiler, not just the mise-resolved
+          # verifier executable. Fresh GitHub runners lack this exact toolchain
+          # even when the Formal mise install has succeeded. Preserve the
+          # native proof gate and install its prerequisite instead of skipping.
+          rustup toolchain install 1.99.1 --profile minimal
           mise run formal:verify
 
       - name: Runtime supply-chain policy
