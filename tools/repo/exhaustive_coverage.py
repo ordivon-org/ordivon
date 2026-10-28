@@ -680,6 +680,11 @@ def derived_problem_legos(
         "sourcePathDigest": inventory["sourcePathDigest"],
         "proposalCut": frontier["proposalCut"],
         "projection": frontier["projection"],
+        "sourceCellDecomposition": {
+            "maxCellFiles": frontier["summary"]["maxCellFiles"],
+            "maxCellDepth": frontier["summary"]["maxCellDepth"],
+            "identityStanding": "VIEW_PARAMETERS_NOT_SEMANTIC_LEGO_IDENTITY",
+        },
         "truthBoundary": (
             "physical source and declared Plan structure only; real calls, "
             "external repos, consumers, installation, effect and formal proof UNKNOWN"

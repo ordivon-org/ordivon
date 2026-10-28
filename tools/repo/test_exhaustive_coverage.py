@@ -568,6 +568,26 @@ class DerivedProblemLegoFrontierTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             M.derived_problem_legos(self.inventory, repo=ROOT, max_depth=13)
 
+    def test_recursive_view_identity_includes_decomposition_policy(self) -> None:
+        # Same exact Git source objects can be grouped differently without
+        # introducing a new semantic LEGO, owner or verified consumer.
+        current = self.result
+        finer = M.derived_problem_legos(
+            self.inventory, repo=ROOT, max_files=18, max_depth=6)
+        assert current["sourceCut"] == finer["sourceCut"]
+        assert current["sourceTree"] == finer["sourceTree"]
+        assert current["sourcePathDigest"] == finer["sourcePathDigest"]
+        assert current["sourceCellDecomposition"] == {
+            "maxCellFiles": 24,
+            "maxCellDepth": 6,
+            "identityStanding": "VIEW_PARAMETERS_NOT_SEMANTIC_LEGO_IDENTITY"}
+        assert finer["sourceCellDecomposition"]["maxCellFiles"] == 18
+        assert finer["sourceCellDecomposition"]["maxCellDepth"] == 6
+        assert set(current["sourcePathCellIndex"]) == set(
+            finer["sourcePathCellIndex"])
+        assert not current["proofReuseAdmissible"]
+        assert not finer["proofReuseAdmissible"]
+
     def test_cli_summary_has_no_hidden_static_snapshot_or_unproved_edges(self) -> None:
         data = subprocess.check_output([
             "python3", str(ROOT / "tools/repo/exhaustive_coverage.py"),
