@@ -8,6 +8,7 @@ import sys
 import tempfile
 import textwrap
 import unittest
+from unittest import mock
 from pathlib import Path
 
 MODULE_PATH = Path(__file__).with_name("convergence_plan.py")
@@ -19,6 +20,91 @@ SPEC.loader.exec_module(MODULE)
 
 
 class ConvergencePlanTests(unittest.TestCase):
+    def test_self_hosted_impact_explanation_binds_real_source_and_verification(self) -> None:
+        source = "tools/repo/affected_owners.py"
+        plan = MODULE.build_plan(changed_files=[source])
+        explanation = MODULE.explain_source_impacts(plan, source_cut=MODULE._git("rev-parse", "HEAD"))
+        self.assertEqual(explanation["sourceCut"], MODULE._git("rev-parse", "HEAD"))
+        self.assertEqual(explanation["sourceTree"], MODULE._git("rev-parse", "HEAD^{tree}"))
+        self.assertEqual(explanation["queueVerifyTasks"], plan["queueVerifyTasks"])
+        self.assertEqual(explanation["verificationStanding"], "REQUIRED_NOT_EXECUTED_BY_PROJECTION")
+        target = next(item for item in explanation["changedSourceInputs"] if item["path"] == source)
+        self.assertTrue(target["sourceCellRef"].startswith("source-cell:sha256:"))
+        self.assertTrue(target["gitSourceIdentity"].startswith(("100644:blob:", "100755:blob:")))
+        self.assertTrue(target["candidateConsumers"])
+        self.assertIn(
+            "tools/repo/convergence_plan.py",
+            {c["consumerPath"] for c in target["candidateConsumers"]},
+        )
+        self.assertTrue(all(
+            c["relation"] == "STATIC_PYTHON_IMPORT_CANDIDATE_NOT_RUNTIME_CALL"
+            and c["runtimeCallStanding"] == "UNKNOWN"
+            for c in target["candidateConsumers"]
+        ))
+        self.assertFalse(explanation["impactClosureAdmissible"])
+        self.assertFalse(explanation["proofReuseAdmissible"])
+
+    def test_self_hosted_formal_source_impact_preserves_existing_real_task(self) -> None:
+        plan = MODULE.build_plan(changed_files=["tools/formal/RecursiveLegoRefinement.lean"])
+        explanation = MODULE.explain_source_impacts(
+            plan, source_cut=MODULE._git("rev-parse", "HEAD")
+        )
+        self.assertEqual(explanation["queueVerifyTasks"], ["formal:verify"])
+        self.assertEqual(explanation["verificationOwners"], [])
+        self.assertEqual(explanation["unindexedChangedPaths"], [])
+        self.assertEqual(explanation["changedSourceInputs"][0]["candidateConsumers"], [])
+        self.assertEqual(explanation["nonPythonConsumerStanding"], "NOT_ANALYZED")
+
+    def test_self_hosted_impact_rejects_mismatched_source_cut_and_forged_tasks(self) -> None:
+        cut = MODULE._git("rev-parse", "HEAD")
+        plan = MODULE.build_plan(changed_files=["tools/formal/verify.py"])
+        pinned = {**plan, "headRevision": cut}
+        with self.assertRaisesRegex(ValueError, "SourceCut mismatch"):
+            MODULE.explain_source_impacts(pinned, source_cut="0" * 40)
+        forged = {**plan, "queueVerifyTasks": []}
+        with self.assertRaisesRegex(ValueError, "queue task selection"):
+            MODULE.explain_source_impacts(forged, source_cut=cut)
+
+    def test_self_hosted_impact_refuses_stale_native_contract_and_old_cut(self) -> None:
+        cut = MODULE._git("rev-parse", "HEAD")
+        plan = MODULE.build_plan(changed_files=["tools/formal/verify.py"])
+        with self.assertRaisesRegex(ValueError, "SourceCut mismatch"):
+            MODULE.explain_source_impacts(
+                plan, source_cut=MODULE._git("rev-parse", "HEAD^")
+            )
+        with tempfile.TemporaryDirectory() as folder:
+            shadow = Path(folder) / "dependency_contracts.toml"
+            shadow.write_text("schema_version = 1\n", encoding="utf-8")
+            with mock.patch.object(MODULE, "DEPENDENCY_PATH", shadow):
+                with self.assertRaisesRegex(ValueError, "outside active Git"):
+                    MODULE.explain_source_impacts(plan, source_cut=cut)
+
+    def test_self_hosted_impact_cli_returns_same_bounded_contract(self) -> None:
+        output = subprocess.check_output([
+            sys.executable, str(MODULE_PATH),
+            "--changed-file", "tools/repo/affected_owners.py",
+            "--explain-impacts",
+        ], cwd=MODULE_PATH.parents[2], text=True, timeout=30)
+        payload = __import__("json").loads(output)
+        self.assertEqual(
+            payload["changedSourceInputs"][0]["path"], "tools/repo/affected_owners.py"
+        )
+        self.assertEqual(payload["sourceCut"], MODULE._git("rev-parse", "HEAD"))
+        self.assertFalse(payload["impactClosureAdmissible"])
+        self.assertGreaterEqual(payload["staticPythonCandidateCount"], 1)
+
+    def test_self_hosted_impact_does_not_silently_claim_deleted_or_missing_source(self) -> None:
+        plan = MODULE.build_plan(changed_files=["docs/architecture/definitely-absent.md"])
+        result = MODULE.explain_source_impacts(
+            plan, source_cut=MODULE._git("rev-parse", "HEAD")
+        )
+        self.assertEqual(
+            result["unindexedChangedPaths"], ["docs/architecture/definitely-absent.md"]
+        )
+        self.assertEqual(result["changedSourceInputs"][0]["sourceStanding"],
+                         "NOT_IN_SOURCE_CUT_OR_DELETED")
+        self.assertFalse(result["impactClosureAdmissible"])
+
     def test_runtime_change_stays_in_isolated_owner_component(self) -> None:
         plan = MODULE.build_plan(
             changed_files=["services/runtime/crates/ordivon-runtime-core/src/lib.rs"]
