@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import subprocess
 import tomllib
 from collections import deque
@@ -17,7 +18,12 @@ DEPENDENCY_PATH = Path(__file__).with_name("dependency_contracts.toml")
 
 def _git(*args: str) -> str:
     proc = subprocess.run(
-        ["git", *args],
+        # Pin SourceCut/tree identity to Git objects, not locally configured
+        # replacement refs which could spoof a selected task's provenance.
+        ["git", "--no-replace-objects", *args],
+        # Preserve the same graft-free immutable Git SourceCut used by the
+        # native affected-owner delta selector.
+        env={**os.environ, "GIT_GRAFT_FILE": os.devnull},
         check=True,
         text=True,
         capture_output=True,
