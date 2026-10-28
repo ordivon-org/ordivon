@@ -210,7 +210,10 @@ class SocialStore:
                 return replay
             self._require_actor(conn, value.author_actor_ref)
             self._require_space(conn, value.space_ref)
-            topic = self._require_topic(conn, value.topic_ref)
+            # The same-topic row fence precedes the IDENTITY default so a
+            # later visible sequence cannot overtake a pending older one.
+            # NO KEY UPDATE remains compatible with FK KEY SHARE on topics.
+            topic = self._require_topic(conn, value.topic_ref, for_no_key_update=True)
             if topic["space_ref"] != value.space_ref:
                 raise ConflictError("topic does not belong to the supplied space")
             if topic["state"] != "open":
@@ -1164,10 +1167,12 @@ class SocialStore:
             raise SpaceNotFound(space_ref)
 
     @staticmethod
-    def _require_topic(conn: psycopg.Connection[dict[str, Any]], topic_ref: str) -> dict[str, Any]:
+    def _require_topic(
+        conn: psycopg.Connection[dict[str, Any]], topic_ref: str, *, for_no_key_update: bool = False
+    ) -> dict[str, Any]:
         row = conn.execute(
             "SELECT topic_ref,space_ref,title,state,created_by_actor_ref,created_at,updated_at "
-            "FROM topics WHERE topic_ref=%s",
+            "FROM topics WHERE topic_ref=%s" + (" FOR NO KEY UPDATE" if for_no_key_update else ""),
             (topic_ref,),
         ).fetchone()
         if row is None:
