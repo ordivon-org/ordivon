@@ -14,6 +14,7 @@ from ordivon_capital.risk.portfolio_risk import (
     build_exposure_ledger,
     build_factor_observatory,
     build_portfolio_risk_report,
+    evaluate_risk_budget,
 )
 
 
@@ -119,6 +120,34 @@ def test_wrong_type_factor_loadings_must_not_mean_empty_exposure(
                 }
             ],
         )
+
+
+def test_risk_budget_must_breach_at_exact_decimal_boundary() -> None:
+    """Rounded 1/3 passes a 0.333333 limit; true 1/3 must breach, read-only."""
+    ledger = build_exposure_ledger(
+        equity_usd="3",
+        available_equity_usd="2",
+        positions=[{
+            "instrumentId": "ASSET-A",
+            "signedNotionalUsd": "1",
+            "factorLoadings": {"micro": "0.0000001"},
+        }],
+    )
+    budget = {
+        "maxGrossToEquity": "0.333333",
+        "maxLargestPositionGrossShare": "1",
+        "minAvailableEquityRatio": "0.1",
+        "shockMagnitudePct": "10",
+        "maxEquityLossPctAtShock": "100",
+    }
+    accepted = evaluate_risk_budget(exposure_ledger=ledger, budget=budget)
+    assert accepted["standing"] == "BREACHED"
+    assert accepted["breachedChecks"] == ["MAX_GROSS_TO_EQUITY"]
+
+    lossy_ledger = dict(ledger, grossToEquity="0.333333")
+    incorrect = evaluate_risk_budget(exposure_ledger=lossy_ledger, budget=budget)
+    assert incorrect["standing"] == "SATISFIED"
+    assert incorrect["breachedChecks"] == []
 
 
 def test_micro_factor_and_risk_ratios_remain_exact_machine_evidence() -> None:
