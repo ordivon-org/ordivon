@@ -38,7 +38,8 @@ def qualify_execution_effect_frontier(
     owner, native_id = observation.get("owner_id"), observation.get("native_id")
     ref = observation.get("operation_ref")
     if (
-        owner not in OWNERS
+        not isinstance(owner, str)
+        or owner not in OWNERS
         or not isinstance(native_id, str)
         or not native_id
         or native_id != native_id.strip()
@@ -54,7 +55,7 @@ def qualify_execution_effect_frontier(
     if recovery is not None and type(recovery) is not bool:
         raise CircuitContractError("Gateway recovery_required requires JSON boolean")
     delivery = observation.get("delivery_disposition")
-    if delivery is not None and delivery not in DELIVERY:
+    if delivery is not None and (not isinstance(delivery, str) or delivery not in DELIVERY):
         raise CircuitContractError("Gateway delivery disposition is unqualified")
     for field in ("state", "capability"):
         v = observation.get(field)
