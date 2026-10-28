@@ -1179,7 +1179,8 @@ class SocialStore:
         conn: psycopg.Connection[dict[str, Any]], message_ref: str
     ) -> dict[str, Any]:
         row = conn.execute(
-            "SELECT message_ref,space_ref,topic_ref,author_actor_ref FROM messages WHERE message_ref=%s",
+            "SELECT message_ref,sequence,space_ref,topic_ref,author_actor_ref "
+            "FROM messages WHERE message_ref=%s",
             (message_ref,),
         ).fetchone()
         if row is None:
@@ -1205,6 +1206,14 @@ class SocialStore:
                 and target["topic_ref"] != source["topic_ref"]
             ):
                 raise ConflictError("reply_to cannot cross topics")
+            if (
+                value.relation == MessageRelationKind.REPLY_TO
+                and target["sequence"] >= source["sequence"]
+            ):
+                # Immutable identity ordinals form a strict descending rank
+                # for every reply edge, so its transitive closure is acyclic.
+                # Lean: OrdivonR21.CausalReply.qualified_reply_graph_acyclic.
+                raise ConflictError("reply_to must target an earlier message")
             if (
                 value.relation == MessageRelationKind.SUPERSEDES
                 and value.target_ref == value.source_message_ref

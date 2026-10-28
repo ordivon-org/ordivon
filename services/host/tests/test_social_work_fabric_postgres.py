@@ -1091,3 +1091,85 @@ def test_work_read_rejects_postgres_modified_current_pointer_digest() -> None:
         )
     with pytest.raises(RuntimeError, match="current Work snapshot pointer digest differs"):
         store.get_work(work)
+
+
+
+def test_reply_relation_must_point_to_earlier_committed_message() -> None:
+    """A later reply is causal; self/backward replies must not form loops."""
+    assert DSN is not None
+    work = WorkStore(DSN)
+    social = SocialStore(DSN)
+    actor, _ = refs("reply-order")
+    declare_actor(work, actor)
+    space_ref = f"space:reply-order:{uuid4().hex}"
+    topic_ref = f"topic:reply-order:{uuid4().hex}"
+    social.create_space(
+        SpaceInput(space_ref=space_ref, purpose="causal-replies", actor_ref=actor),
+        client_request_id=f"space:{space_ref}",
+    )
+    social.create_topic(
+        TopicInput(topic_ref=topic_ref, space_ref=space_ref, title="causal", actor_ref=actor),
+        client_request_id=f"topic:{topic_ref}",
+    )
+    earlier = f"message:{uuid4().hex}"
+    later = f"message:{uuid4().hex}"
+    first = social.post_message(
+        MessageInput(
+            message_ref=earlier,
+            client_request_id=f"post:{earlier}",
+            space_ref=space_ref,
+            topic_ref=topic_ref,
+            author_actor_ref=actor,
+            body="original",
+            recorded_at_ms=2,
+        )
+    )
+    second = social.post_message(
+        MessageInput(
+            message_ref=later,
+            client_request_id=f"post:{later}",
+            space_ref=space_ref,
+            topic_ref=topic_ref,
+            author_actor_ref=actor,
+            body="reply",
+            recorded_at_ms=1,  # client clock order is irrelevant
+        )
+    )
+    assert second["sequence"] > first["sequence"]
+    valid = social.add_message_relation(
+        MessageRelationInput(
+            source_message_ref=later,
+            relation=MessageRelationKind.REPLY_TO,
+            target_ref=earlier,
+            actor_ref=actor,
+        ),
+        client_request_id=f"valid-reply:{later}",
+    )
+    assert valid["admission"] == "committed"
+
+    for source, target in ((earlier, earlier), (earlier, later), (later, later)):
+        with pytest.raises(ConflictError, match="earlier message"):
+            social.add_message_relation(
+                MessageRelationInput(
+                    source_message_ref=source,
+                    relation=MessageRelationKind.REPLY_TO,
+                    target_ref=target,
+                    actor_ref=actor,
+                ),
+                client_request_id=f"invalid-reply:{source}:{target}",
+            )
+
+    # References are deliberately NOT a causal reply relation.
+    retro_reference = social.add_message_relation(
+        MessageRelationInput(
+            source_message_ref=earlier,
+            relation=MessageRelationKind.REFERENCES,
+            target_ref=later,
+            actor_ref=actor,
+        ),
+        client_request_id=f"backward-reference:{earlier}",
+    )
+    assert retro_reference["admission"] == "committed"
+    actual = social.list_message_relations(earlier, direction="outgoing")
+    assert not any(row["relation"] == "reply_to" for row in actual["relations"])
+    assert any(row["relation"] == "references" for row in actual["relations"])
