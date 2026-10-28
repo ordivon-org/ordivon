@@ -27,6 +27,7 @@ updates:
   - package-ecosystem: cargo
     directories:
       - "/services/runtime"
+      - "/domains/game/room-action-kit"
     schedule:
       interval: weekly
     groups:
