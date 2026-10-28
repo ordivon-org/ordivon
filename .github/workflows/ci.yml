@@ -109,19 +109,17 @@ jobs:
           # Only a truly empty scope may contain no executable tasks.
           if (( ${#owners[@]} == 1 )) && [[ -z "${owners[0]}" ]]; then owners=(); fi
           if (( ${#tasks[@]} == 1 )) && [[ -z "${tasks[0]}" ]]; then tasks=(); fi
-          if (( ${#owners[@]} != ${#tasks[@]} )); then
-            echo "Selected verification owners and executable tasks disagree." >&2
-            exit 2
-          fi
-          # Consumer-selected tasks must match the provider-owned canonical
-          # queue contract exactly. A same-namespace task can still skip the
-          # queue's intended checks and cannot silently replace it.
-          python3 - "$owners_file" "$tasks_file" <<'PY'
+          # Owner tasks keep their canonical one-to-one queue contract. The
+          # existing Formal checker is a source-only task, not a fake Owner:
+          # only an exact tools/formal/ change can append formal:verify.
+          # Reuse the same native validator as the repository regression tests.
+          python3 - "$owners_file" "$tasks_file" "$RUNNER_TEMP/ordivon-convergence-plan.json" <<'PY'
+          import json
           import sys
           from pathlib import Path
 
           sys.path.insert(0, "tools/repo")
-          from affected_owners import OWNERS
+          import convergence_plan
 
           def read_selection(path):
               lines = Path(path).read_text(encoding="utf-8").splitlines()
@@ -129,15 +127,17 @@ jobs:
 
           selected = read_selection(sys.argv[1])
           requested = read_selection(sys.argv[2])
-          canonical = {owner.name: owner.queue_task for owner in OWNERS}
-          if len(selected) != len(requested) or len(selected) != len(set(selected)):
-              raise SystemExit("Selected owner/task identities are inconsistent")
-          for owner, task in zip(selected, requested):
-              if canonical.get(owner) != task:
-                  raise SystemExit(
-                      f"Selected task {task!r} violates consumer queue contract "
-                      f"for {owner!r}: {canonical.get(owner)!r}"
-                  )
+          plan_path = Path(sys.argv[3])
+          changed_paths = (
+              json.loads(plan_path.read_text(encoding="utf-8"))["changedPaths"]
+              if plan_path.is_file() else []
+          )
+          try:
+              convergence_plan.validate_queue_task_selection(
+                  selected, requested, changed_paths
+              )
+          except ValueError as exc:
+              raise SystemExit(str(exc)) from exc
           PY
           printf 'owners=%s\n' "$(IFS=,; echo "${owners[*]-}")" >> "$GITHUB_OUTPUT"
           runtime=false
@@ -145,6 +145,30 @@ jobs:
             [[ "$selected" == "runtime" ]] && runtime=true
           done
           printf 'runtime=%s\n' "$runtime" >> "$GITHUB_OUTPUT"
+          # Core Formal proof sources have an executable verifier even though
+          # they do not belong to any permanent domain Owner.
+          formal=false
+          if [[ "$EVENT_NAME" == "workflow_dispatch" || "$EVENT_NAME" == "schedule" ]]; then
+            formal=true
+          elif [[ ! -f "$RUNNER_TEMP/ordivon-convergence-plan.json" ]]; then
+            formal=true
+          elif python3 - "$RUNNER_TEMP/ordivon-convergence-plan.json" <<'PY'
+          import json
+          import sys
+
+          sys.path.insert(0, "tools/repo")
+          from affected_owners import requires_core_formal_verification
+
+          with open(sys.argv[1], encoding="utf-8") as handle:
+              change_plan = json.load(handle)
+          raise SystemExit(
+              0 if requires_core_formal_verification(change_plan["changedPaths"]) else 1
+          )
+          PY
+          then
+            formal=true
+          fi
+          printf 'formal=%s\n' "$formal" >> "$GITHUB_OUTPUT"
           {
             echo "### Affected owners"
             if (("${#owners[@]}" == 0)); then
@@ -174,6 +198,20 @@ jobs:
             mise run "$task" </dev/null
             echo "::endgroup::"
           done < "$RUNNER_TEMP/ordivon-affected-tasks.txt"
+
+      - name: Verify changed core Formal source
+        if: steps.affected.outputs.formal == 'true'
+        shell: bash
+        env:
+          # Isolate Kani's release bundle to this job; a truncated shared
+          # ~/.kani cache must not masquerade as a mathematical proof result.
+          KANI_HOME: ${{ runner.temp }}/ordivon-core-formal-kani
+        run: |
+          set -euo pipefail
+          cd tools/formal
+          mise install
+          cd ../..
+          mise run formal:verify
 
       - name: Runtime supply-chain policy
         if: steps.affected.outputs.runtime == 'true'

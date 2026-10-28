@@ -52,13 +52,31 @@ class BrowserSecurityR8Tests(unittest.TestCase):
                 r8.require_network_namespace()
 
     def test_cleanup_state_shape_is_boolean_only(self) -> None:
-        with tempfile.TemporaryDirectory():
-            value = r8._fresh_cleanup_state()
-        self.assertEqual(
-            set(value),
-            {"containerAbsent", "profileAbsent", "xSocketAbsent", "xauthAbsent"},
-        )
-        self.assertTrue(all(isinstance(v, bool) for v in value.values()))
+        # A shape unit test must not depend on live Podman storage readiness.
+        # Actual cleanup and container existence are separate fail-closed effects.
+        for container_exists in (True, False):
+            with self.subTest(container_exists=container_exists):
+                with (
+                    mock.patch.object(
+                        r8.r7.r5,
+                        "podman_container_exists",
+                        return_value=container_exists,
+                    ) as probe,
+                    tempfile.TemporaryDirectory(),
+                ):
+                    value = r8._fresh_cleanup_state()
+                probe.assert_called_once_with(r8.canary.CANARY_CONTAINER)
+                self.assertEqual(
+                    set(value),
+                    {
+                        "containerAbsent",
+                        "profileAbsent",
+                        "xSocketAbsent",
+                        "xauthAbsent",
+                    },
+                )
+                self.assertIs(value["containerAbsent"], not container_exists)
+                self.assertTrue(all(isinstance(v, bool) for v in value.values()))
 
 
 if __name__ == "__main__":

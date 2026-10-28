@@ -71,6 +71,31 @@
       "acceptance": [
         "Standing can distinguish stale/inapplicable evidence.",
         "The Security owner verification refuses a stale uv.lock before consuming locked dependencies."
+      ],
+      "inputs": [
+        "Exact Security pyproject.toml, uv.lock, required Python selector and native mise verify task declaration."
+      ],
+      "outputs": [
+        "Source-local dependency/lock freshness admission or explicit verification failure; no installed or policy admission authority."
+      ],
+      "behavioralContract": "For the observed Security source-toolchain consumer only, the native mise verify task first executes uv sync --locked --python 3.15.1; a mismatched pyproject.toml and uv.lock must fail before later frozen dependency consumers. A frozen sync alone does not qualify source manifest freshness. No other S03 applicability, deployment, or policy-effect acceptance is inferred.",
+      "consumerBindings": [
+        {
+          "path": "mise.toml",
+          "symbol": "tasks.verify.run",
+          "operation": "uv sync --locked --python 3.15.1 before ruff check and security tests",
+          "standing": "SOURCE_DECLARED_NATIVE_TASK_NOT_INSTALLED"
+        },
+        {
+          "path": "tests/test_owner_uv_lock_freshness.py",
+          "symbol": "OwnerUvLockFreshness",
+          "operation": "real isolated uv locked-vs-frozen stale manifest negative control",
+          "standing": "SOURCE_EXECUTABLE_TEST_CONSUMER"
+        }
+      ],
+      "formalObligations": [
+        "OPEN: Establish source manifest and lock correspondence for all admitted Security consumers, not only the observed uv lock-freshness task.",
+        "OPEN: Exact installed interpreter/dependency resolution and downstream OPA policy/effect acceptance are not established by a fresh uv.lock."
       ]
     },
     {

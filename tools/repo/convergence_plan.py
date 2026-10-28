@@ -126,6 +126,37 @@ def _is_cross_cutting(paths: Iterable[str]) -> bool:
     )
 
 
+def validate_queue_task_selection(
+    selected_owners: list[str],
+    requested_tasks: list[str],
+    changed_paths: list[str] | tuple[str, ...] = (),
+) -> None:
+    """Fail closed on the *real* queue consumer's owner and source-task contract.
+
+    The only source-only verification task is the existing formal:verify. It
+    is never a fake Owner or a substitute for another Owner's queue gate.
+    """
+    canonical = {
+        owner.name: owner.queue_task for owner in affected_owners.OWNERS
+    }
+    if len(selected_owners) != len(set(selected_owners)):
+        raise ValueError("selected verification owner identities are duplicated")
+    if any(owner not in canonical for owner in selected_owners):
+        raise ValueError("selected verification owner identity is unknown")
+    formal_source_changed = any(
+        affected_owners._normalize(path).startswith("tools/formal/")
+        for path in changed_paths
+    )
+    expected = [canonical[owner] for owner in selected_owners]
+    if formal_source_changed:
+        expected.append("formal:verify")
+    if requested_tasks != expected:
+        raise ValueError(
+            "queue task selection must match canonical owner tasks plus "
+            "the scoped Formal-source verification task"
+        )
+
+
 def build_plan(
     *,
     base: str | None = None,
@@ -181,8 +212,22 @@ def build_plan(
         queue_class = "REPOSITORY_ONLY"
 
     by_name = {owner.name: owner for owner in owners}
-    verify_tasks = tuple(by_name[name].task for name in verification_names)
-    queue_verify_tasks = tuple(by_name[name].queue_task for name in verification_names)
+    # Formal proofs live in the existing repository Tool source region, not an
+    # invented domain Owner. A changed proof/checker source must still route to
+    # the already declared root mise formal:verify consumer task.
+    formal_source_changed = any(
+        affected_owners._normalize(path).startswith("tools/formal/")
+        for path in paths
+    )
+    formal_tasks = ("formal:verify",) if formal_source_changed else ()
+    verify_tasks = (
+        *(by_name[name].task for name in verification_names),
+        *formal_tasks,
+    )
+    queue_verify_tasks = (
+        *(by_name[name].queue_task for name in verification_names),
+        *formal_tasks,
+    )
     declared_edges = sorted(
         {
             tuple(sorted((left, right)))
