@@ -165,6 +165,10 @@ def changed_paths(base: str, head: str) -> tuple[str, ...]:
             "git", "--no-replace-objects", "diff", "--name-only", "--no-renames", "-z",
             "--diff-filter=ACDMRTUXB", f"{base}...{head}",
         ],
+        # Object replacement and the separate legacy graft file can each
+        # rewrite ancestry without changing the requested commit IDs. Both
+        # are excluded from exact SourceCut delta/verification selection.
+        env={**os.environ, "GIT_GRAFT_FILE": os.devnull},
         check=True,
         stdout=subprocess.PIPE,
     )
