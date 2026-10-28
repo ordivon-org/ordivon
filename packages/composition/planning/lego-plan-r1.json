@@ -184,6 +184,11 @@
       ],
       "consumerBindings": [
         {
+          "path": "packages/composition/src/ordivon_composition/effect_reconciliation_r1.py",
+          "operation": "qualify_execution_effect_frontier invokes select_impacted_obligations to propagate exact effect uncertainty into task-local dependent proofs",
+          "standing": "SOURCE_AST_DIRECT_IMPORT_AND_CALL; NATIVE_TEST_CONSUMER_CONFIRMED; INSTALLED_AND_DOMAIN_EFFECT_UNKNOWN"
+        },
+        {
           "path": "packages/composition/tests/test_verification_obligation_r1.py",
           "operation": "select_impacted_obligations local test and CLI",
           "standing": "SOURCE_TEST_AND_CLI_CONSUMER_EXTERNAL_UNKNOWN"
