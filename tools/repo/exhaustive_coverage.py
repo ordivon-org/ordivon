@@ -732,6 +732,16 @@ def _load_strict_authority_observation_json(path: Path) -> object:
     def reject_constant(value: str) -> object:
         raise ValueError(f"non-standard JSON constant in authority observation: {value}")
 
+    def finite_float(token: str) -> float:
+        # 1e309 is legal JSON syntax but Python decodes it to Infinity without
+        # invoking parse_constant; the observation contract cannot admit it.
+        import math
+
+        value = float(token)
+        if not math.isfinite(value):
+            raise ValueError("non-standard nonfinite authority observation JSON number")
+        return value
+
     def unique_members(pairs: list[tuple[str, object]]) -> dict:
         result: dict[str, object] = {}
         for key, value in pairs:
@@ -742,7 +752,8 @@ def _load_strict_authority_observation_json(path: Path) -> object:
 
     return json.loads(
         path.read_text(encoding="utf-8"),
-        parse_constant=reject_constant, object_pairs_hook=unique_members,
+        parse_constant=reject_constant, parse_float=finite_float,
+        object_pairs_hook=unique_members,
     )
 
 

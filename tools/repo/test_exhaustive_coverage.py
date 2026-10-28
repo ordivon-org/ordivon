@@ -1115,6 +1115,11 @@ class ExternalAuthorityObservationJoinTests(unittest.TestCase):
         nonstandard_unknown = original.replace(
             '"kind": ', '"unknownMetadata": NaN, "kind": ', 1,
         )
+        # Python's JSON parser treats this valid JSON numeric syntax as inf.
+        # The existing parse_constant hook never sees overflowing exponents.
+        overflow_unknown = original.replace(
+            '"kind": ', '"unknownMetadata": 1e309, "kind": ', 1,
+        )
         with tempfile.TemporaryDirectory() as td:
             path = pathlib.Path(td) / "reported.json"
             cmd = [
@@ -1126,6 +1131,7 @@ class ExternalAuthorityObservationJoinTests(unittest.TestCase):
                 ("duplicate_source_cut", duplicate_cut),
                 ("duplicate_nested_fact", duplicate_fact),
                 ("nonstandard_ignored_constant", nonstandard_unknown),
+                ("overflowing_ignored_float", overflow_unknown),
             ):
                 with self.subTest(label=label):
                     path.write_text(payload, encoding="utf-8")
