@@ -247,7 +247,7 @@
         "A source-local readiness verdict; nonzero/UNKNOWN when necessary observation is missing, failed or expired."
       ],
       "behavioralContract": [
-        "All declared consumers share one readiness deadline; positive allowed-origin probes require consumer-specific transport/status evidence and reject missing or malformed positive observations. Supply-chain additionally requires explicit CONNECT403 for unknown-destination denial and rejects arbitrary transport/proxy-auth failure. Claude's unknown-destination branch currently accepts any nonzero curl result; that branch alone does not distinguish policy rejection from transport failure, so policy-denial attribution remains UNKNOWN.",
+        "All declared consumers share one readiness deadline. Allowed-origin probes must report the expected status, CONNECT=200 and positive TLS completion. Supply-Chain and Claude unknown-destination probes require an explicit HTTPS CONNECT=403 denial from the selected proxy: DNS/transport failure (CONNECT=000), proxy auth (CONNECT=407), an origin HTTP 403 after CONNECT=200, malformed receipts, and expired budgets never establish policy denial. Chat-ingress rejection and live provider reachability remain separately qualified.",
         "A conservative CONNECT403 signature can yield false-negative readiness for some actual sing-box reject policies; live provider/domain success is not entailed."
       ],
       "sharedRefs": [],
@@ -273,7 +273,11 @@
       ],
       "acceptance": [
         "Native isolated Bash fake-time test demonstrates a common failure consumes one shared deadline and cannot yield READY.",
-        "Existing consumer tests reject malformed or failed allowed-origin observations; supply-chain tests additionally reject unknown-destination transport, proxy-auth and origin-HTTP403 false positives. Claude tests reject reachable direct/unknown-origin HTTP403, but do not establish that an arbitrary failed unknown-destination probe denotes policy rejection. Installed readiness and true upstream observation require additional receipts."
+        "Existing consumer tests reject malformed or failed allowed-origin observations. Supply-Chain and Claude fake-provider tests distinguish CONNECT=403 from transport/proxy-auth failure and from origin HTTP 403 after a permitted CONNECT tunnel; the exact Claude source contract is consumed by Taskfile materialization and tests. This is a source-bounded negative/positive witness, not evidence that a running proxy loaded the policy."
+      ],
+      "consumers": [
+        "Taskfile.yml consumer:claude:materialize installs consumers/claude/ready.sh as /usr/local/libexec/network-v2/claude-ready",
+        "tests/test_claude_egress_readiness_consumer.py executes the existing Claude readiness Bash under isolated provider mocks"
       ]
     },
     {
