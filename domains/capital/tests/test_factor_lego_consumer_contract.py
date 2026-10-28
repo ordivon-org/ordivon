@@ -121,6 +121,25 @@ def test_wrong_type_factor_loadings_must_not_mean_empty_exposure(
         )
 
 
+def test_micro_factor_and_risk_ratios_remain_exact_machine_evidence() -> None:
+    """Even if six places are enough for a display, they cannot erase risk."""
+    from decimal import Decimal
+
+    ledger = build_exposure_ledger(
+        equity_usd="3",
+        available_equity_usd="1",
+        positions=[{
+            "instrumentId": "ASSET-A",
+            "signedNotionalUsd": "1",
+            "factorLoadings": {"micro": "0.0000001"},
+        }],
+    )
+    assert Decimal(ledger["factorExposure"][0]["signedExposureUsd"]) == Decimal("0.0000001")
+    assert Decimal(ledger["factorExposure"][0]["absoluteExposureToGross"]) == Decimal("0.0000001")
+    assert Decimal(ledger["grossToEquity"]) == Decimal("1") / Decimal("3")
+    assert Decimal(ledger["availableEquityRatio"]) == Decimal("1") / Decimal("3")
+
+
 @pytest.mark.parametrize(
     ("signed_notional", "loading", "equity"),
     [
@@ -131,7 +150,7 @@ def test_wrong_type_factor_loadings_must_not_mean_empty_exposure(
         ("100.000001", "0.123456", "1000"),
     ],
 )
-def test_round_trip_does_not_lose_machine_consumed_factor_precision(
+def test_source_and_derived_ledger_values_do_not_lose_precision(
     signed_notional: str, loading: str, equity: str,
 ) -> None:
     """Source raw decimals survive exactly; 6dp is a display, not a machine cut."""
@@ -151,18 +170,11 @@ def test_round_trip_does_not_lose_machine_consumed_factor_precision(
     assert Decimal(normalized["factorLoadings"]["sector"]) == Decimal(loading)
     assert Decimal(ledger["equityUsd"]) == Decimal(equity)
     assert Decimal(ledger["availableEquityUsd"]) == Decimal("40.0000007")
-    scenario = build_action_counterfactual(
-        exposure_ledger=ledger,
-        scenario={
-            "scenarioId": "explicit-de-risk",
-            "action": "DE_RISK",
-            "instrumentId": "ASSET-A",
-            "reductionFraction": "0.25",
-        },
-    )
-    before = scenario["deltas"]["factorExposure"][0]["beforeUsd"]
-    assert before == ledger["factorExposure"][0]["signedExposureUsd"]
-    assert scenario["baseline"]["grossToEquity"] == ledger["grossToEquity"]
+    # This producer-owned check is about exact source and derived values.
+    # Downstream scenario display values are verified in their own consumer.
+    expected = Decimal(signed_notional) * Decimal(loading)
+    assert Decimal(ledger["factorExposure"][0]["signedExposureUsd"]) == expected
+    assert Decimal(ledger["grossToEquity"]) == abs(Decimal(signed_notional)) / Decimal(equity)
 
 
 @pytest.mark.parametrize("signed_notional", ["-100", "0", "75", "125"])

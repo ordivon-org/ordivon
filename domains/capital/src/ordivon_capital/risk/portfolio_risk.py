@@ -151,13 +151,13 @@ def build_exposure_ledger(
             "absoluteNotionalUsd": _fmt_lossless(abs(signed)),
             "direction": "LONG" if signed > 0 else "SHORT" if signed < 0 else "FLAT",
             "grossShare": None,
-            "equityMultiple": _fmt(abs(signed) / equity),
+            "equityMultiple": _fmt_lossless(abs(signed) / equity),
             "factorLoadings": factor_loadings,
         })
 
     if gross > 0:
         for row in normalized:
-            row["grossShare"] = _fmt(_d(row["absoluteNotionalUsd"], "absoluteNotionalUsd") / gross)
+            row["grossShare"] = _fmt_lossless(_d(row["absoluteNotionalUsd"], "absoluteNotionalUsd") / gross)
     else:
         for row in normalized:
             row["grossShare"] = "0.000000"
@@ -170,8 +170,8 @@ def build_exposure_ledger(
     factor_rows = [
         {
             "factor": factor,
-            "signedExposureUsd": _fmt(exposure),
-            "absoluteExposureToGross": _fmt(abs(exposure) / gross) if gross > 0 else "0.000000",
+            "signedExposureUsd": _fmt_lossless(exposure),
+            "absoluteExposureToGross": _fmt_lossless(abs(exposure) / gross) if gross > 0 else "0.000000",
             "note": "factor exposures may overlap and are not additive risk contributions",
         }
         for factor, exposure in sorted(factor_exposure.items())
@@ -183,16 +183,16 @@ def build_exposure_ledger(
         "componentId": "exposure-ledger",
         "equityUsd": _fmt_lossless(equity),
         "availableEquityUsd": _fmt_lossless(available),
-        "availableEquityRatio": _fmt(available_ratio),
+        "availableEquityRatio": _fmt_lossless(available_ratio),
         "initialMarginUsd": _fmt_lossless(imr) if imr is not None else None,
-        "initialMarginToEquity": _fmt(imr / equity) if imr is not None else None,
+        "initialMarginToEquity": _fmt_lossless(imr / equity) if imr is not None else None,
         "maintenanceMarginUsd": _fmt_lossless(mmr) if mmr is not None else None,
-        "maintenanceMarginToEquity": _fmt(mmr / equity) if mmr is not None else None,
-        "grossNotionalUsd": _fmt(gross),
-        "netNotionalUsd": _fmt(net),
-        "grossToEquity": _fmt(gross_to_equity),
-        "netToEquity": _fmt(net_to_equity),
-        "largestPositionGrossShare": _fmt(largest / gross) if gross > 0 else "0.000000",
+        "maintenanceMarginToEquity": _fmt_lossless(mmr / equity) if mmr is not None else None,
+        "grossNotionalUsd": _fmt_lossless(gross),
+        "netNotionalUsd": _fmt_lossless(net),
+        "grossToEquity": _fmt_lossless(gross_to_equity),
+        "netToEquity": _fmt_lossless(net_to_equity),
+        "largestPositionGrossShare": _fmt_lossless(largest / gross) if gross > 0 else "0.000000",
         "positionCount": len(normalized),
         "positions": normalized,
         "factorExposure": factor_rows,
