@@ -21,6 +21,7 @@ from typing import Any
 
 from .cognitive_circuit_r1 import (
     CircuitContractError,
+    _finite_json_float,
     _load_json,
     _reject_non_json_constant,
     _single_valued_json_object,
@@ -45,6 +46,7 @@ def _load_task_local_json_list(path: Path) -> list[Any]:
         path.read_text(encoding="utf-8"),
         object_pairs_hook=_single_valued_json_object,
         parse_constant=_reject_non_json_constant,
+        parse_float=_finite_json_float,
     )
     if not isinstance(value, list):
         raise CircuitContractError("task-local proof input must be a JSON array")
