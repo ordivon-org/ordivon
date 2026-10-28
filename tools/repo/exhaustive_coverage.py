@@ -13,9 +13,11 @@ import ast
 import collections
 import hashlib
 import json
+import math
 import os
 import re
 import stat
+from datetime import datetime
 import subprocess
 import tomllib
 from pathlib import Path
@@ -674,11 +676,16 @@ def join_observed_authorities(problem_frontier: dict, evidence: dict) -> dict:
                 r"20[0-9]{2}-[01][0-9]-[0-3][0-9]T[0-2][0-9]:[0-5][0-9]:[0-5][0-9]Z",
                 item["observedAt"]):
             raise ValueError("observation timestamp is not UTC ISO seconds")
+        try:
+            datetime.strptime(item["observedAt"], "%Y-%m-%dT%H:%M:%SZ")
+        except ValueError as exc:
+            raise ValueError("observation timestamp is not a valid UTC instant") from exc
         facts = item["observedFacts"]
         if (not isinstance(facts, dict) or len(facts) > 32 or
                 any(not isinstance(k, str) or len(k) > 80 or
                     not (v is None or type(v) in (str, int, float, bool)) or
-                    isinstance(v, str) and len(v) > 320
+                    isinstance(v, str) and len(v) > 320 or
+                    type(v) is float and not math.isfinite(v)
                     for k, v in facts.items())):
             raise ValueError("observation fact payload must be bounded scalar metadata")
         candidate = item["candidateProblemRef"]
@@ -697,7 +704,7 @@ def join_observed_authorities(problem_frontier: dict, evidence: dict) -> dict:
         ref = "observed-subject:sha256:" + hashlib.sha256(
             json.dumps(key, separators=(",", ":")).encode()).hexdigest()
         payload_digest = "sha256:" + hashlib.sha256(
-            json.dumps(item, sort_keys=True, ensure_ascii=True,
+            json.dumps(item, sort_keys=True, ensure_ascii=True, allow_nan=False,
                        separators=(",", ":")).encode()).hexdigest()
         joined.append({
             "subjectRef": ref,
