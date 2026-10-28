@@ -324,6 +324,83 @@ theorem missing_consumer_edge_invalidates_graph_reuse :
     | true => exact False.elim (noVariation (Or.inl rfl))
   · decide
 
+-- R2.1 original-repository history closure: Git ancestry may be checked on
+-- a shallow repository which suppresses real parent edges. A positive path
+-- witnessed in the partial graph remains a positive path in the complete
+-- graph; a negative result is NOT a certificate of non-ancestry. This
+-- distinction affects historical evidence admission and proof currentness.
+--
+-- NOTE: this is only an abstract graph-contract theorem. It does NOT show
+-- that the actual Git objects, source repository identity, immutable import
+-- bytes, or current implementation were qualified by the Python verifier.
+inductive GitParentReach {Commit : Type}
+    (parent : Commit → Commit → Prop) : Commit → Commit → Prop
+  | refl (commit : Commit) : GitParentReach parent commit commit
+  | step {older middle newer : Commit} :
+      GitParentReach parent older middle →
+      parent middle newer →
+      GitParentReach parent older newer
+
+theorem observed_git_ancestor_implies_actual
+    {Commit : Type} (actual observed : Commit → Commit → Prop)
+    (observedSubset : ∀ a b, observed a b → actual a b)
+    {older newer : Commit}
+    (observedPath : GitParentReach observed older newer) :
+    GitParentReach actual older newer := by
+  induction observedPath with
+  | refl =>
+      exact GitParentReach.refl _
+  | step previous edge ih =>
+      exact GitParentReach.step ih (observedSubset _ _ edge)
+
+theorem complete_git_edges_transfer_actual_ancestry
+    {Commit : Type} (actual observed : Commit → Commit → Prop)
+    (actualCovered : ∀ a b, actual a b → observed a b)
+    {older newer : Commit}
+    (actualPath : GitParentReach actual older newer) :
+    GitParentReach observed older newer := by
+  exact observed_git_ancestor_implies_actual observed actual
+    actualCovered actualPath
+
+theorem empty_git_parent_edges_only_refl
+    {Commit : Type} {older newer : Commit}
+    (path : GitParentReach (fun _ _ => False) older newer) :
+    older = newer := by
+  induction path with
+  | refl => rfl
+  | step _ edge _ => exact False.elim edge
+
+-- Non-vacuous countermodel: the complete graph has one real parent link
+-- false -> true, the shallow graph sees no links, and therefore reports a
+-- negative ancestry relation which is false in the full graph.
+theorem shallow_git_non_ancestor_is_not_authoritative :
+    ∃ (actual observed : Bool → Bool → Prop),
+      (∀ a b, observed a b → actual a b) ∧
+      GitParentReach actual false true ∧
+      ¬ GitParentReach observed false true := by
+  refine ⟨(fun a b => a = false ∧ b = true),
+    (fun _ _ => False), ?_, ?_, ?_⟩
+  · intro _ _ h
+    exact False.elim h
+  · exact GitParentReach.step (GitParentReach.refl false) ⟨rfl, rfl⟩
+  · intro shallowPath
+    exact (by decide : false ≠ true)
+      (empty_git_parent_edges_only_refl shallowPath)
+
+-- Distinguish a proven negative ancestor answer from merely having no
+-- observable path: a negative answer transfers ONLY if the necessary
+-- complete-history/parent-edge inclusion premise was discharged.
+theorem qualified_git_non_ancestor_if_complete
+    {Commit : Type} (actual observed : Commit → Commit → Prop)
+    (actualCovered : ∀ a b, actual a b → observed a b)
+    {older newer : Commit}
+    (noObservedPath : ¬ GitParentReach observed older newer) :
+    ¬ GitParentReach actual older newer := by
+  intro actualPath
+  exact noObservedPath
+    (complete_git_edges_transfer_actual_ancestry actual observed
+      actualCovered actualPath)
+
 -- R2.1 successor-evaluation *necessary* source identity condition.
 -- An external-to-candidate label cannot coexist with an anchor whose
 -- declared controlling owner is the very candidate under evaluation.
@@ -356,6 +433,9 @@ theorem relation_label_alone_cannot_certify_external_identity :
 
 end OrdivonR21
 
+#print axioms OrdivonR21.observed_git_ancestor_implies_actual
+#print axioms OrdivonR21.shallow_git_non_ancestor_is_not_authoritative
+#print axioms OrdivonR21.qualified_git_non_ancestor_if_complete
 #print axioms OrdivonR21.scoped_git_complete_iff_no_unobserved
 #print axioms OrdivonR21.equal_task_images_can_hide_unobserved_git_source
 #print axioms OrdivonR21.graph_reuse_candidate_excludes_direct_readset_change
