@@ -169,12 +169,28 @@ def validate_queue_task_selection(
         root_tasks = declared.get("tasks")
         if not isinstance(root_tasks, dict):
             raise ValueError("selected queue tasks require a root mise task table")
+        def admitted_native_command(value: object) -> bool:
+            # Every currently selected root queue task has a string run.
+            # Accept nonempty command arrays / dependency names as well, but
+            # reject truthy TOML integers, maps or blank list entries: mere
+            # truthiness does not establish a runnable Mise task.
+            if isinstance(value, str):
+                return bool(value.strip())
+            if isinstance(value, list):
+                return bool(value) and all(
+                    isinstance(part, str) and bool(part.strip()) for part in value
+                )
+            return False
+
         for name in requested_tasks:
             task = root_tasks.get(name)
             if isinstance(task, str):
-                callable_task = bool(task.strip())
+                callable_task = admitted_native_command(task)
             elif isinstance(task, dict):
-                callable_task = bool(task.get("run") or task.get("depends"))
+                callable_task = (
+                    admitted_native_command(task.get("run"))
+                    or admitted_native_command(task.get("depends"))
+                )
             else:
                 callable_task = False
             if not callable_task:

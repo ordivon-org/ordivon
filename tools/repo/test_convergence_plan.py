@@ -231,6 +231,35 @@ class ConvergencePlanTests(unittest.TestCase):
                         plan["verificationOwners"], plan["queueVerifyTasks"], changed
                     )
 
+    def test_selected_runner_rejects_invalid_typed_mise_tasks(self) -> None:
+        """Exact task names do not prove Mise can execute malformed run fields."""
+        from unittest import mock
+        source = "tools/formal/RecursiveLegoRefinement.lean"
+        plan = MODULE.build_plan(changed_files=[source])
+        self.assertEqual(plan["queueVerifyTasks"], ["formal:verify"])
+        with tempfile.TemporaryDirectory(prefix="ordivon-invalid-mise-") as temp:
+            manifest = Path(temp) / "mise.toml"
+            for malformed in (
+                "run = 7",
+                'run = [""]',
+                'run = ["   "]',
+                'run = {bad = "no runnable program"}',
+                "depends = 7",
+                'depends = [""]',
+            ):
+                with self.subTest(malformed=malformed):
+                    manifest.write_text(
+                        '[tasks."formal:verify"]\n' + malformed + "\n",
+                        encoding="utf-8",
+                    )
+                    with mock.patch.object(MODULE, "ROOT_TASKS_PATH", manifest):
+                        with self.assertRaisesRegex(ValueError, "root mise runner"):
+                            MODULE.validate_queue_task_selection(
+                                plan["verificationOwners"],
+                                plan["queueVerifyTasks"],
+                                [source],
+                            )
+
     def test_github_queue_uses_same_strict_formal_source_task_validation(self) -> None:
         workflow = (MODULE_PATH.parents[2] / ".github/workflows/ci.yml").read_text()
         self.assertIn("convergence_plan.validate_queue_task_selection(", workflow)
