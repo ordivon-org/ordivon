@@ -41,7 +41,16 @@ class FullCoverageTests(unittest.TestCase):
             (ROOT / "tools/formal/mise.toml").read_text())["tasks"]
         self.assertEqual(root_tasks["formal:verify"]["run"],
                          "cd tools/formal && mise run verify")
-        self.assertEqual(formal_tasks["verify"]["run"], "python3 verify.py")
+        # Accept an isolated KANI_HOME shell prologue (Formal toolchain PR)
+        # without confusing source task routing with an exact shell string.
+        verify_run = formal_tasks["verify"]["run"]
+        executable_lines = [
+            line.strip() for line in verify_run.splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        ]
+        self.assertTrue(executable_lines)
+        self.assertEqual(executable_lines[-1], "python3 verify.py")
+        self.assertEqual(executable_lines.count("python3 verify.py"), 1)
         self.assertEqual(M.source_partition("tools/unknown_script.py", policy)
                          ["standing"], "UNASSIGNED")
 
