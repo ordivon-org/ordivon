@@ -87,6 +87,127 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertEqual(plan["verificationOwners"], [])
         self.assertEqual(plan["scopeIds"], [])
 
+    def test_formal_source_change_queues_existing_formal_verifier_without_owner(self) -> None:
+        """Mathematical source changes need the real formal task, not just REPOSITORY_ONLY."""
+        for path in (
+            "tools/formal/RecursiveLegoRefinement.lean",
+            "tools/formal/Proof.qnt",
+            "tools/formal/verify.py",
+        ):
+            plan = MODULE.build_plan(changed_files=[path])
+            self.assertEqual(plan["queueClass"], "REPOSITORY_ONLY")
+            self.assertEqual(plan["directOwners"], [])
+            self.assertEqual(plan["verificationOwners"], [])
+            self.assertEqual(plan["verifyTasks"], ["formal:verify"])
+            self.assertEqual(plan["queueVerifyTasks"], ["formal:verify"])
+
+        output = subprocess.check_output([
+            sys.executable, str(MODULE_PATH),
+            "--changed-file", "tools/formal/RecursiveLegoRefinement.lean",
+            "--format", "queue-tasks",
+        ], text=True)
+        self.assertEqual(output.strip(), "formal:verify")
+
+    def test_formal_source_change_composes_with_real_owner_verification(self) -> None:
+        plan = MODULE.build_plan(changed_files=[
+            "tools/formal/RecursiveLegoRefinement.lean",
+            "services/runtime/crates/ordivon-runtime-core/src/lib.rs",
+        ])
+        self.assertEqual(plan["queueClass"], "SCOPED")
+        self.assertEqual(plan["verificationOwners"], ["composition", "runtime"])
+        self.assertEqual(
+            plan["queueVerifyTasks"],
+            ["composition:verify", "runtime:verify", "formal:verify"],
+        )
+        self.assertEqual(plan["scopeIds"], ["owner-component:runtime"])
+
+    def test_repository_docs_do_not_enqueue_formal_tools(self) -> None:
+        plan = MODULE.build_plan(changed_files=["docs/architecture/EXAMPLE.md"])
+        self.assertEqual(plan["queueVerifyTasks"], [])
+        self.assertEqual(plan["verifyTasks"], [])
+
+    def test_formal_source_extra_task_is_admitted_by_real_queue_contract(self) -> None:
+        MODULE.validate_queue_task_selection(
+            [], ["formal:verify"],
+            ["tools/formal/RecursiveLegoRefinement.lean"],
+        )
+        MODULE.validate_queue_task_selection(
+            ["composition", "runtime"],
+            ["composition:verify", "runtime:verify", "formal:verify"],
+            ["services/runtime/crates/ordivon-runtime-core/src/lib.rs",
+             "tools/formal/Proof.qnt"],
+        )
+
+    def test_formal_source_task_queue_validation_denies_missing_or_forged_tasks(self) -> None:
+        for owners, requested, changed in (
+            ([], [], ["tools/formal/Proof.qnt"]),
+            ([], ["formal:verify"], ["docs/architecture/EXAMPLE.md"]),
+            ([], ["formal:verify", "formal:verify"], ["tools/formal/Proof.qnt"]),
+            ([], ["runtime:verify"], ["tools/formal/Proof.qnt"]),
+            (["runtime"], ["formal:verify"], ["tools/formal/Proof.qnt"]),
+            (["runtime", "runtime"], ["runtime:verify", "runtime:verify"], []),
+            (["made-up-owner"], ["formal:verify"], ["tools/formal/Proof.qnt"]),
+        ):
+            with self.subTest(owners=owners, requested=requested, changed=changed):
+                with self.assertRaises(ValueError):
+                    MODULE.validate_queue_task_selection(owners, requested, changed)
+
+    def test_github_queue_uses_same_strict_formal_source_task_validation(self) -> None:
+        workflow = (MODULE_PATH.parents[2] / ".github/workflows/ci.yml").read_text()
+        self.assertIn("convergence_plan.validate_queue_task_selection(", workflow)
+        self.assertIn("ordivon-convergence-plan.json", workflow)
+        self.assertIn('mise run "$task"', workflow)
+
+    def test_real_github_queue_inline_validator_rejects_forged_formal_tasks(self) -> None:
+        """Execute the exact inline Python consumer, not a duplicate example."""
+        root = MODULE_PATH.parents[2]
+        workflow = (root / ".github/workflows/ci.yml").read_text()
+        marker = (
+            '          python3 - "$owners_file" "$tasks_file" '
+            '"$RUNNER_TEMP/ordivon-convergence-plan.json" <<' + "'PY'"
+        )
+        self.assertEqual(workflow.count(marker), 1)
+        body = workflow.split(marker, 1)[1].split("          PY", 1)[0]
+        code = "\n".join(line[10:] for line in body.splitlines() if line.strip())
+        self.assertIn("convergence_plan.validate_queue_task_selection(", code)
+        self.assertNotIn(
+            "Selected verification owners and executable tasks disagree", workflow
+        )
+        examples = (
+            ([], ["formal:verify"], ["tools/formal/Proof.qnt"], True),
+            (["runtime"], ["runtime:verify"],
+             ["services/runtime/crates/ordivon-runtime-core/src/lib.rs"], True),
+            (["composition", "runtime"],
+             ["composition:verify", "runtime:verify", "formal:verify"],
+             ["services/runtime/crates/ordivon-runtime-core/src/lib.rs",
+              "tools/formal/RecursiveLegoRefinement.lean"], True),
+            ([], ["formal:verify"], ["docs/architecture/EXAMPLE.md"], False),
+            ([], [], ["tools/formal/Proof.qnt"], False),
+            (["runtime"], ["runtime:verify", "unexpected-task"],
+             ["tools/formal/Proof.qnt"], False),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            owners_path = folder / "owners.txt"
+            tasks_path = folder / "tasks.txt"
+            plan_path = folder / "plan.json"
+            for owners, tasks, changed, accepted in examples:
+                with self.subTest(owners=owners, tasks=tasks, changed=changed):
+                    owners_path.write_text("\n".join(owners) + "\n")
+                    tasks_path.write_text("\n".join(tasks) + "\n")
+                    plan_path.write_text(__import__("json").dumps({
+                        "changedPaths": changed,
+                    }))
+                    result = subprocess.run(
+                        [sys.executable, "-c", code,
+                         str(owners_path), str(tasks_path), str(plan_path)],
+                        cwd=root, capture_output=True, text=True, timeout=20,
+                    )
+                    self.assertEqual(
+                        result.returncode == 0, accepted,
+                        result.stdout + result.stderr,
+                    )
+
     def test_explicit_owner_universe_is_used_for_direct_selection(self) -> None:
         # Scoped owner sets must not leak global owner identities into plans.
         scoped_owner = MODULE.affected_owners.Owner(
